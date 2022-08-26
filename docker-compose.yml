@@ -1,0 +1,9 @@
+version: Compose specification
+services:
+    octopus:
+        image: pplmx/aurora
+        ports:
+            - 6666
+            - 8888
+            - 12345
+        restart: unless-stopped
