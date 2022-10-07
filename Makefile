@@ -4,8 +4,11 @@ BINARY_NAME="aurora"
 IMAGE_NAME="pplmx/aurora"
 COMPOSE_SERVICE_NAME="aurora"
 
+DOCKERFILE_PATH="build/package/Dockerfile"
+COMPOSE_PATH="deployments/docker-compose.yml"
+
 # Path: starter
-MAIN_GO=main.go
+MAIN_GO=cmd/aurora/main.go
 
 dep:
 	go mod download
@@ -34,13 +37,13 @@ run:
 	./${BINARY_NAME}-linux start
 
 image:
-	docker image build -t ${IMAGE_NAME} .
+	docker image build -f ${DOCKERFILE_PATH} -t ${IMAGE_NAME} .
 
 start:
-	docker compose -p ${COMPOSE_SERVICE_NAME} up -d
+	docker compose -f ${COMPOSE_PATH} -p ${COMPOSE_SERVICE_NAME} up -d
 
 stop:
-	docker-compose -p ${COMPOSE_SERVICE_NAME} down
+	docker-compose -f ${COMPOSE_PATH} -p ${COMPOSE_SERVICE_NAME} down
 
 restart: stop start
 
@@ -50,7 +53,7 @@ prod: image restart
 
 clean:
 	go clean
+	docker compose -f ${COMPOSE_PATH} -p ${COMPOSE_SERVICE_NAME} down
 	rm -f ${BINARY_NAME}-linux
 	rm -f ${BINARY_NAME}-darwin
 	rm -f ${BINARY_NAME}-windows
-	docker compose -p ${COMPOSE_SERVICE_NAME} down
