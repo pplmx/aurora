@@ -8,13 +8,13 @@ ENV GOOS linux
 ENV CGO_ENABLED 0
 ENV GOPROXY https://goproxy.cn,direct
 
-COPY ../../go.* ./
+COPY go.mod go.sum ./
 RUN go mod download
 
-COPY ../.. .
+COPY . .
 
 # build the binary: -ldflags="-w -s" for the much smaller binary
-RUN go build -ldflags="-w -s" -o ./out/aurora cmd/aurora/main.go
+RUN go build -ldflags="-w -s" -o ./out/aurora src/main.go
 
 
 ### Deploy
