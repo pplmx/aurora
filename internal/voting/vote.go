@@ -1,4 +1,4 @@
-package models
+package voting
 
 import (
 	"crypto/ed25519"
