@@ -1,4 +1,4 @@
-package models
+package voting
 
 // Candidate is a struct that represents a candidate in the voting system
 type Candidate struct {

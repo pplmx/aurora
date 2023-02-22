@@ -4,57 +4,40 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
-	"github.com/pplmx/aurora/internal/models"
-	"time"
+	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/voting"
+	"strconv"
 )
 
-func testBaseBlockchain() {
-	var chain models.Blockchain
+func Blockchain() {
+	chain := blockchain.InitBlockChain()
 
-	genesisBlock := models.Block{Timestamp: time.Now().String(), Data: "Genesis Block"}
-	genesisBlock.Hash = models.CalculateHash(genesisBlock)
-	chain = append(chain, genesisBlock)
+	chain.AddBlock("first block after genesis")
+	chain.AddBlock("second block after genesis")
+	chain.AddBlock("third block after genesis")
 
-	fmt.Println("genesisBlock created")
-	fmt.Println("Index:", genesisBlock.Index)
-	fmt.Println("Timestamp:", genesisBlock.Timestamp)
-	fmt.Println("Data:", genesisBlock.Data)
-	fmt.Println("Hash:", genesisBlock.Hash)
-	fmt.Println()
+	for _, block := range chain.Blocks {
 
-	firstBlock := models.CreateBlock(genesisBlock, "First Block")
-	if models.IsBlockValid(firstBlock, genesisBlock) {
-		chain = append(chain, firstBlock)
-		fmt.Println("firstBlock created")
-		fmt.Println("index:", firstBlock.Index)
-		fmt.Println("timestamp:", firstBlock.Timestamp)
-		fmt.Println("data:", firstBlock.Data)
-		fmt.Println("hash:", firstBlock.Hash)
-		fmt.Println()
-	}
+		fmt.Printf("Previous hash: %x\n", block.PrevHash)
+		fmt.Printf("data: %s\n", block.Data)
+		fmt.Printf("hash: %x\n", block.Hash)
 
-	secondBlock := models.CreateBlock(firstBlock, "Second Block")
-	if models.IsBlockValid(secondBlock, firstBlock) {
-		chain = append(chain, secondBlock)
-		fmt.Println("secondBlocK created")
-		fmt.Println("index:", secondBlock.Index)
-		fmt.Println("timestamp:", secondBlock.Timestamp)
-		fmt.Println("data:", secondBlock.Data)
-		fmt.Println("hash:", secondBlock.Hash)
+		pow := blockchain.NewProofOfWork(block)
+		fmt.Printf("Pow: %s\n", strconv.FormatBool(pow.Validate()))
 		fmt.Println()
 	}
 }
 
-func testDigitalVotingSystem() {
+func DigitalVotingSystem() {
 	// Create some candidates with different information
-	candidate1 := &models.Candidate{Name: "Alice", Party: "Green", Program: "Promote environmental protection and renewable energy.", Image: "alice.jpg"}
-	candidate2 := &models.Candidate{Name: "Bob", Party: "Blue", Program: "Support free trade and international cooperation.", Image: "bob.jpg"}
-	candidate3 := &models.Candidate{Name: "Charlie", Party: "Red", Program: "Advocate social justice and welfare reform.", Image: "charlie.jpg"}
+	candidate1 := &voting.Candidate{Name: "Alice", Party: "Green", Program: "Promote environmental protection and renewable energy.", Image: "alice.jpg"}
+	candidate2 := &voting.Candidate{Name: "Bob", Party: "Blue", Program: "Support free trade and international cooperation.", Image: "bob.jpg"}
+	candidate3 := &voting.Candidate{Name: "Charlie", Party: "Red", Program: "Advocate social justice and welfare reform.", Image: "charlie.jpg"}
 
 	// Create some voters with different tokens
-	voter1 := &models.Vote{Token: string(ed25519.PublicKey{}), Candidate: candidate1.GetName()}
-	voter2 := &models.Vote{Token: string(ed25519.PublicKey{}), Candidate: candidate2.GetName()}
-	voter3 := &models.Vote{Token: string(ed25519.PublicKey{}), Candidate: candidate3.GetName()}
+	voter1 := &voting.Vote{Token: string(ed25519.PublicKey{}), Candidate: candidate1.GetName()}
+	voter2 := &voting.Vote{Token: string(ed25519.PublicKey{}), Candidate: candidate2.GetName()}
+	voter3 := &voting.Vote{Token: string(ed25519.PublicKey{}), Candidate: candidate3.GetName()}
 
 	// Generate a pair of ed25519 keys for each voter
 	publicKey1, privateKey1, err := ed25519.GenerateKey(nil)
