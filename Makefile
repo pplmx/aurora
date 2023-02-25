@@ -28,10 +28,10 @@ check:
 	goimports -w ./...
 
 build: check test
-	GOARCH=arm64 GOOS=darwin go build -o ${BINARY_NAME}-darwin ${MAIN_GO}
-	GOARCH=amd64 GOOS=darwin go build -o ${BINARY_NAME}-darwin ${MAIN_GO}
-	GOARCH=amd64 GOOS=linux go build -o ${BINARY_NAME}-linux ${MAIN_GO}
-	GOARCH=amd64 GOOS=windows go build -o ${BINARY_NAME}-windows ${MAIN_GO}
+	CGO_ENABLED=0 GOARCH=arm64 GOOS=darwin go build -o ${BINARY_NAME}-darwin ${MAIN_GO}
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -o ${BINARY_NAME}-darwin ${MAIN_GO}
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o ${BINARY_NAME}-linux ${MAIN_GO}
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o ${BINARY_NAME}-windows ${MAIN_GO}
 
 run:
 	./${BINARY_NAME}-linux start
@@ -43,7 +43,7 @@ start:
 	docker compose -f ${COMPOSE_PATH} -p ${COMPOSE_SERVICE_NAME} up -d
 
 stop:
-	docker-compose -f ${COMPOSE_PATH} -p ${COMPOSE_SERVICE_NAME} down
+	docker compose -f ${COMPOSE_PATH} -p ${COMPOSE_SERVICE_NAME} down
 
 restart: stop start
 
