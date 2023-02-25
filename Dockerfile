@@ -14,7 +14,8 @@ RUN go mod download
 COPY . .
 
 # build the binary: -ldflags="-w -s" for the much smaller binary
-RUN go build -ldflags="-w -s" -o ./out/aurora src/main.go
+# -trimpath remove all file system paths from the resulting executable.
+RUN go build -trimpath -ldflags="-w -s" -o ./out/aurora src/main.go
 
 
 ### Deploy
