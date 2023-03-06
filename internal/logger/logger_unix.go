@@ -1,4 +1,4 @@
-//go:build windows
+//go:build unix
 
 package logger
 
@@ -15,7 +15,7 @@ import (
 type Field = zap.Field
 
 const (
-	CompanyName = "Inf"
+	CompanyName = "inf"
 	AppName     = "aurora"
 )
 
@@ -30,17 +30,15 @@ var (
 var logger *zap.Logger
 
 func init() {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		fmt.Println("Failed to get windows user config dir.")
-		panic(fmt.Sprintf("Failed to get windows user config dir: %v", err))
-	}
-	CompanyDir = dir + "\\" + CompanyName
-	AppDir = CompanyDir + "\\" + AppName
-	DebugLog = AppDir + "\\" + AppName + "-debug.log"
-	InfoLog = AppDir + "\\" + AppName + ".log"
-	ErrorLog = AppDir + "\\" + AppName + "-error.log"
-	err = os.MkdirAll(AppDir, os.ModePerm)
+	CompanyDir = "/var/log/" + CompanyName
+	AppDir = CompanyDir + "/" + AppName
+	DebugLog = AppDir + "/" + AppName + "-debug.log"
+	InfoLog = AppDir + "/" + AppName + ".log"
+	ErrorLog = AppDir + "/" + AppName + "-error.log"
+
+	mask := syscall.Umask(0)
+	defer syscall.Umask(mask)
+	err := os.MkdirAll(AppDir, os.ModePerm)
 	if err != nil {
 		fmt.Printf("Failed to create dir %v.\n", AppDir)
 		return
@@ -98,7 +96,7 @@ func newZapLogger() *zap.Logger {
 		zapcore.NewCore(fileEncoder, fileDebug, lowPriority),
 	)
 
-	// From a zapcore.Core, it's easy to construct a logger.
+	// From a zapcore.Core, it's easy to construct a Logger.
 	//Open development mode, stack trace
 	caller := zap.AddCaller()
 	//Open file and line number
