@@ -25,7 +25,7 @@ var (
 	ErrorLog   string
 )
 
-var Logger *zap.Logger
+var logger *zap.Logger
 
 func init() {
 	dir, err := os.UserConfigDir()
@@ -43,7 +43,27 @@ func init() {
 		fmt.Printf("Failed to create dir %v.\n", AppDir)
 		return
 	}
-	Logger = newZapLogger()
+	logger = newZapLogger()
+}
+
+func DEBUG(msg string, fields ...zapcore.Field) {
+	logger.Debug(msg, fields...)
+}
+
+func WARN(msg string, fields ...zapcore.Field) {
+	logger.Warn(msg, fields...)
+}
+
+func INFO(msg string, fields ...zapcore.Field) {
+	logger.Info(msg, fields...)
+}
+
+func ERROR(msg string, fields ...zapcore.Field) {
+	logger.Error(msg, fields...)
+}
+
+func FATAL(msg string, fields ...zapcore.Field) {
+	logger.Fatal(msg, fields...)
 }
 
 func newZapLogger() *zap.Logger {
@@ -76,7 +96,7 @@ func newZapLogger() *zap.Logger {
 		zapcore.NewCore(fileEncoder, fileDebug, lowPriority),
 	)
 
-	// From a zapcore.Core, it's easy to construct a Logger.
+	// From a zapcore.Core, it's easy to construct a logger.
 	//Open development mode, stack trace
 	caller := zap.AddCaller()
 	//Open file and line number
