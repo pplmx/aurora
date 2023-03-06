@@ -9,10 +9,10 @@ func main() {
 
 	test.Blockchain()
 
-	logger.Logger.Debug("hi, this is a debug message")
-	logger.Logger.Info("hi, this is a info message")
-	logger.Logger.Warn("hi, this is a warn message")
-	logger.Logger.Error("hi, this is a error message")
-	logger.Logger.Fatal("hi, this is a fatal message")
+	logger.DEBUG("hi, this is a debug message")
+	logger.INFO("hi, this is a info message")
+	logger.WARN("hi, this is a warn message")
+	logger.ERROR("hi, this is a error message")
+	logger.FATAL("hi, this is a fatal message")
 
 }
