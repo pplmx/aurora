@@ -4,8 +4,8 @@ BINARY_NAME="aurora"
 IMAGE_NAME="pplmx/aurora"
 COMPOSE_SERVICE_NAME="aurora"
 
-DOCKERFILE_PATH="build/package/Dockerfile"
-COMPOSE_PATH="deployments/docker-compose.yml"
+DOCKERFILE_PATH="./Dockerfile"
+COMPOSE_PATH="./compose.yml"
 
 # Path: starter
 MAIN_GO=cmd/aurora/main.go
