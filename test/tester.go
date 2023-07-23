@@ -4,9 +4,10 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"strconv"
+
 	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/voting"
-	"strconv"
 )
 
 func Blockchain() {
