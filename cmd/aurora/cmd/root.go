@@ -58,10 +58,13 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".aurora" (without extension).
+		// Add support for multiple config file paths, $HOME and ./configs/
 		viper.AddConfigPath(home)
+		viper.AddConfigPath("./configs/")
+
+		// Add support for yaml config file
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".aurora")
+		viper.SetConfigName("aurora.x")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

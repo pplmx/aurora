@@ -24,9 +24,9 @@ test_coverage:
 	go test ./... -coverprofile=coverage.out
 
 check:
-	go fmt ./...
+	gofmt -l -s -w .
+	goimports -l -w .
 	go vet ./...
-	goimports -w ./...
 
 build: check test
 	CGO_ENABLED=0 GOARCH=arm64 GOOS=darwin go build -o ${BINARY_NAME}-darwin ${MAIN_GO}
