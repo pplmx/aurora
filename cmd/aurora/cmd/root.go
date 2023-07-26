@@ -60,12 +60,14 @@ func initConfig() {
 
 		// Add support for multiple config file paths, $HOME and ./configs/
 		viper.AddConfigPath(home)
-		viper.AddConfigPath("./configs/")
+		viper.AddConfigPath("./config/")
 
 		// Add support for yaml config file
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("aurora.x")
 	}
+
+	setDefaultConfig()
 
 	viper.AutomaticEnv() // read in environment variables that match
 
@@ -73,4 +75,9 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
+}
+
+func setDefaultConfig() {
+	viper.SetDefault("log.level", "info")
+	viper.SetDefault("log.path", "./log")
 }
