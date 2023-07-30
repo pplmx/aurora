@@ -3,7 +3,7 @@ module github.com/pplmx/aurora
 go 1.20
 
 require (
-	github.com/rs/zerolog v1.29.1
+	github.com/rs/zerolog v1.30.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	go.uber.org/zap v1.26.0
