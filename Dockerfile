@@ -19,7 +19,7 @@ RUN go build -trimpath -ldflags="-w -s" -o ./out/aurora src/main.go
 
 
 ### Deploy
-FROM gcr.dockerproxy.com/distroless/static
+FROM gcr.dockerproxy.com/distroless/static:nonroot
 
 COPY --from=builder /app/out/aurora /aurora
 
