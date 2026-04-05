@@ -28,7 +28,7 @@ jobs:
 
       - run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v6
         if: github.event_name == 'pull_request'
         with:
           files: ./coverage.out
