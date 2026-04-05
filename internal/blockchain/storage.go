@@ -37,6 +37,16 @@ func InitDB() (*sql.DB, error) {
 }
 
 func createTables(db *sql.DB) error {
+	// Enable WAL mode for better concurrent performance
+	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		return fmt.Errorf("failed to set WAL mode: %w", err)
+	}
+
+	// Enable foreign keys
+	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
+		return fmt.Errorf("failed to enable foreign keys: %w", err)
+	}
+
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS blocks (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +58,8 @@ func createTables(db *sql.DB) error {
 			created_at INTEGER NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_blocks_height ON blocks(height)`,
+		`CREATE INDEX IF NOT EXISTS idx_blocks_hash ON blocks(hash)`,
+		`CREATE INDEX IF NOT EXISTS idx_blocks_created_at ON blocks(created_at)`,
 	}
 
 	for _, query := range queries {

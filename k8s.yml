@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aurora-config
+  namespace: aurora
+data:
+  LOG_LEVEL: "info"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aurora-data
+  namespace: aurora
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aurora
+  namespace: aurora
+  labels:
+    app: aurora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aurora
+  template:
+    metadata:
+      labels:
+        app: aurora
+    spec:
+      containers:
+        - name: aurora
+          image: pplmx/aurora:latest
+          ports:
+            - containerPort: 6666
+              name: http
+          envFrom:
+            - configMapRef:
+                name: aurora-config
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            exec:
+              command: ["./aurora", "lottery", "stats"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command: ["./aurora", "lottery", "stats"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: aurora-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aurora
+  namespace: aurora
+spec:
+  selector:
+    app: aurora
+  ports:
+    - port: 6666
+      targetPort: 6666
+      name: http
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: aurora-hpa
+  namespace: aurora
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: aurora
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

@@ -4,8 +4,24 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math/big"
+	"regexp"
+	"strings"
 	"time"
+)
+
+const (
+	MaxParticipants          = 10000
+	MaxWinners               = 100
+	MinSeedLength            = 3
+	MaxSeedLength            = 256
+	MaxParticipantNameLength = 100
+)
+
+var (
+	// Only allow alphanumeric, Chinese characters, and common symbols
+	validNameRegex = regexp.MustCompile(`^[\p{L}\p{N}\s\-_]+$`)
 )
 
 type LotteryRecord struct {
@@ -89,4 +105,72 @@ func (r *LotteryRecord) ToJSON() (string, error) {
 
 func (r *LotteryRecord) GetID() string {
 	return r.ID
+}
+
+func ValidateParticipantName(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("participant name cannot be empty")
+	}
+	if len(name) > MaxParticipantNameLength {
+		return fmt.Errorf("participant name too long (max %d chars)", MaxParticipantNameLength)
+	}
+	if !validNameRegex.MatchString(name) {
+		return fmt.Errorf("participant name contains invalid characters")
+	}
+	return nil
+}
+
+func ValidateSeed(seed string) error {
+	seed = strings.TrimSpace(seed)
+	if len(seed) < MinSeedLength {
+		return fmt.Errorf("seed too short (min %d chars)", MinSeedLength)
+	}
+	if len(seed) > MaxSeedLength {
+		return fmt.Errorf("seed too long (max %d chars)", MaxSeedLength)
+	}
+	return nil
+}
+
+func ValidateParticipants(participants []string) error {
+	if len(participants) == 0 {
+		return fmt.Errorf("at least one participant required")
+	}
+	if len(participants) > MaxParticipants {
+		return fmt.Errorf("too many participants (max %d)", MaxParticipants)
+	}
+
+	// Check for duplicates
+	seen := make(map[string]bool)
+	for _, p := range participants {
+		p = strings.TrimSpace(p)
+		if err := ValidateParticipantName(p); err != nil {
+			return fmt.Errorf("invalid participant: %w", err)
+		}
+		if seen[p] {
+			return fmt.Errorf("duplicate participant: %s", p)
+		}
+		seen[p] = true
+	}
+	return nil
+}
+
+func ValidateWinnerCount(count, participantCount int) error {
+	if count <= 0 {
+		return fmt.Errorf("winner count must be positive")
+	}
+	if count > MaxWinners {
+		return fmt.Errorf("too many winners (max %d)", MaxWinners)
+	}
+	if count > participantCount {
+		return fmt.Errorf("winner count (%d) cannot exceed participants (%d)", count, participantCount)
+	}
+	return nil
+}
+
+func SanitizeString(s string) string {
+	s = strings.TrimSpace(s)
+	// Remove control characters
+	s = regexp.MustCompile(`[\x00-\x1F\x7F]`).ReplaceAllString(s, "")
+	return s
 }
