@@ -4,36 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"charm.land/lipgloss/v2"
-
 	tea "charm.land/bubbletea/v2"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
 	domainoracle "github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/i18n"
-)
-
-var (
-	headerStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("86")).
-			Bold(true).
-			Padding(0, 1)
-
-	menuItemStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
-
-	menuSelectedStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("86")).
-				Bold(true)
-
-	borderStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("245"))
-
-	infoStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("75"))
+	"github.com/pplmx/aurora/internal/ui/components"
 )
 
 type model struct {
@@ -121,7 +97,7 @@ func (m *model) View() tea.View {
 }
 
 func (m *model) menuView() string {
-	s := headerStyle.Render("🔮 "+i18n.GetText("oracle.tui.title")+" 🔮") + "\n\n"
+	s := components.HeaderStyle().Render("🔮 "+i18n.GetText("oracle.tui.title")+" 🔮") + "\n\n"
 	items := []string{
 		i18n.GetText("oracle.tui.source_mgmt"),
 		i18n.GetText("oracle.tui.fetch_data"),
@@ -130,20 +106,20 @@ func (m *model) menuView() string {
 	}
 	for i, item := range items {
 		if i == m.menuIndex {
-			s += menuSelectedStyle.Render("▶ " + item + "\n")
+			s += components.MenuSelectedStyle().Render("▶ " + item + "\n")
 		} else {
-			s += menuItemStyle.Render("  " + item + "\n")
+			s += components.MenuItemStyle().Render("  " + item + "\n")
 		}
 	}
-	s += "\n" + helpStyle.Render(i18n.GetText("help.nav"))
+	s += "\n" + components.HelpTextStyle().Render(i18n.GetText("help.nav"))
 	return s
 }
 
 func (m *model) sourcesView() string {
-	s := headerStyle.Render("📡 "+i18n.GetText("oracle.tui.source_mgmt")) + "\n\n"
+	s := components.HeaderStyle().Render("📡 "+i18n.GetText("oracle.tui.source_mgmt")) + "\n\n"
 
 	if len(m.sources) == 0 {
-		s += infoStyle.Render(i18n.GetText("oracle.tui.no_sources") + "\n\n")
+		s += components.InfoStyle().Render(i18n.GetText("oracle.tui.no_sources") + "\n\n")
 	} else {
 		for i, ds := range m.sources {
 			status := i18n.GetText("oracle.tui.enabled")
@@ -154,24 +130,24 @@ func (m *model) sourcesView() string {
 		}
 	}
 
-	s += "\n" + borderStyle.Render("[ESC] "+i18n.GetText("lottery.tui.back"))
+	s += "\n" + components.BorderStyle().Render("[ESC] "+i18n.GetText("lottery.tui.back"))
 	return s
 }
 
 func (m *model) fetchView() string {
-	s := headerStyle.Render("📥 "+i18n.GetText("oracle.tui.fetch_data")) + "\n\n"
-	s += infoStyle.Render(i18n.GetText("oracle.tui.cli_tip") + "\n")
+	s := components.HeaderStyle().Render("📥 "+i18n.GetText("oracle.tui.fetch_data")) + "\n\n"
+	s += components.InfoStyle().Render(i18n.GetText("oracle.tui.cli_tip") + "\n")
 	s += "  aurora oracle fetch --source <id>\n\n"
-	s += borderStyle.Render("[ESC] " + i18n.GetText("lottery.tui.back"))
+	s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 	return s
 }
 
 func (m *model) dataView() string {
-	s := headerStyle.Render("📊 "+i18n.GetText("oracle.tui.query_data")) + "\n\n"
-	s += infoStyle.Render(i18n.GetText("oracle.tui.cli_tip") + "\n")
+	s := components.HeaderStyle().Render("📊 "+i18n.GetText("oracle.tui.query_data")) + "\n\n"
+	s += components.InfoStyle().Render(i18n.GetText("oracle.tui.cli_tip") + "\n")
 	s += "  aurora oracle data --source <id>\n"
 	s += "  aurora oracle latest --source <id>\n\n"
-	s += borderStyle.Render("[ESC] " + i18n.GetText("lottery.tui.back"))
+	s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 	return s
 }
 

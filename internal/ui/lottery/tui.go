@@ -9,40 +9,11 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/i18n"
-)
-
-var (
-	headerStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("86")).
-			Bold(true).
-			Padding(0, 1)
-
-	menuItemStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
-
-	menuSelectedStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("86")).
-				Bold(true)
-
-	borderStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
-
-	errorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("196"))
-
-	successStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("82"))
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("245"))
-
-	infoStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("75"))
+	"github.com/pplmx/aurora/internal/ui/components"
 )
 
 type model struct {
@@ -202,47 +173,47 @@ func (m *model) menuView() string {
 		i18n.GetText("lottery.tui.exit"),
 	}
 
-	s := headerStyle.Render("🌟 "+i18n.GetText("lottery.tui.title")+" 🌟") + "\n\n"
+	s := components.HeaderStyle().Render("🌟 "+i18n.GetText("lottery.tui.title")+" 🌟") + "\n\n"
 
 	for i, item := range menuItems {
 		if i == m.menuIndex {
-			s += menuSelectedStyle.Render("▶ " + item + "\n")
+			s += components.MenuActiveStyle().Render("▶ " + item + "\n")
 		} else {
-			s += menuItemStyle.Render("  " + item + "\n")
+			s += components.MenuInactiveStyle().Render("  " + item + "\n")
 		}
 	}
 
-	s += "\n" + helpStyle.Render(i18n.GetText("help.nav"))
+	s += "\n" + components.HelpTextStyle().Render(i18n.GetText("help.nav"))
 
 	return s
 }
 
 func (m *model) createView() string {
-	s := headerStyle.Render("📝 "+i18n.GetText("lottery.tui.create")) + "\n\n"
-	s += infoStyle.Render(i18n.GetText("lottery.tui.participants")+":") + "\n"
+	s := components.HeaderStyle().Render("📝 "+i18n.GetText("lottery.tui.create")) + "\n\n"
+	s += components.InfoStyle().Render(i18n.GetText("lottery.tui.participants")+":") + "\n"
 	s += m.participantsInput.View() + "\n\n"
-	s += infoStyle.Render(i18n.GetText("lottery.tui.seed")+":") + "\n"
+	s += components.InfoStyle().Render(i18n.GetText("lottery.tui.seed")+":") + "\n"
 	s += m.seedInput.View() + "\n\n"
-	s += infoStyle.Render(i18n.GetText("lottery.tui.winners")+":") + "\n"
+	s += components.InfoStyle().Render(i18n.GetText("lottery.tui.winners")+":") + "\n"
 	s += m.countInput.View() + "\n\n"
 
 	if m.err != "" {
-		s += errorStyle.Render("⚠ "+m.err) + "\n\n"
+		s += components.ErrorStyle().Render("⚠ "+m.err) + "\n\n"
 	}
 
 	if m.successMsg != "" {
-		s += successStyle.Render("✓ "+m.successMsg) + "\n\n"
+		s += components.SuccessStyle().Render("✓ "+m.successMsg) + "\n\n"
 	}
 
-	s += borderStyle.Render(i18n.GetText("lottery.tui.create_btn")) + " | " + borderStyle.Render(i18n.GetText("lottery.tui.back"))
+	s += components.BorderStyle().Render(i18n.GetText("lottery.tui.create_btn")) + " | " + components.BorderStyle().Render(i18n.GetText("lottery.tui.back"))
 
 	return s
 }
 
 func (m *model) historyView() string {
-	s := headerStyle.Render("📜 "+i18n.GetText("lottery.tui.history")) + "\n\n"
+	s := components.HeaderStyle().Render("📜 "+i18n.GetText("lottery.tui.history")) + "\n\n"
 	s += m.viewport.View() + "\n\n"
-	s += borderStyle.Render(i18n.GetText("lottery.tui.back"))
+	s += components.BorderStyle().Render(i18n.GetText("lottery.tui.back"))
 
 	return s
 }
@@ -252,10 +223,10 @@ func (m *model) resultView() string {
 		return i18n.GetText("error.not_found")
 	}
 
-	s := successStyle.Render("🎉 "+i18n.GetText("lottery.tui.completed")) + "\n\n"
-	s += infoStyle.Render(i18n.GetText("lottery.lottery_id")+": ") + m.result.ID + "\n"
-	s += infoStyle.Render(i18n.GetText("lottery.block_height")+": #") + fmt.Sprintf("%d", m.result.BlockHeight) + "\n\n"
-	s += successStyle.Render(i18n.GetText("lottery.winners")+":") + "\n"
+	s := components.SuccessStyle().Render("🎉 "+i18n.GetText("lottery.tui.completed")) + "\n\n"
+	s += components.InfoStyle().Render(i18n.GetText("lottery.lottery_id")+": ") + m.result.ID + "\n"
+	s += components.InfoStyle().Render(i18n.GetText("lottery.block_height")+": #") + fmt.Sprintf("%d", m.result.BlockHeight) + "\n\n"
+	s += components.SuccessStyle().Render(i18n.GetText("lottery.winners")+":") + "\n"
 
 	for i, w := range m.result.Winners {
 		s += fmt.Sprintf("   %d. %s (%s)\n", i+1, w, m.result.WinnerAddresses[i])
@@ -270,27 +241,27 @@ func (m *model) resultView() string {
 	if len(vrfProof) > 32 {
 		vrfProof = vrfProof[:32]
 	}
-	s += infoStyle.Render(i18n.GetText("lottery.vrf_output")+": ") + vrfOut + "...\n"
-	s += infoStyle.Render(i18n.GetText("lottery.vrf_proof")+": ") + vrfProof + "...\n"
+	s += components.InfoStyle().Render(i18n.GetText("lottery.vrf_output")+": ") + vrfOut + "...\n"
+	s += components.InfoStyle().Render(i18n.GetText("lottery.vrf_proof")+": ") + vrfProof + "...\n"
 
-	s += "\n" + borderStyle.Render(i18n.GetText("lottery.tui.back"))
+	s += "\n" + components.BorderStyle().Render(i18n.GetText("lottery.tui.back"))
 
 	return s
 }
 
 func (m *model) helpView() string {
-	s := headerStyle.Render("⌨ 键盘快捷键") + "\n\n"
-	s += infoStyle.Render("导航:") + "\n"
+	s := components.HeaderStyle().Render("⌨ 键盘快捷键") + "\n\n"
+	s += components.InfoStyle().Render("导航:") + "\n"
 	s += "  ↑/k  上移\n"
 	s += "  ↓/j  下移\n"
 	s += "  回车  确认\n"
 	s += "  ESC  返回\n"
 	s += "  q    退出\n\n"
-	s += infoStyle.Render("菜单:") + "\n"
+	s += components.InfoStyle().Render("菜单:") + "\n"
 	s += "  1    创建抽奖\n"
 	s += "  2    查看历史\n"
 	s += "  3    退出\n\n"
-	s += helpStyle.Render("按 ESC 或 ? 返回")
+	s += components.HelpTextStyle().Render("按 ESC 或 ? 返回")
 
 	return s
 }
@@ -323,7 +294,7 @@ func (m *model) handleCreate() tea.Msg {
 func (m *model) loadHistory() {
 	records := m.chain.GetLotteryRecords()
 	if len(records) == 0 {
-		m.viewport.SetContent("暂无抽奖记录\n\n" + helpStyle.Render("使用 'lottery create' 创建抽奖"))
+		m.viewport.SetContent("暂无抽奖记录\n\n" + components.HelpTextStyle().Render("使用 'lottery create' 创建抽奖"))
 	} else {
 		var content string
 		for i, data := range records {
