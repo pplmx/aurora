@@ -7,6 +7,7 @@
 ## 背景
 
 当前状态：
+
 - `components/theme.go`: 238行，已有基础样式函数
 - `lottery/tui.go`: 375行，完整实现但未使用 theme.go
 - `token/tui.go`: 241行，部分使用 theme.go 但有语法错误
@@ -14,6 +15,7 @@
 - `oracle/tui.go`: 200行，stub 状态
 
 问题：
+
 - 各模块重复定义样式变量（~100行重复代码）
 - 样式不统一，维护困难
 - token/tui.go 有语法错误（import 位置错误）
@@ -40,23 +42,23 @@ var (
 
 #### 1.2 新增样式函数
 
-| 函数 | 用途 |
-|------|------|
+| 函数                              | 用途                             |
+| --------------------------------- | -------------------------------- |
 | `ModuleTitleStyle(module string)` | 模块标题，根据模块名返回对应颜色 |
-| `InputStyle()` | 文本输入框样式 |
-| `ViewportStyle()` | 列表容器样式 |
-| `MenuActiveStyle()` | 选中菜单项 |
-| `MenuInactiveStyle()` | 未选中菜单项 |
-| `HelpTextStyle()` | 帮助文本 |
-| `StatusBarStyle()` | 底部状态栏 |
+| `InputStyle()`                    | 文本输入框样式                   |
+| `ViewportStyle()`                 | 列表容器样式                     |
+| `MenuActiveStyle()`               | 选中菜单项                       |
+| `MenuInactiveStyle()`             | 未选中菜单项                     |
+| `HelpTextStyle()`                 | 帮助文本                         |
+| `StatusBarStyle()`                | 底部状态栏                       |
 
 #### 1.3 布局辅助函数
 
-| 函数 | 用途 |
-|------|------|
-| `Center(width int, content string)` | 居中内容 |
-| `PadLeft(text string, width int)` | 左侧填充 |
-| `TableRow(columns []string, widths []int)` | 表格行 |
+| 函数                                       | 用途     |
+| ------------------------------------------ | -------- |
+| `Center(width int, content string)`        | 居中内容 |
+| `PadLeft(text string, width int)`          | 左侧填充 |
+| `TableRow(columns []string, widths []int)` | 表格行   |
 
 ### 2. 重构各 TUI 模块
 
@@ -87,6 +89,7 @@ var (
 #### 使用 theme.go 前后对比
 
 **Before** (lottery/tui.go):
+
 ```go
 var (
     headerStyle = lipgloss.NewStyle().
@@ -102,6 +105,7 @@ var (
 ```
 
 **After**:
+
 ```go
 import "github.com/pplmx/aurora/internal/ui/components"
 

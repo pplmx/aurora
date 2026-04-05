@@ -12,7 +12,7 @@
 
 ## 文件结构
 
-```
+```text
 internal/ui/
 ├── components/
 │   └── theme.go          # 扩展至 ~350 行，统一样式库
@@ -33,6 +33,7 @@ internal/ui/
 ### Task 1: 扩展 theme.go 样式库
 
 **Files:**
+
 - Modify: `internal/ui/components/theme.go:238-350`
 
 - [ ] **Step 1: 添加模块标题样式函数**
@@ -155,6 +156,7 @@ git commit -m "feat(ui): extend theme.go with unified style functions"
 ### Task 2: 重构 lottery/tui.go
 
 **Files:**
+
 - Modify: `internal/ui/lottery/tui.go:1-50`
 
 - [ ] **Step 1: 添加 components import**
@@ -199,6 +201,7 @@ s += components.MenuActiveStyle().Render("▶ " + item + "\n")
 ```
 
 需要在所有使用处替换：
+
 - headerStyle → components.HeaderStyle()
 - menuItemStyle → components.MenuInactiveStyle()
 - menuSelectedStyle → components.MenuActiveStyle()
@@ -234,6 +237,7 @@ git commit -m "refactor(lottery): use unified theme.go styles"
 ### Task 3: 修复并重构 token/tui.go
 
 **Files:**
+
 - Modify: `internal/ui/token/tui.go:1-241`
 
 - [ ] **Step 1: 修复 import 语法错误**
@@ -282,6 +286,7 @@ git commit -m "fix(token): resolve import syntax error and use theme.go"
 ### Task 4: 重构 nft/tui.go
 
 **Files:**
+
 - Modify: `internal/ui/nft/tui.go:1-138`
 
 - [ ] **Step 1: 添加 components import 并移除本地样式**
@@ -326,6 +331,7 @@ git commit -refactor(nft): use unified theme.go styles
 ### Task 5: 重构 oracle/tui.go
 
 **Files:**
+
 - Modify: `internal/ui/oracle/tui.go:1-200`
 
 - [ ] **Step 1: 添加 components import 并重构**
