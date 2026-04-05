@@ -22,12 +22,16 @@ func TestTranslator_T(t *testing.T) {
 		key      string
 		expected string
 	}{
-		{"app.name", "Aurora - VRF Lottery System"},
+		{"app.name", "Aurora - Blockchain System"},
 		{"app.version", "Version"},
-		{"cmd.create", "Create a new lottery"},
-		{"cmd.history", "Show lottery history"},
-		{"flag.participants", "Participant names (comma-separated)"},
-		{"msg.success", "Lottery created successfully!"},
+		{"lottery.create", "Create a new lottery"},
+		{"lottery.history", "Show lottery history"},
+		{"lottery.participants", "Participant names (comma-separated)"},
+		{"lottery.success", "Lottery created successfully!"},
+		{"voting.candidate.add", "Add a candidate"},
+		{"nft.mint", "Mint a new NFT"},
+		{"oracle.fetch", "Fetch data from source"},
+		{"error.invalid_input", "Invalid input"},
 	}
 
 	for _, tt := range tests {
@@ -45,9 +49,13 @@ func TestTranslator_T_Chinese(t *testing.T) {
 		key      string
 		expected string
 	}{
-		{"app.name", "Aurora - VRF 抽奖系统"},
+		{"app.name", "Aurora - 区块链系统"},
 		{"app.version", "版本"},
-		{"cmd.create", "创建新抽奖"},
+		{"lottery.create", "创建新抽奖"},
+		{"voting.candidate.add", "添加候选人"},
+		{"nft.mint", "铸造新 NFT"},
+		{"oracle.fetch", "获取数据"},
+		{"error.invalid_input", "输入无效"},
 	}
 
 	for _, tt := range tests {
@@ -70,7 +78,7 @@ func TestTranslator_T_MissingKey(t *testing.T) {
 func TestTranslator_TFormat(t *testing.T) {
 	tr := Init("en")
 
-	result := tr.TFormat("msg.exported", 5, "test.json")
+	result := tr.TFormat("lottery.exported", 5, "test.json")
 	expected := "Exported 5 lottery records to test.json"
 
 	if result != expected {
@@ -132,7 +140,7 @@ func TestGetText(t *testing.T) {
 }
 
 func TestGetTextF(t *testing.T) {
-	result := GetTextF("msg.exported", 10, "file.json")
+	result := GetTextF("lottery.exported", 10, "file.json")
 
 	if result == "" {
 		t.Error("GetTextF should not return empty string")
