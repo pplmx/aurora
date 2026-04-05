@@ -4,11 +4,10 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/blockchain"
-	"github.com/pplmx/aurora/internal/lottery"
+	lottery "github.com/pplmx/aurora/internal/domain/lottery"
 )
 
 func TestLotteryE2E_FullFlow(t *testing.T) {
-	// Reset blockchain before each test
 	blockchain.ResetForTest()
 
 	participants := []string{"Alice", "Bob", "Charlie", "David", "Eve"}
@@ -117,7 +116,7 @@ func TestLotteryE2E_VerifyIntegrity(t *testing.T) {
 	}
 
 	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
-	jsonData, _ := record.ToJSON()
+	_ = record
 
 	if record.Seed != seed {
 		t.Error("Seed mismatch")
@@ -134,8 +133,6 @@ func TestLotteryE2E_VerifyIntegrity(t *testing.T) {
 	if record.VRFProof == "" {
 		t.Error("VRFProof should not be empty")
 	}
-
-	_ = jsonData
 
 	for _, winner := range winners {
 		found := false
@@ -221,7 +218,6 @@ func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
 func TestLotteryE2E_AddressFormat(t *testing.T) {
 	addr := lottery.NameToAddress("TestUser")
 
-	// Check format: 0x + 40 hex chars = 42 total
 	if len(addr) != 42 {
 		t.Errorf("Expected address length 42, got %d", len(addr))
 	}
@@ -230,7 +226,6 @@ func TestLotteryE2E_AddressFormat(t *testing.T) {
 		t.Errorf("Address should start with 0x, got %s", addr[:2])
 	}
 
-	// Test that same input produces same output
 	addr2 := lottery.NameToAddress("TestUser")
 	if addr != addr2 {
 		t.Error("Same input should produce same address")
@@ -238,7 +233,6 @@ func TestLotteryE2E_AddressFormat(t *testing.T) {
 }
 
 func TestLotteryE2E_VRFDeterminism(t *testing.T) {
-	// Same key + same seed = same output
 	_, sk, _ := lottery.GenerateKeyPair()
 	seed := "deterministic-test"
 
@@ -251,19 +245,16 @@ func TestLotteryE2E_VRFDeterminism(t *testing.T) {
 }
 
 func TestLotteryE2E_SelectWinnersEdgeCases(t *testing.T) {
-	// Test with single participant
 	winners := lottery.SelectWinners([]byte{0x01}, []string{"OnlyOne"}, 1)
 	if len(winners) != 1 || winners[0] != "OnlyOne" {
 		t.Error("Should return single participant when count=1 and only one participant")
 	}
 
-	// Test with equal participants and winners
 	winners = lottery.SelectWinners([]byte{0x01}, []string{"A", "B"}, 2)
 	if len(winners) != 2 {
 		t.Error("Should return all participants when count equals participants")
 	}
 
-	// Test with zero participants
 	winners = lottery.SelectWinners([]byte{0x01}, []string{}, 1)
 	if len(winners) != 0 {
 		t.Error("Should return empty when no participants")
@@ -292,7 +283,6 @@ func TestLotteryE2E_RecordJSONSerialization(t *testing.T) {
 		t.Error("JSON should not be empty")
 	}
 
-	// Verify JSON contains expected fields
 	if !contains(jsonStr, "test-id-123") {
 		t.Error("JSON should contain ID")
 	}

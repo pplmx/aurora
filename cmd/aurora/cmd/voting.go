@@ -3,13 +3,11 @@ package cmd
 import (
 	"database/sql"
 	"fmt"
-	"os"
 
 	votingapp "github.com/pplmx/aurora/internal/app/voting"
 	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	votingrepo "github.com/pplmx/aurora/internal/infra/sqlite"
-	oldvoting "github.com/pplmx/aurora/internal/voting"
 	"github.com/spf13/cobra"
 )
 
@@ -433,18 +431,4 @@ func init() {
 
 	resultsCmd.Flags().StringP("session", "s", "", "Session ID")
 	resultsCmd.MarkFlagRequired("session")
-
-	var tuiCmd = &cobra.Command{
-		Use:   "tui",
-		Short: "Launch TUI interface",
-		Run: func(cmd *cobra.Command, args []string) {
-			storage := oldvoting.NewInMemoryStorage()
-			oldvoting.InitVoting(storage)
-			if err := oldvoting.RunVotingTUI(storage); err != nil {
-				fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
-				os.Exit(1)
-			}
-		},
-	}
-	votingCmd.AddCommand(tuiCmd)
 }
