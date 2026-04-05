@@ -97,7 +97,7 @@ func (r *LotteryRepository) Save(record *lottery.LotteryRecord) error {
 	}
 
 	_, err := r.db.Exec(`
-		INSERT OR REPLACE INTO lottery_records 
+		INSERT OR REPLACE INTO lottery_records
 		(id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
@@ -121,7 +121,7 @@ func (r *LotteryRepository) GetByID(id string) (*lottery.LotteryRecord, error) {
 	var verified int
 
 	err := r.db.QueryRow(`
-		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified 
+		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified
 		FROM lottery_records WHERE id = ?
 	`, id).Scan(&id, &blockHeight, &seed, &participantsJSON, &winnersJSON, &winnerAddressesJSON, &vrfProof, &vrfOutput, &timestamp, &verified)
 
@@ -152,7 +152,7 @@ func (r *LotteryRepository) GetByID(id string) (*lottery.LotteryRecord, error) {
 
 func (r *LotteryRepository) GetAll() ([]*lottery.LotteryRecord, error) {
 	rows, err := r.db.Query(`
-		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified 
+		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified
 		FROM lottery_records ORDER BY timestamp DESC
 	`)
 	if err != nil {
@@ -193,7 +193,7 @@ func (r *LotteryRepository) GetAll() ([]*lottery.LotteryRecord, error) {
 
 func (r *LotteryRepository) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
 	rows, err := r.db.Query(`
-		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified 
+		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified
 		FROM lottery_records WHERE block_height = ?
 	`, height)
 	if err != nil {
