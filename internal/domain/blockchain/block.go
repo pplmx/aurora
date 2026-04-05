@@ -49,14 +49,14 @@ func Genesis() *Block {
 	return NewBlock("Genesis", []byte{})
 }
 
-func (c *BlockChain) AddBlock(data string) int64 {
+func (c *BlockChain) AddBlock(data string) (int64, error) {
 	prevBlock := c.Blocks[len(c.Blocks)-1]
 	newBlock := NewBlock(data, prevBlock.Hash)
 	newBlock.Height = int64(len(c.Blocks))
 	c.Blocks = append(c.Blocks, newBlock)
 	height := len(c.Blocks) - 1
 
-	return int64(height)
+	return int64(height), nil
 }
 
 func Handle(err error) error {

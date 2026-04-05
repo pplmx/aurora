@@ -183,7 +183,10 @@ func (r *BlockchainRepository) AddLotteryRecord(data string) (int64, error) {
 		r.chain = blockchain.NewBlockChain()
 	}
 
-	height := r.chain.AddBlock(data)
+	height, err := r.chain.AddBlock(data)
+	if err != nil {
+		return 0, err
+	}
 	block := r.chain.Blocks[len(r.chain.Blocks)-1]
 
 	if err := r.SaveBlock(height, block); err != nil {

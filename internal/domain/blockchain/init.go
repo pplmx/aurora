@@ -116,8 +116,7 @@ func ResetForTest() {
 }
 
 func (c *BlockChain) AddLotteryRecord(data string) (int64, error) {
-	height := c.AddBlock(data)
-	return height, nil
+	return c.AddBlock(data)
 }
 
 func Close() error {
