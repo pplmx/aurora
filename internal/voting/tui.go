@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	"charm.land/lipgloss/v2"
 	"github.com/pplmx/aurora/internal/blockchain"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 var (
@@ -117,7 +117,7 @@ func NewVotingApp(storage Storage) *model {
 	scInput.Placeholder = "Candidate IDs (comma separated)"
 	scInput.Prompt = "  "
 
-	vp := viewport.New(60, 15)
+	vp := viewport.New(viewport.WithWidth(60), viewport.WithHeight(15))
 
 	m := &model{
 		view:              "menu",
@@ -146,7 +146,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.showHelp {
 			if msg.String() == "esc" || msg.String() == "?" {
 				m.showHelp = false
@@ -233,37 +233,39 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		m.viewport.Width = msg.Width - 4
-		m.viewport.Height = msg.Height - 12
+		m.viewport.SetWidth(msg.Width - 4)
+		m.viewport.SetHeight(msg.Height - 12)
 	}
 
 	return m, cmd
 }
 
-func (m *model) View() string {
+func (m *model) View() tea.View {
+	v := tea.NewView("")
 	if m.showHelp {
-		return m.helpView()
+		v.SetContent(m.helpView())
+	} else {
+		switch m.view {
+		case "menu":
+			v.SetContent(m.menuView())
+		case "registerCandidate":
+			v.SetContent(m.registerCandidateView())
+		case "registerVoter":
+			v.SetContent(m.registerVoterView())
+		case "castVote":
+			v.SetContent(m.castVoteView())
+		case "viewResults":
+			v.SetContent(m.viewResultsView())
+		case "listCandidates":
+			v.SetContent(m.listCandidatesView())
+		case "listVoters":
+			v.SetContent(m.listVotersView())
+		case "result":
+			v.SetContent(m.resultView())
+		}
 	}
-
-	switch m.view {
-	case "menu":
-		return m.menuView()
-	case "registerCandidate":
-		return m.registerCandidateView()
-	case "registerVoter":
-		return m.registerVoterView()
-	case "castVote":
-		return m.castVoteView()
-	case "viewResults":
-		return m.viewResultsView()
-	case "listCandidates":
-		return m.listCandidatesView()
-	case "listVoters":
-		return m.listVotersView()
-	case "result":
-		return m.resultView()
-	}
-	return ""
+	v.AltScreen = true
+	return v
 }
 
 func (m *model) menuView() string {
@@ -521,7 +523,7 @@ func (m *model) loadResults() {
 }
 
 func RunVotingTUI(storage Storage) error {
-	p := tea.NewProgram(NewVotingApp(storage), tea.WithAltScreen())
+	p := tea.NewProgram(NewVotingApp(storage))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 		return err
