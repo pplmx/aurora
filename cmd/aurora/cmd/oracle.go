@@ -206,8 +206,22 @@ var templateAddCmd = &cobra.Command{
 	},
 }
 
+var oracleTuiCmd = &cobra.Command{
+	Use:   "tui",
+	Short: "Launch TUI interface",
+	Run: func(cmd *cobra.Command, args []string) {
+		storage := oracle.NewInMemoryStorage()
+		oracle.InitOracle(storage)
+		if err := oracle.RunOracleTUI(storage); err != nil {
+			fmt.Println("Error:", err)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(oracleCmd)
+
+	oracleCmd.AddCommand(oracleTuiCmd)
 
 	oracleCmd.AddCommand(sourceCmd)
 	sourceCmd.AddCommand(sourceAddCmd)
