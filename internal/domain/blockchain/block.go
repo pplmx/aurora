@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
-	"log"
+	"time"
 )
 
 type Block struct {
@@ -34,7 +34,7 @@ func NewBlock(data string, prevHash []byte) *Block {
 		PrevHash:  prevHash,
 		Data:      []byte(data),
 		Nonce:     0,
-		Timestamp: 0,
+		Timestamp: time.Now().Unix(),
 	}
 	pow := NewProofOfWork(block)
 	nonce, hash := pow.Run()
@@ -59,33 +59,33 @@ func (c *BlockChain) AddBlock(data string) int64 {
 	return int64(height)
 }
 
-func Handle(err error) {
-	if err != nil {
-		log.Panic(err)
-	}
+func Handle(err error) error {
+	return err
 }
 
-func (b *Block) Serialize() []byte {
+func (b *Block) Serialize() ([]byte, error) {
 	var res bytes.Buffer
 	encoder := gob.NewEncoder(&res)
 
 	err := encoder.Encode(b)
+	if err != nil {
+		return nil, err
+	}
 
-	Handle(err)
-
-	return res.Bytes()
+	return res.Bytes(), nil
 }
 
-func Deserialize(data []byte) *Block {
+func Deserialize(data []byte) (*Block, error) {
 	var block Block
 
 	decoder := gob.NewDecoder(bytes.NewReader(data))
 
 	err := decoder.Decode(&block)
+	if err != nil {
+		return nil, err
+	}
 
-	Handle(err)
-
-	return &block
+	return &block, nil
 }
 
 func (c *BlockChain) GetBlockData(blockHeight int64) (string, error) {

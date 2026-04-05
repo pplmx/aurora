@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
@@ -22,7 +23,7 @@ func NewBlockchainRepository(dbPath string) (*BlockchainRepository, error) {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	database, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=ON")
+	database, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON", dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -89,7 +90,7 @@ func (r *BlockchainRepository) SaveBlock(height int64, block *blockchain.Block) 
 		string(block.PrevHash),
 		string(block.Data),
 		block.Nonce,
-		0,
+		time.Now().Unix(),
 	)
 	return err
 }
