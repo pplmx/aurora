@@ -100,3 +100,54 @@ func TestDataSource_DefaultValues(t *testing.T) {
 		t.Errorf("Expected default Interval 60, got %d", source.Interval)
 	}
 }
+
+func TestOracleData_Empty(t *testing.T) {
+	data := &OracleData{}
+
+	if data.ID != "" {
+		t.Errorf("Expected empty ID, got '%s'", data.ID)
+	}
+
+	if data.Value != "" {
+		t.Errorf("Expected empty Value, got '%s'", data.Value)
+	}
+
+	if data.Timestamp != 0 {
+		t.Errorf("Expected zero Timestamp, got %d", data.Timestamp)
+	}
+}
+
+func TestDataSource_Disable(t *testing.T) {
+	source := &DataSource{
+		ID:      "source-1",
+		Name:    "Test",
+		Enabled: true,
+	}
+
+	source.Enabled = false
+
+	if source.Enabled {
+		t.Error("Expected Disabled after toggle")
+	}
+}
+
+func TestOracleData_Update(t *testing.T) {
+	data := &OracleData{
+		ID:          "data-1",
+		SourceID:    "source-1",
+		Value:       "100",
+		Timestamp:   1000,
+		BlockHeight: 10,
+	}
+
+	data.Value = "200"
+	data.BlockHeight = 20
+
+	if data.Value != "200" {
+		t.Errorf("Expected Value '200', got '%s'", data.Value)
+	}
+
+	if data.BlockHeight != 20 {
+		t.Errorf("Expected BlockHeight 20, got %d", data.BlockHeight)
+	}
+}
