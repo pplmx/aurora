@@ -27,4 +27,3 @@ repos:
         files: \.md$
         pass_filenames: true
         require_serial: true
-
