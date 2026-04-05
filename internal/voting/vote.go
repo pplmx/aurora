@@ -198,4 +198,5 @@ func InitVoting(storage Storage) {
 	SetCandidateStorage(storage)
 	SetVoterStorage(storage)
 	SetVoteStorage(storage)
+	SetSessionStorage(storage)
 }
