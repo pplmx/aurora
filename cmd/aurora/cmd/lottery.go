@@ -29,16 +29,22 @@ var createCmd = &cobra.Command{
 
 		participants := strings.Split(participantsStr, ",")
 		for i := range participants {
-			participants[i] = strings.TrimSpace(participants[i])
+			participants[i] = lottery.SanitizeString(participants[i])
 		}
 		participants = removeEmpty(participants)
 
-		if len(participants) < count {
-			return fmt.Errorf("not enough participants: need at least %d, got %d", count, len(participants))
+		// Validate input
+		if err := lottery.ValidateParticipants(participants); err != nil {
+			return fmt.Errorf("invalid participants: %w", err)
 		}
 
-		if seed == "" {
-			return fmt.Errorf("seed cannot be empty")
+		seed = lottery.SanitizeString(seed)
+		if err := lottery.ValidateSeed(seed); err != nil {
+			return fmt.Errorf("invalid seed: %w", err)
+		}
+
+		if err := lottery.ValidateWinnerCount(count, len(participants)); err != nil {
+			return fmt.Errorf("invalid winner count: %w", err)
 		}
 
 		pk, sk, err := lottery.GenerateKeyPair()
