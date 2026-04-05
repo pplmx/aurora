@@ -44,7 +44,12 @@ func (chain *BlockChain) AddBlock(data string) int64 {
 	prevBlock := chain.Blocks[len(chain.Blocks)-1]
 	newBlock := CreateBlock(data, prevBlock.Hash)
 	chain.Blocks = append(chain.Blocks, newBlock)
-	return int64(len(chain.Blocks) - 1)
+	height := len(chain.Blocks) - 1
+
+	// Write-through: save to SQLite
+	chain.SaveBlock(height, newBlock)
+
+	return int64(height)
 }
 
 func Genesis() *Block {
@@ -54,11 +59,14 @@ func Genesis() *Block {
 func InitBlockChain() *BlockChain {
 	// Try to load from SQLite first
 	chain, err := LoadFromDB()
-	if err == nil && len(chain.Blocks) > 1 {
+	if err == nil && len(chain.Blocks) >= 1 {
 		return chain
 	}
 	// Fall back to in-memory if DB doesn't exist or is empty
-	return &BlockChain{[]*Block{Genesis()}}
+	chain = &BlockChain{[]*Block{Genesis()}}
+	// Save genesis block to DB
+	chain.SaveBlock(0, chain.Blocks[0])
+	return chain
 }
 
 func Handle(err error) {

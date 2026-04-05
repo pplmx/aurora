@@ -71,6 +71,29 @@ func createTables(db *sql.DB) error {
 	return nil
 }
 
+func (chain *BlockChain) SaveBlock(height int, block *Block) error {
+	if db == nil {
+		var err error
+		db, err = InitDB()
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err := db.Exec(`
+		INSERT OR REPLACE INTO blocks (height, hash, previous_hash, data, nonce, created_at)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`,
+		height,
+		string(block.Hash),
+		string(block.PrevHash),
+		string(block.Data),
+		block.Nonce,
+		0,
+	)
+	return err
+}
+
 func (chain *BlockChain) SaveToDB() error {
 	if db == nil {
 		var err error
