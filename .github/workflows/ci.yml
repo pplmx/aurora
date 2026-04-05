@@ -5,11 +5,20 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  release:
+    types: [published]
+
+env:
+  GO_VERSION: '1.26'
+  DOCKER_IMAGE: pplmx/aurora
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -18,7 +27,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
 
       - name: Download dependencies
         run: go mod download
@@ -26,37 +37,25 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
-      - name: Run tests
-        run: go test -v -race ./...
+      - name: Run tests with race detector
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
         with:
-          go-version: '1.26'
+          files: ./coverage.out
+          flags: unittests
+          name: aurora
 
-      - name: Build
-        run: |
-          go build -o aurora-darwin ./cmd/aurora
-          go build -o aurora-linux ./cmd/aurora
-          go build -o aurora-windows.exe ./cmd/aurora
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Generate test report
+        if: always()
+        uses: dorny/test-reporter@v1
         with:
-          name: binaries
-          path: |
-            aurora-darwin
-            aurora-linux
-            aurora-windows.exe
+          name: Test Results
+          path: "**/test-results/*.xml"
+          include-subdirs: true
+          fail-on-error: false
 
   lint:
     name: Lint
@@ -69,16 +68,57 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          args: --timeout=5m
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    strategy:
+      matrix:
+        goos: [darwin, linux, windows]
+        goarch: [amd64, arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          EXT=""
+          if [ "$GOOS" = "windows" ]; then
+            EXT=".exe"
+          fi
+          go build -ldflags="-s -w" -o aurora-${GOOS}-${GOARCH}${EXT} ./cmd/aurora
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aurora-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: aurora-*
+          retention-days: 5
 
   docker:
     name: Docker
     runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.event_name != 'pull_request'
 
     steps:
       - name: Checkout code
@@ -87,13 +127,66 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64,amd64
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
-          tags: pplmx/aurora:latest
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name == 'release' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Test Docker image
         run: |
-          docker run --rm pplmx/aurora:latest --help
+          docker run --rm ${{ env.DOCKER_IMAGE }}:${{ github.sha }} --help
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build, docker]
+    if: github.event_name == 'release'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+
+      - name: Upload to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          for img in artifacts/aurora-*; do
+            docker push ${{ env.DOCKER_IMAGE }}:${img#aurora-}
+          done
