@@ -114,3 +114,200 @@ func TestMintNFTUseCase_InvalidInput(t *testing.T) {
 		})
 	}
 }
+
+func TestTransferNFTUseCase_Execute(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewTransferNFTUseCase(service)
+
+	req := &TransferNFTRequest{
+		NFTID:      "nft-123",
+		From:       "ZnJvbS1waw==",
+		To:         "dG8tcGs=",
+		PrivateKey: "cHJpdmF0ZS1rZXk=",
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+}
+
+func TestTransferNFTUseCase_InvalidFrom(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewTransferNFTUseCase(service)
+
+	req := &TransferNFTRequest{
+		NFTID:      "nft-123",
+		From:       "!!!invalid!!!",
+		To:         "dG8tcGs=",
+		PrivateKey: "cHJpdmF0ZS1rZXk=",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid from")
+	}
+}
+
+func TestTransferNFTUseCase_InvalidTo(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewTransferNFTUseCase(service)
+
+	req := &TransferNFTRequest{
+		NFTID:      "nft-123",
+		From:       "ZnJvbS1waw==",
+		To:         "!!!invalid!!!",
+		PrivateKey: "cHJpdmF0ZS1rZXk=",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid to")
+	}
+}
+
+func TestTransferNFTUseCase_InvalidPrivateKey(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewTransferNFTUseCase(service)
+
+	req := &TransferNFTRequest{
+		NFTID:      "nft-123",
+		From:       "ZnJvbS1waw==",
+		To:         "dG8tcGs=",
+		PrivateKey: "!!!invalid!!!",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid private key")
+	}
+}
+
+func TestBurnNFTUseCase_Execute(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewBurnNFTUseCase(service)
+
+	req := &BurnNFTRequest{
+		NFTID:      "nft-123",
+		Owner:      "b3duZXItcGs=",
+		PrivateKey: "cHJpdmF0ZS1rZXk=",
+	}
+
+	err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+}
+
+func TestBurnNFTUseCase_InvalidOwner(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewBurnNFTUseCase(service)
+
+	req := &BurnNFTRequest{
+		NFTID:      "nft-123",
+		Owner:      "!!!invalid!!!",
+		PrivateKey: "cHJpdmF0ZS1rZXk=",
+	}
+
+	err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid owner")
+	}
+}
+
+func TestBurnNFTUseCase_InvalidPrivateKey(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewBurnNFTUseCase(service)
+
+	req := &BurnNFTRequest{
+		NFTID:      "nft-123",
+		Owner:      "b3duZXItcGs=",
+		PrivateKey: "!!!invalid!!!",
+	}
+
+	err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid private key")
+	}
+}
+
+func TestGetNFTUseCase_Execute(t *testing.T) {
+	service := &mockNFTService{
+		nfts: []*nft.NFT{
+			{ID: "nft-1", Name: "Test NFT"},
+		},
+	}
+	uc := NewGetNFTUseCase(service)
+
+	resp, err := uc.Execute("nft-1")
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+
+	if resp.Name != "Test NFT" {
+		t.Errorf("Expected name 'Test NFT', got '%s'", resp.Name)
+	}
+}
+
+func TestGetNFTUseCase_NotFound(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewGetNFTUseCase(service)
+
+	_, err := uc.Execute("nonexistent")
+	if err == nil {
+		t.Fatal("Expected error for nonexistent NFT")
+	}
+}
+
+func TestListNFTsByOwnerUseCase_Execute(t *testing.T) {
+	service := &mockNFTService{
+		nfts: []*nft.NFT{
+			{ID: "nft-1", Name: "NFT 1"},
+			{ID: "nft-2", Name: "NFT 2"},
+		},
+	}
+	uc := NewListNFTsByOwnerUseCase(service)
+
+	resp, err := uc.Execute("b3duZXItcGs=")
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(resp) != 2 {
+		t.Errorf("Expected 2 NFTs, got %d", len(resp))
+	}
+}
+
+func TestListNFTsByOwnerUseCase_InvalidOwner(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewListNFTsByOwnerUseCase(service)
+
+	_, err := uc.Execute("!!!invalid!!!")
+	if err == nil {
+		t.Fatal("Expected error for invalid owner")
+	}
+}
+
+func TestGetNFTOperationsUseCase_Execute(t *testing.T) {
+	service := &mockNFTService{}
+	service.nfts = []*nft.NFT{{ID: "nft-1"}}
+
+	uc := NewGetNFTOperationsUseCase(service)
+
+	resp, err := uc.Execute("nft-1")
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(resp) != 0 {
+		t.Logf("Got %d operations (mock returns nil)", len(resp))
+	}
+}

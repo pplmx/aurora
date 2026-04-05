@@ -44,7 +44,7 @@ func NewLotteryRepository(dbPath string) (*LotteryRepository, error) {
 	}
 
 	if err := repo.createTables(); err != nil {
-		database.Close()
+		_ = database.Close()
 		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
@@ -158,7 +158,7 @@ func (r *LotteryRepository) GetAll() ([]*lottery.LotteryRecord, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var records []*lottery.LotteryRecord
 	for rows.Next() {
@@ -199,7 +199,7 @@ func (r *LotteryRepository) GetByBlockHeight(height int64) ([]*lottery.LotteryRe
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var records []*lottery.LotteryRecord
 	for rows.Next() {

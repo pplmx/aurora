@@ -47,7 +47,9 @@ func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) 
 
 	op := NewOperation(nft.ID, "mint", nil, nft.Owner, nil)
 	op.BlockHeight = height
-	s.repo.SaveOperation(op)
+	if err := s.repo.SaveOperation(op); err != nil {
+		return nil, fmt.Errorf("failed to save mint operation: %w", err)
+	}
 
 	return nft, nil
 }
@@ -83,7 +85,9 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 		return nil, err
 	}
 
-	s.repo.SaveOperation(op)
+	if err := s.repo.SaveOperation(op); err != nil {
+		return nil, fmt.Errorf("failed to save transfer operation: %w", err)
+	}
 	return op, nil
 }
 
@@ -117,7 +121,9 @@ func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockcha
 		return err
 	}
 
-	s.repo.SaveOperation(op)
+	if err := s.repo.SaveOperation(op); err != nil {
+		return fmt.Errorf("failed to save burn operation: %w", err)
+	}
 	return nil
 }
 

@@ -45,7 +45,7 @@ func (m *mockVotingRepo) SaveVoter(v *voting.Voter) error {
 
 func (m *mockVotingRepo) GetVoter(id string) (*voting.Voter, error) {
 	for _, v := range m.voters {
-		if v.Name == id {
+		if v.PublicKey == id {
 			return v, nil
 		}
 	}
@@ -145,5 +145,197 @@ func TestRegisterVoterUseCase(t *testing.T) {
 
 	if resp.Name != "Bob" {
 		t.Errorf("Expected name 'Bob', got '%s'", resp.Name)
+	}
+}
+
+type mockVotingService struct {
+	signature string
+	err       error
+}
+
+func (m *mockVotingService) SignVote(message string, privateKey []byte) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	return m.signature, nil
+}
+
+func (m *mockVotingService) VerifyVote(voterPK, message, signature string) bool {
+	return true
+}
+
+func (m *mockVotingService) CountVotes(candidates []voting.Candidate) map[string]int {
+	results := make(map[string]int)
+	for _, c := range candidates {
+		results[c.ID] = c.VoteCount
+	}
+	return results
+}
+
+func TestCastVoteUseCase_Execute(t *testing.T) {
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+		},
+	}
+	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
+	uc := NewCastVoteUseCase(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+}
+
+func TestCastVoteUseCase_VoterNotFound(t *testing.T) {
+	repo := &mockVotingRepo{}
+	service := &mockVotingService{}
+	uc := NewCastVoteUseCase(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "nonexistent",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdA==",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for nonexistent voter")
+	}
+}
+
+func TestCastVoteUseCase_AlreadyVoted(t *testing.T) {
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: true},
+		},
+	}
+	service := &mockVotingService{}
+	uc := NewCastVoteUseCase(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdA==",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for already voted")
+	}
+}
+
+func TestCastVoteUseCase_CandidateNotFound(t *testing.T) {
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+	}
+	service := &mockVotingService{}
+	uc := NewCastVoteUseCase(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "nonexistent",
+		PrivateKey:     "dGVzdA==",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for nonexistent candidate")
+	}
+}
+
+func TestCastVoteUseCase_InvalidPrivateKey(t *testing.T) {
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice"},
+		},
+	}
+	service := &mockVotingService{}
+	uc := NewCastVoteUseCase(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "!!!invalid!!!",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid private key")
+	}
+}
+
+func TestGetCandidatesUseCase(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "1", Name: "Alice", Party: "Party A", VoteCount: 10},
+			{ID: "2", Name: "Bob", Party: "Party B", VoteCount: 5},
+		},
+	}
+	uc := NewGetCandidatesUseCase(repo)
+
+	resp, err := uc.Execute()
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(resp) != 2 {
+		t.Errorf("Expected 2 candidates, got %d", len(resp))
+	}
+}
+
+func TestGetCandidatesUseCase_Empty(t *testing.T) {
+	repo := &mockVotingRepo{}
+	uc := NewGetCandidatesUseCase(repo)
+
+	resp, err := uc.Execute()
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(resp) != 0 {
+		t.Errorf("Expected 0 candidates, got %d", len(resp))
+	}
+}
+
+func TestCreateSessionUseCase(t *testing.T) {
+	repo := &mockVotingRepo{}
+	uc := NewCreateSessionUseCase(repo)
+
+	req := CreateSessionRequest{
+		Title:        "Election 2024",
+		Description:  "Annual election",
+		CandidateIDs: []string{"c1", "c2"},
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+
+	if resp.Title != "Election 2024" {
+		t.Errorf("Expected title 'Election 2024', got '%s'", resp.Title)
 	}
 }

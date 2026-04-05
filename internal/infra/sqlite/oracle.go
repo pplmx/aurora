@@ -30,7 +30,7 @@ func NewOracleRepository(path string) (*OracleRepository, error) {
 
 	repo := &OracleRepository{db: db}
 	if err := repo.initTables(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to init tables: %w", err)
 	}
 	return repo, nil
@@ -113,7 +113,7 @@ func (r *OracleRepository) GetDataBySource(sourceID string, limit int) ([]*oracl
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var data []*oracle.OracleData
 	for rows.Next() {
@@ -147,7 +147,7 @@ func (r *OracleRepository) GetDataByTimeRange(sourceID string, start, end int64)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var data []*oracle.OracleData
 	for rows.Next() {
@@ -204,7 +204,7 @@ func (r *OracleRepository) ListSources() ([]*oracle.DataSource, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var sources []*oracle.DataSource
 	for rows.Next() {

@@ -33,7 +33,7 @@ func NewNFTRepository(dbPath string) (*NFTRepository, error) {
 	}
 
 	if err := repo.createTables(); err != nil {
-		database.Close()
+		_ = database.Close()
 		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
@@ -145,7 +145,7 @@ func (r *NFTRepository) GetNFTsByOwner(owner []byte) ([]*nft.NFT, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []*nft.NFT
 	for rows.Next() {
@@ -184,7 +184,7 @@ func (r *NFTRepository) GetNFTsByCreator(creator []byte) ([]*nft.NFT, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []*nft.NFT
 	for rows.Next() {
@@ -272,7 +272,7 @@ func (r *NFTRepository) GetOperations(nftID string) ([]*nft.Operation, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var results []*nft.Operation
 	for rows.Next() {
