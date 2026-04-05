@@ -196,9 +196,22 @@ func truncateBase64(s string) string {
 	return s
 }
 
+var nftTuiCmd = &cobra.Command{
+	Use:   "tui",
+	Short: "Launch TUI interface",
+	Run: func(cmd *cobra.Command, args []string) {
+		storage := nft.NewNFTStorage()
+		nft.SetNFTStorage(storage)
+		if err := nft.RunNFTUI(storage); err != nil {
+			fmt.Println("Error:", err)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(nftCmd)
 
+	nftCmd.AddCommand(nftTuiCmd)
 	nftCmd.AddCommand(mintCmd)
 	mintCmd.Flags().StringP("name", "n", "", "NFT name")
 	mintCmd.Flags().StringP("description", "d", "", "NFT description")
