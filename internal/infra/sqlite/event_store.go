@@ -153,8 +153,8 @@ func (e *TokenEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner 
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 
 	rows, err := e.db.Query(`
-		SELECT id, token_id, from_owner, to_owner, amount, nonce, signature, block_height, timestamp 
-		FROM transfer_events 
+		SELECT id, token_id, from_owner, to_owner, amount, nonce, signature, block_height, timestamp
+		FROM transfer_events
 		WHERE token_id = ? AND (from_owner = ? OR to_owner = ?)
 		ORDER BY timestamp DESC
 	`, tokenID, ownerB64, ownerB64)
@@ -188,8 +188,8 @@ func (e *TokenEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner 
 
 func (e *TokenEventStore) GetTransferEventsByToken(tokenID token.TokenID) ([]*token.TransferEvent, error) {
 	rows, err := e.db.Query(`
-		SELECT id, token_id, from_owner, to_owner, amount, nonce, signature, block_height, timestamp 
-		FROM transfer_events 
+		SELECT id, token_id, from_owner, to_owner, amount, nonce, signature, block_height, timestamp
+		FROM transfer_events
 		WHERE token_id = ?
 		ORDER BY timestamp DESC
 	`, tokenID)
@@ -223,8 +223,8 @@ func (e *TokenEventStore) GetTransferEventsByToken(tokenID token.TokenID) ([]*to
 
 func (e *TokenEventStore) GetMintEventsByToken(tokenID token.TokenID) ([]*token.MintEvent, error) {
 	rows, err := e.db.Query(`
-		SELECT id, token_id, to_owner, amount, block_height, timestamp 
-		FROM mint_events 
+		SELECT id, token_id, to_owner, amount, block_height, timestamp
+		FROM mint_events
 		WHERE token_id = ?
 		ORDER BY timestamp DESC
 	`, tokenID)
@@ -254,8 +254,8 @@ func (e *TokenEventStore) GetMintEventsByToken(tokenID token.TokenID) ([]*token.
 
 func (e *TokenEventStore) GetBurnEventsByToken(tokenID token.TokenID) ([]*token.BurnEvent, error) {
 	rows, err := e.db.Query(`
-		SELECT id, token_id, from_owner, amount, block_height, timestamp 
-		FROM burn_events 
+		SELECT id, token_id, from_owner, amount, block_height, timestamp
+		FROM burn_events
 		WHERE token_id = ?
 		ORDER BY timestamp DESC
 	`, tokenID)
