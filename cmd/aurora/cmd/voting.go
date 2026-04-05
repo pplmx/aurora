@@ -405,31 +405,31 @@ func init() {
 	candidateAddCmd.Flags().StringP("name", "n", "", i18n.GetText("voting.name"))
 	candidateAddCmd.Flags().StringP("party", "p", "", i18n.GetText("voting.party"))
 	candidateAddCmd.Flags().StringP("program", "m", "", i18n.GetText("voting.program"))
-	candidateAddCmd.MarkFlagRequired("name")
-	candidateAddCmd.MarkFlagRequired("party")
+	_ = candidateAddCmd.MarkFlagRequired("name")
+	_ = candidateAddCmd.MarkFlagRequired("party")
 
 	voterRegisterCmd.Flags().StringP("name", "n", "", i18n.GetText("voting.name"))
-	voterRegisterCmd.MarkFlagRequired("name")
+	_ = voterRegisterCmd.MarkFlagRequired("name")
 
 	voteCmd.Flags().StringP("voter", "v", "", i18n.GetText("voting.public_key"))
 	voteCmd.Flags().StringP("candidate", "c", "", i18n.GetText("voting.candidate_id"))
 	voteCmd.Flags().StringP("private-key", "k", "", i18n.GetText("voting.private_key"))
-	voteCmd.MarkFlagRequired("voter")
-	voteCmd.MarkFlagRequired("candidate")
-	voteCmd.MarkFlagRequired("private-key")
+	_ = voteCmd.MarkFlagRequired("voter")
+	_ = voteCmd.MarkFlagRequired("candidate")
+	_ = voteCmd.MarkFlagRequired("private-key")
 
 	sessionCreateCmd.Flags().StringP("title", "t", "", i18n.GetText("voting.title"))
 	sessionCreateCmd.Flags().StringP("description", "d", "", i18n.GetText("voting.description"))
 	sessionCreateCmd.Flags().StringSliceP("candidates", "c", nil, i18n.GetText("voting.candidate_id"))
-	sessionCreateCmd.MarkFlagRequired("title")
-	sessionCreateCmd.MarkFlagRequired("candidates")
+	_ = sessionCreateCmd.MarkFlagRequired("title")
+	_ = sessionCreateCmd.MarkFlagRequired("candidates")
 
 	sessionStartCmd.Flags().StringP("id", "i", "", i18n.GetText("voting.session_id"))
-	sessionStartCmd.MarkFlagRequired("id")
+	_ = sessionStartCmd.MarkFlagRequired("id")
 
 	sessionEndCmd.Flags().StringP("id", "i", "", i18n.GetText("voting.session_id"))
-	sessionEndCmd.MarkFlagRequired("id")
+	_ = sessionEndCmd.MarkFlagRequired("id")
 
 	resultsCmd.Flags().StringP("session", "s", "", i18n.GetText("voting.session_id"))
-	resultsCmd.MarkFlagRequired("session")
+	_ = resultsCmd.MarkFlagRequired("session")
 }

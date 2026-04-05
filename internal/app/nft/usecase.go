@@ -17,6 +17,10 @@ func NewMintNFTUseCase(service nft.Service) *MintNFTUseCase {
 }
 
 func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
+	if req.Name == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+
 	creator, err := base64.StdEncoding.DecodeString(req.Creator)
 	if err != nil {
 		return nil, fmt.Errorf("invalid creator: %w", err)

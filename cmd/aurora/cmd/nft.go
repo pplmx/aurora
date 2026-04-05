@@ -24,7 +24,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("failed to initialize NFT repository: %w", err))
 	}
-	defer repo.Close()
+	defer func() { _ = repo.Close() }()
 
 	service := nftdomain.NewService(repo)
 
