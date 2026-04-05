@@ -3,10 +3,19 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/pplmx/aurora/internal/blockchain"
-	"github.com/pplmx/aurora/internal/oracle"
+	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
+	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"
+	oracleui "github.com/pplmx/aurora/internal/ui/oracle"
 	"github.com/spf13/cobra"
 )
+
+var (
+	repo oracleinfra.InMemoryOracleRepository
+)
+
+func init() {
+	repo = *oracleinfra.NewInMemoryOracleRepository()
+}
 
 var oracleCmd = &cobra.Command{
 	Use:   "oracle",
@@ -28,14 +37,20 @@ var sourceAddCmd = &cobra.Command{
 		dataType, _ := cmd.Flags().GetString("type")
 		interval, _ := cmd.Flags().GetInt("interval")
 
-		ds, err := oracle.RegisterDataSource(name, url, dataType, interval)
+		uc := oracleapp.NewAddSourceUseCase(&repo)
+		resp, err := uc.Execute(&oracleapp.AddSourceRequest{
+			Name:     name,
+			URL:      url,
+			Type:     dataType,
+			Interval: interval,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to register data source: %w", err)
 		}
 
-		fmt.Printf("✅ Data source created: %s\n", ds.Name)
-		fmt.Printf("   ID: %s\n", ds.ID)
-		fmt.Printf("   URL: %s\n", ds.URL)
+		fmt.Printf("✅ Data source created: %s\n", resp.Name)
+		fmt.Printf("   ID: %s\n", resp.ID)
+		fmt.Printf("   URL: %s\n", resp.URL)
 		return nil
 	},
 }
@@ -44,16 +59,17 @@ var sourceListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List data sources",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		list, err := oracle.ListDataSources()
+		uc := oracleapp.NewListSourcesUseCase(&repo)
+		resp, err := uc.Execute(&oracleapp.ListSourcesRequest{})
 		if err != nil {
 			return fmt.Errorf("failed to list data sources: %w", err)
 		}
 
 		fmt.Println("\n📡 Data Sources:")
-		if len(list) == 0 {
+		if len(resp.Sources) == 0 {
 			fmt.Println("   (none)")
 		}
-		for _, ds := range list {
+		for _, ds := range resp.Sources {
 			status := "✅ enabled"
 			if !ds.Enabled {
 				status = "⏳ disabled"
@@ -71,7 +87,9 @@ var sourceDeleteCmd = &cobra.Command{
 	Short: "Delete a data source",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, _ := cmd.Flags().GetString("id")
-		if err := oracle.DeleteDataSource(id); err != nil {
+
+		uc := oracleapp.NewDeleteSourceUseCase(&repo)
+		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to delete data source: %w", err)
 		}
 		fmt.Println("✅ Data source deleted!")
@@ -84,7 +102,9 @@ var sourceEnableCmd = &cobra.Command{
 	Short: "Enable a data source",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, _ := cmd.Flags().GetString("id")
-		if err := oracle.EnableDataSource(id); err != nil {
+
+		uc := oracleapp.NewEnableSourceUseCase(&repo)
+		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to enable data source: %w", err)
 		}
 		fmt.Println("✅ Data source enabled!")
@@ -97,7 +117,9 @@ var sourceDisableCmd = &cobra.Command{
 	Short: "Disable a data source",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, _ := cmd.Flags().GetString("id")
-		if err := oracle.DisableDataSource(id); err != nil {
+
+		uc := oracleapp.NewDisableSourceUseCase(&repo)
+		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to disable data source: %w", err)
 		}
 		fmt.Println("✅ Data source disabled!")
@@ -111,16 +133,16 @@ var fetchCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sourceID, _ := cmd.Flags().GetString("source")
 
-		chain := blockchain.InitBlockChain()
-		data, err := oracle.FetchAndSave(sourceID, chain)
+		uc := oracleapp.NewFetchDataUseCase(&repo)
+		resp, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
 		if err != nil {
 			return fmt.Errorf("failed to fetch data: %w", err)
 		}
 
 		fmt.Println("✅ Data fetched successfully!")
-		fmt.Printf("   Value: %s\n", data.Value)
-		fmt.Printf("   Timestamp: %d\n", data.Timestamp)
-		fmt.Printf("   Block Height: %d\n", data.BlockHeight)
+		fmt.Printf("   Value: %s\n", resp.Value)
+		fmt.Printf("   Timestamp: %d\n", resp.Timestamp)
+		fmt.Printf("   Block Height: %d\n", resp.BlockHeight)
 		return nil
 	},
 }
@@ -132,16 +154,17 @@ var dataCmd = &cobra.Command{
 		sourceID, _ := cmd.Flags().GetString("source")
 		limit, _ := cmd.Flags().GetInt("limit")
 
-		list, err := oracle.GetOracleData(sourceID, limit)
+		uc := oracleapp.NewGetDataUseCase(&repo)
+		resp, err := uc.Execute(&oracleapp.GetDataRequest{SourceID: sourceID, Limit: limit})
 		if err != nil {
 			return fmt.Errorf("failed to get oracle data: %w", err)
 		}
 
 		fmt.Println("\n📊 Oracle Data:")
-		if len(list) == 0 {
+		if len(resp.Data) == 0 {
 			fmt.Println("   (none)")
 		}
-		for _, d := range list {
+		for _, d := range resp.Data {
 			fmt.Printf("   [%d] %s - Block #%d\n", d.Timestamp, d.Value, d.BlockHeight)
 		}
 		return nil
@@ -154,19 +177,20 @@ var latestCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sourceID, _ := cmd.Flags().GetString("source")
 
-		data, err := oracle.GetLatestOracleData(sourceID)
+		uc := oracleapp.NewGetLatestDataUseCase(&repo)
+		resp, err := uc.Execute(&oracleapp.GetLatestDataRequest{SourceID: sourceID})
 		if err != nil {
 			return fmt.Errorf("failed to get latest data: %w", err)
 		}
-		if data == nil {
+		if resp.Data == nil {
 			fmt.Println("No data found")
 			return nil
 		}
 
 		fmt.Println("\n📈 Latest Data:")
-		fmt.Printf("   Value: %s\n", data.Value)
-		fmt.Printf("   Timestamp: %d\n", data.Timestamp)
-		fmt.Printf("   Block Height: %d\n", data.BlockHeight)
+		fmt.Printf("   Value: %s\n", resp.Data.Value)
+		fmt.Printf("   Timestamp: %d\n", resp.Data.Timestamp)
+		fmt.Printf("   Block Height: %d\n", resp.Data.BlockHeight)
 		return nil
 	},
 }
@@ -180,7 +204,7 @@ var templateListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List available templates",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		templates := oracle.ListTemplates()
+		templates := getTemplates()
 		fmt.Println("\n📋 Available Templates:")
 		for _, t := range templates {
 			fmt.Printf("   - %s\n", t)
@@ -193,15 +217,28 @@ var templateAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add template as data source",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		template, _ := cmd.Flags().GetString("template")
+		templateName, _ := cmd.Flags().GetString("template")
 
-		ds, err := oracle.AddTemplate(template)
+		template, ok := getTemplate(templateName)
+		if !ok {
+			return fmt.Errorf("template not found: %s", templateName)
+		}
+
+		uc := oracleapp.NewAddSourceUseCase(&repo)
+		resp, err := uc.Execute(&oracleapp.AddSourceRequest{
+			Name:     template.Name,
+			URL:      template.URL,
+			Type:     template.Type,
+			Method:   template.Method,
+			Path:     template.Path,
+			Interval: template.Interval,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to add template: %w", err)
 		}
 
-		fmt.Printf("✅ Template added: %s\n", ds.Name)
-		fmt.Printf("   ID: %s\n", ds.ID)
+		fmt.Printf("✅ Template added: %s\n", resp.Name)
+		fmt.Printf("   ID: %s\n", resp.ID)
 		return nil
 	},
 }
@@ -210,11 +247,51 @@ var oracleTuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: "Launch TUI interface",
 	Run: func(cmd *cobra.Command, args []string) {
-		storage := oracle.NewInMemoryStorage()
-		oracle.InitOracle(storage)
-		if err := oracle.RunOracleTUI(storage); err != nil {
+		inMemoryRepo := oracleinfra.NewInMemoryOracleRepository()
+		if err := oracleui.RunOracleTUI(inMemoryRepo); err != nil {
 			fmt.Println("Error:", err)
 		}
+	},
+}
+
+func getTemplates() []string {
+	keys := make([]string, 0, len(DataSourceTemplates))
+	for k := range DataSourceTemplates {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func getTemplate(name string) (DataSource, bool) {
+	template, ok := DataSourceTemplates[name]
+	return template, ok
+}
+
+type DataSource struct {
+	Name     string
+	URL      string
+	Type     string
+	Method   string
+	Path     string
+	Interval int
+}
+
+var DataSourceTemplates = map[string]DataSource{
+	"btc-price": {
+		Name:     "Bitcoin Price",
+		URL:      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+		Type:     "price",
+		Method:   "GET",
+		Path:     "bitcoin.usd",
+		Interval: 60,
+	},
+	"eth-price": {
+		Name:     "Ethereum Price",
+		URL:      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+		Type:     "price",
+		Method:   "GET",
+		Path:     "ethereum.usd",
+		Interval: 60,
 	},
 }
 
