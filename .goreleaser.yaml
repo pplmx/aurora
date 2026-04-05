@@ -1,0 +1,58 @@
+project_name: aurora
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: aurora
+    main: ./cmd/aurora
+    binary: aurora
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: aurora
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+release:
+  github:
+    owner: pplmx
+    name: aurora
+  name_template: '{{ .Tag }}'
+  draft: false
+  prerelease: auto
+
+dockers:
+  - id: aurora
+    image_templates:
+      - 'pplmx/aurora:{{ .Tag }}'
+      - 'pplmx/aurora:latest'
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - '--platform=linux/amd64'
+      - '--platform=linux/arm64'
