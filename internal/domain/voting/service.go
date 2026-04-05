@@ -28,6 +28,10 @@ func (s *Ed25519Service) SignVote(message string, privateKey []byte) (string, er
 }
 
 func (s *Ed25519Service) VerifyVote(voterPK, message, signature string) bool {
+	if voterPK == "" || message == "" || signature == "" {
+		return false
+	}
+
 	pubBytes, err := base64.StdEncoding.DecodeString(voterPK)
 	if err != nil {
 		return false
@@ -35,6 +39,10 @@ func (s *Ed25519Service) VerifyVote(voterPK, message, signature string) bool {
 
 	sigBytes, err := base64.StdEncoding.DecodeString(signature)
 	if err != nil {
+		return false
+	}
+
+	if len(pubBytes) != ed25519.PublicKeySize {
 		return false
 	}
 

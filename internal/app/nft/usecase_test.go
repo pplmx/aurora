@@ -52,10 +52,20 @@ func (m *mockNFTService) GetOperations(nftID string) ([]*nft.Operation, error) {
 	return nil, nil
 }
 
+type mockBlockWriter struct {
+	height int64
+}
+
+func (m *mockBlockWriter) AddBlock(data string) (int64, error) {
+	m.height++
+	return m.height, nil
+}
+
 func TestMintNFTUseCase_Execute(t *testing.T) {
 	service := &mockNFTService{}
+	chain := &mockBlockWriter{}
 
-	uc := NewMintNFTUseCase(service)
+	uc := NewMintNFTUseCase(service, chain)
 
 	req := &MintNFTRequest{
 		Name:        "Test NFT",
@@ -80,7 +90,8 @@ func TestMintNFTUseCase_Execute(t *testing.T) {
 
 func TestMintNFTUseCase_InvalidInput(t *testing.T) {
 	service := &mockNFTService{}
-	uc := NewMintNFTUseCase(service)
+	chain := &mockBlockWriter{}
+	uc := NewMintNFTUseCase(service, chain)
 
 	tests := []struct {
 		name    string
@@ -117,7 +128,8 @@ func TestMintNFTUseCase_InvalidInput(t *testing.T) {
 
 func TestTransferNFTUseCase_Execute(t *testing.T) {
 	service := &mockNFTService{}
-	uc := NewTransferNFTUseCase(service)
+	chain := &mockBlockWriter{}
+	uc := NewTransferNFTUseCase(service, chain)
 
 	req := &TransferNFTRequest{
 		NFTID:      "nft-123",
@@ -138,7 +150,8 @@ func TestTransferNFTUseCase_Execute(t *testing.T) {
 
 func TestTransferNFTUseCase_InvalidFrom(t *testing.T) {
 	service := &mockNFTService{}
-	uc := NewTransferNFTUseCase(service)
+	chain := &mockBlockWriter{}
+	uc := NewTransferNFTUseCase(service, chain)
 
 	req := &TransferNFTRequest{
 		NFTID:      "nft-123",
@@ -155,7 +168,8 @@ func TestTransferNFTUseCase_InvalidFrom(t *testing.T) {
 
 func TestTransferNFTUseCase_InvalidTo(t *testing.T) {
 	service := &mockNFTService{}
-	uc := NewTransferNFTUseCase(service)
+	chain := &mockBlockWriter{}
+	uc := NewTransferNFTUseCase(service, chain)
 
 	req := &TransferNFTRequest{
 		NFTID:      "nft-123",
@@ -172,7 +186,8 @@ func TestTransferNFTUseCase_InvalidTo(t *testing.T) {
 
 func TestTransferNFTUseCase_InvalidPrivateKey(t *testing.T) {
 	service := &mockNFTService{}
-	uc := NewTransferNFTUseCase(service)
+	chain := &mockBlockWriter{}
+	uc := NewTransferNFTUseCase(service, chain)
 
 	req := &TransferNFTRequest{
 		NFTID:      "nft-123",
@@ -189,7 +204,8 @@ func TestTransferNFTUseCase_InvalidPrivateKey(t *testing.T) {
 
 func TestBurnNFTUseCase_Execute(t *testing.T) {
 	service := &mockNFTService{}
-	uc := NewBurnNFTUseCase(service)
+	chain := &mockBlockWriter{}
+	uc := NewBurnNFTUseCase(service, chain)
 
 	req := &BurnNFTRequest{
 		NFTID:      "nft-123",
@@ -205,7 +221,8 @@ func TestBurnNFTUseCase_Execute(t *testing.T) {
 
 func TestBurnNFTUseCase_InvalidOwner(t *testing.T) {
 	service := &mockNFTService{}
-	uc := NewBurnNFTUseCase(service)
+	chain := &mockBlockWriter{}
+	uc := NewBurnNFTUseCase(service, chain)
 
 	req := &BurnNFTRequest{
 		NFTID:      "nft-123",
@@ -221,7 +238,8 @@ func TestBurnNFTUseCase_InvalidOwner(t *testing.T) {
 
 func TestBurnNFTUseCase_InvalidPrivateKey(t *testing.T) {
 	service := &mockNFTService{}
-	uc := NewBurnNFTUseCase(service)
+	chain := &mockBlockWriter{}
+	uc := NewBurnNFTUseCase(service, chain)
 
 	req := &BurnNFTRequest{
 		NFTID:      "nft-123",

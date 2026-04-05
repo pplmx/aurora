@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	appnft "github.com/pplmx/aurora/internal/app/nft"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	nftdomain "github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
@@ -27,10 +28,11 @@ func init() {
 	defer func() { _ = repo.Close() }()
 
 	service := nftdomain.NewService(repo)
+	chain := blockchain.InitBlockChain()
 
-	mintUC := appnft.NewMintNFTUseCase(service)
-	transferUC := appnft.NewTransferNFTUseCase(service)
-	burnUC := appnft.NewBurnNFTUseCase(service)
+	mintUC := appnft.NewMintNFTUseCase(service, chain)
+	transferUC := appnft.NewTransferNFTUseCase(service, chain)
+	burnUC := appnft.NewBurnNFTUseCase(service, chain)
 	getUC := appnft.NewGetNFTUseCase(service)
 	listUC := appnft.NewListNFTsByOwnerUseCase(service)
 	historyUC := appnft.NewGetNFTOperationsUseCase(service)
