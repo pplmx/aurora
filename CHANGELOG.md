@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-04-06
+
+### Refactored - DDD Architecture
+
+Complete migration from monolithic modules to **Domain-Driven Design (DDD)** architecture:
+
+- **Domain Layer** (`internal/domain/`): Entities, Services, Repository interfaces
+  - `blockchain/` - Block, BlockChain, InitBlockChain()
+  - `lottery/` - LotteryRecord, VRF Service, Repository
+  - `voting/` - Vote, Voter, Candidate, Session
+  - `nft/` - NFT, Operation, Service
+  - `oracle/` - OracleData, DataSource
+
+- **Infrastructure Layer** (`internal/infra/`): Storage implementations
+  - `sqlite/` - SQLite repository implementations
+  - `http/` - HTTP client for Oracle
+
+- **Application Layer** (`internal/app/`): Use Cases
+  - `lottery/` - CreateLotteryUseCase
+  - `voting/` - CastVoteUseCase, RegisterVoterUseCase
+  - `nft/` - MintNFTUseCase, TransferNFTUseCase
+  - `oracle/` - FetchDataUseCase
+
+- **Presentation Layer** (`internal/ui/`): TUI interfaces
+  - `lottery/`, `nft/`, `oracle/`
+
+### Dependencies Updated
+
+- Bubble Tea v1 → v2 (`charm.land/bubbletea/v2`)
+- Bubbles v1 → v2 (`charm.land/bubbles/v2`)
+- Lipgloss v1 → v2 (`charm.land/lipgloss/v2`)
+- GitHub Actions updated to latest versions
+
+### Added
+
+- **Domain Tests**: Unit tests for domain entities
+- **SECURITY.md**: Security policy and vulnerability reporting
+- **.goreleaser.yaml**: GoReleaser configuration
+- **Pre-commit hooks**: Go format/lint hooks
+
+### Fixed
+
+- Docker build cache issues
+- Go version in Dockerfile (1.26)
+- golangci-lint configuration
+- errcheck disabled in CI (matches local lint)
+
 ## [1.0.0] - 2024-04-06
 
 ### Added

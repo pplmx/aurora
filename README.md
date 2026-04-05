@@ -4,7 +4,7 @@
 [![Tests](https://github.com/pplmx/aurora/actions/workflows/ci.yml/badge.svg)](https://github.com/pplmx/aurora/actions)
 [![Release](https://img.shields.io/github/v/release/pplmx/aurora)](https://github.com/pplmx/aurora/releases)
 
-基于区块链的数字系统套件，支持抽奖、投票、预言机和 NFT。
+基于区块链的数字系统套件，支持抽奖、投票、预言机和 NFT。采用 **DDD (领域驱动设计)** 架构。
 
 ## 功能
 
@@ -74,21 +74,48 @@ just image        # 构建 Docker
 ./aurora nft transfer --nft <id> --from <from> --to <to> -k <priv>
 ```
 
-## 项目结构
+## 项目结构 (DDD 架构)
 
 ```text
-cmd/aurora/        # CLI 入口
+cmd/aurora/              # CLI 入口
 internal/
-├── blockchain/    # 区块链 + SQLite 存储
-├── lottery/      # VRF 抽奖系统
-├── voting/       # 投票系统
-├── oracle/       # 预言机
-├── nft/          # NFT 系统
-├── logger/       # 日志
-└── utils/        # 工具
-test/             # E2E 测试
-.github/workflows/# CI/CD
+├── domain/               # 领域层 - 实体、服务、仓储接口
+│   ├── blockchain/       # 区块链核心 (Block, BlockChain)
+│   ├── lottery/         # 抽奖领域 (LotteryRecord, VRF Service)
+│   ├── voting/          # 投票领域 (Vote, Voter, Candidate)
+│   ├── nft/             # NFT 领域 (NFT, Operation)
+│   └── oracle/          # 预言机领域 (OracleData, DataSource)
+│
+├── infra/               # 基础设施层 - 存储实现
+│   ├── sqlite/          # SQLite 持久化
+│   └── http/            # HTTP 客户端
+│
+├── app/                 # 应用层 - 用例
+│   ├── lottery/         # CreateLotteryUseCase
+│   ├── voting/          # CastVoteUseCase, RegisterVoterUseCase
+│   ├── nft/            # MintNFTUseCase, TransferNFTUseCase
+│   └── oracle/          # FetchDataUseCase
+│
+├── ui/                  # 表示层 - TUI 界面
+│   ├── lottery/
+│   ├── nft/
+│   └── oracle/
+│
+├── i18n/                # 国际化
+├── logger/               # 日志
+└── utils/                # 工具
+test/                     # E2E 测试
+.github/workflows/        # CI/CD
 ```
+
+### DDD 分层说明
+
+| 层 | 职责 | 示例 |
+|---|---|---|
+| **domain** | 核心业务逻辑、实体、领域服务、仓储接口 | `LotteryRecord`, `VRFService`, `Repository` 接口 |
+| **app** | 用例编排、DTO 转换 | `CreateLotteryUseCase` |
+| **infra** | 外部依赖实现 | `SQLiteRepository`, `HTTPFetcher` |
+| **ui** | 用户界面 | Bubble Tea TUI |
 
 ## 技术栈
 
@@ -97,7 +124,7 @@ test/             # E2E 测试
 - Viper (配置)
 - Zerolog (日志)
 - Ed25519 (签名)
-- Bubble Tea (TUI)
+- Bubble Tea v2 (TUI)
 - SQLite (持久化)
 
 ## 开发
