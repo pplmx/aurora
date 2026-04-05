@@ -324,7 +324,7 @@ var dbInfoCmd = &cobra.Command{
 		defer db.Close()
 
 		var count int
-		db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height > 0").Scan(&count)
+		_ = db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height > 0").Scan(&count)
 
 		fmt.Println("\n📁 Database Info")
 		fmt.Println("────────────────────────────")
@@ -353,8 +353,8 @@ func init() {
 
 	resetCmd.Flags().BoolP("yes", "y", false, "Confirm reset")
 
-	createCmd.MarkFlagRequired("participants")
-	createCmd.MarkFlagRequired("seed")
+	_ = createCmd.MarkFlagRequired("participants")
+	_ = createCmd.MarkFlagRequired("seed")
 }
 
 func removeEmpty(s []string) []string {

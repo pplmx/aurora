@@ -46,16 +46,8 @@ type model struct {
 	view              string
 	storage           Storage
 	menuIndex         int
-	candidateName     string
 	candidateParty    textinput.Model
 	candidateProgram  textinput.Model
-	voterName         string
-	voterPublicKey    string
-	voterPrivateKey   string
-	candidateID       string
-	sessionTitle      string
-	sessionDesc       string
-	sessionCandidates string
 	err               string
 	successMsg        string
 	resultMsg         string
