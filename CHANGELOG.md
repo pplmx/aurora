@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-04-07
+
+### Added
+
+- **Token (FT) Module**: Complete Fungible Token system
+    - `token/create` - Create new token with name, symbol, supply
+    - `token/mint` - Mint tokens to address
+    - `token/transfer` - Transfer tokens between addresses
+    - `token/burn` - Burn tokens
+    - `token/balance` - Query token balance
+    - `token/history` - Query transfer history
+    - `token/tui` - Interactive TUI interface
+
+- **Complete TUI Functionality**:
+    - NFT TUI: Mint, Transfer, Query, List by Owner
+    - Oracle TUI: Source Management, Fetch, Query
+    - Token TUI: Create, Mint, Transfer, Balance, History
+
+- **UI Theme Library** (`internal/ui/components/theme.go`):
+    - Unified styling across all TUI modules
+    - Module-specific accent colors
+    - Reusable components (MenuActiveStyle, InputStyle, ViewportStyle, etc.)
+
+- **Comprehensive Test Coverage**:
+    - Token E2E full flow test
+    - Token App integration tests (15 use case tests)
+    - Token Domain tests (12+ new tests)
+    - NFT Domain tests (Transfer, Query, List)
+    - Oracle Domain tests (AddSource, Toggle, Delete, Fetch, Query)
+
+### Changed
+
+- Refactored all TUI modules to use `components` package
+- Added i18n support for error messages
+- Fixed hardcoded Chinese strings → i18n.GetText()
+
+### Fixed
+
+- Token TUI import syntax error
+- Unused variable warnings
+- golangci-lint issues
+
+### Test Coverage
+
+| Module | Domain | App |
+|--------|--------|-----|
+| Lottery | 74.0% | 87.1% |
+| Voting | 87.5% | 81.4% |
+| NFT | 72.7% | 88.1% |
+| Token | 70.7% | 40.7% |
+| Oracle | 76.1% | 65.8% |
+
 ## [1.1.0] - 2026-04-06
 
 ### Refactored - DDD Architecture
