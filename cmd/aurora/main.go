@@ -4,6 +4,7 @@ import (
 	"github.com/pplmx/aurora/cmd/aurora/cmd"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/logger"
+	"github.com/pplmx/aurora/internal/voting"
 )
 
 var Version = "1.0.0"
@@ -12,6 +13,9 @@ var BuildTime = "unknown"
 func main() {
 	logger.Init()
 	i18n.DetectAndInit()
+
+	storage := voting.NewInMemoryStorage()
+	voting.InitVoting(storage)
 
 	logger.Info().
 		Str("version", Version).
