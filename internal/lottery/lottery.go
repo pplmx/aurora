@@ -9,15 +9,15 @@ import (
 )
 
 type LotteryRecord struct {
-	ID           string   `json:"id"`
-	Seed         string   `json:"seed"`
-	Participants []string `json:"participants"`
-	Winners      []string `json:"winners"`
-	WinnerAddrs  []string `json:"winner_addrs"`
-	VRFProof     string   `json:"vrf_proof"`
-	VRFOutput    string   `json:"vrf_output"`
-	BlockHeight  int64    `json:"block_height"`
-	Timestamp    int64    `json:"timestamp"`
+	ID              string   `json:"id"`
+	Seed            string   `json:"seed"`
+	Participants    []string `json:"participants"`
+	Winners         []string `json:"winners"`
+	WinnerAddresses []string `json:"winner_addresses"`
+	VRFProof        string   `json:"vrf_proof"`
+	VRFOutput       string   `json:"vrf_output"`
+	BlockHeight     int64    `json:"block_height"`
+	Timestamp       int64    `json:"timestamp"`
 }
 
 func SelectWinners(output []byte, participants []string, count int) []string {
@@ -67,15 +67,15 @@ func CreateLotteryRecord(
 	id := hex.EncodeToString(idHash[:])[:16]
 
 	return &LotteryRecord{
-		ID:           id,
-		Seed:         seed,
-		Participants: participants,
-		Winners:      winners,
-		WinnerAddrs:  winnerAddrs,
-		VRFProof:     hex.EncodeToString(proof),
-		VRFOutput:    hex.EncodeToString(output),
-		BlockHeight:  blockHeight,
-		Timestamp:    time.Now().Unix(),
+		ID:              id,
+		Seed:            seed,
+		Participants:    participants,
+		Winners:         winners,
+		WinnerAddresses: winnerAddrs,
+		VRFProof:        hex.EncodeToString(proof),
+		VRFOutput:       hex.EncodeToString(output),
+		BlockHeight:     blockHeight,
+		Timestamp:       time.Now().Unix(),
 	}
 }
 

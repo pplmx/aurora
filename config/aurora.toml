@@ -1,0 +1,7 @@
+[log]
+level = "info"
+path = "./logs/"
+
+[lottery]
+defaultCount = 3
+defaultSeedPrefix = "aurora-vrf-"
