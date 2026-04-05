@@ -13,6 +13,7 @@ import (
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 var (
@@ -63,16 +64,16 @@ func NewLotteryApp() *model {
 	chain := blockchain.InitBlockChain()
 
 	pInput := textinput.New()
-	pInput.Placeholder = "Alice\nBob\nCharlie\nDavid"
+	pInput.Placeholder = i18n.GetText("lottery.tui.participants")
 	pInput.Focus()
 	pInput.Prompt = "  "
 
 	sInput := textinput.New()
-	sInput.Placeholder = "Enter random seed..."
+	sInput.Placeholder = i18n.GetText("lottery.tui.seed")
 	sInput.Prompt = "  "
 
 	cInput := textinput.New()
-	cInput.Placeholder = "3"
+	cInput.Placeholder = i18n.GetText("lottery.tui.winners")
 	cInput.SetValue("3")
 	cInput.Prompt = "  "
 
@@ -195,9 +196,13 @@ func (m *model) View() tea.View {
 }
 
 func (m *model) menuView() string {
-	menuItems := []string{"创建抽奖", "查看历史", "退出"}
+	menuItems := []string{
+		i18n.GetText("lottery.tui.create"),
+		i18n.GetText("lottery.tui.history"),
+		i18n.GetText("lottery.tui.exit"),
+	}
 
-	s := headerStyle.Render("🌟 VRF 透明抽奖系统 🌟") + "\n\n"
+	s := headerStyle.Render("🌟 "+i18n.GetText("lottery.tui.title")+" 🌟") + "\n\n"
 
 	for i, item := range menuItems {
 		if i == m.menuIndex {
@@ -207,18 +212,18 @@ func (m *model) menuView() string {
 		}
 	}
 
-	s += "\n" + helpStyle.Render("按 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出")
+	s += "\n" + helpStyle.Render(i18n.GetText("help.nav"))
 
 	return s
 }
 
 func (m *model) createView() string {
-	s := headerStyle.Render("📝 创建新抽奖") + "\n\n"
-	s += infoStyle.Render("参与者（每行一个）:") + "\n"
+	s := headerStyle.Render("📝 "+i18n.GetText("lottery.tui.create")) + "\n\n"
+	s += infoStyle.Render(i18n.GetText("lottery.tui.participants")+":") + "\n"
 	s += m.participantsInput.View() + "\n\n"
-	s += infoStyle.Render("随机种子:") + "\n"
+	s += infoStyle.Render(i18n.GetText("lottery.tui.seed")+":") + "\n"
 	s += m.seedInput.View() + "\n\n"
-	s += infoStyle.Render("获奖人数:") + "\n"
+	s += infoStyle.Render(i18n.GetText("lottery.tui.winners")+":") + "\n"
 	s += m.countInput.View() + "\n\n"
 
 	if m.err != "" {
@@ -229,28 +234,28 @@ func (m *model) createView() string {
 		s += successStyle.Render("✓ "+m.successMsg) + "\n\n"
 	}
 
-	s += borderStyle.Render("[回车] 创建抽奖") + " | " + borderStyle.Render("[ESC] 返回")
+	s += borderStyle.Render(i18n.GetText("lottery.tui.create_btn")) + " | " + borderStyle.Render(i18n.GetText("lottery.tui.back"))
 
 	return s
 }
 
 func (m *model) historyView() string {
-	s := headerStyle.Render("📜 抽奖历史") + "\n\n"
+	s := headerStyle.Render("📜 "+i18n.GetText("lottery.tui.history")) + "\n\n"
 	s += m.viewport.View() + "\n\n"
-	s += borderStyle.Render("[ESC] 返回")
+	s += borderStyle.Render(i18n.GetText("lottery.tui.back"))
 
 	return s
 }
 
 func (m *model) resultView() string {
 	if m.result == nil {
-		return "无结果"
+		return i18n.GetText("error.not_found")
 	}
 
-	s := successStyle.Render("🎉 抽奖完成！") + "\n\n"
-	s += infoStyle.Render("📋 抽奖ID: ") + m.result.ID + "\n"
-	s += infoStyle.Render("🔢 区块高度: #") + fmt.Sprintf("%d", m.result.BlockHeight) + "\n\n"
-	s += successStyle.Render("🎊 中奖者:") + "\n"
+	s := successStyle.Render("🎉 "+i18n.GetText("lottery.tui.completed")) + "\n\n"
+	s += infoStyle.Render(i18n.GetText("lottery.lottery_id")+": ") + m.result.ID + "\n"
+	s += infoStyle.Render(i18n.GetText("lottery.block_height")+": #") + fmt.Sprintf("%d", m.result.BlockHeight) + "\n\n"
+	s += successStyle.Render(i18n.GetText("lottery.winners")+":") + "\n"
 
 	for i, w := range m.result.Winners {
 		s += fmt.Sprintf("   %d. %s (%s)\n", i+1, w, m.result.WinnerAddresses[i])
@@ -265,10 +270,10 @@ func (m *model) resultView() string {
 	if len(vrfProof) > 32 {
 		vrfProof = vrfProof[:32]
 	}
-	s += infoStyle.Render("🔐 VRF Output: ") + vrfOut + "...\n"
-	s += infoStyle.Render("📜 VRF Proof: ") + vrfProof + "...\n"
+	s += infoStyle.Render(i18n.GetText("lottery.vrf_output")+": ") + vrfOut + "...\n"
+	s += infoStyle.Render(i18n.GetText("lottery.vrf_proof")+": ") + vrfProof + "...\n"
 
-	s += "\n" + borderStyle.Render("[ESC] 返回主菜单")
+	s += "\n" + borderStyle.Render(i18n.GetText("lottery.tui.back"))
 
 	return s
 }

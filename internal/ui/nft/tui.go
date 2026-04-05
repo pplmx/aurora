@@ -7,6 +7,8 @@ import (
 	"charm.land/lipgloss/v2"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 var (
@@ -97,8 +99,13 @@ func (m *model) View() tea.View {
 }
 
 func (m *model) menuView() string {
-	s := headerStyle.Render("🖼️ NFT 系统 🖼️") + "\n\n"
-	items := []string{"铸造 NFT", "转让 NFT", "查询 NFT", "退出"}
+	s := headerStyle.Render("🖼️ "+i18n.GetText("nft.tui.title")+" 🖼️") + "\n\n"
+	items := []string{
+		i18n.GetText("nft.tui.mint"),
+		i18n.GetText("nft.tui.transfer"),
+		i18n.GetText("nft.tui.query"),
+		i18n.GetText("lottery.tui.exit"),
+	}
 	for i, item := range items {
 		if i == m.menuIndex {
 			s += menuSelectedStyle.Render("▶ " + item + "\n")
@@ -106,18 +113,18 @@ func (m *model) menuView() string {
 			s += menuItemStyle.Render("  " + item + "\n")
 		}
 	}
-	s += "\n" + helpStyle.Render("按 ↑↓ 选择, 回车确认, q 退出")
+	s += "\n" + helpStyle.Render(i18n.GetText("help.nav"))
 	return s
 }
 
 func (m *model) infoView() string {
-	s := headerStyle.Render("ℹ️ 信息 ℹ️") + "\n\n"
-	s += "请使用 CLI 命令操作 NFT:\n\n"
+	s := headerStyle.Render("ℹ️ "+i18n.GetText("nft.tui.info")+" ℹ️") + "\n\n"
+	s += i18n.GetText("nft.tui.cli_tip") + "\n\n"
 	s += borderStyle.Render("  aurora nft mint -n <名称> -c <公钥>\n")
 	s += "  aurora nft transfer --nft <id> --from <from> --to <to> -k <私钥>\n"
 	s += "  aurora nft get --id <id>\n"
 	s += "  aurora nft list --owner <公钥>\n\n"
-	s += borderStyle.Render("[ESC] 返回")
+	s += borderStyle.Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 	return s
 }
 

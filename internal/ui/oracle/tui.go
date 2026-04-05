@@ -10,6 +10,7 @@ import (
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
 	domainoracle "github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 var (
@@ -120,8 +121,13 @@ func (m *model) View() tea.View {
 }
 
 func (m *model) menuView() string {
-	s := headerStyle.Render("🔮 Oracle 预言机系统 🔮") + "\n\n"
-	items := []string{"数据源管理", "获取数据", "数据查询", "退出"}
+	s := headerStyle.Render("🔮 "+i18n.GetText("oracle.tui.title")+" 🔮") + "\n\n"
+	items := []string{
+		i18n.GetText("oracle.tui.source_mgmt"),
+		i18n.GetText("oracle.tui.fetch_data"),
+		i18n.GetText("oracle.tui.query_data"),
+		i18n.GetText("lottery.tui.exit"),
+	}
 	for i, item := range items {
 		if i == m.menuIndex {
 			s += menuSelectedStyle.Render("▶ " + item + "\n")
@@ -129,43 +135,43 @@ func (m *model) menuView() string {
 			s += menuItemStyle.Render("  " + item + "\n")
 		}
 	}
-	s += "\n" + helpStyle.Render("按 ↑↓ 选择, 回车确认, q 退出")
+	s += "\n" + helpStyle.Render(i18n.GetText("help.nav"))
 	return s
 }
 
 func (m *model) sourcesView() string {
-	s := headerStyle.Render("📡 数据源管理") + "\n\n"
+	s := headerStyle.Render("📡 "+i18n.GetText("oracle.tui.source_mgmt")) + "\n\n"
 
 	if len(m.sources) == 0 {
-		s += infoStyle.Render("暂无数据源\n\n")
+		s += infoStyle.Render(i18n.GetText("oracle.tui.no_sources") + "\n\n")
 	} else {
 		for i, ds := range m.sources {
-			status := "✓"
+			status := i18n.GetText("oracle.tui.enabled")
 			if !ds.Enabled {
-				status = "✗"
+				status = i18n.GetText("oracle.tui.disabled")
 			}
 			s += fmt.Sprintf("%d. %s [%s] %s\n", i+1, ds.Name, ds.Type, status)
 		}
 	}
 
-	s += "\n" + borderStyle.Render("[ESC] 返回")
+	s += "\n" + borderStyle.Render("[ESC] "+i18n.GetText("lottery.tui.back"))
 	return s
 }
 
 func (m *model) fetchView() string {
-	s := headerStyle.Render("📥 获取数据") + "\n\n"
-	s += infoStyle.Render("使用 CLI 命令获取数据:\n")
+	s := headerStyle.Render("📥 "+i18n.GetText("oracle.tui.fetch_data")) + "\n\n"
+	s += infoStyle.Render(i18n.GetText("oracle.tui.cli_tip") + "\n")
 	s += "  aurora oracle fetch --source <id>\n\n"
-	s += borderStyle.Render("[ESC] 返回")
+	s += borderStyle.Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 	return s
 }
 
 func (m *model) dataView() string {
-	s := headerStyle.Render("📊 数据查询") + "\n\n"
-	s += infoStyle.Render("使用 CLI 命令查询数据:\n")
+	s := headerStyle.Render("📊 "+i18n.GetText("oracle.tui.query_data")) + "\n\n"
+	s += infoStyle.Render(i18n.GetText("oracle.tui.cli_tip") + "\n")
 	s += "  aurora oracle data --source <id>\n"
 	s += "  aurora oracle latest --source <id>\n\n"
-	s += borderStyle.Render("[ESC] 返回")
+	s += borderStyle.Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 	return s
 }
 
