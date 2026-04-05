@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
 	"log"
 	"math"
 	"math/big"
 )
 
-const Difficulty = 12
+const Difficulty = 4
 
 type ProofOfWork struct {
 	Block  *Block
@@ -59,7 +58,6 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 		data := pow.InitNonce(nonce)
 		hash = sha256.Sum256(data)
 
-		fmt.Printf("\r%x", hash)
 		intHash.SetBytes(hash[:])
 
 		if intHash.Cmp(pow.Target) == -1 {
@@ -69,7 +67,6 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 		}
 
 	}
-	fmt.Println()
 
 	return nonce, hash[:]
 }
