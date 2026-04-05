@@ -1,5 +1,5 @@
 [global]
-disable = ["MD029", "MD034", "MD036", "MD059", "MD033", "MD025"]
+disable = ["MD029", "MD034", "MD036", "MD059", "MD033", "MD025", "MD076"]
 respect_gitignore = true
 exclude = ["themes"]
 
