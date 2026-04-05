@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 ### Build
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ RUN go build -trimpath -ldflags="-w -s" -o ./out/aurora ./cmd/aurora
 
 
 ### Deploy
-FROM gcr.dockerproxy.com/distroless/static:nonroot
+FROM gcr.io/distroless/static:nonroot
 
 COPY --from=builder /app/out/aurora /aurora
 
