@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/pplmx/aurora/test"
+	tests "github.com/pplmx/aurora/tests"
 )
 
 func main() {
 
-	test.Blockchain()
+	tests.Blockchain()
 
 }
