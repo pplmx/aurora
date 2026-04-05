@@ -14,10 +14,17 @@ import (
 )
 
 var (
-	titleStyle = lipgloss.NewStyle().
+	headerStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("86")).
 			Bold(true).
 			Padding(0, 1)
+
+	menuItemStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252"))
+
+	menuSelectedStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("86")).
+				Bold(true)
 
 	borderStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240"))
@@ -27,6 +34,12 @@ var (
 
 	successStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("82"))
+
+	helpStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("245"))
+
+	infoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("75"))
 )
 
 type model struct {
@@ -38,10 +51,13 @@ type model struct {
 	result            *LotteryRecord
 	history           string
 	err               string
+	successMsg        string
 	participantsInput textinput.Model
 	seedInput         textinput.Model
 	countInput        textinput.Model
 	viewport          viewport.Model
+	menuIndex         int
+	showHelp          bool
 }
 
 func NewLotteryApp() *model {
@@ -50,15 +66,18 @@ func NewLotteryApp() *model {
 	pInput := textinput.New()
 	pInput.Placeholder = "Alice\nBob\nCharlie\nDavid"
 	pInput.Focus()
+	pInput.Prompt = "  "
 
 	sInput := textinput.New()
 	sInput.Placeholder = "Enter random seed..."
+	sInput.Prompt = "  "
 
 	cInput := textinput.New()
 	cInput.Placeholder = "3"
 	cInput.SetValue("3")
+	cInput.Prompt = "  "
 
-	vp := viewport.New(60, 20)
+	vp := viewport.New(60, 15)
 
 	return &model{
 		view:              "menu",
@@ -68,6 +87,7 @@ func NewLotteryApp() *model {
 		seedInput:         sInput,
 		countInput:        cInput,
 		viewport:          vp,
+		menuIndex:         0,
 	}
 }
 
@@ -80,51 +100,84 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.showHelp {
+			if msg.String() == "esc" || msg.String() == "?" {
+				m.showHelp = false
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
-		case "ctrl+c", "esc":
+		case "ctrl+c", "q":
 			if m.view == "menu" {
 				return m, tea.Quit
 			}
 			m.view = "menu"
 			m.err = ""
+			m.successMsg = ""
 			return m, nil
+
+		case "?":
+			m.showHelp = true
+			return m, nil
+
+		case "up", "k":
+			if m.view == "menu" && m.menuIndex > 0 {
+				m.menuIndex--
+			}
+
+		case "down", "j":
+			if m.view == "menu" && m.menuIndex < 2 {
+				m.menuIndex++
+			}
 
 		case "enter":
 			switch m.view {
 			case "menu":
-				// Menu selection via number handled below
+				switch m.menuIndex {
+				case 0:
+					m.view = "create"
+					m.err = ""
+					m.successMsg = ""
+					m.seedInput.SetValue("")
+					m.countInput.SetValue("3")
+				case 1:
+					m.loadHistory()
+					m.view = "history"
+				case 2:
+					return m, tea.Quit
+				}
 			case "create":
 				return m, m.handleCreate
-			case "history":
+			case "history", "result":
 				m.view = "menu"
-			case "result":
-				m.view = "menu"
+				m.successMsg = ""
 			}
-		case "1":
+		case "1", "2", "3":
 			if m.view == "menu" {
-				m.view = "create"
+				m.menuIndex = int(msg.String()[0] - '1')
+			}
+		case "esc":
+			if m.view != "menu" {
+				m.view = "menu"
 				m.err = ""
-			}
-		case "2":
-			if m.view == "menu" {
-				m.loadHistory()
-				m.view = "history"
-			}
-		case "3":
-			if m.view == "menu" {
-				return m, tea.Quit
+				m.successMsg = ""
 			}
 		}
 
 	case tea.WindowSizeMsg:
 		m.viewport.Width = msg.Width - 4
-		m.viewport.Height = msg.Height - 10
+		m.viewport.Height = msg.Height - 12
 	}
 
 	return m, cmd
 }
 
 func (m *model) View() string {
+	if m.showHelp {
+		return m.helpView()
+	}
+
 	switch m.view {
 	case "menu":
 		return m.menuView()
@@ -134,42 +187,55 @@ func (m *model) View() string {
 		return m.historyView()
 	case "result":
 		return m.resultView()
-	case "error":
-		return m.errorView()
 	}
 	return ""
 }
 
 func (m *model) menuView() string {
-	return titleStyle.Render("🌟 VRF 透明抽奖系统 🌟") + "\n\n" +
-		borderStyle.Render("1. 创建抽奖") + "\n" +
-		borderStyle.Render("2. 查看历史") + "\n" +
-		borderStyle.Render("3. 退出") + "\n\n" +
-		"按数字选择，回车确认"
+	menuItems := []string{"创建抽奖", "查看历史", "退出"}
+
+	s := headerStyle.Render("🌟 VRF 透明抽奖系统 🌟") + "\n\n"
+
+	for i, item := range menuItems {
+		if i == m.menuIndex {
+			s += menuSelectedStyle.Render("▶ " + item + "\n")
+		} else {
+			s += menuItemStyle.Render("  " + item + "\n")
+		}
+	}
+
+	s += "\n" + helpStyle.Render("按 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出")
+
+	return s
 }
 
 func (m *model) createView() string {
-	s := titleStyle.Render("创建新抽奖") + "\n\n" +
-		"参与者（每行一个）:\n" +
-		m.participantsInput.View() + "\n\n" +
-		"随机种子:\n" +
-		m.seedInput.View() + "\n\n" +
-		"获奖人数:\n" +
-		m.countInput.View() + "\n\n" +
-		borderStyle.Render("[回车] 创建抽奖") + " | " +
-		borderStyle.Render("[ESC] 返回")
+	s := headerStyle.Render("📝 创建新抽奖") + "\n\n"
+	s += infoStyle.Render("参与者（每行一个）:") + "\n"
+	s += m.participantsInput.View() + "\n\n"
+	s += infoStyle.Render("随机种子:") + "\n"
+	s += m.seedInput.View() + "\n\n"
+	s += infoStyle.Render("获奖人数:") + "\n"
+	s += m.countInput.View() + "\n\n"
 
 	if m.err != "" {
-		s += "\n" + errorStyle.Render(m.err)
+		s += errorStyle.Render("⚠ "+m.err) + "\n\n"
 	}
+
+	if m.successMsg != "" {
+		s += successStyle.Render("✓ "+m.successMsg) + "\n\n"
+	}
+
+	s += borderStyle.Render("[回车] 创建抽奖") + " | " + borderStyle.Render("[ESC] 返回")
 
 	return s
 }
 
 func (m *model) historyView() string {
-	s := titleStyle.Render("抽奖历史") + "\n\n"
+	s := headerStyle.Render("📜 抽奖历史") + "\n\n"
 	s += m.viewport.View() + "\n\n"
 	s += borderStyle.Render("[ESC] 返回")
+
 	return s
 }
 
@@ -179,9 +245,9 @@ func (m *model) resultView() string {
 	}
 
 	s := successStyle.Render("🎉 抽奖完成！") + "\n\n"
-	s += fmt.Sprintf("📋 抽奖ID: %s\n", m.result.ID)
-	s += fmt.Sprintf("🔢 区块高度: #%d\n\n", m.result.BlockHeight)
-	s += "🎊 中奖者:\n"
+	s += infoStyle.Render("📋 抽奖ID: ") + m.result.ID + "\n"
+	s += infoStyle.Render("🔢 区块高度: #") + fmt.Sprintf("%d", m.result.BlockHeight) + "\n\n"
+	s += successStyle.Render("🎊 中奖者:") + "\n"
 
 	for i, w := range m.result.Winners {
 		s += fmt.Sprintf("   %d. %s (%s)\n", i+1, w, m.result.WinnerAddrs[i])
@@ -196,16 +262,29 @@ func (m *model) resultView() string {
 	if len(vrfProof) > 32 {
 		vrfProof = vrfProof[:32]
 	}
-	s += fmt.Sprintf("🔐 VRF Output: %s...\n", vrfOut)
-	s += fmt.Sprintf("📜 VRF Proof: %s...\n", vrfProof)
+	s += infoStyle.Render("🔐 VRF Output: ") + vrfOut + "...\n"
+	s += infoStyle.Render("📜 VRF Proof: ") + vrfProof + "...\n"
 
 	s += "\n" + borderStyle.Render("[ESC] 返回主菜单")
 
 	return s
 }
 
-func (m *model) errorView() string {
-	return errorStyle.Render("错误: "+m.err) + "\n\n" + borderStyle.Render("[ESC] 返回")
+func (m *model) helpView() string {
+	s := headerStyle.Render("⌨ 键盘快捷键") + "\n\n"
+	s += infoStyle.Render("导航:") + "\n"
+	s += "  ↑/k  上移\n"
+	s += "  ↓/j  下移\n"
+	s += "  回车  确认\n"
+	s += "  ESC  返回\n"
+	s += "  q    退出\n\n"
+	s += infoStyle.Render("菜单:") + "\n"
+	s += "  1    创建抽奖\n"
+	s += "  2    查看历史\n"
+	s += "  3    退出\n\n"
+	s += helpStyle.Render("按 ESC 或 ? 返回")
+
+	return s
 }
 
 func (m *model) handleCreate() tea.Msg {
@@ -226,6 +305,7 @@ func (m *model) handleCreate() tea.Msg {
 
 	m.result = m.runLottery(participants, seed, count)
 	m.view = "result"
+	m.successMsg = "抽奖已创建并上链"
 
 	return nil
 }
@@ -233,7 +313,7 @@ func (m *model) handleCreate() tea.Msg {
 func (m *model) loadHistory() {
 	records := m.chain.GetLotteryRecords()
 	if len(records) == 0 {
-		m.viewport.SetContent("暂无抽奖记录")
+		m.viewport.SetContent("暂无抽奖记录\n\n" + helpStyle.Render("使用 'lottery create' 创建抽奖"))
 	} else {
 		var content string
 		for i, data := range records {
