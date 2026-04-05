@@ -4,6 +4,7 @@ import (
 	"github.com/pplmx/aurora/cmd/aurora/cmd"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/logger"
+	"github.com/pplmx/aurora/internal/nft"
 	"github.com/pplmx/aurora/internal/oracle"
 	"github.com/pplmx/aurora/internal/voting"
 )
@@ -20,6 +21,9 @@ func main() {
 
 	oracleStorage := oracle.NewInMemoryStorage()
 	oracle.InitOracle(oracleStorage)
+
+	nftStorage := nft.NewNFTStorage()
+	nft.SetNFTStorage(nftStorage)
 
 	logger.Info().
 		Str("version", Version).
