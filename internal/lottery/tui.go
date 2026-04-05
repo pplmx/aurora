@@ -250,7 +250,7 @@ func (m *model) resultView() string {
 	s += successStyle.Render("🎊 中奖者:") + "\n"
 
 	for i, w := range m.result.Winners {
-		s += fmt.Sprintf("   %d. %s (%s)\n", i+1, w, m.result.WinnerAddrs[i])
+		s += fmt.Sprintf("   %d. %s (%s)\n", i+1, w, m.result.WinnerAddresses[i])
 	}
 
 	s += "\n"

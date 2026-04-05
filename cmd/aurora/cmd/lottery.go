@@ -76,7 +76,7 @@ var createCmd = &cobra.Command{
 		fmt.Printf("🔢 Block height: #%d\n", height)
 		fmt.Println("\n🎉 Winners:")
 		for i, w := range record.Winners {
-			fmt.Printf("   %d. %s (%s)\n", i+1, w, record.WinnerAddrs[i])
+			fmt.Printf("   %d. %s (%s)\n", i+1, w, record.WinnerAddresses[i])
 		}
 		fmt.Printf("\n🔐 VRF Output: %s...\n", record.VRFOutput[:min(16, len(record.VRFOutput))])
 		fmt.Printf("📜 VRF Proof: %s...\n", record.VRFProof[:min(16, len(record.VRFProof))])
@@ -165,7 +165,7 @@ var verifyCmd = &cobra.Command{
 		fmt.Printf("🎉 Winners: %d\n", len(record.Winners))
 		fmt.Println("\n🏆 Winners:")
 		for i, w := range record.Winners {
-			fmt.Printf("   %d. %s (%s)\n", i+1, w, record.WinnerAddrs[i])
+			fmt.Printf("   %d. %s (%s)\n", i+1, w, record.WinnerAddresses[i])
 		}
 		fmt.Printf("\n🔐 VRF Output: %s...\n", record.VRFOutput[:min(16, len(record.VRFOutput))])
 		fmt.Printf("📜 VRF Proof: %s...\n", record.VRFProof[:min(16, len(record.VRFProof))])
@@ -252,7 +252,7 @@ func init() {
 
 	createCmd.Flags().StringP("participants", "p", "", "Participant names (comma-separated)")
 	createCmd.Flags().StringP("seed", "s", "", "Random seed")
-	createCmd.Flags().IntP("count", "c", viper.GetInt("lottery.default_count"), "Number of winners")
+	createCmd.Flags().IntP("count", "c", viper.GetInt("lottery.defaultCount"), "Number of winners")
 
 	createCmd.MarkFlagRequired("participants")
 	createCmd.MarkFlagRequired("seed")
