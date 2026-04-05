@@ -1,13 +1,54 @@
 package cmd
 
 import (
-	"encoding/base64"
+	"database/sql"
 	"fmt"
 	"os"
 
+	votingapp "github.com/pplmx/aurora/internal/app/voting"
 	"github.com/pplmx/aurora/internal/blockchain"
-	"github.com/pplmx/aurora/internal/voting"
+	"github.com/pplmx/aurora/internal/domain/voting"
+	votingrepo "github.com/pplmx/aurora/internal/infra/sqlite"
+	oldvoting "github.com/pplmx/aurora/internal/voting"
 	"github.com/spf13/cobra"
+)
+
+func initVotingDB() (*sql.DB, error) {
+	if votingDB != nil {
+		return votingDB, nil
+	}
+	db, err := blockchain.InitDB()
+	if err != nil {
+		return nil, err
+	}
+	votingDB = db
+	return db, nil
+}
+
+func getVotingRepo() (voting.Repository, error) {
+	if votingRepo != nil {
+		return votingRepo, nil
+	}
+	db, err := initVotingDB()
+	if err != nil {
+		return nil, err
+	}
+	votingRepo = votingrepo.NewVotingRepository(db)
+	return votingRepo, nil
+}
+
+func getVotingService() voting.Service {
+	if votingService != nil {
+		return votingService
+	}
+	votingService = voting.NewEd25519Service()
+	return votingService
+}
+
+var (
+	votingDB      *sql.DB
+	votingRepo    voting.Repository
+	votingService voting.Service
 )
 
 var votingCmd = &cobra.Command{
@@ -29,7 +70,18 @@ var candidateAddCmd = &cobra.Command{
 		party, _ := cmd.Flags().GetString("party")
 		program, _ := cmd.Flags().GetString("program")
 
-		cand, err := voting.RegisterCandidate(name, party, program)
+		repo, err := getVotingRepo()
+		if err != nil {
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		req := votingapp.RegisterCandidateRequest{
+			Name:    name,
+			Party:   party,
+			Program: program,
+		}
+		uc := votingapp.NewRegisterCandidateUseCase(repo)
+		cand, err := uc.Execute(req)
 		if err != nil {
 			return fmt.Errorf("failed to register candidate: %w", err)
 		}
@@ -45,7 +97,13 @@ var candidateListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List candidates",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		list, err := voting.ListCandidates()
+		repo, err := getVotingRepo()
+		if err != nil {
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		uc := votingapp.NewGetCandidatesUseCase(repo)
+		list, err := uc.Execute()
 		if err != nil {
 			return fmt.Errorf("failed to list candidates: %w", err)
 		}
@@ -73,16 +131,23 @@ var voterRegisterCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, _ := cmd.Flags().GetString("name")
 
-		pub, priv, err := voting.RegisterVoter(name)
+		repo, err := getVotingRepo()
+		if err != nil {
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		req := votingapp.RegisterVoterRequest{
+			Name: name,
+		}
+		uc := votingapp.NewRegisterVoterUseCase(repo)
+		resp, err := uc.Execute(req)
 		if err != nil {
 			return fmt.Errorf("failed to register voter: %w", err)
 		}
 
 		fmt.Println("✅ Voter registered successfully!")
-		fmt.Printf("\n📣 Public Key (share this for verification):\n   %s\n",
-			base64.StdEncoding.EncodeToString(pub))
-		fmt.Printf("\n🔐 Private Key (SAVE THIS SECURELY!):\n   %s\n",
-			base64.StdEncoding.EncodeToString(priv))
+		fmt.Printf("\n📣 Public Key (share this for verification):\n   %s\n", resp.PublicKey)
+		fmt.Printf("\n🔐 Private Key (SAVE THIS SECURELY!):\n   %s\n", resp.PrivateKey)
 		return nil
 	},
 }
@@ -91,7 +156,12 @@ var voterListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List voters",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		list, err := voting.ListVoters()
+		repo, err := getVotingRepo()
+		if err != nil {
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		list, err := repo.ListVoters()
 		if err != nil {
 			return fmt.Errorf("failed to list voters: %w", err)
 		}
@@ -106,7 +176,11 @@ var voterListCmd = &cobra.Command{
 				status = "⏳ not voted"
 			}
 			fmt.Printf("   - %s [%s]\n", v.Name, status)
-			fmt.Printf("     Public Key: %s...\n", v.PublicKey[:min(16, len(v.PublicKey))])
+			if len(v.PublicKey) > 16 {
+				fmt.Printf("     Public Key: %s...\n", v.PublicKey[:16])
+			} else {
+				fmt.Printf("     Public Key: %s\n", v.PublicKey)
+			}
 		}
 		return nil
 	},
@@ -120,18 +194,21 @@ var voteCmd = &cobra.Command{
 		candidateID, _ := cmd.Flags().GetString("candidate")
 		privKey, _ := cmd.Flags().GetString("private-key")
 
-		pubBytes, err := base64.StdEncoding.DecodeString(voterPK)
+		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("invalid voter public key: %w", err)
+			return fmt.Errorf("failed to get repository: %w", err)
 		}
 
-		privBytes, err := base64.StdEncoding.DecodeString(privKey)
-		if err != nil {
-			return fmt.Errorf("invalid private key: %w", err)
-		}
+		service := getVotingService()
+		blockchain.InitBlockChain()
 
-		chain := blockchain.InitBlockChain()
-		record, err := voting.CastVote(pubBytes, candidateID, privBytes, chain)
+		req := votingapp.CastVoteRequest{
+			VoterPublicKey: voterPK,
+			CandidateID:    candidateID,
+			PrivateKey:     privKey,
+		}
+		uc := votingapp.NewCastVoteUseCase(repo, service)
+		record, err := uc.Execute(req)
 		if err != nil {
 			return fmt.Errorf("failed to cast vote: %w", err)
 		}
@@ -156,7 +233,20 @@ var sessionCreateCmd = &cobra.Command{
 		description, _ := cmd.Flags().GetString("description")
 		candidates, _ := cmd.Flags().GetStringSlice("candidates")
 
-		session, err := voting.CreateSession(title, description, candidates, 0, 0)
+		repo, err := getVotingRepo()
+		if err != nil {
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		req := votingapp.CreateSessionRequest{
+			Title:        title,
+			Description:  description,
+			CandidateIDs: candidates,
+			StartTime:    0,
+			EndTime:      0,
+		}
+		uc := votingapp.NewCreateSessionUseCase(repo)
+		session, err := uc.Execute(req)
 		if err != nil {
 			return fmt.Errorf("failed to create session: %w", err)
 		}
@@ -172,7 +262,12 @@ var sessionListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List voting sessions",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		list, err := voting.ListSessions()
+		repo, err := getVotingRepo()
+		if err != nil {
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		list, err := repo.ListSessions()
 		if err != nil {
 			return fmt.Errorf("failed to list sessions: %w", err)
 		}
@@ -194,9 +289,25 @@ var sessionStartCmd = &cobra.Command{
 	Short: "Start a voting session",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("id")
-		if err := voting.StartSession(sessionID); err != nil {
+
+		repo, err := getVotingRepo()
+		if err != nil {
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		session, err := repo.GetSession(sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to get session: %w", err)
+		}
+		if session == nil {
+			return fmt.Errorf("session not found")
+		}
+
+		session.Status = "active"
+		if err := repo.UpdateSession(session); err != nil {
 			return fmt.Errorf("failed to start session: %w", err)
 		}
+
 		fmt.Println("✅ Session started!")
 		return nil
 	},
@@ -207,9 +318,25 @@ var sessionEndCmd = &cobra.Command{
 	Short: "End a voting session",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("id")
-		if err := voting.EndSession(sessionID); err != nil {
+
+		repo, err := getVotingRepo()
+		if err != nil {
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		session, err := repo.GetSession(sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to get session: %w", err)
+		}
+		if session == nil {
+			return fmt.Errorf("session not found")
+		}
+
+		session.Status = "ended"
+		if err := repo.UpdateSession(session); err != nil {
 			return fmt.Errorf("failed to end session: %w", err)
 		}
+
 		fmt.Println("✅ Session ended!")
 		return nil
 	},
@@ -221,18 +348,34 @@ var resultsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
 
-		results, err := voting.GetSessionResults(sessionID)
+		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get results: %w", err)
+			return fmt.Errorf("failed to get repository: %w", err)
+		}
+
+		session, err := repo.GetSession(sessionID)
+		if err != nil {
+			return fmt.Errorf("failed to get session: %w", err)
+		}
+		if session == nil {
+			return fmt.Errorf("session not found")
+		}
+
+		results := make(map[string]int)
+		for _, cid := range session.Candidates {
+			cand, err := repo.GetCandidate(cid)
+			if err != nil {
+				continue
+			}
+			if cand != nil {
+				results[fmt.Sprintf("%s (%s)", cand.Name, cand.Party)] = cand.VoteCount
+			} else {
+				results[cid] = 0
+			}
 		}
 
 		fmt.Println("\n📊 Results:")
-		for cid, count := range results {
-			cand, _ := voting.GetCandidate(cid)
-			name := cid
-			if cand != nil {
-				name = fmt.Sprintf("%s (%s)", cand.Name, cand.Party)
-			}
+		for name, count := range results {
 			fmt.Printf("   %s: %d votes\n", name, count)
 		}
 		return nil
@@ -295,9 +438,9 @@ func init() {
 		Use:   "tui",
 		Short: "Launch TUI interface",
 		Run: func(cmd *cobra.Command, args []string) {
-			storage := voting.NewInMemoryStorage()
-			voting.InitVoting(storage)
-			if err := voting.RunVotingTUI(storage); err != nil {
+			storage := oldvoting.NewInMemoryStorage()
+			oldvoting.InitVoting(storage)
+			if err := oldvoting.RunVotingTUI(storage); err != nil {
 				fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 				os.Exit(1)
 			}
