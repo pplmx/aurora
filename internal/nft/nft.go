@@ -63,20 +63,23 @@ func (s *NFTStorage) GetNFT(id string) (*NFT, error) {
 }
 
 func (s *NFTStorage) UpdateNFT(nft *NFT) error {
-	old, exists := s.nfts[nft.ID]
+	stored, exists := s.nfts[nft.ID]
 	if !exists {
 		return fmt.Errorf("NFT not found")
 	}
 
-	if old.Owner != nft.Owner {
-		oldList := s.ownerIndex[old.Owner]
+	storedCopy := *stored
+	oldOwner := storedCopy.Owner
+	newOwner := nft.Owner
+	if oldOwner != newOwner {
+		oldList := s.ownerIndex[oldOwner]
 		for i, nid := range oldList {
 			if nid == nft.ID {
-				s.ownerIndex[old.Owner] = append(oldList[:i], oldList[i+1:]...)
+				s.ownerIndex[oldOwner] = append(oldList[:i], oldList[i+1:]...)
 				break
 			}
 		}
-		s.ownerIndex[nft.Owner] = append(s.ownerIndex[nft.Owner], nft.ID)
+		s.ownerIndex[newOwner] = append(s.ownerIndex[newOwner], nft.ID)
 	}
 
 	s.nfts[nft.ID] = nft
@@ -214,8 +217,18 @@ func TransferNFT(nftID string, fromPub, fromPriv, toPub []byte, chain *blockchai
 	height := chain.AddBlock(string(jsonData))
 	op.BlockHeight = height
 
+	oldOwner := nft.Owner
 	nft.Owner = toPubStr
-	nftStorage.UpdateNFT(nft)
+
+	oldList := nftStorage.ownerIndex[oldOwner]
+	for i, nid := range oldList {
+		if nid == nftID {
+			nftStorage.ownerIndex[oldOwner] = append(oldList[:i], oldList[i+1:]...)
+			break
+		}
+	}
+	nftStorage.ownerIndex[toPubStr] = append(nftStorage.ownerIndex[toPubStr], nftID)
+
 	nftStorage.SaveOperation(op)
 
 	return op, nil
