@@ -55,7 +55,7 @@ func (m *mockTokenService) Mint(req *token.MintRequest) (*token.MintEvent, error
 	if current == nil {
 		current = token.NewAmount(0)
 	}
-	m.balances[balanceKey] = &token.Amount{current.Int.Add(current.Int, req.Amount.Int)}
+	m.balances[balanceKey] = &token.Amount{Int: current.Int.Add(current.Int, req.Amount.Int)}
 	return event, nil
 }
 
@@ -74,7 +74,7 @@ func (m *mockTokenService) Transfer(req *token.TransferRequest) (*token.Transfer
 	event := token.NewTransferEvent(req.TokenID, req.From, req.To, req.Amount, nonce, signature)
 	m.events.transfers = append(m.events.transfers, event)
 
-	fromNewBalance := &token.Amount{fromBalance.Int.Sub(fromBalance.Int, req.Amount.Int)}
+	fromNewBalance := &token.Amount{Int: fromBalance.Int.Sub(fromBalance.Int, req.Amount.Int)}
 	m.balances[balanceKey] = fromNewBalance
 
 	toBalanceKey := string(req.To) + "|" + string(req.TokenID)
@@ -82,7 +82,7 @@ func (m *mockTokenService) Transfer(req *token.TransferRequest) (*token.Transfer
 	if toBalance == nil {
 		toBalance = token.NewAmount(0)
 	}
-	toNewBalance := &token.Amount{toBalance.Int.Add(toBalance.Int, req.Amount.Int)}
+	toNewBalance := &token.Amount{Int: toBalance.Int.Add(toBalance.Int, req.Amount.Int)}
 	m.balances[toBalanceKey] = toNewBalance
 
 	return event, nil
@@ -119,7 +119,7 @@ func (m *mockTokenService) Burn(req *token.BurnRequest) (*token.BurnEvent, error
 	event := token.NewBurnEvent(req.TokenID, req.From, req.Amount)
 	m.events.burns = append(m.events.burns, event)
 
-	fromNewBalance := &token.Amount{fromBalance.Int.Sub(fromBalance.Int, req.Amount.Int)}
+	fromNewBalance := &token.Amount{Int: fromBalance.Int.Sub(fromBalance.Int, req.Amount.Int)}
 	m.balances[balanceKey] = fromNewBalance
 
 	return event, nil
