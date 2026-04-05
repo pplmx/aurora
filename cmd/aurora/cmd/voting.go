@@ -7,6 +7,7 @@ import (
 	votingapp "github.com/pplmx/aurora/internal/app/voting"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/i18n"
 	votingrepo "github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
 )
@@ -51,18 +52,18 @@ var (
 
 var votingCmd = &cobra.Command{
 	Use:   "voting",
-	Short: "Ed25519 signature based transparent voting system",
-	Long:  "A secure voting system with Ed25519 signatures and blockchain storage",
+	Short: i18n.GetText("voting.cmd"),
+	Long:  i18n.GetText("voting.cmd"),
 }
 
 var candidateCmd = &cobra.Command{
 	Use:   "candidate",
-	Short: "Candidate management",
+	Short: i18n.GetText("voting.candidate.cmd"),
 }
 
 var candidateAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Add a candidate",
+	Short: i18n.GetText("voting.candidate.add"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, _ := cmd.Flags().GetString("name")
 		party, _ := cmd.Flags().GetString("party")
@@ -93,7 +94,7 @@ var candidateAddCmd = &cobra.Command{
 
 var candidateListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List candidates",
+	Short: i18n.GetText("voting.candidate.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
 		if err != nil {
@@ -120,12 +121,12 @@ var candidateListCmd = &cobra.Command{
 
 var voterCmd = &cobra.Command{
 	Use:   "voter",
-	Short: "Voter management",
+	Short: i18n.GetText("voting.voter.cmd"),
 }
 
 var voterRegisterCmd = &cobra.Command{
 	Use:   "register",
-	Short: "Register a new voter",
+	Short: i18n.GetText("voting.voter.register"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, _ := cmd.Flags().GetString("name")
 
@@ -152,7 +153,7 @@ var voterRegisterCmd = &cobra.Command{
 
 var voterListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List voters",
+	Short: i18n.GetText("voting.voter.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
 		if err != nil {
@@ -186,7 +187,7 @@ var voterListCmd = &cobra.Command{
 
 var voteCmd = &cobra.Command{
 	Use:   "vote",
-	Short: "Cast a vote",
+	Short: i18n.GetText("voting.vote"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		voterPK, _ := cmd.Flags().GetString("voter")
 		candidateID, _ := cmd.Flags().GetString("candidate")
@@ -220,12 +221,12 @@ var voteCmd = &cobra.Command{
 
 var sessionCmd = &cobra.Command{
 	Use:   "session",
-	Short: "Voting session management",
+	Short: i18n.GetText("voting.session.cmd"),
 }
 
 var sessionCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create a voting session",
+	Short: i18n.GetText("voting.session.create"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title, _ := cmd.Flags().GetString("title")
 		description, _ := cmd.Flags().GetString("description")
@@ -258,7 +259,7 @@ var sessionCreateCmd = &cobra.Command{
 
 var sessionListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List voting sessions",
+	Short: i18n.GetText("voting.session.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
 		if err != nil {
@@ -284,7 +285,7 @@ var sessionListCmd = &cobra.Command{
 
 var sessionStartCmd = &cobra.Command{
 	Use:   "start",
-	Short: "Start a voting session",
+	Short: i18n.GetText("voting.session.start"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("id")
 
@@ -313,7 +314,7 @@ var sessionStartCmd = &cobra.Command{
 
 var sessionEndCmd = &cobra.Command{
 	Use:   "end",
-	Short: "End a voting session",
+	Short: i18n.GetText("voting.session.end"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("id")
 
@@ -342,7 +343,7 @@ var sessionEndCmd = &cobra.Command{
 
 var resultsCmd = &cobra.Command{
 	Use:   "results",
-	Short: "Get voting results",
+	Short: i18n.GetText("voting.results"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
 
@@ -401,34 +402,34 @@ func init() {
 
 	votingCmd.AddCommand(resultsCmd)
 
-	candidateAddCmd.Flags().StringP("name", "n", "", "Candidate name")
-	candidateAddCmd.Flags().StringP("party", "p", "", "Candidate party")
-	candidateAddCmd.Flags().StringP("program", "m", "", "Candidate program")
+	candidateAddCmd.Flags().StringP("name", "n", "", i18n.GetText("voting.name"))
+	candidateAddCmd.Flags().StringP("party", "p", "", i18n.GetText("voting.party"))
+	candidateAddCmd.Flags().StringP("program", "m", "", i18n.GetText("voting.program"))
 	candidateAddCmd.MarkFlagRequired("name")
 	candidateAddCmd.MarkFlagRequired("party")
 
-	voterRegisterCmd.Flags().StringP("name", "n", "", "Voter name")
+	voterRegisterCmd.Flags().StringP("name", "n", "", i18n.GetText("voting.name"))
 	voterRegisterCmd.MarkFlagRequired("name")
 
-	voteCmd.Flags().StringP("voter", "v", "", "Voter public key (base64)")
-	voteCmd.Flags().StringP("candidate", "c", "", "Candidate ID")
-	voteCmd.Flags().StringP("private-key", "k", "", "Voter private key (base64)")
+	voteCmd.Flags().StringP("voter", "v", "", i18n.GetText("voting.public_key"))
+	voteCmd.Flags().StringP("candidate", "c", "", i18n.GetText("voting.candidate_id"))
+	voteCmd.Flags().StringP("private-key", "k", "", i18n.GetText("voting.private_key"))
 	voteCmd.MarkFlagRequired("voter")
 	voteCmd.MarkFlagRequired("candidate")
 	voteCmd.MarkFlagRequired("private-key")
 
-	sessionCreateCmd.Flags().StringP("title", "t", "", "Session title")
-	sessionCreateCmd.Flags().StringP("description", "d", "", "Session description")
-	sessionCreateCmd.Flags().StringSliceP("candidates", "c", nil, "Candidate IDs (can repeat)")
+	sessionCreateCmd.Flags().StringP("title", "t", "", i18n.GetText("voting.title"))
+	sessionCreateCmd.Flags().StringP("description", "d", "", i18n.GetText("voting.description"))
+	sessionCreateCmd.Flags().StringSliceP("candidates", "c", nil, i18n.GetText("voting.candidate_id"))
 	sessionCreateCmd.MarkFlagRequired("title")
 	sessionCreateCmd.MarkFlagRequired("candidates")
 
-	sessionStartCmd.Flags().StringP("id", "i", "", "Session ID")
+	sessionStartCmd.Flags().StringP("id", "i", "", i18n.GetText("voting.session_id"))
 	sessionStartCmd.MarkFlagRequired("id")
 
-	sessionEndCmd.Flags().StringP("id", "i", "", "Session ID")
+	sessionEndCmd.Flags().StringP("id", "i", "", i18n.GetText("voting.session_id"))
 	sessionEndCmd.MarkFlagRequired("id")
 
-	resultsCmd.Flags().StringP("session", "s", "", "Session ID")
+	resultsCmd.Flags().StringP("session", "s", "", i18n.GetText("voting.session_id"))
 	resultsCmd.MarkFlagRequired("session")
 }

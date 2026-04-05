@@ -5,6 +5,7 @@ import (
 
 	appnft "github.com/pplmx/aurora/internal/app/nft"
 	nftdomain "github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	uinftr "github.com/pplmx/aurora/internal/ui/nft"
 	"github.com/spf13/cobra"
@@ -12,8 +13,8 @@ import (
 
 var nftCmd = &cobra.Command{
 	Use:   "nft",
-	Short: "NFT system",
-	Long:  "Ed25519 signature based NFT system",
+	Short: i18n.GetText("nft.cmd"),
+	Long:  i18n.GetText("nft.cmd"),
 }
 
 func init() {
@@ -36,7 +37,7 @@ func init() {
 
 	nftTuiCmd := &cobra.Command{
 		Use:   "tui",
-		Short: "Launch TUI interface",
+		Short: i18n.GetText("nft.tui.cmd"),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := uinftr.RunNFTUI(); err != nil {
 				fmt.Println("Error:", err)
@@ -47,7 +48,7 @@ func init() {
 
 	mintCmd := &cobra.Command{
 		Use:   "mint",
-		Short: "Mint a new NFT",
+		Short: i18n.GetText("nft.mint"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name, _ := cmd.Flags().GetString("name")
 			description, _ := cmd.Flags().GetString("description")
@@ -77,17 +78,17 @@ func init() {
 		},
 	}
 	nftCmd.AddCommand(mintCmd)
-	mintCmd.Flags().StringP("name", "n", "", "NFT name")
-	mintCmd.Flags().StringP("description", "d", "", "NFT description")
-	mintCmd.Flags().StringP("image", "i", "", "Image URL")
-	mintCmd.Flags().StringP("token-uri", "t", "", "Token URI")
-	mintCmd.Flags().StringP("creator", "c", "", "Creator public key (Base64)")
+	mintCmd.Flags().StringP("name", "n", "", i18n.GetText("nft.name"))
+	mintCmd.Flags().StringP("description", "d", "", i18n.GetText("nft.description"))
+	mintCmd.Flags().StringP("image", "i", "", i18n.GetText("nft.image_url"))
+	mintCmd.Flags().StringP("token-uri", "t", "", i18n.GetText("nft.token_uri"))
+	mintCmd.Flags().StringP("creator", "c", "", i18n.GetText("nft.creator"))
 	_ = mintCmd.MarkFlagRequired("name")
 	_ = mintCmd.MarkFlagRequired("creator")
 
 	transferCmd := &cobra.Command{
 		Use:   "transfer",
-		Short: "Transfer NFT ownership",
+		Short: i18n.GetText("nft.transfer"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nftID, _ := cmd.Flags().GetString("nft")
 			from, _ := cmd.Flags().GetString("from")
@@ -115,10 +116,10 @@ func init() {
 		},
 	}
 	nftCmd.AddCommand(transferCmd)
-	transferCmd.Flags().StringP("nft", "i", "", "NFT ID")
-	transferCmd.Flags().StringP("from", "f", "", "From public key (Base64)")
-	transferCmd.Flags().StringP("to", "", "", "To public key (Base64)")
-	transferCmd.Flags().StringP("private-key", "k", "", "From private key (Base64)")
+	transferCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
+	transferCmd.Flags().StringP("from", "f", "", i18n.GetText("nft.from"))
+	transferCmd.Flags().StringP("to", "", "", i18n.GetText("nft.to"))
+	transferCmd.Flags().StringP("private-key", "k", "", i18n.GetText("nft.private_key"))
 	_ = transferCmd.MarkFlagRequired("nft")
 	_ = transferCmd.MarkFlagRequired("from")
 	_ = transferCmd.MarkFlagRequired("to")
@@ -126,7 +127,7 @@ func init() {
 
 	burnCmd := &cobra.Command{
 		Use:   "burn",
-		Short: "Burn an NFT",
+		Short: i18n.GetText("nft.burn"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nftID, _ := cmd.Flags().GetString("nft")
 			owner, _ := cmd.Flags().GetString("owner")
@@ -147,16 +148,16 @@ func init() {
 		},
 	}
 	nftCmd.AddCommand(burnCmd)
-	burnCmd.Flags().StringP("nft", "i", "", "NFT ID")
-	burnCmd.Flags().StringP("owner", "o", "", "Owner public key (Base64)")
-	burnCmd.Flags().StringP("private-key", "k", "", "Owner private key (Base64)")
+	burnCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
+	burnCmd.Flags().StringP("owner", "o", "", i18n.GetText("nft.owner"))
+	burnCmd.Flags().StringP("private-key", "k", "", i18n.GetText("nft.private_key"))
 	_ = burnCmd.MarkFlagRequired("nft")
 	_ = burnCmd.MarkFlagRequired("owner")
 	_ = burnCmd.MarkFlagRequired("private-key")
 
 	getCmd := &cobra.Command{
 		Use:   "get",
-		Short: "Get NFT by ID",
+		Short: i18n.GetText("nft.get"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nftID, _ := cmd.Flags().GetString("id")
 
@@ -178,12 +179,12 @@ func init() {
 		},
 	}
 	nftCmd.AddCommand(getCmd)
-	getCmd.Flags().StringP("id", "i", "", "NFT ID")
+	getCmd.Flags().StringP("id", "i", "", i18n.GetText("nft.nft_id"))
 	_ = getCmd.MarkFlagRequired("id")
 
 	listCmd := &cobra.Command{
 		Use:   "list",
-		Short: "List NFTs by owner",
+		Short: i18n.GetText("nft.list"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			owner, _ := cmd.Flags().GetString("owner")
 
@@ -203,12 +204,12 @@ func init() {
 		},
 	}
 	nftCmd.AddCommand(listCmd)
-	listCmd.Flags().StringP("owner", "o", "", "Owner public key (Base64)")
+	listCmd.Flags().StringP("owner", "o", "", i18n.GetText("nft.owner"))
 	_ = listCmd.MarkFlagRequired("owner")
 
 	historyCmd := &cobra.Command{
 		Use:   "history",
-		Short: "Get NFT operation history",
+		Short: i18n.GetText("nft.history"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			nftID, _ := cmd.Flags().GetString("nft")
 
@@ -228,7 +229,7 @@ func init() {
 		},
 	}
 	nftCmd.AddCommand(historyCmd)
-	historyCmd.Flags().StringP("nft", "i", "", "NFT ID")
+	historyCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
 	_ = historyCmd.MarkFlagRequired("nft")
 }
 

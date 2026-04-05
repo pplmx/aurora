@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
+	"github.com/pplmx/aurora/internal/i18n"
 	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"
 	oracleui "github.com/pplmx/aurora/internal/ui/oracle"
 	"github.com/spf13/cobra"
@@ -19,18 +20,18 @@ func init() {
 
 var oracleCmd = &cobra.Command{
 	Use:   "oracle",
-	Short: "Oracle data service",
-	Long:  "Fetch and store external data on blockchain",
+	Short: i18n.GetText("oracle.cmd"),
+	Long:  i18n.GetText("oracle.cmd"),
 }
 
 var sourceCmd = &cobra.Command{
 	Use:   "source",
-	Short: "Data source management",
+	Short: i18n.GetText("oracle.source.cmd"),
 }
 
 var sourceAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Add a data source",
+	Short: i18n.GetText("oracle.source.add"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, _ := cmd.Flags().GetString("name")
 		url, _ := cmd.Flags().GetString("url")
@@ -57,7 +58,7 @@ var sourceAddCmd = &cobra.Command{
 
 var sourceListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List data sources",
+	Short: i18n.GetText("oracle.source.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		uc := oracleapp.NewListSourcesUseCase(&repo)
 		resp, err := uc.Execute(&oracleapp.ListSourcesRequest{})
@@ -84,7 +85,7 @@ var sourceListCmd = &cobra.Command{
 
 var sourceDeleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "Delete a data source",
+	Short: i18n.GetText("oracle.source.delete"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, _ := cmd.Flags().GetString("id")
 
@@ -99,7 +100,7 @@ var sourceDeleteCmd = &cobra.Command{
 
 var sourceEnableCmd = &cobra.Command{
 	Use:   "enable",
-	Short: "Enable a data source",
+	Short: i18n.GetText("oracle.source.enable"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, _ := cmd.Flags().GetString("id")
 
@@ -114,7 +115,7 @@ var sourceEnableCmd = &cobra.Command{
 
 var sourceDisableCmd = &cobra.Command{
 	Use:   "disable",
-	Short: "Disable a data source",
+	Short: i18n.GetText("oracle.source.disable"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id, _ := cmd.Flags().GetString("id")
 
@@ -129,7 +130,7 @@ var sourceDisableCmd = &cobra.Command{
 
 var fetchCmd = &cobra.Command{
 	Use:   "fetch",
-	Short: "Fetch data from source",
+	Short: i18n.GetText("oracle.fetch"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sourceID, _ := cmd.Flags().GetString("source")
 
@@ -149,7 +150,7 @@ var fetchCmd = &cobra.Command{
 
 var dataCmd = &cobra.Command{
 	Use:   "data",
-	Short: "Query oracle data",
+	Short: i18n.GetText("oracle.data.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sourceID, _ := cmd.Flags().GetString("source")
 		limit, _ := cmd.Flags().GetInt("limit")
@@ -173,7 +174,7 @@ var dataCmd = &cobra.Command{
 
 var latestCmd = &cobra.Command{
 	Use:   "latest",
-	Short: "Get latest data from source",
+	Short: i18n.GetText("oracle.latest"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sourceID, _ := cmd.Flags().GetString("source")
 
@@ -197,12 +198,12 @@ var latestCmd = &cobra.Command{
 
 var templateCmd = &cobra.Command{
 	Use:   "template",
-	Short: "Data source templates",
+	Short: i18n.GetText("oracle.template.cmd"),
 }
 
 var templateListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List available templates",
+	Short: i18n.GetText("oracle.template.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		templates := getTemplates()
 		fmt.Println("\n📋 Available Templates:")
@@ -215,7 +216,7 @@ var templateListCmd = &cobra.Command{
 
 var templateAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "Add template as data source",
+	Short: i18n.GetText("oracle.template.add"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		templateName, _ := cmd.Flags().GetString("template")
 
@@ -245,7 +246,7 @@ var templateAddCmd = &cobra.Command{
 
 var oracleTuiCmd = &cobra.Command{
 	Use:   "tui",
-	Short: "Launch TUI interface",
+	Short: i18n.GetText("oracle.tui"),
 	Run: func(cmd *cobra.Command, args []string) {
 		inMemoryRepo := oracleinfra.NewInMemoryOracleRepository()
 		if err := oracleui.RunOracleTUI(inMemoryRepo); err != nil {
@@ -317,32 +318,32 @@ func init() {
 	templateCmd.AddCommand(templateListCmd)
 	templateCmd.AddCommand(templateAddCmd)
 
-	sourceAddCmd.Flags().StringP("name", "n", "", "Data source name")
-	sourceAddCmd.Flags().StringP("url", "u", "", "API URL")
-	sourceAddCmd.Flags().StringP("type", "t", "custom", "Data type")
-	sourceAddCmd.Flags().IntP("interval", "i", 60, "Refresh interval (seconds)")
+	sourceAddCmd.Flags().StringP("name", "n", "", i18n.GetText("oracle.source_name"))
+	sourceAddCmd.Flags().StringP("url", "u", "", i18n.GetText("oracle.source_url"))
+	sourceAddCmd.Flags().StringP("type", "t", "custom", i18n.GetText("oracle.source_type"))
+	sourceAddCmd.Flags().IntP("interval", "i", 60, i18n.GetText("oracle.interval"))
 	sourceAddCmd.MarkFlagRequired("name")
 	sourceAddCmd.MarkFlagRequired("url")
 
-	sourceDeleteCmd.Flags().StringP("id", "i", "", "Source ID")
+	sourceDeleteCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
 	sourceDeleteCmd.MarkFlagRequired("id")
 
-	sourceEnableCmd.Flags().StringP("id", "i", "", "Source ID")
+	sourceEnableCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
 	sourceEnableCmd.MarkFlagRequired("id")
 
-	sourceDisableCmd.Flags().StringP("id", "i", "", "Source ID")
+	sourceDisableCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
 	sourceDisableCmd.MarkFlagRequired("id")
 
-	fetchCmd.Flags().StringP("source", "s", "", "Source ID")
+	fetchCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
 	fetchCmd.MarkFlagRequired("source")
 
-	dataCmd.Flags().StringP("source", "s", "", "Source ID")
-	dataCmd.Flags().IntP("limit", "l", 10, "Limit results")
+	dataCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
+	dataCmd.Flags().IntP("limit", "l", 10, i18n.GetText("oracle.limit"))
 	dataCmd.MarkFlagRequired("source")
 
-	latestCmd.Flags().StringP("source", "s", "", "Source ID")
+	latestCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
 	latestCmd.MarkFlagRequired("source")
 
-	templateAddCmd.Flags().StringP("template", "t", "", "Template name")
+	templateAddCmd.Flags().StringP("template", "t", "", i18n.GetText("oracle.template"))
 	templateAddCmd.MarkFlagRequired("template")
 }
