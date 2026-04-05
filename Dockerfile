@@ -15,7 +15,7 @@ COPY . .
 
 # build the binary: -ldflags="-w -s" for the much smaller binary
 # -trimpath remove all file system paths from the resulting executable.
-RUN go build -trimpath -ldflags="-w -s" -o ./out/aurora src/main.go
+RUN go build -trimpath -ldflags="-w -s" -o ./out/aurora ./cmd/aurora
 
 
 ### Deploy
