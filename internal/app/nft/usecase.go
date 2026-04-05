@@ -10,10 +10,11 @@ import (
 
 type MintNFTUseCase struct {
 	service nft.Service
+	chain   blockchain.BlockWriter
 }
 
-func NewMintNFTUseCase(service nft.Service) *MintNFTUseCase {
-	return &MintNFTUseCase{service: service}
+func NewMintNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *MintNFTUseCase {
+	return &MintNFTUseCase{service: service, chain: chain}
 }
 
 func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
@@ -30,8 +31,7 @@ func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
 	n.Owner = creator
 	n.Creator = creator
 
-	chain := blockchain.InitBlockChain()
-	result, err := u.service.Mint(n, chain)
+	result, err := u.service.Mint(n, u.chain)
 	if err != nil {
 		return nil, err
 	}
@@ -41,10 +41,11 @@ func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
 
 type TransferNFTUseCase struct {
 	service nft.Service
+	chain   blockchain.BlockWriter
 }
 
-func NewTransferNFTUseCase(service nft.Service) *TransferNFTUseCase {
-	return &TransferNFTUseCase{service: service}
+func NewTransferNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *TransferNFTUseCase {
+	return &TransferNFTUseCase{service: service, chain: chain}
 }
 
 func (u *TransferNFTUseCase) Execute(req *TransferNFTRequest) (*OperationResponse, error) {
@@ -63,8 +64,7 @@ func (u *TransferNFTUseCase) Execute(req *TransferNFTRequest) (*OperationRespons
 		return nil, fmt.Errorf("invalid private key: %w", err)
 	}
 
-	chain := blockchain.InitBlockChain()
-	result, err := u.service.Transfer(req.NFTID, from, to, privateKey, chain)
+	result, err := u.service.Transfer(req.NFTID, from, to, privateKey, u.chain)
 	if err != nil {
 		return nil, err
 	}
@@ -74,10 +74,11 @@ func (u *TransferNFTUseCase) Execute(req *TransferNFTRequest) (*OperationRespons
 
 type BurnNFTUseCase struct {
 	service nft.Service
+	chain   blockchain.BlockWriter
 }
 
-func NewBurnNFTUseCase(service nft.Service) *BurnNFTUseCase {
-	return &BurnNFTUseCase{service: service}
+func NewBurnNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *BurnNFTUseCase {
+	return &BurnNFTUseCase{service: service, chain: chain}
 }
 
 func (u *BurnNFTUseCase) Execute(req *BurnNFTRequest) error {
@@ -91,8 +92,7 @@ func (u *BurnNFTUseCase) Execute(req *BurnNFTRequest) error {
 		return fmt.Errorf("invalid private key: %w", err)
 	}
 
-	chain := blockchain.InitBlockChain()
-	return u.service.Burn(req.NFTID, owner, privateKey, chain)
+	return u.service.Burn(req.NFTID, owner, privateKey, u.chain)
 }
 
 type GetNFTUseCase struct {
