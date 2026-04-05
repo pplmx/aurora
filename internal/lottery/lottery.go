@@ -140,7 +140,6 @@ func ValidateParticipants(participants []string) error {
 		return fmt.Errorf("too many participants (max %d)", MaxParticipants)
 	}
 
-	// Check for duplicates
 	seen := make(map[string]bool)
 	for _, p := range participants {
 		p = strings.TrimSpace(p)
@@ -170,7 +169,6 @@ func ValidateWinnerCount(count, participantCount int) error {
 
 func SanitizeString(s string) string {
 	s = strings.TrimSpace(s)
-	// Remove control characters
 	s = regexp.MustCompile(`[\x00-\x1F\x7F]`).ReplaceAllString(s, "")
 	return s
 }
