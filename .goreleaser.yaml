@@ -1,4 +1,10 @@
+version: "2"
+
 project_name: aurora
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
 
 before:
   hooks:
@@ -8,8 +14,6 @@ builds:
   - id: aurora
     main: ./cmd/aurora
     binary: aurora
-    env:
-      - CGO_ENABLED=0
     goos:
       - linux
       - darwin
@@ -17,6 +21,10 @@ builds:
     goarch:
       - amd64
       - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
 
 archives:
   - id: aurora
@@ -27,9 +35,6 @@ archives:
 
 checksum:
   name_template: 'checksums.txt'
-
-snapshot:
-  name_template: "{{ .Tag }}-next"
 
 changelog:
   sort: asc
@@ -56,3 +61,7 @@ dockers:
     build_flag_templates:
       - '--platform=linux/amd64'
       - '--platform=linux/arm64'
+    goos: linux
+    goarch:
+      - amd64
+      - arm64
