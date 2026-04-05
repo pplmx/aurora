@@ -101,3 +101,72 @@ func TestLotteryRecordToJSON(t *testing.T) {
 		t.Error("JSON should not be empty")
 	}
 }
+
+func TestEndToEndLottery(t *testing.T) {
+	// 1. 准备参与者
+	participants := []string{"张三", "李四", "王五", "赵六", "钱七"}
+	seed := "e2e-test-seed"
+
+	// 2. 生成 VRF 密钥对
+	pk, sk, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair failed: %v", err)
+	}
+
+	// 3. 生成 VRF 输出和证明
+	output, proof, err := VRFProve(sk, []byte(seed))
+	if err != nil {
+		t.Fatalf("VRFProve failed: %v", err)
+	}
+
+	// 4. 验证 VRF (基本验证)
+	if len(output) == 0 {
+		t.Error("VRF output should not be empty")
+	}
+	if len(proof) == 0 {
+		t.Error("VRF proof should not be empty")
+	}
+
+	// 5. 选择中奖者
+	winners := SelectWinners(output, participants, 3)
+	if len(winners) != 3 {
+		t.Fatalf("Expected 3 winners, got %d", len(winners))
+	}
+
+	// 6. 转换地址
+	for _, w := range winners {
+		addr := NameToAddress(w)
+		if len(addr) != 42 {
+			t.Errorf("Invalid address length for %s: %d", w, len(addr))
+		}
+	}
+
+	// 7. 创建记录
+	winnerAddrs := make([]string, len(winners))
+	for i, w := range winners {
+		winnerAddrs[i] = NameToAddress(w)
+	}
+	record := CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
+
+	// 8. 验证记录
+	if record.Seed != seed {
+		t.Errorf("Seed mismatch")
+	}
+	if len(record.Winners) != 3 {
+		t.Errorf("Winners count mismatch")
+	}
+	if record.ID == "" {
+		t.Error("ID should not be empty")
+	}
+
+	// 9. JSON 序列化
+	jsonStr, err := record.ToJSON()
+	if err != nil {
+		t.Fatalf("ToJSON failed: %v", err)
+	}
+	if len(jsonStr) == 0 {
+		t.Error("JSON should not be empty")
+	}
+
+	_ = pk
+}
