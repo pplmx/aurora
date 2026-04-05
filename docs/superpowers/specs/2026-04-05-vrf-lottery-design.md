@@ -14,16 +14,16 @@
 
 ## 技术选型
 
-| 组件 | 技术 | 版本 |
-|------|------|------|
-| 语言 | Go | 1.26+ |
-| VRF 库 | filippo.io/bbls12381 | latest |
-| TUI 框架 | tview | latest |
-| 密码学 | 标准库 + bbls12381 | - |
+| 组件     | 技术                 | 版本   |
+| -------- | -------------------- | ------ |
+| 语言     | Go                   | 1.26+  |
+| VRF 库   | filippo.io/bbls12381 | latest |
+| TUI 框架 | tview                | latest |
+| 密码学   | 标准库 + bbls12381   | -      |
 
 ## 架构
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                         TUI 层                               │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
@@ -97,7 +97,7 @@ func SelectWinners(output []byte, participants []string, count int) []string {
     // output 作为大端序整数，取模选择
     num := new(big.Int).SetBytes(output[:32])
     winners := make([]string, 0, count)
-    
+
     used := make(map[int]bool)
     for len(winners) < count && len(used) < len(participants) {
         idx := int(num.Mod(num, big.NewInt(int64(len(participants)))).Int64())
@@ -116,7 +116,7 @@ func SelectWinners(output []byte, participants []string, count int) []string {
 
 ### 主菜单
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │          🌟 VRF 透明抽奖系统 🌟             │
 │                                            │
@@ -131,7 +131,7 @@ func SelectWinners(output []byte, participants []string, count int) []string {
 
 ### 创建抽奖
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │           创建新抽奖                        │
 │                                            │
@@ -152,7 +152,7 @@ func SelectWinners(output []byte, participants []string, count int) []string {
 
 ### 结果展示
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │              抽奖结果                       │
 │                                            │
@@ -174,7 +174,7 @@ func SelectWinners(output []byte, participants []string, count int) []string {
 
 ### 验证结果
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │            验证抽奖结果                     │
 │                                            │
@@ -240,7 +240,7 @@ func (chain *BlockChain) AddLotteryRecord(record *LotteryRecord) error {
 
 ## 文件结构
 
-```
+```text
 cmd/aurora/
 ├── main.go
 └── cmd/

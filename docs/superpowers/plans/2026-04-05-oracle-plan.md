@@ -12,7 +12,7 @@
 
 ## 文件结构
 
-```
+```text
 internal/
 ├── oracle/
 │   ├── oracle.go        # 核心逻辑
@@ -31,6 +31,7 @@ internal/
 ## Task 1: 创建目录结构
 
 **Files:**
+
 - Create: `internal/oracle/` 目录
 
 - [ ] **Step 1: 创建目录**
@@ -50,6 +51,7 @@ git commit -m "chore: create oracle module directory"
 ## Task 2: 存储层
 
 **Files:**
+
 - Create: `internal/oracle/storage.go`
 
 - [ ] **Step 1: 创建存储接口和数据结构**
@@ -94,14 +96,14 @@ type Storage interface {
     ListDataSources() ([]*DataSource, error)
     UpdateDataSource(ds *DataSource) error
     DeleteDataSource(id string) error
-    
+
     // OracleData
     SaveOracleData(d *OracleData) error
     GetOracleData(id string) (*OracleData, error)
     GetOracleDataBySource(sourceID string, limit int) ([]*OracleData, error)
     GetLatestOracleData(sourceID string) (*OracleData, error)
     GetOracleDataByTimeRange(sourceID string, start, end int64) ([]*OracleData, error)
-    
+
     // Transaction
     Begin() error
     Commit() error
@@ -122,7 +124,7 @@ func NewSQLiteStorage(path string) (*SQLiteStorage, error) {
     if err != nil {
         return nil, err
     }
-    
+
     s := &SQLiteStorage{db: db}
     if err := s.initTables(); err != nil {
         return nil, err
@@ -155,7 +157,7 @@ func (s *SQLiteStorage) initTables() error {
         `CREATE INDEX IF NOT EXISTS idx_oracle_data_source ON oracle_data(source_id)`,
         `CREATE INDEX IF NOT EXISTS idx_oracle_data_timestamp ON oracle_data(timestamp)`,
     }
-    
+
     for _, q := range queries {
         if _, err := s.db.Exec(q); err != nil {
             return err
@@ -197,7 +199,7 @@ import (
 
 func TestOracleStorage(t *testing.T) {
     storage := NewInMemoryStorage()
-    
+
     // Test SaveDataSource
     ds := &DataSource{
         ID:        "test-1",
@@ -210,7 +212,7 @@ func TestOracleStorage(t *testing.T) {
     if err := storage.SaveDataSource(ds); err != nil {
         t.Fatal(err)
     }
-    
+
     // Test GetDataSource
     got, err := storage.GetDataSource("test-1")
     if err != nil {
@@ -219,7 +221,7 @@ func TestOracleStorage(t *testing.T) {
     if got.Name != "BTC Price" {
         t.Errorf("Name = %v, want BTC Price", got.Name)
     }
-    
+
     // Test SaveOracleData
     data := &OracleData{
         ID:        "data-1",
@@ -230,7 +232,7 @@ func TestOracleStorage(t *testing.T) {
     if err := storage.SaveOracleData(data); err != nil {
         t.Fatal(err)
     }
-    
+
     // Test GetLatestOracleData
     latest, err := storage.GetLatestOracleData("test-1")
     if err != nil {
@@ -258,6 +260,7 @@ git commit -m "feat: add oracle storage layer"
 ## Task 3: 数据源管理
 
 **Files:**
+
 - Create: `internal/oracle/source.go`
 
 - [ ] **Step 1: 添加全局存储变量**
@@ -377,13 +380,13 @@ func ListTemplates() []string {
 func TestDataSourceManagement(t *testing.T) {
     storage := NewInMemoryStorage()
     SetSourceStorage(storage)
-    
+
     // Register
     ds, err := RegisterDataSource("BTC Price", "https://api.example.com", "price", 60)
     if err != nil {
         t.Fatal(err)
     }
-    
+
     // Get
     got, err := GetDataSource(ds.ID)
     if err != nil {
@@ -392,7 +395,7 @@ func TestDataSourceManagement(t *testing.T) {
     if got.Name != "BTC Price" {
         t.Errorf("Name = %v, want BTC Price", got.Name)
     }
-    
+
     // List
     list, err := ListDataSources()
     if err != nil {
@@ -401,7 +404,7 @@ func TestDataSourceManagement(t *testing.T) {
     if len(list) != 1 {
         t.Errorf("len(list) = %v, want 1", len(list))
     }
-    
+
     // Enable/Disable
     if err := DisableDataSource(ds.ID); err != nil {
         t.Fatal(err)
@@ -410,12 +413,12 @@ func TestDataSourceManagement(t *testing.T) {
     if got.Enabled {
         t.Error("Should be disabled")
     }
-    
+
     // Delete
     if err := DeleteDataSource(ds.ID); err != nil {
         t.Fatal(err)
     }
-    
+
     got, _ = GetDataSource(ds.ID)
     if got != nil {
         t.Error("Should be deleted")
@@ -439,6 +442,7 @@ git commit -m "feat: implement data source management"
 ## Task 4: 数据获取
 
 **Files:**
+
 - Create: `internal/oracle/fetcher.go`
 
 - [ ] **Step 1: 创建数据获取函数**
@@ -470,23 +474,23 @@ func (f *Fetcher) FetchData(source *DataSource) (*OracleData, error) {
     if err != nil {
         return nil, fmt.Errorf("failed to create request: %w", err)
     }
-    
+
     resp, err := f.client.Do(req)
     if err != nil {
         return nil, fmt.Errorf("failed to fetch data: %w", err)
     }
     defer resp.Body.Close()
-    
+
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         return nil, fmt.Errorf("failed to read response: %w", err)
     }
-    
+
     value := string(body)
     if source.Path != "" {
         value = extractByPath(string(body), source.Path)
     }
-    
+
     return &OracleData{
         ID:          uuid.New().String(),
         SourceID:    source.ID,
@@ -505,10 +509,10 @@ func extractByPath(jsonStr, path string) string {
     if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
         return jsonStr
     }
-    
+
     parts := strings.Split(path, ".")
     current := interface{}(data)
-    
+
     for _, part := range parts {
         if m, ok := current.(map[string]interface{}); ok {
             if v, exists := m[part]; exists {
@@ -520,7 +524,7 @@ func extractByPath(jsonStr, path string) string {
             return jsonStr
         }
     }
-    
+
     if result, ok := current.(string); ok {
         return result
     }
@@ -560,7 +564,7 @@ func TestFetchData(t *testing.T) {
         {`{"data":{"temp":25}}`, "data.temp", "25"},
         {`{"value":"test"}`, "value", "test"},
     }
-    
+
     for _, tt := range tests {
         got := extractByPath(tt.json, tt.path)
         if got != tt.want {
@@ -578,14 +582,14 @@ func TestFetcherMock(t *testing.T) {
         Type:   "test",
         Method: "GET",
     }
-    
+
     fetcher := NewFetcher()
     // Note: This will make actual HTTP call, in production use mock
     data, err := fetcher.FetchData(source)
     if err != nil {
         t.Logf("Fetch error (expected for test): %v", err)
     }
-    
+
     _ = data // May be nil if network call fails
 }
 ```
@@ -606,6 +610,7 @@ git commit -m "feat: implement data fetching"
 ## Task 5: 核心逻辑整合
 
 **Files:**
+
 - Create: `internal/oracle/oracle.go`
 
 - [ ] **Step 1: 整合所有功能**
@@ -634,7 +639,7 @@ func FetchAndSave(sourceID string, chain *blockchain.BlockChain) (*OracleData, e
     if !dataStorageInitialized {
         return nil, fmt.Errorf("oracle not initialized")
     }
-    
+
     source, err := sourceStorage.GetDataSource(sourceID)
     if err != nil {
         return nil, err
@@ -645,25 +650,25 @@ func FetchAndSave(sourceID string, chain *blockchain.BlockChain) (*OracleData, e
     if !source.Enabled {
         return nil, fmt.Errorf("data source is disabled")
     }
-    
+
     fetcher := NewFetcher()
     data, err := fetcher.FetchData(source)
     if err != nil {
         return nil, err
     }
-    
+
     // Save to chain
     if chain != nil {
         jsonData, _ := json.Marshal(data)
         height := chain.AddBlock(string(jsonData))
         data.BlockHeight = height
     }
-    
+
     // Save to storage
     if err := dataStorage.SaveOracleData(data); err != nil {
         return nil, err
     }
-    
+
     return data, nil
 }
 
@@ -686,18 +691,18 @@ func GetOracleDataByTimeRange(sourceID string, start, end int64) ([]*OracleData,
 func TestFetchAndSave(t *testing.T) {
     storage := NewInMemoryStorage()
     InitOracle(storage)
-    
+
     // Create source
     ds, _ := RegisterDataSource("Test", "https://httpbin.org/json", "test", 60)
-    
+
     chain := blockchain.InitBlockChain()
-    
+
     // Note: This may fail due to network
     data, err := FetchAndSave(ds.ID, chain)
     if err != nil {
         t.Logf("Fetch error (may be network): %v", err)
     }
-    
+
     if data != nil {
         t.Logf("Fetched data: %s", data.Value)
     }
@@ -720,6 +725,7 @@ git commit -m "feat: integrate oracle core logic"
 ## Task 6: CLI 命令
 
 **Files:**
+
 - Create: `cmd/aurora/cmd/oracle.go`
 
 - [ ] **Step 1: 创建 CLI 命令**
@@ -756,13 +762,13 @@ var sourceAddCmd = &cobra.Command{
         url, _ := cmd.Flags().GetString("url")
         dataType, _ := cmd.Flags().GetString("type")
         interval, _ := cmd.Flags().GetInt("interval")
-        
+
         ds, err := oracle.RegisterDataSource(name, url, dataType, interval)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Printf("Data source created: %s (%s)\n", ds.Name, ds.ID)
     },
 }
@@ -776,7 +782,7 @@ var sourceListCmd = &cobra.Command{
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Println("Data Sources:")
         for _, ds := range list {
             status := "enabled"
@@ -807,14 +813,14 @@ var fetchCmd = &cobra.Command{
     Short: "Fetch data from source",
     Run: func(cmd *cobra.Command, args []string) {
         sourceID, _ := cmd.Flags().GetString("source")
-        
+
         chain := blockchain.InitBlockChain()
         data, err := oracle.FetchAndSave(sourceID, chain)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Println("Data fetched successfully!")
         fmt.Printf("Value: %s\n", data.Value)
         fmt.Printf("Timestamp: %d\n", data.Timestamp)
@@ -829,13 +835,13 @@ var dataCmd = &cobra.Command{
     Run: func(cmd *cobra.Command, args []string) {
         sourceID, _ := cmd.Flags().GetString("source")
         limit, _ := cmd.Flags().GetInt("limit")
-        
+
         list, err := oracle.GetOracleData(sourceID, limit)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Println("Oracle Data:")
         for _, d := range list {
             fmt.Printf("  [%d] %s - Block #%d\n", d.Timestamp, d.Value, d.BlockHeight)
@@ -849,7 +855,7 @@ var latestCmd = &cobra.Command{
     Short: "Get latest data from source",
     Run: func(cmd *cobra.Command, args []string) {
         sourceID, _ := cmd.Flags().GetString("source")
-        
+
         data, err := oracle.GetLatestOracleData(sourceID)
         if err != nil {
             fmt.Println("Error:", err)
@@ -859,7 +865,7 @@ var latestCmd = &cobra.Command{
             fmt.Println("No data found")
             return
         }
-        
+
         fmt.Println("Latest Data:")
         fmt.Printf("  Value: %s\n", data.Value)
         fmt.Printf("  Timestamp: %d\n", data.Timestamp)
@@ -890,56 +896,56 @@ var templateAddCmd = &cobra.Command{
     Short: "Add template as data source",
     Run: func(cmd *cobra.Command, args []string) {
         template, _ := cmd.Flags().GetString("template")
-        
+
         ds, err := oracle.AddTemplate(template)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Printf("Template added: %s (%s)\n", ds.Name, ds.ID)
     },
 }
 
 func init() {
     rootCmd.AddCommand(oracleCmd)
-    
+
     // Source commands
     oracleCmd.AddCommand(sourceCmd)
     sourceCmd.AddCommand(sourceAddCmd)
     sourceCmd.AddCommand(sourceListCmd)
     sourceCmd.AddCommand(sourceDeleteCmd)
-    
+
     sourceAddCmd.Flags().StringP("name", "n", "", "Data source name")
     sourceAddCmd.Flags().StringP("url", "u", "", "API URL")
     sourceAddCmd.Flags().StringP("type", "t", "custom", "Data type")
     sourceAddCmd.Flags().IntP("interval", "i", 60, "Refresh interval (seconds)")
     sourceAddCmd.MarkFlagRequired("name")
     sourceAddCmd.MarkFlagRequired("url")
-    
+
     sourceDeleteCmd.Flags().StringP("id", "i", "", "Source ID")
     sourceDeleteCmd.MarkFlagRequired("id")
-    
+
     // Fetch command
     oracleCmd.AddCommand(fetchCmd)
     fetchCmd.Flags().StringP("source", "s", "", "Source ID")
     fetchCmd.MarkFlagRequired("source")
-    
+
     // Data commands
     oracleCmd.AddCommand(dataCmd)
     dataCmd.Flags().StringP("source", "s", "", "Source ID")
     dataCmd.Flags().IntP("limit", "l", 10, "Limit results")
     dataCmd.MarkFlagRequired("source")
-    
+
     oracleCmd.AddCommand(latestCmd)
     latestCmd.Flags().StringP("source", "s", "", "Source ID")
     latestCmd.MarkFlagRequired("source")
-    
+
     // Template commands
     oracleCmd.AddCommand(templateCmd)
     templateCmd.AddCommand(templateListCmd)
     templateCmd.AddCommand(templateAddCmd)
-    
+
     templateAddCmd.Flags().StringP("template", "t", "", "Template name")
     templateAddCmd.MarkFlagRequired("template")
 }
@@ -979,6 +985,7 @@ git commit -m "feat: add oracle CLI commands"
 ## Task 7: TUI 界面
 
 **Files:**
+
 - Create: `internal/oracle/tui.go`
 
 - [ ] **Step 1: 创建 TUI 界面**
@@ -1099,6 +1106,7 @@ git commit -m "feat: add oracle TUI interface"
 ## Task 8: 集成测试
 
 **Files:**
+
 - Create: `test/oracle_e2e_test.go`
 
 - [ ] **Step 1: 创建 E2E 测试**
@@ -1232,6 +1240,7 @@ git commit -m "feat: complete oracle system"
 ## 总结
 
 完成所有任务后，你将拥有：
+
 - ✅ 数据源管理（注册、列表、删除、启用/禁用）
 - ✅ 预设模板（BTC/ETH 价格）
 - ✅ HTTP 数据获取

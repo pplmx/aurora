@@ -70,7 +70,8 @@ aurora lottery stats
 ```
 
 输出:
-```
+
+```text
 📊 Lottery Statistics
 ────────────────────────────
   Total lotteries: 10
@@ -97,6 +98,7 @@ aurora lottery tui
 ```
 
 操作说明:
+
 - 1 - 创建抽奖
 - 2 - 查看历史
 - 3 - 退出
@@ -124,6 +126,7 @@ defaultSeedPrefix = "aurora-vrf-"  # 默认种子前缀
 SQLite 数据库位置: `data/aurora.db`
 
 表结构:
+
 ```sql
 CREATE TABLE blocks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,6 +140,7 @@ CREATE TABLE blocks (
 ```
 
 索引:
+
 - idx_blocks_height
 - idx_blocks_hash  
 - idx_blocks_created_at
@@ -164,13 +168,17 @@ CREATE TABLE blocks (
 ## 常见问题
 
 ### Q: 如何备份数据?
+
 A: 使用 `aurora lottery export backup.json`
 
 ### Q: 如何恢复数据?
+
 A: 使用 `aurora lottery import backup.json`
 
 ### Q: 数据库在哪里?
+
 A: 默认在 `./data/aurora.db`
 
 ### Q: 如何查看日志?
+
 A: 配置 `config/aurora.toml` 中的 `log.path`
