@@ -80,4 +80,6 @@ func initConfig() {
 func setDefaultConfig() {
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.path", "./log")
+	viper.SetDefault("lottery.default_count", 3)
+	viper.SetDefault("lottery.default_seed_prefix", "aurora-vrf-")
 }
