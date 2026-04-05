@@ -203,10 +203,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.view == "create" {
-		m.createNameInput, _ = m.createNameInput.Update(msg)
-		m.createSymbolInput, _ = m.createSymbolInput.Update(msg)
-		m.createSupplyInput, _ = m.createSupplyInput.Update(msg)
-		m.createDecimalsInput, cmd = m.createDecimalsInput.Update(msg)
+		var cmd1, cmd2, cmd3, cmd4 tea.Cmd
+		m.createNameInput, cmd1 = m.createNameInput.Update(msg)
+		m.createSymbolInput, cmd2 = m.createSymbolInput.Update(msg)
+		m.createSupplyInput, cmd3 = m.createSupplyInput.Update(msg)
+		m.createDecimalsInput, cmd4 = m.createDecimalsInput.Update(msg)
+		cmd = tea.Batch(cmd, cmd1, cmd2, cmd3, cmd4)
 	}
 
 	return m, cmd
@@ -408,27 +410,27 @@ func (m *model) handleCreate() {
 	decimalsStr := m.createDecimalsInput.Value()
 
 	if name == "" {
-		m.err = "名称不能为空"
+		m.err = i18n.GetText("error.name_required")
 		return
 	}
 	if symbol == "" {
-		m.err = "符号不能为空"
+		m.err = i18n.GetText("error.symbol_required")
 		return
 	}
 	if supplyStr == "" {
-		m.err = "供应量不能为空"
+		m.err = i18n.GetText("error.supply_required")
 		return
 	}
 
 	supply, ok := new(big.Int).SetString(supplyStr, 10)
 	if !ok {
-		m.err = "无效的供应量"
+		m.err = i18n.GetText("error.invalid_supply")
 		return
 	}
 
 	if decimalsStr != "" {
 		if _, err := strconv.Atoi(decimalsStr); err != nil {
-			m.err = "无效的小数位数"
+			m.err = i18n.GetText("error.invalid_decimals")
 			return
 		}
 	}
@@ -452,7 +454,7 @@ func (m *model) handleCreate() {
 
 func (m *model) handleMint() {
 	if m.currentToken == nil {
-		m.err = "请先创建代币"
+		m.err = i18n.GetText("error.create_token_first")
 		return
 	}
 
@@ -461,23 +463,23 @@ func (m *model) handleMint() {
 	privateStr := m.mintPrivateInput.Value()
 
 	if toStr == "" {
-		m.err = "接收地址不能为空"
+		m.err = i18n.GetText("error.address_required")
 		return
 	}
 	if amountStr == "" {
-		m.err = "数量不能为空"
+		m.err = i18n.GetText("error.amount_required")
 		return
 	}
 
 	to, err := base64.StdEncoding.DecodeString(toStr)
 	if err != nil {
-		m.err = "无效的接收地址"
+		m.err = i18n.GetText("error.invalid_address")
 		return
 	}
 
 	amount, ok := new(big.Int).SetString(amountStr, 10)
 	if !ok {
-		m.err = "无效的数量"
+		m.err = i18n.GetText("error.invalid_amount")
 		return
 	}
 
@@ -485,7 +487,7 @@ func (m *model) handleMint() {
 	if privateStr != "" {
 		priv, err = base64.StdEncoding.DecodeString(privateStr)
 		if err != nil {
-			m.err = "无效的私钥"
+			m.err = i18n.GetText("error.invalid_privkey")
 			return
 		}
 	} else {
@@ -510,7 +512,7 @@ func (m *model) handleMint() {
 
 func (m *model) handleTransfer() {
 	if m.currentToken == nil {
-		m.err = "请先创建代币"
+		m.err = i18n.GetText("error.create_token_first")
 		return
 	}
 
@@ -519,23 +521,23 @@ func (m *model) handleTransfer() {
 	privateStr := m.transferPrivateInput.Value()
 
 	if toStr == "" {
-		m.err = "接收地址不能为空"
+		m.err = i18n.GetText("error.address_required")
 		return
 	}
 	if amountStr == "" {
-		m.err = "数量不能为空"
+		m.err = i18n.GetText("error.amount_required")
 		return
 	}
 
 	to, err := base64.StdEncoding.DecodeString(toStr)
 	if err != nil {
-		m.err = "无效的接收地址"
+		m.err = i18n.GetText("error.invalid_address")
 		return
 	}
 
 	amount, ok := new(big.Int).SetString(amountStr, 10)
 	if !ok {
-		m.err = "无效的数量"
+		m.err = i18n.GetText("error.invalid_amount")
 		return
 	}
 
@@ -543,7 +545,7 @@ func (m *model) handleTransfer() {
 	if privateStr != "" {
 		priv, err = base64.StdEncoding.DecodeString(privateStr)
 		if err != nil {
-			m.err = "无效的私钥"
+			m.err = i18n.GetText("error.invalid_privkey")
 			return
 		}
 	} else {
@@ -571,7 +573,7 @@ func (m *model) handleBalance() {
 	addressStr := m.balanceAddressInput.Value()
 
 	if m.currentToken == nil {
-		m.err = "请先创建代币"
+		m.err = i18n.GetText("error.create_token_first")
 		return
 	}
 
@@ -580,7 +582,7 @@ func (m *model) handleBalance() {
 	if addressStr != "" {
 		owner, err = base64.StdEncoding.DecodeString(addressStr)
 		if err != nil {
-			m.err = "无效的地址"
+			m.err = i18n.GetText("error.invalid_address")
 			return
 		}
 	} else {
