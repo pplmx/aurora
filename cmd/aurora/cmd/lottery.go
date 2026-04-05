@@ -87,8 +87,7 @@ var tuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: "Launch TUI interface",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		app := lottery.NewLotteryApp()
-		return app.Run()
+		return lottery.RunLotteryTUI()
 	},
 }
 

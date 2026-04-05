@@ -2,199 +2,248 @@ package lottery
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/pplmx/aurora/internal/blockchain"
-	"github.com/rivo/tview"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
-type LotteryApp struct {
-	app   *tview.Application
-	chain *blockchain.BlockChain
-	pages *tview.Pages
+var (
+	titleStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("86")).
+			Bold(true).
+			Padding(0, 1)
+
+	borderStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240"))
+
+	errorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("196"))
+
+	successStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("82"))
+)
+
+type model struct {
+	view              string
+	chain             *blockchain.BlockChain
+	participants      string
+	seed              string
+	count             string
+	result            *LotteryRecord
+	history           string
+	err               string
+	participantsInput textinput.Model
+	seedInput         textinput.Model
+	countInput        textinput.Model
+	viewport          viewport.Model
 }
 
-func NewLotteryApp() *LotteryApp {
+func NewLotteryApp() *model {
 	chain := blockchain.InitBlockChain()
 
-	app := tview.NewApplication()
-	pages := tview.NewPages()
+	pInput := textinput.New()
+	pInput.Placeholder = "Alice\nBob\nCharlie\nDavid"
+	pInput.Focus()
 
-	return &LotteryApp{
-		app:   app,
-		chain: chain,
-		pages: pages,
+	sInput := textinput.New()
+	sInput.Placeholder = "Enter random seed..."
+
+	cInput := textinput.New()
+	cInput.Placeholder = "3"
+	cInput.SetValue("3")
+
+	vp := viewport.New(60, 20)
+
+	return &model{
+		view:              "menu",
+		chain:             chain,
+		count:             "3",
+		participantsInput: pInput,
+		seedInput:         sInput,
+		countInput:        cInput,
+		viewport:          vp,
 	}
 }
 
-func (a *LotteryApp) Run() error {
-	a.setupPages()
-	a.app.SetRoot(a.pages, true)
-	return a.app.Run()
+func (m *model) Init() tea.Cmd {
+	return nil
 }
 
-func (a *LotteryApp) setupPages() {
-	menu := tview.NewModal()
-	menu.SetText("VRF Lottery System\n\nSelect operation:")
-	menu.AddButtons([]string{"Create Lottery", "View History", "Exit"})
-	menu.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-		switch buttonLabel {
-		case "Create Lottery":
-			a.app.SetRoot(a.createLotteryPage(), true)
-		case "View History":
-			a.app.SetRoot(a.historyPage(), true)
-		case "Exit":
-			a.app.Stop()
-		}
-	})
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 
-	a.pages.AddPage("menu", menu, true, true)
-	a.app.SetRoot(menu, true)
-}
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "esc":
+			if m.view == "menu" {
+				return m, tea.Quit
+			}
+			m.view = "menu"
+			m.err = ""
+			return m, nil
 
-func (a *LotteryApp) createLotteryPage() tview.Primitive {
-	flex := tview.NewFlex().SetDirection(tview.FlexRow)
-	flex.SetBorder(true).SetTitle("Create New Lottery")
-
-	helpText := tview.NewTextView()
-	helpText.SetText("Enter participant names (one per line) and random seed")
-	helpText.SetDynamicColors(true)
-	flex.AddItem(helpText, 2, 0, false)
-
-	participantsLabel := tview.NewTextView()
-	participantsLabel.SetText("Participants List:")
-	flex.AddItem(participantsLabel, 1, 0, false)
-
-	participantsInput := tview.NewTextArea()
-	participantsInput.SetPlaceholder("Alice\nBob\nCharlie\nDavid")
-	flex.AddItem(participantsInput, 8, 0, false)
-
-	seedLabel := tview.NewTextView()
-	seedLabel.SetText("Random Seed:")
-	flex.AddItem(seedLabel, 1, 0, false)
-
-	seedInput := tview.NewInputField()
-	seedInput.SetPlaceholder("Enter random seed...")
-	flex.AddItem(seedInput, 2, 0, false)
-
-	countLabel := tview.NewTextView()
-	countLabel.SetText("Number of Winners:")
-	flex.AddItem(countLabel, 1, 0, false)
-
-	countInput := tview.NewInputField()
-	countInput.SetPlaceholder("3")
-	countInput.SetText("3")
-	flex.AddItem(countInput, 2, 0, false)
-
-	buttonFlex := tview.NewFlex()
-
-	createBtn := tview.NewButton("[Create Lottery]")
-	createBtn.SetSelectedFunc(func() {
-		participants := parseTextArea(participantsInput.GetText())
-		seed := seedInput.GetText()
-		count := 3
-		fmt.Sscanf(countInput.GetText(), "%d", &count)
-
-		if len(participants) < count || seed == "" {
-			a.showError("Participants and seed cannot be empty, and participants must be more than winners")
-			return
+		case "enter":
+			switch m.view {
+			case "menu":
+				// Menu selection via number handled below
+			case "create":
+				return m, m.handleCreate
+			case "history":
+				m.view = "menu"
+			case "result":
+				m.view = "menu"
+			}
+		case "1":
+			if m.view == "menu" {
+				m.view = "create"
+				m.err = ""
+			}
+		case "2":
+			if m.view == "menu" {
+				m.loadHistory()
+				m.view = "history"
+			}
+		case "3":
+			if m.view == "menu" {
+				return m, tea.Quit
+			}
 		}
 
-		result := a.runLottery(participants, seed, count)
-		a.app.SetRoot(a.resultPage(result), true)
-	})
-	buttonFlex.AddItem(createBtn, 0, 1, false)
-
-	backBtn := tview.NewButton("[Back]")
-	backBtn.SetSelectedFunc(func() {
-		a.app.SetRoot(a.pages, true)
-	})
-	buttonFlex.AddItem(backBtn, 0, 1, false)
-
-	flex.AddItem(buttonFlex, 3, 0, false)
-
-	return flex
-}
-
-func (a *LotteryApp) historyPage() tview.Primitive {
-	flex := tview.NewFlex().SetDirection(tview.FlexRow)
-	flex.SetBorder(true).SetTitle("Lottery History")
-
-	textView := tview.NewTextView()
-	textView.SetDynamicColors(true)
-	textView.SetWrap(true)
-
-	records := a.chain.GetLotteryRecords()
-	if len(records) == 0 {
-		fmt.Fprintln(textView, "No lottery records found")
-	} else {
-		for i, data := range records {
-			fmt.Fprintf(textView, "--- Lottery #%d ---\n%s\n\n", i+1, data)
-		}
+	case tea.WindowSizeMsg:
+		m.viewport.Width = msg.Width - 4
+		m.viewport.Height = msg.Height - 10
 	}
 
-	flex.AddItem(textView, 0, 1, false)
-
-	backBtn := tview.NewButton("[Back]")
-	backBtn.SetSelectedFunc(func() {
-		a.app.SetRoot(a.pages, true)
-	})
-	flex.AddItem(backBtn, 3, 0, false)
-
-	return flex
+	return m, cmd
 }
 
-func (a *LotteryApp) resultPage(record *LotteryRecord) tview.Primitive {
-	flex := tview.NewFlex().SetDirection(tview.FlexRow)
-	flex.SetBorder(true).SetTitle("Lottery Result")
+func (m *model) View() string {
+	switch m.view {
+	case "menu":
+		return m.menuView()
+	case "create":
+		return m.createView()
+	case "history":
+		return m.historyView()
+	case "result":
+		return m.resultView()
+	case "error":
+		return m.errorView()
+	}
+	return ""
+}
 
-	textView := tview.NewTextView()
-	textView.SetDynamicColors(true)
+func (m *model) menuView() string {
+	return titleStyle.Render("🌟 VRF 透明抽奖系统 🌟") + "\n\n" +
+		borderStyle.Render("1. 创建抽奖") + "\n" +
+		borderStyle.Render("2. 查看历史") + "\n" +
+		borderStyle.Render("3. 退出") + "\n\n" +
+		"按数字选择，回车确认"
+}
 
-	fmt.Fprintln(textView, "Lottery completed!")
-	fmt.Fprintln(textView, "")
-	fmt.Fprintf(textView, "Lottery ID: %s\n", record.ID)
-	fmt.Fprintf(textView, "Block Height: #%d\n\n", record.BlockHeight)
+func (m *model) createView() string {
+	s := titleStyle.Render("创建新抽奖") + "\n\n" +
+		"参与者（每行一个）:\n" +
+		m.participantsInput.View() + "\n\n" +
+		"随机种子:\n" +
+		m.seedInput.View() + "\n\n" +
+		"获奖人数:\n" +
+		m.countInput.View() + "\n\n" +
+		borderStyle.Render("[回车] 创建抽奖") + " | " +
+		borderStyle.Render("[ESC] 返回")
 
-	fmt.Fprintln(textView, "Winners:")
-	for i, w := range record.Winners {
-		fmt.Fprintf(textView, "   %d. %s (%s)\n", i+1, w, record.WinnerAddrs[i])
+	if m.err != "" {
+		s += "\n" + errorStyle.Render(m.err)
 	}
 
-	fmt.Fprintln(textView, "")
-	vrfOut := record.VRFOutput
-	vrfProof := record.VRFProof
+	return s
+}
+
+func (m *model) historyView() string {
+	s := titleStyle.Render("抽奖历史") + "\n\n"
+	s += m.viewport.View() + "\n\n"
+	s += borderStyle.Render("[ESC] 返回")
+	return s
+}
+
+func (m *model) resultView() string {
+	if m.result == nil {
+		return "无结果"
+	}
+
+	s := successStyle.Render("🎉 抽奖完成！") + "\n\n"
+	s += fmt.Sprintf("📋 抽奖ID: %s\n", m.result.ID)
+	s += fmt.Sprintf("🔢 区块高度: #%d\n\n", m.result.BlockHeight)
+	s += "🎊 中奖者:\n"
+
+	for i, w := range m.result.Winners {
+		s += fmt.Sprintf("   %d. %s (%s)\n", i+1, w, m.result.WinnerAddrs[i])
+	}
+
+	s += "\n"
+	vrfOut := m.result.VRFOutput
+	vrfProof := m.result.VRFProof
 	if len(vrfOut) > 32 {
 		vrfOut = vrfOut[:32]
 	}
 	if len(vrfProof) > 32 {
 		vrfProof = vrfProof[:32]
 	}
-	fmt.Fprintf(textView, "VRF Output: %s...\n", vrfOut)
-	fmt.Fprintf(textView, "VRF Proof: %s...\n", vrfProof)
+	s += fmt.Sprintf("🔐 VRF Output: %s...\n", vrfOut)
+	s += fmt.Sprintf("📜 VRF Proof: %s...\n", vrfProof)
 
-	flex.AddItem(textView, 0, 1, false)
+	s += "\n" + borderStyle.Render("[ESC] 返回主菜单")
 
-	backBtn := tview.NewButton("[Back to Main Menu]")
-	backBtn.SetSelectedFunc(func() {
-		a.app.SetRoot(a.pages, true)
-	})
-	flex.AddItem(backBtn, 3, 0, false)
-
-	return flex
+	return s
 }
 
-func (a *LotteryApp) showError(msg string) {
-	modal := tview.NewModal()
-	modal.SetText(msg)
-	modal.AddButtons([]string{"OK"})
-	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-		a.app.SetRoot(a.createLotteryPage(), true)
-	})
-	a.app.SetRoot(modal, true)
+func (m *model) errorView() string {
+	return errorStyle.Render("错误: "+m.err) + "\n\n" + borderStyle.Render("[ESC] 返回")
 }
 
-func (a *LotteryApp) runLottery(participants []string, seed string, count int) *LotteryRecord {
+func (m *model) handleCreate() tea.Msg {
+	participants := parseTextArea(m.participantsInput.Value())
+	seed := m.seedInput.Value()
+	count := 3
+	fmt.Sscanf(m.countInput.Value(), "%d", &count)
+
+	if len(participants) < count {
+		m.err = "参与者人数必须多于获奖人数"
+		return nil
+	}
+
+	if seed == "" {
+		m.err = "种子不能为空"
+		return nil
+	}
+
+	m.result = m.runLottery(participants, seed, count)
+	m.view = "result"
+
+	return nil
+}
+
+func (m *model) loadHistory() {
+	records := m.chain.GetLotteryRecords()
+	if len(records) == 0 {
+		m.viewport.SetContent("暂无抽奖记录")
+	} else {
+		var content string
+		for i, data := range records {
+			content += fmt.Sprintf("--- 抽奖 #%d ---\n%s\n\n", i+1, data)
+		}
+		m.viewport.SetContent(content)
+	}
+}
+
+func (m *model) runLottery(participants []string, seed string, count int) *LotteryRecord {
 	pk, sk, _ := GenerateKeyPair()
 	output, proof, _ := VRFProve(sk, []byte(seed))
 
@@ -207,7 +256,7 @@ func (a *LotteryApp) runLottery(participants []string, seed string, count int) *
 	record := CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
 
 	jsonData, _ := record.ToJSON()
-	height, _ := a.chain.AddLotteryRecord(jsonData)
+	height, _ := m.chain.AddLotteryRecord(jsonData)
 	record.BlockHeight = height
 
 	_ = pk
@@ -224,4 +273,13 @@ func parseTextArea(text string) []string {
 		}
 	}
 	return result
+}
+
+func RunLotteryTUI() error {
+	p := tea.NewProgram(NewLotteryApp(), tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+		return err
+	}
+	return nil
 }
