@@ -322,16 +322,6 @@ func init() {
 	_ = createCmd.MarkFlagRequired("seed")
 }
 
-func removeEmpty(s []string) []string {
-	result := make([]string, 0, len(s))
-	for _, str := range s {
-		if str != "" {
-			result = append(result, str)
-		}
-	}
-	return result
-}
-
 func min(a, b int) int {
 	if a < b {
 		return a
