@@ -3,11 +3,11 @@
 ## Build & Test Commands
 
 ```bash
-make test         # Run all tests
+make test         # Run all tests (unit + E2E)
 make lint         # Run golangci-lint (requires golangci-lint installed)
 make check        # Run gofmt, goimports, go vet
 make build        # Runs check + test, then builds for darwin/linux/windows
-make run          # Run the binary locally (./aurora-linux start)
+make run          # Run locally: ./aurora-linux lottery create -p "A,B,C" -s "seed" -c 3
 ```
 
 ## Dev Workflow
@@ -21,12 +21,10 @@ make stop         # Stop containers: docker compose down
 ## Project Structure
 
 - **Entry point**: `cmd/aurora/main.go` → `cmd/aurora/cmd/root.go`
+- **Lottery module**: `internal/lottery/` (VRF, TUI, lottery logic)
 - **Core logic**: `internal/` (blockchain, voting, logger, utils)
+- **Tests**: `internal/lottery/*_test.go` (unit), `test/lottery_e2e_test.go` (E2E)
 - **Config**: `config/aurora.x.yml` (Viper loads from `$HOME` or `./config/`)
-
-## Known Issues
-
-- **Dockerfile bug**: Line 18 references `src/main.go` but the actual entry point is `cmd/aurora/main.go`. Build will fail unless fixed.
 
 ## Configuration
 
@@ -38,7 +36,27 @@ make stop         # Stop containers: docker compose down
 
 ## Dependencies
 
-- Go 1.26.0
+- Go 1.26+
 - Cobra (CLI framework)
 - Viper (config)
 - Zerolog (logging)
+- filippo.io/edwards25519 (VRF)
+- charmbracelet/bubbletea (TUI)
+- charmbracelet/lipgloss (styling)
+
+## Lottery Commands
+
+```bash
+# CLI
+./aurora lottery create -p "A,B,C,D" -s "seed" -c 3   # Create lottery
+./aurora lottery history                               # View history
+./aurora lottery tui                                   # TUI interface
+```
+
+## Testing
+
+```bash
+go test ./internal/lottery/ -v    # Unit tests
+go test ./test/ -v                # E2E tests
+go test ./...                     # All tests
+```
