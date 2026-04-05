@@ -4,7 +4,7 @@
 [![Tests](https://github.com/pplmx/aurora/actions/workflows/ci.yml/badge.svg)](https://github.com/pplmx/aurora/actions)
 [![Release](https://img.shields.io/github/v/release/pplmx/aurora)](https://github.com/pplmx/aurora/releases)
 
-基于区块链的数字系统套件，支持抽奖、投票、预言机和 NFT。采用 **DDD (领域驱动设计)** 架构。
+基于区块链的数字系统套件，支持抽奖、投票、预言机、NFT 和代币。采用 **DDD (领域驱动设计)** 架构。
 
 ## 功能
 
@@ -29,8 +29,14 @@
 ### 🖼️ NFT 系统
 
 - Ed25519 签名转移
-- 铸造、转让、销毁
+- 铸造、转让、查询
 - 区块链存证
+
+### 🪙 FT 代币系统
+
+- ERC-20 风格 Fungible Token
+- Mint、Transfer、Burn、Approve
+- 完整余额和授权管理
 
 ## 快速开始
 
@@ -41,14 +47,13 @@
 go build -o aurora ./cmd/aurora
 ```
 
-### 使用 justfile
+### 使用 makefile
 
 ```bash
-just test          # 运行测试
-just build        # 构建所有平台
-just lint         # 代码检查
-just dev          # Docker 开发
-just image        # 构建 Docker
+make test          # 运行测试
+make build        # 构建所有平台
+make lint         # 代码检查
+make dev          # Docker 开发
 ```
 
 ### CLI 示例
@@ -60,18 +65,30 @@ just image        # 构建 Docker
 ./aurora lottery tui
 
 # 投票
-./aurora voting candidate add -n "张三" -p "党A" -m "纲领"
-./aurora voting voter register -n "投票人"
-./aurora voting vote -v "<pub-key>" -c "<candidate-id>" -k "<priv-key>"
+./aurora voting create -t "Proposal" -o "owner_key"
+./aurora voting vote -k "signing_key"
+./aurora voting tui
 
 # 预言机
-./aurora oracle template list
-./aurora oracle template add btc-price
+./aurora oracle sources
 ./aurora oracle fetch --source <id>
+./aurora oracle query --source <id> --limit 10
+./aurora oracle tui
 
 # NFT
-./aurora nft mint -n "My NFT" -c "<creator-pub>"
-./aurora nft transfer --nft <id> --from <from> --to <to> -k <priv>
+./aurora nft mint -n "My NFT" -d "Description" -c "<creator-pub>"
+./aurora nft transfer --nft <id> --to <to> -k <priv>
+./aurora nft get --id <nft_id>
+./aurora nft list --owner <pubkey>
+./aurora nft tui
+
+# Token
+./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000
+./aurora token mint --to <address> --amount 100 -k <priv>
+./aurora token transfer --to <address> --amount 50 -k <priv>
+./aurora token balance --owner <address>
+./aurora token history
+./aurora token tui
 ```
 
 ## 项目结构 (DDD 架构)
@@ -84,6 +101,7 @@ internal/
 │   ├── lottery/         # 抽奖领域 (LotteryRecord, VRF Service)
 │   ├── voting/          # 投票领域 (Vote, Voter, Candidate)
 │   ├── nft/             # NFT 领域 (NFT, Operation)
+│   ├── token/           # 代币领域 (Token, Amount, Approval)
 │   └── oracle/          # 预言机领域 (OracleData, DataSource)
 │
 ├── infra/               # 基础设施层 - 存储实现
@@ -94,17 +112,19 @@ internal/
 │   ├── lottery/         # CreateLotteryUseCase
 │   ├── voting/          # CastVoteUseCase, RegisterVoterUseCase
 │   ├── nft/            # MintNFTUseCase, TransferNFTUseCase
+│   ├── token/          # CreateTokenUseCase, MintTokenUseCase
 │   └── oracle/          # FetchDataUseCase
 │
 ├── ui/                  # 表示层 - TUI 界面
 │   ├── lottery/
 │   ├── nft/
+│   ├── token/
 │   └── oracle/
 │
 ├── i18n/                # 国际化
 ├── logger/               # 日志
 └── utils/                # 工具
-test/                     # E2E 测试
+e2e/                     # E2E 测试
 .github/workflows/        # CI/CD
 ```
 
@@ -131,22 +151,32 @@ test/                     # E2E 测试
 
 ```bash
 # 测试
-just test
-just test-coverage
+go test ./...           # 所有测试
+go test ./... -cover   # 带覆盖率
 
 # 代码检查
-just check
-just lint
+go vet ./...
+golangci-lint run ./...
 
 # 构建
-just build
-just build-current
+make build
+go build -o aurora ./cmd/aurora
 
 # Docker
-just dev      # 开发模式
-just prod     # 生产模式
-just image    # 构建镜像
+make dev      # 开发模式
+make start    # 启动容器
+make stop     # 停止容器
 ```
+
+## 测试覆盖率
+
+| 模块 | Domain | App |
+|------|--------|-----|
+| Lottery | 74.0% | 87.1% |
+| Voting | 87.5% | 81.4% |
+| NFT | 72.7% | 88.1% |
+| Token | 70.7% | 40.7% |
+| Oracle | 76.1% | 65.8% |
 
 ## 贡献
 
