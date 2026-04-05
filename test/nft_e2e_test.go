@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/blockchain"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	nftdomain "github.com/pplmx/aurora/internal/domain/nft"
 )
 

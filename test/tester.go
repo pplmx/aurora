@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/pplmx/aurora/internal/blockchain"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 )
 
 func Blockchain() {

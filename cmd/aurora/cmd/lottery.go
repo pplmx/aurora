@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
-	"github.com/pplmx/aurora/internal/blockchain"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"
