@@ -83,6 +83,15 @@ var createCmd = &cobra.Command{
 	},
 }
 
+var tuiCmd = &cobra.Command{
+	Use:   "tui",
+	Short: "Launch TUI interface",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		app := lottery.NewLotteryApp()
+		return app.Run()
+	},
+}
+
 var historyCmd = &cobra.Command{
 	Use:   "history",
 	Short: "Show lottery history",
@@ -109,6 +118,7 @@ func init() {
 	rootCmd.AddCommand(lotteryCmd)
 	lotteryCmd.AddCommand(createCmd)
 	lotteryCmd.AddCommand(historyCmd)
+	lotteryCmd.AddCommand(tuiCmd)
 
 	createCmd.Flags().StringP("participants", "p", "", "Participant names (comma-separated)")
 	createCmd.Flags().StringP("seed", "s", "", "Random seed")
