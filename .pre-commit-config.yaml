@@ -1,5 +1,6 @@
 fail_fast: true
 repos:
+  # Built-in hooks
   - repo: builtin
     hooks:
       - id: end-of-file-fixer
@@ -11,6 +12,7 @@ repos:
       - id: mixed-line-ending
         args: ["--fix=lf"]
 
+  # Commitizen
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.13.9
     hooks:
@@ -18,6 +20,44 @@ repos:
       - id: commitizen-branch
         stages: [pre-push]
 
+  # Go hooks (local)
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt
+        language: system
+        entry: gofmt -l -s -w
+        files: \.go$
+        pass_filenames: true
+
+  - repo: local
+    hooks:
+      - id: goimports
+        name: goimports
+        language: system
+        entry: goimports -l -w
+        files: \.go$
+        pass_filenames: true
+
+  - repo: local
+    hooks:
+      - id: go-vet
+        name: go vet
+        language: system
+        entry: go vet ./...
+        files: \.go$
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        language: system
+        entry: golangci-lint run --timeout=5m
+        files: \.go$
+        pass_filenames: false
+
+  # Markdown hooks (local)
   - repo: local
     hooks:
       - id: rumdl
