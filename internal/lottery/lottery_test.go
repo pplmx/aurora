@@ -1,6 +1,7 @@
 package lottery
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -169,4 +170,116 @@ func TestEndToEndLottery(t *testing.T) {
 	}
 
 	_ = pk
+}
+
+func TestValidateParticipantName(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{"张三", false},
+		{"John Doe", false},
+		{"Alice-Bob", false},
+		{"", true},
+		{strings.Repeat("a", 101), true},
+		{"test@name", true},
+		{"test#name", true},
+	}
+
+	for _, tt := range tests {
+		err := ValidateParticipantName(tt.name)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("ValidateParticipantName(%q) error = %v, wantErr %v", tt.name, err, tt.wantErr)
+		}
+	}
+}
+
+func TestValidateSeed(t *testing.T) {
+	tests := []struct {
+		seed    string
+		wantErr bool
+	}{
+		{"abc", false},
+		{"test-seed-123", false},
+		{"", true},
+		{"ab", true},
+		{strings.Repeat("a", 257), true},
+	}
+
+	for _, tt := range tests {
+		err := ValidateSeed(tt.seed)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("ValidateSeed(%q) error = %v, wantErr %v", tt.seed, err, tt.wantErr)
+		}
+	}
+}
+
+func TestValidateParticipants(t *testing.T) {
+	tests := []struct {
+		participants []string
+		wantErr      bool
+	}{
+		{[]string{"Alice", "Bob"}, false},
+		{[]string{"张三", "李四"}, false},
+		{[]string{}, true},
+		{[]string{"Alice", "Bob", "Alice"}, true},
+		{[]string{""}, true},
+	}
+
+	for _, tt := range tests {
+		err := ValidateParticipants(tt.participants)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("ValidateParticipants(%v) error = %v, wantErr %v", tt.participants, err, tt.wantErr)
+		}
+	}
+}
+
+func TestValidateWinnerCount(t *testing.T) {
+	tests := []struct {
+		count            int
+		participantCount int
+		wantErr          bool
+	}{
+		{1, 10, false},
+		{3, 10, false},
+		{10, 10, false},
+		{0, 10, true},
+		{-1, 10, true},
+		{101, 10, true},
+		{11, 10, true},
+	}
+
+	for _, tt := range tests {
+		err := ValidateWinnerCount(tt.count, tt.participantCount)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("ValidateWinnerCount(%d, %d) error = %v, wantErr %v", tt.count, tt.participantCount, err, tt.wantErr)
+		}
+	}
+}
+
+func TestSanitizeString(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"  hello  ", "hello"},
+		{"hello\tworld", "helloworld"},
+		{"hello\nworld", "helloworld"},
+		{"normal text", "normal text"},
+	}
+
+	for _, tt := range tests {
+		result := SanitizeString(tt.input)
+		if result != tt.expected {
+			t.Errorf("SanitizeString(%q) = %q, want %q", tt.input, result, tt.expected)
+		}
+	}
+}
+
+func TestLotteryRecord_GetID(t *testing.T) {
+	record := &LotteryRecord{ID: "test-id"}
+
+	if record.GetID() != "test-id" {
+		t.Errorf("GetID() = %v, want 'test-id'", record.GetID())
+	}
 }
