@@ -4,6 +4,7 @@ import (
 	"github.com/pplmx/aurora/cmd/aurora/cmd"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/logger"
+	"github.com/pplmx/aurora/internal/oracle"
 	"github.com/pplmx/aurora/internal/voting"
 )
 
@@ -16,6 +17,9 @@ func main() {
 
 	storage := voting.NewInMemoryStorage()
 	voting.InitVoting(storage)
+
+	oracleStorage := oracle.NewInMemoryStorage()
+	oracle.InitOracle(oracleStorage)
 
 	logger.Info().
 		Str("version", Version).
