@@ -46,13 +46,13 @@ All notable changes to this project will be documented in this file.
 
 ### Test Coverage
 
-| Module | Domain | App |
-|--------|--------|-----|
-| Lottery | 74.0% | 87.1% |
-| Voting | 87.5% | 81.4% |
-| NFT | 72.7% | 88.1% |
-| Token | 70.7% | 40.7% |
-| Oracle | 76.1% | 65.8% |
+| Module  | Domain | App   |
+| ------- | ------ | ----- |
+| Lottery | 74.0%  | 87.1% |
+| Voting  | 87.5%  | 81.4% |
+| NFT     | 72.7%  | 88.1% |
+| Token   | 70.7%  | 40.7% |
+| Oracle  | 76.1%  | 65.8% |
 
 ## [1.1.0] - 2026-04-06
 
