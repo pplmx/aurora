@@ -211,3 +211,99 @@ func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
 		t.Error("Should have at least one record")
 	}
 }
+
+func TestLotteryE2E_AddressFormat(t *testing.T) {
+	addr := lottery.NameToAddress("TestUser")
+
+	// Check format: 0x + 40 hex chars = 42 total
+	if len(addr) != 42 {
+		t.Errorf("Expected address length 42, got %d", len(addr))
+	}
+
+	if addr[:2] != "0x" {
+		t.Errorf("Address should start with 0x, got %s", addr[:2])
+	}
+
+	// Test that same input produces same output
+	addr2 := lottery.NameToAddress("TestUser")
+	if addr != addr2 {
+		t.Error("Same input should produce same address")
+	}
+}
+
+func TestLotteryE2E_VRFDeterminism(t *testing.T) {
+	// Same key + same seed = same output
+	_, sk, _ := lottery.GenerateKeyPair()
+	seed := "deterministic-test"
+
+	output1, _, _ := lottery.VRFProve(sk, []byte(seed))
+	output2, _, _ := lottery.VRFProve(sk, []byte(seed))
+
+	if string(output1) != string(output2) {
+		t.Error("Same key and seed should produce same output")
+	}
+}
+
+func TestLotteryE2E_SelectWinnersEdgeCases(t *testing.T) {
+	// Test with single participant
+	winners := lottery.SelectWinners([]byte{0x01}, []string{"OnlyOne"}, 1)
+	if len(winners) != 1 || winners[0] != "OnlyOne" {
+		t.Error("Should return single participant when count=1 and only one participant")
+	}
+
+	// Test with equal participants and winners
+	winners = lottery.SelectWinners([]byte{0x01}, []string{"A", "B"}, 2)
+	if len(winners) != 2 {
+		t.Error("Should return all participants when count equals participants")
+	}
+
+	// Test with zero participants
+	winners = lottery.SelectWinners([]byte{0x01}, []string{}, 1)
+	if len(winners) != 0 {
+		t.Error("Should return empty when no participants")
+	}
+}
+
+func TestLotteryE2E_RecordJSONSerialization(t *testing.T) {
+	record := &lottery.LotteryRecord{
+		ID:              "test-id-123",
+		Seed:            "test-seed",
+		Participants:    []string{"A", "B", "C"},
+		Winners:         []string{"A"},
+		WinnerAddresses: []string{"0xabc123"},
+		VRFProof:        "proof-data",
+		VRFOutput:       "output-data",
+		BlockHeight:     1,
+		Timestamp:       1234567890,
+	}
+
+	jsonStr, err := record.ToJSON()
+	if err != nil {
+		t.Fatalf("ToJSON failed: %v", err)
+	}
+
+	if len(jsonStr) == 0 {
+		t.Error("JSON should not be empty")
+	}
+
+	// Verify JSON contains expected fields
+	if !contains(jsonStr, "test-id-123") {
+		t.Error("JSON should contain ID")
+	}
+	if !contains(jsonStr, "test-seed") {
+		t.Error("JSON should contain seed")
+	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
