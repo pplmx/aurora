@@ -17,10 +17,13 @@ type model struct {
 }
 
 func NewTokenApp() *model {
-	return &model{
+	m := &model{
 		view:      "menu",
 		menuIndex: 0,
 	}
+	_ = m.err
+	_ = m.success
+	return m
 }
 
 func (m *model) Init() tea.Cmd {
@@ -65,22 +68,25 @@ func (m *model) handleSelect() {
 	}
 }
 
-func (m *model) View() string {
+func (m *model) View() tea.View {
+	v := tea.NewView("")
 	switch m.view {
 	case "menu":
-		return m.menuView()
+		v.SetContent(m.menuView())
 	case "create":
-		return m.createView()
+		v.SetContent(m.createView())
 	case "mint":
-		return m.mintView()
+		v.SetContent(m.mintView())
 	case "transfer":
-		return m.transferView()
+		v.SetContent(m.transferView())
 	case "balance":
-		return m.balanceView()
+		v.SetContent(m.balanceView())
 	case "history":
-		return m.historyView()
+		v.SetContent(m.historyView())
+	default:
+		v.SetContent(m.menuView())
 	}
-	return m.menuView()
+	return v
 }
 
 func (m *model) menuView() string {
@@ -113,11 +119,11 @@ func (m *model) createView() string {
 	s += "\n"
 
 	card := components.CardStyle().Render(
-		components.KeyValue("代币名称", "Aurora Token")+"\n"+
-		components.KeyValue("代币符号", "AUR")+"\n"+
-		components.KeyValue("供应量", "1,000,000")+"\n"+
-		components.KeyValue("精度", "8位小数")+"\n\n"+
-		components.SuccessBadge("点击确认创建"),
+		components.KeyValue("代币名称", "Aurora Token") + "\n" +
+			components.KeyValue("代币符号", "AUR") + "\n" +
+			components.KeyValue("供应量", "1,000,000") + "\n" +
+			components.KeyValue("精度", "8位小数") + "\n\n" +
+			components.SuccessBadge("点击确认创建"),
 	)
 	s += card + "\n\n"
 	s += components.CaptionStyle().Render("按 Enter 确认 | ESC 返回")
@@ -130,9 +136,9 @@ func (m *model) mintView() string {
 	s += components.InfoStyle().Render("输入接收地址和数量") + "\n\n"
 
 	card := components.CardStyle().Render(
-		components.KeyValue("接收地址", "AUR123...abc")+"\n"+
-		components.KeyValue("数量", "1000")+"\n\n"+
-		components.KeyValue("私钥", "***隐藏***"),
+		components.KeyValue("接收地址", "AUR123...abc") + "\n" +
+			components.KeyValue("数量", "1000") + "\n\n" +
+			components.KeyValue("私钥", "***隐藏***"),
 	)
 	s += card + "\n\n"
 	s += components.CaptionStyle().Render("按 Enter 确认 | ESC 返回")
@@ -145,10 +151,10 @@ func (m *model) transferView() string {
 	s += components.InfoStyle().Render("输入接收地址、数量和私钥") + "\n\n"
 
 	card := components.CardStyle().Render(
-		components.KeyValue("从", "你的地址")+"\n"+
-		components.KeyValue("到", "目标地址")+"\n"+
-		components.KeyValue("数量", "100")+"\n\n"+
-		components.KeyValue("私钥", "***隐藏***"),
+		components.KeyValue("从", "你的地址") + "\n" +
+			components.KeyValue("到", "目标地址") + "\n" +
+			components.KeyValue("数量", "100") + "\n\n" +
+			components.KeyValue("私钥", "***隐藏***"),
 	)
 	s += card + "\n\n"
 	s += components.CaptionStyle().Render("按 Enter 确认 | ESC 返回")
@@ -160,9 +166,9 @@ func (m *model) balanceView() string {
 	s += "\n"
 
 	balanceCard := components.CardStyle().Render(
-		components.KeyValue("代币", "AUR (Aurora Token)")+"\n\n"+
-		components.SuccessStyle().Render("余额: 1,000,000 AUR")+"\n\n"+
-		components.KeyValue("地址", "AUR123...xyz789"),
+		components.KeyValue("代币", "AUR (Aurora Token)") + "\n\n" +
+			components.SuccessStyle().Render("余额: 1,000,000 AUR") + "\n\n" +
+			components.KeyValue("地址", "AUR123...xyz789"),
 	)
 	s += balanceCard + "\n\n"
 	s += components.CaptionStyle().Render("按 ESC 返回")
@@ -174,61 +180,25 @@ func (m *model) historyView() string {
 	s += "\n"
 
 	history := components.CardStyle().Render(
-		components.Icon("arrow")+" 转账\n"+
-		components.KeyValue("从", "AUR123...abc")+"\n"+
-		components.KeyValue("到", "XYZ789...def")+"\n"+
-		components.KeyValue("数量", "100 AUR")+"\n"+
-		components.CaptionStyle().Render("时间: 2024-01-15 10:30"),
+		components.Icon("arrow") + " 转账\n" +
+			components.KeyValue("从", "AUR123...abc") + "\n" +
+			components.KeyValue("到", "XYZ789...def") + "\n" +
+			components.KeyValue("数量", "100 AUR") + "\n" +
+			components.CaptionStyle().Render("时间: 2024-01-15 10:30"),
 	)
 	s += history + "\n\n"
 
 	history2 := components.CardStyle().Render(
-		components.Icon("arrow")+" 转账\n"+
-		components.KeyValue("从", "ABC456...ghi")+"\n"+
-		components.KeyValue("到", "你的地址")+"\n"+
-		components.KeyValue("数量", "500 AUR")+"\n"+
-		components.CaptionStyle().Render("时间: 2024-01-14 15:20"),
+		components.Icon("arrow") + " 转账\n" +
+			components.KeyValue("从", "ABC456...ghi") + "\n" +
+			components.KeyValue("到", "你的地址") + "\n" +
+			components.KeyValue("数量", "500 AUR") + "\n" +
+			components.CaptionStyle().Render("时间: 2024-01-14 15:20"),
 	)
 	s += history2 + "\n\n"
 	s += components.CaptionStyle().Render("按 ESC 返回")
 	return s
 }
-
-func SectionHeader(title string) string {
-	return fmt.Sprintf("\n%s %s\n%s",
-		HeaderStyle().Render("▸"),
-		TitleStyle().Render(title),
-		Divider("─", 50))
-}
-
-func TitleStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Bold(true)
-}
-
-func HeaderStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("86")).Bold(true).Padding(0, 1)
-}
-
-func Divider(char string, length int) string {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(char + strings.Repeat(char, length))
-}
-
-func KeyValue(key, value string) string {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Render(key+": ") +
-		lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Render(value)
-}
-
-var strings = struct {
-	Repeat func(string, int) string
-}{
-	Repeat: strings.Repeat,
-}
-
-func init() {
-	strings.Repeat = strings.Repeat
-}
-
-import "strings"
 
 func RunTokenTUI() error {
 	p := tea.NewProgram(NewTokenApp())

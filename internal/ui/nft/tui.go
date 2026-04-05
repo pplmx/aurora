@@ -4,31 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"charm.land/lipgloss/v2"
-
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/i18n"
-)
-
-var (
-	headerStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("86")).
-			Bold(true).
-			Padding(0, 1)
-
-	menuItemStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
-
-	menuSelectedStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("86")).
-				Bold(true)
-
-	borderStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240"))
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("245"))
+	"github.com/pplmx/aurora/internal/ui/components"
 )
 
 type model struct {
@@ -99,7 +78,7 @@ func (m *model) View() tea.View {
 }
 
 func (m *model) menuView() string {
-	s := headerStyle.Render("🖼️ "+i18n.GetText("nft.tui.title")+" 🖼️") + "\n\n"
+	s := components.HeaderStyle().Render("🖼️ "+i18n.GetText("nft.tui.title")+" 🖼️") + "\n\n"
 	items := []string{
 		i18n.GetText("nft.tui.mint"),
 		i18n.GetText("nft.tui.transfer"),
@@ -108,23 +87,23 @@ func (m *model) menuView() string {
 	}
 	for i, item := range items {
 		if i == m.menuIndex {
-			s += menuSelectedStyle.Render("▶ " + item + "\n")
+			s += components.MenuActiveStyle().Render("▶ " + item + "\n")
 		} else {
-			s += menuItemStyle.Render("  " + item + "\n")
+			s += components.MenuInactiveStyle().Render("  " + item + "\n")
 		}
 	}
-	s += "\n" + helpStyle.Render(i18n.GetText("help.nav"))
+	s += "\n" + components.HelpTextStyle().Render(i18n.GetText("help.nav"))
 	return s
 }
 
 func (m *model) infoView() string {
-	s := headerStyle.Render("ℹ️ "+i18n.GetText("nft.tui.info")+" ℹ️") + "\n\n"
+	s := components.HeaderStyle().Render("ℹ️ "+i18n.GetText("nft.tui.info")+" ℹ️") + "\n\n"
 	s += i18n.GetText("nft.tui.cli_tip") + "\n\n"
-	s += borderStyle.Render("  aurora nft mint -n <名称> -c <公钥>\n")
+	s += components.BorderStyle().Render("  aurora nft mint -n <名称> -c <公钥>\n")
 	s += "  aurora nft transfer --nft <id> --from <from> --to <to> -k <私钥>\n"
 	s += "  aurora nft get --id <id>\n"
 	s += "  aurora nft list --owner <公钥>\n\n"
-	s += borderStyle.Render("[ESC] " + i18n.GetText("lottery.tui.back"))
+	s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 	return s
 }
 
