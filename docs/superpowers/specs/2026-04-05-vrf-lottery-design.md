@@ -90,7 +90,7 @@ func VerifyVRF(pk *PublicKey, seed string, output, proof []byte) bool {
 }
 ```
 
-### 选中的奖算法
+### 选择中奖者算法
 
 ```go
 func SelectWinners(output []byte, participants []string, count int) []string {
@@ -260,9 +260,9 @@ internal/
 
 ## 待定事项（TBD）
 
-- [ ] BLS12-381 VRF 库的具体 API
-- [ ] 密钥对生成后是否需要持久化
-- [ ] 历史记录存储格式（文件还是扩展区块链）
+- [x] BLS12-381 VRF 库的具体 API - 使用 filippo.io/bbls12381 标准 VRF 流程
+- [x] 密钥对生成后是否需要持久化 - 一次性密钥，用完即弃，不持久化
+- [x] 历史记录存储格式 - 扩展现有区块链，每个抽奖存为一个 Block
 
 ## 风险与注意事项
 
