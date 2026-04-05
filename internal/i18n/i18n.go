@@ -165,6 +165,50 @@ func (tr *Translator) loadMessages() {
 		"nft.tui.info":     "Information",
 		"nft.tui.cli_tip":  "Use CLI commands to operate NFT:",
 
+		// ===== TOKEN =====
+		// Commands
+		"token.cmd":           "Fungible Token (FT) system",
+		"token.create.cmd":    "Create a new token",
+		"token.mint.cmd":      "Mint tokens",
+		"token.transfer.cmd":  "Transfer tokens",
+		"token.approve.cmd":   "Approve allowance",
+		"token.burn.cmd":      "Burn tokens",
+		"token.balance.cmd":   "Query balance",
+		"token.allowance.cmd": "Query allowance",
+		"token.history.cmd":   "Query transfer history",
+		"token.info.cmd":      "Query token info",
+		"token.tui.cmd":       "Launch Token TUI",
+
+		// Flags
+		"token.name":        "Token name",
+		"token.symbol":      "Token symbol",
+		"token.supply":      "Total supply",
+		"token.decimals":    "Decimals",
+		"token.owner":       "Owner public key",
+		"token.to":          "Recipient public key",
+		"token.from":        "Sender public key",
+		"token.amount":      "Amount",
+		"token.spender":     "Spender public key",
+		"token.token_id":    "Token ID/Symbol",
+		"token.private_key": "Private key (Base64)",
+
+		// Messages
+		"token.created":     "Token created successfully! ID: %s, Name: %s, Symbol: %s\n",
+		"token.minted":      "Tokens minted successfully!",
+		"token.transferred": "Tokens transferred successfully!",
+		"token.approved":    "Allowance approved successfully!",
+		"token.burned":      "Tokens burned successfully!",
+		"token.not_found":   "Token not found",
+		"token.no_history":  "No transfer history found",
+
+		// TUI
+		"token.tui.title":    "Token System",
+		"token.tui.create":   "Create Token",
+		"token.tui.mint":     "Mint Tokens",
+		"token.tui.transfer": "Transfer Tokens",
+		"token.tui.query":    "Query Balance",
+		"token.tui.exit":     "Exit",
+
 		// ===== ORACLE =====
 		// Commands
 		"oracle.cmd":            "Oracle data service",
@@ -355,6 +399,50 @@ func (tr *Translator) loadMessages() {
 		"nft.tui.exit":     "退出",
 		"nft.tui.info":     "信息",
 		"nft.tui.cli_tip":  "请使用 CLI 命令操作 NFT:",
+
+		// ===== TOKEN =====
+		// Commands
+		"token.cmd":           "代币 (FT) 系统",
+		"token.create.cmd":    "创建新代币",
+		"token.mint.cmd":      "铸造代币",
+		"token.transfer.cmd":  "转移代币",
+		"token.approve.cmd":   "批准额度",
+		"token.burn.cmd":      "销毁代币",
+		"token.balance.cmd":   "查询余额",
+		"token.allowance.cmd": "查询额度",
+		"token.history.cmd":   "查询转账历史",
+		"token.info.cmd":      "查询代币信息",
+		"token.tui.cmd":       "启动代币 TUI",
+
+		// Flags
+		"token.name":        "代币名称",
+		"token.symbol":      "代币符号",
+		"token.supply":      "总供应量",
+		"token.decimals":    "小数位数",
+		"token.owner":       "持有者公钥",
+		"token.to":          "接收者公钥",
+		"token.from":        "发送者公钥",
+		"token.amount":      "数量",
+		"token.spender":     "消费方公钥",
+		"token.token_id":    "代币 ID/符号",
+		"token.private_key": "私钥 (Base64)",
+
+		// Messages
+		"token.created":     "代币创建成功！ID: %s, 名称: %s, 符号: %s\n",
+		"token.minted":      "代币铸造成功！",
+		"token.transferred": "代币转移成功！",
+		"token.approved":    "额度批准成功！",
+		"token.burned":      "代币销毁成功！",
+		"token.not_found":   "代币未找到",
+		"token.no_history":  "未找到转账历史",
+
+		// TUI
+		"token.tui.title":    "代币系统",
+		"token.tui.create":   "创建代币",
+		"token.tui.mint":     "铸造代币",
+		"token.tui.transfer": "转移代币",
+		"token.tui.query":    "查询余额",
+		"token.tui.exit":     "退出",
 
 		// ===== ORACLE =====
 		// Commands

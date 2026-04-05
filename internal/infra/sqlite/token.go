@@ -191,6 +191,10 @@ func (r *TokenRepository) GetAccountBalance(tokenID token.TokenID, owner token.P
 }
 
 func (r *TokenRepository) UpdateBalance(tokenID token.TokenID, owner token.PublicKey, amount *token.Amount) error {
+	return r.SetAccountBalance(tokenID, owner, amount)
+}
+
+func (r *TokenRepository) SetAccountBalance(tokenID token.TokenID, owner token.PublicKey, amount *token.Amount) error {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 	id := fmt.Sprintf("%s-%s", tokenID, ownerB64)
 
@@ -199,6 +203,35 @@ func (r *TokenRepository) UpdateBalance(tokenID token.TokenID, owner token.Publi
 		VALUES (?, ?, ?, ?, ?)
 	`, id, tokenID, ownerB64, amount.String(), time.Now().Unix())
 	return err
+}
+
+func (r *TokenRepository) GetApprovalsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.Approval, error) {
+	ownerB64 := base64.StdEncoding.EncodeToString(owner)
+
+	rows, err := r.db.Query("SELECT token_id, owner, spender, amount, expires_at FROM allowances WHERE token_id = ? AND owner = ?",
+		tokenID, ownerB64)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var approvals []*token.Approval
+	for rows.Next() {
+		var tkID, ownB64, spendB64, amountStr string
+		var expiresAt int64
+
+		if err := rows.Scan(&tkID, &ownB64, &spendB64, &amountStr, &expiresAt); err != nil {
+			return nil, err
+		}
+
+		own, _ := base64.StdEncoding.DecodeString(ownB64)
+		spend, _ := base64.StdEncoding.DecodeString(spendB64)
+		amount, _ := token.NewAmountFromString(amountStr)
+
+		approvals = append(approvals, token.NewApproval(token.TokenID(tkID), own, spend, amount))
+	}
+
+	return approvals, rows.Err()
 }
 
 func (r *TokenRepository) Close() error {
