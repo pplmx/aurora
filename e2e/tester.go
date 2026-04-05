@@ -10,9 +10,9 @@ import (
 func Blockchain() {
 	chain := blockchain.InitBlockChain()
 
-	chain.AddBlock("first block after genesis")
-	chain.AddBlock("second block after genesis")
-	chain.AddBlock("third block after genesis")
+	_, _ = chain.AddBlock("first block after genesis")
+	_, _ = chain.AddBlock("second block after genesis")
+	_, _ = chain.AddBlock("third block after genesis")
 
 	for _, block := range chain.Blocks {
 

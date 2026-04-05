@@ -80,7 +80,7 @@ func InitBlockChain() *BlockChain {
 						chain.Blocks = append(chain.Blocks, &block)
 					}
 				}
-				rows.Close()
+				_ = rows.Close()
 			}
 
 			if len(chain.Blocks) <= 1 {
@@ -107,12 +107,12 @@ func GetBlockChain() *BlockChain {
 
 func ResetForTest() {
 	if dbInstance != nil {
-		dbInstance.Close()
+		_ = dbInstance.Close()
 		dbInstance = nil
 	}
 	instance = nil
 	once = sync.Once{}
-	os.RemoveAll("./data")
+	_ = os.RemoveAll("./data")
 }
 
 func (c *BlockChain) AddLotteryRecord(data string) (int64, error) {

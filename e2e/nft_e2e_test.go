@@ -173,10 +173,10 @@ func TestNFTMultipleOwners(t *testing.T) {
 	minted1, _ := service.Mint(nft1, chain)
 	minted2, _ := service.Mint(nft2, chain)
 	_, _ = minted1, minted2
-	service.Mint(nft3, chain)
+	_, _ = service.Mint(nft3, chain)
 
-	service.Transfer(minted1.ID, user1Pub, user2Pub, user1Priv, chain)
-	service.Transfer(minted2.ID, user1Pub, user3Pub, user1Priv, chain)
+	_, _ = service.Transfer(minted1.ID, user1Pub, user2Pub, user1Priv, chain)
+	_, _ = service.Transfer(minted2.ID, user1Pub, user3Pub, user1Priv, chain)
 
 	user2NFTs, _ := service.GetNFTsByOwner(user2Pub)
 	user3NFTs, _ := service.GetNFTsByOwner(user3Pub)

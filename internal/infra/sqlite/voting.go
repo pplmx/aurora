@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/voting"
@@ -46,7 +47,7 @@ func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vo
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var votes []*voting.Vote
 	for rows.Next() {
@@ -67,7 +68,7 @@ func (r *VotingRepository) GetVotesByVoter(voterPK string) ([]*voting.Vote, erro
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var votes []*voting.Vote
 	for rows.Next() {
@@ -127,7 +128,7 @@ func (r *VotingRepository) ListVoters() ([]*voting.Voter, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var voters []*voting.Voter
 	for rows.Next() {
@@ -185,7 +186,7 @@ func (r *VotingRepository) ListCandidates() ([]*voting.Candidate, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var candidates []*voting.Candidate
 	for rows.Next() {
@@ -220,7 +221,9 @@ func (r *VotingRepository) GetSession(id string) (*voting.Session, error) {
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
-	json.Unmarshal([]byte(candidatesJSON), &session.Candidates)
+	if err := json.Unmarshal([]byte(candidatesJSON), &session.Candidates); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal candidates: %w", err)
+	}
 	return session, err
 }
 
@@ -240,7 +243,7 @@ func (r *VotingRepository) ListSessions() ([]*voting.Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var sessions []*voting.Session
 	for rows.Next() {
@@ -249,7 +252,9 @@ func (r *VotingRepository) ListSessions() ([]*voting.Session, error) {
 		if err := rows.Scan(&session.ID, &session.Title, &session.Description, &session.StartTime, &session.EndTime, &session.Status, &candidatesJSON, &session.CreatedAt); err != nil {
 			return nil, err
 		}
-		json.Unmarshal([]byte(candidatesJSON), &session.Candidates)
+		if err := json.Unmarshal([]byte(candidatesJSON), &session.Candidates); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal candidates: %w", err)
+		}
 		sessions = append(sessions, session)
 	}
 	return sessions, rows.Err()

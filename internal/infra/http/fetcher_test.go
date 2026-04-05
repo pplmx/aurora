@@ -12,7 +12,7 @@ import (
 
 func TestFetcher_Get_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("test response"))
+		_, _ = w.Write([]byte("test response"))
 	}))
 	defer server.Close()
 
@@ -40,7 +40,7 @@ func TestFetcher_FetchData_GET(t *testing.T) {
 		if r.Method != "GET" {
 			t.Errorf("Expected GET, got %s", r.Method)
 		}
-		w.Write([]byte(`{"value": "test"}`))
+		_, _ = w.Write([]byte(`{"value": "test"}`))
 	}))
 	defer server.Close()
 
@@ -71,7 +71,7 @@ func TestFetcher_FetchData_POST(t *testing.T) {
 		if r.Method != "POST" {
 			t.Errorf("Expected POST, got %s", r.Method)
 		}
-		w.Write([]byte(`{"result": "ok"}`))
+		_, _ = w.Write([]byte(`{"result": "ok"}`))
 	}))
 	defer server.Close()
 
@@ -91,7 +91,7 @@ func TestFetcher_FetchData_POST(t *testing.T) {
 
 func TestFetcher_FetchData_WithPath(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"data": {"price": 123.45}}`))
+		_, _ = w.Write([]byte(`{"data": {"price": 123.45}}`))
 	}))
 	defer server.Close()
 
@@ -130,7 +130,7 @@ func TestFetcher_FetchData_InvalidURL(t *testing.T) {
 
 func TestFetcher_FetchData_NestedPath(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"outer": {"inner": {"deep": "nested-value"}}}`))
+		_, _ = w.Write([]byte(`{"outer": {"inner": {"deep": "nested-value"}}}`))
 	}))
 	defer server.Close()
 
@@ -155,7 +155,7 @@ func TestFetcher_FetchData_NestedPath(t *testing.T) {
 
 func TestFetcher_FetchData_InvalidPath(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"value": "test"}`))
+		_, _ = w.Write([]byte(`{"value": "test"}`))
 	}))
 	defer server.Close()
 
@@ -180,7 +180,7 @@ func TestFetcher_FetchData_InvalidPath(t *testing.T) {
 
 func TestFetcher_FetchData_NonJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("plain text response"))
+		_, _ = w.Write([]byte("plain text response"))
 	}))
 	defer server.Close()
 
@@ -239,7 +239,7 @@ func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 func TestFetcher_FetchData_WithHeaders(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = r.Header.Get("X-Custom-Header")
-		w.Write([]byte(`{"result": "ok"}`))
+		_, _ = w.Write([]byte(`{"result": "ok"}`))
 	}))
 	defer server.Close()
 

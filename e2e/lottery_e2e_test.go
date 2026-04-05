@@ -85,7 +85,7 @@ func TestLotteryE2E_MultipleLotteries(t *testing.T) {
 
 		record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
 		jsonData, _ := record.ToJSON()
-		chain.AddLotteryRecord(jsonData)
+		_, _ = chain.AddLotteryRecord(jsonData)
 	}
 
 	if len(chain.Blocks) != initialHeight+3 {
@@ -197,7 +197,7 @@ func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
 
 	record := lottery.CreateLotteryRecord("history-test", []string{"A", "B", "C", "D"}, winners, winnerAddrs, output, proof, 0)
 	jsonData, _ := record.ToJSON()
-	chain.AddLotteryRecord(jsonData)
+	_, _ = chain.AddLotteryRecord(jsonData)
 
 	records := chain.GetLotteryRecords()
 	if len(records) != initialCount+1 {
