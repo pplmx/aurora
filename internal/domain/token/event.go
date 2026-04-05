@@ -117,9 +117,11 @@ func NewApproveEvent(tokenID TokenID, owner, spender PublicKey, amount *Amount) 
 	}
 }
 
-func (e *ApproveEvent) ID() string           { return e.id }
-func (e *ApproveEvent) TokenID() TokenID     { return e.tokenID }
-func (e *ApproveEvent) Owner() PublicKey     { return e.owner }
-func (e *ApproveEvent) Spender() PublicKey   { return e.spender }
-func (e *ApproveEvent) Amount() *Amount      { return e.amount }
-func (e *ApproveEvent) Timestamp() time.Time { return e.timestamp }
+func (e *ApproveEvent) ID() string               { return e.id }
+func (e *ApproveEvent) TokenID() TokenID         { return e.tokenID }
+func (e *ApproveEvent) Owner() PublicKey         { return e.owner }
+func (e *ApproveEvent) Spender() PublicKey       { return e.spender }
+func (e *ApproveEvent) Amount() *Amount          { return e.amount }
+func (e *ApproveEvent) ExpiresAt() time.Time     { return e.expiresAt }
+func (e *ApproveEvent) SetExpiresAt(t time.Time) { e.expiresAt = t }
+func (e *ApproveEvent) Timestamp() time.Time     { return e.timestamp }
