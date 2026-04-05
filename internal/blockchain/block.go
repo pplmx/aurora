@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 	"log"
 )
 
@@ -80,4 +81,27 @@ func Deserialize(data []byte) *Block {
 	Handle(err)
 
 	return &block
+}
+
+func (chain *BlockChain) AddLotteryRecord(data string) (int64, error) {
+	chain.AddBlock(data)
+	return int64(len(chain.Blocks) - 1), nil
+}
+
+func (chain *BlockChain) GetBlockData(blockHeight int64) (string, error) {
+	if blockHeight < 0 || blockHeight >= int64(len(chain.Blocks)) {
+		return "", fmt.Errorf("invalid block height: %d", blockHeight)
+	}
+	return string(chain.Blocks[blockHeight].Data), nil
+}
+
+func (chain *BlockChain) GetLotteryRecords() []string {
+	records := make([]string, 0)
+	for _, block := range chain.Blocks {
+		data := string(block.Data)
+		if len(data) > 0 && data != "Genesis" {
+			records = append(records, data)
+		}
+	}
+	return records
 }
