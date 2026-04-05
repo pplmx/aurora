@@ -249,18 +249,103 @@ var importCmd = &cobra.Command{
 	},
 }
 
+var statsCmd = &cobra.Command{
+	Use:   "stats",
+	Short: "Show lottery statistics",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		chain := blockchain.InitBlockChain()
+		records := chain.GetLotteryRecords()
+
+		fmt.Println("\n📊 Lottery Statistics")
+		fmt.Println("────────────────────────────")
+		fmt.Printf("  Total lotteries: %d\n", len(records))
+		fmt.Printf("  Database: %s\n", blockchain.DBPath())
+
+		if len(records) > 0 {
+			fmt.Printf("  Latest block: #%d\n", len(chain.Blocks)-1)
+		}
+
+		return nil
+	},
+}
+
+var resetCmd = &cobra.Command{
+	Use:   "reset",
+	Short: "Reset the database (delete all lottery records)",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		confirm, _ := cmd.Flags().GetBool("yes")
+		if !confirm {
+			fmt.Println("⚠️  This will delete ALL lottery records!")
+			fmt.Println("   Use --yes to confirm")
+			return nil
+		}
+
+		db, err := blockchain.InitDB()
+		if err != nil {
+			return fmt.Errorf("failed to init db: %w", err)
+		}
+		defer db.Close()
+
+		if _, err := db.Exec("DELETE FROM blocks WHERE height > 0"); err != nil {
+			return fmt.Errorf("failed to reset: %w", err)
+		}
+
+		logger.Info().Msg("Database reset successfully")
+		fmt.Println("✅ Database reset complete!")
+		return nil
+	},
+}
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Show version information",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		fmt.Println("Aurora - VRF Lottery System")
+		fmt.Println("Version: 1.0.0")
+		fmt.Println("Go Version:", getGoVersion())
+		return nil
+	},
+}
+
+var dbInfoCmd = &cobra.Command{
+	Use:   "db-info",
+	Short: "Show database information",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db, err := blockchain.InitDB()
+		if err != nil {
+			return fmt.Errorf("failed to init db: %w", err)
+		}
+		defer db.Close()
+
+		var count int
+		db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height > 0").Scan(&count)
+
+		fmt.Println("\n📁 Database Info")
+		fmt.Println("────────────────────────────")
+		fmt.Printf("  Path: %s\n", blockchain.DBPath())
+		fmt.Printf("  Total blocks: %d\n", count)
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(lotteryCmd)
+	rootCmd.AddCommand(versionCmd)
 	lotteryCmd.AddCommand(createCmd)
 	lotteryCmd.AddCommand(historyCmd)
 	lotteryCmd.AddCommand(verifyCmd)
 	lotteryCmd.AddCommand(exportCmd)
 	lotteryCmd.AddCommand(importCmd)
 	lotteryCmd.AddCommand(tuiCmd)
+	lotteryCmd.AddCommand(statsCmd)
+	lotteryCmd.AddCommand(resetCmd)
+	lotteryCmd.AddCommand(dbInfoCmd)
 
 	createCmd.Flags().StringP("participants", "p", "", "Participant names (comma-separated)")
 	createCmd.Flags().StringP("seed", "s", "", "Random seed")
 	createCmd.Flags().IntP("count", "c", viper.GetInt("lottery.defaultCount"), "Number of winners")
+
+	resetCmd.Flags().BoolP("yes", "y", false, "Confirm reset")
 
 	createCmd.MarkFlagRequired("participants")
 	createCmd.MarkFlagRequired("seed")
@@ -281,4 +366,8 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func getGoVersion() string {
+	return "1.26+"
 }
