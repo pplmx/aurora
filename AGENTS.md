@@ -24,13 +24,13 @@ make stop         # Stop containers: docker compose down
 - **Lottery module**: `internal/lottery/` (VRF, TUI, lottery logic)
 - **Core logic**: `internal/` (blockchain, voting, logger, utils)
 - **Tests**: `internal/lottery/*_test.go` (unit), `test/lottery_e2e_test.go` (E2E)
-- **Config**: `config/aurora.x.yml` (Viper loads from `$HOME` or `./config/`)
+- **Config**: `config/aurora.x.toml` (Viper loads from `$HOME` or `./config/`)
 
 ## Configuration
 
-- Config file format: YAML
-- Default config name: `aurora.x.yml` (not `.yaml`)
-- Config lookup order: CLI flag → `$HOME/aurora.x.yml` → `./config/aurora.x.yml`
+- Config file format: TOML
+- Default config name: `aurora.x.toml`
+- Config lookup order: CLI flag → `$HOME/aurora.x.toml` → `./config/aurora.x.toml`
 - Default log level: `info`
 - Default log path: `./logs/`
 
