@@ -40,10 +40,11 @@ func CreateBlock(data string, prevHash []byte) *Block {
 	return block
 }
 
-func (chain *BlockChain) AddBlock(data string) {
+func (chain *BlockChain) AddBlock(data string) int64 {
 	prevBlock := chain.Blocks[len(chain.Blocks)-1]
 	newBlock := CreateBlock(data, prevBlock.Hash)
 	chain.Blocks = append(chain.Blocks, newBlock)
+	return int64(len(chain.Blocks) - 1)
 }
 
 func Genesis() *Block {
