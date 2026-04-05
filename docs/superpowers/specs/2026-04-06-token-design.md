@@ -6,7 +6,7 @@
 
 ## 核心理念
 
-```
+```text
 Event Sourcing: 所有状态变化 → 不可变 Event → 聚合出 State
 TransferEvent ──▶ TransferHistory ──▶ Balance(聚合)
 ```
@@ -15,12 +15,12 @@ TransferEvent ──▶ TransferHistory ──▶ Balance(聚合)
 
 ### Value Objects
 
-| 类型 | 说明 |
-|------|------|
-| TokenID | 代币唯一标识 |
-| PublicKey | Ed25519 公钥 |
-| Signature | Ed25519 签名 |
-| Amount | *big.Int 任意精度 |
+| 类型      | 说明              |
+| --------- | ----------------- |
+| TokenID   | 代币唯一标识      |
+| PublicKey | Ed25519 公钥      |
+| Signature | Ed25519 签名      |
+| Amount    | *big.Int 任意精度 |
 
 ### Entities
 
@@ -198,7 +198,7 @@ aurora token tui
 
 ## 架构分层
 
-```
+```text
 cmd/token.go              # CLI
 app/token/                # Use Cases
 domain/token/             # Entity, Event, Service

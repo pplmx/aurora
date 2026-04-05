@@ -12,7 +12,7 @@
 
 ## 文件结构
 
-```
+```text
 internal/domain/token/
 ├── entity.go        # Token, Approval 定义
 ├── event.go         # TransferEvent, MintEvent, BurnEvent, ApproveEvent
@@ -45,6 +45,7 @@ cmd/aurora/cmd/
 ## Task 1: Domain Layer - Entity & Events
 
 **Files:**
+
 - Create: `internal/domain/token/entity.go`
 - Create: `internal/domain/token/event.go`
 - Create: `internal/domain/token/errors.go`
@@ -462,6 +463,7 @@ git commit -m "feat(token): add domain layer - entity, events, errors, validator
 ## Task 2: Domain Layer - Service Interface
 
 **Files:**
+
 - Create: `internal/domain/token/service.go`
 - Test: `internal/domain/token/service_test.go`
 
@@ -578,6 +580,7 @@ git commit -m "feat(token): add domain service interface"
 ## Task 3: Infrastructure Layer - SQLite Repository
 
 **Files:**
+
 - Create: `internal/infra/sqlite/token.go`
 - Create: `internal/infra/sqlite/event_store.go`
 - Create: `internal/infra/sqlite/allowance.go`
@@ -728,6 +731,7 @@ git commit -m "feat(token): add infra/sqlite repository implementation"
 ## Task 4: Application Layer - Use Cases
 
 **Files:**
+
 - Create: `internal/app/token/dto.go`
 - Create: `internal/app/token/create.go`
 - Create: `internal/app/token/mint.go`
@@ -836,6 +840,7 @@ git commit -m "feat(token): add application layer use cases"
 ## Task 5: CLI Command
 
 **Files:**
+
 - Create: `cmd/aurora/cmd/token.go`
 
 - [ ] **Step 1: 创建 token.go**
@@ -878,6 +883,7 @@ git commit -m "feat(token): add CLI commands"
 ## Task 6: TUI Interface
 
 **Files:**
+
 - Create: `internal/ui/token/tui.go`
 
 - [ ] **Step 1: 创建 tui.go**
@@ -928,6 +934,7 @@ git commit -m "feat(token): add TUI interface"
 ## Task 7: Integration & Testing
 
 **Files:**
+
 - Test: `e2e/token_e2e_test.go`
 
 - [ ] **Step 1: 创建 e2e 测试**
@@ -982,6 +989,7 @@ git commit -m "feat: complete token (FT) system implementation
 ## 总结
 
 此计划包含 7 个主要任务，涵盖:
+
 - Domain Layer (entity, event, service, errors, validator)
 - Infrastructure Layer (SQLite repository, event store)
 - Application Layer (use cases with DTOs)

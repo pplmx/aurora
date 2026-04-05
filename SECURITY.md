@@ -11,6 +11,7 @@
 If you discover a security vulnerability, please send an email to the maintainer. All security vulnerabilities will be promptly addressed.
 
 Please include the following information:
+
 - Type of vulnerability
 - Full paths of source file(s) related to the vulnerability
 - Location of the affected source code

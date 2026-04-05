@@ -110,12 +110,12 @@ test/                     # E2E 测试
 
 ### DDD 分层说明
 
-| 层 | 职责 | 示例 |
-|---|---|---|
+| 层         | 职责                                   | 示例                                             |
+| ---------- | -------------------------------------- | ------------------------------------------------ |
 | **domain** | 核心业务逻辑、实体、领域服务、仓储接口 | `LotteryRecord`, `VRFService`, `Repository` 接口 |
-| **app** | 用例编排、DTO 转换 | `CreateLotteryUseCase` |
-| **infra** | 外部依赖实现 | `SQLiteRepository`, `HTTPFetcher` |
-| **ui** | 用户界面 | Bubble Tea TUI |
+| **app**    | 用例编排、DTO 转换                     | `CreateLotteryUseCase`                           |
+| **infra**  | 外部依赖实现                           | `SQLiteRepository`, `HTTPFetcher`                |
+| **ui**     | 用户界面                               | Bubble Tea TUI                                   |
 
 ## 技术栈
 

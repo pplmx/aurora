@@ -4,7 +4,8 @@
 
 **Goal:** 将 Aurora 从单体模块重构为完整 DDD 架构，分离 domain/infra/app/ui 层
 
-**Architecture:** 
+**Architecture:**
+
 - domain/ 层：实体、服务接口、仓储接口（无外部依赖）
 - infra/ 层：SQLite 实现、加密实现、HTTP 客户端
 - app/ 层：用例（Use Case）编排业务逻辑
@@ -18,7 +19,8 @@
 ## 文件结构映射
 
 ### 新目录（需要创建）
-```
+
+```text
 internal/domain/lottery/
 internal/domain/voting/
 internal/domain/nft/
@@ -38,7 +40,8 @@ internal/ui/oracle/
 ```
 
 ### 现有文件（需要迁移/修改）
-```
+
+```text
 internal/lottery/*      → internal/domain/lottery/ + internal/ui/lottery/
 internal/voting/*       → internal/domain/voting/ + internal/ui/voting/
 internal/nft/*          → internal/domain/nft/ + internal/ui/nft/
@@ -52,6 +55,7 @@ cmd/aurora/cmd/*        → 更新 import 路径
 ## Task 1: 创建目录结构和 blockchain domain
 
 **Files:**
+
 - Create: `internal/domain/blockchain/block.go`
 - Create: `internal/domain/blockchain/repo.go`
 - Create: `internal/infra/sqlite/blockchain.go`
@@ -133,6 +137,7 @@ git commit -m "refactor: create blockchain domain and infra layers"
 ## Task 2: 重构 lottery 模块
 
 **Files:**
+
 - Create: `internal/domain/lottery/entity.go`
 - Create: `internal/domain/lottery/service.go`
 - Create: `internal/domain/lottery/repo.go`
@@ -276,6 +281,7 @@ git commit -m "refactor: migrate lottery to DDD structure"
 ## Task 3: 重构 voting 模块
 
 **Files:**
+
 - Create: `internal/domain/voting/entity.go`
 - Create: `internal/domain/voting/service.go`
 - Create: `internal/domain/voting/repo.go`
@@ -405,6 +411,7 @@ Commit: `git commit -m "refactor: migrate voting to DDD structure"`
 ## Task 4: 重构 nft 模块
 
 **Files:**
+
 - Create: `internal/domain/nft/entity.go`
 - Create: `internal/domain/nft/service.go`
 - Create: `internal/domain/nft/repo.go`
@@ -487,6 +494,7 @@ git commit -m "refactor: migrate nft to DDD structure"
 ## Task 5: 重构 oracle 模块
 
 **Files:**
+
 - Create: `internal/domain/oracle/entity.go`
 - Create: `internal/domain/oracle/service.go`
 - Create: `internal/domain/oracle/repo.go`
