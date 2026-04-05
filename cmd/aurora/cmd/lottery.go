@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/logger"
 	"github.com/pplmx/aurora/internal/lottery"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -70,6 +71,13 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("failed to add to blockchain: %w", err)
 		}
 		record.BlockHeight = height
+
+		// Save to SQLite
+		if err := chain.SaveToDB(); err != nil {
+			logger.Warn().Err(err).Msg("Failed to save to database")
+		} else {
+			logger.Info().Str("db_path", blockchain.DBPath()).Msg("Lottery saved to database")
+		}
 
 		fmt.Println("\n✅ Lottery created successfully!")
 		fmt.Printf("📋 Lottery ID: %s\n", record.ID)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -13,22 +14,24 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "aurora",
-	Short: "A short description",
-	Long: `A longer description
-Line 1
-Line 2
+	Short: "Aurora - VRF-based transparent lottery system",
+	Long: `Aurora is a blockchain-based digital voting system with VRF lottery.
 
-Line 3`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {},
+Features:
+  - VRF random number generation
+  - Blockchain storage
+  - CLI and TUI interfaces
+
+Use "aurora lottery --help" for lottery commands.`,
+	SilenceUsage: true,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
+		logger.Error().Err(err).Msg("Application error")
+		fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
 		os.Exit(1)
 	}
 }
