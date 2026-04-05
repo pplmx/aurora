@@ -9,6 +9,7 @@ import (
 	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"
 	uilottery "github.com/pplmx/aurora/internal/ui/lottery"
@@ -18,13 +19,13 @@ import (
 
 var lotteryCmd = &cobra.Command{
 	Use:   "lottery",
-	Short: "VRF-based transparent lottery system",
-	Long:  "A verifiable random function based lottery system with blockchain storage",
+	Short: i18n.GetText("lottery.tui.title"),
+	Long:  i18n.GetText("lottery.create"),
 }
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create a new lottery",
+	Short: i18n.GetText("lottery.create"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		participantsStr, _ := cmd.Flags().GetString("participants")
 		seed, _ := cmd.Flags().GetString("seed")
@@ -51,7 +52,7 @@ var createCmd = &cobra.Command{
 			return fmt.Errorf("failed to create lottery: %w", err)
 		}
 
-		fmt.Println("\n✅ Lottery created successfully!")
+		fmt.Println("\n✅ " + i18n.GetText("lottery.success"))
 		fmt.Printf("📋 Lottery ID: %s\n", resp.ID)
 		fmt.Printf("🔢 Block height: #%d\n", resp.BlockHeight)
 		fmt.Println("\n🎉 Winners:")
@@ -67,7 +68,7 @@ var createCmd = &cobra.Command{
 
 var tuiCmd = &cobra.Command{
 	Use:   "tui",
-	Short: "Launch TUI interface",
+	Short: i18n.GetText("lottery.tui"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return uilottery.RunLotteryTUI()
 	},
@@ -75,7 +76,7 @@ var tuiCmd = &cobra.Command{
 
 var historyCmd = &cobra.Command{
 	Use:   "history",
-	Short: "Show lottery history",
+	Short: i18n.GetText("lottery.history"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chain := blockchain.InitBlockChain()
 		records := chain.GetLotteryRecords()
@@ -97,7 +98,7 @@ var historyCmd = &cobra.Command{
 
 var verifyCmd = &cobra.Command{
 	Use:   "verify [lottery-id or block-height]",
-	Short: "Verify a lottery result",
+	Short: i18n.GetText("lottery.verify"),
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		input := args[0]
@@ -136,7 +137,7 @@ var verifyCmd = &cobra.Command{
 		}
 
 		// Display verification info
-		fmt.Println("\n✅ Lottery Record Verified!")
+		fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
 		fmt.Printf("📋 ID: %s\n", record.ID)
 		fmt.Printf("🔢 Block Height: #%d\n", record.BlockHeight)
 		fmt.Printf("🌱 Seed: %s\n", record.Seed)
@@ -156,7 +157,7 @@ var verifyCmd = &cobra.Command{
 
 var exportCmd = &cobra.Command{
 	Use:   "export [file.json]",
-	Short: "Export lottery history to JSON file",
+	Short: i18n.GetText("lottery.export"),
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filename := args[0]
@@ -187,7 +188,7 @@ var exportCmd = &cobra.Command{
 
 var importCmd = &cobra.Command{
 	Use:   "import [file.json]",
-	Short: "Import lottery records from JSON file",
+	Short: i18n.GetText("lottery.import"),
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filename := args[0]
@@ -222,7 +223,7 @@ var importCmd = &cobra.Command{
 
 var statsCmd = &cobra.Command{
 	Use:   "stats",
-	Short: "Show lottery statistics",
+	Short: i18n.GetText("lottery.stats"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		chain := blockchain.InitBlockChain()
 		records := chain.GetLotteryRecords()
@@ -242,7 +243,7 @@ var statsCmd = &cobra.Command{
 
 var resetCmd = &cobra.Command{
 	Use:   "reset",
-	Short: "Reset the database (delete all lottery records)",
+	Short: i18n.GetText("lottery.reset"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		confirm, _ := cmd.Flags().GetBool("yes")
 		if !confirm {
@@ -312,11 +313,11 @@ func init() {
 	lotteryCmd.AddCommand(resetCmd)
 	lotteryCmd.AddCommand(dbInfoCmd)
 
-	createCmd.Flags().StringP("participants", "p", "", "Participant names (comma-separated)")
-	createCmd.Flags().StringP("seed", "s", "", "Random seed")
-	createCmd.Flags().IntP("count", "c", viper.GetInt("lottery.defaultCount"), "Number of winners")
+	createCmd.Flags().StringP("participants", "p", "", i18n.GetText("lottery.participants"))
+	createCmd.Flags().StringP("seed", "s", "", i18n.GetText("lottery.seed"))
+	createCmd.Flags().IntP("count", "c", viper.GetInt("lottery.defaultCount"), i18n.GetText("lottery.count"))
 
-	resetCmd.Flags().BoolP("yes", "y", false, "Confirm reset")
+	resetCmd.Flags().BoolP("yes", "y", false, i18n.GetText("lottery.yes"))
 
 	_ = createCmd.MarkFlagRequired("participants")
 	_ = createCmd.MarkFlagRequired("seed")

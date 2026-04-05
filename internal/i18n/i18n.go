@@ -85,6 +85,10 @@ func (tr *Translator) loadMessages() {
 
 		// ===== VOTING =====
 		// Commands
+		"voting.cmd":            "Ed25519 signature based transparent voting system",
+		"voting.candidate.cmd":  "Candidate management",
+		"voting.voter.cmd":      "Voter management",
+		"voting.session.cmd":    "Voting session management",
 		"voting.candidate.add":  "Add a candidate",
 		"voting.candidate.list": "List all candidates",
 		"voting.voter.register": "Register a voter",
@@ -123,11 +127,14 @@ func (tr *Translator) loadMessages() {
 
 		// ===== NFT =====
 		// Commands
+		"nft.cmd":      "NFT system",
+		"nft.tui.cmd":  "Launch TUI interface",
 		"nft.mint":     "Mint a new NFT",
 		"nft.transfer": "Transfer NFT ownership",
 		"nft.burn":     "Burn an NFT",
-		"nft.list":     "List all NFTs",
-		"nft.get":      "Get NFT details",
+		"nft.list":     "List NFTs by owner",
+		"nft.get":      "Get NFT by ID",
+		"nft.history":  "Get NFT operation history",
 		"nft.tui":      "Launch NFT TUI",
 
 		// Flags
@@ -140,6 +147,7 @@ func (tr *Translator) loadMessages() {
 		"nft.nft_id":      "NFT ID",
 		"nft.from":        "From public key",
 		"nft.to":          "To public key",
+		"nft.private_key": "Private key (Base64)",
 
 		// Messages
 		"nft.minted":         "NFT minted successfully!",
@@ -150,15 +158,19 @@ func (tr *Translator) loadMessages() {
 
 		// ===== ORACLE =====
 		// Commands
+		"oracle.cmd":            "Oracle data service",
+		"oracle.source.cmd":     "Data source management",
+		"oracle.template.cmd":   "Data source templates",
 		"oracle.source.list":    "List data sources",
-		"oracle.source.add":     "Add data source",
-		"oracle.source.enable":  "Enable data source",
-		"oracle.source.disable": "Disable data source",
-		"oracle.source.delete":  "Delete data source",
-		"oracle.template.list":  "List data templates",
-		"oracle.template.add":   "Add data template",
+		"oracle.source.add":     "Add a data source",
+		"oracle.source.enable":  "Enable a data source",
+		"oracle.source.disable": "Disable a data source",
+		"oracle.source.delete":  "Delete a data source",
+		"oracle.template.list":  "List available templates",
+		"oracle.template.add":   "Add template as data source",
 		"oracle.fetch":          "Fetch data from source",
-		"oracle.data.list":      "List fetched data",
+		"oracle.data.list":      "Query oracle data",
+		"oracle.latest":         "Get latest data from source",
 		"oracle.tui":            "Launch Oracle TUI",
 
 		// Flags
@@ -167,6 +179,8 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_type": "Source type (http/api)",
 		"oracle.template":    "Template name",
 		"oracle.source_id":   "Source ID",
+		"oracle.interval":    "Refresh interval (seconds)",
+		"oracle.limit":       "Limit results",
 
 		// Messages
 		"oracle.source_added":    "Data source added successfully!",
@@ -242,6 +256,10 @@ func (tr *Translator) loadMessages() {
 
 		// ===== VOTING =====
 		// Commands
+		"voting.cmd":            "Ed25519 签名透明投票系统",
+		"voting.candidate.cmd":  "候选人管理",
+		"voting.voter.cmd":      "投票人管理",
+		"voting.session.cmd":    "投票会话管理",
 		"voting.candidate.add":  "添加候选人",
 		"voting.candidate.list": "列出所有候选人",
 		"voting.voter.register": "注册投票人",
@@ -280,11 +298,14 @@ func (tr *Translator) loadMessages() {
 
 		// ===== NFT =====
 		// Commands
+		"nft.cmd":      "NFT 系统",
+		"nft.tui.cmd":  "启动 TUI 界面",
 		"nft.mint":     "铸造新 NFT",
 		"nft.transfer": "转移 NFT 所有权",
 		"nft.burn":     "销毁 NFT",
-		"nft.list":     "列出所有 NFT",
-		"nft.get":      "获取 NFT 详情",
+		"nft.list":     "列出持有者的 NFT",
+		"nft.get":      "根据 ID 获取 NFT",
+		"nft.history":  "获取 NFT 操作历史",
 		"nft.tui":      "启动 NFT TUI",
 
 		// Flags
@@ -297,6 +318,7 @@ func (tr *Translator) loadMessages() {
 		"nft.nft_id":      "NFT ID",
 		"nft.from":        "转出方公钥",
 		"nft.to":          "转入方公钥",
+		"nft.private_key": "私钥 (Base64)",
 
 		// Messages
 		"nft.minted":         "NFT 铸造成功！",
@@ -307,15 +329,19 @@ func (tr *Translator) loadMessages() {
 
 		// ===== ORACLE =====
 		// Commands
+		"oracle.cmd":            "预言机数据服务",
+		"oracle.source.cmd":     "数据源管理",
+		"oracle.template.cmd":   "数据源模板",
 		"oracle.source.list":    "列出数据源",
 		"oracle.source.add":     "添加数据源",
 		"oracle.source.enable":  "启用数据源",
 		"oracle.source.disable": "禁用数据源",
 		"oracle.source.delete":  "删除数据源",
-		"oracle.template.list":  "列出数据模板",
-		"oracle.template.add":   "添加数据模板",
-		"oracle.fetch":          "获取数据",
-		"oracle.data.list":      "列出已获取数据",
+		"oracle.template.list":  "列出可用模板",
+		"oracle.template.add":   "添加模板为数据源",
+		"oracle.fetch":          "从数据源获取数据",
+		"oracle.data.list":      "查询预言机数据",
+		"oracle.latest":         "获取数据源最新数据",
 		"oracle.tui":            "启动预言机 TUI",
 
 		// Flags
@@ -324,6 +350,8 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_type": "数据源类型 (http/api)",
 		"oracle.template":    "模板名称",
 		"oracle.source_id":   "数据源 ID",
+		"oracle.interval":    "刷新间隔（秒）",
+		"oracle.limit":       "限制结果数",
 
 		// Messages
 		"oracle.source_added":    "数据源添加成功！",

@@ -54,7 +54,7 @@ func TestTranslator_T_Chinese(t *testing.T) {
 		{"lottery.create", "创建新抽奖"},
 		{"voting.candidate.add", "添加候选人"},
 		{"nft.mint", "铸造新 NFT"},
-		{"oracle.fetch", "获取数据"},
+		{"oracle.fetch", "从数据源获取数据"},
 		{"error.invalid_input", "输入无效"},
 	}
 
