@@ -58,6 +58,107 @@ func TestCreateToken_InvalidName(t *testing.T) {
 	}
 }
 
+func TestCreateToken_InvalidSymbol(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	req := &CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "",
+		TotalSupply: NewAmount(1000),
+		Owner:       pubKey(1),
+	}
+
+	_, err := service.CreateToken(req)
+	if err == nil {
+		t.Error("expected error for empty symbol")
+	}
+}
+
+func TestCreateToken_InvalidTotalSupply(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	req := &CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(0),
+		Owner:       pubKey(1),
+	}
+
+	_, err := service.CreateToken(req)
+	if err == nil {
+		t.Error("expected error for zero total supply")
+	}
+}
+
+func TestCreateToken_InvalidOwner(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	req := &CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       nil,
+	}
+
+	_, err := service.CreateToken(req)
+	if err == nil {
+		t.Error("expected error for nil owner")
+	}
+}
+
+func TestGetTokenInfo(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	req := &CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	}
+
+	tok, err := service.CreateToken(req)
+	if err != nil {
+		t.Fatalf("CreateToken failed: %v", err)
+	}
+
+	info, err := service.GetTokenInfo(tok.ID())
+	if err != nil {
+		t.Fatalf("GetTokenInfo failed: %v", err)
+	}
+	if info.Name() != "Test Token" {
+		t.Errorf("expected Test Token, got %s", info.Name())
+	}
+	if info.Symbol() != "TEST" {
+		t.Errorf("expected TEST, got %s", info.Symbol())
+	}
+	if info.TotalSupply().Int64() != 1000 {
+		t.Errorf("expected 1000, got %d", info.TotalSupply().Int64())
+	}
+}
+
+func TestGetTokenInfo_NotFound(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	info, err := service.GetTokenInfo("NONEXISTENT")
+	if err != nil {
+		t.Fatalf("GetTokenInfo should not return error, got: %v", err)
+	}
+	if info != nil {
+		t.Error("expected nil token for nonexistent token")
+	}
+}
+
 func TestGetBalance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
@@ -83,6 +184,75 @@ func TestGetBalance(t *testing.T) {
 
 	if balance.Int64() != 1000 {
 		t.Errorf("expected balance 1000, got %d", balance.Int64())
+	}
+}
+
+func TestMint_InvalidToken(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	recipient := pubKey(2)
+	mintReq := &MintRequest{
+		TokenID: "NONEXISTENT",
+		To:      recipient,
+		Amount:  NewAmount(500),
+	}
+
+	_, err := service.Mint(mintReq)
+	if err != ErrTokenNotFound {
+		t.Errorf("expected ErrTokenNotFound, got %v", err)
+	}
+}
+
+func TestMint_InvalidRecipient(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	mintReq := &MintRequest{
+		TokenID: "TEST",
+		To:      nil,
+		Amount:  NewAmount(500),
+	}
+
+	_, err := service.Mint(mintReq)
+	if err == nil {
+		t.Error("expected error for nil recipient")
+	}
+}
+
+func TestMint_InvalidAmount(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	recipient := pubKey(2)
+	mintReq := &MintRequest{
+		TokenID: "TEST",
+		To:      recipient,
+		Amount:  NewAmount(0),
+	}
+
+	_, err := service.Mint(mintReq)
+	if err == nil {
+		t.Error("expected error for zero amount")
 	}
 }
 
@@ -123,6 +293,118 @@ func TestMint(t *testing.T) {
 
 	if balance.Int64() != 500 {
 		t.Errorf("expected balance 500, got %d", balance.Int64())
+	}
+}
+
+func TestTransfer_InvalidToken(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	service := NewService(repo, eventStore, chain)
+
+	owner := pubKey(1)
+	recipient := pubKey(2)
+	privateKey := make([]byte, 64)
+	transferReq := &TransferRequest{
+		TokenID:    "NONEXISTENT",
+		From:       owner,
+		To:         recipient,
+		Amount:     NewAmount(100),
+		PrivateKey: privateKey,
+	}
+
+	_, err := service.Transfer(transferReq)
+	if err != ErrTokenNotFound {
+		t.Errorf("expected ErrTokenNotFound, got %v", err)
+	}
+}
+
+func TestTransfer_InvalidFrom(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	service := NewService(repo, eventStore, chain)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	recipient := pubKey(2)
+	privateKey := make([]byte, 64)
+	transferReq := &TransferRequest{
+		TokenID:    "TEST",
+		From:       nil,
+		To:         recipient,
+		Amount:     NewAmount(100),
+		PrivateKey: privateKey,
+	}
+
+	_, err := service.Transfer(transferReq)
+	if err == nil {
+		t.Error("expected error for nil from")
+	}
+}
+
+func TestTransfer_InvalidTo(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	service := NewService(repo, eventStore, chain)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	privateKey := make([]byte, 64)
+	transferReq := &TransferRequest{
+		TokenID:    "TEST",
+		From:       owner,
+		To:         nil,
+		Amount:     NewAmount(100),
+		PrivateKey: privateKey,
+	}
+
+	_, err := service.Transfer(transferReq)
+	if err == nil {
+		t.Error("expected error for nil to")
+	}
+}
+
+func TestTransfer_InvalidAmount(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	service := NewService(repo, eventStore, chain)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	recipient := pubKey(2)
+	privateKey := make([]byte, 64)
+	transferReq := &TransferRequest{
+		TokenID:    "TEST",
+		From:       owner,
+		To:         recipient,
+		Amount:     NewAmount(0),
+		PrivateKey: privateKey,
+	}
+
+	_, err := service.Transfer(transferReq)
+	if err == nil {
+		t.Error("expected error for zero amount")
 	}
 }
 
