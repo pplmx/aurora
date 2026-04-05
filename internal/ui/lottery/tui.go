@@ -305,7 +305,7 @@ func (m *model) loadHistory() {
 }
 
 func (m *model) runLottery(participants []string, seed string, count int) *lottery.LotteryRecord {
-	pk, sk, _ := lottery.GenerateKeyPair()
+	_, sk, _ := lottery.GenerateKeyPair()
 	output, proof, _ := lottery.VRFProve(sk, []byte(seed))
 
 	winners := lottery.SelectWinners(output, participants, count)
@@ -320,7 +320,6 @@ func (m *model) runLottery(participants []string, seed string, count int) *lotte
 	height, _ := m.chain.AddLotteryRecord(jsonData)
 	record.BlockHeight = height
 
-	_ = pk
 	return record
 }
 

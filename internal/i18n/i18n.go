@@ -190,6 +190,16 @@ func (tr *Translator) loadMessages() {
 		"error.invalid_address":     "Invalid address format",
 		"error.nft_id_required":     "NFT ID is required",
 
+		// Token errors
+		"error.symbol_required":    "Symbol is required",
+		"error.supply_required":    "Supply is required",
+		"error.invalid_supply":     "Invalid supply value",
+		"error.invalid_decimals":   "Invalid decimals value",
+		"error.amount_required":    "Amount is required",
+		"error.invalid_amount":     "Invalid amount value",
+		"error.address_required":   "Address is required",
+		"error.create_token_first": "Please create token first",
+
 		// ===== TOKEN =====
 		// Commands
 		"token.cmd":           "Fungible Token (FT) system",
@@ -467,6 +477,16 @@ func (tr *Translator) loadMessages() {
 		"error.to_address_required": "目标地址不能为空",
 		"error.invalid_address":     "地址格式无效",
 		"error.nft_id_required":     "NFT ID 不能为空",
+
+		// Token errors
+		"error.symbol_required":    "符号不能为空",
+		"error.supply_required":    "供应量不能为空",
+		"error.invalid_supply":     "无效的供应量",
+		"error.invalid_decimals":   "无效的小数位数",
+		"error.amount_required":    "数量不能为空",
+		"error.invalid_amount":     "无效的数量",
+		"error.address_required":   "地址不能为空",
+		"error.create_token_first": "请先创建代币",
 
 		// ===== TOKEN =====
 		// Commands
