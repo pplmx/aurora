@@ -34,109 +34,317 @@ func GetTranslator() *Translator {
 
 func (tr *Translator) loadMessages() {
 	tr.messages["en"] = map[string]string{
-		// CLI
-		"app.name":       "Aurora - VRF Lottery System",
+		// App
+		"app.name":       "Aurora - Blockchain System",
 		"app.version":    "Version",
 		"app.go_version": "Go Version",
 
+		// ===== LOTTERY =====
 		// Commands
-		"cmd.create":  "Create a new lottery",
-		"cmd.history": "Show lottery history",
-		"cmd.verify":  "Verify a lottery result",
-		"cmd.export":  "Export lottery history to JSON",
-		"cmd.import":  "Import lottery records from JSON",
-		"cmd.stats":   "Show lottery statistics",
-		"cmd.reset":   "Reset the database",
-		"cmd.db_info": "Show database information",
-		"cmd.tui":     "Launch TUI interface",
+		"lottery.create":  "Create a new lottery",
+		"lottery.history": "Show lottery history",
+		"lottery.verify":  "Verify a lottery result",
+		"lottery.export":  "Export lottery history to JSON",
+		"lottery.import":  "Import lottery records from JSON",
+		"lottery.stats":   "Show lottery statistics",
+		"lottery.reset":   "Reset the database",
+		"lottery.db_info": "Show database information",
+		"lottery.tui":     "Launch TUI interface",
 
 		// Flags
-		"flag.participants": "Participant names (comma-separated)",
-		"flag.seed":         "Random seed",
-		"flag.count":        "Number of winners",
-		"flag.yes":          "Confirm reset",
+		"lottery.participants": "Participant names (comma-separated)",
+		"lottery.seed":         "Random seed",
+		"lottery.count":        "Number of winners",
+		"lottery.yes":          "Confirm reset",
 
 		// Messages
-		"msg.success":      "Lottery created successfully!",
-		"msg.lottery_id":   "Lottery ID",
-		"msg.block_height": "Block height",
-		"msg.winners":      "Winners",
-		"msg.vrf_output":   "VRF Output",
-		"msg.vrf_proof":    "VRF Proof",
-		"msg.no_records":   "No lottery records found",
-		"msg.total":        "Total lotteries",
-		"msg.verified":     "Lottery Record Verified!",
-		"msg.exported":     "Exported %d lottery records to %s",
-		"msg.imported":     "Imported %d lottery records",
-		"msg.reset_done":   "Database reset complete!",
+		"lottery.success":      "Lottery created successfully!",
+		"lottery.lottery_id":   "Lottery ID",
+		"lottery.block_height": "Block height",
+		"lottery.winners":      "Winners",
+		"lottery.vrf_output":   "VRF Output",
+		"lottery.vrf_proof":    "VRF Proof",
+		"lottery.no_records":   "No lottery records found",
+		"lottery.total":        "Total lotteries",
+		"lottery.verified":     "Lottery Record Verified!",
+		"lottery.exported":     "Exported %d lottery records to %s",
+		"lottery.imported":     "Imported %d lottery records",
+		"lottery.reset_done":   "Database reset complete!",
 
 		// TUI
-		"tui.title":        "VRF Lottery System",
-		"tui.create":       "Create Lottery",
-		"tui.history":      "View History",
-		"tui.exit":         "Exit",
-		"tui.participants": "Participants (one per line)",
-		"tui.seed":         "Random Seed",
-		"tui.winners":      "Number of Winners",
-		"tui.create_btn":   "[Create Lottery]",
-		"tui.back":         "[Back]",
-		"tui.completed":    "Lottery completed!",
+		"lottery.tui.title":        "VRF Lottery System",
+		"lottery.tui.create":       "Create Lottery",
+		"lottery.tui.history":      "View History",
+		"lottery.tui.exit":         "Exit",
+		"lottery.tui.participants": "Participants (one per line)",
+		"lottery.tui.seed":         "Random Seed",
+		"lottery.tui.winners":      "Number of Winners",
+		"lottery.tui.create_btn":   "[Create Lottery]",
+		"lottery.tui.back":         "[Back]",
+		"lottery.tui.completed":    "Lottery completed!",
 
+		// ===== VOTING =====
+		// Commands
+		"voting.candidate.add":  "Add a candidate",
+		"voting.candidate.list": "List all candidates",
+		"voting.voter.register": "Register a voter",
+		"voting.voter.list":     "List all voters",
+		"voting.vote":           "Cast a vote",
+		"voting.session.create": "Create voting session",
+		"voting.session.start":  "Start voting session",
+		"voting.session.end":    "End voting session",
+		"voting.session.list":   "List all sessions",
+		"voting.results":        "Show voting results",
+		"voting.tui":            "Launch Voting TUI",
+
+		// Flags
+		"voting.name":         "Name",
+		"voting.party":        "Party/Organization",
+		"voting.program":      "Campaign program",
+		"voting.public_key":   "Public key (Base64)",
+		"voting.private_key":  "Private key (Base64)",
+		"voting.candidate_id": "Candidate ID",
+		"voting.session_id":   "Session ID",
+		"voting.title":        "Session title",
+		"voting.description":  "Session description",
+		"voting.duration":     "Duration (seconds)",
+
+		// Messages
+		"voting.candidate_added":  "Candidate registered successfully!",
+		"voting.voter_registered": "Voter registered successfully!",
+		"voting.vote_cast":        "Vote cast successfully!",
+		"voting.session_created":  "Voting session created!",
+		"voting.session_started":  "Voting session started!",
+		"voting.session_ended":    "Voting session ended!",
+		"voting.no_candidates":    "No candidates found",
+		"voting.no_voters":        "No voters found",
+		"voting.no_sessions":      "No voting sessions",
+		"voting.verified":         "Vote verified!",
+
+		// ===== NFT =====
+		// Commands
+		"nft.mint":     "Mint a new NFT",
+		"nft.transfer": "Transfer NFT ownership",
+		"nft.burn":     "Burn an NFT",
+		"nft.list":     "List all NFTs",
+		"nft.get":      "Get NFT details",
+		"nft.tui":      "Launch NFT TUI",
+
+		// Flags
+		"nft.name":        "NFT name",
+		"nft.description": "NFT description",
+		"nft.image_url":   "Image URL",
+		"nft.token_uri":   "Token URI",
+		"nft.creator":     "Creator public key",
+		"nft.owner":       "Owner public key",
+		"nft.nft_id":      "NFT ID",
+		"nft.from":        "From public key",
+		"nft.to":          "To public key",
+
+		// Messages
+		"nft.minted":         "NFT minted successfully!",
+		"nft.transferred":    "NFT transferred successfully!",
+		"nft.burned":         "NFT burned successfully!",
+		"nft.not_found":      "NFT not found",
+		"nft.owner_mismatch": "Caller is not the owner",
+
+		// ===== ORACLE =====
+		// Commands
+		"oracle.source.list":    "List data sources",
+		"oracle.source.add":     "Add data source",
+		"oracle.source.enable":  "Enable data source",
+		"oracle.source.disable": "Disable data source",
+		"oracle.source.delete":  "Delete data source",
+		"oracle.template.list":  "List data templates",
+		"oracle.template.add":   "Add data template",
+		"oracle.fetch":          "Fetch data from source",
+		"oracle.data.list":      "List fetched data",
+		"oracle.tui":            "Launch Oracle TUI",
+
+		// Flags
+		"oracle.source_name": "Source name",
+		"oracle.source_url":  "Source URL",
+		"oracle.source_type": "Source type (http/api)",
+		"oracle.template":    "Template name",
+		"oracle.source_id":   "Source ID",
+
+		// Messages
+		"oracle.source_added":    "Data source added successfully!",
+		"oracle.source_enabled":  "Data source enabled!",
+		"oracle.source_disabled": "Data source disabled!",
+		"oracle.source_deleted":  "Data source deleted!",
+		"oracle.fetched":         "Data fetched successfully!",
+		"oracle.no_sources":      "No data sources found",
+		"oracle.fetch_error":     "Failed to fetch data",
+
+		// ===== COMMON =====
 		// Help
-		"help.nav": "Use ↑↓ to select, Enter to confirm, ? for help, q to quit",
+		"help.nav":  "Use ↑↓ to select, Enter to confirm, ? for help, q to quit",
+		"help.exit": "Press q to quit",
+		"help.back": "Press b to go back",
+
+		// Errors
+		"error.invalid_input": "Invalid input",
+		"error.not_found":     "Not found",
+		"error.unauthorized":  "Unauthorized",
+		"error.internal":      "Internal error",
 	}
 
 	tr.messages["zh"] = map[string]string{
-		// CLI
-		"app.name":       "Aurora - VRF 抽奖系统",
+		// App
+		"app.name":       "Aurora - 区块链系统",
 		"app.version":    "版本",
 		"app.go_version": "Go 版本",
 
+		// ===== LOTTERY =====
 		// Commands
-		"cmd.create":  "创建新抽奖",
-		"cmd.history": "查看历史记录",
-		"cmd.verify":  "验证抽奖结果",
-		"cmd.export":  "导出抽奖历史到 JSON",
-		"cmd.import":  "从 JSON 导入抽奖记录",
-		"cmd.stats":   "显示统计信息",
-		"cmd.reset":   "重置数据库",
-		"cmd.db_info": "显示数据库信息",
-		"cmd.tui":     "启动 TUI 界面",
+		"lottery.create":  "创建新抽奖",
+		"lottery.history": "查看历史记录",
+		"lottery.verify":  "验证抽奖结果",
+		"lottery.export":  "导出抽奖历史到 JSON",
+		"lottery.import":  "从 JSON 导入抽奖记录",
+		"lottery.stats":   "显示统计信息",
+		"lottery.reset":   "重置数据库",
+		"lottery.db_info": "显示数据库信息",
+		"lottery.tui":     "启动 TUI 界面",
 
 		// Flags
-		"flag.participants": "参与者名单（逗号分隔）",
-		"flag.seed":         "随机种子",
-		"flag.count":        "获奖人数",
-		"flag.yes":          "确认重置",
+		"lottery.participants": "参与者名单（逗号分隔）",
+		"lottery.seed":         "随机种子",
+		"lottery.count":        "获奖人数",
+		"lottery.yes":          "确认重置",
 
 		// Messages
-		"msg.success":      "抽奖创建成功！",
-		"msg.lottery_id":   "抽奖ID",
-		"msg.block_height": "区块高度",
-		"msg.winners":      "中奖者",
-		"msg.vrf_output":   "VRF 输出",
-		"msg.vrf_proof":    "VRF 证明",
-		"msg.no_records":   "暂无抽奖记录",
-		"msg.total":        "总抽奖数",
-		"msg.verified":     "抽奖记录已验证！",
-		"msg.exported":     "已导出 %d 条抽奖记录到 %s",
-		"msg.imported":     "已导入 %d 条抽奖记录",
-		"msg.reset_done":   "数据库重置完成！",
+		"lottery.success":      "抽奖创建成功！",
+		"lottery.lottery_id":   "抽奖ID",
+		"lottery.block_height": "区块高度",
+		"lottery.winners":      "中奖者",
+		"lottery.vrf_output":   "VRF 输出",
+		"lottery.vrf_proof":    "VRF 证明",
+		"lottery.no_records":   "暂无抽奖记录",
+		"lottery.total":        "总抽奖数",
+		"lottery.verified":     "抽奖记录已验证！",
+		"lottery.exported":     "已导出 %d 条抽奖记录到 %s",
+		"lottery.imported":     "已导入 %d 条抽奖记录",
+		"lottery.reset_done":   "数据库重置完成！",
 
 		// TUI
-		"tui.title":        "VRF 透明抽奖系统",
-		"tui.create":       "创建抽奖",
-		"tui.history":      "查看历史",
-		"tui.exit":         "退出",
-		"tui.participants": "参与者（每行一个）",
-		"tui.seed":         "随机种子",
-		"tui.winners":      "获奖人数",
-		"tui.create_btn":   "[创建抽奖]",
-		"tui.back":         "[返回]",
-		"tui.completed":    "抽奖完成！",
+		"lottery.tui.title":        "VRF 透明抽奖系统",
+		"lottery.tui.create":       "创建抽奖",
+		"lottery.tui.history":      "查看历史",
+		"lottery.tui.exit":         "退出",
+		"lottery.tui.participants": "参与者（每行一个）",
+		"lottery.tui.seed":         "随机种子",
+		"lottery.tui.winners":      "获奖人数",
+		"lottery.tui.create_btn":   "[创建抽奖]",
+		"lottery.tui.back":         "[返回]",
+		"lottery.tui.completed":    "抽奖完成！",
 
+		// ===== VOTING =====
+		// Commands
+		"voting.candidate.add":  "添加候选人",
+		"voting.candidate.list": "列出所有候选人",
+		"voting.voter.register": "注册投票人",
+		"voting.voter.list":     "列出所有投票人",
+		"voting.vote":           "投票",
+		"voting.session.create": "创建投票会话",
+		"voting.session.start":  "开始投票会话",
+		"voting.session.end":    "结束投票会话",
+		"voting.session.list":   "列出所有投票会话",
+		"voting.results":        "显示投票结果",
+		"voting.tui":            "启动投票 TUI",
+
+		// Flags
+		"voting.name":         "姓名",
+		"voting.party":        "党派/组织",
+		"voting.program":      "竞选纲领",
+		"voting.public_key":   "公钥 (Base64)",
+		"voting.private_key":  "私钥 (Base64)",
+		"voting.candidate_id": "候选人ID",
+		"voting.session_id":   "会话ID",
+		"voting.title":        "会话标题",
+		"voting.description":  "会话描述",
+		"voting.duration":     "持续时间（秒）",
+
+		// Messages
+		"voting.candidate_added":  "候选人注册成功！",
+		"voting.voter_registered": "投票人注册成功！",
+		"voting.vote_cast":        "投票成功！",
+		"voting.session_created":  "投票会话已创建！",
+		"voting.session_started":  "投票已开始！",
+		"voting.session_ended":    "投票已结束！",
+		"voting.no_candidates":    "暂无候选人",
+		"voting.no_voters":        "暂无投票人",
+		"voting.no_sessions":      "暂无投票会话",
+		"voting.verified":         "投票已验证！",
+
+		// ===== NFT =====
+		// Commands
+		"nft.mint":     "铸造新 NFT",
+		"nft.transfer": "转移 NFT 所有权",
+		"nft.burn":     "销毁 NFT",
+		"nft.list":     "列出所有 NFT",
+		"nft.get":      "获取 NFT 详情",
+		"nft.tui":      "启动 NFT TUI",
+
+		// Flags
+		"nft.name":        "NFT 名称",
+		"nft.description": "NFT 描述",
+		"nft.image_url":   "图片 URL",
+		"nft.token_uri":   "Token URI",
+		"nft.creator":     "创建者公钥",
+		"nft.owner":       "持有者公钥",
+		"nft.nft_id":      "NFT ID",
+		"nft.from":        "转出方公钥",
+		"nft.to":          "转入方公钥",
+
+		// Messages
+		"nft.minted":         "NFT 铸造成功！",
+		"nft.transferred":    "NFT 转移成功！",
+		"nft.burned":         "NFT 销毁成功！",
+		"nft.not_found":      "NFT 未找到",
+		"nft.owner_mismatch": "调用者不是持有者",
+
+		// ===== ORACLE =====
+		// Commands
+		"oracle.source.list":    "列出数据源",
+		"oracle.source.add":     "添加数据源",
+		"oracle.source.enable":  "启用数据源",
+		"oracle.source.disable": "禁用数据源",
+		"oracle.source.delete":  "删除数据源",
+		"oracle.template.list":  "列出数据模板",
+		"oracle.template.add":   "添加数据模板",
+		"oracle.fetch":          "获取数据",
+		"oracle.data.list":      "列出已获取数据",
+		"oracle.tui":            "启动预言机 TUI",
+
+		// Flags
+		"oracle.source_name": "数据源名称",
+		"oracle.source_url":  "数据源 URL",
+		"oracle.source_type": "数据源类型 (http/api)",
+		"oracle.template":    "模板名称",
+		"oracle.source_id":   "数据源 ID",
+
+		// Messages
+		"oracle.source_added":    "数据源添加成功！",
+		"oracle.source_enabled":  "数据源已启用！",
+		"oracle.source_disabled": "数据源已禁用！",
+		"oracle.source_deleted":  "数据源已删除！",
+		"oracle.fetched":         "数据获取成功！",
+		"oracle.no_sources":      "暂无数据源",
+		"oracle.fetch_error":     "数据获取失败",
+
+		// ===== COMMON =====
 		// Help
-		"help.nav": "使用 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出",
+		"help.nav":  "使用 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出",
+		"help.exit": "按 q 退出",
+		"help.back": "按 b 返回",
+
+		// Errors
+		"error.invalid_input": "输入无效",
+		"error.not_found":     "未找到",
+		"error.unauthorized":  "未授权",
+		"error.internal":      "内部错误",
 	}
 
 	// Try to load from config
