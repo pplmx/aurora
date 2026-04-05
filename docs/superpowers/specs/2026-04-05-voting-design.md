@@ -16,17 +16,17 @@
 
 ## 技术选型
 
-| 组件 | 技术 | 版本 |
-|------|------|------|
-| 语言 | Go | 1.26+ |
-| 签名 | crypto/ed25519 | 标准库 |
-| 存储 | 内存 + SQLite | github.com/mattn/go-sqlite3 |
-| TUI | Bubble Tea | latest |
-| CLI | Cobra | latest |
+| 组件 | 技术           | 版本                        |
+| ---- | -------------- | --------------------------- |
+| 语言 | Go             | 1.26+                       |
+| 签名 | crypto/ed25519 | 标准库                      |
+| 存储 | 内存 + SQLite  | github.com/mattn/go-sqlite3 |
+| TUI  | Bubble Tea     | latest                      |
+| CLI  | Cobra          | latest                      |
 
 ## 架构
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                       CLI/TUI 层                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
@@ -136,7 +136,7 @@ func RegisterVoter() (publicKey, privateKey []byte, err error) {
     if err != nil {
         return nil, nil, err
     }
-    
+
     voter := &Voter{
         PublicKey:   base64.StdEncoding.EncodeToString(pub),
         HasVoted:    false,
@@ -156,19 +156,19 @@ func CastVote(voterPK []byte, candidateID string, privateKey []byte) (*VoteRecor
     if voter.HasVoted {
         return nil, ErrAlreadyVoted
     }
-    
+
     // 验证候选人
     candidate := getCandidate(candidateID)
     if candidate == nil {
         return nil, ErrCandidateNotFound
     }
-    
+
     // 创建投票消息
     message := fmt.Sprintf("%s|%s|%d", voterPK, candidateID, time.Now().Unix())
-    
+
     // 签名
     signature := ed25519.Sign(privateKey, []byte(message))
-    
+
     // 创建记录
     record := &VoteRecord{
         ID:          generateUUID(),
@@ -179,20 +179,20 @@ func CastVote(voterPK []byte, candidateID string, privateKey []byte) (*VoteRecor
         Timestamp:   time.Now().Unix(),
         BlockHeight: 0, // 上链后更新
     }
-    
+
     // 上链
     height := chain.AddBlock(record.ToJSON())
     record.BlockHeight = height
-    
+
     // 更新投票人状态
     voter.HasVoted = true
     voter.VoteHash = sha256.Sum256([]byte(message))
     updateVoter(voter)
-    
+
     // 更新候选人票数
     candidate.VoteCount++
     updateCandidate(candidate)
-    
+
     return record, nil
 }
 ```
@@ -204,13 +204,13 @@ func VerifyVote(record *VoteRecord) bool {
     // 解码公钥和签名
     pubBytes, _ := base64.StdEncoding.DecodeString(record.VoterPK)
     sigBytes, _ := base64.StdEncoding.DecodeString(record.Signature)
-    
+
     // 验证签名
     valid := ed25519.Verify(pubBytes, []byte(record.Message), sigBytes)
     if !valid {
         return false
     }
-    
+
     // 验证链上存在
     block := chain.GetBlock(record.BlockHeight)
     return block != nil
@@ -302,18 +302,18 @@ type Storage interface {
     ListCandidates() ([]*Candidate, error)
     UpdateCandidate(c *Candidate) error
     DeleteCandidate(id string) error
-    
+
     // Voter
     SaveVoter(v *Voter) error
     GetVoter(pk string) (*Voter, error)
     UpdateVoter(v *Voter) error
-    
+
     // Vote
     SaveVote(v *VoteRecord) error
     GetVote(id string) (*VoteRecord, error)
     GetVotesByCandidate(candidateID string) ([]*VoteRecord, error)
     GetVotesByVoter(voterPK string) ([]*VoteRecord, error)
-    
+
     // Session
     SaveSession(s *VotingSession) error
     GetSession(id string) (*VotingSession, error)
@@ -350,7 +350,7 @@ type Storage interface {
 
 ### 主菜单
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │          🌟 VRF 透明投票系统 🌟             │
 │                                            │
@@ -367,7 +367,7 @@ type Storage interface {
 
 ### 创建投票会话
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │           创建投票会话                      │
 │                                            │
@@ -388,7 +388,7 @@ type Storage interface {
 
 ### 投票界面
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │           投票                             │
 │                                            │
@@ -414,7 +414,7 @@ type Storage interface {
 
 ### 结果展示
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │           投票结果                         │
 │                                            │
@@ -467,7 +467,7 @@ type Storage interface {
 
 ## 文件结构
 
-```
+```text
 internal/
 ├── voting/
 │   ├── candidate.go       # 候选人管理

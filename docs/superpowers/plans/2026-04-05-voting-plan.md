@@ -12,7 +12,7 @@
 
 ## 文件结构
 
-```
+```text
 internal/
 ├── voting/
 │   ├── candidate.go       # 候选人管理
@@ -36,6 +36,7 @@ cmd/aurora/cmd/
 ## Task 1: 依赖添加
 
 **Files:**
+
 - Modify: `go.mod`
 - Modify: `go.sum`
 
@@ -64,6 +65,7 @@ git commit -m "deps: add sqlite3 and uuid for voting"
 ## Task 2: SQLite 存储层
 
 **Files:**
+
 - Create: `internal/voting/storage.go`
 
 - [ ] **Step 1: 创建存储接口和数据结构**
@@ -169,7 +171,7 @@ func NewSQLiteStorage(path string) (*SQLiteStorage, error) {
     if err != nil {
         return nil, err
     }
-    
+
     s := &SQLiteStorage{db: db}
     if err := s.initTables(); err != nil {
         return nil, err
@@ -221,7 +223,7 @@ func (s *SQLiteStorage) initTables() error {
             PRIMARY KEY (session_id, candidate_id)
         )`,
     }
-    
+
     for _, q := range queries {
         if _, err := s.db.Exec(q); err != nil {
             return err
@@ -243,7 +245,7 @@ func (s *SQLiteStorage) SaveCandidate(c *Candidate) error {
 func (s *SQLiteStorage) GetCandidate(id string) (*Candidate, error) {
     row := s.db.QueryRow(`SELECT id, name, party, program, description, image_url, vote_count, created_at
         FROM candidates WHERE id = ?`, id)
-    
+
     var c Candidate
     err := row.Scan(&c.ID, &c.Name, &c.Party, &c.Program, &c.Description, &c.ImageURL, &c.VoteCount, &c.CreatedAt)
     if err == sql.ErrNoRows {
@@ -258,7 +260,7 @@ func (s *SQLiteStorage) ListCandidates() ([]*Candidate, error) {
         return nil, err
     }
     defer rows.Close()
-    
+
     var candidates []*Candidate
     for rows.Next() {
         var c Candidate
@@ -291,7 +293,7 @@ func (s *SQLiteStorage) SaveVoter(v *Voter) error {
 
 func (s *SQLiteStorage) GetVoter(pk string) (*Voter, error) {
     row := s.db.QueryRow(`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters WHERE public_key = ?`, pk)
-    
+
     var v Voter
     var hasVoted int
     err := row.Scan(&v.PublicKey, &v.Name, &hasVoted, &v.VoteHash, &v.RegisteredAt)
@@ -312,7 +314,7 @@ func (s *SQLiteStorage) ListVoters() ([]*Voter, error) {
         return nil, err
     }
     defer rows.Close()
-    
+
     var voters []*Voter
     for rows.Next() {
         var v Voter
@@ -339,7 +341,7 @@ func (s *SQLiteStorage) SaveVote(v *VoteRecord) error {
 func (s *SQLiteStorage) GetVote(id string) (*VoteRecord, error) {
     row := s.db.QueryRow(`SELECT id, voter_pk, candidate_id, signature, message, timestamp, block_height
         FROM votes WHERE id = ?`, id)
-    
+
     var v VoteRecord
     err := row.Scan(&v.ID, &v.VoterPK, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight)
     if err == sql.ErrNoRows {
@@ -355,7 +357,7 @@ func (s *SQLiteStorage) GetVotesByCandidate(candidateID string) ([]*VoteRecord, 
         return nil, err
     }
     defer rows.Close()
-    
+
     var votes []*VoteRecord
     for rows.Next() {
         var v VoteRecord
@@ -374,7 +376,7 @@ func (s *SQLiteStorage) GetVotesByVoter(voterPK string) ([]*VoteRecord, error) {
         return nil, err
     }
     defer rows.Close()
-    
+
     var votes []*VoteRecord
     for rows.Next() {
         var v VoteRecord
@@ -392,7 +394,7 @@ func (s *SQLiteStorage) ListVotes() ([]*VoteRecord, error) {
         return nil, err
     }
     defer rows.Close()
-    
+
     var votes []*VoteRecord
     for rows.Next() {
         var v VoteRecord
@@ -411,7 +413,7 @@ func (s *SQLiteStorage) SaveSession(session *VotingSession) error {
         return err
     }
     defer tx.Rollback()
-    
+
     _, err = tx.Exec(
         `INSERT OR REPLACE INTO voting_sessions (id, title, description, start_time, end_time, status, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -420,20 +422,20 @@ func (s *SQLiteStorage) SaveSession(session *VotingSession) error {
     if err != nil {
         return err
     }
-    
+
     // Clear and re-insert session candidates
     tx.Exec(`DELETE FROM session_candidates WHERE session_id = ?`, session.ID)
     for _, cid := range session.Candidates {
         tx.Exec(`INSERT INTO session_candidates (session_id, candidate_id) VALUES (?, ?)`, session.ID, cid)
     }
-    
+
     return tx.Commit()
 }
 
 func (s *SQLiteStorage) GetSession(id string) (*VotingSession, error) {
     row := s.db.QueryRow(`SELECT id, title, description, start_time, end_time, status, created_at
         FROM voting_sessions WHERE id = ?`, id)
-    
+
     var sess VotingSession
     err := row.Scan(&sess.ID, &sess.Title, &sess.Description, &sess.StartTime, &sess.EndTime, &sess.Status, &sess.CreatedAt)
     if err == sql.ErrNoRows {
@@ -442,20 +444,20 @@ func (s *SQLiteStorage) GetSession(id string) (*VotingSession, error) {
     if err != nil {
         return nil, err
     }
-    
+
     // Load candidates
     rows, err := s.db.Query(`SELECT candidate_id FROM session_candidates WHERE session_id = ?`, id)
     if err != nil {
         return nil, err
     }
     defer rows.Close()
-    
+
     for rows.Next() {
         var cid string
         rows.Scan(&cid)
         sess.Candidates = append(sess.Candidates, cid)
     }
-    
+
     return &sess, nil
 }
 
@@ -465,7 +467,7 @@ func (s *SQLiteStorage) ListSessions() ([]*VotingSession, error) {
         return nil, err
     }
     defer rows.Close()
-    
+
     var sessions []*VotingSession
     for rows.Next() {
         var sess VotingSession
@@ -529,13 +531,13 @@ func TestSQLiteStorage(t *testing.T) {
     }
     f.Close()
     defer os.Remove(f.Name())
-    
+
     storage, err := NewSQLiteStorage(f.Name())
     if err != nil {
         t.Fatal(err)
     }
     defer storage.Close()
-    
+
     // Test SaveCandidate
     candidate := &Candidate{
         ID:        "test-1",
@@ -547,7 +549,7 @@ func TestSQLiteStorage(t *testing.T) {
     if err := storage.SaveCandidate(candidate); err != nil {
         t.Fatal(err)
     }
-    
+
     // Test GetCandidate
     got, err := storage.GetCandidate("test-1")
     if err != nil {
@@ -556,7 +558,7 @@ func TestSQLiteStorage(t *testing.T) {
     if got.Name != "张三" {
         t.Errorf("Name = %v, want 张三", got.Name)
     }
-    
+
     // Test ListCandidates
     list, err := storage.ListCandidates()
     if err != nil {
@@ -565,12 +567,12 @@ func TestSQLiteStorage(t *testing.T) {
     if len(list) != 1 {
         t.Errorf("len(list) = %v, want 1", len(list))
     }
-    
+
     // Test DeleteCandidate
     if err := storage.DeleteCandidate("test-1"); err != nil {
         t.Fatal(err)
     }
-    
+
     got, _ = storage.GetCandidate("test-1")
     if got != nil {
         t.Error("Candidate should be deleted")
@@ -595,6 +597,7 @@ git commit -m "feat: add SQLite storage layer for voting"
 ## Task 3: 候选人管理
 
 **Files:**
+
 - Modify: `internal/voting/candidate.go`
 
 - [ ] **Step 1: 更新 Candidate 结构体**
@@ -674,7 +677,7 @@ func DeleteCandidate(id string) error {
 func TestCandidateManagement(t *testing.T) {
     storage := NewInMemoryStorage()
     SetCandidateStorage(storage)
-    
+
     // Register
     c, err := RegisterCandidate("张三", "党A", "纲领A")
     if err != nil {
@@ -683,7 +686,7 @@ func TestCandidateManagement(t *testing.T) {
     if c.Name != "张三" {
         t.Errorf("Name = %v, want 张三", c.Name)
     }
-    
+
     // Get
     got, err := GetCandidate(c.ID)
     if err != nil {
@@ -692,7 +695,7 @@ func TestCandidateManagement(t *testing.T) {
     if got.Party != "党A" {
         t.Errorf("Party = %v, want 党A", got.Party)
     }
-    
+
     // List
     list, err := ListCandidates()
     if err != nil {
@@ -701,12 +704,12 @@ func TestCandidateManagement(t *testing.T) {
     if len(list) != 1 {
         t.Errorf("len(list) = %v, want 1", len(list))
     }
-    
+
     // Delete
     if err := DeleteCandidate(c.ID); err != nil {
         t.Fatal(err)
     }
-    
+
     got, _ = GetCandidate(c.ID)
     if got != nil {
         t.Error("Candidate should be deleted")
@@ -731,6 +734,7 @@ git commit -m "feat: implement candidate management"
 ## Task 4: 投票人会话
 
 **Files:**
+
 - Modify: `internal/voting/voter.go`
 
 - [ ] **Step 1: 更新 Voter 结构体和注册函数**
@@ -764,18 +768,18 @@ func RegisterVoter(name string) (publicKey []byte, privateKey []byte, err error)
     if err != nil {
         return nil, nil, err
     }
-    
+
     voter := &Voter{
         PublicKey:    base64.StdEncoding.EncodeToString(pub),
         Name:         name,
         HasVoted:     false,
         RegisteredAt: time.Now().Unix(),
     }
-    
+
     if err := voterStorage.SaveVoter(voter); err != nil {
         return nil, nil, err
     }
-    
+
     return pub, priv, nil
 }
 
@@ -815,16 +819,16 @@ func MarkVoted(publicKey, voteHash string) error {
 func TestVoterRegistration(t *testing.T) {
     storage := NewInMemoryStorage()
     SetVoterStorage(storage)
-    
+
     pub, priv, err := RegisterVoter("投票人A")
     if err != nil {
         t.Fatal(err)
     }
-    
+
     if len(pub) == 0 || len(priv) == 0 {
         t.Error("Keys should not be empty")
     }
-    
+
     // Verify voter exists
     pkStr := base64.StdEncoding.EncodeToString(pub)
     voter, err := GetVoter(pkStr)
@@ -837,7 +841,7 @@ func TestVoterRegistration(t *testing.T) {
     if voter.HasVoted {
         t.Error("Should not have voted yet")
     }
-    
+
     // Test CanVote
     canVote, err := CanVote(pkStr)
     if err != nil {
@@ -846,12 +850,12 @@ func TestVoterRegistration(t *testing.T) {
     if !canVote {
         t.Error("Should be able to vote")
     }
-    
+
     // Mark as voted
     if err := MarkVoted(pkStr, "some-hash"); err != nil {
         t.Fatal(err)
     }
-    
+
     canVote, _ = CanVote(pkStr)
     if canVote {
         t.Error("Should not be able to vote again")
@@ -876,6 +880,7 @@ git commit -m "feat: implement voter registration with Ed25519"
 ## Task 5: 投票逻辑
 
 **Files:**
+
 - Modify: `internal/voting/vote.go`
 
 - [ ] **Step 1: 更新投票函数**
@@ -906,7 +911,7 @@ type VoteRecord struct {
 
 func CastVote(voterPK []byte, candidateID string, privateKey []byte, chain *blockchain.BlockChain) (*VoteRecord, error) {
     pkStr := base64.StdEncoding.EncodeToString(voterPK)
-    
+
     // Verify voter exists and hasn't voted
     voter, err := voterStorage.GetVoter(pkStr)
     if err != nil {
@@ -918,7 +923,7 @@ func CastVote(voterPK []byte, candidateID string, privateKey []byte, chain *bloc
     if voter.HasVoted {
         return nil, fmt.Errorf("already voted")
     }
-    
+
     // Verify candidate exists
     candidate, err := candidateStorage.GetCandidate(candidateID)
     if err != nil {
@@ -927,14 +932,14 @@ func CastVote(voterPK []byte, candidateID string, privateKey []byte, chain *bloc
     if candidate == nil {
         return nil, fmt.Errorf("candidate not found")
     }
-    
+
     // Create vote message
     timestamp := time.Now().Unix()
     message := fmt.Sprintf("%s|%s|%d", pkStr, candidateID, timestamp)
-    
+
     // Sign
     signature := ed25519.Sign(privateKey, []byte(message))
-    
+
     // Create record
     record := &VoteRecord{
         ID:          uuid.New().String(),
@@ -945,29 +950,29 @@ func CastVote(voterPK []byte, candidateID string, privateKey []byte, chain *bloc
         Timestamp:   timestamp,
         BlockHeight: 0,
     }
-    
+
     // Save to blockchain
     jsonData, _ := record.ToJSON()
     height := chain.AddBlock(jsonData)
     record.BlockHeight = height
-    
+
     // Save to storage
     if err := voteStorage.SaveVote(record); err != nil {
         return nil, err
     }
-    
+
     // Update voter as voted
     voteHash := sha256.Sum256([]byte(message))
     if err := MarkVoted(pkStr, fmt.Sprintf("%x", voteHash)); err != nil {
         return nil, err
     }
-    
+
     // Update candidate vote count
     candidate.VoteCount++
     if err := candidateStorage.UpdateCandidate(candidate); err != nil {
         return nil, err
     }
-    
+
     return record, nil
 }
 
@@ -976,12 +981,12 @@ func VerifyVote(record *VoteRecord) bool {
     if err != nil {
         return false
     }
-    
+
     sigBytes, err := base64.StdEncoding.DecodeString(record.Signature)
     if err != nil {
         return false
     }
-    
+
     return ed25519.Verify(pubBytes, []byte(record.Message), sigBytes)
 }
 
@@ -1028,36 +1033,36 @@ func TestCastVote(t *testing.T) {
     SetCandidateStorage(storage)
     SetVoterStorage(storage)
     SetVoteStorage(storage)
-    
+
     chain := blockchain.InitBlockChain()
-    
+
     // Register candidate
     cand, _ := RegisterCandidate("张三", "党A", "纲领")
-    
+
     // Register voter
     pub, priv, _ := RegisterVoter("投票人A")
-    
+
     // Cast vote
     record, err := CastVote(pub, cand.ID, priv, chain)
     if err != nil {
         t.Fatal(err)
     }
-    
+
     if record.ID == "" {
         t.Error("Vote ID should not be empty")
     }
-    
+
     // Verify vote
     if !VerifyVote(record) {
         t.Error("Vote verification should pass")
     }
-    
+
     // Verify can't vote again
     _, err = CastVote(pub, cand.ID, priv, chain)
     if err == nil {
         t.Error("Should not be able to vote twice")
     }
-    
+
     // Verify vote count
     count, _ := CountVotes(cand.ID)
     if count != 1 {
@@ -1083,6 +1088,7 @@ git commit -m "feat: implement vote casting with Ed25519 signature"
 ## Task 6: 投票会话
 
 **Files:**
+
 - Create: `internal/voting/session.go`
 
 - [ ] **Step 1: 创建会话管理**
@@ -1107,11 +1113,11 @@ func CreateSession(title, description string, candidateIDs []string, startTime, 
         Candidates:  candidateIDs,
         CreatedAt:   time.Now().Unix(),
     }
-    
+
     if err := sessionStorage.SaveSession(session); err != nil {
         return nil, err
     }
-    
+
     return session, nil
 }
 
@@ -1131,10 +1137,10 @@ func StartSession(id string) error {
     if session == nil {
         return nil // or error
     }
-    
+
     session.Status = "active"
     session.StartTime = time.Now().Unix()
-    
+
     return sessionStorage.UpdateSession(session)
 }
 
@@ -1146,10 +1152,10 @@ func EndSession(id string) error {
     if session == nil {
         return nil
     }
-    
+
     session.Status = "ended"
     session.EndTime = time.Now().Unix()
-    
+
     return sessionStorage.UpdateSession(session)
 }
 
@@ -1161,7 +1167,7 @@ func GetSessionResults(sessionID string) (map[string]int, error) {
     if session == nil {
         return nil, nil
     }
-    
+
     results := make(map[string]int)
     for _, cid := range session.Candidates {
         count, err := CountVotes(cid)
@@ -1170,7 +1176,7 @@ func GetSessionResults(sessionID string) (map[string]int, error) {
         }
         results[cid] = count
     }
-    
+
     return results, nil
 }
 
@@ -1201,36 +1207,36 @@ func TestVotingSession(t *testing.T) {
     SetVoterStorage(storage)
     SetVoteStorage(storage)
     SetSessionStorage(storage)
-    
+
     // Create candidates
     c1, _ := RegisterCandidate("张三", "党A", "纲领A")
     c2, _ := RegisterCandidate("李四", "党B", "纲领B")
-    
+
     // Create session
     session, err := CreateSession("2024选举", "主席选举", []string{c1.ID, c2.ID}, 0, 0)
     if err != nil {
         t.Fatal(err)
     }
-    
+
     if session.Status != "draft" {
         t.Errorf("Status = %v, want draft", session.Status)
     }
-    
+
     // Start session
     if err := StartSession(session.ID); err != nil {
         t.Fatal(err)
     }
-    
+
     s, _ := GetSession(session.ID)
     if s.Status != "active" {
         t.Errorf("Status = %v, want active", s.Status)
     }
-    
+
     // End session
     if err := EndSession(session.ID); err != nil {
         t.Fatal(err)
     }
-    
+
     s, _ = GetSession(session.ID)
     if s.Status != "ended" {
         t.Errorf("Status = %v, want ended", s.Status)
@@ -1255,6 +1261,7 @@ git commit -m "feat: implement voting session management"
 ## Task 7: CLI 命令
 
 **Files:**
+
 - Create: `cmd/aurora/cmd/voting.go`
 
 - [ ] **Step 1: 创建 CLI 命令**
@@ -1288,13 +1295,13 @@ var candidateAddCmd = &cobra.Command{
         name, _ := cmd.Flags().GetString("name")
         party, _ := cmd.Flags().GetString("party")
         program, _ := cmd.Flags().GetString("program")
-        
+
         cand, err := voting.RegisterCandidate(name, party, program)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Printf("Candidate registered: %s (%s)\n", cand.Name, cand.ID)
     },
 }
@@ -1308,7 +1315,7 @@ var candidateListCmd = &cobra.Command{
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Println("Candidates:")
         for _, c := range list {
             fmt.Printf("  - %s [%s] - %d votes\n", c.Name, c.Party, c.VoteCount)
@@ -1326,13 +1333,13 @@ var voterRegisterCmd = &cobra.Command{
     Short: "Register a new voter",
     Run: func(cmd *cobra.Command, args []string) {
         name, _ := cmd.Flags().GetString("name")
-        
+
         pub, priv, err := voting.RegisterVoter(name)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Println("Voter registered successfully!")
         fmt.Printf("Public Key:  %s\n", base64.StdEncoding.EncodeToString(pub))
         fmt.Println("PRIVATE KEY: (save this!)")
@@ -1347,26 +1354,26 @@ var voteCmd = &cobra.Command{
         voterPK, _ := cmd.Flags().GetString("voter")
         candidateID, _ := cmd.Flags().GetString("candidate")
         privKey, _ := cmd.Flags().GetString("private-key")
-        
+
         pubBytes, err := base64.StdEncoding.DecodeString(voterPK)
         if err != nil {
             fmt.Println("Invalid voter public key")
             return
         }
-        
+
         privBytes, err := base64.StdEncoding.DecodeString(privKey)
         if err != nil {
             fmt.Println("Invalid private key")
             return
         }
-        
+
         chain := blockchain.InitBlockChain()
         record, err := voting.CastVote(pubBytes, candidateID, privBytes, chain)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Println("Vote cast successfully!")
         fmt.Printf("Vote ID:     %s\n", record.ID)
         fmt.Printf("Block Height: %d\n", record.BlockHeight)
@@ -1385,13 +1392,13 @@ var sessionCreateCmd = &cobra.Command{
         title, _ := cmd.Flags().GetString("title")
         description, _ := cmd.Flags().GetString("description")
         candidates, _ := cmd.Flags().GetStringSlice("candidates")
-        
+
         session, err := voting.CreateSession(title, description, candidates, 0, 0)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Printf("Session created: %s\n", session.ID)
     },
 }
@@ -1405,7 +1412,7 @@ var sessionListCmd = &cobra.Command{
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Println("Voting Sessions:")
         for _, s := range list {
             fmt.Printf("  - %s [%s] - %s\n", s.Title, s.Status, s.ID)
@@ -1418,13 +1425,13 @@ var resultsCmd = &cobra.Command{
     Short: "Get voting results",
     Run: func(cmd *cobra.Command, args []string) {
         sessionID, _ := cmd.Flags().GetString("session")
-        
+
         results, err := voting.GetSessionResults(sessionID)
         if err != nil {
             fmt.Println("Error:", err)
             return
         }
-        
+
         fmt.Println("Results:")
         for cid, count := range results {
             cand, _ := voting.GetCandidate(cid)
@@ -1439,24 +1446,24 @@ var resultsCmd = &cobra.Command{
 
 func init() {
     rootCmd.AddCommand(votingCmd)
-    
+
     // Candidate commands
     votingCmd.AddCommand(candidateCmd)
     candidateCmd.AddCommand(candidateAddCmd)
     candidateCmd.AddCommand(candidateListCmd)
-    
+
     candidateAddCmd.Flags().StringP("name", "n", "", "Candidate name")
     candidateAddCmd.Flags().StringP("party", "p", "", "Candidate party")
     candidateAddCmd.Flags().StringP("program", "m", "", "Candidate program")
     candidateAddCmd.MarkFlagRequired("name")
-    
+
     // Voter commands
     votingCmd.AddCommand(voterCmd)
     voterCmd.AddCommand(voterRegisterCmd)
-    
+
     voterRegisterCmd.Flags().StringP("name", "n", "", "Voter name")
     voterRegisterCmd.MarkFlagRequired("name")
-    
+
     // Vote command
     votingCmd.AddCommand(voteCmd)
     voteCmd.Flags().StringP("voter", "v", "", "Voter public key (Base64)")
@@ -1465,18 +1472,18 @@ func init() {
     voteCmd.MarkFlagRequired("voter")
     voteCmd.MarkFlagRequired("candidate")
     voteCmd.MarkFlagRequired("private-key")
-    
+
     // Session commands
     votingCmd.AddCommand(sessionCmd)
     sessionCmd.AddCommand(sessionCreateCmd)
     sessionCmd.AddCommand(sessionListCmd)
-    
+
     sessionCreateCmd.Flags().StringP("title", "t", "", "Session title")
     sessionCreateCmd.Flags().StringP("description", "d", "", "Session description")
     sessionCreateCmd.Flags().StringSliceP("candidates", "c", []string{}, "Candidate IDs")
     sessionCreateCmd.MarkFlagRequired("title")
     sessionCreateCmd.MarkFlagRequired("candidates")
-    
+
     // Results command
     votingCmd.AddCommand(resultsCmd)
     resultsCmd.Flags().StringP("session", "s", "", "Session ID")
@@ -1491,6 +1498,7 @@ func init() {
 - [ ] **Step 3: 初始化存储**
 
 在 `cmd/aurora/main.go` 或 `root.go` 中添加：
+
 ```go
 import "github.com/pplmx/aurora/internal/voting"
 
@@ -1520,6 +1528,7 @@ git commit -m "feat: add voting CLI commands"
 ## Task 8: TUI 界面
 
 **Files:**
+
 - Modify: `internal/voting/tui.go` (创建新文件)
 
 - [ ] **Step 1: 创建 TUI 主界面**
@@ -1640,6 +1649,7 @@ git commit -m "feat: add voting TUI interface"
 ## Task 9: 集成测试
 
 **Files:**
+
 - Create: `test/voting_e2e_test.go`
 
 - [ ] **Step 1: 编写端到端测试**
@@ -1783,6 +1793,7 @@ git commit -m "feat: complete voting system"
 ## 总结
 
 完成所有任务后，你将拥有：
+
 - ✅ SQLite 存储层（可替换为内存）
 - ✅ 候选人管理（注册、列表、删除）
 - ✅ 投票人注册（Ed25519 密钥对）

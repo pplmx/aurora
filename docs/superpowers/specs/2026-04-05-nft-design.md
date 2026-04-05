@@ -16,13 +16,13 @@
 
 ## 技术选型
 
-| 组件 | 技术 | 版本 |
-|------|------|------|
-| 语言 | Go | 1.26+ |
+| 组件 | 技术           | 版本   |
+| ---- | -------------- | ------ |
+| 语言 | Go             | 1.26+  |
 | 签名 | crypto/ed25519 | 标准库 |
-| 存储 | 内存 + 区块链 | - |
-| TUI | Bubble Tea | latest |
-| CLI | Cobra | latest |
+| 存储 | 内存 + 区块链  | -      |
+| TUI  | Bubble Tea     | latest |
+| CLI  | Cobra          | latest |
 
 ## 数据结构
 
@@ -73,17 +73,17 @@ func MintNFT(name, description, imageURL, tokenURI string, creatorPub []byte, ch
         TokenURI:    tokenURI,
         Timestamp:   time.Now().Unix(),
     }
-    
+
     // 上链
     jsonData, _ := json.Marshal(nft)
     height := chain.AddBlock(string(jsonData))
     nft.BlockHeight = height
-    
+
     // 保存到存储
     if err := nftStorage.SaveNFT(nft); err != nil {
         return nil, err
     }
-    
+
     // 记录操作
     op := &NFTOperation{
         ID:         uuid.New().String(),
@@ -95,7 +95,7 @@ func MintNFT(name, description, imageURL, tokenURI string, creatorPub []byte, ch
         Timestamp:  nft.Timestamp,
     }
     nftStorage.SaveOperation(op)
-    
+
     return nft, nil
 }
 ```
@@ -112,17 +112,17 @@ func TransferNFT(nftID string, fromPub, fromPriv, toPub []byte, chain *blockchai
     if nft == nil {
         return nil, fmt.Errorf("NFT not found")
     }
-    
+
     // 验证所有者
     fromPubStr := base64.StdEncoding.EncodeToString(fromPub)
     if nft.Owner != fromPubStr {
         return nil, fmt.Errorf("not the owner")
     }
-    
+
     // 创建签名消息
     message := fmt.Sprintf("%s|%s|%s|%d", nftID, fromPubStr, base64.StdEncoding.EncodeToString(toPub), time.Now().Unix())
     signature := ed25519.Sign(fromPriv, []byte(message))
-    
+
     // 创建转让操作
     toPubStr := base64.StdEncoding.EncodeToString(toPub)
     op := &NFTOperation{
@@ -134,19 +134,19 @@ func TransferNFT(nftID string, fromPub, fromPriv, toPub []byte, chain *blockchai
         Signature:  base64.StdEncoding.EncodeToString(signature),
         Timestamp:  time.Now().Unix(),
     }
-    
+
     // 上链
     jsonData, _ := json.Marshal(op)
     height := chain.AddBlock(string(jsonData))
     op.BlockHeight = height
-    
+
     // 更新 NFT 所有者
     nft.Owner = toPubStr
     nftStorage.UpdateNFT(nft)
-    
+
     // 保存操作记录
     nftStorage.SaveOperation(op)
-    
+
     return op, nil
 }
 ```
@@ -158,10 +158,10 @@ func VerifyTransfer(op *NFTOperation) bool {
     // 验证签名
     pubBytes, _ := base64.StdEncoding.DecodeString(op.From)
     sigBytes, _ := base64.StdEncoding.DecodeString(op.Signature)
-    
+
     // 重建消息（简化版，忽略时间戳）
     message := fmt.Sprintf("%s|%s|%s|", op.NFTID, op.From, op.To)
-    
+
     return ed25519.Verify(pubBytes, []byte(message), sigBytes)
 }
 ```
@@ -177,17 +177,17 @@ func BurnNFT(nftID string, ownerPub, ownerPriv []byte, chain *blockchain.BlockCh
     if nft == nil {
         return fmt.Errorf("NFT not found")
     }
-    
+
     // 验证所有者
     ownerPubStr := base64.StdEncoding.EncodeToString(ownerPub)
     if nft.Owner != ownerPubStr {
         return fmt.Errorf("not the owner")
     }
-    
+
     // 签名确认
     message := fmt.Sprintf("%s|burn|%d", nftID, time.Now().Unix())
     signature := ed25519.Sign(ownerPriv, []byte(message))
-    
+
     // 创建销毁操作
     op := &NFTOperation{
         ID:         uuid.New().String(),
@@ -198,16 +198,16 @@ func BurnNFT(nftID string, ownerPub, ownerPriv []byte, chain *blockchain.BlockCh
         Signature:  base64.StdEncoding.EncodeToString(signature),
         Timestamp:  time.Now().Unix(),
     }
-    
+
     // 上链
     jsonData, _ := json.Marshal(op)
     height := chain.AddBlock(string(jsonData))
     op.BlockHeight = height
-    
+
     // 删除 NFT
     nftStorage.DeleteNFT(nftID)
     nftStorage.SaveOperation(op)
-    
+
     return nil
 }
 ```
@@ -284,7 +284,7 @@ type NFTStorage struct {
 
 ## 文件结构
 
-```
+```text
 internal/
 ├── nft/
 │   ├── nft.go        # 核心逻辑

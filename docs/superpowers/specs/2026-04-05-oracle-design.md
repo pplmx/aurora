@@ -15,17 +15,17 @@
 
 ## 技术选型
 
-| 组件 | 技术 | 版本 |
-|------|------|------|
-| 语言 | Go | 1.26+ |
-| HTTP 客户端 | net/http | 标准库 |
-| 存储 | 内存 + SQLite | github.com/mattn/go-sqlite3 |
-| TUI | Bubble Tea | latest |
-| CLI | Cobra | latest |
+| 组件        | 技术          | 版本                        |
+| ----------- | ------------- | --------------------------- |
+| 语言        | Go            | 1.26+                       |
+| HTTP 客户端 | net/http      | 标准库                      |
+| 存储        | 内存 + SQLite | github.com/mattn/go-sqlite3 |
+| TUI         | Bubble Tea    | latest                      |
+| CLI         | Cobra         | latest                      |
 
 ## 架构
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                       CLI/TUI 层                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
@@ -138,28 +138,28 @@ func RegisterDataSource(name, url, dataType string, interval int) (*DataSource, 
 ```go
 func FetchData(source *DataSource) (*OracleData, error) {
     client := &http.Client{Timeout: 10 * time.Second}
-    
+
     req, err := http.NewRequest(source.Method, source.URL, nil)
     if err != nil {
         return nil, err
     }
-    
+
     resp, err := client.Do(req)
     if err != nil {
         return nil, err
     }
     defer resp.Body.Close()
-    
+
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         return nil, err
     }
-    
+
     value := string(body)
     if source.Path != "" {
         value = extractByPath(string(body), source.Path)
     }
-    
+
     return &OracleData{
         ID:          uuid.New().String(),
         SourceID:    source.ID,
@@ -200,6 +200,7 @@ func GetDataByTimeRange(sourceID string, start, end int64) ([]*OracleData, error
 ## JSON 路径提取
 
 支持简单的 JSON 路径提取，例如：
+
 - `bitcoin.usd` → `{"bitcoin":{"usd":50000}}` → `50000`
 - `data.temp` → `{"data":{"temp":25}}` → `25`
 
@@ -209,10 +210,10 @@ func extractByPath(jsonStr, path string) string {
     if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
         return jsonStr
     }
-    
+
     parts := strings.Split(path, ".")
     current := interface{}(data)
-    
+
     for _, part := range parts {
         if m, ok := current.(map[string]interface{}); ok {
             if v, exists := m[part]; exists {
@@ -224,7 +225,7 @@ func extractByPath(jsonStr, path string) string {
             return jsonStr
         }
     }
-    
+
     if result, ok := current.(string); ok {
         return result
     }
@@ -280,7 +281,7 @@ type Storage interface {
     ListDataSources() ([]*DataSource, error)
     UpdateDataSource(ds *DataSource) error
     DeleteDataSource(id string) error
-    
+
     // OracleData
     SaveOracleData(d *OracleData) error
     GetOracleData(id string) (*OracleData, error)
@@ -317,7 +318,7 @@ type Storage interface {
 
 ### 主菜单
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │          🌟 Oracle 预言机系统 🌟            │
 │                                            │
@@ -333,7 +334,7 @@ type Storage interface {
 
 ### 数据获取
 
-```
+```text
 ┌────────────────────────────────────────────┐
 │           获取数据                          │
 │                                            │
@@ -372,7 +373,7 @@ type Storage interface {
 
 ## 文件结构
 
-```
+```text
 internal/
 ├── oracle/
 │   ├── oracle.go        # 核心逻辑

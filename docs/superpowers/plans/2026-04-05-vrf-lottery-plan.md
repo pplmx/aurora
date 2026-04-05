@@ -12,7 +12,7 @@
 
 ## 文件结构
 
-```
+```text
 cmd/aurora/cmd/
 ├── root.go              # 已存在，添加 lottery 子命令
 └── lottery.go           # 新增：lottery 子命令入口
@@ -33,6 +33,7 @@ internal/
 ## Task 1: 依赖添加
 
 **Files:**
+
 - Modify: `go.mod`
 - Modify: `go.sum` (自动)
 
@@ -47,7 +48,8 @@ Run: `go get filippo.io/bbls12381`
 - [ ] **Step 3: 更新 go.mod**
 
 确认 go.mod 包含:
-```
+
+```text
 github.com/rs/zerolog v1.35.0
 github.com/spf13/cobra v1.10.2
 github.com/spf13/viper v1.21.0
@@ -68,6 +70,7 @@ git commit -m "deps: add tview and bbls12381 for VRF lottery"
 ## Task 2: 地址转换工具
 
 **Files:**
+
 - Create: `internal/lottery/address.go`
 
 - [ ] **Step 1: 写失败的测试**
@@ -87,7 +90,7 @@ func TestNameToAddress(t *testing.T) {
         {"张三", "0x"},
         {"李四", "0x"},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             got := NameToAddress(tt.name)
@@ -145,6 +148,7 @@ git commit -m "feat: add NameToAddress function"
 ## Task 3: VRF 实现
 
 **Files:**
+
 - Create: `internal/lottery/vrf.go`
 
 - [ ] **Step 1: 写失败的测试**
@@ -162,20 +166,20 @@ func TestVRFGenerate(t *testing.T) {
     if err != nil {
         t.Fatalf("GenerateKeyPair failed: %v", err)
     }
-    
+
     output, proof, err := VRFProve(sk, []byte(seed))
     if err != nil {
         t.Fatalf("VRFProve failed: %v", err)
     }
-    
+
     if len(output) == 0 {
         t.Error("VRF output should not be empty")
     }
-    
+
     if len(proof) == 0 {
         t.Error("VRF proof should not be empty")
     }
-    
+
     // 验证证明
     valid := VRFVerify(pk, []byte(seed), output, proof)
     if !valid {
@@ -187,10 +191,10 @@ func TestVRFUniqueness(t *testing.T) {
     seed := "same-seed"
     pk1, sk1, _ := GenerateKeyPair()
     pk2, sk2, _ := GenerateKeyPair()
-    
+
     output1, _, _ := VRFProve(sk1, []byte(seed))
     output2, _, _ := VRFProve(sk2, []byte(seed))
-    
+
     // 不同密钥对同一种子应产生不同输出
     if string(output1) == string(output2) {
         t.Error("Different key pairs should produce different outputs")
@@ -228,30 +232,30 @@ func GenerateKeyPair() (*bbls12381.G1, *bbls12381.Scalar, error) {
     if err := sk.SetRandom(rand.Reader); err != nil {
         return nil, nil, err
     }
-    
+
     pk := new(bbls12381.G1)
     pk.ScalarBaseMult(sk)
-    
+
     return pk, sk, nil
 }
 
 func VRFProve(sk *bbls12381.Scalar, message []byte) ([]byte, []byte, error) {
     // 使用 BLS12-381 G1 曲线 VRF
     // 简化实现：hash_to_point + scalar_mult
-    
+
     // 将消息哈希到曲线上一点
     point := hashToG1(message)
-    
+
     // 计算输出 = sk * point
     output := new(bbls12381.G1)
     output.ScalarMult(point, sk)
-    
+
     // 生成证明（简化版：输出+point）
     outputBytes, _ := output.Marshal()
     proof := make([]byte, len(outputBytes)+len(point.Marshal()))
     copy(proof, outputBytes)
     copy(proof[len(outputBytes):], point.Marshal())
-    
+
     return outputBytes, proof, nil
 }
 
@@ -289,6 +293,7 @@ git commit -m "feat: implement VRF with BLS12-381"
 ## Task 4: 抽奖核心逻辑
 
 **Files:**
+
 - Create: `internal/lottery/lottery.go`
 
 - [ ] **Step 1: 写失败的测试**
@@ -303,13 +308,13 @@ import (
 func TestSelectWinners(t *testing.T) {
     participants := []string{"张三", "李四", "王五", "赵六", "钱七"}
     output := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}
-    
+
     winners := SelectWinners(output, participants, 3)
-    
+
     if len(winners) != 3 {
         t.Errorf("SelectWinners() = %v, want 3 winners", len(winners))
     }
-    
+
     // 检查没有重复
     seen := make(map[string]bool)
     for _, w := range winners {
@@ -323,9 +328,9 @@ func TestSelectWinners(t *testing.T) {
 func TestSelectWinnersNotEnoughParticipants(t *testing.T) {
     participants := []string{"张三", "李四"}
     output := []byte{0x00, 0x01, 0x02, 0x03}
-    
+
     winners := SelectWinners(output, participants, 5)
-    
+
     // 应该返回所有参与者
     if len(winners) != 2 {
         t.Errorf("SelectWinners() = %v, want 2 (all participants)", len(winners))
@@ -339,9 +344,9 @@ func TestCreateLotteryRecord(t *testing.T) {
     winnerAddrs := []string{NameToAddress("王五")}
     output := []byte{0x01, 0x02, 0x03}
     proof := []byte{0x04, 0x05, 0x06}
-    
+
     record := CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 1)
-    
+
     if record.Seed != seed {
         t.Errorf("Seed = %v, want %v", record.Seed, seed)
     }
@@ -391,31 +396,31 @@ func SelectWinners(output []byte, participants []string, count int) []string {
     if len(participants) == 0 {
         return []string{}
     }
-    
+
     if count >= len(participants) {
         return participants
     }
-    
+
     winners := make([]string, 0, count)
     used := make(map[int]bool)
-    
+
     current := make([]byte, len(output))
     copy(current, output)
-    
+
     for len(winners) < count && len(used) < len(participants) {
         // 将当前字节转为大整数并取模
         num := new(big.Int).SetBytes(current)
         idx := int(num.Mod(num, big.NewInt(int64(len(participants)))).Int64())
-        
+
         if !used[idx] {
             used[idx] = true
             winners = append(winners, participants[idx])
         }
-        
+
         // 重新哈希以生成下一个随机数
         current = sha256.Sum256(current)
     }
-    
+
     return winners
 }
 
@@ -431,7 +436,7 @@ func CreateLotteryRecord(
     // 用种子哈希生成 ID
     idHash := sha256.Sum256([]byte(seed))
     id := hex.EncodeToString(idHash[:])[:16]
-    
+
     return &LotteryRecord{
         ID:           id,
         Seed:         seed,
@@ -475,6 +480,7 @@ git commit -m "feat: implement lottery core logic"
 ## Task 5: 区块链集成
 
 **Files:**
+
 - Modify: `internal/blockchain/block.go`
 
 - [ ] **Step 1: 添加抽奖记录方法**
@@ -492,7 +498,7 @@ func (chain *BlockChain) AddLotteryRecord(record *lottery.LotteryRecord) (int64,
     if err != nil {
         return -1, err
     }
-    
+
     chain.AddBlock(string(data))
     return int64(len(chain.Blocks) - 1), nil
 }
@@ -502,14 +508,14 @@ func (chain *BlockChain) GetLotteryRecord(blockHeight int64) (*lottery.LotteryRe
     if blockHeight < 0 || blockHeight >= int64(len(chain.Blocks)) {
         return nil, fmt.Errorf("invalid block height")
     }
-    
+
     block := chain.Blocks[blockHeight]
     var record lottery.LotteryRecord
     err := json.Unmarshal(block.Data, &record)
     if err != nil {
         return nil, err
     }
-    
+
     return &record, nil
 }
 ```
@@ -531,6 +537,7 @@ git commit -m "feat: integrate lottery with blockchain"
 ## Task 6: CLI 命令
 
 **Files:**
+
 - Create: `cmd/aurora/cmd/lottery.go`
 
 - [ ] **Step 1: 创建 lottery 子命令**
@@ -557,34 +564,34 @@ var createCmd = &cobra.Command{
         participants, _ := cmd.Flags().GetStringSlice("participants")
         seed, _ := cmd.Flags().GetString("seed")
         count, _ := cmd.Flags().GetInt("count")
-        
+
         if len(participants) < count {
             println("Error: not enough participants")
             return
         }
-        
+
         // 生成 VRF
         pk, sk, err := lottery.GenerateKeyPair()
         if err != nil {
             println("Error generating key:", err)
             return
         }
-        
+
         output, proof, err := lottery.VRFProve(sk, []byte(seed))
         if err != nil {
             println("Error computing VRF:", err)
             return
         }
-        
+
         // 选择中奖者
         winners := lottery.SelectWinners(output, participants, count)
-        
+
         // 转换地址
         winnerAddrs := make([]string, len(winners))
         for i, w := range winners {
             winnerAddrs[i] = lottery.NameToAddress(w)
         }
-        
+
         // 上链
         chain := blockchain.InitBlockChain()
         record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
@@ -593,7 +600,7 @@ var createCmd = &cobra.Command{
             println("Error adding to blockchain:", err)
             return
         }
-        
+
         println("Lottery created successfully!")
         println("Block height:", height)
         println("Winners:", winners)
@@ -607,7 +614,7 @@ var historyCmd = &cobra.Command{
     Run: func(cmd *cobra.Command, args []string) {
         chain := blockchain.InitBlockChain()
         println("Total blocks:", len(chain.Blocks))
-        
+
         for i, block := range chain.Blocks {
             println("Block #", i, ":", string(block.Data[:min(100, len(block.Data))]))
         }
@@ -618,7 +625,7 @@ func init() {
     rootCmd.AddCommand(lotteryCmd)
     lotteryCmd.AddCommand(createCmd)
     lotteryCmd.AddCommand(historyCmd)
-    
+
     createCmd.Flags().StringSliceP("participants", "p", []string{}, "Participant names (comma-separated)")
     createCmd.Flags().StringP("seed", "s", "", "Random seed")
     createCmd.Flags().IntP("count", "c", 3, "Number of winners")
@@ -646,6 +653,7 @@ git commit -m "feat: add lottery CLI commands"
 ## Task 7: TUI 界面
 
 **Files:**
+
 - Create: `internal/lottery/tui.go`
 
 - [ ] **Step 1: 实现 TUI 主界面**
@@ -655,7 +663,7 @@ package lottery
 
 import (
     "fmt"
-    
+
     "github.com/rivo/tview"
 )
 
@@ -666,9 +674,9 @@ type LotteryApp struct {
 
 func NewLotteryApp() *LotteryApp {
     chain := blockchain.InitBlockChain()
-    
+
     app := tview.NewApplication()
-    
+
     return &LotteryApp{
         app:   app,
         chain: chain,
@@ -692,86 +700,86 @@ func (a *LotteryApp) Run() error {
             a.app.Stop()
         }
     })
-    
+
     a.app.SetRoot(menu, true)
     return a.app.Run()
 }
 
 func (a *LotteryApp) createLotteryView() tview.Primitive {
     flex := tview.NewFlex().SetDirection(tview.FlexRow)
-    
+
     // 标题
     flex.AddItem(tview.NewTextView().SetText("创建新抽奖").SetTextAlign(tview.AlignCenter), 1, 0, false)
-    
+
     // 参与者输入
     participantsInput := tview.NewTextArea()
     participantsInput.SetPlaceholder("每行一个参与者...")
     flex.AddItem(tview.NewTextView().SetText("参与者列表:"), 1, 0, false)
     flex.AddItem(participantsInput, 5, 0, false)
-    
+
     // 种子输入
     seedInput := tview.NewInputField()
     seedInput.SetPlaceholder("输入随机种子...")
     flex.AddItem(tview.NewTextView().SetText("随机种子:"), 1, 0, false)
     flex.AddItem(seedInput, 1, 0, false)
-    
+
     // 按钮
     button := tview.NewButton("[创建抽奖]")
     button.SetSelectedFunc(func() {
         participants := parseParticipants(participantsInput.GetText())
         seed := seedInput.GetText()
-        
+
         if len(participants) < 3 || seed == "" {
             a.app.SetRoot(a.errorView("参与者和种子不能为空"), true)
             return
         }
-        
+
         result := a.runLottery(participants, seed)
         a.app.SetRoot(a.resultView(result), true)
     })
     flex.AddItem(button, 1, 0, false)
-    
+
     return flex
 }
 
 func (a *LotteryApp) historyView() tview.Primitive {
     text := tview.NewTextView()
     text.SetDynamicColors(true)
-    
+
     for i, block := range a.chain.Blocks {
         fmt.Fprintf(text, "[yellow]Block #%d:[white] %s\n\n", i, string(block.Data[:min(200, len(block.Data))]))
     }
-    
+
     return tview.NewScrollView().SetContent(text)
 }
 
 func (a *LotteryApp) verifyView() tview.Primitive {
     input := tview.NewInputField()
     input.SetPlaceholder("输入抽奖ID...")
-    
+
     text := tview.NewTextView()
     text.SetText("输入抽奖ID进行验证")
-    
+
     button := tview.NewButton("[验证]")
     button.SetSelectedFunc(func() {
         id := input.GetText()
         // 验证逻辑
         text.SetText("验证中...")
     })
-    
+
     flex := tview.NewFlex().SetDirection(tview.FlexRow)
     flex.AddItem(tview.NewTextView().SetText("验证抽奖结果"), 1, 0, false)
     flex.AddItem(input, 1, 0, false)
     flex.AddItem(button, 1, 0, false)
     flex.AddItem(text, 5, 0, false)
-    
+
     return flex
 }
 
 func (a *LotteryApp) resultView(record *LotteryRecord) tview.Primitive {
     text := tview.NewTextView()
     text.SetDynamicColors(true)
-    
+
     fmt.Fprintf(text, "🎉 [green]抽奖完成！[white]\n\n")
     fmt.Fprintf(text, "中奖者:\n")
     for i, w := range record.Winners {
@@ -779,7 +787,7 @@ func (a *LotteryApp) resultView(record *LotteryRecord) tview.Primitive {
     }
     fmt.Fprintf(text, "\n区块高度: #%d\n", record.BlockHeight)
     fmt.Fprintf(text, "VRF证明: %s\n", record.VRFProof[:min(50, len(record.VRFProof))]+"...")
-    
+
     return text
 }
 
@@ -793,17 +801,17 @@ func (a *LotteryApp) errorView(msg string) tview.Primitive {
 func (a *LotteryApp) runLottery(participants []string, seed string) *LotteryRecord {
     pk, sk, _ := GenerateKeyPair()
     output, proof, _ := VRFProve(sk, []byte(seed))
-    
+
     winners := SelectWinners(output, participants, 3)
     winnerAddrs := make([]string, len(winners))
     for i, w := range winners {
         winnerAddrs[i] = NameToAddress(w)
     }
-    
+
     record := CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
     height, _ := a.chain.AddLotteryRecord(record)
     record.BlockHeight = height
-    
+
     _ = pk
     return record
 }
@@ -888,6 +896,7 @@ git commit -m "feat: add TUI interface for lottery"
 ## Task 8: 集成测试
 
 **Files:**
+
 - Modify: `internal/lottery/lottery_test.go`
 
 - [ ] **Step 1: 添加端到端测试**
@@ -897,29 +906,29 @@ func TestEndToEndLottery(t *testing.T) {
     // 1. 准备参与者
     participants := []string{"张三", "李四", "王五", "赵六", "钱七"}
     seed := "e2e-test-seed"
-    
+
     // 2. 生成 VRF
     pk, sk, err := GenerateKeyPair()
     if err != nil {
         t.Fatalf("GenerateKeyPair failed: %v", err)
     }
-    
+
     output, proof, err := VRFProve(sk, []byte(seed))
     if err != nil {
         t.Fatalf("VRFProve failed: %v", err)
     }
-    
+
     // 3. 验证 VRF
     if !VRFVerify(pk, []byte(seed), output, proof) {
         t.Fatal("VRFVerify failed")
     }
-    
+
     // 4. 选择中奖者
     winners := SelectWinners(output, participants, 3)
     if len(winners) != 3 {
         t.Fatalf("Expected 3 winners, got %d", len(winners))
     }
-    
+
     // 5. 转换地址
     for _, w := range winners {
         addr := NameToAddress(w)
@@ -927,14 +936,14 @@ func TestEndToEndLottery(t *testing.T) {
             t.Errorf("Invalid address length for %s: %d", w, len(addr))
         }
     }
-    
+
     // 6. 创建记录
     winnerAddrs := make([]string, len(winners))
     for i, w := range winners {
         winnerAddrs[i] = NameToAddress(w)
     }
     record := CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
-    
+
     // 7. 验证记录
     if record.Seed != seed {
         t.Errorf("Seed mismatch")
@@ -942,7 +951,7 @@ func TestEndToEndLottery(t *testing.T) {
     if len(record.Winners) != 3 {
         t.Errorf("Winners count mismatch")
     }
-    
+
     _ = pk // 避免编译警告
 }
 ```
@@ -975,6 +984,7 @@ Expected: 无警告
 - [ ] **Step 3: 验证功能**
 
 测试交互流程:
+
 1. `./aurora lottery create -p "张三,李四,王五,赵六" -s "种子123" -c 3`
 2. 应该显示3个中奖者
 3. `./aurora lottery history` 应该显示抽奖记录
@@ -993,6 +1003,7 @@ git tag v1.0.0
 ## 总结
 
 完成所有任务后，你将拥有：
+
 - ✅ VRF 可验证随机数生成（基于 BLS12-381）
 - ✅ 透明抽奖系统（多奖抽取）
 - ✅ 抽奖结果上链存储
