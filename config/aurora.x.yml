@@ -1,7 +1,0 @@
-log:
-    level: info
-    path: ./logs/
-
-lottery:
-    default_count: 3
-    default_seed_prefix: "aurora-vrf-"
