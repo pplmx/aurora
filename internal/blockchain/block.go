@@ -51,6 +51,12 @@ func Genesis() *Block {
 }
 
 func InitBlockChain() *BlockChain {
+	// Try to load from SQLite first
+	chain, err := LoadFromDB()
+	if err == nil && len(chain.Blocks) > 1 {
+		return chain
+	}
+	// Fall back to in-memory if DB doesn't exist or is empty
 	return &BlockChain{[]*Block{Genesis()}}
 }
 
