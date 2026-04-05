@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	"charm.land/lipgloss/v2"
 	"github.com/pplmx/aurora/internal/blockchain"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 var (
@@ -77,7 +77,7 @@ func NewLotteryApp() *model {
 	cInput.SetValue("3")
 	cInput.Prompt = "  "
 
-	vp := viewport.New(60, 15)
+	vp := viewport.New(viewport.WithWidth(60), viewport.WithHeight(15))
 
 	return &model{
 		view:              "menu",
@@ -99,7 +99,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.showHelp {
 			if msg.String() == "esc" || msg.String() == "?" {
 				m.showHelp = false
@@ -166,29 +166,33 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		m.viewport.Width = msg.Width - 4
-		m.viewport.Height = msg.Height - 12
+		m.viewport.SetWidth(msg.Width - 4)
+		m.viewport.SetHeight(msg.Height - 12)
 	}
 
 	return m, cmd
 }
 
-func (m *model) View() string {
+func (m *model) View() tea.View {
+	v := tea.NewView("")
 	if m.showHelp {
-		return m.helpView()
+		v.SetContent(m.helpView())
+	} else {
+		switch m.view {
+		case "menu":
+			v.SetContent(m.menuView())
+		case "create":
+			v.SetContent(m.createView())
+		case "history":
+			v.SetContent(m.historyView())
+		case "result":
+			v.SetContent(m.resultView())
+		default:
+			v.SetContent("")
+		}
 	}
-
-	switch m.view {
-	case "menu":
-		return m.menuView()
-	case "create":
-		return m.createView()
-	case "history":
-		return m.historyView()
-	case "result":
-		return m.resultView()
-	}
-	return ""
+	v.AltScreen = true
+	return v
 }
 
 func (m *model) menuView() string {
@@ -356,7 +360,7 @@ func parseTextArea(text string) []string {
 }
 
 func RunLotteryTUI() error {
-	p := tea.NewProgram(NewLotteryApp(), tea.WithAltScreen())
+	p := tea.NewProgram(NewLotteryApp())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 		return err

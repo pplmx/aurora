@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 var (
@@ -61,7 +61,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
 			if m.view == "menu" {
@@ -105,18 +105,20 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m *model) View() string {
+func (m *model) View() tea.View {
+	v := tea.NewView("")
 	switch m.view {
 	case "menu":
-		return m.menuView()
+		v.SetContent(m.menuView())
 	case "sources":
-		return m.sourcesView()
+		v.SetContent(m.sourcesView())
 	case "fetch":
-		return m.fetchView()
+		v.SetContent(m.fetchView())
 	case "data":
-		return m.dataView()
+		v.SetContent(m.dataView())
 	}
-	return ""
+	v.AltScreen = true
+	return v
 }
 
 func (m *model) menuView() string {
@@ -176,7 +178,7 @@ func (m *model) loadSources() {
 }
 
 func RunOracleTUI(storage Storage) error {
-	p := tea.NewProgram(NewOracleApp(storage), tea.WithAltScreen())
+	p := tea.NewProgram(NewOracleApp(storage))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 		return err
