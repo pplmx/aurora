@@ -18,7 +18,7 @@ func pubKey(n byte) PublicKey {
 func TestCreateToken(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	req := &CreateTokenRequest{
 		Name:        "Test Token",
@@ -43,7 +43,7 @@ func TestCreateToken(t *testing.T) {
 func TestCreateToken_InvalidName(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	req := &CreateTokenRequest{
 		Name:        "",
@@ -61,7 +61,7 @@ func TestCreateToken_InvalidName(t *testing.T) {
 func TestGetBalance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	owner := pubKey(1)
 	req := &CreateTokenRequest{
@@ -89,7 +89,7 @@ func TestGetBalance(t *testing.T) {
 func TestMint(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	owner := pubKey(1)
 	req := &CreateTokenRequest{
@@ -209,7 +209,7 @@ func TestTransfer_InsufficientBalance(t *testing.T) {
 func TestApprove(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	owner := pubKey(1)
 	req := &CreateTokenRequest{
@@ -309,7 +309,7 @@ func TestTransferFrom(t *testing.T) {
 func TestIncreaseAllowance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	owner := pubKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
@@ -346,7 +346,7 @@ func TestIncreaseAllowance(t *testing.T) {
 func TestDecreaseAllowance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	owner := pubKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
@@ -383,7 +383,7 @@ func TestDecreaseAllowance(t *testing.T) {
 func TestBurn(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	owner := pubKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
@@ -413,7 +413,7 @@ func TestBurn(t *testing.T) {
 func TestBurn_InsufficientBalance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	service := NewService(repo, eventStore, nil)
+	service := newTestService(repo, eventStore)
 
 	owner := pubKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
@@ -612,4 +612,17 @@ func (m *mockEventStore) GetBurnEventsByToken(tokenID TokenID) ([]*BurnEvent, er
 func (m *mockEventStore) GetLastNonce(tokenID TokenID, owner PublicKey) (uint64, error) {
 	key := string(tokenID) + string(owner)
 	return m.nonces[key], nil
+}
+
+type mockBlockWriter struct {
+	height int64
+}
+
+func (m *mockBlockWriter) AddBlock(data string) (int64, error) {
+	m.height++
+	return m.height, nil
+}
+
+func newTestService(repo Repository, eventStore EventStore) *TokenService {
+	return NewService(repo, eventStore, &mockBlockWriter{})
 }

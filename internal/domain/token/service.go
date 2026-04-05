@@ -190,17 +190,25 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 		return nil, err
 	}
 
+	event := NewMintEvent(req.TokenID, req.To, req.Amount)
+
+	data := fmt.Sprintf("mint|%s|%s", req.TokenID, req.To)
+	height, err := s.chain.AddBlock(data)
+	if err != nil {
+		return nil, err
+	}
+	event.SetBlockHeight(height)
+
+	if err := s.eventStore.SaveMintEvent(event); err != nil {
+		return nil, err
+	}
+
 	currentBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
 	if err != nil {
 		return nil, err
 	}
 	newBalance := &Amount{new(big.Int).Add(currentBalance.Int, req.Amount.Int)}
 	if err := s.repo.SetAccountBalance(req.TokenID, req.To, newBalance); err != nil {
-		return nil, err
-	}
-
-	event := NewMintEvent(req.TokenID, req.To, req.Amount)
-	if err := s.eventStore.SaveMintEvent(event); err != nil {
 		return nil, err
 	}
 
@@ -243,6 +251,14 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	signature := ed25519.Sign(req.PrivateKey, s.signMessage(req.TokenID, req.From, req.To, req.Amount, nonce))
 
 	event := NewTransferEvent(req.TokenID, req.From, req.To, req.Amount, nonce, signature)
+
+	data := fmt.Sprintf("transfer|%s|%s|%s", req.TokenID, req.From, req.To)
+	height, err := s.chain.AddBlock(data)
+	if err != nil {
+		return nil, err
+	}
+	event.SetBlockHeight(height)
+
 	if err := s.eventStore.SaveTransferEvent(event); err != nil {
 		return nil, err
 	}
@@ -314,6 +330,14 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	signature := ed25519.Sign(req.SpenderKey, s.signMessage(req.TokenID, req.Owner, req.To, req.Amount, nonce))
 
 	event := NewTransferEvent(req.TokenID, req.Owner, req.To, req.Amount, nonce, signature)
+
+	data := fmt.Sprintf("transferfrom|%s|%s|%s", req.TokenID, req.Owner, req.To)
+	height, err := s.chain.AddBlock(data)
+	if err != nil {
+		return nil, err
+	}
+	event.SetBlockHeight(height)
+
 	if err := s.eventStore.SaveTransferEvent(event); err != nil {
 		return nil, err
 	}
@@ -447,6 +471,14 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	}
 
 	event := NewBurnEvent(req.TokenID, req.From, req.Amount)
+
+	data := fmt.Sprintf("burn|%s|%s", req.TokenID, req.From)
+	height, err := s.chain.AddBlock(data)
+	if err != nil {
+		return nil, err
+	}
+	event.SetBlockHeight(height)
+
 	if err := s.eventStore.SaveBurnEvent(event); err != nil {
 		return nil, err
 	}
