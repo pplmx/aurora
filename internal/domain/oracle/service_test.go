@@ -76,16 +76,6 @@ func validateSource(s *DataSource) error {
 	return nil
 }
 
-var ErrInvalidSource = &OracleError{Message: "invalid source"}
-
-type OracleError struct {
-	Message string
-}
-
-func (e *OracleError) Error() string {
-	return e.Message
-}
-
 func TestOracleError_Error(t *testing.T) {
 	err := &OracleError{Message: "test error"}
 	if err.Error() != "test error" {
@@ -161,5 +151,217 @@ func TestDataSource_MultipleSources(t *testing.T) {
 		if s.URL == "" {
 			t.Error("Expected non-empty URL")
 		}
+	}
+}
+
+func TestAddSource(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	source := &DataSource{
+		Name: "test-source",
+		URL:  "https://api.example.com",
+		Type: "http",
+	}
+
+	err := svc.AddSource(source)
+	if err != nil {
+		t.Fatalf("AddSource failed: %v", err)
+	}
+
+	sources, _ := repo.ListSources()
+	if len(sources) != 1 {
+		t.Errorf("expected 1 source, got %d", len(sources))
+	}
+	if !sources[0].Enabled {
+		t.Error("expected source to be enabled by default")
+	}
+}
+
+func TestAddSource_Invalid(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	err := svc.AddSource(&DataSource{Name: "", URL: "https://api.example.com"})
+	if err == nil {
+		t.Error("expected error for invalid source")
+	}
+}
+
+func TestEnableSource(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	source := &DataSource{
+		ID:      "test-id",
+		Name:    "test-source",
+		URL:     "https://api.example.com",
+		Type:    "http",
+		Enabled: false,
+	}
+	_ = repo.SaveSource(source)
+
+	err := svc.EnableSource("test-id")
+	if err != nil {
+		t.Fatalf("EnableSource failed: %v", err)
+	}
+
+	updated, _ := repo.GetSource("test-id")
+	if !updated.Enabled {
+		t.Error("expected source to be enabled")
+	}
+}
+
+func TestEnableSource_NotFound(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	err := svc.EnableSource("non-existent")
+	if err != ErrSourceNotFound {
+		t.Errorf("expected ErrSourceNotFound, got %v", err)
+	}
+}
+
+func TestDisableSource(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	source := &DataSource{
+		ID:      "test-id",
+		Name:    "test-source",
+		URL:     "https://api.example.com",
+		Type:    "http",
+		Enabled: true,
+	}
+	_ = repo.SaveSource(source)
+
+	err := svc.DisableSource("test-id")
+	if err != nil {
+		t.Fatalf("DisableSource failed: %v", err)
+	}
+
+	updated, _ := repo.GetSource("test-id")
+	if updated.Enabled {
+		t.Error("expected source to be disabled")
+	}
+}
+
+func TestDisableSource_NotFound(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	err := svc.DisableSource("non-existent")
+	if err != ErrSourceNotFound {
+		t.Errorf("expected ErrSourceNotFound, got %v", err)
+	}
+}
+
+func TestDeleteSource(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	source := &DataSource{
+		ID:   "test-id",
+		Name: "test-source",
+		URL:  "https://api.example.com",
+		Type: "http",
+	}
+	_ = repo.SaveSource(source)
+
+	err := svc.DeleteSource("test-id")
+	if err != nil {
+		t.Fatalf("DeleteSource failed: %v", err)
+	}
+
+	deleted, _ := repo.GetSource("test-id")
+	if deleted != nil {
+		t.Error("expected source to be deleted")
+	}
+}
+
+func TestFetchData(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	source := &DataSource{
+		ID:      "test-id",
+		Name:    "test-source",
+		URL:     "https://api.example.com",
+		Type:    "http",
+		Enabled: true,
+	}
+	_ = repo.SaveSource(source)
+
+	data, err := svc.FetchData(source)
+	if err != nil {
+		t.Fatalf("FetchData failed: %v", err)
+	}
+	if data == nil {
+		t.Fatal("expected data, got nil")
+	}
+	if data.SourceID != source.ID {
+		t.Errorf("expected SourceID %s, got %s", source.ID, data.SourceID)
+	}
+}
+
+func TestFetchData_Disabled(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	source := &DataSource{
+		ID:      "test-id",
+		Name:    "test-source",
+		URL:     "https://api.example.com",
+		Type:    "http",
+		Enabled: false,
+	}
+
+	_, err := svc.FetchData(source)
+	if err != ErrSourceDisabled {
+		t.Errorf("expected ErrSourceDisabled, got %v", err)
+	}
+}
+
+func TestQueryData(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	source := &DataSource{
+		ID:   "test-id",
+		Name: "test-source",
+		URL:  "https://api.example.com",
+		Type: "http",
+	}
+	_ = repo.SaveSource(source)
+
+	for i := 0; i < 3; i++ {
+		data := &OracleData{
+			ID:        "data-" + string(rune('0'+i)),
+			SourceID:  "test-id",
+			Value:     "100",
+			Timestamp: int64(i),
+		}
+		_ = repo.SaveData(data)
+	}
+
+	results, err := svc.QueryData("test-id", 10)
+	if err != nil {
+		t.Fatalf("QueryData failed: %v", err)
+	}
+	if len(results) != 3 {
+		t.Errorf("expected 3 results, got %d", len(results))
+	}
+}
+
+func TestQueryData_Empty(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	results, err := svc.QueryData("non-existent", 10)
+	if err != nil {
+		t.Fatalf("QueryData failed: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("expected 0 results, got %d", len(results))
 	}
 }
