@@ -1,84 +1,89 @@
-# aurora
+# Aurora
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/golang-standards/project-layout?style=flat-square)](https://goreportcard.com/report/github.com/pplmx/aurora)
-[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/pplmx/aurora)
-[![Release](https://img.shields.io/github/release/golang-standards/project-layout.svg?style=flat-square)](https://github.com/golang-standards/project-layout/releases/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/pplmx/aurora?style=flat-square)](https://goreportcard.com/report/github.com/pplmx/aurora)
+[![Tests](https://github.com/pplmx/aurora/actions/workflows/ci.yml/badge.svg)](https://github.com/pplmx/aurora/actions)
+[![Release](https://img.shields.io/github/v/release/pplmx/aurora)](https://github.com/pplmx/aurora/releases)
 
-Aurora - 基于区块链的数字投票系统，更安全、透明、不可篡改。
+基于区块链的数字系统套件，支持抽奖、投票、预言机和 NFT。
 
 ## 功能
 
-### VRF 透明抽奖系统
-- 🎲 基于 VRF（可验证随机函数）的抽奖
-- ✅ 结果上链存证，可验证
-- 🖥️ TUI 和 CLI 界面
+### 🎲 VRF 透明抽奖
+- 基于 VRF（可验证随机函数）的抽奖
+- 结果上链存证，可验证
+- CLI 和 TUI 界面
+
+### 🗳️ 透明投票系统
+- Ed25519 签名验证
+- 区块链存证
+- 实时计票
+
+### 🔮 数据预言机
+- 通用 HTTP API 数据获取
+- 预设模板（BTC/ETH 价格）
+- 数据上链存证
+
+### 🖼️ NFT 系统
+- Ed25519 签名转移
+- 铸造、转让、销毁
+- 区块链存证
 
 ## 快速开始
 
-### 构建
+### 安装
 
 ```bash
-make build
-# 或
+# 下载 releases 或编译
 go build -o aurora ./cmd/aurora
 ```
 
-### CLI
+### 使用 justfile
 
 ```bash
-# 创建抽奖
-./aurora lottery create -p "张三,李四,王五,赵六" -s "种子字符串" -c 3
+just test          # 运行测试
+just build        # 构建所有平台
+just lint         # 代码检查
+just dev          # Docker 开发
+just image        # 构建 Docker
+```
 
-# 参数说明
-# -p, --participants: 参与者名单（逗号分隔）
-# -s, --seed: 随机种子
-# -c, --count: 获奖人数（默认3）
+### CLI 示例
 
-# 查看历史
+```bash
+# 抽奖
+./aurora lottery create -p "A,B,C,D" -s "seed" -c 3
 ./aurora lottery history
-```
-
-### TUI（交互式）
-
-```bash
 ./aurora lottery tui
-```
 
-## 开发
+# 投票
+./aurora voting candidate add -n "张三" -p "党A" -m "纲领"
+./aurora voting voter register -n "投票人"
+./aurora voting vote -v "<pub-key>" -c "<candidate-id>" -k "<priv-key>"
 
-```bash
-make test         # 运行所有测试
-make check        # 代码检查 (gofmt, goimports, go vet)
-make lint         # linter (需要 golangci-lint)
-make build        # 构建所有平台
-make dev          # Docker 开发环境
-```
+# 预言机
+./aurora oracle template list
+./aurora oracle template add btc-price
+./aurora oracle fetch --source <id>
 
-## 测试
-
-```bash
-# 单元测试
-go test ./internal/lottery/ -v
-
-# E2E 功能测试
-go test ./test/ -v
-
-# 所有测试
-go test ./...
+# NFT
+./aurora nft mint -n "My NFT" -c "<creator-pub>"
+./aurora nft transfer --nft <id> --from <from> --to <to> -k <priv>
 ```
 
 ## 项目结构
 
 ```
-cmd/aurora/       # CLI 入口
+cmd/aurora/        # CLI 入口
 internal/
-├── blockchain/   # 区块链核心
-├── lottery/      # 抽奖系统
+├── blockchain/    # 区块链 + SQLite 存储
+├── lottery/      # VRF 抽奖系统
 ├── voting/       # 投票系统
+├── oracle/       # 预言机
+├── nft/          # NFT 系统
 ├── logger/       # 日志
 └── utils/        # 工具
-test/
-└── lottery_e2e_test.go  # E2E 功能测试
+test/             # E2E 测试
+.github/workflows/# CI/CD
 ```
 
 ## 技术栈
@@ -87,11 +92,35 @@ test/
 - Cobra (CLI)
 - Viper (配置)
 - Zerolog (日志)
-- Edwards25519 (VRF)
+- Ed25519 (签名)
 - Bubble Tea (TUI)
-- Lipgloss (样式)
+- SQLite (持久化)
 
-## 文档
+## 开发
 
-- [抽奖系统文档](docs/lottery/README.md)
-- [测试文档](docs/lottery/testing.md)
+```bash
+# 测试
+just test
+just test-coverage
+
+# 代码检查
+just check
+just lint
+
+# 构建
+just build
+just build-current
+
+# Docker
+just dev      # 开发模式
+just prod     # 生产模式
+just image    # 构建镜像
+```
+
+## 贡献
+
+欢迎提交 Issue 和 PR！
+
+## 许可证
+
+MIT
