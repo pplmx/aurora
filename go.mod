@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	filippo.io/edwards25519 v1.2.0
 	github.com/charmbracelet/bubbles v1.0.0
-	github.com/charmbracelet/bubbletea v1.3.10
+	github.com/charmbracelet/bubbletea/v2 v2.0.2
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/rs/zerolog v1.35.0
 	github.com/spf13/cobra v1.10.2
