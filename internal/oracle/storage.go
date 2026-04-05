@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"time"
 
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
+	domainoracle "github.com/pplmx/aurora/internal/domain/oracle"
+	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 type DataSource struct {
@@ -54,8 +55,9 @@ type Storage interface {
 }
 
 type SQLiteStorage struct {
-	db *sql.DB
-	tx *sql.Tx
+	repo *oracleinfra.OracleRepository
+	db   *sql.DB
+	tx   *sql.Tx
 }
 
 func NewSQLiteStorage(path string) (*SQLiteStorage, error) {
@@ -74,6 +76,14 @@ func NewSQLiteStorage(path string) (*SQLiteStorage, error) {
 		db.Close()
 		return nil, fmt.Errorf("failed to init tables: %w", err)
 	}
+
+	repo, err := oracleinfra.NewOracleRepository(path)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	s.repo = repo
+
 	return s, nil
 }
 
@@ -309,110 +319,156 @@ func (s *SQLiteStorage) Close() error {
 }
 
 type InMemoryStorage struct {
-	dataSources map[string]*DataSource
-	oracleData  map[string]*OracleData
+	repo *oracleinfra.InMemoryOracleRepository
 }
 
 func NewInMemoryStorage() *InMemoryStorage {
 	return &InMemoryStorage{
-		dataSources: make(map[string]*DataSource),
-		oracleData:  make(map[string]*OracleData),
+		repo: oracleinfra.NewInMemoryOracleRepository(),
+	}
+}
+
+func toDomainDataSource(ds *DataSource) *domainoracle.DataSource {
+	if ds == nil {
+		return nil
+	}
+	return &domainoracle.DataSource{
+		ID:        ds.ID,
+		Name:      ds.Name,
+		URL:       ds.URL,
+		Type:      ds.Type,
+		Method:    ds.Method,
+		Headers:   ds.Headers,
+		Path:      ds.Path,
+		Interval:  ds.Interval,
+		Enabled:   ds.Enabled,
+		CreatedAt: ds.CreatedAt,
+	}
+}
+
+func toStorageDataSource(ds *domainoracle.DataSource) *DataSource {
+	if ds == nil {
+		return nil
+	}
+	return &DataSource{
+		ID:        ds.ID,
+		Name:      ds.Name,
+		URL:       ds.URL,
+		Type:      ds.Type,
+		Method:    ds.Method,
+		Headers:   ds.Headers,
+		Path:      ds.Path,
+		Interval:  ds.Interval,
+		Enabled:   ds.Enabled,
+		CreatedAt: ds.CreatedAt,
+	}
+}
+
+func toDomainOracleData(d *OracleData) *domainoracle.OracleData {
+	if d == nil {
+		return nil
+	}
+	return &domainoracle.OracleData{
+		ID:          d.ID,
+		SourceID:    d.SourceID,
+		Value:       d.Value,
+		RawResponse: d.RawResponse,
+		Timestamp:   d.Timestamp,
+		BlockHeight: d.BlockHeight,
+	}
+}
+
+func toStorageOracleData(d *domainoracle.OracleData) *OracleData {
+	if d == nil {
+		return nil
+	}
+	return &OracleData{
+		ID:          d.ID,
+		SourceID:    d.SourceID,
+		Value:       d.Value,
+		RawResponse: d.RawResponse,
+		Timestamp:   d.Timestamp,
+		BlockHeight: d.BlockHeight,
 	}
 }
 
 func (s *InMemoryStorage) SaveDataSource(ds *DataSource) error {
-	if ds.ID == "" {
-		ds.ID = uuid.New().String()
-	}
-	if ds.CreatedAt == 0 {
-		ds.CreatedAt = time.Now().Unix()
-	}
-	s.dataSources[ds.ID] = ds
-	return nil
+	return s.repo.SaveSource(toDomainDataSource(ds))
 }
 
 func (s *InMemoryStorage) GetDataSource(id string) (*DataSource, error) {
-	return s.dataSources[id], nil
+	ds, err := s.repo.GetSource(id)
+	if err != nil {
+		return nil, err
+	}
+	return toStorageDataSource(ds), nil
 }
 
 func (s *InMemoryStorage) ListDataSources() ([]*DataSource, error) {
-	var sources []*DataSource
-	for _, ds := range s.dataSources {
-		sources = append(sources, ds)
+	sources, err := s.repo.ListSources()
+	if err != nil {
+		return nil, err
 	}
-	sort.Slice(sources, func(i, j int) bool {
-		return sources[i].CreatedAt > sources[j].CreatedAt
-	})
-	return sources, nil
+	result := make([]*DataSource, len(sources))
+	for i, ds := range sources {
+		result[i] = toStorageDataSource(ds)
+	}
+	return result, nil
 }
 
 func (s *InMemoryStorage) UpdateDataSource(ds *DataSource) error {
-	s.dataSources[ds.ID] = ds
-	return nil
+	return s.repo.UpdateSource(toDomainDataSource(ds))
 }
 
 func (s *InMemoryStorage) DeleteDataSource(id string) error {
-	delete(s.dataSources, id)
-	return nil
+	return s.repo.DeleteSource(id)
 }
 
 func (s *InMemoryStorage) SaveOracleData(d *OracleData) error {
-	if d.ID == "" {
-		d.ID = uuid.New().String()
-	}
-	if d.Timestamp == 0 {
-		d.Timestamp = time.Now().Unix()
-	}
-	s.oracleData[d.ID] = d
-	return nil
+	return s.repo.SaveData(toDomainOracleData(d))
 }
 
 func (s *InMemoryStorage) GetOracleData(id string) (*OracleData, error) {
-	return s.oracleData[id], nil
+	d, err := s.repo.GetData(id)
+	if err != nil {
+		return nil, err
+	}
+	return toStorageOracleData(d), nil
 }
 
 func (s *InMemoryStorage) GetOracleDataBySource(sourceID string, limit int) ([]*OracleData, error) {
 	if limit <= 0 {
 		limit = 100
 	}
-	var data []*OracleData
-	for _, d := range s.oracleData {
-		if d.SourceID == sourceID {
-			data = append(data, d)
-		}
+	data, err := s.repo.GetDataBySource(sourceID, limit)
+	if err != nil {
+		return nil, err
 	}
-	sort.Slice(data, func(i, j int) bool {
-		return data[i].Timestamp > data[j].Timestamp
-	})
-	if len(data) > limit {
-		data = data[:limit]
+	result := make([]*OracleData, len(data))
+	for i, d := range data {
+		result[i] = toStorageOracleData(d)
 	}
-	return data, nil
+	return result, nil
 }
 
 func (s *InMemoryStorage) GetLatestOracleData(sourceID string) (*OracleData, error) {
-	var latest *OracleData
-	var latestTs int64
-	for _, d := range s.oracleData {
-		if d.SourceID == sourceID && d.Timestamp > latestTs {
-			latest = d
-			latestTs = d.Timestamp
-		}
+	d, err := s.repo.GetLatestData(sourceID)
+	if err != nil {
+		return nil, err
 	}
-	return latest, nil
+	return toStorageOracleData(d), nil
 }
 
 func (s *InMemoryStorage) GetOracleDataByTimeRange(sourceID string, start, end int64) ([]*OracleData, error) {
-	var data []*OracleData
-	for _, d := range s.oracleData {
-		if d.SourceID == sourceID && d.Timestamp >= start && d.Timestamp <= end {
-			data = append(data, d)
-		}
+	data, err := s.repo.GetDataByTimeRange(sourceID, start, end)
+	if err != nil {
+		return nil, err
 	}
-	sort.Slice(data, func(i, j int) bool {
-		return data[i].Timestamp > data[j].Timestamp
-	})
-	return data, nil
+	result := make([]*OracleData, len(data))
+	for i, d := range data {
+		result[i] = toStorageOracleData(d)
+	}
+	return result, nil
 }
 
 func (s *InMemoryStorage) Begin() error {
@@ -429,4 +485,8 @@ func (s *InMemoryStorage) Rollback() error {
 
 func (s *InMemoryStorage) Close() error {
 	return nil
+}
+
+func (s *InMemoryStorage) GetRepo() *oracleinfra.InMemoryOracleRepository {
+	return s.repo
 }
