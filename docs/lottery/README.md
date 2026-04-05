@@ -7,10 +7,16 @@
 - 🎲 **VRF 随机数** - 基于 Edwards25519 曲线生成可验证的随机数
 - ✅ **上链存证** - 抽奖结果存储在区块链上，不可篡改
 - 🔍 **可验证** - 任何人都可以验证抽奖结果的公平性
-- 🖥️ **TUI 界面** - 交互式终端用户界面
+- 🖥️ **TUI 界面** - 使用 Bubble Tea 的交互式终端界面
 - 📖 **CLI 命令** - 便捷的命令行工具
 
 ## 快速开始
+
+### 构建
+
+```bash
+go build -o aurora ./cmd/aurora
+```
 
 ### CLI 模式
 
@@ -58,21 +64,46 @@ cmd/aurora/cmd/
 
 internal/lottery/
 ├── address.go           # 名字转地址
+├── address_test.go      # 测试
 ├── vrf.go               # VRF 实现 (Edwards25519)
+├── vrf_test.go          # 测试
 ├── lottery.go           # 抽奖核心逻辑
-├── lottery_test.go      # 测试
-└── tui.go               # TUI 界面
+├── lottery_test.go      # 单元测试
+└── tui.go               # TUI 界面 (Bubble Tea)
+
+test/
+└── lottery_e2e_test.go  # E2E 功能测试
 ```
 
 ## 测试
+
+### 单元测试
 
 ```bash
 go test ./internal/lottery/ -v
 ```
 
+### E2E 功能测试
+
+```bash
+go test ./test/ -v
+```
+
+### 覆盖的测试场景
+
+| 测试文件 | 说明 |
+|----------|------|
+| `lottery_test.go` | 单元测试：地址转换、VRF、抽奖逻辑 |
+| `lottery_e2e_test.go` | E2E 测试：完整流程、多次抽奖、数据完整性 |
+
 ## 依赖
 
 - Go 1.26+
 - filippo.io/edwards25519 - Edwards25519 曲线实现
-- github.com/rivo/tview - TUI 框架
+- github.com/charmbracelet/bubbletea - TUI 框架
+- github.com/charmbracelet/lipgloss - 样式
 - github.com/spf13/cobra - CLI 框架
+
+## 相关文档
+
+- [测试文档](testing.md)
