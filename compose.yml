@@ -1,9 +1,31 @@
-version: Compose specification
+version: '3.8'
+
 services:
-    octopus:
-        image: pplmx/aurora
-        ports:
-            - 6666
-            - 8888
-            - 12345
-        restart: unless-stopped
+  aurora:
+    image: pplmx/aurora:latest
+    container_name: aurora-lottery
+    restart: unless-stopped
+    ports:
+      - "6666:6666"
+      - "8888:8888"
+    volumes:
+      - aurora-data:/app/data
+      - aurora-logs:/app/logs
+    environment:
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "./aurora", "lottery", "stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  aurora-data:
+    driver: local
+  aurora-logs:
+    driver: local
+
+networks:
+  default:
+    name: aurora-network
