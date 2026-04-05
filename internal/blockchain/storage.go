@@ -10,8 +10,19 @@ import (
 )
 
 var db *sql.DB
+var chainInstance *BlockChain
 
 const dbPath = "./data/aurora.db"
+
+// ResetForTest resets the global state for testing
+func ResetForTest() {
+	if db != nil {
+		db.Close()
+		db = nil
+	}
+	chainInstance = nil
+	os.RemoveAll("./data")
+}
 
 func InitDB() (*sql.DB, error) {
 	// Create data directory if not exists

@@ -8,6 +8,9 @@ import (
 )
 
 func TestLotteryE2E_FullFlow(t *testing.T) {
+	// Reset blockchain before each test
+	blockchain.ResetForTest()
+
 	participants := []string{"Alice", "Bob", "Charlie", "David", "Eve"}
 	seed := "e2e-test-seed-123"
 	count := 3
@@ -64,6 +67,7 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 }
 
 func TestLotteryE2E_MultipleLotteries(t *testing.T) {
+	blockchain.ResetForTest()
 	chain := blockchain.InitBlockChain()
 	initialHeight := len(chain.Blocks)
 
@@ -99,6 +103,7 @@ func TestLotteryE2E_MultipleLotteries(t *testing.T) {
 }
 
 func TestLotteryE2E_VerifyIntegrity(t *testing.T) {
+	blockchain.ResetForTest()
 	participants := []string{"Player1", "Player2", "Player3", "Player4", "Player5"}
 	seed := "integrity-test-seed"
 
@@ -147,6 +152,7 @@ func TestLotteryE2E_VerifyIntegrity(t *testing.T) {
 }
 
 func TestLotteryE2E_AddressConversion(t *testing.T) {
+	blockchain.ResetForTest()
 	tests := []struct {
 		name     string
 		wantLen  int
