@@ -8,4 +8,3 @@ init:
     uv tool install ruff
     uv tool install rust-just
     prek install --hook-type commit-msg --hook-type pre-push
-
