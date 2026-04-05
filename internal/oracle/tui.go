@@ -25,12 +25,6 @@ var (
 	borderStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240"))
 
-	errorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("196"))
-
-	successStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("82"))
-
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("245"))
 
@@ -43,7 +37,6 @@ type model struct {
 	storage   Storage
 	menuIndex int
 	sources   []*DataSource
-	current   *OracleData
 }
 
 func NewOracleApp(storage Storage) *model {

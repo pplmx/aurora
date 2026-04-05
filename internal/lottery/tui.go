@@ -3,6 +3,7 @@ package lottery
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"charm.land/bubbles/v2/textinput"
@@ -45,11 +46,8 @@ var (
 type model struct {
 	view              string
 	chain             *blockchain.BlockChain
-	participants      string
-	seed              string
 	count             string
 	result            *LotteryRecord
-	history           string
 	err               string
 	successMsg        string
 	participantsInput textinput.Model
@@ -295,7 +293,9 @@ func (m *model) handleCreate() tea.Msg {
 	participants := parseTextArea(m.participantsInput.Value())
 	seed := m.seedInput.Value()
 	count := 3
-	fmt.Sscanf(m.countInput.Value(), "%d", &count)
+	if c, err := strconv.Atoi(m.countInput.Value()); err == nil {
+		count = c
+	}
 
 	if len(participants) < count {
 		m.err = "参与者人数必须多于获奖人数"

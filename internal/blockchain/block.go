@@ -6,6 +6,8 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+
+	"github.com/pplmx/aurora/internal/logger"
 )
 
 type BlockChain struct {
@@ -47,7 +49,9 @@ func (chain *BlockChain) AddBlock(data string) int64 {
 	height := len(chain.Blocks) - 1
 
 	// Write-through: save to SQLite
-	chain.SaveBlock(height, newBlock)
+	if err := chain.SaveBlock(height, newBlock); err != nil {
+		logger.Error().Err(err).Msg("Failed to save block")
+	}
 
 	return int64(height)
 }
@@ -70,7 +74,9 @@ func InitBlockChain() *BlockChain {
 	// Fall back to in-memory if DB doesn't exist or is empty
 	chain = &BlockChain{[]*Block{Genesis()}}
 	// Save genesis block to DB
-	chain.SaveBlock(0, chain.Blocks[0])
+	if err := chain.SaveBlock(0, chain.Blocks[0]); err != nil {
+		logger.Error().Err(err).Msg("Failed to save genesis block")
+	}
 	chainInstance = chain
 	return chain
 }
