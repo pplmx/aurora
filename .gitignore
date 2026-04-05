@@ -16,6 +16,7 @@ out/
 
 ### Go template
 # Binaries for programs and plugins
+**/aurora
 *.exe
 *.exe~
 *.dll
