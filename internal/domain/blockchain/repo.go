@@ -8,3 +8,7 @@ type Repository interface {
 	AddLotteryRecord(data string) (int64, error)
 	Close() error
 }
+
+type BlockWriter interface {
+	AddBlock(data string) (int64, error)
+}

@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 )
 
 type Service interface {
-	Mint(nft *NFT, chain *blockchain.BlockChain) (*NFT, error)
-	Transfer(nftID string, from, to, privateKey []byte, chain *blockchain.BlockChain) (*Operation, error)
-	Burn(nftID string, owner, privateKey []byte, chain *blockchain.BlockChain) error
+	Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error)
+	Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (*Operation, error)
+	Burn(nftID string, owner, privateKey []byte, chain blockchain.BlockWriter) error
 	VerifyTransfer(op *Operation) (bool, error)
 	GetNFTByID(id string) (*NFT, error)
 	GetNFTsByOwner(ownerPub []byte) ([]*NFT, error)
@@ -30,12 +30,15 @@ func NewService(repo Repository) *NFTService {
 	return &NFTService{repo: repo}
 }
 
-func (s *NFTService) Mint(nft *NFT, chain *blockchain.BlockChain) (*NFT, error) {
+func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) {
 	nft.ID = uuid.New().String()
 	nft.Timestamp = time.Now().Unix()
 
 	data := fmt.Sprintf("%s|%s|%s", nft.ID, nft.Name, nft.Owner)
-	height := chain.AddBlock(data)
+	height, err := chain.AddBlock(data)
+	if err != nil {
+		return nil, err
+	}
 	nft.BlockHeight = height
 
 	if err := s.repo.SaveNFT(nft); err != nil {
@@ -49,7 +52,7 @@ func (s *NFTService) Mint(nft *NFT, chain *blockchain.BlockChain) (*NFT, error) 
 	return nft, nil
 }
 
-func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain *blockchain.BlockChain) (*Operation, error) {
+func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (*Operation, error) {
 	nft, err := s.repo.GetNFT(nftID)
 	if err != nil {
 		return nil, err
@@ -68,7 +71,11 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain *
 	signature := ed25519.Sign(privateKey, messageHash[:])
 
 	op := NewOperation(nftID, "transfer", from, to, signature)
-	op.BlockHeight = chain.AddBlock(fmt.Sprintf("%s|%s", op.ID, op.Type))
+	height, err := chain.AddBlock(fmt.Sprintf("%s|%s", op.ID, op.Type))
+	if err != nil {
+		return nil, err
+	}
+	op.BlockHeight = height
 	op.Timestamp = timestamp
 
 	nft.Owner = to
@@ -80,7 +87,7 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain *
 	return op, nil
 }
 
-func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain *blockchain.BlockChain) error {
+func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockchain.BlockWriter) error {
 	nft, err := s.repo.GetNFT(nftID)
 	if err != nil {
 		return err
@@ -99,7 +106,11 @@ func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain *blockch
 	signature := ed25519.Sign(privateKey, messageHash[:])
 
 	op := NewOperation(nftID, "burn", owner, nil, signature)
-	op.BlockHeight = chain.AddBlock(fmt.Sprintf("%s|%s", op.ID, op.Type))
+	height, err := chain.AddBlock(fmt.Sprintf("%s|%s", op.ID, op.Type))
+	if err != nil {
+		return err
+	}
+	op.BlockHeight = height
 	op.Timestamp = timestamp
 
 	if err := s.repo.DeleteNFT(nftID); err != nil {
