@@ -38,7 +38,34 @@ func (a *Amount) String() string {
 }
 
 func (a *Amount) IsPositive() bool {
-	return a != nil && a.Int != nil && a.Int.Sign() > 0
+	return a != nil && a.Int != nil && a.Sign() > 0
+}
+
+func (a *Amount) Cmp(other *Amount) int {
+	if a == nil && other == nil {
+		return 0
+	}
+	if a == nil {
+		return -1
+	}
+	if other == nil {
+		return 1
+	}
+	return a.Int.Cmp(other.Int)
+}
+
+func (a *Amount) Sign() int {
+	if a == nil || a.Int == nil {
+		return 0
+	}
+	return a.Int.Sign()
+}
+
+func (a *Amount) Int64() int64 {
+	if a == nil || a.Int == nil {
+		return 0
+	}
+	return a.Int.Int64()
 }
 
 type Token struct {

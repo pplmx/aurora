@@ -238,7 +238,7 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	if err != nil {
 		return nil, err
 	}
-	if fromBalance.Int.Cmp(req.Amount.Int) < 0 {
+	if fromBalance.Cmp(req.Amount) < 0 {
 		return nil, ErrInsufficientBalance
 	}
 
@@ -309,7 +309,7 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	if approval == nil {
 		return nil, ErrInsufficientAllowance
 	}
-	if approval.Amount().Int.Cmp(req.Amount.Int) < 0 {
+	if approval.Amount().Cmp(req.Amount) < 0 {
 		return nil, ErrInsufficientAllowance
 	}
 
@@ -317,7 +317,7 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	if err != nil {
 		return nil, err
 	}
-	if ownerBalance.Int.Cmp(req.Amount.Int) < 0 {
+	if ownerBalance.Cmp(req.Amount) < 0 {
 		return nil, ErrInsufficientBalance
 	}
 
@@ -401,7 +401,7 @@ func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 
 	var currentAmount int64
 	if currentApproval != nil {
-		currentAmount = currentApproval.Amount().Int.Int64()
+		currentAmount = currentApproval.Amount().Int64()
 	}
 
 	newAmount := &Amount{new(big.Int).Add(big.NewInt(currentAmount), req.Amount.Int)}
@@ -424,11 +424,11 @@ func (s *TokenService) DecreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 
 	var currentAmount int64
 	if currentApproval != nil {
-		currentAmount = currentApproval.Amount().Int.Int64()
+		currentAmount = currentApproval.Amount().Int64()
 	}
 
 	newAmount := &Amount{new(big.Int).Sub(big.NewInt(currentAmount), req.Amount.Int)}
-	if newAmount.Int.Sign() < 0 {
+	if newAmount.Sign() < 0 {
 		newAmount = NewAmount(0)
 	}
 
@@ -466,7 +466,7 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	if err != nil {
 		return nil, err
 	}
-	if fromBalance.Int.Cmp(req.Amount.Int) < 0 {
+	if fromBalance.Cmp(req.Amount) < 0 {
 		return nil, ErrInsufficientBalance
 	}
 
