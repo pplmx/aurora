@@ -6,9 +6,12 @@ import (
 	"os"
 	"strings"
 
+	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
 	"github.com/pplmx/aurora/internal/blockchain"
+	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"
-	"github.com/pplmx/aurora/internal/lottery"
+	uilottery "github.com/pplmx/aurora/internal/ui/lottery"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -27,75 +30,37 @@ var createCmd = &cobra.Command{
 		seed, _ := cmd.Flags().GetString("seed")
 		count, _ := cmd.Flags().GetInt("count")
 
-		participants := strings.Split(participantsStr, ",")
-		for i := range participants {
-			participants[i] = lottery.SanitizeString(participants[i])
-		}
-		participants = removeEmpty(participants)
-
-		// Validate input
-		if err := lottery.ValidateParticipants(participants); err != nil {
-			return fmt.Errorf("invalid participants: %w", err)
-		}
-
-		seed = lottery.SanitizeString(seed)
-		if err := lottery.ValidateSeed(seed); err != nil {
-			return fmt.Errorf("invalid seed: %w", err)
-		}
-
-		if err := lottery.ValidateWinnerCount(count, len(participants)); err != nil {
-			return fmt.Errorf("invalid winner count: %w", err)
-		}
-
-		pk, sk, err := lottery.GenerateKeyPair()
+		lotteryRepo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
-			return fmt.Errorf("failed to generate key pair: %w", err)
+			return fmt.Errorf("failed to create lottery repository: %w", err)
+		}
+		defer lotteryRepo.Close()
+
+		blockChain := blockchain.InitBlockChain()
+
+		uc := lotteryapp.NewCreateLotteryUseCase(lotteryRepo, blockChain)
+
+		req := lotteryapp.CreateLotteryRequest{
+			Participants: participantsStr,
+			Seed:         seed,
+			WinnerCount:  count,
 		}
 
-		output, proof, err := lottery.VRFProve(sk, []byte(seed))
+		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to compute VRF: %w", err)
-		}
-
-		winners := lottery.SelectWinners(output, participants, count)
-
-		winnerAddrs := make([]string, len(winners))
-		for i, w := range winners {
-			winnerAddrs[i] = lottery.NameToAddress(w)
-		}
-
-		record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
-
-		jsonData, err := record.ToJSON()
-		if err != nil {
-			return fmt.Errorf("failed to serialize record: %w", err)
-		}
-
-		chain := blockchain.InitBlockChain()
-		height, err := chain.AddLotteryRecord(jsonData)
-		if err != nil {
-			return fmt.Errorf("failed to add to blockchain: %w", err)
-		}
-		record.BlockHeight = height
-
-		// Save to SQLite
-		if err := chain.SaveToDB(); err != nil {
-			logger.Warn().Err(err).Msg("Failed to save to database")
-		} else {
-			logger.Info().Str("db_path", blockchain.DBPath()).Msg("Lottery saved to database")
+			return fmt.Errorf("failed to create lottery: %w", err)
 		}
 
 		fmt.Println("\n✅ Lottery created successfully!")
-		fmt.Printf("📋 Lottery ID: %s\n", record.ID)
-		fmt.Printf("🔢 Block height: #%d\n", height)
+		fmt.Printf("📋 Lottery ID: %s\n", resp.ID)
+		fmt.Printf("🔢 Block height: #%d\n", resp.BlockHeight)
 		fmt.Println("\n🎉 Winners:")
-		for i, w := range record.Winners {
-			fmt.Printf("   %d. %s (%s)\n", i+1, w, record.WinnerAddresses[i])
+		for i, w := range resp.Winners {
+			fmt.Printf("   %d. %s (%s)\n", i+1, w, resp.WinnerAddresses[i])
 		}
-		fmt.Printf("\n🔐 VRF Output: %s...\n", record.VRFOutput[:min(16, len(record.VRFOutput))])
-		fmt.Printf("📜 VRF Proof: %s...\n", record.VRFProof[:min(16, len(record.VRFProof))])
+		fmt.Printf("\n🔐 VRF Output: %s...\n", resp.VRFOutput[:min(16, len(resp.VRFOutput))])
+		fmt.Printf("📜 VRF Proof: %s...\n", resp.VRFProof[:min(16, len(resp.VRFProof))])
 
-		_ = pk
 		return nil
 	},
 }
@@ -104,7 +69,7 @@ var tuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: "Launch TUI interface",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return lottery.RunLotteryTUI()
+		return uilottery.RunLotteryTUI()
 	},
 }
 
@@ -138,7 +103,7 @@ var verifyCmd = &cobra.Command{
 		input := args[0]
 		chain := blockchain.InitBlockChain()
 
-		var record *lottery.LotteryRecord
+		var record *domainlottery.LotteryRecord
 
 		// Try to parse as block height first
 		var height int64
@@ -148,7 +113,7 @@ var verifyCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to get block: %w", err)
 			}
-			record = &lottery.LotteryRecord{}
+			record = &domainlottery.LotteryRecord{}
 			if err := json.Unmarshal([]byte(data), record); err != nil {
 				return fmt.Errorf("failed to parse record: %w", err)
 			}
@@ -158,7 +123,7 @@ var verifyCmd = &cobra.Command{
 			found := false
 			for _, data := range records {
 				if strings.Contains(data, input) {
-					record = &lottery.LotteryRecord{}
+					record = &domainlottery.LotteryRecord{}
 					if err := json.Unmarshal([]byte(data), record); err == nil {
 						found = true
 						break
@@ -198,9 +163,9 @@ var exportCmd = &cobra.Command{
 		chain := blockchain.InitBlockChain()
 		records := chain.GetLotteryRecords()
 
-		var lotteryRecords []*lottery.LotteryRecord
+		var lotteryRecords []*domainlottery.LotteryRecord
 		for _, data := range records {
-			var record lottery.LotteryRecord
+			var record domainlottery.LotteryRecord
 			if err := json.Unmarshal([]byte(data), &record); err == nil {
 				lotteryRecords = append(lotteryRecords, &record)
 			}
@@ -232,7 +197,7 @@ var importCmd = &cobra.Command{
 			return fmt.Errorf("failed to read file: %w", err)
 		}
 
-		var records []lottery.LotteryRecord
+		var records []domainlottery.LotteryRecord
 		if err := json.Unmarshal(data, &records); err != nil {
 			return fmt.Errorf("failed to parse file: %w", err)
 		}
