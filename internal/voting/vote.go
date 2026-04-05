@@ -4,7 +4,12 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/pplmx/aurora/internal/blockchain"
 )
 
 // Vote is a struct that represents a vote in the voting system
@@ -57,4 +62,140 @@ func VerifyVote(v *Vote) bool {
 
 	return true
 
+}
+
+var voteStorage Storage
+
+func SetVoteStorage(s Storage) {
+	voteStorage = s
+}
+
+type VoteRecord struct {
+	ID          string `json:"id"`
+	VoterPK     string `json:"voter_pk"`
+	CandidateID string `json:"candidate_id"`
+	Signature   string `json:"signature"`
+	Message     string `json:"message"`
+	Timestamp   int64  `json:"timestamp"`
+	BlockHeight int64  `json:"block_height"`
+}
+
+func CastVote(voterPK []byte, candidateID string, privateKey []byte, chain *blockchain.BlockChain) (*VoteRecord, error) {
+	pkStr := base64.StdEncoding.EncodeToString(voterPK)
+
+	voter, err := voterStorage.GetVoter(pkStr)
+	if err != nil {
+		return nil, err
+	}
+	if voter == nil {
+		return nil, fmt.Errorf("voter not registered")
+	}
+	if voter.HasVoted {
+		return nil, fmt.Errorf("already voted")
+	}
+
+	candidate, err := candidateStorage.GetCandidate(candidateID)
+	if err != nil {
+		return nil, err
+	}
+	if candidate == nil {
+		return nil, fmt.Errorf("candidate not found")
+	}
+
+	timestamp := time.Now().Unix()
+	message := fmt.Sprintf("%s|%s|%d", pkStr, candidateID, timestamp)
+
+	signature := ed25519.Sign(privateKey, []byte(message))
+
+	record := &VoteRecord{
+		ID:          uuid.New().String(),
+		VoterPK:     pkStr,
+		CandidateID: candidateID,
+		Signature:   base64.StdEncoding.EncodeToString(signature),
+		Message:     message,
+		Timestamp:   timestamp,
+		BlockHeight: 0,
+	}
+
+	jsonData, _ := json.Marshal(record)
+	height, err := chain.AddLotteryRecord(string(jsonData))
+	if err != nil {
+		return nil, err
+	}
+	record.BlockHeight = height
+
+	if err := voteStorage.SaveVote((*DBVoteRecord)(record)); err != nil {
+		return nil, err
+	}
+
+	voteHash := sha256.Sum256([]byte(message))
+	if err := MarkVoted(pkStr, fmt.Sprintf("%x", voteHash)); err != nil {
+		return nil, err
+	}
+
+	candidate.VoteCount++
+	if err := candidateStorage.UpdateCandidate(candidate); err != nil {
+		return nil, err
+	}
+
+	return record, nil
+}
+
+func VerifyVoteRecord(record *VoteRecord) bool {
+	pubBytes, err := base64.StdEncoding.DecodeString(record.VoterPK)
+	if err != nil {
+		return false
+	}
+
+	sigBytes, err := base64.StdEncoding.DecodeString(record.Signature)
+	if err != nil {
+		return false
+	}
+
+	return ed25519.Verify(pubBytes, []byte(record.Message), sigBytes)
+}
+
+func GetVote(id string) (*VoteRecord, error) {
+	dbRecord, err := voteStorage.GetVote(id)
+	if err != nil {
+		return nil, err
+	}
+	if dbRecord == nil {
+		return nil, nil
+	}
+	return (*VoteRecord)(dbRecord), nil
+}
+
+func GetVotesByCandidate(candidateID string) ([]*VoteRecord, error) {
+	dbRecords, err := voteStorage.GetVotesByCandidate(candidateID)
+	if err != nil {
+		return nil, err
+	}
+	records := make([]*VoteRecord, len(dbRecords))
+	for i, dbRec := range dbRecords {
+		records[i] = (*VoteRecord)(dbRec)
+	}
+	return records, nil
+}
+
+func CountVotes(candidateID string) (int, error) {
+	votes, err := voteStorage.GetVotesByCandidate(candidateID)
+	if err != nil {
+		return 0, err
+	}
+	return len(votes), nil
+}
+
+func (r *VoteRecord) ToJSON() (string, error) {
+	data, err := json.Marshal(r)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func InitVoting(storage Storage) {
+	SetCandidateStorage(storage)
+	SetVoterStorage(storage)
+	SetVoteStorage(storage)
 }
