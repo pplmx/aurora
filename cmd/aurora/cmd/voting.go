@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	votingapp "github.com/pplmx/aurora/internal/app/voting"
-	"github.com/pplmx/aurora/internal/blockchain"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	votingrepo "github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"

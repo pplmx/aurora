@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/pplmx/aurora/internal/blockchain"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	lottery "github.com/pplmx/aurora/internal/domain/lottery"
 )
 

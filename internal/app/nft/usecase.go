@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/pplmx/aurora/internal/blockchain"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 )
 
