@@ -156,6 +156,15 @@ func (tr *Translator) loadMessages() {
 		"nft.not_found":      "NFT not found",
 		"nft.owner_mismatch": "Caller is not the owner",
 
+		// TUI
+		"nft.tui.title":    "NFT System",
+		"nft.tui.mint":     "Mint NFT",
+		"nft.tui.transfer": "Transfer NFT",
+		"nft.tui.query":    "Query NFT",
+		"nft.tui.exit":     "Exit",
+		"nft.tui.info":     "Information",
+		"nft.tui.cli_tip":  "Use CLI commands to operate NFT:",
+
 		// ===== ORACLE =====
 		// Commands
 		"oracle.cmd":            "Oracle data service",
@@ -190,6 +199,17 @@ func (tr *Translator) loadMessages() {
 		"oracle.fetched":         "Data fetched successfully!",
 		"oracle.no_sources":      "No data sources found",
 		"oracle.fetch_error":     "Failed to fetch data",
+
+		// TUI
+		"oracle.tui.title":       "Oracle System",
+		"oracle.tui.source_mgmt": "Data Source Management",
+		"oracle.tui.fetch_data":  "Fetch Data",
+		"oracle.tui.query_data":  "Query Data",
+		"oracle.tui.exit":        "Exit",
+		"oracle.tui.no_sources":  "No data sources",
+		"oracle.tui.cli_tip":     "Use CLI commands:",
+		"oracle.tui.enabled":     "✓",
+		"oracle.tui.disabled":    "✗",
 
 		// ===== COMMON =====
 		// Help
@@ -327,6 +347,15 @@ func (tr *Translator) loadMessages() {
 		"nft.not_found":      "NFT 未找到",
 		"nft.owner_mismatch": "调用者不是持有者",
 
+		// TUI
+		"nft.tui.title":    "NFT 系统",
+		"nft.tui.mint":     "铸造 NFT",
+		"nft.tui.transfer": "转让 NFT",
+		"nft.tui.query":    "查询 NFT",
+		"nft.tui.exit":     "退出",
+		"nft.tui.info":     "信息",
+		"nft.tui.cli_tip":  "请使用 CLI 命令操作 NFT:",
+
 		// ===== ORACLE =====
 		// Commands
 		"oracle.cmd":            "预言机数据服务",
@@ -361,6 +390,17 @@ func (tr *Translator) loadMessages() {
 		"oracle.fetched":         "数据获取成功！",
 		"oracle.no_sources":      "暂无数据源",
 		"oracle.fetch_error":     "数据获取失败",
+
+		// TUI
+		"oracle.tui.title":       "预言机系统",
+		"oracle.tui.source_mgmt": "数据源管理",
+		"oracle.tui.fetch_data":  "获取数据",
+		"oracle.tui.query_data":  "数据查询",
+		"oracle.tui.exit":        "退出",
+		"oracle.tui.no_sources":  "暂无数据源",
+		"oracle.tui.cli_tip":     "使用 CLI 命令:",
+		"oracle.tui.enabled":     "✓",
+		"oracle.tui.disabled":    "✗",
 
 		// ===== COMMON =====
 		// Help
