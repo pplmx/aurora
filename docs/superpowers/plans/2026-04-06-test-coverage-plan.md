@@ -12,7 +12,7 @@
 
 ## 文件结构
 
-```
+```text
 e2e/
 ├── token_e2e_test.go      # 新建: Token E2E 测试
 ├── nft_e2e_test.go        # 扩展: 更多场景
@@ -42,6 +42,7 @@ internal/app/token/
 ### Task 1: Token E2E 测试
 
 **Files:**
+
 - Create: `e2e/token_e2e_test.go`
 
 - [ ] **Step 1: 创建 Token E2E 测试文件**
@@ -87,6 +88,7 @@ git commit -m "test: add Token E2E full flow test"
 ### Task 2: Token Domain 单元测试扩展
 
 **Files:**
+
 - Modify: `internal/domain/token/service_test.go`
 
 - [ ] **Step 1: 添加 Transfer 测试**
@@ -108,6 +110,7 @@ go test ./internal/domain/token/ -v
 ### Task 3: Token App 集成测试
 
 **Files:**
+
 - Create: `internal/app/token/create_test.go`
 - Create: `internal/app/token/mint_test.go`
 - Create: `internal/app/token/transfer_test.go`
@@ -144,6 +147,7 @@ go test ./internal/app/token/ -v
 ### Task 4: NFT Domain 测试扩展
 
 **Files:**
+
 - Modify: `internal/domain/nft/service_test.go`
 
 - [ ] **Step 1: 添加 Transfer 测试**
@@ -161,6 +165,7 @@ go test ./internal/app/token/ -v
 ### Task 5: NFT E2E 扩展
 
 **Files:**
+
 - Modify: `e2e/nft_e2e_test.go`
 
 - [ ] **Step 1: 添加 Transfer 场景测试**
@@ -176,6 +181,7 @@ go test ./internal/app/token/ -v
 ### Task 6: Oracle Domain 单元测试
 
 **Files:**
+
 - Create: `internal/domain/oracle/service_test.go`
 
 - [ ] **Step 1: 创建 Oracle Service 测试**
@@ -184,13 +190,13 @@ go test ./internal/app/token/ -v
 func TestOracleService_AddSource(t *testing.T) {
     repo := &inmemOracleRepo{...}
     svc := oracle.NewService(repo)
-    
+
     source := &oracle.DataSource{
         Name: "test",
         URL:  "https://test.com",
         Type: "http",
     }
-    
+
     err := svc.AddSource(source)
     assert.NoError(t, err)
 }
@@ -213,6 +219,7 @@ go test ./internal/domain/oracle/ -v
 ### Task 7: Oracle E2E 扩展
 
 **Files:**
+
 - Modify: `e2e/oracle_e2e_test.go`
 
 - [ ] **Step 1: 添加完整流程测试**
@@ -234,6 +241,7 @@ go test ./... -cover
 - [ ] **Step 2: 检查覆盖率**
 
 Expected:
+
 - Token: >80%
 - NFT: >70%
 - Oracle: >70%
