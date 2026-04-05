@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -14,7 +15,7 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "aurora",
-	Short: "Aurora - VRF-based transparent lottery system",
+	Short: i18n.GetText("app.name"),
 	Long: `Aurora is a blockchain-based digital voting system with VRF lottery.
 
 Features:
@@ -83,6 +84,7 @@ func initConfig() {
 func setDefaultConfig() {
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.path", "./log")
-	viper.SetDefault("lottery.default_count", 3)
-	viper.SetDefault("lottery.default_seed_prefix", "aurora-vrf-")
+	viper.SetDefault("lottery.defaultCount", 3)
+	viper.SetDefault("lottery.defaultSeedPrefix", "aurora-vrf-")
+	viper.SetDefault("i18n.locale", "en")
 }

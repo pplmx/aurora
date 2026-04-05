@@ -5,3 +5,6 @@ path = "./logs/"
 [lottery]
 defaultCount = 3
 defaultSeedPrefix = "aurora-vrf-"
+
+[i18n]
+locale = "en"
