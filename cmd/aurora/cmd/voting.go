@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
 
 	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/voting"
@@ -289,4 +290,18 @@ func init() {
 
 	resultsCmd.Flags().StringP("session", "s", "", "Session ID")
 	resultsCmd.MarkFlagRequired("session")
+
+	var tuiCmd = &cobra.Command{
+		Use:   "tui",
+		Short: "Launch TUI interface",
+		Run: func(cmd *cobra.Command, args []string) {
+			storage := voting.NewInMemoryStorage()
+			voting.InitVoting(storage)
+			if err := voting.RunVotingTUI(storage); err != nil {
+				fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+				os.Exit(1)
+			}
+		},
+	}
+	votingCmd.AddCommand(tuiCmd)
 }
