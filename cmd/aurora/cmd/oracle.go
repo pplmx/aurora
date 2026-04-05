@@ -322,28 +322,28 @@ func init() {
 	sourceAddCmd.Flags().StringP("url", "u", "", i18n.GetText("oracle.source_url"))
 	sourceAddCmd.Flags().StringP("type", "t", "custom", i18n.GetText("oracle.source_type"))
 	sourceAddCmd.Flags().IntP("interval", "i", 60, i18n.GetText("oracle.interval"))
-	sourceAddCmd.MarkFlagRequired("name")
-	sourceAddCmd.MarkFlagRequired("url")
+	_ = sourceAddCmd.MarkFlagRequired("name")
+	_ = sourceAddCmd.MarkFlagRequired("url")
 
 	sourceDeleteCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
-	sourceDeleteCmd.MarkFlagRequired("id")
+	_ = sourceDeleteCmd.MarkFlagRequired("id")
 
 	sourceEnableCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
-	sourceEnableCmd.MarkFlagRequired("id")
+	_ = sourceEnableCmd.MarkFlagRequired("id")
 
 	sourceDisableCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
-	sourceDisableCmd.MarkFlagRequired("id")
+	_ = sourceDisableCmd.MarkFlagRequired("id")
 
 	fetchCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
-	fetchCmd.MarkFlagRequired("source")
+	_ = fetchCmd.MarkFlagRequired("source")
 
 	dataCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
 	dataCmd.Flags().IntP("limit", "l", 10, i18n.GetText("oracle.limit"))
-	dataCmd.MarkFlagRequired("source")
+	_ = dataCmd.MarkFlagRequired("source")
 
 	latestCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
-	latestCmd.MarkFlagRequired("source")
+	_ = latestCmd.MarkFlagRequired("source")
 
 	templateAddCmd.Flags().StringP("template", "t", "", i18n.GetText("oracle.template"))
-	templateAddCmd.MarkFlagRequired("template")
+	_ = templateAddCmd.MarkFlagRequired("template")
 }

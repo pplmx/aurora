@@ -35,7 +35,7 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to create lottery repository: %w", err)
 		}
-		defer lotteryRepo.Close()
+		defer func() { _ = lotteryRepo.Close() }()
 
 		blockChain := blockchain.InitBlockChain()
 
@@ -256,7 +256,7 @@ var resetCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to init db: %w", err)
 		}
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		if _, err := db.Exec("DELETE FROM blocks WHERE height > 0"); err != nil {
 			return fmt.Errorf("failed to reset: %w", err)
@@ -287,7 +287,7 @@ var dbInfoCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to init db: %w", err)
 		}
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		var count int
 		_ = db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height > 0").Scan(&count)
