@@ -40,7 +40,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is 1. $HOME/aurora.x.yaml 2. $PWD/config/aurora.x.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is 1. $HOME/aurora.x.toml 2. $PWD/config/aurora.x.toml)")
 
 	// TODO: THIS IS JUST FOR TESTING PURPOSES, WHICH CAN BE REMOVED
 	// Cobra also supports local flags, which will only run
@@ -58,12 +58,12 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Add support for multiple config file paths, $HOME and ./configs/
+		// Add support for multiple config file paths, $HOME and ./config/
 		viper.AddConfigPath(home)
 		viper.AddConfigPath("./config/")
 
-		// Add support for yaml config file
-		viper.SetConfigType("yaml")
+		// Add support for toml config file
+		viper.SetConfigType("toml")
 		viper.SetConfigName("aurora.x")
 	}
 
