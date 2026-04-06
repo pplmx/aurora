@@ -6,16 +6,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	votingapp "github.com/pplmx/aurora/internal/app/voting"
-	"github.com/pplmx/aurora/internal/domain/voting"
 	domainvoting "github.com/pplmx/aurora/internal/domain/voting"
 )
 
 type VotingHandler struct {
-	repo    voting.Repository
-	service voting.Service
+	repo    domainvoting.Repository
+	service domainvoting.Service
 }
 
-func NewVotingHandler(repo voting.Repository) *VotingHandler {
+func NewVotingHandler(repo domainvoting.Repository) *VotingHandler {
 	return &VotingHandler{
 		repo:    repo,
 		service: domainvoting.NewEd25519Service(),

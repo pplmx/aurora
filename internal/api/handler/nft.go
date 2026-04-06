@@ -7,13 +7,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	nftapp "github.com/pplmx/aurora/internal/app/nft"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	"github.com/pplmx/aurora/internal/domain/nft"
 	domainnft "github.com/pplmx/aurora/internal/domain/nft"
 )
 
 type NFTHandler struct {
 	repo    domainnft.Repository
-	service nft.Service
+	service domainnft.Service
 	chain   blockchain.BlockWriter
 }
 
