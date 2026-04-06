@@ -6,15 +6,20 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	votingapp "github.com/pplmx/aurora/internal/app/voting"
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	domainvoting "github.com/pplmx/aurora/internal/domain/voting"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
-type VotingHandler struct{}
+type VotingHandler struct {
+	repo    voting.Repository
+	service voting.Service
+}
 
-func NewVotingHandler() *VotingHandler {
-	return &VotingHandler{}
+func NewVotingHandler(repo voting.Repository) *VotingHandler {
+	return &VotingHandler{
+		repo:    repo,
+		service: domainvoting.NewEd25519Service(),
+	}
 }
 
 func (h *VotingHandler) Routes(r chi.Router) {
@@ -35,15 +40,7 @@ func (h *VotingHandler) RegisterVoter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := blockchain.InitDB()
-	if err != nil {
-		http.Error(w, `{"error":"failed to connect database","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-
-	votingRepo := sqlite.NewVotingRepository(db)
-
-	uc := votingapp.NewRegisterVoterUseCase(votingRepo)
+	uc := votingapp.NewRegisterVoterUseCase(h.repo)
 	result, err := uc.Execute(votingapp.RegisterVoterRequest{Name: req.Name})
 	if err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
@@ -65,15 +62,7 @@ func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	db, err := blockchain.InitDB()
-	if err != nil {
-		http.Error(w, `{"error":"failed to connect database","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-
-	votingRepo := sqlite.NewVotingRepository(db)
-
-	uc := votingapp.NewRegisterCandidateUseCase(votingRepo)
+	uc := votingapp.NewRegisterCandidateUseCase(h.repo)
 	result, err := uc.Execute(votingapp.RegisterCandidateRequest{
 		Name:    req.Name,
 		Party:   req.Party,
@@ -101,15 +90,7 @@ func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := blockchain.InitDB()
-	if err != nil {
-		http.Error(w, `{"error":"failed to connect database","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-
-	votingRepo := sqlite.NewVotingRepository(db)
-
-	uc := votingapp.NewCreateSessionUseCase(votingRepo)
+	uc := votingapp.NewCreateSessionUseCase(h.repo)
 	result, err := uc.Execute(votingapp.CreateSessionRequest{
 		Title:        req.Title,
 		Description:  req.Description,
@@ -137,16 +118,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := blockchain.InitDB()
-	if err != nil {
-		http.Error(w, `{"error":"failed to connect database","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-
-	votingRepo := sqlite.NewVotingRepository(db)
-
-	service := domainvoting.NewEd25519Service()
-	uc := votingapp.NewCastVoteUseCase(votingRepo, service)
+	uc := votingapp.NewCastVoteUseCase(h.repo, h.service)
 	result, err := uc.Execute(votingapp.CastVoteRequest{
 		VoterPublicKey: req.VoterPublicKey,
 		CandidateID:    req.CandidateID,
@@ -162,15 +134,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
-	db, err := blockchain.InitDB()
-	if err != nil {
-		http.Error(w, `{"error":"failed to connect database","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-
-	votingRepo := sqlite.NewVotingRepository(db)
-
-	uc := votingapp.NewGetCandidatesUseCase(votingRepo)
+	uc := votingapp.NewGetCandidatesUseCase(h.repo)
 	result, err := uc.Execute()
 	if err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
@@ -184,15 +148,7 @@ func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	db, err := blockchain.InitDB()
-	if err != nil {
-		http.Error(w, `{"error":"failed to connect database","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-
-	votingRepo := sqlite.NewVotingRepository(db)
-
-	session, err := votingRepo.GetSession(id)
+	session, err := h.repo.GetSession(id)
 	if err != nil || session == nil {
 		http.Error(w, `{"error":"not found","code":"NOT_FOUND"}`, http.StatusNotFound)
 		return

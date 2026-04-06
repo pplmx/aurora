@@ -21,7 +21,13 @@ func main() {
 
 	logger.Init()
 
-	router := api.NewRouter()
+	srv, err := api.NewServer()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create server: %v\n", err)
+		os.Exit(1)
+	}
+
+	router := srv.Router()
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	server := &http.Server{
