@@ -41,7 +41,7 @@ jobs:
           go build -ldflags="-s -w" -o aurora-${GOOS}-${GOARCH}${EXT} ./cmd/aurora
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: aurora-${{ matrix.goos }}-${{ matrix.goarch }}
           path: aurora-*
