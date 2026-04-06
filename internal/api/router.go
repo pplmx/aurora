@@ -5,11 +5,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/pplmx/aurora/internal/api/handler"
 	apimw "github.com/pplmx/aurora/internal/api/middleware"
 )
 
-func NewRouter() http.Handler {
+func newRouter(s *Server) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -23,18 +22,23 @@ func NewRouter() http.Handler {
 	})
 
 	r.Route("/api/v1/lottery", func(r chi.Router) {
-		h := handler.NewLotteryHandler()
-		h.Routes(r)
+		s.lotteryHandler.Routes(r)
 	})
 
 	r.Route("/api/v1/voting", func(r chi.Router) {
-		h := handler.NewVotingHandler()
-		h.Routes(r)
+		s.votingHandler.Routes(r)
 	})
 
 	r.Route("/api/v1/nft", func(r chi.Router) {
-		h := handler.NewNFTHandler()
-		h.Routes(r)
+		s.nftHandler.Routes(r)
+	})
+
+	r.Route("/api/v1/token", func(r chi.Router) {
+		s.tokenHandler.Routes(r)
+	})
+
+	r.Route("/api/v1/oracle", func(r chi.Router) {
+		s.oracleHandler.Routes(r)
 	})
 
 	return r
