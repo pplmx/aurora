@@ -33,3 +33,4 @@ out/
 # vendor/
 data/
 test/data/
+.worktrees/
