@@ -6,14 +6,16 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/lottery"
 )
 
-type LotteryHandler struct{}
+type LotteryHandler struct {
+	repo lottery.Repository
+}
 
-func NewLotteryHandler() *LotteryHandler {
-	return &LotteryHandler{}
+func NewLotteryHandler(repo lottery.Repository) *LotteryHandler {
+	return &LotteryHandler{repo: repo}
 }
 
 type CreateLotteryRequest struct {
@@ -35,15 +37,8 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lotteryRepo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
-	if err != nil {
-		http.Error(w, `{"error":"failed to create repository","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-	defer func() { _ = lotteryRepo.Close() }()
-
 	blockChain := blockchain.InitBlockChain()
-	uc := lotteryapp.NewCreateLotteryUseCase(lotteryRepo, blockChain)
+	uc := lotteryapp.NewCreateLotteryUseCase(h.repo, blockChain)
 
 	appReq := lotteryapp.CreateLotteryRequest{
 		Participants: req.Participants,
@@ -62,14 +57,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
-	lotteryRepo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
-	if err != nil {
-		http.Error(w, `{"error":"failed to create repository","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-	defer func() { _ = lotteryRepo.Close() }()
-
-	results, err := lotteryRepo.GetAll()
+	results, err := h.repo.GetAll()
 	if err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
 		return
@@ -82,14 +70,7 @@ func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	lotteryRepo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
-	if err != nil {
-		http.Error(w, `{"error":"failed to create repository","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
-		return
-	}
-	defer func() { _ = lotteryRepo.Close() }()
-
-	result, err := lotteryRepo.GetByID(id)
+	result, err := h.repo.GetByID(id)
 	if err != nil {
 		http.Error(w, `{"error":"not found","code":"NOT_FOUND"}`, http.StatusNotFound)
 		return
