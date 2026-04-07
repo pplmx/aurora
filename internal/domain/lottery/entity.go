@@ -1,3 +1,6 @@
+// Package lottery provides VRF-based transparent lottery functionality.
+// It implements verifiable random function (VRF) to ensure fair and
+// transparent winner selection that can be verified on-chain.
 package lottery
 
 import (

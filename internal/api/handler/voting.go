@@ -42,7 +42,7 @@ func (h *VotingHandler) RegisterVoter(w http.ResponseWriter, r *http.Request) {
 	uc := votingapp.NewRegisterVoterUseCase(h.repo)
 	result, err := uc.Execute(votingapp.RegisterVoterRequest{Name: req.Name})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -68,7 +68,7 @@ func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request
 		Program: req.Program,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		EndTime:      req.EndTime,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		PrivateKey:     req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 	uc := votingapp.NewGetCandidatesUseCase(h.repo)
 	result, err := uc.Execute()
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

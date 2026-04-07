@@ -1,7 +1,10 @@
+// Package nft provides Ed25519-signed NFT (Non-Fungible Token) functionality.
+// NFTs are transferred using cryptographic signatures for secure ownership.
 package nft
 
 import "time"
 
+// NFT represents a non-fungible token with ownership tracking.
 type NFT struct {
 	ID          string
 	Name        string
@@ -14,6 +17,7 @@ type NFT struct {
 	Timestamp   int64
 }
 
+// Operation represents a NFT transfer operation with cryptographic signature.
 type Operation struct {
 	ID          string
 	NFTID       string

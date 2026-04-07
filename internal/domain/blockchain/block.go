@@ -1,3 +1,5 @@
+// Package blockchain provides core blockchain infrastructure including
+// block, blockchain, and proof-of-work implementations.
 package blockchain
 
 import (
@@ -8,6 +10,7 @@ import (
 	"time"
 )
 
+// Block represents a single block in the blockchain.
 type Block struct {
 	Height    int64
 	Hash      []byte
@@ -17,6 +20,7 @@ type Block struct {
 	Timestamp int64
 }
 
+// BlockChain represents the blockchain data structure.
 type BlockChain struct {
 	Blocks []*Block
 }
@@ -57,10 +61,6 @@ func (c *BlockChain) AddBlock(data string) (int64, error) {
 	height := len(c.Blocks) - 1
 
 	return int64(height), nil
-}
-
-func Handle(err error) error {
-	return err
 }
 
 func (b *Block) Serialize() ([]byte, error) {

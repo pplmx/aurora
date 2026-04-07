@@ -10,8 +10,8 @@ func TestNewVote(t *testing.T) {
 	if vote.ID == "" {
 		t.Error("Vote ID should not be empty")
 	}
-	if vote.VoterPK != "voter-pk" {
-		t.Errorf("VoterPK = %v, want voter-pk", vote.VoterPK)
+	if vote.VoterPublicKey != "voter-pk" {
+		t.Errorf("VoterPublicKey = %v, want voter-pk", vote.VoterPublicKey)
 	}
 	if vote.CandidateID != "candidate-1" {
 		t.Errorf("CandidateID = %v, want candidate-1", vote.CandidateID)

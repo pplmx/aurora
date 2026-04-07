@@ -1,3 +1,5 @@
+// Package voting provides transparent voting system with Ed25519 signature
+// verification and blockchain-based vote recording.
 package voting
 
 import (
@@ -6,28 +8,30 @@ import (
 	"github.com/google/uuid"
 )
 
+// Vote represents a single vote in the voting system.
 type Vote struct {
-	ID          string
-	VoterPK     string
-	CandidateID string
-	Signature   string
-	Message     string
-	Timestamp   int64
-	BlockHeight int64
+	ID             string
+	VoterPublicKey string
+	CandidateID    string
+	Signature      string
+	Message        string
+	Timestamp      int64
+	BlockHeight    int64
 }
 
-func NewVote(voterPK, candidateID, signature, message string) *Vote {
+func NewVote(voterPublicKey, candidateID, signature, message string) *Vote {
 	return &Vote{
-		ID:          uuid.New().String(),
-		VoterPK:     voterPK,
-		CandidateID: candidateID,
-		Signature:   signature,
-		Message:     message,
-		Timestamp:   time.Now().Unix(),
-		BlockHeight: 0,
+		ID:             uuid.New().String(),
+		VoterPublicKey: voterPublicKey,
+		CandidateID:    candidateID,
+		Signature:      signature,
+		Message:        message,
+		Timestamp:      time.Now().Unix(),
+		BlockHeight:    0,
 	}
 }
 
+// Voter represents a voter in the voting system.
 type Voter struct {
 	PublicKey    string
 	Name         string
@@ -44,6 +48,7 @@ func NewVoter(name string) *Voter {
 	}
 }
 
+// Candidate represents a candidate in an election.
 type Candidate struct {
 	ID        string
 	Name      string
@@ -65,6 +70,7 @@ func NewCandidate(name, party, program string) *Candidate {
 	}
 }
 
+// Session represents a voting session/election.
 type Session struct {
 	ID          string
 	Title       string

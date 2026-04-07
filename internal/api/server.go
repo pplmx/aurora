@@ -41,7 +41,8 @@ func NewServer() (*Server, error) {
 		return nil, err
 	}
 
-	tokenService := token.NewService(tokenRepo, nil, nil)
+	chain := blockchain.GetBlockChain()
+	tokenService := token.NewService(tokenRepo, nil, chain)
 
 	oracleRepo, err := sqlite.NewOracleRepository(dbPath)
 	if err != nil {

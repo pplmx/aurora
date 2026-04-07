@@ -21,7 +21,7 @@ func (r *VotingRepository) SaveVote(vote *voting.Vote) error {
 	_, err := r.db.Exec(
 		`INSERT OR REPLACE INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		vote.ID, vote.VoterPK, vote.CandidateID, vote.Signature, vote.Message, vote.Timestamp, vote.BlockHeight,
+		vote.ID, vote.VoterPublicKey, vote.CandidateID, vote.Signature, vote.Message, vote.Timestamp, vote.BlockHeight,
 	)
 	return err
 }
@@ -32,7 +32,7 @@ func (r *VotingRepository) GetVote(id string) (*voting.Vote, error) {
 		id,
 	)
 	v := &voting.Vote{}
-	err := row.Scan(&v.ID, &v.VoterPK, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight)
+	err := row.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -52,7 +52,7 @@ func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vo
 	var votes []*voting.Vote
 	for rows.Next() {
 		v := &voting.Vote{}
-		if err := rows.Scan(&v.ID, &v.VoterPK, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight); err != nil {
+		if err := rows.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight); err != nil {
 			return nil, err
 		}
 		votes = append(votes, v)
@@ -73,7 +73,7 @@ func (r *VotingRepository) GetVotesByVoter(voterPK string) ([]*voting.Vote, erro
 	var votes []*voting.Vote
 	for rows.Next() {
 		v := &voting.Vote{}
-		if err := rows.Scan(&v.ID, &v.VoterPK, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight); err != nil {
+		if err := rows.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight); err != nil {
 			return nil, err
 		}
 		votes = append(votes, v)
