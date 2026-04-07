@@ -15,7 +15,7 @@ env:
 
 jobs:
   docker:
-    name: Build & Push (Docker Hub)
+    name: Build & Push
     runs-on: ubuntu-latest
 
     steps:
@@ -34,48 +34,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.DOCKER_IMAGE }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name == 'release' || github.event_name == 'push' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          pull: true
-          cache-from: type=gha,key=aurora-docker-${{ github.sha }}
-          cache-to: type=gha,mode=max
-
-      - name: Test image
-        run: |
-          docker run --rm ${{ env.DOCKER_IMAGE }}:${{ github.sha }} --help
-
-  ghcr:
-    name: Build & Push (GitHub Container Registry)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64,amd64
-
       - name: Login to GitHub Container Registry
         if: github.event_name == 'release'
         uses: docker/login-action@v4
@@ -88,7 +46,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.GHCR_IMAGE }}
+          images: |
+            ${{ env.DOCKER_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
           tags: |
             type=ref,event=branch
             type=sha,prefix=
@@ -103,9 +63,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           pull: true
-          cache-from: type=gha,key=aurora-ghcr-${{ github.sha }}
+          cache-from: type=gha,key=aurora-${{ github.sha }}
           cache-to: type=gha,mode=max
 
       - name: Test image
         run: |
-          docker run --rm ${{ env.GHCR_IMAGE }}:${{ github.sha }} --help
+          docker run --rm ${{ env.DOCKER_IMAGE }}:${{ github.sha }} --help
