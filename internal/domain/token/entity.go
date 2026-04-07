@@ -1,3 +1,5 @@
+// Package token provides ERC-20 style fungible token functionality.
+// Supports minting, transferring, burning, and approval operations.
 package token
 
 import (

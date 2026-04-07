@@ -53,8 +53,8 @@ func TestVotingE2E_VoteCreation(t *testing.T) {
 	blockchain.ResetForTest()
 
 	vote := voting.NewVote("voter-pk", "candidate-id", "signature", "message")
-	if vote.VoterPK != "voter-pk" {
-		t.Errorf("Expected voter-pk, got %s", vote.VoterPK)
+	if vote.VoterPublicKey != "voter-pk" {
+		t.Errorf("Expected voter-pk, got %s", vote.VoterPublicKey)
 	}
 	if vote.CandidateID != "candidate-id" {
 		t.Errorf("Expected candidate-id, got %s", vote.CandidateID)

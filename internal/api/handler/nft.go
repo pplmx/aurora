@@ -54,7 +54,7 @@ func (h *NFTHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		Creator:     req.Creator,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 	uc := nftapp.NewListNFTsByOwnerUseCase(h.service)
 	result, err := uc.Execute(owner)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

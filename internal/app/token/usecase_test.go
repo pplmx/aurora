@@ -93,7 +93,41 @@ func (m *mockTokenService) Transfer(req *token.TransferRequest) (*token.Transfer
 }
 
 func (m *mockTokenService) TransferFrom(req *token.TransferFromRequest) (*token.TransferEvent, error) {
-	return nil, nil
+	allowanceKey := string(req.Owner) + "|" + string(req.Spender) + "|" + string(req.TokenID)
+	allowance := m.approvals[allowanceKey]
+	if allowance == nil || allowance.Amount().Cmp(req.Amount) < 0 {
+		return nil, token.ErrInsufficientAllowance
+	}
+
+	balanceKey := string(req.Owner) + "|" + string(req.TokenID)
+	fromBalance := m.balances[balanceKey]
+	if fromBalance == nil || fromBalance.Cmp(req.Amount) < 0 {
+		return nil, token.ErrInsufficientBalance
+	}
+
+	nonce := m.nonces[string(req.Spender)+string(req.TokenID)]
+	nonce++
+	m.nonces[string(req.Spender)+string(req.TokenID)] = nonce
+
+	signature := ed25519.Sign(req.SpenderKey, []byte("mock-signature-from"))
+	event := token.NewTransferEvent(req.TokenID, req.Owner, req.To, req.Amount, nonce, signature)
+	m.events.transfers = append(m.events.transfers, event)
+
+	fromNewBalanceInt := new(big.Int).Sub(fromBalance.Int, req.Amount.Int)
+	m.balances[balanceKey] = &token.Amount{Int: fromNewBalanceInt}
+
+	toBalanceKey := string(req.To) + "|" + string(req.TokenID)
+	toBalance := m.balances[toBalanceKey]
+	if toBalance == nil {
+		toBalance = token.NewAmount(0)
+	}
+	toNewBalanceInt := new(big.Int).Add(toBalance.Int, req.Amount.Int)
+	m.balances[toBalanceKey] = &token.Amount{Int: toNewBalanceInt}
+
+	newAllowanceInt := new(big.Int).Sub(allowance.Amount().Int, req.Amount.Int)
+	m.approvals[allowanceKey] = token.NewApproval(req.TokenID, req.Owner, req.Spender, &token.Amount{Int: newAllowanceInt})
+
+	return event, nil
 }
 
 func (m *mockTokenService) Approve(req *token.ApproveRequest) (*token.ApproveEvent, error) {
@@ -511,4 +545,575 @@ func TestBurnUseCase_TokenNotFound(t *testing.T) {
 
 func encodeBase64(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data)
+}
+
+func TestApproveUseCase_Execute(t *testing.T) {
+	service := newMockTokenService()
+
+	pub, priv, _ := ed25519.GenerateKey(nil)
+	pub2, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+
+	uc := NewApproveUseCase(service)
+
+	req := &ApproveRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(pub),
+		Spender:    encodeBase64(pub2),
+		Amount:     "500",
+		PrivateKey: encodeBase64(priv),
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+
+	if resp.Amount != "500" {
+		t.Errorf("Expected amount '500', got '%s'", resp.Amount)
+	}
+
+	if resp.TokenID != "TEST" {
+		t.Errorf("Expected token ID 'TEST', got '%s'", resp.TokenID)
+	}
+}
+
+func TestApproveUseCase_InvalidOwner(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewApproveUseCase(service)
+
+	pub, priv, _ := ed25519.GenerateKey(nil)
+
+	req := &ApproveRequest{
+		TokenID:    "TEST",
+		Owner:      "!!!invalid!!!",
+		Spender:    encodeBase64(pub),
+		Amount:     "500",
+		PrivateKey: encodeBase64(priv),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid owner")
+	}
+}
+
+func TestApproveUseCase_InvalidSpender(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewApproveUseCase(service)
+
+	pub, priv, _ := ed25519.GenerateKey(nil)
+
+	req := &ApproveRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(pub),
+		Spender:    "!!!invalid!!!",
+		Amount:     "500",
+		PrivateKey: encodeBase64(priv),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid spender")
+	}
+}
+
+func TestApproveUseCase_InvalidPrivateKey(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewApproveUseCase(service)
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+	pub2, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+
+	req := &ApproveRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(pub),
+		Spender:    encodeBase64(pub2),
+		Amount:     "500",
+		PrivateKey: "!!!invalid!!!",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid private key")
+	}
+}
+
+func TestApproveUseCase_InvalidAmount(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewApproveUseCase(service)
+
+	pub, priv, _ := ed25519.GenerateKey(nil)
+	pub2, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+
+	req := &ApproveRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(pub),
+		Spender:    encodeBase64(pub2),
+		Amount:     "invalid",
+		PrivateKey: encodeBase64(priv),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid amount")
+	}
+}
+
+func TestTransferFromUseCase_Execute(t *testing.T) {
+	service := newMockTokenService()
+
+	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
+	spenderPub, spenderPriv, _ := ed25519.GenerateKey(nil)
+	toPub, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(ownerPub))
+	service.balances[string(toTokenPublicKey(ownerPub))+"|TEST"] = token.NewAmount(1000)
+	service.approvals[string(toTokenPublicKey(ownerPub))+"|"+string(toTokenPublicKey(spenderPub))+"|TEST"] = token.NewApproval("TEST", toTokenPublicKey(ownerPub), toTokenPublicKey(spenderPub), token.NewAmount(500))
+
+	uc := NewTransferFromUseCase(service)
+	_ = ownerPriv
+
+	req := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(ownerPub),
+		To:         encodeBase64(toPub),
+		Amount:     "100",
+		Spender:    encodeBase64(spenderPub),
+		SpenderKey: encodeBase64(spenderPriv),
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+
+	if resp.Amount != "100" {
+		t.Errorf("Expected amount '100', got '%s'", resp.Amount)
+	}
+}
+
+func TestTransferFromUseCase_InvalidOwner(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewTransferFromUseCase(service)
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	req := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      "!!!invalid!!!",
+		To:         encodeBase64(pub),
+		Amount:     "100",
+		Spender:    encodeBase64(pub),
+		SpenderKey: encodeBase64(pub),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid owner")
+	}
+}
+
+func TestTransferFromUseCase_InvalidTo(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewTransferFromUseCase(service)
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+	_ = service
+
+	req := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(pub),
+		To:         "!!!invalid!!!",
+		Amount:     "100",
+		Spender:    encodeBase64(pub),
+		SpenderKey: encodeBase64(pub),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid to")
+	}
+}
+
+func TestTransferFromUseCase_InvalidSpender(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewTransferFromUseCase(service)
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	req := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(pub),
+		To:         encodeBase64(pub),
+		Amount:     "100",
+		Spender:    "!!!invalid!!!",
+		SpenderKey: encodeBase64(pub),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid spender")
+	}
+}
+
+func TestTransferFromUseCase_InvalidSpenderKey(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewTransferFromUseCase(service)
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+	pub2, _, _ := ed25519.GenerateKey(nil)
+
+	req := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(pub),
+		To:         encodeBase64(pub2),
+		Amount:     "100",
+		Spender:    encodeBase64(pub2),
+		SpenderKey: "!!!invalid!!!",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid spender key")
+	}
+}
+
+func TestTransferFromUseCase_InvalidAmount(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewTransferFromUseCase(service)
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+	pub2, _, _ := ed25519.GenerateKey(nil)
+
+	req := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(pub),
+		To:         encodeBase64(pub2),
+		Amount:     "invalid",
+		Spender:    encodeBase64(pub2),
+		SpenderKey: encodeBase64(pub2),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid amount")
+	}
+}
+
+func TestTransferFromUseCase_InsufficientAllowance(t *testing.T) {
+	service := newMockTokenService()
+
+	ownerPub, _, _ := ed25519.GenerateKey(nil)
+	spenderPub, spenderPriv, _ := ed25519.GenerateKey(nil)
+	toPub, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(ownerPub))
+	service.balances[string(toTokenPublicKey(ownerPub))+"|TEST"] = token.NewAmount(1000)
+	service.approvals[string(toTokenPublicKey(ownerPub))+"|"+string(toTokenPublicKey(spenderPub))+"|TEST"] = token.NewApproval("TEST", toTokenPublicKey(ownerPub), toTokenPublicKey(spenderPub), token.NewAmount(50))
+
+	uc := NewTransferFromUseCase(service)
+
+	req := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(ownerPub),
+		To:         encodeBase64(toPub),
+		Amount:     "100",
+		Spender:    encodeBase64(spenderPub),
+		SpenderKey: encodeBase64(spenderPriv),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for insufficient allowance")
+	}
+}
+
+func TestTransferFromUseCase_InsufficientBalance(t *testing.T) {
+	service := newMockTokenService()
+
+	ownerPub, _, _ := ed25519.GenerateKey(nil)
+	spenderPub, spenderPriv, _ := ed25519.GenerateKey(nil)
+	toPub, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(ownerPub))
+	service.balances[string(toTokenPublicKey(ownerPub))+"|TEST"] = token.NewAmount(50)
+	service.approvals[string(toTokenPublicKey(ownerPub))+"|"+string(toTokenPublicKey(spenderPub))+"|TEST"] = token.NewApproval("TEST", toTokenPublicKey(ownerPub), toTokenPublicKey(spenderPub), token.NewAmount(500))
+
+	uc := NewTransferFromUseCase(service)
+
+	req := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      encodeBase64(ownerPub),
+		To:         encodeBase64(toPub),
+		Amount:     "100",
+		Spender:    encodeBase64(spenderPub),
+		SpenderKey: encodeBase64(spenderPriv),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for insufficient balance")
+	}
+}
+
+func TestGetBalanceUseCase_Execute(t *testing.T) {
+	service := newMockTokenService()
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+	service.balances[string(toTokenPublicKey(pub))+"|TEST"] = token.NewAmount(500)
+
+	uc := NewGetBalanceUseCase(service)
+
+	req := &BalanceRequest{
+		TokenID: "TEST",
+		Owner:   encodeBase64(pub),
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+
+	if resp.Amount != "500" {
+		t.Errorf("Expected amount '500', got '%s'", resp.Amount)
+	}
+}
+
+func TestGetBalanceUseCase_InvalidOwner(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewGetBalanceUseCase(service)
+
+	req := &BalanceRequest{
+		TokenID: "TEST",
+		Owner:   "!!!invalid!!!",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid owner")
+	}
+}
+
+func TestGetBalanceUseCase_NonExistentOwner(t *testing.T) {
+	service := newMockTokenService()
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+
+	uc := NewGetBalanceUseCase(service)
+
+	req := &BalanceRequest{
+		TokenID: "TEST",
+		Owner:   encodeBase64(pub),
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp.Amount != "0" {
+		t.Errorf("Expected amount '0', got '%s'", resp.Amount)
+	}
+}
+
+func TestGetAllowanceUseCase_Execute(t *testing.T) {
+	service := newMockTokenService()
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+	pub2, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+	service.approvals[string(toTokenPublicKey(pub))+"|"+string(toTokenPublicKey(pub2))+"|TEST"] = token.NewApproval("TEST", toTokenPublicKey(pub), toTokenPublicKey(pub2), token.NewAmount(300))
+
+	uc := NewGetAllowanceUseCase(service)
+
+	req := &AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   encodeBase64(pub),
+		Spender: encodeBase64(pub2),
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+
+	if resp.Amount != "300" {
+		t.Errorf("Expected amount '300', got '%s'", resp.Amount)
+	}
+}
+
+func TestGetAllowanceUseCase_InvalidOwner(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewGetAllowanceUseCase(service)
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	req := &AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   "!!!invalid!!!",
+		Spender: encodeBase64(pub),
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid owner")
+	}
+}
+
+func TestGetAllowanceUseCase_InvalidSpender(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewGetAllowanceUseCase(service)
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	req := &AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   encodeBase64(pub),
+		Spender: "!!!invalid!!!",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid spender")
+	}
+}
+
+func TestGetAllowanceUseCase_NoAllowance(t *testing.T) {
+	service := newMockTokenService()
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+	pub2, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+
+	uc := NewGetAllowanceUseCase(service)
+
+	req := &AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   encodeBase64(pub),
+		Spender: encodeBase64(pub2),
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp.Amount != "0" {
+		t.Errorf("Expected amount '0', got '%s'", resp.Amount)
+	}
+}
+
+func TestGetHistoryUseCase_Execute(t *testing.T) {
+	service := newMockTokenService()
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+	service.events.transfers = []*token.TransferEvent{
+		token.NewTransferEvent("TEST", toTokenPublicKey(pub), toTokenPublicKey(pub), token.NewAmount(100), 1, nil),
+		token.NewTransferEvent("TEST", toTokenPublicKey(pub), toTokenPublicKey(pub), token.NewAmount(200), 2, nil),
+	}
+
+	uc := NewGetHistoryUseCase(service)
+
+	req := &HistoryRequest{
+		TokenID: "TEST",
+		Owner:   encodeBase64(pub),
+		Limit:   10,
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Response should not be nil")
+	}
+
+	if len(resp.Transfers) != 2 {
+		t.Errorf("Expected 2 transfers, got %d", len(resp.Transfers))
+	}
+}
+
+func TestGetHistoryUseCase_InvalidOwner(t *testing.T) {
+	service := newMockTokenService()
+
+	uc := NewGetHistoryUseCase(service)
+
+	req := &HistoryRequest{
+		TokenID: "TEST",
+		Owner:   "!!!invalid!!!",
+		Limit:   10,
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for invalid owner")
+	}
+}
+
+func TestGetHistoryUseCase_EmptyHistory(t *testing.T) {
+	service := newMockTokenService()
+
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	service.tokens["TEST"] = token.NewToken("TEST", "Test Token", "TEST", token.NewAmount(1000000), toTokenPublicKey(pub))
+
+	uc := NewGetHistoryUseCase(service)
+
+	req := &HistoryRequest{
+		TokenID: "TEST",
+		Owner:   encodeBase64(pub),
+		Limit:   10,
+	}
+
+	resp, err := uc.Execute(req)
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(resp.Transfers) != 0 {
+		t.Errorf("Expected 0 transfers, got %d", len(resp.Transfers))
+	}
 }

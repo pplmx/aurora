@@ -1,3 +1,5 @@
+// Package oracle provides data oracle functionality for fetching external
+// data (e.g., BTC/ETH prices) and recording it on-chain.
 package oracle
 
 type OracleData struct {

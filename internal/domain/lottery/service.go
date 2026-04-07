@@ -28,7 +28,7 @@ func (s *lotteryService) DrawWinners(participants []string, seed string, count i
 		return nil, nil, nil, nil, err
 	}
 
-	pk, sk, err := GenerateKeyPair()
+	_, sk, err := GenerateKeyPair()
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -45,7 +45,6 @@ func (s *lotteryService) DrawWinners(participants []string, seed string, count i
 		winnerAddrs[i] = NameToAddress(w)
 	}
 
-	_ = pk
 	return winners, winnerAddrs, output, proof, nil
 }
 

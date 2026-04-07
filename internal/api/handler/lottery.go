@@ -48,7 +48,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	result, err := uc.Execute(appReq)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 	results, err := h.repo.GetAll()
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

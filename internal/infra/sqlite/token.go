@@ -119,8 +119,14 @@ func (r *TokenRepository) GetToken(id token.TokenID) (*token.Token, error) {
 		return nil, err
 	}
 
-	owner, _ := base64.StdEncoding.DecodeString(ownerB64)
-	amount, _ := token.NewAmountFromString(totalSupplyStr)
+	owner, err := base64.StdEncoding.DecodeString(ownerB64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode owner: %w", err)
+	}
+	amount, err := token.NewAmountFromString(totalSupplyStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode amount: %w", err)
+	}
 
 	return token.NewToken(
 		token.TokenID(idStr),
@@ -162,9 +168,18 @@ func (r *TokenRepository) GetApproval(tokenID token.TokenID, owner, spender toke
 		return nil, err
 	}
 
-	own, _ := base64.StdEncoding.DecodeString(ownB64)
-	spend, _ := base64.StdEncoding.DecodeString(spendB64)
-	amount, _ := token.NewAmountFromString(amountStr)
+	own, err := base64.StdEncoding.DecodeString(ownB64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode owner: %w", err)
+	}
+	spend, err := base64.StdEncoding.DecodeString(spendB64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode spender: %w", err)
+	}
+	amount, err := token.NewAmountFromString(amountStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode amount: %w", err)
+	}
 
 	return token.NewApproval(token.TokenID(tkID), own, spend, amount), nil
 }
@@ -224,9 +239,18 @@ func (r *TokenRepository) GetApprovalsByOwner(tokenID token.TokenID, owner token
 			return nil, err
 		}
 
-		own, _ := base64.StdEncoding.DecodeString(ownB64)
-		spend, _ := base64.StdEncoding.DecodeString(spendB64)
-		amount, _ := token.NewAmountFromString(amountStr)
+		own, err := base64.StdEncoding.DecodeString(ownB64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode owner: %w", err)
+		}
+		spend, err := base64.StdEncoding.DecodeString(spendB64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode spender: %w", err)
+		}
+		amount, err := token.NewAmountFromString(amountStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode amount: %w", err)
+		}
 
 		approvals = append(approvals, token.NewApproval(token.TokenID(tkID), own, spend, amount))
 	}

@@ -46,7 +46,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Owner:       req.Owner,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, `{"error":"failed to create token","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -132,7 +132,7 @@ func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 		Owner:   owner,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -174,7 +174,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 		Limit:   20,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

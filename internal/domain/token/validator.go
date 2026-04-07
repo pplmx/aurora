@@ -2,11 +2,16 @@ package token
 
 import "fmt"
 
+const (
+	MaxTokenNameLength   = 100
+	MaxTokenSymbolLength = 10
+)
+
 func ValidateTokenName(name string) error {
 	if name == "" {
 		return fmt.Errorf("token name is required")
 	}
-	if len(name) > 100 {
+	if len(name) > MaxTokenNameLength {
 		return fmt.Errorf("token name too long")
 	}
 	return nil
@@ -16,7 +21,7 @@ func ValidateTokenSymbol(symbol string) error {
 	if symbol == "" {
 		return fmt.Errorf("token symbol is required")
 	}
-	if len(symbol) > 10 {
+	if len(symbol) > MaxTokenSymbolLength {
 		return fmt.Errorf("token symbol too long")
 	}
 	return nil

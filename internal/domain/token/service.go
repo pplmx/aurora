@@ -10,6 +10,8 @@ import (
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 )
 
+const defaultHistoryLimit = 50
+
 type Service interface {
 	CreateToken(req *CreateTokenRequest) (*Token, error)
 	GetTokenInfo(tokenID TokenID) (*Token, error)
@@ -493,7 +495,7 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 
 func (s *TokenService) GetTransferHistory(tokenID TokenID, owner PublicKey, limit int) ([]*TransferEvent, error) {
 	if limit <= 0 {
-		limit = 50
+		limit = defaultHistoryLimit
 	}
 	events, err := s.eventStore.GetTransferEventsByOwner(tokenID, owner)
 	if err != nil {

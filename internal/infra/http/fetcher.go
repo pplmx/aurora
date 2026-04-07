@@ -12,13 +12,15 @@ import (
 	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
+const defaultHTTPTimeout = 10 * time.Second
+
 type Fetcher struct {
 	client *http.Client
 }
 
 func NewFetcher() *Fetcher {
 	return &Fetcher{
-		client: &http.Client{Timeout: 10 * time.Second},
+		client: &http.Client{Timeout: defaultHTTPTimeout},
 	}
 }
 
