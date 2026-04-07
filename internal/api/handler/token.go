@@ -9,6 +9,8 @@ import (
 	"github.com/pplmx/aurora/internal/domain/token"
 )
 
+const defaultHistoryLimit = 20
+
 type TokenHandler struct {
 	service token.Service
 }
@@ -34,7 +36,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Owner       string `json:"owner"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -46,7 +48,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Owner:       req.Owner,
 	})
 	if err != nil {
-		http.Error(w, `{"error":"failed to create token","code":"INTERNAL_ERROR"}`, http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -62,7 +64,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		PrivateKey string `json:"private_key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -74,7 +76,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -91,7 +93,7 @@ func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		PrivateKey string `json:"private_key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -104,7 +106,7 @@ func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -120,7 +122,7 @@ func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		PrivateKey string `json:"private_key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -132,7 +134,7 @@ func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -155,7 +157,7 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 		Owner:   owner,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -171,10 +173,10 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	result, err := uc.Execute(&tokenapp.HistoryRequest{
 		TokenID: tokenID,
 		Owner:   owner,
-		Limit:   20,
+		Limit:   defaultHistoryLimit,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 

@@ -33,7 +33,7 @@ func (h *LotteryHandler) Routes(r chi.Router) {
 func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateLotteryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -48,7 +48,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	result, err := uc.Execute(appReq)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 	results, err := h.repo.GetAll()
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 

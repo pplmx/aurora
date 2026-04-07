@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// TransferEvent represents a token transfer operation.
 type TransferEvent struct {
 	id          string
 	tokenID     TokenID
@@ -42,6 +43,7 @@ func (e *TransferEvent) BlockHeight() int64     { return e.blockHeight }
 func (e *TransferEvent) SetBlockHeight(h int64) { e.blockHeight = h }
 func (e *TransferEvent) Timestamp() time.Time   { return e.timestamp }
 
+// MintEvent represents a token minting operation.
 type MintEvent struct {
 	id          string
 	tokenID     TokenID
@@ -69,6 +71,7 @@ func (e *MintEvent) BlockHeight() int64     { return e.blockHeight }
 func (e *MintEvent) SetBlockHeight(h int64) { e.blockHeight = h }
 func (e *MintEvent) Timestamp() time.Time   { return e.timestamp }
 
+// BurnEvent represents a token burning operation.
 type BurnEvent struct {
 	id          string
 	tokenID     TokenID
@@ -96,6 +99,7 @@ func (e *BurnEvent) BlockHeight() int64     { return e.blockHeight }
 func (e *BurnEvent) SetBlockHeight(h int64) { e.blockHeight = h }
 func (e *BurnEvent) Timestamp() time.Time   { return e.timestamp }
 
+// ApproveEvent represents a token approval operation.
 type ApproveEvent struct {
 	id        string
 	tokenID   TokenID

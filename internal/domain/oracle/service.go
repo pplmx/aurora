@@ -2,6 +2,8 @@ package oracle
 
 import "time"
 
+const defaultQueryLimit = 10
+
 type Service interface {
 	AddSource(source *DataSource) error
 	EnableSource(id string) error
@@ -76,7 +78,7 @@ func (s *service) FetchData(source *DataSource) (*OracleData, error) {
 
 func (s *service) QueryData(sourceID string, limit int) ([]*OracleData, error) {
 	if limit <= 0 {
-		limit = 10
+		limit = defaultQueryLimit
 	}
 	return s.repo.GetDataBySource(sourceID, limit)
 }

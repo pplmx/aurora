@@ -41,7 +41,7 @@ func (h *NFTHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		Creator     string `json:"creator"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -54,7 +54,7 @@ func (h *NFTHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		Creator:     req.Creator,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -70,7 +70,7 @@ func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		PrivateKey string `json:"private_key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		PrivateKey string `json:"private_key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -108,7 +108,7 @@ func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 	uc := nftapp.NewListNFTsByOwnerUseCase(h.service)
 	result, err := uc.Execute(owner)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
