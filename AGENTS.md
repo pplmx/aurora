@@ -110,8 +110,8 @@ go test ./... -cover               # With coverage
 
 | Module  | Domain | App   |
 | ------- | ------ | ----- |
-| Lottery | 74.0%  | 87.1% |
+| Lottery | 73.8%  | 87.1% |
 | Voting  | 87.5%  | 81.4% |
 | NFT     | 72.7%  | 88.1% |
-| Token   | 70.7%  | 40.7% |
+| Token   | 70.5%  | 91.9% |
 | Oracle  | 76.1%  | 65.8% |
