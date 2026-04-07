@@ -120,8 +120,14 @@ func (r *NFTRepository) GetNFT(id string) (*nft.NFT, error) {
 		return nil, err
 	}
 
-	owner, _ := base64.StdEncoding.DecodeString(ownerB64)
-	creator, _ := base64.StdEncoding.DecodeString(creatorB64)
+	owner, err := base64.StdEncoding.DecodeString(ownerB64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode owner: %w", err)
+	}
+	creator, err := base64.StdEncoding.DecodeString(creatorB64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode creator: %w", err)
+	}
 
 	return &nft.NFT{
 		ID:          id,
@@ -156,8 +162,14 @@ func (r *NFTRepository) GetNFTsByOwner(owner []byte) ([]*nft.NFT, error) {
 			return nil, err
 		}
 
-		ownerBytes, _ := base64.StdEncoding.DecodeString(ownerStr)
-		creator, _ := base64.StdEncoding.DecodeString(creatorB64)
+		ownerBytes, err := base64.StdEncoding.DecodeString(ownerStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode owner: %w", err)
+		}
+		creator, err := base64.StdEncoding.DecodeString(creatorB64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode creator: %w", err)
+		}
 
 		results = append(results, &nft.NFT{
 			ID:          id,
@@ -195,8 +207,14 @@ func (r *NFTRepository) GetNFTsByCreator(creator []byte) ([]*nft.NFT, error) {
 			return nil, err
 		}
 
-		owner, _ := base64.StdEncoding.DecodeString(ownerB64)
-		creatorBytes, _ := base64.StdEncoding.DecodeString(creatorStr)
+		owner, err := base64.StdEncoding.DecodeString(ownerB64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode owner: %w", err)
+		}
+		creatorBytes, err := base64.StdEncoding.DecodeString(creatorStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode creator: %w", err)
+		}
 
 		results = append(results, &nft.NFT{
 			ID:          id,
