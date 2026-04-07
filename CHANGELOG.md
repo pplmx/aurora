@@ -2,6 +2,51 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-04-07
+
+### Added
+
+- **SQLite Repository Tests**: Comprehensive test coverage for all repositories
+    - `token_repo_test.go`: SaveToken, GetToken, SaveApproval, GetApproval
+    - `blockchain_repo_test.go`: SaveBlock, GetBlock, GetAllBlocks, GetLotteryRecords
+    - `nft_repo_test.go`: SaveNFT, GetNFT, GetNFTsByOwner, GetNFTsByCreator, SaveOperation
+    - `oracle_repo_test.go`: SaveSource, GetSource, ListSources, SaveData, GetDataBySource
+    - `voting_repo_test.go`: SaveVoter, GetVoter, SaveCandidate, ListCandidates, SaveVote
+
+### Changed
+
+- **Code Quality Improvements**:
+    - Renamed `VoterPK` → `VoterPublicKey` for consistency
+    - Extracted magic numbers to named constants
+    - Added package comments to all domain modules
+    - Added struct docstrings: NFT, Operation, Vote, Voter, Candidate, Session, Block, BlockChain
+    - Standardized API error responses with helper functions
+
+### Fixed
+
+- **Critical Bug Fixes**:
+    - Nonce not persisted in Transfer/TransferFrom (would cause duplicate nonce errors)
+    - Mint not updating totalSupply (token supply not tracked)
+- **Error Handling**:
+    - Fixed error message leakage in HTTP handlers
+    - Fixed ignored base64/json decode errors in SQLite repositories
+    - Added nil check in BlockChain.AddBlock
+- **Code Cleanup**:
+    - Removed unused `pk` variable in lottery service
+    - Removed no-op `Handle()` function in blockchain
+    - Deleted debug `internal/main.go` that ran E2E on startup
+
+### Test Coverage
+
+| Module  | Domain | App   |
+| ------- | ------ | ----- |
+| Lottery | 73.8%  | 87.1% |
+| Voting  | 87.5%  | 81.4% |
+| NFT     | 72.7%  | 88.1% |
+| Token   | 70.5%  | 91.9% |
+| Oracle  | 76.1%  | 65.8% |
+| SQLite  | -      | 45.5% |
+
 ## [1.2.0] - 2026-04-07
 
 ### Added
