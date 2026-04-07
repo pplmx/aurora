@@ -13,6 +13,7 @@
 ## Technical Choice
 
 **Framework**: Chi (go-chi/chi)
+
 - 轻量级，纯 Go 实现
 - 中间件生态丰富
 - 与项目风格一致
@@ -20,25 +21,29 @@
 ## API Specification
 
 ### Base URL
-```
+
+```text
 http://localhost:8080/api/v1
 ```
 
 ### Endpoints
 
 #### Health Check
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /health | 服务健康检查 |
+
+| Method | Path    | Description  |
+| ------ | ------- | ------------ |
+| GET    | /health | 服务健康检查 |
 
 #### Lottery
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /lottery/create | 创建抽奖 |
-| GET | /lottery/history | 抽奖历史 |
-| GET | /lottery/:id | 抽奖详情 |
+
+| Method | Path             | Description |
+| ------ | ---------------- | ----------- |
+| POST   | /lottery/create  | 创建抽奖    |
+| GET    | /lottery/history | 抽奖历史    |
+| GET    | /lottery/:id     | 抽奖详情    |
 
 Request body (POST /lottery/create):
+
 ```json
 {
   "participants": ["A", "B", "C", "D"],
@@ -48,6 +53,7 @@ Request body (POST /lottery/create):
 ```
 
 Response:
+
 ```json
 {
   "id": "uuid",
@@ -58,13 +64,15 @@ Response:
 ```
 
 #### Voting
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /voting/create | 创建投票 |
-| POST | /voting/vote | 投票 |
-| GET | /voting/:id | 投票结果 |
+
+| Method | Path           | Description |
+| ------ | -------------- | ----------- |
+| POST   | /voting/create | 创建投票    |
+| POST   | /voting/vote   | 投票        |
+| GET    | /voting/:id    | 投票结果    |
 
 Request body (POST /voting/create):
+
 ```json
 {
   "title": "Proposal Title",
@@ -73,6 +81,7 @@ Request body (POST /voting/create):
 ```
 
 Request body (POST /voting/vote):
+
 ```json
 {
   "vote_id": "uuid",
@@ -83,14 +92,16 @@ Request body (POST /voting/vote):
 ```
 
 #### NFT
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /nft/mint | 铸造 NFT |
-| POST | /nft/transfer | 转移 NFT |
-| GET | /nft/:id | NFT 详情 |
-| GET | /nft/list?owner=<pubkey> | NFT 列表 |
+
+| Method | Path                     | Description |
+| ------ | ------------------------ | ----------- |
+| POST   | /nft/mint                | 铸造 NFT    |
+| POST   | /nft/transfer            | 转移 NFT    |
+| GET    | /nft/:id                 | NFT 详情    |
+| GET    | /nft/list?owner=<pubkey> | NFT 列表    |
 
 Request body (POST /nft/mint):
+
 ```json
 {
   "name": "My NFT",
@@ -101,6 +112,7 @@ Request body (POST /nft/mint):
 ```
 
 Request body (POST /nft/transfer):
+
 ```json
 {
   "nft_id": "uuid",
@@ -111,16 +123,18 @@ Request body (POST /nft/transfer):
 ```
 
 #### Token
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | /token/create | 创建代币 |
-| POST | /token/mint | 铸造代币 |
-| POST | /token/transfer | 转账 |
-| POST | /token/burn | 销毁 |
-| GET | /token/balance?owner=<pubkey> | 余额查询 |
-| GET | /token/history | 交易历史 |
+
+| Method | Path                          | Description |
+| ------ | ----------------------------- | ----------- |
+| POST   | /token/create                 | 创建代币    |
+| POST   | /token/mint                   | 铸造代币    |
+| POST   | /token/transfer               | 转账        |
+| POST   | /token/burn                   | 销毁        |
+| GET    | /token/balance?owner=<pubkey> | 余额查询    |
+| GET    | /token/history                | 交易历史    |
 
 Request body (POST /token/create):
+
 ```json
 {
   "name": "MyToken",
@@ -130,6 +144,7 @@ Request body (POST /token/create):
 ```
 
 Request body (POST /token/transfer):
+
 ```json
 {
   "from": "ed25519-privkey",
@@ -139,15 +154,17 @@ Request body (POST /token/transfer):
 ```
 
 #### Oracle
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /oracle/sources | 数据源列表 |
-| POST | /oracle/fetch | 获取数据 |
-| GET | /oracle/query?source=<id>&limit=10 | 查询历史 |
+
+| Method | Path                               | Description |
+| ------ | ---------------------------------- | ----------- |
+| GET    | /oracle/sources                    | 数据源列表  |
+| POST   | /oracle/fetch                      | 获取数据    |
+| GET    | /oracle/query?source=<id>&limit=10 | 查询历史    |
 
 ### Error Response Format
 
 所有错误响应统一格式：
+
 ```json
 {
   "error": "错误描述",
@@ -156,13 +173,14 @@ Request body (POST /token/transfer):
 ```
 
 常见错误码：
+
 - `INVALID_REQUEST` - 请求参数错误
 - `NOT_FOUND` - 资源不存在
 - `INTERNAL_ERROR` - 服务器内部错误
 
 ## Project Structure
 
-```
+```text
 cmd/
 ├── aurora/           # 现有 CLI
 └── api/              # 新增 API 服务
@@ -188,6 +206,7 @@ internal/
 ## Configuration
 
 新增配置项（config/aurora.toml）：
+
 ```toml
 [server]
 host = "0.0.0.0"
