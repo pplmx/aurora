@@ -21,26 +21,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64,amd64
-
       - name: Login to Docker Hub
-        if: github.event_name == 'release'
         uses: docker/login-action@v4
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
-        if: github.event_name == 'release'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-qemu-action@v4
 
       - name: Extract metadata
         id: meta
@@ -59,7 +54,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name == 'release' || github.event_name == 'push' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           pull: true
@@ -69,3 +64,5 @@ jobs:
       - name: Test image
         run: |
           docker run --rm ${{ env.DOCKER_IMAGE }}:${{ github.sha }} --help
+          docker run --rm ${{ env.GHCR_IMAGE }}:${{ github.sha }} --help
+
