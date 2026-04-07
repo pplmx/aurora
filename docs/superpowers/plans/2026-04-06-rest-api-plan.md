@@ -12,7 +12,7 @@
 
 ## File Structure
 
-```
+```text
 cmd/
 ├── aurora/           # 现有 CLI
 │   └── main.go
@@ -43,6 +43,7 @@ config/
 ## Task 1: 添加 Server 配置
 
 **Files:**
+
 - Create: `internal/config/config.go`
 - Modify: `cmd/aurora/cmd/root.go` (添加 server 配置加载)
 
@@ -125,6 +126,7 @@ git commit -m "config: add server configuration"
 ## Task 2: 创建 API 中间件
 
 **Files:**
+
 - Create: `internal/api/middleware/logger.go`
 - Create: `internal/api/middleware/recovery.go`
 
@@ -203,6 +205,7 @@ git commit -m "api: add middleware (logger, recovery)"
 ## Task 3: 创建 Lottery Handler
 
 **Files:**
+
 - Create: `internal/api/handler/lottery.go`
 
 - [ ] **Step 1: 创建 Lottery Handler**
@@ -299,6 +302,7 @@ git commit -m "api: add lottery handler"
 ## Task 4: 创建 Voting Handler
 
 **Files:**
+
 - Create: `internal/api/handler/voting.go`
 
 - [ ] **Step 1: 创建 Voting Handler**
@@ -408,6 +412,7 @@ git commit -m "api: add voting handler"
 ## Task 5: 创建 NFT Handler
 
 **Files:**
+
 - Create: `internal/api/handler/nft.go`
 
 - [ ] **Step 1: 创建 NFT Handler**
@@ -539,6 +544,7 @@ git commit -m "api: add nft handler"
 ## Task 6: 创建 Token Handler
 
 **Files:**
+
 - Create: `internal/api/handler/token.go`
 
 - [ ] **Step 1: 创建 Token Handler**
@@ -716,6 +722,7 @@ git commit -m "api: add token handler"
 ## Task 7: 创建 Oracle Handler
 
 **Files:**
+
 - Create: `internal/api/handler/oracle.go`
 
 - [ ] **Step 1: 创建 Oracle Handler**
@@ -814,6 +821,7 @@ git commit -m "api: add oracle handler"
 ## Task 8: 创建 Router 和主程序
 
 **Files:**
+
 - Create: `internal/api/router.go`
 - Create: `cmd/api/main.go`
 
@@ -1032,17 +1040,17 @@ git commit -m "api: verify all endpoints work"
 
 ## Summary
 
-| Task | Description |
-|------|-------------|
-| 1 | 添加 Server 配置 |
-| 2 | 创建 API 中间件 |
-| 3 | 创建 Lottery Handler |
-| 4 | 创建 Voting Handler |
-| 5 | 创建 NFT Handler |
-| 6 | 创建 Token Handler |
-| 7 | 创建 Oracle Handler |
-| 8 | 创建 Router 和主程序 |
-| 9 | 运行测试并验证 |
+| Task | Description          |
+| ---- | -------------------- |
+| 1    | 添加 Server 配置     |
+| 2    | 创建 API 中间件      |
+| 3    | 创建 Lottery Handler |
+| 4    | 创建 Voting Handler  |
+| 5    | 创建 NFT Handler     |
+| 6    | 创建 Token Handler   |
+| 7    | 创建 Oracle Handler  |
+| 8    | 创建 Router 和主程序 |
+| 9    | 运行测试并验证       |
 
 ---
 
