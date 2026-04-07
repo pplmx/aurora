@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const defaultDecimals = 8
+
 type TokenID string
 
 type PublicKey []byte
@@ -88,7 +90,7 @@ func NewToken(id TokenID, name, symbol string, totalSupply *Amount, owner Public
 		name:        name,
 		symbol:      symbol,
 		totalSupply: totalSupply,
-		decimals:    8,
+		decimals:    defaultDecimals,
 		owner:       owner,
 		isMintable:  true,
 		isBurnable:  true,

@@ -1,6 +1,9 @@
 package token
 
-import "fmt"
+import (
+	"crypto/ed25519"
+	"fmt"
+)
 
 const (
 	MaxTokenNameLength   = 100
@@ -38,7 +41,7 @@ func ValidatePublicKey(pk PublicKey) error {
 	if len(pk) == 0 {
 		return fmt.Errorf("public key is required")
 	}
-	if len(pk) != 32 {
+	if len(pk) != ed25519.PublicKeySize {
 		return fmt.Errorf("invalid public key length")
 	}
 	return nil

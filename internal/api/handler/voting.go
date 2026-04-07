@@ -35,14 +35,14 @@ func (h *VotingHandler) RegisterVoter(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
 	uc := votingapp.NewRegisterVoterUseCase(h.repo)
 	result, err := uc.Execute(votingapp.RegisterVoterRequest{Name: req.Name})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -57,7 +57,7 @@ func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request
 		Program string `json:"program"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -68,7 +68,7 @@ func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request
 		Program: req.Program,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		EndTime      int64    `json:"end_time"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -98,7 +98,7 @@ func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		EndTime:      req.EndTime,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -113,7 +113,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		PrivateKey     string `json:"private_key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		PrivateKey:     req.PrivateKey,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 	uc := votingapp.NewGetCandidatesUseCase(h.repo)
 	result, err := uc.Execute()
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 

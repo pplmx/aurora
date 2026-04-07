@@ -10,6 +10,8 @@ import (
 	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
+const defaultQueryLimit = 10
+
 type OracleHandler struct {
 	repo oracle.Repository
 }
@@ -28,7 +30,7 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 	uc := oracleapp.NewListSourcesUseCase(h.repo)
 	result, err := uc.Execute(&oracleapp.ListSourcesRequest{})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -41,14 +43,14 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 		Source string `json:"source"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"invalid request","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "invalid request")
 		return
 	}
 
 	uc := oracleapp.NewFetchDataUseCase(h.repo)
 	result, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: req.Source})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 
@@ -59,7 +61,7 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 	source := r.URL.Query().Get("source")
 	limitStr := r.URL.Query().Get("limit")
-	limit := 10
+	limit := defaultQueryLimit
 	if limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil {
 			limit = l
@@ -72,7 +74,7 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 		Limit:    limit,
 	})
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		writeInternalError(w)
 		return
 	}
 

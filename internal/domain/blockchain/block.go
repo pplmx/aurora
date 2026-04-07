@@ -54,6 +54,9 @@ func Genesis() *Block {
 }
 
 func (c *BlockChain) AddBlock(data string) (int64, error) {
+	if c == nil || len(c.Blocks) == 0 {
+		return 0, fmt.Errorf("blockchain not initialized")
+	}
 	prevBlock := c.Blocks[len(c.Blocks)-1]
 	newBlock := NewBlock(data, prevBlock.Hash)
 	newBlock.Height = int64(len(c.Blocks))
