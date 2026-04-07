@@ -201,8 +201,11 @@ func (r *VotingRepository) ListCandidates() ([]*voting.Candidate, error) {
 }
 
 func (r *VotingRepository) SaveSession(session *voting.Session) error {
-	candidatesJSON, _ := json.Marshal(session.Candidates)
-	_, err := r.db.Exec(
+	candidatesJSON, err := json.Marshal(session.Candidates)
+	if err != nil {
+		return fmt.Errorf("failed to marshal candidates: %w", err)
+	}
+	_, err = r.db.Exec(
 		`INSERT OR REPLACE INTO voting_sessions (id, title, description, start_time, end_time, status, candidates, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		session.ID, session.Title, session.Description, session.StartTime, session.EndTime, session.Status, string(candidatesJSON), session.CreatedAt,
@@ -228,8 +231,11 @@ func (r *VotingRepository) GetSession(id string) (*voting.Session, error) {
 }
 
 func (r *VotingRepository) UpdateSession(session *voting.Session) error {
-	candidatesJSON, _ := json.Marshal(session.Candidates)
-	_, err := r.db.Exec(
+	candidatesJSON, err := json.Marshal(session.Candidates)
+	if err != nil {
+		return fmt.Errorf("failed to marshal candidates: %w", err)
+	}
+	_, err = r.db.Exec(
 		`UPDATE voting_sessions SET title = ?, description = ?, start_time = ?, end_time = ?, status = ?, candidates = ? WHERE id = ?`,
 		session.Title, session.Description, session.StartTime, session.EndTime, session.Status, string(candidatesJSON), session.ID,
 	)
