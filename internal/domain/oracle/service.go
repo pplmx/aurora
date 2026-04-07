@@ -2,6 +2,8 @@ package oracle
 
 import "time"
 
+// defaultQueryLimit is the default maximum number of data records to return
+// when querying oracle data.
 const defaultQueryLimit = 10
 
 type Service interface {

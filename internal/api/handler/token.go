@@ -9,6 +9,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/token"
 )
 
+// defaultHistoryLimit is the default limit for token transfer history API responses.
 const defaultHistoryLimit = 20
 
 type TokenHandler struct {

@@ -149,6 +149,10 @@ func (e *TokenEventStore) GetLastNonce(tokenID token.TokenID, owner token.Public
 	return uint64(nonce.Int64), nil
 }
 
+func (e *TokenEventStore) SaveNonce(tokenID token.TokenID, owner token.PublicKey, nonce uint64) error {
+	return nil
+}
+
 func (e *TokenEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.TransferEvent, error) {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 

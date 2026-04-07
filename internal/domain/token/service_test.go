@@ -896,6 +896,12 @@ func (m *mockEventStore) GetLastNonce(tokenID TokenID, owner PublicKey) (uint64,
 	return m.nonces[key], nil
 }
 
+func (m *mockEventStore) SaveNonce(tokenID TokenID, owner PublicKey, nonce uint64) error {
+	key := string(tokenID) + string(owner)
+	m.nonces[key] = nonce
+	return nil
+}
+
 type mockBlockWriter struct {
 	height int64
 }

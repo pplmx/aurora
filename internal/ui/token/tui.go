@@ -757,6 +757,12 @@ func (e *inmemEventStore) GetLastNonce(tokenID token.TokenID, owner token.Public
 	return e.nonces[key], nil
 }
 
+func (e *inmemEventStore) SaveNonce(tokenID token.TokenID, owner token.PublicKey, nonce uint64) error {
+	key := string(tokenID) + string(owner)
+	e.nonces[key] = nonce
+	return nil
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
