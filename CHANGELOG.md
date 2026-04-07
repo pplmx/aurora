@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.3.0] - 2026-04-07
+## [0.0.1] - 2026-04-07
 
 ### Added
 
@@ -47,7 +47,7 @@ All notable changes to this project will be documented in this file.
 | Oracle  | 76.1%  | 65.8% |
 | SQLite  | -      | 45.5% |
 
-## [1.2.0] - 2026-04-07
+## [0.0.1-alpha.3] - 2026-04-07
 
 ### Added
 
@@ -99,7 +99,7 @@ All notable changes to this project will be documented in this file.
 | Token   | 70.7%  | 40.7% |
 | Oracle  | 76.1%  | 65.8% |
 
-## [1.1.0] - 2026-04-06
+## [0.0.1-alpha.2] - 2026-04-06
 
 ### Refactored - DDD Architecture
 
@@ -146,7 +146,7 @@ Complete migration from monolithic modules to **Domain-Driven Design (DDD)** arc
 - golangci-lint configuration
 - errcheck disabled in CI (matches local lint)
 
-## [1.0.0] - 2024-04-06
+## [0.0.1-alpha.1] - 2024-04-06
 
 ### Added
 
@@ -173,7 +173,7 @@ Complete migration from monolithic modules to **Domain-Driven Design (DDD)** arc
 - Auto-release on tag
 - Codecov integration
 
-## [0.0.0] - 2024-04-05
+## [0.0.1-alpha.0] - 2024-04-05
 
 ### Initial Release
 
