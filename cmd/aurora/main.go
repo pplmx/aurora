@@ -6,7 +6,7 @@ import (
 	"github.com/pplmx/aurora/internal/logger"
 )
 
-var Version = "1.0.0"
+var Version = "0.0.1"
 var BuildTime = "unknown"
 
 func main() {

@@ -273,7 +273,7 @@ var versionCmd = &cobra.Command{
 	Short: "Show version information",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		fmt.Println("Aurora - VRF Lottery System")
-		fmt.Println("Version: 1.0.0")
+		fmt.Println("Version: 0.0.1")
 		fmt.Println("Go Version:", getGoVersion())
 		return nil
 	},
