@@ -10,6 +10,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
+// defaultQueryLimit is the default limit for oracle data query API responses.
 const defaultQueryLimit = 10
 
 type OracleHandler struct {

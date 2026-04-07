@@ -10,6 +10,8 @@ import (
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 )
 
+// defaultHistoryLimit is the default maximum number of transfer events to return
+// when querying transaction history.
 const defaultHistoryLimit = 50
 
 type Service interface {
@@ -56,6 +58,7 @@ type EventStore interface {
 	GetBurnEventsByToken(tokenID TokenID) ([]*BurnEvent, error)
 
 	GetLastNonce(tokenID TokenID, owner PublicKey) (uint64, error)
+	SaveNonce(tokenID TokenID, owner PublicKey, nonce uint64) error
 }
 
 type TokenService struct {
@@ -194,6 +197,11 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 
 	event := NewMintEvent(req.TokenID, req.To, req.Amount)
 
+	token.AddToSupply(req.Amount)
+	if err := s.repo.SaveToken(token); err != nil {
+		return nil, err
+	}
+
 	data := fmt.Sprintf("mint|%s|%s", req.TokenID, req.To)
 	height, err := s.chain.AddBlock(data)
 	if err != nil {
@@ -249,6 +257,9 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 		return nil, err
 	}
 	nonce++
+	if err := s.eventStore.SaveNonce(req.TokenID, req.From, nonce); err != nil {
+		return nil, err
+	}
 
 	signature := ed25519.Sign(req.PrivateKey, s.signMessage(req.TokenID, req.From, req.To, req.Amount, nonce))
 
@@ -328,6 +339,9 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 		return nil, err
 	}
 	nonce++
+	if err := s.eventStore.SaveNonce(req.TokenID, req.Spender, nonce); err != nil {
+		return nil, err
+	}
 
 	signature := ed25519.Sign(req.SpenderKey, s.signMessage(req.TokenID, req.Owner, req.To, req.Amount, nonce))
 

@@ -150,6 +150,12 @@ func (e *inMemoryEventStore) GetLastNonce(tokenID token.TokenID, owner token.Pub
 	return e.nonces[key], nil
 }
 
+func (e *inMemoryEventStore) SaveNonce(tokenID token.TokenID, owner token.PublicKey, nonce uint64) error {
+	key := string(tokenID) + "|" + string(owner)
+	e.nonces[key] = nonce
+	return nil
+}
+
 func TestTokenE2E_FullFlow(t *testing.T) {
 	blockchain.ResetForTest()
 
