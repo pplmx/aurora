@@ -65,4 +65,3 @@ jobs:
         run: |
           docker run --rm ${{ env.DOCKER_IMAGE }}:${{ github.sha }} --help
           docker run --rm ${{ env.GHCR_IMAGE }}:${{ github.sha }} --help
-
