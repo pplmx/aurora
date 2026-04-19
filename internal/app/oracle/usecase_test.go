@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/stretchr/testify/require"
 )
 
 type mockOracleRepo struct {
@@ -109,13 +110,8 @@ func TestAddSourceUseCase(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Name != "Test Source" {
 		t.Errorf("Expected name 'Test Source', got '%s'", resp.Name)

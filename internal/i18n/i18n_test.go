@@ -2,17 +2,15 @@ package i18n
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestTranslator_Init(t *testing.T) {
 	tr := Init("en")
 
-	if tr == nil {
-		t.Fatal("Init returned nil")
-	}
-	if tr.locale != "en" {
-		t.Errorf("Locale = %v, want 'en'", tr.locale)
-	}
+	require.NotNil(t, tr)
+	require.Equal(t, "en", tr.locale)
 }
 
 func TestTranslator_T(t *testing.T) {
