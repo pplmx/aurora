@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/events"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )
 
 func pubKey(n byte) PublicKey {
@@ -300,7 +302,9 @@ func TestTransfer_InvalidToken(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
 	chain := blockchain.NewBlockChain()
-	service := NewService(repo, eventStore, chain)
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
 	recipient := pubKey(2)
@@ -323,7 +327,9 @@ func TestTransfer_InvalidFrom(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
 	chain := blockchain.NewBlockChain()
-	service := NewService(repo, eventStore, chain)
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
@@ -353,7 +359,9 @@ func TestTransfer_InvalidTo(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
 	chain := blockchain.NewBlockChain()
-	service := NewService(repo, eventStore, chain)
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
@@ -382,7 +390,9 @@ func TestTransfer_InvalidAmount(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
 	chain := blockchain.NewBlockChain()
-	service := NewService(repo, eventStore, chain)
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
@@ -412,7 +422,9 @@ func TestTransfer(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
 	chain := blockchain.NewBlockChain()
-	service := NewService(repo, eventStore, chain)
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
 	req := &CreateTokenRequest{
@@ -457,7 +469,9 @@ func TestTransfer_InsufficientBalance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
 	chain := blockchain.NewBlockChain()
-	service := NewService(repo, eventStore, chain)
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
 	req := &CreateTokenRequest{
@@ -533,7 +547,9 @@ func TestTransferFrom(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
 	chain := blockchain.NewBlockChain()
-	service := NewService(repo, eventStore, chain)
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
 	req := &CreateTokenRequest{
@@ -721,7 +737,9 @@ func TestGetTransferHistory(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
 	chain := blockchain.NewBlockChain()
-	service := NewService(repo, eventStore, chain)
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
 	privateKey := make([]byte, 64)
@@ -816,7 +834,6 @@ type mockEventStore struct {
 	mintEvents     []*MintEvent
 	burnEvents     []*BurnEvent
 	approveEvents  []*ApproveEvent
-	nonces         map[string]uint64
 }
 
 func NewMockEventStore() *mockEventStore {
@@ -825,40 +842,7 @@ func NewMockEventStore() *mockEventStore {
 		mintEvents:     make([]*MintEvent, 0),
 		burnEvents:     make([]*BurnEvent, 0),
 		approveEvents:  make([]*ApproveEvent, 0),
-		nonces:         make(map[string]uint64),
 	}
-}
-
-func (m *mockEventStore) SaveTransferEvent(event *TransferEvent) error {
-	m.transferEvents = append(m.transferEvents, event)
-	key := string(event.TokenID()) + string(event.From())
-	m.nonces[key] = event.Nonce()
-	return nil
-}
-
-func (m *mockEventStore) SaveMintEvent(event *MintEvent) error {
-	m.mintEvents = append(m.mintEvents, event)
-	return nil
-}
-
-func (m *mockEventStore) SaveBurnEvent(event *BurnEvent) error {
-	m.burnEvents = append(m.burnEvents, event)
-	return nil
-}
-
-func (m *mockEventStore) SaveApproveEvent(event *ApproveEvent) error {
-	m.approveEvents = append(m.approveEvents, event)
-	return nil
-}
-
-func (m *mockEventStore) GetTransferEventsByToken(tokenID TokenID) ([]*TransferEvent, error) {
-	var result []*TransferEvent
-	for _, e := range m.transferEvents {
-		if e.TokenID() == tokenID {
-			result = append(result, e)
-		}
-	}
-	return result, nil
 }
 
 func (m *mockEventStore) GetTransferEventsByOwner(tokenID TokenID, owner PublicKey) ([]*TransferEvent, error) {
@@ -891,13 +875,53 @@ func (m *mockEventStore) GetBurnEventsByToken(tokenID TokenID) ([]*BurnEvent, er
 	return result, nil
 }
 
-func (m *mockEventStore) GetLastNonce(tokenID TokenID, owner PublicKey) (uint64, error) {
-	key := string(tokenID) + string(owner)
+type mockEventBus struct {
+	eventStore *mockEventStore
+}
+
+func newMockEventBus(es *mockEventStore) *mockEventBus {
+	return &mockEventBus{eventStore: es}
+}
+
+func (m *mockEventBus) Publish(e events.Event) error {
+	switch evt := e.(type) {
+	case *TransferEvent:
+		m.eventStore.transferEvents = append(m.eventStore.transferEvents, evt)
+	case *MintEvent:
+		m.eventStore.mintEvents = append(m.eventStore.mintEvents, evt)
+	case *BurnEvent:
+		m.eventStore.burnEvents = append(m.eventStore.burnEvents, evt)
+	case *ApproveEvent:
+		m.eventStore.approveEvents = append(m.eventStore.approveEvents, evt)
+	}
+	return nil
+}
+
+func (m *mockEventBus) Subscribe(eventType string, handler infraevents.Handler) func() {
+	return func() {}
+}
+
+func (m *mockEventBus) SubscribeAll(handler infraevents.Handler) func() {
+	return func() {}
+}
+
+type mockReplayProtection struct {
+	nonces map[string]uint64
+}
+
+func newMockReplayProtection() *mockReplayProtection {
+	return &mockReplayProtection{
+		nonces: make(map[string]uint64),
+	}
+}
+
+func (m *mockReplayProtection) GetLastNonce(tokenID string, owner []byte) (uint64, error) {
+	key := tokenID + string(owner)
 	return m.nonces[key], nil
 }
 
-func (m *mockEventStore) SaveNonce(tokenID TokenID, owner PublicKey, nonce uint64) error {
-	key := string(tokenID) + string(owner)
+func (m *mockReplayProtection) SaveNonce(tokenID string, owner []byte, nonce uint64) error {
+	key := tokenID + string(owner)
 	m.nonces[key] = nonce
 	return nil
 }
@@ -911,6 +935,6 @@ func (m *mockBlockWriter) AddBlock(data string) (int64, error) {
 	return m.height, nil
 }
 
-func newTestService(repo Repository, eventStore EventStore) *TokenService {
-	return NewService(repo, eventStore, &mockBlockWriter{})
+func newTestService(repo Repository, eventStore *mockEventStore) *TokenService {
+	return NewService(repo, newMockEventBus(eventStore), eventStore, newMockReplayProtection(), &mockBlockWriter{})
 }

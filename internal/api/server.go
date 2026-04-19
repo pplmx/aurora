@@ -6,6 +6,7 @@ import (
 	"github.com/pplmx/aurora/internal/api/handler"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/token"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
@@ -41,8 +42,22 @@ func NewServer() (*Server, error) {
 		return nil, err
 	}
 
+	eventStore, err := infraevents.NewSQLiteEventStore(dbPath)
+	if err != nil {
+		return nil, err
+	}
+
+	eventReader := sqlite.NewTokenEventReader(eventStore)
+
+	eventBus := infraevents.NewSyncEventBus()
+
+	replay, err := infraevents.NewSQLiteReplayProtection(dbPath)
+	if err != nil {
+		return nil, err
+	}
+
 	chain := blockchain.GetBlockChain()
-	tokenService := token.NewService(tokenRepo, nil, chain)
+	tokenService := token.NewService(tokenRepo, eventBus, eventReader, replay, chain)
 
 	oracleRepo, err := sqlite.NewOracleRepository(dbPath)
 	if err != nil {

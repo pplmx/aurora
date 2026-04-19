@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/pplmx/aurora/internal/app"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/cobra"
@@ -11,6 +13,10 @@ import (
 )
 
 var cfgFile string
+
+var (
+	GlobalApp *app.App
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -25,6 +31,23 @@ Features:
 
 Use "aurora lottery --help" for lottery commands.`,
 	SilenceUsage: true,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		dataDir := viper.GetString("data.dir")
+		if dataDir == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("failed to get home directory: %w", err)
+			}
+			dataDir = filepath.Join(home, ".aurora", "data")
+		}
+		if err := os.MkdirAll(dataDir, 0755); err != nil {
+			return fmt.Errorf("failed to create data directory: %w", err)
+		}
+
+		var err error
+		GlobalApp, err = app.Wire(dataDir)
+		return err
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -79,6 +102,7 @@ func initConfig() {
 func setDefaultConfig() {
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.path", "./log")
+	viper.SetDefault("data.dir", "")
 	viper.SetDefault("lottery.defaultCount", 3)
 	viper.SetDefault("lottery.defaultSeedPrefix", "aurora-vrf-")
 	viper.SetDefault("i18n.locale", "en")

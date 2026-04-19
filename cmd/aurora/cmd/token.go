@@ -9,9 +9,45 @@ import (
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
 )
+
+func newTokenService() (*token.TokenService, func(), error) {
+	repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create repo: %w", err)
+	}
+
+	eventStore, err := infraevents.NewSQLiteEventStore(blockchain.DBPath())
+	if err != nil {
+		_ = repo.Close()
+		return nil, nil, fmt.Errorf("failed to create event store: %w", err)
+	}
+
+	eventReader := sqlite.NewTokenEventReader(eventStore)
+
+	eventBus := infraevents.NewSyncEventBus()
+
+	replay, err := infraevents.NewSQLiteReplayProtection(blockchain.DBPath())
+	if err != nil {
+		_ = eventStore.Close()
+		_ = repo.Close()
+		return nil, nil, fmt.Errorf("failed to create replay protection: %w", err)
+	}
+
+	chain := blockchain.InitBlockChain()
+
+	service := token.NewService(repo, eventBus, eventReader, replay, chain)
+	cleanup := func() {
+		_ = replay.Close()
+		_ = eventStore.Close()
+		_ = repo.Close()
+	}
+
+	return service, cleanup, nil
+}
 
 var tokenCmd = &cobra.Command{
 	Use:   "token",
@@ -107,20 +143,11 @@ var tokenCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: i18n.GetText("token.create.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
-
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
+		defer cleanup()
 
 		name, _ := cmd.Flags().GetString("name")
 		symbol, _ := cmd.Flags().GetString("symbol")
@@ -157,20 +184,12 @@ var tokenMintCmd = &cobra.Command{
 	Use:   "mint",
 	Short: i18n.GetText("token.mint.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
+		defer cleanup()
 
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
 		uc := tokent.NewMintUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
@@ -202,20 +221,12 @@ var tokenTransferCmd = &cobra.Command{
 	Use:   "transfer",
 	Short: i18n.GetText("token.transfer.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
+		defer cleanup()
 
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
 		uc := tokent.NewTransferUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
@@ -250,20 +261,12 @@ var tokenApproveCmd = &cobra.Command{
 	Use:   "approve",
 	Short: i18n.GetText("token.approve.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
+		defer cleanup()
 
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
 		uc := tokent.NewApproveUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
@@ -298,20 +301,12 @@ var tokenBurnCmd = &cobra.Command{
 	Use:   "burn",
 	Short: i18n.GetText("token.burn.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
+		defer cleanup()
 
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
 		uc := tokent.NewBurnUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
@@ -343,20 +338,12 @@ var tokenBalanceCmd = &cobra.Command{
 	Use:   "balance",
 	Short: i18n.GetText("token.balance.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
+		defer cleanup()
 
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
 		uc := tokent.NewGetBalanceUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
@@ -384,20 +371,12 @@ var tokenAllowanceCmd = &cobra.Command{
 	Use:   "allowance",
 	Short: i18n.GetText("token.allowance.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
+		defer cleanup()
 
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
 		uc := tokent.NewGetAllowanceUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
@@ -428,20 +407,12 @@ var tokenHistoryCmd = &cobra.Command{
 	Use:   "history",
 	Short: i18n.GetText("token.history.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
+		defer cleanup()
 
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
 		uc := tokent.NewGetHistoryUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
@@ -475,20 +446,11 @@ var tokenInfoCmd = &cobra.Command{
 	Use:   "info",
 	Short: i18n.GetText("token.info.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+		service, cleanup, err := newTokenService()
 		if err != nil {
-			return fmt.Errorf("failed to create repo: %w", err)
+			return err
 		}
-		defer func() { _ = repo.Close() }()
-
-		chain := blockchain.InitBlockChain()
-		eventStore, err := sqlite.NewTokenEventStore(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to create event store: %w", err)
-		}
-		defer func() { _ = eventStore.Close() }()
-
-		service := token.NewService(repo, eventStore, chain)
+		defer cleanup()
 
 		tokenID, _ := cmd.Flags().GetString("token")
 
