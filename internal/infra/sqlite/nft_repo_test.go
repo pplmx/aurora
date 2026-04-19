@@ -22,7 +22,7 @@ func setupNFTTestDB(t *testing.T) (*NFTRepository, func()) {
 		if repo != nil {
 			_ = repo.Close()
 		}
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	return repo, cleanup

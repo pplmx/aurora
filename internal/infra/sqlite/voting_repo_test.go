@@ -2,10 +2,10 @@ package sqlite
 
 import (
 	"database/sql"
+	"errors"
 	"os"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/voting"
 )
 
@@ -60,8 +60,8 @@ func setupVotingTestDB(t *testing.T) (*VotingRepository, func()) {
 	repo := NewVotingRepository(db)
 
 	cleanup := func() {
-		db.Close()
-		os.RemoveAll("./data")
+		_ = db.Close()
+		_ = os.RemoveAll("./data")
 	}
 
 	return repo, cleanup
@@ -72,13 +72,12 @@ func TestNewVotingRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := NewVotingRepository(db)
 	if repo == nil {
 		t.Fatal("Repository should not be nil")
-	}
-	if repo.db == nil {
+	} else if repo.db == nil {
 		t.Fatal("Database should not be nil")
 	}
 }
@@ -111,11 +110,6 @@ func TestVotingRepository_GetVoter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get voter: %v", err)
 	}
-
-	if retrieved == nil {
-		t.Fatal("Voter should not be nil")
-	}
-
 	if retrieved.Name != "John Doe" {
 		t.Errorf("Expected name 'John Doe', got '%s'", retrieved.Name)
 	}
@@ -126,8 +120,8 @@ func TestVotingRepository_GetVoter_NotFound(t *testing.T) {
 	defer cleanup()
 
 	_, err := repo.GetVoter("NOTEXIST")
-	if err != nil {
-		t.Fatalf("Expected nil for non-existent voter, got error: %v", err)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Expected ErrNotFound, got: %v", err)
 	}
 }
 
@@ -158,11 +152,6 @@ func TestVotingRepository_GetCandidate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get candidate: %v", err)
 	}
-
-	if retrieved == nil {
-		t.Fatal("Candidate should not be nil")
-	}
-
 	if retrieved.Name != "Alice" {
 		t.Errorf("Expected name 'Alice', got '%s'", retrieved.Name)
 	}
@@ -221,11 +210,6 @@ func TestVotingRepository_GetVote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get vote: %v", err)
 	}
-
-	if retrieved == nil {
-		t.Fatal("Vote should not be nil")
-	}
-
 	if retrieved.CandidateID != "candidate-id" {
 		t.Errorf("Expected candidate ID 'candidate-id', got '%s'", retrieved.CandidateID)
 	}
@@ -289,11 +273,6 @@ func TestVotingRepository_GetSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get session: %v", err)
 	}
-
-	if retrieved == nil {
-		t.Fatal("Session should not be nil")
-	}
-
 	if retrieved.Title != "Election 2024" {
 		t.Errorf("Expected title 'Election 2024', got '%s'", retrieved.Title)
 	}

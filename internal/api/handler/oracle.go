@@ -36,7 +36,7 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +56,7 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
@@ -80,5 +80,5 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }

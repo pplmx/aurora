@@ -257,3 +257,8 @@ func TestReplayProtection_ConcurrentNonce(t *testing.T) {
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, nonce, uint64(0))
 }
+
+func TestNewSQLiteReplayProtection_InvalidPath(t *testing.T) {
+	_, err := NewSQLiteReplayProtection("/nonexistent/directory/that/does/not/exist/replay.db")
+	require.Error(t, err)
+}

@@ -60,6 +60,16 @@ func TestOracleDataFetchedEvent(t *testing.T) {
 			t.Error("expected error for invalid JSON")
 		}
 	})
+
+	t.Run("invalid JSON for Data", func(t *testing.T) {
+		badEvent := &OracleDataFetchedEvent{
+			BaseEvent: NewBaseEvent("oracle.data_fetched", "oracle123", []byte("invalid")),
+		}
+		_, err := badEvent.Data()
+		if err == nil {
+			t.Error("expected error for invalid JSON in Data")
+		}
+	})
 }
 
 func TestBase64DecodeFieldHelper(t *testing.T) {

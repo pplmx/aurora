@@ -22,7 +22,7 @@ func setupBlockchainTestDB(t *testing.T) (*BlockchainRepository, func()) {
 		if repo != nil {
 			_ = repo.Close()
 		}
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	return repo, cleanup

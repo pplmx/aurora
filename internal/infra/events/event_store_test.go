@@ -218,3 +218,36 @@ func TestSQLiteEventStore_Close(t *testing.T) {
 	require.NoError(t, err)
 	cleanup()
 }
+
+func TestNewSQLiteEventStore_InvalidPath(t *testing.T) {
+	_, err := NewSQLiteEventStore("/nonexistent/directory/that/does/not/exist/event.db")
+	require.Error(t, err)
+}
+
+func TestSQLiteEventStore_GetByModule_Limit(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	for i := 0; i < 10; i++ {
+		e := events.NewBaseEvent("test.module_limit", "agg", []byte(`{}`))
+		_ = store.Save(e)
+	}
+
+	evts, err := store.GetByModule("test", 3)
+	require.NoError(t, err)
+	require.Len(t, evts, 3)
+}
+
+func TestSQLiteEventStore_GetByModule_DefaultLimit(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	for i := 0; i < 5; i++ {
+		e := events.NewBaseEvent("test.default_limit", "agg", []byte(`{}`))
+		_ = store.Save(e)
+	}
+
+	evts, err := store.GetByModule("test", 0)
+	require.NoError(t, err)
+	require.Len(t, evts, 5)
+}

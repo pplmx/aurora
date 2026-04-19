@@ -47,7 +47,7 @@ func (h *VotingHandler) RegisterVoter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +73,7 @@ func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +103,7 @@ func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +129,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +141,7 @@ func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
@@ -154,5 +154,5 @@ func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(session)
+	_ = json.NewEncoder(w).Encode(session)
 }

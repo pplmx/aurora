@@ -91,13 +91,23 @@ func TestTokenTransferEvent(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid JSON", func(t *testing.T) {
+	t.Run("invalid JSON for Amount", func(t *testing.T) {
 		badEvent := &TokenTransferEvent{
 			BaseEvent: NewBaseEvent("token.transfer", "token123", []byte("not json")),
 		}
-		_, err := badEvent.From()
+		_, err := badEvent.Amount()
 		if err == nil {
-			t.Error("expected error for invalid JSON")
+			t.Error("expected error for invalid JSON in Amount")
+		}
+	})
+
+	t.Run("invalid JSON for Nonce", func(t *testing.T) {
+		badEvent := &TokenTransferEvent{
+			BaseEvent: NewBaseEvent("token.transfer", "token123", []byte("not json")),
+		}
+		_, err := badEvent.Nonce()
+		if err == nil {
+			t.Error("expected error for invalid JSON in Nonce")
 		}
 	})
 
@@ -254,6 +264,16 @@ func TestTokenBurnEvent(t *testing.T) {
 			t.Error("expected error for invalid JSON")
 		}
 	})
+
+	t.Run("invalid JSON for Amount", func(t *testing.T) {
+		badEvent := &TokenBurnEvent{
+			BaseEvent: NewBaseEvent("token.burn", "token123", []byte("invalid")),
+		}
+		_, err := badEvent.Amount()
+		if err == nil {
+			t.Error("expected error for invalid JSON in Amount")
+		}
+	})
 }
 
 func TestTokenApproveEvent(t *testing.T) {
@@ -319,6 +339,16 @@ func TestTokenApproveEvent(t *testing.T) {
 		_, err := badEvent.Owner()
 		if err == nil {
 			t.Error("expected error for invalid JSON")
+		}
+	})
+
+	t.Run("invalid JSON for Amount", func(t *testing.T) {
+		badEvent := &TokenApproveEvent{
+			BaseEvent: NewBaseEvent("token.approve", "token123", []byte("invalid")),
+		}
+		_, err := badEvent.Amount()
+		if err == nil {
+			t.Error("expected error for invalid JSON in Amount")
 		}
 	})
 
