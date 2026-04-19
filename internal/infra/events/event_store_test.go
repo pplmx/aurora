@@ -169,6 +169,48 @@ func TestSQLiteEventStore_GetByAggregate(t *testing.T) {
 	})
 }
 
+func TestEventStore_GetByType_Empty(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	events, err := store.GetByType("nonexistent.type", 10)
+	require.NoError(t, err)
+	require.Len(t, events, 0)
+}
+
+func TestEventStore_GetByModule_Empty(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	events, err := store.GetByModule("nonexistent.module", 10)
+	require.NoError(t, err)
+	require.Len(t, events, 0)
+}
+
+func TestEventStore_GetByAggregate_Empty(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	events, err := store.GetByAggregate("nonexistent.agg")
+	require.NoError(t, err)
+	require.Len(t, events, 0)
+}
+
+func TestEventStore_GetByType_Limit(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	for i := 0; i < 10; i++ {
+		e := events.NewBaseEvent("test.limit", "agg", []byte(`{}`))
+		err := store.Save(e)
+		require.NoError(t, err)
+	}
+
+	evts, err := store.GetByType("test.limit", 3)
+	require.NoError(t, err)
+	require.Len(t, evts, 3)
+}
+
 func TestSQLiteEventStore_Close(t *testing.T) {
 	store, cleanup := setupEventStore(t)
 

@@ -216,6 +216,24 @@ func TestBase64Encoding(t *testing.T) {
 	})
 }
 
+func TestReplayProtection_NonSequentialNonce(t *testing.T) {
+	rp, cleanup := setupReplayProtection(t)
+	defer cleanup()
+
+	tokenID := "token-seq"
+	owner := []byte("owner-seq")
+
+	err := rp.SaveNonce(tokenID, owner, 5)
+	require.NoError(t, err)
+
+	err = rp.SaveNonce(tokenID, owner, 3)
+	require.NoError(t, err)
+
+	nonce, err := rp.GetLastNonce(tokenID, owner)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), nonce)
+}
+
 func TestReplayProtection_ConcurrentNonce(t *testing.T) {
 	storeFile, _ := os.CreateTemp("", "replay-concurrent-*.db")
 	defer func() { _ = os.Remove(storeFile.Name()) }()
