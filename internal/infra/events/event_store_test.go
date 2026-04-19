@@ -1,7 +1,6 @@
 package events
 
 import (
-	"database/sql"
 	"os"
 	"testing"
 
@@ -14,7 +13,7 @@ import (
 func setupEventStore(t *testing.T) (*SQLiteEventStore, func()) {
 	tmpFile, err := os.CreateTemp("", "event_store_test_*.db")
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	store, err := NewSQLiteEventStore(tmpFile.Name())
 	require.NoError(t, err)
@@ -24,20 +23,6 @@ func setupEventStore(t *testing.T) (*SQLiteEventStore, func()) {
 		_ = os.Remove(tmpFile.Name())
 	}
 	return store, cleanup
-}
-
-func setupEventStoreWithDB(t *testing.T) (*sql.DB, *SQLiteEventStore, func()) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	require.NoError(t, err)
-
-	store := &SQLiteEventStore{db: db}
-	err = store.createTables()
-	require.NoError(t, err)
-
-	cleanup := func() {
-		_ = store.Close()
-	}
-	return db, store, cleanup
 }
 
 func TestNewSQLiteEventStore(t *testing.T) {
@@ -52,8 +37,8 @@ func TestNewSQLiteEventStore(t *testing.T) {
 	t.Run("creates store for new path", func(t *testing.T) {
 		tmpFile2, err := os.CreateTemp("", "event_store_new_*.db")
 		require.NoError(t, err)
-		tmpFile2.Close()
-		defer os.Remove(tmpFile2.Name())
+		_ = tmpFile2.Close()
+		defer func() { _ = os.Remove(tmpFile2.Name()) }()
 
 		store, err := NewSQLiteEventStore(tmpFile2.Name())
 		require.NoError(t, err)
