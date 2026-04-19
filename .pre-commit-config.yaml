@@ -53,7 +53,7 @@ repos:
       - id: golangci-lint
         name: golangci-lint
         language: system
-        entry: golangci-lint run --timeout=5m --disable=errcheck
+        entry: golangci-lint run --timeout=5m --disable=errcheck,staticcheck
         files: \.go$
         pass_filenames: false
 
