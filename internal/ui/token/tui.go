@@ -13,10 +13,63 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/ui/components"
 )
+
+type inmemEventBus struct {
+	eventStore *inmemEventStore
+}
+
+func newInmemEventBus(es *inmemEventStore) *inmemEventBus {
+	return &inmemEventBus{eventStore: es}
+}
+
+func (b *inmemEventBus) Publish(e events.Event) error {
+	switch evt := e.(type) {
+	case *token.TransferEvent:
+		b.eventStore.transferEvents = append(b.eventStore.transferEvents, evt)
+	case *token.MintEvent:
+		b.eventStore.mintEvents = append(b.eventStore.mintEvents, evt)
+	case *token.BurnEvent:
+		b.eventStore.burnEvents = append(b.eventStore.burnEvents, evt)
+	case *token.ApproveEvent:
+		b.eventStore.approveEvents = append(b.eventStore.approveEvents, evt)
+	}
+	return nil
+}
+
+func (b *inmemEventBus) Subscribe(eventType string, handler infraevents.Handler) func() {
+	return func() {}
+}
+
+func (b *inmemEventBus) SubscribeAll(handler infraevents.Handler) func() {
+	return func() {}
+}
+
+type inmemReplayProtection struct {
+	nonces map[string]uint64
+}
+
+func newInmemReplayProtection() *inmemReplayProtection {
+	return &inmemReplayProtection{
+		nonces: make(map[string]uint64),
+	}
+}
+
+func (r *inmemReplayProtection) GetLastNonce(tokenID string, owner []byte) (uint64, error) {
+	key := tokenID + string(owner)
+	return r.nonces[key], nil
+}
+
+func (r *inmemReplayProtection) SaveNonce(tokenID string, owner []byte, nonce uint64) error {
+	key := tokenID + string(owner)
+	r.nonces[key] = nonce
+	return nil
+}
 
 type model struct {
 	view         string
@@ -60,9 +113,10 @@ func NewTokenApp() *model {
 		mintEvents:     make([]*token.MintEvent, 0),
 		burnEvents:     make([]*token.BurnEvent, 0),
 		approveEvents:  make([]*token.ApproveEvent, 0),
-		nonces:         make(map[string]uint64),
 	}
-	tokenService := token.NewService(repo, eventStore, chain)
+	eventBus := newInmemEventBus(eventStore)
+	replay := newInmemReplayProtection()
+	tokenService := token.NewService(repo, eventBus, eventStore, replay, chain)
 
 	pub, priv, _ := ed25519.GenerateKey(nil)
 	ownerKey := token.PublicKey(pub)
@@ -687,39 +741,6 @@ type inmemEventStore struct {
 	mintEvents     []*token.MintEvent
 	burnEvents     []*token.BurnEvent
 	approveEvents  []*token.ApproveEvent
-	nonces         map[string]uint64
-}
-
-func (e *inmemEventStore) SaveTransferEvent(event *token.TransferEvent) error {
-	e.transferEvents = append(e.transferEvents, event)
-	key := string(event.TokenID()) + string(event.From())
-	e.nonces[key] = event.Nonce()
-	return nil
-}
-
-func (e *inmemEventStore) SaveMintEvent(event *token.MintEvent) error {
-	e.mintEvents = append(e.mintEvents, event)
-	return nil
-}
-
-func (e *inmemEventStore) SaveBurnEvent(event *token.BurnEvent) error {
-	e.burnEvents = append(e.burnEvents, event)
-	return nil
-}
-
-func (e *inmemEventStore) SaveApproveEvent(event *token.ApproveEvent) error {
-	e.approveEvents = append(e.approveEvents, event)
-	return nil
-}
-
-func (e *inmemEventStore) GetTransferEventsByToken(tokenID token.TokenID) ([]*token.TransferEvent, error) {
-	var result []*token.TransferEvent
-	for _, ev := range e.transferEvents {
-		if ev.TokenID() == tokenID {
-			result = append(result, ev)
-		}
-	}
-	return result, nil
 }
 
 func (e *inmemEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.TransferEvent, error) {
@@ -750,17 +771,6 @@ func (e *inmemEventStore) GetBurnEventsByToken(tokenID token.TokenID) ([]*token.
 		}
 	}
 	return result, nil
-}
-
-func (e *inmemEventStore) GetLastNonce(tokenID token.TokenID, owner token.PublicKey) (uint64, error) {
-	key := string(tokenID) + string(owner)
-	return e.nonces[key], nil
-}
-
-func (e *inmemEventStore) SaveNonce(tokenID token.TokenID, owner token.PublicKey, nonce uint64) error {
-	key := string(tokenID) + string(owner)
-	e.nonces[key] = nonce
-	return nil
 }
 
 func min(a, b int) int {

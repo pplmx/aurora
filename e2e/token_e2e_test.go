@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/domain/token"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )
 
 type inMemoryTokenRepo struct {
@@ -72,7 +74,6 @@ type inMemoryEventStore struct {
 	mintEvents     []*token.MintEvent
 	burnEvents     []*token.BurnEvent
 	approveEvents  []*token.ApproveEvent
-	nonces         map[string]uint64
 }
 
 func newInMemoryEventStore() *inMemoryEventStore {
@@ -81,28 +82,7 @@ func newInMemoryEventStore() *inMemoryEventStore {
 		mintEvents:     make([]*token.MintEvent, 0),
 		burnEvents:     make([]*token.BurnEvent, 0),
 		approveEvents:  make([]*token.ApproveEvent, 0),
-		nonces:         make(map[string]uint64),
 	}
-}
-
-func (e *inMemoryEventStore) SaveTransferEvent(event *token.TransferEvent) error {
-	e.transferEvents = append(e.transferEvents, event)
-	return nil
-}
-
-func (e *inMemoryEventStore) SaveMintEvent(event *token.MintEvent) error {
-	e.mintEvents = append(e.mintEvents, event)
-	return nil
-}
-
-func (e *inMemoryEventStore) SaveBurnEvent(event *token.BurnEvent) error {
-	e.burnEvents = append(e.burnEvents, event)
-	return nil
-}
-
-func (e *inMemoryEventStore) SaveApproveEvent(event *token.ApproveEvent) error {
-	e.approveEvents = append(e.approveEvents, event)
-	return nil
 }
 
 func (e *inMemoryEventStore) GetTransferEventsByToken(tokenID token.TokenID) ([]*token.TransferEvent, error) {
@@ -145,14 +125,54 @@ func (e *inMemoryEventStore) GetBurnEventsByToken(tokenID token.TokenID) ([]*tok
 	return result, nil
 }
 
-func (e *inMemoryEventStore) GetLastNonce(tokenID token.TokenID, owner token.PublicKey) (uint64, error) {
-	key := string(tokenID) + "|" + string(owner)
-	return e.nonces[key], nil
+type e2eEventBus struct {
+	eventStore *inMemoryEventStore
 }
 
-func (e *inMemoryEventStore) SaveNonce(tokenID token.TokenID, owner token.PublicKey, nonce uint64) error {
-	key := string(tokenID) + "|" + string(owner)
-	e.nonces[key] = nonce
+func newE2EEventBus(es *inMemoryEventStore) *e2eEventBus {
+	return &e2eEventBus{eventStore: es}
+}
+
+func (b *e2eEventBus) Publish(e events.Event) error {
+	switch evt := e.(type) {
+	case *token.TransferEvent:
+		b.eventStore.transferEvents = append(b.eventStore.transferEvents, evt)
+	case *token.MintEvent:
+		b.eventStore.mintEvents = append(b.eventStore.mintEvents, evt)
+	case *token.BurnEvent:
+		b.eventStore.burnEvents = append(b.eventStore.burnEvents, evt)
+	case *token.ApproveEvent:
+		b.eventStore.approveEvents = append(b.eventStore.approveEvents, evt)
+	}
+	return nil
+}
+
+func (b *e2eEventBus) Subscribe(eventType string, handler infraevents.Handler) func() {
+	return func() {}
+}
+
+func (b *e2eEventBus) SubscribeAll(handler infraevents.Handler) func() {
+	return func() {}
+}
+
+type e2eReplayProtection struct {
+	nonces map[string]uint64
+}
+
+func newE2EReplayProtection() *e2eReplayProtection {
+	return &e2eReplayProtection{
+		nonces: make(map[string]uint64),
+	}
+}
+
+func (r *e2eReplayProtection) GetLastNonce(tokenID string, owner []byte) (uint64, error) {
+	key := tokenID + string(owner)
+	return r.nonces[key], nil
+}
+
+func (r *e2eReplayProtection) SaveNonce(tokenID string, owner []byte, nonce uint64) error {
+	key := tokenID + string(owner)
+	r.nonces[key] = nonce
 	return nil
 }
 
@@ -161,8 +181,10 @@ func TestTokenE2E_FullFlow(t *testing.T) {
 
 	repo := newInMemoryTokenRepo()
 	eventStore := newInMemoryEventStore()
+	eventBus := newE2EEventBus(eventStore)
+	replay := newE2EReplayProtection()
 	chain := blockchain.InitBlockChain()
-	svc := token.NewService(repo, eventStore, chain)
+	svc := token.NewService(repo, eventBus, eventStore, replay, chain)
 
 	_, ownerPriv, _ := ed25519.GenerateKey(rand.Reader)
 	ownerPub := token.PublicKey(ownerPriv.Public().(ed25519.PublicKey))

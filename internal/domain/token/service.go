@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )
 
 // defaultHistoryLimit is the default maximum number of transfer events to return
@@ -46,32 +47,27 @@ type Repository interface {
 	SetAccountBalance(tokenID TokenID, owner PublicKey, amount *Amount) error
 }
 
-type EventStore interface {
-	SaveTransferEvent(event *TransferEvent) error
-	SaveMintEvent(event *MintEvent) error
-	SaveBurnEvent(event *BurnEvent) error
-	SaveApproveEvent(event *ApproveEvent) error
-
-	GetTransferEventsByToken(tokenID TokenID) ([]*TransferEvent, error)
+type EventReader interface {
 	GetTransferEventsByOwner(tokenID TokenID, owner PublicKey) ([]*TransferEvent, error)
 	GetMintEventsByToken(tokenID TokenID) ([]*MintEvent, error)
 	GetBurnEventsByToken(tokenID TokenID) ([]*BurnEvent, error)
-
-	GetLastNonce(tokenID TokenID, owner PublicKey) (uint64, error)
-	SaveNonce(tokenID TokenID, owner PublicKey, nonce uint64) error
 }
 
 type TokenService struct {
-	repo       Repository
-	eventStore EventStore
-	chain      blockchain.BlockWriter
+	repo        Repository
+	eventBus    infraevents.EventBus
+	eventReader EventReader
+	replay      infraevents.ReplayProtection
+	chain       blockchain.BlockWriter
 }
 
-func NewService(repo Repository, eventStore EventStore, chain blockchain.BlockWriter) *TokenService {
+func NewService(repo Repository, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
 	return &TokenService{
-		repo:       repo,
-		eventStore: eventStore,
-		chain:      chain,
+		repo:        repo,
+		eventBus:    eventBus,
+		eventReader: eventReader,
+		replay:      replay,
+		chain:       chain,
 	}
 }
 
@@ -209,7 +205,7 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 	}
 	event.SetBlockHeight(height)
 
-	if err := s.eventStore.SaveMintEvent(event); err != nil {
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
@@ -252,12 +248,12 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 		return nil, ErrInsufficientBalance
 	}
 
-	nonce, err := s.eventStore.GetLastNonce(req.TokenID, req.From)
+	nonce, err := s.replay.GetLastNonce(string(req.TokenID), req.From)
 	if err != nil {
 		return nil, err
 	}
 	nonce++
-	if err := s.eventStore.SaveNonce(req.TokenID, req.From, nonce); err != nil {
+	if err := s.replay.SaveNonce(string(req.TokenID), req.From, nonce); err != nil {
 		return nil, err
 	}
 
@@ -272,7 +268,7 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	}
 	event.SetBlockHeight(height)
 
-	if err := s.eventStore.SaveTransferEvent(event); err != nil {
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
@@ -334,12 +330,12 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 		return nil, ErrInsufficientBalance
 	}
 
-	nonce, err := s.eventStore.GetLastNonce(req.TokenID, req.Spender)
+	nonce, err := s.replay.GetLastNonce(string(req.TokenID), req.Spender)
 	if err != nil {
 		return nil, err
 	}
 	nonce++
-	if err := s.eventStore.SaveNonce(req.TokenID, req.Spender, nonce); err != nil {
+	if err := s.replay.SaveNonce(string(req.TokenID), req.Spender, nonce); err != nil {
 		return nil, err
 	}
 
@@ -354,7 +350,7 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	}
 	event.SetBlockHeight(height)
 
-	if err := s.eventStore.SaveTransferEvent(event); err != nil {
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
@@ -402,7 +398,7 @@ func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
 	}
 
 	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, req.Amount)
-	if err := s.eventStore.SaveApproveEvent(event); err != nil {
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
@@ -495,7 +491,7 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	}
 	event.SetBlockHeight(height)
 
-	if err := s.eventStore.SaveBurnEvent(event); err != nil {
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
@@ -511,7 +507,7 @@ func (s *TokenService) GetTransferHistory(tokenID TokenID, owner PublicKey, limi
 	if limit <= 0 {
 		limit = defaultHistoryLimit
 	}
-	events, err := s.eventStore.GetTransferEventsByOwner(tokenID, owner)
+	events, err := s.eventReader.GetTransferEventsByOwner(tokenID, owner)
 	if err != nil {
 		return nil, err
 	}
