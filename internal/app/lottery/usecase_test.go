@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/stretchr/testify/require"
 )
 
 type mockLotteryRepo struct {
@@ -66,9 +67,7 @@ func TestCreateLotteryUseCase_Execute(t *testing.T) {
 		t.Fatalf("Execute failed: %v", err)
 	}
 
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NotNil(t, resp)
 
 	if len(resp.Winners) != 2 {
 		t.Errorf("Expected 2 winners, got %d", len(resp.Winners))
