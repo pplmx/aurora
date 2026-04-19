@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/stretchr/testify/require"
 )
 
 type mockEvent struct {
@@ -110,7 +111,7 @@ func TestSyncEventBus_Subscribe_ReturnsUnsubscribe(t *testing.T) {
 	}
 
 	unsubscribe := bus.Subscribe("test.event", handler)
-	bus.Publish(newMockEvent("test.event", "agg-1"))
+	_ = bus.Publish(newMockEvent("test.event", "agg-1"))
 
 	if !called {
 		t.Fatal("expected handler to be called before unsubscribe")
@@ -118,7 +119,7 @@ func TestSyncEventBus_Subscribe_ReturnsUnsubscribe(t *testing.T) {
 
 	called = false
 	unsubscribe()
-	bus.Publish(newMockEvent("test.event", "agg-1"))
+	_ = bus.Publish(newMockEvent("test.event", "agg-1"))
 
 	if called {
 		t.Fatal("expected handler NOT to be called after unsubscribe")
@@ -163,9 +164,9 @@ func TestSyncEventBus_SubscribeAll_SubscribesToAllEvents(t *testing.T) {
 
 	bus.SubscribeAll(handler)
 
-	bus.Publish(newMockEvent("event.one", "agg-1"))
-	bus.Publish(newMockEvent("event.two", "agg-2"))
-	bus.Publish(newMockEvent("event.three", "agg-3"))
+	_ = bus.Publish(newMockEvent("event.one", "agg-1"))
+	_ = bus.Publish(newMockEvent("event.two", "agg-2"))
+	_ = bus.Publish(newMockEvent("event.three", "agg-3"))
 
 	if calls != 3 {
 		t.Fatalf("expected handler called 3 times, got %d", calls)
@@ -183,13 +184,13 @@ func TestSyncEventBus_SubscribeAll_ReturnsUnsubscribe(t *testing.T) {
 
 	unsubscribe := bus.SubscribeAll(handler)
 
-	bus.Publish(newMockEvent("event.one", "agg-1"))
+	_ = bus.Publish(newMockEvent("event.one", "agg-1"))
 	if calls != 1 {
 		t.Fatalf("expected 1 call, got %d", calls)
 	}
 
 	unsubscribe()
-	bus.Publish(newMockEvent("event.two", "agg-2"))
+	_ = bus.Publish(newMockEvent("event.two", "agg-2"))
 	if calls != 1 {
 		t.Fatalf("expected still 1 call after unsubscribe, got %d", calls)
 	}
@@ -207,14 +208,14 @@ func TestSyncEventBus_Unsubscribe_TypeSpecific(t *testing.T) {
 	unsubscribe := bus.Subscribe("specific.event", handler)
 	bus.SubscribeAll(handler)
 
-	bus.Publish(newMockEvent("specific.event", "agg-1"))
+	_ = bus.Publish(newMockEvent("specific.event", "agg-1"))
 	if calls != 2 {
 		t.Fatalf("expected 2 calls (type + global), got %d", calls)
 	}
 
 	unsubscribe()
 	calls = 0
-	bus.Publish(newMockEvent("specific.event", "agg-1"))
+	_ = bus.Publish(newMockEvent("specific.event", "agg-1"))
 	if calls != 1 {
 		t.Fatalf("expected 1 call (global only), got %d", calls)
 	}
@@ -236,14 +237,14 @@ func TestSyncEventBus_Unsubscribe_MultipleOfSameType(t *testing.T) {
 	unsubscribe1 := bus.Subscribe("test.event", handler1)
 	bus.Subscribe("test.event", handler2)
 
-	bus.Publish(newMockEvent("test.event", "agg-1"))
+	_ = bus.Publish(newMockEvent("test.event", "agg-1"))
 	if calls != 11 {
 		t.Fatalf("expected 11, got %d", calls)
 	}
 
 	unsubscribe1()
 	calls = 0
-	bus.Publish(newMockEvent("test.event", "agg-1"))
+	_ = bus.Publish(newMockEvent("test.event", "agg-1"))
 	if calls != 10 {
 		t.Fatalf("expected 10, got %d", calls)
 	}
@@ -267,7 +268,7 @@ func TestSyncEventBus_Publish_TypeMismatch(t *testing.T) {
 		return nil
 	})
 
-	bus.Publish(newMockEvent("wrong.event", "agg-1"))
+	_ = bus.Publish(newMockEvent("wrong.event", "agg-1"))
 	if called {
 		t.Fatal("handler for different event type should not be called")
 	}
@@ -301,10 +302,7 @@ func TestSyncEventBus_GlobalHandlerError_StopsTypeHandlers(t *testing.T) {
 
 func TestNewSyncEventBus(t *testing.T) {
 	bus := NewSyncEventBus()
-	if bus == nil {
-		t.Fatal("NewSyncEventBus should not return nil")
-	}
-	if bus.handlers == nil {
-		t.Fatal("handlers map should be initialized")
-	}
+	require.NotNil(t, bus)
+	require.NotNil(t, bus.handlers)
+	require.Equal(t, 0, len(bus.handlers))
 }

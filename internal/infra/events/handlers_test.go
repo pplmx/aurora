@@ -142,9 +142,9 @@ func TestStatsHandler_Handle(t *testing.T) {
 	e2 := newMockEvent("stats.click", "agg-2")
 	e3 := newMockEvent("stats.view", "agg-3")
 
-	handler.Handle(e1)
-	handler.Handle(e2)
-	handler.Handle(e3)
+	_ = handler.Handle(e1)
+	_ = handler.Handle(e2)
+	_ = handler.Handle(e3)
 
 	count := handler.GetCount("stats.click")
 	if count != 2 {
@@ -165,9 +165,9 @@ func TestStatsHandler_Handle(t *testing.T) {
 func TestStatsHandler_GetAllCounts(t *testing.T) {
 	handler := NewStatsHandler()
 
-	handler.Handle(newMockEvent("a", "agg-1"))
-	handler.Handle(newMockEvent("a", "agg-2"))
-	handler.Handle(newMockEvent("b", "agg-3"))
+	_ = handler.Handle(newMockEvent("a", "agg-1"))
+	_ = handler.Handle(newMockEvent("a", "agg-2"))
+	_ = handler.Handle(newMockEvent("b", "agg-3"))
 
 	all := handler.GetAllCounts()
 	if len(all) != 2 {

@@ -13,14 +13,14 @@ func TestFullFlow_CompositeBus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	eventStore, err := NewSQLiteEventStore(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer eventStore.Close()
+	defer func() { _ = eventStore.Close() }()
 
 	bus := NewCompositeEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
@@ -47,14 +47,14 @@ func TestFullFlow_PublishRetrieve(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	eventStore, err := NewSQLiteEventStore(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer eventStore.Close()
+	defer func() { _ = eventStore.Close() }()
 
 	bus := NewCompositeEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
@@ -101,14 +101,14 @@ func TestFullFlow_MultipleAggregates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	eventStore, err := NewSQLiteEventStore(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer eventStore.Close()
+	defer func() { _ = eventStore.Close() }()
 
 	bus := NewCompositeEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
@@ -135,14 +135,14 @@ func TestFullFlow_ReplayProtection_NonceManagement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	replayProt, err := NewSQLiteReplayProtection(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer replayProt.Close()
+	defer func() { _ = replayProt.Close() }()
 
 	tokenID := "token-abc"
 	owner := []byte("owner-123")
@@ -185,14 +185,14 @@ func TestFullFlow_ReplayProtection_MultipleOwners(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	replayProt, err := NewSQLiteReplayProtection(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer replayProt.Close()
+	defer func() { _ = replayProt.Close() }()
 
 	tokenID := "token-multi"
 
@@ -228,14 +228,14 @@ func TestFullFlow_ReplayProtection_MultipleTokens(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	replayProt, err := NewSQLiteReplayProtection(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer replayProt.Close()
+	defer func() { _ = replayProt.Close() }()
 
 	owner := []byte("owner-xyz")
 
@@ -268,14 +268,14 @@ func TestFullFlow_EventBusWithStatsHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	eventStore, err := NewSQLiteEventStore(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer eventStore.Close()
+	defer func() { _ = eventStore.Close() }()
 
 	bus := NewCompositeEventBus()
 
@@ -323,14 +323,14 @@ func TestFullFlow_Unsubscribe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	eventStore, err := NewSQLiteEventStore(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer eventStore.Close()
+	defer func() { _ = eventStore.Close() }()
 
 	bus := NewCompositeEventBus()
 
@@ -363,21 +363,21 @@ func TestFullFlow_ModuleFiltering(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	eventStore, err := NewSQLiteEventStore(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer eventStore.Close()
+	defer func() { _ = eventStore.Close() }()
 
 	bus := NewCompositeEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
-	bus.Publish(events.NewBaseEvent("token.mint", "agg-1", []byte(`{}`)))
-	bus.Publish(events.NewBaseEvent("nft.mint", "agg-2", []byte(`{}`)))
-	bus.Publish(events.NewBaseEvent("token.transfer", "agg-3", []byte(`{}`)))
+	_ = bus.Publish(events.NewBaseEvent("token.mint", "agg-1", []byte(`{}`)))
+	_ = bus.Publish(events.NewBaseEvent("nft.mint", "agg-2", []byte(`{}`)))
+	_ = bus.Publish(events.NewBaseEvent("token.transfer", "agg-3", []byte(`{}`)))
 
 	tokenEvents, err := eventStore.GetByModule("token", 10)
 	if err != nil {
@@ -401,14 +401,14 @@ func TestFullFlow_CompositeBus_AllBuses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(storeFile.Name())
-	storeFile.Close()
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
 
 	eventStore, err := NewSQLiteEventStore(storeFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer eventStore.Close()
+	defer func() { _ = eventStore.Close() }()
 
 	bus := NewCompositeEventBus()
 

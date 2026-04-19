@@ -14,7 +14,7 @@ import (
 func setupReplayProtection(t *testing.T) (*SQLiteReplayProtection, func()) {
 	tmpFile, err := os.CreateTemp("", "replay_test_*.db")
 	require.NoError(t, err)
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	rp, err := NewSQLiteReplayProtection(tmpFile.Name())
 	require.NoError(t, err)
@@ -38,8 +38,8 @@ func TestNewSQLiteReplayProtection(t *testing.T) {
 	t.Run("creates store for new path", func(t *testing.T) {
 		tmpFile2, err := os.CreateTemp("", "replay_new_*.db")
 		require.NoError(t, err)
-		tmpFile2.Close()
-		defer os.Remove(tmpFile2.Name())
+		_ = tmpFile2.Close()
+		defer func() { _ = os.Remove(tmpFile2.Name()) }()
 
 		rp, err := NewSQLiteReplayProtection(tmpFile2.Name())
 		require.NoError(t, err)
@@ -196,7 +196,7 @@ func TestReplayProtection_Integration(t *testing.T) {
 func TestBase64Encoding(t *testing.T) {
 	db, err := sql.Open("sqlite3", ":memory:")
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rp := &SQLiteReplayProtection{db: db}
 	err = rp.createTables()
