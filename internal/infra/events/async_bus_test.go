@@ -1,6 +1,7 @@
 package events
 
 import (
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -110,4 +111,37 @@ func TestAsyncEventBus_SubscribeAll(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	assert.Equal(t, int64(1), atomic.LoadInt64(&received), "Event should not be received after unsubscribe")
+}
+
+func TestAsyncEventBus_ChannelFull(t *testing.T) {
+	bus := NewAsyncEventBus(2)
+	defer bus.Close()
+
+	_ = bus.Publish(events.NewBaseEvent("e", "1", nil))
+	_ = bus.Publish(events.NewBaseEvent("e", "2", nil))
+
+	err := bus.Publish(events.NewBaseEvent("e", "3", nil))
+	require.Error(t, err)
+}
+
+func TestCompositeEventBus_SyncBlocksAsync(t *testing.T) {
+	bus := NewCompositeEventBus()
+	defer bus.AsyncBus.Close()
+
+	var syncCalled bool
+	bus.SyncBus.SubscribeAll(func(e events.Event) error {
+		syncCalled = true
+		return errors.New("sync error")
+	})
+
+	var asyncCalled bool
+	bus.AsyncBus.Subscribe("test", func(e events.Event) error {
+		asyncCalled = true
+		return nil
+	})
+
+	err := bus.Publish(events.NewBaseEvent("test", "agg", nil))
+	require.Error(t, err)
+	require.True(t, syncCalled)
+	require.False(t, asyncCalled)
 }
