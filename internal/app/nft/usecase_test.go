@@ -6,6 +6,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/stretchr/testify/require"
 )
 
 type mockNFTService struct {
@@ -75,13 +76,8 @@ func TestMintNFTUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Name != "Test NFT" {
 		t.Errorf("Expected name 'Test NFT', got '%s'", resp.Name)
@@ -262,13 +258,8 @@ func TestGetNFTUseCase_Execute(t *testing.T) {
 	uc := NewGetNFTUseCase(service)
 
 	resp, err := uc.Execute("nft-1")
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Name != "Test NFT" {
 		t.Errorf("Expected name 'Test NFT', got '%s'", resp.Name)
