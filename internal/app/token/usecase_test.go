@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/stretchr/testify/require"
 )
 
 type mockTokenService struct {
@@ -199,13 +200,8 @@ func TestCreateTokenUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Name != "Test Token" {
 		t.Errorf("Expected name 'Test Token', got '%s'", resp.Name)

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/stretchr/testify/require"
 )
 
 type mockVotingRepo struct {
@@ -113,13 +114,8 @@ func TestRegisterCandidateUseCase(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Name != "Alice" {
 		t.Errorf("Expected name 'Alice', got '%s'", resp.Name)
@@ -135,13 +131,8 @@ func TestRegisterVoterUseCase(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Name != "Bob" {
 		t.Errorf("Expected name 'Bob', got '%s'", resp.Name)
@@ -327,13 +318,8 @@ func TestCreateSessionUseCase(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Title != "Election 2024" {
 		t.Errorf("Expected title 'Election 2024', got '%s'", resp.Title)
