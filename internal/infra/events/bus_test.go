@@ -2,6 +2,8 @@ package events
 
 import (
 	"errors"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/events"
@@ -305,4 +307,80 @@ func TestNewSyncEventBus(t *testing.T) {
 	require.NotNil(t, bus)
 	require.NotNil(t, bus.handlers)
 	require.Equal(t, 0, len(bus.handlers))
+}
+
+func TestEventBus_ConcurrentPublish(t *testing.T) {
+	bus := NewSyncEventBus()
+
+	var count int32
+	var mu sync.Mutex
+	seen := make(map[string]bool)
+
+	bus.SubscribeAll(func(e events.Event) error {
+		mu.Lock()
+		seen[e.ID()] = true
+		mu.Unlock()
+		atomic.AddInt32(&count, 1)
+		return nil
+	})
+
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = bus.Publish(events.NewBaseEvent("test", "agg", nil))
+		}()
+	}
+	wg.Wait()
+
+	require.Equal(t, int32(50), atomic.LoadInt32(&count))
+	mu.Lock()
+	require.Len(t, seen, 50)
+	mu.Unlock()
+}
+
+func TestEventBus_ConcurrentSubscribe(t *testing.T) {
+	bus := NewSyncEventBus()
+	var count int32
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			bus.Subscribe("test", func(e events.Event) error {
+				atomic.AddInt32(&count, 1)
+				return nil
+			})
+		}()
+	}
+	wg.Wait()
+
+	_ = bus.Publish(events.NewBaseEvent("test", "agg", nil))
+	require.GreaterOrEqual(t, atomic.LoadInt32(&count), int32(10))
+}
+
+func TestEventBus_HandlerChainAllOrNothing(t *testing.T) {
+	bus := NewSyncEventBus()
+	var order []string
+
+	bus.SubscribeAll(func(e events.Event) error {
+		order = append(order, "handler1")
+		return nil
+	})
+	bus.SubscribeAll(func(e events.Event) error {
+		order = append(order, "handler2")
+		return errors.New("handler2 failed")
+	})
+	bus.SubscribeAll(func(e events.Event) error {
+		order = append(order, "handler3")
+		return nil
+	})
+
+	err := bus.Publish(events.NewBaseEvent("test", "agg", nil))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "handler2 failed")
+	require.Equal(t, []string{"handler1", "handler2"}, order)
+	require.Len(t, order, 2)
 }

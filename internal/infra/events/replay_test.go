@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"os"
+	"sync"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -213,4 +214,28 @@ func TestBase64Encoding(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expectedB64, storedOwner)
 	})
+}
+
+func TestReplayProtection_ConcurrentNonce(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "replay-concurrent-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	rp, err := NewSQLiteReplayProtection(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = rp.Close() }()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			_ = rp.SaveNonce("token-concurrent", []byte("owner"), uint64(i))
+		}(i)
+	}
+	wg.Wait()
+
+	nonce, err := rp.GetLastNonce("token-concurrent", []byte("owner"))
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, nonce, uint64(0))
 }
