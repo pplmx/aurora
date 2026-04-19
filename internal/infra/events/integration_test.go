@@ -529,3 +529,157 @@ func TestEventFlow_TokenBurn(t *testing.T) {
 	require.Len(t, stored, 1)
 	require.Equal(t, "token.burn", stored[0].EventType())
 }
+
+func TestEventFlow_NFTMint(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	eventStore, err := NewSQLiteEventStore(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = eventStore.Close() }()
+
+	bus := NewCompositeEventBus()
+	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
+
+	owner := []byte("nft-owner")
+	payload := map[string]interface{}{
+		"owner":    base64.StdEncoding.EncodeToString(owner),
+		"metadata": `{"name":"Test NFT"}`,
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	e := events.NewBaseEvent("nft.mint", "nft-123", payloadBytes)
+
+	err = bus.Publish(e)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	stored, err := eventStore.GetByAggregate("nft-123")
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, "nft.mint", stored[0].EventType())
+}
+
+func TestEventFlow_NFTTransfer(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	eventStore, err := NewSQLiteEventStore(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = eventStore.Close() }()
+
+	bus := NewCompositeEventBus()
+	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
+
+	from := []byte("from-owner")
+	to := []byte("to-owner")
+	payload := map[string]interface{}{
+		"from": base64.StdEncoding.EncodeToString(from),
+		"to":   base64.StdEncoding.EncodeToString(to),
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	e := events.NewBaseEvent("nft.transfer", "nft-456", payloadBytes)
+
+	err = bus.Publish(e)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	stored, err := eventStore.GetByAggregate("nft-456")
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, "nft.transfer", stored[0].EventType())
+}
+
+func TestEventFlow_VotingVote(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	eventStore, err := NewSQLiteEventStore(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = eventStore.Close() }()
+
+	bus := NewCompositeEventBus()
+	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
+
+	voter := []byte("voter-public-key")
+	payload := map[string]interface{}{
+		"voter":  base64.StdEncoding.EncodeToString(voter),
+		"choice": "candidate-a",
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	e := events.NewBaseEvent("voting.vote", "proposal-1", payloadBytes)
+
+	err = bus.Publish(e)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	stored, err := eventStore.GetByAggregate("proposal-1")
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, "voting.vote", stored[0].EventType())
+}
+
+func TestEventFlow_LotteryDraw(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	eventStore, err := NewSQLiteEventStore(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = eventStore.Close() }()
+
+	bus := NewCompositeEventBus()
+	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
+
+	payload := map[string]interface{}{
+		"winners": []string{"Alice", "Bob"},
+		"proof":   "deadbeef123",
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	e := events.NewBaseEvent("lottery.drawn", "lottery-1", payloadBytes)
+
+	err = bus.Publish(e)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	stored, err := eventStore.GetByAggregate("lottery-1")
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, "lottery.drawn", stored[0].EventType())
+}
+
+func TestEventFlow_OracleFetch(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	eventStore, err := NewSQLiteEventStore(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = eventStore.Close() }()
+
+	bus := NewCompositeEventBus()
+	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
+
+	payload := map[string]interface{}{
+		"source": "coinbase",
+		"data":   "42.5",
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	e := events.NewBaseEvent("oracle.data_fetched", "fetch-1", payloadBytes)
+
+	err = bus.Publish(e)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	stored, err := eventStore.GetByAggregate("fetch-1")
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, "oracle.data_fetched", stored[0].EventType())
+}
