@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/stretchr/testify/require"
 )
 
 func setupBlockchainTestDB(t *testing.T) (*BlockchainRepository, func()) {
@@ -68,13 +69,8 @@ func TestBlockchainRepository_GetBlock(t *testing.T) {
 	}
 
 	retrieved, err := repo.GetBlock(1)
-	if err != nil {
-		t.Fatalf("Failed to get block: %v", err)
-	}
-
-	if retrieved == nil {
-		t.Fatal("Block should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
 
 	if string(retrieved.Data) != "test data" {
 		t.Errorf("Expected 'test data', got '%s'", string(retrieved.Data))
@@ -179,9 +175,7 @@ func TestBlockchainRepository_Chain(t *testing.T) {
 	defer cleanup()
 
 	chain := repo.Chain()
-	if chain == nil {
-		t.Fatal("Chain should not be nil")
-	}
+	require.NotNil(t, chain)
 
 	if len(chain.Blocks) == 0 {
 		t.Error("Chain should have at least genesis block")

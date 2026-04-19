@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/stretchr/testify/require"
 )
 
 func setupNFTTestDB(t *testing.T) (*NFTRepository, func()) {
@@ -86,13 +87,8 @@ func TestNFTRepository_GetNFT(t *testing.T) {
 	}
 
 	retrieved, err := repo.GetNFT("nft-1")
-	if err != nil {
-		t.Fatalf("Failed to get NFT: %v", err)
-	}
-
-	if retrieved == nil {
-		t.Fatal("NFT should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
 
 	if retrieved.ID != "nft-1" {
 		t.Errorf("Expected ID 'nft-1', got '%s'", retrieved.ID)
