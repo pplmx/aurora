@@ -1,11 +1,14 @@
 package events
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFullFlow_CompositeBus(t *testing.T) {
@@ -429,4 +432,100 @@ func TestFullFlow_CompositeBus_AllBuses(t *testing.T) {
 	if len(eventsResult) != 1 {
 		t.Errorf("len(events) = %d, want 1", len(eventsResult))
 	}
+}
+
+func TestEventFlow_TokenTransfer(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	eventStore, err := NewSQLiteEventStore(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = eventStore.Close() }()
+
+	bus := NewCompositeEventBus()
+	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
+
+	from := []byte("sender-public-key")
+	to := []byte("receiver-public-key")
+	payload := map[string]interface{}{
+		"from":   base64.StdEncoding.EncodeToString(from),
+		"to":     base64.StdEncoding.EncodeToString(to),
+		"amount": "100",
+		"nonce":  uint64(1),
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	e := events.NewBaseEvent("token.transfer", "token-TEST", payloadBytes)
+
+	err = bus.Publish(e)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	stored, err := eventStore.GetByAggregate("token-TEST")
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, "token.transfer", stored[0].EventType())
+}
+
+func TestEventFlow_TokenMint(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	eventStore, err := NewSQLiteEventStore(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = eventStore.Close() }()
+
+	bus := NewCompositeEventBus()
+	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
+
+	to := []byte("receiver-public-key")
+	payload := map[string]interface{}{
+		"to":     base64.StdEncoding.EncodeToString(to),
+		"amount": "1000",
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	e := events.NewBaseEvent("token.mint", "token-TEST", payloadBytes)
+
+	err = bus.Publish(e)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	stored, err := eventStore.GetByAggregate("token-TEST")
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, "token.mint", stored[0].EventType())
+}
+
+func TestEventFlow_TokenBurn(t *testing.T) {
+	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
+	defer func() { _ = os.Remove(storeFile.Name()) }()
+	_ = storeFile.Close()
+
+	eventStore, err := NewSQLiteEventStore(storeFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = eventStore.Close() }()
+
+	bus := NewCompositeEventBus()
+	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
+
+	from := []byte("owner-public-key")
+	payload := map[string]interface{}{
+		"from":   base64.StdEncoding.EncodeToString(from),
+		"amount": "50",
+	}
+	payloadBytes, _ := json.Marshal(payload)
+	e := events.NewBaseEvent("token.burn", "token-TEST", payloadBytes)
+
+	err = bus.Publish(e)
+	require.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	stored, err := eventStore.GetByAggregate("token-TEST")
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, "token.burn", stored[0].EventType())
 }
