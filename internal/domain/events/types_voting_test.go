@@ -60,6 +60,16 @@ func TestVotingCreatedEvent(t *testing.T) {
 		}
 	})
 
+	t.Run("invalid JSON for Proposal", func(t *testing.T) {
+		badEvent := &VotingCreatedEvent{
+			BaseEvent: NewBaseEvent("voting.created", "vote123", []byte("invalid")),
+		}
+		_, err := badEvent.Proposal()
+		if err == nil {
+			t.Error("expected error for invalid JSON in Proposal")
+		}
+	})
+
 	t.Run("invalid base64", func(t *testing.T) {
 		badPayload, _ := json.Marshal(map[string]interface{}{
 			"proposer": "!!!invalid!!!",
@@ -113,6 +123,16 @@ func TestVotingVoteEvent(t *testing.T) {
 		}
 		if got != "yes" {
 			t.Errorf("Choice() = %s, want yes", got)
+		}
+	})
+
+	t.Run("invalid JSON for Choice", func(t *testing.T) {
+		badEvent := &VotingVoteEvent{
+			BaseEvent: NewBaseEvent("voting.vote", "vote123", []byte("invalid")),
+		}
+		_, err := badEvent.Choice()
+		if err == nil {
+			t.Error("expected error for invalid JSON in Choice")
 		}
 	})
 }

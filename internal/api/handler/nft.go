@@ -59,7 +59,7 @@ func (h *NFTHandler) Mint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +87,7 @@ func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
@@ -113,7 +113,7 @@ func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "burned"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "burned"})
 }
 
 func (h *NFTHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +127,7 @@ func (h *NFTHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -141,5 +141,5 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }

@@ -266,13 +266,8 @@ func TestMintUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.TokenID != "TEST" {
 		t.Errorf("Expected token ID 'TEST', got '%s'", resp.TokenID)
@@ -365,13 +360,8 @@ func TestTransferUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Amount != "100" {
 		t.Errorf("Expected amount '100', got '%s'", resp.Amount)
@@ -463,13 +453,8 @@ func TestBurnUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Amount != "100" {
 		t.Errorf("Expected amount '100', got '%s'", resp.Amount)
@@ -562,13 +547,8 @@ func TestApproveUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Amount != "500" {
 		t.Errorf("Expected amount '500', got '%s'", resp.Amount)
@@ -693,13 +673,8 @@ func TestTransferFromUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Amount != "100" {
 		t.Errorf("Expected amount '100', got '%s'", resp.Amount)
@@ -891,13 +866,8 @@ func TestGetBalanceUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Amount != "500" {
 		t.Errorf("Expected amount '500', got '%s'", resp.Amount)
@@ -962,13 +932,8 @@ func TestGetAllowanceUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if resp.Amount != "300" {
 		t.Errorf("Expected amount '300', got '%s'", resp.Amount)
@@ -1059,13 +1024,8 @@ func TestGetHistoryUseCase_Execute(t *testing.T) {
 	}
 
 	resp, err := uc.Execute(req)
-	if err != nil {
-		t.Fatalf("Execute failed: %v", err)
-	}
-
-	if resp == nil {
-		t.Fatal("Response should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 
 	if len(resp.Transfers) != 2 {
 		t.Errorf("Expected 2 transfers, got %d", len(resp.Transfers))

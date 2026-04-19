@@ -134,7 +134,7 @@ func (r *OracleRepository) GetLatestData(sourceID string) (*oracle.OracleData, e
 	d := &oracle.OracleData{}
 	err := row.Scan(&d.ID, &d.SourceID, &d.Value, &d.RawResponse, &d.Timestamp, &d.BlockHeight)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	return d, err
 }
@@ -290,6 +290,9 @@ func (r *InMemoryOracleRepository) GetLatestData(sourceID string) (*oracle.Oracl
 			latest = d
 			latestTs = d.Timestamp
 		}
+	}
+	if latest == nil {
+		return nil, ErrNotFound
 	}
 	return latest, nil
 }

@@ -54,7 +54,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +82,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +112,7 @@ func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +140,7 @@ func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
@@ -163,7 +163,7 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
@@ -182,5 +182,5 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }

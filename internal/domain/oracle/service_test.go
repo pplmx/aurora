@@ -298,8 +298,7 @@ func TestFetchData(t *testing.T) {
 	}
 	if data == nil {
 		t.Fatal("expected data, got nil")
-	}
-	if data.SourceID != source.ID {
+	} else if data.SourceID != source.ID {
 		t.Errorf("expected SourceID %s, got %s", source.ID, data.SourceID)
 	}
 }

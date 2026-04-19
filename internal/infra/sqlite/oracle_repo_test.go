@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/stretchr/testify/require"
 )
 
 func setupOracleTestDB(t *testing.T) (*OracleRepository, func()) {
@@ -18,7 +19,7 @@ func setupOracleTestDB(t *testing.T) (*OracleRepository, func()) {
 	}
 
 	cleanup := func() {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	return repo, cleanup
@@ -83,13 +84,8 @@ func TestOracleRepository_GetSource(t *testing.T) {
 	}
 
 	retrieved, err := repo.GetSource("btc-price")
-	if err != nil {
-		t.Fatalf("Failed to get source: %v", err)
-	}
-
-	if retrieved == nil {
-		t.Fatal("DataSource should not be nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
 
 	if retrieved.ID != "btc-price" {
 		t.Errorf("Expected ID 'btc-price', got '%s'", retrieved.ID)
@@ -211,11 +207,6 @@ func TestOracleRepository_GetLatestData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get latest data: %v", err)
 	}
-
-	if latest == nil {
-		t.Fatal("Latest data should not be nil")
-	}
-
 	if latest.Value != "51000" {
 		t.Errorf("Expected value '51000', got '%s'", latest.Value)
 	}

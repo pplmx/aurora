@@ -21,7 +21,7 @@ func setupTokenTestDB(t *testing.T) (*TokenRepository, func()) {
 		if repo != nil {
 			_ = repo.Close()
 		}
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	return repo, cleanup

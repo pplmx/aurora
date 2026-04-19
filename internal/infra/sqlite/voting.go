@@ -34,7 +34,7 @@ func (r *VotingRepository) GetVote(id string) (*voting.Vote, error) {
 	v := &voting.Vote{}
 	err := row.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	return v, err
 }
@@ -103,7 +103,7 @@ func (r *VotingRepository) GetVoter(pk string) (*voting.Voter, error) {
 	var hasVoted int
 	err := row.Scan(&v.PublicKey, &v.Name, &hasVoted, &v.VoteHash, &v.RegisteredAt)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	v.HasVoted = hasVoted == 1
 	return v, err
@@ -161,7 +161,7 @@ func (r *VotingRepository) GetCandidate(id string) (*voting.Candidate, error) {
 	var desc string
 	err := row.Scan(&c.ID, &c.Name, &c.Party, &c.Program, &desc, &c.ImageURL, &c.VoteCount, &c.CreatedAt)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	return c, err
 }
@@ -222,7 +222,7 @@ func (r *VotingRepository) GetSession(id string) (*voting.Session, error) {
 	var candidatesJSON string
 	err := row.Scan(&session.ID, &session.Title, &session.Description, &session.StartTime, &session.EndTime, &session.Status, &candidatesJSON, &session.CreatedAt)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	if err := json.Unmarshal([]byte(candidatesJSON), &session.Candidates); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal candidates: %w", err)

@@ -53,7 +53,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +64,7 @@ func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+	_ = json.NewEncoder(w).Encode(results)
 }
 
 func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -77,5 +77,5 @@ func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }
