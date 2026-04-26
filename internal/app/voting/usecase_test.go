@@ -2,6 +2,7 @@ package voting
 
 import (
 	"testing"
+	"time"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/stretchr/testify/require"
@@ -164,12 +165,16 @@ func (m *mockVotingService) CountVotes(candidates []voting.Candidate) map[string
 }
 
 func TestCastVoteUseCase_Execute(t *testing.T) {
+	now := time.Now().Unix()
 	repo := &mockVotingRepo{
 		voters: []*voting.Voter{
 			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
 		},
 		candidates: []*voting.Candidate{
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -179,6 +184,7 @@ func TestCastVoteUseCase_Execute(t *testing.T) {
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
 		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		SessionID:      "session1",
 	}
 
 	resp, err := uc.Execute(req)
@@ -323,5 +329,90 @@ func TestCreateSessionUseCase(t *testing.T) {
 
 	if resp.Title != "Election 2024" {
 		t.Errorf("Expected title 'Election 2024', got '%s'", resp.Title)
+	}
+}
+
+func TestCastVoteUseCase_SessionNotStarted(t *testing.T) {
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now + 3600, EndTime: now + 7200},
+		},
+	}
+	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
+	uc := NewCastVoteUseCase(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		SessionID:      "session1",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for vote before session starts")
+	}
+	if err.Error() != "voting session has not started yet" {
+		t.Errorf("Expected 'voting session has not started yet', got '%v'", err)
+	}
+}
+
+func TestCastVoteUseCase_SessionEnded(t *testing.T) {
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 7200, EndTime: now - 3600},
+		},
+	}
+	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
+	uc := NewCastVoteUseCase(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		SessionID:      "session1",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for vote after session ends")
+	}
+	if err.Error() != "voting session has ended" {
+		t.Errorf("Expected 'voting session has ended', got '%v'", err)
+	}
+}
+
+func TestCastVoteUseCase_SessionNotFound(t *testing.T) {
+	repo := &mockVotingRepo{}
+	service := &mockVotingService{}
+	uc := NewCastVoteUseCase(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdA==",
+		SessionID:      "nonexistent",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for nonexistent session")
+	}
+	if err.Error() != "session not found" {
+		t.Errorf("Expected 'session not found', got '%v'", err)
 	}
 }

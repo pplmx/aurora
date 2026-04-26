@@ -4,6 +4,7 @@ type CastVoteRequest struct {
 	VoterPublicKey string
 	CandidateID    string
 	PrivateKey     string
+	SessionID      string
 }
 
 type RegisterVoterRequest struct {

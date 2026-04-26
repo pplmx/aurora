@@ -244,3 +244,170 @@ func TestValidateNonce(t *testing.T) {
 		})
 	}
 }
+
+func TestAmount_String(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    int64
+		expected string
+	}{
+		{"positive", 100, "100"},
+		{"zero", 0, "0"},
+		{"negative", -50, "-50"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			amount := NewAmount(tt.value)
+			if amount.String() != tt.expected {
+				t.Errorf("Amount(%d).String() = %s, want %s", tt.value, amount.String(), tt.expected)
+			}
+		})
+	}
+
+	t.Run("nil amount", func(t *testing.T) {
+		var amount *Amount = nil
+		if amount.String() != "0" {
+			t.Errorf("nil Amount.String() = %s, want 0", amount.String())
+		}
+	})
+
+	t.Run("nil int", func(t *testing.T) {
+		amount := &Amount{Int: nil}
+		if amount.String() != "0" {
+			t.Errorf("Amount with nil Int.String() = %s, want 0", amount.String())
+		}
+	})
+}
+
+func TestAmount_Cmp(t *testing.T) {
+	tests := []struct {
+		name     string
+		a        *Amount
+		b        *Amount
+		expected int
+	}{
+		{"equal positive", NewAmount(100), NewAmount(100), 0},
+		{"a greater", NewAmount(100), NewAmount(50), 1},
+		{"b greater", NewAmount(50), NewAmount(100), -1},
+		{"both nil", nil, nil, 0},
+		{"a nil", nil, NewAmount(100), -1},
+		{"b nil", NewAmount(100), nil, 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.a.Cmp(tt.b)
+			if result != tt.expected {
+				t.Errorf("Cmp(%v, %v) = %d, want %d", tt.a, tt.b, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestAmount_Sign(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    int64
+		expected int
+	}{
+		{"positive", 100, 1},
+		{"zero", 0, 0},
+		{"negative", -50, -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			amount := NewAmount(tt.value)
+			if amount.Sign() != tt.expected {
+				t.Errorf("Amount(%d).Sign() = %d, want %d", tt.value, amount.Sign(), tt.expected)
+			}
+		})
+	}
+
+	t.Run("nil amount", func(t *testing.T) {
+		var amount *Amount = nil
+		if amount.Sign() != 0 {
+			t.Errorf("nil Amount.Sign() = %d, want 0", amount.Sign())
+		}
+	})
+
+	t.Run("nil int", func(t *testing.T) {
+		amount := &Amount{Int: nil}
+		if amount.Sign() != 0 {
+			t.Errorf("Amount with nil Int.Sign() = %d, want 0", amount.Sign())
+		}
+	})
+}
+
+func TestAmount_Int64(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    int64
+		expected int64
+	}{
+		{"positive", 100, 100},
+		{"zero", 0, 0},
+		{"negative", -50, -50},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			amount := NewAmount(tt.value)
+			if amount.Int64() != tt.expected {
+				t.Errorf("Amount(%d).Int64() = %d, want %d", tt.value, amount.Int64(), tt.expected)
+			}
+		})
+	}
+
+	t.Run("nil amount", func(t *testing.T) {
+		var amount *Amount = nil
+		if amount.Int64() != 0 {
+			t.Errorf("nil Amount.Int64() = %d, want 0", amount.Int64())
+		}
+	})
+
+	t.Run("nil int", func(t *testing.T) {
+		amount := &Amount{Int: nil}
+		if amount.Int64() != 0 {
+			t.Errorf("Amount with nil Int.Int64() = %d, want 0", amount.Int64())
+		}
+	})
+}
+
+func TestToken_CreatedAt(t *testing.T) {
+	owner := PublicKey("owner-public-key-12345678901234")
+	supply := NewAmount(1000000)
+
+	token := NewToken("token-123", "Test Token", "TEST", supply, owner)
+
+	if token.CreatedAt().IsZero() {
+		t.Error("Token.CreatedAt() should not be zero")
+	}
+}
+
+func TestApproval_ExpiresAt(t *testing.T) {
+	owner := PublicKey("owner-pk-12345678901234567890")
+	spender := PublicKey("spender-pk-1234567890123")
+	amount := NewAmount(500)
+
+	approval := NewApproval("token-123", owner, spender, amount)
+
+	if !approval.ExpiresAt().IsZero() {
+		t.Errorf("Approval.ExpiresAt() = %v, want zero time", approval.ExpiresAt())
+	}
+}
+
+func TestToken_AddToSupply(t *testing.T) {
+	owner := PublicKey("owner-public-key-12345678901234")
+	initialSupply := NewAmount(1000)
+	token := NewToken("token-123", "Test Token", "TEST", initialSupply, owner)
+
+	addedAmount := NewAmount(500)
+	token.AddToSupply(addedAmount)
+
+	expected := NewAmount(1500)
+	if token.TotalSupply().Cmp(expected) != 0 {
+		t.Errorf("TotalSupply = %s, want %s", token.TotalSupply().String(), expected.String())
+	}
+}

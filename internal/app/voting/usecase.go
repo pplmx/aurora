@@ -23,6 +23,22 @@ func NewCastVoteUseCase(repo voting.Repository, service voting.Service) *CastVot
 }
 
 func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
+	session, err := uc.repo.GetSession(req.SessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+	if session == nil {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	now := time.Now().Unix()
+	if now < session.StartTime {
+		return nil, fmt.Errorf("voting session has not started yet")
+	}
+	if now > session.EndTime {
+		return nil, fmt.Errorf("voting session has ended")
+	}
+
 	voter, err := uc.repo.GetVoter(req.VoterPublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get voter: %w", err)

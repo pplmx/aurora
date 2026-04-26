@@ -314,6 +314,9 @@ func (tr *Translator) loadMessages() {
 		"help.exit": "Press q to quit",
 		"help.back": "Press b to go back",
 
+		// ===== MIGRATE =====
+		"migrate.description": "Database migration management",
+
 		// Errors
 		"error.invalid_input": "Invalid input",
 		"error.not_found":     "Not found",
@@ -601,6 +604,9 @@ func (tr *Translator) loadMessages() {
 		"help.nav":  "使用 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出",
 		"help.exit": "按 q 退出",
 		"help.back": "按 b 返回",
+
+		// ===== MIGRATE =====
+		"migrate.description": "数据库迁移管理",
 
 		// Errors
 		"error.invalid_input": "输入无效",

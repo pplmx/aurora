@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurora v1.1</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.5"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container" x-data="{ stats: {lotteries: 0, votes: 0, nfts: 0, tokens: 0}, loading: true }" x-init="fetch('/api/v1/lottery/history').then(r=>r.json()).then(d=>stats.lotteries=d.length||0); fetch('/api/v1/voting/candidates').then(r=>r.json()).then(d=>stats.votes=d.length||0)">
+        <header>
+            <h1>Aurora <span class="version">v1.1</span></h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/lottery.html">Lottery</a>
+                <a href="/voting.html">Voting</a>
+            </nav>
+        </header>
+        <main>
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Total Lotteries</span>
+                    <span class="stat-value" x-text="stats.lotteries">-</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Active Votes</span>
+                    <span class="stat-value" x-text="stats.votes">-</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">NFTs</span>
+                    <span class="stat-value" x-text="stats.nfts">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Token Holders</span>
+                    <span class="stat-value" x-text="stats.tokens">0</span>
+                </div>
+            </section>
+            <section class="activity">
+                <h2>Recent Activity</h2>
+                <div id="activity-list">Loading...</div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

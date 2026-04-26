@@ -3,6 +3,7 @@ package test
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"database/sql"
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
@@ -10,6 +11,12 @@ import (
 	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )
+
+type noOpTxManager struct{}
+
+func (n *noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
+	return fn(nil)
+}
 
 type inMemoryTokenRepo struct {
 	tokens    map[token.TokenID]*token.Token
@@ -95,11 +102,22 @@ func (e *inMemoryEventStore) GetTransferEventsByToken(tokenID token.TokenID) ([]
 	return result, nil
 }
 
-func (e *inMemoryEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.TransferEvent, error) {
+func (e *inMemoryEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
 	var result []*token.TransferEvent
 	for _, event := range e.transferEvents {
 		if event.TokenID() == tokenID && (string(event.From()) == string(owner) || string(event.To()) == string(owner)) {
 			result = append(result, event)
+		}
+	}
+	if limit > 0 {
+		end := offset + limit
+		if end > len(result) {
+			end = len(result)
+		}
+		if offset < len(result) {
+			result = result[offset:end]
+		} else {
+			result = []*token.TransferEvent{}
 		}
 	}
 	return result, nil
@@ -184,7 +202,8 @@ func TestTokenE2E_FullFlow(t *testing.T) {
 	eventBus := newE2EEventBus(eventStore)
 	replay := newE2EReplayProtection()
 	chain := blockchain.InitBlockChain()
-	svc := token.NewService(repo, eventBus, eventStore, replay, chain)
+	txManager := &noOpTxManager{}
+	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
 
 	_, ownerPriv, _ := ed25519.GenerateKey(rand.Reader)
 	ownerPub := token.PublicKey(ownerPriv.Public().(ed25519.PublicKey))

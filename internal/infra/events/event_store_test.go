@@ -151,21 +151,31 @@ func TestSQLiteEventStore_GetByAggregate(t *testing.T) {
 	_ = store.Save(event3)
 
 	t.Run("retrieves events by aggregate ID", func(t *testing.T) {
-		results, err := store.GetByAggregate("agg-1")
+		results, err := store.GetByAggregate("agg-1", 50, 0)
 		require.NoError(t, err)
 		assert.Len(t, results, 2)
 	})
 
 	t.Run("returns empty for non-existent aggregate", func(t *testing.T) {
-		results, err := store.GetByAggregate("nonexistent")
+		results, err := store.GetByAggregate("nonexistent", 50, 0)
 		require.NoError(t, err)
 		assert.Len(t, results, 0)
 	})
 
 	t.Run("events ordered by timestamp ascending", func(t *testing.T) {
-		results, err := store.GetByAggregate("agg-1")
+		results, err := store.GetByAggregate("agg-1", 50, 0)
 		require.NoError(t, err)
 		require.Len(t, results, 2)
+	})
+
+	t.Run("supports pagination with limit and offset", func(t *testing.T) {
+		results, err := store.GetByAggregate("agg-1", 1, 0)
+		require.NoError(t, err)
+		assert.Len(t, results, 1)
+
+		results, err = store.GetByAggregate("agg-1", 1, 1)
+		require.NoError(t, err)
+		assert.Len(t, results, 1)
 	})
 }
 
@@ -191,7 +201,7 @@ func TestEventStore_GetByAggregate_Empty(t *testing.T) {
 	store, cleanup := setupEventStore(t)
 	defer cleanup()
 
-	events, err := store.GetByAggregate("nonexistent.agg")
+	events, err := store.GetByAggregate("nonexistent.agg", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, events, 0)
 }

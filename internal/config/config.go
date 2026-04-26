@@ -8,6 +8,7 @@ type Config struct {
 	Server ServerConfig `mapstructure:"server"`
 	Log    LogConfig    `mapstructure:"log"`
 	DB     DBConfig     `mapstructure:"db"`
+	API    APIConfig    `mapstructure:"api"`
 }
 
 type ServerConfig struct {
@@ -25,6 +26,10 @@ type DBConfig struct {
 	Path string `mapstructure:"path"`
 }
 
+type APIConfig struct {
+	Key string `mapstructure:"key"`
+}
+
 func Load() (*Config, error) {
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.port", 8080)
@@ -32,10 +37,15 @@ func Load() (*Config, error) {
 	viper.SetDefault("log.path", "./logs")
 	viper.SetDefault("db.type", "sqlite")
 	viper.SetDefault("db.path", "./data/aurora.db")
+	viper.SetDefault("api.key", "aurora-api-key-default")
 
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 	return &cfg, nil
+}
+
+func GetAPIKey() string {
+	return viper.GetString("api.key")
 }

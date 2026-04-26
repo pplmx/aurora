@@ -8,9 +8,14 @@ import (
 	"github.com/pplmx/aurora/internal/infra/http"
 )
 
+type FetcherInterface interface {
+	FetchData(source *oracle.DataSource) (*oracle.OracleData, error)
+}
+
 type FetchDataUseCase struct {
 	repo    oracle.Repository
-	fetcher *http.Fetcher
+	fetcher FetcherInterface
+	chain   ChainInterface
 }
 
 func NewFetchDataUseCase(repo oracle.Repository) *FetchDataUseCase {
@@ -20,37 +25,22 @@ func NewFetchDataUseCase(repo oracle.Repository) *FetchDataUseCase {
 	}
 }
 
-func (uc *FetchDataUseCase) Execute(req *FetchDataRequest) (*FetchDataResponse, error) {
-	source, err := uc.repo.GetSource(req.SourceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get source: %w", err)
+func NewFetchDataUseCaseWithDeps(repo oracle.Repository, fetcher FetcherInterface) *FetchDataUseCase {
+	return &FetchDataUseCase{
+		repo:    repo,
+		fetcher: fetcher,
 	}
-	if source == nil {
-		return nil, fmt.Errorf("data source not found")
-	}
-	if !source.Enabled {
-		return nil, fmt.Errorf("data source is disabled")
-	}
-
-	data, err := uc.fetcher.FetchData(source)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch data: %w", err)
-	}
-
-	if err := uc.repo.SaveData(data); err != nil {
-		return nil, fmt.Errorf("failed to save data: %w", err)
-	}
-
-	return &FetchDataResponse{
-		ID:          data.ID,
-		SourceID:    data.SourceID,
-		Value:       data.Value,
-		Timestamp:   data.Timestamp,
-		BlockHeight: data.BlockHeight,
-	}, nil
 }
 
-func (uc *FetchDataUseCase) ExecuteWithChain(req *FetchDataRequest, chain ChainInterface) (*FetchDataResponse, error) {
+func (uc *FetchDataUseCase) SetChain(chain ChainInterface) {
+	uc.chain = chain
+}
+
+func (uc *FetchDataUseCase) Execute(req *FetchDataRequest) (*FetchDataResponse, error) {
+	return uc.executeWithChain(req, uc.chain)
+}
+
+func (uc *FetchDataUseCase) executeWithChain(req *FetchDataRequest, chain ChainInterface) (*FetchDataResponse, error) {
 	source, err := uc.repo.GetSource(req.SourceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get source: %w", err)
@@ -187,6 +177,9 @@ func (uc *EnableSourceUseCase) Execute(id string) error {
 	if err != nil {
 		return err
 	}
+	if ds == nil {
+		return fmt.Errorf("source not found")
+	}
 	ds.Enabled = true
 	return uc.repo.UpdateSource(ds)
 }
@@ -203,6 +196,9 @@ func (uc *DisableSourceUseCase) Execute(id string) error {
 	ds, err := uc.repo.GetSource(id)
 	if err != nil {
 		return err
+	}
+	if ds == nil {
+		return fmt.Errorf("source not found")
 	}
 	ds.Enabled = false
 	return uc.repo.UpdateSource(ds)

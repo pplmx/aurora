@@ -17,8 +17,8 @@ func NewTokenEventReader(store infraevents.EventRepository) *TokenEventReader {
 	return &TokenEventReader{store: store}
 }
 
-func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.TransferEvent, error) {
-	events, err := r.store.GetByAggregate(string(tokenID))
+func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
+	events, err := r.store.GetByAggregate(string(tokenID), limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 }
 
 func (r *TokenEventReader) GetMintEventsByToken(tokenID token.TokenID) ([]*token.MintEvent, error) {
-	events, err := r.store.GetByAggregate(string(tokenID))
+	events, err := r.store.GetByAggregate(string(tokenID), 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (r *TokenEventReader) GetMintEventsByToken(tokenID token.TokenID) ([]*token
 }
 
 func (r *TokenEventReader) GetBurnEventsByToken(tokenID token.TokenID) ([]*token.BurnEvent, error) {
-	events, err := r.store.GetByAggregate(string(tokenID))
+	events, err := r.store.GetByAggregate(string(tokenID), 0, 0)
 	if err != nil {
 		return nil, err
 	}

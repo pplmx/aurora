@@ -79,7 +79,7 @@ func (uc *GetHistoryUseCase) Execute(req *HistoryRequest) (*HistoryResponse, err
 		return nil, fmt.Errorf("invalid owner: %w", err)
 	}
 
-	events, err := uc.service.GetTransferHistory(token.TokenID(req.TokenID), owner, req.Limit)
+	events, err := uc.service.GetTransferHistory(token.TokenID(req.TokenID), owner, req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}

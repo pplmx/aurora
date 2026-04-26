@@ -265,6 +265,10 @@ func (r *TokenRepository) Close() error {
 	return nil
 }
 
+func (r *TokenRepository) GetDB() *sql.DB {
+	return r.db
+}
+
 func boolToInt(b bool) int {
 	if b {
 		return 1

@@ -82,7 +82,7 @@ func TestFullFlow_PublishRetrieve(t *testing.T) {
 		t.Errorf("len(byType) = %d, want 1", len(byType))
 	}
 
-	byAgg, err := eventStore.GetByAggregate("token-123")
+	byAgg, err := eventStore.GetByAggregate("token-123", 50, 0)
 	if err != nil {
 		t.Fatalf("GetByAggregate() error = %v", err)
 	}
@@ -462,7 +462,7 @@ func TestEventFlow_TokenTransfer(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	stored, err := eventStore.GetByAggregate("token-TEST")
+	stored, err := eventStore.GetByAggregate("token-TEST", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
 	require.Equal(t, "token.transfer", stored[0].EventType())
@@ -493,7 +493,7 @@ func TestEventFlow_TokenMint(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	stored, err := eventStore.GetByAggregate("token-TEST")
+	stored, err := eventStore.GetByAggregate("token-TEST", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
 	require.Equal(t, "token.mint", stored[0].EventType())
@@ -524,7 +524,7 @@ func TestEventFlow_TokenBurn(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	stored, err := eventStore.GetByAggregate("token-TEST")
+	stored, err := eventStore.GetByAggregate("token-TEST", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
 	require.Equal(t, "token.burn", stored[0].EventType())
@@ -555,7 +555,7 @@ func TestEventFlow_NFTMint(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	stored, err := eventStore.GetByAggregate("nft-123")
+	stored, err := eventStore.GetByAggregate("nft-123", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
 	require.Equal(t, "nft.mint", stored[0].EventType())
@@ -587,7 +587,7 @@ func TestEventFlow_NFTTransfer(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	stored, err := eventStore.GetByAggregate("nft-456")
+	stored, err := eventStore.GetByAggregate("nft-456", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
 	require.Equal(t, "nft.transfer", stored[0].EventType())
@@ -618,7 +618,7 @@ func TestEventFlow_VotingVote(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	stored, err := eventStore.GetByAggregate("proposal-1")
+	stored, err := eventStore.GetByAggregate("proposal-1", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
 	require.Equal(t, "voting.vote", stored[0].EventType())
@@ -648,7 +648,7 @@ func TestEventFlow_LotteryDraw(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	stored, err := eventStore.GetByAggregate("lottery-1")
+	stored, err := eventStore.GetByAggregate("lottery-1", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
 	require.Equal(t, "lottery.drawn", stored[0].EventType())
@@ -678,7 +678,7 @@ func TestEventFlow_OracleFetch(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	stored, err := eventStore.GetByAggregate("fetch-1")
+	stored, err := eventStore.GetByAggregate("fetch-1", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
 	require.Equal(t, "oracle.data_fetched", stored[0].EventType())

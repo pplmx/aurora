@@ -178,7 +178,7 @@ func (m *mockTokenService) GetAllowance(tokenID token.TokenID, owner, spender to
 	return token.NewAmount(0), nil
 }
 
-func (m *mockTokenService) GetTransferHistory(tokenID token.TokenID, owner token.PublicKey, limit int) ([]*token.TransferEvent, error) {
+func (m *mockTokenService) GetTransferHistory(tokenID token.TokenID, owner token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
 	return m.events.transfers, nil
 }
 

@@ -2,6 +2,7 @@ package token
 
 import (
 	"crypto/ed25519"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"math/big"
@@ -116,7 +117,8 @@ func NewTokenApp() *model {
 	}
 	eventBus := newInmemEventBus(eventStore)
 	replay := newInmemReplayProtection()
-	tokenService := token.NewService(repo, eventBus, eventStore, replay, chain)
+	txManager := &noOpTxManager{}
+	tokenService := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
 
 	pub, priv, _ := ed25519.GenerateKey(nil)
 	ownerKey := token.PublicKey(pub)
@@ -663,7 +665,7 @@ func (m *model) loadHistory() {
 		return
 	}
 
-	events, err := m.tokenService.GetTransferHistory(m.currentToken.ID(), m.ownerKey, 50)
+	events, err := m.tokenService.GetTransferHistory(m.currentToken.ID(), m.ownerKey, 50, 0)
 	if err != nil {
 		m.viewport.SetContent("加载历史失败: " + err.Error())
 		return
@@ -684,6 +686,12 @@ func (m *model) loadHistory() {
 		content += fmt.Sprintf("数量: %s %s\n\n", e.Amount().String(), m.currentToken.Symbol())
 	}
 	m.viewport.SetContent(content)
+}
+
+type noOpTxManager struct{}
+
+func (n *noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
+	return fn(nil)
 }
 
 type inmemRepo struct {
@@ -743,14 +751,24 @@ type inmemEventStore struct {
 	approveEvents  []*token.ApproveEvent
 }
 
-func (e *inmemEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.TransferEvent, error) {
+func (e *inmemEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
 	var result []*token.TransferEvent
 	for _, ev := range e.transferEvents {
 		if ev.TokenID() == tokenID && (string(ev.From()) == string(owner) || string(ev.To()) == string(owner)) {
 			result = append(result, ev)
 		}
 	}
-	return result, nil
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset >= len(result) {
+		return []*token.TransferEvent{}, nil
+	}
+	end := offset + limit
+	if end > len(result) {
+		end = len(result)
+	}
+	return result[offset:end], nil
 }
 
 func (e *inmemEventStore) GetMintEventsByToken(tokenID token.TokenID) ([]*token.MintEvent, error) {

@@ -2,8 +2,10 @@ package blockchain
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"log"
 	"math"
 	"math/big"
@@ -67,6 +69,40 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 	}
 
 	return nonce, hash[:]
+}
+
+func MineBlockWithContext(ctx context.Context, pow *ProofOfWork) (int, []byte, error) {
+	var intHash big.Int
+	var hash [32]byte
+
+	nonce := 0
+	for nonce < math.MaxInt64 {
+		select {
+		case <-ctx.Done():
+			return nonce, hash[:], ctx.Err()
+		default:
+		}
+
+		data := pow.InitNonce(nonce)
+		hash = sha256.Sum256(data)
+
+		intHash.SetBytes(hash[:])
+
+		if intHash.Cmp(pow.Target) == -1 {
+			return nonce, hash[:], nil
+		}
+
+		nonce++
+	}
+
+	return nonce, hash[:], errors.New("max iterations exceeded")
+}
+
+func ValidateProof(data []byte, hash []byte, target *big.Int) bool {
+	var intHash big.Int
+	h := sha256.Sum256(data)
+	intHash.SetBytes(h[:])
+	return intHash.Cmp(target) == -1
 }
 
 func (pow *ProofOfWork) Validate() bool {
