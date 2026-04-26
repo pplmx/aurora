@@ -2,19 +2,8 @@
 
 ## Overview
 - **Project Name**: Aurora
-- **Type**: CLI/TUI blockchain system
+- **Type**: CLI/TUI blockchain system with REST API and Web UI
 - **Status**: Active development
-
-## Current Milestone: v1.1 Production Hardening
-
-**Goal:** Add infrastructure and user-facing features to make Aurora production-ready.
-
-**Target features:**
-- REST API server for programmatic access
-- Oracle real data fetching
-- Web UI (browser interface)
-- Database migration system
-- Backup/restore functionality
 
 ## Context
 
@@ -25,7 +14,11 @@ Aurora is a CLI/TUI blockchain system implementing:
 - Fungible token system
 - Data oracle
 
-### v1.0 MVP (Completed)
+## Milestones
+
+### ✅ v1.0 MVP (2026-04-26)
+**Test Coverage Foundation** — Achieved 80%+ coverage across all modules
+
 | Module | Coverage |
 |--------|----------|
 | Lottery | 93.3% |
@@ -36,16 +29,41 @@ Aurora is a CLI/TUI blockchain system implementing:
 Security: Voting timing, transactions, rate limiting, headers
 Performance: Pagination, interruptible mining, configurable timeouts
 
+### ✅ v1.1 Production Hardening (2026-04-26)
+**Infrastructure and User-facing Features**
+
+| Component | Features |
+|-----------|----------|
+| Migrations | `aurora migrate status\|up\|down`, auto-run |
+| REST API | Chi router, auth middleware, CORS, JSON responses |
+| Oracle | Real data fetching, validation, error handling |
+| Web UI | Dashboard, Lottery, Voting pages (HTMX + Alpine.js) |
+| Backup | `aurora backup create\|verify`, JSON export |
+
+**Deferred:** Backup restore (BCK-04) → v1.2
+
+## Current State
+
+### What's Shipped (v1.0 + v1.1)
+- CLI with 5 modules (lottery, voting, NFT, token, oracle)
+- TUI interfaces for all modules
+- REST API server with authentication
+- Web UI (browser-based access)
+- Database migrations
+- Backup/verify functionality
+- 80%+ test coverage across modules
+
+### Tech Stack
+- Go 1.26+
+- Chi (HTTP router)
+- SQLite (database)
+- HTMX + Alpine.js (Web UI)
+- Cobra (CLI)
+- Bubbletea (TUI)
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
-
-**After each phase transition:**
-1. Requirements invalidated? → Move to Out of Scope with reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
 
 **After each milestone:**
 1. Full review of all sections
@@ -54,4 +72,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-26 after v1.1 milestone started*
+*Last updated: 2026-04-26 after v1.1 Production Hardening milestone*

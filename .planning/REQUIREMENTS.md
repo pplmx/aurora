@@ -1,4 +1,4 @@
-# Requirements: Aurora v1.1 Production Hardening
+# Aurora v1.1 Production Hardening
 
 ## Goals & Success Criteria
 
@@ -12,42 +12,42 @@
 
 ### API Server
 
-- [ ] **API-01**: REST endpoints for lottery operations
-- [ ] **API-02**: REST endpoints for voting operations
-- [ ] **API-03**: REST endpoints for NFT operations
-- [ ] **API-04**: REST endpoints for token operations
-- [ ] **API-05**: JSON request/response format
-- [ ] **API-06**: API key authentication
-- [ ] **API-07**: Standard error responses
+- [x] **API-01**: REST endpoints for lottery operations ✓
+- [x] **API-02**: REST endpoints for voting operations ✓
+- [x] **API-03**: REST endpoints for NFT operations ✓
+- [x] **API-04**: REST endpoints for token operations ✓
+- [x] **API-05**: JSON request/response format ✓
+- [x] **API-06**: API key authentication ✓
+- [x] **API-07**: Standard error responses ✓
 
 ### Oracle
 
-- [ ] **ORA-01**: Wire up HTTP fetcher for real data
-- [ ] **ORA-02**: Data source configuration
-- [ ] **ORA-03**: Response validation
-- [ ] **ORA-04**: Error handling for failed fetches
+- [x] **ORA-01**: Wire up HTTP fetcher for real data ✓
+- [x] **ORA-02**: Data source configuration ✓
+- [x] **ORA-03**: Response validation ✓
+- [x] **ORA-04**: Error handling for failed fetches ✓
 
 ### Web UI
 
-- [ ] **WEB-01**: Dashboard showing system state
-- [ ] **WEB-02**: Lottery operations interface
-- [ ] **WEB-03**: Voting interface
-- [ ] **WEB-04**: Responsive design
-- [ ] **WEB-05**: HTMX for interactivity
+- [x] **WEB-01**: Dashboard showing system state ✓
+- [x] **WEB-02**: Lottery operations interface ✓
+- [x] **WEB-03**: Voting interface ✓
+- [x] **WEB-04**: Responsive design ✓
+- [x] **WEB-05**: HTMX for interactivity ✓
 
 ### Database Migrations
 
-- [ ] **MIG-01**: Migration version tracking
-- [ ] **MIG-02**: Up/Down migration support
-- [ ] **MIG-03**: Migration CLI command
-- [ ] **MIG-04**: Automatic migration on startup
+- [x] **MIG-01**: Migration version tracking ✓
+- [x] **MIG-02**: Up/Down migration support ✓
+- [x] **MIG-03**: Migration CLI command ✓
+- [x] **MIG-04**: Automatic migration on startup ✓
 
 ### Backup/Restore
 
-- [ ] **BCK-01**: Full database backup
-- [ ] **BCK-02**: JSON export format
-- [ ] **BCK-03**: Backup verification
-- [ ] **BCK-04**: Backup restore command
+- [x] **BCK-01**: Full database backup ✓
+- [x] **BCK-02**: JSON export format ✓
+- [x] **BCK-03**: Backup verification ✓
+- [ ] **BCK-04**: Backup restore command (deferred to v1.2)
 
 ## Out of Scope
 
@@ -56,11 +56,3 @@
 - Incremental backups (full backup only)
 - Cloud storage (local filesystem)
 - PostgreSQL migration (stay with SQLite)
-
-## Constraints
-
-- Quality over speed
-- Test-first approach
-- Maintain backward compatibility
-- Reuse existing patterns
-- API reuses CLI handlers (don't duplicate logic)

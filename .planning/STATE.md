@@ -4,25 +4,33 @@
 - **Project**: Aurora
 - **Initialized**: 2026-04-26
 - **Milestone**: v1.1 Production Hardening
-- **Status**: Planning
+- **Status**: ✅ Complete
 
 ## Current Position
-- Phase: Not started (defining requirements)
-- Status: Defining requirements
-- Last activity: 2026-04-26 — Milestone v1.1 started
+- Phase: All phases complete
+- Status: Milestone closed
+- Last activity: 2026-04-26 — v1.1 shipped
 
-## Context
-- Codebase mapped: `.planning/codebase/`
-- Project defined: `.planning/PROJECT.md`
-- Requirements defined: `.planning/REQUIREMENTS.md`
-- Roadmap defined: `.planning/ROADMAP.md`
+## v1.0 + v1.1 Complete
 
-## v1.0 MVP Complete
-- Phase 1: Test Coverage Foundation ✅
-- Phase 2: Security Hardening ✅
-- Phase 3: Feature Parity & Performance ✅
+### v1.0 MVP
+- Test coverage: 80%+ across modules
+- Security: Voting timing, transactions, rate limiting
+- Performance: Pagination, interruptible mining
+
+### v1.1 Production Hardening
+- Migrations: `aurora migrate status|up|down`
+- API: Chi router, auth, CORS, JSON responses
+- Oracle: Real data fetching
+- Web UI: HTMX + Alpine.js pages
+- Backup: `aurora backup create|verify`
+
+## Deferred Items
+- BCK-04: Backup restore → v1.2
+
+## Test Status
+- All 25 packages passing
 
 ## Notes
-- Test-first approach emphasized
 - Quality over speed
 - Single developer project
