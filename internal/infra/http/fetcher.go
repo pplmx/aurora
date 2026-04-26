@@ -18,12 +18,12 @@ import (
 const defaultHTTPTimeout = 10 * time.Second
 
 var (
-	ErrRateLimited       = errors.New("rate limit exceeded")
-	ErrInvalidTimeout    = errors.New("timeout must be greater than 0")
-	ErrHTTPError         = errors.New("http error response")
-	ErrInvalidJSON       = errors.New("invalid JSON response")
-	ErrEmptyResponse     = errors.New("empty response body")
-	ErrPathExtraction    = errors.New("path extraction failed")
+	ErrRateLimited    = errors.New("rate limit exceeded")
+	ErrInvalidTimeout = errors.New("timeout must be greater than 0")
+	ErrHTTPError      = errors.New("http error response")
+	ErrInvalidJSON    = errors.New("invalid JSON response")
+	ErrEmptyResponse  = errors.New("empty response body")
+	ErrPathExtraction = errors.New("path extraction failed")
 )
 
 type RateLimiter struct {
