@@ -1,8 +1,9 @@
 package lottery
 
 import (
-	"filippo.io/edwards25519"
 	"testing"
+
+	"filippo.io/edwards25519"
 )
 
 func TestVRFVerify_WrongOutputLength(t *testing.T) {
