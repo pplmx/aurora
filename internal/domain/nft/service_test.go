@@ -331,7 +331,7 @@ func TestNFTService_Burn(t *testing.T) {
 		t.Fatalf("Burn failed: %v", err)
 	}
 
-	burned, err := svc.GetNFTByID(minted.ID)
+	burned, _ := svc.GetNFTByID(minted.ID)
 	if burned != nil {
 		t.Errorf("expected NFT to be deleted, got %v", burned)
 	}
