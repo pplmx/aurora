@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting - Aurora v1.1</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.5"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container" x-data="votingApp()">
+        <header>
+            <h1>Aurora <span class="version">v1.1</span></h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/lottery.html">Lottery</a>
+                <a href="/voting.html">Voting</a>
+            </nav>
+        </header>
+        <main>
+            <section class="create-form">
+                <h2>Create Vote</h2>
+                <form @submit.prevent="createVote">
+                    <div class="form-group">
+                        <label>Title</label>
+                        <input type="text" x-model="title" placeholder="Proposal title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Owner Key</label>
+                        <input type="text" x-model="ownerKey" placeholder="owner signing key" required>
+                    </div>
+                    <button type="submit" class="btn-voting">Create Vote</button>
+                </form>
+                <div x-show="result" class="result" x-text="result"></div>
+            </section>
+            <section class="proposals">
+                <h2>Active Votes</h2>
+                <div x-show="loading">Loading...</div>
+                <template x-for="proposal in proposals" :key="proposal.id">
+                    <div class="proposal-card">
+                        <h3 x-text="proposal.title"></h3>
+                        <p class="proposal-meta">By: <span x-text="proposal.owner"></span></p>
+                        <div class="vote-actions">
+                            <button @click="castVote(proposal.id, 'yes')" class="btn-vote btn-yes">Yes</button>
+                            <button @click="castVote(proposal.id, 'no')" class="btn-vote btn-no">No</button>
+                        </div>
+                    </div>
+                </template>
+                <p x-show="!loading && proposals.length === 0">No active votes</p>
+            </section>
+        </main>
+    </div>
+    <script src="/js/app.js"></script>
+</body>
+</html>

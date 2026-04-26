@@ -57,7 +57,8 @@ func NewServer() (*Server, error) {
 	}
 
 	chain := blockchain.GetBlockChain()
-	tokenService := token.NewService(tokenRepo, eventBus, eventReader, replay, chain)
+	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
+	tokenService := token.NewService(tokenRepo, txManager, eventBus, eventReader, replay, chain)
 
 	oracleRepo, err := sqlite.NewOracleRepository(dbPath)
 	if err != nil {

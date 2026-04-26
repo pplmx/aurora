@@ -12,7 +12,7 @@ type EventRepository interface {
 	Save(event events.Event) error
 	GetByType(eventType string, limit int) ([]events.Event, error)
 	GetByModule(module string, limit int) ([]events.Event, error)
-	GetByAggregate(aggID string) ([]events.Event, error)
+	GetByAggregate(aggID string, limit, offset int) ([]events.Event, error)
 }
 
 type SQLiteEventStore struct {
@@ -115,13 +115,18 @@ func (e *SQLiteEventStore) GetByModule(module string, limit int) ([]events.Event
 	return scanEvents(rows)
 }
 
-func (e *SQLiteEventStore) GetByAggregate(aggID string) ([]events.Event, error) {
+func (e *SQLiteEventStore) GetByAggregate(aggID string, limit, offset int) ([]events.Event, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
 	rows, err := e.db.Query(`
 		SELECT id, event_type, module, agg_id, payload, timestamp
 		FROM events
 		WHERE agg_id = ?
 		ORDER BY timestamp ASC
-	`, aggID)
+		LIMIT ? OFFSET ?
+	`, aggID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

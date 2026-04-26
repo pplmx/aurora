@@ -10,9 +10,40 @@ path = "./logs/"
 type = "sqlite"
 path = "./data/aurora.db"
 
+[migrate]
+autoRun = false
+path = "./migrations"
+
 [lottery]
 defaultCount = 3
 defaultSeedPrefix = "aurora-vrf-"
 
 [i18n]
 locale = "en"
+
+[http]
+timeout = "10s"
+
+[http.rateLimit]
+requests = 10
+window = "1m"
+
+[[oracle.sources]]
+id = "btc-price"
+name = "Bitcoin Price"
+url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+type = "price"
+method = "GET"
+path = "bitcoin.usd"
+interval = 60
+enabled = true
+
+[[oracle.sources]]
+id = "eth-price"
+name = "Ethereum Price"
+url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+type = "price"
+method = "GET"
+path = "ethereum.usd"
+interval = 60
+enabled = true

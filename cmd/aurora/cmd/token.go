@@ -39,7 +39,8 @@ func newTokenService() (*token.TokenService, func(), error) {
 
 	chain := blockchain.InitBlockChain()
 
-	service := token.NewService(repo, eventBus, eventReader, replay, chain)
+	txManager := sqlite.NewTxManager(repo.GetDB())
+	service := token.NewService(repo, txManager, eventBus, eventReader, replay, chain)
 	cleanup := func() {
 		_ = replay.Close()
 		_ = eventStore.Close()
@@ -132,6 +133,7 @@ func init() {
 	tokenHistoryCmd.Flags().StringP("token", "t", "", i18n.GetText("token.token_id"))
 	tokenHistoryCmd.Flags().StringP("owner", "o", "", i18n.GetText("token.owner"))
 	tokenHistoryCmd.Flags().IntP("limit", "l", 50, "Limit results")
+	tokenHistoryCmd.Flags().IntP("offset", "p", 0, "Offset for pagination")
 	_ = tokenHistoryCmd.MarkFlagRequired("token")
 	_ = tokenHistoryCmd.MarkFlagRequired("owner")
 
@@ -418,11 +420,13 @@ var tokenHistoryCmd = &cobra.Command{
 		tokenID, _ := cmd.Flags().GetString("token")
 		owner, _ := cmd.Flags().GetString("owner")
 		limit, _ := cmd.Flags().GetInt("limit")
+		offset, _ := cmd.Flags().GetInt("offset")
 
 		req := &tokent.HistoryRequest{
 			TokenID: tokenID,
 			Owner:   owner,
 			Limit:   limit,
+			Offset:  offset,
 		}
 
 		resp, err := uc.Execute(req)

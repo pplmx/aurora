@@ -126,6 +126,7 @@ type HistoryRequest struct {
 	TokenID string
 	Owner   string
 	Limit   int
+	Offset  int
 }
 
 type HistoryResponse struct {

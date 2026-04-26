@@ -41,9 +41,11 @@ func Wire(dataDir string) (*App, error) {
 		return nil, err
 	}
 
+	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
+
 	eventReader := sqlite.NewTokenEventReader(eventStore)
 
-	tokenService := token.NewService(tokenRepo, bus, eventReader, replay, chain)
+	tokenService := token.NewService(tokenRepo, txManager, bus, eventReader, replay, chain)
 
 	return &App{
 		EventBus:     bus,

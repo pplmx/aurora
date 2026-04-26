@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery - Aurora v1.1</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.5"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container" x-data="lotteryApp()">
+        <header>
+            <h1>Aurora <span class="version">v1.1</span></h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/lottery.html">Lottery</a>
+                <a href="/voting.html">Voting</a>
+            </nav>
+        </header>
+        <main>
+            <section class="create-form">
+                <h2>Create Lottery</h2>
+                <form @submit.prevent="createLottery">
+                    <div class="form-group">
+                        <label>Participants (comma-separated)</label>
+                        <input type="text" x-model="participants" placeholder="A,B,C,D" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Seed</label>
+                        <input type="text" x-model="seed" placeholder="optional seed">
+                    </div>
+                    <div class="form-group">
+                        <label>Count</label>
+                        <input type="number" x-model="count" min="1" value="1" required>
+                    </div>
+                    <button type="submit" class="btn-lottery">Create Lottery</button>
+                </form>
+                <div x-show="result" class="result" x-text="result"></div>
+            </section>
+            <section class="history">
+                <h2>Lottery History</h2>
+                <div x-show="loading">Loading...</div>
+                <table x-show="!loading && history.length > 0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Participants</th>
+                            <th>Winners</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="item in history" :key="item.id">
+                            <tr>
+                                <td x-text="item.id"></td>
+                                <td x-text="item.participants?.join(', ')"></td>
+                                <td x-text="item.winners?.join(', ')"></td>
+                                <td x-text="new Date(item.created_at).toLocaleString()"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+                <p x-show="!loading && history.length === 0">No lotteries yet</p>
+            </section>
+        </main>
+    </div>
+    <script src="/js/app.js"></script>
+</body>
+</html>

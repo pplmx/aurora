@@ -3,6 +3,7 @@ package token
 import (
 	"crypto/ed25519"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"math/big"
@@ -32,7 +33,11 @@ type Service interface {
 
 	GetBalance(tokenID TokenID, owner PublicKey) (*Amount, error)
 	GetAllowance(tokenID TokenID, owner, spender PublicKey) (*Amount, error)
-	GetTransferHistory(tokenID TokenID, owner PublicKey, limit int) ([]*TransferEvent, error)
+	GetTransferHistory(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error)
+}
+
+type TransactionManager interface {
+	WithTransaction(fn func(tx *sql.Tx) error) error
 }
 
 type Repository interface {
@@ -47,28 +52,45 @@ type Repository interface {
 	SetAccountBalance(tokenID TokenID, owner PublicKey, amount *Amount) error
 }
 
+type TransactableRepository interface {
+	Repository
+	WithTx(tx *sql.Tx) TransactableRepository
+}
+
 type EventReader interface {
-	GetTransferEventsByOwner(tokenID TokenID, owner PublicKey) ([]*TransferEvent, error)
+	GetTransferEventsByOwner(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error)
 	GetMintEventsByToken(tokenID TokenID) ([]*MintEvent, error)
 	GetBurnEventsByToken(tokenID TokenID) ([]*BurnEvent, error)
 }
 
 type TokenService struct {
 	repo        Repository
+	txManager   TransactionManager
 	eventBus    infraevents.EventBus
 	eventReader EventReader
 	replay      infraevents.ReplayProtection
 	chain       blockchain.BlockWriter
 }
 
-func NewService(repo Repository, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
+func NewService(repo Repository, txManager TransactionManager, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
 	return &TokenService{
 		repo:        repo,
+		txManager:   txManager,
 		eventBus:    eventBus,
 		eventReader: eventReader,
 		replay:      replay,
 		chain:       chain,
 	}
+}
+
+type noOpTxManager struct{}
+
+func (noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
+	return nil
+}
+
+func NewServiceWithoutTx(repo Repository, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
+	return NewService(repo, noOpTxManager{}, eventBus, eventReader, replay, chain)
 }
 
 type CreateTokenRequest struct {
@@ -193,11 +215,6 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 
 	event := NewMintEvent(req.TokenID, req.To, req.Amount)
 
-	token.AddToSupply(req.Amount)
-	if err := s.repo.SaveToken(token); err != nil {
-		return nil, err
-	}
-
 	data := fmt.Sprintf("mint|%s|%s", req.TokenID, req.To)
 	height, err := s.chain.AddBlock(data)
 	if err != nil {
@@ -205,16 +222,29 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 	}
 	event.SetBlockHeight(height)
 
-	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
-	}
+	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		token.AddToSupply(req.Amount)
+		if err := s.repo.SaveToken(token); err != nil {
+			return err
+		}
 
-	currentBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
+		if err := s.eventBus.Publish(event); err != nil {
+			return err
+		}
+
+		currentBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
+		if err != nil {
+			return err
+		}
+		newBalance := &Amount{new(big.Int).Add(currentBalance.Int, req.Amount.Int)}
+		if err := s.repo.SetAccountBalance(req.TokenID, req.To, newBalance); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return nil, err
-	}
-	newBalance := &Amount{new(big.Int).Add(currentBalance.Int, req.Amount.Int)}
-	if err := s.repo.SetAccountBalance(req.TokenID, req.To, newBalance); err != nil {
 		return nil, err
 	}
 
@@ -253,9 +283,6 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 		return nil, err
 	}
 	nonce++
-	if err := s.replay.SaveNonce(string(req.TokenID), req.From, nonce); err != nil {
-		return nil, err
-	}
 
 	signature := ed25519.Sign(req.PrivateKey, s.signMessage(req.TokenID, req.From, req.To, req.Amount, nonce))
 
@@ -268,22 +295,39 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	}
 	event.SetBlockHeight(height)
 
-	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
-	}
+	var transferErr error
+	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		if err := s.replay.SaveNonce(string(req.TokenID), req.From, nonce); err != nil {
+			return err
+		}
 
-	fromNewBalance := &Amount{new(big.Int).Sub(fromBalance.Int, req.Amount.Int)}
-	if err := s.repo.SetAccountBalance(req.TokenID, req.From, fromNewBalance); err != nil {
-		return nil, err
-	}
+		if err := s.eventBus.Publish(event); err != nil {
+			return err
+		}
 
-	toBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
+		fromNewBalance := &Amount{new(big.Int).Sub(fromBalance.Int, req.Amount.Int)}
+		if err := s.repo.SetAccountBalance(req.TokenID, req.From, fromNewBalance); err != nil {
+			return err
+		}
+
+		toBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
+		if err != nil {
+			return err
+		}
+		toNewBalance := &Amount{new(big.Int).Add(toBalance.Int, req.Amount.Int)}
+		if err := s.repo.SetAccountBalance(req.TokenID, req.To, toNewBalance); err != nil {
+			transferErr = err
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	toNewBalance := &Amount{new(big.Int).Add(toBalance.Int, req.Amount.Int)}
-	if err := s.repo.SetAccountBalance(req.TokenID, req.To, toNewBalance); err != nil {
-		return nil, err
+	if transferErr != nil {
+		return nil, transferErr
 	}
 
 	return event, nil
@@ -335,9 +379,6 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 		return nil, err
 	}
 	nonce++
-	if err := s.replay.SaveNonce(string(req.TokenID), req.Spender, nonce); err != nil {
-		return nil, err
-	}
 
 	signature := ed25519.Sign(req.SpenderKey, s.signMessage(req.TokenID, req.Owner, req.To, req.Amount, nonce))
 
@@ -350,28 +391,46 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	}
 	event.SetBlockHeight(height)
 
-	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
-	}
+	var transferErr error
+	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		if err := s.replay.SaveNonce(string(req.TokenID), req.Spender, nonce); err != nil {
+			return err
+		}
 
-	ownerNewBalance := &Amount{new(big.Int).Sub(ownerBalance.Int, req.Amount.Int)}
-	if err := s.repo.SetAccountBalance(req.TokenID, req.Owner, ownerNewBalance); err != nil {
-		return nil, err
-	}
+		if err := s.eventBus.Publish(event); err != nil {
+			return err
+		}
 
-	toBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
+		ownerNewBalance := &Amount{new(big.Int).Sub(ownerBalance.Int, req.Amount.Int)}
+		if err := s.repo.SetAccountBalance(req.TokenID, req.Owner, ownerNewBalance); err != nil {
+			return err
+		}
+
+		toBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
+		if err != nil {
+			return err
+		}
+		toNewBalance := &Amount{new(big.Int).Add(toBalance.Int, req.Amount.Int)}
+		if err := s.repo.SetAccountBalance(req.TokenID, req.To, toNewBalance); err != nil {
+			transferErr = err
+			return err
+		}
+
+		newApprovalAmount := &Amount{new(big.Int).Sub(approval.Amount().Int, req.Amount.Int)}
+		newApproval := NewApproval(req.TokenID, req.Owner, req.Spender, newApprovalAmount)
+		if err := s.repo.SaveApproval(newApproval); err != nil {
+			transferErr = err
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	toNewBalance := &Amount{new(big.Int).Add(toBalance.Int, req.Amount.Int)}
-	if err := s.repo.SetAccountBalance(req.TokenID, req.To, toNewBalance); err != nil {
-		return nil, err
-	}
-
-	newApprovalAmount := &Amount{new(big.Int).Sub(approval.Amount().Int, req.Amount.Int)}
-	newApproval := NewApproval(req.TokenID, req.Owner, req.Spender, newApprovalAmount)
-	if err := s.repo.SaveApproval(newApproval); err != nil {
-		return nil, err
+	if transferErr != nil {
+		return nil, transferErr
 	}
 
 	return event, nil
@@ -491,29 +550,33 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	}
 	event.SetBlockHeight(height)
 
-	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
-	}
+	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		if err := s.eventBus.Publish(event); err != nil {
+			return err
+		}
 
-	newBalance := &Amount{new(big.Int).Sub(fromBalance.Int, req.Amount.Int)}
-	if err := s.repo.SetAccountBalance(req.TokenID, req.From, newBalance); err != nil {
+		newBalance := &Amount{new(big.Int).Sub(fromBalance.Int, req.Amount.Int)}
+		if err := s.repo.SetAccountBalance(req.TokenID, req.From, newBalance); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
 
 	return event, nil
 }
 
-func (s *TokenService) GetTransferHistory(tokenID TokenID, owner PublicKey, limit int) ([]*TransferEvent, error) {
+func (s *TokenService) GetTransferHistory(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error) {
 	if limit <= 0 {
 		limit = defaultHistoryLimit
 	}
-	events, err := s.eventReader.GetTransferEventsByOwner(tokenID, owner)
+	events, err := s.eventReader.GetTransferEventsByOwner(tokenID, owner, limit, offset)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(events) > limit {
-		events = events[:limit]
 	}
 
 	return events, nil

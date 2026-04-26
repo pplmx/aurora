@@ -10,15 +10,44 @@ import (
 )
 
 type mockOracleRepo struct {
-	sources   []*oracle.DataSource
-	data      []*oracle.OracleData
-	dataErr   error
-	sourceErr error
+	sources         []*oracle.DataSource
+	data            []*oracle.OracleData
+	dataErr         error
+	sourceErr       error
+	saveDataCalled  bool
+	updateSourceErr error
+}
+
+type mockFetcher struct {
+	data *oracle.OracleData
+	err  error
+}
+
+func (m *mockFetcher) FetchData(source *oracle.DataSource) (*oracle.OracleData, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.data, nil
+}
+
+type mockChain struct {
+	height int64
+	err    error
+	calls  []string
+}
+
+func (m *mockChain) AddLotteryRecord(data string) (int64, error) {
+	m.calls = append(m.calls, data)
+	return m.height, m.err
 }
 
 func (m *mockOracleRepo) SaveData(d *oracle.OracleData) error {
+	m.saveDataCalled = true
+	if m.dataErr != nil {
+		return m.dataErr
+	}
 	m.data = append(m.data, d)
-	return m.dataErr
+	return nil
 }
 
 func (m *mockOracleRepo) GetData(id string) (*oracle.OracleData, error) {
@@ -89,7 +118,16 @@ func (m *mockOracleRepo) ListSources() ([]*oracle.DataSource, error) {
 }
 
 func (m *mockOracleRepo) UpdateSource(s *oracle.DataSource) error {
-	return m.sourceErr
+	if m.updateSourceErr != nil {
+		return m.updateSourceErr
+	}
+	for i, src := range m.sources {
+		if src.ID == s.ID {
+			m.sources[i] = s
+			return nil
+		}
+	}
+	return nil
 }
 
 func (m *mockOracleRepo) DeleteSource(id string) error {
@@ -317,4 +355,190 @@ func TestFetchDataUseCase_RepoError(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error for repo error")
 	}
+}
+
+func TestFetchDataUseCase_Success(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "test-id", Name: "Test", Enabled: true},
+		},
+	}
+	uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{
+		data: &oracle.OracleData{
+			ID:        "data-id",
+			SourceID:  "test-id",
+			Value:     "100.50",
+			Timestamp: time.Now().Unix(),
+		},
+	})
+
+	resp, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, "data-id", resp.ID)
+	require.Equal(t, "test-id", resp.SourceID)
+	require.Equal(t, "100.50", resp.Value)
+	require.True(t, repo.saveDataCalled)
+}
+
+func TestFetchDataUseCase_FetchError(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "test-id", Name: "Test", Enabled: true},
+		},
+	}
+	uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{
+		err: errors.New("fetch failed"),
+	})
+
+	_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to fetch data")
+}
+
+func TestFetchDataUseCase_SaveDataError(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "test-id", Name: "Test", Enabled: true},
+		},
+		dataErr: errors.New("save failed"),
+	}
+	uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{
+		data: &oracle.OracleData{
+			ID:        "data-id",
+			SourceID:  "test-id",
+			Value:     "100.50",
+			Timestamp: time.Now().Unix(),
+		},
+	})
+
+	_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to save data")
+}
+
+func TestFetchDataUseCase_WithChain(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "test-id", Name: "Test", Enabled: true},
+		},
+	}
+	chain := &mockChain{height: 12345}
+	uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{
+		data: &oracle.OracleData{
+			ID:        "data-id",
+			SourceID:  "test-id",
+			Value:     "100.50",
+			Timestamp: time.Now().Unix(),
+		},
+	})
+	uc.SetChain(chain)
+
+	resp, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, int64(12345), resp.BlockHeight)
+	require.Len(t, chain.calls, 1)
+}
+
+func TestFetchDataUseCase_WithChainNil(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "test-id", Name: "Test", Enabled: true},
+		},
+	}
+	uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{
+		data: &oracle.OracleData{
+			ID:          "data-id",
+			SourceID:    "test-id",
+			Value:       "100.50",
+			Timestamp:   time.Now().Unix(),
+			BlockHeight: 0,
+		},
+	})
+
+	resp, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, int64(0), resp.BlockHeight)
+}
+
+func TestAddSourceUseCase_SaveError(t *testing.T) {
+	repo := &mockOracleRepo{
+		sourceErr: errors.New("save error"),
+	}
+	uc := NewAddSourceUseCase(repo)
+
+	_, err := uc.Execute(&AddSourceRequest{
+		Name: "Test",
+		URL:  "https://api.example.com",
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to save source")
+}
+
+func TestEnableSourceUseCase_SourceNotFound(t *testing.T) {
+	repo := &mockOracleRepo{}
+	uc := NewEnableSourceUseCase(repo)
+
+	err := uc.Execute("nonexistent")
+	require.Error(t, err)
+}
+
+func TestEnableSourceUseCase_UpdateError(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "test-id", Name: "Test", Enabled: false},
+		},
+		updateSourceErr: errors.New("update failed"),
+	}
+	uc := NewEnableSourceUseCase(repo)
+
+	err := uc.Execute("test-id")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "update failed")
+}
+
+func TestDisableSourceUseCase_SourceNotFound(t *testing.T) {
+	repo := &mockOracleRepo{}
+	uc := NewDisableSourceUseCase(repo)
+
+	err := uc.Execute("nonexistent")
+	require.Error(t, err)
+}
+
+func TestDisableSourceUseCase_UpdateError(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "test-id", Name: "Test", Enabled: true},
+		},
+		updateSourceErr: errors.New("update failed"),
+	}
+	uc := NewDisableSourceUseCase(repo)
+
+	err := uc.Execute("test-id")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "update failed")
+}
+
+func TestGetDataUseCase_Error(t *testing.T) {
+	repo := &mockOracleRepo{
+		dataErr: errors.New("get data failed"),
+	}
+	uc := NewGetDataUseCase(repo)
+
+	_, err := uc.Execute(&GetDataRequest{SourceID: "test-id", Limit: 10})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to get data")
+}
+
+func TestGetLatestDataUseCase_Error(t *testing.T) {
+	repo := &mockOracleRepo{
+		dataErr: errors.New("get latest failed"),
+	}
+	uc := NewGetLatestDataUseCase(repo)
+
+	_, err := uc.Execute(&GetLatestDataRequest{SourceID: "test-id"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to get latest data")
 }

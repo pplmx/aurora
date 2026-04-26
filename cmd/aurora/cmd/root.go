@@ -7,12 +7,14 @@ import (
 
 	"github.com/pplmx/aurora/internal/app"
 	"github.com/pplmx/aurora/internal/i18n"
+	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
+var httpTimeout string
 
 var (
 	GlobalApp *app.App
@@ -28,6 +30,7 @@ Features:
   - VRF random number generation
   - Blockchain storage
   - CLI and TUI interfaces
+  - Database migrations
 
 Use "aurora lottery --help" for lottery commands.`,
 	SilenceUsage: true,
@@ -42,6 +45,21 @@ Use "aurora lottery --help" for lottery commands.`,
 		}
 		if err := os.MkdirAll(dataDir, 0755); err != nil {
 			return fmt.Errorf("failed to create data directory: %w", err)
+		}
+
+		if viper.GetBool("migrate.autoRun") {
+			dbPath := viper.GetString("db.path")
+			if dbPath == "" {
+				dbPath = filepath.Join(dataDir, "aurora.db")
+			}
+			migPath := viper.GetString("migrate.path")
+
+			if err := migrate.RunMigrationsIfEnabled(dbPath, migrate.MigrateConfig{
+				AutoMigrate: true,
+				MigPath:     migPath,
+			}); err != nil {
+				return fmt.Errorf("migration failed: %w", err)
+			}
 		}
 
 		var err error
@@ -68,6 +86,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml)")
+	rootCmd.PersistentFlags().StringVar(&httpTimeout, "http-timeout", "", "HTTP request timeout (e.g., 30s, 1m)")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -91,6 +110,7 @@ func initConfig() {
 
 	setDefaultConfig()
 
+	_ = viper.BindPFlag("http.timeout", rootCmd.PersistentFlags().Lookup("http-timeout"))
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
@@ -103,7 +123,12 @@ func setDefaultConfig() {
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.path", "./log")
 	viper.SetDefault("data.dir", "")
+	viper.SetDefault("migrate.autoRun", false)
+	viper.SetDefault("migrate.path", "./migrations")
 	viper.SetDefault("lottery.defaultCount", 3)
 	viper.SetDefault("lottery.defaultSeedPrefix", "aurora-vrf-")
 	viper.SetDefault("i18n.locale", "en")
+	viper.SetDefault("http.timeout", "10s")
+	viper.SetDefault("http.rateLimit.requests", 10)
+	viper.SetDefault("http.rateLimit.window", "1m")
 }
