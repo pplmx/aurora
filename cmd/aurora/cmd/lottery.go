@@ -26,6 +26,8 @@ var lotteryCmd = &cobra.Command{
 var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: i18n.GetText("lottery.create"),
+	Example: `  aurora lottery create -p "Alice,Bob,Charlie" -s "random-seed-123"
+  aurora lottery create -p "A,B,C,D,E" -s "my-lottery" -c 3`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		participantsStr, _ := cmd.Flags().GetString("participants")
 		seed, _ := cmd.Flags().GetString("seed")

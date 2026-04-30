@@ -51,6 +51,8 @@ func init() {
 	mintCmd := &cobra.Command{
 		Use:   "mint",
 		Short: i18n.GetText("nft.mint"),
+		Example: `  aurora nft mint -n "MyNFT" -d "A unique digital asset" -c "creator-pubkey"
+  aurora nft mint -n "GameItem #1" -d "Rare sword" -c "player-key" -i "https://example.com/item.png"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name, _ := cmd.Flags().GetString("name")
 			description, _ := cmd.Flags().GetString("description")
