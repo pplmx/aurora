@@ -79,3 +79,61 @@ func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
+
+func TestNewLotteryHandler(t *testing.T) {
+	handler := NewLotteryHandler(&mockLotteryRepo{})
+	assert.NotNil(t, handler)
+	assert.NotNil(t, handler.repo)
+}
+
+func TestLotteryHandler_Routes(t *testing.T) {
+	handler := NewLotteryHandler(&mockLotteryRepo{})
+	r := chi.NewRouter()
+	handler.Routes(r)
+
+	routes := r.Routes()
+	assert.NotEmpty(t, routes)
+}
+
+func TestLotteryHandler_CreateRequest(t *testing.T) {
+	req := CreateLotteryRequest{
+		Participants: "A,B,C",
+		Seed:         "seed123",
+		WinnerCount:  2,
+	}
+
+	assert.Equal(t, "A,B,C", req.Participants)
+	assert.Equal(t, "seed123", req.Seed)
+	assert.Equal(t, 2, req.WinnerCount)
+}
+
+func TestLotteryHandler_Get_WithValidID(t *testing.T) {
+	mock := &mockLotteryRepoWithData{}
+	handler := &LotteryHandler{repo: mock}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/test-id", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "test-id")
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+
+	handler.Get(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+type mockLotteryRepoWithData struct{}
+
+func (m *mockLotteryRepoWithData) Save(*lottery.LotteryRecord) error { return nil }
+func (m *mockLotteryRepoWithData) GetByID(id string) (*lottery.LotteryRecord, error) {
+	return &lottery.LotteryRecord{
+		ID:           id,
+		Participants: []string{"A", "B", "C"},
+	}, nil
+}
+func (m *mockLotteryRepoWithData) GetAll() ([]*lottery.LotteryRecord, error) {
+	return []*lottery.LotteryRecord{}, nil
+}
+func (m *mockLotteryRepoWithData) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
+	return []*lottery.LotteryRecord{}, nil
+}

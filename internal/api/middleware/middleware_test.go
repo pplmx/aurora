@@ -94,3 +94,80 @@ func TestCORS_PreflightRequest(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, rr.Code)
 }
+
+func TestLogger_Requests(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	wrapped := Logger(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/test/path", nil)
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestLogger_PostRequest(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	wrapped := Logger(handler)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/test", nil)
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusCreated, rr.Code)
+}
+
+func TestRecovery_NormalHandler(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	wrapped := Recovery(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRecovery_PanicsHandled(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("test panic")
+	})
+
+	wrapped := Recovery(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	assert.Contains(t, rr.Body.String(), "Internal server error")
+}
+
+func TestRecovery_PanicsWithError(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic(123)
+	})
+
+	wrapped := Recovery(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
