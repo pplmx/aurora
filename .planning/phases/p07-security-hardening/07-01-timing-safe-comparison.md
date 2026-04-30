@@ -2,7 +2,7 @@
 
 **Phase:** 7 - Security Hardening
 **Requirement:** SEC-01 (API authentication uses constant-time comparison)
-**Status:** Not started
+**Status:** Completed
 
 ## Context
 
