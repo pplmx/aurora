@@ -32,9 +32,9 @@ Aurora v1.2 completes the operational readiness work deferred from v1.1. This re
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: Implement constant-time API key comparison
-- [ ] 07-02: Remove hardcoded default, enforce env var requirement
-- [ ] 07-03: Sanitize auth error messages to prevent information leakage
+- [x] 07-01: Implement constant-time API key comparison
+- [x] 07-02: Remove hardcoded default, enforce env var requirement
+- [x] 07-03: Sanitize auth error messages to prevent information leakage
 
 ### Phase 8: Operations & Health
 **Goal**: Kubernetes-ready health endpoints with graceful shutdown behavior
@@ -98,7 +98,7 @@ Phases execute in numeric order: 7 → 8 → 9 → 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 7. Security Hardening | 0/3 | Not started | - |
+| 7. Security Hardening | 3/3 | Plans created | - |
 | 8. Operations & Health | 0/4 | Not started | - |
 | 9. Backup & Restore | 0/4 | Not started | - |
 | 10. Test Coverage | 0/6 | Not started | - |
