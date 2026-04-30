@@ -1,58 +1,94 @@
-# Aurora v1.1 Production Hardening
+# Requirements: Aurora v1.2
 
-## Goals & Success Criteria
+**Defined:** 2026-04-30
+**Core Value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
 
-1. **Production-ready API** — REST endpoints for all modules
-2. **Real data oracle** — Wire up HTTP fetcher, remove mock
-3. **Web interface** — Browser-based UI for operations
-4. **Database migrations** — Version tracking, safe schema changes
-5. **Backup/restore** — Data safety and recovery
+## v1 Requirements
 
-## Requirements
+Requirements for v1.2 Operational Readiness. Each maps to roadmap phases.
 
-### API Server
+### Security
 
-- [x] **API-01**: REST endpoints for lottery operations ✓
-- [x] **API-02**: REST endpoints for voting operations ✓
-- [x] **API-03**: REST endpoints for NFT operations ✓
-- [x] **API-04**: REST endpoints for token operations ✓
-- [x] **API-05**: JSON request/response format ✓
-- [x] **API-06**: API key authentication ✓
-- [x] **API-07**: Standard error responses ✓
+- [ ] **SEC-01**: API authentication uses constant-time comparison to prevent timing attacks
+- [ ] **SEC-02**: Remove hardcoded default API key, fail in production if not configured
+- [ ] **SEC-03**: API auth error responses are generic ("authentication required") to prevent information leakage
 
-### Oracle
+### Operations
 
-- [x] **ORA-01**: Wire up HTTP fetcher for real data ✓
-- [x] **ORA-02**: Data source configuration ✓
-- [x] **ORA-03**: Response validation ✓
-- [x] **ORA-04**: Error handling for failed fetches ✓
-
-### Web UI
-
-- [x] **WEB-01**: Dashboard showing system state ✓
-- [x] **WEB-02**: Lottery operations interface ✓
-- [x] **WEB-03**: Voting interface ✓
-- [x] **WEB-04**: Responsive design ✓
-- [x] **WEB-05**: HTMX for interactivity ✓
-
-### Database Migrations
-
-- [x] **MIG-01**: Migration version tracking ✓
-- [x] **MIG-02**: Up/Down migration support ✓
-- [x] **MIG-03**: Migration CLI command ✓
-- [x] **MIG-04**: Automatic migration on startup ✓
+- [ ] **OPS-01**: Liveness endpoint `GET /healthz` returns 200 if server is running
+- [ ] **OPS-02**: Readiness endpoint `GET /readyz` returns 503 if database is unavailable
+- [ ] **OPS-03**: API server graceful shutdown waits for in-flight requests
+- [ ] **OPS-04**: Health endpoints bypass authentication middleware
 
 ### Backup/Restore
 
-- [x] **BCK-01**: Full database backup ✓
-- [x] **BCK-02**: JSON export format ✓
-- [x] **BCK-03**: Backup verification ✓
-- [ ] **BCK-04**: Backup restore command (deferred to v1.2)
+- [ ] **BACK-01**: `aurora backup restore --file <path>` restores from backup file
+- [ ] **BACK-02**: Restore performs schema migration if needed
+- [ ] **BACK-03**: Restore creates automatic pre-restore backup
+- [ ] **BACK-04**: `aurora backup verify` validates backup file integrity
+
+### Testing
+
+- [ ] **TEST-01**: Token API handler coverage ≥ 80%
+- [ ] **TEST-02**: NFT API handler coverage ≥ 80%
+- [ ] **TEST-03**: Lottery API handler coverage ≥ 80%
+- [ ] **TEST-04**: Voting API handler coverage ≥ 80%
+- [ ] **TEST-05**: Oracle API handler coverage ≥ 80%
+- [ ] **TEST-06**: Core TUI packages have unit tests for model logic
+
+## v2 Requirements
+
+Deferred to future release.
+
+### Observability
+
+- **OBS-01**: Prometheus metrics endpoint
+- **OBS-02**: Structured logging with correlation IDs
+- **OBS-03**: OpenTelemetry tracing
+
+### Advanced Backup
+
+- **BACK-05**: Point-in-time recovery by block height
+- **BACK-06**: Incremental backup support
 
 ## Out of Scope
 
-- OAuth/auth providers (API key sufficient for now)
-- GraphQL (REST is sufficient)
-- Incremental backups (full backup only)
-- Cloud storage (local filesystem)
-- PostgreSQL migration (stay with SQLite)
+| Feature | Reason |
+|---------|--------|
+| Mobile app | Web-first, native later |
+| Multi-node/clustering | Single instance for v1.x |
+| OAuth/OIDC integration | API key sufficient for v1.x |
+| Full E2E test suite | Unit/integration coverage priority |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SEC-01 | Phase 1 | Pending |
+| SEC-02 | Phase 1 | Pending |
+| SEC-03 | Phase 1 | Pending |
+| OPS-01 | Phase 2 | Pending |
+| OPS-02 | Phase 2 | Pending |
+| OPS-03 | Phase 2 | Pending |
+| OPS-04 | Phase 2 | Pending |
+| BACK-01 | Phase 3 | Pending |
+| BACK-02 | Phase 3 | Pending |
+| BACK-03 | Phase 3 | Pending |
+| BACK-04 | Phase 3 | Pending |
+| TEST-01 | Phase 4 | Pending |
+| TEST-02 | Phase 4 | Pending |
+| TEST-03 | Phase 4 | Pending |
+| TEST-04 | Phase 4 | Pending |
+| TEST-05 | Phase 4 | Pending |
+| TEST-06 | Phase 4 | Pending |
+
+**Coverage:**
+- v1 requirements: 17 total
+- Mapped to phases: TBD
+- Unmapped: TBD
+
+---
+*Requirements defined: 2026-04-30*
+*Last updated: 2026-04-30 after v1.2 initialization*
