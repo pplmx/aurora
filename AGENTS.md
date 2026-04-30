@@ -23,6 +23,12 @@ make stop         # Stop containers: docker compose down
 - **不使用 worktree**: 个人开发直接在 main 分支进行，无需创建 worktree
 - 使用 worktree 会导致最后合并时产生不必要的冲突
 
+## Git Workflow
+
+- **禁止使用 `git commit --amend`**：每次提交应该是独立的、完整的。如果需要修改，使用新的提交
+- 提交前确保所有 pre-commit hooks 通过
+- 如果 hooks 自动修改了文件，需要将这些修改添加到提交中
+
 ## Project Structure
 
 - **Entry point**: `cmd/aurora/main.go` → `cmd/aurora/cmd/root.go`
