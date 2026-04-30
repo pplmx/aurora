@@ -1,249 +1,259 @@
 # Architecture
 
-**Analysis Date:** 2026-04-26
+**Analysis Date:** 2026-04-30
 
 ## System Overview
 
-Aurora is a CLI/TUI blockchain-based digital system implementing VRF lotteries, voting, NFTs, fungible tokens, and oracles. It uses a layered architecture with clear separation between domain logic, application use cases, and user interfaces.
+Aurora is a blockchain-based digital voting system with VRF (Verifiable Random Function) lottery, built with Go. It provides both CLI and TUI interfaces for managing lotteries, voting, NFTs, fungible tokens, and oracles.
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    CLI Commands Layer                        │
-│         `cmd/aurora/cmd/*.go` (Cobra commands)               │
-├──────────────────┬──────────────────┬───────────────────────┤
-│   Lottery CLI    │   Voting CLI     │   NFT/Token/Oracle    │
-│  `lottery.go`    │  `voting.go`     │  `nft.go`, `token.go` │
-└────────┬─────────┴────────┬─────────┴──────────┬────────────┘
-         │                  │                     │
-         ▼                  ▼                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    UI Layer (TUI)                            │
-│     `internal/ui/{lottery,voting,nft,token,oracle}/`        │
-│         Bubble Tea TUI components with lipgloss styling      │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Application Layer (Use Cases)                │
-│           `internal/app/{lottery,voting,nft,token}/`         │
-│    DTOs → Use Cases → Orchestrate domain services + repos   │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     Domain Layer                             │
-│  `internal/domain/{lottery,voting,nft,token,oracle,blockchain}/`
-│  Entities, Services (business logic), Repository interfaces  │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Infrastructure Layer                        │
-│     `internal/infra/{sqlite,events,http}/`                   │
-│         SQLite repos, Event bus, HTTP handlers               │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Cross-Cutting Concerns                     │
-│     `internal/{i18n,logger,config,utils}/`                   │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        ENTRY POINTS                              │
+├───────────────────────────┬─────────────────────────────────────┤
+│   cmd/aurora/main.go      │   cmd/api/main.go                   │
+│   (CLI/TUI)               │   (HTTP API Server)                 │
+│   Cobra commands          │   Chi router                        │
+└─────────────┬─────────────┴─────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        UI LAYER                                  │
+│   internal/ui/{lottery,nft,oracle,token}/                       │
+│   Bubble Tea TUI components                                     │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │
+┌─────────────────────────────▼───────────────────────────────────┐
+│                     APPLICATION LAYER                            │
+│   internal/app/{lottery,voting,nft,token,oracle}/usecase.go     │
+│   Use cases, DTOs, input validation                             │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │
+┌─────────────────────────────▼───────────────────────────────────┐
+│                      DOMAIN LAYER                                │
+│   internal/domain/{lottery,voting,nft,token,oracle,             │
+│                    blockchain,events}/                           │
+│   Business logic, entities, services, interfaces                 │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │
+┌─────────────────────────────▼───────────────────────────────────┐
+│                   INFRASTRUCTURE LAYER                           │
+│   internal/infra/{sqlite,events,http,migrate,backup}/           │
+│   Database, event bus, HTTP client, migrations                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Component Responsibilities
 
 | Component | Responsibility | File |
 |-----------|----------------|------|
-| `cmd/` | CLI entry points, command wiring | `cmd/aurora/cmd/*.go` |
-| Domain Services | VRF proofs, Ed25519 signing, validation | `internal/domain/*/service.go` |
-| Domain Entities | Business objects, value objects | `internal/domain/*/entity.go` |
-| Domain Repos | Repository interfaces | `internal/domain/*/repo.go` |
-| App Use Cases | Orchestration, DTO transformation | `internal/app/*/usecase.go` |
-| UI/TUI | Bubble Tea models, rendering | `internal/ui/*/tui.go` |
-| Infra SQLite | Database implementation | `internal/infra/sqlite/*.go` |
-| Infra Events | Event bus, handlers, replay protection | `internal/infra/events/*.go` |
+| Entry (CLI) | CLI commands, TUI orchestration | `cmd/aurora/cmd/*.go` |
+| Entry (API) | HTTP server, request routing | `cmd/api/main.go` |
+| UI | Terminal user interface | `internal/ui/*/tui.go` |
+| Use Cases | Application-specific workflows | `internal/app/*/usecase.go` |
+| Domain Services | Core business logic | `internal/domain/*/service.go` |
+| Domain Entities | Data models, validation | `internal/domain/*/entity.go` |
+| Repositories | Data persistence | `internal/infra/sqlite/*.go` |
+| Event Bus | Async event handling | `internal/infra/events/*.go` |
+| Handlers | HTTP request handling | `internal/api/handler/*.go` |
 
 ## Pattern Overview
 
-**Overall:** Layered Architecture with Dependency Injection
+**Overall:** Clean Architecture with three-tier separation
 
 **Key Characteristics:**
-- **Domain layer** has zero external dependencies (pure Go business logic)
-- **Application layer** depends only on domain interfaces
-- **Infrastructure layer** implements domain repository interfaces
-- **UI/CLI layer** orchestrates app use cases
-- Event-driven architecture with `CompositeEventBus` for cross-cutting concerns
+- Domain layer has no external dependencies (pure business logic)
+- Use cases orchestrate domain services with input validation
+- Infrastructure implements domain interfaces (repository pattern)
+- Event-driven architecture via composite event bus
+- Dual entry points: CLI (Cobra) and HTTP API (Chi)
 
 ## Layers
 
-**CLI Commands (`cmd/aurora/cmd/`):**
-- Purpose: Parse CLI flags, create use cases, execute commands
-- Location: `cmd/aurora/cmd/`
-- Contains: Cobra commands, flag definitions
-- Depends on: `internal/app/*` (use cases), `internal/infra/sqlite` (repos)
-- Used by: User via `aurora [command]`
+### Entry Points Layer (`cmd/`)
 
-**UI Layer (`internal/ui/`):**
-- Purpose: TUI rendering and user interaction
-- Location: `internal/ui/{lottery,voting,nft,token,oracle}/`
-- Contains: Bubble Tea models (`tea.Model`)
-- Depends on: `internal/domain/*`, `internal/infra/*`
-- Used by: CLI commands via `Run*TUI()` functions
+**CLI Entry (`cmd/aurora/`):**
+- Location: `cmd/aurora/main.go`, `cmd/aurora/cmd/`
+- Contains: Cobra command definitions for each module
+- Depends on: `internal/app`, `internal/domain`, `internal/infra`
+- Used by: End users via terminal
 
-**Application Layer (`internal/app/`):**
-- Purpose: Use case orchestration, DTO transformation, transaction boundaries
+**API Entry (`cmd/api/`):**
+- Location: `cmd/api/main.go`
+- Contains: HTTP server initialization
+- Depends on: `internal/api`, `internal/infra`
+- Used by: Client applications
+
+### UI Layer (`internal/ui/`)
+
+**Purpose:** Terminal user interfaces using Bubble Tea
+- Location: `internal/ui/{lottery,nft,oracle,token}/tui.go`
+- Contains: TUI models and view logic
+- Depends on: `internal/domain`, `internal/app`
+- Used by: `cmd/aurora` via `Run*TUI()` functions
+
+### Application Layer (`internal/app/`)
+
+**Purpose:** Use case orchestration, DTOs, input transformation
 - Location: `internal/app/{lottery,voting,nft,token,oracle}/`
-- Contains: Use cases (`*UseCase`), DTOs (`*Request`, `*Response`)
-- Depends on: Domain interfaces (services, repositories)
-- Used by: CLI commands, TUI
+- Contains: `usecase.go`, `dto.go`, module-specific operations
+- Depends on: `internal/domain` (interfaces)
+- Used by: `cmd/aurora`, `internal/api/handler`
 
-**Domain Layer (`internal/domain/`):**
-- Purpose: Business logic, entity definitions, repository contracts
+**Example Use Case Pattern (`internal/app/lottery/usecase.go`):**
+```go
+type CreateLotteryUseCase struct {
+    lotteryRepo lottery.Repository
+    blockRepo   interface { AddLotteryRecord(data string) (int64, error) }
+    service     lottery.Service
+}
+func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryResponse, error)
+```
+
+### Domain Layer (`internal/domain/`)
+
+**Purpose:** Pure business logic, no external dependencies
 - Location: `internal/domain/{lottery,voting,nft,token,oracle,blockchain,events}/`
-- Contains: Entities, value objects, domain services, repository interfaces
-- Depends on: None (pure Go)
-- Used by: Application layer, Infrastructure layer
+- Contains: Entities, services, repository interfaces, domain events
 
-**Infrastructure Layer (`internal/infra/`):**
-- Purpose: External integrations (SQLite, HTTP, events)
-- Location: `internal/infra/{sqlite,events,http}/`
-- Contains: Repository implementations, event handlers
-- Depends on: Domain repository interfaces
-- Used by: Application layer (via dependency injection)
+**Domain Services:** Implement business rules
+- `lottery.Service`: VRF drawing, winner selection
+- `voting.Service`: Vote tallying, signature verification
+- `token.Service`: Token transfers, minting, burning
+- `nft.Service`: NFT ownership, transfers
+- `oracle.Service`: Data source management
+
+**Domain Entities:** Core data models
+- `LotteryRecord`: Participants, winners, VRF proof
+- `Vote`: Proposal, choices, signatures
+- `Token`: Supply, decimals, metadata
+- `NFT`: Owner, metadata, edition
+
+### Infrastructure Layer (`internal/infra/`)
+
+**SQLite Repositories (`internal/infra/sqlite/`):**
+- Purpose: Database persistence
+- Files: `lottery.go`, `voting.go`, `nft.go`, `token.go`, `oracle.go`
+- Implements: Domain repository interfaces
+
+**Event System (`internal/infra/events/`):**
+- Purpose: Event-driven communication
+- Components:
+  - `bus.go`: Sync event bus
+  - `async_bus.go`: Async event processing
+  - `composite_bus.go`: Combines sync/async
+  - `event_store.go`: Event persistence
+  - `handlers.go`: Event handlers (audit, stats)
+
+**HTTP Client (`internal/infra/http/`):**
+- Purpose: External data fetching
+- Files: `fetcher.go`
+- Used by: Oracle module for data sources
+
+**Migrations (`internal/infra/migrate/`):**
+- Purpose: Database schema migrations
+- Files: `migrate.go`
+- Used by: CLI at startup if configured
+
+### API Layer (`internal/api/`)
+
+**Purpose:** HTTP request handling
+- Location: `internal/api/handler/`, `internal/api/middleware/`
+- Contains: HTTP handlers, middleware, routing
+
+**Handler Pattern:**
+```go
+type LotteryHandler struct {
+    repo lottery.Repository
+}
+func (h *LotteryHandler) Routes(r chi.Router)
+func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request)
+```
+
+**Middleware:**
+- `auth.go`: API key authentication
+- `cors.go`: CORS handling
+- `logger.go`: Request logging
+- `recovery.go`: Panic recovery
 
 ## Data Flow
 
-### Primary Request Path (Lottery Create)
+### CLI Lottery Creation Flow
 
-1. **CLI Entry** (`cmd/aurora/cmd/lottery.go:createCmd.RunE`)
-   - Parses `--participants`, `--seed`, `--count` flags
-   - Creates repository: `sqlite.NewLotteryRepository()`
-   - Creates blockchain: `blockchain.InitBlockChain()`
-   - Instantiates use case: `lotteryapp.NewCreateLotteryUseCase()`
+1. **Command Entry** (`cmd/aurora/cmd/lottery.go:createCmd`)
+   - Parses flags: participants, seed, count
+   - Creates `CreateLotteryUseCase`
 
 2. **Use Case Execution** (`internal/app/lottery/usecase.go:Execute`)
-   - Validates input (sanitization, participant count)
-   - Calls domain service: `uc.service.DrawWinners()`
-   - Creates record: `lottery.CreateLotteryRecord()`
-   - Persists to blockchain: `uc.blockRepo.AddLotteryRecord()`
-   - Saves to repository: `uc.lotteryRepo.Save()`
+   - Validates input
+   - Calls domain service for VRF drawing
 
 3. **Domain Service** (`internal/domain/lottery/service.go:DrawWinners`)
-   - Validates participants, seed, winner count
-   - Generates key pair: `GenerateKeyPair()`
-   - Computes VRF: `VRFProve(sk, seed)`
-   - Selects winners: `SelectWinners(output, participants, count)`
-   - Maps names to addresses: `NameToAddress()`
+   - Generates key pair
+   - Computes VRF proof
+   - Selects winners
 
-4. **Response** (`internal/app/lottery/usecase.go:Execute`)
-   - Returns `LotteryResponse` with winners, VRF proof/output
-   - CLI prints formatted output
+4. **Persistence** (`internal/infra/sqlite/lottery.go`)
+   - Saves to SQLite
+   - Records in blockchain
 
-### Secondary Flow (Token Transfer via Events)
+5. **Response** (formatted output to terminal)
 
-1. **CLI Command** (`cmd/aurora/cmd/token.go`) → `transferCmd`
-2. **App Use Case** (`internal/app/token/transfer.go:TransferUseCase.Execute`)
-3. **Domain Service** (`internal/domain/token/service.go`) validates & executes
-4. **Event Published** via `infraevents.CompositeEventBus`
-5. **Handlers Execute**: `AuditHandler` (persists to event store), `StatsHandler` (updates counters)
-6. **Repository Updated** via `sqlite.NewTokenRepository()`
+### HTTP API Flow
 
-## Key Abstractions
+1. **Server Initialization** (`cmd/api/main.go`)
+   - Creates `Server` via `NewServer()`
 
-**Repository Pattern:**
-- Interface defined in `internal/domain/*/repo.go`
-- Implemented in `internal/infra/sqlite/*.go`
-- Example: `lottery.Repository` interface, `sqlite.LotteryRepository` implementation
+2. **Router Setup** (`internal/api/router.go`)
+   - Chi router with middleware
+   - Route registration per module
 
-**Service Pattern (Domain):**
-- Interface defined in `internal/domain/*/service.go`
-- Pure business logic with no external dependencies
-- Example: `lottery.Service` with `DrawWinners()` and `VerifyDraw()` methods
+3. **Handler** (`internal/api/handler/lottery.go`)
+   - Parses request
+   - Calls use case or domain directly
+   - Returns JSON response
 
-**Event Bus Pattern:**
-- `infraevents.EventBus` interface with publish/subscribe
-- `CompositeEventBus` combines `SyncEventBus` and `AsyncEventBus`
-- Handlers: `AuditHandler`, `StatsHandler`
-- Example usage in `wire.go:Wire()` - subscribes handlers to sync bus
-
-**Use Case Pattern:**
-- Application service wrapping domain services + repositories
-- Input DTOs in `internal/app/*/dto.go` or dedicated files
-- Single `Execute()` method per use case
-
-**Singleton Pattern:**
-- Blockchain: `InitBlockChain()` uses `sync.Once`
-- Database: `InitDB()` uses `sync.Once`
-- Accessible via `GetBlockChain()`, `GetDB()`
-
-## Entry Points
-
-**Main Entry:**
-- Location: `cmd/aurora/main.go`
-- Triggers: Executable invocation
-- Responsibilities: Initialize logger, i18n, invoke `cmd.Execute()`
-
-**Root Command:**
-- Location: `cmd/aurora/cmd/root.go`
-- Triggers: Any `aurora` subcommand
-- Responsibilities: Config loading (Viper), data directory setup, `GlobalApp` wiring
-
-**Subcommands:**
-- `cmd/aurora/cmd/lottery.go` - Lottery create/history/tui/verify/export/import/stats/reset
-- `cmd/aurora/cmd/voting.go` - Voting create/vote/tui
-- `cmd/aurora/cmd/nft.go` - NFT mint/transfer/get/list/tui
-- `cmd/aurora/cmd/token.go` - Token create/mint/transfer/balance/history/tui
-- `cmd/aurora/cmd/oracle.go` - Oracle sources/fetch/query/tui
-
-## Architectural Constraints
-
-- **Threading:** Single-threaded event loop in Bubble Tea TUI; `sync.Once` for singletons
-- **Global state:** Module-level singletons in `blockchain/init.go` and `app/wire.go`
-- **Circular imports:** None detected - domain has no external dependencies
-- **Configuration:** Viper with TOML, paths: `$HOME/aurora.toml` → `./config/aurora.toml`
-- **Data persistence:** SQLite via `github.com/mattn/go-sqlite3`; files in `$HOME/.aurora/data/`
-
-## Anti-Patterns
-
-### Direct SQLite Usage in CLI Commands
-
-**What happens:** Commands like `lottery.go` create repositories directly in `RunE`:
-```go
-lotteryRepo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
-```
-**Why it's wrong:** Bypasses the dependency injection pattern; makes testing harder; inconsistent with app layer
-**Do this instead:** Use the wired `GlobalApp` from `root.go` or inject via `wire.go`
-
-### Genesis Block Side Effects
-
-**What happens:** `blockchain/init.go:InitBlockChain()` inserts genesis block on first run as a side effect
-**Why it's wrong:** Hidden mutation during initialization; non-idempotent if genesis changes
-**Do this instead:** Explicit initialization function or migration-based genesis creation
-
-## Error Handling
-
-**Strategy:** Errors propagate up the call stack with wrapped context
-
-**Patterns:**
-- Domain validation returns typed errors (e.g., `ValidateSeed()` returns `fmt.Errorf`)
-- Use cases wrap errors: `fmt.Errorf("failed to draw winners: %w", err)`
-- CLI commands print formatted errors and exit with code 1
-- Silent errors in some TUI handlers (`_ = rows.Close()`)
+4. **Response** (`internal/api/response.go`)
+   - Standard JSON envelope
+   - Error formatting
 
 ## Cross-Cutting Concerns
 
-**Logging:** `zerolog` via `internal/logger.Init()`
-- Log levels configurable via `log.level` in config
-- Log path configurable via `log.path`
+**Logging:** Zerolog via `internal/logger/`
+**Configuration:** Viper with TOML files via `internal/config/`
+**Internationalization:** i18n via `internal/i18n/`
+**Error Handling:** Custom errors in `internal/domain/*/errors.go`
+**Event Handling:** Composite event bus with replay protection
 
-**Internationalization:** `gobwas/i18n` via `internal/i18n/`
-- Locale auto-detected or set via `i18n.locale`
-- Text accessed via `i18n.GetText("key")`
+## Entry Points
 
-**Configuration:** `spf13/viper`
-- TOML format in `aurora.toml`
-- Environment variable override via `viper.AutomaticEnv()`
+| Entry Point | File | Purpose |
+|-------------|------|---------|
+| CLI Main | `cmd/aurora/main.go` | Initialize logger, i18n, run Cobra |
+| API Server | `cmd/api/main.go` | Start HTTP server |
+| Root Command | `cmd/aurora/cmd/root.go` | Config loading, app wiring |
+| Module Commands | `cmd/aurora/cmd/{lottery,voting,nft,token,oracle}.go` | Module-specific CLI |
+
+## Key Interfaces
+
+**Repository Interface Pattern:**
+```go
+// internal/domain/lottery/repo.go
+type Repository interface {
+    Save(record *LotteryRecord) error
+    FindByID(id string) (*LotteryRecord, error)
+    FindAll() ([]*LotteryRecord, error)
+}
+```
+
+**Service Interface Pattern:**
+```go
+// internal/domain/lottery/service.go
+type Service interface {
+    DrawWinners(participants []string, seed string, count int) ([]string, []string, []byte, []byte, error)
+    VerifyDraw(record *LotteryRecord, publicKey *edwards25519.Point) (bool, error)
+}
+```
 
 ---
 
-*Architecture analysis: 2026-04-26*
+*Architecture analysis: 2026-04-30*

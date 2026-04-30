@@ -1,141 +1,114 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-04-26
+**Analysis Date:** 2026-04-30
 
 ## Test Framework
 
-**Language:** Go 1.26+
+**Test Runner:**
+- Go standard `testing` package
+- Version: Go 1.26+
 
-**Standard Library:**
-- `testing` - Core testing package
-- `testify` - Enhanced assertions (`github.com/stretchr/testify`)
+**Assertion Libraries:**
+- `github.com/stretchr/testify` (assert, require)
 
-**Test Database:**
-- SQLite in-memory for repository tests
-
-**Coverage:** See AGENTS.md for module coverage targets
-
-## Run Commands
-
-### justfile Recipes
-
+**Run Commands:**
 ```bash
 just test              # Run all tests
-just test-coverage     # Run with coverage report
-```
-
-### Standard go test
-
-```bash
-go test ./...                       # All tests
-go test ./internal/domain/... -v    # Domain layer
-go test ./internal/app/... -v       # App layer
-go test ./e2e/ -v                   # E2E tests
-go test ./... -cover                # With coverage
-go test ./... -coverprofile=coverage.out  # Coverage file
+go test ./... -cover   # With coverage report
+just test-coverage     # Generate coverage.out
 ```
 
 ## Test File Organization
 
-### Location Pattern
+**Location:**
+- Co-located with implementation: `internal/domain/lottery/entity_test.go`
+- E2E in `e2e/` directory: `e2e/lottery_e2e_test.go`
 
-**Unit tests:** Co-located with source files
+**Naming:**
+- Unit tests: `*_test.go`
+- E2E tests: `*_e2e_test.go`
+
+**Package Declaration:**
+- Same package as implementation (not `_test` suffix)
+```go
+package lottery  // Not package lottery_test
 ```
-internal/domain/lottery/
-├── service.go
-├── service_test.go      # Unit tests
-├── entity.go
-└── entity_test.go       # Entity tests
-
-internal/app/lottery/
-├── usecase.go
-└── usecase_test.go      # Use case tests
-```
-
-**E2E tests:** Separate `e2e/` directory
-```
-e2e/
-├── lottery_e2e_test.go
-├── voting_e2e_test.go
-├── token_e2e_test.go
-├── nft_e2e_test.go
-└── oracle_e2e_test.go
-```
-
-### Naming Convention
-
-- Test files: `*_test.go`
-- Test functions: `Test<Subject>_<Scenario>` (e.g., `TestLotteryService_DrawWinners`)
 
 ## Test Structure
 
-### Package Declaration
+### Unit Tests
 
-**Unit tests:** Same package as source
+**Basic pattern:**
 ```go
-package lottery
-```
-
-**E2E tests:** `test` package
-```go
-package test
-```
-
-### Test Function Pattern
-
-```go
-func Test<Subject>_<Action>(t *testing.T) {
-    // Arrange: Set up test data
-    service := NewService()
-    participants := []string{"Alice", "Bob", "Charlie"}
-
-    // Act: Execute the function under test
-    winners, _, _, _, err := service.DrawWinners(participants, "seed", 1)
-
-    // Assert: Verify results
-    if err != nil {
-        t.Fatalf("DrawWinners failed: %v", err)
+func TestGetWinners(t *testing.T) {
+    record := &LotteryRecord{
+        Winners: []string{"Alice", "Bob"},
     }
-
-    if len(winners) != 1 {
-        t.Errorf("Expected 1 winner, got %d", len(winners))
-    }
-}
-```
-
-### Error Test Pattern
-
-```go
-func TestLotteryService_DrawWinners_InvalidInput(t *testing.T) {
-    service := NewService()
-
-    _, _, _, _, err := service.DrawWinners([]string{}, "seed", 1)
-    if err == nil {
-        t.Fatal("Expected error for empty participants")
+    got := record.GetWinners()
+    if len(got) != 2 || got[0] != "Alice" || got[1] != "Bob" {
+        t.Errorf("GetWinners() = %v, want [Alice Bob]", got)
     }
 }
 ```
 
 ### Table-Driven Tests
 
+**For multiple test cases:**
 ```go
-func TestLotteryE2E_AddressConversion(t *testing.T) {
+func TestValidateParticipantName_Valid(t *testing.T) {
+    valid := []string{"Alice", "Bob 123", "test-name", "Name_With", "日本語", "中文"}
+    for _, name := range valid {
+        err := ValidateParticipantName(name)
+        if err != nil {
+            t.Errorf("ValidateParticipantName(%q) should not error: %v", name, err)
+        }
+    }
+}
+
+func TestSanitizeString(t *testing.T) {
     tests := []struct {
-        name     string
-        wantLen  int
-        wantPref string
+        input    string
+        expected string
     }{
-        {"Alice", 42, "0x"},
-        {"Bob", 42, "0x"},
-        {"中文", 42, "0x"},
-        {"", 42, "0x"},
+        {"  hello  ", "hello"},
+        {"hello\x00world", "helloworld"},
+        {"normal text", "normal text"},
+    }
+
+    for _, tt := range tests {
+        got := SanitizeString(tt.input)
+        if got != tt.expected {
+            t.Errorf("SanitizeString(%q) = %q, want %q", tt.input, got, tt.expected)
+        }
+    }
+}
+```
+
+**With subtests for named cases:**
+```go
+func TestLotteryRecord_Validate(t *testing.T) {
+    tests := []struct {
+        name    string
+        record  *LotteryRecord
+        wantErr bool
+    }{
+        {
+            name: "valid record with seed and participants",
+            record: &LotteryRecord{
+                Seed:         "test-seed",
+                Participants: []string{"Alice", "Bob", "Charlie"},
+                Winners:      []string{"Alice"},
+            },
+            wantErr: false,
+        },
+        // ... more cases
     }
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            got := lottery.NameToAddress(tt.name)
-            if len(got) != tt.wantLen {
-                t.Errorf("len = %d, want %d", len(got), tt.wantLen)
+            err := tt.record.Validate()
+            if (err != nil) != tt.wantErr {
+                t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
             }
         })
     }
@@ -144,10 +117,9 @@ func TestLotteryE2E_AddressConversion(t *testing.T) {
 
 ## Mocking Patterns
 
-### Interface-based Mocks
+### Manual Interface Mocking
 
-Define mock structs that implement domain interfaces:
-
+**Define mock in test file:**
 ```go
 type mockLotteryRepo struct {
     records []*lottery.LotteryRecord
@@ -166,256 +138,275 @@ func (m *mockLotteryRepo) GetByID(id string) (*lottery.LotteryRecord, error) {
     }
     return nil, nil
 }
-```
 
-### Inline Test Doubles
-
-For E2E tests with in-memory implementations:
-
-```go
-type inMemoryTokenRepo struct {
-    tokens    map[token.TokenID]*token.Token
-    balances  map[string]*token.Amount
-    approvals map[string]*token.Approval
+func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
+    return m.records, nil
 }
 
-func newInMemoryTokenRepo() *inMemoryTokenRepo {
-    return &inMemoryTokenRepo{
-        tokens:    make(map[token.TokenID]*token.Token),
-        balances:  make(map[string]*token.Amount),
-        approvals: make(map[string]*token.Approval),
+func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
+    var result []*lottery.LotteryRecord
+    for _, r := range m.records {
+        if r.BlockHeight == height {
+            result = append(result, r)
+        }
     }
+    return result, nil
 }
 ```
 
-### Blockchain Reset
-
-E2E tests reset blockchain state:
-
+**Usage in tests:**
 ```go
-func TestLotteryE2E_FullFlow(t *testing.T) {
-    blockchain.ResetForTest()
-    // ... test code
+func TestCreateLotteryUseCase_Execute(t *testing.T) {
+    lotteryRepo := &mockLotteryRepo{}
+    blockChain := &mockBlockChain{}
+
+    uc := NewCreateLotteryUseCase(lotteryRepo, blockChain)
+
+    req := CreateLotteryRequest{
+        Participants: "Alice,Bob,Charlie",
+        Seed:         "test-seed",
+        WinnerCount:  2,
+    }
+
+    resp, err := uc.Execute(req)
+    require.NoError(t, err)
+    require.NotNil(t, resp)
+    // assertions...
 }
 ```
 
 ## Test Fixtures
 
-### Database Fixtures
-
-In-memory SQLite setup for repository tests:
+### DB Test Setup
 
 ```go
-func setupVotingTestDB(t *testing.T) (*VotingRepository, func()) {
-    db, err := sql.Open("sqlite3", ":memory:")
+func setupTokenTestDB(t *testing.T) (*TokenRepository, func()) {
+    tmpDir := t.TempDir()
+    dbPath := filepath.Join(tmpDir, "test_token.db")
+
+    repo, err := NewTokenRepository(dbPath)
     if err != nil {
-        t.Fatalf("Failed to open database: %v", err)
+        t.Fatalf("Failed to create token repository: %v", err)
     }
 
-    _, err = db.Exec(`
-        CREATE TABLE IF NOT EXISTS votes (...)
-    `)
-    if err != nil {
-        t.Fatalf("Failed to create tables: %v", err)
+    cleanup := func() {
+        if repo != nil {
+            _ = repo.Close()
+        }
+        _ = os.RemoveAll(tmpDir)
     }
 
-    repo := NewVotingRepository(db)
-    cleanup := func() { db.Close() }
     return repo, cleanup
 }
-```
 
-### Test Data Builders
+func TestTokenRepository_GetToken(t *testing.T) {
+    repo, cleanup := setupTokenTestDB(t)
+    defer cleanup()
 
-Inline construction in tests:
+    testToken := token.NewToken("TEST", "Test Token", "TEST",
+        token.NewAmount(1000000), token.PublicKey([]byte("owner")))
 
-```go
-record := &lottery.LotteryRecord{
-    ID:              "test-id-123",
-    Seed:            "test-seed",
-    Participants:    []string{"A", "B", "C"},
-    Winners:         []string{"A"},
-    WinnerAddresses: []string{"0xabc123"},
-    VRFProof:        "proof-data",
-    VRFOutput:       "output-data",
-    BlockHeight:     1,
-    Timestamp:       1234567890,
-}
-```
-
-## Assertion Patterns
-
-### Using testify/require
-
-```go
-import "github.com/stretchr/testify/require"
-
-func TestExample(t *testing.T) {
-    require.NotNil(t, resp)
-    require.Equal(t, 2, len(resp.Winners))
+    err := repo.SaveToken(testToken)
     require.NoError(t, err)
+
+    retrieved, err := repo.GetToken("TEST")
+    require.NoError(t, err)
+    assert.Equal(t, "TEST", retrieved.ID())
 }
 ```
 
-### Standard testing assertions
+### Event Store Setup
 
 ```go
-// Fatal on failure (stops test)
-if err != nil {
-    t.Fatalf("Execute failed: %v", err)
-}
+func setupEventStore(t *testing.T) (*SQLiteEventStore, func()) {
+    tmpFile, err := os.CreateTemp("", "event_store_test_*.db")
+    require.NoError(t, err)
+    _ = tmpFile.Close()
 
-// Error on failure (continues test)
-if len(winners) != count {
-    t.Errorf("Expected %d winners, got %d", count, len(winners))
-}
+    store, err := NewSQLiteEventStore(tmpFile.Name())
+    require.NoError(t, err)
 
-// Boolean checks
-if !found {
-    t.Error("Should have found the element")
-}
-
-// Nil checks
-if record == nil {
-    t.Fatal("Record should not be nil")
+    cleanup := func() {
+        _ = store.Close()
+        _ = os.Remove(tmpFile.Name())
+    }
+    return store, cleanup
 }
 ```
 
-## E2E Test Patterns
+## Testify Assertions
 
-### Full Flow Tests
+### require (Fatal)
 
-E2E tests verify end-to-end scenarios:
+Stops test immediately on failure:
+```go
+require.NoError(t, err)
+require.NotNil(t, resp)
+require.Len(t, results, 2)
+require.Equal(t, "expected", actual)
+```
+
+### assert (Non-fatal)
+
+Continues test execution:
+```go
+assert.Equal(t, http.StatusOK, rr.Code)
+assert.NotEqual(t, http.StatusBadRequest, rr.Code)
+assert.Contains(t, output, "expected string")
+```
+
+## E2E Tests
+
+**Location:** `e2e/*_e2e_test.go`
+**Package:** `test` (shared package for integration)
 
 ```go
+package test
+
+import (
+    "testing"
+
+    blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+    lottery "github.com/pplmx/aurora/internal/domain/lottery"
+)
+
 func TestLotteryE2E_FullFlow(t *testing.T) {
     blockchain.ResetForTest()
 
     participants := []string{"Alice", "Bob", "Charlie", "David", "Eve"}
     seed := "e2e-test-seed-123"
+    count := 3
 
     _, sk, err := lottery.GenerateKeyPair()
-    // ... generate proof
+    if err != nil {
+        t.Fatalf("GenerateKeyPair failed: %v", err)
+    }
 
-    winners := lottery.SelectWinners(output, participants, count)
-    // ... verify winners
-
-    chain := blockchain.InitBlockChain()
-    height, err := chain.AddLotteryRecord(jsonData)
-    // ... verify on blockchain
+    output, proof, err := lottery.VRFProve(sk, []byte(seed))
+    // ...
 }
 ```
 
-### Integration Tests
+**Test isolation:**
+- `blockchain.ResetForTest()` resets global state before each test
 
-Test multiple components working together:
+## HTTP Handler Tests
 
 ```go
-func TestTokenE2E_Transfer(t *testing.T) {
-    blockchain.ResetForTest()
-    eventStore := infraevents.NewInMemoryStore()
-    // ... set up components
-    // ... execute operations
-    // ... verify state and events
+func TestLotteryHandler_Create_InvalidRequest(t *testing.T) {
+    handler := &LotteryHandler{}
+
+    req := httptest.NewRequest(http.MethodPost, "/api/v1/lottery/create",
+        bytes.NewBufferString("invalid json"))
+    rr := httptest.NewRecorder()
+
+    handler.Create(rr, req)
+
+    assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+    var resp ErrorResponse
+    err := json.Unmarshal(rr.Body.Bytes(), &resp)
+    assert.NoError(t, err)
+    assert.Equal(t, "INVALID_REQUEST", resp.Code)
 }
 ```
 
-## Coverage Targets
+## Coverage Requirements
 
-From AGENTS.md:
+**Current coverage by module:**
 
-| Module  | Domain | App   |
-|---------|--------|-------|
-| Lottery | 73.8%  | 87.1% |
-| Voting  | 87.5%  | 81.4% |
-| NFT     | 72.7%  | 88.1% |
-| Token   | 70.5%  | 91.9% |
-| Oracle  | 76.1%  | 65.8% |
+| Module | Domain | App |
+|--------|--------|-----|
+| Lottery | 93.3% | 87.1% |
+| Voting | 87.5% | 76.8% |
+| NFT | 93.8% | 88.1% |
+| Token | 90.3% | 91.9% |
+| Oracle | 76.1% | 94.5% |
 
-**Overall goal:** Maintain or improve coverage when adding features
+**Command:**
+```bash
+go test ./... -coverprofile=coverage.out
+go tool cover -func=coverage.out
+```
 
-## Test Categories
+**Low coverage areas:**
+- `internal/api` (3.6% - handler coverage)
+- `internal/api/handler` (9.5%)
+- `internal/domain/blockchain` (30.9%)
+- `internal/infra/sqlite` (49.1%)
 
-### Domain Tests (`internal/domain/*/ *_test.go`)
+## Test Naming Conventions
 
-- Pure business logic
-- Validation rules
-- Entity methods
-- Service layer logic
+**Pattern:** `Test<Subject>_<Scenario>`
 
-### Application Tests (`internal/app/*/ *_test.go`)
+Examples:
+- `TestGetWinners`
+- `TestLotteryRecord_ToJSON`
+- `TestLotteryRecord_ToJSON_Invalid`
+- `TestCreateLotteryUseCase_Execute`
+- `TestCreateLotteryUseCase_InvalidInput`
+- `TestLotteryE2E_FullFlow`
+- `TestSQLiteEventStore_Save`
 
-- Use case orchestration
-- Mocked dependencies
-- Request/response validation
-- Error handling paths
+## Error Testing Patterns
 
-### Infrastructure Tests (`internal/infra/*/ *_test.go`)
-
-- Repository implementations
-- Database operations
-- Event handlers
-- HTTP fetchers
-
-### E2E Tests (`e2e/*_e2e_test.go`)
-
-- Full integration
-- Real dependencies
-- End-to-end flows
-- Blockchain interactions
-
-## Common Test Patterns
-
-### Testing Edge Cases
-
+**Expected error:**
 ```go
-func TestSelectWinners_EdgeCases(t *testing.T) {
-    // Single participant
-    winners := lottery.SelectWinners([]byte{0x01}, []string{"OnlyOne"}, 1)
-    if len(winners) != 1 {
-        t.Error("Should return single participant")
-    }
-
-    // Empty participants
-    winners = lottery.SelectWinners([]byte{0x01}, []string{}, 1)
-    if len(winners) != 0 {
-        t.Error("Should return empty")
-    }
-
-    // Count equals participants
-    winners = lottery.SelectWinners([]byte{0x01}, []string{"A", "B"}, 2)
-    if len(winners) != 2 {
-        t.Error("Should return all")
+func TestValidateSeed_TooShort(t *testing.T) {
+    err := ValidateSeed("ab")
+    if err == nil {
+        t.Error("ValidateSeed() 'ab' should error")
     }
 }
 ```
 
-### Determinism Tests
-
+**With subtests:**
 ```go
-func TestVRF_Determinism(t *testing.T) {
-    _, sk, _ := lottery.GenerateKeyPair()
-    seed := "deterministic-test"
+func TestCreateLotteryUseCase_InvalidInput(t *testing.T) {
+    tests := []struct {
+        name    string
+        req     CreateLotteryRequest
+        wantErr bool
+    }{
+        {
+            name: "empty participants",
+            req: CreateLotteryRequest{
+                Participants: "",
+                Seed:         "seed",
+                WinnerCount:  1,
+            },
+            wantErr: true,
+        },
+    }
 
-    output1, _, _ := lottery.VRFProve(sk, []byte(seed))
-    output2, _, _ := lottery.VRFProve(sk, []byte(seed))
-
-    if string(output1) != string(output2) {
-        t.Error("Same key and seed should produce same output")
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            _, err := uc.Execute(tt.req)
+            if (err != nil) != tt.wantErr {
+                t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
+            }
+        })
     }
 }
 ```
 
-### State Isolation
+## Pre-commit Hooks
 
-Each test resets shared state:
-```go
-func TestXxx(t *testing.T) {
-    blockchain.ResetForTest()  // Reset blockchain
-    // ... test code
-}
-```
+**Configuration:** `.pre-commit-config.yaml`
+
+Go hooks:
+- `gofmt` - Format code
+- `goimports` - Organize imports
+- `go vet` - Static analysis
+- `golangci-lint` - Full lint suite (5m timeout, errcheck/staticcheck disabled)
+
+Other hooks:
+- `commitizen` - Conventional commits
+- `end-of-file-fixer` - Normalize line endings
+- `trailing-whitespace` - Remove trailing whitespace
+- `check-yaml`, `check-toml` - Validate config files
+- `rumdl` - Markdown linting
 
 ---
 
-*Testing analysis: 2026-04-26*
+*Testing analysis: 2026-04-30*

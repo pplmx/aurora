@@ -1,198 +1,159 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-04-26
+**Analysis Date:** 2026-04-30
 
-## Tech Debt
+## Deferred Items
 
-### VRF Implementation Quality
-- **Issue:** The VRF implementation in `internal/domain/lottery/vrf.go` uses SHA-256 hashing for `hashToPoint()` which doesn't guarantee a valid curve point. The standard ECVRF uses SHA-512 and elliptic curve operations differently.
-- **Files:** `internal/domain/lottery/vrf.go:39-49`
-- **Impact:** VRF output may not be cryptographically optimal for random selection
-- **Fix approach:** Consider implementing RFC 9380 (Internet-Draft draft-irtf-cfrg-vrf-09) or using a library that implements it properly
-- **Workaround:** Current implementation is documented in code comments. For lottery use case where strict cryptographic properties are less critical than for security-sensitive applications, this simplified approach is acceptable. See `vrf.go` for detailed limitations and RFC 9380 references.
-
-### Oracle Service Returns Mock Data
-- **Issue:** The `FetchData` implementation in `internal/domain/oracle/service.go:66-79` returns hardcoded "sample-value" instead of actual fetched data.
-- **Files:** `internal/domain/oracle/service.go:70-77`
-- **Impact:** Oracle data fetching is non-functional
-- **Fix approach:** Wire up the HTTP fetcher (`internal/infra/http/fetcher.go`) properly to the oracle service
-
-### Missing Transaction Boundaries
-- **Issue:** Token transfer operations update multiple tables (balances, approvals, events) without transactional protection. A failure mid-operation could leave inconsistent state.
-- **Files:** `internal/domain/token/service.go:224-289`, `internal/domain/token/service.go:292-378`
-- **Impact:** Partial transfers possible during errors
-- **Fix approach:** Wrap balance updates and event publication in database transactions
-
-### SQLite Concurrency Limits
-- **Issue:** SQLite uses file-level locking which limits write concurrency. Multiple concurrent token operations will serialize.
-- **Files:** `internal/infra/sqlite/*.go`
-- **Impact:** Poor performance under concurrent load
-- **Fix approach:** Consider connection pooling or switching to PostgreSQL for production
-
-### No Connection Pooling
-- **Issue:** Each repository creates its own database connection without pooling.
-- **Files:** `internal/infra/sqlite/token.go:26`, `internal/infra/sqlite/nft.go:25`, etc.
-- **Impact:** Resource inefficiency, potential connection exhaustion
-- **Fix approach:** Implement a shared connection pool
-
-## Known Bugs
-
-### VRF Output Validation Edge Case
-- **Symptoms:** `VRFVerify` in `internal/domain/lottery/vrf.go:68-85` returns `true` if length check passes even when the proof is invalid
-- **Files:** `internal/domain/lottery/vrf.go:84`
-- **Trigger:** Pass incorrect proof bytes of correct length
-- **Workaround:** Ensure proof generation uses the same `VRFProve` function
-
-### Lottery ID Collisions
-- **Issue:** Lottery ID is derived from first 16 characters of SHA-256 hash of seed, which has collision risk with enough participants
-- **Files:** `internal/domain/lottery/entity.go:114-115`
-- **Trigger:** Create lotteries with similar seeds
-- **Workaround:** None
-
-## Security Considerations
-
-### Private Keys in Memory
-- **Risk:** Private keys passed as `[]byte` in memory during signing operations could be observed by memory scraping attacks
-- **Files:** `internal/domain/token/service.go:85`, `internal/domain/nft/service.go:16`
-- **Current mitigation:** Standard Go runtime memory management
-- **Recommendations:** Consider using hardware security modules or key derivation for production
-
-### Signature Replay (Token Transfers)
-- **Risk:** Token transfer signatures include a nonce but the signature itself could be replayed if nonce tracking is lost
-- **Files:** `internal/domain/token/service.go:260-262`
-- **Current mitigation:** Replay protection via `infraevents.ReplayProtection`
-- **Recommendations:** Ensure replay protection persists across restarts
-
-### Voting Session Time Boundaries Not Enforced
-- **Risk:** Votes can be cast outside of active session windows because session timing is not checked in the vote execution
-- **Files:** `internal/app/voting/usecase.go:25-78`
-- **Current mitigation:** None
-- **Recommendations:** Add session status validation before accepting votes
-
-### No Rate Limiting
-- **Risk:** External APIs (oracle fetching) have no rate limiting
-- **Files:** `internal/infra/http/fetcher.go`
-- **Current mitigation:** None
-- **Recommendations:** Add rate limiting for external HTTP calls
-
-### HTTP Fetcher Missing Security Headers
-- **Risk:** HTTP client doesn't set user-agent, origin, or other security headers; relies on defaults
-- **Files:** `internal/infra/http/fetcher.go:42-45`
-- **Current mitigation:** 10-second timeout
-- **Recommendations:** Add security headers, consider TLS certificate validation options
-
-### SQL Parameterization (Good Pattern)
-- **Positive:** All SQL queries use parameterized statements, no SQL injection risk observed
-- **Files:** `internal/infra/sqlite/*.go`
-
-## Performance Bottlenecks
-
-### Proof-of-Work Mining
-- **Problem:** Mining new blocks uses CPU-intensive SHA-256 hashing in a loop
-- **Files:** `internal/domain/blockchain/proof.go:50-69`
-- **Cause:** `math.MaxInt64` iterations potentially needed per block
-- **Improvement path:** Make mining interruptible, add difficulty adjustment
-
-### Large Event History Loading
-- **Problem:** `GetTransferHistory` loads all events then truncates
-- **Files:** `internal/domain/token/service.go:506-519`
-- **Cause:** No SQL LIMIT applied before loading
-- **Improvement path:** Use SQL pagination with LIMIT/OFFSET
-
-### In-Memory Blockchain
-- **Problem:** Entire blockchain kept in memory during operation
-- **Files:** `internal/domain/blockchain/block.go:24-26`
-- **Cause:** `BlockChain.Blocks` grows unboundedly
-- **Improvement path:** Implement pruning or use LevelDB/IPFS for storage
-
-## Fragile Areas
-
-### Global i18n Translator Singleton
-- **Files:** `internal/i18n/i18n.go:17`
-- **Why fragile:** Global mutable state makes testing difficult and can cause race conditions
-- **Safe modification:** Use dependency injection instead
-- **Test coverage:** Limited due to singleton pattern
-
-### Gob Encoding for Blockchain Serialization
-- **Files:** `internal/domain/blockchain/block.go:69-92`
-- **Why fragile:** Gob encoding is Go-specific and not stable across versions
-- **Safe modification:** Use JSON or Protocol Buffers for cross-version compatibility
-- **Test coverage:** Unit tests exist
-
-### Hardcoded Default Timeout
-- **Files:** `internal/infra/http/fetcher.go:15`
-- **Why fragile:** 10-second timeout hardcoded, not configurable
-- **Safe modification:** Make timeout configurable via config file
-
-## Scaling Limits
-
-### Single SQLite Database
-- **Current capacity:** Suitable for single-node development/demo
-- **Limit:** No horizontal scaling, write throughput limited by SQLite
-- **Scaling path:** Migrate to PostgreSQL, add read replicas
-
-### In-Memory Event Bus
-- **Current capacity:** Suitable for single instance
-- **Limit:** Events don't persist across restarts
-- **Scaling path:** Use message queue (Kafka, RabbitMQ) for distributed deployments
-
-## Dependencies at Risk
-
-### mattn/go-sqlite3
-- **Risk:** CGO dependency requiring C compiler toolchain
-- **Impact:** Cross-compilation more complex, larger Docker images
-- **Migration plan:** Consider modernc.org/sqlite (pure Go) for easier deployment
-
-### google/uuid
-- **Risk:** Low risk, stable library
-- **Impact:** Used for ID generation
-- **Migration plan:** None needed
-
-### charmbracelet/bubbletea
-- **Risk:** TUI framework, not suitable for web deployments
-- **Impact:** Limits CLI-only use case
-- **Migration plan:** None needed (CLI project)
-
-## Missing Critical Features
-
-### No Backup/Restore
-- **Problem:** No mechanism to backup or restore database state
-- **Blocks:** Production deployment without disaster recovery
-
-### No Data Migration System
-- **Problem:** Schema changes require manual migration
-- **Blocks:** Safe upgrades in production
-
-### No Metrics/Observability
-- **Problem:** No Prometheus metrics, OpenTelemetry tracing, or structured health checks
-- **Blocks:** Production monitoring requirements
+**BCK-04: Backup Restore Not Implemented:**
+- Issue: `Restore()` method in `internal/infra/backup/backup.go:89` returns error "restore not implemented - requires schema migration"
+- Files: `internal/infra/backup/backup.go`
+- Impact: Users cannot restore from backups, blocking disaster recovery
+- Fix approach: Implement restore logic with schema version migration support for v1.2
 
 ## Test Coverage Gaps
 
-### Untested Crypto Operations
-- **What's not tested:** Ed25519 signature edge cases, VRF verification edge cases
-- **Files:** `internal/domain/lottery/vrf.go`, `internal/domain/voting/service.go`
-- **Risk:** Cryptographic bugs could go unnoticed
-- **Priority:** High
+**Critical - API Handlers:**
+- API package: 3.6% coverage
+- API handler package: 9.5% coverage
+- Files: `internal/api/server.go`, `internal/api/router.go`, `internal/api/handler/*.go`
+- Risk: API endpoints not validated, potential routing issues undiscovered
+- Priority: High
 
-### Untested Concurrency Scenarios
-- **What's not tested:** Concurrent transfer operations, race conditions in event bus
-- **Files:** `internal/domain/token/service.go`, `internal/infra/events/bus.go`
-- **Risk:** Race conditions in production
-- **Priority:** Medium
+**Critical - UI Packages (0% coverage):**
+- `internal/ui/components`: 0.0%
+- `internal/ui/lottery`: 0.0%
+- `internal/ui/nft`: 0.0%
+- `internal/ui/oracle`: 0.0%
+- `internal/ui/token`: 0.0%
+- Risk: TUI rendering bugs undetected, UI state issues undiscovered
+- Priority: Medium
 
-### No Integration Tests for External APIs
-- **What's not tested:** Oracle HTTP fetching, real HTTP responses
-- **Files:** `internal/infra/http/fetcher.go`
-- **Risk:** Oracle integration could break silently
-- **Priority:** Medium
+**Low Coverage Areas:**
+- `internal/config`: 0.0% - Config loading not tested
+- `internal/app`: 0.0% - App layer orchestration not tested
+- `internal/infra/sqlite`: 49.1% - Database operations gaps
+- `internal/domain/blockchain`: 30.9% - Mining/blockchain logic not fully tested
+- `internal/domain/oracle`: 76.1% - Oracle domain has room for improvement
 
-### No E2E Tests for Voting Session Lifecycle
-- **What's not tested:** Create session → start → vote → end → results
-- **Files:** `internal/app/voting/usecase.go`
-- **Risk:** Session workflow could break unnoticed
-- **Priority:** Medium
+## Security Considerations
+
+**Hardcoded Default API Key:**
+- File: `internal/config/config.go:40`
+- Issue: Default API key `"aurora-api-key-default"` is hardcoded
+- Current mitigation: Viper allows override via config file/env
+- Recommendation: Add runtime validation that default key was changed, or generate random default on first run
+
+**File Permissions on Backups:**
+- File: `internal/infra/backup/backup.go:54`
+- Issue: Uses `0644` permissions which allows world-read on backup files containing sensitive data
+- Recommendation: Use `0640` to restrict to owner/group only
+
+**Missing Input Validation in API:**
+- Files: `internal/api/handler/*.go`
+- Issue: API handlers call use cases but error responses may expose internal details
+- Risk: Potential information disclosure via error messages
+- Recommendation: Audit all error responses for safe user-facing messages
+
+## Performance Bottlenecks
+
+**Large Token Service:**
+- File: `internal/domain/token/service.go` (595 lines)
+- Issue: Single monolithic service with 10+ methods, each 50-100+ lines
+- Risk: Harder to optimize independently, larger blast radius on changes
+- Recommendation: Consider extracting replay protection, event publishing as separate components
+
+**Large Test Files:**
+- `internal/domain/token/service_test.go`: 2,246 lines
+- `internal/app/token/usecase_test.go`: 1,075 lines
+- `internal/infra/http/fetcher_test.go`: 956 lines
+- Issue: These files are difficult to navigate, may indicate over-testing or complex setup
+- Risk: Slower test runs, harder to maintain
+- Recommendation: Consider splitting into multiple test files by method/feature
+
+**Large i18n File:**
+- File: `internal/i18n/i18n.go` (705 lines)
+- Issue: Single large file with all translations
+- Risk: Difficult to manage translations, potential merge conflicts
+- Recommendation: Consider splitting by feature/module
+
+## Maintainability Issues
+
+**Manual Byte Comparison:**
+- File: `internal/domain/nft/inmem_repo.go:52-62`
+- Issue: Uses manual loop for byte comparison instead of `bytes.Equal()`
+```go
+for i := range nft.Creator {
+    if nft.Creator[i] != creator[i] {
+        match = false
+        break
+    }
+}
+```
+- Fix: Replace with `bytes.Equal(nft.Creator, creator)`
+
+**Transaction Error Handling:**
+- Files: `internal/domain/token/service.go` (lines 298-331, 394-434)
+- Issue: Uses closure variable `transferErr` in addition to transaction error for error handling
+- Risk: Could miss errors if pattern not followed consistently
+- Recommendation: Standardize error handling pattern across all transaction operations
+
+**Magic Numbers in Token Service:**
+- File: `internal/domain/token/service.go:17`
+- Issue: `defaultHistoryLimit = 50` defined but could be configurable
+- Recommendation: Consider making configurable via config
+
+## Anti-Patterns
+
+**Unused Transaction Parameter:**
+- File: `internal/domain/token/service.go:225`
+- Issue: Transaction callback accepts `*sql.Tx` but never uses it
+```go
+err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+    // tx parameter unused
+```
+- Recommendation: Change callback signature to `func() error` or document why tx is needed
+
+**Silent Error Ignoring:**
+- Files: Multiple locations
+- Pattern: `_ = someFunction()` where errors are silently ignored
+- Risk: Errors go unnoticed
+- Examples:
+  - `internal/app/oracle/usecase.go:61-62` - JSON marshal and chain AddLotteryRecord errors ignored
+  - `internal/infra/backup/backup.go:53,79` - JSON marshal error ignored in Create/Verify
+
+## Concurrency Concerns
+
+**Appropriate Use of Mutexes:**
+- Rate limiter (`internal/infra/http/fetcher.go`): Uses `sync.RWMutex` correctly
+- Event bus (`internal/infra/events/bus.go`): Uses `sync.RWMutex` correctly
+- In-memory NFT repo (`internal/domain/nft/inmem_repo.go`): Uses `sync.RWMutex` correctly
+- No issues detected
+
+**Missing Race Detector Testing:**
+- Recommendation: Run `go test -race` regularly to catch data races
+- Add to CI: Consider running race detector in CI pipeline
+
+## Code Organization
+
+**Large Modules Need Refactoring:**
+- Token service at 595 lines is approaching the threshold where it should be split
+- Voting use case needs similar attention if it grows
+
+**Missing Documentation:**
+- No godoc comments on exported functions in `internal/domain/token/service.go`
+- Recommendation: Add package-level documentation explaining the ERC-20-like token system
+
+## Infrastructure Gaps
+
+**No Health Check Endpoint:**
+- Missing `/health` or `/ready` endpoint for container orchestration
+- Files: `internal/api/router.go`, `internal/api/handler/`
+- Recommendation: Add health check for Kubernetes/load balancer integration
+
+**No Metrics/Observability:**
+- No Prometheus metrics, OpenTelemetry tracing, or structured logging correlation IDs
+- Recommendation: Add observability for production deployment readiness
 
 ---
 
-*Concerns audit: 2026-04-26*
+*Concerns audit: 2026-04-30*
