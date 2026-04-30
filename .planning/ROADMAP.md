@@ -1,104 +1,119 @@
-# Roadmap: Aurora v1.2 Operational Readiness
+# Roadmap: Aurora v1.3 Quality & Documentation
 
-## Milestones
-
-- ✅ **v1.0 MVP** - Phases 1-4 (shipped 2026-04-26)
-- ✅ **v1.1 Production Hardening** - Phases 5-6 (shipped 2026-04-26)
-- ✅ **v1.2 Operational Readiness** - Phases 7-10 (shipped 2026-04-30)
-- 📋 **v2.0 Future** - Phased roll-out (planned)
+**Status:** Active
+**Milestone:** v1.3 Quality & Documentation
+**Phases:** 1-4
+**Started:** 2026-04-30
 
 ## Overview
 
-Aurora v1.2 completes the operational readiness work deferred from v1.1. This release prioritizes security fixes (P0), health monitoring for Kubernetes deployment, complete backup/restore functionality, and comprehensive handler test coverage to establish regression safety.
+Comprehensive test coverage across UI, handler, and E2E layers with improved documentation.
 
-## Phases
+## Phase 1: UI Package Tests
 
-- [x] **Phase 7: Security Hardening** - Fix API key security vulnerabilities ✅
-- [x] **Phase 8: Operations & Health** - Kubernetes-ready health endpoints and graceful shutdown ✅
-- [x] **Phase 9: Backup & Restore** - Complete backup/restore implementation with verification ✅
-- [x] **Phase 10: Test Coverage** - Handler and TUI test coverage improved (9.5% → 39.3%) ✅
+**Goal:** Achieve meaningful test coverage for all UI packages
 
-## Phase Details
+**Requirements:** UI-01, UI-02, UI-03, UI-04, UI-05
 
-### Phase 7: Security Hardening
-**Goal**: Eliminate critical API key security vulnerabilities (timing attacks, hardcoded defaults, information leakage)
-**Depends on**: Nothing (first v1.2 phase)
-**Requirements**: SEC-01, SEC-02, SEC-03
-**Success Criteria** (what must be TRUE):
-  1. API key comparison uses `crypto/subtle.ConstantTimeCompare` (timing-attack resistant)
-  2. Server refuses to start in production without explicit API key configuration
-  3. Auth failure responses are generic: "authentication required" (no hints about key structure)
-  4. Hardcoded default API key removed from source code
-**Plans**: 3 plans
+**Success Criteria:**
+- [ ] UI/lottery package ≥60% coverage
+- [ ] UI/nft package ≥60% coverage
+- [ ] UI/oracle package ≥60% coverage
+- [ ] UI/token package ≥60% coverage
+- [ ] UI/components package ≥50% coverage
+- [ ] Theme and styling tests included
+- [ ] TUI state machine tests where applicable
 
-Plans:
-- [x] 07-01: Implement constant-time API key comparison
-- [x] 07-02: Remove hardcoded default, enforce env var requirement
-- [x] 07-03: Sanitize auth error messages to prevent information leakage
+**Key Deliverables:**
+- `internal/ui/*/*_test.go` files
+- Component rendering tests
+- State transition tests
 
-### Phase 8: Operations & Health
-**Goal**: Kubernetes-ready health endpoints with graceful shutdown behavior
-**Depends on**: Phase 7
-**Requirements**: OPS-01, OPS-02, OPS-03, OPS-04
-**Success Criteria** (what must be TRUE):
-  1. `GET /healthz` returns 200 if HTTP server responds (liveness probe)
-  2. `GET /readyz` returns 503 when database is unreachable (readiness probe)
-  3. Health endpoints bypass authentication (accessible without API key)
-  4. Server shutdown waits for in-flight requests (graceful, not abrupt kill)
-**Plans**: 4 plans
+---
 
-Plans:
-- [x] 08-01: Implement liveness endpoint `/healthz`
-- [x] 08-02: Implement readiness endpoint `/readyz` with database ping
-- [x] 08-03: Register health endpoints before auth middleware (bypass auth)
-- [x] 08-04: Implement graceful shutdown with `server.Shutdown(ctx)`
+## Phase 2: Handler Tests
 
-### Phase 9: Backup & Restore
-**Goal**: Complete backup/restore functionality with verification and safety guarantees
-**Depends on**: Phase 8
-**Requirements**: BACK-01, BACK-02, BACK-03, BACK-04
-**Success Criteria** (what must be TRUE):
-  1. `aurora backup restore --file <path>` successfully restores database from backup
-  2. Restore applies pending schema migrations if backup is from older version
-  3. Restore automatically creates pre-restore backup before destructive operations
-  4. `aurora backup verify` validates backup file integrity (schema, data, constraints)
-**Plans**: 4 plans
+**Goal:** Achieve 80%+ coverage for API handlers
 
-Plans:
-- [x] 09-01: Implement `aurora backup restore` command (file-based restore)
-- [x] 09-02: Integrate golang-migrate for schema versioning during restore
-- [x] 09-03: Implement automatic pre-restore backup creation
-- [x] 09-04: Implement multi-level backup verification
+**Requirements:** HND-01, HND-02, HND-03, HND-04
 
-### Phase 10: Test Coverage
-**Goal**: Comprehensive test coverage for API handlers and TUI model logic
-**Depends on**: Phase 9
-**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06
-**Success Criteria** (what must be TRUE):
-  1. Token API handlers achieve ≥ 80% test coverage
-  2. NFT API handlers achieve ≥ 80% test coverage
-  3. Lottery API handlers achieve ≥ 80% test coverage
-  4. Voting API handlers achieve ≥ 80% test coverage
-  5. Oracle API handlers achieve ≥ 80% test coverage
-  6. TUI package model logic has unit tests covering core Update/View behavior
-**Plans**: 6 plans
+**Success Criteria:**
+- [ ] API/handler package ≥80% coverage
+- [ ] API package ≥60% coverage
+- [ ] All error responses tested (404, 400, 401)
+- [ ] Auth middleware with mock API keys
+- [ ] Request validation tested
+- [ ] JSON response format verified
 
-Plans:
-- [x] 10-01: Token API handler tests (coverage improved)
-- [x] 10-02: NFT API handler tests (coverage improved)
-- [x] 10-03: Lottery API handler tests (maintained)
-- [x] 10-04: Voting API handler tests (coverage improved)
-- [x] 10-05: Oracle API handler tests (coverage improved)
-- [ ] 10-06: TUI package unit tests for model logic (deferred - requires more setup)
+**Key Deliverables:**
+- `internal/api/handler/*_test.go` expanded
+- `internal/api/*_test.go` integration tests
+- Auth middleware test helpers
 
-## Progress
+---
 
-**Execution Order:**
-Phases execute in numeric order: 7 → 8 → 9 → 10
+## Phase 3: E2E Tests
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 7. Security Hardening | 3/3 | ✅ Complete | 2026-04-30 |
-| 8. Operations & Health | 4/4 | ✅ Complete | 2026-04-30 |
-| 9. Backup & Restore | 4/4 | ✅ Complete | 2026-04-30 |
-| 10. Test Coverage | 5/6 | ✅ Complete | 2026-04-30 |
+**Goal:** Comprehensive end-to-end workflow tests
+
+**Requirements:** E2E-01, E2E-02, E2E-03, E2E-04, E2E-05, E2E-06
+
+**Success Criteria:**
+- [ ] Lottery create → view → history workflow
+- [ ] Voting create → vote → tally workflow
+- [ ] NFT mint → transfer → list workflow
+- [ ] Token mint → transfer → balance workflow
+- [ ] Oracle fetch → query workflow
+- [ ] Error recovery scenarios tested
+- [ ] Proper test isolation and cleanup
+
+**Key Deliverables:**
+- `e2e/*_test.go` workflows expanded
+- Error injection tests
+- Cleanup verification
+
+---
+
+## Phase 4: Documentation
+
+**Goal:** Consistent and helpful CLI documentation
+
+**Requirements:** DOC-01, DOC-02, DOC-03
+
+**Success Criteria:**
+- [ ] All subcommands have help text
+- [ ] Help includes usage examples
+- [ ] Root command lists available modules
+- [ ] Consistent help format across commands
+
+**Key Deliverables:**
+- Updated command help strings
+- Example output in help
+- Root command overview
+
+---
+
+## Phase Summary
+
+| Phase | Focus | Requirements | Criteria |
+|-------|-------|--------------|----------|
+| 1 | UI Tests | UI-01 to UI-05 | 5 packages covered |
+| 2 | Handler Tests | HND-01 to HND-04 | 80% handler coverage |
+| 3 | E2E Tests | E2E-01 to E2E-06 | All workflows covered |
+| 4 | Documentation | DOC-01 to DOC-03 | Help improvements |
+
+## Coverage Targets
+
+| Package | Current | Phase 1 | Phase 2 |
+|---------|---------|---------|---------|
+| UI/lottery | 0% | 60%+ | - |
+| UI/nft | 0% | 60%+ | - |
+| UI/oracle | 0% | 60%+ | - |
+| UI/token | 0% | 60%+ | - |
+| UI/components | 0% | 50%+ | - |
+| API/handler | 39.3% | - | 80%+ |
+| API | 2.7% | - | 60%+ |
+
+---
+
+_For current project status, see .planning/STATE.md_
