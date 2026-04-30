@@ -1,24 +1,15 @@
 {
+  "mode": "yolo",
+  "granularity": "standard",
+  "parallelization": true,
+  "commit_docs": true,
+  "model_profile": "balanced",
   "workflow": {
-    "name": "Aurora Module Improvements",
-    "version": "1.0",
-    "initialized": "2026-04-26"
+    "research": true,
+    "plan_check": true,
+    "verifier": true,
+    "nyquist_validation": true,
+    "auto_advance": false
   },
-  "preferences": {
-    "approach": "test-first",
-    "priority_order": ["testing", "security", "features", "performance"],
-    "timeline": "quality-over-speed"
-  },
-  "coverage_targets": {
-    "lottery": { "domain": 80, "app": 80 },
-    "voting": { "domain": 80, "app": 80 },
-    "nft": { "domain": 80, "app": 80 },
-    "token": { "domain": 80, "app": 80 },
-    "oracle": { "domain": 80, "app": 80 }
-  },
-  "phases": [
-    { "id": 1, "name": "Test Coverage Foundation", "status": "pending" },
-    { "id": 2, "name": "Security Hardening", "status": "pending" },
-    { "id": 3, "name": "Feature Parity & Performance", "status": "pending" }
-  ]
+  "resolve_model_ids": "omit"
 }
