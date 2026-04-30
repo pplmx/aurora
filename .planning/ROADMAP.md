@@ -14,9 +14,9 @@ Aurora v1.2 completes the operational readiness work deferred from v1.1. This re
 ## Phases
 
 - [x] **Phase 7: Security Hardening** - Fix API key security vulnerabilities ✅
-- [ ] **Phase 8: Operations & Health** - Kubernetes-ready health endpoints and graceful shutdown
-- [ ] **Phase 9: Backup & Restore** - Complete backup/restore implementation with verification
-- [ ] **Phase 10: Test Coverage** - Handler and TUI test coverage to 80%+
+- [x] **Phase 8: Operations & Health** - Kubernetes-ready health endpoints and graceful shutdown ✅
+- [x] **Phase 9: Backup & Restore** - Complete backup/restore implementation with verification ✅
+- [x] **Phase 10: Test Coverage** - Handler and TUI test coverage to 80%+ ✅
 
 ## Phase Details
 
