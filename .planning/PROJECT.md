@@ -34,20 +34,29 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | Web UI | Dashboard, Lottery, Voting pages (HTMX + Alpine.js) |
 | Backup | `aurora backup create|verify`, JSON export |
 
-### 🔄 v1.2 Operational Readiness (current)
+### ✅ v1.2 Operational Readiness (2026-04-30)
 **Complete deferred items and improve production readiness**
 
-| Item | Status |
-|------|--------|
-| BCK-04: Backup restore | Deferred from v1.1 |
-| API handler tests | Coverage 3.6-9.5% |
-| UI package tests | Coverage 0% |
-| Health check endpoint | Not implemented |
-| Security hardening | API key validation |
+| Component | Status |
+|-----------|--------|
+| BCK-04: Backup restore | ✅ Implemented |
+| API handler tests | ✅ 39.3% (improved from 9.5%) |
+| Health check endpoint | ✅ /healthz, /readyz |
+| Security hardening | ✅ Timing-safe comparison |
+
+### 🔄 v1.3 Quality & Documentation (current)
+**Comprehensive test coverage and improved user experience**
+
+| Focus | Target |
+|-------|--------|
+| UI package tests | Meaningful coverage |
+| Handler tests | 80%+ coverage |
+| E2E tests | Automated test suite |
+| Documentation | Help system improvements |
 
 ## Context
 
-### What's Shipped (v1.0 + v1.1)
+### What's Shipped (v1.0 + v1.1 + v1.2)
 - CLI with 5 modules (lottery, voting, NFT, token, oracle)
 - TUI interfaces for all modules
 - REST API server with authentication
@@ -83,15 +92,16 @@ Performance: Pagination, interruptible mining, configurable timeouts
 - ✓ REST API with auth — v1.1
 - ✓ Web UI — v1.1
 - ✓ Database migrations — v1.1
-- ✓ Backup/verify — v1.1
+- ✓ Backup/restore/verify — v1.2
+- ✓ Health check endpoints (/healthz, /readyz) — v1.2
+- ✓ Security hardening — v1.2
 
 ### Active
 
-- [ ] BCK-04: Backup restore functionality
-- [ ] API handler tests (80%+ coverage)
 - [ ] UI package tests (meaningful coverage)
-- [ ] Health check endpoint (`/health`, `/ready`)
-- [ ] API key runtime validation
+- [ ] Handler tests (80%+ coverage)
+- [ ] E2E automated tests
+- [ ] Documentation/help system improvements
 
 ### Out of Scope
 
@@ -130,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-30 after v1.2 initialization*
+*Last updated: 2026-04-30 after v1.3 initialization*

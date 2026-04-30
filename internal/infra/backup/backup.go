@@ -19,18 +19,18 @@ type BackupService struct {
 }
 
 type BackupResult struct {
-	File        string
-	Size        int64
-	Checksum    string
+	File          string
+	Size          int64
+	Checksum      string
 	SchemaVersion uint
 }
 
 type BackupMetadata struct {
-	Version        string   `json:"version"`
-	Timestamp      string   `json:"timestamp"`
-	Checksum       string   `json:"checksum"`
-	Databases      []string `json:"databases"`
-	SchemaVersion  uint     `json:"schema_version"`
+	Version       string   `json:"version"`
+	Timestamp     string   `json:"timestamp"`
+	Checksum      string   `json:"checksum"`
+	Databases     []string `json:"databases"`
+	SchemaVersion uint     `json:"schema_version"`
 }
 
 func NewBackupService(dbPaths map[string]string) *BackupService {
