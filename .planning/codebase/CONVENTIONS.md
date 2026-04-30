@@ -1,157 +1,157 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-04-26
+**Analysis Date:** 2026-04-30
+
+## Style & Formatting
+
+**Go Tools:**
+- `gofmt` - Format code (tabs indentation for Go files)
+- `goimports` - Format and organize imports
+- `go vet` - Static analysis
+
+**EditorConfig** (`.editorconfig`):
+- `charset: utf-8`
+- `end_of_line: lf`
+- `indent_size: 4` (spaces, except Go files use tabs)
+- `max_line_length: 120`
+- `insert_final_newline: true`
+- `trim_trailing_whitespace: true`
+
+## Linting Configuration
+
+**golangci-lint** (`.golangci.yml`):
+Enabled linters:
+- `errcheck` - Check error returns (disabled in justfile lint)
+- `govet` - Go vet analyzer
+- `ineffassign` - Detect unused variable assignments
+- `staticcheck` - Static code analysis (excludes `SA5011` in tests)
+- `unused` - Detect unused code
+
+```bash
+just lint    # Run golangci-lint (errcheck disabled)
+just check   # gofmt + goimports + go vet
+```
 
 ## Naming Conventions
 
-### Files
+**Files:**
+- Go source: `snake_case.go` or `lowerCamelCase.go`
+- Test files: `*_test.go`
+- E2E tests: `e2e/*_e2e_test.go`
 
-- **Go source files:** `snake_case.go` (e.g., `service.go`, `entity.go`, `usecase_test.go`)
-- **Test files:** `*_test.go` suffix (e.g., `service_test.go`, `usecase_test.go`)
-- **E2E test files:** `e2e/*_e2e_test.go`
+**Types/Structs:**
+- PascalCase: `LotteryRecord`, `TokenRepository`
+- Interfaces: `Service`, `Repository` suffixes
+- Private structs: lowercase prefix: `lotteryService`
 
-### Packages
+**Functions:**
+- Public: PascalCase: `CreateLotteryRecord`, `NewService`
+- Private: camelCase: `validateSeed`, `generateKeyPair`
+- Test helpers: often prefixed with `setup`
 
-- **Package names:** Lowercase, single-word when possible (e.g., `lottery`, `voting`, `token`)
-- **Import aliases:** Use module alias for clarity (e.g., `lottery "github.com/pplmx/aurora/internal/domain/lottery"`)
+**Variables:**
+- camelCase: `participants`, `winnerCount`
+- Constants: PascalCase for exported, camelCase for private: `MaxParticipants`
+- Error variables: `err` or descriptive: `errTokenNotFound`
 
-### Types & Interfaces
+## Package Structure
 
-- **Structs:** `PascalCase` (e.g., `LotteryRecord`, `CreateLotteryUseCase`)
-- **Interfaces:** `PascalCase` with `Service`/`Repository` suffix (e.g., `Service`, `Repository`)
-- **Type aliases:** Clear, descriptive names (e.g., `type Service interface`)
-
-### Variables & Functions
-
-- **Variables:** `camelCase` (e.g., `lotteryRepo`, `publicKey`)
-- **Functions:** `PascalCase` exported, `camelCase` unexported (e.g., `NewService()`, `DrawWinners()`)
-- **Constructor functions:** `New` prefix (e.g., `NewService()`, `NewLotteryUseCase()`)
-- **Validation functions:** `Validate` prefix (e.g., `ValidateSeed()`, `ValidateParticipants()`)
-- **Test helpers:** Descriptive names (e.g., `setupVotingTestDB()`, `newInMemoryTokenRepo()`)
-
-### Constants
-
-- **Constants:** `PascalCase` for exported, `camelCase` or `PascalCase` for unexported (e.g., `MaxParticipants`, `MaxSeedLength`)
-- **Multiple constants:** Use `const (...)` block
-
-### JSON Fields
-
-- **JSON tags:** `snake_case` (e.g., `json:"block_height"`, `json:"vrf_proof"`)
-
-## Code Style
-
-### Formatting
-
-- **Tool:** `gofmt` with `-s` flag (simplify)
-- **Import formatting:** `goimports` (sorts and formats imports)
-- **Line length:** No strict limit, but keep lines readable
-
-### Indentation & Braces
-
-- **Standard Go formatting:** `gofmt` handles automatically
-- **Brace placement:** Same line for control structures (Go style)
+```
+github.com/pplmx/aurora/
+├── cmd/                  # Entry points
+│   ├── api/             # HTTP server
+│   └── aurora/          # CLI application
+│       └── cmd/         # Cobra commands
+├── internal/
+│   ├── api/             # HTTP handlers, middleware
+│   ├── app/             # Application layer (use cases)
+│   │   ├── lottery/
+│   │   ├── nft/
+│   │   ├── oracle/
+│   │   ├── token/
+│   │   └── voting/
+│   ├── domain/          # Domain layer (entities, services)
+│   │   ├── lottery/
+│   │   ├── nft/
+│   │   ├── oracle/
+│   │   ├── token/
+│   │   ├── voting/
+│   │   ├── blockchain/
+│   │   └── events/
+│   ├── infra/           # Infrastructure layer
+│   │   ├── backup/
+│   │   ├── events/
+│   │   ├── http/
+│   │   ├── migrate/
+│   │   └── sqlite/
+│   ├── ui/              # TUI components (Bubble Tea)
+│   ├── i18n/            # Internationalization
+│   ├── logger/          # Zerolog configuration
+│   └── utils/           # Shared utilities
+├── config/              # Configuration files
+├── e2e/                 # End-to-end tests
+├── migrations/          # Database migrations
+└── docs/                # Documentation
+```
 
 ## Import Organization
 
-**Order (via `goimports`):**
-1. Standard library imports
-2. Third-party imports (e.g., `github.com/`, `filippo.io/`)
-3. Internal package imports (e.g., `github.com/pplmx/aurora/...`)
+**Order** (goimports handles automatically):
+1. Standard library
+2. External packages (third-party)
+3. Internal packages (`github.com/pplmx/aurora/...`)
 
-**Import aliases:** Use when package name conflicts or for clarity:
+**Example:**
 ```go
 import (
     "encoding/hex"
-    
+    "fmt"
+
     "filippo.io/edwards25519"
-    
-    lottery "github.com/pplmx/aurora/internal/domain/lottery"
-    "github.com/pplmx/aurora/internal/domain/voting"
+    "github.com/stretchr/testify/require"
+
+    "github.com/pplmx/aurora/internal/domain/lottery"
 )
 ```
 
 ## Error Handling
 
-### Error Patterns
-
-**Domain layer errors:** Return errors directly, wrap with context using `fmt.Errorf`:
+**Pattern:** Return errors with context using `fmt.Errorf`
 ```go
-func ValidateSeed(seed string) error {
-    if len(seed) < MinSeedLength {
-        return fmt.Errorf("seed too short (min %d chars)", MinSeedLength)
+func (r *LotteryRecord) Validate() error {
+    if err := ValidateSeed(r.Seed); err != nil {
+        return fmt.Errorf("seed: %w", err)
+    }
+    if err := ValidateParticipants(r.Participants); err != nil {
+        return fmt.Errorf("participants: %w", err)
     }
     return nil
 }
 ```
 
-**Use case layer errors:** Wrap errors with `fmt.Errorf("action: %w", err)`:
+**Custom Errors:** Define sentinel errors in domain packages
 ```go
-if err := lottery.ValidateSeed(seed); err != nil {
-    return nil, fmt.Errorf("invalid seed: %w", err)
-}
+// internal/domain/token/errors.go
+var ErrTokenNotFound = errors.New("token not found")
 ```
-
-**Service layer errors:** Propagate with context:
-```go
-winners, winnerAddrs, output, proof, err := uc.service.DrawWinners(...)
-if err != nil {
-    return nil, fmt.Errorf("failed to draw winners: %w", err)
-}
-```
-
-### Error Checking
-
-- Use explicit error checks: `if err != nil { ... }`
-- Use `errors.Is()` for sentinel errors when available
-- Test errors with `t.Fatal`/`t.Fatalf` for fatal failures
-- Test errors with `t.Error`/`t.Errorf` for non-fatal assertions
-
-### Sentinel Errors
-
-- Define as `var ErrXxx = errors.New("xxx")` when needed
-- Currently, most errors are inline `fmt.Errorf` calls
 
 ## Logging
 
-### Framework
+**Framework:** `github.com/rs/zerolog`
 
-- **Library:** `github.com/rs/zerolog`
-- **Initialized in:** `internal/logger/zero.go`
-
-### Log Levels
-
-- **Info:** General application messages
-- **Debug:** Detailed debugging information
-- **Warn:** Warning conditions
-- **Error:** Error conditions
-- **Fatal:** Fatal errors (exits application)
-
-### Usage Pattern
-
+**Pattern:**
 ```go
-import "github.com/pplmx/aurora/internal/logger"
+logger.Info().
+    Str("version", Version).
+    Str("build_time", BuildTime).
+    Msg("Aurora starting")
 
-// Using logger package
-logger.Info().Str("key", "value").Msg("message")
-logger.Error().Err(err).Msg("Operation failed")
-
-// In CLI commands
 logger.Error().Err(err).Msg("Application error")
 ```
 
-### Configuration
-
-- **Log level:** Configurable via `log.level` in config
-- **Log path:** Configurable via `log.path` (writes to `aurora.log`)
-- **Default level:** `info`
-- **Default path:** `./log/`
-- **Format:** RFC3339 timestamps, console output by default
-
 ## Comments & Documentation
 
-### Package Documentation
-
-At the top of each file with package-level context:
+**Package-level:** Required for exported packages
 ```go
 // Package lottery provides VRF-based transparent lottery functionality.
 // It implements verifiable random function (VRF) to ensure fair and
@@ -159,125 +159,123 @@ At the top of each file with package-level context:
 package lottery
 ```
 
-### Function Comments
-
-For exported functions and complex logic:
+**Public functions:** Brief comment explaining purpose
 ```go
-// NewService creates a new lottery service instance.
-func NewService() Service { ... }
-
-// DrawWinners selects winners from participants using VRF.
-func (s *lotteryService) DrawWinners(...) (...) { ... }
+// CreateLotteryRecord creates a new lottery record with the given parameters.
+func CreateLotteryRecord(...) *LotteryRecord { ... }
 ```
 
-### TODO Comments
+## Interface Patterns
 
-Format: `// TODO(description)` - used sparingly for future work
-
-## Linting Configuration
-
-**Config file:** `.golangci.yml`
-
-### Enabled Linters
-
-```yaml
-linters:
-  default: none
-  enable:
-    - errcheck      # Check error returns
-    - govet         # Vet tool
-    - ineffassign   # Detect unused variable assignments
-    - staticcheck   # Static analysis
-    - unused        # Detect unused code
+**Service Interfaces:** Define in domain layer, implement in same package
+```go
+type Service interface {
+    DrawWinners(participants []string, seed string, count int) ([]string, []string, []byte, []byte, error)
+    VerifyDraw(record *LotteryRecord, publicKey *edwards25519.Point) (bool, error)
+}
 ```
 
-### Excluded Rules
+**Repository Interfaces:** Define in domain, implement in infra
+```go
+// In domain
+type Repository interface {
+    Save(*LotteryRecord) error
+    GetByID(id string) (*LotteryRecord, error)
+    GetAll() ([]*LotteryRecord, error)
+}
 
-Test files exclude `SA5011` (possible nil pointer dereference):
-```yaml
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - staticcheck
-      text: "SA5011"
+// In infra/sqlite
+type LotteryRepository struct { ... }
 ```
 
-### In justfile
+## Constructor Patterns
 
-```justfile
-lint:
-    golangci-lint run --disable=errcheck
+**Factory functions:** `New*` prefix for constructors
+```go
+func NewService() Service {
+    return &lotteryService{}
+}
+
+func NewTokenRepository(dbPath string) (*TokenRepository, error) { ... }
 ```
 
-## Pre-commit Hooks
+## Test Patterns
 
-**Config file:** `.pre-commit-config.yaml`
-
-### Built-in Hooks
-
-| Hook | Purpose |
-|------|---------|
-| `end-of-file-fixer` | Ensures files end with newline |
-| `trailing-whitespace` | Removes trailing whitespace |
-| `check-toml` | Validates TOML files |
-| `check-yaml` | Validates YAML files |
-| `check-merge-conflict` | Detects merge conflict markers |
-| `mixed-line-ending` | Fixes line endings to LF |
-
-### Commitizen
-
-Enforces conventional commits:
-```yaml
-- repo: https://github.com/commitizen-tools/commitizen
-  rev: v4.13.9
-  hooks:
-    - id: commitizen
-    - id: commitizen-branch
+**Co-located tests:** `*_test.go` in same package as implementation
+```go
+package lottery  // Not "lottery_test"
 ```
 
-### Go Hooks (Local)
-
-```yaml
-- id: gofmt
-  entry: gofmt -l -s -w
-- id: goimports
-  entry: goimports -l -w
-- id: go-vet
-  entry: go vet ./...
-- id: golangci-lint
-  entry: golangci-lint run --timeout=5m --disable=errcheck,staticcheck
+**Table-driven tests** for multiple test cases:
+```go
+func TestValidateParticipantName_Valid(t *testing.T) {
+    valid := []string{"Alice", "Bob 123", "test-name", "Name_With", "日本語", "中文"}
+    for _, name := range valid {
+        err := ValidateParticipantName(name)
+        if err != nil {
+            t.Errorf("ValidateParticipantName(%q) should not error: %v", name, err)
+        }
+    }
+}
 ```
 
-### Markdown Hooks
+**Use testify for assertions:**
+```go
+import (
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
+)
 
-```yaml
-- id: rumdl
-  entry: rumdl fmt && rumdl check
+// require - fatal on failure
+require.NoError(t, err)
+require.Len(t, results, 2)
+
+// assert - non-fatal
+assert.Equal(t, http.StatusOK, rr.Code)
+assert.NotNil(t, resp)
 ```
 
-## Code Organization
+## Architecture Patterns
 
-### Layer Structure
-
+**Layered Architecture:**
 ```
-internal/
-├── app/          # Application use cases
-├── domain/       # Domain entities and business logic
-├── infra/        # Infrastructure (DB, HTTP, events)
-├── ui/           # CLI/TUI interfaces
-├── i18n/         # Internationalization
-├── logger/       # Logging setup
-└── utils/        # Utility functions
+cmd/        → Entry points (CLI, API server)
+  ↓
+internal/app/   → Use cases, orchestration
+  ↓
+internal/domain/ → Business logic, entities, services
+  ↑
+internal/infra/  → External concerns (DB, HTTP, events)
 ```
 
-### Dependency Direction
+**Dependency Injection:** Constructor injection via interfaces
+```go
+func NewCreateLotteryUseCase(repo Repository, chain BlockChain) *CreateLotteryUseCase {
+    return &CreateLotteryUseCase{repo: repo, chain: chain}
+}
+```
 
-- Domain has no dependencies on other layers
-- App layer depends on domain
-- Infra layer implements domain interfaces
-- UI layer depends on app layer
+## CLI Framework
+
+**Tool:** `github.com/spf13/cobra` with `github.com/spf13/viper`
+
+**Pattern:**
+```go
+var rootCmd = &cobra.Command{
+    Use:   "aurora",
+    Short: i18n.GetText("app.name"),
+    PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+        // Initialization
+    },
+}
+```
+
+## Configuration
+
+**Format:** TOML
+**Location:** `$HOME/aurora.toml` or `./config/aurora.toml`
+**Defaults:** Set via `viper.SetDefault()`
 
 ---
 
-*Convention analysis: 2026-04-26*
+*Convention analysis: 2026-04-30*

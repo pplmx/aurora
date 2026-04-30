@@ -1,252 +1,285 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-04-26
+**Analysis Date:** 2026-04-30
 
 ## Directory Layout
 
 ```
 aurora/
-├── cmd/aurora/           # CLI entry points (Cobra commands)
-│   ├── main.go          # Package main, app initialization
-│   └── cmd/             # Command implementations
-│       ├── root.go      # Root command, config, GlobalApp
-│       ├── lottery.go   # Lottery subcommands
-│       ├── voting.go    # Voting subcommands
-│       ├── nft.go       # NFT subcommands
-│       ├── token.go     # Token subcommands
-│       └── oracle.go    # Oracle subcommands
-├── internal/             # Application code (no external deps in domain)
-│   ├── app/             # Application layer (use cases)
-│   ├── domain/          # Domain layer (entities, services, repos)
-│   ├── infra/           # Infrastructure layer (SQLite, events, HTTP)
-│   ├── ui/              # TUI layer (Bubble Tea)
-│   ├── config/          # Config structs
-│   ├── i18n/            # Internationalization
-│   ├── logger/          # Logging setup
-│   └── utils/           # Utility functions
-├── config/              # Default config file (aurora.toml)
-├── data/                # Runtime data (blocks.db, etc.)
-├── e2e/                 # End-to-end tests
-├── scripts/             # Build/dev scripts
-├── docs/                # Documentation
-├── .planning/           # Planning artifacts (this directory)
-│   └── codebase/        # Codebase mapping documents
-├── go.mod               # Go module definition
-├── go.sum               # Dependency checksums
-├── justfile             # Just command runner
-├── Makefile             # Makefile for common tasks
-└── AGENTS.md            # Project guide for AI agents
+├── cmd/                    # Entry points
+│   ├── aurora/            # CLI application
+│   │   ├── cmd/           # Cobra commands
+│   │   └── main.go        # CLI entry
+│   └── api/               # HTTP API server
+│       └── main.go        # API entry
+├── internal/              # Core application code
+│   ├── api/               # HTTP layer
+│   ├── app/               # Application layer (use cases)
+│   ├── config/            # Configuration
+│   ├── domain/            # Domain layer (business logic)
+│   ├── i18n/              # Internationalization
+│   ├── infra/             # Infrastructure layer
+│   ├── logger/            # Logging setup
+│   ├── ui/                # Terminal UI (Bubble Tea)
+│   └── utils/             # Utilities
+├── config/                # Configuration files
+├── migrations/            # Database migrations
+├── e2e/                   # End-to-end tests
+├── web/                   # Static web assets
+├── docs/                  # Documentation
+└── scripts/               # Build/deployment scripts
 ```
 
 ## Directory Purposes
 
-**`cmd/aurora/`:**
-- Purpose: Executable entry points and CLI command definitions
-- Contains: `main.go`, `cmd/` directory
-- Key files: `cmd/root.go` (GlobalApp wiring), `cmd/lottery.go` (subcommands)
+### `cmd/` - Application Entry Points
 
-**`internal/domain/`:**
-- Purpose: Pure business logic with zero external dependencies
-- Contains: Entities, services, repository interfaces, domain events
-- Key files:
-  - `domain/lottery/entity.go` - `LotteryRecord`, validation, `SelectWinners()`
-  - `domain/lottery/service.go` - `DrawWinners()` with VRF
-  - `domain/lottery/repo.go` - `Repository` interface
-  - `domain/blockchain/init.go` - `BlockChain` singleton, `InitBlockChain()`
-  - `domain/events/types_*.go` - Event type definitions
+**Purpose:** Executable entry points
 
-**`internal/app/`:**
-- Purpose: Use case orchestration, DTO transformation
-- Contains: Use cases (`*UseCase`), DTOs (`*Request`, `*Response`)
-- Key files:
-  - `app/wire.go` - Dependency injection setup
-  - `app/lottery/usecase.go` - `CreateLotteryUseCase`
-  - `app/token/transfer.go` - Token transfer logic
+**`cmd/aurora/`** - CLI/TUI Application
+- `main.go`: CLI entry point
+- `cmd/`: Cobra command definitions
+  - `root.go`: Root command, config loading, dependency injection
+  - `lottery.go`: Lottery subcommands (create, tui, history, verify, export, import)
+  - `voting.go`: Voting subcommands
+  - `nft.go`: NFT subcommands
+  - `token.go`: Token subcommands
+  - `oracle.go`: Oracle subcommands
+  - `backup.go`: Backup subcommands
+  - `migrate.go`: Migration commands
 
-**`internal/infra/`:**
-- Purpose: External system integrations
-- Contains: SQLite repositories, event bus, HTTP handlers
-- Key files:
-  - `infra/sqlite/lottery.go` - `LotteryRepository` implementation
-  - `infra/sqlite/blockchain.go` - Block persistence
-  - `infra/events/bus.go` - `SyncEventBus`, `EventBus` interface
-  - `infra/events/handlers.go` - `AuditHandler`, `StatsHandler`
+**`cmd/api/`** - HTTP API Server
+- `main.go`: HTTP server entry point
 
-**`internal/ui/`:**
-- Purpose: Terminal user interface (TUI)
-- Contains: Bubble Tea models
-- Key files:
-  - `ui/lottery/tui.go` - `RunLotteryTUI()`, `model` struct
-  - `ui/components/` - Shared styling with `lipgloss`
+### `internal/` - Core Application Code
 
-**`internal/config/`:**
-- Purpose: Configuration struct definitions
-- Contains: `config.go` - AppConfig struct
+**`internal/domain/`** - Domain Layer (Business Logic)
+- Purpose: Pure business logic, no external dependencies
+- Files per module: `entity.go`, `service.go`, `repo.go`, `errors.go`
+- Key modules:
+  - `lottery/`: VRF lottery with Ed25519 signatures
+  - `voting/`: Digital voting system
+  - `nft/`: Non-fungible tokens
+  - `token/`: Fungible tokens
+  - `oracle/`: Data oracle sources
+  - `blockchain/`: Simple blockchain storage
+  - `events/`: Domain event definitions
 
-**`internal/i18n/`:**
-- Purpose: Internationalization
-- Contains: Locale detection, translation lookup
+**`internal/app/`** - Application Layer (Use Cases)
+- Purpose: Orchestrate domain services, DTOs, input validation
+- Structure: One directory per module
+  - `lottery/`: `usecase.go`, `dto.go`
+  - `voting/`: `usecase.go`, `dto.go`
+  - `nft/`: `usecase.go`, `dto.go`
+  - `token/`: `usecase.go`, `dto.go`, `mint.go`, `transfer.go`, etc.
+  - `oracle/`: `usecase.go`, `dto.go`
+- Shared: `wire.go` - Dependency injection wiring
 
-**`internal/logger/`:**
-- Purpose: Logging infrastructure
-- Contains: `zerolog` initialization
+**`internal/ui/`** - Terminal UI
+- Purpose: Bubble Tea TUI components
+- Structure: One directory per module
+  - `lottery/tui.go`: Lottery TUI
+  - `voting/tui.go`: Voting TUI
+  - `nft/tui.go`: NFT TUI
+  - `token/tui.go`: Token TUI
+  - `oracle/tui.go`: Oracle TUI
+  - `components/`: Shared UI components
+
+**`internal/api/`** - HTTP API Layer
+- Purpose: HTTP request handling
+- Structure:
+  - `server.go`: Server initialization
+  - `router.go`: Chi router setup
+  - `response.go`: JSON response helpers
+  - `handler/`: HTTP handlers per module
+    - `lottery.go`, `voting.go`, `nft.go`, `token.go`, `oracle.go`
+  - `middleware/`: HTTP middleware
+    - `auth.go`: API key authentication
+    - `cors.go`: CORS headers
+    - `logger.go`: Request logging
+    - `recovery.go`: Panic recovery
+
+**`internal/infra/`** - Infrastructure Layer
+- Purpose: External integrations, persistence
+- Structure:
+  - `sqlite/`: SQLite repositories
+    - `lottery.go`, `voting.go`, `nft.go`, `token.go`, `oracle.go`
+    - `blockchain.go`: Blockchain storage
+    - `tx.go`: Transaction management
+    - `errors.go`: Database errors
+  - `events/`: Event bus system
+    - `bus.go`: Sync event bus
+    - `async_bus.go`: Async event bus
+    - `composite_bus.go`: Combined bus
+    - `event_store.go`: Event persistence
+    - `handlers.go`: Event handlers (audit, stats)
+    - `replay.go`: Replay protection
+  - `http/`: HTTP client
+    - `fetcher.go`: External data fetching
+  - `migrate/`: Database migrations
+    - `migrate.go`: Migration runner
+  - `backup/`: Backup functionality
+    - `backup.go`: Backup/restore logic
+
+**`internal/config/`** - Configuration
+- Purpose: Configuration loading and access
+
+**`internal/i18n/`** - Internationalization
+- Purpose: Translation support
+- Files: `i18n.go`, locale data
+
+**`internal/logger/`** - Logging
+- Purpose: Zerolog setup
+
+**`internal/utils/`** - Utilities
+- Purpose: Shared utility functions
+
+### `config/` - Configuration Files
+
+- `aurora.toml`: Default configuration
+
+### `migrations/` - Database Migrations
+
+- SQL migration files for schema changes
+
+### `e2e/` - End-to-End Tests
+
+- Integration tests spanning multiple modules
+
+### `web/` - Static Assets
+
+- Web files served by API server
 
 ## Key File Locations
 
 **Entry Points:**
-- `cmd/aurora/main.go` - Executable entry, calls `cmd.Execute()`
-- `cmd/aurora/cmd/root.go` - Root Cobra command, `GlobalApp` setup
+| File | Purpose |
+|------|---------|
+| `cmd/aurora/main.go` | CLI application entry |
+| `cmd/api/main.go` | HTTP API server entry |
+| `cmd/aurora/cmd/root.go` | Root command, DI setup |
 
 **Configuration:**
-- `config/aurora.toml` - Default TOML config
-- `internal/config/config.go` - Config struct
-- `cmd/aurora/cmd/root.go` - Viper initialization
+| File | Purpose |
+|------|---------|
+| `config/aurora.toml` | TOML configuration |
+| `cmd/aurora/cmd/root.go` | Config loading (viper) |
 
 **Core Logic:**
-- `internal/domain/lottery/entity.go` - VRF lottery entities and logic
-- `internal/domain/voting/entity.go` - Ed25519 voting logic
-- `internal/domain/token/service.go` - Token operations
-- `internal/domain/nft/service.go` - NFT operations
+| File | Purpose |
+|------|---------|
+| `internal/domain/lottery/service.go` | VRF lottery logic |
+| `internal/domain/voting/service.go` | Voting logic |
+| `internal/domain/token/service.go` | Token logic |
+| `internal/app/wire.go` | Dependency injection |
 
-**Testing:**
-- `e2e/*_test.go` - End-to-end tests
-- `internal/domain/lottery/*_test.go` - Domain unit tests
-- `internal/app/lottery/usecase_test.go` - Use case tests
-- `internal/infra/sqlite/*_test.go` - Repository tests
+**Persistence:**
+| File | Purpose |
+|------|---------|
+| `internal/infra/sqlite/lottery.go` | Lottery repository |
+| `internal/infra/sqlite/blockchain.go` | Blockchain storage |
+| `internal/infra/events/event_store.go` | Event persistence |
+
+**API:**
+| File | Purpose |
+|------|---------|
+| `internal/api/server.go` | Server initialization |
+| `internal/api/router.go` | Route definitions |
+| `internal/api/handler/lottery.go` | Lottery endpoints |
 
 ## Naming Conventions
 
-**Directories:**
-- Lowercase, single words or module names: `domain/`, `app/`, `infra/`
-- Module subdirs match module names: `domain/lottery/`, `app/token/`
-
 **Files:**
-- Lowercase with underscores: `entity.go`, `service_test.go`, `usecase.go`
-- DTOs: `dto.go` or `*_request.go`/`*_response.go`
+- Go source: `*.go` (lowercase, snake_case for multi-word)
+- Test files: `*_test.go` suffix
+- Examples: `entity.go`, `service.go`, `usecase.go`, `dto.go`
 
-**Types/Interfaces:**
-- PascalCase: `LotteryRecord`, `Repository`, `Service`
-- Interfaces often named after role: `Repository`, `EventBus`, `Handler`
+**Directories:**
+- Go packages: lowercase, single word or snake_case
+- Module directories: match module name (e.g., `lottery/`, `voting/`)
 
-**Functions:**
-- CamelCase: `NewService()`, `DrawWinners()`, `SelectWinners()`
-- Constructor helpers: `New*()`, `Init*()`, `Create*()`
-- Test helpers: `ResetForTest()`, `NewTestApp()`
+**Types:**
+- Entities: PascalCase noun (e.g., `LotteryRecord`, `Vote`)
+- Services: PascalCase noun ending in `Service` (e.g., `TokenService`)
+- Use Cases: PascalCase ending in `UseCase` (e.g., `CreateLotteryUseCase`)
+- DTOs: PascalCase ending in `Request`/`Response` (e.g., `CreateLotteryRequest`)
 
-**Packages:**
-- Lowercase: `package lottery`, `package sqlite`
-- Avoid `internal` package name (Go convention handles this)
+**Interfaces:**
+- PascalCase (e.g., `Repository`, `Service`)
+- Method signatures in documentation comments
 
 ## Where to Add New Code
 
-**New Feature Module:**
-- Primary code:
-  - Domain logic: `internal/domain/{feature}/` (entity.go, service.go, repo.go)
-  - Application logic: `internal/app/{feature}/` (usecase.go, dto.go)
-  - UI: `internal/ui/{feature}/` (tui.go)
-  - Infrastructure: `internal/infra/sqlite/{feature}.go`
-- Tests: `internal/domain/{feature}/*_test.go`, `internal/app/{feature}/*_test.go`
-- CLI command: `cmd/aurora/cmd/{feature}.go`
+### New Domain Module
 
-**New Use Case:**
-- Implementation: `internal/app/{module}/usecase.go`
-- DTOs: `internal/app/{module}/dto.go` or co-located structs
-- Tests: `internal/app/{module}/usecase_test.go`
+**Primary code locations:**
+- Domain logic: `internal/domain/{module}/entity.go`, `service.go`
+- Repository interface: `internal/domain/{module}/repo.go`
+- Application use case: `internal/app/{module}/usecase.go`, `dto.go`
+- Infrastructure: `internal/infra/sqlite/{module}.go`
+- CLI command: `cmd/aurora/cmd/{module}.go`
+- HTTP handler: `internal/api/handler/{module}.go`
+- TUI: `internal/ui/{module}/tui.go`
 
-**New Repository Implementation:**
-- Interface: `internal/domain/{module}/repo.go`
-- Implementation: `internal/infra/sqlite/{module}.go`
-- Tests: `internal/infra/sqlite/{module}_repo_test.go`
+**Tests:**
+- Domain tests: `internal/domain/{module}/*_test.go`
+- App tests: `internal/app/{module}/*_test.go`
+- Repo tests: `internal/infra/sqlite/{module}_test.go`
 
-**New TUI Component:**
-- Main component: `internal/ui/{module}/tui.go`
-- Shared components: `internal/ui/components/` (lipgloss styles)
+### New CLI Command
 
-**Utilities:**
-- Shared utilities: `internal/utils/`
-- Module-specific: co-located in module directory
+**Location:** `cmd/aurora/cmd/`
+
+**Pattern:**
+1. Create new file (e.g., `newcmd.go`)
+2. Define `newCmd` variable of type `*cobra.Command`
+3. Add to parent command in `init()` function
+4. Register flags in `init()`
+
+### New HTTP Endpoint
+
+**Location:** `internal/api/handler/`
+
+**Pattern:**
+1. Add method to existing handler or create new handler
+2. Register route in `internal/api/router.go`
+3. Add middleware if needed in `internal/api/middleware/`
+
+### New Use Case
+
+**Location:** `internal/app/{module}/`
+
+**Pattern:**
+1. Create `*{Module}UseCase` struct
+2. Implement `Execute(*Request) (*Response, error)` method
+3. Inject dependencies via constructor
+4. Register in `internal/app/wire.go` if needed
 
 ## Special Directories
 
-**`.planning/codebase/`:**
-- Purpose: Architecture and structure documentation for AI agents
-- Generated: Yes (this file)
+**`internal/domain/events/`**
+- Purpose: Domain event type definitions
+- Generated: No
+- Contains: Event types for lottery, voting, token, nft, oracle
+
+**`internal/infra/events/`**
+- Purpose: Event bus implementation
+- Generated: No
 - Committed: Yes
+- Contains: Sync/async event processing
 
-**`data/`:**
-- Purpose: Runtime SQLite databases (blocks.db, tokens.db, etc.)
-- Generated: Runtime
-- Committed: No (gitignored)
-
-**`config/`:**
-- Purpose: Default configuration files
-- Generated: Template committed
+**`migrations/`**
+- Purpose: Database schema migrations
+- Generated: No
 - Committed: Yes
+- Note: Applied at startup if configured
 
-**`e2e/`:**
-- Purpose: End-to-end integration tests
-- Generated: Test code
+**`web/`**
+- Purpose: Static files for API server
+- Generated: No
 - Committed: Yes
-
-## Module Boundaries
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        cmd/ (CLI Layer)                          │
-│  lottery.go → voting.go → nft.go → token.go → oracle.go        │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    internal/ui/ (TUI Layer)                      │
-│        Components ──────────────────────────────────► Models     │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  internal/app/ (Use Case Layer)                  │
-│  CreateLotteryUseCase ──► TransferUseCase ──► MintUseCase       │
-│         │                      │                    │           │
-│         └──────────────────────┼────────────────────┘           │
-│                                ▼                                 │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    internal/domain/ (Domain Layer)               │
-│  ┌─────────┐ ┌────────┐ ┌───────┐ ┌───────┐ ┌────────┐        │
-│  │ lottery │ │ voting │ │  nft  │ │ token │ │ oracle │        │
-│  └────┬────┘ └────┬───┘ └───┬───┘ └───┬───┘ └───┬────┘        │
-│       └───────────┴─────────┴─────────┴─────────┘              │
-│                               │                                 │
-│                    ┌──────────┴──────────┐                     │
-│                    │    blockchain       │                     │
-│                    │    (BlockChain)     │                     │
-│                    └─────────────────────┘                     │
-└─────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│               internal/infra/ (Infrastructure Layer)             │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  sqlite/  │  events/  │  http/                           │   │
-│  │  ───────  │  ───────  │  ─────                           │   │
-│  │ lottery.go│  bus.go   │  (handlers)                      │   │
-│  │ token.go  │ handlers.go                                 │   │
-│  │ nft.go    │ event_store.go                              │   │
-│  │ voting.go │ replay.go                                   │   │
-│  └───────────┴───────────┴─────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Dependency Rules
-
-1. **Domain** depends on nothing external
-2. **App** depends on Domain only (interfaces)
-3. **Infra** depends on Domain (implements interfaces)
-4. **UI** depends on Domain/Infra (uses services)
-5. **Cmd** depends on App/Domain/Infra (orchestrates)
+- Note: Served at root path
 
 ---
 
-*Structure analysis: 2026-04-26*
+*Structure analysis: 2026-04-30*

@@ -1,129 +1,168 @@
 # External Integrations
 
-**Analysis Date:** 2026-04-26
+**Analysis Date:** 2026-04-30
 
-## Containerization
+## APIs & External Services
 
-**Docker:**
-- Multi-stage build Dockerfile at `/Dockerfile`
-- Build stage: `golang:1.26-alpine`
-- Deploy stage: `gcr.io/distroless/static:nonroot`
-- Exposed ports: 6666, 8888, 12345
-- Cross-platform builds: linux/amd64, linux/arm64
+**Oracle Data Sources:**
+- **CoinGecko API** - Cryptocurrency price feeds
+  - Endpoint: `https://api.coingecko.com/api/v3/simple/price`
+  - Sources configured: Bitcoin (BTC) and Ethereum (ETH) prices in USD
+  - Usage: `internal/infra/http/fetcher.go` - Rate-limited HTTP client with configurable requests/window
+  - Config: `config/aurora.toml` section `[[oracle.sources]]`
 
-**Docker Compose:**
-- File: `compose.yml`
-- Services: `aurora` container
-- Named volumes: `aurora-data`, `aurora-logs`
-- Health check: `./aurora lottery stats`
-- Network: `aurora-network`
-
-**Kubernetes:**
-- File: `k8s.yml`
-- Resources:
-  - ConfigMap: `aurora-config` (LOG_LEVEL)
-  - PersistentVolumeClaim: `aurora-data` (1Gi storage)
-  - Deployment: 1 replica (configurable 1-3 via HPA)
-  - Service: ClusterIP on port 6666
-  - HorizontalPodAutoscaler: CPU-based scaling (70% target)
-- Resource limits: 128-256Mi memory, 100-500m CPU
-- Liveness/readiness probes: `./aurora lottery stats`
+**Custom HTTP Fetcher:**
+- Location: `internal/infra/http/fetcher.go`
+- Features:
+  - Rate limiting (configurable requests per window)
+  - Request timeout (default: 10s)
+  - Security headers (User-Agent, Accept, Content-Type, X-Request-ID)
+  - Path extraction from JSON responses
+- Rate Limit Config:
+  ```toml
+  [http.rateLimit]
+  requests = 10
+  window = "1m"
+  ```
 
 ## Data Storage
 
-**SQLite (Embedded):**
-- Driver: `github.com/mattn/go-sqlite3`
-- Databases per module:
-  - `tokens.db` - Token state and balances
-  - `events.db` - Event store for audit trail
-  - `nonces.db` - Replay protection
-- Location: `internal/infra/sqlite/*.go`
-- Pragma settings:
-  - `journal_mode=WAL`
-  - `foreign_keys=ON`
+**SQLite Database:**
+- Driver: `github.com/mattn/go-sqlite3 v1.14.41`
+- Path: `./data/aurora.db` (configurable)
+- Mode: WAL (Write-Ahead Logging)
+- Schema migrations: `migrations/*.sql`
+
+**Tables:**
+| Table | Purpose |
+|-------|---------|
+| `blocks` | Blockchain block storage |
+| `lottery_records` | VRF-based lottery results |
+| `votes` | Ed25519-signed votes |
+| `voters` | Voter registration |
+| `candidates` | Voting candidates |
+| `voting_sessions` | Voting periods |
+| `nfts` | NFT ownership records |
+| `nft_operations` | NFT transfer/mint history |
+| `tokens` | Fungible token definitions |
+| `accounts` | Token balances |
+| `allowances` | Token allowances (ERC-20 style) |
+| `data_sources` | Oracle source configurations |
+| `oracle_data` | Fetched data records |
 
 **File Storage:**
-- Data directory: `~/.aurora/data/` (configurable via `data.dir`)
-- Logs directory: `./logs/` (configurable via `log.path`)
-- No external file storage services
+- Local filesystem only
+- Data directory: `./data/`
+- Log directory: `./logs/`
 
-**Persistent Storage (K8s):**
-- PersistentVolumeClaim with 1Gi ReadWriteOnce storage
-- Mounted at `/app/data`
+## Authentication & Identity
 
-## HTTP Integrations
+**Cryptographic Signatures:**
+- Ed25519 (via `filippo.io/edwards25519`)
+- Used for:
+  - NFT minting and transfers
+  - Voting (vote authentication)
+  - Lottery VRF proofs
 
-**Oracle Data Fetching:**
-- Component: `internal/infra/http/fetcher.go`
-- Standard library `net/http` client
-- Configurable timeout: 10 seconds
-- Supports JSON path extraction from responses
-- Used by oracle module for external data sources
+**No External Auth Provider:**
+- Self-contained identity system
+- Key pairs generated/managed locally
+- Signatures verified on-chain (simulated)
 
-**No external API integrations** - Aurora is self-contained
+## Monitoring & Observability
 
-## Testing Infrastructure
+**Logging:**
+- Framework: `rs/zerolog v1.35.0`
+- Format: Structured JSON to stdout and file
+- Default level: `info`
+- Config path: `./logs/`
 
-**Test Types:**
-- Unit tests: `internal/*/*_test.go`
-- E2E tests: `e2e/*_test.go`
-- Coverage reporting: `coverage.out`, `infra_coverage.out`
+**Test Coverage Tracking:**
+- codecov/codecov-action@v6 (GitHub Actions)
+- Coverage reports: `coverage.out`
 
-## Configuration Sources
+**Health Check:**
+- Docker healthcheck: `./aurora lottery stats`
+- Interval: 30s
 
-**TOML Config File:**
-- Default: `config/aurora.toml`
-- Sections: `[server]`, `[log]`, `[db]`, `[lottery]`, `[i18n]`
+## CI/CD & Deployment
 
-**Environment Variables:**
-- Supported via Viper's `AutomaticEnv()`
-- LOG_LEVEL (via ConfigMap in K8s)
-- Auto-discovered from config file
+**GitHub Actions:**
+- **ci.yml** - Run tests on push/PR to main
+  - Go 1.26
+  - Race detector enabled
+  - Codecov upload
+  - Linting (golangci-lint)
 
-**Build-time Configuration:**
-- Version info injected via ldflags
-- Build metadata: Version, BuildTime
+- **build.yml** - Cross-platform binary builds
+  - Platforms: darwin, linux, windows
+  - Architectures: amd64, arm64
+  - Artifacts uploaded for 5 days
 
-## Internationalization
+- **docker.yml** - Docker image builds
+- **release.yml** - Release automation
 
-**i18n System:**
-- In-code translation map in `internal/i18n/i18n.go`
-- Supported locales: English (en), Chinese (zh)
-- Auto-detection via LANG environment variable
-- Configurable via `i18n.locale` setting
+**Docker:**
+- Base image: `golang:1.26-alpine` (builder)
+- Runtime: `gcr.io/distroless/static:nonroot`
+- Image: `pplmx/aurora:latest` (Docker Hub)
+- Published via GitHub Actions
 
-## Build & Release
+**Kubernetes:**
+- Manifest: `k8s.yml`
 
-**GoReleaser:**
-- GitHub releases: github.com/pplmx/aurora
-- Docker Hub: pplmx/aurora
-- Platforms: Linux (amd64, arm64), Darwin (amd64, arm64), Windows (amd64)
+## Environment Configuration
 
-**Pre-commit Hooks:**
-- Config: `.pre-commit-config.yaml`
+**Config File:** `config/aurora.toml`
 
-## Dependencies Summary
+**Required Settings:**
+```toml
+[server]
+host = "0.0.0.0"
+port = 8080
 
-**Direct External Dependencies:**
-| Dependency | Purpose | External Service |
-|------------|---------|------------------|
-| filippo.io/edwards25519 | VRF cryptography | No |
-| spf13/cobra | CLI framework | No |
-| spf13/viper | Configuration | No |
-| rs/zerolog | Logging | No |
-| mattn/go-sqlite3 | Database | No |
-| charmbracelet/* | TUI components | No |
-| google/uuid | UUID generation | No |
+[log]
+level = "info"
+path = "./logs/"
 
-**Infrastructure Dependencies:**
-- Docker (optional)
-- Kubernetes (optional, for production deployment)
+[db]
+type = "sqlite"
+path = "./data/aurora.db"
 
-**No external services required:**
-- No cloud provider dependencies
-- No third-party API calls (except oracle HTTP fetches which are user-defined)
-- No external authentication services
+[http]
+timeout = "10s"
+
+[http.rateLimit]
+requests = 10
+window = "1m"
+```
+
+**Oracle Source Example:**
+```toml
+[[oracle.sources]]
+id = "btc-price"
+name = "Bitcoin Price"
+url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+type = "price"
+method = "GET"
+path = "bitcoin.usd"
+interval = 60
+enabled = true
+```
+
+## Web Interface
+
+**Static Files:**
+- Location: `web/`
+- Files: HTML, CSS, JavaScript
+- Served by embedded file server or external nginx
+
+**HTTP Server:**
+- Framework: `go-chi/chi/v5`
+- Location: `internal/api/`
+- Routes: `internal/api/router.go`
+- Handlers: `internal/api/handler/`
 
 ---
 
-*Integration audit: 2026-04-26*
+*Integration audit: 2026-04-30*
