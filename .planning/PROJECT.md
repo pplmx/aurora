@@ -1,18 +1,12 @@
 # Project: Aurora
 
-## Overview
-- **Project Name**: Aurora
-- **Type**: CLI/TUI blockchain system with REST API and Web UI
-- **Status**: Active development
+## What This Is
 
-## Context
+Aurora is a CLI/TUI blockchain system implementing VRF-based lottery, Ed25519-signed voting, NFTs, fungible tokens, and data oracle functionality. Users interact via CLI, TUI, REST API, or Web UI.
 
-Aurora is a CLI/TUI blockchain system implementing:
-- VRF-based lottery
-- Ed25519-signed voting
-- NFT minting/transfer
-- Fungible token system
-- Data oracle
+## Core Value
+
+Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling.
 
 ## Milestones
 
@@ -34,15 +28,24 @@ Performance: Pagination, interruptible mining, configurable timeouts
 
 | Component | Features |
 |-----------|----------|
-| Migrations | `aurora migrate status\|up\|down`, auto-run |
+| Migrations | `aurora migrate status|up|down`, auto-run |
 | REST API | Chi router, auth middleware, CORS, JSON responses |
 | Oracle | Real data fetching, validation, error handling |
 | Web UI | Dashboard, Lottery, Voting pages (HTMX + Alpine.js) |
-| Backup | `aurora backup create\|verify`, JSON export |
+| Backup | `aurora backup create|verify`, JSON export |
 
-**Deferred:** Backup restore (BCK-04) → v1.2
+### 🔄 v1.2 Operational Readiness (current)
+**Complete deferred items and improve production readiness**
 
-## Current State
+| Item | Status |
+|------|--------|
+| BCK-04: Backup restore | Deferred from v1.1 |
+| API handler tests | Coverage 3.6-9.5% |
+| UI package tests | Coverage 0% |
+| Health check endpoint | Not implemented |
+| Security hardening | API key validation |
+
+## Context
 
 ### What's Shipped (v1.0 + v1.1)
 - CLI with 5 modules (lottery, voting, NFT, token, oracle)
@@ -51,7 +54,7 @@ Performance: Pagination, interruptible mining, configurable timeouts
 - Web UI (browser-based access)
 - Database migrations
 - Backup/verify functionality
-- 80%+ test coverage across modules
+- 80%+ test coverage across domain layer
 
 ### Tech Stack
 - Go 1.26+
@@ -61,9 +64,64 @@ Performance: Pagination, interruptible mining, configurable timeouts
 - Cobra (CLI)
 - Bubbletea (TUI)
 
+### Deferred from v1.1 → v1.2
+- BCK-04: Backup restore not implemented
+- API handler tests needed
+- UI package tests needed
+
+## Requirements
+
+### Validated
+
+- ✓ VRF-based lottery system — v1.0
+- ✓ Ed25519-signed voting — v1.0
+- ✓ NFT minting/transfer — v1.0
+- ✓ Fungible token system — v1.0
+- ✓ Data oracle — v1.0
+- ✓ CLI with 5 modules — v1.0
+- ✓ TUI interfaces — v1.0
+- ✓ REST API with auth — v1.1
+- ✓ Web UI — v1.1
+- ✓ Database migrations — v1.1
+- ✓ Backup/verify — v1.1
+
+### Active
+
+- [ ] BCK-04: Backup restore functionality
+- [ ] API handler tests (80%+ coverage)
+- [ ] UI package tests (meaningful coverage)
+- [ ] Health check endpoint (`/health`, `/ready`)
+- [ ] API key runtime validation
+
+### Out of Scope
+
+- Metrics/observability (Prometheus, OpenTelemetry) — defer to future
+- Performance optimization beyond current requirements
+- Mobile app
+
+## Constraints
+
+- **Tech stack**: Go, SQLite, no major framework changes
+- **Quality bar**: All existing tests must pass; new tests required for new code
+- **Backward compatibility**: Existing CLI/API behavior must not break
+
+## Key Decisions
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Test coverage target 80% for API handlers | Prevent regression in critical paths | Pending |
+| Health check endpoint | Required for k8s/load balancer integration | Pending |
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition:**
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
 
 **After each milestone:**
 1. Full review of all sections
@@ -72,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-26 after v1.1 Production Hardening milestone*
+*Last updated: 2026-04-30 after v1.2 initialization*
