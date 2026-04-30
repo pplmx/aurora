@@ -18,10 +18,9 @@ func newRouter(s *Server) http.Handler {
 	r.Use(apimw.Recovery)
 	r.Use(apimw.CORS)
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	})
+	r.Get("/healthz", LivenessHandler)
+	r.Get("/readyz", ReadinessHandler(s.db))
+	r.Get("/health", LivenessHandler)
 
 	apiKey := config.GetAPIKey()
 

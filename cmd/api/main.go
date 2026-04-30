@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/pplmx/aurora/internal/api"
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/logger"
 )
+
+const shutdownTimeout = 15 * time.Second
 
 func main() {
 	cfg, err := config.Load()
@@ -44,10 +48,19 @@ func main() {
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	sig := <-quit
 
-	logger.Info().Msg("Shutting down server...")
-	if err := server.Close(); err != nil {
-		logger.Error().Err(err).Msg("Server closed with error")
+	logger.Info().Str("signal", sig.String()).Msg("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Error().Err(err).Msg("Server shutdown error")
+		if err := server.Close(); err != nil {
+			logger.Error().Err(err).Msg("Server force close error")
+		}
 	}
+
+	logger.Info().Msg("Server stopped")
 }

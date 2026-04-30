@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/pplmx/aurora/internal/api/handler"
@@ -11,6 +12,7 @@ import (
 )
 
 type Server struct {
+	db             *sql.DB
 	lotteryHandler *handler.LotteryHandler
 	votingHandler  *handler.VotingHandler
 	nftHandler     *handler.NFTHandler
@@ -66,6 +68,7 @@ func NewServer() (*Server, error) {
 	}
 
 	return &Server{
+		db:             db,
 		lotteryHandler: handler.NewLotteryHandler(lotteryRepo),
 		votingHandler:  handler.NewVotingHandler(votingRepo),
 		nftHandler:     handler.NewNFTHandler(nftRepo),
