@@ -33,6 +33,11 @@ Features:
   - Database migrations
 
 Use "aurora lottery --help" for lottery commands.`,
+	Example: `  aurora lottery create -p "Alice,Bob,Charlie" -s "my-seed" -c 2
+  aurora lottery tui
+  aurora nft mint -n "MyNFT" -c "creator-key"
+  aurora token create -n "MyToken" -s "MTK" --supply 1000000
+  aurora voting create -t "Election 2026"`,
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		dataDir := viper.GetString("data.dir")

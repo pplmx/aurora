@@ -57,3 +57,9 @@ func TestVotingHandler_Routes(t *testing.T) {
 	handler := NewVotingHandler(nil)
 	assert.NotNil(t, handler)
 }
+
+func TestVotingHandler_NewVotingHandler(t *testing.T) {
+	handler := NewVotingHandler(nil)
+	assert.NotNil(t, handler)
+	assert.NotNil(t, handler.service)
+}

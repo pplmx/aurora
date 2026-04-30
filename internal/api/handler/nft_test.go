@@ -66,3 +66,14 @@ func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {
 	require.NotEmpty(t, rr.Header().Get("Content-Type"))
 	assert.Contains(t, rr.Header().Get("Content-Type"), "application/json")
 }
+
+func TestNFTHandler_Burn_InvalidJSON(t *testing.T) {
+	handler := NewNFTHandler(nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/burn", bytes.NewBufferString("invalid json"))
+	rr := httptest.NewRecorder()
+
+	handler.Burn(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}

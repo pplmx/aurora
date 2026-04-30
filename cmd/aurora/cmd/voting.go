@@ -225,8 +225,9 @@ var sessionCmd = &cobra.Command{
 }
 
 var sessionCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: i18n.GetText("voting.session.create"),
+	Use:     "create",
+	Short:   i18n.GetText("voting.session.create"),
+	Example: `  aurora voting session create -t "Election 2026" -d "Annual board election" -c cand-1 -c cand-2 -c cand-3`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title, _ := cmd.Flags().GetString("title")
 		description, _ := cmd.Flags().GetString("description")

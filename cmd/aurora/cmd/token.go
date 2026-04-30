@@ -144,6 +144,8 @@ func init() {
 var tokenCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: i18n.GetText("token.create.cmd"),
+	Example: `  aurora token create -n "MyToken" -s "MTK" --supply 1000000
+  aurora token create -n "GamingCoin" -s "GAME" --supply 1000000000`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
 		if err != nil {
