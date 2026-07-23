@@ -3,7 +3,7 @@ package lottery
 import (
 	"testing"
 
-	"charm.land/bubbletea/v2"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/stretchr/testify/assert"

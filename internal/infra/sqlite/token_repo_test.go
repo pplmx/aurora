@@ -256,10 +256,10 @@ func TestTokenRepository_TryDeductApproval_ConcurrentNoDoubleSpend(t *testing.T)
 	var success, insufficient int
 	for i := 0; i < goroutines; i++ {
 		err := <-results
-		switch {
-		case err == nil:
+		switch err {
+		case nil:
 			success++
-		case err == ErrInsufficientAllowance:
+		case ErrInsufficientAllowance:
 			insufficient++
 		default:
 			t.Errorf("unexpected error: %v", err)
