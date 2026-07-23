@@ -33,7 +33,9 @@ func TestNFTHandler_Mint_EmptyRequest(t *testing.T) {
 
 	handler.Mint(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	// Empty request triggers domain validation errors (name required,
+	// invalid creator base64), now properly classified as 400.
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestNFTHandler_Transfer_InvalidJSON(t *testing.T) {

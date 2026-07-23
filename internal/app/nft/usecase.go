@@ -19,7 +19,7 @@ func NewMintNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *MintN
 
 func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
 	if req.Name == "" {
-		return nil, fmt.Errorf("name is required")
+		return nil, nft.ErrNameRequired
 	}
 
 	creator, err := base64.StdEncoding.DecodeString(req.Creator)

@@ -50,7 +50,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Owner:       req.Owner,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -159,7 +159,7 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 		Owner:   owner,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -195,7 +195,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 		Offset:  offset,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 

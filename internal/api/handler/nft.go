@@ -54,7 +54,7 @@ func (h *NFTHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		Creator:     req.Creator,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		PrivateKey: req.PrivateKey,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (h *NFTHandler) Get(w http.ResponseWriter, r *http.Request) {
 	uc := nftapp.NewGetNFTUseCase(h.service)
 	result, err := uc.Execute(id)
 	if err != nil {
-		http.Error(w, `{"error":"not found","code":"NOT_FOUND"}`, http.StatusNotFound)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 	uc := nftapp.NewListNFTsByOwnerUseCase(h.service)
 	result, err := uc.Execute(owner)
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
