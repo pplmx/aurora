@@ -76,7 +76,7 @@ func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if result == nil {
-		http.Error(w, `{"error":"not found","code":"NOT_FOUND"}`, http.StatusNotFound)
+		writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
 		return
 	}
 

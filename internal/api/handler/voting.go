@@ -111,6 +111,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		VoterPublicKey string `json:"voter_public_key"`
 		CandidateID    string `json:"candidate_id"`
 		PrivateKey     string `json:"private_key"`
+		SessionID      string `json:"session_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeBadRequest(w, "invalid request")
@@ -122,6 +123,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		VoterPublicKey: req.VoterPublicKey,
 		CandidateID:    req.CandidateID,
 		PrivateKey:     req.PrivateKey,
+		SessionID:      req.SessionID,
 	})
 	if err != nil {
 		writeUseCaseError(w, err)
@@ -149,7 +151,7 @@ func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 
 	session, err := h.repo.GetSession(id)
 	if err != nil || session == nil {
-		http.Error(w, `{"error":"not found","code":"NOT_FOUND"}`, http.StatusNotFound)
+		writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
 		return
 	}
 

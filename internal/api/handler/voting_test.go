@@ -258,3 +258,27 @@ func TestVotingHandler_NewVotingHandler(t *testing.T) {
 	assert.NotNil(t, handler)
 	assert.NotNil(t, handler.service)
 }
+
+func TestVotingHandler_Vote_MissingSessionID(t *testing.T) {
+	repo := newMockVotingRepo()
+	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
+
+	body, _ := json.Marshal(map[string]string{
+		"voter_public_key": "pk1",
+		"candidate_id":     "cand1",
+		"private_key":      "pk1",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/vote", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	handler.Vote(rr, req)
+
+	// No session_id provided → session not found → 404 with SESSION_NOT_FOUND code
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+
+	var resp ErrorResponse
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, "SESSION_NOT_FOUND", resp.Code)
+}
