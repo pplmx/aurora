@@ -167,11 +167,10 @@ func TestNFTService_Transfer_NotOwner(t *testing.T) {
 		t.Fatalf("Mint failed: %v", err)
 	}
 
-	_, notOwnerPub, _ := ed25519.GenerateKey(nil)
-	_, wrongPriv, _ := ed25519.GenerateKey(nil)
+	notOwnerPub, notOwnerPriv, _ := ed25519.GenerateKey(nil)
 	recipientPub, _, _ := ed25519.GenerateKey(nil)
 
-	_, err = svc.Transfer(minted.ID, notOwnerPub, recipientPub, wrongPriv, chain)
+	_, err = svc.Transfer(minted.ID, notOwnerPub, recipientPub, notOwnerPriv, chain)
 	if err != ErrNotOwner {
 		t.Fatalf("expected ErrNotOwner, got %v", err)
 	}
