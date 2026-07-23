@@ -1,10 +1,15 @@
 package test
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"errors"
 	"testing"
 
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -73,4 +78,150 @@ func TestRecoveryScenario_NFTCreation(t *testing.T) {
 	nftItem := nft.NewNFT("TestNFT", "Description", "", "", pubkey, pubkey)
 	assert.NotNil(t, nftItem)
 	assert.Equal(t, "TestNFT", nftItem.Name)
+}
+
+func TestTokenE2E_ErrorHandling_InsufficientBalance(t *testing.T) {
+	repo := newInMemoryTokenRepo()
+	eventStore := newInMemoryEventStore()
+	eventBus := newE2EEventBus(eventStore)
+	replay := newE2EReplayProtection()
+	chain := blockchain.InitBlockChain()
+	txManager := &noOpTxManager{}
+	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
+
+	_, ownerPriv, _ := ed25519.GenerateKey(rand.Reader)
+	ownerPub := token.PublicKey(ownerPriv.Public().(ed25519.PublicKey))
+
+	_, recipientPriv, _ := ed25519.GenerateKey(rand.Reader)
+	recipientPub := token.PublicKey(recipientPriv.Public().(ed25519.PublicKey))
+
+	tok, err := svc.CreateToken(&token.CreateTokenRequest{
+		Name:        "TestToken",
+		Symbol:      "TEST",
+		TotalSupply: token.NewAmount(100),
+		Owner:       ownerPub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = svc.Transfer(&token.TransferRequest{
+		TokenID:    tok.ID(),
+		From:       ownerPub,
+		To:         recipientPub,
+		Amount:     token.NewAmount(200),
+		PrivateKey: []byte(ownerPriv),
+	})
+	assert.Error(t, err, "Transfer exceeding balance should fail")
+	assert.True(t, errors.Is(err, token.ErrInsufficientBalance), "Error should wrap ErrInsufficientBalance")
+
+	ownerBal, _ := svc.GetBalance(tok.ID(), ownerPub)
+	assert.Equal(t, token.NewAmount(100), ownerBal, "Owner balance should be unchanged")
+
+	recipientBal, _ := svc.GetBalance(tok.ID(), recipientPub)
+	assert.Equal(t, token.NewAmount(0), recipientBal, "Recipient balance should remain zero")
+}
+
+func TestTokenE2E_ErrorHandling_BurnInsufficientBalance(t *testing.T) {
+	repo := newInMemoryTokenRepo()
+	eventStore := newInMemoryEventStore()
+	eventBus := newE2EEventBus(eventStore)
+	replay := newE2EReplayProtection()
+	chain := blockchain.InitBlockChain()
+	txManager := &noOpTxManager{}
+	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
+
+	_, ownerPriv, _ := ed25519.GenerateKey(rand.Reader)
+	ownerPub := token.PublicKey(ownerPriv.Public().(ed25519.PublicKey))
+
+	tok, err := svc.CreateToken(&token.CreateTokenRequest{
+		Name:        "TestToken",
+		Symbol:      "TEST",
+		TotalSupply: token.NewAmount(50),
+		Owner:       ownerPub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = svc.Burn(&token.BurnRequest{
+		TokenID:    tok.ID(),
+		From:       ownerPub,
+		Amount:     token.NewAmount(100),
+		PrivateKey: []byte(ownerPriv),
+	})
+	assert.Error(t, err, "Burn exceeding balance should fail")
+
+	bal, _ := svc.GetBalance(tok.ID(), ownerPub)
+	assert.Equal(t, token.NewAmount(50), bal, "Balance should be unchanged after failed burn")
+}
+
+func TestTokenE2E_ErrorHandling_TransferToSelf(t *testing.T) {
+	repo := newInMemoryTokenRepo()
+	eventStore := newInMemoryEventStore()
+	eventBus := newE2EEventBus(eventStore)
+	replay := newE2EReplayProtection()
+	chain := blockchain.InitBlockChain()
+	txManager := &noOpTxManager{}
+	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
+
+	_, ownerPriv, _ := ed25519.GenerateKey(rand.Reader)
+	ownerPub := token.PublicKey(ownerPriv.Public().(ed25519.PublicKey))
+
+	tok, err := svc.CreateToken(&token.CreateTokenRequest{
+		Name:        "TestToken",
+		Symbol:      "TEST",
+		TotalSupply: token.NewAmount(1000),
+		Owner:       ownerPub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = svc.Transfer(&token.TransferRequest{
+		TokenID:    tok.ID(),
+		From:       ownerPub,
+		To:         ownerPub,
+		Amount:     token.NewAmount(100),
+		PrivateKey: []byte(ownerPriv),
+	})
+	assert.NoError(t, err, "Transfer to self should succeed")
+
+	bal, _ := svc.GetBalance(tok.ID(), ownerPub)
+	assert.Equal(t, token.NewAmount(1000), bal, "Balance should be unchanged for transfer to self")
+}
+
+func TestTokenE2E_ErrorHandling_ZeroAmountTransfer(t *testing.T) {
+	repo := newInMemoryTokenRepo()
+	eventStore := newInMemoryEventStore()
+	eventBus := newE2EEventBus(eventStore)
+	replay := newE2EReplayProtection()
+	chain := blockchain.InitBlockChain()
+	txManager := &noOpTxManager{}
+	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
+
+	_, ownerPriv, _ := ed25519.GenerateKey(rand.Reader)
+	ownerPub := token.PublicKey(ownerPriv.Public().(ed25519.PublicKey))
+
+	_, recipientPriv, _ := ed25519.GenerateKey(rand.Reader)
+	recipientPub := token.PublicKey(recipientPriv.Public().(ed25519.PublicKey))
+
+	tok, err := svc.CreateToken(&token.CreateTokenRequest{
+		Name:        "TestToken",
+		Symbol:      "TEST",
+		TotalSupply: token.NewAmount(1000),
+		Owner:       ownerPub,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = svc.Transfer(&token.TransferRequest{
+		TokenID:    tok.ID(),
+		From:       ownerPub,
+		To:         recipientPub,
+		Amount:     token.NewAmount(0),
+		PrivateKey: []byte(ownerPriv),
+	})
+	assert.Error(t, err, "Transfer of zero amount should fail")
 }
