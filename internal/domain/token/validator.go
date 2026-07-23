@@ -3,7 +3,6 @@ package token
 import (
 	"bytes"
 	"crypto/ed25519"
-	"fmt"
 )
 
 const (
@@ -13,20 +12,20 @@ const (
 
 func ValidateTokenName(name string) error {
 	if name == "" {
-		return fmt.Errorf("token name is required")
+		return ErrTokenNameRequired
 	}
 	if len(name) > MaxTokenNameLength {
-		return fmt.Errorf("token name too long")
+		return ErrTokenNameTooLong
 	}
 	return nil
 }
 
 func ValidateTokenSymbol(symbol string) error {
 	if symbol == "" {
-		return fmt.Errorf("token symbol is required")
+		return ErrTokenSymbolRequired
 	}
 	if len(symbol) > MaxTokenSymbolLength {
-		return fmt.Errorf("token symbol too long")
+		return ErrTokenSymbolTooLong
 	}
 	return nil
 }
@@ -40,10 +39,10 @@ func ValidateAmount(amount *Amount) error {
 
 func ValidatePublicKey(pk PublicKey) error {
 	if len(pk) == 0 {
-		return fmt.Errorf("public key is required")
+		return ErrPublicKeyRequired
 	}
 	if len(pk) != ed25519.PublicKeySize {
-		return fmt.Errorf("invalid public key length")
+		return ErrInvalidPublicKeyLength
 	}
 	return nil
 }
@@ -52,10 +51,10 @@ func ValidatePublicKey(pk PublicKey) error {
 // for an Ed25519 private key (seed + public key = 64 bytes).
 func ValidatePrivateKey(priv PrivateKey) error {
 	if len(priv) == 0 {
-		return fmt.Errorf("private key is required")
+		return ErrPrivateKeyRequired
 	}
 	if len(priv) != ed25519.PrivateKeySize {
-		return fmt.Errorf("invalid private key length")
+		return ErrInvalidPrivateKeyLength
 	}
 	return nil
 }
