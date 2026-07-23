@@ -149,7 +149,7 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 	owner := r.URL.Query().Get("owner")
 
 	if tokenID == "" || owner == "" {
-		http.Error(w, `{"error":"token_id and owner required","code":"INVALID_REQUEST"}`, http.StatusBadRequest)
+		writeBadRequest(w, "token_id and owner required")
 		return
 	}
 
