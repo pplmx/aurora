@@ -70,7 +70,10 @@ func (e *TransferEvent) Payload() []byte {
 		"nonce":  e.nonce,
 		"sig":    base64.StdEncoding.EncodeToString(e.signature),
 	}
-	data, _ := json.Marshal(payload)
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil
+	}
 	return data
 }
 
@@ -121,7 +124,10 @@ func (e *MintEvent) Payload() []byte {
 		"to":     base64.StdEncoding.EncodeToString(e.to),
 		"amount": e.amount.String(),
 	}
-	data, _ := json.Marshal(payload)
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil
+	}
 	return data
 }
 
@@ -172,7 +178,10 @@ func (e *BurnEvent) Payload() []byte {
 		"from":   base64.StdEncoding.EncodeToString(e.from),
 		"amount": e.amount.String(),
 	}
-	data, _ := json.Marshal(payload)
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil
+	}
 	return data
 }
 
@@ -216,6 +225,9 @@ func (e *ApproveEvent) Payload() []byte {
 		"spender": base64.StdEncoding.EncodeToString(e.spender),
 		"amount":  e.amount.String(),
 	}
-	data, _ := json.Marshal(payload)
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil
+	}
 	return data
 }
