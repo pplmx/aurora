@@ -2,10 +2,14 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,4 +54,78 @@ func TestWriteError(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "custom error", resp.Error)
 	assert.Equal(t, "CUSTOM_CODE", resp.Code)
+}
+
+func TestWriteUseCaseError_DomainError(t *testing.T) {
+	tests := []struct {
+		name       string
+		err        error
+		wantStatus int
+		wantCode   string
+	}{
+		{
+			name:       "token not found",
+			err:        token.ErrTokenNotFound,
+			wantStatus: http.StatusNotFound,
+			wantCode:   "TOKEN_NOT_FOUND",
+		},
+		{
+			name:       "insufficient balance",
+			err:        token.ErrInsufficientBalance,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "INSUFFICIENT_BALANCE",
+		},
+		{
+			name:       "nft not found",
+			err:        nft.ErrNFTNotFound,
+			wantStatus: http.StatusNotFound,
+			wantCode:   "NFT_NOT_FOUND",
+		},
+		{
+			name:       "source not found",
+			err:        oracle.ErrSourceNotFound,
+			wantStatus: http.StatusNotFound,
+			wantCode:   "SOURCE_NOT_FOUND",
+		},
+		{
+			name:       "wrapped domain error",
+			err:        errors.Join(token.ErrInsufficientBalance, errors.New("context")),
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "INSUFFICIENT_BALANCE",
+		},
+		{
+			name:       "unknown error defaults to 500",
+			err:        errors.New("something went wrong"),
+			wantStatus: http.StatusInternalServerError,
+			wantCode:   "INTERNAL_ERROR",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			writeUseCaseError(rr, tt.err)
+
+			assert.Equal(t, tt.wantStatus, rr.Code)
+			assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+			var resp ErrorResponse
+			err := json.Unmarshal(rr.Body.Bytes(), &resp)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantCode, resp.Code)
+			assert.Equal(t, tt.err.Error(), resp.Error)
+		})
+	}
+}
+
+func TestClassifyError_NilError(t *testing.T) {
+	status, code := classifyError(nil)
+	assert.Equal(t, http.StatusOK, status)
+	assert.Equal(t, "OK", code)
+}
+
+func TestClassifyError_UnknownError(t *testing.T) {
+	status, code := classifyError(errors.New("unknown"))
+	assert.Equal(t, http.StatusInternalServerError, status)
+	assert.Equal(t, "INTERNAL_ERROR", code)
 }

@@ -131,7 +131,7 @@ func (r *LotteryRepository) GetByID(id string) (*lottery.LotteryRecord, error) {
 	`, id).Scan(&id, &blockHeight, &seed, &participantsJSON, &winnersJSON, &winnerAddressesJSON, &vrfProof, &vrfOutput, &timestamp, &verified)
 
 	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("lottery record not found: %s", id)
+		return nil, lottery.ErrNotFound
 	}
 	if err != nil {
 		return nil, err

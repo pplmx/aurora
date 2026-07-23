@@ -71,8 +71,10 @@ func TestLotteryHandler_History(t *testing.T) {
 
 type mockLotteryRepo struct{}
 
-func (m *mockLotteryRepo) Save(*lottery.LotteryRecord) error              { return nil }
-func (m *mockLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) { return nil, assert.AnError }
+func (m *mockLotteryRepo) Save(*lottery.LotteryRecord) error { return nil }
+func (m *mockLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
+	return nil, lottery.ErrNotFound
+}
 func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }

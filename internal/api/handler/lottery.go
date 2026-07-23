@@ -48,7 +48,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	result, err := uc.Execute(appReq)
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 	results, err := h.repo.GetAll()
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -72,6 +72,10 @@ func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.repo.GetByID(id)
 	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+	if result == nil {
 		http.Error(w, `{"error":"not found","code":"NOT_FOUND"}`, http.StatusNotFound)
 		return
 	}

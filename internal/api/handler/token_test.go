@@ -33,7 +33,15 @@ func TestTokenHandler_Create_EmptyRequest(t *testing.T) {
 
 	handler.Create(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	// Empty request triggers domain validation errors (invalid base64 owner,
+	// invalid amount), which are client-side errors now properly classified as 400.
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var resp ErrorResponse
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, resp.Error)
+	assert.NotEqual(t, "INTERNAL_ERROR", resp.Code)
 }
 
 func TestTokenHandler_Mint_InvalidJSON(t *testing.T) {
@@ -58,7 +66,7 @@ func TestTokenHandler_Mint_EmptyRequest(t *testing.T) {
 
 	handler.Mint(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestTokenHandler_Transfer_InvalidJSON(t *testing.T) {
@@ -83,7 +91,7 @@ func TestTokenHandler_Transfer_EmptyRequest(t *testing.T) {
 
 	handler.Transfer(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestTokenHandler_Burn_InvalidJSON(t *testing.T) {
@@ -108,7 +116,7 @@ func TestTokenHandler_Burn_EmptyRequest(t *testing.T) {
 
 	handler.Burn(rr, req)
 
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestTokenHandler_Balance_MissingTokenID(t *testing.T) {

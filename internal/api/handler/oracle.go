@@ -31,7 +31,7 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 	uc := oracleapp.NewListSourcesUseCase(h.repo)
 	result, err := uc.Execute(&oracleapp.ListSourcesRequest{})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -51,7 +51,7 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 	uc := oracleapp.NewFetchDataUseCase(h.repo)
 	result, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: req.Source})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 		Limit:    limit,
 	})
 	if err != nil {
-		writeInternalError(w)
+		writeUseCaseError(w, err)
 		return
 	}
 
