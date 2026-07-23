@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"database/sql"
 	"fmt"
 	"sync"
 
@@ -22,20 +21,6 @@ import (
 // is safe — see internal/domain/blockchain/init.go for the
 // underlying DB initialisation fix (Round 19).
 var votingInitMu sync.Mutex
-
-func initVotingDB() (*sql.DB, error) {
-	votingInitMu.Lock()
-	defer votingInitMu.Unlock()
-	if votingDB != nil {
-		return votingDB, nil
-	}
-	db, err := blockchain.InitDB()
-	if err != nil {
-		return nil, err
-	}
-	votingDB = db
-	return db, nil
-}
 
 func getVotingRepo() (voting.Repository, error) {
 	votingInitMu.Lock()
@@ -62,7 +47,6 @@ func getVotingService() voting.Service {
 }
 
 var (
-	votingDB      *sql.DB
 	votingRepo    voting.Repository
 	votingService voting.Service
 )

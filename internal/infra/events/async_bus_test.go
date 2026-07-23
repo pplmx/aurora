@@ -163,14 +163,3 @@ func TestCompositeEventBus_SyncBlocksAsync(t *testing.T) {
 	require.True(t, syncCalled)
 	require.False(t, asyncCalled)
 }
-
-// (See TestAsyncEventBus_PublishNonBlocking above; Publish is
-// already non-blocking via its default arm, so there is no
-// close-during-publish race to test here.)
-
-type testEvent struct {
-	name string
-}
-
-func (e *testEvent) EventType() string    { return "test" }
-func (e *testEvent) Timestamp() time.Time { return time.Now() }
