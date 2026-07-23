@@ -292,8 +292,7 @@ func TestVRFVerify_OutputAndProofConsistency(t *testing.T) {
 		t.Error("VRF output should be a valid point")
 	}
 
-	proofPoint := new(edwards25519.Point)
-	proofPoint, err = proofPoint.SetBytes(proof[32:])
+	_, err = new(edwards25519.Point).SetBytes(proof[32:])
 	if err != nil {
 		t.Error("Proof should contain valid point at offset 32")
 	}

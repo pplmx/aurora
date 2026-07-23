@@ -564,6 +564,7 @@ func TestNFTService_BatchMint(t *testing.T) {
 		found, _ := svc.GetNFTByID(minted.ID)
 		if found == nil {
 			t.Errorf("NFT %s not found after batch mint", minted.ID)
+			continue
 		}
 		if found.Name != minted.Name {
 			t.Errorf("name mismatch for %s", minted.ID)
