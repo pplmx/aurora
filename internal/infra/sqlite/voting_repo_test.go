@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/stretchr/testify/require"
 )
 
 func setupVotingTestDB(t *testing.T) (*VotingRepository, func()) {
@@ -303,4 +304,201 @@ func TestVotingRepository_UpdateSession(t *testing.T) {
 	if retrieved.Status != "active" {
 		t.Errorf("Expected status 'active', got '%s'", retrieved.Status)
 	}
+}
+
+func TestVotingRepository_DeleteVote(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	vote := voting.NewVote("voter-1", "cand-1", "sig", "msg")
+	require.NoError(t, repo.SaveVote(vote))
+
+	require.NoError(t, repo.DeleteVote(vote.ID))
+
+	_, err := repo.GetVote(vote.ID)
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestVotingRepository_DeleteVote_AlreadyDeleted(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	vote := voting.NewVote("voter-1", "cand-1", "sig", "msg")
+	require.NoError(t, repo.SaveVote(vote))
+
+	require.NoError(t, repo.DeleteVote(vote.ID))
+	require.NoError(t, repo.DeleteVote(vote.ID))
+}
+
+func TestVotingRepository_GetVotesByVoter(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.SaveVote(&voting.Vote{
+		ID: "v1", VoterPublicKey: "voter-1", CandidateID: "cand-1", Timestamp: 1000,
+	}))
+	require.NoError(t, repo.SaveVote(&voting.Vote{
+		ID: "v2", VoterPublicKey: "voter-1", CandidateID: "cand-2", Timestamp: 2000,
+	}))
+	require.NoError(t, repo.SaveVote(&voting.Vote{
+		ID: "v3", VoterPublicKey: "voter-2", CandidateID: "cand-1", Timestamp: 1500,
+	}))
+
+	votes, err := repo.GetVotesByVoter("voter-1")
+	require.NoError(t, err)
+	require.Len(t, votes, 2)
+	require.Equal(t, "v2", votes[0].ID, "should be sorted by timestamp DESC")
+	require.Equal(t, "v1", votes[1].ID)
+
+	votes, err = repo.GetVotesByVoter("voter-2")
+	require.NoError(t, err)
+	require.Len(t, votes, 1)
+	require.Equal(t, "v3", votes[0].ID)
+
+	votes, err = repo.GetVotesByVoter("nonexistent")
+	require.NoError(t, err)
+	require.Empty(t, votes)
+}
+
+func TestVotingRepository_UpdateVoter(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	voter := &voting.Voter{
+		PublicKey:    "pk-1",
+		Name:         "Original",
+		HasVoted:     false,
+		VoteHash:     "",
+		RegisteredAt: 1000,
+	}
+	require.NoError(t, repo.SaveVoter(voter))
+
+	voter.Name = "Updated"
+	voter.HasVoted = true
+	voter.VoteHash = "hash-123"
+	require.NoError(t, repo.UpdateVoter(voter))
+
+	retrieved, err := repo.GetVoter("pk-1")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.Equal(t, "Updated", retrieved.Name)
+	require.True(t, retrieved.HasVoted)
+	require.Equal(t, "hash-123", retrieved.VoteHash)
+}
+
+func TestVotingRepository_ListVoters(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-1", Name: "Voter 1", RegisteredAt: 100}))
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-2", Name: "Voter 2", RegisteredAt: 200}))
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-3", Name: "Voter 3", RegisteredAt: 150}))
+
+	voters, err := repo.ListVoters()
+	require.NoError(t, err)
+	require.Len(t, voters, 3)
+	require.Equal(t, "Voter 2", voters[0].Name, "should be sorted by registered_at DESC")
+	require.Equal(t, "Voter 3", voters[1].Name)
+	require.Equal(t, "Voter 1", voters[2].Name)
+}
+
+func TestVotingRepository_ListVoters_Empty(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	voters, err := repo.ListVoters()
+	require.NoError(t, err)
+	require.Empty(t, voters)
+}
+
+func TestVotingRepository_UpdateCandidate(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	cand := &voting.Candidate{
+		ID:        "cand-1",
+		Name:      "Original",
+		Party:     "Party A",
+		Program:   "Original Program",
+		ImageURL:  "https://example.com/orig.png",
+		VoteCount: 10,
+		CreatedAt: 1000,
+	}
+	require.NoError(t, repo.SaveCandidate(cand))
+
+	cand.Name = "Updated"
+	cand.Party = "Party B"
+	cand.Program = "New Program"
+	cand.ImageURL = "https://example.com/new.png"
+	cand.VoteCount = 20
+	require.NoError(t, repo.UpdateCandidate(cand))
+
+	retrieved, err := repo.GetCandidate("cand-1")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.Equal(t, "Updated", retrieved.Name)
+	require.Equal(t, "Party B", retrieved.Party)
+	require.Equal(t, "New Program", retrieved.Program)
+	require.Equal(t, "https://example.com/new.png", retrieved.ImageURL)
+	require.Equal(t, 20, retrieved.VoteCount)
+}
+
+func TestVotingRepository_DeleteCandidate(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	cand := &voting.Candidate{
+		ID:        "cand-1",
+		Name:      "ToDelete",
+		Party:     "Party A",
+		CreatedAt: 1000,
+	}
+	require.NoError(t, repo.SaveCandidate(cand))
+
+	require.NoError(t, repo.DeleteCandidate("cand-1"))
+
+	_, err := repo.GetCandidate("cand-1")
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestVotingRepository_DeleteCandidate_AlreadyDeleted(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.DeleteCandidate("nonexistent"))
+}
+
+func TestVotingRepository_ListSessions(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	s1 := voting.NewSession("Session 1", "Desc 1", []string{"c1"}, 1000, 2000)
+	s1.CreatedAt = 100
+	require.NoError(t, repo.SaveSession(s1))
+
+	s2 := voting.NewSession("Session 2", "Desc 2", []string{"c2"}, 3000, 4000)
+	s2.CreatedAt = 200
+	require.NoError(t, repo.SaveSession(s2))
+
+	s3 := voting.NewSession("Session 3", "Desc 3", []string{"c3"}, 5000, 6000)
+	s3.CreatedAt = 150
+	require.NoError(t, repo.SaveSession(s3))
+
+	sessions, err := repo.ListSessions()
+	require.NoError(t, err)
+	require.Len(t, sessions, 3)
+	require.Equal(t, "Session 2", sessions[0].Title, "should be sorted by created_at DESC")
+	require.Equal(t, "Session 3", sessions[1].Title)
+	require.Equal(t, "Session 1", sessions[2].Title)
+}
+
+func TestVotingRepository_ListSessions_Empty(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	sessions, err := repo.ListSessions()
+	require.NoError(t, err)
+	require.Empty(t, sessions)
 }
