@@ -12,13 +12,18 @@ import (
 )
 
 func arrayToJSON(arr []string) string {
-	data, _ := json.Marshal(arr)
+	data, err := json.Marshal(arr)
+	if err != nil {
+		return "[]"
+	}
 	return string(data)
 }
 
 func jsonToArray(data string) []string {
 	var arr []string
-	_ = json.Unmarshal([]byte(data), &arr)
+	if err := json.Unmarshal([]byte(data), &arr); err != nil {
+		return nil
+	}
 	return arr
 }
 
