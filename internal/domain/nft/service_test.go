@@ -5,7 +5,9 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -466,7 +468,7 @@ func TestNFTService_Transfer_NotFound(t *testing.T) {
 }
 
 func TestNFTService_Transfer_Atomicity(t *testing.T) {
-	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnUpdateNFT: true}
+	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnTryTransferOwnership: true}
 	svc := NewService(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
@@ -478,7 +480,7 @@ func TestNFTService_Transfer_Atomicity(t *testing.T) {
 	recipientPub, _, _ := ed25519.GenerateKey(nil)
 	_, err := svc.Transfer(minted.ID, creatorPub, recipientPub, creatorPriv, chain)
 	if err == nil {
-		t.Fatal("expected error when repo.UpdateNFT fails")
+		t.Fatal("expected error when repo.TryTransferOwnership fails")
 	}
 
 	_ = minted
@@ -616,10 +618,12 @@ func (m *mockBlockWriter) AddBlock(data string) (int64, error) {
 
 type FailingRepo struct {
 	*inmemRepo
-	failOnSaveNFT       bool
-	failOnUpdateNFT     bool
-	failOnDeleteNFT     bool
-	failOnSaveOperation bool
+	failOnSaveNFT              bool
+	failOnUpdateNFT            bool
+	failOnDeleteNFT            bool
+	failOnSaveOperation        bool
+	failOnTryTransferOwnership bool
+	failOnTryDeleteNFTIfOwned  bool
 }
 
 func (r *FailingRepo) SaveNFT(nft *NFT) error {
@@ -648,6 +652,20 @@ func (r *FailingRepo) UpdateNFT(nft *NFT) error {
 	return r.inmemRepo.UpdateNFT(nft)
 }
 
+func (r *FailingRepo) TryTransferOwnership(nftID string, from, to []byte) error {
+	if r.failOnTryTransferOwnership {
+		return fmt.Errorf("mock try-transfer ownership error")
+	}
+	return r.inmemRepo.TryTransferOwnership(nftID, from, to)
+}
+
+func (r *FailingRepo) TryDeleteNFTIfOwned(nftID string, expectedOwner []byte) error {
+	if r.failOnTryDeleteNFTIfOwned {
+		return fmt.Errorf("mock try-delete-if-owned error")
+	}
+	return r.inmemRepo.TryDeleteNFTIfOwned(nftID, expectedOwner)
+}
+
 func (r *FailingRepo) DeleteNFT(id string) error {
 	if r.failOnDeleteNFT {
 		return fmt.Errorf("mock delete error")
@@ -664,4 +682,223 @@ func (r *FailingRepo) SaveOperation(op *Operation) error {
 
 func (r *FailingRepo) GetOperations(nftID string) ([]*Operation, error) {
 	return r.inmemRepo.GetOperations(nftID)
+}
+
+// TestNFTService_Transfer_ConcurrentOnlyOneWinner is a regression
+// test for the TOCTOU race in NFTService.Transfer.
+//
+// Pre-fix behaviour: Transfer did GetNFT → IsOwner(from) →
+// UpdateNFT(set Owner=to). Two concurrent transfers from the
+// same owner to different recipients BOTH passed IsOwner (both
+// saw the same initial owner), and the last writer silently
+// overwrote the other recipient — the audit log ended up
+// inconsistent with the actual on-chain owner, and one transfer
+// appeared to "succeed" without actually moving the NFT.
+//
+// Post-fix behaviour: Transfer uses repo.TryTransferOwnership,
+// which is a conditional update (WHERE owner = from). Only one
+// transfer can succeed; all concurrent attempts against the same
+// starting owner receive ErrOwnershipChanged. The audit log and
+// the storage owner can never disagree.
+func TestNFTService_Transfer_ConcurrentOnlyOneWinner(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	creatorPub, creatorPriv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("generate creator key: %v", err)
+	}
+
+	nft := NewNFT("Race NFT", "Test", "", "", creatorPub, creatorPub)
+	minted, err := svc.Mint(nft, chain)
+	if err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+
+	// Build 8 distinct recipients and concurrently attempt to
+	// transfer the same NFT from the same owner to each of them.
+	const goroutines = 8
+	recipients := make([]ed25519.PublicKey, goroutines)
+	for i := 0; i < goroutines; i++ {
+		recipients[i], _, err = ed25519.GenerateKey(nil)
+		if err != nil {
+			t.Fatalf("generate recipient %d: %v", i, err)
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	results := make([]error, goroutines)
+	start := make(chan struct{})
+	for i := 0; i < goroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			<-start
+			_, err := svc.Transfer(minted.ID, creatorPub, recipients[idx], creatorPriv, chain)
+			results[idx] = err
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+
+	// Exactly one transfer must have succeeded.
+	successes := 0
+	var winnerIdx = -1
+	for i, err := range results {
+		if err == nil {
+			successes++
+			winnerIdx = i
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("expected exactly 1 successful transfer, got %d (results=%v)", successes, results)
+	}
+	if winnerIdx < 0 {
+		t.Fatalf("no winner index recorded (results=%v)", results)
+	}
+
+	// The losers must have been rejected with ErrOwnershipChanged
+	// (or, defensively, ErrNotOwner if the storage flipped before
+	// the service's GetNFT ran — both are valid rejection paths).
+	for i, err := range results {
+		if i == winnerIdx {
+			continue
+		}
+		if err == nil {
+			t.Errorf("transfer %d unexpectedly succeeded (lost-update bug)", i)
+		}
+		if !errors.Is(err, ErrOwnershipChanged) && !errors.Is(err, ErrNotOwner) {
+			t.Errorf("transfer %d rejected with unexpected error: %v", i, err)
+		}
+	}
+
+	// Storage state must match the winner: final owner is the
+	// winner's recipient, and exactly one transfer operation is
+	// recorded (audit log can't disagree with storage).
+	final, err := svc.GetNFTByID(minted.ID)
+	if err != nil {
+		t.Fatalf("GetNFTByID: %v", err)
+	}
+	if !bytes.Equal(final.Owner, recipients[winnerIdx]) {
+		t.Errorf("final owner mismatch: storage has %x, winner wanted %x (audit log / storage divergence)",
+			final.Owner, recipients[winnerIdx])
+	}
+
+	ops, err := svc.GetOperations(minted.ID)
+	if err != nil {
+		t.Fatalf("GetOperations: %v", err)
+	}
+	// 1 mint + 1 transfer (the winner) = 2 operations.
+	transferOps := 0
+	for _, op := range ops {
+		if op.Type == "transfer" {
+			transferOps++
+		}
+	}
+	if transferOps != 1 {
+		t.Errorf("expected exactly 1 transfer operation recorded, got %d (audit log shows %d concurrent transfers as if all succeeded)", transferOps, transferOps)
+	}
+}
+
+// TestNFTService_Burn_ConcurrentOnlyOneWinner is a regression
+// test for the TOCTOU race in NFTService.Burn.
+//
+// Pre-fix behaviour: Burn did GetNFT → IsOwner(owner) →
+// DeleteNFT. Two concurrent burns both passed IsOwner, both
+// proceeded to delete, and the audit log ended up with two
+// "burn" operations for the same NFT — or, in a Transfer-vs-Burn
+// race, the transfer succeeded against one state while the
+// burn succeeded against the prior state, producing an
+// inconsistent audit log.
+//
+// Post-fix behaviour: Burn uses repo.TryDeleteNFTIfOwned, which
+// is a conditional DELETE (WHERE id = ? AND owner = ?). Only
+// one burn can succeed; all concurrent attempts receive
+// ErrOwnershipChanged (mapped to ErrNotOwner). The audit log
+// can never record more than one burn per NFT.
+func TestNFTService_Burn_ConcurrentOnlyOneWinner(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	ownerPub, ownerPriv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("generate owner key: %v", err)
+	}
+
+	nft := NewNFT("Race Burn", "Test", "", "", ownerPub, ownerPub)
+	minted, err := svc.Mint(nft, chain)
+	if err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+
+	// 8 concurrent burns from the same owner. Pre-fix: all
+	// would have "succeeded" (the second would hit ErrNFTNotFound
+	// since the first deleted the row, but the audit log would
+	// still record 8 burn operations as if all succeeded).
+	// Post-fix: exactly 1 succeeds, 7 receive ErrNotOwner.
+	const goroutines = 8
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	results := make([]error, goroutines)
+	start := make(chan struct{})
+	for i := 0; i < goroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			<-start
+			results[idx] = svc.Burn(minted.ID, ownerPub, ownerPriv, chain)
+		}(i)
+	}
+	close(start)
+	wg.Wait()
+
+	successes := 0
+	for _, err := range results {
+		if err == nil {
+			successes++
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("expected exactly 1 successful burn, got %d (results=%v)", successes, results)
+	}
+
+	// Audit log must show exactly one burn operation, never more.
+	ops, err := svc.GetOperations(minted.ID)
+	if err != nil {
+		t.Fatalf("GetOperations: %v", err)
+	}
+	burnOps := 0
+	for _, op := range ops {
+		if op.Type == "burn" {
+			burnOps++
+		}
+	}
+	if burnOps != 1 {
+		t.Errorf("expected exactly 1 burn operation recorded, got %d (audit log records %d concurrent burns as if all succeeded)", burnOps, burnOps)
+	}
+
+	// NFT must be gone from storage.
+	final, err := svc.GetNFTByID(minted.ID)
+	if err != nil {
+		t.Fatalf("GetNFTByID after burn: %v", err)
+	}
+	if final != nil {
+		t.Errorf("expected NFT to be deleted, got %v", final)
+	}
+
+	// All losers must have been rejected with ErrNotOwner
+	// (defensively accepting ErrNFTNotFound in case the
+	// DeleteNFT happens before the IsOwner check on the loser
+	// side — both are valid rejection paths).
+	for i, err := range results {
+		if err == nil {
+			continue
+		}
+		if !errors.Is(err, ErrNotOwner) && !errors.Is(err, ErrNFTNotFound) {
+			t.Errorf("burn %d rejected with unexpected error: %v", i, err)
+		}
+	}
 }

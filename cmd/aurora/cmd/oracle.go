@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
 	"github.com/pplmx/aurora/internal/i18n"
@@ -255,14 +256,25 @@ var oracleTuiCmd = &cobra.Command{
 	},
 }
 
+// getTemplates returns the names of all built-in oracle data
+// source templates, sorted lexicographically. Sorting is mandatory:
+// Go map iteration order is randomized, and templateListCmd's
+// output is the user-facing `aurora oracle template list` —
+// non-deterministic order across runs would break scripts that
+// diff or pipe the output, and would confuse users.
 func getTemplates() []string {
 	keys := make([]string, 0, len(DataSourceTemplates))
 	for k := range DataSourceTemplates {
 		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 	return keys
 }
 
+// getTemplate returns the template with the given name and a
+// boolean indicating whether it was found. Callers should treat a
+// false return as "not found" and surface a clean error to the
+// user, not panic.
 func getTemplate(name string) (DataSource, bool) {
 	template, ok := DataSourceTemplates[name]
 	return template, ok

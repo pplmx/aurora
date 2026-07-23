@@ -85,6 +85,45 @@ func TestCreateLotteryRecord(t *testing.T) {
 	}
 }
 
+// TestCreateLotteryRecord_UniqueIDAcrossDraws is a regression test for a
+// critical audit-trail bug:
+//
+// Originally CreateLotteryRecord derived its ID solely from sha256(seed),
+// so two lotteries drawn with the same seed produced identical IDs. Since
+// the SQLite repository uses INSERT OR REPLACE keyed on the ID, the second
+// save would silently overwrite the first record — destroying audit
+// history whenever operators re-used a seed label like
+// "election-2026-q1".
+//
+// The fix mixes the VRF `output` (derived from a freshly-generated keypair
+// inside DrawWinners) into the ID hash. Two distinct draws therefore
+// produce distinct IDs even when the seed and participants are identical.
+func TestCreateLotteryRecord_UniqueIDAcrossDraws(t *testing.T) {
+	seed := "election-2026-q1"
+	participants := []string{"Alice", "Bob", "Charlie", "Dave"}
+	winners := []string{"Bob"}
+	winnerAddrs := []string{"0xbob"}
+	proof := []byte("test-proof-64-bytes....................................")
+	blockHeight := int64(1)
+
+	// Two distinct draws (different VRF outputs).
+	out1 := []byte("vrf-output-A-padded-to-32-bytes....")
+	out2 := []byte("vrf-output-B-padded-to-32-bytes....")
+
+	r1 := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out1, proof, blockHeight)
+	r2 := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out2, proof, blockHeight+1)
+
+	if r1.ID == r2.ID {
+		t.Fatalf("two records with same seed but different VRF outputs must have distinct IDs, both = %q", r1.ID)
+	}
+
+	// Same record + same draw → same ID (idempotent regeneration).
+	r1again := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out1, proof, blockHeight)
+	if r1.ID != r1again.ID {
+		t.Errorf("expected identical IDs for identical draws, got %q vs %q", r1.ID, r1again.ID)
+	}
+}
+
 func TestSanitizeString(t *testing.T) {
 	tests := []struct {
 		input    string

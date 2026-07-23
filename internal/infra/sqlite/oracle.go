@@ -231,6 +231,34 @@ func (r *OracleRepository) UpdateSource(ds *oracle.DataSource) error {
 	return err
 }
 
+// SetSourceEnabled atomically updates only the `enabled` column
+// of the data source identified by id. Unlike
+// GetSource→mutate→UpdateSource, this primitive does not touch
+// the other columns and so cannot clobber a concurrent writer
+// that is updating url, headers, interval, etc.
+//
+// Returns oracle.ErrSourceNotFound (from the SQLite layer's
+// ErrNotFound alias) when no row matches; the caller is
+// expected to map that to a 404 in the API layer.
+func (r *OracleRepository) SetSourceEnabled(id string, enabled bool) error {
+	val := 0
+	if enabled {
+		val = 1
+	}
+	res, err := r.db.Exec(`UPDATE data_sources SET enabled = ? WHERE id = ?`, val, id)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *OracleRepository) DeleteSource(id string) error {
 	_, err := r.db.Exec(`DELETE FROM data_sources WHERE id = ?`, id)
 	return err
@@ -338,6 +366,15 @@ func (r *InMemoryOracleRepository) ListSources() ([]*oracle.DataSource, error) {
 
 func (r *InMemoryOracleRepository) UpdateSource(ds *oracle.DataSource) error {
 	r.dataSources[ds.ID] = ds
+	return nil
+}
+
+func (r *InMemoryOracleRepository) SetSourceEnabled(id string, enabled bool) error {
+	ds, ok := r.dataSources[id]
+	if !ok {
+		return ErrNotFound
+	}
+	ds.Enabled = enabled
 	return nil
 }
 

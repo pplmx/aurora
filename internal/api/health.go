@@ -29,6 +29,18 @@ func ReadinessHandler(db *sql.DB) http.HandlerFunc {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
 
+		// Defensive: handle a nil db so a misconfigured caller can't crash
+		// the whole process. A nil DB is reported as an unhealthy check.
+		if db == nil {
+			checks["database"] = "fail"
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(HealthResponse{
+				Status: "unhealthy",
+				Checks: checks,
+			})
+			return
+		}
+
 		if err := db.PingContext(ctx); err != nil {
 			checks["database"] = "fail"
 			w.WriteHeader(http.StatusServiceUnavailable)

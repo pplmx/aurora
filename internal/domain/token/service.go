@@ -48,8 +48,51 @@ type Repository interface {
 	GetApproval(tokenID TokenID, owner, spender PublicKey) (*Approval, error)
 	GetApprovalsByOwner(tokenID TokenID, owner PublicKey) ([]*Approval, error)
 
+	// TryDeductApproval atomically subtracts amount from the
+	// allowance (tokenID, owner, spender) and returns the new
+	// allowance amount. Returns ErrInsufficientAllowance if the
+	// current allowance is less than amount. This is the atomic
+	// primitive that closes the TOCTOU window in TransferFrom.
+	TryDeductApproval(tokenID TokenID, owner, spender PublicKey, amount *Amount) (*Amount, error)
+
+	// TryAdjustApproval atomically applies a signed delta to the
+	// allowance (tokenID, owner, spender), creating the allowance
+	// row if it does not yet exist. Negative delta that would push
+	// the allowance below zero is clamped to zero (DecreaseAllowance
+	// semantics). Returns the new allowance amount.
+	//
+	// This is the atomic primitive that closes the TOCTOU window
+	// in IncreaseAllowance / DecreaseAllowance (the read-modify-
+	// write path silently lost concurrent increments under the
+	// pre-fix implementation).
+	TryAdjustApproval(tokenID TokenID, owner, spender PublicKey, delta *Amount) (*Amount, error)
+
 	GetAccountBalance(tokenID TokenID, owner PublicKey) (*Amount, error)
 	SetAccountBalance(tokenID TokenID, owner PublicKey, amount *Amount) error
+
+	// TrySubtractBalance atomically subtracts amount from (tokenID, owner).
+	// Returns the new balance, or ErrInsufficientBalance if the
+	// account's current balance is less than amount. This is the
+	// atomic primitive that closes the TOCTOU window in Transfer.
+	TrySubtractBalance(tokenID TokenID, owner PublicKey, amount *Amount) (*Amount, error)
+
+	// TryAddBalance atomically adds amount to (tokenID, owner),
+	// creating the account row if it doesn't exist. Returns the new
+	// balance. This is the atomic primitive used by Mint and the
+	// credit side of Transfer.
+	TryAddBalance(tokenID TokenID, owner PublicKey, amount *Amount) (*Amount, error)
+
+	// TryAddToSupply atomically adds amount to the token's
+	// total_supply. Returns the new total supply.
+	//
+	// This is the atomic primitive that closes the TOCTOU window
+	// in Mint: the pre-fix flow did GetToken → token.AddToSupply
+	// (in-memory increment) → SaveToken (full-row write). Two
+	// concurrent mints both read the same total_supply, both
+	// added their amount in memory, and the last SaveToken
+	// clobbered the other mint's increment — silently producing
+	// less total_supply than the sum of all mints.
+	TryAddToSupply(tokenID TokenID, amount *Amount) (*Amount, error)
 }
 
 type TransactableRepository interface {
@@ -86,7 +129,7 @@ func NewService(repo Repository, txManager TransactionManager, eventBus infraeve
 type noOpTxManager struct{}
 
 func (noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
-	return nil
+	return fn(nil)
 }
 
 func NewServiceWithoutTx(repo Repository, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
@@ -223,8 +266,13 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 	event.SetBlockHeight(height)
 
 	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		token.AddToSupply(req.Amount)
-		if err := s.repo.SaveToken(token); err != nil {
+		// Atomic supply increment: closes the TOCTOU window
+		// where two concurrent mints both read total_supply,
+		// both added their amount in memory via AddToSupply,
+		// and the last SaveToken clobbered the other mint's
+		// increment — silently producing less total_supply
+		// than the sum of all mints.
+		if _, err := s.repo.TryAddToSupply(req.TokenID, req.Amount); err != nil {
 			return err
 		}
 
@@ -232,12 +280,10 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 			return err
 		}
 
-		currentBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
-		if err != nil {
-			return err
-		}
-		newBalance := &Amount{new(big.Int).Add(currentBalance.Int, req.Amount.Int)}
-		if err := s.repo.SetAccountBalance(req.TokenID, req.To, newBalance); err != nil {
+		// Atomic add: closes the race where two concurrent Mints
+		// to the same account both read currentBalance, compute
+		// currentBalance + amount, and one overwrites the other.
+		if _, err := s.repo.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
 			return err
 		}
 
@@ -278,11 +324,10 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 		return nil, ErrInsufficientBalance
 	}
 
-	nonce, err := s.replay.GetLastNonce(string(req.TokenID), req.From)
+	nonce, err := s.replay.ClaimNextNonce(string(req.TokenID), req.From)
 	if err != nil {
 		return nil, err
 	}
-	nonce++
 
 	signature := ed25519.Sign(req.PrivateKey, s.signMessage(req.TokenID, req.From, req.To, req.Amount, nonce))
 
@@ -305,17 +350,19 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 			return err
 		}
 
-		fromNewBalance := &Amount{new(big.Int).Sub(fromBalance.Int, req.Amount.Int)}
-		if err := s.repo.SetAccountBalance(req.TokenID, req.From, fromNewBalance); err != nil {
+		// Atomic subtract: closes the TOCTOU race where two
+		// concurrent transfers both read fromBalance, both pass
+		// the check, and both write back (fromBalance - amount).
+		if _, err := s.repo.TrySubtractBalance(req.TokenID, req.From, req.Amount); err != nil {
+			transferErr = err
 			return err
 		}
 
-		toBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
-		if err != nil {
-			return err
-		}
-		toNewBalance := &Amount{new(big.Int).Add(toBalance.Int, req.Amount.Int)}
-		if err := s.repo.SetAccountBalance(req.TokenID, req.To, toNewBalance); err != nil {
+		// Atomic add: closes the symmetric race on the credit
+		// side (two concurrent transfers to the same recipient
+		// could both read toBalance and both write back
+		// toBalance + amount, losing one transfer's credit).
+		if _, err := s.repo.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
 			transferErr = err
 			return err
 		}
@@ -374,11 +421,10 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 		return nil, ErrInsufficientBalance
 	}
 
-	nonce, err := s.replay.GetLastNonce(string(req.TokenID), req.Spender)
+	nonce, err := s.replay.ClaimNextNonce(string(req.TokenID), req.Spender)
 	if err != nil {
 		return nil, err
 	}
-	nonce++
 
 	signature := ed25519.Sign(req.SpenderKey, s.signMessage(req.TokenID, req.Owner, req.To, req.Amount, nonce))
 
@@ -401,22 +447,47 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 			return err
 		}
 
-		ownerNewBalance := &Amount{new(big.Int).Sub(ownerBalance.Int, req.Amount.Int)}
-		if err := s.repo.SetAccountBalance(req.TokenID, req.Owner, ownerNewBalance); err != nil {
-			return err
-		}
-
-		toBalance, err := s.repo.GetAccountBalance(req.TokenID, req.To)
+		// Atomic allowance deduction: closes the TOCTOU race
+		// where two concurrent TransferFroms both read
+		// approval.Amount(), both pass the check, and both write
+		// back approval - amount, allowing double-spend of the
+		// allowance.
+		newApprovalAmount, err := s.repo.TryDeductApproval(req.TokenID, req.Owner, req.Spender, req.Amount)
 		if err != nil {
-			return err
-		}
-		toNewBalance := &Amount{new(big.Int).Add(toBalance.Int, req.Amount.Int)}
-		if err := s.repo.SetAccountBalance(req.TokenID, req.To, toNewBalance); err != nil {
 			transferErr = err
 			return err
 		}
 
-		newApprovalAmount := &Amount{new(big.Int).Sub(approval.Amount().Int, req.Amount.Int)}
+		// Atomic balance subtract (owner) and add (recipient).
+		if _, err := s.repo.TrySubtractBalance(req.TokenID, req.Owner, req.Amount); err != nil {
+			transferErr = err
+			// Best-effort: restore the allowance so the spender
+			// can retry. The newApprovalAmount is the post-deduct
+			// value, so adding req.Amount back gives us the
+			// pre-deduct value.
+			if comp, getErr := s.repo.GetApproval(req.TokenID, req.Owner, req.Spender); getErr == nil && comp != nil {
+				restored := &Amount{Int: new(big.Int).Add(comp.Amount().Int, req.Amount.Int)}
+				_ = s.repo.SaveApproval(NewApproval(req.TokenID, req.Owner, req.Spender, restored))
+			}
+			return transferErr
+		}
+		if _, err := s.repo.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
+			transferErr = err
+			// Best-effort: restore both the owner's balance and
+			// the allowance. If the rollback fails, surface both
+			// errors so the operator can reconcile manually.
+			if _, compErr := s.repo.TryAddBalance(req.TokenID, req.Owner, req.Amount); compErr != nil {
+				transferErr = fmt.Errorf("transferfrom add failed (%v) and balance compensation failed (%v)", err, compErr)
+			}
+			if comp, getErr := s.repo.GetApproval(req.TokenID, req.Owner, req.Spender); getErr == nil && comp != nil {
+				restored := &Amount{Int: new(big.Int).Add(comp.Amount().Int, req.Amount.Int)}
+				if saveErr := s.repo.SaveApproval(NewApproval(req.TokenID, req.Owner, req.Spender, restored)); saveErr != nil {
+					transferErr = fmt.Errorf("transferfrom add failed (%v) and allowance compensation failed (%v)", err, saveErr)
+				}
+			}
+			return transferErr
+		}
+
 		newApproval := NewApproval(req.TokenID, req.Owner, req.Spender, newApprovalAmount)
 		if err := s.repo.SaveApproval(newApproval); err != nil {
 			transferErr = err
@@ -465,52 +536,61 @@ func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
 }
 
 func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, error) {
-	currentApproval, err := s.repo.GetApproval(req.TokenID, req.Owner, req.Spender)
+	if err := ValidatePublicKey(req.Owner); err != nil {
+		return nil, err
+	}
+	if err := ValidatePublicKey(req.Spender); err != nil {
+		return nil, err
+	}
+	if err := ValidateAmount(req.Amount); err != nil {
+		return nil, err
+	}
+
+	// Atomic primitive: closes the TOCTOU race where two concurrent
+	// IncreaseAllowance(req, +10) calls both read allowance=50, both
+	// compute 60, and both write 60, silently losing one increment.
+	newAmount, err := s.repo.TryAdjustApproval(req.TokenID, req.Owner, req.Spender, req.Amount)
 	if err != nil {
 		return nil, err
 	}
 
-	var currentAmount int64
-	if currentApproval != nil {
-		currentAmount = currentApproval.Amount().Int64()
+	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, newAmount)
+	if err := s.eventBus.Publish(event); err != nil {
+		return nil, err
 	}
-
-	newAmount := &Amount{new(big.Int).Add(big.NewInt(currentAmount), req.Amount.Int)}
-
-	approveReq := &ApproveRequest{
-		TokenID: req.TokenID,
-		Owner:   req.Owner,
-		Spender: req.Spender,
-		Amount:  newAmount,
-	}
-
-	return s.Approve(approveReq)
+	return event, nil
 }
 
 func (s *TokenService) DecreaseAllowance(req *AllowanceRequest) (*ApproveEvent, error) {
-	currentApproval, err := s.repo.GetApproval(req.TokenID, req.Owner, req.Spender)
+	if err := ValidatePublicKey(req.Owner); err != nil {
+		return nil, err
+	}
+	if err := ValidatePublicKey(req.Spender); err != nil {
+		return nil, err
+	}
+	if err := ValidateAmount(req.Amount); err != nil {
+		return nil, err
+	}
+
+	// Negate the amount to express "subtract this much" as a
+	// signed delta for TryAdjustApproval. The primitive clamps at
+	// zero, matching the pre-fix behaviour where newAmount.Sign()
+	// < 0 was replaced with NewAmount(0).
+	negDelta := &Amount{new(big.Int).Neg(req.Amount.Int)}
+
+	// Atomic primitive: closes the TOCTOU race where two concurrent
+	// DecreaseAllowance(req, -10) calls both read allowance=50, both
+	// compute 40, and both write 40, silently losing one decrement.
+	newAmount, err := s.repo.TryAdjustApproval(req.TokenID, req.Owner, req.Spender, negDelta)
 	if err != nil {
 		return nil, err
 	}
 
-	var currentAmount int64
-	if currentApproval != nil {
-		currentAmount = currentApproval.Amount().Int64()
+	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, newAmount)
+	if err := s.eventBus.Publish(event); err != nil {
+		return nil, err
 	}
-
-	newAmount := &Amount{new(big.Int).Sub(big.NewInt(currentAmount), req.Amount.Int)}
-	if newAmount.Sign() < 0 {
-		newAmount = NewAmount(0)
-	}
-
-	approveReq := &ApproveRequest{
-		TokenID: req.TokenID,
-		Owner:   req.Owner,
-		Spender: req.Spender,
-		Amount:  newAmount,
-	}
-
-	return s.Approve(approveReq)
+	return event, nil
 }
 
 func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
@@ -533,14 +613,6 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 		return nil, err
 	}
 
-	fromBalance, err := s.repo.GetAccountBalance(req.TokenID, req.From)
-	if err != nil {
-		return nil, err
-	}
-	if fromBalance.Cmp(req.Amount) < 0 {
-		return nil, ErrInsufficientBalance
-	}
-
 	event := NewBurnEvent(req.TokenID, req.From, req.Amount)
 
 	data := fmt.Sprintf("burn|%s|%s", req.TokenID, req.From)
@@ -555,8 +627,14 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 			return err
 		}
 
-		newBalance := &Amount{new(big.Int).Sub(fromBalance.Int, req.Amount.Int)}
-		if err := s.repo.SetAccountBalance(req.TokenID, req.From, newBalance); err != nil {
+		// Atomic balance subtract: closes the TOCTOU race the
+		// pre-fix path had, where two concurrent burns both
+		// read the same balance, both passed the Cmp(amount)
+		// check, and both wrote back balance - amount,
+		// silently allowing overdraw. The same primitive that
+		// fixed Transfer/Mint/TransferFrom in Round 20 closes
+		// this gap too.
+		if _, err := s.repo.TrySubtractBalance(req.TokenID, req.From, req.Amount); err != nil {
 			return err
 		}
 

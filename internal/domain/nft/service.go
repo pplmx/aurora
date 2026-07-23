@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -55,16 +56,22 @@ func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) 
 }
 
 func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (*Operation, error) {
+	// Existence check only — we deliberately do NOT call
+	// nft.IsOwner(from) here. That would read nft.Owner outside
+	// any lock, racing with another goroutine's
+	// TryTransferOwnership write (race detected in
+	// TestNFTService_Transfer_ConcurrentOnlyOneWinner under
+	// -race: read at entity.go:43 / write at inmem_repo.go:93).
+	// The atomic primitive below is the single source of truth
+	// for ownership — it rejects with ErrOwnershipChanged if
+	// ownership moved under us, which we map to ErrNotOwner to
+	// preserve the public error contract.
 	nft, err := s.repo.GetNFT(nftID)
 	if err != nil {
 		return nil, err
 	}
 	if nft == nil {
 		return nil, ErrNFTNotFound
-	}
-
-	if !nft.IsOwner(from) {
-		return nil, ErrNotOwner
 	}
 
 	timestamp := time.Now().Unix()
@@ -80,8 +87,13 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 	op.BlockHeight = height
 	op.Timestamp = timestamp
 
-	nft.Owner = to
-	if err := s.repo.UpdateNFT(nft); err != nil {
+	// Atomic ownership transfer. The conditional UPDATE inside
+	// the primitive rejects us if `from` no longer holds the
+	// NFT (e.g. a concurrent transfer has already moved it).
+	if err := s.repo.TryTransferOwnership(nftID, from, to); err != nil {
+		if errors.Is(err, ErrOwnershipChanged) {
+			return nil, ErrNotOwner
+		}
 		return nil, err
 	}
 
@@ -92,16 +104,22 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 }
 
 func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockchain.BlockWriter) error {
+	// Existence check only — deliberately do NOT call
+	// nft.IsOwner(owner) here. Same pattern as Transfer: a
+	// read-then-check would race with another goroutine's
+	// TryTransferOwnership write (race detected in
+	// TestNFTService_Burn_ConcurrentOnlyOneWinner under -race).
+	// The atomic primitive TryDeleteNFTIfOwned is the single
+	// source of truth — it atomically deletes the NFT only if
+	// `owner` still holds it, returning ErrOwnershipChanged
+	// otherwise. We map that to ErrNotOwner to preserve the
+	// public error contract.
 	nft, err := s.repo.GetNFT(nftID)
 	if err != nil {
 		return err
 	}
 	if nft == nil {
 		return ErrNFTNotFound
-	}
-
-	if !nft.IsOwner(owner) {
-		return ErrNotOwner
 	}
 
 	timestamp := time.Now().Unix()
@@ -117,7 +135,14 @@ func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockcha
 	op.BlockHeight = height
 	op.Timestamp = timestamp
 
-	if err := s.repo.DeleteNFT(nftID); err != nil {
+	// Atomic delete: only the caller that still holds the NFT
+	// succeeds. Concurrent burns (or a Transfer-vs-Burn race)
+	// can no longer produce inconsistent state where the audit
+	// log shows both a transfer and a burn for the same NFT.
+	if err := s.repo.TryDeleteNFTIfOwned(nftID, owner); err != nil {
+		if errors.Is(err, ErrOwnershipChanged) {
+			return ErrNotOwner
+		}
 		return err
 	}
 

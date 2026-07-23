@@ -114,14 +114,32 @@ func TestAsyncEventBus_SubscribeAll(t *testing.T) {
 }
 
 func TestAsyncEventBus_ChannelFull(t *testing.T) {
+	// Subscribe a blocking handler so the consumer goroutine cannot drain
+	// the buffer out from under the test. Without this, Publish would race
+	// with processLoop and the test would be flaky.
 	bus := NewAsyncEventBus(2)
 	defer bus.Close()
 
-	_ = bus.Publish(events.NewBaseEvent("e", "1", nil))
-	_ = bus.Publish(events.NewBaseEvent("e", "2", nil))
+	block := make(chan struct{})
+	bus.Subscribe("e", func(e events.Event) error {
+		<-block
+		return nil
+	})
 
-	err := bus.Publish(events.NewBaseEvent("e", "3", nil))
-	require.Error(t, err)
+	// Give the consumer a moment to receive the first event and block on it,
+	// so the channel is now empty again and ready to fill.
+	_ = bus.Publish(events.NewBaseEvent("e", "1", nil))
+	time.Sleep(10 * time.Millisecond)
+
+	// Now the consumer is blocked inside the handler. The channel is empty.
+	// Two more publishes fill the buffer; the third must fail with full.
+	require.NoError(t, bus.Publish(events.NewBaseEvent("e", "2", nil)))
+	require.NoError(t, bus.Publish(events.NewBaseEvent("e", "3", nil)))
+	require.ErrorIs(t, bus.Publish(events.NewBaseEvent("e", "4", nil)),
+		events.ErrEventBusFull,
+		"4th publish must fail because consumer is blocked and buffer is size 2")
+
+	close(block)
 }
 
 func TestCompositeEventBus_SyncBlocksAsync(t *testing.T) {
@@ -145,3 +163,14 @@ func TestCompositeEventBus_SyncBlocksAsync(t *testing.T) {
 	require.True(t, syncCalled)
 	require.False(t, asyncCalled)
 }
+
+// (See TestAsyncEventBus_PublishNonBlocking above; Publish is
+// already non-blocking via its default arm, so there is no
+// close-during-publish race to test here.)
+
+type testEvent struct {
+	name string
+}
+
+func (e *testEvent) EventType() string    { return "test" }
+func (e *testEvent) Timestamp() time.Time { return time.Now() }

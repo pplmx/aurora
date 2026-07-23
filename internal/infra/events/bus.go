@@ -14,31 +14,71 @@ type EventBus interface {
 
 type Handler func(events.Event) error
 
+// subscription carries enough information to find and remove the
+// handler regardless of how the underlying slice has shifted since
+// it was registered. Comparing by handler identity (rather than by
+// index) closes the "stale index" bug: if Subscribe(S1, A) →
+// Unsubscribe(A) → Subscribe(S1, B), B would land at the index
+// A's unsubscribe closure captured, and removing that index would
+// silently evict B.
+//
+// Keeping the per-type list as a slice of *subscription (pointer
+// values) gives both stable identity and O(1) lookup once the
+// handler is found.
+type subscription struct {
+	eventType string // empty for global subscriptions
+	handler   Handler
+}
+
 type SyncEventBus struct {
 	mu       sync.RWMutex
-	handlers map[string][]Handler
-	global   []Handler
+	handlers map[string][]*subscription
+	global   []*subscription
 }
 
 func NewSyncEventBus() *SyncEventBus {
 	return &SyncEventBus{
-		handlers: make(map[string][]Handler),
+		handlers: make(map[string][]*subscription),
 	}
+}
+
+// removeSubscription finds and deletes a single subscription by
+// identity. It is O(n) per remove, which is fine for the
+// notification-fanout sizes this bus handles (typically dozens,
+// occasionally thousands). Returns true if a subscription was
+// removed.
+func (b *SyncEventBus) removeSubscription(sub *subscription) bool {
+	if sub.eventType == "" {
+		for i, s := range b.global {
+			if s == sub {
+				b.global = append(b.global[:i], b.global[i+1:]...)
+				return true
+			}
+		}
+		return false
+	}
+	subs := b.handlers[sub.eventType]
+	for i, s := range subs {
+		if s == sub {
+			b.handlers[sub.eventType] = append(subs[:i], subs[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 func (b *SyncEventBus) Publish(e events.Event) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	for _, h := range b.global {
-		if err := h(e); err != nil {
+	for _, s := range b.global {
+		if err := s.handler(e); err != nil {
 			return err
 		}
 	}
 
-	handlers := append([]Handler{}, b.handlers[e.EventType()]...)
-	for _, h := range handlers {
-		if err := h(e); err != nil {
+	for _, s := range b.handlers[e.EventType()] {
+		if err := s.handler(e); err != nil {
 			return err
 		}
 	}
@@ -47,36 +87,35 @@ func (b *SyncEventBus) Publish(e events.Event) error {
 }
 
 func (b *SyncEventBus) Subscribe(eventType string, handler Handler) func() {
+	sub := &subscription{eventType: eventType, handler: handler}
+
 	b.mu.Lock()
-	defer b.mu.Unlock()
+	b.handlers[eventType] = append(b.handlers[eventType], sub)
+	b.mu.Unlock()
 
-	b.handlers[eventType] = append(b.handlers[eventType], handler)
-	idx := len(b.handlers[eventType]) - 1
-
+	var once sync.Once
 	return func() {
-		b.mu.Lock()
-		defer b.mu.Unlock()
-
-		handlers := b.handlers[eventType]
-		if idx < len(handlers) {
-			b.handlers[eventType] = append(handlers[:idx], handlers[idx+1:]...)
-		}
+		once.Do(func() {
+			b.mu.Lock()
+			defer b.mu.Unlock()
+			b.removeSubscription(sub)
+		})
 	}
 }
 
 func (b *SyncEventBus) SubscribeAll(handler Handler) func() {
+	sub := &subscription{handler: handler}
+
 	b.mu.Lock()
-	defer b.mu.Unlock()
+	b.global = append(b.global, sub)
+	b.mu.Unlock()
 
-	b.global = append(b.global, handler)
-	idx := len(b.global) - 1
-
+	var once sync.Once
 	return func() {
-		b.mu.Lock()
-		defer b.mu.Unlock()
-
-		if idx < len(b.global) {
-			b.global = append(b.global[:idx], b.global[idx+1:]...)
-		}
+		once.Do(func() {
+			b.mu.Lock()
+			defer b.mu.Unlock()
+			b.removeSubscription(sub)
+		})
 	}
 }

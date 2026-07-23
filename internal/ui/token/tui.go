@@ -72,6 +72,15 @@ func (r *inmemReplayProtection) SaveNonce(tokenID string, owner []byte, nonce ui
 	return nil
 }
 
+// ClaimNextNonce for the in-memory TUI mock: the TUI is single-goroutine
+// so a non-atomic increment is fine here. Real production replay
+// protection lives in SQLite (see internal/infra/events/replay.go).
+func (r *inmemReplayProtection) ClaimNextNonce(tokenID string, owner []byte) (uint64, error) {
+	key := tokenID + string(owner)
+	r.nonces[key]++
+	return r.nonces[key], nil
+}
+
 type model struct {
 	view         string
 	menuIndex    int
@@ -742,6 +751,77 @@ func (r *inmemRepo) SetAccountBalance(tokenID token.TokenID, owner token.PublicK
 	key := string(tokenID) + string(owner)
 	r.balances[key] = amount
 	return nil
+}
+
+// TrySubtractBalance is the TUI's in-memory equivalent of the
+// SQLite primitive. The TUI is single-goroutine, so we don't need
+// the same locking the SQLite path uses, but the semantics must
+// match: return ErrInsufficientAllowance-style sentinel for
+// over-spend, so callers can use errors.Is uniformly.
+func (r *inmemRepo) TrySubtractBalance(tokenID token.TokenID, owner token.PublicKey, amount *token.Amount) (*token.Amount, error) {
+	key := string(tokenID) + string(owner)
+	cur, ok := r.balances[key]
+	if !ok {
+		cur = token.NewAmount(0)
+	}
+	if cur.Int.Cmp(amount.Int) < 0 {
+		return nil, fmt.Errorf("try subtract balance: %w", token.ErrInsufficientBalance)
+	}
+	newBal := &token.Amount{Int: new(big.Int).Sub(cur.Int, amount.Int)}
+	r.balances[key] = newBal
+	return newBal, nil
+}
+
+func (r *inmemRepo) TryAddBalance(tokenID token.TokenID, owner token.PublicKey, amount *token.Amount) (*token.Amount, error) {
+	key := string(tokenID) + string(owner)
+	cur, ok := r.balances[key]
+	if !ok {
+		cur = token.NewAmount(0)
+	}
+	newBal := &token.Amount{Int: new(big.Int).Add(cur.Int, amount.Int)}
+	r.balances[key] = newBal
+	return newBal, nil
+}
+
+func (r *inmemRepo) TryAddToSupply(id token.TokenID, amount *token.Amount) (*token.Amount, error) {
+	tok, ok := r.tokens[id]
+	if !ok {
+		return nil, token.ErrTokenNotFound
+	}
+	newSupply := &token.Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
+	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
+	return newSupply, nil
+}
+
+func (r *inmemRepo) TryDeductApproval(tokenID token.TokenID, owner, spender token.PublicKey, amount *token.Amount) (*token.Amount, error) {
+	key := string(tokenID) + string(owner) + string(spender)
+	cur, ok := r.approvals[key]
+	if !ok {
+		return nil, fmt.Errorf("try deduct approval: %w", token.ErrInsufficientAllowance)
+	}
+	if cur.Amount().Int.Cmp(amount.Int) < 0 {
+		return nil, fmt.Errorf("try deduct approval: %w", token.ErrInsufficientAllowance)
+	}
+	newAmt := &token.Amount{Int: new(big.Int).Sub(cur.Amount().Int, amount.Int)}
+	r.approvals[key] = token.NewApproval(tokenID, owner, spender, newAmt)
+	return newAmt, nil
+}
+
+func (r *inmemRepo) TryAdjustApproval(tokenID token.TokenID, owner, spender token.PublicKey, delta *token.Amount) (*token.Amount, error) {
+	key := string(tokenID) + string(owner) + string(spender)
+	cur, ok := r.approvals[key]
+	var curAmount *token.Amount
+	if ok {
+		curAmount = cur.Amount()
+	} else {
+		curAmount = token.NewAmount(0)
+	}
+	newAmt := &token.Amount{Int: new(big.Int).Add(curAmount.Int, delta.Int)}
+	if newAmt.Sign() < 0 {
+		newAmt = token.NewAmount(0)
+	}
+	r.approvals[key] = token.NewApproval(tokenID, owner, spender, newAmt)
+	return newAmt, nil
 }
 
 type inmemEventStore struct {

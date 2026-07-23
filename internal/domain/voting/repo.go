@@ -5,10 +5,17 @@ type Repository interface {
 	GetVote(id string) (*Vote, error)
 	GetVotesByCandidate(candidateID string) ([]*Vote, error)
 	GetVotesByVoter(voterPK string) ([]*Vote, error)
+	DeleteVote(id string) error
 
 	SaveVoter(voter *Voter) error
 	GetVoter(pk string) (*Voter, error)
 	UpdateVoter(voter *Voter) error
+	// TryMarkVoted atomically claims a voter for voting. Implementations
+	// MUST be concurrency-safe (e.g. via conditional UPDATE) so that
+	// exactly one concurrent caller succeeds; the rest must receive a
+	// sentinel error. This is the primitive that closes the TOCTOU
+	// double-vote window in CastVoteUseCase.
+	TryMarkVoted(publicKey, voteHash string) error
 	ListVoters() ([]*Voter, error)
 
 	SaveCandidate(candidate *Candidate) error

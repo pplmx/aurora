@@ -4,6 +4,10 @@
 .DS_Store
 bin
 
+# Core dumps (from crashes / panics in tests or binaries)
+core
+core.*
+
 ### JetBrains template
 # CMake
 cmake-build-*/

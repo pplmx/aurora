@@ -3,6 +3,7 @@ package cmd
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 
 	votingapp "github.com/pplmx/aurora/internal/app/voting"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
@@ -12,7 +13,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// votingInitMu guards the package-level singletons (votingDB,
+// votingRepo, votingService). Without this lock, two concurrent
+// callers of getVotingRepo() (e.g. multiple cobra subcommands
+// running in parallel, or tests using t.Parallel) both observe
+// votingRepo == nil, both call NewVotingRepository, and race on
+// the assignment. The assignment itself is racy even when InitDB
+// is safe — see internal/domain/blockchain/init.go for the
+// underlying DB initialisation fix (Round 19).
+var votingInitMu sync.Mutex
+
 func initVotingDB() (*sql.DB, error) {
+	votingInitMu.Lock()
+	defer votingInitMu.Unlock()
 	if votingDB != nil {
 		return votingDB, nil
 	}
@@ -25,10 +38,12 @@ func initVotingDB() (*sql.DB, error) {
 }
 
 func getVotingRepo() (voting.Repository, error) {
+	votingInitMu.Lock()
+	defer votingInitMu.Unlock()
 	if votingRepo != nil {
 		return votingRepo, nil
 	}
-	db, err := initVotingDB()
+	db, err := blockchain.InitDB()
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +52,8 @@ func getVotingRepo() (voting.Repository, error) {
 }
 
 func getVotingService() voting.Service {
+	votingInitMu.Lock()
+	defer votingInitMu.Unlock()
 	if votingService != nil {
 		return votingService
 	}

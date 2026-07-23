@@ -1,6 +1,7 @@
 package nft
 
 import (
+	"bytes"
 	"sync"
 )
 
@@ -72,10 +73,51 @@ func (r *inmemRepo) UpdateNFT(nft *NFT) error {
 	return nil
 }
 
+// TryTransferOwnership mirrors the SQLite primitive: under the
+// single repo-wide write lock, it checks that the current owner
+// still matches `from` and atomically writes the new owner. The
+// lock guarantees no other goroutine can read+write between our
+// check and our store, so the read-modify-write window that the
+// pre-fix NFTService.Transfer had is closed.
+func (r *inmemRepo) TryTransferOwnership(nftID string, from, to []byte) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	existing, ok := r.nfts[nftID]
+	if !ok {
+		return ErrNFTNotFound
+	}
+	if !bytes.Equal(existing.Owner, from) {
+		return ErrOwnershipChanged
+	}
+	existing.Owner = to
+	return nil
+}
+
 func (r *inmemRepo) DeleteNFT(id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.nfts, id)
+	return nil
+}
+
+// TryDeleteNFTIfOwned mirrors the SQLite primitive: under the
+// single repo-wide write lock, it checks that the current owner
+// still matches `expectedOwner` and atomically deletes the NFT.
+// The lock guarantees no concurrent TryTransferOwnership (or
+// another TryDeleteNFTIfOwned) can sneak in between the check
+// and the delete.
+func (r *inmemRepo) TryDeleteNFTIfOwned(nftID string, expectedOwner []byte) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	existing, ok := r.nfts[nftID]
+	if !ok {
+		return ErrNFTNotFound
+	}
+	if !bytes.Equal(existing.Owner, expectedOwner) {
+		return ErrOwnershipChanged
+	}
+	delete(r.nfts, nftID)
 	return nil
 }
 
