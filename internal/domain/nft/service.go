@@ -75,13 +75,13 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 	}
 
 	if len(privateKey) != ed25519.PrivateKeySize {
-		return nil, fmt.Errorf("invalid private key length: expected %d, got %d", ed25519.PrivateKeySize, len(privateKey))
+		return nil, ErrInvalidPrivateKey
 	}
 	if len(from) != ed25519.PublicKeySize {
-		return nil, fmt.Errorf("invalid from public key length: expected %d, got %d", ed25519.PublicKeySize, len(from))
+		return nil, ErrInvalidPublicKey
 	}
 	if len(to) != ed25519.PublicKeySize {
-		return nil, fmt.Errorf("invalid to public key length: expected %d, got %d", ed25519.PublicKeySize, len(to))
+		return nil, ErrInvalidPublicKey
 	}
 
 	timestamp := time.Now().Unix()
@@ -133,10 +133,10 @@ func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockcha
 	}
 
 	if len(privateKey) != ed25519.PrivateKeySize {
-		return fmt.Errorf("invalid private key length: expected %d, got %d", ed25519.PrivateKeySize, len(privateKey))
+		return ErrInvalidPrivateKey
 	}
 	if len(owner) != ed25519.PublicKeySize {
-		return fmt.Errorf("invalid owner public key length: expected %d, got %d", ed25519.PublicKeySize, len(owner))
+		return ErrInvalidPublicKey
 	}
 
 	timestamp := time.Now().Unix()
