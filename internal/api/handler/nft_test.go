@@ -79,3 +79,27 @@ func TestNFTHandler_Burn_InvalidJSON(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
+
+func TestNFTHandler_List_EmptyOwner(t *testing.T) {
+	handler := NewNFTHandler(nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list", nil)
+	rr := httptest.NewRecorder()
+
+	handler.List(rr, req)
+
+	// Empty owner -> 400 Bad Request (validated before service call)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestNFTHandler_List_InvalidOwner(t *testing.T) {
+	handler := NewNFTHandler(nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner=!!!invalid-base64!!!", nil)
+	rr := httptest.NewRecorder()
+
+	handler.List(rr, req)
+
+	// Invalid base64 owner -> unclassified error -> 500
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}

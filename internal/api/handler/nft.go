@@ -132,6 +132,10 @@ func (h *NFTHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 	owner := r.URL.Query().Get("owner")
+	if owner == "" {
+		writeBadRequest(w, "owner parameter is required")
+		return
+	}
 
 	uc := nftapp.NewListNFTsByOwnerUseCase(h.service)
 	result, err := uc.Execute(owner)
