@@ -114,15 +114,16 @@ func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
 
 	h := NewNFTHandler(repo)
 
-	// No owner, no NFTs
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list", nil)
+	// Owner with no NFTs — owner must be base64-encoded per usecase contract
+	ownerB64 := "YWxpY2U=" // base64.StdEncoding.EncodeToString([]byte("alice"))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner="+ownerB64, nil)
 	rr := httptest.NewRecorder()
 	h.List(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	// Owner with NFTs (owner must be base64-encoded per usecase contract)
+	// Owner with NFTs
 	_ = repo.SaveNFT(&domainnft.NFT{ID: "nft-2", Owner: []byte("bob")})
-	ownerB64 := "Ym9i" // base64.StdEncoding.EncodeToString([]byte("bob"))
+	ownerB64 = "Ym9i" // base64.StdEncoding.EncodeToString([]byte("bob"))
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner="+ownerB64, nil)
 	rr = httptest.NewRecorder()
 	h.List(rr, req)
