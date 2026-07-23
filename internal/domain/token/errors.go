@@ -16,4 +16,15 @@ var (
 	ErrTransferToZero        = errors.New("cannot transfer to zero address")
 	ErrInvalidAmount         = errors.New("invalid amount")
 	ErrDuplicateTransfer     = errors.New("duplicate transfer")
+
+	// Validation errors for token name, symbol, and key validation.
+	// Using sentinels allows API handlers to map these to 400 Bad Request.
+	ErrTokenNameRequired       = errors.New("token name is required")
+	ErrTokenNameTooLong        = errors.New("token name too long")
+	ErrTokenSymbolRequired     = errors.New("token symbol is required")
+	ErrTokenSymbolTooLong      = errors.New("token symbol too long")
+	ErrPublicKeyRequired       = errors.New("public key is required")
+	ErrInvalidPublicKeyLength  = errors.New("invalid public key length")
+	ErrPrivateKeyRequired      = errors.New("private key is required")
+	ErrInvalidPrivateKeyLength = errors.New("invalid private key length")
 )

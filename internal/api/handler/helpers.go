@@ -41,6 +41,14 @@ var errorClassification = []struct {
 	{tokenerrors.ErrTransferToZero, http.StatusBadRequest, "TRANSFER_TO_ZERO"},
 	{tokenerrors.ErrInvalidAmount, http.StatusBadRequest, "INVALID_AMOUNT"},
 	{tokenerrors.ErrDuplicateTransfer, http.StatusConflict, "DUPLICATE_TRANSFER"},
+	{tokenerrors.ErrTokenNameRequired, http.StatusBadRequest, "TOKEN_NAME_REQUIRED"},
+	{tokenerrors.ErrTokenNameTooLong, http.StatusBadRequest, "TOKEN_NAME_TOO_LONG"},
+	{tokenerrors.ErrTokenSymbolRequired, http.StatusBadRequest, "TOKEN_SYMBOL_REQUIRED"},
+	{tokenerrors.ErrTokenSymbolTooLong, http.StatusBadRequest, "TOKEN_SYMBOL_TOO_LONG"},
+	{tokenerrors.ErrPublicKeyRequired, http.StatusBadRequest, "PUBLIC_KEY_REQUIRED"},
+	{tokenerrors.ErrInvalidPublicKeyLength, http.StatusBadRequest, "INVALID_PUBLIC_KEY_LENGTH"},
+	{tokenerrors.ErrPrivateKeyRequired, http.StatusBadRequest, "PRIVATE_KEY_REQUIRED"},
+	{tokenerrors.ErrInvalidPrivateKeyLength, http.StatusBadRequest, "INVALID_PRIVATE_KEY_LENGTH"},
 
 	// NFT domain errors
 	{nfterrors.ErrNFTNotFound, http.StatusNotFound, "NFT_NOT_FOUND"},
