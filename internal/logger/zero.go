@@ -35,11 +35,17 @@ func Init() {
 
 	if cfg.LogPath != "" && cfg.LogPath != "./log" {
 		// Try to use file
-		if normPath, err := utils.NormalizePath(cfg.LogPath); err == nil {
+		if normPath, err := utils.NormalizePath(cfg.LogPath); err != nil {
+			fallbackToConsole(fmt.Sprintf("Failed to normalize log path: %v", err))
+		} else {
 			// Ensure directory exists
-			if err := os.MkdirAll(normPath, 0755); err == nil {
+			if err := os.MkdirAll(normPath, 0755); err != nil {
+				fallbackToConsole(fmt.Sprintf("Failed to create log directory: %v", err))
+			} else {
 				logFile, err := os.OpenFile(normPath+"/aurora.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				if err == nil {
+				if err != nil {
+					fallbackToConsole(fmt.Sprintf("Failed to open log file: %v", err))
+				} else {
 					output = zerolog.New(logFile).With().Timestamp().Logger()
 					Log = output
 					return
@@ -51,6 +57,13 @@ func Init() {
 	// Default to console
 	output = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
 	Log = output
+}
+
+// fallbackToConsole writes a warning message to stderr when file-based logging
+// fails to initialize. This ensures the user is always aware that their
+// configured log path is not being used.
+func fallbackToConsole(msg string) {
+	fmt.Fprintf(os.Stderr, "logger: falling back to console output: %s\n", msg)
 }
 
 func loadConfig() *Config {

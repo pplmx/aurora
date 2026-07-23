@@ -65,7 +65,9 @@ func InitBlockChain() *BlockChain {
 	once.Do(func() {
 		chain := &BlockChain{Blocks: []*Block{Genesis()}}
 
-		if db, err := InitDB(); err == nil {
+		if db, err := InitDB(); err != nil {
+			logger.Warn().Err(err).Msg("Failed to initialize database; blockchain will operate in non-persistent mode")
+		} else {
 			if _, err := db.Exec(`
 				CREATE TABLE IF NOT EXISTS blocks (
 					height INTEGER PRIMARY KEY,
@@ -81,25 +83,35 @@ func InitBlockChain() *BlockChain {
 			}
 
 			rows, err := db.Query("SELECT height, hash, previous_hash, data, nonce FROM blocks ORDER BY height")
-			if err == nil {
+			if err != nil {
+				logger.Error().Err(err).Msg("Failed to query blocks from database")
+			} else {
 				for rows.Next() {
 					var block Block
 					var hash, prevHash, data string
-					if err := rows.Scan(&block.Height, &hash, &prevHash, &data, &block.Nonce); err == nil {
-						block.Hash = []byte(hash)
-						block.PrevHash = []byte(prevHash)
-						block.Data = []byte(data)
-						chain.Blocks = append(chain.Blocks, &block)
+					if err := rows.Scan(&block.Height, &hash, &prevHash, &data, &block.Nonce); err != nil {
+						logger.Warn().Err(err).Msg("Failed to scan block row, skipping")
+						continue
 					}
+					block.Hash = []byte(hash)
+					block.PrevHash = []byte(prevHash)
+					block.Data = []byte(data)
+					chain.Blocks = append(chain.Blocks, &block)
 				}
-				_ = rows.Close()
+				if err := rows.Close(); err != nil {
+					logger.Warn().Err(err).Msg("Failed to close rows")
+				}
 			}
 
 			if len(chain.Blocks) <= 1 {
 				stmt, err := db.Prepare("INSERT INTO blocks (height, hash, previous_hash, data, nonce, timestamp, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-				if err == nil {
+				if err != nil {
+					logger.Error().Err(err).Msg("Failed to prepare block insert statement")
+				} else {
 					block := chain.Blocks[0]
-					_, _ = stmt.Exec(block.Height, string(block.Hash), string(block.PrevHash), string(block.Data), block.Nonce, block.Timestamp, block.Timestamp)
+					if _, err := stmt.Exec(block.Height, string(block.Hash), string(block.PrevHash), string(block.Data), block.Nonce, block.Timestamp, block.Timestamp); err != nil {
+						logger.Error().Err(err).Msg("Failed to insert genesis block")
+					}
 				}
 			}
 		}
