@@ -233,7 +233,7 @@ func (f *Fetcher) FetchDataWithValidation(source *oracle.DataSource, validateJSO
 	}
 
 	if source.URL == "" {
-		return nil, errors.New("source URL is required")
+		return nil, oracle.ErrInvalidSource
 	}
 
 	method := source.Method
@@ -275,7 +275,7 @@ func (f *Fetcher) FetchDataWithValidation(source *oracle.DataSource, validateJSO
 	if source.Path != "" {
 		value = extractByPath(string(body), source.Path)
 		if value == "" {
-			return nil, errors.New("path extraction resulted in empty value")
+			return nil, oracle.ErrInvalidSource
 		}
 	}
 
