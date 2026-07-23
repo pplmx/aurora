@@ -10,6 +10,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,6 +87,18 @@ func TestWriteUseCaseError_DomainError(t *testing.T) {
 			err:        oracle.ErrSourceNotFound,
 			wantStatus: http.StatusNotFound,
 			wantCode:   "SOURCE_NOT_FOUND",
+		},
+		{
+			name:       "session not found",
+			err:        voting.ErrSessionNotFound,
+			wantStatus: http.StatusNotFound,
+			wantCode:   "SESSION_NOT_FOUND",
+		},
+		{
+			name:       "already voted",
+			err:        voting.ErrAlreadyVoted,
+			wantStatus: http.StatusConflict,
+			wantCode:   "ALREADY_VOTED",
 		},
 		{
 			name:       "wrapped domain error",

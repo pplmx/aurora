@@ -190,7 +190,7 @@ func TestOracleHandler_Sources_Success(t *testing.T) {
 
 func TestOracleHandler_Fetch_Success(t *testing.T) {
 	repo := oracle.NewInmemRepo()
-	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com"})
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
 	h := NewOracleHandler(repo)
 
 	body, _ := json.Marshal(map[string]string{"source": "s1"})
