@@ -342,3 +342,283 @@ func TestOracleRepository_SetSourceEnabled_NotFound(t *testing.T) {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
+
+func TestOracleRepository_GetData(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	data := &oracle.OracleData{
+		ID:          "data-1",
+		SourceID:    "btc-price",
+		Value:       "50000.00",
+		RawResponse: `{"result": 50000}`,
+		Timestamp:   1234567890,
+		BlockHeight: 1,
+	}
+	require.NoError(t, repo.SaveData(data))
+
+	retrieved, err := repo.GetData("data-1")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.Equal(t, "data-1", retrieved.ID)
+	require.Equal(t, "btc-price", retrieved.SourceID)
+	require.Equal(t, "50000.00", retrieved.Value)
+	require.Equal(t, int64(1234567890), retrieved.Timestamp)
+}
+
+func TestOracleRepository_GetData_NotFound(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	retrieved, err := repo.GetData("nonexistent")
+	require.NoError(t, err)
+	require.Nil(t, retrieved)
+}
+
+func TestOracleRepository_GetDataByTimeRange(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	d1 := &oracle.OracleData{ID: "d1", SourceID: "src-1", Value: "100", Timestamp: 1000}
+	d2 := &oracle.OracleData{ID: "d2", SourceID: "src-1", Value: "200", Timestamp: 2000}
+	d3 := &oracle.OracleData{ID: "d3", SourceID: "src-1", Value: "300", Timestamp: 3000}
+	d4 := &oracle.OracleData{ID: "d4", SourceID: "src-2", Value: "400", Timestamp: 2000}
+
+	for _, d := range []*oracle.OracleData{d1, d2, d3, d4} {
+		require.NoError(t, repo.SaveData(d))
+	}
+
+	results, err := repo.GetDataByTimeRange("src-1", 1500, 2500)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, "d2", results[0].ID)
+}
+
+func TestOracleRepository_GetDataByTimeRange_Empty(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	d1 := &oracle.OracleData{ID: "d1", SourceID: "src-1", Value: "100", Timestamp: 1000}
+	require.NoError(t, repo.SaveData(d1))
+
+	results, err := repo.GetDataByTimeRange("src-1", 5000, 9000)
+	require.NoError(t, err)
+	require.Empty(t, results)
+}
+
+func TestOracleRepository_UpdateSource(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	original := &oracle.DataSource{
+		ID: "src-1", Name: "Original", URL: "https://original.example.com",
+		Enabled: true, Interval: 60,
+	}
+	require.NoError(t, repo.SaveSource(original))
+
+	updated := &oracle.DataSource{
+		ID: "src-1", Name: "Updated", URL: "https://updated.example.com",
+		Enabled: false, Interval: 120, Method: "POST", Headers: "X-Test: 1",
+	}
+	require.NoError(t, repo.UpdateSource(updated))
+
+	retrieved, err := repo.GetSource("src-1")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.Equal(t, "Updated", retrieved.Name)
+	require.Equal(t, "https://updated.example.com", retrieved.URL)
+	require.False(t, retrieved.Enabled)
+	require.Equal(t, 120, retrieved.Interval)
+	require.Equal(t, "POST", retrieved.Method)
+	require.Equal(t, "X-Test: 1", retrieved.Headers)
+}
+
+func TestOracleRepository_SaveData_AutoIDAndTimestamp(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	data := &oracle.OracleData{
+		SourceID:    "btc-price",
+		Value:       "50000",
+		RawResponse: "{}",
+	}
+	require.NoError(t, repo.SaveData(data))
+	require.NotEmpty(t, data.ID, "SaveData should auto-generate ID")
+	require.NotZero(t, data.Timestamp, "SaveData should auto-generate timestamp")
+}
+
+func TestOracleRepository_GetLatestData_NotFound(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	_, err := repo.GetLatestData("nonexistent")
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestOracleRepository_NewInMemoryOracleRepository(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+	require.NotNil(t, repo)
+}
+
+func TestInMemoryOracleRepository_SaveDataAndGetData(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	data := &oracle.OracleData{
+		ID:       "data-1",
+		SourceID: "src-1",
+		Value:    "100",
+	}
+	require.NoError(t, repo.SaveData(data))
+
+	retrieved, err := repo.GetData("data-1")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.Equal(t, "100", retrieved.Value)
+
+	_, err = repo.GetData("nonexistent")
+	require.NoError(t, err)
+	require.Nil(t, nil)
+}
+
+func TestInMemoryOracleRepository_GetDataBySource(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d1", SourceID: "src-1", Value: "100", Timestamp: 1000}))
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d2", SourceID: "src-1", Value: "200", Timestamp: 2000}))
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d3", SourceID: "src-2", Value: "300", Timestamp: 1500}))
+
+	results, err := repo.GetDataBySource("src-1", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+	require.Equal(t, "200", results[0].Value, "should be sorted by timestamp DESC")
+	require.Equal(t, "100", results[1].Value)
+
+	results, err = repo.GetDataBySource("src-1", 1)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, "200", results[0].Value, "limit should be respected")
+}
+
+func TestInMemoryOracleRepository_GetLatestData(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d1", SourceID: "src-1", Value: "100", Timestamp: 1000}))
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d2", SourceID: "src-1", Value: "200", Timestamp: 2000}))
+
+	latest, err := repo.GetLatestData("src-1")
+	require.NoError(t, err)
+	require.NotNil(t, latest)
+	require.Equal(t, "200", latest.Value)
+
+	_, err = repo.GetLatestData("nonexistent")
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestInMemoryOracleRepository_GetDataByTimeRange(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d1", SourceID: "src-1", Value: "100", Timestamp: 1000}))
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d2", SourceID: "src-1", Value: "200", Timestamp: 2000}))
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d3", SourceID: "src-1", Value: "300", Timestamp: 3000}))
+	require.NoError(t, repo.SaveData(&oracle.OracleData{ID: "d4", SourceID: "src-2", Value: "400", Timestamp: 2000}))
+
+	results, err := repo.GetDataByTimeRange("src-1", 1500, 2500)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, "200", results[0].Value)
+}
+
+func TestInMemoryOracleRepository_SaveSourceAndGetSource(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	source := &oracle.DataSource{
+		ID:       "src-1",
+		Name:     "Test Source",
+		URL:      "https://example.com",
+		Enabled:  true,
+		Interval: 60,
+	}
+	require.NoError(t, repo.SaveSource(source))
+
+	retrieved, err := repo.GetSource("src-1")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.Equal(t, "Test Source", retrieved.Name)
+	require.True(t, retrieved.Enabled)
+
+	_, err = repo.GetSource("nonexistent")
+	require.NoError(t, err)
+	require.Nil(t, nil)
+}
+
+func TestInMemoryOracleRepository_SaveSource_AutoIDAndTimestamp(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	source := &oracle.DataSource{
+		Name:    "Auto Source",
+		URL:     "https://example.com",
+		Enabled: true,
+	}
+	require.NoError(t, repo.SaveSource(source))
+	require.NotEmpty(t, source.ID, "SaveSource should auto-generate ID")
+	require.NotZero(t, source.CreatedAt, "SaveSource should auto-generate CreatedAt")
+}
+
+func TestInMemoryOracleRepository_ListSources(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	require.NoError(t, repo.SaveSource(&oracle.DataSource{ID: "s1", Name: "S1", CreatedAt: 100}))
+	require.NoError(t, repo.SaveSource(&oracle.DataSource{ID: "s2", Name: "S2", CreatedAt: 200}))
+	require.NoError(t, repo.SaveSource(&oracle.DataSource{ID: "s3", Name: "S3", CreatedAt: 150}))
+
+	sources, err := repo.ListSources()
+	require.NoError(t, err)
+	require.Len(t, sources, 3)
+	require.Equal(t, "S2", sources[0].Name, "should be sorted by CreatedAt DESC")
+	require.Equal(t, "S3", sources[1].Name)
+	require.Equal(t, "S1", sources[2].Name)
+}
+
+func TestInMemoryOracleRepository_UpdateSource(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	source := &oracle.DataSource{ID: "s1", Name: "Original", URL: "https://original.com", Enabled: true}
+	require.NoError(t, repo.SaveSource(source))
+
+	updated := &oracle.DataSource{ID: "s1", Name: "Updated", URL: "https://updated.com", Enabled: false}
+	require.NoError(t, repo.UpdateSource(updated))
+
+	retrieved, err := repo.GetSource("s1")
+	require.NoError(t, err)
+	require.Equal(t, "Updated", retrieved.Name)
+	require.False(t, retrieved.Enabled)
+}
+
+func TestInMemoryOracleRepository_SetSourceEnabled(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	source := &oracle.DataSource{ID: "s1", Name: "S1", Enabled: false}
+	require.NoError(t, repo.SaveSource(source))
+
+	require.NoError(t, repo.SetSourceEnabled("s1", true))
+	retrieved, err := repo.GetSource("s1")
+	require.NoError(t, err)
+	require.True(t, retrieved.Enabled)
+
+	err = repo.SetSourceEnabled("nonexistent", true)
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
+func TestInMemoryOracleRepository_DeleteSource(t *testing.T) {
+	repo := NewInMemoryOracleRepository()
+
+	require.NoError(t, repo.SaveSource(&oracle.DataSource{ID: "s1", Name: "S1"}))
+	require.NoError(t, repo.DeleteSource("s1"))
+
+	retrieved, err := repo.GetSource("s1")
+	require.NoError(t, err)
+	require.Nil(t, retrieved)
+}

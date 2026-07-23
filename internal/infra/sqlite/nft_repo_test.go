@@ -317,6 +317,57 @@ func TestNFTRepository_Close(t *testing.T) {
 	}
 }
 
+func TestNFTRepository_UpdateNFT(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	n := &nft.NFT{
+		ID:          "nft-1",
+		Name:        "Original",
+		Description: "desc",
+		ImageURL:    "https://example.com/1.png",
+		TokenURI:    "ipfs://Qm1",
+		Owner:       []byte("owner1"),
+		Creator:     []byte("creator1"),
+		BlockHeight: 1,
+		Timestamp:   100,
+	}
+	require.NoError(t, repo.SaveNFT(n))
+
+	n.Name = "Updated"
+	n.Description = "new desc"
+	require.NoError(t, repo.UpdateNFT(n))
+
+	retrieved, err := repo.GetNFT("nft-1")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.Equal(t, "Updated", retrieved.Name)
+	require.Equal(t, "new desc", retrieved.Description)
+}
+
+func TestNFTRepository_DeleteNFT(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.SaveNFT(&nft.NFT{
+		ID: "nft-1", Name: "Test", Owner: []byte("owner1"), Creator: []byte("creator1"),
+	}))
+
+	require.NoError(t, repo.DeleteNFT("nft-1"))
+
+	retrieved, err := repo.GetNFT("nft-1")
+	require.NoError(t, err)
+	require.Nil(t, retrieved, "NFT should be deleted")
+}
+
+func TestNFTRepository_DeleteNFT_AlreadyDeleted(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.DeleteNFT("nft-1"))
+	require.NoError(t, repo.DeleteNFT("nft-1"))
+}
+
 func testNFT(repo *NFTRepository, t *testing.T) *nft.NFT {
 	t.Helper()
 	n := &nft.NFT{
