@@ -461,3 +461,51 @@ func TestAddSource_URLValidation(t *testing.T) {
 		})
 	}
 }
+
+// TestGenerateID_Uniqueness verifies that generateID does not produce
+// duplicate IDs when called in rapid succession. The previous implementation
+// used only second-level timestamp precision ("20060102150405"), which meant
+// two calls within the same second returned the same ID — causing silent
+// overwrites in the repository.
+func TestGenerateID_Uniqueness(t *testing.T) {
+	ids := make(map[string]bool, 100)
+	for i := 0; i < 100; i++ {
+		id := generateID()
+		if id == "" {
+			t.Fatal("generateID returned empty string")
+		}
+		if ids[id] {
+			t.Fatalf("generateID produced duplicate ID %q at iteration %d", id, i)
+		}
+		ids[id] = true
+	}
+}
+
+// TestAddSource_ProducesUniqueIDs verifies that AddSource assigns a unique
+// ID to each source, even when sources are added in rapid succession.
+func TestAddSource_ProducesUniqueIDs(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	for i := 0; i < 50; i++ {
+		source := &DataSource{
+			Name: "test-source",
+			URL:  "https://api.example.com",
+			Type: "http",
+		}
+		if err := svc.AddSource(source); err != nil {
+			t.Fatalf("AddSource failed at iteration %d: %v", i, err)
+		}
+		if source.ID == "" {
+			t.Fatalf("expected non-empty ID at iteration %d", i)
+		}
+	}
+
+	sources, err := repo.ListSources()
+	if err != nil {
+		t.Fatalf("ListSources failed: %v", err)
+	}
+	if len(sources) != 50 {
+		t.Fatalf("expected 50 sources, got %d (possible ID collision)", len(sources))
+	}
+}

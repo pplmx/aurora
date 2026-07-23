@@ -128,8 +128,14 @@ func (s *service) QueryData(sourceID string, limit int) ([]*OracleData, error) {
 	return s.repo.GetDataBySource(sourceID, limit)
 }
 
+// generateID produces a unique identifier for oracle sources and data
+// entries. The previous implementation used time.Now().Format("20060102150405")
+// which only has second-level precision — two entries created within the same
+// second would collide, silently overwriting each other in the database.
+// We now append nanosecond precision to the timestamp to minimize collision
+// probability while keeping the ID human-readable for debugging.
 func generateID() string {
-	return time.Now().Format("20060102150405")
+	return time.Now().Format("20060102150405.000000000")
 }
 
 type OracleError struct {
