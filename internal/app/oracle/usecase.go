@@ -60,8 +60,14 @@ func (uc *FetchDataUseCase) executeWithChain(req *FetchDataRequest, chain ChainI
 	}
 
 	if chain != nil {
-		jsonData, _ := json.Marshal(data)
-		height, _ := chain.AddLotteryRecord(string(jsonData))
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal oracle data: %w", err)
+		}
+		height, err := chain.AddLotteryRecord(string(jsonData))
+		if err != nil {
+			return nil, fmt.Errorf("failed to record on chain: %w", err)
+		}
 		data.BlockHeight = height
 	}
 

@@ -477,6 +477,29 @@ func TestFetchDataUseCase_WithChainNil(t *testing.T) {
 	require.Equal(t, int64(0), resp.BlockHeight)
 }
 
+func TestFetchDataUseCase_WithChainError(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "test-id", Name: "Test", Enabled: true},
+		},
+	}
+	chain := &mockChain{err: errors.New("chain recording failed")}
+	uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{
+		data: &oracle.OracleData{
+			ID:        "data-id",
+			SourceID:  "test-id",
+			Value:     "100.50",
+			Timestamp: time.Now().Unix(),
+		},
+	})
+	uc.SetChain(chain)
+
+	_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to record on chain")
+	require.False(t, repo.saveDataCalled, "data should not be saved when chain recording fails")
+}
+
 func TestAddSourceUseCase_SaveError(t *testing.T) {
 	repo := &mockOracleRepo{
 		sourceErr: errors.New("save error"),

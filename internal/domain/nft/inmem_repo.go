@@ -50,17 +50,8 @@ func (r *inmemRepo) GetNFTsByCreator(creator []byte) ([]*NFT, error) {
 
 	var result []*NFT
 	for _, nft := range r.nfts {
-		if len(nft.Creator) == len(creator) {
-			match := true
-			for i := range nft.Creator {
-				if nft.Creator[i] != creator[i] {
-					match = false
-					break
-				}
-			}
-			if match {
-				result = append(result, nft)
-			}
+		if bytes.Equal(nft.Creator, creator) {
+			result = append(result, nft)
 		}
 	}
 	return result, nil
