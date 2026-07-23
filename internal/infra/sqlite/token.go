@@ -359,10 +359,6 @@ func (r *TokenRepository) GetAccountBalance(tokenID token.TokenID, owner token.P
 	return amount, nil
 }
 
-func (r *TokenRepository) UpdateBalance(tokenID token.TokenID, owner token.PublicKey, amount *token.Amount) error {
-	return r.SetAccountBalance(tokenID, owner, amount)
-}
-
 func (r *TokenRepository) SetAccountBalance(tokenID token.TokenID, owner token.PublicKey, amount *token.Amount) error {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 	id := fmt.Sprintf("%s-%s", tokenID, ownerB64)

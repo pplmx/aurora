@@ -641,3 +641,10 @@ func TestTokenRepository_TryAddToSupply_ConcurrentNoLostUpdate(t *testing.T) {
 			goroutines, mintEach, supply, expected)
 	}
 }
+
+func TestTokenRepository_GetDB(t *testing.T) {
+	repo, cleanup := setupTokenTestDB(t)
+	defer cleanup()
+
+	require.NotNil(t, repo.GetDB(), "GetDB should return non-nil database handle")
+}
