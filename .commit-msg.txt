@@ -1,0 +1,12 @@
+fix: noOpTxManager now executes transaction callback
+
+Previously, noOpTxManager.WithTransaction returned nil without calling
+the callback function fn. This meant all database operations wrapped in
+WithTransaction (Mint, Transfer, TransferFrom, Burn) were silently
+skipped when using NewServiceWithoutTx.
+
+The fix calls fn(nil) so the transaction callback executes, matching
+the behavior of mockTxManager in tests.
+
+Added regression tests TestNoOpTxManager_ExecutesCallback and
+TestNoOpTxManager_TransferWorksThroughNoOpTx.

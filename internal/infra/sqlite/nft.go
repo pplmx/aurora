@@ -249,6 +249,79 @@ func (r *NFTRepository) UpdateNFT(n *nft.NFT) error {
 	return err
 }
 
+// TryTransferOwnership atomically transfers the NFT's owner from
+// `from` to `to`. The conditional UPDATE — `WHERE id = ? AND owner
+// = ?` — is the atomicity primitive: only the caller that still
+// holds the expected owner succeeds. RowsAffected==0 means either
+// the NFT does not exist or its owner has moved; in both cases
+// the transfer is rejected with nft.ErrOwnershipChanged (or the
+// underlying "not found" error if we can disambiguate).
+//
+// This closes the TOCTOU window in NFTService.Transfer where two
+// concurrent transfers both observed the same owner, both
+// computed their own recipient, and the last writer silently
+// clobbered the other.
+func (r *NFTRepository) TryTransferOwnership(nftID string, from, to []byte) error {
+	fromB64 := base64.StdEncoding.EncodeToString(from)
+	toB64 := base64.StdEncoding.EncodeToString(to)
+	res, err := r.db.Exec(`
+		UPDATE nfts SET owner = ?
+		WHERE id = ? AND owner = ?
+	`, toB64, nftID, fromB64)
+	if err != nil {
+		return fmt.Errorf("try transfer ownership: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("try transfer ownership rows: %w", err)
+	}
+	if affected == 0 {
+		// Disambiguate "missing" from "ownership changed" so the
+		// caller can return the right error code.
+		existing, err := r.GetNFT(nftID)
+		if err != nil {
+			return err
+		}
+		if existing == nil {
+			return fmt.Errorf("nft %q not found", nftID)
+		}
+		return nft.ErrOwnershipChanged
+	}
+	return nil
+}
+
+// TryDeleteNFTIfOwned atomically deletes the NFT if its current
+// owner matches `expectedOwner`. Same pattern as
+// TryTransferOwnership: a single conditional DELETE statement
+// where the row-level lock acquired by SQLite during the DELETE
+// guarantees no other writer can sneak in between our ownership
+// check and our delete. RowsAffected==0 disambiguates "missing"
+// from "ownership moved" via a follow-up read.
+func (r *NFTRepository) TryDeleteNFTIfOwned(nftID string, expectedOwner []byte) error {
+	ownerB64 := base64.StdEncoding.EncodeToString(expectedOwner)
+	res, err := r.db.Exec(`
+		DELETE FROM nfts WHERE id = ? AND owner = ?
+	`, nftID, ownerB64)
+	if err != nil {
+		return fmt.Errorf("try delete nft if owned: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("try delete nft if owned rows: %w", err)
+	}
+	if affected == 0 {
+		existing, err := r.GetNFT(nftID)
+		if err != nil {
+			return err
+		}
+		if existing == nil {
+			return nft.ErrNFTNotFound
+		}
+		return nft.ErrOwnershipChanged
+	}
+	return nil
+}
+
 func (r *NFTRepository) DeleteNFT(id string) error {
 	_, err := r.db.Exec(`DELETE FROM nfts WHERE id = ?`, id)
 	return err

@@ -10,12 +10,13 @@ import (
 )
 
 type mockOracleRepo struct {
-	sources         []*oracle.DataSource
-	data            []*oracle.OracleData
-	dataErr         error
-	sourceErr       error
-	saveDataCalled  bool
-	updateSourceErr error
+	sources             []*oracle.DataSource
+	data                []*oracle.OracleData
+	dataErr             error
+	sourceErr           error
+	saveDataCalled      bool
+	updateSourceErr     error
+	setSourceEnabledErr error
 }
 
 type mockFetcher struct {
@@ -128,6 +129,19 @@ func (m *mockOracleRepo) UpdateSource(s *oracle.DataSource) error {
 		}
 	}
 	return nil
+}
+
+func (m *mockOracleRepo) SetSourceEnabled(id string, enabled bool) error {
+	if m.setSourceEnabledErr != nil {
+		return m.setSourceEnabledErr
+	}
+	for _, src := range m.sources {
+		if src.ID == id {
+			src.Enabled = enabled
+			return nil
+		}
+	}
+	return oracle.ErrSourceNotFound
 }
 
 func (m *mockOracleRepo) DeleteSource(id string) error {
@@ -490,7 +504,7 @@ func TestEnableSourceUseCase_UpdateError(t *testing.T) {
 		sources: []*oracle.DataSource{
 			{ID: "test-id", Name: "Test", Enabled: false},
 		},
-		updateSourceErr: errors.New("update failed"),
+		setSourceEnabledErr: errors.New("update failed"),
 	}
 	uc := NewEnableSourceUseCase(repo)
 
@@ -512,7 +526,7 @@ func TestDisableSourceUseCase_UpdateError(t *testing.T) {
 		sources: []*oracle.DataSource{
 			{ID: "test-id", Name: "Test", Enabled: true},
 		},
-		updateSourceErr: errors.New("update failed"),
+		setSourceEnabledErr: errors.New("update failed"),
 	}
 	uc := NewDisableSourceUseCase(repo)
 

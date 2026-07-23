@@ -5,34 +5,61 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/spf13/viper"
 )
 
+// Translator holds per-locale message tables.
+//
+// Concurrency: locale and messages are guarded by mu. Without this
+// guard, concurrent callers (e.g. the API server running multiple
+// HTTP handlers) could observe a partially-updated map during a
+// locale switch or during LoadLocaleFile's bulk insert. The race
+// detector trip was historically latent because callers were all
+// single-goroutine; it became real when any HTTP handler reached
+// across goroutines.
+//
+// The mutex is RWMutex because reads (T/TFormat) far outnumber
+// writes (Init/SetLocale/LoadLocaleFile).
 type Translator struct {
+	mu       sync.RWMutex
 	locale   string
 	messages map[string]map[string]string
 }
 
-var t *Translator
+var (
+	t       *Translator
+	tInitMu sync.Mutex // protects the package-level t pointer itself
+)
 
 func Init(locale string) *Translator {
-	t = &Translator{
+	tr := &Translator{
 		locale:   locale,
 		messages: make(map[string]map[string]string),
 	}
-	t.loadMessages()
-	return t
+	tr.loadMessages()
+	tInitMu.Lock()
+	t = tr
+	tInitMu.Unlock()
+	return tr
 }
 
 func GetTranslator() *Translator {
+	tInitMu.Lock()
+	defer tInitMu.Unlock()
 	if t == nil {
+		tInitMu.Unlock()
 		t = Init("en")
+		tInitMu.Lock()
 	}
 	return t
 }
 
 func (tr *Translator) loadMessages() {
+	// loadMessages is only called from Init on a fresh Translator,
+	// before it is published to the package-level t. So no locking
+	// is needed here. If this ever changes, callers must hold tr.mu.
 	tr.messages["en"] = map[string]string{
 		// App
 		"app.name":       "Aurora - Blockchain System",
@@ -621,6 +648,8 @@ func (tr *Translator) loadMessages() {
 
 func (tr *Translator) loadFromConfig() {
 	// Get locale from config if not set
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
 	if tr.locale == "" {
 		tr.locale = viper.GetString("locale")
 	}
@@ -630,6 +659,8 @@ func (tr *Translator) loadFromConfig() {
 }
 
 func (tr *Translator) T(key string) string {
+	tr.mu.RLock()
+	defer tr.mu.RUnlock()
 	if msg, ok := tr.messages[tr.locale][key]; ok {
 		return msg
 	}
@@ -645,14 +676,20 @@ func (tr *Translator) TFormat(key string, args ...interface{}) string {
 }
 
 func (tr *Translator) SetLocale(locale string) {
+	tr.mu.Lock()
 	tr.locale = locale
+	tr.mu.Unlock()
 }
 
 func (tr *Translator) GetLocale() string {
+	tr.mu.RLock()
+	defer tr.mu.RUnlock()
 	return tr.locale
 }
 
 func (tr *Translator) AvailableLocales() []string {
+	tr.mu.RLock()
+	defer tr.mu.RUnlock()
 	locales := make([]string, 0, len(tr.messages))
 	for k := range tr.messages {
 		locales = append(locales, k)
@@ -693,13 +730,22 @@ func LoadLocaleFile(path string) error {
 	}
 
 	trans := GetTranslator()
-	trans.SetLocale(locale)
 
-	for key, value := range viper.AllSettings() {
+	// Snapshot all settings under viper's own lock (viper is
+	// goroutine-safe for reads but we still want a consistent
+	// snapshot), then take the translator's write lock to install
+	// the new keys.
+	settings := viper.AllSettings()
+
+	trans.mu.Lock()
+	defer trans.mu.Unlock()
+	if trans.messages[locale] == nil {
+		trans.messages[locale] = make(map[string]string)
+	}
+	for key, value := range settings {
 		if str, ok := value.(string); ok {
 			trans.messages[locale][key] = str
 		}
 	}
-
 	return nil
 }

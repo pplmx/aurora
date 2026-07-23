@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -59,7 +60,14 @@ var createCmd = &cobra.Command{
 		fmt.Printf("🔢 Block height: #%d\n", resp.BlockHeight)
 		fmt.Println("\n🎉 Winners:")
 		for i, w := range resp.Winners {
-			fmt.Printf("   %d. %s (%s)\n", i+1, w, resp.WinnerAddresses[i])
+			// Guard against mismatched slice lengths (could happen with
+			// imported data, older DB schemas, or partial writes).
+			// Without this check the CLI panics with index-out-of-range.
+			addr := "(no address)"
+			if i < len(resp.WinnerAddresses) {
+				addr = resp.WinnerAddresses[i]
+			}
+			fmt.Printf("   %d. %s (%s)\n", i+1, w, addr)
 		}
 		fmt.Printf("\n🔐 VRF Output: %s...\n", resp.VRFOutput[:min(16, len(resp.VRFOutput))])
 		fmt.Printf("📜 VRF Proof: %s...\n", resp.VRFProof[:min(16, len(resp.VRFProof))])
@@ -80,8 +88,22 @@ var historyCmd = &cobra.Command{
 	Use:   "history",
 	Short: i18n.GetText("lottery.history"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		chain := blockchain.InitBlockChain()
-		records := chain.GetLotteryRecords()
+		// Read from the persistent lottery_records table, not the in-memory
+		// chain. The chain's in-memory append is intentionally not flushed
+		// back to the blocks table (per AddBlock's current contract), so
+		// reading GetLotteryRecords() returns empty across process
+		// boundaries — which the lottery_records table was specifically
+		// designed to prevent.
+		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		if err != nil {
+			return fmt.Errorf("failed to open lottery repository: %w", err)
+		}
+		defer func() { _ = repo.Close() }()
+
+		records, err := repo.GetAll()
+		if err != nil {
+			return fmt.Errorf("failed to read history: %w", err)
+		}
 
 		if len(records) == 0 {
 			fmt.Println("No lottery records found.")
@@ -89,9 +111,13 @@ var historyCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n📜 Total lotteries: %d\n\n", len(records))
-		for i, data := range records {
+		for i, record := range records {
+			jsonData, err := record.ToJSON()
+			if err != nil {
+				continue
+			}
 			fmt.Printf("--- Lottery #%d ---\n", i+1)
-			fmt.Println(data[:min(200, len(data))])
+			fmt.Println(jsonData[:min(200, len(jsonData))])
 			fmt.Println()
 		}
 		return nil
@@ -104,57 +130,136 @@ var verifyCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		input := args[0]
-		chain := blockchain.InitBlockChain()
+
+		// Open the persistent lottery repository. We can't rely on
+		// the in-memory chain for lookup because AddBlock doesn't flush
+		// back to the blocks table, so reads across processes (or even
+		// separate command invocations) would return empty.
+		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		if err != nil {
+			return fmt.Errorf("failed to open lottery repository: %w", err)
+		}
+		defer func() { _ = repo.Close() }()
 
 		var record *domainlottery.LotteryRecord
 
 		// Try to parse as block height first
 		var height int64
 		if _, err := fmt.Sscanf(input, "%d", &height); err == nil {
-			// It's a number, treat as block height
-			data, err := chain.GetBlockData(height)
+			records, err := repo.GetByBlockHeight(height)
 			if err != nil {
-				return fmt.Errorf("failed to get block: %w", err)
+				return fmt.Errorf("failed to read by block height: %w", err)
 			}
-			record = &domainlottery.LotteryRecord{}
-			if err := json.Unmarshal([]byte(data), record); err != nil {
-				return fmt.Errorf("failed to parse record: %w", err)
+			if len(records) == 0 {
+				return fmt.Errorf("lottery not found: %s", input)
 			}
+			record = records[0]
 		} else {
-			// Try to find by ID
-			records := chain.GetLotteryRecords()
-			found := false
-			for _, data := range records {
-				if strings.Contains(data, input) {
-					record = &domainlottery.LotteryRecord{}
-					if err := json.Unmarshal([]byte(data), record); err == nil {
-						found = true
+			// Try exact ID match first (the common case), then fall back
+			// to a substring match so partial IDs work the way they used
+			// to before this command was rewritten to read from the
+			// persistent store.
+			record, err = repo.GetByID(input)
+			if err != nil {
+				all, getAllErr := repo.GetAll()
+				if getAllErr != nil {
+					return fmt.Errorf("failed to read history: %w", getAllErr)
+				}
+				for _, r := range all {
+					if strings.Contains(r.ID, input) || strings.Contains(r.Seed, input) {
+						record = r
+						err = nil
 						break
 					}
 				}
-			}
-			if !found {
-				return fmt.Errorf("lottery not found: %s", input)
+				if err != nil {
+					return fmt.Errorf("lottery not found: %s", input)
+				}
 			}
 		}
 
 		// Display verification info
-		fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
-		fmt.Printf("📋 ID: %s\n", record.ID)
+		fmt.Println("\n📋 " + i18n.GetText("lottery.lottery_id") + ": " + record.ID)
 		fmt.Printf("🔢 Block Height: #%d\n", record.BlockHeight)
 		fmt.Printf("🌱 Seed: %s\n", record.Seed)
 		fmt.Printf("👥 Participants: %d\n", len(record.Participants))
 		fmt.Printf("🎉 Winners: %d\n", len(record.Winners))
+
+		// Perform deterministic verification. We can't re-verify the VRF
+		// proof without the public key (which we deliberately do not store
+		// per draw), but we CAN re-run SelectWinners on the stored VRF
+		// output and check that the recorded winners match what the
+		// deterministic selection function would produce.
+		//
+		// Note on the "✅ Verified" UX: previously this command printed
+		// "✅ Lottery Record Verified!" after a plain JSON parse — that
+		// was a false positive. We now actually check the record's
+		// integrity and report honest results.
+		integrityOK := true
+		vrfOutputBytes, err := hex.DecodeString(record.VRFOutput)
+		if err != nil {
+			fmt.Println("\n❌ Verification FAILED: VRF output is not valid hex")
+			integrityOK = false
+		} else if _, err := hex.DecodeString(record.VRFProof); err != nil {
+			fmt.Println("\n❌ Verification FAILED: VRF proof is not valid hex")
+			integrityOK = false
+		} else {
+			expected := domainlottery.SelectWinners(vrfOutputBytes, record.Participants, len(record.Winners))
+			if !sameStringSet(expected, record.Winners) {
+				fmt.Println("\n❌ Verification FAILED: stored winners do not match the VRF output")
+				fmt.Println("   Expected:", expected)
+				fmt.Println("   Stored:  ", record.Winners)
+				integrityOK = false
+			} else if len(record.Winners) != len(record.WinnerAddresses) {
+				fmt.Println("\n⚠️  Stored record has mismatched winner/address slices (possible data corruption)")
+				integrityOK = false
+			} else {
+				fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
+			}
+		}
+
 		fmt.Println("\n🏆 Winners:")
 		for i, w := range record.Winners {
-			fmt.Printf("   %d. %s (%s)\n", i+1, w, record.WinnerAddresses[i])
+			// Same guard as in createCmd: defend against mismatched slice
+			// lengths in imported/corrupted records.
+			addr := "(no address)"
+			if i < len(record.WinnerAddresses) {
+				addr = record.WinnerAddresses[i]
+			}
+			fmt.Printf("   %d. %s (%s)\n", i+1, w, addr)
 		}
 		fmt.Printf("\n🔐 VRF Output: %s...\n", record.VRFOutput[:min(16, len(record.VRFOutput))])
 		fmt.Printf("📜 VRF Proof: %s...\n", record.VRFProof[:min(16, len(record.VRFProof))])
 		fmt.Printf("⏰ Timestamp: %d\n", record.Timestamp)
 
+		if !integrityOK {
+			// Surface the failure to the caller (e.g. shell scripts that
+			// check $?) without also printing the success summary.
+			return fmt.Errorf("lottery record failed integrity check")
+		}
 		return nil
 	},
+}
+
+// sameStringSet returns true if a and b contain the same elements,
+// regardless of order. SelectWinners returns winners in the order they
+// were drawn from the VRF stream, but the stored record could be reordered
+// in transit; we want to compare sets, not ordered lists.
+func sameStringSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	count := make(map[string]int, len(a))
+	for _, s := range a {
+		count[s]++
+	}
+	for _, s := range b {
+		count[s]--
+		if count[s] < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 var exportCmd = &cobra.Command{
@@ -163,18 +268,21 @@ var exportCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filename := args[0]
-		chain := blockchain.InitBlockChain()
-		records := chain.GetLotteryRecords()
 
-		var lotteryRecords []*domainlottery.LotteryRecord
-		for _, data := range records {
-			var record domainlottery.LotteryRecord
-			if err := json.Unmarshal([]byte(data), &record); err == nil {
-				lotteryRecords = append(lotteryRecords, &record)
-			}
+		// Read from the persistent lottery_records table, not the in-memory
+		// chain — see historyCmd for the full rationale.
+		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		if err != nil {
+			return fmt.Errorf("failed to open lottery repository: %w", err)
+		}
+		defer func() { _ = repo.Close() }()
+
+		records, err := repo.GetAll()
+		if err != nil {
+			return fmt.Errorf("failed to read records: %w", err)
 		}
 
-		output, err := json.MarshalIndent(lotteryRecords, "", "  ")
+		output, err := json.MarshalIndent(records, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal: %w", err)
 		}
@@ -183,7 +291,7 @@ var exportCmd = &cobra.Command{
 			return fmt.Errorf("failed to write file: %w", err)
 		}
 
-		fmt.Printf("✅ Exported %d lottery records to %s\n", len(lotteryRecords), filename)
+		fmt.Printf("✅ Exported %d lottery records to %s\n", len(records), filename)
 		return nil
 	},
 }
@@ -205,21 +313,44 @@ var importCmd = &cobra.Command{
 			return fmt.Errorf("failed to parse file: %w", err)
 		}
 
-		chain := blockchain.InitBlockChain()
-		imported := 0
+		// Persist via the SQLite repository, not the in-memory chain —
+		// AddBlock doesn't flush back to the blocks table, so writing
+		// through the chain would lose the records on the next process
+		// start.
+		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		if err != nil {
+			return fmt.Errorf("failed to open lottery repository: %w", err)
+		}
+		defer func() { _ = repo.Close() }()
 
-		for _, record := range records {
-			jsonData, err := record.ToJSON()
-			if err != nil {
+		imported := 0
+		var failed []int // indices of records that failed to import
+
+		for i, record := range records {
+			// Validate the record before accepting it. An imported file is
+			// untrusted input — we must not let bad data corrupt the chain.
+			if err := record.Validate(); err != nil {
+				failed = append(failed, i)
 				continue
 			}
-			if _, err := chain.AddLotteryRecord(jsonData); err == nil {
-				imported++
+			if err := repo.Save(&record); err != nil {
+				failed = append(failed, i)
+				continue
 			}
+			imported++
 		}
 
-		fmt.Printf("✅ Imported %d lottery records\n", imported)
-		return nil
+		if len(failed) == 0 {
+			fmt.Printf("✅ Imported %d lottery records\n", imported)
+			return nil
+		}
+		// Partial failure: surface the problem honestly. Returning a
+		// non-nil error also lets CI / shell scripts detect the partial
+		// failure via $?, instead of silently treating it as success.
+		fmt.Printf("⚠️  Imported %d of %d lottery records (failed: %d)\n",
+			imported, len(records), len(failed))
+		fmt.Printf("   Failed record indices (0-based): %v\n", failed)
+		return fmt.Errorf("import partially failed: %d of %d records rejected", len(failed), len(records))
 	},
 }
 

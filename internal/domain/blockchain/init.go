@@ -13,6 +13,8 @@ import (
 var (
 	instance   *BlockChain
 	dbInstance *sql.DB
+	dbInitOnce sync.Once
+	dbInitErr  error
 	once       sync.Once
 )
 
@@ -26,32 +28,42 @@ func DBPath() string {
 	return defaultDBPath
 }
 
+// InitDB returns the process-wide singleton *sql.DB, opening it on
+// the first call. Concurrent callers all observe the same pointer
+// (the sync.Once guarantees sql.Open runs exactly once).
+//
+// The previous implementation read dbInstance, called sql.Open, and
+// assigned dbInstance without any synchronization — two concurrent
+// callers could both see nil, both call sql.Open, and leak the first
+// connection (it would never get closed).
 func InitDB() (*sql.DB, error) {
-	if dbInstance != nil {
-		return dbInstance, nil
-	}
+	dbInitOnce.Do(func() {
+		dir := filepath.Dir(defaultDBPath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			dbInitErr = err
+			return
+		}
 
-	dir := filepath.Dir(defaultDBPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, err
-	}
+		db, err := sql.Open("sqlite3", defaultDBPath+"?_foreign_keys=ON")
+		if err != nil {
+			dbInitErr = err
+			return
+		}
 
-	db, err := sql.Open("sqlite3", defaultDBPath+"?_foreign_keys=ON")
-	if err != nil {
-		return nil, err
-	}
+		if err := db.Ping(); err != nil {
+			_ = db.Close()
+			dbInitErr = err
+			return
+		}
 
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
-	dbInstance = db
-	return dbInstance, nil
+		dbInstance = db
+	})
+	return dbInstance, dbInitErr
 }
 
 func InitBlockChain() *BlockChain {
 	once.Do(func() {
-		chain := &BlockChain{[]*Block{Genesis()}}
+		chain := &BlockChain{Blocks: []*Block{Genesis()}}
 
 		if db, err := InitDB(); err == nil {
 			if _, err := db.Exec(`
@@ -110,6 +122,8 @@ func ResetForTest() {
 		_ = dbInstance.Close()
 		dbInstance = nil
 	}
+	dbInitOnce = sync.Once{}
+	dbInitErr = nil
 	instance = nil
 	once = sync.Once{}
 	_ = os.RemoveAll("./data")

@@ -116,21 +116,41 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 	}, nil
 }
 
+// getSchemaVersion returns the highest schema_migrations.version found
+// across all configured DBs. Returns 0 if none of the DBs have a
+// schema_migrations table or all queries fail.
 func (s *BackupService) getSchemaVersion() uint {
+	var highest uint
 	for _, path := range s.dbPaths {
-		db, err := sql.Open("sqlite3", path)
-		if err != nil {
-			continue
-		}
-		defer db.Close()
-
-		var version int
-		err = db.QueryRow("SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1").Scan(&version)
-		if err == nil {
-			return uint(version)
+		v := querySchemaVersion(path)
+		if v > highest {
+			highest = v
 		}
 	}
-	return 0
+	return highest
+}
+
+// querySchemaVersion reads schema_migrations.version from a single SQLite DB.
+// Returns 0 if the table is missing or the file can't be opened; in either
+// case we treat that DB as "version 0" and let the caller decide the overall
+// result (typically the highest across all DBs wins).
+func querySchemaVersion(path string) uint {
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		return 0
+	}
+	defer db.Close()
+
+	var version int
+	if err := db.QueryRow(
+		"SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1",
+	).Scan(&version); err != nil {
+		return 0
+	}
+	if version < 0 {
+		return 0
+	}
+	return uint(version)
 }
 
 func (s *BackupService) Verify(ctx context.Context, backupPath string) error {

@@ -63,9 +63,14 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	if err := validateAPIKey(cfg.API.Key); err != nil {
+	resolvedKey, err := resolveAPIKey(cfg.API.Key)
+	if err != nil {
 		return nil, err
 	}
+	cfg.API.Key = resolvedKey
+	// Mirror into viper so GetAPIKey() (used by api.NewServer) returns the same
+	// key we just resolved — including the auto-generated dev key.
+	viper.Set("api.key", resolvedKey)
 
 	return &cfg, nil
 }
@@ -82,23 +87,33 @@ func GenerateAPIKey() (string, error) {
 	return base64.URLEncoding.EncodeToString(key), nil
 }
 
-func validateAPIKey(key string) error {
+// resolveAPIKey validates the supplied key (or generates a dev one when missing)
+// and returns the effective key to use.
+//
+// In production, an empty or known-insecure key is rejected with an error.
+// In any other environment, an empty key triggers generation of a random 32-byte
+// key (printed once to stdout) so local development just works.
+func resolveAPIKey(key string) (string, error) {
 	isProduction := strings.ToLower(os.Getenv("AURORA_ENV")) == "production"
 
 	if isProduction {
 		if key == "" {
-			return ErrMissingAPIKey
+			return "", ErrMissingAPIKey
 		}
 		if insecureKeys[key] {
-			return ErrInsecureAPIKey
+			return "", ErrInsecureAPIKey
 		}
-	} else if key == "" {
-		generated, err := GenerateAPIKey()
-		if err != nil {
-			return fmt.Errorf("generate development API key: %w", err)
-		}
-		fmt.Printf("Generated development API key: %s\n", generated)
+		return key, nil
 	}
 
-	return nil
+	if key != "" {
+		return key, nil
+	}
+
+	generated, err := GenerateAPIKey()
+	if err != nil {
+		return "", fmt.Errorf("generate development API key: %w", err)
+	}
+	fmt.Printf("Generated development API key: %s\n", generated)
+	return generated, nil
 }

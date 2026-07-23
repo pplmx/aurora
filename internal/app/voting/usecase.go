@@ -4,10 +4,12 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 type CastVoteUseCase struct {
@@ -46,9 +48,6 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	if voter == nil {
 		return nil, fmt.Errorf("voter not registered")
 	}
-	if voter.HasVoted {
-		return nil, fmt.Errorf("already voted")
-	}
 
 	candidate, err := uc.repo.GetCandidate(req.CandidateID)
 	if err != nil {
@@ -71,6 +70,36 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		return nil, fmt.Errorf("failed to sign vote: %w", err)
 	}
 
+	// Atomically claim the voter BEFORE saving the vote and
+	// incrementing the candidate count. The conditional UPDATE
+	// in TryMarkVoted closes the TOCTOU window that previously
+	// let two concurrent requests both pass the has_voted check.
+	//
+	// Ordering matters here. The pre-fix flow did SaveVote →
+	// TryMarkVoted → UpdateCandidate. If TryMarkVoted failed,
+	// the code did a best-effort DeleteVote rollback to remove
+	// the orphan vote row. If DeleteVote itself failed (DB
+	// hiccup, lost connection), the votes table was left with
+	// an orphan record for a voter who didn't actually win the
+	// claim race — the audit log would then show a vote that
+	// never counted, violating the votes-table ↔ voters-table
+	// invariant ("every vote in votes table has a corresponding
+	// has_voted=1 in voters table").
+	//
+	// Fix: claim the voter FIRST. If TryMarkVoted returns an
+	// error, we abort with no side effects — no orphan vote,
+	// no spurious candidate increment, no audit-log entry.
+	voteHash := base64.StdEncoding.EncodeToString([]byte(message))
+	if err := uc.repo.TryMarkVoted(req.VoterPublicKey, voteHash); err != nil {
+		if errors.Is(err, sqlite.ErrAlreadyVoted) {
+			return nil, fmt.Errorf("already voted")
+		}
+		if errors.Is(err, sqlite.ErrNotFound) {
+			return nil, fmt.Errorf("voter not registered")
+		}
+		return nil, fmt.Errorf("failed to mark voter: %w", err)
+	}
+
 	vote := voting.NewVote(req.VoterPublicKey, req.CandidateID, signature, message)
 	if err := uc.repo.SaveVote(vote); err != nil {
 		return nil, fmt.Errorf("failed to save vote: %w", err)
@@ -79,12 +108,6 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	candidate.VoteCount++
 	if err := uc.repo.UpdateCandidate(candidate); err != nil {
 		return nil, fmt.Errorf("failed to update candidate: %w", err)
-	}
-
-	voter.HasVoted = true
-	voter.VoteHash = base64.StdEncoding.EncodeToString([]byte(message))
-	if err := uc.repo.UpdateVoter(voter); err != nil {
-		return nil, fmt.Errorf("failed to update voter: %w", err)
 	}
 
 	return &VoteResponse{

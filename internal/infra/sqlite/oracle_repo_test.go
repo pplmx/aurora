@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -231,5 +232,113 @@ func TestOracleRepository_DeleteSource(t *testing.T) {
 	_, err = repo.GetSource("to-delete")
 	if err != nil {
 		t.Fatalf("Source should be deleted: %v", err)
+	}
+}
+
+// TestOracleRepository_SetSourceEnabled_ConcurrentDoesNotClobberOtherFields
+// is the regression test for the Round 34 oracle TOCTOU fix.
+//
+// Pre-fix behaviour: EnableSourceUseCase did
+//
+//	GetSource → mutate ds.Enabled in memory → UpdateSource(full
+//	row write). Two concurrent calls (e.g. Enable vs an
+//	UpdateURL flow) would both read the same row, mutate
+//	different fields, and the last UpdateSource would clobber
+//	the other caller's unrelated fields — silently losing
+//	URL/headers/interval updates.
+//
+// Post-fix behaviour: SetSourceEnabled writes ONLY the `enabled`
+// column. A concurrent writer that updates non-enabled fields
+// is no longer clobbered, because the new primitive's UPDATE
+// statement doesn't touch those columns.
+//
+// This test sets up a source, then in two goroutines
+// concurrently calls SetSourceEnabled(true) and
+// UpdateSource(...with a new URL and the SAME enabled=true).
+// Both writers agree on the final enabled state so the test
+// is deterministic; the real assertion is that the URL,
+// headers, and interval from UpdateSource survive
+// SetSourceEnabled — which they did NOT under the pre-fix
+// GetSource→mutate→UpdateSource flow, because that flow
+// would issue a full-row UPDATE and one writer's enabled flip
+// would land after the other's row write, losing the URL.
+// With SetSourceEnabled, the atomic UPDATE only touches
+// `enabled`, so URL/headers/interval survive.
+func TestOracleRepository_SetSourceEnabled_ConcurrentDoesNotClobberOtherFields(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	original := &oracle.DataSource{
+		ID:       "src-1",
+		Name:     "Original",
+		URL:      "https://original.example.com",
+		Type:     "json",
+		Method:   "GET",
+		Headers:  "X-Original: 1",
+		Path:     "/data",
+		Interval: 60,
+		Enabled:  false,
+	}
+	require.NoError(t, repo.SaveSource(original))
+
+	// Goroutine A: flips enabled to true via SetSourceEnabled.
+	enabledDone := make(chan error, 1)
+	go func() {
+		enabledDone <- repo.SetSourceEnabled("src-1", true)
+	}()
+
+	// Goroutine B: updates URL/headers/interval via UpdateSource.
+	// Crucially, B writes Enabled=true to agree with A's intent
+	// — that way the final enabled state is deterministic and
+	// the test only exercises whether non-enabled columns
+	// survive a concurrent SetSourceEnabled.
+	urlDone := make(chan error, 1)
+	go func() {
+		updated := &oracle.DataSource{
+			ID:       "src-1",
+			Name:     original.Name,
+			URL:      "https://new.example.com",
+			Type:     original.Type,
+			Method:   original.Method,
+			Headers:  "X-New: 1",
+			Path:     original.Path,
+			Interval: 120,
+			Enabled:  true,
+		}
+		urlDone <- repo.UpdateSource(updated)
+	}()
+
+	require.NoError(t, <-enabledDone)
+	require.NoError(t, <-urlDone)
+
+	got, err := repo.GetSource("src-1")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+
+	if !got.Enabled {
+		t.Errorf("expected enabled=true after both writers, got false")
+	}
+	if got.URL != "https://new.example.com" {
+		t.Errorf("expected URL preserved as new value, got %q (concurrent SetSourceEnabled clobbered the URL)", got.URL)
+	}
+	if got.Headers != "X-New: 1" {
+		t.Errorf("expected Headers preserved as new value, got %q", got.Headers)
+	}
+	if got.Interval != 120 {
+		t.Errorf("expected Interval preserved as new value, got %d", got.Interval)
+	}
+}
+
+// TestOracleRepository_SetSourceEnabled_NotFound asserts the
+// primitive returns ErrNotFound for a non-existent source ID
+// instead of silently succeeding.
+func TestOracleRepository_SetSourceEnabled_NotFound(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	err := repo.SetSourceEnabled("does-not-exist", true)
+	require.Error(t, err)
+	if !errors.Is(err, ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }

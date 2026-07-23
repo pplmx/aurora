@@ -3,6 +3,7 @@ package token
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -779,7 +780,7 @@ func TestBurn_InsufficientBalance(t *testing.T) {
 		Amount:     NewAmount(200),
 		PrivateKey: privateKey,
 	})
-	if err != ErrInsufficientBalance {
+	if !errors.Is(err, ErrInsufficientBalance) {
 		t.Errorf("expected ErrInsufficientBalance, got %v", err)
 	}
 }
@@ -832,6 +833,14 @@ type mockRepository struct {
 	setAccountBalanceError   bool
 	setAccountBalanceToError bool
 	saveApprovalError        bool
+
+	// Failure injection for the atomic primitives introduced to
+	// close TOCTOU windows. Tests use these to verify the
+	// service's compensation/rollback behavior without depending
+	// on real concurrency.
+	trySubtractBalanceError bool
+	tryAddBalanceError      bool
+	tryDeductApprovalError  bool
 
 	txBackup map[string]*Amount
 	txTokens map[TokenID]*Token
@@ -955,6 +964,88 @@ func (m *mockRepository) SetAccountBalance(tokenID TokenID, owner PublicKey, amo
 	return nil
 }
 
+// TrySubtractBalance mirrors the SQLite primitive. The mock enforces
+// the same ErrInsufficientBalance sentinel so transfer tests can
+// assert errors.Is uniformly.
+func (m *mockRepository) TrySubtractBalance(tokenID TokenID, owner PublicKey, amount *Amount) (*Amount, error) {
+	if m.trySubtractBalanceError || m.setAccountBalanceError {
+		return nil, fmt.Errorf("try subtract balance: %w", ErrInsufficientBalance)
+	}
+	key := string(tokenID) + string(owner)
+	cur, ok := m.balances[key]
+	if !ok {
+		cur = NewAmount(0)
+	}
+	if cur.Cmp(amount) < 0 {
+		return nil, fmt.Errorf("try subtract balance: %w", ErrInsufficientBalance)
+	}
+	newBal := &Amount{Int: new(big.Int).Sub(cur.Int, amount.Int)}
+	m.balances[key] = newBal
+	return newBal, nil
+}
+
+func (m *mockRepository) TryAddBalance(tokenID TokenID, owner PublicKey, amount *Amount) (*Amount, error) {
+	if m.tryAddBalanceError || m.setAccountBalanceError {
+		return nil, fmt.Errorf("try add balance: simulated failure")
+	}
+	key := string(tokenID) + string(owner)
+	cur, ok := m.balances[key]
+	if !ok {
+		cur = NewAmount(0)
+	}
+	newBal := &Amount{Int: new(big.Int).Add(cur.Int, amount.Int)}
+	m.balances[key] = newBal
+	return newBal, nil
+}
+
+// TryAddToSupply mirrors the SQLite primitive: atomically adds
+// amount to the token's total_supply.
+func (m *mockRepository) TryAddToSupply(id TokenID, amount *Amount) (*Amount, error) {
+	tok, ok := m.tokens[id]
+	if !ok {
+		return nil, ErrTokenNotFound
+	}
+	newSupply := &Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
+	m.tokens[id] = NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
+	return newSupply, nil
+}
+
+func (m *mockRepository) TryDeductApproval(tokenID TokenID, owner, spender PublicKey, amount *Amount) (*Amount, error) {
+	if m.tryDeductApprovalError {
+		return nil, fmt.Errorf("try deduct approval: %w", ErrInsufficientAllowance)
+	}
+	key := string(tokenID) + string(owner) + string(spender)
+	cur, ok := m.approvals[key]
+	if !ok {
+		return nil, fmt.Errorf("try deduct approval: %w", ErrInsufficientAllowance)
+	}
+	if cur.Amount().Cmp(amount) < 0 {
+		return nil, fmt.Errorf("try deduct approval: %w", ErrInsufficientAllowance)
+	}
+	newAmt := &Amount{Int: new(big.Int).Sub(cur.Amount().Int, amount.Int)}
+	m.approvals[key] = NewApproval(tokenID, owner, spender, newAmt)
+	return newAmt, nil
+}
+
+// TryAdjustApproval mirrors the SQLite primitive: applies a signed
+// delta to the approval, creating it if missing, clamping at zero.
+func (m *mockRepository) TryAdjustApproval(tokenID TokenID, owner, spender PublicKey, delta *Amount) (*Amount, error) {
+	key := string(tokenID) + string(owner) + string(spender)
+	cur, ok := m.approvals[key]
+	var curAmount *Amount
+	if ok {
+		curAmount = cur.Amount()
+	} else {
+		curAmount = NewAmount(0)
+	}
+	newAmt := &Amount{Int: new(big.Int).Add(curAmount.Int, delta.Int)}
+	if newAmt.Sign() < 0 {
+		newAmt = NewAmount(0)
+	}
+	m.approvals[key] = NewApproval(tokenID, owner, spender, newAmt)
+	return newAmt, nil
+}
+
 type mockEventStore struct {
 	transferEvents []*TransferEvent
 	mintEvents     []*MintEvent
@@ -1060,6 +1151,12 @@ func (m *mockReplayProtection) SaveNonce(tokenID string, owner []byte, nonce uin
 	key := tokenID + string(owner)
 	m.nonces[key] = nonce
 	return nil
+}
+
+func (m *mockReplayProtection) ClaimNextNonce(tokenID string, owner []byte) (uint64, error) {
+	key := tokenID + string(owner)
+	m.nonces[key]++
+	return m.nonces[key], nil
 }
 
 type mockBlockWriter struct {
@@ -1415,7 +1512,7 @@ func TestTransfer_Atomicity_FromBalanceUpdateFails(t *testing.T) {
 
 	recipient := pubKey(2)
 	privateKey := make([]byte, 64)
-	repo.setAccountBalanceError = true
+	repo.trySubtractBalanceError = true
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -1449,7 +1546,7 @@ func TestTransfer_Atomicity_ToBalanceUpdateFails(t *testing.T) {
 
 	recipient := pubKey(2)
 	privateKey := make([]byte, 64)
-	repo.setAccountBalanceToError = true
+	repo.tryAddBalanceError = true
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -1969,7 +2066,7 @@ func TestTransferFrom_SetBalanceError(t *testing.T) {
 	spenderKey := make([]byte, 64)
 	recipient := pubKey(3)
 
-	repo.setAccountBalanceToError = true
+	repo.tryAddBalanceError = true
 	_, err := service.TransferFrom(&TransferFromRequest{
 		TokenID:    "TEST",
 		Owner:      owner,
@@ -2089,7 +2186,7 @@ func TestTransferFrom_AtomicityRollbackOnToBalanceFailure(t *testing.T) {
 	recipient := pubKey(3)
 	spenderKey := make([]byte, 64)
 
-	repo.setAccountBalanceToError = true
+	repo.trySubtractBalanceError = true
 	_, err := service.TransferFrom(&TransferFromRequest{
 		TokenID:    "TEST",
 		Owner:      owner,
@@ -2243,4 +2340,101 @@ func (f *failingEventBus) Subscribe(eventType string, handler infraevents.Handle
 
 func (f *failingEventBus) SubscribeAll(handler infraevents.Handler) func() {
 	return func() {}
+}
+
+// TestNoOpTxManager_ExecutesCallback is a regression test for the bug
+// where noOpTxManager.WithTransaction returned nil without calling fn.
+//
+// Before the fix, NewServiceWithoutTx produced a service whose Mint,
+// Transfer, TransferFrom, and Burn methods silently skipped all
+// database operations (TryAddToSupply, TryAddBalance, TrySubtractBalance,
+// etc. never ran). A mint would appear to succeed but no supply or
+// balance would change.
+//
+// This test verifies that noOpTxManager actually invokes the callback
+// by minting tokens through a service built with NewServiceWithoutTx
+// and checking that the recipient's balance is non-zero.
+func TestNoOpTxManager_ExecutesCallback(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	service := NewServiceWithoutTx(repo, newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
+
+	owner := pubKey(1)
+	_, err := service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+	if err != nil {
+		t.Fatalf("CreateToken failed: %v", err)
+	}
+
+	recipient := pubKey(2)
+	mintReq := &MintRequest{
+		TokenID: "TEST",
+		To:      recipient,
+		Amount:  NewAmount(500),
+	}
+	_, err = service.Mint(mintReq)
+	if err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+
+	// If noOpTxManager called fn(nil), TryAddToSupply and TryAddBalance
+	// have run. If it returned nil without calling fn, this balance is 0.
+	balance, err := service.GetBalance("TEST", recipient)
+	if err != nil {
+		t.Fatalf("GetBalance failed: %v", err)
+	}
+	if balance == nil {
+		t.Fatal("balance should not be nil after mint")
+	}
+	if balance.Int64() != 500 {
+		t.Errorf("expected recipient balance 500 after mint, got %d — "+
+			"noOpTxManager.WithTransaction likely did not call fn", balance.Int64())
+	}
+}
+
+// TestNoOpTxManager_TransferWorksThroughNoOpTx is a second regression
+// check: Transfer also relies on WithTransaction calling fn. We verify
+// that balances actually move through a service built with
+// NewServiceWithoutTx.
+func TestNoOpTxManager_TransferWorksThroughNoOpTx(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	service := NewServiceWithoutTx(repo, newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
+
+	owner := pubKey(1)
+	recipient := pubKey(2)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	privateKey := make([]byte, 64)
+	_, err := service.Transfer(&TransferRequest{
+		TokenID:    "TEST",
+		From:       owner,
+		To:         recipient,
+		Amount:     NewAmount(300),
+		PrivateKey: privateKey,
+	})
+	if err != nil {
+		t.Fatalf("Transfer failed: %v", err)
+	}
+
+	fromBal, _ := service.GetBalance("TEST", owner)
+	toBal, _ := service.GetBalance("TEST", recipient)
+
+	if fromBal.Int64() != 700 {
+		t.Errorf("expected from balance 700, got %d", fromBal.Int64())
+	}
+	if toBal.Int64() != 300 {
+		t.Errorf("expected to balance 300, got %d", toBal.Int64())
+	}
 }

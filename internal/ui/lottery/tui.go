@@ -229,7 +229,14 @@ func (m *model) resultView() string {
 	s += components.SuccessStyle().Render(i18n.GetText("lottery.winners")+":") + "\n"
 
 	for i, w := range m.result.Winners {
-		s += fmt.Sprintf("   %d. %s (%s)\n", i+1, w, m.result.WinnerAddresses[i])
+		// Guard against mismatched slice lengths (imported data, old
+		// schemas, partial writes). Without this, mismatched records
+		// panic with index-out-of-range.
+		addr := "(no address)"
+		if i < len(m.result.WinnerAddresses) {
+			addr = m.result.WinnerAddresses[i]
+		}
+		s += fmt.Sprintf("   %d. %s (%s)\n", i+1, w, addr)
 	}
 
 	s += "\n"

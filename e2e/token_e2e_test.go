@@ -4,6 +4,8 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"database/sql"
+	"fmt"
+	"math/big"
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
@@ -74,6 +76,72 @@ func (r *inMemoryTokenRepo) SetAccountBalance(tokenID token.TokenID, owner token
 	key := string(tokenID) + "|" + string(owner)
 	r.balances[key] = amount
 	return nil
+}
+
+func (r *inMemoryTokenRepo) TrySubtractBalance(tokenID token.TokenID, owner token.PublicKey, amount *token.Amount) (*token.Amount, error) {
+	key := string(tokenID) + "|" + string(owner)
+	cur, ok := r.balances[key]
+	if !ok {
+		cur = token.NewAmount(0)
+	}
+	if cur.Cmp(amount) < 0 {
+		return nil, fmt.Errorf("try subtract balance: %w", token.ErrInsufficientBalance)
+	}
+	newBal := &token.Amount{Int: new(big.Int).Sub(cur.Int, amount.Int)}
+	r.balances[key] = newBal
+	return newBal, nil
+}
+
+func (r *inMemoryTokenRepo) TryAddBalance(tokenID token.TokenID, owner token.PublicKey, amount *token.Amount) (*token.Amount, error) {
+	key := string(tokenID) + "|" + string(owner)
+	cur, ok := r.balances[key]
+	if !ok {
+		cur = token.NewAmount(0)
+	}
+	newBal := &token.Amount{Int: new(big.Int).Add(cur.Int, amount.Int)}
+	r.balances[key] = newBal
+	return newBal, nil
+}
+
+func (r *inMemoryTokenRepo) TryAddToSupply(id token.TokenID, amount *token.Amount) (*token.Amount, error) {
+	tok, ok := r.tokens[id]
+	if !ok {
+		return nil, token.ErrTokenNotFound
+	}
+	newSupply := &token.Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
+	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
+	return newSupply, nil
+}
+
+func (r *inMemoryTokenRepo) TryDeductApproval(tokenID token.TokenID, owner, spender token.PublicKey, amount *token.Amount) (*token.Amount, error) {
+	key := string(tokenID) + "|" + string(owner) + "|" + string(spender)
+	cur, ok := r.approvals[key]
+	if !ok {
+		return nil, fmt.Errorf("try deduct approval: %w", token.ErrInsufficientAllowance)
+	}
+	if cur.Amount().Cmp(amount) < 0 {
+		return nil, fmt.Errorf("try deduct approval: %w", token.ErrInsufficientAllowance)
+	}
+	newAmt := &token.Amount{Int: new(big.Int).Sub(cur.Amount().Int, amount.Int)}
+	r.approvals[key] = token.NewApproval(tokenID, owner, spender, newAmt)
+	return newAmt, nil
+}
+
+func (r *inMemoryTokenRepo) TryAdjustApproval(tokenID token.TokenID, owner, spender token.PublicKey, delta *token.Amount) (*token.Amount, error) {
+	key := string(tokenID) + "|" + string(owner) + "|" + string(spender)
+	cur, ok := r.approvals[key]
+	var curAmount *token.Amount
+	if ok {
+		curAmount = cur.Amount()
+	} else {
+		curAmount = token.NewAmount(0)
+	}
+	newAmt := &token.Amount{Int: new(big.Int).Add(curAmount.Int, delta.Int)}
+	if newAmt.Sign() < 0 {
+		newAmt = token.NewAmount(0)
+	}
+	r.approvals[key] = token.NewApproval(tokenID, owner, spender, newAmt)
+	return newAmt, nil
 }
 
 type inMemoryEventStore struct {
@@ -192,6 +260,12 @@ func (r *e2eReplayProtection) SaveNonce(tokenID string, owner []byte, nonce uint
 	key := tokenID + string(owner)
 	r.nonces[key] = nonce
 	return nil
+}
+
+func (r *e2eReplayProtection) ClaimNextNonce(tokenID string, owner []byte) (uint64, error) {
+	key := tokenID + string(owner)
+	r.nonces[key]++
+	return r.nonces[key], nil
 }
 
 func TestTokenE2E_FullFlow(t *testing.T) {

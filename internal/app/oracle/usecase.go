@@ -2,10 +2,12 @@ package oracle
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/infra/http"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 type FetcherInterface interface {
@@ -173,15 +175,15 @@ func NewEnableSourceUseCase(repo oracle.Repository) *EnableSourceUseCase {
 }
 
 func (uc *EnableSourceUseCase) Execute(id string) error {
-	ds, err := uc.repo.GetSource(id)
-	if err != nil {
+	// Atomic primitive: closes the TOCTOU window where
+	// Enable-vs-UpdateURL could clobber each other's fields.
+	if err := uc.repo.SetSourceEnabled(id, true); err != nil {
+		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, sqlite.ErrNotFound) {
+			return fmt.Errorf("source not found")
+		}
 		return err
 	}
-	if ds == nil {
-		return fmt.Errorf("source not found")
-	}
-	ds.Enabled = true
-	return uc.repo.UpdateSource(ds)
+	return nil
 }
 
 type DisableSourceUseCase struct {
@@ -193,15 +195,15 @@ func NewDisableSourceUseCase(repo oracle.Repository) *DisableSourceUseCase {
 }
 
 func (uc *DisableSourceUseCase) Execute(id string) error {
-	ds, err := uc.repo.GetSource(id)
-	if err != nil {
+	// Atomic primitive: closes the TOCTOU window where
+	// Disable-vs-UpdateURL could clobber each other's fields.
+	if err := uc.repo.SetSourceEnabled(id, false); err != nil {
+		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, sqlite.ErrNotFound) {
+			return fmt.Errorf("source not found")
+		}
 		return err
 	}
-	if ds == nil {
-		return fmt.Errorf("source not found")
-	}
-	ds.Enabled = false
-	return uc.repo.UpdateSource(ds)
+	return nil
 }
 
 type GetDataUseCase struct {

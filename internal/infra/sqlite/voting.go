@@ -3,11 +3,18 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/voting"
 )
+
+// ErrAlreadyVoted is returned by TryMarkVoted when the voter has already
+// cast a vote. The usecase surfaces this as a 409 Conflict at the HTTP
+// boundary. Returning a sentinel error (not just sql.ErrNoRows) lets the
+// caller distinguish "lost the race" from "no such voter".
+var ErrAlreadyVoted = errors.New("voter has already voted")
 
 type VotingRepository struct {
 	db *sql.DB
@@ -37,6 +44,13 @@ func (r *VotingRepository) GetVote(id string) (*voting.Vote, error) {
 		return nil, ErrNotFound
 	}
 	return v, err
+}
+
+// DeleteVote removes a vote by id. Used to roll back an orphan vote
+// when the atomic TryMarkVoted claim races and loses.
+func (r *VotingRepository) DeleteVote(id string) error {
+	_, err := r.db.Exec(`DELETE FROM votes WHERE id = ?`, id)
+	return err
 }
 
 func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vote, error) {
@@ -81,14 +95,40 @@ func (r *VotingRepository) GetVotesByVoter(voterPK string) ([]*voting.Vote, erro
 	return votes, rows.Err()
 }
 
+// SaveVoter creates or updates a voter's profile. The semantics
+// here are deliberately narrower than a plain INSERT OR REPLACE:
+//
+//   - On a new public_key: insert with the given name, has_voted=0
+//     (unless the caller already set has_voted=1, in which case we
+//     respect it — this lets a future bulk-import flow register a
+//     voter that already cast a vote elsewhere).
+//
+//   - On a conflict (existing public_key): update only `name` and
+//     `registered_at`. We deliberately do NOT touch `has_voted` or
+//     `vote_hash` — those are the integrity-bearing columns, and
+//     the only writer to them is TryMarkVoted (a conditional
+//     UPDATE that atomically transitions 0→1).
+//
+// Why this matters: the previous INSERT OR REPLACE silently wiped
+// has_voted and vote_hash on every conflict. That meant any caller
+// passing an existing public_key with has_voted=false could undo a
+// recorded vote, defeating the Round 14 TryMarkVoted atomic
+// guarantee and re-enabling double voting via the re-registration
+// path. Today the only caller is RegisterVoterUseCase, which
+// generates a fresh key per registration so the bug isn't
+// reachable through normal use — but it's a footgun for any
+// future migration / bulk-import / admin-reset path.
 func (r *VotingRepository) SaveVoter(voter *voting.Voter) error {
 	hasVoted := 0
 	if voter.HasVoted {
 		hasVoted = 1
 	}
 	_, err := r.db.Exec(
-		`INSERT OR REPLACE INTO voters (public_key, name, has_voted, vote_hash, registered_at)
-		 VALUES (?, ?, ?, ?, ?)`,
+		`INSERT INTO voters (public_key, name, has_voted, vote_hash, registered_at)
+		 VALUES (?, ?, ?, ?, ?)
+		 ON CONFLICT(public_key) DO UPDATE SET
+		   name = excluded.name,
+		   registered_at = excluded.registered_at`,
 		voter.PublicKey, voter.Name, hasVoted, voter.VoteHash, voter.RegisteredAt,
 	)
 	return err
@@ -119,6 +159,44 @@ func (r *VotingRepository) UpdateVoter(voter *voting.Voter) error {
 		voter.Name, hasVoted, voter.VoteHash, voter.PublicKey,
 	)
 	return err
+}
+
+// TryMarkVoted atomically flips has_voted from 0 to 1 for the given
+// voter, returning ErrAlreadyVoted if the voter is already marked.
+//
+// This is the atomic primitive that closes the TOCTOU window in
+// CastVoteUseCase: the previous flow read has_voted, decided whether to
+// proceed, and then wrote back has_voted=true. Two concurrent requests
+// could both pass the read, both sign+save their vote, and both
+// UPDATE — silently allowing double voting.
+//
+// The conditional UPDATE here uses SQLite's per-connection write
+// serialization so exactly one caller sees RowsAffected()==1 and the
+// rest see RowsAffected()==0 (mapped to ErrAlreadyVoted). voteHash is
+// set in the same UPDATE so the audit trail is consistent.
+func (r *VotingRepository) TryMarkVoted(publicKey, voteHash string) error {
+	res, err := r.db.Exec(
+		`UPDATE voters SET has_voted = 1, vote_hash = ? WHERE public_key = ? AND has_voted = 0`,
+		voteHash, publicKey,
+	)
+	if err != nil {
+		return fmt.Errorf("try mark voted: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("try mark voted rows: %w", err)
+	}
+	if affected == 0 {
+		// Either the voter doesn't exist or has_voted is already 1.
+		// Distinguish so the caller can return the right HTTP code.
+		v, getErr := r.GetVoter(publicKey)
+		if getErr != nil {
+			return getErr // ErrNotFound if missing
+		}
+		_ = v
+		return ErrAlreadyVoted
+	}
+	return nil
 }
 
 func (r *VotingRepository) ListVoters() ([]*voting.Voter, error) {

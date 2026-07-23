@@ -262,3 +262,92 @@ func TestNewSQLiteReplayProtection_InvalidPath(t *testing.T) {
 	_, err := NewSQLiteReplayProtection("/nonexistent/directory/that/does/not/exist/replay.db")
 	require.Error(t, err)
 }
+
+// TestSQLiteReplayProtection_ClaimNextNonce_Concurrent proves that
+// concurrent ClaimNextNonce calls each receive a unique, strictly
+// monotonic nonce. The previous GetLastNonce+increment+SaveNonce
+// pattern was vulnerable to a TOCTOU race where two concurrent
+// callers could both observe nonce=N and both write back N+1 —
+// silently allowing two transfers signed with the same nonce.
+func TestSQLiteReplayProtection_ClaimNextNonce_Concurrent(t *testing.T) {
+	rp, cleanup := setupReplayProtection(t)
+	defer cleanup()
+
+	// Serialize through a single connection so all goroutines
+	// contend on the same SQLite file (same caveat as the voting
+	// concurrent test: :memory: is per-connection).
+	rp.db.SetMaxOpenConns(1)
+
+	const goroutines = 32
+	var wg sync.WaitGroup
+	claimed := make(chan uint64, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			n, err := rp.ClaimNextNonce("token-1", []byte("owner-1"))
+			if err != nil {
+				t.Errorf("ClaimNextNonce error: %v", err)
+				return
+			}
+			claimed <- n
+		}()
+	}
+	wg.Wait()
+	close(claimed)
+
+	seen := make(map[uint64]bool)
+	var max uint64
+	for n := range claimed {
+		if seen[n] {
+			t.Errorf("duplicate nonce claimed: %d", n)
+		}
+		seen[n] = true
+		if n > max {
+			max = n
+		}
+	}
+
+	if len(seen) != goroutines {
+		t.Errorf("got %d unique nonces, want %d", len(seen), goroutines)
+	}
+	// Nonces must be strictly monotonic 1..N.
+	for i := uint64(1); i <= uint64(goroutines); i++ {
+		if !seen[i] {
+			t.Errorf("missing nonce %d in claimed set", i)
+		}
+	}
+}
+
+// TestSQLiteReplayProtection_ClaimNextNonce_Sequential starts at the
+// last persisted nonce + 1 — i.e. ClaimNextNonce is *strictly*
+// monotonic, never reusing or going backward.
+func TestSQLiteReplayProtection_ClaimNextNonce_Sequential(t *testing.T) {
+	rp, cleanup := setupReplayProtection(t)
+	defer cleanup()
+
+	owner := []byte("owner-2")
+
+	n1, err := rp.ClaimNextNonce("token-2", owner)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(1), n1)
+
+	n2, err := rp.ClaimNextNonce("token-2", owner)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(2), n2)
+
+	n3, err := rp.ClaimNextNonce("token-2", owner)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(3), n3)
+
+	// Independent owner has independent counter.
+	nOther, err := rp.ClaimNextNonce("token-2", []byte("owner-other"))
+	require.NoError(t, err)
+	assert.Equal(t, uint64(1), nOther, "different owner has independent nonce sequence")
+
+	// Independent token has independent counter too.
+	nTok, err := rp.ClaimNextNonce("token-other", owner)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(1), nTok, "different token has independent nonce sequence")
+}

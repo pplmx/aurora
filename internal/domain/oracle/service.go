@@ -1,10 +1,50 @@
 package oracle
 
-import "time"
+import (
+	"fmt"
+	"net/url"
+	"strings"
+	"time"
+)
 
 // defaultQueryLimit is the default maximum number of data records to return
 // when querying oracle data.
 const defaultQueryLimit = 10
+
+// allowedSourceSchemes is the set of URL schemes an oracle source
+// may use. We block file:// (would let a hostile source read the
+// host filesystem), javascript: (XSS-shaped payloads, not that the
+// CLI renders them, but defense in depth), data: (can encode huge
+// payloads), and exotic schemes Go's http.Client would just refuse
+// anyway. http and https are the legitimate use cases.
+var allowedSourceSchemes = map[string]struct{}{
+	"http":  {},
+	"https": {},
+}
+
+// validateSourceURL rejects URLs that would let a hostile source
+// escape the HTTP(S) boundary. Returns nil if the URL is acceptable.
+//
+// AddSource callers should call this before persisting; the
+// validation is part of the service contract, not the repo, so the
+// same rules apply regardless of storage backend.
+func validateSourceURL(raw string) error {
+	if raw == "" {
+		return fmt.Errorf("empty url")
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("parse url: %w", err)
+	}
+	scheme := strings.ToLower(u.Scheme)
+	if _, ok := allowedSourceSchemes[scheme]; !ok {
+		return fmt.Errorf("disallowed scheme %q (only http/https allowed)", u.Scheme)
+	}
+	if u.Host == "" {
+		return fmt.Errorf("missing host")
+	}
+	return nil
+}
 
 type Service interface {
 	AddSource(source *DataSource) error
@@ -24,8 +64,11 @@ func NewService(repo Repository) Service {
 }
 
 func (s *service) AddSource(source *DataSource) error {
-	if source.Name == "" || source.URL == "" {
+	if source.Name == "" {
 		return ErrInvalidSource
+	}
+	if err := validateSourceURL(source.URL); err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalidSource, err)
 	}
 	if source.ID == "" {
 		source.ID = generateID()

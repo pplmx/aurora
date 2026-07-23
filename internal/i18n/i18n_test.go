@@ -152,3 +152,41 @@ func TestDetectAndInit(t *testing.T) {
 		t.Fatal("DetectAndInit returned nil")
 	}
 }
+
+// TestTranslator_Concurrent_NoRace stresses the Translator's read/write
+// surface from multiple goroutines. Without the mutex added in this
+// round, this test trips -race within a few iterations.
+func TestTranslator_Concurrent_NoRace(t *testing.T) {
+	tr := Init("en")
+
+	const readers = 8
+	const writers = 4
+	const iters = 200
+
+	done := make(chan struct{})
+	for i := 0; i < readers; i++ {
+		go func() {
+			for j := 0; j < iters; j++ {
+				_ = tr.T("app.name")
+				_ = tr.GetLocale()
+				_ = tr.AvailableLocales()
+			}
+			done <- struct{}{}
+		}()
+	}
+	for i := 0; i < writers; i++ {
+		go func(id int) {
+			for j := 0; j < iters; j++ {
+				if j%2 == 0 {
+					tr.SetLocale("zh")
+				} else {
+					tr.SetLocale("en")
+				}
+			}
+			done <- struct{}{}
+		}(i)
+	}
+	for i := 0; i < readers+writers; i++ {
+		<-done
+	}
+}

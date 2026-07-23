@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,6 +69,28 @@ func (m *mockVotingRepo) GetVotesByCandidate(candidateID string) ([]*voting.Vote
 
 func (m *mockVotingRepo) GetVotesByVoter(voterPK string) ([]*voting.Vote, error) {
 	return nil, nil
+}
+
+func (m *mockVotingRepo) DeleteVote(id string) error {
+	return nil
+}
+
+// TryMarkVoted mirrors the real SQLite repo semantics: the first
+// caller succeeds, subsequent callers get an "already voted" error.
+// The fake's lock-free duplicate-detection is fine for unit tests
+// because tests don't run it from multiple goroutines.
+func (m *mockVotingRepo) TryMarkVoted(publicKey, voteHash string) error {
+	for _, v := range m.voters {
+		if v.PublicKey == publicKey {
+			if v.HasVoted {
+				return sqlite.ErrAlreadyVoted
+			}
+			v.HasVoted = true
+			v.VoteHash = voteHash
+			return nil
+		}
+	}
+	return sqlite.ErrNotFound
 }
 
 func (m *mockVotingRepo) SaveSession(s *voting.Session) error {

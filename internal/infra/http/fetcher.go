@@ -24,7 +24,16 @@ var (
 	ErrInvalidJSON    = errors.New("invalid JSON response")
 	ErrEmptyResponse  = errors.New("empty response body")
 	ErrPathExtraction = errors.New("path extraction failed")
+	// ErrResponseTooLarge is returned when a remote response exceeds
+	// maxResponseBytes. Without a cap, a malicious or buggy oracle
+	// source could OOM the process by streaming a multi-GB body.
+	ErrResponseTooLarge = errors.New("response body exceeds maximum size")
 )
+
+// maxResponseBytes caps the size of any oracle-source response we read.
+// 10 MiB is generous for price feeds / on-chain data and small enough
+// to keep the process memory-safe even under sustained attack.
+const maxResponseBytes = 10 * 1024 * 1024
 
 type RateLimiter struct {
 	mu       sync.RWMutex
@@ -207,7 +216,7 @@ func (f *Fetcher) Get(url string) ([]byte, error) {
 		return nil, fmt.Errorf("%w: status %d", ErrHTTPError, resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBounded(resp.Body, maxResponseBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
@@ -247,7 +256,7 @@ func (f *Fetcher) FetchDataWithValidation(source *oracle.DataSource, validateJSO
 		return nil, fmt.Errorf("%w: status %d for URL %s", ErrHTTPError, resp.StatusCode, source.URL)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBounded(resp.Body, maxResponseBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
@@ -307,4 +316,20 @@ func extractByPath(jsonStr, path string) string {
 		return fmt.Sprintf("%v", result)
 	}
 	return fmt.Sprintf("%v", current)
+}
+
+// readBounded reads up to max+1 bytes from r and returns ErrResponseTooLarge
+// if the body exceeds max. Reading exactly max+1 (not max) is what
+// makes this safe: a body of exactly max bytes is allowed, while a body
+// one byte over is rejected without allocating the full payload.
+func readBounded(r io.Reader, max int64) ([]byte, error) {
+	lr := io.LimitReader(r, max+1)
+	body, err := io.ReadAll(lr)
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > max {
+		return nil, ErrResponseTooLarge
+	}
+	return body, nil
 }

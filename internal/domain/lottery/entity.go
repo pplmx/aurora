@@ -111,7 +111,19 @@ func CreateLotteryRecord(
 	proof []byte,
 	blockHeight int64,
 ) *LotteryRecord {
-	idHash := sha256.Sum256([]byte(seed))
+	// Build a record ID that is unique per draw. The VRF `output` is the
+	// critical disambiguator: it is derived from a freshly-generated
+	// keypair inside DrawWinners, so two records produced by different
+	// draws (even with the same seed and participants) will have distinct
+	// outputs and therefore distinct IDs.
+	//
+	// Why this matters: the repository uses INSERT OR REPLACE keyed on
+	// the ID, so two records with the same ID would silently overwrite
+	// one another — unacceptable for an audit trail.
+	idSrc := make([]byte, 0, len(seed)+len(output))
+	idSrc = append(idSrc, []byte(seed)...)
+	idSrc = append(idSrc, output...)
+	idHash := sha256.Sum256(idSrc)
 	id := hex.EncodeToString(idHash[:])[:16]
 
 	return &LotteryRecord{

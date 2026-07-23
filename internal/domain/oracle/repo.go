@@ -12,6 +12,19 @@ type Repository interface {
 	ListSources() ([]*DataSource, error)
 	UpdateSource(source *DataSource) error
 	DeleteSource(id string) error
+
+	// SetSourceEnabled atomically sets the `enabled` column of
+	// the data source identified by id. Returns ErrSourceNotFound
+	// if the row does not exist.
+	//
+	// This primitive closes the TOCTOU window in
+	// EnableSourceUseCase / DisableSourceUseCase: the pre-fix
+	// flow did GetSource → mutate ds.Enabled in memory →
+	// UpdateSource(full row write). Two concurrent calls
+	// (e.g. Enable-vs-UpdateURL) would both read the same row,
+	// mutate different fields, and the last UpdateSource would
+	// clobber the other caller's unrelated fields.
+	SetSourceEnabled(id string, enabled bool) error
 }
 
 type InmemRepo struct {
@@ -91,6 +104,15 @@ func (r *InmemRepo) ListSources() ([]*DataSource, error) {
 
 func (r *InmemRepo) UpdateSource(source *DataSource) error {
 	r.sources[source.ID] = source
+	return nil
+}
+
+func (r *InmemRepo) SetSourceEnabled(id string, enabled bool) error {
+	ds, ok := r.sources[id]
+	if !ok {
+		return ErrSourceNotFound
+	}
+	ds.Enabled = enabled
 	return nil
 }
 

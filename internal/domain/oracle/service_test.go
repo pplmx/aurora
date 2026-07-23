@@ -364,3 +364,44 @@ func TestQueryData_Empty(t *testing.T) {
 		t.Errorf("expected 0 results, got %d", len(results))
 	}
 }
+
+// TestAddSource_URLValidation ensures AddSource rejects URLs that
+// would let a hostile source escape the HTTP(S) boundary (file://,
+// javascript:, data:, missing host, etc.) and accepts legitimate
+// http(s) URLs.
+func TestAddSource_URLValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		wantErr bool
+		reason  string
+	}{
+		{"http", "http://api.example.com/data", false, ""},
+		{"https", "https://api.example.com/data", false, ""},
+		{"https with port", "https://api.example.com:8443/data", false, ""},
+		{"uppercase scheme", "HTTPS://api.example.com/data", false, ""},
+
+		{"file scheme", "file:///etc/passwd", true, "blocks local filesystem read"},
+		{"javascript scheme", "javascript:alert(1)", true, "blocks JS-shaped payload"},
+		{"data scheme", "data:text/plain;base64,SGVsbG8=", true, "blocks data: payload"},
+		{"ftp scheme", "ftp://example.com/data", true, "blocks non-HTTP schemes"},
+		{"empty url", "", true, "blocks empty URL"},
+		{"no scheme", "example.com/data", true, "blocks scheme-less URL"},
+	}
+
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := svc.AddSource(&DataSource{
+				Name: "test",
+				URL:  tt.url,
+				Type: "http",
+			})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("AddSource(%q) error = %v, wantErr %v (%s)",
+					tt.url, err, tt.wantErr, tt.reason)
+			}
+		})
+	}
+}

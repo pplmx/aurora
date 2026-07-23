@@ -34,6 +34,16 @@ func (m *mockRepo) UpdateSource(source *oracle.DataSource) error {
 	return nil
 }
 
+func (m *mockRepo) SetSourceEnabled(id string, enabled bool) error {
+	for _, s := range m.sources {
+		if s.ID == id {
+			s.Enabled = enabled
+			return nil
+		}
+	}
+	return oracle.ErrSourceNotFound
+}
+
 func (m *mockRepo) DeleteSource(id string) error {
 	for i, s := range m.sources {
 		if s.ID == id {

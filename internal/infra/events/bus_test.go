@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -383,4 +384,135 @@ func TestEventBus_HandlerChainAllOrNothing(t *testing.T) {
 	require.Contains(t, err.Error(), "handler2 failed")
 	require.Equal(t, []string{"handler1", "handler2"}, order)
 	require.Len(t, order, 2)
+}
+
+// TestSyncEventBus_UnsubscribeStaleIndex is the regression test for
+// the Round 25 bug: when a Subscribe closure captured an index and
+// later unsubscribes, the underlying slice may have shifted
+// (because another Subscribe happened in between). The pre-fix
+// code used append(s[:idx], s[idx+1:]...) blindly, which would
+// remove the WRONG handler.
+//
+// Sequence this test exercises:
+//
+//  1. Sub A (idx 0)
+//  2. Sub B (idx 1)
+//  3. Unsub A — should remove A only
+//  4. Sub C — must end up at idx 1
+//  5. Unsub B's closure (captured idx=1) — must remove B (idx 0
+//     after the A removal), not C
+//
+// Pre-fix: C gets evicted silently.
+// Post-fix: B is correctly removed, C stays.
+func TestSyncEventBus_UnsubscribeStaleIndex(t *testing.T) {
+	bus := NewSyncEventBus()
+
+	var aCount, bCount, cCount int
+	var aMu, bMu, cMu sync.Mutex
+
+	var subB func()
+	unsubA := bus.Subscribe("test.event", func(e events.Event) error {
+		aMu.Lock()
+		defer aMu.Unlock()
+		aCount++
+		return nil
+	})
+	subB = bus.Subscribe("test.event", func(e events.Event) error {
+		bMu.Lock()
+		defer bMu.Unlock()
+		bCount++
+		return nil
+	})
+	unsubA()
+
+	_ = bus.Subscribe("test.event", func(e events.Event) error {
+		cMu.Lock()
+		defer cMu.Unlock()
+		cCount++
+		return nil
+	})
+
+	// B's captured idx=1 is stale (C occupies that slot).
+	// subB() must still remove B (currently at idx 0), not C.
+	subB()
+
+	// Publish and verify only C fires.
+	require.NoError(t, bus.Publish(events.NewBaseEvent("test.event", "agg", nil)))
+
+	aMu.Lock()
+	defer aMu.Unlock()
+	bMu.Lock()
+	defer bMu.Unlock()
+	cMu.Lock()
+	defer cMu.Unlock()
+	assert.Equal(t, 0, aCount, "A was unsubscribed, must not fire")
+	assert.Equal(t, 0, bCount, "B was unsubscribed via stale idx, must not fire")
+	assert.Equal(t, 1, cCount, "C must still be subscribed after B's unsubscribe")
+}
+
+// TestSyncEventBus_UnsubscribeIdempotent ensures the unsubscribe
+// closure can be called multiple times safely. Pre-fix this was
+// already safe (because the out-of-range check on idx caught it),
+// but the post-fix code adds an explicit sync.Once guard for
+// clarity. Belt and suspenders.
+func TestSyncEventBus_UnsubscribeIdempotent(t *testing.T) {
+	bus := NewSyncEventBus()
+	var count int32
+	var mu sync.Mutex
+	unsub := bus.Subscribe("test.event", func(e events.Event) error {
+		mu.Lock()
+		defer mu.Unlock()
+		count++
+		return nil
+	})
+
+	unsub()
+	unsub()
+	unsub()
+
+	require.NoError(t, bus.Publish(events.NewBaseEvent("test.event", "agg", nil)))
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, int32(0), count, "handler must not fire after any unsubscribe call")
+}
+
+// TestSyncEventBus_SubscribeAllStaleIndex is the SubscribeAll
+// counterpart of TestSyncEventBus_UnsubscribeStaleIndex. Same bug,
+// same fix, different list.
+func TestSyncEventBus_SubscribeAllStaleIndex(t *testing.T) {
+	bus := NewSyncEventBus()
+	var aCount, bCount, cCount int
+	var mu sync.Mutex
+
+	unsubA := bus.SubscribeAll(func(e events.Event) error {
+		mu.Lock()
+		defer mu.Unlock()
+		aCount++
+		return nil
+	})
+	subB := bus.SubscribeAll(func(e events.Event) error {
+		mu.Lock()
+		defer mu.Unlock()
+		bCount++
+		return nil
+	})
+	unsubA()
+
+	bus.SubscribeAll(func(e events.Event) error {
+		mu.Lock()
+		defer mu.Unlock()
+		cCount++
+		return nil
+	})
+
+	// B's stale idx=1 now points to C. subB must remove B (idx 0).
+	subB()
+
+	require.NoError(t, bus.Publish(events.NewBaseEvent("any", "agg", nil)))
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, 0, aCount, "A was unsubscribed")
+	assert.Equal(t, 0, bCount, "B was unsubscribed via stale idx")
+	assert.Equal(t, 1, cCount, "C must remain subscribed")
 }

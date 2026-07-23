@@ -67,6 +67,29 @@ func (r *inMemoryNFTRepo) UpdateNFT(nft *nftdomain.NFT) error {
 	return nil
 }
 
+func (r *inMemoryNFTRepo) TryTransferOwnership(nftID string, from, to []byte) error {
+	existing, ok := r.nfts[nftID]
+	if !ok {
+		return nftdomain.ErrNFTNotFound
+	}
+	if string(existing.Owner) != string(from) {
+		return nftdomain.ErrOwnershipChanged
+	}
+	oldOwnerKey := string(existing.Owner)
+	newOwnerKey := string(to)
+	var updatedList []*nftdomain.NFT
+	for _, n := range r.nftsByOwner[oldOwnerKey] {
+		if n.ID != nftID {
+			updatedList = append(updatedList, n)
+		}
+	}
+	r.nftsByOwner[oldOwnerKey] = updatedList
+	existing.Owner = to
+	r.nfts[nftID] = existing
+	r.nftsByOwner[newOwnerKey] = append(r.nftsByOwner[newOwnerKey], existing)
+	return nil
+}
+
 func (r *inMemoryNFTRepo) DeleteNFT(id string) error {
 	nft, ok := r.nfts[id]
 	if !ok {
@@ -80,6 +103,25 @@ func (r *inMemoryNFTRepo) DeleteNFT(id string) error {
 		}
 	}
 	delete(r.nfts, id)
+	return nil
+}
+
+func (r *inMemoryNFTRepo) TryDeleteNFTIfOwned(nftID string, expectedOwner []byte) error {
+	existing, ok := r.nfts[nftID]
+	if !ok {
+		return nftdomain.ErrNFTNotFound
+	}
+	if string(existing.Owner) != string(expectedOwner) {
+		return nftdomain.ErrOwnershipChanged
+	}
+	ownerKey := string(existing.Owner)
+	for i, n := range r.nftsByOwner[ownerKey] {
+		if n.ID == nftID {
+			r.nftsByOwner[ownerKey] = append(r.nftsByOwner[ownerKey][:i], r.nftsByOwner[ownerKey][i+1:]...)
+			break
+		}
+	}
+	delete(r.nfts, nftID)
 	return nil
 }
 
