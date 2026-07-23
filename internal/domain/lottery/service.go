@@ -2,6 +2,7 @@ package lottery
 
 import (
 	"encoding/hex"
+	"errors"
 
 	"filippo.io/edwards25519"
 )
@@ -50,7 +51,7 @@ func (s *lotteryService) DrawWinners(participants []string, seed string, count i
 
 func (s *lotteryService) VerifyDraw(record *LotteryRecord, publicKey *edwards25519.Point) (bool, error) {
 	if record == nil {
-		return false, nil
+		return false, errors.New("record is nil")
 	}
 
 	output, err := hex.DecodeString(record.VRFOutput)

@@ -118,8 +118,8 @@ func TestLotteryService_VerifyDraw_NilRecord(t *testing.T) {
 	service := NewService()
 
 	valid, err := service.VerifyDraw(nil, nil)
-	if err != nil {
-		t.Fatalf("VerifyDraw failed: %v", err)
+	if err == nil {
+		t.Fatal("Expected error for nil record")
 	}
 
 	if valid {
