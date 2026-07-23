@@ -291,7 +291,12 @@ func (m *model) handleCreate() tea.Msg {
 		return nil
 	}
 
-	m.result = m.runLottery(participants, seed, count)
+	result := m.runLottery(participants, seed, count)
+	if result == nil {
+		m.err = "抽奖创建失败，请稍后重试"
+		return nil
+	}
+	m.result = result
 	m.view = "result"
 	m.successMsg = "抽奖已创建并上链"
 
@@ -323,8 +328,14 @@ func (m *model) runLottery(participants []string, seed string, count int) *lotte
 
 	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
 
-	jsonData, _ := record.ToJSON()
-	height, _ := m.chain.AddLotteryRecord(jsonData)
+	jsonData, err := record.ToJSON()
+	if err != nil {
+		return nil
+	}
+	height, err := m.chain.AddLotteryRecord(jsonData)
+	if err != nil {
+		return nil
+	}
 	record.BlockHeight = height
 
 	return record

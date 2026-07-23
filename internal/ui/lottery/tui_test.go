@@ -3,6 +3,8 @@ package lottery
 import (
 	"testing"
 
+	"charm.land/bubbletea/v2"
+
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/stretchr/testify/assert"
 )
@@ -168,4 +170,201 @@ func TestParseTextArea(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+func keyPress(s string) tea.KeyPressMsg {
+	return tea.KeyPressMsg(tea.Key{Text: s})
+}
+
+func TestUpdate_QuitFromMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	_, cmd := app.Update(keyPress("q"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_CtrlCFromMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	_, cmd := app.Update(keyPress("ctrl+c"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_ToggleHelp(t *testing.T) {
+	app := NewLotteryApp()
+	app.Update(keyPress("?"))
+	assert.True(t, app.showHelp)
+	app.Update(keyPress("?"))
+	assert.False(t, app.showHelp)
+	app.Update(keyPress("?"))
+	assert.True(t, app.showHelp)
+	app.Update(keyPress("esc"))
+	assert.False(t, app.showHelp)
+}
+
+func TestUpdate_HelpModeExitsOnEsc(t *testing.T) {
+	app := NewLotteryApp()
+	app.showHelp = true
+	_, cmd := app.Update(keyPress("esc"))
+	assert.Nil(t, cmd)
+	assert.False(t, app.showHelp)
+}
+
+func TestUpdate_HelpModeIgnoresOtherKeys(t *testing.T) {
+	app := NewLotteryApp()
+	app.showHelp = true
+	_, cmd := app.Update(keyPress("q"))
+	assert.Nil(t, cmd)
+	assert.True(t, app.showHelp)
+}
+
+func TestUpdate_UpNavigation(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	app.menuIndex = 2
+	app.Update(keyPress("up"))
+	assert.Equal(t, 1, app.menuIndex)
+	app.Update(keyPress("k"))
+	assert.Equal(t, 0, app.menuIndex)
+	app.Update(keyPress("k"))
+	assert.Equal(t, 0, app.menuIndex)
+}
+
+func TestUpdate_DownNavigation(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	app.menuIndex = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.menuIndex)
+	app.Update(keyPress("j"))
+	assert.Equal(t, 2, app.menuIndex)
+	app.Update(keyPress("j"))
+	assert.Equal(t, 2, app.menuIndex)
+}
+
+func TestUpdate_EnterCreatesView(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	app.menuIndex = 0
+	app.participantsInput.SetValue("A\nB\nC\nD")
+	app.seedInput.SetValue("test-seed")
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "create", app.view)
+}
+
+func TestHandleCreateSuccessfully(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A B C D")
+	app.seedInput.SetValue("seed")
+	app.countInput.SetValue("1")
+	msg := app.handleCreate()
+	assert.Nil(t, msg)
+	assert.Equal(t, "result", app.view)
+	assert.NotNil(t, app.result)
+	assert.NotEmpty(t, app.successMsg)
+}
+
+func TestUpdate_EnterOpensHistory(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	app.menuIndex = 1
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "history", app.view)
+}
+
+func TestUpdate_EnterExitsFromMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	app.menuIndex = 2
+	_, cmd := app.Update(keyPress("enter"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_NumericShortcuts(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	app.Update(keyPress("1"))
+	assert.Equal(t, 0, app.menuIndex)
+	app.Update(keyPress("2"))
+	assert.Equal(t, 1, app.menuIndex)
+	app.Update(keyPress("3"))
+	assert.Equal(t, 2, app.menuIndex)
+}
+
+func TestUpdate_EscReturnsToMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.err = "some error"
+	app.successMsg = "some success"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "menu", app.view)
+	assert.Equal(t, "", app.err)
+	assert.Equal(t, "", app.successMsg)
+}
+
+func TestUpdate_EscDoesNothingFromMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "menu"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_QReturnsToMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.Update(keyPress("q"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_WindowSizeMsg(t *testing.T) {
+	app := NewLotteryApp()
+	msg := tea.WindowSizeMsg{Width: 80, Height: 24}
+	app.Update(msg)
+	assert.Equal(t, 76, app.viewport.Width())
+	assert.Equal(t, 12, app.viewport.Height())
+}
+
+func TestUpdate_EnterInCreateViewReturnsCmd(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A\nB\nC")
+	app.seedInput.SetValue("seed")
+	_, cmd := app.Update(keyPress("enter"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_HandleCreateTooFewParticipants(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A")
+	app.seedInput.SetValue("seed")
+	app.countInput.SetValue("3")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestUpdate_HandleCreateEmptySeed(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A\nB\nC")
+	app.seedInput.SetValue("")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestUpdate_EnterInHistoryReturnsToMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "history"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
+	assert.Equal(t, "", app.successMsg)
+}
+
+func TestUpdate_EnterInResultReturnsToMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "result"
+	app.result = &lottery.LotteryRecord{ID: "test"}
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
 }
