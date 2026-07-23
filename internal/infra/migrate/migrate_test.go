@@ -39,7 +39,7 @@ func setupTestDB(t *testing.T) (string, string, func()) {
 	require.NoError(t, err)
 
 	cleanup := func() {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	}
 
 	return dbPath, migDir, cleanup
@@ -51,7 +51,7 @@ func TestMigrator_New(t *testing.T) {
 
 	m, err := New(dbPath, migPath)
 	require.NoError(t, err)
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	assert.NotNil(t, m)
 }
@@ -62,7 +62,7 @@ func TestMigrator_Up(t *testing.T) {
 
 	m, err := New(dbPath, migPath)
 	require.NoError(t, err)
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	version, err := m.Up(1)
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func TestMigrator_Down(t *testing.T) {
 
 	m, err := New(dbPath, migPath)
 	require.NoError(t, err)
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	_, err = m.Up(-1)
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestMigrator_Status(t *testing.T) {
 
 	m, err := New(dbPath, migPath)
 	require.NoError(t, err)
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	status, err := m.Status()
 	require.NoError(t, err)
@@ -119,7 +119,7 @@ func TestMigrator_Version(t *testing.T) {
 
 	m, err := New(dbPath, migPath)
 	require.NoError(t, err)
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	version, err := m.Version()
 	require.NoError(t, err)
@@ -150,7 +150,7 @@ func TestMigrator_AllMigrationsApplied(t *testing.T) {
 
 	m, err := New(dbPath, migPath)
 	require.NoError(t, err)
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	_, err = m.Up(-1)
 	require.NoError(t, err)
@@ -197,7 +197,7 @@ func TestRunMigrationsIfEnabled(t *testing.T) {
 
 		m, err := New(dbPath2, migDir)
 		require.NoError(t, err)
-		defer m.Close()
+		defer func() { _ = m.Close() }()
 
 		version, err := m.Version()
 		require.NoError(t, err)

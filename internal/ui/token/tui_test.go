@@ -355,7 +355,8 @@ func TestInmemRepoGetApprovalsByOwner(t *testing.T) {
 	}
 
 	approval := token.NewApproval("token1", token.PublicKey([]byte("owner")), token.PublicKey([]byte("spender")), token.NewAmount(100))
-	repo.SaveApproval(approval)
+	err := repo.SaveApproval(approval)
+	assert.NoError(t, err)
 
 	approvals, err := repo.GetApprovalsByOwner("token1", token.PublicKey([]byte("owner")))
 	assert.NoError(t, err)

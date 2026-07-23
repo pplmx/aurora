@@ -10,15 +10,21 @@ import (
 )
 
 func TestBackupService_Create(t *testing.T) {
-	os.MkdirAll("/tmp/test_backup_src", 0755)
-	defer os.RemoveAll("/tmp/test_backup_src")
+	if err := os.MkdirAll("/tmp/test_backup_src", 0755); err != nil {
+		t.Fatalf("Create test dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll("/tmp/test_backup_src") }()
 
 	db, err := sql.Open("sqlite3", "/tmp/test_backup_src/blockchain.db")
 	if err != nil {
 		t.Fatalf("Create test db: %v", err)
 	}
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)")
-	db.Close()
+	if _, err := db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)"); err != nil {
+		t.Fatalf("Create table: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("Close db: %v", err)
+	}
 
 	svc := NewBackupService(map[string]string{
 		"blockchain": "/tmp/test_backup_src/blockchain.db",
@@ -41,23 +47,32 @@ func TestBackupService_Create(t *testing.T) {
 		t.Error("Expected non-empty checksum")
 	}
 
-	os.RemoveAll("/tmp/test_backup_src")
-	os.RemoveAll("/tmp/test_backup_out")
+	_ = os.RemoveAll("/tmp/test_backup_src")
+	_ = os.RemoveAll("/tmp/test_backup_out")
 }
 
 func TestBackupService_Verify(t *testing.T) {
-	os.MkdirAll("/tmp/test_verify_src", 0755)
-	defer os.RemoveAll("/tmp/test_verify_src")
+	if err := os.MkdirAll("/tmp/test_verify_src", 0755); err != nil {
+		t.Fatalf("Create test dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll("/tmp/test_verify_src") }()
 
-	db, _ := sql.Open("sqlite3", "/tmp/test_verify_src/blockchain.db")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)")
-	db.Close()
+	db, err := sql.Open("sqlite3", "/tmp/test_verify_src/blockchain.db")
+	if err != nil {
+		t.Fatalf("Create test db: %v", err)
+	}
+	if _, err := db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)"); err != nil {
+		t.Fatalf("Create table: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("Close db: %v", err)
+	}
 
 	svc := NewBackupService(map[string]string{
 		"blockchain": "/tmp/test_verify_src/blockchain.db",
 	})
 
-	_, err := svc.Create(context.Background(), "/tmp/test_verify_out")
+	_, err = svc.Create(context.Background(), "/tmp/test_verify_out")
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
@@ -66,8 +81,8 @@ func TestBackupService_Verify(t *testing.T) {
 		t.Errorf("Verify failed: %v", err)
 	}
 
-	os.RemoveAll("/tmp/test_verify_src")
-	os.RemoveAll("/tmp/test_verify_out")
+	_ = os.RemoveAll("/tmp/test_verify_src")
+	_ = os.RemoveAll("/tmp/test_verify_out")
 }
 
 func TestBackupService_VerifyInvalidPath(t *testing.T) {
@@ -80,41 +95,65 @@ func TestBackupService_VerifyInvalidPath(t *testing.T) {
 }
 
 func TestBackupService_VerifyCorruptMetadata(t *testing.T) {
-	os.MkdirAll("/tmp/test_corrupt", 0755)
-	defer os.RemoveAll("/tmp/test_corrupt")
+	if err := os.MkdirAll("/tmp/test_corrupt", 0755); err != nil {
+		t.Fatalf("Create test dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll("/tmp/test_corrupt") }()
 
-	db, _ := sql.Open("sqlite3", "/tmp/test_corrupt/blockchain.db")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)")
-	db.Close()
+	db, err := sql.Open("sqlite3", "/tmp/test_corrupt/blockchain.db")
+	if err != nil {
+		t.Fatalf("Create test db: %v", err)
+	}
+	if _, err := db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)"); err != nil {
+		t.Fatalf("Create table: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("Close db: %v", err)
+	}
 
-	os.WriteFile("/tmp/test_corrupt/metadata.json", []byte("not json"), 0644)
+	if err := os.WriteFile("/tmp/test_corrupt/metadata.json", []byte("not json"), 0644); err != nil {
+		t.Fatalf("Write metadata: %v", err)
+	}
 
 	svc := NewBackupService(nil)
-	err := svc.Verify(context.Background(), "/tmp/test_corrupt")
+	err = svc.Verify(context.Background(), "/tmp/test_corrupt")
 	if err == nil {
 		t.Error("Expected error for corrupt metadata")
 	}
 }
 
 func TestBackupService_Restore(t *testing.T) {
-	os.MkdirAll("/tmp/test_restore_backup", 0755)
-	defer os.RemoveAll("/tmp/test_restore_backup")
+	if err := os.MkdirAll("/tmp/test_restore_backup", 0755); err != nil {
+		t.Fatalf("Create test dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll("/tmp/test_restore_backup") }()
 
-	db, _ := sql.Open("sqlite3", "/tmp/test_restore_backup/blockchain.db")
-	db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)")
-	db.Close()
+	db, err := sql.Open("sqlite3", "/tmp/test_restore_backup/blockchain.db")
+	if err != nil {
+		t.Fatalf("Create test db: %v", err)
+	}
+	if _, err := db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)"); err != nil {
+		t.Fatalf("Create table: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("Close db: %v", err)
+	}
 
 	metadata := `{"version":"1.2","timestamp":"2026-04-30T00:00:00Z","checksum":"","databases":["blockchain"],"schema_version":1}`
-	os.WriteFile("/tmp/test_restore_backup/metadata.json", []byte(metadata), 0644)
+	if err := os.WriteFile("/tmp/test_restore_backup/metadata.json", []byte(metadata), 0644); err != nil {
+		t.Fatalf("Write metadata: %v", err)
+	}
 
-	os.MkdirAll("/tmp/test_restore_dest", 0755)
-	defer os.RemoveAll("/tmp/test_restore_dest")
+	if err := os.MkdirAll("/tmp/test_restore_dest", 0755); err != nil {
+		t.Fatalf("Create dest dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll("/tmp/test_restore_dest") }()
 
 	svc := NewBackupService(map[string]string{
 		"blockchain": "/tmp/test_restore_dest/blockchain.db",
 	})
 
-	err := svc.Restore(context.Background(), "/tmp/test_restore_backup")
+	err = svc.Restore(context.Background(), "/tmp/test_restore_backup")
 	if err != nil {
 		t.Errorf("Restore failed: %v", err)
 	}

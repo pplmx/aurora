@@ -46,7 +46,7 @@ func New(dbPath, migPath string) (*Migrator, error) {
 	}
 
 	if err := migrator.initMigrate(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 
@@ -237,7 +237,7 @@ func RunMigrationsIfEnabled(dbPath string, cfg MigrateConfig) error {
 	if err != nil {
 		return fmt.Errorf("failed to create migrator: %w", err)
 	}
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	if err := m.m.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("auto migration failed: %w", err)
