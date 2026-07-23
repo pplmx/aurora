@@ -30,15 +30,15 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 	if session == nil {
-		return nil, fmt.Errorf("session not found")
+		return nil, voting.ErrSessionNotFound
 	}
 
 	now := time.Now().Unix()
 	if now < session.StartTime {
-		return nil, fmt.Errorf("voting session has not started yet")
+		return nil, voting.ErrSessionNotStarted
 	}
 	if now > session.EndTime {
-		return nil, fmt.Errorf("voting session has ended")
+		return nil, voting.ErrSessionEnded
 	}
 
 	voter, err := uc.repo.GetVoter(req.VoterPublicKey)
@@ -46,7 +46,7 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		return nil, fmt.Errorf("failed to get voter: %w", err)
 	}
 	if voter == nil {
-		return nil, fmt.Errorf("voter not registered")
+		return nil, voting.ErrVoterNotRegistered
 	}
 
 	candidate, err := uc.repo.GetCandidate(req.CandidateID)
@@ -54,7 +54,7 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		return nil, fmt.Errorf("failed to get candidate: %w", err)
 	}
 	if candidate == nil {
-		return nil, fmt.Errorf("candidate not found")
+		return nil, voting.ErrCandidateNotFound
 	}
 
 	privBytes, err := base64.StdEncoding.DecodeString(req.PrivateKey)
@@ -64,7 +64,6 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 
 	timestamp := time.Now().Unix()
 	message := fmt.Sprintf("%s|%s|%d", req.VoterPublicKey, req.CandidateID, timestamp)
-
 	signature, err := uc.service.SignVote(message, privBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign vote: %w", err)
@@ -92,10 +91,10 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	voteHash := base64.StdEncoding.EncodeToString([]byte(message))
 	if err := uc.repo.TryMarkVoted(req.VoterPublicKey, voteHash); err != nil {
 		if errors.Is(err, sqlite.ErrAlreadyVoted) {
-			return nil, fmt.Errorf("already voted")
+			return nil, voting.ErrAlreadyVoted
 		}
 		if errors.Is(err, sqlite.ErrNotFound) {
-			return nil, fmt.Errorf("voter not registered")
+			return nil, voting.ErrVoterNotRegistered
 		}
 		return nil, fmt.Errorf("failed to mark voter: %w", err)
 	}

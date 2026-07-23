@@ -48,10 +48,10 @@ func (uc *FetchDataUseCase) executeWithChain(req *FetchDataRequest, chain ChainI
 		return nil, fmt.Errorf("failed to get source: %w", err)
 	}
 	if source == nil {
-		return nil, fmt.Errorf("data source not found")
+		return nil, oracle.ErrSourceNotFound
 	}
 	if !source.Enabled {
-		return nil, fmt.Errorf("data source is disabled")
+		return nil, oracle.ErrSourceDisabled
 	}
 
 	data, err := uc.fetcher.FetchData(source)
@@ -185,7 +185,7 @@ func (uc *EnableSourceUseCase) Execute(id string) error {
 	// Enable-vs-UpdateURL could clobber each other's fields.
 	if err := uc.repo.SetSourceEnabled(id, true); err != nil {
 		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, sqlite.ErrNotFound) {
-			return fmt.Errorf("source not found")
+			return oracle.ErrSourceNotFound
 		}
 		return err
 	}
@@ -205,7 +205,7 @@ func (uc *DisableSourceUseCase) Execute(id string) error {
 	// Disable-vs-UpdateURL could clobber each other's fields.
 	if err := uc.repo.SetSourceEnabled(id, false); err != nil {
 		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, sqlite.ErrNotFound) {
-			return fmt.Errorf("source not found")
+			return oracle.ErrSourceNotFound
 		}
 		return err
 	}

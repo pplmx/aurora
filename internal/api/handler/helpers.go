@@ -9,6 +9,7 @@ import (
 	nfterrors "github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	tokenerrors "github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/domain/voting"
 )
 
 type ErrorResponse struct {
@@ -55,6 +56,14 @@ var errorClassification = []struct {
 	{oracle.ErrInvalidSource, http.StatusBadRequest, "INVALID_SOURCE"},
 	{oracle.ErrSourceNotFound, http.StatusNotFound, "SOURCE_NOT_FOUND"},
 	{oracle.ErrSourceDisabled, http.StatusBadRequest, "SOURCE_DISABLED"},
+
+	// Voting domain errors
+	{voting.ErrSessionNotFound, http.StatusNotFound, "SESSION_NOT_FOUND"},
+	{voting.ErrSessionNotStarted, http.StatusBadRequest, "SESSION_NOT_STARTED"},
+	{voting.ErrSessionEnded, http.StatusBadRequest, "SESSION_ENDED"},
+	{voting.ErrVoterNotRegistered, http.StatusNotFound, "VOTER_NOT_REGISTERED"},
+	{voting.ErrCandidateNotFound, http.StatusBadRequest, "CANDIDATE_NOT_FOUND"},
+	{voting.ErrAlreadyVoted, http.StatusConflict, "ALREADY_VOTED"},
 }
 
 // classifyError maps a domain error to an HTTP status code and error code.
