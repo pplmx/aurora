@@ -1,12 +1,16 @@
 package sqlite
 
 import (
+	"encoding/base64"
+	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/domain/nft"
 )
 
 func setupNFTTestDB(t *testing.T) (*NFTRepository, func()) {
@@ -310,5 +314,241 @@ func TestNFTRepository_Close(t *testing.T) {
 	err = repo.Close()
 	if err != nil {
 		t.Fatalf("Failed to close repository: %v", err)
+	}
+}
+
+func testNFT(repo *NFTRepository, t *testing.T) *nft.NFT {
+	t.Helper()
+	n := &nft.NFT{
+		ID:          "nft-1",
+		Name:        "Test NFT",
+		Description: "A test NFT",
+		ImageURL:    "https://example.com/nft.png",
+		TokenURI:    "ipfs://QmTest",
+		Owner:       []byte("owner1"),
+		Creator:     []byte("creator1"),
+		BlockHeight: 1,
+		Timestamp:   1234567890,
+	}
+	require.NoError(t, repo.SaveNFT(n))
+	return n
+}
+
+func TestNFTRepository_TryTransferOwnership_Success(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	n := testNFT(repo, t)
+	from := n.Owner
+	to := []byte("newowner")
+
+	err := repo.TryTransferOwnership(n.ID, from, to)
+	require.NoError(t, err)
+
+	retrieved, err := repo.GetNFT(n.ID)
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.True(t, retrieved.IsOwner(to), "owner should be updated to %q", to)
+}
+
+func TestNFTRepository_TryTransferOwnership_OwnershipChanged(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	n := testNFT(repo, t)
+
+	staleOwner := []byte("staleowner")
+	wrongOwner := []byte("wrongowner")
+
+	err := repo.TryTransferOwnership(n.ID, staleOwner, wrongOwner)
+	require.ErrorIs(t, err, nft.ErrOwnershipChanged)
+
+	retrieved, err := repo.GetNFT(n.ID)
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.True(t, retrieved.IsOwner(n.Owner), "owner must not change on failed transfer")
+}
+
+func TestNFTRepository_TryTransferOwnership_NFTNotFound(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	err := repo.TryTransferOwnership("nonexistent", []byte("a"), []byte("b"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not found")
+}
+
+func TestNFTRepository_TryDeleteNFTIfOwned_Success(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	n := testNFT(repo, t)
+
+	err := repo.TryDeleteNFTIfOwned(n.ID, n.Owner)
+	require.NoError(t, err)
+
+	retrieved, err := repo.GetNFT(n.ID)
+	require.NoError(t, err)
+	require.Nil(t, retrieved, "NFT should be deleted")
+}
+
+func TestNFTRepository_TryDeleteNFTIfOwned_OwnershipChanged(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	n := testNFT(repo, t)
+
+	staleOwner := []byte("staleowner")
+	err := repo.TryDeleteNFTIfOwned(n.ID, staleOwner)
+	require.ErrorIs(t, err, nft.ErrOwnershipChanged)
+
+	retrieved, err := repo.GetNFT(n.ID)
+	require.NoError(t, err)
+	require.NotNil(t, retrieved, "NFT must not be deleted on failed TryDelete")
+	require.True(t, retrieved.IsOwner(n.Owner), "owner must not change on failed TryDelete")
+}
+
+func TestNFTRepository_TryDeleteNFTIfOwned_NFTNotFound(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	err := repo.TryDeleteNFTIfOwned("nonexistent", []byte("a"))
+	require.ErrorIs(t, err, nft.ErrNFTNotFound)
+}
+
+func TestNFTRepository_TryTransferOwnership_ConcurrentOnlyOneWinner(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	n := testNFT(repo, t)
+
+	originalOwner := make([]byte, len(n.Owner))
+	copy(originalOwner, n.Owner)
+
+	type result struct {
+		to    []byte
+		err   error
+		owner []byte
+	}
+	results := make([]result, 8)
+	var wg sync.WaitGroup
+	wg.Add(len(results))
+	for i := range results {
+		to := []byte("buyer" + string(rune('A'+i)))
+		go func(idx int, to []byte) {
+			defer wg.Done()
+			err := repo.TryTransferOwnership(n.ID, originalOwner, to)
+			retrieved, _ := repo.GetNFT(n.ID)
+			ownerB64 := ""
+			if retrieved != nil {
+				ownerB64 = base64.StdEncoding.EncodeToString(retrieved.Owner)
+			}
+			results[idx] = result{to: to, err: err, owner: []byte(ownerB64)}
+		}(i, to)
+	}
+	wg.Wait()
+
+	successCount := 0
+	for i := range results {
+		if results[i].err == nil {
+			successCount++
+		}
+	}
+	require.Equal(t, 1, successCount, "exactly one concurrent transfer should succeed")
+
+	for i := range results {
+		if results[i].err == nil {
+			require.True(t, base64.StdEncoding.EncodeToString(results[i].to) == string(results[i].owner),
+				"winner's recipient must match stored owner")
+		} else {
+			require.ErrorIs(t, results[i].err, nft.ErrOwnershipChanged,
+				"loser should get ErrOwnershipChanged")
+		}
+	}
+}
+
+func TestNFTRepository_TryDeleteNFTIfOwned_ConcurrentBurnVsTransfer(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	n := testNFT(repo, t)
+	originalOwner := make([]byte, len(n.Owner))
+	copy(originalOwner, n.Owner)
+
+	errorsCh := make(chan error, 2)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		errorsCh <- repo.TryTransferOwnership(n.ID, originalOwner, []byte("newowner"))
+	}()
+
+	go func() {
+		defer wg.Done()
+		errorsCh <- repo.TryDeleteNFTIfOwned(n.ID, originalOwner)
+	}()
+	wg.Wait()
+	close(errorsCh)
+
+	successCount := 0
+	for err := range errorsCh {
+		if err == nil {
+			successCount++
+		}
+	}
+
+	require.Equal(t, 1, successCount, "exactly one of burn or transfer should succeed")
+
+	retrieved, err := repo.GetNFT(n.ID)
+	require.NoError(t, err)
+	if successCount == 1 {
+		if retrieved == nil {
+			// burn won
+			require.True(t, true, "burn succeeded, NFT deleted")
+		} else {
+			// transfer won
+			require.True(t, retrieved.IsOwner([]byte("newowner")), "transfer succeeded, owner updated")
+		}
+	} else {
+		t.Fatal("exactly one operation should succeed, both failed or both succeeded")
+	}
+}
+
+func TestNFTRepository_TryDeleteNFTIfOwned_ConcurrentOnlyOneBurnWinner(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	n := testNFT(repo, t)
+	originalOwner := make([]byte, len(n.Owner))
+	copy(originalOwner, n.Owner)
+
+	errorsCh := make(chan error, 16)
+	var wg sync.WaitGroup
+	wg.Add(16)
+	for i := 0; i < 16; i++ {
+		go func() {
+			defer wg.Done()
+			errorsCh <- repo.TryDeleteNFTIfOwned(n.ID, originalOwner)
+		}()
+	}
+	wg.Wait()
+	close(errorsCh)
+
+	successCount := 0
+	var losers []error
+	for err := range errorsCh {
+		if err == nil {
+			successCount++
+		} else {
+			losers = append(losers, err)
+		}
+	}
+
+	require.Equal(t, 1, successCount, "exactly one concurrent burn should succeed")
+	for _, err := range losers {
+		require.True(t, errors.Is(err, nft.ErrOwnershipChanged) || errors.Is(err, nft.ErrNFTNotFound),
+			"losers should get either ErrOwnershipChanged (owner mismatch) or "+
+				"ErrNFTNotFound (winner already deleted the NFT), got: %v", err)
 	}
 }
