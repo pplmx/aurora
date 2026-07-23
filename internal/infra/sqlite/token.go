@@ -231,7 +231,7 @@ func (r *TokenRepository) TryDeductApproval(tokenID token.TokenID, owner, spende
 		if _, err := r.GetApproval(tokenID, owner, spender); err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("try deduct approve: %w", token.ErrInsufficientAllowance)
+		return nil, fmt.Errorf("try deduct approval: %w", token.ErrInsufficientAllowance)
 	}
 
 	// Re-read the new value so callers can pass it to SaveApproval
