@@ -51,6 +51,17 @@ var errorClassification = []struct {
 
 	// Lottery domain errors
 	{lottery.ErrNotFound, http.StatusNotFound, "LOTTERY_NOT_FOUND"},
+	{lottery.ErrEmptyParticipantName, http.StatusBadRequest, "EMPTY_PARTICIPANT_NAME"},
+	{lottery.ErrParticipantNameTooLong, http.StatusBadRequest, "PARTICIPANT_NAME_TOO_LONG"},
+	{lottery.ErrInvalidParticipantName, http.StatusBadRequest, "INVALID_PARTICIPANT_NAME"},
+	{lottery.ErrSeedTooShort, http.StatusBadRequest, "SEED_TOO_SHORT"},
+	{lottery.ErrSeedTooLong, http.StatusBadRequest, "SEED_TOO_LONG"},
+	{lottery.ErrNoParticipants, http.StatusBadRequest, "NO_PARTICIPANTS"},
+	{lottery.ErrTooManyParticipants, http.StatusBadRequest, "TOO_MANY_PARTICIPANTS"},
+	{lottery.ErrDuplicateParticipant, http.StatusBadRequest, "DUPLICATE_PARTICIPANT"},
+	{lottery.ErrWinnerCountNotPositive, http.StatusBadRequest, "WINNER_COUNT_NOT_POSITIVE"},
+	{lottery.ErrTooManyWinners, http.StatusBadRequest, "TOO_MANY_WINNERS"},
+	{lottery.ErrWinnersExceedParticipants, http.StatusBadRequest, "WINNERS_EXCEED_PARTICIPANTS"},
 
 	// Oracle domain errors
 	{oracle.ErrInvalidSource, http.StatusBadRequest, "INVALID_SOURCE"},

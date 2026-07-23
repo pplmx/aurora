@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -105,6 +106,18 @@ func TestWriteUseCaseError_DomainError(t *testing.T) {
 			err:        errors.Join(token.ErrInsufficientBalance, errors.New("context")),
 			wantStatus: http.StatusBadRequest,
 			wantCode:   "INSUFFICIENT_BALANCE",
+		},
+		{
+			name:       "seed too short",
+			err:        lottery.ErrSeedTooShort,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "SEED_TOO_SHORT",
+		},
+		{
+			name:       "no participants",
+			err:        lottery.ErrNoParticipants,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "NO_PARTICIPANTS",
 		},
 		{
 			name:       "unknown error defaults to 500",
