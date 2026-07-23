@@ -1,6 +1,7 @@
 package token
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"fmt"
 )
@@ -43,6 +44,34 @@ func ValidatePublicKey(pk PublicKey) error {
 	}
 	if len(pk) != ed25519.PublicKeySize {
 		return fmt.Errorf("invalid public key length")
+	}
+	return nil
+}
+
+// ValidatePrivateKey checks that the private key has the correct length
+// for an Ed25519 private key (seed + public key = 64 bytes).
+func ValidatePrivateKey(priv PrivateKey) error {
+	if len(priv) == 0 {
+		return fmt.Errorf("private key is required")
+	}
+	if len(priv) != ed25519.PrivateKeySize {
+		return fmt.Errorf("invalid private key length")
+	}
+	return nil
+}
+
+// VerifyPrivateKeyMatches checks that the given private key corresponds
+// to the given public key. Returns an error if they don't match.
+func VerifyPrivateKeyMatches(pub PublicKey, priv PrivateKey) error {
+	if err := ValidatePublicKey(pub); err != nil {
+		return err
+	}
+	if err := ValidatePrivateKey(priv); err != nil {
+		return err
+	}
+	pubFromPriv, ok := ed25519.PrivateKey(priv).Public().(ed25519.PublicKey)
+	if !ok || !bytes.Equal(pubFromPriv, pub) {
+		return ErrUnauthorized
 	}
 	return nil
 }

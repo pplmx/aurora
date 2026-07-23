@@ -15,6 +15,8 @@ type TokenID string
 
 type PublicKey []byte
 
+type PrivateKey []byte
+
 type Signature []byte
 
 type Amount struct {
