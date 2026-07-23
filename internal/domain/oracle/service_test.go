@@ -3,6 +3,8 @@ package oracle
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestOracleData_Serialization(t *testing.T) {
@@ -365,10 +367,64 @@ func TestQueryData_Empty(t *testing.T) {
 	}
 }
 
-// TestAddSource_URLValidation ensures AddSource rejects URLs that
-// would let a hostile source escape the HTTP(S) boundary (file://,
-// javascript:, data:, missing host, etc.) and accepts legitimate
-// http(s) URLs.
+func TestInmemRepo_GetData(t *testing.T) {
+	repo := NewInmemRepo()
+	data := &OracleData{ID: "d1", SourceID: "s1", Value: "100", Timestamp: 1000}
+	require.NoError(t, repo.SaveData(data))
+
+	retrieved, err := repo.GetData("d1")
+	require.NoError(t, err)
+	require.NotNil(t, retrieved)
+	require.Equal(t, "100", retrieved.Value)
+
+	retrieved, err = repo.GetData("nonexistent")
+	require.NoError(t, err)
+	require.Nil(t, retrieved)
+}
+
+func TestInmemRepo_GetLatestData(t *testing.T) {
+	repo := NewInmemRepo()
+	require.NoError(t, repo.SaveData(&OracleData{ID: "d1", SourceID: "s1", Value: "100", Timestamp: 1000}))
+	require.NoError(t, repo.SaveData(&OracleData{ID: "d2", SourceID: "s1", Value: "200", Timestamp: 2000}))
+	require.NoError(t, repo.SaveData(&OracleData{ID: "d3", SourceID: "s2", Value: "300", Timestamp: 1500}))
+
+	latest, err := repo.GetLatestData("s1")
+	require.NoError(t, err)
+	require.NotNil(t, latest)
+	require.Equal(t, "200", latest.Value)
+
+	latest, err = repo.GetLatestData("nonexistent")
+	require.NoError(t, err)
+	require.Nil(t, latest)
+}
+
+func TestInmemRepo_GetDataByTimeRange(t *testing.T) {
+	repo := NewInmemRepo()
+	require.NoError(t, repo.SaveData(&OracleData{ID: "d1", SourceID: "s1", Value: "100", Timestamp: 1000}))
+	require.NoError(t, repo.SaveData(&OracleData{ID: "d2", SourceID: "s1", Value: "200", Timestamp: 2000}))
+	require.NoError(t, repo.SaveData(&OracleData{ID: "d3", SourceID: "s1", Value: "300", Timestamp: 3000}))
+	require.NoError(t, repo.SaveData(&OracleData{ID: "d4", SourceID: "s2", Value: "400", Timestamp: 2000}))
+
+	results, err := repo.GetDataByTimeRange("s1", 1500, 2500)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, "200", results[0].Value)
+}
+
+func TestInmemRepo_SetSourceEnabled(t *testing.T) {
+	repo := NewInmemRepo()
+	source := &DataSource{ID: "s1", Name: "Test", URL: "https://example.com", Enabled: false}
+	require.NoError(t, repo.SaveSource(source))
+
+	require.NoError(t, repo.SetSourceEnabled("s1", true))
+	retrieved, err := repo.GetSource("s1")
+	require.NoError(t, err)
+	require.True(t, retrieved.Enabled)
+
+	err = repo.SetSourceEnabled("nonexistent", true)
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrSourceNotFound)
+}
 func TestAddSource_URLValidation(t *testing.T) {
 	tests := []struct {
 		name    string
