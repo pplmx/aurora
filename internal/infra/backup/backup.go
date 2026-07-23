@@ -61,7 +61,7 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 			return nil, fmt.Errorf("open source %s: %w", name, err)
 		}
 		destPath := filepath.Join(output, name+".db")
-		dest, err := os.Create(destPath)
+		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 		if err != nil {
 			src.Close()
 			return nil, fmt.Errorf("create dest %s: %w", name, err)
@@ -101,12 +101,15 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 	}
 
 	totalSize := int64(0)
-	filepath.Walk(output, func(path string, info os.FileInfo, err error) error {
+	walkErr := filepath.Walk(output, func(path string, info os.FileInfo, err error) error {
 		if err == nil && !info.IsDir() {
 			totalSize += info.Size()
 		}
 		return nil
 	})
+	if walkErr != nil {
+		return nil, fmt.Errorf("walk backup output: %w", walkErr)
+	}
 
 	return &BackupResult{
 		File:          output,
@@ -220,7 +223,7 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 				return fmt.Errorf("open current %s: %w", name, err)
 			}
 			prePath := filepath.Join(preRestoreDir, name+".db")
-			dest, err := os.Create(prePath)
+			dest, err := os.OpenFile(prePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 			if err != nil {
 				src.Close()
 				return fmt.Errorf("create pre-restore %s: %w", name, err)
@@ -243,7 +246,7 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 			src.Close()
 			return fmt.Errorf("remove dest %s: %w", name, err)
 		}
-		dest, err := os.Create(destPath)
+		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 		if err != nil {
 			src.Close()
 			return fmt.Errorf("create dest %s: %w", name, err)
