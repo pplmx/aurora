@@ -56,6 +56,8 @@ var errorClassification = []struct {
 	{nfterrors.ErrOwnerRequired, http.StatusBadRequest, "OWNER_REQUIRED"},
 	{nfterrors.ErrNotOwner, http.StatusForbidden, "NOT_NFT_OWNER"},
 	{nfterrors.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_SIGNATURE"},
+	{nfterrors.ErrInvalidPrivateKey, http.StatusBadRequest, "INVALID_PRIVATE_KEY"},
+	{nfterrors.ErrInvalidPublicKey, http.StatusBadRequest, "INVALID_PUBLIC_KEY"},
 
 	// Lottery domain errors
 	{lottery.ErrNotFound, http.StatusNotFound, "LOTTERY_NOT_FOUND"},
