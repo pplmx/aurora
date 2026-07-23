@@ -64,7 +64,7 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 	limitStr := r.URL.Query().Get("limit")
 	limit := defaultQueryLimit
 	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
 			limit = l
 		}
 	}

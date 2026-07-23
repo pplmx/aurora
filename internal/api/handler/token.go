@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	tokenapp "github.com/pplmx/aurora/internal/app/token"
@@ -169,12 +170,29 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	tokenID := r.URL.Query().Get("token_id")
 	owner := r.URL.Query().Get("owner")
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := defaultHistoryLimit
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	offset := 0
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
 
 	uc := tokenapp.NewGetHistoryUseCase(h.service)
 	result, err := uc.Execute(&tokenapp.HistoryRequest{
 		TokenID: tokenID,
 		Owner:   owner,
-		Limit:   defaultHistoryLimit,
+		Limit:   limit,
+		Offset:  offset,
 	})
 	if err != nil {
 		writeInternalError(w)
