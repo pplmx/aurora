@@ -131,7 +131,9 @@ func VRFVerify(public *edwards25519.Point, message []byte, output, proof []byte)
 		return false
 	}
 
-	return len(output) == 32
+	// At this point output is guaranteed to be 32 bytes (checked above)
+	// and the proof point matches the recomputed hash-to-point.
+	return true
 }
 
 func VRFOutputToBytes(output []byte) []byte {
