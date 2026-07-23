@@ -216,7 +216,7 @@ func TestTokenRepository_Close(t *testing.T) {
 //
 // Setup: owner grants spender an allowance of 100. Two concurrent
 // transfers of 60 each should result in exactly one success (100-60=40)
-// and one ErrInsufficientAllowance (40 < 60). With the old
+// and one token.ErrInsufficientAllowance (40 < 60). With the old
 // GetApproval → check → SaveApproval pattern, both would succeed and
 // the allowance would end at -20 (or wrap-around for unsigned types).
 func TestTokenRepository_TryDeductApproval_ConcurrentNoDoubleSpend(t *testing.T) {
@@ -240,7 +240,7 @@ func TestTokenRepository_TryDeductApproval_ConcurrentNoDoubleSpend(t *testing.T)
 		token.TokenID(tokenID), ownerBytes, spenderBytes, hundred,
 	)))
 
-	const goroutines = 8 // > 1 would have double-spent under the bug
+	const goroutines = 8 // > 1 would have double-spaced under the bug
 	results := make(chan error, goroutines)
 
 	for i := 0; i < goroutines; i++ {
@@ -259,10 +259,12 @@ func TestTokenRepository_TryDeductApproval_ConcurrentNoDoubleSpend(t *testing.T)
 		switch err {
 		case nil:
 			success++
-		case ErrInsufficientAllowance:
-			insufficient++
 		default:
-			t.Errorf("unexpected error: %v", err)
+			if errors.Is(err, token.ErrInsufficientAllowance) {
+				insufficient++
+			} else {
+				t.Errorf("unexpected error: %v", err)
+			}
 		}
 	}
 
@@ -278,7 +280,7 @@ func TestTokenRepository_TryDeductApproval_ConcurrentNoDoubleSpend(t *testing.T)
 }
 
 // TestTokenRepository_TryDeductApproval_InsufficientReturnsError
-// proves the primitive returns ErrInsufficientAllowance for missing
+// proves the primitive returns token.ErrInsufficientAllowance for missing
 // or insufficient allowances.
 func TestTokenRepository_TryDeductApproval_InsufficientReturnsError(t *testing.T) {
 	repo, cleanup := setupTokenTestDB(t)
@@ -289,7 +291,7 @@ func TestTokenRepository_TryDeductApproval_InsufficientReturnsError(t *testing.T
 		_, err := repo.TryDeductApproval(
 			"tok-1", []byte("owner"), []byte("spender"), token.NewAmount(10),
 		)
-		assert.ErrorIs(t, err, ErrInsufficientAllowance)
+		assert.ErrorIs(t, err, token.ErrInsufficientAllowance)
 	})
 
 	t.Run("amount exceeds allowance", func(t *testing.T) {
@@ -299,7 +301,7 @@ func TestTokenRepository_TryDeductApproval_InsufficientReturnsError(t *testing.T
 		_, err := repo.TryDeductApproval(
 			"tok-2", []byte("o"), []byte("s"), token.NewAmount(10),
 		)
-		assert.ErrorIs(t, err, ErrInsufficientAllowance)
+		assert.ErrorIs(t, err, token.ErrInsufficientAllowance)
 	})
 }
 
