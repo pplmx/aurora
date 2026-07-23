@@ -170,7 +170,10 @@ func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 
 	storedChecksum := metadata.Checksum
 	metadata.Checksum = ""
-	recomputed, _ := json.Marshal(metadata)
+	recomputed, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("marshal metadata for verification: %w", err)
+	}
 	computed := fmt.Sprintf("%x", sha256.Sum256(recomputed))
 	if storedChecksum != computed {
 		return fmt.Errorf("checksum mismatch: backup may be corrupted")
