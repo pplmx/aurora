@@ -51,10 +51,12 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 		}
 
 		if _, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
-			db.Close()
+			_ = db.Close()
 			return nil, fmt.Errorf("checkpoint %s: %w", name, err)
 		}
-		db.Close()
+		if err := db.Close(); err != nil {
+			return nil, fmt.Errorf("close %s: %w", name, err)
+		}
 
 		src, err := os.Open(path)
 		if err != nil {
@@ -63,16 +65,21 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 		destPath := filepath.Join(output, name+".db")
 		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 		if err != nil {
-			src.Close()
+			_ = src.Close()
 			return nil, fmt.Errorf("create dest %s: %w", name, err)
 		}
 		if _, err := io.Copy(dest, src); err != nil {
-			src.Close()
-			dest.Close()
+			_ = src.Close()
+			_ = dest.Close()
 			return nil, fmt.Errorf("copy %s: %w", name, err)
 		}
-		src.Close()
-		dest.Close()
+		if err := src.Close(); err != nil {
+			_ = dest.Close()
+			return nil, fmt.Errorf("close source %s: %w", name, err)
+		}
+		if err := dest.Close(); err != nil {
+			return nil, fmt.Errorf("close dest %s: %w", name, err)
+		}
 	}
 
 	metadata := BackupMetadata{
@@ -142,7 +149,7 @@ func querySchemaVersion(path string) uint {
 	if err != nil {
 		return 0
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	var version int
 	if err := db.QueryRow(
@@ -193,10 +200,12 @@ func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 		var count int
 		err = db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").Scan(&count)
 		if err != nil || count == 0 {
-			db.Close()
+			_ = db.Close()
 			return fmt.Errorf("invalid database: %s", name)
 		}
-		db.Close()
+		if err := db.Close(); err != nil {
+			return fmt.Errorf("close %s: %w", name, err)
+		}
 	}
 
 	return nil
@@ -228,16 +237,21 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 			prePath := filepath.Join(preRestoreDir, name+".db")
 			dest, err := os.OpenFile(prePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 			if err != nil {
-				src.Close()
+				_ = src.Close()
 				return fmt.Errorf("create pre-restore %s: %w", name, err)
 			}
 			if _, err := io.Copy(dest, src); err != nil {
-				src.Close()
-				dest.Close()
+				_ = src.Close()
+				_ = dest.Close()
 				return fmt.Errorf("backup current %s: %w", name, err)
 			}
-			src.Close()
-			dest.Close()
+			if err := src.Close(); err != nil {
+				_ = dest.Close()
+				return fmt.Errorf("close current %s: %w", name, err)
+			}
+			if err := dest.Close(); err != nil {
+				return fmt.Errorf("close pre-restore %s: %w", name, err)
+			}
 		}
 
 		backupDbPath := filepath.Join(backupPath, name+".db")
@@ -246,21 +260,26 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 			return fmt.Errorf("open backup %s: %w", name, err)
 		}
 		if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
-			src.Close()
+			_ = src.Close()
 			return fmt.Errorf("remove dest %s: %w", name, err)
 		}
 		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 		if err != nil {
-			src.Close()
+			_ = src.Close()
 			return fmt.Errorf("create dest %s: %w", name, err)
 		}
 		if _, err := io.Copy(dest, src); err != nil {
-			src.Close()
-			dest.Close()
+			_ = src.Close()
+			_ = dest.Close()
 			return fmt.Errorf("restore %s: %w", name, err)
 		}
-		src.Close()
-		dest.Close()
+		if err := src.Close(); err != nil {
+			_ = dest.Close()
+			return fmt.Errorf("close backup %s: %w", name, err)
+		}
+		if err := dest.Close(); err != nil {
+			return fmt.Errorf("close dest %s: %w", name, err)
+		}
 	}
 
 	return nil

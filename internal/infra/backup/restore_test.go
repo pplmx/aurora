@@ -24,7 +24,7 @@ func newDB(t *testing.T, path string, ddl ...string) {
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	for _, stmt := range ddl {
 		if _, err := db.Exec(stmt); err != nil {
 			t.Fatalf("exec %q: %v", stmt, err)
@@ -334,7 +334,7 @@ func readKV(t *testing.T, path, k string) string {
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	var v string
 	if err := db.QueryRow("SELECT v FROM kv WHERE k = ?", k).Scan(&v); err != nil {
 		t.Fatalf("read kv[%s]: %v", k, err)
