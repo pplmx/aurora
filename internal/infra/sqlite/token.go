@@ -3,7 +3,6 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -191,7 +190,7 @@ func (r *TokenRepository) TryAddToSupply(id token.TokenID, amount *token.Amount)
 // TryDeductApproval atomically subtracts amount from the allowance
 // (tokenID, owner, spender) and returns the new allowance amount. If
 // the allowance is missing or less than amount, no change is made and
-// ErrInsufficientAllowance is returned.
+// token.ErrInsufficientAllowance is returned.
 //
 // This is the atomic primitive that closes the TOCTOU window in
 // TransferFrom: the previous GetApproval → check → SaveApproval flow
@@ -201,7 +200,7 @@ func (r *TokenRepository) TryAddToSupply(id token.TokenID, amount *token.Amount)
 //
 // Concurrency: the conditional UPDATE is serialized by SQLite's
 // per-connection write locking, so concurrent callers either succeed
-// with a strictly-decreasing allowance or get ErrInsufficientAllowance.
+// with a strictly-decreasing allowance or get token.ErrInsufficientAllowance.
 // amount comparison uses SQLite's numeric ordering via the text
 // representation, which is correct because amount is a decimal string.
 func (r *TokenRepository) TryDeductApproval(tokenID token.TokenID, owner, spender token.PublicKey, amount *token.Amount) (*token.Amount, error) {
@@ -232,7 +231,7 @@ func (r *TokenRepository) TryDeductApproval(tokenID token.TokenID, owner, spende
 		if _, err := r.GetApproval(tokenID, owner, spender); err != nil {
 			return nil, err
 		}
-		return nil, ErrInsufficientAllowance
+		return nil, fmt.Errorf("try deduct approve: %w", token.ErrInsufficientAllowance)
 	}
 
 	// Re-read the new value so callers can pass it to SaveApproval
@@ -246,10 +245,6 @@ func (r *TokenRepository) TryDeductApproval(tokenID token.TokenID, owner, spende
 	}
 	return updated.Amount(), nil
 }
-
-// ErrInsufficientAllowance is returned by TryDeductApproval when the
-// caller's requested amount exceeds the current allowance.
-var ErrInsufficientAllowance = errors.New("insufficient allowance")
 
 // TryAdjustApproval atomically applies a signed delta to the
 // allowance (tokenID, owner, spender):
