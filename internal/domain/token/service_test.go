@@ -2438,3 +2438,161 @@ func TestNoOpTxManager_TransferWorksThroughNoOpTx(t *testing.T) {
 		t.Errorf("expected to balance 300, got %d", toBal.Int64())
 	}
 }
+
+func TestIncreaseAllowance_InvalidOwner(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	_, err := service.IncreaseAllowance(&AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   PublicKey{},
+		Spender: pubKey(2),
+		Amount:  NewAmount(50),
+	})
+	if err == nil {
+		t.Fatal("Expected error for invalid owner public key")
+	}
+}
+
+func TestIncreaseAllowance_InvalidSpender(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	_, err := service.IncreaseAllowance(&AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   pubKey(1),
+		Spender: PublicKey{},
+		Amount:  NewAmount(50),
+	})
+	if err == nil {
+		t.Fatal("Expected error for invalid spender public key")
+	}
+}
+
+func TestIncreaseAllowance_InvalidAmount(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	_, err := service.IncreaseAllowance(&AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   pubKey(1),
+		Spender: pubKey(2),
+		Amount:  NewAmount(-50),
+	})
+	if err == nil {
+		t.Fatal("Expected error for negative amount")
+	}
+}
+
+func TestIncreaseAllowance_PublishError(t *testing.T) {
+	repo := NewMockRepository()
+	service := NewService(repo, newMockTxManager(), &failingEventBus{err: errors.New("publish failed")}, NewMockEventStore(), newMockReplayProtection(), &mockBlockWriter{})
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	spender := pubKey(2)
+	_, _ = service.Approve(&ApproveRequest{
+		TokenID: "TEST",
+		Owner:   owner,
+		Spender: spender,
+		Amount:  NewAmount(100),
+	})
+
+	_, err := service.IncreaseAllowance(&AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   owner,
+		Spender: spender,
+		Amount:  NewAmount(50),
+	})
+	if err == nil {
+		t.Fatal("Expected error for publish failure")
+	}
+}
+
+func TestDecreaseAllowance_InvalidOwner(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	_, err := service.DecreaseAllowance(&AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   PublicKey{},
+		Spender: pubKey(2),
+		Amount:  NewAmount(50),
+	})
+	if err == nil {
+		t.Fatal("Expected error for invalid owner public key")
+	}
+}
+
+func TestDecreaseAllowance_InvalidSpender(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	_, err := service.DecreaseAllowance(&AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   pubKey(1),
+		Spender: PublicKey{},
+		Amount:  NewAmount(50),
+	})
+	if err == nil {
+		t.Fatal("Expected error for invalid spender public key")
+	}
+}
+
+func TestDecreaseAllowance_InvalidAmount(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	_, err := service.DecreaseAllowance(&AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   pubKey(1),
+		Spender: pubKey(2),
+		Amount:  NewAmount(-50),
+	})
+	if err == nil {
+		t.Fatal("Expected error for negative amount")
+	}
+}
+
+func TestDecreaseAllowance_PublishError(t *testing.T) {
+	repo := NewMockRepository()
+	service := NewService(repo, newMockTxManager(), &failingEventBus{err: errors.New("publish failed")}, NewMockEventStore(), newMockReplayProtection(), &mockBlockWriter{})
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	spender := pubKey(2)
+	_, _ = service.Approve(&ApproveRequest{
+		TokenID: "TEST",
+		Owner:   owner,
+		Spender: spender,
+		Amount:  NewAmount(100),
+	})
+
+	_, err := service.DecreaseAllowance(&AllowanceRequest{
+		TokenID: "TEST",
+		Owner:   owner,
+		Spender: spender,
+		Amount:  NewAmount(50),
+	})
+	if err == nil {
+		t.Fatal("Expected error for publish failure")
+	}
+}

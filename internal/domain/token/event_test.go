@@ -1,6 +1,7 @@
 package token
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 	"time"
@@ -79,8 +80,9 @@ func TestTransferEvent_EventMethods(t *testing.T) {
 	from := PublicKey(make([]byte, 32))
 	to := PublicKey(make([]byte, 32))
 	amount := NewAmount(100)
+	sig := Signature([]byte("test-signature"))
 
-	event := NewTransferEvent("TEST", from, to, amount, 1, nil)
+	event := NewTransferEvent("TEST", from, to, amount, 1, sig)
 
 	if event.EventType() != "token.transfer" {
 		t.Errorf("EventType() = %s, want token.transfer", event.EventType())
@@ -90,6 +92,9 @@ func TestTransferEvent_EventMethods(t *testing.T) {
 	}
 	if event.AggregateID() != "TEST" {
 		t.Errorf("AggregateID() = %s, want TEST", event.AggregateID())
+	}
+	if !bytes.Equal(event.Signature(), sig) {
+		t.Errorf("Signature() = %v, want %v", event.Signature(), sig)
 	}
 
 	payload := event.Payload()
