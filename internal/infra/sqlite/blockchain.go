@@ -175,6 +175,10 @@ func (r *BlockchainRepository) GetLotteryRecords() ([]string, error) {
 		records = append(records, data)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating lottery records: %w", err)
+	}
+
 	return records, nil
 }
 
