@@ -2,7 +2,10 @@ package token
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/stretchr/testify/assert"
@@ -462,4 +465,450 @@ func TestInmemEventStoreGetBurnEventsByToken(t *testing.T) {
 	events, err := es.GetBurnEventsByToken("token1")
 	assert.NoError(t, err)
 	assert.Len(t, events, 1)
+}
+
+func keyPress(s string) tea.KeyPressMsg {
+	return tea.KeyPressMsg(tea.Key{Text: s})
+}
+
+func TestUpdate_QuitFromMenu(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	_, cmd := app.Update(keyPress("q"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_CtrlCFromMenu(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	_, cmd := app.Update(keyPress("ctrl+c"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_QReturnsToMenu(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.Update(keyPress("q"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_CtrlCReturnsToMenu(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "mint"
+	app.Update(keyPress("ctrl+c"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_UpNavigation(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 2
+	app.Update(keyPress("up"))
+	assert.Equal(t, 1, app.menuIndex)
+	app.Update(keyPress("k"))
+	assert.Equal(t, 0, app.menuIndex)
+}
+
+func TestUpdate_UpNavigationLowerBound(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 0
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.menuIndex)
+}
+
+func TestUpdate_DownNavigation(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.menuIndex)
+	app.Update(keyPress("j"))
+	assert.Equal(t, 2, app.menuIndex)
+}
+
+func TestUpdate_DownNavigationUpperBound(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 4
+	app.Update(keyPress("down"))
+	assert.Equal(t, 4, app.menuIndex)
+}
+
+func TestUpdate_NumericShortcuts(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.Update(keyPress("1"))
+	assert.Equal(t, 0, app.menuIndex)
+	app.Update(keyPress("2"))
+	assert.Equal(t, 1, app.menuIndex)
+	app.Update(keyPress("3"))
+	assert.Equal(t, 2, app.menuIndex)
+	app.Update(keyPress("4"))
+	assert.Equal(t, 3, app.menuIndex)
+	app.Update(keyPress("5"))
+	assert.Equal(t, 4, app.menuIndex)
+}
+
+func TestUpdate_NumericOutsideMenu(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.menuIndex = 2
+	app.Update(keyPress("3"))
+	assert.Equal(t, 2, app.menuIndex)
+}
+
+func TestUpdate_EnterInMenuNavigateToCreate(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 0
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "create", app.view)
+}
+
+func TestUpdate_EnterInMenuNavigateToMint(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 1
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "mint", app.view)
+}
+
+func TestUpdate_EnterInMenuNavigateToTransfer(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 2
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "transfer", app.view)
+}
+
+func TestUpdate_EnterInMenuNavigateToBalance(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 3
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "balance", app.view)
+}
+
+func TestUpdate_EnterInMenuNavigateToHistory(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.menuIndex = 4
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "history", app.view)
+}
+
+func TestUpdate_EnterInHistoryReturnsToMenu(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "history"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_EscFromCreate(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.err = "some error"
+	app.successMsg = "some success"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "menu", app.view)
+	assert.Equal(t, "", app.err)
+	assert.Equal(t, "", app.successMsg)
+}
+
+func TestUpdate_EscFromMenuDoesNothing(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "menu"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_WindowSizeMsg(t *testing.T) {
+	app := NewTokenApp()
+	app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	assert.Equal(t, 76, app.viewport.Width())
+	assert.Equal(t, 12, app.viewport.Height())
+}
+
+func TestUpdate_CreateViewTextInputs(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.Update(keyPress("a"))
+	assert.NotNil(t, app)
+}
+
+func TestHandleCreate_EmptyName(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("")
+	app.createSymbolInput.SetValue("SYM")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleCreate_InvalidSupply(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("SYM")
+	app.createSupplyInput.SetValue("invalid")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleMint_EmptyTo(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "mint"
+	app.mintToInput.SetValue("")
+	app.mintAmountInput.SetValue("100")
+	app.handleMint()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleTransfer_EmptyTo(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "transfer"
+	app.transferToInput.SetValue("")
+	app.transferAmountInput.SetValue("50")
+	app.handleTransfer()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleBalance_EmptyAddress(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "balance"
+	app.balanceAddressInput.SetValue("")
+	app.handleBalance()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestUpdate_QClearsMessages(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.err = "error"
+	app.successMsg = "success"
+	app.Update(keyPress("q"))
+	assert.Equal(t, "", app.err)
+	assert.Equal(t, "", app.successMsg)
+}
+
+func TestHandleCreate_Success(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+	assert.NotEmpty(t, app.successMsg)
+	assert.NotNil(t, app.currentToken)
+}
+
+func TestHandleMint_Success(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+
+	app.view = "mint"
+	ownerB64 := base64.StdEncoding.EncodeToString(app.ownerKey)
+	app.mintToInput.SetValue(ownerB64)
+	app.mintAmountInput.SetValue("100")
+	app.mintPrivateInput.SetValue("")
+	app.handleMint()
+	assert.NotEmpty(t, app.successMsg)
+}
+
+func TestHandleTransfer_Success(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+	assert.NotNil(t, app.currentToken)
+
+	recipient := make([]byte, 32)
+	recipientB64 := base64.StdEncoding.EncodeToString(recipient)
+
+	app.view = "transfer"
+	app.transferToInput.SetValue(recipientB64)
+	app.transferAmountInput.SetValue("50")
+	app.transferPrivateInput.SetValue("")
+	app.handleTransfer()
+	assert.NotNil(t, app)
+}
+
+func TestHandleBalance_Success(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+
+	app.view = "balance"
+	app.balanceAddressInput.SetValue("")
+	app.handleBalance()
+	assert.NotEmpty(t, app.successMsg)
+}
+
+func TestHandleBalance_WithAddress(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+
+	app.view = "balance"
+	ownerB64 := base64.StdEncoding.EncodeToString(app.ownerKey)
+	app.balanceAddressInput.SetValue(ownerB64)
+	app.handleBalance()
+	assert.NotEmpty(t, app.successMsg)
+}
+
+func TestHandleMint_InvalidAddress(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+
+	app.view = "mint"
+	app.mintToInput.SetValue("not-base64!!!")
+	app.mintAmountInput.SetValue("100")
+	app.handleMint()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleMint_InvalidAmount(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+
+	app.view = "mint"
+	ownerB64 := base64.StdEncoding.EncodeToString(app.ownerKey)
+	app.mintToInput.SetValue(ownerB64)
+	app.mintAmountInput.SetValue("not-a-number")
+	app.handleMint()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleTransfer_InvalidAddress(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+
+	app.view = "transfer"
+	app.transferToInput.SetValue("not-base64!!!")
+	app.transferAmountInput.SetValue("50")
+	app.handleTransfer()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleTransfer_InvalidAmount(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+
+	app.view = "transfer"
+	app.transferToInput.SetValue(base64.StdEncoding.EncodeToString(app.ownerKey))
+	app.transferAmountInput.SetValue("not-a-number")
+	app.handleTransfer()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleBalance_InvalidAddress(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+
+	app.view = "balance"
+	app.balanceAddressInput.SetValue("not-base64!!!")
+	app.handleBalance()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleCreate_SymbolRequired(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleCreate_SupplyRequired(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleCreate_InvalidDecimals(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("TestToken")
+	app.createSymbolInput.SetValue("TST")
+	app.createSupplyInput.SetValue("1000")
+	app.createDecimalsInput.SetValue("not-a-number")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleMint_NoToken(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "mint"
+	app.handleMint()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleTransfer_NoToken(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "transfer"
+	app.handleTransfer()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleBalance_NoToken(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "balance"
+	app.handleBalance()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleMint_NoTokenForAmount(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "mint"
+	app.mintToInput.SetValue("")
+	app.handleMint()
+	assert.NotEmpty(t, app.err)
+}
+
+func TestHandleTransfer_NoTokenForAmount(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "transfer"
+	app.transferToInput.SetValue("")
+	app.handleTransfer()
+	assert.NotEmpty(t, app.err)
 }
