@@ -2,10 +2,13 @@ package token
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
 	"database/sql"
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
@@ -13,12 +16,38 @@ import (
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )
 
-func pubKey(n byte) PublicKey {
-	key := make(PublicKey, 32)
-	for i := range key {
-		key[i] = n
+// keyPairs caches ed25519 key pairs keyed by a small integer so that
+// pubKey(n) / privKey(n) always return matching public/private keys
+// across a test. This replaces the old approach of using make([]byte, 32)
+// as a fake public key with make([]byte, 64) as a fake private key,
+// which broke after the authorization middleware was added (the keys
+// now must be a real, matching ed25519 pair).
+var (
+	keyPairs   = make(map[byte]ed25519.PrivateKey)
+	keyPairsMu sync.Mutex
+)
+
+func keyPair(n byte) ed25519.PrivateKey {
+	keyPairsMu.Lock()
+	defer keyPairsMu.Unlock()
+	if k, ok := keyPairs[n]; ok {
+		return k
 	}
-	return key
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		panic(fmt.Sprintf("failed to generate ed25519 key pair: %v", err))
+	}
+	keyPairs[n] = priv
+	_ = pub // pub is derivable from priv
+	return priv
+}
+
+func pubKey(n byte) PublicKey {
+	return PublicKey(keyPair(n).Public().(ed25519.PublicKey))
+}
+
+func privKey(n byte) PrivateKey {
+	return PrivateKey(keyPair(n))
 }
 
 type mockTxManager struct {
@@ -273,9 +302,10 @@ func TestMint_InvalidRecipient(t *testing.T) {
 	})
 
 	mintReq := &MintRequest{
-		TokenID: "TEST",
-		To:      nil,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		To:         nil,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 
 	_, err := service.Mint(mintReq)
@@ -299,9 +329,10 @@ func TestMint_InvalidAmount(t *testing.T) {
 
 	recipient := pubKey(2)
 	mintReq := &MintRequest{
-		TokenID: "TEST",
-		To:      recipient,
-		Amount:  NewAmount(0),
+		TokenID:    "TEST",
+		To:         recipient,
+		Amount:     NewAmount(0),
+		PrivateKey: privKey(1),
 	}
 
 	_, err := service.Mint(mintReq)
@@ -330,9 +361,10 @@ func TestMint(t *testing.T) {
 
 	recipient := pubKey(2)
 	mintReq := &MintRequest{
-		TokenID: "TEST",
-		To:      recipient,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		To:         recipient,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 
 	_, err = service.Mint(mintReq)
@@ -360,7 +392,7 @@ func TestTransfer_InvalidToken(t *testing.T) {
 
 	owner := pubKey(1)
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	transferReq := &TransferRequest{
 		TokenID:    "NONEXISTENT",
 		From:       owner,
@@ -392,7 +424,7 @@ func TestTransfer_InvalidFrom(t *testing.T) {
 	})
 
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       nil,
@@ -423,7 +455,7 @@ func TestTransfer_InvalidTo(t *testing.T) {
 		Owner:       owner,
 	})
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -455,7 +487,7 @@ func TestTransfer_InvalidAmount(t *testing.T) {
 	})
 
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -492,7 +524,7 @@ func TestTransfer(t *testing.T) {
 	}
 
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -539,7 +571,7 @@ func TestTransfer_InsufficientBalance(t *testing.T) {
 	}
 
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -574,10 +606,11 @@ func TestApprove(t *testing.T) {
 
 	spender := pubKey(2)
 	approveReq := &ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 
 	_, err = service.Approve(approveReq)
@@ -617,12 +650,13 @@ func TestTransferFrom(t *testing.T) {
 	}
 
 	spender := pubKey(2)
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	approveReq := &ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 
 	_, err = service.Approve(approveReq)
@@ -671,17 +705,19 @@ func TestIncreaseAllowance(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(100),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(100),
+		PrivateKey: privKey(1),
 	})
 
 	_, err := service.IncreaseAllowance(&AllowanceRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(50),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(50),
+		PrivateKey: privKey(1),
 	})
 	if err != nil {
 		t.Fatalf("IncreaseAllowance failed: %v", err)
@@ -708,17 +744,19 @@ func TestDecreaseAllowance(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(100),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(100),
+		PrivateKey: privKey(1),
 	})
 
 	_, err := service.DecreaseAllowance(&AllowanceRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(30),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(30),
+		PrivateKey: privKey(1),
 	})
 	if err != nil {
 		t.Fatalf("DecreaseAllowance failed: %v", err)
@@ -743,7 +781,7 @@ func TestBurn(t *testing.T) {
 		Owner:       owner,
 	})
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, err := service.Burn(&BurnRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -773,7 +811,7 @@ func TestBurn_InsufficientBalance(t *testing.T) {
 		Owner:       owner,
 	})
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, err := service.Burn(&BurnRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -794,7 +832,7 @@ func TestGetTransferHistory(t *testing.T) {
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
 		Name:        "Test Token",
 		Symbol:      "TEST",
@@ -1215,9 +1253,10 @@ func TestMint_NonMintableToken(t *testing.T) {
 
 	recipient := pubKey(2)
 	mintReq := &MintRequest{
-		TokenID: "FIXED",
-		To:      recipient,
-		Amount:  NewAmount(500),
+		TokenID:    "FIXED",
+		To:         recipient,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 
 	_, err := service.Mint(mintReq)
@@ -1238,9 +1277,10 @@ func TestMint_InvalidTokenRepoError(t *testing.T) {
 
 	recipient := pubKey(2)
 	mintReq := &MintRequest{
-		TokenID: "TEST",
-		To:      recipient,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		To:         recipient,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 
 	_, err := service.Mint(mintReq)
@@ -1266,7 +1306,7 @@ func TestTransferFrom_NilApproval(t *testing.T) {
 	})
 
 	spender := pubKey(2)
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 	transferFromReq := &TransferFromRequest{
 		TokenID:    "TEST",
@@ -1301,13 +1341,14 @@ func TestTransferFrom_InsufficientAllowance(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(50),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(50),
+		PrivateKey: privKey(1),
 	})
 
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 	transferFromReq := &TransferFromRequest{
 		TokenID:    "TEST",
@@ -1342,13 +1383,14 @@ func TestTransferFrom_OwnerInsufficientBalance(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	})
 
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 	transferFromReq := &TransferFromRequest{
 		TokenID:    "TEST",
@@ -1382,7 +1424,7 @@ func TestTransferFrom_InvalidOwner(t *testing.T) {
 	})
 
 	spender := pubKey(2)
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 	transferFromReq := &TransferFromRequest{
 		TokenID:    "TEST",
@@ -1415,7 +1457,7 @@ func TestTransferFrom_InvalidSpender(t *testing.T) {
 		Owner:       owner,
 	})
 
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 	transferFromReq := &TransferFromRequest{
 		TokenID:    "TEST",
@@ -1449,7 +1491,7 @@ func TestTransferFrom_InvalidAmount(t *testing.T) {
 	})
 
 	spender := pubKey(2)
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 	transferFromReq := &TransferFromRequest{
 		TokenID:    "TEST",
@@ -1476,7 +1518,7 @@ func TestTransferFrom_InvalidToken(t *testing.T) {
 
 	owner := pubKey(1)
 	spender := pubKey(2)
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 	transferFromReq := &TransferFromRequest{
 		TokenID:    "NONEXISTENT",
@@ -1511,7 +1553,7 @@ func TestTransfer_Atomicity_FromBalanceUpdateFails(t *testing.T) {
 	repo.balances[string(token.ID())+string(owner)] = NewAmount(1000)
 
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	repo.trySubtractBalanceError = true
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
@@ -1545,7 +1587,7 @@ func TestTransfer_Atomicity_ToBalanceUpdateFails(t *testing.T) {
 	repo.balances[string(token.ID())+string(owner)] = NewAmount(1000)
 
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	repo.tryAddBalanceError = true
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
@@ -1678,17 +1720,19 @@ func TestApprove_UpdatesExistingApproval(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(100),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(100),
+		PrivateKey: privKey(1),
 	})
 
 	_, err := service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(200),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(200),
+		PrivateKey: privKey(1),
 	})
 	if err != nil {
 		t.Fatalf("Approve failed: %v", err)
@@ -1717,7 +1761,7 @@ func TestBurn_NonBurnableToken(t *testing.T) {
 	}
 	repo.tokens["FIXED"] = token
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, err := service.Burn(&BurnRequest{
 		TokenID:    "FIXED",
 		From:       owner,
@@ -1742,7 +1786,7 @@ func TestBurn_InvalidFrom(t *testing.T) {
 		Owner:       owner,
 	})
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, err := service.Burn(&BurnRequest{
 		TokenID:    "TEST",
 		From:       nil,
@@ -1767,7 +1811,7 @@ func TestBurn_InvalidAmount(t *testing.T) {
 		Owner:       owner,
 	})
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, err := service.Burn(&BurnRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -1784,7 +1828,7 @@ func TestBurn_InvalidToken(t *testing.T) {
 	eventStore := NewMockEventStore()
 	service := newTestService(repo, eventStore)
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, err := service.Burn(&BurnRequest{
 		TokenID:    "NONEXISTENT",
 		From:       pubKey(1),
@@ -1831,7 +1875,7 @@ func TestGetTransferHistory_WithPagination(t *testing.T) {
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
 		Name:        "Test Token",
 		Symbol:      "TEST",
@@ -1869,7 +1913,7 @@ func TestGetTransferHistory_WithOffset(t *testing.T) {
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
 
 	owner := pubKey(1)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, _ = service.CreateToken(&CreateTokenRequest{
 		Name:        "Test Token",
 		Symbol:      "TEST",
@@ -1913,10 +1957,11 @@ func TestIncreaseAllowance_NoExistingApproval(t *testing.T) {
 
 	spender := pubKey(2)
 	_, err := service.IncreaseAllowance(&AllowanceRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(100),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(100),
+		PrivateKey: privKey(1),
 	})
 	if err != nil {
 		t.Fatalf("IncreaseAllowance failed: %v", err)
@@ -1943,17 +1988,19 @@ func TestDecreaseAllowance_NoExistingApproval(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(10),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(10),
+		PrivateKey: privKey(1),
 	})
 
 	_, err := service.DecreaseAllowance(&AllowanceRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(5),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(5),
+		PrivateKey: privKey(1),
 	})
 	if err != nil {
 		t.Fatalf("DecreaseAllowance failed: %v", err)
@@ -1980,10 +2027,11 @@ func TestDecreaseAllowance_ClampsToZero(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(50),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(50),
+		PrivateKey: privKey(1),
 	})
 
 	_, err := service.Approve(&ApproveRequest{
@@ -2063,7 +2111,7 @@ func TestTransferFrom_SetBalanceError(t *testing.T) {
 	spender := pubKey(2)
 	repo.approvals[string(token.ID())+string(owner)+string(spender)] = NewApproval("TEST", owner, spender, NewAmount(500))
 
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 
 	repo.tryAddBalanceError = true
@@ -2100,7 +2148,7 @@ func TestTransferFrom_UpdateApprovalError(t *testing.T) {
 	spender := pubKey(2)
 	repo.approvals[string(token.ID())+string(owner)+string(spender)] = NewApproval("TEST", owner, spender, NewAmount(500))
 
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 	recipient := pubKey(3)
 
 	repo.saveApprovalError = true
@@ -2140,7 +2188,7 @@ func TestTransfer_AtomicityRollbackOnPublishFailure(t *testing.T) {
 	repo.balances[string(token.ID())+string(owner)] = NewAmount(1000)
 
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -2184,7 +2232,7 @@ func TestTransferFrom_AtomicityRollbackOnToBalanceFailure(t *testing.T) {
 	repo.approvals[string(token.ID())+string(owner)+string(spender)] = NewApproval("TEST", owner, spender, NewAmount(500))
 
 	recipient := pubKey(3)
-	spenderKey := make([]byte, 64)
+	spenderKey := privKey(2)
 
 	repo.trySubtractBalanceError = true
 	_, err := service.TransferFrom(&TransferFromRequest{
@@ -2233,9 +2281,10 @@ func TestMint_AtomicityRollbackOnBalanceUpdateFailure(t *testing.T) {
 	recipient := pubKey(2)
 	repo.setAccountBalanceError = true
 	_, err := service.Mint(&MintRequest{
-		TokenID: "TEST",
-		To:      recipient,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		To:         recipient,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	})
 	if err == nil {
 		t.Error("expected error when balance update fails")
@@ -2264,7 +2313,7 @@ func TestBurn_AtomicityRollbackOnBalanceUpdateFailure(t *testing.T) {
 	repo.tokens[token.ID()] = token
 	repo.balances[string(token.ID())+string(owner)] = NewAmount(1000)
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	repo.setAccountBalanceError = true
 	_, err := service.Burn(&BurnRequest{
 		TokenID:    "TEST",
@@ -2301,7 +2350,7 @@ func TestTransfer_AtomicityTransactionFailureDoesNotCorruptState(t *testing.T) {
 	repo.balances[string(token.ID())+string(owner)] = NewAmount(1000)
 
 	recipient := pubKey(2)
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	transferReq := &TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -2373,9 +2422,10 @@ func TestNoOpTxManager_ExecutesCallback(t *testing.T) {
 
 	recipient := pubKey(2)
 	mintReq := &MintRequest{
-		TokenID: "TEST",
-		To:      recipient,
-		Amount:  NewAmount(500),
+		TokenID:    "TEST",
+		To:         recipient,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
 	}
 	_, err = service.Mint(mintReq)
 	if err != nil {
@@ -2416,7 +2466,7 @@ func TestNoOpTxManager_TransferWorksThroughNoOpTx(t *testing.T) {
 		Owner:       owner,
 	})
 
-	privateKey := make([]byte, 64)
+	privateKey := privKey(1)
 	_, err := service.Transfer(&TransferRequest{
 		TokenID:    "TEST",
 		From:       owner,
@@ -2501,17 +2551,19 @@ func TestIncreaseAllowance_PublishError(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(100),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(100),
+		PrivateKey: privKey(1),
 	})
 
 	_, err := service.IncreaseAllowance(&AllowanceRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(50),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(50),
+		PrivateKey: privKey(1),
 	})
 	if err == nil {
 		t.Fatal("Expected error for publish failure")
@@ -2580,19 +2632,297 @@ func TestDecreaseAllowance_PublishError(t *testing.T) {
 
 	spender := pubKey(2)
 	_, _ = service.Approve(&ApproveRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(100),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(100),
+		PrivateKey: privKey(1),
 	})
 
 	_, err := service.DecreaseAllowance(&AllowanceRequest{
-		TokenID: "TEST",
-		Owner:   owner,
-		Spender: spender,
-		Amount:  NewAmount(50),
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(50),
+		PrivateKey: privKey(1),
 	})
 	if err == nil {
 		t.Fatal("Expected error for publish failure")
+	}
+}
+
+// ============================================================
+// Authorization tests — verify PrivateKey matches expected
+// PublicKey for each mutating operation.
+// ============================================================
+
+func TestMint_UnauthorizedPrivateKey(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	// Use privKey(2) — does NOT match owner pubKey(1)
+	recipient := pubKey(3)
+	mintReq := &MintRequest{
+		TokenID:    "TEST",
+		To:         recipient,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(2),
+	}
+
+	_, err := service.Mint(mintReq)
+	if err == nil {
+		t.Fatal("expected error for unauthorized private key in Mint")
+	}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestMint_NilPrivateKey(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	recipient := pubKey(2)
+	mintReq := &MintRequest{
+		TokenID:    "TEST",
+		To:         recipient,
+		Amount:     NewAmount(500),
+		PrivateKey: nil,
+	}
+
+	_, err := service.Mint(mintReq)
+	if err == nil {
+		t.Fatal("expected error for nil private key in Mint")
+	}
+}
+
+func TestBurn_UnauthorizedPrivateKey(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	// Use privKey(2) — does NOT match From pubKey(1)
+	burnReq := &BurnRequest{
+		TokenID:    "TEST",
+		From:       owner,
+		Amount:     NewAmount(100),
+		PrivateKey: privKey(2),
+	}
+
+	_, err := service.Burn(burnReq)
+	if err == nil {
+		t.Fatal("expected error for unauthorized private key in Burn")
+	}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestTransfer_UnauthorizedPrivateKey(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	recipient := pubKey(2)
+	// Use privKey(3) — does NOT match From pubKey(1)
+	transferReq := &TransferRequest{
+		TokenID:    "TEST",
+		From:       owner,
+		To:         recipient,
+		Amount:     NewAmount(100),
+		PrivateKey: privKey(3),
+	}
+
+	_, err := service.Transfer(transferReq)
+	if err == nil {
+		t.Fatal("expected error for unauthorized private key in Transfer")
+	}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestTransferFrom_UnauthorizedPrivateKey(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	spender := pubKey(2)
+	// Set up an approval
+	_, _ = service.Approve(&ApproveRequest{
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(1),
+	})
+
+	recipient := pubKey(3)
+	// Use privKey(4) — does NOT match Spender pubKey(2)
+	transferFromReq := &TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      owner,
+		To:         recipient,
+		Amount:     NewAmount(100),
+		Spender:    spender,
+		SpenderKey: privKey(4),
+	}
+
+	_, err := service.TransferFrom(transferFromReq)
+	if err == nil {
+		t.Fatal("expected error for unauthorized spender key in TransferFrom")
+	}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestApprove_UnauthorizedPrivateKey(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	spender := pubKey(2)
+	// Use privKey(3) — does NOT match Owner pubKey(1)
+	approveReq := &ApproveRequest{
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(500),
+		PrivateKey: privKey(3),
+	}
+
+	_, err := service.Approve(approveReq)
+	if err == nil {
+		t.Fatal("expected error for unauthorized private key in Approve")
+	}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestIncreaseAllowance_UnauthorizedPrivateKey(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	spender := pubKey(2)
+	// Use privKey(3) — does NOT match Owner pubKey(1)
+	allowanceReq := &AllowanceRequest{
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(50),
+		PrivateKey: privKey(3),
+	}
+
+	_, err := service.IncreaseAllowance(allowanceReq)
+	if err == nil {
+		t.Fatal("expected error for unauthorized private key in IncreaseAllowance")
+	}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
+	}
+}
+
+func TestDecreaseAllowance_UnauthorizedPrivateKey(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
+
+	owner := pubKey(1)
+	_, _ = service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+
+	spender := pubKey(2)
+	// Use privKey(3) — does NOT match Owner pubKey(1)
+	allowanceReq := &AllowanceRequest{
+		TokenID:    "TEST",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(30),
+		PrivateKey: privKey(3),
+	}
+
+	_, err := service.DecreaseAllowance(allowanceReq)
+	if err == nil {
+		t.Fatal("expected error for unauthorized private key in DecreaseAllowance")
+	}
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }

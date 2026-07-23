@@ -147,7 +147,7 @@ type MintRequest struct {
 	TokenID    TokenID
 	To         PublicKey
 	Amount     *Amount
-	PrivateKey []byte
+	PrivateKey PrivateKey
 }
 
 type TransferRequest struct {
@@ -155,7 +155,7 @@ type TransferRequest struct {
 	From       PublicKey
 	To         PublicKey
 	Amount     *Amount
-	PrivateKey []byte
+	PrivateKey PrivateKey
 }
 
 type TransferFromRequest struct {
@@ -164,7 +164,7 @@ type TransferFromRequest struct {
 	To         PublicKey
 	Amount     *Amount
 	Spender    PublicKey
-	SpenderKey []byte
+	SpenderKey PrivateKey
 }
 
 type ApproveRequest struct {
@@ -172,7 +172,7 @@ type ApproveRequest struct {
 	Owner      PublicKey
 	Spender    PublicKey
 	Amount     *Amount
-	PrivateKey []byte
+	PrivateKey PrivateKey
 }
 
 type AllowanceRequest struct {
@@ -180,14 +180,14 @@ type AllowanceRequest struct {
 	Owner      PublicKey
 	Spender    PublicKey
 	Amount     *Amount
-	PrivateKey []byte
+	PrivateKey PrivateKey
 }
 
 type BurnRequest struct {
 	TokenID    TokenID
 	From       PublicKey
 	Amount     *Amount
-	PrivateKey []byte
+	PrivateKey PrivateKey
 }
 
 func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
@@ -247,6 +247,10 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 
 	if !token.IsMintable() {
 		return nil, ErrTokenNotMintable
+	}
+
+	if err := VerifyPrivateKeyMatches(token.Owner(), req.PrivateKey); err != nil {
+		return nil, err
 	}
 
 	if err := ValidatePublicKey(req.To); err != nil {
@@ -312,6 +316,9 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	if err := ValidatePublicKey(req.To); err != nil {
 		return nil, err
 	}
+	if err := VerifyPrivateKeyMatches(req.From, req.PrivateKey); err != nil {
+		return nil, err
+	}
 	if err := ValidateAmount(req.Amount); err != nil {
 		return nil, err
 	}
@@ -329,7 +336,7 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 		return nil, err
 	}
 
-	signature := ed25519.Sign(req.PrivateKey, s.signMessage(req.TokenID, req.From, req.To, req.Amount, nonce))
+	signature := ed25519.Sign(ed25519.PrivateKey(req.PrivateKey), s.signMessage(req.TokenID, req.From, req.To, req.Amount, nonce))
 
 	event := NewTransferEvent(req.TokenID, req.From, req.To, req.Amount, nonce, signature)
 
@@ -398,6 +405,9 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	if err := ValidatePublicKey(req.Spender); err != nil {
 		return nil, err
 	}
+	if err := VerifyPrivateKeyMatches(req.Spender, req.SpenderKey); err != nil {
+		return nil, err
+	}
 	if err := ValidateAmount(req.Amount); err != nil {
 		return nil, err
 	}
@@ -426,7 +436,7 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 		return nil, err
 	}
 
-	signature := ed25519.Sign(req.SpenderKey, s.signMessage(req.TokenID, req.Owner, req.To, req.Amount, nonce))
+	signature := ed25519.Sign(ed25519.PrivateKey(req.SpenderKey), s.signMessage(req.TokenID, req.Owner, req.To, req.Amount, nonce))
 
 	event := NewTransferEvent(req.TokenID, req.Owner, req.To, req.Amount, nonce, signature)
 
@@ -512,6 +522,10 @@ func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
 		return nil, err
 	}
 
+	if err := VerifyPrivateKeyMatches(req.Owner, req.PrivateKey); err != nil {
+		return nil, err
+	}
+
 	if err := ValidatePublicKey(req.Owner); err != nil {
 		return nil, err
 	}
@@ -536,6 +550,9 @@ func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
 }
 
 func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, error) {
+	if err := VerifyPrivateKeyMatches(req.Owner, req.PrivateKey); err != nil {
+		return nil, err
+	}
 	if err := ValidatePublicKey(req.Owner); err != nil {
 		return nil, err
 	}
@@ -562,6 +579,9 @@ func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 }
 
 func (s *TokenService) DecreaseAllowance(req *AllowanceRequest) (*ApproveEvent, error) {
+	if err := VerifyPrivateKeyMatches(req.Owner, req.PrivateKey); err != nil {
+		return nil, err
+	}
 	if err := ValidatePublicKey(req.Owner); err != nil {
 		return nil, err
 	}
@@ -604,6 +624,10 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 
 	if !token.IsBurnable() {
 		return nil, ErrTokenNotBurnable
+	}
+
+	if err := VerifyPrivateKeyMatches(req.From, req.PrivateKey); err != nil {
+		return nil, err
 	}
 
 	if err := ValidatePublicKey(req.From); err != nil {

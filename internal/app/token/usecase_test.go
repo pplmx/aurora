@@ -73,7 +73,7 @@ func (m *mockTokenService) Transfer(req *token.TransferRequest) (*token.Transfer
 	nonce++
 	m.nonces[string(req.From)+string(req.TokenID)] = nonce
 
-	signature := ed25519.Sign(req.PrivateKey, []byte("mock-signature"))
+	signature := ed25519.Sign(ed25519.PrivateKey(req.PrivateKey), []byte("mock-signature"))
 	event := token.NewTransferEvent(req.TokenID, req.From, req.To, req.Amount, nonce, signature)
 	m.events.transfers = append(m.events.transfers, event)
 
@@ -110,7 +110,7 @@ func (m *mockTokenService) TransferFrom(req *token.TransferFromRequest) (*token.
 	nonce++
 	m.nonces[string(req.Spender)+string(req.TokenID)] = nonce
 
-	signature := ed25519.Sign(req.SpenderKey, []byte("mock-signature-from"))
+	signature := ed25519.Sign(ed25519.PrivateKey(req.SpenderKey), []byte("mock-signature-from"))
 	event := token.NewTransferEvent(req.TokenID, req.Owner, req.To, req.Amount, nonce, signature)
 	m.events.transfers = append(m.events.transfers, event)
 
