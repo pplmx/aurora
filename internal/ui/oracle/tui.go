@@ -583,18 +583,23 @@ func (m *model) dataView() string {
 }
 
 func (m *model) loadSources() {
-	if list, err := m.listUseCase.Execute(&oracleapp.ListSourcesRequest{}); err == nil {
-		m.sources = make([]*domainoracle.DataSource, len(list.Sources))
-		for i, s := range list.Sources {
-			m.sources[i] = &domainoracle.DataSource{
-				ID:      s.ID,
-				Name:    s.Name,
-				URL:     s.URL,
-				Type:    s.Type,
-				Enabled: s.Enabled,
-			}
+	list, err := m.listUseCase.Execute(&oracleapp.ListSourcesRequest{})
+	if err != nil {
+		m.errMsg = i18n.GetText("error.load_failed")
+		m.sources = nil
+		return
+	}
+	m.sources = make([]*domainoracle.DataSource, len(list.Sources))
+	for i, s := range list.Sources {
+		m.sources[i] = &domainoracle.DataSource{
+			ID:      s.ID,
+			Name:    s.Name,
+			URL:     s.URL,
+			Type:    s.Type,
+			Enabled: s.Enabled,
 		}
 	}
+	m.errMsg = ""
 }
 
 func (m *model) initAddSource() {
