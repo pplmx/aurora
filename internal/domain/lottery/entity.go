@@ -142,13 +142,13 @@ func CreateLotteryRecord(
 func ValidateParticipantName(name string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return fmt.Errorf("participant name cannot be empty")
+		return ErrEmptyParticipantName
 	}
 	if len(name) > MaxParticipantNameLength {
-		return fmt.Errorf("participant name too long (max %d chars)", MaxParticipantNameLength)
+		return ErrParticipantNameTooLong
 	}
 	if !validNameRegex.MatchString(name) {
-		return fmt.Errorf("participant name contains invalid characters")
+		return ErrInvalidParticipantName
 	}
 	return nil
 }
@@ -156,20 +156,20 @@ func ValidateParticipantName(name string) error {
 func ValidateSeed(seed string) error {
 	seed = strings.TrimSpace(seed)
 	if len(seed) < MinSeedLength {
-		return fmt.Errorf("seed too short (min %d chars)", MinSeedLength)
+		return ErrSeedTooShort
 	}
 	if len(seed) > MaxSeedLength {
-		return fmt.Errorf("seed too long (max %d chars)", MaxSeedLength)
+		return ErrSeedTooLong
 	}
 	return nil
 }
 
 func ValidateParticipants(participants []string) error {
 	if len(participants) == 0 {
-		return fmt.Errorf("at least one participant required")
+		return ErrNoParticipants
 	}
 	if len(participants) > MaxParticipants {
-		return fmt.Errorf("too many participants (max %d)", MaxParticipants)
+		return ErrTooManyParticipants
 	}
 
 	seen := make(map[string]bool)
@@ -179,7 +179,7 @@ func ValidateParticipants(participants []string) error {
 			return fmt.Errorf("invalid participant: %w", err)
 		}
 		if seen[p] {
-			return fmt.Errorf("duplicate participant: %s", p)
+			return fmt.Errorf("duplicate participant: %w", ErrDuplicateParticipant)
 		}
 		seen[p] = true
 	}
@@ -188,13 +188,13 @@ func ValidateParticipants(participants []string) error {
 
 func ValidateWinnerCount(count, participantCount int) error {
 	if count <= 0 {
-		return fmt.Errorf("winner count must be positive")
+		return ErrWinnerCountNotPositive
 	}
 	if count > MaxWinners {
-		return fmt.Errorf("too many winners (max %d)", MaxWinners)
+		return ErrTooManyWinners
 	}
 	if count > participantCount {
-		return fmt.Errorf("winner count (%d) cannot exceed participants (%d)", count, participantCount)
+		return ErrWinnersExceedParticipants
 	}
 	return nil
 }
