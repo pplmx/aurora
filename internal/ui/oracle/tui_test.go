@@ -3,6 +3,8 @@ package oracle
 import (
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
+
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/stretchr/testify/assert"
 )
@@ -418,4 +420,538 @@ func TestHandleDeleteSourceNoSelection(t *testing.T) {
 	app.selectedSourceID = ""
 	app.handleDeleteSource()
 	assert.NotNil(t, app)
+}
+
+func keyPress(s string) tea.KeyPressMsg {
+	return tea.KeyPressMsg(tea.Key{Text: s})
+}
+
+func TestUpdate_QuitFromMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	_, cmd := app.Update(keyPress("q"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_CtrlCFromMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	_, cmd := app.Update(keyPress("ctrl+c"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_QReturnsToMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.Update(keyPress("q"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_UpNavigationMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.menuIndex = 2
+	app.Update(keyPress("up"))
+	assert.Equal(t, 1, app.menuIndex)
+	app.Update(keyPress("k"))
+	assert.Equal(t, 0, app.menuIndex)
+}
+
+func TestUpdate_DownNavigationMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.menuIndex = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.menuIndex)
+	app.Update(keyPress("j"))
+	assert.Equal(t, 2, app.menuIndex)
+}
+
+func TestUpdate_DownNavigationMenuMax(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.menuIndex = 3
+	app.Update(keyPress("down"))
+	assert.Equal(t, 3, app.menuIndex)
+}
+
+func TestUpdate_MenuNavigateToSources(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.menuIndex = 0
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "sources", app.view)
+}
+
+func TestUpdate_MenuNavigateToFetch(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.menuIndex = 1
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "fetch", app.view)
+}
+
+func TestUpdate_MenuNavigateToQuery(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.menuIndex = 2
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "query", app.view)
+}
+
+func TestUpdate_MenuExit(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.menuIndex = 3
+	_, cmd := app.Update(keyPress("enter"))
+	assert.NotNil(t, cmd)
+}
+
+func TestUpdate_SourcesEnterAddNew(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.menuIndex = 0
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "addSource", app.view)
+}
+
+func TestUpdate_SourcesEnterDetails(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.sources = []*oracle.DataSource{
+		{ID: "src-1", Name: "Test", URL: "https://test.com", Type: "json"},
+	}
+	app.menuIndex = 1
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "sourceDetail", app.view)
+	assert.Equal(t, "src-1", app.selectedSourceID)
+}
+
+func TestUpdate_SourcesEnterInvalidIndex(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.menuIndex = 5
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "sources", app.view)
+}
+
+func TestUpdate_DeleteKeyFromSourceDetail(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sourceDetail"
+	app.selectedSourceID = "src-1"
+	app.Update(keyPress("d"))
+	assert.Equal(t, "confirmDelete", app.view)
+	assert.Equal(t, 1, app.menuIndex)
+}
+
+func TestUpdate_ToggleKeyFromSourceDetail(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sourceDetail"
+	app.selectedSourceID = "src-1"
+	app.Update(keyPress("t"))
+	assert.Equal(t, "confirmToggle", app.view)
+}
+
+func TestUpdate_AddSourceKeyFromSources(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.Update(keyPress("a"))
+	assert.Equal(t, "addSource", app.view)
+}
+
+func TestUpdate_EscFromAddSource(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "sources", app.view)
+}
+
+func TestUpdate_EscFromSourceDetail(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sourceDetail"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "sources", app.view)
+}
+
+func TestUpdate_EscFromConfirmToggle(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmToggle"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "sources", app.view)
+}
+
+func TestUpdate_EscFromDefault(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetch"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_TabInAddSource(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 0
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 1, app.inputFocus)
+}
+
+func TestUpdate_EnterInAddSource(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.sourceInputName.SetValue("TestSource")
+	app.sourceInputURL.SetValue("https://test.com")
+	app.sourceInputType.SetValue("json")
+	app.Update(keyPress("enter"))
+	assert.NotEmpty(t, app.sourceInputName.Value())
+}
+
+func TestUpdate_EnterInSourceDetailReturnsToSources(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sourceDetail"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "sources", app.view)
+}
+
+func TestUpdate_EnterInConfirmToggleCancel(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmToggle"
+	app.selectedSourceID = "src-1"
+	app.menuIndex = 1
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "sources", app.view)
+}
+
+func TestUpdate_EnterInConfirmDeleteCancel(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmDelete"
+	app.selectedSourceID = "src-1"
+	app.menuIndex = 1
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "sources", app.view)
+}
+
+func TestUpdate_UpInSourcesView(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.menuIndex = 1
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.menuIndex)
+}
+
+func TestUpdate_UpInAddSourceView(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 1
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_DownInAddSourceView(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.inputFocus)
+}
+
+func TestUpdate_DownInSourcesView(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.sources = []*oracle.DataSource{
+		{ID: "src-1", Name: "Test"},
+	}
+	app.menuIndex = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.menuIndex)
+}
+
+func TestUpdate_WindowSizeMsg(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	assert.NotNil(t, app)
+}
+
+func TestUpdate_FetchInputFocusNavigation(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetch"
+	app.inputFocus = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_QueryInputFocusNavigation(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.inputFocus = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.inputFocus)
+}
+
+func TestUpdate_ConfirmToggleUp(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmToggle"
+	app.menuIndex = 1
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.menuIndex)
+}
+
+func TestUpdate_ConfirmDeleteDown(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmDelete"
+	app.menuIndex = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.menuIndex)
+}
+
+func TestUpdate_ConfirmToggleUpBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmToggle"
+	app.menuIndex = 0
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.menuIndex)
+}
+
+func TestUpdate_ConfirmDeleteDownBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmDelete"
+	app.menuIndex = 1
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.menuIndex)
+}
+
+func TestUpdate_QueryInputFocusUpBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.inputFocus = 0
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_AddSourceInputFocusDownBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 2
+	app.Update(keyPress("down"))
+	assert.Equal(t, 2, app.inputFocus)
+}
+
+func TestUpdate_EnterInFetchView(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetch"
+	app.fetchInputSource.SetValue("src-1")
+	app.Update(keyPress("enter"))
+	assert.NotNil(t, app)
+}
+
+func TestUpdate_EnterInQueryView(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.queryInputSource.SetValue("src-1")
+	app.queryInputLimit.SetValue("10")
+	app.Update(keyPress("enter"))
+	assert.NotNil(t, app)
+}
+
+func TestUpdate_EnterInFetchResultReturnsToMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetchResult"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_EnterInQueryResultReturnsToMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "queryResult"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_EnterInDataViewReturnsToMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "data"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_EnterInFetchReturnsToMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetch"
+	app.Update(keyPress("q"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_EnterInQueryReturnsToMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.Update(keyPress("q"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_EscClearsMessages(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.errMsg = "error"
+	app.successMsg = "success"
+	app.Update(keyPress("esc"))
+	assert.Equal(t, "", app.errMsg)
+	assert.Equal(t, "", app.successMsg)
+}
+
+func TestUpdate_TabInFetchView(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetch"
+	app.inputFocus = 0
+	app.Update(keyPress("tab"))
+	assert.NotNil(t, app)
+}
+
+func TestUpdate_TabInQueryView(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.inputFocus = 0
+	app.Update(keyPress("tab"))
+	assert.NotNil(t, app)
+}
+
+func TestUpdate_SrcDetailNoSelectedID(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sourceDetail"
+	app.selectedSourceID = ""
+	app.Update(keyPress("d"))
+	assert.NotEqual(t, "confirmDelete", app.view)
+}
+
+func TestUpdate_ToggleNoSelectedID(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sourceDetail"
+	app.selectedSourceID = ""
+	app.Update(keyPress("t"))
+	assert.NotEqual(t, "confirmToggle", app.view)
+}
+
+func TestUpdate_DeleteKeyNotFromSourceDetail(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.Update(keyPress("d"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_ToggleKeyNotFromSourceDetail(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.Update(keyPress("t"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_AddKeyNotFromSources(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.Update(keyPress("a"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_ConfirmToggleConfirmDelete(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmToggle"
+	app.selectedSourceID = "src-1"
+	app.menuIndex = 0
+	app.Update(keyPress("enter"))
+	assert.NotNil(t, app)
+}
+
+func TestUpdate_ConfirmDeleteConfirmDelete(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "confirmDelete"
+	app.selectedSourceID = "src-1"
+	app.menuIndex = 0
+	app.Update(keyPress("enter"))
+	assert.NotNil(t, app)
+}
+
+func TestUpdate_UpInSourcesFromZero(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.menuIndex = 0
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.menuIndex)
+}
+
+func TestUpdate_UpInAddSourceFromZero(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 0
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_FetchInputUpBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetch"
+	app.inputFocus = 0
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_QueryInputUpBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.inputFocus = 0
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_UpInAddSourceViewFromZero(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 0
+	app.Update(keyPress("k"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_DownInSourcesViewMax(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.menuIndex = 10
+	app.Update(keyPress("down"))
+	assert.Equal(t, 10, app.menuIndex)
+}
+
+func TestUpdate_AddSourceTabWraps(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 2
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_FetchTabWraps(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetch"
+	app.inputFocus = 1
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_QueryTabWraps(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.inputFocus = 1
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_FetchInputDownBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetch"
+	app.inputFocus = 0
+	app.Update(keyPress("down"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_QueryInputDownBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.inputFocus = 1
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.inputFocus)
 }
