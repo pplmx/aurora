@@ -129,6 +129,17 @@ func (m *mockVotingRepo) TryMarkVoted(publicKey, voteHash string) error {
 	return sqlite.ErrNotFound
 }
 
+func (m *mockVotingRepo) UnmarkVoted(publicKey string) error {
+	for _, v := range m.voters {
+		if v.PublicKey == publicKey {
+			v.HasVoted = false
+			v.VoteHash = ""
+			return nil
+		}
+	}
+	return nil
+}
+
 func (m *mockVotingRepo) SaveSession(s *voting.Session) error {
 	if m.errSaveSession != nil {
 		return m.errSaveSession

@@ -24,7 +24,7 @@ func NewCastVoteUseCase(repo voting.Repository, service voting.Service) *CastVot
 	}
 }
 
-func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
+func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (_ *VoteResponse, err error) {
 	session, err := uc.repo.GetSession(req.SessionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
@@ -99,10 +99,26 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		return nil, fmt.Errorf("failed to mark voter: %w", err)
 	}
 
+	// If we return an error after TryMarkVoted, unmark the voter
+	// so they aren't permanently locked out. The cleanup defer
+	// also handles DeleteVote if the vote was already saved.
+	var voteSaved bool
+	var voteID string
+	defer func() {
+		if err != nil {
+			if voteSaved {
+				_ = uc.repo.DeleteVote(voteID)
+			}
+			_ = uc.repo.UnmarkVoted(req.VoterPublicKey)
+		}
+	}()
+
 	vote := voting.NewVote(req.VoterPublicKey, req.CandidateID, signature, message)
 	if err := uc.repo.SaveVote(vote); err != nil {
 		return nil, fmt.Errorf("failed to save vote: %w", err)
 	}
+	voteSaved = true
+	voteID = vote.ID
 
 	candidate.VoteCount++
 	if err := uc.repo.UpdateCandidate(candidate); err != nil {

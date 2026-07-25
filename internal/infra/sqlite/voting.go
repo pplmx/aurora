@@ -199,6 +199,22 @@ func (r *VotingRepository) TryMarkVoted(publicKey, voteHash string) error {
 	return nil
 }
 
+// UnmarkVoted resets has_voted to 0 and clears vote_hash for the
+// given voter. Used as a rollback when SaveVote fails after
+// TryMarkVoted succeeded. Not concurrency-safe by itself — the
+// caller must ensure no concurrent TryMarkVoted is inflight (which
+// is guaranteed by the rollback site: CastVoteUseCase executes
+// serially after TryMarkVoted returned success, and no other
+// goroutine can be marking the same voter concurrently because
+// TryMarkVoted already won the race).
+func (r *VotingRepository) UnmarkVoted(publicKey string) error {
+	_, err := r.db.Exec(
+		`UPDATE voters SET has_voted = 0, vote_hash = '' WHERE public_key = ?`,
+		publicKey,
+	)
+	return err
+}
+
 func (r *VotingRepository) ListVoters() ([]*voting.Voter, error) {
 	rows, err := r.db.Query(
 		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters ORDER BY registered_at DESC`,
