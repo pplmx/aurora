@@ -31,7 +31,7 @@ func NewService(repo Repository) *NFTService {
 	return &NFTService{repo: repo}
 }
 
-func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) {
+func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (_ *NFT, err error) {
 	nft.ID = uuid.New().String()
 	nft.Timestamp = time.Now().Unix()
 
@@ -45,6 +45,16 @@ func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) 
 	if err := s.repo.SaveNFT(nft); err != nil {
 		return nil, err
 	}
+	// If we return an error after this point, the chain block is
+	// already committed (cannot be reverted), but we must not
+	// leave the NFT row orphaned without its audit operation.
+	// Deleting the NFT leaves the chain block as an empty
+	// tombstone, which is safe (no ownership claimable).
+	defer func() {
+		if err != nil {
+			_ = s.repo.DeleteNFT(nft.ID)
+		}
+	}()
 
 	op := NewOperation(nft.ID, "mint", nil, nft.Owner, nil)
 	op.BlockHeight = height
@@ -55,7 +65,7 @@ func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) 
 	return nft, nil
 }
 
-func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (*Operation, error) {
+func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (_ *Operation, err error) {
 	// Existence check only — we deliberately do NOT call
 	// nft.IsOwner(from) here. That would read nft.Owner outside
 	// any lock, racing with another goroutine's
@@ -97,33 +107,32 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 	op.BlockHeight = height
 	op.Timestamp = timestamp
 
+	// Persist the operation BEFORE transferring ownership so a
+	// failed transfer does not produce an orphan audit record.
+	// If this save fails, nothing has been mutated yet — clean
+	// abort.
+	if err := s.repo.SaveOperation(op); err != nil {
+		return nil, fmt.Errorf("failed to save transfer operation: %w", err)
+	}
+
 	// Atomic ownership transfer. The conditional UPDATE inside
 	// the primitive rejects us if `from` no longer holds the
 	// NFT (e.g. a concurrent transfer has already moved it).
+	// If TryTransferOwnership fails after SaveOperation
+	// succeeded, the operation record remains as an orphan —
+	// this is safe: it records a transfer attempt that was
+	// rejected due to concurrent ownership change.
 	if err := s.repo.TryTransferOwnership(nftID, from, to); err != nil {
 		if errors.Is(err, ErrOwnershipChanged) {
 			return nil, ErrNotOwner
 		}
 		return nil, err
 	}
-
-	if err := s.repo.SaveOperation(op); err != nil {
-		return nil, fmt.Errorf("failed to save transfer operation: %w", err)
-	}
 	return op, nil
 }
 
-func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockchain.BlockWriter) error {
-	// Existence check only — deliberately do NOT call
-	// nft.IsOwner(owner) here. Same pattern as Transfer: a
-	// read-then-check would race with another goroutine's
-	// TryTransferOwnership write (race detected in
-	// TestNFTService_Burn_ConcurrentOnlyOneWinner under -race).
-	// The atomic primitive TryDeleteNFTIfOwned is the single
-	// source of truth — it atomically deletes the NFT only if
-	// `owner` still holds it, returning ErrOwnershipChanged
-	// otherwise. We map that to ErrNotOwner to preserve the
-	// public error contract.
+func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockchain.BlockWriter) (err error) {
+	// Existence check only — same pattern as Transfer.
 	nft, err := s.repo.GetNFT(nftID)
 	if err != nil {
 		return err
@@ -152,10 +161,19 @@ func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockcha
 	op.BlockHeight = height
 	op.Timestamp = timestamp
 
+	// Persist the operation BEFORE deleting the NFT so a
+	// failed delete does not produce a deleted NFT with no
+	// audit record. If this save fails, nothing has been
+	// mutated yet — clean abort.
+	if err := s.repo.SaveOperation(op); err != nil {
+		return fmt.Errorf("failed to save burn operation: %w", err)
+	}
+
 	// Atomic delete: only the caller that still holds the NFT
-	// succeeds. Concurrent burns (or a Transfer-vs-Burn race)
-	// can no longer produce inconsistent state where the audit
-	// log shows both a transfer and a burn for the same NFT.
+	// succeeds. If TryDeleteNFTIfOwned fails after the operation
+	// was saved, the operation record remains as an orphan, which
+	// is safe — it records a burn attempt that was rejected due
+	// to concurrent ownership change.
 	if err := s.repo.TryDeleteNFTIfOwned(nftID, owner); err != nil {
 		if errors.Is(err, ErrOwnershipChanged) {
 			return ErrNotOwner
@@ -163,9 +181,6 @@ func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockcha
 		return err
 	}
 
-	if err := s.repo.SaveOperation(op); err != nil {
-		return fmt.Errorf("failed to save burn operation: %w", err)
-	}
 	return nil
 }
 

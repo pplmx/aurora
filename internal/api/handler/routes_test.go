@@ -431,6 +431,7 @@ func (f fakeVotingRepo) GetVoter(string) (*domainvoting.Voter, error) {
 }
 func (f fakeVotingRepo) UpdateVoter(*domainvoting.Voter) error { return nil }
 func (f fakeVotingRepo) TryMarkVoted(string, string) error     { return nil }
+func (f fakeVotingRepo) UnmarkVoted(string) error              { return nil }
 func (f fakeVotingRepo) ListVoters() ([]*domainvoting.Voter, error) {
 	return nil, nil
 }

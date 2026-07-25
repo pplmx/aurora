@@ -46,6 +46,7 @@ func (m *mockVotingRepo) GetVoter(pk string) (*domainvoting.Voter, error) {
 }
 func (m *mockVotingRepo) UpdateVoter(*domainvoting.Voter) error      { return nil }
 func (m *mockVotingRepo) TryMarkVoted(_, _ string) error             { return nil }
+func (m *mockVotingRepo) UnmarkVoted(_ string) error               { return nil }
 func (m *mockVotingRepo) ListVoters() ([]*domainvoting.Voter, error) { return nil, nil }
 
 func (m *mockVotingRepo) SaveCandidate(candidate *domainvoting.Candidate) error {

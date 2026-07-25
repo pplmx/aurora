@@ -16,6 +16,11 @@ type Repository interface {
 	// sentinel error. This is the primitive that closes the TOCTOU
 	// double-vote window in CastVoteUseCase.
 	TryMarkVoted(publicKey, voteHash string) error
+	// UnmarkVoted resets the voter's has_voted flag. Used as a
+	// rollback when a downstream step (e.g. SaveVote) fails after
+	// TryMarkVoted succeeded, so the voter isn't permanently locked
+	// out with no vote recorded.
+	UnmarkVoted(publicKey string) error
 	ListVoters() ([]*Voter, error)
 
 	SaveCandidate(candidate *Candidate) error
