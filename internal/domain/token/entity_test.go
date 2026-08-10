@@ -1,6 +1,8 @@
 package token
 
 import (
+	"math"
+	"math/big"
 	"testing"
 )
 
@@ -184,9 +186,11 @@ func TestValidateAmount(t *testing.T) {
 		wantErr bool
 	}{
 		{"valid positive", NewAmount(100), false},
+		{"max int64 accepted", &Amount{big.NewInt(math.MaxInt64)}, false},
 		{"zero amount", NewAmount(0), true},
 		{"negative amount", NewAmount(-10), true},
 		{"nil amount", nil, true},
+		{"exceeds max int64 rejected", &Amount{new(big.Int).Add(big.NewInt(math.MaxInt64), big.NewInt(1))}, true},
 	}
 
 	for _, tt := range tests {

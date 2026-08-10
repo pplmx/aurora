@@ -120,6 +120,12 @@ func TestWriteUseCaseError_DomainError(t *testing.T) {
 			wantCode:   "NO_PARTICIPANTS",
 		},
 		{
+			name:       "amount too large",
+			err:        token.ErrAmountTooLarge,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "AMOUNT_TOO_LARGE",
+		},
+		{
 			name:       "unknown error defaults to 500",
 			err:        errors.New("something went wrong"),
 			wantStatus: http.StatusInternalServerError,

@@ -5,12 +5,6 @@ import (
 	"fmt"
 )
 
-type TxExecutor interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
-}
-
 type TxManager struct {
 	db *sql.DB
 }
@@ -41,24 +35,4 @@ func (m *TxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
 	}
 
 	return nil
-}
-
-type TxRepository struct {
-	tx *sql.Tx
-}
-
-func NewTxRepository(tx *sql.Tx) *TxRepository {
-	return &TxRepository{tx: tx}
-}
-
-func (r *TxRepository) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return r.tx.Exec(query, args...)
-}
-
-func (r *TxRepository) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return r.tx.Query(query, args...)
-}
-
-func (r *TxRepository) QueryRow(query string, args ...interface{}) *sql.Row {
-	return r.tx.QueryRow(query, args...)
 }
