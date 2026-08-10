@@ -709,6 +709,13 @@ type inmemRepo struct {
 	approvals map[string]*token.Approval
 }
 
+// WithTx satisfies TransactableRepository. The TUI runs single-goroutine and
+// uses a no-op transaction manager (tx is always nil), so the tx-scoped
+// repository is the repository itself.
+func (r *inmemRepo) WithTx(_ *sql.Tx) token.Repository {
+	return r
+}
+
 func (r *inmemRepo) SaveToken(tok *token.Token) error {
 	r.tokens[tok.ID()] = tok
 	return nil
@@ -789,6 +796,23 @@ func (r *inmemRepo) TryAddToSupply(id token.TokenID, amount *token.Amount) (*tok
 		return nil, token.ErrTokenNotFound
 	}
 	newSupply := &token.Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
+	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
+	return newSupply, nil
+}
+
+// TrySubtractFromSupply is the TUI's in-memory equivalent of the
+// SQLite primitive used by Burn: it decrements total_supply, failing
+// if the supply is below the burned amount so the ledger invariant
+// total_supply == sum of balances holds.
+func (r *inmemRepo) TrySubtractFromSupply(id token.TokenID, amount *token.Amount) (*token.Amount, error) {
+	tok, ok := r.tokens[id]
+	if !ok {
+		return nil, token.ErrTokenNotFound
+	}
+	if tok.TotalSupply().Cmp(amount) < 0 {
+		return nil, fmt.Errorf("try subtract supply: total supply below burn amount")
+	}
+	newSupply := &token.Amount{Int: new(big.Int).Sub(tok.TotalSupply().Int, amount.Int)}
 	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
 	return newSupply, nil
 }

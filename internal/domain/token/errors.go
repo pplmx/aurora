@@ -27,4 +27,10 @@ var (
 	ErrInvalidPublicKeyLength  = errors.New("invalid public key length")
 	ErrPrivateKeyRequired      = errors.New("private key is required")
 	ErrInvalidPrivateKeyLength = errors.New("invalid private key length")
+
+	// ErrAmountTooLarge is returned when an amount exceeds the range that
+	// the persistence layer can store exactly (signed 64-bit). Accepting
+	// larger amounts would let them silently overflow/clamp in SQLite's
+	// INTEGER math, corrupting balances, supply, and allowances.
+	ErrAmountTooLarge = errors.New("amount too large")
 )

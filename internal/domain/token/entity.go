@@ -138,3 +138,21 @@ func (a *Approval) Owner() PublicKey     { return a.owner }
 func (a *Approval) Spender() PublicKey   { return a.spender }
 func (a *Approval) Amount() *Amount      { return a.amount }
 func (a *Approval) ExpiresAt() time.Time { return a.expiresAt }
+
+// NewTokenFromRecord reconstructs a Token from persisted fields. It exists
+// so the persistence layer can faithfully restore attributes that NewToken
+// defaults (decimals, mintable/burnable flags, creation time) rather than
+// silently losing them on read.
+func NewTokenFromRecord(id TokenID, name, symbol string, totalSupply *Amount, owner PublicKey, decimals int8, isMintable, isBurnable bool, createdAt time.Time) *Token {
+	return &Token{
+		id:          id,
+		name:        name,
+		symbol:      symbol,
+		totalSupply: totalSupply,
+		decimals:    decimals,
+		owner:       owner,
+		isMintable:  isMintable,
+		isBurnable:  isBurnable,
+		createdAt:   createdAt,
+	}
+}

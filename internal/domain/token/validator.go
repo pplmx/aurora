@@ -34,6 +34,12 @@ func ValidateAmount(amount *Amount) error {
 	if amount == nil || !amount.IsPositive() {
 		return ErrAmountMustBePositive
 	}
+	// The persistence layer stores balances, supply, and allowances as
+	// signed 64-bit SQLite INTEGERs. Reject amounts that would silently
+	// overflow/clamp there; BitLen() > 63 means > MaxInt64.
+	if amount.BitLen() > 63 {
+		return ErrAmountTooLarge
+	}
 	return nil
 }
 

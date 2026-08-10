@@ -93,11 +93,19 @@ type Repository interface {
 	// clobbered the other mint's increment — silently producing
 	// less total_supply than the sum of all mints.
 	TryAddToSupply(tokenID TokenID, amount *Amount) (*Amount, error)
+
+	// TrySubtractFromSupply atomically subtracts amount from the
+	// token's total_supply (Burn), failing if the current supply
+	// is less than amount. Returns the new total supply.
+	TrySubtractFromSupply(tokenID TokenID, amount *Amount) (*Amount, error)
 }
 
 type TransactableRepository interface {
 	Repository
-	WithTx(tx *sql.Tx) TransactableRepository
+	// WithTx returns a Repository whose read/write operations execute
+	// within the given transaction. tx is nil for the non-transactional
+	// path (e.g. in-memory repos / mock tx managers).
+	WithTx(tx *sql.Tx) Repository
 }
 
 type EventReader interface {
@@ -107,7 +115,7 @@ type EventReader interface {
 }
 
 type TokenService struct {
-	repo        Repository
+	repo        TransactableRepository
 	txManager   TransactionManager
 	eventBus    infraevents.EventBus
 	eventReader EventReader
@@ -115,7 +123,7 @@ type TokenService struct {
 	chain       blockchain.BlockWriter
 }
 
-func NewService(repo Repository, txManager TransactionManager, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
+func NewService(repo TransactableRepository, txManager TransactionManager, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
 	return &TokenService{
 		repo:        repo,
 		txManager:   txManager,
@@ -132,8 +140,19 @@ func (noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
 	return fn(nil)
 }
 
-func NewServiceWithoutTx(repo Repository, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
+func NewServiceWithoutTx(repo TransactableRepository, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
 	return NewService(repo, noOpTxManager{}, eventBus, eventReader, replay, chain)
+}
+
+// txRepo returns the repository scoped to the given transaction when one is
+// active, otherwise the service's default repository. Every state mutation
+// performed inside a WithTransaction callback MUST go through txRepo so the
+// writes share the same SQLite transaction and roll back together.
+func (s *TokenService) txRepo(tx *sql.Tx) Repository {
+	if tx == nil {
+		return s.repo
+	}
+	return s.repo.WithTx(tx)
 }
 
 type CreateTokenRequest struct {
@@ -206,11 +225,17 @@ func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
 
 	token := NewToken(TokenID(req.Symbol), req.Name, req.Symbol, req.TotalSupply, req.Owner)
 
-	if err := s.repo.SaveToken(token); err != nil {
-		return nil, err
-	}
-
-	if err := s.repo.SetAccountBalance(token.ID(), req.Owner, req.TotalSupply); err != nil {
+	// CreateToken performs two writes (token row + owner balance) that must
+	// be atomic: a failure between them would otherwise leave a token with
+	// zero owner balance.
+	err := s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		r := s.txRepo(tx)
+		if err := r.SaveToken(token); err != nil {
+			return err
+		}
+		return r.SetAccountBalance(token.ID(), req.Owner, req.TotalSupply)
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -270,13 +295,15 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 	event.SetBlockHeight(height)
 
 	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		r := s.txRepo(tx)
+
 		// Atomic supply increment: closes the TOCTOU window
 		// where two concurrent mints both read total_supply,
 		// both added their amount in memory via AddToSupply,
 		// and the last SaveToken clobbered the other mint's
 		// increment — silently producing less total_supply
 		// than the sum of all mints.
-		if _, err := s.repo.TryAddToSupply(req.TokenID, req.Amount); err != nil {
+		if _, err := r.TryAddToSupply(req.TokenID, req.Amount); err != nil {
 			return err
 		}
 
@@ -287,7 +314,7 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 		// Atomic add: closes the race where two concurrent Mints
 		// to the same account both read currentBalance, compute
 		// currentBalance + amount, and one overwrites the other.
-		if _, err := s.repo.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
+		if _, err := r.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
 			return err
 		}
 
@@ -347,8 +374,9 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	}
 	event.SetBlockHeight(height)
 
-	var transferErr error
 	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		r := s.txRepo(tx)
+
 		if err := s.replay.SaveNonce(string(req.TokenID), req.From, nonce); err != nil {
 			return err
 		}
@@ -360,8 +388,10 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 		// Atomic subtract: closes the TOCTOU race where two
 		// concurrent transfers both read fromBalance, both pass
 		// the check, and both write back (fromBalance - amount).
-		if _, err := s.repo.TrySubtractBalance(req.TokenID, req.From, req.Amount); err != nil {
-			transferErr = err
+		// The debit and credit below run in the same transaction:
+		// if either fails, the whole transfer rolls back, so a
+		// partial debit can never be left behind.
+		if _, err := r.TrySubtractBalance(req.TokenID, req.From, req.Amount); err != nil {
 			return err
 		}
 
@@ -369,8 +399,7 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 		// side (two concurrent transfers to the same recipient
 		// could both read toBalance and both write back
 		// toBalance + amount, losing one transfer's credit).
-		if _, err := s.repo.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
-			transferErr = err
+		if _, err := r.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
 			return err
 		}
 
@@ -379,9 +408,6 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 
 	if err != nil {
 		return nil, err
-	}
-	if transferErr != nil {
-		return nil, transferErr
 	}
 
 	return event, nil
@@ -447,8 +473,9 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	}
 	event.SetBlockHeight(height)
 
-	var transferErr error
 	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		r := s.txRepo(tx)
+
 		if err := s.replay.SaveNonce(string(req.TokenID), req.Spender, nonce); err != nil {
 			return err
 		}
@@ -457,50 +484,26 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 			return err
 		}
 
+		// All three mutations (allowance deduction, owner debit,
+		// recipient credit) run in the same transaction. If any
+		// step fails the transaction rolls back, so the allowance
+		// and balances stay consistent — no hand-rolled
+		// compensation is needed.
+		//
 		// Atomic allowance deduction: closes the TOCTOU race
 		// where two concurrent TransferFroms both read
 		// approval.Amount(), both pass the check, and both write
 		// back approval - amount, allowing double-spend of the
 		// allowance.
-		newApprovalAmount, err := s.repo.TryDeductApproval(req.TokenID, req.Owner, req.Spender, req.Amount)
-		if err != nil {
-			transferErr = err
+		if _, err := r.TryDeductApproval(req.TokenID, req.Owner, req.Spender, req.Amount); err != nil {
 			return err
 		}
 
 		// Atomic balance subtract (owner) and add (recipient).
-		if _, err := s.repo.TrySubtractBalance(req.TokenID, req.Owner, req.Amount); err != nil {
-			transferErr = err
-			// Best-effort: restore the allowance so the spender
-			// can retry. The newApprovalAmount is the post-deduct
-			// value, so adding req.Amount back gives us the
-			// pre-deduct value.
-			if comp, getErr := s.repo.GetApproval(req.TokenID, req.Owner, req.Spender); getErr == nil && comp != nil {
-				restored := &Amount{Int: new(big.Int).Add(comp.Amount().Int, req.Amount.Int)}
-				_ = s.repo.SaveApproval(NewApproval(req.TokenID, req.Owner, req.Spender, restored))
-			}
-			return transferErr
+		if _, err := r.TrySubtractBalance(req.TokenID, req.Owner, req.Amount); err != nil {
+			return err
 		}
-		if _, err := s.repo.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
-			transferErr = err
-			// Best-effort: restore both the owner's balance and
-			// the allowance. If the rollback fails, surface both
-			// errors so the operator can reconcile manually.
-			if _, compErr := s.repo.TryAddBalance(req.TokenID, req.Owner, req.Amount); compErr != nil {
-				transferErr = fmt.Errorf("transferfrom add failed (%v) and balance compensation failed (%v)", err, compErr)
-			}
-			if comp, getErr := s.repo.GetApproval(req.TokenID, req.Owner, req.Spender); getErr == nil && comp != nil {
-				restored := &Amount{Int: new(big.Int).Add(comp.Amount().Int, req.Amount.Int)}
-				if saveErr := s.repo.SaveApproval(NewApproval(req.TokenID, req.Owner, req.Spender, restored)); saveErr != nil {
-					transferErr = fmt.Errorf("transferfrom add failed (%v) and allowance compensation failed (%v)", err, saveErr)
-				}
-			}
-			return transferErr
-		}
-
-		newApproval := NewApproval(req.TokenID, req.Owner, req.Spender, newApprovalAmount)
-		if err := s.repo.SaveApproval(newApproval); err != nil {
-			transferErr = err
+		if _, err := r.TryAddBalance(req.TokenID, req.To, req.Amount); err != nil {
 			return err
 		}
 
@@ -509,9 +512,6 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 
 	if err != nil {
 		return nil, err
-	}
-	if transferErr != nil {
-		return nil, transferErr
 	}
 
 	return event, nil
@@ -647,6 +647,8 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	event.SetBlockHeight(height)
 
 	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		r := s.txRepo(tx)
+
 		if err := s.eventBus.Publish(event); err != nil {
 			return err
 		}
@@ -658,7 +660,15 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 		// silently allowing overdraw. The same primitive that
 		// fixed Transfer/Mint/TransferFrom in Round 20 closes
 		// this gap too.
-		if _, err := s.repo.TrySubtractBalance(req.TokenID, req.From, req.Amount); err != nil {
+		if _, err := r.TrySubtractBalance(req.TokenID, req.From, req.Amount); err != nil {
+			return err
+		}
+
+		// Burning removes tokens from circulation, so it must also
+		// decrement total_supply to preserve the ledger invariant
+		// total_supply == sum of all balances. Both writes are in
+		// the same transaction and roll back together.
+		if _, err := r.TrySubtractFromSupply(req.TokenID, req.Amount); err != nil {
 			return err
 		}
 

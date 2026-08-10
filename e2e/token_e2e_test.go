@@ -34,6 +34,13 @@ func newInMemoryTokenRepo() *inMemoryTokenRepo {
 	}
 }
 
+// WithTx satisfies TransactableRepository. E2E tests run single-goroutine with
+// a no-op tx manager (tx is always nil), so the tx-scoped repository is the
+// repository itself.
+func (r *inMemoryTokenRepo) WithTx(_ *sql.Tx) token.Repository {
+	return r
+}
+
 func (r *inMemoryTokenRepo) SaveToken(t *token.Token) error {
 	r.tokens[t.ID()] = t
 	return nil
@@ -109,6 +116,19 @@ func (r *inMemoryTokenRepo) TryAddToSupply(id token.TokenID, amount *token.Amoun
 		return nil, token.ErrTokenNotFound
 	}
 	newSupply := &token.Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
+	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
+	return newSupply, nil
+}
+
+func (r *inMemoryTokenRepo) TrySubtractFromSupply(id token.TokenID, amount *token.Amount) (*token.Amount, error) {
+	tok, ok := r.tokens[id]
+	if !ok {
+		return nil, token.ErrTokenNotFound
+	}
+	if tok.TotalSupply().Cmp(amount) < 0 {
+		return nil, fmt.Errorf("try subtract supply: total supply below burn amount")
+	}
+	newSupply := &token.Amount{Int: new(big.Int).Sub(tok.TotalSupply().Int, amount.Int)}
 	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
 	return newSupply, nil
 }

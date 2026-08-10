@@ -644,6 +644,70 @@ func TestTokenRepository_TryAddToSupply_ConcurrentNoLostUpdate(t *testing.T) {
 	}
 }
 
+// TestTokenRepository_TrySubtractFromSupply_ConcurrentNoNegativeSupply is the
+// regression test for the Burn supply-decrement primitive.
+//
+// TrySubtractFromSupply must only decrement when total_supply >= amount
+// (guarded by the conditional UPDATE), so concurrent burns can never drive
+// total_supply negative, and each success is reflected exactly once.
+func TestTokenRepository_TrySubtractFromSupply_ConcurrentNoNegativeSupply(t *testing.T) {
+	dir := t.TempDir()
+	repo, err := NewTokenRepository(filepath.Join(dir, "tokens.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = repo.Close() })
+
+	tokenID := token.TokenID("BURN")
+	owner := []byte("burner")
+
+	// Seed: total_supply=200, then 8 concurrent burns of 40 each. Exactly
+	// 200/40 = 5 may succeed; the remaining 3 must fail without touching
+	// the supply, leaving exactly 0.
+	_, err = repo.db.Exec(`
+		INSERT INTO tokens (id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, tokenID, "Test", "TST", "200", 8, base64.StdEncoding.EncodeToString(owner), 1, 1, time.Now().Unix())
+	require.NoError(t, err)
+
+	const goroutines = 8
+	const burnEach = 40
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	var (
+		mu        sync.Mutex
+		successes int
+		failures  int
+	)
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer wg.Done()
+			if _, err := repo.TrySubtractFromSupply(tokenID, token.NewAmount(int64(burnEach))); err != nil {
+				mu.Lock()
+				failures++
+				mu.Unlock()
+				return
+			}
+			mu.Lock()
+			successes++
+			mu.Unlock()
+		}()
+	}
+	wg.Wait()
+
+	if successes != 5 {
+		t.Errorf("expected exactly 5 successful burns (200/40), got %d", successes)
+	}
+	if failures != 3 {
+		t.Errorf("expected 3 burns to fail on insufficient supply, got %d", failures)
+	}
+
+	got, err := repo.GetToken(tokenID)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	if supply := got.TotalSupply().Int64(); supply != 0 {
+		t.Fatalf("total_supply after over-burning = %d, want 0 (negative supply bug)", supply)
+	}
+}
+
 func TestTokenRepository_GetDB(t *testing.T) {
 	repo, cleanup := setupTokenTestDB(t)
 	defer cleanup()

@@ -12,9 +12,34 @@ import (
 	"github.com/pplmx/aurora/internal/domain/token"
 )
 
+// tokenExec abstracts *sql.DB and *sql.Tx so TokenRepository can run either
+// against the pool or inside an explicit transaction.
+type tokenExec interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 type TokenRepository struct {
 	db     *sql.DB
 	dbPath string
+	exec   tokenExec // nil => use db
+}
+
+// q returns the executor this repository reads/writes through: the pooled DB
+// by default, or the active *sql.Tx when WithTx was used.
+func (r *TokenRepository) q() tokenExec {
+	if r != nil && r.exec != nil {
+		return r.exec
+	}
+	return r.db
+}
+
+// WithTx returns a TokenRepository whose operations run inside the given
+// transaction. All reads and writes through the returned repository observe
+// the transaction's uncommitted state and participate in its commit/rollback.
+func (r *TokenRepository) WithTx(tx *sql.Tx) token.Repository {
+	return &TokenRepository{db: r.db, dbPath: r.dbPath, exec: tx}
 }
 
 func NewTokenRepository(dbPath string) (*TokenRepository, error) {
@@ -96,7 +121,7 @@ func (r *TokenRepository) SaveToken(t *token.Token) error {
 	ownerB64 := base64.StdEncoding.EncodeToString(t.Owner())
 	totalSupplyJSON := t.TotalSupply().String()
 
-	_, err := r.db.Exec(`
+	_, err := r.q().Exec(`
 		INSERT OR REPLACE INTO tokens (id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`, t.ID(), t.Name(), t.Symbol(), totalSupplyJSON, t.Decimals(), ownerB64, boolToInt(t.IsMintable()), boolToInt(t.IsBurnable()), t.CreatedAt().Unix())
@@ -104,7 +129,7 @@ func (r *TokenRepository) SaveToken(t *token.Token) error {
 }
 
 func (r *TokenRepository) GetToken(id token.TokenID) (*token.Token, error) {
-	row := r.db.QueryRow("SELECT id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at FROM tokens WHERE id = ?", id)
+	row := r.q().QueryRow("SELECT id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at FROM tokens WHERE id = ?", id)
 
 	var idStr, name, symbol, totalSupplyStr, ownerB64 string
 	var decimals int8
@@ -128,13 +153,50 @@ func (r *TokenRepository) GetToken(id token.TokenID) (*token.Token, error) {
 		return nil, fmt.Errorf("failed to decode amount: %w", err)
 	}
 
-	return token.NewToken(
+	// Reconstruct with the persisted attributes. Using NewToken here would
+	// silently reset is_mintable/is_burnable to true and created_at to now,
+	// which could authorize mint/burn on tokens that were created as
+	// non-mintable/non-burnable and corrupt audit timestamps.
+	return token.NewTokenFromRecord(
 		token.TokenID(idStr),
 		name,
 		symbol,
 		amount,
 		owner,
+		decimals,
+		isMintable != 0,
+		isBurnable != 0,
+		time.Unix(createdAt, 0),
 	), nil
+}
+
+func (r *TokenRepository) TrySubtractFromSupply(tokenID token.TokenID, amount *token.Amount) (*token.Amount, error) {
+	amountStr := amount.String()
+	id := string(tokenID)
+
+	res, err := r.q().Exec(`
+		UPDATE tokens
+		SET total_supply = CAST(total_supply AS INTEGER) - ?
+		WHERE id = ? AND CAST(total_supply AS INTEGER) >= ?
+	`, amountStr, id, amountStr)
+	if err != nil {
+		return nil, fmt.Errorf("try subtract supply: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("try subtract supply rows: %w", err)
+	}
+	if affected == 0 {
+		// Supply is already below the amount being burned — a ledger
+		// invariant violation rather than a client input error, so it
+		// must surface as a server-side failure, not a 4xx.
+		return nil, fmt.Errorf("try subtract supply: total supply below burn amount")
+	}
+	t, err := r.GetToken(tokenID)
+	if err != nil {
+		return nil, err
+	}
+	return t.TotalSupply(), nil
 }
 
 func (r *TokenRepository) SaveApproval(approval *token.Approval) error {
@@ -143,7 +205,7 @@ func (r *TokenRepository) SaveApproval(approval *token.Approval) error {
 	amountStr := approval.Amount().String()
 	id := fmt.Sprintf("%s-%s-%s", approval.TokenID(), ownerB64, spenderB64)
 
-	_, err := r.db.Exec(`
+	_, err := r.q().Exec(`
 		INSERT OR REPLACE INTO allowances (id, token_id, owner, spender, amount, expires_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`, id, approval.TokenID(), ownerB64, spenderB64, amountStr, approval.ExpiresAt().Unix(), time.Now().Unix())
@@ -163,7 +225,7 @@ func (r *TokenRepository) SaveApproval(approval *token.Approval) error {
 // increment — silently producing less total_supply than the
 // sum of all mints.
 func (r *TokenRepository) TryAddToSupply(id token.TokenID, amount *token.Amount) (*token.Amount, error) {
-	res, err := r.db.Exec(`
+	res, err := r.q().Exec(`
 		UPDATE tokens SET total_supply = CAST(total_supply AS INTEGER) + ?
 		WHERE id = ?
 	`, amount.String(), id)
@@ -212,7 +274,7 @@ func (r *TokenRepository) TryDeductApproval(tokenID token.TokenID, owner, spende
 	// CAST ensures the comparison is numeric (not lexicographic on
 	// text), and only rows whose current amount is >= the requested
 	// amount are touched. RowsAffected==0 means insufficient.
-	res, err := r.db.Exec(`
+	res, err := r.q().Exec(`
 		UPDATE allowances
 		SET amount = CAST(amount AS INTEGER) - ?, updated_at = ?
 		WHERE token_id = ? AND owner = ? AND spender = ?
@@ -275,7 +337,7 @@ func (r *TokenRepository) TryAdjustApproval(tokenID token.TokenID, owner, spende
 
 	// amount stored on INSERT: clamp delta at 0 so a decrease-only
 	// first-touch doesn't create a negative row.
-	res, err := r.db.Exec(`
+	res, err := r.q().Exec(`
 		INSERT INTO allowances (id, token_id, owner, spender, amount, expires_at, updated_at)
 		VALUES (?, ?, ?, ?, CASE WHEN ? >= 0 THEN ? ELSE '0' END, 0, ?)
 		ON CONFLICT(token_id, owner, spender) DO UPDATE SET
@@ -303,7 +365,7 @@ func (r *TokenRepository) GetApproval(tokenID token.TokenID, owner, spender toke
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 	spenderB64 := base64.StdEncoding.EncodeToString(spender)
 
-	row := r.db.QueryRow("SELECT token_id, owner, spender, amount, expires_at FROM allowances WHERE token_id = ? AND owner = ? AND spender = ?",
+	row := r.q().QueryRow("SELECT token_id, owner, spender, amount, expires_at FROM allowances WHERE token_id = ? AND owner = ? AND spender = ?",
 		tokenID, ownerB64, spenderB64)
 
 	var tkID, ownB64, spendB64, amountStr string
@@ -336,7 +398,7 @@ func (r *TokenRepository) GetApproval(tokenID token.TokenID, owner, spender toke
 func (r *TokenRepository) GetAccountBalance(tokenID token.TokenID, owner token.PublicKey) (*token.Amount, error) {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 
-	row := r.db.QueryRow("SELECT balance FROM accounts WHERE token_id = ? AND owner = ?", tokenID, ownerB64)
+	row := r.q().QueryRow("SELECT balance FROM accounts WHERE token_id = ? AND owner = ?", tokenID, ownerB64)
 
 	var balanceStr string
 	err := row.Scan(&balanceStr)
@@ -358,7 +420,7 @@ func (r *TokenRepository) SetAccountBalance(tokenID token.TokenID, owner token.P
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 	id := fmt.Sprintf("%s-%s", tokenID, ownerB64)
 
-	_, err := r.db.Exec(`
+	_, err := r.q().Exec(`
 		INSERT OR REPLACE INTO accounts (id, token_id, owner, balance, updated_at)
 		VALUES (?, ?, ?, ?, ?)
 	`, id, tokenID, ownerB64, amount.String(), time.Now().Unix())
@@ -383,7 +445,7 @@ func (r *TokenRepository) TrySubtractBalance(tokenID token.TokenID, owner token.
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 	amountStr := amount.String()
 
-	res, err := r.db.Exec(`
+	res, err := r.q().Exec(`
 		UPDATE accounts
 		SET balance = CAST(balance AS INTEGER) - ?, updated_at = ?
 		WHERE token_id = ? AND owner = ?
@@ -437,7 +499,7 @@ func (r *TokenRepository) TryAddBalance(tokenID token.TokenID, owner token.Publi
 	// INSERT ... ON CONFLICT DO UPDATE handles both the "create new
 	// account" and "increment existing account" cases in one
 	// statement, so there is no read-then-write window for a race.
-	_, err := r.db.Exec(`
+	_, err := r.q().Exec(`
 		INSERT INTO accounts (id, token_id, owner, balance, updated_at)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
@@ -454,7 +516,7 @@ func (r *TokenRepository) TryAddBalance(tokenID token.TokenID, owner token.Publi
 func (r *TokenRepository) GetApprovalsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.Approval, error) {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 
-	rows, err := r.db.Query("SELECT token_id, owner, spender, amount, expires_at FROM allowances WHERE token_id = ? AND owner = ?",
+	rows, err := r.q().Query("SELECT token_id, owner, spender, amount, expires_at FROM allowances WHERE token_id = ? AND owner = ?",
 		tokenID, ownerB64)
 	if err != nil {
 		return nil, err

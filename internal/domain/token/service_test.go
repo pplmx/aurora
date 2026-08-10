@@ -796,6 +796,17 @@ func TestBurn(t *testing.T) {
 	if balance.Int64() != 600 {
 		t.Errorf("expected balance 600, got %d", balance.Int64())
 	}
+
+	// Burn removes tokens from circulation: total_supply must drop
+	// by the same amount to keep the invariant total_supply == sum
+	// of balances.
+	info, err := service.GetTokenInfo("TEST")
+	if err != nil {
+		t.Fatalf("GetTokenInfo failed: %v", err)
+	}
+	if info.TotalSupply().Int64() != 600 {
+		t.Errorf("expected total supply 600 after burn, got %d", info.TotalSupply().Int64())
+	}
 }
 
 func TestBurn_InsufficientBalance(t *testing.T) {
@@ -880,8 +891,9 @@ type mockRepository struct {
 	tryAddBalanceError      bool
 	tryDeductApprovalError  bool
 
-	txBackup map[string]*Amount
-	txTokens map[TokenID]*Token
+	txBackup    map[string]*Amount
+	txTokens    map[TokenID]*Token
+	txApprovals map[string]*Approval
 }
 
 func NewMockRepository() *mockRepository {
@@ -915,6 +927,10 @@ func (m *mockRepository) beginTx() {
 		}
 		m.txTokens[k] = backupToken
 	}
+	m.txApprovals = make(map[string]*Approval)
+	for k, v := range m.approvals {
+		m.txApprovals[k] = NewApproval(v.tokenID, v.owner, v.spender, &Amount{new(big.Int).Set(v.amount.Int)})
+	}
 }
 
 func (m *mockRepository) commitTx() {
@@ -939,8 +955,17 @@ func (m *mockRepository) rollbackTx() {
 	for k, v := range m.txTokens {
 		m.tokens[k] = v
 	}
+	for k := range m.approvals {
+		if _, ok := m.txApprovals[k]; !ok {
+			delete(m.approvals, k)
+		}
+	}
+	for k, v := range m.txApprovals {
+		m.approvals[k] = v
+	}
 	m.txBackup = nil
 	m.txTokens = nil
+	m.txApprovals = nil
 }
 
 func (m *mockRepository) SaveToken(token *Token) error {
@@ -956,6 +981,14 @@ func (m *mockRepository) GetToken(id TokenID) (*Token, error) {
 		return nil, ErrTokenNotFound
 	}
 	return m.tokens[id], nil
+}
+
+// WithTx satisfies TransactableRepository. The mock simulates transaction
+// semantics through beginTx/commitTx/rollbackTx driven by mockTxManager, so a
+// tx-scoped repository is identical to the base repository (tx is always nil
+// when the mock tx manager invokes the callback).
+func (m *mockRepository) WithTx(_ *sql.Tx) Repository {
+	return m
 }
 
 func (m *mockRepository) SaveApproval(approval *Approval) error {
@@ -1044,6 +1077,21 @@ func (m *mockRepository) TryAddToSupply(id TokenID, amount *Amount) (*Amount, er
 		return nil, ErrTokenNotFound
 	}
 	newSupply := &Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
+	m.tokens[id] = NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
+	return newSupply, nil
+}
+
+// TrySubtractFromSupply mirrors the SQLite primitive: atomically subtracts
+// amount from the token's total_supply (Burn).
+func (m *mockRepository) TrySubtractFromSupply(id TokenID, amount *Amount) (*Amount, error) {
+	tok, ok := m.tokens[id]
+	if !ok {
+		return nil, ErrTokenNotFound
+	}
+	if tok.TotalSupply().Cmp(amount) < 0 {
+		return nil, fmt.Errorf("try subtract supply: total supply below burn amount")
+	}
+	newSupply := &Amount{Int: new(big.Int).Sub(tok.TotalSupply().Int, amount.Int)}
 	m.tokens[id] = NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
 	return newSupply, nil
 }
@@ -1206,7 +1254,7 @@ func (m *mockBlockWriter) AddBlock(data string) (int64, error) {
 	return m.height, nil
 }
 
-func newTestService(repo Repository, eventStore *mockEventStore) *TokenService {
+func newTestService(repo TransactableRepository, eventStore *mockEventStore) *TokenService {
 	return NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), &mockBlockWriter{})
 }
 
@@ -2128,7 +2176,7 @@ func TestTransferFrom_SetBalanceError(t *testing.T) {
 	}
 }
 
-func TestTransferFrom_UpdateApprovalError(t *testing.T) {
+func TestTransferFrom_AtomicityOnAllowanceDeductionFailure(t *testing.T) {
 	repo := &mockRepository{
 		tokens:    make(map[TokenID]*Token),
 		balances:  make(map[string]*Amount),
@@ -2151,7 +2199,10 @@ func TestTransferFrom_UpdateApprovalError(t *testing.T) {
 	spenderKey := privKey(2)
 	recipient := pubKey(3)
 
-	repo.saveApprovalError = true
+	// The allowance is now deducted through the atomic TryDeductApproval
+	// primitive; saveApprovalError (which previously exercised a redundant
+	// SaveApproval) no longer applies. Inject a deduction failure instead.
+	repo.tryDeductApprovalError = true
 	_, err := service.TransferFrom(&TransferFromRequest{
 		TokenID:    "TEST",
 		Owner:      owner,
@@ -2328,6 +2379,51 @@ func TestBurn_AtomicityRollbackOnBalanceUpdateFailure(t *testing.T) {
 	balance := repo.balances[string(token.ID())+string(owner)]
 	if balance.Int64() != 1000 {
 		t.Errorf("balance should be unchanged (1000), got %d", balance.Int64())
+	}
+}
+
+func TestBurn_SupplyBelowBurnAmountRollsBackBalance(t *testing.T) {
+	repo := &mockRepository{
+		tokens:    make(map[TokenID]*Token),
+		balances:  make(map[string]*Amount),
+		approvals: make(map[string]*Approval),
+	}
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	replay := newMockReplayProtection()
+	eventBus := newMockEventBus(eventStore)
+	// The manager is bound to the repo so a failing step triggers a true
+	// rollback of the whole transaction (beginTx snapshots, rollbackTx
+	// restores), exactly like the SQLite path.
+	service := NewService(repo, newMockTxManagerWithRepo(repo), eventBus, eventStore, replay, chain)
+
+	owner := pubKey(1)
+	// Deliberately break the ledger invariant: the owner holds more than the
+	// recorded total_supply, so a burn large enough for the balance debit to
+	// succeed still trips the supply decrement (total_supply < amount).
+	token := NewToken("TEST", "Test Token", "TEST", NewAmount(100), owner)
+	repo.tokens[token.ID()] = token
+	repo.balances[string(token.ID())+string(owner)] = NewAmount(1000)
+
+	privateKey := privKey(1)
+	_, err := service.Burn(&BurnRequest{
+		TokenID:    "TEST",
+		From:       owner,
+		Amount:     NewAmount(200),
+		PrivateKey: privateKey,
+	})
+	if err == nil {
+		t.Fatal("expected error when total_supply is below the burn amount")
+	}
+
+	// The balance debit ran inside the same transaction as the failed supply
+	// decrement, so it must roll back — no partial burn.
+	balance := repo.balances[string(token.ID())+string(owner)]
+	if balance.Int64() != 1000 {
+		t.Errorf("balance should be rolled back (1000), got %d", balance.Int64())
+	}
+	if tok, _ := repo.GetToken(token.ID()); tok.TotalSupply().Int64() != 100 {
+		t.Errorf("total supply should be unchanged (100), got %d", tok.TotalSupply().Int64())
 	}
 }
 
