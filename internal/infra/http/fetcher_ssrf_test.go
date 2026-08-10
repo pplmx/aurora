@@ -24,16 +24,39 @@ func TestIsBlockedHost(t *testing.T) {
 		{"0.0.0.0", true},
 		{"8.8.8.8", false},
 		{"93.184.216.34", false},
-		{"example.com", false}, // hostname: not an IP literal, out of scope here
 		{"", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.host, func(t *testing.T) {
+			// isBlockedHost is the IP-literal primitive; hostname redirects
+			// are handled by redirectHostBlocked (DNS-aware) below.
 			if got := isBlockedHost(tt.host); got != tt.want {
 				t.Errorf("isBlockedHost(%q) = %v, want %v", tt.host, got, tt.want)
 			}
 		})
+	}
+}
+
+// TestRedirectHostBlocked proves hostname redirect targets are resolved and
+// rejected when they land in blocked space — localhost is the canonical SSRF
+// target and would have slipped through a literal-IP-only check.
+func TestRedirectHostBlocked(t *testing.T) {
+	if got, err := redirectHostBlocked("localhost:8080"); err != nil || !got {
+		t.Fatalf("redirectHostBlocked(localhost:8080) = (%v, %v), want (true, nil)", got, err)
+	}
+
+	if got, err := redirectHostBlocked("127.0.0.1:9"); err != nil || !got {
+		t.Fatalf("redirectHostBlocked(127.0.0.1:9) = (%v, %v), want (true, nil)", got, err)
+	}
+
+	if got, err := redirectHostBlocked("8.8.8.8"); err != nil || got {
+		t.Fatalf("redirectHostBlocked(8.8.8.8) = (%v, %v), want (false, nil)", got, err)
+	}
+
+	// A host that cannot be resolved must be treated as blocked, never followed.
+	if got, err := redirectHostBlocked("does-not-exist-aurora.invalid"); err == nil || got {
+		t.Fatalf("redirectHostBlocked(.invalid) = (%v, %v), want (false, error)", got, err)
 	}
 }
 
@@ -68,6 +91,43 @@ func TestFetcher_RedirectToNonHTTPSchemeBlocked(t *testing.T) {
 	_, err := fetcher.Get(server.URL)
 	if err == nil {
 		t.Fatal("expected error when a redirect switches to a non-HTTP scheme")
+	}
+	if !errors.Is(err, ErrBlockedDestination) {
+		t.Fatalf("expected ErrBlockedDestination, got %v", err)
+	}
+}
+
+// TestFetcher_RedirectToLocalhostBlocked proves a hostname redirect to
+// localhost (which resolves into loopback space) is refused — the bypass that
+// a literal-IP-only check would have left open.
+func TestFetcher_RedirectToLocalhostBlocked(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://localhost:9/internal", http.StatusFound)
+	}))
+	defer server.Close()
+
+	fetcher := NewFetcherWithConfig(100, time.Minute)
+	_, err := fetcher.Get(server.URL)
+	if err == nil {
+		t.Fatal("expected error when a redirect targets localhost")
+	}
+	if !errors.Is(err, ErrBlockedDestination) {
+		t.Fatalf("expected ErrBlockedDestination, got %v", err)
+	}
+}
+
+// TestFetcher_RedirectToUnresolvableHostBlocked proves a redirect to a host
+// that cannot be resolved is refused rather than followed into the unknown.
+func TestFetcher_RedirectToUnresolvableHostBlocked(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://does-not-exist-aurora.invalid/x", http.StatusFound)
+	}))
+	defer server.Close()
+
+	fetcher := NewFetcherWithConfig(100, time.Minute)
+	_, err := fetcher.Get(server.URL)
+	if err == nil {
+		t.Fatal("expected error when a redirect target cannot be resolved")
 	}
 	if !errors.Is(err, ErrBlockedDestination) {
 		t.Fatalf("expected ErrBlockedDestination, got %v", err)

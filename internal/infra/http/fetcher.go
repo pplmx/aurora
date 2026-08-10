@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -76,10 +77,7 @@ func isBlockedIP(ip net.IP) bool {
 }
 
 // isBlockedHost reports whether host (optionally host:port) is an IP literal
-// inside a blocked range. Hostnames are deliberately left to the callers that
-// already dial them (initial fetches); this guard is for redirect targets,
-// where the destination is attacker-influenced and an IP literal is the
-// common way to aim at internal services.
+// inside a blocked range.
 func isBlockedHost(host string) bool {
 	host = strings.TrimSpace(host)
 	if h, _, err := net.SplitHostPort(host); err == nil {
@@ -92,16 +90,50 @@ func isBlockedHost(host string) bool {
 	return isBlockedIP(ip)
 }
 
+// redirectHostBlocked decides whether a redirect target host is out of bounds.
+// It handles IP literals directly and resolves hostnames so redirects aimed at
+// localhost, cloud-metadata names, or other internal DNS entries are refused
+// just like literal private IPs. An unresolved/invalid host is treated as
+// blocked (we must not follow a redirect whose destination we cannot verify).
+// Resolution is bounded by a short timeout so a poisoned/stuck resolver cannot
+// hang the fetch indefinitely.
+func redirectHostBlocked(host string) (bool, error) {
+	host = strings.TrimSpace(host)
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return isBlockedIP(ip), nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return false, fmt.Errorf("resolve %q: %w", host, err)
+	}
+	for _, a := range addrs {
+		if isBlockedIP(a.IP) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // checkRedirectAllowed is the http.Client redirect policy: it refuses
-// redirects to non-HTTP(S) schemes and to addresses in blockedCIDRs, while
-// returning nil (default behaviour: follow, cap at 10 hops) for everything
-// else.
+// redirects to non-HTTP(S) schemes and to addresses in blockedCIDRs (checked
+// by literal IP or by resolving the target hostname), while returning nil
+// (default behaviour: follow, cap at 10 hops) for everything else.
 func checkRedirectAllowed(req *http.Request, via []*http.Request) error {
 	scheme := strings.ToLower(req.URL.Scheme)
 	if scheme != "http" && scheme != "https" {
 		return fmt.Errorf("%w: scheme %q", ErrBlockedDestination, req.URL.Scheme)
 	}
-	if isBlockedHost(req.URL.Host) {
+	blocked, err := redirectHostBlocked(req.URL.Host)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrBlockedDestination, err)
+	}
+	if blocked {
 		return fmt.Errorf("%w: %q", ErrBlockedDestination, req.URL.Host)
 	}
 	return nil

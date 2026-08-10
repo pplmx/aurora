@@ -662,6 +662,12 @@ func TestTokenRepository_TrySubtractFromSupply_ConcurrentNoNegativeSupply(t *tes
 	// Seed: total_supply=200, then 8 concurrent burns of 40 each. Exactly
 	// 200/40 = 5 may succeed; the remaining 3 must fail without touching
 	// the supply, leaving exactly 0.
+	// :memory: SQLite databases are per-connection. Pin to one connection so
+	// the concurrent burns share one database and SQLite's write serialization
+	// is what arbitrates them — otherwise transient SQLITE_BUSY errors would
+	// be misreported as "insufficient supply" and flake the exact counts.
+	repo.db.SetMaxOpenConns(1)
+
 	_, err = repo.db.Exec(`
 		INSERT INTO tokens (id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)

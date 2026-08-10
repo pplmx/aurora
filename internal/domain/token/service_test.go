@@ -2176,7 +2176,7 @@ func TestTransferFrom_SetBalanceError(t *testing.T) {
 	}
 }
 
-func TestTransferFrom_AtomicityOnAllowanceDeductionFailure(t *testing.T) {
+func TestTransferFrom_AllowanceDeductionFailure(t *testing.T) {
 	repo := &mockRepository{
 		tokens:    make(map[TokenID]*Token),
 		balances:  make(map[string]*Amount),
@@ -2199,7 +2199,7 @@ func TestTransferFrom_AtomicityOnAllowanceDeductionFailure(t *testing.T) {
 	spenderKey := privKey(2)
 	recipient := pubKey(3)
 
-	// The allowance is now deducted through the atomic TryDeductApproval
+	// The allowance is deducted through the atomic TryDeductApproval
 	// primitive; saveApprovalError (which previously exercised a redundant
 	// SaveApproval) no longer applies. Inject a deduction failure instead.
 	repo.tryDeductApprovalError = true
@@ -2213,6 +2213,72 @@ func TestTransferFrom_AtomicityOnAllowanceDeductionFailure(t *testing.T) {
 	})
 	if err == nil {
 		t.Error("expected error when update approval fails")
+	}
+	// Because the deduction is atomic, a rejection leaves no partial state:
+	// the allowance, balances, and approval row are all untouched.
+	approval, _ := repo.GetApproval("TEST", owner, spender)
+	if approval == nil || approval.Amount().Int64() != 500 {
+		t.Errorf("allowance should be unchanged (500), got %+v", approval)
+	}
+	if got, _ := repo.GetAccountBalance("TEST", owner); got.Int64() != 1000 {
+		t.Errorf("owner balance should be unchanged (1000), got %d", got.Int64())
+	}
+}
+
+// TestTransferFrom_AtomicityRollbackOnCreditFailure proves the mid-transaction
+// atomicity claim: the allowance deduction and the owner debit succeed, the
+// recipient credit then fails, and the entire transfer rolls back — no double
+// deduction, no partial debit, no orphan allowance change.
+func TestTransferFrom_AtomicityRollbackOnCreditFailure(t *testing.T) {
+	repo := &mockRepository{
+		tokens:    make(map[TokenID]*Token),
+		balances:  make(map[string]*Amount),
+		approvals: make(map[string]*Approval),
+	}
+	eventStore := NewMockEventStore()
+	chain := blockchain.NewBlockChain()
+	eventBus := newMockEventBus(eventStore)
+	replay := newMockReplayProtection()
+	// Bound the tx manager to the repo so a failing step triggers a true
+	// rollback (beginTx snapshots, rollbackTx restores).
+	service := NewService(repo, newMockTxManagerWithRepo(repo), eventBus, eventStore, replay, chain)
+
+	owner := pubKey(1)
+	token := NewToken("TEST", "Test Token", "TEST", NewAmount(1000), owner)
+	repo.tokens[token.ID()] = token
+	repo.balances[string(token.ID())+string(owner)] = NewAmount(1000)
+
+	spender := pubKey(2)
+	repo.approvals[string(token.ID())+string(owner)+string(spender)] = NewApproval("TEST", owner, spender, NewAmount(500))
+
+	spenderKey := privKey(2)
+	recipient := pubKey(3)
+
+	// The recipient credit is the last mutation in the transaction; making it
+	// fail forces a rollback of the allowance deduction and owner debit that
+	// already succeeded on the in-tx state.
+	repo.tryAddBalanceError = true
+	_, err := service.TransferFrom(&TransferFromRequest{
+		TokenID:    "TEST",
+		Owner:      owner,
+		To:         recipient,
+		Amount:     NewAmount(200),
+		Spender:    spender,
+		SpenderKey: spenderKey,
+	})
+	if err == nil {
+		t.Fatal("expected error when recipient credit fails")
+	}
+
+	approval, _ := repo.GetApproval("TEST", owner, spender)
+	if approval == nil || approval.Amount().Int64() != 500 {
+		t.Errorf("allowance must be rolled back to 500, got %+v", approval)
+	}
+	if got, _ := repo.GetAccountBalance("TEST", owner); got.Int64() != 1000 {
+		t.Errorf("owner balance must be rolled back to 1000, got %d", got.Int64())
+	}
+	if got, _ := repo.GetAccountBalance("TEST", recipient); got.Int64() != 0 {
+		t.Errorf("recipient must have no balance after rollback, got %d", got.Int64())
 	}
 }
 
