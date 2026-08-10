@@ -325,6 +325,28 @@ func TestVerify_ChecksumMismatch(t *testing.T) {
 	}
 }
 
+// TestVerify_InvalidDBFile covers the error path when a backup's DB file is
+// present but contains no tables (e.g. a truncated/zero-byte copy). Verify must
+// reject it rather than treat it as a valid backup.
+func TestVerify_InvalidDBFile(t *testing.T) {
+	tmp := t.TempDir()
+	backupDir := filepath.Join(tmp, "backup")
+	if err := os.MkdirAll(backupDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Valid metadata, but the DB is an empty (table-less) file.
+	writeMeta(t, backupDir, "empty")
+	if err := os.WriteFile(filepath.Join(backupDir, "empty.db"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc := NewBackupService(map[string]string{"empty": "/tmp/empty.db"})
+	err := svc.Verify(context.Background(), backupDir)
+	if err == nil {
+		t.Fatal("expected error for a table-less DB file, got nil")
+	}
+}
+
 // --- helpers --------------------------------------------------------------
 
 // readKV opens the SQLite DB at path and returns the value of kv[k].

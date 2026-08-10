@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"path/filepath"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBackupService_Create(t *testing.T) {
@@ -49,6 +51,44 @@ func TestBackupService_Create(t *testing.T) {
 
 	_ = os.RemoveAll("/tmp/test_backup_src")
 	_ = os.RemoveAll("/tmp/test_backup_out")
+}
+
+// TestBackupService_Create_OutputPathIsFile proves Create fails cleanly when
+// the requested output path already exists as a regular file (so MkdirAll
+// cannot create the directory).
+func TestBackupService_Create_OutputPathIsFile(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "src", "blockchain.db")
+	require.NoError(t, os.MkdirAll(filepath.Dir(dbPath), 0755))
+
+	// A real DB so the failure we assert is the output-path one, not an
+	// earlier step.
+	db, err := sql.Open("sqlite3", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)")
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	output := filepath.Join(dir, "out")
+	require.NoError(t, os.WriteFile(output, []byte("occupied"), 0644))
+
+	svc := NewBackupService(map[string]string{"blockchain": dbPath})
+	_, err = svc.Create(context.Background(), output)
+	require.Error(t, err, "Create must fail when the output path is a regular file")
+}
+
+// TestBackupService_Create_MissingDB proves Create surfaces a DB that cannot
+// be opened (path inside a nonexistent directory) instead of silently skipping
+// it.
+func TestBackupService_Create_MissingDB(t *testing.T) {
+	dir := t.TempDir()
+	output := filepath.Join(dir, "out")
+
+	svc := NewBackupService(map[string]string{
+		"missing": filepath.Join(dir, "no-such-dir", "blockchain.db"),
+	})
+	_, err := svc.Create(context.Background(), output)
+	require.Error(t, err, "Create must fail when a configured DB cannot be opened")
 }
 
 func TestBackupService_Verify(t *testing.T) {

@@ -114,6 +114,36 @@
       "updated_at": "2026-08-10T23:31:00Z",
       "confidence": 1.0,
       "summary": "fix(voting): atomic IncrementCandidateVoteCount closes lost-update race. Commit 591d8d9."
+    },
+    {
+      "id": "issue-oracle-ssrf-redirect",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-10T23:40:00Z",
+      "updated_at": "2026-08-10T23:40:00Z",
+      "confidence": 0.9,
+      "summary": "Oracle fetcher followed redirects into loopback/private/link-local IPs and non-HTTP schemes (SSRF via redirect; cloud-metadata primitives reachable if a source URL is compromised).",
+      "severity": 0.35
+    },
+    {
+      "id": "change-30b3748",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-10T23:41:00Z",
+      "updated_at": "2026-08-10T23:41:00Z",
+      "confidence": 1.0,
+      "summary": "fix(http): CheckRedirect blocks SSRF redirects to internal/private destinations + non-HTTP schemes. Commit 30b3748."
+    },
+    {
+      "id": "decision-phantom-events-accepted",
+      "type": "decision",
+      "status": "active",
+      "created_at": "2026-08-10T23:41:00Z",
+      "updated_at": "2026-08-10T23:41:00Z",
+      "confidence": 0.85,
+      "summary": "Keep eventBus.Publish inside the token tx callback (publish-first), accepting that an in-tx failure can leave a recorded event for an op that rolled back.",
+      "rationale": "Moving Publish to after the tx commits would, on event-DB failure, leave the balance mutation committed with NO event and the nonce consumed — a real transfer missing from history that the caller cannot retry (worse). Phantom events only occur on rare in-tx failure paths (concurrency rejects, invariant violations); publish-first also preserves the nonce-consumption anti-replay property. Cross-DB atomicity (tokens.db/events.db share a file but different pools) is a known architectural limit.",
+      "alternatives_rejected": ["Move Publish after WithTransaction commits", "Route event writes through the same tx/pool"]
     }
   ],
   "edges": [
@@ -121,8 +151,11 @@
     {"source": "change-caa2c94", "target": "issue-amount-overflow-unclassified", "type": "causes", "kind": "introduced_partial"},
     {"source": "change-7e4f193", "target": "issue-amount-overflow-unclassified", "type": "resolves"},
     {"source": "change-591d8d9", "target": "issue-voting-lost-update", "type": "resolves"},
+    {"source": "change-30b3748", "target": "issue-oracle-ssrf-redirect", "type": "resolves"},
     {"source": "decision-token-tx-scoped-repos", "target": "decision-atomic-primitives-over-rmw", "type": "supersedes", "note": "broadens the compensation-vs-transaction decision into the cross-cutting atomic-primitive rule"},
     {"source": "change-591d8d9", "target": "decision-atomic-primitives-over-rmw", "type": "validates"},
-    {"source": "issue-nft-voting-no-transactions", "target": "decision-atomic-primitives-over-rmw", "type": "causes", "kind": "symptom"}
+    {"source": "issue-nft-voting-no-transactions", "target": "decision-atomic-primitives-over-rmw", "type": "causes", "kind": "symptom"},
+    {"source": "issue-phantom-events", "target": "decision-phantom-events-accepted", "type": "causes", "kind": "accepted"},
+    {"source": "issue-phantom-events", "target": "issue-supply-cast-saturation", "type": "causes", "kind": "sibling"}
   ]
 }
