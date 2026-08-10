@@ -1,0 +1,128 @@
+{
+  "meta": {
+    "schema": "typed-node-graph-v1",
+    "created_at": "2026-08-10T23:30:00Z",
+    "description": "Engineering knowledge graph for the autonomous loop: typed nodes + directed edges. Evidence-only-append. Decisions never deleted (supersede only)."
+  },
+  "nodes": [
+    {
+      "id": "decision-token-tx-scoped-repos",
+      "type": "decision",
+      "status": "active",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 0.95,
+      "summary": "TokenService mutations run through a transaction-scoped repository (Repository.WithTx); multi-step writes share one SQLite tx and roll back together instead of hand-rolled compensation.",
+      "rationale": "TransferFrom previously attempted best-effort allowance/balance compensation on mid-transaction failure, which had multiple failure modes (compensation itself failing). Real transactions give atomicity for free.",
+      "alternatives_rejected": ["Keep hand-rolled compensation in TransferFrom", "Single giant save-row-on-every-op (no atomicity)"]
+    },
+    {
+      "id": "decision-atomic-primitives-over-rmw",
+      "type": "decision",
+      "status": "active",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:31:00Z",
+      "confidence": 0.95,
+      "summary": "State that can be concurrently incremented/decremented (token balances/supply/allowances, voting tallies, NFT ownership) MUST be changed via atomic conditional-UPDATE repository primitives (TryAddBalance, TrySubtractFromSupply, TryDeductApproval, IncrementCandidateVoteCount, TryTransferOwnership), never read-modify-write in the service/use-case layer.",
+      "rationale": "read-modify-write loses updates under concurrency (proven lost-update bugs: token Mint Round 32, voting tally this round). SQLite per-connection write serialization makes conditional UPDATE atomic.",
+      "alternatives_rejected": ["Row-level locks in app code", "Optimistic version columns" ]
+    },
+    {
+      "id": "issue-burn-supply-gap",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 0.95,
+      "summary": "Burn decremented only the owner's balance, not total_supply, breaking the ledger invariant total_supply == sum(balances).",
+      "severity": 0.6
+    },
+    {
+      "id": "issue-voting-lost-update",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 0.95,
+      "summary": "CastVoteUseCase incremented candidate.VoteCount via read-modify-write; two concurrent voters to the same candidate lost one increment.",
+      "severity": 0.6
+    },
+    {
+      "id": "issue-amount-overflow-unclassified",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 0.95,
+      "summary": "ErrAmountTooLarge (>MaxInt64) was missing from the handler error-classification map, so over-supply requests returned 500 instead of 400.",
+      "severity": 0.4
+    },
+    {
+      "id": "issue-phantom-events",
+      "type": "issue",
+      "status": "active",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 0.9,
+      "summary": "eventBus.Publish writes events.db (a separate DB file from tokens.db) while INSIDE the token tx callback (ordered first, before balance/supply mutations). On any later in-tx failure the tx rolls back but the event stays, so history shows operations that never applied (phantom audit events).",
+      "severity": 0.3,
+      "evidence": "internal/app/wire.go creates separate events.db/tokens.db/nonces.db; service.go Publish is the first statement inside WithTransaction for Mint/Transfer/TransferFrom/Burn"
+    },
+    {
+      "id": "issue-supply-cast-saturation",
+      "type": "issue",
+      "status": "active",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 0.7,
+      "summary": "SQLite primitives CAST(total_supply/balance AS INTEGER); once an accumulated supply/balance exceeds MaxInt64 the CAST saturates and further mints/transfers change nothing — silent loss. Individual amounts are capped by ValidateAmount but accumulation is not.",
+      "severity": 0.15
+    },
+    {
+      "id": "issue-nft-voting-no-transactions",
+      "type": "issue",
+      "status": "active",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 0.9,
+      "summary": "NFT (SaveNFT + SaveOperation + chain.AddBlock) and voting (TryMarkVoted + SaveVote + tally) use best-effort compensation instead of real transactions; compensation errors are silently swallowed (_ = repo.DeleteNFT). Accepted debt, documented in-service.",
+      "severity": 0.35
+    },
+    {
+      "id": "change-caa2c94",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 1.0,
+      "summary": "fix(token): transaction-scoped repo writes + Burn total_supply decrement (TrySubtractFromSupply), NewTokenFromRecord faithful reconstruction, ValidateAmount >MaxInt64 guard. Commit caa2c94."
+    },
+    {
+      "id": "change-7e4f193",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-10T23:30:00Z",
+      "updated_at": "2026-08-10T23:30:00Z",
+      "confidence": 1.0,
+      "summary": "fix(api): classify ErrAmountTooLarge as 400/AMOUNT_TOO_LARGE; removed dead TxExecutor/TxRepository. Commit 7e4f193."
+    },
+    {
+      "id": "change-591d8d9",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-10T23:31:00Z",
+      "updated_at": "2026-08-10T23:31:00Z",
+      "confidence": 1.0,
+      "summary": "fix(voting): atomic IncrementCandidateVoteCount closes lost-update race. Commit 591d8d9."
+    }
+  ],
+  "edges": [
+    {"source": "change-caa2c94", "target": "issue-burn-supply-gap", "type": "resolves"},
+    {"source": "change-caa2c94", "target": "issue-amount-overflow-unclassified", "type": "causes", "kind": "introduced_partial"},
+    {"source": "change-7e4f193", "target": "issue-amount-overflow-unclassified", "type": "resolves"},
+    {"source": "change-591d8d9", "target": "issue-voting-lost-update", "type": "resolves"},
+    {"source": "decision-token-tx-scoped-repos", "target": "decision-atomic-primitives-over-rmw", "type": "supersedes", "note": "broadens the compensation-vs-transaction decision into the cross-cutting atomic-primitive rule"},
+    {"source": "change-591d8d9", "target": "decision-atomic-primitives-over-rmw", "type": "validates"},
+    {"source": "issue-nft-voting-no-transactions", "target": "decision-atomic-primitives-over-rmw", "type": "causes", "kind": "symptom"}
+  ]
+}

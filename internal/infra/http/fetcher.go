@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 	"sync"
 	"time"
@@ -28,12 +30,82 @@ var (
 	// maxResponseBytes. Without a cap, a malicious or buggy oracle
 	// source could OOM the process by streaming a multi-GB body.
 	ErrResponseTooLarge = errors.New("response body exceeds maximum size")
+	// ErrBlockedDestination is returned when a redirect would take the
+	// fetcher to an internal/private address (SSRF) or to a non-HTTP(S)
+	// scheme. Blocks loops where a compromised or hostile source URL
+	// bounces us at 127.0.0.1, 169.254.169.254, RFC1918 space, etc.
+	ErrBlockedDestination = errors.New("redirect to blocked destination")
 )
 
 // maxResponseBytes caps the size of any oracle-source response we read.
 // 10 MiB is generous for price feeds / on-chain data and small enough
 // to keep the process memory-safe even under sustained attack.
 const maxResponseBytes = 10 * 1024 * 1024
+
+// blockedCIDRs are the address ranges the fetcher refuses to be redirected
+// into: loopback, RFC1918 private, link-local (incl. cloud metadata
+// 169.254.169.254), CGNAT, IPv6 loopback/link-local/unique-local, and the
+// unspecified address. A query to one of these through a redirect is the
+// classic SSRF primitive for probing or reading internal services.
+var blockedCIDRs = []netip.Prefix{
+	netip.MustParsePrefix("0.0.0.0/8"),
+	netip.MustParsePrefix("10.0.0.0/8"),
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("127.0.0.0/8"),
+	netip.MustParsePrefix("169.254.0.0/16"),
+	netip.MustParsePrefix("172.16.0.0/12"),
+	netip.MustParsePrefix("192.168.0.0/16"),
+	netip.MustParsePrefix("::/128"),
+	netip.MustParsePrefix("::1/128"),
+	netip.MustParsePrefix("fc00::/7"),
+	netip.MustParsePrefix("fe80::/10"),
+}
+
+func isBlockedIP(ip net.IP) bool {
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return true // unparseable address — refuse rather than guess
+	}
+	addr = addr.Unmap()
+	for _, p := range blockedCIDRs {
+		if p.Contains(addr) {
+			return true
+		}
+	}
+	return false
+}
+
+// isBlockedHost reports whether host (optionally host:port) is an IP literal
+// inside a blocked range. Hostnames are deliberately left to the callers that
+// already dial them (initial fetches); this guard is for redirect targets,
+// where the destination is attacker-influenced and an IP literal is the
+// common way to aim at internal services.
+func isBlockedHost(host string) bool {
+	host = strings.TrimSpace(host)
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return isBlockedIP(ip)
+}
+
+// checkRedirectAllowed is the http.Client redirect policy: it refuses
+// redirects to non-HTTP(S) schemes and to addresses in blockedCIDRs, while
+// returning nil (default behaviour: follow, cap at 10 hops) for everything
+// else.
+func checkRedirectAllowed(req *http.Request, via []*http.Request) error {
+	scheme := strings.ToLower(req.URL.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return fmt.Errorf("%w: scheme %q", ErrBlockedDestination, req.URL.Scheme)
+	}
+	if isBlockedHost(req.URL.Host) {
+		return fmt.Errorf("%w: %q", ErrBlockedDestination, req.URL.Host)
+	}
+	return nil
+}
 
 type RateLimiter struct {
 	mu       sync.RWMutex
@@ -127,7 +199,10 @@ func NewFetcher(opts ...FetcherOption) *Fetcher {
 	}
 
 	f := &Fetcher{
-		client:      &http.Client{Timeout: timeout},
+		client: &http.Client{
+			Timeout:       timeout,
+			CheckRedirect: checkRedirectAllowed,
+		},
 		rateLimiter: NewRateLimiter(limit, window),
 		userAgent:   defaultUserAgent,
 	}
@@ -149,7 +224,10 @@ func NewFetcherWithConfig(limit int, window time.Duration) *Fetcher {
 		window = time.Minute
 	}
 	f := &Fetcher{
-		client:      &http.Client{Timeout: defaultHTTPTimeout},
+		client: &http.Client{
+			Timeout:       defaultHTTPTimeout,
+			CheckRedirect: checkRedirectAllowed,
+		},
 		rateLimiter: NewRateLimiter(limit, window),
 		userAgent:   defaultUserAgent,
 	}
@@ -171,7 +249,10 @@ func NewFetcherWithTimeout(limit int, window, timeout time.Duration) (*Fetcher, 
 		window = time.Minute
 	}
 	f := &Fetcher{
-		client:      &http.Client{Timeout: timeout},
+		client: &http.Client{
+			Timeout:       timeout,
+			CheckRedirect: checkRedirectAllowed,
+		},
 		rateLimiter: NewRateLimiter(limit, window),
 		userAgent:   defaultUserAgent,
 	}
