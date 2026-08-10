@@ -60,6 +60,7 @@ func (m *mockVotingRepo) GetCandidate(id string) (*domainvoting.Candidate, error
 	return m.candidates[id], nil
 }
 func (m *mockVotingRepo) UpdateCandidate(*domainvoting.Candidate) error { return nil }
+func (m *mockVotingRepo) IncrementCandidateVoteCount(string) error      { return nil }
 func (m *mockVotingRepo) DeleteCandidate(string) error                  { return nil }
 func (m *mockVotingRepo) ListCandidates() ([]*domainvoting.Candidate, error) {
 	candidates := make([]*domainvoting.Candidate, 0, len(m.candidates))

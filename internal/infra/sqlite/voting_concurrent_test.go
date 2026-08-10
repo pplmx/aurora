@@ -157,3 +157,57 @@ func TestVotingRepository_SaveVoter_PreservesHasVotedOnConflict(t *testing.T) {
 		t.Errorf("SaveVoter conflict failed to update registered_at: expected 2000, got %d", got.RegisteredAt)
 	}
 }
+
+// TestVotingRepository_IncrementCandidateVoteCount_ConcurrentNoLostUpdate
+// proves concurrent votes to the same candidate never lose an increment.
+//
+// The previous CastVoteUseCase flow did read candidate.VoteCount, increment
+// in memory, then write the whole row back via UpdateCandidate. Two voters
+// voting for the same candidate concurrently both read N, both computed N+1,
+// and both wrote N+1 — one vote silently uncounted. The conditional UPDATE
+// (vote_count = vote_count + 1) serializes writers so every call lands.
+func TestVotingRepository_IncrementCandidateVoteCount_ConcurrentNoLostUpdate(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	// Same single-connection note as the TryMarkVoted test above.
+	repo.db.SetMaxOpenConns(1)
+
+	candidate := &voting.Candidate{
+		ID:        "cand-1",
+		Name:      "Alice",
+		VoteCount: 0,
+	}
+	require.NoError(t, repo.SaveCandidate(candidate))
+
+	const goroutines = 16
+	var wg sync.WaitGroup
+	var errCount int32
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := repo.IncrementCandidateVoteCount("cand-1"); err != nil {
+				atomic.AddInt32(&errCount, 1)
+			}
+		}()
+	}
+	wg.Wait()
+
+	assert.Equal(t, int32(0), errCount, "no increment should fail")
+	got, err := repo.GetCandidate("cand-1")
+	require.NoError(t, err)
+	assert.Equal(t, goroutines, got.VoteCount, "every concurrent vote must be counted exactly once")
+}
+
+// TestVotingRepository_IncrementCandidateVoteCount_NotFound proves the
+// increment maps a missing candidate to the not-found sentinel (relevant when
+// a candidate is deleted between the use case's existence check and the
+// atomic increment).
+func TestVotingRepository_IncrementCandidateVoteCount_NotFound(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	err := repo.IncrementCandidateVoteCount("missing-candidate")
+	assert.ErrorIs(t, err, ErrNotFound)
+}

@@ -440,6 +440,7 @@ func (f fakeVotingRepo) GetCandidate(string) (*domainvoting.Candidate, error) {
 	return nil, nil
 }
 func (f fakeVotingRepo) UpdateCandidate(*domainvoting.Candidate) error { return nil }
+func (f fakeVotingRepo) IncrementCandidateVoteCount(string) error      { return nil }
 func (f fakeVotingRepo) DeleteCandidate(string) error                  { return nil }
 func (f fakeVotingRepo) ListCandidates() ([]*domainvoting.Candidate, error) {
 	if f.err != nil {

@@ -15,16 +15,17 @@ type mockVotingRepo struct {
 	voters     []*voting.Voter
 	sessions   []*voting.Session
 
-	errSaveCandidate   error
-	errGetCandidate    error
-	errListCandidates  error
-	errUpdateCandidate error
-	errSaveVoter       error
-	errGetVoter        error
-	errSaveVote        error
-	errTryMarkVoted    error
-	errSaveSession     error
-	errGetSession      error
+	errSaveCandidate               error
+	errGetCandidate                error
+	errListCandidates              error
+	errUpdateCandidate             error
+	errIncrementCandidateVoteCount error
+	errSaveVoter                   error
+	errGetVoter                    error
+	errSaveVote                    error
+	errTryMarkVoted                error
+	errSaveSession                 error
+	errGetSession                  error
 }
 
 func (m *mockVotingRepo) SaveCandidate(c *voting.Candidate) error {
@@ -59,6 +60,19 @@ func (m *mockVotingRepo) UpdateCandidate(c *voting.Candidate) error {
 		return m.errUpdateCandidate
 	}
 	return nil
+}
+
+func (m *mockVotingRepo) IncrementCandidateVoteCount(id string) error {
+	if m.errIncrementCandidateVoteCount != nil {
+		return m.errIncrementCandidateVoteCount
+	}
+	for _, c := range m.candidates {
+		if c.ID == id {
+			c.VoteCount++
+			return nil
+		}
+	}
+	return sqlite.ErrNotFound
 }
 
 func (m *mockVotingRepo) DeleteCandidate(id string) error {
@@ -672,10 +686,10 @@ func TestCastVoteUseCase_SaveVoteError(t *testing.T) {
 	}
 }
 
-func TestCastVoteUseCase_UpdateCandidateError(t *testing.T) {
+func TestCastVoteUseCase_IncrementCandidateVoteCountError(t *testing.T) {
 	now := time.Now().Unix()
 	repo := &mockVotingRepo{
-		errUpdateCandidate: errors.New("db write failed"),
+		errIncrementCandidateVoteCount: errors.New("db write failed"),
 		voters: []*voting.Voter{
 			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
 		},
@@ -698,7 +712,37 @@ func TestCastVoteUseCase_UpdateCandidateError(t *testing.T) {
 
 	_, err := uc.Execute(req)
 	if err == nil {
-		t.Fatal("Expected error for UpdateCandidate failure")
+		t.Fatal("Expected error for CandidateVoteCount increment failure")
+	}
+}
+
+func TestCastVoteUseCase_IncrementCandidateVoteCountAppliesTally(t *testing.T) {
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 7},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+		},
+	}
+	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
+	uc := NewCastVoteUseCase(repo, service)
+
+	_, err := uc.Execute(CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		SessionID:      "session1",
+	})
+	require.NoError(t, err)
+
+	got, _ := repo.GetCandidate("candidate1")
+	if got.VoteCount != 8 {
+		t.Fatalf("expected candidate tally 8 after one vote, got %d", got.VoteCount)
 	}
 }
 

@@ -26,6 +26,13 @@ type Repository interface {
 	SaveCandidate(candidate *Candidate) error
 	GetCandidate(id string) (*Candidate, error)
 	UpdateCandidate(candidate *Candidate) error
+	// IncrementCandidateVoteCount atomically adds one to the candidate's
+	// vote_count. Implementations MUST be concurrency-safe (e.g. via a
+	// conditional UPDATE) so concurrent CastVote calls to the same candidate
+	// never lose an increment. The tally is what clients see, so a lost
+	// increment is a silently under-counted election. Must return the
+	// repository's not-found sentinel if the candidate no longer exists.
+	IncrementCandidateVoteCount(candidateID string) error
 	DeleteCandidate(id string) error
 	ListCandidates() ([]*Candidate, error)
 

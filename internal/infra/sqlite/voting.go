@@ -268,6 +268,34 @@ func (r *VotingRepository) UpdateCandidate(candidate *voting.Candidate) error {
 	return err
 }
 
+// IncrementCandidateVoteCount atomically increments a candidate's stored
+// vote_count, closing the TOCTOU window in CastVoteUseCase where the count
+// was read into a struct, incremented in memory, then written back — under
+// concurrent votes to the same candidate one increment was silently lost
+// (both readers saw N, both wrote N+1).
+//
+// The conditional UPDATE relies on SQLite's per-connection write
+// serialization: exactly one writer at a time, so no increments are lost.
+// Returns ErrNotFound if the candidate does not exist (e.g. deleted
+// concurrently between the use case's existence check and this call).
+func (r *VotingRepository) IncrementCandidateVoteCount(candidateID string) error {
+	res, err := r.db.Exec(
+		`UPDATE candidates SET vote_count = vote_count + 1 WHERE id = ?`,
+		candidateID,
+	)
+	if err != nil {
+		return fmt.Errorf("increment candidate vote count: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("increment candidate vote count rows: %w", err)
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *VotingRepository) DeleteCandidate(id string) error {
 	_, err := r.db.Exec(`DELETE FROM candidates WHERE id = ?`, id)
 	return err

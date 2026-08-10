@@ -120,8 +120,16 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (_ *VoteResponse, err er
 	voteSaved = true
 	voteID = vote.ID
 
-	candidate.VoteCount++
-	if err := uc.repo.UpdateCandidate(candidate); err != nil {
+	// Atomically increment the tally instead of read-modify-write:
+	// candidate.VoteCount++ followed by UpdateCandidate lost an
+	// increment when two different voters voted for the same
+	// candidate concurrently (both read N, both wrote N+1), silently
+	// under-counting the election. The conditional UPDATE in
+	// IncrementCandidateVoteCount makes every vote count exactly once.
+	if err := uc.repo.IncrementCandidateVoteCount(req.CandidateID); err != nil {
+		if errors.Is(err, sqlite.ErrNotFound) {
+			return nil, voting.ErrCandidateNotFound
+		}
 		return nil, fmt.Errorf("failed to update candidate: %w", err)
 	}
 
