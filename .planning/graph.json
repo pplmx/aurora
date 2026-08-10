@@ -135,6 +135,84 @@
       "summary": "fix(http): CheckRedirect blocks SSRF redirects to internal/private destinations + non-HTTP schemes. Commit 30b3748."
     },
     {
+      "id": "issue-oracle-ssrf-hostname-bypass",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-11T00:20:00Z",
+      "updated_at": "2026-08-11T00:20:00Z",
+      "confidence": 0.95,
+      "summary": "Initial SSRF guard matched IP literals only; hostname redirects (localhost, metadata.google.internal, DNS names in RFC1918 space) bypassed it. Found by adversarial code review.",
+      "severity": 0.45
+    },
+    {
+      "id": "issue-weak-transferfrom-atomicity-test",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-11T00:20:00Z",
+      "updated_at": "2026-08-11T00:20:00Z",
+      "confidence": 0.95,
+      "summary": "TestTransferFrom_AtomicityOnAllowanceDeductionFailure overclaimed: injected failure fired on the first mutation, so no partial state existed; name said 'Atomicity' but verified nothing rolled back.",
+      "severity": 0.15
+    },
+    {
+      "id": "change-55554a8",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T00:22:00Z",
+      "updated_at": "2026-08-11T00:22:00Z",
+      "confidence": 1.0,
+      "summary": "fix(http): DNS-resolve hostname redirects for SSRF blocking; pinned flaky concurrent test; renamed + added genuine mid-tx rollback atomicity tests. Commit 55554a8."
+    },
+    {
+      "id": "change-e8c27dc",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T00:22:00Z",
+      "updated_at": "2026-08-11T00:22:00Z",
+      "confidence": 1.0,
+      "summary": "test(infra): migrate coverage 74.1%->81.5% (error branches); backup error-path tests. Commit e8c27dc."
+    },
+    {
+      "id": "task-phantom-events",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T00:30:00Z",
+      "updated_at": "2026-08-11T00:30:00Z",
+      "confidence": 0.85,
+      "summary": "Cross-DB non-atomicity: audit event written inside the token tx callback survives a rollback (phantom history entries); chain.AddBlock and replay nonces likewise outside the tx.",
+      "priority_score": 0.49
+    },
+    {
+      "id": "task-supply-cast-saturation",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T00:30:00Z",
+      "updated_at": "2026-08-11T00:30:00Z",
+      "confidence": 0.7,
+      "summary": "Cumulative supply/balance can exceed MaxInt64 (per-op guard passes) and later CAST(...) clamps silently; detect/reject post-arithmetic overflow.",
+      "priority_score": 0.25
+    },
+    {
+      "id": "task-nft-voting-transactions",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T00:30:00Z",
+      "updated_at": "2026-08-11T00:30:00Z",
+      "confidence": 0.9,
+      "summary": "NFT (SaveNFT/SaveOperation) and voting (TryMarkVoted/SaveVote/tally) use best-effort compensation instead of real transactions; crash leaves partial state. Accepted debt; convert when touchpoint opens.",
+      "priority_score": 0.28
+    },
+    {
+      "id": "task-backup-coverage",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T00:30:00Z",
+      "updated_at": "2026-08-11T00:30:00Z",
+      "confidence": 1.0,
+      "summary": "backup package at 73.8%: remaining uncovered lines are Close/Copy I/O error branches not worth contriving; migrate now 81.5%.",
+      "priority_score": 0.6
+    },
+    {
       "id": "decision-phantom-events-accepted",
       "type": "decision",
       "status": "active",
@@ -156,6 +234,13 @@
     {"source": "change-591d8d9", "target": "decision-atomic-primitives-over-rmw", "type": "validates"},
     {"source": "issue-nft-voting-no-transactions", "target": "decision-atomic-primitives-over-rmw", "type": "causes", "kind": "symptom"},
     {"source": "issue-phantom-events", "target": "decision-phantom-events-accepted", "type": "causes", "kind": "accepted"},
-    {"source": "issue-phantom-events", "target": "issue-supply-cast-saturation", "type": "causes", "kind": "sibling"}
+    {"source": "issue-phantom-events", "target": "issue-supply-cast-saturation", "type": "causes", "kind": "sibling"},
+    {"source": "change-30b3748", "target": "issue-oracle-ssrf-hostname-bypass", "type": "causes", "kind": "introduced_partial"},
+    {"source": "change-55554a8", "target": "issue-oracle-ssrf-hostname-bypass", "type": "resolves"},
+    {"source": "change-55554a8", "target": "issue-weak-transferfrom-atomicity-test", "type": "resolves"},
+    {"source": "issue-phantom-events", "target": "task-phantom-events", "type": "causes", "kind": "derived"},
+    {"source": "issue-supply-cast-saturation", "target": "task-supply-cast-saturation", "type": "causes", "kind": "derived"},
+    {"source": "issue-nft-voting-no-transactions", "target": "task-nft-voting-transactions", "type": "causes", "kind": "derived"},
+    {"source": "change-e8c27dc", "target": "task-backup-coverage", "type": "resolves", "kind": "partial"}
   ]
 }
