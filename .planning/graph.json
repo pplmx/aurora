@@ -191,6 +191,36 @@
       "summary": "fix(token): clamp allowance increases at MaxInt64 in TryAdjustApproval (MIN-with-CAST ceiling). Commit a12cd62."
     },
     {
+      "id": "issue-voting-input-validation",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-11T02:00:00Z",
+      "updated_at": "2026-08-11T02:00:00Z",
+      "confidence": 0.95,
+      "summary": "RegisterVoter/RegisterCandidate/CreateSession accepted empty names, empty or unknown candidate sets, and sessions whose end time preceded start — no boundary validation.",
+      "severity": 0.4
+    },
+    {
+      "id": "change-8cf8ced",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T02:05:00Z",
+      "updated_at": "2026-08-11T02:05:00Z",
+      "confidence": 1.0,
+      "summary": "fix(voting): fail-fast validation + sentinel errors for voter/candidate/session input; 400 classification. Commit 8cf8ced."
+    },
+    {
+      "id": "issue-chain-not-persistent",
+      "type": "issue",
+      "status": "active",
+      "created_at": "2026-08-11T02:20:00Z",
+      "updated_at": "2026-08-11T02:20:00Z",
+      "confidence": 0.95,
+      "summary": "BlockChain.AddBlock appends in-memory only; the blocks table is loaded at init but nothing persists new blocks, so the chain resets to genesis and re-stamps heights on every restart. BlockchainRepository (SaveBlock/GetAllBlocks) is built but never wired — orphaned persistence layer.",
+      "severity": 0.35,
+      "evidence": "init.go loads+inserts genesis only; service.go/nft service.go AddBlock call sites never write to DB; sqlite/blockchain.go BlockchainRepository unreferenced in production"
+    },
+    {
       "id": "issue-allowance-cast-clamp",
       "type": "issue",
       "status": "resolved",
@@ -242,6 +272,16 @@
       "priority_score": 0.6
     },
     {
+      "id": "task-chain-persistence",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T02:20:00Z",
+      "updated_at": "2026-08-11T02:20:00Z",
+      "confidence": 0.95,
+      "summary": "Wire block persistence: either make BlockChain.AddBlock persist via a DB handle or connect the orphaned BlockchainRepository so heights remain monotonic across restarts (currently resets to genesis).",
+      "priority_score": 1.14
+    },
+    {
       "id": "decision-phantom-events-accepted",
       "type": "decision",
       "status": "active",
@@ -272,6 +312,8 @@
     {"source": "fcd05d8", "target": "task-supply-cast-saturation", "type": "resolves"},
     {"source": "a12cd62", "target": "issue-allowance-cast-clamp", "type": "resolves"},
     {"source": "change-a12cd62", "target": "task-supply-cast-saturation", "type": "resolves"},
+    {"source": "change-8cf8ced", "target": "issue-voting-input-validation", "type": "resolves"},
+    {"source": "issue-chain-not-persistent", "target": "task-chain-persistence", "type": "causes", "kind": "derived"},
     {"source": "issue-nft-voting-no-transactions", "target": "task-nft-voting-transactions", "type": "causes", "kind": "derived"},
     {"source": "change-e8c27dc", "target": "task-backup-coverage", "type": "resolves", "kind": "partial"}
   ]
