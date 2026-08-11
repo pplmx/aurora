@@ -404,13 +404,21 @@ func TestGetCandidatesUseCase_Empty(t *testing.T) {
 }
 
 func TestCreateSessionUseCase(t *testing.T) {
-	repo := &mockVotingRepo{}
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "c1", Name: "Alice"},
+			{ID: "c2", Name: "Bob"},
+		},
+	}
 	uc := NewCreateSessionUseCase(repo)
 
 	req := CreateSessionRequest{
 		Title:        "Election 2024",
 		Description:  "Annual election",
 		CandidateIDs: []string{"c1", "c2"},
+		StartTime:    now,
+		EndTime:      now + 3600,
 	}
 
 	resp, err := uc.Execute(req)
@@ -420,6 +428,67 @@ func TestCreateSessionUseCase(t *testing.T) {
 	if resp.Title != "Election 2024" {
 		t.Errorf("Expected title 'Election 2024', got '%s'", resp.Title)
 	}
+}
+
+func TestCreateSessionUseCase_Validation(t *testing.T) {
+	now := time.Now().Unix()
+	tests := []struct {
+		name string
+		req  CreateSessionRequest
+		want error
+	}{
+		{
+			name: "empty title",
+			req:  CreateSessionRequest{Title: "  ", CandidateIDs: []string{"c1"}, StartTime: now, EndTime: now + 3600},
+			want: voting.ErrSessionTitleRequired,
+		},
+		{
+			name: "no candidates",
+			req:  CreateSessionRequest{Title: "Election", CandidateIDs: nil, StartTime: now, EndTime: now + 3600},
+			want: voting.ErrCandidatesRequired,
+		},
+		{
+			name: "end before start",
+			req:  CreateSessionRequest{Title: "Election", CandidateIDs: []string{"c1"}, StartTime: now, EndTime: now - 60},
+			want: voting.ErrInvalidSessionTime,
+		},
+		{
+			name: "unknown candidate",
+			req: CreateSessionRequest{
+				Title:        "Election",
+				CandidateIDs: []string{"ghost"},
+				StartTime:    now,
+				EndTime:      now + 3600,
+			},
+			want: voting.ErrCandidateNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &mockVotingRepo{candidates: []*voting.Candidate{{ID: "c1", Name: "Alice"}}}
+			uc := NewCreateSessionUseCase(repo)
+			_, err := uc.Execute(tt.req)
+			require.Error(t, err)
+			require.ErrorIs(t, err, tt.want)
+		})
+	}
+}
+
+func TestRegisterCandidateUseCase_EmptyName(t *testing.T) {
+	repo := &mockVotingRepo{}
+	uc := NewRegisterCandidateUseCase(repo)
+
+	_, err := uc.Execute(RegisterCandidateRequest{Name: "   "})
+	require.ErrorIs(t, err, voting.ErrCandidateNameRequired)
+}
+
+func TestRegisterVoterUseCase_EmptyName(t *testing.T) {
+	repo := &mockVotingRepo{}
+	uc := NewRegisterVoterUseCase(repo)
+
+	_, err := uc.Execute(RegisterVoterRequest{Name: ""})
+	require.ErrorIs(t, err, voting.ErrVoterNameRequired)
 }
 
 func TestCastVoteUseCase_SessionNotStarted(t *testing.T) {

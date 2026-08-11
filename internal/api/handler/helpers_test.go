@@ -120,6 +120,24 @@ func TestWriteUseCaseError_DomainError(t *testing.T) {
 			wantCode:   "NO_PARTICIPANTS",
 		},
 		{
+			name:       "candidate name required",
+			err:        voting.ErrCandidateNameRequired,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "CANDIDATE_NAME_REQUIRED",
+		},
+		{
+			name:       "session title required",
+			err:        voting.ErrSessionTitleRequired,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "SESSION_TITLE_REQUIRED",
+		},
+		{
+			name:       "invalid session time",
+			err:        voting.ErrInvalidSessionTime,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "INVALID_SESSION_TIME",
+		},
+		{
 			name:       "amount too large",
 			err:        token.ErrAmountTooLarge,
 			wantStatus: http.StatusBadRequest,

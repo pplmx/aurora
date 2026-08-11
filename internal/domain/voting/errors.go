@@ -11,4 +11,12 @@ var (
 	ErrVoterNotRegistered = errors.New("voter not registered")
 	ErrCandidateNotFound  = errors.New("candidate not found")
 	ErrAlreadyVoted       = errors.New("voter has already voted")
+
+	// Validation sentinels. These let API handlers classify client input
+	// errors as 400s instead of falling through to 500.
+	ErrVoterNameRequired     = errors.New("voter name is required")
+	ErrCandidateNameRequired = errors.New("candidate name is required")
+	ErrSessionTitleRequired  = errors.New("session title is required")
+	ErrInvalidSessionTime    = errors.New("session end time must be after start time")
+	ErrCandidatesRequired    = errors.New("at least one candidate is required")
 )

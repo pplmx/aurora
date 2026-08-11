@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
@@ -148,6 +149,10 @@ func NewRegisterVoterUseCase(repo voting.Repository) *RegisterVoterUseCase {
 }
 
 func (uc *RegisterVoterUseCase) Execute(req RegisterVoterRequest) (*VoterResponse, error) {
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, voting.ErrVoterNameRequired
+	}
+
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate key: %w", err)
@@ -177,6 +182,10 @@ func NewRegisterCandidateUseCase(repo voting.Repository) *RegisterCandidateUseCa
 }
 
 func (uc *RegisterCandidateUseCase) Execute(req RegisterCandidateRequest) (*CandidateResponse, error) {
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, voting.ErrCandidateNameRequired
+	}
+
 	candidate := voting.NewCandidate(req.Name, req.Party, req.Program)
 
 	if err := uc.repo.SaveCandidate(candidate); err != nil {
@@ -228,6 +237,28 @@ func NewCreateSessionUseCase(repo voting.Repository) *CreateSessionUseCase {
 }
 
 func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionResponse, error) {
+	if strings.TrimSpace(req.Title) == "" {
+		return nil, voting.ErrSessionTitleRequired
+	}
+	if len(req.CandidateIDs) == 0 {
+		return nil, voting.ErrCandidatesRequired
+	}
+	if req.EndTime <= req.StartTime {
+		return nil, voting.ErrInvalidSessionTime
+	}
+	// The session stores candidate IDs as references; reject dangling
+	// references up front so a session never points at candidates that do
+	// not exist.
+	for _, id := range req.CandidateIDs {
+		c, err := uc.repo.GetCandidate(id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get candidate: %w", err)
+		}
+		if c == nil {
+			return nil, voting.ErrCandidateNotFound
+		}
+	}
+
 	session := voting.NewSession(req.Title, req.Description, req.CandidateIDs, req.StartTime, req.EndTime)
 
 	if err := uc.repo.SaveSession(session); err != nil {
