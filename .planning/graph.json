@@ -14,7 +14,10 @@
       "confidence": 0.95,
       "summary": "TokenService mutations run through a transaction-scoped repository (Repository.WithTx); multi-step writes share one SQLite tx and roll back together instead of hand-rolled compensation.",
       "rationale": "TransferFrom previously attempted best-effort allowance/balance compensation on mid-transaction failure, which had multiple failure modes (compensation itself failing). Real transactions give atomicity for free.",
-      "alternatives_rejected": ["Keep hand-rolled compensation in TransferFrom", "Single giant save-row-on-every-op (no atomicity)"]
+      "alternatives_rejected": [
+        "Keep hand-rolled compensation in TransferFrom",
+        "Single giant save-row-on-every-op (no atomicity)"
+      ]
     },
     {
       "id": "decision-atomic-primitives-over-rmw",
@@ -25,7 +28,10 @@
       "confidence": 0.95,
       "summary": "State that can be concurrently incremented/decremented (token balances/supply/allowances, voting tallies, NFT ownership) MUST be changed via atomic conditional-UPDATE repository primitives (TryAddBalance, TrySubtractFromSupply, TryDeductApproval, IncrementCandidateVoteCount, TryTransferOwnership), never read-modify-write in the service/use-case layer.",
       "rationale": "read-modify-write loses updates under concurrency (proven lost-update bugs: token Mint Round 32, voting tally this round). SQLite per-connection write serialization makes conditional UPDATE atomic.",
-      "alternatives_rejected": ["Row-level locks in app code", "Optimistic version columns" ]
+      "alternatives_rejected": [
+        "Row-level locks in app code",
+        "Optimistic version columns"
+      ]
     },
     {
       "id": "issue-burn-supply-gap",
@@ -60,7 +66,7 @@
     {
       "id": "issue-phantom-events",
       "type": "issue",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-10T23:30:00Z",
       "updated_at": "2026-08-10T23:30:00Z",
       "confidence": 0.9,
@@ -71,7 +77,7 @@
     {
       "id": "issue-supply-cast-saturation",
       "type": "issue",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-10T23:30:00Z",
       "updated_at": "2026-08-10T23:30:00Z",
       "confidence": 0.7,
@@ -212,7 +218,7 @@
     {
       "id": "issue-chain-not-persistent",
       "type": "issue",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T02:20:00Z",
       "updated_at": "2026-08-11T02:20:00Z",
       "confidence": 0.95,
@@ -233,7 +239,7 @@
     {
       "id": "task-phantom-events",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T00:30:00Z",
       "updated_at": "2026-08-11T00:30:00Z",
       "confidence": 0.85,
@@ -243,13 +249,12 @@
     {
       "id": "task-supply-cast-saturation",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T00:30:00Z",
       "updated_at": "2026-08-11T00:30:00Z",
       "confidence": 0.7,
       "summary": "Cumulative supply/balance can exceed MaxInt64 (per-op guard passes) and later CAST(...) clamps silently; detect/reject post-arithmetic overflow.",
-      "priority_score": 0.25,
-      "status": "resolved"
+      "priority_score": 0.25
     },
     {
       "id": "task-nft-voting-transactions",
@@ -264,7 +269,7 @@
     {
       "id": "task-backup-coverage",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T00:30:00Z",
       "updated_at": "2026-08-11T00:30:00Z",
       "confidence": 1.0,
@@ -274,13 +279,12 @@
     {
       "id": "task-chain-persistence",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T02:20:00Z",
       "updated_at": "2026-08-11T02:20:00Z",
       "confidence": 0.95,
       "summary": "Wire block persistence: either make BlockChain.AddBlock persist via a DB handle or connect the orphaned BlockchainRepository so heights remain monotonic across restarts (currently resets to genesis).",
-      "priority_score": 1.14,
-      "status": "resolved"
+      "priority_score": 1.14
     },
     {
       "id": "change-93ffe26",
@@ -338,34 +342,175 @@
       "confidence": 0.85,
       "summary": "Keep eventBus.Publish inside the token tx callback (publish-first), accepting that an in-tx failure can leave a recorded event for an op that rolled back.",
       "rationale": "Moving Publish to after the tx commits would, on event-DB failure, leave the balance mutation committed with NO event and the nonce consumed — a real transfer missing from history that the caller cannot retry (worse). Phantom events only occur on rare in-tx failure paths (concurrency rejects, invariant violations); publish-first also preserves the nonce-consumption anti-replay property. Cross-DB atomicity (tokens.db/events.db share a file but different pools) is a known architectural limit.",
-      "alternatives_rejected": ["Move Publish after WithTransaction commits", "Route event writes through the same tx/pool"]
+      "alternatives_rejected": [
+        "Move Publish after WithTransaction commits",
+        "Route event writes through the same tx/pool"
+      ]
+    },
+    {
+      "id": "task-cli-cmd-coverage",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T13:00:00Z",
+      "updated_at": "2026-08-11T13:00:00Z",
+      "confidence": 0.9,
+      "summary": "v1.4 milestone: lift cmd/aurora/cmd coverage from 21.9% to 80%+ by testing every cobra command (lottery create/history/verify/export/import/stats/reset/db-info/version, nft mint/transfer/burn/get/list/history, oracle source/fetch/data/latest/template, token create/mint/transfer/approve/burn/balance/allowance/history/info/tui, voting candidate/voter/session/vote/results, root Execute/config). CLI is the primary user-facing surface — flag-parsing, output, and wiring bugs live untested here.",
+      "priority_score": 4.2,
+      "phase": "v1.4"
+    },
+    {
+      "id": "evidence-cli-cov-baseline-219",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-11T13:00:00Z",
+      "updated_at": "2026-08-11T13:00:00Z",
+      "confidence": 1.0,
+      "summary": "go test ./cmd/aurora/cmd/ -cover reports 21.9% (2026-08-11). Only helpers (sameStringSet, getTemplates/getTemplate, min, getGoVersion, init fns) and 4 small regression tests covered; all cobra RunE bodies, newTokenService, getNFTRepo/nftService, getVotingRepo/getVotingService, b64Encode, truncateBase64, Execute/initConfig/setDefaultConfig at 0%.",
+      "detail": "Uncovered per go tool cover -func: lottery.go:459 min, lottery.go:466 getGoVersion, nft.go:300 truncateBase64, nft.go:35-50 getNFTRepo/nftService/nftChain, root.go:77-127 Execute/initConfig/setDefaultConfig, token.go:17 newTokenService, token.go:494 b64Encode, voting.go:39 getVotingService"
     }
   ],
   "edges": [
-    {"source": "change-caa2c94", "target": "issue-burn-supply-gap", "type": "resolves"},
-    {"source": "change-caa2c94", "target": "issue-amount-overflow-unclassified", "type": "causes", "kind": "introduced_partial"},
-    {"source": "change-7e4f193", "target": "issue-amount-overflow-unclassified", "type": "resolves"},
-    {"source": "change-591d8d9", "target": "issue-voting-lost-update", "type": "resolves"},
-    {"source": "change-30b3748", "target": "issue-oracle-ssrf-redirect", "type": "resolves"},
-    {"source": "decision-token-tx-scoped-repos", "target": "decision-atomic-primitives-over-rmw", "type": "supersedes", "note": "broadens the compensation-vs-transaction decision into the cross-cutting atomic-primitive rule"},
-    {"source": "change-591d8d9", "target": "decision-atomic-primitives-over-rmw", "type": "validates"},
-    {"source": "issue-nft-voting-no-transactions", "target": "decision-atomic-primitives-over-rmw", "type": "causes", "kind": "symptom"},
-    {"source": "issue-phantom-events", "target": "decision-phantom-events-accepted", "type": "causes", "kind": "accepted"},
-    {"source": "issue-phantom-events", "target": "issue-supply-cast-saturation", "type": "causes", "kind": "sibling"},
-    {"source": "change-30b3748", "target": "issue-oracle-ssrf-hostname-bypass", "type": "causes", "kind": "introduced_partial"},
-    {"source": "change-55554a8", "target": "issue-oracle-ssrf-hostname-bypass", "type": "resolves"},
-    {"source": "change-55554a8", "target": "issue-weak-transferfrom-atomicity-test", "type": "resolves"},
-    {"source": "issue-phantom-events", "target": "task-phantom-events", "type": "causes", "kind": "derived"},
-    {"source": "issue-supply-cast-saturation", "target": "task-supply-cast-saturation", "type": "causes", "kind": "derived"},
-    {"source": "change-fcd05d8", "target": "task-supply-cast-saturation", "type": "resolves"},
-    {"source": "change-a12cd62", "target": "issue-allowance-cast-clamp", "type": "resolves"},
-    {"source": "change-a12cd62", "target": "task-supply-cast-saturation", "type": "resolves"},
-    {"source": "change-8cf8ced", "target": "issue-voting-input-validation", "type": "resolves"},
-    {"source": "issue-chain-not-persistent", "target": "task-chain-persistence", "type": "causes", "kind": "derived"},
-    {"source": "change-93ffe26", "target": "task-chain-persistence", "type": "resolves"},
-    {"source": "change-5965464", "target": "issue-app-wire-untested", "type": "resolves"},
-    {"source": "change-e55e529", "target": "issue-wire-unused-async-bus", "type": "resolves"},
-    {"source": "issue-nft-voting-no-transactions", "target": "task-nft-voting-transactions", "type": "causes", "kind": "derived"},
-    {"source": "change-e8c27dc", "target": "task-backup-coverage", "type": "resolves", "kind": "partial"}
+    {
+      "source": "change-caa2c94",
+      "target": "issue-burn-supply-gap",
+      "type": "resolves"
+    },
+    {
+      "source": "change-caa2c94",
+      "target": "issue-amount-overflow-unclassified",
+      "type": "causes",
+      "kind": "introduced_partial"
+    },
+    {
+      "source": "change-7e4f193",
+      "target": "issue-amount-overflow-unclassified",
+      "type": "resolves"
+    },
+    {
+      "source": "change-591d8d9",
+      "target": "issue-voting-lost-update",
+      "type": "resolves"
+    },
+    {
+      "source": "change-30b3748",
+      "target": "issue-oracle-ssrf-redirect",
+      "type": "resolves"
+    },
+    {
+      "source": "decision-token-tx-scoped-repos",
+      "target": "decision-atomic-primitives-over-rmw",
+      "type": "supersedes",
+      "note": "broadens the compensation-vs-transaction decision into the cross-cutting atomic-primitive rule"
+    },
+    {
+      "source": "change-591d8d9",
+      "target": "decision-atomic-primitives-over-rmw",
+      "type": "validates"
+    },
+    {
+      "source": "issue-nft-voting-no-transactions",
+      "target": "decision-atomic-primitives-over-rmw",
+      "type": "causes",
+      "kind": "symptom"
+    },
+    {
+      "source": "issue-phantom-events",
+      "target": "decision-phantom-events-accepted",
+      "type": "causes",
+      "kind": "accepted"
+    },
+    {
+      "source": "issue-phantom-events",
+      "target": "issue-supply-cast-saturation",
+      "type": "causes",
+      "kind": "sibling"
+    },
+    {
+      "source": "change-30b3748",
+      "target": "issue-oracle-ssrf-hostname-bypass",
+      "type": "causes",
+      "kind": "introduced_partial"
+    },
+    {
+      "source": "change-55554a8",
+      "target": "issue-oracle-ssrf-hostname-bypass",
+      "type": "resolves"
+    },
+    {
+      "source": "change-55554a8",
+      "target": "issue-weak-transferfrom-atomicity-test",
+      "type": "resolves"
+    },
+    {
+      "source": "issue-phantom-events",
+      "target": "task-phantom-events",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "issue-supply-cast-saturation",
+      "target": "task-supply-cast-saturation",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "change-fcd05d8",
+      "target": "task-supply-cast-saturation",
+      "type": "resolves"
+    },
+    {
+      "source": "change-a12cd62",
+      "target": "issue-allowance-cast-clamp",
+      "type": "resolves"
+    },
+    {
+      "source": "change-a12cd62",
+      "target": "task-supply-cast-saturation",
+      "type": "resolves"
+    },
+    {
+      "source": "change-8cf8ced",
+      "target": "issue-voting-input-validation",
+      "type": "resolves"
+    },
+    {
+      "source": "issue-chain-not-persistent",
+      "target": "task-chain-persistence",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "change-93ffe26",
+      "target": "task-chain-persistence",
+      "type": "resolves"
+    },
+    {
+      "source": "change-5965464",
+      "target": "issue-app-wire-untested",
+      "type": "resolves"
+    },
+    {
+      "source": "change-e55e529",
+      "target": "issue-wire-unused-async-bus",
+      "type": "resolves"
+    },
+    {
+      "source": "issue-nft-voting-no-transactions",
+      "target": "task-nft-voting-transactions",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "change-e8c27dc",
+      "target": "task-backup-coverage",
+      "type": "resolves",
+      "kind": "partial"
+    },
+    {
+      "source": "evidence-cli-cov-baseline-219",
+      "target": "task-cli-cmd-coverage",
+      "type": "causes",
+      "kind": "derived"
+    }
   ]
 }
