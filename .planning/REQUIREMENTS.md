@@ -1,48 +1,61 @@
-# Requirements: Aurora v1.4 CLI Command Test Coverage
+# Requirements: Aurora v1.5 Fresh-Install Operations & Coverage Bar
 
-**Status:** Complete ✅
-**Milestone:** v1.4 CLI Command Test Coverage
+**Status:** In Progress
+**Milestone:** v1.5 Fresh-Install Operations & Coverage Bar
 **Last updated:** 2026-08-11
 
 ## Overview
 
-`cmd/aurora/cmd` is the primary user-facing surface of Aurora — every
-CLI interaction flows through its cobra command tree — yet it sits at
-**21.9% statement coverage** (measured 2026-08-11). Only small helpers
-and `init()` wiring are tested; every `RunE` body, the lazy
-DB/service constructors, and the root config path are untested, so
-flag-parsing, output-formatting, and wiring bugs go undetected.
+Two goals.
+
+1. **Fresh-install operations.** The migration engine (`internal/infra/migrate`)
+   is fully implemented and tested (81.5% coverage; real checkout migrations
+   apply cleanly), yet no CLI surface runs it: `migrate.autoRun` defaults to
+   `false` and there is **no `aurora migrate` subcommand** — so the
+   voting/NFT/token tables from `migrations/` are unreachable from the CLI on a
+   fresh install, and `voting`, `nft`, and `token` commands all fail with
+   `no such table`. v1.1's requirements mark `MIG-03 Migration CLI command` as
+   complete, but it was never actually shipped in this tree. This milestone
+   restores that documented surface.
+
+2. **Coverage bar.** Five packages sit below the project's 80% quality bar:
+   `internal/logger` (55.2%), `internal/i18n` (65.2%),
+   `internal/infra/backup` (73.8%), `internal/ui/nft` (66.7%),
+   `internal/ui/token` (76.6%). Lift all of them to ≥80% with genuine tests.
 
 ## Requirements
 
-### Coverage
+### Migrate CLI
 
-- [x] **CLI-01**: `cmd/aurora/cmd` package reaches 80%+ test coverage (**86.3%** 2026-08-11)
-- [x] **CLI-02**: Every lottery subcommand tested (`create`, `history`,
-      `verify`, `export`, `import`, `stats`, `reset`, `db-info`, `version`)
-- [x] **CLI-03**: Every NFT subcommand tested (`mint`, `transfer`,
-      `burn`, `get`, `list`, `history`) — exercises lazy `getNFTRepo` path
-- [x] **CLI-04**: Every oracle subcommand tested (`source add/list/delete/
-      enable/disable`, `fetch`, `data`, `latest`, `template list/add`)
-- [x] **CLI-05**: Every token subcommand tested (`create`, `mint`,
-      `transfer`, `approve`, `burn`, `balance`, `allowance`, `history`,
-      `info`, `tui`) — exercises `newTokenService` constructor
-- [x] **CLI-06**: Every voting subcommand tested (`candidate add/list`,
-      `voter register/list`, `vote`, `session create/list/start/end`,
-      `results`)
-- [x] **CLI-07**: Root command tested (`Execute`, `initConfig`,
-      `setDefaultConfig`, `getGoVersion`)
+- [ ] **MIG-01**: `aurora migrate up [N]` applies pending migrations (default: all)
+- [ ] **MIG-02**: `aurora migrate down [N]` rolls back N steps (default: 1)
+- [ ] **MIG-03**: `aurora migrate status` prints current version, dirty flag,
+      and applied + pending migration versions
+- [ ] **MIG-04**: DB path resolution matches root (`db.path`, else
+      `data.dir/aurora.db`, else `~/.aurora/data/aurora.db`); migration path
+      from `migrate.path` (default `./migrations`)
+- [ ] **MIG-05**: subcommand covered by tests — happy + error paths
+      (already-migrated, missing migrations dir, invalid N)
 
-### Quality
+### Coverage Bar — Infrastructure
 
-- [x] **CLI-08**: Tests isolate state (temp dirs, reset of package
-      singletons, no reliance on pre-existing `./data`)
-- [x] **CLI-09**: Tests run clean under `go test -race` for the package
+- [ ] **COV-01**: `internal/logger` ≥ 80% (55.2% baseline)
+- [ ] **COV-02**: `internal/i18n` ≥ 80% (65.2% baseline)
+- [ ] **COV-03**: `internal/infra/backup` ≥ 80% (73.8% baseline)
+
+### Coverage Bar — UI
+
+- [ ] **COV-04**: `internal/ui/nft` ≥ 80% (66.7% baseline)
+- [ ] **COV-05**: `internal/ui/token` ≥ 80% (76.6% baseline)
+- [ ] **COV-06**: No existing tests weakened or deleted; whole suite green
+      under `go test -race ./...`
 
 ## Out of Scope
 
-- `cmd/api` / `cmd/aurora` `main()` bodies (thin process boots; exit
-  paths not unit-testable in-process)
-- TUI subcommands beyond stub coverage (interactive, need pty harness)
-- Rewriting commands to inject output writers (larger refactor than the
-  milestone warrants; stdout capture in tests is sufficient)
+- `cmd/api`/`cmd/aurora` `main()` bodies (thin process boots; exit paths not
+  unit-testable in-process)
+- Binary-level e2e harness for the migrate command (service-level e2e already
+  covers workflows; command coverage is via cobra CLI tests in
+  `cmd/aurora/cmd`)
+- `task-nft-voting-transactions` accepted debt (no touchpoint trigger this
+  milestone)

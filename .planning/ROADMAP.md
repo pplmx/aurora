@@ -1,73 +1,65 @@
-# Roadmap: Aurora v1.4 CLI Command Test Coverage
+# Roadmap: Aurora v1.5 Fresh-Install Operations & Coverage Bar
 
-**Status:** Complete ✅
-**Milestone:** v1.4 CLI Command Test Coverage
-**Phases:** 1-4
+**Status:** In Progress
+**Milestone:** v1.5 Fresh-Install Operations & Coverage Bar
+**Phases:** 1-3
 **Started:** 2026-08-11
+**Requirements:** [REQUIREMENTS.md](REQUIREMENTS.md)
 
 ## Overview
 
-Lift `cmd/aurora/cmd` from 21.9% to 80%+ coverage by testing every
-cobra subcommand across lottery, NFT, oracle, token, voting and root.
+Make a fresh install actually usable (`aurora migrate` CLI — restore the
+v1.1-documented MIG-03 surface) and lift every package over the 80% quality
+bar.
 
-## Phase 1: Oracle + Root + Helpers
+## Phase 1: Migrate CLI Command
 
-**Goal:** Fast wins — in-memory-repo commands plus pure helpers.
+**Goal:** A fresh install can create the full schema from the CLI.
 
-**Requirements:** CLI-04, CLI-07
+**Requirements:** MIG-01 .. MIG-05
 
 **Success Criteria:**
-- [x] Oracle commands: source add/list/delete/enable/disable, fetch, data, latest, template list/add
-- [x] Root helpers: `getGoVersion`, `setDefaultConfig` defaults, `initConfig` fallback path
-- [x] Command-tree structure assertion (all five module commands under root)
+- [ ] `aurora migrate up/status/down` registered under root
+- [ ] Real checkout migrations apply via the command against a fresh temp DB
+- [ ] Cobra CLI tests cover output + error paths (`no migrations`, invalid N,
+      already-migrated); `-race` green
+- [ ] Graph: `task-migrate-cli-subcommand` → resolved; `issue-cli-no-migrate-subcommand` updated
 
 ---
 
-## Phase 2: Lottery Commands
+## Phase 2: Coverage Bar — Infrastructure
 
-**Goal:** DB-backed lottery commands, isolated in temp dirs.
+**Goal:** Remaining infra packages meet the 80% bar.
 
-**Requirements:** CLI-02, CLI-08
+**Requirements:** COV-01 .. COV-03
 
 **Success Criteria:**
-- [x] create (happy + validation errors)
-- [x] history (empty + populated)
-- [x] verify (by height / id / substring / not found / corrupted record)
-- [x] export / import
-- [x] stats / reset / db-info / version
+- [ ] `internal/logger` ≥ 80% (55.2% → …)
+- [ ] `internal/i18n` ≥ 80% (65.2% → …)
+- [ ] `internal/infra/backup` ≥ 80% (73.8% → …)
+- [ ] Graph: `task-coverage-bar-infra` → resolved
 
 ---
 
-## Phase 3: Token + NFT Commands
+## Phase 3: Coverage Bar — UI
 
-**Goal:** Service-constructor and DB-backed commands.
+**Goal:** Remaining UI packages meet the 80% bar using the established
+TUI state-machine test pattern.
 
-**Requirements:** CLI-03, CLI-05
-
-**Success Criteria:**
-- [x] Token create/mint/transfer/approve/burn/balance/allowance/history/info/tui
-- [x] `newTokenService` constructor covered (error path documented as not-worth-contriving)
-- [x] NFT mint/transfer/burn/get/list/history via lazy `getNFTRepo`
-
----
-
-## Phase 4: Voting Commands
-
-**Goal:** Voting subcommands including singleton-reset safety.
-
-**Requirements:** CLI-06
+**Requirements:** COV-04 .. COV-06
 
 **Success Criteria:**
-- [x] candidate add/list
-- [x] voter register/list
-- [x] vote
-- [x] session create/list/start/end + results
-- [x] Concurrent `getVotingRepo`/`getVotingService` under `-race`
+- [ ] `internal/ui/nft` ≥ 80% (66.7% → …)
+- [ ] `internal/ui/token` ≥ 80% (76.6% → …)
+- [ ] No weakened tests; `go test -race ./...` green
+- [ ] Graph: `task-coverage-bar-ui` → resolved
 
 ---
 
 ## Completion Gate
 
-- [x] `go test -race ./cmd/aurora/cmd/...` green
-- [x] Package coverage ≥ 80% (**86.3%**)
-- [x] v1.3 archive preserved; graph updated with evidence + change nodes
+- [ ] `go test -race ./...` green
+- [ ] Every package ≥ 80% except documented thin boots
+  (`cmd/aurora`, `cmd/api` main bodies)
+- [ ] `aurora migrate` exercised end-to-end against real migrations on a fresh DB
+- [ ] v1.4 archived ✓; graph updated with evidence + change nodes

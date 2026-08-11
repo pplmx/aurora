@@ -503,6 +503,71 @@
       "updated_at": "2026-08-11T15:00:00Z",
       "confidence": 1.0,
       "summary": "fix(cmd): lottery reset now deletes BOTH blocks and lottery_records (previously only blocks, so history still listed draws after reset, contradicting the 'delete ALL lottery records' warning). Tolerates 'no such table' on fresh DBs. Harden TestLotteryVerify_ByID_Startswith against all-numeric 8-char id prefixes (height-vs-ID ambiguity) with a deterministic numeric-prefix-is-height test."
+    },
+    {
+      "id": "evidence-migrate-cli-absent",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T15:30:00Z",
+      "confidence": 1.0,
+      "summary": "Verified 2026-08-11: no `aurora migrate*` subcommand exists in cmd/aurora/cmd (no Use:/MigrateCmd matches); root.go PersistentPreRunE runs migrate.RunMigrationsIfEnabled only when migrate.autoRun is true, and setDefaultConfig sets migrate.autoRun=false (root.go:131) with migrate.path='./migrations'. v1.1-REQUIREMENTS marks MIG-03 'Migration CLI command' complete — a documented-but-absent feature. Fresh-install voting/NFT/token tables are unreachable from the CLI (all fail 'no such table').",
+      "detail": "cmd/aurora/cmd/root.go:42-73 (PersistentPreRunE), root.go:127-139 (setDefaultConfig); internal/infra/migrate/migrate.go New/Up/Down/Status/Version/Close fully implemented and 81.5% covered"
+    },
+    {
+      "id": "evidence-coverage-below-80-2026-08-11",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T15:30:00Z",
+      "confidence": 1.0,
+      "summary": "Full-package `go test ./... -cover` 2026-08-11: internal/logger 55.2%, internal/i18n 65.2%, internal/infra/backup 73.8%, internal/ui/nft 66.7%, internal/ui/token 76.6% — the only packages below the 80% quality bar. cmd/aurora + cmd/api 0% are thin main() boots (documented out of scope); e2e is a test-only package (0% statements, suite itself green).",
+      "detail": "measurement only; existing v1.4 milestone target 86.3% for cmd/aurora/cmd"
+    },
+    {
+      "id": "decision-v1.5-milestone",
+      "type": "decision",
+      "status": "active",
+      "created_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T15:30:00Z",
+      "confidence": 0.9,
+      "summary": "v1.5 = Fresh-Install Operations & Coverage Bar: add `aurora migrate up/down/status` CLI (restores the v1.1-documented MIG-03 surface that was never actually shipped) and lift every sub-80% package (logger/i18n/backup/ui-nft/ui-token) to ≥80%, the project's documented quality bar.",
+      "rationale": "v1.4 proved exercising the real CLI surface exposes genuine product bugs. It surfaced that the migrator (internal/infra/migrate, 81.5% covered) is implemented and tested but unreachable: autoRun defaults false and no subcommand exists, so a fresh install cannot create the voting/NFT/token schema and those CLIs fail with 'no such table'. Closing that gap is the highest-value user-facing fix; the coverage sweep is the direct continuation of the 80% bar met everywhere else. Keeps accepted-debt NFT/voting transaction conversion deferred (no touchpoint trigger this milestone).",
+      "alternatives_rejected": [
+        "Deep-dive NFT/voting real-transaction conversion (issue-nft-voting-no-transactions) — accepted debt, no trigger",
+        "Lift cmd/api + cmd/aurora main() from 0% — thin process boots, exit paths not testable in-process",
+        "Add a binary-level e2e harness for the migrate command — cobra CLI tests cover the command; service e2e suite exists"
+      ]
+    },
+    {
+      "id": "task-migrate-cli-subcommand",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T15:30:00Z",
+      "confidence": 0.9,
+      "summary": "Add `aurora migrate up [N] | down [N] | status` subcommand wired to the existing internal/infra/migrate.Migrator (New/Up/Down/Status/Version/Close). DB path resolution mirrors root (db.path → data.dir/aurora.db → ~/.aurora/data/aurora.db); migration path from migrate.path (default ./migrations). Cover happy + error paths with cobra CLI tests.",
+      "priority_score": 1.91
+    },
+    {
+      "id": "task-coverage-bar-infra",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T15:30:00Z",
+      "confidence": 1.0,
+      "summary": "Lift internal/logger (55.2%), internal/i18n (65.2%), internal/infra/backup (73.8%) to ≥80% statement coverage with genuine tests, no weakening.",
+      "priority_score": 0.98
+    },
+    {
+      "id": "task-coverage-bar-ui",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T15:30:00Z",
+      "confidence": 1.0,
+      "summary": "Lift internal/ui/nft (66.7%) and internal/ui/token (76.6%) to ≥80%, following the ui/lottery (91.7%) / ui/oracle (86.1%) TUI state-machine testing pattern.",
+      "priority_score": 0.85
     }
   ],
   "edges": [
@@ -711,6 +776,35 @@
       "source": "change-lottery-reset-clears-records",
       "target": "issue-cli-reset-blocks-only",
       "type": "resolves"
+    },
+    {
+      "source": "evidence-migrate-cli-absent",
+      "target": "issue-cli-no-migrate-subcommand",
+      "type": "validates"
+    },
+    {
+      "source": "issue-cli-no-migrate-subcommand",
+      "target": "task-migrate-cli-subcommand",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "issue-cli-no-migrate-subcommand",
+      "target": "decision-v1.5-milestone",
+      "type": "causes",
+      "kind": "accepted"
+    },
+    {
+      "source": "evidence-coverage-below-80-2026-08-11",
+      "target": "task-coverage-bar-infra",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "evidence-coverage-below-80-2026-08-11",
+      "target": "task-coverage-bar-ui",
+      "type": "causes",
+      "kind": "derived"
     }
   ]
 }
