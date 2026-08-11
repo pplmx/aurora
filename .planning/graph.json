@@ -479,11 +479,11 @@
     {
       "id": "issue-cli-no-migrate-subcommand",
       "type": "issue",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T14:40:00Z",
-      "updated_at": "2026-08-11T14:40:00Z",
+      "updated_at": "2026-08-11T17:00:00Z",
       "confidence": 0.9,
-      "summary": "UX gap: there is no `aurora migrate` subcommand and migrate.autoRun defaults to false, so a fresh install still has no voting/NFT/token tables unless the user sets migrate.autoRun=true in config. The migration files now apply (fix-migrations), but nothing in the CLI surface runs them by default. Consider adding a `migrate up/status` subcommand or flipping the default.",
+      "summary": "UX gap: there is no `aurora migrate` subcommand and migrate.autoRun defaults to false, so a fresh install still has no voting/NFT/token tables unless the user sets migrate.autoRun=true in config. RESOLVED (commit 4e3c9ba): `aurora migrate up/down/status` shipped; autoRun stays opt-in (explicit migrate up is the supported fresh-install path — see decision-migrate-cli-dbpath).",
       "severity": 0.3
     },
     {
@@ -542,11 +542,11 @@
     {
       "id": "task-migrate-cli-subcommand",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T15:30:00Z",
-      "updated_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T17:00:00Z",
       "confidence": 0.9,
-      "summary": "Add `aurora migrate up [N] | down [N] | status` subcommand wired to the existing internal/infra/migrate.Migrator (New/Up/Down/Status/Version/Close). DB path resolution mirrors root (db.path → data.dir/aurora.db → ~/.aurora/data/aurora.db); migration path from migrate.path (default ./migrations). Cover happy + error paths with cobra CLI tests.",
+      "summary": "Add `aurora migrate up [N] | down [N] | status` subcommand wired to the existing internal/infra/migrate.Migrator (New/Up/Down/Status/Version/Close). RESOLVED (commit 4e3c9ba): up/down/status under root, step N capped against pending/applied, empty-DB-path guard, i18n keys, 11 CLI tests + binary e2e smoke, -race green, cmd/aurora/cmd 86.6%.",
       "priority_score": 1.91
     },
     {
@@ -625,6 +625,39 @@
       "updated_at": "2026-08-11T16:30:00Z",
       "confidence": 1.0,
       "summary": "test(app): Wire component-init error branches; app 78.9->100%. Commit 00d711f."
+    },
+    {
+      "id": "evidence-migrate-cli-e2e",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-11T17:00:00Z",
+      "updated_at": "2026-08-11T17:00:00Z",
+      "confidence": 1.0,
+      "summary": "2026-08-11: real-binary e2e on a fresh temp install — `aurora migrate up 5` applies both checkout migrations and reports version 2 (no overrun error); `down 5` rolls back both and reports 0 (no false 'nothing to roll back'); second `down` is a friendly no-op; empty data-dir path errors cleanly instead of creating a junk '?_foreign_keys=ON' file; after `migrate up`, `voting candidate add` succeeds (previously 'no such table'). 11 cobra CLI tests green; go test -race ./... green.",
+      "detail": "cmd/aurora/cmd/migrate_test.go; review findings H1/H2 (step overrun) + M2 (empty path) + M3 (errors.Is) applied"
+    },
+    {
+      "id": "decision-migrate-cli-dbpath",
+      "type": "decision",
+      "status": "active",
+      "created_at": "2026-08-11T17:00:00Z",
+      "updated_at": "2026-08-11T17:00:00Z",
+      "confidence": 0.9,
+      "summary": "The migrate CLI resolves its DB via blockchain.DBPath() (./data/aurora.db relative to cwd) — the same file every other CLI command (lottery/nft/token/voting) addresses — NOT the viper db.path/data.dir chain used by root's autoRun. migrate.autoRun stays opt-in (default false); the explicit `aurora migrate up` is the supported fresh-install path.",
+      "rationale": "Sibling commands hardcode DBPath() and the temp-dir CLI test isolation relies on it; in the shipped config db.path './data/aurora.db' and DBPath() resolve to the same file, so root autoRun (db.path) and the migrate command never diverge in production. Re-wiring newCLIMigrator to viper would create a second resolution scheme and break temp-dir tests. autoRun=false is kept for determinism/least-surprise — explicit migrate up is unambiguous.",
+      "alternatives_rejected": [
+        "Honor viper db.path/data.dir in newCLIMigrator (diverges from sibling CLI convention; complicates test isolation)",
+        "Flip migrate.autoRun default to true (auto-migrate on every command = surprising side effects)"
+      ]
+    },
+    {
+      "id": "change-migrate-cli",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T17:00:00Z",
+      "updated_at": "2026-08-11T17:00:00Z",
+      "confidence": 1.0,
+      "summary": "feat(cmd): add aurora migrate up/down/status CLI — step-N capping, empty-path guard, i18n keys, 11 tests + binary smoke. Commit 4e3c9ba."
     }
   ],
   "edges": [
@@ -905,6 +938,27 @@
       "source": "evidence-coverage-bar-met",
       "target": "task-coverage-bar-ui",
       "type": "validates"
+    },
+    {
+      "source": "change-migrate-cli",
+      "target": "issue-cli-no-migrate-subcommand",
+      "type": "resolves"
+    },
+    {
+      "source": "change-migrate-cli",
+      "target": "task-migrate-cli-subcommand",
+      "type": "resolves"
+    },
+    {
+      "source": "evidence-migrate-cli-e2e",
+      "target": "task-migrate-cli-subcommand",
+      "type": "validates"
+    },
+    {
+      "source": "issue-cli-no-migrate-subcommand",
+      "target": "decision-migrate-cli-dbpath",
+      "type": "causes",
+      "kind": "accepted"
     }
   ]
 }
