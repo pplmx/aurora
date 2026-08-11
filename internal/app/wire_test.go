@@ -2,6 +2,8 @@ package app
 
 import (
 	"crypto/ed25519"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -69,4 +71,26 @@ func TestWire_TokenRoundTrip(t *testing.T) {
 	hist, err := svc.GetTransferHistory("WIRE", token.PublicKey(ownerPub), 10, 0)
 	require.NoError(t, err)
 	require.NotEmpty(t, hist, "transfer history must be recorded in the event store")
+}
+
+// TestWire_ComponentInitErrors covers the four error-returning branches the
+// happy-path round trip cannot reach: MkdirAll and each per-DB file creation.
+// A pre-existing DIRECTORY at the exact path where Wire expects a file (or the
+// data dir itself) makes construction fail cleanly instead of partial-wiring.
+func TestWire_ComponentInitErrors(t *testing.T) {
+	// DataDir is a regular file → os.MkdirAll fails before any component.
+	fileDir := t.TempDir()
+	dataDirAsFile := filepath.Join(fileDir, "data")
+	require.NoError(t, os.WriteFile(dataDirAsFile, []byte("x"), 0644))
+	_, err := Wire(dataDirAsFile)
+	require.Error(t, err, "MkdirAll on a file path must fail")
+
+	// events.db / nonces.db / tokens.db each blocked by a directory at the
+	// exact path the component store wants to create.
+	for _, name := range []string{"events.db", "nonces.db", "tokens.db"} {
+		blocked := t.TempDir()
+		require.NoError(t, os.MkdirAll(filepath.Join(blocked, name), 0755))
+		_, err := Wire(blocked)
+		require.Error(t, err, "component init must fail when %s is a directory", name)
+	}
 }
