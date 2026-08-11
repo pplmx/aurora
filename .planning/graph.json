@@ -350,9 +350,9 @@
     {
       "id": "task-cli-cmd-coverage",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T13:00:00Z",
-      "updated_at": "2026-08-11T13:00:00Z",
+      "updated_at": "2026-08-11T14:20:00Z",
       "confidence": 0.9,
       "summary": "v1.4 milestone: lift cmd/aurora/cmd coverage from 21.9% to 80%+ by testing every cobra command (lottery create/history/verify/export/import/stats/reset/db-info/version, nft mint/transfer/burn/get/list/history, oracle source/fetch/data/latest/template, token create/mint/transfer/approve/burn/balance/allowance/history/info/tui, voting candidate/voter/session/vote/results, root Execute/config). CLI is the primary user-facing surface — flag-parsing, output, and wiring bugs live untested here.",
       "priority_score": 4.2,
@@ -398,6 +398,74 @@
       "updated_at": "2026-08-11T13:30:00Z",
       "confidence": 1.0,
       "summary": "fix(cmd): lottery verify — exact-ID match first, height only when the whole input is a decimal integer (strconv.ParseInt), substring fallback last. Plus dedup test TestLotteryVerify_NumericPrefixID."
+    },
+    {
+      "id": "issue-cli-migrations-broken",
+      "type": "issue",
+      "status": "active",
+      "created_at": "2026-08-11T13:50:00Z",
+      "updated_at": "2026-08-11T13:50:00Z",
+      "confidence": 1.0,
+      "summary": "Migrations can never run: migrations/000001 starts with PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON, but golang-migrate's sqlite3 driver wraps each migration in a transaction where WAL cannot be set → 'cannot change into wal mode from within a transaction'. RunMigrationsIfEnabled is only called from root.go PersistentPreRunE under migrate.autoRun (default false), and there is NO `aurora migrate` subcommand and cmd/api never migrates — so the voting/NFT/token schema from migrations is unreachable in the whole product. The migrate package's own tests use synthetic migrations, so this latent bug is untested.",
+      "severity": 0.7,
+      "evidence": "go test cmd/aurora/cmd 'run migrations' reproduces the failure; migrate_test.go setupTestDB writes synthetic SQL without PRAGMA lines"
+    },
+    {
+      "id": "issue-migration-blocks-schema-mismatch",
+      "type": "issue",
+      "status": "active",
+      "created_at": "2026-08-11T13:50:00Z",
+      "updated_at": "2026-08-11T13:50:00Z",
+      "confidence": 0.9,
+      "summary": "Even if migrations could apply, migrations/000001's blocks table (id AUTOINCREMENT + height UNIQUE, no timestamp column) contradicts what InitBlockChain actually creates/inserts (height PRIMARY KEY, has timestamp, no id). A migrated DB would break InitBlockChain's INSERT OR REPLACE. Since migrations have never successfully applied, no production DB has this schema — the discrepancy is latent but guarantees migrating a fresh DB corrupts the chain.",
+      "severity": 0.6,
+      "evidence": "migrations/000001_init_schema.up.sql lines 9-17 vs internal/domain/blockchain/init.go CREATE TABLE blocks"
+    },
+    {
+      "id": "evidence-voting-cli-needs-schema",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-11T13:50:00Z",
+      "updated_at": "2026-08-11T13:50:00Z",
+      "confidence": 1.0,
+      "summary": "CLI voting subcommands (candidate add, voter register, session create) all fail with 'no such table: candidates/voters/voting_sessions' on a fresh temp DB because getVotingRepo builds over blockchain.InitDB() which only creates blocks; the voting tables exist only in the (un-appliable) migrations."
+    },
+    {
+      "id": "evidence-cli-cov-863",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-11T14:20:00Z",
+      "updated_at": "2026-08-11T14:20:00Z",
+      "confidence": 1.0,
+      "summary": "cmd/aurora/cmd statement coverage reached 86.3% (go test -cover, 2026-08-11) — above the 80% v1.4 milestone target, up from 21.9% baseline. All module command trees (lottery/nft/oracle/token/voting/root) now exercised with happy + error paths, green under -race."
+    },
+    {
+      "id": "change-voting-cli-session-vote-flags",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T14:20:00Z",
+      "updated_at": "2026-08-11T14:20:00Z",
+      "confidence": 1.0,
+      "summary": "fix(cmd): voting session create now accepts --start-time/--end-time (previously hardcoded 0/0 so session create could never succeed), and voting vote accepts --session (previously never set, so vote could never succeed). Added i18n keys. Found by v1.4 CLI coverage tests."
+    },
+    {
+      "id": "issue-voting-cli-session-vote-broken",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-11T14:20:00Z",
+      "updated_at": "2026-08-11T14:20:00Z",
+      "confidence": 1.0,
+      "summary": "Voting CLI: session create hardcoded StartTime=0 EndTime=0 while usecase requires EndTime>StartTime → command could never succeed; vote never set SessionID → CastVoteUseCase always failed session lookup. Both made the voting workflow unusable from the CLI even when the schema existed.",
+      "severity": 0.45
+    },
+    {
+      "id": "change-gitignore-aurora-bin-anchor",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T14:20:00Z",
+      "updated_at": "2026-08-11T14:20:00Z",
+      "confidence": 1.0,
+      "summary": "chore(config): anchor **/aurora binary ignore to /aurora and /aurora-* so cmd/aurora/ source dir is not ignored; 4 pre-existing + new CLI test files are now tracked."
     }
   ],
   "edges": [
@@ -547,6 +615,34 @@
       "source": "change-verify-height-id-fix",
       "target": "issue-lottery-verify-height-id-confusion",
       "type": "resolves"
+    },
+    {
+      "source": "evidence-voting-cli-needs-schema",
+      "target": "issue-cli-migrations-broken",
+      "type": "causes",
+      "kind": "symptom"
+    },
+    {
+      "source": "evidence-cli-cov-863",
+      "target": "task-cli-cmd-coverage",
+      "type": "resolves"
+    },
+    {
+      "source": "change-voting-cli-session-vote-flags",
+      "target": "issue-voting-cli-session-vote-broken",
+      "type": "resolves"
+    },
+    {
+      "source": "issue-voting-cli-session-vote-broken",
+      "target": "task-cli-cmd-coverage",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "change-gitignore-aurora-bin-anchor",
+      "target": "evidence-cli-cov-863",
+      "type": "causes",
+      "kind": "supports"
     }
   ]
 }

@@ -2,13 +2,20 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"database/sql"
 	"io"
 	"os"
+	"path/filepath"
+	"reflect"
+	"runtime"
+	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/infra/migrate"
 	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -84,7 +91,16 @@ func resetFlags(cmd *cobra.Command) {
 		// Persisting the declared default back clears values a prior test
 		// set. pflag defaults: bool flags default to "false", others to
 		// their registered default ("" for most string flags here).
-		_ = f.Value.Set(f.DefValue)
+		//
+		// Slice flags (e.g. --candidates) cannot be reset via Value.Set:
+		// once parsed, pflag's stringSliceValue keeps an internal "changed"
+		// bit and every subsequent Set() APPENDS. We clear the backing
+		// slice directly instead — see resetSliceFlag.
+		if isSliceType(f.Value.Type()) {
+			resetSliceFlag(f)
+		} else {
+			_ = f.Value.Set(f.DefValue)
+		}
 		f.Changed = false
 	})
 	for _, c := range cmd.Commands() {
@@ -92,6 +108,60 @@ func resetFlags(cmd *cobra.Command) {
 			continue
 		}
 		resetFlags(c)
+	}
+}
+
+// isSliceType reports whether a pflag value type holds a slice (stringSlice,
+// intSlice, ...). Such values cannot be reset via their registered DefValue.
+func isSliceType(t string) bool {
+	return strings.HasSuffix(t, "Slice") || strings.HasSuffix(t, "Array")
+}
+
+// resetSliceFlag clears a pflag slice value back to empty.
+//
+// pflag's slice values are unexported structs with a backing pointer and an
+// internal "changed" bool; once Set() is called the changed bit latches and
+// every later Set() APPENDS instead of replacing. Calling Value.Set("[]") or
+// Value.Set("") then leaves stale elements behind, leaking across tests in
+// the same process.
+//
+// pflag v1.0.10 layout:
+//
+//	type stringSliceValue struct {
+//		value   *[]string
+//		changed bool
+//	}
+//
+// Both fields are unexported, so a plain reflect.Value.Set is refused. We
+// use reflect.NewAt + unsafe.Pointer to obtain addressable views of the two
+// fields (a well-contained technique for reaching locked-down structs in
+// test helpers; the layout is pinned by go.mod's pflag version).
+func resetSliceFlag(f *pflag.Flag) {
+	rv := reflect.ValueOf(f.Value)
+	if rv.Kind() != reflect.Ptr {
+		return
+	}
+	elem := rv.Elem()
+	if elem.Kind() != reflect.Struct {
+		return
+	}
+
+	// value *[]string -> rebuild the backing slice to empty.
+	valueField := elem.FieldByName("value")
+	if valueField.IsValid() && valueField.Kind() == reflect.Ptr {
+		ptr := reflect.NewAt(valueField.Type(), unsafe.Pointer(valueField.UnsafeAddr()))
+		p := ptr.Elem()
+		if p.Elem().Kind() == reflect.Slice {
+			p.Elem().Set(reflect.MakeSlice(p.Elem().Type(), 0, 0))
+		}
+	}
+
+	// changed bool -> false so the next real Set() replaces rather than
+	// appends.
+	changedField := elem.FieldByName("changed")
+	if changedField.IsValid() && changedField.Kind() == reflect.Bool {
+		ptr := reflect.NewAt(changedField.Type(), unsafe.Pointer(changedField.UnsafeAddr()))
+		ptr.Elem().SetBool(false)
 	}
 }
 
@@ -125,6 +195,41 @@ func withTempDir(t *testing.T, fn func(t *testing.T)) {
 	fn(t)
 }
 
+// newTestPrivKey returns a fresh random Ed25519 private key (compressed
+// seed+pub form) for negative-path tests that need a key that does NOT
+// match the token owner.
+func newTestPrivKey(t *testing.T) []byte {
+	t.Helper()
+	_, priv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	return priv
+}
+
+// extractKey reads the base64 key that appears on the line AFTER the line
+// containing marker, e.g. voter register prints:
+//
+//	📣 Public Key (share this for verification):
+//	   <base64>
+//
+// and
+//
+//	🔐 Private Key (SAVE THIS SECURELY!):
+//	   <base64>
+func extractKey(t *testing.T, out, marker string) string {
+	t.Helper()
+	lines := strings.Split(out, "\n")
+	for i, line := range lines {
+		if strings.Contains(line, marker) {
+			if i+1 < len(lines) {
+				return strings.TrimSpace(lines[i+1])
+			}
+		}
+	}
+	return ""
+}
+
 // openTestAuroraDB opens ./data/aurora.db (the defaultDBPath resolved
 // relative to the current test cwd) directly. Callers must be inside a
 // withTempDir context so the path points at the isolated test DB.
@@ -136,4 +241,99 @@ func openTestAuroraDB(t *testing.T) *sql.DB {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 	return db
+}
+
+// runMigrations applies the repo's real SQL migrations to ./data/aurora.db
+// (relative to the current temp cwd). Callers should gate on
+// migrationsSucceed() — the real migration 000001 is known-broken (PRAGMA
+// journal_mode=WAL inside golang-migrate's transaction wrapper), so this is
+// expected to fail in the current tree. Tests that need the voting schema
+// use bootstrapVotingSchema() instead.
+func runMigrations(t *testing.T) {
+	t.Helper()
+	m, err := migrate.New("./data/aurora.db", repoMigrationsDir())
+	if err != nil {
+		t.Fatalf("create migrator: %v", err)
+	}
+	t.Cleanup(func() { _ = m.Close() })
+	if _, err := m.Up(10); err != nil {
+		t.Fatalf("run migrations: %v", err)
+	}
+}
+
+// repoMigrationsDir returns the absolute path to the repo's migrations/
+// directory, derived from the test file's location rather than the (temp)
+// process cwd.
+func repoMigrationsDir() string {
+	_, thisFile, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "migrations")
+}
+
+// bootstrapVotingSchema creates the voting tables (votes, voters,
+// candidates, voting_sessions) that the CLI's voting subcommands expect,
+// behind the lazy repository built on blockchain.InitDB().
+//
+// These tables are supposed to be created by migrations/000001, but that
+// migration is currently un-appliable (PRAGMA WAL inside the migrator's tx
+// wrapper) and there is no `aurora migrate` subcommand, so a fresh CLI has
+// no voting tables at all. Until that root cause (issue-cli-migrations-
+// broken) is fixed, tests bootstrap the schema themselves to exercise the
+// command bodies rather than pin the failure.
+func bootstrapVotingSchema(t *testing.T) {
+	t.Helper()
+	// InitDB ensures the data dir + blocks table exist (matching how the
+	// lazy getVotingRepo path would set up on first use), then we create
+	// the voting tables on the same file.
+	// InitDB returns the process-wide singleton *sql.DB that getVotingRepo
+	// also holds — do NOT close it here or the committed commands would fail
+	// with "sql: database is closed". It is torn down by resetCliForTest's
+	// blockchain.ResetForTest() at the next withTempDir.
+	db, err := blockchain.InitDB()
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+
+	stmts := []string{
+		`CREATE TABLE IF NOT EXISTS votes (
+			id TEXT PRIMARY KEY,
+			voter_pk TEXT NOT NULL,
+			candidate_id TEXT NOT NULL,
+			signature TEXT NOT NULL,
+			message TEXT NOT NULL,
+			timestamp INTEGER NOT NULL,
+			block_height INTEGER NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS voters (
+			public_key TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			has_voted INTEGER NOT NULL DEFAULT 0,
+			vote_hash TEXT,
+			registered_at INTEGER NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS candidates (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			party TEXT NOT NULL,
+			program TEXT NOT NULL,
+			description TEXT,
+			image_url TEXT,
+			vote_count INTEGER NOT NULL DEFAULT 0,
+			created_at INTEGER NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS voting_sessions (
+			id TEXT PRIMARY KEY,
+			title TEXT NOT NULL,
+			description TEXT NOT NULL,
+			start_time INTEGER NOT NULL,
+			end_time INTEGER NOT NULL,
+			status TEXT NOT NULL,
+			candidates TEXT NOT NULL,
+			created_at INTEGER NOT NULL
+		)`,
+	}
+	for _, s := range stmts {
+		if _, err := db.Exec(s); err != nil {
+			t.Fatalf("bootstrap voting schema: %v", err)
+		}
+	}
 }

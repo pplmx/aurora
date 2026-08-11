@@ -193,6 +193,7 @@ var voteCmd = &cobra.Command{
 		voterPK, _ := cmd.Flags().GetString("voter")
 		candidateID, _ := cmd.Flags().GetString("candidate")
 		privKey, _ := cmd.Flags().GetString("private-key")
+		sessionID, _ := cmd.Flags().GetString("session")
 
 		repo, err := getVotingRepo()
 		if err != nil {
@@ -206,6 +207,7 @@ var voteCmd = &cobra.Command{
 			VoterPublicKey: voterPK,
 			CandidateID:    candidateID,
 			PrivateKey:     privKey,
+			SessionID:      sessionID,
 		}
 		uc := votingapp.NewCastVoteUseCase(repo, service)
 		record, err := uc.Execute(req)
@@ -239,12 +241,15 @@ var sessionCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to get repository: %w", err)
 		}
 
+		startTime, _ := cmd.Flags().GetInt64("start-time")
+		endTime, _ := cmd.Flags().GetInt64("end-time")
+
 		req := votingapp.CreateSessionRequest{
 			Title:        title,
 			Description:  description,
 			CandidateIDs: candidates,
-			StartTime:    0,
-			EndTime:      0,
+			StartTime:    startTime,
+			EndTime:      endTime,
 		}
 		uc := votingapp.NewCreateSessionUseCase(repo)
 		session, err := uc.Execute(req)
@@ -416,6 +421,7 @@ func init() {
 	voteCmd.Flags().StringP("voter", "v", "", i18n.GetText("voting.public_key"))
 	voteCmd.Flags().StringP("candidate", "c", "", i18n.GetText("voting.candidate_id"))
 	voteCmd.Flags().StringP("private-key", "k", "", i18n.GetText("voting.private_key"))
+	voteCmd.Flags().StringP("session", "s", "", i18n.GetText("voting.session_id"))
 	_ = voteCmd.MarkFlagRequired("voter")
 	_ = voteCmd.MarkFlagRequired("candidate")
 	_ = voteCmd.MarkFlagRequired("private-key")
@@ -423,6 +429,8 @@ func init() {
 	sessionCreateCmd.Flags().StringP("title", "t", "", i18n.GetText("voting.title"))
 	sessionCreateCmd.Flags().StringP("description", "d", "", i18n.GetText("voting.description"))
 	sessionCreateCmd.Flags().StringSliceP("candidates", "c", nil, i18n.GetText("voting.candidate_id"))
+	sessionCreateCmd.Flags().Int64P("start-time", "", 0, i18n.GetText("voting.session_start_time"))
+	sessionCreateCmd.Flags().Int64P("end-time", "", 0, i18n.GetText("voting.session_end_time"))
 	_ = sessionCreateCmd.MarkFlagRequired("title")
 	_ = sessionCreateCmd.MarkFlagRequired("candidates")
 

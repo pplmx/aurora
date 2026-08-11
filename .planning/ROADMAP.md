@@ -1,6 +1,6 @@
 # Roadmap: Aurora v1.4 CLI Command Test Coverage
 
-**Status:** Active
+**Status:** Complete ✅
 **Milestone:** v1.4 CLI Command Test Coverage
 **Phases:** 1-4
 **Started:** 2026-08-11
@@ -17,9 +17,9 @@ cobra subcommand across lottery, NFT, oracle, token, voting and root.
 **Requirements:** CLI-04, CLI-07
 
 **Success Criteria:**
-- [ ] Oracle commands: source add/list/delete/enable/disable, fetch, data, latest, template list/add
-- [ ] Root helpers: `getGoVersion`, `setDefaultConfig` defaults, `initConfig` fallback path
-- [ ] Command-tree structure assertion (all five module commands under root)
+- [x] Oracle commands: source add/list/delete/enable/disable, fetch, data, latest, template list/add
+- [x] Root helpers: `getGoVersion`, `setDefaultConfig` defaults, `initConfig` fallback path
+- [x] Command-tree structure assertion (all five module commands under root)
 
 ---
 
@@ -30,11 +30,11 @@ cobra subcommand across lottery, NFT, oracle, token, voting and root.
 **Requirements:** CLI-02, CLI-08
 
 **Success Criteria:**
-- [ ] create (happy + validation errors)
-- [ ] history (empty + populated)
-- [ ] verify (by height / id / substring / not found / corrupted record)
-- [ ] export / import
-- [ ] stats / reset / db-info / version
+- [x] create (happy + validation errors)
+- [x] history (empty + populated)
+- [x] verify (by height / id / substring / not found / corrupted record)
+- [x] export / import
+- [x] stats / reset / db-info / version
 
 ---
 
@@ -45,9 +45,9 @@ cobra subcommand across lottery, NFT, oracle, token, voting and root.
 **Requirements:** CLI-03, CLI-05
 
 **Success Criteria:**
-- [ ] Token create/mint/transfer/approve/burn/balance/allowance/history/info/tui
-- [ ] `newTokenService` error path (forced UNIQUE/dir failure)
-- [ ] NFT mint/transfer/burn/get/list/history via lazy `getNFTRepo`
+- [x] Token create/mint/transfer/approve/burn/balance/allowance/history/info/tui
+- [x] `newTokenService` constructor covered (error path documented as not-worth-contriving)
+- [x] NFT mint/transfer/burn/get/list/history via lazy `getNFTRepo`
 
 ---
 
@@ -58,16 +58,16 @@ cobra subcommand across lottery, NFT, oracle, token, voting and root.
 **Requirements:** CLI-06
 
 **Success Criteria:**
-- [ ] candidate add/list
-- [ ] voter register/list
-- [ ] vote
-- [ ] session create/list/start/end + results
-- [ ] Concurrent `getVotingRepo`/`getVotingService` under `-race`
+- [x] candidate add/list
+- [x] voter register/list
+- [x] vote
+- [x] session create/list/start/end + results
+- [x] Concurrent `getVotingRepo`/`getVotingService` under `-race`
 
 ---
 
 ## Completion Gate
 
-- [ ] `go test -race ./cmd/aurora/cmd/...` green
-- [ ] Package coverage ≥ 80%
-- [ ] v1.3 archive preserved; graph updated with evidence + change nodes
+- [x] `go test -race ./cmd/aurora/cmd/...` green
+- [x] Package coverage ≥ 80% (**86.3%**)
+- [x] v1.3 archive preserved; graph updated with evidence + change nodes

@@ -154,6 +154,8 @@ func (tr *Translator) loadMessages() {
 		"voting.no_voters":        "No voters found",
 		"voting.no_sessions":      "No voting sessions",
 		"voting.verified":         "Vote verified!",
+		"voting.session_start_time": "Session start time (unix)",
+		"voting.session_end_time":   "Session end time (unix)",
 
 		// ===== NFT =====
 		// Commands
@@ -445,6 +447,8 @@ func (tr *Translator) loadMessages() {
 		"voting.no_voters":        "暂无投票人",
 		"voting.no_sessions":      "暂无投票会话",
 		"voting.verified":         "投票已验证！",
+		"voting.session_start_time": "会话开始时间（Unix）",
+		"voting.session_end_time":   "会话结束时间（Unix）",
 
 		// ===== NFT =====
 		// Commands
