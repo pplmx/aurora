@@ -1,6 +1,8 @@
 package i18n
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -189,4 +191,73 @@ func TestTranslator_Concurrent_NoRace(t *testing.T) {
 	for i := 0; i < readers+writers; i++ {
 		<-done
 	}
+}
+
+// forceLazyTranslatorForTest nil-outs the package translator, triggers the
+// deferred-init path in GetTranslator, and returns the result plus a restore
+// closure. The package var cannot be reached as `t` inside a test (that name
+// is the *testing.T parameter), so the nil-out lives here.
+func forceLazyTranslatorForTest() (*Translator, func()) {
+	tInitMu.Lock()
+	prev := t
+	t = nil
+	tInitMu.Unlock()
+
+	tr := GetTranslator()
+
+	restore := func() {
+		tInitMu.Lock()
+		t = prev
+		tInitMu.Unlock()
+	}
+	return tr, restore
+}
+
+// TestGetTranslator_LazyInit covers the deferred-initialization branch of
+// GetTranslator: when package t is nil, the first call must spin up an English
+// translator instead of returning nil.
+func TestGetTranslator_LazyInit(t *testing.T) {
+	tr, restore := forceLazyTranslatorForTest()
+	defer restore()
+
+	require.NotNil(t, tr)
+	require.Equal(t, "en", tr.GetLocale())
+}
+
+// TestTranslator_T_FallbackToEnglish covers the second lookup branch: a locale
+// that has no message table falls back to the English table instead of
+// returning the bare key.
+func TestTranslator_T_FallbackToEnglish(t *testing.T) {
+	tr := Init("en")
+	tr.SetLocale("de")
+	require.Equal(t, "Lottery created successfully!", tr.T("lottery.success"))
+}
+
+// TestDetectLocale_ChineseEnv covers the zh branch of DetectLocale (LANG
+// starting with "zh").
+func TestDetectLocale_ChineseEnv(t *testing.T) {
+	t.Setenv("LANG", "zh_CN.UTF-8")
+	require.Equal(t, "zh", DetectLocale())
+}
+
+// TestLoadLocaleFile_LoadsKeys covers the happy path of LoadLocaleFile: keys
+// from a locale config file land in a per-locale message table and are
+// reachable via T once the locale is selected.
+func TestLoadLocaleFile_LoadsKeys(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "zh.toml")
+	require.NoError(t, os.WriteFile(p, []byte("greeting = \"hello locale\"\n"), 0644))
+
+	tr := Init("en")
+	require.NoError(t, LoadLocaleFile(p))
+	tr.SetLocale("toml")
+	require.Equal(t, "hello locale", tr.T("greeting"))
+}
+
+// TestLoadLocaleFile_MissingFile covers the error path: an unreadable/missing
+// locale file surfaces the viper error.
+func TestLoadLocaleFile_MissingFile(t *testing.T) {
+	Init("en")
+	err := LoadLocaleFile(filepath.Join(t.TempDir(), "nope.toml"))
+	require.Error(t, err)
 }
