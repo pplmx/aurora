@@ -63,12 +63,12 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | Migration engine fixed so real checkout migrations apply | Previously never ran |
 | Latent product bugs surfaced: broken reset, verify disambiguation, broken voting flags | Fixed |
 
-### 🔄 v1.5 Fresh-Install Operations & Coverage Bar (current)
+### ✅ v1.5 Fresh-Install Operations & Coverage Bar (2026-08-11)
 **Make a fresh install usable + enforce the 80% coverage bar everywhere**
 
 | Focus | Target |
 |-------|--------|
-| `aurora migrate up/status/down` CLI | Implemented + tested; commit pending review |
+| `aurora migrate up/status/down` CLI | ✅ Shipped (4e3c9ba) |
 | logger / i18n / backup coverage | ✅ 96.6% / 97.0% / 80.5% |
 | ui/nft / ui/token coverage | ✅ 94.2% / 88.6% (fixed NFT TUI transfer guard) |
 

@@ -1,6 +1,6 @@
 # Roadmap: Aurora v1.5 Fresh-Install Operations & Coverage Bar
 
-**Status:** In Progress (Phase 1 impl done, Phases 2-3 complete)
+**Status:** Complete ✅
 **Milestone:** v1.5 Fresh-Install Operations & Coverage Bar
 **Phases:** 1-3
 **Started:** 2026-08-11
@@ -19,11 +19,12 @@ bar.
 **Requirements:** MIG-01 .. MIG-05
 
 **Success Criteria:**
-- [ ] `aurora migrate up/status/down` registered under root
-- [ ] Real checkout migrations apply via the command against a fresh temp DB
-- [ ] Cobra CLI tests cover output + error paths (`no migrations`, invalid N,
-      already-migrated); `-race` green
-- [ ] Graph: `task-migrate-cli-subcommand` → resolved; `issue-cli-no-migrate-subcommand` updated
+- [x] `aurora migrate up/status/down` registered under root
+- [x] Real checkout migrations apply via the command against a fresh temp DB
+      (binary e2e: up 5 caps at 2 pending, down 5 to base)
+- [x] Cobra CLI tests cover output + error paths (`no migrations`, invalid N,
+      already-migrated, overrun caps); `-race` green
+- [x] Graph: `task-migrate-cli-subcommand` → resolved; `issue-cli-no-migrate-subcommand` resolved (4e3c9ba)
 
 ---
 
@@ -58,8 +59,9 @@ TUI state-machine test pattern.
 
 ## Completion Gate
 
-- [ ] `go test -race ./...` green
-- [ ] Every package ≥ 80% except documented thin boots
+- [x] `go test -race ./...` green
+- [x] Every package ≥ 80% except documented thin boots
+      (cmd/aurora 0%, cmd/api 0% mains; e2e test-only 0%)
   (`cmd/aurora`, `cmd/api` main bodies)
-- [ ] `aurora migrate` exercised end-to-end against real migrations on a fresh DB
-- [ ] v1.4 archived ✓; graph updated with evidence + change nodes
+- [x] `aurora migrate` exercised end-to-end against real migrations on a fresh DB
+- [x] v1.4 archived ✓; graph updated with evidence + change nodes

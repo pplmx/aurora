@@ -1,6 +1,6 @@
 # Requirements: Aurora v1.5 Fresh-Install Operations & Coverage Bar
 
-**Status:** In Progress (Phase 1 impl done, Phases 2-3 complete)
+**Status:** Complete ✅
 **Milestone:** v1.5 Fresh-Install Operations & Coverage Bar
 **Last updated:** 2026-08-11
 
@@ -27,15 +27,15 @@ Two goals.
 
 ### Migrate CLI
 
-- [ ] **MIG-01**: `aurora migrate up [N]` applies pending migrations (default: all)
-- [ ] **MIG-02**: `aurora migrate down [N]` rolls back N steps (default: 1)
-- [ ] **MIG-03**: `aurora migrate status` prints current version, dirty flag,
+- [x] **MIG-01**: `aurora migrate up [N]` applies pending migrations (default: all)
+- [x] **MIG-02**: `aurora migrate down [N]` rolls back N steps (default: 1)
+- [x] **MIG-03**: `aurora migrate status` prints current version, dirty flag,
       and applied + pending migration versions
-- [ ] **MIG-04**: DB path resolution matches root (`db.path`, else
-      `data.dir/aurora.db`, else `~/.aurora/data/aurora.db`); migration path
-      from `migrate.path` (default `./migrations`)
-- [ ] **MIG-05**: subcommand covered by tests — happy + error paths
-      (already-migrated, missing migrations dir, invalid N)
+- [x] **MIG-04**: DB path = `blockchain.DBPath()` (./data/aurora.db — the same file
+      the rest of the CLI addresses; equals config `db.path` in production);
+      migration path from `migrate.path` (default `./migrations`) — see decision-migrate-cli-dbpath
+- [x] **MIG-05**: subcommand covered by tests — happy + error paths
+      (already-migrated, missing migrations dir, invalid N, overrun caps)
 
 ### Coverage Bar — Infrastructure
 
