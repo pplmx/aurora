@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
@@ -143,24 +144,39 @@ var verifyCmd = &cobra.Command{
 
 		var record *domainlottery.LotteryRecord
 
-		// Try to parse as block height first
-		var height int64
-		if _, err := fmt.Sscanf(input, "%d", &height); err == nil {
-			records, err := repo.GetByBlockHeight(height)
-			if err != nil {
-				return fmt.Errorf("failed to read by block height: %w", err)
-			}
-			if len(records) == 0 {
-				return fmt.Errorf("lottery not found: %s", input)
-			}
-			record = records[0]
-		} else {
-			// Try exact ID match first (the common case), then fall back
-			// to a substring match so partial IDs work the way they used
-			// to before this command was rewritten to read from the
-			// persistent store.
-			record, err = repo.GetByID(input)
-			if err != nil {
+		// Disambiguation between "lottery-id" and "block-height".
+		//
+		// A lottery ID is a 16-hex-char hash prefix (see CreateLotteryRecord),
+		// which may begin with a decimal digit (e.g. "07551e0cac54a4cf"), and
+		// may even consist entirely of digits. Trying to parse the height first
+		// via fmt.Sscanf(input, "%d", &height) is wrong on two counts:
+		//  1. Sscanf accepts a PARTIAL numeric prefix, so an ID that starts
+		//     with a digit is swallowed as a (bogus) height.
+		//  2. A numeric-prefix ID (or an all-digit ID) would never reach the
+		//     ID lookup at all, so "verify <valid-id>" would report
+		//     "lottery not found" for an existing draw.
+		//
+		// So we check the exact ID match first (the common case: users paste
+		// an ID from create/history), then treat the input as a height only
+		// if the ENTIRE input is a decimal integer, and only then fall back to
+		// a substring ID/seed match for convenience.
+		record, err = repo.GetByID(input)
+		if err != nil {
+			// Not an exact ID match. If the whole input is a plain decimal
+			// integer, it is a block height.
+			if height, perr := strconv.ParseInt(input, 10, 64); perr == nil {
+				records, rerr := repo.GetByBlockHeight(height)
+				if rerr != nil {
+					return fmt.Errorf("failed to read by block height: %w", rerr)
+				}
+				if len(records) == 0 {
+					return fmt.Errorf("lottery not found: %s", input)
+				}
+				record = records[0]
+			} else {
+				// Fall back to a substring match so partial IDs work the
+				// way they did before this command was rewritten to read
+				// from the persistent store.
 				all, getAllErr := repo.GetAll()
 				if getAllErr != nil {
 					return fmt.Errorf("failed to read history: %w", getAllErr)
