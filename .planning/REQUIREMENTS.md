@@ -1,6 +1,6 @@
 # Requirements: Aurora v1.5 Fresh-Install Operations & Coverage Bar
 
-**Status:** In Progress
+**Status:** In Progress (Phase 1 impl done, Phases 2-3 complete)
 **Milestone:** v1.5 Fresh-Install Operations & Coverage Bar
 **Last updated:** 2026-08-11
 
@@ -39,15 +39,15 @@ Two goals.
 
 ### Coverage Bar — Infrastructure
 
-- [ ] **COV-01**: `internal/logger` ≥ 80% (55.2% baseline)
-- [ ] **COV-02**: `internal/i18n` ≥ 80% (65.2% baseline)
-- [ ] **COV-03**: `internal/infra/backup` ≥ 80% (73.8% baseline)
+- [x] **COV-01**: `internal/logger` ≥ 80% (**96.6%**)
+- [x] **COV-02**: `internal/i18n` ≥ 80% (**97.0%**)
+- [x] **COV-03**: `internal/infra/backup` ≥ 80% (**80.5%**)
 
 ### Coverage Bar — UI
 
-- [ ] **COV-04**: `internal/ui/nft` ≥ 80% (66.7% baseline)
-- [ ] **COV-05**: `internal/ui/token` ≥ 80% (76.6% baseline)
-- [ ] **COV-06**: No existing tests weakened or deleted; whole suite green
+- [x] **COV-04**: `internal/ui/nft` ≥ 80% (**94.2%**, surfaced issue-nft-tui-transfer-guard)
+- [x] **COV-05**: `internal/ui/token` ≥ 80% (**88.6%**)
+- [x] **COV-06**: No existing tests weakened or deleted; whole suite green
       under `go test -race ./...`
 
 ## Out of Scope

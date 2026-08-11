@@ -1,6 +1,6 @@
 # Roadmap: Aurora v1.5 Fresh-Install Operations & Coverage Bar
 
-**Status:** In Progress
+**Status:** In Progress (Phase 1 impl done, Phases 2-3 complete)
 **Milestone:** v1.5 Fresh-Install Operations & Coverage Bar
 **Phases:** 1-3
 **Started:** 2026-08-11
@@ -34,10 +34,10 @@ bar.
 **Requirements:** COV-01 .. COV-03
 
 **Success Criteria:**
-- [ ] `internal/logger` ≥ 80% (55.2% → …)
-- [ ] `internal/i18n` ≥ 80% (65.2% → …)
-- [ ] `internal/infra/backup` ≥ 80% (73.8% → …)
-- [ ] Graph: `task-coverage-bar-infra` → resolved
+- [x] `internal/logger` ≥ 80% (**96.6%**)
+- [x] `internal/i18n` ≥ 80% (**97.0%**)
+- [x] `internal/infra/backup` ≥ 80% (**80.5%**)
+- [x] Graph: `task-coverage-bar-infra` → resolved (f60a206)
 
 ---
 
@@ -49,10 +49,10 @@ TUI state-machine test pattern.
 **Requirements:** COV-04 .. COV-06
 
 **Success Criteria:**
-- [ ] `internal/ui/nft` ≥ 80% (66.7% → …)
-- [ ] `internal/ui/token` ≥ 80% (76.6% → …)
+- [x] `internal/ui/nft` ≥ 80% (**94.2%**; also fixed issue-nft-tui-transfer-guard)
+- [x] `internal/ui/token` ≥ 80% (**88.6%**)
 - [ ] No weakened tests; `go test -race ./...` green
-- [ ] Graph: `task-coverage-bar-ui` → resolved
+- [x] Graph: `task-coverage-bar-ui` → resolved (d9867bf, aa15d46)
 
 ---
 
