@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -91,14 +92,35 @@ func TestLotteryVerify_ByID_Startswith(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, vout, "Block Height: #")
 
-		// Substring prefix match fallback: first 8 chars of the UUID.
+		// Substring prefix match fallback: first 8 chars of the id.
+		// NOTE: only asserted when the prefix is NOT all-decimal-digits —
+		// an all-numeric prefix (e.g. "12345678") is indistinguishable from
+		// a block height and is correctly routed to the height lookup, so
+		// the substring fallback doesn't apply (covered deterministically by
+		// TestLotteryVerify_NumericPrefixID / the height path below). Skip
+		// the substring assertion in that ~2% (10/16)^8 case rather than
+		// flake.
 		prefix := id[:min(8, len(id))]
-		vout, err = runCmd(t, "lottery", "verify", prefix)
-		require.NoError(t, err)
-		assert.Contains(t, vout, "Block Height: #")
+		if _, perr := strconv.ParseInt(prefix, 10, 64); perr != nil {
+			vout, err = runCmd(t, "lottery", "verify", prefix)
+			require.NoError(t, err)
+			assert.Contains(t, vout, "Block Height: #")
+		}
 
 		// Unknown id: not found.
 		_, err = runCmd(t, "lottery", "verify", "no-such-lottery")
+		require.Error(t, err)
+		assert.Contains(t, strings.ToLower(err.Error()), "not found")
+	})
+}
+
+// TestLotteryVerify_NumericPrefixHeight pins the other half of the
+// ID-vs-height ambiguity: an all-decimal input (e.g. a numeric id prefix or
+// a plain height) is looked up as a height, and a bogus height is "not
+// found" rather than crashing or silently falling back to substring search.
+func TestLotteryVerify_NumericPrefixIsHeight(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		_, err := runCmd(t, "lottery", "verify", "12345678")
 		require.Error(t, err)
 		assert.Contains(t, strings.ToLower(err.Error()), "not found")
 	})
@@ -302,14 +324,22 @@ func TestLotteryReset_WithYes(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "reset complete")
 
-		// NOTE: reset only clears the `blocks` table (DELETE FROM blocks
-		// WHERE height > 0) — it does NOT clear lottery_records. So history
-		// still shows the record. This is a CLI inconsistency (the warning
-		// says "delete ALL lottery records!") but it is the actual current
-		// behaviour, so the test pins it rather than asserting an ideal.
+		// Reset must clear BOTH the chain blocks and the persistent
+		// lottery_records (the warning says "delete ALL lottery records!"),
+		// so history after a reset shows nothing.
 		out, err = runCmd(t, "lottery", "history")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Total lotteries: 1")
+		assert.Contains(t, out, "No lottery records found")
+	})
+}
+
+func TestLotteryReset_OnFreshDB(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		// A brand-new DB has no lottery_records table yet; reset must
+		// tolerate the "no such table" error instead of failing.
+		out, err := runCmd(t, "lottery", "reset", "--yes")
+		require.NoError(t, err)
+		assert.Contains(t, out, "reset complete")
 	})
 }
 
