@@ -1,63 +1,48 @@
-# Requirements: Aurora v1.3 Quality & Documentation
+# Requirements: Aurora v1.4 CLI Command Test Coverage
 
 **Status:** Active
-**Milestone:** v1.3 Quality & Documentation
-**Last updated:** 2026-04-30
+**Milestone:** v1.4 CLI Command Test Coverage
+**Last updated:** 2026-08-11
+
+## Overview
+
+`cmd/aurora/cmd` is the primary user-facing surface of Aurora — every
+CLI interaction flows through its cobra command tree — yet it sits at
+**21.9% statement coverage** (measured 2026-08-11). Only small helpers
+and `init()` wiring are tested; every `RunE` body, the lazy
+DB/service constructors, and the root config path are untested, so
+flag-parsing, output-formatting, and wiring bugs go undetected.
 
 ## Requirements
 
-### UI Package Tests
+### Coverage
 
-- [ ] **UI-01**: UI/lottery package achieves 60%+ coverage with component and state tests
-- [ ] **UI-02**: UI/nft package achieves 60%+ coverage with component and state tests
-- [ ] **UI-03**: UI/oracle package achieves 60%+ coverage with component and state tests
-- [ ] **UI-04**: UI/token package achieves 60%+ coverage with component and state tests
-- [ ] **UI-05**: UI/components package achieves 50%+ coverage with theme and common component tests
+- [ ] **CLI-01**: `cmd/aurora/cmd` package reaches 80%+ test coverage
+- [ ] **CLI-02**: Every lottery subcommand tested (`create`, `history`,
+      `verify`, `export`, `import`, `stats`, `reset`, `db-info`, `version`)
+- [ ] **CLI-03**: Every NFT subcommand tested (`mint`, `transfer`,
+      `burn`, `get`, `list`, `history`) — exercises lazy `getNFTRepo` path
+- [ ] **CLI-04**: Every oracle subcommand tested (`source add/list/delete/
+      enable/disable`, `fetch`, `data`, `latest`, `template list/add`)
+- [ ] **CLI-05**: Every token subcommand tested (`create`, `mint`,
+      `transfer`, `approve`, `burn`, `balance`, `allowance`, `history`,
+      `info`, `tui`) — exercises `newTokenService` constructor
+- [ ] **CLI-06**: Every voting subcommand tested (`candidate add/list`,
+      `voter register/list`, `vote`, `session create/list/start/end`,
+      `results`)
+- [ ] **CLI-07**: Root command tested (`Execute`, `initConfig`,
+      `setDefaultConfig`, `getGoVersion`)
 
-### Handler Tests
+### Quality
 
-- [ ] **HND-01**: API/handler package achieves 80%+ coverage with endpoint tests
-- [ ] **HND-02**: API package achieves 60%+ coverage with integration tests
-- [ ] **HND-03**: All handler error cases covered (404, 400, 401)
-- [ ] **HND-04**: Handler auth middleware tested with mock API keys
-
-### E2E Tests
-
-- [ ] **E2E-01**: E2E tests cover full lottery workflow (create → view → history)
-- [ ] **E2E-02**: E2E tests cover full voting workflow (create → vote → tally)
-- [ ] **E2E-03**: E2E tests cover full NFT workflow (mint → transfer → list)
-- [ ] **E2E-04**: E2E tests cover full token workflow (mint → transfer → balance)
-- [ ] **E2E-05**: E2E tests cover oracle workflow (fetch → query)
-- [ ] **E2E-06**: E2E tests include error recovery scenarios
-
-### Documentation
-
-- [ ] **DOC-01**: All CLI commands have consistent help text with examples
-- [ ] **DOC-02**: Root command has overview of available modules
-- [ ] **DOC-03**: Each module command documents its subcommands
-
-## Future Requirements (Deferred)
-
-- App layer tests (0% currently, depends on handler completion)
-- Config package tests (0% currently, lower priority)
-- Integration test suite with real database
+- [ ] **CLI-08**: Tests isolate state (temp dirs, reset of package
+      singletons, no reliance on pre-existing `./data`)
+- [ ] **CLI-09**: Tests run clean under `go test -race` for the package
 
 ## Out of Scope
 
-- Metrics/observability (Prometheus, OpenTelemetry) — v2.0
-- Performance benchmarks
-- Cross-platform UI tests
-- Mobile app documentation
-
-## Traceability
-
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| UI-01 to UI-05 | TBD | Pending |
-| HND-01 to HND-04 | TBD | Pending |
-| E2E-01 to E2E-06 | TBD | Pending |
-| DOC-01 to DOC-03 | TBD | Pending |
-
----
-
-_Last updated: 2026-04-30_
+- `cmd/api` / `cmd/aurora` `main()` bodies (thin process boots; exit
+  paths not unit-testable in-process)
+- TUI subcommands beyond stub coverage (interactive, need pty harness)
+- Rewriting commands to inject output writers (larger refactor than the
+  milestone warrants; stdout capture in tests is sufficient)
