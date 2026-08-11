@@ -190,7 +190,8 @@
       "updated_at": "2026-08-11T00:30:00Z",
       "confidence": 0.7,
       "summary": "Cumulative supply/balance can exceed MaxInt64 (per-op guard passes) and later CAST(...) clamps silently; detect/reject post-arithmetic overflow.",
-      "priority_score": 0.25
+      "priority_score": 0.25,
+      "status": "resolved"
     },
     {
       "id": "task-nft-voting-transactions",
@@ -240,6 +241,7 @@
     {"source": "change-55554a8", "target": "issue-weak-transferfrom-atomicity-test", "type": "resolves"},
     {"source": "issue-phantom-events", "target": "task-phantom-events", "type": "causes", "kind": "derived"},
     {"source": "issue-supply-cast-saturation", "target": "task-supply-cast-saturation", "type": "causes", "kind": "derived"},
+    {"source": "fcd05d8", "target": "task-supply-cast-saturation", "type": "resolves"},
     {"source": "issue-nft-voting-no-transactions", "target": "task-nft-voting-transactions", "type": "causes", "kind": "derived"},
     {"source": "change-e8c27dc", "target": "task-backup-coverage", "type": "resolves", "kind": "partial"}
   ]

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
@@ -167,6 +168,10 @@ func (r *inMemoryTokenRepo) TryAdjustApproval(tokenID token.TokenID, owner, spen
 	newAmt := &token.Amount{Int: new(big.Int).Add(curAmount.Int, delta.Int)}
 	if newAmt.Sign() < 0 {
 		newAmt = token.NewAmount(0)
+	}
+	// Mirror the SQLite primitive's ceiling clamp at MaxInt64.
+	if newAmt.BitLen() > 63 {
+		newAmt = &token.Amount{Int: new(big.Int).SetInt64(math.MaxInt64)}
 	}
 	r.approvals[key] = token.NewApproval(tokenID, owner, spender, newAmt)
 	return newAmt, nil

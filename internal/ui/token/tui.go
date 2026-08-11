@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"math/big"
 	"os"
 	"strconv"
@@ -851,6 +852,10 @@ func (r *inmemRepo) TryAdjustApproval(tokenID token.TokenID, owner, spender toke
 	newAmt := &token.Amount{Int: new(big.Int).Add(curAmount.Int, delta.Int)}
 	if newAmt.Sign() < 0 {
 		newAmt = token.NewAmount(0)
+	}
+	// Mirror the SQLite primitive's ceiling clamp at MaxInt64.
+	if newAmt.BitLen() > 63 {
+		newAmt = &token.Amount{Int: new(big.Int).SetInt64(math.MaxInt64)}
 	}
 	r.approvals[key] = token.NewApproval(tokenID, owner, spender, newAmt)
 	return newAmt, nil

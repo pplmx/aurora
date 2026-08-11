@@ -3,6 +3,7 @@ package sqlite
 import (
 	"encoding/base64"
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -765,6 +766,33 @@ func TestTokenRepository_TryAddBalance_OverflowRejected(t *testing.T) {
 	require.NoError(t, err)
 	if bal.Int64() != 9223372036854775807 {
 		t.Fatalf("balance must be unchanged, got %s", bal.String())
+	}
+}
+
+// TestTokenRepository_TryAdjustApproval_CeilingClamp proves increases that
+// would push an allowance past MaxInt64 clamp at the ceiling instead of
+// silently becoming an unparseable REAL float.
+func TestTokenRepository_TryAdjustApproval_CeilingClamp(t *testing.T) {
+	repo, cleanup := setupTokenTestDB(t)
+	defer cleanup()
+
+	tokenID := token.TokenID("APR")
+	owner := token.PublicKey("owner-approval")
+	spender := token.PublicKey("spender-approval")
+	require.NoError(t, repo.SaveApproval(token.NewApproval(tokenID, owner, spender, token.NewAmount(math.MaxInt64))))
+
+	got, err := repo.TryAdjustApproval(tokenID, owner, spender, token.NewAmount(5))
+	require.NoError(t, err)
+	if got.String() != "9223372036854775807" {
+		t.Fatalf("allowance must clamp at MaxInt64, got %s", got.String())
+	}
+
+	// And it must still be readable after the clamp (not a float string).
+	readBack, err := repo.GetApproval(tokenID, owner, spender)
+	require.NoError(t, err)
+	require.NotNil(t, readBack)
+	if readBack.Amount().String() != "9223372036854775807" {
+		t.Fatalf("stored allowance unparseable or wrong: %s", readBack.Amount().String())
 	}
 }
 

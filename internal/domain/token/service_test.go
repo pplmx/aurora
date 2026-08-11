@@ -1174,6 +1174,10 @@ func (m *mockRepository) TryAdjustApproval(tokenID TokenID, owner, spender Publi
 	if newAmt.Sign() < 0 {
 		newAmt = NewAmount(0)
 	}
+	// Mirror the SQLite primitive's ceiling clamp at MaxInt64.
+	if newAmt.BitLen() > 63 {
+		newAmt = &Amount{Int: new(big.Int).Add(big.NewInt(0), big.NewInt(math.MaxInt64))}
+	}
 	m.approvals[key] = NewApproval(tokenID, owner, spender, newAmt)
 	return newAmt, nil
 }

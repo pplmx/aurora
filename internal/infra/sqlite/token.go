@@ -358,13 +358,17 @@ func (r *TokenRepository) TryAdjustApproval(tokenID token.TokenID, owner, spende
 
 	// amount stored on INSERT: clamp delta at 0 so a decrease-only
 	// first-touch doesn't create a negative row.
+	// On update, clamp between 0 and MaxInt64: the MAX keeps decreases at 0
+	// and the MIN (CAST to INTEGER so the ceiling compares numerically, not
+	// as text>numeric per SQLite type ordering) prevents an increase past
+	// MaxInt64 from silently becoming an unparseable REAL float.
 	res, err := r.q().Exec(`
 		INSERT INTO allowances (id, token_id, owner, spender, amount, expires_at, updated_at)
 		VALUES (?, ?, ?, ?, CASE WHEN ? >= 0 THEN ? ELSE '0' END, 0, ?)
 		ON CONFLICT(token_id, owner, spender) DO UPDATE SET
-		  amount = MAX(0, CAST(amount AS INTEGER) + ?),
+		  amount = MIN(CAST(? AS INTEGER), MAX(0, CAST(amount AS INTEGER) + ?)),
 		  updated_at = ?
-	`, id, tokenID, ownerB64, spenderB64, deltaStr, deltaStr, now, deltaStr, now)
+	`, id, tokenID, ownerB64, spenderB64, deltaStr, deltaStr, now, maxInt64String, deltaStr, now)
 	if err != nil {
 		return nil, fmt.Errorf("try adjust approval: %w", err)
 	}
