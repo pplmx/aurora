@@ -297,6 +297,58 @@ func TestInitBlockChain_PersistsAcrossCalls(t *testing.T) {
 		"second call should not re-seed (sync.Once protects initialization)")
 }
 
+// TestInitBlockChain_AddBlockPersistsAcrossRestart proves blocks appended via
+// AddBlock survive a full restart (ResetForTest + re-Init), i.e. the chain no
+// longer silently resets to genesis and re-stamps heights. This is the
+// regression test for the previously-disconnected blocks persistence: the
+// table was created and loaded but AddBlock never wrote to it.
+func TestInitBlockChain_AddBlockPersistsAcrossRestart(t *testing.T) {
+	resetChainForTest(t)
+
+	c1 := InitBlockChain()
+	require.NotNil(t, c1)
+
+	if _, err := c1.AddBlock("block-a"); err != nil {
+		t.Fatalf("AddBlock block-a: %v", err)
+	}
+	if _, err := c1.AddBlock("block-b"); err != nil {
+		t.Fatalf("AddBlock block-b: %v", err)
+	}
+
+	// Simulate a process restart: close the DB and clear the singletons, but
+	// KEEP ./data on disk (a real restart does not delete the data directory,
+	// whereas ResetForTest does).
+	if dbInstance != nil {
+		_ = dbInstance.Close()
+	}
+	dbInstance = nil
+	dbInitOnce = sync.Once{}
+	dbInitErr = nil
+	instance = nil
+	once = sync.Once{}
+
+	c2 := InitBlockChain()
+	require.NotNil(t, c2)
+
+	if got := len(c2.Blocks); got != 3 {
+		t.Fatalf("expected genesis + 2 persisted blocks, got %d", got)
+	}
+	data, err := c2.GetBlockData(1)
+	if err != nil {
+		t.Fatalf("GetBlockData(1): %v", err)
+	}
+	if data != "block-a" {
+		t.Errorf("expected block-a at height 1 after restart, got %q", data)
+	}
+	data, err = c2.GetBlockData(2)
+	if err != nil {
+		t.Fatalf("GetBlockData(2): %v", err)
+	}
+	if data != "block-b" {
+		t.Errorf("expected block-b at height 2 after restart, got %q", data)
+	}
+}
+
 func TestGetBlockChain_InitializesLazily(t *testing.T) {
 	resetChainForTest(t)
 

@@ -93,6 +93,12 @@ func InitBlockChain() *BlockChain {
 						logger.Warn().Err(err).Msg("Failed to scan block row, skipping")
 						continue
 					}
+					// Genesis is always seeded in memory above; the persisted
+					// genesis row (height 0) is the same block, so skipping it
+					// avoids doubling it on reload.
+					if block.Height == 0 {
+						continue
+					}
 					block.Hash = []byte(hash)
 					block.PrevHash = []byte(prevHash)
 					block.Data = []byte(data)
@@ -113,6 +119,18 @@ func InitBlockChain() *BlockChain {
 						logger.Error().Err(err).Msg("Failed to insert genesis block")
 					}
 				}
+			}
+
+			// Wire persistence: every block appended by AddBlock is written to
+			// the blocks table so heights remain monotonic across restarts.
+			// The previous code created+loaded the table but never saved new
+			// blocks, so the chain silently reset to genesis on every restart.
+			chain.persist = func(b *Block) error {
+				_, err := db.Exec(`
+					INSERT OR REPLACE INTO blocks (height, hash, previous_hash, data, nonce, timestamp, created_at)
+					VALUES (?, ?, ?, ?, ?, ?, ?)
+				`, b.Height, string(b.Hash), string(b.PrevHash), string(b.Data), b.Nonce, b.Timestamp, b.Timestamp)
+				return err
 			}
 		}
 

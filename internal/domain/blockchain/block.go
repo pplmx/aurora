@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/pplmx/aurora/internal/logger"
 )
 
 // Block represents a single block in the blockchain.
@@ -32,6 +34,13 @@ type Block struct {
 type BlockChain struct {
 	mu     sync.RWMutex
 	Blocks []*Block
+	// persist, when non-nil, is invoked after a block is appended so the
+	// chain can survive process restarts. It is left nil by NewBlockChain
+	// (pure in-memory use, e.g. tests) and wired to the blocks table by
+	// InitBlockChain. The in-memory slice stays authoritative; a persistence
+	// failure is logged rather than fatal, matching the package's existing
+	// "operate in non-persistent mode" fallback.
+	persist func(*Block) error
 }
 
 func (b *Block) DeriveHash() {
@@ -92,7 +101,17 @@ func (c *BlockChain) AddBlock(data string) (int64, error) {
 	c.mu.Lock()
 	c.Blocks = append(c.Blocks, newBlock)
 	appendedAt := int64(len(c.Blocks) - 1)
+	persist := c.persist
 	c.mu.Unlock()
+
+	// Best-effort persistence after append (outside the write lock so a slow
+	// DB write never holds up concurrent AddBlock callers). The in-memory
+	// chain is authoritative; failures degrade to non-persistent mode.
+	if persist != nil {
+		if err := persist(newBlock); err != nil {
+			logger.Warn().Err(err).Msg("Failed to persist block")
+		}
+	}
 
 	return appendedAt, nil
 }
