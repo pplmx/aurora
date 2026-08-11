@@ -402,9 +402,9 @@
     {
       "id": "issue-cli-migrations-broken",
       "type": "issue",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T13:50:00Z",
-      "updated_at": "2026-08-11T13:50:00Z",
+      "updated_at": "2026-08-11T14:40:00Z",
       "confidence": 1.0,
       "summary": "Migrations can never run: migrations/000001 starts with PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON, but golang-migrate's sqlite3 driver wraps each migration in a transaction where WAL cannot be set → 'cannot change into wal mode from within a transaction'. RunMigrationsIfEnabled is only called from root.go PersistentPreRunE under migrate.autoRun (default false), and there is NO `aurora migrate` subcommand and cmd/api never migrates — so the voting/NFT/token schema from migrations is unreachable in the whole product. The migrate package's own tests use synthetic migrations, so this latent bug is untested.",
       "severity": 0.7,
@@ -413,9 +413,9 @@
     {
       "id": "issue-migration-blocks-schema-mismatch",
       "type": "issue",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T13:50:00Z",
-      "updated_at": "2026-08-11T13:50:00Z",
+      "updated_at": "2026-08-11T14:40:00Z",
       "confidence": 0.9,
       "summary": "Even if migrations could apply, migrations/000001's blocks table (id AUTOINCREMENT + height UNIQUE, no timestamp column) contradicts what InitBlockChain actually creates/inserts (height PRIMARY KEY, has timestamp, no id). A migrated DB would break InitBlockChain's INSERT OR REPLACE. Since migrations have never successfully applied, no production DB has this schema — the discrepancy is latent but guarantees migrating a fresh DB corrupts the chain.",
       "severity": 0.6,
@@ -466,6 +466,34 @@
       "updated_at": "2026-08-11T14:20:00Z",
       "confidence": 1.0,
       "summary": "chore(config): anchor **/aurora binary ignore to /aurora and /aurora-* so cmd/aurora/ source dir is not ignored; 4 pre-existing + new CLI test files are now tracked."
+    },
+    {
+      "id": "change-migrations-wal-pragma-fix",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T14:40:00Z",
+      "updated_at": "2026-08-11T14:40:00Z",
+      "confidence": 1.0,
+      "summary": "fix(migrations): remove PRAGMA journal_mode=WAL/PF-ON from 000001 (they can't run inside golang-migrate's tx wrapper; they are per-connection settings repos already apply) and reconcile the blocks table schema (height PRIMARY KEY + timestamp, no synthetic id) with InitBlockChain. Add regression tests applying the real checkout migrations (previously only synthetic migrations were tested)."
+    },
+    {
+      "id": "issue-cli-no-migrate-subcommand",
+      "type": "issue",
+      "status": "active",
+      "created_at": "2026-08-11T14:40:00Z",
+      "updated_at": "2026-08-11T14:40:00Z",
+      "confidence": 0.9,
+      "summary": "UX gap: there is no `aurora migrate` subcommand and migrate.autoRun defaults to false, so a fresh install still has no voting/NFT/token tables unless the user sets migrate.autoRun=true in config. The migration files now apply (fix-migrations), but nothing in the CLI surface runs them by default. Consider adding a `migrate up/status` subcommand or flipping the default.",
+      "severity": 0.3
+    },
+    {
+      "id": "evidence-voting-cli-via-real-migrations",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-11T14:40:00Z",
+      "updated_at": "2026-08-11T14:40:00Z",
+      "confidence": 1.0,
+      "summary": "After the migration fix, the full voting CLI flow (candidate add → session create → voter register → vote) passes against the REAL checkout migrations with no schema bootstrapping. CLI voting tests switched from bootstrapVotingSchema workaround to runMigrations; real_migrations_test.go applies the actual migrations and asserts all 13 tables."
     }
   ],
   "edges": [
@@ -643,6 +671,32 @@
       "target": "evidence-cli-cov-863",
       "type": "causes",
       "kind": "supports"
+    },
+    {
+      "source": "change-migrations-wal-pragma-fix",
+      "target": "issue-cli-migrations-broken",
+      "type": "resolves"
+    },
+    {
+      "source": "change-migrations-wal-pragma-fix",
+      "target": "issue-migration-blocks-schema-mismatch",
+      "type": "resolves"
+    },
+    {
+      "source": "evidence-voting-cli-via-real-migrations",
+      "target": "issue-cli-migrations-broken",
+      "type": "validates"
+    },
+    {
+      "source": "evidence-voting-cli-via-real-migrations",
+      "target": "task-cli-cmd-coverage",
+      "type": "validates"
+    },
+    {
+      "source": "issue-cli-no-migrate-subcommand",
+      "target": "issue-cli-migrations-broken",
+      "type": "causes",
+      "kind": "residual"
     }
   ]
 }
