@@ -1,18 +1,30 @@
 -- Aurora v1.1: Initial Schema Migration
 -- Version: 000001
+--
+-- NOTE: this migration must NOT contain `PRAGMA journal_mode=WAL` or
+-- `PRAGMA foreign_keys=ON`. golang-migrate's sqlite3 driver runs each
+-- migration inside an explicit transaction, and switching WAL mode is not
+-- permitted inside a transaction — the whole migration batch used to fail
+-- with "cannot change into wal mode from within a transaction" the very
+-- first time it ran. WAL mode and foreign keys are per-connection settings
+-- already applied by every repository's DSN/constructor (e.g.
+-- `?_foreign_keys=ON`, PRAGMA journal_mode=WAL in repo init), so they do
+-- not belong in schema migrations.
 
--- Enable WAL mode for better concurrency
-PRAGMA journal_mode=WAL;
-PRAGMA foreign_keys=ON;
-
--- Blockchain blocks table
+-- Blockchain blocks table.
+-- Schema matches internal/domain/blockchain/init.go's CREATE TABLE exactly
+-- (height PRIMARY KEY, timestamp column, no synthetic id). The previous
+-- draft here (id AUTOINCREMENT + height UNIQUE + no timestamp) contradicted
+-- what InitBlockChain actually creates and inserts, so a freshly migrated
+-- DB would have broken InitBlockChain's INSERT OR REPLACE. The migration has
+-- never applied anywhere (see above), so rewriting it is safe.
 CREATE TABLE IF NOT EXISTS blocks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    height INTEGER NOT NULL UNIQUE,
+    height INTEGER PRIMARY KEY,
     hash TEXT NOT NULL,
     previous_hash TEXT NOT NULL,
     data TEXT NOT NULL,
     nonce INTEGER NOT NULL,
+    timestamp INTEGER NOT NULL,
     created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_blocks_height ON blocks(height);

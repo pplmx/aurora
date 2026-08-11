@@ -9,14 +9,11 @@ import (
 )
 
 // votingFixture wires a candidate + session + voter via the CLI and returns
-// their ids/keys so a test can drive `voting vote`.
-//
-// NOTE: voting tables are bootstrapped directly (bootstrapVotingSchema)
-// because the real SQL migrations cannot currently apply — see
-// issue-cli-migrations-broken in the engineering graph.
+// their ids/keys so a test can drive `voting vote`. The real migrations are
+// applied first so the CLI's lazy DB matches a properly-initialised install.
 func votingFixture(t *testing.T) (candID, sessionID, voterPub, voterPriv string) {
 	t.Helper()
-	bootstrapVotingSchema(t)
+	runMigrations(t)
 
 	out, err := runCmd(t, "voting", "candidate", "add", "--name", "Alice", "--party", "P")
 	require.NoError(t, err, "candidate add")
@@ -42,7 +39,7 @@ func votingFixture(t *testing.T) (candID, sessionID, voterPub, voterPriv string)
 
 func TestVotingCandidateAdd_List(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		bootstrapVotingSchema(t)
+		runMigrations(t)
 		out, err := runCmd(t, "voting", "candidate", "add", "--name", "Alice", "--party", "P")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Candidate registered: Alice")
@@ -57,7 +54,7 @@ func TestVotingCandidateAdd_List(t *testing.T) {
 
 func TestVotingCandidateList_Empty(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		bootstrapVotingSchema(t)
+		runMigrations(t)
 		out, err := runCmd(t, "voting", "candidate", "list")
 		require.NoError(t, err)
 		assert.Contains(t, out, "(none)")
@@ -66,7 +63,7 @@ func TestVotingCandidateList_Empty(t *testing.T) {
 
 func TestVotingCandidateAdd_MissingName(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		bootstrapVotingSchema(t)
+		runMigrations(t)
 		_, err := runCmd(t, "voting", "candidate", "add", "--party", "P")
 		require.Error(t, err)
 	})
@@ -74,7 +71,7 @@ func TestVotingCandidateAdd_MissingName(t *testing.T) {
 
 func TestVotingVoterRegister_List(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		bootstrapVotingSchema(t)
+		runMigrations(t)
 		out, err := runCmd(t, "voting", "voter", "register", "--name", "Carol")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Voter registered successfully!")
@@ -89,7 +86,7 @@ func TestVotingVoterRegister_List(t *testing.T) {
 
 func TestVotingVoterRegister_MissingName(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		bootstrapVotingSchema(t)
+		runMigrations(t)
 		_, err := runCmd(t, "voting", "voter", "register")
 		require.Error(t, err)
 	})
@@ -167,7 +164,7 @@ func TestVotingSessionCreate_List_Start_End(t *testing.T) {
 
 func TestVotingSessionCreate_InvalidTimes(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		bootstrapVotingSchema(t)
+		runMigrations(t)
 		out, err := runCmd(t, "voting", "candidate", "add", "--name", "X", "--party", "P")
 		require.NoError(t, err)
 		cid := extractField(t, out, "ID:")
@@ -183,7 +180,7 @@ func TestVotingSessionCreate_InvalidTimes(t *testing.T) {
 
 func TestVotingSessionStart_NotFound(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		bootstrapVotingSchema(t)
+		runMigrations(t)
 		_, err := runCmd(t, "voting", "session", "start", "--id", "no-such")
 		require.Error(t, err)
 	})
@@ -208,7 +205,7 @@ func TestVotingResults_HappyPath(t *testing.T) {
 
 func TestVotingResults_NotFound(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		bootstrapVotingSchema(t)
+		runMigrations(t)
 		_, err := runCmd(t, "voting", "results", "--session", "no-such")
 		require.Error(t, err)
 	})

@@ -244,11 +244,9 @@ func openTestAuroraDB(t *testing.T) *sql.DB {
 }
 
 // runMigrations applies the repo's real SQL migrations to ./data/aurora.db
-// (relative to the current temp cwd). Callers should gate on
-// migrationsSucceed() — the real migration 000001 is known-broken (PRAGMA
-// journal_mode=WAL inside golang-migrate's transaction wrapper), so this is
-// expected to fail in the current tree. Tests that need the voting schema
-// use bootstrapVotingSchema() instead.
+// (relative to the current temp cwd). This validates that the checkout's
+// migration files actually apply, and gives CLI tests a properly-initialised
+// DB (the voting subcommands' tables come from migrations/000001).
 func runMigrations(t *testing.T) {
 	t.Helper()
 	m, err := migrate.New("./data/aurora.db", repoMigrationsDir())
@@ -256,7 +254,7 @@ func runMigrations(t *testing.T) {
 		t.Fatalf("create migrator: %v", err)
 	}
 	t.Cleanup(func() { _ = m.Close() })
-	if _, err := m.Up(10); err != nil {
+	if _, err := m.Up(0); err != nil {
 		t.Fatalf("run migrations: %v", err)
 	}
 }
@@ -267,73 +265,4 @@ func runMigrations(t *testing.T) {
 func repoMigrationsDir() string {
 	_, thisFile, _, _ := runtime.Caller(0)
 	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "migrations")
-}
-
-// bootstrapVotingSchema creates the voting tables (votes, voters,
-// candidates, voting_sessions) that the CLI's voting subcommands expect,
-// behind the lazy repository built on blockchain.InitDB().
-//
-// These tables are supposed to be created by migrations/000001, but that
-// migration is currently un-appliable (PRAGMA WAL inside the migrator's tx
-// wrapper) and there is no `aurora migrate` subcommand, so a fresh CLI has
-// no voting tables at all. Until that root cause (issue-cli-migrations-
-// broken) is fixed, tests bootstrap the schema themselves to exercise the
-// command bodies rather than pin the failure.
-func bootstrapVotingSchema(t *testing.T) {
-	t.Helper()
-	// InitDB ensures the data dir + blocks table exist (matching how the
-	// lazy getVotingRepo path would set up on first use), then we create
-	// the voting tables on the same file.
-	// InitDB returns the process-wide singleton *sql.DB that getVotingRepo
-	// also holds — do NOT close it here or the committed commands would fail
-	// with "sql: database is closed". It is torn down by resetCliForTest's
-	// blockchain.ResetForTest() at the next withTempDir.
-	db, err := blockchain.InitDB()
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-
-	stmts := []string{
-		`CREATE TABLE IF NOT EXISTS votes (
-			id TEXT PRIMARY KEY,
-			voter_pk TEXT NOT NULL,
-			candidate_id TEXT NOT NULL,
-			signature TEXT NOT NULL,
-			message TEXT NOT NULL,
-			timestamp INTEGER NOT NULL,
-			block_height INTEGER NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS voters (
-			public_key TEXT PRIMARY KEY,
-			name TEXT NOT NULL,
-			has_voted INTEGER NOT NULL DEFAULT 0,
-			vote_hash TEXT,
-			registered_at INTEGER NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS candidates (
-			id TEXT PRIMARY KEY,
-			name TEXT NOT NULL,
-			party TEXT NOT NULL,
-			program TEXT NOT NULL,
-			description TEXT,
-			image_url TEXT,
-			vote_count INTEGER NOT NULL DEFAULT 0,
-			created_at INTEGER NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS voting_sessions (
-			id TEXT PRIMARY KEY,
-			title TEXT NOT NULL,
-			description TEXT NOT NULL,
-			start_time INTEGER NOT NULL,
-			end_time INTEGER NOT NULL,
-			status TEXT NOT NULL,
-			candidates TEXT NOT NULL,
-			created_at INTEGER NOT NULL
-		)`,
-	}
-	for _, s := range stmts {
-		if _, err := db.Exec(s); err != nil {
-			t.Fatalf("bootstrap voting schema: %v", err)
-		}
-	}
 }
