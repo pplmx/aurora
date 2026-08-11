@@ -2,61 +2,54 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-30)
+See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.3 Quality & Documentation (COMPLETE)
+**Current focus:** v1.5 Fresh-Install Operations & Coverage Bar (IN PROGRESS)
 
 ## Current Position
 
-Phase: v1.3 Complete
-Plan: All phases completed
-Status: Milestone complete
-Last activity: 2026-04-30 — Milestone v1.3 completed
+Phase: v1.5 Phase 1 (Migrate CLI Command)
+Plan: [ROADMAP.md](ROADMAP.md) — 3 phases (migrate CLI, coverage-bar infra, coverage-bar UI)
+Status: Milestone v1.5 started; Phase 1 beginning
+Last activity: 2026-08-11 — v1.4 completed; v1.5 kicked off
 
-Progress: [██████████] 100%
+Progress: [██░░░░░░░░] 10%
 
-## Phase Completion Summary
+## v1.4 Completion Summary
 
-| Phase | Status | Coverage/Results |
-|-------|--------|------------------|
-| 1: UI Package Tests | ✅ Complete | components 98.7%, lottery 58%, nft 66.7%, oracle 52.4%, token 43.8% |
-| 2: Handler Tests | ✅ Complete | handlers 43.1%, api 8.1%, middleware 97.4% |
-| 3: E2E Tests | ✅ Complete | All workflows + error recovery tests pass |
-| 4: Documentation | ✅ Complete | CLI examples added to all commands |
+| Phase | Focus | Result |
+|-------|-------|--------|
+| 1 | Oracle + Root + Helpers | ✅ covered |
+| 2 | Lottery Commands | ✅ covered |
+| 3 | Token + NFT Commands | ✅ covered |
+| 4 | Voting Commands | ✅ covered |
+| — | Final coverage | ✅ 21.9% → **86.3%** (`-race` green) |
 
-## Accumulated Context
+v1.4 also surfaced and fixed latent product bugs: migrations never applied,
+voting CLI flags broken (session/vote), lottery reset kept history,
+lottery verify ID-vs-height confusion.
 
-### Decisions
+## v1.5 Backlog (from graph)
 
-- UI testing: Use Go standard testing with testify assertions
-- Handler testing: httptest for HTTP handler testing
-- E2E testing: In-memory blockchain with comprehensive error scenarios
-- Documentation: Added examples to root and key module commands
+| Task | Priority | Status |
+|------|----------|--------|
+| `task-migrate-cli-subcommand` — `aurora migrate up/status/down` | 1.91 | active |
+| `task-coverage-bar-infra` — logger/i18n/backup → ≥80% | 0.98 | active |
+| `task-coverage-bar-ui` — ui/nft + ui/token → ≥80% | 0.85 | active |
 
-### Blockers/Concerns
+Deferred: `task-nft-voting-transactions` (0.28, accepted debt).
 
-None.
+## Coverage Snapshot (2026-08-11)
 
-## Test Status
+Below the 80% bar: `internal/logger` 55.2%, `internal/i18n` 65.2%,
+`internal/infra/backup` 73.8%, `internal/ui/nft` 66.7%,
+`internal/ui/token` 76.6%.
 
-- All packages passing ✅
-- Domain layer coverage: 70-94%
-- Handler coverage: 43.1%
-- Middleware coverage: 97.4% (exceeds 60% target) ✅
-- UI layer coverage: 43.8-98.7%
-- E2E tests: All passing (including error recovery) ✅
-
-## Latest Commit
-
-- `28905fb` - test(phase-1-3): add unit and E2E tests from add-tests command
-  - +940 lines across 5 test files
-  - NFT UI: 45.3% → 66.7% (exceeds 60% target)
-  - Token UI: 34.3% → 43.8%
-  - Middleware: 57.9% → 97.4% (exceeds 60% target)
+Documented thin boots (out of scope): `cmd/aurora`, `cmd/api` (0%);
+`e2e` is a test-only package (0% statements, suite green).
 
 ## Session Continuity
 
-Last session: 2026-04-30
-Completed: v1.3 Quality & Documentation milestone
-Next: Ready for v1.4 or next milestone
+Last session: 2026-08-11 — v1.4 CLI coverage milestone complete
+Next: v1.5 Phase 1 — implement `aurora migrate` subcommand + tests

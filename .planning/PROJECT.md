@@ -44,7 +44,7 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | Health check endpoint | ✅ /healthz, /readyz |
 | Security hardening | ✅ Timing-safe comparison |
 
-### 🔄 v1.3 Quality & Documentation (current)
+### ✅ v1.3 Quality & Documentation (2026-04-30)
 **Comprehensive test coverage and improved user experience**
 
 | Focus | Target |
@@ -53,6 +53,24 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | Handler tests | 80%+ coverage |
 | E2E tests | Automated test suite |
 | Documentation | Help system improvements |
+
+### ✅ v1.4 CLI Command Test Coverage (2026-08-11)
+**Every cobra subcommand tested — cmd/aurora/cmd 21.9% → 86.3%**
+
+| Focus | Result |
+|-------|--------|
+| Lottery/NFT/Oracle/Token/Voting/root command trees | All tested (happy + error) |
+| Migration engine fixed so real checkout migrations apply | Previously never ran |
+| Latent product bugs surfaced: broken reset, verify disambiguation, broken voting flags | Fixed |
+
+### 🔄 v1.5 Fresh-Install Operations & Coverage Bar (current)
+**Make a fresh install usable + enforce the 80% coverage bar everywhere**
+
+| Focus | Target |
+|-------|--------|
+| `aurora migrate up/status/down` CLI | Restore v1.1-documented MIG-03 |
+| logger / i18n / backup coverage | ≥ 80% |
+| ui/nft / ui/token coverage | ≥ 80% |
 
 ## Context
 
@@ -98,10 +116,8 @@ Performance: Pagination, interruptible mining, configurable timeouts
 
 ### Active
 
-- [ ] UI package tests (meaningful coverage)
-- [ ] Handler tests (80%+ coverage)
-- [ ] E2E automated tests
-- [ ] Documentation/help system improvements
+- [ ] `aurora migrate up/status/down` CLI subcommand (restore v1.1 MIG-03)
+- [ ] Coverage ≥ 80% in logger, i18n, backup, ui/nft, ui/token
 
 ### Out of Scope
 
@@ -140,4 +156,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-30 after v1.3 initialization*
+*Last updated: 2026-08-11 after v1.4 completion / v1.5 kickoff*
