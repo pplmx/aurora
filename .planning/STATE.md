@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 ## Current Position
 
-Phase: v1.5 Phase 1 (Migrate CLI Command)
+Phase: v1.5 Phases 1-3 (migrate CLI impl done; coverage bar complete)
 Plan: [ROADMAP.md](ROADMAP.md) — 3 phases (migrate CLI, coverage-bar infra, coverage-bar UI)
-Status: Milestone v1.5 started; Phase 1 beginning
+Status: Phases 2-3 complete; Phase 1 waits on code review before commit
 Last activity: 2026-08-11 — v1.4 completed; v1.5 kicked off
 
-Progress: [██░░░░░░░░] 10%
+Progress: [██████████░] 90%
 
 ## v1.4 Completion Summary
 
@@ -34,17 +34,16 @@ lottery verify ID-vs-height confusion.
 
 | Task | Priority | Status |
 |------|----------|--------|
-| `task-migrate-cli-subcommand` — `aurora migrate up/status/down` | 1.91 | active |
-| `task-coverage-bar-infra` — logger/i18n/backup → ≥80% | 0.98 | active |
-| `task-coverage-bar-ui` — ui/nft + ui/token → ≥80% | 0.85 | active |
+| `task-migrate-cli-subcommand` — `aurora migrate up/status/down` | 1.91 | in review → commit |
+| `task-coverage-bar-infra` — logger **96.6%**, i18n **97.0%**, backup **80.5%** | 0.98 | ✅ resolved |
+| `task-coverage-bar-ui` — ui/nft **94.2%**, ui/token **88.6%** | 0.85 | ✅ resolved |
 
 Deferred: `task-nft-voting-transactions` (0.28, accepted debt).
 
 ## Coverage Snapshot (2026-08-11)
 
-Below the 80% bar: `internal/logger` 55.2%, `internal/i18n` 65.2%,
-`internal/infra/backup` 73.8%, `internal/ui/nft` 66.7%,
-`internal/ui/token` 76.6%.
+Coverage bar MET (2026-08-11): logger 96.6%, i18n 97.0%, backup 80.5%,
+ui/nft 94.2%, ui/token 88.6%, app 100%, cmd/aurora/cmd 86.6%.
 
 Documented thin boots (out of scope): `cmd/aurora`, `cmd/api` (0%);
 `e2e` is a test-only package (0% statements, suite green).

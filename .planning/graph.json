@@ -552,22 +552,79 @@
     {
       "id": "task-coverage-bar-infra",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T15:30:00Z",
-      "updated_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T16:30:00Z",
       "confidence": 1.0,
-      "summary": "Lift internal/logger (55.2%), internal/i18n (65.2%), internal/infra/backup (73.8%) to ≥80% statement coverage with genuine tests, no weakening.",
+      "summary": "Lift internal/logger (55.2%), internal/i18n (65.2%), internal/infra/backup (73.8%) to ≥80% statement coverage with genuine tests, no weakening. RESOLVED: logger 96.6%, i18n 97.0%, backup 80.5% (commit f60a206).",
       "priority_score": 0.98
     },
     {
       "id": "task-coverage-bar-ui",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-11T15:30:00Z",
-      "updated_at": "2026-08-11T15:30:00Z",
+      "updated_at": "2026-08-11T16:30:00Z",
       "confidence": 1.0,
-      "summary": "Lift internal/ui/nft (66.7%) and internal/ui/token (76.6%) to ≥80%, following the ui/lottery (91.7%) / ui/oracle (86.1%) TUI state-machine testing pattern.",
+      "summary": "Lift internal/ui/nft (66.7%) and internal/ui/token (76.6%) to ≥80%, following the ui/lottery (91.7%) / ui/oracle (86.1%) TUI state-machine testing pattern. RESOLVED: nft 94.2%, token 88.6% (commits d9867bf, aa15d46). Also surfaced + fixed issue-nft-tui-transfer-guard.",
       "priority_score": 0.85
+    },
+    {
+      "id": "issue-nft-tui-transfer-guard",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-11T16:20:00Z",
+      "updated_at": "2026-08-11T16:30:00Z",
+      "confidence": 1.0,
+      "summary": "NFT TUI handleTransfer guarded len(fromKey) != 32 then sliced fromKey[32:] — a 32-byte 'seed-only' key yields an empty transfer owner, so the transfer success path was unreachable for any valid 64-byte Ed25519 private key. Latent because all prior transfer tests died on earlier validation. Found by Phase 3 UI coverage (mint→transfer success flow).",
+      "severity": 0.45,
+      "evidence": "internal/ui/nft/tui.go handleTransfer (len guard before fromKey[32:]); service.Transfer derives from = privateKey[32:] (internal/domain/nft/service.go:68-95); CLI use-case passes the full 64-byte key (internal/app/nft/usecase.go:90)"
+    },
+    {
+      "id": "evidence-coverage-bar-met",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-11T16:30:00Z",
+      "updated_at": "2026-08-11T16:30:00Z",
+      "confidence": 1.0,
+      "summary": "2026-08-11 final coverage: cmd/aurora/cmd 86.6%, internal/app 100%, logger 96.6%, i18n 97.0%, infra/backup 80.5%, ui/nft 94.2%, ui/token 88.6% — every deliverable package ≥80%. Remaining sub-80% are documented thin boots (cmd/aurora + cmd/api main) and the test-only e2e package. internal/app also closed 78.9 -> 100 via component-init error branches (commit 00d711f).",
+      "detail": "go test ./... -cover 2026-08-11, all green under -race"
+    },
+    {
+      "id": "change-coverage-bar-infra",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T16:30:00Z",
+      "updated_at": "2026-08-11T16:30:00Z",
+      "confidence": 1.0,
+      "summary": "test(logger,backup,i18n): coverage-bar Phase 2; logger 96.6%, i18n 97.0%, backup 80.5%. Commit f60a206."
+    },
+    {
+      "id": "change-nft-tui-transfer-fix",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T16:30:00Z",
+      "updated_at": "2026-08-11T16:30:00Z",
+      "confidence": 1.0,
+      "summary": "fix(ui/nft): transfer guard accepts 64-byte Ed25519 privkeys (ed25519.PrivateKeySize) + TUI Update/flow coverage; nft 66.7->94.2%. Commit d9867bf."
+    },
+    {
+      "id": "change-coverage-bar-ui",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T16:30:00Z",
+      "updated_at": "2026-08-11T16:30:00Z",
+      "confidence": 1.0,
+      "summary": "test(ui/token): in-memory atomic primitives + event bus + views; token 76.6->88.6%. Commit aa15d46."
+    },
+    {
+      "id": "change-app-wire-err-branches",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T16:30:00Z",
+      "updated_at": "2026-08-11T16:30:00Z",
+      "confidence": 1.0,
+      "summary": "test(app): Wire component-init error branches; app 78.9->100%. Commit 00d711f."
     }
   ],
   "edges": [
@@ -805,6 +862,49 @@
       "target": "task-coverage-bar-ui",
       "type": "causes",
       "kind": "derived"
+    },
+    {
+      "source": "change-coverage-bar-infra",
+      "target": "task-coverage-bar-infra",
+      "type": "resolves"
+    },
+    {
+      "source": "change-coverage-bar-ui",
+      "target": "task-coverage-bar-ui",
+      "type": "resolves"
+    },
+    {
+      "source": "change-nft-tui-transfer-fix",
+      "target": "issue-nft-tui-transfer-guard",
+      "type": "resolves"
+    },
+    {
+      "source": "change-nft-tui-transfer-fix",
+      "target": "task-coverage-bar-ui",
+      "type": "resolves",
+      "kind": "partial"
+    },
+    {
+      "source": "issue-nft-tui-transfer-guard",
+      "target": "task-coverage-bar-ui",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "change-app-wire-err-branches",
+      "target": "task-coverage-bar-infra",
+      "type": "resolves",
+      "kind": "partial"
+    },
+    {
+      "source": "evidence-coverage-bar-met",
+      "target": "task-coverage-bar-infra",
+      "type": "validates"
+    },
+    {
+      "source": "evidence-coverage-bar-met",
+      "target": "task-coverage-bar-ui",
+      "type": "validates"
     }
   ]
 }

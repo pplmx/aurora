@@ -68,9 +68,9 @@ Performance: Pagination, interruptible mining, configurable timeouts
 
 | Focus | Target |
 |-------|--------|
-| `aurora migrate up/status/down` CLI | Restore v1.1-documented MIG-03 |
-| logger / i18n / backup coverage | ≥ 80% |
-| ui/nft / ui/token coverage | ≥ 80% |
+| `aurora migrate up/status/down` CLI | Implemented + tested; commit pending review |
+| logger / i18n / backup coverage | ✅ 96.6% / 97.0% / 80.5% |
+| ui/nft / ui/token coverage | ✅ 94.2% / 88.6% (fixed NFT TUI transfer guard) |
 
 ## Context
 
