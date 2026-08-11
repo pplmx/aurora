@@ -714,6 +714,60 @@ func TestTokenRepository_TrySubtractFromSupply_ConcurrentNoNegativeSupply(t *tes
 	}
 }
 
+// TestTokenRepository_TryAddToSupply_OverflowRejected proves the conditional
+// bound refuses to grow total_supply past MaxInt64 instead of silently
+// wrapping into the unparseable float SQLite produces on integer overflow
+// (e.g. "9.223372036854776e+18").
+func TestTokenRepository_TryAddToSupply_OverflowRejected(t *testing.T) {
+	repo, cleanup := setupTokenTestDB(t)
+	defer cleanup()
+
+	tokenID := token.TokenID("OVF")
+	owner := []byte("overflow-owner")
+	_, err := repo.db.Exec(`
+		INSERT INTO tokens (id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, tokenID, "Overflow", "OVF", "9223372036854775807", 8, base64.StdEncoding.EncodeToString(owner), 1, 1, time.Now().Unix())
+	require.NoError(t, err)
+
+	_, err = repo.TryAddToSupply(tokenID, token.NewAmount(1))
+	require.Error(t, err, "adding to a saturated supply must be rejected")
+
+	got, err := repo.GetToken(tokenID)
+	require.NoError(t, err)
+	if got.TotalSupply().Int64() != 9223372036854775807 {
+		t.Fatalf("total_supply must be unchanged, got %s", got.TotalSupply().String())
+	}
+}
+
+// TestTokenRepository_TryAddBalance_OverflowRejected proves the DO UPDATE
+// bound refuses to grow a balance past MaxInt64. A new account is unaffected
+// (its balance is set directly, and the amount was pre-validated).
+func TestTokenRepository_TryAddBalance_OverflowRejected(t *testing.T) {
+	repo, cleanup := setupTokenTestDB(t)
+	defer cleanup()
+
+	tokenID := token.TokenID("BAL")
+	owner := []byte("balance-owner")
+	ownerB64 := base64.StdEncoding.EncodeToString(owner)
+	id := string(tokenID) + ownerB64
+
+	_, err := repo.db.Exec(`
+		INSERT INTO accounts (id, token_id, owner, balance, updated_at)
+		VALUES (?, ?, ?, ?, ?)
+	`, id, tokenID, ownerB64, "9223372036854775807", time.Now().Unix())
+	require.NoError(t, err)
+
+	_, err = repo.TryAddBalance(tokenID, token.PublicKey(owner), token.NewAmount(1))
+	require.Error(t, err, "incrementing a saturated balance must be rejected")
+
+	bal, err := repo.GetAccountBalance(tokenID, token.PublicKey(owner))
+	require.NoError(t, err)
+	if bal.Int64() != 9223372036854775807 {
+		t.Fatalf("balance must be unchanged, got %s", bal.String())
+	}
+}
+
 func TestTokenRepository_GetDB(t *testing.T) {
 	repo, cleanup := setupTokenTestDB(t)
 	defer cleanup()

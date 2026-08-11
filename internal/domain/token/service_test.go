@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"sync"
 	"testing"
@@ -338,6 +339,44 @@ func TestMint_InvalidAmount(t *testing.T) {
 	_, err := service.Mint(mintReq)
 	if err == nil {
 		t.Error("expected error for zero amount")
+	}
+}
+
+// TestMint_SupplyOverflowRejected proves minting onto an already-saturated
+// total_supply fails rather than silently wrapping the ledger into an
+// unparseable value (mirrors the SQLite conditional bound).
+func TestMint_SupplyOverflowRejected(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	_, err := service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "OVF",
+		TotalSupply: &Amount{Int: new(big.Int).SetUint64(math.MaxInt64)},
+		Owner:       owner,
+	})
+	if err != nil {
+		t.Fatalf("CreateToken failed: %v", err)
+	}
+
+	_, err = service.Mint(&MintRequest{
+		TokenID:    "OVF",
+		To:         pubKey(2),
+		Amount:     NewAmount(1),
+		PrivateKey: privKey(1),
+	})
+	if err == nil {
+		t.Fatal("mint onto a saturated supply must be rejected")
+	}
+
+	info, err := service.GetTokenInfo("OVF")
+	if err != nil {
+		t.Fatalf("GetTokenInfo failed: %v", err)
+	}
+	if got := info.TotalSupply().String(); got != "9223372036854775807" {
+		t.Fatalf("total_supply must be unchanged, got %s", got)
 	}
 }
 
@@ -1065,18 +1104,25 @@ func (m *mockRepository) TryAddBalance(tokenID TokenID, owner PublicKey, amount 
 		cur = NewAmount(0)
 	}
 	newBal := &Amount{Int: new(big.Int).Add(cur.Int, amount.Int)}
+	// Mirror the SQLite primitive: refuse to push the balance past MaxInt64.
+	if newBal.BitLen() > 63 {
+		return nil, fmt.Errorf("try add balance: balance would exceed maximum")
+	}
 	m.balances[key] = newBal
 	return newBal, nil
 }
 
 // TryAddToSupply mirrors the SQLite primitive: atomically adds
-// amount to the token's total_supply.
+// amount to the token's total_supply, refusing to exceed MaxInt64.
 func (m *mockRepository) TryAddToSupply(id TokenID, amount *Amount) (*Amount, error) {
 	tok, ok := m.tokens[id]
 	if !ok {
 		return nil, ErrTokenNotFound
 	}
 	newSupply := &Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
+	if newSupply.BitLen() > 63 {
+		return nil, fmt.Errorf("try add to supply: total supply would exceed maximum")
+	}
 	m.tokens[id] = NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
 	return newSupply, nil
 }

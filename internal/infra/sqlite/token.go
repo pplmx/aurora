@@ -212,10 +212,20 @@ func (r *TokenRepository) SaveApproval(approval *token.Approval) error {
 	return err
 }
 
+// maxInt64String is SQLite's largest signed 64-bit integer, used as an
+// arithmetic ceiling for the CAST-based primitives. Amounts are individually
+// capped below this by token.ValidateAmount, but cumulative totals (supply,
+// balances) can still reach it over many operations; past that boundary
+// SQLite's INTEGER arithmetic silently converts to IEEE-754 REAL and stores an
+// unparseable float (e.g. "9.223372036854776e+18") that token.NewAmountFromString
+// cannot read back. The conditional bounds below make such overflows a hard
+// error instead of corrupting the ledger.
+const maxInt64String = "9223372036854775807"
+
 // TryAddToSupply atomically adds amount to the token's
 // total_supply column. The UPDATE is conditional on the token
-// existing (WHERE id = ?) but does not check any other state —
-// Mint is allowed to grow the supply unboundedly.
+// existing AND on the resulting total_supply staying within signed
+// 64-bit range; an increment that would overflow is rejected.
 //
 // This closes the TOCTOU window in TokenService.Mint: the
 // pre-fix flow did GetToken → token.AddToSupply(in-memory
@@ -228,7 +238,8 @@ func (r *TokenRepository) TryAddToSupply(id token.TokenID, amount *token.Amount)
 	res, err := r.q().Exec(`
 		UPDATE tokens SET total_supply = CAST(total_supply AS INTEGER) + ?
 		WHERE id = ?
-	`, amount.String(), id)
+		  AND CAST(total_supply AS INTEGER) <= (? - ?)
+	`, amount.String(), id, maxInt64String, amount.String())
 	if err != nil {
 		return nil, fmt.Errorf("try add to supply: %w", err)
 	}
@@ -237,7 +248,17 @@ func (r *TokenRepository) TryAddToSupply(id token.TokenID, amount *token.Amount)
 		return nil, fmt.Errorf("try add to supply rows: %w", err)
 	}
 	if affected == 0 {
-		return nil, token.ErrTokenNotFound
+		// Either the token is missing or the increment would overflow
+		// MaxInt64. Distinguish so callers surface the right error and
+		// (critically) never mint onto an already-saturated supply.
+		existing, err := r.GetToken(id)
+		if err != nil {
+			return nil, err
+		}
+		if existing == nil {
+			return nil, token.ErrTokenNotFound
+		}
+		return nil, fmt.Errorf("try add to supply: total supply would exceed maximum")
 	}
 	updated, err := r.GetToken(id)
 	if err != nil {
@@ -499,15 +520,30 @@ func (r *TokenRepository) TryAddBalance(tokenID token.TokenID, owner token.Publi
 	// INSERT ... ON CONFLICT DO UPDATE handles both the "create new
 	// account" and "increment existing account" cases in one
 	// statement, so there is no read-then-write window for a race.
-	_, err := r.q().Exec(`
+	//
+	// The WHERE clause on DO UPDATE prevents incrementing an existing
+	// balance past MaxInt64: a skipped update reports RowsAffected()==0
+	// (verified empirically), and since a fresh insert always reports 1,
+	// affected==0 unambiguously means "the account exists but the
+	// increment would overflow" — refuse rather than write an
+	// unparseable float or silently clamp.
+	res, err := r.q().Exec(`
 		INSERT INTO accounts (id, token_id, owner, balance, updated_at)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			balance = CAST(balance AS INTEGER) + excluded.balance,
 			updated_at = excluded.updated_at
-	`, id, tokenID, ownerB64, amountStr, time.Now().Unix())
+		WHERE CAST(balance AS INTEGER) <= (? - excluded.balance)
+	`, id, tokenID, ownerB64, amountStr, time.Now().Unix(), maxInt64String)
 	if err != nil {
 		return nil, fmt.Errorf("try add balance: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("try add balance rows: %w", err)
+	}
+	if affected == 0 {
+		return nil, fmt.Errorf("try add balance: balance would exceed maximum")
 	}
 
 	return r.GetAccountBalance(tokenID, owner)

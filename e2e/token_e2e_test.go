@@ -106,6 +106,10 @@ func (r *inMemoryTokenRepo) TryAddBalance(tokenID token.TokenID, owner token.Pub
 		cur = token.NewAmount(0)
 	}
 	newBal := &token.Amount{Int: new(big.Int).Add(cur.Int, amount.Int)}
+	// Mirror the SQLite primitive: refuse to push the balance past MaxInt64.
+	if newBal.BitLen() > 63 {
+		return nil, fmt.Errorf("try add balance: balance would exceed maximum")
+	}
 	r.balances[key] = newBal
 	return newBal, nil
 }
@@ -116,6 +120,10 @@ func (r *inMemoryTokenRepo) TryAddToSupply(id token.TokenID, amount *token.Amoun
 		return nil, token.ErrTokenNotFound
 	}
 	newSupply := &token.Amount{Int: new(big.Int).Add(tok.TotalSupply().Int, amount.Int)}
+	// Mirror the SQLite primitive: refuse to push total_supply past MaxInt64.
+	if newSupply.BitLen() > 63 {
+		return nil, fmt.Errorf("try add to supply: total supply would exceed maximum")
+	}
 	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
 	return newSupply, nil
 }
