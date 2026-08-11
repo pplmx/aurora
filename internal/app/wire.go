@@ -11,7 +11,7 @@ import (
 )
 
 type App struct {
-	EventBus     *infraevents.CompositeEventBus
+	EventBus     infraevents.EventBus
 	TokenService token.Service
 }
 
@@ -30,9 +30,13 @@ func Wire(dataDir string) (*App, error) {
 		return nil, err
 	}
 
-	bus := infraevents.NewCompositeEventBus()
-	bus.SyncBus.SubscribeAll(infraevents.NewAuditHandler(eventStore).Handle)
-	bus.SyncBus.SubscribeAll(infraevents.NewStatsHandler().Handle)
+	// The token service only drives the synchronous bus (audit + stats
+	// handlers). The previous CompositeEventBus also spawned an idle
+	// AsyncEventBus goroutine and an empty PluginBus, neither subscribed nor
+	// closeable from App — one leaked goroutine per Wire() call.
+	bus := infraevents.NewSyncEventBus()
+	bus.SubscribeAll(infraevents.NewAuditHandler(eventStore).Handle)
+	bus.SubscribeAll(infraevents.NewStatsHandler().Handle)
 
 	chain := blockchain.NewBlockChain()
 
