@@ -407,14 +407,36 @@ var resetCmd = &cobra.Command{
 		}
 		defer func() { _ = db.Close() }()
 
-		if _, err := db.Exec("DELETE FROM blocks WHERE height > 0"); err != nil {
-			return fmt.Errorf("failed to reset: %w", err)
+		// A lottery lives in two stores: the chain (`blocks` table) and the
+		// persistent history (`lottery_records` table, which historyCmd,
+		// verifyCmd, exportCmd and importCmd read). Deleting only `blocks`
+		// left `lottery_records` intact, so after a reset, `lottery history`
+		// still listed every draw — contradicting the "delete ALL lottery
+		// records!" confirmation. Clear both.
+		//
+		// On a brand-new DB neither table exists yet (created lazily by
+		// InitBlockChain / the repository / migrations), so a DELETE against
+		// a missing table is "no such table" — tolerated, not an error.
+		for _, stmt := range []string{
+			"DELETE FROM blocks WHERE height > 0",
+			"DELETE FROM lottery_records",
+		} {
+			if _, err := db.Exec(stmt); err != nil && !isNoSuchTable(err) {
+				return fmt.Errorf("failed to reset: %w", err)
+			}
 		}
 
 		logger.Info().Msg("Database reset successfully")
 		fmt.Println("✅ Database reset complete!")
 		return nil
 	},
+}
+
+// isNoSuchTable reports whether err is SQLite's "no such table" error.
+// lottery reset tolerates it because blocks and lottery_records are created
+// lazily and may not exist on a brand-new DB.
+func isNoSuchTable(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "no such table")
 }
 
 var versionCmd = &cobra.Command{
