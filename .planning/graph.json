@@ -292,6 +292,44 @@
       "summary": "fix(blockchain): persist appended blocks via InitBlockChain persister closure + stop doubling genesis on reload; removed orphaned sqlite BlockchainRepository. Commits 93ffe26, 3198371."
     },
     {
+      "id": "issue-app-wire-untested",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-11T12:30:00Z",
+      "updated_at": "2026-08-11T12:30:00Z",
+      "confidence": 0.95,
+      "summary": "The DI composition root (internal/app/wire.go) had 0% test coverage — the exact place where cross-DB-file / separate-pool wiring bugs would surface, with no end-to-end check that the assembled app actually works.",
+      "severity": 0.3
+    },
+    {
+      "id": "change-5965464",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T12:30:00Z",
+      "updated_at": "2026-08-11T12:30:00Z",
+      "confidence": 1.0,
+      "summary": "test(app): end-to-end Wire round-trip (create/mint/transfer + ledger + audit history). Commit 5965464. app coverage 0%->78.9%."
+    },
+    {
+      "id": "issue-wire-unused-async-bus",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-11T12:30:00Z",
+      "updated_at": "2026-08-11T12:40:00Z",
+      "confidence": 0.9,
+      "summary": "app.Wire built a CompositeEventBus whose AsyncBus spawned an event loop goroutine and whose PluginBus was empty; neither was subscribed, and App exposed no Close — each Wire() call leaked one idle goroutine. Resolved: Wire now uses a plain SyncEventBus; App.EventBus is the EventBus interface.",
+      "severity": 0.2
+    },
+    {
+      "id": "change-e55e529",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-11T12:40:00Z",
+      "updated_at": "2026-08-11T12:40:00Z",
+      "confidence": 1.0,
+      "summary": "refactor(app): drop idle async/plugin buses from Wire (SyncEventBus), App.EventBus -> EventBus interface. Commit e55e529."
+    },
+    {
       "id": "decision-phantom-events-accepted",
       "type": "decision",
       "status": "active",
@@ -325,6 +363,8 @@
     {"source": "change-8cf8ced", "target": "issue-voting-input-validation", "type": "resolves"},
     {"source": "issue-chain-not-persistent", "target": "task-chain-persistence", "type": "causes", "kind": "derived"},
     {"source": "change-93ffe26", "target": "task-chain-persistence", "type": "resolves"},
+    {"source": "change-5965464", "target": "issue-app-wire-untested", "type": "resolves"},
+    {"source": "change-e55e529", "target": "issue-wire-unused-async-bus", "type": "resolves"},
     {"source": "issue-nft-voting-no-transactions", "target": "task-nft-voting-transactions", "type": "causes", "kind": "derived"},
     {"source": "change-e8c27dc", "target": "task-backup-coverage", "type": "resolves", "kind": "partial"}
   ]
