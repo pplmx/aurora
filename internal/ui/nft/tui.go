@@ -1,6 +1,7 @@
 package nft
 
 import (
+	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -387,7 +388,10 @@ func (m *model) handleTransfer() tea.Msg {
 		return nil
 	}
 
-	if len(fromKey) != 32 {
+	// fromKey is the full 64-byte Ed25519 private key (seed|public). The
+	// service derives the from-pubkey as fromKey[32:], so a 32-byte seed-only
+	// key would yield an empty owner and always fail the transfer.
+	if len(fromKey) != ed25519.PrivateKeySize {
 		m.err = i18n.GetText("error.invalid_privkey")
 		return nil
 	}
