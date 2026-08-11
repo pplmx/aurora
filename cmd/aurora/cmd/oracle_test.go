@@ -20,6 +20,12 @@ func runCmd(t *testing.T, args ...string) (string, error) {
 	rootCmd.PersistentPreRunE = nil
 	t.Cleanup(func() { rootCmd.PersistentPreRunE = prev })
 
+	// Cobra's required-flag validation relies on each flag's Changed bit,
+	// which persists across Execute calls within this process. Reset the
+	// whole tree before every invocation so one command's flags cannot
+	// satisfy another command's required-flag check.
+	resetFlags(rootCmd)
+
 	capture := captureStdout(t)
 	rootCmd.SetArgs(args)
 	err := rootCmd.Execute()
