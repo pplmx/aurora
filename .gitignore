@@ -19,8 +19,13 @@ cmake-build-*/
 out/
 
 ### Go template
-# Binaries for programs and plugins
-**/aurora
+# Binaries for programs and plugins.
+# Anchored to the repo root: `just build` emits `./aurora` and the release
+# cross-builds emit `./aurora-<os>-<arch>`. A non-anchored `**/aurora`
+# would ALSO match the `cmd/aurora/` source directory and silently ignore
+# every test file under it — which is exactly what happened here.
+/aurora
+/aurora-*
 *.exe
 *.exe~
 *.dll
