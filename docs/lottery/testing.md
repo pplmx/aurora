@@ -6,37 +6,38 @@
 # 运行所有测试
 go test ./...
 
-# 运行 lottery 包单元测试
-go test ./internal/lottery/ -v
+# 运行 lottery 领域包单元测试
+go test ./internal/domain/lottery/ -v
 
 # 运行 E2E 功能测试
-go test ./test/ -v
+go test ./e2e/ -v
 
 # 运行特定测试
-go test ./internal/lottery/ -run TestNameToAddress -v
+go test ./internal/domain/lottery/ -run 'TestVRF.*' -v
 ```
 
 ## 测试类型
 
-### 单元测试 (internal/lottery)
+### 单元测试 (internal/domain/lottery)
 
 | 测试                                     | 说明                 |
 | ---------------------------------------- | -------------------- |
 | `TestNameToAddress`                      | 验证名字转地址功能   |
-| `TestNameToAddressConsistency`           | 同一名字生成相同地址 |
-| `TestNameToAddressDifferent`             | 不同名字生成不同地址 |
-| `TestSelectWinners`                      | 中奖者选择逻辑       |
-| `TestSelectWinnersNotEnoughParticipants` | 参与者不足时的处理   |
-| `TestSelectWinnersEmptyParticipants`     | 空参与者列表处理     |
+| `TestSelectWinners_EmptyParticipants`    | 空参与者列表处理     |
+| `TestSelectWinners_CountExceedsParticipants` | 参与者不足时的处理 |
+| `TestSelectWinners_ExactCount`           | 中奖者选择逻辑       |
+| `TestSelectWinners_AllUnique`            | 中奖者不重复         |
 | `TestCreateLotteryRecord`                | 抽奖记录创建         |
-| `TestLotteryRecordToJSON`                | JSON 序列化          |
-| `TestEndToEndLottery`                    | 端到端测试           |
-| `TestGenerateKeyPair`                    | VRF 密钥对生成       |
-| `TestVRFProveVerify`                     | VRF 生成与验证       |
-| `TestVRFUniqueness`                      | 不同密钥产生不同输出 |
-| `TestVRFDifferentSeeds`                  | 不同种子产生不同输出 |
+| `TestLotteryRecord_ToJSON`               | JSON 序列化          |
+| `TestLotteryService_DrawWinners`         | 抽奖核心逻辑         |
+| `TestLotteryService_VerifyDraw`          | 抽奖结果验证         |
+| `TestGenerateKeyPair_VerifyWorks`        | VRF 密钥对生成与验证 |
+| `TestVRFProve_Consistent`                | VRF 输出一致性       |
+| `TestVRFProve_DifferentMessages`         | 不同消息产生不同输出 |
+| `TestVRFVerify_ValidProof`               | VRF 验证有效证明     |
+| `TestVRFVerify_OutputAndProofConsistency`| 输出与证明一致性     |
 
-### E2E 功能测试 (test/)
+### E2E 功能测试 (e2e/)
 
 | 测试                               | 说明                             |
 | ---------------------------------- | -------------------------------- |
@@ -56,10 +57,10 @@ go test ./internal/lottery/ -run TestNameToAddress -v
 
 ```bash
 # 单元测试覆盖率
-go test ./internal/lottery/ -cover
+go test ./internal/domain/lottery/ -cover
 
 # 查看详细覆盖率
-go test ./internal/lottery/ -coverprofile=coverage.out
+go test ./internal/domain/lottery/ -coverprofile=coverage.out
 go tool cover -html=coverage.out
 ```
 

@@ -47,13 +47,13 @@
 go build -o aurora ./cmd/aurora
 ```
 
-### 使用 makefile
+### 使用 justfile
 
 ```bash
-make test          # 运行测试
-make build        # 构建所有平台
-make lint         # 代码检查
-make dev          # Docker 开发
+just test          # 运行测试
+just build        # 构建所有平台
+just lint         # 代码检查
+just dev          # Docker 开发
 ```
 
 ### CLI 示例
@@ -65,29 +65,31 @@ make dev          # Docker 开发
 ./aurora lottery tui
 
 # 投票
-./aurora voting create -t "Proposal" -o "owner_key"
-./aurora voting vote -k "signing_key"
-./aurora voting tui
+./aurora voting candidate add -n "Name" -p "Party"
+./aurora voting voter register -n "Name"
+./aurora voting session create -t "Proposal" -c <cand-id> --start-time <t> --end-time <t>
+./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv-key>
+./aurora voting results -s <session-id>
 
 # 预言机
-./aurora oracle sources
-./aurora oracle fetch --source <id>
-./aurora oracle query --source <id> --limit 10
+./aurora oracle source list
+./aurora oracle fetch -s <source-id>
+./aurora oracle data -s <source-id> --limit 10
 ./aurora oracle tui
 
 # NFT
 ./aurora nft mint -n "My NFT" -d "Description" -c "<creator-pub>"
-./aurora nft transfer --nft <id> --to <to> -k <priv>
+./aurora nft transfer --nft <id> --from <owner> --to <to> -k <priv>
 ./aurora nft get --id <nft_id>
 ./aurora nft list --owner <pubkey>
 ./aurora nft tui
 
 # Token
 ./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000
-./aurora token mint --to <address> --amount 100 -k <priv>
-./aurora token transfer --to <address> --amount 50 -k <priv>
-./aurora token balance --owner <address>
-./aurora token history
+./aurora token mint -t <token-id> --to <address> --amount 100 -k <priv>
+./aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k <priv>
+./aurora token balance -t <token-id> --owner <address>
+./aurora token history -t <token-id> --owner <address>
 ./aurora token tui
 ```
 
@@ -159,13 +161,13 @@ go vet ./...
 golangci-lint run ./...
 
 # 构建
-make build
+just build
 go build -o aurora ./cmd/aurora
 
 # Docker
-make dev      # 开发模式
-make start    # 启动容器
-make stop     # 停止容器
+just dev      # 开发模式
+just start    # 启动容器
+just stop     # 停止容器
 ```
 
 ## 测试覆盖率

@@ -128,13 +128,13 @@ SQLite 数据库位置: `data/aurora.db`
 表结构:
 
 ```sql
-CREATE TABLE blocks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    height INTEGER NOT NULL UNIQUE,
+CREATE TABLE IF NOT EXISTS blocks (
+    height INTEGER PRIMARY KEY,
     hash TEXT NOT NULL,
     previous_hash TEXT NOT NULL,
     data TEXT NOT NULL,
     nonce INTEGER NOT NULL,
+    timestamp INTEGER NOT NULL,
     created_at INTEGER NOT NULL
 );
 ```
