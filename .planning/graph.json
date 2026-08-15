@@ -908,6 +908,26 @@
       "summary": "fix(token): persist block height in token event payloads; reader surfaces it. PreservesBlockHeight + BlockHeightDefaultsToZero tests. Commit 731249c."
     },
     {
+      "id": "issue-token-approve-dangling-token",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T04:30:00Z",
+      "updated_at": "2026-08-12T04:40:00Z",
+      "confidence": 0.9,
+      "summary": "Approve was the only token mutator that checked only the GetToken error, not nil-token. A repo returning (nil,nil) for a missing token (mock) let SaveApproval create an orphaned approval row for a non-existent token — the dangling-token gap previously fixed on Increase/DecreaseAllowance.",
+      "severity": 0.3,
+      "evidence": "internal/domain/token/service.go Approve (pre-fix) used 'if _, err := GetToken; err != nil' with no nil-token check"
+    },
+    {
+      "id": "change-token-approve-guard",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T04:40:00Z",
+      "updated_at": "2026-08-12T04:40:00Z",
+      "confidence": 1.0,
+      "summary": "fix(token): Approve now rejects non-existent tokens with ErrTokenNotFound (checks error and nil-token); TestApprove_TokenNotFound. Commit 347bbdf."
+    },
+    {
       "id": "evidence-windows-suite-red-detail",
       "type": "evidence",
       "status": "active",
@@ -919,6 +939,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-token-approve-guard",
+      "target": "issue-token-approve-dangling-token",
+      "type": "resolves"
+    },
     {
       "source": "change-token-event-height-persisted",
       "target": "task-token-event-height-not-persisted",
