@@ -798,6 +798,26 @@
       "summary": "fix(oracle): AddSourceUseCase delegates to oracle.NewService(repo).AddSource so URL-scheme SSRF + name validation apply at every entry point; validation errors pass through, persist errors keep context; new RejectsDisallowedScheme test. Commit e718d6f."
     },
     {
+      "id": "issue-api-shutdown-leak",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T02:00:00Z",
+      "updated_at": "2026-08-12T02:05:00Z",
+      "confidence": 0.9,
+      "summary": "cmd/api/main.go shuts down the HTTP server on SIGINT/SIGTERM but never calls api.Server.Close(), so the SQLite repo / event-store handles NewServer opened are only reclaimed by the OS on process exit. Graceful-shutdown hygiene gap (inconsistent with the test-side handle release added in 8d1b420).",
+      "severity": 0.25,
+      "evidence": "cmd/api/main.go: no srv.Close() anywhere in the shutdown path (pre-fix)"
+    },
+    {
+      "id": "change-api-shutdown-close",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T02:05:00Z",
+      "updated_at": "2026-08-12T02:05:00Z",
+      "confidence": 1.0,
+      "summary": "fix(cmd/api): add defer srv.Close() so the API server's SQLite/event handles are released on shutdown for any exit path. Commit 83346d9."
+    },
+    {
       "id": "evidence-windows-suite-red-detail",
       "type": "evidence",
       "status": "active",
@@ -809,6 +829,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-api-shutdown-close",
+      "target": "issue-api-shutdown-leak",
+      "type": "resolves"
+    },
     {
       "source": "change-oracle-add-source-validation",
       "target": "issue-oracle-add-source-bypasses-validation",
