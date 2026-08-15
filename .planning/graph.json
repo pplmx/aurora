@@ -658,9 +658,104 @@
       "updated_at": "2026-08-11T17:00:00Z",
       "confidence": 1.0,
       "summary": "feat(cmd): add aurora migrate up/down/status CLI — step-N capping, empty-path guard, i18n keys, 11 tests + binary smoke. Commit 4e3c9ba."
+    },
+    {
+      "id": "issue-migrate-windows-url",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z",
+      "confidence": 0.98,
+      "summary": "migrate.go built its file source URL as \"file://\"+absMigPath. On Windows absMigPath is C:\\Users\\...\\migrations, so net/url parsed 'C' as the host and '\\Users...' as an invalid port → 'failed to open migration source' — every `aurora migrate` command and all 13 cmd migrate tests failed on Windows. (golang-migrate file driver parses the URL with net/url.)",
+      "severity": 0.55,
+      "evidence": "internal/infra/migrate/migrate.go:67; repro = go test ./cmd/aurora/cmd/ -run Migrate on Windows (all red with 'invalid port ... after host')"
+    },
+    {
+      "id": "issue-oracle-no-close",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z",
+      "confidence": 0.97,
+      "summary": "OracleRepository had no Close() (siblings Lottery/NFT/Token do), so its *sql.DB handle was never released. On Windows an open SQLite handle blocks temp-dir removal, making most oracle_repo tests fail at t.TempDir cleanup even though assertions passed.",
+      "severity": 0.35,
+      "evidence": "internal/infra/sqlite/oracle_repo_test.go setupOracleTestDB did os.RemoveAll without ever closing repo.db"
+    },
+    {
+      "id": "issue-windows-tempdir-cleanup",
+      "type": "issue",
+      "status": "active",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z",
+      "confidence": 0.9,
+      "summary": "Many cmd/aurora/cmd CLI tests (lottery/nft/token/voting), internal/api and internal/app tests still fail on Windows at t.TempDir cleanup: CLI/API commands open SQLite handles (blockchain.InitDB, service repos, event reads) that are never closed before process exit, so t.TempDir's RemoveAll (which runs after the test body) hits an in-use file. On Unix unlink-of-open-file succeeds so the suite is green there; on Windows it is red. Root cause is missing handle Close in CLI/API command paths, not the tests themselves. Scope: cmd/aurora/cmd, internal/api, internal/app.",
+      "severity": 0.4,
+      "evidence": "go test ./... on Windows: ~50 TempDir RemoveAll 'being used by another process' failures across cmd(97s)/api/app; same suite passes on Unix"
+    },
+    {
+      "id": "change-c58d66f",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z",
+      "confidence": 1.0,
+      "summary": "fix(migrations): use filepath.ToSlash when building the file:// source URL (Windows portability, no-op on Unix); add OracleRepository.Close() + close in test helper. Commit c58d66f."
+    },
+    {
+      "id": "task-windows-tempdir-cleanup",
+      "type": "task",
+      "status": "active",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z",
+      "confidence": 0.85,
+      "summary": "Close SQLite/event handles in CLI command + API server paths (or centralize so in-process tests on Windows don't hold files open at t.TempDir cleanup): audit cmd/aurora/cmd (lottery/nft/token/voting), internal/api NewServer, internal/app Wire for handles opened but never closed that linger only because the process exits. Enables green suite on Windows; harmless on Unix.",
+      "priority_score": 1.6
+    },
+    {
+      "id": "evidence-windows-suite-red-detail",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:00:00Z",
+      "confidence": 1.0,
+      "summary": "2026-08-12 Windows run, after the c58d66f fixes (migrate + oracle now green): go test ./... still red due to t.TempDir RemoveAll cleanup on internal/infra/sqlite (fixed), cmd/aurora/cmd (~45 cases), internal/api (2), internal/app (2). All 'The process cannot access the file because it is being used by another process'. Logic assertions pass; only cleanup fails.",
+      "detail": "Root: CLI/API command paths never Close() the sql.DB/event handles they open; process exit normally reclaims them (Unix green), Windows temp cleanup fails."
     }
   ],
   "edges": [
+    {
+      "source": "change-c58d66f",
+      "target": "issue-migrate-windows-url",
+      "type": "resolves"
+    },
+    {
+      "source": "change-c58d66f",
+      "target": "issue-oracle-no-close",
+      "type": "resolves"
+    },
+    {
+      "source": "issue-windows-tempdir-cleanup",
+      "target": "task-windows-tempdir-cleanup",
+      "type": "causes",
+      "kind": "derived"
+    },
+    {
+      "source": "evidence-windows-suite-red-detail",
+      "target": "issue-windows-tempdir-cleanup",
+      "type": "validates"
+    },
+    {
+      "source": "issue-windows-tempdir-cleanup",
+      "target": "issue-migrate-windows-url",
+      "type": "causes",
+      "kind": "sibling"
+    },
+    {
+      "source": "issue-windows-tempdir-cleanup",
+      "target": "issue-oracle-no-close",
+      "type": "causes",
+      "kind": "sibling"
+    },
     {
       "source": "change-caa2c94",
       "target": "issue-burn-supply-gap",
