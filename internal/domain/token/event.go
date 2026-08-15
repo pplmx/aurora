@@ -64,11 +64,12 @@ func (e *TransferEvent) Module() string      { return "token" }
 func (e *TransferEvent) AggregateID() string { return string(e.tokenID) }
 func (e *TransferEvent) Payload() []byte {
 	payload := map[string]interface{}{
-		"from":   base64.StdEncoding.EncodeToString(e.from),
-		"to":     base64.StdEncoding.EncodeToString(e.to),
-		"amount": e.amount.String(),
-		"nonce":  e.nonce,
-		"sig":    base64.StdEncoding.EncodeToString(e.signature),
+		"from":         base64.StdEncoding.EncodeToString(e.from),
+		"to":           base64.StdEncoding.EncodeToString(e.to),
+		"amount":       e.amount.String(),
+		"nonce":        e.nonce,
+		"sig":          base64.StdEncoding.EncodeToString(e.signature),
+		"block_height": e.blockHeight,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -121,8 +122,9 @@ func (e *MintEvent) Module() string      { return "token" }
 func (e *MintEvent) AggregateID() string { return string(e.tokenID) }
 func (e *MintEvent) Payload() []byte {
 	payload := map[string]interface{}{
-		"to":     base64.StdEncoding.EncodeToString(e.to),
-		"amount": e.amount.String(),
+		"to":           base64.StdEncoding.EncodeToString(e.to),
+		"amount":       e.amount.String(),
+		"block_height": e.blockHeight,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -175,8 +177,9 @@ func (e *BurnEvent) Module() string      { return "token" }
 func (e *BurnEvent) AggregateID() string { return string(e.tokenID) }
 func (e *BurnEvent) Payload() []byte {
 	payload := map[string]interface{}{
-		"from":   base64.StdEncoding.EncodeToString(e.from),
-		"amount": e.amount.String(),
+		"from":         base64.StdEncoding.EncodeToString(e.from),
+		"amount":       e.amount.String(),
+		"block_height": e.blockHeight,
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {

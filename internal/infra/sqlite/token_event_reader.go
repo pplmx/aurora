@@ -31,11 +31,12 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 		}
 
 		var payload struct {
-			From   string `json:"from"`
-			To     string `json:"to"`
-			Amount string `json:"amount"`
-			Nonce  uint64 `json:"nonce"`
-			Sig    string `json:"sig"`
+			From        string `json:"from"`
+			To          string `json:"to"`
+			Amount      string `json:"amount"`
+			Nonce       uint64 `json:"nonce"`
+			Sig         string `json:"sig"`
+			BlockHeight int64  `json:"block_height"`
 		}
 		if err := json.Unmarshal(e.Payload(), &payload); err != nil {
 			continue
@@ -54,7 +55,7 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 			continue
 		}
 
-		evt := token.NewTransferEventFromData(e.ID(), tokenID, from, to, amount, payload.Nonce, sig, 0, e.Timestamp())
+		evt := token.NewTransferEventFromData(e.ID(), tokenID, from, to, amount, payload.Nonce, sig, payload.BlockHeight, e.Timestamp())
 		result = append(result, evt)
 	}
 
@@ -75,8 +76,9 @@ func (r *TokenEventReader) GetMintEventsByToken(tokenID token.TokenID) ([]*token
 		}
 
 		var payload struct {
-			To     string `json:"to"`
-			Amount string `json:"amount"`
+			To          string `json:"to"`
+			Amount      string `json:"amount"`
+			BlockHeight int64  `json:"block_height"`
 		}
 		if err := json.Unmarshal(e.Payload(), &payload); err != nil {
 			continue
@@ -89,7 +91,7 @@ func (r *TokenEventReader) GetMintEventsByToken(tokenID token.TokenID) ([]*token
 			continue
 		}
 
-		evt := token.NewMintEventFromData(e.ID(), tokenID, to, amount, 0, e.Timestamp())
+		evt := token.NewMintEventFromData(e.ID(), tokenID, to, amount, payload.BlockHeight, e.Timestamp())
 		result = append(result, evt)
 	}
 
@@ -110,8 +112,9 @@ func (r *TokenEventReader) GetBurnEventsByToken(tokenID token.TokenID) ([]*token
 		}
 
 		var payload struct {
-			From   string `json:"from"`
-			Amount string `json:"amount"`
+			From        string `json:"from"`
+			Amount      string `json:"amount"`
+			BlockHeight int64  `json:"block_height"`
 		}
 		if err := json.Unmarshal(e.Payload(), &payload); err != nil {
 			continue
@@ -124,7 +127,7 @@ func (r *TokenEventReader) GetBurnEventsByToken(tokenID token.TokenID) ([]*token
 			continue
 		}
 
-		evt := token.NewBurnEventFromData(e.ID(), tokenID, from, amount, 0, e.Timestamp())
+		evt := token.NewBurnEventFromData(e.ID(), tokenID, from, amount, payload.BlockHeight, e.Timestamp())
 		result = append(result, evt)
 	}
 
