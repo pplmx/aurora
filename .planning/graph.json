@@ -684,11 +684,11 @@
     {
       "id": "issue-windows-tempdir-cleanup",
       "type": "issue",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-12T00:00:00Z",
-      "updated_at": "2026-08-12T00:00:00Z",
+      "updated_at": "2026-08-12T00:30:00Z",
       "confidence": 0.9,
-      "summary": "Many cmd/aurora/cmd CLI tests (lottery/nft/token/voting), internal/api and internal/app tests still fail on Windows at t.TempDir cleanup: CLI/API commands open SQLite handles (blockchain.InitDB, service repos, event reads) that are never closed before process exit, so t.TempDir's RemoveAll (which runs after the test body) hits an in-use file. On Unix unlink-of-open-file succeeds so the suite is green there; on Windows it is red. Root cause is missing handle Close in CLI/API command paths, not the tests themselves. Scope: cmd/aurora/cmd, internal/api, internal/app.",
+      "summary": "Many cmd/aurora/cmd CLI tests (lottery/nft/token/voting), internal/api and internal/app tests still fail on Windows at t.TempDir cleanup: CLI/API commands open SQLite handles (blockchain.InitDB, service repos, event reads) that are never closed before process exit, so t.TempDir's RemoveAll (which runs after the test body) hits an in-use file. On Unix unlink-of-open-file succeeds so the suite is green there; on Windows it is red. Root cause is missing handle Close in CLI/API command paths, not the tests themselves. Scope: cmd/aurora/cmd, internal/api, internal/app. RESOLVED (8d1b420).",
       "severity": 0.4,
       "evidence": "go test ./... on Windows: ~50 TempDir RemoveAll 'being used by another process' failures across cmd(97s)/api/app; same suite passes on Unix"
     },
@@ -758,6 +758,26 @@
       ]
     },
     {
+      "id": "issue-vote-candidate-not-in-session",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T01:00:00Z",
+      "updated_at": "2026-08-12T01:05:00Z",
+      "confidence": 0.95,
+      "summary": "CastVoteUseCase only verified the candidate exists globally; it never checked the candidate is in the session's roster (session.Candidates). A caller could vote for any registered candidate, inflating that candidate's tally outside the election. Ballot-integrity gap.",
+      "severity": 0.5,
+      "evidence": "internal/app/voting/usecase.go Execute: GetCandidate global lookup, no session.Candidates membership check (pre-fix)"
+    },
+    {
+      "id": "change-vote-candidate-roster",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T01:05:00Z",
+      "updated_at": "2026-08-12T01:05:00Z",
+      "confidence": 1.0,
+      "summary": "fix(voting): reject votes for candidates not in the session roster — ErrCandidateNotInSession sentinel, containsString membership check in CastVote, 400/CANDIDATE_NOT_IN_SESSION classification, test + 12 mock rosters. Commit e837fde."
+    },
+    {
       "id": "evidence-windows-suite-red-detail",
       "type": "evidence",
       "status": "active",
@@ -769,6 +789,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-vote-candidate-roster",
+      "target": "issue-vote-candidate-not-in-session",
+      "type": "resolves"
+    },
     {
       "source": "change-windows-handle-release",
       "target": "task-windows-tempdir-cleanup",
