@@ -443,6 +443,15 @@ func TestAddSource_URLValidation(t *testing.T) {
 		{"ftp scheme", "ftp://example.com/data", true, "blocks non-HTTP schemes"},
 		{"empty url", "", true, "blocks empty URL"},
 		{"no scheme", "example.com/data", true, "blocks scheme-less URL"},
+
+		// SSRF: IP-literal hosts in blocked space are rejected deterministically
+		// (no DNS resolvability involved).
+		{"loopback literal", "http://127.0.0.1/admin", true, "blocks loopback"},
+		{"cloud metadata literal", "http://169.254.169.254/latest/meta-data/", true, "blocks cloud metadata"},
+		{"private 10.x literal", "http://10.0.0.5/data", true, "blocks RFC1918"},
+		{"private 192.168 literal", "http://192.168.1.1/data", true, "blocks RFC1918"},
+		{"ipv6 loopback literal", "http://[::1]/data", true, "blocks IPv6 loopback"},
+		{"public ipv4 literal", "http://8.8.8.8/data", false, "allows public literal"},
 	}
 
 	repo := NewInmemRepo()
