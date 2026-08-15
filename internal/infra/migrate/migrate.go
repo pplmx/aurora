@@ -64,7 +64,11 @@ func (m *Migrator) initMigrate() error {
 		absMigPath = m.migPath
 	}
 
-	src, err := (&file.File{}).Open("file://" + absMigPath)
+	// golang-migrate's file driver parses the URL with net/url. On Windows an
+	// absolute path like C:\Users\...\migrations must be expressed with forward
+	// slashes, otherwise url.Parse reads "C" as the host and "\Users..." as an
+	// invalid port. filepath.ToSlash is a no-op on Unix, preserving prior behavior.
+	src, err := (&file.File{}).Open("file://" + filepath.ToSlash(absMigPath))
 	if err != nil {
 		return fmt.Errorf("failed to open migration source: %w", err)
 	}

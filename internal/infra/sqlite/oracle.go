@@ -36,6 +36,14 @@ func NewOracleRepository(path string) (*OracleRepository, error) {
 	return repo, nil
 }
 
+// Close releases the underlying SQLite connection. Matching the sibling
+// repositories (LotteryRepository/NFTRepository/TokenRepository), callers own
+// the handle and should Close it when done so temp/test file locks are
+// released on all platforms (Windows in particular).
+func (r *OracleRepository) Close() error {
+	return r.db.Close()
+}
+
 func (r *OracleRepository) initTables() error {
 	if _, err := r.db.Exec("PRAGMA journal_mode=WAL"); err != nil {
 		return fmt.Errorf("failed to set WAL mode: %w", err)

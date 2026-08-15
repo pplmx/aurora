@@ -20,6 +20,7 @@ func setupOracleTestDB(t *testing.T) (*OracleRepository, func()) {
 	}
 
 	cleanup := func() {
+		_ = repo.Close()
 		_ = os.RemoveAll(tmpDir)
 	}
 
