@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/stretchr/testify/require"
@@ -80,6 +81,35 @@ func TestTokenEventReader_GetTransferEventsByOwner(t *testing.T) {
 	require.Equal(t, "TOK", string(results[0].TokenID()))
 	require.Equal(t, "100", results[0].Amount().String())
 }
+
+// TestTokenEventReader_PreservesStoredTimestamp guards the round-trip
+// contract: the reader must surface the persisted event timestamp (the
+// record time), not a freshly minted time.Now() at read time. This is the
+// consumer-side continuation of the event-store identity fix (8bfa86b).
+func TestTokenEventReader_PreservesStoredTimestamp(t *testing.T) {
+	owner := []byte("owner-key")
+	recipient := []byte("recipient-key")
+	ownerB64 := base64.StdEncoding.EncodeToString(owner)
+	recipientB64 := base64.StdEncoding.EncodeToString(recipient)
+
+	payload, _ := json.Marshal(map[string]interface{}{
+		"from": ownerB64, "to": recipientB64, "amount": "100", "nonce": 1, "sig": "sig1",
+	})
+	// Use NewStoredEvent so the mock carries a deterministic, non-"now"
+	// timestamp that the reader must surface unchanged.
+	baseEv := events.NewStoredEvent("e1", fixedTestTime, "token.transfer", "TOK", payload)
+
+	store := &mockEventStore{events: []events.Event{baseEv}}
+	reader := NewTokenEventReader(store)
+
+	results, err := reader.GetTransferEventsByOwner("TOK", owner, 50, 0)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.True(t, results[0].Timestamp().Equal(fixedTestTime),
+		"expected stored timestamp %v to be preserved, got %v", fixedTestTime, results[0].Timestamp())
+}
+
+var fixedTestTime = time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 
 func TestTokenEventReader_GetTransferEventsByOwner_Empty(t *testing.T) {
 	store := &mockEventStore{events: nil}
