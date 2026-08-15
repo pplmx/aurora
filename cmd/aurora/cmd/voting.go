@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"database/sql"
 	"fmt"
 	"sync"
 
@@ -22,7 +23,7 @@ import (
 // underlying DB initialisation fix (Round 19).
 var votingInitMu sync.Mutex
 
-func getVotingRepo() (voting.Repository, error) {
+func getVotingRepo() (voting.TransactableRepository, error) {
 	votingInitMu.Lock()
 	defer votingInitMu.Unlock()
 	if votingRepo != nil {
@@ -32,8 +33,24 @@ func getVotingRepo() (voting.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
+	votingDB = db
 	votingRepo = votingrepo.NewVotingRepository(db)
 	return votingRepo, nil
+}
+
+// getVotingTxManager returns the transaction manager sharing the voting
+// repository's database handle. CastVote's voter claim + vote row + tally
+// increment run in one SQLite transaction through it.
+func getVotingTxManager() (*votingrepo.TxManager, error) {
+	if _, err := getVotingRepo(); err != nil {
+		return nil, err
+	}
+	votingInitMu.Lock()
+	defer votingInitMu.Unlock()
+	if votingTxManager == nil {
+		votingTxManager = votingrepo.NewTxManager(votingDB)
+	}
+	return votingTxManager, nil
 }
 
 func getVotingService() voting.Service {
@@ -47,8 +64,10 @@ func getVotingService() voting.Service {
 }
 
 var (
-	votingRepo    voting.Repository
-	votingService voting.Service
+	votingRepo      voting.TransactableRepository
+	votingService   voting.Service
+	votingDB        *sql.DB
+	votingTxManager *votingrepo.TxManager
 )
 
 var votingCmd = &cobra.Command{
@@ -200,6 +219,11 @@ var voteCmd = &cobra.Command{
 			return fmt.Errorf("failed to get repository: %w", err)
 		}
 
+		txManager, err := getVotingTxManager()
+		if err != nil {
+			return fmt.Errorf("failed to get transaction manager: %w", err)
+		}
+
 		service := getVotingService()
 		blockchain.InitBlockChain()
 
@@ -209,7 +233,7 @@ var voteCmd = &cobra.Command{
 			PrivateKey:     privKey,
 			SessionID:      sessionID,
 		}
-		uc := votingapp.NewCastVoteUseCase(repo, service)
+		uc := votingapp.NewCastVoteUseCase(repo, service, txManager)
 		record, err := uc.Execute(req)
 		if err != nil {
 			return fmt.Errorf("failed to cast vote: %w", err)

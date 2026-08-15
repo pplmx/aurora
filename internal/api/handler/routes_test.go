@@ -67,7 +67,7 @@ func TestTokenHandler_Routes_RegistersAllEndpoints(t *testing.T) {
 }
 
 func TestVotingHandler_Routes_RegistersAllEndpoints(t *testing.T) {
-	h := NewVotingHandler(fakeVotingRepo{})
+	h := NewVotingHandler(fakeVotingRepo{}, nil)
 	r := chi.NewRouter()
 	h.Routes(r)
 
@@ -315,7 +315,7 @@ func TestTokenHandler_History_ServiceError(t *testing.T) {
 func TestVotingHandler_GetSession_Success(t *testing.T) {
 	h := NewVotingHandler(fakeVotingRepo{
 		getSession: &domainvoting.Session{ID: "s1", Title: "Election 2026"},
-	})
+	}, nil)
 
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", "s1")
@@ -330,7 +330,7 @@ func TestVotingHandler_GetSession_Success(t *testing.T) {
 }
 
 func TestVotingHandler_GetSession_NotFound(t *testing.T) {
-	h := NewVotingHandler(fakeVotingRepo{})
+	h := NewVotingHandler(fakeVotingRepo{}, nil)
 
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", "missing")
@@ -344,7 +344,7 @@ func TestVotingHandler_GetSession_NotFound(t *testing.T) {
 }
 
 func TestVotingHandler_ListCandidates_Success(t *testing.T) {
-	h := NewVotingHandler(fakeVotingRepo{candidates: []string{"alice", "bob"}})
+	h := NewVotingHandler(fakeVotingRepo{candidates: []string{"alice", "bob"}}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/voting/candidates", nil)
 	rr := httptest.NewRecorder()
@@ -356,7 +356,7 @@ func TestVotingHandler_ListCandidates_Success(t *testing.T) {
 }
 
 func TestVotingHandler_ListCandidates_ServiceError(t *testing.T) {
-	h := NewVotingHandler(fakeVotingRepo{err: errors.New("db error")})
+	h := NewVotingHandler(fakeVotingRepo{err: errors.New("db error")}, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/voting/candidates", nil)
 	rr := httptest.NewRecorder()
@@ -475,6 +475,10 @@ func (f fakeVotingRepo) GetVotesByVoter(string) ([]*domainvoting.Vote, error) {
 	return nil, nil
 }
 func (f fakeVotingRepo) DeleteVote(string) error { return nil }
+
+// WithTx satisfies domainvoting.TransactableRepository; the fake has no
+// state that needs transaction semantics, so it returns itself.
+func (f fakeVotingRepo) WithTx(_ *sql.Tx) domainvoting.Repository { return f }
 
 // failingNFTRepo makes every Save* method return err.
 type failingNFTRepo struct {

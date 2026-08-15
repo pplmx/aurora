@@ -16,16 +16,41 @@ import (
 // caller distinguish "lost the race" from "no such voter".
 var ErrAlreadyVoted = errors.New("voter has already voted")
 
+// votingExec abstracts *sql.DB and *sql.Tx so VotingRepository can run
+// either against the pool or inside an explicit transaction.
+type votingExec interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 type VotingRepository struct {
-	db *sql.DB
+	db   *sql.DB
+	exec votingExec // nil => use db
 }
 
 func NewVotingRepository(db *sql.DB) *VotingRepository {
 	return &VotingRepository{db: db}
 }
 
+// q returns the executor this repository reads/writes through: the pooled DB
+// by default, or the active *sql.Tx when WithTx was used.
+func (r *VotingRepository) q() votingExec {
+	if r != nil && r.exec != nil {
+		return r.exec
+	}
+	return r.db
+}
+
+// WithTx returns a VotingRepository whose operations run inside the given
+// transaction. All reads and writes through the returned repository observe
+// the transaction's uncommitted state and participate in its commit/rollback.
+func (r *VotingRepository) WithTx(tx *sql.Tx) voting.Repository {
+	return &VotingRepository{db: r.db, exec: tx}
+}
+
 func (r *VotingRepository) SaveVote(vote *voting.Vote) error {
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`INSERT OR REPLACE INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		vote.ID, vote.VoterPublicKey, vote.CandidateID, vote.Signature, vote.Message, vote.Timestamp, vote.BlockHeight,
@@ -34,7 +59,7 @@ func (r *VotingRepository) SaveVote(vote *voting.Vote) error {
 }
 
 func (r *VotingRepository) GetVote(id string) (*voting.Vote, error) {
-	row := r.db.QueryRow(
+	row := r.q().QueryRow(
 		`SELECT id, voter_pk, candidate_id, signature, message, timestamp, block_height FROM votes WHERE id = ?`,
 		id,
 	)
@@ -46,15 +71,16 @@ func (r *VotingRepository) GetVote(id string) (*voting.Vote, error) {
 	return v, err
 }
 
-// DeleteVote removes a vote by id. Used to roll back an orphan vote
-// when the atomic TryMarkVoted claim races and loses.
+// DeleteVote removes a vote by id. CastVote no longer needs it for rollback
+// (the whole ballot runs in one transaction); it is retained for
+// administrative / corrective flows.
 func (r *VotingRepository) DeleteVote(id string) error {
-	_, err := r.db.Exec(`DELETE FROM votes WHERE id = ?`, id)
+	_, err := r.q().Exec(`DELETE FROM votes WHERE id = ?`, id)
 	return err
 }
 
 func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vote, error) {
-	rows, err := r.db.Query(
+	rows, err := r.q().Query(
 		`SELECT id, voter_pk, candidate_id, signature, message, timestamp, block_height FROM votes WHERE candidate_id = ? ORDER BY timestamp DESC`,
 		candidateID,
 	)
@@ -75,7 +101,7 @@ func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vo
 }
 
 func (r *VotingRepository) GetVotesByVoter(voterPK string) ([]*voting.Vote, error) {
-	rows, err := r.db.Query(
+	rows, err := r.q().Query(
 		`SELECT id, voter_pk, candidate_id, signature, message, timestamp, block_height FROM votes WHERE voter_pk = ? ORDER BY timestamp DESC`,
 		voterPK,
 	)
@@ -123,7 +149,7 @@ func (r *VotingRepository) SaveVoter(voter *voting.Voter) error {
 	if voter.HasVoted {
 		hasVoted = 1
 	}
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`INSERT INTO voters (public_key, name, has_voted, vote_hash, registered_at)
 		 VALUES (?, ?, ?, ?, ?)
 		 ON CONFLICT(public_key) DO UPDATE SET
@@ -135,7 +161,7 @@ func (r *VotingRepository) SaveVoter(voter *voting.Voter) error {
 }
 
 func (r *VotingRepository) GetVoter(pk string) (*voting.Voter, error) {
-	row := r.db.QueryRow(
+	row := r.q().QueryRow(
 		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters WHERE public_key = ?`,
 		pk,
 	)
@@ -154,7 +180,7 @@ func (r *VotingRepository) UpdateVoter(voter *voting.Voter) error {
 	if voter.HasVoted {
 		hasVoted = 1
 	}
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`UPDATE voters SET name = ?, has_voted = ?, vote_hash = ? WHERE public_key = ?`,
 		voter.Name, hasVoted, voter.VoteHash, voter.PublicKey,
 	)
@@ -175,7 +201,7 @@ func (r *VotingRepository) UpdateVoter(voter *voting.Voter) error {
 // rest see RowsAffected()==0 (mapped to ErrAlreadyVoted). voteHash is
 // set in the same UPDATE so the audit trail is consistent.
 func (r *VotingRepository) TryMarkVoted(publicKey, voteHash string) error {
-	res, err := r.db.Exec(
+	res, err := r.q().Exec(
 		`UPDATE voters SET has_voted = 1, vote_hash = ? WHERE public_key = ? AND has_voted = 0`,
 		voteHash, publicKey,
 	)
@@ -199,16 +225,12 @@ func (r *VotingRepository) TryMarkVoted(publicKey, voteHash string) error {
 	return nil
 }
 
-// UnmarkVoted resets has_voted to 0 and clears vote_hash for the
-// given voter. Used as a rollback when SaveVote fails after
-// TryMarkVoted succeeded. Not concurrency-safe by itself — the
-// caller must ensure no concurrent TryMarkVoted is inflight (which
-// is guaranteed by the rollback site: CastVoteUseCase executes
-// serially after TryMarkVoted returned success, and no other
-// goroutine can be marking the same voter concurrently because
-// TryMarkVoted already won the race).
+// UnmarkVoted resets has_voted to 0 and clears vote_hash for the given
+// voter. Historically the best-effort rollback when SaveVote failed after
+// TryMarkVoted succeeded; CastVote now runs in a real transaction, so this
+// primitive is retained for administrative / corrective flows only.
 func (r *VotingRepository) UnmarkVoted(publicKey string) error {
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`UPDATE voters SET has_voted = 0, vote_hash = '' WHERE public_key = ?`,
 		publicKey,
 	)
@@ -216,7 +238,7 @@ func (r *VotingRepository) UnmarkVoted(publicKey string) error {
 }
 
 func (r *VotingRepository) ListVoters() ([]*voting.Voter, error) {
-	rows, err := r.db.Query(
+	rows, err := r.q().Query(
 		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters ORDER BY registered_at DESC`,
 	)
 	if err != nil {
@@ -238,7 +260,7 @@ func (r *VotingRepository) ListVoters() ([]*voting.Voter, error) {
 }
 
 func (r *VotingRepository) SaveCandidate(candidate *voting.Candidate) error {
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`INSERT OR REPLACE INTO candidates (id, name, party, program, description, image_url, vote_count, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		candidate.ID, candidate.Name, candidate.Party, candidate.Program, "", candidate.ImageURL, candidate.VoteCount, candidate.CreatedAt,
@@ -247,7 +269,7 @@ func (r *VotingRepository) SaveCandidate(candidate *voting.Candidate) error {
 }
 
 func (r *VotingRepository) GetCandidate(id string) (*voting.Candidate, error) {
-	row := r.db.QueryRow(
+	row := r.q().QueryRow(
 		`SELECT id, name, party, program, description, image_url, vote_count, created_at FROM candidates WHERE id = ?`,
 		id,
 	)
@@ -261,7 +283,7 @@ func (r *VotingRepository) GetCandidate(id string) (*voting.Candidate, error) {
 }
 
 func (r *VotingRepository) UpdateCandidate(candidate *voting.Candidate) error {
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`UPDATE candidates SET name = ?, party = ?, program = ?, image_url = ?, vote_count = ? WHERE id = ?`,
 		candidate.Name, candidate.Party, candidate.Program, candidate.ImageURL, candidate.VoteCount, candidate.ID,
 	)
@@ -279,7 +301,7 @@ func (r *VotingRepository) UpdateCandidate(candidate *voting.Candidate) error {
 // Returns ErrNotFound if the candidate does not exist (e.g. deleted
 // concurrently between the use case's existence check and this call).
 func (r *VotingRepository) IncrementCandidateVoteCount(candidateID string) error {
-	res, err := r.db.Exec(
+	res, err := r.q().Exec(
 		`UPDATE candidates SET vote_count = vote_count + 1 WHERE id = ?`,
 		candidateID,
 	)
@@ -297,12 +319,12 @@ func (r *VotingRepository) IncrementCandidateVoteCount(candidateID string) error
 }
 
 func (r *VotingRepository) DeleteCandidate(id string) error {
-	_, err := r.db.Exec(`DELETE FROM candidates WHERE id = ?`, id)
+	_, err := r.q().Exec(`DELETE FROM candidates WHERE id = ?`, id)
 	return err
 }
 
 func (r *VotingRepository) ListCandidates() ([]*voting.Candidate, error) {
-	rows, err := r.db.Query(
+	rows, err := r.q().Query(
 		`SELECT id, name, party, program, description, image_url, vote_count, created_at FROM candidates ORDER BY created_at DESC`,
 	)
 	if err != nil {
@@ -327,7 +349,7 @@ func (r *VotingRepository) SaveSession(session *voting.Session) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal candidates: %w", err)
 	}
-	_, err = r.db.Exec(
+	_, err = r.q().Exec(
 		`INSERT OR REPLACE INTO voting_sessions (id, title, description, start_time, end_time, status, candidates, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		session.ID, session.Title, session.Description, session.StartTime, session.EndTime, session.Status, string(candidatesJSON), session.CreatedAt,
@@ -336,7 +358,7 @@ func (r *VotingRepository) SaveSession(session *voting.Session) error {
 }
 
 func (r *VotingRepository) GetSession(id string) (*voting.Session, error) {
-	row := r.db.QueryRow(
+	row := r.q().QueryRow(
 		`SELECT id, title, description, start_time, end_time, status, candidates, created_at FROM voting_sessions WHERE id = ?`,
 		id,
 	)
@@ -357,7 +379,7 @@ func (r *VotingRepository) UpdateSession(session *voting.Session) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal candidates: %w", err)
 	}
-	_, err = r.db.Exec(
+	_, err = r.q().Exec(
 		`UPDATE voting_sessions SET title = ?, description = ?, start_time = ?, end_time = ?, status = ?, candidates = ? WHERE id = ?`,
 		session.Title, session.Description, session.StartTime, session.EndTime, session.Status, string(candidatesJSON), session.ID,
 	)
@@ -365,7 +387,7 @@ func (r *VotingRepository) UpdateSession(session *voting.Session) error {
 }
 
 func (r *VotingRepository) ListSessions() ([]*voting.Session, error) {
-	rows, err := r.db.Query(
+	rows, err := r.q().Query(
 		`SELECT id, title, description, start_time, end_time, status, candidates, created_at FROM voting_sessions ORDER BY created_at DESC`,
 	)
 	if err != nil {

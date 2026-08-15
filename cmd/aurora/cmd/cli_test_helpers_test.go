@@ -63,8 +63,13 @@ func resetCliForTest() {
 	repo = *oracleinfra.NewInMemoryOracleRepository()
 
 	// Voting singletons (voting.go) — reassign, not mutate in place.
+	// votingTxManager/votingDB must go with them: a cached TxManager built
+	// on a previous test's (now closed) DB handle would fail every Begin
+	// with "sql: database is closed".
 	votingRepo = nil
 	votingService = nil
+	votingTxManager = nil
+	votingDB = nil
 
 	// NFT lazy-init (nft.go): the sync.Once can only fire once per process,
 	// so a fresh Once must be installed for each test that opens the repo.
