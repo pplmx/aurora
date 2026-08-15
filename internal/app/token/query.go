@@ -87,12 +87,13 @@ func (uc *GetHistoryUseCase) Execute(req *HistoryRequest) (*HistoryResponse, err
 	transfers := make([]TransferResponse, len(events))
 	for i, e := range events {
 		transfers[i] = TransferResponse{
-			ID:        e.ID(),
-			TokenID:   string(e.TokenID()),
-			From:      base64.StdEncoding.EncodeToString(e.From()),
-			To:        base64.StdEncoding.EncodeToString(e.To()),
-			Amount:    e.Amount().String(),
-			Timestamp: e.Timestamp().Unix(),
+			ID:          e.ID(),
+			TokenID:     string(e.TokenID()),
+			From:        base64.StdEncoding.EncodeToString(e.From()),
+			To:          base64.StdEncoding.EncodeToString(e.To()),
+			Amount:      e.Amount().String(),
+			Timestamp:   e.Timestamp().Unix(),
+			BlockHeight: e.BlockHeight(),
 		}
 	}
 

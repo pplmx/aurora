@@ -42,10 +42,11 @@ func (uc *MintUseCase) Execute(req *MintRequest) (*MintResponse, error) {
 	}
 
 	return &MintResponse{
-		ID:        event.ID(),
-		TokenID:   string(event.TokenID()),
-		To:        base64.StdEncoding.EncodeToString(event.To()),
-		Amount:    event.Amount().String(),
-		Timestamp: event.Timestamp().Unix(),
+		ID:          event.ID(),
+		TokenID:     string(event.TokenID()),
+		To:          base64.StdEncoding.EncodeToString(event.To()),
+		Amount:      event.Amount().String(),
+		Timestamp:   event.Timestamp().Unix(),
+		BlockHeight: event.BlockHeight(),
 	}, nil
 }

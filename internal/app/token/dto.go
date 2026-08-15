@@ -24,11 +24,12 @@ type MintRequest struct {
 }
 
 type MintResponse struct {
-	ID        string
-	TokenID   string
-	To        string
-	Amount    string
-	Timestamp int64
+	ID          string
+	TokenID     string
+	To          string
+	Amount      string
+	Timestamp   int64
+	BlockHeight int64
 }
 
 type TransferRequest struct {
@@ -40,12 +41,13 @@ type TransferRequest struct {
 }
 
 type TransferResponse struct {
-	ID        string
-	TokenID   string
-	From      string
-	To        string
-	Amount    string
-	Timestamp int64
+	ID          string
+	TokenID     string
+	From        string
+	To          string
+	Amount      string
+	Timestamp   int64
+	BlockHeight int64
 }
 
 type TransferFromRequest struct {
@@ -58,12 +60,13 @@ type TransferFromRequest struct {
 }
 
 type TransferFromResponse struct {
-	ID        string
-	TokenID   string
-	From      string
-	To        string
-	Amount    string
-	Timestamp int64
+	ID          string
+	TokenID     string
+	From        string
+	To          string
+	Amount      string
+	Timestamp   int64
+	BlockHeight int64
 }
 
 type ApproveRequest struct {
@@ -91,11 +94,12 @@ type BurnRequest struct {
 }
 
 type BurnResponse struct {
-	ID        string
-	TokenID   string
-	From      string
-	Amount    string
-	Timestamp int64
+	ID          string
+	TokenID     string
+	From        string
+	Amount      string
+	Timestamp   int64
+	BlockHeight int64
 }
 
 type BalanceRequest struct {
