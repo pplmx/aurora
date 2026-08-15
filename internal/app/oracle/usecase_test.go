@@ -197,6 +197,21 @@ func TestAddSourceUseCase_DefaultValues(t *testing.T) {
 	}
 }
 
+// TestAddSourceUseCase_RejectsDisallowedScheme guards the SSRF validation path:
+// AddSourceUseCase must reject a source whose URL scheme is outside http/https
+// (e.g. file://), so an invalid/unreachable source can never be persisted.
+func TestAddSourceUseCase_RejectsDisallowedScheme(t *testing.T) {
+	repo := &mockOracleRepo{}
+	uc := NewAddSourceUseCase(repo)
+
+	_, err := uc.Execute(&AddSourceRequest{
+		Name: "Test",
+		URL:  "file:///etc/passwd",
+	})
+	require.ErrorIs(t, err, oracle.ErrInvalidSource)
+	require.Empty(t, repo.sources, "no source should be persisted for a file:// URL")
+}
+
 func TestListSourcesUseCase(t *testing.T) {
 	repo := &mockOracleRepo{
 		sources: []*oracle.DataSource{
