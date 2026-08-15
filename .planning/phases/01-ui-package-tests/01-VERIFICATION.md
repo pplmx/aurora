@@ -8,13 +8,13 @@
 
 ### Test Coverage Results
 
-| Package | Coverage | Target | Status |
-|---------|----------|--------|--------|
-| components | 98.7% | 50%+ | ✅ PASS |
-| lottery | 58.0% | 60%+ | ⚠️ Close |
-| nft | 45.3% | 60%+ | ⚠️ Partial |
-| oracle | 52.4% | 60%+ | ⚠️ Close |
-| token | 34.3% | 60%+ | ⚠️ Partial |
+| Package    | Coverage | Target | Status     |
+| ---------- | -------- | ------ | ---------- |
+| components | 98.7%    | 50%+   | ✅ PASS    |
+| lottery    | 58.0%    | 60%+   | ⚠️ Close   |
+| nft        | 45.3%    | 60%+   | ⚠️ Partial |
+| oracle     | 52.4%    | 60%+   | ⚠️ Close   |
+| token      | 34.3%    | 60%+   | ⚠️ Partial |
 
 ### Tests Created
 
@@ -27,6 +27,7 @@
 ### Coverage Notes
 
 The TUI packages use bubbletea framework which requires integration testing to fully cover. Unit tests focus on:
+
 - Model initialization
 - View rendering methods
 - Helper functions (parseTextArea, min, etc.)

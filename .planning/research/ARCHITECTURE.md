@@ -7,7 +7,7 @@
 
 ### Current Architecture (v1.0)
 
-```
+```text
 cmd/aurora/           # CLI entry point
 ├── cmd/              # Cobra commands
 internal/
@@ -20,7 +20,7 @@ internal/api/         # API handlers (stub)
 
 ### Proposed v1.1 Architecture
 
-```
+```text
 cmd/
 ├── aurora/           # CLI + TUI
 ├── api/              # REST API server  ← NEW
@@ -39,12 +39,14 @@ internal/api/         # API handlers
 ## New Components
 
 ### API Server (`cmd/api/`)
+
 - Standalone HTTP server
 - Reuses `internal/api/handlers`
 - Uses existing `internal/app/*` services
 - New middleware: auth, rate limiting, logging
 
 ### Web UI (`web/`)
+
 - Static HTML/JS/CSS
 - HTMX for interactivity
 - Alpine.js for reactivity
@@ -52,12 +54,14 @@ internal/api/         # API handlers
 - Can be served by API or standalone
 
 ### Migrations (`migrations/`)
+
 - SQL migration files
 - Version table: `schema_migrations`
 - Tool: `migrate` CLI or Go library
 - Hook into build process
 
 ### Backup Utility (`internal/infra/backup/`)
+
 - SQLite backup via `.backup` command
 - JSON export for portability
 - File compression option
@@ -74,12 +78,14 @@ internal/api/         # API handlers
 ## Data Flow Changes
 
 ### API Flow
-```
+
+```text
 HTTP Request → Gin Router → Middleware → Handler → App Service → Domain → Repository → SQLite
 ```
 
 ### Web UI Flow
-```
+
+```text
 Browser → HTMX → API Server → Same handlers as CLI
 ```
 

@@ -15,6 +15,7 @@ Aurora's current API key implementation has **critical security flaws**:
 4. **No production enforcement** — service starts with insecure defaults
 
 **Required actions:**
+
 1. Use `crypto/subtle.ConstantTimeCompare` for key validation
 2. Generate secure random API keys on first run
 3. Fail fast in production when using insecure defaults
@@ -32,6 +33,7 @@ viper.SetDefault("api.key", "aurora-api-key-default")
 ```
 
 **Issues:**
+
 - Default key is a predictable string visible in source
 - Anyone with source access knows the default key
 - Service may run in production without changing the key
@@ -45,6 +47,7 @@ if key != apiKey {
 ```
 
 **Issues:**
+
 - String comparison (`!=`) is vulnerable to timing attacks
 - Error message reveals that a valid key format was received (leaks key structure)
 - Attacker can detect if their key format is correct
@@ -56,6 +59,7 @@ if key != apiKey {
 ### Secure Key Generation
 
 API keys should be:
+
 - **Cryptographically random** — use `crypto/rand`, not `math/rand`
 - **Minimum 32 bytes** — 256 bits of entropy for HMAC/signing
 - **High-entropy output** — encode as base64 or hex
@@ -88,12 +92,14 @@ func validateAPIKey(provided, expected string) bool {
 ```
 
 **Why this matters:**
+
 - Regular string comparison (`!=`) returns early on first mismatched byte
 - Attacker measures response time to deduce each byte of the key
 - Constant-time comparison takes the same time regardless of where mismatch occurs
 
 **Benchmark difference:**
-```
+
+```text
 String comparison: ~50ns (varies with mismatched position)
 ConstantTimeCompare: ~100ns (constant regardless of input)
 ```
@@ -386,10 +392,10 @@ writeUnauthorized(w) // "authentication required"
 
 ### Response Comparison
 
-| Scenario | Insecure Response | Secure Response |
-|----------|-------------------|-----------------|
-| Missing key | `"missing api key"` | `"authentication required"` |
-| Wrong key | `"invalid api key"` | `"authentication required"` |
+| Scenario         | Insecure Response        | Secure Response             |
+| ---------------- | ------------------------ | --------------------------- |
+| Missing key      | `"missing api key"`      | `"authentication required"` |
+| Wrong key        | `"invalid api key"`      | `"authentication required"` |
 | Key format valid | (attacker learns format) | `"authentication required"` |
 | Key length valid | (attacker learns length) | `"authentication required"` |
 
@@ -438,7 +444,7 @@ func (m *AuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 ### Configuration Precedence
 
-```
+```text
 1. Environment variable (AURORA_API_KEY) - HIGHEST PRIORITY
 2. Config file (config/aurora.toml)
 3. Generated default (development only)
@@ -621,15 +627,15 @@ func writeUnauthorized(w http.ResponseWriter) {
 
 ## Security Checklist
 
-| Requirement | Status | Implementation |
-|-------------|--------|----------------|
-| No hardcoded API key in source | 🔴 TODO | Remove default, require env var in prod |
-| Timing-safe comparison | 🔴 TODO | Use `crypto/subtle.ConstantTimeCompare` |
-| Generic error messages | 🔴 TODO | Return same message for all auth failures |
-| Production fails on insecure config | 🔴 TODO | Validate on startup, exit if invalid |
-| Secure key generation | 🔴 TODO | Use `crypto/rand`, not `math/rand` |
-| Key rotation support | 🟡 OPTIONAL | Keep previous key valid during grace period |
-| Secret manager integration | 🟡 OPTIONAL | Support Vault, AWS Secrets Manager |
+| Requirement                         | Status      | Implementation                              |
+| ----------------------------------- | ----------- | ------------------------------------------- |
+| No hardcoded API key in source      | 🔴 TODO     | Remove default, require env var in prod     |
+| Timing-safe comparison              | 🔴 TODO     | Use `crypto/subtle.ConstantTimeCompare`     |
+| Generic error messages              | 🔴 TODO     | Return same message for all auth failures   |
+| Production fails on insecure config | 🔴 TODO     | Validate on startup, exit if invalid        |
+| Secure key generation               | 🔴 TODO     | Use `crypto/rand`, not `math/rand`          |
+| Key rotation support                | 🟡 OPTIONAL | Keep previous key valid during grace period |
+| Secret manager integration          | 🟡 OPTIONAL | Support Vault, AWS Secrets Manager          |
 
 ---
 

@@ -12,6 +12,7 @@ Aurora's autonomous engineering loop is driven by a typed knowledge graph at `.p
 ## When to Use / Not Use
 
 **Use when:**
+
 - Deciding what to work on next in this repo.
 - Recording a bug/risk (issue), a root-cause guess (hypothesis), a concrete observation (evidence), a decision, a change, or an actionable task.
 - Continuing a session: load ACTIVE tasks and their 1–2 hop subgraph first.
@@ -39,6 +40,7 @@ Aurora's autonomous engineering loop is driven by a typed knowledge graph at `.p
 ## Stop Conditions
 
 A session/round stops only when **all** hold:
+
 1. No ACTIVE task with `priority_score` above the threshold (3.0).
 2. Every high-severity issue is resolved, or covered by an explicit decision recording the deferral reason.
 3. Last VERIFY is fully green.

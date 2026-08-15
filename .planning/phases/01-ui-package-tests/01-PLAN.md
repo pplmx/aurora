@@ -5,9 +5,11 @@
 **Created:** 2026-04-30
 
 ## Objective
+
 Achieve meaningful test coverage for all UI packages using Go standard testing with testify for assertions.
 
 ## Requirements
+
 - UI/lottery: 60%+ coverage
 - UI/nft: 60%+ coverage  
 - UI/oracle: 60%+ coverage
@@ -17,7 +19,9 @@ Achieve meaningful test coverage for all UI packages using Go standard testing w
 ## Tasks
 
 ### 01-test-ui-packages.md
+
 Write tests for all UI TUI packages covering:
+
 - Model initialization
 - View state transitions
 - Message handling (key presses)
@@ -25,14 +29,18 @@ Write tests for all UI TUI packages covering:
 - Theme/style application
 
 ### 02-test-components.md
+
 Write tests for UI components package:
+
 - Theme styles render correctly
 - Menu item styling
 
 ### 03-run-coverage.md
+
 Run coverage report and verify targets met
 
 ## Implementation Approach
+
 1. Use Go standard testing with `testing` package
 2. Use `testify/assert` for assertions
 3. Mock bubbletea `tea.Msg` types for message handling tests

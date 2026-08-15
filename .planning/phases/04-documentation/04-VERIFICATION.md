@@ -10,17 +10,17 @@
 
 Added command examples to improve CLI help:
 
-| Command | Example Added |
-|---------|---------------|
-| aurora (root) | ✅ 5 examples covering all modules |
-| aurora lottery create | ✅ 2 examples with participants, seed, count |
-| aurora nft mint | ✅ 2 examples with name, description, creator |
-| aurora token create | ✅ 2 examples with name, symbol, supply |
-| aurora voting session create | ✅ 1 example with candidates |
+| Command                      | Example Added                                 |
+| ---------------------------- | --------------------------------------------- |
+| aurora (root)                | ✅ 5 examples covering all modules            |
+| aurora lottery create        | ✅ 2 examples with participants, seed, count  |
+| aurora nft mint              | ✅ 2 examples with name, description, creator |
+| aurora token create          | ✅ 2 examples with name, symbol, supply       |
+| aurora voting session create | ✅ 1 example with candidates                  |
 
 ### Help Output Verification
 
-```
+```text
 $ aurora --help
 Examples:
   aurora lottery create -p "Alice,Bob,Charlie" -s "my-seed" -c 2

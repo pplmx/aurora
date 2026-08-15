@@ -15,22 +15,29 @@ The current auth middleware uses a simple string comparison (`key != apiKey`) wh
 ## Tasks
 
 ### Task 1: Import crypto/subtle
+
 Add the import for the constant-time comparison package.
 
 ### Task 2: Add secureCompare helper function
+
 Create a function that compares keys in constant time:
+
 - Check length first (early exit for obvious mismatches)
 - Use `subtle.ConstantTimeCompare` for the actual comparison
 - Reject empty keys
 
 ### Task 3: Replace vulnerable comparison
+
 Replace `if key != apiKey` with `if !secureCompare(key, apiKey)`
 
 ### Task 4: Update writeUnauthorized call
+
 Remove the message parameter since we'll use generic errors (handled in Plan 07-03)
 
 ### Task 5: Add tests for secureCompare
+
 Test various scenarios including:
+
 - Matching keys
 - Non-matching keys (different length)
 - Non-matching keys (same length)
@@ -118,6 +125,7 @@ func writeUnauthorized(w http.ResponseWriter) {
 ## Verification
 
 Run existing tests to ensure no regressions:
+
 ```bash
 go test ./internal/api/middleware/... -v
 ```
@@ -129,6 +137,7 @@ None - this plan is independent.
 ## Rollback
 
 If issues arise, revert to the original comparison:
+
 ```go
 if key != apiKey {
     writeUnauthorized(w, "invalid api key")

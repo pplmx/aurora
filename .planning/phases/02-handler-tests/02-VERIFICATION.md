@@ -8,11 +8,11 @@
 
 ### Test Coverage Results
 
-| Package | Coverage | Target | Status |
-|---------|----------|--------|--------|
-| api | 8.1% | 60%+ | ⚠️ Partial |
-| api/handler | 40.8% | 80%+ | ⚠️ Partial |
-| api/middleware | 57.9% | 60%+ | ⚠️ Close |
+| Package        | Coverage | Target | Status     |
+| -------------- | -------- | ------ | ---------- |
+| api            | 8.1%     | 60%+   | ⚠️ Partial |
+| api/handler    | 40.8%    | 80%+   | ⚠️ Partial |
+| api/middleware | 57.9%    | 60%+   | ⚠️ Close   |
 
 ### Tests Created
 
@@ -22,6 +22,7 @@
 ### Coverage Notes
 
 Handler coverage increased from 39.3% to 40.8%. The remaining uncovered code requires:
+
 - Mock service implementations
 - Integration tests with database
 - Routes() methods (router setup, tested via integration)

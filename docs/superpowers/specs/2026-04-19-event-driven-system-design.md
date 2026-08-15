@@ -7,13 +7,14 @@ Version: 1.0
 ## Overview
 
 Implement an event-driven architecture across all modules (Token, NFT, Voting, Lottery, Oracle) to enable:
+
 1. Unified event storage and audit trail
 2. Decoupled module communication via publish/subscribe
 3. Pluggable handlers for audit, statistics, and webhooks
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                      Application Layer                       │
 │  TokenService(repo, eventBus, replay, chain)                │
@@ -39,7 +40,7 @@ Implement an event-driven architecture across all modules (Token, NFT, Voting, L
 
 ## File Structure
 
-```
+```text
 internal/domain/events/
 ├── event.go         # Event interface + BaseEvent
 ├── types.go         # Module event types
@@ -116,7 +117,8 @@ func (e *TokenTransferEvent) From() ([]byte, error) {
 ```
 
 **原则：accessor 方法返回 error，不吞没错误。**
-```
+
+```text
 
 ### Event Types
 
@@ -167,7 +169,8 @@ func (b *CompositeEventBus) Publish(e Event) error {
 ```
 
 **执行顺序：SyncBus (阻塞) → AsyncBus (非阻塞) → PluginBus (非阻塞)**
-```
+
+```text
 
 ### ReplayProtection Interface
 
@@ -216,24 +219,28 @@ CREATE INDEX idx_events_timestamp ON events(timestamp DESC);
 ## Implementation Order
 
 ### Phase 1: Core Infrastructure
+
 1. Create `internal/domain/events/` with interfaces (`Event`, `ReplayProtection`)
 2. Create `internal/infra/events/bus.go` with `EventBus`, `SyncEventBus`
 3. Create `internal/infra/events/event_store.go` with SQLite implementation
 4. Create `internal/infra/events/handlers.go` with `AuditHandler`
 
 ### Phase 2: Async & Plugin Support
+
 5. Create `internal/infra/events/async_bus.go` with channel-based async
 6. Create `internal/infra/events/plugin_bus.go` with extension interface
 7. Create `CompositeEventBus` orchestrating all buses
 8. Add `StatsHandler` and `WebhookHandler`
 
 ### Phase 3: Module Migration
+
 9. Migrate Token events to new system, inject EventBus + ReplayProtection
 10. Migrate NFT, Voting, Lottery, Oracle modules
 11. Add data migration script for existing events
 12. Remove legacy `internal/infra/sqlite/event_store.go`
 
 ### Phase 4: Testing & Polish
+
 13. Add unit tests for all event components (>85% coverage)
 14. Add integration tests for handler chain
 15. Update module tests to mock new interfaces
@@ -258,7 +265,7 @@ func NewService(repo Repository, eventBus EventBus, replay ReplayProtection, cha
 ## Test Coverage Targets
 
 | Component          | Target Coverage |
-|--------------------|-----------------|
+| ------------------ | --------------- |
 | domain/events/     | 90%             |
 | infra/events/bus   | 85%             |
 | infra/events/store | 85%             |

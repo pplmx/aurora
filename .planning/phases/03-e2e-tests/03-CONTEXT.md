@@ -4,6 +4,7 @@
 **Status:** Ready for planning
 
 <domain>
+
 ## Phase Boundary
 
 Comprehensive end-to-end workflow tests including error recovery scenarios for all modules.
@@ -11,17 +12,21 @@ Comprehensive end-to-end workflow tests including error recovery scenarios for a
 </domain>
 
 <decisions>
+
 ## Implementation Decisions
 
 ### the agent's Discretion
+
 All implementation choices at agent's discretion. Existing E2E tests cover workflows. Adding error recovery tests for robustness.
 
 </decisions>
 
 <code_context>
+
 ## Existing Code Insights
 
 ### Existing E2E Tests
+
 - lottery_e2e_test.go: Full lottery workflow
 - nft_e2e_test.go: Full NFT workflow
 - token_e2e_test.go: Full token workflow
@@ -29,6 +34,7 @@ All implementation choices at agent's discretion. Existing E2E tests cover workf
 - oracle_e2e_test.go: Full oracle workflow
 
 ### Patterns
+
 - Uses testing.T for assertions
 - Tests run in-memory blockchain
 - All existing tests pass
@@ -36,9 +42,11 @@ All implementation choices at agent's discretion. Existing E2E tests cover workf
 </code_context>
 
 <specifics>
+
 ## Specific Ideas
 
 Add error recovery scenarios:
+
 - Invalid input handling
 - Empty participants in lottery
 - Insufficient balance for transfer
@@ -47,6 +55,7 @@ Add error recovery scenarios:
 </specifics>
 
 <deferred>
+
 ## Deferred Ideas
 
 None — discussion stayed within phase scope

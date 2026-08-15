@@ -7,6 +7,7 @@
 ## Tasks
 
 ### 1. Update router.go to add health endpoints
+
 **File:** `internal/api/router.go`
 
 Replace the existing `/health` endpoint section with:
@@ -37,8 +38,8 @@ Replace the existing `/health` endpoint section with:
 
 ## Files to Modify
 
-| File | Action |
-|------|--------|
+| File                     | Action                                            |
+| ------------------------ | ------------------------------------------------- |
 | `internal/api/router.go` | Add /healthz and /readyz routes before auth Group |
 
 ## Success Criteria
