@@ -26,6 +26,10 @@ type SourceResponse struct {
 	Name      string
 	URL       string
 	Type      string
+	Method    string
+	Headers   string
+	Path      string
+	Interval  int
 	Enabled   bool
 	CreatedAt int64
 }

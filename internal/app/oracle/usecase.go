@@ -136,6 +136,10 @@ func (uc *AddSourceUseCase) Execute(req *AddSourceRequest) (*SourceResponse, err
 		Name:      source.Name,
 		URL:       source.URL,
 		Type:      source.Type,
+		Method:    source.Method,
+		Headers:   source.Headers,
+		Path:      source.Path,
+		Interval:  source.Interval,
 		Enabled:   source.Enabled,
 		CreatedAt: source.CreatedAt,
 	}, nil
@@ -162,6 +166,10 @@ func (uc *ListSourcesUseCase) Execute(req *ListSourcesRequest) (*ListSourcesResp
 			Name:      s.Name,
 			URL:       s.URL,
 			Type:      s.Type,
+			Method:    s.Method,
+			Headers:   s.Headers,
+			Path:      s.Path,
+			Interval:  s.Interval,
 			Enabled:   s.Enabled,
 			CreatedAt: s.CreatedAt,
 		})
