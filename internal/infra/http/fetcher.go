@@ -359,6 +359,14 @@ func (f *Fetcher) FetchDataWithValidation(source *oracle.DataSource, validateJSO
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
+	// Apply the source's configured request headers. Without this the
+	// persisted Headers field (e.g. an Authorization bearer for a private
+	// price API) was silently ignored — the request went out with only the
+	// transport defaults.
+	if err := applySourceHeaders(req, source.Headers); err != nil {
+		return nil, err
+	}
+
 	resp, err := f.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch data: %w", err)
@@ -445,4 +453,25 @@ func readBounded(r io.Reader, max int64) ([]byte, error) {
 		return nil, ErrResponseTooLarge
 	}
 	return body, nil
+}
+
+// applySourceHeaders parses the source's JSON map of request headers and sets
+// them on the outgoing request. An empty string means no headers. Header names
+// and values are taken verbatim from the JSON (settable only by a source
+// operator / API caller, so newline injection is not an out-of-band vector
+// here — JSON cannot carry a raw CRLF untransformed). An unparseable headers
+// payload is treated as invalid source data rather than silently dropping
+// the operator's intent.
+func applySourceHeaders(req *http.Request, headersJSON string) error {
+	if strings.TrimSpace(headersJSON) == "" {
+		return nil
+	}
+	var headers map[string]string
+	if err := json.Unmarshal([]byte(headersJSON), &headers); err != nil {
+		return fmt.Errorf("%w: invalid headers json", oracle.ErrInvalidSource)
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	return nil
 }
