@@ -42,10 +42,11 @@ func (uc *BurnUseCase) Execute(req *BurnRequest) (*BurnResponse, error) {
 	}
 
 	return &BurnResponse{
-		ID:        event.ID(),
-		TokenID:   string(event.TokenID()),
-		From:      base64.StdEncoding.EncodeToString(event.From()),
-		Amount:    event.Amount().String(),
-		Timestamp: event.Timestamp().Unix(),
+		ID:          event.ID(),
+		TokenID:     string(event.TokenID()),
+		From:        base64.StdEncoding.EncodeToString(event.From()),
+		Amount:      event.Amount().String(),
+		Timestamp:   event.Timestamp().Unix(),
+		BlockHeight: event.BlockHeight(),
 	}, nil
 }

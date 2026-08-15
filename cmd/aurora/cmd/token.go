@@ -441,8 +441,8 @@ var tokenHistoryCmd = &cobra.Command{
 			fmt.Println("   " + i18n.GetText("token.no_history"))
 		}
 		for _, t := range resp.Transfers {
-			fmt.Printf("   - From: %s -> To: %s | Amount: %s\n",
-				truncateBase64(t.From), truncateBase64(t.To), t.Amount)
+			fmt.Printf("   - From: %s -> To: %s | Amount: %s | Height: %d\n",
+				truncateBase64(t.From), truncateBase64(t.To), t.Amount, t.BlockHeight)
 		}
 		return nil
 	},

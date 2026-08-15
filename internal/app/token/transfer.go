@@ -48,11 +48,12 @@ func (uc *TransferUseCase) Execute(req *TransferRequest) (*TransferResponse, err
 	}
 
 	return &TransferResponse{
-		ID:        event.ID(),
-		TokenID:   string(event.TokenID()),
-		From:      base64.StdEncoding.EncodeToString(event.From()),
-		To:        base64.StdEncoding.EncodeToString(event.To()),
-		Amount:    event.Amount().String(),
-		Timestamp: event.Timestamp().Unix(),
+		ID:          event.ID(),
+		TokenID:     string(event.TokenID()),
+		From:        base64.StdEncoding.EncodeToString(event.From()),
+		To:          base64.StdEncoding.EncodeToString(event.To()),
+		Amount:      event.Amount().String(),
+		Timestamp:   event.Timestamp().Unix(),
+		BlockHeight: event.BlockHeight(),
 	}, nil
 }
