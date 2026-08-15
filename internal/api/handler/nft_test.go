@@ -12,7 +12,7 @@ import (
 )
 
 func TestNFTHandler_Mint_InvalidJSON(t *testing.T) {
-	handler := NewNFTHandler(nil)
+	handler := NewNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/mint", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -23,7 +23,7 @@ func TestNFTHandler_Mint_InvalidJSON(t *testing.T) {
 }
 
 func TestNFTHandler_Mint_EmptyRequest(t *testing.T) {
-	handler := NewNFTHandler(nil)
+	handler := NewNFTHandler(nil, nil)
 
 	reqBody := map[string]string{}
 	body, _ := json.Marshal(reqBody)
@@ -39,7 +39,7 @@ func TestNFTHandler_Mint_EmptyRequest(t *testing.T) {
 }
 
 func TestNFTHandler_Transfer_InvalidJSON(t *testing.T) {
-	handler := NewNFTHandler(nil)
+	handler := NewNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/transfer", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -50,12 +50,12 @@ func TestNFTHandler_Transfer_InvalidJSON(t *testing.T) {
 }
 
 func TestNFTHandler_Routes(t *testing.T) {
-	handler := NewNFTHandler(nil)
+	handler := NewNFTHandler(nil, nil)
 	assert.NotNil(t, handler)
 }
 
 func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {
-	handler := NewNFTHandler(nil)
+	handler := NewNFTHandler(nil, nil)
 
 	reqBody := map[string]string{}
 	body, _ := json.Marshal(reqBody)
@@ -70,7 +70,7 @@ func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {
 }
 
 func TestNFTHandler_Burn_InvalidJSON(t *testing.T) {
-	handler := NewNFTHandler(nil)
+	handler := NewNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/burn", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -81,7 +81,7 @@ func TestNFTHandler_Burn_InvalidJSON(t *testing.T) {
 }
 
 func TestNFTHandler_List_EmptyOwner(t *testing.T) {
-	handler := NewNFTHandler(nil)
+	handler := NewNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list", nil)
 	rr := httptest.NewRecorder()
@@ -93,7 +93,7 @@ func TestNFTHandler_List_EmptyOwner(t *testing.T) {
 }
 
 func TestNFTHandler_List_InvalidOwner(t *testing.T) {
-	handler := NewNFTHandler(nil)
+	handler := NewNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner=!!!invalid-base64!!!", nil)
 	rr := httptest.NewRecorder()

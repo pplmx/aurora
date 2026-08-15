@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -24,7 +25,7 @@ import (
 // =================================================================
 
 func TestNFTHandler_Routes_RegistersAllEndpoints(t *testing.T) {
-	h := NewNFTHandler(nil)
+	h := NewNFTHandler(nil, nil)
 	r := chi.NewRouter()
 	h.Routes(r)
 
@@ -87,7 +88,7 @@ func TestNFTHandler_Get_FoundAndNotFound(t *testing.T) {
 	repo := domainnft.NewInmemRepo()
 	_ = repo.SaveNFT(&domainnft.NFT{ID: "nft-1", Name: "Aurora", Owner: []byte("alice")})
 
-	h := NewNFTHandler(repo)
+	h := NewNFTHandler(repo, nil)
 
 	// Found
 	rctx := chi.NewRouteContext()
@@ -112,7 +113,7 @@ func TestNFTHandler_Get_FoundAndNotFound(t *testing.T) {
 func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
 	repo := domainnft.NewInmemRepo()
 
-	h := NewNFTHandler(repo)
+	h := NewNFTHandler(repo, nil)
 
 	// Owner with no NFTs — owner must be base64-encoded per usecase contract
 	ownerB64 := "YWxpY2U=" // base64.StdEncoding.EncodeToString([]byte("alice"))
@@ -132,7 +133,7 @@ func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
 }
 
 func TestNFTHandler_Mint_ServiceError(t *testing.T) {
-	h := NewNFTHandler(&failingNFTRepo{err: errors.New("save failed")})
+	h := NewNFTHandler(&failingNFTRepo{err: errors.New("save failed")}, nil)
 	body, _ := json.Marshal(map[string]string{"name": "X"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/mint", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -144,7 +145,7 @@ func TestNFTHandler_Mint_ServiceError(t *testing.T) {
 }
 
 func TestNFTHandler_Transfer_ServiceError(t *testing.T) {
-	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not found")})
+	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not found")}, nil)
 	body, _ := json.Marshal(map[string]string{
 		"nft_id": "nft-1", "from": "a", "to": "b", "private_key": "k",
 	})
@@ -158,7 +159,7 @@ func TestNFTHandler_Transfer_ServiceError(t *testing.T) {
 }
 
 func TestNFTHandler_Burn_ServiceError(t *testing.T) {
-	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not owner")})
+	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not owner")}, nil)
 	body, _ := json.Marshal(map[string]string{
 		"nft_id": "nft-1", "owner": "a", "private_key": "k",
 	})
@@ -489,6 +490,10 @@ func (f *failingNFTRepo) TryDeleteNFTIfOwned(string, []byte) error {
 	return f.err
 }
 func (f *failingNFTRepo) DeleteNFT(string) error { return f.err }
+
+// WithTx satisfies domainnft.TransactableRepository; the failing repo has no
+// state, so it simply returns itself.
+func (f *failingNFTRepo) WithTx(_ *sql.Tx) domainnft.Repository { return f }
 func (f *failingNFTRepo) GetNFT(string) (*domainnft.NFT, error) {
 	return nil, f.err
 }

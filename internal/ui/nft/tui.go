@@ -45,7 +45,7 @@ func NewNFTApp() *model {
 	chain := blockchain.InitBlockChain()
 
 	repo := nft.NewInmemRepo()
-	nftService := nft.NewService(repo)
+	nftService := nft.NewServiceWithoutTx(repo)
 
 	nameInput := textinput.New()
 	nameInput.Placeholder = i18n.GetText("nft.tui.name")

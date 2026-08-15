@@ -28,15 +28,18 @@ var nftCmd = &cobra.Command{
 // rest of the CLI. Errors are reported per-subcommand instead.
 var (
 	nftRepoOnce sync.Once
-	nftRepo     nftdomain.Repository
+	nftRepo     *sqlite.NFTRepository
 	nftRepoErr  error
 )
 
-func getNFTRepo() (nftdomain.Repository, error) {
+func getNFTRepo() (nftdomain.TransactableRepository, error) {
 	nftRepoOnce.Do(func() {
 		nftRepo, nftRepoErr = sqlite.NewNFTRepository(blockchain.DBPath())
 	})
-	return nftRepo, nftRepoErr
+	if nftRepoErr != nil {
+		return nil, nftRepoErr
+	}
+	return nftRepo, nil
 }
 
 func nftService() (nftdomain.Service, error) {
@@ -44,7 +47,11 @@ func nftService() (nftdomain.Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nftdomain.NewService(repo), nil
+	// Multi-step NFT writes (NFT row + audit operation) run in one SQLite
+	// transaction; the TxManager must share the repository's pool so the
+	// tx-scoped repository and the transaction operate on the same database.
+	txManager := sqlite.NewTxManager(nftRepo.GetDB())
+	return nftdomain.NewService(repo, txManager), nil
 }
 
 func nftChain() *blockchain.BlockChain {

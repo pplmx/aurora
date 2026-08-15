@@ -2,6 +2,7 @@ package nft
 
 import (
 	"bytes"
+	"database/sql"
 	"sync"
 )
 
@@ -9,13 +10,68 @@ type inmemRepo struct {
 	mu         sync.RWMutex
 	nfts       map[string]*NFT
 	operations map[string][]*Operation
+	// snapshot holds the state captured by beginTx so rollbackTx can restore
+	// it. nil when no (mock) transaction is open.
+	snapshot *txSnapshot
 }
 
-func NewInmemRepo() Repository {
+// txSnapshot is a deep copy of the repo state taken at beginTx.
+type txSnapshot struct {
+	nfts       map[string]*NFT
+	operations map[string][]*Operation
+}
+
+func NewInmemRepo() TransactableRepository {
 	return &inmemRepo{
 		nfts:       make(map[string]*NFT),
 		operations: make(map[string][]*Operation),
 	}
+}
+
+// WithTx satisfies TransactableRepository. The in-memory repo has no real
+// transaction handle; it returns itself unchanged. Rollback semantics for
+// tests are provided by the beginTx/rollbackTx/commitTx snapshot hooks,
+// driven by the mock TransactionManager in service_test.go.
+func (r *inmemRepo) WithTx(_ *sql.Tx) Repository {
+	return r
+}
+
+func (r *inmemRepo) beginTx() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.snapshot = &txSnapshot{
+		nfts:       make(map[string]*NFT, len(r.nfts)),
+		operations: make(map[string][]*Operation, len(r.operations)),
+	}
+	for id, n := range r.nfts {
+		clone := *n
+		r.snapshot.nfts[id] = &clone
+	}
+	for id, ops := range r.operations {
+		clone := make([]*Operation, len(ops))
+		for i, op := range ops {
+			opClone := *op
+			clone[i] = &opClone
+		}
+		r.snapshot.operations[id] = clone
+	}
+}
+
+func (r *inmemRepo) rollbackTx() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.snapshot == nil {
+		return
+	}
+	r.nfts = r.snapshot.nfts
+	r.operations = r.snapshot.operations
+	r.snapshot = nil
+}
+
+func (r *inmemRepo) commitTx() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.snapshot = nil
 }
 
 func (r *inmemRepo) SaveNFT(nft *NFT) error {
