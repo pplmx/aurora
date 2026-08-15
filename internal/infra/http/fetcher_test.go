@@ -13,6 +13,7 @@ import (
 )
 
 func TestFetcher_Get_Success(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("test response"))
 	}))
@@ -38,6 +39,7 @@ func TestFetcher_Get_Error(t *testing.T) {
 }
 
 func TestFetcher_FetchData_GET(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("Expected GET, got %s", r.Method)
@@ -69,6 +71,7 @@ func TestFetcher_FetchData_GET(t *testing.T) {
 }
 
 func TestFetcher_FetchData_POST(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("Expected POST, got %s", r.Method)
@@ -92,6 +95,7 @@ func TestFetcher_FetchData_POST(t *testing.T) {
 }
 
 func TestFetcher_FetchData_WithPath(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"data": {"price": 123.45}}`))
 	}))
@@ -131,6 +135,7 @@ func TestFetcher_FetchData_InvalidURL(t *testing.T) {
 }
 
 func TestFetcher_FetchData_NestedPath(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"outer": {"inner": {"deep": "nested-value"}}}`))
 	}))
@@ -156,6 +161,7 @@ func TestFetcher_FetchData_NestedPath(t *testing.T) {
 }
 
 func TestFetcher_FetchData_InvalidPath(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"value": "test"}`))
 	}))
@@ -181,6 +187,7 @@ func TestFetcher_FetchData_InvalidPath(t *testing.T) {
 }
 
 func TestFetcher_FetchData_NonJSON(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("plain text response"))
 	}))
@@ -239,6 +246,7 @@ func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestFetcher_FetchData_WithHeaders(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = r.Header.Get("X-Custom-Header")
 		_, _ = w.Write([]byte(`{"result": "ok"}`))
@@ -385,6 +393,7 @@ func TestRateLimiter_WindowExpiry(t *testing.T) {
 }
 
 func TestFetcher_RateLimited(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"value": "test"}`))
 	}))
@@ -413,6 +422,7 @@ func TestFetcher_RateLimited(t *testing.T) {
 }
 
 func TestFetcher_RateLimitResetsAfterWindow(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"value": "test"}`))
 	}))
@@ -443,6 +453,7 @@ func TestFetcher_RateLimitResetsAfterWindow(t *testing.T) {
 }
 
 func TestFetcher_Get_HasSecurityHeaders(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	var capturedReq *http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedReq = r
@@ -453,6 +464,11 @@ func TestFetcher_Get_HasSecurityHeaders(t *testing.T) {
 	fetcher := NewFetcher()
 	_, _ = fetcher.Get(server.URL)
 
+	// Hardened: a failed fetch used to leave capturedReq nil and panic the
+	// test; fail cleanly instead.
+	if capturedReq == nil {
+		t.Fatal("request never reached the test server")
+	}
 	if capturedReq.Header.Get("User-Agent") == "" {
 		t.Error("Expected User-Agent header to be set")
 	}
@@ -465,6 +481,7 @@ func TestFetcher_Get_HasSecurityHeaders(t *testing.T) {
 }
 
 func TestFetcher_FetchData_HasSecurityHeaders(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	var capturedReq *http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedReq = r
@@ -481,6 +498,9 @@ func TestFetcher_FetchData_HasSecurityHeaders(t *testing.T) {
 	}
 	_, _ = fetcher.FetchData(source)
 
+	if capturedReq == nil {
+		t.Fatal("request never reached the test server")
+	}
 	if capturedReq.Header.Get("User-Agent") != "Aurora/1.0" {
 		t.Errorf("Expected User-Agent 'Aurora/1.0', got '%s'", capturedReq.Header.Get("User-Agent"))
 	}
@@ -493,6 +513,7 @@ func TestFetcher_FetchData_HasSecurityHeaders(t *testing.T) {
 }
 
 func TestFetcher_FetchData_POST_HasContentType(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	var capturedReq *http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedReq = r
@@ -509,12 +530,16 @@ func TestFetcher_FetchData_POST_HasContentType(t *testing.T) {
 	}
 	_, _ = fetcher.FetchData(source)
 
+	if capturedReq == nil {
+		t.Fatal("request never reached the test server")
+	}
 	if capturedReq.Header.Get("Content-Type") != "application/json" {
 		t.Errorf("Expected Content-Type 'application/json', got '%s'", capturedReq.Header.Get("Content-Type"))
 	}
 }
 
 func TestFetcher_FetchData_PUT_HasContentType(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	var capturedReq *http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedReq = r
@@ -531,12 +556,16 @@ func TestFetcher_FetchData_PUT_HasContentType(t *testing.T) {
 	}
 	_, _ = fetcher.FetchData(source)
 
+	if capturedReq == nil {
+		t.Fatal("request never reached the test server")
+	}
 	if capturedReq.Header.Get("Content-Type") != "application/json" {
 		t.Errorf("Expected Content-Type 'application/json', got '%s'", capturedReq.Header.Get("Content-Type"))
 	}
 }
 
 func TestFetcher_CustomUserAgent(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	var capturedReq *http.Request
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedReq = r
@@ -553,6 +582,9 @@ func TestFetcher_CustomUserAgent(t *testing.T) {
 	}
 	_, _ = fetcher.FetchData(source)
 
+	if capturedReq == nil {
+		t.Fatal("request never reached the test server")
+	}
 	if capturedReq.Header.Get("User-Agent") != "CustomAgent/2.0" {
 		t.Errorf("Expected User-Agent 'CustomAgent/2.0', got '%s'", capturedReq.Header.Get("User-Agent"))
 	}
@@ -599,6 +631,7 @@ func TestFetcherWithTimeout_UsesDefaults(t *testing.T) {
 }
 
 func TestFetcher_TimeoutFromConfig(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("test"))
 	}))
@@ -646,6 +679,7 @@ func TestNewFetcherWithTimeout_SetsRateLimiter(t *testing.T) {
 }
 
 func TestFetcher_Get_HTTPError_4xx(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte("Not Found"))
@@ -663,6 +697,7 @@ func TestFetcher_Get_HTTPError_4xx(t *testing.T) {
 }
 
 func TestFetcher_Get_HTTPError_5xx(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte("Internal Server Error"))
@@ -680,6 +715,7 @@ func TestFetcher_Get_HTTPError_5xx(t *testing.T) {
 }
 
 func TestFetcher_FetchData_HTTPError_4xx(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, _ = w.Write([]byte(`{"error": "bad request"}`))
@@ -704,6 +740,7 @@ func TestFetcher_FetchData_HTTPError_4xx(t *testing.T) {
 }
 
 func TestFetcher_FetchData_HTTPError_5xx(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		_, _ = w.Write([]byte(`{"error": "service unavailable"}`))
@@ -728,6 +765,7 @@ func TestFetcher_FetchData_HTTPError_5xx(t *testing.T) {
 }
 
 func TestFetcher_FetchData_EmptyResponse(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte{})
@@ -752,6 +790,7 @@ func TestFetcher_FetchData_EmptyResponse(t *testing.T) {
 }
 
 func TestFetcher_FetchData_Validation_Success(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"price": 50000}`))
 	}))
@@ -777,6 +816,7 @@ func TestFetcher_FetchData_Validation_Success(t *testing.T) {
 }
 
 func TestFetcher_FetchData_Validation_InvalidJSON(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("not valid json"))
 	}))
@@ -800,6 +840,7 @@ func TestFetcher_FetchData_Validation_InvalidJSON(t *testing.T) {
 }
 
 func TestFetcher_FetchData_Validation_InvalidPath(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"data": "test"}`))
 	}))
@@ -829,6 +870,7 @@ func TestFetcher_FetchData_Validation_InvalidPath(t *testing.T) {
 }
 
 func TestFetcher_FetchData_Timeout(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(200 * time.Millisecond)
 		_, _ = w.Write([]byte(`{"data": "test"}`))
@@ -854,6 +896,7 @@ func TestFetcher_FetchData_Timeout(t *testing.T) {
 }
 
 func TestFetcher_FetchData_DefaultMethod(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("Expected GET, got %s", r.Method)
@@ -891,6 +934,7 @@ func TestFetcher_FetchData_EmptyURL(t *testing.T) {
 }
 
 func TestFetcher_FetchData_RateLimitedError(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"value": "test"}`))
 	}))
@@ -917,6 +961,7 @@ func TestFetcher_FetchData_RateLimitedError(t *testing.T) {
 }
 
 func TestFetcher_FetchData_SuccessStatus(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	testCases := []int{200, 201, 202, 204}
 
 	for _, status := range testCases {

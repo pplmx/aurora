@@ -61,6 +61,7 @@ func TestReadBounded(t *testing.T) {
 // than maxResponseBytes; Get must return ErrResponseTooLarge without
 // buffering the whole response.
 func TestFetcher_Get_OversizedResponseRejected(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	// Build a body that is definitely larger than maxResponseBytes,
 	// but stream it in small chunks so we don't allocate 10+ MiB in
 	// the test process.
@@ -100,6 +101,7 @@ func TestFetcher_Get_OversizedResponseRejected(t *testing.T) {
 // by oracle ingestion also enforces the size cap, so a hostile source
 // can never write a multi-GB row into oracle_data.
 func TestFetcher_FetchData_RejectsOversized(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Generate payload lazily to avoid wasting test memory.
 		_, _ = w.Write([]byte(`{"big":"`))

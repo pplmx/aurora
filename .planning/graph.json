@@ -738,9 +738,9 @@
       "type": "issue",
       "status": "active",
       "created_at": "2026-08-12T00:30:00Z",
-      "updated_at": "2026-08-12T00:30:00Z",
+      "updated_at": "2026-08-12T11:30:00Z",
       "confidence": 0.95,
-      "summary": "internal/infra/http fetcher tests (TestFetcher_*) cannot run in this sandbox: httptest.NewServer binds loopback and the real dial times out ('connectex ... host has failed to respond'). Reproduced by a minimal standalone probe hitting httptest.NewServer — loopback TCP is blocked by the environment itself. Not a code defect; the tests are correct for normal environments (they exercised the SSRF guards on the dev platform).",
+      "summary": "internal/infra/http fetcher tests (TestFetcher_*) cannot exercise a live request in this sandbox: httptest.NewServer binds loopback and the real dial times out ('connectex ... host has failed to respond'). Reproduced by a minimal standalone probe — loopback TCP is blocked by the environment itself. Not a code defect. Mitigated 2026-08-12 per decision-http-tests-env-skip: TestMain probes loopback once and network-dependent tests skip with a visible reason when it is blocked, so `just test` is green here while every assertion still runs on dev machines/CI.",
       "severity": 0.1,
       "evidence": "standalone probe: httptest.NewServer -> client.Get(loopback) -> dial timeout; deterministic across whole http package"
     },
@@ -749,9 +749,9 @@
       "type": "decision",
       "status": "active",
       "created_at": "2026-08-12T00:30:00Z",
-      "updated_at": "2026-08-12T00:30:00Z",
+      "updated_at": "2026-08-12T11:30:00Z",
       "confidence": 0.9,
-      "summary": "Do not modify the internal/infra/http fetcher tests to accommodate this sandbox's loopback blocking. They are correct cross-platform tests; weakening/skipping them (or swapping in a fake transport) would trade away the real SSRF/redirect/oversize coverage they provide. Green on the dev platform; only this sandbox can't dial loopback.",
+      "summary": "SUPERSEDED 2026-08-12 by decision-http-tests-env-skip (direct user requirement that `just test` passes on this host). Original decision: do not modify the internal/infra/http fetcher tests to accommodate this sandbox's loopback blocking; they are correct cross-platform tests and weakening them would trade away real SSRF/redirect/oversize coverage. Green on the dev platform; only this sandbox can't dial loopback.",
       "rationale": "The suite is the project's cross-platform quality bar; the http tests exercise real network hardening (SSRF redirects, response-size caps) that a mocked transport would not validate. The blocker is environmental, not a code or test defect.",
       "alternatives_rejected": [
         "Skip/Sanity-check the http package tests in this sandbox",
@@ -1114,6 +1114,30 @@
       "updated_at": "2026-08-12T10:40:00Z",
       "confidence": 1.0,
       "summary": "VERIFY for task-nft-voting-transactions (commits f926414, fccb017): go build/vet clean; gofmt clean; go test -race -count=1 green for every host-runnable package (full ./... minus internal/infra/http, which stays red only on the documented sandbox loopback block, issue-http-loopback-sandbox-blocked). Coverage vs baseline: nft domain 72.7%->86.9%, nft app 88.1%->88.1%, voting domain 87.5%->87.5%, voting app 81.4%->91.7%, infra/sqlite 83.2%. Real-binary CLI smoke: migrate up -> candidate add -> voter register -> session create/start -> vote ok -> double vote rejected (voter has already voted) -> results count exactly 1."
+    },
+    {
+      "id": "decision-http-tests-env-skip",
+      "type": "decision",
+      "status": "active",
+      "created_at": "2026-08-12T11:30:00Z",
+      "updated_at": "2026-08-12T11:30:00Z",
+      "confidence": 0.95,
+      "summary": "User-directed (requirement: `just test` must pass on this host): internal/infra/http gains loopback_probe_test.go — TestMain probes loopback once; the 34 network-dependent fetcher tests call skipIfLoopbackBlocked(t) and skip with a visible reason when the environment blocks 127.0.0.1. Supersedes decision-http-loopback-deferred. This is an environmental gate, not a weakening: on any host where loopback works (dev machines, CI) every test and every assertion runs exactly as before — including the SSRF redirect guards, response-size caps and rate-limit paths; nothing was deleted, no assertion was relaxed. Additionally hardened 5 captured-request header tests that dereferenced a nil *http.Request when the fetch failed (panic -> clean t.Fatal).",
+      "rationale": "The user requires a green `just test` on this machine. A skip-guard keyed on a live loopback probe is the standard Go pattern (cf. stdlib testenv network gates): it converts an environmental red into a visible skip here while preserving 100% of the coverage wherever networking exists.",
+      "alternatives_rejected": [
+        "leave the suite red on this host (rejected by the user)",
+        "replace httptest servers with a fake RoundTripper (rejected before: loses real redirect/SSRF validation everywhere)",
+        "blanket-skip the whole package via TestMain exit-0 (silent; hides regressions)"
+      ]
+    },
+    {
+      "id": "evidence-just-test-green",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-12T11:30:00Z",
+      "updated_at": "2026-08-12T11:30:00Z",
+      "confidence": 1.0,
+      "summary": "VERIFY for decision-http-tests-env-skip: `go test ./...` (the exact `just test` recipe) exits 0 on this host with internal/infra/http ok (network-dependent tests SKIP with 'loopback TCP is blocked in this environment', pure-logic tests PASS); `just --shell sh test` exit 0; `go test -race ./internal/infra/http/...` ok; gofmt/vet clean. The whole-project suite is green with no package excluded."
     }
   ],
   "edges": [
@@ -1602,6 +1626,22 @@
       "target": "decision-round20-stop-eval",
       "type": "causes",
       "kind": "accepted"
+    },
+    {
+      "source": "decision-http-tests-env-skip",
+      "target": "decision-http-loopback-deferred",
+      "type": "supersedes"
+    },
+    {
+      "source": "issue-http-loopback-sandbox-blocked",
+      "target": "decision-http-tests-env-skip",
+      "type": "causes",
+      "kind": "accepted"
+    },
+    {
+      "source": "evidence-just-test-green",
+      "target": "decision-http-tests-env-skip",
+      "type": "validates"
     }
   ]
 }
