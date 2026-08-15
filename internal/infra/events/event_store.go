@@ -3,6 +3,7 @@ package events
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/events"
@@ -84,7 +85,7 @@ func (e *SQLiteEventStore) GetByType(eventType string, limit int) ([]events.Even
 		SELECT id, event_type, module, agg_id, payload, timestamp
 		FROM events
 		WHERE event_type = ?
-		ORDER BY timestamp DESC
+		ORDER BY timestamp DESC, id DESC
 		LIMIT ?
 	`, eventType, limit)
 	if err != nil {
@@ -104,7 +105,7 @@ func (e *SQLiteEventStore) GetByModule(module string, limit int) ([]events.Event
 		SELECT id, event_type, module, agg_id, payload, timestamp
 		FROM events
 		WHERE module = ?
-		ORDER BY timestamp DESC
+		ORDER BY timestamp DESC, id DESC
 		LIMIT ?
 	`, module, limit)
 	if err != nil {
@@ -124,7 +125,7 @@ func (e *SQLiteEventStore) GetByAggregate(aggID string, limit, offset int) ([]ev
 		SELECT id, event_type, module, agg_id, payload, timestamp
 		FROM events
 		WHERE agg_id = ?
-		ORDER BY timestamp ASC
+		ORDER BY timestamp ASC, id ASC
 		LIMIT ? OFFSET ?
 	`, aggID, limit, offset)
 	if err != nil {
@@ -146,7 +147,7 @@ func scanEvents(rows *sql.Rows) ([]events.Event, error) {
 			return nil, err
 		}
 
-		event := events.NewBaseEvent(eventType, aggID, payload)
+		event := events.NewStoredEvent(id, time.Unix(timestamp, 0), eventType, aggID, payload)
 		result = append(result, event)
 	}
 	return result, rows.Err()
