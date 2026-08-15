@@ -3187,3 +3187,29 @@ func TestDecreaseAllowance_TokenNotFound(t *testing.T) {
 		t.Error("allowance row should not exist for a non-existent token")
 	}
 }
+
+// TestApprove_TokenNotFound guards the dangling-token gap on the approve
+// side. Approve previously only checked the GetToken error (not nil-token),
+// so a repo returning (nil, nil) for a missing token let SaveApproval create
+// an orphaned allowance row referencing a token that never existed.
+func TestApprove_TokenNotFound(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	spender := pubKey(2)
+	_, err := service.Approve(&ApproveRequest{
+		TokenID:    "NOPE",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(50),
+		PrivateKey: privKey(1),
+	})
+	if !errors.Is(err, ErrTokenNotFound) {
+		t.Errorf("expected ErrTokenNotFound, got %v", err)
+	}
+	if _, exists := repo.approvals["NOPE"+string(owner)+string(spender)]; exists {
+		t.Error("approval row should not exist for a non-existent token")
+	}
+}
