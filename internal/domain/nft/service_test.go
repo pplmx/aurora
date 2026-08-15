@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -120,7 +121,7 @@ func TestNFTService_VerifyTransfer_InvalidSignature(t *testing.T) {
 
 func TestNFTService_Transfer(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -156,7 +157,7 @@ func TestNFTService_Transfer(t *testing.T) {
 
 func TestNFTService_Transfer_NotOwner(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -178,7 +179,7 @@ func TestNFTService_Transfer_NotOwner(t *testing.T) {
 
 func TestNFTService_GetNFTByID(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -203,7 +204,7 @@ func TestNFTService_GetNFTByID(t *testing.T) {
 
 func TestNFTService_GetNFTByID_NotFound(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 
 	nft, err := svc.GetNFTByID("nonexistent")
 	if nft != nil {
@@ -216,7 +217,7 @@ func TestNFTService_GetNFTByID_NotFound(t *testing.T) {
 
 func TestNFTService_GetNFTsByOwner(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -259,7 +260,7 @@ func TestNFTService_GetNFTsByOwner(t *testing.T) {
 
 func TestNFTService_GetNFTsByCreator(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -302,7 +303,7 @@ func TestNFTService_GetNFTsByCreator(t *testing.T) {
 
 func TestNFTService_GetNFTsByOwner_Empty(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 
 	pub, _, _ := ed25519.GenerateKey(nil)
 	nfts, err := svc.GetNFTsByOwner(pub)
@@ -316,7 +317,7 @@ func TestNFTService_GetNFTsByOwner_Empty(t *testing.T) {
 
 func TestNFTService_Burn(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -351,7 +352,7 @@ func TestNFTService_Burn(t *testing.T) {
 
 func TestNFTService_Burn_NotOwner(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -371,7 +372,7 @@ func TestNFTService_Burn_NotOwner(t *testing.T) {
 
 func TestNFTService_Burn_NotFound(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 
 	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
@@ -383,7 +384,7 @@ func TestNFTService_Burn_NotFound(t *testing.T) {
 
 func TestNFTService_Burn_VerifyOperationSignature(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -426,7 +427,7 @@ func TestOperation_IsMint(t *testing.T) {
 
 func TestNFTService_Mint_ChainError(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 
 	creatorPub, _, _ := ed25519.GenerateKey(nil)
 	nft := NewNFT("Test NFT", "Description", "", "", creatorPub, creatorPub)
@@ -440,7 +441,7 @@ func TestNFTService_Mint_ChainError(t *testing.T) {
 
 func TestNFTService_Mint_RepoSaveError(t *testing.T) {
 	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnSaveNFT: true}
-	svc := NewService(repo)
+	svc := NewService(repo, newMockTxManagerWithRepo(repo.inmemRepo))
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -455,7 +456,7 @@ func TestNFTService_Mint_RepoSaveError(t *testing.T) {
 
 func TestNFTService_Transfer_NotFound(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -466,9 +467,16 @@ func TestNFTService_Transfer_NotFound(t *testing.T) {
 	}
 }
 
+// TestNFTService_Transfer_Atomicity is the genuine mid-transaction rollback
+// test: the transfer operation is saved FIRST, then the atomic ownership
+// transfer fails. A real transaction must roll the saved operation back, so
+// after the failed transfer the audit log contains only the mint operation
+// and the owner is unchanged. (The pre-transaction version of this test
+// overclaimed: it only asserted that Transfer returned an error, which the
+// injected failure trivially satisfied without verifying any rollback.)
 func TestNFTService_Transfer_Atomicity(t *testing.T) {
 	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnTryTransferOwnership: true}
-	svc := NewService(repo)
+	svc := NewService(repo, newMockTxManagerWithRepo(repo.inmemRepo))
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -482,14 +490,131 @@ func TestNFTService_Transfer_Atomicity(t *testing.T) {
 		t.Fatal("expected error when repo.TryTransferOwnership fails")
 	}
 
-	_ = minted
-	_ = creatorPub
-	_ = recipientPub
+	// Rollback assertion 1: the transfer operation saved before the failure
+	// must NOT survive — only the mint operation remains.
+	ops, err := svc.GetOperations(minted.ID)
+	if err != nil {
+		t.Fatalf("GetOperations: %v", err)
+	}
+	if len(ops) != 1 {
+		t.Errorf("expected 1 operation after rolled-back transfer (mint only), got %d", len(ops))
+	}
+	for _, op := range ops {
+		if op.Type != "mint" {
+			t.Errorf("unexpected surviving operation type %q (orphan audit record)", op.Type)
+		}
+	}
+
+	// Rollback assertion 2: ownership must be untouched.
+	current, err := svc.GetNFTByID(minted.ID)
+	if err != nil {
+		t.Fatalf("GetNFTByID: %v", err)
+	}
+	if current == nil {
+		t.Fatal("NFT must still exist after a failed transfer")
+	}
+	if !bytes.Equal(current.Owner, creatorPub) {
+		t.Errorf("owner changed despite failed transfer: got %x, want %x", current.Owner, creatorPub)
+	}
+}
+
+// TestNFTService_Mint_Atomicity proves Mint's two writes (NFT row + audit
+// operation) roll back together when the operation save fails mid-transaction.
+// The pre-transaction implementation compensated with a best-effort
+// DeleteNFT whose own error was silently swallowed; with a real transaction
+// no compensation exists and no partial state can remain.
+func TestNFTService_Mint_Atomicity(t *testing.T) {
+	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnSaveOperation: true}
+	svc := NewService(repo, newMockTxManagerWithRepo(repo.inmemRepo))
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	creatorPub, _, _ := ed25519.GenerateKey(nil)
+	nft := NewNFT("Test NFT", "Description", "", "", creatorPub, creatorPub)
+
+	_, err := svc.Mint(nft, chain)
+	if err == nil {
+		t.Fatal("expected error when repo.SaveOperation fails")
+	}
+
+	// The NFT row saved before the failure must have been rolled back.
+	if current, _ := svc.GetNFTByID(nft.ID); current != nil {
+		t.Errorf("NFT row survived a failed mint (orphaned row without audit operation): %+v", current)
+	}
+	ops, _ := svc.GetOperations(nft.ID)
+	if len(ops) != 0 {
+		t.Errorf("expected 0 operations after rolled-back mint, got %d", len(ops))
+	}
+}
+
+// TestNFTService_Burn_Atomicity proves Burn's operation record rolls back
+// when the conditional delete fails mid-transaction (no orphan "burn attempt"
+// record), and the NFT remains owned by the original owner.
+func TestNFTService_Burn_Atomicity(t *testing.T) {
+	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnTryDeleteNFTIfOwned: true}
+	svc := NewService(repo, newMockTxManagerWithRepo(repo.inmemRepo))
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
+	nft := NewNFT("Test NFT", "Description", "", "", ownerPub, ownerPub)
+	minted, _ := svc.Mint(nft, chain)
+
+	err := svc.Burn(minted.ID, ownerPub, ownerPriv, chain)
+	if err == nil {
+		t.Fatal("expected error when repo.TryDeleteNFTIfOwned fails")
+	}
+
+	// The burn operation saved before the failure must have been rolled back.
+	ops, err := svc.GetOperations(minted.ID)
+	if err != nil {
+		t.Fatalf("GetOperations: %v", err)
+	}
+	for _, op := range ops {
+		if op.Type == "burn" {
+			t.Error("burn operation survived a failed burn (orphan audit record)")
+		}
+	}
+
+	// The NFT must still exist, still owned by the original owner.
+	current, err := svc.GetNFTByID(minted.ID)
+	if err != nil {
+		t.Fatalf("GetNFTByID: %v", err)
+	}
+	if current == nil {
+		t.Fatal("NFT must still exist after a failed burn")
+	}
+	if !bytes.Equal(current.Owner, ownerPub) {
+		t.Errorf("owner changed despite failed burn")
+	}
+}
+
+// TestNFTService_Mint_TxManagerFailure proves the service surfaces a
+// transaction-level failure (the tx manager itself rejects the unit) without
+// persisting anything.
+func TestNFTService_Mint_TxManagerFailure(t *testing.T) {
+	repo := NewInmemRepo().(*inmemRepo)
+	// The manager fails on the first transaction, rolling back everything the
+	// callback wrote through the repo.
+	svc := NewService(repo, newFailingTxManagerWithRepo(repo, 1))
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	creatorPub, _, _ := ed25519.GenerateKey(nil)
+	nft := NewNFT("Test NFT", "Description", "", "", creatorPub, creatorPub)
+
+	_, err := svc.Mint(nft, chain)
+	if err == nil {
+		t.Fatal("expected error when the transaction manager fails")
+	}
+	if current, _ := svc.GetNFTByID(nft.ID); current != nil {
+		t.Errorf("NFT row survived a failed transaction: %+v", current)
+	}
 }
 
 func TestNFTService_Transfer_VerifyOperationSaved(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -514,7 +639,7 @@ func TestNFTService_Transfer_VerifyOperationSaved(t *testing.T) {
 
 func TestNFTService_Transfer_SelfTransfer(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -535,7 +660,7 @@ func TestNFTService_Transfer_SelfTransfer(t *testing.T) {
 
 func TestNFTService_BatchMint(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -573,7 +698,7 @@ func TestNFTService_BatchMint(t *testing.T) {
 
 func TestNFTService_MultipleTransfers(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -616,6 +741,65 @@ func (m *mockBlockWriter) AddBlock(data string) (int64, error) {
 	return 1, nil
 }
 
+// mockTxManager simulates TransactionManager semantics on top of the
+// in-memory repo's snapshot hooks: beginTx before the callback, rollbackTx on
+// any callback error (or an injected failure), commitTx on success. It lets
+// the service tests verify genuine mid-transaction rollback without a real
+// SQLite database. Single-goroutine only (the snapshot is repo-global).
+type mockTxManager struct {
+	repo       *inmemRepo
+	shouldFail bool
+	failStep   int
+	step       int
+}
+
+func (m *mockTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
+	if m.repo != nil {
+		m.repo.beginTx()
+	}
+
+	if m.shouldFail {
+		m.step++
+		if m.step == m.failStep {
+			if m.repo != nil {
+				m.repo.rollbackTx()
+			}
+			return fmt.Errorf("transaction failed at step %d", m.failStep)
+		}
+	}
+
+	err := fn(nil)
+
+	if err != nil {
+		if m.repo != nil {
+			m.repo.rollbackTx()
+		}
+		return err
+	}
+
+	if m.repo != nil {
+		m.repo.commitTx()
+	}
+
+	return nil
+}
+
+func newMockTxManager() *mockTxManager {
+	return &mockTxManager{}
+}
+
+func newMockTxManagerWithRepo(repo *inmemRepo) *mockTxManager {
+	return &mockTxManager{repo: repo}
+}
+
+func newFailingTxManager(failStep int) *mockTxManager {
+	return &mockTxManager{shouldFail: true, failStep: failStep}
+}
+
+func newFailingTxManagerWithRepo(repo *inmemRepo, failStep int) *mockTxManager {
+	return &mockTxManager{repo: repo, shouldFail: true, failStep: failStep}
+}
+
 type FailingRepo struct {
 	*inmemRepo
 	failOnSaveNFT              bool
@@ -624,6 +808,13 @@ type FailingRepo struct {
 	failOnSaveOperation        bool
 	failOnTryTransferOwnership bool
 	failOnTryDeleteNFTIfOwned  bool
+}
+
+// WithTx satisfies TransactableRepository: the failing repo delegates to the
+// embedded in-memory repo, so it returns ITSELF (not the embedded repo) to
+// keep the failure injection active inside the transaction callback.
+func (r *FailingRepo) WithTx(_ *sql.Tx) Repository {
+	return r
 }
 
 func (r *FailingRepo) SaveNFT(nft *NFT) error {
@@ -702,7 +893,7 @@ func (r *FailingRepo) GetOperations(nftID string) ([]*Operation, error) {
 // the storage owner can never disagree.
 func TestNFTService_Transfer_ConcurrentOnlyOneWinner(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -790,12 +981,13 @@ func TestNFTService_Transfer_ConcurrentOnlyOneWinner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetOperations: %v", err)
 	}
-	// Audit log records ALL transfer attempts (not just the
-	// winner). Rejected attempts save their operation before
-	// the atomic ownership check fails — this is intentional:
-	// the audit trail must show every attempt, even those
-	// rejected by concurrent ownership change. At minimum the
-	// winner's transfer must be recorded.
+	// The winner's transfer must be recorded. With a real
+	// TransactionManager (the SQLite CLI/API path) rejected attempts
+	// roll back completely, so ONLY the winner's operation commits.
+	// This concurrency test runs without a tx manager (the in-memory
+	// snapshot hooks are single-goroutine), so rejected attempts may
+	// additionally leave their operation records; the assertion checks
+	// the minimum guarantee that holds in both modes.
 	transferOps := 0
 	for _, op := range ops {
 		if op.Type == "transfer" {
@@ -825,7 +1017,7 @@ func TestNFTService_Transfer_ConcurrentOnlyOneWinner(t *testing.T) {
 // can never record more than one burn per NFT.
 func TestNFTService_Burn_ConcurrentOnlyOneWinner(t *testing.T) {
 	repo := NewInmemRepo()
-	svc := NewService(repo)
+	svc := NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 	blockchain.ResetForTest()
 
@@ -870,12 +1062,13 @@ func TestNFTService_Burn_ConcurrentOnlyOneWinner(t *testing.T) {
 		t.Fatalf("expected exactly 1 successful burn, got %d (results=%v)", successes, results)
 	}
 
-	// Audit log records ALL burn attempts (not just the winner).
-	// Rejected attempts save their operation before the atomic
-	// delete check fails — this is intentional: the audit trail
-	// must show every attempt, even those rejected by concurrent
-	// ownership change. The chain block for the winner is still
-	// the canonical record.
+	// The winner's burn must be recorded. With a real TransactionManager
+	// (the SQLite CLI/API path) rejected attempts roll back completely,
+	// so ONLY the winner's burn operation commits. This concurrency test
+	// runs without a tx manager (the in-memory snapshot hooks are
+	// single-goroutine), so rejected attempts may additionally leave
+	// their operation records; the assertion checks the minimum
+	// guarantee that holds in both modes.
 	ops, err := svc.GetOperations(minted.ID)
 	if err != nil {
 		t.Fatalf("GetOperations: %v", err)
@@ -900,9 +1093,9 @@ func TestNFTService_Burn_ConcurrentOnlyOneWinner(t *testing.T) {
 	}
 
 	// All losers must have been rejected with ErrNotOwner
-	// (defensively accepting ErrNFTNotFound in case the
-	// DeleteNFT happens before the IsOwner check on the loser
-	// side — both are valid rejection paths).
+	// (defensively accepting ErrNFTNotFound in case the winner's
+	// delete committed before the loser's TryDeleteNFTIfOwned ran —
+	// both are valid rejection paths).
 	for i, err := range results {
 		if err == nil {
 			continue

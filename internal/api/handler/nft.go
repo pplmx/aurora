@@ -16,10 +16,13 @@ type NFTHandler struct {
 	chain   blockchain.BlockWriter
 }
 
-func NewNFTHandler(repo domainnft.Repository) *NFTHandler {
+// NewNFTHandler wires the NFT service over a transaction-capable repository.
+// txManager may be nil (handler tests); the service then falls back to
+// non-transactional writes via NewService's nil guard.
+func NewNFTHandler(repo domainnft.TransactableRepository, txManager domainnft.TransactionManager) *NFTHandler {
 	return &NFTHandler{
 		repo:    repo,
-		service: domainnft.NewService(repo),
+		service: domainnft.NewService(repo, txManager),
 		chain:   blockchain.InitBlockChain(),
 	}
 }

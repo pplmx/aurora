@@ -1,5 +1,15 @@
 package nft
 
+import "database/sql"
+
+// TransactionManager abstracts the infra transaction runner so domain code
+// can group multiple repository writes into a single atomic unit without
+// importing database/sql plumbing. Implementations commit on nil and roll
+// back on error.
+type TransactionManager interface {
+	WithTransaction(fn func(tx *sql.Tx) error) error
+}
+
 type Repository interface {
 	SaveNFT(nft *NFT) error
 	GetNFT(id string) (*NFT, error)
@@ -34,6 +44,19 @@ type Repository interface {
 	DeleteNFT(id string) error
 	SaveOperation(op *Operation) error
 	GetOperations(nftID string) ([]*Operation, error)
+}
+
+// TransactableRepository is a Repository that can additionally scope its
+// operations to an open transaction. Services that must persist several rows
+// atomically (e.g. an NFT row together with its audit operation) obtain a
+// tx-scoped repository via WithTx and drive all writes of the unit through
+// it. Follows the token module's decision-token-tx-scoped-repos pattern.
+type TransactableRepository interface {
+	Repository
+	// WithTx returns a Repository whose operations participate in tx.
+	// Implementations that have no real transaction support (in-memory)
+	// return the receiver unchanged.
+	WithTx(tx *sql.Tx) Repository
 }
 
 // ErrOwnershipChanged is returned by TryTransferOwnership when the

@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"os"
@@ -602,4 +603,126 @@ func TestNFTRepository_TryDeleteNFTIfOwned_ConcurrentOnlyOneBurnWinner(t *testin
 			"losers should get either ErrOwnershipChanged (owner mismatch) or "+
 				"ErrNFTNotFound (winner already deleted the NFT), got: %v", err)
 	}
+}
+
+// =================================================================
+// WithTx — transaction-scoped repository
+// =================================================================
+
+func mintTestNFT(t *testing.T, repo *NFTRepository, id string, owner []byte) {
+	t.Helper()
+	require.NoError(t, repo.SaveNFT(&nft.NFT{
+		ID:          id,
+		Name:        "Tx NFT",
+		Owner:       owner,
+		Creator:     owner,
+		BlockHeight: 1,
+		Timestamp:   1,
+	}))
+}
+
+// TestNFTRepository_WithTx_CommitAndVisibility verifies that writes through a
+// tx-scoped repository are visible to reads in the same transaction before
+// commit, and durable after commit.
+func TestNFTRepository_WithTx_CommitAndVisibility(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	txMgr := NewTxManager(repo.GetDB())
+	err := txMgr.WithTransaction(func(tx *sql.Tx) error {
+		txRepo := repo.WithTx(tx)
+
+		n := &nft.NFT{ID: "nft-tx", Name: "In Tx", Owner: []byte("alice"), Creator: []byte("alice"), BlockHeight: 1, Timestamp: 1}
+		if err := txRepo.SaveNFT(n); err != nil {
+			return err
+		}
+		op := &nft.Operation{ID: "op-tx", NFTID: "nft-tx", Type: "mint", To: []byte("alice"), BlockHeight: 1, Timestamp: 1}
+		if err := txRepo.SaveOperation(op); err != nil {
+			return err
+		}
+
+		// Same-tx visibility: the uncommitted rows must be readable through
+		// the tx-scoped repo.
+		got, err := txRepo.GetNFT("nft-tx")
+		if err != nil {
+			return err
+		}
+		require.NotNil(t, got, "tx-scoped read must see uncommitted NFT row")
+
+		ops, err := txRepo.GetOperations("nft-tx")
+		if err != nil {
+			return err
+		}
+		require.Len(t, ops, 1, "tx-scoped read must see uncommitted operation")
+		return nil
+	})
+	require.NoError(t, err)
+
+	// After commit the rows are visible through the plain pool repo.
+	got, err := repo.GetNFT("nft-tx")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	ops, err := repo.GetOperations("nft-tx")
+	require.NoError(t, err)
+	require.Len(t, ops, 1)
+}
+
+// TestNFTRepository_WithTx_RollbackLeavesNoPartialState proves that when the
+// transaction callback fails after some writes, ALL writes in the unit are
+// rolled back — no orphaned NFT row, no orphaned operation. This is the
+// guarantee that replaces the old best-effort DeleteNFT compensation.
+func TestNFTRepository_WithTx_RollbackLeavesNoPartialState(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	boom := errors.New("mid-transaction failure")
+	txMgr := NewTxManager(repo.GetDB())
+	err := txMgr.WithTransaction(func(tx *sql.Tx) error {
+		txRepo := repo.WithTx(tx)
+
+		n := &nft.NFT{ID: "nft-rb", Name: "Rollback", Owner: []byte("alice"), Creator: []byte("alice"), BlockHeight: 1, Timestamp: 1}
+		if err := txRepo.SaveNFT(n); err != nil {
+			return err
+		}
+		op := &nft.Operation{ID: "op-rb", NFTID: "nft-rb", Type: "mint", To: []byte("alice"), BlockHeight: 1, Timestamp: 1}
+		if err := txRepo.SaveOperation(op); err != nil {
+			return err
+		}
+		return boom // force rollback after both writes
+	})
+	require.ErrorIs(t, err, boom)
+
+	got, err := repo.GetNFT("nft-rb")
+	require.NoError(t, err)
+	require.Nil(t, got, "NFT row must be rolled back")
+
+	ops, err := repo.GetOperations("nft-rb")
+	require.NoError(t, err)
+	require.Empty(t, ops, "operation must be rolled back")
+}
+
+// TestNFTRepository_WithTx_RollbackDoesNotTouchCommittedState proves a
+// rollback only undoes the current transaction's writes, not previously
+// committed rows.
+func TestNFTRepository_WithTx_RollbackDoesNotTouchCommittedState(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	mintTestNFT(t, repo, "nft-committed", []byte("alice"))
+
+	txMgr := NewTxManager(repo.GetDB())
+	_ = txMgr.WithTransaction(func(tx *sql.Tx) error {
+		txRepo := repo.WithTx(tx)
+		if err := txRepo.TryTransferOwnership("nft-committed", []byte("alice"), []byte("bob")); err != nil {
+			return err
+		}
+		return errors.New("abort after mutation")
+	})
+
+	got, err := repo.GetNFT("nft-committed")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	require.Equal(t, base64.StdEncoding.EncodeToString([]byte("alice")),
+		base64.StdEncoding.EncodeToString(got.Owner),
+		"committed owner must be untouched by a later rolled-back tx")
 }

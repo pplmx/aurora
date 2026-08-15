@@ -3,6 +3,7 @@ package test
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"database/sql"
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
@@ -134,9 +135,16 @@ func (r *inMemoryNFTRepo) GetOperations(nftID string) ([]*nftdomain.Operation, e
 	return r.operations[nftID], nil
 }
 
+// WithTx satisfies nftdomain.TransactableRepository. E2E tests run
+// single-goroutine against this in-memory repo with no transaction manager,
+// so the repo simply returns itself (same approach as inMemoryTokenRepo).
+func (r *inMemoryNFTRepo) WithTx(_ *sql.Tx) nftdomain.Repository {
+	return r
+}
+
 func TestNFTE2E(t *testing.T) {
 	repo := newInMemoryNFTRepo()
-	service := nftdomain.NewService(repo)
+	service := nftdomain.NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 
 	_, creatorPriv, _ := ed25519.GenerateKey(rand.Reader)
@@ -196,7 +204,7 @@ func TestNFTE2E(t *testing.T) {
 
 func TestNFTMultipleOwners(t *testing.T) {
 	repo := newInMemoryNFTRepo()
-	service := nftdomain.NewService(repo)
+	service := nftdomain.NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 
 	_, user1Priv, _ := ed25519.GenerateKey(rand.Reader)

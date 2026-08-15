@@ -207,9 +207,7 @@ func withTempDir(t *testing.T, fn func(t *testing.T)) {
 		// separate handle on the same aurora.db, so it too must be released
 		// before t.TempDir()'s RemoveAll on Windows.
 		if nftRepo != nil {
-			if closer, ok := nftRepo.(interface{ Close() error }); ok {
-				_ = closer.Close()
-			}
+			_ = nftRepo.Close()
 			nftRepo = nil
 		}
 	})

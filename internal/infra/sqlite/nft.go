@@ -11,9 +11,40 @@ import (
 	"github.com/pplmx/aurora/internal/domain/nft"
 )
 
+// nftExec abstracts *sql.DB and *sql.Tx so NFTRepository can run either
+// against the pool or inside an explicit transaction.
+type nftExec interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 type NFTRepository struct {
 	db     *sql.DB
 	dbPath string
+	exec   nftExec // nil => use db
+}
+
+// q returns the executor this repository reads/writes through: the pooled DB
+// by default, or the active *sql.Tx when WithTx was used.
+func (r *NFTRepository) q() nftExec {
+	if r != nil && r.exec != nil {
+		return r.exec
+	}
+	return r.db
+}
+
+// WithTx returns an NFTRepository whose operations run inside the given
+// transaction. All reads and writes through the returned repository observe
+// the transaction's uncommitted state and participate in its commit/rollback.
+func (r *NFTRepository) WithTx(tx *sql.Tx) nft.Repository {
+	return &NFTRepository{db: r.db, dbPath: r.dbPath, exec: tx}
+}
+
+// GetDB exposes the underlying pool so callers can build a TxManager that
+// shares this repository's database file.
+func (r *NFTRepository) GetDB() *sql.DB {
+	return r.db
 }
 
 func NewNFTRepository(dbPath string) (*NFTRepository, error) {
@@ -87,7 +118,7 @@ func (r *NFTRepository) createTables() error {
 }
 
 func (r *NFTRepository) SaveNFT(n *nft.NFT) error {
-	_, err := r.db.Exec(`
+	_, err := r.q().Exec(`
 		INSERT OR REPLACE INTO nfts (id, name, description, image_url, token_uri, owner, creator, block_height, timestamp)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
@@ -108,7 +139,7 @@ func (r *NFTRepository) GetNFT(id string) (*nft.NFT, error) {
 	var name, description, imageURL, tokenURI, ownerB64, creatorB64 string
 	var blockHeight, timestamp int64
 
-	err := r.db.QueryRow(`
+	err := r.q().QueryRow(`
 		SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
 		FROM nfts WHERE id = ?
 	`, id).Scan(&id, &name, &description, &imageURL, &tokenURI, &ownerB64, &creatorB64, &blockHeight, &timestamp)
@@ -144,7 +175,7 @@ func (r *NFTRepository) GetNFT(id string) (*nft.NFT, error) {
 
 func (r *NFTRepository) GetNFTsByOwner(owner []byte) ([]*nft.NFT, error) {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
-	rows, err := r.db.Query(`
+	rows, err := r.q().Query(`
 		SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
 		FROM nfts WHERE owner = ?
 	`, ownerB64)
@@ -189,7 +220,7 @@ func (r *NFTRepository) GetNFTsByOwner(owner []byte) ([]*nft.NFT, error) {
 
 func (r *NFTRepository) GetNFTsByCreator(creator []byte) ([]*nft.NFT, error) {
 	creatorB64 := base64.StdEncoding.EncodeToString(creator)
-	rows, err := r.db.Query(`
+	rows, err := r.q().Query(`
 		SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
 		FROM nfts WHERE creator = ?
 	`, creatorB64)
@@ -233,7 +264,7 @@ func (r *NFTRepository) GetNFTsByCreator(creator []byte) ([]*nft.NFT, error) {
 }
 
 func (r *NFTRepository) UpdateNFT(n *nft.NFT) error {
-	_, err := r.db.Exec(`
+	_, err := r.q().Exec(`
 		UPDATE nfts SET name = ?, description = ?, image_url = ?, token_uri = ?, owner = ?, block_height = ?, timestamp = ?
 		WHERE id = ?
 	`,
@@ -264,7 +295,7 @@ func (r *NFTRepository) UpdateNFT(n *nft.NFT) error {
 func (r *NFTRepository) TryTransferOwnership(nftID string, from, to []byte) error {
 	fromB64 := base64.StdEncoding.EncodeToString(from)
 	toB64 := base64.StdEncoding.EncodeToString(to)
-	res, err := r.db.Exec(`
+	res, err := r.q().Exec(`
 		UPDATE nfts SET owner = ?
 		WHERE id = ? AND owner = ?
 	`, toB64, nftID, fromB64)
@@ -299,7 +330,7 @@ func (r *NFTRepository) TryTransferOwnership(nftID string, from, to []byte) erro
 // from "ownership moved" via a follow-up read.
 func (r *NFTRepository) TryDeleteNFTIfOwned(nftID string, expectedOwner []byte) error {
 	ownerB64 := base64.StdEncoding.EncodeToString(expectedOwner)
-	res, err := r.db.Exec(`
+	res, err := r.q().Exec(`
 		DELETE FROM nfts WHERE id = ? AND owner = ?
 	`, nftID, ownerB64)
 	if err != nil {
@@ -323,7 +354,7 @@ func (r *NFTRepository) TryDeleteNFTIfOwned(nftID string, expectedOwner []byte) 
 }
 
 func (r *NFTRepository) DeleteNFT(id string) error {
-	_, err := r.db.Exec(`DELETE FROM nfts WHERE id = ?`, id)
+	_, err := r.q().Exec(`DELETE FROM nfts WHERE id = ?`, id)
 	return err
 }
 
@@ -339,7 +370,7 @@ func (r *NFTRepository) SaveOperation(op *nft.Operation) error {
 		sigB64 = base64.StdEncoding.EncodeToString(op.Signature)
 	}
 
-	_, err := r.db.Exec(`
+	_, err := r.q().Exec(`
 		INSERT OR REPLACE INTO nft_operations (id, nft_id, type, from_addr, to_addr, signature, block_height, timestamp)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`,
@@ -356,7 +387,7 @@ func (r *NFTRepository) SaveOperation(op *nft.Operation) error {
 }
 
 func (r *NFTRepository) GetOperations(nftID string) ([]*nft.Operation, error) {
-	rows, err := r.db.Query(`
+	rows, err := r.q().Query(`
 		SELECT id, nft_id, type, from_addr, to_addr, signature, block_height, timestamp
 		FROM nft_operations WHERE nft_id = ? ORDER BY timestamp DESC
 	`, nftID)
