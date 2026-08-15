@@ -38,9 +38,9 @@ build: check test
 build-current:
     go build -o aurora ./cmd/aurora
 
-# Run the application
-run:
-    ./aurora-linux-amd64 start
+# Run the application locally (builds for the current platform then runs a sample)
+run: build-current
+    ./aurora lottery create -p "A,B,C" -s "seed" -c 3
 
 # Build Docker image
 image:

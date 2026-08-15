@@ -1056,9 +1056,33 @@
       "summary": "Round 20 deep-dive completed across all remaining modules (token Create, blockchain persistence, oracle fetch/query, NFT atomic ownership). No finding above priority threshold 3.0; multi-round deep-dive has been producing sub-threshold value. Evaluating stop conditions: no active task > 3.0 (only 0.28 accepted-debt task), all high-severity issues resolved/deferred, VERIFY green for all host-runnable code (internal/infra/http red only on documented environmental loopback-TCP sandbox block; passes in CI; must not weaken or escalate), graph consistent (0 orphans, no cycles).",
       "rationale": "Conditions 1, 2, 4, 5 are fully met. Condition 3 is met for all code runnable on this host; the single exception (internal/infra/http) is the pre-existing, documented environmental sandbox restriction outside my control — weakening or escalating it is forbidden.",
       "alternatives_rejected": ["continue chasing sub-threshold cosmetic refactors instead of assessing completion", "weaken internal/infra/http tests or request sandbox escalation to force a host-green VERIFY (forbidden)"]
+    },
+    {
+      "id": "issue-doc-code-inconsistencies",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T09:00:00Z",
+      "updated_at": "2026-08-12T09:00:00Z",
+      "confidence": 0.95,
+      "summary": "Documentation diverged from the actual codebase: AGENTS.md/README.md referenced a nonexistent Makefile (`make test/lint/check/build/dev/start/stop`) when the repo uses justfile; CLI examples listed commands that don't exist (voting create, voting tui, oracle sources, oracle query) and omitted required flags (nft transfer --from, token --token); docs/lottery referenced pre-DDD paths (internal/lottery/, test/) and a stale blocks schema (id AUTOINCREMENT + height UNIQUE); root.go default log.path was './log' while config.go + aurora.toml + docs use './logs'; justfile run targeted a nonexistent 'start' subcommand/binary.",
+      "severity": 0.2
+    },
+    {
+      "id": "change-doc-code-consistency",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T09:00:00Z",
+      "updated_at": "2026-08-12T09:00:00Z",
+      "confidence": 1.0,
+      "summary": "docs+config consistency sweep: AGENTS.md/README.md make->just with accurate CLI examples (voting candidate/voter/session/vote/results, oracle source list/data/latest/template, nft transfer --from, token -t flags); docs/lottery updated to DDD paths + real test names + real blocks schema; root.go log.path default ./log->./logs (matches config.go/aurora.toml); justfile run recipe now builds current platform and runs lottery create; root.go Example fixed (voting create -> voting candidate add); SECURITY.md NIST Curve25519 wording corrected. Go build/vet/gofmt clean; full suite green (only env-loopback internal/infra/http block, documented)."
     }
   ],
   "edges": [
+    {
+      "source": "change-doc-code-consistency",
+      "target": "issue-doc-code-inconsistencies",
+      "type": "resolves"
+    },
     {
       "source": "change-oracle-apply-headers",
       "target": "issue-oracle-headers-ignored",

@@ -20,7 +20,7 @@ func TestSetDefaultConfig(t *testing.T) {
 
 	for key, want := range map[string]any{
 		"log.level":                 "info",
-		"log.path":                  "./log",
+		"log.path":                  "./logs",
 		"data.dir":                  "",
 		"migrate.autoRun":           false,
 		"migrate.path":              "./migrations",

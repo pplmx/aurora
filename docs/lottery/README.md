@@ -63,16 +63,10 @@ go build -o aurora ./cmd/aurora
 cmd/aurora/cmd/
 └── lottery.go           # CLI 命令入口
 
-internal/lottery/
-├── address.go           # 名字转地址
-├── address_test.go      # 测试
-├── vrf.go               # VRF 实现 (Edwards25519)
-├── vrf_test.go          # 测试
-├── lottery.go           # 抽奖核心逻辑
-├── lottery_test.go      # 单元测试
-└── tui.go               # TUI 界面 (Bubble Tea)
+internal/domain/lottery/  # 领域层: 实体、VRF、抽奖核心逻辑、仓储接口
+internal/ui/lottery/      # 表示层: TUI 界面 (Bubble Tea)
 
-test/
+e2e/
 └── lottery_e2e_test.go  # E2E 功能测试
 ```
 
@@ -81,21 +75,21 @@ test/
 ### 单元测试
 
 ```bash
-go test ./internal/lottery/ -v
+go test ./internal/domain/lottery/ -v
 ```
 
 ### E2E 功能测试
 
 ```bash
-go test ./test/ -v
+go test ./e2e/ -v
 ```
 
 ### 覆盖的测试场景
 
-| 测试文件              | 说明                                     |
-| --------------------- | ---------------------------------------- |
-| `lottery_test.go`     | 单元测试：地址转换、VRF、抽奖逻辑        |
-| `lottery_e2e_test.go` | E2E 测试：完整流程、多次抽奖、数据完整性 |
+| 测试文件              | 说明                                      |
+| --------------------- | ----------------------------------------- |
+| `entity_test.go`      | 单元测试：地址转换、VRF、抽奖逻辑         |
+| `lottery_e2e_test.go` | E2E 测试：完整流程、多次抽奖、数据完整性  |
 
 ## 依赖
 

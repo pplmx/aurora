@@ -22,7 +22,7 @@ Please include the following information:
 
 ## Security Best Practices
 
-- Use Ed25519 for cryptographic signatures (NIST Curve25519)
+- Use Ed25519 for cryptographic signatures (Edwards25519 / Curve25519)
 - Use crypto/rand for random number generation
 - All SQL queries use parameterized statements
 - HTTP client has 10-second timeout

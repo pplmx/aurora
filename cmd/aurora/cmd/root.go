@@ -37,7 +37,7 @@ Use "aurora lottery --help" for lottery commands.`,
   aurora lottery tui
   aurora nft mint -n "MyNFT" -c "creator-key"
   aurora token create -n "MyToken" -s "MTK" --supply 1000000
-  aurora voting create -t "Election 2026"`,
+  aurora voting candidate add -n "Alice" -p "Party"`,
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		dataDir := viper.GetString("data.dir")
@@ -126,7 +126,7 @@ func initConfig() {
 
 func setDefaultConfig() {
 	viper.SetDefault("log.level", "info")
-	viper.SetDefault("log.path", "./log")
+	viper.SetDefault("log.path", "./logs")
 	viper.SetDefault("data.dir", "")
 	viper.SetDefault("migrate.autoRun", false)
 	viper.SetDefault("migrate.path", "./migrations")

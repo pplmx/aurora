@@ -2,20 +2,23 @@
 
 ## Build & Test Commands
 
+> The project uses **just** (see `justfile`), not make. There is no Makefile.
+
 ```bash
-make test         # Run all tests (unit + E2E)
-make lint         # Run golangci-lint (requires golangci-lint installed)
-make check        # Run gofmt, goimports, go vet
-make build        # Runs check + test, then builds for darwin/linux/windows
-make run          # Run locally: ./aurora-linux lottery create -p "A,B,C" -s "seed" -c 3
+just test         # Run all tests (unit + E2E)
+just lint         # Run golangci-lint (requires golangci-lint installed)
+just check        # Run gofmt, goimports, go vet
+just build        # Runs check + test, then builds for darwin/linux/windows
+just build-current  # Build for the current platform (./aurora)
+just run          # Run locally
 ```
 
 ## Dev Workflow
 
 ```bash
-make dev          # Build Docker image and restart containers
-make start        # Start containers: docker compose up -d
-make stop         # Stop containers: docker compose down
+just dev          # Build Docker image and restart containers
+just start        # Start containers: docker compose up -d
+just stop         # Stop containers: docker compose down
 ```
 
 ## Development Notes
@@ -72,39 +75,55 @@ make stop         # Stop containers: docker compose down
 ### Voting (Ed25519 signatures)
 
 ```bash
-./aurora voting create -t "Proposal" -o "owner_key"   # Create vote
-./aurora voting vote -k "signing_key"                 # Cast vote
-./aurora voting tui                                   # TUI interface
+./aurora voting candidate add -n "Name" -p "Party"     # Register a candidate
+./aurora voting candidate list                          # List candidates
+./aurora voting voter register -n "Name"               # Register a voter (prints keypair)
+./aurora voting session create -t "Title" -c <cand-id> -c <cand2> --start-time <t> --end-time <t>
+./aurora voting session list                           # List sessions
+./aurora voting session start -i <session-id>          # Start a session
+./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv-key>
+./aurora voting results -s <session-id>                # Show results
+./aurora voting session end -i <session-id>            # End a session
 ```
 
 ### NFT (Ed25519-signed NFTs)
 
 ```bash
 ./aurora nft mint -n "MyNFT" -d "Description" -c "creator_key"
-./aurora nft transfer --nft <id> --to <address> -k "private_key"
+./aurora nft transfer --nft <id> --from <owner> --to <address> -k "private_key"
 ./aurora nft get --id <nft_id>
 ./aurora nft list --owner <pubkey>
+./aurora nft burn --nft <id> --owner <owner> -k "private_key"
+./aurora nft history --nft <id>
 ./aurora nft tui                                       # TUI interface
 ```
 
 ### Token (Fungible Token)
 
 ```bash
-./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000
-./aurora token mint --to <address> --amount 100 -k "private_key"
-./aurora token transfer --to <address> --amount 50 -k "private_key"
-./aurora token balance --owner <address>
-./aurora token history
+./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000   # prints owner keypair
+./aurora token info -t <token-id>
+./aurora token mint -t <token-id> --to <address> --amount 100 -k "private_key"
+./aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k "private_key"
+./aurora token balance -t <token-id> --owner <address>
+./aurora token approve -t <token-id> --owner <addr> --spender <addr> --amount 100 -k "private_key"
+./aurora token allowance -t <token-id> --owner <addr> --spender <addr>
+./aurora token burn -t <token-id> --from <addr> --amount 10 -k "private_key"
+./aurora token history -t <token-id> --owner <address>
 ./aurora token tui                                       # TUI interface
 ```
 
 ### Oracle (Data Oracle)
 
 ```bash
-./aurora oracle sources                                 # List data sources
-./aurora oracle fetch --source <id>                    # Fetch data
-./aurora oracle query --source <id> --limit 10         # Query history
-./aurora oracle tui                                       # TUI interface
+./aurora oracle source list                             # List data sources
+./aurora oracle source add -n "Name" -u <url>           # Add a source
+./aurora oracle fetch -s <source-id>                    # Fetch data
+./aurora oracle data -s <source-id> --limit 10          # Query history
+./aurora oracle latest -s <source-id>                   # Latest data point
+./aurora oracle template list                           # Built-in templates
+./aurora oracle template add -t <template>              # Add a template source
+./aurora oracle tui                                     # TUI interface
 ```
 
 ## Testing
