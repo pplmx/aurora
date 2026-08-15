@@ -13,6 +13,29 @@ import (
 type App struct {
 	EventBus     infraevents.EventBus
 	TokenService token.Service
+
+	// closers releases every SQLite handle Wire opened (event store, replay
+	// protection, token repo). Tests call Close() before t.TempDir() cleanup so
+	// Windows can delete the temp data dir; production gets graceful release.
+	closers []func() error
+}
+
+// addCloser appends a handle to be released by Close().
+func (a *App) addCloser(c interface{ Close() error }) {
+	a.closers = append(a.closers, c.Close)
+}
+
+// Close releases every SQLite handle the App opened. Safe to call once at
+// shutdown; best-effort (returns the first error encountered, if any).
+func (a *App) Close() error {
+	var firstErr error
+	for _, c := range a.closers {
+		if err := c(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	a.closers = nil
+	return firstErr
 }
 
 func Wire(dataDir string) (*App, error) {
@@ -20,15 +43,20 @@ func Wire(dataDir string) (*App, error) {
 		return nil, err
 	}
 
+	app := &App{}
+
 	eventStore, err := infraevents.NewSQLiteEventStore(filepath.Join(dataDir, "events.db"))
 	if err != nil {
 		return nil, err
 	}
+	app.addCloser(eventStore)
 
 	replay, err := infraevents.NewSQLiteReplayProtection(filepath.Join(dataDir, "nonces.db"))
 	if err != nil {
+		_ = app.Close()
 		return nil, err
 	}
+	app.addCloser(replay)
 
 	// The token service only drives the synchronous bus (audit + stats
 	// handlers). The previous CompositeEventBus also spawned an idle
@@ -42,8 +70,10 @@ func Wire(dataDir string) (*App, error) {
 
 	tokenRepo, err := sqlite.NewTokenRepository(filepath.Join(dataDir, "tokens.db"))
 	if err != nil {
+		_ = app.Close()
 		return nil, err
 	}
+	app.addCloser(tokenRepo)
 
 	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
 
@@ -51,8 +81,7 @@ func Wire(dataDir string) (*App, error) {
 
 	tokenService := token.NewService(tokenRepo, txManager, bus, eventReader, replay, chain)
 
-	return &App{
-		EventBus:     bus,
-		TokenService: tokenService,
-	}, nil
+	app.EventBus = bus
+	app.TokenService = tokenService
+	return app, nil
 }

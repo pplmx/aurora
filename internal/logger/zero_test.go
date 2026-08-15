@@ -17,6 +17,9 @@ func setLogConfig(t *testing.T, level, path string) {
 	viper.Set("log.level", level)
 	viper.Set("log.path", path)
 	t.Cleanup(viper.Reset)
+	// Close the file logger handle before t.TempDir()'s cleanup removes the
+	// log dir (Windows cannot delete an open file).
+	t.Cleanup(Close)
 }
 
 func TestLogger_Init(t *testing.T) {

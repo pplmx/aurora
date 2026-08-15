@@ -269,7 +269,7 @@ func TestNewServer_SuccessWithTempDB(t *testing.T) {
 	srv, err := NewServer()
 	require.NoError(t, err, "NewServer should succeed")
 	require.NotNil(t, srv)
-	t.Cleanup(func() { _ = blockchain.Close() })
+	t.Cleanup(func() { _ = srv.Close() })
 
 	assert.NotNil(t, srv.db)
 	assert.NotNil(t, srv.lotteryHandler)
@@ -307,6 +307,7 @@ func TestNewServer_FailsOnInvalidDBPath(t *testing.T) {
 		assert.Nil(t, srv)
 	} else {
 		assert.NotNil(t, srv)
+		t.Cleanup(func() { _ = srv.Close() })
 	}
 }
 

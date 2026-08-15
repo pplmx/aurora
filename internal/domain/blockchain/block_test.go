@@ -22,6 +22,10 @@ func resetChainForTest(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.Chdir(dir))
 	t.Cleanup(func() { _ = os.Chdir(prevDir) })
+	// Close the process-wide DB singleton before t.TempDir()'s RemoveAll so
+	// the SQLite handle isn't left open (Windows can't delete an in-use file;
+	// Unix tolerates unlink-of-open-file, which is why this was invisible).
+	t.Cleanup(func() { _ = Close() })
 	ResetForTest()
 }
 

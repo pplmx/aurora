@@ -18,6 +18,34 @@ type Server struct {
 	nftHandler     *handler.NFTHandler
 	tokenHandler   *handler.TokenHandler
 	oracleHandler  *handler.OracleHandler
+
+	// closers releases every SQLite handle NewServer opened (repos, event
+	// store, replay protection) plus the shared blockchain DB. Tests use
+	// Close() before t.TempDir() cleanup so Windows can delete the temp dir;
+	// a long-lived server gets graceful handle release on shutdown.
+	closers []func() error
+}
+
+// addCloser appends a handle to be released by Close(). nil-able to keep the
+// error-path code terse.
+func (s *Server) addCloser(c interface{ Close() error }) {
+	s.closers = append(s.closers, c.Close)
+}
+
+// Close releases every SQLite handle the server opened. Idempotent-safe for
+// callers; safe to call once at shutdown.
+func (s *Server) Close() error {
+	var firstErr error
+	for _, c := range s.closers {
+		if err := c(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	if err := blockchain.Close(); err != nil && firstErr == nil {
+		firstErr = err
+	}
+	s.closers = nil
+	return firstErr
 }
 
 func NewServer() (*Server, error) {
@@ -27,10 +55,13 @@ func NewServer() (*Server, error) {
 		return nil, err
 	}
 
+	srv := &Server{db: db}
+
 	lotteryRepo, err := sqlite.NewLotteryRepository(dbPath)
 	if err != nil {
 		return nil, err
 	}
+	srv.addCloser(lotteryRepo)
 
 	votingRepo := sqlite.NewVotingRepository(db)
 
@@ -38,16 +69,19 @@ func NewServer() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	srv.addCloser(nftRepo)
 
 	tokenRepo, err := sqlite.NewTokenRepository(dbPath)
 	if err != nil {
 		return nil, err
 	}
+	srv.addCloser(tokenRepo)
 
 	eventStore, err := infraevents.NewSQLiteEventStore(dbPath)
 	if err != nil {
 		return nil, err
 	}
+	srv.addCloser(eventStore)
 
 	eventReader := sqlite.NewTokenEventReader(eventStore)
 
@@ -57,6 +91,7 @@ func NewServer() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	srv.addCloser(replay)
 
 	chain := blockchain.GetBlockChain()
 	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
@@ -66,15 +101,14 @@ func NewServer() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	srv.addCloser(oracleRepo)
 
-	return &Server{
-		db:             db,
-		lotteryHandler: handler.NewLotteryHandler(lotteryRepo),
-		votingHandler:  handler.NewVotingHandler(votingRepo),
-		nftHandler:     handler.NewNFTHandler(nftRepo),
-		tokenHandler:   handler.NewTokenHandler(tokenService),
-		oracleHandler:  handler.NewOracleHandler(oracleRepo),
-	}, nil
+	srv.lotteryHandler = handler.NewLotteryHandler(lotteryRepo)
+	srv.votingHandler = handler.NewVotingHandler(votingRepo)
+	srv.nftHandler = handler.NewNFTHandler(nftRepo)
+	srv.tokenHandler = handler.NewTokenHandler(tokenService)
+	srv.oracleHandler = handler.NewOracleHandler(oracleRepo)
+	return srv, nil
 }
 
 func (s *Server) Router() http.Handler {
