@@ -928,6 +928,26 @@
       "summary": "fix(token): Approve now rejects non-existent tokens with ErrTokenNotFound (checks error and nil-token); TestApprove_TokenNotFound. Commit 347bbdf."
     },
     {
+      "id": "issue-token-history-drops-height",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T05:30:00Z",
+      "updated_at": "2026-08-12T05:40:00Z",
+      "confidence": 0.9,
+      "summary": "After event reader preserved block height (731249c), the API layer still dropped it: Transfer/TransferFrom/Mint/Burn responses and the history DTO omitted Height, and CLI token history didn't print it — so the audit-timeline value never reached clients.",
+      "severity": 0.25,
+      "evidence": "internal/app/token/query.go GetHistoryUseCase (pre-fix) built TransferResponse without BlockHeight"
+    },
+    {
+      "id": "change-token-height-exposed",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T05:40:00Z",
+      "updated_at": "2026-08-12T05:40:00Z",
+      "confidence": 1.0,
+      "summary": "feat(token): surface BlockHeight in Transfer/TransferFrom/Mint/Burn + history DTOs (Approve excluded — no chain height); CLI history prints it; history test asserts heights surface. Commits a71d011 d2c3d67."
+    },
+    {
       "id": "issue-api-error-leak",
       "type": "issue",
       "status": "resolved",
@@ -959,6 +979,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-token-height-exposed",
+      "target": "issue-token-history-drops-height",
+      "type": "resolves"
+    },
     {
       "source": "change-api-error-redaction",
       "target": "issue-api-error-leak",
