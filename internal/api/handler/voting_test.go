@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -33,6 +34,10 @@ func (m *mockVotingRepo) GetVote(string) (*domainvoting.Vote, error)            
 func (m *mockVotingRepo) GetVotesByCandidate(string) ([]*domainvoting.Vote, error) { return nil, nil }
 func (m *mockVotingRepo) GetVotesByVoter(string) ([]*domainvoting.Vote, error)     { return nil, nil }
 func (m *mockVotingRepo) DeleteVote(string) error                                  { return nil }
+
+// WithTx satisfies domainvoting.TransactableRepository; the mock has no
+// transaction state, so it returns itself.
+func (m *mockVotingRepo) WithTx(_ *sql.Tx) domainvoting.Repository { return m }
 
 func (m *mockVotingRepo) SaveVoter(voter *domainvoting.Voter) error {
 	if m.saveVoterErr != nil {
@@ -84,7 +89,7 @@ func (m *mockVotingRepo) UpdateSession(*domainvoting.Session) error      { retur
 func (m *mockVotingRepo) ListSessions() ([]*domainvoting.Session, error) { return nil, nil }
 
 func TestVotingHandler_RegisterVoter_InvalidJSON(t *testing.T) {
-	handler := NewVotingHandler(nil)
+	handler := NewVotingHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/register/voter", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -95,7 +100,7 @@ func TestVotingHandler_RegisterVoter_InvalidJSON(t *testing.T) {
 }
 
 func TestVotingHandler_RegisterCandidate_InvalidJSON(t *testing.T) {
-	handler := NewVotingHandler(nil)
+	handler := NewVotingHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/register/candidate", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -106,7 +111,7 @@ func TestVotingHandler_RegisterCandidate_InvalidJSON(t *testing.T) {
 }
 
 func TestVotingHandler_CreateSession_InvalidJSON(t *testing.T) {
-	handler := NewVotingHandler(nil)
+	handler := NewVotingHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/session", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -117,7 +122,7 @@ func TestVotingHandler_CreateSession_InvalidJSON(t *testing.T) {
 }
 
 func TestVotingHandler_Vote_InvalidJSON(t *testing.T) {
-	handler := NewVotingHandler(nil)
+	handler := NewVotingHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/vote", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -224,7 +229,8 @@ func TestVotingHandler_CreateSession_RepoError(t *testing.T) {
 }
 
 func TestVotingHandler_Vote_Success(t *testing.T) {
-	handler := &VotingHandler{repo: newMockVotingRepo(), service: domainvoting.NewEd25519Service()}
+	repo := newMockVotingRepo()
+	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]string{
 		"voter_public_key": "pk1",
@@ -251,12 +257,12 @@ func TestVotingHandler_GetSession_NotFound_Repo(t *testing.T) {
 }
 
 func TestVotingHandler_Routes(t *testing.T) {
-	handler := NewVotingHandler(nil)
+	handler := NewVotingHandler(nil, nil)
 	assert.NotNil(t, handler)
 }
 
 func TestVotingHandler_NewVotingHandler(t *testing.T) {
-	handler := NewVotingHandler(nil)
+	handler := NewVotingHandler(nil, nil)
 	assert.NotNil(t, handler)
 	assert.NotNil(t, handler.service)
 }

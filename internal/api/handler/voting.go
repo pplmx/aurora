@@ -10,14 +10,19 @@ import (
 )
 
 type VotingHandler struct {
-	repo    domainvoting.Repository
-	service domainvoting.Service
+	repo      domainvoting.TransactableRepository
+	txManager domainvoting.TransactionManager
+	service   domainvoting.Service
 }
 
-func NewVotingHandler(repo domainvoting.Repository) *VotingHandler {
+// NewVotingHandler wires the voting use cases over a transaction-capable
+// repository. txManager may be nil (handler tests); CastVote then falls back
+// to non-transactional writes via the use case's nil guard.
+func NewVotingHandler(repo domainvoting.TransactableRepository, txManager domainvoting.TransactionManager) *VotingHandler {
 	return &VotingHandler{
-		repo:    repo,
-		service: domainvoting.NewEd25519Service(),
+		repo:      repo,
+		txManager: txManager,
+		service:   domainvoting.NewEd25519Service(),
 	}
 }
 
@@ -118,7 +123,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uc := votingapp.NewCastVoteUseCase(h.repo, h.service)
+	uc := votingapp.NewCastVoteUseCase(h.repo, h.service, h.txManager)
 	result, err := uc.Execute(votingapp.CastVoteRequest{
 		VoterPublicKey: req.VoterPublicKey,
 		CandidateID:    req.CandidateID,

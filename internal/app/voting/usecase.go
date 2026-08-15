@@ -3,6 +3,7 @@ package voting
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -14,18 +15,51 @@ import (
 )
 
 type CastVoteUseCase struct {
-	repo    voting.Repository
-	service voting.Service
+	repo      voting.TransactableRepository
+	service   voting.Service
+	txManager voting.TransactionManager
 }
 
-func NewCastVoteUseCase(repo voting.Repository, service voting.Service) *CastVoteUseCase {
+func NewCastVoteUseCase(repo voting.TransactableRepository, service voting.Service, txManager voting.TransactionManager) *CastVoteUseCase {
+	if txManager == nil {
+		txManager = noOpTxManager{}
+	}
 	return &CastVoteUseCase{
-		repo:    repo,
-		service: service,
+		repo:      repo,
+		service:   service,
+		txManager: txManager,
 	}
 }
 
-func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (_ *VoteResponse, err error) {
+// noOpTxManager executes the callback directly without a transaction, for
+// callers over repositories without transaction support (in-memory fakes).
+type noOpTxManager struct{}
+
+func (noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
+	return fn(nil)
+}
+
+// NewCastVoteUseCaseWithoutTx builds the use case without a transaction
+// manager. Only appropriate for repositories without transaction support;
+// the SQLite-backed wiring must use NewCastVoteUseCase with a real
+// TransactionManager.
+func NewCastVoteUseCaseWithoutTx(repo voting.TransactableRepository, service voting.Service) *CastVoteUseCase {
+	return NewCastVoteUseCase(repo, service, noOpTxManager{})
+}
+
+// txRepo returns the repository scoped to the given transaction when one is
+// active, otherwise the use case's default repository. Every mutation inside
+// the WithTransaction callback MUST go through txRepo so the voter claim,
+// the vote row and the tally increment share one SQLite transaction and
+// roll back together.
+func (uc *CastVoteUseCase) txRepo(tx *sql.Tx) voting.Repository {
+	if tx == nil {
+		return uc.repo
+	}
+	return uc.repo.WithTx(tx)
+}
+
+func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	session, err := uc.repo.GetSession(req.SessionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
@@ -79,73 +113,61 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (_ *VoteResponse, err er
 		return nil, fmt.Errorf("failed to sign vote: %w", err)
 	}
 
-	// Atomically claim the voter BEFORE saving the vote and
-	// incrementing the candidate count. The conditional UPDATE
-	// in TryMarkVoted closes the TOCTOU window that previously
-	// let two concurrent requests both pass the has_voted check.
+	// The three ballot mutations — claim the voter, save the vote row,
+	// increment the tally — run in ONE transaction. The pre-transaction flow
+	// claimed the voter first and, on a later failure, ran a best-effort
+	// UnmarkVoted/DeleteVote compensation whose own errors were silently
+	// swallowed; a failed compensation permanently locked the voter out or
+	// left an orphan vote row (violating the votes<->voters invariant). With
+	// a real transaction no partial ballot state can ever commit.
 	//
-	// Ordering matters here. The pre-fix flow did SaveVote →
-	// TryMarkVoted → UpdateCandidate. If TryMarkVoted failed,
-	// the code did a best-effort DeleteVote rollback to remove
-	// the orphan vote row. If DeleteVote itself failed (DB
-	// hiccup, lost connection), the votes table was left with
-	// an orphan record for a voter who didn't actually win the
-	// claim race — the audit log would then show a vote that
-	// never counted, violating the votes-table ↔ voters-table
-	// invariant ("every vote in votes table has a corresponding
-	// has_voted=1 in voters table").
-	//
-	// Fix: claim the voter FIRST. If TryMarkVoted returns an
-	// error, we abort with no side effects — no orphan vote,
-	// no spurious candidate increment, no audit-log entry.
+	// TryMarkVoted remains the concurrency primitive: its conditional UPDATE
+	// guarantees exactly one concurrent caller for the same voter wins; the
+	// losers get ErrAlreadyVoted and their whole transaction aborts with no
+	// side effects.
 	voteHash := base64.StdEncoding.EncodeToString([]byte(message))
-	if err := uc.repo.TryMarkVoted(req.VoterPublicKey, voteHash); err != nil {
+	var voteID string
+	var blockHeight int64
+	err = uc.txManager.WithTransaction(func(tx *sql.Tx) error {
+		txRepo := uc.txRepo(tx)
+
+		if err := txRepo.TryMarkVoted(req.VoterPublicKey, voteHash); err != nil {
+			return err
+		}
+
+		vote := voting.NewVote(req.VoterPublicKey, req.CandidateID, signature, message)
+		if err := txRepo.SaveVote(vote); err != nil {
+			return fmt.Errorf("failed to save vote: %w", err)
+		}
+		voteID = vote.ID
+		blockHeight = vote.BlockHeight
+
+		if err := txRepo.IncrementCandidateVoteCount(req.CandidateID); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		if errors.Is(err, sqlite.ErrAlreadyVoted) {
 			return nil, voting.ErrAlreadyVoted
 		}
 		if errors.Is(err, sqlite.ErrNotFound) {
-			return nil, voting.ErrVoterNotRegistered
-		}
-		return nil, fmt.Errorf("failed to mark voter: %w", err)
-	}
-
-	// If we return an error after TryMarkVoted, unmark the voter
-	// so they aren't permanently locked out. The cleanup defer
-	// also handles DeleteVote if the vote was already saved.
-	var voteSaved bool
-	var voteID string
-	defer func() {
-		if err != nil {
-			if voteSaved {
-				_ = uc.repo.DeleteVote(voteID)
+			// A row vanished between the existence checks above and the
+			// transactional mutations: either the voter (TryMarkVoted) or
+			// the candidate (IncrementCandidateVoteCount) was deleted
+			// concurrently. Re-check the voter to map to the right public
+			// error.
+			if v, vErr := uc.repo.GetVoter(req.VoterPublicKey); vErr == nil && v == nil {
+				return nil, voting.ErrVoterNotRegistered
 			}
-			_ = uc.repo.UnmarkVoted(req.VoterPublicKey)
-		}
-	}()
-
-	vote := voting.NewVote(req.VoterPublicKey, req.CandidateID, signature, message)
-	if err := uc.repo.SaveVote(vote); err != nil {
-		return nil, fmt.Errorf("failed to save vote: %w", err)
-	}
-	voteSaved = true
-	voteID = vote.ID
-
-	// Atomically increment the tally instead of read-modify-write:
-	// candidate.VoteCount++ followed by UpdateCandidate lost an
-	// increment when two different voters voted for the same
-	// candidate concurrently (both read N, both wrote N+1), silently
-	// under-counting the election. The conditional UPDATE in
-	// IncrementCandidateVoteCount makes every vote count exactly once.
-	if err := uc.repo.IncrementCandidateVoteCount(req.CandidateID); err != nil {
-		if errors.Is(err, sqlite.ErrNotFound) {
 			return nil, voting.ErrCandidateNotFound
 		}
-		return nil, fmt.Errorf("failed to update candidate: %w", err)
+		return nil, fmt.Errorf("failed to cast vote: %w", err)
 	}
 
 	return &VoteResponse{
-		ID:          vote.ID,
-		BlockHeight: vote.BlockHeight,
+		ID:          voteID,
+		BlockHeight: blockHeight,
 	}, nil
 }
 

@@ -1,5 +1,28 @@
 package voting
 
+import "database/sql"
+
+// TransactionManager abstracts the infra transaction runner so use cases can
+// group several repository writes (voter claim + vote row + tally increment)
+// into one atomic unit. Implementations commit on nil and roll back on error.
+type TransactionManager interface {
+	WithTransaction(fn func(tx *sql.Tx) error) error
+}
+
+// TransactableRepository is a Repository that can additionally scope its
+// operations to an open transaction. CastVoteUseCase drives all of its
+// mutations through a tx-scoped repository so a failure in any step rolls
+// back the whole ballot instead of relying on best-effort compensation
+// (UnmarkVoted/DeleteVote). Follows the token module's
+// decision-token-tx-scoped-repos pattern.
+type TransactableRepository interface {
+	Repository
+	// WithTx returns a Repository whose operations participate in tx.
+	// Implementations without real transaction support (in-memory fakes)
+	// return the receiver unchanged.
+	WithTx(tx *sql.Tx) Repository
+}
+
 type Repository interface {
 	SaveVote(vote *Vote) error
 	GetVote(id string) (*Vote, error)
@@ -16,10 +39,10 @@ type Repository interface {
 	// sentinel error. This is the primitive that closes the TOCTOU
 	// double-vote window in CastVoteUseCase.
 	TryMarkVoted(publicKey, voteHash string) error
-	// UnmarkVoted resets the voter's has_voted flag. Used as a
-	// rollback when a downstream step (e.g. SaveVote) fails after
-	// TryMarkVoted succeeded, so the voter isn't permanently locked
-	// out with no vote recorded.
+	// UnmarkVoted resets the voter's has_voted flag. Historically the
+	// best-effort rollback for a failed CastVote; CastVote now runs in a
+	// real transaction, so this primitive is retained for administrative /
+	// corrective flows only.
 	UnmarkVoted(publicKey string) error
 	ListVoters() ([]*Voter, error)
 

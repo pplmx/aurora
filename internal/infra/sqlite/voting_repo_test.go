@@ -502,3 +502,103 @@ func TestVotingRepository_ListSessions_Empty(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, sessions)
 }
+
+// =================================================================
+// WithTx — transaction-scoped repository
+// =================================================================
+
+// TestVotingRepository_WithTx_CommitAndVisibility verifies that writes
+// through a tx-scoped repository are visible to reads in the same
+// transaction before commit, and durable after commit.
+func TestVotingRepository_WithTx_CommitAndVisibility(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-tx", Name: "Tx Voter", RegisteredAt: 1}))
+	require.NoError(t, repo.SaveCandidate(&voting.Candidate{ID: "cand-tx", Name: "Tx Cand"}))
+
+	txMgr := NewTxManager(repo.db)
+	err := txMgr.WithTransaction(func(tx *sql.Tx) error {
+		txRepo := repo.WithTx(tx)
+
+		if err := txRepo.TryMarkVoted("pk-tx", "hash-tx"); err != nil {
+			return err
+		}
+		vote := voting.NewVote("pk-tx", "cand-tx", "sig", "msg")
+		if err := txRepo.SaveVote(vote); err != nil {
+			return err
+		}
+		if err := txRepo.IncrementCandidateVoteCount("cand-tx"); err != nil {
+			return err
+		}
+
+		// Same-tx visibility: the claim and the tally increment must be
+		// readable through the tx-scoped repo before commit.
+		v, err := txRepo.GetVoter("pk-tx")
+		if err != nil {
+			return err
+		}
+		require.True(t, v.HasVoted, "tx-scoped read must see the uncommitted claim")
+
+		c, err := txRepo.GetCandidate("cand-tx")
+		if err != nil {
+			return err
+		}
+		require.Equal(t, 1, c.VoteCount, "tx-scoped read must see the uncommitted tally")
+		return nil
+	})
+	require.NoError(t, err)
+
+	// After commit the state is visible through the plain pool repo.
+	v, err := repo.GetVoter("pk-tx")
+	require.NoError(t, err)
+	require.True(t, v.HasVoted)
+	c, err := repo.GetCandidate("cand-tx")
+	require.NoError(t, err)
+	require.Equal(t, 1, c.VoteCount)
+	votes, err := repo.GetVotesByVoter("pk-tx")
+	require.NoError(t, err)
+	require.Len(t, votes, 1)
+}
+
+// TestVotingRepository_WithTx_RollbackLeavesNoPartialState proves that when
+// the ballot transaction fails after the voter claim and the vote row, ALL
+// writes roll back — the voter is not locked out, no orphan vote row
+// survives, and the tally is untouched. This replaces the old best-effort
+// UnmarkVoted/DeleteVote compensation.
+func TestVotingRepository_WithTx_RollbackLeavesNoPartialState(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-rb", Name: "Rollback Voter", RegisteredAt: 1}))
+	require.NoError(t, repo.SaveCandidate(&voting.Candidate{ID: "cand-rb", Name: "Rollback Cand", VoteCount: 5}))
+
+	boom := errors.New("mid-transaction failure")
+	txMgr := NewTxManager(repo.db)
+	err := txMgr.WithTransaction(func(tx *sql.Tx) error {
+		txRepo := repo.WithTx(tx)
+
+		if err := txRepo.TryMarkVoted("pk-rb", "hash-rb"); err != nil {
+			return err
+		}
+		vote := voting.NewVote("pk-rb", "cand-rb", "sig", "msg")
+		if err := txRepo.SaveVote(vote); err != nil {
+			return err
+		}
+		return boom // force rollback after claim + vote row
+	})
+	require.ErrorIs(t, err, boom)
+
+	v, err := repo.GetVoter("pk-rb")
+	require.NoError(t, err)
+	require.False(t, v.HasVoted, "voter claim must be rolled back")
+	require.Empty(t, v.VoteHash, "vote hash must be rolled back")
+
+	votes, err := repo.GetVotesByVoter("pk-rb")
+	require.NoError(t, err)
+	require.Empty(t, votes, "vote row must be rolled back")
+
+	c, err := repo.GetCandidate("cand-rb")
+	require.NoError(t, err)
+	require.Equal(t, 5, c.VoteCount, "tally must be untouched")
+}
