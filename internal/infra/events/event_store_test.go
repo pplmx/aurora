@@ -1,8 +1,10 @@
 package events
 
 import (
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/events"
@@ -68,6 +70,37 @@ func TestSQLiteEventStore_Save(t *testing.T) {
 		err = store.Save(event2)
 		require.NoError(t, err)
 	})
+}
+
+// TestSQLiteEventStore_RoundTripPreservesIdentity guards the data-integrity
+// contract: reading an event back must yield the persisted id and timestamp,
+// not a freshly generated uuid / read-time time.Now(). The token transfer
+// history reader and audit/sync consumers rely on the recorded identity.
+func TestSQLiteEventStore_RoundTripPreservesIdentity(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	saved := events.NewBaseEvent("token.transfer", "agg-rt", []byte(`{"step":1}`))
+	if err := store.Save(saved); err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
+
+	got, err := store.GetByAggregate("agg-rt", 10, 0)
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	if got[0].ID() != saved.ID() {
+		t.Errorf("expected stored id %q, got %q", saved.ID(), got[0].ID())
+	}
+	// Stored timestamp is second-granularity (Unix()); compare on that window.
+	if !got[0].Timestamp().Equal(saved.Timestamp().Truncate(time.Second)) {
+		t.Errorf("expected stored timestamp %v, got %v", saved.Timestamp(), got[0].Timestamp())
+	}
+	if got[0].Payload() == nil {
+		t.Errorf("expected payload to be preserved")
+	} else if string(got[0].Payload()) != `{"step":1}` {
+		t.Errorf("payload not preserved: %s", got[0].Payload())
+	}
 }
 
 func TestSQLiteEventStore_GetByType(t *testing.T) {
@@ -176,6 +209,50 @@ func TestSQLiteEventStore_GetByAggregate(t *testing.T) {
 		results, err = store.GetByAggregate("agg-1", 1, 1)
 		require.NoError(t, err)
 		assert.Len(t, results, 1)
+	})
+
+	// Equal-second events (all saved within the same Unix() second, which is
+	// the norm for a burst of mints/transfers) must paginate deterministically.
+	// Without a tiebreaker in ORDER BY (id), LIMIT/OFFSET over rows sharing a
+	// timestamp is unordered — the same row could appear on two pages or be
+	// skipped. Walking the aggregate one row at a time must reproduce the full
+	// page-0 list exactly, with no row duplicated or missing.
+	t.Run("equal-second events paginate deterministically", func(t *testing.T) {
+		store, cleanup := setupEventStore(t)
+		defer cleanup()
+
+		const n = 8
+		for i := 0; i < n; i++ {
+			ev := events.NewBaseEvent("token.transfer", "agg-same-second", []byte(fmt.Sprintf(`{"step":%d}`, i)))
+			_ = store.Save(ev)
+		}
+
+		full, err := store.GetByAggregate("agg-same-second", 50, 0)
+		require.NoError(t, err)
+		require.Len(t, full, n)
+
+		var paged []events.Event
+		for off := 0; off < n; off++ {
+			page, err := store.GetByAggregate("agg-same-second", 1, off)
+			require.NoError(t, err)
+			require.Len(t, page, 1, "offset %d should return exactly one row", off)
+			paged = append(paged, page[0])
+		}
+
+		assert.Len(t, paged, n)
+		// Every page-0 row appears exactly once across the walked pages, and
+		// no foreign row leaks in — i.e. paging reproduces the full set.
+		fullIDs := make(map[string]int)
+		for _, ev := range full {
+			fullIDs[ev.ID()]++
+		}
+		seen := make(map[string]int)
+		for _, ev := range paged {
+			seen[ev.ID()]++
+		}
+		for id, want := range fullIDs {
+			assert.Equal(t, want, seen[id], "row %s should appear exactly the same number of times across pages", id)
+		}
 	})
 }
 

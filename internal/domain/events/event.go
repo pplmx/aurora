@@ -38,6 +38,22 @@ func NewBaseEvent(eventType, aggID string, payload []byte) *BaseEvent {
 	}
 }
 
+// NewStoredEvent reconstructs a BaseEvent from its persisted identity and
+// timing. Persistence stores id + timestamp; readers MUST round-trip them so
+// consumers (audit, token history, sync) observe the event that was actually
+// recorded rather than a fresh random id and read-time timestamp.
+func NewStoredEvent(id string, timestamp time.Time, eventType, aggID string, payload []byte) *BaseEvent {
+	module := strings.SplitN(eventType, ".", 2)[0]
+	return &BaseEvent{
+		id:        id,
+		eventType: eventType,
+		module:    module,
+		aggID:     aggID,
+		timestamp: timestamp,
+		payload:   payload,
+	}
+}
+
 func (e *BaseEvent) ID() string           { return e.id }
 func (e *BaseEvent) EventType() string    { return e.eventType }
 func (e *BaseEvent) Module() string       { return e.module }
