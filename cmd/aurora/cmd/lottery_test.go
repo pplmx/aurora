@@ -271,14 +271,14 @@ func TestLotteryImport_PartialFailure(t *testing.T) {
 		// One valid record + one that fails validation (empty participants).
 		mixed := filepath.Join(t.TempDir(), "mixed.json")
 		valid := domainlottery.LotteryRecord{
-			ID:            "fixed-valid-id",
-			Seed:          "mix-seed-long",
-			Participants:  []string{"A", "B"},
-			Winners:       []string{"A"},
+			ID:              "fixed-valid-id",
+			Seed:            "mix-seed-long",
+			Participants:    []string{"A", "B"},
+			Winners:         []string{"A"},
 			WinnerAddresses: []string{"addr"},
-			BlockHeight:   7,
-			VRFOutput:     strings.Repeat("ab", 32),
-			VRFProof:      strings.Repeat("cd", 32),
+			BlockHeight:     7,
+			VRFOutput:       strings.Repeat("ab", 32),
+			VRFProof:        strings.Repeat("cd", 32),
 		}
 		invalid := domainlottery.LotteryRecord{ID: "bad", Seed: "x"} // zero participants/winners
 		payload, _ := json.Marshal([]domainlottery.LotteryRecord{valid, invalid})
