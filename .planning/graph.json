@@ -1036,6 +1036,15 @@
       "confidence": 1.0,
       "summary": "2026-08-12 Windows run, after the c58d66f fixes (migrate + oracle now green): go test ./... still red due to t.TempDir RemoveAll cleanup on internal/infra/sqlite (fixed), cmd/aurora/cmd (~45 cases), internal/api (2), internal/app (2). All 'The process cannot access the file because it is being used by another process'. Logic assertions pass; only cleanup fails.",
       "detail": "Root: CLI/API command paths never Close() the sql.DB/event handles they open; process exit normally reclaims them (Unix green), Windows temp cleanup fails."
+    },
+    {
+      "id": "evidence-round19-verify-green",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-12T08:00:00Z",
+      "updated_at": "2026-08-12T08:00:00Z",
+      "confidence": 1.0,
+      "summary": "Round 19 VERIFY: go build ./... clean, go vet ./... clean, gofmt clean, full test suite green (no FAIL) except internal/infra/http which is the documented environmental loopback-TCP sandbox block (its pure helper TestApplySourceHeaders passes). Graph consistency check: 102 nodes / 81 edges, 0 orphans, no depends_on/blocks cycle."
     }
   ],
   "edges": [
