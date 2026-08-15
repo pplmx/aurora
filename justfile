@@ -28,15 +28,15 @@ check:
 
 # Build all platforms
 build: check test
-    CGO_ENABLED=0 GOARCH=arm64 GOOS=darwin go build -o aurora-darwin-arm64 cmd/aurora
-    CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -o aurora-darwin-amd64 cmd/aurora
-    CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o aurora-linux-amd64 cmd/aurora
-    CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -o aurora-linux-arm64 cmd/aurora
-    CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o aurora-windows.exe cmd/aurora
+    CGO_ENABLED=0 GOARCH=arm64 GOOS=darwin go build -o aurora-darwin-arm64 ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -o aurora-darwin-amd64 ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -o aurora-linux-amd64 ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -o aurora-linux-arm64 ./cmd/aurora
+    CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -o aurora-windows.exe ./cmd/aurora
 
 # Build for current platform
 build-current:
-    go build -o aurora cmd/aurora
+    go build -o aurora ./cmd/aurora
 
 # Run the application
 run:
