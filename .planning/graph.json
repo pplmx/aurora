@@ -891,12 +891,21 @@
     {
       "id": "task-token-event-height-not-persisted",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-12T03:40:00Z",
-      "updated_at": "2026-08-12T03:40:00Z",
-      "confidence": 0.8,
-      "summary": "Token events don't serialize block height, so TokenEventReader always returns blockHeight=0; audit-history block height is lost. Low user impact (CLI history doesn't print height). When the token event payload schema next changes, add height for audit completeness.",
+      "updated_at": "2026-08-12T04:10:00Z",
+      "confidence": 0.9,
+      "summary": "RESOLVED: token Transfer/Mint/Burn events now serialize block_height in the payload; TokenEventReader parses and surfaces it (default 0 for backward compat with older stored events). Commit 731249c.",
       "priority_score": 0.2
+    },
+    {
+      "id": "change-token-event-height-persisted",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T04:10:00Z",
+      "updated_at": "2026-08-12T04:10:00Z",
+      "confidence": 1.0,
+      "summary": "fix(token): persist block height in token event payloads; reader surfaces it. PreservesBlockHeight + BlockHeightDefaultsToZero tests. Commit 731249c."
     },
     {
       "id": "evidence-windows-suite-red-detail",
@@ -910,6 +919,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-token-event-height-persisted",
+      "target": "task-token-event-height-not-persisted",
+      "type": "resolves"
+    },
     {
       "source": "change-token-event-reader-timestamp",
       "target": "issue-token-event-reader-fabricated-time",
