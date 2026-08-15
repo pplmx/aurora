@@ -58,6 +58,15 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (_ *VoteResponse, err er
 		return nil, voting.ErrCandidateNotFound
 	}
 
+	// Ballot integrity: the candidate must belong to THIS session's roster.
+	// Sessions declare their candidate set (session.Candidates), so a vote for
+	// a registered-but-not-in-this-session candidate (possibly one in a
+	// different election) must be rejected rather than inflating that
+	// candidate's tally.
+	if !containsString(session.Candidates, req.CandidateID) {
+		return nil, voting.ErrCandidateNotInSession
+	}
+
 	privBytes, err := base64.StdEncoding.DecodeString(req.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("invalid private key format: %w", err)
@@ -272,4 +281,14 @@ func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionRespo
 		Status:      session.Status,
 		Candidates:  session.Candidates,
 	}, nil
+}
+
+// containsString reports whether list contains target (small lists; linear scan).
+func containsString(list []string, target string) bool {
+	for _, s := range list {
+		if s == target {
+			return true
+		}
+	}
+	return false
 }
