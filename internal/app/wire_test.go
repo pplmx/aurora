@@ -18,6 +18,7 @@ import (
 func TestWire_TokenRoundTrip(t *testing.T) {
 	app, err := Wire(t.TempDir())
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = app.Close() })
 
 	svc := app.TokenService
 

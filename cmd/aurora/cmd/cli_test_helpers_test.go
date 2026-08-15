@@ -193,6 +193,26 @@ func withTempDir(t *testing.T, fn func(t *testing.T)) {
 	resetCliForTest()
 
 	fn(t)
+
+	// The CLI commands share blockchain.InitDB()'s process-wide singleton,
+	// which is never explicitly closed (the real process exits and the OS
+	// reclaims it). In-process tests must close it before t.TempDir()'s
+	// RemoveAll cleanup or the SQLite handle is still open and Windows cannot
+	// delete the temp directory. Cleanups run LIFO, so this (registered last,
+	// before the t.TempDir() registration captured above) executes first.
+	t.Cleanup(func() {
+		_ = blockchain.Close()
+		// The NFT repo is cached in a package-global (getNFTRepo) that CLI
+		// commands never close (the real process exits). Its *sql.DB is a
+		// separate handle on the same aurora.db, so it too must be released
+		// before t.TempDir()'s RemoveAll on Windows.
+		if nftRepo != nil {
+			if closer, ok := nftRepo.(interface{ Close() error }); ok {
+				_ = closer.Close()
+			}
+			nftRepo = nil
+		}
+	})
 }
 
 // newTestPrivKey returns a fresh random Ed25519 private key (compressed

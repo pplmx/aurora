@@ -1,6 +1,8 @@
 package oracle
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"strings"
@@ -129,13 +131,21 @@ func (s *service) QueryData(sourceID string, limit int) ([]*OracleData, error) {
 }
 
 // generateID produces a unique identifier for oracle sources and data
-// entries. The previous implementation used time.Now().Format("20060102150405")
-// which only has second-level precision — two entries created within the same
-// second would collide, silently overwriting each other in the database.
-// We now append nanosecond precision to the timestamp to minimize collision
-// probability while keeping the ID human-readable for debugging.
+// entries. The previous implementations used time.Now() with second, then
+// nanosecond, precision — but time.Now() resolution is not monotonic enough
+// across all platforms (Windows can return identical values for rapid calls),
+// so a timestamp alone can still collide, silently overwriting a row keyed by
+// that ID. We keep a timestamp prefix for human readability/debugging and
+// append a 128-bit cryptographically random suffix, making collisions
+// negligible regardless of platform clock resolution.
 func generateID() string {
-	return time.Now().Format("20060102150405.000000000")
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		// crypto/rand never fails in practice; fall back to a monotonic
+		// nanosecond timestamp rather than returning an empty ID.
+		return time.Now().Format("20060102150405.000000000")
+	}
+	return time.Now().Format("20060102150405.000000000") + "-" + hex.EncodeToString(b[:])
 }
 
 type OracleError struct {
