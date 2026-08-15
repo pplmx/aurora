@@ -778,6 +778,26 @@
       "summary": "fix(voting): reject votes for candidates not in the session roster — ErrCandidateNotInSession sentinel, containsString membership check in CastVote, 400/CANDIDATE_NOT_IN_SESSION classification, test + 12 mock rosters. Commit e837fde."
     },
     {
+      "id": "issue-oracle-add-source-bypasses-validation",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T01:30:00Z",
+      "updated_at": "2026-08-12T01:35:00Z",
+      "confidence": 0.95,
+      "summary": "AddSourceUseCase (the only add-source entry point, used by CLI `oracle source add`) called repo.SaveSource directly, skipping domain oracle.Service.AddSource where URL-scheme SSRF validation (http/https only, host required) and name validation live. A caller could persist a file:// or empty-host source that the fetcher could never reach.",
+      "severity": 0.35,
+      "evidence": "internal/app/oracle/usecase.go AddSourceUseCase.Execute called uc.repo.SaveSource(source) with no URL/name validation (pre-fix)"
+    },
+    {
+      "id": "change-oracle-add-source-validation",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T01:35:00Z",
+      "updated_at": "2026-08-12T01:35:00Z",
+      "confidence": 1.0,
+      "summary": "fix(oracle): AddSourceUseCase delegates to oracle.NewService(repo).AddSource so URL-scheme SSRF + name validation apply at every entry point; validation errors pass through, persist errors keep context; new RejectsDisallowedScheme test. Commit e718d6f."
+    },
+    {
       "id": "evidence-windows-suite-red-detail",
       "type": "evidence",
       "status": "active",
@@ -789,6 +809,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-oracle-add-source-validation",
+      "target": "issue-oracle-add-source-bypasses-validation",
+      "type": "resolves"
+    },
     {
       "source": "change-vote-candidate-roster",
       "target": "issue-vote-candidate-not-in-session",
