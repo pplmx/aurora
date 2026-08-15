@@ -968,6 +968,26 @@
       "summary": "fix(oracle): AddSource/validateSourceURL rejects hosts that are or resolve to private/blocked space (mirrors fetcher ranges); unresolvable hosts allowed (unreachable). Adds loopback/metadata/RFC1918/IPv6-loopback URL test cases. Commit c13ed04."
     },
     {
+      "id": "issue-oracle-headers-ignored",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T06:30:00Z",
+      "updated_at": "2026-08-12T06:40:00Z",
+      "confidence": 0.9,
+      "summary": "DataSource.Headers (e.g. Authorization bearer for a private API) was persisted/exposed but never applied to outgoing requests — the fetcher sent only transport defaults. TestFetcher_FetchData_WithHeaders masked this by injecting a custom roundTripper that set the header itself.",
+      "severity": 0.35,
+      "evidence": "internal/infra/http/fetcher.go FetchDataWithValidation (pre-fix) never read source.Headers; fetcher_test.go:248 injected a custom RoundTripper setting X-Custom-Header"
+    },
+    {
+      "id": "change-oracle-apply-headers",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T06:40:00Z",
+      "updated_at": "2026-08-12T06:40:00Z",
+      "confidence": 1.0,
+      "summary": "fix(oracle): fetcher parses source.Headers (JSON map) and applies them to the request; invalid headers JSON surfaces as ErrInvalidSource. Pure unit tests (no loopback). Commit 0dab21b."
+    },
+    {
       "id": "issue-api-error-leak",
       "type": "issue",
       "status": "resolved",
@@ -999,6 +1019,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-oracle-apply-headers",
+      "target": "issue-oracle-headers-ignored",
+      "type": "resolves"
+    },
     {
       "source": "change-oracle-add-source-ssrf",
       "target": "issue-oracle-initial-ssrf",
