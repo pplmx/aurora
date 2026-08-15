@@ -988,6 +988,26 @@
       "summary": "fix(oracle): fetcher parses source.Headers (JSON map) and applies them to the request; invalid headers JSON surfaces as ErrInvalidSource. Pure unit tests (no loopback). Commit 0dab21b."
     },
     {
+      "id": "issue-oracle-source-response-incomplete",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T07:10:00Z",
+      "updated_at": "2026-08-12T07:20:00Z",
+      "confidence": 0.9,
+      "summary": "SourceResponse DTO omitted Method, Headers, Path and Interval that exist on the domain DataSource, so the API 'list sources' / 'add source' responses could not surface a source's full configuration — consumers saw only id/name/url/type/enabled/createdAt.",
+      "severity": 0.18,
+      "evidence": "internal/app/oracle/dto.go SourceResponse (pre-fix) had 6 fields; AddSourceUseCase/ListSourcesUseCase populated only those 6"
+    },
+    {
+      "id": "change-oracle-source-response-full",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T07:20:00Z",
+      "updated_at": "2026-08-12T07:20:00Z",
+      "confidence": 1.0,
+      "summary": "feat(oracle): add Method, Headers, Path, Interval to SourceResponse and populate in AddSourceUseCase and ListSourcesUseCase. Commit da0db7f."
+    },
+    {
       "id": "issue-api-error-leak",
       "type": "issue",
       "status": "resolved",
@@ -1022,6 +1042,11 @@
     {
       "source": "change-oracle-apply-headers",
       "target": "issue-oracle-headers-ignored",
+      "type": "resolves"
+    },
+    {
+      "source": "change-oracle-source-response-full",
+      "target": "issue-oracle-source-response-incomplete",
       "type": "resolves"
     },
     {
