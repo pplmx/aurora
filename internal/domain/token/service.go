@@ -550,6 +550,21 @@ func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
 }
 
 func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, error) {
+	// Guard: refuse to adjust allowance for a token that does not exist.
+	// Every other token mutator (Approve/Mint/Burn/Transfer/TransferFrom)
+	// verifies the token first; without this check TryAdjustApproval would
+	// happily INSERT an allowance row for a dangling token_id, creating
+	// orphaned approval data that references nothing.
+	token, err := s.repo.GetToken(req.TokenID)
+	if err != nil {
+		if err == ErrTokenNotFound {
+			return nil, ErrTokenNotFound
+		}
+		return nil, err
+	}
+	if token == nil {
+		return nil, ErrTokenNotFound
+	}
 	if err := VerifyPrivateKeyMatches(req.Owner, req.PrivateKey); err != nil {
 		return nil, err
 	}
@@ -579,6 +594,19 @@ func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 }
 
 func (s *TokenService) DecreaseAllowance(req *AllowanceRequest) (*ApproveEvent, error) {
+	// Guard: see IncreaseAllowance — never adjust allowance for a token
+	// that does not exist. Prevents orphaned allowance rows for a dangling
+	// token_id.
+	token, err := s.repo.GetToken(req.TokenID)
+	if err != nil {
+		if err == ErrTokenNotFound {
+			return nil, ErrTokenNotFound
+		}
+		return nil, err
+	}
+	if token == nil {
+		return nil, ErrTokenNotFound
+	}
 	if err := VerifyPrivateKeyMatches(req.Owner, req.PrivateKey); err != nil {
 		return nil, err
 	}
