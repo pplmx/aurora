@@ -7,22 +7,23 @@ Version: 1.0
 ## Overview
 
 Add comprehensive tests for the event-driven architecture to achieve:
+
 1. **Reliability** - Ensure correct behavior under concurrency and error conditions
 2. **Regression Protection** - Prevent refactoring from breaking existing functionality
 3. **Documentation** - Tests as executable specifications of system behavior
 
 ## Coverage Goals
 
-| Package | Current | Target |
-|---------|---------|--------|
-| internal/domain/events | 85.9% | 90%+ |
-| internal/infra/events | 87.0% | 92%+ |
-| internal/domain/token | 64.7% | 80%+ |
-| internal/app/token | 91.9% | 93%+ |
+| Package                | Current | Target |
+| ---------------------- | ------- | ------ |
+| internal/domain/events | 85.9%   | 90%+   |
+| internal/infra/events  | 87.0%   | 92%+   |
+| internal/domain/token  | 64.7%   | 80%+   |
+| internal/app/token     | 91.9%   | 93%+   |
 
 ## Test File Structure
 
-```
+```text
 internal/
 ├── domain/events/
 │   ├── event_test.go           # Event interface tests
@@ -64,6 +65,7 @@ func TestEventFlow_Transfer(t *testing.T) {
 ```
 
 **Test Cases:**
+
 - `TestEventFlow_TokenTransfer` - Token 转账事件完整流程
 - `TestEventFlow_TokenMint` - Token 铸造事件完整流程
 - `TestEventFlow_TokenBurn` - Token 销毁事件完整流程
@@ -109,6 +111,7 @@ func TestEventBus_ConcurrentPublish(t *testing.T) {
 ```
 
 **Test Cases:**
+
 - `TestEventBus_ConcurrentPublish` - 50 goroutines 同时发布，无丢失无重复
 - `TestEventBus_ConcurrentSubscribe` - 10 goroutines 同时订阅，事件不丢失
 - `TestEventBus_ConcurrentUnsubscribe` - 订阅后立即取消，行为确定
@@ -144,6 +147,7 @@ func TestEventBus_HandlerChainFailure(t *testing.T) {
 ```
 
 **Test Cases:**
+
 - `TestEventBus_EventStoreError` - EventStore 返回错误时 Publish 返回错误
 - `TestEventBus_HandlerChainAllOrNothing` - Handler 失败阻止后续 Handler 执行
 - `TestAsyncEventBus_ChannelFull` - Channel 满时返回错误而非阻塞
@@ -175,6 +179,7 @@ func TestEventStore_GetEmpty(t *testing.T) {
 ```
 
 **Test Cases:**
+
 - `TestEventStore_GetByType_Empty` - 不存在类型返回空列表
 - `TestEventStore_GetByModule_Empty` - 不存在模块返回空列表
 - `TestEventStore_GetAggregate_Empty` - 不存在聚合根返回空列表

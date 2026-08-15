@@ -6,28 +6,28 @@ The graph is a JSON document at `.planning/graph.json`. State lives there; this 
 
 Every node has: `id`, `type`, `status`, `created_at`, `updated_at`, `confidence` (0–1).
 
-| type | purpose |
-|------|---------|
-| `component` | module / service / file-level entity |
-| `issue` | identified problem: bug, risk, debt (carries `severity` 0–1) |
-| `hypothesis` | unverified root-cause guess (carries `confidence` 0–1) |
-| `evidence` | a specific observation supporting/refuting a hypothesis (cite commit hash / test name / file:line) |
-| `decision` | a made choice, with `rationale` and `alternatives_rejected`; never deleted |
-| `change` | an actual code modification, linked to its commit hash |
-| `task` | an actionable next step, carrying `priority_score` |
+| type         | purpose                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| `component`  | module / service / file-level entity                                                               |
+| `issue`      | identified problem: bug, risk, debt (carries `severity` 0–1)                                       |
+| `hypothesis` | unverified root-cause guess (carries `confidence` 0–1)                                             |
+| `evidence`   | a specific observation supporting/refuting a hypothesis (cite commit hash / test name / file:line) |
+| `decision`   | a made choice, with `rationale` and `alternatives_rejected`; never deleted                         |
+| `change`     | an actual code modification, linked to its commit hash                                             |
+| `task`       | an actionable next step, carrying `priority_score`                                                 |
 
 ## Edges
 
 Directed, semantically typed — no untyped "related" edges.
 
-| edge | meaning |
-|------|---------|
-| `depends_on` | task→task or component→component |
-| `causes` | issue→issue (mark root-cause vs symptom); also issue→task ("derived") and issue→decision ("accepted") |
-| `blocks` | task→task |
-| `validates` / `refutes` | evidence→hypothesis |
-| `resolves` | change→issue (or change→task) |
-| `supersedes` | decision→decision (records evolution; the older decision is kept, not overwritten) |
+| edge                    | meaning                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `depends_on`            | task→task or component→component                                                                      |
+| `causes`                | issue→issue (mark root-cause vs symptom); also issue→task ("derived") and issue→decision ("accepted") |
+| `blocks`                | task→task                                                                                             |
+| `validates` / `refutes` | evidence→hypothesis                                                                                   |
+| `resolves`              | change→issue (or change→task)                                                                         |
+| `supersedes`            | decision→decision (records evolution; the older decision is kept, not overwritten)                    |
 
 ## Lifecycle
 

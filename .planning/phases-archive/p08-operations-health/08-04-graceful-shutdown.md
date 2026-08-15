@@ -7,6 +7,7 @@
 ## Tasks
 
 ### 1. Update main.go shutdown handling
+
 **File:** `cmd/api/main.go`
 
 Replace the shutdown section (lines 49-52):
@@ -55,8 +56,8 @@ func main() {
 
 ## Files to Modify
 
-| File | Action |
-|------|--------|
+| File              | Action                                    |
+| ----------------- | ----------------------------------------- |
 | `cmd/api/main.go` | Add context import, update shutdown logic |
 
 ## Success Criteria
@@ -88,7 +89,7 @@ kill -TERM $PID
 
 ## Key Differences
 
-| Approach | New Connections | In-Flight Requests | Timeout |
-|----------|-----------------|-------------------|---------|
-| `server.Close()` (old) | Immediately rejected | Force closed | None |
-| `server.Shutdown(ctx)` (new) | Stop accepted | Wait for completion | 15 seconds |
+| Approach                     | New Connections      | In-Flight Requests  | Timeout    |
+| ---------------------------- | -------------------- | ------------------- | ---------- |
+| `server.Close()` (old)       | Immediately rejected | Force closed        | None       |
+| `server.Shutdown(ctx)` (new) | Stop accepted        | Wait for completion | 15 seconds |

@@ -7,6 +7,7 @@
 ## Tasks
 
 ### 1. Create health handler file
+
 **File:** `internal/api/health.go` (new)
 
 ```go
@@ -37,14 +38,15 @@ func setHealthHeaders(w http.ResponseWriter) {
 ```
 
 ### 2. Verify router integration
+
 **File:** `internal/api/router.go`
 
 The liveness handler will be registered in Plan 08-03. This plan is the implementation-only step.
 
 ## Files to Modify
 
-| File | Action |
-|------|--------|
+| File                     | Action |
+| ------------------------ | ------ |
 | `internal/api/health.go` | Create |
 
 ## Success Criteria

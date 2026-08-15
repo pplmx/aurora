@@ -10,14 +10,14 @@
 
 All E2E tests pass including error recovery scenarios.
 
-| Test File | Tests |
-|-----------|-------|
-| lottery_e2e_test.go | 9 tests |
-| nft_e2e_test.go | 2 tests |
-| oracle_e2e_test.go | 2 tests |
-| token_e2e_test.go | 1 test |
-| voting_e2e_test.go | 5 tests |
-| recovery_test.go | 5 new tests |
+| Test File           | Tests       |
+| ------------------- | ----------- |
+| lottery_e2e_test.go | 9 tests     |
+| nft_e2e_test.go     | 2 tests     |
+| oracle_e2e_test.go  | 2 tests     |
+| token_e2e_test.go   | 1 test      |
+| voting_e2e_test.go  | 5 tests     |
+| recovery_test.go    | 5 new tests |
 
 ### New Error Recovery Tests Added
 

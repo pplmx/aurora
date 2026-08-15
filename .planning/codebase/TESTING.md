@@ -5,13 +5,16 @@
 ## Test Framework
 
 **Test Runner:**
+
 - Go standard `testing` package
 - Version: Go 1.26+
 
 **Assertion Libraries:**
+
 - `github.com/stretchr/testify` (assert, require)
 
 **Run Commands:**
+
 ```bash
 just test              # Run all tests
 go test ./... -cover   # With coverage report
@@ -21,15 +24,19 @@ just test-coverage     # Generate coverage.out
 ## Test File Organization
 
 **Location:**
+
 - Co-located with implementation: `internal/domain/lottery/entity_test.go`
 - E2E in `e2e/` directory: `e2e/lottery_e2e_test.go`
 
 **Naming:**
+
 - Unit tests: `*_test.go`
 - E2E tests: `*_e2e_test.go`
 
 **Package Declaration:**
+
 - Same package as implementation (not `_test` suffix)
+
 ```go
 package lottery  // Not package lottery_test
 ```
@@ -39,6 +46,7 @@ package lottery  // Not package lottery_test
 ### Unit Tests
 
 **Basic pattern:**
+
 ```go
 func TestGetWinners(t *testing.T) {
     record := &LotteryRecord{
@@ -54,6 +62,7 @@ func TestGetWinners(t *testing.T) {
 ### Table-Driven Tests
 
 **For multiple test cases:**
+
 ```go
 func TestValidateParticipantName_Valid(t *testing.T) {
     valid := []string{"Alice", "Bob 123", "test-name", "Name_With", "日本語", "中文"}
@@ -85,6 +94,7 @@ func TestSanitizeString(t *testing.T) {
 ```
 
 **With subtests for named cases:**
+
 ```go
 func TestLotteryRecord_Validate(t *testing.T) {
     tests := []struct {
@@ -120,6 +130,7 @@ func TestLotteryRecord_Validate(t *testing.T) {
 ### Manual Interface Mocking
 
 **Define mock in test file:**
+
 ```go
 type mockLotteryRepo struct {
     records []*lottery.LotteryRecord
@@ -155,6 +166,7 @@ func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryReco
 ```
 
 **Usage in tests:**
+
 ```go
 func TestCreateLotteryUseCase_Execute(t *testing.T) {
     lotteryRepo := &mockLotteryRepo{}
@@ -239,6 +251,7 @@ func setupEventStore(t *testing.T) (*SQLiteEventStore, func()) {
 ### require (Fatal)
 
 Stops test immediately on failure:
+
 ```go
 require.NoError(t, err)
 require.NotNil(t, resp)
@@ -249,6 +262,7 @@ require.Equal(t, "expected", actual)
 ### assert (Non-fatal)
 
 Continues test execution:
+
 ```go
 assert.Equal(t, http.StatusOK, rr.Code)
 assert.NotEqual(t, http.StatusBadRequest, rr.Code)
@@ -288,6 +302,7 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 ```
 
 **Test isolation:**
+
 - `blockchain.ResetForTest()` resets global state before each test
 
 ## HTTP Handler Tests
@@ -315,21 +330,23 @@ func TestLotteryHandler_Create_InvalidRequest(t *testing.T) {
 
 **Current coverage by module:**
 
-| Module | Domain | App |
-|--------|--------|-----|
-| Lottery | 93.3% | 87.1% |
-| Voting | 87.5% | 76.8% |
-| NFT | 93.8% | 88.1% |
-| Token | 90.3% | 91.9% |
-| Oracle | 76.1% | 94.5% |
+| Module  | Domain | App   |
+| ------- | ------ | ----- |
+| Lottery | 93.3%  | 87.1% |
+| Voting  | 87.5%  | 76.8% |
+| NFT     | 93.8%  | 88.1% |
+| Token   | 90.3%  | 91.9% |
+| Oracle  | 76.1%  | 94.5% |
 
 **Command:**
+
 ```bash
 go test ./... -coverprofile=coverage.out
 go tool cover -func=coverage.out
 ```
 
 **Low coverage areas:**
+
 - `internal/api` (3.6% - handler coverage)
 - `internal/api/handler` (9.5%)
 - `internal/domain/blockchain` (30.9%)
@@ -340,6 +357,7 @@ go tool cover -func=coverage.out
 **Pattern:** `Test<Subject>_<Scenario>`
 
 Examples:
+
 - `TestGetWinners`
 - `TestLotteryRecord_ToJSON`
 - `TestLotteryRecord_ToJSON_Invalid`
@@ -351,6 +369,7 @@ Examples:
 ## Error Testing Patterns
 
 **Expected error:**
+
 ```go
 func TestValidateSeed_TooShort(t *testing.T) {
     err := ValidateSeed("ab")
@@ -361,6 +380,7 @@ func TestValidateSeed_TooShort(t *testing.T) {
 ```
 
 **With subtests:**
+
 ```go
 func TestCreateLotteryUseCase_InvalidInput(t *testing.T) {
     tests := []struct {
@@ -395,12 +415,14 @@ func TestCreateLotteryUseCase_InvalidInput(t *testing.T) {
 **Configuration:** `.pre-commit-config.yaml`
 
 Go hooks:
+
 - `gofmt` - Format code
 - `goimports` - Organize imports
 - `go vet` - Static analysis
 - `golangci-lint` - Full lint suite (5m timeout, errcheck/staticcheck disabled)
 
 Other hooks:
+
 - `commitizen` - Conventional commits
 - `end-of-file-fixer` - Normalize line endings
 - `trailing-whitespace` - Remove trailing whitespace

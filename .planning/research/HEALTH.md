@@ -19,29 +19,32 @@ Aurora already has a basic `/health` endpoint in `internal/api/router.go`, but i
 ## Kubernetes Health Check Semantics
 
 ### Liveness Probe (`/healthz` or `/live`)
+
 - **Purpose:** Is the process alive and not deadlocked?
 - **Failure action:** Kubernetes RESTARTS the container
 - **Check:** Just return 200 if HTTP server responds
 - **Anti-pattern:** Don't check dependencies here (will cause restart loops)
 
 ### Readiness Probe (`/readyz` or `/ready`)
+
 - **Purpose:** Can the container accept traffic?
 - **Failure action:** Kubernetes REMOVES from service endpoints (traffic stops)
 - **Check:** Verify database connections, caches, external dependencies
 - **Recovery:** Automatically returns to endpoints when checks pass
 
 ### Startup Probe
+
 - **Purpose:** Slow-starting applications need extra time to initialize
 - **Use when:** Application takes >10s to start
 - **Aurora assessment:** Likely not needed (blockchain CLI tools start quickly)
 
 ### Recommended Endpoint Names
 
-| Endpoint | Purpose | Auth Required | Checks |
-|----------|---------|---------------|--------|
-| `GET /healthz` | Liveness | No | Process alive |
-| `GET /readyz` | Readiness | No | Database connected |
-| `GET /health` | Keep existing | No | Simple OK (for load balancers) |
+| Endpoint       | Purpose       | Auth Required | Checks                         |
+| -------------- | ------------- | ------------- | ------------------------------ |
+| `GET /healthz` | Liveness      | No            | Process alive                  |
+| `GET /readyz`  | Readiness     | No            | Database connected             |
+| `GET /health`  | Keep existing | No            | Simple OK (for load balancers) |
 
 ### Kubernetes Configuration Example
 
@@ -287,10 +290,10 @@ func main() {
 
 ### Key Differences
 
-| Approach | New Connections | In-Flight Requests | Timeout |
-|----------|-----------------|-------------------|---------|
-| `server.Close()` | Immediately rejected | Force closed | None |
-| `server.Shutdown(ctx)` | Stop accepted | Wait for completion | Respects context |
+| Approach               | New Connections      | In-Flight Requests  | Timeout          |
+| ---------------------- | -------------------- | ------------------- | ---------------- |
+| `server.Close()`       | Immediately rejected | Force closed        | None             |
+| `server.Shutdown(ctx)` | Stop accepted        | Wait for completion | Respects context |
 
 ### With Shutdown Hooks
 
@@ -340,7 +343,7 @@ func setHealthHeaders(w http.ResponseWriter) {
 
 ### File Structure
 
-```
+```text
 internal/api/
   health.go           # Health handlers
   health_test.go      # Unit tests
@@ -488,13 +491,13 @@ func TestReadinessHandler_DBUnhealthy(t *testing.T) {
 
 ## Confidence Assessment
 
-| Area | Confidence | Notes |
-|------|------------|-------|
-| K8s semantics | HIGH | Official Kubernetes docs verified |
-| Chi patterns | HIGH | Chi v5 middleware source + existing code |
-| Go graceful shutdown | HIGH | stdlib http.Server documentation |
-| SQLite ping | MEDIUM | Standard approach, may need timeout tuning |
-| Recommendations | HIGH | Follow established patterns |
+| Area                 | Confidence | Notes                                      |
+| -------------------- | ---------- | ------------------------------------------ |
+| K8s semantics        | HIGH       | Official Kubernetes docs verified          |
+| Chi patterns         | HIGH       | Chi v5 middleware source + existing code   |
+| Go graceful shutdown | HIGH       | stdlib http.Server documentation           |
+| SQLite ping          | MEDIUM     | Standard approach, may need timeout tuning |
+| Recommendations      | HIGH       | Follow established patterns                |
 
 ## Sources
 

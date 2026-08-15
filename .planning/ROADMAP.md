@@ -19,6 +19,7 @@ bar.
 **Requirements:** MIG-01 .. MIG-05
 
 **Success Criteria:**
+
 - [x] `aurora migrate up/status/down` registered under root
 - [x] Real checkout migrations apply via the command against a fresh temp DB
       (binary e2e: up 5 caps at 2 pending, down 5 to base)
@@ -35,6 +36,7 @@ bar.
 **Requirements:** COV-01 .. COV-03
 
 **Success Criteria:**
+
 - [x] `internal/logger` ≥ 80% (**96.6%**)
 - [x] `internal/i18n` ≥ 80% (**97.0%**)
 - [x] `internal/infra/backup` ≥ 80% (**80.5%**)
@@ -50,6 +52,7 @@ TUI state-machine test pattern.
 **Requirements:** COV-04 .. COV-06
 
 **Success Criteria:**
+
 - [x] `internal/ui/nft` ≥ 80% (**94.2%**; also fixed issue-nft-tui-transfer-guard)
 - [x] `internal/ui/token` ≥ 80% (**88.6%**)
 - [ ] No weakened tests; `go test -race ./...` green

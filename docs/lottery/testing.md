@@ -20,22 +20,22 @@ go test ./internal/domain/lottery/ -run 'TestVRF.*' -v
 
 ### 单元测试 (internal/domain/lottery)
 
-| 测试                                     | 说明                 |
-| ---------------------------------------- | -------------------- |
-| `TestNameToAddress`                      | 验证名字转地址功能   |
-| `TestSelectWinners_EmptyParticipants`    | 空参与者列表处理     |
-| `TestSelectWinners_CountExceedsParticipants` | 参与者不足时的处理 |
-| `TestSelectWinners_ExactCount`           | 中奖者选择逻辑       |
-| `TestSelectWinners_AllUnique`            | 中奖者不重复         |
-| `TestCreateLotteryRecord`                | 抽奖记录创建         |
-| `TestLotteryRecord_ToJSON`               | JSON 序列化          |
-| `TestLotteryService_DrawWinners`         | 抽奖核心逻辑         |
-| `TestLotteryService_VerifyDraw`          | 抽奖结果验证         |
-| `TestGenerateKeyPair_VerifyWorks`        | VRF 密钥对生成与验证 |
-| `TestVRFProve_Consistent`                | VRF 输出一致性       |
-| `TestVRFProve_DifferentMessages`         | 不同消息产生不同输出 |
-| `TestVRFVerify_ValidProof`               | VRF 验证有效证明     |
-| `TestVRFVerify_OutputAndProofConsistency`| 输出与证明一致性     |
+| 测试                                         | 说明                 |
+| -------------------------------------------- | -------------------- |
+| `TestNameToAddress`                          | 验证名字转地址功能   |
+| `TestSelectWinners_EmptyParticipants`        | 空参与者列表处理     |
+| `TestSelectWinners_CountExceedsParticipants` | 参与者不足时的处理   |
+| `TestSelectWinners_ExactCount`               | 中奖者选择逻辑       |
+| `TestSelectWinners_AllUnique`                | 中奖者不重复         |
+| `TestCreateLotteryRecord`                    | 抽奖记录创建         |
+| `TestLotteryRecord_ToJSON`                   | JSON 序列化          |
+| `TestLotteryService_DrawWinners`             | 抽奖核心逻辑         |
+| `TestLotteryService_VerifyDraw`              | 抽奖结果验证         |
+| `TestGenerateKeyPair_VerifyWorks`            | VRF 密钥对生成与验证 |
+| `TestVRFProve_Consistent`                    | VRF 输出一致性       |
+| `TestVRFProve_DifferentMessages`             | 不同消息产生不同输出 |
+| `TestVRFVerify_ValidProof`                   | VRF 验证有效证明     |
+| `TestVRFVerify_OutputAndProofConsistency`    | 输出与证明一致性     |
 
 ### E2E 功能测试 (e2e/)
 

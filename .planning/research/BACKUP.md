@@ -27,12 +27,14 @@ import "github.com/mattn/go-sqlite3"
 ```
 
 **Pros:**
+
 - Non-blocking reads/writes during backup
 - Incremental page-by-page copying
 - Works with concurrent database access
 - Native SQLite feature, well-tested
 
 **Cons:**
+
 - Requires cgo (already used by go-sqlite3)
 - More complex implementation
 - Slightly larger memory footprint during backup
@@ -55,12 +57,14 @@ func (s *BackupService) Create(ctx context.Context, output string) error {
 ```
 
 **Pros:**
+
 - Simple, well-understood
 - No additional dependencies
 - Fast for typical database sizes
 - Easy to verify (checksum entire file)
 
 **Cons:**
+
 - Brief exclusive lock during checkpoint (~100ms typically)
 - Not truly "online" - small window of inconsistency
 - Must stop or pause writes for exact point-in-time copy
@@ -72,6 +76,7 @@ func (s *BackupService) Create(ctx context.Context, output string) error {
 **How it works:** Current implementation serializes data to JSON.
 
 **Issues with current implementation:**
+
 1. `Create()` doesn't actually dump any tables - just creates empty structure
 2. `Restore()` returns "not implemented" stub
 3. Doesn't handle schema versioning
@@ -86,6 +91,7 @@ func (s *BackupService) Create(ctx context.Context, output string) error {
 ### Choose: **Strategy B (File Copy with WAL Checkpoint)**
 
 **Rationale:**
+
 1. CLI tool → brief lock acceptable
 2. Already using go-sqlite3 (cgo already present)
 3. golang-migrate handles schema → restore just needs file copy + migration
@@ -217,11 +223,11 @@ func (s *BackupService) Restore(ctx context.Context, backupPath, targetDBPath st
 
 ### Migration Safety Rules
 
-| Scenario | Action |
-|----------|--------|
-| Fresh database | Just copy backup |
-| Same schema version | Direct copy |
-| Older backup to newer DB | Refuse (too risky) |
+| Scenario                 | Action                |
+| ------------------------ | --------------------- |
+| Fresh database           | Just copy backup      |
+| Same schema version      | Direct copy           |
+| Older backup to newer DB | Refuse (too risky)    |
 | Newer backup to older DB | Copy + run migrations |
 
 ---
@@ -235,18 +241,21 @@ Aurora stores blockchain blocks with `height` as sequence. PITR would allow reco
 **Current state:** Aurora stores blockchain data, but PITR implementation is complex and not recommended for v1.2.
 
 **Simplified approach for v1.2:**
+
 - Backup captures complete database at timestamp
 - No incremental WAL-based PITR
 - Users can take snapshots before critical operations
 
 **Future enhancement:**
+
 - Store backup snapshots with block height metadata
 - Implement WAL-based incremental backups
-- Add `RestoreToHeight(ctx, backupPath, height)` 
+- Add `RestoreToHeight(ctx, backupPath, height)`
 
 ### WAL Mode Consideration
 
 Aurora uses `PRAGMA journal_mode=WAL`. With file-copy backup:
+
 - Checkpoint first (`PRAGMA wal_checkpoint(TRUNCATE)`) ensures all data is in main file
 - Without checkpoint, backup captures committed + some uncommitted WAL data
 
@@ -256,13 +265,13 @@ Aurora uses `PRAGMA journal_mode=WAL`. With file-copy backup:
 
 ### Verification Levels
 
-| Level | What it checks | Implementation |
-|-------|---------------|----------------|
-| **L1: File integrity** | Backup file exists, readable | `os.Stat()`, read test |
-| **L2: Checksum** | File not corrupted | SHA-256 of entire file |
-| **L3: Schema** | Tables/columns match expected | `SELECT * FROM sqlite_master` |
-| **L4: Data** | Row counts, sample data | Query counts, spot-check values |
-| **L5: Functional** | App works after restore | Run domain tests against restored DB |
+| Level                  | What it checks                | Implementation                       |
+| ---------------------- | ----------------------------- | ------------------------------------ |
+| **L1: File integrity** | Backup file exists, readable  | `os.Stat()`, read test               |
+| **L2: Checksum**       | File not corrupted            | SHA-256 of entire file               |
+| **L3: Schema**         | Tables/columns match expected | `SELECT * FROM sqlite_master`        |
+| **L4: Data**           | Row counts, sample data       | Query counts, spot-check values      |
+| **L5: Functional**     | App works after restore       | Run domain tests against restored DB |
 
 ### Verification Implementation
 
@@ -308,6 +317,7 @@ func (s *BackupService) VerifyBackup(backupPath string) error {
 ### Restore Verification
 
 After restore, run health checks:
+
 ```go
 func (s *BackupService) VerifyRestored(dbPath string) error {
     // 1. Verify database opens
@@ -399,13 +409,13 @@ func (s *BackupService) RestoreWithRollback(ctx context.Context, backupPath, tar
 
 ### Error Categories
 
-| Error | Action |
-|-------|--------|
-| Backup file missing/corrupt | Return error, no destructive action |
-| Schema version mismatch | Return error with guidance, no overwrite |
-| Migration failure during restore | Rollback to pre-restore backup |
-| Verification failure | Rollback to pre-restore backup |
-| Partial restore (some DBs succeed) | Rollback all, return composite error |
+| Error                              | Action                                   |
+| ---------------------------------- | ---------------------------------------- |
+| Backup file missing/corrupt        | Return error, no destructive action      |
+| Schema version mismatch            | Return error with guidance, no overwrite |
+| Migration failure during restore   | Rollback to pre-restore backup           |
+| Verification failure               | Rollback to pre-restore backup           |
+| Partial restore (some DBs succeed) | Rollback all, return composite error     |
 
 ---
 
@@ -438,16 +448,19 @@ Based on existing patterns in AGENTS.md:
 ## 8. Recommended Implementation Phases
 
 ### Phase 1: Basic File Copy Backup
+
 - Implement `Create()` with WAL checkpoint + file copy
 - Add schema version tracking to backup metadata
 - Keep JSON export as optional format
 
 ### Phase 2: Restore with Migration
+
 - Implement `Restore()` that copies files + runs migrations
 - Add pre-restore safety backup
 - Add rollback on failure
 
 ### Phase 3: Verification
+
 - Implement `Verify()` for backup files
 - Add `VerifyRestored()` for post-restore health checks
 - Add CLI commands
@@ -456,26 +469,26 @@ Based on existing patterns in AGENTS.md:
 
 ## 9. Sources
 
-| Source | Confidence | Relevance |
-|--------|------------|-----------|
-| SQLite Online Backup API (sqlite.org) | HIGH | Primary reference |
-| go-sqlite3 GitHub (cgo bindings) | HIGH | Implementation details |
-| golang-migrate documentation | HIGH | Migration integration |
-| Aurora internal/infra/migrate/ | HIGH | Existing implementation |
-| Aurora migrations/*.sql | HIGH | Schema understanding |
+| Source                                | Confidence | Relevance               |
+| ------------------------------------- | ---------- | ----------------------- |
+| SQLite Online Backup API (sqlite.org) | HIGH       | Primary reference       |
+| go-sqlite3 GitHub (cgo bindings)      | HIGH       | Implementation details  |
+| golang-migrate documentation          | HIGH       | Migration integration   |
+| Aurora internal/infra/migrate/        | HIGH       | Existing implementation |
+| Aurora migrations/*.sql               | HIGH       | Schema understanding    |
 
 ---
 
 ## 10. Summary Recommendations
 
-| Decision | Recommendation | Rationale |
-|----------|---------------|-----------|
-| **Backup method** | File copy with WAL checkpoint | Simple, reliable, adequate for CLI tool |
-| **Backup format** | Binary .db files + metadata.json | Fast, complete, verifiable |
-| **Schema handling** | golang-migrate integration | Already in use, handles versioning |
-| **PITR** | Not in scope for v1.2 | Complex, defer to future |
-| **Verification** | Multi-level (file → schema → data) | Catches corruption early |
-| **Rollback** | Pre-restore backup always | Safety before destructive ops |
+| Decision            | Recommendation                     | Rationale                               |
+| ------------------- | ---------------------------------- | --------------------------------------- |
+| **Backup method**   | File copy with WAL checkpoint      | Simple, reliable, adequate for CLI tool |
+| **Backup format**   | Binary .db files + metadata.json   | Fast, complete, verifiable              |
+| **Schema handling** | golang-migrate integration         | Already in use, handles versioning      |
+| **PITR**            | Not in scope for v1.2              | Complex, defer to future                |
+| **Verification**    | Multi-level (file → schema → data) | Catches corruption early                |
+| **Rollback**        | Pre-restore backup always          | Safety before destructive ops           |
 
 ---
 

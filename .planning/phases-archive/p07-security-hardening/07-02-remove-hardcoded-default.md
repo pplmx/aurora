@@ -7,6 +7,7 @@
 ## Context
 
 Currently `config.go` sets a hardcoded default `"aurora-api-key-default"` which:
+
 - Is visible in source code
 - Could allow the service to start insecurely in production
 - Is a known insecure value that attackers look for
@@ -18,10 +19,13 @@ Currently `config.go` sets a hardcoded default `"aurora-api-key-default"` which:
 ## Tasks
 
 ### Task 1: Remove hardcoded default API key
+
 Delete line 40: `viper.SetDefault("api.key", "aurora-api-key-default")`
 
 ### Task 2: Add crypto/rand import
+
 Add imports for secure key generation:
+
 - `crypto/rand`
 - `encoding/base64`
 - `errors`
@@ -30,21 +34,28 @@ Add imports for secure key generation:
 - `strings`
 
 ### Task 3: Define error variables
+
 Create sentinel errors for validation:
+
 - `ErrMissingAPIKey` - API key not configured
 - `ErrInsecureAPIKey` - Known insecure key detected
 
 ### Task 4: Add GenerateAPIKey function
+
 Create a function that generates a secure random key:
+
 - Generate 32 bytes using `crypto/rand`
 - Encode as base64 for transportability
 
 ### Task 5: Add production validation in Load()
+
 After unmarshaling, validate the API key:
+
 - In production (`AURORA_ENV=production`): fail if key is missing or is a known insecure value
 - In development: if key is empty, generate a secure random key and print it to stdout
 
 ### Task 6: Update GetAPIKey usage
+
 Ensure callers handle the case where no key is configured (validation happens in Load)
 
 ## Expected Code Changes
@@ -187,24 +198,28 @@ func validateAPIKey(key string) error {
 ## Verification
 
 1. Test production mode fails without key:
+
 ```bash
 AURORA_ENV=production go run ./cmd/aurora serve
 # Expected: exit with ErrMissingAPIKey
 ```
 
 2. Test production mode fails with insecure key:
+
 ```bash
 AURORA_API_KEY=aurora-api-key-default AURORA_ENV=production go run ./cmd/aurora serve
 # Expected: exit with ErrInsecureAPIKey
 ```
 
 3. Test development mode generates key (if implemented):
+
 ```bash
 go run ./cmd/aurora serve
 # Expected: generates key and continues
 ```
 
 4. Run all tests:
+
 ```bash
 go test ./internal/config/... -v
 ```
@@ -216,14 +231,17 @@ None - this plan modifies config.go independently of auth.go.
 ## Rollback
 
 If issues arise, restore the hardcoded default:
+
 ```go
 viper.SetDefault("api.key", "aurora-api-key-default")
 ```
+
 Remove the validation logic.
 
 ## Notes
 
 The development key generation prints to stdout but doesn't persist. For v1.2, developers should:
+
 1. Use a config file: `config/aurora.toml` with `api.key = "your-key"`
 2. Use environment: `AURORA_API_KEY=your-key`
 

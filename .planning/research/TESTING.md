@@ -81,6 +81,7 @@ func parseResponse(t *testing.T, rr *httptest.ResponseRecorder, v interface{}) {
 ### 1.2 Mock Repository Patterns
 
 **Current Problem (from lottery_test.go):**
+
 ```go
 // BAD: Inline mock with no interface validation
 type mockLotteryRepo struct{}
@@ -139,6 +140,7 @@ func (m *MockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryReco
 ```
 
 **Usage in Tests:**
+
 ```go
 func TestLotteryHandler_Get_Success(t *testing.T) {
 	expected := &lottery.LotteryRecord{
@@ -698,7 +700,7 @@ func TestLotteryHandler(t *testing.T) {
 
 ### 4.1 Directory Structure
 
-```
+```text
 internal/
 ├── api/
 │   └── handler/
@@ -764,21 +766,21 @@ func TestLotteryView_Golden(t *testing.T) {
 
 ### 5.1 Priority 1: High-Impact Handlers (Target: 90%+)
 
-| Handler | Critical Paths | Test Count Target |
-|---------|----------------|-------------------|
-| `TokenHandler.Create` | Validation → Service → Response | 8 tests |
-| `TokenHandler.Transfer` | Auth → Validation → Service → Events | 10 tests |
-| `NFTHandler.Mint` | Validation → Service → Blockchain | 10 tests |
-| `LotteryHandler.Create` | Validation → VRF → Blockchain → Save | 8 tests |
+| Handler                 | Critical Paths                       | Test Count Target |
+| ----------------------- | ------------------------------------ | ----------------- |
+| `TokenHandler.Create`   | Validation → Service → Response      | 8 tests           |
+| `TokenHandler.Transfer` | Auth → Validation → Service → Events | 10 tests          |
+| `NFTHandler.Mint`       | Validation → Service → Blockchain    | 10 tests          |
+| `LotteryHandler.Create` | Validation → VRF → Blockchain → Save | 8 tests           |
 
 ### 5.2 Priority 2: Query Handlers (Target: 80%+)
 
-| Handler | Critical Paths | Test Count Target |
-|---------|----------------|-------------------|
-| `TokenHandler.Balance` | Param validation → Service → Response | 5 tests |
-| `TokenHandler.History` | Pagination → Service → Response | 5 tests |
-| `LotteryHandler.Get` | Not found → Found | 3 tests |
-| `LotteryHandler.History` | Empty → With data | 3 tests |
+| Handler                  | Critical Paths                        | Test Count Target |
+| ------------------------ | ------------------------------------- | ----------------- |
+| `TokenHandler.Balance`   | Param validation → Service → Response | 5 tests           |
+| `TokenHandler.History`   | Pagination → Service → Response       | 5 tests           |
+| `LotteryHandler.Get`     | Not found → Found                     | 3 tests           |
+| `LotteryHandler.History` | Empty → With data                     | 3 tests           |
 
 ### 5.3 Quick Win Tests (Add These First)
 

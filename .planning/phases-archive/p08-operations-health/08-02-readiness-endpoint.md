@@ -7,6 +7,7 @@
 ## Tasks
 
 ### 1. Add readiness handler to health.go
+
 **File:** `internal/api/health.go`
 
 Add the following to the existing health.go file (after LivenessHandler):
@@ -57,12 +58,13 @@ type HealthResponse struct {
 ```
 
 ### 2. Update Router to pass db to health handlers
+
 **File:** `internal/api/router.go` (handled in Plan 08-03)
 
 ## Files to Modify
 
-| File | Action |
-|------|--------|
+| File                     | Action                        |
+| ------------------------ | ----------------------------- |
 | `internal/api/health.go` | Add ReadinessHandler function |
 
 ## Success Criteria
