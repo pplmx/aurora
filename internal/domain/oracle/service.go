@@ -1,9 +1,12 @@
 package oracle
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"net"
+	"net/netip"
 	"net/url"
 	"strings"
 	"time"
@@ -22,6 +25,75 @@ const defaultQueryLimit = 10
 var allowedSourceSchemes = map[string]struct{}{
 	"http":  {},
 	"https": {},
+}
+
+// blockedCIDRs are the address ranges a source URL's host must never resolve
+// to: loopback, RFC1918 private, link-local (incl. cloud metadata
+// 169.254.169.254), CGNAT, IPv6 loopback/link-local/unique-local, and the
+// unspecified address. A source pointing at one of these would let the
+// fetcher reach internal/private services hosting the data — the SSRF
+// primitive. This mirrors the redirect guard in internal/infra/http; the
+// domain-level check additionally covers the INITIAL request, which the
+// fetcher's redirect policy alone does not.
+var blockedCIDRs = []netip.Prefix{
+	netip.MustParsePrefix("0.0.0.0/8"),
+	netip.MustParsePrefix("10.0.0.0/8"),
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("127.0.0.0/8"),
+	netip.MustParsePrefix("169.254.0.0/16"),
+	netip.MustParsePrefix("172.16.0.0/12"),
+	netip.MustParsePrefix("192.168.0.0/16"),
+	netip.MustParsePrefix("::/128"),
+	netip.MustParsePrefix("::1/128"),
+	netip.MustParsePrefix("fc00::/7"),
+	netip.MustParsePrefix("fe80::/10"),
+}
+
+func isBlockedIP(ip net.IP) bool {
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return true // unparseable address — refuse rather than guess
+	}
+	addr = addr.Unmap()
+	for _, p := range blockedCIDRs {
+		if p.Contains(addr) {
+			return true
+		}
+	}
+	return false
+}
+
+// hostBlocked reports whether a URL host (optionally host:port) resolves to
+// a blocked address. IP literals are checked directly and hostnames are
+// resolved (bounded by a short timeout) so `localhost`, cloud-metadata names,
+// or any hostname that resolves into private space is rejected too.
+//
+// A host that cannot be resolved (or resolves to no addresses) is reported as
+// NOT blocked: it is unreachable, so it cannot be a conduit to a private
+// address — the fetch would simply fail at dial time. Rejecting all
+// unresolvable hosts would wrongly refuse otherwise-valid public endpoints on
+// hosts/environments where DNS is temporarily unavailable.
+func hostBlocked(host string) (bool, error) {
+	host = strings.TrimSpace(host)
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return isBlockedIP(ip), nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return false, nil // unresolvable → not a usable SSRF vector
+	}
+	for _, a := range addrs {
+		if isBlockedIP(a.IP) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // validateSourceURL rejects URLs that would let a hostile source
@@ -44,6 +116,17 @@ func validateSourceURL(raw string) error {
 	}
 	if u.Host == "" {
 		return fmt.Errorf("missing host")
+	}
+	// SSRF: reject any host that is, or resolves to, a private/loopback
+	// address. Without this, a source literally pointing at
+	// 169.254.169.254 (cloud metadata) or 127.0.0.1 would pass the
+	// scheme-only check and the fetcher would dial it directly.
+	blocked, err := hostBlocked(u.Host)
+	if err != nil {
+		return fmt.Errorf("verify host: %w", err)
+	}
+	if blocked {
+		return fmt.Errorf("host %q resolves to a blocked (private/internal) address", u.Host)
 	}
 	return nil
 }
