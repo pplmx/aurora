@@ -104,7 +104,6 @@ func (uc *AddSourceUseCase) Execute(req *AddSourceRequest) (*SourceResponse, err
 		Method:   req.Method,
 		Path:     req.Path,
 		Interval: req.Interval,
-		Enabled:  true,
 	}
 
 	if source.Method == "" {
@@ -117,7 +116,18 @@ func (uc *AddSourceUseCase) Execute(req *AddSourceRequest) (*SourceResponse, err
 		source.Interval = 60
 	}
 
-	if err := uc.repo.SaveSource(source); err != nil {
+	// Delegate to the domain service's AddSource. That is where URL-scheme
+	// validation (SSRF guard: only http/https allowed, host required), name
+	// validation, ID generation, and consistent defaults live. Calling
+	// repo.SaveSource directly here would let a caller persist a source with
+	// e.g. a file:// or empty-host URL that the fetcher could never reach —
+	// the validation is part of the service contract, not the repo.
+	if err := oracle.NewService(uc.repo).AddSource(source); err != nil {
+		// Validation errors are already descriptive; keep them untouched so
+		// API/CLI classify them as client errors. Persist failures get context.
+		if errors.Is(err, oracle.ErrInvalidSource) {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to save source: %w", err)
 	}
 
