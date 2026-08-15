@@ -838,6 +838,37 @@
       "summary": "fix(token): Increase/DecreaseAllowance now reject non-existent tokens with ErrTokenNotFound (handling both sqlite error and mock nil); adds two TokenNotFound tests. Commit a83840b."
     },
     {
+      "id": "issue-event-read-fabricated-identity",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T03:00:00Z",
+      "updated_at": "2026-08-12T03:10:00Z",
+      "confidence": 0.95,
+      "summary": "scanEvents scanned id+timestamp from the events table then discarded them, rebuilding every read event via events.NewBaseEvent which assigns a fresh random uuid + time.Now(). Every event read from the store had a fabricated id and read-time timestamp — corrupting event ids as audit/replay keys and token-history timing. Confirmed by debug dump: GetByAggregate returned ids not present in the table.",
+      "severity": 0.55,
+      "evidence": "internal/infra/events/event_store.go scanEvents (pre-fix) called events.NewBaseEvent(eventType, aggID, payload), dropping scanned id/timestamp"
+    },
+    {
+      "id": "issue-event-pagination-nondeterministic",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T03:00:00Z",
+      "updated_at": "2026-08-12T03:10:00Z",
+      "confidence": 0.9,
+      "summary": "GetByAggregate paginated by ORDER BY timestamp ASC alone; equal second-granularity timestamps (burst of mints/transfers) had no tiebreaker so LIMIT/OFFSET pages could duplicate or skip rows. GetByType/GetByModule (DESC) shared the ambiguity.",
+      "severity": 0.35,
+      "evidence": "internal/infra/events/event_store.go GetByAggregate ORDER BY timestamp ASC (pre-fix)"
+    },
+    {
+      "id": "change-event-read-identity",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T03:10:00Z",
+      "updated_at": "2026-08-12T03:10:00Z",
+      "confidence": 1.0,
+      "summary": "fix(events): NewStoredEvent preserves persisted id+timestamp in scanEvents; ORDER BY adds id tiebreaker (ASC/DESC) to GetByAggregate/GetByType/GetByModule for deterministic pagination. RoundTrip + equal-second pagination tests. Commit 8bfa86b."
+    },
+    {
       "id": "evidence-windows-suite-red-detail",
       "type": "evidence",
       "status": "active",
@@ -849,6 +880,16 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-event-read-identity",
+      "target": "issue-event-read-fabricated-identity",
+      "type": "resolves"
+    },
+    {
+      "source": "change-event-read-identity",
+      "target": "issue-event-pagination-nondeterministic",
+      "type": "resolves"
+    },
     {
       "source": "change-token-allowance-guard",
       "target": "issue-token-allowance-dangling-token",
