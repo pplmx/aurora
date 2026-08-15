@@ -30,6 +30,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Failed to create server: %v\n", err)
 		os.Exit(1)
 	}
+	// Release the SQLite/event-store handles NewServer opened when the server
+	// exits (graceful or forced shutdown), matching srv.Close() semantics.
+	defer func() { _ = srv.Close() }()
 
 	router := srv.Router()
 
