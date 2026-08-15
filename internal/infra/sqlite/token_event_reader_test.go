@@ -109,6 +109,53 @@ func TestTokenEventReader_PreservesStoredTimestamp(t *testing.T) {
 		"expected stored timestamp %v to be preserved, got %v", fixedTestTime, results[0].Timestamp())
 }
 
+// TestTokenEventReader_PreservesBlockHeight guards the audit data-loss gap:
+// a transfer event persisted with a block height must surface that height
+// (not 0) through the reader.
+func TestTokenEventReader_PreservesBlockHeight(t *testing.T) {
+	owner := []byte("owner-key")
+	recipient := []byte("recipient-key")
+	ownerB64 := base64.StdEncoding.EncodeToString(owner)
+	recipientB64 := base64.StdEncoding.EncodeToString(recipient)
+
+	payload, _ := json.Marshal(map[string]interface{}{
+		"from": ownerB64, "to": recipientB64, "amount": "100", "nonce": 1, "sig": "sig1", "block_height": int64(42),
+	})
+	baseEv := events.NewStoredEvent("e1", fixedTestTime, "token.transfer", "TOK", payload)
+
+	store := &mockEventStore{events: []events.Event{baseEv}}
+	reader := NewTokenEventReader(store)
+
+	results, err := reader.GetTransferEventsByOwner("TOK", owner, 50, 0)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, int64(42), results[0].BlockHeight(),
+		"expected persisted block height 42 to be surfaced")
+}
+
+// TestTokenEventReader_BlockHeightDefaultsToZero verifies backward
+// compatibility: events persisted without a block_height field (older data)
+// reconstruct with height 0 rather than erroring.
+func TestTokenEventReader_BlockHeightDefaultsToZero(t *testing.T) {
+	owner := []byte("owner-key")
+	recipient := []byte("recipient-key")
+	ownerB64 := base64.StdEncoding.EncodeToString(owner)
+	recipientB64 := base64.StdEncoding.EncodeToString(recipient)
+
+	payload, _ := json.Marshal(map[string]interface{}{
+		"from": ownerB64, "to": recipientB64, "amount": "100", "nonce": 1, "sig": "sig1",
+	})
+	baseEv := events.NewStoredEvent("e1", fixedTestTime, "token.transfer", "TOK", payload)
+
+	store := &mockEventStore{events: []events.Event{baseEv}}
+	reader := NewTokenEventReader(store)
+
+	results, err := reader.GetTransferEventsByOwner("TOK", owner, 50, 0)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	require.Equal(t, int64(0), results[0].BlockHeight())
+}
+
 var fixedTestTime = time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 
 func TestTokenEventReader_GetTransferEventsByOwner_Empty(t *testing.T) {
