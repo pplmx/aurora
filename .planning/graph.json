@@ -87,11 +87,11 @@
     {
       "id": "issue-nft-voting-no-transactions",
       "type": "issue",
-      "status": "active",
+      "status": "resolved",
       "created_at": "2026-08-10T23:30:00Z",
-      "updated_at": "2026-08-10T23:30:00Z",
-      "confidence": 0.9,
-      "summary": "NFT (SaveNFT + SaveOperation + chain.AddBlock) and voting (TryMarkVoted + SaveVote + tally) use best-effort compensation instead of real transactions; compensation errors are silently swallowed (_ = repo.DeleteNFT). Accepted debt, documented in-service.",
+      "updated_at": "2026-08-12T10:40:00Z",
+      "confidence": 0.95,
+      "summary": "RESOLVED by decision-nft-voting-tx-over-compensation: NFT (SaveNFT+SaveOperation) and voting (TryMarkVoted+SaveVote+IncrementCandidateVoteCount) multi-step writes now commit/roll back atomically in real SQLite transactions (commits f926414, fccb017); the silently swallowed compensation errors (_ = repo.DeleteNFT / UnmarkVoted) no longer exist. Crash or mid-step failure can no longer leave an NFT row without its audit op, a locked-out voter, or an orphan vote row. Residual accepted constraint: chain.AddBlock stays outside the DB tx (tombstone blocks on failure), consistent with decision-phantom-events-accepted.",
       "severity": 0.35
     },
     {
@@ -259,11 +259,12 @@
     {
       "id": "task-nft-voting-transactions",
       "type": "task",
-      "status": "active",
+      "status": "resolved",
+      "owner": "dsh-qwen38max-20260812",
       "created_at": "2026-08-11T00:30:00Z",
-      "updated_at": "2026-08-11T00:30:00Z",
-      "confidence": 0.9,
-      "summary": "NFT (SaveNFT/SaveOperation) and voting (TryMarkVoted/SaveVote/tally) use best-effort compensation instead of real transactions; crash leaves partial state. Accepted debt; convert when touchpoint opens.",
+      "updated_at": "2026-08-12T10:40:00Z",
+      "confidence": 0.95,
+      "summary": "RESOLVED: NFT (SaveNFT+SaveOperation) and voting (TryMarkVoted+SaveVote+IncrementCandidateVoteCount) now run in real SQLite transactions via the token module's WithTx/WithTransaction pattern; best-effort compensation removed; rollback/concurrency tests added; full -race suite green (commits f926414, fccb017).",
       "priority_score": 0.28
     },
     {
@@ -1075,6 +1076,44 @@
       "updated_at": "2026-08-12T09:00:00Z",
       "confidence": 1.0,
       "summary": "docs+config consistency sweep: AGENTS.md/README.md make->just with accurate CLI examples (voting candidate/voter/session/vote/results, oracle source list/data/latest/template, nft transfer --from, token -t flags); docs/lottery updated to DDD paths + real test names + real blocks schema; root.go log.path default ./log->./logs (matches config.go/aurora.toml); justfile run recipe now builds current platform and runs lottery create; root.go Example fixed (voting create -> voting candidate add); SECURITY.md NIST Curve25519 wording corrected. Go build/vet/gofmt clean; full suite green (only env-loopback internal/infra/http block, documented)."
+    },
+    {
+      "id": "decision-nft-voting-tx-over-compensation",
+      "type": "decision",
+      "status": "active",
+      "created_at": "2026-08-12T10:30:00Z",
+      "updated_at": "2026-08-12T10:30:00Z",
+      "confidence": 0.95,
+      "summary": "Converted NFT (SaveNFT+SaveOperation) and voting (TryMarkVoted+SaveVote+IncrementCandidateVoteCount) from best-effort compensation to real SQLite transactions, reusing the token module's WithTx/WithTransaction pattern (decision-token-tx-scoped-repos). Rejected transfer/burn and failed ballots now roll back their audit/vote rows completely — a deliberate semantic change: nft_operations/votes only ever contain records that actually applied (previously rejected attempts left orphan 'attempt' records). chain.AddBlock stays outside the DB transaction: blocks are the append-only timeline and cannot revert (same accepted constraint as decision-phantom-events-accepted); on DB failure the block remains a safe empty tombstone. DeleteNFT/DeleteVote/UnmarkVoted retained as repo primitives (repo-level tests stay) but no longer used as use-case compensation.",
+      "rationale": "Compensation had concrete failure modes: _ = repo.DeleteNFT / UnmarkVoted swallowed their own errors, so a failed compensation (or crash mid-flow) left orphaned NFT rows without audit ops, voters permanently locked out, or orphan vote rows violating the votes<->voters invariant. Real transactions give atomicity for free; the pattern was already proven in the token module.",
+      "alternatives_rejected": ["keep best-effort compensation with error logging", "two-phase saga with compensating writes", "include chain.AddBlock inside the DB transaction (impossible — chain is not transactional)"]
+    },
+    {
+      "id": "change-nft-transactions",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T10:00:00Z",
+      "updated_at": "2026-08-12T10:00:00Z",
+      "confidence": 1.0,
+      "summary": "fix(nft): real transactions for Mint/Transfer/Burn. NFTRepository.WithTx/GetDB + q() routing; NFTService ctor takes TransactableRepository+TransactionManager (NewServiceWithoutTx for in-memory TUI/e2e); Mint/Transfer/Burn persist row+audit-operation in one WithTransaction unit; removed swallowed DeleteNFT compensation; CLI+API wire real TxManager over the repo pool. Tests: mockTxManager + snapshot rollback hooks, genuine mid-tx rollback assertions (Mint/Transfer/Burn atomicity, tx-manager failure), SQLite WithTx commit/visibility/rollback; strengthened the overclaiming TestNFTService_Transfer_Atomicity. Commit f926414."
+    },
+    {
+      "id": "change-voting-transactions",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T10:20:00Z",
+      "updated_at": "2026-08-12T10:20:00Z",
+      "confidence": 1.0,
+      "summary": "fix(voting): real transaction for the CastVote ballot. VotingRepository.WithTx + q() routing; CastVoteUseCase drives TryMarkVoted+SaveVote+IncrementCandidateVoteCount in one WithTransaction unit; removed swallowed UnmarkVoted/DeleteVote compensation; ErrNotFound disambiguation re-checks the voter; CLI (getVotingTxManager) + API (NewTxManager(db)) wire real TxManager; resetCliForTest clears new globals. Tests: mockTxManager + snapshot rollback, mid-tx rollback assertions, AlreadyVoted no-state-change, SQLite WithTx rollback, NEW real-DB concurrency tests (distinct voters: no lost tally increment; same voter: exactly one winner); real-binary smoke: vote ok / double-vote rejected / tally exact. Commit fccb017."
+    },
+    {
+      "id": "evidence-nft-voting-tx-verify",
+      "type": "evidence",
+      "status": "active",
+      "created_at": "2026-08-12T10:40:00Z",
+      "updated_at": "2026-08-12T10:40:00Z",
+      "confidence": 1.0,
+      "summary": "VERIFY for task-nft-voting-transactions (commits f926414, fccb017): go build/vet clean; gofmt clean; go test -race -count=1 green for every host-runnable package (full ./... minus internal/infra/http, which stays red only on the documented sandbox loopback block, issue-http-loopback-sandbox-blocked). Coverage vs baseline: nft domain 72.7%->86.9%, nft app 88.1%->88.1%, voting domain 87.5%->87.5%, voting app 81.4%->91.7%, infra/sqlite 83.2%. Real-binary CLI smoke: migrate up -> candidate add -> voter register -> session create/start -> vote ok -> double vote rejected (voter has already voted) -> results count exactly 1."
     }
   ],
   "edges": [
@@ -1514,6 +1553,53 @@
     {
       "source": "issue-cli-no-migrate-subcommand",
       "target": "decision-migrate-cli-dbpath",
+      "type": "causes",
+      "kind": "accepted"
+    },
+    {
+      "source": "issue-nft-voting-no-transactions",
+      "target": "decision-nft-voting-tx-over-compensation",
+      "type": "causes",
+      "kind": "accepted"
+    },
+    {
+      "source": "change-nft-transactions",
+      "target": "issue-nft-voting-no-transactions",
+      "type": "resolves"
+    },
+    {
+      "source": "change-voting-transactions",
+      "target": "issue-nft-voting-no-transactions",
+      "type": "resolves"
+    },
+    {
+      "source": "change-nft-transactions",
+      "target": "task-nft-voting-transactions",
+      "type": "resolves"
+    },
+    {
+      "source": "change-voting-transactions",
+      "target": "task-nft-voting-transactions",
+      "type": "resolves"
+    },
+    {
+      "source": "evidence-nft-voting-tx-verify",
+      "target": "task-nft-voting-transactions",
+      "type": "validates"
+    },
+    {
+      "source": "evidence-nft-voting-tx-verify",
+      "target": "decision-nft-voting-tx-over-compensation",
+      "type": "validates"
+    },
+    {
+      "source": "evidence-round19-verify-green",
+      "target": "change-doc-code-consistency",
+      "type": "validates"
+    },
+    {
+      "source": "issue-http-loopback-sandbox-blocked",
+      "target": "decision-round20-stop-eval",
       "type": "causes",
       "kind": "accepted"
     }
