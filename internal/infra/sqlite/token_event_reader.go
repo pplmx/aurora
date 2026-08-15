@@ -3,7 +3,6 @@ package sqlite
 import (
 	"encoding/base64"
 	"encoding/json"
-	"time"
 
 	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
@@ -55,7 +54,7 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 			continue
 		}
 
-		evt := token.NewTransferEventFromData(e.ID(), tokenID, from, to, amount, payload.Nonce, sig, 0, time.Now())
+		evt := token.NewTransferEventFromData(e.ID(), tokenID, from, to, amount, payload.Nonce, sig, 0, e.Timestamp())
 		result = append(result, evt)
 	}
 
@@ -90,7 +89,7 @@ func (r *TokenEventReader) GetMintEventsByToken(tokenID token.TokenID) ([]*token
 			continue
 		}
 
-		evt := token.NewMintEventFromData(e.ID(), tokenID, to, amount, 0, time.Now())
+		evt := token.NewMintEventFromData(e.ID(), tokenID, to, amount, 0, e.Timestamp())
 		result = append(result, evt)
 	}
 
@@ -125,7 +124,7 @@ func (r *TokenEventReader) GetBurnEventsByToken(tokenID token.TokenID) ([]*token
 			continue
 		}
 
-		evt := token.NewBurnEventFromData(e.ID(), tokenID, from, amount, 0, time.Now())
+		evt := token.NewBurnEventFromData(e.ID(), tokenID, from, amount, 0, e.Timestamp())
 		result = append(result, evt)
 	}
 
