@@ -10,7 +10,12 @@ var (
 	ErrSessionEnded       = errors.New("voting session has ended")
 	ErrVoterNotRegistered = errors.New("voter not registered")
 	ErrCandidateNotFound  = errors.New("candidate not found")
-	ErrAlreadyVoted       = errors.New("voter has already voted")
+	// ErrCandidateNotInSession guards ballot integrity: a vote must target a
+	// candidate that is part of the session's candidate roster. Without this,
+	// a caller could name any registered candidate (even one in a different
+	// election) and inflate that candidate's tally.
+	ErrCandidateNotInSession = errors.New("candidate is not part of this session")
+	ErrAlreadyVoted          = errors.New("voter has already voted")
 
 	// Validation sentinels. These let API handlers classify client input
 	// errors as 400s instead of falling through to 500.

@@ -102,6 +102,12 @@ func TestWriteUseCaseError_DomainError(t *testing.T) {
 			wantCode:   "ALREADY_VOTED",
 		},
 		{
+			name:       "candidate not in session",
+			err:        voting.ErrCandidateNotInSession,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "CANDIDATE_NOT_IN_SESSION",
+		},
+		{
 			name:       "wrapped domain error",
 			err:        errors.Join(token.ErrInsufficientBalance, errors.New("context")),
 			wantStatus: http.StatusBadRequest,

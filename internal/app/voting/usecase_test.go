@@ -264,7 +264,7 @@ func TestCastVoteUseCase_Execute(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -587,7 +587,7 @@ func TestCastVoteUseCase_GetSessionRepoError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -617,7 +617,7 @@ func TestCastVoteUseCase_GetVoterRepoError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -647,7 +647,7 @@ func TestCastVoteUseCase_GetCandidateRepoError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -676,7 +676,7 @@ func TestCastVoteUseCase_SignVoteError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{err: errors.New("signing failed")}
@@ -706,7 +706,7 @@ func TestCastVoteUseCase_TryMarkVotedGenericError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -736,7 +736,7 @@ func TestCastVoteUseCase_SaveVoteError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -766,7 +766,7 @@ func TestCastVoteUseCase_IncrementCandidateVoteCountError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -795,7 +795,7 @@ func TestCastVoteUseCase_IncrementCandidateVoteCountAppliesTally(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 7},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -825,7 +825,7 @@ func TestCastVoteUseCase_TryMarkVotedNotFound(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -845,6 +845,37 @@ func TestCastVoteUseCase_TryMarkVotedNotFound(t *testing.T) {
 	if err.Error() != "voter not registered" {
 		t.Errorf("Expected 'voter not registered', got '%v'", err)
 	}
+}
+
+// TestCastVoteUseCase_CandidateNotInSession guards ballot integrity: a vote
+// for a registered candidate that is NOT part of this session's roster must be
+// rejected (otherwise a caller could inflate a candidate's tally across
+// elections).
+func TestCastVoteUseCase_CandidateNotInSession(t *testing.T) {
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		// candidate2 exists globally but is NOT in session1's roster.
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+			{ID: "candidate2", Name: "Bob", VoteCount: 0},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+		},
+	}
+	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
+	uc := NewCastVoteUseCase(repo, service)
+
+	_, err := uc.Execute(CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate2", // exists, but not in session1
+		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		SessionID:      "session1",
+	})
+	require.ErrorIs(t, err, voting.ErrCandidateNotInSession)
 }
 
 func TestRegisterCandidateUseCase_SaveError(t *testing.T) {
