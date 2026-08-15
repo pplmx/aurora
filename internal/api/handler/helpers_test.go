@@ -169,9 +169,35 @@ func TestWriteUseCaseError_DomainError(t *testing.T) {
 			err := json.Unmarshal(rr.Body.Bytes(), &resp)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantCode, resp.Code)
-			assert.Equal(t, tt.err.Error(), resp.Error)
+			// Classified (non-500) errors echo their message so the client can
+			// act on them; unclassified 500 errors must NOT leak the raw error
+			// (information disclosure) and return a generic message instead.
+			if tt.wantStatus == http.StatusInternalServerError {
+				assert.Equal(t, "internal server error", resp.Error)
+			} else {
+				assert.Equal(t, tt.err.Error(), resp.Error)
+			}
 		})
 	}
+}
+
+// TestWriteUseCaseError_DoesNotLeakUnknownError guards the information-
+// disclosure contract: an unclassified (500) error must not echo its raw text
+// (which can contain SQL fragments, panic messages, or unexpected failure
+// details) back to the API client.
+func TestWriteUseCaseError_DoesNotLeakUnknownError(t *testing.T) {
+	rr := httptest.NewRecorder()
+	secret := "connection string leaked: root:password@tcp(10.0.0.1)"
+	writeUseCaseError(rr, errors.New(secret))
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+
+	var resp ErrorResponse
+	err := json.Unmarshal(rr.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.NotContains(t, resp.Error, secret,
+		"unclassified error must not leak its raw message to the client")
+	assert.Equal(t, "internal server error", resp.Error)
 }
 
 func TestClassifyError_NilError(t *testing.T) {

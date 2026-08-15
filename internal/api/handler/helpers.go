@@ -121,9 +121,18 @@ func writeError(w http.ResponseWriter, message string, code string, statusCode i
 // It inspects the error chain for known domain sentinel errors and returns
 // the corresponding status code and machine-readable code. Unknown errors
 // fall through to 500.
+//
+// The response body only echoes the caller's error message for errors that
+// map to a known domain sentinel. Unclassified (500) errors return a generic
+// message instead: their raw text can leak internal implementation details
+// (SQL fragments, panic text, unexpected failure messages) to API clients.
 func writeUseCaseError(w http.ResponseWriter, err error) {
 	statusCode, code := classifyError(err)
-	writeError(w, err.Error(), code, statusCode)
+	message := err.Error()
+	if statusCode == http.StatusInternalServerError {
+		message = "internal server error"
+	}
+	writeError(w, message, code, statusCode)
 }
 
 func writeInternalError(w http.ResponseWriter) {
