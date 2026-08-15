@@ -518,8 +518,20 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 }
 
 func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
-	if _, err := s.repo.GetToken(req.TokenID); err != nil {
+	// Guard: refuse to approve an allowance for a token that does not
+	// exist. Consistent with the other mutators (Mint/Burn/Transfer/
+	// TransferFrom/Increase/DecreaseAllowance): without it a repo that
+	// returns a nil token without error (e.g. a mock) would let SaveApproval
+	// create an orphaned allowance row referencing a token that never existed.
+	token, err := s.repo.GetToken(req.TokenID)
+	if err != nil {
+		if err == ErrTokenNotFound {
+			return nil, ErrTokenNotFound
+		}
 		return nil, err
+	}
+	if token == nil {
+		return nil, ErrTokenNotFound
 	}
 
 	if err := VerifyPrivateKeyMatches(req.Owner, req.PrivateKey); err != nil {
