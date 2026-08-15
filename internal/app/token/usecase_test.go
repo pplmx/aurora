@@ -1014,6 +1014,8 @@ func TestGetHistoryUseCase_Execute(t *testing.T) {
 		token.NewTransferEvent("TEST", toTokenPublicKey(pub), toTokenPublicKey(pub), token.NewAmount(100), 1, nil),
 		token.NewTransferEvent("TEST", toTokenPublicKey(pub), toTokenPublicKey(pub), token.NewAmount(200), 2, nil),
 	}
+	service.events.transfers[0].SetBlockHeight(10)
+	service.events.transfers[1].SetBlockHeight(21)
 
 	uc := NewGetHistoryUseCase(service)
 
@@ -1029,6 +1031,11 @@ func TestGetHistoryUseCase_Execute(t *testing.T) {
 
 	if len(resp.Transfers) != 2 {
 		t.Errorf("Expected 2 transfers, got %d", len(resp.Transfers))
+	}
+	// The audit block height must surface through the history DTO.
+	if resp.Transfers[0].BlockHeight != 10 || resp.Transfers[1].BlockHeight != 21 {
+		t.Errorf("expected block heights [10 21] to surface, got [%d %d]",
+			resp.Transfers[0].BlockHeight, resp.Transfers[1].BlockHeight)
 	}
 }
 
