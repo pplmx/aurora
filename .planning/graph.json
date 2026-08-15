@@ -818,6 +818,26 @@
       "summary": "fix(cmd/api): add defer srv.Close() so the API server's SQLite/event handles are released on shutdown for any exit path. Commit 83346d9."
     },
     {
+      "id": "issue-token-allowance-dangling-token",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T02:30:00Z",
+      "updated_at": "2026-08-12T02:35:00Z",
+      "confidence": 0.9,
+      "summary": "IncreaseAllowance/DecreaseAllowance adjusted allowance without verifying the token exists, unlike every other token mutator. TryAdjustApproval INSERTs an allowance row unconditionally, so a caller could adjust amount for a dangling token_id and get success plus an orphaned allowance row.",
+      "severity": 0.3,
+      "evidence": "internal/domain/token/service.go IncreaseAllowance/DecreaseAllowance (pre-fix) called TryAdjustApproval with no GetToken existence guard"
+    },
+    {
+      "id": "change-token-allowance-guard",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T02:35:00Z",
+      "updated_at": "2026-08-12T02:35:00Z",
+      "confidence": 1.0,
+      "summary": "fix(token): Increase/DecreaseAllowance now reject non-existent tokens with ErrTokenNotFound (handling both sqlite error and mock nil); adds two TokenNotFound tests. Commit a83840b."
+    },
+    {
       "id": "evidence-windows-suite-red-detail",
       "type": "evidence",
       "status": "active",
@@ -829,6 +849,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-token-allowance-guard",
+      "target": "issue-token-allowance-dangling-token",
+      "type": "resolves"
+    },
     {
       "source": "change-api-shutdown-close",
       "target": "issue-api-shutdown-leak",
