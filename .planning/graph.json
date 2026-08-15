@@ -928,6 +928,26 @@
       "summary": "fix(token): Approve now rejects non-existent tokens with ErrTokenNotFound (checks error and nil-token); TestApprove_TokenNotFound. Commit 347bbdf."
     },
     {
+      "id": "issue-api-error-leak",
+      "type": "issue",
+      "status": "resolved",
+      "created_at": "2026-08-12T05:00:00Z",
+      "updated_at": "2026-08-12T05:10:00Z",
+      "confidence": 0.95,
+      "summary": "writeUseCaseError echoed err.Error() into the JSON body even for the unclassified 500/INTERNAL_ERROR path, leaking raw internal error text (SQL fragments, panic text, unexpected failures) to API clients — an information-disclosure risk.",
+      "severity": 0.45,
+      "evidence": "internal/api/handler/helpers.go writeUseCaseError (pre-fix) always passed err.Error(); helpers_test.go asserted resp.Error == tt.err.Error() for the unknown-error case"
+    },
+    {
+      "id": "change-api-error-redaction",
+      "type": "change",
+      "status": "active",
+      "created_at": "2026-08-12T05:10:00Z",
+      "updated_at": "2026-08-12T05:10:00Z",
+      "confidence": 1.0,
+      "summary": "fix(api): writeUseCaseError returns generic 'internal server error' for unclassified 500 errors; classified errors still echo their message. New DoesNotLeakUnknownError test. Commit 793a437."
+    },
+    {
       "id": "evidence-windows-suite-red-detail",
       "type": "evidence",
       "status": "active",
@@ -939,6 +959,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "change-api-error-redaction",
+      "target": "issue-api-error-leak",
+      "type": "resolves"
+    },
     {
       "source": "change-token-approve-guard",
       "target": "issue-token-approve-dangling-token",
