@@ -3138,3 +3138,52 @@ func TestDecreaseAllowance_UnauthorizedPrivateKey(t *testing.T) {
 		t.Errorf("expected ErrUnauthorized, got %v", err)
 	}
 }
+
+// TestIncreaseAllowance_TokenNotFound guards the dangling-token gap: adjusting
+// allowance for a token that does not exist must be rejected, not silently
+// create an orphaned allowance row.
+func TestIncreaseAllowance_TokenNotFound(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	spender := pubKey(2)
+	_, err := service.IncreaseAllowance(&AllowanceRequest{
+		TokenID:    "NOPE",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(50),
+		PrivateKey: privKey(1),
+	})
+	if !errors.Is(err, ErrTokenNotFound) {
+		t.Errorf("expected ErrTokenNotFound, got %v", err)
+	}
+	if _, exists := repo.approvals["NOPE"+string(owner)+string(spender)]; exists {
+		t.Error("allowance row should not exist for a non-existent token")
+	}
+}
+
+// TestDecreaseAllowance_TokenNotFound guards the dangling-token gap on the
+// decrease side.
+func TestDecreaseAllowance_TokenNotFound(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	spender := pubKey(2)
+	_, err := service.DecreaseAllowance(&AllowanceRequest{
+		TokenID:    "NOPE",
+		Owner:      owner,
+		Spender:    spender,
+		Amount:     NewAmount(10),
+		PrivateKey: privKey(1),
+	})
+	if !errors.Is(err, ErrTokenNotFound) {
+		t.Errorf("expected ErrTokenNotFound, got %v", err)
+	}
+	if _, exists := repo.approvals["NOPE"+string(owner)+string(spender)]; exists {
+		t.Error("allowance row should not exist for a non-existent token")
+	}
+}
