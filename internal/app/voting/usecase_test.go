@@ -695,6 +695,41 @@ func TestCastVoteUseCase_SessionEnded(t *testing.T) {
 	}
 }
 
+func TestCastVoteUseCase_SessionEndedWithinTimeWindow(t *testing.T) {
+	// A session that is explicitly marked "ended" must reject votes even while
+	// still inside its start/end window — otherwise the CLI `session end`
+	// lifecycle is a no-op and closed sessions keep tallying votes.
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 60, EndTime: now + 3600, Status: "ended"},
+		},
+	}
+	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
+	uc := NewCastVoteUseCaseWithoutTx(repo, service)
+
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		SessionID:      "session1",
+	}
+
+	_, err := uc.Execute(req)
+	if err == nil {
+		t.Fatal("Expected error for vote on a session explicitly marked ended")
+	}
+	if err.Error() != "voting session has ended" {
+		t.Errorf("Expected 'voting session has ended', got '%v'", err)
+	}
+}
+
 func TestCastVoteUseCase_SessionNotFound(t *testing.T) {
 	repo := &mockVotingRepo{}
 	service := &mockVotingService{}
