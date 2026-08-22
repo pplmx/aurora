@@ -8,12 +8,12 @@ type CreateTokenRequest struct {
 }
 
 type CreateTokenResponse struct {
-	ID          string
-	Name        string
-	Symbol      string
-	TotalSupply string
-	Decimals    int8
-	Owner       string
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Symbol      string `json:"symbol"`
+	TotalSupply string `json:"total_supply"`
+	Decimals    int8   `json:"decimals"`
+	Owner       string `json:"owner"`
 }
 
 type MintRequest struct {
@@ -24,12 +24,12 @@ type MintRequest struct {
 }
 
 type MintResponse struct {
-	ID          string
-	TokenID     string
-	To          string
-	Amount      string
-	Timestamp   int64
-	BlockHeight int64
+	ID          string `json:"id"`
+	TokenID     string `json:"token_id"`
+	To          string `json:"to"`
+	Amount      string `json:"amount"`
+	Timestamp   int64  `json:"timestamp"`
+	BlockHeight int64  `json:"block_height"`
 }
 
 type TransferRequest struct {
@@ -41,13 +41,13 @@ type TransferRequest struct {
 }
 
 type TransferResponse struct {
-	ID          string
-	TokenID     string
-	From        string
-	To          string
-	Amount      string
-	Timestamp   int64
-	BlockHeight int64
+	ID          string `json:"id"`
+	TokenID     string `json:"token_id"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Amount      string `json:"amount"`
+	Timestamp   int64  `json:"timestamp"`
+	BlockHeight int64  `json:"block_height"`
 }
 
 type TransferFromRequest struct {
@@ -60,13 +60,13 @@ type TransferFromRequest struct {
 }
 
 type TransferFromResponse struct {
-	ID          string
-	TokenID     string
-	From        string
-	To          string
-	Amount      string
-	Timestamp   int64
-	BlockHeight int64
+	ID          string `json:"id"`
+	TokenID     string `json:"token_id"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Amount      string `json:"amount"`
+	Timestamp   int64  `json:"timestamp"`
+	BlockHeight int64  `json:"block_height"`
 }
 
 type ApproveRequest struct {
@@ -78,12 +78,12 @@ type ApproveRequest struct {
 }
 
 type ApproveResponse struct {
-	ID        string
-	TokenID   string
-	Owner     string
-	Spender   string
-	Amount    string
-	Timestamp int64
+	ID        string `json:"id"`
+	TokenID   string `json:"token_id"`
+	Owner     string `json:"owner"`
+	Spender   string `json:"spender"`
+	Amount    string `json:"amount"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 type BurnRequest struct {
@@ -94,12 +94,12 @@ type BurnRequest struct {
 }
 
 type BurnResponse struct {
-	ID          string
-	TokenID     string
-	From        string
-	Amount      string
-	Timestamp   int64
-	BlockHeight int64
+	ID          string `json:"id"`
+	TokenID     string `json:"token_id"`
+	From        string `json:"from"`
+	Amount      string `json:"amount"`
+	Timestamp   int64  `json:"timestamp"`
+	BlockHeight int64  `json:"block_height"`
 }
 
 type BalanceRequest struct {
@@ -108,9 +108,9 @@ type BalanceRequest struct {
 }
 
 type BalanceResponse struct {
-	TokenID string
-	Owner   string
-	Amount  string
+	TokenID string `json:"token_id"`
+	Owner   string `json:"owner"`
+	Amount  string `json:"amount"`
 }
 
 type AllowanceRequest struct {
@@ -120,10 +120,10 @@ type AllowanceRequest struct {
 }
 
 type AllowanceResponse struct {
-	TokenID string
-	Owner   string
-	Spender string
-	Amount  string
+	TokenID string `json:"token_id"`
+	Owner   string `json:"owner"`
+	Spender string `json:"spender"`
+	Amount  string `json:"amount"`
 }
 
 type HistoryRequest struct {
@@ -134,5 +134,5 @@ type HistoryRequest struct {
 }
 
 type HistoryResponse struct {
-	Transfers []TransferResponse
+	Transfers []TransferResponse `json:"transfers"`
 }
