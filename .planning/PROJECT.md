@@ -85,6 +85,7 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | Focus                                            | Target                                   |
 | ------------------------------------------------ | ---------------------------------------- |
 | `token tui` CLI wiring (real TUI, not stub)      | ✅ Shipped (52f8f58)                     |
+| `backup create/verify/restore` CLI (missing cmd) | ✅ Shipped (9380d4b)                     |
 | Oracle SSRF: bracketed IPv6 literal bypass        | ✅ Shipped (0176524)                     |
 | http loopback probe panic (skip instead of crash) | ✅ Shipped (20daab9)                     |
 

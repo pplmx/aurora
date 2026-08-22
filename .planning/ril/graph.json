@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 1,
+  "round": 2,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T15:19:11+00:00",
+  "updated_at": "2026-08-22T15:27:07+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 1,
+      "touched_round": 2,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -234,6 +234,55 @@
       "source": "20daab9",
       "note": "TestMain no longer panics on loopback bind denial; just test green on this host",
       "confidence": 1.0
+    },
+    "ISS-backup-cli-missing": {
+      "id": "ISS-backup-cli-missing",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T15:26:47+00:00",
+      "updated_at": "2026-08-22T15:27:07+00:00",
+      "touched_round": 2,
+      "title": "backup feature has no CLI command",
+      "summary": "Backup functionality is fully implemented (internal/infra/backup: Create/Verify/Restore, >=80% covered) but is exposed to no cobra command. The root command surface registers completion/help/lottery/migrate/nft/oracle/token/version/voting only; PROJECT.md/milestones/research docs document \"aurora backup create|verify|restore\". Verified via ./aurora --help -> unknown command \"backup\"."
+    },
+    "TASK-add-backup-cli": {
+      "id": "TASK-add-backup-cli",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-22T15:26:47+00:00",
+      "updated_at": "2026-08-22T15:27:07+00:00",
+      "touched_round": 2,
+      "category": "core-feature",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "title": "Wire backup create|verify|restore CLI over BackupService"
+    },
+    "CHG-backup-cli": {
+      "id": "CHG-backup-cli",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:27:07+00:00",
+      "updated_at": "2026-08-22T15:27:07+00:00",
+      "touched_round": 2,
+      "commit": "9380d4b",
+      "title": "Add backup create|verify|restore CLI"
+    },
+    "EV-backup-cli": {
+      "id": "EV-backup-cli",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:27:07+00:00",
+      "updated_at": "2026-08-22T15:27:07+00:00",
+      "touched_round": 2,
+      "source": "9380d4b",
+      "note": "backup registered at root with create|verify|restore; CLI tests pass; full go test ./... green",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -314,6 +363,30 @@
       "to": "ISS-http-probe-panic",
       "type": "resolves",
       "created_at": "2026-08-22T15:19:11+00:00"
+    },
+    {
+      "from": "ISS-backup-cli-missing",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-22T15:26:47+00:00"
+    },
+    {
+      "from": "TASK-add-backup-cli",
+      "to": "ISS-backup-cli-missing",
+      "type": "addresses",
+      "created_at": "2026-08-22T15:26:47+00:00"
+    },
+    {
+      "from": "CHG-backup-cli",
+      "to": "TASK-add-backup-cli",
+      "type": "implements",
+      "created_at": "2026-08-22T15:27:07+00:00"
+    },
+    {
+      "from": "CHG-backup-cli",
+      "to": "ISS-backup-cli-missing",
+      "type": "resolves",
+      "created_at": "2026-08-22T15:27:07+00:00"
     }
   ]
 }
