@@ -78,6 +78,12 @@ func hostBlocked(host string) (bool, error) {
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		host = h
 	}
+	// URL hosts wrap IPv6 literals in brackets ("[::1]"), and net.ParseIP does
+	// not accept brackets. Strip them so a literal loopback/private IPv6 host
+	// is recognized deterministically. Without this, "[::1]", "[fc00::1]" and
+	// "[fe80::1]" fell through to the DNS-only path, which cannot resolve a
+	// bracketed literal and so reported them as NOT blocked — an SSRF bypass.
+	host = strings.TrimSuffix(strings.TrimPrefix(host, "["), "]")
 	if ip := net.ParseIP(host); ip != nil {
 		return isBlockedIP(ip), nil
 	}

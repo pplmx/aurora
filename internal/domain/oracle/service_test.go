@@ -451,6 +451,8 @@ func TestAddSource_URLValidation(t *testing.T) {
 		{"private 10.x literal", "http://10.0.0.5/data", true, "blocks RFC1918"},
 		{"private 192.168 literal", "http://192.168.1.1/data", true, "blocks RFC1918"},
 		{"ipv6 loopback literal", "http://[::1]/data", true, "blocks IPv6 loopback"},
+		{"ipv6 unique-local literal", "http://[fc00::1]/data", true, "blocks IPv6 unique-local"},
+		{"ipv6 link-local literal", "http://[fe80::1]/data", true, "blocks IPv6 link-local"},
 		{"public ipv4 literal", "http://8.8.8.8/data", false, "allows public literal"},
 	}
 
