@@ -48,7 +48,7 @@ func newRouter(s *Server) http.Handler {
 		})
 	})
 
-	r.Handle("/*", http.FileServer(http.Dir("web")))
+	r.Handle("/*", injectAPIKey(http.FileServer(http.Dir("web")), config.GetAPIKey()))
 
 	return r
 }
