@@ -206,11 +206,16 @@ func TestTokenInfo_NotFound(t *testing.T) {
 	})
 }
 
-func TestTokenTUI_Stub(t *testing.T) {
+func TestTokenTUI_Wired(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		out, err := runCmd(t, "token", "tui")
-		require.NoError(t, err)
-		assert.Contains(t, out, "not implemented")
+		// token tui is now wired to the real internal/ui/token program
+		// (RunTokenTUI), not the old placeholder. In the non-interactive
+		// test harness there is no TTY, so it fails fast with a TTY error
+		// instead of printing a stub.
+		require.Error(t, err)
+		assert.NotContains(t, out, "not implemented")
+		assert.Contains(t, err.Error(), "TTY")
 	})
 }
 
