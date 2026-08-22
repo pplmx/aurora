@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 3,
+  "round": 4,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T15:41:42+00:00",
+  "updated_at": "2026-08-22T16:07:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -335,16 +335,18 @@
       "id": "TASK-fix-web-voting-page",
       "type": "task",
       "status": "active",
-      "version": 1,
+      "version": 2,
       "created_at": "2026-08-22T15:34:56+00:00",
-      "updated_at": "2026-08-22T15:34:56+00:00",
+      "updated_at": "2026-08-22T16:07:26+00:00",
       "touched_round": 3,
       "category": "core-feature",
       "severity": 0.8,
       "confidence": 1.0,
       "effort": 5,
       "unlock_factor": 1.0,
-      "title": "Rebuild voting web page against the real voting API"
+      "title": "Rebuild voting web page against the real voting API",
+      "lock_owner": "root",
+      "lock_until": "2026-08-22T16:37:26+00:00"
     },
     "DEC-v17-web-parity": {
       "id": "DEC-v17-web-parity",

@@ -166,7 +166,7 @@ def _num(task: dict, key: str, default: float) -> float:
         return default
     try:
         return float(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return default
 
 

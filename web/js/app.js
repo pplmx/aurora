@@ -51,44 +51,145 @@ function lotteryApp() {
 
 function votingApp() {
     return {
-        title: '',
-        ownerKey: '',
-        result: '',
-        proposals: [],
+        voterName: '',
+        voterResult: '',
+        voterPrivateKey: '',
+        candName: '',
+        candParty: '',
+        candProgram: '',
+        candResult: '',
+        sessionTitle: '',
+        sessionDesc: '',
+        sessionStart: '',
+        sessionEnd: '',
+        sessionCandidateIds: [],
+        sessionResult: '',
+        voteSessionId: '',
+        voteCandidateId: '',
+        voteVoterPub: '',
+        votePriv: '',
+        voteResult: '',
+        candidates: [],
+        sessions: [],
         loading: true,
         async init() {
-            await this.loadProposals();
+            await Promise.all([this.loadCandidates(), this.loadSessions()]);
+            this.loading = false;
         },
-        async loadProposals() {
-            this.loading = true;
+        async loadCandidates() {
             try {
                 const res = await fetch('/api/v1/voting/candidates', { headers: auroraHeaders() });
-                this.proposals = await res.json();
+                this.candidates = await res.json();
             } catch (e) {
                 console.error(e);
             }
-            this.loading = false;
         },
-        async createVote() {
+        async loadSessions() {
             try {
-                const res = await fetch('/api/v1/voting/create', {
+                const res = await fetch('/api/v1/voting/sessions', { headers: auroraHeaders() });
+                this.sessions = await res.json();
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        candidateNames(ids) {
+            return (ids || []).map(id => {
+                const c = this.candidates.find(x => x.id === id);
+                return c ? c.name : id;
+            });
+        },
+        get currentSessionCandidates() {
+            const s = this.sessions.find(x => x.id === this.voteSessionId);
+            if (!s) return [];
+            return (s.candidates || [])
+                .map(id => this.candidates.find(c => c.id === id))
+                .filter(Boolean);
+        },
+        async registerVoter() {
+            try {
+                const res = await fetch('/api/v1/voting/register/voter', {
+                    method: 'POST',
+                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ name: this.voterName })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.voterResult = 'Error: ' + (data.message || res.status); return; }
+                this.voterResult = 'Voter registered as ' + data.name + ' (public key: ' + data.public_key + ')';
+                this.voterPrivateKey = data.private_key;
+                this.voteVoterPub = data.public_key;
+                this.votePriv = data.private_key;
+                this.voterName = '';
+            } catch (e) {
+                this.voterResult = 'Error: ' + e.message;
+            }
+        },
+        async registerCandidate() {
+            try {
+                const res = await fetch('/api/v1/voting/register/candidate', {
                     method: 'POST',
                     headers: auroraHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({
-                        title: this.title,
-                        owner: this.ownerKey
+                        name: this.candName,
+                        party: this.candParty,
+                        program: this.candProgram
                     })
                 });
                 const data = await res.json();
-                this.result = JSON.stringify(data, null, 2);
-                await this.loadProposals();
-                this.title = '';
+                if (!res.ok) { this.candResult = 'Error: ' + (data.message || res.status); return; }
+                this.candResult = 'Candidate "' + data.name + '" registered (id: ' + data.id + ')';
+                this.candName = '';
+                this.candParty = '';
+                this.candProgram = '';
+                await this.loadCandidates();
             } catch (e) {
-                this.result = 'Error: ' + e.message;
+                this.candResult = 'Error: ' + e.message;
             }
         },
-        async castVote(proposalId, vote) {
-            alert(`Vote "${vote}" cast for proposal ${proposalId}`);
+        async createSession() {
+            try {
+                const res = await fetch('/api/v1/voting/session', {
+                    method: 'POST',
+                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({
+                        title: this.sessionTitle,
+                        description: this.sessionDesc,
+                        candidate_ids: this.sessionCandidateIds,
+                        start_time: parseInt(this.sessionStart),
+                        end_time: parseInt(this.sessionEnd)
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.sessionResult = 'Error: ' + (data.message || res.status); return; }
+                this.sessionResult = 'Session "' + data.title + '" created (id: ' + data.id + ')';
+                this.sessionTitle = '';
+                this.sessionDesc = '';
+                this.sessionStart = '';
+                this.sessionEnd = '';
+                this.sessionCandidateIds = [];
+                await this.loadSessions();
+            } catch (e) {
+                this.sessionResult = 'Error: ' + e.message;
+            }
+        },
+        async castVote() {
+            try {
+                const res = await fetch('/api/v1/voting/vote', {
+                    method: 'POST',
+                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({
+                        voter_public_key: this.voteVoterPub,
+                        candidate_id: this.voteCandidateId,
+                        private_key: this.votePriv,
+                        session_id: this.voteSessionId
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.voteResult = 'Error: ' + (data.message || res.status); return; }
+                this.voteResult = 'Vote recorded (id: ' + data.id + ', block height: ' + data.block_height + ')';
+                await this.loadCandidates();
+            } catch (e) {
+                this.voteResult = 'Error: ' + e.message;
+            }
         }
     };
 }
