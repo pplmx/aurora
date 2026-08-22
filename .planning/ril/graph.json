@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 8,
+  "round": 9,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T16:44:47+00:00",
+  "updated_at": "2026-08-22T16:48:27+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 1,
+      "touched_round": 9,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -648,6 +648,42 @@
       "touched_round": 8,
       "commit": "663ae1b",
       "summary": "Enforce ended-session lifecycle on CastVote"
+    },
+    "ISS-005": {
+      "id": "ISS-005",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-22T16:48:04+00:00",
+      "updated_at": "2026-08-22T16:48:27+00:00",
+      "touched_round": 9,
+      "title": "Token approve/allowance missing from REST API",
+      "summary": "CLI exposes token approve and token allowance (service implements both), but the REST API routes omit them - only create/mint/transfer/burn/balance/history exist. A web/API consumer cannot approve or read an allowance."
+    },
+    "TASK-008": {
+      "id": "TASK-008",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:48:05+00:00",
+      "updated_at": "2026-08-22T16:48:24+00:00",
+      "touched_round": 9,
+      "category": "core-feature",
+      "severity": 0.6,
+      "confidence": 1,
+      "effort": 2,
+      "title": "Add token /approve + /allowance REST endpoints"
+    },
+    "CHG-009": {
+      "id": "CHG-009",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T16:48:24+00:00",
+      "updated_at": "2026-08-22T16:48:24+00:00",
+      "touched_round": 9,
+      "commit": "f5f3e92",
+      "summary": "Add token /approve + /allowance REST endpoints"
     }
   },
   "edges": [
@@ -950,6 +986,30 @@
       "to": "ISS-004",
       "type": "resolves",
       "created_at": "2026-08-22T16:44:47+00:00"
+    },
+    {
+      "from": "TASK-008",
+      "to": "ISS-005",
+      "type": "addresses",
+      "created_at": "2026-08-22T16:48:20+00:00"
+    },
+    {
+      "from": "ISS-005",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-22T16:48:20+00:00"
+    },
+    {
+      "from": "CHG-009",
+      "to": "TASK-008",
+      "type": "implements",
+      "created_at": "2026-08-22T16:48:27+00:00"
+    },
+    {
+      "from": "CHG-009",
+      "to": "ISS-005",
+      "type": "resolves",
+      "created_at": "2026-08-22T16:48:27+00:00"
     }
   ]
 }
