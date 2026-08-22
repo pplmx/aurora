@@ -1,6 +1,7 @@
 package nft
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"database/sql"
@@ -100,6 +101,26 @@ func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) 
 	return nft, nil
 }
 
+// verifyOwnerKey ensures the presented private key actually corresponds to the
+// claimed public key (from/owner). Without this check a caller who only knows
+// a victim's public key (which is public) could sign with their own key and
+// forge a transfer or burn as the victim — the atomic ownership check alone
+// only proves the *public key* owns the NFT, not that this caller holds its
+// private counterpart.
+func verifyOwnerKey(pub, priv []byte) error {
+	if len(priv) != ed25519.PrivateKeySize {
+		return ErrInvalidPrivateKey
+	}
+	if len(pub) != ed25519.PublicKeySize {
+		return ErrInvalidPublicKey
+	}
+	pubFromPriv, ok := ed25519.PrivateKey(priv).Public().(ed25519.PublicKey)
+	if !ok || !bytes.Equal(pubFromPriv, pub) {
+		return ErrKeyMismatch
+	}
+	return nil
+}
+
 func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (*Operation, error) {
 	// Existence check only — we deliberately do NOT call
 	// nft.IsOwner(from) here. That would read nft.Owner outside
@@ -127,6 +148,11 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 	}
 	if len(to) != ed25519.PublicKeySize {
 		return nil, ErrInvalidPublicKey
+	}
+	// The caller must hold the private key for `from`; otherwise a forged
+	// transfer (knowing only the public key) would be accepted.
+	if err := verifyOwnerKey(from, privateKey); err != nil {
+		return nil, err
 	}
 
 	timestamp := time.Now().Unix()
@@ -181,6 +207,11 @@ func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockcha
 	}
 	if len(owner) != ed25519.PublicKeySize {
 		return ErrInvalidPublicKey
+	}
+	// The caller must hold the private key for `owner`; otherwise a forged
+	// burn (knowing only the public key) would be accepted.
+	if err := verifyOwnerKey(owner, privateKey); err != nil {
+		return err
 	}
 
 	timestamp := time.Now().Unix()

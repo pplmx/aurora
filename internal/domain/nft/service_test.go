@@ -1105,3 +1105,48 @@ func TestNFTService_Burn_ConcurrentOnlyOneWinner(t *testing.T) {
 		}
 	}
 }
+
+// TestNFTService_Transfer_ForgeMismatchedKey proves that a caller who only
+// knows the owner's PUBLIC key (which is public) cannot forge a transfer with
+// their own private key — the key/owner binding must hold.
+func TestNFTService_Transfer_ForgeMismatchedKey(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewServiceWithoutTx(repo)
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	victimPub, _, _ := ed25519.GenerateKey(nil) // victim's public key only
+	nft := NewNFT("Victim NFT", "", "", "", victimPub, victimPub)
+	minted, err := svc.Mint(nft, chain)
+	if err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+
+	attackerPub, attackerPriv, _ := ed25519.GenerateKey(nil)
+	_, err = svc.Transfer(minted.ID, victimPub, attackerPub, attackerPriv, chain)
+	if err != ErrKeyMismatch {
+		t.Fatalf("expected ErrKeyMismatch for forged transfer, got %v", err)
+	}
+}
+
+// TestNFTService_Burn_ForgeMismatchedKey proves a forged burn (someone who
+// knows only the owner's public key) is rejected.
+func TestNFTService_Burn_ForgeMismatchedKey(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewServiceWithoutTx(repo)
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	victimPub, _, _ := ed25519.GenerateKey(nil) // victim's public key only
+	nft := NewNFT("Victim NFT", "", "", "", victimPub, victimPub)
+	minted, err := svc.Mint(nft, chain)
+	if err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+
+	_, attackerPriv, _ := ed25519.GenerateKey(nil)
+	err = svc.Burn(minted.ID, victimPub, attackerPriv, chain)
+	if err != ErrKeyMismatch {
+		t.Fatalf("expected ErrKeyMismatch for forged burn, got %v", err)
+	}
+}
