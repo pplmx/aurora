@@ -85,8 +85,41 @@ func (m *mockVotingRepo) SaveSession(session *domainvoting.Session) error {
 func (m *mockVotingRepo) GetSession(id string) (*domainvoting.Session, error) {
 	return m.sessions[id], nil
 }
-func (m *mockVotingRepo) UpdateSession(*domainvoting.Session) error      { return nil }
-func (m *mockVotingRepo) ListSessions() ([]*domainvoting.Session, error) { return nil, nil }
+func (m *mockVotingRepo) UpdateSession(*domainvoting.Session) error { return nil }
+func (m *mockVotingRepo) ListSessions() ([]*domainvoting.Session, error) {
+	sessions := make([]*domainvoting.Session, 0, len(m.sessions))
+	for _, s := range m.sessions {
+		sessions = append(sessions, s)
+	}
+	return sessions, nil
+}
+
+func TestVotingHandler_ListSessions(t *testing.T) {
+	repo := newMockVotingRepo()
+	repo.sessions["s1"] = &domainvoting.Session{ID: "s1", Title: "Board Vote", Status: "active"}
+	repo.sessions["s2"] = &domainvoting.Session{ID: "s2", Title: "Referendum", Status: "closed"}
+
+	h := NewVotingHandler(repo, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/voting/sessions", nil)
+	rr := httptest.NewRecorder()
+
+	h.ListSessions(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), "Board Vote")
+	assert.Contains(t, rr.Body.String(), "Referendum")
+}
+
+func TestVotingHandler_ListSessions_Empty(t *testing.T) {
+	h := NewVotingHandler(newMockVotingRepo(), nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/voting/sessions", nil)
+	rr := httptest.NewRecorder()
+
+	h.ListSessions(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.JSONEq(t, "[]", rr.Body.String())
+}
 
 func TestVotingHandler_RegisterVoter_InvalidJSON(t *testing.T) {
 	handler := NewVotingHandler(nil, nil)

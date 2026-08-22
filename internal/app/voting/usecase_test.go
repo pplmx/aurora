@@ -504,6 +504,45 @@ func TestGetCandidatesUseCase_Empty(t *testing.T) {
 	}
 }
 
+func TestListSessionsUseCase(t *testing.T) {
+	repo := &mockVotingRepo{
+		sessions: []*voting.Session{
+			{ID: "s1", Title: "Board Vote", Status: "active", Candidates: []string{"c1"}},
+			{ID: "s2", Title: "Referendum", Status: "closed", Candidates: []string{"c2"}},
+		},
+	}
+	uc := NewListSessionsUseCase(repo)
+
+	resp, err := uc.Execute()
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(resp) != 2 {
+		t.Fatalf("Expected 2 sessions, got %d", len(resp))
+	}
+	if resp[0].Title != "Board Vote" || resp[0].Status != "active" {
+		t.Errorf("unexpected first session: %+v", resp[0])
+	}
+	if len(resp[0].Candidates) != 1 || resp[0].Candidates[0] != "c1" {
+		t.Errorf("unexpected candidates mapping: %+v", resp[0].Candidates)
+	}
+}
+
+func TestListSessionsUseCase_Empty(t *testing.T) {
+	repo := &mockVotingRepo{}
+	uc := NewListSessionsUseCase(repo)
+
+	resp, err := uc.Execute()
+	if err != nil {
+		t.Fatalf("Execute failed: %v", err)
+	}
+
+	if len(resp) != 0 {
+		t.Errorf("Expected 0 sessions, got %d", len(resp))
+	}
+}
+
 func TestCreateSessionUseCase(t *testing.T) {
 	now := time.Now().Unix()
 	repo := &mockVotingRepo{

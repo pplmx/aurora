@@ -32,6 +32,7 @@ func (h *VotingHandler) Routes(r chi.Router) {
 	r.Post("/session", h.CreateSession)
 	r.Post("/vote", h.Vote)
 	r.Get("/candidates", h.ListCandidates)
+	r.Get("/sessions", h.ListSessions)
 	r.Get("/session/{id}", h.GetSession)
 }
 
@@ -141,6 +142,18 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 
 func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 	uc := votingapp.NewGetCandidatesUseCase(h.repo)
+	result, err := uc.Execute()
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
+	uc := votingapp.NewListSessionsUseCase(h.repo)
 	result, err := uc.Execute()
 	if err != nil {
 		writeUseCaseError(w, err)
