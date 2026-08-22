@@ -89,6 +89,9 @@ function dashboardApp() {
                 const sessions = await sessRes.json();
                 if (Array.isArray(candidates)) {
                     this.stats.candidates = candidates.length;
+                    // "Total votes" has no dedicated endpoint; derive it from
+                    // each candidate's real vote_count.
+                    this.stats.votes = candidates.reduce((sum, c) => sum + (c.vote_count || 0), 0);
                 }
                 if (Array.isArray(sessions)) {
                     this.stats.sessions = sessions.length;
