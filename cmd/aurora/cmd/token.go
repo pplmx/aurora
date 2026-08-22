@@ -11,6 +11,7 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	tokenui "github.com/pplmx/aurora/internal/ui/token"
 	"github.com/spf13/cobra"
 )
 
@@ -485,9 +486,7 @@ var tokenTuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: i18n.GetText("token.tui.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println(i18n.GetText("token.tui.title"))
-		fmt.Println("TUI not implemented yet")
-		return nil
+		return tokenui.RunTokenTUI()
 	},
 }
 
