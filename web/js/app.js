@@ -49,6 +49,64 @@ function lotteryApp() {
     };
 }
 
+function dashboardApp() {
+    return {
+        stats: { lotteries: 0, votes: 0, candidates: 0, sessions: 0 },
+        activity: [],
+        loading: true,
+        async init() {
+            await Promise.all([
+                this.loadLotteries(),
+                this.loadVoting()
+            ]);
+            this.loading = false;
+        },
+        async loadLotteries() {
+            try {
+                const res = await fetch('/api/v1/lottery/history', { headers: auroraHeaders() });
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    this.stats.lotteries = data.length;
+                    data.slice(0, 10).forEach(l => {
+                        this.activity.push({
+                            key: 'lot-' + (l.id || Math.random()),
+                            title: 'Lottery ' + (l.id || ''),
+                            detail: (l.winners || []).length + ' winner(s)'
+                        });
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        async loadVoting() {
+            try {
+                const [candRes, sessRes] = await Promise.all([
+                    fetch('/api/v1/voting/candidates', { headers: auroraHeaders() }),
+                    fetch('/api/v1/voting/sessions', { headers: auroraHeaders() })
+                ]);
+                const candidates = await candRes.json();
+                const sessions = await sessRes.json();
+                if (Array.isArray(candidates)) {
+                    this.stats.candidates = candidates.length;
+                }
+                if (Array.isArray(sessions)) {
+                    this.stats.sessions = sessions.length;
+                    sessions.slice(0, 10).forEach(s => {
+                        this.activity.push({
+                            key: 'sess-' + s.id,
+                            title: 'Session: ' + s.title,
+                            detail: 'Status: ' + s.status + ' · ' + (s.candidates || []).length + ' candidate(s)'
+                        });
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    };
+}
+
 function votingApp() {
     return {
         voterName: '',
