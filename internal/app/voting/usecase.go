@@ -305,6 +305,35 @@ func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionRespo
 	}, nil
 }
 
+// ListSessionsUseCase returns every session in the repository, exposing the
+// sessions surface that CreateSession writes into but which previously had no
+// read path (the API could only fetch a single session by id).
+type ListSessionsUseCase struct {
+	repo voting.Repository
+}
+
+func NewListSessionsUseCase(repo voting.Repository) *ListSessionsUseCase {
+	return &ListSessionsUseCase{repo: repo}
+}
+
+func (uc *ListSessionsUseCase) Execute() ([]*SessionResponse, error) {
+	sessions, err := uc.repo.ListSessions()
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]*SessionResponse, len(sessions))
+	for i, s := range sessions {
+		responses[i] = &SessionResponse{
+			ID:          s.ID,
+			Title:       s.Title,
+			Description: s.Description,
+			Status:      s.Status,
+			Candidates:  s.Candidates,
+		}
+	}
+	return responses, nil
+}
+
 // containsString reports whether list contains target (small lists; linear scan).
 func containsString(list []string, target string) bool {
 	for _, s := range list {
