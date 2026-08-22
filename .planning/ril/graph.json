@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 4,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T16:14:44+00:00",
+  "updated_at": "2026-08-22T16:16:45+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -419,6 +419,42 @@
       "touched_round": 4,
       "commit": "c014200",
       "summary": "Rebuild voting web page against real API + snake_case response DTO tags + ril.py py3 fix"
+    },
+    "TASK-001": {
+      "id": "TASK-001",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-22T16:16:38+00:00",
+      "updated_at": "2026-08-22T16:16:38+00:00",
+      "touched_round": 4,
+      "category": "core-feature",
+      "severity": 0.6,
+      "confidence": 1,
+      "effort": 2,
+      "title": "Wire dashboard Recent Activity from real APIs"
+    },
+    "CHG-002": {
+      "id": "CHG-002",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T16:16:38+00:00",
+      "updated_at": "2026-08-22T16:16:38+00:00",
+      "touched_round": 4,
+      "commit": Infinity,
+      "summary": "Dashboard Recent Activity wired to lottery/voting APIs; lottery date fix"
+    },
+    "ISS-001": {
+      "id": "ISS-001",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-22T16:16:45+00:00",
+      "updated_at": "2026-08-22T16:16:45+00:00",
+      "touched_round": 4,
+      "title": "Dashboard Recent Activity is a static placeholder",
+      "summary": "index.html Recent Activity panel was a hard-coded 'Loading...' placeholder; wired to real lottery/voting APIs"
     }
   },
   "edges": [
@@ -607,6 +643,24 @@
       "to": "TASK-fix-web-voting-page",
       "type": "implements",
       "created_at": "2026-08-22T16:14:35+00:00"
+    },
+    {
+      "from": "CHG-002",
+      "to": "TASK-001",
+      "type": "implements",
+      "created_at": "2026-08-22T16:16:41+00:00"
+    },
+    {
+      "from": "TASK-001",
+      "to": "ISS-001",
+      "type": "addresses",
+      "created_at": "2026-08-22T16:16:45+00:00"
+    },
+    {
+      "from": "CHG-002",
+      "to": "ISS-001",
+      "type": "resolves",
+      "created_at": "2026-08-22T16:16:45+00:00"
     }
   ]
 }
