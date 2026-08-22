@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 10,
+  "round": 11,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T16:57:42+00:00",
+  "updated_at": "2026-08-22T17:02:31+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 10,
+      "touched_round": 11,
       "title": "voting module"
     },
     "CHG-008": {
@@ -745,6 +745,42 @@
       "touched_round": 10,
       "commit": "10a7169",
       "summary": "Enforce key binding on CastVote + NFT transfer/burn"
+    },
+    "ISS-008": {
+      "id": "ISS-008",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T17:02:27+00:00",
+      "updated_at": "2026-08-22T17:02:31+00:00",
+      "touched_round": 11,
+      "title": "Voting session start/end missing from REST API",
+      "summary": "CLI exposes voting session start/end but the REST API had no way to drive the session lifecycle, despite updateSession being available and the voting flow now rejecting votes on ended sessions."
+    },
+    "TASK-011": {
+      "id": "TASK-011",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T17:02:27+00:00",
+      "updated_at": "2026-08-22T17:02:31+00:00",
+      "touched_round": 11,
+      "category": "core-feature",
+      "severity": 0.5,
+      "confidence": 1,
+      "effort": 1,
+      "title": "Add voting session start/end REST endpoints"
+    },
+    "CHG-011": {
+      "id": "CHG-011",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T17:02:27+00:00",
+      "updated_at": "2026-08-22T17:02:27+00:00",
+      "touched_round": 11,
+      "commit": "68fa1d1",
+      "summary": "Voting session start/end REST endpoints"
     }
   },
   "edges": [
@@ -1119,6 +1155,30 @@
       "to": "ISS-007",
       "type": "resolves",
       "created_at": "2026-08-22T16:57:30+00:00"
+    },
+    {
+      "from": "TASK-011",
+      "to": "ISS-008",
+      "type": "addresses",
+      "created_at": "2026-08-22T17:02:31+00:00"
+    },
+    {
+      "from": "ISS-008",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-22T17:02:31+00:00"
+    },
+    {
+      "from": "CHG-011",
+      "to": "TASK-011",
+      "type": "implements",
+      "created_at": "2026-08-22T17:02:31+00:00"
+    },
+    {
+      "from": "CHG-011",
+      "to": "ISS-008",
+      "type": "resolves",
+      "created_at": "2026-08-22T17:02:31+00:00"
     }
   ]
 }
