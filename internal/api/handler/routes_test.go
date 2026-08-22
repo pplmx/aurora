@@ -61,7 +61,7 @@ func TestTokenHandler_Routes_RegistersAllEndpoints(t *testing.T) {
 	for _, route := range r.Routes() {
 		got[route.Pattern] = true
 	}
-	for _, want := range []string{"/create", "/mint", "/transfer", "/burn", "/balance", "/history"} {
+	for _, want := range []string{"/create", "/mint", "/transfer", "/approve", "/burn", "/balance", "/allowance", "/history"} {
 		assert.True(t, got[want], "expected token route %q to be registered", want)
 	}
 }
@@ -392,7 +392,10 @@ func (f fakeTokenServiceFull) TransferFrom(req *domaintoken.TransferFromRequest)
 	return nil, nil
 }
 func (f fakeTokenServiceFull) Approve(req *domaintoken.ApproveRequest) (*domaintoken.ApproveEvent, error) {
-	return nil, nil
+	if f.err != nil {
+		return nil, f.err
+	}
+	return domaintoken.NewApproveEvent(req.TokenID, req.Owner, req.Spender, req.Amount), nil
 }
 func (f fakeTokenServiceFull) IncreaseAllowance(req *domaintoken.AllowanceRequest) (*domaintoken.ApproveEvent, error) {
 	return nil, nil

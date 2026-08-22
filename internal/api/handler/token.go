@@ -33,9 +33,70 @@ func (h *TokenHandler) Routes(r chi.Router) {
 	r.Post("/create", h.Create)
 	r.Post("/mint", h.Mint)
 	r.Post("/transfer", h.Transfer)
+	r.Post("/approve", h.Approve)
 	r.Post("/burn", h.Burn)
 	r.Get("/balance", h.Balance)
+	r.Get("/allowance", h.Allowance)
 	r.Get("/history", h.History)
+}
+
+// Approve sets an allowance of amount from owner to spender (POST /approve).
+// This closes the CLI/API parity gap: the CLI exposed `token approve` but the
+// REST API had no matching endpoint even though the service implements it.
+func (h *TokenHandler) Approve(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TokenID    string `json:"token_id"`
+		Owner      string `json:"owner"`
+		Spender    string `json:"spender"`
+		Amount     string `json:"amount"`
+		PrivateKey string `json:"private_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeBadRequest(w, "invalid request")
+		return
+	}
+
+	uc := tokenapp.NewApproveUseCase(h.service)
+	result, err := uc.Execute(&tokenapp.ApproveRequest{
+		TokenID:    req.TokenID,
+		Owner:      req.Owner,
+		Spender:    req.Spender,
+		Amount:     req.Amount,
+		PrivateKey: req.PrivateKey,
+	})
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// Allowance returns the amount spender may transfer on behalf of owner.
+func (h *TokenHandler) Allowance(w http.ResponseWriter, r *http.Request) {
+	tokenID := r.URL.Query().Get("token_id")
+	owner := r.URL.Query().Get("owner")
+	spender := r.URL.Query().Get("spender")
+
+	if tokenID == "" || owner == "" || spender == "" {
+		writeBadRequest(w, "token_id, owner and spender required")
+		return
+	}
+
+	uc := tokenapp.NewGetAllowanceUseCase(h.service)
+	result, err := uc.Execute(&tokenapp.AllowanceRequest{
+		TokenID: tokenID,
+		Owner:   owner,
+		Spender: spender,
+	})
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
