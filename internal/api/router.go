@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	apimw "github.com/pplmx/aurora/internal/api/middleware"
 	"github.com/pplmx/aurora/internal/config"
+	"github.com/pplmx/aurora/internal/metrics"
 )
 
 func newRouter(s *Server) http.Handler {
@@ -18,9 +19,15 @@ func newRouter(s *Server) http.Handler {
 	r.Use(apimw.Recovery)
 	r.Use(apimw.CORS)
 
+	// Request observability: a stdlib Prometheus-text /metrics endpoint
+	// (v1.13) recording per-request status + latency distribution.
+	reg := metrics.NewRegistry()
+	r.Use(metrics.Middleware(reg))
+
 	r.Get("/healthz", LivenessHandler)
 	r.Get("/readyz", ReadinessHandler(s.db))
 	r.Get("/health", LivenessHandler)
+	r.Handle("/metrics", reg.Handler())
 
 	apiKey := config.GetAPIKey()
 
