@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -27,6 +28,17 @@ func TestMain(m *testing.M) {
 // httptest server. Some sandboxes and host firewalls block even 127.0.0.1
 // connections; there the fetcher tests cannot exercise a real request path.
 func loopbackReachable() bool {
+	// Some sandboxes/host firewalls refuse to bind a loopback socket at all
+	// (e.g. "listen tcp6 [::1]:0: socket: operation not permitted"). httptest.NewServer
+	// panics rather than returning an error on that failure, so probe bindability
+	// first and treat a bind refusal as "loopback unavailable" (tests get skipped,
+	// TestMain never crashes).
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return false
+	}
+	_ = ln.Close()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {}))
 	defer server.Close()
 
