@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	domaintoken "github.com/pplmx/aurora/internal/domain/token"
 )
 
 func TestTokenHandler_Create_InvalidJSON(t *testing.T) {
@@ -165,4 +167,30 @@ func TestTokenHandler_ResponseContentType(t *testing.T) {
 
 	require.NotEmpty(t, rr.Header().Get("Content-Type"))
 	assert.Contains(t, rr.Header().Get("Content-Type"), "application/json")
+}
+
+// recordingHistoryService wraps fakeTokenServiceFull but captures the limit
+// passed to GetTransferHistory so the handler's cap is observable.
+type recordingHistoryService struct {
+	fakeTokenServiceFull
+	gotLimit int
+}
+
+func (r *recordingHistoryService) GetTransferHistory(_ domaintoken.TokenID, _ domaintoken.PublicKey, limit, _ int) ([]*domaintoken.TransferEvent, error) {
+	r.gotLimit = limit
+	return nil, nil
+}
+
+func TestTokenHandler_History_CapsUnboundedLimit(t *testing.T) {
+	svc := &recordingHistoryService{}
+	handler := NewTokenHandler(svc)
+
+	// owner must be base64 (GetHistory use case decodes it before the service).
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/history?token_id=t1&owner=YWxpY2U=&limit=999999999", nil)
+	rr := httptest.NewRecorder()
+
+	handler.History(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, maxHistoryLimit, svc.gotLimit, "unbounded ?limit must be capped")
 }

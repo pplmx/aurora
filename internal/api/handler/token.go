@@ -13,6 +13,10 @@ import (
 // defaultHistoryLimit is the default limit for token transfer history API responses.
 const defaultHistoryLimit = 20
 
+// maxHistoryLimit caps the user-supplied ?limit= for token history so a
+// key-holding caller cannot force an arbitrarily large event scan.
+const maxHistoryLimit = 100
+
 type TokenHandler struct {
 	service token.Service
 }
@@ -177,6 +181,9 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	if limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
 			limit = l
+			if limit > maxHistoryLimit {
+				limit = maxHistoryLimit
+			}
 		}
 	}
 

@@ -13,6 +13,10 @@ import (
 // defaultQueryLimit is the default limit for oracle data query API responses.
 const defaultQueryLimit = 10
 
+// maxQueryLimit caps the user-supplied ?limit= so a key-holding caller cannot
+// force an arbitrarily large DB scan by passing e.g. ?limit=999999999.
+const maxQueryLimit = 100
+
 type OracleHandler struct {
 	repo oracle.Repository
 }
@@ -66,6 +70,9 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 	if limitStr != "" {
 		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
 			limit = l
+			if limit > maxQueryLimit {
+				limit = maxQueryLimit
+			}
 		}
 	}
 
