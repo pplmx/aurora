@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 15,
+  "round": 16,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T17:34:32+00:00",
+  "updated_at": "2026-08-22T17:49:07+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -906,6 +906,31 @@
       "touched_round": 15,
       "commit": "f04a4b5",
       "summary": "Reject negative oracle source interval"
+    },
+    "TASK-017": {
+      "id": "TASK-017",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T17:49:01+00:00",
+      "updated_at": "2026-08-22T17:49:07+00:00",
+      "touched_round": 16,
+      "category": "maintainability",
+      "severity": 0.4,
+      "confidence": 1,
+      "effort": 2,
+      "title": "Add stdlib request metrics registry + /metrics endpoint"
+    },
+    "CHG-016": {
+      "id": "CHG-016",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T17:49:01+00:00",
+      "updated_at": "2026-08-22T17:49:01+00:00",
+      "touched_round": 16,
+      "commit": "bff4c02",
+      "summary": "stdlib request metrics + /metrics endpoint"
     }
   },
   "edges": [
@@ -1352,6 +1377,12 @@
       "to": "TASK-016",
       "type": "implements",
       "created_at": "2026-08-22T17:34:32+00:00"
+    },
+    {
+      "from": "CHG-016",
+      "to": "TASK-017",
+      "type": "implements",
+      "created_at": "2026-08-22T17:49:07+00:00"
     }
   ]
 }
