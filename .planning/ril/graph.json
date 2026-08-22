@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 3,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T15:35:42+00:00",
+  "updated_at": "2026-08-22T15:41:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -382,6 +382,32 @@
       "source": "00ab212",
       "note": "GET /api/v1/voting/sessions returns sessions; use-case/handler/routes tests pass; full go test ./... green",
       "confidence": 1.0
+    },
+    "ISS-web-ui-auth-401": {
+      "id": "ISS-web-ui-auth-401",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T15:38:09+00:00",
+      "updated_at": "2026-08-22T15:41:42+00:00",
+      "touched_round": 3,
+      "title": "Web UI API calls return 401 (no API key sent)",
+      "summary": "All /api/v1/* routes are behind apimw.APIKeyAuth. The server resolves an API key (auto-generated dev key or configured api.key) via resolveAPIKey/config.Load. The web UI is served as static files (http.FileServer(http.Dir(\"web\"))) and web/index.html + web/js/app.js call /api/v1/* without any X-API-Key header -> every web API call returns 401. The entire browser UI is non-functional against the authenticated API."
+    },
+    "TASK-web-auth-chip": {
+      "id": "TASK-web-auth-chip",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-22T15:38:09+00:00",
+      "updated_at": "2026-08-22T15:41:42+00:00",
+      "touched_round": 3,
+      "category": "core-feature",
+      "severity": 0.9,
+      "confidence": 1.0,
+      "effort": 3,
+      "unlock_factor": 1.3,
+      "title": "Inject resolved API key into served web UI and send X-API-Key on fetches"
     }
   },
   "edges": [
@@ -540,6 +566,24 @@
       "to": "ISS-sessions-list-gap",
       "type": "resolves",
       "created_at": "2026-08-22T15:35:42+00:00"
+    },
+    {
+      "from": "ISS-web-ui-auth-401",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-22T15:38:10+00:00"
+    },
+    {
+      "from": "TASK-web-auth-chip",
+      "to": "ISS-web-ui-auth-401",
+      "type": "addresses",
+      "created_at": "2026-08-22T15:38:10+00:00"
+    },
+    {
+      "from": "TASK-fix-web-voting-page",
+      "to": "TASK-web-auth-chip",
+      "type": "depends_on",
+      "created_at": "2026-08-22T15:38:10+00:00"
     }
   ]
 }
