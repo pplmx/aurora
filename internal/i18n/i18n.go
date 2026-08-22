@@ -361,6 +361,18 @@ func (tr *Translator) loadMessages() {
 		"migrate.pending":          "Pending: %s",
 		"migrate.none":             "(none)",
 
+		// ===== BACKUP =====
+		"backup.short":            "Create and manage database backups",
+		"backup.long":             "Back up the SQLite database to a directory, verify an existing backup's integrity, or restore the live database from a backup directory.",
+		"backup.create":           "Create a database backup into a directory",
+		"backup.create_done":      "✅ Backup created: %s (%d bytes, schema v%d)",
+		"backup.verify":           "Verify the integrity of an existing backup directory",
+		"backup.verify_ok":        "✅ Backup verified successfully",
+		"backup.restore":          "Restore the live database from a backup directory",
+		"backup.restore_done":     "✅ Database restored from %s",
+		"backup.confirm_flag":     "Proceed with restore (overwrites the live database)",
+		"backup.confirm_required": "⚠️ restore overwrites the live database; pass --confirm to proceed",
+
 		// Errors
 		"error.invalid_input": "Invalid input",
 		"error.not_found":     "Not found",
@@ -668,6 +680,18 @@ func (tr *Translator) loadMessages() {
 		"migrate.applied":          "已应用: %s",
 		"migrate.pending":          "待执行: %s",
 		"migrate.none":             "（无）",
+
+		// ===== BACKUP =====
+		"backup.short":            "创建和管理数据库备份",
+		"backup.long":             "将 SQLite 数据库备份到目录、验证现有备份的完整性，或从备份目录恢复实时数据库。",
+		"backup.create":           "将数据库备份到目录",
+		"backup.create_done":      "✅ 备份已创建: %s（%d 字节，schema v%d）",
+		"backup.verify":           "验证现有备份目录的完整性",
+		"backup.verify_ok":        "✅ 备份验证成功",
+		"backup.restore":          "从备份目录恢复实时数据库",
+		"backup.restore_done":     "✅ 已从 %s 恢复数据库",
+		"backup.confirm_flag":     "确认恢复（将覆盖实时数据库）",
+		"backup.confirm_required": "⚠️ 恢复将覆盖实时数据库；请传入 --confirm 以继续",
 
 		// Errors
 		"error.invalid_input": "输入无效",
