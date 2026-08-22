@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 11,
+  "round": 12,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T17:02:31+00:00",
+  "updated_at": "2026-08-22T17:08:12+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -781,6 +781,31 @@
       "touched_round": 11,
       "commit": "68fa1d1",
       "summary": "Voting session start/end REST endpoints"
+    },
+    "TASK-012": {
+      "id": "TASK-012",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T17:08:07+00:00",
+      "updated_at": "2026-08-22T17:08:12+00:00",
+      "touched_round": 12,
+      "category": "test-quality",
+      "severity": 0.5,
+      "confidence": 1,
+      "effort": 1,
+      "title": "Extend voting HTTP smoke to cover session lifecycle E2E"
+    },
+    "CHG-012": {
+      "id": "CHG-012",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T17:08:07+00:00",
+      "updated_at": "2026-08-22T17:08:07+00:00",
+      "touched_round": 12,
+      "commit": "95ada74",
+      "summary": "Voting lifecycle E2E smoke coverage"
     }
   },
   "edges": [
@@ -1179,6 +1204,12 @@
       "to": "ISS-008",
       "type": "resolves",
       "created_at": "2026-08-22T17:02:31+00:00"
+    },
+    {
+      "from": "CHG-012",
+      "to": "TASK-012",
+      "type": "implements",
+      "created_at": "2026-08-22T17:08:12+00:00"
     }
   ]
 }
