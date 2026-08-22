@@ -1,0 +1,319 @@
+{
+  "ril_version": 1,
+  "round": 1,
+  "created_at": "2026-08-22T15:07:10+00:00",
+  "updated_at": "2026-08-22T15:19:11+00:00",
+  "nodes": {
+    "COMP-cli": {
+      "id": "COMP-cli",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:10:27+00:00",
+      "updated_at": "2026-08-22T15:10:27+00:00",
+      "touched_round": 1,
+      "title": "cmd/aurora/cmd"
+    },
+    "COMP-token": {
+      "id": "COMP-token",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:10:27+00:00",
+      "updated_at": "2026-08-22T15:10:27+00:00",
+      "touched_round": 1,
+      "title": "token-module"
+    },
+    "COMP-lottery": {
+      "id": "COMP-lottery",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:10:27+00:00",
+      "updated_at": "2026-08-22T15:10:27+00:00",
+      "touched_round": 1,
+      "title": "lottery-module"
+    },
+    "COMP-nft": {
+      "id": "COMP-nft",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:10:27+00:00",
+      "updated_at": "2026-08-22T15:10:27+00:00",
+      "touched_round": 1,
+      "title": "nft-module"
+    },
+    "COMP-oracle": {
+      "id": "COMP-oracle",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:10:28+00:00",
+      "updated_at": "2026-08-22T15:10:28+00:00",
+      "touched_round": 1,
+      "title": "oracle-module"
+    },
+    "COMP-api": {
+      "id": "COMP-api",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:10:28+00:00",
+      "updated_at": "2026-08-22T15:10:28+00:00",
+      "touched_round": 1,
+      "title": "api-module"
+    },
+    "ISS-token-tui-stub": {
+      "id": "ISS-token-tui-stub",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T15:10:38+00:00",
+      "updated_at": "2026-08-22T15:17:08+00:00",
+      "touched_round": 1,
+      "title": "token tui CLI subcommand is a stub",
+      "summary": "cmd/aurora/cmd/token.go tokenTuiCmd prints \"TUI not implemented yet\" even though internal/ui/token/tui.go exports RunTokenTUI(). Documented ./aurora token tui is broken; lottery/nft/oracle wire their real TUIs."
+    },
+    "TASK-wire-token-tui": {
+      "id": "TASK-wire-token-tui",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-22T15:10:38+00:00",
+      "updated_at": "2026-08-22T15:17:08+00:00",
+      "touched_round": 1,
+      "category": "core-feature",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Wire token TUI to CLI (replace stub)"
+    },
+    "DEC-v16-surface-parity": {
+      "id": "DEC-v16-surface-parity",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:10:38+00:00",
+      "updated_at": "2026-08-22T15:10:38+00:00",
+      "touched_round": 1,
+      "rationale": "v1.6 milestone = Interactive Surface Parity: every documented ./aurora command must actually do what AGENTS.md/README claim. Audit found token tui is the only stubbed interactive command; wire it to internal/ui/token RunTokenTUI() for parity with lottery/nft/oracle.",
+      "alternatives_rejected": [
+        "Defer token TUI (accepted-debt) again - it is a documented, user-facing, always-hit gap with an implementation ready",
+        "Delete the token TUI code - the full implementation already exists and matches sibling modules"
+      ]
+    },
+    "CHG-token-tui-wired": {
+      "id": "CHG-token-tui-wired",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:17:01+00:00",
+      "updated_at": "2026-08-22T15:17:01+00:00",
+      "touched_round": 1,
+      "commit": "52f8f58",
+      "title": "Wire token tui to RunTokenTUI"
+    },
+    "EV-token-tui-wired": {
+      "id": "EV-token-tui-wired",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:17:01+00:00",
+      "updated_at": "2026-08-22T15:17:01+00:00",
+      "touched_round": 1,
+      "source": "52f8f58",
+      "note": "token tui now invokes internal/ui/token RunTokenTUI; TestTokenTUI_Wired asserts TTY-launch behavior (no stub); build and cmd tests green",
+      "confidence": 1.0
+    },
+    "COMP-http": {
+      "id": "COMP-http",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:17:33+00:00",
+      "updated_at": "2026-08-22T15:17:33+00:00",
+      "touched_round": 1,
+      "title": "internal/infra/http"
+    },
+    "ISS-oracle-ipv6-ssrf": {
+      "id": "ISS-oracle-ipv6-ssrf",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T15:17:33+00:00",
+      "updated_at": "2026-08-22T15:19:11+00:00",
+      "touched_round": 1,
+      "title": "SSRF guard misses bracketed IPv6 literals",
+      "summary": "validateSourceURL/hostBlocked fails to recognize bracketed IPv6 URL hosts: net.ParseIP(\"[::1]\") is nil (brackets not accepted), so [::1], [fc00::1], [fe80::1] fall through to DNS lookup, which fails -> reported NOT blocked on every host. All IPv6-literal SSRF vectors bypass the guard."
+    },
+    "ISS-http-probe-panic": {
+      "id": "ISS-http-probe-panic",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T15:17:33+00:00",
+      "updated_at": "2026-08-22T15:19:11+00:00",
+      "touched_round": 1,
+      "title": "http loopback probe panics instead of skipping",
+      "summary": "loopbackReachable() calls httptest.NewServer which panics (\"listen tcp6 [::1]:0: socket: operation not permitted\") in environments that deny loopback bind, so TestMain crashes instead of gracefully setting loopbackBlocked=true. Contradicts decision-http-tests-env-skip (just test green on this host)."
+    },
+    "TASK-fix-oracle-ipv6-ssrf": {
+      "id": "TASK-fix-oracle-ipv6-ssrf",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-22T15:17:39+00:00",
+      "updated_at": "2026-08-22T15:19:11+00:00",
+      "touched_round": 1,
+      "category": "security",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Strip IPv6 brackets in hostBlocked so literal loopback/private v6 is rejected"
+    },
+    "TASK-fix-http-probe-panic": {
+      "id": "TASK-fix-http-probe-panic",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T15:17:39+00:00",
+      "updated_at": "2026-08-22T15:19:11+00:00",
+      "touched_round": 1,
+      "category": "test-quality",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Make http loopbackReachable() return false instead of panicking when loopback bind is denied"
+    },
+    "CHG-oracle-ipv6-ssrf": {
+      "id": "CHG-oracle-ipv6-ssrf",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:19:10+00:00",
+      "updated_at": "2026-08-22T15:19:10+00:00",
+      "touched_round": 1,
+      "commit": "0176524",
+      "title": "Strip IPv6 brackets in hostBlocked"
+    },
+    "EV-oracle-ipv6-ssrf": {
+      "id": "EV-oracle-ipv6-ssrf",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:19:10+00:00",
+      "updated_at": "2026-08-22T15:19:10+00:00",
+      "touched_round": 1,
+      "source": "0176524",
+      "note": "[::1]/[fc00::1]/[fe80::1] now rejected by AddSource; oracle suite + full go test green",
+      "confidence": 1.0
+    },
+    "CHG-http-probe-panic": {
+      "id": "CHG-http-probe-panic",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:19:11+00:00",
+      "updated_at": "2026-08-22T15:19:11+00:00",
+      "touched_round": 1,
+      "commit": "20daab9",
+      "title": "Loopback probe returns false on bind denial"
+    },
+    "EV-http-probe-panic": {
+      "id": "EV-http-probe-panic",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:19:11+00:00",
+      "updated_at": "2026-08-22T15:19:11+00:00",
+      "touched_round": 1,
+      "source": "20daab9",
+      "note": "TestMain no longer panics on loopback bind denial; just test green on this host",
+      "confidence": 1.0
+    }
+  },
+  "edges": [
+    {
+      "from": "ISS-token-tui-stub",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-22T15:10:43+00:00"
+    },
+    {
+      "from": "TASK-wire-token-tui",
+      "to": "ISS-token-tui-stub",
+      "type": "addresses",
+      "created_at": "2026-08-22T15:10:43+00:00"
+    },
+    {
+      "from": "DEC-v16-surface-parity",
+      "to": "TASK-wire-token-tui",
+      "type": "governs",
+      "created_at": "2026-08-22T15:10:43+00:00"
+    },
+    {
+      "from": "CHG-token-tui-wired",
+      "to": "TASK-wire-token-tui",
+      "type": "implements",
+      "created_at": "2026-08-22T15:17:08+00:00"
+    },
+    {
+      "from": "CHG-token-tui-wired",
+      "to": "ISS-token-tui-stub",
+      "type": "resolves",
+      "created_at": "2026-08-22T15:17:08+00:00"
+    },
+    {
+      "from": "ISS-oracle-ipv6-ssrf",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-22T15:17:39+00:00"
+    },
+    {
+      "from": "ISS-http-probe-panic",
+      "to": "COMP-http",
+      "type": "located_in",
+      "created_at": "2026-08-22T15:17:39+00:00"
+    },
+    {
+      "from": "TASK-fix-oracle-ipv6-ssrf",
+      "to": "ISS-oracle-ipv6-ssrf",
+      "type": "addresses",
+      "created_at": "2026-08-22T15:17:39+00:00"
+    },
+    {
+      "from": "TASK-fix-http-probe-panic",
+      "to": "ISS-http-probe-panic",
+      "type": "addresses",
+      "created_at": "2026-08-22T15:17:39+00:00"
+    },
+    {
+      "from": "CHG-oracle-ipv6-ssrf",
+      "to": "TASK-fix-oracle-ipv6-ssrf",
+      "type": "implements",
+      "created_at": "2026-08-22T15:19:10+00:00"
+    },
+    {
+      "from": "CHG-oracle-ipv6-ssrf",
+      "to": "ISS-oracle-ipv6-ssrf",
+      "type": "resolves",
+      "created_at": "2026-08-22T15:19:11+00:00"
+    },
+    {
+      "from": "CHG-http-probe-panic",
+      "to": "TASK-fix-http-probe-panic",
+      "type": "implements",
+      "created_at": "2026-08-22T15:19:11+00:00"
+    },
+    {
+      "from": "CHG-http-probe-panic",
+      "to": "ISS-http-probe-panic",
+      "type": "resolves",
+      "created_at": "2026-08-22T15:19:11+00:00"
+    }
+  ]
+}
