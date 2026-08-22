@@ -78,7 +78,7 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | logger / i18n / backup coverage     | ✅ 96.6% / 97.0% / 80.5%                        |
 | ui/nft / ui/token coverage          | ✅ 94.2% / 88.6% (fixed NFT TUI transfer guard) |
 
-### 🚧 v1.6 Interactive Surface Parity (2026-08-22)
+### ✅ v1.6 Interactive Surface Parity (2026-08-22)
 
 **Make every documented interactive surface real + VERIFY-gate hygiene**
 
@@ -88,6 +88,15 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | `backup create/verify/restore` CLI (missing cmd) | ✅ Shipped (9380d4b)                     |
 | Oracle SSRF: bracketed IPv6 literal bypass        | ✅ Shipped (0176524)                     |
 | http loopback probe panic (skip instead of crash) | ✅ Shipped (20daab9)                     |
+
+### 🚧 v1.7 Web UI Parity (2026-08-22)
+
+**Make the documented browser Web UI functional against the real API**
+
+| Focus                                                  | Target                             |
+| ------------------------------------------------------ | ---------------------------------- |
+| `GET /api/v1/voting/sessions` (sessions list)          | ✅ Shipped (00ab212)               |
+| Voting web page (create session / list / cast vote)    | 🚧 In progress                     |
 
 ## Context
 
