@@ -209,3 +209,54 @@ func TestTokenHandler_History_CapsUnboundedOffset(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, maxHistoryOffset, svc.gotOffset, "unbounded ?offset must be capped")
 }
+
+func TestTokenHandler_Approve_Success(t *testing.T) {
+	handler := NewTokenHandler(fakeTokenServiceFull{})
+	body, _ := json.Marshal(map[string]string{
+		"token_id":    "t1",
+		"owner":       "YWxpY2U=", // "alice"
+		"spender":     "Ym9i",     // "bob"
+		"amount":      "100",
+		"private_key": "c2VjcmV0", // "secret"
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/token/approve", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	handler.Approve(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+}
+
+func TestTokenHandler_Approve_BadJSON(t *testing.T) {
+	handler := NewTokenHandler(nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/token/approve", bytes.NewBufferString("not json"))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	handler.Approve(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestTokenHandler_Allowance_Success(t *testing.T) {
+	handler := NewTokenHandler(fakeTokenServiceFull{})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/allowance?token_id=t1&owner=YWxpY2U=&spender=Ym9i", nil)
+	rr := httptest.NewRecorder()
+
+	handler.Allowance(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+}
+
+func TestTokenHandler_Allowance_MissingParams(t *testing.T) {
+	handler := NewTokenHandler(nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/allowance?token_id=t1", nil)
+	rr := httptest.NewRecorder()
+
+	handler.Allowance(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
