@@ -78,6 +78,16 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | logger / i18n / backup coverage     | ✅ 96.6% / 97.0% / 80.5%                        |
 | ui/nft / ui/token coverage          | ✅ 94.2% / 88.6% (fixed NFT TUI transfer guard) |
 
+### 🚧 v1.6 Interactive Surface Parity (2026-08-22)
+
+**Make every documented interactive surface real + VERIFY-gate hygiene**
+
+| Focus                                            | Target                                   |
+| ------------------------------------------------ | ---------------------------------------- |
+| `token tui` CLI wiring (real TUI, not stub)      | ✅ Shipped (52f8f58)                     |
+| Oracle SSRF: bracketed IPv6 literal bypass        | ✅ Shipped (0176524)                     |
+| http loopback probe panic (skip instead of crash) | ✅ Shipped (20daab9)                     |
+
 ## Context
 
 ### What's Shipped (v1.0 + v1.1 + v1.2)
