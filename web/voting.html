@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voting - Aurora v1.1</title>
+    <title>Voting - Aurora</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script defer src="https://unpkg.com/alpinejs@3.13.5"></script>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <div class="container" x-data="votingApp()">
+    <div class="container" x-data="votingApp()" x-init="init()">
         <header>
-            <h1>Aurora <span class="version">v1.1</span></h1>
+            <h1>Aurora <span class="version">Voting</span></h1>
             <nav>
                 <a href="/">Dashboard</a>
                 <a href="/lottery.html">Lottery</a>
@@ -20,34 +20,122 @@
         </header>
         <main>
             <section class="create-form">
-                <h2>Create Vote</h2>
-                <form @submit.prevent="createVote">
+                <h2>Register Voter</h2>
+                <form @submit.prevent="registerVoter">
+                    <div class="form-group">
+                        <label>Voter Name</label>
+                        <input type="text" x-model="voterName" placeholder="Voter name" required>
+                    </div>
+                    <button type="submit" class="btn-voting">Register Voter</button>
+                </form>
+                <div x-show="voterResult" class="result" x-text="voterResult"></div>
+                <p class="proposal-meta" x-show="voterPrivateKey">Keep this private key to cast votes:
+                    <span x-text="voterPrivateKey"></span></p>
+            </section>
+
+            <section class="create-form">
+                <h2>Register Candidate</h2>
+                <form @submit.prevent="registerCandidate">
+                    <div class="form-group">
+                        <label>Candidate Name</label>
+                        <input type="text" x-model="candName" placeholder="Candidate name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Party</label>
+                        <input type="text" x-model="candParty" placeholder="Party (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label>Program</label>
+                        <input type="text" x-model="candProgram" placeholder="Program (optional)">
+                    </div>
+                    <button type="submit" class="btn-voting">Register Candidate</button>
+                </form>
+                <div x-show="candResult" class="result" x-text="candResult"></div>
+            </section>
+
+            <section class="create-form">
+                <h2>Create Session</h2>
+                <form @submit.prevent="createSession">
                     <div class="form-group">
                         <label>Title</label>
-                        <input type="text" x-model="title" placeholder="Proposal title" required>
+                        <input type="text" x-model="sessionTitle" placeholder="Session title" required>
                     </div>
                     <div class="form-group">
-                        <label>Owner Key</label>
-                        <input type="text" x-model="ownerKey" placeholder="owner signing key" required>
+                        <label>Description</label>
+                        <input type="text" x-model="sessionDesc" placeholder="Description (optional)">
                     </div>
-                    <button type="submit" class="btn-voting">Create Vote</button>
+                    <div class="form-group">
+                        <label>Start Time (unix seconds)</label>
+                        <input type="number" x-model="sessionStart" placeholder="e.g. 1750000000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Time (unix seconds)</label>
+                        <input type="number" x-model="sessionEnd" placeholder="e.g. 1751000000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Candidate Roster (select candidates)</label>
+                        <template x-for="c in candidates" :key="c.id">
+                            <div class="checkbox-row">
+                                <label>
+                                    <input type="checkbox" :value="c.id" x-model="sessionCandidateIds">
+                                    <span x-text="c.name + (c.party ? ' (' + c.party + ')' : '')"></span>
+                                </label>
+                            </div>
+                        </template>
+                    </div>
+                    <button type="submit" class="btn-voting">Create Session</button>
                 </form>
-                <div x-show="result" class="result" x-text="result"></div>
+                <div x-show="sessionResult" class="result" x-text="sessionResult"></div>
             </section>
-            <section class="proposals">
-                <h2>Active Votes</h2>
+
+            <section class="sessions">
+                <h2>Sessions</h2>
                 <div x-show="loading">Loading...</div>
-                <template x-for="proposal in proposals" :key="proposal.id">
+                <template x-for="s in sessions" :key="s.id">
                     <div class="proposal-card">
-                        <h3 x-text="proposal.title"></h3>
-                        <p class="proposal-meta">By: <span x-text="proposal.owner"></span></p>
-                        <div class="vote-actions">
-                            <button @click="castVote(proposal.id, 'yes')" class="btn-vote btn-yes">Yes</button>
-                            <button @click="castVote(proposal.id, 'no')" class="btn-vote btn-no">No</button>
-                        </div>
+                        <h3 x-text="s.title"></h3>
+                        <p class="proposal-meta" x-show="s.description" x-text="s.description"></p>
+                        <p class="proposal-meta">Status: <span x-text="s.status"></span></p>
+                        <p class="proposal-meta" x-show="candidateNames(s.candidates).length">
+                            Candidates: <span x-text="candidateNames(s.candidates).join(', ')"></span>
+                        </p>
                     </div>
                 </template>
-                <p x-show="!loading && proposals.length === 0">No active votes</p>
+                <p x-show="!loading && sessions.length === 0">No sessions yet</p>
+            </section>
+
+            <section class="votes">
+                <h2>Cast Vote</h2>
+                <form @submit.prevent="castVote">
+                    <div class="form-group">
+                        <label>Session</label>
+                        <select x-model="voteSessionId" required x-show="sessions.length">
+                            <option value="" disabled selected>Select a session</option>
+                            <template x-for="s in sessions" :key="s.id">
+                                <option :value="s.id" x-text="s.title"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Candidate</label>
+                        <select x-model="voteCandidateId" required x-show="currentSessionCandidates.length">
+                            <option value="" disabled selected>Select a candidate</option>
+                            <template x-for="c in currentSessionCandidates" :key="c.id">
+                                <option :value="c.id" x-text="c.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Voter Public Key</label>
+                        <input type="text" x-model="voteVoterPub" placeholder="Voter public key" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Voter Private Key</label>
+                        <input type="text" x-model="votePriv" placeholder="Voter private key (from registration)" required>
+                    </div>
+                    <button type="submit" class="btn-voting">Cast Vote</button>
+                </form>
+                <div x-show="voteResult" class="result" x-text="voteResult"></div>
             </section>
         </main>
     </div>
