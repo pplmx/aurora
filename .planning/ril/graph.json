@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 7,
+  "round": 8,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T16:36:00+00:00",
+  "updated_at": "2026-08-22T16:44:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 7,
+      "touched_round": 8,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -602,6 +602,52 @@
       "touched_round": 7,
       "commit": "c435ccb",
       "summary": "Cap token history ?offset too"
+    },
+    "ISS-004": {
+      "id": "ISS-004",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:44:10+00:00",
+      "updated_at": "2026-08-22T16:44:42+00:00",
+      "touched_round": 8,
+      "title": "Ended voting sessions still accept votes via API",
+      "summary": "CastVoteUseCase only checks time bounds, never session.Status; CLI 'session end' sets status=ended but ballots keep tallying within the time window, making the lifecycle command a no-op"
+    },
+    "TASK-007": {
+      "id": "TASK-007",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:44:10+00:00",
+      "updated_at": "2026-08-22T16:44:42+00:00",
+      "touched_round": 8,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 1,
+      "effort": 1,
+      "title": "Enforce ended-session lifecycle on CastVote"
+    },
+    "COMP-001": {
+      "id": "COMP-001",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T16:44:18+00:00",
+      "updated_at": "2026-08-22T16:44:18+00:00",
+      "touched_round": 8,
+      "title": "voting module"
+    },
+    "CHG-008": {
+      "id": "CHG-008",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T16:44:42+00:00",
+      "updated_at": "2026-08-22T16:44:42+00:00",
+      "touched_round": 8,
+      "commit": "663ae1b",
+      "summary": "Enforce ended-session lifecycle on CastVote"
     }
   },
   "edges": [
@@ -874,6 +920,36 @@
       "to": "TASK-006",
       "type": "implements",
       "created_at": "2026-08-22T16:36:00+00:00"
+    },
+    {
+      "from": "TASK-007",
+      "to": "ISS-004",
+      "type": "addresses",
+      "created_at": "2026-08-22T16:44:14+00:00"
+    },
+    {
+      "from": "ISS-004",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-22T16:44:21+00:00"
+    },
+    {
+      "from": "COMP-001",
+      "to": "COMP-api",
+      "type": "part_of",
+      "created_at": "2026-08-22T16:44:21+00:00"
+    },
+    {
+      "from": "CHG-008",
+      "to": "TASK-007",
+      "type": "implements",
+      "created_at": "2026-08-22T16:44:47+00:00"
+    },
+    {
+      "from": "CHG-008",
+      "to": "ISS-004",
+      "type": "resolves",
+      "created_at": "2026-08-22T16:44:47+00:00"
     }
   ]
 }
