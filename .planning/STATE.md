@@ -5,16 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.6 Interactive Surface Parity (IN PROGRESS)
+**Current focus:** v1.7 Web UI Parity (IN PROGRESS)
 
 ## Current Position
 
 Phase: v1.5 Complete (migrate CLI + coverage bar)
 Plan: [v1.6 ROADMAP](milestones/v1.6-ROADMAP.md) — Interactive Surface Parity
-Status: v1.5 milestone complete (4e3c9ba); v1.6 in progress
-Last activity: 2026-08-22 — v1.6 kicked off (graph-engineering RIL loop);
-  wired token TUI (52f8f58); fixed oracle bracketed-IPv6 SSRF bypass
-  (0176524); fixed http loopback-probe panic (20daab9)
+Status: v1.5 (4e3c9ba) and v1.6 complete; v1.7 in progress
+Last activity: 2026-08-22 — v1.6 completed; v1.7 kicked off (web UI parity);
+  added GET /api/v1/voting/sessions (00ab212)
 
 Progress: v1.5 [██████████] 100%; v1.6 [█████░░░░░] 50%
 

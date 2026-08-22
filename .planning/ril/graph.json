@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 2,
+  "round": 3,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T15:27:07+00:00",
+  "updated_at": "2026-08-22T15:35:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 1,
+      "touched_round": 3,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -283,6 +283,105 @@
       "source": "9380d4b",
       "note": "backup registered at root with create|verify|restore; CLI tests pass; full go test ./... green",
       "confidence": 1.0
+    },
+    "COMP-web": {
+      "id": "COMP-web",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:34:56+00:00",
+      "updated_at": "2026-08-22T15:34:56+00:00",
+      "touched_round": 3,
+      "title": "web-ui"
+    },
+    "ISS-sessions-list-gap": {
+      "id": "ISS-sessions-list-gap",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T15:34:56+00:00",
+      "updated_at": "2026-08-22T15:35:42+00:00",
+      "touched_round": 3,
+      "title": "Sessions can be created but never listed via API",
+      "summary": "POST /api/v1/voting/session creates sessions but there is no read-all endpoint: only GET /session/{id}. internal/app had no ListSessions use case; the repository/sqlite layer already implemented ListSessions(). The web voting page cannot render active sessions without it."
+    },
+    "ISS-web-voting-facade": {
+      "id": "ISS-web-voting-facade",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:34:56+00:00",
+      "updated_at": "2026-08-22T15:34:56+00:00",
+      "touched_round": 3,
+      "title": "Web UI voting page is a non-functional facade",
+      "summary": "web/js/app.js createVote() POSTs to /api/v1/voting/create which is not a registered route (404); real routes are register/voter, register/candidate, session, vote, candidates, session/{id}. castVote() is an alert() stub. The page model (title/owner/yes-no) does not match the real voting domain (candidates, sessions, signed votes)."
+    },
+    "TASK-add-list-sessions-api": {
+      "id": "TASK-add-list-sessions-api",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-22T15:34:56+00:00",
+      "updated_at": "2026-08-22T15:35:42+00:00",
+      "touched_round": 3,
+      "category": "core-feature",
+      "severity": 0.7,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.2,
+      "title": "Add ListSessions use case + GET /api/v1/voting/sessions endpoint"
+    },
+    "TASK-fix-web-voting-page": {
+      "id": "TASK-fix-web-voting-page",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:34:56+00:00",
+      "updated_at": "2026-08-22T15:34:56+00:00",
+      "touched_round": 3,
+      "category": "core-feature",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 5,
+      "unlock_factor": 1.0,
+      "title": "Rebuild voting web page against the real voting API"
+    },
+    "DEC-v17-web-parity": {
+      "id": "DEC-v17-web-parity",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:34:56+00:00",
+      "updated_at": "2026-08-22T15:34:56+00:00",
+      "touched_round": 3,
+      "rationale": "v1.7 milestone = Web UI Parity: make the documented browser web UI actually functional against the real API. Audit proved web/js voting page is a facade (posts to non-existent /voting/create, casts votes via alert stub, model mismatch). Also surfaced an API gap: sessions are writable but not listable. First slice: expose ListSessions (repo already implements it); follow-on: rebuild voting.html/app.js, fix dashboard recent-activity, add web UI coverage. Closes v1.6 Interactive Surface Parity (CLI/API/docs aligned, race-clean, coverage high).",
+      "alternatives_rejected": [
+        "Treat the web UI as out of scope - it is shipped and documented (v1.1), and the voting page silently returns errors",
+        "Redesign the voting domain to match the brittle web page - the domain (signed ballots, candidates, sessions) is correct; the page must be aligned to it"
+      ]
+    },
+    "CHG-list-sessions-api": {
+      "id": "CHG-list-sessions-api",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:35:41+00:00",
+      "updated_at": "2026-08-22T15:35:41+00:00",
+      "touched_round": 3,
+      "commit": "00ab212",
+      "title": "Add ListSessions use case + GET /sessions"
+    },
+    "EV-list-sessions-api": {
+      "id": "EV-list-sessions-api",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T15:35:41+00:00",
+      "updated_at": "2026-08-22T15:35:41+00:00",
+      "touched_round": 3,
+      "source": "00ab212",
+      "note": "GET /api/v1/voting/sessions returns sessions; use-case/handler/routes tests pass; full go test ./... green",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -387,6 +486,60 @@
       "to": "ISS-backup-cli-missing",
       "type": "resolves",
       "created_at": "2026-08-22T15:27:07+00:00"
+    },
+    {
+      "from": "ISS-sessions-list-gap",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-22T15:35:12+00:00"
+    },
+    {
+      "from": "ISS-web-voting-facade",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-22T15:35:12+00:00"
+    },
+    {
+      "from": "TASK-add-list-sessions-api",
+      "to": "ISS-sessions-list-gap",
+      "type": "addresses",
+      "created_at": "2026-08-22T15:35:12+00:00"
+    },
+    {
+      "from": "TASK-fix-web-voting-page",
+      "to": "ISS-web-voting-facade",
+      "type": "addresses",
+      "created_at": "2026-08-22T15:35:12+00:00"
+    },
+    {
+      "from": "TASK-fix-web-voting-page",
+      "to": "TASK-add-list-sessions-api",
+      "type": "depends_on",
+      "created_at": "2026-08-22T15:35:12+00:00"
+    },
+    {
+      "from": "DEC-v17-web-parity",
+      "to": "TASK-add-list-sessions-api",
+      "type": "governs",
+      "created_at": "2026-08-22T15:35:12+00:00"
+    },
+    {
+      "from": "DEC-v17-web-parity",
+      "to": "TASK-fix-web-voting-page",
+      "type": "governs",
+      "created_at": "2026-08-22T15:35:12+00:00"
+    },
+    {
+      "from": "CHG-list-sessions-api",
+      "to": "TASK-add-list-sessions-api",
+      "type": "implements",
+      "created_at": "2026-08-22T15:35:41+00:00"
+    },
+    {
+      "from": "CHG-list-sessions-api",
+      "to": "ISS-sessions-list-gap",
+      "type": "resolves",
+      "created_at": "2026-08-22T15:35:42+00:00"
     }
   ]
 }
