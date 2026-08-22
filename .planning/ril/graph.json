@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 9,
+  "round": 10,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T16:48:27+00:00",
+  "updated_at": "2026-08-22T16:57:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 1,
+      "touched_round": 10,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 8,
+      "touched_round": 10,
       "title": "voting module"
     },
     "CHG-008": {
@@ -684,6 +684,67 @@
       "touched_round": 9,
       "commit": "f5f3e92",
       "summary": "Add token /approve + /allowance REST endpoints"
+    },
+    "ISS-006": {
+      "id": "ISS-006",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:57:21+00:00",
+      "updated_at": "2026-08-22T16:57:42+00:00",
+      "touched_round": 10,
+      "title": "Forged ballots accepted in CastVote",
+      "summary": "VerifyVote defined but never called; ballots signed with any presented private key and never checked against the registered voter public key. Knowing only a public key let a caller forge a voter ballot."
+    },
+    "ISS-007": {
+      "id": "ISS-007",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:57:21+00:00",
+      "updated_at": "2026-08-22T16:57:42+00:00",
+      "touched_round": 10,
+      "title": "NFT transfer/burn forgeable with mismatched key",
+      "summary": "Transfer/Burn sign with caller private key but never verify it matches from/owner public key. Knowing only a public key let a caller transfer or burn an NFT with their own key (atomic ownership check only proves the public key owns it)."
+    },
+    "TASK-009": {
+      "id": "TASK-009",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:57:21+00:00",
+      "updated_at": "2026-08-22T16:57:42+00:00",
+      "touched_round": 10,
+      "category": "security",
+      "severity": 1.0,
+      "confidence": 1,
+      "effort": 2,
+      "title": "Enforce CastVote signature vs registered voter key"
+    },
+    "TASK-010": {
+      "id": "TASK-010",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:57:21+00:00",
+      "updated_at": "2026-08-22T16:57:42+00:00",
+      "touched_round": 10,
+      "category": "security",
+      "severity": 1.0,
+      "confidence": 1,
+      "effort": 2,
+      "title": "Enforce NFT transfer/burn key vs owner binding"
+    },
+    "CHG-010": {
+      "id": "CHG-010",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T16:57:30+00:00",
+      "updated_at": "2026-08-22T16:57:30+00:00",
+      "touched_round": 10,
+      "commit": "10a7169",
+      "summary": "Enforce key binding on CastVote + NFT transfer/burn"
     }
   },
   "edges": [
@@ -1010,6 +1071,54 @@
       "to": "ISS-005",
       "type": "resolves",
       "created_at": "2026-08-22T16:48:27+00:00"
+    },
+    {
+      "from": "TASK-009",
+      "to": "ISS-006",
+      "type": "addresses",
+      "created_at": "2026-08-22T16:57:30+00:00"
+    },
+    {
+      "from": "TASK-010",
+      "to": "ISS-007",
+      "type": "addresses",
+      "created_at": "2026-08-22T16:57:30+00:00"
+    },
+    {
+      "from": "ISS-006",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-22T16:57:30+00:00"
+    },
+    {
+      "from": "ISS-007",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-22T16:57:30+00:00"
+    },
+    {
+      "from": "CHG-010",
+      "to": "TASK-009",
+      "type": "implements",
+      "created_at": "2026-08-22T16:57:30+00:00"
+    },
+    {
+      "from": "CHG-010",
+      "to": "TASK-010",
+      "type": "implements",
+      "created_at": "2026-08-22T16:57:30+00:00"
+    },
+    {
+      "from": "CHG-010",
+      "to": "ISS-006",
+      "type": "resolves",
+      "created_at": "2026-08-22T16:57:30+00:00"
+    },
+    {
+      "from": "CHG-010",
+      "to": "ISS-007",
+      "type": "resolves",
+      "created_at": "2026-08-22T16:57:30+00:00"
     }
   ]
 }
