@@ -173,6 +173,49 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 	// 7. Double-voting the same voter must be rejected (already-voted).
 	rr = post("/vote", voteBody)
 	assert.NotEqual(t, http.StatusOK, rr.Code, "same voter must not vote twice")
+
+	// 8. Session lifecycle over the real API (v1.10): register a second voter,
+	// end the session, confirm a NEW vote is rejected while "ended", then start
+	// the session and confirm the locked-out voter can now vote.
+	rr = post("/register/voter", `{"name":"Carol"}`)
+	require.Equal(t, http.StatusOK, rr.Code, "register second voter body: %s", rr.Body.String())
+	var voter2 struct {
+		PublicKey  string `json:"public_key"`
+		PrivateKey string `json:"private_key"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &voter2))
+
+	vote2Body := `{"voter_public_key":"` + voter2.PublicKey +
+		`","candidate_id":"` + candidate.ID +
+		`","private_key":"` + voter2.PrivateKey +
+		`","session_id":"` + session.ID + `"}`
+
+	// End the session and verify status flips to "ended".
+	rr = post("/session/"+session.ID+"/end", "")
+	require.Equal(t, http.StatusOK, rr.Code, "end session body: %s", rr.Body.String())
+	var ended struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &ended))
+	assert.Equal(t, "ended", ended.Status)
+
+	// A NEW vote from a fresh voter must be rejected on an ended session.
+	rr = post("/vote", vote2Body)
+	assert.NotEqual(t, http.StatusOK, rr.Code, "vote must be rejected on ended session")
+
+	// Start it again: status -> active and the locked-out voter can now vote.
+	rr = post("/session/"+session.ID+"/start", "")
+	require.Equal(t, http.StatusOK, rr.Code, "start session body: %s", rr.Body.String())
+	var started struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &started))
+	assert.Equal(t, "active", started.Status)
+
+	rr = post("/vote", vote2Body)
+	require.Equal(t, http.StatusOK, rr.Code, "vote after restart body: %s", rr.Body.String())
 }
 
 func itoa(n int64) string {

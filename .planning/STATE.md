@@ -5,17 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.8 Web UI Reliability (IN PROGRESS)
+**Current focus:** v1.11 Lifecycle & Parity Coverage (IN PROGRESS)
 
 ## Current Position
 
 Phase: v1.5 Complete (migrate CLI + coverage bar)
 Plan: [v1.6 ROADMAP](milestones/v1.6-ROADMAP.md) — Interactive Surface Parity
-Status: v1.5–v1.7 complete; v1.8 in progress
-Last activity: 2026-08-23 — v1.7 Web UI Parity complete (voting page rebuilt
-  against real API c014200, dashboard recent activity wired, lottery date fix
-  80e4353, web UI ↔ API contract test 8c262db); v1.8 kicked off (Web UI
-  Reliability)
+Status: v1.5–v1.9 complete; v1.10 complete; v1.11 in progress
+Last activity: 2026-08-23 — milestone run: v1.8 Web UI Reliability, v1.9 API
+  Hardening (pagination caps, ended-session lifecycle, token approve/allowance
+  parity), v1.10 Authenticity (ballot forgery + NFT key↔owner binding,
+  session start/end parity) all closed; v1.11 Lifecycle & Parity Coverage
+  kicked off (voting lifecycle E2E smoke)
 
 Progress: v1.5 [██████████] 100%; v1.6 [█████░░░░░] 50%
 
