@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 4,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T16:16:45+00:00",
+  "updated_at": "2026-08-22T16:19:46+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -455,6 +455,42 @@
       "touched_round": 4,
       "title": "Dashboard Recent Activity is a static placeholder",
       "summary": "index.html Recent Activity panel was a hard-coded 'Loading...' placeholder; wired to real lottery/voting APIs"
+    },
+    "TASK-002": {
+      "id": "TASK-002",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-22T16:19:36+00:00",
+      "updated_at": "2026-08-22T16:19:36+00:00",
+      "touched_round": 4,
+      "category": "test-quality",
+      "severity": 0.6,
+      "confidence": 1,
+      "effort": 2,
+      "title": "Add web UI <=> REST API contract test so pages cannot silently 404"
+    },
+    "ISS-002": {
+      "id": "ISS-002",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-22T16:19:36+00:00",
+      "updated_at": "2026-08-22T16:19:36+00:00",
+      "touched_round": 4,
+      "title": "No automated guard against web UI / API endpoint drift",
+      "summary": "v1.7 audit caught voting page POSTing to /voting/create (404) and casting via alert stub; no test prevented it; add contract test parsing web/ for /api/v1 refs and matching routes"
+    },
+    "CHG-003": {
+      "id": "CHG-003",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T16:19:44+00:00",
+      "updated_at": "2026-08-22T16:19:44+00:00",
+      "touched_round": 4,
+      "commit": "8c262db",
+      "summary": "Web UI <> REST API contract test"
     }
   },
   "edges": [
@@ -661,6 +697,24 @@
       "to": "ISS-001",
       "type": "resolves",
       "created_at": "2026-08-22T16:16:45+00:00"
+    },
+    {
+      "from": "TASK-002",
+      "to": "ISS-002",
+      "type": "addresses",
+      "created_at": "2026-08-22T16:19:44+00:00"
+    },
+    {
+      "from": "CHG-003",
+      "to": "TASK-002",
+      "type": "implements",
+      "created_at": "2026-08-22T16:19:46+00:00"
+    },
+    {
+      "from": "CHG-003",
+      "to": "ISS-002",
+      "type": "resolves",
+      "created_at": "2026-08-22T16:19:46+00:00"
     }
   ]
 }
