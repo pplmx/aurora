@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 4,
+  "round": 5,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T16:19:46+00:00",
+  "updated_at": "2026-08-22T16:27:08+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -491,6 +491,45 @@
       "touched_round": 4,
       "commit": "8c262db",
       "summary": "Web UI <> REST API contract test"
+    },
+    "TASK-003": {
+      "id": "TASK-003",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:26:51+00:00",
+      "updated_at": "2026-08-22T16:26:54+00:00",
+      "touched_round": 5,
+      "category": "test-quality",
+      "severity": 0.6,
+      "confidence": 1,
+      "effort": 2,
+      "title": "Add real-API voting HTTP smoke test (temp SQLite, full flow)"
+    },
+    "TASK-004": {
+      "id": "TASK-004",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:26:51+00:00",
+      "updated_at": "2026-08-22T16:26:54+00:00",
+      "touched_round": 5,
+      "category": "core-feature",
+      "severity": 0.4,
+      "confidence": 1,
+      "effort": 1,
+      "title": "Populate dashboard total-votes stat from real candidate vote_count"
+    },
+    "CHG-004": {
+      "id": "CHG-004",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-22T16:26:54+00:00",
+      "updated_at": "2026-08-22T16:27:08+00:00",
+      "touched_round": 5,
+      "commit": "0a07981",
+      "summary": "voting HTTP smoke test + dashboard total-votes stat"
     }
   },
   "edges": [
@@ -715,6 +754,18 @@
       "to": "ISS-002",
       "type": "resolves",
       "created_at": "2026-08-22T16:19:46+00:00"
+    },
+    {
+      "from": "CHG-004",
+      "to": "TASK-003",
+      "type": "implements",
+      "created_at": "2026-08-22T16:27:08+00:00"
+    },
+    {
+      "from": "CHG-004",
+      "to": "TASK-004",
+      "type": "implements",
+      "created_at": "2026-08-22T16:27:08+00:00"
     }
   ]
 }
