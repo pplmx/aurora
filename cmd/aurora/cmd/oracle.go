@@ -154,7 +154,7 @@ var dataCmd = &cobra.Command{
 	Short: i18n.GetText("oracle.data.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sourceID, _ := cmd.Flags().GetString("source")
-		limit, _ := cmd.Flags().GetInt("limit")
+		limit := clampQueryLimit(cmd)
 
 		uc := oracleapp.NewGetDataUseCase(&repo)
 		resp, err := uc.Execute(&oracleapp.GetDataRequest{SourceID: sourceID, Limit: limit})
@@ -358,4 +358,22 @@ func init() {
 
 	templateAddCmd.Flags().StringP("template", "t", "", i18n.GetText("oracle.template"))
 	_ = templateAddCmd.MarkFlagRequired("template")
+}
+
+// maxCLIQueryLimit mirrors the REST API handler cap (maxQueryLimit=100) so the
+// CLI cannot drive an unbounded DB scan with `-l 999999999`.
+const maxCLIQueryLimit = 100
+
+// clampQueryLimit reads the data command's limit flag and clamps it into
+// [1, maxCLIQueryLimit], defaulting to 10 when unset/<=0. This matches the API
+// hardening added in v1.9.
+func clampQueryLimit(cmd *cobra.Command) int {
+	v, err := cmd.Flags().GetInt("limit")
+	if err != nil || v <= 0 {
+		return 10
+	}
+	if v > maxCLIQueryLimit {
+		return maxCLIQueryLimit
+	}
+	return v
 }

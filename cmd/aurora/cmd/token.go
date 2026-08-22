@@ -424,6 +424,18 @@ var tokenHistoryCmd = &cobra.Command{
 		owner, _ := cmd.Flags().GetString("owner")
 		limit, _ := cmd.Flags().GetInt("limit")
 		offset, _ := cmd.Flags().GetInt("offset")
+		// Mirrors the API handler caps (maxHistoryLimit=100,
+		// maxHistoryOffset=1000) so the CLI cannot drive an unbounded scan.
+		if limit <= 0 {
+			limit = 50
+		} else if limit > 100 {
+			limit = 100
+		}
+		if offset < 0 {
+			offset = 0
+		} else if offset > 1000 {
+			offset = 1000
+		}
 
 		req := &tokent.HistoryRequest{
 			TokenID: tokenID,
