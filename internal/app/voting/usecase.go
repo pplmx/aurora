@@ -119,6 +119,14 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign vote: %w", err)
 	}
+	// Ballot authenticity: the presented private key MUST correspond to the
+	// registered voter's public key. If the signature does not verify against
+	// the voter's stored public key, the caller does not own that voter's key
+	// (they may know only the public key, which is public), so the ballot is
+	// forged and must be rejected.
+	if !uc.service.VerifyVote(voter.PublicKey, message, signature) {
+		return nil, voting.ErrInvalidSignature
+	}
 
 	// The three ballot mutations — claim the voter, save the vote row,
 	// increment the tally — run in ONE transaction. The pre-transaction flow

@@ -16,6 +16,11 @@ var (
 	// election) and inflate that candidate's tally.
 	ErrCandidateNotInSession = errors.New("candidate is not part of this session")
 	ErrAlreadyVoted          = errors.New("voter has already voted")
+	// ErrInvalidSignature guards ballot authenticity: the private key presented
+	// must correspond to the registered voter's public key. Without this, a
+	// caller who knows a voter's public key could forge that voter's ballot
+	// with a random private key.
+	ErrInvalidSignature = errors.New("invalid vote signature")
 
 	// Validation sentinels. These let API handlers classify client input
 	// errors as 400s instead of falling through to 500.

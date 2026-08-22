@@ -1,7 +1,9 @@
 package voting
 
 import (
+	"crypto/ed25519"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"testing"
 	"time"
@@ -1219,4 +1221,72 @@ func TestCastVoteUseCase_TxManagerFailure(t *testing.T) {
 	require.Empty(t, repo.votes)
 	cand, _ := repo.GetCandidate("candidate1")
 	require.Equal(t, 0, cand.VoteCount)
+}
+
+// TestCastVoteUseCase_RealEd25519_AcceptCorrectKey proves a vote signed with
+// the registered voter's actual private key is accepted end to end.
+func TestCastVoteUseCase_RealEd25519_AcceptCorrectKey(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(nil)
+	require.NoError(t, err)
+	pubB64 := base64.StdEncoding.EncodeToString(pub)
+	privB64 := base64.StdEncoding.EncodeToString(priv)
+
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: pubB64, HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: "active", Candidates: []string{"candidate1"}},
+		},
+	}
+	uc := NewCastVoteUseCaseWithoutTx(repo, voting.NewEd25519Service())
+
+	resp, err := uc.Execute(CastVoteRequest{
+		VoterPublicKey: pubB64,
+		CandidateID:    "candidate1",
+		PrivateKey:     privB64,
+		SessionID:      "session1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotEmpty(t, resp.ID)
+}
+
+// TestCastVoteUseCase_RealEd25519_RejectForgedKey proves that a caller who
+// knows only the voter's PUBLIC key (which is public) cannot cast as that
+// voter with a different private key — the ballot is rejected.
+func TestCastVoteUseCase_RealEd25519_RejectForgedKey(t *testing.T) {
+	voterPub, _, err := ed25519.GenerateKey(nil) // victim's public key
+	require.NoError(t, err)
+	pubB64 := base64.StdEncoding.EncodeToString(voterPub)
+
+	_, attackerPriv, err := ed25519.GenerateKey(nil) // attacker's own key
+	require.NoError(t, err)
+	attackerPrivB64 := base64.StdEncoding.EncodeToString(attackerPriv)
+
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: pubB64, HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: "active", Candidates: []string{"candidate1"}},
+		},
+	}
+	uc := NewCastVoteUseCaseWithoutTx(repo, voting.NewEd25519Service())
+
+	_, err = uc.Execute(CastVoteRequest{
+		VoterPublicKey: pubB64,
+		CandidateID:    "candidate1",
+		PrivateKey:     attackerPrivB64,
+		SessionID:      "session1",
+	})
+	require.ErrorIs(t, err, voting.ErrInvalidSignature)
 }

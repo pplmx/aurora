@@ -57,6 +57,7 @@ var errorClassification = []struct {
 	{nfterrors.ErrOwnerRequired, http.StatusBadRequest, "OWNER_REQUIRED"},
 	{nfterrors.ErrNotOwner, http.StatusForbidden, "NOT_NFT_OWNER"},
 	{nfterrors.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_SIGNATURE"},
+	{nfterrors.ErrKeyMismatch, http.StatusUnauthorized, "KEY_MISMATCH"},
 	{nfterrors.ErrInvalidPrivateKey, http.StatusBadRequest, "INVALID_PRIVATE_KEY"},
 	{nfterrors.ErrInvalidPublicKey, http.StatusBadRequest, "INVALID_PUBLIC_KEY"},
 
@@ -87,6 +88,7 @@ var errorClassification = []struct {
 	{voting.ErrCandidateNotFound, http.StatusBadRequest, "CANDIDATE_NOT_FOUND"},
 	{voting.ErrCandidateNotInSession, http.StatusBadRequest, "CANDIDATE_NOT_IN_SESSION"},
 	{voting.ErrAlreadyVoted, http.StatusConflict, "ALREADY_VOTED"},
+	{voting.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_VOTE_SIGNATURE"},
 	{voting.ErrVoterNameRequired, http.StatusBadRequest, "VOTER_NAME_REQUIRED"},
 	{voting.ErrCandidateNameRequired, http.StatusBadRequest, "CANDIDATE_NAME_REQUIRED"},
 	{voting.ErrSessionTitleRequired, http.StatusBadRequest, "SESSION_TITLE_REQUIRED"},
