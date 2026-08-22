@@ -75,6 +75,13 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	if now > session.EndTime {
 		return nil, voting.ErrSessionEnded
 	}
+	// Lifecycle guard: an explicitly-ended session must not accept votes even
+	// if it is still inside its nominal time window. The CLI's `session end`
+	// sets this status; without this check, a closed session would silently
+	// keep accepting ballots, making the lifecycle command a no-op.
+	if session.Status == "ended" {
+		return nil, voting.ErrSessionEnded
+	}
 
 	voter, err := uc.repo.GetVoter(req.VoterPublicKey)
 	if err != nil {
