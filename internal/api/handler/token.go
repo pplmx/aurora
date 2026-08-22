@@ -17,6 +17,10 @@ const defaultHistoryLimit = 20
 // key-holding caller cannot force an arbitrarily large event scan.
 const maxHistoryLimit = 100
 
+// maxHistoryOffset caps ?offset= for token history, bounding how far back a
+// caller can page in one request.
+const maxHistoryOffset = 1000
+
 type TokenHandler struct {
 	service token.Service
 }
@@ -191,6 +195,9 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	if offsetStr != "" {
 		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
 			offset = o
+			if offset > maxHistoryOffset {
+				offset = maxHistoryOffset
+			}
 		}
 	}
 

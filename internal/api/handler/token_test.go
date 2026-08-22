@@ -173,11 +173,13 @@ func TestTokenHandler_ResponseContentType(t *testing.T) {
 // passed to GetTransferHistory so the handler's cap is observable.
 type recordingHistoryService struct {
 	fakeTokenServiceFull
-	gotLimit int
+	gotLimit  int
+	gotOffset int
 }
 
-func (r *recordingHistoryService) GetTransferHistory(_ domaintoken.TokenID, _ domaintoken.PublicKey, limit, _ int) ([]*domaintoken.TransferEvent, error) {
+func (r *recordingHistoryService) GetTransferHistory(_ domaintoken.TokenID, _ domaintoken.PublicKey, limit, offset int) ([]*domaintoken.TransferEvent, error) {
 	r.gotLimit = limit
+	r.gotOffset = offset
 	return nil, nil
 }
 
@@ -193,4 +195,17 @@ func TestTokenHandler_History_CapsUnboundedLimit(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, maxHistoryLimit, svc.gotLimit, "unbounded ?limit must be capped")
+}
+
+func TestTokenHandler_History_CapsUnboundedOffset(t *testing.T) {
+	svc := &recordingHistoryService{}
+	handler := NewTokenHandler(svc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/history?token_id=t1&owner=YWxpY2U=&offset=999999999", nil)
+	rr := httptest.NewRecorder()
+
+	handler.History(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, maxHistoryOffset, svc.gotOffset, "unbounded ?offset must be capped")
 }
