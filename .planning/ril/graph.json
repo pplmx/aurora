@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 6,
+  "round": 7,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T16:29:55+00:00",
+  "updated_at": "2026-08-22T16:34:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 3,
+      "touched_round": 7,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -555,6 +555,42 @@
       "touched_round": 6,
       "commit": "d532c9d",
       "summary": "served Web UI assets + API-key injection test"
+    },
+    "ISS-003": {
+      "id": "ISS-003",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:34:29+00:00",
+      "updated_at": "2026-08-22T16:34:43+00:00",
+      "touched_round": 7,
+      "title": "Unbounded ?limit lets API-key holder force huge DB scan",
+      "summary": "oracle /query and token /history accept any positive limit (max not capped) and pass it straight into SQL LIMIT; a caller can request limit=999999999"
+    },
+    "TASK-006": {
+      "id": "TASK-006",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-22T16:34:29+00:00",
+      "updated_at": "2026-08-22T16:34:43+00:00",
+      "touched_round": 7,
+      "category": "stability",
+      "severity": 0.7,
+      "confidence": 1,
+      "effort": 1,
+      "title": "Cap user-supplied ?limit in oracle/token handlers"
+    },
+    "CHG-006": {
+      "id": "CHG-006",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-22T16:34:42+00:00",
+      "updated_at": "2026-08-22T16:34:42+00:00",
+      "touched_round": 7,
+      "commit": "3f570a4",
+      "summary": "Cap oracle/token ?limit"
     }
   },
   "edges": [
@@ -797,6 +833,30 @@
       "to": "TASK-005",
       "type": "implements",
       "created_at": "2026-08-22T16:29:55+00:00"
+    },
+    {
+      "from": "TASK-006",
+      "to": "ISS-003",
+      "type": "addresses",
+      "created_at": "2026-08-22T16:34:33+00:00"
+    },
+    {
+      "from": "ISS-003",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-22T16:34:33+00:00"
+    },
+    {
+      "from": "CHG-006",
+      "to": "TASK-006",
+      "type": "implements",
+      "created_at": "2026-08-22T16:34:47+00:00"
+    },
+    {
+      "from": "CHG-006",
+      "to": "ISS-003",
+      "type": "resolves",
+      "created_at": "2026-08-22T16:34:47+00:00"
     }
   ]
 }
