@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.11 Lifecycle & Parity Coverage (IN PROGRESS)
+**Current focus:** v1.12 CLI/API Consistency (IN PROGRESS)
 
 ## Current Position
 
