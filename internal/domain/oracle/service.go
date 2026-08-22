@@ -158,6 +158,12 @@ func (s *service) AddSource(source *DataSource) error {
 	if source.Name == "" {
 		return ErrInvalidSource
 	}
+	// A fetch-scheduling interval cannot be negative; only ==0 is defaulted
+	// (to 60) by the use case, so reject negatives here at the contract
+	// boundary alongside the other AddSource validations.
+	if source.Interval < 0 {
+		return fmt.Errorf("%w: invalid interval", ErrInvalidSource)
+	}
 	if err := validateSourceURL(source.URL); err != nil {
 		return fmt.Errorf("%w: %v", ErrInvalidSource, err)
 	}

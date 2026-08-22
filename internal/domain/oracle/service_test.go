@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -518,5 +519,21 @@ func TestAddSource_ProducesUniqueIDs(t *testing.T) {
 	}
 	if len(sources) != 50 {
 		t.Fatalf("expected 50 sources, got %d (possible ID collision)", len(sources))
+	}
+}
+
+func TestAddSource_NegativeInterval_Rejected(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	// A fetch-scheduling interval cannot be negative; only ==0 is defaulted by
+	// the use case. A negative must be rejected at the contract boundary.
+	err := svc.AddSource(&DataSource{
+		Name:     "bad-interval",
+		URL:      "https://api.example.com",
+		Interval: -5,
+	})
+	if !errors.Is(err, ErrInvalidSource) {
+		t.Fatalf("expected ErrInvalidSource for negative interval, got %v", err)
 	}
 }
