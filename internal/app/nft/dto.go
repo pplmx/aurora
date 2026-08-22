@@ -24,25 +24,25 @@ type BurnNFTRequest struct {
 }
 
 type NFTResponse struct {
-	ID          string
-	Name        string
-	Description string
-	ImageURL    string
-	TokenURI    string
-	Owner       string
-	Creator     string
-	BlockHeight int64
-	Timestamp   int64
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ImageURL    string `json:"image_url"`
+	TokenURI    string `json:"token_uri"`
+	Owner       string `json:"owner"`
+	Creator     string `json:"creator"`
+	BlockHeight int64  `json:"block_height"`
+	Timestamp   int64  `json:"timestamp"`
 }
 
 type OperationResponse struct {
-	ID          string
-	NFTID       string
-	Type        string
-	From        string
-	To          string
-	BlockHeight int64
-	Timestamp   int64
+	ID          string `json:"id"`
+	NFTID       string `json:"nft_id"`
+	Type        string `json:"type"`
+	From        string `json:"from"`
+	To          string `json:"to"`
+	BlockHeight int64  `json:"block_height"`
+	Timestamp   int64  `json:"timestamp"`
 }
 
 func ToNFTResponse(nft *nft.NFT) *NFTResponse {
