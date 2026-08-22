@@ -30,6 +30,8 @@ func (h *VotingHandler) Routes(r chi.Router) {
 	r.Post("/register/voter", h.RegisterVoter)
 	r.Post("/register/candidate", h.RegisterCandidate)
 	r.Post("/session", h.CreateSession)
+	r.Post("/session/{id}/start", h.StartSession)
+	r.Post("/session/{id}/end", h.EndSession)
 	r.Post("/vote", h.Vote)
 	r.Get("/candidates", h.ListCandidates)
 	r.Get("/sessions", h.ListSessions)
@@ -175,4 +177,36 @@ func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(session)
+}
+
+// updateSessionStatus applies a status transition to an existing session,
+// mirroring the CLI's `session start` / `session end`. This closes the
+// CLI↔API parity gap: the REST API previously had no way to drive the session
+// lifecycle, even though the voting flow now rejects votes on "ended"
+// sessions (see CastVote).
+func (h *VotingHandler) updateSessionStatus(w http.ResponseWriter, r *http.Request, status string) {
+	id := chi.URLParam(r, "id")
+
+	session, err := h.repo.GetSession(id)
+	if err != nil || session == nil {
+		writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+		return
+	}
+
+	session.Status = status
+	if err := h.repo.UpdateSession(session); err != nil {
+		writeError(w, "internal server error", "INTERNAL_ERROR", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(session)
+}
+
+func (h *VotingHandler) StartSession(w http.ResponseWriter, r *http.Request) {
+	h.updateSessionStatus(w, r, "active")
+}
+
+func (h *VotingHandler) EndSession(w http.ResponseWriter, r *http.Request) {
+	h.updateSessionStatus(w, r, "ended")
 }

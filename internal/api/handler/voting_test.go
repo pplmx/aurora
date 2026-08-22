@@ -2,12 +2,14 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	domainvoting "github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/stretchr/testify/assert"
 )
@@ -322,4 +324,36 @@ func TestVotingHandler_Vote_MissingSessionID(t *testing.T) {
 	err := json.Unmarshal(rr.Body.Bytes(), &resp)
 	assert.NoError(t, err)
 	assert.Equal(t, "SESSION_NOT_FOUND", resp.Code)
+}
+
+func TestVotingHandler_StartEndSession(t *testing.T) {
+	repo := newMockVotingRepo()
+	repo.sessions["s1"] = &domainvoting.Session{ID: "s1", Title: "Election", Status: "draft"}
+	handler := NewVotingHandler(repo, nil)
+
+	setParam := func(h http.HandlerFunc, method, id string) *httptest.ResponseRecorder {
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("id", id)
+		req := httptest.NewRequest(method, "/api/v1/voting/session/"+id, nil).
+			WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+		rr := httptest.NewRecorder()
+		h(rr, req)
+		return rr
+	}
+
+	// Start: draft -> active
+	rr := setParam(handler.StartSession, http.MethodPost, "s1")
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "active", repo.sessions["s1"].Status)
+
+	// End: active -> ended
+	rr = setParam(handler.EndSession, http.MethodPost, "s1")
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "ended", repo.sessions["s1"].Status)
+
+	// Missing session -> 404
+	rr = setParam(handler.StartSession, http.MethodPost, "nope")
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+	rr = setParam(handler.EndSession, http.MethodPost, "nope")
+	assert.Equal(t, http.StatusNotFound, rr.Code)
 }

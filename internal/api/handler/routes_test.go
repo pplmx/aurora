@@ -75,7 +75,7 @@ func TestVotingHandler_Routes_RegistersAllEndpoints(t *testing.T) {
 	for _, route := range r.Routes() {
 		got[route.Pattern] = true
 	}
-	for _, want := range []string{"/register/voter", "/register/candidate", "/session", "/vote", "/candidates", "/sessions", "/session/{id}"} {
+	for _, want := range []string{"/register/voter", "/register/candidate", "/session", "/session/{id}/start", "/session/{id}/end", "/vote", "/candidates", "/sessions", "/session/{id}"} {
 		assert.True(t, got[want], "expected voting route %q to be registered", want)
 	}
 }
