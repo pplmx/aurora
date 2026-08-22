@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aurora v1.1</title>
+    <title>Aurora - Dashboard</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script defer src="https://unpkg.com/alpinejs@3.13.5"></script>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <div class="container" x-data="{ stats: {lotteries: 0, votes: 0, nfts: 0, tokens: 0}, loading: true }" x-init="fetch('/api/v1/lottery/history', {headers: {'X-API-Key': window.AURORA_API_KEY || ''}}).then(r=>r.json()).then(d=>stats.lotteries=d.length||0); fetch('/api/v1/voting/candidates', {headers: {'X-API-Key': window.AURORA_API_KEY || ''}}).then(r=>r.json()).then(d=>stats.votes=d.length||0)">
+    <div class="container" x-data="dashboardApp()" x-init="init()">
         <header>
-            <h1>Aurora <span class="version">v1.1</span></h1>
+            <h1>Aurora <span class="version">Dashboard</span></h1>
             <nav>
                 <a href="/">Dashboard</a>
                 <a href="/lottery.html">Lottery</a>
@@ -29,19 +29,27 @@
                     <span class="stat-value" x-text="stats.votes">-</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">NFTs</span>
-                    <span class="stat-value" x-text="stats.nfts">0</span>
+                    <span class="stat-label">Candidates</span>
+                    <span class="stat-value" x-text="stats.candidates">-</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Token Holders</span>
-                    <span class="stat-value" x-text="stats.tokens">0</span>
+                    <span class="stat-label">Voting Sessions</span>
+                    <span class="stat-value" x-text="stats.sessions">-</span>
                 </div>
             </section>
             <section class="activity">
                 <h2>Recent Activity</h2>
-                <div id="activity-list">Loading...</div>
+                <div x-show="loading">Loading...</div>
+                <template x-for="item in activity" :key="item.key">
+                    <div class="proposal-card">
+                        <h3 x-text="item.title"></h3>
+                        <p class="proposal-meta" x-text="item.detail"></p>
+                    </div>
+                </template>
+                <p x-show="!loading && activity.length === 0" class="activity-empty">No recent activity</p>
             </section>
         </main>
     </div>
+    <script src="/js/app.js"></script>
 </body>
 </html>

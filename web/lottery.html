@@ -56,7 +56,7 @@
                                 <td x-text="item.id"></td>
                                 <td x-text="item.participants?.join(', ')"></td>
                                 <td x-text="item.winners?.join(', ')"></td>
-                                <td x-text="new Date(item.created_at).toLocaleString()"></td>
+                                <td x-text="new Date(item.timestamp * 1000).toLocaleString()"></td>
                             </tr>
                         </template>
                     </tbody>
