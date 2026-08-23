@@ -63,6 +63,9 @@ func Load() (*Config, error) {
 	viper.SetDefault("api.rateLimit.enabled", false)
 	viper.SetDefault("api.rateLimit.requests", 120)
 	viper.SetDefault("api.rateLimit.window", time.Minute)
+	// Oracle scheduler poll cadence (v1.21). The scheduler's own per-source
+	// interval still gates when each feed is due; this is how often it checks.
+	viper.SetDefault("oracle.scheduler.checkInterval", time.Second)
 
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
@@ -99,6 +102,13 @@ func RateLimitRequests() int {
 // RateLimitWindow returns the rate-limit window (default 1 minute).
 func RateLimitWindow() time.Duration {
 	return viper.GetDuration("api.rateLimit.window")
+}
+
+// OracleSchedulerCheckInterval returns how often the oracle fetch scheduler
+// polls sources for due feeds (default 1s). Per-source Interval still controls
+// when each feed is due.
+func OracleSchedulerCheckInterval() time.Duration {
+	return viper.GetDuration("oracle.scheduler.checkInterval")
 }
 
 func GenerateAPIKey() (string, error) {
