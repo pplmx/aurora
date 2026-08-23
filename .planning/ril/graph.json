@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 50,
+  "round": 51,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:22:51+00:00",
+  "updated_at": "2026-08-23T05:25:54+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 49,
+      "touched_round": 50,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -2396,6 +2396,53 @@
       "touched_round": 49,
       "commit": "b2a64ec",
       "title": "Oracle create source REST endpoint + Add Source web form"
+    },
+    "ISS-045": {
+      "id": "ISS-045",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:23:29+00:00",
+      "updated_at": "2026-08-23T05:25:54+00:00",
+      "touched_round": 50,
+      "title": "Oracle sources can be created over REST/web (v1.40) but not deleted or disabled; source management is still CLI-only for the rest of the lifecycle",
+      "severity": "low"
+    },
+    "TASK-053": {
+      "id": "TASK-053",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:23:29+00:00",
+      "updated_at": "2026-08-23T05:25:54+00:00",
+      "touched_round": 50,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add DELETE /api/v1/oracle/sources/{id} + PATCH enabled, and per-source manage controls on the oracle web page"
+    },
+    "EV-014": {
+      "id": "EV-014",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:25:49+00:00",
+      "updated_at": "2026-08-23T05:25:49+00:00",
+      "touched_round": 50,
+      "source": "go test ./... (33 pkgs) + TestOracleHandler_DeleteSource/SetSourceEnabled_* + web contract route resolution",
+      "title": "Oracle source delete/enable/disable over REST/web verified (incl. idempotent delete)",
+      "confidence": 1.0
+    },
+    "CHG-052": {
+      "id": "CHG-052",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:25:49+00:00",
+      "updated_at": "2026-08-23T05:25:49+00:00",
+      "touched_round": 50,
+      "commit": "8af2bd8",
+      "title": "Oracle source management endpoints (DELETE/PATCH) + web controls"
     }
   },
   "edges": [
@@ -3706,6 +3753,30 @@
       "to": "ISS-044",
       "type": "resolves",
       "created_at": "2026-08-23T05:22:51+00:00"
+    },
+    {
+      "from": "TASK-053",
+      "to": "ISS-045",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:23:32+00:00"
+    },
+    {
+      "from": "ISS-045",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:23:32+00:00"
+    },
+    {
+      "from": "CHG-052",
+      "to": "TASK-053",
+      "type": "implements",
+      "created_at": "2026-08-23T05:25:54+00:00"
+    },
+    {
+      "from": "CHG-052",
+      "to": "ISS-045",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:25:54+00:00"
     }
   ]
 }
