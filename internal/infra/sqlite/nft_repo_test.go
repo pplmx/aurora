@@ -303,6 +303,33 @@ func TestNFTRepository_GetOperations(t *testing.T) {
 	}
 }
 
+// TestNFTRepository_GetOperations_ServiceCreatedOpsDoNotCollapse locks
+// ISS-072 / TASK-080. The operations here are created through the real
+// production path (nft.NewOperation), which previously left Operation.ID at
+// "": since nft_operations.id is the PRIMARY KEY, each INSERT OR REPLACE then
+// hit the same "" key and collapsed the whole per-NFT audit history to a
+// single row. With NewOperation assigning a UUID, mint + transfer for one NFT
+// must both survive.
+func TestNFTRepository_GetOperations_ServiceCreatedOpsDoNotCollapse(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.SaveNFT(&nft.NFT{ID: "nft-1", Name: "A", Owner: []byte("owner")}))
+
+	op1 := nft.NewOperation("nft-1", "mint", nil, []byte("owner"), nil)
+	op2 := nft.NewOperation("nft-1", "transfer", []byte("owner"), []byte("to"), []byte("sig"))
+	require.NotEmpty(t, op1.ID, "NewOperation must assign a UUID id")
+	require.NotEmpty(t, op2.ID, "NewOperation must assign a UUID id")
+	require.NotEqual(t, op1.ID, op2.ID, "each operation must get its own UUID")
+
+	require.NoError(t, repo.SaveOperation(op1))
+	require.NoError(t, repo.SaveOperation(op2))
+
+	ops, err := repo.GetOperations("nft-1")
+	require.NoError(t, err)
+	require.Len(t, ops, 2, "mint + transfer ops for one NFT must both survive the INSERT OR REPLACE")
+}
+
 func TestNFTRepository_Close(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")
