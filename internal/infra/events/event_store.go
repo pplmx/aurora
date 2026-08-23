@@ -14,6 +14,13 @@ type EventRepository interface {
 	GetByType(eventType string, limit int) ([]events.Event, error)
 	GetByModule(module string, limit int) ([]events.Event, error)
 	GetByAggregate(aggID string, limit, offset int) ([]events.Event, error)
+	// GetByAggregateAndType pages over events of ONE type within an aggregate,
+	// applying LIMIT/OFFSET at the SQL layer over those matching rows only.
+	// GetByAggregate alone counts ALL event types in the aggregate before any
+	// consumer-side type filter, so paging transfer history through it
+	// under-fills when a token has interleaved mint/burn events (TASK-074,
+	// ISS-066). Filtering type first restores correct page composition.
+	GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error)
 }
 
 type SQLiteEventStore struct {
@@ -128,6 +135,30 @@ func (e *SQLiteEventStore) GetByAggregate(aggID string, limit, offset int) ([]ev
 		ORDER BY timestamp ASC, id ASC
 		LIMIT ? OFFSET ?
 	`, aggID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	return scanEvents(rows)
+}
+
+// GetByAggregateAndType is like GetByAggregate but restricts to a single event
+// type so LIMIT/OFFSET are applied over the matching rows (e.g. transfers)
+// rather than every event in the aggregate (transfers + mints + burns). This is
+// the pagination primitive the token transfer-history reader needs.
+func (e *SQLiteEventStore) GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	rows, err := e.db.Query(`
+		SELECT id, event_type, module, agg_id, payload, timestamp
+		FROM events
+		WHERE agg_id = ? AND event_type = ?
+		ORDER BY timestamp ASC, id ASC
+		LIMIT ? OFFSET ?
+	`, aggID, eventType, limit, offset)
 	if err != nil {
 		return nil, err
 	}

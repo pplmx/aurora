@@ -35,6 +35,31 @@ func (m *mockEventStore) GetByAggregate(aggID string, limit, offset int) ([]even
 	return m.events[offset:end], nil
 }
 
+// GetByAggregateAndType mirrors the SQLite store's type filter: it pages over
+// only events whose EventType matches, applying limit/offset over those rows.
+func (m *mockEventStore) GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	var matching []events.Event
+	for _, e := range m.events {
+		if e.AggregateID() == aggID && e.EventType() == eventType {
+			matching = append(matching, e)
+		}
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset >= len(matching) {
+		return nil, nil
+	}
+	end := offset + limit
+	if end > len(matching) {
+		end = len(matching)
+	}
+	return matching[offset:end], nil
+}
+
 func makeTransferEvent(id, tokenID, from, to string, amount string, nonce uint64, sig string) events.Event {
 	payload, _ := json.Marshal(map[string]interface{}{
 		"from":   from,
