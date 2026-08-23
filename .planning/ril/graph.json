@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 59,
+  "round": 60,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:51:46+00:00",
+  "updated_at": "2026-08-23T05:54:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 31,
+      "touched_round": 59,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -2859,6 +2859,64 @@
       "touched_round": 58,
       "commit": "734aec4",
       "title": "Oracle source templates over REST + web prefill (shared app-layer catalog)"
+    },
+    "ISS-054": {
+      "id": "ISS-054",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:53:45+00:00",
+      "updated_at": "2026-08-23T05:54:26+00:00",
+      "touched_round": 59,
+      "title": "AGENTS.md is stale: its module-command list omits newer CLI commands (lottery verify/export/import/stats, token transfer-from) and its coverage table is outdated (oracle app 65.8% vs 88.6% today, etc.)",
+      "severity": "low"
+    },
+    "TASK-062": {
+      "id": "TASK-062",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:53:45+00:00",
+      "updated_at": "2026-08-23T05:54:26+00:00",
+      "touched_round": 59,
+      "category": "docs",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Sync AGENTS.md module commands and coverage table with the current CLI/REST surface and measured coverage"
+    },
+    "EV-023": {
+      "id": "EV-023",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:54:02+00:00",
+      "updated_at": "2026-08-23T05:54:02+00:00",
+      "touched_round": 59,
+      "source": "go test ./... --cover per module (measured 2026-08-23)",
+      "confidence": 1.0
+    },
+    "CHG-061": {
+      "id": "CHG-061",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:54:02+00:00",
+      "updated_at": "2026-08-23T05:54:02+00:00",
+      "touched_round": 59,
+      "commit": "a2ecbee",
+      "title": "AGENTS.md module-commands + coverage sync"
+    },
+    "EV-024": {
+      "id": "EV-024",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:54:08+00:00",
+      "updated_at": "2026-08-23T05:54:08+00:00",
+      "touched_round": 59,
+      "source": "go test ./... --cover, measured per module 2026-08-23",
+      "title": "Coverage numbers refreshed in AGENTS.md match measured values",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -4385,6 +4443,30 @@
       "to": "ISS-053",
       "type": "resolves",
       "created_at": "2026-08-23T05:51:46+00:00"
+    },
+    {
+      "from": "TASK-062",
+      "to": "ISS-054",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:53:49+00:00"
+    },
+    {
+      "from": "ISS-054",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:53:49+00:00"
+    },
+    {
+      "from": "CHG-061",
+      "to": "TASK-062",
+      "type": "implements",
+      "created_at": "2026-08-23T05:54:26+00:00"
+    },
+    {
+      "from": "CHG-061",
+      "to": "ISS-054",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:54:26+00:00"
     }
   ]
 }
