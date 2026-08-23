@@ -357,3 +357,44 @@ func TestVotingHandler_StartEndSession(t *testing.T) {
 	rr = setParam(handler.EndSession, http.MethodPost, "nope")
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
+
+func requestWithParam(method, path, id string) *http.Request {
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", id)
+	return httptest.NewRequest(method, path, nil).
+		WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+}
+
+func TestVotingHandler_GetResults(t *testing.T) {
+	repo := newMockVotingRepo()
+	repo.sessions["s1"] = &domainvoting.Session{ID: "s1", Candidates: []string{"c1", "c2"}}
+	repo.candidates["c1"] = &domainvoting.Candidate{ID: "c1", Name: "Alice", Party: "A", VoteCount: 5}
+	repo.candidates["c2"] = &domainvoting.Candidate{ID: "c2", Name: "Bob", Party: "B", VoteCount: 3}
+
+	h := NewVotingHandler(repo, nil)
+	rr := httptest.NewRecorder()
+	h.GetResults(rr, requestWithParam(http.MethodGet, "/api/v1/voting/results/s1", "s1"))
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var res struct {
+		SessionID  string `json:"session_id"`
+		TotalVotes int    `json:"total_votes"`
+		Candidates []struct {
+			ID        string `json:"id"`
+			VoteCount int    `json:"vote_count"`
+		} `json:"candidates"`
+	}
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &res))
+	assert.Equal(t, "s1", res.SessionID)
+	assert.Equal(t, 8, res.TotalVotes)
+	assert.Len(t, res.Candidates, 2)
+}
+
+func TestVotingHandler_GetResults_NotFound(t *testing.T) {
+	repo := newMockVotingRepo()
+	h := NewVotingHandler(repo, nil)
+
+	rr := httptest.NewRecorder()
+	h.GetResults(rr, requestWithParam(http.MethodGet, "/api/v1/voting/results/missing", "missing"))
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
