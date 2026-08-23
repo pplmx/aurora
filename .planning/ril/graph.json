@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 73,
+  "round": 74,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T09:29:50+00:00",
+  "updated_at": "2026-08-23T13:51:28+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1729,7 +1729,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:31:39+00:00",
       "updated_at": "2026-08-23T04:31:39+00:00",
-      "touched_round": 46,
+      "touched_round": 74,
       "title": "web UI static pages (router-injected API key)"
     },
     "EV-003": {
@@ -2589,7 +2589,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:33:22+00:00",
       "updated_at": "2026-08-23T05:33:22+00:00",
-      "touched_round": 73,
+      "touched_round": 74,
       "title": "Oracle REST fetcher (infra/http)"
     },
     "EV-017": {
@@ -3552,6 +3552,78 @@
       "touched_round": 73,
       "commit": "16159f4",
       "title": "Oracle extractByPath fails closed on missing/invalid path (empty => ErrInvalidSource) + regression tests"
+    },
+    "ISS-069": {
+      "id": "ISS-069",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T13:07:14+00:00",
+      "updated_at": "2026-08-23T13:51:28+00:00",
+      "touched_round": 74,
+      "title": "CORS wildcard + API key injected into served HTML lets any cross-origin page read window.AURORA_API_KEY and drive every /api/v1 mutation (mint/transfer/burn tokens & NFTs, lottery/voting state changes, oracle source control) with the operator's authority; router.go:37 wraps the whole router (incl. the /* static file server) in CORS with Access-Control-Allow-Origin:*, cors.go:9/11, and webauth.go:85-88 embeds the key in every served HTML page"
+    },
+    "TASK-077": {
+      "id": "TASK-077",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T13:07:14+00:00",
+      "updated_at": "2026-08-23T13:51:28+00:00",
+      "touched_round": 74,
+      "category": "security",
+      "severity": 0.9,
+      "confidence": 1.0,
+      "effort": 3,
+      "unlock_factor": 1.0,
+      "title": "Restrict CORS to a configured origin allow-list and never emit a wildcard (default: same-origin only) so the key-injected web UI responses are not cross-origin readable; add a composition regression test through the real CORS -> injectAPIKey -> static file chain"
+    },
+    "ISS-070": {
+      "id": "ISS-070",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T13:07:15+00:00",
+      "updated_at": "2026-08-23T13:51:28+00:00",
+      "touched_round": 74,
+      "title": "v1.63 fail-closed extraction fix (CHG-074/16159f4) left TestFetcher_FetchData_Validation_InvalidPath (fetcher_test.go:883) asserting the pre-fix contract -- FetchDataWithValidation on a mistyped path expects a raw-body fallback, but the code now returns oracle.ErrInvalidSource -- so go test ./... is RED on internal/infra/http wherever loopback TCP works"
+    },
+    "TASK-078": {
+      "id": "TASK-078",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T13:07:15+00:00",
+      "updated_at": "2026-08-23T13:51:28+00:00",
+      "touched_round": 74,
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Update the stale TestFetcher_FetchData_Validation_InvalidPath to the post-v1.63 fail-closed contract (assert oracle.ErrInvalidSource for a mistyped extraction path in FetchDataWithValidation with both validateJSON=false and true), converting it to a loopback-free round-tripper test so baseline go test ./... is green again"
+    },
+    "CHG-075": {
+      "id": "CHG-075",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T13:49:54+00:00",
+      "updated_at": "2026-08-23T13:49:54+00:00",
+      "touched_round": 74,
+      "commit": 7037712,
+      "title": "Restrict CORS to a configured api.cors.allowedOrigins allow-list and never emit a wildcard, closing cross-origin theft of the API key embedded in served HTML; composition regression test added"
+    },
+    "CHG-076": {
+      "id": "CHG-076",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T13:49:54+00:00",
+      "updated_at": "2026-08-23T13:49:54+00:00",
+      "touched_round": 74,
+      "commit": "40bc48c",
+      "title": "Bring stale TestFetcher_FetchData_Validation_InvalidPath in line with the v1.63 fail-closed extraction contract (loopback-free, both validateJSON modes) so go test ./... is green"
     }
   },
   "edges": [
@@ -5438,6 +5510,54 @@
       "to": "ISS-068",
       "type": "resolves",
       "created_at": "2026-08-23T09:29:50+00:00"
+    },
+    {
+      "from": "TASK-077",
+      "to": "ISS-069",
+      "type": "addresses",
+      "created_at": "2026-08-23T13:07:54+00:00"
+    },
+    {
+      "from": "ISS-069",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-08-23T13:07:54+00:00"
+    },
+    {
+      "from": "TASK-078",
+      "to": "ISS-070",
+      "type": "addresses",
+      "created_at": "2026-08-23T13:07:55+00:00"
+    },
+    {
+      "from": "ISS-070",
+      "to": "COMP-009",
+      "type": "located_in",
+      "created_at": "2026-08-23T13:07:55+00:00"
+    },
+    {
+      "from": "CHG-075",
+      "to": "TASK-077",
+      "type": "implements",
+      "created_at": "2026-08-23T13:49:54+00:00"
+    },
+    {
+      "from": "CHG-075",
+      "to": "ISS-069",
+      "type": "resolves",
+      "created_at": "2026-08-23T13:49:54+00:00"
+    },
+    {
+      "from": "CHG-076",
+      "to": "TASK-078",
+      "type": "implements",
+      "created_at": "2026-08-23T13:49:54+00:00"
+    },
+    {
+      "from": "CHG-076",
+      "to": "ISS-070",
+      "type": "resolves",
+      "created_at": "2026-08-23T13:49:54+00:00"
     }
   ]
 }
