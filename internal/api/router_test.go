@@ -239,6 +239,20 @@ func TestRouter_HealthEndpointRequiresNoAuth(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
+func TestRouter_SetsSecurityHeaders(t *testing.T) {
+	resetForAPITest(t)
+	viper.Set("api.key", "secret-test-key")
+	srv := &Server{db: openInMemorySQLite(t)}
+	router := newRouter(srv)
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "nosniff", rr.Header().Get("X-Content-Type-Options"))
+	assert.Equal(t, "DENY", rr.Header().Get("X-Frame-Options"))
+	assert.Equal(t, "no-referrer", rr.Header().Get("Referrer-Policy"))
+}
+
 // =================================================================
 // Server.Router (delegates to newRouter)
 // =================================================================

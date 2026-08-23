@@ -18,6 +18,7 @@ func newRouter(s *Server) http.Handler {
 	r.Use(apimw.Logger)
 	r.Use(apimw.Recovery)
 	r.Use(apimw.CORS)
+	r.Use(apimw.SecurityHeaders)
 
 	// Request observability: a stdlib Prometheus-text /metrics endpoint
 	// (v1.13) recording per-request status + latency distribution. The
