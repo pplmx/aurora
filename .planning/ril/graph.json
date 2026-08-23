@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 51,
+  "round": 52,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:25:54+00:00",
+  "updated_at": "2026-08-23T05:27:36+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 40,
+      "touched_round": 51,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -2443,6 +2443,63 @@
       "touched_round": 50,
       "commit": "8af2bd8",
       "title": "Oracle source management endpoints (DELETE/PATCH) + web controls"
+    },
+    "ISS-046": {
+      "id": "ISS-046",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:26:38+00:00",
+      "updated_at": "2026-08-23T05:27:35+00:00",
+      "touched_round": 51,
+      "title": "The lottery create response (LotteryResponse) has no json tags, so POST /api/v1/lottery/create returns PascalCase JSON inconsistent with the rest of the snake_case API",
+      "severity": "low"
+    },
+    "TASK-054": {
+      "id": "TASK-054",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:26:38+00:00",
+      "updated_at": "2026-08-23T05:27:35+00:00",
+      "touched_round": 51,
+      "category": "maintainability",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add snake_case json tags to LotteryResponse and add a regression test on the create JSON contract"
+    },
+    "COMP-007": {
+      "id": "COMP-007",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:26:42+00:00",
+      "updated_at": "2026-08-23T05:26:42+00:00",
+      "touched_round": 51,
+      "title": "Lottery module app layer"
+    },
+    "EV-015": {
+      "id": "EV-015",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:27:30+00:00",
+      "updated_at": "2026-08-23T05:27:30+00:00",
+      "touched_round": 51,
+      "source": "go test ./... (33 pkgs) + TestCreateLotteryUseCase_Execute JSON-contract assertions",
+      "title": "Lottery create response now snake_case and contract-guarded",
+      "confidence": 1.0
+    },
+    "CHG-053": {
+      "id": "CHG-053",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:27:31+00:00",
+      "updated_at": "2026-08-23T05:27:31+00:00",
+      "touched_round": 51,
+      "commit": "068a3fb",
+      "title": "Lottery create response snake_case json tags + regression test"
     }
   },
   "edges": [
@@ -3777,6 +3834,30 @@
       "to": "ISS-045",
       "type": "resolves",
       "created_at": "2026-08-23T05:25:54+00:00"
+    },
+    {
+      "from": "TASK-054",
+      "to": "ISS-046",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:26:42+00:00"
+    },
+    {
+      "from": "ISS-046",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:26:45+00:00"
+    },
+    {
+      "from": "CHG-053",
+      "to": "TASK-054",
+      "type": "implements",
+      "created_at": "2026-08-23T05:27:35+00:00"
+    },
+    {
+      "from": "CHG-053",
+      "to": "ISS-046",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:27:35+00:00"
     }
   ]
 }
