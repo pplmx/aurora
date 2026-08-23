@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
@@ -18,6 +19,16 @@ type CastVoteUseCase struct {
 	repo      voting.TransactableRepository
 	service   voting.Service
 	txManager voting.TransactionManager
+	chain     blockchain.BlockWriter
+}
+
+// SetChain wires the blockchain writer used to record each accepted ballot
+// on-chain. Optional and nil-safe: without it votes keep BlockHeight 0 (pure
+// in-memory tests / fallback wiring). The voting package documents
+// "blockchain-based vote recording", so the API server and CLI supply the
+// chain.
+func (uc *CastVoteUseCase) SetChain(chain blockchain.BlockWriter) {
+	uc.chain = chain
 }
 
 func NewCastVoteUseCase(repo voting.TransactableRepository, service voting.Service, txManager voting.TransactionManager) *CastVoteUseCase {
@@ -143,6 +154,22 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	voteHash := base64.StdEncoding.EncodeToString([]byte(message))
 	var voteID string
 	var blockHeight int64
+
+	// Record the ballot on-chain (documented intent: "blockchain-based vote
+	// recording"). The block is added before the transaction, matching the
+	// token/NFT services: a block height must exist before the vote row is
+	// persisted so the audit record carries it. A failed transaction (e.g. a
+	// concurrently-lost double-vote claim) leaves a best-effort audit block,
+	// the same accepted tradeoff as Mint/Transfer/Burn.
+	if uc.chain != nil {
+		data := fmt.Sprintf("vote|%s|%s|%s", req.VoterPublicKey, req.CandidateID, req.SessionID)
+		h, cErr := uc.chain.AddBlock(data)
+		if cErr != nil {
+			return nil, fmt.Errorf("failed to record vote on chain: %w", cErr)
+		}
+		blockHeight = h
+	}
+
 	err = uc.txManager.WithTransaction(func(tx *sql.Tx) error {
 		txRepo := uc.txRepo(tx)
 
@@ -151,6 +178,7 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		}
 
 		vote := voting.NewVote(req.VoterPublicKey, req.CandidateID, signature, message)
+		vote.BlockHeight = blockHeight
 		if err := txRepo.SaveVote(vote); err != nil {
 			return fmt.Errorf("failed to save vote: %w", err)
 		}

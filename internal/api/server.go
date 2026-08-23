@@ -112,6 +112,7 @@ func NewServer() (*Server, error) {
 
 	srv.lotteryHandler = handler.NewLotteryHandler(lotteryRepo)
 	srv.votingHandler = handler.NewVotingHandler(votingRepo, sqlite.NewTxManager(db))
+	srv.votingHandler.SetChain(blockchain.GetBlockChain())
 	srv.nftHandler = handler.NewNFTHandler(nftRepo, sqlite.NewTxManager(nftRepo.GetDB()))
 	srv.tokenHandler = handler.NewTokenHandler(tokenService)
 	srv.oracleRepo = oracleRepo

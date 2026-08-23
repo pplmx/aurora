@@ -234,6 +234,7 @@ var voteCmd = &cobra.Command{
 			SessionID:      sessionID,
 		}
 		uc := votingapp.NewCastVoteUseCase(repo, service, txManager)
+		uc.SetChain(blockchain.GetBlockChain())
 		record, err := uc.Execute(req)
 		if err != nil {
 			return fmt.Errorf("failed to cast vote: %w", err)
