@@ -89,12 +89,12 @@ var historyCmd = &cobra.Command{
 	Use:   "history",
 	Short: i18n.GetText("lottery.history"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Read from the persistent lottery_records table, not the in-memory
-		// chain. The chain's in-memory append is intentionally not flushed
-		// back to the blocks table (per AddBlock's current contract), so
-		// reading GetLotteryRecords() returns empty across process
-		// boundaries — which the lottery_records table was specifically
-		// designed to prevent.
+		// Read from the persistent lottery_records table rather than the
+		// blockchain's raw blocks. The chain is persisted (AddBlock writes to
+		// the blocks table and reloads on start), but lottery_records holds
+		// the structured draw data (winners, addresses, VRF proof, block
+		// height) that raw blocks do not carry, and survives restarts without
+		// parsing block data.
 		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
 			return fmt.Errorf("failed to open lottery repository: %w", err)
@@ -132,10 +132,9 @@ var verifyCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		input := args[0]
 
-		// Open the persistent lottery repository. We can't rely on
-		// the in-memory chain for lookup because AddBlock doesn't flush
-		// back to the blocks table, so reads across processes (or even
-		// separate command invocations) would return empty.
+		// Open the persistent lottery repository. Lookups go through the
+		// dedicated lottery_records table (structured draw data that survives
+		// restarts) rather than the blockchain's raw blocks.
 		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
 			return fmt.Errorf("failed to open lottery repository: %w", err)
@@ -329,10 +328,9 @@ var importCmd = &cobra.Command{
 			return fmt.Errorf("failed to parse file: %w", err)
 		}
 
-		// Persist via the SQLite repository, not the in-memory chain —
-		// AddBlock doesn't flush back to the blocks table, so writing
-		// through the chain would lose the records on the next process
-		// start.
+		// Persist via the SQLite repository so the structured draw record
+		// (ID, winners, VRF proof, block height) survives restarts; the
+		// blockchain is a separate append-only audit log.
 		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
 			return fmt.Errorf("failed to open lottery repository: %w", err)
