@@ -54,6 +54,8 @@ func (h *OracleHandler) SetStats(stats oracleHealthStats) {
 func (h *OracleHandler) Routes(r chi.Router) {
 	r.Get("/sources", h.Sources)
 	r.Post("/sources", h.CreateSource)
+	r.Delete("/sources/{id}", h.DeleteSource)
+	r.Patch("/sources/{id}", h.SetSourceEnabled)
 	r.Post("/fetch", h.Fetch)
 	r.Get("/query", h.Query)
 	r.Get("/health", h.Health)
@@ -108,6 +110,56 @@ func (h *OracleHandler) CreateSource(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result)
+}
+
+// DeleteSource removes a data source (v1.41).
+func (h *OracleHandler) DeleteSource(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	uc := oracleapp.NewDeleteSourceUseCase(h.repo)
+	if err := uc.Execute(id); err != nil {
+		if errors.Is(err, oracle.ErrSourceNotFound) {
+			writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+			return
+		}
+		writeUseCaseError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// SetSourceEnabled enables or disables a source based on the PATCH body's
+// `enabled` boolean (v1.41).
+func (h *OracleHandler) SetSourceEnabled(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var req struct {
+		Enabled *bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeBadRequest(w, "invalid request")
+		return
+	}
+	if req.Enabled == nil {
+		writeBadRequest(w, "enabled field is required")
+		return
+	}
+
+	var err error
+	if *req.Enabled {
+		err = oracleapp.NewEnableSourceUseCase(h.repo).Execute(id)
+	} else {
+		err = oracleapp.NewDisableSourceUseCase(h.repo).Execute(id)
+	}
+	if err != nil {
+		if errors.Is(err, oracle.ErrSourceNotFound) {
+			writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+			return
+		}
+		writeUseCaseError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]bool{"enabled": *req.Enabled})
 }
 
 // Health returns the scheduler's per-source fetch-health statistics as JSON

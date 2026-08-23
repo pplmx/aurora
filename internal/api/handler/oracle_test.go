@@ -2,12 +2,14 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
@@ -97,6 +99,75 @@ func TestOracleHandler_CreateSource_Success(t *testing.T) {
 	}
 	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &created))
 	assert.NotEmpty(t, created.ID)
+}
+
+func TestOracleHandler_DeleteSource_Success(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
+	handler := NewOracleHandler(repo)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/oracle/sources/s1", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "s1")
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+	handler.DeleteSource(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"status":"deleted"`)
+}
+
+func TestOracleHandler_DeleteSource_NotFoundIsIdempotent(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	req := httptest.NewRequest(http.MethodDelete, "/api/v1/oracle/sources/missing", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "missing")
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+	handler.DeleteSource(rr, req)
+	// DELETE is idempotent (plain DELETE FROM ... WHERE id = ? with no
+	// rows-affected check), so a missing source still returns 200.
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestOracleHandler_SetSourceEnabled(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: false})
+	handler := NewOracleHandler(repo)
+
+	body, _ := json.Marshal(map[string]bool{"enabled": true})
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/oracle/sources/s1", bytes.NewBuffer(body))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "s1")
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+	handler.SetSourceEnabled(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"enabled":true`)
+}
+
+func TestOracleHandler_SetSourceEnabled_MissingBody(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/oracle/sources/s1", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "s1")
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+	handler.SetSourceEnabled(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestOracleHandler_SetSourceEnabled_NotFound(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	body, _ := json.Marshal(map[string]bool{"enabled": true})
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/oracle/sources/missing", bytes.NewBuffer(body))
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "missing")
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+	handler.SetSourceEnabled(rr, req)
+	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
 func TestOracleHandler_Health_NilStatsReturnsEmpty(t *testing.T) {

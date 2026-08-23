@@ -27,7 +27,7 @@
                 <h2>Data Sources</h2>
                 <div x-show="loading">Loading...</div>
                 <table x-show="!loading && sources.length > 0">
-                    <thead><tr><th>Name</th><th>Type</th><th>ID</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Type</th><th>ID</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                         <template x-for="s in sources" :key="s.id">
                             <tr>
@@ -35,6 +35,11 @@
                                 <td x-text="s.type"></td>
                                 <td x-text="s.id"></td>
                                 <td x-text="s.enabled ? 'enabled' : 'disabled'"></td>
+                                <td>
+                                    <button type="button" class="btn-lottery" @click="setEnabled(s, true)" x-show="!s.enabled">Enable</button>
+                                    <button type="button" class="btn-lottery" @click="setEnabled(s, false)" x-show="s.enabled">Disable</button>
+                                    <button type="button" class="btn-voting" @click="deleteSource(s)">Delete</button>
+                                </td>
                             </tr>
                         </template>
                     </tbody>
