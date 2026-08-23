@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 64,
+  "round": 65,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T08:32:37+00:00",
+  "updated_at": "2026-08-23T08:38:51+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -2532,7 +2532,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:29:29+00:00",
       "updated_at": "2026-08-23T05:29:29+00:00",
-      "touched_round": 52,
+      "touched_round": 65,
       "title": "Backup/restore subsystem"
     },
     "EV-016": {
@@ -3129,6 +3129,53 @@
       "touched_round": 64,
       "commit": "a4a166e",
       "title": "Fetch-time SSRF re-validation: export domain ValidateSourceURL and call it in FetchDataUseCase before dialing + regression tests"
+    },
+    "ISS-060": {
+      "id": "ISS-060",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T08:36:49+00:00",
+      "updated_at": "2026-08-23T08:38:51+00:00",
+      "touched_round": 65,
+      "severity": "high",
+      "title": "Backup integrity gap: BackupService.Verify checksums only the metadata JSON (Version/Timestamp/Databases/SchemaVersion), never the backup .db file contents; a truncated or bit-corrupted database that still opens with at least one table passes Verify and Restore, silently restoring corrupt data"
+    },
+    "TASK-068": {
+      "id": "TASK-068",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T08:36:52+00:00",
+      "updated_at": "2026-08-23T08:38:51+00:00",
+      "touched_round": 65,
+      "category": "correctness",
+      "severity": 0.65,
+      "confidence": 1.0,
+      "effort": 3,
+      "title": "Add per-database content checksums to backup metadata and verify them during Verify/Restore so a truncated or corrupted .db is rejected"
+    },
+    "EV-029": {
+      "id": "EV-029",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T08:36:58+00:00",
+      "updated_at": "2026-08-23T08:36:58+00:00",
+      "touched_round": 65,
+      "source": "worktree analysis round 65 (internal/infra/backup/backup.go): Verify computes sha256 only over marshalled BackupMetadata (Version/Timestamp/Databases/SchemaVersion) and checks each .db only for 'opens and has >=1 table'; no file-content checksum exists, so content corruption within a readable .db is not detected",
+      "confidence": 1.0
+    },
+    "CHG-066": {
+      "id": "CHG-066",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T08:38:47+00:00",
+      "updated_at": "2026-08-23T08:38:47+00:00",
+      "touched_round": 65,
+      "commit": "31f8fd9",
+      "title": "Add per-database content SHA-256 to backup metadata and verify it in Verify/Restore + regression test"
     }
   },
   "edges": [
@@ -4799,6 +4846,30 @@
       "to": "ISS-059",
       "type": "resolves",
       "created_at": "2026-08-23T08:32:34+00:00"
+    },
+    {
+      "from": "TASK-068",
+      "to": "ISS-060",
+      "type": "addresses",
+      "created_at": "2026-08-23T08:36:55+00:00"
+    },
+    {
+      "from": "ISS-060",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-08-23T08:36:55+00:00"
+    },
+    {
+      "from": "CHG-066",
+      "to": "TASK-068",
+      "type": "implements",
+      "created_at": "2026-08-23T08:38:51+00:00"
+    },
+    {
+      "from": "CHG-066",
+      "to": "ISS-060",
+      "type": "resolves",
+      "created_at": "2026-08-23T08:38:51+00:00"
     }
   ]
 }
