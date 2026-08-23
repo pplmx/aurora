@@ -10,9 +10,9 @@ import (
 
 func TestRegistry_ObserveAndExpose(t *testing.T) {
 	reg := NewRegistry()
-	reg.Observe(http.StatusOK, 5*time.Millisecond)
-	reg.Observe(http.StatusOK, 20*time.Millisecond)
-	reg.Observe(http.StatusNotFound, 2*time.Second)
+	reg.Observe(http.StatusOK, 5*time.Millisecond, "token")
+	reg.Observe(http.StatusOK, 20*time.Millisecond, "token")
+	reg.Observe(http.StatusNotFound, 2*time.Second, "nft")
 
 	out := reg.Expose()
 	if !strings.Contains(out, "http_requests_total 3") {
@@ -33,7 +33,7 @@ func TestRegistry_ObserveAndExpose(t *testing.T) {
 
 func TestRegistry_HandlerServesMetrics(t *testing.T) {
 	reg := NewRegistry()
-	reg.Observe(http.StatusOK, time.Millisecond)
+	reg.Observe(http.StatusOK, time.Millisecond, "health")
 
 	h := reg.Handler()
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
@@ -101,5 +101,61 @@ func TestMiddleware_StreamingInterfaces(t *testing.T) {
 	}
 	if reg.total != 1 {
 		t.Fatalf("expected 1 recorded request, got %d", reg.total)
+	}
+}
+func TestClassifyModule(t *testing.T) {
+	cases := []struct{ path, want string }{
+		{"/api/v1/token/transfer", "token"},
+		{"/api/v1/nft/mint", "nft"},
+		{"/api/v1/voting/vote", "voting"},
+		{"/api/v1/lottery/create", "lottery"},
+		{"/api/v1/oracle/fetch", "oracle"},
+		{"/api/v1/unknown/x", "unknown"},
+		{"/healthz", "health"},
+		{"/readyz", "health"},
+		{"/health", "health"},
+		{"/", "health"},
+		{"/metrics", "metrics"},
+		{"/index.html", "static"},
+		{"/app.js", "static"},
+	}
+	for _, c := range cases {
+		if got := classifyModule(c.path); got != c.want {
+			t.Errorf("classifyModule(%q) = %q, want %q", c.path, got, c.want)
+		}
+	}
+}
+
+func TestRegistry_PerModuleExpose(t *testing.T) {
+	reg := NewRegistry()
+	reg.Observe(http.StatusOK, time.Millisecond, "token")
+	reg.Observe(http.StatusTeapot, time.Millisecond, "token")
+	reg.Observe(http.StatusOK, time.Millisecond, "nft")
+
+	out := reg.Expose()
+	if !strings.Contains(out, `http_requests_by_module{module="token"} 2`) {
+		t.Errorf("expected token module total 2 in:\n%s", out)
+	}
+	if !strings.Contains(out, `http_requests_by_module{module="nft"} 1`) {
+		t.Errorf("expected nft module total 1 in:\n%s", out)
+	}
+	if !strings.Contains(out, `http_requests_by_module_status{module="token",code="418"} 1`) {
+		t.Errorf("expected token 418 module-status 1 in:\n%s", out)
+	}
+}
+
+func TestMiddleware_RecordsModule(t *testing.T) {
+	reg := NewRegistry()
+	handler := Middleware(reg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/token/transfer", nil)
+	handler.ServeHTTP(httptest.NewRecorder(), req)
+
+	if reg.moduleTotal["token"] != 1 {
+		t.Errorf("expected token module total 1, got %d", reg.moduleTotal["token"])
+	}
+	if reg.moduleStatus["token"][http.StatusOK] != 1 {
+		t.Errorf("expected token 200 module-status 1")
 	}
 }
