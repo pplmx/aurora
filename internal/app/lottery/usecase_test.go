@@ -1,6 +1,8 @@
 package lottery
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
@@ -86,6 +88,23 @@ func TestCreateLotteryUseCase_Execute(t *testing.T) {
 	}
 	if len(lotteryRepo.records) != 1 || lotteryRepo.records[0].VRFPublicKey == "" {
 		t.Error("Expected the stored record to persist the VRF public key")
+	}
+
+	// Regression: LotteryResponse previously had no json tags, so the
+	// POST /api/v1/lottery/create payload was PascalCase, inconsistent with the
+	// rest of the snake_case API. Lock the contract.
+	raw, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("marshal response: %v", err)
+	}
+	body := string(raw)
+	for _, want := range []string{`"id"`, `"block_height"`, `"winner_addresses"`, `"vrf_proof"`, `"vrf_output"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("lottery create JSON missing %s (got %s)", want, body)
+		}
+	}
+	if strings.Contains(body, `"ID"`) {
+		t.Errorf("lottery create JSON should be snake_case, got PascalCase key: %s", body)
 	}
 }
 
