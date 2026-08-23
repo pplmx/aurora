@@ -572,6 +572,7 @@ function oracleApp() {
         addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
         fetchSource: '', fetchResult: '',
         querySource: '', queryLimit: 10, queryRows: [],
+        latestSource: '', latestResult: '',
         async init() { await Promise.all([this.listSources(), this.loadHealth()]); },
         async loadHealth() {
             this.loadingHealth = true;
@@ -654,6 +655,14 @@ function oracleApp() {
                 const data = await res.json();
                 this.queryRows = (data && data.data) || [];
             } catch (e) { this.queryRows = []; }
+        },
+        async latest() {
+            try {
+                const res = await fetch('/api/v1/oracle/latest?source=' + encodeURIComponent(this.latestSource), { headers: auroraHeaders() });
+                this.latestResult = JSON.stringify(await res.json(), null, 2);
+            } catch (e) {
+                this.latestResult = 'Error: ' + e.message;
+            }
         }
     };
 }

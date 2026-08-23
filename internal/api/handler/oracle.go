@@ -58,6 +58,7 @@ func (h *OracleHandler) Routes(r chi.Router) {
 	r.Patch("/sources/{id}", h.SetSourceEnabled)
 	r.Post("/fetch", h.Fetch)
 	r.Get("/query", h.Query)
+	r.Get("/latest", h.Latest)
 	r.Get("/health", h.Health)
 }
 
@@ -215,6 +216,27 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 		SourceID: source,
 		Limit:    limit,
 	})
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// Latest returns the single most recent data point for a source (v1.45). The
+// CLI exposed this as `oracle latest` but the REST API and web UI had no way to
+// read a source's current value.
+func (h *OracleHandler) Latest(w http.ResponseWriter, r *http.Request) {
+	source := r.URL.Query().Get("source")
+	if source == "" {
+		writeBadRequest(w, "source parameter is required")
+		return
+	}
+
+	uc := oracleapp.NewGetLatestDataUseCase(h.repo)
+	result, err := uc.Execute(&oracleapp.GetLatestDataRequest{SourceID: source})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return

@@ -107,6 +107,14 @@
                     </tbody>
                 </table>
             </section>
+            <section class="history">
+                <h2>Latest Data</h2>
+                <form @submit.prevent="latest">
+                    <div class="form-group"><label>Source ID</label><input type="text" x-model="latestSource" required></div>
+                    <button type="submit" class="btn-lottery">Get Latest</button>
+                </form>
+                <pre x-show="latestResult" class="result" x-text="latestResult"></pre>
+            </section>
         </main>
     </div>
     <script src="/js/app.js"></script>
