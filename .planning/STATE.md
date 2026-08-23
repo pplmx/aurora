@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.13 Observability complete; correctness + robustness rounds (blockchain concurrent append, metrics streaming interfaces)
+**Current focus:** v1.14 Observability Enrichment (per-module request metrics) IN PROGRESS
 
 ## Current Position
 
 Phase: v1.5 Complete (migrate CLI + coverage bar)
 Plan: [v1.6 ROADMAP](milestones/v1.6-ROADMAP.md) — Interactive Surface Parity
-Status: v1.5–v1.13 complete; deep-dive correctness fix in flight
-Last activity: 2026-08-23 — v1.8–v1.13 closed; two deep-dive rounds fixed a
-  blockchain concurrency correctness bug (duplicate heights + broken prev-hash
-  chain, losing blocks on restart) and hardened the metrics middleware so
-  streaming/upgrade handlers still work behind it (Flusher/Hijacker/Push/Unwrap)
+Status: v1.5–v1.13 complete; v1.14 Observability Enrichment started (TASK-020 done: per-module request metrics)
+Last activity: 2026-08-23 — v1.8–v1.13 closed; deep-dive rounds fixed a
+  blockchain concurrency bug and hardened the metrics middleware
+  (Flusher/Hijacker/Push/Unwrap); opened v1.14 Observability Enrichment and
+  delivered TASK-020 per-module request metrics
 
 Progress: v1.5 [██████████] 100%; v1.6 [█████░░░░░] 50%
 
