@@ -130,6 +130,9 @@ function votingApp() {
         voteVoterPub: '',
         votePriv: '',
         voteResult: '',
+        resultsSessionId: '',
+        results: null,
+        resultsError: '',
         candidates: [],
         sessions: [],
         loading: true,
@@ -250,6 +253,22 @@ function votingApp() {
                 await this.loadCandidates();
             } catch (e) {
                 this.voteResult = 'Error: ' + e.message;
+            }
+        },
+        async loadResults() {
+            try {
+                const res = await fetch('/api/v1/voting/results/' + encodeURIComponent(this.resultsSessionId), { headers: auroraHeaders() });
+                const data = await res.json();
+                if (!res.ok) {
+                    this.results = null;
+                    this.resultsError = 'Error: ' + (data.message || res.status);
+                    return;
+                }
+                this.results = data;
+                this.resultsError = '';
+            } catch (e) {
+                this.results = null;
+                this.resultsError = 'Error: ' + e.message;
             }
         }
     };

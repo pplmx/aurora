@@ -112,6 +112,13 @@ func TestWebUIContract_AllReferencedEndpointsResolve(t *testing.T) {
 
 		rctx := chi.NewRouteContext()
 		matched := router.Match(rctx, method, path)
+		if !matched && strings.HasSuffix(path, "/") {
+			// Pages build dynamic paths like '/api/v1/voting/results/' + id; the
+			// captured literal is everything up to the interpolation, so probe
+			// with a param segment to resolve {id} routes.
+			rctx = chi.NewRouteContext()
+			matched = router.Match(rctx, method, path+"1")
+		}
 		require.Truef(t, matched,
 			"web UI calls %s %s but no API route matches (silent 404 regression)",
 			method, path)

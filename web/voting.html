@@ -137,6 +137,32 @@
                 </form>
                 <div x-show="voteResult" class="result" x-text="voteResult"></div>
             </section>
+            <section class="history">
+                <h2>Election Results</h2>
+                <form @submit.prevent="loadResults">
+                    <div class="form-group">
+                        <label>Session ID</label>
+                        <input type="text" x-model="resultsSessionId" placeholder="Session ID" required>
+                    </div>
+                    <button type="submit" class="btn-voting">Show Results</button>
+                </form>
+                <div x-show="resultsError" class="result" x-text="resultsError"></div>
+                <table x-show="results" x-data>
+                    <thead>
+                        <tr><th>Candidate</th><th>Party</th><th>Votes</th></tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="c in results.candidates" :key="c.id">
+                            <tr>
+                                <td x-text="c.name"></td>
+                                <td x-text="c.party"></td>
+                                <td x-text="c.vote_count"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+                <div x-show="results" class="result" x-text="'Total votes: ' + results.total_votes"></div>
+            </section>
         </main>
     </div>
     <script src="/js/app.js"></script>
