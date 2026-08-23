@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 37,
+  "round": 38,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T04:30:13+00:00",
+  "updated_at": "2026-08-23T04:33:24+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1697,6 +1697,63 @@
       "touched_round": 36,
       "commit": "86c8ec1",
       "title": "Blockchain integrity verification (VerifyIntegrity + GET /api/v1/blockchain/verify)"
+    },
+    "ISS-030": {
+      "id": "ISS-030",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T04:31:36+00:00",
+      "updated_at": "2026-08-23T04:33:15+00:00",
+      "touched_round": 37,
+      "title": "No web surface to view the blockchain integrity verification result though GET /api/v1/blockchain/verify exists (v1.25)",
+      "severity": "low"
+    },
+    "TASK-038": {
+      "id": "TASK-038",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T04:31:36+00:00",
+      "updated_at": "2026-08-23T04:33:21+00:00",
+      "touched_round": 37,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 2.0,
+      "title": "Add web/blockchain.html wired to GET /api/v1/blockchain/verify showing integrity report; add nav link + webserve test"
+    },
+    "COMP-004": {
+      "id": "COMP-004",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:31:39+00:00",
+      "updated_at": "2026-08-23T04:31:39+00:00",
+      "touched_round": 37,
+      "title": "web UI static pages (router-injected API key)"
+    },
+    "EV-003": {
+      "id": "EV-003",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:33:12+00:00",
+      "updated_at": "2026-08-23T04:33:12+00:00",
+      "touched_round": 37,
+      "source": "TestWebUIServe_RealAssetsInjectedWithAPIKey + TestWebUIContract_AllReferencedEndpointsResolve (go test ./internal/api/...)",
+      "title": "blockchain.html serves with injected key and /api/v1/blockchain/verify resolves",
+      "confidence": 1.0
+    },
+    "CHG-037": {
+      "id": "CHG-037",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:33:12+00:00",
+      "updated_at": "2026-08-23T04:33:12+00:00",
+      "touched_round": 37,
+      "commit": "99d59d4",
+      "title": "Blockchain integrity verification web page (web/blockchain.html + nav + contract/asset tests)"
     }
   },
   "edges": [
@@ -2641,6 +2698,30 @@
       "to": "ISS-029",
       "type": "resolves",
       "created_at": "2026-08-23T04:30:07+00:00"
+    },
+    {
+      "from": "TASK-038",
+      "to": "ISS-030",
+      "type": "addresses",
+      "created_at": "2026-08-23T04:31:40+00:00"
+    },
+    {
+      "from": "ISS-030",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-08-23T04:31:42+00:00"
+    },
+    {
+      "from": "CHG-037",
+      "to": "TASK-038",
+      "type": "implements",
+      "created_at": "2026-08-23T04:33:15+00:00"
+    },
+    {
+      "from": "CHG-037",
+      "to": "ISS-030",
+      "type": "resolves",
+      "created_at": "2026-08-23T04:33:15+00:00"
     }
   ]
 }
