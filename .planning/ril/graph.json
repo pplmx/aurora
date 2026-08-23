@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 48,
+  "round": 49,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:16:15+00:00",
+  "updated_at": "2026-08-23T05:19:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 32,
+      "touched_round": 48,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -2302,6 +2302,53 @@
       "touched_round": 47,
       "commit": "a2b68ea",
       "title": "Expose token TransferFrom (spend allowance) over REST, CLI, and web"
+    },
+    "ISS-043": {
+      "id": "ISS-043",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:18:46+00:00",
+      "updated_at": "2026-08-23T05:19:42+00:00",
+      "touched_round": 48,
+      "title": "The oracle app response DTOs have no json tags, so every oracle REST response emits PascalCase JSON while the oracle web page reads snake_case (data.sources, s.name, data.data) -- the v1.21 oracle page data features render empty",
+      "severity": "medium"
+    },
+    "TASK-051": {
+      "id": "TASK-051",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:18:46+00:00",
+      "updated_at": "2026-08-23T05:19:42+00:00",
+      "touched_round": 48,
+      "category": "correctness",
+      "severity": 0.5,
+      "priority_score": 3.0,
+      "title": "Add snake_case json tags to oracle app response DTOs and add a regression test asserting the /sources and /query JSON contracts"
+    },
+    "EV-012": {
+      "id": "EV-012",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:19:37+00:00",
+      "updated_at": "2026-08-23T05:19:37+00:00",
+      "touched_round": 48,
+      "source": "go test ./... (33 pkgs) + TestOracleHandler_Sources/Query_SnakeCaseJSONContract",
+      "title": "Oracle REST JSON contract fixed to snake_case and guarded by regression tests",
+      "confidence": 1.0
+    },
+    "CHG-050": {
+      "id": "CHG-050",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:19:37+00:00",
+      "updated_at": "2026-08-23T05:19:37+00:00",
+      "touched_round": 48,
+      "commit": "c50c813",
+      "title": "Oracle response DTO json tags (snake_case) + contract regression tests"
     }
   },
   "edges": [
@@ -3564,6 +3611,30 @@
       "to": "ISS-042",
       "type": "resolves",
       "created_at": "2026-08-23T05:16:15+00:00"
+    },
+    {
+      "from": "TASK-051",
+      "to": "ISS-043",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:18:49+00:00"
+    },
+    {
+      "from": "ISS-043",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:18:49+00:00"
+    },
+    {
+      "from": "CHG-050",
+      "to": "TASK-051",
+      "type": "implements",
+      "created_at": "2026-08-23T05:19:41+00:00"
+    },
+    {
+      "from": "CHG-050",
+      "to": "ISS-043",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:19:41+00:00"
     }
   ]
 }
