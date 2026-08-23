@@ -42,9 +42,9 @@ function lotteryApp() {
                     method: 'POST',
                     headers: auroraHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({
-                        participants: this.participants.split(',').map(p => p.trim()),
+                        participants: this.participants.split(',').map(p => p.trim()).filter(Boolean).join(','),
                         seed: this.seed || undefined,
-                        count: parseInt(this.count)
+                        winner_count: parseInt(this.count)
                     })
                 });
                 const data = await res.json();
