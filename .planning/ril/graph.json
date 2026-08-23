@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 60,
+  "round": 61,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:54:26+00:00",
+  "updated_at": "2026-08-23T05:56:46+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 47,
+      "touched_round": 60,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -2917,6 +2917,53 @@
       "source": "go test ./... --cover, measured per module 2026-08-23",
       "title": "Coverage numbers refreshed in AGENTS.md match measured values",
       "confidence": 1.0
+    },
+    "ISS-055": {
+      "id": "ISS-055",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:55:57+00:00",
+      "updated_at": "2026-08-23T05:56:45+00:00",
+      "touched_round": 60,
+      "title": "The token transfer_from allowance-spending flow (v1.38) has unit/contract tests but no end-to-end HTTP+SQLite smoke test",
+      "severity": "low"
+    },
+    "TASK-063": {
+      "id": "TASK-063",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:55:57+00:00",
+      "updated_at": "2026-08-23T05:56:45+00:00",
+      "touched_round": 60,
+      "category": "test-quality",
+      "severity": 0.45,
+      "priority_score": 2.0,
+      "title": "Extend the token/nft HTTP smoke test to cover transfer_from (spender spends allowance; balance and allowance reflect it)"
+    },
+    "EV-025": {
+      "id": "EV-025",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:56:40+00:00",
+      "updated_at": "2026-08-23T05:56:40+00:00",
+      "touched_round": 60,
+      "source": "go test ./internal/api -run TestTokenNFT_Smoke; full suite 33 pkgs green",
+      "title": "token transfer_from allowance-spending verified end-to-end over HTTP+SQLite",
+      "confidence": 1.0
+    },
+    "CHG-062": {
+      "id": "CHG-062",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:56:40+00:00",
+      "updated_at": "2026-08-23T05:56:40+00:00",
+      "touched_round": 60,
+      "commit": "41daa19",
+      "title": "Token transfer_from E2E smoke test"
     }
   },
   "edges": [
@@ -4467,6 +4514,30 @@
       "to": "ISS-054",
       "type": "resolves",
       "created_at": "2026-08-23T05:54:26+00:00"
+    },
+    {
+      "from": "TASK-063",
+      "to": "ISS-055",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:56:01+00:00"
+    },
+    {
+      "from": "ISS-055",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:56:01+00:00"
+    },
+    {
+      "from": "CHG-062",
+      "to": "TASK-063",
+      "type": "implements",
+      "created_at": "2026-08-23T05:56:45+00:00"
+    },
+    {
+      "from": "CHG-062",
+      "to": "ISS-055",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:56:45+00:00"
     }
   ]
 }
