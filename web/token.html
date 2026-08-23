@@ -86,6 +86,19 @@
                 <pre x-show="approveResult" class="result" x-text="approveResult"></pre>
             </section>
             <section class="history">
+                <h2>Transfer From (spend allowance)</h2>
+                <form @submit.prevent="transferFrom">
+                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="tfOwner" required></div>
+                    <div class="form-group"><label>To (public key)</label><input type="text" x-model="tfTo" required></div>
+                    <div class="form-group"><label>Amount</label><input type="text" x-model="tfAmount" required></div>
+                    <div class="form-group"><label>Spender (public key)</label><input type="text" x-model="tfSpender" required></div>
+                    <div class="form-group"><label>Spender Private Key</label><input type="password" x-model="tfSpenderKey" required></div>
+                    <button type="submit" class="btn-lottery">Transfer From</button>
+                </form>
+                <pre x-show="tfResult" class="result" x-text="tfResult"></pre>
+            </section>
+            <section class="history">
                 <h2>Allowance</h2>
                 <form @submit.prevent="getAllowance">
                     <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>

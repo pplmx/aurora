@@ -36,6 +36,7 @@ func (h *TokenHandler) Routes(r chi.Router) {
 	r.Post("/transfer", h.Transfer)
 	r.Post("/approve", h.Approve)
 	r.Post("/burn", h.Burn)
+	r.Post("/transfer_from", h.TransferFrom)
 	r.Get("/balance", h.Balance)
 	r.Get("/allowance", h.Allowance)
 	r.Get("/history", h.History)
@@ -297,6 +298,43 @@ func (h *TokenHandler) Info(w http.ResponseWriter, r *http.Request) {
 			writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
 			return
 		}
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// TransferFrom spends an allowance on the owner's behalf: the spender signs
+// with their own private key and the owner's allowance is drawn down toward
+// the recipient. The domain/app layer implemented this, but it was exposed
+// nowhere (v1.38), so an approved allowance could not actually be spent
+// through any CLI/REST/web surface.
+func (h *TokenHandler) TransferFrom(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TokenID    string `json:"token_id"`
+		Owner      string `json:"owner"`
+		To         string `json:"to"`
+		Amount     string `json:"amount"`
+		Spender    string `json:"spender"`
+		SpenderKey string `json:"spender_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeBadRequest(w, "invalid request")
+		return
+	}
+
+	uc := tokenapp.NewTransferFromUseCase(h.service)
+	result, err := uc.Execute(&tokenapp.TransferFromRequest{
+		TokenID:    req.TokenID,
+		Owner:      req.Owner,
+		To:         req.To,
+		Amount:     req.Amount,
+		Spender:    req.Spender,
+		SpenderKey: req.SpenderKey,
+	})
+	if err != nil {
 		writeUseCaseError(w, err)
 		return
 	}

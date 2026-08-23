@@ -231,17 +231,18 @@ func (tr *Translator) loadMessages() {
 
 		// ===== TOKEN =====
 		// Commands
-		"token.cmd":           "Fungible Token (FT) system",
-		"token.create.cmd":    "Create a new token",
-		"token.mint.cmd":      "Mint tokens",
-		"token.transfer.cmd":  "Transfer tokens",
-		"token.approve.cmd":   "Approve allowance",
-		"token.burn.cmd":      "Burn tokens",
-		"token.balance.cmd":   "Query balance",
-		"token.allowance.cmd": "Query allowance",
-		"token.history.cmd":   "Query transfer history",
-		"token.info.cmd":      "Query token info",
-		"token.tui.cmd":       "Launch Token TUI",
+		"token.cmd":               "Fungible Token (FT) system",
+		"token.create.cmd":        "Create a new token",
+		"token.mint.cmd":          "Mint tokens",
+		"token.transfer.cmd":      "Transfer tokens",
+		"token.approve.cmd":       "Approve allowance",
+		"token.transfer_from.cmd": "Transfer from (spend allowance)",
+		"token.burn.cmd":          "Burn tokens",
+		"token.balance.cmd":       "Query balance",
+		"token.allowance.cmd":     "Query allowance",
+		"token.history.cmd":       "Query transfer history",
+		"token.info.cmd":          "Query token info",
+		"token.tui.cmd":           "Launch Token TUI",
 
 		// Flags
 		"token.name":        "Token name",
@@ -551,17 +552,18 @@ func (tr *Translator) loadMessages() {
 
 		// ===== TOKEN =====
 		// Commands
-		"token.cmd":           "代币 (FT) 系统",
-		"token.create.cmd":    "创建新代币",
-		"token.mint.cmd":      "铸造代币",
-		"token.transfer.cmd":  "转移代币",
-		"token.approve.cmd":   "批准额度",
-		"token.burn.cmd":      "销毁代币",
-		"token.balance.cmd":   "查询余额",
-		"token.allowance.cmd": "查询额度",
-		"token.history.cmd":   "查询转账历史",
-		"token.info.cmd":      "查询代币信息",
-		"token.tui.cmd":       "启动代币 TUI",
+		"token.cmd":               "代币 (FT) 系统",
+		"token.create.cmd":        "创建新代币",
+		"token.mint.cmd":          "铸造代币",
+		"token.transfer.cmd":      "转移代币",
+		"token.approve.cmd":       "批准额度",
+		"token.transfer_from.cmd": "代付转账（使用额度）",
+		"token.burn.cmd":          "销毁代币",
+		"token.balance.cmd":       "查询余额",
+		"token.allowance.cmd":     "查询额度",
+		"token.history.cmd":       "查询转账历史",
+		"token.info.cmd":          "查询代币信息",
+		"token.tui.cmd":           "启动代币 TUI",
 
 		// Flags
 		"token.name":        "代币名称",

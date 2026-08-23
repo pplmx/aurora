@@ -64,6 +64,7 @@ func init() {
 	tokenCmd.AddCommand(tokenMintCmd)
 	tokenCmd.AddCommand(tokenTransferCmd)
 	tokenCmd.AddCommand(tokenApproveCmd)
+	tokenCmd.AddCommand(tokenTransferFromCmd)
 	tokenCmd.AddCommand(tokenBurnCmd)
 	tokenCmd.AddCommand(tokenBalanceCmd)
 	tokenCmd.AddCommand(tokenAllowanceCmd)
@@ -109,6 +110,19 @@ func init() {
 	_ = tokenApproveCmd.MarkFlagRequired("spender")
 	_ = tokenApproveCmd.MarkFlagRequired("amount")
 	_ = tokenApproveCmd.MarkFlagRequired("private-key")
+
+	tokenTransferFromCmd.Flags().StringP("token", "t", "", i18n.GetText("token.token_id"))
+	tokenTransferFromCmd.Flags().StringP("owner", "o", "", i18n.GetText("token.owner"))
+	tokenTransferFromCmd.Flags().String("to", "", i18n.GetText("token.to"))
+	tokenTransferFromCmd.Flags().StringP("amount", "a", "", i18n.GetText("token.amount"))
+	tokenTransferFromCmd.Flags().StringP("spender", "s", "", i18n.GetText("token.spender"))
+	tokenTransferFromCmd.Flags().StringP("spender-key", "k", "", i18n.GetText("token.private_key"))
+	_ = tokenTransferFromCmd.MarkFlagRequired("token")
+	_ = tokenTransferFromCmd.MarkFlagRequired("owner")
+	_ = tokenTransferFromCmd.MarkFlagRequired("to")
+	_ = tokenTransferFromCmd.MarkFlagRequired("amount")
+	_ = tokenTransferFromCmd.MarkFlagRequired("spender")
+	_ = tokenTransferFromCmd.MarkFlagRequired("spender-key")
 
 	tokenBurnCmd.Flags().StringP("token", "t", "", i18n.GetText("token.token_id"))
 	tokenBurnCmd.Flags().StringP("from", "f", "", i18n.GetText("token.from"))
@@ -297,6 +311,49 @@ var tokenApproveCmd = &cobra.Command{
 		fmt.Printf("   ID: %s\n", resp.ID)
 		fmt.Printf("   Owner: %s\n", truncateBase64(resp.Owner))
 		fmt.Printf("   Spender: %s\n", truncateBase64(resp.Spender))
+		fmt.Printf("   Amount: %s\n", resp.Amount)
+		return nil
+	},
+}
+
+var tokenTransferFromCmd = &cobra.Command{
+	Use:   "transfer-from",
+	Short: i18n.GetText("token.transfer_from.cmd"),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		service, cleanup, err := newTokenService()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
+		uc := tokent.NewTransferFromUseCase(service)
+
+		tokenID, _ := cmd.Flags().GetString("token")
+		owner, _ := cmd.Flags().GetString("owner")
+		to, _ := cmd.Flags().GetString("to")
+		amount, _ := cmd.Flags().GetString("amount")
+		spender, _ := cmd.Flags().GetString("spender")
+		spenderKey, _ := cmd.Flags().GetString("spender-key")
+
+		req := &tokent.TransferFromRequest{
+			TokenID:    tokenID,
+			Owner:      owner,
+			To:         to,
+			Amount:     amount,
+			Spender:    spender,
+			SpenderKey: spenderKey,
+		}
+
+		resp, err := uc.Execute(req)
+		if err != nil {
+			return fmt.Errorf("failed to transfer from: %w", err)
+		}
+
+		fmt.Println("✅ " + i18n.GetText("token.transferred"))
+		fmt.Printf("   ID: %s\n", resp.ID)
+		fmt.Printf("   Owner: %s\n", truncateBase64(resp.From))
+		fmt.Printf("   To: %s\n", truncateBase64(resp.To))
+		fmt.Printf("   Spender: %s\n", truncateBase64(req.Spender))
 		fmt.Printf("   Amount: %s\n", resp.Amount)
 		return nil
 	},

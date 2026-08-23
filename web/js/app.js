@@ -448,6 +448,7 @@ function tokenApp() {
         allowanceSpender: '', allowanceResult: '',
         burnPriv: '', burnResult: '',
         infoId: '', infoResult: '',
+        tfOwner: '', tfTo: '', tfAmount: '', tfSpender: '', tfSpenderKey: '', tfResult: '',
         history: [],
         async postToken(url, body) {
             const res = await fetch(url, {
@@ -537,6 +538,16 @@ function tokenApp() {
                 });
             } catch (e) {
                 this.burnResult = 'Error: ' + e.message;
+            }
+        },
+        async transferFrom() {
+            try {
+                this.tfResult = await this.postToken('/api/v1/token/transfer_from', {
+                    token_id: this.tokenId, owner: this.tfOwner, to: this.tfTo,
+                    amount: this.tfAmount, spender: this.tfSpender, spender_key: this.tfSpenderKey
+                });
+            } catch (e) {
+                this.tfResult = 'Error: ' + e.message;
             }
         },
         async loadHistory() {
