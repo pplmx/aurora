@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 21,
+  "round": 22,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T00:26:36+00:00",
+  "updated_at": "2026-08-23T00:30:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 1,
+      "touched_round": 22,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -1172,6 +1172,41 @@
       "touched_round": 21,
       "commit": "93f6a63",
       "title": "request_id in HTTP request log"
+    },
+    "ISS-015": {
+      "id": "ISS-015",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:30:02+00:00",
+      "updated_at": "2026-08-23T00:30:26+00:00",
+      "touched_round": 22,
+      "title": "Oracle source Interval is stored/exposed but never used: no scheduled fetching exists",
+      "severity": "medium"
+    },
+    "TASK-023": {
+      "id": "TASK-023",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T00:30:02+00:00",
+      "updated_at": "2026-08-23T00:30:26+00:00",
+      "touched_round": 22,
+      "category": "core-feature",
+      "priority_score": 2.3,
+      "severity": 0.5,
+      "title": "Add an oracle scheduler that periodically fetches enabled sources on their configured interval"
+    },
+    "CHG-022": {
+      "id": "CHG-022",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:30:15+00:00",
+      "updated_at": "2026-08-23T00:30:15+00:00",
+      "touched_round": 22,
+      "commit": "7a05b99",
+      "title": "Oracle fetch scheduler"
     }
   },
   "edges": [
@@ -1756,6 +1791,30 @@
       "to": "TASK-022",
       "type": "implements",
       "created_at": "2026-08-23T00:26:26+00:00"
+    },
+    {
+      "from": "ISS-015",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T00:30:02+00:00"
+    },
+    {
+      "from": "TASK-023",
+      "to": "ISS-015",
+      "type": "addresses",
+      "created_at": "2026-08-23T00:30:02+00:00"
+    },
+    {
+      "from": "CHG-022",
+      "to": "ISS-015",
+      "type": "resolves",
+      "created_at": "2026-08-23T00:30:15+00:00"
+    },
+    {
+      "from": "CHG-022",
+      "to": "TASK-023",
+      "type": "implements",
+      "created_at": "2026-08-23T00:30:15+00:00"
     }
   ]
 }
