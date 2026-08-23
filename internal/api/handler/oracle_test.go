@@ -27,6 +27,40 @@ func TestOracleHandler_Sources_Empty(t *testing.T) {
 	assert.NotEmpty(t, rr.Body.String())
 }
 
+func TestOracleHandler_Sources_SnakeCaseJSONContract(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", Name: "Feed", URL: "http://example.com", Enabled: true})
+	handler := NewOracleHandler(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/sources", nil)
+	rr := httptest.NewRecorder()
+	handler.Sources(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	// Regression: the web page reads data.sources and s.name etc. (snake_case),
+	// but the oracle DTOs previously lacked json tags and emitted PascalCase.
+	assert.Contains(t, rr.Body.String(), `"sources"`)
+	assert.Contains(t, rr.Body.String(), `"name":"Feed"`)
+	assert.NotContains(t, rr.Body.String(), `"Sources"`)
+}
+
+func TestOracleHandler_Query_SnakeCaseJSONContract(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
+	_ = repo.SaveData(&oracle.OracleData{ID: "d1", SourceID: "s1", Value: "100", Timestamp: 123})
+	handler := NewOracleHandler(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/query?source=s1&limit=5", nil)
+	rr := httptest.NewRecorder()
+	handler.Query(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"data"`)
+	assert.Contains(t, rr.Body.String(), `"value":"100"`)
+	assert.Contains(t, rr.Body.String(), `"timestamp":123`)
+	assert.NotContains(t, rr.Body.String(), `"Value"`)
+}
+
 func TestOracleHandler_Health_NilStatsReturnsEmpty(t *testing.T) {
 	handler := NewOracleHandler(oracle.NewInmemRepo())
 
