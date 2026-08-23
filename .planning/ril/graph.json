@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 70,
+  "round": 71,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T09:13:27+00:00",
+  "updated_at": "2026-08-23T09:20:49+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 60,
+      "touched_round": 71,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -3411,6 +3411,53 @@
       "touched_round": 70,
       "commit": "feb6f68",
       "title": "Configure http.Server Read/Write/Header/Idle timeouts via testable newServer constructor + unit test"
+    },
+    "ISS-066": {
+      "id": "ISS-066",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T09:18:17+00:00",
+      "updated_at": "2026-08-23T09:20:49+00:00",
+      "touched_round": 71,
+      "severity": "medium",
+      "title": "Token transfer-history pagination under-fills: GetTransferEventsByOwner passes limit/offset straight to GetByAggregate, whose SQL LIMIT/OFFSET counts ALL events for the token aggregate (mint/burn/transfer), THEN filters for token.transfer type + owner in memory; so for a token with interleaved mint/burn events a request for limit=5 can return fewer than 5 transfers (verified: 5 -> 2), and offset pagination skips transfers"
+    },
+    "TASK-074": {
+      "id": "TASK-074",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T09:18:21+00:00",
+      "updated_at": "2026-08-23T09:20:49+00:00",
+      "touched_round": 71,
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 3,
+      "title": "Fix token transfer-history pagination so limit/offset apply to TRANSFER events only (filter event_type=token.transfer in the store query before in-memory owner filter), plus a regression test against the real SQLite store"
+    },
+    "EV-035": {
+      "id": "EV-035",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:18:53+00:00",
+      "updated_at": "2026-08-23T09:18:53+00:00",
+      "touched_round": 71,
+      "source": "empirical round 71 (real SQLite event store): interleaved 20 transfers + 20 mints on token T; GetTransferEventsByOwner(T, owner, 5, 0) returned 2 (not 5) because GetByAggregate applies SQL LIMIT over all events before the type/owner filter",
+      "confidence": 1.0
+    },
+    "CHG-072": {
+      "id": "CHG-072",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:20:44+00:00",
+      "updated_at": "2026-08-23T09:20:44+00:00",
+      "touched_round": 71,
+      "commit": "578fdc1",
+      "title": "Add EventRepository.GetByAggregateAndType (SQL type-filtered paging) and use it in GetTransferEventsByOwner + regression test"
     }
   },
   "edges": [
@@ -5225,6 +5272,30 @@
       "to": "ISS-065",
       "type": "resolves",
       "created_at": "2026-08-23T09:13:26+00:00"
+    },
+    {
+      "from": "TASK-074",
+      "to": "ISS-066",
+      "type": "addresses",
+      "created_at": "2026-08-23T09:18:53+00:00"
+    },
+    {
+      "from": "ISS-066",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-23T09:18:53+00:00"
+    },
+    {
+      "from": "CHG-072",
+      "to": "TASK-074",
+      "type": "implements",
+      "created_at": "2026-08-23T09:20:44+00:00"
+    },
+    {
+      "from": "CHG-072",
+      "to": "ISS-066",
+      "type": "resolves",
+      "created_at": "2026-08-23T09:20:48+00:00"
     }
   ]
 }
