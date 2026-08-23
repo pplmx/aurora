@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 42,
+  "round": 43,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T04:56:14+00:00",
+  "updated_at": "2026-08-23T04:58:46+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1985,7 +1985,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:53:50+00:00",
       "updated_at": "2026-08-23T04:53:50+00:00",
-      "touched_round": 41,
+      "touched_round": 42,
       "title": "Oracle module scheduler/app"
     },
     "EV-005": {
@@ -2010,6 +2010,53 @@
       "touched_round": 41,
       "commit": "fc252ed",
       "title": "Oracle Scheduler.Run test coverage (initial fetch, ticker polling, cancel shutdown)"
+    },
+    "ISS-037": {
+      "id": "ISS-037",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T04:57:18+00:00",
+      "updated_at": "2026-08-23T04:58:43+00:00",
+      "touched_round": 42,
+      "title": "Oracle feed health (attempts/successes/failures/last error) is only exposed as unauthenticated Prometheus text on /metrics/oracle; there is no authenticated REST JSON endpoint or web view for operators",
+      "severity": "low"
+    },
+    "TASK-045": {
+      "id": "TASK-045",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T04:57:18+00:00",
+      "updated_at": "2026-08-23T04:58:43+00:00",
+      "touched_round": 42,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add GET /api/v1/oracle/health JSON + Feed Health section on oracle.html, wired to the scheduler stats"
+    },
+    "EV-006": {
+      "id": "EV-006",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:58:39+00:00",
+      "updated_at": "2026-08-23T04:58:39+00:00",
+      "touched_round": 42,
+      "source": "go test ./... (33 pkgs) + TestOracleHandler_Health_* + web contract route resolution",
+      "title": "Oracle /health JSON + web Feed Health view verified; nil-safe and stats paths covered",
+      "confidence": 1.0
+    },
+    "CHG-044": {
+      "id": "CHG-044",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:58:39+00:00",
+      "updated_at": "2026-08-23T04:58:39+00:00",
+      "touched_round": 42,
+      "commit": "0e45b3b",
+      "title": "Oracle feed-health JSON endpoint (GET /api/v1/oracle/health) + web Feed Health view"
     }
   },
   "edges": [
@@ -3128,6 +3175,30 @@
       "to": "ISS-036",
       "type": "resolves",
       "created_at": "2026-08-23T04:55:27+00:00"
+    },
+    {
+      "from": "TASK-045",
+      "to": "ISS-037",
+      "type": "addresses",
+      "created_at": "2026-08-23T04:57:21+00:00"
+    },
+    {
+      "from": "ISS-037",
+      "to": "COMP-005",
+      "type": "located_in",
+      "created_at": "2026-08-23T04:57:21+00:00"
+    },
+    {
+      "from": "CHG-044",
+      "to": "TASK-045",
+      "type": "implements",
+      "created_at": "2026-08-23T04:58:43+00:00"
+    },
+    {
+      "from": "CHG-044",
+      "to": "ISS-037",
+      "type": "resolves",
+      "created_at": "2026-08-23T04:58:43+00:00"
     }
   ]
 }
