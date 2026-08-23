@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -365,6 +366,22 @@ var importCmd = &cobra.Command{
 				failed = append(failed, i)
 				continue
 			}
+
+			// Audit-trail integrity (TASK-069): refuse to overwrite a draw
+			// that already exists locally. The record ID is deterministic
+			// (sha256 of seed + VRF output), and Save uses INSERT OR REPLACE
+			// keyed on that ID — without this guard, re-importing an export
+			// file, or importing a file whose draw collides with an existing
+			// record (including the Verified flag and history), would silently
+			// replace the stored draw. Skip colliding IDs rather than clobber.
+			if existing, gErr := repo.GetByID(record.ID); gErr == nil && existing != nil {
+				failed = append(failed, i)
+				continue
+			} else if gErr != nil && !errors.Is(gErr, domainlottery.ErrNotFound) {
+				failed = append(failed, i)
+				continue
+			}
+
 			if err := repo.Save(&record); err != nil {
 				failed = append(failed, i)
 				continue
