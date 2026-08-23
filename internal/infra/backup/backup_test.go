@@ -2,10 +2,14 @@ package backup
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
@@ -163,44 +167,40 @@ func TestBackupService_VerifyCorruptMetadata(t *testing.T) {
 }
 
 func TestBackupService_Restore(t *testing.T) {
-	if err := os.MkdirAll("/tmp/test_restore_backup", 0755); err != nil {
-		t.Fatalf("Create test dir: %v", err)
-	}
-	defer func() { _ = os.RemoveAll("/tmp/test_restore_backup") }()
+	dir := t.TempDir()
+	backupDir := filepath.Join(dir, "backup")
+	makeValidBackup(t, backupDir, "blockchain")
 
-	db, err := sql.Open("sqlite3", "/tmp/test_restore_backup/blockchain.db")
-	if err != nil {
-		t.Fatalf("Create test db: %v", err)
-	}
-	if _, err := db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)"); err != nil {
-		t.Fatalf("Create table: %v", err)
-	}
-	if err := db.Close(); err != nil {
-		t.Fatalf("Close db: %v", err)
-	}
-
-	metadata := `{"version":"1.2","timestamp":"2026-04-30T00:00:00Z","checksum":"","databases":["blockchain"],"schema_version":1}`
-	if err := os.WriteFile("/tmp/test_restore_backup/metadata.json", []byte(metadata), 0644); err != nil {
-		t.Fatalf("Write metadata: %v", err)
-	}
-
-	if err := os.MkdirAll("/tmp/test_restore_dest", 0755); err != nil {
-		t.Fatalf("Create dest dir: %v", err)
-	}
-	defer func() { _ = os.RemoveAll("/tmp/test_restore_dest") }()
-
+	dest := filepath.Join(dir, "dest")
+	require.NoError(t, os.MkdirAll(dest, 0755))
 	svc := NewBackupService(map[string]string{
-		"blockchain": "/tmp/test_restore_dest/blockchain.db",
+		"blockchain": filepath.Join(dest, "blockchain.db"),
 	})
 
-	err = svc.Restore(context.Background(), "/tmp/test_restore_backup")
-	if err != nil {
-		t.Errorf("Restore failed: %v", err)
-	}
+	err := svc.Restore(context.Background(), backupDir)
+	require.NoError(t, err, "restore of a valid backup should succeed")
+	require.FileExists(t, filepath.Join(dest, "blockchain.db"))
+}
 
-	if _, err := os.Stat("/tmp/test_restore_dest/blockchain.db"); os.IsNotExist(err) {
-		t.Error("Expected restored database to exist")
-	}
+// TestBackupService_Restore_RefusesCorruptBackup proves the v1.20 safety
+// guard: Restore validates the backup's integrity first and refuses to clobber
+// the live database with a corrupted backup.
+func TestBackupService_Restore_RefusesCorruptBackup(t *testing.T) {
+	dir := t.TempDir()
+	backupDir := filepath.Join(dir, "backup")
+	makeValidBackup(t, backupDir, "main")
+	// Corrupt the DB copy so integrity verification fails.
+	require.NoError(t, os.WriteFile(filepath.Join(backupDir, "main.db"), []byte("garbage"), 0644))
+
+	dest := filepath.Join(dir, "dest")
+	current := filepath.Join(dest, "main.db")
+	makeTestDB(t, current)
+
+	svc := NewBackupService(map[string]string{"main": current})
+	err := svc.Restore(context.Background(), backupDir)
+	require.ErrorContains(t, err, "refusing to restore")
+	// The live DB must be untouched.
+	require.FileExists(t, current)
 }
 
 // makeTestDB writes a real SQLite file at path with one table so backup and
@@ -215,13 +215,33 @@ func makeTestDB(t *testing.T, path string) {
 	require.NoError(t, db.Close())
 }
 
-// writeMetadata writes a minimal, checksum-less metadata.json into a backup dir
-// (Restore does not re-verify the checksum; it only needs the file to parse).
+// makeValidBackup writes a real SQLite DB and a checksum-consistent
+// metadata.json into dir so the backup passes Verify. Restore now verifies the
+// backup before touching live databases (v1.20), so restore tests must use
+// genuinely valid backups to reach the restore code paths.
+func makeValidBackup(t *testing.T, dir, name string) {
+	t.Helper()
+	dbPath := filepath.Join(dir, name+".db")
+	makeTestDB(t, dbPath)
+
+	meta := BackupMetadata{
+		Version:       "1.2",
+		Timestamp:     time.Now().UTC().Format(time.RFC3339),
+		Databases:     []string{name},
+		SchemaVersion: 1,
+	}
+	checksumData, err := json.Marshal(meta)
+	require.NoError(t, err)
+	meta.Checksum = fmt.Sprintf("%x", sha256.Sum256(checksumData))
+	data, err := json.MarshalIndent(meta, "", "  ")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "metadata.json"), data, 0640))
+}
+
+// writeMetadata writes a valid backup for DB name "main" (see makeValidBackup).
 func writeMetadata(t *testing.T, dir string) {
 	t.Helper()
-	require.NoError(t, os.MkdirAll(dir, 0755))
-	meta := `{"version":"1.2","checksum":"","databases":["main"],"schema_version":1}`
-	require.NoError(t, os.WriteFile(filepath.Join(dir, "metadata.json"), []byte(meta), 0640))
+	makeValidBackup(t, dir, "main")
 }
 
 // TestBackupService_Create_CheckpointError covers the PRAGMA wal_checkpoint
@@ -306,13 +326,15 @@ func TestBackupService_Restore_PreRestoreCopyError(t *testing.T) {
 	require.Error(t, err, "pre-restore copy of a directory must fail")
 }
 
-// TestBackupService_Restore_MainCopyError covers the restore io.Copy failure
-// branch (backup file is a directory) AND the pre-restore happy path (a real
-// current file gets staged before the restore copy fails).
-func TestBackupService_Restore_MainCopyError(t *testing.T) {
+// TestBackupService_Restore_RejectsDirDB covers the verify guard on the
+// "backup DB path is a directory" vector: instead of copying a non-file as the
+// live DB, Restore refuses before touching anything (v1.20).
+func TestBackupService_Restore_RejectsDirDB(t *testing.T) {
 	dir := t.TempDir()
 	backupDir := filepath.Join(dir, "backup")
 	writeMetadata(t, backupDir)
+	// Replace the valid backup DB with a directory so Verify fails.
+	require.NoError(t, os.Remove(filepath.Join(backupDir, "main.db")))
 	require.NoError(t, os.MkdirAll(filepath.Join(backupDir, "main.db"), 0755))
 
 	dest := filepath.Join(dir, "dest")
@@ -322,7 +344,8 @@ func TestBackupService_Restore_MainCopyError(t *testing.T) {
 
 	svc := NewBackupService(map[string]string{"main": current})
 	err := svc.Restore(context.Background(), backupDir)
-	require.Error(t, err, "restore copy of a directory backup must fail")
+	require.ErrorContains(t, err, "refusing to restore")
+	require.FileExists(t, current)
 }
 
 // TestBackupService_Create_DestOpenFileError covers the destination-open

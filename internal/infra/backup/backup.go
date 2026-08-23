@@ -212,6 +212,15 @@ func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 }
 
 func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
+	// Safety guard (v1.20): never clobber the live databases with a backup
+	// that fails integrity verification. Previously a corrupt/truncated backup
+	// was copied over a good DB, with recovery possible only through the
+	// hidden .pre_restore staging dir. Verifying first means a bad backup is
+	// rejected before any live file is touched.
+	if err := s.Verify(ctx, backupPath); err != nil {
+		return fmt.Errorf("refusing to restore: %w", err)
+	}
+
 	metaPath := filepath.Join(backupPath, "metadata.json")
 	metaData, err := os.ReadFile(metaPath)
 	if err != nil {
