@@ -387,7 +387,19 @@ function tokenApp() {
         name: '', symbol: '', supply: '', createResult: '',
         tokenId: '', owner: '', balance: '',
         mintTo: '', mintAmount: '', mintPriv: '', mintResult: '',
+        xFrom: '', xTo: '', xAmount: '', xPriv: '', xResult: '',
+        approver: '', spender: '', approveAmount: '', approvePriv: '', approveResult: '',
+        allowanceSpender: '', allowanceResult: '',
+        burnPriv: '', burnResult: '',
         history: [],
+        async postToken(url, body) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(body)
+            });
+            return JSON.stringify(await res.json(), null, 2);
+        },
         async createToken() {
             try {
                 const res = await fetch('/api/v1/token/create', {
@@ -422,6 +434,46 @@ function tokenApp() {
                 this.mintResult = 'Error: ' + e.message;
             }
         },
+        async transfer() {
+            try {
+                this.xResult = await this.postToken('/api/v1/token/transfer', {
+                    token_id: this.tokenId, from: this.xFrom, to: this.xTo,
+                    amount: this.xAmount, private_key: this.xPriv
+                });
+            } catch (e) {
+                this.xResult = 'Error: ' + e.message;
+            }
+        },
+        async approve() {
+            try {
+                this.approveResult = await this.postToken('/api/v1/token/approve', {
+                    token_id: this.tokenId, owner: this.approver, spender: this.spender,
+                    amount: this.approveAmount, private_key: this.approvePriv
+                });
+            } catch (e) {
+                this.approveResult = 'Error: ' + e.message;
+            }
+        },
+        async getAllowance() {
+            try {
+                const res = await fetch('/api/v1/token/allowance?token_id=' + encodeURIComponent(this.tokenId) +
+                    '&owner=' + encodeURIComponent(this.owner) + '&spender=' + encodeURIComponent(this.allowanceSpender),
+                    { headers: auroraHeaders() });
+                this.allowanceResult = JSON.stringify(await res.json(), null, 2);
+            } catch (e) {
+                this.allowanceResult = 'Error: ' + e.message;
+            }
+        },
+        async burn() {
+            try {
+                this.burnResult = await this.postToken('/api/v1/token/burn', {
+                    token_id: this.tokenId, from: this.owner, amount: this.xAmount,
+                    private_key: this.burnPriv
+                });
+            } catch (e) {
+                this.burnResult = 'Error: ' + e.message;
+            }
+        },
         async loadHistory() {
             try {
                 const res = await fetch('/api/v1/token/history?token_id=' + encodeURIComponent(this.tokenId) + '&owner=' + encodeURIComponent(this.owner), { headers: auroraHeaders() });
@@ -430,6 +482,9 @@ function tokenApp() {
             } catch (e) {
                 this.history = [];
             }
+        },
+        async showHistory() {
+            await this.loadHistory();
         }
     };
 }
