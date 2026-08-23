@@ -34,6 +34,16 @@ func main() {
 	// exits (graceful or forced shutdown), matching srv.Close() semantics.
 	defer func() { _ = srv.Close() }()
 
+	// Start the oracle fetch scheduler so enabled sources are refreshed on
+	// their configured interval (v1.15 Oracle Scheduled Fetching). Cancelled
+	// at shutdown.
+	schedCtx, schedCancel := context.WithCancel(context.Background())
+	defer schedCancel()
+	stopScheduler := srv.StartOracleScheduler(schedCtx, time.Second)
+	if stopScheduler != nil {
+		defer stopScheduler()
+	}
+
 	router := srv.Router()
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
