@@ -54,6 +54,21 @@ func (uc *FetchDataUseCase) executeWithChain(req *FetchDataRequest, chain ChainI
 		return nil, oracle.ErrSourceDisabled
 	}
 
+	// SSRF TOCTOU guard (v1.54): the source URL is validated when the source is
+	// added, but the actual dial may happen much later (or after the record is
+	// edited in the DB), so the add-time check alone leaves a window in which a
+	// hostname that was public can be DNS-rebound to a loopback / RFC1918 /
+	// cloud-metadata address. Re-apply the domain SSRF policy immediately
+	// before fetching so a rebound source fails closed instead of reaching
+	// internal services. This runs on every fetch path (CLI, REST, TUI,
+	// scheduler) that funnels through this use case. (An empty URL is not an
+	// SSRF vector and is left to the fetcher's own empty-URL handling.)
+	if source.URL != "" {
+		if err := oracle.ValidateSourceURL(source.URL); err != nil {
+			return nil, fmt.Errorf("blocked source URL: %w", err)
+		}
+	}
+
 	data, err := uc.fetcher.FetchData(source)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch data: %w", err)

@@ -425,6 +425,37 @@ func TestFetchDataUseCase_FetchError(t *testing.T) {
 	require.Contains(t, err.Error(), "failed to fetch data")
 }
 
+// TestFetchDataUseCase_SSRFBlockedAtFetch proves the fetch-time SSRF guard:
+// a source whose host is private/loopback is refused when a fetch is
+// attempted, even if that source predates the add-time validation or its URL
+// was edited in the DB after being added. Before v1.54 the URL host was
+// validated only at AddSource time, so a hostname rebound to an internal
+// address by fetch time would have been dialed — the TOCTOU window closed by
+// TASK-067 / ISS-059.
+func TestFetchDataUseCase_SSRFBlockedAtFetch(t *testing.T) {
+	for _, url := range []string{
+		"http://127.0.0.1:8080/secret",
+		"http://169.254.169.254/latest/meta-data/",
+		"http://10.0.0.5/api",
+	} {
+		repo := &mockOracleRepo{
+			sources: []*oracle.DataSource{
+				{ID: "test-id", Name: "Test", Enabled: true, URL: url},
+			},
+		}
+		uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{
+			data: &oracle.OracleData{ID: "never-returned", Value: "x", Timestamp: time.Now().Unix()},
+		})
+
+		_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
+		require.Error(t, err, "source URL %q must be refused at fetch time (SSRF)", url)
+		require.Contains(t, err.Error(), "blocked source URL", "err for %q", url)
+		// The mock fetcher must never be reached: its data would have been
+		// returned if the guard didn't short-circuit before the dial.
+		require.False(t, repo.saveDataCalled, "no data should be saved for blocked URL %q", url)
+	}
+}
+
 func TestFetchDataUseCase_SaveDataError(t *testing.T) {
 	repo := &mockOracleRepo{
 		sources: []*oracle.DataSource{
