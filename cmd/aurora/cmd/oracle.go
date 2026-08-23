@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
 	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"
 	oracleui "github.com/pplmx/aurora/internal/ui/oracle"
@@ -136,6 +137,9 @@ var fetchCmd = &cobra.Command{
 		sourceID, _ := cmd.Flags().GetString("source")
 
 		uc := oracleapp.NewFetchDataUseCase(&repo)
+		// Record CLI-fetched data on-chain, matching the API/scheduler paths
+		// and the package intent; otherwise BlockHeight always printed 0.
+		uc.SetChain(blockchain.GetBlockChain())
 		resp, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
 		if err != nil {
 			return fmt.Errorf("failed to fetch data: %w", err)
