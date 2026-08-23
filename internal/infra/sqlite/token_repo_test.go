@@ -35,6 +35,31 @@ func setupTokenTestDB(t *testing.T) (*TokenRepository, func()) {
 	return repo, cleanup
 }
 
+func TestTokenRepository_WithTx(t *testing.T) {
+	repo, cleanup := setupTokenTestDB(t)
+	defer cleanup()
+
+	owner := make([]byte, 32)
+	tok := token.NewToken(token.TokenID("T1"), "Name", "SYM", token.NewAmount(1000), owner)
+
+	tx, err := repo.db.Begin()
+	require.NoError(t, err)
+	txRepo := repo.WithTx(tx)
+	require.NotNil(t, txRepo)
+	require.NoError(t, txRepo.SaveToken(tok))
+
+	// The write went through the transaction; before commit it must not be
+	// visible through the base (pool) connection.
+	if got, _ := repo.GetToken("T1"); got != nil {
+		t.Fatal("expected token not visible before commit")
+	}
+
+	require.NoError(t, tx.Commit())
+	got, err := repo.GetToken("T1")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+}
+
 func TestNewTokenRepository(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")

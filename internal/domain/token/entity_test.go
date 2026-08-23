@@ -4,7 +4,26 @@ import (
 	"math"
 	"math/big"
 	"testing"
+	"time"
 )
+
+func TestNewTokenFromRecord(t *testing.T) {
+	owner := PublicKey("owner-key")
+	created := time.Unix(1000, 0)
+	tok := NewTokenFromRecord("T1", "Name", "SYM", NewAmount(1000), owner, 8, true, false, created)
+	if tok.ID() != "T1" || tok.Name() != "Name" || tok.Symbol() != "SYM" {
+		t.Errorf("unexpected token metadata: %q %q %q", tok.ID(), tok.Name(), tok.Symbol())
+	}
+	if tok.TotalSupply().String() != "1000" {
+		t.Errorf("totalSupply = %s, want 1000", tok.TotalSupply().String())
+	}
+	if tok.Decimals() != 8 || !tok.IsMintable() || tok.IsBurnable() {
+		t.Errorf("unexpected flags: decimals=%d mintable=%v burnable=%v", tok.Decimals(), tok.IsMintable(), tok.IsBurnable())
+	}
+	if !tok.CreatedAt().Equal(created) {
+		t.Errorf("CreatedAt = %v, want %v", tok.CreatedAt(), created)
+	}
+}
 
 func TestNewAmount(t *testing.T) {
 	tests := []struct {
