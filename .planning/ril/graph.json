@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 31,
+  "round": 32,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T01:09:49+00:00",
+  "updated_at": "2026-08-23T01:12:23+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 28,
+      "touched_round": 32,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -1522,6 +1522,41 @@
       "touched_round": 31,
       "commit": "7b358d0",
       "title": "Verify backup before restore"
+    },
+    "ISS-025": {
+      "id": "ISS-025",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T01:11:59+00:00",
+      "updated_at": "2026-08-23T01:12:23+00:00",
+      "touched_round": 32,
+      "title": "Oracle scheduler check interval is hardcoded to 1s in cmd/api; operators cannot tune the poll cadence",
+      "severity": "low"
+    },
+    "TASK-033": {
+      "id": "TASK-033",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T01:11:59+00:00",
+      "updated_at": "2026-08-23T01:12:23+00:00",
+      "touched_round": 32,
+      "category": "dx",
+      "priority_score": 1.6,
+      "severity": 0.3,
+      "title": "Make oracle scheduler check interval config-driven with default 1s"
+    },
+    "CHG-032": {
+      "id": "CHG-032",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T01:12:12+00:00",
+      "updated_at": "2026-08-23T01:12:12+00:00",
+      "touched_round": 32,
+      "commit": "895953f",
+      "title": "Config-driven oracle scheduler check interval"
     }
   },
   "edges": [
@@ -2346,6 +2381,30 @@
       "to": "TASK-032",
       "type": "implements",
       "created_at": "2026-08-23T01:09:38+00:00"
+    },
+    {
+      "from": "ISS-025",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T01:11:59+00:00"
+    },
+    {
+      "from": "TASK-033",
+      "to": "ISS-025",
+      "type": "addresses",
+      "created_at": "2026-08-23T01:11:59+00:00"
+    },
+    {
+      "from": "CHG-032",
+      "to": "ISS-025",
+      "type": "resolves",
+      "created_at": "2026-08-23T01:12:12+00:00"
+    },
+    {
+      "from": "CHG-032",
+      "to": "TASK-033",
+      "type": "implements",
+      "created_at": "2026-08-23T01:12:12+00:00"
     }
   ]
 }
