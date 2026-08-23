@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 47,
+  "round": 48,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:11:23+00:00",
+  "updated_at": "2026-08-23T05:16:15+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 45,
+      "touched_round": 47,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -2245,6 +2245,63 @@
       "touched_round": 46,
       "commit": "f784fb8",
       "title": "Dashboard Oracle feed-health card"
+    },
+    "ISS-042": {
+      "id": "ISS-042",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:13:49+00:00",
+      "updated_at": "2026-08-23T05:16:15+00:00",
+      "touched_round": 47,
+      "title": "Token TransferFrom (spend an allowance on the owner's behalf) is implemented in the app/domain layer but exposed nowhere: no CLI, REST, or web surface, so the approve/allowance feature is unusable end-to-end",
+      "severity": "low"
+    },
+    "TASK-050": {
+      "id": "TASK-050",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:13:50+00:00",
+      "updated_at": "2026-08-23T05:16:15+00:00",
+      "touched_round": 47,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Expose token transfer_from via POST /api/v1/token/transfer_from, a CLI command, and a web view with tests"
+    },
+    "COMP-006": {
+      "id": "COMP-006",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:13:52+00:00",
+      "updated_at": "2026-08-23T05:13:52+00:00",
+      "touched_round": 47,
+      "title": "Token module CLI surface"
+    },
+    "EV-011": {
+      "id": "EV-011",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:16:10+00:00",
+      "updated_at": "2026-08-23T05:16:10+00:00",
+      "touched_round": 47,
+      "source": "go test ./... (33 pkgs) + TestTokenHandler_TransferFrom_InvalidJSON + web contract route resolution + CLI build",
+      "title": "token transfer_from exposed over REST/CLI/web and verified",
+      "confidence": 1.0
+    },
+    "CHG-049": {
+      "id": "CHG-049",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:16:11+00:00",
+      "updated_at": "2026-08-23T05:16:11+00:00",
+      "touched_round": 47,
+      "commit": "a2b68ea",
+      "title": "Expose token TransferFrom (spend allowance) over REST, CLI, and web"
     }
   },
   "edges": [
@@ -3483,6 +3540,30 @@
       "to": "ISS-041",
       "type": "resolves",
       "created_at": "2026-08-23T05:11:19+00:00"
+    },
+    {
+      "from": "TASK-050",
+      "to": "ISS-042",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:13:55+00:00"
+    },
+    {
+      "from": "ISS-042",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:13:55+00:00"
+    },
+    {
+      "from": "CHG-049",
+      "to": "TASK-050",
+      "type": "implements",
+      "created_at": "2026-08-23T05:16:15+00:00"
+    },
+    {
+      "from": "CHG-049",
+      "to": "ISS-042",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:16:15+00:00"
     }
   ]
 }
