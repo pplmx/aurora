@@ -101,6 +101,11 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 	// are not fully captured by the endpoint auto-scanner, so assert directly).
 	require.True(t, strings.Contains(js, "'/api/v1/voting/session/'") && strings.Contains(js, "'/start'") && strings.Contains(js, "'/end'"),
 		"app.js votingApp must wire /api/v1/voting/session/{id}/start and /end")
+	// Regression: the lottery create POST must send a comma-separated
+	// `participants` string and a `winner_count` field (the pre-v1.52 web code
+	// sent an array + `count`, which the API cannot decode -> the browser
+	// create silently 400'd).
+	require.True(t, strings.Contains(js, "winner_count"), "app.js lottery create must use the winner_count field")
 	requireServedAsset(t, handler, "/css/style.css", "--accent-voting")
 }
 
