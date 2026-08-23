@@ -69,6 +69,10 @@ just stop         # Stop containers: docker compose down
 ```bash
 ./aurora lottery create -p "A,B,C,D" -s "seed" -c 3   # Create lottery
 ./aurora lottery history                               # View history
+./aurora lottery verify <id-or-height>                 # Verify a draw's VRF proof & winners
+./aurora lottery export file.json                      # Export records
+./aurora lottery import file.json                      # Import records
+./aurora lottery stats                                 # Show lottery stats
 ./aurora lottery tui                                   # TUI interface
 ```
 
@@ -108,6 +112,7 @@ just stop         # Stop containers: docker compose down
 ./aurora token balance -t <token-id> --owner <address>
 ./aurora token approve -t <token-id> --owner <addr> --spender <addr> --amount 100 -k "private_key"
 ./aurora token allowance -t <token-id> --owner <addr> --spender <addr>
+./aurora token transfer-from -t <token-id> -o <owner> --to <addr> -a <amount> -s <spender> -k <spender_key>
 ./aurora token burn -t <token-id> --from <addr> --amount 10 -k "private_key"
 ./aurora token history -t <token-id> --owner <address>
 ./aurora token tui                                       # TUI interface
@@ -140,8 +145,8 @@ go test ./... -cover               # With coverage
 
 | Module  | Domain | App   |
 | ------- | ------ | ----- |
-| Lottery | 73.8%  | 87.1% |
-| Voting  | 87.5%  | 91.7% |
-| NFT     | 86.9%  | 88.1% |
-| Token   | 70.5%  | 91.9% |
-| Oracle  | 76.1%  | 65.8% |
+| Lottery | 91.0%  | 84.3% |
+| Voting  | 87.5%  | 89.8% |
+| NFT     | 90.6%  | 88.1% |
+| Token   | 88.9%  | 91.5% |
+| Oracle  | 89.0%  | 88.6% |
