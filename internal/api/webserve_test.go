@@ -134,3 +134,25 @@ func TestWebUINavigation_AllPagesLinkAllModules(t *testing.T) {
 		}
 	}
 }
+
+// TestWebUINoUnusedHtmx locks the v1.53 contract: the shipped web UI must not
+// load the htmx library (TASK-066, ISS-058). Prior to this guard all seven
+// pages pulled htmx from https://unpkg.com/htmx.org@1.9.10 even though nothing
+// used it (no hx- attributes, no htmx.* calls anywhere in web/), so every page
+// carried dead third-party weight that broke offline use, depended on external
+// uptime, and widened the supply-chain/provenance surface. The unresolved
+// Alpine.js include is still required (Alpine drives all x-* directives), so
+// this guard is deliberately scoped to the removed, unused dependency rather
+// than banning every external include.
+func TestWebUINoUnusedHtmx(t *testing.T) {
+	webDir := realWebDir()
+	handler := injectAPIKey(http.FileServer(http.Dir(webDir)), "test-serve-key")
+
+	pages := []string{"/", "/lottery.html", "/voting.html", "/token.html",
+		"/oracle.html", "/blockchain.html", "/nft.html"}
+	for _, page := range pages {
+		body := requireServedAsset(t, handler, page)
+		require.Falsef(t, strings.Contains(strings.ToLower(body), "htmx"),
+			"page %s still references the removed htmx library (TASK-066 regression)", page)
+	}
+}
