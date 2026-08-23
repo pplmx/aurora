@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 46,
+  "round": 47,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:08:09+00:00",
+  "updated_at": "2026-08-23T05:11:23+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1729,7 +1729,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:31:39+00:00",
       "updated_at": "2026-08-23T04:31:39+00:00",
-      "touched_round": 39,
+      "touched_round": 46,
       "title": "web UI static pages (router-injected API key)"
     },
     "EV-003": {
@@ -2198,6 +2198,53 @@
       "touched_round": 45,
       "commit": "b67428f",
       "title": "Token metadata info: GetTokenInfoUseCase + GET /api/v1/token/info + web view"
+    },
+    "ISS-041": {
+      "id": "ISS-041",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:10:18+00:00",
+      "updated_at": "2026-08-23T05:11:19+00:00",
+      "touched_round": 46,
+      "title": "Dashboard surfaces lottery/voting/blockchain but not oracle feed health; operators must open deep links to see if data feeds are healthy",
+      "severity": "low"
+    },
+    "TASK-049": {
+      "id": "TASK-049",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:10:18+00:00",
+      "updated_at": "2026-08-23T05:11:19+00:00",
+      "touched_round": 46,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add Oracle feed-health summary card/section to the dashboard wired to GET /api/v1/oracle/health"
+    },
+    "EV-010": {
+      "id": "EV-010",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:11:15+00:00",
+      "updated_at": "2026-08-23T05:11:15+00:00",
+      "touched_round": 46,
+      "source": "go test ./... (33 pkgs) + webserve dashboard Oracle Feeds + contract route resolution + node --check",
+      "title": "Dashboard Oracle feed-health card verified served and wired to /oracle/health",
+      "confidence": 1.0
+    },
+    "CHG-048": {
+      "id": "CHG-048",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:11:15+00:00",
+      "updated_at": "2026-08-23T05:11:15+00:00",
+      "touched_round": 46,
+      "commit": "f784fb8",
+      "title": "Dashboard Oracle feed-health card"
     }
   },
   "edges": [
@@ -3412,6 +3459,30 @@
       "to": "ISS-040",
       "type": "resolves",
       "created_at": "2026-08-23T05:08:03+00:00"
+    },
+    {
+      "from": "TASK-049",
+      "to": "ISS-041",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:10:21+00:00"
+    },
+    {
+      "from": "ISS-041",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:10:21+00:00"
+    },
+    {
+      "from": "CHG-048",
+      "to": "TASK-049",
+      "type": "implements",
+      "created_at": "2026-08-23T05:11:19+00:00"
+    },
+    {
+      "from": "CHG-048",
+      "to": "ISS-041",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:11:19+00:00"
     }
   ]
 }
