@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 16,
+  "round": 17,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-22T17:49:07+00:00",
+  "updated_at": "2026-08-23T00:09:53+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -931,6 +931,74 @@
       "touched_round": 16,
       "commit": "bff4c02",
       "summary": "stdlib request metrics + /metrics endpoint"
+    },
+    "ISS-010": {
+      "id": "ISS-010",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:05:51+00:00",
+      "updated_at": "2026-08-23T00:09:50+00:00",
+      "touched_round": 17,
+      "title": "Concurrent AddBlock produces duplicate heights and broken prev-hash chain",
+      "severity": "high"
+    },
+    "HYP-001": {
+      "id": "HYP-001",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:05:51+00:00",
+      "updated_at": "2026-08-23T00:09:50+00:00",
+      "touched_round": 17,
+      "title": "height/prevHash read under RLock, PoW outside lock, append under Lock => non-atomic read-modify-write; concurrent callers reuse same tail",
+      "confidence": 0.95
+    },
+    "EV-001": {
+      "id": "EV-001",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:05:51+00:00",
+      "updated_at": "2026-08-23T00:05:51+00:00",
+      "touched_round": 17,
+      "source": "temporary concurrent probe: 6 duplicate heights, 35 prevHash breaks / 96 appends (internal/domain/blockchain)",
+      "title": "Concurrent AddBlock returns correct length but corrupts heights + chain",
+      "confidence": 1.0
+    },
+    "TASK-018": {
+      "id": "TASK-018",
+      "type": "task",
+      "status": "resolved",
+      "version": 5,
+      "created_at": "2026-08-23T00:05:54+00:00",
+      "updated_at": "2026-08-23T00:09:53+00:00",
+      "touched_round": 17,
+      "category": "correctness",
+      "priority_score": 7.6,
+      "title": "Reserve block height/prevHash atomically in AddBlock so concurrent appends produce a valid chain and no duplicate heights",
+      "severity": 0.8
+    },
+    "COMP-002": {
+      "id": "COMP-002",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:06:06+00:00",
+      "updated_at": "2026-08-23T00:06:06+00:00",
+      "touched_round": 17,
+      "title": "internal/domain/blockchain"
+    },
+    "CHG-017": {
+      "id": "CHG-017",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:09:45+00:00",
+      "updated_at": "2026-08-23T00:09:45+00:00",
+      "touched_round": 17,
+      "commit": 4902095,
+      "title": "Serialize AddBlock append under lock"
     }
   },
   "edges": [
@@ -1383,6 +1451,36 @@
       "to": "TASK-017",
       "type": "implements",
       "created_at": "2026-08-22T17:49:07+00:00"
+    },
+    {
+      "from": "EV-001",
+      "to": "HYP-001",
+      "type": "validates",
+      "created_at": "2026-08-23T00:05:54+00:00"
+    },
+    {
+      "from": "TASK-018",
+      "to": "ISS-010",
+      "type": "addresses",
+      "created_at": "2026-08-23T00:06:07+00:00"
+    },
+    {
+      "from": "ISS-010",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-08-23T00:06:12+00:00"
+    },
+    {
+      "from": "CHG-017",
+      "to": "ISS-010",
+      "type": "resolves",
+      "created_at": "2026-08-23T00:09:45+00:00"
+    },
+    {
+      "from": "CHG-017",
+      "to": "TASK-018",
+      "type": "implements",
+      "created_at": "2026-08-23T00:09:45+00:00"
     }
   ]
 }
