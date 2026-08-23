@@ -880,33 +880,40 @@ func TestFetcher_FetchData_Validation_InvalidJSON(t *testing.T) {
 	}
 }
 
+// TestFetcher_FetchData_Validation_InvalidPath locks the v1.63 fail-closed
+// contract (TASK-076, ISS-068) for the validation-enabled fetch path: a
+// configured extraction path that does not match the JSON must make
+// FetchDataWithValidation return oracle.ErrInvalidSource — whether or not
+// JSON validation is requested — instead of falling back to the whole raw
+// body as the value. Uses a scripted round tripper so no loopback listener
+// is required. (This test previously asserted the pre-v1.63 raw-fallback
+// behavior and made `go test ./...` red; updated in v1.64, TASK-078.)
 func TestFetcher_FetchData_Validation_InvalidPath(t *testing.T) {
-	skipIfLoopbackBlocked(t)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"data": "test"}`))
-	}))
-	defer server.Close()
-
-	fetcher := NewFetcher()
+	fetcher := &Fetcher{
+		client: &http.Client{
+			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(`{"data": "test"}`)),
+				}, nil
+			}),
+		},
+		rateLimiter: NewRateLimiter(100, time.Minute),
+	}
 	source := &oracle.DataSource{
 		ID:      "path-err-1",
-		URL:     server.URL,
+		URL:     "https://example.com/feed",
 		Method:  "GET",
 		Path:    "nonexistent.path",
 		Enabled: true,
 	}
 
-	_, err := fetcher.FetchDataWithValidation(source, false)
-	if err != nil {
-		t.Fatalf("Should fallback to raw response on invalid path, got: %v", err)
+	if _, err := fetcher.FetchDataWithValidation(source, false); !errors.Is(err, oracle.ErrInvalidSource) {
+		t.Fatalf("invalid path without validation: got err=%v, want ErrInvalidSource", err)
 	}
-
-	data, err := fetcher.FetchDataWithValidation(source, true)
-	if err != nil {
-		t.Fatalf("Should not error on invalid path with validation, got: %v", err)
-	}
-	if !strings.Contains(data.Value, "data") {
-		t.Errorf("Expected fallback to raw response, got '%s'", data.Value)
+	if data, err := fetcher.FetchDataWithValidation(source, true); !errors.Is(err, oracle.ErrInvalidSource) {
+		t.Fatalf("invalid path with validation: got err=%v data=%v, want ErrInvalidSource", err, data)
 	}
 }
 
