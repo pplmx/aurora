@@ -605,6 +605,28 @@ function oracleApp() {
                 this.addResult = 'Error: ' + e.message;
             }
         },
+        async setEnabled(source, enabled) {
+            try {
+                const res = await fetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
+                    method: 'PATCH',
+                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ enabled: enabled })
+                });
+                if (!res.ok) { alert('Failed to ' + (enabled ? 'enable' : 'disable') + ' source'); }
+                await this.listSources();
+            } catch (e) { alert('Error: ' + e.message); }
+        },
+        async deleteSource(source) {
+            if (!confirm('Delete source "' + (source.name || source.id) + '"?')) return;
+            try {
+                const res = await fetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
+                    method: 'DELETE',
+                    headers: auroraHeaders()
+                });
+                if (!res.ok) { alert('Failed to delete source'); }
+                await this.listSources();
+            } catch (e) { alert('Error: ' + e.message); }
+        },
         async listSources() {
             this.loading = true;
             try {
