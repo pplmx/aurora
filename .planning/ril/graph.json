@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 69,
+  "round": 70,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T09:08:42+00:00",
+  "updated_at": "2026-08-23T09:13:27+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 69,
+      "touched_round": 70,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -3364,6 +3364,53 @@
       "touched_round": 69,
       "commit": "dad7653",
       "title": "Register metrics middleware outer to Recovery in router.go so recovered panics appear as 500 in request metrics + regression test"
+    },
+    "ISS-065": {
+      "id": "ISS-065",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T09:12:06+00:00",
+      "updated_at": "2026-08-23T09:13:27+00:00",
+      "touched_round": 70,
+      "severity": "medium",
+      "title": "API http.Server in cmd/api/main.go sets no ReadHeaderTimeout, ReadTimeout, WriteTimeout, or IdleTimeout, leaving the server exposed to slowloris and slow-body read/write DoS and unbounded idle keep-alive connections"
+    },
+    "TASK-073": {
+      "id": "TASK-073",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T09:12:10+00:00",
+      "updated_at": "2026-08-23T09:13:27+00:00",
+      "touched_round": 70,
+      "category": "stability",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 2,
+      "title": "Configure http.Server timeouts (ReadHeaderTimeout/ReadTimeout/WriteTimeout/IdleTimeout) in cmd/api/main.go, extracted into a testable constructor with a unit test asserting non-zero timeouts"
+    },
+    "EV-034": {
+      "id": "EV-034",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:12:16+00:00",
+      "updated_at": "2026-08-23T09:12:16+00:00",
+      "touched_round": 70,
+      "source": "worktree analysis round 70 (cmd/api/main.go): server := &http.Server{Addr, Handler} with no timeout fields set (net/http defaults: no read/write/header/idle limits -> slowloris & slow-body DoS exposure)",
+      "confidence": 1.0
+    },
+    "CHG-071": {
+      "id": "CHG-071",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:13:22+00:00",
+      "updated_at": "2026-08-23T09:13:22+00:00",
+      "touched_round": 70,
+      "commit": "feb6f68",
+      "title": "Configure http.Server Read/Write/Header/Idle timeouts via testable newServer constructor + unit test"
     }
   },
   "edges": [
@@ -5154,6 +5201,30 @@
       "to": "ISS-064",
       "type": "resolves",
       "created_at": "2026-08-23T09:08:42+00:00"
+    },
+    {
+      "from": "TASK-073",
+      "to": "ISS-065",
+      "type": "addresses",
+      "created_at": "2026-08-23T09:12:16+00:00"
+    },
+    {
+      "from": "ISS-065",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-23T09:12:16+00:00"
+    },
+    {
+      "from": "CHG-071",
+      "to": "TASK-073",
+      "type": "implements",
+      "created_at": "2026-08-23T09:13:22+00:00"
+    },
+    {
+      "from": "CHG-071",
+      "to": "ISS-065",
+      "type": "resolves",
+      "created_at": "2026-08-23T09:13:26+00:00"
     }
   ]
 }
