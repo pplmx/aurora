@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 61,
+  "round": 62,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:56:46+00:00",
+  "updated_at": "2026-08-23T06:00:19+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 51,
+      "touched_round": 61,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 35,
+      "touched_round": 61,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -2964,6 +2964,77 @@
       "touched_round": 60,
       "commit": "41daa19",
       "title": "Token transfer_from E2E smoke test"
+    },
+    "ISS-056": {
+      "id": "ISS-056",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:57:55+00:00",
+      "updated_at": "2026-08-23T06:00:18+00:00",
+      "touched_round": 61,
+      "title": "The lottery verify VRF-audit flow (v1.31) has no E2E HTTP smoke test; only unit/contract tests cover create+verify over the real stack",
+      "severity": "low"
+    },
+    "TASK-064": {
+      "id": "TASK-064",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:57:55+00:00",
+      "updated_at": "2026-08-23T06:00:18+00:00",
+      "touched_round": 61,
+      "category": "test-quality",
+      "severity": 0.45,
+      "priority_score": 2.0,
+      "title": "Add an HTTP smoke test: create a lottery then verify it via GET /api/v1/lottery/{id}/verify"
+    },
+    "ISS-057": {
+      "id": "ISS-057",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:59:00+00:00",
+      "updated_at": "2026-08-23T06:00:18+00:00",
+      "touched_round": 61,
+      "title": "the lottery web createLottery sends participants as an array and a count field while POST /api/v1/lottery/create expects a comma-separated string participants and winner_count, so the browser 'Create Lottery' returns 400",
+      "severity": "high"
+    },
+    "TASK-065": {
+      "id": "TASK-065",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:59:03+00:00",
+      "updated_at": "2026-08-23T06:00:18+00:00",
+      "touched_round": 61,
+      "category": "correctness",
+      "severity": 0.6,
+      "priority_score": 3.5,
+      "title": "Fix the lottery web create payload (comma-separated participants + winner_count) and add a regression guard"
+    },
+    "EV-026": {
+      "id": "EV-026",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T06:00:11+00:00",
+      "updated_at": "2026-08-23T06:00:11+00:00",
+      "touched_round": 61,
+      "source": "go test ./... (33 pkgs) + TestLotterySmoke_CreateThenVerifyOverHTTP + web-serve winner_count guard",
+      "title": "Lottery web create contract fixed + verified end-to-end",
+      "confidence": 1.0
+    },
+    "CHG-063": {
+      "id": "CHG-063",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T06:00:11+00:00",
+      "updated_at": "2026-08-23T06:00:11+00:00",
+      "touched_round": 61,
+      "commit": "bea6b6d",
+      "title": "Lottery web create payload fix + create/verify E2E smoke test + web regression guard"
     }
   },
   "edges": [
@@ -4538,6 +4609,54 @@
       "to": "ISS-055",
       "type": "resolves",
       "created_at": "2026-08-23T05:56:45+00:00"
+    },
+    {
+      "from": "TASK-064",
+      "to": "ISS-056",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:57:59+00:00"
+    },
+    {
+      "from": "ISS-056",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:57:59+00:00"
+    },
+    {
+      "from": "TASK-065",
+      "to": "ISS-057",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:59:07+00:00"
+    },
+    {
+      "from": "ISS-057",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:59:07+00:00"
+    },
+    {
+      "from": "CHG-063",
+      "to": "TASK-065",
+      "type": "implements",
+      "created_at": "2026-08-23T06:00:18+00:00"
+    },
+    {
+      "from": "CHG-063",
+      "to": "ISS-057",
+      "type": "resolves",
+      "created_at": "2026-08-23T06:00:18+00:00"
+    },
+    {
+      "from": "CHG-063",
+      "to": "TASK-064",
+      "type": "implements",
+      "created_at": "2026-08-23T06:00:18+00:00"
+    },
+    {
+      "from": "CHG-063",
+      "to": "ISS-056",
+      "type": "resolves",
+      "created_at": "2026-08-23T06:00:18+00:00"
     }
   ]
 }
