@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 40,
+  "round": 41,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T04:41:58+00:00",
+  "updated_at": "2026-08-23T04:52:10+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 1,
+      "touched_round": 40,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -1894,6 +1894,65 @@
       "touched_round": 39,
       "commit": "6a309fa",
       "title": "Token web page CLI parity (transfer/approve/allowance/burn/history)"
+    },
+    "DEC-001": {
+      "id": "DEC-001",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:46:23+00:00",
+      "updated_at": "2026-08-23T04:46:23+00:00",
+      "touched_round": 40,
+      "rationale": "Persist the VRF public key per lottery draw and expose a verify surface (REST + web + Verified flag) so draws are cryptographically attributable and re-checkable end-to-end, matching the blockchain-audit parity built in v1.25/v1.26. The old code comment said the key was deliberately not stored per draw, which made VerifyDraw unusable post-hoc and left record.Verified permanently false.",
+      "alternatives_rejected": "Rejected: keep discarding the key (keeps audit claims unverifiable); rearchitect to RFC 9380 ECVRF (large, risky, would break the documented simplified VRF and all existing records); add REST verify with no key persistence (weaker: cannot bind a draw to its key).",
+      "title": "Persist lottery VRF public key and add verifiable draw surface"
+    },
+    "ISS-035": {
+      "id": "ISS-035",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T04:46:23+00:00",
+      "updated_at": "2026-08-23T04:52:07+00:00",
+      "touched_round": 40,
+      "title": "Lottery records never persist the VRF public key and never set Verified, and there is no REST/web way to verify a draw; the module's VRF-fairness audit claim is not checkable end-to-end",
+      "severity": "medium"
+    },
+    "TASK-043": {
+      "id": "TASK-043",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T04:46:23+00:00",
+      "updated_at": "2026-08-23T04:52:07+00:00",
+      "touched_round": 40,
+      "category": "correctness",
+      "severity": 0.5,
+      "priority_score": 3.0,
+      "title": "Persist VRF public key in LotteryRecord, populate Verified at creation, add VerifyLotteryUseCase + GET /api/v1/lottery/{id}/verify + web verify control with tests"
+    },
+    "EV-004": {
+      "id": "EV-004",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:52:03+00:00",
+      "updated_at": "2026-08-23T04:52:03+00:00",
+      "touched_round": 40,
+      "source": "go test ./... (33 pkgs) + TestVerifyLotteryUseCase_* + TestLotteryHandler_Verify_* + TestLotteryE2E_*",
+      "title": "Persisted VRF key + Verified + REST/web verify end-to-end tests pass",
+      "confidence": 1.0
+    },
+    "CHG-042": {
+      "id": "CHG-042",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:52:03+00:00",
+      "updated_at": "2026-08-23T04:52:03+00:00",
+      "touched_round": 40,
+      "commit": "a63c747",
+      "title": "Persist lottery VRF public key, populate Verified, add VerifyLotteryUseCase + GET /api/v1/lottery/{id}/verify + web verify + CLI integration"
     }
   },
   "edges": [
@@ -2958,6 +3017,36 @@
       "to": "ISS-034",
       "type": "resolves",
       "created_at": "2026-08-23T04:41:50+00:00"
+    },
+    {
+      "from": "TASK-043",
+      "to": "ISS-035",
+      "type": "addresses",
+      "created_at": "2026-08-23T04:46:25+00:00"
+    },
+    {
+      "from": "ISS-035",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-08-23T04:46:31+00:00"
+    },
+    {
+      "from": "DEC-001",
+      "to": "TASK-043",
+      "type": "governs",
+      "created_at": "2026-08-23T04:46:31+00:00"
+    },
+    {
+      "from": "CHG-042",
+      "to": "TASK-043",
+      "type": "implements",
+      "created_at": "2026-08-23T04:52:07+00:00"
+    },
+    {
+      "from": "CHG-042",
+      "to": "ISS-035",
+      "type": "resolves",
+      "created_at": "2026-08-23T04:52:07+00:00"
     }
   ]
 }
