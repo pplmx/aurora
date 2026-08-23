@@ -3,7 +3,9 @@ package api
 import (
 	"context"
 	"database/sql"
+	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/pplmx/aurora/internal/api/handler"
@@ -17,14 +19,16 @@ import (
 )
 
 type Server struct {
-	db             *sql.DB
-	metrics        *metrics.Registry
-	oracleRepo     oracle.Repository
-	lotteryHandler *handler.LotteryHandler
-	votingHandler  *handler.VotingHandler
-	nftHandler     *handler.NFTHandler
-	tokenHandler   *handler.TokenHandler
-	oracleHandler  *handler.OracleHandler
+	db              *sql.DB
+	metrics         *metrics.Registry
+	oracleRepo      oracle.Repository
+	oracleMu        sync.Mutex
+	oracleScheduler *oracleapp.Scheduler
+	lotteryHandler  *handler.LotteryHandler
+	votingHandler   *handler.VotingHandler
+	nftHandler      *handler.NFTHandler
+	tokenHandler    *handler.TokenHandler
+	oracleHandler   *handler.OracleHandler
 
 	// closers releases every SQLite handle NewServer opened (repos, event
 	// store, replay protection) plus the shared blockchain DB. Tests use
@@ -139,9 +143,31 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 		_, err := fetch.Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
 		return err
 	}
+	sched := oracleapp.NewScheduler(s.oracleRepo, runner, checkEvery, nil)
+	s.oracleMu.Lock()
+	s.oracleScheduler = sched
+	s.oracleMu.Unlock()
 	schedCtx, cancel := context.WithCancel(ctx)
-	go oracleapp.NewScheduler(s.oracleRepo, runner, checkEvery, nil).Run(schedCtx)
+	go sched.Run(schedCtx)
 	return cancel
+}
+
+// OracleMetricsHandler returns an http.Handler exposing the oracle fetch
+// scheduler's per-source feed-health stats in Prometheus text format on
+// /metrics/oracle (v1.16). It is nil-safe: before the scheduler starts it
+// returns empty output.
+func (s *Server) OracleMetricsHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+		s.oracleMu.Lock()
+		sch := s.oracleScheduler
+		s.oracleMu.Unlock()
+		if sch == nil {
+			_, _ = io.WriteString(w, "")
+			return
+		}
+		_, _ = io.WriteString(w, sch.PrometheusText())
+	})
 }
 
 // MetricsRegistry returns the request-metrics registry backing the in-process

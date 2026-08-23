@@ -31,6 +31,7 @@ func newRouter(s *Server) http.Handler {
 	r.Get("/readyz", ReadinessHandler(s.db))
 	r.Get("/health", LivenessHandler)
 	r.Handle("/metrics", reg.Handler())
+	r.Handle("/metrics/oracle", s.OracleMetricsHandler())
 
 	apiKey := config.GetAPIKey()
 
