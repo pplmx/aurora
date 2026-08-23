@@ -51,13 +51,14 @@ function lotteryApp() {
 
 function dashboardApp() {
     return {
-        stats: { lotteries: 0, votes: 0, candidates: 0, sessions: 0 },
+        stats: { lotteries: 0, votes: 0, candidates: 0, sessions: 0, integrity: '-' },
         activity: [],
         loading: true,
         async init() {
             await Promise.all([
                 this.loadLotteries(),
-                this.loadVoting()
+                this.loadVoting(),
+                this.loadBlockchain()
             ]);
             this.loading = false;
         },
@@ -104,6 +105,20 @@ function dashboardApp() {
                     });
                 }
             } catch (e) {
+                console.error(e);
+            }
+        },
+        async loadBlockchain() {
+            try {
+                const res = await fetch('/api/v1/blockchain/verify', { headers: auroraHeaders() });
+                if (!res.ok) {
+                    this.stats.integrity = '?';
+                    return;
+                }
+                const report = await res.json();
+                this.stats.integrity = report.valid ? 'OK' : 'BROKEN';
+            } catch (e) {
+                this.stats.integrity = '?';
                 console.error(e);
             }
         }
