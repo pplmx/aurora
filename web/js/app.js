@@ -570,10 +570,28 @@ function oracleApp() {
         sources: [], loading: true,
         health: [], loadingHealth: true,
         addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
+        templates: [],
         fetchSource: '', fetchResult: '',
         querySource: '', queryLimit: 10, queryRows: [],
         latestSource: '', latestResult: '',
-        async init() { await Promise.all([this.listSources(), this.loadHealth()]); },
+        async init() { await Promise.all([this.listSources(), this.loadHealth(), this.loadTemplates()]); },
+        async loadTemplates() {
+            try {
+                const res = await fetch('/api/v1/oracle/templates', { headers: auroraHeaders() });
+                const data = await res.json();
+                this.templates = Array.isArray(data) ? data : [];
+            } catch (e) { this.templates = []; }
+        },
+        applyTemplate(id) {
+            const t = this.templates.find(x => x.id === id);
+            if (!t) return;
+            this.addName = t.name || '';
+            this.addUrl = t.url || '';
+            this.addType = t.type || '';
+            this.addMethod = t.method || '';
+            this.addPath = t.path || '';
+            this.addInterval = t.interval || 60;
+        },
         async loadHealth() {
             this.loadingHealth = true;
             try {

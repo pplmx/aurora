@@ -100,6 +100,17 @@ func TestOracleHandler_Latest_NoDataReturnsNull(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"data":null`)
 }
 
+func TestOracleHandler_Templates(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/templates", nil)
+	rr := httptest.NewRecorder()
+	handler.Templates(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"id":"btc-price"`)
+	assert.Contains(t, rr.Body.String(), `"id":"eth-price"`)
+}
+
 func TestOracleHandler_CreateSource_InvalidJSON(t *testing.T) {
 	handler := NewOracleHandler(oracle.NewInmemRepo())
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/sources", bytes.NewBufferString("invalid json"))

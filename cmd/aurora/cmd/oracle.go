@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"sort"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
@@ -265,10 +264,10 @@ var templateListCmd = &cobra.Command{
 	Use:   "list",
 	Short: i18n.GetText("oracle.template.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		templates := getTemplates()
+		templates := oracleapp.ListTemplates()
 		fmt.Println("\n📋 Available Templates:")
 		for _, t := range templates {
-			fmt.Printf("   - %s\n", t)
+			fmt.Printf("   - %s\n", t.ID)
 		}
 		return nil
 	},
@@ -286,7 +285,7 @@ var templateAddCmd = &cobra.Command{
 
 		templateName, _ := cmd.Flags().GetString("template")
 
-		template, ok := getTemplate(templateName)
+		template, ok := oracleapp.GetTemplate(templateName)
 		if !ok {
 			return fmt.Errorf("template not found: %s", templateName)
 		}
@@ -323,58 +322,6 @@ var oracleTuiCmd = &cobra.Command{
 		if err := oracleui.RunOracleTUI(repo); err != nil {
 			fmt.Println("Error:", err)
 		}
-	},
-}
-
-// getTemplates returns the names of all built-in oracle data
-// source templates, sorted lexicographically. Sorting is mandatory:
-// Go map iteration order is randomized, and templateListCmd's
-// output is the user-facing `aurora oracle template list` —
-// non-deterministic order across runs would break scripts that
-// diff or pipe the output, and would confuse users.
-func getTemplates() []string {
-	keys := make([]string, 0, len(DataSourceTemplates))
-	for k := range DataSourceTemplates {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-// getTemplate returns the template with the given name and a
-// boolean indicating whether it was found. Callers should treat a
-// false return as "not found" and surface a clean error to the
-// user, not panic.
-func getTemplate(name string) (DataSource, bool) {
-	template, ok := DataSourceTemplates[name]
-	return template, ok
-}
-
-type DataSource struct {
-	Name     string
-	URL      string
-	Type     string
-	Method   string
-	Path     string
-	Interval int
-}
-
-var DataSourceTemplates = map[string]DataSource{
-	"btc-price": {
-		Name:     "Bitcoin Price",
-		URL:      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
-		Type:     "price",
-		Method:   "GET",
-		Path:     "bitcoin.usd",
-		Interval: 60,
-	},
-	"eth-price": {
-		Name:     "Ethereum Price",
-		URL:      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
-		Type:     "price",
-		Method:   "GET",
-		Path:     "ethereum.usd",
-		Interval: 60,
 	},
 }
 
