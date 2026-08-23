@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 71,
+  "round": 72,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T09:20:49+00:00",
+  "updated_at": "2026-08-23T09:25:35+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 71,
+      "touched_round": 72,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -3458,6 +3458,53 @@
       "touched_round": 71,
       "commit": "578fdc1",
       "title": "Add EventRepository.GetByAggregateAndType (SQL type-filtered paging) and use it in GetTransferEventsByOwner + regression test"
+    },
+    "ISS-067": {
+      "id": "ISS-067",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T09:23:20+00:00",
+      "updated_at": "2026-08-23T09:25:35+00:00",
+      "touched_round": 72,
+      "severity": "high",
+      "title": "Token data-loss on duplicate symbol: NewToken uses TokenID(req.Symbol) as the primary key and TokenRepository.SaveToken is INSERT OR REPLACE, and CreateToken performs no existence check, so creating a second token with an existing symbol silently overwrites the first token's row and its owner balance (verified: CreateToken DUP x2 leaves only the second; first name/supply/owner lost)"
+    },
+    "TASK-075": {
+      "id": "TASK-075",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T09:23:24+00:00",
+      "updated_at": "2026-08-23T09:25:35+00:00",
+      "touched_round": 72,
+      "category": "correctness",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 2,
+      "title": "Reject duplicate token symbols in CreateToken (return ErrTokenExists before the INSERT OR REPLACE) and add a regression test proving the second create fails and the first token is intact"
+    },
+    "EV-036": {
+      "id": "EV-036",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:23:29+00:00",
+      "updated_at": "2026-08-23T09:23:29+00:00",
+      "touched_round": 72,
+      "source": "empirical round 72: CreateToken DUP x2 -> only second retained (GetTokenInfo(DUP) returns name=Second supply=5000); token ID==symbol and SaveToken is INSERT OR REPLACE keyed on it with no existence guard",
+      "confidence": 1.0
+    },
+    "CHG-073": {
+      "id": "CHG-073",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:25:31+00:00",
+      "updated_at": "2026-08-23T09:25:31+00:00",
+      "touched_round": 72,
+      "commit": "99a5455",
+      "title": "Reject duplicate token symbols in CreateToken (ErrTokenExists, HTTP 409) + regression test"
     }
   },
   "edges": [
@@ -5296,6 +5343,30 @@
       "to": "ISS-066",
       "type": "resolves",
       "created_at": "2026-08-23T09:20:48+00:00"
+    },
+    {
+      "from": "TASK-075",
+      "to": "ISS-067",
+      "type": "addresses",
+      "created_at": "2026-08-23T09:23:29+00:00"
+    },
+    {
+      "from": "ISS-067",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-23T09:23:29+00:00"
+    },
+    {
+      "from": "CHG-073",
+      "to": "TASK-075",
+      "type": "implements",
+      "created_at": "2026-08-23T09:25:31+00:00"
+    },
+    {
+      "from": "CHG-073",
+      "to": "ISS-067",
+      "type": "resolves",
+      "created_at": "2026-08-23T09:25:35+00:00"
     }
   ]
 }
