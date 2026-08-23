@@ -172,6 +172,7 @@ func TestRouter_RegistersAllExpectedRoutes(t *testing.T) {
 		{http.MethodGet, "/api/v1/nft/list", http.StatusUnauthorized},
 		{http.MethodGet, "/api/v1/token/balance?token_id=t&owner=o", http.StatusUnauthorized},
 		{http.MethodGet, "/api/v1/oracle/sources", http.StatusUnauthorized},
+		{http.MethodGet, "/api/v1/blockchain/verify", http.StatusUnauthorized},
 	} {
 		req := httptest.NewRequest(tc.method, tc.path, nil)
 		rr := httptest.NewRecorder()
