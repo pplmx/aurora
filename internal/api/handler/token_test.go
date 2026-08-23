@@ -75,6 +75,14 @@ func TestTokenHandler_Info_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
+func TestTokenHandler_TransferFrom_InvalidJSON(t *testing.T) {
+	handler := NewTokenHandler(nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/token/transfer_from", bytes.NewBufferString("invalid json"))
+	rr := httptest.NewRecorder()
+	handler.TransferFrom(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
 func TestTokenHandler_Mint_EmptyRequest(t *testing.T) {
 	handler := NewTokenHandler(nil)
 
