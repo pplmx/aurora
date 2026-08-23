@@ -251,6 +251,8 @@ function votingApp() {
         resultsSessionId: '',
         results: null,
         resultsError: '',
+        controlSessionId: '',
+        controlResult: '',
         candidates: [],
         sessions: [],
         loading: true,
@@ -387,6 +389,25 @@ function votingApp() {
             } catch (e) {
                 this.results = null;
                 this.resultsError = 'Error: ' + e.message;
+            }
+        },
+        async startSession() {
+            this.controlResult = '…starting';
+            await this.sessionAction('/api/v1/voting/session/' + encodeURIComponent(this.controlSessionId) + '/start');
+        },
+        async endSession() {
+            this.controlResult = '…ending';
+            await this.sessionAction('/api/v1/voting/session/' + encodeURIComponent(this.controlSessionId) + '/end');
+        },
+        async sessionAction(url) {
+            try {
+                const res = await fetch(url, { method: 'POST', headers: auroraHeaders() });
+                const data = await res.json();
+                if (!res.ok) { this.controlResult = 'Error: ' + (data.message || res.status); return; }
+                this.controlResult = 'Session status: ' + (data.status || '?');
+                await this.loadSessions();
+            } catch (e) {
+                this.controlResult = 'Error: ' + e.message;
             }
         }
     };
