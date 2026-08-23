@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 49,
+  "round": 50,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:19:42+00:00",
+  "updated_at": "2026-08-23T05:22:51+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 48,
+      "touched_round": 49,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -2349,6 +2349,53 @@
       "touched_round": 48,
       "commit": "c50c813",
       "title": "Oracle response DTO json tags (snake_case) + contract regression tests"
+    },
+    "ISS-044": {
+      "id": "ISS-044",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:21:37+00:00",
+      "updated_at": "2026-08-23T05:22:51+00:00",
+      "touched_round": 49,
+      "title": "Oracle sources can be listed, fetched, and queried over REST/web, but cannot be created; adding a source is CLI-only, so the web cannot bootstrap new data feeds",
+      "severity": "low"
+    },
+    "TASK-052": {
+      "id": "TASK-052",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:21:37+00:00",
+      "updated_at": "2026-08-23T05:22:51+00:00",
+      "touched_round": 49,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add POST /api/v1/oracle/sources (AddSourceUseCase) + Add Source form on oracle.html with tests"
+    },
+    "EV-013": {
+      "id": "EV-013",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:22:46+00:00",
+      "updated_at": "2026-08-23T05:22:46+00:00",
+      "touched_round": 49,
+      "source": "go test ./... (33 pkgs) + TestOracleHandler_CreateSource_* + web contract route resolution",
+      "title": "Oracle source creation over REST/web verified (success, invalid URL, invalid JSON)",
+      "confidence": 1.0
+    },
+    "CHG-051": {
+      "id": "CHG-051",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:22:46+00:00",
+      "updated_at": "2026-08-23T05:22:46+00:00",
+      "touched_round": 49,
+      "commit": "b2a64ec",
+      "title": "Oracle create source REST endpoint + Add Source web form"
     }
   },
   "edges": [
@@ -3635,6 +3682,30 @@
       "to": "ISS-043",
       "type": "resolves",
       "created_at": "2026-08-23T05:19:41+00:00"
+    },
+    {
+      "from": "TASK-052",
+      "to": "ISS-044",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:21:41+00:00"
+    },
+    {
+      "from": "ISS-044",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:21:41+00:00"
+    },
+    {
+      "from": "CHG-051",
+      "to": "TASK-052",
+      "type": "implements",
+      "created_at": "2026-08-23T05:22:51+00:00"
+    },
+    {
+      "from": "CHG-051",
+      "to": "ISS-044",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:22:51+00:00"
     }
   ]
 }
