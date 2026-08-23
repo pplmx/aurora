@@ -22,6 +22,15 @@ type sourceRepo interface {
 	GetLatestData(sourceID string) (*oracle.OracleData, error)
 }
 
+// maxBackoff caps the exponential backoff applied to a persistently-failing
+// source (v1.17). Without a cap a long outage would drive the retry gap to
+// unbounded lengths.
+const maxBackoff = 5 * time.Minute
+
+// backoffBase is the first retry gap after one failure (matches the default
+// check cadence).
+const backoffBase = time.Second
+
 // Scheduler periodically fetches enabled data sources on their configured
 // Interval. The Interval field was stored and exposed through the API/CLI but
 // never acted on — this closes that gap (v1.15 Oracle Scheduled Fetching).
@@ -34,10 +43,12 @@ type Scheduler struct {
 	checkEvery time.Duration
 	now        func() time.Time
 
-	mu        sync.Mutex
-	lastFetch map[string]time.Time
-	seeded    bool
-	stats     map[string]*SourceStat
+	mu          sync.Mutex
+	lastFetch   map[string]time.Time
+	seeded      bool
+	stats       map[string]*SourceStat
+	failStreak  map[string]int
+	nextAttempt map[string]time.Time
 }
 
 // SourceStat is the cumulative fetch-health counter for one data source. It is
@@ -64,12 +75,14 @@ func NewScheduler(repo sourceRepo, execute func(sourceID string) error, checkEve
 		checkEvery = time.Second
 	}
 	return &Scheduler{
-		repo:       repo,
-		execute:    execute,
-		checkEvery: checkEvery,
-		now:        now,
-		lastFetch:  make(map[string]time.Time),
-		stats:      make(map[string]*SourceStat),
+		repo:        repo,
+		execute:     execute,
+		checkEvery:  checkEvery,
+		now:         now,
+		lastFetch:   make(map[string]time.Time),
+		stats:       make(map[string]*SourceStat),
+		failStreak:  make(map[string]int),
+		nextAttempt: make(map[string]time.Time),
 	}
 }
 
@@ -110,6 +123,9 @@ func (s *Scheduler) pass() {
 		s.mu.Lock()
 		last, ok := s.lastFetch[src.ID]
 		due := !ok || now.Sub(last) >= interval
+		if due && now.Before(s.nextAttempt[src.ID]) {
+			due = false
+		}
 		s.mu.Unlock()
 		if !due {
 			continue
@@ -124,6 +140,8 @@ func (s *Scheduler) pass() {
 			s.mu.Lock()
 			st.Failures++
 			st.LastError = err.Error()
+			s.failStreak[src.ID]++
+			s.nextAttempt[src.ID] = now.Add(backoff(s.failStreak[src.ID]))
 			s.mu.Unlock()
 			logger.Warn().Err(err).Str("source_id", src.ID).Msg("oracle scheduler: fetch failed")
 			continue
@@ -133,6 +151,8 @@ func (s *Scheduler) pass() {
 		st.Successes++
 		st.LastSuccessAt = now.Unix()
 		s.lastFetch[src.ID] = now
+		delete(s.failStreak, src.ID)
+		delete(s.nextAttempt, src.ID)
 		s.mu.Unlock()
 	}
 }
@@ -206,4 +226,20 @@ func (s *Scheduler) PrometheusText() string {
 		fmt.Fprintf(&b, "oracle_fetch_failures_total{source=%q} %d\n", st.SourceID, st.Failures)
 	}
 	return b.String()
+}
+
+// backoff returns the retry gap for the given consecutive-failure count:
+// 1s, 2s, 4s, ... capped at maxBackoff. count==1 returns backoffBase.
+func backoff(streak int) time.Duration {
+	if streak <= 1 {
+		return backoffBase
+	}
+	d := backoffBase
+	for i := 1; i < streak; i++ {
+		d *= 2
+		if d >= maxBackoff {
+			return maxBackoff
+		}
+	}
+	return d
 }

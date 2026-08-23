@@ -70,11 +70,17 @@ func TestScheduler_PassRetriesFailed(t *testing.T) {
 	if attempts != 1 {
 		t.Fatalf("expected 1 attempt, got %d", attempts)
 	}
-	// A failed fetch must not be marked done, so it is retried next pass even
-	// though the interval has not elapsed.
+	// Backoff (v1.17): a failed fetch is suppressed during its backoff window
+	// (1s after the first failure), so the immediate next pass must NOT retry.
+	s.pass()
+	if attempts != 1 {
+		t.Fatalf("expected failed fetch to be suppressed during backoff, got %d attempts", attempts)
+	}
+	// After the backoff window elapses the source is retried.
+	now = now.Add(2 * time.Second)
 	s.pass()
 	if attempts != 2 {
-		t.Fatalf("expected failed fetch to be retried next pass, got %d attempts", attempts)
+		t.Fatalf("expected failed fetch to be retried after backoff, got %d attempts", attempts)
 	}
 }
 func TestScheduler_SeedsLastFetchFromRepo(t *testing.T) {
@@ -139,8 +145,9 @@ func TestScheduler_StatsTracksSuccessAndFailure(t *testing.T) {
 		t.Fatalf("unexpected bad stat: %+v", bad)
 	}
 
-	// Options: failed fetch is retried next pass -> attempts/failures climb.
-	now = now.Add(1)
+	// After the backoff window elapses the failed fetch is retried, so
+	// attempts/failures climb.
+	now = now.Add(2 * time.Second)
 	s.pass()
 	bad2 := map[string]SourceStat{}
 	for _, st := range s.Stats() {
@@ -167,6 +174,28 @@ func TestScheduler_PrometheusText(t *testing.T) {
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("PrometheusText missing %q:\n%s", want, out)
+		}
+	}
+}
+func TestBackoffEscalatesAndCaps(t *testing.T) {
+	cases := []struct {
+		streak int
+		want   time.Duration
+	}{
+		{1, time.Second},
+		{2, 2 * time.Second},
+		{3, 4 * time.Second},
+		{4, 8 * time.Second},
+	}
+	for _, c := range cases {
+		if got := backoff(c.streak); got != c.want {
+			t.Errorf("backoff(%d)=%s, want %s", c.streak, got, c.want)
+		}
+	}
+	// The retry gap must never exceed maxBackoff no matter how long the outage.
+	for streak := 6; streak <= 20; streak++ {
+		if d := backoff(streak); d > maxBackoff {
+			t.Errorf("backoff(%d)=%s exceeds maxBackoff %s", streak, d, maxBackoff)
 		}
 	}
 }
