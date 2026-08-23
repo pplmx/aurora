@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 41,
+  "round": 42,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T04:52:10+00:00",
+  "updated_at": "2026-08-23T04:56:14+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1953,6 +1953,63 @@
       "touched_round": 40,
       "commit": "a63c747",
       "title": "Persist lottery VRF public key, populate Verified, add VerifyLotteryUseCase + GET /api/v1/lottery/{id}/verify + web verify + CLI integration"
+    },
+    "ISS-036": {
+      "id": "ISS-036",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T04:53:48+00:00",
+      "updated_at": "2026-08-23T04:55:28+00:00",
+      "touched_round": 41,
+      "title": "Scheduler.Run (the oracle production fetch loop) has 0% test coverage: its ticker liveness and context-cancellation shutdown path are unverified",
+      "severity": "low"
+    },
+    "TASK-044": {
+      "id": "TASK-044",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T04:53:48+00:00",
+      "updated_at": "2026-08-23T04:55:28+00:00",
+      "touched_round": 41,
+      "category": "test-quality",
+      "severity": 0.4,
+      "priority_score": 2.0,
+      "title": "Add Scheduler.Run tests covering initial fetch, ticker polling, and prompt shutdown on context cancellation"
+    },
+    "COMP-005": {
+      "id": "COMP-005",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:53:50+00:00",
+      "updated_at": "2026-08-23T04:53:50+00:00",
+      "touched_round": 41,
+      "title": "Oracle module scheduler/app"
+    },
+    "EV-005": {
+      "id": "EV-005",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:55:24+00:00",
+      "updated_at": "2026-08-23T04:55:24+00:00",
+      "touched_round": 41,
+      "source": "go test ./internal/app/oracle/... -race -cover => 93.7%; full go test ./... 33 pkgs green",
+      "title": "Scheduler.Run covered (initial fetch, ticker refetch, cancel shutdown) with race detector",
+      "confidence": 1.0
+    },
+    "CHG-043": {
+      "id": "CHG-043",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:55:24+00:00",
+      "updated_at": "2026-08-23T04:55:24+00:00",
+      "touched_round": 41,
+      "commit": "fc252ed",
+      "title": "Oracle Scheduler.Run test coverage (initial fetch, ticker polling, cancel shutdown)"
     }
   },
   "edges": [
@@ -3047,6 +3104,30 @@
       "to": "ISS-035",
       "type": "resolves",
       "created_at": "2026-08-23T04:52:07+00:00"
+    },
+    {
+      "from": "TASK-044",
+      "to": "ISS-036",
+      "type": "addresses",
+      "created_at": "2026-08-23T04:53:53+00:00"
+    },
+    {
+      "from": "ISS-036",
+      "to": "COMP-005",
+      "type": "located_in",
+      "created_at": "2026-08-23T04:53:53+00:00"
+    },
+    {
+      "from": "CHG-043",
+      "to": "TASK-044",
+      "type": "implements",
+      "created_at": "2026-08-23T04:55:27+00:00"
+    },
+    {
+      "from": "CHG-043",
+      "to": "ISS-036",
+      "type": "resolves",
+      "created_at": "2026-08-23T04:55:27+00:00"
     }
   ]
 }
