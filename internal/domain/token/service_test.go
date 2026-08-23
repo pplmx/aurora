@@ -124,6 +124,41 @@ func TestCreateToken(t *testing.T) {
 	}
 }
 
+// TestCreateToken_RejectsDuplicateSymbol locks the v1.62 data-loss fix: a
+// token's ID is its symbol and persistence uses INSERT OR REPLACE keyed on it,
+// so a second create with an existing symbol must be rejected (ErrTokenExists)
+// rather than silently overwriting the first token and its balances
+// (TASK-075, ISS-067).
+func TestCreateToken_RejectsDuplicateSymbol(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	_, err := service.CreateToken(&CreateTokenRequest{
+		Name: "First", Symbol: "DUP", TotalSupply: NewAmount(1000), Owner: pubKey(1),
+	})
+	if err != nil {
+		t.Fatalf("first create failed: %v", err)
+	}
+
+	_, err = service.CreateToken(&CreateTokenRequest{
+		Name: "Second", Symbol: "DUP", TotalSupply: NewAmount(5000), Owner: pubKey(2),
+	})
+	if err != ErrTokenExists {
+		t.Fatalf("second create with duplicate symbol: got %v, want ErrTokenExists", err)
+	}
+
+	// The first token must be intact (not overwritten by the rejected create).
+	first, err := service.GetTokenInfo("DUP")
+	if err != nil {
+		t.Fatalf("GetTokenInfo failed: %v", err)
+	}
+	if first.Name() != "First" || first.TotalSupply().String() != "1000" {
+		t.Errorf("first token was clobbered: got %q supply %s, want name First supply 1000",
+			first.Name(), first.TotalSupply().String())
+	}
+}
+
 func TestCreateToken_InvalidName(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
