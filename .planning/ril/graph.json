@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 44,
+  "round": 45,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:01:36+00:00",
+  "updated_at": "2026-08-23T05:04:24+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 10,
+      "touched_round": 44,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -2104,6 +2104,53 @@
       "touched_round": 43,
       "commit": "4d0c599",
       "title": "Voting web session lifecycle controls (start/end) + webserve guard"
+    },
+    "ISS-039": {
+      "id": "ISS-039",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:02:53+00:00",
+      "updated_at": "2026-08-23T05:04:23+00:00",
+      "touched_round": 44,
+      "title": "NFT operations history is exposed over CLI (nft history) but not over REST, and the NFT web page has no history view; audit/ownership trail is invisible in the browser",
+      "severity": "low"
+    },
+    "TASK-047": {
+      "id": "TASK-047",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:02:53+00:00",
+      "updated_at": "2026-08-23T05:04:24+00:00",
+      "touched_round": 44,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add GET /api/v1/nft/{id}/history REST endpoint (GetNFTOperationsUseCase) + History view on NFT web page with tests"
+    },
+    "EV-008": {
+      "id": "EV-008",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:04:19+00:00",
+      "updated_at": "2026-08-23T05:04:19+00:00",
+      "touched_round": 44,
+      "source": "go test ./... (33 pkgs) + TestNFTHandler_History_ReturnsMintOperation + web contract route resolution",
+      "title": "NFT /history REST + web History view verified end-to-end (mint op trail)",
+      "confidence": 1.0
+    },
+    "CHG-046": {
+      "id": "CHG-046",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:04:19+00:00",
+      "updated_at": "2026-08-23T05:04:19+00:00",
+      "touched_round": 44,
+      "commit": "a72ca52",
+      "title": "NFT operations history REST endpoint + web History view"
     }
   },
   "edges": [
@@ -3270,6 +3317,30 @@
       "to": "ISS-038",
       "type": "resolves",
       "created_at": "2026-08-23T05:01:32+00:00"
+    },
+    {
+      "from": "TASK-047",
+      "to": "ISS-039",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:02:58+00:00"
+    },
+    {
+      "from": "ISS-039",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:02:58+00:00"
+    },
+    {
+      "from": "CHG-046",
+      "to": "TASK-047",
+      "type": "implements",
+      "created_at": "2026-08-23T05:04:23+00:00"
+    },
+    {
+      "from": "CHG-046",
+      "to": "ISS-039",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:04:23+00:00"
     }
   ]
 }
