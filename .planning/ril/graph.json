@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 19,
+  "round": 20,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T00:22:15+00:00",
+  "updated_at": "2026-08-23T00:24:48+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1041,7 +1041,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:18:02+00:00",
       "updated_at": "2026-08-23T00:18:02+00:00",
-      "touched_round": 19,
+      "touched_round": 20,
       "title": "internal/metrics"
     },
     "TASK-019": {
@@ -1102,6 +1102,41 @@
       "touched_round": 19,
       "commit": "b2d3a86",
       "title": "Per-module request metrics"
+    },
+    "ISS-013": {
+      "id": "ISS-013",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:24:25+00:00",
+      "updated_at": "2026-08-23T00:24:48+00:00",
+      "touched_round": 20,
+      "title": "/metrics handler is private to the router; operators cannot export or mount it for external scraping",
+      "severity": "low"
+    },
+    "TASK-021": {
+      "id": "TASK-021",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T00:24:26+00:00",
+      "updated_at": "2026-08-23T00:24:48+00:00",
+      "touched_round": 20,
+      "category": "core-feature",
+      "priority_score": 1.8,
+      "severity": 0.4,
+      "title": "Own the metrics registry on Server and expose MetricsRegistry/MetricsHandler for external scraping"
+    },
+    "CHG-020": {
+      "id": "CHG-020",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:24:37+00:00",
+      "updated_at": "2026-08-23T00:24:37+00:00",
+      "touched_round": 20,
+      "commit": "24c887f",
+      "title": "Server-owned metrics registry + exported MetricsHandler"
     }
   },
   "edges": [
@@ -1638,6 +1673,30 @@
       "to": "TASK-020",
       "type": "implements",
       "created_at": "2026-08-23T00:22:12+00:00"
+    },
+    {
+      "from": "ISS-013",
+      "to": "COMP-003",
+      "type": "located_in",
+      "created_at": "2026-08-23T00:24:26+00:00"
+    },
+    {
+      "from": "TASK-021",
+      "to": "ISS-013",
+      "type": "addresses",
+      "created_at": "2026-08-23T00:24:26+00:00"
+    },
+    {
+      "from": "CHG-020",
+      "to": "ISS-013",
+      "type": "resolves",
+      "created_at": "2026-08-23T00:24:37+00:00"
+    },
+    {
+      "from": "CHG-020",
+      "to": "TASK-021",
+      "type": "implements",
+      "created_at": "2026-08-23T00:24:37+00:00"
     }
   ]
 }
