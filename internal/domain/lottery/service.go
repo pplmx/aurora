@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	DrawWinners(participants []string, seed string, count int) ([]string, []string, []byte, []byte, error)
+	DrawWinners(participants []string, seed string, count int) ([]string, []string, []byte, []byte, string, error)
 	VerifyDraw(record *LotteryRecord, publicKey *edwards25519.Point) (bool, error)
 }
 
@@ -18,25 +18,25 @@ func NewService() Service {
 	return &lotteryService{}
 }
 
-func (s *lotteryService) DrawWinners(participants []string, seed string, count int) ([]string, []string, []byte, []byte, error) {
+func (s *lotteryService) DrawWinners(participants []string, seed string, count int) ([]string, []string, []byte, []byte, string, error) {
 	if err := ValidateParticipants(participants); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, "", err
 	}
 	if err := ValidateSeed(seed); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, "", err
 	}
 	if err := ValidateWinnerCount(count, len(participants)); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, "", err
 	}
 
-	_, sk, err := GenerateKeyPair()
+	pk, sk, err := GenerateKeyPair()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, "", err
 	}
 
 	output, proof, err := VRFProve(sk, []byte(seed))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, "", err
 	}
 
 	winners := SelectWinners(output, participants, count)
@@ -46,7 +46,7 @@ func (s *lotteryService) DrawWinners(participants []string, seed string, count i
 		winnerAddrs[i] = NameToAddress(w)
 	}
 
-	return winners, winnerAddrs, output, proof, nil
+	return winners, winnerAddrs, output, proof, EncodePublicKey(pk), nil
 }
 
 func (s *lotteryService) VerifyDraw(record *LotteryRecord, publicKey *edwards25519.Point) (bool, error) {

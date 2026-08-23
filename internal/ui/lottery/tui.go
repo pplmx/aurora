@@ -317,7 +317,7 @@ func (m *model) loadHistory() {
 }
 
 func (m *model) runLottery(participants []string, seed string, count int) *lottery.LotteryRecord {
-	_, sk, _ := lottery.GenerateKeyPair()
+	pk, sk, _ := lottery.GenerateKeyPair()
 	output, proof, _ := lottery.VRFProve(sk, []byte(seed))
 
 	winners := lottery.SelectWinners(output, participants, count)
@@ -326,7 +326,7 @@ func (m *model) runLottery(participants []string, seed string, count int) *lotte
 		winnerAddrs[i] = lottery.NameToAddress(w)
 	}
 
-	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
+	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 
 	jsonData, err := record.ToJSON()
 	if err != nil {

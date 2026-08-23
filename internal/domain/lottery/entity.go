@@ -35,6 +35,7 @@ type LotteryRecord struct {
 	WinnerAddresses []string `json:"winner_addresses"`
 	VRFProof        string   `json:"vrf_proof"`
 	VRFOutput       string   `json:"vrf_output"`
+	VRFPublicKey    string   `json:"vrf_public_key"`
 	Timestamp       int64    `json:"timestamp"`
 	Verified        bool     `json:"verified"`
 }
@@ -109,6 +110,7 @@ func CreateLotteryRecord(
 	winnerAddrs []string,
 	output []byte,
 	proof []byte,
+	publicKey string,
 	blockHeight int64,
 ) *LotteryRecord {
 	// Build a record ID that is unique per draw. The VRF `output` is the
@@ -134,6 +136,7 @@ func CreateLotteryRecord(
 		WinnerAddresses: winnerAddrs,
 		VRFProof:        hex.EncodeToString(proof),
 		VRFOutput:       hex.EncodeToString(output),
+		VRFPublicKey:    publicKey,
 		BlockHeight:     blockHeight,
 		Timestamp:       time.Now().Unix(),
 	}

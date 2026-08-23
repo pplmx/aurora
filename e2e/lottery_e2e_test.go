@@ -14,7 +14,7 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 	seed := "e2e-test-seed-123"
 	count := 3
 
-	_, sk, err := lottery.GenerateKeyPair()
+	pk, sk, err := lottery.GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("GenerateKeyPair failed: %v", err)
 	}
@@ -34,7 +34,7 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 		winnerAddrs[i] = lottery.NameToAddress(w)
 	}
 
-	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
+	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 
 	chain := blockchain.InitBlockChain()
 	jsonData, err := record.ToJSON()
@@ -74,7 +74,7 @@ func TestLotteryE2E_MultipleLotteries(t *testing.T) {
 	participants := []string{"A", "B", "C", "D", "E"}
 
 	for _, seed := range seeds {
-		_, sk, _ := lottery.GenerateKeyPair()
+		pk, sk, _ := lottery.GenerateKeyPair()
 		output, proof, _ := lottery.VRFProve(sk, []byte(seed))
 		winners := lottery.SelectWinners(output, participants, 2)
 
@@ -83,7 +83,7 @@ func TestLotteryE2E_MultipleLotteries(t *testing.T) {
 			winnerAddrs[i] = lottery.NameToAddress(w)
 		}
 
-		record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
+		record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 		jsonData, _ := record.ToJSON()
 		_, _ = chain.AddLotteryRecord(jsonData)
 	}
@@ -106,7 +106,7 @@ func TestLotteryE2E_VerifyIntegrity(t *testing.T) {
 	participants := []string{"Player1", "Player2", "Player3", "Player4", "Player5"}
 	seed := "integrity-test-seed"
 
-	_, sk, _ := lottery.GenerateKeyPair()
+	pk, sk, _ := lottery.GenerateKeyPair()
 	output, proof, _ := lottery.VRFProve(sk, []byte(seed))
 	winners := lottery.SelectWinners(output, participants, 2)
 
@@ -115,7 +115,7 @@ func TestLotteryE2E_VerifyIntegrity(t *testing.T) {
 		winnerAddrs[i] = lottery.NameToAddress(w)
 	}
 
-	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
+	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 	_ = record
 
 	if record.Seed != seed {
@@ -190,12 +190,12 @@ func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
 	chain := blockchain.InitBlockChain()
 	initialCount := len(chain.GetLotteryRecords())
 
-	_, sk, _ := lottery.GenerateKeyPair()
+	pk, sk, _ := lottery.GenerateKeyPair()
 	output, proof, _ := lottery.VRFProve(sk, []byte("history-test"))
 	winners := lottery.SelectWinners(output, []string{"A", "B", "C", "D"}, 1)
 	winnerAddrs := []string{lottery.NameToAddress(winners[0])}
 
-	record := lottery.CreateLotteryRecord("history-test", []string{"A", "B", "C", "D"}, winners, winnerAddrs, output, proof, 0)
+	record := lottery.CreateLotteryRecord("history-test", []string{"A", "B", "C", "D"}, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 	jsonData, _ := record.ToJSON()
 	_, _ = chain.AddLotteryRecord(jsonData)
 

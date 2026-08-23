@@ -12,7 +12,7 @@ func TestLotteryService_DrawWinners(t *testing.T) {
 	seed := "test-seed-123"
 	count := 2
 
-	winners, winnerAddrs, output, proof, err := service.DrawWinners(participants, seed, count)
+	winners, winnerAddrs, output, proof, publicKey, err := service.DrawWinners(participants, seed, count)
 	if err != nil {
 		t.Fatalf("DrawWinners failed: %v", err)
 	}
@@ -33,6 +33,13 @@ func TestLotteryService_DrawWinners(t *testing.T) {
 		t.Error("Expected non-empty VRF proof")
 	}
 
+	if publicKey == "" {
+		t.Error("Expected non-empty VRF public key")
+	}
+	if _, err := DecodePublicKey(publicKey); err != nil {
+		t.Errorf("DrawWinners public key should decode: %v", err)
+	}
+
 	for _, winner := range winners {
 		found := false
 		for _, p := range participants {
@@ -50,7 +57,7 @@ func TestLotteryService_DrawWinners(t *testing.T) {
 func TestLotteryService_DrawWinners_InvalidParticipants(t *testing.T) {
 	service := NewService()
 
-	_, _, _, _, err := service.DrawWinners([]string{}, "seed", 1)
+	_, _, _, _, _, err := service.DrawWinners([]string{}, "seed", 1)
 	if err == nil {
 		t.Fatal("Expected error for empty participants")
 	}
@@ -59,7 +66,7 @@ func TestLotteryService_DrawWinners_InvalidParticipants(t *testing.T) {
 func TestLotteryService_DrawWinners_InvalidSeed(t *testing.T) {
 	service := NewService()
 
-	_, _, _, _, err := service.DrawWinners([]string{"A", "B"}, "", 1)
+	_, _, _, _, _, err := service.DrawWinners([]string{"A", "B"}, "", 1)
 	if err == nil {
 		t.Fatal("Expected error for empty seed")
 	}
@@ -68,7 +75,7 @@ func TestLotteryService_DrawWinners_InvalidSeed(t *testing.T) {
 func TestLotteryService_DrawWinners_InvalidWinnerCount(t *testing.T) {
 	service := NewService()
 
-	_, _, _, _, err := service.DrawWinners([]string{"A", "B"}, "seed", 5)
+	_, _, _, _, _, err := service.DrawWinners([]string{"A", "B"}, "seed", 5)
 	if err == nil {
 		t.Fatal("Expected error for winner count > participants")
 	}
@@ -77,7 +84,7 @@ func TestLotteryService_DrawWinners_InvalidWinnerCount(t *testing.T) {
 func TestLotteryService_DrawWinners_ZeroWinners(t *testing.T) {
 	service := NewService()
 
-	_, _, _, _, err := service.DrawWinners([]string{"A", "B"}, "seed", 0)
+	_, _, _, _, _, err := service.DrawWinners([]string{"A", "B"}, "seed", 0)
 	if err == nil {
 		t.Fatal("Expected error for zero winners")
 	}
@@ -87,21 +94,22 @@ func TestLotteryService_VerifyDraw(t *testing.T) {
 	service := NewService()
 
 	participants := []string{"Alice", "Bob", "Charlie"}
-	winners, _, output, proof, err := service.DrawWinners(participants, "test-seed", 1)
+	winners, _, output, proof, publicKey, err := service.DrawWinners(participants, "test-seed", 1)
 	if err != nil {
 		t.Fatalf("DrawWinners failed: %v", err)
 	}
 
 	record := &LotteryRecord{
-		Seed:      "test-seed",
-		Winners:   winners,
-		VRFOutput: hex.EncodeToString(output),
-		VRFProof:  hex.EncodeToString(proof),
+		Seed:         "test-seed",
+		Winners:      winners,
+		VRFOutput:    hex.EncodeToString(output),
+		VRFProof:     hex.EncodeToString(proof),
+		VRFPublicKey: publicKey,
 	}
 
-	pk, _, err := GenerateKeyPair()
+	pk, err := DecodePublicKey(publicKey)
 	if err != nil {
-		t.Fatalf("GenerateKeyPair failed: %v", err)
+		t.Fatalf("DecodePublicKey failed: %v", err)
 	}
 
 	valid, err := service.VerifyDraw(record, pk)

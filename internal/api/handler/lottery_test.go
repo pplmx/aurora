@@ -57,6 +57,49 @@ func TestLotteryHandler_Get_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
+func TestLotteryHandler_Verify_NotFound(t *testing.T) {
+	handler := &LotteryHandler{repo: &mockLotteryRepo{}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/nonexistent/verify", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "nonexistent")
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+
+	handler.Verify(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+func TestLotteryHandler_Verify_ValidDraw(t *testing.T) {
+	// Build a real draw through the domain service so its VRF proof, output and
+	// public key are internally consistent, then confirm the handler reports it
+	// valid (v1.31 audit surface).
+	svc := lottery.NewService()
+	winners, addrs, output, proof, pubKey, err := svc.DrawWinners([]string{"Alice", "Bob", "Charlie"}, "verify-seed", 1)
+	assert.NoError(t, err)
+	record := lottery.CreateLotteryRecord("verify-seed", []string{"Alice", "Bob", "Charlie"}, winners, addrs, output, proof, pubKey, 1)
+
+	handler := &LotteryHandler{repo: &stubLotteryRepo{record: record}}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/"+record.ID+"/verify", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", record.ID)
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+
+	handler.Verify(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var resp struct {
+		ID    string `json:"id"`
+		Valid bool   `json:"valid"`
+	}
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, record.ID, resp.ID)
+	assert.True(t, resp.Valid)
+}
+
 func TestLotteryHandler_History(t *testing.T) {
 	handler := &LotteryHandler{repo: &mockLotteryRepo{}}
 
@@ -77,6 +120,27 @@ func (m *mockLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
 }
 func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
+}
+
+type stubLotteryRepo struct {
+	record *lottery.LotteryRecord
+}
+
+func (m *stubLotteryRepo) Save(*lottery.LotteryRecord) error { return nil }
+func (m *stubLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
+	return m.record, nil
+}
+func (m *stubLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
+	if m.record == nil {
+		return []*lottery.LotteryRecord{}, nil
+	}
+	return []*lottery.LotteryRecord{m.record}, nil
+}
+func (m *stubLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
+	if m.record == nil {
+		return nil, nil
+	}
+	return []*lottery.LotteryRecord{m.record}, nil
 }
 func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil

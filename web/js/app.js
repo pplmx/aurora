@@ -13,8 +13,18 @@ function lotteryApp() {
         result: '',
         history: [],
         loading: true,
+        verifyId: '',
+        verifyResult: '',
         async init() {
             await this.loadHistory();
+        },
+        async verifyDraw() {
+            try {
+                const res = await fetch('/api/v1/lottery/' + encodeURIComponent(this.verifyId) + '/verify', { headers: auroraHeaders() });
+                this.verifyResult = JSON.stringify(await res.json(), null, 2);
+            } catch (e) {
+                this.verifyResult = 'Error: ' + e.message;
+            }
         },
         async loadHistory() {
             this.loading = true;

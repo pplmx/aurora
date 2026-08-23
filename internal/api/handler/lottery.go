@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -28,6 +29,7 @@ func (h *LotteryHandler) Routes(r chi.Router) {
 	r.Post("/create", h.Create)
 	r.Get("/history", h.History)
 	r.Get("/{id}", h.Get)
+	r.Get("/{id}/verify", h.Verify)
 }
 
 func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +79,28 @@ func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	if result == nil {
 		writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// Verify re-verifies a persisted draw (proof vs stored public key + winner
+// set) and returns {id, valid, reason}. It uses the same key-bound check as
+// creation, so a draw created after the v1.31 feature can be cryptographically
+// confirmed from the record alone.
+func (h *LotteryHandler) Verify(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	uc := lotteryapp.NewVerifyLotteryUseCase(h.repo, lottery.NewService())
+	result, err := uc.Execute(lotteryapp.VerifyLotteryRequest{ID: id})
+	if err != nil {
+		if errors.Is(err, lottery.ErrNotFound) {
+			writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+			return
+		}
+		writeUseCaseError(w, err)
 		return
 	}
 

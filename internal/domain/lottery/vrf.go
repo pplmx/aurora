@@ -3,6 +3,8 @@ package lottery
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
+	"errors"
 
 	"filippo.io/edwards25519"
 )
@@ -41,6 +43,38 @@ func GenerateKeyPair() (*edwards25519.Point, *edwards25519.Scalar, error) {
 	public.ScalarBaseMult(secret)
 
 	return public, secret, nil
+}
+
+// EncodePublicKey serializes a VRF public key point to base64 so it can be
+// persisted on a LotteryRecord and re-verified after the fact. A VRF curve
+// point is exactly 32 bytes, so round-tripping through DecodePublicKey is
+// lossless.
+func EncodePublicKey(pk *edwards25519.Point) string {
+	if pk == nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(pk.Bytes())
+}
+
+// DecodePublicKey parses a base64-encoded VRF public key point. It returns an
+// error for empty or malformed input so callers can distinguish "key absent"
+// from a corrupt key.
+func DecodePublicKey(s string) (*edwards25519.Point, error) {
+	if s == "" {
+		return nil, errors.New("empty public key")
+	}
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	if len(b) != 32 {
+		return nil, errors.New("invalid public key length")
+	}
+	p := new(edwards25519.Point)
+	if _, err := p.SetBytes(b); err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 // hashToPoint converts a message to a curve point using SHA-256.
