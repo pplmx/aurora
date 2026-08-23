@@ -45,6 +45,7 @@ func (h *VotingHandler) Routes(r chi.Router) {
 	r.Get("/candidates", h.ListCandidates)
 	r.Get("/sessions", h.ListSessions)
 	r.Get("/session/{id}", h.GetSession)
+	r.Get("/results/{id}", h.GetResults)
 }
 
 func (h *VotingHandler) RegisterVoter(w http.ResponseWriter, r *http.Request) {
@@ -187,6 +188,21 @@ func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(session)
+}
+
+// GetResults returns the per-candidate tally for a session (v1.23 Voting
+// Results API), closing the CLI-only `voting results` parity gap.
+func (h *VotingHandler) GetResults(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	uc := votingapp.NewGetResultsUseCase(h.repo)
+	result, err := uc.Execute(id)
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 // updateSessionStatus applies a status transition to an existing session,

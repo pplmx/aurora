@@ -386,3 +386,52 @@ func containsString(list []string, target string) bool {
 	}
 	return false
 }
+
+// GetResultsUseCase returns the per-candidate tally for a session from its
+// declared candidate roster, plus the total vote count (v1.23 Voting Results
+// API). This closes a CLI↔API parity gap: the CLI exposed `voting results`
+// but the REST API had no results surface.
+type GetResultsUseCase struct {
+	repo voting.Repository
+}
+
+func NewGetResultsUseCase(repo voting.Repository) *GetResultsUseCase {
+	return &GetResultsUseCase{repo: repo}
+}
+
+func (uc *GetResultsUseCase) Execute(sessionID string) (*ResultsResponse, error) {
+	session, err := uc.repo.GetSession(sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+	if session == nil {
+		return nil, voting.ErrSessionNotFound
+	}
+
+	candidates := make([]CandidateResult, 0, len(session.Candidates))
+	total := 0
+	for _, cid := range session.Candidates {
+		c, err := uc.repo.GetCandidate(cid)
+		if err != nil {
+			continue
+		}
+		if c == nil {
+			// A candidate that has since been deleted still counts as 0.
+			candidates = append(candidates, CandidateResult{ID: cid})
+			continue
+		}
+		candidates = append(candidates, CandidateResult{
+			ID:        c.ID,
+			Name:      c.Name,
+			Party:     c.Party,
+			VoteCount: c.VoteCount,
+		})
+		total += c.VoteCount
+	}
+
+	return &ResultsResponse{
+		SessionID:  session.ID,
+		TotalVotes: total,
+		Candidates: candidates,
+	}, nil
+}

@@ -1335,3 +1335,30 @@ func TestCastVoteUseCase_RecordsOnChain(t *testing.T) {
 	require.Len(t, repo.votes, 1)
 	require.Equal(t, int64(42), repo.votes[0].BlockHeight)
 }
+
+func TestGetResultsUseCase_Execute(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "c1", Name: "Alice", Party: "A", VoteCount: 5},
+			{ID: "c2", Name: "Bob", Party: "B", VoteCount: 3},
+		},
+		sessions: []*voting.Session{
+			{ID: "s1", Candidates: []string{"c1", "c2"}},
+		},
+	}
+	uc := NewGetResultsUseCase(repo)
+	res, err := uc.Execute("s1")
+	require.NoError(t, err)
+	require.Equal(t, "s1", res.SessionID)
+	require.Equal(t, 8, res.TotalVotes)
+	require.Len(t, res.Candidates, 2)
+	require.Equal(t, 5, res.Candidates[0].VoteCount)
+	require.Equal(t, 3, res.Candidates[1].VoteCount)
+}
+
+func TestGetResultsUseCase_SessionNotFound(t *testing.T) {
+	repo := &mockVotingRepo{}
+	uc := NewGetResultsUseCase(repo)
+	_, err := uc.Execute("missing")
+	require.ErrorIs(t, err, voting.ErrSessionNotFound)
+}
