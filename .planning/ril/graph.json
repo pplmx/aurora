@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 75,
+  "round": 76,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T15:00:29+00:00",
+  "updated_at": "2026-08-23T17:15:23+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 55,
+      "touched_round": 76,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -3660,6 +3660,42 @@
       "touched_round": 75,
       "commit": "bd0a804",
       "title": "Guard BackupService.Create against writing the backup file over the live source DB (os.SameFile check before O_TRUNC) + regression test proving the live DB survives"
+    },
+    "ISS-072": {
+      "id": "ISS-072",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T15:39:29+00:00",
+      "updated_at": "2026-08-23T17:11:18+00:00",
+      "touched_round": 76,
+      "title": "NFT operation audit trail collapses to a single row: nft.NewOperation never assigns Operation.ID, so every mint/transfer/burn row shares the PRIMARY KEY \"\" and the SQLite INSERT OR REPLACE (nft_operations.id) replaces the previous row -- per-NFT transfer/burn history and on-chain block data (\"|transfer\") become meaningless for all but the very last operation"
+    },
+    "TASK-080": {
+      "id": "TASK-080",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T15:39:29+00:00",
+      "updated_at": "2026-08-23T17:15:23+00:00",
+      "touched_round": 76,
+      "category": "correctness",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Assign each NFT operation a UUID id in nft.NewOperation (mirroring the NFT id pattern) so the SQLite audit history no longer collapses; add a domain test (unique non-empty ids) + a SQLite regression (mint+transfer ops through the real path both survive)"
+    },
+    "CHG-078": {
+      "id": "CHG-078",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T17:01:00+00:00",
+      "updated_at": "2026-08-23T17:01:00+00:00",
+      "touched_round": 76,
+      "commit": "ba906c9",
+      "title": "Assign every NFT operation a unique UUID id in NewOperation (audit history no longer collapses) + domain and SQLite regression tests"
     }
   },
   "edges": [
@@ -5618,6 +5654,30 @@
       "to": "ISS-071",
       "type": "resolves",
       "created_at": "2026-08-23T15:00:29+00:00"
+    },
+    {
+      "from": "TASK-080",
+      "to": "ISS-072",
+      "type": "addresses",
+      "created_at": "2026-08-23T15:39:29+00:00"
+    },
+    {
+      "from": "ISS-072",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-23T15:39:29+00:00"
+    },
+    {
+      "from": "CHG-078",
+      "to": "TASK-080",
+      "type": "implements",
+      "created_at": "2026-08-23T17:03:04+00:00"
+    },
+    {
+      "from": "CHG-078",
+      "to": "ISS-072",
+      "type": "resolves",
+      "created_at": "2026-08-23T17:05:19+00:00"
     }
   ]
 }
