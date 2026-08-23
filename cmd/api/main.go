@@ -16,6 +16,36 @@ import (
 
 const shutdownTimeout = 15 * time.Second
 
+// HTTP server timeouts (v1.60). net/http defaults leave ReadHeaderTimeout,
+// ReadTimeout, WriteTimeout and IdleTimeout at zero, meaning a connection that
+// trickles headers or a body (slowloris / slow-body DoS) can hold a handler
+// (and its goroutine) open indefinitely, and idle keep-alive connections are
+// never reaped. Keeping them bounded bounds the resources any single client
+// can consume; most API operations are fast, so even conservative values are
+// not a throughput constraint. ReadHeaderTimeout also independently guards
+// against slow-header attacks even before a body is read.
+const (
+	readHeaderTimeout = 10 * time.Second
+	readTimeout       = 30 * time.Second
+	writeTimeout      = 30 * time.Second
+	idleTimeout       = 60 * time.Second
+)
+
+// newServer creates the HTTP server for the API. Extracted as a pure
+// constructor so the timeout configuration is unit-testable (ISS-065,
+// TASK-073); it does not Listen, so a test can assert the configured
+// timeouts without binding a socket.
+func newServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: readHeaderTimeout,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
+	}
+}
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -47,10 +77,7 @@ func main() {
 	router := srv.Router()
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	server := &http.Server{
-		Addr:    addr,
-		Handler: router,
-	}
+	server := newServer(addr, router)
 
 	go func() {
 		logger.Info().Str("addr", addr).Msg("Starting API server")
