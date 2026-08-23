@@ -20,8 +20,11 @@ func newRouter(s *Server) http.Handler {
 	r.Use(apimw.CORS)
 
 	// Request observability: a stdlib Prometheus-text /metrics endpoint
-	// (v1.13) recording per-request status + latency distribution.
-	reg := metrics.NewRegistry()
+	// (v1.13) recording per-request status + latency distribution. The
+	// registry is owned by the Server (see Server.MetricsRegistry /
+	// Server.MetricsHandler) so the same live counters are also exportable
+	// on an external metrics mount (v1.14).
+	reg := s.MetricsRegistry()
 	r.Use(metrics.Middleware(reg))
 
 	r.Get("/healthz", LivenessHandler)

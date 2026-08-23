@@ -9,10 +9,12 @@ import (
 	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/metrics"
 )
 
 type Server struct {
 	db             *sql.DB
+	metrics        *metrics.Registry
 	lotteryHandler *handler.LotteryHandler
 	votingHandler  *handler.VotingHandler
 	nftHandler     *handler.NFTHandler
@@ -55,7 +57,7 @@ func NewServer() (*Server, error) {
 		return nil, err
 	}
 
-	srv := &Server{db: db}
+	srv := &Server{db: db, metrics: metrics.NewRegistry()}
 
 	lotteryRepo, err := sqlite.NewLotteryRepository(dbPath)
 	if err != nil {
@@ -109,6 +111,25 @@ func NewServer() (*Server, error) {
 	srv.tokenHandler = handler.NewTokenHandler(tokenService)
 	srv.oracleHandler = handler.NewOracleHandler(oracleRepo)
 	return srv, nil
+}
+
+// MetricsRegistry returns the request-metrics registry backing the in-process
+// /metrics route. It is created lazily so a Server constructed without one
+// (e.g. in tests that only build the router) still works; the produced/mounted
+// Server owns a registry from NewServer.
+func (s *Server) MetricsRegistry() *metrics.Registry {
+	if s.metrics == nil {
+		s.metrics = metrics.NewRegistry()
+	}
+	return s.metrics
+}
+
+// MetricsHandler returns a standalone http.Handler exposing the same request
+// metrics in Prometheus text format, independent of the router mount. This is
+// the reusable surface operators can mount on a separate metrics port (e.g.
+// k8s /lb scraping) without serving it on the public API router.
+func (s *Server) MetricsHandler() http.Handler {
+	return s.MetricsRegistry().Handler()
 }
 
 func (s *Server) Router() http.Handler {
