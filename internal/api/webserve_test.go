@@ -73,6 +73,20 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 	requireServedAsset(t, handler, "/nft.html",
 		`window.AURORA_API_KEY = "test-serve-key";`)
 
+	// Guard against the v1.21 regression where token.html and oracle.html were
+	// served without loading /js/app.js — the Alpine components (tokenApp /
+	// oracleApp) were then undefined and every page interaction silently
+	// failed. Every shipped .html page must reference the shared script.
+	for _, page := range []string{
+		"/lottery.html", "/voting.html",
+		"/token.html", "/oracle.html", "/blockchain.html", "/nft.html",
+	} {
+		requireServedAsset(t, handler, page, `<script src="/js/app.js"></script>`)
+	}
+	// /index.html 301-redirects to / (directory index); the dashboard is served
+	// at "/", which must also load the shared script.
+	requireServedAsset(t, handler, "/", `<script src="/js/app.js"></script>`)
+
 	// The pages reference these assets; they must resolve (not 404).
 	requireServedAsset(t, handler, "/js/app.js", "function votingApp()", "dashboardApp", "function tokenApp()", "function oracleApp()", "function blockchainApp()", "function nftApp()")
 	requireServedAsset(t, handler, "/css/style.css", "--accent-voting")
