@@ -8,6 +8,7 @@
     --accent-voting: #98c379;
     --accent-nft: #e5c07b;
     --accent-token: #61afef;
+    --accent-blockchain: #d19a66;
 }
 
 * {
@@ -159,6 +160,16 @@ button:hover {
 
 .btn-voting {
     background-color: var(--accent-voting);
+    color: #fff;
+}
+
+.btn-blockchain {
+    background-color: var(--accent-blockchain);
+    color: #fff;
+}
+
+.btn-nft {
+    background-color: var(--accent-nft);
     color: #fff;
 }
 

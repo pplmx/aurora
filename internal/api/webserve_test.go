@@ -68,8 +68,10 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 		`window.AURORA_API_KEY = "test-serve-key";`)
 	requireServedAsset(t, handler, "/oracle.html",
 		`window.AURORA_API_KEY = "test-serve-key";`)
+	requireServedAsset(t, handler, "/blockchain.html",
+		`window.AURORA_API_KEY = "test-serve-key";`)
 
 	// The pages reference these assets; they must resolve (not 404).
-	requireServedAsset(t, handler, "/js/app.js", "function votingApp()", "dashboardApp", "function tokenApp()", "function oracleApp()")
+	requireServedAsset(t, handler, "/js/app.js", "function votingApp()", "dashboardApp", "function tokenApp()", "function oracleApp()", "function blockchainApp()")
 	requireServedAsset(t, handler, "/css/style.css", "--accent-voting")
 }
