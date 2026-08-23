@@ -14,7 +14,12 @@ func Logger(next http.Handler) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(ww, r)
 
+		// Correlate this log line with the request ID that chi's RequestID
+		// middleware (registered before Logger) stored in the context.
+		// GetReqID returns "" when no middleware populated it (e.g. the
+		// middleware used standalone in tests), which zerolog drops silently.
 		logger.Info().
+			Str("request_id", middleware.GetReqID(r.Context())).
 			Str("method", r.Method).
 			Str("path", r.URL.Path).
 			Int("status", ww.Status()).
