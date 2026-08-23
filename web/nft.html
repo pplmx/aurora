@@ -72,6 +72,14 @@
                 </form>
                 <pre x-show="burnResult" class="result" x-text="burnResult"></pre>
             </section>
+            <section class="history">
+                <h2>History</h2>
+                <form @submit.prevent="history">
+                    <div class="form-group"><label>NFT ID</label><input type="text" x-model="historyId" required></div>
+                    <button type="submit" class="btn-nft">Show History</button>
+                </form>
+                <pre x-show="historyResult" class="result" x-text="historyResult"></pre>
+            </section>
         </main>
     </div>
     <script src="/js/app.js"></script>

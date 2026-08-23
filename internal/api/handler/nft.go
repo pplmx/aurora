@@ -32,6 +32,7 @@ func (h *NFTHandler) Routes(r chi.Router) {
 	r.Post("/transfer", h.Transfer)
 	r.Post("/burn", h.Burn)
 	r.Get("/{id}", h.Get)
+	r.Get("/{id}/history", h.History)
 	r.Get("/list", h.List)
 }
 
@@ -142,6 +143,24 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	uc := nftapp.NewListNFTsByOwnerUseCase(h.service)
 	result, err := uc.Execute(owner)
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// History returns the mint/transfer/burn operation trail for one NFT
+// (v1.35). The CLI exposed this as `nft history` but the REST API and the
+// NFT web page had no way to see an NFT's ownership/audit history in the
+// browser — closing that parity gap.
+func (h *NFTHandler) History(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	uc := nftapp.NewGetNFTOperationsUseCase(h.service)
+	result, err := uc.Execute(id)
 	if err != nil {
 		writeUseCaseError(w, err)
 		return

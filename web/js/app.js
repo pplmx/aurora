@@ -181,6 +181,8 @@ function nftApp() {
         getResult: '',
         transferResult: '',
         burnResult: '',
+        historyId: '',
+        historyResult: '',
         async mint() {
             this.mintResult = await this.post('/api/v1/nft/mint', {
                 name: this.name,
@@ -197,6 +199,14 @@ function nftApp() {
         async get() {
             const res = await fetch('/api/v1/nft/' + encodeURIComponent(this.id), { headers: auroraHeaders() });
             this.getResult = await this.text(res);
+        },
+        async history() {
+            try {
+                const res = await fetch('/api/v1/nft/' + encodeURIComponent(this.historyId) + '/history', { headers: auroraHeaders() });
+                this.historyResult = JSON.stringify(await res.json(), null, 2);
+            } catch (e) {
+                this.historyResult = 'Error: ' + e.message;
+            }
         },
         async transfer() {
             this.transferResult = await this.post('/api/v1/nft/transfer', {
