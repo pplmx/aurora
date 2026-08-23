@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 28,
+  "round": 29,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T00:58:17+00:00",
+  "updated_at": "2026-08-23T01:01:17+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 25,
+      "touched_round": 29,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -1417,6 +1417,41 @@
       "touched_round": 28,
       "commit": "dfd6b16",
       "title": "Capped exponential backoff on scheduler fetch failures"
+    },
+    "ISS-022": {
+      "id": "ISS-022",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T01:00:53+00:00",
+      "updated_at": "2026-08-23T01:01:17+00:00",
+      "touched_round": 29,
+      "title": "Stale lottery CLI comments claim AddBlock never persists to the blocks table, contradicting the wired persistence and regression test",
+      "severity": "low"
+    },
+    "TASK-030": {
+      "id": "TASK-030",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T01:00:53+00:00",
+      "updated_at": "2026-08-23T01:01:17+00:00",
+      "touched_round": 29,
+      "category": "maintainability",
+      "priority_score": 0.9,
+      "severity": 0.2,
+      "title": "Correct stale lottery CLI comments about blockchain persistence"
+    },
+    "CHG-029": {
+      "id": "CHG-029",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T01:01:06+00:00",
+      "updated_at": "2026-08-23T01:01:06+00:00",
+      "touched_round": 29,
+      "commit": "9994fc9",
+      "title": "Correct stale lottery persistence comments"
     }
   },
   "edges": [
@@ -2169,6 +2204,30 @@
       "to": "TASK-029",
       "type": "implements",
       "created_at": "2026-08-23T00:58:06+00:00"
+    },
+    {
+      "from": "ISS-022",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-23T01:00:53+00:00"
+    },
+    {
+      "from": "TASK-030",
+      "to": "ISS-022",
+      "type": "addresses",
+      "created_at": "2026-08-23T01:00:53+00:00"
+    },
+    {
+      "from": "CHG-029",
+      "to": "ISS-022",
+      "type": "resolves",
+      "created_at": "2026-08-23T01:01:06+00:00"
+    },
+    {
+      "from": "CHG-029",
+      "to": "TASK-030",
+      "type": "implements",
+      "created_at": "2026-08-23T01:01:06+00:00"
     }
   ]
 }
