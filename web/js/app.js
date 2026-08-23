@@ -569,6 +569,7 @@ function oracleApp() {
     return {
         sources: [], loading: true,
         health: [], loadingHealth: true,
+        addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
         fetchSource: '', fetchResult: '',
         querySource: '', queryLimit: 10, queryRows: [],
         async init() { await Promise.all([this.listSources(), this.loadHealth()]); },
@@ -580,6 +581,29 @@ function oracleApp() {
                 this.health = Array.isArray(data) ? data : [];
             } catch (e) { this.health = []; }
             this.loadingHealth = false;
+        },
+        async addSource() {
+            try {
+                const res = await fetch('/api/v1/oracle/sources', {
+                    method: 'POST',
+                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({
+                        name: this.addName,
+                        url: this.addUrl,
+                        type: this.addType || undefined,
+                        method: this.addMethod || undefined,
+                        path: this.addPath || undefined,
+                        interval: parseInt(this.addInterval)
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) { this.addResult = 'Error: ' + (data.message || res.status); return; }
+                this.addResult = 'Source "' + data.name + '" added (id: ' + data.id + ')';
+                this.addName = ''; this.addUrl = ''; this.addType = ''; this.addMethod = ''; this.addPath = '';
+                await this.listSources();
+            } catch (e) {
+                this.addResult = 'Error: ' + e.message;
+            }
         },
         async listSources() {
             this.loading = true;
