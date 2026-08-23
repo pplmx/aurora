@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -177,12 +178,10 @@ func TestFetcher_FetchData_InvalidPath(t *testing.T) {
 	}
 
 	data, err := fetcher.FetchData(source)
-	if err != nil {
-		t.Fatalf("FetchData failed: %v", err)
-	}
-
-	if !strings.Contains(data.Value, "value") {
-		t.Errorf("Expected Value to contain 'value', got '%s'", data.Value)
+	// A mistyped/non-existent extraction path must fail closed (v1.63,
+	// TASK-076) rather than returning the whole raw body as the value.
+	if !errors.Is(err, oracle.ErrInvalidSource) {
+		t.Fatalf("invalid path: got err=%v data=%v, want ErrInvalidSource", err, data)
 	}
 }
 
@@ -220,15 +219,24 @@ func TestExtractByPath_Nested(t *testing.T) {
 
 func TestExtractByPath_InvalidJSON(t *testing.T) {
 	result := extractByPath("not valid json", "a.b")
-	if result != "not valid json" {
-		t.Errorf("Expected original string on invalid JSON, got '%s'", result)
+	if result != "" {
+		t.Errorf("Expected empty (failed extraction) on invalid JSON, got '%s'", result)
 	}
 }
 
 func TestExtractByPath_NonExistentPath(t *testing.T) {
 	result := extractByPath(`{"a": "b"}`, "nonexistent")
-	if result != `{"a": "b"}` {
-		t.Errorf("Expected original string on non-existent path, got '%s'", result)
+	if result != "" {
+		t.Errorf("Expected empty (failed extraction) on non-existent path, got '%s'", result)
+	}
+}
+
+// TestExtractByPath_NonObject returns empty when traversal reaches a scalar
+// before the path is exhausted (e.g. path "a.b" against {"a":"x"}).
+func TestExtractByPath_NonObject(t *testing.T) {
+	result := extractByPath(`{"a": "x"}`, "a.b")
+	if result != "" {
+		t.Errorf("Expected empty when traversing into a scalar, got '%s'", result)
 	}
 }
 
@@ -278,6 +286,39 @@ func TestFetcher_FetchData_WithHeaders(t *testing.T) {
 }
 
 var _ http.RoundTripper = roundTripperFunc(nil)
+
+// TestFetcher_FetchData_MistypedPathFailsClosed locks the v1.63 fix: a
+// configured extraction path that does not match the JSON must cause the fetch
+// to fail with ErrInvalidSource rather than silently storing the entire raw
+// response body as the source's value (TASK-076, ISS-068). This uses a
+// scripted round tripper so no loopback listener is required.
+func TestFetcher_FetchData_MistypedPathFailsClosed(t *testing.T) {
+	fetcher := &Fetcher{
+		client: &http.Client{
+			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(`{"a": {"b": "value"}}`)),
+				}, nil
+			}),
+		},
+		rateLimiter: NewRateLimiter(100, time.Minute),
+	}
+
+	source := &oracle.DataSource{
+		ID:      "source-mistyped",
+		URL:     "https://example.com/data",
+		Method:  "GET",
+		Path:    "c.d", // not present in the JSON
+		Enabled: true,
+	}
+
+	_, err := fetcher.FetchData(source)
+	if !errors.Is(err, oracle.ErrInvalidSource) {
+		t.Fatalf("mistyped path: got err %v, want ErrInvalidSource", err)
+	}
+}
 
 type failingRoundTripper struct{}
 
