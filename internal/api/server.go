@@ -116,6 +116,10 @@ func NewServer() (*Server, error) {
 	srv.tokenHandler = handler.NewTokenHandler(tokenService)
 	srv.oracleRepo = oracleRepo
 	srv.oracleHandler = handler.NewOracleHandler(oracleRepo)
+	// Record API-fetched oracle data on-chain, consistent with the scheduler
+	// and the package's documented "record on-chain" intent. Without this,
+	// REST fetch results came back with BlockHeight 0.
+	srv.oracleHandler.SetChain(blockchain.GetBlockChain())
 	return srv, nil
 }
 

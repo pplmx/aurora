@@ -118,3 +118,36 @@ func TestOracleHandler_Fetch_EmptySource(t *testing.T) {
 	// Empty source ID -> ErrSourceNotFound -> 404
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
+
+// fakeChain records on-chain heights; satisfies oracleapp.ChainInterface so we
+// can exercise OracleHandler.SetChain without touching the real blockchain.
+type fakeChain struct {
+	calls  int
+	height int64
+}
+
+func (f *fakeChain) AddLotteryRecord(data string) (int64, error) {
+	f.calls++
+	return f.height, nil
+}
+
+// TestOracleHandler_SetChainWiring proves SetChain is safe to call and that the
+// Fetch path still routes correctly with a chain attached. A missing source is
+// rejected before any network/chain work, so this is fully hermetic.
+func TestOracleHandler_SetChainWiring(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	handler := NewOracleHandler(repo)
+	chain := &fakeChain{height: 42}
+	handler.SetChain(chain)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/fetch", bytes.NewBufferString(`{"source":"missing"}`))
+	rr := httptest.NewRecorder()
+	handler.Fetch(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("fetch of missing source = %d, want 404", rr.Code)
+	}
+	if chain.calls != 0 {
+		t.Fatalf("chain should not be called for a missing source, got %d calls", chain.calls)
+	}
+}

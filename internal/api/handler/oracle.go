@@ -18,11 +18,20 @@ const defaultQueryLimit = 10
 const maxQueryLimit = 100
 
 type OracleHandler struct {
-	repo oracle.Repository
+	repo  oracle.Repository
+	chain oracleapp.ChainInterface
 }
 
 func NewOracleHandler(repo oracle.Repository) *OracleHandler {
 	return &OracleHandler{repo: repo}
+}
+
+// SetChain wires the blockchain writer used to record fetched data on-chain.
+// It is optional and nil-safe: without it fetched data keeps BlockHeight 0
+// (evaluable tests / in-memory setups), matching the documented intent only
+// when the caller (the API server) supplies the chain.
+func (h *OracleHandler) SetChain(chain oracleapp.ChainInterface) {
+	h.chain = chain
 }
 
 func (h *OracleHandler) Routes(r chi.Router) {
@@ -53,6 +62,7 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	uc := oracleapp.NewFetchDataUseCase(h.repo)
+	uc.SetChain(h.chain)
 	result, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: req.Source})
 	if err != nil {
 		writeUseCaseError(w, err)
