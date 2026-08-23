@@ -412,7 +412,10 @@ func (f *Fetcher) FetchDataWithValidation(source *oracle.DataSource, validateJSO
 func extractByPath(jsonStr, path string) string {
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
-		return jsonStr
+		// The configured source is not a JSON object, so there is nothing to
+		// extract: report a failed extraction (empty) rather than returning
+		// the entire raw body as the field value (TASK-076, ISS-068).
+		return ""
 	}
 
 	parts := strings.Split(path, ".")
@@ -423,10 +426,12 @@ func extractByPath(jsonStr, path string) string {
 			if v, exists := m[part]; exists {
 				current = v
 			} else {
-				return jsonStr
+				// Path part missing: fail closed instead of silently adopting
+				// the whole body as the extracted value.
+				return ""
 			}
 		} else {
-			return jsonStr
+			return ""
 		}
 	}
 
