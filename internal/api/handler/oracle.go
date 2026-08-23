@@ -56,6 +56,7 @@ func (h *OracleHandler) Routes(r chi.Router) {
 	r.Post("/sources", h.CreateSource)
 	r.Delete("/sources/{id}", h.DeleteSource)
 	r.Patch("/sources/{id}", h.SetSourceEnabled)
+	r.Get("/templates", h.Templates)
 	r.Post("/fetch", h.Fetch)
 	r.Get("/query", h.Query)
 	r.Get("/latest", h.Latest)
@@ -72,6 +73,18 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result)
+}
+
+// Templates lists the built-in oracle source presets (v1.49). Previously the
+// catalog lived only in the CLI; exposing it over REST + the shared app-layer
+// catalog lets the web UI offer one-click source presets.
+func (h *OracleHandler) Templates(w http.ResponseWriter, r *http.Request) {
+	list := oracleapp.ListTemplates()
+	if list == nil {
+		list = []oracleapp.DataSource{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(list)
 }
 
 // CreateSource adds a new data source (v1.40). Previously adding a source was
