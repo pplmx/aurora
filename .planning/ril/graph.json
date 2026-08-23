@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 43,
+  "round": 44,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T04:58:46+00:00",
+  "updated_at": "2026-08-23T05:01:36+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 34,
+      "touched_round": 43,
       "title": "voting module"
     },
     "CHG-008": {
@@ -2057,6 +2057,53 @@
       "touched_round": 42,
       "commit": "0e45b3b",
       "title": "Oracle feed-health JSON endpoint (GET /api/v1/oracle/health) + web Feed Health view"
+    },
+    "ISS-038": {
+      "id": "ISS-038",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T04:59:40+00:00",
+      "updated_at": "2026-08-23T05:01:32+00:00",
+      "touched_round": 43,
+      "title": "The voting web page cannot start or end sessions even though the REST API and CLI support /session/{id}/start and /end; operators must leave the browser to run the lifecycle",
+      "severity": "low"
+    },
+    "TASK-046": {
+      "id": "TASK-046",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T04:59:40+00:00",
+      "updated_at": "2026-08-23T05:01:32+00:00",
+      "touched_round": 43,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add Start/End session controls to the voting web page wired to existing POST /api/v1/voting/session/{id}/start|end"
+    },
+    "EV-007": {
+      "id": "EV-007",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:01:28+00:00",
+      "updated_at": "2026-08-23T05:01:28+00:00",
+      "touched_round": 43,
+      "source": "go test ./... (33 pkgs) + webserve_test start/end control + JS wiring assertions",
+      "title": "Voting web page Start/End session controls verified served and wired to lifecycle endpoints",
+      "confidence": 1.0
+    },
+    "CHG-045": {
+      "id": "CHG-045",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:01:28+00:00",
+      "updated_at": "2026-08-23T05:01:28+00:00",
+      "touched_round": 43,
+      "commit": "4d0c599",
+      "title": "Voting web session lifecycle controls (start/end) + webserve guard"
     }
   },
   "edges": [
@@ -3199,6 +3246,30 @@
       "to": "ISS-037",
       "type": "resolves",
       "created_at": "2026-08-23T04:58:43+00:00"
+    },
+    {
+      "from": "TASK-046",
+      "to": "ISS-038",
+      "type": "addresses",
+      "created_at": "2026-08-23T04:59:46+00:00"
+    },
+    {
+      "from": "ISS-038",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-23T04:59:46+00:00"
+    },
+    {
+      "from": "CHG-045",
+      "to": "TASK-046",
+      "type": "implements",
+      "created_at": "2026-08-23T05:01:32+00:00"
+    },
+    {
+      "from": "CHG-045",
+      "to": "ISS-038",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:01:32+00:00"
     }
   ]
 }
