@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -344,6 +345,58 @@ func TestVerify_InvalidDBFile(t *testing.T) {
 	err := svc.Verify(context.Background(), backupDir)
 	if err == nil {
 		t.Fatal("expected error for a table-less DB file, got nil")
+	}
+}
+
+// TestRestore_RefusesCorruptBackup exercises the v1.20 restore safety guard at
+// the Restore level: a backup whose integrity verification now fails must be
+// refused BEFORE any live database is touched. We build a valid backup, then
+// corrupt its DB file (table-less), and assert Restore errors AND the live
+// destination keeps its original data (proving the pre-restore step never ran).
+func TestRestore_RefusesCorruptBackup(t *testing.T) {
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "dst")
+	backupDir := filepath.Join(tmp, "backup")
+	for _, d := range []string{dstDir, backupDir} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", d, err)
+		}
+	}
+
+	dstDB := filepath.Join(dstDir, "blockchain.db")
+	backupDB := filepath.Join(backupDir, "blockchain.db")
+
+	// Live destination holds GOOD data that a corrupt backup must not clobber.
+	newDB(t, dstDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'GOOD')",
+	)
+	// Start with a valid backup, then corrupt the DB file (empty / table-less).
+	newDB(t, backupDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'BAD')",
+	)
+	writeMeta(t, backupDir, "blockchain")
+	if err := os.WriteFile(backupDB, nil, 0o644); err != nil {
+		t.Fatalf("corrupt backup db: %v", err)
+	}
+
+	svc := NewBackupService(map[string]string{"blockchain": dstDB})
+	err := svc.Restore(context.Background(), backupDir)
+	if err == nil {
+		t.Fatal("expected Restore to refuse a corrupted backup, got nil")
+	}
+	if !strings.Contains(err.Error(), "refusing to restore") {
+		t.Fatalf("expected the safety-guard error, got: %v", err)
+	}
+
+	// The live DB must be untouched (no pre_restore staging of our GOOD data,
+	// and still containing GOOD).
+	if got := readKV(t, dstDB, "answer"); got != "GOOD" {
+		t.Errorf("live DB was modified by a corrupt restore: got %q, want GOOD", got)
+	}
+	if _, err := os.Stat(backupDir + ".pre_restore"); err == nil {
+		t.Error("pre_restore staging dir should NOT exist when restore is refused")
 	}
 }
 
