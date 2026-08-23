@@ -28,6 +28,8 @@ func webContractGet(t *testing.T) map[string]bool {
 		filepath.Join(root, "index.html"),
 		filepath.Join(root, "lottery.html"),
 		filepath.Join(root, "voting.html"),
+		filepath.Join(root, "token.html"),
+		filepath.Join(root, "oracle.html"),
 		filepath.Join(root, "js", "app.js"),
 	}
 
@@ -56,12 +58,12 @@ func webContractGet(t *testing.T) map[string]bool {
 				head = seg[:n]
 			}
 			if m := pathRe.FindStringSubmatch(head); m != nil {
-				got[method+" "+m[1]] = true
+				got[method+" "+normWebPath(m[1])] = true
 			} else if i == 0 {
 				// The first segment is everything before any fetch(); also
 				// scan it in case an inline call is present without "fetch(".
 				if m := pathRe.FindStringSubmatch(seg); m != nil {
-					got[method+" "+m[1]] = true
+					got[method+" "+normWebPath(m[1])] = true
 				}
 			}
 		}
@@ -71,6 +73,16 @@ func webContractGet(t *testing.T) map[string]bool {
 		t.Fatal("no /api/v1 endpoints found in web/ — contract test is vacuous")
 	}
 	return got
+}
+
+// normWebPath strips the query string from a web-referenced /api/v1 path so
+// the contract match compares against the route path only (same-origin fetch
+// calls build queries like '/api/v1/token/history?token_id=').
+func normWebPath(p string) string {
+	if i := strings.IndexByte(p, '?'); i >= 0 {
+		return p[:i]
+	}
+	return p
 }
 
 func buildWebRouter() chi.Router {
