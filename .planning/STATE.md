@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.18 Docs & Debt complete; exploring next milestone
+**Current focus:** v1.19 API Rate Limiting complete; exploring next milestone
 
 ## Current Position
 
 Phase: v1.5 Complete (migrate CLI + coverage bar)
 Plan: [v1.6 ROADMAP](milestones/v1.6-ROADMAP.md) — Interactive Surface Parity
-Status: v1.5–v1.18 complete (incl. docs & debt cleanup of stale persistence comments)
+Status: v1.5–v1.19 complete (API per-client rate limiting, config-gated 429)
 Last activity: 2026-08-23 — v1.8–v1.13 closed; deep-dive rounds fixed a
   blockchain concurrency bug and hardened the metrics middleware
   (Flusher/Hijacker/Push/Unwrap); opened v1.14 Observability Enrichment and
