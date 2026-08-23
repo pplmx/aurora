@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 30,
+  "round": 31,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T01:04:50+00:00",
+  "updated_at": "2026-08-23T01:09:49+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 29,
+      "touched_round": 31,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 30,
+      "touched_round": 31,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -1487,6 +1487,41 @@
       "touched_round": 30,
       "commit": "eebc0e1",
       "title": "Config-gated per-client API rate limiting"
+    },
+    "ISS-024": {
+      "id": "ISS-024",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T01:09:07+00:00",
+      "updated_at": "2026-08-23T01:09:49+00:00",
+      "touched_round": 31,
+      "title": "backup restore does not verify the backup first, so a corrupt backup overwrites the live DB (recovery only via a hidden .pre_restore dir)",
+      "severity": "high"
+    },
+    "TASK-032": {
+      "id": "TASK-032",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T01:09:07+00:00",
+      "updated_at": "2026-08-23T01:09:49+00:00",
+      "touched_round": 31,
+      "category": "stability",
+      "priority_score": 3.8,
+      "severity": 0.7,
+      "title": "Verify backup integrity before restore so a corrupt backup is refused instead of clobbering the live DB"
+    },
+    "CHG-031": {
+      "id": "CHG-031",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T01:09:38+00:00",
+      "updated_at": "2026-08-23T01:09:38+00:00",
+      "touched_round": 31,
+      "commit": "7b358d0",
+      "title": "Verify backup before restore"
     }
   },
   "edges": [
@@ -2287,6 +2322,30 @@
       "to": "TASK-031",
       "type": "implements",
       "created_at": "2026-08-23T01:04:39+00:00"
+    },
+    {
+      "from": "ISS-024",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-23T01:09:07+00:00"
+    },
+    {
+      "from": "TASK-032",
+      "to": "ISS-024",
+      "type": "addresses",
+      "created_at": "2026-08-23T01:09:07+00:00"
+    },
+    {
+      "from": "CHG-031",
+      "to": "ISS-024",
+      "type": "resolves",
+      "created_at": "2026-08-23T01:09:38+00:00"
+    },
+    {
+      "from": "CHG-031",
+      "to": "TASK-032",
+      "type": "implements",
+      "created_at": "2026-08-23T01:09:38+00:00"
     }
   ]
 }
