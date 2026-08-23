@@ -68,6 +68,22 @@ func setupVotingTestDB(t *testing.T) (*VotingRepository, func()) {
 	return repo, cleanup
 }
 
+func TestVotingRepository_UnmarkVoted(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	voter := &voting.Voter{PublicKey: "pk", Name: "Alice", RegisteredAt: 1}
+	require.NoError(t, repo.SaveVoter(voter))
+
+	// Mark as voted, then a second mark is rejected.
+	require.NoError(t, repo.TryMarkVoted("pk", "hash-1"))
+	require.ErrorIs(t, repo.TryMarkVoted("pk", "hash-2"), ErrAlreadyVoted)
+
+	// UnmarkVoted resets the flag so the voter can be marked again.
+	require.NoError(t, repo.UnmarkVoted("pk"))
+	require.NoError(t, repo.TryMarkVoted("pk", "hash-3"))
+}
+
 func TestNewVotingRepository(t *testing.T) {
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
