@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 27,
+  "round": 28,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T00:54:13+00:00",
+  "updated_at": "2026-08-23T00:58:17+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 27,
+      "touched_round": 28,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -1382,6 +1382,41 @@
       "touched_round": 27,
       "commit": "679f9ca",
       "title": "Per-source oracle feed-health metrics + /metrics/oracle"
+    },
+    "ISS-021": {
+      "id": "ISS-021",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-23T00:57:46+00:00",
+      "updated_at": "2026-08-23T00:58:17+00:00",
+      "touched_round": 28,
+      "title": "Persistently failing oracle sources are retried every second forever (no backoff), hammering a broken endpoint",
+      "severity": "medium"
+    },
+    "TASK-029": {
+      "id": "TASK-029",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T00:57:46+00:00",
+      "updated_at": "2026-08-23T00:58:17+00:00",
+      "touched_round": 28,
+      "category": "stability",
+      "priority_score": 3.6,
+      "severity": 0.6,
+      "title": "Add exponential backoff (capped) on repeated scheduler fetch failures so a broken source is not hammered every second"
+    },
+    "CHG-028": {
+      "id": "CHG-028",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:58:06+00:00",
+      "updated_at": "2026-08-23T00:58:06+00:00",
+      "touched_round": 28,
+      "commit": "dfd6b16",
+      "title": "Capped exponential backoff on scheduler fetch failures"
     }
   },
   "edges": [
@@ -2110,6 +2145,30 @@
       "to": "TASK-028",
       "type": "implements",
       "created_at": "2026-08-23T00:54:00+00:00"
+    },
+    {
+      "from": "ISS-021",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T00:57:46+00:00"
+    },
+    {
+      "from": "TASK-029",
+      "to": "ISS-021",
+      "type": "addresses",
+      "created_at": "2026-08-23T00:57:46+00:00"
+    },
+    {
+      "from": "CHG-028",
+      "to": "ISS-021",
+      "type": "resolves",
+      "created_at": "2026-08-23T00:58:06+00:00"
+    },
+    {
+      "from": "CHG-028",
+      "to": "TASK-029",
+      "type": "implements",
+      "created_at": "2026-08-23T00:58:06+00:00"
     }
   ]
 }
