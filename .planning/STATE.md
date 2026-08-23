@@ -5,18 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.13 Observability complete; correctness round (blockchain concurrent append)
+**Current focus:** v1.13 Observability complete; correctness + robustness rounds (blockchain concurrent append, metrics streaming interfaces)
 
 ## Current Position
 
 Phase: v1.5 Complete (migrate CLI + coverage bar)
 Plan: [v1.6 ROADMAP](milestones/v1.6-ROADMAP.md) — Interactive Surface Parity
 Status: v1.5–v1.13 complete; deep-dive correctness fix in flight
-Last activity: 2026-08-23 — v1.8 Web UI Reliability, v1.9 API Hardening,
-  v1.10 Authenticity, v1.11 Lifecycle & Parity Coverage, v1.12 Oracle/Limit
-  hardening, v1.13 Observability (metrics + /metrics) all closed; this round
-  fixed a blockchain concurrency correctness bug (concurrent AddBlock produced
-  duplicate heights + broken prev-hash chain, losing blocks on restart)
+Last activity: 2026-08-23 — v1.8–v1.13 closed; two deep-dive rounds fixed a
+  blockchain concurrency correctness bug (duplicate heights + broken prev-hash
+  chain, losing blocks on restart) and hardened the metrics middleware so
+  streaming/upgrade handlers still work behind it (Flusher/Hijacker/Push/Unwrap)
 
 Progress: v1.5 [██████████] 100%; v1.6 [█████░░░░░] 50%
 
