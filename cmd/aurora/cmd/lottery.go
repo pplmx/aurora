@@ -481,6 +481,14 @@ var resetCmd = &cobra.Command{
 			}
 		}
 
+		// Reset the in-memory chain singleton back to genesis. The chain is
+		// created once (InitBlockChain's sync.Once) and is not rebuilt by the
+		// DELETEs above, so without this a subsequent `lottery create` would
+		// keep building on the stale pre-reset blocks: the new draw would get
+		// a block height continuing from the old count and a PrevHash pointing
+		// at a block the reset deleted (TASK-071, ISS-063).
+		blockchain.GetBlockChain().ResetBlocks()
+
 		logger.Info().Msg("Database reset successfully")
 		fmt.Println("✅ Database reset complete!")
 		return nil

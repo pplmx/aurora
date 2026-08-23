@@ -135,6 +135,22 @@ func (c *BlockChain) AddBlock(data string) (int64, error) {
 	return height, nil
 }
 
+// ResetBlocks re-seeds the in-memory chain back to a single genesis block.
+// It is used by `lottery reset` after the persisted `blocks` and
+// `lottery_records` tables have been cleared: the chain singleton is created
+// once (init.go's once.Do) and otherwise keeps the pre-reset blocks in memory,
+// so a post-reset AddBlock would compute a stale height and a PrevHash that
+// references a block the reset deleted. Re-seeding makes the next AddBlock
+// start at height 1 with a valid genesis PrevHash (TASK-071, ISS-063).
+func (c *BlockChain) ResetBlocks() {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Blocks = []*Block{Genesis()}
+}
+
 func (b *Block) Serialize() ([]byte, error) {
 	var res bytes.Buffer
 	encoder := gob.NewEncoder(&res)
