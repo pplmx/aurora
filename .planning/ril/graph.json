@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 35,
+  "round": 37,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T01:24:52+00:00",
+  "updated_at": "2026-08-23T04:30:13+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -986,7 +986,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:06:06+00:00",
       "updated_at": "2026-08-23T00:06:06+00:00",
-      "touched_round": 17,
+      "touched_round": 36,
       "title": "internal/domain/blockchain"
     },
     "CHG-017": {
@@ -1662,6 +1662,41 @@
       "touched_round": 35,
       "commit": "d04aaa2",
       "title": "Voting results web view"
+    },
+    "ISS-029": {
+      "id": "ISS-029",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T01:31:34+00:00",
+      "updated_at": "2026-08-23T04:30:07+00:00",
+      "touched_round": 36,
+      "title": "No surface to cryptographically verify the blockchain ledger integrity given the app-audit claims",
+      "severity": "medium"
+    },
+    "TASK-037": {
+      "id": "TASK-037",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T01:31:34+00:00",
+      "updated_at": "2026-08-23T04:30:07+00:00",
+      "touched_round": 36,
+      "category": "core-feature",
+      "priority_score": 2.6,
+      "severity": 0.5,
+      "title": "Add BlockChain.VerifyIntegrity() + GET /api/v1/blockchain/verify endpoint"
+    },
+    "CHG-036": {
+      "id": "CHG-036",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T04:30:02+00:00",
+      "updated_at": "2026-08-23T04:30:02+00:00",
+      "touched_round": 36,
+      "commit": "86c8ec1",
+      "title": "Blockchain integrity verification (VerifyIntegrity + GET /api/v1/blockchain/verify)"
     }
   },
   "edges": [
@@ -2582,6 +2617,30 @@
       "to": "TASK-036",
       "type": "implements",
       "created_at": "2026-08-23T01:24:41+00:00"
+    },
+    {
+      "from": "ISS-029",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-08-23T01:31:34+00:00"
+    },
+    {
+      "from": "TASK-037",
+      "to": "ISS-029",
+      "type": "addresses",
+      "created_at": "2026-08-23T01:31:34+00:00"
+    },
+    {
+      "from": "CHG-036",
+      "to": "TASK-037",
+      "type": "implements",
+      "created_at": "2026-08-23T04:30:07+00:00"
+    },
+    {
+      "from": "CHG-036",
+      "to": "ISS-029",
+      "type": "resolves",
+      "created_at": "2026-08-23T04:30:07+00:00"
     }
   ]
 }
