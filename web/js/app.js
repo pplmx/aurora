@@ -432,6 +432,7 @@ function tokenApp() {
         approver: '', spender: '', approveAmount: '', approvePriv: '', approveResult: '',
         allowanceSpender: '', allowanceResult: '',
         burnPriv: '', burnResult: '',
+        infoId: '', infoResult: '',
         history: [],
         async postToken(url, body) {
             const res = await fetch(url, {
@@ -460,6 +461,14 @@ function tokenApp() {
                 this.balance = JSON.stringify(await res.json(), null, 2);
             } catch (e) {
                 this.balance = 'Error: ' + e.message;
+            }
+        },
+        async info() {
+            try {
+                const res = await fetch('/api/v1/token/info?token_id=' + encodeURIComponent(this.infoId), { headers: auroraHeaders() });
+                this.infoResult = JSON.stringify(await res.json(), null, 2);
+            } catch (e) {
+                this.infoResult = 'Error: ' + e.message;
             }
         },
         async mint() {

@@ -32,6 +32,28 @@ func newMockTokenService() *mockTokenService {
 	}
 }
 
+func TestGetTokenInfoUseCase_Execute(t *testing.T) {
+	m := newMockTokenService()
+	owner := make([]byte, 32)
+	for i := range owner {
+		owner[i] = byte(i)
+	}
+	m.tokens["T1"] = token.NewToken(token.TokenID("T1"), "MyToken", "SYM", token.NewAmount(1000), owner)
+
+	resp, err := NewGetTokenInfoUseCase(m).Execute("T1")
+	require.NoError(t, err)
+	require.Equal(t, "MyToken", resp.Name)
+	require.Equal(t, "SYM", resp.Symbol)
+	require.Equal(t, "1000", resp.TotalSupply)
+	require.Equal(t, base64.StdEncoding.EncodeToString(owner), resp.Owner)
+}
+
+func TestGetTokenInfoUseCase_NotFound(t *testing.T) {
+	m := newMockTokenService()
+	_, err := NewGetTokenInfoUseCase(m).Execute("missing")
+	require.ErrorIs(t, err, token.ErrTokenNotFound)
+}
+
 func (m *mockTokenService) CreateToken(req *token.CreateTokenRequest) (*token.Token, error) {
 	t := token.NewToken(token.TokenID(req.Symbol), req.Name, req.Symbol, req.TotalSupply, req.Owner)
 	m.tokens[t.ID()] = t

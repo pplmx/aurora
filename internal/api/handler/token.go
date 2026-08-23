@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -38,6 +39,7 @@ func (h *TokenHandler) Routes(r chi.Router) {
 	r.Get("/balance", h.Balance)
 	r.Get("/allowance", h.Allowance)
 	r.Get("/history", h.History)
+	r.Get("/info", h.Info)
 }
 
 // Approve sets an allowance of amount from owner to spender (POST /approve).
@@ -270,6 +272,31 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 		Offset:  offset,
 	})
 	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// Info returns a token's metadata (name/symbol/total supply/decimals/owner) by
+// token_id (v1.36). This closes the CLI-only gap: `token info` existed in the
+// CLI but the REST API and web UI had no read path for token metadata.
+func (h *TokenHandler) Info(w http.ResponseWriter, r *http.Request) {
+	tokenID := r.URL.Query().Get("token_id")
+	if tokenID == "" {
+		writeBadRequest(w, "token_id required")
+		return
+	}
+
+	uc := tokenapp.NewGetTokenInfoUseCase(h.service)
+	result, err := uc.Execute(tokenID)
+	if err != nil {
+		if errors.Is(err, token.ErrTokenNotFound) {
+			writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+			return
+		}
 		writeUseCaseError(w, err)
 		return
 	}

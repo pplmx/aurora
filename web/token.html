@@ -43,6 +43,14 @@
                 <pre x-show="balance" class="result" x-text="balance"></pre>
             </section>
             <section class="history">
+                <h2>Token Info</h2>
+                <form @submit.prevent="info">
+                    <div class="form-group"><label>Token ID</label><input type="text" x-model="infoId" required></div>
+                    <button type="submit" class="btn-lottery">Get Token Info</button>
+                </form>
+                <pre x-show="infoResult" class="result" x-text="infoResult"></pre>
+            </section>
+            <section class="history">
                 <h2>Mint</h2>
                 <form @submit.prevent="mint">
                     <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
