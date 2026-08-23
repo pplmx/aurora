@@ -5,8 +5,11 @@
 package metrics
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"sort"
 	"strconv"
@@ -38,6 +41,39 @@ type statusWriter struct {
 func (s *statusWriter) WriteHeader(code int) {
 	s.status = code
 	s.ResponseWriter.WriteHeader(code)
+}
+
+// Unwrap lets http.ResponseController reach the underlying writer, so handlers
+// can still Flush/Hijack/Push even while the contact ResponseWriter is this
+// wrapper. This is the mechanism the net/http docs recommend for
+// ResponseController-style access through middlewares.
+func (s *statusWriter) Unwrap() http.ResponseWriter { return s.ResponseWriter }
+
+// Flush implements http.Flusher so streaming handlers (SSE, chunked or
+// long-poll responses) keep working through the middleware. The metrics
+// middleware is the innermost wrapper around every handler, so without these
+// optional interfaces a handler that flushes would panic on an unchecked
+// http.Flusher assertion or silently fail to flush via http.ResponseController.
+func (s *statusWriter) Flush() {
+	if f, ok := s.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Hijack supports websocket-style upgrades through the middleware.
+func (s *statusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := s.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, errors.New("metrics statusWriter: underlying ResponseWriter does not implement http.Hijacker")
+}
+
+// Push implements http.Pusher (HTTP/2 server push) through the middleware.
+func (s *statusWriter) Push(target string, opts *http.PushOptions) error {
+	if p, ok := s.ResponseWriter.(http.Pusher); ok {
+		return p.Push(target, opts)
+	}
+	return http.ErrNotSupported
 }
 
 // HistogramBuckets are latency buckets in seconds for the request-duration
