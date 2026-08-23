@@ -64,6 +64,10 @@ func newRouter(s *Server) http.Handler {
 		api.Route("/api/v1/oracle", func(r chi.Router) {
 			s.oracleHandler.Routes(r)
 		})
+
+		api.Route("/api/v1/blockchain", func(r chi.Router) {
+			s.blockchainHandler.Routes(r)
+		})
 	})
 
 	r.Handle("/*", injectAPIKey(http.FileServer(http.Dir("web")), config.GetAPIKey()))

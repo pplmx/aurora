@@ -520,3 +520,47 @@ func TestBlockChain_Len_ConcurrentWithAppend(t *testing.T) {
 		t.Errorf("final Len() = %d, want %d", got, want)
 	}
 }
+
+func TestVerifyIntegrity_ValidChain(t *testing.T) {
+	c := NewBlockChain()
+	_, err := c.AddBlock("first")
+	require.NoError(t, err)
+	_, err = c.AddBlock("second")
+	require.NoError(t, err)
+
+	rep := c.VerifyIntegrity()
+	require.True(t, rep.Valid, "valid chain must verify: %+v", rep)
+	require.Equal(t, 3, rep.Length) // genesis + 2
+	require.Equal(t, -1, rep.FirstBrokenIndex)
+}
+
+func TestVerifyIntegrity_DetectsPrevHashBreak(t *testing.T) {
+	c := NewBlockChain()
+	_, err := c.AddBlock("a")
+	require.NoError(t, err)
+	_, err = c.AddBlock("b")
+	require.NoError(t, err)
+
+	// Corrupt the second added block's PrevHash (break linkage).
+	c.mu.Lock()
+	c.Blocks[1].PrevHash = []byte("tampered")
+	c.mu.Unlock()
+
+	rep := c.VerifyIntegrity()
+	require.False(t, rep.Valid)
+	require.Equal(t, 1, rep.FirstBrokenIndex)
+}
+
+func TestVerifyIntegrity_DetectsTamperedHash(t *testing.T) {
+	c := NewBlockChain()
+	_, err := c.AddBlock("a")
+	require.NoError(t, err)
+
+	c.mu.Lock()
+	c.Blocks[1].Hash = []byte("forged")
+	c.mu.Unlock()
+
+	rep := c.VerifyIntegrity()
+	require.False(t, rep.Valid)
+	require.Equal(t, 1, rep.FirstBrokenIndex)
+}

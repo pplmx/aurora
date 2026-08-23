@@ -19,16 +19,17 @@ import (
 )
 
 type Server struct {
-	db              *sql.DB
-	metrics         *metrics.Registry
-	oracleRepo      oracle.Repository
-	oracleMu        sync.Mutex
-	oracleScheduler *oracleapp.Scheduler
-	lotteryHandler  *handler.LotteryHandler
-	votingHandler   *handler.VotingHandler
-	nftHandler      *handler.NFTHandler
-	tokenHandler    *handler.TokenHandler
-	oracleHandler   *handler.OracleHandler
+	db                *sql.DB
+	metrics           *metrics.Registry
+	oracleRepo        oracle.Repository
+	oracleMu          sync.Mutex
+	oracleScheduler   *oracleapp.Scheduler
+	lotteryHandler    *handler.LotteryHandler
+	votingHandler     *handler.VotingHandler
+	nftHandler        *handler.NFTHandler
+	tokenHandler      *handler.TokenHandler
+	oracleHandler     *handler.OracleHandler
+	blockchainHandler *handler.BlockchainHandler
 
 	// closers releases every SQLite handle NewServer opened (repos, event
 	// store, replay protection) plus the shared blockchain DB. Tests use
@@ -121,6 +122,7 @@ func NewServer() (*Server, error) {
 	srv.tokenHandler = handler.NewTokenHandler(tokenService)
 	srv.oracleRepo = oracleRepo
 	srv.oracleHandler = handler.NewOracleHandler(oracleRepo)
+	srv.blockchainHandler = handler.NewBlockchainHandler()
 	// Record API-fetched oracle data on-chain, consistent with the scheduler
 	// and the package's documented "record on-chain" intent. Without this,
 	// REST fetch results came back with BlockHeight 0.
