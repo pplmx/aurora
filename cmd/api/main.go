@@ -39,7 +39,7 @@ func main() {
 	// at shutdown.
 	schedCtx, schedCancel := context.WithCancel(context.Background())
 	defer schedCancel()
-	stopScheduler := srv.StartOracleScheduler(schedCtx, time.Second)
+	stopScheduler := srv.StartOracleScheduler(schedCtx, config.OracleSchedulerCheckInterval())
 	if stopScheduler != nil {
 		defer stopScheduler()
 	}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -213,4 +214,14 @@ func TestGenerateAPIKey_Uniqueness(t *testing.T) {
 		assert.False(t, dup, "duplicate key generated: %s", k)
 		seen[k] = struct{}{}
 	}
+}
+
+func TestOracleSchedulerCheckInterval_DefaultAndOverride(t *testing.T) {
+	resetViper()
+	Load() // sets defaults (rate limit, scheduler interval)
+	require.Equal(t, time.Second, OracleSchedulerCheckInterval(), "default scheduler check interval should be 1s")
+
+	resetViper()
+	viper.Set("oracle.scheduler.checkInterval", 5*time.Second)
+	require.Equal(t, 5*time.Second, OracleSchedulerCheckInterval())
 }
