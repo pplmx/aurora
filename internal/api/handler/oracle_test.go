@@ -63,6 +63,43 @@ func TestOracleHandler_Query_SnakeCaseJSONContract(t *testing.T) {
 	assert.NotContains(t, rr.Body.String(), `"Value"`)
 }
 
+func TestOracleHandler_Latest_MissingParam(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/latest", nil)
+	rr := httptest.NewRecorder()
+	handler.Latest(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestOracleHandler_Latest_Success(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
+	_ = repo.SaveData(&oracle.OracleData{ID: "d1", SourceID: "s1", Value: "42", Timestamp: 123, BlockHeight: 5})
+	handler := NewOracleHandler(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/latest?source=s1", nil)
+	rr := httptest.NewRecorder()
+	handler.Latest(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"data"`)
+	assert.Contains(t, rr.Body.String(), `"value":"42"`)
+	assert.Contains(t, rr.Body.String(), `"block_height":5`)
+}
+
+func TestOracleHandler_Latest_NoDataReturnsNull(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
+	handler := NewOracleHandler(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/latest?source=s1", nil)
+	rr := httptest.NewRecorder()
+	handler.Latest(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"data":null`)
+}
+
 func TestOracleHandler_CreateSource_InvalidJSON(t *testing.T) {
 	handler := NewOracleHandler(oracle.NewInmemRepo())
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/sources", bytes.NewBufferString("invalid json"))
