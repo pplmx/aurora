@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.16 Operator Reliability — oracle feed-health observability (IN PROGRESS)
+**Current focus:** v1.16 Operator Reliability complete; exploring next milestone
 
 ## Current Position
 
 Phase: v1.5 Complete (migrate CLI + coverage bar)
 Plan: [v1.6 ROADMAP](milestones/v1.6-ROADMAP.md) — Interactive Surface Parity
-Status: v1.5–v1.15 complete; v1.16 Operator Reliability started (oracle feed-health metrics on /metrics/oracle)
+Status: v1.5–v1.16 complete (Operator Reliability: oracle feed-health metrics on /metrics/oracle)
 Last activity: 2026-08-23 — v1.8–v1.13 closed; deep-dive rounds fixed a
   blockchain concurrency bug and hardened the metrics middleware
   (Flusher/Hijacker/Push/Unwrap); opened v1.14 Observability Enrichment and
