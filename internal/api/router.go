@@ -36,6 +36,13 @@ func newRouter(s *Server) http.Handler {
 	apiKey := config.GetAPIKey()
 
 	r.Group(func(api chi.Router) {
+		// Optional per-client rate limiting on the protected API (v1.19),
+		// applied before auth so even unauthenticated abuse is bounded.
+		// Disabled by default; enable via api.rateLimit.enabled.
+		if config.RateLimitEnabled() {
+			lim := apimw.NewFixedWindowLimiter(config.RateLimitRequests(), config.RateLimitWindow(), nil)
+			api.Use(apimw.RateLimit(lim))
+		}
 		api.Use(apimw.APIKeyAuth(apiKey))
 
 		api.Route("/api/v1/lottery", func(r chi.Router) {

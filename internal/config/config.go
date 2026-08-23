@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -57,6 +58,11 @@ func Load() (*Config, error) {
 	viper.SetDefault("log.path", "./logs")
 	viper.SetDefault("db.type", "sqlite")
 	viper.SetDefault("db.path", "./data/aurora.db")
+	// REST API per-client rate limiting (v1.19). Disabled by default; operators
+	// opt in so enabling it can never silently break existing traffic.
+	viper.SetDefault("api.rateLimit.enabled", false)
+	viper.SetDefault("api.rateLimit.requests", 120)
+	viper.SetDefault("api.rateLimit.window", time.Minute)
 
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
@@ -77,6 +83,22 @@ func Load() (*Config, error) {
 
 func GetAPIKey() string {
 	return viper.GetString("api.key")
+}
+
+// RateLimitEnabled reports whether per-client API rate limiting is enabled
+// (v1.19). Defaults to off; enable via api.rateLimit.enabled=true.
+func RateLimitEnabled() bool {
+	return viper.GetBool("api.rateLimit.enabled")
+}
+
+// RateLimitRequests returns the per-client request budget (default 120).
+func RateLimitRequests() int {
+	return viper.GetInt("api.rateLimit.requests")
+}
+
+// RateLimitWindow returns the rate-limit window (default 1 minute).
+func RateLimitWindow() time.Duration {
+	return viper.GetDuration("api.rateLimit.window")
 }
 
 func GenerateAPIKey() (string, error) {
