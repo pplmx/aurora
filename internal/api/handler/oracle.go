@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -52,6 +53,7 @@ func (h *OracleHandler) SetStats(stats oracleHealthStats) {
 
 func (h *OracleHandler) Routes(r chi.Router) {
 	r.Get("/sources", h.Sources)
+	r.Post("/sources", h.CreateSource)
 	r.Post("/fetch", h.Fetch)
 	r.Get("/query", h.Query)
 	r.Get("/health", h.Health)
@@ -61,6 +63,45 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 	uc := oracleapp.NewListSourcesUseCase(h.repo)
 	result, err := uc.Execute(&oracleapp.ListSourcesRequest{})
 	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}
+
+// CreateSource adds a new data source (v1.40). Previously adding a source was
+// CLI-only; the REST API and web UI could list and fetch but never bootstrap a
+// feed. Validation lives in the domain (URL-scheme SSRF guard, name checks).
+func (h *OracleHandler) CreateSource(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name     string `json:"name"`
+		URL      string `json:"url"`
+		Type     string `json:"type"`
+		Method   string `json:"method"`
+		Path     string `json:"path"`
+		Interval int    `json:"interval"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeBadRequest(w, "invalid request")
+		return
+	}
+
+	uc := oracleapp.NewAddSourceUseCase(h.repo)
+	result, err := uc.Execute(&oracleapp.AddSourceRequest{
+		Name:     req.Name,
+		URL:      req.URL,
+		Type:     req.Type,
+		Method:   req.Method,
+		Path:     req.Path,
+		Interval: req.Interval,
+	})
+	if err != nil {
+		if errors.Is(err, oracle.ErrInvalidSource) {
+			writeBadRequest(w, err.Error())
+			return
+		}
 		writeUseCaseError(w, err)
 		return
 	}

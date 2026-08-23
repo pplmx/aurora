@@ -61,6 +61,44 @@ func TestOracleHandler_Query_SnakeCaseJSONContract(t *testing.T) {
 	assert.NotContains(t, rr.Body.String(), `"Value"`)
 }
 
+func TestOracleHandler_CreateSource_InvalidJSON(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/sources", bytes.NewBufferString("invalid json"))
+	rr := httptest.NewRecorder()
+	handler.CreateSource(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestOracleHandler_CreateSource_InvalidURL(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	body, _ := json.Marshal(map[string]string{"name": "Feed", "url": "://bad"})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/sources", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.CreateSource(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestOracleHandler_CreateSource_Success(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	handler := NewOracleHandler(repo)
+	body, _ := json.Marshal(map[string]interface{}{
+		"name": "Price Feed", "url": "http://example.com/price", "interval": 30,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/sources", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.CreateSource(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"name":"Price Feed"`)
+	var created struct {
+		ID string `json:"id"`
+	}
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &created))
+	assert.NotEmpty(t, created.ID)
+}
+
 func TestOracleHandler_Health_NilStatsReturnsEmpty(t *testing.T) {
 	handler := NewOracleHandler(oracle.NewInmemRepo())
 
