@@ -20,6 +20,15 @@ const maxQueryLimit = 100
 type OracleHandler struct {
 	repo  oracle.Repository
 	chain oracleapp.ChainInterface
+	stats oracleHealthStats
+}
+
+// oracleHealthStats is the scheduler's fetch-health surface the health
+// endpoint needs. Returning the interface (rather than the concrete
+// *oracleapp.Scheduler) keeps the handler fakes easy and the dependency a
+// single method.
+type oracleHealthStats interface {
+	Stats() []oracleapp.SourceStat
 }
 
 func NewOracleHandler(repo oracle.Repository) *OracleHandler {
@@ -34,10 +43,18 @@ func (h *OracleHandler) SetChain(chain oracleapp.ChainInterface) {
 	h.chain = chain
 }
 
+// SetStats wires the oracle fetch-health statistics source (the scheduler).
+// It is optional and nil-safe: without it the health endpoint returns an
+// empty list rather than panicking.
+func (h *OracleHandler) SetStats(stats oracleHealthStats) {
+	h.stats = stats
+}
+
 func (h *OracleHandler) Routes(r chi.Router) {
 	r.Get("/sources", h.Sources)
 	r.Post("/fetch", h.Fetch)
 	r.Get("/query", h.Query)
+	r.Get("/health", h.Health)
 }
 
 func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
@@ -50,6 +67,20 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result)
+}
+
+// Health returns the scheduler's per-source fetch-health statistics as JSON
+// (v1.33). The same data is exposed as Prometheus text on /metrics/oracle, but
+// this protected endpoint gives operators a readable, key-authenticated JSON
+// view that the web UI consumes. It is nil-safe: before the scheduler starts
+// it returns an empty list.
+func (h *OracleHandler) Health(w http.ResponseWriter, r *http.Request) {
+	stats := []oracleapp.SourceStat{}
+	if h.stats != nil {
+		stats = h.stats.Stats()
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(stats)
 }
 
 func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {

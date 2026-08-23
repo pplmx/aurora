@@ -41,6 +41,26 @@
                 </table>
                 <p x-show="!loading && sources.length === 0">(no sources)</p>
             </section>
+            <section class="history">
+                <h2>Feed Health</h2>
+                <div x-show="loadingHealth">Loading health…</div>
+                <table x-show="!loadingHealth && health.length > 0">
+                    <thead><tr><th>Source</th><th>Attempts</th><th>Successes</th><th>Failures</th><th>Last Success</th><th>Last Error</th></tr></thead>
+                    <tbody>
+                        <template x-for="h in health" :key="h.source_id">
+                            <tr>
+                                <td x-text="h.source_id"></td>
+                                <td x-text="h.attempts"></td>
+                                <td x-text="h.successes"></td>
+                                <td x-text="h.failures"></td>
+                                <td x-text="h.last_success_at ? new Date(h.last_success_at * 1000).toLocaleString() : '-'"></td>
+                                <td x-text="h.last_error || '-'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+                <p x-show="!loadingHealth && health.length === 0">(no feed activity yet)</p>
+            </section>
             <section class="create-form">
                 <h2>Fetch Data</h2>
                 <form @submit.prevent="fetch">
