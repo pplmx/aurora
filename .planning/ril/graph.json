@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 52,
+  "round": 53,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:27:36+00:00",
+  "updated_at": "2026-08-23T05:30:28+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -2500,6 +2500,63 @@
       "touched_round": 51,
       "commit": "068a3fb",
       "title": "Lottery create response snake_case json tags + regression test"
+    },
+    "ISS-047": {
+      "id": "ISS-047",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:29:21+00:00",
+      "updated_at": "2026-08-23T05:30:27+00:00",
+      "touched_round": 52,
+      "title": "The v1.20 restore safety guard (refuse to restore a backup that fails integrity verification, leaving live DBs untouched) has no Restore-level integration test, only Verify-level ones",
+      "severity": "low"
+    },
+    "TASK-055": {
+      "id": "TASK-055",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:29:22+00:00",
+      "updated_at": "2026-08-23T05:30:27+00:00",
+      "touched_round": 52,
+      "category": "test-quality",
+      "severity": 0.4,
+      "priority_score": 2.0,
+      "title": "Add TestRestore_RefusesCorruptBackup asserting Restore rejects a corrupt backup and leaves the live DB untouched"
+    },
+    "COMP-008": {
+      "id": "COMP-008",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:29:29+00:00",
+      "updated_at": "2026-08-23T05:29:29+00:00",
+      "touched_round": 52,
+      "title": "Backup/restore subsystem"
+    },
+    "EV-016": {
+      "id": "EV-016",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:30:23+00:00",
+      "updated_at": "2026-08-23T05:30:23+00:00",
+      "touched_round": 52,
+      "source": "go test ./... (33 pkgs) + TestRestore_RefusesCorruptBackup",
+      "title": "Restore safety guard covered: corrupt backup refused, live DB untouched",
+      "confidence": 1.0
+    },
+    "CHG-054": {
+      "id": "CHG-054",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:30:23+00:00",
+      "updated_at": "2026-08-23T05:30:23+00:00",
+      "touched_round": 52,
+      "commit": "35f538f",
+      "title": "Backup Restore safety-guard integration test"
     }
   },
   "edges": [
@@ -3858,6 +3915,30 @@
       "to": "ISS-046",
       "type": "resolves",
       "created_at": "2026-08-23T05:27:35+00:00"
+    },
+    {
+      "from": "TASK-055",
+      "to": "ISS-047",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:29:25+00:00"
+    },
+    {
+      "from": "ISS-047",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:29:37+00:00"
+    },
+    {
+      "from": "CHG-054",
+      "to": "TASK-055",
+      "type": "implements",
+      "created_at": "2026-08-23T05:30:27+00:00"
+    },
+    {
+      "from": "CHG-054",
+      "to": "ISS-047",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:30:27+00:00"
     }
   ]
 }
