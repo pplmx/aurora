@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 54,
+  "round": 55,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:34:29+00:00",
+  "updated_at": "2026-08-23T05:36:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 50,
+      "touched_round": 54,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -2614,6 +2614,53 @@
       "touched_round": 53,
       "commit": "263197f",
       "title": "SSRF redirect policy direct unit tests"
+    },
+    "ISS-049": {
+      "id": "ISS-049",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:35:44+00:00",
+      "updated_at": "2026-08-23T05:36:47+00:00",
+      "touched_round": 54,
+      "title": "The oracle module has no REST endpoint or web view for the latest data point of a source, even though the app layer and CLI (oracle latest) support it",
+      "severity": "low"
+    },
+    "TASK-057": {
+      "id": "TASK-057",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:35:44+00:00",
+      "updated_at": "2026-08-23T05:36:47+00:00",
+      "touched_round": 54,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add GET /api/v1/oracle/latest?source= (GetLatestDataUseCase) + Latest Data view on oracle.html"
+    },
+    "EV-018": {
+      "id": "EV-018",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:36:41+00:00",
+      "updated_at": "2026-08-23T05:36:41+00:00",
+      "touched_round": 54,
+      "source": "go test ./... (33 pkgs) + TestOracleHandler_Latest_* + web contract route resolution",
+      "title": "Oracle latest-data REST + web view verified (success, null-data, missing param)",
+      "confidence": 1.0
+    },
+    "CHG-056": {
+      "id": "CHG-056",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:36:42+00:00",
+      "updated_at": "2026-08-23T05:36:42+00:00",
+      "touched_round": 54,
+      "commit": "f2eaf79",
+      "title": "Oracle latest-data endpoint + web view"
     }
   },
   "edges": [
@@ -4020,6 +4067,30 @@
       "to": "ISS-048",
       "type": "resolves",
       "created_at": "2026-08-23T05:34:28+00:00"
+    },
+    {
+      "from": "TASK-057",
+      "to": "ISS-049",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:35:47+00:00"
+    },
+    {
+      "from": "ISS-049",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:35:47+00:00"
+    },
+    {
+      "from": "CHG-056",
+      "to": "TASK-057",
+      "type": "implements",
+      "created_at": "2026-08-23T05:36:47+00:00"
+    },
+    {
+      "from": "CHG-056",
+      "to": "ISS-049",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:36:47+00:00"
     }
   ]
 }
