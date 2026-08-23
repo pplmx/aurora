@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 45,
+  "round": 46,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:04:24+00:00",
+  "updated_at": "2026-08-23T05:08:09+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 13,
+      "touched_round": 45,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -2151,6 +2151,53 @@
       "touched_round": 44,
       "commit": "a72ca52",
       "title": "NFT operations history REST endpoint + web History view"
+    },
+    "ISS-040": {
+      "id": "ISS-040",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-23T05:05:36+00:00",
+      "updated_at": "2026-08-23T05:08:03+00:00",
+      "touched_round": 45,
+      "title": "Token metadata (name/symbol/supply/decimals/owner) is exposed only via the CLI token info command; it has no app use case, REST endpoint, or web view",
+      "severity": "low"
+    },
+    "TASK-048": {
+      "id": "TASK-048",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:05:36+00:00",
+      "updated_at": "2026-08-23T05:08:03+00:00",
+      "touched_round": 45,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Add GetTokenInfoUseCase + GET /api/v1/token/info + Token Info view on web page with tests"
+    },
+    "EV-009": {
+      "id": "EV-009",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:07:59+00:00",
+      "updated_at": "2026-08-23T05:07:59+00:00",
+      "touched_round": 45,
+      "source": "go test ./... (33 pkgs) + TestGetTokenInfoUseCase_* + TestTokenHandler_Info_* + web contract route resolution",
+      "title": "Token info use case + REST endpoint + web view verified (metadata and not-found paths)",
+      "confidence": 1.0
+    },
+    "CHG-047": {
+      "id": "CHG-047",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:07:59+00:00",
+      "updated_at": "2026-08-23T05:07:59+00:00",
+      "touched_round": 45,
+      "commit": "b67428f",
+      "title": "Token metadata info: GetTokenInfoUseCase + GET /api/v1/token/info + web view"
     }
   },
   "edges": [
@@ -3341,6 +3388,30 @@
       "to": "ISS-039",
       "type": "resolves",
       "created_at": "2026-08-23T05:04:23+00:00"
+    },
+    {
+      "from": "TASK-048",
+      "to": "ISS-040",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:05:50+00:00"
+    },
+    {
+      "from": "ISS-040",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:05:50+00:00"
+    },
+    {
+      "from": "CHG-047",
+      "to": "TASK-048",
+      "type": "implements",
+      "created_at": "2026-08-23T05:08:03+00:00"
+    },
+    {
+      "from": "CHG-047",
+      "to": "ISS-040",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:08:03+00:00"
     }
   ]
 }
