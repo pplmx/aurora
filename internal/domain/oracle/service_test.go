@@ -474,6 +474,37 @@ func TestAddSource_URLValidation(t *testing.T) {
 	}
 }
 
+// TestValidateSourceURL_FetchTimeContract locks the exported validation used
+// by the app fetch use case at fetch time. It must reject hosts (IP literals
+// and hostnames that resolve into blocked space) even when called directly by
+// a caller that isn't AddSource — this is what closes the SSRF TOCTOU window
+// between add-time validation and the later dial (TASK-067, ISS-059).
+func TestValidateSourceURL_FetchTimeContract(t *testing.T) {
+	blocked := []string{
+		"http://127.0.0.1/admin",
+		"http://169.254.169.254/latest/meta-data/",
+		"http://10.0.0.5/data",
+		"http://[::1]/data",
+		"file:///etc/passwd",
+		"",
+	}
+	for _, u := range blocked {
+		if err := ValidateSourceURL(u); err == nil {
+			t.Errorf("ValidateSourceURL(%q) = nil, want error (blocked at fetch time)", u)
+		}
+	}
+
+	allowed := []string{
+		"https://api.example.com/data",
+		"http://8.8.8.8/data",
+	}
+	for _, u := range allowed {
+		if err := ValidateSourceURL(u); err != nil {
+			t.Errorf("ValidateSourceURL(%q) = %v, want no error", u, err)
+		}
+	}
+}
+
 // TestGenerateID_Uniqueness verifies that generateID does not produce
 // duplicate IDs when called in rapid succession. The previous implementation
 // used only second-level timestamp precision ("20060102150405"), which meant

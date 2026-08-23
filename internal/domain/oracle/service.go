@@ -137,6 +137,16 @@ func validateSourceURL(raw string) error {
 	return nil
 }
 
+// ValidateSourceURL is the exported contract-level URL validator, used both
+// when a source is added (AddSource) and re-applied at fetch time by the app
+// layer so a source whose hostname has since been rebound into private /
+// loopback / cloud-metadata space is refused before any dial (TASK-067,
+// ISS-059). Keeping the SSRF policy in one place means the domain rule is
+// authoritative regardless of which caller/use case triggers a fetch.
+func ValidateSourceURL(raw string) error {
+	return validateSourceURL(raw)
+}
+
 type Service interface {
 	AddSource(source *DataSource) error
 	EnableSource(id string) error
