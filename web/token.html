@@ -53,6 +53,60 @@
                 </form>
                 <pre x-show="mintResult" class="result" x-text="mintResult"></pre>
             </section>
+            <section class="history">
+                <h2>Transfer</h2>
+                <form @submit.prevent="transfer">
+                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label>From (public key)</label><input type="text" x-model="xFrom" required></div>
+                    <div class="form-group"><label>To (public key)</label><input type="text" x-model="xTo" required></div>
+                    <div class="form-group"><label>Amount</label><input type="text" x-model="xAmount" required></div>
+                    <div class="form-group"><label>From Private Key</label><input type="password" x-model="xPriv" required></div>
+                    <button type="submit" class="btn-lottery">Transfer</button>
+                </form>
+                <pre x-show="xResult" class="result" x-text="xResult"></pre>
+            </section>
+            <section class="history">
+                <h2>Approve</h2>
+                <form @submit.prevent="approve">
+                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="approver" required></div>
+                    <div class="form-group"><label>Spender (public key)</label><input type="text" x-model="spender" required></div>
+                    <div class="form-group"><label>Amount</label><input type="text" x-model="approveAmount" required></div>
+                    <div class="form-group"><label>Owner Private Key</label><input type="password" x-model="approvePriv" required></div>
+                    <button type="submit" class="btn-lottery">Approve</button>
+                </form>
+                <pre x-show="approveResult" class="result" x-text="approveResult"></pre>
+            </section>
+            <section class="history">
+                <h2>Allowance</h2>
+                <form @submit.prevent="getAllowance">
+                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
+                    <div class="form-group"><label>Spender (public key)</label><input type="text" x-model="allowanceSpender" required></div>
+                    <button type="submit" class="btn-lottery">Get Allowance</button>
+                </form>
+                <pre x-show="allowanceResult" class="result" x-text="allowanceResult"></pre>
+            </section>
+            <section class="history">
+                <h2>Burn</h2>
+                <form @submit.prevent="burn">
+                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label>From (public key)</label><input type="text" x-model="owner" required></div>
+                    <div class="form-group"><label>Amount</label><input type="text" x-model="xAmount" required></div>
+                    <div class="form-group"><label>Owner Private Key</label><input type="password" x-model="burnPriv" required></div>
+                    <button type="submit" class="btn-lottery">Burn</button>
+                </form>
+                <pre x-show="burnResult" class="result" x-text="burnResult"></pre>
+            </section>
+            <section class="history">
+                <h2>History</h2>
+                <form @submit.prevent="showHistory">
+                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
+                    <button type="submit" class="btn-lottery">Show History</button>
+                </form>
+                <pre x-show="history.length" class="result" x-text="JSON.stringify(history, null, 2)"></pre>
+            </section>
         </main>
     </div>
     <script src="/js/app.js"></script>
