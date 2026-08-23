@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 24,
+  "round": 25,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T00:39:19+00:00",
+  "updated_at": "2026-08-23T00:45:38+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 2,
+      "touched_round": 25,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -1277,6 +1277,41 @@
       "touched_round": 24,
       "commit": "9b590e1",
       "title": "Record on-chain for CLI/API oracle fetches"
+    },
+    "ISS-018": {
+      "id": "ISS-018",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:45:21+00:00",
+      "updated_at": "2026-08-23T00:45:38+00:00",
+      "touched_round": 25,
+      "title": "Oracle CLI uses a throwaway in-memory repo, so source add never persists into a later fetch command (only module not on SQLite)",
+      "severity": "high"
+    },
+    "TASK-026": {
+      "id": "TASK-026",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T00:45:21+00:00",
+      "updated_at": "2026-08-23T00:45:38+00:00",
+      "touched_round": 25,
+      "category": "correctness",
+      "priority_score": 3.5,
+      "severity": 0.7,
+      "title": "Switch oracle CLI to a persistent SQLite repo per command (mirror lottery/token/nft/voting)"
+    },
+    "CHG-025": {
+      "id": "CHG-025",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:45:33+00:00",
+      "updated_at": "2026-08-23T00:45:33+00:00",
+      "touched_round": 25,
+      "commit": "ffd0601",
+      "title": "Oracle CLI persistent SQLite repo"
     }
   },
   "edges": [
@@ -1933,6 +1968,30 @@
       "to": "TASK-025",
       "type": "implements",
       "created_at": "2026-08-23T00:39:14+00:00"
+    },
+    {
+      "from": "ISS-018",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-23T00:45:21+00:00"
+    },
+    {
+      "from": "TASK-026",
+      "to": "ISS-018",
+      "type": "addresses",
+      "created_at": "2026-08-23T00:45:22+00:00"
+    },
+    {
+      "from": "CHG-025",
+      "to": "ISS-018",
+      "type": "resolves",
+      "created_at": "2026-08-23T00:45:33+00:00"
+    },
+    {
+      "from": "CHG-025",
+      "to": "TASK-026",
+      "type": "implements",
+      "created_at": "2026-08-23T00:45:33+00:00"
     }
   ]
 }
