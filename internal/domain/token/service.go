@@ -223,12 +223,27 @@ func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
 		return nil, err
 	}
 
-	token := NewToken(TokenID(req.Symbol), req.Name, req.Symbol, req.TotalSupply, req.Owner)
+	// A token's ID is its symbol (see NewToken). The persistence layer uses
+	// INSERT OR REPLACE keyed on that ID, so creating a token with a symbol
+	// that already exists would silently overwrite the existing token's row
+	// and owner balance — losing the first token's data. Reject duplicates up
+	// front so a create is either a genuine new token or an explicit error,
+	// never a silent data-loss (TASK-075, ISS-067).
+	tokenID := TokenID(req.Symbol)
+	existing, err := s.repo.GetToken(tokenID)
+	if err != nil && err != ErrTokenNotFound {
+		return nil, err
+	}
+	if existing != nil {
+		return nil, ErrTokenExists
+	}
+
+	token := NewToken(tokenID, req.Name, req.Symbol, req.TotalSupply, req.Owner)
 
 	// CreateToken performs two writes (token row + owner balance) that must
 	// be atomic: a failure between them would otherwise leave a token with
 	// zero owner balance.
-	err := s.txManager.WithTransaction(func(tx *sql.Tx) error {
+	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
 		r := s.txRepo(tx)
 		if err := r.SaveToken(token); err != nil {
 			return err

@@ -16,6 +16,12 @@ var (
 	ErrTransferToZero        = errors.New("cannot transfer to zero address")
 	ErrInvalidAmount         = errors.New("invalid amount")
 	ErrDuplicateTransfer     = errors.New("duplicate transfer")
+	// ErrTokenExists is returned when a create tries to register a token whose
+	// symbol (which is the token's primary key / ID) is already taken. The
+	// persistence layer uses INSERT OR REPLACE keyed on the symbol, so without
+	// this guard a duplicate create would silently overwrite the existing
+	// token's rows and balances (see TokenService.CreateToken).
+	ErrTokenExists = errors.New("token already exists")
 
 	// Validation errors for token name, symbol, and key validation.
 	// Using sentinels allows API handlers to map these to 400 Bad Request.

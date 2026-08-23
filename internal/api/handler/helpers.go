@@ -29,6 +29,7 @@ var errorClassification = []struct {
 }{
 	// Token domain errors
 	{tokenerrors.ErrTokenNotFound, http.StatusNotFound, "TOKEN_NOT_FOUND"},
+	{tokenerrors.ErrTokenExists, http.StatusConflict, "TOKEN_EXISTS"},
 	{tokenerrors.ErrInsufficientBalance, http.StatusBadRequest, "INSUFFICIENT_BALANCE"},
 	{tokenerrors.ErrInsufficientAllowance, http.StatusBadRequest, "INSUFFICIENT_ALLOWANCE"},
 	{tokenerrors.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_SIGNATURE"},
