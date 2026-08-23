@@ -17,7 +17,15 @@ func NewTokenEventReader(store infraevents.EventRepository) *TokenEventReader {
 }
 
 func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
-	events, err := r.store.GetByAggregate(string(tokenID), limit, offset)
+	// Page over TRANSFER events only (TASK-074, ISS-066). Passing the limit
+	// straight through GetByAggregate applies the SQL LIMIT/OFFSET over ALL
+	// events in the token aggregate (transfers + mints + burns) before the
+	// owner/type filter below, so interleaved mint/burn events would crowd out
+	// transfers and the page would under-fill (verified: limit=5 -> 2). By
+	// restricting the query to token.transfer first, the SQL page is composed
+	// entirely of transfers and pagination is correct. (The owner filter then
+	// narrows that transfer page in memory.)
+	events, err := r.store.GetByAggregateAndType(string(tokenID), "token.transfer", limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -26,10 +34,6 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 
 	for _, e := range events {
-		if e.EventType() != "token.transfer" {
-			continue
-		}
-
 		var payload struct {
 			From        string `json:"from"`
 			To          string `json:"to"`
