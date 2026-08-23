@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 53,
+  "round": 54,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:30:28+00:00",
+  "updated_at": "2026-08-23T05:34:29+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -2557,6 +2557,63 @@
       "touched_round": 52,
       "commit": "35f538f",
       "title": "Backup Restore safety-guard integration test"
+    },
+    "ISS-048": {
+      "id": "ISS-048",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:33:19+00:00",
+      "updated_at": "2026-08-23T05:34:29+00:00",
+      "touched_round": 53,
+      "title": "The SSRF redirect guard checkRedirectAllowed has no direct unit tests; the existing redirect integration tests skip when loopback listeners are blocked (as in this sandbox), so the security-critical policy is unverified here",
+      "severity": "low"
+    },
+    "TASK-056": {
+      "id": "TASK-056",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:33:19+00:00",
+      "updated_at": "2026-08-23T05:34:29+00:00",
+      "touched_round": 53,
+      "category": "security",
+      "severity": 0.5,
+      "priority_score": 3.0,
+      "title": "Add direct unit tests for checkRedirectAllowed covering non-http schemes, blocked IP literals, DNS-blocked hostnames, and allowed destinations"
+    },
+    "COMP-009": {
+      "id": "COMP-009",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:33:22+00:00",
+      "updated_at": "2026-08-23T05:33:22+00:00",
+      "touched_round": 53,
+      "title": "Oracle REST fetcher (infra/http)"
+    },
+    "EV-017": {
+      "id": "EV-017",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:34:23+00:00",
+      "updated_at": "2026-08-23T05:34:23+00:00",
+      "touched_round": 53,
+      "source": "go test ./... (33 pkgs) + TestCheckRedirectAllowed (8 cases); checkRedirectAllowed 0%->100%",
+      "title": "SSRF redirect policy directly unit-tested (scheme, IP literal, DNS, allowed)",
+      "confidence": 1.0
+    },
+    "CHG-055": {
+      "id": "CHG-055",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:34:23+00:00",
+      "updated_at": "2026-08-23T05:34:23+00:00",
+      "touched_round": 53,
+      "commit": "263197f",
+      "title": "SSRF redirect policy direct unit tests"
     }
   },
   "edges": [
@@ -3939,6 +3996,30 @@
       "to": "ISS-047",
       "type": "resolves",
       "created_at": "2026-08-23T05:30:27+00:00"
+    },
+    {
+      "from": "TASK-056",
+      "to": "ISS-048",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:33:26+00:00"
+    },
+    {
+      "from": "ISS-048",
+      "to": "COMP-009",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:33:26+00:00"
+    },
+    {
+      "from": "CHG-055",
+      "to": "TASK-056",
+      "type": "implements",
+      "created_at": "2026-08-23T05:34:28+00:00"
+    },
+    {
+      "from": "CHG-055",
+      "to": "ISS-048",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:34:28+00:00"
     }
   ]
 }
