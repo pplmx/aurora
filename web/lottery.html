@@ -67,6 +67,17 @@
                 </table>
                 <p x-show="!loading && history.length === 0">No lotteries yet</p>
             </section>
+            <section class="history">
+                <h2>Verify Draw</h2>
+                <form @submit.prevent="verifyDraw">
+                    <div class="form-group">
+                        <label>Lottery ID</label>
+                        <input type="text" x-model="verifyId" placeholder="Lottery ID" required>
+                    </div>
+                    <button type="submit" class="btn-lottery">Verify Draw</button>
+                </form>
+                <pre x-show="verifyResult" class="result" x-text="verifyResult"></pre>
+            </section>
         </main>
     </div>
     <script src="/js/app.js"></script>

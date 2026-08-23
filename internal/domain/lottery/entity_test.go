@@ -58,9 +58,10 @@ func TestCreateLotteryRecord(t *testing.T) {
 	winnerAddrs := []string{"0x123"}
 	output := []byte("test-output-32-bytes........")
 	proof := []byte("test-proof-64-bytes....................................")
+	publicKey := "dGVzdC1wdWJsaWMta2V5"
 	blockHeight := int64(12345)
 
-	record := CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, blockHeight)
+	record := CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, publicKey, blockHeight)
 
 	if record.ID == "" {
 		t.Error("CreateLotteryRecord() ID should not be empty")
@@ -76,6 +77,9 @@ func TestCreateLotteryRecord(t *testing.T) {
 	}
 	if len(record.VRFProof) == 0 {
 		t.Error("CreateLotteryRecord() VRFProof should not be empty")
+	}
+	if record.VRFPublicKey != publicKey {
+		t.Errorf("CreateLotteryRecord() VRFPublicKey = %q, want %q", record.VRFPublicKey, publicKey)
 	}
 	if record.BlockHeight != blockHeight {
 		t.Errorf("CreateLotteryRecord() BlockHeight = %d, want %d", record.BlockHeight, blockHeight)
@@ -104,21 +108,22 @@ func TestCreateLotteryRecord_UniqueIDAcrossDraws(t *testing.T) {
 	winners := []string{"Bob"}
 	winnerAddrs := []string{"0xbob"}
 	proof := []byte("test-proof-64-bytes....................................")
+	publicKey := "dGVzdC1wdWJsaWMta2V5"
 	blockHeight := int64(1)
 
 	// Two distinct draws (different VRF outputs).
 	out1 := []byte("vrf-output-A-padded-to-32-bytes....")
 	out2 := []byte("vrf-output-B-padded-to-32-bytes....")
 
-	r1 := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out1, proof, blockHeight)
-	r2 := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out2, proof, blockHeight+1)
+	r1 := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out1, proof, publicKey, blockHeight)
+	r2 := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out2, proof, publicKey, blockHeight+1)
 
 	if r1.ID == r2.ID {
 		t.Fatalf("two records with same seed but different VRF outputs must have distinct IDs, both = %q", r1.ID)
 	}
 
 	// Same record + same draw → same ID (idempotent regeneration).
-	r1again := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out1, proof, blockHeight)
+	r1again := CreateLotteryRecord(seed, participants, winners, winnerAddrs, out1, proof, publicKey, blockHeight)
 	if r1.ID != r1again.ID {
 		t.Errorf("expected identical IDs for identical draws, got %q vs %q", r1.ID, r1again.ID)
 	}

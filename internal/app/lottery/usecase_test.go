@@ -76,6 +76,70 @@ func TestCreateLotteryUseCase_Execute(t *testing.T) {
 	if blockChain.height != 1 {
 		t.Errorf("Expected 1 block added, got %d", blockChain.height)
 	}
+
+	// v1.31: a freshly created draw must carry its VRF public key and be
+	// marked Verified (its proof binds to the persisted key and its winners
+	// match the deterministic selection), so the module's fairness claim is
+	// re-checkable from the record alone.
+	if resp.Verified != true {
+		t.Error("Expected newly created draw to be Verified=true")
+	}
+	if len(lotteryRepo.records) != 1 || lotteryRepo.records[0].VRFPublicKey == "" {
+		t.Error("Expected the stored record to persist the VRF public key")
+	}
+}
+
+func TestVerifyLotteryUseCase_ValidDraw(t *testing.T) {
+	lotteryRepo := &mockLotteryRepo{}
+	blockChain := &mockBlockChain{}
+	if _, err := NewCreateLotteryUseCase(lotteryRepo, blockChain).Execute(CreateLotteryRequest{
+		Participants: "Alice,Bob,Charlie",
+		Seed:         "verify-seed",
+		WinnerCount:  1,
+	}); err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	id := lotteryRepo.records[0].ID
+
+	resp, err := NewVerifyLotteryUseCase(lotteryRepo, lottery.NewService()).Execute(VerifyLotteryRequest{ID: id})
+	require.NoError(t, err)
+	require.True(t, resp.Valid)
+	require.Equal(t, id, resp.ID)
+}
+
+func TestVerifyLotteryUseCase_TamperedWinners(t *testing.T) {
+	lotteryRepo := &mockLotteryRepo{}
+	blockChain := &mockBlockChain{}
+	if _, err := NewCreateLotteryUseCase(lotteryRepo, blockChain).Execute(CreateLotteryRequest{
+		Participants: "Alice,Bob,Charlie",
+		Seed:         "verify-seed-2",
+		WinnerCount:  1,
+	}); err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	// Mutate the stored winner so it no longer matches SelectWinners(output).
+	record := lotteryRepo.records[0]
+	other := firstDifferent(record.Participants, record.Winners[0])
+	record.Winners[0] = other
+
+	resp, err := NewVerifyLotteryUseCase(lotteryRepo, lottery.NewService()).Execute(VerifyLotteryRequest{ID: record.ID})
+	require.NoError(t, err)
+	require.False(t, resp.Valid)
+}
+
+func TestVerifyLotteryUseCase_NotFound(t *testing.T) {
+	lotteryRepo := &mockLotteryRepo{}
+	_, err := NewVerifyLotteryUseCase(lotteryRepo, lottery.NewService()).Execute(VerifyLotteryRequest{ID: "missing"})
+	require.ErrorIs(t, err, lottery.ErrNotFound)
+}
+
+func firstDifferent(participants []string, current string) string {
+	for _, p := range participants {
+		if p != current {
+			return p
+		}
+	}
+	return current
 }
 
 func TestCreateLotteryUseCase_InvalidInput(t *testing.T) {

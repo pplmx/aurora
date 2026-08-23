@@ -200,11 +200,13 @@ var verifyCmd = &cobra.Command{
 		fmt.Printf("👥 Participants: %d\n", len(record.Participants))
 		fmt.Printf("🎉 Winners: %d\n", len(record.Winners))
 
-		// Perform deterministic verification. We can't re-verify the VRF
-		// proof without the public key (which we deliberately do not store
-		// per draw), but we CAN re-run SelectWinners on the stored VRF
-		// output and check that the recorded winners match what the
-		// deterministic selection function would produce.
+		// Perform deterministic verification. Draws created before v1.31 have
+		// no persisted public key, so we fall back to re-running SelectWinners
+		// on the stored VRF output and checking the recorded winners match
+		// what the deterministic selection function would produce. Draws
+		// created from v1.31 onward also carry a VRFPublicKey; when present we
+		// additionally verify the proof against that key and surface the
+		// decoded key in the output for independent cross-checking.
 		//
 		// Note on the "✅ Verified" UX: previously this command printed
 		// "✅ Lottery Record Verified!" after a plain JSON parse — that
@@ -229,7 +231,20 @@ var verifyCmd = &cobra.Command{
 				fmt.Println("\n⚠️  Stored record has mismatched winner/address slices (possible data corruption)")
 				integrityOK = false
 			} else {
-				fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
+				if record.VRFPublicKey != "" {
+					pk, dierr := domainlottery.DecodePublicKey(record.VRFPublicKey)
+					if dierr != nil {
+						fmt.Println("\n❌ Verification FAILED: stored VRF public key is malformed")
+						integrityOK = false
+					} else if ok, _ := domainlottery.NewService().VerifyDraw(record, pk); !ok {
+						fmt.Println("\n❌ Verification FAILED: VRF proof does not verify against the stored public key")
+						integrityOK = false
+					} else {
+						fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
+					}
+				} else {
+					fmt.Println("\n✅ " + i18n.GetText("lottery.verified") + " (deterministic winner match; pre-v1.31 draw has no stored key)")
+				}
 			}
 		}
 
@@ -245,6 +260,9 @@ var verifyCmd = &cobra.Command{
 		}
 		fmt.Printf("\n🔐 VRF Output: %s...\n", record.VRFOutput[:min(16, len(record.VRFOutput))])
 		fmt.Printf("📜 VRF Proof: %s...\n", record.VRFProof[:min(16, len(record.VRFProof))])
+		if record.VRFPublicKey != "" {
+			fmt.Printf("🔑 VRF Public Key: %s...\n", record.VRFPublicKey[:min(16, len(record.VRFPublicKey))])
+		}
 		fmt.Printf("⏰ Timestamp: %d\n", record.Timestamp)
 
 		if !integrityOK {

@@ -1,6 +1,7 @@
 package lottery
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -48,12 +49,12 @@ func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryRespo
 		return nil, fmt.Errorf("invalid winner count: %w", err)
 	}
 
-	winners, winnerAddrs, output, proof, err := uc.service.DrawWinners(participants, seed, req.WinnerCount)
+	winners, winnerAddrs, output, proof, publicKey, err := uc.service.DrawWinners(participants, seed, req.WinnerCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to draw winners: %w", err)
 	}
 
-	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, 0)
+	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, publicKey, 0)
 
 	jsonData, err := record.ToJSON()
 	if err != nil {
@@ -66,6 +67,20 @@ func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryRespo
 	}
 
 	record.BlockHeight = height
+
+	// Mark the draw verified at creation time: a draw is only trustworthy if
+	// its recorded proof verifies against the persisted public key (binding
+	// it to the seed) AND the recorded winners are exactly what the
+	// deterministic selection produces from the VRF output. This makes the
+	// audit surface honest (previously Verified stayed permanently false).
+	if pk, derr := lottery.DecodePublicKey(publicKey); derr == nil {
+		if ok, _ := uc.service.VerifyDraw(record, pk); ok {
+			expected := lottery.SelectWinners(output, participants, req.WinnerCount)
+			if sameStringSet(expected, winners) {
+				record.Verified = true
+			}
+		}
+	}
 
 	if err := uc.lotteryRepo.Save(record); err != nil {
 		return nil, fmt.Errorf("failed to save to repository: %w", err)
@@ -93,4 +108,93 @@ func removeEmpty(s []string) []string {
 		}
 	}
 	return result
+}
+
+// VerifyLotteryRequest carries the id of the draw to re-verify.
+type VerifyLotteryRequest struct {
+	ID string
+}
+
+// VerifyLotteryResponse reports whether a stored draw re-verifies.
+type VerifyLotteryResponse struct {
+	ID     string `json:"id"`
+	Valid  bool   `json:"valid"`
+	Reason string `json:"reason,omitempty"`
+}
+
+// VerifyLotteryUseCase re-verifies a persisted draw: it loads the record, and
+// when the stored VRF public key is present it re-runs the same proof/key
+// verification and winner-set check that creation performed. Records created
+// before this feature (no public key) fall back to the deterministic
+// winner-set check so they do not hard-fail.
+type VerifyLotteryUseCase struct {
+	repo    lottery.Repository
+	service lottery.Service
+}
+
+// NewVerifyLotteryUseCase builds the re-verification use case.
+func NewVerifyLotteryUseCase(repo lottery.Repository, service lottery.Service) *VerifyLotteryUseCase {
+	return &VerifyLotteryUseCase{repo: repo, service: service}
+}
+
+// Execute re-verifies the draw identified by req.ID.
+func (uc *VerifyLotteryUseCase) Execute(req VerifyLotteryRequest) (*VerifyLotteryResponse, error) {
+	record, err := uc.repo.GetByID(req.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get lottery: %w", err)
+	}
+	if record == nil {
+		return nil, lottery.ErrNotFound
+	}
+
+	// Decode the VRF output for the deterministic winner-set check.
+	vrfOutput, err := hex.DecodeString(record.VRFOutput)
+	if err != nil {
+		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "vrf output is not valid hex"}, nil
+	}
+	if _, err := hex.DecodeString(record.VRFProof); err != nil {
+		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "vrf proof is not valid hex"}, nil
+	}
+
+	// Optional key-bound proof verification (draws created before this
+	// feature have no stored key and are checked deterministically only).
+	if record.VRFPublicKey != "" {
+		pk, derr := lottery.DecodePublicKey(record.VRFPublicKey)
+		if derr != nil {
+			return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "stored public key is malformed"}, nil
+		}
+		ok, verr := uc.service.VerifyDraw(record, pk)
+		if verr != nil || !ok {
+			return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "VRF proof does not verify against the stored key"}, nil
+		}
+	}
+
+	// The winners recorded must be exactly what SelectWinners produces from
+	// the stored output for this roster and winner count.
+	expected := lottery.SelectWinners(vrfOutput, record.Participants, len(record.Winners))
+	if !sameStringSet(expected, record.Winners) {
+		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "stored winners do not match the VRF output"}, nil
+	}
+	if len(record.Winners) != len(record.WinnerAddresses) {
+		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "winner/address slice length mismatch"}, nil
+	}
+
+	return &VerifyLotteryResponse{ID: record.ID, Valid: true}, nil
+}
+
+func sameStringSet(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	count := make(map[string]int, len(a))
+	for _, s := range a {
+		count[s]++
+	}
+	for _, s := range b {
+		count[s]--
+		if count[s] < 0 {
+			return false
+		}
+	}
+	return true
 }

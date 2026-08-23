@@ -24,7 +24,7 @@ func TestLotteryE2E_ErrorHandling_InsufficientParticipants(t *testing.T) {
 }
 
 func TestLotteryE2E_ErrorHandling_EmptySeed(t *testing.T) {
-	_, sk, _ := lottery.GenerateKeyPair()
+	pk, sk, _ := lottery.GenerateKeyPair()
 
 	participants := []string{"Alice", "Bob", "Charlie", "David", "Eve"}
 	output, proof, _ := lottery.VRFProve(sk, []byte(""))
@@ -37,7 +37,7 @@ func TestLotteryE2E_ErrorHandling_EmptySeed(t *testing.T) {
 		winnerAddrs[i] = lottery.NameToAddress(w)
 	}
 
-	record := lottery.CreateLotteryRecord("", participants, winners, winnerAddrs, output, proof, 0)
+	record := lottery.CreateLotteryRecord("", participants, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 	assert.NotEmpty(t, record.ID)
 }
 
@@ -50,7 +50,7 @@ func TestNFTE2E_ErrorHandling_EmptyName(t *testing.T) {
 }
 
 func TestRecoveryScenario_LotteryWithDuplicateWinners(t *testing.T) {
-	_, sk, _ := lottery.GenerateKeyPair()
+	pk, sk, _ := lottery.GenerateKeyPair()
 
 	participants := []string{"Alice", "Bob", "Charlie", "Alice", "Bob"}
 	output, proof, _ := lottery.VRFProve(sk, []byte("test-seed"))
@@ -67,7 +67,7 @@ func TestRecoveryScenario_LotteryWithDuplicateWinners(t *testing.T) {
 		winnerAddrs[i] = lottery.NameToAddress(w)
 	}
 
-	record := lottery.CreateLotteryRecord("test-seed", participants, winners, winnerAddrs, output, proof, 0)
+	record := lottery.CreateLotteryRecord("test-seed", participants, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 	assert.NotEmpty(t, record.ID)
 }
 
