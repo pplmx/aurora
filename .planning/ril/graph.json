@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 20,
+  "round": 21,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T00:24:48+00:00",
+  "updated_at": "2026-08-23T00:26:36+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 8,
+      "touched_round": 21,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -1137,6 +1137,41 @@
       "touched_round": 20,
       "commit": "24c887f",
       "title": "Server-owned metrics registry + exported MetricsHandler"
+    },
+    "ISS-014": {
+      "id": "ISS-014",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:26:15+00:00",
+      "updated_at": "2026-08-23T00:26:36+00:00",
+      "touched_round": 21,
+      "title": "Request log lines lack a request_id, so logs cannot be correlated to a single request",
+      "severity": "low"
+    },
+    "TASK-022": {
+      "id": "TASK-022",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T00:26:16+00:00",
+      "updated_at": "2026-08-23T00:26:36+00:00",
+      "touched_round": 21,
+      "category": "maintainability",
+      "priority_score": 1.2,
+      "severity": 0.3,
+      "title": "Emit request_id in the HTTP request log via chi RequestID context"
+    },
+    "CHG-021": {
+      "id": "CHG-021",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:26:26+00:00",
+      "updated_at": "2026-08-23T00:26:26+00:00",
+      "touched_round": 21,
+      "commit": "93f6a63",
+      "title": "request_id in HTTP request log"
     }
   },
   "edges": [
@@ -1697,6 +1732,30 @@
       "to": "TASK-021",
       "type": "implements",
       "created_at": "2026-08-23T00:24:37+00:00"
+    },
+    {
+      "from": "ISS-014",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-23T00:26:16+00:00"
+    },
+    {
+      "from": "TASK-022",
+      "to": "ISS-014",
+      "type": "addresses",
+      "created_at": "2026-08-23T00:26:16+00:00"
+    },
+    {
+      "from": "CHG-021",
+      "to": "ISS-014",
+      "type": "resolves",
+      "created_at": "2026-08-23T00:26:26+00:00"
+    },
+    {
+      "from": "CHG-021",
+      "to": "TASK-022",
+      "type": "implements",
+      "created_at": "2026-08-23T00:26:26+00:00"
     }
   ]
 }
