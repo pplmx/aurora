@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 23,
+  "round": 24,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T00:32:50+00:00",
+  "updated_at": "2026-08-23T00:39:19+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 23,
+      "touched_round": 24,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -1242,6 +1242,41 @@
       "touched_round": 23,
       "commit": "0507eda",
       "title": "Seed scheduler last-fetch from latest data"
+    },
+    "ISS-017": {
+      "id": "ISS-017",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:39:00+00:00",
+      "updated_at": "2026-08-23T00:39:19+00:00",
+      "touched_round": 24,
+      "title": "Oracle data fetched via CLI/API is not recorded on-chain (BlockHeight always 0), unlike scheduled fetches — parity gap vs documented intent",
+      "severity": "medium"
+    },
+    "TASK-025": {
+      "id": "TASK-025",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T00:39:00+00:00",
+      "updated_at": "2026-08-23T00:39:19+00:00",
+      "touched_round": 24,
+      "category": "correctness",
+      "priority_score": 3.0,
+      "severity": 0.5,
+      "title": "Wire the blockchain writer into CLI + API oracle fetch so all fetches record on-chain consistently"
+    },
+    "CHG-024": {
+      "id": "CHG-024",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:39:14+00:00",
+      "updated_at": "2026-08-23T00:39:14+00:00",
+      "touched_round": 24,
+      "commit": "9b590e1",
+      "title": "Record on-chain for CLI/API oracle fetches"
     }
   },
   "edges": [
@@ -1874,6 +1909,30 @@
       "to": "TASK-024",
       "type": "implements",
       "created_at": "2026-08-23T00:32:40+00:00"
+    },
+    {
+      "from": "ISS-017",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T00:39:00+00:00"
+    },
+    {
+      "from": "TASK-025",
+      "to": "ISS-017",
+      "type": "addresses",
+      "created_at": "2026-08-23T00:39:00+00:00"
+    },
+    {
+      "from": "CHG-024",
+      "to": "ISS-017",
+      "type": "resolves",
+      "created_at": "2026-08-23T00:39:14+00:00"
+    },
+    {
+      "from": "CHG-024",
+      "to": "TASK-025",
+      "type": "implements",
+      "created_at": "2026-08-23T00:39:14+00:00"
     }
   ]
 }
