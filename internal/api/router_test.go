@@ -163,6 +163,7 @@ func TestRouter_RegistersAllExpectedRoutes(t *testing.T) {
 		{http.MethodGet, "/health", http.StatusOK},
 		{http.MethodGet, "/readyz", http.StatusOK},
 		{http.MethodGet, "/metrics", http.StatusOK},
+		{http.MethodGet, "/metrics/oracle", http.StatusOK},
 		// Protected routes require API key + non-nil handler; both will
 		// fail with 401 (auth) or 500 (handler nil), but NOT 404 — the
 		// router must have matched the path.

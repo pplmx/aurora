@@ -2,6 +2,9 @@ package oracle
 
 import (
 	"context"
+	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +37,19 @@ type Scheduler struct {
 	mu        sync.Mutex
 	lastFetch map[string]time.Time
 	seeded    bool
+	stats     map[string]*SourceStat
+}
+
+// SourceStat is the cumulative fetch-health counter for one data source. It is
+// the operator-visible feed-health surface (v1.16): attempts / successes /
+// failures since process start, plus the last error and last-success time.
+type SourceStat struct {
+	SourceID      string `json:"source_id"`
+	Attempts      uint64 `json:"attempts"`
+	Successes     uint64 `json:"successes"`
+	Failures      uint64 `json:"failures"`
+	LastSuccessAt int64  `json:"last_success_at,omitempty"`
+	LastError     string `json:"last_error,omitempty"`
 }
 
 // NewScheduler returns a scheduler that polls the repository on checkEvery and
@@ -53,6 +69,7 @@ func NewScheduler(repo sourceRepo, execute func(sourceID string) error, checkEve
 		checkEvery: checkEvery,
 		now:        now,
 		lastFetch:  make(map[string]time.Time),
+		stats:      make(map[string]*SourceStat),
 	}
 }
 
@@ -98,12 +115,23 @@ func (s *Scheduler) pass() {
 			continue
 		}
 
+		s.mu.Lock()
+		st := s.stat(src.ID)
+		st.Attempts++
+		s.mu.Unlock()
+
 		if err := s.execute(src.ID); err != nil {
+			s.mu.Lock()
+			st.Failures++
+			st.LastError = err.Error()
+			s.mu.Unlock()
 			logger.Warn().Err(err).Str("source_id", src.ID).Msg("oracle scheduler: fetch failed")
 			continue
 		}
 
 		s.mu.Lock()
+		st.Successes++
+		st.LastSuccessAt = now.Unix()
 		s.lastFetch[src.ID] = now
 		s.mu.Unlock()
 	}
@@ -137,4 +165,45 @@ func (s *Scheduler) seed() {
 		}
 		s.lastFetch[src.ID] = time.Unix(d.Timestamp, 0)
 	}
+}
+
+// stat returns the SourceStat for id, creating it if absent. Caller must hold
+// the mutex.
+func (s *Scheduler) stat(id string) *SourceStat {
+	st, ok := s.stats[id]
+	if !ok {
+		st = &SourceStat{SourceID: id}
+		s.stats[id] = st
+	}
+	return st
+}
+
+// Stats returns a copy of the per-source fetch-health statistics, sorted by
+// source id for deterministic output.
+func (s *Scheduler) Stats() []SourceStat {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]SourceStat, 0, len(s.stats))
+	for _, st := range s.stats {
+		c := *st
+		out = append(out, c)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].SourceID < out[j].SourceID })
+	return out
+}
+
+// PrometheusText renders the per-source fetch-health stats in Prometheus text
+// exposition format for an operator metrics endpoint (/metrics/oracle).
+func (s *Scheduler) PrometheusText() string {
+	stats := s.Stats()
+	var b strings.Builder
+	fmt.Fprintln(&b, "# TYPE oracle_fetch_attempts_total counter")
+	fmt.Fprintln(&b, "# TYPE oracle_fetch_successes_total counter")
+	fmt.Fprintln(&b, "# TYPE oracle_fetch_failures_total counter")
+	for _, st := range stats {
+		fmt.Fprintf(&b, "oracle_fetch_attempts_total{source=%q} %d\n", st.SourceID, st.Attempts)
+		fmt.Fprintf(&b, "oracle_fetch_successes_total{source=%q} %d\n", st.SourceID, st.Successes)
+		fmt.Fprintf(&b, "oracle_fetch_failures_total{source=%q} %d\n", st.SourceID, st.Failures)
+	}
+	return b.String()
 }
