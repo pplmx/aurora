@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 72,
+  "round": 73,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T09:25:35+00:00",
+  "updated_at": "2026-08-23T09:29:50+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -2589,7 +2589,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:33:22+00:00",
       "updated_at": "2026-08-23T05:33:22+00:00",
-      "touched_round": 64,
+      "touched_round": 73,
       "title": "Oracle REST fetcher (infra/http)"
     },
     "EV-017": {
@@ -3505,6 +3505,53 @@
       "touched_round": 72,
       "commit": "99a5455",
       "title": "Reject duplicate token symbols in CreateToken (ErrTokenExists, HTTP 409) + regression test"
+    },
+    "ISS-068": {
+      "id": "ISS-068",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T09:27:42+00:00",
+      "updated_at": "2026-08-23T09:29:50+00:00",
+      "touched_round": 73,
+      "severity": "high",
+      "title": "Oracle extractByPath silently returns the ENTIRE raw JSON body as the source value when the configured backing path is missing (or the response is invalid JSON / not an object), so a mistyped oracle path stores a huge raw blob as the field value instead of returning ErrInvalidSource; the caller already treats an empty result as ErrInvalidSource"
+    },
+    "TASK-076": {
+      "id": "TASK-076",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T09:27:46+00:00",
+      "updated_at": "2026-08-23T09:29:50+00:00",
+      "touched_round": 73,
+      "category": "correctness",
+      "severity": 0.75,
+      "confidence": 1.0,
+      "effort": 2,
+      "title": "Make extractByPath return empty (=> ErrInvalidSource) instead of the whole raw body when the path is absent/invalid/non-object, and update the extraction fallback tests to lock the corrected behavior"
+    },
+    "EV-037": {
+      "id": "EV-037",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:27:52+00:00",
+      "updated_at": "2026-08-23T09:27:52+00:00",
+      "touched_round": 73,
+      "source": "worktree analysis round 73 (internal/infra/http/fetcher.go extractByPath): missing path / invalid JSON / non-object all return jsonStr (whole body); FetchDataWithValidation maps empty->ErrInvalidSource, so a mistyped path silently stores the whole response as value",
+      "confidence": 1.0
+    },
+    "CHG-074": {
+      "id": "CHG-074",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:29:46+00:00",
+      "updated_at": "2026-08-23T09:29:46+00:00",
+      "touched_round": 73,
+      "commit": "16159f4",
+      "title": "Oracle extractByPath fails closed on missing/invalid path (empty => ErrInvalidSource) + regression tests"
     }
   },
   "edges": [
@@ -5367,6 +5414,30 @@
       "to": "ISS-067",
       "type": "resolves",
       "created_at": "2026-08-23T09:25:35+00:00"
+    },
+    {
+      "from": "TASK-076",
+      "to": "ISS-068",
+      "type": "addresses",
+      "created_at": "2026-08-23T09:27:52+00:00"
+    },
+    {
+      "from": "ISS-068",
+      "to": "COMP-009",
+      "type": "located_in",
+      "created_at": "2026-08-23T09:27:52+00:00"
+    },
+    {
+      "from": "CHG-074",
+      "to": "TASK-076",
+      "type": "implements",
+      "created_at": "2026-08-23T09:29:46+00:00"
+    },
+    {
+      "from": "CHG-074",
+      "to": "ISS-068",
+      "type": "resolves",
+      "created_at": "2026-08-23T09:29:50+00:00"
     }
   ]
 }
