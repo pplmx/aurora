@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain - Aurora</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.5"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container" x-data="blockchainApp()" x-init="verify()">
+        <header>
+            <h1>Aurora <span class="version">Blockchain</span></h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/lottery.html">Lottery</a>
+                <a href="/voting.html">Voting</a>
+                <a href="/token.html">Token</a>
+                <a href="/oracle.html">Oracle</a>
+                <a href="/blockchain.html">Blockchain</a>
+            </nav>
+        </header>
+        <main>
+            <section class="create-form">
+                <h2>Ledger Integrity Verification</h2>
+                <p class="proposal-meta">
+                    Cryptographically verifies the in-memory ledger: every block carries a
+                    non-empty hash, each block's previous hash links to its predecessor,
+                    and each stored hash is a valid proof-of-work over its fields.
+                </p>
+                <button @click="verify" class="btn-blockchain" :disabled="loading">Run Verification</button>
+                <div x-show="loading" class="result">Verifying…</div>
+                <div x-show="report" class="result">
+                    <p><strong>Valid:</strong> <span x-text="report.valid ? 'Yes' : 'No'" :style="'color:' + (report.valid ? '#98c379' : '#e06c75')"></span></p>
+                    <p><strong>Chain length:</strong> <span x-text="report.length"></span></p>
+                    <p x-show="!report.valid"><strong>First broken index:</strong> <span x-text="report.first_broken_index"></span></p>
+                    <p x-show="!report.valid"><strong>Reason:</strong> <span x-text="report.first_broken_reason"></span></p>
+                </div>
+                <div x-show="error" class="result" x-text="error"></div>
+            </section>
+        </main>
+    </div>
+    <script src="/js/app.js"></script>
+</body>
+</html>

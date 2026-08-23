@@ -30,6 +30,7 @@ func webContractGet(t *testing.T) map[string]bool {
 		filepath.Join(root, "voting.html"),
 		filepath.Join(root, "token.html"),
 		filepath.Join(root, "oracle.html"),
+		filepath.Join(root, "blockchain.html"),
 		filepath.Join(root, "js", "app.js"),
 	}
 
@@ -92,12 +93,14 @@ func buildWebRouter() chi.Router {
 	token := NewTokenHandler(fakeTokenServiceFull{})
 	oracle := NewOracleHandler(domainoracle.NewInmemRepo())
 	lottery := NewLotteryHandler(nil)
+	blockchain := NewBlockchainHandler()
 
 	r.Route("/api/v1/lottery", func(r chi.Router) { lottery.Routes(r) })
 	r.Route("/api/v1/voting", func(r chi.Router) { voting.Routes(r) })
 	r.Route("/api/v1/nft", func(r chi.Router) { nft.Routes(r) })
 	r.Route("/api/v1/token", func(r chi.Router) { token.Routes(r) })
 	r.Route("/api/v1/oracle", func(r chi.Router) { oracle.Routes(r) })
+	r.Route("/api/v1/blockchain", func(r chi.Router) { blockchain.Routes(r) })
 	return r
 }
 

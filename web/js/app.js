@@ -110,6 +110,33 @@ function dashboardApp() {
     };
 }
 
+// blockchainApp drives the /blockchain.html ledger integrity page (v1.26). It
+// calls the protected GET /api/v1/blockchain/verify endpoint and renders the
+// IntegrityReport (valid, chain length, first broken index + reason).
+function blockchainApp() {
+    return {
+        report: null,
+        error: '',
+        loading: false,
+        async verify() {
+            this.loading = true;
+            this.error = '';
+            try {
+                const res = await fetch('/api/v1/blockchain/verify', { headers: auroraHeaders() });
+                if (!res.ok) {
+                    this.error = 'Verification failed: HTTP ' + res.status;
+                    return;
+                }
+                this.report = await res.json();
+            } catch (e) {
+                this.error = 'Error: ' + e.message;
+            } finally {
+                this.loading = false;
+            }
+        }
+    };
+}
+
 function votingApp() {
     return {
         voterName: '',
