@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 55,
+  "round": 56,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:36:47+00:00",
+  "updated_at": "2026-08-23T05:39:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 44,
+      "touched_round": 55,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -2661,6 +2661,53 @@
       "touched_round": 54,
       "commit": "f2eaf79",
       "title": "Oracle latest-data endpoint + web view"
+    },
+    "ISS-050": {
+      "id": "ISS-050",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:38:29+00:00",
+      "updated_at": "2026-08-23T05:39:42+00:00",
+      "touched_round": 55,
+      "title": "NFT in-memory repo public methods WithTx, UpdateNFT, and DeleteNFT have 0% unit coverage (only the Service's Try* primitives are exercised), leaving these interface methods unverified",
+      "severity": "low"
+    },
+    "TASK-058": {
+      "id": "TASK-058",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:38:29+00:00",
+      "updated_at": "2026-08-23T05:39:42+00:00",
+      "touched_round": 55,
+      "category": "test-quality",
+      "severity": 0.4,
+      "priority_score": 2.0,
+      "title": "Add direct unit tests for the NFT in-memory repo covering WithTx, UpdateNFT, and DeleteNFT"
+    },
+    "EV-019": {
+      "id": "EV-019",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:39:36+00:00",
+      "updated_at": "2026-08-23T05:39:36+00:00",
+      "touched_round": 55,
+      "source": "go test ./... (33 pkgs); nft domain coverage 86.2%->90.6%",
+      "title": "NFT in-memory repo WithTx/UpdateNFT/DeleteNFT now covered",
+      "confidence": 1.0
+    },
+    "CHG-057": {
+      "id": "CHG-057",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:39:36+00:00",
+      "updated_at": "2026-08-23T05:39:36+00:00",
+      "touched_round": 55,
+      "commit": "ebcd817",
+      "title": "NFT in-memory repo WithTx/UpdateNFT/DeleteNFT tests"
     }
   },
   "edges": [
@@ -4091,6 +4138,30 @@
       "to": "ISS-049",
       "type": "resolves",
       "created_at": "2026-08-23T05:36:47+00:00"
+    },
+    {
+      "from": "TASK-058",
+      "to": "ISS-050",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:38:32+00:00"
+    },
+    {
+      "from": "ISS-050",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:38:32+00:00"
+    },
+    {
+      "from": "CHG-057",
+      "to": "TASK-058",
+      "type": "implements",
+      "created_at": "2026-08-23T05:39:42+00:00"
+    },
+    {
+      "from": "CHG-057",
+      "to": "ISS-050",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:39:42+00:00"
     }
   ]
 }
