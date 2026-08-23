@@ -57,6 +57,9 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 
 	index := requireServedAsset(t, handler, "/", `window.AURORA_API_KEY = "test-serve-key";`)
 	require.True(t, strings.HasPrefix(index, "<!DOCTYPE html>"), "index should be served as HTML")
+	// The dashboard surfaces an Oracle feed-health summary (v1.37) alongside
+	// lottery/voting/ledger stats so an operator can see feed health at a glance.
+	require.True(t, strings.Contains(index, "Oracle Feeds"), "dashboard must expose an Oracle Feeds stat card")
 
 	voting := requireServedAsset(t, handler, "/voting.html",
 		`window.AURORA_API_KEY = "test-serve-key";`)

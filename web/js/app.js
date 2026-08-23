@@ -61,14 +61,15 @@ function lotteryApp() {
 
 function dashboardApp() {
     return {
-        stats: { lotteries: 0, votes: 0, candidates: 0, sessions: 0, integrity: '-' },
+        stats: { lotteries: 0, votes: 0, candidates: 0, sessions: 0, integrity: '-', oracle: '-' },
         activity: [],
         loading: true,
         async init() {
             await Promise.all([
                 this.loadLotteries(),
                 this.loadVoting(),
-                this.loadBlockchain()
+                this.loadBlockchain(),
+                this.loadOracleHealth()
             ]);
             this.loading = false;
         },
@@ -129,6 +130,20 @@ function dashboardApp() {
                 this.stats.integrity = report.valid ? 'OK' : 'BROKEN';
             } catch (e) {
                 this.stats.integrity = '?';
+                console.error(e);
+            }
+        },
+        async loadOracleHealth() {
+            try {
+                const res = await fetch('/api/v1/oracle/health', { headers: auroraHeaders() });
+                if (!res.ok) { this.stats.oracle = '?'; return; }
+                const feeds = await res.json();
+                if (!Array.isArray(feeds) || feeds.length === 0) { this.stats.oracle = '-'; return; }
+                const healthy = feeds.filter(f => f.successes > 0 && f.failures === 0).length;
+                const failed = feeds.filter(f => f.failures > 0).length;
+                this.stats.oracle = healthy + ' OK' + (failed ? ' · ' + failed + ' fail' : '');
+            } catch (e) {
+                this.stats.oracle = '?';
                 console.error(e);
             }
         }
