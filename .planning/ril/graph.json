@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 17,
+  "round": 18,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T00:09:53+00:00",
+  "updated_at": "2026-08-23T00:18:33+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -999,6 +999,74 @@
       "touched_round": 17,
       "commit": 4902095,
       "title": "Serialize AddBlock append under lock"
+    },
+    "ISS-011": {
+      "id": "ISS-011",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:18:02+00:00",
+      "updated_at": "2026-08-23T00:18:33+00:00",
+      "touched_round": 18,
+      "title": "Metrics statusWriter does not expose Flusher/Hijacker/Push/Unwrap: streaming/upgrade handlers break behind it",
+      "severity": "moderate"
+    },
+    "HYP-002": {
+      "id": "HYP-002",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T00:18:02+00:00",
+      "updated_at": "2026-08-23T00:18:33+00:00",
+      "touched_round": 18,
+      "title": "statusWriter only overrides WriteHeader, so it is not http.Flusher/Hijacker/Pusher and lacks Unwrap; as the innermost middleware this breaks streaming/upgrade handlers",
+      "confidence": 0.95
+    },
+    "EV-002": {
+      "id": "EV-002",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:18:02+00:00",
+      "updated_at": "2026-08-23T00:18:02+00:00",
+      "touched_round": 18,
+      "source": "probe: w.(http.Flusher) -> not implemented through metrics middleware (internal/metrics)",
+      "title": "statusWriter does not implement http.Flusher",
+      "confidence": 1.0
+    },
+    "COMP-003": {
+      "id": "COMP-003",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:18:02+00:00",
+      "updated_at": "2026-08-23T00:18:02+00:00",
+      "touched_round": 18,
+      "title": "internal/metrics"
+    },
+    "TASK-019": {
+      "id": "TASK-019",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T00:18:03+00:00",
+      "updated_at": "2026-08-23T00:18:33+00:00",
+      "touched_round": 18,
+      "category": "maintainability",
+      "priority_score": 1.1,
+      "severity": 0.4,
+      "title": "Expose Flusher/Hijacker/Push/Unwrap on metrics statusWriter so streaming and upgrade handlers keep working"
+    },
+    "CHG-018": {
+      "id": "CHG-018",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T00:18:23+00:00",
+      "updated_at": "2026-08-23T00:18:23+00:00",
+      "touched_round": 18,
+      "commit": "f98013a",
+      "title": "Expose streaming/upgrade interfaces on metrics statusWriter"
     }
   },
   "edges": [
@@ -1481,6 +1549,36 @@
       "to": "TASK-018",
       "type": "implements",
       "created_at": "2026-08-23T00:09:45+00:00"
+    },
+    {
+      "from": "EV-002",
+      "to": "HYP-002",
+      "type": "validates",
+      "created_at": "2026-08-23T00:18:02+00:00"
+    },
+    {
+      "from": "ISS-011",
+      "to": "COMP-003",
+      "type": "located_in",
+      "created_at": "2026-08-23T00:18:03+00:00"
+    },
+    {
+      "from": "TASK-019",
+      "to": "ISS-011",
+      "type": "addresses",
+      "created_at": "2026-08-23T00:18:03+00:00"
+    },
+    {
+      "from": "CHG-018",
+      "to": "ISS-011",
+      "type": "resolves",
+      "created_at": "2026-08-23T00:18:23+00:00"
+    },
+    {
+      "from": "CHG-018",
+      "to": "TASK-019",
+      "type": "implements",
+      "created_at": "2026-08-23T00:18:23+00:00"
     }
   ]
 }
