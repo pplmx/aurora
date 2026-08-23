@@ -61,6 +61,11 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 	voting := requireServedAsset(t, handler, "/voting.html",
 		`window.AURORA_API_KEY = "test-serve-key";`)
 	require.True(t, strings.HasPrefix(voting, "<!DOCTYPE html>"))
+	// The voting page must expose the full session lifecycle (create -> start ->
+	// vote -> end). Prior to v1.34 these controls were CLI/REST-only, so an
+	// operator could create but never start/end a session from the browser.
+	require.True(t, strings.Contains(voting, "Start Session"), "voting.html must expose a Start Session control")
+	require.True(t, strings.Contains(voting, "End Session"), "voting.html must expose an End Session control")
 
 	requireServedAsset(t, handler, "/lottery.html",
 		`window.AURORA_API_KEY = "test-serve-key";`)
@@ -88,7 +93,11 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 	requireServedAsset(t, handler, "/", `<script src="/js/app.js"></script>`)
 
 	// The pages reference these assets; they must resolve (not 404).
-	requireServedAsset(t, handler, "/js/app.js", "function votingApp()", "dashboardApp", "function tokenApp()", "function oracleApp()", "function blockchainApp()", "function nftApp()")
+	js := requireServedAsset(t, handler, "/js/app.js", "function votingApp()", "dashboardApp", "function tokenApp()", "function oracleApp()", "function blockchainApp()", "function nftApp()")
+	// votingApp must wire the start/end session endpoints (dynamic {id} paths
+	// are not fully captured by the endpoint auto-scanner, so assert directly).
+	require.True(t, strings.Contains(js, "'/api/v1/voting/session/'") && strings.Contains(js, "'/start'") && strings.Contains(js, "'/end'"),
+		"app.js votingApp must wire /api/v1/voting/session/{id}/start and /end")
 	requireServedAsset(t, handler, "/css/style.css", "--accent-voting")
 }
 

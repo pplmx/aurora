@@ -108,6 +108,19 @@
                 <p x-show="!loading && sessions.length === 0">No sessions yet</p>
             </section>
 
+            <section class="create-form">
+                <h2>Session Controls</h2>
+                <form @submit.prevent="startSession">
+                    <div class="form-group">
+                        <label>Session ID</label>
+                        <input type="text" x-model="controlSessionId" placeholder="Session ID" required>
+                    </div>
+                    <button type="submit" class="btn-voting">Start Session</button>
+                    <button type="button" class="btn-voting" @click="endSession">End Session</button>
+                </form>
+                <div x-show="controlResult" class="result" x-text="controlResult"></div>
+            </section>
+
             <section class="votes">
                 <h2>Cast Vote</h2>
                 <form @submit.prevent="castVote">
