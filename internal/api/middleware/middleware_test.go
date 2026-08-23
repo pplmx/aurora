@@ -61,23 +61,64 @@ func TestAPIKeyAuth_MissingKey(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
-func TestCORS_RegularRequest(t *testing.T) {
+func TestCORS_RegularRequestWithoutOrigin(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	wrapped := CORS(handler)
+	wrapped := CORS(nil)(handler)
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	rr := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rr, req)
 
+	// No Origin header (curl, SDKs, same-origin navigation) means CORS does
+	// not apply and — critically — no wildcard is ever emitted (the Web UI
+	// embeds the API key in its HTML, so "*" would leak it to any page).
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, "*", rr.Header().Get("Access-Control-Allow-Origin"))
+	assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"))
 	assert.Contains(t, rr.Header().Get("Access-Control-Allow-Methods"), "GET")
 	assert.Contains(t, rr.Header().Get("Access-Control-Allow-Methods"), "POST")
 	assert.Equal(t, "Content-Type, X-API-Key", rr.Header().Get("Access-Control-Allow-Headers"))
+}
+
+func TestCORS_DisallowedOrigin_GetsNoACAO(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Secure default: empty allow-list. A cross-origin browser request must
+	// not be told the response is readable (ACAO absent => read denied).
+	wrapped := CORS(nil)(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Origin", "https://evil.example")
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"),
+		"a disallowed origin must never receive Access-Control-Allow-Origin")
+	assert.Equal(t, "Origin", rr.Header().Get("Vary"))
+}
+
+func TestCORS_AllowedOrigin_Echoed(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	wrapped := CORS([]string{"https://operator.ui"})(handler)
+
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Origin", "https://operator.ui")
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "https://operator.ui", rr.Header().Get("Access-Control-Allow-Origin"))
 }
 
 func TestCORS_PreflightRequest(t *testing.T) {
@@ -85,7 +126,7 @@ func TestCORS_PreflightRequest(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	wrapped := CORS(handler)
+	wrapped := CORS(nil)(handler)
 
 	req := httptest.NewRequest(http.MethodOptions, "/test", nil)
 	rr := httptest.NewRecorder()

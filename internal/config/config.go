@@ -63,6 +63,11 @@ func Load() (*Config, error) {
 	viper.SetDefault("api.rateLimit.enabled", false)
 	viper.SetDefault("api.rateLimit.requests", 120)
 	viper.SetDefault("api.rateLimit.window", time.Minute)
+	// Cross-origin allow-list for API/Web UI responses. Defaults to empty:
+	// the gateway only needs same-origin access for its own Web UI, and the
+	// API key is embedded in served HTML — a wide/wildcard allow-list would
+	// let any page the operator visits read the key (v1.64, TASK-077).
+	viper.SetDefault("api.cors.allowedOrigins", []string{})
 	// Oracle scheduler poll cadence (v1.21). The scheduler's own per-source
 	// interval still gates when each feed is due; this is how often it checks.
 	viper.SetDefault("oracle.scheduler.checkInterval", time.Second)
@@ -109,6 +114,15 @@ func RateLimitWindow() time.Duration {
 // when each feed is due.
 func OracleSchedulerCheckInterval() time.Duration {
 	return viper.GetDuration("oracle.scheduler.checkInterval")
+}
+
+// AllowedCORSOrigins returns the origins allowed to read API/Web UI
+// responses cross-origin (default: empty — same-origin only). The Web UI is
+// served by the gateway itself, so it needs no CORS header; a wildcard or
+// broad allow-list would expose the API key that is embedded in served HTML
+// to any page the operator visits (v1.64, TASK-077).
+func AllowedCORSOrigins() []string {
+	return viper.GetStringSlice("api.cors.allowedOrigins")
 }
 
 func GenerateAPIKey() (string, error) {

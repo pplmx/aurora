@@ -34,7 +34,7 @@ func newRouter(s *Server) http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(apimw.Logger)
 	r.Use(apimw.Recovery)
-	r.Use(apimw.CORS)
+	r.Use(apimw.CORS(config.AllowedCORSOrigins()))
 	r.Use(apimw.SecurityHeaders)
 
 	r.Get("/healthz", LivenessHandler)
