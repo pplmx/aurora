@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 56,
+  "round": 57,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:39:42+00:00",
+  "updated_at": "2026-08-23T05:44:54+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -2708,6 +2708,63 @@
       "touched_round": 55,
       "commit": "ebcd817",
       "title": "NFT in-memory repo WithTx/UpdateNFT/DeleteNFT tests"
+    },
+    "ISS-051": {
+      "id": "ISS-051",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:42:33+00:00",
+      "updated_at": "2026-08-23T05:44:54+00:00",
+      "touched_round": 56,
+      "title": "Three meaningful functions remain at 0% coverage: TokenRepository.WithTx (transaction wrapper), VotingRepository.UnmarkVoted (double-vote reset primitive), and token.NewTokenFromRecord (constructor)",
+      "severity": "low"
+    },
+    "TASK-059": {
+      "id": "TASK-059",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:42:33+00:00",
+      "updated_at": "2026-08-23T05:44:54+00:00",
+      "touched_round": 56,
+      "category": "test-quality",
+      "severity": 0.45,
+      "priority_score": 2.0,
+      "title": "Add tests for TokenRepository.WithTx, VotingRepository.UnmarkVoted, and token.NewTokenFromRecord"
+    },
+    "COMP-010": {
+      "id": "COMP-010",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:42:51+00:00",
+      "updated_at": "2026-08-23T05:42:51+00:00",
+      "touched_round": 56,
+      "title": "SQLite persistence layer"
+    },
+    "EV-020": {
+      "id": "EV-020",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:44:49+00:00",
+      "updated_at": "2026-08-23T05:44:49+00:00",
+      "touched_round": 56,
+      "source": "go test ./... (33 pkgs); 0% function scan for token/sqlite now empty",
+      "title": "Last meaningful 0%-coverage functions covered (WithTx, UnmarkVoted, NewTokenFromRecord)",
+      "confidence": 1.0
+    },
+    "CHG-058": {
+      "id": "CHG-058",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:44:49+00:00",
+      "updated_at": "2026-08-23T05:44:49+00:00",
+      "touched_round": 56,
+      "commit": "dbece94",
+      "title": "Tests for TokenRepository.WithTx, VotingRepository.UnmarkVoted, NewTokenFromRecord"
     }
   },
   "edges": [
@@ -4162,6 +4219,30 @@
       "to": "ISS-050",
       "type": "resolves",
       "created_at": "2026-08-23T05:39:42+00:00"
+    },
+    {
+      "from": "TASK-059",
+      "to": "ISS-051",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:42:36+00:00"
+    },
+    {
+      "from": "ISS-051",
+      "to": "COMP-010",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:42:54+00:00"
+    },
+    {
+      "from": "CHG-058",
+      "to": "TASK-059",
+      "type": "implements",
+      "created_at": "2026-08-23T05:44:54+00:00"
+    },
+    {
+      "from": "CHG-058",
+      "to": "ISS-051",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:44:54+00:00"
     }
   ]
 }
