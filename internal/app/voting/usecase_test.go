@@ -1290,3 +1290,48 @@ func TestCastVoteUseCase_RealEd25519_RejectForgedKey(t *testing.T) {
 	})
 	require.ErrorIs(t, err, voting.ErrInvalidSignature)
 }
+
+// mockBlockWriter records accepted-vote blocks for on-chain vote tests.
+type mockBlockWriter struct {
+	height int64
+	calls  int
+}
+
+func (m *mockBlockWriter) AddBlock(data string) (int64, error) {
+	m.calls++
+	return m.height, nil
+}
+
+// TestCastVoteUseCase_RecordsOnChain proves that when a chain is wired via
+// SetChain, an accepted ballot is recorded on-chain and its BlockHeight is
+// persisted on the vote row (documented "blockchain-based vote recording").
+func TestCastVoteUseCase_RecordsOnChain(t *testing.T) {
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice"},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+		},
+	}
+	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
+	chain := &mockBlockWriter{height: 42}
+	uc := NewCastVoteUseCaseWithoutTx(repo, service)
+	uc.SetChain(chain)
+
+	resp, err := uc.Execute(CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		SessionID:      "session1",
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(42), resp.BlockHeight)
+	require.Equal(t, 1, chain.calls)
+	require.Len(t, repo.votes, 1)
+	require.Equal(t, int64(42), repo.votes[0].BlockHeight)
+}
