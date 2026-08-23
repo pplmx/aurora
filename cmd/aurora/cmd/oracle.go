@@ -12,12 +12,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	repo oracleinfra.InMemoryOracleRepository
-)
-
-func init() {
-	repo = *oracleinfra.NewInMemoryOracleRepository()
+// newOracleRepo opens a persistent SQLite-backed oracle repository for one
+// CLI command and returns a cleanup that closes it. The CLI previously used a
+// package-level in-memory repository that was reset on every process exit, so
+// `aurora oracle source add` never survived into a later `aurora oracle fetch`
+// — the documented multi-command workflow could not work. Every other module
+// (lottery/token/nft/voting) persists via blockchain.DBPath(); oracle now does
+// too.
+func newOracleRepo() (*oracleinfra.OracleRepository, func(), error) {
+	repo, err := oracleinfra.NewOracleRepository(blockchain.DBPath())
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open oracle repository: %w", err)
+	}
+	return repo, func() { _ = repo.Close() }, nil
 }
 
 var oracleCmd = &cobra.Command{
@@ -35,12 +42,18 @@ var sourceAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: i18n.GetText("oracle.source.add"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
 		name, _ := cmd.Flags().GetString("name")
 		url, _ := cmd.Flags().GetString("url")
 		dataType, _ := cmd.Flags().GetString("type")
 		interval, _ := cmd.Flags().GetInt("interval")
 
-		uc := oracleapp.NewAddSourceUseCase(&repo)
+		uc := oracleapp.NewAddSourceUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.AddSourceRequest{
 			Name:     name,
 			URL:      url,
@@ -62,7 +75,13 @@ var sourceListCmd = &cobra.Command{
 	Use:   "list",
 	Short: i18n.GetText("oracle.source.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		uc := oracleapp.NewListSourcesUseCase(&repo)
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
+		uc := oracleapp.NewListSourcesUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.ListSourcesRequest{})
 		if err != nil {
 			return fmt.Errorf("failed to list data sources: %w", err)
@@ -89,9 +108,15 @@ var sourceDeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: i18n.GetText("oracle.source.delete"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
 		id, _ := cmd.Flags().GetString("id")
 
-		uc := oracleapp.NewDeleteSourceUseCase(&repo)
+		uc := oracleapp.NewDeleteSourceUseCase(repo)
 		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to delete data source: %w", err)
 		}
@@ -104,9 +129,15 @@ var sourceEnableCmd = &cobra.Command{
 	Use:   "enable",
 	Short: i18n.GetText("oracle.source.enable"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
 		id, _ := cmd.Flags().GetString("id")
 
-		uc := oracleapp.NewEnableSourceUseCase(&repo)
+		uc := oracleapp.NewEnableSourceUseCase(repo)
 		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to enable data source: %w", err)
 		}
@@ -119,9 +150,15 @@ var sourceDisableCmd = &cobra.Command{
 	Use:   "disable",
 	Short: i18n.GetText("oracle.source.disable"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
 		id, _ := cmd.Flags().GetString("id")
 
-		uc := oracleapp.NewDisableSourceUseCase(&repo)
+		uc := oracleapp.NewDisableSourceUseCase(repo)
 		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to disable data source: %w", err)
 		}
@@ -134,9 +171,15 @@ var fetchCmd = &cobra.Command{
 	Use:   "fetch",
 	Short: i18n.GetText("oracle.fetch"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
 		sourceID, _ := cmd.Flags().GetString("source")
 
-		uc := oracleapp.NewFetchDataUseCase(&repo)
+		uc := oracleapp.NewFetchDataUseCase(repo)
 		// Record CLI-fetched data on-chain, matching the API/scheduler paths
 		// and the package intent; otherwise BlockHeight always printed 0.
 		uc.SetChain(blockchain.GetBlockChain())
@@ -157,10 +200,16 @@ var dataCmd = &cobra.Command{
 	Use:   "data",
 	Short: i18n.GetText("oracle.data.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
 		sourceID, _ := cmd.Flags().GetString("source")
 		limit := clampQueryLimit(cmd)
 
-		uc := oracleapp.NewGetDataUseCase(&repo)
+		uc := oracleapp.NewGetDataUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.GetDataRequest{SourceID: sourceID, Limit: limit})
 		if err != nil {
 			return fmt.Errorf("failed to get oracle data: %w", err)
@@ -181,9 +230,15 @@ var latestCmd = &cobra.Command{
 	Use:   "latest",
 	Short: i18n.GetText("oracle.latest"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
 		sourceID, _ := cmd.Flags().GetString("source")
 
-		uc := oracleapp.NewGetLatestDataUseCase(&repo)
+		uc := oracleapp.NewGetLatestDataUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.GetLatestDataRequest{SourceID: sourceID})
 		if err != nil {
 			return fmt.Errorf("failed to get latest data: %w", err)
@@ -223,6 +278,12 @@ var templateAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: i18n.GetText("oracle.template.add"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
 		templateName, _ := cmd.Flags().GetString("template")
 
 		template, ok := getTemplate(templateName)
@@ -230,7 +291,7 @@ var templateAddCmd = &cobra.Command{
 			return fmt.Errorf("template not found: %s", templateName)
 		}
 
-		uc := oracleapp.NewAddSourceUseCase(&repo)
+		uc := oracleapp.NewAddSourceUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.AddSourceRequest{
 			Name:     template.Name,
 			URL:      template.URL,
@@ -253,8 +314,13 @@ var oracleTuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: i18n.GetText("oracle.tui"),
 	Run: func(cmd *cobra.Command, args []string) {
-		inMemoryRepo := oracleinfra.NewInMemoryOracleRepository()
-		if err := oracleui.RunOracleTUI(inMemoryRepo); err != nil {
+		repo, cleanup, err := newOracleRepo()
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		defer cleanup()
+		if err := oracleui.RunOracleTUI(repo); err != nil {
 			fmt.Println("Error:", err)
 		}
 	},
