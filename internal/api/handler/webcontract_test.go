@@ -31,6 +31,7 @@ func webContractGet(t *testing.T) map[string]bool {
 		filepath.Join(root, "token.html"),
 		filepath.Join(root, "oracle.html"),
 		filepath.Join(root, "blockchain.html"),
+		filepath.Join(root, "nft.html"),
 		filepath.Join(root, "js", "app.js"),
 	}
 

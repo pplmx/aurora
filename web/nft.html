@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT - Aurora</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.5"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container" x-data="nftApp()">
+        <header>
+            <h1>Aurora <span class="version">NFT</span></h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/lottery.html">Lottery</a>
+                <a href="/voting.html">Voting</a>
+                <a href="/token.html">Token</a>
+                <a href="/oracle.html">Oracle</a>
+                <a href="/blockchain.html">Blockchain</a>
+                <a href="/nft.html">NFT</a>
+            </nav>
+        </header>
+        <main>
+            <section class="create-form">
+                <h2>Mint NFT</h2>
+                <form @submit.prevent="mint">
+                    <div class="form-group"><label>Name</label><input type="text" x-model="name" required></div>
+                    <div class="form-group"><label>Description</label><input type="text" x-model="description"></div>
+                    <div class="form-group"><label>Image URL</label><input type="text" x-model="imageUrl" placeholder="optional"></div>
+                    <div class="form-group"><label>Token URI</label><input type="text" x-model="tokenUri" placeholder="optional"></div>
+                    <div class="form-group"><label>Creator (public key)</label><input type="text" x-model="creator" required></div>
+                    <button type="submit" class="btn-nft">Mint NFT</button>
+                </form>
+                <pre x-show="mintResult" class="result" x-text="mintResult"></pre>
+            </section>
+            <section class="history">
+                <h2>List by Owner</h2>
+                <form @submit.prevent="list">
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
+                    <button type="submit" class="btn-nft">List NFTs</button>
+                </form>
+                <pre x-show="listResult" class="result" x-text="listResult"></pre>
+            </section>
+            <section class="history">
+                <h2>Get NFT</h2>
+                <form @submit.prevent="get">
+                    <div class="form-group"><label>NFT ID</label><input type="text" x-model="id" required></div>
+                    <button type="submit" class="btn-nft">Get NFT</button>
+                </form>
+                <pre x-show="getResult" class="result" x-text="getResult"></pre>
+            </section>
+            <section class="history">
+                <h2>Transfer</h2>
+                <form @submit.prevent="transfer">
+                    <div class="form-group"><label>NFT ID</label><input type="text" x-model="id" required></div>
+                    <div class="form-group"><label>From (public key)</label><input type="text" x-model="from" required></div>
+                    <div class="form-group"><label>To (public key)</label><input type="text" x-model="to" required></div>
+                    <div class="form-group"><label>Private Key</label><input type="password" x-model="privateKey" required></div>
+                    <button type="submit" class="btn-nft">Transfer</button>
+                </form>
+                <pre x-show="transferResult" class="result" x-text="transferResult"></pre>
+            </section>
+            <section class="history">
+                <h2>Burn</h2>
+                <form @submit.prevent="burn">
+                    <div class="form-group"><label>NFT ID</label><input type="text" x-model="id" required></div>
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
+                    <div class="form-group"><label>Private Key</label><input type="password" x-model="privateKey" required></div>
+                    <button type="submit" class="btn-nft">Burn</button>
+                </form>
+                <pre x-show="burnResult" class="result" x-text="burnResult"></pre>
+            </section>
+        </main>
+    </div>
+    <script src="/js/app.js"></script>
+</body>
+</html>

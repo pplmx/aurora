@@ -137,6 +137,72 @@ function blockchainApp() {
     };
 }
 
+// nftApp drives the /nft.html page (v1.27): mint, list-by-owner, get,
+// transfer and burn via the protected /api/v1/nft REST endpoints.
+function nftApp() {
+    return {
+        name: '',
+        description: '',
+        imageUrl: '',
+        tokenUri: '',
+        creator: '',
+        owner: '',
+        from: '',
+        to: '',
+        privateKey: '',
+        id: '',
+        mintResult: '',
+        listResult: '',
+        getResult: '',
+        transferResult: '',
+        burnResult: '',
+        async mint() {
+            this.mintResult = await this.post('/api/v1/nft/mint', {
+                name: this.name,
+                description: this.description || undefined,
+                image_url: this.imageUrl || undefined,
+                token_uri: this.tokenUri || undefined,
+                creator: this.creator
+            });
+        },
+        async list() {
+            const res = await fetch('/api/v1/nft/list?owner=' + encodeURIComponent(this.owner), { headers: auroraHeaders() });
+            this.listResult = await this.text(res);
+        },
+        async get() {
+            const res = await fetch('/api/v1/nft/' + encodeURIComponent(this.id), { headers: auroraHeaders() });
+            this.getResult = await this.text(res);
+        },
+        async transfer() {
+            this.transferResult = await this.post('/api/v1/nft/transfer', {
+                nft_id: this.id,
+                from: this.from,
+                to: this.to,
+                private_key: this.privateKey
+            });
+        },
+        async burn() {
+            this.burnResult = await this.post('/api/v1/nft/burn', {
+                nft_id: this.id,
+                owner: this.owner,
+                private_key: this.privateKey
+            });
+        },
+        async post(url, body) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(body)
+            });
+            return this.text(res);
+        },
+        async text(res) {
+            const data = await res.json();
+            return JSON.stringify(data, null, 2);
+        }
+    };
+}
+
 function votingApp() {
     return {
         voterName: '',
