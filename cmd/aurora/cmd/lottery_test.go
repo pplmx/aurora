@@ -444,6 +444,41 @@ func TestLotteryReset_OnFreshDB(t *testing.T) {
 	})
 }
 
+// TestLotteryReset_RestartsBlockHeightAfterCreate locks the v1.58 fix: reset
+// must re-seed the in-memory chain back to genesis, so a create after a reset
+// starts at block height #1. Before the fix the chain singleton kept the
+// pre-reset blocks in memory, so a post-reset draw got a stale block height
+// (e.g. #3 after two prior draws) and a PrevHash referencing a deleted block
+// (TASK-071, ISS-063).
+func TestLotteryReset_RestartsBlockHeightAfterCreate(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		// Two draws before the reset => chain would otherwise be at height 2.
+		for i, seed := range []string{"pre-one", "pre-two"} {
+			_, err := runCmd(t, "lottery", "create",
+				"--participants", "A,B", "--seed", seed, "--count", "1")
+			require.NoError(t, err, "create %d", i)
+		}
+
+		out, err := runCmd(t, "lottery", "reset", "--yes")
+		require.NoError(t, err)
+		require.Contains(t, out, "reset complete")
+
+		// Create a fresh draw after the reset. Its block height must restart
+		// at 1 (a valid genesis-anchored chain), not continue from the stale
+		// pre-reset count.
+		out, err = runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "post-reset", "--count", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Block height: #1",
+			"post-reset draw must restart at block height #1")
+
+		// And the persisted history reflects exactly that one fresh draw.
+		out, err = runCmd(t, "lottery", "history")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Total lotteries: 1")
+	})
+}
+
 func TestLotteryDBInfo(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		out, err := runCmd(t, "lottery", "db-info")

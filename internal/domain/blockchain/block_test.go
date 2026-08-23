@@ -481,6 +481,41 @@ func TestBlockChain_Len(t *testing.T) {
 	})
 }
 
+// TestBlockChain_ResetBlocks_ReseedsToGenesis locks the v1.58 fix: after
+// appends, ResetBlocks() must collapse the in-memory chain back to a single
+// genesis block so the next AddBlock restarts at height 1 (and links to
+// genesis), not the stale pre-reset height. This is what `lottery reset`
+// relies on after clearing the persisted tables (TASK-071, ISS-063).
+func TestBlockChain_ResetBlocks_ReseedsToGenesis(t *testing.T) {
+	resetChainForTest(t)
+	c := NewBlockChain()
+	for i := 0; i < 4; i++ {
+		if _, err := c.AddBlock("data"); err != nil {
+			t.Fatalf("AddBlock(%d) failed: %v", i, err)
+		}
+	}
+	if got := c.Len(); got != 5 {
+		t.Fatalf("before reset Len() = %d, want 5 (genesis + 4)", got)
+	}
+
+	c.ResetBlocks()
+
+	if got := c.Len(); got != 1 {
+		t.Fatalf("after reset Len() = %d, want 1 (genesis only)", got)
+	}
+	// The next append restarts at height 1 and links to genesis.
+	h, err := c.AddBlock("fresh")
+	if err != nil {
+		t.Fatalf("AddBlock after reset failed: %v", err)
+	}
+	if h != 1 {
+		t.Fatalf("post-reset AddBlock height = %d, want 1", h)
+	}
+	if got := c.Blocks[1].PrevHash; !bytes.Equal(got, c.Blocks[0].Hash) {
+		t.Errorf("post-reset block PrevHash does not link to genesis")
+	}
+}
+
 // TestBlockChain_Len_ConcurrentWithAppend guards the Round 13
 // race fix: Len() must hold c.mu for its access to c.Blocks, so
 // running many concurrent Len() calls while another goroutine
