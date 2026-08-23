@@ -407,8 +407,21 @@ var statsCmd = &cobra.Command{
 	Use:   "stats",
 	Short: i18n.GetText("lottery.stats"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		chain := blockchain.InitBlockChain()
-		records := chain.GetLotteryRecords()
+		// Read from the persistent lottery_records table (the same source as
+		// history/verify/export/import), NOT the in-memory chain. The chain
+		// only reflects draws added as blocks; imported draws write
+		// lottery_records and never reach the chain, so counting the chain
+		// made stats disagree with history (TASK-070, ISS-062).
+		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		if err != nil {
+			return fmt.Errorf("failed to open lottery repository: %w", err)
+		}
+		defer func() { _ = repo.Close() }()
+
+		records, err := repo.GetAll()
+		if err != nil {
+			return fmt.Errorf("failed to read history: %w", err)
+		}
 
 		fmt.Println("\n📊 Lottery Statistics")
 		fmt.Println("────────────────────────────")
@@ -416,7 +429,16 @@ var statsCmd = &cobra.Command{
 		fmt.Printf("  Database: %s\n", blockchain.DBPath())
 
 		if len(records) > 0 {
-			fmt.Printf("  Latest block: #%d\n", len(chain.Blocks)-1)
+			// Report the highest recorded block height across persisted draws.
+			var latest int64 = -1
+			for _, r := range records {
+				if r.BlockHeight > latest {
+					latest = r.BlockHeight
+				}
+			}
+			if latest >= 0 {
+				fmt.Printf("  Latest block: #%d\n", latest)
+			}
 		}
 
 		return nil

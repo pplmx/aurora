@@ -365,6 +365,43 @@ func TestLotteryStats(t *testing.T) {
 	})
 }
 
+// TestLotteryStats_AgreesWithHistoryForImportedRecord locks the v1.57 fix:
+// lottery stats must count the persistent lottery_records store (the same
+// source as history/verify/export/import), not the in-memory chain. Imported
+// draws only write lottery_records and never reach the chain, so before the
+// fix stats reported 0 for an imported record that history correctly showed.
+func TestLotteryStats_AgreesWithHistoryForImportedRecord(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		importPath := filepath.Join(t.TempDir(), "imp.json")
+		rec := domainlottery.LotteryRecord{
+			ID:              "stats-import-id",
+			Seed:            "stats-import-seed-long",
+			Participants:    []string{"A", "B"},
+			Winners:         []string{"A"},
+			WinnerAddresses: []string{"addr"},
+			BlockHeight:     5,
+			VRFOutput:       strings.Repeat("ef", 32),
+			VRFProof:        strings.Repeat("12", 32),
+		}
+		payload, _ := json.Marshal([]domainlottery.LotteryRecord{rec})
+		require.NoError(t, os.WriteFile(importPath, payload, 0644))
+
+		out, err := runCmd(t, "lottery", "import", importPath)
+		require.NoError(t, err)
+		require.Contains(t, out, "Imported 1 lottery records")
+
+		hist, err := runCmd(t, "lottery", "history")
+		require.NoError(t, err)
+		require.Contains(t, hist, "Total lotteries: 1")
+
+		stats, err := runCmd(t, "lottery", "stats")
+		require.NoError(t, err)
+		require.Contains(t, stats, "Total lotteries: 1",
+			"stats must agree with history (persistent lottery_records), not the in-memory chain")
+		require.Contains(t, stats, "Latest block: #5")
+	})
+}
+
 func TestLotteryReset_NeedsConfirmation(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		_, err := runCmd(t, "lottery", "create",
