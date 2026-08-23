@@ -215,6 +215,43 @@ func makeTestDB(t *testing.T, path string) {
 	require.NoError(t, db.Close())
 }
 
+// TestBackupService_Verify_DetectsDBContentCorruption proves the v1.55
+// per-database content checksum: a corrupted .db whose data changed (but which
+// still opens and has a table) must be rejected by Verify. Before v1.55 Verify
+// hashed only the metadata JSON and checked each DB merely for "opens with
+// >=1 table", so a truncated or bit-rotten database passed as valid and could
+// be restored over a good one (TASK-068, ISS-060).
+func TestBackupService_Verify_DetectsDBContentCorruption(t *testing.T) {
+	dir := t.TempDir()
+	backupDir := filepath.Join(dir, "backup")
+	srcDir := filepath.Join(dir, "src")
+	srcDB := filepath.Join(srcDir, "blockchain.db")
+	makeTestDB(t, srcDB)
+
+	// Create the backup via Create() so the metadata records the per-database
+	// content checksum (the field makeValidBackup/writeMeta do not set).
+	svc := NewBackupService(map[string]string{"blockchain": srcDB})
+	_, err := svc.Create(context.Background(), backupDir)
+	require.NoError(t, err)
+
+	// A valid backup verifies cleanly.
+	require.NoError(t, svc.Verify(context.Background(), backupDir))
+
+	// Corrupt the DB file content in place, keeping it byte-valid enough to
+	// still open with a table — the exact failure mode the metadata-only
+	// checksum previously missed.
+	backupDB := filepath.Join(backupDir, "blockchain.db")
+	b, err := os.ReadFile(backupDB)
+	require.NoError(t, err)
+	require.Greater(t, len(b), 0)
+	b[len(b)-1] ^= 0xFF // flip the last byte
+	require.NoError(t, os.WriteFile(backupDB, b, 0640))
+
+	err = svc.Verify(context.Background(), backupDir)
+	require.Error(t, err, "Verify must reject a database whose content changed")
+	require.Contains(t, err.Error(), "checksum mismatch")
+}
+
 // makeValidBackup writes a real SQLite DB and a checksum-consistent
 // metadata.json into dir so the backup passes Verify. Restore now verifies the
 // backup before touching live databases (v1.20), so restore tests must use

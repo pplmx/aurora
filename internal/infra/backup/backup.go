@@ -31,6 +31,29 @@ type BackupMetadata struct {
 	Checksum      string   `json:"checksum"`
 	Databases     []string `json:"databases"`
 	SchemaVersion uint     `json:"schema_version"`
+	// DatabaseChecksums maps each backed-up database name to the SHA-256 of
+	// its file contents at backup time (v1.55). Previously Verify hashed only
+	// the metadata JSON, so a truncated or bit-corrupted .db that still opened
+	// with at least one table passed as valid and could be restored over a
+	// good database. Recording the content hash lets Verify/Restore guarantee
+	// the actual data is intact, not just the metadata. The field is
+	// `omitempty` so backups created by older versions (which never wrote it)
+	// remain verifiable via the existing table-presence check.
+	DatabaseChecksums map[string]string `json:"database_checksums,omitempty"`
+}
+
+// fileSHA256 returns the hex SHA-256 of a file's contents.
+func fileSHA256(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = f.Close() }()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
 func NewBackupService(dbPaths map[string]string) *BackupService {
@@ -83,13 +106,19 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 	}
 
 	metadata := BackupMetadata{
-		Version:       "1.2",
-		Timestamp:     time.Now().UTC().Format(time.RFC3339),
-		Databases:     make([]string, 0, len(s.dbPaths)),
-		SchemaVersion: schemaVersion,
+		Version:           "1.2",
+		Timestamp:         time.Now().UTC().Format(time.RFC3339),
+		Databases:         make([]string, 0, len(s.dbPaths)),
+		SchemaVersion:     schemaVersion,
+		DatabaseChecksums: make(map[string]string, len(s.dbPaths)),
 	}
 	for name := range s.dbPaths {
 		metadata.Databases = append(metadata.Databases, name)
+		sum, err := fileSHA256(filepath.Join(output, name+".db"))
+		if err != nil {
+			return nil, fmt.Errorf("checksum backup %s: %w", name, err)
+		}
+		metadata.DatabaseChecksums[name] = sum
 	}
 
 	metaPath := filepath.Join(output, "metadata.json")
@@ -192,19 +221,35 @@ func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 			return fmt.Errorf("missing database file: %s", name)
 		}
 
-		db, err := sql.Open("sqlite3", dbPath)
-		if err != nil {
-			return fmt.Errorf("cannot open %s: %w", name, err)
-		}
+		// Content integrity (v1.55): when the backup recorded a per-database
+		// checksum, verify the file's actual bytes match. This catches a
+		// truncated or bit-corrupted .db that still opens with >=1 table — the
+		// gap the metadata-only checksum left open. Backups without the field
+		// (created by older versions) fall through to the table-presence check
+		// below so existing archives remain verifiable.
+		if want, ok := metadata.DatabaseChecksums[name]; ok && want != "" {
+			got, err := fileSHA256(dbPath)
+			if err != nil {
+				return fmt.Errorf("checksum %s: %w", name, err)
+			}
+			if got != want {
+				return fmt.Errorf("database %s checksum mismatch: backup may be corrupted", name)
+			}
+		} else {
+			db, err := sql.Open("sqlite3", dbPath)
+			if err != nil {
+				return fmt.Errorf("cannot open %s: %w", name, err)
+			}
 
-		var count int
-		err = db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").Scan(&count)
-		if err != nil || count == 0 {
-			_ = db.Close()
-			return fmt.Errorf("invalid database: %s", name)
-		}
-		if err := db.Close(); err != nil {
-			return fmt.Errorf("close %s: %w", name, err)
+			var count int
+			err = db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").Scan(&count)
+			if err != nil || count == 0 {
+				_ = db.Close()
+				return fmt.Errorf("invalid database: %s", name)
+			}
+			if err := db.Close(); err != nil {
+				return fmt.Errorf("close %s: %w", name, err)
+			}
 		}
 	}
 
