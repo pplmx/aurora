@@ -7,6 +7,39 @@ import (
 	"github.com/pplmx/aurora/internal/domain/token"
 )
 
+// TokenInfoResponse carries a token's metadata (the same shape CreateToken
+// returns) for the read-only info query.
+type TokenInfoResponse = CreateTokenResponse
+
+// GetTokenInfoUseCase returns a token's metadata from its ID, closing the
+// CLI-only gap (the CLI exposed `token info` but the app/REST layer had no
+// read path for a token's name/symbol/supply/decimals/owner).
+type GetTokenInfoUseCase struct {
+	service token.Service
+}
+
+func NewGetTokenInfoUseCase(service token.Service) *GetTokenInfoUseCase {
+	return &GetTokenInfoUseCase{service: service}
+}
+
+func (uc *GetTokenInfoUseCase) Execute(tokenID string) (*TokenInfoResponse, error) {
+	t, err := uc.service.GetTokenInfo(token.TokenID(tokenID))
+	if err != nil {
+		return nil, err
+	}
+	if t == nil {
+		return nil, token.ErrTokenNotFound
+	}
+	return &TokenInfoResponse{
+		ID:          string(t.ID()),
+		Name:        t.Name(),
+		Symbol:      t.Symbol(),
+		TotalSupply: t.TotalSupply().String(),
+		Decimals:    t.Decimals(),
+		Owner:       base64.StdEncoding.EncodeToString(t.Owner()),
+	}, nil
+}
+
 type GetBalanceUseCase struct {
 	service token.Service
 }

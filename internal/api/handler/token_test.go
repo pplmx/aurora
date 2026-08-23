@@ -57,6 +57,24 @@ func TestTokenHandler_Mint_InvalidJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
+func TestTokenHandler_Info_MissingQueryParam(t *testing.T) {
+	h := NewTokenHandler(fakeTokenServiceFull{})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/info", nil)
+	rr := httptest.NewRecorder()
+	h.Info(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+func TestTokenHandler_Info_NotFound(t *testing.T) {
+	// fakeTokenServiceFull.GetTokenInfo returns (nil,nil), so the use case
+	// maps it to ErrTokenNotFound and the handler responds 404.
+	h := NewTokenHandler(fakeTokenServiceFull{})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/info?token_id=missing", nil)
+	rr := httptest.NewRecorder()
+	h.Info(rr, req)
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
 func TestTokenHandler_Mint_EmptyRequest(t *testing.T) {
 	handler := NewTokenHandler(nil)
 
