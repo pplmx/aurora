@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 58,
+  "round": 59,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T05:47:23+00:00",
+  "updated_at": "2026-08-23T05:51:46+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 54,
+      "touched_round": 58,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -2812,6 +2812,53 @@
       "touched_round": 57,
       "commit": Infinity,
       "title": "SecurityHeaders middleware (nosniff/X-Frame-Options/Referrer-Policy)"
+    },
+    "ISS-053": {
+      "id": "ISS-053",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T05:49:22+00:00",
+      "updated_at": "2026-08-23T05:51:46+00:00",
+      "touched_round": 58,
+      "title": "Oracle built-in source templates (btc-price, eth-price) are CLI-only; the REST API and web have no way to browse or apply them",
+      "severity": "low"
+    },
+    "TASK-061": {
+      "id": "TASK-061",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T05:49:22+00:00",
+      "updated_at": "2026-08-23T05:51:46+00:00",
+      "touched_round": 58,
+      "category": "core-feature",
+      "severity": 0.3,
+      "priority_score": 1.5,
+      "title": "Move the template catalog into the app layer, add GET /api/v1/oracle/templates, and a web template prefill in the Add Source form"
+    },
+    "EV-022": {
+      "id": "EV-022",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:51:40+00:00",
+      "updated_at": "2026-08-23T05:51:40+00:00",
+      "touched_round": 58,
+      "source": "go test ./... (33 pkgs) + TestOracleHandler_Templates + CLI template tests + web contract route resolution",
+      "title": "Oracle source templates shared across CLI/REST/web and verified",
+      "confidence": 1.0
+    },
+    "CHG-060": {
+      "id": "CHG-060",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T05:51:41+00:00",
+      "updated_at": "2026-08-23T05:51:41+00:00",
+      "touched_round": 58,
+      "commit": "734aec4",
+      "title": "Oracle source templates over REST + web prefill (shared app-layer catalog)"
     }
   },
   "edges": [
@@ -4314,6 +4361,30 @@
       "to": "ISS-052",
       "type": "resolves",
       "created_at": "2026-08-23T05:47:22+00:00"
+    },
+    {
+      "from": "TASK-061",
+      "to": "ISS-053",
+      "type": "addresses",
+      "created_at": "2026-08-23T05:49:26+00:00"
+    },
+    {
+      "from": "ISS-053",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-23T05:49:26+00:00"
+    },
+    {
+      "from": "CHG-060",
+      "to": "TASK-061",
+      "type": "implements",
+      "created_at": "2026-08-23T05:51:46+00:00"
+    },
+    {
+      "from": "CHG-060",
+      "to": "ISS-053",
+      "type": "resolves",
+      "created_at": "2026-08-23T05:51:46+00:00"
     }
   ]
 }
