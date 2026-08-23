@@ -31,7 +31,7 @@ func TestMetrics_RecordsRecoveredPanicAs500(t *testing.T) {
 	r.Use(middleware.RealIP)
 	r.Use(apimw.Logger)
 	r.Use(apimw.Recovery)
-	r.Use(apimw.CORS)
+	r.Use(apimw.CORS(nil))
 	r.Use(apimw.SecurityHeaders)
 
 	r.Get("/boom", func(w http.ResponseWriter, r *http.Request) {
