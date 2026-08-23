@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.23 Voting Results API complete; exploring next milestone
+**Current focus:** v1.24 Voting Results Web View complete; exploring next milestone
 
 ## Current Position
 
 Phase: v1.5 Complete (migrate CLI + coverage bar)
 Plan: [v1.6 ROADMAP](milestones/v1.6-ROADMAP.md) — Interactive Surface Parity
-Status: v1.5–v1.23 complete (Voting Results API: GET /api/v1/voting/results/{id})
+Status: v1.5–v1.24 complete (Voting Results Web View on the Voting page)
 Last activity: 2026-08-23 — v1.8–v1.13 closed; deep-dive rounds fixed a
   blockchain concurrency bug and hardened the metrics middleware
   (Flusher/Hijacker/Push/Unwrap); opened v1.14 Observability Enrichment and
