@@ -7,14 +7,14 @@ type CreateLotteryRequest struct {
 }
 
 type LotteryResponse struct {
-	ID              string
-	BlockHeight     int64
-	Seed            string
-	Participants    []string
-	Winners         []string
-	WinnerAddresses []string
-	VRFProof        string
-	VRFOutput       string
-	Timestamp       int64
-	Verified        bool
+	ID              string   `json:"id"`
+	BlockHeight     int64    `json:"block_height"`
+	Seed            string   `json:"seed"`
+	Participants    []string `json:"participants"`
+	Winners         []string `json:"winners"`
+	WinnerAddresses []string `json:"winner_addresses"`
+	VRFProof        string   `json:"vrf_proof"`
+	VRFOutput       string   `json:"vrf_output"`
+	Timestamp       int64    `json:"timestamp"`
+	Verified        bool     `json:"verified"`
 }
