@@ -289,6 +289,70 @@ func TestLotteryImport_PartialFailure(t *testing.T) {
 	})
 }
 
+// TestLotteryImport_RefusesToOverwriteExistingDraw locks the v1.56 audit-trail
+// guard: importing a record whose ID already exists must NOT clobber the
+// stored draw. The record ID is deterministic (sha256 of seed + VRF output)
+// and Save uses INSERT OR REPLACE, so without an existence check a re-import
+// or a colliding import would silently replace the stored Verified flag and
+// history (TASK-069, ISS-061). We verify by importing the same export into
+// the SAME database and asserting neither the record count nor the stored
+// draw changes.
+func TestLotteryImport_RefusesToOverwriteExistingDraw(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		_, err := runCmd(t, "lottery", "create",
+			"--participants", "Alice,Bob", "--seed", "overwrite-seed", "--count", "1")
+		require.NoError(t, err)
+
+		exportPath := filepath.Join(t.TempDir(), "export.json")
+		out, err := runCmd(t, "lottery", "export", exportPath)
+		require.NoError(t, err)
+		assert.Contains(t, out, "Exported 1 lottery records")
+
+		// Snapshot the seed of the stored draw before re-import.
+		historyBefore, err := runCmd(t, "lottery", "history")
+		require.NoError(t, err)
+		assert.Contains(t, historyBefore, "overwrite-seed")
+
+		// Re-import the same export into the SAME database. The draw already
+		// exists, so it must be refused rather than re-saved. Because the only
+		// record collides, the import reports a partial failure.
+		out, err = runCmd(t, "lottery", "import", exportPath)
+		require.Error(t, err, "import of an existing draw should be refused")
+		assert.Contains(t, out, "Imported 0 of 1")
+
+		// The stored audit trail is unchanged: still one record, same seed.
+		historyAfter, err := runCmd(t, "lottery", "history")
+		require.NoError(t, err)
+		assert.Contains(t, historyAfter, "overwrite-seed")
+		assert.Contains(t, historyAfter, "Total lotteries: 1")
+	})
+}
+
+// TestLotteryImport_AllowsSameIDWithNoExistingRecord ensures the existence
+// check does not regress the legitimate fresh-import path (a valid record
+// whose ID does not yet exist must still be imported successfully).
+func TestLotteryImport_AllowsFreshValidImport(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		importPath := filepath.Join(t.TempDir(), "fresh.json")
+		rec := domainlottery.LotteryRecord{
+			ID:              "fresh-import-id",
+			Seed:            "fresh-import-seed-long",
+			Participants:    []string{"A", "B"},
+			Winners:         []string{"A"},
+			WinnerAddresses: []string{"addr"},
+			BlockHeight:     3,
+			VRFOutput:       strings.Repeat("ef", 32),
+			VRFProof:        strings.Repeat("12", 32),
+		}
+		payload, _ := json.Marshal([]domainlottery.LotteryRecord{rec})
+		require.NoError(t, os.WriteFile(importPath, payload, 0644))
+
+		out, err := runCmd(t, "lottery", "import", importPath)
+		require.NoError(t, err)
+		assert.Contains(t, out, "Imported 1 lottery records")
+	})
+}
+
 func TestLotteryStats(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		_, err := runCmd(t, "lottery", "create",
