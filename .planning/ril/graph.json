@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 34,
+  "round": 35,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T01:21:10+00:00",
+  "updated_at": "2026-08-23T01:24:52+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 33,
+      "touched_round": 35,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -1627,6 +1627,41 @@
       "touched_round": 34,
       "commit": "94d8c90",
       "title": "Voting results REST endpoint"
+    },
+    "ISS-028": {
+      "id": "ISS-028",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T01:24:15+00:00",
+      "updated_at": "2026-08-23T01:24:52+00:00",
+      "touched_round": 35,
+      "title": "The web Voting page cannot display election results even though the REST results endpoint exists (v1.23)",
+      "severity": "low"
+    },
+    "TASK-036": {
+      "id": "TASK-036",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T01:24:15+00:00",
+      "updated_at": "2026-08-23T01:24:52+00:00",
+      "touched_round": 35,
+      "category": "core-feature",
+      "priority_score": 1.8,
+      "severity": 0.35,
+      "title": "Add an election-results section to the Voting web page using the results API; enable dynamic {id} path resolution in the web contract test"
+    },
+    "CHG-035": {
+      "id": "CHG-035",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T01:24:41+00:00",
+      "updated_at": "2026-08-23T01:24:41+00:00",
+      "touched_round": 35,
+      "commit": "d04aaa2",
+      "title": "Voting results web view"
     }
   },
   "edges": [
@@ -2523,6 +2558,30 @@
       "to": "TASK-035",
       "type": "implements",
       "created_at": "2026-08-23T01:20:59+00:00"
+    },
+    {
+      "from": "ISS-028",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-23T01:24:15+00:00"
+    },
+    {
+      "from": "TASK-036",
+      "to": "ISS-028",
+      "type": "addresses",
+      "created_at": "2026-08-23T01:24:15+00:00"
+    },
+    {
+      "from": "CHG-035",
+      "to": "ISS-028",
+      "type": "resolves",
+      "created_at": "2026-08-23T01:24:41+00:00"
+    },
+    {
+      "from": "CHG-035",
+      "to": "TASK-036",
+      "type": "implements",
+      "created_at": "2026-08-23T01:24:41+00:00"
     }
   ]
 }
