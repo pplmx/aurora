@@ -1,8 +1,10 @@
 package oracle
 
 import (
+	"context"
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -52,6 +54,85 @@ func TestScheduler_PassFetchesDueSourcesOnly(t *testing.T) {
 	s.pass()
 	if len(fetched) != before+1 || fetched[len(fetched)-1] != "a" {
 		t.Fatalf("after 61s expected only a refetched, fetched=%v", fetched[before:])
+	}
+}
+
+// TestScheduler_Run_FetchesAndStopsOnCancel exercises the production entry
+// point (Scheduler.Run), previously the package's only uncovered branch. The
+// scheduler's sources use whole-second intervals (min 1s), so the initial pass
+// yields one fetch and a full interval-elapse is needed for a second
+// ticker-driven fetch. The test asserts Run performs its initial fetch, keeps
+// polling on its ticker (a second fetch arrives after the interval elapses),
+// and returns promptly (no goroutine leak) once the context is cancelled.
+func TestScheduler_Run_FetchesAndStopsOnCancel(t *testing.T) {
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "a", Enabled: true, Interval: 1},
+	}}
+	var calls int64
+	s := NewScheduler(repo, func(id string) error {
+		atomic.AddInt64(&calls, 1)
+		return nil
+	}, 10*time.Millisecond, time.Now)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.Run(ctx)
+	}()
+
+	// Wait for the initial pass (call 1) plus one ticker-driven refetch once
+	// the 1s interval elapses (call 2). The deadline is generous to stay
+	// reliable under -race.
+	deadline := time.Now().Add(5 * time.Second)
+	for atomic.LoadInt64(&calls) < 2 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	callsAtCancel := atomic.LoadInt64(&calls)
+	if callsAtCancel < 2 {
+		t.Fatalf("expected Run to fetch at least twice (initial + ticker-driven refetch), got %d", callsAtCancel)
+	}
+
+	// Cancelling must make Run return.
+	cancel()
+	select {
+	case <-done:
+		// Returned as expected.
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run did not return after context cancellation (goroutine leak)")
+	}
+}
+
+// TestScheduler_Run_StoppedContextShutsDownImmediately verifies that a
+// scheduler started with an already-cancelled context does not loop: Run
+// performs its single initial pass (seed + first fetch) and then returns
+// immediately without any ticker polling. This pins the fact that a cancelled
+// context stops the loop, not that it skips the synchronous initial pass.
+func TestScheduler_Run_StoppedContextShutsDownImmediately(t *testing.T) {
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "a", Enabled: true, Interval: 60},
+	}}
+	var calls int64
+	s := NewScheduler(repo, func(id string) error {
+		atomic.AddInt64(&calls, 1)
+		return nil
+	}, 10*time.Millisecond, time.Now)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.Run(ctx)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run did not return for a pre-cancelled context")
+	}
+	if atomic.LoadInt64(&calls) != 1 {
+		t.Fatalf("expected exactly the initial-pass fetch for pre-cancelled context, got %d", calls)
 	}
 }
 
