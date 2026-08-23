@@ -86,6 +86,19 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 			return nil, fmt.Errorf("open source %s: %w", name, err)
 		}
 		destPath := filepath.Join(output, name+".db")
+		// Refuse to write the backup file over the live source (ISS-071):
+		// `aurora backup create ./data` with the DB at ./data/aurora.db sets
+		// destPath == path, and the O_TRUNC below would have zeroed the live
+		// database before io.Copy read it back as empty — silent data loss
+		// with a "backup created" success. os.SameFile catches the aliasing
+		// regardless of ./data vs data vs symlinked paths.
+		if srcInfo, statErr := src.Stat(); statErr != nil {
+			_ = src.Close()
+			return nil, fmt.Errorf("stat source %s: %w", name, statErr)
+		} else if destInfo, statErr := os.Stat(destPath); statErr == nil && os.SameFile(srcInfo, destInfo) {
+			_ = src.Close()
+			return nil, fmt.Errorf("refusing to back up %s into itself: output directory %q holds the live database %q", name, output, path)
+		}
 		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 		if err != nil {
 			_ = src.Close()

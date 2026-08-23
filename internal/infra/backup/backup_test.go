@@ -400,3 +400,35 @@ func TestBackupService_Create_DestOpenFileError(t *testing.T) {
 	_, err := svc.Create(context.Background(), out)
 	require.Error(t, err, "destination DB path squatting as a directory must fail")
 }
+
+// TestBackupService_Create_RefusesSelfOverwrite locks ISS-071 / TASK-079:
+// backing up into a directory that already contains the live source DB (e.g.
+// `aurora backup create ./data` when the DB lives at ./data/aurora.db) must
+// fail with an explicit error instead of O_TRUNC-ing the source to 0 bytes and
+// reporting success — the live database has to survive untouched.
+func TestBackupService_Create_RefusesSelfOverwrite(t *testing.T) {
+	dir := t.TempDir()
+	dataDir := filepath.Join(dir, "data")
+	require.NoError(t, os.MkdirAll(dataDir, 0755))
+	dbPath := filepath.Join(dataDir, "aurora.db")
+
+	makeTestDB(t, dbPath)
+	db, err := sql.Open("sqlite3", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec("INSERT INTO test (id) VALUES (42)")
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	svc := NewBackupService(map[string]string{"aurora": dbPath})
+	_, err = svc.Create(context.Background(), dataDir)
+	require.Error(t, err, "backing up into the directory that holds the live DB must be refused")
+	require.ErrorContains(t, err, "into itself")
+
+	// The live database must still hold the marker row — no truncation.
+	reopened, err := sql.Open("sqlite3", dbPath)
+	require.NoError(t, err)
+	defer reopened.Close()
+	var count int
+	require.NoError(t, reopened.QueryRow("SELECT COUNT(*) FROM test WHERE id = 42").Scan(&count))
+	require.Equal(t, 1, count)
+}
