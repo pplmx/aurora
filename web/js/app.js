@@ -502,9 +502,19 @@ function tokenApp() {
 function oracleApp() {
     return {
         sources: [], loading: true,
+        health: [], loadingHealth: true,
         fetchSource: '', fetchResult: '',
         querySource: '', queryLimit: 10, queryRows: [],
-        async init() { await this.listSources(); },
+        async init() { await Promise.all([this.listSources(), this.loadHealth()]); },
+        async loadHealth() {
+            this.loadingHealth = true;
+            try {
+                const res = await fetch('/api/v1/oracle/health', { headers: auroraHeaders() });
+                const data = await res.json();
+                this.health = Array.isArray(data) ? data : [];
+            } catch (e) { this.health = []; }
+            this.loadingHealth = false;
+        },
         async listSources() {
             this.loading = true;
             try {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
@@ -24,6 +25,44 @@ func TestOracleHandler_Sources_Empty(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.NotEmpty(t, rr.Body.String())
+}
+
+func TestOracleHandler_Health_NilStatsReturnsEmpty(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/health", nil)
+	rr := httptest.NewRecorder()
+
+	handler.Health(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.JSONEq(t, "[]", rr.Body.String())
+}
+
+type fakeOracleStats struct {
+	stats []oracleapp.SourceStat
+}
+
+func (f *fakeOracleStats) Stats() []oracleapp.SourceStat { return f.stats }
+
+func TestOracleHandler_Health_WithStats(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	handler.SetStats(&fakeOracleStats{stats: []oracleapp.SourceStat{
+		{SourceID: "s1", Attempts: 3, Successes: 2, Failures: 1},
+	}})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/health", nil)
+	rr := httptest.NewRecorder()
+
+	handler.Health(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var got []oracleapp.SourceStat
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
+	assert.Len(t, got, 1)
+	assert.Equal(t, "s1", got[0].SourceID)
+	assert.Equal(t, uint64(3), got[0].Attempts)
+	assert.Equal(t, uint64(1), got[0].Failures)
 }
 
 func TestOracleHandler_Query_Success(t *testing.T) {

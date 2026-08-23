@@ -149,6 +149,11 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 	s.oracleMu.Lock()
 	s.oracleScheduler = sched
 	s.oracleMu.Unlock()
+	// Expose the scheduler's fetch-health stats to the protected
+	// GET /api/v1/oracle/health endpoint (v1.33), not just /metrics/oracle.
+	if s.oracleHandler != nil {
+		s.oracleHandler.SetStats(sched)
+	}
 	schedCtx, cancel := context.WithCancel(ctx)
 	go sched.Run(schedCtx)
 	return cancel
