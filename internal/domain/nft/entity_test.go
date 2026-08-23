@@ -94,3 +94,19 @@ func TestOperation_IsBurn(t *testing.T) {
 		t.Error("transfer operation should return false for IsBurn()")
 	}
 }
+
+// TestOperation_NewOperation_AssignsUniqueID locks ISS-072 / TASK-080: every
+// operation created through the real path must carry its own non-empty UUID
+// id, otherwise the SQLite PRIMARY-KEY INSERT OR REPLACE collapses the entire
+// per-NFT audit history to a single ""-id row.
+func TestOperation_NewOperation_AssignsUniqueID(t *testing.T) {
+	a := NewOperation("nft-1", "transfer", []byte("from"), []byte("to"), nil)
+	b := NewOperation("nft-1", "transfer", []byte("from"), []byte("to"), nil)
+
+	if a.ID == "" || b.ID == "" {
+		t.Fatalf("NewOperation must assign a non-empty id (got a=%q b=%q)", a.ID, b.ID)
+	}
+	if a.ID == b.ID {
+		t.Fatalf("each operation must get its own id (got duplicated %q)", a.ID)
+	}
+}

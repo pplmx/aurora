@@ -2,7 +2,11 @@
 // NFTs are transferred using cryptographic signatures for secure ownership.
 package nft
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // NFT represents a non-fungible token with ownership tracking.
 type NFT struct {
@@ -77,6 +81,10 @@ func NewNFT(name, description, imageURL, tokenURI string, creator, owner []byte)
 
 func NewOperation(nftID, opType string, from, to, signature []byte) *Operation {
 	return &Operation{
+		// Each operation gets its own UUID id (ISS-072). Without it every row
+		// shared the PRIMARY KEY "" and the SQLite INSERT OR REPLACE collapsed
+		// the whole per-NFT audit history to a single row.
+		ID:        uuid.New().String(),
 		NFTID:     nftID,
 		Type:      opType,
 		From:      from,
