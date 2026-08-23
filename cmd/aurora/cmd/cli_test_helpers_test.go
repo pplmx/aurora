@@ -16,7 +16,6 @@ import (
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
-	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -57,11 +56,10 @@ func captureStdout(t *testing.T) func() string {
 // singletons. Call at the top of every CLI command test that touches DB
 // or shared state.
 //
-// The oracle repo is a package-global (package var `repo` in oracle.go),
-// so tests that add sources would otherwise pollute each other.
+// Oracle CLI commands now open a persistent SQLite repo per command on
+// blockchain.DBPath(), so their state lives in the same ./data/aurora.db that
+// blockchain.ResetForTest() wipes below — no separate oracle reset needed.
 func resetCliForTest() {
-	repo = *oracleinfra.NewInMemoryOracleRepository()
-
 	// Voting singletons (voting.go) — reassign, not mutate in place.
 	// votingTxManager/votingDB must go with them: a cached TxManager built
 	// on a previous test's (now closed) DB handle would fail every Begin
