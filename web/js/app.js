@@ -254,3 +254,92 @@ function votingApp() {
         }
     };
 }
+
+function tokenApp() {
+    return {
+        name: '', symbol: '', supply: '', createResult: '',
+        tokenId: '', owner: '', balance: '',
+        mintTo: '', mintAmount: '', mintPriv: '', mintResult: '',
+        history: [],
+        async createToken() {
+            try {
+                const res = await fetch('/api/v1/token/create', {
+                    method: 'POST',
+                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ name: this.name, symbol: this.symbol, total_supply: this.supply })
+                });
+                const data = await res.json();
+                this.createResult = JSON.stringify(data, null, 2);
+            } catch (e) {
+                this.createResult = 'Error: ' + e.message;
+            }
+        },
+        async getBalance() {
+            try {
+                const res = await fetch('/api/v1/token/balance?token_id=' + encodeURIComponent(this.tokenId) + '&owner=' + encodeURIComponent(this.owner), { headers: auroraHeaders() });
+                this.balance = JSON.stringify(await res.json(), null, 2);
+            } catch (e) {
+                this.balance = 'Error: ' + e.message;
+            }
+        },
+        async mint() {
+            try {
+                const res = await fetch('/api/v1/token/mint', {
+                    method: 'POST',
+                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ token_id: this.tokenId, to: this.mintTo, amount: this.mintAmount, private_key: this.mintPriv })
+                });
+                this.mintResult = JSON.stringify(await res.json(), null, 2);
+                await this.getBalance();
+            } catch (e) {
+                this.mintResult = 'Error: ' + e.message;
+            }
+        },
+        async loadHistory() {
+            try {
+                const res = await fetch('/api/v1/token/history?token_id=' + encodeURIComponent(this.tokenId) + '&owner=' + encodeURIComponent(this.owner), { headers: auroraHeaders() });
+                const data = await res.json();
+                this.history = Array.isArray(data) ? data : (data.data || []);
+            } catch (e) {
+                this.history = [];
+            }
+        }
+    };
+}
+
+function oracleApp() {
+    return {
+        sources: [], loading: true,
+        fetchSource: '', fetchResult: '',
+        querySource: '', queryLimit: 10, queryRows: [],
+        async init() { await this.listSources(); },
+        async listSources() {
+            this.loading = true;
+            try {
+                const res = await fetch('/api/v1/oracle/sources', { headers: auroraHeaders() });
+                const data = await res.json();
+                this.sources = (data && data.sources) || [];
+            } catch (e) { this.sources = []; }
+            this.loading = false;
+        },
+        async fetch() {
+            try {
+                const res = await fetch('/api/v1/oracle/fetch', {
+                    method: 'POST',
+                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ source: this.fetchSource })
+                });
+                this.fetchResult = JSON.stringify(await res.json(), null, 2);
+            } catch (e) {
+                this.fetchResult = 'Error: ' + e.message;
+            }
+        },
+        async query() {
+            try {
+                const res = await fetch('/api/v1/oracle/query?source=' + encodeURIComponent(this.querySource) + '&limit=' + this.queryLimit, { headers: auroraHeaders() });
+                const data = await res.json();
+                this.queryRows = (data && data.data) || [];
+            } catch (e) { this.queryRows = []; }
+        }
+    };
+}

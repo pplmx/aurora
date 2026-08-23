@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle - Aurora</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.5"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container" x-data="oracleApp()" x-init="init">
+        <header>
+            <h1>Aurora <span class="version">Oracle</span></h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/lottery.html">Lottery</a>
+                <a href="/voting.html">Voting</a>
+                <a href="/token.html">Token</a>
+                <a href="/oracle.html">Oracle</a>
+            </nav>
+        </header>
+        <main>
+            <section class="history">
+                <h2>Data Sources</h2>
+                <div x-show="loading">Loading...</div>
+                <table x-show="!loading && sources.length > 0">
+                    <thead><tr><th>Name</th><th>Type</th><th>ID</th><th>Status</th></tr></thead>
+                    <tbody>
+                        <template x-for="s in sources" :key="s.id">
+                            <tr>
+                                <td x-text="s.name"></td>
+                                <td x-text="s.type"></td>
+                                <td x-text="s.id"></td>
+                                <td x-text="s.enabled ? 'enabled' : 'disabled'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+                <p x-show="!loading && sources.length === 0">(no sources)</p>
+            </section>
+            <section class="create-form">
+                <h2>Fetch Data</h2>
+                <form @submit.prevent="fetch">
+                    <div class="form-group"><label>Source ID</label><input type="text" x-model="fetchSource" required></div>
+                    <button type="submit" class="btn-lottery">Fetch</button>
+                </form>
+                <pre x-show="fetchResult" class="result" x-text="fetchResult"></pre>
+            </section>
+            <section class="history">
+                <h2>Query Data</h2>
+                <form @submit.prevent="query">
+                    <div class="form-group"><label>Source ID</label><input type="text" x-model="querySource" required></div>
+                    <div class="form-group"><label>Limit</label><input type="number" x-model="queryLimit" min="1" max="100"></div>
+                    <button type="submit" class="btn-lottery">Query</button>
+                </form>
+                <table x-show="queryRows.length > 0">
+                    <thead><tr><th>Timestamp</th><th>Value</th><th>Block #</th></tr></thead>
+                    <tbody>
+                        <template x-for="d in queryRows" :key="d.id">
+                            <tr>
+                                <td x-text="new Date(d.timestamp * 1000).toLocaleString()"></td>
+                                <td x-text="d.value"></td>
+                                <td x-text="d.block_height"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
