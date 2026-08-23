@@ -91,3 +91,29 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 	requireServedAsset(t, handler, "/js/app.js", "function votingApp()", "dashboardApp", "function tokenApp()", "function oracleApp()", "function blockchainApp()", "function nftApp()")
 	requireServedAsset(t, handler, "/css/style.css", "--accent-voting")
 }
+
+// moduleNavLinks are the hrefs every shipped page's header nav must contain.
+// New module pages are added incrementally (v1.21–v1.28); without a guard the
+// older pages (lottery/voting) can silently keep a stale nav that links only
+// to the first few modules. This test locks the full navigation set so a
+// future module page is wired everywhere or the test fails loudly.
+var moduleNavLinks = []string{
+	"/", "/lottery.html", "/voting.html", "/token.html",
+	"/oracle.html", "/blockchain.html", "/nft.html",
+}
+
+func TestWebUINavigation_AllPagesLinkAllModules(t *testing.T) {
+	webDir := realWebDir()
+	handler := injectAPIKey(http.FileServer(http.Dir(webDir)), "test-serve-key")
+
+	// /index.html 301-redirects to /; the dashboard is the served page at "/".
+	pages := []string{"/", "/lottery.html", "/voting.html", "/token.html",
+		"/oracle.html", "/blockchain.html", "/nft.html"}
+	for _, page := range pages {
+		body := requireServedAsset(t, handler, page)
+		for _, href := range moduleNavLinks {
+			require.Truef(t, strings.Contains(body, `href="`+href+`"`),
+				"page %s nav is missing link to %s (stale navigation regression)", page, href)
+		}
+	}
+}
