@@ -10,9 +10,14 @@ import (
 
 type fakeSourceRepo struct {
 	sources []*oracle.DataSource
+	data    map[string]*oracle.OracleData
 }
 
 func (f *fakeSourceRepo) ListSources() ([]*oracle.DataSource, error) { return f.sources, nil }
+
+func (f *fakeSourceRepo) GetLatestData(sourceID string) (*oracle.OracleData, error) {
+	return f.data[sourceID], nil
+}
 
 func TestScheduler_PassFetchesDueSourcesOnly(t *testing.T) {
 	now := time.Unix(1000, 0)
@@ -69,5 +74,39 @@ func TestScheduler_PassRetriesFailed(t *testing.T) {
 	s.pass()
 	if attempts != 2 {
 		t.Fatalf("expected failed fetch to be retried next pass, got %d attempts", attempts)
+	}
+}
+func TestScheduler_SeedsLastFetchFromRepo(t *testing.T) {
+	now := time.Unix(2000, 0)
+	// Source "fresh" has data recorded at 1990 (10s ago, interval 60s) -> not
+	// due on start. Source "stale" has data at 1800 (200s ago, interval 60s)
+	// -> overdue, fetched. Source "none" has no data -> fetched.
+	repo := &fakeSourceRepo{
+		sources: []*oracle.DataSource{
+			{ID: "fresh", Enabled: true, Interval: 60},
+			{ID: "stale", Enabled: true, Interval: 60},
+			{ID: "none", Enabled: true, Interval: 60},
+		},
+		data: map[string]*oracle.OracleData{
+			"fresh": {SourceID: "fresh", Timestamp: 1990},
+			"stale": {SourceID: "stale", Timestamp: 1800},
+		},
+	}
+	var fetched []string
+	s := NewScheduler(repo, func(id string) error { fetched = append(fetched, id); return nil }, time.Second, func() time.Time { return now })
+
+	s.pass()
+	if len(fetched) != 2 {
+		t.Fatalf("expected fresh (not yet due) to be skipped and stale+none fetched, got %v", fetched)
+	}
+	got := map[string]bool{}
+	for _, id := range fetched {
+		got[id] = true
+	}
+	if !got["stale"] || !got["none"] {
+		t.Fatalf("expected stale and none to be fetched, got %v", fetched)
+	}
+	if got["fresh"] {
+		t.Fatalf("fresh source should NOT be re-fetched (data still inside interval), got %v", fetched)
 	}
 }
