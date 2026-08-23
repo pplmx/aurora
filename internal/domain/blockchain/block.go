@@ -73,11 +73,23 @@ func Genesis() *Block {
 
 // AddBlock appends a new block to the chain. Safe for concurrent callers.
 //
-// The whole critical section — read latest, compute height, append —
-// happens under the write lock. NewBlock's expensive PoW computation
-// happens *outside* the lock (see below) so that concurrent AddBlock
-// calls can run PoW in parallel. The lock only protects the slice
-// itself, which is what was racing.
+// The reserve + mine + append sequence runs entirely under the write lock.
+// This is intentional: mining is *not* parallelizable across blocks. A block's
+// PrevHash must equal the finalized hash of the preceding block, and PrevHash
+// feeds into the proof-of-work input, so block i's PoW cannot even begin until
+// block i-1 is mined and its hash is known. Attempting to mine in parallel
+// (reserving a slot, mining outside the lock, then filling in the hash) breaks
+// chain integrity: a caller reserving slot i reads the previous slot while it
+// is still an unmined placeholder and produces an invalid PrevHash.
+//
+// The historical implementation did exactly that (read height/prevHash under a
+// read lock, mine outside, append under a write lock), which was a non-atomic
+// read-modify-write: concurrent callers reused the same tail, yielding blocks
+// with duplicate heights, gaps, and a broken prev-hash chain. Because height
+// is the DB primary key, persistence also used INSERT OR REPLACE and silently
+// dropped a block per collision on restart. Serializing the whole append under
+// the write lock makes heights unique and the chain valid regardless of how
+// many goroutines call AddBlock concurrently.
 func (c *BlockChain) AddBlock(data string) (int64, error) {
 	if c == nil {
 		return 0, fmt.Errorf("blockchain not initialized")
@@ -86,21 +98,28 @@ func (c *BlockChain) AddBlock(data string) (int64, error) {
 	// Take the read lock just long enough to copy the previous hash and
 	// the current length. Released before PoW so multiple AddBlock
 	// callers can mine in parallel.
-	c.mu.RLock()
+	c.mu.Lock()
 	if len(c.Blocks) == 0 {
-		c.mu.RUnlock()
+		c.mu.Unlock()
 		return 0, fmt.Errorf("blockchain not initialized")
 	}
-	prevHash := append([]byte(nil), c.Blocks[len(c.Blocks)-1].Hash...)
-	height := int64(len(c.Blocks))
-	c.mu.RUnlock()
-
-	newBlock := NewBlock(data, prevHash)
-	newBlock.Height = height
-
-	c.mu.Lock()
-	c.Blocks = append(c.Blocks, newBlock)
-	appendedAt := int64(len(c.Blocks) - 1)
+	prev := c.Blocks[len(c.Blocks)-1]
+	block := &Block{
+		Height:    int64(len(c.Blocks)),
+		PrevHash:  append([]byte(nil), prev.Hash...),
+		Data:      []byte(data),
+		Nonce:     0,
+		Timestamp: time.Now().Unix(),
+	}
+	// Mine under the lock: consecutive blocks cannot be mined in parallel (see
+	// the AddBlock comment for why), so serializing is both correct and the
+	// only valid option.
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+	block.Nonce = int64(nonce)
+	block.Hash = append([]byte(nil), hash...)
+	c.Blocks = append(c.Blocks, block)
+	height := block.Height
 	persist := c.persist
 	c.mu.Unlock()
 
@@ -108,12 +127,12 @@ func (c *BlockChain) AddBlock(data string) (int64, error) {
 	// DB write never holds up concurrent AddBlock callers). The in-memory
 	// chain is authoritative; failures degrade to non-persistent mode.
 	if persist != nil {
-		if err := persist(newBlock); err != nil {
+		if err := persist(block); err != nil {
 			logger.Warn().Err(err).Msg("Failed to persist block")
 		}
 	}
 
-	return appendedAt, nil
+	return height, nil
 }
 
 func (b *Block) Serialize() ([]byte, error) {
