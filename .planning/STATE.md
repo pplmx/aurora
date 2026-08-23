@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.13 Observability (IN PROGRESS)
+**Current focus:** v1.13 Observability complete; correctness round (blockchain concurrent append)
 
 ## Current Position
 
 Phase: v1.5 Complete (migrate CLI + coverage bar)
 Plan: [v1.6 ROADMAP](milestones/v1.6-ROADMAP.md) — Interactive Surface Parity
-Status: v1.5–v1.9 complete; v1.10 complete; v1.11 in progress
-Last activity: 2026-08-23 — milestone run: v1.8 Web UI Reliability, v1.9 API
-  Hardening (pagination caps, ended-session lifecycle, token approve/allowance
-  parity), v1.10 Authenticity (ballot forgery + NFT key↔owner binding,
-  session start/end parity) all closed; v1.11 Lifecycle & Parity Coverage
-  kicked off (voting lifecycle E2E smoke)
+Status: v1.5–v1.13 complete; deep-dive correctness fix in flight
+Last activity: 2026-08-23 — v1.8 Web UI Reliability, v1.9 API Hardening,
+  v1.10 Authenticity, v1.11 Lifecycle & Parity Coverage, v1.12 Oracle/Limit
+  hardening, v1.13 Observability (metrics + /metrics) all closed; this round
+  fixed a blockchain concurrency correctness bug (concurrent AddBlock produced
+  duplicate heights + broken prev-hash chain, losing blocks on restart)
 
 Progress: v1.5 [██████████] 100%; v1.6 [█████░░░░░] 50%
 
