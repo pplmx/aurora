@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 68,
+  "round": 69,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T08:55:21+00:00",
+  "updated_at": "2026-08-23T09:08:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 57,
+      "touched_round": 69,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -3317,6 +3317,53 @@
       "touched_round": 68,
       "commit": "905bac4",
       "title": "Lottery reset re-seeds the in-memory chain to genesis (BlockChain.ResetBlocks) so post-reset creates restart at height 1"
+    },
+    "ISS-064": {
+      "id": "ISS-064",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T09:06:30+00:00",
+      "updated_at": "2026-08-23T09:08:42+00:00",
+      "touched_round": 69,
+      "severity": "medium",
+      "title": "Metrics observability gap: in router.go the metrics middleware is registered LAST (innermost in chi) while Recovery is OUTER, so a panicking handler unwinds past metrics before Recovery catches it; panic-generated 500 responses are never recorded in http_requests_total / status histograms, making server faults invisible in metrics"
+    },
+    "TASK-072": {
+      "id": "TASK-072",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T09:06:34+00:00",
+      "updated_at": "2026-08-23T09:08:42+00:00",
+      "touched_round": 69,
+      "category": "stability",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 2,
+      "title": "Register the metrics middleware OUTER to Recovery in router.go so panicking handlers are recorded (500) in the request metrics, and add a regression test asserting a panic is counted with status 500"
+    },
+    "EV-033": {
+      "id": "EV-033",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:06:40+00:00",
+      "updated_at": "2026-08-23T09:06:40+00:00",
+      "touched_round": 69,
+      "source": "empirical round 69 (chi chain semantics): metrics registered last -> innermost, Recovery outer; TestAssertBug demonstrated a panicking handler yields client 500 but http_requests_total 0; metrics API middleware is documented to record per-request status+latency (v1.13)",
+      "confidence": 1.0
+    },
+    "CHG-070": {
+      "id": "CHG-070",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T09:08:38+00:00",
+      "updated_at": "2026-08-23T09:08:38+00:00",
+      "touched_round": 69,
+      "commit": "dad7653",
+      "title": "Register metrics middleware outer to Recovery in router.go so recovered panics appear as 500 in request metrics + regression test"
     }
   },
   "edges": [
@@ -5083,6 +5130,30 @@
       "to": "ISS-063",
       "type": "resolves",
       "created_at": "2026-08-23T08:55:20+00:00"
+    },
+    {
+      "from": "TASK-072",
+      "to": "ISS-064",
+      "type": "addresses",
+      "created_at": "2026-08-23T09:06:40+00:00"
+    },
+    {
+      "from": "ISS-064",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-23T09:06:40+00:00"
+    },
+    {
+      "from": "CHG-070",
+      "to": "TASK-072",
+      "type": "implements",
+      "created_at": "2026-08-23T09:08:38+00:00"
+    },
+    {
+      "from": "CHG-070",
+      "to": "ISS-064",
+      "type": "resolves",
+      "created_at": "2026-08-23T09:08:42+00:00"
     }
   ]
 }
