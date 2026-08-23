@@ -76,7 +76,7 @@ func TestTokenNFT_Smoke_ApproveAllowanceAndNFTKeyBinding(t *testing.T) {
 	require.Equal(t, ownerPub, tok.Owner)
 	require.Equal(t, "1000000", tok.TotalSupply)
 
-	spenderPub, _ := newKeyPairB64(t)
+	spenderPub, spenderPriv := newKeyPairB64(t)
 
 	// approve a correct allowance with the owner's key
 	rr = request(http.MethodPost, "/api/v1/token/approve", fmt.Sprintf(
@@ -102,6 +102,33 @@ func TestTokenNFT_Smoke_ApproveAllowanceAndNFTKeyBinding(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &allow))
 	require.Equal(t, "250", allow.Amount)
+
+	// ---------- TOKEN: transfer_from (spender spends the allowance, v1.38) ----------
+	toPub, _ := newKeyPairB64(t)
+	rr = request(http.MethodPost, "/api/v1/token/transfer_from", fmt.Sprintf(
+		`{"token_id":"%s","owner":"%s","to":"%s","amount":"100","spender":"%s","spender_key":"%s"}`,
+		tok.ID, ownerPub, toPub, spenderPub, spenderPriv))
+	require.Equal(t, http.StatusOK, rr.Code, "transfer_from body: %s", rr.Body.String())
+
+	// The allowance must be drawn down (250 - 100 = 150).
+	rr = request(http.MethodGet, fmt.Sprintf("/api/v1/token/allowance?token_id=%s&owner=%s&spender=%s",
+		url.QueryEscape(tok.ID), url.QueryEscape(ownerPub), url.QueryEscape(spenderPub)), "")
+	require.Equal(t, http.StatusOK, rr.Code)
+	var allowAfter struct {
+		Amount string `json:"amount"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &allowAfter))
+	require.Equal(t, "150", allowAfter.Amount)
+
+	// The recipient must hold the transferred 100.
+	rr = request(http.MethodGet, fmt.Sprintf("/api/v1/token/balance?token_id=%s&owner=%s",
+		url.QueryEscape(tok.ID), url.QueryEscape(toPub)), "")
+	require.Equal(t, http.StatusOK, rr.Code, "to-balance body: %s", rr.Body.String())
+	var toBal struct {
+		Amount string `json:"amount"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &toBal))
+	require.Equal(t, "100", toBal.Amount)
 
 	// approve with a MISMATCHED key must be rejected (401)
 	_, attackerPriv := newKeyPairB64(t)
