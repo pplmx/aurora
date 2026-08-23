@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 76,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T17:15:23+00:00",
+  "updated_at": "2026-08-23T17:34:08+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 72,
+      "touched_round": 76,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 70,
+      "touched_round": 76,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -2740,7 +2740,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:42:51+00:00",
       "updated_at": "2026-08-23T05:42:51+00:00",
-      "touched_round": 56,
+      "touched_round": 76,
       "title": "SQLite persistence layer"
     },
     "EV-020": {
@@ -3696,6 +3696,36 @@
       "touched_round": 76,
       "commit": "ba906c9",
       "title": "Assign every NFT operation a unique UUID id in NewOperation (audit history no longer collapses) + domain and SQLite regression tests"
+    },
+    "ISS-073": {
+      "id": "ISS-073",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T17:34:08+00:00",
+      "updated_at": "2026-08-23T17:34:08+00:00",
+      "touched_round": 76,
+      "title": "Rate limiting is spoof-bypassable: clientRateKey is derived from r.RemoteAddr AFTER chi RealIP overwrote it from X-Forwarded-For/X-Real-IP/True-Client-IP (trusted unconditionally, no trusted-proxy config), so an attacker rotates the header per request and never hits 429; also disabled by default (api.rateLimit.enabled=false)"
+    },
+    "ISS-074": {
+      "id": "ISS-074",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T17:34:08+00:00",
+      "updated_at": "2026-08-23T17:34:08+00:00",
+      "touched_round": 76,
+      "title": "Token mint/transfer/transferfrom/burn publish their audit event inside the TxManager transaction, but eventBus.Publish writes to a separate events store that the token DB rollback cannot undo -- a rolled-back transfer (losing side of a concurrent double-spend) leaves a phantom event in GetTransferHistory and consumes a nonce"
+    },
+    "ISS-075": {
+      "id": "ISS-075",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T17:34:08+00:00",
+      "updated_at": "2026-08-23T17:34:08+00:00",
+      "touched_round": 76,
+      "title": "ClaimNextNonce is a non-atomic read-modify-write (Begin -> SELECT -> INSERT ON CONFLICT in one deferred tx, no WHERE nonce guard); under a real connection pool two concurrent claims can both read the same nonce, producing SQLITE_BUSY_SNAPSHOT write errors (or duplicate nonces in non-WAL mode); the concurrent test hides it via SetMaxOpenConns(1)"
     }
   },
   "edges": [
@@ -5678,6 +5708,24 @@
       "to": "ISS-072",
       "type": "resolves",
       "created_at": "2026-08-23T17:05:19+00:00"
+    },
+    {
+      "from": "ISS-073",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-23T17:34:08+00:00"
+    },
+    {
+      "from": "ISS-074",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-23T17:34:08+00:00"
+    },
+    {
+      "from": "ISS-075",
+      "to": "COMP-010",
+      "type": "located_in",
+      "created_at": "2026-08-23T17:34:08+00:00"
     }
   ]
 }
