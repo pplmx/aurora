@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 33,
+  "round": 34,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-23T01:16:42+00:00",
+  "updated_at": "2026-08-23T01:21:10+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 26,
+      "touched_round": 34,
       "title": "voting module"
     },
     "CHG-008": {
@@ -1592,6 +1592,41 @@
       "touched_round": 33,
       "commit": "5e28b6f",
       "title": "Token + Oracle web pages"
+    },
+    "ISS-027": {
+      "id": "ISS-027",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-23T01:20:44+00:00",
+      "updated_at": "2026-08-23T01:21:10+00:00",
+      "touched_round": 34,
+      "title": "The CLI exposes voting results but the REST API has no results endpoint (CLI/API parity gap)",
+      "severity": "medium"
+    },
+    "TASK-035": {
+      "id": "TASK-035",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-23T01:20:44+00:00",
+      "updated_at": "2026-08-23T01:21:10+00:00",
+      "touched_round": 34,
+      "category": "core-feature",
+      "priority_score": 2.4,
+      "severity": 0.5,
+      "title": "Add GET /api/v1/voting/results/{id} returning per-candidate tally + total via a GetResults use case"
+    },
+    "CHG-034": {
+      "id": "CHG-034",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-23T01:20:59+00:00",
+      "updated_at": "2026-08-23T01:20:59+00:00",
+      "touched_round": 34,
+      "commit": "94d8c90",
+      "title": "Voting results REST endpoint"
     }
   },
   "edges": [
@@ -2464,6 +2499,30 @@
       "to": "TASK-034",
       "type": "implements",
       "created_at": "2026-08-23T01:16:30+00:00"
+    },
+    {
+      "from": "ISS-027",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-23T01:20:44+00:00"
+    },
+    {
+      "from": "TASK-035",
+      "to": "ISS-027",
+      "type": "addresses",
+      "created_at": "2026-08-23T01:20:44+00:00"
+    },
+    {
+      "from": "CHG-034",
+      "to": "ISS-027",
+      "type": "resolves",
+      "created_at": "2026-08-23T01:20:59+00:00"
+    },
+    {
+      "from": "CHG-034",
+      "to": "TASK-035",
+      "type": "implements",
+      "created_at": "2026-08-23T01:20:59+00:00"
     }
   ]
 }
