@@ -281,9 +281,10 @@ func writeMetadata(t *testing.T, dir string) {
 	makeValidBackup(t, dir, "main")
 }
 
-// TestBackupService_Create_CheckpointError covers the PRAGMA wal_checkpoint
-// failure branch: a configured "DB" that is actually a directory opens lazily
-// but fails on the first executed statement.
+// TestBackupService_Create_CheckpointError covers the snapshot failure branch:
+// a configured "DB" that is actually a directory opens lazily but fails on the
+// first executed statement (previously the PRAGMA wal_checkpoint, now the
+// VACUUM INTO snapshot, v1.75).
 func TestBackupService_Create_CheckpointError(t *testing.T) {
 	dir := t.TempDir()
 	dbAsDir := filepath.Join(dir, "src", "blockchain.db")

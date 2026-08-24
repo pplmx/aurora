@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -56,6 +57,16 @@ func fileSHA256(path string) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
+// sqlLiteral renders s as a single-quoted SQL string literal, doubling any
+// embedded single quotes and rejecting NUL bytes (which SQLite forbids).
+// Used for file paths in VACUUM INTO, which does not accept placeholders.
+func sqlLiteral(s string) string {
+	if strings.ContainsRune(s, 0) {
+		return "''"
+	}
+	return "'" + strings.ReplaceAll(s, "'", "''") + "'"
+}
+
 func NewBackupService(dbPaths map[string]string) *BackupService {
 	return &BackupService{dbPaths: dbPaths}
 }
@@ -68,53 +79,47 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 	schemaVersion := s.getSchemaVersion()
 
 	for name, path := range s.dbPaths {
+		destPath := filepath.Join(output, name+".db")
+
+		srcInfo, statErr := os.Stat(path)
+		if statErr != nil {
+			return nil, fmt.Errorf("stat source %s: %w", name, statErr)
+		}
+		if destInfo, statErr := os.Stat(destPath); statErr == nil {
+			if destInfo.IsDir() {
+				return nil, fmt.Errorf("destination %s path %q is a directory: refusing to overwrite it", name, destPath)
+			}
+			// Refuse to write the backup file over the live source (ISS-071):
+			// `aurora backup create ./data` with the DB at ./data/aurora.db
+			// sets destPath == path — VACUUM INTO would otherwise clobber the
+			// live database. os.SameFile catches the aliasing regardless of
+			// ./data vs data vs symlinked paths.
+			if os.SameFile(srcInfo, destInfo) {
+				return nil, fmt.Errorf("refusing to back up %s into itself: output directory %q holds the live database %q", name, output, path)
+			}
+		}
+		// VACUUM INTO requires the destination to not exist.
+		if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("remove dest %s: %w", name, err)
+		}
+
+		// VACUUM INTO is an online-backup statement: it writes a complete,
+		// self-contained snapshot (committed WAL frames included) to a fresh
+		// file even while the server keeps writing to the source — unlike the
+		// old PRAGMA wal_checkpoint(TRUNCATE) (whose busy/partial result code
+		// was ignored) + bare .db file copy, which silently produced a stale
+		// snapshot missing whatever committed between checkpoint and copy
+		// (v1.75, ISS-082).
 		db, err := sql.Open("sqlite3", path)
 		if err != nil {
 			return nil, fmt.Errorf("open %s: %w", name, err)
 		}
-
-		if _, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		if _, err := db.Exec("VACUUM INTO " + sqlLiteral(destPath)); err != nil {
 			_ = db.Close()
-			return nil, fmt.Errorf("checkpoint %s: %w", name, err)
+			return nil, fmt.Errorf("snapshot %s: %w", name, err)
 		}
 		if err := db.Close(); err != nil {
 			return nil, fmt.Errorf("close %s: %w", name, err)
-		}
-
-		src, err := os.Open(path)
-		if err != nil {
-			return nil, fmt.Errorf("open source %s: %w", name, err)
-		}
-		destPath := filepath.Join(output, name+".db")
-		// Refuse to write the backup file over the live source (ISS-071):
-		// `aurora backup create ./data` with the DB at ./data/aurora.db sets
-		// destPath == path, and the O_TRUNC below would have zeroed the live
-		// database before io.Copy read it back as empty — silent data loss
-		// with a "backup created" success. os.SameFile catches the aliasing
-		// regardless of ./data vs data vs symlinked paths.
-		if srcInfo, statErr := src.Stat(); statErr != nil {
-			_ = src.Close()
-			return nil, fmt.Errorf("stat source %s: %w", name, statErr)
-		} else if destInfo, statErr := os.Stat(destPath); statErr == nil && os.SameFile(srcInfo, destInfo) {
-			_ = src.Close()
-			return nil, fmt.Errorf("refusing to back up %s into itself: output directory %q holds the live database %q", name, output, path)
-		}
-		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
-		if err != nil {
-			_ = src.Close()
-			return nil, fmt.Errorf("create dest %s: %w", name, err)
-		}
-		if _, err := io.Copy(dest, src); err != nil {
-			_ = src.Close()
-			_ = dest.Close()
-			return nil, fmt.Errorf("copy %s: %w", name, err)
-		}
-		if err := src.Close(); err != nil {
-			_ = dest.Close()
-			return nil, fmt.Errorf("close source %s: %w", name, err)
-		}
-		if err := dest.Close(); err != nil {
-			return nil, fmt.Errorf("close dest %s: %w", name, err)
 		}
 	}
 
@@ -346,6 +351,16 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 		}
 		if err := dest.Close(); err != nil {
 			return fmt.Errorf("close dest %s: %w", name, err)
+		}
+
+		// The restored archive is a complete standalone snapshot; a stale
+		// -wal/-shm left next to it from the pre-restore live DB would be
+		// replayed against the mismatched .db on next open, resurrecting
+		// pre-restore committed frames (v1.75, ISS-082).
+		for _, ext := range []string{"-wal", "-shm"} {
+			if err := os.Remove(destPath + ext); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("remove stale %s for %s: %w", ext, name, err)
+			}
 		}
 	}
 
