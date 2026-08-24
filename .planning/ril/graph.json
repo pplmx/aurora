@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 78,
+  "round": 79,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T13:41:17+00:00",
+  "updated_at": "2026-08-24T15:20:57+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -3700,11 +3700,11 @@
     "ISS-073": {
       "id": "ISS-073",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-23T17:34:08+00:00",
-      "updated_at": "2026-08-23T17:34:08+00:00",
-      "touched_round": 76,
+      "updated_at": "2026-08-24T15:20:57+00:00",
+      "touched_round": 79,
       "title": "Rate limiting is spoof-bypassable: clientRateKey is derived from r.RemoteAddr AFTER chi RealIP overwrote it from X-Forwarded-For/X-Real-IP/True-Client-IP (trusted unconditionally, no trusted-proxy config), so an attacker rotates the header per request and never hits 429; also disabled by default (api.rateLimit.enabled=false)"
     },
     "ISS-074": {
@@ -3758,19 +3758,17 @@
     "TASK-082": {
       "id": "TASK-082",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 4,
       "created_at": "2026-08-24T13:40:18+00:00",
-      "updated_at": "2026-08-24T13:41:16+00:00",
-      "touched_round": 77,
+      "updated_at": "2026-08-24T15:19:29+00:00",
+      "touched_round": 79,
       "category": "correctness",
       "severity": 0.7,
       "confidence": 1.0,
       "effort": 2,
       "unlock_factor": 1.0,
-      "title": "Publish token audit events (Mint/Transfer/TransferFrom/Burn) only after the token transaction commits, so a rolled-back transfer no longer leaves a phantom event in GetTransferHistory; eventStore is a separate DB that the token rollback cannot undo",
-      "lock_owner": "fable-session",
-      "lock_until": "2026-08-24T15:41:16+00:00"
+      "title": "Publish token audit events (Mint/Transfer/TransferFrom/Burn) only after the token transaction commits, so a rolled-back transfer no longer leaves a phantom event in GetTransferHistory; eventStore is a separate DB that the token rollback cannot undo"
     },
     "CHG-080": {
       "id": "CHG-080",
@@ -3782,6 +3780,32 @@
       "touched_round": 77,
       "commit": "ab49c03",
       "title": "Publish audit events after token tx commit (no phantom events on rollback) + rollback/publish-failure regression tests"
+    },
+    "TASK-083": {
+      "id": "TASK-083",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T15:17:26+00:00",
+      "updated_at": "2026-08-24T15:20:57+00:00",
+      "touched_round": 79,
+      "category": "security",
+      "severity": 0.9,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "title": "Rate-limit bypass via spoofed X-Forwarded-For / X-Real-IP / True-Client-IP: trust only socket peer"
+    },
+    "CHG-081": {
+      "id": "CHG-081",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T15:19:29+00:00",
+      "updated_at": "2026-08-24T15:19:29+00:00",
+      "touched_round": 79,
+      "commit": "c2ee489",
+      "title": "Key rate-limit budget on true socket peer; trusted-proxy allow-list config; PeerIP middleware captured outer to chi RealIP (v1.69, ISS-073)"
     }
   },
   "edges": [
@@ -5818,6 +5842,24 @@
       "to": "TASK-082",
       "type": "implements",
       "created_at": "2026-08-24T13:41:16+00:00"
+    },
+    {
+      "from": "TASK-083",
+      "to": "ISS-073",
+      "type": "addresses",
+      "created_at": "2026-08-24T15:20:57+00:00"
+    },
+    {
+      "from": "CHG-081",
+      "to": "ISS-073",
+      "type": "resolves",
+      "created_at": "2026-08-24T15:20:57+00:00"
+    },
+    {
+      "from": "CHG-081",
+      "to": "TASK-083",
+      "type": "implements",
+      "created_at": "2026-08-24T15:20:57+00:00"
     }
   ]
 }
