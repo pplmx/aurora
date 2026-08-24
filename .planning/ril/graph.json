@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 85,
+  "round": 86,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T19:02:28+00:00",
+  "updated_at": "2026-08-24T19:26:25+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 84,
+      "touched_round": 85,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 81,
+      "touched_round": 85,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 83,
+      "touched_round": 85,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -4047,6 +4047,74 @@
       "touched_round": 84,
       "commit": "688b731",
       "title": "VACUUM INTO snapshot + restore stale-WAL purge; uncheckpointed-WAL + stale-restore regression tests (v1.75, ISS-082)"
+    },
+    "ISS-083": {
+      "id": "ISS-083",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T19:19:51+00:00",
+      "updated_at": "2026-08-24T19:20:34+00:00",
+      "touched_round": 85,
+      "title": "nft tui / oracle tui commands define Run: and swallow failures with fmt.Println, so Execute() sees nil and the process exits 0 even when the UI or repo-open fails (broken data dir, /dev/tty absent in CI) - $?-checking scripts report success on a failed run and error text pollutes stdout. Fix: RunE returning the error (cobra -> stderr + os.Exit(1)); structural guard forbidding bare Run commands."
+    },
+    "TASK-091": {
+      "id": "TASK-091",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T19:19:51+00:00",
+      "updated_at": "2026-08-24T19:20:34+00:00",
+      "touched_round": 85,
+      "category": "dx",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Convert Run-only TUI commands to RunE so failures exit non-zero on stderr"
+    },
+    "CHG-088": {
+      "id": "CHG-088",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T19:19:51+00:00",
+      "updated_at": "2026-08-24T19:19:51+00:00",
+      "touched_round": 85,
+      "commit": "264c9cb",
+      "title": "nft/oracle TUI RunE + tree-wide no-Run-only structural guard regression tests (v1.76, ISS-083)"
+    },
+    "ISS-084": {
+      "id": "ISS-084",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T19:23:11+00:00",
+      "updated_at": "2026-08-24T19:23:11+00:00",
+      "touched_round": 85,
+      "title": "Phantom on-chain blocks on rolled-back transactions: token Mint/Transfer/TransferFrom/Burn, NFT Transfer/Burn, voting CastVote and lottery all call chain.AddBlock BEFORE the domain transaction commits; a lost race (double-spend/ownership-changed/already-voted) rolls the tx back but the block persists, violating the chain invariant that every block = a committed operation. Voting documents it as an accepted best-effort tradeoff (its vote-row needs the height before save). Deferred: see DEC-002."
+    },
+    "DEC-002": {
+      "id": "DEC-002",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T19:23:11+00:00",
+      "updated_at": "2026-08-24T19:23:11+00:00",
+      "touched_round": 85,
+      "rationale": "Best-effort on-chain audit blocks are accepted for now: block height must exist before the domain row save (audit records carry it), and the chain is a separate DB + in-memory singleton that a domain DB rollback cannot undo, so atomicity needs a cross-DB redesign. The token EVENT trail is already hardened (events publish only after commit, v1.68 / ISS-074) and a pre-tx race merely leaves a best-effort audit block, never corrupts committed balances. Revisit when a block-height reservation or after-commit height backfill design lands.",
+      "alternatives_rejected": "Moving AddBlock post-commit for token only changes block ordering and is inconsistent across subsystems"
+    },
+    "DEC-003": {
+      "id": "DEC-003",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T19:23:52+00:00",
+      "updated_at": "2026-08-24T19:23:52+00:00",
+      "touched_round": 85,
+      "rationale": "Embedding the API key in served HTML (injectKeyIntoHTML) is accepted for the single-user local dev UI: the browser needs the key to call the API same-origin, and the design compensates by refusing wildcard CORS (v1.64 / TASK-077) and by the rate limiter + body cap bounding the blast radius. A production-ish hardening (short-lived session tokens, CSRF) is documented in webauth.go as future work.",
+      "alternatives_rejected": "Removing the key from served HTML and requiring an operator-entered session token changes the UX surface and is out of scope for the dev-first product"
     }
   },
   "edges": [
@@ -6269,6 +6337,48 @@
       "to": "TASK-090",
       "type": "implements",
       "created_at": "2026-08-24T19:00:20+00:00"
+    },
+    {
+      "from": "ISS-083",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-24T19:20:34+00:00"
+    },
+    {
+      "from": "TASK-091",
+      "to": "ISS-083",
+      "type": "addresses",
+      "created_at": "2026-08-24T19:20:34+00:00"
+    },
+    {
+      "from": "CHG-088",
+      "to": "ISS-083",
+      "type": "resolves",
+      "created_at": "2026-08-24T19:20:34+00:00"
+    },
+    {
+      "from": "CHG-088",
+      "to": "TASK-091",
+      "type": "implements",
+      "created_at": "2026-08-24T19:20:34+00:00"
+    },
+    {
+      "from": "ISS-084",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-24T19:23:52+00:00"
+    },
+    {
+      "from": "DEC-002",
+      "to": "COMP-token",
+      "type": "governs",
+      "created_at": "2026-08-24T19:23:52+00:00"
+    },
+    {
+      "from": "DEC-003",
+      "to": "COMP-api",
+      "type": "governs",
+      "created_at": "2026-08-24T19:23:52+00:00"
     }
   ]
 }
