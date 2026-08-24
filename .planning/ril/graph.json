@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 82,
+  "round": 83,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T17:54:22+00:00",
+  "updated_at": "2026-08-24T18:29:17+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 80,
+      "touched_round": 82,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -3914,6 +3914,67 @@
       "touched_round": 81,
       "commit": "84c5e43",
       "title": "Drop in-tx replay.SaveNonce from Transfer/TransferFrom; ClaimNextNonce already persisted the nonce (v1.72, ISS-078)"
+    },
+    "ISS-079": {
+      "id": "ISS-079",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T18:21:38+00:00",
+      "updated_at": "2026-08-24T18:22:50+00:00",
+      "touched_round": 82,
+      "title": "cmd/api never reads AURORA_API_KEY: config.Load (cmd/api single caller) has no AutomaticEnv/BindEnv, CLI root.go AutomaticEnv is not invoked by cmd/api, and default env matching looks for API.KEY not AURORA_API_KEY -> production always fails ErrMissingAPIKey even with the key set; dev mints+prints a fresh key every boot (invalidates the key embedded in already-served web pages). Fix: viper.AutomaticEnv + BindEnv(api.key, AURORA_API_KEY) inside Load()."
+    },
+    "ISS-080": {
+      "id": "ISS-080",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T18:21:38+00:00",
+      "updated_at": "2026-08-24T18:22:50+00:00",
+      "touched_round": 82,
+      "title": "API server never subscribes the audit handler: server.go creates a bare SyncEventBus passed to token.NewService but no SubscribeAll (audit+stats handlers are only wired in app/wire.go, the CLI path), so every mint/transfer/approve/burn/transfer_from audit event is silently dropped and GET /api/v1/token/history is always empty on the production HTTP path. Fix: subscribe AuditHandler(eventStore) + StatsHandler on the server event bus."
+    },
+    "TASK-087": {
+      "id": "TASK-087",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T18:22:10+00:00",
+      "updated_at": "2026-08-24T18:22:50+00:00",
+      "touched_round": 82,
+      "category": "security",
+      "severity": 0.9,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "title": "Bind AURORA_API_KEY so the production API server starts with the operator key (no per-boot dev key)"
+    },
+    "TASK-088": {
+      "id": "TASK-088",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T18:22:10+00:00",
+      "updated_at": "2026-08-24T18:22:50+00:00",
+      "touched_round": 82,
+      "category": "critical-bug",
+      "severity": 0.9,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "title": "Subscribe the audit + stats handlers on the API server event bus so history/audit works over HTTP"
+    },
+    "CHG-085": {
+      "id": "CHG-085",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T18:22:10+00:00",
+      "updated_at": "2026-08-24T18:22:10+00:00",
+      "touched_round": 82,
+      "commit": "cd5387b",
+      "title": "config.Load binds AURORA_API_KEY; server.go subscribes audit+stats handlers; env+history regression tests (v1.73, ISS-079 + ISS-080)"
     }
   },
   "edges": [
@@ -6040,6 +6101,54 @@
       "to": "TASK-086",
       "type": "implements",
       "created_at": "2026-08-24T17:49:35+00:00"
+    },
+    {
+      "from": "ISS-079",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-24T18:22:49+00:00"
+    },
+    {
+      "from": "ISS-080",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-24T18:22:49+00:00"
+    },
+    {
+      "from": "TASK-087",
+      "to": "ISS-079",
+      "type": "addresses",
+      "created_at": "2026-08-24T18:22:49+00:00"
+    },
+    {
+      "from": "TASK-088",
+      "to": "ISS-080",
+      "type": "addresses",
+      "created_at": "2026-08-24T18:22:49+00:00"
+    },
+    {
+      "from": "CHG-085",
+      "to": "ISS-079",
+      "type": "resolves",
+      "created_at": "2026-08-24T18:22:49+00:00"
+    },
+    {
+      "from": "CHG-085",
+      "to": "ISS-080",
+      "type": "resolves",
+      "created_at": "2026-08-24T18:22:49+00:00"
+    },
+    {
+      "from": "CHG-085",
+      "to": "TASK-087",
+      "type": "implements",
+      "created_at": "2026-08-24T18:22:50+00:00"
+    },
+    {
+      "from": "CHG-085",
+      "to": "TASK-088",
+      "type": "implements",
+      "created_at": "2026-08-24T18:22:50+00:00"
     }
   ]
 }
