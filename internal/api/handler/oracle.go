@@ -99,8 +99,7 @@ func (h *OracleHandler) CreateSource(w http.ResponseWriter, r *http.Request) {
 		Path     string `json:"path"`
 		Interval int    `json:"interval"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -149,8 +148,7 @@ func (h *OracleHandler) SetSourceEnabled(w http.ResponseWriter, r *http.Request)
 	var req struct {
 		Enabled *bool `json:"enabled"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	if req.Enabled == nil {
@@ -194,8 +192,7 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Source string `json:"source"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 

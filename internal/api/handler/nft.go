@@ -44,8 +44,7 @@ func (h *NFTHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		TokenURI    string `json:"token_uri"`
 		Creator     string `json:"creator"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -73,8 +72,7 @@ func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		To         string `json:"to"`
 		PrivateKey string `json:"private_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -100,8 +98,7 @@ func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		Owner      string `json:"owner"`
 		PrivateKey string `json:"private_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 

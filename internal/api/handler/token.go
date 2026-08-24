@@ -54,8 +54,7 @@ func (h *TokenHandler) Approve(w http.ResponseWriter, r *http.Request) {
 		Amount     string `json:"amount"`
 		PrivateKey string `json:"private_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -109,8 +108,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		TotalSupply string `json:"total_supply"`
 		Owner       string `json:"owner"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -137,8 +135,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		Amount     string `json:"amount"`
 		PrivateKey string `json:"private_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -166,8 +163,7 @@ func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		Amount     string `json:"amount"`
 		PrivateKey string `json:"private_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -195,8 +191,7 @@ func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		Amount     string `json:"amount"`
 		PrivateKey string `json:"private_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -320,8 +315,7 @@ func (h *TokenHandler) TransferFrom(w http.ResponseWriter, r *http.Request) {
 		Spender    string `json:"spender"`
 		SpenderKey string `json:"spender_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 

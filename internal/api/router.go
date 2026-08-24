@@ -53,6 +53,11 @@ func newRouter(s *Server) http.Handler {
 	apiKey := config.GetAPIKey()
 
 	r.Group(func(api chi.Router) {
+		// Bounded JSON bodies outermost in the group: a client (rate limiting
+		// is off by default) must not be able to stream an unbounded body into
+		// the handlers, so the cap applies irrespective of the limiter and
+		// even before auth rejects the request (v1.71, ISS-077).
+		api.Use(apimw.BodyLimit)
 		// Optional per-client rate limiting on the protected API (v1.19),
 		// applied before auth so even unauthenticated abuse is bounded.
 		// Disabled by default; enable via api.rateLimit.enabled.
