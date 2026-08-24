@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.74 bounded metrics label cardinality complete
+**Current focus:** v1.75 consistent online backups complete
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.74 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels)
+Status: v1.24–v1.75 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels, consistent online backups)
 Last activity: 2026-08-25 — v1.73 closed (fleet deep-dive finds at the cmd/api
   boundary): config.Load — only used by cmd/api — never read AURORA_API_KEY
   (no AutomaticEnv/BindEnv in the API binary), so production always failed
@@ -22,7 +22,7 @@ Last activity: 2026-08-25 — v1.73 closed (fleet deep-dive finds at the cmd/api
   subscribed in server.go. Regressions: env-key config test +
   TestTokenAudit_TransferAppearsInHistoryOverHTTP (TASK-087/088, ISS-079/080,
   CHG-085 / cd5387b).
-  RIL graph at round 84.
+  RIL graph at round 85.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
@@ -52,11 +52,12 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.72 | In-transaction nonce deadlock (v1.70 regression) | ✅ done |
 | v1.73 | cmd/api secrets + audit-trail wiring | ✅ done |
 | v1.74 | Unbounded metrics label cardinality (whitelist + other bucket) | ✅ done |
+| v1.75 | Backups stale under live WAL server (VACUUM INTO snapshot) | ✅ done |
 
 ## Session Continuity
 
-Last session: 2026-08-25 — v1.74 bounded metrics label cardinality
+Last session: 2026-08-25 — v1.75 consistent online backups
 Next: continue graph-engineering loop on the fleet deep-dive backlog
-  (verified remaining candidates: backup WAL-copy staleness while live;
-  phantom on-chain blocks on rolled-back txs; CLI tui exits 0 on failure;
-  API-key-in-HTML accepted tech-debt note)
+  (verified remaining candidates: phantom on-chain blocks on rolled-back
+  txs — record accepted-tradeoff decision; CLI tui exits 0 on failure;
+  API-key-in-HTML documented tech debt)
