@@ -2371,7 +2371,16 @@ func newTestServiceWithRepo(repo *mockRepository, eventStore *mockEventStore) *T
 	return NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), &mockBlockWriter{})
 }
 
-func TestTransfer_AtomicityRollbackOnPublishFailure(t *testing.T) {
+// TestTransfer_PublishFailureDoesNotRollbackCommittedTransfer encodes the
+// post-ISS-074 contract: the audit event is published AFTER the token
+// transaction commits (the event bus writes to a separate events store that a
+// token DB rollback cannot undo — and must not abort a value transfer). A
+// failing event publish therefore surfaces as an error from the service but
+// leaves the already-committed transfer in place. The previous behavior
+// (publish INSIDE the tx) inverted this: the publish could be rolled back
+// together with the token state only because both sat in one in-memory mock,
+// which is impossible across the real tokens.db / events.db split.
+func TestTransfer_PublishFailureDoesNotRollbackCommittedTransfer(t *testing.T) {
 	repo := &mockRepository{
 		tokens:    make(map[TokenID]*Token),
 		balances:  make(map[string]*Amount),
@@ -2404,9 +2413,11 @@ func TestTransfer_AtomicityRollbackOnPublishFailure(t *testing.T) {
 		t.Error("expected error when event publish fails")
 	}
 
+	// The transfer itself is committed: publish runs after the commit, so an
+	// event-store outage loses the audit event, never the transfer.
 	fromBalance := repo.balances[string(token.ID())+string(owner)]
-	if fromBalance.Int64() != 1000 {
-		t.Errorf("from balance should be unchanged (1000), got %d", fromBalance.Int64())
+	if fromBalance.Int64() != 700 {
+		t.Errorf("from balance should be committed (700), got %d", fromBalance.Int64())
 	}
 }
 
@@ -2620,6 +2631,147 @@ func TestTransfer_AtomicityTransactionFailureDoesNotCorruptState(t *testing.T) {
 	if toBalance != nil {
 		t.Errorf("to balance should be nil (not created), got %v", toBalance)
 	}
+}
+
+// TestTxRollback_DoesNotPublishPhantomEvent is the regression test for
+// ISS-074: Mint/Transfer/TransferFrom/Burn used to publish their audit event
+// INSIDE the TxManager transaction. The event bus writes to a separate events
+// store (events.db) that the token DB rollback cannot undo, so when a later
+// step in the same transaction failed (e.g. the atomic balance primitive
+// returns ErrInsufficientBalance under a concurrent double-spend) the event
+// was already persisted — leaving a phantom event in GetTransferHistory even
+// though the transfer never happened.
+//
+// After the fix the event is published only AFTER WithTransaction commits;
+// a rolled-back transaction therefore publishes nothing.
+//
+// Pre-fix each case below ends with eventStore.{type}Events non-empty; the
+// fix makes them empty. A positive control (successful transfer) still
+// persists exactly one event, so the audit trail is not lost on the happy path.
+func TestTxRollback_DoesNotPublishPhantomEvent(t *testing.T) {
+	newService := func() (*mockRepository, *mockEventStore, *TokenService, *mockTxManager) {
+		repo := &mockRepository{
+			tokens:    make(map[TokenID]*Token),
+			balances:  make(map[string]*Amount),
+			approvals: make(map[string]*Approval),
+		}
+		eventStore := NewMockEventStore()
+		chain := blockchain.NewBlockChain()
+		replay := newMockReplayProtection()
+		eventBus := newMockEventBus(eventStore)
+		txManager := newMockTxManagerWithRepo(repo)
+		service := NewService(repo, txManager, eventBus, eventStore, replay, chain)
+		return repo, eventStore, service, txManager
+	}
+
+	owner := pubKey(1)
+	privateKey := privKey(1)
+	recipient := pubKey(2)
+
+	t.Run("mint rolls back without publishing a mint event", func(t *testing.T) {
+		repo, eventStore, service, _ := newService()
+		if _, err := service.CreateToken(&CreateTokenRequest{
+			Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
+		}); err != nil {
+			t.Fatalf("CreateToken failed: %v", err)
+		}
+
+		// Publish happens (pre-fix) before TryAddBalance; fail the balance
+		// write so the transaction rolls back after publish already ran.
+		repo.tryAddBalanceError = true
+		_, err := service.Mint(&MintRequest{TokenID: "TEST", To: recipient, Amount: NewAmount(100), PrivateKey: privateKey})
+		if err == nil {
+			t.Fatal("mint must fail when a tx step fails")
+		}
+		if len(eventStore.mintEvents) != 0 {
+			t.Errorf("no phantom mint event after rollback, got %d", len(eventStore.mintEvents))
+		}
+	})
+
+	t.Run("transfer rolls back without publishing a transfer event", func(t *testing.T) {
+		repo, eventStore, service, _ := newService()
+		if _, err := service.CreateToken(&CreateTokenRequest{
+			Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
+		}); err != nil {
+			t.Fatalf("CreateToken failed: %v", err)
+		}
+		repo.balances[string("TEST")+string(owner)] = NewAmount(1000)
+
+		// Publish happens (pre-fix) before TrySubtractBalance; fail the debit
+		// so the transaction rolls back after publish already ran.
+		repo.trySubtractBalanceError = true
+		_, err := service.Transfer(&TransferRequest{TokenID: "TEST", From: owner, To: recipient, Amount: NewAmount(100), PrivateKey: privateKey})
+		if err == nil {
+			t.Fatal("transfer must fail when a tx step fails")
+		}
+		if len(eventStore.transferEvents) != 0 {
+			t.Errorf("no phantom transfer event after rollback, got %d", len(eventStore.transferEvents))
+		}
+	})
+
+	t.Run("transferfrom rolls back without publishing a transfer event", func(t *testing.T) {
+		repo, eventStore, service, _ := newService()
+		if _, err := service.CreateToken(&CreateTokenRequest{
+			Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
+		}); err != nil {
+			t.Fatalf("CreateToken failed: %v", err)
+		}
+		repo.balances[string("TEST")+string(owner)] = NewAmount(1000)
+		repo.approvals[string("TEST")+string(owner)+string(recipient)] = NewApproval("TEST", owner, recipient, NewAmount(500))
+
+		// Publish happens (pre-fix) before TryDeductApproval; fail the
+		// allowance deduction so the transaction rolls back after publish.
+		repo.tryDeductApprovalError = true
+		_, err := service.TransferFrom(&TransferFromRequest{
+			TokenID: "TEST", Owner: owner, To: pubKey(3), Amount: NewAmount(100),
+			Spender: recipient, SpenderKey: privKey(2),
+		})
+		if err == nil {
+			t.Fatal("transferfrom must fail when a tx step fails")
+		}
+		if len(eventStore.transferEvents) != 0 {
+			t.Errorf("no phantom transferfrom event after rollback, got %d", len(eventStore.transferEvents))
+		}
+	})
+
+	t.Run("burn rolls back without publishing a burn event", func(t *testing.T) {
+		repo, eventStore, service, _ := newService()
+		if _, err := service.CreateToken(&CreateTokenRequest{
+			Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
+		}); err != nil {
+			t.Fatalf("CreateToken failed: %v", err)
+		}
+		repo.balances[string("TEST")+string(owner)] = NewAmount(1000)
+
+		// Publish happens (pre-fix) before TrySubtractBalance; fail the debit
+		// so the transaction rolls back after publish already ran.
+		repo.trySubtractBalanceError = true
+		_, err := service.Burn(&BurnRequest{TokenID: "TEST", From: owner, Amount: NewAmount(100), PrivateKey: privateKey})
+		if err == nil {
+			t.Fatal("burn must fail when a tx step fails")
+		}
+		if len(eventStore.burnEvents) != 0 {
+			t.Errorf("no phantom burn event after rollback, got %d", len(eventStore.burnEvents))
+		}
+	})
+
+	t.Run("successful transfer still publishes exactly one event", func(t *testing.T) {
+		// Positive control: the audit trail is preserved on the happy path.
+		repo, eventStore, service, _ := newService()
+		if _, err := service.CreateToken(&CreateTokenRequest{
+			Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
+		}); err != nil {
+			t.Fatalf("CreateToken failed: %v", err)
+		}
+		repo.balances[string("TEST")+string(owner)] = NewAmount(1000)
+
+		if _, err := service.Transfer(&TransferRequest{TokenID: "TEST", From: owner, To: recipient, Amount: NewAmount(100), PrivateKey: privateKey}); err != nil {
+			t.Fatalf("Transfer failed: %v", err)
+		}
+		if len(eventStore.transferEvents) != 1 {
+			t.Errorf("successful transfer persists exactly one event, got %d", len(eventStore.transferEvents))
+		}
+	})
 }
 
 type failingEventBus struct {

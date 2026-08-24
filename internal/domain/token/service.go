@@ -322,10 +322,6 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 			return err
 		}
 
-		if err := s.eventBus.Publish(event); err != nil {
-			return err
-		}
-
 		// Atomic add: closes the race where two concurrent Mints
 		// to the same account both read currentBalance, compute
 		// currentBalance + amount, and one overwrites the other.
@@ -335,8 +331,15 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 
 		return nil
 	})
-
 	if err != nil {
+		return nil, err
+	}
+
+	// The audit event is published only AFTER the transaction commits
+	// (ISS-074). eventBus writes to its own events store, which a token DB
+	// rollback cannot undo, so publishing inside the transaction left a
+	// phantom event behind whenever a later step rolled the mint back.
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
@@ -396,10 +399,6 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 			return err
 		}
 
-		if err := s.eventBus.Publish(event); err != nil {
-			return err
-		}
-
 		// Atomic subtract: closes the TOCTOU race where two
 		// concurrent transfers both read fromBalance, both pass
 		// the check, and both write back (fromBalance - amount).
@@ -420,8 +419,13 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 
 		return nil
 	})
-
 	if err != nil {
+		return nil, err
+	}
+
+	// Publish the audit event only after the transaction commits (ISS-074);
+	// see the identical note in Mint.
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
@@ -495,10 +499,6 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 			return err
 		}
 
-		if err := s.eventBus.Publish(event); err != nil {
-			return err
-		}
-
 		// All three mutations (allowance deduction, owner debit,
 		// recipient credit) run in the same transaction. If any
 		// step fails the transaction rolls back, so the allowance
@@ -524,8 +524,13 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 
 		return nil
 	})
-
 	if err != nil {
+		return nil, err
+	}
+
+	// Publish the audit event only after the transaction commits (ISS-074);
+	// see the identical note in Mint.
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
@@ -704,10 +709,6 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
 		r := s.txRepo(tx)
 
-		if err := s.eventBus.Publish(event); err != nil {
-			return err
-		}
-
 		// Atomic balance subtract: closes the TOCTOU race the
 		// pre-fix path had, where two concurrent burns both
 		// read the same balance, both passed the Cmp(amount)
@@ -729,8 +730,13 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 
 		return nil
 	})
-
 	if err != nil {
+		return nil, err
+	}
+
+	// Publish the audit event only after the transaction commits (ISS-074);
+	// see the identical note in Mint.
+	if err := s.eventBus.Publish(event); err != nil {
 		return nil, err
 	}
 
