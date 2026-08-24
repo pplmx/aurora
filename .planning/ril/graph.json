@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 83,
+  "round": 84,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T18:29:17+00:00",
+  "updated_at": "2026-08-24T18:40:02+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 82,
+      "touched_round": 83,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -3975,6 +3975,42 @@
       "touched_round": 82,
       "commit": "cd5387b",
       "title": "config.Load binds AURORA_API_KEY; server.go subscribes audit+stats handlers; env+history regression tests (v1.73, ISS-079 + ISS-080)"
+    },
+    "ISS-081": {
+      "id": "ISS-081",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T18:36:22+00:00",
+      "updated_at": "2026-08-24T18:37:48+00:00",
+      "touched_round": 83,
+      "title": "Unbounded metric-label cardinality -> remote OOM: classifyModule labels requests by the raw third URL path segment and the metrics middleware is outermost (router.go:31, before APIKeyAuth and route matching), so an unauthenticated client can request /api/v1/arbitrary-{i}/x and grow distinct module labels (moduleTotal + moduleStatus submaps, never evicted) and the unauthenticated /metrics payload without bound. Fix: label only the fixed registered route roots, fold everything else into a single other bucket."
+    },
+    "TASK-089": {
+      "id": "TASK-089",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T18:36:22+00:00",
+      "updated_at": "2026-08-24T18:37:48+00:00",
+      "touched_round": 83,
+      "category": "security",
+      "severity": 0.7,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Bound metrics module-label cardinality: whitelist real route roots, one other bucket"
+    },
+    "CHG-086": {
+      "id": "CHG-086",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T18:36:22+00:00",
+      "updated_at": "2026-08-24T18:36:22+00:00",
+      "touched_round": 83,
+      "commit": "9daab18",
+      "title": "classifyModule whitelist + other bucket; bounded-cardinality registry regression test (v1.74, ISS-081)"
     }
   },
   "edges": [
@@ -6149,6 +6185,30 @@
       "to": "TASK-088",
       "type": "implements",
       "created_at": "2026-08-24T18:22:50+00:00"
+    },
+    {
+      "from": "ISS-081",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-24T18:37:48+00:00"
+    },
+    {
+      "from": "TASK-089",
+      "to": "ISS-081",
+      "type": "addresses",
+      "created_at": "2026-08-24T18:37:48+00:00"
+    },
+    {
+      "from": "CHG-086",
+      "to": "ISS-081",
+      "type": "resolves",
+      "created_at": "2026-08-24T18:37:48+00:00"
+    },
+    {
+      "from": "CHG-086",
+      "to": "TASK-089",
+      "type": "implements",
+      "created_at": "2026-08-24T18:37:48+00:00"
     }
   ]
 }
