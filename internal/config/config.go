@@ -77,6 +77,19 @@ func Load() (*Config, error) {
 	// interval still gates when each feed is due; this is how often it checks.
 	viper.SetDefault("oracle.scheduler.checkInterval", time.Second)
 
+	// The documented production mechanism for the API key is the
+	// AURORA_API_KEY environment variable (ErrMissingAPIKey names it), but
+	// Load() is called only by cmd/api, which never invoked AutomaticEnv the
+	// way the CLI's root.go does — and default env matching would look for
+	// "API.KEY", not "AURORA_API_KEY". Without this binding, cfg.API.Key was
+	// always empty: production started with ErrMissingAPIKey even when the
+	// operator set AURORA_API_KEY, and dev mode generated a fresh random key
+	// on every boot (printing it to stdout and silently invalidating the key
+	// already embedded in served web pages). Bind the documented variable now
+	// so both paths receive the operator's key (v1.73, ISS-079).
+	viper.AutomaticEnv()
+	_ = viper.BindEnv("api.key", "AURORA_API_KEY")
+
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err

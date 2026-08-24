@@ -163,6 +163,43 @@ func TestLoad_ProductionRejectsInsecureKeys(t *testing.T) {
 	}
 }
 
+// TestLoad_APIKey_BindsAURORA_APIKeyEnv is the ISS-079 regression: Load() is
+// the API server's only config path (cmd/api is its sole caller) and never
+// read the documented AURORA_API_KEY variable, so production always failed
+// with ErrMissingAPIKey even when the operator had set it (the CLI's
+// AutomaticEnv in root.go does not help cmd/api). It must now resolve from
+// the env var in both modes, and in dev mode must not silently mint a fresh
+// random key that invalidates already-served web pages.
+func TestLoad_APIKey_BindsAURORA_APIKeyEnv(t *testing.T) {
+	t.Run("production", func(t *testing.T) {
+		resetViper()
+		t.Setenv("AURORA_ENV", "production")
+		t.Setenv("AURORA_API_KEY", "live_secure_random_value_xyz_123")
+		cfg, err := Load()
+		require.NoError(t, err, "production must start when AURORA_API_KEY is set")
+		require.Equal(t, "live_secure_random_value_xyz_123", cfg.API.Key)
+	})
+
+	t.Run("development", func(t *testing.T) {
+		resetViper()
+		setDevEnv(t)
+		t.Setenv("AURORA_API_KEY", "dev-fixed-key")
+		cfg, err := Load()
+		require.NoError(t, err)
+		require.Equal(t, "dev-fixed-key", cfg.API.Key, "a set env key must be honored, not regenerated per boot")
+
+		resetViper()
+		setDevEnv(t)
+		out := captureStdout(t, func() {
+			cfg, err := Load()
+			require.NoError(t, err)
+			require.NotEmpty(t, cfg.API.Key)
+		})
+		require.NotContains(t, out, "Generated development API key:",
+			"with AURORA_API_KEY set, no fresh key must be printed")
+	})
+}
+
 func TestLoad_ProductionAcceptsSecureKey(t *testing.T) {
 	resetViper()
 	t.Setenv("AURORA_ENV", "production")
