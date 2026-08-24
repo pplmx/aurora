@@ -1,11 +1,15 @@
 package metrics
 
 import (
+	"bufio"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRegistry_ObserveAndExpose(t *testing.T) {
@@ -105,12 +109,20 @@ func TestMiddleware_StreamingInterfaces(t *testing.T) {
 }
 func TestClassifyModule(t *testing.T) {
 	cases := []struct{ path, want string }{
+		// Real registered route roots keep their own label.
 		{"/api/v1/token/transfer", "token"},
 		{"/api/v1/nft/mint", "nft"},
 		{"/api/v1/voting/vote", "voting"},
 		{"/api/v1/lottery/create", "lottery"},
 		{"/api/v1/oracle/fetch", "oracle"},
-		{"/api/v1/unknown/x", "unknown"},
+		{"/api/v1/blockchain/info", "blockchain"},
+		// Anything that is not one of the fixed route roots collapses into a
+		// single "other" bucket (ISS-081): attacker-chosen path segments must
+		// never grow the label set.
+		{"/api/v1/unknown/x", "other"},
+		{"/api/v1/smoke-token-nft/x", "other"},
+		{"/api/v1/token_99/transfer", "other"},
+		{"/api/v1/", "api"},
 		{"/healthz", "health"},
 		{"/readyz", "health"},
 		{"/health", "health"},
@@ -124,6 +136,30 @@ func TestClassifyModule(t *testing.T) {
 			t.Errorf("classifyModule(%q) = %q, want %q", c.path, got, c.want)
 		}
 	}
+}
+
+// TestRegistry_UnknownModuleLabelsStayBounded is the ISS-081 regression at the
+// registry level: no matter how many distinct attacker-chosen paths are
+// observed, the per-module maps only ever hold the known modules plus the
+// "other" bucket, so memory and /metrics payload do not grow without bound.
+func TestRegistry_UnknownModuleLabelsStayBounded(t *testing.T) {
+	reg := NewRegistry()
+	for i := 0; i < 1000; i++ {
+		reg.Observe(http.StatusNotFound, time.Millisecond,
+			classifyModule("/api/v1/arbitrary-"+strconv.Itoa(i)+"/max"))
+	}
+
+	var counted int
+	out := reg.Expose()
+	sc := bufio.NewScanner(strings.NewReader(out))
+	for sc.Scan() {
+		if strings.HasPrefix(sc.Text(), "http_requests_by_module{") {
+			counted++
+		}
+	}
+	// token, nft, voting, lottery, oracle, blockchain, api, health, metrics,
+	// static, other + any status-only lines — module lines must stay tiny.
+	require.Less(t, counted, 15, "distinct module labels must be bounded; /metrics payload grew: %d", counted)
 }
 
 func TestRegistry_PerModuleExpose(t *testing.T) {

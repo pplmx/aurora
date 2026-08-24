@@ -31,18 +31,32 @@ func Middleware(reg *Registry) func(http.Handler) http.Handler {
 	}
 }
 
+// knownAPIModules is the fixed set of route roots registered in
+// api.newRouter under /api/v1/. classifyModule may emit a label only from this
+// set; anything else falls into the single "other" bucket. Previously the raw
+// third path segment was used verbatim, so an unauthenticated client could
+// request /api/v1/<attacker-chosen>-{i}/... and grow distinct module labels
+// (and /metrics payload) without bound — a remote memory-exhaustion path,
+// since the metrics middleware is outermost, before auth (ISS-081).
+var knownAPIModules = map[string]struct{}{
+	"token": {}, "nft": {}, "voting": {}, "lottery": {}, "oracle": {}, "blockchain": {},
+}
+
 // classifyModule buckets a request path into a small set of high-level labels
 // for the per-module metrics. API routes live under /api/v1/<module> (token,
-// nft, voting, lottery, oracle); health and metrics endpoints and the static
-// web UI are separate buckets. Grouping by module (rather than full route
-// pattern) keeps the label cardinality bounded while still showing which
+// nft, voting, lottery, oracle, blockchain); health and metrics endpoints and
+// the static web UI are separate buckets. Grouping by module (rather than full
+// route pattern) keeps the label cardinality bounded while still showing which
 // subsystem a request touched.
 func classifyModule(path string) string {
 	switch {
 	case strings.HasPrefix(path, "/api/v1/"):
 		parts := strings.Split(strings.Trim(path, "/"), "/")
 		if len(parts) >= 3 && parts[2] != "" {
-			return parts[2]
+			if _, ok := knownAPIModules[parts[2]]; ok {
+				return parts[2]
+			}
+			return "other"
 		}
 		return "api"
 	case path == "/" || strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/readyz"):
