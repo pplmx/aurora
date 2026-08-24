@@ -225,3 +225,15 @@ func TestOracleSchedulerCheckInterval_DefaultAndOverride(t *testing.T) {
 	viper.Set("oracle.scheduler.checkInterval", 5*time.Second)
 	require.Equal(t, 5*time.Second, OracleSchedulerCheckInterval())
 }
+
+func TestRateLimitTrustedProxies_DefaultEmptyAndOverride(t *testing.T) {
+	resetViper()
+	Load()
+	// Fail-safe default: no proxy is trusted by default, so the rate limiter
+	// keys every client on its true socket peer (ISS-073).
+	require.Empty(t, RateLimitTrustedProxies(), "default trusted-proxy list should be empty")
+
+	resetViper()
+	viper.Set("api.rateLimit.trustedProxies", []string{"203.0.113.10", "10.0.0.0/8"})
+	require.Equal(t, []string{"203.0.113.10", "10.0.0.0/8"}, RateLimitTrustedProxies())
+}

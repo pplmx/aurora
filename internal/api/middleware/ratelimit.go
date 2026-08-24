@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -77,26 +78,106 @@ func (l *FixedWindowLimiter) Reset() {
 	l.buckets = make(map[string]*windowBucket)
 }
 
-// clientRateKey returns the identifier used to rate-limit a request: the
-// client's remote address host, falling back to the peer address if it has no
-// port. The X-Real-IP / X-Forwarded-For headers from the RealIP middleware
-// already substituted r.RemoteAddr, so this is the effective client.
-func clientRateKey(r *http.Request) string {
-	host := r.RemoteAddr
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = h
+type peerIPKey struct{}
+
+// PeerIP returns middleware that records the socket-level peer address in the
+// request context BEFORE chi's RealIP middleware rewrites r.RemoteAddr from
+// the X-Forwarded-For / X-Real-IP / True-Client-IP headers. It MUST be
+// registered outer to middleware.RealIP. The rate limiter reads this value so
+// its per-client budget is keyed on the untrusted, unspoofable direct peer
+// rather than on a client-supplied header (v1.69, ISS-073).
+func PeerIP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), peerIPKey{}, r.RemoteAddr)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func peerFromContext(r *http.Request) (string, bool) {
+	peer, ok := r.Context().Value(peerIPKey{}).(string)
+	return peer, ok
+}
+
+// trustedProxy is one entry of the operator's trusted-proxy allow-list: either
+// a CIDR network or a single IP.
+type trustedProxy struct {
+	net    *net.IPNet
+	single net.IP
+}
+
+func (p trustedProxy) contains(ip net.IP) bool {
+	if p.net != nil {
+		return p.net.Contains(ip)
+	}
+	return p.single != nil && p.single.Equal(ip)
+}
+
+func hostOnly(addr string) string {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr
 	}
 	return host
+}
+
+// parseTrustedProxies decodes the configured allow-list into matchers.
+// Malformed entries are dropped (fail-safe: an unparseable proxy is simply
+// never trusted, which only ever over-restricts, never under-restricts).
+func parseTrustedProxies(cfgs []string) []trustedProxy {
+	out := make([]trustedProxy, 0, len(cfgs))
+	for _, c := range cfgs {
+		if _, ipnet, err := net.ParseCIDR(c); err == nil {
+			out = append(out, trustedProxy{net: ipnet})
+			continue
+		}
+		if ip := net.ParseIP(c); ip != nil {
+			out = append(out, trustedProxy{single: ip})
+		}
+	}
+	return out
+}
+
+func isTrusted(ip net.IP, proxies []trustedProxy) bool {
+	for _, p := range proxies {
+		if p.contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+// clientRateKey returns the identifier used to rate-limit a request: the
+// client's socket peer recorded by PeerIP (the true, unspoofable source).
+// Only when that peer is in the configured trusted-proxy allow-list does the
+// key fall back to r.RemoteAddr (which middleware.RealIP has already set from
+// the proxy's X-Forwarded-For / X-Real-IP / True-Client-IP header) — i.e. the
+// forwarded client behind our own proxy. A directly-connected attacker who
+// rotates those headers just rotates nothing: the key stays their peer, so
+// the budget still applies (v1.69, ISS-073).
+func clientRateKey(r *http.Request, trusted []trustedProxy) string {
+	peerHost := hostOnly(r.RemoteAddr)
+	if peer, ok := peerFromContext(r); ok {
+		peerHost = hostOnly(peer)
+	}
+	if ip := net.ParseIP(peerHost); ip != nil && isTrusted(ip, trusted) {
+		return hostOnly(r.RemoteAddr)
+	}
+	return peerHost
 }
 
 // RateLimit returns middleware that rejects clients exceeding their per-window
 // budget with HTTP 429 and a Retry-After header. Rejected responses are JSON
 // and increment no handler-specific state. The middleware is safe for
-// concurrent use.
-func RateLimit(limiter *FixedWindowLimiter) func(http.Handler) http.Handler {
+// concurrent use. trustedProxies names the reverse proxies/CDNs whose
+// forwarded client headers the limiter may believe (see clientRateKey).
+//
+// Register PeerIP outer to middleware.RealIP (as the router does) so the
+// socket peer is captured before header substitution.
+func RateLimit(limiter *FixedWindowLimiter, trustedProxies []string) func(http.Handler) http.Handler {
+	trusted := parseTrustedProxies(trustedProxies)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !limiter.Allow(clientRateKey(r)) {
+			if !limiter.Allow(clientRateKey(r, trusted)) {
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("Retry-After", "60")
 				w.WriteHeader(http.StatusTooManyRequests)

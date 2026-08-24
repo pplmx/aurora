@@ -63,6 +63,11 @@ func Load() (*Config, error) {
 	viper.SetDefault("api.rateLimit.enabled", false)
 	viper.SetDefault("api.rateLimit.requests", 120)
 	viper.SetDefault("api.rateLimit.window", time.Minute)
+	// Rate limiter trusts X-Forwarded-For / X-Real-IP / True-Client-IP ONLY
+	// when the direct TCP peer is on this allow-list of proxies/CDNs
+	// (v1.69). Defaults to empty: every client keys on its socket peer, so
+	// spoofed forwarded headers can never rotate past the budget.
+	viper.SetDefault("api.rateLimit.trustedProxies", []string{})
 	// Cross-origin allow-list for API/Web UI responses. Defaults to empty:
 	// the gateway only needs same-origin access for its own Web UI, and the
 	// API key is embedded in served HTML — a wide/wildcard allow-list would
@@ -107,6 +112,14 @@ func RateLimitRequests() int {
 // RateLimitWindow returns the rate-limit window (default 1 minute).
 func RateLimitWindow() time.Duration {
 	return viper.GetDuration("api.rateLimit.window")
+}
+
+// RateLimitTrustedProxies returns the CIDRs/single IPs whose forwarded
+// client headers the rate limiter may believe (default: empty — no proxy is
+// trusted, every client keys on its socket peer). See the middleware docs in
+// internal/api/middleware/ratelimit.go for the trust model (v1.69).
+func RateLimitTrustedProxies() []string {
+	return viper.GetStringSlice("api.rateLimit.trustedProxies")
 }
 
 // OracleSchedulerCheckInterval returns how often the oracle fetch scheduler
