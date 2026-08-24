@@ -5,23 +5,24 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.72 in-transaction nonce-deadlock fix complete
+**Current focus:** v1.73 API server secrets & audit wiring complete
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.72 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix)
-Last activity: 2026-08-25 — v1.72 closed: the v1.70 BEGIN IMMEDIATE DSN
-  change exposed a latent cross-connection write — Transfer/TransferFrom
-  re-saved the claimed nonce INSIDE the transaction via the replay store's
-  own connection to the same aurora.db, deadlocking against the token tx's
-  write lock (5s busy timeout → spurious 500). The in-tx SaveNonce was
-  redundant (ClaimNextNonce already persisted it) and is removed from both
-  paths; every remaining transaction body writes only through txRepo
-  (TASK-086, ISS-078, CHG-084 / 84c5e43). Regression:
-  TestTokenTransfer_HappyPath + TestTokenNFT_Smoke… failed 3/3 pre-fix.
-  RIL graph at round 82.
+Status: v1.24–v1.73 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring)
+Last activity: 2026-08-25 — v1.73 closed (fleet deep-dive finds at the cmd/api
+  boundary): config.Load — only used by cmd/api — never read AURORA_API_KEY
+  (no AutomaticEnv/BindEnv in the API binary), so production always failed
+  ErrMissingAPIKey even with the key set and dev minted a fresh random key
+  each boot; and the server's SyncEventBus was never subscribed, silently
+  dropping every token audit event so /api/v1/token/history was permanently
+  empty on the HTTP path. Both fixed: BindEnv in Load(), audit+stats handlers
+  subscribed in server.go. Regressions: env-key config test +
+  TestTokenAudit_TransferAppearsInHistoryOverHTTP (TASK-087/088, ISS-079/080,
+  CHG-085 / cd5387b).
+  RIL graph at round 83.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
@@ -32,8 +33,9 @@ Progress: continuous loop — every resolved milestone advanced the graph;
   chi RealIP trusting client-supplied forwarded headers (v1.69),
   SQLITE_BUSY writer contention over the real pool killing concurrent
   transfers (v1.70), unbounded JSON request bodies enabling a
-  key-holder memory-exhaustion path (v1.71), and the in-transaction
-  nonce deadlock the BEGIN IMMEDIATE change surfaced (v1.72).
+  key-holder memory-exhaustion path (v1.71), the in-transaction
+  nonce deadlock the BEGIN IMMEDIATE change surfaced (v1.72), and the
+  cmd/api secrets + audit-trail wiring gaps (v1.73).
 
 ## Milestone History (recent)
 
@@ -48,9 +50,13 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.70 | SQLite writer contention (SQLITE_BUSY) over the real pool | ✅ done |
 | v1.71 | Unbounded JSON request bodies (4 MiB cap, 413) | ✅ done |
 | v1.72 | In-transaction nonce deadlock (v1.70 regression) | ✅ done |
+| v1.73 | cmd/api secrets + audit-trail wiring | ✅ done |
 
 ## Session Continuity
 
-Last session: 2026-08-25 — v1.72 fixed the in-tx nonce deadlock (v1.70 regression)
-Next: continue graph-engineering deep-dive for the next milestone (backlog
-  empty after v1.72 — next candidate to surface via deep-dive)
+Last session: 2026-08-25 — v1.73 wired AURORA_API_KEY + audit handlers into the API server
+Next: continue graph-engineering loop on the fleet deep-dive backlog
+  (verified candidates: unbounded metrics label cardinality → OOM;
+  backup WAL-copy staleness while live; phantom on-chain blocks on
+  rolled-back txs; CLI tui exits 0 on failure; API-key-in-HTML accepted
+  tech-debt note)
