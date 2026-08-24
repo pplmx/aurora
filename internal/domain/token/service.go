@@ -395,9 +395,14 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
 		r := s.txRepo(tx)
 
-		if err := s.replay.SaveNonce(string(req.TokenID), req.From, nonce); err != nil {
-			return err
-		}
+		// ClaimNextNonce above already persisted the nonce atomically on the
+		// replay store's own connection, so re-saving it here would be a
+		// no-op — and where that store shares the token DB file (the API
+		// server wiring), this write through a SECOND connection would
+		// deadlock against this transaction's write lock (BEGIN IMMEDIATE,
+		// v1.70 / ISS-076): the tx would wait on the separate
+		// SaveNonce while SaveNonce waits for the tx's lock, tripping the 5s
+		// busy timeout into a spurious 500 (ISS-078).
 
 		// Atomic subtract: closes the TOCTOU race where two
 		// concurrent transfers both read fromBalance, both pass
@@ -495,9 +500,11 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
 		r := s.txRepo(tx)
 
-		if err := s.replay.SaveNonce(string(req.TokenID), req.Spender, nonce); err != nil {
-			return err
-		}
+		// No replay.SaveNonce here for the same reason as Transfer: the
+		// nonce was already persisted atomically by ClaimNextNonce above, and
+		// writing it again via the replay store's separate connection would
+		// deadlock against this transaction's write lock where both share the
+		// same SQLite file (v1.70 / ISS-076, see Transfer).
 
 		// All three mutations (allowance deduction, owner debit,
 		// recipient credit) run in the same transaction. If any
