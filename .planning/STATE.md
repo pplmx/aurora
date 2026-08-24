@@ -5,30 +5,36 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.69 rate-limit spoof-bypass hardening complete
+**Current focus:** v1.70 SQLite writer-contention hardening complete
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.69 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening)
-Last activity: 2026-08-24 — v1.69 closed: per-client rate limiting is keyed
-  on the true socket peer captured by the new PeerIP middleware BEFORE chi's
-  RealIP rewrites r.RemoteAddr from X-Forwarded-For / X-Real-IP /
-  True-Client-IP; forwarded headers are believed only for peers on the new
-  api.rateLimit.trustedProxies allow-list (default empty, fail-safe), so
-  rotating spoofed headers no longer grants a fresh budget (TASK-083,
-  ISS-073, CHG-081 / c2ee489). TASK-082 left active by the v1.68 close was
-  also marked resolved (bookkeeping).
-  RIL graph at round 79.
+Status: v1.24–v1.70 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization)
+Last activity: 2026-08-25 — v1.70 closed: multi-statement write transactions
+  (token mint/transfer/transferFrom/burn, voting, NFT) used a deferred BEGIN
+  and grabbed the SQLite write lock mid-transaction after a read snapshot —
+  over the API's real unlimited pool concurrent writers collided and ~60% of
+  16 transfer-shaped transactions failed with SQLITE_BUSY (500s). Every
+  write-path DSN is now hardened: `_txlock=immediate` (BEGIN IMMEDIATE
+  serializes writers, removing the un-waitable SQLITE_BUSY_SNAPSHOT class)
+  + `_busy_timeout=5000`, via a shared `dsn()` helper for token/nft/lottery/
+  oracle, inline on the blockchain/voting InitDB singleton, and a
+  `_busy_timeout` on the event store (single-INSERT only) (TASK-084, ISS-076,
+  CHG-082 / 6e2697a). Regression: 24 concurrent transfers all commit with
+  exact ledger accounting.
+  RIL graph at round 80.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
   baseline test-suite regression (v1.64), a silent backup data-loss path
   (v1.65), an NFT audit-history collapse (v1.66), a non-atomic nonce claim
   that broke under a real SQLite pool (v1.67), a phantom-event leak on
-  token transaction rollback (v1.68), and a rate-limit spoof bypass via
-  chi RealIP trusting client-supplied forwarded headers (v1.69).
+  token transaction rollback (v1.68), a rate-limit spoof bypass via
+  chi RealIP trusting client-supplied forwarded headers (v1.69), and
+  SQLITE_BUSY writer contention over the real pool killing concurrent
+  transfers (v1.70).
 
 ## Milestone History (recent)
 
@@ -40,9 +46,10 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.67 | Atomic ClaimNextNonce under a real connection pool | ✅ done |
 | v1.68 | No phantom events on token tx rollback | ✅ done |
 | v1.69 | Rate-limit spoof bypass via trusted-proxy allow-list | ✅ done |
+| v1.70 | SQLite writer contention (SQLITE_BUSY) over the real pool | ✅ done |
 
 ## Session Continuity
 
-Last session: 2026-08-24 — v1.69 rate-limit spoof-bypass hardening complete
-Next: continue graph-engineering deep-dive for the next milestone (backlog:
-  backlog exhausted — fresh deep-dive to surface the next issue/task)
+Last session: 2026-08-25 — v1.70 serialized SQLite writers under the real pool
+Next: continue graph-engineering deep-dive for the next milestone (backlog
+  empty after v1.70 — next candidate to surface via deep-dive)
