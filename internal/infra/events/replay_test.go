@@ -320,6 +320,57 @@ func TestSQLiteReplayProtection_ClaimNextNonce_Concurrent(t *testing.T) {
 	}
 }
 
+// TestSQLiteReplayProtection_ClaimNextNonce_AtomicUnderConnectionPool proves
+// ClaimNextNonce stays correct when the pool can open MANY connections to the
+// same WAL file — i.e. without SetMaxOpenConns(1). The pre-fix implementation
+// ran a deferred tx of (SELECT nonce) + (INSERT ... ON CONFLICT): two
+// goroutines could each read the same snapshot, and the loser of the write
+// race surfaced a SQLITE_BUSY / SQLITE_BUSY_SNAPSHOT error (the issue notes
+// duplicate nonces in non-WAL mode). The fixed implementation must be a single
+// atomic UPSERT so every concurrent caller increments the current high-water
+// mark exactly once (TASK-081, ISS-075).
+func TestSQLiteReplayProtection_ClaimNextNonce_AtomicUnderConnectionPool(t *testing.T) {
+	rp, cleanup := setupReplayProtection(t)
+	defer cleanup()
+
+	// Deliberately do NOT SetMaxOpenConns(1): a real pool opens several
+	// connections to the same WAL file, which is exactly the scenario the
+	// pre-fix read-modify-write transaction could not survive.
+	const claimants = 64
+	var wg sync.WaitGroup
+	claimed := make(chan uint64, claimants)
+	errs := make(chan error, claimants)
+
+	for i := 0; i < claimants; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			n, err := rp.ClaimNextNonce("token-pool", []byte("owner-pool"))
+			if err != nil {
+				errs <- err
+				return
+			}
+			claimed <- n
+		}()
+	}
+	wg.Wait()
+	close(claimed)
+	close(errs)
+
+	require.Empty(t, errs, "no concurrent claim may error: real-pool claims must serialize cleanly")
+
+	// 64 callers must yield exactly {1..64}: every increment of the
+	// high-water mark is claimed exactly once, in strictly monotonic order.
+	got := make(map[uint64]bool)
+	for n := range claimed {
+		got[n] = true
+	}
+	require.Len(t, got, claimants, "each concurrent claimant must receive a distinct nonce")
+	for n := uint64(1); n <= claimants; n++ {
+		assert.True(t, got[n], "nonce %d must be claimed exactly once", n)
+	}
+}
+
 // TestSQLiteReplayProtection_ClaimNextNonce_Sequential starts at the
 // last persisted nonce + 1 — i.e. ClaimNextNonce is *strictly*
 // monotonic, never reusing or going backward.

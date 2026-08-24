@@ -26,7 +26,12 @@ type SQLiteReplayProtection struct {
 }
 
 func NewSQLiteReplayProtection(dbPath string) (*SQLiteReplayProtection, error) {
-	database, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON", dbPath))
+	// _busy_timeout: when several connections contend for the write lock (a
+	// real pool, i.e. SetMaxOpenConns > 1), a claimant whose atomic UPSERT
+	// finds the lock momentarily held waits up to 5s instead of erroring out
+	// with SQLITE_BUSY. Without it the concurrent nonce claim would
+	// intermittently fail under load (ISS-075).
+	database, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON&_busy_timeout=5000", dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -92,49 +97,35 @@ func (r *SQLiteReplayProtection) SaveNonce(tokenID string, owner []byte, nonce u
 
 // ClaimNextNonce atomically increments the nonce for (tokenID, owner)
 // and returns the new value. The increment+read happens in a single
-// UPDATE...RETURNING statement so concurrent callers each observe a
+// UPSERT...RETURNING statement so concurrent callers each observe a
 // unique monotonic sequence, closing the TOCTOU window that the
 // GetLastNonce/SaveNonce pair left open.
 //
-// Concurrency: SQLite serializes write transactions, so the conditional
-// INSERT-then-RETURNING pattern is safe across goroutines without
-// any application-level locking. We deliberately avoid the read-modify-
-// write pattern in the original SaveNonce because two readers could
-// both observe nonce=N and both write back N+1.
+// Concurrency: SQLite executes each standalone statement atomically, and a
+// single write statement (whose result it reads back) cannot interleave, so
+// this is safe across connections without any application-level locking.
+// We deliberately avoid the read-modify-write pattern — the original
+// BEGIN + SELECT + INSERT ON CONFLICT run as a *deferred* transaction that
+// takes its read snapshot before it holds the write lock, so two callers on
+// a real connection pool both read nonce=N and the loser hits SQLITE_BUSY
+// (SQLITE_BUSY_SNAPSHOT in WAL mode) — or, without WAL, silently writes a
+// duplicate nonce and signs two transfers with it (ISS-075). Evaluating
+// `nonces.nonce + 1` against the stored row inside DO UPDATE makes every
+// caller increment the current high-water mark exactly once.
 func (r *SQLiteReplayProtection) ClaimNextNonce(tokenID string, owner []byte) (uint64, error) {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 
-	tx, err := r.db.Begin()
-	if err != nil {
-		return 0, fmt.Errorf("begin tx: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	// Read the current nonce (0 if absent) inside the same tx so the
-	// read-then-update is serialized against other ClaimNextNonce
-	// callers.
-	var current uint64
-	err = tx.QueryRow(
-		`SELECT nonce FROM nonces WHERE token_id = ? AND owner = ?`,
-		tokenID, ownerB64,
-	).Scan(&current)
-	if err != nil && err != sql.ErrNoRows {
-		return 0, fmt.Errorf("read nonce: %w", err)
-	}
-
-	next := current + 1
-	_, err = tx.Exec(`
+	var next uint64
+	err := r.db.QueryRow(`
 		INSERT INTO nonces (token_id, owner, nonce)
-		VALUES (?, ?, ?)
-		ON CONFLICT(token_id, owner) DO UPDATE SET nonce = excluded.nonce
-	`, tokenID, ownerB64, next)
+		VALUES (?, ?, 1)
+		ON CONFLICT(token_id, owner) DO UPDATE SET nonce = nonces.nonce + 1
+		RETURNING nonce
+	`, tokenID, ownerB64).Scan(&next)
 	if err != nil {
-		return 0, fmt.Errorf("write nonce: %w", err)
+		return 0, fmt.Errorf("claim next nonce: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("commit: %w", err)
-	}
 	return next, nil
 }
 
