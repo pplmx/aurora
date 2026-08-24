@@ -145,3 +145,20 @@ func writeInternalError(w http.ResponseWriter) {
 func writeBadRequest(w http.ResponseWriter, message string) {
 	writeError(w, message, "INVALID_REQUEST", http.StatusBadRequest)
 }
+
+// decodeJSON decodes one JSON request body value, writing the error response
+// itself and returning false on failure. A body that trips the BodyLimit
+// middleware's http.MaxBytesReader surfaces as 413 (not the generic 400),
+// since "too large" is a distinct, actionable client error (v1.71, ISS-077).
+func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeError(w, "request body too large", "BODY_TOO_LARGE", http.StatusRequestEntityTooLarge)
+			return false
+		}
+		writeBadRequest(w, "invalid request")
+		return false
+	}
+	return true
+}

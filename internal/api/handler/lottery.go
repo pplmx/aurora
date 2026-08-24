@@ -34,8 +34,7 @@ func (h *LotteryHandler) Routes(r chi.Router) {
 
 func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateLotteryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 

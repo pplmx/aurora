@@ -52,8 +52,7 @@ func (h *VotingHandler) RegisterVoter(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name string `json:"name"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -74,8 +73,7 @@ func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request
 		Party   string `json:"party"`
 		Program string `json:"program"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -102,8 +100,7 @@ func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		StartTime    int64    `json:"start_time"`
 		EndTime      int64    `json:"end_time"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
@@ -131,8 +128,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		PrivateKey     string `json:"private_key"`
 		SessionID      string `json:"session_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeBadRequest(w, "invalid request")
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 
