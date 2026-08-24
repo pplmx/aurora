@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 80,
+  "round": 81,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T17:03:26+00:00",
+  "updated_at": "2026-08-24T17:30:37+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 76,
+      "touched_round": 80,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -3842,6 +3842,42 @@
       "touched_round": 79,
       "commit": "6e2697a",
       "title": "BEGIN IMMEDIATE + _busy_timeout=5000 on every write DSN: shared dsn() helper (token/nft/lottery/oracle), InitDB (voting/blockchain), event-store busy_timeout; regression TestTokenRepository_WithTransaction_ConcurrentNoSQLiteBusy (v1.70, ISS-076)"
+    },
+    "ISS-077": {
+      "id": "ISS-077",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T17:24:36+00:00",
+      "updated_at": "2026-08-24T17:25:28+00:00",
+      "touched_round": 80,
+      "title": "Unbounded JSON request bodies on every API handler (no http.MaxBytesReader anywhere) plus rate limiting off by default: an API-key holder can POST an arbitrarily large body (e.g. a fake lottery participants array) and the json.Decoder materializes every element, letting a few connections exhaust server memory. Fix: BodyLimit middleware (4 MiB MaxBytesReader) outermost in the /api/v1 group + decodeJSON helper mapping overflow to 413 BODY_TOO_LARGE."
+    },
+    "TASK-085": {
+      "id": "TASK-085",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T17:24:36+00:00",
+      "updated_at": "2026-08-24T17:25:28+00:00",
+      "touched_round": 80,
+      "category": "security",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "title": "Bound API request bodies (MaxBytesReader) so oversized payloads fail fast with 413"
+    },
+    "CHG-083": {
+      "id": "CHG-083",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T17:24:36+00:00",
+      "updated_at": "2026-08-24T17:24:36+00:00",
+      "touched_round": 80,
+      "commit": "cad25cd",
+      "title": "BodyLimit middleware (4 MiB) + decodeJSON 413 across all JSON handlers; middleware + real-router regression tests (v1.71, ISS-077)"
     }
   },
   "edges": [
@@ -5920,6 +5956,30 @@
       "to": "TASK-084",
       "type": "implements",
       "created_at": "2026-08-24T17:00:25+00:00"
+    },
+    {
+      "from": "ISS-077",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-24T17:25:27+00:00"
+    },
+    {
+      "from": "TASK-085",
+      "to": "ISS-077",
+      "type": "addresses",
+      "created_at": "2026-08-24T17:25:28+00:00"
+    },
+    {
+      "from": "CHG-083",
+      "to": "ISS-077",
+      "type": "resolves",
+      "created_at": "2026-08-24T17:25:28+00:00"
+    },
+    {
+      "from": "CHG-083",
+      "to": "TASK-085",
+      "type": "implements",
+      "created_at": "2026-08-24T17:25:28+00:00"
     }
   ]
 }
