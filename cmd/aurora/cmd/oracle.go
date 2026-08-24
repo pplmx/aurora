@@ -312,16 +312,17 @@ var templateAddCmd = &cobra.Command{
 var oracleTuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: i18n.GetText("oracle.tui"),
-	Run: func(cmd *cobra.Command, args []string) {
+	// RunE (not Run): repo-open and TUI failures must propagate to Execute()
+	// so the process exits 1 and the error goes to stderr — the old Run:
+	// printed to stdout and exited 0, so $?-checking scripts/CI reported
+	// success on a failed run (v1.76, ISS-083).
+	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
 		if err != nil {
-			fmt.Println("Error:", err)
-			return
+			return err
 		}
 		defer cleanup()
-		if err := oracleui.RunOracleTUI(repo); err != nil {
-			fmt.Println("Error:", err)
-		}
+		return oracleui.RunOracleTUI(repo)
 	},
 }
 

@@ -61,10 +61,12 @@ func nftChain() *blockchain.BlockChain {
 var nftTuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: i18n.GetText("nft.tui.cmd"),
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := uinftr.RunNFTUI(); err != nil {
-			fmt.Println("Error:", err)
-		}
+	// RunE (not Run): a TUI failure must propagate to Execute() so the process
+	// exits 1 and the error goes to stderr — the old Run: printed to stdout
+	// and exited 0, so $?-checking scripts/CI reported success on a failed run
+	// (v1.76, ISS-083).
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return uinftr.RunNFTUI()
 	},
 }
 

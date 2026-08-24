@@ -78,6 +78,32 @@ func TestRootCommandTree(t *testing.T) {
 	assert.Subset(t, names, []string{"create", "history", "verify", "export", "import", "stats"})
 }
 
+// TestNoCommandSilentlySwallowsErrors is the ISS-083 regression at the
+// structure level: a command that defines Run (instead of RunE) and does
+// fmt.Println("Error:", err) inside can never fail — Execute() sees nil and the
+// process exits 0, so $?-checking scripts/CI report success on a failed run
+// (the `nft tui` / `oracle tui` pattern). Every executable command in the tree
+// must use RunE; a bare Run whose errors it could swallow is forbidden.
+func TestNoCommandSilentlySwallowsErrors(t *testing.T) {
+	var runOnly []string
+	walkCommands(rootCmd, func(name string, c *cobra.Command) {
+		if c.RunE == nil && c.Run != nil {
+			runOnly = append(runOnly, name)
+		}
+	})
+	require.Empty(t, runOnly, "commands must use RunE so failures exit 1; Run-only: %v", runOnly)
+}
+
+func walkCommands(c *cobra.Command, fn func(name string, cmd *cobra.Command)) {
+	for _, sub := range c.Commands() {
+		if sub.Name() == "help" || sub.Name() == "completion" {
+			continue
+		}
+		fn(sub.Name(), sub)
+		walkCommands(sub, fn)
+	}
+}
+
 func childNames(c *cobra.Command) []string {
 	var names []string
 	for _, sub := range c.Commands() {
