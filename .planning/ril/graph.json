@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 77,
+  "round": 78,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T12:49:45+00:00",
+  "updated_at": "2026-08-24T13:41:17+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -3710,11 +3710,11 @@
     "ISS-074": {
       "id": "ISS-074",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-23T17:34:08+00:00",
-      "updated_at": "2026-08-23T17:34:08+00:00",
-      "touched_round": 76,
+      "updated_at": "2026-08-24T13:41:17+00:00",
+      "touched_round": 77,
       "title": "Token mint/transfer/transferfrom/burn publish their audit event inside the TxManager transaction, but eventBus.Publish writes to a separate events store that the token DB rollback cannot undo -- a rolled-back transfer (losing side of a concurrent double-spend) leaves a phantom event in GetTransferHistory and consumes a nonce"
     },
     "ISS-075": {
@@ -3754,6 +3754,34 @@
       "touched_round": 76,
       "commit": "ebf21e3",
       "title": "Make ClaimNextNonce atomic (single UPSERT ... RETURNING nonce) + _busy_timeout DSN; add real-pool concurrency regression test"
+    },
+    "TASK-082": {
+      "id": "TASK-082",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-24T13:40:18+00:00",
+      "updated_at": "2026-08-24T13:41:16+00:00",
+      "touched_round": 77,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "title": "Publish token audit events (Mint/Transfer/TransferFrom/Burn) only after the token transaction commits, so a rolled-back transfer no longer leaves a phantom event in GetTransferHistory; eventStore is a separate DB that the token rollback cannot undo",
+      "lock_owner": "fable-session",
+      "lock_until": "2026-08-24T15:41:16+00:00"
+    },
+    "CHG-080": {
+      "id": "CHG-080",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T13:40:18+00:00",
+      "updated_at": "2026-08-24T13:40:18+00:00",
+      "touched_round": 77,
+      "commit": "ab49c03",
+      "title": "Publish audit events after token tx commit (no phantom events on rollback) + rollback/publish-failure regression tests"
     }
   },
   "edges": [
@@ -5772,6 +5800,24 @@
       "to": "TASK-081",
       "type": "implements",
       "created_at": "2026-08-24T12:48:23+00:00"
+    },
+    {
+      "from": "TASK-082",
+      "to": "ISS-074",
+      "type": "addresses",
+      "created_at": "2026-08-24T13:40:18+00:00"
+    },
+    {
+      "from": "CHG-080",
+      "to": "ISS-074",
+      "type": "resolves",
+      "created_at": "2026-08-24T13:41:16+00:00"
+    },
+    {
+      "from": "CHG-080",
+      "to": "TASK-082",
+      "type": "implements",
+      "created_at": "2026-08-24T13:41:16+00:00"
     }
   ]
 }
