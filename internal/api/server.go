@@ -98,6 +98,14 @@ func NewServer() (*Server, error) {
 	eventReader := sqlite.NewTokenEventReader(eventStore)
 
 	eventBus := infraevents.NewSyncEventBus()
+	// The CLI wiring (app/wire.go) subscribes the audit + stats handlers to
+	// the bus; the API server path never did, so every token audit event the
+	// service publishes (mint/transfer/approve/burn/transfer_from) was
+	// silently dropped and GET /api/v1/token/history always returned empty on
+	// the HTTP server. Wire the same handlers here so the production path
+	// persists audit events to the event store (v1.73, ISS-080).
+	eventBus.SubscribeAll(infraevents.NewAuditHandler(eventStore).Handle)
+	eventBus.SubscribeAll(infraevents.NewStatsHandler().Handle)
 
 	replay, err := infraevents.NewSQLiteReplayProtection(dbPath)
 	if err != nil {
