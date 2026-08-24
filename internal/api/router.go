@@ -31,6 +31,13 @@ func newRouter(s *Server) http.Handler {
 	r.Use(metrics.Middleware(reg))
 
 	r.Use(middleware.RequestID)
+	// PeerIP MUST precede chi's RealIP: it snapshots the true socket peer
+	// into the request context before RealIP overwrites r.RemoteAddr from
+	// X-Forwarded-For / X-Real-IP / True-Client-IP. The rate limiter keys on
+	// that peer (or on the forwarded client only when the peer is a
+	// configured trusted proxy), so spoofed headers can never rotate past
+	// the budget (v1.69, ISS-073).
+	r.Use(apimw.PeerIP)
 	r.Use(middleware.RealIP)
 	r.Use(apimw.Logger)
 	r.Use(apimw.Recovery)
@@ -51,7 +58,7 @@ func newRouter(s *Server) http.Handler {
 		// Disabled by default; enable via api.rateLimit.enabled.
 		if config.RateLimitEnabled() {
 			lim := apimw.NewFixedWindowLimiter(config.RateLimitRequests(), config.RateLimitWindow(), nil)
-			api.Use(apimw.RateLimit(lim))
+			api.Use(apimw.RateLimit(lim, config.RateLimitTrustedProxies()))
 		}
 		api.Use(apimw.APIKeyAuth(apiKey))
 
