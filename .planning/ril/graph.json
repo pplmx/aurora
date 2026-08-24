@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 81,
+  "round": 82,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T17:30:37+00:00",
+  "updated_at": "2026-08-24T17:54:22+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 79,
+      "touched_round": 81,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -3878,6 +3878,42 @@
       "touched_round": 80,
       "commit": "cad25cd",
       "title": "BodyLimit middleware (4 MiB) + decodeJSON 413 across all JSON handlers; middleware + real-router regression tests (v1.71, ISS-077)"
+    },
+    "ISS-078": {
+      "id": "ISS-078",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T17:48:51+00:00",
+      "updated_at": "2026-08-24T17:49:35+00:00",
+      "touched_round": 81,
+      "title": "Deadlock regression from the v1.70 BEGIN IMMEDIATE DSN change: Transfer/TransferFrom re-save the claimed nonce INSIDE the token transaction via replay store SaveNonce (a second connection to the same aurora.db in the API server wiring). The tx holds the write lock from BEGIN (CHG-082), so that in-tx write waits on itself -> 5s busy-timeout -> SQLITE_BUSY -> spurious 500; failed TestTokenTransfer_HappyPath / TestTokenNFT_Smoke_ApproveAllowanceAndNFTKeyBinding 3/3. Fix: drop the redundant in-tx SaveNonce (ClaimNextNonce already persisted the nonce)."
+    },
+    "TASK-086": {
+      "id": "TASK-086",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T17:48:51+00:00",
+      "updated_at": "2026-08-24T17:49:35+00:00",
+      "touched_round": 81,
+      "category": "correctness",
+      "severity": 0.9,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Remove redundant in-transaction SaveNonce that deadlocks the BEGIN IMMEDIATE transfer/transferFrom path on the shared-file API wiring"
+    },
+    "CHG-084": {
+      "id": "CHG-084",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T17:48:51+00:00",
+      "updated_at": "2026-08-24T17:48:51+00:00",
+      "touched_round": 81,
+      "commit": "84c5e43",
+      "title": "Drop in-tx replay.SaveNonce from Transfer/TransferFrom; ClaimNextNonce already persisted the nonce (v1.72, ISS-078)"
     }
   },
   "edges": [
@@ -5980,6 +6016,30 @@
       "to": "TASK-085",
       "type": "implements",
       "created_at": "2026-08-24T17:25:28+00:00"
+    },
+    {
+      "from": "ISS-078",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-24T17:49:34+00:00"
+    },
+    {
+      "from": "TASK-086",
+      "to": "ISS-078",
+      "type": "addresses",
+      "created_at": "2026-08-24T17:49:35+00:00"
+    },
+    {
+      "from": "CHG-084",
+      "to": "ISS-078",
+      "type": "resolves",
+      "created_at": "2026-08-24T17:49:35+00:00"
+    },
+    {
+      "from": "CHG-084",
+      "to": "TASK-086",
+      "type": "implements",
+      "created_at": "2026-08-24T17:49:35+00:00"
     }
   ]
 }
