@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 79,
+  "round": 80,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T15:20:57+00:00",
+  "updated_at": "2026-08-24T17:03:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 76,
+      "touched_round": 79,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -3806,6 +3806,42 @@
       "touched_round": 79,
       "commit": "c2ee489",
       "title": "Key rate-limit budget on true socket peer; trusted-proxy allow-list config; PeerIP middleware captured outer to chi RealIP (v1.69, ISS-073)"
+    },
+    "ISS-076": {
+      "id": "ISS-076",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T16:58:05+00:00",
+      "updated_at": "2026-08-24T17:00:25+00:00",
+      "touched_round": 79,
+      "title": "Multi-statement WithTransaction (deferred BEGIN, read-then-write) over the API's real unlimited SQLite pool fails a large fraction of concurrent writes with SQLITE_BUSY ('database is locked'): token Mint/Transfer/TransferFrom/Burn, voting vote-creation, NFT writes and event-store publishes each hit the write lock mid-transaction after taking a read snapshot, and none of the production DSNs set _busy_timeout (only the v1.67 replay DSN did). Verified: 16 concurrent transfer-shaped transactions fail 10/16 pre-fix. Fix: _txlock=immediate (BEGIN IMMEDIATE serializes writers) + _busy_timeout=5000 on every write DSN"
+    },
+    "TASK-084": {
+      "id": "TASK-084",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-24T16:59:54+00:00",
+      "updated_at": "2026-08-24T17:00:25+00:00",
+      "touched_round": 79,
+      "category": "stability",
+      "severity": 0.9,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "title": "Hardening: serialize SQLite write transactions under the real pool"
+    },
+    "CHG-082": {
+      "id": "CHG-082",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-24T16:59:54+00:00",
+      "updated_at": "2026-08-24T16:59:54+00:00",
+      "touched_round": 79,
+      "commit": "6e2697a",
+      "title": "BEGIN IMMEDIATE + _busy_timeout=5000 on every write DSN: shared dsn() helper (token/nft/lottery/oracle), InitDB (voting/blockchain), event-store busy_timeout; regression TestTokenRepository_WithTransaction_ConcurrentNoSQLiteBusy (v1.70, ISS-076)"
     }
   },
   "edges": [
@@ -5860,6 +5896,30 @@
       "to": "TASK-083",
       "type": "implements",
       "created_at": "2026-08-24T15:20:57+00:00"
+    },
+    {
+      "from": "ISS-076",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-24T16:58:30+00:00"
+    },
+    {
+      "from": "TASK-084",
+      "to": "ISS-076",
+      "type": "addresses",
+      "created_at": "2026-08-24T17:00:25+00:00"
+    },
+    {
+      "from": "CHG-082",
+      "to": "ISS-076",
+      "type": "resolves",
+      "created_at": "2026-08-24T17:00:25+00:00"
+    },
+    {
+      "from": "CHG-082",
+      "to": "TASK-084",
+      "type": "implements",
+      "created_at": "2026-08-24T17:00:25+00:00"
     }
   ]
 }
