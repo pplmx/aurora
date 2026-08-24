@@ -48,7 +48,7 @@ func NewTokenRepository(dbPath string) (*TokenRepository, error) {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	database, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON", dbPath))
+	database, err := sql.Open("sqlite3", dsn(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

@@ -44,7 +44,13 @@ func InitDB() (*sql.DB, error) {
 			return
 		}
 
-		db, err := sql.Open("sqlite3", defaultDBPath+"?_foreign_keys=ON")
+		// _txlock=immediate + _busy_timeout: this singleton DB backs voting
+		// writes through a TxManager over a real pool, so a deferred
+		// read-then-write transaction racing a concurrent writer hits the
+		// un-waitable SQLITE_BUSY_SNAPSHOT — serialize writers at BEGIN and
+		// wait up to 5s for the lock instead (v1.70, ISS-076; same values as
+		// internal/infra/sqlite/dsn.go).
+		db, err := sql.Open("sqlite3", defaultDBPath+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
 		if err != nil {
 			dbInitErr = err
 			return

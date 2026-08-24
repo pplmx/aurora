@@ -28,7 +28,11 @@ type SQLiteEventStore struct {
 }
 
 func NewSQLiteEventStore(dbPath string) (*SQLiteEventStore, error) {
-	database, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON", dbPath))
+	// Writes are autocommit single INSERTs (no explicit transactions), so
+	// _txlock is not needed here; _busy_timeout makes a concurrent publish wait
+	// for the WAL write lock over the API pool instead of failing with
+	// SQLITE_BUSY (v1.70, ISS-076 — same value as the v1.67 replay DSN).
+	database, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON&_busy_timeout=5000", dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
