@@ -38,6 +38,13 @@ func (uc *FetchDataUseCase) SetChain(chain ChainInterface) {
 	uc.chain = chain
 }
 
+// Chain returns the on-chain recorder currently wired to the use case, or nil
+// if none. Exposed for inspection: the TASK-097 regression asserts the oracle
+// scheduler's fetch (unlike the REST handler's) is no longer running with a
+// nil chain, which silently stored every scheduler observation at
+// block_height=0.
+func (uc *FetchDataUseCase) Chain() ChainInterface { return uc.chain }
+
 func (uc *FetchDataUseCase) Execute(req *FetchDataRequest) (*FetchDataResponse, error) {
 	return uc.executeWithChain(req, uc.chain)
 }

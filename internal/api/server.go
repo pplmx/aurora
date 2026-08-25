@@ -19,17 +19,18 @@ import (
 )
 
 type Server struct {
-	db                *sql.DB
-	metrics           *metrics.Registry
-	oracleRepo        oracle.Repository
-	oracleMu          sync.Mutex
-	oracleScheduler   *oracleapp.Scheduler
-	lotteryHandler    *handler.LotteryHandler
-	votingHandler     *handler.VotingHandler
-	nftHandler        *handler.NFTHandler
-	tokenHandler      *handler.TokenHandler
-	oracleHandler     *handler.OracleHandler
-	blockchainHandler *handler.BlockchainHandler
+	db                   *sql.DB
+	metrics              *metrics.Registry
+	oracleRepo           oracle.Repository
+	oracleMu             sync.Mutex
+	oracleScheduler      *oracleapp.Scheduler
+	oracleSchedulerFetch *oracleapp.FetchDataUseCase
+	lotteryHandler       *handler.LotteryHandler
+	votingHandler        *handler.VotingHandler
+	nftHandler           *handler.NFTHandler
+	tokenHandler         *handler.TokenHandler
+	oracleHandler        *handler.OracleHandler
+	blockchainHandler    *handler.BlockchainHandler
 
 	// closers releases every SQLite handle NewServer opened (repos, event
 	// store, replay protection) plus the shared blockchain DB. Tests use
@@ -149,6 +150,12 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 		return func() {}
 	}
 	fetch := oracleapp.NewFetchDataUseCase(s.oracleRepo)
+	// Record scheduler-fetched data on-chain, consistent with the REST handler
+	// and CLI paths (NewServer: srv.oracleHandler.SetChain(blockchain.
+	// GetBlockChain())). Without SetChain the continuously running scheduler
+	// path silently skipped chain.AddLotteryRecord and stored block_height=0
+	// for every observation it persisted (TASK-097, ISS-090).
+	fetch.SetChain(blockchain.GetBlockChain())
 	runner := func(sourceID string) error {
 		_, err := fetch.Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
 		return err
@@ -156,6 +163,7 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 	sched := oracleapp.NewScheduler(s.oracleRepo, runner, checkEvery, nil)
 	s.oracleMu.Lock()
 	s.oracleScheduler = sched
+	s.oracleSchedulerFetch = fetch
 	s.oracleMu.Unlock()
 	// Expose the scheduler's fetch-health stats to the protected
 	// GET /api/v1/oracle/health endpoint (v1.33), not just /metrics/oracle.
