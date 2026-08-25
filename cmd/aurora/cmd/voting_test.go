@@ -159,6 +159,12 @@ func TestVotingSessionCreate_List_Start_End(t *testing.T) {
 		out, err = runCmd(t, "voting", "session", "end", "--id", sessionID)
 		require.NoError(t, err)
 		assert.Contains(t, out, "Session ended!")
+
+		// Re-opening an ended session is forbidden (TASK-096, ISS-088): the
+		// CLI must fail loudly instead of silently re-activating the ballot.
+		_, err = runCmd(t, "voting", "session", "start", "--id", sessionID)
+		require.Error(t, err, "restarting an ended session must be rejected")
+		assert.Contains(t, strings.ToLower(err.Error()), "ended")
 	})
 }
 
