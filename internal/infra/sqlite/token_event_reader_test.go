@@ -38,14 +38,40 @@ func (m *mockEventStore) GetByAggregate(aggID string, limit, offset int) ([]even
 // GetByAggregateAndType mirrors the SQLite store's type filter: it pages over
 // only events whose EventType matches, applying limit/offset over those rows.
 func (m *mockEventStore) GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error) {
+	return m.get(aggID, eventType, "", "", limit, offset)
+}
+
+// GetByAggregateAndTypePayload mirrors the SQLite store's payload-predicate
+// paging (TASK-093, ISS-086): pages over events matching aggregate + type AND
+// whose json "from" field equals value.
+func (m *mockEventStore) GetByAggregateAndTypePayload(aggID, eventType, payloadPath, value string, limit, offset int) ([]events.Event, error) {
+	return m.get(aggID, eventType, payloadPath, value, limit, offset)
+}
+
+// get implements the shared paging semantics of both typed-pagination methods.
+// When payloadPath is non-empty the in-memory stream is filtered by the
+// payload's "from" field to mimic the SQL json_extract predicate.
+func (m *mockEventStore) get(aggID, eventType, payloadPath, value string, limit, offset int) ([]events.Event, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	var matching []events.Event
 	for _, e := range m.events {
-		if e.AggregateID() == aggID && e.EventType() == eventType {
-			matching = append(matching, e)
+		if e.AggregateID() != aggID || e.EventType() != eventType {
+			continue
 		}
+		if payloadPath != "" {
+			var payload struct {
+				From string `json:"from"`
+			}
+			if err := json.Unmarshal(e.Payload(), &payload); err != nil {
+				continue
+			}
+			if payload.From != value {
+				continue
+			}
+		}
+		matching = append(matching, e)
 	}
 	if limit <= 0 {
 		limit = 50
