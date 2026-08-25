@@ -92,6 +92,14 @@ func (r *NFTRepository) createTables() error {
 			block_height INTEGER NOT NULL,
 			timestamp INTEGER NOT NULL
 		)`,
+		// NOTE: nft_operations deliberately carries NO foreign key to nfts.
+		// Its rows are an immutable audit trail that must outlive the NFT:
+		// Burn deletes the nfts row and the old ON DELETE CASCADE wiped
+		// every operation for the NFT inside the same transaction, including
+		// the just-saved burn op, so `nft history` / GET /api/v1/nft/{id}/
+		// operations came back empty after a successful burn (TASK-092,
+		// ISS-085). Existing databases that still have the cascade FK are
+		// rebuilt by ensureNoCascadeFK below.
 		`CREATE TABLE IF NOT EXISTS nft_operations (
 			id TEXT PRIMARY KEY,
 			nft_id TEXT NOT NULL,
@@ -100,8 +108,7 @@ func (r *NFTRepository) createTables() error {
 			to_addr TEXT,
 			signature TEXT,
 			block_height INTEGER NOT NULL,
-			timestamp INTEGER NOT NULL,
-			FOREIGN KEY (nft_id) REFERENCES nfts(id) ON DELETE CASCADE
+			timestamp INTEGER NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_nft_owner ON nfts(owner)`,
 		`CREATE INDEX IF NOT EXISTS idx_nft_creator ON nfts(creator)`,
@@ -114,6 +121,68 @@ func (r *NFTRepository) createTables() error {
 		}
 	}
 
+	return r.ensureNoCascadeFK()
+}
+
+// ensureNoCascadeFK upgrades databases created before TASK-092, whose
+// nft_operations table was defined with `FOREIGN KEY (nft_id) REFERENCES
+// nfts(id) ON DELETE CASCADE`. That cascade destroyed the NFT's whole audit
+// trail whenever Burn deleted the nfts row (the burn op it had just persisted
+// vanished with the rest). The rebuild is idempotent: once the table has no
+// FK in PRAGMA foreign_key_list it is a no-op. SQLite has no ALTER TABLE DROP
+// CONSTRAINT, so the table is re-created and copied inside one transaction.
+// nft_operations is the CHILD side of the removed FK, so dropping/renaming it
+// never triggers a constraint check against nfts (only writes to a child do),
+// which means no PRAGMA foreign_keys toggle is needed for the rebuild.
+func (r *NFTRepository) ensureNoCascadeFK() error {
+	hasFK := false
+	rows, err := r.db.Query(`PRAGMA foreign_key_list(nft_operations)`)
+	if err != nil {
+		return fmt.Errorf("inspect nft_operations foreign keys: %w", err)
+	}
+	for rows.Next() {
+		hasFK = true
+		break
+	}
+	_ = rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	if !hasFK {
+		return nil
+	}
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin nft_operations rebuild: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	rebuild := []string{
+		`CREATE TABLE nft_operations_v2 (
+			id TEXT PRIMARY KEY,
+			nft_id TEXT NOT NULL,
+			type TEXT NOT NULL,
+			from_addr TEXT,
+			to_addr TEXT,
+			signature TEXT,
+			block_height INTEGER NOT NULL,
+			timestamp INTEGER NOT NULL
+		)`,
+		`INSERT INTO nft_operations_v2 (id, nft_id, type, from_addr, to_addr, signature, block_height, timestamp)
+		 SELECT id, nft_id, type, from_addr, to_addr, signature, block_height, timestamp FROM nft_operations`,
+		`DROP TABLE nft_operations`,
+		`ALTER TABLE nft_operations_v2 RENAME TO nft_operations`,
+		`CREATE INDEX IF NOT EXISTS idx_nft_ops_nft_id ON nft_operations(nft_id)`,
+	}
+	for _, q := range rebuild {
+		if _, err := tx.Exec(q); err != nil {
+			return fmt.Errorf("rebuild nft_operations without cascade FK: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit nft_operations rebuild: %w", err)
+	}
 	return nil
 }
 
