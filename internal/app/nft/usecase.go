@@ -1,9 +1,6 @@
 package nft
 
 import (
-	"encoding/base64"
-	"fmt"
-
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 )
@@ -22,9 +19,9 @@ func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
 		return nil, nft.ErrNameRequired
 	}
 
-	creator, err := base64.StdEncoding.DecodeString(req.Creator)
+	creator, err := decodeKey("creator", req.Creator)
 	if err != nil {
-		return nil, fmt.Errorf("invalid creator: %w", err)
+		return nil, err
 	}
 
 	n := nft.NewNFT(req.Name, req.Description, req.ImageURL, req.TokenURI, creator, creator)
@@ -49,19 +46,19 @@ func NewTransferNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *T
 }
 
 func (u *TransferNFTUseCase) Execute(req *TransferNFTRequest) (*OperationResponse, error) {
-	from, err := base64.StdEncoding.DecodeString(req.From)
+	from, err := decodeKey("from", req.From)
 	if err != nil {
-		return nil, fmt.Errorf("invalid from: %w", err)
+		return nil, err
 	}
 
-	to, err := base64.StdEncoding.DecodeString(req.To)
+	to, err := decodeKey("to", req.To)
 	if err != nil {
-		return nil, fmt.Errorf("invalid to: %w", err)
+		return nil, err
 	}
 
-	privateKey, err := base64.StdEncoding.DecodeString(req.PrivateKey)
+	privateKey, err := decodeKey("privatekey", req.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
+		return nil, err
 	}
 
 	result, err := u.service.Transfer(req.NFTID, from, to, privateKey, u.chain)
@@ -82,14 +79,14 @@ func NewBurnNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *BurnN
 }
 
 func (u *BurnNFTUseCase) Execute(req *BurnNFTRequest) error {
-	owner, err := base64.StdEncoding.DecodeString(req.Owner)
+	owner, err := decodeKey("owner", req.Owner)
 	if err != nil {
-		return fmt.Errorf("invalid owner: %w", err)
+		return err
 	}
 
-	privateKey, err := base64.StdEncoding.DecodeString(req.PrivateKey)
+	privateKey, err := decodeKey("privatekey", req.PrivateKey)
 	if err != nil {
-		return fmt.Errorf("invalid private key: %w", err)
+		return err
 	}
 
 	return u.service.Burn(req.NFTID, owner, privateKey, u.chain)
@@ -123,9 +120,9 @@ func NewListNFTsByOwnerUseCase(service nft.Service) *ListNFTsByOwnerUseCase {
 }
 
 func (u *ListNFTsByOwnerUseCase) Execute(ownerB64 string) ([]*NFTResponse, error) {
-	owner, err := base64.StdEncoding.DecodeString(ownerB64)
+	owner, err := decodeKey("owner", ownerB64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid owner: %w", err)
+		return nil, err
 	}
 
 	results, err := u.service.GetNFTsByOwner(owner)

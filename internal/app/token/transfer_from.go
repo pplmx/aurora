@@ -16,24 +16,24 @@ func NewTransferFromUseCase(service token.Service) *TransferFromUseCase {
 }
 
 func (uc *TransferFromUseCase) Execute(req *TransferFromRequest) (*TransferFromResponse, error) {
-	owner, err := base64.StdEncoding.DecodeString(req.Owner)
+	owner, err := decodeKey("owner", req.Owner)
 	if err != nil {
-		return nil, fmt.Errorf("invalid owner: %w", err)
+		return nil, err
 	}
 
-	to, err := base64.StdEncoding.DecodeString(req.To)
+	to, err := decodeKey("to", req.To)
 	if err != nil {
-		return nil, fmt.Errorf("invalid to: %w", err)
+		return nil, err
 	}
 
-	spender, err := base64.StdEncoding.DecodeString(req.Spender)
+	spender, err := decodeKey("spender", req.Spender)
 	if err != nil {
-		return nil, fmt.Errorf("invalid spender: %w", err)
+		return nil, err
 	}
 
-	spenderKey, err := base64.StdEncoding.DecodeString(req.SpenderKey)
+	spenderKey, err := decodeKey("spenderKey", req.SpenderKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid spender key: %w", err)
+		return nil, err
 	}
 
 	amount, err := token.NewAmountFromString(req.Amount)

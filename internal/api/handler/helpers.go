@@ -51,6 +51,7 @@ var errorClassification = []struct {
 	{tokenerrors.ErrInvalidPublicKeyLength, http.StatusBadRequest, "INVALID_PUBLIC_KEY_LENGTH"},
 	{tokenerrors.ErrPrivateKeyRequired, http.StatusBadRequest, "PRIVATE_KEY_REQUIRED"},
 	{tokenerrors.ErrInvalidPrivateKeyLength, http.StatusBadRequest, "INVALID_PRIVATE_KEY_LENGTH"},
+	{tokenerrors.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
 
 	// NFT domain errors
 	{nfterrors.ErrNFTNotFound, http.StatusNotFound, "NFT_NOT_FOUND"},
@@ -61,6 +62,7 @@ var errorClassification = []struct {
 	{nfterrors.ErrKeyMismatch, http.StatusUnauthorized, "KEY_MISMATCH"},
 	{nfterrors.ErrInvalidPrivateKey, http.StatusBadRequest, "INVALID_PRIVATE_KEY"},
 	{nfterrors.ErrInvalidPublicKey, http.StatusBadRequest, "INVALID_PUBLIC_KEY"},
+	{nfterrors.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
 
 	// Lottery domain errors
 	{lottery.ErrNotFound, http.StatusNotFound, "LOTTERY_NOT_FOUND"},
@@ -90,6 +92,7 @@ var errorClassification = []struct {
 	{voting.ErrCandidateNotInSession, http.StatusBadRequest, "CANDIDATE_NOT_IN_SESSION"},
 	{voting.ErrAlreadyVoted, http.StatusConflict, "ALREADY_VOTED"},
 	{voting.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_VOTE_SIGNATURE"},
+	{voting.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
 	{voting.ErrVoterNameRequired, http.StatusBadRequest, "VOTER_NAME_REQUIRED"},
 	{voting.ErrCandidateNameRequired, http.StatusBadRequest, "CANDIDATE_NAME_REQUIRED"},
 	{voting.ErrSessionTitleRequired, http.StatusBadRequest, "SESSION_TITLE_REQUIRED"},

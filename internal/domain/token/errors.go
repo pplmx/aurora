@@ -33,6 +33,11 @@ var (
 	ErrInvalidPublicKeyLength  = errors.New("invalid public key length")
 	ErrPrivateKeyRequired      = errors.New("private key is required")
 	ErrInvalidPrivateKeyLength = errors.New("invalid private key length")
+	// ErrInvalidBase64 is returned when a base64-encoded key/address field
+	// cannot be decoded at all — a client input error (HTTP 400), not a server
+	// fault. Previously the raw decode error escaped unclassified and surfaced
+	// as 500 INTERNAL_ERROR (TASK-095, ISS-089).
+	ErrInvalidBase64 = errors.New("invalid base64 encoding")
 
 	// ErrAmountTooLarge is returned when an amount exceeds the range that
 	// the persistence layer can store exactly (signed 64-bit). Accepting
