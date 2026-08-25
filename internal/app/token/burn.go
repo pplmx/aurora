@@ -16,14 +16,14 @@ func NewBurnUseCase(service token.Service) *BurnUseCase {
 }
 
 func (uc *BurnUseCase) Execute(req *BurnRequest) (*BurnResponse, error) {
-	from, err := base64.StdEncoding.DecodeString(req.From)
+	from, err := decodeKey("from", req.From)
 	if err != nil {
-		return nil, fmt.Errorf("invalid from: %w", err)
+		return nil, err
 	}
 
-	privKey, err := base64.StdEncoding.DecodeString(req.PrivateKey)
+	privKey, err := decodeKey("privateKey", req.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
+		return nil, err
 	}
 
 	amount, err := token.NewAmountFromString(req.Amount)

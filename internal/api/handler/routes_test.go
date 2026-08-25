@@ -146,8 +146,10 @@ func TestNFTHandler_Mint_ServiceError(t *testing.T) {
 
 func TestNFTHandler_Transfer_ServiceError(t *testing.T) {
 	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not found")}, nil)
+	// Valid base64 keys so the decode passes and the repo error surfaces
+	// (invalid base64 is now its own 400, TASK-095/ISS-089).
 	body, _ := json.Marshal(map[string]string{
-		"nft_id": "nft-1", "from": "a", "to": "b", "private_key": "k",
+		"nft_id": "nft-1", "from": "aGVsbG8=", "to": "d29ybGQ=", "private_key": "a2V5",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/transfer", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -160,8 +162,10 @@ func TestNFTHandler_Transfer_ServiceError(t *testing.T) {
 
 func TestNFTHandler_Burn_ServiceError(t *testing.T) {
 	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not owner")}, nil)
+	// Valid base64 keys so the decode passes and the repo error surfaces
+	// (invalid base64 is now its own 400, TASK-095/ISS-089).
 	body, _ := json.Marshal(map[string]string{
-		"nft_id": "nft-1", "owner": "a", "private_key": "k",
+		"nft_id": "nft-1", "owner": "b3duZXI=", "private_key": "a2V5",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/burn", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -279,12 +283,30 @@ func TestTokenHandler_Balance_MissingQueryParam(t *testing.T) {
 
 func TestTokenHandler_Balance_ServiceError(t *testing.T) {
 	h := NewTokenHandler(fakeTokenServiceFull{err: errors.New("not found")})
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/balance?token_id=T&owner=x", nil)
+	// Valid base64 owner so the decode passes and the repo error surfaces
+	// (invalid base64 is now its own 400, TASK-095/ISS-089).
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/balance?token_id=T&owner=YWxpY2U=", nil)
 	rr := httptest.NewRecorder()
 
 	h.Balance(rr, req)
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+// TestTokenHandler_Balance_InvalidBase64 is the TASK-095/ISS-089 regression:
+// syntactically invalid base64 in a client-supplied key is a 400 INVALID_BASE64,
+// not an unclassified 500 that pollutes server metrics.
+func TestTokenHandler_Balance_InvalidBase64(t *testing.T) {
+	h := NewTokenHandler(fakeTokenServiceFull{})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/balance?token_id=T&owner=!!!", nil)
+	rr := httptest.NewRecorder()
+
+	h.Balance(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	var resp ErrorResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, "INVALID_BASE64", resp.Code)
 }
 
 func TestTokenHandler_History_Empty(t *testing.T) {

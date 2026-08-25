@@ -16,9 +16,9 @@ func NewCreateTokenUseCase(service token.Service) *CreateTokenUseCase {
 }
 
 func (uc *CreateTokenUseCase) Execute(req *CreateTokenRequest) (*CreateTokenResponse, error) {
-	owner, err := base64.StdEncoding.DecodeString(req.Owner)
+	owner, err := decodeKey("owner", req.Owner)
 	if err != nil {
-		return nil, fmt.Errorf("invalid owner: %w", err)
+		return nil, err
 	}
 
 	totalSupply, err := token.NewAmountFromString(req.TotalSupply)

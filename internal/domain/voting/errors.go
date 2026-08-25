@@ -21,6 +21,10 @@ var (
 	// caller who knows a voter's public key could forge that voter's ballot
 	// with a random private key.
 	ErrInvalidSignature = errors.New("invalid vote signature")
+	// ErrInvalidBase64 is returned when a base64-encoded key field cannot be
+	// decoded at all — a client input error (HTTP 400), not a server fault
+	// (TASK-095, ISS-089).
+	ErrInvalidBase64 = errors.New("invalid base64 encoding")
 
 	// Validation sentinels. These let API handlers classify client input
 	// errors as 400s instead of falling through to 500.

@@ -2,7 +2,6 @@ package token
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/pplmx/aurora/internal/domain/token"
 )
@@ -49,9 +48,9 @@ func NewGetBalanceUseCase(service token.Service) *GetBalanceUseCase {
 }
 
 func (uc *GetBalanceUseCase) Execute(req *BalanceRequest) (*BalanceResponse, error) {
-	owner, err := base64.StdEncoding.DecodeString(req.Owner)
+	owner, err := decodeKey("owner", req.Owner)
 	if err != nil {
-		return nil, fmt.Errorf("invalid owner: %w", err)
+		return nil, err
 	}
 
 	amount, err := uc.service.GetBalance(token.TokenID(req.TokenID), owner)
@@ -75,14 +74,14 @@ func NewGetAllowanceUseCase(service token.Service) *GetAllowanceUseCase {
 }
 
 func (uc *GetAllowanceUseCase) Execute(req *AllowanceRequest) (*AllowanceResponse, error) {
-	owner, err := base64.StdEncoding.DecodeString(req.Owner)
+	owner, err := decodeKey("owner", req.Owner)
 	if err != nil {
-		return nil, fmt.Errorf("invalid owner: %w", err)
+		return nil, err
 	}
 
-	spender, err := base64.StdEncoding.DecodeString(req.Spender)
+	spender, err := decodeKey("spender", req.Spender)
 	if err != nil {
-		return nil, fmt.Errorf("invalid spender: %w", err)
+		return nil, err
 	}
 
 	amount, err := uc.service.GetAllowance(token.TokenID(req.TokenID), owner, spender)
@@ -107,9 +106,9 @@ func NewGetHistoryUseCase(service token.Service) *GetHistoryUseCase {
 }
 
 func (uc *GetHistoryUseCase) Execute(req *HistoryRequest) (*HistoryResponse, error) {
-	owner, err := base64.StdEncoding.DecodeString(req.Owner)
+	owner, err := decodeKey("owner", req.Owner)
 	if err != nil {
-		return nil, fmt.Errorf("invalid owner: %w", err)
+		return nil, err
 	}
 
 	events, err := uc.service.GetTransferHistory(token.TokenID(req.TokenID), owner, req.Limit, req.Offset)

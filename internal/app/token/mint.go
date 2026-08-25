@@ -16,14 +16,14 @@ func NewMintUseCase(service token.Service) *MintUseCase {
 }
 
 func (uc *MintUseCase) Execute(req *MintRequest) (*MintResponse, error) {
-	to, err := base64.StdEncoding.DecodeString(req.To)
+	to, err := decodeKey("to", req.To)
 	if err != nil {
-		return nil, fmt.Errorf("invalid to: %w", err)
+		return nil, err
 	}
 
-	privKey, err := base64.StdEncoding.DecodeString(req.PrivateKey)
+	privKey, err := decodeKey("privateKey", req.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
+		return nil, err
 	}
 
 	amount, err := token.NewAmountFromString(req.Amount)

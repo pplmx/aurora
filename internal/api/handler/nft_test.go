@@ -144,6 +144,10 @@ func TestNFTHandler_List_InvalidOwner(t *testing.T) {
 
 	handler.List(rr, req)
 
-	// Invalid base64 owner -> unclassified error -> 500
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	// Invalid base64 owner -> client error -> 400 INVALID_BASE64 (TASK-095,
+	// ISS-089; previously an unclassified 500).
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	var resp ErrorResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, "INVALID_BASE64", resp.Code)
 }

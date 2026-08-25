@@ -121,7 +121,10 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 
 	privBytes, err := base64.StdEncoding.DecodeString(req.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key format: %w", err)
+		// Client input error (HTTP 400), not a server fault: the raw stdlib
+		// decode error previously escaped unclassified and came back as 500
+		// INTERNAL_ERROR (TASK-095, ISS-089).
+		return nil, fmt.Errorf("invalid private key encoding: %w", voting.ErrInvalidBase64)
 	}
 
 	timestamp := time.Now().Unix()

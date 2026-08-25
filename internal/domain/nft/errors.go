@@ -11,6 +11,10 @@ var (
 	ErrInvalidSignature  = errors.New("invalid signature")
 	ErrInvalidPrivateKey = errors.New("invalid private key length")
 	ErrInvalidPublicKey  = errors.New("invalid public key length")
+	// ErrInvalidBase64 is returned when a base64-encoded key/address field
+	// cannot be decoded at all — a client input error (HTTP 400), not a server
+	// fault (TASK-095, ISS-089).
+	ErrInvalidBase64 = errors.New("invalid base64 encoding")
 	// ErrKeyMismatch guards identity authenticity: the private key presented
 	// must correspond to the public key it claims to represent (from/owner).
 	// Without this, a caller who only knows a public key could forge a

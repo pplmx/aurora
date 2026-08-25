@@ -16,19 +16,19 @@ func NewApproveUseCase(service token.Service) *ApproveUseCase {
 }
 
 func (uc *ApproveUseCase) Execute(req *ApproveRequest) (*ApproveResponse, error) {
-	owner, err := base64.StdEncoding.DecodeString(req.Owner)
+	owner, err := decodeKey("owner", req.Owner)
 	if err != nil {
-		return nil, fmt.Errorf("invalid owner: %w", err)
+		return nil, err
 	}
 
-	spender, err := base64.StdEncoding.DecodeString(req.Spender)
+	spender, err := decodeKey("spender", req.Spender)
 	if err != nil {
-		return nil, fmt.Errorf("invalid spender: %w", err)
+		return nil, err
 	}
 
-	privKey, err := base64.StdEncoding.DecodeString(req.PrivateKey)
+	privKey, err := decodeKey("privateKey", req.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid private key: %w", err)
+		return nil, err
 	}
 
 	amount, err := token.NewAmountFromString(req.Amount)
