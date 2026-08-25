@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 86,
+  "round": 87,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-24T19:26:25+00:00",
+  "updated_at": "2026-08-25T01:04:37+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 85,
+      "touched_round": 86,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 76,
+      "touched_round": 86,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 58,
+      "touched_round": 86,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 85,
+      "touched_round": 86,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 43,
+      "touched_round": 86,
       "title": "voting module"
     },
     "CHG-008": {
@@ -4115,6 +4115,144 @@
       "touched_round": 85,
       "rationale": "Embedding the API key in served HTML (injectKeyIntoHTML) is accepted for the single-user local dev UI: the browser needs the key to call the API same-origin, and the design compensates by refusing wildcard CORS (v1.64 / TASK-077) and by the rate limiter + body cap bounding the blast radius. A production-ish hardening (short-lived session tokens, CSRF) is documented in webauth.go as future work.",
       "alternatives_rejected": "Removing the key from served HTML and requiring an operator-entered session token changes the UX surface and is out of scope for the dev-first product"
+    },
+    "ISS-085": {
+      "id": "ISS-085",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T00:31:56+00:00",
+      "updated_at": "2026-08-25T01:04:37+00:00",
+      "touched_round": 86,
+      "title": "NFT burn destroys its own audit trail: Burn persists the burn operation then deletes the nfts row via TryDeleteNFTIfOwned; nft_operations declares ON DELETE CASCADE so the cascade wipes EVERY operation row for the NFT inside the same tx, including the just-inserted burn op. With _foreign_keys=ON (all write DSNs) the real SQLite path returns an empty trail after burn, contradicting the in-memory contract (service_test asserts 2 ops, ops[1].IsBurn()) and gutting GET /api/v1/nft/{id}/history and 'nft history'."
+    },
+    "ISS-086": {
+      "id": "ISS-086",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T00:31:56+00:00",
+      "updated_at": "2026-08-25T01:04:37+00:00",
+      "touched_round": 86,
+      "title": "Token transfer-history paging under-fills for multi-owner tokens AND response shape unconsumable by the web UI: GetTransferEventsByOwner pages SQL LIMIT/OFFSET over ALL token.transfer events then filters owner in-memory, so with >=2 transfer-owners a page returns <limit for a given owner and offset steps through the whole token stream; separately GET /api/v1/token/history returns {\"transfers\":[...]} while every other list endpoint returns a bare array and web/js/app.js reads Array.isArray(data)?data:data.data, so the UI always renders history empty."
+    },
+    "ISS-087": {
+      "id": "ISS-087",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T00:31:56+00:00",
+      "updated_at": "2026-08-25T01:04:37+00:00",
+      "touched_round": 86,
+      "title": "cmd/api silently ignores config/aurora.toml: config.Load() sets viper defaults + AutomaticEnv + BindEnv(api.key) but never SetConfigName/AddConfigPath/ReadInConfig, so every [server]/[log]/[db]/[api.rateLimit]/[api.cors]/[oracle.scheduler] value shipped in config/aurora.toml is ignored by the API binary (only the CLI's root.go reads the file, and only for its own subset). Operator edits the file => silent misconfiguration with hardcoded defaults and no error."
+    },
+    "ISS-088": {
+      "id": "ISS-088",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T00:31:56+00:00",
+      "updated_at": "2026-08-25T00:31:56+00:00",
+      "touched_round": 86,
+      "title": "Voting session lifecycle has no transition guard: StartSession/EndSession overwrite Status with no check, so an ENDED session can be re-opened to active (CastVote only rejects ended) and a draft/windowed session accepts votes even if never started (session start is cosmetic) - the started/ended lifecycle is documented but only 'ended' is enforced."
+    },
+    "ISS-089": {
+      "id": "ISS-089",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T00:31:56+00:00",
+      "updated_at": "2026-08-25T00:31:56+00:00",
+      "touched_round": 86,
+      "title": "Malformed base64 client input returns 500 instead of 400: use cases wrap base64.StdEncoding.DecodeString errors in fmt.Errorf with no classification-table mapping, so token/NFT/voting operations with a syntactically invalid key (e.g. owner=!!!, creator=!!!, private_key=!!!) hit the unclassified->500 branch in writeUseCaseError instead of a 4xx, polluting 500 metrics and hiding the actionable message."
+    },
+    "ISS-090": {
+      "id": "ISS-090",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T00:31:56+00:00",
+      "updated_at": "2026-08-25T00:31:56+00:00",
+      "touched_round": 86,
+      "title": "Oracle scheduler never records fetched data on-chain: StartOracleScheduler builds the fetch use case but never calls SetChain, so the continuously-running production fetch path skips chain.AddBlock and every scheduler-written row has block_height=0, diverging from the REST/CLI paths that DO set the chain - contradicts the package's documented record-on-chain design."
+    },
+    "TASK-092": {
+      "id": "TASK-092",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T00:32:26+00:00",
+      "updated_at": "2026-08-25T01:04:37+00:00",
+      "touched_round": 86,
+      "category": "correctness",
+      "severity": 4,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1,
+      "summary": "Restore NFT audit-trail retention over real SQLite: Burn's operation row must survive the NFT deletion (drop ON DELETE CASCADE / delete in correct order) so GetOperations keeps mint..burn and GET /api/v1/nft/{id}/history + 'nft history' show the burn. Add a SQLite-backed regression test (mint->1 op, burn->2 ops with ops[1].IsBurn(), GetNFT nil)."
+    },
+    "TASK-093": {
+      "id": "TASK-093",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T00:32:26+00:00",
+      "updated_at": "2026-08-25T01:04:37+00:00",
+      "touched_round": 86,
+      "category": "correctness",
+      "severity": 3.5,
+      "confidence": 0.95,
+      "effort": 3,
+      "unlock_factor": 1.5,
+      "summary": "Make GET /api/v1/token/history page correctly per owner and speak the shared list envelope: move the owner filter into SQL (json_extract payload $.from) so LIMIT/OFFSET are applied per-owner and a multi-owner token returns full pages; return the bare array (like lottery/nft/oracle list endpoints) and align web/js/app.js so the web UI history renders. Add multi-owner regression tests."
+    },
+    "TASK-094": {
+      "id": "TASK-094",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T00:32:26+00:00",
+      "updated_at": "2026-08-25T01:04:37+00:00",
+      "touched_round": 86,
+      "category": "correctness",
+      "severity": 3.5,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 2,
+      "summary": "Make cmd/api honor config/aurora.toml: config.Load() should ReadInConfig from /root and ./config (same lookup order as the CLI's root.go) after setting defaults, keeping AURORA_API_KEY + other env override. Add a test that writes a temp config file and asserts server.port/log.path/rateLimit values are honored. Guard: Load must not fail when no config file exists (dev default)."
+    },
+    "CHG-089": {
+      "id": "CHG-089",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T01:03:52+00:00",
+      "updated_at": "2026-08-25T01:03:52+00:00",
+      "touched_round": 86,
+      "commit": "ed36acc",
+      "summary": "config.Load() now reads the optional config/aurora.toml (/root then ./config, same order as the CLI) so cmd/api honors [server]/[log]/[db] values; unparseable file fails loudly; malformed-file + missing-file tests"
+    },
+    "CHG-090": {
+      "id": "CHG-090",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T01:03:52+00:00",
+      "updated_at": "2026-08-25T01:03:52+00:00",
+      "touched_round": 86,
+      "commit": "28f17f3",
+      "summary": "Token transfer history: owner predicate pushed into SQL (json_extract on payload) via EventStore.GetByAggregateAndTypePayload so LIMIT/OFFSET page per-owner; handler returns bare array (web UI consumable); multi-owner regression test"
+    },
+    "CHG-091": {
+      "id": "CHG-091",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T01:03:52+00:00",
+      "updated_at": "2026-08-25T01:03:52+00:00",
+      "touched_round": 86,
+      "commit": "ecc40aa",
+      "summary": "nft_operations loses its ON DELETE CASCADE FK (audit trail outlives its NFT): createTables drops it, ensureNoCascadeFK() idempotently rebuilds legacy DBs, 000001 migration matches; SQLite burn regression + legacy-DB upgrade tests"
     }
   },
   "edges": [
@@ -6379,6 +6517,96 @@
       "to": "COMP-api",
       "type": "governs",
       "created_at": "2026-08-24T19:23:52+00:00"
+    },
+    {
+      "from": "ISS-085",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-25T00:32:26+00:00"
+    },
+    {
+      "from": "ISS-086",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-25T00:32:26+00:00"
+    },
+    {
+      "from": "ISS-087",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-25T00:32:26+00:00"
+    },
+    {
+      "from": "ISS-088",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-25T00:33:26+00:00"
+    },
+    {
+      "from": "ISS-089",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-25T00:33:26+00:00"
+    },
+    {
+      "from": "ISS-090",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-25T00:33:26+00:00"
+    },
+    {
+      "from": "TASK-092",
+      "to": "ISS-085",
+      "type": "addresses",
+      "created_at": "2026-08-25T00:33:26+00:00"
+    },
+    {
+      "from": "TASK-093",
+      "to": "ISS-086",
+      "type": "addresses",
+      "created_at": "2026-08-25T00:33:26+00:00"
+    },
+    {
+      "from": "TASK-094",
+      "to": "ISS-087",
+      "type": "addresses",
+      "created_at": "2026-08-25T00:33:26+00:00"
+    },
+    {
+      "from": "CHG-089",
+      "to": "ISS-087",
+      "type": "resolves",
+      "created_at": "2026-08-25T01:04:37+00:00"
+    },
+    {
+      "from": "CHG-090",
+      "to": "ISS-086",
+      "type": "resolves",
+      "created_at": "2026-08-25T01:04:37+00:00"
+    },
+    {
+      "from": "CHG-091",
+      "to": "ISS-085",
+      "type": "resolves",
+      "created_at": "2026-08-25T01:04:37+00:00"
+    },
+    {
+      "from": "CHG-090",
+      "to": "TASK-093",
+      "type": "implements",
+      "created_at": "2026-08-25T01:04:37+00:00"
+    },
+    {
+      "from": "CHG-091",
+      "to": "TASK-092",
+      "type": "implements",
+      "created_at": "2026-08-25T01:04:37+00:00"
+    },
+    {
+      "from": "CHG-089",
+      "to": "TASK-094",
+      "type": "implements",
+      "created_at": "2026-08-25T01:04:37+00:00"
     }
   ]
 }

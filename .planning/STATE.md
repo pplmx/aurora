@@ -5,24 +5,28 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.76 CLI failure exit codes complete
+**Current focus:** v1.77 audit-trail integrity + API contract hardening complete
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.76 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels, consistent online backups, CLI failure exit codes)
-Last activity: 2026-08-25 — v1.73 closed (fleet deep-dive finds at the cmd/api
-  boundary): config.Load — only used by cmd/api — never read AURORA_API_KEY
-  (no AutomaticEnv/BindEnv in the API binary), so production always failed
-  ErrMissingAPIKey even with the key set and dev minted a fresh random key
-  each boot; and the server's SyncEventBus was never subscribed, silently
-  dropping every token audit event so /api/v1/token/history was permanently
-  empty on the HTTP path. Both fixed: BindEnv in Load(), audit+stats handlers
-  subscribed in server.go. Regressions: env-key config test +
-  TestTokenAudit_TransferAppearsInHistoryOverHTTP (TASK-087/088, ISS-079/080,
-  CHG-085 / cd5387b).
-  RIL graph at round 86.
+Status: v1.24–v1.77 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels, consistent online backups, CLI failure exit codes, NFT burn audit-trail retention, owner-scoped token-history paging + list-envelope consistency, cmd/api config-file loading)
+Last activity: 2026-08-25 — v1.77 closed (round-87 fleet deep-dive bugs):
+  (1) nft_operations declared ON DELETE CASCADE so Burn's NFT delete wiped the
+  whole operation trail incl. the just-saved burn op — FK removed from schema,
+  ensureNoCascadeFK() heals legacy DBs at boot, 000001 migration updated
+  (TASK-092, ISS-085, CHG-091 / ecc40aa); (2) token transfer history paged SQL
+  over ALL transfers then filtered owner in-memory, under-filling pages on
+  multi-owner tokens, and returned {"transfers":[...]} the web UI could never
+  read — owner pushed into SQL via GetByAggregateAndTypePayload(json_extract),
+  handler emits the bare array (TASK-093, ISS-086, CHG-090 / 28f17f3);
+  (3) config.Load never ReadInConfig, so cmd/api ignored config/aurora.toml —
+  Load now reads $HOME then ./config with env still winning, unparseable file
+  fails loudly (TASK-094, ISS-087, CHG-089 / ed36acc).
+  Recorded backlog for later rounds: ISS-088 voting lifecycle guard, ISS-089
+  malformed-base64→500, ISS-090 oracle scheduler block_height=0.
+  RIL graph at round 87.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
@@ -34,8 +38,11 @@ Progress: continuous loop — every resolved milestone advanced the graph;
   SQLITE_BUSY writer contention over the real pool killing concurrent
   transfers (v1.70), unbounded JSON request bodies enabling a
   key-holder memory-exhaustion path (v1.71), the in-transaction
-  nonce deadlock the BEGIN IMMEDIATE change surfaced (v1.72), and the
-  cmd/api secrets + audit-trail wiring gaps (v1.73).
+  nonce deadlock the BEGIN IMMEDIATE change surfaced (v1.72), the
+  cmd/api secrets + audit-trail wiring gaps (v1.73), unbounded metrics
+  label cardinality (v1.74), stale live-WAL backups (v1.75), CLI TUI
+  silent-success exit codes (v1.76), and the v1.77 audit-trail + API
+  contract hardening above.
 
 ## Milestone History (recent)
 
@@ -54,10 +61,13 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.74 | Unbounded metrics label cardinality (whitelist + other bucket) | ✅ done |
 | v1.75 | Backups stale under live WAL server (VACUUM INTO snapshot) | ✅ done |
 | v1.76 | CLI TUI commands exit 0 on failure (RunE) | ✅ done |
+| v1.77 | NFT burn audit-trail retention + owner-scoped token-history paging/envelope + cmd/api config-file loading | ✅ done |
 
 ## Session Continuity
 
-Last session: 2026-08-25 — v1.76 CLI exit codes; fleet backlog drained
-Next: the fleet deep-dive backlog is drained (all verified candidates either
-  fixed or recorded as decisions DEC-002/DEC-003). Next milestone to surface
-  via a fresh deep-dive round.
+Last session: 2026-08-25 — v1.77 audit-trail integrity + API contract
+  hardening; backlog recorded (voting lifecycle guard, malformed-base64→500,
+  oracle scheduler block_height=0).
+Next: promote the strongest recorded backlog issue (ISS-088 voting lifecycle,
+  ISS-089 base64→4xx, or ISS-090 scheduler chain) into the next milestone, or
+  run a fresh deep-dive round.
