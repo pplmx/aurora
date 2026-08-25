@@ -71,19 +71,20 @@ func TestTokenAudit_TransferAppearsInHistoryOverHTTP(t *testing.T) {
 	rr = request(http.MethodGet, u, "")
 	require.Equal(t, http.StatusOK, rr.Code, "history body: %s", rr.Body.String())
 
-	var resp struct {
-		Transfers []struct {
-			ID          string `json:"id"`
-			From        string `json:"from"`
-			To          string `json:"to"`
-			Amount      string `json:"amount"`
-			BlockHeight int64  `json:"block_height"`
-		} `json:"transfers"`
+	// /api/v1/token/history returns the bare array like every other list
+	// endpoint (TASK-093, ISS-086) — not the old {"transfers":[...]} wrapper
+	// the web UI could never consume.
+	var resp []struct {
+		ID          string `json:"id"`
+		From        string `json:"from"`
+		To          string `json:"to"`
+		Amount      string `json:"amount"`
+		BlockHeight int64  `json:"block_height"`
 	}
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-	require.Len(t, resp.Transfers, 1, "the committed transfer must be persisted in history on the HTTP path")
-	require.Equal(t, "10", resp.Transfers[0].Amount)
-	require.Equal(t, ownerPub, resp.Transfers[0].From)
-	require.Equal(t, recipientPub, resp.Transfers[0].To)
-	require.Positive(t, resp.Transfers[0].BlockHeight)
+	require.Len(t, resp, 1, "the committed transfer must be persisted in history on the HTTP path")
+	require.Equal(t, "10", resp[0].Amount)
+	require.Equal(t, ownerPub, resp[0].From)
+	require.Equal(t, recipientPub, resp[0].To)
+	require.Positive(t, resp[0].BlockHeight)
 }

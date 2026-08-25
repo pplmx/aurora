@@ -21,6 +21,11 @@ type EventRepository interface {
 	// under-fills when a token has interleaved mint/burn events (TASK-074,
 	// ISS-066). Filtering type first restores correct page composition.
 	GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error)
+	// GetByAggregateAndTypePayload pages over the aggregate's events of one
+	// type AND whose payload field at payloadPath equals value, applying
+	// LIMIT/OFFSET over those matching rows only. This is the owner-scoped
+	// pagination primitive token transfer history needs (TASK-093, ISS-086).
+	GetByAggregateAndTypePayload(aggID, eventType, payloadPath, value string, limit, offset int) ([]events.Event, error)
 }
 
 type SQLiteEventStore struct {
@@ -163,6 +168,35 @@ func (e *SQLiteEventStore) GetByAggregateAndType(aggID, eventType string, limit,
 		ORDER BY timestamp ASC, id ASC
 		LIMIT ? OFFSET ?
 	`, aggID, eventType, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	return scanEvents(rows)
+}
+
+// GetByAggregateAndTypePayload extends GetByAggregateAndType with a JSON-path
+// predicate over the event payload, so LIMIT/OFFSET are applied over the rows
+// matching BOTH the type and the payload field. Token transfer history needs
+// this for the owner dimension: paging over all token.transfer events and then
+// filtering the requested owner in memory under-fills every page on a
+// multi-owner token and steps offset through the whole token stream instead of
+// the owner's (TASK-093, ISS-086). payloadPath is a SQLite JSON path such as
+// "$.from"; payload is stored as BLOB, so it is cast to TEXT for json_extract.
+func (e *SQLiteEventStore) GetByAggregateAndTypePayload(aggID, eventType, payloadPath, value string, limit, offset int) ([]events.Event, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	rows, err := e.db.Query(`
+		SELECT id, event_type, module, agg_id, payload, timestamp
+		FROM events
+		WHERE agg_id = ? AND event_type = ?
+		  AND json_extract(CAST(payload AS TEXT), ?) = ?
+		ORDER BY timestamp ASC, id ASC
+		LIMIT ? OFFSET ?
+	`, aggID, eventType, payloadPath, value, limit, offset)
 	if err != nil {
 		return nil, err
 	}
