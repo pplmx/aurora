@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestMain isolates $HOME so Load()'s config-file lookup (added in TASK-094:
+// $HOME/aurora.toml then ./config/aurora.toml) never picks up a developer's
+// real ~/aurora.toml — the defaults tests must run against a clean baseline.
+func TestMain(m *testing.M) {
+	if os.Getenv("AURORA_TEST_KEEP_HOME") == "" {
+		_ = os.Setenv("HOME", os.TempDir())
+	}
+	os.Exit(m.Run())
+}
 
 // resetViper clears viper state so each test starts from a known baseline.
 func resetViper() {
@@ -62,6 +73,89 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, "sqlite", cfg.DB.Type)
 	assert.Equal(t, "./data/aurora.db", cfg.DB.Path)
 	assert.NotEmpty(t, cfg.API.Key, "dev mode should auto-generate an API key")
+}
+
+// TestLoad_ReadsConfigFile is the ISS-087/TASK-094 regression: cmd/api's only
+// config path (Load) never called ReadInConfig, so config/aurora.toml values
+// were silently ignored by the API binary. Load must now honor a TOML file
+// found via the documented lookup order. The test drives $HOME -> temp dir
+// (exactly the production mechanism: $HOME/aurora.toml) because go test's cwd
+// is the package dir, so the repo's ./config/aurora.toml is never in scope.
+// Note: api.key is deliberately absent from the fixture — the API key is an
+// env-only mechanism (AURORA_API_KEY, v1.73), so a config-file key is NOT a
+// source and must not be asserted either way.
+func TestLoad_ReadsConfigFile(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	tmp := t.TempDir()
+	cfgPath := filepath.Join(tmp, "aurora.toml")
+	require.NoError(t, os.WriteFile(cfgPath, []byte(`
+[server]
+host = "127.0.0.1"
+port = 9099
+
+[log]
+level = "debug"
+path = "/tmp/aurora-logs"
+
+[db]
+type = "sqlite"
+path = "/tmp/aurora-data/aurora.db"
+`), 0o644))
+	t.Setenv("HOME", tmp)
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	assert.Equal(t, "127.0.0.1", cfg.Server.Host, "server.host from config file must be honored")
+	assert.Equal(t, 9099, cfg.Server.Port, "server.port from config file must be honored")
+	assert.Equal(t, "debug", cfg.Log.Level)
+	assert.Equal(t, "/tmp/aurora-logs", cfg.Log.Path, "log.path value from config file must be honored")
+	assert.Equal(t, "sqlite", cfg.DB.Type)
+	assert.Equal(t, "/tmp/aurora-data/aurora.db", cfg.DB.Path,
+		"db.path from config file must be honored (previously only the CLI read it)")
+}
+
+// TestLoad_MalformedConfigFileFails loudly: a file that exists but cannot be
+// parsed must not silently fall back to defaults (that is exactly the silent
+// misconfiguration class ISS-087 forbids).
+func TestLoad_MalformedConfigFileFails(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	tmp := t.TempDir()
+	cfgPath := filepath.Join(tmp, "aurora.toml")
+	require.NoError(t, os.WriteFile(cfgPath, []byte("[unclosed\nkey = = value"), 0o644))
+	t.Setenv("HOME", tmp)
+
+	_, err := Load()
+	require.Error(t, err, "unparseable config file must fail Load, not run on defaults")
+	assert.Contains(t, err.Error(), "aurora.toml", "error should name the offending config file")
+}
+
+// TestLoad_EnvKeyStillWinsWithConfigFilePresent guards the precedence after the
+// config-file read: AURORA_API_KEY (the documented, env-only key mechanism)
+// must still resolve even when a $HOME/aurora.toml exists and introduces other
+// settings into the same viper instance.
+func TestLoad_EnvKeyStillWinsWithConfigFilePresent(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	tmp := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmp, "aurora.toml"), []byte(`
+[server]
+port = 9123
+`), 0o644))
+	t.Setenv("HOME", tmp)
+	t.Setenv("AURORA_API_KEY", "live_secure_random_value_xyz_123")
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.Equal(t, "live_secure_random_value_xyz_123", cfg.API.Key,
+		"AURORA_API_KEY env must be honored alongside a config file")
+	require.Equal(t, 9123, cfg.Server.Port, "config file and env should coexist")
 }
 
 func TestLoad_OverridesViaViperSet(t *testing.T) {

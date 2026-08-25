@@ -77,6 +77,23 @@ func Load() (*Config, error) {
 	// interval still gates when each feed is due; this is how often it checks.
 	viper.SetDefault("oracle.scheduler.checkInterval", time.Second)
 
+	// Read the optional config file with the same lookup order the CLI uses
+	// (AGENTS.md: 1. $HOME/aurora.toml  2. ./config/aurora.toml). Previously
+	// Load() never called ReadInConfig, so the API binary silently ignored
+	// every [server]/[log]/[db]/[api.rateLimit]/[api.cors]/[oracle.scheduler]
+	// value operators placed in config/aurora.toml and ran on hardcoded
+	// defaults with no error (ISS-087, TASK-094). A missing file is fine (env
+	// + defaults); a present-but-unparseable file must fail loudly instead of
+	// silently running on defaults. Env vars (AURORA_API_KEY and friends) still
+	// take precedence over the file via AutomaticEnv/BindEnv below.
+	viper.SetConfigName("aurora")
+	viper.SetConfigType("toml")
+	viper.AddConfigPath("$HOME")
+	viper.AddConfigPath("./config")
+	if err := loadConfigFileIfPresent(); err != nil {
+		return nil, err
+	}
+
 	// The documented production mechanism for the API key is the
 	// AURORA_API_KEY environment variable (ErrMissingAPIKey names it), but
 	// Load() is called only by cmd/api, which never invoked AutomaticEnv the
@@ -149,6 +166,22 @@ func OracleSchedulerCheckInterval() time.Duration {
 // to any page the operator visits (v1.64, TASK-077).
 func AllowedCORSOrigins() []string {
 	return viper.GetStringSlice("api.cors.allowedOrigins")
+}
+
+// loadConfigFileIfPresent reads the optional TOML config file that Load()
+// located via SetConfigName/AddConfigPath. A missing file is not an error
+// (defaults and env stand alone); a file that exists but cannot be parsed is
+// an error so an operator's config mistake surfaces at boot instead of
+// silently running on defaults.
+func loadConfigFileIfPresent() error {
+	if err := viper.ReadInConfig(); err != nil {
+		var notFound viper.ConfigFileNotFoundError
+		if errors.As(err, &notFound) {
+			return nil
+		}
+		return fmt.Errorf("failed to load config file %s: %w", viper.ConfigFileUsed(), err)
+	}
+	return nil
 }
 
 func GenerateAPIKey() (string, error) {
