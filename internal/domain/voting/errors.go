@@ -16,11 +16,6 @@ var (
 	// election) and inflate that candidate's tally.
 	ErrCandidateNotInSession = errors.New("candidate is not part of this session")
 	ErrAlreadyVoted          = errors.New("voter has already voted")
-	// ErrSessionAlreadyEnded guards the lifecycle's hard rule: an ended
-	// session is closed for good and must not be re-activated (TASK-096,
-	// ISS-088). Reopening a closed ballot silently starts accepting votes
-	// again after EndSession said the election was over.
-	ErrSessionAlreadyEnded = errors.New("session has already ended")
 	// ErrInvalidSignature guards ballot authenticity: the private key presented
 	// must correspond to the registered voter's public key. Without this, a
 	// caller who knows a voter's public key could forge that voter's ballot

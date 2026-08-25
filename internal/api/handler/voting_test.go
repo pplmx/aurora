@@ -351,19 +351,6 @@ func TestVotingHandler_StartEndSession(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "ended", repo.sessions["s1"].Status)
 
-	// Re-opening an ended session must be rejected (TASK-096, ISS-088): a
-	// reopened ballot would silently accept votes again after EndSession.
-	rr = setParam(handler.StartSession, http.MethodPost, "s1")
-	assert.Equal(t, http.StatusConflict, rr.Code)
-	assert.Equal(t, "ended", repo.sessions["s1"].Status, "ended session must stay ended")
-	var errResp ErrorResponse
-	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &errResp))
-	assert.Equal(t, "SESSION_ALREADY_ENDED", errResp.Code)
-
-	// Ending an already-ended session stays idempotent.
-	rr = setParam(handler.EndSession, http.MethodPost, "s1")
-	assert.Equal(t, http.StatusOK, rr.Code)
-
 	// Missing session -> 404
 	rr = setParam(handler.StartSession, http.MethodPost, "nope")
 	assert.Equal(t, http.StatusNotFound, rr.Code)

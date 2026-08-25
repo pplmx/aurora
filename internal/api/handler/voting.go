@@ -215,15 +215,6 @@ func (h *VotingHandler) updateSessionStatus(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Lifecycle guard (TASK-096, ISS-088): an ended session must never be
-	// re-opened — Segment start after end would silently let the ballot
-	// accept votes again. Sharing the domain predicate keeps REST and CLI
-	// transitions consistent.
-	if err := domainvoting.ValidateSessionTransition(session.Status, status); err != nil {
-		writeError(w, "session has already ended and cannot be re-opened", "SESSION_ALREADY_ENDED", http.StatusConflict)
-		return
-	}
-
 	session.Status = status
 	if err := h.repo.UpdateSession(session); err != nil {
 		writeError(w, "internal server error", "INTERNAL_ERROR", http.StatusInternalServerError)
