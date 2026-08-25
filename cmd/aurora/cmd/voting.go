@@ -334,6 +334,13 @@ var sessionStartCmd = &cobra.Command{
 			return fmt.Errorf("session not found")
 		}
 
+		// Lifecycle guard (TASK-096, ISS-088): an ended session must never be
+		// re-activated. Keep CLI and REST transitions consistent via the same
+		// domain predicate.
+		if err := voting.ValidateSessionTransition(session.Status, "active"); err != nil {
+			return err
+		}
+
 		session.Status = "active"
 		if err := repo.UpdateSession(session); err != nil {
 			return fmt.Errorf("failed to start session: %w", err)

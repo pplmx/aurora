@@ -87,6 +87,7 @@ var errorClassification = []struct {
 	{voting.ErrSessionNotFound, http.StatusNotFound, "SESSION_NOT_FOUND"},
 	{voting.ErrSessionNotStarted, http.StatusBadRequest, "SESSION_NOT_STARTED"},
 	{voting.ErrSessionEnded, http.StatusBadRequest, "SESSION_ENDED"},
+	{voting.ErrSessionAlreadyEnded, http.StatusConflict, "SESSION_ALREADY_ENDED"},
 	{voting.ErrVoterNotRegistered, http.StatusNotFound, "VOTER_NOT_REGISTERED"},
 	{voting.ErrCandidateNotFound, http.StatusBadRequest, "CANDIDATE_NOT_FOUND"},
 	{voting.ErrCandidateNotInSession, http.StatusBadRequest, "CANDIDATE_NOT_IN_SESSION"},
