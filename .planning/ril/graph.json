@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 87,
+  "round": 88,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-25T01:04:37+00:00",
+  "updated_at": "2026-08-25T02:15:20+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 86,
+      "touched_round": 87,
       "title": "voting module"
     },
     "CHG-008": {
@@ -4149,31 +4149,32 @@
     "ISS-088": {
       "id": "ISS-088",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-25T00:31:56+00:00",
-      "updated_at": "2026-08-25T00:31:56+00:00",
-      "touched_round": 86,
-      "title": "Voting session lifecycle has no transition guard: StartSession/EndSession overwrite Status with no check, so an ENDED session can be re-opened to active (CastVote only rejects ended) and a draft/windowed session accepts votes even if never started (session start is cosmetic) - the started/ended lifecycle is documented but only 'ended' is enforced."
+      "updated_at": "2026-08-25T02:12:57+00:00",
+      "touched_round": 87,
+      "title": "Voting session lifecycle has no transition guard: StartSession/EndSession overwrite Status with no check, so an ENDED session can be re-opened to active (CastVote only rejects ended) and a draft/windowed session accepts votes even if never started (session start is cosmetic) - the started/ended lifecycle is documented but only 'ended' is enforced.",
+      "resolution": "Not a bug: end->start reopen is intended v1.10 lifecycle (smoke test), voting is window+already-voted+ended gated; see DEC-004"
     },
     "ISS-089": {
       "id": "ISS-089",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-25T00:31:56+00:00",
-      "updated_at": "2026-08-25T00:31:56+00:00",
-      "touched_round": 86,
+      "updated_at": "2026-08-25T02:13:46+00:00",
+      "touched_round": 87,
       "title": "Malformed base64 client input returns 500 instead of 400: use cases wrap base64.StdEncoding.DecodeString errors in fmt.Errorf with no classification-table mapping, so token/NFT/voting operations with a syntactically invalid key (e.g. owner=!!!, creator=!!!, private_key=!!!) hit the unclassified->500 branch in writeUseCaseError instead of a 4xx, polluting 500 metrics and hiding the actionable message."
     },
     "ISS-090": {
       "id": "ISS-090",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-25T00:31:56+00:00",
-      "updated_at": "2026-08-25T00:31:56+00:00",
-      "touched_round": 86,
+      "updated_at": "2026-08-25T02:13:46+00:00",
+      "touched_round": 87,
       "title": "Oracle scheduler never records fetched data on-chain: StartOracleScheduler builds the fetch use case but never calls SetChain, so the continuously-running production fetch path skips chain.AddBlock and every scheduler-written row has block_height=0, diverging from the REST/CLI paths that DO set the chain - contradicts the package's documented record-on-chain design."
     },
     "TASK-092": {
@@ -4253,6 +4254,110 @@
       "touched_round": 86,
       "commit": "ecc40aa",
       "summary": "nft_operations loses its ON DELETE CASCADE FK (audit trail outlives its NFT): createTables drops it, ensureNoCascadeFK() idempotently rebuilds legacy DBs, 000001 migration matches; SQLite burn regression + legacy-DB upgrade tests"
+    },
+    "TASK-095": {
+      "id": "TASK-095",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T01:10:59+00:00",
+      "updated_at": "2026-08-25T02:13:46+00:00",
+      "touched_round": 87,
+      "category": "correctness",
+      "severity": 3,
+      "confidence": 1.0,
+      "effort": 3,
+      "unlock_factor": 1,
+      "summary": "Classify malformed base64 client input as 400, not 500 (ISS-089): add ErrInvalidBase64 sentinel to token/nft/voting domains, wrap every app-layer base64.StdEncoding.DecodeString failure with it, and map to 400 INVALID_BASE64 in the handler classification table; add HTTP-level tests for owner=!!! / creator=!!! / private_key=!!!."
+    },
+    "TASK-096": {
+      "id": "TASK-096",
+      "type": "task",
+      "status": "abandoned",
+      "version": 2,
+      "created_at": "2026-08-25T01:10:59+00:00",
+      "updated_at": "2026-08-25T02:12:57+00:00",
+      "touched_round": 87,
+      "category": "correctness",
+      "severity": 3,
+      "confidence": 0.9,
+      "effort": 3,
+      "unlock_factor": 1,
+      "summary": "Enforce the voting session lifecycle (ISS-088): CastVote must reject votes when the session is not 'active' (draft/not-started must not accept ballots even inside the time window) and REST+CLI status transitions must be guarded (start only from draft, end only from active, re-open -> 409) so an ended session cannot be silently re-activated."
+    },
+    "TASK-097": {
+      "id": "TASK-097",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T01:10:59+00:00",
+      "updated_at": "2026-08-25T02:13:46+00:00",
+      "touched_round": 87,
+      "category": "correctness",
+      "severity": 2.5,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Oracle scheduler must record fetched data on-chain (ISS-090): StartOracleScheduler never calls fetch.SetChain, so scheduler-written rows skip chain.AddLotteryRecord and always store block_height=0, diverging from the REST/CLI paths; pass blockchain.GetBlockChain() like the handler does (server.go:137)."
+    },
+    "DEC-004": {
+      "id": "DEC-004",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T02:12:57+00:00",
+      "updated_at": "2026-08-25T02:12:57+00:00",
+      "touched_round": 87,
+      "rationale": "The voting session lifecycle is intentionally restartable and window-gated, NOT a hard state machine. The v1.10 milestone planted a documented end-then-reopen flow (votingsmoke_test.go step 8: end session, confirm a fresh voter is rejected, then start again and confirm they vote). Voting is gated by the session time window plus the per-voter already-voted check plus explicit end (status ended); 'session start' is a lifecycle/reporting action, not an enforcement point, and a draft/in-window session accepting votes is the tested application contract. A first pass at 'fixing' ISS-088 (block ended->active with 409, TASK-096) was reverted after the smoke test proved the reopen is intended (commit 35d1365 reverted by fc68119).",
+      "alternatives_rejected": "Make 'start' a hard pre-vote gate rejecting votes on non-active sessions (contradicts the app-layer tests and v1.10 lifecycle contract); block ended->start with 409 SESSION_ALREADY_ENDED (breaks the documented reopen flow)."
+    },
+    "CHG-092": {
+      "id": "CHG-092",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T02:13:46+00:00",
+      "updated_at": "2026-08-25T02:13:46+00:00",
+      "touched_round": 87,
+      "commit": "02f106d",
+      "summary": "Malformed base64 client input classified as 400 INVALID_BASE64 across token/NFT/voting via per-domain ErrInvalidBase64 sentinels + decodeKey helpers; previously unclassified 500"
+    },
+    "CHG-093": {
+      "id": "CHG-093",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T02:13:46+00:00",
+      "updated_at": "2026-08-25T02:13:46+00:00",
+      "touched_round": 87,
+      "commit": "133e2f7",
+      "summary": "StartOracleScheduler wires the on-chain recorder into its fetch use case (SetChain) so scheduler-written oracle rows carry block_height>0; Chain() accessor + white-box wiring-guard test"
+    },
+    "CHG-094": {
+      "id": "CHG-094",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-25T02:13:46+00:00",
+      "updated_at": "2026-08-25T02:13:46+00:00",
+      "touched_round": 88,
+      "commit": "fc68119",
+      "summary": "REVERT of 35d1365 (TASK-096): blocking ended->active reopen broke the documented v1.10 lifecycle; restored prior behavior, see DEC-004"
+    },
+    "TASK-098": {
+      "id": "TASK-098",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-25T02:15:20+00:00",
+      "updated_at": "2026-08-25T02:15:20+00:00",
+      "touched_round": 88,
+      "category": "maintainability",
+      "severity": 1,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Revert the premature voting-lifecycle guard: 35d1365 blocked ended->active reopen as a 409, but votingsmoke_test.go step 8 proves end->start reopen is the documented v1.10 lifecycle (locked-out voter votes after restart); the agent-flagged ISS-088 'reopen' was not a bug. Reverted by fc68119; intent recorded in DEC-004 (restartable lifecycle, window+already-voted+ended gating)."
     }
   },
   "edges": [
@@ -6607,6 +6712,60 @@
       "to": "TASK-094",
       "type": "implements",
       "created_at": "2026-08-25T01:04:37+00:00"
+    },
+    {
+      "from": "TASK-095",
+      "to": "ISS-089",
+      "type": "addresses",
+      "created_at": "2026-08-25T01:10:59+00:00"
+    },
+    {
+      "from": "TASK-096",
+      "to": "ISS-088",
+      "type": "addresses",
+      "created_at": "2026-08-25T01:10:59+00:00"
+    },
+    {
+      "from": "TASK-097",
+      "to": "ISS-090",
+      "type": "addresses",
+      "created_at": "2026-08-25T01:10:59+00:00"
+    },
+    {
+      "from": "DEC-004",
+      "to": "COMP-001",
+      "type": "governs",
+      "created_at": "2026-08-25T02:12:57+00:00"
+    },
+    {
+      "from": "CHG-092",
+      "to": "ISS-089",
+      "type": "resolves",
+      "created_at": "2026-08-25T02:13:46+00:00"
+    },
+    {
+      "from": "CHG-093",
+      "to": "ISS-090",
+      "type": "resolves",
+      "created_at": "2026-08-25T02:13:46+00:00"
+    },
+    {
+      "from": "CHG-092",
+      "to": "TASK-095",
+      "type": "implements",
+      "created_at": "2026-08-25T02:13:46+00:00"
+    },
+    {
+      "from": "CHG-093",
+      "to": "TASK-097",
+      "type": "implements",
+      "created_at": "2026-08-25T02:13:46+00:00"
+    },
+    {
+      "from": "CHG-094",
+      "to": "TASK-098",
+      "type": "implements",
+      "created_at": "2026-08-25T02:15:20+00:00"
     }
   ]
 }
