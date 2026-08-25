@@ -115,9 +115,13 @@ CREATE TABLE IF NOT EXISTS nft_operations (
     to_addr TEXT,
     signature TEXT,
     block_height INTEGER NOT NULL,
-    timestamp INTEGER NOT NULL,
-    FOREIGN KEY (nft_id) REFERENCES nfts(id) ON DELETE CASCADE
+    timestamp INTEGER NOT NULL
 );
+-- NOTE: nft_operations carries no FK to nfts by design (TASK-092, ISS-085):
+-- its rows are an immutable audit trail that must survive the NFT being
+-- burned (the old ON DELETE CASCADE wiped the whole history incl. the burn
+-- op inside the burn transaction). Keep this in sync with
+-- internal/infra/sqlite/nft.go's createTables.
 CREATE INDEX IF NOT EXISTS idx_nft_ops_nft_id ON nft_operations(nft_id);
 
 -- Token tables
