@@ -102,14 +102,22 @@ func (h *TokenHandler) Allowance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
+	// Decimals is a pointer so an omitted field (defaults to 8 in the domain)
+	// is distinct from an explicit 0-decimals choice (TASK-099, ISS-091).
 	var req struct {
 		Name        string `json:"name"`
 		Symbol      string `json:"symbol"`
 		TotalSupply string `json:"total_supply"`
 		Owner       string `json:"owner"`
+		Decimals    *int8  `json:"decimals"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
+	}
+
+	var decimals int8
+	if req.Decimals != nil {
+		decimals = *req.Decimals
 	}
 
 	uc := tokenapp.NewCreateTokenUseCase(h.service)
@@ -118,6 +126,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Symbol:      req.Symbol,
 		TotalSupply: req.TotalSupply,
 		Owner:       req.Owner,
+		Decimals:    decimals,
 	})
 	if err != nil {
 		writeUseCaseError(w, err)

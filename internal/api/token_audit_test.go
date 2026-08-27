@@ -88,3 +88,66 @@ func TestTokenAudit_TransferAppearsInHistoryOverHTTP(t *testing.T) {
 	require.Equal(t, recipientPub, resp[0].To)
 	require.Positive(t, resp[0].BlockHeight)
 }
+
+// TestTokenCreate_DecimalsOverHTTP locks the v1.79 fix that the optional
+// "decimals" JSON field on POST /api/v1/token/create is honored (TASK-099,
+// ISS-091) — pre-fix every create silently stored the default of 8. An
+// omitted field keeps the default.
+func TestTokenCreate_DecimalsOverHTTP(t *testing.T) {
+	resetForAPITest(t)
+	const apiKey = "smoke-token-decimals"
+	viper.Set("api.key", apiKey)
+
+	dbPath := blockchain.DBPath()
+	require.NotEmpty(t, dbPath)
+	migPath, err := realMigrationsDirSmoke()
+	require.NoError(t, err)
+	m, err := migrate.New(dbPath, migPath)
+	require.NoError(t, err, "migrator should init")
+	_, err = m.Up(0)
+	require.NoError(t, err, "applying real migrations must not fail")
+	_ = m.Close()
+
+	srv, err := NewServer()
+	require.NoError(t, err, "NewServer should boot against a temp DB")
+	t.Cleanup(func() { _ = srv.Close() })
+	router := srv.Router()
+
+	request := func(method, path, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, bytes.NewBufferString(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-API-Key", apiKey)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		return rr
+	}
+
+	ownerPub, _ := newKeyPairB64(t)
+
+	// Explicit decimals=6 must be honored in the create response and `info`.
+	rr := request(http.MethodPost, "/api/v1/token/create", fmt.Sprintf(
+		`{"name":"GFX","symbol":"GFX","total_supply":"1000","owner":"%s","decimals":6}`, ownerPub))
+	require.Equal(t, http.StatusOK, rr.Code, "create body: %s", rr.Body.String())
+	var create struct {
+		Decimals int8 `json:"decimals"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &create))
+	require.Equal(t, int8(6), create.Decimals, "create response must report decimals 6")
+
+	rr = request(http.MethodGet, "/api/v1/token/info?token_id=GFX", "")
+	require.Equal(t, http.StatusOK, rr.Code, "info body: %s", rr.Body.String())
+	var info struct {
+		Decimals int8 `json:"decimals"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &info))
+	require.Equal(t, int8(6), info.Decimals, "info must report the persisted decimals 6")
+
+	// Omitted decimals field keeps the default of 8.
+	rr = request(http.MethodPost, "/api/v1/token/create", fmt.Sprintf(
+		`{"name":"DEF","symbol":"DEF","total_supply":"1000","owner":"%s"}`, ownerPub))
+	require.Equal(t, http.StatusOK, rr.Code, "create body: %s", rr.Body.String())
+	rr = request(http.MethodGet, "/api/v1/token/info?token_id=DEF", "")
+	require.Equal(t, http.StatusOK, rr.Code, "info body: %s", rr.Body.String())
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &info))
+	require.Equal(t, int8(8), info.Decimals, "omitted decimals must fall back to 8")
+}

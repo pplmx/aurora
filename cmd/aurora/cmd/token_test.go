@@ -72,6 +72,40 @@ func TestTokenCreate_InvalidSupply(t *testing.T) {
 	})
 }
 
+// TestTokenCreate_DecimalsHonored locks the v1.79 fix: the --decimals flag
+// was registered but never read, so every value was silently dropped and the
+// token always got the default of 8 (TASK-099, ISS-091). It must now be
+// persisted and surface through `token info`.
+func TestTokenCreate_DecimalsHonored(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		_, err := runCmd(t, "token", "create",
+			"--name", "GamingCoin", "--symbol", "GAME", "--supply", "1000000", "--decimals", "6")
+		require.NoError(t, err, "token create with --decimals 6 should succeed")
+
+		out, err := runCmd(t, "token", "info", "--token", "GAME")
+		require.NoError(t, err)
+		require.Contains(t, out, "Decimals: 6", "created token must report the honored --decimals value")
+
+		// Unset flag keeps the documented default of 8.
+		out, err = runCmd(t, "token", "create",
+			"--name", "DefaultCoin", "--symbol", "DFLT", "--supply", "1000000")
+		require.NoError(t, err)
+		out, err = runCmd(t, "token", "info", "--token", "DFLT")
+		require.NoError(t, err)
+		require.Contains(t, out, "Decimals: 8", "unset --decimals must keep the default of 8")
+	})
+}
+
+func TestTokenCreate_InvalidDecimals(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		for _, bad := range []string{"abc", "-1", "999"} {
+			_, err := runCmd(t, "token", "create",
+				"--name", "Bad", "--symbol", "BAD", "--supply", "1000000", "--decimals", bad)
+			require.Error(t, err, "create with --decimals %q should fail", bad)
+		}
+	})
+}
+
 func TestTokenMint_HappyPath(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		tokenID, pub, priv := tokenFixture(t, "MintCoin", "MINT", "1000")

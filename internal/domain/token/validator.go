@@ -30,6 +30,15 @@ func ValidateTokenSymbol(symbol string) error {
 	return nil
 }
 
+// ValidateTokenDecimals rejects negative decimals values. 0 is valid and
+// means "use the default" (resolveDecimals); int8 bounds it to 0..127.
+func ValidateTokenDecimals(decimals int8) error {
+	if decimals < 0 {
+		return ErrTokenDecimalsInvalid
+	}
+	return nil
+}
+
 func ValidateAmount(amount *Amount) error {
 	if amount == nil || !amount.IsPositive() {
 		return ErrAmountMustBePositive

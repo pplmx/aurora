@@ -124,6 +124,62 @@ func TestCreateToken(t *testing.T) {
 	}
 }
 
+// TestCreateToken_Decimals locks the v1.79 fix that honors the create
+// request's Decimals field instead of silently defaulting every token to
+// defaultDecimals (TASK-099, ISS-091). 0 is the "unset" sentinel and falls
+// back to the default; negative values are rejected.
+func TestCreateToken_Decimals(t *testing.T) {
+	cases := []struct {
+		name     string
+		decimals int8
+		want     int8
+		wantErr  bool
+	}{
+		{name: "unset falls back to default", decimals: 0, want: 8},
+		{name: "explicit decimals honored", decimals: 6, want: 6},
+		{name: "max int8 accepted", decimals: 127, want: 127},
+		{name: "negative rejected", decimals: -1, wantErr: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewMockRepository()
+			eventStore := NewMockEventStore()
+			service := newTestService(repo, eventStore)
+
+			symbol := fmt.Sprintf("DEC%d", tc.decimals)
+			tok, err := service.CreateToken(&CreateTokenRequest{
+				Name:        "Decimals Tok",
+				Symbol:      symbol,
+				TotalSupply: NewAmount(1000),
+				Owner:       pubKey(3),
+				Decimals:    tc.decimals,
+			})
+			if tc.wantErr {
+				if err != ErrTokenDecimalsInvalid {
+					t.Fatalf("got %v, want ErrTokenDecimalsInvalid", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("CreateToken failed: %v", err)
+			}
+			if got := tok.Decimals(); got != tc.want {
+				t.Errorf("decimals = %d, want %d", got, tc.want)
+			}
+			// The token must round-trip through the repo so the decimals
+			// value is actually persisted, not just set on the in-memory entity.
+			stored, err := repo.GetToken(TokenID(symbol))
+			if err != nil {
+				t.Fatalf("GetToken failed: %v", err)
+			}
+			if stored == nil || stored.Decimals() != tc.want {
+				t.Errorf("persisted decimals = %v, want %d", stored, tc.want)
+			}
+		})
+	}
+}
+
 // TestCreateToken_RejectsDuplicateSymbol locks the v1.62 data-loss fix: a
 // token's ID is its symbol and persistence uses INSERT OR REPLACE keyed on it,
 // so a second create with an existing symbol must be rejected (ErrTokenExists)
