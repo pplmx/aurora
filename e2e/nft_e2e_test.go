@@ -39,8 +39,22 @@ func (r *inMemoryNFTRepo) GetNFT(id string) (*nftdomain.NFT, error) {
 	return r.nfts[id], nil
 }
 
-func (r *inMemoryNFTRepo) GetNFTsByOwner(owner []byte) ([]*nftdomain.NFT, error) {
-	return r.nftsByOwner[string(owner)], nil
+func (r *inMemoryNFTRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nftdomain.NFT, error) {
+	all := r.nftsByOwner[string(owner)]
+	if limit > 0 {
+		if offset < 0 {
+			offset = 0
+		}
+		if offset >= len(all) {
+			return nil, nil
+		}
+		end := offset + limit
+		if end > len(all) {
+			end = len(all)
+		}
+		all = all[offset:end]
+	}
+	return all, nil
 }
 
 func (r *inMemoryNFTRepo) GetNFTsByCreator(creator []byte) ([]*nftdomain.NFT, error) {
@@ -228,8 +242,8 @@ func TestNFTMultipleOwners(t *testing.T) {
 	_, _ = service.Transfer(minted1.ID, user1Pub, user2Pub, user1Priv, chain)
 	_, _ = service.Transfer(minted2.ID, user1Pub, user3Pub, user1Priv, chain)
 
-	user2NFTs, _ := service.GetNFTsByOwner(user2Pub)
-	user3NFTs, _ := service.GetNFTsByOwner(user3Pub)
+	user2NFTs, _ := service.GetNFTsByOwner(user2Pub, 0, 0)
+	user3NFTs, _ := service.GetNFTsByOwner(user3Pub, 0, 0)
 
 	if len(user2NFTs) != 1 {
 		t.Errorf("user2 NFTs = %v, want 1", len(user2NFTs))
