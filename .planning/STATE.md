@@ -5,25 +5,24 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.78 client-error classification + oracle on-chain recording complete
+**Current focus:** v1.79 silent-input & config-correctness sweep complete
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.78 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels, consistent online backups, CLI failure exit codes, NFT burn audit-trail retention, owner-scoped token-history paging + list-envelope consistency, cmd/api config-file loading, malformed-base64→400 classification, oracle scheduler on-chain recording)
-Last activity: 2026-08-25 — v1.78 closed (round-87 backlog):
-  (1) malformed base64 client input was an unclassified 500 — per-domain
-  ErrInvalidBase64 sentinels + decodeKey helpers map it to 400 INVALID_BASE64
-  (TASK-095, ISS-089, CHG-092 / 02f106d); (2) the oracle scheduler's fetch ran
-  with a nil chain so scheduler rows stored block_height=0 — StartOracleScheduler
-  now SetChain's like the handler (TASK-097, ISS-090, CHG-093 / 133e2f7);
-  (3) the flagged "ended→reopen" voting issue was NOT a bug: the v1.10 smoke
-  test documents end→start reopen as intended lifecycle, so a first fix was
-  reverted (35d1365 → fc68119) and the intent recorded as DEC-004 (restartable
-  session, window+already-voted+ended gating); TASK-096 abandoned, TASK-098
-  (revert) resolved.
-  RIL graph at round 88.
+Status: v1.24–v1.79 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels, consistent online backups, CLI failure exit codes, NFT burn audit-trail retention, owner-scoped token-history paging + list-envelope consistency, cmd/api config-file loading, malformed-base64→400 classification, oracle scheduler on-chain recording, honored token create --decimals, lottery-reset declined/exit≠0, bounded NFT list paging, db.path honored everywhere)
+Last activity: 2026-08-27 — v1.79 closed (round-88 observed candidates ISS-091..094):
+  (1) `token create --decimals` was a dead flag — threaded end-to-end
+  (NewTokenWithDecimals, domain/app/API/CLI) with usage error on garbage
+  (TASK-099, CHG-095 / c1b4afe); (2) `lottery reset` without --yes exited 0 —
+  now fails loudly via RunE, matching backup restore --confirm
+  (TASK-100, CHG-096 / a137bc1); (3) GET /nft/list?owner= was unbounded —
+  limit/offset paging with default 20 / cap 100, stable ORDER BY rowid
+  (TASK-101, CHG-097 / 59df6e5, + bfdf38e/9f248a0); (4) db.path split-brain —
+  blockchain.resolvedDBPath() now honors the configured [db] path for
+  DBPath/InitDB/autoRun migrations (TASK-102, CHG-098 / 43a6c95).
+  RIL graph at round 89.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
@@ -76,12 +75,17 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.76 | CLI TUI commands exit 0 on failure (RunE) | ✅ done |
 | v1.77 | NFT burn audit-trail retention + owner-scoped token-history paging/envelope + cmd/api config-file loading | ✅ done |
 | v1.78 | Base64→400 classification + oracle scheduler on-chain recording (voting reopen decided-not-a-bug, DEC-004) | ✅ done |
+| v1.79 | Honored token create --decimals + lottery-reset declined→exit≠0 + bounded NFT list paging + db.path honored everywhere | ✅ done |
 
 ## Session Continuity
 
-Last session: 2026-08-25 — v1.78 client-error classification + oracle
-  on-chain recording; voting "reopen" recorded as intended lifecycle (DEC-004).
-Next: run a fresh deep-dive round, or revisit remaining observed candidates
-  (unbounded NFT/lottery list endpoints, `token create --decimals` dead flag,
-  `lottery reset` exit-0 without `--yes`, token/NFT TUI in-memory sandboxes,
-  DB-path split-brain between migrate and the real stores).
+Last session: 2026-08-27 — v1.79 silent-input & config-correctness sweep:
+  token create --decimals honored, lottery reset declines loudly, NFT list
+  bounded, db.path honored everywhere. RIL graph at round 89.
+Next: run a fresh deep-dive round (all backlog candidates from the round-88
+  observation are now closed; the round-89 candidates below are the carry-forward
+  observations to investigate): token/NFT TUI in-memory sandboxes (playground
+  semantics vs persistence inconsistency with lottery/voting TUI), the residual
+  dead `GlobalApp`/`app.Wire(dataDir)` wiring + phantom $HOME/.aurora/data mkdir
+  in root.go (left in place to keep v1.79 diff scoped), and the deferred
+  ISS-084 phantom on-chain blocks on rolled-back transactions (DEC-002).

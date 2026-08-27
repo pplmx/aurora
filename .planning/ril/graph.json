@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 88,
+  "round": 89,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-25T02:15:20+00:00",
+  "updated_at": "2026-08-27T07:17:25+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 68,
+      "touched_round": 88,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 86,
+      "touched_round": 88,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -986,7 +986,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:06:06+00:00",
       "updated_at": "2026-08-23T00:06:06+00:00",
-      "touched_round": 36,
+      "touched_round": 88,
       "title": "internal/domain/blockchain"
     },
     "CHG-017": {
@@ -2277,7 +2277,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:13:52+00:00",
       "updated_at": "2026-08-23T05:13:52+00:00",
-      "touched_round": 47,
+      "touched_round": 88,
       "title": "Token module CLI surface"
     },
     "EV-011": {
@@ -4358,6 +4358,154 @@
       "effort": 1,
       "unlock_factor": 1,
       "summary": "Revert the premature voting-lifecycle guard: 35d1365 blocked ended->active reopen as a 409, but votingsmoke_test.go step 8 proves end->start reopen is the documented v1.10 lifecycle (locked-out voter votes after restart); the agent-flagged ISS-088 'reopen' was not a bug. Reverted by fc68119; intent recorded in DEC-004 (restartable lifecycle, window+already-voted+ended gating)."
+    },
+    "ISS-091": {
+      "id": "ISS-091",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T05:45:48+00:00",
+      "updated_at": "2026-08-27T06:15:13+00:00",
+      "touched_round": 88,
+      "title": "token create --decimals flag is dead: registered with default 8 but never read, so any value is silently ignored and every CLI-created token gets defaultDecimals=8"
+    },
+    "ISS-092": {
+      "id": "ISS-092",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T05:45:50+00:00",
+      "updated_at": "2026-08-27T06:15:12+00:00",
+      "touched_round": 88,
+      "title": "lottery reset exits 0 when --yes is declined (warns then returns nil), contradicting the backup restore --confirm contract which returns an error; scripts cannot detect that the destructive reset did NOT run"
+    },
+    "ISS-093": {
+      "id": "ISS-093",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T05:45:51+00:00",
+      "updated_at": "2026-08-27T06:43:32+00:00",
+      "touched_round": 88,
+      "title": "GET /api/v1/nft/list?owner= returns every NFT for an owner with no limit/offset and no caps, unbounded; diverges from the v1.77 owner-scoped paging on token history"
+    },
+    "ISS-094": {
+      "id": "ISS-094",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T05:45:57+00:00",
+      "updated_at": "2026-08-27T07:07:59+00:00",
+      "touched_round": 88,
+      "title": "db.path config split-brain: blockchain.DBPath() is hardcoded to ./data/aurora.db and ignores aurora.toml [db] path, while the migrate.autoRun branch in root.go falls back to /root/.aurora/data/aurora.db; migrate and the real stores can target different databases"
+    },
+    "TASK-099": {
+      "id": "TASK-099",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T05:46:46+00:00",
+      "updated_at": "2026-08-27T06:16:12+00:00",
+      "touched_round": 88,
+      "category": "correctness",
+      "severity": 2.5,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1,
+      "summary": "Honor token create --decimals (ISS-091): the CLI flag (default 8) and the POST /token/create API both silently ignore decimals and every token gets defaultDecimals=8. Thread Decimals through domain CreateTokenRequest/CreateToken/NewToken (0 => default 8), the app CreateTokenRequest, the API JSON body, and parse/validate the CLI --decimals value with a usage error on garbage."
+    },
+    "TASK-100": {
+      "id": "TASK-100",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-27T05:46:51+00:00",
+      "updated_at": "2026-08-27T06:14:37+00:00",
+      "touched_round": 88,
+      "category": "correctness",
+      "severity": 2,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "lottery reset must fail loudly when --yes is declined (ISS-092): it currently prints the warning, returns nil and exits 0, contradicting backup restore --confirm which returns an error; return the 'use --yes to confirm' error so scripts can detect the destructive reset did not run, and assert the new contract in TestLotteryReset_NeedsConfirmation.",
+      "lock_owner": "loop-main",
+      "lock_until": "2026-08-27T06:20:09+00:00"
+    },
+    "TASK-101": {
+      "id": "TASK-101",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-27T05:47:15+00:00",
+      "updated_at": "2026-08-27T06:43:32+00:00",
+      "touched_round": 88,
+      "category": "stability",
+      "severity": 2,
+      "confidence": 0.95,
+      "effort": 3,
+      "unlock_factor": 1,
+      "summary": "Bound the NFT list endpoint (ISS-093): GET /api/v1/nft/list?owner= returns every NFT with no limit/offset and no caps. Add limit/offset paging to the handler with default/max caps (v1.77 token-history precedent), a ListNFTsByOwner request, and SQL WHERE owner=? LIMIT/OFFSET; 0,0 stays unbounded for the CLI/TUI callers.",
+      "lock_owner": "loop-main",
+      "lock_until": "2026-08-27T06:46:51+00:00"
+    },
+    "TASK-102": {
+      "id": "TASK-102",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-27T05:47:18+00:00",
+      "updated_at": "2026-08-27T07:17:25+00:00",
+      "touched_round": 89,
+      "category": "correctness",
+      "severity": 2.5,
+      "confidence": 0.9,
+      "effort": 2,
+      "unlock_factor": 1,
+      "summary": "Honor db.path everywhere (ISS-094): blockchain.DBPath() is hardcoded to ./data/aurora.db and ignores aurora.toml [db] path, while root.go's migrate.autoRun branch falls back to /root/.aurora/data/aurora.db; make DBPath() read viper db.path (fallback to the default) so migrate, all CLI stores and the API server target one configured DB, and have the autoRun branch use blockchain.DBPath() to remove the split-brain."
+    },
+    "CHG-095": {
+      "id": "CHG-095",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T07:06:36+00:00",
+      "updated_at": "2026-08-27T07:06:36+00:00",
+      "touched_round": 88,
+      "commit": "c1b4afe",
+      "title": "Honor token create --decimals everywhere (CLI + API + domain), 0 => default 8"
+    },
+    "CHG-096": {
+      "id": "CHG-096",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T07:06:36+00:00",
+      "updated_at": "2026-08-27T07:06:36+00:00",
+      "touched_round": 88,
+      "commit": "a137bc1",
+      "title": "lottery reset fails loudly when --yes is declined (non-zero exit)"
+    },
+    "CHG-097": {
+      "id": "CHG-097",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T07:06:36+00:00",
+      "updated_at": "2026-08-27T07:06:36+00:00",
+      "touched_round": 88,
+      "commit": "59df6e5",
+      "title": "Bound NFT owner list endpoint with limit/offset paging (default 20, cap 100)"
+    },
+    "CHG-098": {
+      "id": "CHG-098",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T07:06:36+00:00",
+      "updated_at": "2026-08-27T07:06:36+00:00",
+      "touched_round": 88,
+      "commit": "43a6c95",
+      "title": "Honor db.path config in the single canonical resolver; autoRun migrates that same DB"
     }
   },
   "edges": [
@@ -6766,6 +6914,102 @@
       "to": "TASK-098",
       "type": "implements",
       "created_at": "2026-08-25T02:15:20+00:00"
+    },
+    {
+      "from": "TASK-099",
+      "to": "ISS-091",
+      "type": "addresses",
+      "created_at": "2026-08-27T05:47:50+00:00"
+    },
+    {
+      "from": "TASK-100",
+      "to": "ISS-092",
+      "type": "addresses",
+      "created_at": "2026-08-27T05:47:50+00:00"
+    },
+    {
+      "from": "TASK-101",
+      "to": "ISS-093",
+      "type": "addresses",
+      "created_at": "2026-08-27T05:47:50+00:00"
+    },
+    {
+      "from": "TASK-102",
+      "to": "ISS-094",
+      "type": "addresses",
+      "created_at": "2026-08-27T05:47:50+00:00"
+    },
+    {
+      "from": "ISS-091",
+      "to": "COMP-006",
+      "type": "located_in",
+      "created_at": "2026-08-27T05:47:54+00:00"
+    },
+    {
+      "from": "ISS-092",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-08-27T05:47:54+00:00"
+    },
+    {
+      "from": "ISS-093",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-27T05:47:54+00:00"
+    },
+    {
+      "from": "ISS-094",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-08-27T05:47:54+00:00"
+    },
+    {
+      "from": "CHG-095",
+      "to": "ISS-091",
+      "type": "resolves",
+      "created_at": "2026-08-27T07:07:30+00:00"
+    },
+    {
+      "from": "CHG-095",
+      "to": "TASK-099",
+      "type": "implements",
+      "created_at": "2026-08-27T07:07:30+00:00"
+    },
+    {
+      "from": "CHG-096",
+      "to": "ISS-092",
+      "type": "resolves",
+      "created_at": "2026-08-27T07:07:31+00:00"
+    },
+    {
+      "from": "CHG-096",
+      "to": "TASK-100",
+      "type": "implements",
+      "created_at": "2026-08-27T07:07:31+00:00"
+    },
+    {
+      "from": "CHG-097",
+      "to": "ISS-093",
+      "type": "resolves",
+      "created_at": "2026-08-27T07:07:31+00:00"
+    },
+    {
+      "from": "CHG-097",
+      "to": "TASK-101",
+      "type": "implements",
+      "created_at": "2026-08-27T07:07:31+00:00"
+    },
+    {
+      "from": "CHG-098",
+      "to": "ISS-094",
+      "type": "resolves",
+      "created_at": "2026-08-27T07:07:31+00:00"
+    },
+    {
+      "from": "CHG-098",
+      "to": "TASK-102",
+      "type": "implements",
+      "created_at": "2026-08-27T07:07:31+00:00"
     }
   ]
 }
