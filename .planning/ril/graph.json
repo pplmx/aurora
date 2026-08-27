@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 90,
+  "round": 92,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-27T07:41:47+00:00",
+  "updated_at": "2026-08-27T13:30:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -4544,6 +4544,402 @@
       "touched_round": 89,
       "commit": "3b369aa",
       "title": "Remove dead app.Wire data-dir wiring; no CLI command creates phantom HOME DBs"
+    },
+    "ISS-096": {
+      "id": "ISS-096",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T10:11:02+00:00",
+      "updated_at": "2026-08-27T10:29:17+00:00",
+      "touched_round": 91,
+      "title": "Lottery VRF verification is a no-op: VRFVerify ignores the public key entirely and never relates the 32-byte output to the proof or any key, so any 32-byte output (e.g. one selecting attacker-chosen winners) with proof=output||hashToPoint(seed) verifies against ANY public key, and the Verified flag conveys no integrity"
+    },
+    "ISS-097": {
+      "id": "ISS-097",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T10:12:50+00:00",
+      "updated_at": "2026-08-27T10:29:17+00:00",
+      "touched_round": 91,
+      "title": "Every on-chain audit record (lottery draw, oracle observation) is serialized with block_height:0; the usecases marshal the JSON before the chain assigns the height and stamp only their local DB copy afterwards, so replaying the chain can never correlate a block to its record"
+    },
+    "ISS-098": {
+      "id": "ISS-098",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T10:12:50+00:00",
+      "updated_at": "2026-08-27T10:29:17+00:00",
+      "touched_round": 91,
+      "title": "Token CreateToken duplicate-symbol rejection is a read-then-write TOCTOU: the pre-check GetToken runs outside the transaction and SaveToken uses INSERT OR REPLACE, so two racing creates with the same symbol both succeed and the second silently deletes the first token's row and owner balance"
+    },
+    "ISS-099": {
+      "id": "ISS-099",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T10:12:50+00:00",
+      "updated_at": "2026-08-27T10:29:17+00:00",
+      "touched_round": 91,
+      "title": "CLI prints every error message twice: cobra's DefaultErrorFunc emits 'Error: ...' (SilenceErrors is false) and Execute() then prints the same message again as '❌ Error: ...', polluting stderr for scripts"
+    },
+    "TASK-104": {
+      "id": "TASK-104",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T10:12:50+00:00",
+      "updated_at": "2026-08-27T10:29:17+00:00",
+      "touched_round": 91,
+      "category": "correctness",
+      "severity": 5,
+      "confidence": 1.0,
+      "effort": 4,
+      "unlock_factor": 1,
+      "summary": "Replace the no-op lottery VRF verification with a Schnorr-style NIZK (R1,R2,s deterministic per key+seed) that binds output=sk*H(seed) to the public key; reject legacy forgeries; proof format becomes 96 bytes with regression tests"
+    },
+    "TASK-105": {
+      "id": "TASK-105",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T10:12:51+00:00",
+      "updated_at": "2026-08-27T10:29:17+00:00",
+      "touched_round": 91,
+      "category": "correctness",
+      "severity": 2,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Stamp the true block_height into audit-record JSON at chain append time (AddLotteryRecord) so the immutable on-chain payload is self-describing for all lottery/oracle/TUI callers"
+    },
+    "TASK-106": {
+      "id": "TASK-106",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T10:12:51+00:00",
+      "updated_at": "2026-08-27T10:29:17+00:00",
+      "touched_round": 91,
+      "category": "correctness",
+      "severity": 2,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Make TokenRepository.SaveToken insert-only (ON CONFLICT DO NOTHING -> ErrTokenExists) + mirror in the TUI in-memory repo so a racing duplicate create fails atomically instead of silently overwriting"
+    },
+    "TASK-107": {
+      "id": "TASK-107",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T10:12:51+00:00",
+      "updated_at": "2026-08-27T10:29:17+00:00",
+      "touched_round": 91,
+      "category": "dx",
+      "severity": 1,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Set cobra SilenceErrors on the root command so CLI failures print a single error line instead of the duplicate cobra+explicit print"
+    },
+    "CHG-100": {
+      "id": "CHG-100",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T10:28:28+00:00",
+      "updated_at": "2026-08-27T10:28:28+00:00",
+      "touched_round": 91,
+      "commit": "826023c",
+      "title": "Fix lottery VRF verification no-op via Schnorr NIZK binding output to key"
+    },
+    "CHG-101": {
+      "id": "CHG-101",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T10:28:28+00:00",
+      "updated_at": "2026-08-27T10:28:28+00:00",
+      "touched_round": 91,
+      "commit": "6e77d01",
+      "title": "Stamp true block_height into on-chain audit JSON at append time"
+    },
+    "CHG-102": {
+      "id": "CHG-102",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T10:28:28+00:00",
+      "updated_at": "2026-08-27T10:28:28+00:00",
+      "touched_round": 91,
+      "commit": "85bc43f",
+      "title": "Make token create duplicate-symbol rejection atomic (insert-only SaveToken)"
+    },
+    "CHG-103": {
+      "id": "CHG-103",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T10:28:28+00:00",
+      "updated_at": "2026-08-27T10:28:28+00:00",
+      "touched_round": 91,
+      "commit": "a33dc88",
+      "title": "Emit a single CLI error line (cobra SilenceErrors)"
+    },
+    "ISS-100": {
+      "id": "ISS-100",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T11:13:04+00:00",
+      "updated_at": "2026-08-27T11:13:50+00:00",
+      "touched_round": 91,
+      "title": "Lottery create --count flag default is read from viper at package init() before initConfig/setDefaultConfig run, so the default is always 0 and every 'lottery create' without -c fails with 'winner count must be positive'; even a configured lottery.defaultCount is dead at flag-registration time"
+    },
+    "ISS-101": {
+      "id": "ISS-101",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T11:13:04+00:00",
+      "updated_at": "2026-08-27T11:13:50+00:00",
+      "touched_round": 91,
+      "title": "Backup Create destroys the previous good snapshot on mid-run failure (os.Remove before VACUUM INTO) and querySchemaVersion materializes a missing DB source as an empty file (SQLite creates on first use), so a failed or misconfigured backup run can lose the operator's only good backup"
+    },
+    "TASK-108": {
+      "id": "TASK-108",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T11:13:04+00:00",
+      "updated_at": "2026-08-27T11:13:50+00:00",
+      "touched_round": 91,
+      "category": "correctness",
+      "severity": 4,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Resolve lottery create --count default at run time (fall back to viper lottery.defaultCount when -c is absent) instead of freezing the broken init-time viper read"
+    },
+    "TASK-109": {
+      "id": "TASK-109",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T11:13:05+00:00",
+      "updated_at": "2026-08-27T11:13:50+00:00",
+      "touched_round": 91,
+      "category": "stability",
+      "severity": 3,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1,
+      "summary": "Make backup Create all-or-nothing (snapshot-all temps then atomic rename, then metadata) and stop querySchemaVersion from creating missing source DBs"
+    },
+    "CHG-104": {
+      "id": "CHG-104",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T11:13:50+00:00",
+      "updated_at": "2026-08-27T11:13:50+00:00",
+      "touched_round": 91,
+      "commit": "8d6d52f",
+      "title": "Honor default winner count on lottery create without -c"
+    },
+    "CHG-105": {
+      "id": "CHG-105",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T11:13:50+00:00",
+      "updated_at": "2026-08-27T11:13:50+00:00",
+      "touched_round": 91,
+      "commit": "8831b14",
+      "title": "All-or-nothing backup Create + no materialization of missing sources"
+    },
+    "ISS-102": {
+      "id": "ISS-102",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T11:25:21+00:00",
+      "updated_at": "2026-08-27T11:25:21+00:00",
+      "touched_round": 91,
+      "title": "A bare integer api.rateLimit.window TOML value is cast by viper.GetDuration into 60 NANOSECONDS (cast.ToDuration on int64), so the fixed-window limiter resets its budget every request — rate limiting is silently disabled whenever configured with a plain number; '60' as a string became 0"
+    },
+    "TASK-110": {
+      "id": "TASK-110",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T11:25:21+00:00",
+      "updated_at": "2026-08-27T11:25:21+00:00",
+      "touched_round": 91,
+      "category": "security",
+      "severity": 2,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Make RateLimitWindow interpret numeric TOML values as seconds (ints/floats/numeric strings) with duration-string and time.Duration passthrough"
+    },
+    "CHG-106": {
+      "id": "CHG-106",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T11:25:21+00:00",
+      "updated_at": "2026-08-27T11:25:21+00:00",
+      "touched_round": 91,
+      "commit": "aef8110",
+      "title": "Interpret numeric api.rateLimit.window as seconds (no more silent 60ns window)"
+    },
+    "ISS-103": {
+      "id": "ISS-103",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T11:49:26+00:00",
+      "updated_at": "2026-08-27T11:49:26+00:00",
+      "touched_round": 91,
+      "title": "Voting API returns HTTP 500 for client-supplied missing resources: GetSession/GetVoter/GetCandidate in the SQLite repo return sqlite.ErrNotFound on no row, which the use cases wrap unclassified, so unknown session/voter/candidate IDs and results for missing sessions all 500 INTERNAL_ERROR; the intended 4xx branches are dead code"
+    },
+    "TASK-111": {
+      "id": "TASK-111",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T11:49:26+00:00",
+      "updated_at": "2026-08-27T11:49:26+00:00",
+      "touched_round": 91,
+      "category": "correctness",
+      "severity": 2,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Map sqlite.ErrNotFound to voting domain sentinels at every pre-transaction existence check so missing resources return 404/400 instead of 500"
+    },
+    "CHG-107": {
+      "id": "CHG-107",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T11:49:26+00:00",
+      "updated_at": "2026-08-27T11:49:26+00:00",
+      "touched_round": 91,
+      "commit": "dd13001",
+      "title": "Voting missing-resource requests return 404/400 client errors instead of 500"
+    },
+    "ISS-104": {
+      "id": "ISS-104",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T12:43:27+00:00",
+      "updated_at": "2026-08-27T12:43:27+00:00",
+      "touched_round": 91,
+      "title": "nft mint accepts any decoded key length, so a wrong-length owner key mints an NFT that can never be transferred or burned (the domain's 32-byte ownership checks can never match) while the CLI reports success; NFT responses also print keys as raw string() bytes (mojibake) instead of base64 like every other module"
+    },
+    "TASK-112": {
+      "id": "TASK-112",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T12:43:27+00:00",
+      "updated_at": "2026-08-27T12:43:27+00:00",
+      "touched_round": 91,
+      "category": "correctness",
+      "severity": 2,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1,
+      "summary": "Enforce 32-byte public / 64-byte private key lengths in nft decodeKey and base64-encode keys in NFT/Operation responses"
+    },
+    "CHG-108": {
+      "id": "CHG-108",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T12:43:27+00:00",
+      "updated_at": "2026-08-27T12:43:27+00:00",
+      "touched_round": 91,
+      "commit": "d85ffb1",
+      "title": "NFT key-length enforcement + base64 key output"
+    },
+    "ISS-105": {
+      "id": "ISS-105",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T13:09:14+00:00",
+      "updated_at": "2026-08-27T13:09:14+00:00",
+      "touched_round": 91,
+      "title": "The CLI's newTokenService builds a SyncEventBus with no subscribers, so every CLI token mint/transfer/transfer_from/burn/approve drops its audit event into the void and 'token history' is always empty for CLI activity; the v1.73 ISS-080 fix wired only the API server"
+    },
+    "TASK-113": {
+      "id": "TASK-113",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T13:09:14+00:00",
+      "updated_at": "2026-08-27T13:09:14+00:00",
+      "touched_round": 91,
+      "category": "correctness",
+      "severity": 2,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Subscribe the audit handler in the CLI token service so CLI token operations persist the events token history reads"
+    },
+    "CHG-109": {
+      "id": "CHG-109",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T13:09:14+00:00",
+      "updated_at": "2026-08-27T13:09:14+00:00",
+      "touched_round": 91,
+      "commit": "8ef9db1",
+      "title": "CLI token operations persist audit events (token history no longer empty)"
+    },
+    "ISS-106": {
+      "id": "ISS-106",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T13:25:42+00:00",
+      "updated_at": "2026-08-27T13:25:42+00:00",
+      "touched_round": 91,
+      "title": "Response-envelope inconsistencies: GET /api/v1/lottery/history encodes no-rows as JSON null (other list endpoints return []) and the 401 middleware uses a nested {\"error\":{\"code\",\"message\"}} envelope while every other error surface uses the flat {\"error\",\"code\"} shape"
+    },
+    "TASK-114": {
+      "id": "TASK-114",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T13:25:42+00:00",
+      "updated_at": "2026-08-27T13:25:42+00:00",
+      "touched_round": 91,
+      "category": "stability",
+      "severity": 1,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Normalize lottery history to an empty array on no rows and flatten the 401 error envelope to match every other error surface"
+    },
+    "CHG-110": {
+      "id": "CHG-110",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T13:25:42+00:00",
+      "updated_at": "2026-08-27T13:25:42+00:00",
+      "touched_round": 91,
+      "commit": "b9917e7",
+      "title": "Lottery history [] + flat 401 error envelope"
     }
   },
   "edges": [
@@ -7072,6 +7468,204 @@
       "to": "TASK-103",
       "type": "implements",
       "created_at": "2026-08-27T07:40:48+00:00"
+    },
+    {
+      "from": "TASK-104",
+      "to": "ISS-096",
+      "type": "addresses",
+      "created_at": "2026-08-27T10:13:25+00:00"
+    },
+    {
+      "from": "TASK-105",
+      "to": "ISS-097",
+      "type": "addresses",
+      "created_at": "2026-08-27T10:13:25+00:00"
+    },
+    {
+      "from": "TASK-106",
+      "to": "ISS-098",
+      "type": "addresses",
+      "created_at": "2026-08-27T10:13:25+00:00"
+    },
+    {
+      "from": "TASK-107",
+      "to": "ISS-099",
+      "type": "addresses",
+      "created_at": "2026-08-27T10:13:26+00:00"
+    },
+    {
+      "from": "CHG-100",
+      "to": "ISS-096",
+      "type": "resolves",
+      "created_at": "2026-08-27T10:29:16+00:00"
+    },
+    {
+      "from": "CHG-100",
+      "to": "TASK-104",
+      "type": "implements",
+      "created_at": "2026-08-27T10:29:16+00:00"
+    },
+    {
+      "from": "CHG-101",
+      "to": "ISS-097",
+      "type": "resolves",
+      "created_at": "2026-08-27T10:29:16+00:00"
+    },
+    {
+      "from": "CHG-101",
+      "to": "TASK-105",
+      "type": "implements",
+      "created_at": "2026-08-27T10:29:16+00:00"
+    },
+    {
+      "from": "CHG-102",
+      "to": "ISS-098",
+      "type": "resolves",
+      "created_at": "2026-08-27T10:29:16+00:00"
+    },
+    {
+      "from": "CHG-102",
+      "to": "TASK-106",
+      "type": "implements",
+      "created_at": "2026-08-27T10:29:16+00:00"
+    },
+    {
+      "from": "CHG-103",
+      "to": "ISS-099",
+      "type": "resolves",
+      "created_at": "2026-08-27T10:29:16+00:00"
+    },
+    {
+      "from": "CHG-103",
+      "to": "TASK-107",
+      "type": "implements",
+      "created_at": "2026-08-27T10:29:16+00:00"
+    },
+    {
+      "from": "TASK-108",
+      "to": "ISS-100",
+      "type": "addresses",
+      "created_at": "2026-08-27T11:13:50+00:00"
+    },
+    {
+      "from": "TASK-109",
+      "to": "ISS-101",
+      "type": "addresses",
+      "created_at": "2026-08-27T11:13:50+00:00"
+    },
+    {
+      "from": "CHG-104",
+      "to": "ISS-100",
+      "type": "resolves",
+      "created_at": "2026-08-27T11:14:29+00:00"
+    },
+    {
+      "from": "CHG-104",
+      "to": "TASK-108",
+      "type": "implements",
+      "created_at": "2026-08-27T11:14:29+00:00"
+    },
+    {
+      "from": "CHG-105",
+      "to": "ISS-101",
+      "type": "resolves",
+      "created_at": "2026-08-27T11:14:30+00:00"
+    },
+    {
+      "from": "CHG-105",
+      "to": "TASK-109",
+      "type": "implements",
+      "created_at": "2026-08-27T11:14:30+00:00"
+    },
+    {
+      "from": "TASK-110",
+      "to": "ISS-102",
+      "type": "addresses",
+      "created_at": "2026-08-27T11:25:21+00:00"
+    },
+    {
+      "from": "CHG-106",
+      "to": "ISS-102",
+      "type": "resolves",
+      "created_at": "2026-08-27T11:26:27+00:00"
+    },
+    {
+      "from": "CHG-106",
+      "to": "TASK-110",
+      "type": "implements",
+      "created_at": "2026-08-27T11:26:27+00:00"
+    },
+    {
+      "from": "TASK-111",
+      "to": "ISS-103",
+      "type": "addresses",
+      "created_at": "2026-08-27T11:49:26+00:00"
+    },
+    {
+      "from": "CHG-107",
+      "to": "ISS-103",
+      "type": "resolves",
+      "created_at": "2026-08-27T11:50:50+00:00"
+    },
+    {
+      "from": "CHG-107",
+      "to": "TASK-111",
+      "type": "implements",
+      "created_at": "2026-08-27T11:50:50+00:00"
+    },
+    {
+      "from": "TASK-112",
+      "to": "ISS-104",
+      "type": "addresses",
+      "created_at": "2026-08-27T12:43:27+00:00"
+    },
+    {
+      "from": "CHG-108",
+      "to": "ISS-104",
+      "type": "resolves",
+      "created_at": "2026-08-27T12:43:27+00:00"
+    },
+    {
+      "from": "CHG-108",
+      "to": "TASK-112",
+      "type": "implements",
+      "created_at": "2026-08-27T12:43:27+00:00"
+    },
+    {
+      "from": "TASK-113",
+      "to": "ISS-105",
+      "type": "addresses",
+      "created_at": "2026-08-27T13:09:14+00:00"
+    },
+    {
+      "from": "CHG-109",
+      "to": "ISS-105",
+      "type": "resolves",
+      "created_at": "2026-08-27T13:09:14+00:00"
+    },
+    {
+      "from": "CHG-109",
+      "to": "TASK-113",
+      "type": "implements",
+      "created_at": "2026-08-27T13:09:14+00:00"
+    },
+    {
+      "from": "TASK-114",
+      "to": "ISS-106",
+      "type": "addresses",
+      "created_at": "2026-08-27T13:25:42+00:00"
+    },
+    {
+      "from": "CHG-110",
+      "to": "ISS-106",
+      "type": "resolves",
+      "created_at": "2026-08-27T13:25:42+00:00"
+    },
+    {
+      "from": "CHG-110",
+      "to": "TASK-114",
+      "type": "implements",
+      "created_at": "2026-08-27T13:25:42+00:00"
     }
   ]
 }
