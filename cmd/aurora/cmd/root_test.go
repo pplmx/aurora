@@ -1,16 +1,46 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
+	tokenerrors "github.com/pplmx/aurora/internal/domain/token"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestFormatCLIError_CommittedAuditFailure locks the CLI half of TASK-117 /
+// ISS-109: a token op that COMMITTED but whose post-commit audit publish
+// failed must render as a do-not-retry warning, never as a bare "❌ Error:"
+// failure line (which invites a retry that repeats the money movement).
+func TestFormatCLIError_CommittedAuditFailure(t *testing.T) {
+	// Wrapped exactly as internal/domain/token/service.go wraps its
+	// post-commit publish sites: sentinel as %w, cause as %v.
+	err := fmt.Errorf("failed to transfer: %w", fmt.Errorf("%w: %v", tokenerrors.ErrAuditPublishFailed, errors.New("disk full")))
+
+	out := formatCLIError(err)
+	if !strings.Contains(out, "committed") {
+		t.Errorf("audit-failure line must say the op committed, got: %q", out)
+	}
+	if !strings.Contains(out, "Do NOT retry") {
+		t.Errorf("audit-failure line must warn against retrying, got: %q", out)
+	}
+	if strings.Contains(out, "❌ Error:") {
+		t.Errorf("audit-failure must not render as a plain failure line, got: %q", out)
+	}
+
+	// Ordinary failures keep the established single error line.
+	if got := formatCLIError(errors.New("boom")); got != "❌ Error: boom\n" {
+		t.Errorf("ordinary error rendered as %q, want the standard error line", got)
+	}
+}
 
 func TestGetGoVersion(t *testing.T) {
 	assert.Equal(t, "1.26+", getGoVersion())

@@ -1331,13 +1331,25 @@ func (m *mockEventStore) GetBurnEventsByToken(tokenID TokenID) ([]*BurnEvent, er
 
 type mockEventBus struct {
 	eventStore *mockEventStore
+	// err, when set, makes Publish fail even though the domain operation
+	// already committed — the exact post-commit audit-failure condition
+	// TASK-117 / ISS-109 models (a lost audit record after the balances
+	// moved).
+	err error
 }
 
 func newMockEventBus(es *mockEventStore) *mockEventBus {
 	return &mockEventBus{eventStore: es}
 }
 
+func newMockEventBusWithErr(es *mockEventStore, err error) *mockEventBus {
+	return &mockEventBus{eventStore: es, err: err}
+}
+
 func (m *mockEventBus) Publish(e events.Event) error {
+	if m.err != nil {
+		return m.err
+	}
 	switch evt := e.(type) {
 	case *TransferEvent:
 		m.eventStore.transferEvents = append(m.eventStore.transferEvents, evt)
@@ -1420,6 +1432,83 @@ func TestGetAllowance_NoApproval(t *testing.T) {
 
 	if allowance.Int64() != 0 {
 		t.Errorf("expected allowance 0, got %d", allowance.Int64())
+	}
+}
+
+// TestAuditPublishFailure_OpStillCommits locks TASK-117 / ISS-109: when the
+// post-commit audit publish fails, the domain operation has ALREADY COMMITTED,
+// so the caller must be able to distinguish "committed but audit lost" from
+// "operation failed" (which would invite a dangerous retry that repeats the
+// money movement). Mint/Transfer/Burn must surface ErrAuditPublishFailed via
+// errors.Is while the balances/supply prove the op actually committed.
+func TestAuditPublishFailure_OpStillCommits(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	busErr := errors.New("event store unavailable")
+	eventBus := newMockEventBusWithErr(eventStore, busErr)
+	service := NewService(repo, newMockTxManager(), eventBus, eventStore, newMockReplayProtection(), blockchain.NewBlockChain())
+
+	owner := pubKey(1)
+	recipient := pubKey(2)
+	priv := privKey(1)
+
+	if _, err := service.CreateToken(&CreateTokenRequest{
+		Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
+	}); err != nil {
+		t.Fatalf("CreateToken failed: %v", err)
+	}
+
+	// Mint commits supply + recipient balance, but the audit publish fails.
+	_, err := service.Mint(&MintRequest{TokenID: "TEST", To: recipient, Amount: NewAmount(500), PrivateKey: priv})
+	if !errors.Is(err, ErrAuditPublishFailed) {
+		t.Fatalf("Mint: got %v, want ErrAuditPublishFailed", err)
+	}
+	supply, err := service.GetTokenInfo("TEST")
+	if err != nil {
+		t.Fatalf("GetTokenInfo failed: %v", err)
+	}
+	if supply.TotalSupply().Int64() != 1500 {
+		t.Errorf("Mint did not commit: total supply = %d, want 1500", supply.TotalSupply().Int64())
+	}
+	mintedBal, err := service.GetBalance("TEST", recipient)
+	if err != nil {
+		t.Fatalf("GetBalance failed: %v", err)
+	}
+	if mintedBal.Int64() != 500 {
+		t.Errorf("Mint did not commit: recipient balance = %d, want 500", mintedBal.Int64())
+	}
+
+	// Transfer commits the balance movement even though the publish fails.
+	_, err = service.Transfer(&TransferRequest{TokenID: "TEST", From: owner, To: recipient, Amount: NewAmount(200), PrivateKey: priv})
+	if !errors.Is(err, ErrAuditPublishFailed) {
+		t.Fatalf("Transfer: got %v, want ErrAuditPublishFailed", err)
+	}
+	ownerBal, err := service.GetBalance("TEST", owner)
+	if err != nil {
+		t.Fatalf("GetBalance failed: %v", err)
+	}
+	if ownerBal.Int64() != 800 {
+		t.Errorf("Transfer did not commit: owner balance = %d, want 800", ownerBal.Int64())
+	}
+	toBal, err := service.GetBalance("TEST", recipient)
+	if err != nil {
+		t.Fatalf("GetBalance failed: %v", err)
+	}
+	if toBal.Int64() != 700 {
+		t.Errorf("Transfer did not commit: recipient balance = %d, want 700", toBal.Int64())
+	}
+
+	// Burn commits the supply reduction even though the publish fails.
+	_, err = service.Burn(&BurnRequest{TokenID: "TEST", From: owner, Amount: NewAmount(100), PrivateKey: priv})
+	if !errors.Is(err, ErrAuditPublishFailed) {
+		t.Fatalf("Burn: got %v, want ErrAuditPublishFailed", err)
+	}
+	postBurn, err := service.GetTokenInfo("TEST")
+	if err != nil {
+		t.Fatalf("GetTokenInfo failed: %v", err)
+	}
+	if postBurn.TotalSupply().Int64() != 1400 {
+		t.Errorf("Burn did not commit: total supply = %d, want 1400", postBurn.TotalSupply().Int64())
 	}
 }
 
