@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -22,6 +23,28 @@ func TestLotteryCreate_HappyPath(t *testing.T) {
 		assert.Contains(t, out, "Winners:")
 		assert.Contains(t, out, "Lottery ID:")
 		assert.Contains(t, out, "Block height:")
+	})
+}
+
+// TestLotteryCreate_DefaultCount regression (TASK-108, ISS-100): the --count
+// flag was registered with viper.GetInt("lottery.defaultCount") at init() time —
+// before initConfig/setDefaultConfig load — so its default was always 0 and any
+// create without -c failed with "winner count must be positive". It must now
+// fall back to the configured default (3) at run time.
+func TestLotteryCreate_DefaultCount(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		out, err := runCmd(t, "lottery", "create",
+			"--participants", "Alice,Bob,Charlie,Dave,Eve", "--seed", "default-count-seed")
+		require.NoError(t, err, "lottery create without --count must succeed (default 3)")
+		assert.Contains(t, out, "Winners:")
+		// The default of 3 must actually draw 3 winners from the 5 participants.
+		winnerLines := 0
+		for _, line := range strings.Split(out, "\n") {
+			if matched, _ := regexp.MatchString(`^\s+\d+\. `, line); matched {
+				winnerLines++
+			}
+		}
+		assert.Equal(t, 3, winnerLines, "expected 3 drawn winners by default")
 	})
 }
 
