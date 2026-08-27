@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"database/sql"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"sync"
@@ -181,8 +182,44 @@ func ResetForTest() {
 	_ = os.RemoveAll("./data")
 }
 
+// AddLotteryRecord appends a lottery or oracle audit record to the chain and
+// returns its height. Unlike AddBlock, it stamps the true height into the
+// record's JSON `block_height` field immediately before the block is mined,
+// so the immutable on-chain payload is self-describing.
+//
+// The app-layer callers (lottery create, oracle fetch, the scheduler, the
+// TUI) serialized their record while its height was still 0, called
+// AddLotteryRecord, and only then set BlockHeight from the return value — so
+// the permanent chain copy claimed "block_height":0 and a consumer replaying
+// the chain could never correlate a block to its record (ISS-097). Stamping
+// here, under the same lock that assigns the height, fixes every caller at
+// the one point they all funnel through.
 func (c *BlockChain) AddLotteryRecord(data string) (int64, error) {
-	return c.AddBlock(data)
+	return c.appendBlock(data, func(height int64) string {
+		stamped, err := stampRecordHeight(data, height)
+		if err != nil {
+			return "" // not JSON (or unreadable) — store unchanged
+		}
+		return stamped
+	})
+}
+
+// stampRecordHeight rewrites the block_height field of a JSON audit record to
+// the given height. Non-JSON payloads (e.g. tests passing bare strings) error
+// and are stored unchanged. Re-marshalling via a map drops the original key
+// order but preserves every value; the chain payload is opaque text so
+// ordering is irrelevant.
+func stampRecordHeight(data string, height int64) (string, error) {
+	var m map[string]any
+	if err := json.Unmarshal([]byte(data), &m); err != nil {
+		return "", err
+	}
+	m["block_height"] = height
+	b, err := json.Marshal(m)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func Close() error {
