@@ -74,6 +74,22 @@ func (e *SQLiteEventStore) createTables() error {
 		`CREATE INDEX IF NOT EXISTS idx_events_module ON events(module)`,
 		`CREATE INDEX IF NOT EXISTS idx_events_agg ON events(agg_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp DESC)`,
+		// pending_events is the durable outbox for audit events whose direct
+		// delivery INSERT failed (TASK-119, ISS-111). The PK is the event's own
+		// id (a random UUID), so EnqueuePending is idempotent and a drainer retry
+		// that lands in events can never duplicate rows (the same PK constraint
+		// makes SaveIdempotent's INSERT OR IGNORE the UNIQUE-safe retry).
+		`CREATE TABLE IF NOT EXISTS pending_events (
+			id              TEXT PRIMARY KEY,
+			event_type      TEXT NOT NULL,
+			module          TEXT NOT NULL,
+			agg_id          TEXT NOT NULL,
+			payload         BLOB NOT NULL,
+			timestamp       INTEGER NOT NULL,
+			attempts        INTEGER NOT NULL DEFAULT 0,
+			next_attempt_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_pending_next ON pending_events(next_attempt_at)`,
 	}
 
 	for _, query := range queries {
@@ -89,6 +105,102 @@ func (e *SQLiteEventStore) Save(event events.Event) error {
 		INSERT INTO events (id, event_type, module, agg_id, payload, timestamp)
 		VALUES (?, ?, ?, ?, ?, ?)
 	`, event.ID(), event.EventType(), event.Module(), event.AggregateID(), event.Payload(), event.Timestamp().Unix())
+	return err
+}
+
+// SaveIdempotent is the UNIQUE-safe retry path for the outbox drainer
+// (TASK-119, ISS-111): INSERT OR IGNORE keyed on the event id, so a retried
+// publish that already landed in events — from a previous attempt whose
+// response was lost, or from the time between outbox enqueue and drain — never
+// errors on the PK conflict. The direct delivery path keeps plain Save (a
+// duplicate direct publish is a programming error worth surfacing); only the
+// retry loop needs idempotency.
+func (e *SQLiteEventStore) SaveIdempotent(event events.Event) error {
+	_, err := e.db.Exec(`
+		INSERT OR IGNORE INTO events (id, event_type, module, agg_id, payload, timestamp)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, event.ID(), event.EventType(), event.Module(), event.AggregateID(), event.Payload(), event.Timestamp().Unix())
+	return err
+}
+
+// PendingEvent is one row of the durable outbox (pending_events): an audit
+// event whose direct delivery failed, waiting for the drainer to retry.
+type PendingEvent struct {
+	Event     events.Event
+	Attempts  int
+	NextTryAt time.Time
+}
+
+// EnqueuePending durably records a failed delivery into the outbox. It is
+// idempotent on the event id (UUID): re-enqueueing an event already waiting
+// (e.g. a retried publish while the drainer lagged) is a no-op, never a
+// duplicate. Called by AuditHandler when the direct Save fails (TASK-119).
+func (e *SQLiteEventStore) EnqueuePending(event events.Event) error {
+	_, err := e.db.Exec(`
+		INSERT OR IGNORE INTO pending_events (
+			id, event_type, module, agg_id, payload, timestamp,
+			attempts, next_attempt_at
+		) VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+	`, event.ID(), event.EventType(), event.Module(), event.AggregateID(), event.Payload(),
+		event.Timestamp().Unix(), event.Timestamp().Unix())
+	return err
+}
+
+// ListDuePending returns the outbox rows whose next_attempt_at has elapsed,
+// oldest next-try first, capped at limit. The drainer calls this, retries each
+// via SaveIdempotent, and drops the rows that landed. limit <= 0 defaults to a
+// modest batch (50) so a large backlog drains in waves without one giant read.
+func (e *SQLiteEventStore) ListDuePending(now time.Time, limit int) ([]PendingEvent, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	rows, err := e.db.Query(`
+		SELECT id, event_type, module, agg_id, payload, timestamp, attempts, next_attempt_at
+		FROM pending_events
+		WHERE next_attempt_at <= ?
+		ORDER BY next_attempt_at ASC
+		LIMIT ?
+	`, now.Unix(), limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var result []PendingEvent
+	for rows.Next() {
+		var id, eventType, module, aggID string
+		var payload []byte
+		var timestamp, attempts, nextTryAt int64
+		if err := rows.Scan(&id, &eventType, &module, &aggID, &payload, &timestamp, &attempts, &nextTryAt); err != nil {
+			return nil, err
+		}
+		result = append(result, PendingEvent{
+			Event:     events.NewStoredEvent(id, time.Unix(timestamp, 0), eventType, aggID, payload),
+			Attempts:  int(attempts),
+			NextTryAt: time.Unix(nextTryAt, 0),
+		})
+	}
+	return result, rows.Err()
+}
+
+// DropPending removes a pending_events row, either because the retry landed in
+// events (SaveIdempotent succeeded) or because the outbox entry was explicitly
+// cleared. It tolerates an already-absent id (IsNotExist is not an error).
+func (e *SQLiteEventStore) DropPending(id string) error {
+	_, err := e.db.Exec(`DELETE FROM pending_events WHERE id = ?`, id)
+	return err
+}
+
+// BackoffPending records the next_attempt_at for a failed retry: attempts is
+// the incremented count, nextTry is when the drainer may try again. This is the
+// only growth a stuck source causes — a permanently-failing destination's
+// pending row backs off geometrically (bounded by the drainer's cap) instead of
+// hammering the events table every drain tick.
+func (e *SQLiteEventStore) BackoffPending(id string, attempts int, nextTry time.Time) error {
+	_, err := e.db.Exec(`
+		UPDATE pending_events SET attempts = ?, next_attempt_at = ?
+		WHERE id = ?
+	`, attempts, nextTry.Unix(), id)
 	return err
 }
 

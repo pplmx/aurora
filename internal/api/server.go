@@ -31,6 +31,7 @@ type Server struct {
 	tokenHandler         *handler.TokenHandler
 	oracleHandler        *handler.OracleHandler
 	blockchainHandler    *handler.BlockchainHandler
+	eventStore           *infraevents.SQLiteEventStore
 
 	// closers releases every SQLite handle NewServer opened (repos, event
 	// store, replay protection) plus the shared blockchain DB. Tests use
@@ -95,6 +96,7 @@ func NewServer() (*Server, error) {
 		return nil, err
 	}
 	srv.addCloser(eventStore)
+	srv.eventStore = eventStore
 
 	eventReader := sqlite.NewTokenEventReader(eventStore)
 
@@ -105,7 +107,13 @@ func NewServer() (*Server, error) {
 	// silently dropped and GET /api/v1/token/history always returned empty on
 	// the HTTP server. Wire the same handlers here so the production path
 	// persists audit events to the event store (v1.73, ISS-080).
-	eventBus.SubscribeAll(infraevents.NewAuditHandler(eventStore).Handle)
+	//
+	// The audit handler is wired with the event store as its durable outbox
+	// (TASK-119, ISS-111): a transiently-failing delivery is parked in
+	// pending_events instead of being dropped, and StartAuditOutboxDrainer
+	// (started by cmd/api/main.go like the oracle scheduler) retries it. This
+	// heals the gap v1.82 only reported.
+	eventBus.SubscribeAll(infraevents.NewAuditHandlerWithOutbox(eventStore, eventStore).Handle)
 	eventBus.SubscribeAll(infraevents.NewStatsHandler().Handle)
 
 	replay, err := infraevents.NewSQLiteReplayProtection(dbPath)
@@ -145,6 +153,23 @@ func NewServer() (*Server, error) {
 // to 1s). It is a no-op if the server has no oracle repository. The scheduler
 // is deliberately not started by NewServer so tests stay hermetic; cmd/api/main
 // starts it on boot.
+// StartAuditOutboxDrainer starts the background retry loop that delivers audit
+// events parked in pending_events (TASK-119, ISS-111). The audit handler wired
+// in NewServer parks a transiently-failed delivery in the outbox instead of
+// dropping it; this drainer retries each parked event until it lands. Like the
+// oracle scheduler it is deliberately not started by NewServer so tests stay
+// hermetic; cmd/api/main.go starts it on boot. It is a no-op if the server has
+// no event store.
+func (s *Server) StartAuditOutboxDrainer(ctx context.Context) (stop func()) {
+	if s.eventStore == nil {
+		return func() {}
+	}
+	drainer := infraevents.NewOutboxDrainer(s.eventStore, nil)
+	drainCtx, cancel := context.WithCancel(ctx)
+	go drainer.Run(drainCtx)
+	return cancel
+}
+
 func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Duration) (stop func()) {
 	if s.oracleRepo == nil {
 		return func() {}

@@ -13,6 +13,7 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/logger"
 	tokenui "github.com/pplmx/aurora/internal/ui/token"
 	"github.com/spf13/cobra"
 )
@@ -35,8 +36,15 @@ func newTokenService() (*token.TokenService, func(), error) {
 	// SyncEventBus dropped every token event, so CLI mint/transfer/burn/etc.
 	// persisted nothing and `token history` was always empty (the v1.73
 	// ISS-080 fix wired only the API server; TASK-113, ISS-105).
+	//
+	// The handler is wired with the event store as its durable outbox
+	// (TASK-119, ISS-111): a transiently-failed publish parks the event in
+	// pending_events instead of dropping it, and the single DrainOnce below
+	// (before the handles close) heals anything the command's own publishes
+	// parked — a CLI invocation is short-lived, so a background goroutine is
+	// the wrong shape here.
 	eventBus := infraevents.NewSyncEventBus()
-	eventBus.SubscribeAll(infraevents.NewAuditHandler(eventStore).Handle)
+	eventBus.SubscribeAll(infraevents.NewAuditHandlerWithOutbox(eventStore, eventStore).Handle)
 
 	replay, err := infraevents.NewSQLiteReplayProtection(blockchain.DBPath())
 	if err != nil {
@@ -50,6 +58,13 @@ func newTokenService() (*token.TokenService, func(), error) {
 	txManager := sqlite.NewTxManager(repo.GetDB())
 	service := token.NewService(repo, txManager, eventBus, eventReader, replay, chain)
 	cleanup := func() {
+		// Deliver any audit events this command's publishes parked in the
+		// durable outbox (a transient DB hiccup mid-command). The CLI has no
+		// background drainer; one synchronous pass before closing the handles
+		// is the right shape (TASK-119, ISS-111).
+		if _, err := infraevents.NewOutboxDrainer(eventStore, nil).DrainOnce(); err != nil {
+			logger.Error().Err(err).Msg("audit outbox drain failed before closing event store")
+		}
 		_ = replay.Close()
 		_ = eventStore.Close()
 		_ = repo.Close()
