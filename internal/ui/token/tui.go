@@ -717,7 +717,13 @@ func (r *inmemRepo) WithTx(_ *sql.Tx) token.Repository {
 	return r
 }
 
+// SaveToken insert-only, mirroring the SQLite repo's atomic create semantics
+// (ISS-098): a token's ID is its symbol, so an existing ID rejects the create
+// instead of silently overwriting the row.
 func (r *inmemRepo) SaveToken(tok *token.Token) error {
+	if _, exists := r.tokens[tok.ID()]; exists {
+		return token.ErrTokenExists
+	}
 	r.tokens[tok.ID()] = tok
 	return nil
 }
