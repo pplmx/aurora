@@ -408,10 +408,13 @@ func TestLotteryReset_NeedsConfirmation(t *testing.T) {
 			"--participants", "A,B", "--seed", "reset-seed", "--count", "1")
 		require.NoError(t, err)
 
-		// Without --yes: warns and does nothing.
-		out, err := runCmd(t, "lottery", "reset")
-		require.NoError(t, err)
-		assert.Contains(t, out, "delete ALL lottery records")
+		// Without --yes: refuses loudly (non-zero exit) so a script can tell
+		// the destructive reset did NOT run (TASK-100, ISS-092; consistent
+		// with the backup restore --confirm contract). The warning text is
+		// the error message.
+		_, err = runCmd(t, "lottery", "reset")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "delete ALL lottery records")
 	})
 }
 

@@ -451,9 +451,11 @@ var resetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		confirm, _ := cmd.Flags().GetBool("yes")
 		if !confirm {
-			fmt.Println("⚠️  This will delete ALL lottery records!")
-			fmt.Println("   Use --yes to confirm")
-			return nil
+			// The destructive reset did NOT run — surface that as an error
+			// (non-zero exit) instead of printing a warning and exiting 0,
+			// matching backup restore --confirm (TASK-100, ISS-092). A
+			// script that forgot --yes must be able to detect the refusal.
+			return fmt.Errorf("this will delete ALL lottery records; use --yes to confirm")
 		}
 
 		db, err := blockchain.InitDB()
