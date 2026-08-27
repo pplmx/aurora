@@ -241,7 +241,7 @@ func TestNFTService_GetNFTsByOwner(t *testing.T) {
 		t.Fatalf("Mint failed: %v", err)
 	}
 
-	ownerNFTs, err := svc.GetNFTsByOwner(ownerPub)
+	ownerNFTs, err := svc.GetNFTsByOwner(ownerPub, 0, 0)
 	if err != nil {
 		t.Fatalf("GetNFTsByOwner failed: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestNFTService_GetNFTsByOwner(t *testing.T) {
 		t.Errorf("expected 2 NFTs for owner, got %d", len(ownerNFTs))
 	}
 
-	otherNFTs, err := svc.GetNFTsByOwner(otherPub)
+	otherNFTs, err := svc.GetNFTsByOwner(otherPub, 0, 0)
 	if err != nil {
 		t.Fatalf("GetNFTsByOwner failed: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestNFTService_GetNFTsByOwner_Empty(t *testing.T) {
 	svc := NewServiceWithoutTx(repo)
 
 	pub, _, _ := ed25519.GenerateKey(nil)
-	nfts, err := svc.GetNFTsByOwner(pub)
+	nfts, err := svc.GetNFTsByOwner(pub, 0, 0)
 	if err != nil {
 		t.Fatalf("GetNFTsByOwner failed: %v", err)
 	}
@@ -828,8 +828,8 @@ func (r *FailingRepo) GetNFT(id string) (*NFT, error) {
 	return r.inmemRepo.GetNFT(id)
 }
 
-func (r *FailingRepo) GetNFTsByOwner(owner []byte) ([]*NFT, error) {
-	return r.inmemRepo.GetNFTsByOwner(owner)
+func (r *FailingRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error) {
+	return r.inmemRepo.GetNFTsByOwner(owner, limit, offset)
 }
 
 func (r *FailingRepo) GetNFTsByCreator(creator []byte) ([]*NFT, error) {

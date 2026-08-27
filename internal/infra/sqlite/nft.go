@@ -242,12 +242,23 @@ func (r *NFTRepository) GetNFT(id string) (*nft.NFT, error) {
 	}, nil
 }
 
-func (r *NFTRepository) GetNFTsByOwner(owner []byte) ([]*nft.NFT, error) {
+func (r *NFTRepository) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.NFT, error) {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
+	// SQLite treats a negative LIMIT as unlimited, so 0,0 (the CLI/TUI
+	// default) pages the whole collection while the REST layer's bounded
+	// limit caps the response (TASK-101, ISS-093).
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	rows, err := r.q().Query(`
 		SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
 		FROM nfts WHERE owner = ?
-	`, ownerB64)
+		ORDER BY rowid ASC
+		LIMIT ? OFFSET ?
+	`, ownerB64, limit, offset)
 	if err != nil {
 		return nil, err
 	}

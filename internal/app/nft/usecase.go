@@ -111,6 +111,16 @@ func (u *GetNFTUseCase) Execute(id string) (*NFTResponse, error) {
 	return ToNFTResponse(result), nil
 }
 
+// ListNFTsByOwnerRequest pages an owner's NFT collection. Limit <= 0 is
+// unbounded (0,0 — the CLI/TUI default); the REST layer always sends a
+// bounded limit so a key-holding caller cannot force an unbounded response
+// (TASK-101, ISS-093).
+type ListNFTsByOwnerRequest struct {
+	Owner  string
+	Limit  int
+	Offset int
+}
+
 type ListNFTsByOwnerUseCase struct {
 	service nft.Service
 }
@@ -119,13 +129,13 @@ func NewListNFTsByOwnerUseCase(service nft.Service) *ListNFTsByOwnerUseCase {
 	return &ListNFTsByOwnerUseCase{service: service}
 }
 
-func (u *ListNFTsByOwnerUseCase) Execute(ownerB64 string) ([]*NFTResponse, error) {
-	owner, err := decodeKey("owner", ownerB64)
+func (u *ListNFTsByOwnerUseCase) Execute(req *ListNFTsByOwnerRequest) ([]*NFTResponse, error) {
+	owner, err := decodeKey("owner", req.Owner)
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := u.service.GetNFTsByOwner(owner)
+	results, err := u.service.GetNFTsByOwner(owner, req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}
