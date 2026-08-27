@@ -238,6 +238,23 @@ func (s *BackupService) getSchemaVersion() uint {
 	return highest
 }
 
+// vacuumInto writes an online (VACUUM INTO) snapshot of the SQLite DB at src
+// into dest. The result is a complete, self-contained database file including
+// committed WAL frames — unlike a bare .db file copy, which can miss frames
+// committed but not yet checkpointed. dest must not exist; callers remove a
+// stale file first.
+func vacuumInto(src, dest string) error {
+	db, err := sql.Open("sqlite3", src)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = db.Close() }()
+	if _, err := db.Exec("VACUUM INTO " + sqlLiteral(dest)); err != nil {
+		return err
+	}
+	return nil
+}
+
 // querySchemaVersion reads schema_migrations.version from a single SQLite DB.
 // Returns 0 if the table is missing or the file can't be opened; in either
 // case we treat that DB as "version 0" and let the caller decide the overall
@@ -359,32 +376,34 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 	}
 
 	for name, destPath := range s.dbPaths {
-		if _, err := os.Stat(destPath); err == nil {
-			src, err := os.Open(destPath)
-			if err != nil {
-				return fmt.Errorf("open current %s: %w", name, err)
-			}
-			prePath := filepath.Join(preRestoreDir, name+".db")
-			dest, err := os.OpenFile(prePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
-			if err != nil {
-				_ = src.Close()
-				return fmt.Errorf("create pre-restore %s: %w", name, err)
-			}
-			if _, err := io.Copy(dest, src); err != nil {
-				_ = src.Close()
-				_ = dest.Close()
-				return fmt.Errorf("backup current %s: %w", name, err)
-			}
-			if err := src.Close(); err != nil {
-				_ = dest.Close()
-				return fmt.Errorf("close current %s: %w", name, err)
-			}
-			if err := dest.Close(); err != nil {
-				return fmt.Errorf("close pre-restore %s: %w", name, err)
+		backupDbPath := filepath.Join(backupPath, name+".db")
+
+		// Same-file guard: if the backup DB aliases a live DB (a hard link, a
+		// symlink, or a backup dropped into the live data dir), restore would
+		// read the file, unlink it, and write it back — a silent self-restore
+		// that appears to succeed. Mirror of the v1.71 Create guard (ISS-071).
+		if backupInfo, statErr := os.Stat(backupDbPath); statErr == nil {
+			if destInfo, destErr := os.Stat(destPath); destErr == nil && os.SameFile(backupInfo, destInfo) {
+				return fmt.Errorf("refusing to restore %s: backup database %q aliases the live database %q", name, backupDbPath, destPath)
 			}
 		}
 
-		backupDbPath := filepath.Join(backupPath, name+".db")
+		if _, err := os.Stat(destPath); err == nil {
+			prePath := filepath.Join(preRestoreDir, name+".db")
+			// The safety copy must be a WAL-complete online snapshot, not a
+			// bare .db copy: under WAL mode the main .db file can lag committed
+			// frames that still live in -wal, so a raw copy would make the undo
+			// path resurrect the DB missing recent commits (TASK-116, ISS-108).
+			// Same VACUUM INTO primitive Create uses.
+			if err := os.Remove(prePath); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("remove stale pre-restore %s: %w", name, err)
+			}
+			if err := vacuumInto(destPath, prePath); err != nil {
+				_ = os.Remove(prePath)
+				return fmt.Errorf("snapshot current %s before restore: %w", name, err)
+			}
+		}
+
 		src, err := os.Open(backupDbPath)
 		if err != nil {
 			return fmt.Errorf("open backup %s: %w", name, err)
