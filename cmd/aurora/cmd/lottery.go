@@ -34,7 +34,17 @@ var createCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		participantsStr, _ := cmd.Flags().GetString("participants")
 		seed, _ := cmd.Flags().GetString("seed")
-		count, _ := cmd.Flags().GetInt("count")
+		// Resolve the winner count at run time, not at flag-registration time
+		// (init): the flag was registered with viper.GetInt("lottery.defaultCount")
+		// before initConfig/setDefaultConfig ever ran, so the default was always 0
+		// and any `lottery create` without an explicit -c failed with "winner count
+		// must be positive" (TASK-108, ISS-100). When -c is absent, fall back to the
+		// configured lottery.defaultCount (default 3), which IS populated by the
+		// time RunE executes.
+		count := viper.GetInt("lottery.defaultCount")
+		if cmd.Flags().Changed("count") {
+			count, _ = cmd.Flags().GetInt("count")
+		}
 
 		lotteryRepo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
@@ -551,7 +561,10 @@ func init() {
 
 	createCmd.Flags().StringP("participants", "p", "", i18n.GetText("lottery.participants"))
 	createCmd.Flags().StringP("seed", "s", "", i18n.GetText("lottery.seed"))
-	createCmd.Flags().IntP("count", "c", viper.GetInt("lottery.defaultCount"), i18n.GetText("lottery.count"))
+	// The registered default (3) is only for help text; the run-time default is
+	// resolved in RunE so a configured lottery.defaultCount is honored after
+	// initConfig loads (a viper read at init() time is always 0 — TASK-108).
+	createCmd.Flags().IntP("count", "c", 3, i18n.GetText("lottery.count"))
 
 	resetCmd.Flags().BoolP("yes", "y", false, i18n.GetText("lottery.yes"))
 
