@@ -140,16 +140,22 @@ func RateLimitRequests() int {
 	return viper.GetInt("api.rateLimit.requests")
 }
 
-// RateLimitWindow returns the rate-limit window (default 1 minute).
+// DurationSeconds resolves a viper duration key, interpreting bare TOML
+// numbers and numeric strings as SECONDS (the TASK-110 rule). fallback is
+// returned when the key is absent, negative, or zero.
 //
-// A plain number in TOML (`api.rateLimit.window = 60`) is unmarshaled by
-// viper as an int, and viper.GetDuration/cast turns int64(60) into
-// time.Duration(60) = 60 NANOSECONDS — the fixed-window limiter then resets
-// the budget on every request, silently disabling the control whenever an
-// operator configures it with a bare number (only a string like "1m" worked).
-// Numbers and numeric strings are interpreted as SECONDS here (TASK-110).
-func RateLimitWindow() time.Duration {
-	switch v := viper.Get("api.rateLimit.window").(type) {
+// A plain number in TOML (`foo = 60`) is unmarshaled by viper as an int, and
+// viper.GetDuration/cast turns int64(60) into time.Duration(60) = 60
+// NANOSECONDS — a 60ns HTTP timeout fails every request, a 10ns rate-limit
+// window resets the budget on every request (limiter silently disabled), and
+// a 250ns scheduler ticker busy-polls. Only a string like "1m" worked through
+// the raw viper path. Numbers, numeric strings, "1m"-style strings and
+// Duration values all resolve correctly here (TASK-110 fixed only the first
+// key this was applied to; http.timeout, http.rateLimit.window and
+// oracle.scheduler.checkInterval carry the same bug until routed through
+// this helper — TASK-118, ISS-110).
+func DurationSeconds(key string, fallback time.Duration) time.Duration {
+	switch v := viper.Get(key).(type) {
 	case string:
 		if d, err := time.ParseDuration(v); err == nil {
 			return d
@@ -176,7 +182,13 @@ func RateLimitWindow() time.Duration {
 			return v
 		}
 	}
-	return time.Minute
+	return fallback
+}
+
+// RateLimitWindow returns the rate-limit window (default 1 minute). See
+// DurationSeconds for why bare numbers must not reach viper.GetDuration.
+func RateLimitWindow() time.Duration {
+	return DurationSeconds("api.rateLimit.window", time.Minute)
 }
 
 // RateLimitTrustedProxies returns the CIDRs/single IPs whose forwarded
@@ -189,9 +201,11 @@ func RateLimitTrustedProxies() []string {
 
 // OracleSchedulerCheckInterval returns how often the oracle fetch scheduler
 // polls sources for due feeds (default 1s). Per-source Interval still controls
-// when each feed is due.
+// when each feed is due. Routed through DurationSeconds so a bare TOML number
+// (`checkInterval = 250`) means 250 SECONDS, not 250 nanoseconds — the latter
+// would make the scheduler's ticker busy-poll (TASK-118, ISS-110).
 func OracleSchedulerCheckInterval() time.Duration {
-	return viper.GetDuration("oracle.scheduler.checkInterval")
+	return DurationSeconds("oracle.scheduler.checkInterval", time.Second)
 }
 
 // AllowedCORSOrigins returns the origins allowed to read API/Web UI

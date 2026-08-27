@@ -399,3 +399,62 @@ func TestRateLimitWindow_NumericSeconds(t *testing.T) {
 	viper.Set("api.rateLimit.window", "120")
 	assert.Equal(t, 120*time.Second, RateLimitWindow())
 }
+
+// TestDurationSeconds_BareNumbersAsSeconds is the regression test for the v1.82
+// hand-off note (TASK-118, ISS-110): TASK-110 fixed api.rateLimit.window, but
+// http.timeout, http.rateLimit.window and oracle.scheduler.checkInterval were
+// still read with raw viper.GetDuration, so a bare TOML number like
+// `timeout = 60` resolved to 60 NANOSECONDS — a 60ns HTTP client timeout that
+// fails every oracle fetch, a 10ns rate-limit window that resets the budget on
+// every request (limiter silently disabled), and a 250ns scheduler ticker that
+// busy-polls. DurationSeconds bakes the TASK-110 seconds rule into one helper
+// all four keys go through.
+func TestDurationSeconds_BareNumbersAsSeconds(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+	_, err := Load()
+	require.NoError(t, err)
+
+	// Bare integers (the TOML `timeout = 60` case) → seconds, not nanoseconds.
+	viper.Set("http.timeout", 60)
+	assert.Equal(t, 60*time.Second, DurationSeconds("http.timeout", 10*time.Second), "http.timeout bare number → seconds")
+
+	viper.Set("http.rateLimit.window", 10)
+	assert.Equal(t, 10*time.Second, DurationSeconds("http.rateLimit.window", time.Minute), "http.rateLimit.window bare number → seconds")
+
+	viper.Set("oracle.scheduler.checkInterval", 250)
+	assert.Equal(t, 250*time.Second, DurationSeconds("oracle.scheduler.checkInterval", time.Second), "oracle.scheduler.checkInterval bare number → seconds")
+
+	// Duration string passes through.
+	viper.Set("http.timeout", "500ms")
+	assert.Equal(t, 500*time.Millisecond, DurationSeconds("http.timeout", 10*time.Second))
+
+	// Numeric string treated as seconds.
+	viper.Set("http.timeout", "30")
+	assert.Equal(t, 30*time.Second, DurationSeconds("http.timeout", 10*time.Second))
+
+	// Negative / zero / absent → fallback (a 0 or negative window/timeout is
+	// never a legitimate config, so the default must win rather than a 0ns tap).
+	viper.Set("http.timeout", 0)
+	assert.Equal(t, 10*time.Second, DurationSeconds("http.timeout", 10*time.Second), "zero falls back to default")
+	viper.Set("http.rateLimit.window", -5)
+	assert.Equal(t, time.Minute, DurationSeconds("http.rateLimit.window", time.Minute), "negative falls back to default")
+	viper.Set("http.timeout", "not-a-duration")
+	assert.Equal(t, 10*time.Second, DurationSeconds("http.timeout", 10*time.Second), "garbage falls back to default")
+}
+
+// TestOracleSchedulerCheckInterval_BareNumbersAsSeconds pins the scheduler-key
+// variant of the same bug: `checkInterval = 250` must mean 250 seconds, not
+// 250 nanoseconds of ticker busy-polling (TASK-118, ISS-110).
+func TestOracleSchedulerCheckInterval_BareNumbersAsSeconds(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+	_, err := Load()
+	require.NoError(t, err)
+
+	viper.Set("oracle.scheduler.checkInterval", 250)
+	assert.Equal(t, 250*time.Second, OracleSchedulerCheckInterval())
+
+	viper.Set("oracle.scheduler.checkInterval", "1m")
+	assert.Equal(t, time.Minute, OracleSchedulerCheckInterval())
+}

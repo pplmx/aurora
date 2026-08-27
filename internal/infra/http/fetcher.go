@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/spf13/viper"
 )
@@ -220,15 +221,13 @@ func NewFetcher(opts ...FetcherOption) *Fetcher {
 		limit = 10
 	}
 
-	window := viper.GetDuration("http.rateLimit.window")
-	if window <= 0 {
-		window = time.Minute
-	}
-
-	timeout := viper.GetDuration("http.timeout")
-	if timeout <= 0 {
-		timeout = defaultHTTPTimeout
-	}
+	// Routes the window and timeout through config.DurationSeconds (not raw
+	// viper.GetDuration): a bare TOML number like `window = 10` / `timeout = 60`
+	// becomes 10s / 60s instead of 10ns / 60ns, where a 60ns HTTP timeout would
+	// fail every oracle fetch and a 10ns window would reset the limiter's budget
+	// on every request (TASK-118, ISS-110).
+	window := config.DurationSeconds("http.rateLimit.window", time.Minute)
+	timeout := config.DurationSeconds("http.timeout", defaultHTTPTimeout)
 
 	f := &Fetcher{
 		client: &http.Client{

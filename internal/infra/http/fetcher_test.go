@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/spf13/viper"
 )
 
 func TestFetcher_Get_Success(t *testing.T) {
@@ -28,6 +29,26 @@ func TestFetcher_Get_Success(t *testing.T) {
 
 	if string(data) != "test response" {
 		t.Errorf("Expected 'test response', got '%s'", string(data))
+	}
+}
+
+// TestNewFetcher_BareNumericDurationFromViper is the regression test for the
+// v1.82 hand-off (TASK-118, ISS-110): NewFetcher must route the http.timeout /
+// http.rateLimit.window keys through config.DurationSeconds, so a bare TOML
+// number (`timeout = 60`) produces a 60s HTTP timeout and a 10s window — NOT
+// the 60ns / 10ns that raw viper.GetDuration returns, which would fail every
+// oracle fetch / reset the limiter budget on every request.
+func TestNewFetcher_BareNumericDurationFromViper(t *testing.T) {
+	viper.Set("http.timeout", 60)
+	viper.Set("http.rateLimit.window", 10)
+	t.Cleanup(func() { viper.Reset() })
+
+	f := NewFetcher()
+	if got := f.client.Timeout; got != 60*time.Second {
+		t.Fatalf("expected 60s HTTP timeout from bare `timeout = 60`, got %v", got)
+	}
+	if got := f.rateLimiter.window; got != 10*time.Second {
+		t.Fatalf("expected 10s window from bare `window = 10`, got %v", got)
 	}
 }
 
