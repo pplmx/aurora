@@ -4,6 +4,8 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"math"
+	"strconv"
 
 	tokent "github.com/pplmx/aurora/internal/app/token"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
@@ -171,6 +173,11 @@ var tokenCreateCmd = &cobra.Command{
 		name, _ := cmd.Flags().GetString("name")
 		symbol, _ := cmd.Flags().GetString("symbol")
 		supply, _ := cmd.Flags().GetString("supply")
+		decimalsFlag, _ := cmd.Flags().GetString("decimals")
+		decimals, err := parseTokenDecimals(decimalsFlag)
+		if err != nil {
+			return err
+		}
 
 		totalSupply, err := token.NewAmountFromString(supply)
 		if err != nil {
@@ -187,6 +194,7 @@ var tokenCreateCmd = &cobra.Command{
 			Symbol:      symbol,
 			TotalSupply: totalSupply,
 			Owner:       token.PublicKey(pub),
+			Decimals:    decimals,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create token: %w", err)
@@ -561,4 +569,20 @@ var tokenTuiCmd = &cobra.Command{
 
 func b64Encode(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data)
+}
+
+// parseTokenDecimals parses the create --decimals string (default "8" when
+// the flag is unset) into the domain's int8 range. Garbage, negatives, and
+// values beyond int8 are explicit usage errors instead of being silently
+// ignored — the previous behavior where every value was dropped and the
+// token always got the default (TASK-099, ISS-091).
+func parseTokenDecimals(s string) (int8, error) {
+	d, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("invalid --decimals %q: must be an integer", s)
+	}
+	if d < 0 || d > math.MaxInt8 {
+		return 0, fmt.Errorf("invalid --decimals %d: must be between 0 and %d", d, math.MaxInt8)
+	}
+	return int8(d), nil
 }

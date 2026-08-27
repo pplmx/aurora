@@ -39,6 +39,10 @@ var (
 	// as 500 INTERNAL_ERROR (TASK-095, ISS-089).
 	ErrInvalidBase64 = errors.New("invalid base64 encoding")
 
+	// ErrTokenDecimalsInvalid is returned by CreateToken when decimals is
+	// negative (int8 bounds valid values to 0..127; TASK-099, ISS-091).
+	ErrTokenDecimalsInvalid = errors.New("invalid token decimals")
+
 	// ErrAmountTooLarge is returned when an amount exceeds the range that
 	// the persistence layer can store exactly (signed 64-bit). Accepting
 	// larger amounts would let them silently overflow/clamp in SQLite's

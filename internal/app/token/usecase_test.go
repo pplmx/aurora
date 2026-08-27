@@ -55,7 +55,7 @@ func TestGetTokenInfoUseCase_NotFound(t *testing.T) {
 }
 
 func (m *mockTokenService) CreateToken(req *token.CreateTokenRequest) (*token.Token, error) {
-	t := token.NewToken(token.TokenID(req.Symbol), req.Name, req.Symbol, req.TotalSupply, req.Owner)
+	t := token.NewTokenWithDecimals(token.TokenID(req.Symbol), req.Name, req.Symbol, req.TotalSupply, req.Owner, req.Decimals)
 	m.tokens[t.ID()] = t
 	balanceKey := string(req.Owner) + "|" + string(t.ID())
 	m.balances[balanceKey] = req.TotalSupply
@@ -231,6 +231,37 @@ func TestCreateTokenUseCase_Execute(t *testing.T) {
 
 	if resp.Symbol != "TEST" {
 		t.Errorf("Expected symbol 'TEST', got '%s'", resp.Symbol)
+	}
+}
+
+// TestCreateTokenUseCase_Decimals locks that the request Decimals is threaded
+// through to the service (TASK-099, ISS-091): 0 maps to the default (8),
+// an explicit value is honored and reflected in the response.
+func TestCreateTokenUseCase_Decimals(t *testing.T) {
+	pub, _, _ := ed25519.GenerateKey(nil)
+
+	cases := []struct {
+		name     string
+		decimals int8
+		want     int8
+	}{
+		{"unset falls back to default", 0, 8},
+		{"explicit decimals honored", 6, 6},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			uc := NewCreateTokenUseCase(newMockTokenService())
+			resp, err := uc.Execute(&CreateTokenRequest{
+				Name:        "Decimals Tok",
+				Symbol:      "DEC6",
+				TotalSupply: "1000000",
+				Owner:       encodeBase64(pub),
+				Decimals:    tc.decimals,
+			})
+			require.NoError(t, err)
+			require.Equal(t, tc.want, resp.Decimals)
+		})
 	}
 }
 

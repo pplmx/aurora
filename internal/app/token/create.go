@@ -31,6 +31,7 @@ func (uc *CreateTokenUseCase) Execute(req *CreateTokenRequest) (*CreateTokenResp
 		Symbol:      req.Symbol,
 		TotalSupply: totalSupply,
 		Owner:       owner,
+		Decimals:    req.Decimals,
 	})
 	if err != nil {
 		return nil, err

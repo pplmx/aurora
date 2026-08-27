@@ -805,7 +805,7 @@ func (r *inmemRepo) TryAddToSupply(id token.TokenID, amount *token.Amount) (*tok
 	if newSupply.BitLen() > 63 {
 		return nil, fmt.Errorf("try add to supply: total supply would exceed maximum")
 	}
-	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
+	r.tokens[id] = token.NewTokenWithDecimals(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner(), tok.Decimals())
 	return newSupply, nil
 }
 
@@ -822,7 +822,7 @@ func (r *inmemRepo) TrySubtractFromSupply(id token.TokenID, amount *token.Amount
 		return nil, fmt.Errorf("try subtract supply: total supply below burn amount")
 	}
 	newSupply := &token.Amount{Int: new(big.Int).Sub(tok.TotalSupply().Int, amount.Int)}
-	r.tokens[id] = token.NewToken(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner())
+	r.tokens[id] = token.NewTokenWithDecimals(id, tok.Name(), tok.Symbol(), newSupply, tok.Owner(), tok.Decimals())
 	return newSupply, nil
 }
 

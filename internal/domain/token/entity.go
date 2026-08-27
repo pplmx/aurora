@@ -89,17 +89,34 @@ type Token struct {
 }
 
 func NewToken(id TokenID, name, symbol string, totalSupply *Amount, owner PublicKey) *Token {
+	return NewTokenWithDecimals(id, name, symbol, totalSupply, owner, defaultDecimals)
+}
+
+// NewTokenWithDecimals creates a token with an explicit decimals value.
+// 0 means "use the default", the same sentinel the CreateTokenRequest uses,
+// so callers never need a pointer (TASK-099, ISS-091).
+func NewTokenWithDecimals(id TokenID, name, symbol string, totalSupply *Amount, owner PublicKey, decimals int8) *Token {
 	return &Token{
 		id:          id,
 		name:        name,
 		symbol:      symbol,
 		totalSupply: totalSupply,
-		decimals:    defaultDecimals,
+		decimals:    resolveDecimals(decimals),
 		owner:       owner,
 		isMintable:  true,
 		isBurnable:  true,
 		createdAt:   time.Now(),
 	}
+}
+
+// resolveDecimals falls back to defaultDecimals when d is 0 (the "unset"
+// sentinel carried by CreateTokenRequest; the CLI flag defaults to 8, the
+// API body omits the field unless given).
+func resolveDecimals(d int8) int8 {
+	if d <= 0 {
+		return defaultDecimals
+	}
+	return d
 }
 
 func (t *Token) ID() TokenID          { return t.id }
