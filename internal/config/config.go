@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -140,8 +141,42 @@ func RateLimitRequests() int {
 }
 
 // RateLimitWindow returns the rate-limit window (default 1 minute).
+//
+// A plain number in TOML (`api.rateLimit.window = 60`) is unmarshaled by
+// viper as an int, and viper.GetDuration/cast turns int64(60) into
+// time.Duration(60) = 60 NANOSECONDS — the fixed-window limiter then resets
+// the budget on every request, silently disabling the control whenever an
+// operator configures it with a bare number (only a string like "1m" worked).
+// Numbers and numeric strings are interpreted as SECONDS here (TASK-110).
 func RateLimitWindow() time.Duration {
-	return viper.GetDuration("api.rateLimit.window")
+	switch v := viper.Get("api.rateLimit.window").(type) {
+	case string:
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			if n > 0 {
+				return time.Duration(n) * time.Second
+			}
+		}
+	case int:
+		if v > 0 {
+			return time.Duration(v) * time.Second
+		}
+	case int64:
+		if v > 0 {
+			return time.Duration(v) * time.Second
+		}
+	case float64:
+		if v > 0 {
+			return time.Duration(v) * time.Second
+		}
+	case time.Duration:
+		if v > 0 {
+			return v
+		}
+	}
+	return time.Minute
 }
 
 // RateLimitTrustedProxies returns the CIDRs/single IPs whose forwarded
