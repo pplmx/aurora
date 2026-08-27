@@ -5,20 +5,37 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.81 integrity & client-error sweep complete
+**Current focus:** v1.83 config-duration & audit-durability sweep complete
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.81 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes)
-Last activity: 2026-08-27 — v1.81 closed:
-  PersistentPreRunE ran app.Wire(dataDir) on every subcommand and stashed it
-  in the never-read GlobalApp, so even `aurora version` created a phantom
-  $HOME/.aurora/data with an unused tokens/events/nonces .db triple. Removed
-  the dead wiring (root.go); the autoRun migrations target the same
-  blockchain.DBPath() as the stores (TASK-103, CHG-099 / 3b369aa).
-  RIL graph at round 90.
+Status: v1.24–v1.83 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore)
+Last activity: 2026-08-27 — v1.83 closed (deep-dive round after v1.82 left
+  no active tasks):
+  1. Bare numeric TOML durations now mean SECONDS across every config key —
+     TASK-110 had fixed only api.rateLimit.window; http.timeout,
+     http.rateLimit.window and oracle.scheduler.checkInterval were still read
+     with raw viper.GetDuration, so `timeout = 60` silently produced a 60ns
+     HTTP timeout (every oracle fetch failed), `window = 10` a 10ns limiter
+     window (silently disabled), `checkInterval = 250` a 250ns scheduler
+     ticker (busy-poll). One generalized config.DurationSeconds helper, all
+     keys routed through it (TASK-118, ISS-110, CHG-114 / 69ec813).
+  2. Failed post-commit audit publishes now heal instead of just reporting:
+     v1.82 made a committed token op honest about audit-publish failure but
+     SyncEventBus.Publish was fire-and-forget — a transient failure
+     permanently dropped the audit record. Added the durable outbox
+     (pending_events table + SaveIdempotent + AuditHandlerWithOutbox +
+     OutboxDrainer with exponential backoff). API server drives it on a
+     ticker, CLI on one DrainOnce before closing handles (TASK-119, ISS-111,
+     CHG-115 / 7e88cba).
+  3. Backup crash/failure-safety: Create's metadata.json is now written via
+     .tmp + atomic rename (no truncated metadata over new .db files), and
+     Restore copies the archive to a .tmp sibling before atomic-renaming over
+     the live DB (a mid-copy disk-full can no longer leave a truncated .db at
+     the live path) (TASK-120, ISS-112, CHG-116 / 9281277).
+  RIL graph at round 95.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
@@ -74,16 +91,24 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.79 | Honored token create --decimals + lottery-reset declined→exit≠0 + bounded NFT list paging + db.path honored everywhere | ✅ done |
 | v1.80 | Removed phantom HOME data-dir wiring (dead app.Wire/GlobalApp ran on every CLI command) | ✅ done |
 | v1.81 | Integrity & client-error sweep (key-bound VRF, on-chain block_height, atomic token create, all-or-nothing backups, rate-limit seconds, voting 4xx, NFT keys, CLI audit, single error line, envelopes) | ✅ done |
+| v1.82 | Report-the-truth & dead-code sweep (committed token ops never reported failed, backup restore same-file + WAL-complete guards, retire dead app.Wire) | ✅ done |
+| v1.83 | Config-duration & audit-durability sweep (numeric TOML durations as seconds everywhere, durable outbox heals failed audit publishes, backup atomic metadata/restore) | ✅ done |
 
 ## Session Continuity
 
-Last session: 2026-08-27 — v1.80 phantom HOME data-dir cleanup (dead
-  app.Wire/GlobalApp wiring removed; no CLI command creates $HOME/.aurora).
-  RIL graph at round 90.
+Last session: 2026-08-27 — v1.83 config-duration & audit-durability sweep
+  (numeric TOML durations as seconds everywhere, durable outbox heals failed
+  audit publishes, backup atomic metadata/restore). RIL graph at round 95.
 Next: the token/NFT TUI in-memory sandboxes were verified as INTENTIONAL
   (in-code documented) — not a bug, no change; the deferred ISS-084 phantom
   on-chain blocks on rolled-back transactions remains parked per DEC-002
-  (invasive to fix). Run a fresh deep-dive round if continuing; possible
-  angles: `internal/app.Wire`/`App` is now production-dead (still tested) —
-  decide whether to retire it; audit remaining CLI/API surfaces for the
-  silent-input / silent-success classes closed in v1.79–v1.80.
+  (invasive cross-DB atomicity redesign — token event trail is already
+  post-commit, the park stands until a block-height reservation design
+  lands); the same-second UUID event ordering was evaluated and parked by
+  v1.82 decision (needs a schema/ID migration, ordering is approximate
+  anyway since IDs are created pre-commit). Run a fresh deep-dive round if
+  continuing; possible angles: a real-binary exerciser for `backup restore`
+  under a live WAL-writing server, multi-DB restore partial-failure tests,
+  DatabaseChecksums-through-restore coverage, symlink-alias restore guard,
+  small rest of CLI/API surfaces for the silent-input / silent-success
+  classes.
