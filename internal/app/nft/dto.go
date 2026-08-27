@@ -1,6 +1,10 @@
 package nft
 
-import "github.com/pplmx/aurora/internal/domain/nft"
+import (
+	"encoding/base64"
+
+	"github.com/pplmx/aurora/internal/domain/nft"
+)
 
 type MintNFTRequest struct {
 	Name        string
@@ -55,8 +59,11 @@ func ToNFTResponse(nft *nft.NFT) *NFTResponse {
 		Description: nft.Description,
 		ImageURL:    nft.ImageURL,
 		TokenURI:    nft.TokenURI,
-		Owner:       string(nft.Owner),
-		Creator:     string(nft.Creator),
+		// Keys are base64 like every other module (token/voting/oracle); the
+		// previous raw `string(nft.Owner)` emitted unreadable mojibake in the
+		// CLI and JSON (TASK-112, ISS-104).
+		Owner:       base64.StdEncoding.EncodeToString(nft.Owner),
+		Creator:     base64.StdEncoding.EncodeToString(nft.Creator),
 		BlockHeight: nft.BlockHeight,
 		Timestamp:   nft.Timestamp,
 	}
@@ -70,8 +77,8 @@ func ToOperationResponse(op *nft.Operation) *OperationResponse {
 		ID:          op.ID,
 		NFTID:       op.NFTID,
 		Type:        op.Type,
-		From:        string(op.From),
-		To:          string(op.To),
+		From:        base64.StdEncoding.EncodeToString(op.From),
+		To:          base64.StdEncoding.EncodeToString(op.To),
 		BlockHeight: op.BlockHeight,
 		Timestamp:   op.Timestamp,
 	}

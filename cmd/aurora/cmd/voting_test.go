@@ -134,10 +134,11 @@ func TestVotingVote_UnregisteredVoter(t *testing.T) {
 			"--voter", ghostPub, "--candidate", candID,
 			"--private-key", ghostPriv, "--session", sessionID)
 		require.Error(t, err)
-		// The VoterRepository surfaces a miss as ErrNotFound, which the
-		// CLI wraps as "failed to get voter: record not found".
+		// The use case now maps the repo's ErrNotFound to the domain sentinel
+		// (TASK-111, ISS-103), so the CLI surfaces the honest "voter not
+		// registered" client error instead of an unclassified "record not found".
 		assert.Contains(t, strings.ToLower(err.Error()), "voter")
-		assert.Contains(t, strings.ToLower(err.Error()), "not found")
+		assert.Contains(t, strings.ToLower(err.Error()), "not registered")
 	})
 }
 

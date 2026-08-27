@@ -19,7 +19,7 @@ func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
 		return nil, nft.ErrNameRequired
 	}
 
-	creator, err := decodeKey("creator", req.Creator)
+	creator, err := decodeKey("creator", req.Creator, pubKeyLen, nft.ErrInvalidPublicKey)
 	if err != nil {
 		return nil, err
 	}
@@ -46,17 +46,17 @@ func NewTransferNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *T
 }
 
 func (u *TransferNFTUseCase) Execute(req *TransferNFTRequest) (*OperationResponse, error) {
-	from, err := decodeKey("from", req.From)
+	from, err := decodeKey("from", req.From, pubKeyLen, nft.ErrInvalidPublicKey)
 	if err != nil {
 		return nil, err
 	}
 
-	to, err := decodeKey("to", req.To)
+	to, err := decodeKey("to", req.To, pubKeyLen, nft.ErrInvalidPublicKey)
 	if err != nil {
 		return nil, err
 	}
 
-	privateKey, err := decodeKey("privatekey", req.PrivateKey)
+	privateKey, err := decodeKey("privatekey", req.PrivateKey, privKeyLen, nft.ErrInvalidPrivateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -79,12 +79,12 @@ func NewBurnNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *BurnN
 }
 
 func (u *BurnNFTUseCase) Execute(req *BurnNFTRequest) error {
-	owner, err := decodeKey("owner", req.Owner)
+	owner, err := decodeKey("owner", req.Owner, pubKeyLen, nft.ErrInvalidPublicKey)
 	if err != nil {
 		return err
 	}
 
-	privateKey, err := decodeKey("privatekey", req.PrivateKey)
+	privateKey, err := decodeKey("privatekey", req.PrivateKey, privKeyLen, nft.ErrInvalidPrivateKey)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func NewListNFTsByOwnerUseCase(service nft.Service) *ListNFTsByOwnerUseCase {
 }
 
 func (u *ListNFTsByOwnerUseCase) Execute(req *ListNFTsByOwnerRequest) ([]*NFTResponse, error) {
-	owner, err := decodeKey("owner", req.Owner)
+	owner, err := decodeKey("owner", req.Owner, pubKeyLen, nft.ErrInvalidPublicKey)
 	if err != nil {
 		return nil, err
 	}

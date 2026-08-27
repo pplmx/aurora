@@ -143,7 +143,9 @@ func TestNFTHandler_List_EmptyOwner(t *testing.T) {
 func TestNFTHandler_List_Paged(t *testing.T) {
 	handler := NewNFTHandler(domainnft.NewInmemRepo(), nil)
 
-	ownerPub := []byte("page-owner")
+	// A 32-byte owner: the list use case rejects wrong-length owners as client
+	// errors (TASK-112), and the in-memory matching is exact on the key bytes.
+	ownerPub := bytes.Repeat([]byte{0x41}, 32)
 	for i := 0; i < 5; i++ {
 		err := handler.repo.SaveNFT(&domainnft.NFT{
 			ID:    fmt.Sprintf("nft-%d", i),

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -115,16 +116,17 @@ func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
 
 	h := NewNFTHandler(repo, nil)
 
-	// Owner with no NFTs — owner must be base64-encoded per usecase contract
-	ownerB64 := "YWxpY2U=" // base64.StdEncoding.EncodeToString([]byte("alice"))
+	// Owner with no NFTs — owner must be base64-encoded 32-byte key per usecase
+	// contract (TASK-112 rejected wrong-length owners as client errors).
+	owner32 := bytes.Repeat([]byte{0x41}, 32)
+	ownerB64 := base64.StdEncoding.EncodeToString(owner32)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner="+ownerB64, nil)
 	rr := httptest.NewRecorder()
 	h.List(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	// Owner with NFTs
-	_ = repo.SaveNFT(&domainnft.NFT{ID: "nft-2", Owner: []byte("bob")})
-	ownerB64 = "Ym9i" // base64.StdEncoding.EncodeToString([]byte("bob"))
+	_ = repo.SaveNFT(&domainnft.NFT{ID: "nft-2", Owner: owner32})
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner="+ownerB64, nil)
 	rr = httptest.NewRecorder()
 	h.List(rr, req)
@@ -134,7 +136,12 @@ func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
 
 func TestNFTHandler_Mint_ServiceError(t *testing.T) {
 	h := NewNFTHandler(&failingNFTRepo{err: errors.New("save failed")}, nil)
-	body, _ := json.Marshal(map[string]string{"name": "X"})
+	// Valid 32-byte creator so the decode passes and the repo error surfaces
+	// (invalid/empty keys are their own 400, TASK-095/ISS-089 + TASK-112).
+	body, _ := json.Marshal(map[string]string{
+		"name":    "X",
+		"creator": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x41}, 32)),
+	})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/mint", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
@@ -146,10 +153,13 @@ func TestNFTHandler_Mint_ServiceError(t *testing.T) {
 
 func TestNFTHandler_Transfer_ServiceError(t *testing.T) {
 	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not found")}, nil)
-	// Valid base64 keys so the decode passes and the repo error surfaces
-	// (invalid base64 is now its own 400, TASK-095/ISS-089).
+	// Valid-length keys so the decode passes and the repo error surfaces
+	// (invalid base64 is its own 400 for legacy reasons; wrong-length keys are
+	// too — TASK-095/ISS-089 + TASK-112).
+	pub32 := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x41}, 32))
+	priv64 := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x42}, 64))
 	body, _ := json.Marshal(map[string]string{
-		"nft_id": "nft-1", "from": "aGVsbG8=", "to": "d29ybGQ=", "private_key": "a2V5",
+		"nft_id": "nft-1", "from": pub32, "to": pub32, "private_key": priv64,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/transfer", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -162,10 +172,10 @@ func TestNFTHandler_Transfer_ServiceError(t *testing.T) {
 
 func TestNFTHandler_Burn_ServiceError(t *testing.T) {
 	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not owner")}, nil)
-	// Valid base64 keys so the decode passes and the repo error surfaces
-	// (invalid base64 is now its own 400, TASK-095/ISS-089).
+	pub32 := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x41}, 32))
+	priv64 := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x42}, 64))
 	body, _ := json.Marshal(map[string]string{
-		"nft_id": "nft-1", "owner": "b3duZXI=", "private_key": "a2V5",
+		"nft_id": "nft-1", "owner": pub32, "private_key": priv64,
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/burn", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
