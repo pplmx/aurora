@@ -69,7 +69,7 @@ func TestVRFVerify_InvalidProofBytes(t *testing.T) {
 
 	message := []byte("test-message")
 	output := make([]byte, 32)
-	proof := make([]byte, 64)
+	proof := make([]byte, vrfProofLen)
 	for i := range proof {
 		proof[i] = 0xFF
 	}
@@ -264,8 +264,8 @@ func TestVRFProve_EmptyMessage(t *testing.T) {
 	if len(output) != 32 {
 		t.Errorf("VRFProve() output length = %d, want 32", len(output))
 	}
-	if len(proof) != 64 {
-		t.Errorf("VRFProve() proof length = %d, want 64", len(proof))
+	if len(proof) != vrfProofLen {
+		t.Errorf("VRFProve() proof length = %d, want %d", len(proof), vrfProofLen)
 	}
 }
 
@@ -292,9 +292,13 @@ func TestVRFVerify_OutputAndProofConsistency(t *testing.T) {
 		t.Error("VRF output should be a valid point")
 	}
 
-	_, err = new(edwards25519.Point).SetBytes(proof[32:])
+	_, err = new(edwards25519.Point).SetBytes(proof[:32])
 	if err != nil {
-		t.Error("Proof should contain valid point at offset 32")
+		t.Error("Proof should contain a valid commitment point R1 at offset 0")
+	}
+	_, err = new(edwards25519.Point).SetBytes(proof[32:64])
+	if err != nil {
+		t.Error("Proof should contain a valid commitment point R2 at offset 32")
 	}
 }
 
@@ -312,13 +316,113 @@ func TestVRFProve_OutputBytesLength(t *testing.T) {
 	if len(output) != 32 {
 		t.Errorf("VRFProve() output should be 32 bytes, got %d", len(output))
 	}
-	if len(proof) != 64 {
-		t.Errorf("VRFProve() proof should be 64 bytes, got %d", len(proof))
+	if len(proof) != vrfProofLen {
+		t.Errorf("VRFProve() proof should be %d bytes, got %d", vrfProofLen, len(proof))
 	}
 
 	point := new(edwards25519.Point)
 	_, err = point.SetBytes(output)
 	if err != nil {
 		t.Errorf("VRFProve() output should be valid point: %v", err)
+	}
+}
+
+// TestVRFVerify_RejectsForgedOutputNoSecret is the regression test for the
+// integrity flaw where VRFVerify ignored the public key entirely (ISS-096).
+// The old no-op verifier accepted any 32-byte output with
+// proof = output ‖ hashToPoint(message) — no secret key required — so an
+// attacker could record attacker-chosen winners as "verified".
+func TestVRFVerify_RejectsForgedOutputNoSecret(t *testing.T) {
+	pk, _, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+
+	message := []byte("election-2026")
+	// A 32-byte output chosen so that SelectWinners would pick the attacker's
+	// preferred participant — under the old no-op verifier any such output was
+	// accepted with proof = output ‖ hashToPoint(message), no secret needed.
+	forgedOutput := []byte("attacker-chosen-output-32-bytes!")
+	legacyForgedProof := make([]byte, 0, 64)
+	legacyForgedProof = append(legacyForgedProof, forgedOutput...)
+	legacyForgedProof = append(legacyForgedProof, hashToPoint(message).Bytes()...)
+
+	// Reject the legacy 64-byte forgery outright.
+	if valid := VRFVerify(pk, message, forgedOutput, legacyForgedProof); valid {
+		t.Fatal("VRFVerify() must reject an output+proof forged without the secret key (old no-op verifier accepted it)")
+	}
+
+	// Reject a padded 96-byte forgery via the binding equations, not the length
+	// check: output ‖ H(m) ‖ zeroed response cannot satisfy R₁/R₂ = s·G/c·pk.
+	paddedForgedProof := make([]byte, vrfProofLen)
+	copy(paddedForgedProof, forgedOutput)
+	copy(paddedForgedProof[32:], hashToPoint(message).Bytes())
+	if valid := VRFVerify(pk, message, forgedOutput, paddedForgedProof); valid {
+		t.Fatal("VRFVerify() must reject a 96-byte forged proof that does not satisfy the Schnorr equations")
+	}
+}
+
+// TestVRFVerify_WrongPublicKey proves the output is bound to the key: a valid
+// proof for key A must fail verification against an unrelated key B.
+func TestVRFVerify_WrongPublicKey(t *testing.T) {
+	_, skA, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair(A) error = %v", err)
+	}
+	pkB, _, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair(B) error = %v", err)
+	}
+
+	message := []byte("test-message")
+	output, proof, err := VRFProve(skA, message)
+	if err != nil {
+		t.Fatalf("VRFProve() error = %v", err)
+	}
+
+	if valid := VRFVerify(pkB, message, output, proof); valid {
+		t.Fatal("VRFVerify() must reject a proof verified against a different public key")
+	}
+}
+
+// TestVRFVerify_TamperedOutput ensures mutating the output breaks the proof.
+func TestVRFVerify_TamperedOutput(t *testing.T) {
+	pk, sk, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+
+	message := []byte("test-message")
+	output, proof, err := VRFProve(sk, message)
+	if err != nil {
+		t.Fatalf("VRFProve() error = %v", err)
+	}
+
+	tampered := append([]byte(nil), output...)
+	tampered[0] ^= 0x01
+	if valid := VRFVerify(pk, message, tampered, proof); valid {
+		t.Fatal("VRFVerify() must reject a tampered output")
+	}
+}
+
+// TestVRFVerify_TamperedProof ensures mutating any proof byte breaks it.
+func TestVRFVerify_TamperedProof(t *testing.T) {
+	pk, sk, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+
+	message := []byte("test-message")
+	output, proof, err := VRFProve(sk, message)
+	if err != nil {
+		t.Fatalf("VRFProve() error = %v", err)
+	}
+
+	for _, i := range []int{0, 31, 32, 63, 64, 95} {
+		tampered := append([]byte(nil), proof...)
+		tampered[i] ^= 0x01
+		if valid := VRFVerify(pk, message, output, tampered); valid {
+			t.Fatalf("VRFVerify() must reject a proof tampered at byte %d", i)
+		}
 	}
 }

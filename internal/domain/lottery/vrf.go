@@ -9,6 +9,12 @@ import (
 	"filippo.io/edwards25519"
 )
 
+// Proof length: R₁ (32) ‖ R₂ (32) ‖ s (32) = 96 bytes. The R₁/R₂ pair plus
+// the response s form a Schnorr NIZK that the prover knows the secret scalar
+// sk satisfying BOTH output = sk·H(seed) AND public = sk·G — i.e. the VRF
+// output is bound to the key (see VRFProve/VRFVerify).
+const vrfProofLen = 96
+
 // VRFKeyPair holds Ed25519 key material for VRF operations.
 // Note: This implementation uses a simplified VRF approach suitable for
 // lottery random selection, not full RFC 9380 ECVRF compliance.
@@ -18,9 +24,9 @@ type VRFKeyPair struct {
 }
 
 // VRFOutput holds the VRF proof components.
-// Note: This is not RFC 9380's proof format which includes c and s values
-// for cryptographic verification. This simplified format only includes
-// the point for hash verification.
+// Note: This is not RFC 9380's on-wire proof format. The prove/verify pair
+// below is a Schnorr-style NIZK that binds the output to the key; it keeps
+// the simplified hash-to-point from RFC 9380 (see hashToPoint).
 type VRFOutput struct {
 	Output []byte
 	Proof  []byte
@@ -113,61 +119,145 @@ func hashToPoint(message []byte) *edwards25519.Point {
 	return point
 }
 
-// VRFProve generates a VRF proof for the message using the secret key.
+// VRFProve generates a VRF output and a self-contained proof for the message
+// using the secret key.
 //
-// Returns:
-//   - output: H(m)^sk where H is hash-to-point and sk is secret key
-//   - proof: combined output and point bytes
-//   - error: if key generation fails
+//   - output = sk·H(m)  (H is hashToPoint; the deterministic winner stream)
+//   - proof  = R₁ ‖ R₂ ‖ s, a Schnorr NIZK proving knowledge of sk such that
+//     output = sk·H(m) AND public = sk·G.
 //
-// Note: This implements a simplified VRF proof generation. Standard ECVRF
-// proof generation includes additional fields (gamma, c, s) for non-interactive
-// proof verification. See RFC 9380 Section 5.2.
+// The nonce k is derived deterministically from (sk, message) so that proving
+// twice for the same input yields the same output and proof — an audit
+// property relied on by CreateLotteryRecord (record IDs hash the output) and
+// asserted in the tests. Deterministic nonce derivation also closes the
+// weak-key recovery risk a reused random nonce would create.
 func VRFProve(secret *edwards25519.Scalar, message []byte) ([]byte, []byte, error) {
 	point := hashToPoint(message)
 
 	output := new(edwards25519.Point)
 	output.ScalarMult(secret, point)
 
-	outputBytes := output.Bytes()
-	proofBytes := point.Bytes()
+	// Deterministic per (sk, message): k = H(skBytes ‖ message) reduced mod L.
+	nonceDigest := sha256.Sum256(append(secret.Bytes(), message...))
+	nonceSeed := make([]byte, 64)
+	copy(nonceSeed, nonceDigest[:])
+	copy(nonceSeed[32:], nonceDigest[:])
+	k, err := new(edwards25519.Scalar).SetUniformBytes(nonceSeed)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	combined := make([]byte, len(outputBytes)+len(proofBytes))
-	copy(combined, outputBytes)
-	copy(combined[len(outputBytes):], proofBytes)
+	public := new(edwards25519.Point).ScalarBaseMult(secret)
+	r1 := new(edwards25519.Point).ScalarBaseMult(k)
+	r2 := new(edwards25519.Point).ScalarMult(k, point)
 
-	return outputBytes, combined, nil
+	cSeed := challengeSeed(r1.Bytes(), r2.Bytes(), public.Bytes(), output.Bytes(), message)
+	c, err := scalarFromDigest(cSeed)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	s := new(edwards25519.Scalar).Add(k, new(edwards25519.Scalar).Multiply(c, secret))
+
+	proof := make([]byte, vrfProofLen)
+	copy(proof[:32], r1.Bytes())
+	copy(proof[32:64], r2.Bytes())
+	copy(proof[64:], s.Bytes())
+
+	return output.Bytes(), proof, nil
 }
 
-// VRFVerify verifies a VRF proof.
+// VRFVerify verifies a VRF proof against the public key.
 //
-// Verification approach: Re-hash message to point, compare with proof's point.
-// Does NOT verify the output derivation (secret * point) due to simplified design.
+// It checks, for message m with H = hashToPoint(m), that the proof's
+// (R₁, R₂, s) satisfy, for c = H(R₁ ‖ R₂ ‖ pk ‖ output ‖ m):
 //
-// Note: This simplified verification only checks that the proof contains
-// the correct hash-to-point result. It does NOT verify the VRF output
-// signature (i.e., that output = secret * proofPoint). For production use
-// with security requirements, implement full ECVRF verification per RFC 9380
-// Section 5.4, which includes checking the c and s values from the proof.
+//	R₁ = s·G − c·pk
+//	R₂ = s·H − c·output
+//
+// Both equations hold iff the prover knew the single scalar sk such that
+// output = sk·H(m) and pk = sk·G — the output is genuinely bound to the key.
+// Without this NIZK, verification could never demonstrate the output derives
+// from any key (the previous implementation ignored `public` entirely, so any
+// winners could be recorded as "verified"; ISS-096).
 func VRFVerify(public *edwards25519.Point, message []byte, output, proof []byte) bool {
-	if len(output) != 32 || len(proof) != 64 {
+	if public == nil {
+		return false
+	}
+	if len(output) != 32 || len(proof) != vrfProofLen {
 		return false
 	}
 
-	recomputedPoint := hashToPoint(message)
-	proofPoint := new(edwards25519.Point)
-	proofPoint, err := proofPoint.SetBytes(proof[32:])
+	r1, err := new(edwards25519.Point).SetBytes(proof[:32])
+	if err != nil {
+		return false
+	}
+	r2, err := new(edwards25519.Point).SetBytes(proof[32:64])
+	if err != nil {
+		return false
+	}
+	s, err := new(edwards25519.Scalar).SetCanonicalBytes(proof[64:])
+	if err != nil {
+		return false
+	}
+	outputPoint, err := new(edwards25519.Point).SetBytes(output)
+	if err != nil {
+		return false
+	}
+	if isIdentity(outputPoint) || isIdentity(r1) || isIdentity(r2) {
+		return false
+	}
+
+	h := hashToPoint(message)
+	c, err := scalarFromDigest(challengeSeed(r1.Bytes(), r2.Bytes(), public.Bytes(), output, message))
 	if err != nil {
 		return false
 	}
 
-	if recomputedPoint.Equal(proofPoint) != 1 {
+	// R₁ ?= s·G − c·pk
+	sG := new(edwards25519.Point).ScalarBaseMult(s)
+	cPK := new(edwards25519.Point).ScalarMult(c, public)
+	if new(edwards25519.Point).Subtract(sG, cPK).Equal(r1) != 1 {
 		return false
 	}
 
-	// At this point output is guaranteed to be 32 bytes (checked above)
-	// and the proof point matches the recomputed hash-to-point.
+	// R₂ ?= s·H − c·output
+	sH := new(edwards25519.Point).ScalarMult(s, h)
+	cOut := new(edwards25519.Point).ScalarMult(c, outputPoint)
+	if new(edwards25519.Point).Subtract(sH, cOut).Equal(r2) != 1 {
+		return false
+	}
+
 	return true
+}
+
+// challengeSeed computes the Fiat-Shamir challenge input for the VRF proof as
+// a 64-byte digest (two linked SHA-256 blocks) that SetUniformBytes reduces
+// modulo the group order. Binding the public key and output into the challenge
+// prevents re-targeting a proof at a different key or output.
+func challengeSeed(r1, r2, public, output, message []byte) []byte {
+	var buf []byte
+	buf = append(buf, r1...)
+	buf = append(buf, r2...)
+	buf = append(buf, public...)
+	buf = append(buf, output...)
+	buf = append(buf, message...)
+	first := sha256.Sum256(buf)
+	second := sha256.Sum256(first[:])
+	seed := make([]byte, 64)
+	copy(seed, first[:])
+	copy(seed[32:], second[:])
+	return seed
+}
+
+func scalarFromDigest(seed []byte) (*edwards25519.Scalar, error) {
+	return new(edwards25519.Scalar).SetUniformBytes(seed)
+}
+
+// isIdentity reports whether p encodes the group identity (the point at
+// infinity), which must never be accepted as a VRF output or commitment.
+func isIdentity(p *edwards25519.Point) bool {
+	return p.Equal(edwards25519.NewIdentityPoint()) == 1
 }
 
 func VRFOutputToBytes(output []byte) []byte {
