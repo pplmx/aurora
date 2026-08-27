@@ -201,8 +201,18 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 	if err != nil {
 		return nil, fmt.Errorf("marshal metadata: %w", err)
 	}
-	if err := os.WriteFile(metaPath, metaData, 0640); err != nil {
+	// Write metadata atomically (TASK-120): a plain os.WriteFile over the live
+	// metadata.json can leave a truncated file on top of brand-new .db files if
+	// the process dies mid-write or the write short-fails — the backup set then
+	// fails Verify with no good copy recoverable. Write to a temp sibling and
+	// os.Rename into place, the same promote primitive the snapshots use.
+	metaTmp := metaPath + ".tmp"
+	if err := os.WriteFile(metaTmp, metaData, 0640); err != nil {
 		return nil, fmt.Errorf("write metadata: %w", err)
+	}
+	if err := os.Rename(metaTmp, metaPath); err != nil {
+		_ = os.Remove(metaTmp)
+		return nil, fmt.Errorf("promote metadata: %w", err)
 	}
 
 	totalSize := int64(0)
@@ -408,26 +418,40 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 		if err != nil {
 			return fmt.Errorf("open backup %s: %w", name, err)
 		}
-		if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
+		// Copy through a temp sibling and atomic-rename into place (mirror of
+		// Create's promote phase). The old code O_TRUNC'd the live dest then
+		// io.Copy'd onto it, so a mid-copy failure (disk full, I/O error) left a
+		// truncated .db at the live path with the previous state only in
+		// .pre_restore. Copying to a sibling first means the live DB is only
+		// replaced once the fully-written replacement is ready (TASK-120).
+		tmpPath := destPath + ".tmp"
+		if err := os.Remove(tmpPath); err != nil && !os.IsNotExist(err) {
 			_ = src.Close()
-			return fmt.Errorf("remove dest %s: %w", name, err)
+			return fmt.Errorf("remove stale temp %s: %w", name, err)
 		}
-		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
+		dest, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
 		if err != nil {
 			_ = src.Close()
-			return fmt.Errorf("create dest %s: %w", name, err)
+			return fmt.Errorf("create temp %s: %w", name, err)
 		}
 		if _, err := io.Copy(dest, src); err != nil {
 			_ = src.Close()
 			_ = dest.Close()
+			_ = os.Remove(tmpPath)
 			return fmt.Errorf("restore %s: %w", name, err)
 		}
 		if err := src.Close(); err != nil {
 			_ = dest.Close()
+			_ = os.Remove(tmpPath)
 			return fmt.Errorf("close backup %s: %w", name, err)
 		}
 		if err := dest.Close(); err != nil {
-			return fmt.Errorf("close dest %s: %w", name, err)
+			_ = os.Remove(tmpPath)
+			return fmt.Errorf("close temp %s: %w", name, err)
+		}
+		if err := os.Rename(tmpPath, destPath); err != nil {
+			_ = os.Remove(tmpPath)
+			return fmt.Errorf("promote restored %s: %w", name, err)
 		}
 
 		// The restored archive is a complete standalone snapshot; a stale

@@ -295,6 +295,42 @@ func TestBackupService_Create_CheckpointError(t *testing.T) {
 	require.Error(t, err, "a directory masquerading as a DB must fail at checkpoint")
 }
 
+// TestBackupService_Create_MetadataWrittenAtomically pins the atomic-metadata
+// tail (TASK-120). The old code os.WriteFile'd metadata.json directly after
+// promoting the .db files: a crash or short write mid-way left a truncated or
+// absent metadata.json on top of brand-new .db files — a backup set that fails
+// Verify with the previous good metadata already gone. Create now writes a
+// metadata.json.tmp sibling and renames it into place, so the visible
+// metadata.json is always a complete, verify-able file and no .tmp leaks after
+// success. This test asserts exactly those two invariants.
+func TestBackupService_Create_MetadataWrittenAtomically(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "src", "blockchain.db")
+	makeTestDB(t, dbPath)
+
+	out := filepath.Join(dir, "out")
+	svc := NewBackupService(map[string]string{"blockchain": dbPath})
+	res, err := svc.Create(context.Background(), out)
+	require.NoError(t, err)
+	require.NotEmpty(t, res.Checksum)
+
+	metaPath := filepath.Join(out, "metadata.json")
+	metaData, err := os.ReadFile(metaPath)
+	require.NoError(t, err)
+
+	// The metadata must be complete and self-consistent: its Checksum field
+	// must equal the SHA of the OTHER fields as marshaled (the same
+	// compute-then-fill order Create uses), proving the write is not truncated.
+	var meta BackupMetadata
+	require.NoError(t, json.Unmarshal(metaData, &meta), "metadata.json is complete, valid JSON")
+	storedChecksum := meta.Checksum
+	meta.Checksum = "" // the stored checksum covers the pre-checksum fields only
+	raw, _ := json.Marshal(meta)
+	require.Equal(t, sha256hex(raw), storedChecksum, "metadata checksum field verifies")
+
+	require.NoFileExists(t, metaPath+".tmp", "no metadata temp sibling leaks after success")
+}
+
 // TestBackupService_Create_MetadataWriteError covers the metadata.json write
 // failure branch: a pre-existing directory at the destination path makes
 // os.WriteFile fail after the DB copies succeeded.

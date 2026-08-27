@@ -540,3 +540,44 @@ func writeMeta(t *testing.T, backupDir, dbName string) {
 		t.Fatal(err)
 	}
 }
+
+// TestRestore_LeavesNoTempSiblingAfterSuccess pins the atomic-restore tail
+// (TASK-120): Restore currently copies the archive to a .tmp sibling and
+// renames it into place so a mid-copy failure can never leave a truncated .db
+// at the live path. The success path must clean the temp sibling up — a
+// leftover <dest>.tmp next to the restored DB is the failure artifact of the
+// interrupted-copy class, and its presence after a successful Restore is the
+// testable signal that the promote path is leaking.
+func TestRestore_LeavesNoTempSiblingAfterSuccess(t *testing.T) {
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "dst")
+	backupDir := filepath.Join(tmp, "backup")
+	for _, d := range []string{dstDir, backupDir} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	dstDB := filepath.Join(dstDir, "blockchain.db")
+	backupDB := filepath.Join(backupDir, "blockchain.db")
+	newDB(t, backupDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', '42')",
+	)
+	writeMeta(t, backupDir, "blockchain")
+
+	svc := NewBackupService(map[string]string{"blockchain": dstDB})
+	if err := svc.Restore(context.Background(), backupDir); err != nil {
+		t.Fatalf("Restore failed: %v", err)
+	}
+
+	if _, err := os.Stat(dstDB); err != nil {
+		t.Fatalf("destination exists after restore: %v", err)
+	}
+	if _, err := os.Stat(dstDB + ".tmp"); !os.IsNotExist(err) {
+		t.Fatalf("no temp sibling left after successful restore (err=%v)", err)
+	}
+	if _, err := os.Stat(filepath.Join(dstDir, "blockchain.db.tmp")); !os.IsNotExist(err) {
+		t.Fatalf("no temp sibling left in dst dir (err=%v)", err)
+	}
+}
