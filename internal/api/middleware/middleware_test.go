@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -211,4 +212,34 @@ func TestRecovery_PanicsWithError(t *testing.T) {
 	wrapped.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+// TestAPIKeyAuth_FlatUnauthorizedEnvelope locks the error-envelope
+// consistency fix (TASK-114): the 401 body must use the flat {"error","code"}
+// shape every other error surface uses, not the old nested
+// {"error":{"code","message"}} shape.
+func TestAPIKeyAuth_FlatUnauthorizedEnvelope(t *testing.T) {
+	handler := APIKeyAuth("secret")(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rr.Code)
+	}
+	var body map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &body); err != nil {
+		t.Fatalf("401 body is not a flat JSON object: %v", err)
+	}
+	if body["code"] != "UNAUTHORIZED" {
+		t.Errorf("code = %q, want UNAUTHORIZED", body["code"])
+	}
+	if body["error"] == "" {
+		t.Error("error field must be present and non-empty")
+	}
+	if body["message"] != "" {
+		t.Error("flat envelope must not nest a message field")
+	}
 }

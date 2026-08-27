@@ -30,12 +30,14 @@ func secureCompare(provided, expected string) bool {
 }
 
 func writeUnauthorized(w http.ResponseWriter) {
+	// Flat {"error","code"} envelope, matching every other error surface
+	// (handler helpers, rate limiter, recovery); the previous nested
+	// {"error":{"code","message"}} required clients to special-case 401
+	// (TASK-114).
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"error": map[string]string{
-			"code":    "UNAUTHORIZED",
-			"message": "authentication required",
-		},
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"error": "authentication required",
+		"code":  "UNAUTHORIZED",
 	})
 }
