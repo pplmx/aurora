@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -149,7 +150,7 @@ func TestNFTRepository_GetNFTsByOwner(t *testing.T) {
 		t.Fatalf("Failed to save NFT3: %v", err)
 	}
 
-	nfts, err := repo.GetNFTsByOwner(owner)
+	nfts, err := repo.GetNFTsByOwner(owner, 0, 0)
 	if err != nil {
 		t.Fatalf("Failed to get NFTs by owner: %v", err)
 	}
@@ -157,6 +158,47 @@ func TestNFTRepository_GetNFTsByOwner(t *testing.T) {
 	if len(nfts) != 2 {
 		t.Errorf("Expected 2 NFTs, got %d", len(nfts))
 	}
+}
+
+// TestNFTRepository_GetNFTsByOwnerPaged locks the v1.79 bounded-paging fix
+// (TASK-101, ISS-093): the SQL layer must honor LIMIT/OFFSET with a stable
+// insertion (rowid) order so pages don't overlap or skip, and 0,0 stays
+// unbounded for the CLI/TUI.
+func TestNFTRepository_GetNFTsByOwnerPaged(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	owner := []byte("pageowner")
+	for i := 0; i < 5; i++ {
+		err := repo.SaveNFT(&nft.NFT{ID: fmt.Sprintf("nft-%d", i), Name: fmt.Sprintf("NFT %d", i), Owner: owner})
+		if err != nil {
+			t.Fatalf("Failed to save NFT %d: %v", i, err)
+		}
+	}
+
+	// First page of 2 returns the two earliest (insertion-order) NFTs.
+	page, err := repo.GetNFTsByOwner(owner, 2, 0)
+	require.NoError(t, err)
+	require.Len(t, page, 2)
+	require.Equal(t, "nft-0", page[0].ID)
+	require.Equal(t, "nft-1", page[1].ID)
+
+	// Second page continues without overlap: still 2 rows, but advancing.
+	page, err = repo.GetNFTsByOwner(owner, 2, 2)
+	require.NoError(t, err)
+	require.Len(t, page, 2)
+	require.Equal(t, "nft-2", page[0].ID)
+	require.Equal(t, "nft-3", page[1].ID)
+
+	// Offset past the end -> empty, not an error.
+	page, err = repo.GetNFTsByOwner(owner, 10, 100)
+	require.NoError(t, err)
+	require.Len(t, page, 0)
+
+	// A negative limit must not trip SQLite (treated as unbounded).
+	page, err = repo.GetNFTsByOwner(owner, -1, 0)
+	require.NoError(t, err)
+	require.Len(t, page, 5)
 }
 
 func TestNFTRepository_GetNFTsByCreator(t *testing.T) {

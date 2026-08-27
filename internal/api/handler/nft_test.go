@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -134,6 +135,46 @@ func TestNFTHandler_List_EmptyOwner(t *testing.T) {
 
 	// Empty owner -> 400 Bad Request (validated before service call)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+// TestNFTHandler_List_Paged locks the v1.79 bounded-paging fix (TASK-101,
+// ISS-093): GET /nft/list?owner= must honor ?limit/?offset (default 20, cap
+// 100) instead of returning an owner's entire collection unbounded.
+func TestNFTHandler_List_Paged(t *testing.T) {
+	handler := NewNFTHandler(domainnft.NewInmemRepo(), nil)
+
+	ownerPub := []byte("page-owner")
+	for i := 0; i < 5; i++ {
+		err := handler.repo.SaveNFT(&domainnft.NFT{
+			ID:    fmt.Sprintf("nft-%d", i),
+			Name:  fmt.Sprintf("NFT %d", i),
+			Owner: ownerPub,
+		})
+		require.NoError(t, err)
+	}
+
+	owner := base64.StdEncoding.EncodeToString(ownerPub)
+
+	// limit=2&offset=1 -> exactly those two rows, in insertion order.
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner="+owner+"&limit=2&offset=1", nil)
+	rr := httptest.NewRecorder()
+	handler.List(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code)
+	var page []struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &page))
+	require.Len(t, page, 2)
+	require.Equal(t, "nft-1", page[0].ID)
+	require.Equal(t, "nft-2", page[1].ID)
+
+	// An oversized ?limit= is clamped to maxNFTListLimit (100), not honored.
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner="+owner+"&limit=99999", nil)
+	rr = httptest.NewRecorder()
+	handler.List(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &page))
+	require.Len(t, page, 5, "all 5 owned NFTs returned; oversized limit clamped but not fatal")
 }
 
 func TestNFTHandler_List_InvalidOwner(t *testing.T) {

@@ -3,12 +3,24 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	nftapp "github.com/pplmx/aurora/internal/app/nft"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	domainnft "github.com/pplmx/aurora/internal/domain/nft"
 )
+
+// defaultNFTListLimit is the default page size for GET /nft/list?owner=.
+const defaultNFTListLimit = 20
+
+// maxNFTListLimit caps the user-supplied ?limit= so a key-holding caller
+// cannot force an unbounded NFT scan/response (TASK-101, ISS-093).
+const maxNFTListLimit = 100
+
+// maxNFTListOffset caps ?offset=, bounding how far a caller can page in
+// one request. Mirrors the token-history caps.
+const maxNFTListOffset = 1000
 
 type NFTHandler struct {
 	repo    domainnft.Repository
@@ -138,8 +150,35 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The list must be bounded: pre-fix it returned every NFT the owner
+	// had with no limit or caps, letting a key-holding caller force an
+	// unbounded response (TASK-101, ISS-093). Parse and clamp limit/offset
+	// exactly like the token-history handler.
+	limit := defaultNFTListLimit
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if l, err := strconv.Atoi(v); err == nil && l > 0 {
+			limit = l
+			if limit > maxNFTListLimit {
+				limit = maxNFTListLimit
+			}
+		}
+	}
+	offset := 0
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if o, err := strconv.Atoi(v); err == nil && o >= 0 {
+			offset = o
+			if offset > maxNFTListOffset {
+				offset = maxNFTListOffset
+			}
+		}
+	}
+
 	uc := nftapp.NewListNFTsByOwnerUseCase(h.service)
-	result, err := uc.Execute(owner)
+	result, err := uc.Execute(&nftapp.ListNFTsByOwnerRequest{
+		Owner:  owner,
+		Limit:  limit,
+		Offset: offset,
+	})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return

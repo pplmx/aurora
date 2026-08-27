@@ -216,8 +216,10 @@ var listCmd = &cobra.Command{
 
 		owner, _ := cmd.Flags().GetString("owner")
 
+		// The CLI lists the full collection (0,0 = unbounded); only the REST
+		// list is paged/bounded (TASK-101, ISS-093).
 		listUC := appnft.NewListNFTsByOwnerUseCase(service)
-		results, err := listUC.Execute(owner)
+		results, err := listUC.Execute(&appnft.ListNFTsByOwnerRequest{Owner: owner})
 		if err != nil {
 			return fmt.Errorf("failed to list NFTs: %w", err)
 		}

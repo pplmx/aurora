@@ -526,7 +526,7 @@ func (f *failingNFTRepo) WithTx(_ *sql.Tx) domainnft.Repository { return f }
 func (f *failingNFTRepo) GetNFT(string) (*domainnft.NFT, error) {
 	return nil, f.err
 }
-func (f *failingNFTRepo) GetNFTsByOwner([]byte) ([]*domainnft.NFT, error) {
+func (f *failingNFTRepo) GetNFTsByOwner(_ []byte, _ int, _ int) ([]*domainnft.NFT, error) {
 	return nil, f.err
 }
 func (f *failingNFTRepo) GetNFTsByCreator([]byte) ([]*domainnft.NFT, error) {

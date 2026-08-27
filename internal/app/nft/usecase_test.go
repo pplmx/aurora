@@ -1,6 +1,7 @@
 package nft
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -41,8 +42,22 @@ func (m *mockNFTService) GetNFTByID(id string) (*nft.NFT, error) {
 	return nil, nil
 }
 
-func (m *mockNFTService) GetNFTsByOwner(ownerPub []byte) ([]*nft.NFT, error) {
-	return m.nfts, nil
+func (m *mockNFTService) GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*nft.NFT, error) {
+	all := m.nfts
+	if limit > 0 {
+		if offset < 0 {
+			offset = 0
+		}
+		if offset >= len(all) {
+			return nil, nil
+		}
+		end := offset + limit
+		if end > len(all) {
+			end = len(all)
+		}
+		all = all[offset:end]
+	}
+	return all, nil
 }
 
 func (m *mockNFTService) GetNFTsByCreator(creatorPub []byte) ([]*nft.NFT, error) {
@@ -285,7 +300,7 @@ func TestListNFTsByOwnerUseCase_Execute(t *testing.T) {
 	}
 	uc := NewListNFTsByOwnerUseCase(service)
 
-	resp, err := uc.Execute("b3duZXItcGs=")
+	resp, err := uc.Execute(&ListNFTsByOwnerRequest{Owner: "b3duZXItcGs="})
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -295,11 +310,31 @@ func TestListNFTsByOwnerUseCase_Execute(t *testing.T) {
 	}
 }
 
+func TestListNFTsByOwnerUseCase_Paged(t *testing.T) {
+	service := &mockNFTService{nfts: []*nft.NFT{}}
+	for i := 0; i < 5; i++ {
+		service.nfts = append(service.nfts, &nft.NFT{ID: fmt.Sprintf("nft-%d", i)})
+	}
+	uc := NewListNFTsByOwnerUseCase(service)
+
+	// limit/offset must be honored at the use-case layer (TASK-101, ISS-093).
+	page, err := uc.Execute(&ListNFTsByOwnerRequest{Owner: "b3duZXItcGs=", Limit: 2, Offset: 1})
+	require.NoError(t, err)
+	require.Len(t, page, 2)
+	require.Equal(t, "nft-1", page[0].ID)
+	require.Equal(t, "nft-2", page[1].ID)
+
+	// Offset past the end is an empty page, not an error.
+	page, err = uc.Execute(&ListNFTsByOwnerRequest{Owner: "b3duZXItcGs=", Limit: 10, Offset: 100})
+	require.NoError(t, err)
+	require.Len(t, page, 0)
+}
+
 func TestListNFTsByOwnerUseCase_InvalidOwner(t *testing.T) {
 	service := &mockNFTService{}
 	uc := NewListNFTsByOwnerUseCase(service)
 
-	_, err := uc.Execute("!!!invalid!!!")
+	_, err := uc.Execute(&ListNFTsByOwnerRequest{Owner: "!!!invalid!!!"})
 	if err == nil {
 		t.Fatal("Expected error for invalid owner")
 	}

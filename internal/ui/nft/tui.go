@@ -447,7 +447,9 @@ func (m *model) loadNFTsByOwner() {
 		return
 	}
 
-	nfts, err := m.nftService.GetNFTsByOwner(owner)
+	// The TUI shows the full sandbox collection (no paging caps — only the
+	// REST list is bounded, TASK-101, ISS-093).
+	nfts, err := m.nftService.GetNFTsByOwner(owner, 0, 0)
 	if err != nil {
 		m.viewport.SetContent(components.ErrorStyle().Render("⚠ "+err.Error()) + "\n\n" + components.HelpTextStyle().Render("[ESC] "+i18n.GetText("lottery.tui.back")))
 		return

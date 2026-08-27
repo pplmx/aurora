@@ -87,7 +87,7 @@ func (r *inmemRepo) GetNFT(id string) (*NFT, error) {
 	return r.nfts[id], nil
 }
 
-func (r *inmemRepo) GetNFTsByOwner(owner []byte) ([]*NFT, error) {
+func (r *inmemRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -96,6 +96,24 @@ func (r *inmemRepo) GetNFTsByOwner(owner []byte) ([]*NFT, error) {
 		if nft.IsOwner(owner) {
 			result = append(result, nft)
 		}
+	}
+	// Mirror the SQLite LIMIT/OFFSET semantics: 0,0 (limit <= 0) is
+	// unbounded and returns the whole (ordered) collection (TASK-101,
+	// ISS-093). Map iteration order is nondeterministic, so in-memory
+	// paging is best-effort — only the SQLite repo carries a stable
+	// rowid order.
+	if limit > 0 {
+		if offset < 0 {
+			offset = 0
+		}
+		if offset >= len(result) {
+			return nil, nil
+		}
+		end := offset + limit
+		if end > len(result) {
+			end = len(result)
+		}
+		result = result[offset:end]
 	}
 	return result, nil
 }
