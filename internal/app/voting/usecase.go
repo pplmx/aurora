@@ -73,6 +73,12 @@ func (uc *CastVoteUseCase) txRepo(tx *sql.Tx) voting.Repository {
 func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	session, err := uc.repo.GetSession(req.SessionID)
 	if err != nil {
+		if errors.Is(err, sqlite.ErrNotFound) {
+			// The SQLite repo signals a missing row with sqlite.ErrNotFound;
+			// map it to the domain sentinel so the API returns 404 instead of
+			// leaking an unclassified 500 (TASK-111, ISS-103).
+			return nil, voting.ErrSessionNotFound
+		}
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 	if session == nil {
@@ -96,6 +102,9 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 
 	voter, err := uc.repo.GetVoter(req.VoterPublicKey)
 	if err != nil {
+		if errors.Is(err, sqlite.ErrNotFound) {
+			return nil, voting.ErrVoterNotRegistered
+		}
 		return nil, fmt.Errorf("failed to get voter: %w", err)
 	}
 	if voter == nil {
@@ -104,6 +113,9 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 
 	candidate, err := uc.repo.GetCandidate(req.CandidateID)
 	if err != nil {
+		if errors.Is(err, sqlite.ErrNotFound) {
+			return nil, voting.ErrCandidateNotFound
+		}
 		return nil, fmt.Errorf("failed to get candidate: %w", err)
 	}
 	if candidate == nil {
@@ -329,6 +341,9 @@ func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionRespo
 	for _, id := range req.CandidateIDs {
 		c, err := uc.repo.GetCandidate(id)
 		if err != nil {
+			if errors.Is(err, sqlite.ErrNotFound) {
+				return nil, voting.ErrCandidateNotFound
+			}
 			return nil, fmt.Errorf("failed to get candidate: %w", err)
 		}
 		if c == nil {
@@ -405,6 +420,9 @@ func NewGetResultsUseCase(repo voting.Repository) *GetResultsUseCase {
 func (uc *GetResultsUseCase) Execute(sessionID string) (*ResultsResponse, error) {
 	session, err := uc.repo.GetSession(sessionID)
 	if err != nil {
+		if errors.Is(err, sqlite.ErrNotFound) {
+			return nil, voting.ErrSessionNotFound
+		}
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 	if session == nil {
