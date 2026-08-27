@@ -52,6 +52,10 @@ var errorClassification = []struct {
 	{tokenerrors.ErrPrivateKeyRequired, http.StatusBadRequest, "PRIVATE_KEY_REQUIRED"},
 	{tokenerrors.ErrInvalidPrivateKeyLength, http.StatusBadRequest, "INVALID_PRIVATE_KEY_LENGTH"},
 	{tokenerrors.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
+	// ErrAuditPublishFailed is a server-side persistence failure, but unlike
+	// generic 500s the operation DID commit — clients must see the distinct
+	// code so they never auto-retry a completed write (TASK-117, ISS-109).
+	{tokenerrors.ErrAuditPublishFailed, http.StatusInternalServerError, "AUDIT_PUBLISH_FAILED"},
 
 	// NFT domain errors
 	{nfterrors.ErrNFTNotFound, http.StatusNotFound, "NFT_NOT_FOUND"},
@@ -136,7 +140,19 @@ func writeUseCaseError(w http.ResponseWriter, err error) {
 	statusCode, code := classifyError(err)
 	message := err.Error()
 	if statusCode == http.StatusInternalServerError {
-		message = "internal server error"
+		switch {
+		case errors.Is(err, tokenerrors.ErrAuditPublishFailed):
+			// Controlled message for the one classified server-side failure
+			// whose "committed" signal a client must see: a generic
+			// "internal server error" would invite a retry of a write that
+			// already landed (TASK-117, ISS-109). The cause is logged on the
+			// server side, never echoed here.
+			message = "operation committed but the audit event could not be persisted; do not retry"
+		default:
+			// Unclassified (500) errors get a generic message so raw
+			// internals (SQL fragments, panic text) never leak to clients.
+			message = "internal server error"
+		}
 	}
 	writeError(w, message, code, statusCode)
 }

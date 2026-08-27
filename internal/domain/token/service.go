@@ -346,7 +346,7 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 	// rollback cannot undo, so publishing inside the transaction left a
 	// phantom event behind whenever a later step rolled the mint back.
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
 	}
 
 	return event, nil
@@ -437,7 +437,7 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	// Publish the audit event only after the transaction commits (ISS-074);
 	// see the identical note in Mint.
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
 	}
 
 	return event, nil
@@ -544,7 +544,7 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	// Publish the audit event only after the transaction commits (ISS-074);
 	// see the identical note in Mint.
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
 	}
 
 	return event, nil
@@ -588,7 +588,7 @@ func (s *TokenService) Approve(req *ApproveRequest) (*ApproveEvent, error) {
 
 	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, req.Amount)
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
 	}
 
 	return event, nil
@@ -633,7 +633,7 @@ func (s *TokenService) IncreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 
 	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, newAmount)
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
 	}
 	return event, nil
 }
@@ -681,7 +681,7 @@ func (s *TokenService) DecreaseAllowance(req *AllowanceRequest) (*ApproveEvent, 
 
 	event := NewApproveEvent(req.TokenID, req.Owner, req.Spender, newAmount)
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
 	}
 	return event, nil
 }
@@ -750,7 +750,7 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	// Publish the audit event only after the transaction commits (ISS-074);
 	// see the identical note in Mint.
 	if err := s.eventBus.Publish(event); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", ErrAuditPublishFailed, err)
 	}
 
 	return event, nil

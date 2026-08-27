@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	tokenerrors "github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/pplmx/aurora/internal/logger"
@@ -75,12 +77,27 @@ Use "aurora lottery --help" for lottery commands.`,
 	},
 }
 
+// formatCLIError renders the single error line Execute() writes to stderr.
+// A token operation that COMMITTED but lost its post-commit audit event must
+// never be shown as a plain failure — that framing invites a retry that would
+// repeat already-committed money movement. It gets a distinct do-not-retry
+// warning instead (exit code stays nonzero so the audit gap surfaces in
+// scripts; the message is explicit that the operation did commit).
+func formatCLIError(err error) string {
+	if errors.Is(err, tokenerrors.ErrAuditPublishFailed) {
+		return fmt.Sprintf(
+			"⚠ %v\n  The operation DID commit. Do NOT retry it — inspect the event store.\n", err,
+		)
+	}
+	return fmt.Sprintf("❌ Error: %v\n", err)
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
 		logger.Error().Err(err).Msg("Application error")
-		fmt.Fprintf(os.Stderr, "❌ Error: %v\n", err)
+		fmt.Fprint(os.Stderr, formatCLIError(err))
 		os.Exit(1)
 	}
 }

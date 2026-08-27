@@ -2,7 +2,10 @@ package handler
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -73,6 +76,39 @@ func TestTokenHandler_Info_NotFound(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h.Info(rr, req)
 	assert.Equal(t, http.StatusNotFound, rr.Code)
+}
+
+// TestTokenHandler_Approve_AuditPublishFailed locks the API half of TASK-117 /
+// ISS-109: when a token op COMMITS but its post-commit audit publish fails, the
+// response must carry a dedicated code (AUDIT_PUBLISH_FAILED) and a message
+// that says the write committed and must not be retried — never a generic
+// "internal server error" that a client would blindly retry.
+func TestTokenHandler_Approve_AuditPublishFailed(t *testing.T) {
+	h := NewTokenHandler(fakeTokenServiceFull{
+		err: fmt.Errorf("%w: %v", domaintoken.ErrAuditPublishFailed, errors.New("event store unavailable")),
+	})
+
+	// Valid base64 keys (32-byte public, 64-byte private) so the usecase
+	// reaches the service instead of failing decodeKey first.
+	body, _ := json.Marshal(map[string]string{
+		"token_id":    "TEST",
+		"owner":       base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 32)),
+		"spender":     base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{2}, 32)),
+		"amount":      "10",
+		"private_key": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{3}, 64)),
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/token/approve", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	h.Approve(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
+	var resp ErrorResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, "AUDIT_PUBLISH_FAILED", resp.Code)
+	assert.Contains(t, resp.Error, "committed")
+	assert.Contains(t, resp.Error, "do not retry")
 }
 
 func TestTokenHandler_TransferFrom_InvalidJSON(t *testing.T) {

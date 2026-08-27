@@ -48,4 +48,13 @@ var (
 	// larger amounts would let them silently overflow/clamp in SQLite's
 	// INTEGER math, corrupting balances, supply, and allowances.
 	ErrAmountTooLarge = errors.New("amount too large")
+
+	// ErrAuditPublishFailed reports an operation that COMMITTED (balances,
+	// supply, or allowances already moved and are durable) but whose
+	// post-commit audit event could not be persisted to the event store. It
+	// is NOT an operation failure: callers must NOT retry the operation —
+	// that would repeat already-committed money movement. They should
+	// surface the audit gap and inspect the event store instead. Detected
+	// with errors.Is (TASK-117, ISS-109).
+	ErrAuditPublishFailed = errors.New("operation committed but the audit event could not be recorded")
 )
