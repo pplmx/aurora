@@ -203,3 +203,30 @@ func (m *mockLotteryRepoWithData) GetAll() ([]*lottery.LotteryRecord, error) {
 func (m *mockLotteryRepoWithData) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
+
+// TestLotteryHandler_History_EmptyArray covers the envelope-consistency fix
+// (TASK-114): a repo returning no rows gave a nil slice which JSON-encoded as
+// null, unlike every other list endpoint which returns []. The handler must
+// normalize to [].
+func TestLotteryHandler_History_EmptyArray(t *testing.T) {
+	handler := &LotteryHandler{repo: &nilLotteryRepo{}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/history", nil)
+	rr := httptest.NewRecorder()
+	handler.History(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "[]\n", rr.Body.String(), "empty history must encode as [], not null")
+}
+
+type nilLotteryRepo struct{}
+
+func (m *nilLotteryRepo) Save(*lottery.LotteryRecord) error { return nil }
+func (m *nilLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
+	return nil, lottery.ErrNotFound
+}
+func (m *nilLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
+	return nil, nil // simulates the SQLite no-rows case
+}
+func (m *nilLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
+	return nil, lottery.ErrNotFound
+}

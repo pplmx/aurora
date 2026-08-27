@@ -64,6 +64,13 @@ func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A no-rows result is a nil slice, which JSON-encodes as `null`; every other
+	// list endpoint (token history, NFT list, oracle query, voting sessions)
+	// returns `[]`. Encode the empty array for envelope consistency (TASK-114).
+	if results == nil {
+		results = []*lottery.LotteryRecord{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(results)
 }
