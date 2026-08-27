@@ -1,6 +1,7 @@
 package test
 
 import (
+	"encoding/json"
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
@@ -52,12 +53,23 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 		t.Errorf("Expected block height 1, got %d", record.BlockHeight)
 	}
 
+	// The immutable on-chain payload must be self-describing: the caller
+	// serialized with block_height=0 (the height is only known after the
+	// append), and AddLotteryRecord stamps the true height into the JSON
+	// (ISS-097). Assert the block echoes the record with height corrected.
 	data, err := chain.GetBlockData(1)
 	if err != nil {
 		t.Fatalf("GetBlockData failed: %v", err)
 	}
-	if data != jsonData {
-		t.Error("Block data mismatch")
+	var onChain map[string]interface{}
+	if err := json.Unmarshal([]byte(data), &onChain); err != nil {
+		t.Fatalf("on-chain block data is not valid JSON: %v", err)
+	}
+	if got, _ := onChain["block_height"].(float64); int64(got) != height {
+		t.Errorf("on-chain block_height = %v, want %d", onChain["block_height"], height)
+	}
+	if onChain["id"] != record.ID {
+		t.Errorf("on-chain id = %v, want %s", onChain["id"], record.ID)
 	}
 
 	t.Logf("Lottery ID: %s", record.ID)
