@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.80 phantom HOME data-dir cleanup complete
+**Current focus:** v1.81 integrity & client-error sweep complete
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.80 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels, consistent online backups, CLI failure exit codes, NFT burn audit-trail retention, owner-scoped token-history paging + list-envelope consistency, cmd/api config-file loading, malformed-base64→400 classification, oracle scheduler on-chain recording, honored token create --decimals, lottery-reset declined/exit≠0, bounded NFT list paging, db.path honored everywhere, no phantom HOME data dir on CLI commands)
-Last activity: 2026-08-27 — v1.80 closed (ISS-095):
+Status: v1.24–v1.81 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes)
+Last activity: 2026-08-27 — v1.81 closed:
   PersistentPreRunE ran app.Wire(dataDir) on every subcommand and stashed it
   in the never-read GlobalApp, so even `aurora version` created a phantom
   $HOME/.aurora/data with an unused tokens/events/nonces .db triple. Removed
@@ -73,6 +73,7 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.78 | Base64→400 classification + oracle scheduler on-chain recording (voting reopen decided-not-a-bug, DEC-004) | ✅ done |
 | v1.79 | Honored token create --decimals + lottery-reset declined→exit≠0 + bounded NFT list paging + db.path honored everywhere | ✅ done |
 | v1.80 | Removed phantom HOME data-dir wiring (dead app.Wire/GlobalApp ran on every CLI command) | ✅ done |
+| v1.81 | Integrity & client-error sweep (key-bound VRF, on-chain block_height, atomic token create, all-or-nothing backups, rate-limit seconds, voting 4xx, NFT keys, CLI audit, single error line, envelopes) | ✅ done |
 
 ## Session Continuity
 
