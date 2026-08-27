@@ -91,6 +91,16 @@ func Genesis() *Block {
 // the write lock makes heights unique and the chain valid regardless of how
 // many goroutines call AddBlock concurrently.
 func (c *BlockChain) AddBlock(data string) (int64, error) {
+	return c.appendBlock(data, nil)
+}
+
+// appendBlock serializes the whole reserve+mine+append under the write lock
+// (see AddBlock's comment for why mining cannot be parallelized). When stamp
+// is non-nil it is called with the block height just before the block is
+// mined, so callers can finalize the payload (e.g. stamp a self-describing
+// height into an audit record's JSON) before Data becomes part of the PoW
+// hash. A stamp that returns "" leaves data unchanged.
+func (c *BlockChain) appendBlock(data string, stamp func(height int64) string) (int64, error) {
 	if c == nil {
 		return 0, fmt.Errorf("blockchain not initialized")
 	}
@@ -103,9 +113,15 @@ func (c *BlockChain) AddBlock(data string) (int64, error) {
 		c.mu.Unlock()
 		return 0, fmt.Errorf("blockchain not initialized")
 	}
+	height := int64(len(c.Blocks))
+	if stamp != nil {
+		if stamped := stamp(height); stamped != "" {
+			data = stamped
+		}
+	}
 	prev := c.Blocks[len(c.Blocks)-1]
 	block := &Block{
-		Height:    int64(len(c.Blocks)),
+		Height:    height,
 		PrevHash:  append([]byte(nil), prev.Hash...),
 		Data:      []byte(data),
 		Nonce:     0,
@@ -119,7 +135,6 @@ func (c *BlockChain) AddBlock(data string) (int64, error) {
 	block.Nonce = int64(nonce)
 	block.Hash = append([]byte(nil), hash...)
 	c.Blocks = append(c.Blocks, block)
-	height := block.Height
 	persist := c.persist
 	c.mu.Unlock()
 
