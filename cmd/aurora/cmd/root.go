@@ -33,7 +33,13 @@ Use "aurora lottery --help" for lottery commands.`,
   aurora nft mint -n "MyNFT" -c "creator-key"
   aurora token create -n "MyToken" -s "MTK" --supply 1000000
   aurora voting candidate add -n "Alice" -p "Party"`,
-	SilenceUsage: true,
+	// SilenceUsage AND SilenceErrors: with only SilenceUsage set, cobra printed
+	// "Error: ..." to stderr on every failure and Execute() then printed the
+	// same message again as "❌ Error: ..." — every CLI error appeared twice.
+	// The single formatted error line from Execute() (plus the structured
+	// logger line) is the one true error surface.
+	SilenceErrors: true,
+	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		// NOTE: the previous version of this hook resolved a `data.dir`
 		// (default $HOME/.aurora/data), mkdir'd it, and called app.Wire(dataDir),
