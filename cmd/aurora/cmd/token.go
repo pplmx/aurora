@@ -31,7 +31,12 @@ func newTokenService() (*token.TokenService, func(), error) {
 
 	eventReader := sqlite.NewTokenEventReader(eventStore)
 
+	// The CLI must subscribe the audit handler — without a subscriber the
+	// SyncEventBus dropped every token event, so CLI mint/transfer/burn/etc.
+	// persisted nothing and `token history` was always empty (the v1.73
+	// ISS-080 fix wired only the API server; TASK-113, ISS-105).
 	eventBus := infraevents.NewSyncEventBus()
+	eventBus.SubscribeAll(infraevents.NewAuditHandler(eventStore).Handle)
 
 	replay, err := infraevents.NewSQLiteReplayProtection(blockchain.DBPath())
 	if err != nil {

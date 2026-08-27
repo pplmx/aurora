@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/base64"
 	"strings"
 	"testing"
 
@@ -208,17 +210,30 @@ func TestTokenAllowance_HappyPath(t *testing.T) {
 	})
 }
 
+// TestTokenHistory_HappyPath is the regression test for the CLI audit-events
+// gap (TASK-113, ISS-105): the CLI's event bus had no audit subscriber, so a
+// CLI transfer dropped its event into the void and `token history` was always
+// empty. It must now surface the transfer row. (History is transfer-history:
+// a mint is a token.mint event and is intentionally not listed.)
 func TestTokenHistory_HappyPath(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		tokenID, pub, priv := tokenFixture(t, "HistCoin", "HST", "1000")
+		// fund the owner, then do a CLI transfer the history page should show
 		_, err := runCmd(t, "token", "mint",
 			"--token", tokenID, "--to", pub, "--amount", "100", "--private-key", priv)
+		require.NoError(t, err)
+
+		recipient := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x59}, 32))
+		_, err = runCmd(t, "token", "transfer",
+			"--token", tokenID, "--from", pub, "--to", recipient,
+			"--amount", "50", "--private-key", priv)
 		require.NoError(t, err)
 
 		out, err := runCmd(t, "token", "history",
 			"--token", tokenID, "--owner", pub, "--limit", "10")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Transfer History")
+		assert.Contains(t, out, "Transfer History: 1")
+		assert.Contains(t, out, "Amount: 50")
 	})
 }
 
