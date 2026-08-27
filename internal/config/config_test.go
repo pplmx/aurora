@@ -368,3 +368,34 @@ func TestRateLimitTrustedProxies_DefaultEmptyAndOverride(t *testing.T) {
 	viper.Set("api.rateLimit.trustedProxies", []string{"203.0.113.10", "10.0.0.0/8"})
 	require.Equal(t, []string{"203.0.113.10", "10.0.0.0/8"}, RateLimitTrustedProxies())
 }
+
+// TestRateLimitWindow_NumericSeconds is the regression test for the silent
+// rate-limit disable (TASK-110): viper.GetDuration(cast.ToDuration) turns a
+// bare integer TOML value like `window = 60` into time.Duration(60) = 60
+// NANOSECONDS, so the fixed-window limiter reset its budget on every request
+// whenever an operator configured the window as a plain number. Numbers and
+// numeric strings are now interpreted as SECONDS.
+func TestRateLimitWindow_NumericSeconds(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+	_, err := Load()
+	require.NoError(t, err)
+
+	assert.Equal(t, time.Minute, RateLimitWindow(), "default remains 1 minute")
+
+	// Bare integer (the TOML `window = 60` case) → 60 seconds, not 60ns.
+	viper.Set("api.rateLimit.window", 60)
+	assert.Equal(t, 60*time.Second, RateLimitWindow())
+
+	// Float integer → seconds.
+	viper.Set("api.rateLimit.window", float64(30))
+	assert.Equal(t, 30*time.Second, RateLimitWindow())
+
+	// Duration string passes through.
+	viper.Set("api.rateLimit.window", "500ms")
+	assert.Equal(t, 500*time.Millisecond, RateLimitWindow())
+
+	// Numeric string treated as seconds (also previously broken → 0).
+	viper.Set("api.rateLimit.window", "120")
+	assert.Equal(t, 120*time.Second, RateLimitWindow())
+}
