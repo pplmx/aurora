@@ -74,6 +74,16 @@ func main() {
 		defer stopScheduler()
 	}
 
+	// Start the audit outbox drainer: token audit events whose direct publish
+	// hit a transient failure were parked in pending_events by the audit
+	// handler (TASK-119, ISS-111) — this loop retries them until they land.
+	outboxCtx, outboxCancel := context.WithCancel(context.Background())
+	defer outboxCancel()
+	stopOutbox := srv.StartAuditOutboxDrainer(outboxCtx)
+	if stopOutbox != nil {
+		defer stopOutbox()
+	}
+
 	router := srv.Router()
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
