@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/pplmx/aurora/internal/app"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/migrate"
@@ -16,10 +14,6 @@ import (
 
 var cfgFile string
 var httpTimeout string
-
-var (
-	GlobalApp *app.App
-)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -41,18 +35,15 @@ Use "aurora lottery --help" for lottery commands.`,
   aurora voting candidate add -n "Alice" -p "Party"`,
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		dataDir := viper.GetString("data.dir")
-		if dataDir == "" {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return fmt.Errorf("failed to get home directory: %w", err)
-			}
-			dataDir = filepath.Join(home, ".aurora", "data")
-		}
-		if err := os.MkdirAll(dataDir, 0755); err != nil {
-			return fmt.Errorf("failed to create data directory: %w", err)
-		}
-
+		// NOTE: the previous version of this hook resolved a `data.dir`
+		// (default $HOME/.aurora/data), mkdir'd it, and called app.Wire(dataDir),
+		// stashing the result in the never-read GlobalApp. That ran on EVERY
+		// subcommand, so even read-only `aurora version` created a phantom
+		// $HOME/.aurora/data with an unused tokens.db/events.db/nonces.db trio
+		// (TASK-103, ISS-095). The wiring was dead (nothing reads GlobalApp), so
+		// it is removed; the only remaining pre-run work is the optional
+		// migrate.autoRun, which targets the same blockchain.DBPath() every
+		// store uses.
 		if viper.GetBool("migrate.autoRun") {
 			// Migrate the very same database every store and `aurora migrate`
 			// use. blockchain.DBPath() honors a configured db.path; the previous
@@ -74,9 +65,7 @@ Use "aurora lottery --help" for lottery commands.`,
 			}
 		}
 
-		var err error
-		GlobalApp, err = app.Wire(dataDir)
-		return err
+		return nil
 	},
 }
 
@@ -134,7 +123,6 @@ func initConfig() {
 func setDefaultConfig() {
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.path", "./logs")
-	viper.SetDefault("data.dir", "")
 	viper.SetDefault("migrate.autoRun", false)
 	viper.SetDefault("migrate.path", "./migrations")
 	viper.SetDefault("lottery.defaultCount", 3)

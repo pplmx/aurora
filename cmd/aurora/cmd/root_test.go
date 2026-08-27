@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"sort"
 	"testing"
 
@@ -21,7 +23,6 @@ func TestSetDefaultConfig(t *testing.T) {
 	for key, want := range map[string]any{
 		"log.level":                 "info",
 		"log.path":                  "./logs",
-		"data.dir":                  "",
 		"migrate.autoRun":           false,
 		"migrate.path":              "./migrations",
 		"lottery.defaultCount":      3,
@@ -111,6 +112,34 @@ func childNames(c *cobra.Command) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// TestNoPhantomHomeDataDir locks TASK-103/ISS-095: the previous
+// PersistentPreRunE ran app.Wire(dataDir) on every subcommand and stashed it
+// in the never-read GlobalApp, so even read-only commands created a phantom
+// $HOME/.aurora/data with an unused tokens/events/nonces .db triple. With the
+// dead wiring removed, a full command run (PersistentPreRunE intact) must not
+// create anything under $HOME.
+func TestNoPhantomHomeDataDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	viper.Reset()
+	viper.Set("migrate.autoRun", false)
+
+	prev := rootCmd.PersistentPreRunE
+	t.Cleanup(func() { rootCmd.PersistentPreRunE = prev })
+	rootCmd.PersistentPreRunE = prev // ensure the real hook is in place
+
+	resetFlags(rootCmd)
+	rootCmd.SetArgs([]string{"version"})
+	capture := captureStdout(t)
+	err := rootCmd.Execute()
+	_ = capture()
+	require.NoError(t, err)
+
+	if _, statErr := os.Stat(filepath.Join(home, ".aurora")); statErr == nil {
+		t.Fatal("read-only command must not create $HOME/.aurora (phantom app.Wire data dir removed)")
+	}
 }
 
 func TestVersionCmd_HappyPath(t *testing.T) {
