@@ -9,11 +9,13 @@ import (
 )
 
 // runCmd executes a subcommand through rootCmd (the real CLI path) with
-// the given args, capturing stdout. rootCmd.PersistentPreRunE normally
-// wires the full app (app.Wire + migrations); those tests exercise the
-// composition root, not individual command bodies, so we neutralise it
-// here. None of the module subcommands depend on GlobalApp (set by that
-// pre-run), so this is safe.
+// the given args, capturing stdout. rootCmd.PersistentPreRunE runs only the
+// optional migrate.autoRun hook — the app.Wire composition root that used to
+// run here was removed in v1.80 (it stashed a never-read GlobalApp and created
+// a phantom $HOME/.aurora/data; TASK-103, ISS-095) and its dead
+// internal/app/Wire code was retired in v1.82 (TASK-115, ISS-107). These tests
+// exercise the command bodies without touching the database, so we neutralise
+// the remaining migrate hook here.
 func runCmd(t *testing.T, args ...string) (string, error) {
 	t.Helper()
 	prev := rootCmd.PersistentPreRunE
