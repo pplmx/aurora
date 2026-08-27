@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 92,
+  "round": 95,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-27T13:30:42+00:00",
+  "updated_at": "2026-08-27T16:57:18+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 86,
+      "touched_round": 95,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -134,7 +134,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:17:33+00:00",
       "updated_at": "2026-08-22T15:17:33+00:00",
-      "touched_round": 1,
+      "touched_round": 95,
       "title": "internal/infra/http"
     },
     "ISS-oracle-ipv6-ssrf": {
@@ -2532,7 +2532,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:29:29+00:00",
       "updated_at": "2026-08-23T05:29:29+00:00",
-      "touched_round": 75,
+      "touched_round": 95,
       "title": "Backup/restore subsystem"
     },
     "EV-016": {
@@ -2589,7 +2589,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:33:22+00:00",
       "updated_at": "2026-08-23T05:33:22+00:00",
-      "touched_round": 74,
+      "touched_round": 95,
       "title": "Oracle REST fetcher (infra/http)"
     },
     "EV-017": {
@@ -4940,6 +4940,318 @@
       "touched_round": 91,
       "commit": "b9917e7",
       "title": "Lottery history [] + flat 401 error envelope"
+    },
+    "COMP-011": {
+      "id": "COMP-011",
+      "type": "component",
+      "status": "abandoned",
+      "version": 2,
+      "created_at": "2026-08-27T14:06:12+00:00",
+      "updated_at": "2026-08-27T14:39:52+00:00",
+      "touched_round": 93,
+      "title": "internal/app composition-root (wire.go + wire_test.go) — production-dead App/Wire"
+    },
+    "ISS-107": {
+      "id": "ISS-107",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T14:06:12+00:00",
+      "updated_at": "2026-08-27T14:39:52+00:00",
+      "touched_round": 93,
+      "title": "The internal/app composition root (Wire/App) is production-dead: no package imports it, only wire_test.go keeps it compiled; its data-dir side effect is the v1.80 phantom-dir class (ISS-095) if ever re-wired. Retire it and fix the stale oracle_test.go comment that still claims PersistentPreRunE runs app.Wire."
+    },
+    "ISS-108": {
+      "id": "ISS-108",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T14:06:12+00:00",
+      "updated_at": "2026-08-27T14:39:52+00:00",
+      "touched_round": 93,
+      "title": "BackupService.Restore has no same-file guard (restore <dataDir> self-clobbers as a silent no-op) and its pre-restore safety copy is a raw io.Copy of the live .db which omits uncheckpointed committed WAL frames — a regret-undo can resurrect a DB missing recent commits."
+    },
+    "ISS-109": {
+      "id": "ISS-109",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T14:06:12+00:00",
+      "updated_at": "2026-08-27T14:39:52+00:00",
+      "touched_round": 93,
+      "title": "A token op that commits but whose post-commit audit publish fails (Mint/Transfer/TransferFrom/Burn/Approve/Allowance, ISS-074 publish-after-commit) is reported as an op failure, inviting a dangerous retry that repeats committed money movement."
+    },
+    "TASK-115": {
+      "id": "TASK-115",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-27T14:06:12+00:00",
+      "updated_at": "2026-08-27T14:40:22+00:00",
+      "touched_round": 93,
+      "category": "maintainability",
+      "severity": 2,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Delete internal/app/wire.go + wire_test.go (dead composition root); fix stale app.Wire comment in cmd/aurora/cmd/oracle_test.go"
+    },
+    "TASK-116": {
+      "id": "TASK-116",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-27T14:06:12+00:00",
+      "updated_at": "2026-08-27T14:40:22+00:00",
+      "touched_round": 93,
+      "category": "stability",
+      "severity": 2,
+      "confidence": 1,
+      "effort": 3,
+      "unlock_factor": 1,
+      "title": "Harden BackupService.Restore: add same-file guard (refuse restore when a backup .db aliases a live DB) and make the pre-restore safety copy a WAL-complete online snapshot (VACUUM INTO); regression tests"
+    },
+    "TASK-117": {
+      "id": "TASK-117",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-27T14:06:12+00:00",
+      "updated_at": "2026-08-27T14:40:22+00:00",
+      "touched_round": 93,
+      "category": "correctness",
+      "severity": 3,
+      "confidence": 1,
+      "effort": 3,
+      "unlock_factor": 1,
+      "title": "Never report a committed token op as failed: introduce tokenerrors.ErrAuditPublishFailed sentinel, wrap all post-commit publish sites, map to a distinct CLI warning (do-not-retry) and API code AUDIT_PUBLISH_FAILED"
+    },
+    "CHG-111": {
+      "id": "CHG-111",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T14:39:25+00:00",
+      "updated_at": "2026-08-27T14:39:25+00:00",
+      "touched_round": 93,
+      "commit": "dbfe123",
+      "title": "Committed token ops never reported as failed when audit publish fails; ErrAuditPublishFailed + CLI/API mapping"
+    },
+    "CHG-112": {
+      "id": "CHG-112",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T14:39:25+00:00",
+      "updated_at": "2026-08-27T14:39:25+00:00",
+      "touched_round": 93,
+      "commit": "99cbc5f",
+      "title": "Backup Restore same-file guard + WAL-complete pre-restore snapshot"
+    },
+    "CHG-113": {
+      "id": "CHG-113",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T14:39:25+00:00",
+      "updated_at": "2026-08-27T14:39:25+00:00",
+      "touched_round": 93,
+      "commit": "4e42db5",
+      "title": "Retire production-dead internal/app Wire/App composition root + fix stale oracle_test comment"
+    },
+    "EV-038": {
+      "id": "EV-038",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T14:39:25+00:00",
+      "updated_at": "2026-08-27T14:39:25+00:00",
+      "touched_round": 93,
+      "source": "internal/domain/token/service_test.go:TestAuditPublishFailure_OpStillCommits",
+      "title": "Mint/Transfer/Burn with a failing event bus return ErrAuditPublishFailed (errors.Is true) while balances/supply prove the op committed; CLI formatter test + API classifier test (AUDIT_PUBLISH_FAILED)",
+      "confidence": 1.0
+    },
+    "EV-039": {
+      "id": "EV-039",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T14:39:25+00:00",
+      "updated_at": "2026-08-27T14:39:25+00:00",
+      "touched_round": 93,
+      "source": "internal/infra/backup/restore_test.go:TestRestore_RefusesBackupThatAliasesLiveDB + TestRestore_PreRestoreSnapshot_IsWALComplete",
+      "title": "Restore refuses a backup DB aliasing the live DB (os.SameFile) leaving the live DB untouched, and the pre-restore snapshot contains committed-but-uncheckpointed WAL frames",
+      "confidence": 1.0
+    },
+    "EV-040": {
+      "id": "EV-040",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T14:39:25+00:00",
+      "updated_at": "2026-08-27T14:39:25+00:00",
+      "touched_round": 93,
+      "source": "go build ./... + go test ./... -count=1 -race (33 pkgs) + clean-HOME aurora version",
+      "title": "Root internal/app has zero importers after deletion; full suite green; version creates no phantom data dir",
+      "confidence": 1.0
+    },
+    "ISS-110": {
+      "id": "ISS-110",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T15:34:36+00:00",
+      "updated_at": "2026-08-27T16:02:05+00:00",
+      "touched_round": 95,
+      "title": "TL;DR viper duration config keys silently parse bare TOML numbers as nanoseconds",
+      "summary": "Four config keys read via bare viper.GetDuration: api.rateLimit.window (fixed TASK-110), http.timeout, http.rateLimit.window, oracle.scheduler.checkInterval. TOML  -> time.Duration(60) = 60ns: an HTTP client with a 60ns timeout fails every oracle fetch; a 10ns rate-limit window resets the budget on every request (limiter effectively disabled); a 250ns scheduler ticker busy-polls. TASK-110 fixed only the first key; the other three still use raw viper.GetDuration and silently misread operator config."
+    },
+    "EV-041": {
+      "id": "EV-041",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T15:35:58+00:00",
+      "updated_at": "2026-08-27T15:35:58+00:00",
+      "touched_round": 95,
+      "source": "internal/config/z_dur_probe_test.go (probe, round 95)",
+      "title": "viper bare-number duration probe",
+      "confidence": 1.0,
+      "summary": "Probe test with TOML timeout=60/window=10/checkInterval=250: viper.Get returns int64 and GetDuration yields 60ns/10ns/250ns respectively (raw cast to nanoseconds), not seconds. Confirms the nanosecond-misread for all three unfixed keys."
+    },
+    "EV-042": {
+      "id": "EV-042",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T15:35:58+00:00",
+      "updated_at": "2026-08-27T15:35:58+00:00",
+      "touched_round": 95,
+      "source": "internal/infra/http/fetcher.go:218-231",
+      "title": "NewFetcher reads http.timeout/window via bare GetDuration",
+      "confidence": 1.0,
+      "summary": "NewFetcher uses viper.GetDuration for http.rateLimit.window and http.timeout with only a <=0 fallback; a positive-but-nanoseconds value (e.g. 10ns) passes the guard and is used verbatim."
+    },
+    "EV-043": {
+      "id": "EV-043",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T15:35:59+00:00",
+      "updated_at": "2026-08-27T15:35:59+00:00",
+      "touched_round": 95,
+      "source": "internal/app/oracle/scheduler.go:91-104 + internal/config/config.go:193-195",
+      "title": "checkInterval feeds NewTicker directly",
+      "confidence": 1.0,
+      "summary": "OracleSchedulerCheckInterval() returns bare viper.GetDuration; cmd/api passes it to StartOracleScheduler -> Scheduler.Run uses time.NewTicker(checkEvery). A 250ns checkInterval => busy-polling every 250ns."
+    },
+    "TASK-118": {
+      "id": "TASK-118",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-27T15:36:16+00:00",
+      "updated_at": "2026-08-27T16:02:05+00:00",
+      "touched_round": 95,
+      "category": "correctness",
+      "title": "Unify numeric-duration handling for http.timeout, http.rateLimit.window, oracle.scheduler.checkInterval",
+      "summary": "Mirror the TASK-110 RateLimitWindow fix: a shared config helper that interprets bare numbers / numeric strings as SECONDS (respecting existing defaults), and route http.timeout, http.rateLimit.window, oracle.scheduler.checkInterval through it. Regression tests for each key. Prevents silent 60ns timeouts, disabled rate-limit, and 250ns busy-poll.",
+      "effort": 2,
+      "severity": 0.85,
+      "confidence": 0.9,
+      "unlock_factor": 1.0,
+      "lock_owner": "round95-main",
+      "lock_until": "2026-08-27T16:43:47+00:00"
+    },
+    "ISS-111": {
+      "id": "ISS-111",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T15:40:35+00:00",
+      "updated_at": "2026-08-27T16:39:10+00:00",
+      "touched_round": 95,
+      "title": "Failed post-commit audit publish is reported but never healed (no retry/queue/idempotency)",
+      "summary": "v1.82 TASK-117/CHG-111 correctly reports ErrAuditPublishFailed so a committed op is never presented as failed (CLI do-not-retry warning + API AUDIT_PUBLISH_FAILED code), but nothing heals the loss: SyncEventBus.Publish fan-out is synchronous, the only durability is the audit handler's SQLite INSERT at delivery time, and on failure the event is dropped with no trace. There is no outbox table, no failed-event store, no retry loop, no DEAD queue, no dedup/idempotency column. Committed domain state stands and the audit record is permanently lost. IS\nS-084 (phantom blocks) is parked, but this is the audit-loss side of the same post-commit gap and is addressable without a cross-DB atomicity redesign: a durable pending-outbox that is drained by a retry loop, with the events table PK (random UUID) making INSERT OR IGNORE / ON CONFLICT idempotent."
+    },
+    "ISS-112": {
+      "id": "ISS-112",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-27T15:40:35+00:00",
+      "updated_at": "2026-08-27T16:57:18+00:00",
+      "touched_round": 95,
+      "title": "backup restore has no real-binary test under a live WAL-writing server",
+      "summary": "STATE.md flags a real-binary exerciser for backup restore under a live server as an open gap. Existing coverage: unit tests drive BackupService.Restore directly (restore_test.go:472 keeps a raw sql.Open writer open) and CLI tests run cobra in-process with no live WAL writer, so the intersection — CLI-issued restore against a live server actively writing committed-but-uncheckpointed WAL frames — is untested. e2e/ has no backup/restore tests. Also untested: multi-DB restore partial failure, DatabaseChecksums path through Restore verify, .pre_restore restorability after a mid-restore failure, symlink alias guard."
+    },
+    "TASK-119": {
+      "id": "TASK-119",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T15:41:33+00:00",
+      "updated_at": "2026-08-27T16:39:10+00:00",
+      "touched_round": 95,
+      "category": "stability",
+      "title": "Build a durable post-commit retry/queue for failed audit publishes",
+      "summary": "Heal the gap v1.82 only reports: persist failed audit-publish events to a durable pending queue (or back into the events table with a delivery marker) at commit time, then drain/retry on a loop so a transient bus/handler failure no longer permanently drops the audit record. Must be idempotent (events PK is a random UUID => INSERT OR IGNORE / ON CONFLICT). Keep scope tight: retry loop with backoff, failed-store or status column, CLI/API unchanged (still authoritative about commit).",
+      "effort": 5,
+      "severity": 0.8,
+      "confidence": 0.8,
+      "unlock_factor": 1.0
+    },
+    "TASK-120": {
+      "id": "TASK-120",
+      "type": "task",
+      "status": "resolved",
+      "version": 6,
+      "created_at": "2026-08-27T15:41:34+00:00",
+      "updated_at": "2026-08-27T16:56:52+00:00",
+      "touched_round": 95,
+      "category": "stability",
+      "title": "Backup restore hardening + real-binary exerciser under a live WAL-writing server",
+      "summary": "Fold the backup deep-dive (round 95) correctness findings into one hardening + exerciser effort: (1) add an e2e/CLI test running backup restore through the real path against a live WAL-writing server asserting the restored DB holds the latest committed data; (2) close restore gaps found in the deep-dive — restore is NOT atomic across DBs (DB N failure leaves DBs 0..N-1 replaced, per-DB alias guard can fire mid-loop), Create's metadata.json write is not atomic (crash → truncated metadata over new .db files; checksum failure post-promote yields inconsistent set), TOCTOU between Verify and Restore's copy, hardcoded 0640 perms/ownership replacing a group-shared live DB, restore destination has no temp+rename (mid-copy disk-full leaves truncated .db), legacy-archive verify only checks table-presence (corrupt-but-parseable archive can overwrite good DB). Define WAL/commit semantics explicitly.",
+      "effort": 4,
+      "severity": 0.7,
+      "confidence": 0.8,
+      "unlock_factor": 1.0
+    },
+    "CHG-114": {
+      "id": "CHG-114",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T16:01:24+00:00",
+      "updated_at": "2026-08-27T16:01:24+00:00",
+      "touched_round": 95,
+      "commit": "69ec813",
+      "title": "config.DurationSeconds: bare numeric TOML durations resolve as seconds across http.timeout / http.rateLimit.window / oracle.scheduler.checkInterval (TASK-118)",
+      "summary": "V1.82 hand-off note found the three keys still on raw viper.GetDuration after the TASK-110 api.rateLimit.window fix. Added config.DurationSeconds (generalized TASK-110 rule), routed NewFetcher http.timeout/http.rateLimit.window and OracleSchedulerCheckInterval through it, added regression tests (config + fetcher)."
+    },
+    "CHG-115": {
+      "id": "CHG-115",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T16:38:24+00:00",
+      "updated_at": "2026-08-27T16:38:24+00:00",
+      "touched_round": 95,
+      "commit": "7e88cba",
+      "title": "Add durable pending_events outbox + OutboxDrainer so failed audit publishes heal instead of being dropped (TASK-119)",
+      "summary": "pending_events table (id PK = event UUID, idempotent EnqueuePending), SaveIdempotent (INSERT OR IGNORE) for UNIQUE-safe retries, AuditHandlerWithOutbox parks failed deliveries (returns nil unless both Save+park fail), OutboxDrainer retries with exponential backoff (1s base, 5m cap). Wired: API server + cmd/api main drains on a ticker; CLI drains once in service cleanup. 7 new tests; events pkg 84.7% coverage."
+    },
+    "CHG-116": {
+      "id": "CHG-116",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T16:56:05+00:00",
+      "updated_at": "2026-08-27T16:56:05+00:00",
+      "touched_round": 95,
+      "commit": 9281277,
+      "title": "Backup atomic metadata write + temp-rename restore destination (TASK-120)",
+      "summary": "Create metadata.json now written via .tmp sibling + os.Rename (no truncated metadata over new .db files on crash/short write); Restore copies archive to <dest>.tmp and renames into place so a mid-copy failure never leaves a truncated .db at the live path. Two regression tests; backup pkg fully green."
     }
   },
   "edges": [
@@ -7666,6 +7978,156 @@
       "to": "TASK-114",
       "type": "implements",
       "created_at": "2026-08-27T13:25:42+00:00"
+    },
+    {
+      "from": "TASK-117",
+      "to": "ISS-109",
+      "type": "addresses",
+      "created_at": "2026-08-27T14:06:36+00:00"
+    },
+    {
+      "from": "TASK-116",
+      "to": "ISS-108",
+      "type": "addresses",
+      "created_at": "2026-08-27T14:06:36+00:00"
+    },
+    {
+      "from": "TASK-115",
+      "to": "ISS-107",
+      "type": "addresses",
+      "created_at": "2026-08-27T14:06:36+00:00"
+    },
+    {
+      "from": "ISS-109",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-27T14:06:36+00:00"
+    },
+    {
+      "from": "ISS-108",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-08-27T14:06:36+00:00"
+    },
+    {
+      "from": "ISS-107",
+      "to": "COMP-011",
+      "type": "located_in",
+      "created_at": "2026-08-27T14:06:36+00:00"
+    },
+    {
+      "from": "CHG-111",
+      "to": "TASK-117",
+      "type": "implements",
+      "created_at": "2026-08-27T14:39:51+00:00"
+    },
+    {
+      "from": "CHG-112",
+      "to": "TASK-116",
+      "type": "implements",
+      "created_at": "2026-08-27T14:39:51+00:00"
+    },
+    {
+      "from": "CHG-113",
+      "to": "TASK-115",
+      "type": "implements",
+      "created_at": "2026-08-27T14:39:51+00:00"
+    },
+    {
+      "from": "CHG-111",
+      "to": "ISS-109",
+      "type": "resolves",
+      "created_at": "2026-08-27T14:39:51+00:00"
+    },
+    {
+      "from": "CHG-112",
+      "to": "ISS-108",
+      "type": "resolves",
+      "created_at": "2026-08-27T14:39:51+00:00"
+    },
+    {
+      "from": "CHG-113",
+      "to": "ISS-107",
+      "type": "resolves",
+      "created_at": "2026-08-27T14:39:51+00:00"
+    },
+    {
+      "from": "ISS-110",
+      "to": "COMP-http",
+      "type": "located_in",
+      "created_at": "2026-08-27T15:36:16+00:00"
+    },
+    {
+      "from": "TASK-118",
+      "to": "ISS-110",
+      "type": "addresses",
+      "created_at": "2026-08-27T15:36:35+00:00"
+    },
+    {
+      "from": "TASK-119",
+      "to": "ISS-111",
+      "type": "addresses",
+      "created_at": "2026-08-27T15:41:51+00:00"
+    },
+    {
+      "from": "TASK-120",
+      "to": "ISS-112",
+      "type": "addresses",
+      "created_at": "2026-08-27T15:41:51+00:00"
+    },
+    {
+      "from": "ISS-111",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-27T15:42:48+00:00"
+    },
+    {
+      "from": "ISS-112",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-08-27T15:42:48+00:00"
+    },
+    {
+      "from": "CHG-114",
+      "to": "ISS-110",
+      "type": "resolves",
+      "created_at": "2026-08-27T16:01:24+00:00"
+    },
+    {
+      "from": "CHG-114",
+      "to": "TASK-118",
+      "type": "implements",
+      "created_at": "2026-08-27T16:01:47+00:00"
+    },
+    {
+      "from": "ISS-110",
+      "to": "COMP-009",
+      "type": "located_in",
+      "created_at": "2026-08-27T16:01:47+00:00"
+    },
+    {
+      "from": "CHG-115",
+      "to": "TASK-119",
+      "type": "implements",
+      "created_at": "2026-08-27T16:38:47+00:00"
+    },
+    {
+      "from": "CHG-115",
+      "to": "ISS-111",
+      "type": "resolves",
+      "created_at": "2026-08-27T16:38:47+00:00"
+    },
+    {
+      "from": "CHG-116",
+      "to": "TASK-120",
+      "type": "implements",
+      "created_at": "2026-08-27T16:56:05+00:00"
+    },
+    {
+      "from": "CHG-116",
+      "to": "ISS-112",
+      "type": "resolves",
+      "created_at": "2026-08-27T16:56:05+00:00"
     }
   ]
 }
