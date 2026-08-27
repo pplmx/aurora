@@ -433,3 +433,68 @@ func TestBackupService_Create_RefusesSelfOverwrite(t *testing.T) {
 	require.NoError(t, reopened.QueryRow("SELECT COUNT(*) FROM test WHERE id = 42").Scan(&count))
 	require.Equal(t, 1, count)
 }
+
+// TestBackupService_Create_AbortLeavesPreviousSetIntact is the regression
+// test for the destructive-on-failure backup bug (TASK-109, ISS-101): Create
+// removed each existing <name>.db before VACUUM INTO, so a mid-run failure
+// deleted the previous good snapshot of a DB while metadata.json still
+// described it — the whole backup set became unverifiable and the operator's
+// only good copy was gone. Create is now two-phase (snapshot-all → promote-all),
+// so a failed run must leave the previous files, metadata, and verifiability
+// exactly as they were, with no leftover .tmp files.
+func TestBackupService_Create_AbortLeavesPreviousSetIntact(t *testing.T) {
+	dir := t.TempDir()
+	output := filepath.Join(dir, "backups")
+
+	mkDB := func(rel string, table string) string {
+		p := filepath.Join(dir, "src", rel)
+		require.NoError(t, os.MkdirAll(filepath.Dir(p), 0755))
+		db, err := sql.Open("sqlite3", p)
+		require.NoError(t, err)
+		_, err = db.Exec("CREATE TABLE " + table + " (id INTEGER PRIMARY KEY)")
+		require.NoError(t, err)
+		require.NoError(t, db.Close())
+		return p
+	}
+	mainPath := mkDB("main.db", "things")
+	extraPath := mkDB("extra.db", "more_things")
+
+	svc := NewBackupService(map[string]string{"main": mainPath, "extra": extraPath})
+	_, err := svc.Create(context.Background(), output)
+	require.NoError(t, err, "first (good) backup must succeed")
+
+	// Snapshot the good state and confirm it verifies.
+	goodMain, err := os.ReadFile(filepath.Join(output, "main.db"))
+	require.NoError(t, err)
+	goodMeta, err := os.ReadFile(filepath.Join(output, "metadata.json"))
+	require.NoError(t, err)
+	require.NoError(t, svc.Verify(context.Background(), output))
+	require.NoError(t, err, "good backup must verify before the aborted run")
+
+	// Make the second DB fail, then re-run Create. The removed source must
+	// ALSO stay removed: the schema probe used to open it (SQLite creates a
+	// missing DB on first use), silently materializing an empty extra.db and
+	// letting Create "succeed" with a fake empty backup.
+	require.NoError(t, os.Remove(extraPath))
+	_, err = svc.Create(context.Background(), output)
+	require.Error(t, err, "Create must fail when a configured DB is gone")
+	require.NoFileExists(t, extraPath, "a Create run must not materialize a missing DB source")
+
+	// The previous set must be byte-identical and still verifiable.
+	afterMain, err := os.ReadFile(filepath.Join(output, "main.db"))
+	require.NoError(t, err)
+	require.Equal(t, goodMain, afterMain, "previous main.db must survive an aborted Create")
+	afterMeta, err := os.ReadFile(filepath.Join(output, "metadata.json"))
+	require.NoError(t, err)
+	require.Equal(t, goodMeta, afterMeta, "previous metadata.json must survive an aborted Create")
+
+	// No half-written temp snapshots may remain.
+	dirEntries, err := os.ReadDir(output)
+	require.NoError(t, err)
+	for _, e := range dirEntries {
+		require.NotContains(t, e.Name(), ".tmp", "aborted Create must not leave temp snapshot files")
+	}
+
+	require.NoError(t, svc.Verify(context.Background(), output))
+	require.NoError(t, err, "aborted Create must not corrupt the previous backup set")
+}
