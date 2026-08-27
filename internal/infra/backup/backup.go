@@ -71,6 +71,24 @@ func NewBackupService(dbPaths map[string]string) *BackupService {
 	return &BackupService{dbPaths: dbPaths}
 }
 
+// snapshot tracks one DB's temp sibling inside a Create run so an aborted run
+// can clean all of them up before returning (see Create's two-phase design).
+type snapshot struct {
+	name     string
+	destPath string
+	tmpPath  string
+}
+
+// removeTemps cleans up the not-yet-promoted snapshot temps of an aborted
+// Create so a failed re-run never leaves half-written .tmp files behind
+// (each temp is named <name>.db.tmp and would be removed at the top of the
+// next Create anyway).
+func (s *BackupService) removeTemps(snaps []snapshot) {
+	for _, snap := range snaps {
+		_ = os.Remove(snap.tmpPath)
+	}
+}
+
 func (s *BackupService) Create(ctx context.Context, output string) (*BackupResult, error) {
 	if err := os.MkdirAll(output, 0755); err != nil {
 		return nil, fmt.Errorf("create output dir: %w", err)
@@ -78,15 +96,29 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 
 	schemaVersion := s.getSchemaVersion()
 
+	// Two-phase (snapshot-all → promote-all) so a backing up into an existing
+	// output directory is all-or-nothing. The old code removed destPath before
+	// VACUUM INTO, so a mid-run failure (disk full, I/O error, SIGKILL) left the
+	// previous good snapshot of that DB deleted while metadata.json still
+	// described it — the backup set became unverifiable/unrestorable and the
+	// operator's only good copy was gone (TASK-109, ISS-101). Now every DB is
+	// first snapshotted to a temp sibling (failure → remove temps, previous
+	// .db set untouched), then all temps are atomically renamed into place,
+	// then metadata is written.
+	snapshots := make([]snapshot, 0, len(s.dbPaths))
+
 	for name, path := range s.dbPaths {
 		destPath := filepath.Join(output, name+".db")
+		tmpPath := destPath + ".tmp"
 
 		srcInfo, statErr := os.Stat(path)
 		if statErr != nil {
+			s.removeTemps(snapshots)
 			return nil, fmt.Errorf("stat source %s: %w", name, statErr)
 		}
 		if destInfo, statErr := os.Stat(destPath); statErr == nil {
 			if destInfo.IsDir() {
+				s.removeTemps(snapshots)
 				return nil, fmt.Errorf("destination %s path %q is a directory: refusing to overwrite it", name, destPath)
 			}
 			// Refuse to write the backup file over the live source (ISS-071):
@@ -95,12 +127,15 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 			// live database. os.SameFile catches the aliasing regardless of
 			// ./data vs data vs symlinked paths.
 			if os.SameFile(srcInfo, destInfo) {
+				s.removeTemps(snapshots)
 				return nil, fmt.Errorf("refusing to back up %s into itself: output directory %q holds the live database %q", name, output, path)
 			}
 		}
-		// VACUUM INTO requires the destination to not exist.
-		if err := os.Remove(destPath); err != nil && !os.IsNotExist(err) {
-			return nil, fmt.Errorf("remove dest %s: %w", name, err)
+		// A stale temp can survive a crash right before the rename below;
+		// VACUUM INTO requires its destination to not exist.
+		if err := os.Remove(tmpPath); err != nil && !os.IsNotExist(err) {
+			s.removeTemps(snapshots)
+			return nil, fmt.Errorf("remove stale temp %s: %w", name, err)
 		}
 
 		// VACUUM INTO is an online-backup statement: it writes a complete,
@@ -112,14 +147,30 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 		// (v1.75, ISS-082).
 		db, err := sql.Open("sqlite3", path)
 		if err != nil {
+			s.removeTemps(snapshots)
 			return nil, fmt.Errorf("open %s: %w", name, err)
 		}
-		if _, err := db.Exec("VACUUM INTO " + sqlLiteral(destPath)); err != nil {
+		if _, err := db.Exec("VACUUM INTO " + sqlLiteral(tmpPath)); err != nil {
 			_ = db.Close()
+			s.removeTemps(snapshots)
 			return nil, fmt.Errorf("snapshot %s: %w", name, err)
 		}
 		if err := db.Close(); err != nil {
+			s.removeTemps(snapshots)
 			return nil, fmt.Errorf("close %s: %w", name, err)
+		}
+		snapshots = append(snapshots, snapshot{name: name, destPath: destPath, tmpPath: tmpPath})
+	}
+
+	// Phase 2: promote every completed snapshot into place. os.Rename is
+	// atomic on the same filesystem, so each prior .db is only replaced once
+	// its fully-written replacement is ready.
+	for _, snap := range snapshots {
+		if err := os.Rename(snap.tmpPath, snap.destPath); err != nil {
+			for _, rest := range snapshots {
+				_ = os.Remove(rest.tmpPath)
+			}
+			return nil, fmt.Errorf("promote snapshot %s: %w", snap.name, err)
 		}
 	}
 
@@ -192,6 +243,13 @@ func (s *BackupService) getSchemaVersion() uint {
 // case we treat that DB as "version 0" and let the caller decide the overall
 // result (typically the highest across all DBs wins).
 func querySchemaVersion(path string) uint {
+	// Refuse to open a source that doesn't exist: SQLite creates a missing
+	// database file on first use, so probing a misconfigured/missing source
+	// here would silently materialize an empty DB and let Create "successfully"
+	// back it up instead of surfacing the bad source (TASK-109, ISS-101).
+	if _, err := os.Stat(path); err != nil {
+		return 0
+	}
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return 0
