@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 89,
+  "round": 90,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-27T07:17:25+00:00",
+  "updated_at": "2026-08-27T07:41:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 85,
+      "touched_round": 89,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -4506,6 +4506,44 @@
       "touched_round": 88,
       "commit": "43a6c95",
       "title": "Honor db.path config in the single canonical resolver; autoRun migrates that same DB"
+    },
+    "ISS-095": {
+      "id": "ISS-095",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-27T07:26:05+00:00",
+      "updated_at": "2026-08-27T07:40:48+00:00",
+      "touched_round": 89,
+      "title": "Every CLI command runs app.Wire(dataDir) in PersistentPreRunE and stores the result in the never-read GlobalApp, so even read-only commands like 'aurora version' create a phantom $HOME/.aurora/data with an unused tokens.db/events.db/nonces.db trio (a second token DB that no store uses) and leak SQLite handles for the process lifetime"
+    },
+    "TASK-103": {
+      "id": "TASK-103",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-27T07:27:12+00:00",
+      "updated_at": "2026-08-27T07:41:47+00:00",
+      "touched_round": 90,
+      "category": "correctness",
+      "severity": 2,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1,
+      "summary": "Drop the dead app.Wire(dataDir) wiring (ISS-095): remove GlobalApp + the dataDir computation/mkdir + the app.Wire call from root.go's PersistentPreRunE so no CLI command creates $HOME/.aurora/data or the phantom tokens/events/nonces .db triple; the migrate.autoRun branch already uses blockchain.DBPath(). Add a regression test that runs a subcommand with a temp HOME and asserts no .aurora/data is created.",
+      "lock_owner": "loop-main",
+      "lock_until": "2026-08-27T07:58:42+00:00"
+    },
+    "CHG-099": {
+      "id": "CHG-099",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-27T07:40:48+00:00",
+      "updated_at": "2026-08-27T07:40:48+00:00",
+      "touched_round": 89,
+      "commit": "3b369aa",
+      "title": "Remove dead app.Wire data-dir wiring; no CLI command creates phantom HOME DBs"
     }
   },
   "edges": [
@@ -7010,6 +7048,30 @@
       "to": "TASK-102",
       "type": "implements",
       "created_at": "2026-08-27T07:07:31+00:00"
+    },
+    {
+      "from": "TASK-103",
+      "to": "ISS-095",
+      "type": "addresses",
+      "created_at": "2026-08-27T07:28:42+00:00"
+    },
+    {
+      "from": "ISS-095",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-27T07:28:42+00:00"
+    },
+    {
+      "from": "CHG-099",
+      "to": "ISS-095",
+      "type": "resolves",
+      "created_at": "2026-08-27T07:40:48+00:00"
+    },
+    {
+      "from": "CHG-099",
+      "to": "TASK-103",
+      "type": "implements",
+      "created_at": "2026-08-27T07:40:48+00:00"
     }
   ]
 }
