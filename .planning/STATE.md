@@ -5,24 +5,20 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.79 silent-input & config-correctness sweep complete
+**Current focus:** v1.80 phantom HOME data-dir cleanup complete
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.79 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels, consistent online backups, CLI failure exit codes, NFT burn audit-trail retention, owner-scoped token-history paging + list-envelope consistency, cmd/api config-file loading, malformed-base64→400 classification, oracle scheduler on-chain recording, honored token create --decimals, lottery-reset declined/exit≠0, bounded NFT list paging, db.path honored everywhere)
-Last activity: 2026-08-27 — v1.79 closed (round-88 observed candidates ISS-091..094):
-  (1) `token create --decimals` was a dead flag — threaded end-to-end
-  (NewTokenWithDecimals, domain/app/API/CLI) with usage error on garbage
-  (TASK-099, CHG-095 / c1b4afe); (2) `lottery reset` without --yes exited 0 —
-  now fails loudly via RunE, matching backup restore --confirm
-  (TASK-100, CHG-096 / a137bc1); (3) GET /nft/list?owner= was unbounded —
-  limit/offset paging with default 20 / cap 100, stable ORDER BY rowid
-  (TASK-101, CHG-097 / 59df6e5, + bfdf38e/9f248a0); (4) db.path split-brain —
-  blockchain.resolvedDBPath() now honors the configured [db] path for
-  DBPath/InitDB/autoRun migrations (TASK-102, CHG-098 / 43a6c95).
-  RIL graph at round 89.
+Status: v1.24–v1.80 complete (web/API/CLI parity, security hardening, observability, integrity, collision + extraction hardening, concurrency atomicity, event/state atomicity, rate-limit spoof hardening, sqlite writer serialization, bounded request bodies, in-tx deadlock fix, api secrets/audit wiring, bounded metrics labels, consistent online backups, CLI failure exit codes, NFT burn audit-trail retention, owner-scoped token-history paging + list-envelope consistency, cmd/api config-file loading, malformed-base64→400 classification, oracle scheduler on-chain recording, honored token create --decimals, lottery-reset declined/exit≠0, bounded NFT list paging, db.path honored everywhere, no phantom HOME data dir on CLI commands)
+Last activity: 2026-08-27 — v1.80 closed (ISS-095):
+  PersistentPreRunE ran app.Wire(dataDir) on every subcommand and stashed it
+  in the never-read GlobalApp, so even `aurora version` created a phantom
+  $HOME/.aurora/data with an unused tokens/events/nonces .db triple. Removed
+  the dead wiring (root.go); the autoRun migrations target the same
+  blockchain.DBPath() as the stores (TASK-103, CHG-099 / 3b369aa).
+  RIL graph at round 90.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
@@ -76,16 +72,17 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.77 | NFT burn audit-trail retention + owner-scoped token-history paging/envelope + cmd/api config-file loading | ✅ done |
 | v1.78 | Base64→400 classification + oracle scheduler on-chain recording (voting reopen decided-not-a-bug, DEC-004) | ✅ done |
 | v1.79 | Honored token create --decimals + lottery-reset declined→exit≠0 + bounded NFT list paging + db.path honored everywhere | ✅ done |
+| v1.80 | Removed phantom HOME data-dir wiring (dead app.Wire/GlobalApp ran on every CLI command) | ✅ done |
 
 ## Session Continuity
 
-Last session: 2026-08-27 — v1.79 silent-input & config-correctness sweep:
-  token create --decimals honored, lottery reset declines loudly, NFT list
-  bounded, db.path honored everywhere. RIL graph at round 89.
-Next: run a fresh deep-dive round (all backlog candidates from the round-88
-  observation are now closed; the round-89 candidates below are the carry-forward
-  observations to investigate): token/NFT TUI in-memory sandboxes (playground
-  semantics vs persistence inconsistency with lottery/voting TUI), the residual
-  dead `GlobalApp`/`app.Wire(dataDir)` wiring + phantom $HOME/.aurora/data mkdir
-  in root.go (left in place to keep v1.79 diff scoped), and the deferred
-  ISS-084 phantom on-chain blocks on rolled-back transactions (DEC-002).
+Last session: 2026-08-27 — v1.80 phantom HOME data-dir cleanup (dead
+  app.Wire/GlobalApp wiring removed; no CLI command creates $HOME/.aurora).
+  RIL graph at round 90.
+Next: the token/NFT TUI in-memory sandboxes were verified as INTENTIONAL
+  (in-code documented) — not a bug, no change; the deferred ISS-084 phantom
+  on-chain blocks on rolled-back transactions remains parked per DEC-002
+  (invasive to fix). Run a fresh deep-dive round if continuing; possible
+  angles: `internal/app.Wire`/`App` is now production-dead (still tested) —
+  decide whether to retire it; audit remaining CLI/API surfaces for the
+  silent-input / silent-success classes closed in v1.79–v1.80.
