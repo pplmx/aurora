@@ -117,15 +117,30 @@ func (r *TokenRepository) createTables() error {
 	return nil
 }
 
+// SaveToken insert-only: a token's ID is its symbol, so a create racing a
+// concurrent create of the same symbol must resolve atomically, not via the
+// pre-check in the service (which is a read-then-write TOCTOU window; two
+// racers both read nil and the second INSERT OR REPLACE would silently wipe
+// the first token's row and owner balance — ISS-098). ON CONFLICT DO NOTHING
+// makes the DB the arbiter: RowsAffected == 0 means the ID already exists,
+// surfaced to the caller as ErrTokenExists so the whole create transaction
+// rolls back cleanly.
 func (r *TokenRepository) SaveToken(t *token.Token) error {
 	ownerB64 := base64.StdEncoding.EncodeToString(t.Owner())
 	totalSupplyJSON := t.TotalSupply().String()
 
-	_, err := r.q().Exec(`
-		INSERT OR REPLACE INTO tokens (id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at)
+	res, err := r.q().Exec(`
+		INSERT INTO tokens (id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO NOTHING
 	`, t.ID(), t.Name(), t.Symbol(), totalSupplyJSON, t.Decimals(), ownerB64, boolToInt(t.IsMintable()), boolToInt(t.IsBurnable()), t.CreatedAt().Unix())
-	return err
+	if err != nil {
+		return err
+	}
+	if n, err := res.RowsAffected(); err == nil && n == 0 {
+		return token.ErrTokenExists
+	}
+	return nil
 }
 
 func (r *TokenRepository) GetToken(id token.TokenID) (*token.Token, error) {
