@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/pplmx/aurora/internal/app"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/pplmx/aurora/internal/logger"
@@ -53,9 +54,15 @@ Use "aurora lottery --help" for lottery commands.`,
 		}
 
 		if viper.GetBool("migrate.autoRun") {
-			dbPath := viper.GetString("db.path")
+			// Migrate the very same database every store and `aurora migrate`
+			// use. blockchain.DBPath() honors a configured db.path; the previous
+			// fallback here (filepath.Join(dataDir, "aurora.db"), i.e.
+			// $HOME/.aurora/data/aurora.db) diverged from the stores'
+			// ./data/aurora.db — the migrate-vs-stores split-brain (TASK-102,
+			// ISS-094).
+			dbPath := blockchain.DBPath()
 			if dbPath == "" {
-				dbPath = filepath.Join(dataDir, "aurora.db")
+				return fmt.Errorf("failed to resolve database path: data directory unavailable")
 			}
 			migPath := viper.GetString("migrate.path")
 

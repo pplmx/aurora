@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/logger"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -20,12 +21,26 @@ var (
 
 const defaultDBPath = "./data/aurora.db"
 
+// resolvedDBPath returns the effective SQLite database location: the
+// configured db.path (aurora.toml / env / viper, set by config.Load and the
+// CLI's initConfig) when non-empty, else the default. Every store, the API
+// server, and both migrate paths resolve through this single function, so a
+// configured db.path can no longer silently split-brain with the hardcoded
+// default (TASK-102, ISS-094).
+func resolvedDBPath() string {
+	if p := viper.GetString("db.path"); p != "" {
+		return p
+	}
+	return defaultDBPath
+}
+
 func DBPath() string {
-	dir := filepath.Dir(defaultDBPath)
+	path := resolvedDBPath()
+	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return ""
 	}
-	return defaultDBPath
+	return path
 }
 
 // InitDB returns the process-wide singleton *sql.DB, opening it on
@@ -38,7 +53,8 @@ func DBPath() string {
 // connection (it would never get closed).
 func InitDB() (*sql.DB, error) {
 	dbInitOnce.Do(func() {
-		dir := filepath.Dir(defaultDBPath)
+		path := resolvedDBPath()
+		dir := filepath.Dir(path)
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			dbInitErr = err
 			return
@@ -50,7 +66,7 @@ func InitDB() (*sql.DB, error) {
 		// un-waitable SQLITE_BUSY_SNAPSHOT — serialize writers at BEGIN and
 		// wait up to 5s for the lock instead (v1.70, ISS-076; same values as
 		// internal/infra/sqlite/dsn.go).
-		db, err := sql.Open("sqlite3", defaultDBPath+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
+		db, err := sql.Open("sqlite3", path+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
 		if err != nil {
 			dbInitErr = err
 			return
