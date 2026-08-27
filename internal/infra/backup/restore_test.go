@@ -417,6 +417,112 @@ func readKV(t *testing.T, path, k string) string {
 	return v
 }
 
+// TestRestore_RefusesBackupThatAliasesLiveDB locks the same-file guard half of
+// TASK-116 / ISS-108: if the "backup" DB aliases a live database (hard link /
+// symlink / backup dropped into the live dir), restore would read-then-overwrite
+// the same inode — a silent self-restore that appears to succeed. It must refuse
+// before touching anything, mirroring the v1.71 Create guard (ISS-071).
+func TestRestore_RefusesBackupThatAliasesLiveDB(t *testing.T) {
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "dst")
+	backupDir := filepath.Join(tmp, "backup")
+	for _, d := range []string{dstDir, backupDir} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", d, err)
+		}
+	}
+
+	dstDB := filepath.Join(dstDir, "blockchain.db")
+	newDB(t, dstDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'original')",
+	)
+
+	// The "backup" DB is a hard link to the live DB: same inode.
+	backupDB := filepath.Join(backupDir, "blockchain.db")
+	if err := os.Link(dstDB, backupDB); err != nil {
+		t.Fatalf("link backup db to live db: %v", err)
+	}
+	writeMeta(t, backupDir, "blockchain")
+
+	svc := NewBackupService(map[string]string{"blockchain": dstDB})
+	err := svc.Restore(context.Background(), backupDir)
+	if err == nil {
+		t.Fatal("restore must refuse a backup that aliases the live DB, got nil")
+	}
+	if !strings.Contains(err.Error(), "aliases") {
+		t.Errorf("refusal error should mention the alias, got: %v", err)
+	}
+
+	// The live DB must be untouched, and no pre-restore snapshot may exist
+	// (the guard fires before any write).
+	if got := readKV(t, dstDB, "answer"); got != "original" {
+		t.Errorf("live DB was clobbered by a refused restore: kv[answer]=%q, want original", got)
+	}
+	if _, statErr := os.Stat(filepath.Join(backupDir+".pre_restore", "blockchain.db")); statErr == nil {
+		t.Error("refused restore must not create a pre-restore snapshot")
+	}
+}
+
+// TestRestore_PreRestoreSnapshot_IsWALComplete locks the WAL-complete half of
+// TASK-116 / ISS-108: the pre-restore safety copy must be an online VACUUM INTO
+// snapshot, not a raw .db file copy. Under WAL mode the main .db can lag
+// committed frames that live only in -wal; a raw copy would make the undo path
+// resurrect a DB missing recent commits.
+func TestRestore_PreRestoreSnapshot_IsWALComplete(t *testing.T) {
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "dst")
+	backupDir := filepath.Join(tmp, "backup")
+	for _, d := range []string{dstDir, backupDir} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatalf("mkdir %s: %v", d, err)
+		}
+	}
+
+	dstDB := filepath.Join(dstDir, "blockchain.db")
+
+	// Keep the writer connection open so its committed frames stay in -wal
+	// uncheckpointed when Restore runs (the live-server shape, same technique
+	// as TestBackupService_Create_IncludesUncheckpointedWAL).
+	live, err := sql.Open("sqlite3", dstDB)
+	if err != nil {
+		t.Fatalf("open live db: %v", err)
+	}
+	defer func() { _ = live.Close() }()
+	if _, err := live.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		t.Fatalf("set WAL: %v", err)
+	}
+	if _, err := live.Exec("CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)"); err != nil {
+		t.Fatalf("create table: %v", err)
+	}
+	if _, err := live.Exec("INSERT INTO kv (k, v) VALUES ('recent', 'committed-in-wal')"); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	backupDB := filepath.Join(backupDir, "blockchain.db")
+	newDB(t, backupDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', '42')",
+	)
+	writeMeta(t, backupDir, "blockchain")
+
+	svc := NewBackupService(map[string]string{"blockchain": dstDB})
+	if err := svc.Restore(context.Background(), backupDir); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	// The pre-restore snapshot must contain the row committed only to -wal.
+	prePath := filepath.Join(backupDir+".pre_restore", "blockchain.db")
+	if got := readKV(t, prePath, "recent"); got != "committed-in-wal" {
+		t.Errorf("pre-restore snapshot is not WAL-complete: kv[recent]=%q, want committed-in-wal (a raw .db copy would have missed it)", got)
+	}
+
+	// The restored destination is the backup's data, as before.
+	if got := readKV(t, dstDB, "answer"); got != "42" {
+		t.Errorf("after Restore, dstDB.kv[answer] = %q, want 42", got)
+	}
+}
+
 // writeMeta writes a valid metadata.json referencing the named DB.
 func writeMeta(t *testing.T, backupDir, dbName string) {
 	t.Helper()
