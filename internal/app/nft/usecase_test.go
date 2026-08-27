@@ -1,6 +1,8 @@
 package nft
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
@@ -13,6 +15,14 @@ import (
 type mockNFTService struct {
 	nfts []*nft.NFT
 }
+
+// Real-length key fixtures: the app layer now rejects wrong-length keys
+// (TASK-112), so callers must present 32-byte public / 64-byte private keys.
+var (
+	testPubB64     = "QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE="
+	testPrivB64    = "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQg=="
+	testCreatorB64 = "Q0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0M="
+)
 
 func (m *mockNFTService) Mint(n *nft.NFT, chain blockchain.BlockWriter) (*nft.NFT, error) {
 	n.ID = "test-id"
@@ -87,7 +97,7 @@ func TestMintNFTUseCase_Execute(t *testing.T) {
 		Name:        "Test NFT",
 		Description: "A test NFT",
 		ImageURL:    "https://example.com/image.png",
-		Creator:     "Y3JlYXRvci1waw==", // base64 of "creator-pk"
+		Creator:     testCreatorB64,
 	}
 
 	resp, err := uc.Execute(req)
@@ -113,7 +123,7 @@ func TestMintNFTUseCase_InvalidInput(t *testing.T) {
 			name: "empty name",
 			req: &MintNFTRequest{
 				Name:    "",
-				Creator: "Y3JlYXRvci1waw==",
+				Creator: testCreatorB64,
 			},
 			wantErr: true,
 		},
@@ -144,9 +154,9 @@ func TestTransferNFTUseCase_Execute(t *testing.T) {
 
 	req := &TransferNFTRequest{
 		NFTID:      "nft-123",
-		From:       "ZnJvbS1waw==",
-		To:         "dG8tcGs=",
-		PrivateKey: "cHJpdmF0ZS1rZXk=",
+		From:       testPubB64,
+		To:         testPubB64,
+		PrivateKey: testPrivB64,
 	}
 
 	resp, err := uc.Execute(req)
@@ -167,8 +177,8 @@ func TestTransferNFTUseCase_InvalidFrom(t *testing.T) {
 	req := &TransferNFTRequest{
 		NFTID:      "nft-123",
 		From:       "!!!invalid!!!",
-		To:         "dG8tcGs=",
-		PrivateKey: "cHJpdmF0ZS1rZXk=",
+		To:         testPubB64,
+		PrivateKey: testPrivB64,
 	}
 
 	_, err := uc.Execute(req)
@@ -184,9 +194,9 @@ func TestTransferNFTUseCase_InvalidTo(t *testing.T) {
 
 	req := &TransferNFTRequest{
 		NFTID:      "nft-123",
-		From:       "ZnJvbS1waw==",
+		From:       testPubB64,
 		To:         "!!!invalid!!!",
-		PrivateKey: "cHJpdmF0ZS1rZXk=",
+		PrivateKey: testPrivB64,
 	}
 
 	_, err := uc.Execute(req)
@@ -202,8 +212,8 @@ func TestTransferNFTUseCase_InvalidPrivateKey(t *testing.T) {
 
 	req := &TransferNFTRequest{
 		NFTID:      "nft-123",
-		From:       "ZnJvbS1waw==",
-		To:         "dG8tcGs=",
+		From:       testPubB64,
+		To:         testPubB64,
 		PrivateKey: "!!!invalid!!!",
 	}
 
@@ -220,8 +230,8 @@ func TestBurnNFTUseCase_Execute(t *testing.T) {
 
 	req := &BurnNFTRequest{
 		NFTID:      "nft-123",
-		Owner:      "b3duZXItcGs=",
-		PrivateKey: "cHJpdmF0ZS1rZXk=",
+		Owner:      testPubB64,
+		PrivateKey: testPrivB64,
 	}
 
 	err := uc.Execute(req)
@@ -238,7 +248,7 @@ func TestBurnNFTUseCase_InvalidOwner(t *testing.T) {
 	req := &BurnNFTRequest{
 		NFTID:      "nft-123",
 		Owner:      "!!!invalid!!!",
-		PrivateKey: "cHJpdmF0ZS1rZXk=",
+		PrivateKey: testPrivB64,
 	}
 
 	err := uc.Execute(req)
@@ -254,7 +264,7 @@ func TestBurnNFTUseCase_InvalidPrivateKey(t *testing.T) {
 
 	req := &BurnNFTRequest{
 		NFTID:      "nft-123",
-		Owner:      "b3duZXItcGs=",
+		Owner:      testPubB64,
 		PrivateKey: "!!!invalid!!!",
 	}
 
@@ -300,7 +310,7 @@ func TestListNFTsByOwnerUseCase_Execute(t *testing.T) {
 	}
 	uc := NewListNFTsByOwnerUseCase(service)
 
-	resp, err := uc.Execute(&ListNFTsByOwnerRequest{Owner: "b3duZXItcGs="})
+	resp, err := uc.Execute(&ListNFTsByOwnerRequest{Owner: testPubB64})
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -318,14 +328,14 @@ func TestListNFTsByOwnerUseCase_Paged(t *testing.T) {
 	uc := NewListNFTsByOwnerUseCase(service)
 
 	// limit/offset must be honored at the use-case layer (TASK-101, ISS-093).
-	page, err := uc.Execute(&ListNFTsByOwnerRequest{Owner: "b3duZXItcGs=", Limit: 2, Offset: 1})
+	page, err := uc.Execute(&ListNFTsByOwnerRequest{Owner: testPubB64, Limit: 2, Offset: 1})
 	require.NoError(t, err)
 	require.Len(t, page, 2)
 	require.Equal(t, "nft-1", page[0].ID)
 	require.Equal(t, "nft-2", page[1].ID)
 
 	// Offset past the end is an empty page, not an error.
-	page, err = uc.Execute(&ListNFTsByOwnerRequest{Owner: "b3duZXItcGs=", Limit: 10, Offset: 100})
+	page, err = uc.Execute(&ListNFTsByOwnerRequest{Owner: testPubB64, Limit: 10, Offset: 100})
 	require.NoError(t, err)
 	require.Len(t, page, 0)
 }
@@ -354,4 +364,37 @@ func TestGetNFTOperationsUseCase_Execute(t *testing.T) {
 	if len(resp) != 0 {
 		t.Logf("Got %d operations (mock returns nil)", len(resp))
 	}
+}
+
+// TestMintNFTUseCase_RejectsShortCreatorKey is the regression test for the
+// bricked-NFT hole (TASK-112, ISS-104): mint used to accept any number of
+// decoded key bytes, so `nft mint -c <short-base64>` stored a wrong-length
+// owner and produced an NFT that could never be transferred or burned (the
+// domain's atomic ownership checks need a 32-byte key and can never match),
+// reported as "minted successfully". A wrong-length creator must now be a
+// client error.
+func TestMintNFTUseCase_RejectsShortCreatorKey(t *testing.T) {
+	uc := NewMintNFTUseCase(&mockNFTService{}, &mockBlockWriter{})
+
+	shortKey := base64.StdEncoding.EncodeToString([]byte("short-key"))
+	_, err := uc.Execute(&MintNFTRequest{Name: "X", Creator: shortKey})
+	require.ErrorIs(t, err, nft.ErrInvalidPublicKey)
+
+	// A zero-length (empty) key is also rejected, not minted.
+	_, err = uc.Execute(&MintNFTRequest{Name: "X", Creator: ""})
+	require.Error(t, err)
+}
+
+// TestToNFTResponse_KeysAreBase64 is the regression test for the unreadable
+// key output (TASK-112, ISS-104): the NFT response previously emitted raw
+// `string(nft.Owner)` bytes (mojibake in the CLI and JSON), unlike every other
+// module which base64-encodes keys.
+func TestToNFTResponse_KeysAreBase64(t *testing.T) {
+	raw := bytes.Repeat([]byte{0xFF}, 32)
+	resp := ToNFTResponse(&nft.NFT{ID: "n1", Name: "N", Owner: raw, Creator: raw})
+	require.NotNil(t, resp)
+	require.Equal(t, base64.StdEncoding.EncodeToString(raw), resp.Owner)
+	require.Equal(t, base64.StdEncoding.EncodeToString(raw), resp.Creator)
+	// the raw bytes must never appear as-is
+	require.NotEqual(t, string(raw), resp.Owner)
 }
