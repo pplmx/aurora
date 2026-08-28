@@ -44,6 +44,10 @@ func webContractGet(t *testing.T) map[string]bool {
 		data, err := os.ReadFile(f)
 		require.NoError(t, err, "read %s", f)
 		text := string(data)
+		// apiFetch is the shared fetch wrapper (round-97 TASK-124); normalize
+		// it to fetch( so the boundary split and nearest-method heuristic below
+		// treat helper-wrapped calls exactly like direct calls.
+		text = strings.ReplaceAll(text, "apiFetch(", "fetch(")
 		// Segment the file by fetch( boundaries so a path maps to the
 		// nearest preceding method. Insert a sentinel before each fetch call.
 		segments := strings.Split(text, "fetch(")
