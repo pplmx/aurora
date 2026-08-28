@@ -99,6 +99,7 @@ ril.py round | ril.py stale --rounds 10                                        #
 每次 agent 启动是全新 context，不能靠"重读整个图谱"来恢复状态，成本不可控。规则：
 
 - 启动时用 `ril.py tasks --top K` 加载 `status=active` 的 task（按 priority_score 排序取 top-K），用 `ril.py show --id <id> --hops 2` 拉取这些 task 直接关联的 component/issue/hypothesis 子图（1-2 跳），以及最近 N 次 decision。
+- **`tasks` 无输出 ≠ 命令故障**：没有 `status=active` 的 task 时 CLI 静默返回空（v1.83 实测）。这正是"进入深度探索（第 8 节）"的信号，不要当成 bug 去重读 store；先用 `ril.py check` 与一个 JSON 节点状态计数确认图谱健康，再开始深挖。
 - 不做全图扫描，除非本轮任务明确是"图谱一致性检查"或"深度探索"（见第 8 节）。
 - 如果某个 task 需要更大范围的上下文，允许按需扩展加载（跟着边走），但要在 LEARN 阶段记录"本轮实际使用的子图范围"，供后续 session 参考典型的加载半径。
 
@@ -123,6 +124,7 @@ priority_score = category_weight × severity × confidence × (1 / sqrt(effort))
 - confidence：该 task 关联的根因判断有多少 validates 证据支撑，未经验证的 hypothesis 打折
 - effort：预估实现成本，用于避免"为了刷分做琐碎高权重类别的事"
 - unlock_factor：完成后解锁的下游 task 数量/价值，鼓励优先做能解锁后续工作的事
+- **评分字段必须传数字，不是名字**：`severity=high` 会被 `float()` 解析失败、静默退化成默认 0.5，导致一个真实高严重度 bug 评出低于阈值（3.0）的低分（v1.83 实测：`severity=high` 的 correctness 任务初始仅 2.5 分）。添加 task 用 `--field severity=0.85 --field confidence=0.9 --field effort=2` 这类数值（severity/confidence 取 0..1，effort ≥1）。详见 `references/ril-schema.md` 的 Priority scoring 节。
 
 只有当新 task 的 priority_score 显著高于（默认 1.5x）当前正在做的 task 时才切换方向，避免频繁跳变；切换必须在 decision 节点记录原因。
 

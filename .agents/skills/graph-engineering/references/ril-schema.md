@@ -78,6 +78,17 @@ Notes:
 - Decisions are immutable except `status`; evidence is append-only.
 - Commit messages reference node ids, e.g.
   `fix(core): ... (RIL TASK-001, ISS-001)`.
+- **`tasks --top K` / `tasks` with zero `status=active` tasks prints NOTHING
+  and exits 0.** That is not a CLI failure — it means the graph has no active
+  task, which is the signal to enter deep-dive mode (SKILL §8 Deep-Dive) rather
+  than to re-read the store. When a round appears "silently empty", confirm
+  with `ril.py check` + an inline JSON status count before assuming breakage.
+- **Evidence never links directly to an issue.** `validates`/`refutes` accept
+  only evidence→hypothesis. To record that observed data grounds an issue,
+  model the underlying root-cause guess as a hypothesis, attach the evidence
+  to it, and link the hypothesis to the issue (`causes` / via the task that
+  `addresses` it). Pasting `--type validates --from EV-… --to ISS-…` is a
+  common first-round mistake and is rejected by ril.py.
 
 ## Priority scoring
 
@@ -87,3 +98,12 @@ priority_score = category_weight × severity × confidence × (1 / √effort) ×
 
 `category` weights: correctness 10, security 10, stability 8, critical-bug 8,
 core-feature 6, performance 5, test-quality 4, maintainability 3, dx 2, docs 1.
+
+**Scoring fields must be NUMERIC, not names.** `severity`, `confidence`,
+`effort` and `unlock_factor` are coerced with `float()` and fall back to
+defaults on any `ValueError` — so `--field severity=high` silently becomes the
+default 0.5 and a genuinely high-severity task scores low (v1.83 round: a
+confirmed correctness bug with `severity=high` initially scored 2.5, below the
+3.0 action threshold, purely because of the string value). Pass numbers:
+`severity=0.85`, `confidence=0.9`, `effort=2`, `unlock_factor=1.0`. Use 0..1
+for severity/confidence, ≥1 for effort.
