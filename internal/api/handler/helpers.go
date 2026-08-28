@@ -97,11 +97,13 @@ var errorClassification = []struct {
 	{voting.ErrAlreadyVoted, http.StatusConflict, "ALREADY_VOTED"},
 	{voting.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_VOTE_SIGNATURE"},
 	{voting.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
+	{voting.ErrInvalidPrivateKey, http.StatusBadRequest, "INVALID_PRIVATE_KEY"},
 	{voting.ErrVoterNameRequired, http.StatusBadRequest, "VOTER_NAME_REQUIRED"},
 	{voting.ErrCandidateNameRequired, http.StatusBadRequest, "CANDIDATE_NAME_REQUIRED"},
 	{voting.ErrSessionTitleRequired, http.StatusBadRequest, "SESSION_TITLE_REQUIRED"},
 	{voting.ErrInvalidSessionTime, http.StatusBadRequest, "INVALID_SESSION_TIME"},
 	{voting.ErrCandidatesRequired, http.StatusBadRequest, "CANDIDATES_REQUIRED"},
+	{voting.ErrDuplicateCandidate, http.StatusBadRequest, "DUPLICATE_CANDIDATE"},
 }
 
 // classifyError maps a domain error to an HTTP status code and error code.

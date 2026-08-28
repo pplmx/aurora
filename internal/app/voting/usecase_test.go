@@ -376,7 +376,7 @@ func TestCastVoteUseCase_Execute(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -652,7 +652,7 @@ func TestCastVoteUseCase_SessionNotStarted(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -684,7 +684,7 @@ func TestCastVoteUseCase_SessionEnded(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -719,7 +719,7 @@ func TestCastVoteUseCase_SessionEndedWithinTimeWindow(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -773,7 +773,7 @@ func TestCastVoteUseCase_GetSessionRepoError(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -803,7 +803,7 @@ func TestCastVoteUseCase_GetVoterRepoError(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -833,7 +833,7 @@ func TestCastVoteUseCase_GetCandidateRepoError(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -862,7 +862,7 @@ func TestCastVoteUseCase_SignVoteError(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -892,7 +892,7 @@ func TestCastVoteUseCase_TryMarkVotedGenericError(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -927,7 +927,7 @@ func TestCastVoteUseCase_SaveVoteError(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -978,7 +978,7 @@ func TestCastVoteUseCase_IncrementCandidateVoteCountError(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -1023,7 +1023,7 @@ func TestCastVoteUseCase_IncrementCandidateVoteCountAppliesTally(t *testing.T) {
 	_, err := uc.Execute(CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	})
 	require.NoError(t, err)
@@ -1053,7 +1053,7 @@ func TestCastVoteUseCase_TryMarkVotedNotFound(t *testing.T) {
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXJx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	}
 
@@ -1091,7 +1091,7 @@ func TestCastVoteUseCase_CandidateNotInSession(t *testing.T) {
 	_, err := uc.Execute(CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate2", // exists, but not in session1
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	})
 	require.ErrorIs(t, err, voting.ErrCandidateNotInSession)
@@ -1177,7 +1177,7 @@ func TestCastVoteUseCase_AlreadyVoted_NoStateChange(t *testing.T) {
 	_, err := uc.Execute(CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	})
 	require.ErrorIs(t, err, voting.ErrAlreadyVoted)
@@ -1211,7 +1211,7 @@ func TestCastVoteUseCase_TxManagerFailure(t *testing.T) {
 	_, err := uc.Execute(CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	})
 	require.Error(t, err)
@@ -1326,7 +1326,7 @@ func TestCastVoteUseCase_RecordsOnChain(t *testing.T) {
 	resp, err := uc.Execute(CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdC1wcml2YXRlLWtleQ==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
 		SessionID:      "session1",
 	})
 	require.NoError(t, err)
@@ -1361,4 +1361,61 @@ func TestGetResultsUseCase_SessionNotFound(t *testing.T) {
 	uc := NewGetResultsUseCase(repo)
 	_, err := uc.Execute("missing")
 	require.ErrorIs(t, err, voting.ErrSessionNotFound)
+}
+
+// TestCastVoteUseCase_WrongLengthPrivateKey is the regression test for the
+// round-96 deep-dive (ISS-113): a private key that decodes as valid base64 but
+// is not ed25519.PrivateKeySize must surface as a 4xx-class client error
+// (ErrInvalidPrivateKey), not leak through SignVote's plain
+// "invalid private key size" error that the API classifies as 500. The base64
+// decode path already covers malformed base64 (ErrInvalidBase64); this pins the
+// length half.
+func TestCastVoteUseCase_WrongLengthPrivateKey(t *testing.T) {
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice"},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+		},
+	}
+	service := &mockVotingService{}
+	uc := NewCastVoteUseCaseWithoutTx(repo, service)
+
+	// 32 raw bytes base64-encoded = a valid decode, wrong ed25519 length.
+	wrongLen := base64.StdEncoding.EncodeToString(make([]byte, 32))
+	req := CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     wrongLen,
+		SessionID:      "session1",
+	}
+
+	_, err := uc.Execute(req)
+	require.ErrorIs(t, err, voting.ErrInvalidPrivateKey,
+		"wrong-length but valid-base64 key is a client error, not a server fault")
+}
+
+func TestCreateSessionUseCase_RejectsDuplicateCandidateIDs(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "c1", Name: "Alice"},
+			{ID: "c2", Name: "Bob"},
+		},
+	}
+	uc := NewCreateSessionUseCase(repo)
+
+	req := CreateSessionRequest{
+		Title:        "Election",
+		CandidateIDs: []string{"c1", "c1"}, // same candidate twice
+		StartTime:    100,
+		EndTime:      200,
+	}
+	_, err := uc.Execute(req)
+	require.ErrorIs(t, err, voting.ErrDuplicateCandidate,
+		"duplicate candidate in the roster must be rejected so results never double-count")
 }

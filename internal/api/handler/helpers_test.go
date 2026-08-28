@@ -150,6 +150,22 @@ func TestWriteUseCaseError_DomainError(t *testing.T) {
 			wantCode:   "AMOUNT_TOO_LARGE",
 		},
 		{
+			// TASK-121, ISS-113: a valid-base64 wrong-length vote private key is
+			// a client error (400), not a server fault (500).
+			name:       "invalid vote private key length",
+			err:        voting.ErrInvalidPrivateKey,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "INVALID_PRIVATE_KEY",
+		},
+		{
+			// TASK-122, ISS-114: a session roster naming a candidate twice is a
+			// client error (400), never a silently-doubled tally.
+			name:       "duplicate candidate in roster",
+			err:        voting.ErrDuplicateCandidate,
+			wantStatus: http.StatusBadRequest,
+			wantCode:   "DUPLICATE_CANDIDATE",
+		},
+		{
 			name:       "unknown error defaults to 500",
 			err:        errors.New("something went wrong"),
 			wantStatus: http.StatusInternalServerError,
