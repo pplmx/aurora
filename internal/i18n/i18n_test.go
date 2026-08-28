@@ -261,3 +261,30 @@ func TestLoadLocaleFile_MissingFile(t *testing.T) {
 	err := LoadLocaleFile(filepath.Join(t.TempDir(), "nope.toml"))
 	require.Error(t, err)
 }
+
+// TestLazyDefaultFollowsLocale pins the TASK-128/ISS-123 fix: the lazy
+// translator created on first GetText must adopt the environment locale, not
+// lock to "en". Cobra command help texts are resolved once at package init
+// (before main calls DetectAndInit), so locking the default to "en" froze
+// every --help screen to English regardless of LANG.
+func TestLazyDefaultFollowsLocale(tt *testing.T) {
+	prevLang, hadLang := os.LookupEnv("LANG")
+	tt.Cleanup(func() {
+		if hadLang {
+			_ = os.Setenv("LANG", prevLang)
+		} else {
+			_ = os.Unsetenv("LANG")
+		}
+	})
+
+	// Reset the package translator so the next GetTranslator call re-creates
+	// the lazy default with the (simulated) environment. The test parameter
+	// is named tt so the package-level translator var `t` is not shadowed.
+	tInitMu.Lock()
+	t = nil
+	tInitMu.Unlock()
+
+	require.NoError(tt, os.Setenv("LANG", "zh_CN.UTF-8"))
+	got := GetTranslator().GetLocale()
+	require.Equal(tt, "zh", got, "lazy default must follow LANG=zh for package-init help texts")
+}

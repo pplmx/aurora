@@ -50,7 +50,12 @@ func GetTranslator() *Translator {
 	defer tInitMu.Unlock()
 	if t == nil {
 		tInitMu.Unlock()
-		t = Init("en")
+		// The lazy default must follow the environment locale, not hardcode
+		// "en". Cobra command help texts (Short/Long/flag usage) are resolved
+		// once at package init via GetText, before main() has a chance to call
+		// DetectAndInit — locking the default to "en" here froze every --help
+		// screen to English regardless of LANG (TASK-128, ISS-123).
+		t = Init(DetectLocale())
 		tInitMu.Lock()
 	}
 	return t
@@ -68,6 +73,7 @@ func (tr *Translator) loadMessages() {
 
 		// ===== LOTTERY =====
 		// Commands
+		"lottery.long":    "VRF-based transparent lottery: create draws, verify results, export/import records and inspect stats",
 		"lottery.create":  "Create a new lottery",
 		"lottery.history": "Show lottery history",
 		"lottery.verify":  "Verify a lottery result",
@@ -395,6 +401,7 @@ func (tr *Translator) loadMessages() {
 
 		// ===== LOTTERY =====
 		// Commands
+		"lottery.long":    "基于 VRF 的透明抽奖：创建抽奖、验证结果、导入导出记录并查看统计",
 		"lottery.create":  "创建新抽奖",
 		"lottery.history": "查看历史记录",
 		"lottery.verify":  "验证抽奖结果",
