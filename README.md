@@ -73,8 +73,15 @@ just dev          # Docker 开发
 
 # 预言机
 ./aurora oracle source list
+./aurora oracle source add --name "btc" --url "https://api.example.com/price"
+./aurora oracle source enable --id <source-id>
+./aurora oracle source disable --id <source-id>
+./aurora oracle source delete --id <source-id> --confirm   # 需 --confirm
+./aurora oracle template list
+./aurora oracle template add -t <template-name>            # 从预设模板建源
 ./aurora oracle fetch -s <source-id>
 ./aurora oracle data -s <source-id> --limit 10
+./aurora oracle latest -s <source-id>
 ./aurora oracle tui
 
 # NFT
@@ -82,21 +89,76 @@ just dev          # Docker 开发
 ./aurora nft transfer --nft <id> --from <owner> --to <to> -k <priv>
 ./aurora nft get --id <nft_id>
 ./aurora nft list --owner <pubkey>
+./aurora nft history --nft <nft_id>
+./aurora nft burn --id <nft_id> --owner <pub> -k <priv> --confirm   # 需 --confirm
 ./aurora nft tui
 
 # Token
 ./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000
+./aurora token info -t <token-id>
 ./aurora token mint -t <token-id> --to <address> --amount 100 -k <priv>
 ./aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k <priv>
 ./aurora token balance -t <token-id> --owner <address>
 ./aurora token history -t <token-id> --owner <address>
+./aurora token approve -t <token-id> --owner <pub> -s <spender-pub> -a <amount> -k <priv>
+./aurora token allowance -t <token-id> -o <pub> -s <spender-pub>
+./aurora token transfer-from -t <token-id> -o <pub> -s <spender-pub> --to <recipient> -a <amount> -k <spender-priv>
+./aurora token burn -t <token-id> --from <pub> -a <amount> -k <priv> --confirm   # 需 --confirm
 ./aurora token tui
 ```
+
+> **破坏性操作确认门：** `token burn`、`nft burn`、`oracle source delete` 需要
+> `-y/--confirm`；`lottery reset` 需要 `-y/--yes`；`backup restore`、
+> `migrate down` 需要 `--confirm`。没有确认标志这些命令会直接拒绝执行
+> （非零退出码），防止误删数据。
+
+### 运维命令
+
+```bash
+./aurora version                     # 显示版本与构建信息
+
+# 数据库备份（备份目录含元数据，可校验）
+./aurora backup create ./backups/backup-$(date +%Y%m%d)
+./aurora backup verify ./backups/backup-$(date +%Y%m%d)
+./aurora backup restore ./backups/backup-$(date +%Y%m%d) --confirm   # 覆盖当前库
+
+# 数据库迁移
+./aurora migrate status             # 当前 / 已应用 / 待应用
+./aurora migrate up                 # 应用全部待迁移
+./aurora migrate up 2               # 只迁移下一步
+./aurora migrate down               # 回滚一步（默认 1）
+```
+
+## Web / API 界面
+
+Aurora 提供内置的 REST API 与 Web 界面，由独立的 `cmd/api` 二进制启动
+（`./aurora` 是纯 CLI/TUI，不带 HTTP 服务）。Web 页面由 API 服务托管在
+`web/` 目录（需从仓库根目录启动，或配置 web 根路径）。
+
+```bash
+go build -o aurora-api ./cmd/api
+AURORA_API_KEY="your-strong-key" ./aurora-api
+# 默认监听 0.0.0.0:8080（可通过 [server] 配置 host / port 调整）
+# 然后浏览器访问 http://localhost:8080
+```
+
+- **鉴权**：API 通过 `X-API-Key` 请求头校验密钥。密钥来自
+  `AURORA_API_KEY` 环境变量或配置项 `api.key`；开发模式下未设置时会生成
+  一个随机密钥并在启动日志打印。Web 页面会自动把密钥注入
+  `window.AURORA_API_KEY`，同源浏览器请求无需手动带 key。
+- **端到端**：API 服务同时启动预言机定时调度器（按源的 interval 拉取）与
+  审计事件 outbox 补偿循环，SIGINT/SIGTERM 优雅停机（15s 超时）。
+- **可观测**：`/metrics`（Prometheus 文本）暴露请求计数器与按模块计数；
+  `/metrics/oracle` 暴露各预言机源的抓取健康统计。
+- **安全**：API 支持请求体大小上限（4 MiB）、速率限制（按客户端）、CORS
+  白名单，生产环境拒绝弱 API key（`ErrInsecureAPIKey`）。
 
 ## 项目结构 (DDD 架构)
 
 ```text
 cmd/aurora/              # CLI 入口
+cmd/api/                 # REST API + Web 服务入口（go build ./cmd/api）
+web/                     # Web 前端（HTML + Alpine.js，由 cmd/api 托管）
 internal/
 ├── domain/               # 领域层 - 实体、服务、仓储接口
 │   ├── blockchain/       # 区块链核心 (Block, BlockChain)
