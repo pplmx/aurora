@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -42,8 +44,24 @@ func TestFormatCLIError_CommittedAuditFailure(t *testing.T) {
 	}
 }
 
-func TestGetGoVersion(t *testing.T) {
-	assert.Equal(t, "1.26+", getGoVersion())
+// TestVersionCmdReportsRealValues pins the TASK-125 fix: the version command
+// must surface the related link-time/build-time variables and the real Go
+// toolchain — not hardcoded placeholders ("0.0.1"/"1.26+") that ignored
+// ldflags and misrepresented the build.
+func TestVersionCmdReportsRealValues(t *testing.T) {
+	var buf bytes.Buffer
+	versionCmd.SetOut(&buf)
+	// SetOut(nil) clears the outWriter override so later tests (which may swap
+	// os.Stdout via runCmd's capture) are routed to the *current* stdout, not
+	// the one observed here.
+	t.Cleanup(func() { versionCmd.SetOut(nil) })
+	require.NoError(t, versionCmd.RunE(versionCmd, nil))
+	out := buf.String()
+
+	assert.Contains(t, out, "Version: "+Version)
+	assert.Contains(t, out, "Go Version: "+runtime.Version())
+	// Regression guard: the fabricated string must never reappear.
+	assert.NotContains(t, out, "1.26+")
 }
 
 func TestSetDefaultConfig(t *testing.T) {
