@@ -368,3 +368,108 @@ func TestUpdate_EnterInResultReturnsToMenu(t *testing.T) {
 	app.Update(keyPress("enter"))
 	assert.Equal(t, "menu", app.view)
 }
+
+// Round-97 (TASK-123): the create form's text inputs never received
+// keystrokes — typing did nothing and Enter always errored. These tests pin
+// the fix: keypresses must reach the focused input, Tab/up/down must cycle
+// focus, and the winner-count must be validated (no negative-count panic).
+
+func TestUpdate_CreateFormReceivesKeystrokes(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.inputFocus = 0
+	app.updateInputFocus()
+
+	app.Update(keyPress("A"))
+	app.Update(keyPress("l"))
+	app.Update(keyPress("i"))
+	assert.Equal(t, "Ali", app.participantsInput.Value())
+}
+
+func TestUpdate_CreateFormSeedingAndCount(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.inputFocus = 1
+	app.updateInputFocus()
+	app.Update(keyPress("s"))
+	app.Update(keyPress("e"))
+	assert.Equal(t, "se", app.seedInput.Value())
+
+	app.inputFocus = 2
+	app.updateInputFocus()
+	app.countInput.SetValue("")
+	app.Update(keyPress("2"))
+	assert.Equal(t, "2", app.countInput.Value())
+}
+
+func TestUpdate_CreateFormTabCyclesFocus(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.inputFocus = 0
+	app.updateInputFocus()
+
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 1, app.inputFocus)
+	assert.False(t, app.participantsInput.Focused())
+	assert.True(t, app.seedInput.Focused())
+
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 2, app.inputFocus)
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_CreateFormUpDownCyclesFocus(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.inputFocus = 0
+	app.updateInputFocus()
+
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.inputFocus)
+	app.Update(keyPress("up"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestHandleCreate_NegativeCountRejected(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A,B,C")
+	app.seedInput.SetValue("seed")
+	app.countInput.SetValue("-1")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+	assert.NotEqual(t, "result", app.view)
+}
+
+func TestHandleCreate_ZeroCountRejected(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A,B,C")
+	app.seedInput.SetValue("seed")
+	app.countInput.SetValue("0")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+	assert.NotEqual(t, "result", app.view)
+}
+
+func TestHandleCreate_EmptyParticipantsRejected(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("")
+	app.seedInput.SetValue("seed")
+	app.countInput.SetValue("1")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+	assert.NotEqual(t, "result", app.view)
+}
+
+func TestParseTextArea_CommaSeparated(t *testing.T) {
+	got := parseTextArea("A,B,C")
+	assert.Equal(t, []string{"A", "B", "C"}, got)
+}
+
+func TestParseTextArea_NewlineAndWhitespace(t *testing.T) {
+	got := parseTextArea("A\nB\n  C  ")
+	assert.Equal(t, []string{"A", "B", "C"}, got)
+}

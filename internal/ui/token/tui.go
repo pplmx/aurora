@@ -85,6 +85,7 @@ func (r *inmemReplayProtection) ClaimNextNonce(tokenID string, owner []byte) (ui
 type model struct {
 	view         string
 	menuIndex    int
+	inputFocus   int
 	err          string
 	successMsg   string
 	chain        *blockchain.BlockChain
@@ -225,13 +226,32 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "up", "k":
-			if m.view == "menu" && m.menuIndex > 0 {
-				m.menuIndex--
+			if m.view == "menu" {
+				if m.menuIndex > 0 {
+					m.menuIndex--
+				}
+			} else if m.isFormView() && m.inputFocus > 0 {
+				m.inputFocus--
+				m.updateInputFocus()
+				return m, nil
 			}
 
 		case "down", "j":
-			if m.view == "menu" && m.menuIndex < 4 {
-				m.menuIndex++
+			if m.view == "menu" {
+				if m.menuIndex < 4 {
+					m.menuIndex++
+				}
+			} else if m.isFormView() && m.inputFocus < m.formInputCount()-1 {
+				m.inputFocus++
+				m.updateInputFocus()
+				return m, nil
+			}
+
+		case "tab":
+			if m.isFormView() && m.formInputCount() > 1 {
+				m.inputFocus = (m.inputFocus + 1) % m.formInputCount()
+				m.updateInputFocus()
+				return m, nil
 			}
 
 		case "enter":
@@ -268,16 +288,113 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.SetHeight(msg.Height - 12)
 	}
 
-	if m.view == "create" {
-		var cmd1, cmd2, cmd3, cmd4 tea.Cmd
-		m.createNameInput, cmd1 = m.createNameInput.Update(msg)
-		m.createSymbolInput, cmd2 = m.createSymbolInput.Update(msg)
-		m.createSupplyInput, cmd3 = m.createSupplyInput.Update(msg)
-		m.createDecimalsInput, cmd4 = m.createDecimalsInput.Update(msg)
-		cmd = tea.Batch(cmd, cmd1, cmd2, cmd3, cmd4)
-	}
+	// Forward remaining keypresses into the focused input so the mint /
+	// transfer / balance forms are typable, not just the create form
+	// (round-97: keystrokes only reached the create inputs).
+	cmd = tea.Batch(cmd, m.forwardToActiveInput(msg))
 
 	return m, cmd
+}
+
+// isFormView reports whether the current view edits token fields.
+func (m *model) isFormView() bool {
+	switch m.view {
+	case "create", "mint", "transfer", "balance":
+		return true
+	}
+	return false
+}
+
+// formInputCount returns how many text inputs the current view has.
+func (m *model) formInputCount() int {
+	switch m.view {
+	case "create":
+		return 4
+	case "mint", "transfer":
+		return 3
+	case "balance":
+		return 1
+	}
+	return 0
+}
+
+// updateInputFocus focuses the current view's input at m.inputFocus.
+func (m *model) updateInputFocus() {
+	switch m.view {
+	case "create":
+		m.createNameInput.Blur()
+		m.createSymbolInput.Blur()
+		m.createSupplyInput.Blur()
+		m.createDecimalsInput.Blur()
+		switch m.inputFocus {
+		case 0:
+			m.createNameInput.Focus()
+		case 1:
+			m.createSymbolInput.Focus()
+		case 2:
+			m.createSupplyInput.Focus()
+		case 3:
+			m.createDecimalsInput.Focus()
+		}
+	case "mint":
+		m.mintToInput.Blur()
+		m.mintAmountInput.Blur()
+		m.mintPrivateInput.Blur()
+		switch m.inputFocus {
+		case 0:
+			m.mintToInput.Focus()
+		case 1:
+			m.mintAmountInput.Focus()
+		case 2:
+			m.mintPrivateInput.Focus()
+		}
+	case "transfer":
+		m.transferToInput.Blur()
+		m.transferAmountInput.Blur()
+		m.transferPrivateInput.Blur()
+		switch m.inputFocus {
+		case 0:
+			m.transferToInput.Focus()
+		case 1:
+			m.transferAmountInput.Focus()
+		case 2:
+			m.transferPrivateInput.Focus()
+		}
+	case "balance":
+		m.balanceAddressInput.Blur()
+		m.balanceAddressInput.Focus()
+	}
+}
+
+// forwardToActiveInput pipes a message into the active view's text inputs.
+func (m *model) forwardToActiveInput(msg tea.Msg) tea.Cmd {
+	var cmds []tea.Cmd
+	switch m.view {
+	case "create":
+		var c1, c2, c3, c4 tea.Cmd
+		m.createNameInput, c1 = m.createNameInput.Update(msg)
+		m.createSymbolInput, c2 = m.createSymbolInput.Update(msg)
+		m.createSupplyInput, c3 = m.createSupplyInput.Update(msg)
+		m.createDecimalsInput, c4 = m.createDecimalsInput.Update(msg)
+		cmds = append(cmds, c1, c2, c3, c4)
+	case "mint":
+		var c1, c2, c3 tea.Cmd
+		m.mintToInput, c1 = m.mintToInput.Update(msg)
+		m.mintAmountInput, c2 = m.mintAmountInput.Update(msg)
+		m.mintPrivateInput, c3 = m.mintPrivateInput.Update(msg)
+		cmds = append(cmds, c1, c2, c3)
+	case "transfer":
+		var c1, c2, c3 tea.Cmd
+		m.transferToInput, c1 = m.transferToInput.Update(msg)
+		m.transferAmountInput, c2 = m.transferAmountInput.Update(msg)
+		m.transferPrivateInput, c3 = m.transferPrivateInput.Update(msg)
+		cmds = append(cmds, c1, c2, c3)
+	case "balance":
+		var c1 tea.Cmd
+		m.balanceAddressInput, c1 = m.balanceAddressInput.Update(msg)
+		cmds = append(cmds, c1)
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m *model) View() tea.View {
@@ -312,6 +429,8 @@ func (m *model) handleSelect() {
 		m.createSymbolInput.SetValue("")
 		m.createSupplyInput.SetValue("")
 		m.createDecimalsInput.SetValue("8")
+		m.inputFocus = 0
+		m.updateInputFocus()
 	case 1:
 		m.view = "mint"
 		m.err = ""
@@ -319,6 +438,8 @@ func (m *model) handleSelect() {
 		m.mintToInput.SetValue("")
 		m.mintAmountInput.SetValue("")
 		m.mintPrivateInput.SetValue("")
+		m.inputFocus = 0
+		m.updateInputFocus()
 	case 2:
 		m.view = "transfer"
 		m.err = ""
@@ -326,11 +447,15 @@ func (m *model) handleSelect() {
 		m.transferToInput.SetValue("")
 		m.transferAmountInput.SetValue("")
 		m.transferPrivateInput.SetValue("")
+		m.inputFocus = 0
+		m.updateInputFocus()
 	case 3:
 		m.view = "balance"
 		m.err = ""
 		m.successMsg = ""
 		m.balanceAddressInput.SetValue("")
+		m.inputFocus = 0
+		m.updateInputFocus()
 	case 4:
 		m.loadHistory()
 		m.view = "history"

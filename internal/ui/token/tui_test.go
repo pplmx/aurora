@@ -913,3 +913,58 @@ func TestHandleTransfer_NoTokenForAmount(t *testing.T) {
 	app.handleTransfer()
 	assert.NotEmpty(t, app.err)
 }
+
+// Round-97 (TASK-123): only the create form received keystrokes — the
+// mint/transfer/balance inputs were never updated so their forms could not
+// be filled by typing. These tests pin the fix.
+
+func TestUpdate_MintFormReceivesKeystrokes(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "mint"
+	app.inputFocus = 0
+	app.updateInputFocus()
+	app.Update(keyPress("A"))
+	assert.Equal(t, "A", app.mintToInput.Value())
+}
+
+func TestUpdate_MintFormTabCyclesFocus(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "mint"
+	app.inputFocus = 0
+	app.updateInputFocus()
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 1, app.inputFocus)
+	assert.True(t, app.mintAmountInput.Focused())
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 2, app.inputFocus)
+	assert.True(t, app.mintPrivateInput.Focused())
+}
+
+func TestUpdate_TransferFormReceivesKeystrokes(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "transfer"
+	app.inputFocus = 1
+	app.updateInputFocus()
+	app.Update(keyPress("5"))
+	app.Update(keyPress("0"))
+	assert.Equal(t, "50", app.transferAmountInput.Value())
+}
+
+func TestUpdate_BalanceFormReceivesKeystrokes(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "balance"
+	app.inputFocus = 0
+	app.updateInputFocus()
+	app.Update(keyPress("b"))
+	app.Update(keyPress("c"))
+	assert.Equal(t, "bc", app.balanceAddressInput.Value())
+}
+
+func TestUpdate_CreateFormReceivesKeystrokes(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.inputFocus = 1
+	app.updateInputFocus()
+	app.Update(keyPress("S"))
+	assert.Equal(t, "S", app.createSymbolInput.Value())
+}

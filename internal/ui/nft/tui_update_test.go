@@ -241,3 +241,64 @@ func TestLoadNFTsByOwner_Populated(t *testing.T) {
 	app.loadNFTsByOwner()
 	assert.Contains(t, app.viewport.View(), "TestNFT")
 }
+
+// Round-97 (TASK-123): mint/transfer/query forms never received keystrokes.
+// These tests pin the fix: keypresses reach the focused input and Tab/up/down
+// cycle focus between the fields.
+
+func TestUpdate_MintFormReceivesKeystrokes(t *testing.T) {
+	app := NewNFTApp()
+	app.view = "mint"
+	app.inputFocus = 0
+	app.updateInputFocus()
+	app.Update(keyPress("M"))
+	app.Update(keyPress("y"))
+	assert.Equal(t, "My", app.nameInput.Value())
+}
+
+func TestUpdate_MintFormTabCyclesFocus(t *testing.T) {
+	app := NewNFTApp()
+	app.view = "mint"
+	app.inputFocus = 0
+	app.updateInputFocus()
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 1, app.inputFocus)
+	assert.True(t, app.descInput.Focused())
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 2, app.inputFocus)
+	assert.True(t, app.pubkeyInput.Focused())
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_TransferFormReceivesKeystrokes(t *testing.T) {
+	app := NewNFTApp()
+	app.view = "transfer"
+	app.inputFocus = 2
+	app.updateInputFocus()
+	app.Update(keyPress("t"))
+	assert.Equal(t, "t", app.toAddrInput.Value())
+}
+
+func TestUpdate_QueryFormReceivesKeystrokes(t *testing.T) {
+	app := NewNFTApp()
+	app.view = "query"
+	app.inputFocus = 0
+	app.updateInputFocus()
+	app.Update(keyPress("n"))
+	app.Update(keyPress("f"))
+	assert.Equal(t, "nf", app.queryIDInput.Value())
+}
+
+func TestUpdate_UpDownCyclesFocusInMint(t *testing.T) {
+	app := NewNFTApp()
+	app.view = "mint"
+	app.inputFocus = 1
+	app.updateInputFocus()
+	app.Update(keyPress("down"))
+	assert.Equal(t, 2, app.inputFocus)
+	app.Update(keyPress("down"))
+	assert.Equal(t, 2, app.inputFocus) // bounded
+	app.Update(keyPress("up"))
+	assert.Equal(t, 1, app.inputFocus)
+}
