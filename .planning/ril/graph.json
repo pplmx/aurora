@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 98,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T09:56:42+00:00",
+  "updated_at": "2026-08-28T11:40:45+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -5555,7 +5555,7 @@
       "version": 1,
       "created_at": "2026-08-28T09:51:21+00:00",
       "updated_at": "2026-08-28T09:51:21+00:00",
-      "touched_round": 97,
+      "touched_round": 98,
       "title": "History/list views use a viewport but have no scroll bindings (up/down only work on menu), so long content is clipped with no way to scroll",
       "severity": 0.5,
       "confidence": 0.95,
@@ -5594,7 +5594,7 @@
       "version": 1,
       "created_at": "2026-08-28T09:51:21+00:00",
       "updated_at": "2026-08-28T09:51:21+00:00",
-      "touched_round": 97,
+      "touched_round": 98,
       "title": "Destructive CLI ops (token burn, nft burn, token/nft transfer, oracle source delete, migrate down) have no confirmation gate while backup restore requires --confirm and lottery reset requires --yes",
       "severity": 0.6,
       "confidence": 0.9,
@@ -5603,11 +5603,11 @@
     "ISS-123": {
       "id": "ISS-123",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T09:51:21+00:00",
-      "updated_at": "2026-08-28T09:51:21+00:00",
-      "touched_round": 97,
+      "updated_at": "2026-08-28T11:40:45+00:00",
+      "touched_round": 98,
       "title": "CLI i18n: Short/Long help text resolved at package init before locale detection, so --help is frozen English regardless of LANG; subcommand success strings do translate",
       "severity": 0.45,
       "confidence": 0.9,
@@ -5638,6 +5638,87 @@
       "severity": 0.3,
       "confidence": 0.9,
       "category": "dx"
+    },
+    "TASK-126": {
+      "id": "TASK-126",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T09:58:43+00:00",
+      "updated_at": "2026-08-28T11:06:37+00:00",
+      "touched_round": 98,
+      "title": "Add --confirm/-y gate to destructive CLI ops (token/nft burn+transfer, oracle source delete, migrate down), matching backup restore --confirm and lottery reset --yes",
+      "category": "dx",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 3,
+      "unlock_factor": 1.0,
+      "priority_score": 4.6
+    },
+    "TASK-127": {
+      "id": "TASK-127",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T09:58:43+00:00",
+      "updated_at": "2026-08-28T10:14:37+00:00",
+      "touched_round": 98,
+      "title": "TUI history/list views: bind up/down/j/k + pgup/pgdn to viewport scrolling so content beyond 15 rows is reachable",
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "priority_score": 4.0
+    },
+    "TASK-128": {
+      "id": "TASK-128",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T09:58:43+00:00",
+      "updated_at": "2026-08-28T11:40:45+00:00",
+      "touched_round": 98,
+      "title": "CLI help text: resolve Short/Long/flag help after locale detection instead of at package init, so --help localizes",
+      "category": "dx",
+      "severity": 0.45,
+      "confidence": 0.9,
+      "effort": 3,
+      "unlock_factor": 1.0,
+      "priority_score": 3.4
+    },
+    "CHG-121": {
+      "id": "CHG-121",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T10:14:37+00:00",
+      "updated_at": "2026-08-28T10:14:37+00:00",
+      "touched_round": 98,
+      "title": "fix(tui): history/list viewport views scroll via viewport Update",
+      "commit": "bf8f8df"
+    },
+    "CHG-122": {
+      "id": "CHG-122",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T11:06:36+00:00",
+      "updated_at": "2026-08-28T11:06:36+00:00",
+      "touched_round": 98,
+      "title": "feat(cli): --confirm gate on destructive ops",
+      "commit": "3a1efb7"
+    },
+    "CHG-123": {
+      "id": "CHG-123",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T11:40:28+00:00",
+      "updated_at": "2026-08-28T11:40:28+00:00",
+      "touched_round": 98,
+      "commit": "8c70eeb",
+      "title": "Localize CLI --help text by locale after init (lazy GetTranslator follows LANG; lottery Long uses i18n key); fixes TASK-128/ISS-123"
     }
   },
   "edges": [
@@ -8772,6 +8853,60 @@
       "to": "COMP-web",
       "type": "located_in",
       "created_at": "2026-08-28T09:52:31+00:00"
+    },
+    {
+      "from": "TASK-126",
+      "to": "ISS-122",
+      "type": "addresses",
+      "created_at": "2026-08-28T09:58:43+00:00"
+    },
+    {
+      "from": "TASK-127",
+      "to": "ISS-119",
+      "type": "addresses",
+      "created_at": "2026-08-28T09:58:43+00:00"
+    },
+    {
+      "from": "TASK-128",
+      "to": "ISS-123",
+      "type": "addresses",
+      "created_at": "2026-08-28T09:58:43+00:00"
+    },
+    {
+      "from": "CHG-121",
+      "to": "TASK-127",
+      "type": "implements",
+      "created_at": "2026-08-28T10:14:37+00:00"
+    },
+    {
+      "from": "CHG-121",
+      "to": "ISS-119",
+      "type": "resolves",
+      "created_at": "2026-08-28T10:14:37+00:00"
+    },
+    {
+      "from": "CHG-122",
+      "to": "TASK-126",
+      "type": "implements",
+      "created_at": "2026-08-28T11:06:36+00:00"
+    },
+    {
+      "from": "CHG-122",
+      "to": "ISS-122",
+      "type": "resolves",
+      "created_at": "2026-08-28T11:06:36+00:00"
+    },
+    {
+      "from": "CHG-123",
+      "to": "TASK-128",
+      "type": "implements",
+      "created_at": "2026-08-28T11:40:28+00:00"
+    },
+    {
+      "from": "CHG-123",
+      "to": "ISS-123",
+      "type": "resolves",
+      "created_at": "2026-08-28T11:40:28+00:00"
     }
   ]
 }
