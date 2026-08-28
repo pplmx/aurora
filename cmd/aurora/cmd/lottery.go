@@ -23,7 +23,7 @@ import (
 var lotteryCmd = &cobra.Command{
 	Use:   "lottery",
 	Short: i18n.GetText("lottery.tui.title"),
-	Long:  i18n.GetText("lottery.create"),
+	Long:  i18n.GetText("lottery.long"),
 }
 
 var createCmd = &cobra.Command{
