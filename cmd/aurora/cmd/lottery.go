@@ -514,17 +514,6 @@ func isNoSuchTable(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "no such table")
 }
 
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show version information",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Aurora - VRF Lottery System")
-		fmt.Println("Version: 0.0.1")
-		fmt.Println("Go Version:", getGoVersion())
-		return nil
-	},
-}
-
 var dbInfoCmd = &cobra.Command{
 	Use:   "db-info",
 	Short: "Show database information",
@@ -548,7 +537,6 @@ var dbInfoCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(lotteryCmd)
-	rootCmd.AddCommand(versionCmd)
 	lotteryCmd.AddCommand(createCmd)
 	lotteryCmd.AddCommand(historyCmd)
 	lotteryCmd.AddCommand(verifyCmd)
@@ -577,8 +565,4 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-
-func getGoVersion() string {
-	return "1.26+"
 }
