@@ -213,6 +213,25 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.view = "menu"
 			}
 
+		case "y", "Y":
+			// Confirm-dialog hotkeys: the highlighted ▶ row is what Enter
+			// executes, and y/n select those same choices directly.
+			switch m.view {
+			case "confirmToggle":
+				m.handleToggleSource()
+				m.menuIndex = 0
+			case "confirmDelete":
+				m.handleDeleteSource()
+				m.menuIndex = 0
+			}
+
+		case "n", "N":
+			if m.view == "confirmToggle" || m.view == "confirmDelete" {
+				m.view = "sources"
+				m.menuIndex = 0
+				m.errMsg = ""
+			}
+
 		case "d":
 			if m.view == "sourceDetail" && m.selectedSourceID != "" {
 				m.confirmAction = "delete"
@@ -452,10 +471,28 @@ func (m *model) confirmToggleView() string {
 		s += components.BodyStyle().Render(source.Name) + "\n"
 	}
 
-	s += "\n" + components.BorderStyle().Render(i18n.GetText("oracle.tui.yes_no")) + "\n"
-	s += "\n[ESC] " + i18n.GetText("lottery.tui.back") + "\n"
+	s += "\n" + m.confirmChoiceView()
+	s += components.HelpTextStyle().Render(i18n.GetText("oracle.tui.yes_no")) + "\n"
+	s += "[ESC] " + i18n.GetText("lottery.tui.back") + "\n"
 
 	return s
+}
+
+// confirmChoiceView renders the Yes/No picker for the confirm dialogs. The
+// highlighted row (▶) follows menuIndex (0=Yes/confirm, 1=No/cancel), giving
+// the user a visible answer to "what will Enter do" — previously the dialogs
+// showed a static "[Y]es/[N]o" banner with no selection marker, and the y/n
+// hotkeys were dead (TASK-129, ISS-121).
+func (m *model) confirmChoiceView() string {
+	yesItem := i18n.GetText("oracle.tui.yes")
+	noItem := i18n.GetText("oracle.tui.no")
+
+	if m.menuIndex == 0 {
+		return components.MenuActiveStyle().Render("▶ "+yesItem+"\n") +
+			components.MenuInactiveStyle().Render("  "+noItem+"\n") + "\n"
+	}
+	return components.MenuInactiveStyle().Render("  "+yesItem+"\n") +
+		components.MenuActiveStyle().Render("▶ "+noItem+"\n") + "\n"
 }
 
 func (m *model) confirmDeleteView() string {
@@ -474,8 +511,9 @@ func (m *model) confirmDeleteView() string {
 		s += components.BodyStyle().Render(source.Name) + "\n"
 	}
 
-	s += "\n" + components.BorderStyle().Render(i18n.GetText("oracle.tui.yes_no")) + "\n"
-	s += "\n[ESC] " + i18n.GetText("lottery.tui.back") + "\n"
+	s += "\n" + m.confirmChoiceView()
+	s += components.HelpTextStyle().Render(i18n.GetText("oracle.tui.yes_no")) + "\n"
+	s += "[ESC] " + i18n.GetText("lottery.tui.back") + "\n"
 
 	return s
 }

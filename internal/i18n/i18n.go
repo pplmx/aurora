@@ -348,6 +348,8 @@ func (tr *Translator) loadMessages() {
 		"oracle.tui.sure_delete":    "Are you sure you want to delete this source?",
 		"oracle.tui.sure_disable":   "Disable this source?",
 		"oracle.tui.sure_enable":    "Enable this source?",
+		"oracle.tui.yes":            "Yes",
+		"oracle.tui.no":             "No",
 		"oracle.tui.yes_no":         "[Y]es / [N]o",
 
 		// ===== COMMON =====
@@ -676,6 +678,8 @@ func (tr *Translator) loadMessages() {
 		"oracle.tui.sure_delete":    "确定要删除此数据源吗?",
 		"oracle.tui.sure_disable":   "确定要禁用此数据源吗?",
 		"oracle.tui.sure_enable":    "确定要启用此数据源吗?",
+		"oracle.tui.yes":            "是",
+		"oracle.tui.no":             "否",
 		"oracle.tui.yes_no":         "[Y]是 / [N]否",
 
 		// ===== COMMON =====
