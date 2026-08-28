@@ -49,6 +49,24 @@ async function apiFetch(path, options) {
     return res;
 }
 
+// startPolling re-runs target.refresh() every intervalMs while the page is
+// alive, for surfaces whose data changes without user action (the dashboard
+// overview, Oracle sources which the background scheduler updates). The
+// running flag prevents overlapping refreshes when one takes longer than the
+// interval.
+function startPolling(target, intervalMs) {
+    let running = false;
+    setInterval(async () => {
+        if (running || typeof target.refresh !== 'function') return;
+        running = true;
+        try {
+            await target.refresh();
+        } finally {
+            running = false;
+        }
+    }, intervalMs);
+}
+
 function lotteryApp() {
     return {
         participants: '',
@@ -110,13 +128,23 @@ function dashboardApp() {
         activity: [],
         loading: true,
         async init() {
+            await this.refresh();
+            this.loading = false;
+            // The dashboard is a live overview; re-poll so a freshly recorded
+            // vote/lottery/feed-health shows up without a manual reload (ISS-125).
+            startPolling(this, 15000);
+        },
+        // refresh recomputes every stat from scratch; also exposed as the
+        // header "↻ Refresh" button.
+        async refresh() {
+            this.activity = [];
+            this.stats = { lotteries: 0, votes: 0, candidates: 0, sessions: 0, integrity: '-', oracle: '-' };
             await Promise.all([
                 this.loadLotteries(),
                 this.loadVoting(),
                 this.loadBlockchain(),
                 this.loadOracleHealth()
             ]);
-            this.loading = false;
         },
         async loadLotteries() {
             try {
@@ -635,7 +663,17 @@ function oracleApp() {
         fetchSource: '', fetchResult: '',
         querySource: '', queryLimit: 10, queryRows: [],
         latestSource: '', latestResult: '',
-        async init() { await Promise.all([this.listSources(), this.loadHealth(), this.loadTemplates()]); },
+        async init() {
+            await this.refresh();
+            // The Oracle scheduler updates sources/health in the background, so
+            // re-poll so the list and feed health stay current (ISS-125).
+            startPolling(this, 15000);
+        },
+        // refresh re-snapshots sources + feed health + templates; exposed as
+        // the header "↻ Refresh" button and driven by startPolling.
+        async refresh() {
+            await Promise.all([this.listSources(), this.loadHealth(), this.loadTemplates()]);
+        },
         async loadTemplates() {
             try {
                 const res = await apiFetch('/api/v1/oracle/templates');
