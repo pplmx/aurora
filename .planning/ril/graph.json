@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 96,
+  "round": 98,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T06:01:52+00:00",
+  "updated_at": "2026-08-28T09:56:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 89,
+      "touched_round": 97,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 95,
+      "touched_round": 97,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 88,
+      "touched_round": 97,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 88,
+      "touched_round": 97,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 86,
+      "touched_round": 97,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 63,
+      "touched_round": 97,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -5342,6 +5342,302 @@
       "title": "Burn still lacks a balance pre-check; phantom block is the parked ISS-084 class",
       "confidence": 1.0,
       "summary": "Deep-dive confirmed chain.AddBlock (service.go:716) runs before the burn transaction (722); an over-balance burn appends a best-effort block then fails TrySubtractBalance. This is the EXACT class DEC-002 already parked (cross-DB atomicity needs a block-height reservation design; best-effort on-chain audit blocks never corrupt committed balances; the token EVENT trail is already post-commit). Per DEC-002 no task is opened this round."
+    },
+    "ISS-115": {
+      "id": "ISS-115",
+      "type": "issue",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T07:51:49+00:00",
+      "updated_at": "2026-08-28T08:46:05+00:00",
+      "touched_round": 97,
+      "title": "TUI forms are untypable: lottery/token-mint-transfer-balance/nft never forward keypresses into textinput models",
+      "severity": 0.9,
+      "confidence": 0.95,
+      "category": "dx"
+    },
+    "HYP-003": {
+      "id": "HYP-003",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T07:53:26+00:00",
+      "updated_at": "2026-08-28T07:53:26+00:00",
+      "touched_round": 97,
+      "title": "TUI Update() never forwards tea.KeyPressMsg into textinput models for non-create views",
+      "confidence": 0.98
+    },
+    "EV-045": {
+      "id": "EV-045",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T07:53:26+00:00",
+      "updated_at": "2026-08-28T07:53:26+00:00",
+      "touched_round": 97,
+      "title": "Direct read: lottery tui.go Update() has zero textinput.Update(msg) calls",
+      "source": "internal/ui/lottery/tui.go:69-145",
+      "detail": "grep confirms no textinput forwarding anywhere in lottery tui.go",
+      "confidence": 1.0
+    },
+    "EV-046": {
+      "id": "EV-046",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T07:53:26+00:00",
+      "updated_at": "2026-08-28T07:53:26+00:00",
+      "touched_round": 97,
+      "title": "Direct read: token tui.go only forwards when view==create (line 271); mint/transfer/balance views have no forwarding",
+      "source": "internal/ui/token/tui.go:271-278",
+      "confidence": 1.0
+    },
+    "EV-047": {
+      "id": "EV-047",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T07:53:26+00:00",
+      "updated_at": "2026-08-28T07:53:26+00:00",
+      "touched_round": 97,
+      "title": "Direct read: nft tui.go Update() has zero textinput.Update calls; all mint/transfer/query fields dead",
+      "source": "internal/ui/nft/tui.go:114-196",
+      "confidence": 1.0
+    },
+    "EV-048": {
+      "id": "EV-048",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T07:53:26+00:00",
+      "updated_at": "2026-08-28T07:53:26+00:00",
+      "touched_round": 97,
+      "title": "Tests drive inputs via SetValue not keystrokes, so suite is blind to the defect",
+      "source": "internal/ui/token/tui_test.go:718-720; nft/tui_update_test.go:202-204; lottery/tui_test.go:249-250",
+      "confidence": 1.0
+    },
+    "TASK-123": {
+      "id": "TASK-123",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T07:54:04+00:00",
+      "updated_at": "2026-08-28T08:46:05+00:00",
+      "touched_round": 97,
+      "title": "Fix untypable TUI forms: forward keypresses to textinput in lottery/token/nft",
+      "category": "dx",
+      "severity": 0.9,
+      "confidence": 0.98,
+      "effort": 4,
+      "unlock_factor": 1.5,
+      "priority_score": 8.4
+    },
+    "TASK-124": {
+      "id": "TASK-124",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T07:54:04+00:00",
+      "updated_at": "2026-08-28T09:21:09+00:00",
+      "touched_round": 97,
+      "title": "Web frontend: check res.ok on all API calls, surface error banner, keep list state as []",
+      "category": "dx",
+      "severity": 0.75,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1.2,
+      "priority_score": 6.0
+    },
+    "TASK-125": {
+      "id": "TASK-125",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T07:54:05+00:00",
+      "updated_at": "2026-08-28T09:49:47+00:00",
+      "touched_round": 97,
+      "title": "CLI version command: surface real main.Version/BuildTime and runtime.Version instead of hardcoded 0.0.1 / fabricated 1.26+",
+      "category": "dx",
+      "severity": 0.55,
+      "confidence": 0.98,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "priority_score": 4.4
+    },
+    "ISS-116": {
+      "id": "ISS-116",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-28T07:54:31+00:00",
+      "updated_at": "2026-08-28T09:19:51+00:00",
+      "touched_round": 97,
+      "title": "Web frontend silently fails on API errors: list GETs assign {\"error\":...} JSON into array state, blank/misleading UI, no banner",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "category": "dx"
+    },
+    "ISS-117": {
+      "id": "ISS-117",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T07:54:31+00:00",
+      "updated_at": "2026-08-28T07:54:31+00:00",
+      "touched_round": 97,
+      "title": "CLI version command prints fabricated data (hardcoded 0.0.1, getGoVersion returns 1.26+) ignoring main.Version/BuildTime ldflags",
+      "severity": 0.5,
+      "confidence": 0.98,
+      "category": "dx"
+    },
+    "DEC-006": {
+      "id": "DEC-006",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T07:55:32+00:00",
+      "updated_at": "2026-08-28T07:55:32+00:00",
+      "touched_round": 97,
+      "title": "Round-97 UX polish: user directive prioritizes dx/usability despite low dx-category scores",
+      "rationale": "User explicitly ordered \"细节优化, bug修复, 打磨, 交互性, 实用性, 使用性, 易用性\". RIL scoring weights dx=2 so these tasks score ~1.3, below the 3.0 stop threshold, but the user directive overrides the default weight. Scope: fix untypable TUI forms first (TASK-123), then web silent-failure banner (TASK-124), then version command truthfulness (TASK-125).",
+      "alternatives_rejected": "none: continue correctness-only rounds as in v1.64-v1.84"
+    },
+    "CHG-118": {
+      "id": "CHG-118",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T08:44:21+00:00",
+      "updated_at": "2026-08-28T08:44:21+00:00",
+      "touched_round": 97,
+      "title": "fix(tui): lottery/token/nft forms typable; focus cycling + count validation",
+      "commit": "a12ff65"
+    },
+    "CHG-119": {
+      "id": "CHG-119",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:19:16+00:00",
+      "updated_at": "2026-08-28T09:19:16+00:00",
+      "touched_round": 97,
+      "title": "fix(web): surface API failures; read error envelope; drop double-init",
+      "commit": "42cf7a7"
+    },
+    "CHG-120": {
+      "id": "CHG-120",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:49:47+00:00",
+      "updated_at": "2026-08-28T09:49:47+00:00",
+      "touched_round": 97,
+      "title": "feat(cli): version command reports real build info; drop fabricated data",
+      "commit": "e99973a"
+    },
+    "ISS-118": {
+      "id": "ISS-118",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:51:21+00:00",
+      "updated_at": "2026-08-28T09:51:21+00:00",
+      "touched_round": 97,
+      "title": "? for help advertised in token/nft/oracle menus but is a dead key (no help view); on forms it just types a literal ?",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "category": "dx"
+    },
+    "ISS-119": {
+      "id": "ISS-119",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:51:21+00:00",
+      "updated_at": "2026-08-28T09:51:21+00:00",
+      "touched_round": 97,
+      "title": "History/list views use a viewport but have no scroll bindings (up/down only work on menu), so long content is clipped with no way to scroll",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "category": "dx"
+    },
+    "ISS-120": {
+      "id": "ISS-120",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:51:21+00:00",
+      "updated_at": "2026-08-28T09:51:21+00:00",
+      "touched_round": 97,
+      "title": "Hardcoded CJK strings bypass i18n: token/nft TUIs render Chinese in an en-locale session (mixed-language UI); error.create_token_first key already exists unused",
+      "severity": 0.4,
+      "confidence": 0.9,
+      "category": "dx"
+    },
+    "ISS-121": {
+      "id": "ISS-121",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:51:21+00:00",
+      "updated_at": "2026-08-28T09:51:21+00:00",
+      "touched_round": 97,
+      "title": "Oracle confirm toggle/delete dialogs render no visible selection; Enter at index 1 silently cancels, users cannot tell yes from no",
+      "severity": 0.45,
+      "confidence": 0.9,
+      "category": "dx"
+    },
+    "ISS-122": {
+      "id": "ISS-122",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:51:21+00:00",
+      "updated_at": "2026-08-28T09:51:21+00:00",
+      "touched_round": 97,
+      "title": "Destructive CLI ops (token burn, nft burn, token/nft transfer, oracle source delete, migrate down) have no confirmation gate while backup restore requires --confirm and lottery reset requires --yes",
+      "severity": 0.6,
+      "confidence": 0.9,
+      "category": "dx"
+    },
+    "ISS-123": {
+      "id": "ISS-123",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:51:21+00:00",
+      "updated_at": "2026-08-28T09:51:21+00:00",
+      "touched_round": 97,
+      "title": "CLI i18n: Short/Long help text resolved at package init before locale detection, so --help is frozen English regardless of LANG; subcommand success strings do translate",
+      "severity": 0.45,
+      "confidence": 0.9,
+      "category": "dx"
+    },
+    "ISS-124": {
+      "id": "ISS-124",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:51:57+00:00",
+      "updated_at": "2026-08-28T09:51:57+00:00",
+      "touched_round": 97,
+      "title": "Web UI loads Alpine from unpkg CDN with no SRI or vendored copy; if CDN unreachable the whole UI is inert, and it is a supply-chain risk (compounded by in-page API key)",
+      "severity": 0.5,
+      "confidence": 0.9,
+      "category": "security"
+    },
+    "ISS-125": {
+      "id": "ISS-125",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T09:51:57+00:00",
+      "updated_at": "2026-08-28T09:51:57+00:00",
+      "touched_round": 97,
+      "title": "Web UI has no refresh/polling mechanism; lists load once and go stale until manual reload",
+      "severity": 0.3,
+      "confidence": 0.9,
+      "category": "dx"
     }
   },
   "edges": [
@@ -8272,6 +8568,210 @@
       "to": "TASK-121",
       "type": "governs",
       "created_at": "2026-08-28T03:45:21+00:00"
+    },
+    {
+      "from": "EV-045",
+      "to": "HYP-003",
+      "type": "validates",
+      "created_at": "2026-08-28T07:53:41+00:00"
+    },
+    {
+      "from": "EV-046",
+      "to": "HYP-003",
+      "type": "validates",
+      "created_at": "2026-08-28T07:53:41+00:00"
+    },
+    {
+      "from": "EV-047",
+      "to": "HYP-003",
+      "type": "validates",
+      "created_at": "2026-08-28T07:53:41+00:00"
+    },
+    {
+      "from": "EV-048",
+      "to": "HYP-003",
+      "type": "validates",
+      "created_at": "2026-08-28T07:53:41+00:00"
+    },
+    {
+      "from": "ISS-115",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-08-28T07:53:41+00:00"
+    },
+    {
+      "from": "ISS-115",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-28T07:53:42+00:00"
+    },
+    {
+      "from": "ISS-115",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-28T07:53:42+00:00"
+    },
+    {
+      "from": "TASK-123",
+      "to": "ISS-115",
+      "type": "addresses",
+      "created_at": "2026-08-28T07:54:31+00:00"
+    },
+    {
+      "from": "TASK-124",
+      "to": "ISS-116",
+      "type": "addresses",
+      "created_at": "2026-08-28T07:54:46+00:00"
+    },
+    {
+      "from": "TASK-125",
+      "to": "ISS-117",
+      "type": "addresses",
+      "created_at": "2026-08-28T07:54:46+00:00"
+    },
+    {
+      "from": "ISS-116",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-28T07:54:46+00:00"
+    },
+    {
+      "from": "ISS-117",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-28T07:54:46+00:00"
+    },
+    {
+      "from": "CHG-118",
+      "to": "TASK-123",
+      "type": "implements",
+      "created_at": "2026-08-28T08:44:21+00:00"
+    },
+    {
+      "from": "CHG-118",
+      "to": "ISS-115",
+      "type": "resolves",
+      "created_at": "2026-08-28T08:44:21+00:00"
+    },
+    {
+      "from": "CHG-119",
+      "to": "TASK-124",
+      "type": "implements",
+      "created_at": "2026-08-28T09:19:16+00:00"
+    },
+    {
+      "from": "CHG-119",
+      "to": "ISS-116",
+      "type": "resolves",
+      "created_at": "2026-08-28T09:19:16+00:00"
+    },
+    {
+      "from": "CHG-120",
+      "to": "TASK-125",
+      "type": "implements",
+      "created_at": "2026-08-28T09:49:47+00:00"
+    },
+    {
+      "from": "CHG-120",
+      "to": "ISS-117",
+      "type": "resolves",
+      "created_at": "2026-08-28T09:49:47+00:00"
+    },
+    {
+      "from": "ISS-118",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-118",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-118",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-119",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-119",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-119",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-120",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-120",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-121",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-122",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-123",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-118",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:57+00:00"
+    },
+    {
+      "from": "ISS-122",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:58+00:00"
+    },
+    {
+      "from": "ISS-122",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:51:58+00:00"
+    },
+    {
+      "from": "ISS-124",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:52:31+00:00"
+    },
+    {
+      "from": "ISS-125",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-28T09:52:31+00:00"
     }
   ]
 }
