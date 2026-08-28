@@ -302,3 +302,20 @@ func TestUpdate_UpDownCyclesFocusInMint(t *testing.T) {
 	app.Update(keyPress("up"))
 	assert.Equal(t, 1, app.inputFocus)
 }
+
+// Round-98 (TASK-127): list view is a viewport without scroll bindings.
+func TestUpdate_ListScrolls(t *testing.T) {
+	app := NewNFTApp()
+	app.view = "list"
+	app.viewport.SetWidth(60)
+	app.viewport.SetHeight(3)
+	app.viewport.SetContent("nft0\nnft1\nnft2\nnft3\nnft4")
+
+	y0 := app.viewport.YOffset()
+	app.Update(keyPress("down"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+	app.Update(keyPress("pgdown"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+	app.Update(keyPress("j"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+}

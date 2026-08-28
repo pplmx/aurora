@@ -968,3 +968,20 @@ func TestUpdate_CreateFormReceivesKeystrokes(t *testing.T) {
 	app.Update(keyPress("S"))
 	assert.Equal(t, "S", app.createSymbolInput.Value())
 }
+
+// Round-98 (TASK-127): history view is a viewport without scroll bindings.
+func TestUpdate_HistoryScrolls(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "history"
+	app.viewport.SetWidth(60)
+	app.viewport.SetHeight(3)
+	app.viewport.SetContent("line0\nline1\nline2\nline3\nline4")
+
+	y0 := app.viewport.YOffset()
+	app.Update(keyPress("down"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+	app.Update(keyPress("pgdown"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+	app.Update(keyPress("up"))
+	assert.LessOrEqual(t, app.viewport.YOffset(), 2)
+}

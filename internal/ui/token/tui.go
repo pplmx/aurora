@@ -293,6 +293,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// (round-97: keystrokes only reached the create inputs).
 	cmd = tea.Batch(cmd, m.forwardToActiveInput(msg))
 
+	// The history view is a viewport; let it handle scrolling keys
+	// (up/down/j/k/pgup/pgdn/space/b/f/u/d) so long transfer histories are
+	// reachable instead of clipped at the 15-row viewport (TASK-127, ISS-119).
+	if m.view == "history" {
+		m.viewport, cmd = m.viewport.Update(msg)
+	}
+
 	return m, cmd
 }
 

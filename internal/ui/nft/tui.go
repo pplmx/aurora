@@ -222,6 +222,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// are typable (round-97: keystrokes never reached the textinput models).
 	cmd = tea.Batch(cmd, m.forwardToActiveInput(msg))
 
+	// The list view is a viewport; let it handle scrolling keys
+	// (up/down/j/k/pgup/pgdn/space/b/f/u/d) so long NFT lists are reachable
+	// instead of clipped at the 15-row viewport (TASK-127, ISS-119).
+	if m.view == "list" {
+		m.viewport, cmd = m.viewport.Update(msg)
+	}
+
 	return m, cmd
 }
 
