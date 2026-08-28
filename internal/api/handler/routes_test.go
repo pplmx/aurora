@@ -235,6 +235,7 @@ func TestOracleHandler_Fetch_InvalidJSON_BodyParse(t *testing.T) {
 
 func TestOracleHandler_Query_WithLimit(t *testing.T) {
 	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
 	for i := 0; i < 5; i++ {
 		_ = repo.SaveData(&oracle.OracleData{ID: "d" + string(rune('0'+i)), SourceID: "s1"})
 	}
@@ -257,7 +258,9 @@ func TestOracleHandler_Query_WithLimit(t *testing.T) {
 }
 
 func TestOracleHandler_Query_DefaultLimit(t *testing.T) {
-	h := NewOracleHandler(oracle.NewInmemRepo())
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
+	h := NewOracleHandler(repo)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/query?source=s1", nil)
 	rr := httptest.NewRecorder()
 
@@ -267,7 +270,9 @@ func TestOracleHandler_Query_DefaultLimit(t *testing.T) {
 }
 
 func TestOracleHandler_Query_BadLimitFallsBackToDefault(t *testing.T) {
-	h := NewOracleHandler(oracle.NewInmemRepo())
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
+	h := NewOracleHandler(repo)
 	// limit=abc should be ignored and default (10) used.
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/query?source=s1&limit=abc", nil)
 	rr := httptest.NewRecorder()

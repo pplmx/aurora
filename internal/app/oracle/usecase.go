@@ -288,6 +288,17 @@ func NewGetDataUseCase(repo oracle.Repository) *GetDataUseCase {
 }
 
 func (uc *GetDataUseCase) Execute(req *GetDataRequest) (*GetDataResponse, error) {
+	// Reject unknown sources with the domain sentinel so the API layer maps
+	// them to 404, matching /sources/{id} DELETE/PATCH and /latest. Previously
+	// an unknown every unknown source returned an empty 200 [] (ISS-130).
+	src, err := uc.repo.GetSource(req.SourceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get data: %w", err)
+	}
+	if src == nil {
+		return nil, fmt.Errorf("failed to get data: %w", oracle.ErrSourceNotFound)
+	}
+
 	data, err := uc.repo.GetDataBySource(req.SourceID, req.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get data: %w", err)
@@ -316,11 +327,23 @@ func NewGetLatestDataUseCase(repo oracle.Repository) *GetLatestDataUseCase {
 }
 
 func (uc *GetLatestDataUseCase) Execute(req *GetLatestDataRequest) (*GetLatestDataResponse, error) {
+	// Unknown source → ErrSourceNotFound (404 via the API layer) rather than an
+	// unclassified repo "record not found" error that surfaced as 500 (ISS-130).
+	src, err := uc.repo.GetSource(req.SourceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest data: %w", err)
+	}
+	if src == nil {
+		return nil, fmt.Errorf("failed to get latest data: %w", oracle.ErrSourceNotFound)
+	}
+
 	data, err := uc.repo.GetLatestData(req.SourceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest data: %w", err)
 	}
 	if data == nil {
+		// Known source with no data yet is a legitimate empty state (200 null),
+		// distinct from "unknown source".
 		return &GetLatestDataResponse{Data: nil}, nil
 	}
 

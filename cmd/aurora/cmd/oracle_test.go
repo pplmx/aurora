@@ -131,19 +131,17 @@ func TestOracleFetch_SourceNotFound(t *testing.T) {
 func TestOracleData_Latest(t *testing.T) {
 	resetCliForTest()
 
-	// No data stored yet. GetDataUseCase tolerates an unknown source (returns
-	// an empty list), so `data` succeeds and prints "(none)".
-	out, err := runCmd(t, "oracle", "data", "--source", "missing", "--limit", "5")
-	require.NoError(t, err)
-	assert.Contains(t, out, "(none)")
-
-	// GetLatestDataUseCase, in contrast, surfaces the data store's
-	// ErrNotFound for an unknown/empty source, so `latest` errors rather
-	// than printing "No data found" (that branch is only reachable when the
-	// repo returns nil data with no error — not the case for in-memory).
-	out, err = runCmd(t, "oracle", "latest", "--source", "missing")
+	// Unknown sources are rejected consistently across `data` and `latest`
+	// (ISS-130). Historically `data` silently returned "(none)" for an unknown
+	// source while `latest` surfaced an unclassified error; both now surface
+	// the ~source not found~ sentinel (404 on the REST surface).
+	_, err := runCmd(t, "oracle", "data", "--source", "missing", "--limit", "5")
 	require.Error(t, err)
-	assert.Contains(t, strings.ToLower(err.Error()), "not found")
+	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
+
+	_, err = runCmd(t, "oracle", "latest", "--source", "missing")
+	require.Error(t, err)
+	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
 }
 
 func TestOracleTemplateList_Add(t *testing.T) {

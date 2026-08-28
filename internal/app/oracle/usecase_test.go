@@ -293,6 +293,7 @@ func TestDisableSourceUseCase(t *testing.T) {
 
 func TestGetDataUseCase(t *testing.T) {
 	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{{ID: "source-1", Enabled: true}},
 		data: []*oracle.OracleData{
 			{ID: "1", SourceID: "source-1", Value: "100"},
 			{ID: "2", SourceID: "source-1", Value: "200"},
@@ -312,6 +313,7 @@ func TestGetDataUseCase(t *testing.T) {
 
 func TestGetLatestDataUseCase(t *testing.T) {
 	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{{ID: "source-1", Enabled: true}},
 		data: []*oracle.OracleData{
 			{ID: "1", SourceID: "source-1", Value: "100", Timestamp: 1000},
 			{ID: "2", SourceID: "source-1", Value: "200", Timestamp: 2000},
@@ -334,7 +336,11 @@ func TestGetLatestDataUseCase(t *testing.T) {
 }
 
 func TestGetLatestDataUseCase_Empty(t *testing.T) {
-	repo := &mockOracleRepo{}
+	// A known source with no data yet is a legitimate 200-null empty state,
+	// distinct from an unknown source (which must error).
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{{ID: "source-1", Enabled: true}},
+	}
 	uc := NewGetLatestDataUseCase(repo)
 
 	resp, err := uc.Execute(&GetLatestDataRequest{SourceID: "source-1"})
@@ -605,7 +611,10 @@ func TestDisableSourceUseCase_UpdateError(t *testing.T) {
 }
 
 func TestGetDataUseCase_Error(t *testing.T) {
+	// Register the source so the existence check passes and the data-layer
+	// error is the one surfaced.
 	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{{ID: "test-id", Enabled: true}},
 		dataErr: errors.New("get data failed"),
 	}
 	uc := NewGetDataUseCase(repo)
@@ -617,6 +626,7 @@ func TestGetDataUseCase_Error(t *testing.T) {
 
 func TestGetLatestDataUseCase_Error(t *testing.T) {
 	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{{ID: "test-id", Enabled: true}},
 		dataErr: errors.New("get latest failed"),
 	}
 	uc := NewGetLatestDataUseCase(repo)
@@ -624,4 +634,20 @@ func TestGetLatestDataUseCase_Error(t *testing.T) {
 	_, err := uc.Execute(&GetLatestDataRequest{SourceID: "test-id"})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to get latest data")
+}
+
+func TestGetDataUseCase_UnknownSource(t *testing.T) {
+	repo := &mockOracleRepo{}
+	uc := NewGetDataUseCase(repo)
+
+	_, err := uc.Execute(&GetDataRequest{SourceID: "does-not-exist", Limit: 10})
+	require.ErrorIs(t, err, oracle.ErrSourceNotFound)
+}
+
+func TestGetLatestDataUseCase_UnknownSource(t *testing.T) {
+	repo := &mockOracleRepo{}
+	uc := NewGetLatestDataUseCase(repo)
+
+	_, err := uc.Execute(&GetLatestDataRequest{SourceID: "does-not-exist"})
+	require.ErrorIs(t, err, oracle.ErrSourceNotFound)
 }

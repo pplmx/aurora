@@ -210,6 +210,13 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 
 func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 	source := r.URL.Query().Get("source")
+	if source == "" {
+		// Parity with /latest: an explicit source is required. Previously a
+		// missing source fell through to 200 [] (ISS-130).
+		writeBadRequest(w, "source parameter is required")
+		return
+	}
+
 	limitStr := r.URL.Query().Get("limit")
 	limit := defaultQueryLimit
 	if limitStr != "" {

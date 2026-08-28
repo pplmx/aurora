@@ -142,7 +142,11 @@ func (r *OracleRepository) GetLatestData(sourceID string) (*oracle.OracleData, e
 	d := &oracle.OracleData{}
 	err := row.Scan(&d.ID, &d.SourceID, &d.Value, &d.RawResponse, &d.Timestamp, &d.BlockHeight)
 	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
+		// "No data yet for this source" is an empty result, not an error — the
+		// interface contract (and the domain InmemRepo) return (nil, nil) here.
+		// Returning the generic sqlite ErrNotFound made /oracle/latest 500 on a
+		// known-but-empty source because the sentinel is unclassified (ISS-130).
+		return nil, nil
 	}
 	return d, err
 }
@@ -327,8 +331,9 @@ func (r *InMemoryOracleRepository) GetLatestData(sourceID string) (*oracle.Oracl
 			latestTs = d.Timestamp
 		}
 	}
+	// Same (nil, nil) empty contract as the sqlite and domain repos (ISS-130).
 	if latest == nil {
-		return nil, ErrNotFound
+		return nil, nil
 	}
 	return latest, nil
 }

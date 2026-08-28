@@ -71,6 +71,46 @@ func TestOracleHandler_Latest_MissingParam(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
+// TestOracleHandler_Query_MissingParam is the /query parity regression for
+// ISS-130: a missing source previously fell through to 200 [].
+func TestOracleHandler_Query_MissingParam(t *testing.T) {
+	handler := NewOracleHandler(oracle.NewInmemRepo())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/query", nil)
+	rr := httptest.NewRecorder()
+	handler.Query(rr, req)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+// TestOracleHandler_Query_UnknownSource verifies an unknown source 404s
+// instead of returning an empty 200 [] (ISS-130).
+func TestOracleHandler_Query_UnknownSource(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
+	handler := NewOracleHandler(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/query?source=ghost&limit=5", nil)
+	rr := httptest.NewRecorder()
+	handler.Query(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+	assert.Contains(t, rr.Body.String(), "SOURCE_NOT_FOUND")
+}
+
+// TestOracleHandler_Latest_UnknownSource verifies an unknown source 404s for
+// /latest too (the sqlite-backed path previously misreported it as a 500).
+func TestOracleHandler_Latest_UnknownSource(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
+	handler := NewOracleHandler(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/latest?source=ghost", nil)
+	rr := httptest.NewRecorder()
+	handler.Latest(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+	assert.Contains(t, rr.Body.String(), "SOURCE_NOT_FOUND")
+}
+
 func TestOracleHandler_Latest_Success(t *testing.T) {
 	repo := oracle.NewInmemRepo()
 	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
@@ -280,6 +320,7 @@ func TestOracleHandler_Query_Success(t *testing.T) {
 
 func TestOracleHandler_Query_InvalidLimit(t *testing.T) {
 	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
 	handler := NewOracleHandler(repo)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/query?source=s1&limit=abc", nil)
