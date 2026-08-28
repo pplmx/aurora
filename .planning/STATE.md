@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.86 infra robustness deep-dive (scheduler shutdown cancellation, backup traversal rejection, bounded rate-limiters)
+**Current focus:** v1.87 API-consistency + latent-concurrency sweep (consistent unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry)
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.86 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh, cancellable scheduler fetches, backup traversal rejection, bounded rate-limiters)
+Status: v1.24–v1.87 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh, cancellable scheduler fetches, backup traversal rejection, bounded rate-limiters, unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry)
 Last activity: 2026-08-28 — v1.85 closed (round-97 UX deep-dive: three parallel
   audit agents over the TUI surfaces, CLI ergonomics and web frontend, then
   the top-three verified defects fixed; round-98 drained the backlog:
@@ -150,6 +150,7 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.84 | Voting client-error classification sweep (wrong-length vote key → 400, duplicate roster candidates rejected; triage of has_voted/draft-window/NFT-zero-key to documented design or parked decisions) | ✅ done |
 | v1.85 | UX / interactivity / usability polish (typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh; round-97 backlog fully drained) | ✅ done |
 | v1.86 | Infra robustness deep-dive (cancellable scheduler fetches, backup path-traversal rejection, bounded rate-limiters) | ✅ done |
+| v1.87 | API-consistency + latent-concurrency sweep (unknown oracle source / NFT id → 404 not 200[]/500, /oracle/query missing param → 400, sqlite GetLatestData nil contract, SyncEventBus snapshot-outside-lock, once-guarded MetricsRegistry) | ✅ done |
 
 ## Session Continuity
 
@@ -159,14 +160,23 @@ Last session: 2026-08-28 — v1.85 UX polish fully drained then v1.86 infra
   rate-limiters (TASK-136). DEC-006 recorded that the user's polish
   directive overrides the low dx-category score in RIL priority ranking.
   RIL graph at round 100 (501 nodes).
-Next: convert the round-100 audit backlog — ISS-128 (sync event bus RLock
-  handler self-deadlock, latent), ISS-130 (API resource-status consistency:
-  oracle/latest → 500 on empty source, oracle query + nft history 200 [] on
-  unknown ids, token decimals-0 coercion), ISS-131 (MetricsRegistry lazy-
-  init race, latent), plus whichever findings the pending CLI exit-code
-  audit surfaces. The deferred ISS-084 phantom on-chain blocks on rolled-
-  back transactions remains parked per DEC-002 (cross-DB atomicity redesign;
-  token event trail is already post-commit; reconfirmed by EV-044); NFT
-  zero-key transfer is a product-semantics question parked for operator
-  intent (DEC-005). Use `ril.py tasks --top 10` to load the converted
-  backlog.
+Round 101 (2026-08-29, v1.87) drained the round-100 audit backlog:
+  ISS-128 (SyncEventBus self-deadlock — Publish now snapshots handlers under
+  the read lock and runs them outside it, so a handler may subscribe/
+  unsubscribe during publish; TASK-138, CHG-132), ISS-130 (unknown-resource
+  statuses consistent — /oracle/query missing param → 400 and unknown source
+  → 404, /oracle/latest unknown source → 404 instead of an unclassified 500
+  (sqlite GetLatestData now returns (nil, nil), the interface contract),
+  /nft/{id}/history unknown id → 404; TASK-137, CHG-133), ISS-131
+  (MetricsRegistry lazy-init now sync.Once-guarded so concurrent callers
+  cannot split registries; TASK-139, CHG-134). Stale HYP-003 (TUI keypress
+  forwarding) closed — the round-97 CHG-118 fix landed before it was
+  recorded. RIL graph at round 102 (509 nodes).
+Next: the deferred ISS-084 phantom on-chain blocks on rolled-back
+  transactions remains parked per DEC-002 (cross-DB atomicity redesign; token
+  event trail is already post-commit; reconfirmed by EV-044); NFT zero-key
+  transfer is a product-semantics question parked for operator intent
+  (DEC-005). With the v1.87 backlog drained, the next round should re-run a
+  focused audit (candidate: CLI exit-code/error-output ergonomics, web
+  frontend polish, i18n completeness) or reopen deep-exploration. Use
+  `ril.py tasks --top 10` to load any converted backlog.
