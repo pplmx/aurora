@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 104,
+  "round": 105,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T18:37:54+00:00",
+  "updated_at": "2026-08-28T18:48:02+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6174,6 +6174,31 @@
       "touched_round": 103,
       "commit": "72ef179",
       "title": "CHANGELOG documents the v1.64-v1.87 milestone line with entries lifted from the STATE.md milestone table; fixes TASK-143"
+    },
+    "TASK-144": {
+      "id": "TASK-144",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T18:44:24+00:00",
+      "updated_at": "2026-08-28T18:48:02+00:00",
+      "touched_round": 104,
+      "category": "docs",
+      "severity": 0.25,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "README coverage table is stale (shows ~70-76% domain, SQLite 45.5%) vs measured 87-93% domain / 85% sqlite; refresh the numbers with real go test -cover output"
+    },
+    "CHG-138": {
+      "id": "CHG-138",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-28T18:46:22+00:00",
+      "updated_at": "2026-08-28T18:48:02+00:00",
+      "touched_round": 104,
+      "commit": "489437d",
+      "title": "README coverage table refreshed with measured go test -cover numbers (SQLite 45.5% -> 85.0%); fixes TASK-144"
     }
   },
   "edges": [
@@ -9632,6 +9657,12 @@
       "to": "TASK-143",
       "type": "implements",
       "created_at": "2026-08-28T18:37:54+00:00"
+    },
+    {
+      "from": "CHG-138",
+      "to": "TASK-144",
+      "type": "implements",
+      "created_at": "2026-08-28T18:48:02+00:00"
     }
   ]
 }
