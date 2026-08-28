@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 99,
+  "round": 100,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T13:00:20+00:00",
+  "updated_at": "2026-08-28T15:38:58+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 86,
+      "touched_round": 100,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 96,
+      "touched_round": 100,
       "title": "voting module"
     },
     "CHG-008": {
@@ -1041,7 +1041,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:18:02+00:00",
       "updated_at": "2026-08-23T00:18:02+00:00",
-      "touched_round": 20,
+      "touched_round": 100,
       "title": "internal/metrics"
     },
     "TASK-019": {
@@ -1985,7 +1985,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:53:50+00:00",
       "updated_at": "2026-08-23T04:53:50+00:00",
-      "touched_round": 42,
+      "touched_round": 100,
       "title": "Oracle module scheduler/app"
     },
     "EV-005": {
@@ -2532,7 +2532,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:29:29+00:00",
       "updated_at": "2026-08-23T05:29:29+00:00",
-      "touched_round": 95,
+      "touched_round": 100,
       "title": "Backup/restore subsystem"
     },
     "EV-016": {
@@ -2589,7 +2589,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:33:22+00:00",
       "updated_at": "2026-08-23T05:33:22+00:00",
-      "touched_round": 95,
+      "touched_round": 100,
       "title": "Oracle REST fetcher (infra/http)"
     },
     "EV-017": {
@@ -5856,6 +5856,147 @@
       "touched_round": 99,
       "commit": "ada5683",
       "title": "Auto-refresh + manual refresh button for dashboard/oracle live surfaces; fixes TASK-133/ISS-125"
+    },
+    "TASK-134": {
+      "id": "TASK-134",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T14:16:05+00:00",
+      "updated_at": "2026-08-28T15:38:58+00:00",
+      "touched_round": 100,
+      "category": "stability",
+      "severity": 0.75,
+      "confidence": 0.95,
+      "effort": 3,
+      "title": "Oracle scheduler in-flight fetch is uninterruptible: Run only observes ctx.Done() between passes and the fetch http.Client uses background context with a 10s timeout, so stopScheduler cannot cancel an in-flight pass — shutdown stalls up to N sources x 10s and srv.Close() (# LIFO) closes the sqlite pool under the lingering fetch goroutine, which can still call GetSource/SaveData (err 'sql: database is closed')"
+    },
+    "TASK-135": {
+      "id": "TASK-135",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T14:16:05+00:00",
+      "updated_at": "2026-08-28T15:38:58+00:00",
+      "touched_round": 100,
+      "category": "security",
+      "severity": 0.65,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Backup Verify/Restore path traversal: metadata.Databases names are joined onto backupPath via filepath.Join with no sanitization, so a crafted archive listing a name like '../../<target>.db' makes Verify/Restore stat/hash/open arbitrary host .db files outside the backup directory (fileSHA256 + sql.Open on attacker-influenced paths)"
+    },
+    "TASK-136": {
+      "id": "TASK-136",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T14:16:05+00:00",
+      "updated_at": "2026-08-28T15:38:58+00:00",
+      "touched_round": 100,
+      "category": "security",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 3,
+      "title": "Rate-limiters never evict: FixedWindowLimiter (middleware, buckets map) and RateLimiter (fetcher, requests map) create a key per client/source and never delete it (Reset is never called in the codebase), so memory grows unbounded; middleware is attacker-reachable by varying X-Forwarded-For when trusted proxies are configured"
+    },
+    "ISS-126": {
+      "id": "ISS-126",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T14:17:35+00:00",
+      "updated_at": "2026-08-28T15:38:58+00:00",
+      "touched_round": 100,
+      "severity": 0.5,
+      "title": "Token create API coerces an explicit 0 decimals to the default 8: the handler signals omitted-vs-0 with a *int8 pointer (TASK-099 intent) but dereferences into a plain int8 before resolveDecimals maps <=0 to default — a client cannot express a 0-decimal token and gets a silently different definition"
+    },
+    "ISS-127": {
+      "id": "ISS-127",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T14:17:35+00:00",
+      "updated_at": "2026-08-28T15:38:58+00:00",
+      "touched_round": 100,
+      "severity": 0.5,
+      "title": "GET /api/v1/oracle/latest for a source with no stored observation returns 500: the sqlite repo's unclassified ErrNotFound (vs oracle.ErrSourceNotFound) falls through classifyError's default, misreporting a client-state as a server fault"
+    },
+    "ISS-128": {
+      "id": "ISS-128",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T14:17:35+00:00",
+      "updated_at": "2026-08-28T14:17:35+00:00",
+      "touched_round": 100,
+      "severity": 0.45,
+      "title": "SyncEventBus.Publish holds RLock while running subscribers, so a handler that calls Subscribe/Unsubscribe during publish self-deadlocks the whole bus; today's handlers do not do this so it is a latent trap in the used public API; async/composite busses are currently unwired (dead code)"
+    },
+    "ISS-129": {
+      "id": "ISS-129",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T14:17:35+00:00",
+      "updated_at": "2026-08-28T15:38:58+00:00",
+      "touched_round": 100,
+      "severity": 0.45,
+      "title": "Genesis INSERT prepared statement in blockchain/init.go is never stmt.Close()d — one prepared stmt + C-level sqlite3 statement retained by the shared pool until process exit; runs at every chain init (server boot, CLI, ResetForTest)"
+    },
+    "ISS-130": {
+      "id": "ISS-130",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T14:17:35+00:00",
+      "updated_at": "2026-08-28T14:17:35+00:00",
+      "touched_round": 100,
+      "severity": 0.4,
+      "title": "GET /api/v1/oracle/query validates no source and unknown sources return 200 [] while /latest requires source and 404s; NFT history returns 200 [] for a nonexistent id that /nft/{id} 404s — same-unknown-resource status inconsistency across the API"
+    },
+    "ISS-131": {
+      "id": "ISS-131",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T14:17:35+00:00",
+      "updated_at": "2026-08-28T14:17:35+00:00",
+      "touched_round": 100,
+      "severity": 0.35,
+      "title": "Server.MetricsRegistry() lazy-init is check-then-set with no lock; only reachable if a Server is built without its constructor but a future/test path could race two registries and split counters"
+    },
+    "CHG-129": {
+      "id": "CHG-129",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T15:36:03+00:00",
+      "updated_at": "2026-08-28T15:36:03+00:00",
+      "touched_round": 100,
+      "commit": "68175ed",
+      "title": "Oracle scheduler in-flight fetches cancellable on shutdown via ctx plumbing; fixes TASK-134/ISS-127"
+    },
+    "CHG-130": {
+      "id": "CHG-130",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T15:36:03+00:00",
+      "updated_at": "2026-08-28T15:36:03+00:00",
+      "touched_round": 100,
+      "commit": "0932e41",
+      "title": "Backup Verify/Restore reject path-traversal database names; fixes TASK-135/ISS-126"
+    },
+    "CHG-131": {
+      "id": "CHG-131",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T15:36:03+00:00",
+      "updated_at": "2026-08-28T15:36:03+00:00",
+      "touched_round": 100,
+      "commit": "e978268",
+      "title": "Rate limiters evict idle keys to bound bucket maps; fixes TASK-136/ISS-129"
     }
   },
   "edges": [
@@ -9140,6 +9281,96 @@
       "to": "ISS-125",
       "type": "resolves",
       "created_at": "2026-08-28T12:59:00+00:00"
+    },
+    {
+      "from": "TASK-134",
+      "to": "ISS-127",
+      "type": "addresses",
+      "created_at": "2026-08-28T14:19:46+00:00"
+    },
+    {
+      "from": "TASK-135",
+      "to": "ISS-126",
+      "type": "addresses",
+      "created_at": "2026-08-28T14:19:46+00:00"
+    },
+    {
+      "from": "TASK-136",
+      "to": "ISS-129",
+      "type": "addresses",
+      "created_at": "2026-08-28T14:19:47+00:00"
+    },
+    {
+      "from": "ISS-126",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-08-28T14:24:51+00:00"
+    },
+    {
+      "from": "ISS-127",
+      "to": "COMP-005",
+      "type": "located_in",
+      "created_at": "2026-08-28T14:24:51+00:00"
+    },
+    {
+      "from": "ISS-128",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-28T14:24:51+00:00"
+    },
+    {
+      "from": "ISS-129",
+      "to": "COMP-009",
+      "type": "located_in",
+      "created_at": "2026-08-28T14:24:51+00:00"
+    },
+    {
+      "from": "ISS-130",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-28T14:24:51+00:00"
+    },
+    {
+      "from": "ISS-131",
+      "to": "COMP-003",
+      "type": "located_in",
+      "created_at": "2026-08-28T14:24:51+00:00"
+    },
+    {
+      "from": "CHG-129",
+      "to": "TASK-134",
+      "type": "implements",
+      "created_at": "2026-08-28T15:36:03+00:00"
+    },
+    {
+      "from": "CHG-129",
+      "to": "ISS-127",
+      "type": "resolves",
+      "created_at": "2026-08-28T15:36:04+00:00"
+    },
+    {
+      "from": "CHG-130",
+      "to": "TASK-135",
+      "type": "implements",
+      "created_at": "2026-08-28T15:36:04+00:00"
+    },
+    {
+      "from": "CHG-130",
+      "to": "ISS-126",
+      "type": "resolves",
+      "created_at": "2026-08-28T15:36:04+00:00"
+    },
+    {
+      "from": "CHG-131",
+      "to": "TASK-136",
+      "type": "implements",
+      "created_at": "2026-08-28T15:36:04+00:00"
+    },
+    {
+      "from": "CHG-131",
+      "to": "ISS-129",
+      "type": "resolves",
+      "created_at": "2026-08-28T15:36:04+00:00"
     }
   ]
 }
