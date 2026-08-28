@@ -68,17 +68,33 @@ func (b *SyncEventBus) removeSubscription(sub *subscription) bool {
 }
 
 func (b *SyncEventBus) Publish(e events.Event) error {
+	// Snapshot the handler list under the read lock, then run the handlers
+	// outside it. Invoking handlers while holding RLock self-deadlocks the
+	// whole bus when a handler calls Subscribe/Unsubscribe (each takes the
+	// write lock) during publish — a latent trap in this public API (ISS-128).
+	// The snapshot preserves per-publish ordering and the all-or-nothing
+	// early-return contract: a handler registered mid-publish does not observe
+	// the in-flight event (an RWMutex read lock already excluded concurrent
+	// subscribers from the in-flight iteration), matching prior behavior.
 	b.mu.RLock()
-	defer b.mu.RUnlock()
-
+	globals := make([]Handler, 0, len(b.global))
 	for _, s := range b.global {
-		if err := s.handler(e); err != nil {
+		globals = append(globals, s.handler)
+	}
+	typed := make([]Handler, 0, len(b.handlers[e.EventType()]))
+	for _, s := range b.handlers[e.EventType()] {
+		typed = append(typed, s.handler)
+	}
+	b.mu.RUnlock()
+
+	for _, h := range globals {
+		if err := h(e); err != nil {
 			return err
 		}
 	}
 
-	for _, s := range b.handlers[e.EventType()] {
-		if err := s.handler(e); err != nil {
+	for _, h := range typed {
+		if err := h(e); err != nil {
 			return err
 		}
 	}

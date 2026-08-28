@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/stretchr/testify/assert"
@@ -515,4 +516,72 @@ func TestSyncEventBus_SubscribeAllStaleIndex(t *testing.T) {
 	assert.Equal(t, 0, aCount, "A was unsubscribed")
 	assert.Equal(t, 0, bCount, "B was unsubscribed via stale idx")
 	assert.Equal(t, 1, cCount, "C must remain subscribed")
+}
+
+// TestSyncEventBus_Publish_HandlerMayUnsubscribeDuringPublish is the
+// regression test for ISS-128: Publish previously held RLock across handler
+// invocation, so a handler calling its own unsubscribe closure (which takes
+// the write lock) deadlocked the whole bus. Publish now snapshots the handler
+// list under the read lock and runs handlers outside it.
+//
+// Pre-fix: the first Publish hangs forever (RLock held => writer blocks).
+// Post-fix: the handler runs once, unsubscribes itself, and is not called on
+// subsequent publishes.
+func TestSyncEventBus_Publish_HandlerMayUnsubscribeDuringPublish(t *testing.T) {
+	bus := NewSyncEventBus()
+	var calls int32
+
+	var unsub func()
+	unsub = bus.Subscribe("test.event", func(e events.Event) error {
+		atomic.AddInt32(&calls, 1)
+		unsub() // self-unsubscribe mid-publish
+		return nil
+	})
+
+	done := make(chan error, 1)
+	go func() { done <- bus.Publish(newMockEvent("test.event", "agg-1")) }()
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Publish deadlocked: a handler could not unsubscribe during publish")
+	}
+
+	require.Equal(t, int32(1), atomic.LoadInt32(&calls), "handler must run once")
+
+	require.NoError(t, bus.Publish(newMockEvent("test.event", "agg-2")))
+	require.Equal(t, int32(1), atomic.LoadInt32(&calls), "handler must not run after self-unsubscribe")
+}
+
+// TestSyncEventBus_Publish_HandlerMaySubscribeDuringPublish mirrors the
+// unsubscribe case: a handler that subscribes another handler mid-publish must
+// not deadlock, and the newly registered handler must not observe the in-flight
+// event (the snapshot is taken at publish start) but *must* see subsequent ones.
+func TestSyncEventBus_Publish_HandlerMaySubscribeDuringPublish(t *testing.T) {
+	bus := NewSyncEventBus()
+	var early, late int32
+
+	bus.Subscribe("test.event", func(e events.Event) error {
+		atomic.AddInt32(&early, 1)
+		bus.Subscribe("test.event", func(events.Event) error {
+			atomic.AddInt32(&late, 1)
+			return nil
+		})
+		return nil
+	})
+
+	done := make(chan error, 1)
+	go func() { done <- bus.Publish(newMockEvent("test.event", "agg-1")) }()
+	select {
+	case err := <-done:
+		require.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Publish deadlocked: a handler could not subscribe during publish")
+	}
+
+	require.Equal(t, int32(1), atomic.LoadInt32(&early))
+	require.Equal(t, int32(0), atomic.LoadInt32(&late), "mid-publish subscriber must not see the in-flight event")
+
+	require.NoError(t, bus.Publish(newMockEvent("test.event", "agg-2")))
+	require.Equal(t, int32(1), atomic.LoadInt32(&late), "late subscriber must see subsequent events")
 }
