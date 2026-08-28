@@ -108,6 +108,17 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 	// sent an array + `count`, which the API cannot decode -> the browser
 	// create silently 400'd).
 	require.True(t, strings.Contains(js, "winner_count"), "app.js lottery create must use the winner_count field")
+
+	// TASK-133/ISS-125: live surfaces must not go stale. app.js must expose the
+	// polling helper and a refresh() on dashboard + oracle, and the two pages
+	// must expose a visible refresh control wired to it.
+	require.True(t, strings.Contains(js, "function startPolling("), "app.js must expose startPolling")
+	require.True(t, strings.Contains(js, "startPolling(this, 15000)"), "app.js must auto-poll dashboard + oracle surfaces")
+	dashboard := requireServedAsset(t, handler, "/", `window.AURORA_API_KEY = "test-serve-key";`)
+	require.Contains(t, dashboard, `@click="refresh()"`, "dashboard must expose a refresh button")
+	oracle := requireServedAsset(t, handler, "/oracle.html", `window.AURORA_API_KEY = "test-serve-key";`)
+	require.Contains(t, oracle, `@click="refresh()"`, "oracle page must expose a refresh button")
+
 	requireServedAsset(t, handler, "/css/style.css", "--accent-voting")
 }
 

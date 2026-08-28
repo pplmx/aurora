@@ -153,6 +153,17 @@ button:hover {
     opacity: 0.9;
 }
 
+.btn-refresh {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--text-secondary);
+    border-radius: 6px;
+    margin-left: 12px;
+    vertical-align: middle;
+}
+
 .btn-lottery {
     background-color: var(--accent-lottery);
     color: #fff;
