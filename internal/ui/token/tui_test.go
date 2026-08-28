@@ -104,7 +104,7 @@ func TestMintViewRendersWithoutToken(t *testing.T) {
 	app.view = "mint"
 	app.currentToken = nil
 	view := app.mintView()
-	assert.Contains(t, view, "请先创建代币")
+	assert.Contains(t, view, i18n.GetText("token.tui.no_token"))
 }
 
 func TestTransferViewRendersWithoutToken(t *testing.T) {
@@ -112,7 +112,7 @@ func TestTransferViewRendersWithoutToken(t *testing.T) {
 	app.view = "transfer"
 	app.currentToken = nil
 	view := app.transferView()
-	assert.Contains(t, view, "请先创建代币")
+	assert.Contains(t, view, i18n.GetText("token.tui.no_token"))
 }
 
 func TestBalanceViewRenders(t *testing.T) {
@@ -1012,4 +1012,23 @@ func TestView_HelpScreenContent(t *testing.T) {
 	app := NewTokenApp()
 	app.showHelp = true
 	assert.Contains(t, app.View().Content, i18n.GetText("tui.help.title"))
+}
+
+// TestMintViewNoToken_Localized pins the TASK-131/ISS-120 fix: the token
+// TUI's views must follow the active locale instead of rendering hardcoded
+// CJK — zh surfaces Chinese, en surfaces English, and no raw CJK literal
+// leaks into an en session.
+func TestMintViewNoToken_Localized(t *testing.T) {
+	translator := i18n.GetTranslator()
+	prev := translator.GetLocale()
+	defer func() { translator.SetLocale(prev) }()
+
+	translator.SetLocale("zh")
+	app := NewTokenApp()
+	app.view = "mint"
+	app.currentToken = nil
+	assert.Contains(t, app.mintView(), "请先创建代币")
+
+	translator.SetLocale("en")
+	assert.Contains(t, app.mintView(), "Please create a token first")
 }

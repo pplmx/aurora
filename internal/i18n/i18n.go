@@ -124,6 +124,9 @@ func (tr *Translator) loadMessages() {
 		"lottery.tui.seed_required":         "Seed is required",
 		"lottery.tui.create_failed":         "Failed to create lottery, please try again",
 		"lottery.tui.created_onchain":       "Lottery created and stored on-chain",
+		"lottery.tui.no_records":            "No lottery records yet",
+		"lottery.tui.create_hint":           "Use 'lottery create' to create a lottery",
+		"lottery.tui.history_item":          "--- Lottery #%d ---\n%s\n\n",
 
 		// ===== VOTING =====
 		// Commands
@@ -279,12 +282,26 @@ func (tr *Translator) loadMessages() {
 		"token.no_history":  "No transfer history found",
 
 		// TUI
-		"token.tui.title":    "Token System",
-		"token.tui.create":   "Create Token",
-		"token.tui.mint":     "Mint Tokens",
-		"token.tui.transfer": "Transfer Tokens",
-		"token.tui.query":    "Query Balance",
-		"token.tui.exit":     "Exit",
+		"token.tui.title":           "Token System",
+		"token.tui.create":          "Create Token",
+		"token.tui.mint":            "Mint Tokens",
+		"token.tui.transfer":        "Transfer Tokens",
+		"token.tui.query":           "Query Balance",
+		"token.tui.no_token":        "Please create a token first",
+		"token.tui.token_label":     "Token",
+		"token.tui.from_label":      "From",
+		"token.tui.balance_label":   "Balance",
+		"token.tui.address_label":   "Address",
+		"token.tui.no_tokens_view":  "No tokens yet",
+		"token.tui.create_hint":     "Use 'Create Token' to create a token",
+		"token.tui.history_failed":  "Failed to load history: %s",
+		"token.tui.no_transfers":    "No transfer records yet",
+		"token.tui.transfer_hint":   "Records appear after transfers",
+		"token.tui.transfer_header": "--- Transfer #%d ---",
+		"token.tui.from_b64":        "From: %s...",
+		"token.tui.to_b64":          "To: %s...",
+		"token.tui.amount_qty":      "Amount: %s %s",
+		"token.tui.exit":            "Exit",
 
 		// ===== ORACLE =====
 		// Commands
@@ -465,6 +482,9 @@ func (tr *Translator) loadMessages() {
 		"lottery.tui.seed_required":         "请输入随机种子",
 		"lottery.tui.create_failed":         "抽奖创建失败，请稍后重试",
 		"lottery.tui.created_onchain":       "抽奖已创建并上链",
+		"lottery.tui.no_records":            "暂无抽奖记录",
+		"lottery.tui.create_hint":           "使用 'lottery create' 创建抽奖",
+		"lottery.tui.history_item":          "--- 抽奖 #%d ---\n%s\n\n",
 
 		// ===== VOTING =====
 		// Commands
@@ -620,12 +640,26 @@ func (tr *Translator) loadMessages() {
 		"token.no_history":  "未找到转账历史",
 
 		// TUI
-		"token.tui.title":    "代币系统",
-		"token.tui.create":   "创建代币",
-		"token.tui.mint":     "铸造代币",
-		"token.tui.transfer": "转移代币",
-		"token.tui.query":    "查询余额",
-		"token.tui.exit":     "退出",
+		"token.tui.title":           "代币系统",
+		"token.tui.create":          "创建代币",
+		"token.tui.mint":            "铸造代币",
+		"token.tui.transfer":        "转移代币",
+		"token.tui.query":           "查询余额",
+		"token.tui.exit":            "退出",
+		"token.tui.no_token":        "请先创建代币",
+		"token.tui.token_label":     "代币",
+		"token.tui.from_label":      "从",
+		"token.tui.balance_label":   "余额",
+		"token.tui.address_label":   "地址",
+		"token.tui.no_tokens_view":  "暂无代币",
+		"token.tui.create_hint":     "使用 '创建代币' 创建代币",
+		"token.tui.history_failed":  "加载历史失败: %s",
+		"token.tui.no_transfers":    "暂无转账记录",
+		"token.tui.transfer_hint":   "进行转账操作后会显示记录",
+		"token.tui.transfer_header": "--- 转账 #%d ---",
+		"token.tui.from_b64":        "从: %s...",
+		"token.tui.to_b64":          "到: %s...",
+		"token.tui.amount_qty":      "数量: %s %s",
 
 		// ===== ORACLE =====
 		// Commands
