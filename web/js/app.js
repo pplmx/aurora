@@ -5,6 +5,50 @@ function auroraHeaders(extra) {
     return Object.assign({ 'X-API-Key': window.AURORA_API_KEY || '' }, extra || {});
 }
 
+// A single, fixed, visible banner for API failures (round-97 TASK-124).
+// List GETs previously stored the {error, code} envelope into array state on a
+// missing/expired key, rendering blank pages with zero feedback. All fetch
+// sites now go through apiFetch, which checks res.ok and surfaces the failure
+// here in the DOM instead of silently swallowing it.
+(function () {
+    let banner = null;
+    function ensureBanner() {
+        if (banner) return banner;
+        banner = document.createElement('div');
+        banner.id = 'api-error-banner';
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;' +
+            'color:#fff;padding:10px 16px;text-align:center;font:13px/1.4 system-ui,sans-serif;' +
+            'display:none;box-shadow:0 2px 6px rgba(0,0,0,.3);';
+        document.body.appendChild(banner);
+        return banner;
+    }
+    window.showApiError = function (msg) {
+        const b = ensureBanner();
+        if (!msg) { b.style.display = 'none'; return; }
+        b.textContent = 'API error: ' + msg;
+        b.style.display = 'block';
+    };
+})();
+
+// apiFetch performs a same-origin API call with the injected key, checks
+// res.ok, and on a non-2xx response extracts the API's {error, code} envelope
+// (falling back to the HTTP status), shows it in the shared banner and throws.
+// Callers keep list state valid (e.g. []) in their catch so a failure renders
+// an empty/error UI instead of a non-array that Alpine's x-for rejects.
+async function apiFetch(path, options) {
+    const res = await fetch(path, Object.assign({ headers: auroraHeaders() }, options || {}));
+    if (!res.ok) {
+        let msg = 'HTTP ' + res.status;
+        try {
+            const body = await res.json();
+            if (body && (body.error || body.message)) msg = String(body.error || body.message) + ' (' + res.status + ')';
+        } catch (_) { /* non-JSON error body */ }
+        window.showApiError(msg);
+        throw new Error(msg);
+    }
+    return res;
+}
+
 function lotteryApp() {
     return {
         participants: '',
@@ -20,7 +64,7 @@ function lotteryApp() {
         },
         async verifyDraw() {
             try {
-                const res = await fetch('/api/v1/lottery/' + encodeURIComponent(this.verifyId) + '/verify', { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/lottery/' + encodeURIComponent(this.verifyId) + '/verify');
                 this.verifyResult = JSON.stringify(await res.json(), null, 2);
             } catch (e) {
                 this.verifyResult = 'Error: ' + e.message;
@@ -29,18 +73,19 @@ function lotteryApp() {
         async loadHistory() {
             this.loading = true;
             try {
-                const res = await fetch('/api/v1/lottery/history', { headers: auroraHeaders() });
-                this.history = await res.json();
+                const res = await apiFetch('/api/v1/lottery/history');
+                const data = await res.json();
+                this.history = Array.isArray(data) ? data : [];
             } catch (e) {
-                console.error(e);
+                this.history = [];
             }
             this.loading = false;
         },
         async createLottery() {
             try {
-                const res = await fetch('/api/v1/lottery/create', {
+                const res = await apiFetch('/api/v1/lottery/create', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         participants: this.participants.split(',').map(p => p.trim()).filter(Boolean).join(','),
                         seed: this.seed || undefined,
@@ -75,7 +120,7 @@ function dashboardApp() {
         },
         async loadLotteries() {
             try {
-                const res = await fetch('/api/v1/lottery/history', { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/lottery/history');
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     this.stats.lotteries = data.length;
@@ -94,8 +139,8 @@ function dashboardApp() {
         async loadVoting() {
             try {
                 const [candRes, sessRes] = await Promise.all([
-                    fetch('/api/v1/voting/candidates', { headers: auroraHeaders() }),
-                    fetch('/api/v1/voting/sessions', { headers: auroraHeaders() })
+                    apiFetch('/api/v1/voting/candidates'),
+                    apiFetch('/api/v1/voting/sessions')
                 ]);
                 const candidates = await candRes.json();
                 const sessions = await sessRes.json();
@@ -121,12 +166,7 @@ function dashboardApp() {
         },
         async loadBlockchain() {
             try {
-                const res = await fetch('/api/v1/blockchain/verify', { headers: auroraHeaders() });
-                if (!res.ok) {
-                    this.stats.integrity = '?';
-                    return;
-                }
-                const report = await res.json();
+                const report = await (await apiFetch('/api/v1/blockchain/verify')).json();
                 this.stats.integrity = report.valid ? 'OK' : 'BROKEN';
             } catch (e) {
                 this.stats.integrity = '?';
@@ -135,9 +175,7 @@ function dashboardApp() {
         },
         async loadOracleHealth() {
             try {
-                const res = await fetch('/api/v1/oracle/health', { headers: auroraHeaders() });
-                if (!res.ok) { this.stats.oracle = '?'; return; }
-                const feeds = await res.json();
+                const feeds = await (await apiFetch('/api/v1/oracle/health')).json();
                 if (!Array.isArray(feeds) || feeds.length === 0) { this.stats.oracle = '-'; return; }
                 const healthy = feeds.filter(f => f.successes > 0 && f.failures === 0).length;
                 const failed = feeds.filter(f => f.failures > 0).length;
@@ -199,49 +237,69 @@ function nftApp() {
         historyId: '',
         historyResult: '',
         async mint() {
-            this.mintResult = await this.post('/api/v1/nft/mint', {
-                name: this.name,
-                description: this.description || undefined,
-                image_url: this.imageUrl || undefined,
-                token_uri: this.tokenUri || undefined,
-                creator: this.creator
-            });
+            try {
+                this.mintResult = await this.post('/api/v1/nft/mint', {
+                    name: this.name,
+                    description: this.description || undefined,
+                    image_url: this.imageUrl || undefined,
+                    token_uri: this.tokenUri || undefined,
+                    creator: this.creator
+                });
+            } catch (e) {
+                this.mintResult = 'Error: ' + e.message;
+            }
         },
         async list() {
-            const res = await fetch('/api/v1/nft/list?owner=' + encodeURIComponent(this.owner), { headers: auroraHeaders() });
-            this.listResult = await this.text(res);
+            try {
+                const res = await apiFetch('/api/v1/nft/list?owner=' + encodeURIComponent(this.owner));
+                this.listResult = await this.text(res);
+            } catch (e) {
+                this.listResult = 'Error: ' + e.message;
+            }
         },
         async get() {
-            const res = await fetch('/api/v1/nft/' + encodeURIComponent(this.id), { headers: auroraHeaders() });
-            this.getResult = await this.text(res);
+            try {
+                const res = await apiFetch('/api/v1/nft/' + encodeURIComponent(this.id));
+                this.getResult = await this.text(res);
+            } catch (e) {
+                this.getResult = 'Error: ' + e.message;
+            }
         },
         async history() {
             try {
-                const res = await fetch('/api/v1/nft/' + encodeURIComponent(this.historyId) + '/history', { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/nft/' + encodeURIComponent(this.historyId) + '/history');
                 this.historyResult = JSON.stringify(await res.json(), null, 2);
             } catch (e) {
                 this.historyResult = 'Error: ' + e.message;
             }
         },
         async transfer() {
-            this.transferResult = await this.post('/api/v1/nft/transfer', {
-                nft_id: this.id,
-                from: this.from,
-                to: this.to,
-                private_key: this.privateKey
-            });
+            try {
+                this.transferResult = await this.post('/api/v1/nft/transfer', {
+                    nft_id: this.id,
+                    from: this.from,
+                    to: this.to,
+                    private_key: this.privateKey
+                });
+            } catch (e) {
+                this.transferResult = 'Error: ' + e.message;
+            }
         },
         async burn() {
-            this.burnResult = await this.post('/api/v1/nft/burn', {
-                nft_id: this.id,
-                owner: this.owner,
-                private_key: this.privateKey
-            });
+            try {
+                this.burnResult = await this.post('/api/v1/nft/burn', {
+                    nft_id: this.id,
+                    owner: this.owner,
+                    private_key: this.privateKey
+                });
+            } catch (e) {
+                this.burnResult = 'Error: ' + e.message;
+            }
         },
         async post(url, body) {
-            const res = await fetch(url, {
+            const res = await apiFetch(url, {
                 method: 'POST',
-                headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
             return this.text(res);
@@ -287,17 +345,21 @@ function votingApp() {
         },
         async loadCandidates() {
             try {
-                const res = await fetch('/api/v1/voting/candidates', { headers: auroraHeaders() });
-                this.candidates = await res.json();
+                const res = await apiFetch('/api/v1/voting/candidates');
+                const data = await res.json();
+                this.candidates = Array.isArray(data) ? data : [];
             } catch (e) {
+                this.candidates = [];
                 console.error(e);
             }
         },
         async loadSessions() {
             try {
-                const res = await fetch('/api/v1/voting/sessions', { headers: auroraHeaders() });
-                this.sessions = await res.json();
+                const res = await apiFetch('/api/v1/voting/sessions');
+                const data = await res.json();
+                this.sessions = Array.isArray(data) ? data : [];
             } catch (e) {
+                this.sessions = [];
                 console.error(e);
             }
         },
@@ -316,13 +378,13 @@ function votingApp() {
         },
         async registerVoter() {
             try {
-                const res = await fetch('/api/v1/voting/register/voter', {
+                const res = await apiFetch('/api/v1/voting/register/voter', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: this.voterName })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.voterResult = 'Error: ' + (data.message || res.status); return; }
+                if (!res.ok) { this.voterResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.voterResult = 'Voter registered as ' + data.name + ' (public key: ' + data.public_key + ')';
                 this.voterPrivateKey = data.private_key;
                 this.voteVoterPub = data.public_key;
@@ -334,9 +396,9 @@ function votingApp() {
         },
         async registerCandidate() {
             try {
-                const res = await fetch('/api/v1/voting/register/candidate', {
+                const res = await apiFetch('/api/v1/voting/register/candidate', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name: this.candName,
                         party: this.candParty,
@@ -344,7 +406,7 @@ function votingApp() {
                     })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.candResult = 'Error: ' + (data.message || res.status); return; }
+                if (!res.ok) { this.candResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.candResult = 'Candidate "' + data.name + '" registered (id: ' + data.id + ')';
                 this.candName = '';
                 this.candParty = '';
@@ -356,9 +418,9 @@ function votingApp() {
         },
         async createSession() {
             try {
-                const res = await fetch('/api/v1/voting/session', {
+                const res = await apiFetch('/api/v1/voting/session', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         title: this.sessionTitle,
                         description: this.sessionDesc,
@@ -368,7 +430,7 @@ function votingApp() {
                     })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.sessionResult = 'Error: ' + (data.message || res.status); return; }
+                if (!res.ok) { this.sessionResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.sessionResult = 'Session "' + data.title + '" created (id: ' + data.id + ')';
                 this.sessionTitle = '';
                 this.sessionDesc = '';
@@ -382,9 +444,9 @@ function votingApp() {
         },
         async castVote() {
             try {
-                const res = await fetch('/api/v1/voting/vote', {
+                const res = await apiFetch('/api/v1/voting/vote', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         voter_public_key: this.voteVoterPub,
                         candidate_id: this.voteCandidateId,
@@ -393,7 +455,7 @@ function votingApp() {
                     })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.voteResult = 'Error: ' + (data.message || res.status); return; }
+                if (!res.ok) { this.voteResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.voteResult = 'Vote recorded (id: ' + data.id + ', block height: ' + data.block_height + ')';
                 await this.loadCandidates();
             } catch (e) {
@@ -402,11 +464,11 @@ function votingApp() {
         },
         async loadResults() {
             try {
-                const res = await fetch('/api/v1/voting/results/' + encodeURIComponent(this.resultsSessionId), { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/voting/results/' + encodeURIComponent(this.resultsSessionId));
                 const data = await res.json();
                 if (!res.ok) {
                     this.results = null;
-                    this.resultsError = 'Error: ' + (data.message || res.status);
+                    this.resultsError = 'Error: ' + (data.error || data.message || res.status);
                     return;
                 }
                 this.results = data;
@@ -426,9 +488,9 @@ function votingApp() {
         },
         async sessionAction(url) {
             try {
-                const res = await fetch(url, { method: 'POST', headers: auroraHeaders() });
+                const res = await apiFetch(url, { method: 'POST' });
                 const data = await res.json();
-                if (!res.ok) { this.controlResult = 'Error: ' + (data.message || res.status); return; }
+                if (!res.ok) { this.controlResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.controlResult = 'Session status: ' + (data.status || '?');
                 await this.loadSessions();
             } catch (e) {
@@ -451,18 +513,18 @@ function tokenApp() {
         tfOwner: '', tfTo: '', tfAmount: '', tfSpender: '', tfSpenderKey: '', tfResult: '',
         history: [],
         async postToken(url, body) {
-            const res = await fetch(url, {
+            const res = await apiFetch(url, {
                 method: 'POST',
-                headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
             return JSON.stringify(await res.json(), null, 2);
         },
         async createToken() {
             try {
-                const res = await fetch('/api/v1/token/create', {
+                const res = await apiFetch('/api/v1/token/create', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name: this.name, symbol: this.symbol, total_supply: this.supply })
                 });
                 const data = await res.json();
@@ -473,7 +535,7 @@ function tokenApp() {
         },
         async getBalance() {
             try {
-                const res = await fetch('/api/v1/token/balance?token_id=' + encodeURIComponent(this.tokenId) + '&owner=' + encodeURIComponent(this.owner), { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/token/balance?token_id=' + encodeURIComponent(this.tokenId) + '&owner=' + encodeURIComponent(this.owner));
                 this.balance = JSON.stringify(await res.json(), null, 2);
             } catch (e) {
                 this.balance = 'Error: ' + e.message;
@@ -481,7 +543,7 @@ function tokenApp() {
         },
         async info() {
             try {
-                const res = await fetch('/api/v1/token/info?token_id=' + encodeURIComponent(this.infoId), { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/token/info?token_id=' + encodeURIComponent(this.infoId));
                 this.infoResult = JSON.stringify(await res.json(), null, 2);
             } catch (e) {
                 this.infoResult = 'Error: ' + e.message;
@@ -489,9 +551,9 @@ function tokenApp() {
         },
         async mint() {
             try {
-                const res = await fetch('/api/v1/token/mint', {
+                const res = await apiFetch('/api/v1/token/mint', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token_id: this.tokenId, to: this.mintTo, amount: this.mintAmount, private_key: this.mintPriv })
                 });
                 this.mintResult = JSON.stringify(await res.json(), null, 2);
@@ -522,9 +584,8 @@ function tokenApp() {
         },
         async getAllowance() {
             try {
-                const res = await fetch('/api/v1/token/allowance?token_id=' + encodeURIComponent(this.tokenId) +
-                    '&owner=' + encodeURIComponent(this.owner) + '&spender=' + encodeURIComponent(this.allowanceSpender),
-                    { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/token/allowance?token_id=' + encodeURIComponent(this.tokenId) +
+                    '&owner=' + encodeURIComponent(this.owner) + '&spender=' + encodeURIComponent(this.allowanceSpender));
                 this.allowanceResult = JSON.stringify(await res.json(), null, 2);
             } catch (e) {
                 this.allowanceResult = 'Error: ' + e.message;
@@ -552,9 +613,9 @@ function tokenApp() {
         },
         async loadHistory() {
             try {
-                const res = await fetch('/api/v1/token/history?token_id=' + encodeURIComponent(this.tokenId) + '&owner=' + encodeURIComponent(this.owner), { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/token/history?token_id=' + encodeURIComponent(this.tokenId) + '&owner=' + encodeURIComponent(this.owner));
                 const data = await res.json();
-                this.history = Array.isArray(data) ? data : (data.data || []);
+                this.history = Array.isArray(data) ? data : (Array.isArray(data && data.data) ? data.data : []);
             } catch (e) {
                 this.history = [];
             }
@@ -577,7 +638,7 @@ function oracleApp() {
         async init() { await Promise.all([this.listSources(), this.loadHealth(), this.loadTemplates()]); },
         async loadTemplates() {
             try {
-                const res = await fetch('/api/v1/oracle/templates', { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/oracle/templates');
                 const data = await res.json();
                 this.templates = Array.isArray(data) ? data : [];
             } catch (e) { this.templates = []; }
@@ -595,7 +656,7 @@ function oracleApp() {
         async loadHealth() {
             this.loadingHealth = true;
             try {
-                const res = await fetch('/api/v1/oracle/health', { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/oracle/health');
                 const data = await res.json();
                 this.health = Array.isArray(data) ? data : [];
             } catch (e) { this.health = []; }
@@ -603,9 +664,9 @@ function oracleApp() {
         },
         async addSource() {
             try {
-                const res = await fetch('/api/v1/oracle/sources', {
+                const res = await apiFetch('/api/v1/oracle/sources', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name: this.addName,
                         url: this.addUrl,
@@ -616,7 +677,7 @@ function oracleApp() {
                     })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.addResult = 'Error: ' + (data.message || res.status); return; }
+                if (!res.ok) { this.addResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.addResult = 'Source "' + data.name + '" added (id: ' + data.id + ')';
                 this.addName = ''; this.addUrl = ''; this.addType = ''; this.addMethod = ''; this.addPath = '';
                 await this.listSources();
@@ -626,9 +687,9 @@ function oracleApp() {
         },
         async setEnabled(source, enabled) {
             try {
-                const res = await fetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
+                const res = await apiFetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
                     method: 'PATCH',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: enabled })
                 });
                 if (!res.ok) { alert('Failed to ' + (enabled ? 'enable' : 'disable') + ' source'); }
@@ -638,9 +699,8 @@ function oracleApp() {
         async deleteSource(source) {
             if (!confirm('Delete source "' + (source.name || source.id) + '"?')) return;
             try {
-                const res = await fetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
-                    method: 'DELETE',
-                    headers: auroraHeaders()
+                const res = await apiFetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
+                    method: 'DELETE'
                 });
                 if (!res.ok) { alert('Failed to delete source'); }
                 await this.listSources();
@@ -649,7 +709,7 @@ function oracleApp() {
         async listSources() {
             this.loading = true;
             try {
-                const res = await fetch('/api/v1/oracle/sources', { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/oracle/sources');
                 const data = await res.json();
                 this.sources = (data && data.sources) || [];
             } catch (e) { this.sources = []; }
@@ -657,9 +717,9 @@ function oracleApp() {
         },
         async fetch() {
             try {
-                const res = await fetch('/api/v1/oracle/fetch', {
+                const res = await apiFetch('/api/v1/oracle/fetch', {
                     method: 'POST',
-                    headers: auroraHeaders({ 'Content-Type': 'application/json' }),
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ source: this.fetchSource })
                 });
                 this.fetchResult = JSON.stringify(await res.json(), null, 2);
@@ -669,14 +729,14 @@ function oracleApp() {
         },
         async query() {
             try {
-                const res = await fetch('/api/v1/oracle/query?source=' + encodeURIComponent(this.querySource) + '&limit=' + this.queryLimit, { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/oracle/query?source=' + encodeURIComponent(this.querySource) + '&limit=' + this.queryLimit);
                 const data = await res.json();
                 this.queryRows = (data && data.data) || [];
             } catch (e) { this.queryRows = []; }
         },
         async latest() {
             try {
-                const res = await fetch('/api/v1/oracle/latest?source=' + encodeURIComponent(this.latestSource), { headers: auroraHeaders() });
+                const res = await apiFetch('/api/v1/oracle/latest?source=' + encodeURIComponent(this.latestSource));
                 this.latestResult = JSON.stringify(await res.json(), null, 2);
             } catch (e) {
                 this.latestResult = 'Error: ' + e.message;
