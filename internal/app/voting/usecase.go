@@ -138,6 +138,14 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		// INTERNAL_ERROR (TASK-095, ISS-089).
 		return nil, fmt.Errorf("invalid private key encoding: %w", voting.ErrInvalidBase64)
 	}
+	// A valid-base64 but wrong-length key is the same client-error class, but
+	// previously escaped as a 500: Ed25519Service.SignVote rejects the length
+	// with a plain error the classifier does not match. Validate the length here
+	// so the API can classify it as a 4xx, mirroring the NFT boundary
+	// (internal/app/nft/decode.go) and ErrInvalidBase64 above (TASK-121, ISS-113).
+	if len(privBytes) != ed25519.PrivateKeySize {
+		return nil, fmt.Errorf("invalid private key length: %w", voting.ErrInvalidPrivateKey)
+	}
 
 	timestamp := time.Now().Unix()
 	message := fmt.Sprintf("%s|%s|%d", req.VoterPublicKey, req.CandidateID, timestamp)
@@ -334,6 +342,18 @@ func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionRespo
 	}
 	if req.EndTime <= req.StartTime {
 		return nil, voting.ErrInvalidSessionTime
+	}
+	// Reject duplicate candidate IDs before the existence scan: results sum each
+	// roster candidate's full vote_count per entry, so a roster with the same
+	// candidate twice would double-count the tally and render the candidate
+	// twice. Reachable from both the API (candidate_ids: ["c1","c1"]) and the
+	// CLI (-c c1 -c c1) (TASK-122, ISS-114).
+	seen := make(map[string]bool, len(req.CandidateIDs))
+	for _, id := range req.CandidateIDs {
+		if seen[id] {
+			return nil, voting.ErrDuplicateCandidate
+		}
+		seen[id] = true
 	}
 	// The session stores candidate IDs as references; reject dangling
 	// references up front so a session never points at candidates that do

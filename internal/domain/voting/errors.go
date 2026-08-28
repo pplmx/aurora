@@ -25,6 +25,12 @@ var (
 	// decoded at all — a client input error (HTTP 400), not a server fault
 	// (TASK-095, ISS-089).
 	ErrInvalidBase64 = errors.New("invalid base64 encoding")
+	// ErrInvalidPrivateKey is returned when a private key decodes as valid
+	// base64 but is not ed25519.PrivateKeySize bytes. Without this sentinel the
+	// raw length error from Ed25519Service.SignVote was unclassified and the API
+	// surfaced it as 500 instead of a client 400 — inconsistent with the NFT
+	// boundary and with ErrInvalidBase64 here (TASK-121, ISS-113).
+	ErrInvalidPrivateKey = errors.New("invalid private key length")
 
 	// Validation sentinels. These let API handlers classify client input
 	// errors as 400s instead of falling through to 500.
@@ -33,4 +39,9 @@ var (
 	ErrSessionTitleRequired  = errors.New("session title is required")
 	ErrInvalidSessionTime    = errors.New("session end time must be after start time")
 	ErrCandidatesRequired    = errors.New("at least one candidate is required")
+	// ErrDuplicateCandidate rejects a session roster that names the same
+	// candidate more than once: results sum the candidate's full vote_count per
+	// roster entry, so a duplicate would double-count the tally and render the
+	// candidate twice (TASK-122, ISS-114).
+	ErrDuplicateCandidate = errors.New("duplicate candidate in session roster")
 )
