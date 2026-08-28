@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -295,6 +296,25 @@ func querySchemaVersion(path string) uint {
 	return uint(version)
 }
 
+// validateDatabaseName rejects a database name read from backup metadata that
+// would escape the backup directory when joined onto it. Backup archives are
+// operator-supplied (possibly hostile: `backup verify/restore` runs on
+// whatever archive is given), so a name like "../../host" must not turn the
+// later filepath.Join(backupPath, name+".db") into an arbitrary host path
+// that Verify would stat/hash/open (TASK-135, ISS-126).
+func validateDatabaseName(name string) error {
+	if name == "" {
+		return errors.New("empty database name")
+	}
+	if name == "." || name == ".." {
+		return fmt.Errorf("invalid database name %q", name)
+	}
+	if strings.ContainsAny(name, `/\`) || strings.Contains(name, "\x00") {
+		return fmt.Errorf("invalid database name %q: must be a plain filename", name)
+	}
+	return nil
+}
+
 func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 	metaPath := filepath.Join(backupPath, "metadata.json")
 	metaData, err := os.ReadFile(metaPath)
@@ -316,6 +336,12 @@ func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 	computed := fmt.Sprintf("%x", sha256.Sum256(recomputed))
 	if storedChecksum != computed {
 		return fmt.Errorf("checksum mismatch: backup may be corrupted")
+	}
+
+	for _, name := range metadata.Databases {
+		if err := validateDatabaseName(name); err != nil {
+			return fmt.Errorf("invalid database name in backup metadata: %w", err)
+		}
 	}
 
 	for _, name := range metadata.Databases {
@@ -378,6 +404,16 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 	var metadata BackupMetadata
 	if err := json.Unmarshal(metaData, &metadata); err != nil {
 		return fmt.Errorf("parse metadata: %w", err)
+	}
+
+	// Defense in depth: Verify already rejects hostile names, but Restore
+	// re-reads the archive metadata independently — validate again so a
+	// future caller that skips Verify cannot reach filepath.Join with a
+	// traversal name (TASK-135, ISS-126).
+	for _, name := range metadata.Databases {
+		if err := validateDatabaseName(name); err != nil {
+			return fmt.Errorf("invalid database name in backup metadata: %w", err)
+		}
 	}
 
 	preRestoreDir := backupPath + ".pre_restore"

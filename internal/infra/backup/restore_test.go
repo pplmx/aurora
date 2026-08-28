@@ -581,3 +581,74 @@ func TestRestore_LeavesNoTempSiblingAfterSuccess(t *testing.T) {
 		t.Fatalf("no temp sibling left in dst dir (err=%v)", err)
 	}
 }
+
+// TestVerify_PathTraversalDatabaseName pins the TASK-135/ISS-126 fix: a
+// malicious archive whose metadata lists a database name that escapes the
+// backup directory (e.g. "../../victim") must be rejected before Verify joins
+// it onto backupPath and stats/hashes/opens an arbitrary host file.
+func TestVerify_PathTraversalDatabaseName(t *testing.T) {
+	tmp := t.TempDir()
+	backupDir := filepath.Join(tmp, "backup")
+	if err := os.MkdirAll(backupDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// A valid-checksum metadata that names a traversal database. writeMeta only
+	// writes single plain names, so build it inline (same checksum protocol).
+	meta := BackupMetadata{
+		Version:       "1.2",
+		Timestamp:     "2026-04-30T00:00:00Z",
+		Checksum:      "",
+		Databases:     []string{"../../victim"},
+		SchemaVersion: 1,
+	}
+	raw, _ := json.Marshal(meta)
+	meta.Checksum = sha256hex(raw)
+	raw, _ = json.MarshalIndent(meta, "", "  ")
+	if err := os.WriteFile(filepath.Join(backupDir, "metadata.json"), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// The traversal name maps to a real file outside backupDir; without the
+	// validation guarantee this would be opened by Verify.
+	if err := os.WriteFile(filepath.Join(tmp, "victim.db"), []byte("host data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc := NewBackupService(map[string]string{"x": "/tmp/x.db"})
+	err := svc.Verify(context.Background(), backupDir)
+	if err == nil {
+		t.Fatal("expected traversal database name to be rejected, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid database name") {
+		t.Fatalf("expected invalid-database-name error, got: %v", err)
+	}
+}
+
+// TestRestore_PathTraversalDatabaseName is the Restore-level twin: the
+// defense-in-depth validation in Restore's own metadata read must reject a
+// traversal name even though Verify's guard runs first.
+func TestRestore_PathTraversalDatabaseName(t *testing.T) {
+	tmp := t.TempDir()
+	backupDir := filepath.Join(tmp, "backup")
+	if err := os.MkdirAll(backupDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	meta := BackupMetadata{
+		Version:       "1.2",
+		Timestamp:     "2026-04-30T00:00:00Z",
+		Checksum:      "",
+		Databases:     []string{"..\\..\\victim"},
+		SchemaVersion: 1,
+	}
+	raw, _ := json.Marshal(meta)
+	meta.Checksum = sha256hex(raw)
+	raw, _ = json.MarshalIndent(meta, "", "  ")
+	if err := os.WriteFile(filepath.Join(backupDir, "metadata.json"), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc := NewBackupService(map[string]string{"x": "/tmp/x.db"})
+	if err := svc.Restore(context.Background(), backupDir); err == nil {
+		t.Fatal("expected traversal database name to be rejected on restore, got nil")
+	}
+}
