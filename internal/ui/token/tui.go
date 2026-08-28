@@ -537,9 +537,9 @@ func (m *model) mintView() string {
 	s := components.HeaderStyle().Render("✨ "+i18n.GetText("token.tui.mint")) + "\n\n"
 
 	if m.currentToken == nil {
-		s += components.WarningStyle().Render("请先创建代币") + "\n\n"
+		s += components.WarningStyle().Render(i18n.GetText("token.tui.no_token")) + "\n\n"
 	} else {
-		s += components.InfoStyle().Render("代币: "+m.currentToken.Symbol()+" ("+m.currentToken.Name()+")") + "\n\n"
+		s += components.InfoStyle().Render(i18n.GetText("token.tui.token_label")+": "+m.currentToken.Symbol()+" ("+m.currentToken.Name()+")") + "\n\n"
 		s += components.InfoStyle().Render(i18n.GetText("token.to")+":") + "\n"
 		s += m.mintToInput.View() + "\n\n"
 		s += components.InfoStyle().Render(i18n.GetText("token.amount")+":") + "\n"
@@ -565,10 +565,10 @@ func (m *model) transferView() string {
 	s := components.HeaderStyle().Render("💸 "+i18n.GetText("token.tui.transfer")) + "\n\n"
 
 	if m.currentToken == nil {
-		s += components.WarningStyle().Render("请先创建代币") + "\n\n"
+		s += components.WarningStyle().Render(i18n.GetText("token.tui.no_token")) + "\n\n"
 	} else {
 		ownerB64 := base64.StdEncoding.EncodeToString(m.ownerKey)
-		s += components.InfoStyle().Render("从: ") + ownerB64[:min(20, len(ownerB64))] + "...\n\n"
+		s += components.InfoStyle().Render(i18n.GetText("token.tui.from_label")+": ") + ownerB64[:min(20, len(ownerB64))] + "...\n\n"
 		s += components.InfoStyle().Render(i18n.GetText("token.to")+":") + "\n"
 		s += m.transferToInput.View() + "\n\n"
 		s += components.InfoStyle().Render(i18n.GetText("token.amount")+":") + "\n"
@@ -811,26 +811,28 @@ func (m *model) handleBalance() {
 
 	addrB64 := base64.StdEncoding.EncodeToString(owner)
 	m.successMsg = components.CardStyle().Render(
-		components.KeyValue("代币", m.currentToken.Symbol()+" ("+m.currentToken.Name()+")") + "\n\n" +
-			components.SuccessStyle().Render("余额: "+balance.String()+" "+m.currentToken.Symbol()) + "\n\n" +
-			components.KeyValue("地址", addrB64[:min(20, len(addrB64))]+"..."),
+		components.KeyValue(i18n.GetText("token.tui.token_label"), m.currentToken.Symbol()+" ("+m.currentToken.Name()+")") + "\n\n" +
+			components.SuccessStyle().Render(i18n.GetText("token.tui.balance_label")+": "+balance.String()+" "+m.currentToken.Symbol()) + "\n\n" +
+			components.KeyValue(i18n.GetText("token.tui.address_label"), addrB64[:min(20, len(addrB64))]+"..."),
 	)
 }
 
 func (m *model) loadHistory() {
 	if m.currentToken == nil {
-		m.viewport.SetContent("暂无代币\n\n" + components.HelpTextStyle().Render("使用 '创建代币' 创建代币"))
+		m.viewport.SetContent(i18n.GetText("token.tui.no_tokens_view") + "\n\n" +
+			components.HelpTextStyle().Render(i18n.GetText("token.tui.create_hint")))
 		return
 	}
 
 	events, err := m.tokenService.GetTransferHistory(m.currentToken.ID(), m.ownerKey, 50, 0)
 	if err != nil {
-		m.viewport.SetContent("加载历史失败: " + err.Error())
+		m.viewport.SetContent(fmt.Sprintf(i18n.GetText("token.tui.history_failed"), err.Error()))
 		return
 	}
 
 	if len(events) == 0 {
-		m.viewport.SetContent("暂无转账记录\n\n" + components.HelpTextStyle().Render("进行转账操作后会显示记录"))
+		m.viewport.SetContent(i18n.GetText("token.tui.no_transfers") + "\n\n" +
+			components.HelpTextStyle().Render(i18n.GetText("token.tui.transfer_hint")))
 		return
 	}
 
@@ -838,10 +840,10 @@ func (m *model) loadHistory() {
 	for i, e := range events {
 		fromB64 := base64.StdEncoding.EncodeToString(e.From())
 		toB64 := base64.StdEncoding.EncodeToString(e.To())
-		content += fmt.Sprintf("--- 转账 #%d ---\n", i+1)
-		content += fmt.Sprintf("从: %s...\n", fromB64[:min(10, len(fromB64))])
-		content += fmt.Sprintf("到: %s...\n", toB64[:min(10, len(toB64))])
-		content += fmt.Sprintf("数量: %s %s\n\n", e.Amount().String(), m.currentToken.Symbol())
+		content += fmt.Sprintf(i18n.GetText("token.tui.transfer_header"), i+1) + "\n"
+		content += fmt.Sprintf(i18n.GetText("token.tui.from_b64"), fromB64[:min(10, len(fromB64))]) + "\n"
+		content += fmt.Sprintf(i18n.GetText("token.tui.to_b64"), toB64[:min(10, len(toB64))]) + "\n"
+		content += fmt.Sprintf(i18n.GetText("token.tui.amount_qty"), e.Amount().String(), m.currentToken.Symbol()) + "\n\n"
 	}
 	m.viewport.SetContent(content)
 }

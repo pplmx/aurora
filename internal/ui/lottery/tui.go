@@ -312,20 +312,10 @@ func (m *model) resultView() string {
 }
 
 func (m *model) helpView() string {
-	s := components.HeaderStyle().Render("⌨ 键盘快捷键") + "\n\n"
-	s += components.InfoStyle().Render("导航:") + "\n"
-	s += "  ↑/k  上移\n"
-	s += "  ↓/j  下移\n"
-	s += "  回车  确认\n"
-	s += "  ESC  返回\n"
-	s += "  q    退出\n\n"
-	s += components.InfoStyle().Render("菜单:") + "\n"
-	s += "  1    创建抽奖\n"
-	s += "  2    查看历史\n"
-	s += "  3    退出\n\n"
-	s += components.HelpTextStyle().Render("按 ESC 或 ? 返回")
-
-	return s
+	// The help screen is shared and fully localized (components.HelpView);
+	// the inline layout above was hardcoded CJK that leaked into en-locale
+	// sessions (TASK-131, ISS-120) and duplicated the other TUIs' copy.
+	return components.HelpView()
 }
 
 func (m *model) handleCreate() tea.Msg {
@@ -371,11 +361,12 @@ func (m *model) handleCreate() tea.Msg {
 func (m *model) loadHistory() {
 	records := m.chain.GetLotteryRecords()
 	if len(records) == 0 {
-		m.viewport.SetContent("暂无抽奖记录\n\n" + components.HelpTextStyle().Render("使用 'lottery create' 创建抽奖"))
+		m.viewport.SetContent(i18n.GetText("lottery.tui.no_records") + "\n\n" +
+			components.HelpTextStyle().Render(i18n.GetText("lottery.tui.create_hint")))
 	} else {
 		var content string
 		for i, data := range records {
-			content += fmt.Sprintf("--- 抽奖 #%d ---\n%s\n\n", i+1, data)
+			content += fmt.Sprintf(i18n.GetText("lottery.tui.history_item"), i+1, data)
 		}
 		m.viewport.SetContent(content)
 	}

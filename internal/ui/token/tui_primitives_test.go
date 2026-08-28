@@ -7,6 +7,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/i18n"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -151,7 +152,7 @@ func TestTransferView_RendersWithToken(t *testing.T) {
 	app.currentToken = token.NewToken("tok-1", "Test", "TST", token.NewAmount(100), app.ownerKey)
 	view := app.transferView()
 	assert.NotEmpty(t, view)
-	assert.Contains(t, view, "从:")
+	assert.Contains(t, view, i18n.GetText("token.tui.from_label"))
 }
 
 func TestLoadHistory_NoToken(t *testing.T) {
