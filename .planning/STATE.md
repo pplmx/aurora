@@ -11,12 +11,13 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.85 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help)
+Status: v1.24–v1.85 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen in all TUIs, hardcoded CJK → i18n)
 Last activity: 2026-08-28 — v1.85 closed (round-97 UX deep-dive: three parallel
   audit agents over the TUI surfaces, CLI ergonomics and web frontend, then
-  the top-three verified defects fixed; round-98 drained the remaining
-  backlog: viewport scroll bindings, destructive-op confirm gates, CLI
-  --help localization):
+  the top-three verified defects fixed; round-98 drained the backlog:
+  viewport scroll bindings, destructive-op confirm gates, CLI --help
+  localization; round-99 continued the splash: oracle confirm visible
+  selection, "?" help screen, hardcoded CJK → i18n):
 
   1. Lottery/token/nft TUI forms were UNTYPABLE — their Update loops never
      forwarded keypresses into the textinput models, so no participant, seed,
@@ -58,7 +59,20 @@ Last activity: 2026-08-28 — v1.85 closed (round-97 UX deep-dive: three paralle
      The lazy default now adopts DetectLocale(); the lottery command's Long
      uses a dedicated lottery.long i18n key (TASK-128, ISS-123, CHG-123 /
      8c70eeb). Verified: LANG=zh --help renders zh, unset renders en.
-  RIL graph at round 98.
+  Round-99:
+  7. Oracle confirm dialogs rendered no visible selection while Enter
+     committed off an invisible menuIndex and the advertised y/n keys were
+     dead. Added confirmChoiceView (▶-highlighted Yes/No, locale-aware) and
+     wired y/Y commit / n/N cancel (TASK-129, ISS-121, CHG-124 / a195d7d).
+  8. token/nft/oracle menu footers advertised "? for help" but the key was
+     dead (only lottery had a help screen). Added a shared localized
+     components.HelpView() and showHelp handling: ? opens, esc/? closes,
+     other keys swallowed (TASK-130, ISS-118, CHG-125 / e1add94).
+  9. Hardcoded CJK leaked into en-locale token/lottery TUI views; all moved
+     behind token.tui.*/lottery.tui.* keys, and lottery's inline help screen
+     was replaced by the shared component. Regression tests pin en+zh paths
+     (TASK-131, ISS-120, CHG-126 / 7923dab).
+  RIL graph at round 99.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
@@ -105,23 +119,22 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.82 | Report-the-truth & dead-code sweep (committed token ops never reported failed, backup restore same-file + WAL-complete guards, retire dead app.Wire) | ✅ done |
 | v1.83 | Config-duration & audit-durability sweep (numeric TOML durations as seconds everywhere, durable outbox heals failed audit publishes, backup atomic metadata/restore) | ✅ done |
 | v1.84 | Voting client-error classification sweep (wrong-length vote key → 400, duplicate roster candidates rejected; triage of has_voted/draft-window/NFT-zero-key to documented design or parked decisions) | ✅ done |
-| v1.85 | UX / interactivity / usability polish (typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help; backlog drained) | ✅ done |
+| v1.85 | UX / interactivity / usability polish (typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n; backlog drained) | ✅ done |
 
 ## Session Continuity
 
 Last session: 2026-08-28 — v1.85 UX / interactivity / usability polish
   (typable TUI forms, web API-failure surfacing + banner, truthful CLI
   version, scrollable viewport TUI views, --confirm gate on destructive CLI
-  ops, localized --help; DEC-006 recorded that the user's polish directive
+  ops, localized --help, oracle confirm visible selection, "?" help screen,
+  hardcoded CJK → i18n; DEC-006 recorded that the user's polish directive
   overrides the low dx-category score in RIL priority ranking). RIL graph at
-  round 98.
-Next: remaining UX backlog converted to tasks — ISS-121 (oracle confirm-
-  dialog selection invisible) and ISS-118 (dead "?" help key in token/nft/
-  oracle TUIs) are the highest-severity candidates, then ISS-120 (hardcoded
-  CJK bypassing i18n), ISS-124 (web Alpine from unpkg CDN without SRI/
-  vendored copy), ISS-125 (no refresh/polling on web lists). The deferred
-  ISS-084 phantom on-chain blocks on rolled-back transactions remains parked
-  per DEC-002 (cross-DB atomicity redesign; token event trail is already
-  post-commit; reconfirmed by EV-044); NFT zero-key transfer is a
-  product-semantics question parked for operator intent (DEC-005). Use
-  `ril.py tasks --top 10` to load the converted backlog.
+  round 99.
+Next: the only remaining UX backlog is web-frontend — ISS-124 (web Alpine
+  from unpkg CDN without SRI/vendored copy) and ISS-125 (no refresh/polling
+  on web lists); one round should cover both. The deferred ISS-084 phantom
+  on-chain blocks on rolled-back transactions remains parked per DEC-002
+  (cross-DB atomicity redesign; token event trail is already post-commit;
+  reconfirmed by EV-044); NFT zero-key transfer is a product-semantics
+  question parked for operator intent (DEC-005). Use `ril.py tasks --top 10`
+  to load the converted backlog.
