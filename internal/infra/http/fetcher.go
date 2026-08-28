@@ -336,10 +336,23 @@ func (f *Fetcher) Get(url string) ([]byte, error) {
 }
 
 func (f *Fetcher) FetchData(source *oracle.DataSource) (*oracle.OracleData, error) {
-	return f.FetchDataWithValidation(source, false)
+	return f.FetchDataContext(context.Background(), source)
 }
 
 func (f *Fetcher) FetchDataWithValidation(source *oracle.DataSource, validateJSON bool) (*oracle.OracleData, error) {
+	return f.FetchDataWithValidationContext(context.Background(), source, validateJSON)
+}
+
+// FetchDataContext is the cancellable form of FetchData used by the oracle
+// scheduler: the request is built with http.NewRequestWithContext so an
+// in-flight fetch is interrupted when the scheduler is shut down, instead of
+// blocking up to the client timeout while srv.Close() is tearing the DB pool
+// down underneath it (TASK-134, ISS-127).
+func (f *Fetcher) FetchDataContext(ctx context.Context, source *oracle.DataSource) (*oracle.OracleData, error) {
+	return f.FetchDataWithValidationContext(ctx, source, false)
+}
+
+func (f *Fetcher) FetchDataWithValidationContext(ctx context.Context, source *oracle.DataSource, validateJSON bool) (*oracle.OracleData, error) {
 	if !f.rateLimiter.Allow(source.ID) {
 		return nil, fmt.Errorf("%w: source %s has exceeded rate limit", ErrRateLimited, source.ID)
 	}
@@ -353,7 +366,7 @@ func (f *Fetcher) FetchDataWithValidation(source *oracle.DataSource, validateJSO
 		method = "GET"
 	}
 
-	req, err := http.NewRequest(method, source.URL, nil)
+	req, err := http.NewRequestWithContext(ctx, method, source.URL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

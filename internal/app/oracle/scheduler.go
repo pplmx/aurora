@@ -39,7 +39,7 @@ const backoffBase = time.Second
 // Run/stop and the fetch callback never race.
 type Scheduler struct {
 	repo       sourceRepo
-	execute    func(sourceID string) error
+	execute    func(ctx context.Context, sourceID string) error
 	checkEvery time.Duration
 	now        func() time.Time
 
@@ -66,8 +66,9 @@ type SourceStat struct {
 // NewScheduler returns a scheduler that polls the repository on checkEvery and
 // fetches each enabled source whose interval has elapsed since its last
 // successful fetch. now is injectable for deterministic tests; nil falls back
-// to time.Now.
-func NewScheduler(repo sourceRepo, execute func(sourceID string) error, checkEvery time.Duration, now func() time.Time) *Scheduler {
+// to time.Now. execute receives the scheduler's ctx so an in-flight fetch can
+// be interrupted on shutdown (TASK-134, ISS-127).
+func NewScheduler(repo sourceRepo, execute func(ctx context.Context, sourceID string) error, checkEvery time.Duration, now func() time.Time) *Scheduler {
 	if now == nil {
 		now = time.Now
 	}
@@ -90,7 +91,7 @@ func NewScheduler(repo sourceRepo, execute func(sourceID string) error, checkEve
 // initial pass immediately, then re-checks on checkEvery.
 func (s *Scheduler) Run(ctx context.Context) {
 	s.seed()
-	s.pass()
+	s.pass(ctx)
 	t := time.NewTicker(s.checkEvery)
 	defer t.Stop()
 	for {
@@ -98,14 +99,14 @@ func (s *Scheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			s.pass()
+			s.pass(ctx)
 		}
 	}
 }
 
 // pass checks every enabled source and fetches the ones whose interval has
 // elapsed. A failed fetch is not marked as done, so the next pass retries it.
-func (s *Scheduler) pass() {
+func (s *Scheduler) pass(ctx context.Context) {
 	s.seed()
 	sources, err := s.repo.ListSources()
 	if err != nil {
@@ -113,7 +114,21 @@ func (s *Scheduler) pass() {
 		return
 	}
 
+	first := true
 	for _, src := range sources {
+		// Shutdown mid-pass: stop scheduling further sources instead of
+		// queuing fetches the cancellation can no longer interrupt. The first
+		// candidate runs unconditionally — a scheduler started with an
+		// already-cancelled context still performs its documented single
+		// initial pass (each in-flight fetch aborts quickly because its
+		// request carries ctx; TASK-134, ISS-127).
+		if !first {
+			if err := ctx.Err(); err != nil {
+				return
+			}
+		}
+		first = false
+
 		if !src.Enabled || src.Interval <= 0 {
 			continue
 		}
@@ -136,7 +151,7 @@ func (s *Scheduler) pass() {
 		st.Attempts++
 		s.mu.Unlock()
 
-		if err := s.execute(src.ID); err != nil {
+		if err := s.execute(ctx, src.ID); err != nil {
 			s.mu.Lock()
 			st.Failures++
 			st.LastError = err.Error()

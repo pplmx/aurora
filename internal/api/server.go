@@ -181,8 +181,11 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 	// path silently skipped chain.AddLotteryRecord and stored block_height=0
 	// for every observation it persisted (TASK-097, ISS-090).
 	fetch.SetChain(blockchain.GetBlockChain())
-	runner := func(sourceID string) error {
-		_, err := fetch.Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
+	runner := func(ctx context.Context, sourceID string) error {
+		// ctx-aware fetch: an in-flight HTTP request is interrupted when the
+		// scheduler is shut down instead of blocking up to the client timeout
+		// while srv.Close() tears the DB pool down under it (TASK-134).
+		_, err := fetch.ExecuteContext(ctx, &oracleapp.FetchDataRequest{SourceID: sourceID})
 		return err
 	}
 	sched := oracleapp.NewScheduler(s.oracleRepo, runner, checkEvery, nil)

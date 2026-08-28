@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,14 @@ import (
 
 type FetcherInterface interface {
 	FetchData(source *oracle.DataSource) (*oracle.OracleData, error)
+}
+
+// ctxFetcher is implemented by the real http.Fetcher (cancellable
+// FetchDataContext); test doubles only implement the plain FetcherInterface.
+// fetchData prefers the ctx-aware path so the scheduler can interrupt an
+// in-flight fetch (TASK-134, ISS-127) without widening the public interface.
+type ctxFetcher interface {
+	FetchDataContext(ctx context.Context, source *oracle.DataSource) (*oracle.OracleData, error)
 }
 
 type FetchDataUseCase struct {
@@ -38,6 +47,16 @@ func (uc *FetchDataUseCase) SetChain(chain ChainInterface) {
 	uc.chain = chain
 }
 
+// fetchData runs the fetch through the ctx-aware path when the fetcher
+// supports it (the scheduler depends on cancellation), otherwise falls back
+// to the plain interface so test doubles keep compiling unchanged.
+func (uc *FetchDataUseCase) fetchData(ctx context.Context, source *oracle.DataSource) (*oracle.OracleData, error) {
+	if cf, ok := uc.fetcher.(ctxFetcher); ok {
+		return cf.FetchDataContext(ctx, source)
+	}
+	return uc.fetcher.FetchData(source)
+}
+
 // Chain returns the on-chain recorder currently wired to the use case, or nil
 // if none. Exposed for inspection: the TASK-097 regression asserts the oracle
 // scheduler's fetch (unlike the REST handler's) is no longer running with a
@@ -46,10 +65,18 @@ func (uc *FetchDataUseCase) SetChain(chain ChainInterface) {
 func (uc *FetchDataUseCase) Chain() ChainInterface { return uc.chain }
 
 func (uc *FetchDataUseCase) Execute(req *FetchDataRequest) (*FetchDataResponse, error) {
-	return uc.executeWithChain(req, uc.chain)
+	return uc.executeWithChain(context.Background(), req, uc.chain)
 }
 
-func (uc *FetchDataUseCase) executeWithChain(req *FetchDataRequest, chain ChainInterface) (*FetchDataResponse, error) {
+// ExecuteContext is the cancellable form of Execute used by the oracle
+// scheduler (TASK-134, ISS-127): the in-flight HTTP fetch is interrupted when
+// ctx is cancelled, so a shutdown no longer stalls up to the client timeout
+// with the DB pool being torn down underneath the fetch goroutine.
+func (uc *FetchDataUseCase) ExecuteContext(ctx context.Context, req *FetchDataRequest) (*FetchDataResponse, error) {
+	return uc.executeWithChain(ctx, req, uc.chain)
+}
+
+func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchDataRequest, chain ChainInterface) (*FetchDataResponse, error) {
 	source, err := uc.repo.GetSource(req.SourceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get source: %w", err)
@@ -76,7 +103,7 @@ func (uc *FetchDataUseCase) executeWithChain(req *FetchDataRequest, chain ChainI
 		}
 	}
 
-	data, err := uc.fetcher.FetchData(source)
+	data, err := uc.fetchData(ctx, source)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch data: %w", err)
 	}
