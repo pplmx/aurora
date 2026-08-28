@@ -21,6 +21,7 @@ import (
 type Server struct {
 	db                   *sql.DB
 	metrics              *metrics.Registry
+	metricsOnce          sync.Once
 	oracleRepo           oracle.Repository
 	oracleMu             sync.Mutex
 	oracleScheduler      *oracleapp.Scheduler
@@ -225,10 +226,17 @@ func (s *Server) OracleMetricsHandler() http.Handler {
 // /metrics route. It is created lazily so a Server constructed without one
 // (e.g. in tests that only build the router) still works; the produced/mounted
 // Server owns a registry from NewServer.
+//
+// The lazy init is once-guarded: the check-then-set was unsynchronized, so two
+// concurrent calls on a Server built without the constructor could create two
+// registries and split the request counters between them (ISS-131). sync.Once
+// makes the first caller own creation and every subsequent caller observe it.
 func (s *Server) MetricsRegistry() *metrics.Registry {
-	if s.metrics == nil {
-		s.metrics = metrics.NewRegistry()
-	}
+	s.metricsOnce.Do(func() {
+		if s.metrics == nil {
+			s.metrics = metrics.NewRegistry()
+		}
+	})
 	return s.metrics
 }
 
