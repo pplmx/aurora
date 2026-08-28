@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 95,
+  "round": 96,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-27T16:57:18+00:00",
+  "updated_at": "2026-08-28T06:01:52+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 87,
+      "touched_round": 96,
       "title": "voting module"
     },
     "CHG-008": {
@@ -5252,6 +5252,96 @@
       "commit": 9281277,
       "title": "Backup atomic metadata write + temp-rename restore destination (TASK-120)",
       "summary": "Create metadata.json now written via .tmp sibling + os.Rename (no truncated metadata over new .db files on crash/short write); Restore copies archive to <dest>.tmp and renames into place so a mid-copy failure never leaves a truncated .db at the live path. Two regression tests; backup pkg fully green."
+    },
+    "ISS-113": {
+      "id": "ISS-113",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T03:10:49+00:00",
+      "updated_at": "2026-08-28T03:46:37+00:00",
+      "touched_round": 96,
+      "title": "Voting CastVote: wrong-length but valid-base64 private key returns 500 instead of a 4xx client error",
+      "summary": "CastVoteUseCase base64-decodes req.PrivateKey but never validates its length; Ed25519Service.SignVote rejects wrong length with a plain fmt.Errorf(\"invalid private key size\") that classifyError does not match, so POST /api/v1/voting/vote with private_key = base64(32 random bytes) returns 500 INTERNAL_ERROR instead of 400. The NFT boundary does this correctly (internal/app/nft/decode.go enforces 32/64-byte key lengths -> ErrInvalidPrivateKey -> 400, TASK-?/v1.81); voting is inconsistent with its own ErrInvalidBase64 classification and with NFT. Deep-dive round 96."
+    },
+    "ISS-114": {
+      "id": "ISS-114",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T03:10:49+00:00",
+      "updated_at": "2026-08-28T03:46:37+00:00",
+      "touched_round": 96,
+      "title": "Voting session roster accepts duplicate candidate IDs, doubling results totals",
+      "summary": "CreateSessionUseCase validates each candidate exists but never de-duplicates req.CandidateIDs, so candidate_ids: [\"c1\",\"c1\"] (API) or -c c1 -c c1 (CLI StringSlice) stores a roster with c1 twice. GetResultsUseCase iterates session.Candidates and adds the candidate's full VoteCount to candidates AND total for each occurrence, so TotalVotes is doubled and the candidate renders twice. CastVote accepts votes (roster membership passes). Deep-dive round 96."
+    },
+    "TASK-121": {
+      "id": "TASK-121",
+      "type": "task",
+      "status": "resolved",
+      "version": 5,
+      "created_at": "2026-08-28T03:10:49+00:00",
+      "updated_at": "2026-08-28T03:46:37+00:00",
+      "touched_round": 96,
+      "category": "correctness",
+      "title": "Fix voting CastVote wrong-length private key to a 4xx client error",
+      "summary": "Add voting.ErrInvalidPrivateKey sentinel, validate privBytes length after base64 decode in CastVoteUseCase (return the sentinel), classify it as 400 INVALID_PRIVATE_KEY in helpers.go. Mirrors the NFT boundary (decode.go) and voting's own ErrInvalidBase64 handling (TASK-095/ISS-089 precedent).",
+      "effort": 2,
+      "severity": 0.7,
+      "confidence": 0.9,
+      "unlock_factor": 1
+    },
+    "TASK-122": {
+      "id": "TASK-122",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T03:10:49+00:00",
+      "updated_at": "2026-08-28T03:46:37+00:00",
+      "touched_round": 96,
+      "category": "correctness",
+      "title": "De-duplicate voting session candidate roster on create",
+      "summary": "CreateSessionUseCase: reject or collapse duplicate candidate IDs in req.CandidateIDs so the roster never holds the same candidate twice (currently doubles GetResults TotalVotes and renders the candidate repeatedly). Simplest correct behavior: reject with a client error (or de-dup silently); pick the stricter reject to match ErrCandidatesRequired as a 400.",
+      "effort": 2,
+      "severity": 0.7,
+      "confidence": 0.9,
+      "unlock_factor": 1
+    },
+    "DEC-005": {
+      "id": "DEC-005",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T03:11:45+00:00",
+      "updated_at": "2026-08-28T03:11:45+00:00",
+      "touched_round": 96,
+      "rationale": "Round-96 voting/NFT deep-dive findings triage: the global voters.has_voted flag, draft/in-window sessions accepting votes, and 'session start' being a non-enforcement lifecycle action are the DOCUMENTED, TESTED voting contract (v1.10 votingsmoke_test step 8, DEC-004) — voting is gated by time-window + per-voter already-voted + explicit end; do NOT re-litigate. The round's real, non-semantic bugs are ISS-113 (wrong-length key -> 500) and ISS-114 (duplicate session candidates double Tally), both fixed. NFT transfer to an all-zero key (zero/blackhole guard) is a product-semantics question (asymmetric with token's ErrTransferToZero) — parked pending operator intent, not a silent code change.",
+      "alternatives_rejected": "Rewrite voting has_voted to be per-session (breaks the tested 1-vote-per-voter contract and needs a migration); block votes on non-active sessions (contradicts DEC-004); auto-add an NFT zero-key guard or a burn op without confirming blackhole-burn intent."
+    },
+    "CHG-117": {
+      "id": "CHG-117",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T03:45:21+00:00",
+      "updated_at": "2026-08-28T03:45:21+00:00",
+      "touched_round": 96,
+      "commit": "7da19f8",
+      "title": "Fix voting client-error classification + duplicate roster rejection (TASK-121/122)",
+      "summary": "Added voting.ErrInvalidPrivateKey (valid-base64 wrong-length key -> 400 INVALID_PRIVATE_KEY, mirroring NFT decode.go and ErrInvalidBase64) and voting.ErrDuplicateCandidate (session roster with a candidate twice -> 400 DUPLICATE_CANDIDATE, never a doubled tally). CastVoteUseCase validates the decoded key length before SignVote; CreateSessionUseCase rejects duplicates before the existence scan. Regression tests: usecase + HTTP classification; success-path tests use a real 64-byte key."
+    },
+    "EV-044": {
+      "id": "EV-044",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T06:01:52+00:00",
+      "updated_at": "2026-08-28T06:01:52+00:00",
+      "touched_round": 96,
+      "source": "round-96 replay/nonce deep-dive (agent report) + internal/domain/token/service.go:713-748",
+      "title": "Burn still lacks a balance pre-check; phantom block is the parked ISS-084 class",
+      "confidence": 1.0,
+      "summary": "Deep-dive confirmed chain.AddBlock (service.go:716) runs before the burn transaction (722); an over-balance burn appends a best-effort block then fails TrySubtractBalance. This is the EXACT class DEC-002 already parked (cross-DB atomicity needs a block-height reservation design; best-effort on-chain audit blocks never corrupt committed balances; the token EVENT trail is already post-commit). Per DEC-002 no task is opened this round."
     }
   },
   "edges": [
@@ -8128,6 +8218,60 @@
       "to": "ISS-112",
       "type": "resolves",
       "created_at": "2026-08-27T16:56:05+00:00"
+    },
+    {
+      "from": "TASK-121",
+      "to": "ISS-113",
+      "type": "addresses",
+      "created_at": "2026-08-28T03:11:45+00:00"
+    },
+    {
+      "from": "TASK-122",
+      "to": "ISS-114",
+      "type": "addresses",
+      "created_at": "2026-08-28T03:11:45+00:00"
+    },
+    {
+      "from": "ISS-113",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-28T03:11:45+00:00"
+    },
+    {
+      "from": "ISS-114",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-28T03:11:45+00:00"
+    },
+    {
+      "from": "CHG-117",
+      "to": "TASK-121",
+      "type": "implements",
+      "created_at": "2026-08-28T03:45:21+00:00"
+    },
+    {
+      "from": "CHG-117",
+      "to": "TASK-122",
+      "type": "implements",
+      "created_at": "2026-08-28T03:45:21+00:00"
+    },
+    {
+      "from": "CHG-117",
+      "to": "ISS-113",
+      "type": "resolves",
+      "created_at": "2026-08-28T03:45:21+00:00"
+    },
+    {
+      "from": "CHG-117",
+      "to": "ISS-114",
+      "type": "resolves",
+      "created_at": "2026-08-28T03:45:21+00:00"
+    },
+    {
+      "from": "DEC-005",
+      "to": "TASK-121",
+      "type": "governs",
+      "created_at": "2026-08-28T03:45:21+00:00"
     }
   ]
 }
