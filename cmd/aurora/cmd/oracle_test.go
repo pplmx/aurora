@@ -59,7 +59,7 @@ func TestOracleSourceAdd_List_Delete(t *testing.T) {
 	ids := extractSourceIDs(t, list)
 	require.GreaterOrEqual(t, len(ids), 2, "expected at least 2 sources listed")
 
-	out, err = runCmd(t, "oracle", "source", "delete", "--id", ids[0])
+	out, err = runCmd(t, "oracle", "source", "delete", "--id", ids[0], "--confirm")
 	require.NoError(t, err)
 	assert.Contains(t, out, "deleted")
 
@@ -73,9 +73,14 @@ func TestOracleSourceAdd_List_Delete(t *testing.T) {
 	// DB-backed repo (sqlite) behaves the same (DELETE of a missing row is
 	// not an error). We assert the no-error contract rather than a leaky
 	// "not found" message.
-	out, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id")
+	out, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id", "--confirm")
 	require.NoError(t, err)
 	assert.Contains(t, out, "deleted")
+
+	// Without --confirm the delete is refused (non-zero exit).
+	_, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id")
+	require.Error(t, err, "source delete without --confirm must be refused")
+	assert.Contains(t, err.Error(), "--confirm")
 }
 
 func TestOracleSourceEnable_Disable(t *testing.T) {

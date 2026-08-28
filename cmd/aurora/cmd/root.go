@@ -77,6 +77,25 @@ Use "aurora lottery --help" for lottery commands.`,
 	},
 }
 
+// addConfirmFlag registers the standard -y/--confirm guard on a destructive
+// command, mirroring `backup restore --confirm` (backup.go:91) and
+// `lottery reset --yes` (lottery.go:557). Burn/delete/down permanently destroy
+// value or data, so they must not run without an explicit confirmation —
+// otherwise a typo like a mis-ordered flag silently destroys assets.
+func addConfirmFlag(cmd *cobra.Command, desc string) {
+	cmd.Flags().BoolP("confirm", "y", false, desc)
+}
+
+// requireConfirm returns an error (→ non-zero exit) when the caller's --confirm
+// flag is not set, so scripts that forgot it can detect the refusal.
+func requireConfirm(cmd *cobra.Command, what string) error {
+	ok, _ := cmd.Flags().GetBool("confirm")
+	if !ok {
+		return fmt.Errorf("this %s; pass --confirm to proceed", what)
+	}
+	return nil
+}
+
 // formatCLIError renders the single error line Execute() writes to stderr.
 // A token operation that COMMITTED but lost its post-commit audit event must
 // never be shown as a plain failure — that framing invites a retry that would

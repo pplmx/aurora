@@ -151,19 +151,19 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 		_, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err)
 
-		out, err := runCmd(t, "migrate", "down", "1")
+		out, err := runCmd(t, "migrate", "down", "1", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 1")
 		assert.Equal(t, 1, appliedSchemaVersion(t))
 
 		// down twice reaches the bottom (version 0).
-		out, err = runCmd(t, "migrate", "down")
+		out, err = runCmd(t, "migrate", "down", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 0")
 		assert.Equal(t, 0, appliedSchemaVersion(t))
 
 		// down while already at the bottom is a friendly no-op, not an error.
-		out, err = runCmd(t, "migrate", "down")
+		out, err = runCmd(t, "migrate", "down", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "No migrations to roll back")
 	})
@@ -193,7 +193,7 @@ func TestMigrateDown_OverrunRollsBackAll(t *testing.T) {
 		_, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err)
 
-		out, err := runCmd(t, "migrate", "down", "5")
+		out, err := runCmd(t, "migrate", "down", "5", "--confirm")
 		require.NoError(t, err, "down with N larger than applied must succeed")
 		assert.Contains(t, out, "Current version: 0")
 		assert.Equal(t, 0, appliedSchemaVersion(t))
@@ -213,7 +213,10 @@ func TestMigrate_InvalidCounts(t *testing.T) {
 		}{
 			{args: []string{"migrate", "up", "abc"}, msg: "invalid"},
 			{args: []string{"migrate", "up", "0"}, msg: "invalid"},
-			{args: []string{"migrate", "down", "0"}, msg: "invalid"},
+			// down passes --confirm so the test reaches the validator: the
+			// confirm gate is checked first and would otherwise report
+			// "pass --confirm" instead of the invalid-count message.
+			{args: []string{"migrate", "down", "0", "--confirm"}, msg: "invalid"},
 		} {
 			_, err := runCmd(t, tc.args...)
 			require.Error(t, err, "args %v should error", tc.args)
@@ -240,5 +243,20 @@ func TestMigrate_MissingMigrationDir(t *testing.T) {
 		_, err := runCmd(t, "migrate", "up")
 		require.Error(t, err)
 		assert.Contains(t, strings.ToLower(err.Error()), "migration source")
+	})
+}
+
+func TestMigrateDown_RequiresConfirm(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setMigrationsPathForTest(t)
+		_, err := runCmd(t, "migrate", "up")
+		require.NoError(t, err)
+
+		// Without --confirm the rollback is refused with a non-zero exit and
+		// the schema is left untouched.
+		_, err = runCmd(t, "migrate", "down", "1")
+		require.Error(t, err, "down without --confirm must be refused")
+		assert.Contains(t, err.Error(), "--confirm")
+		assert.Equal(t, 2, appliedSchemaVersion(t), "no migration may roll back without confirmation")
 	})
 }
