@@ -366,6 +366,17 @@ func TestGetNFTOperationsUseCase_Execute(t *testing.T) {
 	}
 }
 
+// TestGetNFTOperationsUseCase_UnknownNFT is the ISS-130 regression: a history
+// request for a nonexistent NFT must 404 (ErrNFTNotFound), matching GET
+// /nft/{id}, instead of returning an empty 200 [].
+func TestGetNFTOperationsUseCase_UnknownNFT(t *testing.T) {
+	service := &mockNFTService{}
+	uc := NewGetNFTOperationsUseCase(service)
+
+	_, err := uc.Execute("does-not-exist")
+	require.ErrorIs(t, err, nft.ErrNFTNotFound)
+}
+
 // TestMintNFTUseCase_RejectsShortCreatorKey is the regression test for the
 // bricked-NFT hole (TASK-112, ISS-104): mint used to accept any number of
 // decoded key bytes, so `nft mint -c <short-base64>` stored a wrong-length

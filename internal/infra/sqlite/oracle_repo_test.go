@@ -448,13 +448,17 @@ func TestOracleRepository_SaveData_AutoIDAndTimestamp(t *testing.T) {
 	require.NotZero(t, data.Timestamp, "SaveData should auto-generate timestamp")
 }
 
-func TestOracleRepository_GetLatestData_NotFound(t *testing.T) {
+func TestOracleRepository_GetLatestData_Empty(t *testing.T) {
 	repo, cleanup := setupOracleTestDB(t)
 	defer cleanup()
 
-	_, err := repo.GetLatestData("nonexistent")
-	require.Error(t, err)
-	require.ErrorIs(t, err, ErrNotFound)
+	// "No data yet for this source" is an empty result, not an error — the
+	// interface contract returns (nil, nil). The pre-fix behavior returned the
+	// generic sqlite ErrNotFound, which an unclassified 500 on the API's
+	// /oracle/latest for a known-but-empty source (ISS-130).
+	got, err := repo.GetLatestData("nonexistent")
+	require.NoError(t, err)
+	require.Nil(t, got)
 }
 
 func TestOracleRepository_NewInMemoryOracleRepository(t *testing.T) {
@@ -512,9 +516,9 @@ func TestInMemoryOracleRepository_GetLatestData(t *testing.T) {
 	require.NotNil(t, latest)
 	require.Equal(t, "200", latest.Value)
 
-	_, err = repo.GetLatestData("nonexistent")
-	require.Error(t, err)
-	require.ErrorIs(t, err, ErrNotFound)
+	got, err := repo.GetLatestData("nonexistent")
+	require.NoError(t, err)
+	require.Nil(t, got, "no data must be an empty result, not ErrNotFound (ISS-130)")
 }
 
 func TestInMemoryOracleRepository_GetDataByTimeRange(t *testing.T) {

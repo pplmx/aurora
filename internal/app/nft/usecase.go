@@ -156,6 +156,17 @@ func NewGetNFTOperationsUseCase(service nft.Service) *GetNFTOperationsUseCase {
 }
 
 func (u *GetNFTOperationsUseCase) Execute(nftID string) ([]*OperationResponse, error) {
+	// A history for a nonexistent NFT must 404, not return an empty 200 [] list
+	// (ISS-130) — same resource-status contract as GET /nft/{id}. A real NFT
+	// with no operations keeps returning 200 [].
+	nftById, err := u.service.GetNFTByID(nftID)
+	if err != nil {
+		return nil, err
+	}
+	if nftById == nil {
+		return nil, nft.ErrNFTNotFound
+	}
+
 	results, err := u.service.GetOperations(nftID)
 	if err != nil {
 		return nil, err
