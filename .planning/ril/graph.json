@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 102,
+  "round": 103,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T17:35:39+00:00",
+  "updated_at": "2026-08-28T18:13:41+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6099,6 +6099,56 @@
       "source": "round-101 direct-read: internal/ui/{lottery,token,nft,oracle}/tui.go",
       "title": "TUI keypress forwarding is complete: lottery create forwards all 3 inputs (tui.go:168-174), token/nft forwardToActiveInput covers every form view, oracle forms forward; HYP-003 gap closed by CHG-118 in round 97",
       "confidence": 1.0
+    },
+    "TASK-141": {
+      "id": "TASK-141",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T17:56:24+00:00",
+      "updated_at": "2026-08-28T18:13:41+00:00",
+      "touched_round": 103,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Web error banner is sticky: window.showApiError is only ever called with a message, so after a transient API failure the red banner persists even after the API recovers; apiFetch must clear it on any successful 2xx response"
+    },
+    "TASK-142": {
+      "id": "TASK-142",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T17:56:24+00:00",
+      "updated_at": "2026-08-28T18:13:41+00:00",
+      "touched_round": 103,
+      "category": "docs",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "README lags the CLI: missing backup create/verify/restore (+ --confirm gate), migrate, version, token allowance/approve/burn/transfer-from, oracle latest/source/template, lottery verify/export/import, the --confirm/-y destructive-op gates, and the cmd/api web-server startup (README has no server section at all)"
+    },
+    "CHG-135": {
+      "id": "CHG-135",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T18:12:11+00:00",
+      "updated_at": "2026-08-28T18:12:11+00:00",
+      "touched_round": 102,
+      "commit": "13d9233",
+      "title": "Web apiFetch clears the sticky API-error banner on any 2xx response so a transient failure does not leave a permanent red banner; fixes TASK-141"
+    },
+    "CHG-136": {
+      "id": "CHG-136",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T18:12:11+00:00",
+      "updated_at": "2026-08-28T18:12:11+00:00",
+      "touched_round": 102,
+      "commit": "4bf4205",
+      "title": "README documents operational CLI (backup/migrate/version, extended token/oracle/lottery subcommands), the -y/--confirm destructive-op gates, and the cmd/api Web server startup; fixes TASK-142"
     }
   },
   "edges": [
@@ -9539,6 +9589,18 @@
       "to": "HYP-003",
       "type": "validates",
       "created_at": "2026-08-28T17:33:20+00:00"
+    },
+    {
+      "from": "CHG-135",
+      "to": "TASK-141",
+      "type": "implements",
+      "created_at": "2026-08-28T18:12:11+00:00"
+    },
+    {
+      "from": "CHG-136",
+      "to": "TASK-142",
+      "type": "implements",
+      "created_at": "2026-08-28T18:12:11+00:00"
     }
   ]
 }

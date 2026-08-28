@@ -172,11 +172,18 @@ Round 101 (2026-08-29, v1.87) drained the round-100 audit backlog:
   cannot split registries; TASK-139, CHG-134). Stale HYP-003 (TUI keypress
   forwarding) closed — the round-97 CHG-118 fix landed before it was
   recorded. RIL graph at round 102 (509 nodes).
+Round 102 (2026-08-29, user polish directive) refreshed the usability/docs
+  surface: the web API-error banner is now cleared on any successful fetch
+  (sticky-banner fix, TASK-141, CHG-135), and README.md now documents the
+  operational CLI (backup/migrate/version), extended token/oracle/lottery
+  subcommands, the -y/--confirm destructive-op gates, and the previously
+  undocumented cmd/api Web server (TASK-142, CHG-136). CLI exit-code audit
+  re-run: already clean (centralized error line + os.Exit(1)); no hardcoded
+  CJK outside i18n. RIL graph at round 103 (513 nodes).
 Next: the deferred ISS-084 phantom on-chain blocks on rolled-back
   transactions remains parked per DEC-002 (cross-DB atomicity redesign; token
   event trail is already post-commit; reconfirmed by EV-044); NFT zero-key
   transfer is a product-semantics question parked for operator intent
-  (DEC-005). With the v1.87 backlog drained, the next round should re-run a
-  focused audit (candidate: CLI exit-code/error-output ergonomics, web
-  frontend polish, i18n completeness) or reopen deep-exploration. Use
-  `ril.py tasks --top 10` to load any converted backlog.
+  (DEC-005). Candidate next dimensions: TUI edge-case auditing, deeper web
+  JS review, or a fresh API contract sweep. Use `ril.py tasks --top 10` to
+  load any converted backlog.
