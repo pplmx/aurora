@@ -31,10 +31,10 @@ func TestScheduler_PassFetchesDueSourcesOnly(t *testing.T) {
 		{ID: "zero", Enabled: true, Interval: 0},
 	}}
 	var fetched []string
-	s := NewScheduler(repo, func(id string) error { fetched = append(fetched, id); return nil }, time.Second, func() time.Time { return now })
+	s := NewScheduler(repo, func(_ context.Context, id string) error { fetched = append(fetched, id); return nil }, time.Second, func() time.Time { return now })
 
 	// First pass: everything enabled with interval>0 is due.
-	s.pass()
+	s.pass(context.Background())
 	if got := len(fetched); got != 2 {
 		t.Fatalf("first pass fetched %d sources, want 2 (a,b): %v", got, fetched)
 	}
@@ -42,7 +42,7 @@ func TestScheduler_PassFetchesDueSourcesOnly(t *testing.T) {
 	// Advance 59s: a(60s) not due yet, b(20s) is due.
 	now = now.Add(59 * time.Second)
 	before := len(fetched)
-	s.pass()
+	s.pass(context.Background())
 	// only b refetched
 	if len(fetched) != before+1 || fetched[len(fetched)-1] != "b" {
 		t.Fatalf("after 59s expected only b refetched, fetched=%v", fetched[before:])
@@ -51,7 +51,7 @@ func TestScheduler_PassFetchesDueSourcesOnly(t *testing.T) {
 	// Advance 2s more (61s total): a now due.
 	now = now.Add(2 * time.Second)
 	before = len(fetched)
-	s.pass()
+	s.pass(context.Background())
 	if len(fetched) != before+1 || fetched[len(fetched)-1] != "a" {
 		t.Fatalf("after 61s expected only a refetched, fetched=%v", fetched[before:])
 	}
@@ -69,7 +69,7 @@ func TestScheduler_Run_FetchesAndStopsOnCancel(t *testing.T) {
 		{ID: "a", Enabled: true, Interval: 1},
 	}}
 	var calls int64
-	s := NewScheduler(repo, func(id string) error {
+	s := NewScheduler(repo, func(_ context.Context, id string) error {
 		atomic.AddInt64(&calls, 1)
 		return nil
 	}, 10*time.Millisecond, time.Now)
@@ -113,7 +113,7 @@ func TestScheduler_Run_StoppedContextShutsDownImmediately(t *testing.T) {
 		{ID: "a", Enabled: true, Interval: 60},
 	}}
 	var calls int64
-	s := NewScheduler(repo, func(id string) error {
+	s := NewScheduler(repo, func(_ context.Context, id string) error {
 		atomic.AddInt64(&calls, 1)
 		return nil
 	}, 10*time.Millisecond, time.Now)
@@ -142,24 +142,24 @@ func TestScheduler_PassRetriesFailed(t *testing.T) {
 		{ID: "a", Enabled: true, Interval: 60},
 	}}
 	attempts := 0
-	s := NewScheduler(repo, func(id string) error {
+	s := NewScheduler(repo, func(_ context.Context, id string) error {
 		attempts++
 		return errors.New("boom")
 	}, time.Second, func() time.Time { return now })
 
-	s.pass()
+	s.pass(context.Background())
 	if attempts != 1 {
 		t.Fatalf("expected 1 attempt, got %d", attempts)
 	}
 	// Backoff (v1.17): a failed fetch is suppressed during its backoff window
 	// (1s after the first failure), so the immediate next pass must NOT retry.
-	s.pass()
+	s.pass(context.Background())
 	if attempts != 1 {
 		t.Fatalf("expected failed fetch to be suppressed during backoff, got %d attempts", attempts)
 	}
 	// After the backoff window elapses the source is retried.
 	now = now.Add(2 * time.Second)
-	s.pass()
+	s.pass(context.Background())
 	if attempts != 2 {
 		t.Fatalf("expected failed fetch to be retried after backoff, got %d attempts", attempts)
 	}
@@ -181,9 +181,9 @@ func TestScheduler_SeedsLastFetchFromRepo(t *testing.T) {
 		},
 	}
 	var fetched []string
-	s := NewScheduler(repo, func(id string) error { fetched = append(fetched, id); return nil }, time.Second, func() time.Time { return now })
+	s := NewScheduler(repo, func(_ context.Context, id string) error { fetched = append(fetched, id); return nil }, time.Second, func() time.Time { return now })
 
-	s.pass()
+	s.pass(context.Background())
 	if len(fetched) != 2 {
 		t.Fatalf("expected fresh (not yet due) to be skipped and stale+none fetched, got %v", fetched)
 	}
@@ -204,14 +204,14 @@ func TestScheduler_StatsTracksSuccessAndFailure(t *testing.T) {
 		{ID: "ok", Enabled: true, Interval: 60},
 		{ID: "bad", Enabled: true, Interval: 60},
 	}}
-	s := NewScheduler(repo, func(id string) error {
+	s := NewScheduler(repo, func(_ context.Context, id string) error {
 		if id == "bad" {
 			return errors.New("boom")
 		}
 		return nil
 	}, time.Second, func() time.Time { return now })
 
-	s.pass()
+	s.pass(context.Background())
 	stats := map[string]SourceStat{}
 	for _, st := range s.Stats() {
 		stats[st.SourceID] = st
@@ -229,7 +229,7 @@ func TestScheduler_StatsTracksSuccessAndFailure(t *testing.T) {
 	// After the backoff window elapses the failed fetch is retried, so
 	// attempts/failures climb.
 	now = now.Add(2 * time.Second)
-	s.pass()
+	s.pass(context.Background())
 	bad2 := map[string]SourceStat{}
 	for _, st := range s.Stats() {
 		bad2[st.SourceID] = st
@@ -244,8 +244,8 @@ func TestScheduler_PrometheusText(t *testing.T) {
 	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
 		{ID: "a", Enabled: true, Interval: 60},
 	}}
-	s := NewScheduler(repo, func(id string) error { return nil }, time.Second, func() time.Time { return now })
-	s.pass()
+	s := NewScheduler(repo, func(_ context.Context, id string) error { return nil }, time.Second, func() time.Time { return now })
+	s.pass(context.Background())
 
 	out := s.PrometheusText()
 	for _, want := range []string{
@@ -278,5 +278,57 @@ func TestBackoffEscalatesAndCaps(t *testing.T) {
 		if d := backoff(streak); d > maxBackoff {
 			t.Errorf("backoff(%d)=%s exceeds maxBackoff %s", streak, d, maxBackoff)
 		}
+	}
+}
+
+// TestScheduler_CancelInterruptsInFlightFetch pins the TASK-134/ISS-127 fix:
+// the execute closure must receive the scheduler's ctx so an in-flight fetch
+// is interrupted on shutdown (previously the fetch used a background-context
+// HTTP request and blocked up to the client timeout, stalling srv.Close()).
+// It also verifies pass() does not start further sources once cancelled.
+func TestScheduler_CancelInterruptsInFlightFetch(t *testing.T) {
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "a", Enabled: true, Interval: 60},
+		{ID: "b", Enabled: true, Interval: 60},
+	}}
+	var calls int64
+	started := make(chan struct{})
+	gotCancel := make(chan struct{})
+	s := NewScheduler(repo, func(ctx context.Context, id string) error {
+		if atomic.AddInt64(&calls, 1) == 1 {
+			close(started)
+			<-ctx.Done() // simulate an HTTP fetch that only returns on cancel
+			close(gotCancel)
+		}
+		return ctx.Err()
+	}, time.Second, func() time.Time { return time.Unix(1000, 0) })
+
+	ctx, cancelIt := context.WithCancel(context.Background())
+	go s.Run(ctx)
+
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("scheduler never started the first fetch")
+	}
+
+	cancelIt() // shutdown while the fetch is in flight
+
+	select {
+	case <-gotCancel:
+		// The in-flight fetch's context was cancelled — it did not have to
+		// wait out its full timeout.
+	case <-time.After(2 * time.Second):
+		t.Fatal("in-flight fetch context was not cancelled on shutdown")
+	}
+
+	// Give pass() a moment to reach its per-source cancellation check, then
+	// assert no second source was fetched after cancel.
+	deadline := time.Now().Add(time.Second)
+	for atomic.LoadInt64(&calls) != 2 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if atomic.LoadInt64(&calls) != 1 {
+		t.Fatalf("expected only the in-flight source to be fetched after cancel, got %d calls", atomic.LoadInt64(&calls))
 	}
 }
