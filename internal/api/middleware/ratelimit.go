@@ -15,6 +15,12 @@ type windowBucket struct {
 	start time.Time
 }
 
+// limiterSweepThreshold is how many tracked keys are tolerated before Allow
+// sweeps expired buckets. Together with window-bounded expiry this keeps the
+// buckets map proportional to keys active within a window, never the total
+// number of distinct keys ever seen (TASK-136, ISS-129).
+const limiterSweepThreshold = 1024
+
 // FixedWindowLimiter is a concurrency-safe fixed-window rate limiter keyed by
 // an arbitrary client identifier (remote address or API key). It is the
 // building block behind the REST API rate limiting middleware (v1.19).
@@ -59,6 +65,13 @@ func (l *FixedWindowLimiter) Allow(key string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	// Evict timers whose window fully elapsed so the buckets map stays bounded
+	// by the number of keys active within a window instead of growing forever
+	// with every distinct client/forwarded-IP ever seen (TASK-136, ISS-129).
+	if len(l.buckets) >= limiterSweepThreshold {
+		l.sweepExpired(now)
+	}
+
 	b := l.buckets[key]
 	if b == nil || now.Sub(b.start) >= l.window {
 		l.buckets[key] = &windowBucket{count: 1, start: now}
@@ -69,6 +82,17 @@ func (l *FixedWindowLimiter) Allow(key string) bool {
 	}
 	b.count++
 	return true
+}
+
+// sweepExpired deletes buckets whose window has fully elapsed. Called only
+// while holding l.mu, from Allow when the map grows past
+// limiterSweepThreshold.
+func (l *FixedWindowLimiter) sweepExpired(now time.Time) {
+	for key, b := range l.buckets {
+		if now.Sub(b.start) >= l.window {
+			delete(l.buckets, key)
+		}
+	}
 }
 
 // Reset clears all tracked state (mostly useful for tests).
