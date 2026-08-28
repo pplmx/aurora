@@ -28,6 +28,7 @@ type model struct {
 	countInput        textinput.Model
 	viewport          viewport.Model
 	menuIndex         int
+	inputFocus        int
 	showHelp          bool
 }
 
@@ -92,16 +93,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showHelp = true
 			return m, nil
 
-		case "up", "k":
-			if m.view == "menu" && m.menuIndex > 0 {
-				m.menuIndex--
-			}
-
-		case "down", "j":
-			if m.view == "menu" && m.menuIndex < 2 {
-				m.menuIndex++
-			}
-
 		case "enter":
 			switch m.view {
 			case "menu":
@@ -112,6 +103,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.successMsg = ""
 					m.seedInput.SetValue("")
 					m.countInput.SetValue("3")
+					m.inputFocus = 0
+					m.updateInputFocus()
 				case 1:
 					m.loadHistory()
 					m.view = "history"
@@ -119,7 +112,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, tea.Quit
 				}
 			case "create":
-				return m, m.handleCreate
+				m.handleCreate()
 			case "history", "result":
 				m.view = "menu"
 				m.successMsg = ""
@@ -127,6 +120,34 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "1", "2", "3":
 			if m.view == "menu" {
 				m.menuIndex = int(msg.String()[0] - '1')
+			}
+		case "up", "k":
+			if m.view == "create" {
+				if m.inputFocus > 0 {
+					m.inputFocus--
+					m.updateInputFocus()
+				}
+				return m, nil
+			}
+			if m.view == "menu" && m.menuIndex > 0 {
+				m.menuIndex--
+			}
+		case "down", "j":
+			if m.view == "create" {
+				if m.inputFocus < 2 {
+					m.inputFocus++
+					m.updateInputFocus()
+				}
+				return m, nil
+			}
+			if m.view == "menu" && m.menuIndex < 2 {
+				m.menuIndex++
+			}
+		case "tab":
+			if m.view == "create" {
+				m.inputFocus = (m.inputFocus + 1) % 3
+				m.updateInputFocus()
+				return m, nil
 			}
 		case "esc":
 			if m.view != "menu" {
@@ -141,7 +162,34 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.SetHeight(msg.Height - 12)
 	}
 
+	// Forward remaining keypresses into the focused input so the create form
+	// is typable. Navigation keys (up/down/j/k/tab/esc/enter) were consumed
+	// above and must not also reach the textinput.
+	if m.view == "create" {
+		var c1, c2, c3 tea.Cmd
+		m.participantsInput, c1 = m.participantsInput.Update(msg)
+		m.seedInput, c2 = m.seedInput.Update(msg)
+		m.countInput, c3 = m.countInput.Update(msg)
+		cmd = tea.Batch(cmd, c1, c2, c3)
+	}
+
 	return m, cmd
+}
+
+// updateInputFocus moves focus to the create form's currently-selected input.
+func (m *model) updateInputFocus() {
+	m.participantsInput.Blur()
+	m.seedInput.Blur()
+	m.countInput.Blur()
+
+	switch m.inputFocus {
+	case 0:
+		m.participantsInput.Focus()
+	case 1:
+		m.seedInput.Focus()
+	case 2:
+		m.countInput.Focus()
+	}
 }
 
 func (m *model) View() tea.View {
@@ -281,24 +329,34 @@ func (m *model) handleCreate() tea.Msg {
 		count = c
 	}
 
+	if len(participants) == 0 {
+		m.err = i18n.GetText("lottery.tui.participants_required")
+		return nil
+	}
+
+	if count < 1 {
+		m.err = i18n.GetText("lottery.tui.winners_positive")
+		return nil
+	}
+
 	if len(participants) < count {
-		m.err = "参与者人数必须多于获奖人数"
+		m.err = i18n.GetText("lottery.tui.winners_exceed")
 		return nil
 	}
 
 	if seed == "" {
-		m.err = "种子不能为空"
+		m.err = i18n.GetText("lottery.tui.seed_required")
 		return nil
 	}
 
 	result := m.runLottery(participants, seed, count)
 	if result == nil {
-		m.err = "抽奖创建失败，请稍后重试"
+		m.err = i18n.GetText("lottery.tui.create_failed")
 		return nil
 	}
 	m.result = result
 	m.view = "result"
-	m.successMsg = "抽奖已创建并上链"
+	m.successMsg = i18n.GetText("lottery.tui.created_onchain")
 
 	return nil
 }
@@ -341,13 +399,18 @@ func (m *model) runLottery(participants []string, seed string, count int) *lotte
 	return record
 }
 
+// parseTextArea splits a participant list into individual names. The create
+// form's single-line text input cannot hold newlines, so names are accepted
+// comma-separated (matching the `lottery create -p "A,B,C"` CLI convention) —
+// newlines are also honoured for any legacy multiline content.
 func parseTextArea(text string) []string {
 	var result []string
-	lines := strings.Split(text, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			result = append(result, line)
+	for _, chunk := range strings.FieldsFunc(text, func(r rune) bool {
+		return r == ',' || r == '\n' || r == '\r'
+	}) {
+		chunk = strings.TrimSpace(chunk)
+		if chunk != "" {
+			result = append(result, chunk)
 		}
 	}
 	return result

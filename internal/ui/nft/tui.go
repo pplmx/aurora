@@ -17,8 +17,9 @@ import (
 )
 
 type model struct {
-	view      string
-	menuIndex int
+	view       string
+	menuIndex  int
+	inputFocus int
 
 	nameInput   textinput.Model
 	descInput   textinput.Model
@@ -126,13 +127,32 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.successMsg = ""
 
 		case "up", "k":
-			if m.view == "menu" && m.menuIndex > 0 {
-				m.menuIndex--
+			if m.view == "menu" {
+				if m.menuIndex > 0 {
+					m.menuIndex--
+				}
+			} else if m.isFormView() && m.inputFocus > 0 {
+				m.inputFocus--
+				m.updateInputFocus()
+				return m, nil
 			}
 
 		case "down", "j":
-			if m.view == "menu" && m.menuIndex < 3 {
-				m.menuIndex++
+			if m.view == "menu" {
+				if m.menuIndex < 3 {
+					m.menuIndex++
+				}
+			} else if m.isFormView() && m.inputFocus < m.formInputCount()-1 {
+				m.inputFocus++
+				m.updateInputFocus()
+				return m, nil
+			}
+
+		case "tab":
+			if m.isFormView() && m.formInputCount() > 1 {
+				m.inputFocus = (m.inputFocus + 1) % m.formInputCount()
+				m.updateInputFocus()
+				return m, nil
 			}
 
 		case "enter":
@@ -146,6 +166,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.nameInput.SetValue("")
 					m.descInput.SetValue("")
 					m.pubkeyInput.SetValue("")
+					m.inputFocus = 0
+					m.updateInputFocus()
 				case 1:
 					m.view = "transfer"
 					m.err = ""
@@ -153,11 +175,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.nftIDInput.SetValue("")
 					m.fromKeyInput.SetValue("")
 					m.toAddrInput.SetValue("")
+					m.inputFocus = 0
+					m.updateInputFocus()
 				case 2:
 					m.view = "query"
 					m.err = ""
 					m.successMsg = ""
 					m.queryIDInput.SetValue("")
+					m.inputFocus = 0
+					m.updateInputFocus()
 				case 3:
 					return m, tea.Quit
 				}
@@ -192,7 +218,88 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.SetHeight(msg.Height - 12)
 	}
 
+	// Forward remaining keypresses into the focused input so the form views
+	// are typable (round-97: keystrokes never reached the textinput models).
+	cmd = tea.Batch(cmd, m.forwardToActiveInput(msg))
+
 	return m, cmd
+}
+
+// isFormView reports whether the current view edits NFT fields.
+func (m *model) isFormView() bool {
+	switch m.view {
+	case "mint", "transfer", "query":
+		return true
+	}
+	return false
+}
+
+// formInputCount returns how many text inputs the current view has.
+func (m *model) formInputCount() int {
+	switch m.view {
+	case "mint", "transfer":
+		return 3
+	case "query":
+		return 1
+	}
+	return 0
+}
+
+// updateInputFocus focuses the current view's input at m.inputFocus.
+func (m *model) updateInputFocus() {
+	switch m.view {
+	case "mint":
+		m.nameInput.Blur()
+		m.descInput.Blur()
+		m.pubkeyInput.Blur()
+		switch m.inputFocus {
+		case 0:
+			m.nameInput.Focus()
+		case 1:
+			m.descInput.Focus()
+		case 2:
+			m.pubkeyInput.Focus()
+		}
+	case "transfer":
+		m.nftIDInput.Blur()
+		m.fromKeyInput.Blur()
+		m.toAddrInput.Blur()
+		switch m.inputFocus {
+		case 0:
+			m.nftIDInput.Focus()
+		case 1:
+			m.fromKeyInput.Focus()
+		case 2:
+			m.toAddrInput.Focus()
+		}
+	case "query":
+		m.queryIDInput.Blur()
+		m.queryIDInput.Focus()
+	}
+}
+
+// forwardToActiveInput pipes a message into the active view's text inputs.
+func (m *model) forwardToActiveInput(msg tea.Msg) tea.Cmd {
+	var cmds []tea.Cmd
+	switch m.view {
+	case "mint":
+		var c1, c2, c3 tea.Cmd
+		m.nameInput, c1 = m.nameInput.Update(msg)
+		m.descInput, c2 = m.descInput.Update(msg)
+		m.pubkeyInput, c3 = m.pubkeyInput.Update(msg)
+		cmds = append(cmds, c1, c2, c3)
+	case "transfer":
+		var c1, c2, c3 tea.Cmd
+		m.nftIDInput, c1 = m.nftIDInput.Update(msg)
+		m.fromKeyInput, c2 = m.fromKeyInput.Update(msg)
+		m.toAddrInput, c3 = m.toAddrInput.Update(msg)
+		cmds = append(cmds, c1, c2, c3)
+	case "query":
+		var c1 tea.Cmd
+		m.queryIDInput, c1 = m.queryIDInput.Update(msg)
+		cmds = append(cmds, c1)
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m *model) View() tea.View {
