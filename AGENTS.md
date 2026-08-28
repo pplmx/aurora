@@ -29,6 +29,10 @@ just stop         # Stop containers: docker compose down
 ## Git Workflow
 
 - **禁止使用 `git commit --amend`**：每次提交应该是独立的、完整的。如果需要修改，使用新的提交
+- **提交粒度：完整但不零碎，也不过大**。
+  - 不要每个小改动单独一个 commit —— 一组小的相关改动（同一 task / 同一逻辑单元）应合并进**一个完整 commit**。
+  - 反过来也不要一个 commit 塞进太大范围的东西 —— 以"一个自洽的逻辑单元"为单位（一次 bug 修复、一个 feature、一次同主题重构），参考 commit message 里的 task/issue 编号（TASK-x / ISS-x）来判断边界。
+  - 实践中一个里程碑通常由 3–4 个功能级 commit 加 1 个文档收尾 commit 组成，而非几十个碎片。
 - 提交前确保所有 pre-commit hooks 通过
 - 如果 hooks 自动修改了文件，需要将这些修改添加到提交中
 
@@ -61,6 +65,13 @@ just stop         # Stop containers: docker compose down
 - filippo.io/edwards25519 (VRF, Ed25519 signing)
 - charmbracelet/bubbletea (TUI)
 - charmbracelet/lipgloss (styling)
+
+## Go Style
+
+- 写/改 Go 代码前调用 `use-modern-go` 技能（Skill tool 名称
+  `modern-go-guidelines:use-modern-go`），按返回的 guidelines 写现代惯用 Go
+  （内置 `min`/`max`、`slices`/`maps` 泛型 helper、`errors.Is`/`As`、`any` 等）。
+  新代码遵循 guideline；跳过某条 guideline 时用它的 `explain` 子命令确认理由。
 
 ## Module Commands
 
