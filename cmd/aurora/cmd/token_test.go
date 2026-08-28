@@ -179,9 +179,20 @@ func TestTokenBurn_HappyPath(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		tokenID, pub, priv := tokenFixture(t, "BurnCoin", "BURN", "1000")
 		out, err := runCmd(t, "token", "burn",
-			"--token", tokenID, "--from", pub, "--amount", "100", "--private-key", priv)
+			"--token", tokenID, "--from", pub, "--amount", "100", "--private-key", priv, "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "burned")
+	})
+}
+
+func TestTokenBurn_RequiresConfirm(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		tokenID, pub, priv := tokenFixture(t, "BurnCoin", "BURN", "1000")
+		out, err := runCmd(t, "token", "burn",
+			"--token", tokenID, "--from", pub, "--amount", "100", "--private-key", priv)
+		require.Error(t, err, "burn without --confirm must be refused")
+		assert.Contains(t, err.Error(), "--confirm")
+		assert.NotContains(t, out, "burned")
 	})
 }
 

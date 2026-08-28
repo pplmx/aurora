@@ -150,6 +150,11 @@ var burnCmd = &cobra.Command{
 	Use:   "burn",
 	Short: i18n.GetText("nft.burn"),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Burning permanently destroys an NFT; require -y/--confirm first
+		// (matches backup restore --confirm / lottery reset --yes).
+		if err := requireConfirm(cmd, "permanently destroys the NFT"); err != nil {
+			return err
+		}
 		service, err := nftService()
 		if err != nil {
 			return fmt.Errorf("failed to initialize NFT service: %w", err)
@@ -294,6 +299,7 @@ func init() {
 	burnCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
 	burnCmd.Flags().StringP("owner", "o", "", i18n.GetText("nft.owner"))
 	burnCmd.Flags().StringP("private-key", "k", "", i18n.GetText("nft.private_key"))
+	addConfirmFlag(burnCmd, "Permanently destroy the NFT (requires --confirm)")
 	_ = burnCmd.MarkFlagRequired("nft")
 	_ = burnCmd.MarkFlagRequired("owner")
 	_ = burnCmd.MarkFlagRequired("private-key")

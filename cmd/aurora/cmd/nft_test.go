@@ -147,9 +147,26 @@ func TestNFTBurn_HappyPath(t *testing.T) {
 		require.NotEmpty(t, id)
 
 		bout, err := runCmd(t, "nft", "burn",
-			"--nft", id, "--owner", pub, "--private-key", priv)
+			"--nft", id, "--owner", pub, "--private-key", priv, "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, bout, "NFT burned successfully!")
+	})
+}
+
+func TestNFTBurn_RequiresConfirm(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		pub, priv := nftKeypair(t)
+
+		out, err := runCmd(t, "nft", "mint",
+			"--name", "BurnFail", "--creator", pub)
+		require.NoError(t, err)
+		id := extractField(t, out, "ID:")
+		require.NotEmpty(t, id)
+
+		_, err = runCmd(t, "nft", "burn",
+			"--nft", id, "--owner", pub, "--private-key", priv)
+		require.Error(t, err, "burn without --confirm must be refused")
+		assert.Contains(t, err.Error(), "--confirm")
 	})
 }
 
@@ -165,7 +182,7 @@ func TestNFTBurn_WrongKey(t *testing.T) {
 		require.NotEmpty(t, id)
 
 		_, err = runCmd(t, "nft", "burn",
-			"--nft", id, "--owner", pub, "--private-key", wrongPriv)
+			"--nft", id, "--owner", pub, "--private-key", wrongPriv, "--confirm")
 		require.Error(t, err)
 	})
 }
