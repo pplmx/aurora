@@ -177,3 +177,26 @@ func TestRateLimit_UntrustedPeerNeverTrustsHeaders(t *testing.T) {
 	// Same peer, forging a different forwarded client: blocked.
 	assert.Equal(t, http.StatusTooManyRequests, send("8.8.4.4:1234", "198.51.100.8"))
 }
+
+// TestFixedWindowLimiter_EvictsExpiredBuckets pins the TASK-136/ISS-129 fix:
+// the buckets map must not grow with every distinct key ever seen. Once the
+// map crosses limiterSweepThreshold, Allow sweeps buckets whose window fully
+// elapsed, so memory stays proportional to keys active within a window.
+func TestFixedWindowLimiter_EvictsExpiredBuckets(t *testing.T) {
+	frozen := time.Unix(1000, 0)
+	l := NewFixedWindowLimiter(3, time.Minute, func() time.Time { return frozen })
+
+	for i := 0; i < limiterSweepThreshold+10; i++ {
+		l.Allow(fmt.Sprintf("client-%d", i))
+	}
+	if len(l.buckets) <= limiterSweepThreshold {
+		t.Fatalf("expected the map to exceed the sweep threshold, got %d", len(l.buckets))
+	}
+
+	// Every bucket's window has now elapsed; the next Allow must reclaim them.
+	frozen = frozen.Add(2 * time.Minute)
+	l.Allow("fresh")
+	if len(l.buckets) != 1 {
+		t.Fatalf("expected only the fresh bucket to remain after eviction, got %d", len(l.buckets))
+	}
+}

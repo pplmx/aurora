@@ -1068,3 +1068,21 @@ func TestFetcher_FetchData_SuccessStatus(t *testing.T) {
 		})
 	}
 }
+
+// TestRateLimiter_EvictsIdleSources pins the TASK-136/ISS-129 fix: the
+// requests map must not retain every sourceID ever fetched (Reset was never
+// wired to the source lifecycle). Once the map crosses limiterSweepThreshold,
+// Allow reclaims keys whose last request predates the window.
+func TestRateLimiter_EvictsIdleSources(t *testing.T) {
+	rl := NewRateLimiter(3, time.Minute)
+	for i := 0; i < limiterSweepThreshold+10; i++ {
+		rl.requests[fmt.Sprintf("source-%d", i)] = []time.Time{time.Now().Add(-2 * time.Minute)}
+	}
+
+	if !rl.Allow("fresh") {
+		t.Fatal("fresh source must be admitted")
+	}
+	if len(rl.requests) != 1 {
+		t.Fatalf("expected only the fresh source to remain after eviction, got %d", len(rl.requests))
+	}
+}

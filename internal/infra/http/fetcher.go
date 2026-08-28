@@ -147,6 +147,12 @@ type RateLimiter struct {
 	window   time.Duration
 }
 
+// limiterSweepThreshold bounds the RateLimiter's requests map: when it grows
+// past this many tracked sources, Allow sweeps keys idle beyond the window.
+// Without it every sourceID ever fetched stayed in the map forever, since
+// Reset was never wired to the source lifecycle (TASK-136, ISS-129).
+const limiterSweepThreshold = 1024
+
 type Fetcher struct {
 	client      *http.Client
 	rateLimiter *RateLimiter
@@ -169,6 +175,19 @@ func (r *RateLimiter) Allow(sourceID string) bool {
 
 	now := time.Now()
 	windowStart := now.Add(-r.window)
+
+	// Reclaim keys idle past the window so the requests map stays bounded by
+	// sources active within a window rather than every source ever fetched
+	// (Reset exists but was never called, so keys leaked forever; TASK-136,
+	// ISS-129). Per-source slices are pruned below, so an expired key has no
+	// remaining recent entry.
+	if len(r.requests) >= limiterSweepThreshold {
+		for key, ts := range r.requests {
+			if len(ts) == 0 || ts[len(ts)-1].Before(windowStart) {
+				delete(r.requests, key)
+			}
+		}
+	}
 
 	requests := r.requests[sourceID]
 	valid := make([]time.Time, 0, len(requests))
