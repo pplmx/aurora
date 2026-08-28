@@ -1,6 +1,7 @@
 package nft
 
 import (
+	tea "charm.land/bubbletea/v2"
 	"encoding/base64"
 	"testing"
 
@@ -265,4 +266,22 @@ func TestHandleQueryNotFound(t *testing.T) {
 	assert.Nil(t, msg)
 	assert.Equal(t, i18n.GetText("error.not_found"), app.err)
 	assert.Nil(t, app.nft)
+}
+
+func TestUpdate_QuestionTogglesHelp(t *testing.T) {
+	app := NewNFTApp()
+	app.Update(tea.KeyPressMsg(tea.Key{Text: "?"}))
+	assert.True(t, app.showHelp, "? opens the help view")
+
+	app.Update(tea.KeyPressMsg(tea.Key{Text: "enter"}))
+	assert.True(t, app.showHelp, "non-exit keys are swallowed while help is open")
+
+	app.Update(tea.KeyPressMsg(tea.Key{Text: "esc"}))
+	assert.False(t, app.showHelp, "esc closes the help view")
+}
+
+func TestView_HelpScreenContent(t *testing.T) {
+	app := NewNFTApp()
+	app.showHelp = true
+	assert.Contains(t, app.View().Content, i18n.GetText("tui.help.title"))
 }

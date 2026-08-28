@@ -86,6 +86,7 @@ type model struct {
 	view         string
 	menuIndex    int
 	inputFocus   int
+	showHelp     bool
 	err          string
 	successMsg   string
 	chain        *blockchain.BlockChain
@@ -215,6 +216,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
+		if m.showHelp {
+			if s := msg.String(); s == "esc" || s == "?" {
+				m.showHelp = false
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			if m.view == "menu" {
@@ -223,6 +231,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.view = "menu"
 			m.err = ""
 			m.successMsg = ""
+			return m, nil
+
+		case "?":
+			m.showHelp = true
 			return m, nil
 
 		case "up", "k":
@@ -406,21 +418,25 @@ func (m *model) forwardToActiveInput(msg tea.Msg) tea.Cmd {
 
 func (m *model) View() tea.View {
 	v := tea.NewView("")
-	switch m.view {
-	case "menu":
-		v.SetContent(m.menuView())
-	case "create":
-		v.SetContent(m.createView())
-	case "mint":
-		v.SetContent(m.mintView())
-	case "transfer":
-		v.SetContent(m.transferView())
-	case "balance":
-		v.SetContent(m.balanceView())
-	case "history":
-		v.SetContent(m.historyView())
-	default:
-		v.SetContent(m.menuView())
+	if m.showHelp {
+		v.SetContent(components.HelpView())
+	} else {
+		switch m.view {
+		case "menu":
+			v.SetContent(m.menuView())
+		case "create":
+			v.SetContent(m.createView())
+		case "mint":
+			v.SetContent(m.mintView())
+		case "transfer":
+			v.SetContent(m.transferView())
+		case "balance":
+			v.SetContent(m.balanceView())
+		case "history":
+			v.SetContent(m.historyView())
+		default:
+			v.SetContent(m.menuView())
+		}
 	}
 	v.AltScreen = true
 	return v

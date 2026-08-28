@@ -20,6 +20,7 @@ type model struct {
 	view       string
 	menuIndex  int
 	inputFocus int
+	showHelp   bool
 
 	nameInput   textinput.Model
 	descInput   textinput.Model
@@ -117,6 +118,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
+		if m.showHelp {
+			if s := msg.String(); s == "esc" || s == "?" {
+				m.showHelp = false
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
 		case "ctrl+c", "q":
 			if m.view == "menu" {
@@ -125,6 +133,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.view = "menu"
 			m.err = ""
 			m.successMsg = ""
+
+		case "?":
+			m.showHelp = true
+			return m, nil
 
 		case "up", "k":
 			if m.view == "menu" {
@@ -311,21 +323,25 @@ func (m *model) forwardToActiveInput(msg tea.Msg) tea.Cmd {
 
 func (m *model) View() tea.View {
 	v := tea.NewView("")
-	switch m.view {
-	case "menu":
-		v.SetContent(m.menuView())
-	case "mint":
-		v.SetContent(m.mintView())
-	case "transfer":
-		v.SetContent(m.transferView())
-	case "query":
-		v.SetContent(m.queryView())
-	case "result":
-		v.SetContent(m.resultView())
-	case "list":
-		v.SetContent(m.listView())
-	default:
-		v.SetContent(m.menuView())
+	if m.showHelp {
+		v.SetContent(components.HelpView())
+	} else {
+		switch m.view {
+		case "menu":
+			v.SetContent(m.menuView())
+		case "mint":
+			v.SetContent(m.mintView())
+		case "transfer":
+			v.SetContent(m.transferView())
+		case "query":
+			v.SetContent(m.queryView())
+		case "result":
+			v.SetContent(m.resultView())
+		case "list":
+			v.SetContent(m.listView())
+		default:
+			v.SetContent(m.menuView())
+		}
 	}
 	v.AltScreen = true
 	return v

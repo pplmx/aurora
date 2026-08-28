@@ -358,6 +358,17 @@ func (tr *Translator) loadMessages() {
 		"help.exit": "Press q to quit",
 		"help.back": "Press b to go back",
 
+		// TUI help screen (components.HelpView)
+		"tui.help.title":       "Keyboard Shortcuts",
+		"tui.help.nav_header":  "Navigation",
+		"tui.help.up_down":     "↑/k move up, ↓/j move down",
+		"tui.help.tab":         "Tab: cycle form fields",
+		"tui.help.enter":       "Enter: confirm",
+		"tui.help.esc":         "ESC: go back",
+		"tui.help.quit":        "q: quit (from menu)",
+		"tui.help.help":        "?: toggle this help",
+		"tui.help.back_prompt": "Press ESC or ? to return",
+
 		// ===== MIGRATE =====
 		"migrate.description":      "Database migration management",
 		"migrate.short":            "Manage database migrations",
@@ -687,6 +698,17 @@ func (tr *Translator) loadMessages() {
 		"help.nav":  "使用 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出",
 		"help.exit": "按 q 退出",
 		"help.back": "按 b 返回",
+
+		// TUI 帮助页 (components.HelpView)
+		"tui.help.title":       "键盘快捷键",
+		"tui.help.nav_header":  "导航",
+		"tui.help.up_down":     "↑/k 上移, ↓/j 下移",
+		"tui.help.tab":         "Tab: 切换输入框",
+		"tui.help.enter":       "回车: 确认",
+		"tui.help.esc":         "ESC: 返回",
+		"tui.help.quit":        "q: 退出 (菜单页)",
+		"tui.help.help":        "?: 切换此帮助",
+		"tui.help.back_prompt": "按 ESC 或 ? 返回",
 
 		// ===== MIGRATE =====
 		"migrate.description":      "数据库迁移管理",

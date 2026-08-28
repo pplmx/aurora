@@ -27,6 +27,7 @@ type model struct {
 	queryInputSource textinput.Model
 	queryInputLimit  textinput.Model
 	inputFocus       int
+	showHelp         bool
 	selectedSourceID string
 	confirmAction    string
 	errMsg           string
@@ -78,6 +79,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
+		if m.showHelp {
+			if s := msg.String(); s == "esc" || s == "?" {
+				m.showHelp = false
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
 		case "ctrl+c", "q":
 			if m.view == "menu" {
@@ -86,6 +94,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.view = "menu"
 			m.errMsg = ""
 			m.successMsg = ""
+
+		case "?":
+			m.showHelp = true
+			return m, nil
 
 		case "up", "k":
 			switch m.view {
@@ -298,6 +310,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *model) View() tea.View {
 	v := tea.NewView("")
+	v.AltScreen = true
+	if m.showHelp {
+		v.SetContent(components.HelpView())
+		return v
+	}
 	switch m.view {
 	case "menu":
 		v.SetContent(m.menuView())
