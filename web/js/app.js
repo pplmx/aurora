@@ -46,6 +46,9 @@ async function apiFetch(path, options) {
         window.showApiError(msg);
         throw new Error(msg);
     }
+    // A 2xx response means the API recovered; dismiss any sticky failure
+    // banner a transient earlier error left behind (round-102 TASK-141).
+    window.showApiError('');
     return res;
 }
 
