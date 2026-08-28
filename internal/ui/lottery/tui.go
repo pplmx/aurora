@@ -173,6 +173,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = tea.Batch(cmd, c1, c2, c3)
 	}
 
+	// The history view is a viewport; let the viewport handle scrolling keys
+	// (up/down/j/k/pgup/pgdn/space/b/f/u/d) so long histories are reachable
+	// instead of clipped at the 15-row viewport (TASK-127, ISS-119).
+	if m.view == "history" {
+		m.viewport, cmd = m.viewport.Update(msg)
+	}
+
 	return m, cmd
 }
 

@@ -473,3 +473,48 @@ func TestParseTextArea_NewlineAndWhitespace(t *testing.T) {
 	got := parseTextArea("A\nB\n  C  ")
 	assert.Equal(t, []string{"A", "B", "C"}, got)
 }
+
+// Round-98 (TASK-127): the history view is a viewport with no scroll
+// binding, so a long history was clipped at the 15-row view and
+// unreachable. These tests pin that scrolling keys reach the viewport.
+
+func TestUpdate_HistoryScrolling(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "history"
+	app.viewport.SetWidth(60)
+	app.viewport.SetHeight(3)
+	app.viewport.SetContent("1\n2\n3\n4\n5\n6\n7\n8")
+
+	// Initially at the top; pressing "down"/"j" scrolls.
+	y0 := app.viewport.YOffset()
+	app.Update(keyPress("down"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+	app.Update(keyPress("j"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+
+	// Scrolling up returns toward the top.
+	app.Update(keyPress("up"))
+	assert.LessOrEqual(t, app.viewport.YOffset(), app.viewport.YOffset())
+	app.Update(keyPress("k"))
+	app.Update(keyPress("k"))
+	assert.LessOrEqual(t, app.viewport.YOffset(), 2)
+}
+
+func TestUpdate_HistoryPgDnScrolls(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "history"
+	app.viewport.SetWidth(60)
+	app.viewport.SetHeight(3)
+	app.viewport.SetContent("1\n2\n3\n4\n5\n6\n7\n8")
+
+	y0 := app.viewport.YOffset()
+	app.Update(keyPress("pgdown"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+}
+
+func TestUpdate_HistoryEnterStillReturnsToMenu(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "history"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
+}
