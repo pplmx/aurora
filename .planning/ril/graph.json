@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 99,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T11:44:19+00:00",
+  "updated_at": "2026-08-28T12:39:27+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -5538,11 +5538,11 @@
     "ISS-118": {
       "id": "ISS-118",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T09:51:21+00:00",
-      "updated_at": "2026-08-28T09:51:21+00:00",
-      "touched_round": 97,
+      "updated_at": "2026-08-28T12:39:27+00:00",
+      "touched_round": 99,
       "title": "? for help advertised in token/nft/oracle menus but is a dead key (no help view); on forms it just types a literal ?",
       "severity": 0.4,
       "confidence": 0.95,
@@ -5564,11 +5564,11 @@
     "ISS-120": {
       "id": "ISS-120",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T09:51:21+00:00",
-      "updated_at": "2026-08-28T09:51:21+00:00",
-      "touched_round": 97,
+      "updated_at": "2026-08-28T12:39:27+00:00",
+      "touched_round": 99,
       "title": "Hardcoded CJK strings bypass i18n: token/nft TUIs render Chinese in an en-locale session (mixed-language UI); error.create_token_first key already exists unused",
       "severity": 0.4,
       "confidence": 0.9,
@@ -5577,11 +5577,11 @@
     "ISS-121": {
       "id": "ISS-121",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T09:51:21+00:00",
-      "updated_at": "2026-08-28T09:51:21+00:00",
-      "touched_round": 97,
+      "updated_at": "2026-08-28T12:39:26+00:00",
+      "touched_round": 99,
       "title": "Oracle confirm toggle/delete dialogs render no visible selection; Enter at index 1 silently cancels, users cannot tell yes from no",
       "severity": 0.45,
       "confidence": 0.9,
@@ -5719,6 +5719,81 @@
       "touched_round": 98,
       "commit": "8c70eeb",
       "title": "Localize CLI --help text by locale after init (lazy GetTranslator follows LANG; lottery Long uses i18n key); fixes TASK-128/ISS-123"
+    },
+    "TASK-129": {
+      "id": "TASK-129",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T11:50:51+00:00",
+      "updated_at": "2026-08-28T12:39:26+00:00",
+      "touched_round": 99,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle confirm toggle/delete dialogs render no visible selection: menuIndex drives Enter (0=confirm) but the Yes/No row is static text [Y]es/[N]o with no highlight and y/n keys are dead, so the user cannot tell which option Enter will execute before confirming a destructive action"
+    },
+    "TASK-130": {
+      "id": "TASK-130",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T11:50:51+00:00",
+      "updated_at": "2026-08-28T12:39:27+00:00",
+      "touched_round": 99,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "token/nft/oracle TUIs render the help.nav footer advertising \"? for help\" but the \"?\" key is dead in all three (only lottery implements the showHelp/helpView pattern)"
+    },
+    "TASK-131": {
+      "id": "TASK-131",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T11:50:51+00:00",
+      "updated_at": "2026-08-28T12:39:27+00:00",
+      "touched_round": 99,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "token TUI balance/history views render hardcoded CJK strings (请先创建代币, 代币, 余额, 暂无代币 etc) bypassing i18n, so an en locale shows Chinese"
+    },
+    "CHG-124": {
+      "id": "CHG-124",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T12:38:48+00:00",
+      "updated_at": "2026-08-28T12:38:48+00:00",
+      "touched_round": 99,
+      "commit": "a195d7d",
+      "title": "Oracle confirm dialogs: visible Yes/No selector + y/n hotkeys; fixes TASK-129/ISS-121"
+    },
+    "CHG-125": {
+      "id": "CHG-125",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T12:38:48+00:00",
+      "updated_at": "2026-08-28T12:38:48+00:00",
+      "touched_round": 99,
+      "commit": "e1add94",
+      "title": "Shared localized HelpView + '?' help key in token/nft/oracle TUIs; fixes TASK-130/ISS-118"
+    },
+    "CHG-126": {
+      "id": "CHG-126",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T12:38:48+00:00",
+      "updated_at": "2026-08-28T12:38:48+00:00",
+      "touched_round": 99,
+      "commit": "7923dab",
+      "title": "Route hardcoded CJK in token/lottery TUI views through i18n; fixes TASK-131/ISS-120"
     }
   },
   "edges": [
@@ -8907,6 +8982,60 @@
       "to": "ISS-123",
       "type": "resolves",
       "created_at": "2026-08-28T11:40:28+00:00"
+    },
+    {
+      "from": "TASK-129",
+      "to": "ISS-121",
+      "type": "addresses",
+      "created_at": "2026-08-28T11:51:37+00:00"
+    },
+    {
+      "from": "TASK-130",
+      "to": "ISS-118",
+      "type": "addresses",
+      "created_at": "2026-08-28T11:51:37+00:00"
+    },
+    {
+      "from": "TASK-131",
+      "to": "ISS-120",
+      "type": "addresses",
+      "created_at": "2026-08-28T11:51:37+00:00"
+    },
+    {
+      "from": "CHG-124",
+      "to": "TASK-129",
+      "type": "implements",
+      "created_at": "2026-08-28T12:39:08+00:00"
+    },
+    {
+      "from": "CHG-124",
+      "to": "ISS-121",
+      "type": "resolves",
+      "created_at": "2026-08-28T12:39:08+00:00"
+    },
+    {
+      "from": "CHG-125",
+      "to": "TASK-130",
+      "type": "implements",
+      "created_at": "2026-08-28T12:39:08+00:00"
+    },
+    {
+      "from": "CHG-125",
+      "to": "ISS-118",
+      "type": "resolves",
+      "created_at": "2026-08-28T12:39:08+00:00"
+    },
+    {
+      "from": "CHG-126",
+      "to": "TASK-131",
+      "type": "implements",
+      "created_at": "2026-08-28T12:39:08+00:00"
+    },
+    {
+      "from": "CHG-126",
+      "to": "ISS-120",
+      "type": "resolves",
+      "created_at": "2026-08-28T12:39:09+00:00"
     }
   ]
 }
