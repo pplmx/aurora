@@ -2,6 +2,98 @@
 
 All notable changes to this project will be documented in this file.
 
+The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STATE.md`
+(release `Version` is injected at build time via `-ldflags -X cmd.Version=`). The
+entries below summarise v1.64–v1.87; earlier v1.x milestones (v1.0–v1.63) are
+documented in their per-milestone ROADMAP files.
+
+## [v1.87] - 2026-08-29
+
+### Fixed
+
+- **API resource-status consistency**: unknown oracle source / NFT id now return
+  404 (not `200 []` or an unclassified 500); `/oracle/query` with a missing
+  `source` param returns 400 (parity with `/latest`); the sqlite repos return
+  `(nil, nil)` for a source with no data (the interface contract already used
+  by the in-memory repo), so `/oracle/latest` no longer 500s on a known-but-empty
+  source; `/nft/{id}/history` on a nonexistent id 404s while a real NFT with no
+  operations keeps returning `200 []`.
+- **SyncEventBus self-deadlock**: `Publish` snapshots handler lists under the
+  read lock and runs handlers outside it, so a handler may subscribe/unsubscribe
+  during publish without deadlocking the whole bus.
+- **MetricsRegistry lazy-init race**: `Server.MetricsRegistry()` is
+  `sync.Once`-guarded so concurrent callers cannot create two registries and
+  split the request counters.
+
+## [v1.86] - 2026-08-28
+
+### Fixed
+
+- **Cancellable oracle scheduler fetches**: in-flight HTTP fetches abort on
+  shutdown instead of stalling SIGTERM for up to N sources × 10s.
+- **Backup path-traversal rejection**: archive metadata naming
+  `../../victim` can no longer make verify/restore touch arbitrary `.db` files.
+- **Bounded rate-limiter buckets**: both limiters now evict fully-expired keys
+  past a sweep threshold so bucket maps stay proportional to active clients.
+
+## [v1.85] - 2026-08-28
+
+### Added
+
+- Typable TUI forms with Tab/↑/↓ focus cycling (lottery/token/nft); scrollable
+  viewport history/list views; `?` opens a localized keyboard-shortcuts help;
+  `--confirm`/`-y` gate on destructive CLI ops (token burn, nft burn, oracle
+  source delete, migrate down); localized `--help`; oracle confirm dialogs with
+  visible Yes/No selection; web auto-refresh + manual refresh button; Alpine
+  vendored locally (no CDN).
+
+### Fixed
+
+- **Truthful `version`**: was fabricated (hardcoded 0.0.1 + fake Go version);
+  now reads link-time `Version`/`BuildTime` and real `runtime.Version()`.
+- **Web API failures surfaced**: list GETs no longer silently swallow the
+  `{error, code}` envelope and render blank pages — a shared banner reports them.
+- **Hardcoded CJK → i18n**: token/lottery TUI strings no longer leak Chinese
+  into en-locale sessions.
+
+## [v1.84] - 2026-08-28
+
+### Fixed
+
+- **Voting client-error classification**: wrong-length vote key → 400; duplicate
+  roster candidates rejected; remaining flags triaged to documented design or
+  parked decisions (DEC-004/005).
+
+## [v1.83] - 2026-08-28
+
+### Fixed
+
+- **Config durations**: numeric TOML durations now treated as seconds everywhere
+  (`30` = 30s, not 30ns).
+- **Audit durability**: a durable outbox heals failed audit publishes.
+- **Backup atomicity**: atomic metadata/restore.
+
+## [v1.64]–[v1.82] - 2026-08 (earlier milestone sweep)
+
+Documented in the v1.81–v1.84 sweep roadmaps and git history; highlights in this
+range: CORS cross-origin key-exfiltration hardening (v1.64), backup
+self-overwrite guard (v1.65), NFT operation audit-trail collapse (v1.66), atomic
+`ClaimNextNonce` under a real connection pool (v1.67), no phantom events on token
+tx rollback (v1.68), rate-limit spoof bypass via trusted-proxy allow-list (v1.69),
+SQLite writer contention / `SQLITE_BUSY` and the in-transaction nonce deadlock it
+regressed (v1.70/v1.72), unbounded JSON request bodies capped at 4 MiB (v1.71),
+`cmd/api` secrets + audit-trail wiring (v1.73), bounded metrics label cardinality
+(v1.74), backups stale under a live WAL server → `VACUUM INTO` snapshots (v1.75),
+CLI TUI commands no longer exit 0 on failure (v1.76), NFT burn audit-trail
+retention + owner-scoped token-history paging/envelope + `cmd/api` config-file
+loading (v1.77), Base64→400 classification + oracle scheduler on-chain recording
+(v1.78), honored `token create --decimals` + lottery-reset refused → exit≠0 +
+bounded NFT list paging + `db.path` honored everywhere (v1.79), removed phantom
+HOME data-dir wiring of the dead `app.Wire`/`GlobalApp` (v1.80), integrity &
+client-error sweep (v1.81), report-the-truth & dead-code sweep — committed token
+ops never reported failed, backup restore same-file + WAL-complete guards, dead
+`app.Wire` retired (v1.82).
+
 ## [0.0.1] - 2026-04-07
 
 ### Added
