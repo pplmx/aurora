@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/sha512"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -107,6 +109,42 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 	// create silently 400'd).
 	require.True(t, strings.Contains(js, "winner_count"), "app.js lottery create must use the winner_count field")
 	requireServedAsset(t, handler, "/css/style.css", "--accent-voting")
+}
+
+// TestWebUIVendorAlpine_LocalNoCDN pins the TASK-132/ISS-124 decision: every
+// shipped page must load Alpine from the local /vendor copy, never from the
+// unpkg CDN. The CDN tag added a third-party supply-chain/interception
+// surface and broke the UI whenever the machine was offline or unpkg was
+// unreachable. The vendored build is byte-verified against the published
+// alpinejs@3.13.5 SRI so a substituted file cannot be committed silently.
+func TestWebUIVendorAlpine_LocalNoCDN(t *testing.T) {
+	webDir := realWebDir()
+	handler := injectAPIKey(http.FileServer(http.Dir(webDir)), "test-serve-key")
+
+	vendored := filepath.Join(webDir, "vendor", "alpine.min.js")
+	st, err := os.Stat(vendored)
+	require.NoError(t, err, "shipped web/vendor/alpine.min.js must exist")
+	require.True(t, st.Mode().IsRegular())
+	require.Greater(t, st.Size(), int64(10000), "vendored Alpine must be the real ~40KiB build, not a stub")
+
+	raw, err := os.ReadFile(vendored)
+	require.NoError(t, err)
+	sum := sha512.Sum384(raw)
+	require.Equal(t,
+		"BxpSbjbDhVKwnC1UfcjsNEuMuxg4af5IXOaSi1Iq5rASQ/9a7uslhEXbP9UI/fXo",
+		base64.StdEncoding.EncodeToString(sum[:]),
+		"vendored Alpine must match the published alpinejs@3.13.5 SRI")
+
+	requireServedAsset(t, handler, "/vendor/alpine.min.js", "Alpine")
+
+	for _, page := range []string{"/", "/lottery.html", "/voting.html", "/token.html",
+		"/oracle.html", "/blockchain.html", "/nft.html"} {
+		body := requireServedAsset(t, handler, page)
+		require.Contains(t, body, `src="/vendor/alpine.min.js"`,
+			"%s must load Alpine from the local vendor copy", page)
+		require.NotContains(t, body, "unpkg.com",
+			"%s must not load Alpine from the unpkg CDN", page)
+	}
 }
 
 // moduleNavLinks are the hrefs every shipped page's header nav must contain.
