@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 99,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T12:39:27+00:00",
+  "updated_at": "2026-08-28T13:00:20+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -5616,11 +5616,11 @@
     "ISS-124": {
       "id": "ISS-124",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T09:51:57+00:00",
-      "updated_at": "2026-08-28T09:51:57+00:00",
-      "touched_round": 97,
+      "updated_at": "2026-08-28T12:59:51+00:00",
+      "touched_round": 99,
       "title": "Web UI loads Alpine from unpkg CDN with no SRI or vendored copy; if CDN unreachable the whole UI is inert, and it is a supply-chain risk (compounded by in-page API key)",
       "severity": 0.5,
       "confidence": 0.9,
@@ -5629,11 +5629,11 @@
     "ISS-125": {
       "id": "ISS-125",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T09:51:57+00:00",
-      "updated_at": "2026-08-28T09:51:57+00:00",
-      "touched_round": 97,
+      "updated_at": "2026-08-28T12:59:51+00:00",
+      "touched_round": 99,
       "title": "Web UI has no refresh/polling mechanism; lists load once and go stale until manual reload",
       "severity": 0.3,
       "confidence": 0.9,
@@ -5794,6 +5794,68 @@
       "touched_round": 99,
       "commit": "7923dab",
       "title": "Route hardcoded CJK in token/lottery TUI views through i18n; fixes TASK-131/ISS-120"
+    },
+    "TASK-132": {
+      "id": "TASK-132",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T12:46:43+00:00",
+      "updated_at": "2026-08-28T12:59:51+00:00",
+      "touched_round": 99,
+      "category": "security",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Vendor Alpine locally or add SRI: all 7 web pages load alpinejs from unpkg CDN with no integrity hash or fallback (ISS-124), so a CDN outage or supply-chain interception breaks/blunts every page"
+    },
+    "TASK-133": {
+      "id": "TASK-133",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T12:46:43+00:00",
+      "updated_at": "2026-08-28T12:59:51+00:00",
+      "touched_round": 99,
+      "category": "dx",
+      "severity": 0.45,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "Web lists load once and go stale: add refresh/polling (dashboard + oracle sources) so live data updates without a manual page reload (ISS-125)"
+    },
+    "DEC-007": {
+      "id": "DEC-007",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T12:58:36+00:00",
+      "updated_at": "2026-08-28T12:58:36+00:00",
+      "touched_round": 99,
+      "rationale": "The web UI is served by cmd/api (a local tool that should work offline). Loading Alpine from the unpkg CDN (a) adds a third-party supply-chain/interception surface between the operator and their data, (b) breaks the UI when the machine is offline or unpkg is unreachable, and (c) cannot be integrity-verified at every load without SRI. SRI-on-CDN hardens (c) but not (a)/(b). Vendoring the verified alpinejs@3.13.5 build (byte-checked against its published SRI base64) into web/vendor/alpine.min.js removes the external dependency entirely — a one-time ~44KiB asset matching the repo's self-contained ethos.",
+      "alternatives_rejected": "SRI-integrity attribute on the CDN script tag: still requires network and leaves a live third-party dependency/availability risk. CSP with unpkg allow-list: same availability coupling. No change: leaves the supply-chain + offline-break risk open.",
+      "title": "Vendor Alpine locally instead of loading from unpkg CDN (TASK-132, ISS-124)"
+    },
+    "CHG-127": {
+      "id": "CHG-127",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T12:59:00+00:00",
+      "updated_at": "2026-08-28T12:59:00+00:00",
+      "touched_round": 99,
+      "commit": "4157ced",
+      "title": "Vendor Alpine locally, drop unpkg CDN + SRI-byte-verified test; fixes TASK-132/ISS-124 (DEC-007)"
+    },
+    "CHG-128": {
+      "id": "CHG-128",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T12:59:00+00:00",
+      "updated_at": "2026-08-28T12:59:00+00:00",
+      "touched_round": 99,
+      "commit": "ada5683",
+      "title": "Auto-refresh + manual refresh button for dashboard/oracle live surfaces; fixes TASK-133/ISS-125"
     }
   },
   "edges": [
@@ -9036,6 +9098,48 @@
       "to": "ISS-120",
       "type": "resolves",
       "created_at": "2026-08-28T12:39:09+00:00"
+    },
+    {
+      "from": "TASK-132",
+      "to": "ISS-124",
+      "type": "addresses",
+      "created_at": "2026-08-28T12:47:04+00:00"
+    },
+    {
+      "from": "TASK-133",
+      "to": "ISS-125",
+      "type": "addresses",
+      "created_at": "2026-08-28T12:47:04+00:00"
+    },
+    {
+      "from": "DEC-007",
+      "to": "TASK-132",
+      "type": "governs",
+      "created_at": "2026-08-28T12:59:00+00:00"
+    },
+    {
+      "from": "CHG-127",
+      "to": "TASK-132",
+      "type": "implements",
+      "created_at": "2026-08-28T12:59:00+00:00"
+    },
+    {
+      "from": "CHG-127",
+      "to": "ISS-124",
+      "type": "resolves",
+      "created_at": "2026-08-28T12:59:00+00:00"
+    },
+    {
+      "from": "CHG-128",
+      "to": "TASK-133",
+      "type": "implements",
+      "created_at": "2026-08-28T12:59:00+00:00"
+    },
+    {
+      "from": "CHG-128",
+      "to": "ISS-125",
+      "type": "resolves",
+      "created_at": "2026-08-28T12:59:00+00:00"
     }
   ]
 }

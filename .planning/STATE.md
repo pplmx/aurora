@@ -11,13 +11,14 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.85 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen in all TUIs, hardcoded CJK → i18n)
+Status: v1.24–v1.85 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh)
 Last activity: 2026-08-28 — v1.85 closed (round-97 UX deep-dive: three parallel
   audit agents over the TUI surfaces, CLI ergonomics and web frontend, then
   the top-three verified defects fixed; round-98 drained the backlog:
   viewport scroll bindings, destructive-op confirm gates, CLI --help
-  localization; round-99 continued the splash: oracle confirm visible
-  selection, "?" help screen, hardcoded CJK → i18n):
+  localization; round-99 drained the rest — oracle confirm visible
+  selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine
+  (DEC-007), web auto-refresh):
 
   1. Lottery/token/nft TUI forms were UNTYPABLE — their Update loops never
      forwarded keypresses into the textinput models, so no participant, seed,
@@ -72,7 +73,16 @@ Last activity: 2026-08-28 — v1.85 closed (round-97 UX deep-dive: three paralle
      behind token.tui.*/lottery.tui.* keys, and lottery's inline help screen
      was replaced by the shared component. Regression tests pin en+zh paths
      (TASK-131, ISS-120, CHG-126 / 7923dab).
-  RIL graph at round 99.
+  10. All 7 web pages loaded Alpine from the unpkg CDN with no integrity
+      hash — third-party supply-chain/interception surface, and the UI
+      broke offline. Vendored the byte-verified build to
+      web/vendor/alpine.min.js; every page loads it locally (DEC-007;
+      TASK-132, ISS-124, CHG-127 / 4157ced).
+  11. Dashboard stats and Oracle sources/feed-health loaded once and went
+      stale though the scheduler keeps recording. Added shared startPolling,
+      refresh() on dashboard/oracle, 15s auto-poll and a ↻ Refresh header
+      button (TASK-133, ISS-125, CHG-128 / ada5683).
+  RIL graph at round 99; round-97 UX backlog (ISS-118..125) fully drained.
 
 Progress: continuous loop — every resolved milestone advanced the graph;
   recent deep-dives closed a CRITICAL CORS/key-exfiltration flaw (v1.64), a
@@ -119,7 +129,7 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.82 | Report-the-truth & dead-code sweep (committed token ops never reported failed, backup restore same-file + WAL-complete guards, retire dead app.Wire) | ✅ done |
 | v1.83 | Config-duration & audit-durability sweep (numeric TOML durations as seconds everywhere, durable outbox heals failed audit publishes, backup atomic metadata/restore) | ✅ done |
 | v1.84 | Voting client-error classification sweep (wrong-length vote key → 400, duplicate roster candidates rejected; triage of has_voted/draft-window/NFT-zero-key to documented design or parked decisions) | ✅ done |
-| v1.85 | UX / interactivity / usability polish (typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n; backlog drained) | ✅ done |
+| v1.85 | UX / interactivity / usability polish (typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh; round-97 backlog fully drained) | ✅ done |
 
 ## Session Continuity
 
@@ -127,14 +137,16 @@ Last session: 2026-08-28 — v1.85 UX / interactivity / usability polish
   (typable TUI forms, web API-failure surfacing + banner, truthful CLI
   version, scrollable viewport TUI views, --confirm gate on destructive CLI
   ops, localized --help, oracle confirm visible selection, "?" help screen,
-  hardcoded CJK → i18n; DEC-006 recorded that the user's polish directive
-  overrides the low dx-category score in RIL priority ranking). RIL graph at
-  round 99.
-Next: the only remaining UX backlog is web-frontend — ISS-124 (web Alpine
-  from unpkg CDN without SRI/vendored copy) and ISS-125 (no refresh/polling
-  on web lists); one round should cover both. The deferred ISS-084 phantom
-  on-chain blocks on rolled-back transactions remains parked per DEC-002
-  (cross-DB atomicity redesign; token event trail is already post-commit;
-  reconfirmed by EV-044); NFT zero-key transfer is a product-semantics
-  question parked for operator intent (DEC-005). Use `ril.py tasks --top 10`
-  to load the converted backlog.
+  hardcoded CJK → i18n, vendored Alpine (DEC-007), web auto-refresh;
+  DEC-006 recorded that the user's polish directive overrides the low
+  dx-category score in RIL priority ranking). RIL graph at round 99; the
+  round-97 UX backlog (ISS-118..ISS-125) is fully drained.
+Next: with no active tasks above threshold, start a fresh repository
+  deep-dive (a new parallel audit sweep over a fresh dimension — e.g.
+  concurrency/goroutine leaks, error-path audit depth, DB query pages, CLI
+  output consistency) to seed the next milestone. The deferred ISS-084
+  phantom on-chain blocks on rolled-back transactions remains parked per
+  DEC-002 (cross-DB atomicity redesign; token event trail is already
+  post-commit; reconfirmed by EV-044); NFT zero-key transfer is a
+  product-semantics question parked for operator intent (DEC-005). Use
+  `ril.py tasks --top 10` to load any converted backlog.
