@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 105,
+  "round": 106,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T18:48:02+00:00",
+  "updated_at": "2026-08-28T19:21:00+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6199,6 +6199,31 @@
       "touched_round": 104,
       "commit": "489437d",
       "title": "README coverage table refreshed with measured go test -cover numbers (SQLite 45.5% -> 85.0%); fixes TASK-144"
+    },
+    "TASK-145": {
+      "id": "TASK-145",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T19:04:48+00:00",
+      "updated_at": "2026-08-28T19:21:00+00:00",
+      "touched_round": 106,
+      "category": "correctness",
+      "severity": 0.55,
+      "confidence": 0.98,
+      "effort": 1,
+      "title": "10 i18n keys used by code are missing from both en+zh catalogs, so T(key) falls through to the raw key string shown to users: oracle.tui.{enter_source_id,enter_limit,source_id,limit,fetch_result,query_result,fetch_success,no_data} + nft.block_height + error.load_failed"
+    },
+    "CHG-139": {
+      "id": "CHG-139",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-28T19:17:58+00:00",
+      "updated_at": "2026-08-28T19:19:12+00:00",
+      "touched_round": 105,
+      "commit": "9ad9e62",
+      "title": "Add 10 missing i18n keys (en+zh) referenced by the oracle/NFT TUI; fixes TASK-145"
     }
   },
   "edges": [
@@ -9663,6 +9688,12 @@
       "to": "TASK-144",
       "type": "implements",
       "created_at": "2026-08-28T18:48:02+00:00"
+    },
+    {
+      "from": "CHG-139",
+      "to": "TASK-145",
+      "type": "implements",
+      "created_at": "2026-08-28T19:19:12+00:00"
     }
   ]
 }

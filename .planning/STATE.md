@@ -182,7 +182,12 @@ Round 102 (2026-08-29, user polish directive) refreshed the usability/docs
   CJK outside i18n. Round 103 (round 104 in graph) added a CHANGELOG v1.x
   milestone line for v1.64–v1.87 (was stale at 0.0.1) (TASK-143, CHG-137).
   TUI numeric-input validation and token/oracle web flows re-checked: all
-  friendly-error guarded, no panics. RIL graph at round 104 (515 nodes).
+  friendly-error guarded, no panics. Round 105 (round 106 in graph) added 10
+  i18n keys that code referenced but both catalogs lacked — T(key) was
+  rendering raw keys to users in the oracle TUI placeholders/labels, the NFT
+  TUI block-height label, and the oracle error path (TASK-145, CHG-139,
+  9ad9e62); catalog parity re-verified at 306/306 with zero missing keys.
+  RIL graph at round 106 (519 nodes).
 Next: the deferred ISS-084 phantom on-chain blocks on rolled-back
   transactions remains parked per DEC-002 (cross-DB atomicity redesign; token
   event trail is already post-commit; reconfirmed by EV-044); NFT zero-key
