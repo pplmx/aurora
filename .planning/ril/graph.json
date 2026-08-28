@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 100,
+  "round": 102,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T15:38:58+00:00",
+  "updated_at": "2026-08-28T17:35:39+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -5359,11 +5359,11 @@
     "HYP-003": {
       "id": "HYP-003",
       "type": "hypothesis",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T07:53:26+00:00",
-      "updated_at": "2026-08-28T07:53:26+00:00",
-      "touched_round": 97,
+      "updated_at": "2026-08-28T17:33:20+00:00",
+      "touched_round": 101,
       "title": "TUI Update() never forwards tea.KeyPressMsg into textinput models for non-create views",
       "confidence": 0.98
     },
@@ -5924,11 +5924,11 @@
     "ISS-128": {
       "id": "ISS-128",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T14:17:35+00:00",
-      "updated_at": "2026-08-28T14:17:35+00:00",
-      "touched_round": 100,
+      "updated_at": "2026-08-28T17:33:20+00:00",
+      "touched_round": 101,
       "severity": 0.45,
       "title": "SyncEventBus.Publish holds RLock while running subscribers, so a handler that calls Subscribe/Unsubscribe during publish self-deadlocks the whole bus; today's handlers do not do this so it is a latent trap in the used public API; async/composite busses are currently unwired (dead code)"
     },
@@ -5946,22 +5946,22 @@
     "ISS-130": {
       "id": "ISS-130",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T14:17:35+00:00",
-      "updated_at": "2026-08-28T14:17:35+00:00",
-      "touched_round": 100,
+      "updated_at": "2026-08-28T17:33:20+00:00",
+      "touched_round": 101,
       "severity": 0.4,
       "title": "GET /api/v1/oracle/query validates no source and unknown sources return 200 [] while /latest requires source and 404s; NFT history returns 200 [] for a nonexistent id that /nft/{id} 404s — same-unknown-resource status inconsistency across the API"
     },
     "ISS-131": {
       "id": "ISS-131",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-28T14:17:35+00:00",
-      "updated_at": "2026-08-28T14:17:35+00:00",
-      "touched_round": 100,
+      "updated_at": "2026-08-28T17:33:20+00:00",
+      "touched_round": 101,
       "severity": 0.35,
       "title": "Server.MetricsRegistry() lazy-init is check-then-set with no lock; only reachable if a Server is built without its constructor but a future/test path could race two registries and split counters"
     },
@@ -5997,6 +5997,108 @@
       "touched_round": 100,
       "commit": "e978268",
       "title": "Rate limiters evict idle keys to bound bucket maps; fixes TASK-136/ISS-129"
+    },
+    "TASK-137": {
+      "id": "TASK-137",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T16:42:40+00:00",
+      "updated_at": "2026-08-28T17:34:36+00:00",
+      "touched_round": 101,
+      "category": "correctness",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "API resource-status consistency: unknown oracle source / NFT id must 404, not 200 [] or 500; /oracle/query with no source must 400 like /latest"
+    },
+    "TASK-138": {
+      "id": "TASK-138",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T16:42:40+00:00",
+      "updated_at": "2026-08-28T17:34:36+00:00",
+      "touched_round": 101,
+      "category": "stability",
+      "severity": 0.45,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "SyncEventBus.Publish must not hold RLock while running handlers: snapshot handlers under lock, invoke outside so a handler may Subscribe/Unsubscribe without self-deadlock"
+    },
+    "TASK-139": {
+      "id": "TASK-139",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-28T16:42:40+00:00",
+      "updated_at": "2026-08-28T17:34:36+00:00",
+      "touched_round": 101,
+      "category": "stability",
+      "severity": 0.35,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Server.MetricsRegistry lazy-init is check-then-set without a lock; guard with sync.Once to prevent a racing test/alternate-constructor path splitting two registries"
+    },
+    "TASK-140": {
+      "id": "TASK-140",
+      "type": "task",
+      "status": "abandoned",
+      "version": 2,
+      "created_at": "2026-08-28T16:43:22+00:00",
+      "updated_at": "2026-08-28T16:45:33+00:00",
+      "touched_round": 101,
+      "category": "correctness",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "API resource-status consistency test",
+      "reason": "duplicate of TASK-137 created by a CLI syntax check"
+    },
+    "CHG-132": {
+      "id": "CHG-132",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T17:32:16+00:00",
+      "updated_at": "2026-08-28T17:32:16+00:00",
+      "touched_round": 101,
+      "commit": "e9a9e6b",
+      "title": "SyncEventBus.Publish runs handlers on a snapshot outside the read lock so mid-publish subscribe/unsubscribe cannot self-deadlock; fixes TASK-138/ISS-128"
+    },
+    "CHG-133": {
+      "id": "CHG-133",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T17:32:16+00:00",
+      "updated_at": "2026-08-28T17:32:16+00:00",
+      "touched_round": 101,
+      "commit": "695d662",
+      "title": "Unknown-resource statuses consistent across /oracle/{query,latest} + /nft/{id}/history: 400 missing param, 404 unknown source/id, sqlite GetLatestData (nil,nil) contract; fixes TASK-137/ISS-130"
+    },
+    "CHG-134": {
+      "id": "CHG-134",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T17:32:16+00:00",
+      "updated_at": "2026-08-28T17:32:16+00:00",
+      "touched_round": 101,
+      "commit": "387d8c5",
+      "title": "Server.MetricsRegistry lazy-init once-guarded so concurrent callers cannot split registries; fixes TASK-139/ISS-131"
+    },
+    "EV-049": {
+      "id": "EV-049",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T17:32:16+00:00",
+      "updated_at": "2026-08-28T17:32:16+00:00",
+      "touched_round": 101,
+      "source": "round-101 direct-read: internal/ui/{lottery,token,nft,oracle}/tui.go",
+      "title": "TUI keypress forwarding is complete: lottery create forwards all 3 inputs (tui.go:168-174), token/nft forwardToActiveInput covers every form view, oracle forms forward; HYP-003 gap closed by CHG-118 in round 97",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -9371,6 +9473,72 @@
       "to": "ISS-129",
       "type": "resolves",
       "created_at": "2026-08-28T15:36:04+00:00"
+    },
+    {
+      "from": "TASK-140",
+      "to": "ISS-130",
+      "type": "addresses",
+      "created_at": "2026-08-28T16:44:02+00:00"
+    },
+    {
+      "from": "TASK-137",
+      "to": "ISS-130",
+      "type": "addresses",
+      "created_at": "2026-08-28T16:45:33+00:00"
+    },
+    {
+      "from": "TASK-138",
+      "to": "ISS-128",
+      "type": "addresses",
+      "created_at": "2026-08-28T16:45:33+00:00"
+    },
+    {
+      "from": "TASK-139",
+      "to": "ISS-131",
+      "type": "addresses",
+      "created_at": "2026-08-28T16:45:33+00:00"
+    },
+    {
+      "from": "CHG-132",
+      "to": "ISS-128",
+      "type": "resolves",
+      "created_at": "2026-08-28T17:33:20+00:00"
+    },
+    {
+      "from": "CHG-132",
+      "to": "TASK-138",
+      "type": "implements",
+      "created_at": "2026-08-28T17:33:20+00:00"
+    },
+    {
+      "from": "CHG-133",
+      "to": "ISS-130",
+      "type": "resolves",
+      "created_at": "2026-08-28T17:33:20+00:00"
+    },
+    {
+      "from": "CHG-133",
+      "to": "TASK-137",
+      "type": "implements",
+      "created_at": "2026-08-28T17:33:20+00:00"
+    },
+    {
+      "from": "CHG-134",
+      "to": "ISS-131",
+      "type": "resolves",
+      "created_at": "2026-08-28T17:33:20+00:00"
+    },
+    {
+      "from": "CHG-134",
+      "to": "TASK-139",
+      "type": "implements",
+      "created_at": "2026-08-28T17:33:20+00:00"
+    },
+    {
+      "from": "EV-049",
+      "to": "HYP-003",
+      "type": "validates",
+      "created_at": "2026-08-28T17:33:20+00:00"
     }
   ]
 }
