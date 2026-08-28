@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 103,
+  "round": 104,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T18:13:41+00:00",
+  "updated_at": "2026-08-28T18:37:54+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6149,6 +6149,31 @@
       "touched_round": 102,
       "commit": "4bf4205",
       "title": "README documents operational CLI (backup/migrate/version, extended token/oracle/lottery subcommands), the -y/--confirm destructive-op gates, and the cmd/api Web server startup; fixes TASK-142"
+    },
+    "TASK-143": {
+      "id": "TASK-143",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-28T18:36:41+00:00",
+      "updated_at": "2026-08-28T18:37:54+00:00",
+      "touched_round": 103,
+      "category": "docs",
+      "severity": 0.3,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "CHANGELOG.md is stale — only 0.0.1 entries from 2024/2026, no v1.x line; add v1.64-v1.87 milestone entries (lifted verbatim from STATE.md milestone table) for accurate release history"
+    },
+    "CHG-137": {
+      "id": "CHG-137",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-28T18:37:54+00:00",
+      "updated_at": "2026-08-28T18:37:54+00:00",
+      "touched_round": 103,
+      "commit": "72ef179",
+      "title": "CHANGELOG documents the v1.64-v1.87 milestone line with entries lifted from the STATE.md milestone table; fixes TASK-143"
     }
   },
   "edges": [
@@ -9601,6 +9626,12 @@
       "to": "TASK-142",
       "type": "implements",
       "created_at": "2026-08-28T18:12:11+00:00"
+    },
+    {
+      "from": "CHG-137",
+      "to": "TASK-143",
+      "type": "implements",
+      "created_at": "2026-08-28T18:37:54+00:00"
     }
   ]
 }

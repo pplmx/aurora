@@ -179,7 +179,10 @@ Round 102 (2026-08-29, user polish directive) refreshed the usability/docs
   subcommands, the -y/--confirm destructive-op gates, and the previously
   undocumented cmd/api Web server (TASK-142, CHG-136). CLI exit-code audit
   re-run: already clean (centralized error line + os.Exit(1)); no hardcoded
-  CJK outside i18n. RIL graph at round 103 (513 nodes).
+  CJK outside i18n. Round 103 (round 104 in graph) added a CHANGELOG v1.x
+  milestone line for v1.64–v1.87 (was stale at 0.0.1) (TASK-143, CHG-137).
+  TUI numeric-input validation and token/oracle web flows re-checked: all
+  friendly-error guarded, no panics. RIL graph at round 104 (515 nodes).
 Next: the deferred ISS-084 phantom on-chain blocks on rolled-back
   transactions remains parked per DEC-002 (cross-DB atomicity redesign; token
   event trail is already post-commit; reconfirmed by EV-044); NFT zero-key
