@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -984,4 +985,31 @@ func TestUpdate_HistoryScrolls(t *testing.T) {
 	assert.Greater(t, app.viewport.YOffset(), y0)
 	app.Update(keyPress("up"))
 	assert.LessOrEqual(t, app.viewport.YOffset(), 2)
+}
+
+// TestUpdate_QuestionTogglesHelp pins the TASK-130/ISS-118 fix: the menu
+// footer advertises "? for help" (help.nav), so "?" must open the help view
+// and esc/? must close it, while ordinary keys are swallowed while help is up
+// (otherwise a stray Enter would mutate state or leave the view).
+func TestUpdate_QuestionTogglesHelp(t *testing.T) {
+	app := NewTokenApp()
+	app.Update(keyPress("?"))
+	assert.True(t, app.showHelp, "? opens the help view")
+
+	app.Update(keyPress("enter"))
+	assert.True(t, app.showHelp, "non-exit keys are swallowed while help is open")
+
+	app.Update(keyPress("esc"))
+	assert.False(t, app.showHelp, "esc closes the help view")
+
+	app = NewTokenApp()
+	app.Update(keyPress("?"))
+	app.Update(keyPress("?"))
+	assert.False(t, app.showHelp, "? toggles the help view closed again")
+}
+
+func TestView_HelpScreenContent(t *testing.T) {
+	app := NewTokenApp()
+	app.showHelp = true
+	assert.Contains(t, app.View().Content, i18n.GetText("tui.help.title"))
 }

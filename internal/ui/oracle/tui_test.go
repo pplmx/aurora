@@ -1019,3 +1019,21 @@ func TestUpdate_QueryInputDownBound(t *testing.T) {
 	app.Update(keyPress("down"))
 	assert.Equal(t, 1, app.inputFocus)
 }
+
+func TestUpdate_QuestionTogglesHelp(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.Update(keyPress("?"))
+	assert.True(t, app.showHelp, "? opens the help view")
+
+	app.Update(keyPress("enter"))
+	assert.True(t, app.showHelp, "non-exit keys are swallowed while help is open")
+
+	app.Update(keyPress("esc"))
+	assert.False(t, app.showHelp, "esc closes the help view")
+}
+
+func TestView_HelpScreenContent(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.showHelp = true
+	assert.Contains(t, app.View().Content, i18n.GetText("tui.help.title"))
+}
