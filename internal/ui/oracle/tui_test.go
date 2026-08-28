@@ -1,11 +1,13 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -717,6 +719,68 @@ func TestUpdate_ConfirmDeleteDownBound(t *testing.T) {
 	app.menuIndex = 1
 	app.Update(keyPress("down"))
 	assert.Equal(t, 1, app.menuIndex)
+}
+
+// TestConfirmChoiceView_HighlightsSelection pins the TASK-129/ISS-121 fix:
+// the confirm dialogs must render a visible selection marker (▶) next to the
+// row Enter will execute. Previously the Yes/No banner was static text with
+// no highlight, so confirming a destructive action was a blind guess.
+func TestConfirmChoiceView_HighlightsSelection(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	yes := i18n.GetText("oracle.tui.yes")
+	no := i18n.GetText("oracle.tui.no")
+
+	app.menuIndex = 0
+	view := app.confirmChoiceView()
+	assert.True(t, strings.Contains(view, "▶ "+yes), "menuIndex 0 must highlight Yes, got:\n%s", view)
+	assert.False(t, strings.Contains(view, "▶ "+no), "menuIndex 0 must not highlight No, got:\n%s", view)
+
+	app.menuIndex = 1
+	view = app.confirmChoiceView()
+	assert.True(t, strings.Contains(view, "▶ "+no), "menuIndex 1 must highlight No, got:\n%s", view)
+	assert.False(t, strings.Contains(view, "▶ "+yes), "menuIndex 1 must not highlight Yes, got:\n%s", view)
+}
+
+func TestUpdate_YConfirmsToggle(t *testing.T) {
+	repo := &mockRepo{sources: []*oracle.DataSource{
+		{ID: "1", Name: "Test", URL: "https://test.com", Type: "json", Enabled: false},
+	}}
+	app := NewOracleApp(repo)
+	app.loadSources()
+	app.selectedSourceID = "1"
+	app.view = "confirmToggle"
+	app.Update(keyPress("y"))
+	assert.Equal(t, "sources", app.view, "y on confirmToggle must commit and leave the dialog")
+	assert.Len(t, app.sources, 1)
+	assert.True(t, app.sources[0].Enabled, "y on confirmToggle must enable the source")
+}
+
+func TestUpdate_YUppercaseConfirmsDelete(t *testing.T) {
+	repo := &mockRepo{sources: []*oracle.DataSource{
+		{ID: "1", Name: "Test", URL: "https://test.com", Type: "json", Enabled: true},
+	}}
+	app := NewOracleApp(repo)
+	app.loadSources()
+	app.selectedSourceID = "1"
+	app.view = "confirmDelete"
+	app.Update(keyPress("Y"))
+	assert.Equal(t, "sources", app.view)
+	assert.Empty(t, app.sources, "uppercase Y on confirmDelete must delete the source")
+	assert.Empty(t, app.selectedSourceID)
+}
+
+func TestUpdate_NCancelsConfirmDialog(t *testing.T) {
+	repo := &mockRepo{sources: []*oracle.DataSource{
+		{ID: "1", Name: "Test", URL: "https://test.com", Type: "json", Enabled: false},
+	}}
+	app := NewOracleApp(repo)
+	app.loadSources()
+	app.selectedSourceID = "1"
+	app.view = "confirmToggle"
+	app.menuIndex = 0 // even with Yes pre-highlighted, n must cancel
+	app.Update(keyPress("n"))
+	assert.Equal(t, "sources", app.view, "n must leave the dialog without committing")
+	assert.False(t, app.sources[0].Enabled, "n must not toggle the source")
 }
 
 func TestUpdate_QueryInputFocusUpBound(t *testing.T) {
