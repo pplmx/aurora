@@ -168,19 +168,29 @@ function dashboardApp() {
             }
         },
         async loadVoting() {
+            // Each stat group has its own try/catch so a transient failure on
+            // one endpoint (e.g. sessions 500) blanks only its own card instead
+            // of the shared Promise.all dropping the sibling stats too (TASK-147).
+            await Promise.all([this.loadCandidatesStats(), this.loadSessionsStats()]);
+        },
+        async loadCandidatesStats() {
             try {
-                const [candRes, sessRes] = await Promise.all([
-                    apiFetch('/api/v1/voting/candidates'),
-                    apiFetch('/api/v1/voting/sessions')
-                ]);
-                const candidates = await candRes.json();
-                const sessions = await sessRes.json();
+                const res = await apiFetch('/api/v1/voting/candidates');
+                const candidates = await res.json();
                 if (Array.isArray(candidates)) {
                     this.stats.candidates = candidates.length;
                     // "Total votes" has no dedicated endpoint; derive it from
                     // each candidate's real vote_count.
                     this.stats.votes = candidates.reduce((sum, c) => sum + (c.vote_count || 0), 0);
                 }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        async loadSessionsStats() {
+            try {
+                const res = await apiFetch('/api/v1/voting/sessions');
+                const sessions = await res.json();
                 if (Array.isArray(sessions)) {
                     this.stats.sessions = sessions.length;
                     sessions.slice(0, 10).forEach(s => {
@@ -221,7 +231,9 @@ function dashboardApp() {
 
 // blockchainApp drives the /blockchain.html ledger integrity page (v1.26). It
 // calls the protected GET /api/v1/blockchain/verify endpoint and renders the
-// IntegrityReport (valid, chain length, first broken index + reason).
+// IntegrityReport (valid, chain length, first broken index + reason). It goes
+// through apiFetch so a down/unauthorized API surfaces in the shared banner
+// like every other web surface (TASK-124/141 contract), not just inline.
 function blockchainApp() {
     return {
         report: null,
@@ -231,11 +243,7 @@ function blockchainApp() {
             this.loading = true;
             this.error = '';
             try {
-                const res = await fetch('/api/v1/blockchain/verify', { headers: auroraHeaders() });
-                if (!res.ok) {
-                    this.error = 'Verification failed: HTTP ' + res.status;
-                    return;
-                }
+                const res = await apiFetch('/api/v1/blockchain/verify');
                 this.report = await res.json();
             } catch (e) {
                 this.error = 'Error: ' + e.message;
@@ -415,7 +423,6 @@ function votingApp() {
                     body: JSON.stringify({ name: this.voterName })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.voterResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.voterResult = 'Voter registered as ' + data.name + ' (public key: ' + data.public_key + ')';
                 this.voterPrivateKey = data.private_key;
                 this.voteVoterPub = data.public_key;
@@ -437,7 +444,6 @@ function votingApp() {
                     })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.candResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.candResult = 'Candidate "' + data.name + '" registered (id: ' + data.id + ')';
                 this.candName = '';
                 this.candParty = '';
@@ -461,7 +467,6 @@ function votingApp() {
                     })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.sessionResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.sessionResult = 'Session "' + data.title + '" created (id: ' + data.id + ')';
                 this.sessionTitle = '';
                 this.sessionDesc = '';
@@ -486,7 +491,6 @@ function votingApp() {
                     })
                 });
                 const data = await res.json();
-                if (!res.ok) { this.voteResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.voteResult = 'Vote recorded (id: ' + data.id + ', block height: ' + data.block_height + ')';
                 await this.loadCandidates();
             } catch (e) {
@@ -497,11 +501,6 @@ function votingApp() {
             try {
                 const res = await apiFetch('/api/v1/voting/results/' + encodeURIComponent(this.resultsSessionId));
                 const data = await res.json();
-                if (!res.ok) {
-                    this.results = null;
-                    this.resultsError = 'Error: ' + (data.error || data.message || res.status);
-                    return;
-                }
                 this.results = data;
                 this.resultsError = '';
             } catch (e) {
@@ -521,7 +520,6 @@ function votingApp() {
             try {
                 const res = await apiFetch(url, { method: 'POST' });
                 const data = await res.json();
-                if (!res.ok) { this.controlResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.controlResult = 'Session status: ' + (data.status || '?');
                 await this.loadSessions();
             } catch (e) {
@@ -664,7 +662,8 @@ function oracleApp() {
         addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
         templates: [],
         fetchSource: '', fetchResult: '',
-        querySource: '', queryLimit: 10, queryRows: [],
+        querySource: '', queryLimit: 10, queryRows: [], queryError: '',
+        sourcesError: '',
         latestSource: '', latestResult: '',
         async init() {
             await this.refresh();
@@ -727,25 +726,27 @@ function oracleApp() {
             }
         },
         async setEnabled(source, enabled) {
+            this.sourcesError = '';
             try {
-                const res = await apiFetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
+                await apiFetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: enabled })
                 });
-                if (!res.ok) { alert('Failed to ' + (enabled ? 'enable' : 'disable') + ' source'); }
                 await this.listSources();
-            } catch (e) { alert('Error: ' + e.message); }
+            } catch (e) { this.sourcesError = 'Error: ' + e.message; }
         },
         async deleteSource(source) {
             if (!confirm('Delete source "' + (source.name || source.id) + '"?')) return;
+            this.sourcesError = '';
             try {
-                const res = await apiFetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
+                // The destructive-op guard (delete confirm) mirrors the CLI
+                // --confirm gate; apiFetch raises the shared banner on failure.
+                await apiFetch('/api/v1/oracle/sources/' + encodeURIComponent(source.id), {
                     method: 'DELETE'
                 });
-                if (!res.ok) { alert('Failed to delete source'); }
                 await this.listSources();
-            } catch (e) { alert('Error: ' + e.message); }
+            } catch (e) { this.sourcesError = 'Error: ' + e.message; }
         },
         async listSources() {
             this.loading = true;
@@ -769,11 +770,15 @@ function oracleApp() {
             }
         },
         async query() {
+            this.queryError = '';
             try {
                 const res = await apiFetch('/api/v1/oracle/query?source=' + encodeURIComponent(this.querySource) + '&limit=' + this.queryLimit);
                 const data = await res.json();
                 this.queryRows = (data && data.data) || [];
-            } catch (e) { this.queryRows = []; }
+            } catch (e) {
+                this.queryRows = [];
+                this.queryError = 'Error: ' + e.message;
+            }
         },
         async latest() {
             try {

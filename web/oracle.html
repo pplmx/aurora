@@ -25,8 +25,11 @@
         <main>
             <section class="history">
                 <h2>Data Sources</h2>
-                <div x-show="loading">Loading...</div>
-                <table x-show="!loading && sources.length > 0">
+                <!-- The loading placeholder only replaces the table while no
+                     data has loaded yet; during a 15s background poll existing
+                     rows stay visible instead of flashing Loading... (TASK-148). -->
+                <div x-show="loading && sources.length === 0">Loading...</div>
+                <table x-show="sources.length > 0">
                     <thead><tr><th>Name</th><th>Type</th><th>ID</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                         <template x-for="s in sources" :key="s.id">
@@ -44,6 +47,7 @@
                         </template>
                     </tbody>
                 </table>
+                <p x-show="sourcesError" class="result" x-text="sourcesError"></p>
                 <p x-show="!loading && sources.length === 0">(no sources)</p>
             </section>
             <section class="create-form">
@@ -70,8 +74,8 @@
             </section>
             <section class="history">
                 <h2>Feed Health</h2>
-                <div x-show="loadingHealth">Loading health…</div>
-                <table x-show="!loadingHealth && health.length > 0">
+                <div x-show="loadingHealth && health.length === 0">Loading health…</div>
+                <table x-show="health.length > 0">
                     <thead><tr><th>Source</th><th>Attempts</th><th>Successes</th><th>Failures</th><th>Last Success</th><th>Last Error</th></tr></thead>
                     <tbody>
                         <template x-for="h in health" :key="h.source_id">
@@ -115,6 +119,7 @@
                         </template>
                     </tbody>
                 </table>
+                <div x-show="queryError" class="result" x-text="queryError"></div>
             </section>
             <section class="history">
                 <h2>Latest Data</h2>
