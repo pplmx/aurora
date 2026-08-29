@@ -404,6 +404,38 @@ func TestUpdate_CreateFormReceivesKeystrokes(t *testing.T) {
 	assert.Equal(t, "Ali", app.participantsInput.Value())
 }
 
+// TestUpdate_CreateFormJKTypable pins the TASK-161-class follow-up (ISS-164):
+// the letters j and k are ordinary characters in the create form and must be
+// typed (participants like "Jack"/"Jill", seeds with 'k'), NOT swallowed as
+// up/down navigation. Arrow keys and Tab remain the form-navigation keys.
+func TestUpdate_CreateFormJKTypable(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.inputFocus = 0
+	app.updateInputFocus()
+
+	app.Update(keyPress("j"))
+	app.Update(keyPress("a"))
+	app.Update(keyPress("k"))
+	assert.Equal(t, "jak", app.participantsInput.Value())
+	assert.Equal(t, 0, app.inputFocus, "letter keys must not move form focus")
+}
+
+// TestUpdate_CreateFormQuestionMarkTypable scopes help to non-form views:
+// "?" must be a typable character in the create form (seeds like "a?b"),
+// not an unconditional help toggle.
+func TestUpdate_CreateFormQuestionMarkTypable(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.inputFocus = 1
+	app.updateInputFocus()
+	app.seedInput.SetValue("")
+
+	app.Update(keyPress("?"))
+	assert.Equal(t, "?", app.seedInput.Value())
+	assert.False(t, app.showHelp, "? in a form must not open help (ISS-164)")
+}
+
 func TestUpdate_CreateFormSeedingAndCount(t *testing.T) {
 	app := NewLotteryApp()
 	app.view = "create"

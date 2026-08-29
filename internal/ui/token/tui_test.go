@@ -496,6 +496,25 @@ func TestUpdate_QIsTypableInForm(t *testing.T) {
 	assert.Equal(t, "mint", app.view)
 }
 
+// TestUpdate_JKAndQuestionMarkTypableInForm pins the ISS-164 sweep: the
+// letters j/k and "?" are ordinary characters in the mint form and must be
+// typed into the focused input, not consumed as navigation/help. Arrow keys
+// and Tab remain the form-navigation keys.
+func TestUpdate_JKAndQuestionMarkTypableInForm(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "mint"
+	app.inputFocus = 0
+	app.updateInputFocus()
+	app.mintToInput.SetValue("")
+
+	for _, ch := range []string{"j", "k", "?"} {
+		app.Update(keyPress(ch))
+	}
+	assert.Equal(t, "jk?", app.mintToInput.Value())
+	assert.Equal(t, 0, app.inputFocus, "letter keys must not move form focus")
+	assert.False(t, app.showHelp, "? in a form must not open help (ISS-164)")
+}
+
 // ctrl+c is the hard quit in every view (not a back-to-menu key).
 func TestUpdate_CtrlCHardQuits(t *testing.T) {
 	app := NewTokenApp()

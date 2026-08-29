@@ -107,10 +107,20 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "?":
-			m.showHelp = true
-			return m, nil
+			// scoped to non-form views: in the form views "?" is a typable
+			// character — the add-source/fetch/query URL fields routinely carry
+			// query strings ("https://api.example.com/data?format=json") —
+			// mirroring the q fall-through convention (TASK-161, ISS-154;
+			// ISS-164). Forms can still reach help via esc to the menu.
+			switch m.view {
+			case "addSource", "fetch", "query":
+				// fall through to the focused textinput below.
+			default:
+				m.showHelp = true
+				return m, nil
+			}
 
-		case "up", "k":
+		case "up":
 			switch m.view {
 			case "menu":
 				if m.menuIndex > 0 {
@@ -138,8 +148,30 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "confirmToggle", "confirmDelete":
 				m.menuIndex = 0
 			}
+			// Arrows are always navigation; never let them also reach the
+			// textinput below.
+			return m, nil
 
-		case "down", "j":
+		case "k":
+			// Typable letter in form views: falls through to the focused
+			// textinput below so a source URL/name can contain 'k'. Only the
+			// menu/source-list and confirm dialogs (no free-text field)
+			// navigate on the bare letter. Previously 'k' moved focus AND
+			// typed the letter into the newly-focused field (ISS-164).
+			switch m.view {
+			case "menu":
+				if m.menuIndex > 0 {
+					m.menuIndex--
+				}
+			case "sources":
+				if m.menuIndex > 0 {
+					m.menuIndex--
+				}
+			case "confirmToggle", "confirmDelete":
+				m.menuIndex = 0
+			}
+
+		case "down":
 			switch m.view {
 			case "menu":
 				if m.menuIndex < 3 {
@@ -166,6 +198,25 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.inputFocus < 1 {
 					m.inputFocus++
 					m.updateQueryInputFocus()
+				}
+			case "confirmToggle", "confirmDelete":
+				m.menuIndex = 1
+			}
+			// Arrows are always navigation; never let them also reach the
+			// textinput below.
+			return m, nil
+
+		case "j":
+			// Typable letter in form views (see "k" above); navigation only in
+			// views with no free-text field.
+			switch m.view {
+			case "menu":
+				if m.menuIndex < 3 {
+					m.menuIndex++
+				}
+			case "sources":
+				if m.menuIndex < len(m.sources) {
+					m.menuIndex++
 				}
 			case "confirmToggle", "confirmDelete":
 				m.menuIndex = 1
