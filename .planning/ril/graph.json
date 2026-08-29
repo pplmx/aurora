@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 111,
+  "round": 112,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T06:47:39+00:00",
+  "updated_at": "2026-08-29T07:45:02+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6849,6 +6849,150 @@
       "updated_at": "2026-08-29T06:47:38+00:00",
       "touched_round": 110,
       "commit": "a8b7271"
+    },
+    "TASK-161": {
+      "id": "TASK-161",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T06:49:13+00:00",
+      "updated_at": "2026-08-29T07:45:02+00:00",
+      "touched_round": 111,
+      "category": "dx",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 2,
+      "title": "'q' is untypeable in every TUI form: lottery/nft/token/oracle Update() switch handles case 'q' BEFORE forwarding keypresses to the focused textinput and unconditionally resets view to menu (except ctrl+c still hard-quits). Typing any participant/seed/name/symbol/description/URL containing the letter q (quack, Aq, ...) is impossible — each keystroke bails. Help text scopes it as 'q: quit (from menu)' but the handler is not menu-scoped. Fix: only treat 'q' as quit when view==menu; forward to the textinput in form views (keep ctrl+c as hard quit)."
+    },
+    "TASK-162": {
+      "id": "TASK-162",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T06:49:13+00:00",
+      "updated_at": "2026-08-29T07:45:02+00:00",
+      "touched_round": 111,
+      "category": "correctness",
+      "severity": 0.85,
+      "confidence": 1.0,
+      "effort": 2,
+      "title": "Token TUI create silently discards decimals: handleCreate parses decimalsStr with strconv.Atoi only as a validity check and never sets req.Decimals, so creating a token with 18 decimal places silently produces an 8-decimal token (domain honors Decimals + int8 clamp; TASK-099/ISS-091 fixed exactly this and the CLI passes it). Fix: parse once and set req.Decimals=int8 with an 0..127 range check."
+    },
+    "TASK-163": {
+      "id": "TASK-163",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T06:49:13+00:00",
+      "updated_at": "2026-08-29T07:45:02+00:00",
+      "touched_round": 111,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 1.0,
+      "effort": 2,
+      "title": "NFT TUI transfer success renders as error and stale-nft ambiguity: handleTransfer sets view=result without ever setting m.nft, and resultView early-returns 'Not found' when m.nft==nil — a fresh-session successful transfer shows an error banner (drop success) or an unrelated previously-queried NFT's details; mint also accepts any valid-base64 owner key with wrong length, storing a permanently-untransferable NFT (transfer path + domain reject wrong length). Fix: set a transfer-result state (or the transferred NFT) before view=result, and reject len(pubkey)!=ed25519.PublicKeySize after DecodeString."
+    },
+    "ISS-154": {
+      "id": "ISS-154",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T06:50:28+00:00",
+      "updated_at": "2026-08-29T07:45:02+00:00",
+      "touched_round": 111,
+      "title": "'q' is untypeable in every TUI form (lottery/nft/token/oracle): the Update switch swallows 'q' before forwarding to the focused textinput and bails to the menu, so names/symbols/descriptions containing the letter q cannot be typed; help text scopes it to the menu",
+      "severity": 0.8,
+      "confidence": 1.0
+    },
+    "ISS-155": {
+      "id": "ISS-155",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T06:50:28+00:00",
+      "updated_at": "2026-08-29T07:45:02+00:00",
+      "touched_round": 111,
+      "title": "Token TUI create silently discards decimals: parsed only for validation, req.Decimals never set, so an 18-decimal token becomes 8 (regression of TASK-099/ISS-091 in the TUI)",
+      "severity": 0.85,
+      "confidence": 1.0
+    },
+    "ISS-156": {
+      "id": "ISS-156",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T06:50:28+00:00",
+      "updated_at": "2026-08-29T07:45:02+00:00",
+      "touched_round": 111,
+      "title": "NFT TUI transfer success renders as 'Not found' (m.nft never set before view=result); NFT mint accepts wrong-length owner keys (untransferable NFT) unlike transfer path and domain",
+      "severity": 0.7,
+      "confidence": 1.0
+    },
+    "ISS-157": {
+      "id": "ISS-157",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T07:21:17+00:00",
+      "updated_at": "2026-08-29T07:45:02+00:00",
+      "touched_round": 111,
+      "title": "Oracle sources list down-key off-by-one: sourcesView renders [Add source] + one row per source (indices 0..len), but the ↓ guard allows menuIndex up to len(sources)+1, so the cursor advances past the last row and Enter goes dead; with zero sources one ↓ loses the cursor on a 1-row list",
+      "severity": 0.55,
+      "confidence": 1.0
+    },
+    "TASK-164": {
+      "id": "TASK-164",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T07:21:17+00:00",
+      "updated_at": "2026-08-29T07:45:02+00:00",
+      "touched_round": 111,
+      "category": "dx",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Bound the oracle sources down-key to the real menu height (0..len(m.sources) not len+1) so the cursor cannot advance past the last row / disappear on an empty list"
+    },
+    "CHG-155": {
+      "id": "CHG-155",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T07:44:25+00:00",
+      "updated_at": "2026-08-29T07:44:25+00:00",
+      "touched_round": 111,
+      "commit": "a2ded95"
+    },
+    "CHG-156": {
+      "id": "CHG-156",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T07:44:25+00:00",
+      "updated_at": "2026-08-29T07:44:25+00:00",
+      "touched_round": 111,
+      "commit": "a2ded95"
+    },
+    "CHG-157": {
+      "id": "CHG-157",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T07:44:25+00:00",
+      "updated_at": "2026-08-29T07:44:25+00:00",
+      "touched_round": 111,
+      "commit": "a2ded95"
+    },
+    "CHG-158": {
+      "id": "CHG-158",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T07:44:25+00:00",
+      "updated_at": "2026-08-29T07:44:25+00:00",
+      "touched_round": 111,
+      "commit": "a2ded95"
     }
   },
   "edges": [
@@ -10769,6 +10913,78 @@
       "to": "ISS-153",
       "type": "resolves",
       "created_at": "2026-08-29T06:47:38+00:00"
+    },
+    {
+      "from": "TASK-161",
+      "to": "ISS-154",
+      "type": "addresses",
+      "created_at": "2026-08-29T06:50:58+00:00"
+    },
+    {
+      "from": "TASK-162",
+      "to": "ISS-155",
+      "type": "addresses",
+      "created_at": "2026-08-29T06:50:58+00:00"
+    },
+    {
+      "from": "TASK-163",
+      "to": "ISS-156",
+      "type": "addresses",
+      "created_at": "2026-08-29T06:50:58+00:00"
+    },
+    {
+      "from": "TASK-164",
+      "to": "ISS-157",
+      "type": "addresses",
+      "created_at": "2026-08-29T07:21:47+00:00"
+    },
+    {
+      "from": "CHG-155",
+      "to": "TASK-161",
+      "type": "implements",
+      "created_at": "2026-08-29T07:44:25+00:00"
+    },
+    {
+      "from": "CHG-156",
+      "to": "TASK-162",
+      "type": "implements",
+      "created_at": "2026-08-29T07:44:26+00:00"
+    },
+    {
+      "from": "CHG-157",
+      "to": "TASK-163",
+      "type": "implements",
+      "created_at": "2026-08-29T07:44:26+00:00"
+    },
+    {
+      "from": "CHG-158",
+      "to": "TASK-164",
+      "type": "implements",
+      "created_at": "2026-08-29T07:44:26+00:00"
+    },
+    {
+      "from": "CHG-155",
+      "to": "ISS-154",
+      "type": "resolves",
+      "created_at": "2026-08-29T07:45:01+00:00"
+    },
+    {
+      "from": "CHG-156",
+      "to": "ISS-155",
+      "type": "resolves",
+      "created_at": "2026-08-29T07:45:01+00:00"
+    },
+    {
+      "from": "CHG-157",
+      "to": "ISS-156",
+      "type": "resolves",
+      "created_at": "2026-08-29T07:45:01+00:00"
+    },
+    {
+      "from": "CHG-158",
+      "to": "ISS-157",
+      "type": "resolves",
+      "created_at": "2026-08-29T07:45:01+00:00"
     }
   ]
 }
