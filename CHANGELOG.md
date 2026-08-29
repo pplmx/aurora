@@ -7,6 +7,31 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.87; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [v1.88] - 2026-08-29
+
+### Fixed
+
+- **Web error surfaces are consistent**: the Blockchain page was the only
+  surface bypassing the shared API-error banner (raw `fetch`); it now goes
+  through `apiFetch` like every other page. Oracle enable/disable/delete no
+  longer pop blocking `alert()` dialogs — failures render as inline text next
+  to the source list — and the Query action no longer silently empties its
+  results table. Six unreachable `if (!res.ok)` guards in the voting web app
+  (dead after `apiFetch` throws) were removed.
+- **Dashboard stats survive partial failures**: one voting endpoint failing no
+  longer drops the sibling stat group; each card's loader is independent.
+- **Live surfaces no longer flicker**: oracle Data Sources + Feed Health tables
+  and the dashboard stats grid / Recent Activity list stay visible during the
+  15s background polls instead of flashing Loading.../blanking to 0.
+- **Token Burn uses its own amount field**: a Transfer quantity can no longer
+  leak into a Burn (both shared the `xAmount` model field).
+
+### Added
+
+- **NFT mint advances the shared context**: a successful mint fills the
+  Get/Transfer/Burn/History id + owner fields, so the next step needs no manual
+  copy from the JSON result.
+
 ## [v1.87] - 2026-08-29
 
 ### Fixed
