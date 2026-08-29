@@ -487,18 +487,21 @@ func TestUpdate_CtrlCFromMenu(t *testing.T) {
 	assert.NotNil(t, cmd)
 }
 
-func TestUpdate_QReturnsToMenu(t *testing.T) {
-	app := NewTokenApp()
-	app.view = "create"
-	app.Update(keyPress("q"))
-	assert.Equal(t, "menu", app.view)
-}
-
-func TestUpdate_CtrlCReturnsToMenu(t *testing.T) {
+// q must be typable inside the mint form (the letter in symbol/amount/
+// description), not a back-to-menu key there (TASK-161, ISS-154).
+func TestUpdate_QIsTypableInForm(t *testing.T) {
 	app := NewTokenApp()
 	app.view = "mint"
-	app.Update(keyPress("ctrl+c"))
-	assert.Equal(t, "menu", app.view)
+	app.Update(keyPress("q"))
+	assert.Equal(t, "mint", app.view)
+}
+
+// ctrl+c is the hard quit in every view (not a back-to-menu key).
+func TestUpdate_CtrlCHardQuits(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "mint"
+	_, cmd := app.Update(keyPress("ctrl+c"))
+	assert.NotNil(t, cmd, "ctrl+c must quit, not return to the menu")
 }
 
 func TestUpdate_UpNavigation(t *testing.T) {
@@ -685,9 +688,12 @@ func TestHandleBalance_EmptyAddress(t *testing.T) {
 	assert.NotEmpty(t, app.err)
 }
 
-func TestUpdate_QClearsMessages(t *testing.T) {
+func TestUpdate_QClearsMessagesFromHistory(t *testing.T) {
+	// A read-only view (history) keeps the back-to-menu q which clears the
+	// transient err/success messages; a form view must NOT clear them (q is
+	// the letter being typed there, TASK-161, ISS-154).
 	app := NewTokenApp()
-	app.view = "create"
+	app.view = "history"
 	app.err = "error"
 	app.successMsg = "success"
 	app.Update(keyPress("q"))
@@ -704,6 +710,35 @@ func TestHandleCreate_Success(t *testing.T) {
 	app.handleCreate()
 	assert.NotEmpty(t, app.successMsg)
 	assert.NotNil(t, app.currentToken)
+}
+
+// The create form's decimals field must reach the token, not just be
+// validated-and-dropped (which silently produced an 8-decimal token no matter
+// what the operator typed, TASK-162, ISS-155).
+func TestHandleCreate_HonorsDecimals(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("DecCoin")
+	app.createSymbolInput.SetValue("DCT")
+	app.createSupplyInput.SetValue("1000")
+	app.createDecimalsInput.SetValue("18")
+	app.handleCreate()
+	assert.Empty(t, app.err)
+	assert.NotNil(t, app.currentToken)
+	assert.Equal(t, int8(18), app.currentToken.Decimals(),
+		"create must store the operator's decimals, not default to 8")
+}
+
+func TestHandleCreate_RejectsOutOfRangeDecimals(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("BadDec")
+	app.createSymbolInput.SetValue("BDC")
+	app.createSupplyInput.SetValue("1000")
+	// 200 overflows int8 (max 127); the TUI must fail fast, not truncate.
+	app.createDecimalsInput.SetValue("200")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
 }
 
 func TestHandleMint_Success(t *testing.T) {
