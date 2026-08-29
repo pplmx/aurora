@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 112,
+  "round": 113,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T07:45:02+00:00",
+  "updated_at": "2026-08-29T08:12:43+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6993,6 +6993,78 @@
       "updated_at": "2026-08-29T07:44:25+00:00",
       "touched_round": 111,
       "commit": "a2ded95"
+    },
+    "TASK-165": {
+      "id": "TASK-165",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T07:48:27+00:00",
+      "updated_at": "2026-08-29T08:12:43+00:00",
+      "touched_round": 112,
+      "category": "correctness",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Lottery TUI winner-count parse failure silently defaults to 3: handleCreate does 'count:=3; if c,err:=Atoi(...); err==nil {count=c}', so a cleared/non-numeric winners field runs a 3-winner draw with no feedback while the sibling count checks have dedicated error messages. Fix: on Atoi error set m.err with a new i18n key (en+zh) and return before drawing."
+    },
+    "TASK-166": {
+      "id": "TASK-166",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T07:48:27+00:00",
+      "updated_at": "2026-08-29T08:12:43+00:00",
+      "touched_round": 112,
+      "category": "dx",
+      "severity": 0.3,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Oracle sourceDetail footer advertises '[T] Toggle On/Off' / '[D]' but only lowercase 't'/'d' are handled; add 'T'/'D' cases matching the y/Y n/N confirm-dialog pattern (DOM/hotkey consistency)"
+    },
+    "ISS-158": {
+      "id": "ISS-158",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T07:48:27+00:00",
+      "updated_at": "2026-08-29T08:12:43+00:00",
+      "touched_round": 112,
+      "title": "Lottery TUI count parse failure silently defaults to 3 with no error",
+      "severity": 0.5,
+      "confidence": 1.0
+    },
+    "ISS-159": {
+      "id": "ISS-159",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T07:48:27+00:00",
+      "updated_at": "2026-08-29T08:12:43+00:00",
+      "touched_round": 112,
+      "title": "Oracle [T]/[D] footer hotkeys only respond to lowercase t/d",
+      "severity": 0.3,
+      "confidence": 1.0
+    },
+    "CHG-159": {
+      "id": "CHG-159",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T08:12:42+00:00",
+      "updated_at": "2026-08-29T08:12:42+00:00",
+      "touched_round": 112,
+      "commit": "68e4f7d"
+    },
+    "CHG-160": {
+      "id": "CHG-160",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T08:12:42+00:00",
+      "updated_at": "2026-08-29T08:12:42+00:00",
+      "touched_round": 112,
+      "commit": "68e4f7d"
     }
   },
   "edges": [
@@ -10985,6 +11057,42 @@
       "to": "ISS-157",
       "type": "resolves",
       "created_at": "2026-08-29T07:45:01+00:00"
+    },
+    {
+      "from": "TASK-165",
+      "to": "ISS-158",
+      "type": "addresses",
+      "created_at": "2026-08-29T07:49:37+00:00"
+    },
+    {
+      "from": "TASK-166",
+      "to": "ISS-159",
+      "type": "addresses",
+      "created_at": "2026-08-29T07:49:37+00:00"
+    },
+    {
+      "from": "CHG-159",
+      "to": "TASK-165",
+      "type": "implements",
+      "created_at": "2026-08-29T08:12:42+00:00"
+    },
+    {
+      "from": "CHG-160",
+      "to": "TASK-166",
+      "type": "implements",
+      "created_at": "2026-08-29T08:12:42+00:00"
+    },
+    {
+      "from": "CHG-159",
+      "to": "ISS-158",
+      "type": "resolves",
+      "created_at": "2026-08-29T08:12:42+00:00"
+    },
+    {
+      "from": "CHG-160",
+      "to": "ISS-159",
+      "type": "resolves",
+      "created_at": "2026-08-29T08:12:42+00:00"
     }
   ]
 }
