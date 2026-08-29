@@ -53,7 +53,7 @@ func NewNFTRepository(dbPath string) (*NFTRepository, error) {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	database, err := sql.Open("sqlite3", dsn(dbPath))
+	database, err := sql.Open("sqlite3", DSN(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

@@ -19,9 +19,15 @@ import "fmt"
 // failed 10/16 with "database is locked" before this suffix, and 16/16
 // succeeded with it (regression: TestTokenRepository_WithTransaction_ConcurrentNoSQLiteBusy).
 // Only apply to DSNs of databases whose connections perform writes.
-const writeDSNSuffix = "?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000"
+//
+// Exported because the migrate tool opens the same database for DDL and would
+// otherwise reintroduce the immediate-fail SQLITE_BUSY class whenever it runs
+// concurrently with a CLI/API process holding the write lock (TASK-170,
+// ISS-165): an un-hardened `sql.Open("sqlite3", path)` defaults mattn's busy
+// timeout to 0, failing instantly instead of waiting up to 5s.
+const WriteDSNSuffix = "?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000"
 
-// dsn returns dbPath plus the hardened write suffix for repository DSNs.
-func dsn(dbPath string) string {
-	return fmt.Sprintf("%s%s", dbPath, writeDSNSuffix)
+// DSN returns dbPath plus the hardened write suffix for repository DSNs.
+func DSN(dbPath string) string {
+	return fmt.Sprintf("%s%s", dbPath, WriteDSNSuffix)
 }
