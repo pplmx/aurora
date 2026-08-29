@@ -126,13 +126,22 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
+			// ctrl+c is the hard quit in every view.
+			return m, tea.Quit
+		case "q":
 			if m.view == "menu" {
 				return m, tea.Quit
 			}
-			m.view = "menu"
-			m.err = ""
-			m.successMsg = ""
+			// In a form view q must fall through so it is typable in the
+			// name/description/id/owner inputs (the help screen scopes q to
+			// the menu); read-only views (result, list) keep back-to-menu.
+			if !m.isFormView() {
+				m.view = "menu"
+				m.err = ""
+				m.successMsg = ""
+				return m, nil
+			}
 
 		case "?":
 			m.showHelp = true
@@ -471,6 +480,15 @@ func (m *model) handleMint() tea.Msg {
 		m.err = i18n.GetText("error.invalid_pubkey")
 		return nil
 	}
+	// The owner key must be a full 32-byte Ed25519 public key; a valid-base64
+	// but wrong-length value ("AAAA" -> 3 bytes) would otherwise mint an NFT
+	// that no real 32-byte key can ever match — permanently owner-locked with
+	// no error (mirrors the transfer fromKey length check + domain key-length
+	// enforcement, TASK-163, ISS-156).
+	if len(pubkey) != ed25519.PublicKeySize {
+		m.err = i18n.GetText("error.invalid_pubkey")
+		return nil
+	}
 
 	newNFT := nft.NewNFT(name, description, "", "", pubkey, pubkey)
 	result, err := m.nftService.Mint(newNFT, m.chain)
@@ -531,6 +549,15 @@ func (m *model) handleTransfer() tea.Msg {
 	if err != nil {
 		m.err = err.Error()
 		return nil
+	}
+
+	// Refresh m.nft to the transferred NFT so the result view shows its real
+	// post-transfer state (new owner) instead of "⚠ Not found" when m.nft is
+	// nil (fresh session) or an unrelated previously-queried NFT. The chain
+	// write has already committed, so the stale/nil render would misleadingly
+	// suggest the transfer failed (TASK-163, ISS-156).
+	if nft, nerr := m.nftService.GetNFTByID(nftID); nerr == nil && nft != nil {
+		m.nft = nft
 	}
 
 	m.successMsg = i18n.GetText("nft.tui.transfer_success")

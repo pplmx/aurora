@@ -80,14 +80,26 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
+			// ctrl+c is the hard quit in every view.
+			return m, tea.Quit
+		case "q":
 			if m.view == "menu" {
 				return m, tea.Quit
 			}
-			m.view = "menu"
-			m.err = ""
-			m.successMsg = ""
-			return m, nil
+			// In a non-menu view, q must fall through when it would be a
+			// typable character: the create form's participants/seed/count
+			// inputs accept free text, and the help screen scopes q to the
+			// menu. Without the fall-through every "q" keystroke reset the
+			// view back to the menu, making names like "quack"/"Aq"
+			// untypeable (TASK-161, ISS-154). In read-only views (history,
+			// result) q keeps the classic back-to-menu behaviour.
+			if m.view != "create" {
+				m.view = "menu"
+				m.err = ""
+				m.successMsg = ""
+				return m, nil
+			}
 
 		case "?":
 			m.showHelp = true

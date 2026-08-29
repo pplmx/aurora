@@ -87,13 +87,24 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
+			// ctrl+c is the hard quit in every view.
+			return m, tea.Quit
+		case "q":
 			if m.view == "menu" {
 				return m, tea.Quit
 			}
-			m.view = "menu"
-			m.errMsg = ""
-			m.successMsg = ""
+			// In a form view q must fall through so it is typable in the
+			// source name/url/type/fetch/query inputs (the help screen scopes
+			// q to the menu); read-only views keep back-to-menu.
+			switch m.view {
+			case "sources", "sourceDetail", "confirmToggle", "confirmDelete",
+				"fetchResult", "queryResult", "data":
+				m.view = "menu"
+				m.errMsg = ""
+				m.successMsg = ""
+				return m, nil
+			}
 
 		case "?":
 			m.showHelp = true
@@ -135,7 +146,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.menuIndex++
 				}
 			case "sources":
-				if m.menuIndex < len(m.sources)+1 {
+				// sourcesView renders "[Add source]" + one row per source, so
+				// valid indices are 0..len(m.sources). Allowing len+1 let the
+				// cursor advance past the last row (invisible, Enter dead) —
+				// e.g. with zero sources one ↓ set menuIndex=1 on a 1-row list
+				// and only a subsequent ↑ recovered it (TASK-164, ISS-157).
+				if m.menuIndex < len(m.sources) {
 					m.menuIndex++
 				}
 			case "addSource":

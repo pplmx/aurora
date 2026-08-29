@@ -224,14 +224,22 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch msg.String() {
-		case "q", "ctrl+c":
+		case "ctrl+c":
+			// ctrl+c is the hard quit in every view.
+			return m, tea.Quit
+		case "q":
 			if m.view == "menu" {
 				return m, tea.Quit
 			}
-			m.view = "menu"
-			m.err = ""
-			m.successMsg = ""
-			return m, nil
+			// In a form view q must fall through so it is typable in the
+			// symbol/amount/address inputs (the help screen scopes q to the
+			// menu); read-only views (history, etc) keep back-to-menu.
+			if !m.isFormView() {
+				m.view = "menu"
+				m.err = ""
+				m.successMsg = ""
+				return m, nil
+			}
 
 		case "?":
 			m.showHelp = true
@@ -642,11 +650,23 @@ func (m *model) handleCreate() {
 		return
 	}
 
+	// Decimals is int8 (0..127 per ValidateTokenDecimals) and 0 is the
+	// "unset, use defaultDecimals" sentinel. Parse the field once and clamp it
+	// to that range instead of using it only as a validity check — the
+	// previous code validated but never assigned, so a create with "18"
+	// silently produced an 8-decimal token (TASK-162, ISS-155).
+	var decimals int8
 	if decimalsStr != "" {
-		if _, err := strconv.Atoi(decimalsStr); err != nil {
+		d, err := strconv.Atoi(decimalsStr)
+		if err != nil {
 			m.err = i18n.GetText("error.invalid_decimals")
 			return
 		}
+		if d < 0 || d > math.MaxInt8 {
+			m.err = i18n.GetText("error.invalid_decimals")
+			return
+		}
+		decimals = int8(d)
 	}
 
 	req := &token.CreateTokenRequest{
@@ -654,6 +674,7 @@ func (m *model) handleCreate() {
 		Symbol:      symbol,
 		TotalSupply: &token.Amount{Int: supply},
 		Owner:       m.ownerKey,
+		Decimals:    decimals,
 	}
 
 	tok, err := m.tokenService.CreateToken(req)

@@ -310,11 +310,28 @@ func TestUpdate_EscDoesNothingFromMenu(t *testing.T) {
 	assert.Equal(t, "menu", app.view)
 }
 
-func TestUpdate_QReturnsToMenu(t *testing.T) {
+// q must be typable inside the create form (the letter in "quack" etc), not
+// a back-to-menu key there — the help screen scopes q to the menu (TASK-161,
+// ISS-154). The focused participant input receives the "q" character.
+func TestUpdate_QIsTypableInCreateForm(t *testing.T) {
 	app := NewLotteryApp()
 	app.view = "create"
 	app.Update(keyPress("q"))
+	assert.Equal(t, "create", app.view)
+	assert.Equal(t, "q", app.participantsInput.Value())
+}
+
+// q still returns to the menu from read-only views (result shows a freshly
+// drawn lottery; q is not a typable character there).
+func TestUpdate_QReturnsToMenuFromResult(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "result"
+	app.err = "x"
+	app.successMsg = "y"
+	app.Update(keyPress("q"))
 	assert.Equal(t, "menu", app.view)
+	assert.Empty(t, app.err)
+	assert.Empty(t, app.successMsg)
 }
 
 func TestUpdate_WindowSizeMsg(t *testing.T) {

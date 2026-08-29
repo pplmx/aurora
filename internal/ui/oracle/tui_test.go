@@ -537,6 +537,30 @@ func TestUpdate_SourcesEnterInvalidIndex(t *testing.T) {
 	assert.Equal(t, "sources", app.view)
 }
 
+// The sources list renders "[Add source]" + one row per source (indices
+// 0..len), so down must not advance past the last row — previously one extra
+// ↓ left the cursor invisible and Enter dead (TASK-164, ISS-157).
+func TestUpdate_SourcesDownBound(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	// 1 source => valid indices 0 (Add), 1 (the source); index 2 is past-end.
+	app.sources = []*oracle.DataSource{
+		{ID: "src-1", Name: "Test", URL: "https://test.com", Type: "json"},
+	}
+	app.menuIndex = 1
+	app.Update(keyPress("down"))
+	assert.Equal(t, 1, app.menuIndex, "down must stop at the last valid row")
+}
+
+// With zero sources the list has a single "[Add source]" row; down must not
+// move off it (the pre-fix behaviour lost the cursor on a 1-row list).
+func TestUpdate_SourcesDownBoundEmpty(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.Update(keyPress("down"))
+	assert.Equal(t, 0, app.menuIndex, "down must not move the cursor off a 1-row list")
+}
+
 func TestUpdate_DeleteKeyFromSourceDetail(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "sourceDetail"
@@ -837,18 +861,20 @@ func TestUpdate_EnterInDataViewReturnsToMenu(t *testing.T) {
 	assert.Equal(t, "menu", app.view)
 }
 
-func TestUpdate_EnterInFetchReturnsToMenu(t *testing.T) {
+// q must be typable inside the fetch/query forms (the letter in a source id),
+// not a back-to-menu key there (TASK-161, ISS-154).
+func TestUpdate_QIsTypableInFetchForm(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "fetch"
 	app.Update(keyPress("q"))
-	assert.Equal(t, "menu", app.view)
+	assert.Equal(t, "fetch", app.view)
 }
 
-func TestUpdate_EnterInQueryReturnsToMenu(t *testing.T) {
+func TestUpdate_QIsTypableInQueryForm(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "query"
 	app.Update(keyPress("q"))
-	assert.Equal(t, "menu", app.view)
+	assert.Equal(t, "query", app.view)
 }
 
 func TestUpdate_EscClearsMessages(t *testing.T) {

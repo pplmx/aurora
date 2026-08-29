@@ -38,22 +38,25 @@ func TestUpdate_CtrlCFromMenu(t *testing.T) {
 	assert.NotNil(t, cmd, "ctrl+c on the menu quits the TUI")
 }
 
-func TestUpdate_QReturnsToMenu(t *testing.T) {
+// q must be typable inside the mint form (the letter in name/description),
+// not a back-to-menu key there (TASK-161, ISS-154).
+func TestUpdate_QIsTypableInForm(t *testing.T) {
 	app := NewNFTApp()
 	app.view = "mint"
 	app.err = "x"
 	app.successMsg = "y"
 	app.Update(keyPress("q"))
-	assert.Equal(t, "menu", app.view)
-	assert.Empty(t, app.err)
-	assert.Empty(t, app.successMsg)
+	assert.Equal(t, "mint", app.view)
+	assert.Equal(t, "x", app.err)
+	assert.Equal(t, "y", app.successMsg)
 }
 
-func TestUpdate_CtrlCReturnsToMenu(t *testing.T) {
+// ctrl+c is the hard quit in every view (not a back-to-menu key).
+func TestUpdate_CtrlCHardQuits(t *testing.T) {
 	app := NewNFTApp()
 	app.view = "query"
-	app.Update(keyPress("ctrl+c"))
-	assert.Equal(t, "menu", app.view)
+	_, cmd := app.Update(keyPress("ctrl+c"))
+	assert.NotNil(t, cmd, "ctrl+c must quit, not return to the menu")
 }
 
 func TestUpdate_UpNavigation(t *testing.T) {
@@ -193,6 +196,20 @@ func TestQueryView_WithError(t *testing.T) {
 	assert.Contains(t, app.queryView(), "nope")
 }
 
+// A valid-base64 but wrong-length owner key must be rejected at mint, not
+// stored as a permanently-untransferable NFT (TASK-163, ISS-156).
+func TestHandleMint_RejectsWrongLengthOwnerKey(t *testing.T) {
+	app := NewNFTApp()
+	app.nameInput.SetValue("LockedNFT")
+	app.descInput.SetValue("x")
+	// "AAAA" decodes to 3 bytes, not a 32-byte ed25519 public key.
+	app.pubkeyInput.SetValue("AAAA")
+	msg := app.handleMint()
+	assert.Nil(t, msg)
+	assert.Equal(t, i18n.GetText("error.invalid_pubkey"), app.err)
+	assert.Nil(t, app.nft, "mint must not produce an NFT from a wrong-length owner key")
+}
+
 // mintNFT drives the TUI mint handler for a real keypair and returns the app
 // plus the keypair, ready for a transfer/query/list follow-up.
 func mintNFT(t *testing.T) (*model, []byte, []byte) {
@@ -221,6 +238,8 @@ func TestHandleTransfer_Success(t *testing.T) {
 	assert.Empty(t, app.err)
 	assert.Equal(t, "result", app.view)
 	assert.Equal(t, i18n.GetText("nft.tui.transfer_success"), app.successMsg)
+	assert.NotNil(t, app.nft, "result view must render the transferred NFT (not Not found)")
+	assert.Equal(t, app.nft.Owner, toPub, "result view must show the post-transfer owner")
 }
 
 func TestHandleQuery_Success(t *testing.T) {
