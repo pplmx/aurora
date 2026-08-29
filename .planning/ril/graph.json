@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 113,
+  "round": 114,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T08:12:43+00:00",
+  "updated_at": "2026-08-29T21:00:00+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 108,
+      "touched_round": 113,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 97,
+      "touched_round": 113,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 97,
+      "touched_round": 113,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 97,
+      "touched_round": 113,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 100,
+      "touched_round": 113,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 106,
+      "touched_round": 113,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 100,
+      "touched_round": 113,
       "title": "voting module"
     },
     "CHG-008": {
@@ -986,7 +986,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:06:06+00:00",
       "updated_at": "2026-08-23T00:06:06+00:00",
-      "touched_round": 88,
+      "touched_round": 113,
       "title": "internal/domain/blockchain"
     },
     "CHG-017": {
@@ -7065,6 +7065,511 @@
       "updated_at": "2026-08-29T08:12:42+00:00",
       "touched_round": 112,
       "commit": "68e4f7d"
+    },
+    "ISS-160": {
+      "id": "ISS-160",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T17:24:52+00:00",
+      "updated_at": "2026-08-29T17:43:16+00:00",
+      "touched_round": 113,
+      "title": "apiFetch merges caller headers OVER the default headers, dropping X-API-Key on every POST/PATCH -> all web writes return 401 (round-97 refactor regression)",
+      "severity": 0.95,
+      "confidence": 1.0,
+      "component": "COMP-web"
+    },
+    "ISS-161": {
+      "id": "ISS-161",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T17:25:25+00:00",
+      "updated_at": "2026-08-29T17:43:16+00:00",
+      "touched_round": 113,
+      "title": "Oracle pollers blank sources/health/templates tables on a transient poll failure, violating keep-existing-data invariant",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "component": "COMP-web"
+    },
+    "ISS-162": {
+      "id": "ISS-162",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T17:25:25+00:00",
+      "updated_at": "2026-08-29T17:43:16+00:00",
+      "touched_round": 113,
+      "title": "Token /history only pages $.from == owner, so transfers RECEIVED by an account never appear (one-sided history)",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "component": "COMP-token"
+    },
+    "ISS-163": {
+      "id": "ISS-163",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T17:25:25+00:00",
+      "updated_at": "2026-08-29T17:43:16+00:00",
+      "touched_round": 113,
+      "title": "Token /history returns 200 [] for missing/empty token_id or owner instead of 400 (inconsistent with sibling endpoints)",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "component": "COMP-token"
+    },
+    "ISS-164": {
+      "id": "ISS-164",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-29T17:25:42+00:00",
+      "updated_at": "2026-08-29T18:13:02+00:00",
+      "touched_round": 113,
+      "title": "TUI forms swallow j/k and ? keys as navigation/help instead of typing them (lottery always, nft/token positionally, oracle focuses wrong field)",
+      "severity": 0.7,
+      "confidence": 1.0,
+      "component": "COMP-cli"
+    },
+    "ISS-165": {
+      "id": "ISS-165",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T17:25:42+00:00",
+      "updated_at": "2026-08-29T18:42:14+00:00",
+      "touched_round": 113,
+      "title": "aurora migrate opens SQLite without busy_timeout/immediate txlock, unlike every repo DSN (parallel-safety gap),",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "component": "COMP-cli"
+    },
+    "ISS-166": {
+      "id": "ISS-166",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T17:25:42+00:00",
+      "updated_at": "2026-08-29T18:28:18+00:00",
+      "touched_round": 113,
+      "title": "voting GetSession maps every repo error incl. real DB failures to HTTP 404 instead of 500,",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "component": "COMP-001"
+    },
+    "EV-050": {
+      "id": "EV-050",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T17:26:12+00:00",
+      "updated_at": "2026-08-29T17:26:12+00:00",
+      "touched_round": 113,
+      "title": "Node repro: apiFetch POST with Content-Type yields headers={Content-Type} only (no X-API-Key); live server: web write -> 401, with key -> past auth (400)",
+      "confidence": 1.0,
+      "source": "web/js/app.js:38-39 + live curl on 0.0.0.0:8080"
+    },
+    "TASK-167": {
+      "id": "TASK-167",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T17:26:13+00:00",
+      "updated_at": "2026-08-29T17:43:16+00:00",
+      "touched_round": 113,
+      "title": "web: fix apiFetch header merge + regression test (executes real app.js in node)",
+      "category": "correctness",
+      "severity": 0.95,
+      "confidence": 1.0,
+      "effort": 2,
+      "component": "COMP-web"
+    },
+    "TASK-168": {
+      "id": "TASK-168",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T17:26:32+00:00",
+      "updated_at": "2026-08-29T17:43:37+00:00",
+      "touched_round": 113,
+      "title": "token: history must include received transfers (to-side) + reject missing params with 400",
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 3,
+      "component": "COMP-token"
+    },
+    "TASK-169": {
+      "id": "TASK-169",
+      "type": "task",
+      "status": "resolved",
+      "version": 5,
+      "created_at": "2026-08-29T17:26:32+00:00",
+      "updated_at": "2026-08-29T18:13:02+00:00",
+      "touched_round": 113,
+      "title": "tui: make j/k and ? typable in every form without breaking navigation (lottery robust, others positional, oracle focus-shift)",
+      "category": "correctness",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 3,
+      "component": "COMP-cli"
+    },
+    "TASK-170": {
+      "id": "TASK-170",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T17:26:32+00:00",
+      "updated_at": "2026-08-29T18:42:14+00:00",
+      "touched_round": 113,
+      "title": "migrate: open SQLite with _busy_timeout and _txlock=immediate like every repo DSN (parallel-safe CLI)",
+      "category": "stability",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 2,
+      "component": "COMP-cli"
+    },
+    "TASK-171": {
+      "id": "TASK-171",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T17:26:32+00:00",
+      "updated_at": "2026-08-29T18:28:18+00:00",
+      "touched_round": 113,
+      "title": "voting: GetSession must map only ErrNotFound to 404, real DB errors to 500 via writeUseCaseError",
+      "category": "correctness",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "effort": 2,
+      "component": "COMP-001"
+    },
+    "CHG-161": {
+      "id": "CHG-161",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T17:42:28+00:00",
+      "updated_at": "2026-08-29T17:42:28+00:00",
+      "touched_round": 113,
+      "title": "web: apiFetch header merge keeps X-API-Key; oracle pollers keep rows on failure; node-exec regression test",
+      "commit": "e24cde6",
+      "component": "COMP-web"
+    },
+    "CHG-162": {
+      "id": "CHG-162",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T17:42:28+00:00",
+      "updated_at": "2026-08-29T17:42:28+00:00",
+      "touched_round": 113,
+      "title": "token: two-sided transfer history predicate + History rejects empty params with 400",
+      "commit": "5ea92ff",
+      "component": "COMP-token"
+    },
+    "CHG-163": {
+      "id": "CHG-163",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T18:13:01+00:00",
+      "updated_at": "2026-08-29T18:13:01+00:00",
+      "touched_round": 113,
+      "title": "tui: j/k/? typable in all four forms; arrows are the only form-navigation keys; regression tests",
+      "commit": "b024292",
+      "component": "COMP-cli"
+    },
+    "CHG-164": {
+      "id": "CHG-164",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T18:28:17+00:00",
+      "updated_at": "2026-08-29T18:28:17+00:00",
+      "touched_round": 113,
+      "title": "voting: GetSession/start/end route through GetSessionUseCase; real DB errors 500, missing session 404; regression test",
+      "commit": "5a720db",
+      "component": "COMP-001"
+    },
+    "CHG-165": {
+      "id": "CHG-165",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T18:42:14+00:00",
+      "updated_at": "2026-08-29T18:42:14+00:00",
+      "touched_round": 113,
+      "title": "migrate: sqlite.DSN/WriteDSNSuffix shared hardened DSN; repos + migrator route through it; busy_timeout regression test",
+      "commit": "75c7684",
+      "component": "COMP-cli"
+    },
+    "ISS-167": {
+      "id": "ISS-167",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T18:45:25+00:00",
+      "updated_at": "2026-08-29T19:03:22+00:00",
+      "touched_round": 113,
+      "title": "Blocks reloaded from disk (init.go SELECT) never scan timestamp, so every in-memory block has Timestamp==0 after restart (hash/VerifyIntegrity unaffected; PoW excludes timestamp)",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "component": "COMP-002"
+    },
+    "ISS-168": {
+      "id": "ISS-168",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T18:45:25+00:00",
+      "updated_at": "2026-08-29T19:03:22+00:00",
+      "touched_round": 113,
+      "title": "GetResults swallow: a real GetCandidate DB error is silently treated as a deleted candidate (0 votes), under-reporting results",
+      "severity": 0.45,
+      "confidence": 1.0,
+      "component": "COMP-001"
+    },
+    "ISS-169": {
+      "id": "ISS-169",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T18:45:25+00:00",
+      "updated_at": "2026-08-29T20:21:48+00:00",
+      "touched_round": 113,
+      "title": "NFT TUI list-by-owner feature is dead code: ownerInput/loadNFTsByOwner/listView exist but the menu never navigates into the list view",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "component": "COMP-nft"
+    },
+    "ISS-170": {
+      "id": "ISS-170",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T18:45:25+00:00",
+      "updated_at": "2026-08-29T19:40:58+00:00",
+      "touched_round": 113,
+      "title": "Hardcoded English leaks into zh TUI/CLI sessions (oracle/nft TUI labels, CLI one-liners); lottery.no_records key exists but is unused",
+      "severity": 0.4,
+      "confidence": 1.0,
+      "component": "COMP-cli"
+    },
+    "TASK-172": {
+      "id": "TASK-172",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T18:46:13+00:00",
+      "updated_at": "2026-08-29T19:03:22+00:00",
+      "touched_round": 113,
+      "title": "blockchain: reload persisted timestamp when rebuilding blocks from disk; GetResults: distinguish ErrNotFound from real candidate-read errors",
+      "category": "correctness",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "effort": 2,
+      "component": "COMP-002"
+    },
+    "TASK-173": {
+      "id": "TASK-173",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T18:46:13+00:00",
+      "updated_at": "2026-08-29T20:21:48+00:00",
+      "touched_round": 113,
+      "title": "nft-tui: expose List-by-owner menu item wired to the existing (dead) list view + owner input",
+      "category": "dx",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 3,
+      "component": "COMP-nft"
+    },
+    "CHG-166": {
+      "id": "CHG-166",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T19:03:22+00:00",
+      "updated_at": "2026-08-29T19:03:22+00:00",
+      "touched_round": 113,
+      "title": "blockchain: reload scans timestamp (no more zero timestamps after restart); voting GetResults stops swallowing candidate-read errors; regression tests",
+      "commit": "8fc5ea6",
+      "component": "COMP-002"
+    },
+    "ISS-171": {
+      "id": "ISS-171",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T19:10:35+00:00",
+      "updated_at": "2026-08-29T19:12:41+00:00",
+      "touched_round": 113,
+      "title": "decodeJSON accepts trailing garbage after the first JSON value (two values / value+non-json pass as valid)",
+      "severity": 0.45,
+      "confidence": 1.0,
+      "component": "COMP-api"
+    },
+    "TASK-174": {
+      "id": "TASK-174",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T19:10:36+00:00",
+      "updated_at": "2026-08-29T19:12:41+00:00",
+      "touched_round": 113,
+      "title": "api: decodeJSON rejects trailing data after the single JSON value (strict body parse)",
+      "category": "correctness",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "effort": 1,
+      "component": "COMP-api"
+    },
+    "CHG-167": {
+      "id": "CHG-167",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T19:12:40+00:00",
+      "updated_at": "2026-08-29T19:12:40+00:00",
+      "touched_round": 113,
+      "title": "api: decodeJSON strict single-value body (reject trailing JSON/garbage); regression test",
+      "commit": "82af69f",
+      "component": "COMP-api"
+    },
+    "TASK-175": {
+      "id": "TASK-175",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T19:14:01+00:00",
+      "updated_at": "2026-08-29T19:40:58+00:00",
+      "touched_round": 113,
+      "title": "i18n: route oracle/nft TUI labels and CLI one-liners through the tables (zh sessions stay localized); use the unused lottery.no_records key",
+      "category": "docs",
+      "severity": 0.45,
+      "confidence": 1.0,
+      "effort": 2,
+      "component": "COMP-cli"
+    },
+    "CHG-168": {
+      "id": "CHG-168",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T19:40:58+00:00",
+      "updated_at": "2026-08-29T19:40:58+00:00",
+      "touched_round": 113,
+      "title": "i18n: oracle/nft TUI labels + CLI one-liners localized (en+zh keys added); unused lottery.no_records/db_info now used",
+      "commit": "8d8389a",
+      "component": "COMP-cli"
+    },
+    "CHG-169": {
+      "id": "CHG-169",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T20:21:47+00:00",
+      "updated_at": "2026-08-29T20:21:47+00:00",
+      "touched_round": 113,
+      "title": "nft-tui: List-by-Owner menu item wired to the existing list machinery + localization; menu enter returns early",
+      "commit": "4a971b4",
+      "component": "COMP-nft"
+    },
+    "ISS-172": {
+      "id": "ISS-172",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T20:46:46+00:00",
+      "updated_at": "2026-08-29T20:46:47+00:00",
+      "touched_round": 113,
+      "title": "oracle TUI data view is dead code (nothing sets view=\"data\"; a \"use CLI\" placeholder superseded by built-in fetch/query)",
+      "severity": 0.3,
+      "confidence": 1.0,
+      "component": "COMP-oracle"
+    },
+    "ISS-173": {
+      "id": "ISS-173",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T20:46:46+00:00",
+      "updated_at": "2026-08-29T20:46:47+00:00",
+      "touched_round": 113,
+      "title": "web voting Create Session allows zero-candidate submit -> server 400 CANDIDATES_REQUIRED; no client-side guard",
+      "severity": 0.35,
+      "confidence": 1.0,
+      "component": "COMP-web"
+    },
+    "CHG-170": {
+      "id": "CHG-170",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T20:46:47+00:00",
+      "updated_at": "2026-08-29T20:46:47+00:00",
+      "touched_round": 113,
+      "title": "ui: remove dead oracle data view; web Create Session disabled without candidates",
+      "commit": "aedd69f",
+      "component": "COMP-oracle"
+    },
+    "ISS-174": {
+      "id": "ISS-174",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T20:48:57+00:00",
+      "updated_at": "2026-08-29T20:48:57+00:00",
+      "touched_round": 113,
+      "title": "oracle TUI has no viewport: multi-row query/fetch results render past the terminal edge with no scroll (sources/queryResult/fetchResult)",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "component": "COMP-oracle"
+    },
+    "ISS-175": {
+      "id": "ISS-175",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T20:48:57+00:00",
+      "updated_at": "2026-08-29T20:48:57+00:00",
+      "touched_round": 113,
+      "title": "web submit buttons have no in-flight disabled state (except blockchain) -> double-click creates duplicate records",
+      "severity": 0.4,
+      "confidence": 1.0,
+      "component": "COMP-web"
+    },
+    "TASK-176": {
+      "id": "TASK-176",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T20:48:57+00:00",
+      "updated_at": "2026-08-29T20:48:57+00:00",
+      "touched_round": 113,
+      "title": "oracle-tui: give sources/queryResult/fetchResult a bounded scrollable viewport (mirror lottery/token/nft)",
+      "category": "stability",
+      "severity": 0.4,
+      "confidence": 1.0,
+      "effort": 4,
+      "component": "COMP-oracle"
+    },
+    "TASK-177": {
+      "id": "TASK-177",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T20:48:57+00:00",
+      "updated_at": "2026-08-29T20:48:57+00:00",
+      "touched_round": 113,
+      "title": "web: per-action busy state bound to :disabled on submit buttons (double-submit duplicate records)",
+      "category": "dx",
+      "severity": 0.4,
+      "confidence": 1.0,
+      "effort": 5,
+      "component": "COMP-web"
     }
   },
   "edges": [
@@ -11093,6 +11598,312 @@
       "to": "ISS-159",
       "type": "resolves",
       "created_at": "2026-08-29T08:12:42+00:00"
+    },
+    {
+      "from": "ISS-160",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T17:28:14+00:00"
+    },
+    {
+      "from": "ISS-161",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T17:28:14+00:00"
+    },
+    {
+      "from": "ISS-162",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-29T17:28:14+00:00"
+    },
+    {
+      "from": "ISS-163",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-08-29T17:28:14+00:00"
+    },
+    {
+      "from": "ISS-164",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T17:28:14+00:00"
+    },
+    {
+      "from": "ISS-165",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T17:28:15+00:00"
+    },
+    {
+      "from": "ISS-166",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-29T17:28:15+00:00"
+    },
+    {
+      "from": "TASK-167",
+      "to": "ISS-160",
+      "type": "addresses",
+      "created_at": "2026-08-29T17:28:52+00:00"
+    },
+    {
+      "from": "TASK-167",
+      "to": "ISS-161",
+      "type": "addresses",
+      "created_at": "2026-08-29T17:28:52+00:00"
+    },
+    {
+      "from": "TASK-168",
+      "to": "ISS-162",
+      "type": "addresses",
+      "created_at": "2026-08-29T17:28:52+00:00"
+    },
+    {
+      "from": "TASK-168",
+      "to": "ISS-163",
+      "type": "addresses",
+      "created_at": "2026-08-29T17:28:52+00:00"
+    },
+    {
+      "from": "TASK-169",
+      "to": "ISS-164",
+      "type": "addresses",
+      "created_at": "2026-08-29T17:28:52+00:00"
+    },
+    {
+      "from": "TASK-170",
+      "to": "ISS-165",
+      "type": "addresses",
+      "created_at": "2026-08-29T17:28:52+00:00"
+    },
+    {
+      "from": "TASK-171",
+      "to": "ISS-166",
+      "type": "addresses",
+      "created_at": "2026-08-29T17:28:52+00:00"
+    },
+    {
+      "from": "CHG-161",
+      "to": "ISS-160",
+      "type": "resolves",
+      "created_at": "2026-08-29T17:43:15+00:00"
+    },
+    {
+      "from": "CHG-161",
+      "to": "ISS-161",
+      "type": "resolves",
+      "created_at": "2026-08-29T17:43:15+00:00"
+    },
+    {
+      "from": "CHG-162",
+      "to": "ISS-162",
+      "type": "resolves",
+      "created_at": "2026-08-29T17:43:15+00:00"
+    },
+    {
+      "from": "CHG-162",
+      "to": "ISS-163",
+      "type": "resolves",
+      "created_at": "2026-08-29T17:43:15+00:00"
+    },
+    {
+      "from": "CHG-161",
+      "to": "TASK-167",
+      "type": "implements",
+      "created_at": "2026-08-29T17:43:15+00:00"
+    },
+    {
+      "from": "CHG-162",
+      "to": "TASK-168",
+      "type": "implements",
+      "created_at": "2026-08-29T17:43:15+00:00"
+    },
+    {
+      "from": "CHG-163",
+      "to": "ISS-164",
+      "type": "resolves",
+      "created_at": "2026-08-29T18:13:01+00:00"
+    },
+    {
+      "from": "CHG-163",
+      "to": "TASK-169",
+      "type": "implements",
+      "created_at": "2026-08-29T18:13:01+00:00"
+    },
+    {
+      "from": "CHG-164",
+      "to": "ISS-166",
+      "type": "resolves",
+      "created_at": "2026-08-29T18:28:17+00:00"
+    },
+    {
+      "from": "CHG-164",
+      "to": "TASK-171",
+      "type": "implements",
+      "created_at": "2026-08-29T18:28:18+00:00"
+    },
+    {
+      "from": "CHG-165",
+      "to": "ISS-165",
+      "type": "resolves",
+      "created_at": "2026-08-29T18:42:14+00:00"
+    },
+    {
+      "from": "CHG-165",
+      "to": "TASK-170",
+      "type": "implements",
+      "created_at": "2026-08-29T18:42:14+00:00"
+    },
+    {
+      "from": "ISS-167",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-08-29T18:46:12+00:00"
+    },
+    {
+      "from": "ISS-168",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-29T18:46:12+00:00"
+    },
+    {
+      "from": "ISS-169",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-29T18:46:12+00:00"
+    },
+    {
+      "from": "ISS-170",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T18:46:13+00:00"
+    },
+    {
+      "from": "CHG-166",
+      "to": "ISS-167",
+      "type": "resolves",
+      "created_at": "2026-08-29T19:03:22+00:00"
+    },
+    {
+      "from": "CHG-166",
+      "to": "ISS-168",
+      "type": "resolves",
+      "created_at": "2026-08-29T19:03:22+00:00"
+    },
+    {
+      "from": "CHG-166",
+      "to": "TASK-172",
+      "type": "implements",
+      "created_at": "2026-08-29T19:03:22+00:00"
+    },
+    {
+      "from": "ISS-171",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-29T19:10:35+00:00"
+    },
+    {
+      "from": "TASK-174",
+      "to": "ISS-171",
+      "type": "addresses",
+      "created_at": "2026-08-29T19:10:36+00:00"
+    },
+    {
+      "from": "CHG-167",
+      "to": "ISS-171",
+      "type": "resolves",
+      "created_at": "2026-08-29T19:12:40+00:00"
+    },
+    {
+      "from": "CHG-167",
+      "to": "TASK-174",
+      "type": "implements",
+      "created_at": "2026-08-29T19:12:40+00:00"
+    },
+    {
+      "from": "TASK-175",
+      "to": "ISS-170",
+      "type": "addresses",
+      "created_at": "2026-08-29T19:14:01+00:00"
+    },
+    {
+      "from": "CHG-168",
+      "to": "ISS-170",
+      "type": "resolves",
+      "created_at": "2026-08-29T19:40:58+00:00"
+    },
+    {
+      "from": "CHG-168",
+      "to": "TASK-175",
+      "type": "implements",
+      "created_at": "2026-08-29T19:40:58+00:00"
+    },
+    {
+      "from": "TASK-173",
+      "to": "ISS-169",
+      "type": "addresses",
+      "created_at": "2026-08-29T19:41:58+00:00"
+    },
+    {
+      "from": "CHG-169",
+      "to": "ISS-169",
+      "type": "resolves",
+      "created_at": "2026-08-29T20:21:47+00:00"
+    },
+    {
+      "from": "CHG-169",
+      "to": "TASK-173",
+      "type": "implements",
+      "created_at": "2026-08-29T20:21:47+00:00"
+    },
+    {
+      "from": "ISS-172",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-29T20:46:47+00:00"
+    },
+    {
+      "from": "ISS-173",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T20:46:47+00:00"
+    },
+    {
+      "from": "CHG-170",
+      "to": "ISS-172",
+      "type": "resolves",
+      "created_at": "2026-08-29T20:46:47+00:00"
+    },
+    {
+      "from": "CHG-170",
+      "to": "ISS-173",
+      "type": "resolves",
+      "created_at": "2026-08-29T20:46:47+00:00"
+    },
+    {
+      "from": "ISS-174",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-29T20:48:57+00:00"
+    },
+    {
+      "from": "ISS-175",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T20:48:57+00:00"
+    },
+    {
+      "from": "TASK-176",
+      "to": "ISS-174",
+      "type": "addresses",
+      "created_at": "2026-08-29T20:48:57+00:00"
+    },
+    {
+      "from": "TASK-177",
+      "to": "ISS-175",
+      "type": "addresses",
+      "created_at": "2026-08-29T20:48:58+00:00"
     }
   ]
 }
