@@ -272,6 +272,32 @@ func TestTokenHandler_History_CapsUnboundedOffset(t *testing.T) {
 	assert.Equal(t, maxHistoryOffset, svc.gotOffset, "unbounded ?offset must be capped")
 }
 
+// TestTokenHandler_History_MissingParamsAreBadRequest pins the contract that
+// History validates its query params like its sibling endpoints: a missing/
+// empty token_id or owner must be a 400 INVALID_REQUEST, never a silent
+// 200 [] that a client typo could read as "no activity" (ISS-163).
+func TestTokenHandler_History_MissingParamsAreBadRequest(t *testing.T) {
+	svc := &recordingHistoryService{}
+	handler := NewTokenHandler(svc)
+
+	for name, query := range map[string]string{
+		"missing both":  "",
+		"missing token": "owner=YWxpY2U=",
+		"missing owner": "token_id=t1",
+		"empty token":   "token_id=&owner=YWxpY2U=",
+		"empty owner":   "token_id=t1&owner=",
+		"empty both":    "token_id=&owner=",
+	} {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/token/history?"+query, nil)
+			rr := httptest.NewRecorder()
+			handler.History(rr, req)
+			assert.Equal(t, http.StatusBadRequest, rr.Code, "case %q", name)
+			assert.Contains(t, rr.Body.String(), "INVALID_REQUEST", "case %q", name)
+		})
+	}
+}
+
 func TestTokenHandler_Approve_Success(t *testing.T) {
 	handler := NewTokenHandler(fakeTokenServiceFull{})
 	body, _ := json.Marshal(map[string]string{

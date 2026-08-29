@@ -25,9 +25,12 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 	// through the whole token stream instead of the owner's. json_extract is
 	// evaluated in SQL (payload is stored as BLOB, cast to TEXT), so tx.from
 	// and no other owner can crowd a page (verified: limit=10 -> 5 pre-fix).
+	// The Either predicate ALSO matches $.to == owner, so transfers the account
+	// RECEIVED show up next to the ones it sent instead of a one-sided history
+	// (ISS-162); the post-scan re-check below keeps the memory path honest.
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 
-	events, err := r.store.GetByAggregateAndTypePayload(string(tokenID), "token.transfer", "$.from", ownerB64, limit, offset)
+	events, err := r.store.GetByAggregateAndTypePayloadEither(string(tokenID), "token.transfer", "$.from", ownerB64, "$.to", ownerB64, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +50,7 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 			continue
 		}
 
-		if payload.From != ownerB64 {
+		if payload.From != ownerB64 && payload.To != ownerB64 {
 			continue
 		}
 

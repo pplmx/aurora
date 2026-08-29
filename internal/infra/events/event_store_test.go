@@ -1,6 +1,8 @@
 package events
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -337,4 +339,46 @@ func TestSQLiteEventStore_GetByModule_DefaultLimit(t *testing.T) {
 	evts, err := store.GetByModule("test", 0)
 	require.NoError(t, err)
 	require.Len(t, evts, 5)
+}
+
+// TestSQLiteEventStore_GetByAggregateAndTypePayloadEither guards the field-OR
+// SQL predicate that lets token transfer history show transfers an account
+// RECEIVED, not only the ones it sent (ISS-162). The single-side variant
+// pages on "$.from == owner"; the Either variant matches "from == owner OR
+// to == owner" while still applying LIMIT/OFFSET over the matched rows only.
+func TestSQLiteEventStore_GetByAggregateAndTypePayloadEither(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	const agg = "TOK-1"
+	alice := base64.StdEncoding.EncodeToString([]byte("alice"))
+	bob := base64.StdEncoding.EncodeToString([]byte("bob"))
+	carol := base64.StdEncoding.EncodeToString([]byte("carol"))
+	dan := base64.StdEncoding.EncodeToString([]byte("dan"))
+	mk := func(from, to string) events.Event {
+		p, err := json.Marshal(map[string]string{"from": from, "to": to, "amount": "1"})
+		require.NoError(t, err)
+		return events.NewBaseEvent("token.transfer", agg, p)
+	}
+
+	// alice sends to bob; bob returns to alice; carol -> dan touches neither
+	// alice side.
+	require.NoError(t, store.Save(mk(alice, bob)))
+	require.NoError(t, store.Save(mk(bob, alice)))
+	require.NoError(t, store.Save(mk(carol, dan)))
+
+	// Single-side query still sees only what alice SENT (sanity: unchanged).
+	sent, err := store.GetByAggregateAndTypePayload(agg, "token.transfer", "$.from", alice, 50, 0)
+	require.NoError(t, err)
+	require.Len(t, sent, 1, "single-side $.from query must stay sent-only")
+
+	// Either-side query sees what alice sent AND received.
+	both, err := store.GetByAggregateAndTypePayloadEither(agg, "token.transfer", "$.from", alice, "$.to", alice, 50, 0)
+	require.NoError(t, err)
+	require.Len(t, both, 2, "alice sent one and received one; both must be returned (ISS-162)")
+
+	// Paging counts only the matched rows: limit=1 returns one of alice's two.
+	page, err := store.GetByAggregateAndTypePayloadEither(agg, "token.transfer", "$.from", alice, "$.to", alice, 1, 0)
+	require.NoError(t, err)
+	require.Len(t, page, 1, "limit must count only the owner's matched transfers")
 }

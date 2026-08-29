@@ -246,6 +246,19 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	tokenID := r.URL.Query().Get("token_id")
 	owner := r.URL.Query().Get("owner")
+	// History was the one token endpoint that never validated its query
+	// params: an empty/missing token_id or owner decoded to zero bytes and
+	// returned 200 [] — a client typo or missing field looked like "no
+	// activity" instead of a client error, inconsistent with Balance/
+	// Allowance/Info (ISS-163, parity with writeBadRequest there).
+	if tokenID == "" {
+		writeBadRequest(w, "token_id is required")
+		return
+	}
+	if owner == "" {
+		writeBadRequest(w, "owner is required")
+		return
+	}
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
 
