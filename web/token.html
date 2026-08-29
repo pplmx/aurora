@@ -28,6 +28,14 @@
                     <div class="form-group"><label>Name</label><input type="text" x-model="name" required></div>
                     <div class="form-group"><label>Symbol</label><input type="text" x-model="symbol" required></div>
                     <div class="form-group"><label>Total Supply</label><input type="text" x-model="supply" required></div>
+                    <!-- The API rejects a create without a valid owner public key
+                         (ErrPublicKeyRequired -> 400), and the CLI generates a fresh
+                         keypair for the owner. Mirror the NFT mint "Creator (public
+                         key)" pattern: the operator pastes their own base64 owner key
+                         (the private half is used in the Mint/Burn/etc forms). Before
+                         this field every web create returned "public key is required"
+                         with no way to fix it (ISS-147). -->
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" placeholder="base64 public key" required></div>
                     <button type="submit" class="btn-lottery">Create Token</button>
                 </form>
                 <pre x-show="createResult" class="result" x-text="createResult"></pre>

@@ -118,6 +118,10 @@ function lotteryApp() {
                 await this.loadHistory();
                 this.participants = '';
                 this.seed = '';
+                // Advance the Verify Draw id to the fresh draw so the operator
+                // can verify the provably-fair result without copying the id
+                // from the JSON result block (mirrors TASK-150/ISS-148).
+                if (data && data.id) this.verifyId = data.id;
             } catch (e) {
                 this.result = 'Error: ' + e.message;
             }
@@ -497,6 +501,16 @@ function votingApp() {
                 this.sessionEnd = '';
                 this.sessionCandidateIds = [];
                 await this.loadSessions();
+                // Advance the shared session-id fields to the freshly created
+                // session (mirrors the NFT mint context advance, TASK-150): the
+                // operator's natural next steps — start/end, cast a vote, view
+                // results — all key off a session id, so no manual copy from the
+                // result line is needed (ISS-148).
+                if (data && data.id) {
+                    this.voteSessionId = data.id;
+                    this.controlSessionId = data.id;
+                    this.resultsSessionId = data.id;
+                }
             } catch (e) {
                 this.sessionResult = 'Error: ' + e.message;
             }
@@ -577,10 +591,24 @@ function tokenApp() {
                 const res = await apiFetch('/api/v1/token/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: this.name, symbol: this.symbol, total_supply: this.supply })
+                    body: JSON.stringify({
+                        name: this.name,
+                        symbol: this.symbol,
+                        total_supply: this.supply,
+                        // The API requires a valid owner public key; without it
+                        // every create 400s with PUBLIC_KEY_REQUIRED (ISS-147).
+                        owner: this.owner
+                    })
                 });
                 const data = await res.json();
                 this.createResult = JSON.stringify(data, null, 2);
+                // Advance the shared Token ID / Owner fields to the freshly
+                // created token (mirrors the NFT mint context advance, TASK-150):
+                // the Balance/Info/Mint/Transfer/Approve/Allowance/Burn/History
+                // forms all key off these two, so the next step needs no manual
+                // copy from the JSON result block (ISS-148).
+                if (data && data.id) this.tokenId = data.id;
+                if (data && data.owner) this.owner = data.owner;
             } catch (e) {
                 this.createResult = 'Error: ' + e.message;
             }
@@ -741,8 +769,11 @@ function oracleApp() {
                         interval: parseInt(this.addInterval)
                     })
                 });
+                // apiFetch already throws on non-2xx and surfaces the API error
+                // in the shared banner, so res is guaranteed ok here; the catch
+                // below handles failures (dead guard removed, round-107's six
+                // votingApp guards were the same class — ISS-149).
                 const data = await res.json();
-                if (!res.ok) { this.addResult = 'Error: ' + (data.error || data.message || res.status); return; }
                 this.addResult = 'Source "' + data.name + '" added (id: ' + data.id + ')';
                 this.addName = ''; this.addUrl = ''; this.addType = ''; this.addMethod = ''; this.addPath = '';
                 await this.listSources();
