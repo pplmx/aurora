@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 106,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T00:48:13+00:00",
+  "updated_at": "2026-08-29T00:57:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6228,10 +6228,10 @@
     "TASK-146": {
       "id": "TASK-146",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 3,
       "created_at": "2026-08-29T00:43:26+00:00",
-      "updated_at": "2026-08-29T00:48:13+00:00",
+      "updated_at": "2026-08-29T00:54:25+00:00",
       "touched_round": 106,
       "title": "Web error-surfacing consistency: blockchainApp.verify uses raw fetch+auroraHeaders instead of apiFetch so it bypasses the shared banner (TASK-124/TASK-141 contract); oracle query() empties the table silently on failure (no inline error line); setEnabled/deleteSource use blocking alert() dialogs outside the app inline-result pattern; votingApp still has six dead if(!res.ok) guards that can never fire because apiFetch throws",
       "category": "dx",
@@ -6244,10 +6244,10 @@
     "TASK-147": {
       "id": "TASK-147",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 3,
       "created_at": "2026-08-29T00:43:37+00:00",
-      "updated_at": "2026-08-29T00:48:13+00:00",
+      "updated_at": "2026-08-29T00:54:25+00:00",
       "touched_round": 106,
       "title": "Dashboard stat partial-failure isolation: dashboardApp.loadVoting awaits candidates+sessions in one Promise.all with a shared catch, so one endpoint failing (e.g. sessions 500) drops the sibling stats (candidates/votes) for that whole refresh; split into independent try/catch per endpoint",
       "category": "correctness",
@@ -6260,10 +6260,10 @@
     "TASK-148": {
       "id": "TASK-148",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 3,
       "created_at": "2026-08-29T00:43:41+00:00",
-      "updated_at": "2026-08-29T00:48:13+00:00",
+      "updated_at": "2026-08-29T00:54:25+00:00",
       "touched_round": 106,
       "title": "Oracle page 15s-poll flicker: listSources/loadHealth flip loading/loadingHealth=true on every background poll, so the Data Sources + Feed Health tables hide and flash \"Loading...\" every 15 seconds; gate the placeholders so existing data stays visible during a refresh",
       "category": "dx",
@@ -6276,52 +6276,163 @@
     "ISS-132": {
       "id": "ISS-132",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T00:45:20+00:00",
-      "updated_at": "2026-08-29T00:45:20+00:00",
+      "updated_at": "2026-08-29T00:54:25+00:00",
       "touched_round": 106,
       "title": "Blockchain page is the only web surface not surfacing API failures through the shared banner: blockchainApp.verify uses raw fetch+auroraHeaders instead of apiFetch, so a down/unauthorized API shows only a small inline error with no red banner, diverging from the TASK-124/141 contract every other page follows"
     },
     "ISS-133": {
       "id": "ISS-133",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T00:45:20+00:00",
-      "updated_at": "2026-08-29T00:45:20+00:00",
+      "updated_at": "2026-08-29T00:54:25+00:00",
       "touched_round": 106,
       "title": "Oracle query() silently empties the results table on failure (no inline error line), the only web action without inline error feedback; setEnabled/deleteSource additionally use blocking alert() dialogs instead of the app inline-result pattern"
     },
     "ISS-134": {
       "id": "ISS-134",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T00:45:20+00:00",
-      "updated_at": "2026-08-29T00:45:20+00:00",
+      "updated_at": "2026-08-29T00:54:25+00:00",
       "touched_round": 106,
       "title": "votingApp registerVoter/registerCandidate/createSession/castVote/loadResults/sessionAction still carry if(!res.ok) guards that can never fire — apiFetch throws on non-2xx before they are reached, leaving dead code and a misleading error path"
     },
     "ISS-135": {
       "id": "ISS-135",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T00:45:21+00:00",
-      "updated_at": "2026-08-29T00:45:21+00:00",
+      "updated_at": "2026-08-29T00:54:25+00:00",
       "touched_round": 106,
       "title": "Dashboard stats degrade as a unit: loadVoting wraps candidates+sessions in a single Promise.all with one catch, so a transient failure on either endpoint blanks BOTH stats for the refresh instead of isolating the failure to its card"
     },
     "ISS-136": {
       "id": "ISS-136",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T00:45:21+00:00",
-      "updated_at": "2026-08-29T00:45:21+00:00",
+      "updated_at": "2026-08-29T00:54:25+00:00",
       "touched_round": 106,
       "title": "Oracle page flickers every 15s: background polls flip loading/loadingHealth to true, hiding the Data Sources + Feed Health tables and flashing Loading... placeholders to a viewer watching a live surface"
+    },
+    "CHG-140": {
+      "id": "CHG-140",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:53:47+00:00",
+      "updated_at": "2026-08-29T00:53:47+00:00",
+      "touched_round": 106,
+      "commit": "6f1cd34",
+      "title": "Web error-surfacing consistency: blockchain verify via apiFetch (banner), oracle inline errors instead of alert()/silent table, drop six dead res.ok guards in votingApp; fixes TASK-146"
+    },
+    "CHG-141": {
+      "id": "CHG-141",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:53:47+00:00",
+      "updated_at": "2026-08-29T00:53:47+00:00",
+      "touched_round": 106,
+      "commit": "6f1cd34",
+      "title": "Dashboard stat partial-failure isolation: split loadVoting into loadCandidatesStats/loadSessionsStats with independent error handling; fixes TASK-147"
+    },
+    "CHG-142": {
+      "id": "CHG-142",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:53:47+00:00",
+      "updated_at": "2026-08-29T00:53:47+00:00",
+      "touched_round": 106,
+      "commit": "6f1cd34",
+      "title": "Oracle 15s-poll flicker: gate Loading placeholders on empty dataset so the Data Sources + Feed Health tables stay visible during background refresh; fixes TASK-148"
+    },
+    "TASK-149": {
+      "id": "TASK-149",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T00:57:10+00:00",
+      "updated_at": "2026-08-29T00:57:26+00:00",
+      "touched_round": 106,
+      "title": "Token Burn reuses the Transfer amount field: web/js/app.js burn() sends amount: this.xAmount and token.html binds the Burn Amount input to xAmount, so a transfer amount silently leaks into a later burn (could destroy the wrong quantity); give Burn its own burnAmount field",
+      "category": "dx",
+      "severity": 0.45,
+      "confidence": 0.95,
+      "effort": 1,
+      "lock_owner": "session-2026-08-29-web-sweep",
+      "lock_until": "2026-08-29T01:37:26+00:00"
+    },
+    "TASK-150": {
+      "id": "TASK-150",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T00:57:10+00:00",
+      "updated_at": "2026-08-29T00:57:26+00:00",
+      "touched_round": 106,
+      "title": "NFT mint never advances the shared context: after a successful mint the Get/Transfer/Burn/History forms still require re-typing the new id + owner by hand; auto-fill this.id/this.owner from the mint response so the natural inspect/transfer/burn next step works immediately",
+      "category": "dx",
+      "severity": 0.35,
+      "confidence": 0.95,
+      "effort": 1,
+      "lock_owner": "session-2026-08-29-web-sweep",
+      "lock_until": "2026-08-29T01:37:26+00:00"
+    },
+    "TASK-151": {
+      "id": "TASK-151",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T00:57:10+00:00",
+      "updated_at": "2026-08-29T00:57:26+00:00",
+      "touched_round": 106,
+      "title": "Dashboard 15s-poll flicker: refresh() blank-resets the whole stats grid to 0/- and clears Recent Activity at the start of every poll, so live cards dip to empty each cycle and the activity list clears+refills; drop the stats reset (loaders overwrite their own card, stale values are better than a 0 blink) and rebuild the activity list atomically from loader results",
+      "category": "dx",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 2,
+      "lock_owner": "session-2026-08-29-web-sweep",
+      "lock_until": "2026-08-29T01:37:26+00:00"
+    },
+    "ISS-137": {
+      "id": "ISS-137",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:57:10+00:00",
+      "updated_at": "2026-08-29T00:57:10+00:00",
+      "touched_round": 106,
+      "title": "Token web Burn Amount is bound to the same xAmount model field as Transfer, so a quantity typed for a transfer is pre-filled in the destructive Burn form and reused if the operator does not notice"
+    },
+    "ISS-138": {
+      "id": "ISS-138",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:57:10+00:00",
+      "updated_at": "2026-08-29T00:57:10+00:00",
+      "touched_round": 106,
+      "title": "NFT mint result gives the new id+owner but the shared context fields stay blank, forcing manual copy from the JSON result block to inspect/transfer/burn"
+    },
+    "ISS-139": {
+      "id": "ISS-139",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:57:10+00:00",
+      "updated_at": "2026-08-29T00:57:10+00:00",
+      "touched_round": 106,
+      "title": "Dashboard stats grid zeros out and Recent Activity clears every 15s background poll because refresh() resets all state before the parallel loads resolve"
     }
   },
   "edges": [
@@ -9852,6 +9963,90 @@
       "to": "COMP-web",
       "type": "located_in",
       "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "CHG-140",
+      "to": "TASK-146",
+      "type": "implements",
+      "created_at": "2026-08-29T00:54:07+00:00"
+    },
+    {
+      "from": "CHG-141",
+      "to": "TASK-147",
+      "type": "implements",
+      "created_at": "2026-08-29T00:54:07+00:00"
+    },
+    {
+      "from": "CHG-142",
+      "to": "TASK-148",
+      "type": "implements",
+      "created_at": "2026-08-29T00:54:07+00:00"
+    },
+    {
+      "from": "CHG-140",
+      "to": "ISS-132",
+      "type": "resolves",
+      "created_at": "2026-08-29T00:54:07+00:00"
+    },
+    {
+      "from": "CHG-140",
+      "to": "ISS-133",
+      "type": "resolves",
+      "created_at": "2026-08-29T00:54:07+00:00"
+    },
+    {
+      "from": "CHG-140",
+      "to": "ISS-134",
+      "type": "resolves",
+      "created_at": "2026-08-29T00:54:07+00:00"
+    },
+    {
+      "from": "CHG-141",
+      "to": "ISS-135",
+      "type": "resolves",
+      "created_at": "2026-08-29T00:54:07+00:00"
+    },
+    {
+      "from": "CHG-142",
+      "to": "ISS-136",
+      "type": "resolves",
+      "created_at": "2026-08-29T00:54:07+00:00"
+    },
+    {
+      "from": "TASK-149",
+      "to": "ISS-137",
+      "type": "addresses",
+      "created_at": "2026-08-29T00:57:26+00:00"
+    },
+    {
+      "from": "TASK-150",
+      "to": "ISS-138",
+      "type": "addresses",
+      "created_at": "2026-08-29T00:57:26+00:00"
+    },
+    {
+      "from": "TASK-151",
+      "to": "ISS-139",
+      "type": "addresses",
+      "created_at": "2026-08-29T00:57:26+00:00"
+    },
+    {
+      "from": "ISS-137",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T00:57:26+00:00"
+    },
+    {
+      "from": "ISS-138",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T00:57:26+00:00"
+    },
+    {
+      "from": "ISS-139",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T00:57:26+00:00"
     }
   ]
 }

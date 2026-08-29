@@ -137,26 +137,31 @@ function dashboardApp() {
             // vote/lottery/feed-health shows up without a manual reload (ISS-125).
             startPolling(this, 15000);
         },
-        // refresh recomputes every stat from scratch; also exposed as the
-        // header "↻ Refresh" button.
+        // refresh re-pulls every stat card and rebuilds the Recent Activity
+        // list; also exposed as the header "↻ Refresh" button. It does NOT
+        // blank the stats grid up front: each loader overwrites its own card
+        // as its result arrives, so a live surface keeps its previous snapshot
+        // instead of dipping to 0/- on every 15s poll (TASK-151). The activity
+        // entries are collected per-loader and swapped in once all loads
+        // finish, so the list no longer clears then re-flashes each cycle.
         async refresh() {
-            this.activity = [];
-            this.stats = { lotteries: 0, votes: 0, candidates: 0, sessions: 0, integrity: '-', oracle: '-' };
-            await Promise.all([
+            const activity = await Promise.all([
                 this.loadLotteries(),
                 this.loadVoting(),
                 this.loadBlockchain(),
                 this.loadOracleHealth()
             ]);
+            this.activity = [].concat(...activity);
         },
         async loadLotteries() {
+            const entries = [];
             try {
                 const res = await apiFetch('/api/v1/lottery/history');
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     this.stats.lotteries = data.length;
                     data.slice(0, 10).forEach(l => {
-                        this.activity.push({
+                        entries.push({
                             key: 'lot-' + (l.id || Math.random()),
                             title: 'Lottery ' + (l.id || ''),
                             detail: (l.winners || []).length + ' winner(s)'
@@ -166,12 +171,14 @@ function dashboardApp() {
             } catch (e) {
                 console.error(e);
             }
+            return entries;
         },
         async loadVoting() {
             // Each stat group has its own try/catch so a transient failure on
             // one endpoint (e.g. sessions 500) blanks only its own card instead
             // of the shared Promise.all dropping the sibling stats too (TASK-147).
-            await Promise.all([this.loadCandidatesStats(), this.loadSessionsStats()]);
+            const groups = await Promise.all([this.loadCandidatesStats(), this.loadSessionsStats()]);
+            return [].concat(...groups);
         },
         async loadCandidatesStats() {
             try {
@@ -186,15 +193,17 @@ function dashboardApp() {
             } catch (e) {
                 console.error(e);
             }
+            return []; // candidates contribute no activity rows
         },
         async loadSessionsStats() {
+            const entries = [];
             try {
                 const res = await apiFetch('/api/v1/voting/sessions');
                 const sessions = await res.json();
                 if (Array.isArray(sessions)) {
                     this.stats.sessions = sessions.length;
                     sessions.slice(0, 10).forEach(s => {
-                        this.activity.push({
+                        entries.push({
                             key: 'sess-' + s.id,
                             title: 'Session: ' + s.title,
                             detail: 'Status: ' + s.status + ' · ' + (s.candidates || []).length + ' candidate(s)'
@@ -204,6 +213,7 @@ function dashboardApp() {
             } catch (e) {
                 console.error(e);
             }
+            return entries;
         },
         async loadBlockchain() {
             try {
@@ -213,11 +223,12 @@ function dashboardApp() {
                 this.stats.integrity = '?';
                 console.error(e);
             }
+            return []; // the ledger card adds no activity row
         },
         async loadOracleHealth() {
             try {
                 const feeds = await (await apiFetch('/api/v1/oracle/health')).json();
-                if (!Array.isArray(feeds) || feeds.length === 0) { this.stats.oracle = '-'; return; }
+                if (!Array.isArray(feeds) || feeds.length === 0) { this.stats.oracle = '-'; return []; }
                 const healthy = feeds.filter(f => f.successes > 0 && f.failures === 0).length;
                 const failed = feeds.filter(f => f.failures > 0).length;
                 this.stats.oracle = healthy + ' OK' + (failed ? ' · ' + failed + ' fail' : '');
@@ -225,6 +236,7 @@ function dashboardApp() {
                 this.stats.oracle = '?';
                 console.error(e);
             }
+            return []; // feed health adds no activity row
         }
     };
 }
@@ -277,13 +289,24 @@ function nftApp() {
         historyResult: '',
         async mint() {
             try {
-                this.mintResult = await this.post('/api/v1/nft/mint', {
-                    name: this.name,
-                    description: this.description || undefined,
-                    image_url: this.imageUrl || undefined,
-                    token_uri: this.tokenUri || undefined,
-                    creator: this.creator
+                const res = await apiFetch('/api/v1/nft/mint', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: this.name,
+                        description: this.description || undefined,
+                        image_url: this.imageUrl || undefined,
+                        token_uri: this.tokenUri || undefined,
+                        creator: this.creator
+                    })
                 });
+                const data = await res.json();
+                this.mintResult = JSON.stringify(data, null, 2);
+                // Advance the shared Get/Transfer/Burn/History context to the
+                // freshly minted NFT so the next step needs no manual copy from
+                // the JSON result block (TASK-150).
+                if (data && data.id) this.id = data.id;
+                if (data && data.owner) this.owner = data.owner;
             } catch (e) {
                 this.mintResult = 'Error: ' + e.message;
             }
@@ -537,7 +560,7 @@ function tokenApp() {
         xFrom: '', xTo: '', xAmount: '', xPriv: '', xResult: '',
         approver: '', spender: '', approveAmount: '', approvePriv: '', approveResult: '',
         allowanceSpender: '', allowanceResult: '',
-        burnPriv: '', burnResult: '',
+        burnAmount: '', burnPriv: '', burnResult: '',
         infoId: '', infoResult: '',
         tfOwner: '', tfTo: '', tfAmount: '', tfSpender: '', tfSpenderKey: '', tfResult: '',
         history: [],
@@ -622,8 +645,10 @@ function tokenApp() {
         },
         async burn() {
             try {
+                // Burn has its own amount field (not the Transfer xAmount) so
+                // a transfer quantity can never leak into a destroy (TASK-149).
                 this.burnResult = await this.postToken('/api/v1/token/burn', {
-                    token_id: this.tokenId, from: this.owner, amount: this.xAmount,
+                    token_id: this.tokenId, from: this.owner, amount: this.burnAmount,
                     private_key: this.burnPriv
                 });
             } catch (e) {
