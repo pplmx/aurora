@@ -364,6 +364,50 @@ func TestGetBlockChain_InitializesLazily(t *testing.T) {
 	assert.NotNil(t, instance, "GetBlockChain must trigger InitBlockChain")
 }
 
+// TestInitBlockChain_PersistsTimestampAcrossRestart guards the reload path
+// (ISS-167): blocks re-loaded from disk must surface the persisted timestamp.
+// The reload SELECT previously omitted the timestamp column, so every
+// in-memory block after a restart had Timestamp==0. Hash/VerifyIntegrity were
+// unaffected (PoW excludes timestamp), which is why this went unnoticed — but
+// any future consumer reading block.Timestamp saw a stale zero.
+func TestInitBlockChain_PersistsTimestampAcrossRestart(t *testing.T) {
+	resetChainForTest(t)
+
+	c1 := InitBlockChain()
+	require.NotNil(t, c1)
+
+	h1, err := c1.AddBlock("first")
+	require.NoError(t, err)
+	require.Len(t, c1.Blocks, 2)
+	origTS := c1.Blocks[1].Timestamp
+	require.NotZero(t, origTS, "a freshly mined block must carry a real timestamp")
+
+	// Simulate a process restart (same recipe as the persistence test):
+	// close the DB and clear the singletons, but KEEP ./data on disk.
+	if dbInstance != nil {
+		_ = dbInstance.Close()
+	}
+	dbInstance = nil
+	dbInitOnce = sync.Once{}
+	dbInitErr = nil
+	instance = nil
+	once = sync.Once{}
+
+	c2 := InitBlockChain()
+	require.NotNil(t, c2)
+	require.Len(t, c2.Blocks, 2, "genesis + the persisted block")
+
+	var reloaded *Block
+	for _, b := range c2.Blocks {
+		if b.Height == h1 {
+			reloaded = b
+		}
+	}
+	require.NotNil(t, reloaded, "reloaded block at height %d", h1)
+	assert.Equal(t, origTS, reloaded.Timestamp,
+		"reload must preserve the persisted timestamp, not zero it (ISS-167)")
+}
+
 func TestResetForTest_ClearsSingleton(t *testing.T) {
 	resetChainForTest(t)
 	_ = InitBlockChain()

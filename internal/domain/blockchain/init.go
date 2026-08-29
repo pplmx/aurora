@@ -105,14 +105,14 @@ func InitBlockChain() *BlockChain {
 				logger.Error().Err(err).Msg("Failed to create blocks table")
 			}
 
-			rows, err := db.Query("SELECT height, hash, previous_hash, data, nonce FROM blocks ORDER BY height")
+			rows, err := db.Query("SELECT height, hash, previous_hash, data, nonce, timestamp FROM blocks ORDER BY height")
 			if err != nil {
 				logger.Error().Err(err).Msg("Failed to query blocks from database")
 			} else {
 				for rows.Next() {
 					var block Block
 					var hash, prevHash, data string
-					if err := rows.Scan(&block.Height, &hash, &prevHash, &data, &block.Nonce); err != nil {
+					if err := rows.Scan(&block.Height, &hash, &prevHash, &data, &block.Nonce, &block.Timestamp); err != nil {
 						logger.Warn().Err(err).Msg("Failed to scan block row, skipping")
 						continue
 					}
