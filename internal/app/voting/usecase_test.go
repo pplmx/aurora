@@ -1363,6 +1363,51 @@ func TestGetResultsUseCase_SessionNotFound(t *testing.T) {
 	require.ErrorIs(t, err, voting.ErrSessionNotFound)
 }
 
+// TestGetResultsUseCase_CandidateReadErrorNotSwallowed pins the error-hiding
+// fix (ISS-168): a REAL repository failure while reading a candidate must
+// abort the results report with an error. The old code did `continue` on any
+// GetCandidate error, so a transient lock/disk failure silently dropped that
+// candidate AND under-counted the total with no signal. Only the not-found
+// sentinel (a candidate deleted since the roster was fixed) counts as 0.
+func TestGetResultsUseCase_CandidateReadErrorNotSwallowed(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "c1", Name: "Alice", Party: "A", VoteCount: 5},
+		},
+		sessions: []*voting.Session{
+			{ID: "s1", Candidates: []string{"c1", "c2"}},
+		},
+	}
+	repo.errGetCandidate = errors.New("database is locked")
+
+	uc := NewGetResultsUseCase(repo)
+	_, err := uc.Execute("s1")
+	require.Error(t, err,
+		"a real candidate-read failure must surface, not be swallowed as a deleted candidate")
+}
+
+// TestGetResultsUseCase_DeletedCandidateCountsZero: a candidate absent from
+// the repo (deleted since the session's roster was fixed) still appears in
+// results with 0 votes — only its row survived, so it must not abort the
+// report.
+func TestGetResultsUseCase_DeletedCandidateCountsZero(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "c1", Name: "Alice", Party: "A", VoteCount: 5},
+		},
+		sessions: []*voting.Session{
+			{ID: "s1", Candidates: []string{"c1", "c2"}},
+		},
+	}
+	uc := NewGetResultsUseCase(repo)
+	res, err := uc.Execute("s1")
+	require.NoError(t, err)
+	require.Equal(t, 5, res.TotalVotes)
+	require.Len(t, res.Candidates, 2)
+	require.Equal(t, "c2", res.Candidates[1].ID)
+	require.Equal(t, 0, res.Candidates[1].VoteCount)
+}
+
 // TestCastVoteUseCase_WrongLengthPrivateKey is the regression test for the
 // round-96 deep-dive (ISS-113): a private key that decodes as valid base64 but
 // is not ed25519.PrivateKeySize must surface as a 4xx-class client error

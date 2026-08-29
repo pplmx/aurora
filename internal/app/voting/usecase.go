@@ -484,7 +484,15 @@ func (uc *GetResultsUseCase) Execute(sessionID string) (*ResultsResponse, error)
 	for _, cid := range session.Candidates {
 		c, err := uc.repo.GetCandidate(cid)
 		if err != nil {
-			continue
+			if errors.Is(err, sqlite.ErrNotFound) {
+				// A candidate that has since been deleted still counts as 0
+				// (same as the c == nil branch for in-memory fakes below).
+				candidates = append(candidates, CandidateResult{ID: cid})
+				continue
+			}
+			// A REAL read failure must abort the report: swallowing it here
+			// silently under-counted the candidate and the total (L3, ISS-168).
+			return nil, fmt.Errorf("failed to read candidate %s: %w", cid, err)
 		}
 		if c == nil {
 			// A candidate that has since been deleted still counts as 0.
