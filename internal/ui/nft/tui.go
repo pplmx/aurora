@@ -457,7 +457,7 @@ func (m *model) resultView() string {
 	}
 
 	s := components.SuccessStyle().Render("🎉 "+i18n.GetText("nft.tui.nft_detail")) + "\n\n"
-	s += components.InfoStyle().Render("ID: ") + m.nft.ID + "\n"
+	s += components.InfoStyle().Render(i18n.GetText("nft.tui.nft_id")+": ") + m.nft.ID + "\n"
 	s += components.InfoStyle().Render(i18n.GetText("nft.tui.name")+": ") + m.nft.Name + "\n"
 	s += components.InfoStyle().Render(i18n.GetText("nft.tui.description")+": ") + m.nft.Description + "\n"
 	s += components.InfoStyle().Render(i18n.GetText("nft.tui.owner")+": ") + base64.StdEncoding.EncodeToString(m.nft.Owner) + "\n"
@@ -636,8 +636,8 @@ func (m *model) loadNFTsByOwner() {
 	var content string
 	for _, n := range nfts {
 		content += fmt.Sprintf("--- %s ---\n", n.Name)
-		content += fmt.Sprintf("ID: %s\n", n.ID)
-		content += fmt.Sprintf("Description: %s\n\n", n.Description)
+		content += fmt.Sprintf("%s: %s\n", i18n.GetText("nft.tui.nft_id"), n.ID)
+		content += fmt.Sprintf("%s: %s\n\n", i18n.GetText("nft.tui.description"), n.Description)
 	}
 	m.viewport.SetContent(content)
 }

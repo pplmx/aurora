@@ -517,11 +517,11 @@ func (m *model) sourceDetailView() string {
 		if !source.Enabled {
 			status = i18n.GetText("oracle.tui.disabled")
 		}
-		s += components.KeyValue("Status", status) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.status"), status) + "\n"
 	}
 
 	s += "\n"
-	s += components.BorderStyle().Render("[T] Toggle On/Off")
+	s += components.BorderStyle().Render(i18n.GetText("oracle.tui.toggle"))
 	s += " | [D] " + i18n.GetText("oracle.tui.delete_source")
 	s += " | [ESC] " + i18n.GetText("lottery.tui.back") + "\n"
 
@@ -656,9 +656,9 @@ func (m *model) fetchResultView() string {
 	if m.fetchResult != nil {
 		s += components.KeyValue("ID", m.fetchResult.ID) + "\n"
 		s += components.KeyValue(i18n.GetText("oracle.tui.source_id"), m.fetchResult.SourceID) + "\n"
-		s += components.KeyValue("Value", m.fetchResult.Value) + "\n"
-		s += components.KeyValue("Timestamp", fmt.Sprintf("%d", m.fetchResult.Timestamp)) + "\n"
-		s += components.KeyValue("BlockHeight", fmt.Sprintf("%d", m.fetchResult.BlockHeight)) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.value"), m.fetchResult.Value) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.timestamp"), fmt.Sprintf("%d", m.fetchResult.Timestamp)) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.block_height"), fmt.Sprintf("%d", m.fetchResult.BlockHeight)) + "\n"
 	}
 
 	if m.successMsg != "" {
@@ -678,9 +678,9 @@ func (m *model) queryResultView() string {
 			s += components.CaptionStyle().Render(fmt.Sprintf("--- #%d ---", i+1)) + "\n"
 			s += components.KeyValue("ID", d.ID) + "\n"
 			s += components.KeyValue(i18n.GetText("oracle.tui.source_id"), d.SourceID) + "\n"
-			s += components.KeyValue("Value", d.Value) + "\n"
-			s += components.KeyValue("Timestamp", fmt.Sprintf("%d", d.Timestamp)) + "\n"
-			s += components.KeyValue("BlockHeight", fmt.Sprintf("%d", d.BlockHeight)) + "\n\n"
+			s += components.KeyValue(i18n.GetText("oracle.tui.value"), d.Value) + "\n"
+			s += components.KeyValue(i18n.GetText("oracle.tui.timestamp"), fmt.Sprintf("%d", d.Timestamp)) + "\n"
+			s += components.KeyValue(i18n.GetText("oracle.tui.block_height"), fmt.Sprintf("%d", d.BlockHeight)) + "\n\n"
 		}
 	} else {
 		s += components.InfoStyle().Render(i18n.GetText("oracle.tui.no_data")) + "\n"

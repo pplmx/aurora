@@ -172,8 +172,8 @@ func init() {
 
 	tokenHistoryCmd.Flags().StringP("token", "t", "", i18n.GetText("token.token_id"))
 	tokenHistoryCmd.Flags().StringP("owner", "o", "", i18n.GetText("token.owner"))
-	tokenHistoryCmd.Flags().IntP("limit", "l", 50, "Limit results")
-	tokenHistoryCmd.Flags().IntP("offset", "p", 0, "Offset for pagination")
+	tokenHistoryCmd.Flags().IntP("limit", "l", 50, i18n.GetText("token.limit"))
+	tokenHistoryCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	_ = tokenHistoryCmd.MarkFlagRequired("token")
 	_ = tokenHistoryCmd.MarkFlagRequired("owner")
 
