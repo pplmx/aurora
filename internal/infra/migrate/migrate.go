@@ -12,6 +12,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 type Migrator struct {
@@ -34,7 +35,14 @@ func New(dbPath, migPath string) (*Migrator, error) {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON", dbPath))
+	// Use the same hardened DSN every repository opens (foreign keys + BEGIN
+	// IMMEDIATE + 5s busy timeout, sqlite.WriteDSNSuffix) instead of the bare
+	// `?_foreign_keys=ON`. mattn's default busy timeout is 0, so an unhardened
+	// migrate running against a DB another CLI/API process holds the write lock
+	// on failed instantly with "database is locked"; with _busy_timeout it
+	// waits up to 5s, and _txlock=immediate kills the fatal SQLITE_BUSY_SNAPSHOT
+	// class the repos eliminated (v1.70, ISS-076; TASK-170, ISS-165).
+	db, err := sql.Open("sqlite3", sqlite.DSN(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

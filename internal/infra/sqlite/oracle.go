@@ -23,7 +23,7 @@ func NewOracleRepository(path string) (*OracleRepository, error) {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", dsn(path))
+	db, err := sql.Open("sqlite3", DSN(path))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

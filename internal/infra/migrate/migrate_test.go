@@ -56,6 +56,27 @@ func TestMigrator_New(t *testing.T) {
 	assert.NotNil(t, m)
 }
 
+// TestMigrator_New_DSNHardened guards the parallel-safety fix (TASK-170,
+// ISS-165): New must open SQLite with the same hardened DSN every repository
+// uses (_busy_timeout=5000, _txlock=immediate). Previously it opened with a
+// bare `?_foreign_keys=ON`, whose mattn default busy timeout is 0 — a migrate
+// run against a DB another CLI/API process held the write lock on failed
+// instantly with "database is locked" instead of waiting up to 5s. The PRAGMA
+// below reads back the value the DSN param set on the real connection.
+func TestMigrator_New_DSNHardened(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+
+	var busyTimeout int
+	require.NoError(t, m.db.QueryRow("PRAGMA busy_timeout").Scan(&busyTimeout))
+	assert.Equal(t, 5000, busyTimeout,
+		"migrate must wait up to 5s for a concurrent writer, not fail with SQLITE_BUSY (ISS-165)")
+}
+
 func TestMigrator_Up(t *testing.T) {
 	dbPath, migPath, cleanup := setupTestDB(t)
 	defer cleanup()
