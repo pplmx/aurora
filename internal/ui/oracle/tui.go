@@ -99,7 +99,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// q to the menu); read-only views keep back-to-menu.
 			switch m.view {
 			case "sources", "sourceDetail", "confirmToggle", "confirmDelete",
-				"fetchResult", "queryResult", "data":
+				"fetchResult", "queryResult":
 				m.view = "menu"
 				m.errMsg = ""
 				m.successMsg = ""
@@ -288,8 +288,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.handleQuery()
 			case "fetchResult", "queryResult":
 				m.view = "menu"
-			case "data":
-				m.view = "menu"
 			}
 
 		case "y", "Y":
@@ -403,8 +401,6 @@ func (m *model) View() tea.View {
 		v.SetContent(m.queryView())
 	case "queryResult":
 		v.SetContent(m.queryResultView())
-	case "data":
-		v.SetContent(m.dataView())
 	}
 	v.AltScreen = true
 	return v
@@ -692,15 +688,6 @@ func (m *model) queryResultView() string {
 		s += "\n" + components.ErrorStyle().Render(m.errMsg)
 	}
 
-	return s
-}
-
-func (m *model) dataView() string {
-	s := components.HeaderStyle().Render("📊 "+i18n.GetText("oracle.tui.query_data")) + "\n\n"
-	s += components.InfoStyle().Render(i18n.GetText("oracle.tui.cli_tip") + "\n")
-	s += "  aurora oracle data --source <id>\n"
-	s += "  aurora oracle latest --source <id>\n\n"
-	s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 	return s
 }
 
