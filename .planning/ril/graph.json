@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 109,
+  "round": 110,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T04:52:03+00:00",
+  "updated_at": "2026-08-29T05:50:43+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6705,6 +6705,78 @@
       "updated_at": "2026-08-29T04:49:17+00:00",
       "touched_round": 108,
       "commit": "09a4216"
+    },
+    "TASK-157": {
+      "id": "TASK-157",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T05:16:48+00:00",
+      "updated_at": "2026-08-29T05:50:43+00:00",
+      "touched_round": 109,
+      "category": "correctness",
+      "severity": 0.55,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "Token mint context + create-owner field collision: after a successful mint, mint() runs getBalance() against the shared this.owner, which is blank unless the operator filled the Balance section -> the balance box shows a confusing 'token_id and owner required' error right after a successful mint (MintResponse has to=recipient but the code never advances it). Also, round-109 bound the Create form's new 'Owner (public key)' input to the SAME this.owner as the Balance/History/Burn context, so a mint context-advance would clobber it. Fix: give create its own createOwner field, advance this.owner=data.owner on create success, and on mint success advance this.owner=data.to before getBalance() so the balance reflects the freshly credited recipient and never errors on a blank owner."
+    },
+    "ISS-150": {
+      "id": "ISS-150",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T05:16:48+00:00",
+      "updated_at": "2026-08-29T05:50:43+00:00",
+      "touched_round": 109,
+      "title": "Token mint auto-refresh getBalance(): runs against shared owner which is blank unless Balance section was used -> shows 'token_id and owner required' in the balance box right after a successful mint; recipient (data.to) is never advanced into shared context",
+      "severity": 0.5,
+      "confidence": 0.9
+    },
+    "TASK-158": {
+      "id": "TASK-158",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T05:16:59+00:00",
+      "updated_at": "2026-08-29T05:50:43+00:00",
+      "touched_round": 109,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle add-source context advance (mirror TASK-150): after addSource success the fetch/query/latest forms still need a manual source id typed in, though the response carries data.id; advance fetchSource/querySource/latestSource to the fresh source so fetch/query/latest are one click away"
+    },
+    "ISS-151": {
+      "id": "ISS-151",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T05:16:59+00:00",
+      "updated_at": "2026-08-29T05:50:43+00:00",
+      "touched_round": 109,
+      "title": "Oracle add-source does not advance the shared fetch/query/latest source ids, forcing a manual copy after each source creation",
+      "severity": 0.45,
+      "confidence": 0.95
+    },
+    "CHG-151": {
+      "id": "CHG-151",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T05:48:31+00:00",
+      "updated_at": "2026-08-29T05:48:31+00:00",
+      "touched_round": 109,
+      "commit": "b080257"
+    },
+    "CHG-152": {
+      "id": "CHG-152",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T05:48:31+00:00",
+      "updated_at": "2026-08-29T05:48:31+00:00",
+      "touched_round": 109,
+      "commit": "b080257"
     }
   },
   "edges": [
@@ -10553,6 +10625,42 @@
       "to": "ISS-149",
       "type": "resolves",
       "created_at": "2026-08-29T04:50:21+00:00"
+    },
+    {
+      "from": "TASK-157",
+      "to": "ISS-150",
+      "type": "addresses",
+      "created_at": "2026-08-29T05:18:33+00:00"
+    },
+    {
+      "from": "TASK-158",
+      "to": "ISS-151",
+      "type": "addresses",
+      "created_at": "2026-08-29T05:18:33+00:00"
+    },
+    {
+      "from": "CHG-151",
+      "to": "TASK-157",
+      "type": "implements",
+      "created_at": "2026-08-29T05:48:31+00:00"
+    },
+    {
+      "from": "CHG-152",
+      "to": "TASK-158",
+      "type": "implements",
+      "created_at": "2026-08-29T05:48:32+00:00"
+    },
+    {
+      "from": "CHG-151",
+      "to": "ISS-150",
+      "type": "resolves",
+      "created_at": "2026-08-29T05:48:32+00:00"
+    },
+    {
+      "from": "CHG-152",
+      "to": "ISS-151",
+      "type": "resolves",
+      "created_at": "2026-08-29T05:48:32+00:00"
     }
   ]
 }
