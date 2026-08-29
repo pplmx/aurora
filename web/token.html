@@ -34,8 +34,12 @@
                          key)" pattern: the operator pastes their own base64 owner key
                          (the private half is used in the Mint/Burn/etc forms). Before
                          this field every web create returned "public key is required"
-                         with no way to fix it (ISS-147). -->
-                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" placeholder="base64 public key" required></div>
+                         with no way to fix it (ISS-147). The input is bound to its
+                         own createOwner field, NOT the shared inspection owner, so the
+                         key typed for a create can never leak into the Balance/History
+                         context mid-typing (same isolation as TASK-149); the shared
+                         context is advanced deliberately on success. -->
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="createOwner" placeholder="base64 public key" required></div>
                     <button type="submit" class="btn-lottery">Create Token</button>
                 </form>
                 <pre x-show="createResult" class="result" x-text="createResult"></pre>
