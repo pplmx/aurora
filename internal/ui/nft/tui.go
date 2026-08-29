@@ -172,7 +172,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "down":
 			if m.view == "menu" {
-				if m.menuIndex < 3 {
+				if m.menuIndex < 4 {
 					m.menuIndex++
 				}
 			} else if m.isFormView() && m.inputFocus < m.formInputCount()-1 {
@@ -181,7 +181,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		case "j":
-			if m.view == "menu" && m.menuIndex < 3 {
+			if m.view == "menu" && m.menuIndex < 4 {
 				m.menuIndex++
 			}
 
@@ -205,6 +205,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.pubkeyInput.SetValue("")
 					m.inputFocus = 0
 					m.updateInputFocus()
+					return m, nil
 				case 1:
 					m.view = "transfer"
 					m.err = ""
@@ -214,6 +215,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.toAddrInput.SetValue("")
 					m.inputFocus = 0
 					m.updateInputFocus()
+					return m, nil
 				case 2:
 					m.view = "query"
 					m.err = ""
@@ -221,7 +223,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.queryIDInput.SetValue("")
 					m.inputFocus = 0
 					m.updateInputFocus()
+					return m, nil
 				case 3:
+					m.view = "listOwner"
+					m.err = ""
+					m.successMsg = ""
+					m.ownerInput.SetValue("")
+					m.inputFocus = 0
+					m.updateInputFocus()
+					return m, nil
+				case 4:
 					return m, tea.Quit
 				}
 			case "mint":
@@ -230,6 +241,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.handleTransfer
 			case "query":
 				return m, m.handleQuery
+			case "listOwner":
+				// Type an owner public key here, Enter loads the list (the
+				// previously-dead case "list" kept the same call; ISS-169).
+				m.loadNFTsByOwner()
+				m.view = "list"
 			case "list":
 				m.loadNFTsByOwner()
 				m.view = "list"
@@ -238,7 +254,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.successMsg = ""
 				m.nft = nil
 			}
-		case "1", "2", "3", "4":
+		case "1", "2", "3", "4", "5":
 			if m.view == "menu" {
 				m.menuIndex = int(msg.String()[0] - '1')
 			}
@@ -272,7 +288,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // isFormView reports whether the current view edits NFT fields.
 func (m *model) isFormView() bool {
 	switch m.view {
-	case "mint", "transfer", "query":
+	case "mint", "transfer", "query", "listOwner":
 		return true
 	}
 	return false
@@ -283,7 +299,7 @@ func (m *model) formInputCount() int {
 	switch m.view {
 	case "mint", "transfer":
 		return 3
-	case "query":
+	case "query", "listOwner":
 		return 1
 	}
 	return 0
@@ -319,6 +335,9 @@ func (m *model) updateInputFocus() {
 	case "query":
 		m.queryIDInput.Blur()
 		m.queryIDInput.Focus()
+	case "listOwner":
+		m.ownerInput.Blur()
+		m.ownerInput.Focus()
 	}
 }
 
@@ -342,6 +361,10 @@ func (m *model) forwardToActiveInput(msg tea.Msg) tea.Cmd {
 		var c1 tea.Cmd
 		m.queryIDInput, c1 = m.queryIDInput.Update(msg)
 		cmds = append(cmds, c1)
+	case "listOwner":
+		var c1 tea.Cmd
+		m.ownerInput, c1 = m.ownerInput.Update(msg)
+		cmds = append(cmds, c1)
 	}
 	return tea.Batch(cmds...)
 }
@@ -360,6 +383,8 @@ func (m *model) View() tea.View {
 			v.SetContent(m.transferView())
 		case "query":
 			v.SetContent(m.queryView())
+		case "listOwner":
+			v.SetContent(m.listOwnerView())
 		case "result":
 			v.SetContent(m.resultView())
 		case "list":
@@ -378,6 +403,7 @@ func (m *model) menuView() string {
 		i18n.GetText("nft.tui.mint"),
 		i18n.GetText("nft.tui.transfer"),
 		i18n.GetText("nft.tui.query"),
+		i18n.GetText("nft.tui.list_owner"),
 		i18n.GetText("lottery.tui.exit"),
 	}
 	for i, item := range items {
@@ -471,6 +497,19 @@ func (m *model) resultView() string {
 func (m *model) listView() string {
 	s := components.HeaderStyle().Render("📜 "+i18n.GetText("nft.tui.nft_list")) + "\n\n"
 	s += m.viewport.View() + "\n\n"
+	s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
+
+	return s
+}
+
+// listOwnerView prompts for an owner public key; Enter on this view loads the
+// owner's NFTs into the scrollable list view (ISS-169 wired the previously
+// dead list machinery to this surface).
+func (m *model) listOwnerView() string {
+	s := components.HeaderStyle().Render("📜 "+i18n.GetText("nft.tui.list_owner")) + "\n\n"
+	s += components.InfoStyle().Render(i18n.GetText("nft.tui.owner")+": ") + "\n"
+	s += m.ownerInput.View() + "\n\n"
+	s += components.HelpTextStyle().Render(i18n.GetText("nft.tui.enter_owner_hint")) + "\n"
 	s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 
 	return s
