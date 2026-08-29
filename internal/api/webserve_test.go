@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -204,4 +205,25 @@ func TestWebUINoUnusedHtmx(t *testing.T) {
 		require.Falsef(t, strings.Contains(strings.ToLower(body), "htmx"),
 			"page %s still references the removed htmx library (TASK-066 regression)", page)
 	}
+}
+
+// TestWebUIJS_SyntaxValid runs `node --check` over the shipped web/js/app.js.
+// All seven pages were rendered by hand-written Alpine components in a single
+// file, and Go-side guards can only assert substrings (function names,
+// endpoint literals) — a syntactically broken app.js (a dropped brace, a stray
+// comma) would have slipped through `go test` and broken every page at runtime
+// (ISS-153). The test skips cleanly when node is absent so Go remains the only
+// hard dependency for offline/local developers; CI's ubuntu-latest image ships
+// Node, so the gate is enforced on every push/PR.
+func TestWebUIJS_SyntaxValid(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js syntax check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+	// node --check parses (and rejects) the file without executing it, so a
+	// syntax regression fails the suite here instead of at browser runtime.
+	out, err := exec.Command(node, "--check", appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js is not valid JavaScript:\n%s", out)
+	require.NotContains(t, string(out), "SyntaxError", "web/js/app.js must contain no SyntaxError")
 }

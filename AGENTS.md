@@ -95,10 +95,10 @@ just stop         # Stop containers: docker compose down
 ./aurora voting voter register -n "Name"               # Register a voter (prints keypair)
 ./aurora voting session create -t "Title" -c <cand-id> -c <cand2> --start-time <t> --end-time <t>
 ./aurora voting session list                           # List sessions
-./aurora voting session start -i <session-id>          # Start a session
+./aurora voting session start -s <session-id>          # Start a session
 ./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv-key>
 ./aurora voting results -s <session-id>                # Show results
-./aurora voting session end -i <session-id>            # End a session
+./aurora voting session end -s <session-id>            # End a session
 ```
 
 ### NFT (Ed25519-signed NFTs)
@@ -106,7 +106,7 @@ just stop         # Stop containers: docker compose down
 ```bash
 ./aurora nft mint -n "MyNFT" -d "Description" -c "creator_key"
 ./aurora nft transfer --nft <id> --from <owner> --to <address> -k "private_key"
-./aurora nft get --id <nft_id>
+./aurora nft get --nft <nft_id>
 ./aurora nft list --owner <pubkey>
 ./aurora nft burn --nft <id> --owner <owner> -k "private_key"
 ./aurora nft history --nft <id>
