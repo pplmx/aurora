@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 108,
+  "round": 109,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T02:18:47+00:00",
+  "updated_at": "2026-08-29T04:52:03+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6617,6 +6617,94 @@
       "touched_round": 108,
       "commit": "480dc53",
       "title": "CLI report-the-truth: voting results shows stale-roster candidates at 0 and surfaces real lookup errors (exit != 0); lottery db-info surfaces the blocks COUNT error while tolerating a missing blocks table like lottery reset; fixes TASK-154"
+    },
+    "ISS-147": {
+      "id": "ISS-147",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T04:11:39+00:00",
+      "updated_at": "2026-08-29T04:51:27+00:00",
+      "touched_round": 108,
+      "title": "Web Create Token form omits the required owner public key: form sends only {name,symbol,total_supply} but API CreateToken runs ValidatePublicKey and rejects empty owner with ErrPublicKeyRequired -> every web token create returns HTTP 400. CLI generates a fresh ed25519 keypair and uses it as owner; NFT mint web form correctly requires a 'Creator (public key)' field, so token create is the one surface with no way to supply the owner key at all.",
+      "severity": 0.9,
+      "confidence": 0.95
+    },
+    "ISS-148": {
+      "id": "ISS-148",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T04:13:15+00:00",
+      "updated_at": "2026-08-29T04:51:27+00:00",
+      "touched_round": 108,
+      "title": "Web shared-context advance is applied to NFT mint only (TASK-150): token create (response has id+owner), voting session create (response has id) and lottery create (response has id) never advance the shared per-page fields, so the natural next step (inspect balance/info, verify the draw, start/end session + view results) forces a manual copy from the JSON result block. Same class as TASK-150; STATE.md explicitly lists 'token page shared-context fields' as a candidate next dimension.",
+      "severity": 0.6,
+      "confidence": 0.95
+    },
+    "ISS-149": {
+      "id": "ISS-149",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T04:13:35+00:00",
+      "updated_at": "2026-08-29T04:51:27+00:00",
+      "touched_round": 108,
+      "title": "Dead code: oracleApp.addSource still guards result with 'if (!res.ok)' even though apiFetch already throws on non-2xx (the same dead-guard class round-107 TASK-146 removed six times in votingApp); the branch is unreachable and the success path's err handling is duplicated by the catch.",
+      "severity": 0.3,
+      "confidence": 0.95
+    },
+    "TASK-155": {
+      "id": "TASK-155",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-29T04:16:23+00:00",
+      "updated_at": "2026-08-29T04:51:27+00:00",
+      "touched_round": 108,
+      "category": "correctness",
+      "severity": 0.9,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Fix broken web Create Token form + advance shared context: add required 'Owner (public key)' input to token.html create form and send owner in createToken body (fixes ISS-147; every create currently 400s); on success advance this.tokenId=data.id + this.owner=data.owner so the shared Balance/Info/Mint/Transfer/Approve/Allowance/Burn/History forms pre-fill (ISS-148 token part, mirrors TASK-150).",
+      "lock_owner": "graph-round-109",
+      "lock_until": "2026-08-29T05:04:15+00:00"
+    },
+    "TASK-156": {
+      "id": "TASK-156",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-29T04:16:54+00:00",
+      "updated_at": "2026-08-29T04:51:27+00:00",
+      "touched_round": 108,
+      "category": "dx",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Web shared-context advance for voting + lottery: after voting createSession success set controlSessionId/resultsSessionId/voteSessionId to data.id so start/end/results/cast-vote flow needs no manual copy; after lottery createLottery success set verifyId to data.id so the fresh draw is immediately verifiable (ISS-148 voting/lottery parts, mirrors TASK-150). Remove the dead if(!res.ok) guard in oracle addSource (ISS-149, round-107 consistency).",
+      "lock_owner": "graph-round-109",
+      "lock_until": "2026-08-29T05:04:15+00:00"
+    },
+    "CHG-149": {
+      "id": "CHG-149",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T04:49:17+00:00",
+      "updated_at": "2026-08-29T04:49:17+00:00",
+      "touched_round": 108,
+      "commit": "09a4216"
+    },
+    "CHG-150": {
+      "id": "CHG-150",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T04:49:17+00:00",
+      "updated_at": "2026-08-29T04:49:17+00:00",
+      "touched_round": 108,
+      "commit": "09a4216"
     }
   },
   "edges": [
@@ -10411,6 +10499,60 @@
       "to": "ISS-146",
       "type": "resolves",
       "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "TASK-155",
+      "to": "ISS-147",
+      "type": "addresses",
+      "created_at": "2026-08-29T04:19:53+00:00"
+    },
+    {
+      "from": "TASK-155",
+      "to": "ISS-148",
+      "type": "addresses",
+      "created_at": "2026-08-29T04:19:53+00:00"
+    },
+    {
+      "from": "TASK-156",
+      "to": "ISS-148",
+      "type": "addresses",
+      "created_at": "2026-08-29T04:19:54+00:00"
+    },
+    {
+      "from": "TASK-156",
+      "to": "ISS-149",
+      "type": "addresses",
+      "created_at": "2026-08-29T04:19:54+00:00"
+    },
+    {
+      "from": "CHG-149",
+      "to": "TASK-155",
+      "type": "implements",
+      "created_at": "2026-08-29T04:50:20+00:00"
+    },
+    {
+      "from": "CHG-150",
+      "to": "TASK-156",
+      "type": "implements",
+      "created_at": "2026-08-29T04:50:20+00:00"
+    },
+    {
+      "from": "CHG-149",
+      "to": "ISS-147",
+      "type": "resolves",
+      "created_at": "2026-08-29T04:50:20+00:00"
+    },
+    {
+      "from": "CHG-150",
+      "to": "ISS-148",
+      "type": "resolves",
+      "created_at": "2026-08-29T04:50:21+00:00"
+    },
+    {
+      "from": "CHG-150",
+      "to": "ISS-149",
+      "type": "resolves",
+      "created_at": "2026-08-29T04:50:21+00:00"
     }
   ]
 }
