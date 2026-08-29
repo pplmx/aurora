@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
@@ -226,4 +227,40 @@ func TestClassifyError_UnknownError(t *testing.T) {
 	status, code := classifyError(errors.New("unknown"))
 	assert.Equal(t, http.StatusInternalServerError, status)
 	assert.Equal(t, "INTERNAL_ERROR", code)
+}
+
+// TestDecodeJSON_RejectsTrailingGarbage pins the strict single-value body
+// contract (ISS-171): decodeJSON must reject any data after the first JSON
+// value. json.Decoder.Decode reads one value and silently ignores the rest, so
+// `{"a":1}{"b":2}` or `{...}non-json` used to pass as well-formed — a lax parse
+// path that diverged from a strict parse anywhere else.
+func TestDecodeJSON_RejectsTrailingGarbage(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"clean object", `{"a":1}`, true},
+		{"clean with trailing ws", `{"a":1}   `, true},
+		{"two JSON values", `{"a":1}{"b":2}`, false},
+		{"value then garbage", `{"a":1}non-json`, false},
+		{"value then array", `{"a":1}[1,2]`, false},
+		{"invalid json", `not json at all`, false},
+		{"empty body", ``, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tc.body))
+			var got struct {
+				A int `json:"a"`
+			}
+			ok := decodeJSON(rr, req, &got)
+			assert.Equal(t, tc.want, ok, "decodeJSON verdict for %q", tc.body)
+			if !tc.want {
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+				assert.Contains(t, rr.Body.String(), "INVALID_REQUEST")
+			}
+		})
+	}
 }
