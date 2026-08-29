@@ -4,8 +4,56 @@ All notable changes to this project will be documented in this file.
 
 The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STATE.md`
 (release `Version` is injected at build time via `-ldflags -X cmd.Version=`). The
-entries below summarise v1.64–v1.87; earlier v1.x milestones (v1.0–v1.63) are
+entries below summarise v1.64–v1.88; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
+
+## [v1.89] - 2026-08-29
+
+### Fixed
+
+- **Web Create Token actually works**: the form sent `{name, symbol,
+  total_supply}` with no owner, and the API rejects an empty owner
+  (`ErrPublicKeyRequired`), so every web create returned `400
+  PUBLIC_KEY_REQUIRED` with no way to fix it. Added a required "Owner
+  (public key)" input mirroring the NFT mint "Creator (public key)" field.
+- **Web shared-context advances**: token create fills the shared
+  tokenId/owner so Balance/Mint/Transfer/Approve/Burn/History pre-fill,
+  voting session create fills start/end/vote/results ids, lottery create
+  fills the Verify Draw id, token mint advances to the minted recipient
+  (fixing a confusing balance error right after a successful mint), and
+  oracle add-source fills the fetch/query/latest ids. The create owner field
+  is isolated in its own `createOwner` state so a key typed for a create
+  never leaks into the Balance/History context.
+- **TUI `q` is typable in every form**: lottery/nft/token/oracle previously
+  consumed `q` as a quit/bail key before the focused textinput saw it, so
+  names/symbols/descriptions containing the letter ("quack", "Aq") could not
+  be typed. `q` now quits only from the menu; `ctrl+c` is the hard quit; a
+  read-only view still returns to the menu.
+- **Token TUI create honors decimals**: the field was validated but never
+  assigned, so a create with `18` silently produced an 8-decimal token. It
+  is now range-checked (0–127) and stored.
+- **NFT TUI key-length + transfer result**: mint no longer accepts a
+  valid-base64 but wrong-length owner key (a permanently-untransferable
+  NFT); transfer success re-fetches and shows the post-transfer owner
+  instead of "⚠ Not found" on a fresh session.
+- **Oracle sources cursor bound**: the down-key allowed one step past the
+  last row (invisible cursor, dead Enter) — with zero sources a single
+  `↓` lost the cursor on the one-row list.
+- **Lottery TUI count parse is a visible error**: a cleared/non-numeric
+  winners field previously ran a silent 3-winner draw; it now fails fast
+  with a localized message.
+- **Oracle `[T]`/`[D]` hotkeys accept uppercase**, matching the advertised
+  footer and the `y/Y n/N` confirm-dialog pattern.
+- **AGENTS.md CLI examples match reality**: `nft get --id`/`voting session
+  start -i` documented flags that do not exist; synced to the real
+  spellings (`--nft`, `--session/-s`).
+
+### Added
+
+- **JS syntax gate**: `TestWebUIJS_SyntaxValid` runs `node --check` over the
+  shipped `web/js/app.js`, so a JS syntax regression fails `go test` instead
+  of breaking every page at browser runtime (skips cleanly without node;
+  CI's ubuntu-latest ships Node).
 
 ## [v1.88] - 2026-08-29
 
