@@ -26,6 +26,14 @@ type EventRepository interface {
 	// LIMIT/OFFSET over those matching rows only. This is the owner-scoped
 	// pagination primitive token transfer history needs (TASK-093, ISS-086).
 	GetByAggregateAndTypePayload(aggID, eventType, payloadPath, value string, limit, offset int) ([]events.Event, error)
+	// GetByAggregateAndTypePayloadEither is the two-sided variant of
+	// GetByAggregateAndTypePayload: it matches rows where EITHER payloadPath1 =
+	// value1 OR payloadPath2 = value2 (same aggregate + type), so a transfer
+	// where the account is the RECIPIENT ($.to) is returned alongside the ones
+	// it sent ($.from). Without it, token history only ever showed an
+	// account's outgoing transfers (ISS-162). Limit/offset still count only
+	// the matched rows.
+	GetByAggregateAndTypePayloadEither(aggID, eventType, path1, value1, path2, value2 string, limit, offset int) ([]events.Event, error)
 }
 
 type SQLiteEventStore struct {
@@ -309,6 +317,34 @@ func (e *SQLiteEventStore) GetByAggregateAndTypePayload(aggID, eventType, payloa
 		ORDER BY timestamp ASC, id ASC
 		LIMIT ? OFFSET ?
 	`, aggID, eventType, payloadPath, value, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	return scanEvents(rows)
+}
+
+// GetByAggregateAndTypePayloadEither matches an aggregate's events of one type
+// where the payload field at path1 equals value1 OR the payload field at path2
+// equals value2 — the ($.from = ? OR $.to = ?) predicate token transfer history
+// needs so an account sees transfers it RECEIVED, not just the ones it sent
+// (ISS-162). LIMIT/OFFSET still count only the matching rows, so paging stays
+// stable when an account both sends and receives.
+func (e *SQLiteEventStore) GetByAggregateAndTypePayloadEither(aggID, eventType, path1, value1, path2, value2 string, limit, offset int) ([]events.Event, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	rows, err := e.db.Query(`
+		SELECT id, event_type, module, agg_id, payload, timestamp
+		FROM events
+		WHERE agg_id = ? AND event_type = ?
+		  AND (json_extract(CAST(payload AS TEXT), ?) = ?
+		       OR json_extract(CAST(payload AS TEXT), ?) = ?)
+		ORDER BY timestamp ASC, id ASC
+		LIMIT ? OFFSET ?
+	`, aggID, eventType, path1, value1, path2, value2, limit, offset)
 	if err != nil {
 		return nil, err
 	}

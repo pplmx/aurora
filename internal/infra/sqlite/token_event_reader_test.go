@@ -48,6 +48,35 @@ func (m *mockEventStore) GetByAggregateAndTypePayload(aggID, eventType, payloadP
 	return m.get(aggID, eventType, payloadPath, value, limit, offset)
 }
 
+// GetByAggregateAndTypePayloadEither mirrors the SQLite store's two-sided
+// variant (ISS-162): matches events where the payload "from" OR "to" equals
+// the owner, so transfers the account received appear alongside the ones it
+// sent. The SQL store is the source of truth; this keeps the mock's paging
+// semantics honest for reader tests.
+func (m *mockEventStore) GetByAggregateAndTypePayloadEither(aggID, eventType, path1, value1, path2, value2 string, limit, offset int) ([]events.Event, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	var matching []events.Event
+	for _, e := range m.events {
+		if e.AggregateID() != aggID || e.EventType() != eventType {
+			continue
+		}
+		var payload struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		}
+		if err := json.Unmarshal(e.Payload(), &payload); err != nil {
+			continue
+		}
+		if payload.From != value1 && payload.To != value2 {
+			continue
+		}
+		matching = append(matching, e)
+	}
+	return m.page(matching, limit, offset)
+}
+
 // get implements the shared paging semantics of both typed-pagination methods.
 // When payloadPath is non-empty the in-memory stream is filtered by the
 // payload's "from" field to mimic the SQL json_extract predicate.
@@ -73,6 +102,12 @@ func (m *mockEventStore) get(aggID, eventType, payloadPath, value string, limit,
 		}
 		matching = append(matching, e)
 	}
+	return m.page(matching, limit, offset)
+}
+
+// page applies the shared LIMIT/OFFSET semantics of the typed-pagination
+// mocks (default limit 50, out-of-range offset -> nil).
+func (m *mockEventStore) page(matching []events.Event, limit, offset int) ([]events.Event, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -128,9 +163,13 @@ func TestTokenEventReader_GetTransferEventsByOwner(t *testing.T) {
 
 	results, err := reader.GetTransferEventsByOwner("TOK", owner, 50, 0)
 	require.NoError(t, err)
-	require.Len(t, results, 1, "only evt1 has owner 'from'")
+	// evt1 (owner = from) AND evt2 (owner = to) both belong to the owner's
+	// history since the two-sided predicate fix (ISS-162); mint evt3 is not a
+	// transfer and stays out.
+	require.Len(t, results, 2, "owner participates in evt1 (from) and evt2 (to)")
 	require.Equal(t, "TOK", string(results[0].TokenID()))
 	require.Equal(t, "100", results[0].Amount().String())
+	require.Equal(t, "50", results[1].Amount().String(), "received-transfer side must be included")
 }
 
 // TestTokenEventReader_PreservesStoredTimestamp guards the round-trip
