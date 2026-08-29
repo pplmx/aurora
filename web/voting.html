@@ -85,8 +85,14 @@
                                 </label>
                             </div>
                         </template>
+                        <small x-show="sessionCandidateIds.length === 0" class="hint">Select at least one candidate to create a session.</small>
                     </div>
-                    <button type="submit" class="btn-voting">Create Session</button>
+                    <!-- A session with an empty candidate roster is rejected by
+                         the API (CANDIDATES_REQUIRED); disable the submit until
+                         at least one candidate is checked instead of letting the
+                         operator hit the server-side error (web-audit; candidate
+                         checkboxes have no HTML-required group semantics). -->
+                    <button type="submit" class="btn-voting" :disabled="sessionCandidateIds.length === 0">Create Session</button>
                 </form>
                 <div x-show="sessionResult" class="result" x-text="sessionResult"></div>
             </section>

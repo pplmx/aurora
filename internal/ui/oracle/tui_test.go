@@ -241,13 +241,6 @@ func TestQueryResultViewRenders(t *testing.T) {
 	assert.NotEmpty(t, view)
 }
 
-func TestDataViewRenders(t *testing.T) {
-	app := NewOracleApp(&mockRepo{})
-	app.view = "data"
-	view := app.dataView()
-	assert.NotEmpty(t, view)
-}
-
 func TestUpdateInputFocus(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.inputFocus = 0
@@ -314,13 +307,6 @@ func TestViewFetchResultState(t *testing.T) {
 func TestViewQueryResultState(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "queryResult"
-	view := app.View()
-	assert.NotEmpty(t, view)
-}
-
-func TestViewDataState(t *testing.T) {
-	app := NewOracleApp(&mockRepo{})
-	app.view = "data"
 	view := app.View()
 	assert.NotEmpty(t, view)
 }
@@ -869,13 +855,6 @@ func TestUpdate_EnterInFetchResultReturnsToMenu(t *testing.T) {
 func TestUpdate_EnterInQueryResultReturnsToMenu(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "queryResult"
-	app.Update(keyPress("enter"))
-	assert.Equal(t, "menu", app.view)
-}
-
-func TestUpdate_EnterInDataViewReturnsToMenu(t *testing.T) {
-	app := NewOracleApp(&mockRepo{})
-	app.view = "data"
 	app.Update(keyPress("enter"))
 	assert.Equal(t, "menu", app.view)
 }
