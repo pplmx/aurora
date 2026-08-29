@@ -87,10 +87,10 @@ just dev          # Docker 开发
 # NFT
 ./aurora nft mint -n "My NFT" -d "Description" -c "<creator-pub>"
 ./aurora nft transfer --nft <id> --from <owner> --to <to> -k <priv>
-./aurora nft get --id <nft_id>
+./aurora nft get --nft <nft_id>
 ./aurora nft list --owner <pubkey>
 ./aurora nft history --nft <nft_id>
-./aurora nft burn --id <nft_id> --owner <pub> -k <priv> --confirm   # 需 --confirm
+./aurora nft burn --nft <nft_id> --owner <pub> -k <priv> --confirm   # 需 --confirm
 ./aurora nft tui
 
 # Token
@@ -107,9 +107,9 @@ just dev          # Docker 开发
 ./aurora token tui
 ```
 
-> **破坏性操作确认门：** `token burn`、`nft burn`、`oracle source delete` 需要
-> `-y/--confirm`；`lottery reset` 需要 `-y/--yes`；`backup restore`、
-> `migrate down` 需要 `--confirm`。没有确认标志这些命令会直接拒绝执行
+> **破坏性操作确认门：** `token burn`、`nft burn`、`oracle source delete`、
+> `migrate down`、`backup restore`、`lottery reset` 全部接受 `-y/--confirm`；
+> `lottery reset` 也接受旧写法的 `--yes`。没有确认标志这些命令会直接拒绝执行
 > （非零退出码），防止误删数据。
 
 ### 运维命令

@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 108,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T01:07:35+00:00",
+  "updated_at": "2026-08-29T01:58:58+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 97,
+      "touched_round": 108,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -6466,6 +6466,124 @@
       "touched_round": 106,
       "commit": "bfb525c",
       "title": "Dashboard refresh no longer blank-resets stats or clears Recent Activity each 15s poll; loaders overwrite their own card and the activity list swaps in atomically; fixes TASK-151"
+    },
+    "TASK-152": {
+      "id": "TASK-152",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T01:57:47+00:00",
+      "updated_at": "2026-08-29T01:58:58+00:00",
+      "touched_round": 108,
+      "title": "CLI flag consistency sweep (live-verified): (1) destructive-confirm gates split three ways — backup restore has --confirm with no -y shorthand, lottery reset has -y/--yes with no --confirm, other four use -y/--confirm via addConfirmFlag; unify all six to accept --confirm and -y. (2) token transfer-from names its signer secret flag --spender-key while every sibling uses --private-key. (3) nft get uses --id while transfer/burn/history use --nft for the same NFT selector. (4) voting session start/end use --id/-i while vote/results use --session/-s for the same session id. README documents and partly misdocuments all of this (nft burn listed as --id though code is --nft)",
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 3,
+      "lock_owner": "session-2026-08-29-cli-sweep",
+      "lock_until": "2026-08-29T02:38:58+00:00"
+    },
+    "TASK-153": {
+      "id": "TASK-153",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T01:57:47+00:00",
+      "updated_at": "2026-08-29T01:58:58+00:00",
+      "touched_round": 108,
+      "title": "CLI voting vote is missing MarkFlagRequired(\"session\") (its sibling voting results does it): an omitted --session assembles every other flag then fails late with a misleading \"session not found\" (empty id hits WHERE id=\") instead of a fail-fast missing-required-flag error",
+      "category": "dx",
+      "severity": 0.35,
+      "confidence": 0.97,
+      "effort": 1,
+      "lock_owner": "session-2026-08-29-cli-sweep",
+      "lock_until": "2026-08-29T02:38:58+00:00"
+    },
+    "TASK-154": {
+      "id": "TASK-154",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T01:57:47+00:00",
+      "updated_at": "2026-08-29T01:58:58+00:00",
+      "touched_round": 108,
+      "title": "Report-the-truth nits in the CLI: voting results silently continue past candidate-lookup errors (both real DB faults and stale-roster ErrNotFound) and still exits 0 with a partial table, instead of surfacing the error or showing the missing cid with 0 votes; lottery db-info ignores the blocks COUNT query error and prints \"Total blocks: 0\" even when the blocks table is absent, contradicting its own isNoSuchTable tolerance used by lottery reset",
+      "category": "correctness",
+      "severity": 0.45,
+      "confidence": 0.92,
+      "effort": 2,
+      "lock_owner": "session-2026-08-29-cli-sweep",
+      "lock_until": "2026-08-29T02:38:58+00:00"
+    },
+    "ISS-140": {
+      "id": "ISS-140",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T01:58:22+00:00",
+      "touched_round": 108,
+      "title": "Destructive-confirm flag split: backup restore accepts --confirm but rejects -y; lottery reset accepts -y/--yes but rejects --confirm; the other four destructive commands accept both via addConfirmFlag, so a script standardizing on either spelling breaks on one command"
+    },
+    "ISS-141": {
+      "id": "ISS-141",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T01:58:22+00:00",
+      "touched_round": 108,
+      "title": "token transfer-from names the signer secret flag --spender-key while every sibling signing command (mint/transfer/approve/burn) uses --private-key; same semantic (Base64 signer key), different name, and the -k shorthand means different things under other token commands"
+    },
+    "ISS-142": {
+      "id": "ISS-142",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T01:58:22+00:00",
+      "touched_round": 108,
+      "title": "nft get selects the NFT with --id/-i while nft transfer/burn/history use --nft/-i; the same entity selector has two long names and the -i shorthand means the NFT in four commands but --image in nft mint"
+    },
+    "ISS-143": {
+      "id": "ISS-143",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T01:58:22+00:00",
+      "touched_round": 108,
+      "title": "voting session start/end select the session with --id/-i but voting vote/results use --session/-s; an operator who learns the session flag on one command cannot transfer it to the others"
+    },
+    "ISS-144": {
+      "id": "ISS-144",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T01:58:22+00:00",
+      "touched_round": 108,
+      "title": "voting vote omits MarkFlagRequired(session); an omitted --session fails late with misleading session-not-found instead of a fail-fast required-flag error (sibling voting results marks it required)"
+    },
+    "ISS-145": {
+      "id": "ISS-145",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T01:58:22+00:00",
+      "touched_round": 108,
+      "title": "voting results swallows per-candidate GetCandidate errors with continue — both real DB faults and stale-roster ErrNotFound — so the rendered table can be silently partial/wrong and the command still exits 0; missing candidates should show as 0 votes and real errors should surface"
+    },
+    "ISS-146": {
+      "id": "ISS-146",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T01:58:22+00:00",
+      "touched_round": 108,
+      "title": "lottery db-info ignores the SELECT COUNT(*) FROM blocks query+scan error and prints Total blocks: 0 even when the blocks table does not exist (fresh DB), contradicting the isNoSuchTable tolerance lottery reset applies"
     }
   },
   "edges": [
@@ -10116,6 +10234,90 @@
       "to": "ISS-139",
       "type": "resolves",
       "created_at": "2026-08-29T01:01:10+00:00"
+    },
+    {
+      "from": "TASK-152",
+      "to": "ISS-140",
+      "type": "addresses",
+      "created_at": "2026-08-29T01:58:57+00:00"
+    },
+    {
+      "from": "TASK-152",
+      "to": "ISS-141",
+      "type": "addresses",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "TASK-152",
+      "to": "ISS-142",
+      "type": "addresses",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "TASK-152",
+      "to": "ISS-143",
+      "type": "addresses",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "TASK-153",
+      "to": "ISS-144",
+      "type": "addresses",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "TASK-154",
+      "to": "ISS-145",
+      "type": "addresses",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "TASK-154",
+      "to": "ISS-146",
+      "type": "addresses",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "ISS-140",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "ISS-141",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "ISS-142",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "ISS-143",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "ISS-144",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "ISS-145",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "ISS-146",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-29T01:58:58+00:00"
     }
   ]
 }

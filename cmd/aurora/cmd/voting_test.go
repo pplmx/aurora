@@ -153,11 +153,11 @@ func TestVotingSessionCreate_List_Start_End(t *testing.T) {
 		assert.Contains(t, out, "Election 2026")
 
 		// start then end transition status; the CLI prints confirmation
-		out, err = runCmd(t, "voting", "session", "start", "--id", sessionID)
+		out, err = runCmd(t, "voting", "session", "start", "--session", sessionID)
 		require.NoError(t, err)
 		assert.Contains(t, out, "Session started!")
 
-		out, err = runCmd(t, "voting", "session", "end", "--id", sessionID)
+		out, err = runCmd(t, "voting", "session", "end", "--session", sessionID)
 		require.NoError(t, err)
 		assert.Contains(t, out, "Session ended!")
 	})
@@ -182,7 +182,7 @@ func TestVotingSessionCreate_InvalidTimes(t *testing.T) {
 func TestVotingSessionStart_NotFound(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		runMigrations(t)
-		_, err := runCmd(t, "voting", "session", "start", "--id", "no-such")
+		_, err := runCmd(t, "voting", "session", "start", "--session", "no-such")
 		require.Error(t, err)
 	})
 }
@@ -201,6 +201,21 @@ func TestVotingResults_HappyPath(t *testing.T) {
 		assert.Contains(t, out, "Results:")
 		assert.Contains(t, out, "Alice")
 		assert.Contains(t, out, "1 votes")
+	})
+}
+
+func TestVotingVote_RequiresSessionFlag(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		candID, _, voterPub, voterPriv := votingFixture(t)
+
+		// Omitted --session must be rejected at flag-parsing time with a
+		// fail-fast required-flag error, not a late "session not found"
+		// (TASK-153, matching voting results' required mark).
+		_, err := runCmd(t, "voting", "vote",
+			"--voter", voterPub, "--candidate", candID,
+			"--private-key", voterPriv)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "required flag")
 	})
 }
 

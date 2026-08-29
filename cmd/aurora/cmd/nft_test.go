@@ -62,7 +62,7 @@ func TestNFTGet_Found(t *testing.T) {
 		id := extractField(t, out, "ID:")
 		require.NotEmpty(t, id)
 
-		gout, err := runCmd(t, "nft", "get", "--id", id)
+		gout, err := runCmd(t, "nft", "get", "--nft", id)
 		require.NoError(t, err)
 		assert.Contains(t, gout, "GetMe")
 		assert.Contains(t, gout, "NFT Details")
@@ -71,7 +71,7 @@ func TestNFTGet_Found(t *testing.T) {
 
 func TestNFTGet_NotFound(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
-		_, err := runCmd(t, "nft", "get", "--id", "no-such-nft")
+		_, err := runCmd(t, "nft", "get", "--nft", "no-such-nft")
 		require.Error(t, err)
 	})
 }

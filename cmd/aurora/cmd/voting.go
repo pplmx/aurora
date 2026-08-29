@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -319,7 +320,7 @@ var sessionStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: i18n.GetText("voting.session.start"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		sessionID, _ := cmd.Flags().GetString("id")
+		sessionID, _ := cmd.Flags().GetString("session")
 
 		repo, err := getVotingRepo()
 		if err != nil {
@@ -348,7 +349,7 @@ var sessionEndCmd = &cobra.Command{
 	Use:   "end",
 	Short: i18n.GetText("voting.session.end"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		sessionID, _ := cmd.Flags().GetString("id")
+		sessionID, _ := cmd.Flags().GetString("session")
 
 		repo, err := getVotingRepo()
 		if err != nil {
@@ -395,8 +396,14 @@ var resultsCmd = &cobra.Command{
 		results := make(map[string]int)
 		for _, cid := range session.Candidates {
 			cand, err := repo.GetCandidate(cid)
-			if err != nil {
+			if errors.Is(err, votingrepo.ErrNotFound) {
+				// The roster references a candidate that no longer exists —
+				// show the bare id at 0 votes instead of hiding it (TASK-154).
+				results[cid] = 0
 				continue
+			}
+			if err != nil {
+				return fmt.Errorf("failed to load candidate %s for results: %w", cid, err)
 			}
 			if cand != nil {
 				results[fmt.Sprintf("%s (%s)", cand.Name, cand.Party)] = cand.VoteCount
@@ -450,6 +457,10 @@ func init() {
 	_ = voteCmd.MarkFlagRequired("voter")
 	_ = voteCmd.MarkFlagRequired("candidate")
 	_ = voteCmd.MarkFlagRequired("private-key")
+	// session is used by the domain before anything else; mark it required so
+	// an omission fails fast instead of a misleading "session not found"
+	// (TASK-153, ISS-144; sibling voting results already marks it).
+	_ = voteCmd.MarkFlagRequired("session")
 
 	sessionCreateCmd.Flags().StringP("title", "t", "", i18n.GetText("voting.title"))
 	sessionCreateCmd.Flags().StringP("description", "d", "", i18n.GetText("voting.description"))
@@ -459,11 +470,13 @@ func init() {
 	_ = sessionCreateCmd.MarkFlagRequired("title")
 	_ = sessionCreateCmd.MarkFlagRequired("candidates")
 
-	sessionStartCmd.Flags().StringP("id", "i", "", i18n.GetText("voting.session_id"))
-	_ = sessionStartCmd.MarkFlagRequired("id")
+	// --session/-s (not --id/-i) so the session selector is spelled the same
+	// across session start/end and vote/results (TASK-152, ISS-143).
+	sessionStartCmd.Flags().StringP("session", "s", "", i18n.GetText("voting.session_id"))
+	_ = sessionStartCmd.MarkFlagRequired("session")
 
-	sessionEndCmd.Flags().StringP("id", "i", "", i18n.GetText("voting.session_id"))
-	_ = sessionEndCmd.MarkFlagRequired("id")
+	sessionEndCmd.Flags().StringP("session", "s", "", i18n.GetText("voting.session_id"))
+	_ = sessionEndCmd.MarkFlagRequired("session")
 
 	resultsCmd.Flags().StringP("session", "s", "", i18n.GetText("voting.session_id"))
 	_ = resultsCmd.MarkFlagRequired("session")

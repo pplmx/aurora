@@ -66,3 +66,19 @@ func TestBackupRestore_RequiresConfirm(t *testing.T) {
 		assert.Contains(t, out, "restored")
 	})
 }
+
+func TestBackupRestore_NegativeYShorthand(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+		backupDir := filepath.Join(t.TempDir(), "bk-y")
+
+		_, err := runCmd(t, "backup", "create", backupDir)
+		require.NoError(t, err)
+
+		// -y is the canonical destructive-op shorthand; backup restore must
+		// accept it like token/nft burn and the other gates (TASK-152).
+		out, err := runCmd(t, "backup", "restore", backupDir, "-y")
+		require.NoError(t, err)
+		assert.Contains(t, out, "restored")
+	})
+}

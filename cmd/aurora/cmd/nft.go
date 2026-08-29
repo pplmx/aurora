@@ -189,7 +189,7 @@ var getCmd = &cobra.Command{
 			return fmt.Errorf("failed to initialize NFT service: %w", err)
 		}
 
-		nftID, _ := cmd.Flags().GetString("id")
+		nftID, _ := cmd.Flags().GetString("nft")
 
 		getUC := appnft.NewGetNFTUseCase(service)
 		result, err := getUC.Execute(nftID)
@@ -304,8 +304,10 @@ func init() {
 	_ = burnCmd.MarkFlagRequired("owner")
 	_ = burnCmd.MarkFlagRequired("private-key")
 
-	getCmd.Flags().StringP("id", "i", "", i18n.GetText("nft.nft_id"))
-	_ = getCmd.MarkFlagRequired("id")
+	// --nft (not --id) so the NFT selector is spelled the same across get,
+	// transfer, burn and history (TASK-152, ISS-142); -i matches them too.
+	getCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
+	_ = getCmd.MarkFlagRequired("nft")
 
 	listCmd.Flags().StringP("owner", "o", "", i18n.GetText("nft.owner"))
 	_ = listCmd.MarkFlagRequired("owner")
