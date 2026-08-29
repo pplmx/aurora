@@ -107,9 +107,9 @@ func TestUpdate_DownNavigation(t *testing.T) {
 func TestUpdate_DownNavigationUpperBound(t *testing.T) {
 	app := NewNFTApp()
 	app.view = "menu"
-	app.menuIndex = 3
+	app.menuIndex = 4 // last item (Exit) since List-by-Owner was added (ISS-169)
 	app.Update(keyPress("down"))
-	assert.Equal(t, 3, app.menuIndex)
+	assert.Equal(t, 4, app.menuIndex)
 }
 
 func TestUpdate_EnterInMenu_Navigates(t *testing.T) {
@@ -124,7 +124,7 @@ func TestUpdate_EnterInMenu_Navigates(t *testing.T) {
 
 func TestUpdate_EnterInMenuAtExit_Quits(t *testing.T) {
 	app := NewNFTApp()
-	app.menuIndex = 3
+	app.menuIndex = 4 // Exit moved after List-by-Owner (ISS-169)
 	_, cmd := app.Update(keyPress("enter"))
 	assert.NotNil(t, cmd, "the exit menu item quits the TUI")
 }
@@ -356,4 +356,33 @@ func TestUpdate_ListScrolls(t *testing.T) {
 	assert.Greater(t, app.viewport.YOffset(), y0)
 	app.Update(keyPress("j"))
 	assert.Greater(t, app.viewport.YOffset(), y0)
+}
+
+// TestUpdate_ListOwnerMenuNavigates pins the ISS-169 wiring: the menu exposes
+// "List by Owner" (index 3) and Enter enters the listOwner prompt, where the
+// owner public key is typable (part of the same key-typing convention pinned
+// by the j/k/? tests).
+func TestUpdate_ListOwnerMenuNavigates(t *testing.T) {
+	app := NewNFTApp()
+	app.view = "menu"
+	app.menuIndex = 3
+	app.Update(keyPress("enter"))
+	require.Equal(t, "listOwner", app.view, "menu item 3 must open the list-by-owner prompt")
+
+	app.Update(keyPress("a"))
+	app.Update(keyPress("b"))
+	assert.Equal(t, "ab", app.ownerInput.Value(), "owner key must be typable in the prompt")
+}
+
+// TestUpdate_ListOwnerEnterLoadsList: Enter on the listOwner prompt runs the
+// (previously dead) loadNFTsByOwner+list transition — with an empty owner it
+// must land on the list view showing the required-pubkey error, proving the
+// Enter->load->list path is reachable from the menu.
+func TestUpdate_ListOwnerEnterLoadsList(t *testing.T) {
+	app := NewNFTApp()
+	app.view = "listOwner"
+	app.ownerInput.SetValue("")
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "list", app.view, "Enter in the prompt must load the owner list")
+	require.Contains(t, app.viewport.View(), i18n.GetText("error.pubkey_required"))
 }

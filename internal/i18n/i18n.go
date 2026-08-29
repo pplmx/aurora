@@ -225,6 +225,8 @@ func (tr *Translator) loadMessages() {
 		"nft.tui.nft_detail":       "NFT Details",
 		"nft.tui.nft_list":         "NFT List",
 		"nft.tui.no_nfts":          "No NFTs found",
+		"nft.tui.list_owner":       "List by Owner",
+		"nft.tui.enter_owner_hint": "Type an owner public key, then press Enter",
 
 		// Errors
 		"error.name_required":       "Name is required",
@@ -604,6 +606,8 @@ func (tr *Translator) loadMessages() {
 		"nft.tui.nft_detail":       "NFT 详情",
 		"nft.tui.nft_list":         "NFT 列表",
 		"nft.tui.no_nfts":          "未找到 NFT",
+		"nft.tui.list_owner":       "按持有者列出",
+		"nft.tui.enter_owner_hint": "输入持有者公钥, 按回车",
 
 		// Errors
 		"error.name_required":       "名称不能为空",
