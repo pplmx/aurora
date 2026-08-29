@@ -36,7 +36,14 @@ function auroraHeaders(extra) {
 // Callers keep list state valid (e.g. []) in their catch so a failure renders
 // an empty/error UI instead of a non-array that Alpine's x-for rejects.
 async function apiFetch(path, options) {
-    const res = await fetch(path, Object.assign({ headers: auroraHeaders() }, options || {}));
+    // Merge the caller's headers (e.g. Content-Type for JSON bodies) ON TOP of
+    // the API key rather than in place of it. A naive
+    // Object.assign({headers: auroraHeaders()}, options) lets an options.headers
+    // key REPLACE the whole headers object, silently dropping X-API-Key and
+    // turning every web write into a 401 (round-97 apiFetch refactor regression,
+    // ISS-160). GET/DELETE calls pass no options.headers and were unaffected.
+    const headers = Object.assign(auroraHeaders(), (options && options.headers) || {});
+    const res = await fetch(path, Object.assign({}, options, { headers }));
     if (!res.ok) {
         let msg = 'HTTP ' + res.status;
         try {
@@ -749,7 +756,7 @@ function oracleApp() {
                 const res = await apiFetch('/api/v1/oracle/templates');
                 const data = await res.json();
                 this.templates = Array.isArray(data) ? data : [];
-            } catch (e) { this.templates = []; }
+            } catch (e) { /* keep prior rows; apiFetch's shared banner shows the error */ }
         },
         applyTemplate(id) {
             const t = this.templates.find(x => x.id === id);
@@ -767,7 +774,7 @@ function oracleApp() {
                 const res = await apiFetch('/api/v1/oracle/health');
                 const data = await res.json();
                 this.health = Array.isArray(data) ? data : [];
-            } catch (e) { this.health = []; }
+            } catch (e) { /* keep prior rows; apiFetch's shared banner shows the error */ }
             this.loadingHealth = false;
         },
         async addSource() {
@@ -834,7 +841,7 @@ function oracleApp() {
                 const res = await apiFetch('/api/v1/oracle/sources');
                 const data = await res.json();
                 this.sources = (data && data.sources) || [];
-            } catch (e) { this.sources = []; }
+            } catch (e) { /* keep prior rows; apiFetch's shared banner shows the error */ }
             this.loading = false;
         },
         async fetch() {
