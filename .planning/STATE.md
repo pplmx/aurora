@@ -5,13 +5,13 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.87 API-consistency + latent-concurrency sweep (consistent unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry)
+**Current focus:** v1.88 web error-surfacing + interactivity polish (apiFetch banner consistency, dashboard/oracle poll-flicker fixes, burn-amount isolation, NFT mint context advance, dead res.ok removal)
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.87 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh, cancellable scheduler fetches, backup traversal rejection, bounded rate-limiters, unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry)
+Status: v1.24–v1.88 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh, cancellable scheduler fetches, backup traversal rejection, bounded rate-limiters, unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry, web error-surfacing consistency, oracle/dashboard polling polish, burn-amount isolation, NFT mint context advance)
 Last activity: 2026-08-28 — v1.85 closed (round-97 UX deep-dive: three parallel
   audit agents over the TUI surfaces, CLI ergonomics and web frontend, then
   the top-three verified defects fixed; round-98 drained the backlog:
@@ -151,6 +151,7 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.85 | UX / interactivity / usability polish (typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh; round-97 backlog fully drained) | ✅ done |
 | v1.86 | Infra robustness deep-dive (cancellable scheduler fetches, backup path-traversal rejection, bounded rate-limiters) | ✅ done |
 | v1.87 | API-consistency + latent-concurrency sweep (unknown oracle source / NFT id → 404 not 200[]/500, /oracle/query missing param → 400, sqlite GetLatestData nil contract, SyncEventBus snapshot-outside-lock, once-guarded MetricsRegistry) | ✅ done |
+| v1.88 | Web error-surfacing + interactivity polish (apiFetch banner consistency incl. blockchain page, oracle inline errors replace alert()/silent table, dead res.ok guards removed, dashboard stat isolation, oracle + dashboard 15s-poll flicker fixes, token burn-amount isolation, NFT mint context advance) | ✅ done |
 
 ## Session Continuity
 
@@ -188,10 +189,37 @@ Round 102 (2026-08-29, user polish directive) refreshed the usability/docs
   TUI block-height label, and the oracle error path (TASK-145, CHG-139,
   9ad9e62); catalog parity re-verified at 306/306 with zero missing keys.
   RIL graph at round 106 (519 nodes).
+Rounds 107-108 (2026-08-29, this session, v1.88) — web error-surfacing +
+  interactivity polish per the user directive (细节优化/bug修复/打磨/交互性/
+  实用性/使用性/易用性/文档). No active tasks remained, so a fresh deep-dive
+  over the web frontend seeded six fixes in two commits:
+  - Round 107 (6f1cd34): error-surfacing consistency (TASK-146, ISS-132/133/
+    134, CHG-140) — blockchainApp.verify now goes through apiFetch so a
+    down/unauthorized API raises the shared red banner like every other page
+    (was the only raw-fetch holdout); oracle setEnabled/deleteSource dropped
+    blocking alert() dialogs for inline sourcesError text and query() gained
+    an inline queryError line instead of silently clearing the results table;
+    six dead if(!res.ok) guards in votingApp removed (apiFetch already throws).
+    Dashboard stat isolation (TASK-147, ISS-135, CHG-141) — split loadVoting's
+    shared Promise.all into independent loadCandidatesStats/loadSessionsStats
+    so one endpoint failing blanks only its own card. Oracle 15s-poll flicker
+    (TASK-148, ISS-136, CHG-142) — Loading placeholders now require an empty
+    dataset, so the Data Sources + Feed Health tables stay visible during a
+    background refresh. RIL graph at round 107 (530 nodes).
+  - Round 108 (bfb525c): burn-amount isolation (TASK-149, ISS-137, CHG-143) —
+    token Burn gets its own burnAmount field so a Transfer quantity can never
+    leak into a destroy. NFT mint context advance (TASK-150, ISS-138, CHG-144)
+    — mint() fills this.id/this.owner from the response so the
+    inspect/transfer/burn next step needs no manual copy. Dashboard 15s-poll
+    flicker (TASK-151, ISS-139, CHG-145) — refresh() no longer blank-resets
+    the stats grid or clears Recent Activity each poll; loaders overwrite
+    their own card and the activity list swaps in atomically. Milestone doc
+    v1.88-ROADMAP.md added; RIL graph at round 108 (539 nodes).
 Next: the deferred ISS-084 phantom on-chain blocks on rolled-back
   transactions remains parked per DEC-002 (cross-DB atomicity redesign; token
   event trail is already post-commit; reconfirmed by EV-044); NFT zero-key
   transfer is a product-semantics question parked for operator intent
-  (DEC-005). Candidate next dimensions: TUI edge-case auditing, deeper web
-  JS review, or a fresh API contract sweep. Use `ril.py tasks --top 10` to
-  load any converted backlog.
+  (DEC-005). Candidate next dimensions: TUI edge-case auditing, a fresh API
+  contract sweep, or another web pass (e.g. token page shared-context fields,
+  lottery/nft interactivity). Use `ril.py tasks --top 10` to load any
+  converted backlog.
