@@ -415,6 +415,36 @@ func (uc *ListSessionsUseCase) Execute() ([]*SessionResponse, error) {
 	return responses, nil
 }
 
+// GetSessionUseCase returns one voting session by id, mapping the sqlite
+// repo's ErrNotFound sentinel to the domain voting.ErrSessionNotFound so the
+// API layer classifies a missing session as 404 (SESSION_NOT_FOUND) while a
+// genuine DB failure stays an unclassified 500. The handler previously called
+// h.repo.GetSession directly and folded every error — including real server
+// faults — into a 404 "not found" (TASK-171, ISS-166), which disguised an
+// outage as a missing resource and misdirected clients.
+type GetSessionUseCase struct {
+	repo voting.Repository
+}
+
+func NewGetSessionUseCase(repo voting.Repository) *GetSessionUseCase {
+	return &GetSessionUseCase{repo: repo}
+}
+
+func (uc *GetSessionUseCase) Execute(id string) (*voting.Session, error) {
+	session, err := uc.repo.GetSession(id)
+	if err != nil {
+		if errors.Is(err, sqlite.ErrNotFound) {
+			return nil, voting.ErrSessionNotFound
+		}
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+	if session == nil {
+		// In-memory fakes signal missing rows with (nil, nil); normalize.
+		return nil, voting.ErrSessionNotFound
+	}
+	return session, nil
+}
+
 // containsString reports whether list contains target (small lists; linear scan).
 func containsString(list []string, target string) bool {
 	for _, s := range list {

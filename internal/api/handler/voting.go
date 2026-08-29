@@ -176,9 +176,14 @@ func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	session, err := h.repo.GetSession(id)
-	if err != nil || session == nil {
-		writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+	// Route through the use case (sibling pattern: ListSessions/GetResults) so
+	// a missing session is a 404 SESSION_NOT_FOUND while a genuine DB failure
+	// surfaces as an unclassified 500 — previously EVERY GetSession error was
+	// flattened into 404 "not found" (TASK-171, ISS-166).
+	uc := votingapp.NewGetSessionUseCase(h.repo)
+	session, err := uc.Execute(id)
+	if err != nil {
+		writeUseCaseError(w, err)
 		return
 	}
 
@@ -209,15 +214,17 @@ func (h *VotingHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 func (h *VotingHandler) updateSessionStatus(w http.ResponseWriter, r *http.Request, status string) {
 	id := chi.URLParam(r, "id")
 
-	session, err := h.repo.GetSession(id)
-	if err != nil || session == nil {
-		writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+	// Same not-found-vs-server-fault split as GetSession (TASK-171, ISS-166).
+	uc := votingapp.NewGetSessionUseCase(h.repo)
+	session, err := uc.Execute(id)
+	if err != nil {
+		writeUseCaseError(w, err)
 		return
 	}
 
 	session.Status = status
 	if err := h.repo.UpdateSession(session); err != nil {
-		writeError(w, "internal server error", "INTERNAL_ERROR", http.StatusInternalServerError)
+		writeUseCaseError(w, err)
 		return
 	}
 
