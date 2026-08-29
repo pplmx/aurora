@@ -260,13 +260,13 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.errMsg = ""
 			}
 
-		case "d":
+		case "d", "D":
 			if m.view == "sourceDetail" && m.selectedSourceID != "" {
 				m.confirmAction = "delete"
 				m.menuIndex = 1
 				m.view = "confirmDelete"
 			}
-		case "t":
+		case "t", "T":
 			if m.view == "sourceDetail" && m.selectedSourceID != "" {
 				m.confirmAction = "toggle"
 				m.menuIndex = 1

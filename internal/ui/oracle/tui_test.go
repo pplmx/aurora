@@ -578,6 +578,25 @@ func TestUpdate_ToggleKeyFromSourceDetail(t *testing.T) {
 	assert.Equal(t, "confirmToggle", app.view)
 }
 
+// The footer advertises "[T] Toggle On/Off" and "[D]", so the uppercase keys
+// must work too — matching the y/Y n/N confirm-dialog pattern (TASK-166,
+// ISS-159).
+func TestUpdate_UppercaseToggleKeyFromSourceDetail(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sourceDetail"
+	app.selectedSourceID = "src-1"
+	app.Update(keyPress("T"))
+	assert.Equal(t, "confirmToggle", app.view)
+}
+
+func TestUpdate_UppercaseDeleteKeyFromSourceDetail(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sourceDetail"
+	app.selectedSourceID = "src-1"
+	app.Update(keyPress("D"))
+	assert.Equal(t, "confirmDelete", app.view)
+}
+
 func TestUpdate_AddSourceKeyFromSources(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "sources"

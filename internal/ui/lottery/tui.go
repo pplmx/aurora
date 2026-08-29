@@ -333,9 +333,14 @@ func (m *model) helpView() string {
 func (m *model) handleCreate() tea.Msg {
 	participants := parseTextArea(m.participantsInput.Value())
 	seed := m.seedInput.Value()
-	count := 3
-	if c, err := strconv.Atoi(m.countInput.Value()); err == nil {
-		count = c
+	// A non-numeric / cleared winners field must be a visible error, not a
+	// silent 3-winner draw (the sibling count checks have their own messages);
+	// before this the fallback count masked operator mistakes (TASK-165,
+	// ISS-158).
+	count, err := strconv.Atoi(m.countInput.Value())
+	if err != nil {
+		m.err = i18n.GetText("lottery.tui.winners_invalid")
+		return nil
 	}
 
 	if len(participants) == 0 {

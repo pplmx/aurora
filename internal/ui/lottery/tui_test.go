@@ -6,6 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -467,6 +468,19 @@ func TestHandleCreate_ZeroCountRejected(t *testing.T) {
 	app.countInput.SetValue("0")
 	app.handleCreate()
 	assert.NotEmpty(t, app.err)
+	assert.NotEqual(t, "result", app.view)
+}
+
+// A cleared/garbage winners field must be a visible error, not a silent
+// 3-winner draw (TASK-165, ISS-158).
+func TestHandleCreate_InvalidCountRejected(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A,B,C")
+	app.seedInput.SetValue("seed")
+	app.countInput.SetValue("")
+	app.handleCreate()
+	assert.Equal(t, i18n.GetText("lottery.tui.winners_invalid"), app.err)
 	assert.NotEqual(t, "result", app.view)
 }
 
