@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.89 web + TUI detail-polish sweep (web Create Token owner fix, web/TUI shared-context advances, AGENTS.md flag fixes + JS syntax gate, TUI q-key typability + decimals + NFT key-length + cursor bounds)
+**Current focus:** v1.90 correctness + ergonomics sweep (web X-API-Key restored on all writes with a Node-exec regression gate, two-sided token transfer history + History 400, TUI j/k/? typable in every form, voting GetSession 404→500 split, migrate hardened DSN, block timestamp reload, oracle poller keep-rows, strict decodeJSON, NFT list-by-owner wired, i18n leak sweep, dead oracle data view removed, zero-candidate session guard)
 
 ## Current Position
 

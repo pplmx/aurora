@@ -4,8 +4,67 @@ All notable changes to this project will be documented in this file.
 
 The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STATE.md`
 (release `Version` is injected at build time via `-ldflags -X cmd.Version=`). The
-entries below summarise v1.64–v1.88; earlier v1.x milestones (v1.0–v1.63) are
+entries below summarise v1.64–v1.89; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
+
+## [v1.90] - 2026-08-30
+
+### Fixed
+
+- **Every web write was authenticating with a dropped API key**: the round-97
+  `apiFetch` refactor merged caller `headers` over the defaults with
+  `Object.assign({headers: auroraHeaders()}, options)`, so any call that passed
+  its own `Content-Type` **replaced** the whole headers object and silently
+  dropped `X-API-Key` — every POST/PATCH returned 401 while reads kept working,
+  leaving the UI looking alive but write-dead (verified live). `apiFetch` now
+  merges the caller's headers on top of the key. A regression test **executes
+  the shipped app.js in Node** against a captured fetch init (the `node
+  --check` gate only parses, which is exactly why this slipped through several
+  rounds).
+- **Token history showed only transfers an account sent**: the reader paged
+  `$.from == owner` and never surfaced transfers where the account was the
+  recipient. Added a two-sided payload-pagination primitive
+  (`GetByAggregateAndTypePayloadEither`), so received mints/transfers appear
+  next to sent ones with correct paging. `/token/history` also now rejects
+  missing/empty `token_id`/`owner` with 400, matching its sibling endpoints
+  instead of silently returning `200 []`.
+- **TUI forms still swallowed `j`/`k` and `?`** after the `q` fix: lottery
+  could not type them at all, token/nft ate them positionally, and oracle moved
+  focus AND typed the letter into the wrong field (a URL containing `k`
+  corrupted a neighbour input); `?` always opened help, making query-string
+  source URLs untypeable. `j`/`k`/`?` are now typable in every form; `↑`/`↓`
+  and Tab are the form-navigation keys, and the menu/read-only bindings are
+  unchanged.
+- **Voting session start/end/Getsession**: real repository failures were
+  flattened into `404 not found`, disguising an outage as a missing resource.
+  Now routed through a `GetSessionUseCase`: missing session → 404
+  `SESSION_NOT_FOUND`, genuine DB fault → generic 500 (session lifecycle
+  transitions unchanged — DEC-004).
+- **`aurora migrate` opened SQLite un-hardened** (no `_busy_timeout`/`_txlock`),
+  so a migrate run against a DB another process held the write lock failed
+  instantly with "database is locked". It now uses the same hardened DSN as
+  every repository (`sqlite.DSN`, single source of truth).
+- **Blocks reloaded from disk lost their timestamps**: the reload SELECT never
+  scanned the persisted `timestamp`, so every in-memory block was `Timestamp==0`
+  after restart (hash/VerifyIntegrity unaffected — PoW excludes timestamp).
+- **Voting results could under-count silently**: `GetResults` did `continue`
+  on ANY candidate-read error, treating a real DB failure as a deleted
+  candidate (0 votes). Only `sqlite.ErrNotFound` counts as 0 now; genuine
+  failures abort the report.
+- **Oracle pollers wiped live tables** on a transient poll failure, violating
+  the keep-existing-data invariant the dashboard honours; they now leave prior
+  rows in place and let the shared API-error banner report the failure.
+- **decodeJSON accepted trailing garbage** after the first JSON value
+  (`{"a":1}{"b":2}` or `{...}non-json` passed as well-formed); it now requires
+  the stream to end cleanly with `io.EOF`.
+- **NFT TUI "List by Owner" was dead code**: the model, loader and viewport
+  existed but the menu never reached the list view. The 5th menu item now opens
+  an owner prompt feeding the scrollable list, mirroring the CLI/web surface.
+- **i18n English leaks**: oracle/nft TUI labels and several CLI one-liners
+  (token limit/offset flags, lottery "no records"/db-info, oracle "no data")
+  stayed English in zh sessions; routed through the tables (both locales).
+- **Dead oracle `data` view removed**; the voting web **Create Session** form
+  now disables submit until ≥1 candidate is checked (was client-unvalidated 400).
 
 ## [v1.89] - 2026-08-29
 
