@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 110,
+  "round": 111,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T05:50:43+00:00",
+  "updated_at": "2026-08-29T06:47:39+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6777,6 +6777,78 @@
       "updated_at": "2026-08-29T05:48:31+00:00",
       "touched_round": 109,
       "commit": "b080257"
+    },
+    "ISS-152": {
+      "id": "ISS-152",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T06:22:04+00:00",
+      "updated_at": "2026-08-29T06:47:39+00:00",
+      "touched_round": 110,
+      "title": "AGENTS.md CLI examples drifted from real flags after TASK-146's unified -y/--confirm + TASK-152 selector-flag spellings: 'nft get --id <nft_id>' documents a --id flag that does not exist (real: --nft, TASK-152), and 'voting session start -i <session-id>' / 'session end -i' document -i (real: --session/-s). README.md uses the correct spellings, so AGENTS.md is the stale surface an operator following it would hit a required-flag error on.",
+      "severity": 0.5,
+      "confidence": 1.0
+    },
+    "ISS-153": {
+      "id": "ISS-153",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-29T06:22:04+00:00",
+      "updated_at": "2026-08-29T06:47:39+00:00",
+      "touched_round": 110,
+      "title": "No JS syntax verification anywhere in CI or justfile: web/js/app.js is only guarded by substring/endpoint-string tests (webcontract_test.go, webserve_test.go) that cannot detect a JS syntax error, which would break all 7 web pages at runtime while go test stays green. node --check web/js/*.js + the HTML-inline scripts is the correct guard; CI ubuntu-latest ships Node.",
+      "severity": 0.55,
+      "confidence": 1.0
+    },
+    "TASK-159": {
+      "id": "TASK-159",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T06:23:20+00:00",
+      "updated_at": "2026-08-29T06:47:39+00:00",
+      "touched_round": 110,
+      "category": "docs",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Fix AGENTS.md CLI flag drift: nft get --id -> --nft, voting session start/end -i -> --session/-s (real spellings per TASK-146/152). README.md already correct; a single-line-per-command sync."
+    },
+    "TASK-160": {
+      "id": "TASK-160",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-29T06:23:20+00:00",
+      "updated_at": "2026-08-29T06:47:39+00:00",
+      "touched_round": 110,
+      "category": "test-quality",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 2,
+      "title": "Add a JS syntax gate for web/js/app.js in the Go test suite + CI: node --check on the shipped app.js (skip cleanly when node is absent so offline Go-only devs don't fail) so a syntax regression cannot go green; wire it into webserve_test.go or a dedicated test so go test ./... enforces it."
+    },
+    "CHG-153": {
+      "id": "CHG-153",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T06:47:38+00:00",
+      "updated_at": "2026-08-29T06:47:38+00:00",
+      "touched_round": 110,
+      "commit": "a8b7271"
+    },
+    "CHG-154": {
+      "id": "CHG-154",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T06:47:38+00:00",
+      "updated_at": "2026-08-29T06:47:38+00:00",
+      "touched_round": 110,
+      "commit": "a8b7271"
     }
   },
   "edges": [
@@ -10661,6 +10733,42 @@
       "to": "ISS-151",
       "type": "resolves",
       "created_at": "2026-08-29T05:48:32+00:00"
+    },
+    {
+      "from": "TASK-159",
+      "to": "ISS-152",
+      "type": "addresses",
+      "created_at": "2026-08-29T06:24:08+00:00"
+    },
+    {
+      "from": "TASK-160",
+      "to": "ISS-153",
+      "type": "addresses",
+      "created_at": "2026-08-29T06:24:08+00:00"
+    },
+    {
+      "from": "CHG-153",
+      "to": "TASK-159",
+      "type": "implements",
+      "created_at": "2026-08-29T06:47:38+00:00"
+    },
+    {
+      "from": "CHG-154",
+      "to": "TASK-160",
+      "type": "implements",
+      "created_at": "2026-08-29T06:47:38+00:00"
+    },
+    {
+      "from": "CHG-153",
+      "to": "ISS-152",
+      "type": "resolves",
+      "created_at": "2026-08-29T06:47:38+00:00"
+    },
+    {
+      "from": "CHG-154",
+      "to": "ISS-153",
+      "type": "resolves",
+      "created_at": "2026-08-29T06:47:38+00:00"
     }
   ]
 }
