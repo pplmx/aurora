@@ -568,7 +568,7 @@ function votingApp() {
 
 function tokenApp() {
     return {
-        name: '', symbol: '', supply: '', createResult: '',
+        name: '', symbol: '', supply: '', createOwner: '', createResult: '',
         tokenId: '', owner: '', balance: '',
         mintTo: '', mintAmount: '', mintPriv: '', mintResult: '',
         xFrom: '', xTo: '', xAmount: '', xPriv: '', xResult: '',
@@ -597,7 +597,11 @@ function tokenApp() {
                         total_supply: this.supply,
                         // The API requires a valid owner public key; without it
                         // every create 400s with PUBLIC_KEY_REQUIRED (ISS-147).
-                        owner: this.owner
+                        // The key comes from the create form's own createOwner
+                        // field — never the shared inspection owner — so a key
+                        // typed for a create cannot leak into Balance/History
+                        // context (isolation like TASK-149).
+                        owner: this.createOwner
                     })
                 });
                 const data = await res.json();
@@ -606,7 +610,9 @@ function tokenApp() {
                 // created token (mirrors the NFT mint context advance, TASK-150):
                 // the Balance/Info/Mint/Transfer/Approve/Allowance/Burn/History
                 // forms all key off these two, so the next step needs no manual
-                // copy from the JSON result block (ISS-148).
+                // copy from the JSON result block (ISS-148). Advancing is
+                // deliberate: the created token's owner is now the context the
+                // operator wants to inspect.
                 if (data && data.id) this.tokenId = data.id;
                 if (data && data.owner) this.owner = data.owner;
             } catch (e) {
@@ -636,7 +642,16 @@ function tokenApp() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token_id: this.tokenId, to: this.mintTo, amount: this.mintAmount, private_key: this.mintPriv })
                 });
-                this.mintResult = JSON.stringify(await res.json(), null, 2);
+                const data = await res.json();
+                this.mintResult = JSON.stringify(data, null, 2);
+                // A successful mint credits the recipient; advance the shared
+                // owner + tokenId to that context so the auto-refreshed balance
+                // below queries the freshly credited account instead of the
+                // (possibly blank) shared owner — which previously surfaced a
+                // confusing "token_id and owner required" error right after a
+                // success (ISS-150, mirrors TASK-150).
+                if (data && data.to) this.owner = data.to;
+                if (data && data.token_id) this.tokenId = data.token_id;
                 await this.getBalance();
             } catch (e) {
                 this.mintResult = 'Error: ' + e.message;
@@ -776,6 +791,15 @@ function oracleApp() {
                 const data = await res.json();
                 this.addResult = 'Source "' + data.name + '" added (id: ' + data.id + ')';
                 this.addName = ''; this.addUrl = ''; this.addType = ''; this.addMethod = ''; this.addPath = '';
+                // Advance the shared Fetch/Query/Latest source ids to the fresh
+                // source (mirrors TASK-150): a newly added source's natural next
+                // step is fetching/querying it, and that needed a manual id copy
+                // from the result line before (ISS-151).
+                if (data && data.id) {
+                    this.fetchSource = data.id;
+                    this.querySource = data.id;
+                    this.latestSource = data.id;
+                }
                 await this.listSources();
             } catch (e) {
                 this.addResult = 'Error: ' + e.message;
