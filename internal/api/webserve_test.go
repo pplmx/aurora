@@ -227,3 +227,63 @@ func TestWebUIJS_SyntaxValid(t *testing.T) {
 	require.NoErrorf(t, err, "web/js/app.js is not valid JavaScript:\n%s", out)
 	require.NotContains(t, string(out), "SyntaxError", "web/js/app.js must contain no SyntaxError")
 }
+
+// TestWebUIJS_ApiFetchKeepsAuthHeader executes the SHIPPED web/js/app.js in
+// Node with stubbed window/document/fetch and asserts apiFetch always sends
+// X-API-Key — even when a call site supplies its own headers (Content-Type
+// for JSON bodies). The round-97 apiFetch refactor routed call sites as
+// apiFetch(url, {method, headers: {Content-Type}, body}) while apiFetch
+// merged defaults with Object.assign({headers: auroraHeaders()}, options):
+// the caller's headers key REPLACED the whole headers object, dropping
+// X-API-Key and silently turning every web write into a 401 (ISS-160,
+// verified live: token/lottery/nft/voting/oracle POSTs all rejected). Reads
+// (no options.headers) and DELETEs kept the key, so the UI looked alive but
+// was write-dead. The syntax gate above only parses — it never executes a
+// fetch — which is exactly why this regression went uncaught for several
+// rounds. This test runs real app.js code against a captured fetch init, so
+// a future header-merge regression fails go test here. Skips cleanly without
+// node, mirroring TestWebUIJS_SyntaxValid.
+func TestWebUIJS_ApiFetchKeepsAuthHeader(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js header-merge check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	// Stub the browser globals app.js needs at load time, capture every fetch
+	// init the program would send, then assert the key survives each call shape.
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+let captured = null;
+global.fetch = (url, init) => { captured = { url: String(url), init }; return Promise.resolve({ ok: true }); };
+
+const fs = require('fs');
+// Indirect eval evaluates in the global scope, so app.js's top-level function
+// declarations (apiFetch, auroraHeaders, ...) become reachable globals.
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  const rows = [];
+  const grab = async (label, opts) => {
+    await global.apiFetch('/api/v1/x', opts);
+    const h = (captured && captured.init && captured.init.headers) || {};
+    rows.push([label, h['X-API-Key'] || '', h['Content-Type'] || '']);
+  };
+  await grab('post-json', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  await grab('post-bare', { method: 'POST', body: '{}' });
+  await grab('get', undefined);
+  await grab('delete', { method: 'DELETE' });
+  console.log(JSON.stringify(rows));
+  for (const [, key] of rows) { if (key !== 'testkey') process.exit(1); }
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "apiFetch_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js apiFetch dropped X-API-Key on a call site:\n%s", out)
+	require.Contains(t, string(out), `["post-json","testkey","application/json"]`,
+		"apiFetch must merge the API key with caller-supplied headers")
+}
