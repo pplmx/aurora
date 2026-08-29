@@ -896,6 +896,52 @@ func TestUpdate_QIsTypableInQueryForm(t *testing.T) {
 	assert.Equal(t, "query", app.view)
 }
 
+// TestUpdate_JKTypableInAddSourceForm pins the ISS-164 oracle hazard: letters
+// j/k previously moved form focus AND typed the letter into the newly-focused
+// field (typing a source URL that contains 'k' corrupted a neighbour field).
+// They must now be typed into the focused input with focus unmoved.
+func TestUpdate_JKTypableInAddSourceForm(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 1 // URL field
+	app.updateInputFocus()
+	app.sourceInputURL.SetValue("")
+
+	app.Update(keyPress("j"))
+	app.Update(keyPress("k"))
+	assert.Equal(t, "jk", app.sourceInputURL.Value())
+	assert.Equal(t, 1, app.inputFocus, "j/k must not move form focus (turns on the wrong field)")
+}
+
+// TestUpdate_QuestionMarkTypableInAddSourceForm: "?" is a typable character in
+// the source URL field (query strings like .../data?format=json), not an
+// unconditional help toggle.
+func TestUpdate_QuestionMarkTypableInAddSourceForm(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 1
+	app.updateInputFocus()
+	app.sourceInputURL.SetValue("https://api.example.com/data")
+
+	app.Update(keyPress("?"))
+	assert.Equal(t, "https://api.example.com/data?", app.sourceInputURL.Value())
+	assert.False(t, app.showHelp, "? in a form must not open help (ISS-164)")
+}
+
+// TestUpdate_ArrowsMoveFocusButDoNotTypeInAddSourceForm: arrow keys move
+// focus without inserting anything into the textinput.
+func TestUpdate_ArrowsMoveFocusButDoNotTypeInAddSourceForm(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 1
+	app.updateInputFocus()
+	app.sourceInputURL.SetValue("x")
+
+	app.Update(keyPress("down"))
+	assert.Equal(t, 2, app.inputFocus, "↓ must move focus")
+	assert.Equal(t, "x", app.sourceInputURL.Value(), "arrow keys must not type into the input")
+}
+
 func TestUpdate_EscClearsMessages(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "sources"

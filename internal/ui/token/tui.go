@@ -242,10 +242,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "?":
-			m.showHelp = true
-			return m, nil
+			// scoped to non-form views: in form views "?" is a typable
+			// character (names, symbols, addresses), mirroring the q
+			// fall-through convention (TASK-161, ISS-154; ISS-164).
+			if !m.isFormView() {
+				m.showHelp = true
+				return m, nil
+			}
 
-		case "up", "k":
+		case "up":
 			if m.view == "menu" {
 				if m.menuIndex > 0 {
 					m.menuIndex--
@@ -255,8 +260,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.updateInputFocus()
 				return m, nil
 			}
+		case "k":
+			// A typable letter in form views (falls through to
+			// forwardToActiveInput below); arrow keys and Tab are the
+			// form-navigation keys, while the menu still navigates on the
+			// bare letter (ISS-164).
+			if m.view == "menu" && m.menuIndex > 0 {
+				m.menuIndex--
+			}
 
-		case "down", "j":
+		case "down":
 			if m.view == "menu" {
 				if m.menuIndex < 4 {
 					m.menuIndex++
@@ -265,6 +278,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.inputFocus++
 				m.updateInputFocus()
 				return m, nil
+			}
+		case "j":
+			if m.view == "menu" && m.menuIndex < 4 {
+				m.menuIndex++
 			}
 
 		case "tab":

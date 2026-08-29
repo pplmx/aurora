@@ -102,8 +102,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "?":
-			m.showHelp = true
-			return m, nil
+			// scoped to non-form views: in the create form "?" is a typable
+			// character (seeds like "a?b", names with "?"), mirroring the
+			// q/esc fall-through convention (TASK-161, ISS-154; ISS-164).
+			if m.view != "create" {
+				m.showHelp = true
+				return m, nil
+			}
+			// create form: fall through to the focused textinput below.
 
 		case "enter":
 			switch m.view {
@@ -133,7 +139,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.view == "menu" {
 				m.menuIndex = int(msg.String()[0] - '1')
 			}
-		case "up", "k":
+		case "up":
 			if m.view == "create" {
 				if m.inputFocus > 0 {
 					m.inputFocus--
@@ -144,7 +150,17 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.view == "menu" && m.menuIndex > 0 {
 				m.menuIndex--
 			}
-		case "down", "j":
+		case "k":
+			// In the create form "k" is a typable letter (participants like
+			// "Jack", seeds with 'k') and must fall through to the focused
+			// textinput below — arrow keys and Tab are the form-navigation
+			// keys. In read-only views the viewport (history) handles "k" as
+			// scroll-up; only the menu treats the bare letter as navigation
+			// (TASK-161 convention extended to j/k, ISS-164).
+			if m.view == "menu" && m.menuIndex > 0 {
+				m.menuIndex--
+			}
+		case "down":
 			if m.view == "create" {
 				if m.inputFocus < 2 {
 					m.inputFocus++
@@ -152,6 +168,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			}
+			if m.view == "menu" && m.menuIndex < 2 {
+				m.menuIndex++
+			}
+		case "j":
 			if m.view == "menu" && m.menuIndex < 2 {
 				m.menuIndex++
 			}

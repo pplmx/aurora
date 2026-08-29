@@ -144,10 +144,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "?":
-			m.showHelp = true
-			return m, nil
+			// scoped to non-form views: in the mint form "?" is a typable
+			// character (descriptions with "?"), mirroring the q
+			// fall-through convention (TASK-161, ISS-154; ISS-164).
+			if !m.isFormView() {
+				m.showHelp = true
+				return m, nil
+			}
 
-		case "up", "k":
+		case "up":
 			if m.view == "menu" {
 				if m.menuIndex > 0 {
 					m.menuIndex--
@@ -157,8 +162,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.updateInputFocus()
 				return m, nil
 			}
+		case "k":
+			// A typable letter in the mint form (falls through below);
+			// arrow keys and Tab are the form-navigation keys, the menu
+			// still navigates on the bare letter (ISS-164).
+			if m.view == "menu" && m.menuIndex > 0 {
+				m.menuIndex--
+			}
 
-		case "down", "j":
+		case "down":
 			if m.view == "menu" {
 				if m.menuIndex < 3 {
 					m.menuIndex++
@@ -167,6 +179,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.inputFocus++
 				m.updateInputFocus()
 				return m, nil
+			}
+		case "j":
+			if m.view == "menu" && m.menuIndex < 3 {
+				m.menuIndex++
 			}
 
 		case "tab":
