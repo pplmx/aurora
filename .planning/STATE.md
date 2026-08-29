@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.88 web error-surfacing + interactivity polish (apiFetch banner consistency, dashboard/oracle poll-flicker fixes, burn-amount isolation, NFT mint context advance, dead res.ok removal)
+**Current focus:** v1.89 web + TUI detail-polish sweep (web Create Token owner fix, web/TUI shared-context advances, AGENTS.md flag fixes + JS syntax gate, TUI q-key typability + decimals + NFT key-length + cursor bounds)
 
 ## Current Position
 
@@ -215,11 +215,35 @@ Rounds 107-108 (2026-08-29, this session, v1.88) — web error-surfacing +
     the stats grid or clears Recent Activity each poll; loaders overwrite
     their own card and the activity list swaps in atomically. Milestone doc
     v1.88-ROADMAP.md added; RIL graph at round 108 (539 nodes).
+Rounds 109-113 (2026-08-29, this session, v1.89) — continued the detail-
+  polish directive. The web Create Token bug was real and user-breaking;
+  the TUI q-key defect made the letter q untypeable in every form.
+  Round 109 (09a4216): token create sent {name,symbol,total_supply} with no
+  owner, so EVERY web create 400'd PUBLIC_KEY_REQUIRED (the CLI generates a
+  keypair; the web form had no field at all). Added a required Owner (public
+  key) input mirroring NFT mint's Creator field, and advanced shared context
+  after token/voting/lottery creates (TASK-155/156, ISS-147/148, CHG-149/
+  150). Round 110 (b080257): token mint's auto getBalance() ran against the
+  shared owner (blank unless the Balance section was used), surfacing a
+  confusing error right after a successful mint — now advances owner=to +
+  token_id before the refresh; the create form's owner got its own createOwner
+  field so a create key never leaks into the Balance/History context (TASK-
+  157/158, ISS-150/151, CHG-151/152). Round 111 (a8b7271): AGENTS.md
+  documented flags that don't exist (nft get --id, voting session start -i)
+  — synced to real spellings; added TestWebUIJS_SyntaxValid (node --check,
+  skip without node) so a broken web/js/app.js can no longer pass green
+  (TASK-159/160, ISS-152/153, CHG-153/154). Rounds 112-113 swept the TUI
+  surfaces with a fresh audit: q is now typable in every form (was consumed
+  as quit before the textinput), ctrl+c is the hard quit, the token TUI
+  honors --decimals (validated but never assigned -> every create was 8
+  decimals), NFT mint rejects wrong-length owner keys + transfer success
+  refreshes the result NFT (was "Not found"), oracle sources cursor bound
+  (down-key off-by-one lost it on empty lists), lottery count parse failure
+  is a visible error not a silent 3, and [T]/[D] hotkeys accept uppercase
+  (TASK-161..166, ISS-154..159, CHG-155..160). RIL graph at round 113
+  (589 nodes).
 Next: the deferred ISS-084 phantom on-chain blocks on rolled-back
   transactions remains parked per DEC-002 (cross-DB atomicity redesign; token
   event trail is already post-commit; reconfirmed by EV-044); NFT zero-key
   transfer is a product-semantics question parked for operator intent
-  (DEC-005). Candidate next dimensions: TUI edge-case auditing, a fresh API
-  contract sweep, or another web pass (e.g. token page shared-context fields,
-  lottery/nft interactivity). Use `ril.py tasks --top 10` to load any
-  converted backlog.
+  (DEC-005). Use `ril.py tasks --top 10` to load any converted backlog.
