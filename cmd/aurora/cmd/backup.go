@@ -88,7 +88,10 @@ var backupRestoreCmd = &cobra.Command{
 }
 
 func init() {
-	backupRestoreCmd.Flags().Bool("confirm", false, i18n.GetText("backup.confirm_flag"))
+	// -y shorthand matches the canonical addConfirmFlag gate used by token burn,
+	// nft burn, migrate down and oracle source delete, so a script standardizing
+	// on -y/--confirm works here too (TASK-152, ISS-140).
+	backupRestoreCmd.Flags().BoolP("confirm", "y", false, i18n.GetText("backup.confirm_flag"))
 	rootCmd.AddCommand(backupCmd)
 	backupCmd.AddCommand(backupCreateCmd)
 	backupCmd.AddCommand(backupVerifyCmd)

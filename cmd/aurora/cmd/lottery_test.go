@@ -460,6 +460,20 @@ func TestLotteryReset_WithYes(t *testing.T) {
 	})
 }
 
+func TestLotteryReset_WithConfirmFlag(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		_, err := runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "reset-seed-c", "--count", "1")
+		require.NoError(t, err)
+
+		// The canonical destructive gate spelling (--confirm) must work here
+		// too, alongside the legacy --yes (TASK-152).
+		out, err := runCmd(t, "lottery", "reset", "--confirm")
+		require.NoError(t, err)
+		assert.Contains(t, out, "reset complete")
+	})
+}
+
 func TestLotteryReset_OnFreshDB(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		// A brand-new DB has no lottery_records table yet; reset must

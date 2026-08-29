@@ -459,13 +459,15 @@ var resetCmd = &cobra.Command{
 	Use:   "reset",
 	Short: i18n.GetText("lottery.reset"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		confirm, _ := cmd.Flags().GetBool("yes")
-		if !confirm {
+		yes, _ := cmd.Flags().GetBool("yes")
+		confirm, _ := cmd.Flags().GetBool("confirm")
+		if !yes && !confirm {
 			// The destructive reset did NOT run — surface that as an error
 			// (non-zero exit) instead of printing a warning and exiting 0,
 			// matching backup restore --confirm (TASK-100, ISS-092). A
-			// script that forgot --yes must be able to detect the refusal.
-			return fmt.Errorf("this will delete ALL lottery records; use --yes to confirm")
+			// script that forgot the gate must be able to detect the refusal.
+			// --yes (legacy) and --confirm both count (TASK-152, ISS-140).
+			return fmt.Errorf("this will delete ALL lottery records; pass --yes/--confirm to proceed")
 		}
 
 		db, err := blockchain.InitDB()
@@ -525,7 +527,18 @@ var dbInfoCmd = &cobra.Command{
 		defer func() { _ = db.Close() }()
 
 		var count int
-		_ = db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height > 0").Scan(&count)
+		err = db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height > 0").Scan(&count)
+		switch {
+		case err == nil:
+			// ok
+		case isNoSuchTable(err):
+			// A brand-new DB has no blocks table yet; report 0 truthfully
+			// instead of surfacing a "no such table" failure (TASK-154,
+			// mirroring lottery reset's tolerance).
+			count = 0
+		default:
+			return fmt.Errorf("failed to count blocks: %w", err)
+		}
 
 		fmt.Println("\n📁 Database Info")
 		fmt.Println("────────────────────────────")
@@ -555,6 +568,10 @@ func init() {
 	createCmd.Flags().IntP("count", "c", 3, i18n.GetText("lottery.count"))
 
 	resetCmd.Flags().BoolP("yes", "y", false, i18n.GetText("lottery.yes"))
+	// --confirm without a shorthand: the -y shorthand is already taken by
+	// --yes, but the canonical destructive gate must also work here so all six
+	// destructive commands accept --confirm (TASK-152, ISS-140).
+	resetCmd.Flags().Bool("confirm", false, i18n.GetText("backup.confirm_flag"))
 
 	_ = createCmd.MarkFlagRequired("participants")
 	_ = createCmd.MarkFlagRequired("seed")

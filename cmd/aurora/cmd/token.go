@@ -138,13 +138,15 @@ func init() {
 	tokenTransferFromCmd.Flags().String("to", "", i18n.GetText("token.to"))
 	tokenTransferFromCmd.Flags().StringP("amount", "a", "", i18n.GetText("token.amount"))
 	tokenTransferFromCmd.Flags().StringP("spender", "s", "", i18n.GetText("token.spender"))
-	tokenTransferFromCmd.Flags().StringP("spender-key", "k", "", i18n.GetText("token.private_key"))
+	// --private-key (not --spender-key) so the Base64 signer secret is named
+	// like every other signing command (TASK-152, ISS-141).
+	tokenTransferFromCmd.Flags().StringP("private-key", "k", "", i18n.GetText("token.private_key"))
 	_ = tokenTransferFromCmd.MarkFlagRequired("token")
 	_ = tokenTransferFromCmd.MarkFlagRequired("owner")
 	_ = tokenTransferFromCmd.MarkFlagRequired("to")
 	_ = tokenTransferFromCmd.MarkFlagRequired("amount")
 	_ = tokenTransferFromCmd.MarkFlagRequired("spender")
-	_ = tokenTransferFromCmd.MarkFlagRequired("spender-key")
+	_ = tokenTransferFromCmd.MarkFlagRequired("private-key")
 
 	tokenBurnCmd.Flags().StringP("token", "t", "", i18n.GetText("token.token_id"))
 	tokenBurnCmd.Flags().StringP("from", "f", "", i18n.GetText("token.from"))
@@ -362,7 +364,7 @@ var tokenTransferFromCmd = &cobra.Command{
 		to, _ := cmd.Flags().GetString("to")
 		amount, _ := cmd.Flags().GetString("amount")
 		spender, _ := cmd.Flags().GetString("spender")
-		spenderKey, _ := cmd.Flags().GetString("spender-key")
+		privateKey, _ := cmd.Flags().GetString("private-key")
 
 		req := &tokent.TransferFromRequest{
 			TokenID:    tokenID,
@@ -370,7 +372,7 @@ var tokenTransferFromCmd = &cobra.Command{
 			To:         to,
 			Amount:     amount,
 			Spender:    spender,
-			SpenderKey: spenderKey,
+			SpenderKey: privateKey,
 		}
 
 		resp, err := uc.Execute(req)
