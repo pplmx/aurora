@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
@@ -172,12 +173,23 @@ func writeBadRequest(w http.ResponseWriter, message string) {
 // middleware's http.MaxBytesReader surfaces as 413 (not the generic 400),
 // since "too large" is a distinct, actionable client error (v1.71, ISS-077).
 func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
-	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+	dec := json.NewDecoder(r.Body)
+	if err := dec.Decode(v); err != nil {
 		var mbe *http.MaxBytesError
 		if errors.As(err, &mbe) {
 			writeError(w, "request body too large", "BODY_TOO_LARGE", http.StatusRequestEntityTooLarge)
 			return false
 		}
+		writeBadRequest(w, "invalid request")
+		return false
+	}
+	// Reject anything after the first JSON value. Decode reads exactly one
+	// value and silently ignores trailing data, so a body like
+	// `{"a":1}{"b":2}` or `{...}non-json` previously sailed through as
+	// well-formed (ISS-171). The io.EOF sentinel means the stream ended
+	// cleanly after the value; a successful second decode (there was a second
+	// value) or any other error (garbage) is malformed.
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
 		writeBadRequest(w, "invalid request")
 		return false
 	}
