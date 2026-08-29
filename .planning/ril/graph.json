@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 108,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T01:58:58+00:00",
+  "updated_at": "2026-08-29T02:18:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -6470,10 +6470,10 @@
     "TASK-152": {
       "id": "TASK-152",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 3,
       "created_at": "2026-08-29T01:57:47+00:00",
-      "updated_at": "2026-08-29T01:58:58+00:00",
+      "updated_at": "2026-08-29T02:18:46+00:00",
       "touched_round": 108,
       "title": "CLI flag consistency sweep (live-verified): (1) destructive-confirm gates split three ways — backup restore has --confirm with no -y shorthand, lottery reset has -y/--yes with no --confirm, other four use -y/--confirm via addConfirmFlag; unify all six to accept --confirm and -y. (2) token transfer-from names its signer secret flag --spender-key while every sibling uses --private-key. (3) nft get uses --id while transfer/burn/history use --nft for the same NFT selector. (4) voting session start/end use --id/-i while vote/results use --session/-s for the same session id. README documents and partly misdocuments all of this (nft burn listed as --id though code is --nft)",
       "category": "dx",
@@ -6486,10 +6486,10 @@
     "TASK-153": {
       "id": "TASK-153",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 3,
       "created_at": "2026-08-29T01:57:47+00:00",
-      "updated_at": "2026-08-29T01:58:58+00:00",
+      "updated_at": "2026-08-29T02:18:46+00:00",
       "touched_round": 108,
       "title": "CLI voting vote is missing MarkFlagRequired(\"session\") (its sibling voting results does it): an omitted --session assembles every other flag then fails late with a misleading \"session not found\" (empty id hits WHERE id=\") instead of a fail-fast missing-required-flag error",
       "category": "dx",
@@ -6502,10 +6502,10 @@
     "TASK-154": {
       "id": "TASK-154",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 3,
       "created_at": "2026-08-29T01:57:47+00:00",
-      "updated_at": "2026-08-29T01:58:58+00:00",
+      "updated_at": "2026-08-29T02:18:46+00:00",
       "touched_round": 108,
       "title": "Report-the-truth nits in the CLI: voting results silently continue past candidate-lookup errors (both real DB faults and stale-roster ErrNotFound) and still exits 0 with a partial table, instead of surfacing the error or showing the missing cid with 0 votes; lottery db-info ignores the blocks COUNT query error and prints \"Total blocks: 0\" even when the blocks table is absent, contradicting its own isNoSuchTable tolerance used by lottery reset",
       "category": "correctness",
@@ -6518,72 +6518,105 @@
     "ISS-140": {
       "id": "ISS-140",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T01:58:22+00:00",
-      "updated_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T02:18:46+00:00",
       "touched_round": 108,
       "title": "Destructive-confirm flag split: backup restore accepts --confirm but rejects -y; lottery reset accepts -y/--yes but rejects --confirm; the other four destructive commands accept both via addConfirmFlag, so a script standardizing on either spelling breaks on one command"
     },
     "ISS-141": {
       "id": "ISS-141",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T01:58:22+00:00",
-      "updated_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T02:18:46+00:00",
       "touched_round": 108,
       "title": "token transfer-from names the signer secret flag --spender-key while every sibling signing command (mint/transfer/approve/burn) uses --private-key; same semantic (Base64 signer key), different name, and the -k shorthand means different things under other token commands"
     },
     "ISS-142": {
       "id": "ISS-142",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T01:58:22+00:00",
-      "updated_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T02:18:46+00:00",
       "touched_round": 108,
       "title": "nft get selects the NFT with --id/-i while nft transfer/burn/history use --nft/-i; the same entity selector has two long names and the -i shorthand means the NFT in four commands but --image in nft mint"
     },
     "ISS-143": {
       "id": "ISS-143",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T01:58:22+00:00",
-      "updated_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T02:18:46+00:00",
       "touched_round": 108,
       "title": "voting session start/end select the session with --id/-i but voting vote/results use --session/-s; an operator who learns the session flag on one command cannot transfer it to the others"
     },
     "ISS-144": {
       "id": "ISS-144",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T01:58:22+00:00",
-      "updated_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T02:18:46+00:00",
       "touched_round": 108,
       "title": "voting vote omits MarkFlagRequired(session); an omitted --session fails late with misleading session-not-found instead of a fail-fast required-flag error (sibling voting results marks it required)"
     },
     "ISS-145": {
       "id": "ISS-145",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T01:58:22+00:00",
-      "updated_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T02:18:47+00:00",
       "touched_round": 108,
       "title": "voting results swallows per-candidate GetCandidate errors with continue — both real DB faults and stale-roster ErrNotFound — so the rendered table can be silently partial/wrong and the command still exits 0; missing candidates should show as 0 votes and real errors should surface"
     },
     "ISS-146": {
       "id": "ISS-146",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T01:58:22+00:00",
-      "updated_at": "2026-08-29T01:58:22+00:00",
+      "updated_at": "2026-08-29T02:18:47+00:00",
       "touched_round": 108,
       "title": "lottery db-info ignores the SELECT COUNT(*) FROM blocks query+scan error and prints Total blocks: 0 even when the blocks table does not exist (fresh DB), contradicting the isNoSuchTable tolerance lottery reset applies"
+    },
+    "CHG-146": {
+      "id": "CHG-146",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T02:17:50+00:00",
+      "updated_at": "2026-08-29T02:17:50+00:00",
+      "touched_round": 108,
+      "commit": "480dc53",
+      "title": "CLI flag consistency: all six destructive ops accept -y/--confirm (backup restore -y added, lottery reset --confirm added), token transfer-from --spender-key renamed --private-key, nft get --id renamed --nft, voting session start/end --id renamed --session; fixes TASK-152"
+    },
+    "CHG-147": {
+      "id": "CHG-147",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T02:17:51+00:00",
+      "updated_at": "2026-08-29T02:17:51+00:00",
+      "touched_round": 108,
+      "commit": "480dc53",
+      "title": "CLI voting vote now marks --session required for a fail-fast required-flag error instead of a misleading late session-not-found; fixes TASK-153"
+    },
+    "CHG-148": {
+      "id": "CHG-148",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T02:17:51+00:00",
+      "updated_at": "2026-08-29T02:17:51+00:00",
+      "touched_round": 108,
+      "commit": "480dc53",
+      "title": "CLI report-the-truth: voting results shows stale-roster candidates at 0 and surfaces real lookup errors (exit != 0); lottery db-info surfaces the blocks COUNT error while tolerating a missing blocks table like lottery reset; fixes TASK-154"
     }
   },
   "edges": [
@@ -10318,6 +10351,66 @@
       "to": "COMP-cli",
       "type": "located_in",
       "created_at": "2026-08-29T01:58:58+00:00"
+    },
+    {
+      "from": "CHG-146",
+      "to": "TASK-152",
+      "type": "implements",
+      "created_at": "2026-08-29T02:18:45+00:00"
+    },
+    {
+      "from": "CHG-147",
+      "to": "TASK-153",
+      "type": "implements",
+      "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "CHG-148",
+      "to": "TASK-154",
+      "type": "implements",
+      "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "CHG-146",
+      "to": "ISS-140",
+      "type": "resolves",
+      "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "CHG-146",
+      "to": "ISS-141",
+      "type": "resolves",
+      "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "CHG-146",
+      "to": "ISS-142",
+      "type": "resolves",
+      "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "CHG-146",
+      "to": "ISS-143",
+      "type": "resolves",
+      "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "CHG-147",
+      "to": "ISS-144",
+      "type": "resolves",
+      "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "CHG-148",
+      "to": "ISS-145",
+      "type": "resolves",
+      "created_at": "2026-08-29T02:18:46+00:00"
+    },
+    {
+      "from": "CHG-148",
+      "to": "ISS-146",
+      "type": "resolves",
+      "created_at": "2026-08-29T02:18:46+00:00"
     }
   ]
 }
