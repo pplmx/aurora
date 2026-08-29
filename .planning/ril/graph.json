@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 106,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-28T19:21:00+00:00",
+  "updated_at": "2026-08-29T00:48:13+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 97,
+      "touched_round": 106,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -6224,6 +6224,104 @@
       "touched_round": 105,
       "commit": "9ad9e62",
       "title": "Add 10 missing i18n keys (en+zh) referenced by the oracle/NFT TUI; fixes TASK-145"
+    },
+    "TASK-146": {
+      "id": "TASK-146",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T00:43:26+00:00",
+      "updated_at": "2026-08-29T00:48:13+00:00",
+      "touched_round": 106,
+      "title": "Web error-surfacing consistency: blockchainApp.verify uses raw fetch+auroraHeaders instead of apiFetch so it bypasses the shared banner (TASK-124/TASK-141 contract); oracle query() empties the table silently on failure (no inline error line); setEnabled/deleteSource use blocking alert() dialogs outside the app inline-result pattern; votingApp still has six dead if(!res.ok) guards that can never fire because apiFetch throws",
+      "category": "dx",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 2,
+      "lock_owner": "session-2026-08-29-web-sweep",
+      "lock_until": "2026-08-29T01:33:13+00:00"
+    },
+    "TASK-147": {
+      "id": "TASK-147",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T00:43:37+00:00",
+      "updated_at": "2026-08-29T00:48:13+00:00",
+      "touched_round": 106,
+      "title": "Dashboard stat partial-failure isolation: dashboardApp.loadVoting awaits candidates+sessions in one Promise.all with a shared catch, so one endpoint failing (e.g. sessions 500) drops the sibling stats (candidates/votes) for that whole refresh; split into independent try/catch per endpoint",
+      "category": "correctness",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 1,
+      "lock_owner": "session-2026-08-29-web-sweep",
+      "lock_until": "2026-08-29T01:33:13+00:00"
+    },
+    "TASK-148": {
+      "id": "TASK-148",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-29T00:43:41+00:00",
+      "updated_at": "2026-08-29T00:48:13+00:00",
+      "touched_round": 106,
+      "title": "Oracle page 15s-poll flicker: listSources/loadHealth flip loading/loadingHealth=true on every background poll, so the Data Sources + Feed Health tables hide and flash \"Loading...\" every 15 seconds; gate the placeholders so existing data stays visible during a refresh",
+      "category": "dx",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 1,
+      "lock_owner": "session-2026-08-29-web-sweep",
+      "lock_until": "2026-08-29T01:33:13+00:00"
+    },
+    "ISS-132": {
+      "id": "ISS-132",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:45:20+00:00",
+      "updated_at": "2026-08-29T00:45:20+00:00",
+      "touched_round": 106,
+      "title": "Blockchain page is the only web surface not surfacing API failures through the shared banner: blockchainApp.verify uses raw fetch+auroraHeaders instead of apiFetch, so a down/unauthorized API shows only a small inline error with no red banner, diverging from the TASK-124/141 contract every other page follows"
+    },
+    "ISS-133": {
+      "id": "ISS-133",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:45:20+00:00",
+      "updated_at": "2026-08-29T00:45:20+00:00",
+      "touched_round": 106,
+      "title": "Oracle query() silently empties the results table on failure (no inline error line), the only web action without inline error feedback; setEnabled/deleteSource additionally use blocking alert() dialogs instead of the app inline-result pattern"
+    },
+    "ISS-134": {
+      "id": "ISS-134",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:45:20+00:00",
+      "updated_at": "2026-08-29T00:45:20+00:00",
+      "touched_round": 106,
+      "title": "votingApp registerVoter/registerCandidate/createSession/castVote/loadResults/sessionAction still carry if(!res.ok) guards that can never fire — apiFetch throws on non-2xx before they are reached, leaving dead code and a misleading error path"
+    },
+    "ISS-135": {
+      "id": "ISS-135",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:45:21+00:00",
+      "updated_at": "2026-08-29T00:45:21+00:00",
+      "touched_round": 106,
+      "title": "Dashboard stats degrade as a unit: loadVoting wraps candidates+sessions in a single Promise.all with one catch, so a transient failure on either endpoint blanks BOTH stats for the refresh instead of isolating the failure to its card"
+    },
+    "ISS-136": {
+      "id": "ISS-136",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-29T00:45:21+00:00",
+      "updated_at": "2026-08-29T00:45:21+00:00",
+      "touched_round": 106,
+      "title": "Oracle page flickers every 15s: background polls flip loading/loadingHealth to true, hiding the Data Sources + Feed Health tables and flashing Loading... placeholders to a viewer watching a live surface"
     }
   },
   "edges": [
@@ -9694,6 +9792,66 @@
       "to": "TASK-145",
       "type": "implements",
       "created_at": "2026-08-28T19:19:12+00:00"
+    },
+    {
+      "from": "TASK-146",
+      "to": "ISS-132",
+      "type": "addresses",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "TASK-146",
+      "to": "ISS-133",
+      "type": "addresses",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "TASK-146",
+      "to": "ISS-134",
+      "type": "addresses",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "TASK-147",
+      "to": "ISS-135",
+      "type": "addresses",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "TASK-148",
+      "to": "ISS-136",
+      "type": "addresses",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "ISS-132",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "ISS-133",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "ISS-134",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "ISS-135",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T00:45:39+00:00"
+    },
+    {
+      "from": "ISS-136",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-29T00:45:39+00:00"
     }
   ]
 }
