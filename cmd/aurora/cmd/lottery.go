@@ -118,7 +118,7 @@ var historyCmd = &cobra.Command{
 		}
 
 		if len(records) == 0 {
-			fmt.Println("No lottery records found.")
+			fmt.Println(i18n.GetText("lottery.no_records"))
 			return nil
 		}
 
@@ -518,7 +518,7 @@ func isNoSuchTable(err error) bool {
 
 var dbInfoCmd = &cobra.Command{
 	Use:   "db-info",
-	Short: "Show database information",
+	Short: i18n.GetText("lottery.db_info"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := blockchain.InitDB()
 		if err != nil {

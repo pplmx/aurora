@@ -273,6 +273,8 @@ func (tr *Translator) loadMessages() {
 		"token.spender":     "Spender public key",
 		"token.token_id":    "Token ID/Symbol",
 		"token.private_key": "Private key (Base64)",
+		"token.limit":       "Limit results",
+		"token.offset":      "Offset for pagination",
 
 		// Messages
 		"token.created":     "Token created successfully! ID: %s, Name: %s, Symbol: %s\n",
@@ -338,6 +340,7 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_deleted":  "Data source deleted!",
 		"oracle.fetched":         "Data fetched successfully!",
 		"oracle.no_sources":      "No data sources found",
+		"oracle.no_data":         "No data found",
 		"oracle.fetch_error":     "Failed to fetch data",
 
 		// TUI
@@ -378,6 +381,13 @@ func (tr *Translator) loadMessages() {
 		"oracle.tui.yes":             "Yes",
 		"oracle.tui.no":              "No",
 		"oracle.tui.yes_no":          "[Y]es / [N]o",
+		// Source detail / result labels (previously hardcoded English leaked
+		// into zh sessions — ISS-170).
+		"oracle.tui.status":       "Status",
+		"oracle.tui.toggle":       "[T] Toggle On/Off",
+		"oracle.tui.value":        "Value",
+		"oracle.tui.timestamp":    "Timestamp",
+		"oracle.tui.block_height": "BlockHeight",
 
 		// ===== COMMON =====
 		// Help
@@ -642,6 +652,8 @@ func (tr *Translator) loadMessages() {
 		"token.spender":     "消费方公钥",
 		"token.token_id":    "代币 ID/符号",
 		"token.private_key": "私钥 (Base64)",
+		"token.limit":       "限制结果数",
+		"token.offset":      "分页偏移量",
 
 		// Messages
 		"token.created":     "代币创建成功！ID: %s, 名称: %s, 符号: %s\n",
@@ -707,6 +719,7 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_deleted":  "数据源已删除！",
 		"oracle.fetched":         "数据获取成功！",
 		"oracle.no_sources":      "暂无数据源",
+		"oracle.no_data":         "未找到数据",
 		"oracle.fetch_error":     "数据获取失败",
 
 		// TUI
@@ -747,6 +760,11 @@ func (tr *Translator) loadMessages() {
 		"oracle.tui.yes":             "是",
 		"oracle.tui.no":              "否",
 		"oracle.tui.yes_no":          "[Y]是 / [N]否",
+		"oracle.tui.status":          "状态",
+		"oracle.tui.toggle":          "[T] 切换开/关",
+		"oracle.tui.value":           "值",
+		"oracle.tui.timestamp":       "时间戳",
+		"oracle.tui.block_height":    "区块高度",
 
 		// ===== COMMON =====
 		// Help

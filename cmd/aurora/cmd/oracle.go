@@ -247,7 +247,7 @@ var latestCmd = &cobra.Command{
 			return fmt.Errorf("failed to get latest data: %w", err)
 		}
 		if resp.Data == nil {
-			fmt.Println("No data found")
+			fmt.Println(i18n.GetText("oracle.no_data"))
 			return nil
 		}
 
