@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 114,
+  "round": 115,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-29T21:00:00+00:00",
+  "updated_at": "2026-08-30T05:41:50+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -7518,11 +7518,11 @@
     "ISS-174": {
       "id": "ISS-174",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T20:48:57+00:00",
-      "updated_at": "2026-08-29T20:48:57+00:00",
-      "touched_round": 113,
+      "updated_at": "2026-08-30T03:45:28+00:00",
+      "touched_round": 114,
       "title": "oracle TUI has no viewport: multi-row query/fetch results render past the terminal edge with no scroll (sources/queryResult/fetchResult)",
       "severity": 0.5,
       "confidence": 1.0,
@@ -7531,11 +7531,11 @@
     "ISS-175": {
       "id": "ISS-175",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-29T20:48:57+00:00",
-      "updated_at": "2026-08-29T20:48:57+00:00",
-      "touched_round": 113,
+      "updated_at": "2026-08-30T05:04:47+00:00",
+      "touched_round": 114,
       "title": "web submit buttons have no in-flight disabled state (except blockchain) -> double-click creates duplicate records",
       "severity": 0.4,
       "confidence": 1.0,
@@ -7544,11 +7544,11 @@
     "TASK-176": {
       "id": "TASK-176",
       "type": "task",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 4,
       "created_at": "2026-08-29T20:48:57+00:00",
-      "updated_at": "2026-08-29T20:48:57+00:00",
-      "touched_round": 113,
+      "updated_at": "2026-08-30T03:50:03+00:00",
+      "touched_round": 114,
       "title": "oracle-tui: give sources/queryResult/fetchResult a bounded scrollable viewport (mirror lottery/token/nft)",
       "category": "stability",
       "severity": 0.4,
@@ -7559,17 +7559,64 @@
     "TASK-177": {
       "id": "TASK-177",
       "type": "task",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 4,
       "created_at": "2026-08-29T20:48:57+00:00",
-      "updated_at": "2026-08-29T20:48:57+00:00",
-      "touched_round": 113,
+      "updated_at": "2026-08-30T05:07:03+00:00",
+      "touched_round": 114,
       "title": "web: per-action busy state bound to :disabled on submit buttons (double-submit duplicate records)",
       "category": "dx",
       "severity": 0.4,
       "confidence": 1.0,
       "effort": 5,
       "component": "COMP-web"
+    },
+    "CHG-171": {
+      "id": "CHG-171",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T03:49:29+00:00",
+      "updated_at": "2026-08-30T03:49:29+00:00",
+      "touched_round": 114,
+      "commit": "762edb9",
+      "title": "oracle-tui: bounded scrollable viewport for result/source views"
+    },
+    "CHG-172": {
+      "id": "CHG-172",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T05:07:03+00:00",
+      "updated_at": "2026-08-30T05:07:03+00:00",
+      "touched_round": 114,
+      "commit": "5c334c6",
+      "title": "web: per-action busy state disables submit buttons (double-click duplicates)"
+    },
+    "TASK-178": {
+      "id": "TASK-178",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T05:18:59+00:00",
+      "updated_at": "2026-08-30T05:41:50+00:00",
+      "touched_round": 115,
+      "category": "correctness",
+      "severity": 0.5,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "oracle TUI query limit is unbounded: handleQuery passes raw parsed limit to the repo, while CLI clamps to [1,100] and API caps at maxQueryLimit=100 — a stray/inflated number forces a huge DB scan"
+    },
+    "CHG-173": {
+      "id": "CHG-173",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T05:35:52+00:00",
+      "updated_at": "2026-08-30T05:35:52+00:00",
+      "touched_round": 115,
+      "commit": "e1f3a27",
+      "title": "oracle TUI query limit clamp"
     }
   },
   "edges": [
@@ -11904,6 +11951,36 @@
       "to": "ISS-175",
       "type": "addresses",
       "created_at": "2026-08-29T20:48:58+00:00"
+    },
+    {
+      "from": "CHG-171",
+      "to": "ISS-174",
+      "type": "resolves",
+      "created_at": "2026-08-30T03:50:54+00:00"
+    },
+    {
+      "from": "CHG-171",
+      "to": "TASK-176",
+      "type": "implements",
+      "created_at": "2026-08-30T03:50:54+00:00"
+    },
+    {
+      "from": "CHG-172",
+      "to": "TASK-177",
+      "type": "implements",
+      "created_at": "2026-08-30T05:07:03+00:00"
+    },
+    {
+      "from": "CHG-172",
+      "to": "ISS-175",
+      "type": "resolves",
+      "created_at": "2026-08-30T05:07:03+00:00"
+    },
+    {
+      "from": "CHG-173",
+      "to": "TASK-178",
+      "type": "implements",
+      "created_at": "2026-08-30T05:35:52+00:00"
     }
   ]
 }
