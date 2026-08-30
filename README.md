@@ -125,8 +125,8 @@ just dev          # Docker 开发
 # 数据库迁移
 ./aurora migrate status             # 当前 / 已应用 / 待应用
 ./aurora migrate up                 # 应用全部待迁移
-./aurora migrate up 2               # 只迁移下一步
-./aurora migrate down               # 回滚一步（默认 1）
+./aurora migrate up 2               # 应用接下来两步（up N 应用 N 步待迁移）
+./aurora migrate down --confirm     # 回滚一步（默认 1，需 --confirm）
 ```
 
 ## Web / API 界面
