@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
@@ -34,6 +35,16 @@ type model struct {
 	successMsg       string
 	fetchResult      *oracleapp.FetchDataResponse
 	queryResult      *oracleapp.GetDataResponse
+
+	// viewport bounds the read-only result views (fetchResult/queryResult)
+	// so multi-row results scroll instead of rendering past the terminal
+	// edge (TASK-176, ISS-174). sources is a navigable menu, so it gets its
+	// own bounded window (see sourcesView) that follows the cursor.
+	viewport viewport.Model
+	// menuRows is the maximum number of rows sourcesView renders for the
+	// source menu, sized from the terminal height in WindowSizeMsg so a long
+	// source list stays reachable. Default 15 until the first resize lands.
+	menuRows int
 }
 
 func NewOracleApp(repo domainoracle.Repository) *model {
@@ -56,6 +67,8 @@ func NewOracleApp(repo domainoracle.Repository) *model {
 	queryInputLimit := textinput.New()
 	queryInputLimit.Placeholder = i18n.GetText("oracle.tui.enter_limit")
 
+	vp := viewport.New(viewport.WithWidth(60), viewport.WithHeight(15))
+
 	return &model{
 		view:             "menu",
 		repo:             repo,
@@ -67,6 +80,9 @@ func NewOracleApp(repo domainoracle.Repository) *model {
 		queryInputSource: queryInputSource,
 		queryInputLimit:  queryInputLimit,
 		inputFocus:       0,
+
+		viewport: vp,
+		menuRows: 15,
 	}
 }
 
@@ -149,8 +165,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.menuIndex = 0
 			}
 			// Arrows are always navigation; never let them also reach the
-			// textinput below.
-			return m, nil
+			// textinput below. In the read-only result views the arrow falls
+			// through to the viewport scroll forward at the bottom instead.
+			if m.view != "fetchResult" && m.view != "queryResult" {
+				return m, nil
+			}
 
 		case "k":
 			// Typable letter in form views: falls through to the focused
@@ -203,8 +222,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.menuIndex = 1
 			}
 			// Arrows are always navigation; never let them also reach the
-			// textinput below.
-			return m, nil
+			// textinput below. In the read-only result views the arrow falls
+			// through to the viewport scroll forward at the bottom instead.
+			if m.view != "fetchResult" && m.view != "queryResult" {
+				return m, nil
+			}
 
 		case "j":
 			// Typable letter in form views (see "k" above); navigation only in
@@ -345,7 +367,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		// Handle window resize if needed
+		// Size the result viewport and the source-menu window off the
+		// terminal so long content scrolls instead of clipping (TASK-176,
+		// ISS-174). The -12 budget mirrors the lottery/token/nft viewports.
+		m.viewport.SetWidth(msg.Width - 4)
+		m.viewport.SetHeight(msg.Height - 12)
+		if rows := msg.Height - 12; rows > 3 {
+			m.menuRows = rows
+		}
 	}
 
 	// Update textinput models
@@ -368,6 +397,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.queryInputSource, cmdSource = m.queryInputSource.Update(msg)
 		m.queryInputLimit, cmdLimit = m.queryInputLimit.Update(msg)
 		cmd = tea.Batch(cmdSource, cmdLimit)
+	}
+
+	// The result views are bounded viewports; let the viewport handle the
+	// scroll keys (up/down/j/k/pgup/pgdn/space/b/f/u/d) so long query/fetch
+	// results are reachable instead of clipped at the terminal edge
+	// (TASK-176, ISS-174).
+	if m.view == "fetchResult" || m.view == "queryResult" {
+		m.viewport, cmd = m.viewport.Update(msg)
 	}
 
 	return m, cmd
@@ -433,7 +470,12 @@ func (m *model) sourcesView() string {
 		menuItems = append(menuItems, ds.Name)
 	}
 
-	for i, item := range menuItems {
+	// Bounded window that follows the cursor: render at most menuRows rows
+	// centred on the selection so a long source list stays reachable instead
+	// of spilling past the terminal edge (TASK-176, ISS-174).
+	start, end := m.menuWindow(len(menuItems))
+	for i := start; i < end; i++ {
+		item := menuItems[i]
 		prefix := "  "
 		if i == m.menuIndex {
 			prefix = "▶ "
@@ -456,6 +498,26 @@ func (m *model) sourcesView() string {
 	}
 
 	return s
+}
+
+// menuWindow returns the [start, end) range of a menu with total items that
+// fits in the terminal, kept centred on the cursor so the highlighted row is
+// always visible (TASK-176, ISS-174).
+func (m *model) menuWindow(total int) (int, int) {
+	if total <= m.menuRows {
+		return 0, total
+	}
+	if m.menuRows < 1 {
+		m.menuRows = 1
+	}
+	start := m.menuIndex - m.menuRows/2
+	if start < 0 {
+		start = 0
+	}
+	if start+m.menuRows > total {
+		start = total - m.menuRows
+	}
+	return start, start + m.menuRows
 }
 
 func (m *model) addSourceView() string {
@@ -649,13 +711,7 @@ func (m *model) queryView() string {
 func (m *model) fetchResultView() string {
 	s := components.HeaderStyle().Render("📥 "+i18n.GetText("oracle.tui.fetch_result")) + "\n\n"
 
-	if m.fetchResult != nil {
-		s += components.KeyValue("ID", m.fetchResult.ID) + "\n"
-		s += components.KeyValue(i18n.GetText("oracle.tui.source_id"), m.fetchResult.SourceID) + "\n"
-		s += components.KeyValue(i18n.GetText("oracle.tui.value"), m.fetchResult.Value) + "\n"
-		s += components.KeyValue(i18n.GetText("oracle.tui.timestamp"), fmt.Sprintf("%d", m.fetchResult.Timestamp)) + "\n"
-		s += components.KeyValue(i18n.GetText("oracle.tui.block_height"), fmt.Sprintf("%d", m.fetchResult.BlockHeight)) + "\n"
-	}
+	s += m.viewport.View() + "\n"
 
 	if m.successMsg != "" {
 		s += "\n" + components.SuccessStyle().Render(m.successMsg)
@@ -669,24 +725,13 @@ func (m *model) fetchResultView() string {
 func (m *model) queryResultView() string {
 	s := components.HeaderStyle().Render("📊 "+i18n.GetText("oracle.tui.query_result")) + "\n\n"
 
-	if m.queryResult != nil && len(m.queryResult.Data) > 0 {
-		for i, d := range m.queryResult.Data {
-			s += components.CaptionStyle().Render(fmt.Sprintf("--- #%d ---", i+1)) + "\n"
-			s += components.KeyValue("ID", d.ID) + "\n"
-			s += components.KeyValue(i18n.GetText("oracle.tui.source_id"), d.SourceID) + "\n"
-			s += components.KeyValue(i18n.GetText("oracle.tui.value"), d.Value) + "\n"
-			s += components.KeyValue(i18n.GetText("oracle.tui.timestamp"), fmt.Sprintf("%d", d.Timestamp)) + "\n"
-			s += components.KeyValue(i18n.GetText("oracle.tui.block_height"), fmt.Sprintf("%d", d.BlockHeight)) + "\n\n"
-		}
-	} else {
-		s += components.InfoStyle().Render(i18n.GetText("oracle.tui.no_data")) + "\n"
-	}
-
-	s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
+	s += m.viewport.View() + "\n"
 
 	if m.errMsg != "" {
 		s += "\n" + components.ErrorStyle().Render(m.errMsg)
 	}
+
+	s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 
 	return s
 }
@@ -884,8 +929,25 @@ func (m *model) handleFetch() {
 	} else {
 		m.fetchResult = result
 		m.successMsg = i18n.GetText("oracle.tui.fetch_success")
+		m.loadFetchResult()
 		m.view = "fetchResult"
 	}
+}
+
+// loadFetchResult renders the single fetch record into the bounded result
+// viewport so a long value scrolls instead of clipping (TASK-176, ISS-174).
+func (m *model) loadFetchResult() {
+	if m.fetchResult == nil {
+		m.viewport.SetContent("")
+		return
+	}
+	s := components.KeyValue("ID", m.fetchResult.ID) + "\n"
+	s += components.KeyValue(i18n.GetText("oracle.tui.source_id"), m.fetchResult.SourceID) + "\n"
+	s += components.KeyValue(i18n.GetText("oracle.tui.value"), m.fetchResult.Value) + "\n"
+	s += components.KeyValue(i18n.GetText("oracle.tui.timestamp"), fmt.Sprintf("%d", m.fetchResult.Timestamp)) + "\n"
+	s += components.KeyValue(i18n.GetText("oracle.tui.block_height"), fmt.Sprintf("%d", m.fetchResult.BlockHeight)) + "\n"
+	m.viewport.SetContent(s)
+	m.viewport.GotoTop()
 }
 
 func (m *model) handleQuery() {
@@ -907,8 +969,29 @@ func (m *model) handleQuery() {
 		m.errMsg = err.Error()
 	} else {
 		m.queryResult = result
+		m.loadQueryResult()
 		m.view = "queryResult"
 	}
+}
+
+// loadQueryResult renders the possibly multi-row query result into the bounded
+// result viewport so rows scroll instead of clipping (TASK-176, ISS-174).
+func (m *model) loadQueryResult() {
+	if m.queryResult == nil || len(m.queryResult.Data) == 0 {
+		m.viewport.SetContent(i18n.GetText("oracle.tui.no_data"))
+		return
+	}
+	var s string
+	for i, d := range m.queryResult.Data {
+		s += components.CaptionStyle().Render(fmt.Sprintf("--- #%d ---", i+1)) + "\n"
+		s += components.KeyValue("ID", d.ID) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.source_id"), d.SourceID) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.value"), d.Value) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.timestamp"), fmt.Sprintf("%d", d.Timestamp)) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.block_height"), fmt.Sprintf("%d", d.BlockHeight)) + "\n\n"
+	}
+	m.viewport.SetContent(s)
+	m.viewport.GotoTop()
 }
 
 func RunOracleTUI(repo domainoracle.Repository) error {

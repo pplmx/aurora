@@ -1,11 +1,13 @@
 package oracle
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 
+	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/stretchr/testify/assert"
@@ -1106,4 +1108,141 @@ func TestView_HelpScreenContent(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.showHelp = true
 	assert.Contains(t, app.View().Content, i18n.GetText("tui.help.title"))
+}
+
+// ===== TASK-176 (ISS-174): bounded scrollable viewport =====
+// The result views were not viewports: multi-row query/fetch results rendered
+// past the terminal edge with no scroll. These tests pin that sources uses a
+// bounded cursor-following window and the result views scroll via viewport.
+
+func TestSourcesView_BoundedWindowShowsCursor(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "sources"
+	app.menuRows = 5
+	for i := 0; i < 20; i++ {
+		app.sources = append(app.sources, &oracle.DataSource{
+			ID: fmt.Sprintf("%d", i), Name: fmt.Sprintf("source-%d", i),
+		})
+	}
+
+	// Cursor on the first row renders the window from the top...
+	app.menuIndex = 0
+	view := app.sourcesView()
+	assert.Contains(t, view, "source-0")
+	assert.NotContains(t, view, "source-6", "window must not render past menuRows")
+
+	// ...and a cursor deep in the list keeps the selection visible.
+	app.menuIndex = 12
+	view = app.sourcesView()
+	assert.Contains(t, view, "source-12", "highlighted row must stay in view")
+	assert.NotContains(t, view, "source-0", "window must have advanced")
+}
+
+func TestSourcesView_MenuWindowBounds(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.menuRows = 4
+	for i := 0; i < 8; i++ {
+		app.sources = append(app.sources, &oracle.DataSource{
+			ID: fmt.Sprintf("%d", i), Name: fmt.Sprintf("s%d", i),
+		})
+	}
+	// total menu items = [Add source] + 8 = 9
+	start, end := app.menuWindow(9)
+	assert.Equal(t, 0, start)
+	assert.Equal(t, 4, end)
+
+	app.menuIndex = 8
+	start, end = app.menuWindow(9)
+	assert.Equal(t, 5, start)
+	assert.Equal(t, 9, end)
+	assert.LessOrEqual(t, end-start, 4)
+
+	// Fewer items than the window: render everything.
+	app.menuRows = 100
+	start, end = app.menuWindow(3)
+	assert.Equal(t, 0, start)
+	assert.Equal(t, 3, end)
+}
+
+func TestUpdate_FetchResultArrowsScrollViewport(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetchResult"
+	app.viewport.SetWidth(60)
+	app.viewport.SetHeight(3)
+	app.viewport.SetContent("1\n2\n3\n4\n5\n6")
+
+	y0 := app.viewport.YOffset()
+	app.Update(keyPress("down"))
+	app.Update(keyPress("j"))
+	assert.Greater(t, app.viewport.YOffset(), y0, "↓/j must scroll the fetch result viewport")
+
+	app.Update(keyPress("up"))
+	app.Update(keyPress("k"))
+	app.Update(keyPress("k"))
+	assert.LessOrEqual(t, app.viewport.YOffset(), 2)
+}
+
+func TestUpdate_QueryResultPgDnScrollsViewport(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "queryResult"
+	app.viewport.SetWidth(60)
+	app.viewport.SetHeight(3)
+	app.viewport.SetContent("1\n2\n3\n4\n5\n6")
+
+	y0 := app.viewport.YOffset()
+	app.Update(keyPress("pgdown"))
+	assert.Greater(t, app.viewport.YOffset(), y0)
+}
+
+func TestUpdate_ResultViewsEnterStillReturnsToMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "fetchResult"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
+
+	app.view = "queryResult"
+	app.Update(keyPress("enter"))
+	assert.Equal(t, "menu", app.view)
+}
+
+func TestUpdate_WindowSizeResizesViewport(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
+	assert.Equal(t, 76, app.viewport.Width())
+	assert.Equal(t, 28, app.viewport.Height())
+	assert.Equal(t, 28, app.menuRows)
+}
+
+func TestUpdate_ResultViewportKeysReachViewport(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "queryResult"
+	app.viewport.SetWidth(60)
+	app.viewport.SetHeight(4)
+	app.viewport.SetContent("1\n2\n3\n4\n5\n6\n7\n8")
+
+	// arrow keys must scroll the viewport rather than navigating a menu
+	y0 := app.viewport.YOffset()
+	app.Update(keyPress("down"))
+	assert.Greater(t, app.viewport.YOffset(), y0, "↓ in a result view scrolls, not navigates")
+}
+
+func TestLoadQueryResult_SetsViewportContent(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.queryResult = &oracleapp.GetDataResponse{Data: []*oracleapp.DataResponse{
+		{ID: "d1", SourceID: "s1", Value: "v1", Timestamp: 100, BlockHeight: 5},
+		{ID: "d2", SourceID: "s1", Value: "v2", Timestamp: 200, BlockHeight: 6},
+	}}
+	app.loadQueryResult()
+	assert.Contains(t, app.queryResultView(), "d1")
+	assert.Contains(t, app.queryResultView(), "d2")
+}
+
+func TestLoadFetchResult_SetsViewportContent(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.fetchResult = &oracleapp.FetchDataResponse{
+		ID: "f1", SourceID: "s1", Value: "v1", Timestamp: 100, BlockHeight: 5,
+	}
+	app.loadFetchResult()
+	assert.Contains(t, app.fetchResultView(), "f1")
+	assert.Contains(t, app.fetchResultView(), "v1")
 }
