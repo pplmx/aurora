@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
+	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	domainoracle "github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/ui/components"
@@ -37,6 +38,13 @@ type model struct {
 	successMsg       string
 	fetchResult      *oracleapp.FetchDataResponse
 	queryResult      *oracleapp.GetDataResponse
+
+	// chain records TUI-fetched data on the ledger. Every other fetch surface
+	// (REST handler, scheduler, CLI) calls FetchDataUseCase.SetChain; without
+	// it handleFetch saves observations at block_height=0 with no ledger block
+	// (TASK-180, mirrors the TASK-097 scheduler regression). Nil (tests only)
+	// means "no on-chain recording", matching the CLI's default.
+	chain oracleapp.ChainInterface
 
 	// viewport bounds the read-only result views (fetchResult/queryResult)
 	// so multi-row results scroll instead of rendering past the terminal
@@ -923,8 +931,7 @@ func (m *model) handleFetch() {
 		return
 	}
 
-	fetchUseCase := oracleapp.NewFetchDataUseCase(m.repo)
-	result, err := fetchUseCase.Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
+	result, err := m.newFetchUseCase().Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
 
 	if err != nil {
 		m.errMsg = err.Error()
@@ -1019,8 +1026,30 @@ func clampQueryLimitValue(raw string) int {
 	return v
 }
 
+// newFetchUseCase builds the FetchDataUseCase used by handleFetch, wiring the
+// on-chain recorder exactly like the REST handler, scheduler and CLI paths do.
+// Skipping SetChain saves observations at block_height=0 and loses the ledger
+// block (TASK-180, the TASK-097 class). The FetchDataUseCase.Chain() seam makes
+// the wiring observable to a regression test without a network fetch.
+func (m *model) newFetchUseCase() *oracleapp.FetchDataUseCase {
+	uc := oracleapp.NewFetchDataUseCase(m.repo)
+	uc.SetChain(m.chain)
+	return uc
+}
+
+// SetChain wires the on-chain recorder for TUI fetches, mirroring the REST
+// handler / scheduler / CLI paths. Without a chain, handleFetch would save
+// observations at block_height=0 (TASK-180).
+func (m *model) SetChain(chain oracleapp.ChainInterface) {
+	m.chain = chain
+}
+
 func RunOracleTUI(repo domainoracle.Repository) error {
-	p := tea.NewProgram(NewOracleApp(repo))
+	app := NewOracleApp(repo)
+	// Same singleton the CLI fetch command wires (cmd/aurora/cmd/oracle.go);
+	// initConfig has already resolved db.path by the time the TUI runs.
+	app.SetChain(blockchain.GetBlockChain())
+	p := tea.NewProgram(app)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 		return err
