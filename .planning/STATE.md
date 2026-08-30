@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.90 correctness + ergonomics sweep (web X-API-Key restored on all writes with a Node-exec regression gate, two-sided token transfer history + History 400, TUI j/k/? typable in every form, voting GetSession 404→500 split, migrate hardened DSN, block timestamp reload, oracle poller keep-rows, strict decodeJSON, NFT list-by-owner wired, i18n leak sweep, dead oracle data view removed, zero-candidate session guard)
+**Current focus:** v1.91 polish of the v1.90 residual backlog + fresh deep-dive (oracle TUI scrollable viewport for results/sources, per-action web busy state on submit buttons, oracle TUI query limit clamped to [1,100] like CLI/API)
 
 ## Current Position
 
@@ -152,6 +152,9 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.86 | Infra robustness deep-dive (cancellable scheduler fetches, backup path-traversal rejection, bounded rate-limiters) | ✅ done |
 | v1.87 | API-consistency + latent-concurrency sweep (unknown oracle source / NFT id → 404 not 200[]/500, /oracle/query missing param → 400, sqlite GetLatestData nil contract, SyncEventBus snapshot-outside-lock, once-guarded MetricsRegistry) | ✅ done |
 | v1.88 | Web error-surfacing + interactivity polish (apiFetch banner consistency incl. blockchain page, oracle inline errors replace alert()/silent table, dead res.ok guards removed, dashboard stat isolation, oracle + dashboard 15s-poll flicker fixes, token burn-amount isolation, NFT mint context advance) | ✅ done |
+| v1.89 | Web + TUI detail-polish sweep (web Create Token owner fix, shared-context advances, AGENTS.md flag sync + JS syntax gate, TUI q-key typability, decimals honored, NFT key lengths, cursor bounds) | ✅ done |
+| v1.90 | Correctness + ergonomics sweep (X-API-Key on all web writes + Node-exec gate, two-sided token history, typable TUI forms, GetSession 404→500 split, hardened DSN, block timestamp reload, strict decodeJSON, NFT list wiring, i18n leak sweep) | ✅ done |
+| v1.91 | Residual-backlog polish + deep-dive (oracle TUI bounded scrollable viewport, per-action web submit busy state, oracle TUI query limit clamp) | ✅ done |
 
 ## Session Continuity
 
@@ -242,6 +245,18 @@ Rounds 109-113 (2026-08-29, this session, v1.89) — continued the detail-
   is a visible error not a silent 3, and [T]/[D] hotkeys accept uppercase
   (TASK-161..166, ISS-154..159, CHG-155..160). RIL graph at round 113
   (589 nodes).
+Round 114 closed v1.90 and recorded two below-threshold residuals explicitly
+  (oracle viewport TASK-176, web in-flight busy TASK-177). Round 115 (this
+  session, v1.91) drained exactly that backlog plus one deep-dive finding:
+  oracle result views (queryResult/fetchResult) now scroll via a bounding
+  viewport and the sources menu gets a cursor-following window sized from
+  WindowSizeMsg (TASK-176, ISS-174); the five web write apps' submit buttons
+  bind per-action :disabled via a shared withBusy wrapper so double-click can
+  no longer create duplicate records, pinned by a Node harness test that
+  executes the shipped app.js (TASK-177, ISS-175); and oracle TUI handleQuery
+  now clamps the query limit to [1,100] via clampQueryLimitValue, closing the
+  one path (CLI + API already capped) where an inflated limit could drive an
+  unbounded DB scan (TASK-178). RIL graph at round 115 (631 nodes).
 Next: the deferred ISS-084 phantom on-chain blocks on rolled-back
   transactions remains parked per DEC-002 (cross-DB atomicity redesign; token
   event trail is already post-commit; reconfirmed by EV-044); NFT zero-key

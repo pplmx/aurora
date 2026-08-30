@@ -4,8 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STATE.md`
 (release `Version` is injected at build time via `-ldflags -X cmd.Version=`). The
-entries below summarise v1.64–v1.89; earlier v1.x milestones (v1.0–v1.63) are
+entries below summarise v1.64–v1.90; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
+
+## [v1.91] - 2026-08-30
+
+### Fixed
+
+- **Oracle TUI has no scrollable viewport**: multi-row `query` results and the
+  `fetch` result rendered past the terminal edge with no way to reach the tail
+  (`sources` likewise spilled beyond the screen for long source lists). The
+  read-only result views now render through a bounded bubbles viewport that
+  handles `↑/↓/j/k/pgup/pgdn/space/f/b/u/d` scrolling, and the source menu gets
+  a cursor-following window sized from the terminal (TASK-176, ISS-174).
+- **Web submit buttons had no in-flight busy state**: a fast double-click on a
+  create/transfer form fired two overlapping requests and recorded the resource
+  twice (only the blockchain verify button guarded itself). Added a shared
+  `withBusy` wrapper exposing per-action `busy.<name>` flags; every write form's
+  submit button binds `:disabled` to its own flag, so one in-flight create
+  disables only its own button, and re-entrant clicks are swallowed. A Node
+  harness test executes the shipped `app.js` against a stubbed fetch to pin the
+  guard (TASK-177, ISS-175).
+- **Oracle TUI query limit was unbounded**: the CLI (`clampQueryLimit`) and the
+  REST API (`maxQueryLimit=100`) both bound the query limit to `[1,100]`, but
+  the TUI passed the raw parsed input straight to the use case, so a stray or
+  inflated number (e.g. `999999999`) forced an unbounded DB scan. `handleQuery`
+  now clamps through `clampQueryLimitValue` mirroring the other two surfaces
+  (TASK-178).
 
 ## [v1.90] - 2026-08-30
 
