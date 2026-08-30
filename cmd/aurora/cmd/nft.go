@@ -77,7 +77,7 @@ var mintCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.mint"),
 	Example: `  aurora nft mint -n "MyNFT" -d "A unique digital asset" -c "creator-pubkey"
-  aurora nft mint -n "GameItem #1" -d "Rare sword" -c "player-key" -i "https://example.com/item.png"`,
+  aurora nft mint -n "GameItem #1" -d "Rare sword" -c "player-key" --image "https://example.com/item.png"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
 		if err != nil {
@@ -289,7 +289,12 @@ func init() {
 
 	mintCmd.Flags().StringP("name", "n", "", i18n.GetText("nft.name"))
 	mintCmd.Flags().StringP("description", "d", "", i18n.GetText("nft.description"))
-	mintCmd.Flags().StringP("image", "i", "", i18n.GetText("nft.image_url"))
+	// --image with NO -i shorthand: -i is the NFT-ID selector on get/transfer/
+	// burn/history (TASK-152, ISS-142), so leaving -i on mint's image flag made
+	// `nft mint -i <id>` (typed by analogy with get) silently set an image URL
+	// instead of an NFT ID. Dropping the shorthand makes -i mean NFT ID across
+	// the whole family (H1 shorthand-overload audit).
+	mintCmd.Flags().String("image", "", i18n.GetText("nft.image_url"))
 	mintCmd.Flags().StringP("token-uri", "t", "", i18n.GetText("nft.token_uri"))
 	mintCmd.Flags().StringP("creator", "c", "", i18n.GetText("nft.creator"))
 	_ = mintCmd.MarkFlagRequired("name")
