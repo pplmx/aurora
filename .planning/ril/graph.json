@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 115,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-30T05:41:50+00:00",
+  "updated_at": "2026-08-30T08:24:18+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -7617,6 +7617,31 @@
       "touched_round": 115,
       "commit": "e1f3a27",
       "title": "oracle TUI query limit clamp"
+    },
+    "TASK-179": {
+      "id": "TASK-179",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T07:58:24+00:00",
+      "updated_at": "2026-08-30T08:24:18+00:00",
+      "touched_round": 115,
+      "category": "dx",
+      "severity": 0.35,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "help screen never documents viewport scroll keys (pgup/pgdn/space/b/u/d) that all four TUI viewports use in result/list/history views"
+    },
+    "CHG-174": {
+      "id": "CHG-174",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T08:24:18+00:00",
+      "updated_at": "2026-08-30T08:24:18+00:00",
+      "touched_round": 115,
+      "commit": "973ccd2",
+      "title": "help screen scroll hint"
     }
   },
   "edges": [
@@ -11981,6 +12006,12 @@
       "to": "TASK-178",
       "type": "implements",
       "created_at": "2026-08-30T05:35:52+00:00"
+    },
+    {
+      "from": "CHG-174",
+      "to": "TASK-179",
+      "type": "implements",
+      "created_at": "2026-08-30T08:24:18+00:00"
     }
   ]
 }
