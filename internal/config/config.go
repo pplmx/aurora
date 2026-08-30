@@ -36,6 +36,12 @@ type Config struct {
 type ServerConfig struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
+	// WebRoot is the directory (relative to the process CWD) that the API
+	// server serves the Web UI from. Defaults to "web" (TASK-181, ISS-177):
+	// the README documented a configurable web root long before it existed, so
+	// operators running cmd/api from a non-repo CWD (a service dir, a
+	// container) had no way to point the file server at their checkout.
+	WebRoot string `mapstructure:"webRoot"`
 }
 
 type LogConfig struct {
@@ -55,6 +61,7 @@ type APIConfig struct {
 func Load() (*Config, error) {
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.webRoot", "web")
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.path", "./logs")
 	viper.SetDefault("db.type", "sqlite")
@@ -127,6 +134,15 @@ func Load() (*Config, error) {
 
 func GetAPIKey() string {
 	return viper.GetString("api.key")
+}
+
+// WebRoot returns the directory the API server serves the Web UI from
+// (default "web", see ServerConfig.WebRoot; TASK-181, ISS-177). Served via
+// router.go's http.FileServer through config.WebRoot() so a custom
+// server.webRoot points the file server anywhere the operator mounted the
+// checkout — the documented-but-until-now-nonexistent web root option.
+func WebRoot() string {
+	return viper.GetString("server.webRoot")
 }
 
 // RateLimitEnabled reports whether per-client API rate limiting is enabled
