@@ -137,6 +137,7 @@
                                 <option :value="s.id" x-text="s.title"></option>
                             </template>
                         </select>
+                        <small x-show="!sessions.length" class="hint">No sessions yet — create one first.</small>
                     </div>
                     <div class="form-group">
                         <label>Candidate</label>
@@ -146,6 +147,7 @@
                                 <option :value="c.id" x-text="c.name"></option>
                             </template>
                         </select>
+                        <small x-show="sessions.length && !currentSessionCandidates.length" class="hint">This session has no candidates — pick another session.</small>
                     </div>
                     <div class="form-group">
                         <label>Voter Public Key</label>
@@ -155,7 +157,11 @@
                         <label>Voter Private Key</label>
                         <input type="text" x-model="votePriv" placeholder="Voter private key (from registration)" required>
                     </div>
-                    <button type="submit" class="btn-voting" :disabled="busy.castVote">Cast Vote</button>
+                    <!-- An empty session/candidate roster posts empty ids and
+                         hits a confusing 400; disable the submit until both a
+                         session and a candidate are resolvable, mirroring the
+                         Create Session form's guard (ISS-183). -->
+                    <button type="submit" class="btn-voting" :disabled="busy.castVote || !voteSessionId || !voteCandidateId">Cast Vote</button>
                 </form>
                 <div x-show="voteResult" class="result" x-text="voteResult"></div>
             </section>
