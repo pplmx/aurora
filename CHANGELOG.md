@@ -31,6 +31,12 @@ documented in their per-milestone ROADMAP files.
   inflated number (e.g. `999999999`) forced an unbounded DB scan. `handleQuery`
   now clamps through `clampQueryLimitValue` mirroring the other two surfaces
   (TASK-178).
+- **Help screen never documented viewport scrolling**: every TUI's long
+  result/list view is now a bounded viewport, but the shared help screen
+  omitted the scroll keys (`↑/↓/j/k/pgup/pgdn/space/b/f/u/d`) an operator needs
+  on a long list. Added a `tui.help.scroll` line (en + zh) to the shared
+  `HelpView`, plus an en↔zh key-parity test gate so a missing translation can
+  no longer silently fall back to English (TASK-179).
 
 ## [v1.90] - 2026-08-30
 

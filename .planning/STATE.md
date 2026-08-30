@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.91 polish of the v1.90 residual backlog + fresh deep-dive (oracle TUI scrollable viewport for results/sources, per-action web busy state on submit buttons, oracle TUI query limit clamped to [1,100] like CLI/API)
+**Current focus:** v1.91 polish of the v1.90 residual backlog + fresh deep-dive (oracle TUI scrollable viewport for results/sources, per-action web busy state on submit buttons, oracle TUI query limit clamped to [1,100] like CLI/API, help screen documents viewport scroll keys)
 
 ## Current Position
 
@@ -154,7 +154,7 @@ Progress: continuous loop — every resolved milestone advanced the graph;
 | v1.88 | Web error-surfacing + interactivity polish (apiFetch banner consistency incl. blockchain page, oracle inline errors replace alert()/silent table, dead res.ok guards removed, dashboard stat isolation, oracle + dashboard 15s-poll flicker fixes, token burn-amount isolation, NFT mint context advance) | ✅ done |
 | v1.89 | Web + TUI detail-polish sweep (web Create Token owner fix, shared-context advances, AGENTS.md flag sync + JS syntax gate, TUI q-key typability, decimals honored, NFT key lengths, cursor bounds) | ✅ done |
 | v1.90 | Correctness + ergonomics sweep (X-API-Key on all web writes + Node-exec gate, two-sided token history, typable TUI forms, GetSession 404→500 split, hardened DSN, block timestamp reload, strict decodeJSON, NFT list wiring, i18n leak sweep) | ✅ done |
-| v1.91 | Residual-backlog polish + deep-dive (oracle TUI bounded scrollable viewport, per-action web submit busy state, oracle TUI query limit clamp) | ✅ done |
+| v1.91 | Residual-backlog polish + deep-dive (oracle TUI bounded scrollable viewport, per-action web submit busy state, oracle TUI query limit clamp, help screen scroll-key docs + i18n parity gate) | ✅ done |
 
 ## Session Continuity
 
