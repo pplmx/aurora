@@ -327,13 +327,14 @@ func (tr *Translator) loadMessages() {
 		"oracle.tui":            "Launch Oracle TUI",
 
 		// Flags
-		"oracle.source_name": "Source name",
-		"oracle.source_url":  "Source URL",
-		"oracle.source_type": "Source type (http/api)",
-		"oracle.template":    "Template name",
-		"oracle.source_id":   "Source ID",
-		"oracle.interval":    "Refresh interval (seconds)",
-		"oracle.limit":       "Limit results",
+		"oracle.source_name":      "Source name",
+		"oracle.source_url":       "Source URL",
+		"oracle.source_type":      "Source type (http/api)",
+		"oracle.template":         "Template name",
+		"oracle.source_id":        "Source ID",
+		"oracle.source_id_legacy": "Source ID (legacy spelling --source; prefer --id)",
+		"oracle.interval":         "Refresh interval (seconds)",
+		"oracle.limit":            "Limit results",
 
 		// Messages
 		"oracle.source_added":    "Data source created: %s",
@@ -723,13 +724,14 @@ func (tr *Translator) loadMessages() {
 		"oracle.tui":            "启动预言机 TUI",
 
 		// Flags
-		"oracle.source_name": "数据源名称",
-		"oracle.source_url":  "数据源 URL",
-		"oracle.source_type": "数据源类型 (http/api)",
-		"oracle.template":    "模板名称",
-		"oracle.source_id":   "数据源 ID",
-		"oracle.interval":    "刷新间隔（秒）",
-		"oracle.limit":       "限制结果数",
+		"oracle.source_name":      "数据源名称",
+		"oracle.source_url":       "数据源 URL",
+		"oracle.source_type":      "数据源类型 (http/api)",
+		"oracle.template":         "模板名称",
+		"oracle.source_id":        "数据源 ID",
+		"oracle.source_id_legacy": "数据源 ID（旧拼写 --source；推荐 --id）",
+		"oracle.interval":         "刷新间隔（秒）",
+		"oracle.limit":            "限制结果数",
 
 		// Messages
 		"oracle.source_added":    "数据源已创建：%s",

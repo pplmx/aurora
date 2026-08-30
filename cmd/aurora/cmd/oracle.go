@@ -188,7 +188,10 @@ var fetchCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		sourceID, _ := cmd.Flags().GetString("source")
+		sourceID, err := resolveOracleSourceID(cmd)
+		if err != nil {
+			return err
+		}
 
 		uc := oracleapp.NewFetchDataUseCase(repo)
 		// Record CLI-fetched data on-chain, matching the API/scheduler paths
@@ -218,7 +221,10 @@ var dataCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		sourceID, _ := cmd.Flags().GetString("source")
+		sourceID, err := resolveOracleSourceID(cmd)
+		if err != nil {
+			return err
+		}
 		limit := clampQueryLimit(cmd)
 
 		uc := oracleapp.NewGetDataUseCase(repo)
@@ -249,7 +255,10 @@ var latestCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		sourceID, _ := cmd.Flags().GetString("source")
+		sourceID, err := resolveOracleSourceID(cmd)
+		if err != nil {
+			return err
+		}
 
 		uc := oracleapp.NewGetLatestDataUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.GetLatestDataRequest{SourceID: sourceID})
@@ -383,18 +392,39 @@ func init() {
 	sourceDisableCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
 	_ = sourceDisableCmd.MarkFlagRequired("id")
 
-	fetchCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
-	_ = fetchCmd.MarkFlagRequired("source")
+	// fetch/data/latest select a source with --id/-i (the canonical spelling,
+	// matching the source management commands) OR the legacy --source/-s
+	// alias — a user pasting an ID printed by `oracle source list` used to
+	// hit "unknown flag: --id" on fetch/data/latest (ISS-189, TASK-193).
+	// MarkFlagRequired("source") is dropped because either spelling counts;
+	// resolveOracleSourceID errors when neither is given.
+	fetchCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
+	fetchCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id_legacy"))
 
-	dataCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
+	dataCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
+	dataCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id_legacy"))
 	dataCmd.Flags().IntP("limit", "l", 10, i18n.GetText("oracle.limit"))
-	_ = dataCmd.MarkFlagRequired("source")
 
-	latestCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id"))
-	_ = latestCmd.MarkFlagRequired("source")
+	latestCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
+	latestCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id_legacy"))
 
 	templateAddCmd.Flags().StringP("template", "t", "", i18n.GetText("oracle.template"))
 	_ = templateAddCmd.MarkFlagRequired("template")
+}
+
+// resolveOracleSourceID returns the source selector for fetch/data/latest,
+// accepting the canonical --id/-i (matching the oracle source management
+// commands) and the legacy --source/-s spelling. --id wins when both are
+// given, and neither counts as a clean usage error instead of an empty
+// lookup (ISS-189, TASK-193).
+func resolveOracleSourceID(cmd *cobra.Command) (string, error) {
+	if id, _ := cmd.Flags().GetString("id"); id != "" {
+		return id, nil
+	}
+	if src, _ := cmd.Flags().GetString("source"); src != "" {
+		return src, nil
+	}
+	return "", fmt.Errorf("a source is required: pass --id <source-id> (or --source)")
 }
 
 // maxCLIQueryLimit mirrors the REST API handler cap (maxQueryLimit=100) so the
