@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 116,
+  "round": 122,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-30T11:18:35+00:00",
+  "updated_at": "2026-08-30T17:21:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 113,
+      "touched_round": 121,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 97,
+      "touched_round": 118,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 113,
+      "touched_round": 117,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 113,
+      "touched_round": 122,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -7679,6 +7679,551 @@
       "touched_round": 115,
       "commit": "a542846",
       "title": "oracle TUI fetch chain wiring"
+    },
+    "ISS-177": {
+      "id": "ISS-177",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T13:05:39+00:00",
+      "updated_at": "2026-08-30T13:19:07+00:00",
+      "touched_round": 117,
+      "severity": 0.55,
+      "confidence": 0.95,
+      "title": "README claims the web root path is configurable (\\\"或配置 web 根路径\\\") but no such option exists: router.go hardcodes http.Dir(\\\"web\\\"), so the API web UI only works when cmd/api is launched from the repo root and there is no way to point it elsewhere (deploy/Docker/webRoot use case)"
+    },
+    "ISS-178": {
+      "id": "ISS-178",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T13:05:40+00:00",
+      "updated_at": "2026-08-30T13:19:07+00:00",
+      "touched_round": 117,
+      "severity": 0.4,
+      "confidence": 1.0,
+      "title": "web/lottery.html carries a stale hardcoded version stamp \\\"v1.1\\\" in <title> (Lottery - Aurora v1.1) and <h1> span — the other six pages render their section name (Dashboard/Token/Oracle...) instead, so lottery's header shows a decrepit version number that will keep drifting"
+    },
+    "TASK-181": {
+      "id": "TASK-181",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T13:06:28+00:00",
+      "updated_at": "2026-08-30T13:23:48+00:00",
+      "touched_round": 117,
+      "category": "usability",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Implement a configurable web root: add server.webRoot config (default \\\"web\\\") so the README's documented \\\"配置 web 根路径\\\" option actually exists; route router.go's http.FileServer through config.WebRoot() and document the key in README + config/aurora.toml sample (ISS-177)"
+    },
+    "TASK-182": {
+      "id": "TASK-182",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T13:06:28+00:00",
+      "updated_at": "2026-08-30T13:23:48+00:00",
+      "touched_round": 117,
+      "category": "docs",
+      "severity": 0.4,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Fix stale \\\"v1.1\\\" version stamp in web/lottery.html title+h1 to match the other six pages (render section name \\\"Lottery\\\") (ISS-178)"
+    },
+    "CHG-176": {
+      "id": "CHG-176",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T13:23:27+00:00",
+      "updated_at": "2026-08-30T13:23:27+00:00",
+      "touched_round": 117,
+      "commit": "cb97ee9",
+      "title": "drop stale v1.1 version stamp from lottery.html"
+    },
+    "CHG-177": {
+      "id": "CHG-177",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T13:23:27+00:00",
+      "updated_at": "2026-08-30T13:23:27+00:00",
+      "touched_round": 117,
+      "commit": "7a5bd61",
+      "title": "server.webRoot config for the web UI root"
+    },
+    "ISS-179": {
+      "id": "ISS-179",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T13:31:33+00:00",
+      "updated_at": "2026-08-30T14:05:40+00:00",
+      "touched_round": 117,
+      "severity": 0.6,
+      "confidence": 0.95,
+      "title": "All token/nft/oracle/voting leaf subcommands set no Args: validator, so Cobra's default ArbitraryArgs silently ACCEPTS AND IGNORES stray positional args -- a typo'd/misplaced argument (e.g. mixing two commands' flags, or a copy-pasted id next to a flag-only command) runs with surprising behavior and no diagnostic (CLI audit M3)"
+    },
+    "TASK-183": {
+      "id": "TASK-183",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T13:31:33+00:00",
+      "updated_at": "2026-08-30T14:06:19+00:00",
+      "touched_round": 117,
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 3,
+      "title": "Add cobra.NoArgs to every flag-only token/nft/oracle/voting leaf subcommand so stray positional args produce a usage error instead of being silently dropped (lottery/backup/migrate already validate -- keep their validators)"
+    },
+    "CHG-178": {
+      "id": "CHG-178",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T14:05:40+00:00",
+      "updated_at": "2026-08-30T14:05:40+00:00",
+      "touched_round": 117,
+      "commit": 3498301,
+      "title": "NoArgs on token/nft/oracle/voting flag-only subcommands"
+    },
+    "TASK-184": {
+      "id": "TASK-184",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T14:10:48+00:00",
+      "updated_at": "2026-08-30T14:51:31+00:00",
+      "touched_round": 118,
+      "category": "docs",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "docs/lottery/api.md documents a fake response envelope: success as {success:true,data:{...}} and error as {success:false,error:...}, but every handler emits the bare domain body on success and a flat {error,code} envelope (ErrorResponse/writeError in handler/helpers.go) on failure -- a client built from this doc parses fields that never exist. Rewrite the 'API 响应格式' section to the real shapes"
+    },
+    "ISS-180": {
+      "id": "ISS-180",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T14:10:48+00:00",
+      "updated_at": "2026-08-30T14:49:27+00:00",
+      "touched_round": 118,
+      "severity": 0.6,
+      "confidence": 0.95,
+      "title": "docs/lottery/api.md API 响应格式 section documents a {success,data}/{success,error} envelope that no handler emits (success = bare body; error = flat {error,code})"
+    },
+    "TASK-185": {
+      "id": "TASK-185",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T14:11:55+00:00",
+      "updated_at": "2026-08-30T14:51:31+00:00",
+      "touched_round": 118,
+      "category": "docs",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "CLI examples that don't run as written: AGENTS.md:111 nft burn and :127 token burn omit the required --confirm gate (refused non-zero), README.md:129 migrate down omits --confirm, README.md:128 migrate up 2 comment says '只迁移下一步' but up N applies N pending steps -- append --confirm and fix the comment; note the AGENTS.md vs README coverage tables are different snapshots with no as-of date"
+    },
+    "ISS-181": {
+      "id": "ISS-181",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T14:11:55+00:00",
+      "updated_at": "2026-08-30T14:49:27+00:00",
+      "touched_round": 118,
+      "severity": 0.55,
+      "confidence": 0.95,
+      "title": "CLI usage docs contain examples that fail as written (missing destructive-op --confirm on AGENTS.md nft/token burn and README migrate down) and a misleading migrate up N comment"
+    },
+    "TASK-186": {
+      "id": "TASK-186",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T14:19:17+00:00",
+      "updated_at": "2026-08-30T14:51:31+00:00",
+      "touched_round": 118,
+      "category": "i18n",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 3,
+      "title": "Localize the destructive-op confirm gate for all six commands: requireConfirm/addConfirmFlag (token burn, nft burn, oracle delete, migrate down) return hardcoded English 'this %s; pass --confirm to proceed' and English flag help, while backup restore + lottery reset are already localized -- a zh operator sees mixed-language refusal for the exact same class of destructive gate. Add a cli.confirm.* key family (shared templates + per-command action phrases, en+zh) and thread both helpers and lottery reset through it"
+    },
+    "ISS-182": {
+      "id": "ISS-182",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T14:19:17+00:00",
+      "updated_at": "2026-08-30T14:49:27+00:00",
+      "touched_round": 118,
+      "severity": 0.5,
+      "confidence": 0.95,
+      "title": "Destructive-op --confirm gate: requireConfirm error + addConfirmFlag help are hardcoded English on 4 of 6 destructive commands (backup restore + lottery reset localized) -- inconsistent refusal wording for the same class of action in zh sessions (CLI audit M2)"
+    },
+    "CHG-179": {
+      "id": "CHG-179",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-30T14:49:27+00:00",
+      "updated_at": "2026-08-30T14:50:46+00:00",
+      "touched_round": 118,
+      "commit": "f4b496b",
+      "title": "docs/lottery/api.md real response shapes"
+    },
+    "CHG-180": {
+      "id": "CHG-180",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-30T14:49:27+00:00",
+      "updated_at": "2026-08-30T14:50:46+00:00",
+      "touched_round": 118,
+      "commit": "f1db501",
+      "title": "AGENTS/README CLI examples + coverage single-source"
+    },
+    "CHG-181": {
+      "id": "CHG-181",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-30T14:49:27+00:00",
+      "updated_at": "2026-08-30T14:50:46+00:00",
+      "touched_round": 118,
+      "commit": "bbb1849",
+      "title": "localize destructive confirm gate"
+    },
+    "ISS-183": {
+      "id": "ISS-183",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T14:56:51+00:00",
+      "updated_at": "2026-08-30T15:32:22+00:00",
+      "touched_round": 119,
+      "severity": 0.5,
+      "confidence": 0.95,
+      "title": "voting Cast Vote submit stays enabled with no sessions/candidates: the Session/Candidate selects are x-hidden when empty but the button only binds busy.castVote, so an operator clicks an enabled button that posts empty session_id/candidate_id and hits a confusing server 400 -- peer Create Session form guards its submit (web audit #2)"
+    },
+    "ISS-184": {
+      "id": "ISS-184",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T14:56:51+00:00",
+      "updated_at": "2026-08-30T15:32:22+00:00",
+      "touched_round": 119,
+      "severity": 0.5,
+      "confidence": 0.95,
+      "title": "Oracle Query Limit is not clamped client-side: oracle.html limit input has min/max attrs (spinner only) but app.js sends the raw value; typing 0 or 500 is submitted and the server silently coerces to 10/100 with zero feedback -- CLI + TUI were already clamped to [1,100] (TASK-178), web was missed (web audit #1)"
+    },
+    "ISS-185": {
+      "id": "ISS-185",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T14:56:51+00:00",
+      "updated_at": "2026-08-30T15:32:22+00:00",
+      "touched_round": 119,
+      "severity": 0.5,
+      "confidence": 0.95,
+      "title": "apiFetch has no timeout/abort: a stalled request never settles, so withBusy never clears and every button stays disabled (and startPolling's running flag stays true on the two polling pages) until a full reload (web audit #4)"
+    },
+    "TASK-187": {
+      "id": "TASK-187",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T14:59:13+00:00",
+      "updated_at": "2026-08-30T15:34:34+00:00",
+      "touched_round": 119,
+      "category": "usability",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Voting Cast Vote: disable the submit (busy.castVote || sessions.length===0 || currentSessionCandidates.length===0) with an empty-state hint, mirroring the Create Session form's guard, so an empty roster never posts empty ids to a 400 (ISS-183)"
+    },
+    "TASK-188": {
+      "id": "TASK-188",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T14:59:13+00:00",
+      "updated_at": "2026-08-30T15:34:34+00:00",
+      "touched_round": 119,
+      "category": "usability",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle Query Limit: clamp queryLimit to [1,100] client-side on submit (mirror TASK-178's clamp in the app) and surface the effective value/out-of-range so a typed 0 or 500 isn't silently coerced server-side (ISS-184)"
+    },
+    "TASK-189": {
+      "id": "TASK-189",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T14:59:13+00:00",
+      "updated_at": "2026-08-30T15:34:34+00:00",
+      "touched_round": 119,
+      "category": "stability",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "apiFetch: abort stalled requests after ~20s (AbortController) so a hung request can't leave every button :disabled (busy never cleared) or wedge startPolling's running flag until reload (ISS-185)"
+    },
+    "CHG-182": {
+      "id": "CHG-182",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T15:32:22+00:00",
+      "updated_at": "2026-08-30T15:32:22+00:00",
+      "touched_round": 119,
+      "commit": "6905cf9",
+      "title": "voting Cast Vote empty-roster guard"
+    },
+    "CHG-183": {
+      "id": "CHG-183",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T15:32:23+00:00",
+      "updated_at": "2026-08-30T15:32:23+00:00",
+      "touched_round": 119,
+      "commit": "110023b",
+      "title": "web oracle limit clamp + apiFetch timeout"
+    },
+    "ISS-186": {
+      "id": "ISS-186",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T15:53:01+00:00",
+      "updated_at": "2026-08-30T16:10:31+00:00",
+      "touched_round": 120,
+      "severity": 0.5,
+      "confidence": 0.95,
+      "title": "NFT transfer leaves the shared owner context stale in the web UI: app.js NFT transfer path doesn't advance owner to the recipient (mint/create do), so the next List-by-Owner / Burn forms still target the pre-transfer owner and burn errors 'not the owner' (web audit #10)"
+    },
+    "ISS-187": {
+      "id": "ISS-187",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T15:53:01+00:00",
+      "updated_at": "2026-08-30T16:10:31+00:00",
+      "touched_round": 120,
+      "severity": 0.4,
+      "confidence": 0.95,
+      "title": "Blockchain page keeps a stale green verify report on a later failed verify: verify() clears error but never clears report, so 'Valid: Yes' stays on screen beneath the new error line -- contradictory output (web audit #11)"
+    },
+    "ISS-188": {
+      "id": "ISS-188",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T15:53:01+00:00",
+      "updated_at": "2026-08-30T16:10:31+00:00",
+      "touched_round": 120,
+      "severity": 0.45,
+      "confidence": 0.95,
+      "title": "CLI success lines for nft/voting/oracle/lottery-reset are hardcoded English even though localized i18n keys exist and are dead (nft.minted, voting.candidate_added, oracle.source_added, lottery.reset_done...) -- zh sessions see mixed-language CLI output and the keys rot (CLI audit M1)"
+    },
+    "TASK-190": {
+      "id": "TASK-190",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T15:55:00+00:00",
+      "updated_at": "2026-08-30T16:10:31+00:00",
+      "touched_round": 120,
+      "category": "docs",
+      "severity": 0.45,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "CLI i18n parity sweep: route the hardcoded success lines (nft minted/transferred/burned, voting candidate/voter/vote/session create+start+end, oracle source add/enable/disable/delete/fetch + template add, lottery reset) through their (previously dead) i18n keys, shaping a few drifted keys to the established output wording (ISS-188)"
+    },
+    "TASK-191": {
+      "id": "TASK-191",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T15:55:00+00:00",
+      "updated_at": "2026-08-30T16:10:32+00:00",
+      "touched_round": 120,
+      "category": "usability",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Web NFT transfer must advance this.owner (and this.id stays) to the recipient after success, mirroring the mint/create context-advance precedent, so the next List/Burn forms don't target the pre-transfer owner (ISS-186)"
+    },
+    "TASK-192": {
+      "id": "TASK-192",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T15:55:00+00:00",
+      "updated_at": "2026-08-30T16:10:32+00:00",
+      "touched_round": 120,
+      "category": "usability",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Web blockchain verify: clear the stale report at the start of a verify (and on failure) so a prior green 'Valid: Yes' can't sit beneath a new error line (ISS-187)"
+    },
+    "CHG-184": {
+      "id": "CHG-184",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T16:10:31+00:00",
+      "updated_at": "2026-08-30T16:10:31+00:00",
+      "touched_round": 120,
+      "commit": Infinity,
+      "title": "CLI success lines through i18n keys"
+    },
+    "CHG-185": {
+      "id": "CHG-185",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T16:10:32+00:00",
+      "updated_at": "2026-08-30T16:10:32+00:00",
+      "touched_round": 120,
+      "commit": "59bc51f",
+      "title": "web NFT transfer owner advance + stale verify report"
+    },
+    "ISS-189": {
+      "id": "ISS-189",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-30T16:18:40+00:00",
+      "updated_at": "2026-08-30T16:42:11+00:00",
+      "touched_round": 121,
+      "severity": 0.55,
+      "confidence": 0.95,
+      "title": "oracle CLI uses two flag names for the same entity: source management (add/delete/enable/disable) select a source with --id/-i (per oracle source list output 'ID: xxx') while fetch/data/latest select with --source/-s - a user pasting the just-listed ID into fetch --id X fails 'unknown flag', and --source's help reads the source-id key so '-s, --source Source ID' self-contradicts (CLI audit H2)"
+    },
+    "TASK-193": {
+      "id": "TASK-193",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T16:18:40+00:00",
+      "updated_at": "2026-08-30T16:43:25+00:00",
+      "touched_round": 121,
+      "category": "usability",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Unify the oracle source selector: accept --id/-i on fetch/data/latest as the canonical spelling (matching oracle source/*), keeping --source/-s as a working legacy alias (id wins when both), and error cleanly when neither is given (ISS-189)"
+    },
+    "CHG-186": {
+      "id": "CHG-186",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T16:42:11+00:00",
+      "updated_at": "2026-08-30T16:42:11+00:00",
+      "touched_round": 121,
+      "commit": "dbde37d",
+      "title": "unify oracle source selector --id/--source"
+    },
+    "ISS-190": {
+      "id": "ISS-190",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T16:57:05+00:00",
+      "updated_at": "2026-08-30T17:01:18+00:00",
+      "touched_round": 121,
+      "severity": 0.5,
+      "confidence": 0.95,
+      "title": "nft family -i shorthand overload: mint -i is the image URL while get/transfer/burn/history -i is the NFT ID (the TASK-152 comment claims -i is the family-wide NFT selector, but mint was left out) - a mint -i id typed by analogy with get silently sets an image URL instead of erroring (CLI audit H1)"
+    },
+    "TASK-194": {
+      "id": "TASK-194",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-30T16:57:05+00:00",
+      "updated_at": "2026-08-30T17:02:00+00:00",
+      "touched_round": 121,
+      "category": "usability",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Complete the nft family -i unification: drop the -i shorthand on mint's --image (keep --image), update the in-code example, so -i means NFT ID everywhere; -i on mint errors instead of silently misbinding (ISS-190)"
+    },
+    "CHG-187": {
+      "id": "CHG-187",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T17:01:18+00:00",
+      "updated_at": "2026-08-30T17:01:18+00:00",
+      "touched_round": 121,
+      "commit": "6a3d8a0",
+      "title": "nft family -i unification"
+    },
+    "DEC-008": {
+      "id": "DEC-008",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T17:02:00+00:00",
+      "updated_at": "2026-08-30T17:02:00+00:00",
+      "touched_round": 121,
+      "rationale": "token family -o/-t/-s each carry two meanings across sibling subcommands (create -s symbol / approve -s spender; transfer -o to / balance -o owner; create -t supply / mint -t token id). Unlike nft where TASK-152 had already declared -i the family NFT-ID selector (making the mint fix a completion of stated intent), token has no recorded intent and every mapped shorthand is in long-term docs/examples, so remapping any of them would silently break scripts that rely on the current binding. Kept as-is with explicit help text; left as a documented tradeoff rather than a breaking change without operator input.",
+      "alternatives_rejected": "drop token shorthands (-o/-t/-s) or remap them (breaking for existing scripts; no stated intent supports it); leave token untouched (current choice)",
+      "title": "CLI H1: token family -o/-t/-s shorthand overloads kept as-is (documented tradeoff, no breaking remap without operator input)"
+    },
+    "ISS-191": {
+      "id": "ISS-191",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T17:17:15+00:00",
+      "updated_at": "2026-08-30T17:20:07+00:00",
+      "touched_round": 122,
+      "severity": 0.45,
+      "confidence": 0.95,
+      "title": "Web misleading empty-state on API failure: loadSessions/listSources reset to [] in their catch, so a first-load API failure renders '(No sessions yet)' / '(no sources)' — a transient outage is misread as an empty system next to the red banner (web audit #7)"
+    },
+    "TASK-195": {
+      "id": "TASK-195",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-30T17:17:15+00:00",
+      "updated_at": "2026-08-30T17:20:07+00:00",
+      "touched_round": 122,
+      "category": "usability",
+      "severity": 0.45,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Web failure-vs-empty distinction for voting sessions and oracle sources: set a sessionsFailed/sourcesFailed flag in the loaders' catch (clear on success) and render a 'Failed to load...' line instead of 'No sessions yet'/(no sources) when the last load errored — keep prior rows during poll refreshes (ISS-191)"
+    },
+    "CHG-188": {
+      "id": "CHG-188",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-30T17:20:07+00:00",
+      "updated_at": "2026-08-30T17:20:07+00:00",
+      "touched_round": 122,
+      "commit": "d94bafd",
+      "title": "web failure-vs-empty distinction"
     }
   },
   "edges": [
@@ -12061,6 +12606,366 @@
       "to": "ISS-176",
       "type": "resolves",
       "created_at": "2026-08-30T10:11:05+00:00"
+    },
+    {
+      "from": "TASK-181",
+      "to": "ISS-177",
+      "type": "addresses",
+      "created_at": "2026-08-30T13:08:25+00:00"
+    },
+    {
+      "from": "TASK-182",
+      "to": "ISS-178",
+      "type": "addresses",
+      "created_at": "2026-08-30T13:08:25+00:00"
+    },
+    {
+      "from": "ISS-177",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-30T13:08:25+00:00"
+    },
+    {
+      "from": "ISS-178",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-30T13:08:25+00:00"
+    },
+    {
+      "from": "CHG-176",
+      "to": "TASK-182",
+      "type": "implements",
+      "created_at": "2026-08-30T13:23:48+00:00"
+    },
+    {
+      "from": "CHG-176",
+      "to": "ISS-178",
+      "type": "resolves",
+      "created_at": "2026-08-30T13:23:48+00:00"
+    },
+    {
+      "from": "CHG-177",
+      "to": "TASK-181",
+      "type": "implements",
+      "created_at": "2026-08-30T13:23:48+00:00"
+    },
+    {
+      "from": "CHG-177",
+      "to": "ISS-177",
+      "type": "resolves",
+      "created_at": "2026-08-30T13:23:48+00:00"
+    },
+    {
+      "from": "TASK-183",
+      "to": "ISS-179",
+      "type": "addresses",
+      "created_at": "2026-08-30T13:31:57+00:00"
+    },
+    {
+      "from": "ISS-179",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-30T13:31:57+00:00"
+    },
+    {
+      "from": "CHG-178",
+      "to": "TASK-183",
+      "type": "implements",
+      "created_at": "2026-08-30T14:06:19+00:00"
+    },
+    {
+      "from": "CHG-178",
+      "to": "ISS-179",
+      "type": "resolves",
+      "created_at": "2026-08-30T14:06:19+00:00"
+    },
+    {
+      "from": "TASK-184",
+      "to": "ISS-180",
+      "type": "addresses",
+      "created_at": "2026-08-30T14:21:01+00:00"
+    },
+    {
+      "from": "ISS-180",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-08-30T14:21:01+00:00"
+    },
+    {
+      "from": "TASK-185",
+      "to": "ISS-181",
+      "type": "addresses",
+      "created_at": "2026-08-30T14:21:01+00:00"
+    },
+    {
+      "from": "ISS-181",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-30T14:21:01+00:00"
+    },
+    {
+      "from": "TASK-186",
+      "to": "ISS-182",
+      "type": "addresses",
+      "created_at": "2026-08-30T14:21:01+00:00"
+    },
+    {
+      "from": "ISS-182",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-30T14:21:01+00:00"
+    },
+    {
+      "from": "CHG-179",
+      "to": "TASK-184",
+      "type": "implements",
+      "created_at": "2026-08-30T14:51:31+00:00"
+    },
+    {
+      "from": "CHG-179",
+      "to": "ISS-180",
+      "type": "resolves",
+      "created_at": "2026-08-30T14:51:31+00:00"
+    },
+    {
+      "from": "CHG-180",
+      "to": "TASK-185",
+      "type": "implements",
+      "created_at": "2026-08-30T14:51:31+00:00"
+    },
+    {
+      "from": "CHG-180",
+      "to": "ISS-181",
+      "type": "resolves",
+      "created_at": "2026-08-30T14:51:31+00:00"
+    },
+    {
+      "from": "CHG-181",
+      "to": "TASK-186",
+      "type": "implements",
+      "created_at": "2026-08-30T14:51:31+00:00"
+    },
+    {
+      "from": "CHG-181",
+      "to": "ISS-182",
+      "type": "resolves",
+      "created_at": "2026-08-30T14:51:31+00:00"
+    },
+    {
+      "from": "TASK-187",
+      "to": "ISS-183",
+      "type": "addresses",
+      "created_at": "2026-08-30T15:03:45+00:00"
+    },
+    {
+      "from": "TASK-188",
+      "to": "ISS-184",
+      "type": "addresses",
+      "created_at": "2026-08-30T15:03:45+00:00"
+    },
+    {
+      "from": "TASK-189",
+      "to": "ISS-185",
+      "type": "addresses",
+      "created_at": "2026-08-30T15:03:45+00:00"
+    },
+    {
+      "from": "ISS-183",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-30T15:03:45+00:00"
+    },
+    {
+      "from": "ISS-184",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-30T15:03:45+00:00"
+    },
+    {
+      "from": "ISS-185",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-30T15:03:45+00:00"
+    },
+    {
+      "from": "CHG-182",
+      "to": "TASK-187",
+      "type": "implements",
+      "created_at": "2026-08-30T15:34:33+00:00"
+    },
+    {
+      "from": "CHG-182",
+      "to": "ISS-183",
+      "type": "resolves",
+      "created_at": "2026-08-30T15:34:33+00:00"
+    },
+    {
+      "from": "CHG-183",
+      "to": "TASK-188",
+      "type": "implements",
+      "created_at": "2026-08-30T15:34:33+00:00"
+    },
+    {
+      "from": "CHG-183",
+      "to": "TASK-189",
+      "type": "implements",
+      "created_at": "2026-08-30T15:34:33+00:00"
+    },
+    {
+      "from": "CHG-183",
+      "to": "ISS-184",
+      "type": "resolves",
+      "created_at": "2026-08-30T15:34:33+00:00"
+    },
+    {
+      "from": "CHG-183",
+      "to": "ISS-185",
+      "type": "resolves",
+      "created_at": "2026-08-30T15:34:33+00:00"
+    },
+    {
+      "from": "TASK-190",
+      "to": "ISS-188",
+      "type": "addresses",
+      "created_at": "2026-08-30T15:56:32+00:00"
+    },
+    {
+      "from": "TASK-191",
+      "to": "ISS-186",
+      "type": "addresses",
+      "created_at": "2026-08-30T15:56:32+00:00"
+    },
+    {
+      "from": "TASK-192",
+      "to": "ISS-187",
+      "type": "addresses",
+      "created_at": "2026-08-30T15:56:32+00:00"
+    },
+    {
+      "from": "ISS-186",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-30T15:56:32+00:00"
+    },
+    {
+      "from": "ISS-187",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-30T15:56:32+00:00"
+    },
+    {
+      "from": "ISS-188",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-30T15:56:32+00:00"
+    },
+    {
+      "from": "CHG-184",
+      "to": "TASK-190",
+      "type": "implements",
+      "created_at": "2026-08-30T16:10:32+00:00"
+    },
+    {
+      "from": "CHG-184",
+      "to": "ISS-188",
+      "type": "resolves",
+      "created_at": "2026-08-30T16:10:32+00:00"
+    },
+    {
+      "from": "CHG-185",
+      "to": "TASK-191",
+      "type": "implements",
+      "created_at": "2026-08-30T16:10:32+00:00"
+    },
+    {
+      "from": "CHG-185",
+      "to": "TASK-192",
+      "type": "implements",
+      "created_at": "2026-08-30T16:10:32+00:00"
+    },
+    {
+      "from": "CHG-185",
+      "to": "ISS-186",
+      "type": "resolves",
+      "created_at": "2026-08-30T16:10:32+00:00"
+    },
+    {
+      "from": "CHG-185",
+      "to": "ISS-187",
+      "type": "resolves",
+      "created_at": "2026-08-30T16:10:32+00:00"
+    },
+    {
+      "from": "TASK-193",
+      "to": "ISS-189",
+      "type": "addresses",
+      "created_at": "2026-08-30T16:21:57+00:00"
+    },
+    {
+      "from": "ISS-189",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-30T16:21:57+00:00"
+    },
+    {
+      "from": "CHG-186",
+      "to": "TASK-193",
+      "type": "implements",
+      "created_at": "2026-08-30T16:43:25+00:00"
+    },
+    {
+      "from": "CHG-186",
+      "to": "ISS-189",
+      "type": "resolves",
+      "created_at": "2026-08-30T16:43:25+00:00"
+    },
+    {
+      "from": "TASK-194",
+      "to": "ISS-190",
+      "type": "addresses",
+      "created_at": "2026-08-30T16:58:25+00:00"
+    },
+    {
+      "from": "ISS-190",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-30T16:58:25+00:00"
+    },
+    {
+      "from": "CHG-187",
+      "to": "TASK-194",
+      "type": "implements",
+      "created_at": "2026-08-30T17:02:00+00:00"
+    },
+    {
+      "from": "CHG-187",
+      "to": "ISS-190",
+      "type": "resolves",
+      "created_at": "2026-08-30T17:02:00+00:00"
+    },
+    {
+      "from": "TASK-195",
+      "to": "ISS-191",
+      "type": "addresses",
+      "created_at": "2026-08-30T17:17:56+00:00"
+    },
+    {
+      "from": "ISS-191",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-30T17:17:56+00:00"
+    },
+    {
+      "from": "CHG-188",
+      "to": "TASK-195",
+      "type": "implements",
+      "created_at": "2026-08-30T17:21:47+00:00"
+    },
+    {
+      "from": "CHG-188",
+      "to": "ISS-191",
+      "type": "resolves",
+      "created_at": "2026-08-30T17:21:47+00:00"
     }
   ]
 }
