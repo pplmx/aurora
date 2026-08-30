@@ -35,6 +35,11 @@ function auroraHeaders(extra) {
 // (falling back to the HTTP status), shows it in the shared banner and throws.
 // Callers keep list state valid (e.g. []) in their catch so a failure renders
 // an empty/error UI instead of a non-array that Alpine's x-for rejects.
+// apiFetch aborts requests that stall longer than this (ISS-185). The API
+// server bounds its own writes at 30s, so 20s here is comfortably shorter —
+// only genuinely stuck connections trip it.
+const REQUEST_TIMEOUT_MS = 20000;
+
 async function apiFetch(path, options) {
     // Merge the caller's headers (e.g. Content-Type for JSON bodies) ON TOP of
     // the API key rather than in place of it. A naive
@@ -43,7 +48,27 @@ async function apiFetch(path, options) {
     // turning every web write into a 401 (round-97 apiFetch refactor regression,
     // ISS-160). GET/DELETE calls pass no options.headers and were unaffected.
     const headers = Object.assign(auroraHeaders(), (options && options.headers) || {});
-    const res = await fetch(path, Object.assign({}, options, { headers }));
+    // Abort a stalled request after 20s (ISS-185): a connection that never
+    // responds otherwise leaves every withBusy busy.<name> flag set forever
+    // (all submit buttons :disabled) and startPolling's running flag stuck,
+    // both until a full page reload. The abort surfaces as a normal fetch
+    // rejection, so withBusy's settled() clears the flag and the poll can
+    // resume.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let res;
+    try {
+        res = await fetch(path, Object.assign({}, options, { headers, signal: controller.signal }));
+    } catch (e) {
+        if (e && e.name === 'AbortError') {
+            const msg = 'Request timed out after ' + REQUEST_TIMEOUT_MS / 1000 + 's';
+            window.showApiError(msg);
+            throw new Error(msg);
+        }
+        throw e;
+    } finally {
+        clearTimeout(timer);
+    }
     if (!res.ok) {
         let msg = 'HTTP ' + res.status;
         try {
@@ -885,10 +910,22 @@ function oracleApp() {
                 this.fetchResult = 'Error: ' + e.message;
             }
         },
+        // clampLimit mirrors the CLI's clampQueryLimit and the TUI's
+        // clampQueryLimitValue (TASK-178): the query limit is bounded to
+        // [1,100] client-side so a typed 0 or 500 is never sent raw to the
+        // server to be silently coerced without feedback (ISS-184). The
+        // number input's min/max attributes only constrain the spinner, not
+        // keyboard typing.
+        clampLimit(raw) {
+            const v = parseInt(raw, 10);
+            if (isNaN(v) || v <= 0) return 10;
+            return Math.min(v, 100);
+        },
         async query() {
             this.queryError = '';
             try {
-                const res = await apiFetch('/api/v1/oracle/query?source=' + encodeURIComponent(this.querySource) + '&limit=' + this.queryLimit);
+                const limit = this.clampLimit(this.queryLimit);
+                const res = await apiFetch('/api/v1/oracle/query?source=' + encodeURIComponent(this.querySource) + '&limit=' + limit);
                 const data = await res.json();
                 this.queryRows = (data && data.data) || [];
             } catch (e) {
