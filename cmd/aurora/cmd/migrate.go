@@ -133,7 +133,7 @@ var migrateDownCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Rolling back drops schema/data; require -y/--confirm first.
-		if err := requireConfirm(cmd, "rolls back and drops schema"); err != nil {
+		if err := requireConfirm(cmd, "cli.confirm.migrate_down"); err != nil {
 			return err
 		}
 		steps, err := migrationSteps(args, 1)
@@ -205,5 +205,5 @@ func init() {
 	migrateCmd.AddCommand(migrateDownCmd)
 	migrateCmd.AddCommand(migrateStatusCmd)
 	// Rolling back is destructive; require -y/--confirm first.
-	addConfirmFlag(migrateDownCmd, "Roll back the schema (requires --confirm)")
+	addConfirmFlag(migrateDownCmd, "cli.confirm.migrate_down")
 }

@@ -82,16 +82,23 @@ Use "aurora lottery --help" for lottery commands.`,
 // `lottery reset --yes` (lottery.go:557). Burn/delete/down permanently destroy
 // value or data, so they must not run without an explicit confirmation —
 // otherwise a typo like a mis-ordered flag silently destroys assets.
-func addConfirmFlag(cmd *cobra.Command, desc string) {
-	cmd.Flags().BoolP("confirm", "y", false, desc)
+//
+// actionKey names a cli.confirm.* i18n key whose localized value describes
+// what the command destroys; the flag help renders it through the shared
+// cli.confirm.flag template so all six destructive commands speak one
+// localized wording (TASK-186, ISS-182).
+func addConfirmFlag(cmd *cobra.Command, actionKey string) {
+	cmd.Flags().BoolP("confirm", "y", false, fmt.Sprintf(i18n.GetText("cli.confirm.flag"), i18n.GetText(actionKey)))
 }
 
 // requireConfirm returns an error (→ non-zero exit) when the caller's --confirm
-// flag is not set, so scripts that forgot it can detect the refusal.
-func requireConfirm(cmd *cobra.Command, what string) error {
+// flag is not set, so scripts that forgot it can detect the refusal. The refusal
+// renders the localized cli.confirm.required template with the command's
+// localized action phrase (TASK-186, ISS-182).
+func requireConfirm(cmd *cobra.Command, actionKey string) error {
 	ok, _ := cmd.Flags().GetBool("confirm")
 	if !ok {
-		return fmt.Errorf("this %s; pass --confirm to proceed", what)
+		return fmt.Errorf(i18n.GetText("cli.confirm.required"), i18n.GetText(actionKey))
 	}
 	return nil
 }

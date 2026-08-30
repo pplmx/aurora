@@ -439,6 +439,19 @@ func (tr *Translator) loadMessages() {
 		"backup.confirm_flag":     "Proceed with restore (overwrites the live database)",
 		"backup.confirm_required": "⚠️ restore overwrites the live database; pass --confirm to proceed",
 
+		// Destructive-op --confirm gate shared by token burn / nft burn /
+		// oracle source delete / migrate down / lottery reset (TASK-186,
+		// ISS-182): one localized refusal + flag help for every command that
+		// permanently destroys value or data, instead of hardcoded English on
+		// four of the six.
+		"cli.confirm.flag":          "%s (requires --confirm)",
+		"cli.confirm.required":      "⚠️ this %s; pass --confirm to proceed",
+		"cli.confirm.token_burn":    "permanently destroys tokens",
+		"cli.confirm.nft_burn":      "permanently destroys the NFT",
+		"cli.confirm.oracle_del":    "permanently deletes the data source",
+		"cli.confirm.migrate_down":  "rolls back the last migration and drops schema",
+		"cli.confirm.lottery_reset": "will delete ALL lottery records",
+
 		// Errors
 		"error.invalid_input": "Invalid input",
 		"error.not_found":     "Not found",
@@ -818,6 +831,16 @@ func (tr *Translator) loadMessages() {
 		"backup.restore_done":     "✅ 已从 %s 恢复数据库",
 		"backup.confirm_flag":     "确认恢复（将覆盖实时数据库）",
 		"backup.confirm_required": "⚠️ 恢复将覆盖实时数据库；请传入 --confirm 以继续",
+
+		// 破坏性操作 --confirm 门（token burn / nft burn / oracle source
+		// delete / migrate down / lottery reset 共用，TASK-186，ISS-182）
+		"cli.confirm.flag":          "%s（需要 --confirm）",
+		"cli.confirm.required":      "⚠️ 此操作%s；请传入 --confirm 以继续",
+		"cli.confirm.token_burn":    "将永久销毁代币",
+		"cli.confirm.nft_burn":      "将永久销毁该 NFT",
+		"cli.confirm.oracle_del":    "将永久删除数据源",
+		"cli.confirm.migrate_down":  "将回滚最后一次迁移并删除表结构",
+		"cli.confirm.lottery_reset": "将删除所有彩票记录",
 
 		// Errors
 		"error.invalid_input": "输入无效",

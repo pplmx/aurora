@@ -466,8 +466,10 @@ var resetCmd = &cobra.Command{
 			// (non-zero exit) instead of printing a warning and exiting 0,
 			// matching backup restore --confirm (TASK-100, ISS-092). A
 			// script that forgot the gate must be able to detect the refusal.
-			// --yes (legacy) and --confirm both count (TASK-152, ISS-140).
-			return fmt.Errorf("this will delete ALL lottery records; pass --yes/--confirm to proceed")
+			// --yes (legacy) and --confirm both count (TASK-152, ISS-140). The
+			// refusal shares the localized cli.confirm.required template with
+			// the other five destructive commands (TASK-186, ISS-182).
+			return fmt.Errorf(i18n.GetText("cli.confirm.required"), i18n.GetText("cli.confirm.lottery_reset"))
 		}
 
 		db, err := blockchain.InitDB()
@@ -570,8 +572,10 @@ func init() {
 	resetCmd.Flags().BoolP("yes", "y", false, i18n.GetText("lottery.yes"))
 	// --confirm without a shorthand: the -y shorthand is already taken by
 	// --yes, but the canonical destructive gate must also work here so all six
-	// destructive commands accept --confirm (TASK-152, ISS-140).
-	resetCmd.Flags().Bool("confirm", false, i18n.GetText("backup.confirm_flag"))
+	// destructive commands accept --confirm (TASK-152, ISS-140). Its help
+	// renders the shared localized template with the reset action phrase
+	// (TASK-186, ISS-182).
+	resetCmd.Flags().Bool("confirm", false, fmt.Sprintf(i18n.GetText("cli.confirm.flag"), i18n.GetText("cli.confirm.lottery_reset")))
 
 	_ = createCmd.MarkFlagRequired("participants")
 	_ = createCmd.MarkFlagRequired("seed")

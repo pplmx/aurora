@@ -113,7 +113,7 @@ var sourceDeleteCmd = &cobra.Command{
 	Short: i18n.GetText("oracle.source.delete"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Deleting a source is permanent; require -y/--confirm first.
-		if err := requireConfirm(cmd, "permanently deletes the data source"); err != nil {
+		if err := requireConfirm(cmd, "cli.confirm.oracle_del"); err != nil {
 			return err
 		}
 		repo, cleanup, err := newOracleRepo()
@@ -374,7 +374,7 @@ func init() {
 	_ = sourceAddCmd.MarkFlagRequired("url")
 
 	sourceDeleteCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
-	addConfirmFlag(sourceDeleteCmd, "Permanently delete the data source (requires --confirm)")
+	addConfirmFlag(sourceDeleteCmd, "cli.confirm.oracle_del")
 	_ = sourceDeleteCmd.MarkFlagRequired("id")
 
 	sourceEnableCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
