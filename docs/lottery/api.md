@@ -149,21 +149,40 @@ CREATE TABLE IF NOT EXISTS blocks (
 
 ### 成功响应
 
+成功的响应体就是领域数据本身（裸对象或裸数组），**没有** `{success, data}` 信封。
+例如 `GET /api/v1/lottery/history` 直接返回数组：
+
 ```json
-{
-  "success": true,
-  "data": { ... }
-}
+[
+  {
+    "id": "abc123...",
+    "seed": "aurora-vrf-...",
+    "participants": ["..."],
+    "winners": ["..."],
+    "block_height": 12,
+    "timestamp": 1756000000
+  }
+]
 ```
+
+创建类接口则直接返回创建的领域对象（如 `id` / `seed` / `winners` 等字段）。
 
 ### 错误响应
 
+所有错误都是同一个扁平信封（`internal/api/handler/helpers.go` 的 `ErrorResponse`），
+由 `writeError` 写出，HTTP 状态码 + `error` 人类可读消息 + `code` 机器可读错误码：
+
 ```json
 {
-  "success": false,
-  "error": "错误信息"
+  "error": "错误信息",
+  "code": "ERROR_CODE"
 }
 ```
+
+常见错误码：`INVALID_REQUEST`（参数缺失/非法，400）、`NOT_FOUND` /
+`TOKEN_NOT_FOUND` / `SESSION_NOT_FOUND` 等（404）、`UNAUTHORIZED`（401，
+`X-API-Key` 缺失/错误）、`INSUFFICIENT_BALANCE` / `AMOUNT_MUST_BE_POSITIVE` 等
+（400）、未分类的服务端故障为 `INTERNAL_ERROR`（500，消息不泄露内部细节）。
 
 ## 常见问题
 
