@@ -37,6 +37,14 @@ documented in their per-milestone ROADMAP files.
   on a long list. Added a `tui.help.scroll` line (en + zh) to the shared
   `HelpView`, plus an en↔zh key-parity test gate so a missing translation can
   no longer silently fall back to English (TASK-179).
+- **Oracle TUI fetches skipped on-chain recording**: the REST handler,
+  scheduler, and CLI all call `FetchDataUseCase.SetChain`, but the TUI's
+  `handleFetch` built the use case without a chain, so every TUI-fetched
+  observation was saved at `block_height=0` with no ledger block — the exact
+  TASK-097 scheduler regression, reintroduced by the TUI surface. The model
+  now carries a chain (`SetChain`, wired to the same singleton the CLI uses)
+  and `newFetchUseCase()` propagates it; the `FetchDataUseCase.Chain()` seam
+  makes the wiring testable without a network fetch (TASK-180).
 
 ## [v1.90] - 2026-08-30
 
