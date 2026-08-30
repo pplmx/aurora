@@ -327,3 +327,12 @@ func TestPadLeft(t *testing.T) {
 		})
 	}
 }
+
+// TestHelpViewRendersScrollHint pins TASK-179: every TUI's result/list view
+// is a viewport whose scroll keys (pgup/pgdn/space/b/u/d) must be discoverable,
+// and the shared help screen is where that contract is documented. The i18n
+// parity test (internal/i18n) guarantees both locales ship tui.help.scroll.
+func TestHelpViewRendersScrollHint(t *testing.T) {
+	view := HelpView()
+	assert.Contains(t, view, "scroll", "help screen must document viewport scrolling")
+}
