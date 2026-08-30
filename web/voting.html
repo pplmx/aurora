@@ -110,7 +110,8 @@
                         </p>
                     </div>
                 </template>
-                <p x-show="!loading && sessions.length === 0">No sessions yet</p>
+                <p x-show="!loading && sessions.length === 0 && !sessionsFailed">No sessions yet</p>
+                <p x-show="!loading && sessions.length === 0 && sessionsFailed" class="hint">Failed to load sessions — check the API / refresh.</p>
             </section>
 
             <section class="create-form">
