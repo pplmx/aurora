@@ -134,9 +134,9 @@ just stop         # Stop containers: docker compose down
 ```bash
 ./aurora oracle source list                             # List data sources
 ./aurora oracle source add -n "Name" -u <url>           # Add a source
-./aurora oracle fetch -s <source-id>                    # Fetch data
-./aurora oracle data -s <source-id> --limit 10          # Query history
-./aurora oracle latest -s <source-id>                   # Latest data point
+./aurora oracle fetch -i <source-id>                    # Fetch data (-s legacy)
+./aurora oracle data -i <source-id> --limit 10          # Query history
+./aurora oracle latest -i <source-id>                   # Latest data point
 ./aurora oracle template list                           # Built-in templates
 ./aurora oracle template add -t <template>              # Add a template source
 ./aurora oracle tui                                     # TUI interface

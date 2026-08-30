@@ -79,9 +79,9 @@ just dev          # Docker 开发
 ./aurora oracle source delete --id <source-id> --confirm   # 需 --confirm
 ./aurora oracle template list
 ./aurora oracle template add -t <template-name>            # 从预设模板建源
-./aurora oracle fetch -s <source-id>
-./aurora oracle data -s <source-id> --limit 10
-./aurora oracle latest -s <source-id>
+./aurora oracle fetch -i <source-id>            # -i/--id（旧拼写 -s 仍可用）
+./aurora oracle data -i <source-id> --limit 10
+./aurora oracle latest -i <source-id>
 ./aurora oracle tui
 
 # NFT
