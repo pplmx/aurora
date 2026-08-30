@@ -108,7 +108,7 @@ just stop         # Stop containers: docker compose down
 ./aurora nft transfer --nft <id> --from <owner> --to <address> -k "private_key"
 ./aurora nft get --nft <nft_id>
 ./aurora nft list --owner <pubkey>
-./aurora nft burn --nft <id> --owner <owner> -k "private_key"
+./aurora nft burn --nft <id> --owner <owner> -k "private_key" --confirm   # 需 --confirm
 ./aurora nft history --nft <id>
 ./aurora nft tui                                       # TUI interface
 ```
@@ -124,7 +124,7 @@ just stop         # Stop containers: docker compose down
 ./aurora token approve -t <token-id> --owner <addr> --spender <addr> --amount 100 -k "private_key"
 ./aurora token allowance -t <token-id> --owner <addr> --spender <addr>
 ./aurora token transfer-from -t <token-id> -o <owner> --to <addr> -a <amount> -s <spender> -k <spender_key>
-./aurora token burn -t <token-id> --from <addr> --amount 10 -k "private_key"
+./aurora token burn -t <token-id> --from <addr> --amount 10 -k "private_key" --confirm   # 需 --confirm
 ./aurora token history -t <token-id> --owner <address>
 ./aurora token tui                                       # TUI interface
 ```
@@ -154,10 +154,5 @@ go test ./... -cover               # With coverage
 
 ## Test Coverage
 
-| Module  | Domain | App   |
-| ------- | ------ | ----- |
-| Lottery | 91.0%  | 84.3% |
-| Voting  | 87.5%  | 89.8% |
-| NFT     | 90.6%  | 88.1% |
-| Token   | 88.9%  | 91.5% |
-| Oracle  | 89.0%  | 88.6% |
+> 覆盖率的单一事实源在 README「测试覆盖率」一节（`go test -cover` 实测，带
+> `as of` 日期）。这里不再复制数字，避免两处过期副本相互漂移。
