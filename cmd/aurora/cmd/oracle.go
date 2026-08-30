@@ -28,17 +28,20 @@ func newOracleRepo() (*oracleinfra.OracleRepository, func(), error) {
 
 var oracleCmd = &cobra.Command{
 	Use:   "oracle",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.cmd"),
 	Long:  i18n.GetText("oracle.cmd"),
 }
 
 var sourceCmd = &cobra.Command{
 	Use:   "source",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.source.cmd"),
 }
 
 var sourceAddCmd = &cobra.Command{
 	Use:   "add",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.source.add"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
@@ -72,6 +75,7 @@ var sourceAddCmd = &cobra.Command{
 
 var sourceListCmd = &cobra.Command{
 	Use:   "list",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.source.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
@@ -105,6 +109,7 @@ var sourceListCmd = &cobra.Command{
 
 var sourceDeleteCmd = &cobra.Command{
 	Use:   "delete",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.source.delete"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Deleting a source is permanent; require -y/--confirm first.
@@ -130,6 +135,7 @@ var sourceDeleteCmd = &cobra.Command{
 
 var sourceEnableCmd = &cobra.Command{
 	Use:   "enable",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.source.enable"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
@@ -151,6 +157,7 @@ var sourceEnableCmd = &cobra.Command{
 
 var sourceDisableCmd = &cobra.Command{
 	Use:   "disable",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.source.disable"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
@@ -172,6 +179,7 @@ var sourceDisableCmd = &cobra.Command{
 
 var fetchCmd = &cobra.Command{
 	Use:   "fetch",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.fetch"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
@@ -201,6 +209,7 @@ var fetchCmd = &cobra.Command{
 
 var dataCmd = &cobra.Command{
 	Use:   "data",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.data.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
@@ -231,6 +240,7 @@ var dataCmd = &cobra.Command{
 
 var latestCmd = &cobra.Command{
 	Use:   "latest",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.latest"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
@@ -261,11 +271,13 @@ var latestCmd = &cobra.Command{
 
 var templateCmd = &cobra.Command{
 	Use:   "template",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.template.cmd"),
 }
 
 var templateListCmd = &cobra.Command{
 	Use:   "list",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.template.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		templates := oracleapp.ListTemplates()
@@ -279,6 +291,7 @@ var templateListCmd = &cobra.Command{
 
 var templateAddCmd = &cobra.Command{
 	Use:   "add",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.template.add"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, cleanup, err := newOracleRepo()
@@ -315,6 +328,7 @@ var templateAddCmd = &cobra.Command{
 
 var oracleTuiCmd = &cobra.Command{
 	Use:   "tui",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("oracle.tui"),
 	// RunE (not Run): repo-open and TUI failures must propagate to Execute()
 	// so the process exits 1 and the error goes to stderr — the old Run:

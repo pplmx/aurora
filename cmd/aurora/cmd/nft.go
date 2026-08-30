@@ -15,6 +15,7 @@ import (
 
 var nftCmd = &cobra.Command{
 	Use:   "nft",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.cmd"),
 	Long:  i18n.GetText("nft.cmd"),
 }
@@ -60,6 +61,7 @@ func nftChain() *blockchain.BlockChain {
 
 var nftTuiCmd = &cobra.Command{
 	Use:   "tui",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.tui.cmd"),
 	// RunE (not Run): a TUI failure must propagate to Execute() so the process
 	// exits 1 and the error goes to stderr — the old Run: printed to stdout
@@ -72,6 +74,7 @@ var nftTuiCmd = &cobra.Command{
 
 var mintCmd = &cobra.Command{
 	Use:   "mint",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.mint"),
 	Example: `  aurora nft mint -n "MyNFT" -d "A unique digital asset" -c "creator-pubkey"
   aurora nft mint -n "GameItem #1" -d "Rare sword" -c "player-key" -i "https://example.com/item.png"`,
@@ -112,6 +115,7 @@ var mintCmd = &cobra.Command{
 
 var transferCmd = &cobra.Command{
 	Use:   "transfer",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.transfer"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
@@ -148,6 +152,7 @@ var transferCmd = &cobra.Command{
 
 var burnCmd = &cobra.Command{
 	Use:   "burn",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.burn"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Burning permanently destroys an NFT; require -y/--confirm first
@@ -182,6 +187,7 @@ var burnCmd = &cobra.Command{
 
 var getCmd = &cobra.Command{
 	Use:   "get",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.get"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
@@ -212,6 +218,7 @@ var getCmd = &cobra.Command{
 
 var listCmd = &cobra.Command{
 	Use:   "list",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
@@ -242,6 +249,7 @@ var listCmd = &cobra.Command{
 
 var nftHistoryCmd = &cobra.Command{
 	Use:   "history",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("nft.history"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()

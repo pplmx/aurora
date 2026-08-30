@@ -75,6 +75,7 @@ func newTokenService() (*token.TokenService, func(), error) {
 
 var tokenCmd = &cobra.Command{
 	Use:   "token",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.cmd"),
 	Long:  i18n.GetText("token.cmd"),
 }
@@ -183,6 +184,7 @@ func init() {
 
 var tokenCreateCmd = &cobra.Command{
 	Use:   "create",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.create.cmd"),
 	Example: `  aurora token create -n "MyToken" -s "MTK" --supply 1000000
   aurora token create -n "GamingCoin" -s "GAME" --supply 1000000000`,
@@ -232,6 +234,7 @@ var tokenCreateCmd = &cobra.Command{
 
 var tokenMintCmd = &cobra.Command{
 	Use:   "mint",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.mint.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
@@ -269,6 +272,7 @@ var tokenMintCmd = &cobra.Command{
 
 var tokenTransferCmd = &cobra.Command{
 	Use:   "transfer",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.transfer.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
@@ -309,6 +313,7 @@ var tokenTransferCmd = &cobra.Command{
 
 var tokenApproveCmd = &cobra.Command{
 	Use:   "approve",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.approve.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
@@ -349,6 +354,7 @@ var tokenApproveCmd = &cobra.Command{
 
 var tokenTransferFromCmd = &cobra.Command{
 	Use:   "transfer-from",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.transfer_from.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
@@ -392,6 +398,7 @@ var tokenTransferFromCmd = &cobra.Command{
 
 var tokenBurnCmd = &cobra.Command{
 	Use:   "burn",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.burn.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Burn permanently destroys tokens; require -y/--confirm first
@@ -434,6 +441,7 @@ var tokenBurnCmd = &cobra.Command{
 
 var tokenBalanceCmd = &cobra.Command{
 	Use:   "balance",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.balance.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
@@ -467,6 +475,7 @@ var tokenBalanceCmd = &cobra.Command{
 
 var tokenAllowanceCmd = &cobra.Command{
 	Use:   "allowance",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.allowance.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
@@ -503,6 +512,7 @@ var tokenAllowanceCmd = &cobra.Command{
 
 var tokenHistoryCmd = &cobra.Command{
 	Use:   "history",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.history.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
@@ -556,6 +566,7 @@ var tokenHistoryCmd = &cobra.Command{
 
 var tokenInfoCmd = &cobra.Command{
 	Use:   "info",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.info.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, cleanup, err := newTokenService()
@@ -589,6 +600,7 @@ var tokenInfoCmd = &cobra.Command{
 
 var tokenTuiCmd = &cobra.Command{
 	Use:   "tui",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("token.tui.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return tokenui.RunTokenTUI()
