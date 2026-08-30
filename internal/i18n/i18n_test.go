@@ -288,3 +288,30 @@ func TestLazyDefaultFollowsLocale(tt *testing.T) {
 	got := GetTranslator().GetLocale()
 	require.Equal(tt, "zh", got, "lazy default must follow LANG=zh for package-init help texts")
 }
+
+// TestLocalesHaveMatchingKeys pins the en↔zh parity contract: every key
+// present in one shipped locale must exist in the other. A missing zh key
+// silently falls back to English (GetText's ok-check), which is exactly how
+// hardcoded English leaks into zh-locale sessions one key at a time (TASK-130
+// family; the help screen gained tui.help.scroll without a zh twin would have
+// regressed this).
+func TestLocalesHaveMatchingKeys(t *testing.T) {
+	tr := GetTranslator()
+	tr.mu.RLock()
+	defer tr.mu.RUnlock()
+	en := tr.messages["en"]
+	zh := tr.messages["zh"]
+	require.NotEmpty(t, en, "en locale must be shipped")
+	require.NotEmpty(t, zh, "zh locale must be shipped")
+
+	for key := range en {
+		if _, ok := zh[key]; !ok {
+			t.Errorf("zh is missing key %q (present in en)", key)
+		}
+	}
+	for key := range zh {
+		if _, ok := en[key]; !ok {
+			t.Errorf("en is missing key %q (present in zh)", key)
+		}
+	}
+}

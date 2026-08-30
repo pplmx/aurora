@@ -13,6 +13,7 @@ func HelpView() string {
 	s := HeaderStyle().Render("⌨ "+i18n.GetText("tui.help.title")) + "\n\n"
 	s += InfoStyle().Render(i18n.GetText("tui.help.nav_header")) + "\n"
 	s += "  " + i18n.GetText("tui.help.up_down") + "\n"
+	s += "  " + i18n.GetText("tui.help.scroll") + "\n"
 	s += "  " + i18n.GetText("tui.help.tab") + "\n"
 	s += "  " + i18n.GetText("tui.help.enter") + "\n"
 	s += "  " + i18n.GetText("tui.help.esc") + "\n"
