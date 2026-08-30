@@ -1246,3 +1246,40 @@ func TestLoadFetchResult_SetsViewportContent(t *testing.T) {
 	assert.Contains(t, app.fetchResultView(), "f1")
 	assert.Contains(t, app.fetchResultView(), "v1")
 }
+
+// ===== TASK-178: TUI query limit clamp =====
+// The CLI and REST API bound the oracle query limit to [1,100]; the TUI
+// reached the use case directly with the raw input, so an inflated number
+// forced an unbounded DB scan. clampQueryLimitValue pins the same contract.
+
+func TestClampQueryLimitValue(t *testing.T) {
+	cases := []struct {
+		raw  string
+		want int
+	}{
+		{"", 10},
+		{"   ", 10},
+		{"abc", 10},
+		{"0", 10},
+		{"-5", 10},
+		{"3", 3},
+		{"50", 50},
+		{"100", 100},
+		{"101", 100},
+		{"999999999", 100},
+		{"  7  ", 7},
+	}
+	for _, tc := range cases {
+		assert.Equal(t, tc.want, clampQueryLimitValue(tc.raw), "clampQueryLimitValue(%q)", tc.raw)
+	}
+}
+
+func TestHandleQuery_ClampsInflatedLimit(t *testing.T) {
+	repo := &mockRepo{sources: []*oracle.DataSource{{ID: "s1", Name: "S"}}}
+	app := NewOracleApp(repo)
+	app.view = "query"
+	app.queryInputSource.SetValue("s1")
+	app.queryInputLimit.SetValue("999999999")
+	app.handleQuery()
+	assert.NotEmpty(t, app.queryResult, "a clamped query still succeeds")
+}
