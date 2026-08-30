@@ -160,12 +160,12 @@ func (tr *Translator) loadMessages() {
 		"voting.duration":     "Duration (seconds)",
 
 		// Messages
-		"voting.candidate_added":    "Candidate registered successfully!",
+		"voting.candidate_added":    "Candidate registered: %s",
 		"voting.voter_registered":   "Voter registered successfully!",
 		"voting.vote_cast":          "Vote cast successfully!",
-		"voting.session_created":    "Voting session created!",
-		"voting.session_started":    "Voting session started!",
-		"voting.session_ended":      "Voting session ended!",
+		"voting.session_created":    "Voting session created: %s",
+		"voting.session_started":    "Session started!",
+		"voting.session_ended":      "Session ended!",
 		"voting.no_candidates":      "No candidates found",
 		"voting.no_voters":          "No voters found",
 		"voting.no_sessions":        "No voting sessions",
@@ -336,11 +336,12 @@ func (tr *Translator) loadMessages() {
 		"oracle.limit":       "Limit results",
 
 		// Messages
-		"oracle.source_added":    "Data source added successfully!",
+		"oracle.source_added":    "Data source created: %s",
 		"oracle.source_enabled":  "Data source enabled!",
 		"oracle.source_disabled": "Data source disabled!",
 		"oracle.source_deleted":  "Data source deleted!",
 		"oracle.fetched":         "Data fetched successfully!",
+		"oracle.template_added":  "Template added: %s",
 		"oracle.no_sources":      "No data sources found",
 		"oracle.no_data":         "No data found",
 		"oracle.fetch_error":     "Failed to fetch data",
@@ -555,12 +556,12 @@ func (tr *Translator) loadMessages() {
 		"voting.duration":     "持续时间（秒）",
 
 		// Messages
-		"voting.candidate_added":    "候选人注册成功！",
+		"voting.candidate_added":    "候选人已注册：%s",
 		"voting.voter_registered":   "投票人注册成功！",
 		"voting.vote_cast":          "投票成功！",
-		"voting.session_created":    "投票会话已创建！",
-		"voting.session_started":    "投票已开始！",
-		"voting.session_ended":      "投票已结束！",
+		"voting.session_created":    "投票会话已创建：%s",
+		"voting.session_started":    "会话已开始！",
+		"voting.session_ended":      "会话已结束！",
 		"voting.no_candidates":      "暂无候选人",
 		"voting.no_voters":          "暂无投票人",
 		"voting.no_sessions":        "暂无投票会话",
@@ -731,11 +732,12 @@ func (tr *Translator) loadMessages() {
 		"oracle.limit":       "限制结果数",
 
 		// Messages
-		"oracle.source_added":    "数据源添加成功！",
+		"oracle.source_added":    "数据源已创建：%s",
 		"oracle.source_enabled":  "数据源已启用！",
 		"oracle.source_disabled": "数据源已禁用！",
 		"oracle.source_deleted":  "数据源已删除！",
 		"oracle.fetched":         "数据获取成功！",
+		"oracle.template_added":  "模板已添加：%s",
 		"oracle.no_sources":      "暂无数据源",
 		"oracle.no_data":         "未找到数据",
 		"oracle.fetch_error":     "数据获取失败",

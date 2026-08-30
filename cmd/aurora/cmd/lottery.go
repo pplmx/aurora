@@ -506,7 +506,7 @@ var resetCmd = &cobra.Command{
 		blockchain.GetBlockChain().ResetBlocks()
 
 		logger.Info().Msg("Database reset successfully")
-		fmt.Println("✅ Database reset complete!")
+		fmt.Println("✅ " + i18n.GetText("lottery.reset_done"))
 		return nil
 	},
 }
