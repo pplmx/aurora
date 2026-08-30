@@ -153,7 +153,7 @@ func init() {
 	tokenBurnCmd.Flags().StringP("from", "f", "", i18n.GetText("token.from"))
 	tokenBurnCmd.Flags().StringP("amount", "a", "", i18n.GetText("token.amount"))
 	tokenBurnCmd.Flags().StringP("private-key", "k", "", i18n.GetText("token.private_key"))
-	addConfirmFlag(tokenBurnCmd, "Permanently destroy the tokens (requires --confirm)")
+	addConfirmFlag(tokenBurnCmd, "cli.confirm.token_burn")
 	_ = tokenBurnCmd.MarkFlagRequired("token")
 	_ = tokenBurnCmd.MarkFlagRequired("from")
 	_ = tokenBurnCmd.MarkFlagRequired("amount")
@@ -403,7 +403,7 @@ var tokenBurnCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Burn permanently destroys tokens; require -y/--confirm first
 		// (matches backup restore --confirm / lottery reset --yes).
-		if err := requireConfirm(cmd, "permanently destroys tokens"); err != nil {
+		if err := requireConfirm(cmd, "cli.confirm.token_burn"); err != nil {
 			return err
 		}
 		service, cleanup, err := newTokenService()
