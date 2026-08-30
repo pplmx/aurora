@@ -317,6 +317,10 @@ function blockchainApp() {
         async verify() {
             this.loading = true;
             this.error = '';
+            // Drop the previous report up front so a failed verify can never
+            // leave a stale green "Valid: Yes" rendered beneath the new error
+            // line (contradictory output, ISS-187).
+            this.report = null;
             try {
                 const res = await apiFetch('/api/v1/blockchain/verify');
                 this.report = await res.json();
@@ -406,6 +410,11 @@ function nftApp() {
                     to: this.to,
                     private_key: this.privateKey
                 });
+                // Advance the shared owner context to the recipient, mirroring
+                // the mint/ token-mint context advances (TASK-150/151): the
+                // List-by-Owner and Burn forms otherwise still target the
+                // pre-transfer owner and Burn errors "not the owner" (ISS-186).
+                if (this.to) this.owner = this.to;
             } catch (e) {
                 this.transferResult = 'Error: ' + e.message;
             }
