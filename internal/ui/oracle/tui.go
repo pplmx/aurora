@@ -3,6 +3,8 @@ package oracle
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
@@ -957,10 +959,11 @@ func (m *model) handleQuery() {
 		return
 	}
 
-	limit := 10
-	if m.queryInputLimit.Value() != "" {
-		_, _ = fmt.Sscanf(m.queryInputLimit.Value(), "%d", &limit)
-	}
+	// The CLI (clampQueryLimit) and the REST API (maxQueryLimit) both bound
+	// the query limit to [1, maxTUIQueryLimit]; the TUI reached the use case
+	// directly, so a stray/inflated number (e.g. 999999999) would have forced
+	// an unbounded DB scan that the other two surfaces reject (TASK-178).
+	limit := clampQueryLimitValue(m.queryInputLimit.Value())
 
 	queryUseCase := oracleapp.NewGetDataUseCase(m.repo)
 	result, err := queryUseCase.Execute(&oracleapp.GetDataRequest{SourceID: sourceID, Limit: limit})
@@ -992,6 +995,28 @@ func (m *model) loadQueryResult() {
 	}
 	m.viewport.SetContent(s)
 	m.viewport.GotoTop()
+}
+
+// maxTUIQueryLimit mirrors the REST API handler cap (maxQueryLimit=100) and the
+// CLI's maxCLIQueryLimit so the TUI cannot drive an unbounded DB scan either
+// (TASK-178).
+const maxTUIQueryLimit = 100
+
+// clampQueryLimitValue parses the query limit input and clamps it into
+// [1, maxTUIQueryLimit], defaulting to 10 when empty/invalid/<=0 — the same
+// contract as the CLI's clampQueryLimit and the API handler.
+func clampQueryLimitValue(raw string) int {
+	if raw == "" {
+		return 10
+	}
+	v, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || v <= 0 {
+		return 10
+	}
+	if v > maxTUIQueryLimit {
+		return maxTUIQueryLimit
+	}
+	return v
 }
 
 func RunOracleTUI(repo domainoracle.Repository) error {
