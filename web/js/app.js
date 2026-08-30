@@ -472,6 +472,7 @@ function votingApp() {
         controlResult: '',
         candidates: [],
         sessions: [],
+        sessionsFailed: false,
         loading: true,
         async init() {
             await Promise.all([this.loadCandidates(), this.loadSessions()]);
@@ -492,9 +493,13 @@ function votingApp() {
                 const res = await apiFetch('/api/v1/voting/sessions');
                 const data = await res.json();
                 this.sessions = Array.isArray(data) ? data : [];
+                this.sessionsFailed = false;
             } catch (e) {
+                // Distinguish "nothing created yet" from "couldn't load" so a
+                // first-load failure (no polling on this page; the banner shows
+                // the API error) isn't misread as an empty system (ISS-191).
                 this.sessions = [];
-                console.error(e);
+                this.sessionsFailed = true;
             }
         },
         candidateNames(ids) {
@@ -795,7 +800,7 @@ function tokenApp() {
 
 function oracleApp() {
     return withBusy({
-        sources: [], loading: true,
+        sources: [], sourcesFailed: false, loading: true,
         health: [], loadingHealth: true,
         addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
         templates: [],
@@ -904,7 +909,13 @@ function oracleApp() {
                 const res = await apiFetch('/api/v1/oracle/sources');
                 const data = await res.json();
                 this.sources = (data && data.sources) || [];
-            } catch (e) { /* keep prior rows; apiFetch's shared banner shows the error */ }
+                this.sourcesFailed = false;
+            } catch (e) {
+                // Keep prior rows during a background poll refresh, but flag a
+                // first-load failure so "(no sources)" isn't shown for an API
+                // error the banner is already surfacing (ISS-191).
+                this.sourcesFailed = true;
+            }
             this.loading = false;
         },
         async fetch() {

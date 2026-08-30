@@ -48,7 +48,8 @@
                     </tbody>
                 </table>
                 <p x-show="sourcesError" class="result" x-text="sourcesError"></p>
-                <p x-show="!loading && sources.length === 0">(no sources)</p>
+                <p x-show="!loading && sources.length === 0 && !sourcesFailed">(no sources)</p>
+                <p x-show="!loading && sources.length === 0 && sourcesFailed" class="hint">Failed to load sources — check the API / refresh.</p>
             </section>
             <section class="create-form">
                 <h2>Add Source</h2>
