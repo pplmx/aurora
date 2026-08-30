@@ -104,7 +104,7 @@ var mintCmd = &cobra.Command{
 			return fmt.Errorf("failed to mint NFT: %w", err)
 		}
 
-		fmt.Println("✅ NFT minted successfully!")
+		fmt.Println("✅ " + i18n.GetText("nft.minted"))
 		fmt.Printf("   ID: %s\n", result.ID)
 		fmt.Printf("   Name: %s\n", result.Name)
 		fmt.Printf("   Owner: %s\n", result.Owner)
@@ -141,7 +141,7 @@ var transferCmd = &cobra.Command{
 			return fmt.Errorf("failed to transfer NFT: %w", err)
 		}
 
-		fmt.Println("✅ NFT transferred successfully!")
+		fmt.Println("✅ " + i18n.GetText("nft.transferred"))
 		fmt.Printf("   Operation ID: %s\n", result.ID)
 		fmt.Printf("   From: %s\n", truncateBase64(result.From))
 		fmt.Printf("   To: %s\n", truncateBase64(result.To))
@@ -180,7 +180,7 @@ var burnCmd = &cobra.Command{
 			return fmt.Errorf("failed to burn NFT: %w", err)
 		}
 
-		fmt.Println("✅ NFT burned successfully!")
+		fmt.Println("✅ " + i18n.GetText("nft.burned"))
 		return nil
 	},
 }

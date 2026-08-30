@@ -109,7 +109,7 @@ var candidateAddCmd = &cobra.Command{
 			return fmt.Errorf("failed to register candidate: %w", err)
 		}
 
-		fmt.Printf("✅ Candidate registered: %s\n", cand.Name)
+		fmt.Printf("✅ "+i18n.GetText("voting.candidate_added")+"\n", cand.Name)
 		fmt.Printf("   ID: %s\n", cand.ID)
 		fmt.Printf("   Party: %s\n", cand.Party)
 		return nil
@@ -171,7 +171,7 @@ var voterRegisterCmd = &cobra.Command{
 			return fmt.Errorf("failed to register voter: %w", err)
 		}
 
-		fmt.Println("✅ Voter registered successfully!")
+		fmt.Println("✅ " + i18n.GetText("voting.voter_registered"))
 		fmt.Printf("\n📣 Public Key (share this for verification):\n   %s\n", resp.PublicKey)
 		fmt.Printf("\n🔐 Private Key (SAVE THIS SECURELY!):\n   %s\n", resp.PrivateKey)
 		return nil
@@ -249,7 +249,7 @@ var voteCmd = &cobra.Command{
 			return fmt.Errorf("failed to cast vote: %w", err)
 		}
 
-		fmt.Println("✅ Vote cast successfully!")
+		fmt.Println("✅ " + i18n.GetText("voting.vote_cast"))
 		fmt.Printf("   Vote ID:     %s\n", record.ID)
 		fmt.Printf("   Block Height: %d\n", record.BlockHeight)
 		return nil
@@ -293,7 +293,7 @@ var sessionCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to create session: %w", err)
 		}
 
-		fmt.Printf("✅ Session created: %s\n", session.Title)
+		fmt.Printf("✅ "+i18n.GetText("voting.session_created")+"\n", session.Title)
 		fmt.Printf("   ID: %s\n", session.ID)
 		fmt.Printf("   Status: %s\n", session.Status)
 		return nil
@@ -352,7 +352,7 @@ var sessionStartCmd = &cobra.Command{
 			return fmt.Errorf("failed to start session: %w", err)
 		}
 
-		fmt.Println("✅ Session started!")
+		fmt.Println("✅ " + i18n.GetText("voting.session_started"))
 		return nil
 	},
 }
@@ -382,7 +382,7 @@ var sessionEndCmd = &cobra.Command{
 			return fmt.Errorf("failed to end session: %w", err)
 		}
 
-		fmt.Println("✅ Session ended!")
+		fmt.Println("✅ " + i18n.GetText("voting.session_ended"))
 		return nil
 	},
 }

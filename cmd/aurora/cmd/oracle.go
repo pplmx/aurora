@@ -66,7 +66,7 @@ var sourceAddCmd = &cobra.Command{
 			return fmt.Errorf("failed to register data source: %w", err)
 		}
 
-		fmt.Printf("✅ Data source created: %s\n", resp.Name)
+		fmt.Printf("✅ "+i18n.GetText("oracle.source_added")+"\n", resp.Name)
 		fmt.Printf("   ID: %s\n", resp.ID)
 		fmt.Printf("   URL: %s\n", resp.URL)
 		return nil
@@ -128,7 +128,7 @@ var sourceDeleteCmd = &cobra.Command{
 		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to delete data source: %w", err)
 		}
-		fmt.Println("✅ Data source deleted!")
+		fmt.Println("✅ " + i18n.GetText("oracle.source_deleted"))
 		return nil
 	},
 }
@@ -150,7 +150,7 @@ var sourceEnableCmd = &cobra.Command{
 		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to enable data source: %w", err)
 		}
-		fmt.Println("✅ Data source enabled!")
+		fmt.Println("✅ " + i18n.GetText("oracle.source_enabled"))
 		return nil
 	},
 }
@@ -172,7 +172,7 @@ var sourceDisableCmd = &cobra.Command{
 		if err := uc.Execute(id); err != nil {
 			return fmt.Errorf("failed to disable data source: %w", err)
 		}
-		fmt.Println("✅ Data source disabled!")
+		fmt.Println("✅ " + i18n.GetText("oracle.source_disabled"))
 		return nil
 	},
 }
@@ -199,7 +199,7 @@ var fetchCmd = &cobra.Command{
 			return fmt.Errorf("failed to fetch data: %w", err)
 		}
 
-		fmt.Println("✅ Data fetched successfully!")
+		fmt.Println("✅ " + i18n.GetText("oracle.fetched"))
 		fmt.Printf("   Value: %s\n", resp.Value)
 		fmt.Printf("   Timestamp: %d\n", resp.Timestamp)
 		fmt.Printf("   Block Height: %d\n", resp.BlockHeight)
@@ -320,7 +320,7 @@ var templateAddCmd = &cobra.Command{
 			return fmt.Errorf("failed to add template: %w", err)
 		}
 
-		fmt.Printf("✅ Template added: %s\n", resp.Name)
+		fmt.Printf("✅ "+i18n.GetText("oracle.template_added")+"\n", resp.Name)
 		fmt.Printf("   ID: %s\n", resp.ID)
 		return nil
 	},
