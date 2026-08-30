@@ -37,7 +37,7 @@
                         <label>Count</label>
                         <input type="number" x-model="count" min="1" value="1" required>
                     </div>
-                    <button type="submit" class="btn-lottery">Create Lottery</button>
+                    <button type="submit" class="btn-lottery" :disabled="busy.createLottery">Create Lottery</button>
                 </form>
                 <div x-show="result" class="result" x-text="result"></div>
             </section>
@@ -73,7 +73,7 @@
                         <label>Lottery ID</label>
                         <input type="text" x-model="verifyId" placeholder="Lottery ID" required>
                     </div>
-                    <button type="submit" class="btn-lottery">Verify Draw</button>
+                    <button type="submit" class="btn-lottery" :disabled="busy.verifyDraw">Verify Draw</button>
                 </form>
                 <pre x-show="verifyResult" class="result" x-text="verifyResult"></pre>
             </section>

@@ -287,3 +287,74 @@ const fs = require('fs');
 	require.Contains(t, string(out), `["post-json","testkey","application/json"]`,
 		"apiFetch must merge the API key with caller-supplied headers")
 }
+
+// TestWebUIJS_BusyGuardPreventsDoubleSubmit executes the SHIPPED web/js/app.js
+// in Node with stubbed window/document/fetch and asserts the withBusy guard
+// (TASK-177, ISS-175): every guarded app exposes a per-action busy.<name>
+// flag, the flag is true while a request is in flight, a re-entrant call is
+// swallowed (no second fetch), and the flag clears when the request settles.
+// The syntax gate only parses app.js; this runs it, so a regression in the
+// guard (a flag never set, a wrapper dropped) fails go test here instead of
+// duplicating records in the browser. Skips cleanly without node, mirroring
+// TestWebUIJS_SyntaxValid.
+func TestWebUIJS_BusyGuardPreventsDoubleSubmit(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js busy-guard check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	// Stub the browser globals app.js needs at load time, count fetch calls,
+	// then drive a guarded read action (verifyDraw does a single fetch and
+	// no chained refresh): it must flip busy.<name> on, swallow a
+	// double-submit (fetch count stays 1), and flip back off on completion.
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+let calls = 0;
+let release = null;
+global.fetch = (url, init) => {
+  calls += 1;
+  return new Promise((res) => { release = () => res({ ok: true, json: () => Promise.resolve({ id: 'x1' }) }); });
+};
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  const app = global.lotteryApp();
+  if (typeof app.busy !== 'object' || app.busy.verifyDraw !== false) {
+    console.error('busy.verifyDraw must exist and start false'); process.exit(1);
+  }
+  app.verifyId = 'L1';
+  const p1 = app.verifyDraw();
+  if (app.busy.verifyDraw !== true) {
+    console.error('busy.verifyDraw must be true while in flight'); process.exit(1);
+  }
+  // The wrapped body starts on a queued microtask; await one so the first
+  // fetch has actually fired before we assert on the re-entrant swallowing.
+  await Promise.resolve();
+  const p2 = app.verifyDraw();           // double-click while in flight
+  if (calls !== 1) {
+    console.error('re-entrant submit must not fire a second fetch, got ' + calls); process.exit(1);
+  }
+  release();                              // let the first request settle
+  await p1;
+  await p2;                               // swallowed call resolves harmlessly
+  if (app.busy.verifyDraw !== false) {
+    console.error('busy.verifyDraw must clear after settle'); process.exit(1);
+  }
+  if (calls !== 1) {
+    console.error('exactly one fetch must have fired, got ' + calls); process.exit(1);
+  }
+  console.log('busy-guard-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "busy_guard_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js busy guard failed:\n%s", out)
+	require.Contains(t, string(out), "busy-guard-ok", "web/js/app.js withBusy must guard double-submits")
+}

@@ -153,6 +153,15 @@ button:hover {
     opacity: 0.9;
 }
 
+/* A :disabled submit button signals its request is in flight; greying it
+ * reinforces the busy state and makes the double-click guard visible
+ * (TASK-177, ISS-175). The transition keeps the flash from being jarring. */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transition: opacity 0.15s ease;
+}
+
 .btn-refresh {
     padding: 4px 12px;
     font-size: 0.8rem;

@@ -29,7 +29,7 @@
                         <label>Voter Name</label>
                         <input type="text" x-model="voterName" placeholder="Voter name" required>
                     </div>
-                    <button type="submit" class="btn-voting">Register Voter</button>
+                    <button type="submit" class="btn-voting" :disabled="busy.registerVoter">Register Voter</button>
                 </form>
                 <div x-show="voterResult" class="result" x-text="voterResult"></div>
                 <p class="proposal-meta" x-show="voterPrivateKey">Keep this private key to cast votes:
@@ -51,7 +51,7 @@
                         <label>Program</label>
                         <input type="text" x-model="candProgram" placeholder="Program (optional)">
                     </div>
-                    <button type="submit" class="btn-voting">Register Candidate</button>
+                    <button type="submit" class="btn-voting" :disabled="busy.registerCandidate">Register Candidate</button>
                 </form>
                 <div x-show="candResult" class="result" x-text="candResult"></div>
             </section>
@@ -92,7 +92,7 @@
                          at least one candidate is checked instead of letting the
                          operator hit the server-side error (web-audit; candidate
                          checkboxes have no HTML-required group semantics). -->
-                    <button type="submit" class="btn-voting" :disabled="sessionCandidateIds.length === 0">Create Session</button>
+                    <button type="submit" class="btn-voting" :disabled="busy.createSession || sessionCandidateIds.length === 0">Create Session</button>
                 </form>
                 <div x-show="sessionResult" class="result" x-text="sessionResult"></div>
             </section>
@@ -120,8 +120,8 @@
                         <label>Session ID</label>
                         <input type="text" x-model="controlSessionId" placeholder="Session ID" required>
                     </div>
-                    <button type="submit" class="btn-voting">Start Session</button>
-                    <button type="button" class="btn-voting" @click="endSession">End Session</button>
+                    <button type="submit" class="btn-voting" :disabled="busy.startSession">Start Session</button>
+                    <button type="button" class="btn-voting" :disabled="busy.endSession" @click="endSession">End Session</button>
                 </form>
                 <div x-show="controlResult" class="result" x-text="controlResult"></div>
             </section>
@@ -155,7 +155,7 @@
                         <label>Voter Private Key</label>
                         <input type="text" x-model="votePriv" placeholder="Voter private key (from registration)" required>
                     </div>
-                    <button type="submit" class="btn-voting">Cast Vote</button>
+                    <button type="submit" class="btn-voting" :disabled="busy.castVote">Cast Vote</button>
                 </form>
                 <div x-show="voteResult" class="result" x-text="voteResult"></div>
             </section>
@@ -166,7 +166,7 @@
                         <label>Session ID</label>
                         <input type="text" x-model="resultsSessionId" placeholder="Session ID" required>
                     </div>
-                    <button type="submit" class="btn-voting">Show Results</button>
+                    <button type="submit" class="btn-voting" :disabled="busy.loadResults">Show Results</button>
                 </form>
                 <div x-show="resultsError" class="result" x-text="resultsError"></div>
                 <table x-show="results" x-data>
