@@ -39,9 +39,9 @@
                                 <td x-text="s.id"></td>
                                 <td x-text="s.enabled ? 'enabled' : 'disabled'"></td>
                                 <td>
-                                    <button type="button" class="btn-lottery" @click="setEnabled(s, true)" x-show="!s.enabled">Enable</button>
-                                    <button type="button" class="btn-lottery" @click="setEnabled(s, false)" x-show="s.enabled">Disable</button>
-                                    <button type="button" class="btn-voting" @click="deleteSource(s)">Delete</button>
+                                    <button type="button" class="btn-lottery" :disabled="busy.setEnabled" @click="setEnabled(s, true)" x-show="!s.enabled">Enable</button>
+                                    <button type="button" class="btn-lottery" :disabled="busy.setEnabled" @click="setEnabled(s, false)" x-show="s.enabled">Disable</button>
+                                    <button type="button" class="btn-voting" :disabled="busy.deleteSource" @click="deleteSource(s)">Delete</button>
                                 </td>
                             </tr>
                         </template>
@@ -68,7 +68,7 @@
                     <div class="form-group"><label>Method</label><input type="text" x-model="addMethod" placeholder="GET (optional)"></div>
                     <div class="form-group"><label>Path</label><input type="text" x-model="addPath" placeholder="data field path (optional)"></div>
                     <div class="form-group"><label>Interval (seconds)</label><input type="number" x-model="addInterval" min="1"></div>
-                    <button type="submit" class="btn-lottery">Add Source</button>
+                    <button type="submit" class="btn-lottery" :disabled="busy.addSource">Add Source</button>
                 </form>
                 <pre x-show="addResult" class="result" x-text="addResult"></pre>
             </section>
@@ -96,7 +96,7 @@
                 <h2>Fetch Data</h2>
                 <form @submit.prevent="fetch">
                     <div class="form-group"><label>Source ID</label><input type="text" x-model="fetchSource" required></div>
-                    <button type="submit" class="btn-lottery">Fetch</button>
+                    <button type="submit" class="btn-lottery" :disabled="busy.fetch">Fetch</button>
                 </form>
                 <pre x-show="fetchResult" class="result" x-text="fetchResult"></pre>
             </section>
@@ -105,7 +105,7 @@
                 <form @submit.prevent="query">
                     <div class="form-group"><label>Source ID</label><input type="text" x-model="querySource" required></div>
                     <div class="form-group"><label>Limit</label><input type="number" x-model="queryLimit" min="1" max="100"></div>
-                    <button type="submit" class="btn-lottery">Query</button>
+                    <button type="submit" class="btn-lottery" :disabled="busy.query">Query</button>
                 </form>
                 <table x-show="queryRows.length > 0">
                     <thead><tr><th>Timestamp</th><th>Value</th><th>Block #</th></tr></thead>
@@ -125,7 +125,7 @@
                 <h2>Latest Data</h2>
                 <form @submit.prevent="latest">
                     <div class="form-group"><label>Source ID</label><input type="text" x-model="latestSource" required></div>
-                    <button type="submit" class="btn-lottery">Get Latest</button>
+                    <button type="submit" class="btn-lottery" :disabled="busy.latest">Get Latest</button>
                 </form>
                 <pre x-show="latestResult" class="result" x-text="latestResult"></pre>
             </section>

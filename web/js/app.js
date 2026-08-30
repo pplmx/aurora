@@ -77,8 +77,35 @@ function startPolling(target, intervalMs) {
     }, intervalMs);
 }
 
+// withBusy wraps the named async actions of an Alpine app object so each sets
+// a matching `busy.<name>` flag while its request is in flight. Submit buttons
+// bind `:disabled="busy.<name>"`, turning a double-click on a create/transfer
+// form into a no-op instead of a duplicate record (TASK-177, ISS-175).
+//
+// The blockchain page already guarded its single verify button inline with
+// :disabled="loading"; this generalizes exactly that guard to every write
+// form while keeping the flag per-action, so one busy create never disables an
+// unrelated form on the same page. Writes go through `this` (the Alpine
+// reactive component) rather than the raw object so :disabled re-renders —
+// mutating the captured raw object would bypass Alpine's proxy and never
+// update the DOM.
+function withBusy(app, actions) {
+    app.busy = {};
+    for (const name of actions) {
+        app.busy[name] = false;
+        const fn = app[name];
+        app[name] = function (...args) {
+            if (this.busy[name]) return Promise.resolve();
+            this.busy[name] = true;
+            const settled = () => { this.busy[name] = false; };
+            return Promise.resolve().then(() => fn.apply(this, args)).then(settled, settled);
+        };
+    }
+    return app;
+}
+
 function lotteryApp() {
-    return {
+    return withBusy({
         participants: '',
         seed: '',
         count: 1,
@@ -133,7 +160,7 @@ function lotteryApp() {
                 this.result = 'Error: ' + e.message;
             }
         }
-    };
+    }, ['createLottery', 'verifyDraw']);
 }
 
 function dashboardApp() {
@@ -280,7 +307,7 @@ function blockchainApp() {
 // nftApp drives the /nft.html page (v1.27): mint, list-by-owner, get,
 // transfer and burn via the protected /api/v1/nft REST endpoints.
 function nftApp() {
-    return {
+    return withBusy({
         name: '',
         description: '',
         imageUrl: '',
@@ -381,11 +408,11 @@ function nftApp() {
             const data = await res.json();
             return JSON.stringify(data, null, 2);
         }
-    };
+    }, ['mint', 'list', 'get', 'history', 'transfer', 'burn']);
 }
 
 function votingApp() {
-    return {
+    return withBusy({
         voterName: '',
         voterResult: '',
         voterPrivateKey: '',
@@ -570,11 +597,12 @@ function votingApp() {
                 this.controlResult = 'Error: ' + e.message;
             }
         }
-    };
+    }, ['registerVoter', 'registerCandidate', 'createSession', 'castVote',
+        'loadResults', 'startSession', 'endSession']);
 }
 
 function tokenApp() {
-    return {
+    return withBusy({
         name: '', symbol: '', supply: '', createOwner: '', createResult: '',
         tokenId: '', owner: '', balance: '',
         mintTo: '', mintAmount: '', mintPriv: '', mintResult: '',
@@ -727,11 +755,12 @@ function tokenApp() {
         async showHistory() {
             await this.loadHistory();
         }
-    };
+    }, ['createToken', 'getBalance', 'info', 'mint', 'transfer', 'approve',
+        'getAllowance', 'burn', 'transferFrom', 'showHistory']);
 }
 
 function oracleApp() {
-    return {
+    return withBusy({
         sources: [], loading: true,
         health: [], loadingHealth: true,
         addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
@@ -875,5 +904,5 @@ function oracleApp() {
                 this.latestResult = 'Error: ' + e.message;
             }
         }
-    };
+    }, ['addSource', 'setEnabled', 'deleteSource', 'fetch', 'query', 'latest']);
 }

@@ -30,7 +30,7 @@
                     <div class="form-group"><label>Image URL</label><input type="text" x-model="imageUrl" placeholder="optional"></div>
                     <div class="form-group"><label>Token URI</label><input type="text" x-model="tokenUri" placeholder="optional"></div>
                     <div class="form-group"><label>Creator (public key)</label><input type="text" x-model="creator" required></div>
-                    <button type="submit" class="btn-nft">Mint NFT</button>
+                    <button type="submit" class="btn-nft" :disabled="busy.mint">Mint NFT</button>
                 </form>
                 <pre x-show="mintResult" class="result" x-text="mintResult"></pre>
             </section>
@@ -38,7 +38,7 @@
                 <h2>List by Owner</h2>
                 <form @submit.prevent="list">
                     <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
-                    <button type="submit" class="btn-nft">List NFTs</button>
+                    <button type="submit" class="btn-nft" :disabled="busy.list">List NFTs</button>
                 </form>
                 <pre x-show="listResult" class="result" x-text="listResult"></pre>
             </section>
@@ -46,7 +46,7 @@
                 <h2>Get NFT</h2>
                 <form @submit.prevent="get">
                     <div class="form-group"><label>NFT ID</label><input type="text" x-model="id" required></div>
-                    <button type="submit" class="btn-nft">Get NFT</button>
+                    <button type="submit" class="btn-nft" :disabled="busy.get">Get NFT</button>
                 </form>
                 <pre x-show="getResult" class="result" x-text="getResult"></pre>
             </section>
@@ -57,7 +57,7 @@
                     <div class="form-group"><label>From (public key)</label><input type="text" x-model="from" required></div>
                     <div class="form-group"><label>To (public key)</label><input type="text" x-model="to" required></div>
                     <div class="form-group"><label>Private Key</label><input type="password" x-model="privateKey" required></div>
-                    <button type="submit" class="btn-nft">Transfer</button>
+                    <button type="submit" class="btn-nft" :disabled="busy.transfer">Transfer</button>
                 </form>
                 <pre x-show="transferResult" class="result" x-text="transferResult"></pre>
             </section>
@@ -67,7 +67,7 @@
                     <div class="form-group"><label>NFT ID</label><input type="text" x-model="id" required></div>
                     <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
                     <div class="form-group"><label>Private Key</label><input type="password" x-model="privateKey" required></div>
-                    <button type="submit" class="btn-nft">Burn</button>
+                    <button type="submit" class="btn-nft" :disabled="busy.burn">Burn</button>
                 </form>
                 <pre x-show="burnResult" class="result" x-text="burnResult"></pre>
             </section>
@@ -75,7 +75,7 @@
                 <h2>History</h2>
                 <form @submit.prevent="history">
                     <div class="form-group"><label>NFT ID</label><input type="text" x-model="historyId" required></div>
-                    <button type="submit" class="btn-nft">Show History</button>
+                    <button type="submit" class="btn-nft" :disabled="busy.history">Show History</button>
                 </form>
                 <pre x-show="historyResult" class="result" x-text="historyResult"></pre>
             </section>
