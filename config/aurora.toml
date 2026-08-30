@@ -1,6 +1,7 @@
 [server]
 host = "0.0.0.0"
 port = 8080
+# webRoot = "web"   # 托管 Web 界面的目录；默认当前工作目录下的 web/（TASK-181）
 
 [log]
 level = "info"

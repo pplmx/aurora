@@ -357,6 +357,16 @@ func TestOracleSchedulerCheckInterval_DefaultAndOverride(t *testing.T) {
 	require.Equal(t, 5*time.Second, OracleSchedulerCheckInterval())
 }
 
+func TestWebRoot_DefaultAndOverride(t *testing.T) {
+	resetViper()
+	Load() // sets defaults
+	require.Equal(t, "web", WebRoot(), "default web root should be the repo web/ directory")
+
+	resetViper()
+	viper.Set("server.webRoot", "/srv/aurora/static")
+	require.Equal(t, "/srv/aurora/static", WebRoot(), "server.webRoot should let an operator point the file server at an absolute checkout path (ISS-177)")
+}
+
 func TestRateLimitTrustedProxies_DefaultEmptyAndOverride(t *testing.T) {
 	resetViper()
 	Load()

@@ -92,7 +92,7 @@ func newRouter(s *Server) http.Handler {
 		})
 	})
 
-	r.Handle("/*", injectAPIKey(http.FileServer(http.Dir("web")), config.GetAPIKey()))
+	r.Handle("/*", injectAPIKey(http.FileServer(http.Dir(config.WebRoot())), config.GetAPIKey()))
 
 	return r
 }

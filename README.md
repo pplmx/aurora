@@ -133,7 +133,8 @@ just dev          # Docker 开发
 
 Aurora 提供内置的 REST API 与 Web 界面，由独立的 `cmd/api` 二进制启动
 （`./aurora` 是纯 CLI/TUI，不带 HTTP 服务）。Web 页面由 API 服务托管在
-`web/` 目录（需从仓库根目录启动，或配置 web 根路径）。
+`web/` 目录（默认相对当前工作目录；若非从仓库根目录启动，可在 `[server]`
+配置 `webRoot = "/path/to/web"` 指定实际路径，TASK-181）。
 
 ```bash
 go build -o aurora-api ./cmd/api
