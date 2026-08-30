@@ -127,6 +127,27 @@ func TestRootCommandTree(t *testing.T) {
 	assert.Subset(t, names, []string{"create", "history", "verify", "export", "import", "stats"})
 }
 
+// TestFlagOnlyCommandsRejectStrayArgs is the ISS-179 regression at the
+// structure level: every subcommand under token/nft/oracle/voting previously
+// used Cobra's default ArbitraryArgs, silently ACCEPTING AND IGNORING stray
+// positional args — a typo'd/misplaced argument (a copy-pasted id next to a
+// flag-only command, or flags mixed from two commands) ran with surprising
+// behavior and no diagnostic. Each of these commands now declares
+// Args: cobra.NoArgs (lottery/backup/migrate already validated their own), and
+// this pins that any future subcommand in the four flag-only modules carries
+// an explicit validator instead of the silent-default.
+func TestFlagOnlyCommandsRejectStrayArgs(t *testing.T) {
+	var missing []string
+	for _, root := range []*cobra.Command{tokenCmd, nftCmd, oracleCmd, votingCmd} {
+		walkCommands(root, func(name string, c *cobra.Command) {
+			if c.Args == nil {
+				missing = append(missing, root.Name()+"/"+name)
+			}
+		})
+	}
+	require.Empty(t, missing, "flag-only subcommands must declare an Args validator so stray args error instead of being silently dropped: %v", missing)
+}
+
 // TestNoCommandSilentlySwallowsErrors is the ISS-083 regression at the
 // structure level: a command that defines Run (instead of RunE) and does
 // fmt.Println("Error:", err) inside can never fail — Execute() sees nil and the

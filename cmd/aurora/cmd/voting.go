@@ -73,17 +73,20 @@ var (
 
 var votingCmd = &cobra.Command{
 	Use:   "voting",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.cmd"),
 	Long:  i18n.GetText("voting.cmd"),
 }
 
 var candidateCmd = &cobra.Command{
 	Use:   "candidate",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.candidate.cmd"),
 }
 
 var candidateAddCmd = &cobra.Command{
 	Use:   "add",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.candidate.add"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, _ := cmd.Flags().GetString("name")
@@ -115,6 +118,7 @@ var candidateAddCmd = &cobra.Command{
 
 var candidateListCmd = &cobra.Command{
 	Use:   "list",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.candidate.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
@@ -142,11 +146,13 @@ var candidateListCmd = &cobra.Command{
 
 var voterCmd = &cobra.Command{
 	Use:   "voter",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.voter.cmd"),
 }
 
 var voterRegisterCmd = &cobra.Command{
 	Use:   "register",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.voter.register"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, _ := cmd.Flags().GetString("name")
@@ -174,6 +180,7 @@ var voterRegisterCmd = &cobra.Command{
 
 var voterListCmd = &cobra.Command{
 	Use:   "list",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.voter.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
@@ -208,6 +215,7 @@ var voterListCmd = &cobra.Command{
 
 var voteCmd = &cobra.Command{
 	Use:   "vote",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.vote"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		voterPK, _ := cmd.Flags().GetString("voter")
@@ -250,11 +258,13 @@ var voteCmd = &cobra.Command{
 
 var sessionCmd = &cobra.Command{
 	Use:   "session",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.session.cmd"),
 }
 
 var sessionCreateCmd = &cobra.Command{
 	Use:     "create",
+	Args:    cobra.NoArgs,
 	Short:   i18n.GetText("voting.session.create"),
 	Example: `  aurora voting session create -t "Election 2026" -d "Annual board election" -c cand-1 -c cand-2 -c cand-3`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -292,6 +302,7 @@ var sessionCreateCmd = &cobra.Command{
 
 var sessionListCmd = &cobra.Command{
 	Use:   "list",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.session.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
@@ -318,6 +329,7 @@ var sessionListCmd = &cobra.Command{
 
 var sessionStartCmd = &cobra.Command{
 	Use:   "start",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.session.start"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
@@ -347,6 +359,7 @@ var sessionStartCmd = &cobra.Command{
 
 var sessionEndCmd = &cobra.Command{
 	Use:   "end",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.session.end"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
@@ -376,6 +389,7 @@ var sessionEndCmd = &cobra.Command{
 
 var resultsCmd = &cobra.Command{
 	Use:   "results",
+	Args:  cobra.NoArgs,
 	Short: i18n.GetText("voting.results"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		sessionID, _ := cmd.Flags().GetString("session")
