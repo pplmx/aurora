@@ -1283,3 +1283,40 @@ func TestHandleQuery_ClampsInflatedLimit(t *testing.T) {
 	app.handleQuery()
 	assert.NotEmpty(t, app.queryResult, "a clamped query still succeeds")
 }
+
+// ===== TASK-180: TUI fetch must wire the on-chain recorder =====
+// Every other fetch surface (REST handler, scheduler, CLI) calls
+// FetchDataUseCase.SetChain; the TUI's handleFetch used to skip it, so its
+// observations were saved at block_height=0 with no ledger block — the exact
+// TASK-097 scheduler regression. newFetchUseCase + SetChain pin the wiring
+// via the exported Chain() seam, no network needed.
+
+type fakeChain struct {
+	calls int
+}
+
+func (f *fakeChain) AddLotteryRecord(data string) (int64, error) {
+	f.calls++
+	return int64(f.calls), nil
+}
+
+func TestNewFetchUseCase_WiresChainWhenSet(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+
+	// Default (tests): no chain wired -> no on-chain recording expected.
+	uc := app.newFetchUseCase()
+	assert.Nil(t, uc.Chain(), "default TUI fetch must run without on-chain recording")
+
+	// Once the operator's chain is wired, the use case must carry it.
+	chain := &fakeChain{}
+	app.SetChain(chain)
+	uc = app.newFetchUseCase()
+	assert.Same(t, chain, uc.Chain(), "newFetchUseCase must propagate the wired chain (TASK-180)")
+}
+
+func TestSetChain_StoresRecorder(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	chain := &fakeChain{}
+	app.SetChain(chain)
+	assert.Same(t, chain, app.chain, "SetChain must store the on-chain recorder")
+}
