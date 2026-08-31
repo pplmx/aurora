@@ -2,6 +2,7 @@ package events
 
 import (
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/pplmx/aurora/internal/logger"
 )
 
 type CompositeEventBus struct {
@@ -23,9 +24,16 @@ func (b *CompositeEventBus) Publish(e events.Event) error {
 		return err
 	}
 
-	_ = b.AsyncBus.Publish(e)
+	// The async legs are best-effort (ring buffer can be full, bus can be
+	// closed); dropping the error silently hid that the event was lost from
+	// those paths. Log it instead so a full/closed async bus is discoverable.
+	if err := b.AsyncBus.Publish(e); err != nil {
+		logger.Warn().Err(err).Str("event", e.EventType()).Msg("async event bus dropped event")
+	}
 
-	_ = b.PluginBus.Publish(e)
+	if err := b.PluginBus.Publish(e); err != nil {
+		logger.Warn().Err(err).Str("event", e.EventType()).Msg("plugin event bus publish failed")
+	}
 
 	return nil
 }
