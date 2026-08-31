@@ -157,6 +157,14 @@ func TestHandleMintEmptyName(t *testing.T) {
 	assert.Equal(t, i18n.GetText("error.name_required"), app.err)
 }
 
+func TestHandleMintWhitespaceName(t *testing.T) {
+	app := NewNFTApp()
+	app.nameInput.SetValue("   ")
+	msg := app.handleMint()
+	assert.Nil(t, msg)
+	assert.Equal(t, i18n.GetText("error.name_required"), app.err)
+}
+
 func TestHandleMintEmptyPubkey(t *testing.T) {
 	app := NewNFTApp()
 	app.nameInput.SetValue("TestNFT")
