@@ -20,6 +20,10 @@ const (
 	MinSeedLength            = 3
 	MaxSeedLength            = 256
 	MaxParticipantNameLength = 100
+	// DefaultWinnerCount is applied when a create request omits winner_count
+	// (JSON zero value), matching the CLI's omitted `-c` fallback to the
+	// configured lottery.defaultCount (3). See the create use case.
+	DefaultWinnerCount = 3
 )
 
 var (
