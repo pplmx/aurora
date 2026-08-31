@@ -1,12 +1,14 @@
 package lottery
 
 import (
+	"path/filepath"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/i18n"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -124,6 +126,34 @@ func TestRunLottery(t *testing.T) {
 	result := app.runLottery([]string{"p1", "p2", "p3", "p4", "p5"}, "seed", 2)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Winners, 2)
+}
+
+// TestRunLotteryPersistsToRecorder pins the TASK-203 dual-write contract: a
+// draw created in the TUI must land in the same lottery_records store the CLI
+// history/stats/export/verify read, and the TUI history must render it.
+func TestRunLotteryPersistsToRecorder(t *testing.T) {
+	repo, err := sqlite.NewLotteryRepository(filepath.Join(t.TempDir(), "lottery.db"))
+	assert.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = repo.Close() }()
+
+	app := NewLotteryApp()
+	app.repo = repo
+
+	result := app.runLottery([]string{"p1", "p2", "p3", "p4", "p5"}, "seed", 2)
+	assert.NotNil(t, result)
+
+	records, err := repo.GetAll()
+	assert.NoError(t, err)
+	assert.Len(t, records, 1, "TUI draw must be persisted to lottery_records for the CLI surfaces")
+	assert.Equal(t, result.ID, records[0].ID)
+
+	// The TUI history view reads the recorder (not raw chain blocks), so the
+	// freshly drawn record renders there.
+	app.loadHistory()
+	assert.Contains(t, app.viewport.View(), result.ID)
 }
 
 func TestHelpViewRenders(t *testing.T) {

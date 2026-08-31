@@ -16,12 +16,23 @@ import (
 	"github.com/pplmx/aurora/internal/ui/components"
 )
 
+// recorder persists lottery draws so the TUI and the CLI surfaces
+// (lottery history/stats/export/verify) read the same lottery_records store.
+// The CLI wiring injects the SQLite repository; a nil recorder leaves the TUI
+// chain-only — used by tests and viewers that only exercise the block store.
+type recorder interface {
+	Save(record *lottery.LotteryRecord) error
+	GetAll() ([]*lottery.LotteryRecord, error)
+}
+
 type model struct {
 	view              string
 	chain             *blockchain.BlockChain
+	repo              recorder
 	count             string
 	result            *lottery.LotteryRecord
 	err               string
+	persistErr        string
 	successMsg        string
 	participantsInput textinput.Model
 	seedInput         textinput.Model
@@ -391,11 +402,43 @@ func (m *model) handleCreate() tea.Msg {
 	m.result = result
 	m.view = "result"
 	m.successMsg = i18n.GetText("lottery.tui.created_onchain")
+	if m.persistErr != "" {
+		m.successMsg += " · " + m.persistErr
+	}
 
 	return nil
 }
 
 func (m *model) loadHistory() {
+	if m.repo != nil {
+		// Read the persistent lottery_records store so the TUI shows exactly
+		// what `lottery history` shows — TUI draws (dual-written in
+		// runLottery) and imported draws alike, and nothing else. Reading the
+		// chain's raw blocks here also used to list unrelated on-chain records
+		// (votes, transfers) as "lotteries" (TASK-203, ISS-199).
+		records, err := m.repo.GetAll()
+		if err != nil {
+			m.viewport.SetContent(i18n.GetText("error.load_failed") + ": " + err.Error())
+			return
+		}
+		if len(records) == 0 {
+			m.viewport.SetContent(i18n.GetText("lottery.tui.no_records") + "\n\n" +
+				components.HelpTextStyle().Render(i18n.GetText("lottery.tui.create_hint")))
+			return
+		}
+		var content string
+		for i, r := range records {
+			jsonData, jerr := r.ToJSON()
+			if jerr != nil {
+				continue
+			}
+			content += fmt.Sprintf(i18n.GetText("lottery.tui.history_item"), i+1, jsonData)
+		}
+		m.viewport.SetContent(content)
+		return
+	}
+
+	// No recorder wired (tests / chain-only view): fall back to the chain.
 	records := m.chain.GetLotteryRecords()
 	if len(records) == 0 {
 		m.viewport.SetContent(i18n.GetText("lottery.tui.no_records") + "\n\n" +
@@ -431,6 +474,17 @@ func (m *model) runLottery(participants []string, seed string, count int) *lotte
 	}
 	record.BlockHeight = height
 
+	// Persist to the same lottery_records store the CLI history/stats/export/
+	// verify read, mirroring CreateLotteryUseCase which dual-writes blocks +
+	// lottery_records. The draw is already on-chain; if the record write fails
+	// (rare, same DB), flag it so the result view doesn't claim full history
+	// persistence (TASK-203, ISS-199).
+	if m.repo != nil {
+		if err := m.repo.Save(record); err != nil {
+			m.persistErr = fmt.Sprintf("%s: %v", i18n.GetText("lottery.tui.persist_failed"), err)
+		}
+	}
+
 	return record
 }
 
@@ -451,8 +505,10 @@ func parseTextArea(text string) []string {
 	return result
 }
 
-func RunLotteryTUI() error {
-	p := tea.NewProgram(NewLotteryApp())
+func RunLotteryTUI(repo recorder) error {
+	app := NewLotteryApp()
+	app.repo = repo
+	p := tea.NewProgram(app)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 		return err
