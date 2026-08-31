@@ -340,6 +340,8 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_id_legacy": "Source ID (legacy spelling --source; prefer --id)",
 		"oracle.interval":         "Refresh interval (seconds)",
 		"oracle.source_interval":  "Refresh interval in seconds (on `source add` -i is the interval; on delete/enable/disable/fetch/data/latest -i is the source id)",
+		"oracle.source_method":    "HTTP method to query the source with (default GET)",
+		"oracle.source_path":      "JSON path (dotted, e.g. bitcoin.usd) to extract the value from the response body",
 		"oracle.limit":            "Limit results",
 
 		// Messages
@@ -734,6 +736,8 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_id_legacy": "数据源 ID（旧拼写 --source；推荐 --id）",
 		"oracle.interval":         "刷新间隔（秒）",
 		"oracle.source_interval":  "刷新间隔（秒）（在 source add 中 -i 表示间隔；在 delete/enable/disable/fetch/data/latest 中 -i 表示数据源 ID）",
+		"oracle.source_method":    "请求数据源的 HTTP 方法（默认 GET）",
+		"oracle.source_path":      "JSON 路径（点分，如 bitcoin.usd），用于从响应体中提取数值",
 		"oracle.limit":            "限制结果数",
 
 		// Messages

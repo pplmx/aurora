@@ -54,12 +54,16 @@ var sourceAddCmd = &cobra.Command{
 		url, _ := cmd.Flags().GetString("url")
 		dataType, _ := cmd.Flags().GetString("type")
 		interval, _ := cmd.Flags().GetInt("interval")
+		method, _ := cmd.Flags().GetString("method")
+		path, _ := cmd.Flags().GetString("path")
 
 		uc := oracleapp.NewAddSourceUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.AddSourceRequest{
 			Name:     name,
 			URL:      url,
 			Type:     dataType,
+			Method:   method,
+			Path:     path,
 			Interval: interval,
 		})
 		if err != nil {
@@ -102,6 +106,7 @@ var sourceListCmd = &cobra.Command{
 			fmt.Printf("   - %s [%s] %s\n", ds.Name, ds.Type, status)
 			fmt.Printf("     ID: %s\n", ds.ID)
 			fmt.Printf("     URL: %s\n", ds.URL)
+			fmt.Printf("     Method: %s  Path: %s  Interval: %ds\n", ds.Method, ds.Path, ds.Interval)
 		}
 		return nil
 	},
@@ -378,6 +383,8 @@ func init() {
 	sourceAddCmd.Flags().StringP("name", "n", "", i18n.GetText("oracle.source_name"))
 	sourceAddCmd.Flags().StringP("url", "u", "", i18n.GetText("oracle.source_url"))
 	sourceAddCmd.Flags().StringP("type", "t", "custom", i18n.GetText("oracle.source_type"))
+	sourceAddCmd.Flags().StringP("method", "m", "GET", i18n.GetText("oracle.source_method"))
+	sourceAddCmd.Flags().StringP("path", "p", "", i18n.GetText("oracle.source_path"))
 	// On `add`, -i/--interval is the refresh interval — deliberately *not* the
 	// family's source-id meaning (-i = --id on delete/enable/disable/fetch/data/
 	// latest, TASK-193). It is NOT remapped (DEC-008: no breaking change to
