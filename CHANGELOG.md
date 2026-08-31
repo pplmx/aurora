@@ -7,6 +7,47 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.90; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [v1.92] - 2026-08-31
+
+### Fixed
+
+- **Voting broke on a fresh database**: `NewVotingRepository` was the only
+  repository that never self-created its tables (they existed only in the
+  migrations), and neither the API server (`cmd/api` never runs migrations) nor
+  the CLI (`migrate.autoRun` defaults to false) guaranteed they ran — so a
+  fresh install returned `no such table` on every `/api/v1/voting/*` route and
+  `voting` CLI op while lottery/token/nft/oracle worked out of the box. The
+  constructor now bootstraps the schema with `IF NOT EXISTS` (idempotent on an
+  already-migrated DB) and returns an error (TASK-197, ISS-193).
+- **Web voting submitted a stale candidate after a session switch**: switching
+  sessions left the previous selection bound, so a mismatched candidate was
+  POSTed and rejected with 400 `CANDIDATE_NOT_IN_SESSION`. Switching sessions
+  now resets the candidate, the submit guard also checks roster membership, and
+  the voter private-key input is password-masked like the token/nft equivalents
+  (TASK-198, ISS-194).
+- **Web create forms were missing API/CLI capabilities**: token create had no
+  way to set `decimals` (the API accepts it and the CLI has `--decimals`), NFT
+  mint never advanced the History form's id, token create never advanced the
+  Token Info form's id, and the oracle add-source interval silently defaulted
+  an empty value to 60. All four now match the API/CLI contract (TASK-199,
+  ISS-195).
+- **Backend error-path inconsistencies**: `[i18n] locale` was read from a dead
+  top-level `locale` key (the knob was inert; now a fallback for environments
+  without `LANG`, which remains authoritative); the rate-limit `Retry-After`
+  header was hardcoded 60s regardless of the configured window (now advertises
+  the real window); token `info` returned error code `NOT_FOUND` where every
+  other token 404 uses `TOKEN_NOT_FOUND`; and `lottery verify` masked genuine
+  DB read failures as "lottery not found" (TASK-200, ISS-196).
+- **Web lottery history disguised a load failure as an empty system**: a failed
+  first load of `/api/v1/lottery/history` rendered "No lotteries yet"; it now
+  distinguishes "nothing exists" from "couldn't load" like voting/oracle
+  (TASK-201, ISS-197).
+- **CLI/docs drift**: `aurora --help` and `aurora version` still described the
+  project as a "voting system"/"VRF Lottery System" rather than the module
+  suite; the `migrate down` example omitted the mandatory `--confirm`; and the
+  v1.90 entry mislabelled the NFT TUI list view as the 5th menu item (it is the
+  4th) (TASK-202, ISS-198).
+
 ## [v1.91] - 2026-08-30
 
 ### Fixed
@@ -97,7 +138,7 @@ documented in their per-milestone ROADMAP files.
   (`{"a":1}{"b":2}` or `{...}non-json` passed as well-formed); it now requires
   the stream to end cleanly with `io.EOF`.
 - **NFT TUI "List by Owner" was dead code**: the model, loader and viewport
-  existed but the menu never reached the list view. The 5th menu item now opens
+  existed but the menu never reached the list view. The 4th menu item now opens
   an owner prompt feeding the scrollable list, mirroring the CLI/web surface.
 - **i18n English leaks**: oracle/nft TUI labels and several CLI one-liners
   (token limit/offset flags, lottery "no records"/db-info, oracle "no data")

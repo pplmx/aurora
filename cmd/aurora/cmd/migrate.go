@@ -70,7 +70,7 @@ var migrateCmd = &cobra.Command{
 	Example: `  aurora migrate up        # apply all pending migrations
   aurora migrate up 2      # apply only the next 2
   aurora migrate status    # show current / applied / pending
-  aurora migrate down 1    # roll back one step (default)`,
+  aurora migrate down 1 --confirm    # roll back one step (default; --confirm required)`,
 }
 
 var migrateUpCmd = &cobra.Command{
