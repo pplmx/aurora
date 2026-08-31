@@ -22,6 +22,11 @@ defaultSeedPrefix = "aurora-vrf-"
 [i18n]
 locale = "en"
 
+# The [http] and [http.rateLimit] sections govern the OUTBOUND oracle
+# fetcher (HTTP timeout for reading a source; per-source pacing of
+# fetches), not the API server. The API server's own inbound timeouts are
+# fixed constants and its per-client request limiter is [api.rateLimit]
+# (disabled by default — see internal/config/config.go).
 [http]
 timeout = "10s"
 
