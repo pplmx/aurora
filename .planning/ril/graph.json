@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 126,
+  "round": 127,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T11:23:33+00:00",
+  "updated_at": "2026-08-31T12:19:17+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 126,
+      "touched_round": 127,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 126,
+      "touched_round": 127,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 126,
+      "touched_round": 127,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 126,
+      "touched_round": 127,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -8621,11 +8621,11 @@
     "TASK-207": {
       "id": "TASK-207",
       "type": "task",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-31T10:11:11+00:00",
-      "updated_at": "2026-08-31T10:11:11+00:00",
-      "touched_round": 126,
+      "updated_at": "2026-08-31T12:15:38+00:00",
+      "touched_round": 127,
       "category": "docs",
       "severity": 0.4,
       "confidence": 0.95,
@@ -8773,7 +8773,7 @@
       "version": 1,
       "created_at": "2026-08-31T11:19:15+00:00",
       "updated_at": "2026-08-31T11:19:15+00:00",
-      "touched_round": 126,
+      "touched_round": 127,
       "title": ".planning/STATE.md 'Current focus' still describes v1.91 polish while CHANGELOG/commits are on v1.92 (rounds 126-127); refresh so documentation matches the actual milestone position"
     },
     "CHG-197": {
@@ -8830,6 +8830,122 @@
       "touched_round": 126,
       "commit": "3ff3cf5",
       "title": "Lottery create use case defaults winner_count 0->3 for REST/CLI parity"
+    },
+    "ISS-210": {
+      "id": "ISS-210",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T12:14:12+00:00",
+      "updated_at": "2026-08-31T12:14:12+00:00",
+      "touched_round": 127,
+      "title": "oracle source add uses -i/--interval for the refresh interval while -i is the source id on every other oracle subcommand (TASK-193 family spelling), so typing -i by analogy silently sets an interval; and OracleHandler.CreateSource returns INVALID_REQUEST where every other oracle endpoint maps the same ErrInvalidSource to INVALID_SOURCE"
+    },
+    "ISS-211": {
+      "id": "ISS-211",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T12:14:13+00:00",
+      "updated_at": "2026-08-31T12:14:13+00:00",
+      "touched_round": 127,
+      "title": "Web nit batch: NFT/token mint context advance skips the Transfer from/xFrom field; oracle query-limit input shows one value while a clamped one is sent; dashboard/oracle Refresh buttons can overlap; token Balance form label inconsistent; oracle health table shows raw source ids; nft/token/lottery create forms don't clear on success"
+    },
+    "ISS-212": {
+      "id": "ISS-212",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T12:14:13+00:00",
+      "updated_at": "2026-08-31T12:14:13+00:00",
+      "touched_round": 127,
+      "title": "TUI nit batch: the oracle menu lacks the 1..N quick-select shortcuts every sibling TUI has; NFT mint / token create / oracle add-source accept whitespace-only names/symbols/urls that only fail later with blank entities"
+    },
+    "TASK-214": {
+      "id": "TASK-214",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T12:14:13+00:00",
+      "updated_at": "2026-08-31T12:14:13+00:00",
+      "touched_round": 127,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle source-add -i divergence documented via dedicated localised usage text (no breaking remap, DEC-008 precedent) and CreateSource error-code unified to INVALID_SOURCE"
+    },
+    "TASK-215": {
+      "id": "TASK-215",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T12:14:13+00:00",
+      "updated_at": "2026-08-31T12:14:13+00:00",
+      "touched_round": 127,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Web polish nits: transfer-from advance, clamped-limit writeback, Refresh reentrancy guard, owner label consistency, health-table source names, create-form clear-on-success"
+    },
+    "TASK-216": {
+      "id": "TASK-216",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T12:14:13+00:00",
+      "updated_at": "2026-08-31T12:14:13+00:00",
+      "touched_round": 127,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle menu digit shortcuts + TrimSpace validation for TUI mint/create/add-source inputs"
+    },
+    "CHG-202": {
+      "id": "CHG-202",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T12:15:38+00:00",
+      "updated_at": "2026-08-31T12:15:38+00:00",
+      "touched_round": 127,
+      "commit": "86701ff",
+      "title": "STATE current-focus, CHANGELOG header, root help module list refreshed"
+    },
+    "CHG-203": {
+      "id": "CHG-203",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T12:15:38+00:00",
+      "updated_at": "2026-08-31T12:15:38+00:00",
+      "touched_round": 127,
+      "commit": "9c6ef92",
+      "title": "Oracle source add -i usage disambiguation + CreateSource INVALID_SOURCE parity"
+    },
+    "CHG-204": {
+      "id": "CHG-204",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T12:15:38+00:00",
+      "updated_at": "2026-08-31T12:15:38+00:00",
+      "touched_round": 127,
+      "commit": "598b30d",
+      "title": "Web nits: transfer-from advance, clamp writeback, refresh guard, labels, health names, clear-on-success"
+    },
+    "CHG-205": {
+      "id": "CHG-205",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T12:15:38+00:00",
+      "updated_at": "2026-08-31T12:15:38+00:00",
+      "touched_round": 127,
+      "commit": "42ffbfd",
+      "title": "Oracle menu digit shortcuts + whitespace-only input rejection in nft/token/oracle TUIs"
     }
   },
   "edges": [
@@ -13980,6 +14096,84 @@
       "to": "ISS-208",
       "type": "resolves",
       "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-202",
+      "to": "TASK-207",
+      "type": "implements",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "CHG-202",
+      "to": "ISS-209",
+      "type": "resolves",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "CHG-203",
+      "to": "TASK-214",
+      "type": "implements",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "CHG-203",
+      "to": "ISS-210",
+      "type": "resolves",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "CHG-203",
+      "to": "ISS-211",
+      "type": "resolves",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "CHG-204",
+      "to": "TASK-215",
+      "type": "implements",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "CHG-204",
+      "to": "ISS-212",
+      "type": "resolves",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "CHG-205",
+      "to": "TASK-216",
+      "type": "implements",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "ISS-210",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T12:17:30+00:00"
+    },
+    {
+      "from": "ISS-211",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-31T12:17:31+00:00"
+    },
+    {
+      "from": "ISS-212",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-31T12:17:31+00:00"
+    },
+    {
+      "from": "CHG-205",
+      "to": "ISS-212",
+      "type": "resolves",
+      "created_at": "2026-08-31T12:19:17+00:00"
+    },
+    {
+      "from": "ISS-212",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-31T12:19:17+00:00"
     }
   ]
 }
