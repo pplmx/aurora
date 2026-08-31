@@ -117,8 +117,9 @@ level = "info"      # debug, info, warn, error
 path = "./logs/"    # 日志目录
 
 [lottery]
-defaultCount = 3        # 默认获奖人数
-defaultSeedPrefix = "aurora-vrf-"  # 默认种子前缀
+defaultCount = 3        # 默认获奖人数（create 未传 -c/--count 时生效）
+# 种子不会自动生成：seed 始终由调用方提供（CLI -s/--seed、API、Web 表单），
+# 因此不存在 defaultSeedPrefix 这类默认值。
 ```
 
 ## 数据库

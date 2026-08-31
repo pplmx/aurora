@@ -69,16 +69,15 @@ func TestSetDefaultConfig(t *testing.T) {
 	setDefaultConfig()
 
 	for key, want := range map[string]any{
-		"log.level":                 "info",
-		"log.path":                  "./logs",
-		"migrate.autoRun":           false,
-		"migrate.path":              "./migrations",
-		"lottery.defaultCount":      3,
-		"lottery.defaultSeedPrefix": "aurora-vrf-",
-		"i18n.locale":               "en",
-		"http.timeout":              "10s",
-		"http.rateLimit.requests":   10,
-		"http.rateLimit.window":     "1m",
+		"log.level":               "info",
+		"log.path":                "./logs",
+		"migrate.autoRun":         false,
+		"migrate.path":            "./migrations",
+		"lottery.defaultCount":    3,
+		"i18n.locale":             "en",
+		"http.timeout":            "10s",
+		"http.rateLimit.requests": 10,
+		"http.rateLimit.window":   "1m",
 	} {
 		assert.Equal(t, want, viper.Get(key), "default %q", key)
 	}

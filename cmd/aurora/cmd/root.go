@@ -178,7 +178,6 @@ func setDefaultConfig() {
 	viper.SetDefault("migrate.autoRun", false)
 	viper.SetDefault("migrate.path", "./migrations")
 	viper.SetDefault("lottery.defaultCount", 3)
-	viper.SetDefault("lottery.defaultSeedPrefix", "aurora-vrf-")
 	viper.SetDefault("i18n.locale", "en")
 	viper.SetDefault("http.timeout", "10s")
 	viper.SetDefault("http.rateLimit.requests", 10)
