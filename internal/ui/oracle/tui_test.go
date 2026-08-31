@@ -11,6 +11,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type mockRepo struct {
@@ -391,6 +392,53 @@ func TestHandleAddSourceWhitespaceFields(t *testing.T) {
 	app.sourceInputType.SetValue("")
 	app.handleAddSource()
 	assert.NotEmpty(t, app.errMsg)
+}
+
+// TestHandleAddSourceSavesMethodPathInterval pins the round-136 parity fix:
+// the add form must forward method/path/interval (not just name/url/type) the
+// way the REST API and CLI source add do, so a TUI-managed price source can
+// set its JSON path and cadence instead of silently defaulting.
+func TestHandleAddSourceSavesMethodPathInterval(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.sourceInputName.SetValue("Bitcoin Price")
+	app.sourceInputURL.SetValue("https://api.example.com/simple/price")
+	app.sourceInputType.SetValue("price")
+	app.sourceInputMethod.SetValue("POST")
+	app.sourceInputPath.SetValue("bitcoin.usd")
+	app.sourceInputInterval.SetValue("45")
+	app.handleAddSource()
+	assert.Empty(t, app.errMsg)
+	require.Len(t, app.repo.(*mockRepo).sources, 1)
+	saved := app.repo.(*mockRepo).sources[0]
+	assert.Equal(t, "POST", saved.Method)
+	assert.Equal(t, "bitcoin.usd", saved.Path)
+	assert.Equal(t, 45, saved.Interval)
+}
+
+// TestHandleAddSourceIntervalDefaults: an empty interval field must mean
+// "default" — the AddSource use case maps 0 to 60, never a rejection.
+func TestHandleAddSourceIntervalDefaults(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.sourceInputName.SetValue("S")
+	app.sourceInputURL.SetValue("https://api.example.com/x")
+	app.handleAddSource()
+	assert.Empty(t, app.errMsg)
+	require.Len(t, app.repo.(*mockRepo).sources, 1)
+	assert.Equal(t, 60, app.repo.(*mockRepo).sources[0].Interval, "empty interval must fall back to the default")
+}
+
+// TestHandleAddSourceInvalidInterval: a non-numeric or negative interval is a
+// clear client error shown before any DB write.
+func TestHandleAddSourceInvalidInterval(t *testing.T) {
+	for _, bad := range []string{"abc", "-5"} {
+		app := NewOracleApp(&mockRepo{})
+		app.sourceInputName.SetValue("S")
+		app.sourceInputURL.SetValue("https://api.example.com/x")
+		app.sourceInputInterval.SetValue(bad)
+		app.handleAddSource()
+		assert.NotEmpty(t, app.errMsg, "interval %q must be rejected", bad)
+		assert.Len(t, app.repo.(*mockRepo).sources, 0, "interval %q must not save", bad)
+	}
 }
 
 func TestUpdate_DigitSelectsMenu(t *testing.T) {
@@ -849,9 +897,10 @@ func TestUpdate_QueryInputFocusUpBound(t *testing.T) {
 func TestUpdate_AddSourceInputFocusDownBound(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "addSource"
-	app.inputFocus = 2
+	// Down on the last field (interval) must stay put, not advance past the form.
+	app.inputFocus = addSourceFieldCount - 1
 	app.Update(keyPress("down"))
-	assert.Equal(t, 2, app.inputFocus)
+	assert.Equal(t, addSourceFieldCount-1, app.inputFocus)
 }
 
 func TestUpdate_EnterInFetchView(t *testing.T) {
@@ -1079,9 +1128,23 @@ func TestUpdate_DownInSourcesViewMax(t *testing.T) {
 func TestUpdate_AddSourceTabWraps(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "addSource"
-	app.inputFocus = 2
+	// Tab from the last field (name/url/type/method/path/interval = 6 fields)
+	// wraps back to the first.
+	app.inputFocus = addSourceFieldCount - 1
 	app.Update(keyPress("tab"))
 	assert.Equal(t, 0, app.inputFocus)
+}
+
+func TestUpdate_AddSourceTabAdvances(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.inputFocus = 2
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 3, app.inputFocus, "Tab must advance name->url->type->method->path->interval")
+	app.Update(keyPress("tab"))
+	assert.Equal(t, 4, app.inputFocus)
+	app.Update(keyPress("down"))
+	assert.Equal(t, 5, app.inputFocus)
 }
 
 func TestUpdate_FetchTabWraps(t *testing.T) {

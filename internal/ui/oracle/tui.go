@@ -17,6 +17,11 @@ import (
 	"github.com/pplmx/aurora/internal/ui/components"
 )
 
+// addSourceFieldCount is the number of fields in the add-source form; the
+// up/down/tab handlers and updateInputFocus must agree on it so focus cycles
+// the whole form (name, url, type, method, path, interval).
+const addSourceFieldCount = 6
+
 type model struct {
 	view        string
 	repo        domainoracle.Repository
@@ -24,10 +29,13 @@ type model struct {
 	sources     []*domainoracle.DataSource
 	listUseCase *oracleapp.ListSourcesUseCase
 
-	sourceInputName  textinput.Model
-	sourceInputURL   textinput.Model
-	sourceInputType  textinput.Model
-	fetchInputSource textinput.Model
+	sourceInputName     textinput.Model
+	sourceInputURL      textinput.Model
+	sourceInputType     textinput.Model
+	sourceInputMethod   textinput.Model
+	sourceInputPath     textinput.Model
+	sourceInputInterval textinput.Model
+	fetchInputSource    textinput.Model
 	queryInputSource textinput.Model
 	queryInputLimit  textinput.Model
 	inputFocus       int
@@ -68,6 +76,15 @@ func NewOracleApp(repo domainoracle.Repository) *model {
 	typeInput := textinput.New()
 	typeInput.Placeholder = i18n.GetText("oracle.tui.enter_type")
 
+	methodInput := textinput.New()
+	methodInput.Placeholder = i18n.GetText("oracle.tui.enter_method")
+
+	pathInput := textinput.New()
+	pathInput.Placeholder = i18n.GetText("oracle.tui.enter_path")
+
+	intervalInput := textinput.New()
+	intervalInput.Placeholder = i18n.GetText("oracle.tui.enter_interval")
+
 	fetchInput := textinput.New()
 	fetchInput.Placeholder = i18n.GetText("oracle.tui.enter_source_id")
 
@@ -83,10 +100,13 @@ func NewOracleApp(repo domainoracle.Repository) *model {
 		view:             "menu",
 		repo:             repo,
 		listUseCase:      oracleapp.NewListSourcesUseCase(repo),
-		sourceInputName:  nameInput,
-		sourceInputURL:   urlInput,
-		sourceInputType:  typeInput,
-		fetchInputSource: fetchInput,
+		sourceInputName:     nameInput,
+		sourceInputURL:      urlInput,
+		sourceInputType:     typeInput,
+		sourceInputMethod:   methodInput,
+		sourceInputPath:     pathInput,
+		sourceInputInterval: intervalInput,
+		fetchInputSource:    fetchInput,
 		queryInputSource: queryInputSource,
 		queryInputLimit:  queryInputLimit,
 		inputFocus:       0,
@@ -225,7 +245,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.menuIndex++
 				}
 			case "addSource":
-				if m.inputFocus < 2 {
+				if m.inputFocus < addSourceFieldCount-1 {
 					m.inputFocus++
 					m.updateInputFocus()
 				}
@@ -266,7 +286,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "tab":
 			switch m.view {
 			case "addSource":
-				m.inputFocus = (m.inputFocus + 1) % 3
+				m.inputFocus = (m.inputFocus + 1) % addSourceFieldCount
 				m.updateInputFocus()
 			case "fetch":
 				// The fetch view has a single input; cycling (mod 2) could
@@ -570,6 +590,27 @@ func (m *model) addSourceView() string {
 		s += "  " + m.sourceInputType.View() + "\n\n"
 	}
 
+	s += components.CaptionStyle().Render(i18n.GetText("oracle.tui.source_method") + ":\n")
+	if m.inputFocus == 3 {
+		s += components.MenuSelectedStyle().Render("> "+m.sourceInputMethod.View()) + "\n\n"
+	} else {
+		s += "  " + m.sourceInputMethod.View() + "\n\n"
+	}
+
+	s += components.CaptionStyle().Render(i18n.GetText("oracle.tui.source_path") + ":\n")
+	if m.inputFocus == 4 {
+		s += components.MenuSelectedStyle().Render("> "+m.sourceInputPath.View()) + "\n\n"
+	} else {
+		s += "  " + m.sourceInputPath.View() + "\n\n"
+	}
+
+	s += components.CaptionStyle().Render(i18n.GetText("oracle.tui.source_interval") + ":\n")
+	if m.inputFocus == 5 {
+		s += components.MenuSelectedStyle().Render("> "+m.sourceInputInterval.View()) + "\n\n"
+	} else {
+		s += "  " + m.sourceInputInterval.View() + "\n\n"
+	}
+
 	s += "\n" + components.BorderStyle().Render("[TAB] "+i18n.GetText("lottery.tui.next"))
 	s += " | [Enter] " + i18n.GetText("lottery.tui.confirm")
 	s += " | [ESC] " + i18n.GetText("lottery.tui.back") + "\n"
@@ -820,6 +861,9 @@ func (m *model) updateInputFocus() {
 	m.sourceInputName.Blur()
 	m.sourceInputURL.Blur()
 	m.sourceInputType.Blur()
+	m.sourceInputMethod.Blur()
+	m.sourceInputPath.Blur()
+	m.sourceInputInterval.Blur()
 
 	switch m.inputFocus {
 	case 0:
@@ -828,6 +872,12 @@ func (m *model) updateInputFocus() {
 		m.sourceInputURL.Focus()
 	case 2:
 		m.sourceInputType.Focus()
+	case 3:
+		m.sourceInputMethod.Focus()
+	case 4:
+		m.sourceInputPath.Focus()
+	case 5:
+		m.sourceInputInterval.Focus()
 	}
 }
 
@@ -835,6 +885,9 @@ func (m *model) handleAddSource() {
 	name := m.sourceInputName.Value()
 	url := m.sourceInputURL.Value()
 	sourceType := m.sourceInputType.Value()
+	method := strings.TrimSpace(m.sourceInputMethod.Value())
+	path := strings.TrimSpace(m.sourceInputPath.Value())
+	intervalStr := strings.TrimSpace(m.sourceInputInterval.Value())
 
 	if strings.TrimSpace(name) == "" || strings.TrimSpace(url) == "" {
 		m.errMsg = i18n.GetText("error.invalid_input")
@@ -845,11 +898,27 @@ func (m *model) handleAddSource() {
 		sourceType = "custom"
 	}
 
+	// Interval is optional; an empty field means "default" (0 -> the use case
+	// applies 60). A non-numeric or negative value is a clear client error the
+	// domain would only surface as a wrapped ErrInvalidSource.
+	var interval int
+	if intervalStr != "" {
+		n, err := strconv.Atoi(intervalStr)
+		if err != nil || n < 0 {
+			m.errMsg = i18n.GetText("error.invalid_input")
+			return
+		}
+		interval = n
+	}
+
 	addUseCase := oracleapp.NewAddSourceUseCase(m.repo)
 	_, err := addUseCase.Execute(&oracleapp.AddSourceRequest{
-		Name: strings.TrimSpace(name),
-		URL:  strings.TrimSpace(url),
-		Type: sourceType,
+		Name:     strings.TrimSpace(name),
+		URL:      strings.TrimSpace(url),
+		Type:     sourceType,
+		Method:   method,
+		Path:     path,
+		Interval: interval,
 	})
 
 	if err != nil {
