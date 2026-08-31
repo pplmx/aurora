@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 127,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T12:43:35+00:00",
+  "updated_at": "2026-08-31T16:09:27+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 124,
+      "touched_round": 127,
       "title": "voting module"
     },
     "CHG-008": {
@@ -8993,6 +8993,192 @@
       "title": "Round-129 residuals postponed as below-threshold polish: token TUI explicit Exit menu item, NFT/lottery result-view scrolling, trailing ?limit/?offset leniency",
       "rationale": "token TUI already quits via q/Ctrl+C (an Exit row would only change layout and the digit-5 mapping); NFT/lottery result views truncate some fields and the oracle got scroll viewports only as a dedicated task — below-threshold polish. The list/history endpoints silently defaulting a malformed ?limit/?offset to the page default is harmless leniency kept to avoid breaking clients.",
       "alternatives_rejected": "strict-400 for malformed query params (behavior change w/o operator input); token Exit remap (breaks q/ctrl+c muscle memory, churn); bolting viewport scrolling onto NFT/lottery result views this round (dedicated oracle-style task)."
+    },
+    "ISS-214": {
+      "id": "ISS-214",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T14:04:06+00:00",
+      "updated_at": "2026-08-31T14:04:06+00:00",
+      "touched_round": 127,
+      "title": "token create with a negative decimals posts to the API and returns a 500: ErrTokenDecimalsInvalid (returned by the real service for decimals<0) is the one reachable domain sentinel absent from the error-classification table, so writeUseCaseError classifies a client 400 as INTERNAL_ERROR"
+    },
+    "TASK-218": {
+      "id": "TASK-218",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T14:04:06+00:00",
+      "updated_at": "2026-08-31T14:04:06+00:00",
+      "touched_round": 127,
+      "category": "correctness",
+      "severity": 0.8,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Map tokenerrors.ErrTokenDecimalsInvalid to 400 INVALID_DECIMALS in the API error-classification table + regression test"
+    },
+    "ISS-215": {
+      "id": "ISS-215",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T14:26:57+00:00",
+      "updated_at": "2026-08-31T14:26:57+00:00",
+      "touched_round": 127,
+      "title": "voting CLI: session create omitting --start-time/--end-time surfaces a misleading INVALID_SESSION_TIME ('end must be after start') instead of a required-flag error, and the candidate/voter/session/results list output + 'session not found' errors are hardcoded English while the catalog covers siblings"
+    },
+    "TASK-219": {
+      "id": "TASK-219",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T14:26:57+00:00",
+      "updated_at": "2026-08-31T14:26:57+00:00",
+      "touched_round": 127,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "voting CLI: mark session create start/end-time required + localize the list/results output and session-not-found error with new i18n keys"
+    },
+    "ISS-216": {
+      "id": "ISS-216",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T15:52:50+00:00",
+      "updated_at": "2026-08-31T15:52:50+00:00",
+      "touched_round": 127,
+      "title": "SQLite/blockchain reload + history-read edge cases: InitBlockChain never checks rows.Err() on reload so a failed/mid-iteration reload desyncs the in-memory chain from the persisted table (a scan failure drops the row, and the next append can overwrite a stored block via INSERT OR REPLACE); NFT GetOperations scans the nullable from_addr/to_addr/signature columns into plain strings so any legacy/NULL row fails the whole history read with a 500; token mint/burn histories silently truncate to the OLDEST 50 events because GetByAggregate treats limit 0 as 'default 50' while the NFT list treats <=0 as unlimited"
+    },
+    "TASK-220": {
+      "id": "TASK-220",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T15:52:50+00:00",
+      "updated_at": "2026-08-31T15:52:50+00:00",
+      "touched_round": 127,
+      "category": "stability",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Check rows.Err on chain reload; scan nullable NFT operation columns via sql.NullString; make GetByAggregate 0 limit mean unlimited (SQLite -1) with a >50-events regression test"
+    },
+    "ISS-217": {
+      "id": "ISS-217",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T15:52:50+00:00",
+      "updated_at": "2026-08-31T15:52:50+00:00",
+      "touched_round": 127,
+      "title": "Event bus robustness: a panicking subscriber kills the async dispatcher goroutine permanently (no recover anywhere in Publish) and in the sync path propagates the panic into the API caller after the operation already committed; CompositeEventBus silently drops AsyncBus/PluginBus publish errors (full/closed bus) with no signal"
+    },
+    "TASK-221": {
+      "id": "TASK-221",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T15:52:50+00:00",
+      "updated_at": "2026-08-31T15:52:50+00:00",
+      "touched_round": 127,
+      "category": "stability",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Recover+log panicking subscribers in the sync and async buses (dispatcher and caller must survive), and log dropped async/plugin publishes, with panic-survival regression tests"
+    },
+    "ISS-218": {
+      "id": "ISS-218",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T15:52:50+00:00",
+      "updated_at": "2026-08-31T15:52:50+00:00",
+      "touched_round": 127,
+      "title": "Backup opens the live SQLite DB with the bare unhardened DSN (busy timeout 0), so backing up a DB another process holds the write lock on fails instantly with 'database is locked' — the exact class migrate.go already fixed with sqlite.DSN; and the Docker deploy stage had no WORKDIR (state landed at /data, not the mounted /app/data volume, silently lost on --rm runs), no ENTRYPOINT (compose subcommand couldn't resolve), and a stale EXPOSE of dead ports"
+    },
+    "TASK-222": {
+      "id": "TASK-222",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T15:52:50+00:00",
+      "updated_at": "2026-08-31T15:52:50+00:00",
+      "touched_round": 127,
+      "category": "stability",
+      "severity": 0.8,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Use sqlite.DSN for backup opens; fix Dockerfile deploy stage (WORKDIR /app, bake nonroot-owned state dirs, ENTRYPOINT /aurora, drop dead EXPOSE)"
+    },
+    "CHG-207": {
+      "id": "CHG-207",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T16:09:26+00:00",
+      "updated_at": "2026-08-31T16:09:26+00:00",
+      "touched_round": 127,
+      "commit": "622025c",
+      "title": "Negative token decimals maps to 400 INVALID_DECIMALS (was 500)"
+    },
+    "CHG-208": {
+      "id": "CHG-208",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T16:09:26+00:00",
+      "updated_at": "2026-08-31T16:09:26+00:00",
+      "touched_round": 127,
+      "commit": 7.773e+16,
+      "title": "voting session create times required + CLI list/results localized"
+    },
+    "CHG-209": {
+      "id": "CHG-209",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T16:09:26+00:00",
+      "updated_at": "2026-08-31T16:09:26+00:00",
+      "touched_round": 127,
+      "commit": "e2684de",
+      "title": "Docker deploy: WORKDIR /app, nonroot state dirs, ENTRYPOINT /aurora, drop EXPOSE"
+    },
+    "CHG-210": {
+      "id": "CHG-210",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T16:09:26+00:00",
+      "updated_at": "2026-08-31T16:09:26+00:00",
+      "touched_round": 127,
+      "commit": "880395d",
+      "title": "Chain reload rows.Err + nullable NFT op scans + unlimited GetByAggregate"
+    },
+    "CHG-211": {
+      "id": "CHG-211",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T16:09:26+00:00",
+      "updated_at": "2026-08-31T16:09:26+00:00",
+      "touched_round": 127,
+      "commit": "22203df",
+      "title": "Event-bus panic recovery + dropped-publish logging"
+    },
+    "CHG-212": {
+      "id": "CHG-212",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T16:09:26+00:00",
+      "updated_at": "2026-08-31T16:09:26+00:00",
+      "touched_round": 127,
+      "commit": "90a89af",
+      "title": "Backup opens hardened via sqlite.DSN"
     }
   },
   "edges": [
@@ -14245,6 +14431,138 @@
       "to": "COMP-api",
       "type": "located_in",
       "created_at": "2026-08-31T12:35:03+00:00"
+    },
+    {
+      "from": "ISS-214",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-31T14:04:06+00:00"
+    },
+    {
+      "from": "ISS-215",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-31T14:26:57+00:00"
+    },
+    {
+      "from": "ISS-216",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T15:54:58+00:00"
+    },
+    {
+      "from": "ISS-217",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T15:54:59+00:00"
+    },
+    {
+      "from": "ISS-218",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T15:54:59+00:00"
+    },
+    {
+      "from": "TASK-218",
+      "to": "ISS-214",
+      "type": "addresses",
+      "created_at": "2026-08-31T15:58:44+00:00"
+    },
+    {
+      "from": "TASK-219",
+      "to": "ISS-215",
+      "type": "addresses",
+      "created_at": "2026-08-31T15:58:44+00:00"
+    },
+    {
+      "from": "TASK-220",
+      "to": "ISS-216",
+      "type": "addresses",
+      "created_at": "2026-08-31T15:58:44+00:00"
+    },
+    {
+      "from": "TASK-221",
+      "to": "ISS-217",
+      "type": "addresses",
+      "created_at": "2026-08-31T15:58:44+00:00"
+    },
+    {
+      "from": "TASK-222",
+      "to": "ISS-218",
+      "type": "addresses",
+      "created_at": "2026-08-31T15:58:44+00:00"
+    },
+    {
+      "from": "CHG-207",
+      "to": "ISS-214",
+      "type": "resolves",
+      "created_at": "2026-08-31T16:09:26+00:00"
+    },
+    {
+      "from": "CHG-207",
+      "to": "TASK-218",
+      "type": "implements",
+      "created_at": "2026-08-31T16:09:26+00:00"
+    },
+    {
+      "from": "CHG-208",
+      "to": "ISS-215",
+      "type": "resolves",
+      "created_at": "2026-08-31T16:09:26+00:00"
+    },
+    {
+      "from": "CHG-208",
+      "to": "TASK-219",
+      "type": "implements",
+      "created_at": "2026-08-31T16:09:26+00:00"
+    },
+    {
+      "from": "CHG-209",
+      "to": "ISS-218",
+      "type": "resolves",
+      "created_at": "2026-08-31T16:09:27+00:00"
+    },
+    {
+      "from": "CHG-209",
+      "to": "TASK-222",
+      "type": "implements",
+      "created_at": "2026-08-31T16:09:27+00:00"
+    },
+    {
+      "from": "CHG-210",
+      "to": "ISS-216",
+      "type": "resolves",
+      "created_at": "2026-08-31T16:09:27+00:00"
+    },
+    {
+      "from": "CHG-210",
+      "to": "TASK-220",
+      "type": "implements",
+      "created_at": "2026-08-31T16:09:27+00:00"
+    },
+    {
+      "from": "CHG-211",
+      "to": "ISS-217",
+      "type": "resolves",
+      "created_at": "2026-08-31T16:09:27+00:00"
+    },
+    {
+      "from": "CHG-211",
+      "to": "TASK-221",
+      "type": "implements",
+      "created_at": "2026-08-31T16:09:27+00:00"
+    },
+    {
+      "from": "CHG-212",
+      "to": "ISS-218",
+      "type": "resolves",
+      "created_at": "2026-08-31T16:09:27+00:00"
+    },
+    {
+      "from": "CHG-212",
+      "to": "TASK-222",
+      "type": "implements",
+      "created_at": "2026-08-31T16:09:27+00:00"
     }
   ]
 }
