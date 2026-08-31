@@ -95,7 +95,8 @@
                         </template>
                     </tbody>
                 </table>
-                <p x-show="!loadingHealth && health.length === 0">(no feed activity yet)</p>
+                <p x-show="!loadingHealth && health.length === 0 && !healthFailed">(no feed activity yet)</p>
+                <p x-show="!loadingHealth && health.length === 0 && healthFailed" class="hint">Failed to load feed health — check the API / refresh.</p>
             </section>
             <section class="create-form">
                 <h2>Fetch Data</h2>

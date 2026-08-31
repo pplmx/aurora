@@ -58,7 +58,8 @@
                         <p class="proposal-meta" x-text="item.detail"></p>
                     </div>
                 </template>
-                <p x-show="!loading && activity.length === 0" class="activity-empty">No recent activity</p>
+                <p x-show="!loading && activity.length === 0 && loaded" class="activity-empty">No recent activity</p>
+                <p x-show="!loading && activity.length === 0 && !loaded" class="hint">Couldn't load activity — check the API / refresh.</p>
             </section>
         </main>
     </div>

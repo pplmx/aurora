@@ -30,12 +30,13 @@
                         <input type="text" x-model="participants" placeholder="A,B,C,D" required>
                     </div>
                     <div class="form-group">
-                        <label>Seed</label>
-                        <input type="text" x-model="seed" placeholder="optional seed">
+                        <label>Seed (required)</label>
+                        <input type="text" x-model="seed" placeholder="at least 3 characters" required minlength="3">
                     </div>
                     <div class="form-group">
                         <label>Count</label>
-                        <input type="number" x-model="count" min="1" value="1" required>
+                        <input type="number" x-model="count" min="1" step="1" value="1" required>
+                        <p class="form-hint">How many winners to draw; must not exceed the participant count.</p>
                     </div>
                     <button type="submit" class="btn-lottery" :disabled="busy.createLottery">Create Lottery</button>
                 </form>

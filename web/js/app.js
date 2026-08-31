@@ -168,14 +168,32 @@ function lotteryApp() {
             this.loading = false;
         },
         async createLottery() {
+            // Validate client-side against the API contract (seed ≥3 chars,
+            // whole winner count in [1, participant count]) so a mismatch is
+            // explained instead of surfacing as an opaque 400.
+            const participants = this.participants.split(',').map(p => p.trim()).filter(Boolean);
+            const seed = (this.seed || '').trim();
+            const count = Number(this.count);
+            if (seed.length < 3) {
+                this.result = 'Seed is required and must be at least 3 characters.';
+                return;
+            }
+            if (!Number.isInteger(count) || count < 1) {
+                this.result = 'Winner count must be a whole number of at least 1.';
+                return;
+            }
+            if (count > participants.length) {
+                this.result = 'Winner count (' + count + ') cannot exceed the number of participants (' + participants.length + ').';
+                return;
+            }
             try {
                 const res = await apiFetch('/api/v1/lottery/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        participants: this.participants.split(',').map(p => p.trim()).filter(Boolean).join(','),
-                        seed: this.seed || undefined,
-                        winner_count: parseInt(this.count)
+                        participants: participants.join(','),
+                        seed: seed,
+                        winner_count: count
                     })
                 });
                 const data = await res.json();
@@ -198,6 +216,10 @@ function dashboardApp() {
     return {
         stats: { lotteries: 0, votes: 0, candidates: 0, sessions: 0, integrity: '-', oracle: '-' },
         activity: [],
+        // loaded flips true the moment any stat/activity endpoint answers, so
+        // a total first-load failure is never presented as a genuinely empty
+        // system (0/0/0/0 + "No recent activity").
+        loaded: false,
         loading: true,
         async init() {
             await this.refresh();
@@ -229,6 +251,7 @@ function dashboardApp() {
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     this.stats.lotteries = data.length;
+                    this.loaded = true;
                     data.slice(0, 10).forEach(l => {
                         entries.push({
                             key: 'lot-' + (l.id || Math.random()),
@@ -238,6 +261,10 @@ function dashboardApp() {
                     });
                 }
             } catch (e) {
+                // A never-loaded card marks itself unavailable ('?') instead of
+                // reporting a guessed 0; once a real value has been seen it is
+                // kept across transient poll failures (keep-prior-rows policy).
+                if (!this.loaded) this.stats.lotteries = '?';
                 console.error(e);
             }
             return entries;
@@ -258,8 +285,10 @@ function dashboardApp() {
                     // "Total votes" has no dedicated endpoint; derive it from
                     // each candidate's real vote_count.
                     this.stats.votes = candidates.reduce((sum, c) => sum + (c.vote_count || 0), 0);
+                    this.loaded = true;
                 }
             } catch (e) {
+                if (!this.loaded) { this.stats.candidates = '?'; this.stats.votes = '?'; }
                 console.error(e);
             }
             return []; // candidates contribute no activity rows
@@ -271,6 +300,7 @@ function dashboardApp() {
                 const sessions = await res.json();
                 if (Array.isArray(sessions)) {
                     this.stats.sessions = sessions.length;
+                    this.loaded = true;
                     sessions.slice(0, 10).forEach(s => {
                         entries.push({
                             key: 'sess-' + s.id,
@@ -280,6 +310,7 @@ function dashboardApp() {
                     });
                 }
             } catch (e) {
+                if (!this.loaded) this.stats.sessions = '?';
                 console.error(e);
             }
             return entries;
@@ -480,6 +511,7 @@ function votingApp() {
         controlSessionId: '',
         controlResult: '',
         candidates: [],
+        candidatesFailed: false,
         sessions: [],
         sessionsFailed: false,
         loading: true,
@@ -492,8 +524,14 @@ function votingApp() {
                 const res = await apiFetch('/api/v1/voting/candidates');
                 const data = await res.json();
                 this.candidates = Array.isArray(data) ? data : [];
+                this.candidatesFailed = false;
             } catch (e) {
+                // Distinguish "no candidates created yet" from "couldn't load":
+                // a load failure must not masquerade as an empty roster that
+                // blocks create-session and cast-vote (ISS-191 parity with
+                // sessions).
                 this.candidates = [];
+                this.candidatesFailed = true;
                 console.error(e);
             }
         },
@@ -821,7 +859,7 @@ function tokenApp() {
 function oracleApp() {
     return withBusy({
         sources: [], sourcesFailed: false, loading: true,
-        health: [], loadingHealth: true,
+        health: [], loadingHealth: true, healthFailed: false,
         addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
         templates: [],
         fetchSource: '', fetchResult: '',
@@ -862,7 +900,13 @@ function oracleApp() {
                 const res = await apiFetch('/api/v1/oracle/health');
                 const data = await res.json();
                 this.health = Array.isArray(data) ? data : [];
-            } catch (e) { /* keep prior rows; apiFetch's shared banner shows the error */ }
+                this.healthFailed = false;
+            } catch (e) {
+                // Keep prior rows during a background poll refresh, but flag a
+                // first-load failure so "(no feed activity yet)" isn't shown
+                // for an API error (same ISS-191 contract as sources above).
+                this.healthFailed = true;
+            }
             this.loadingHealth = false;
         },
         async addSource() {
