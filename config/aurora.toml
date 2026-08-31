@@ -16,8 +16,10 @@ autoRun = false
 path = "./migrations"
 
 [lottery]
+# defaultCount is the winner count used when `lottery create` is run without
+# -c/--count. The seed is never auto-generated: it is always supplied by the
+# caller (CLI -s/--seed, API, web form), so no defaultSeedPrefix exists.
 defaultCount = 3
-defaultSeedPrefix = "aurora-vrf-"
 
 [i18n]
 locale = "en"
