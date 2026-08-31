@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 124,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T07:22:26+00:00",
+  "updated_at": "2026-08-31T07:56:54+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 121,
+      "touched_round": 124,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 122,
+      "touched_round": 124,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -8374,6 +8374,116 @@
       "touched_round": 124,
       "title": "Web: voting vote-form guards (stale-candidate reset + membership, masked priv key); token decimals + infoId advance; nft historyId advance; oracle interval required",
       "commit": "46ab1d4"
+    },
+    "TASK-200": {
+      "id": "TASK-200",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-31T07:33:57+00:00",
+      "updated_at": "2026-08-31T07:55:11+00:00",
+      "touched_round": 124,
+      "category": "correctness",
+      "severity": 0.55,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "Backend error-path consistency sweep: i18n loadFromConfig reads dead top-level 'locale' instead of 'i18n.locale' (knob inert); Retry-After hardcoded 60s ignores configured window; token Info 404 returns NOT_FOUND instead of classified TOKEN_NOT_FOUND; lottery verify masks real DB read failures as 'lottery not found'",
+      "lock_owner": "aurora-cc",
+      "lock_until": "2026-08-31T08:20:37+00:00"
+    },
+    "TASK-201": {
+      "id": "TASK-201",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T07:34:01+00:00",
+      "updated_at": "2026-08-31T07:55:11+00:00",
+      "touched_round": 124,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "web lottery.html conflates 'nothing exists' with 'couldn't load': a failed first load of /history renders 'No lotteries yet' (the ISS-191 empty-vs-failure distinction TASK-195 applied to voting/oracle but not lottery)"
+    },
+    "TASK-202": {
+      "id": "TASK-202",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T07:34:06+00:00",
+      "updated_at": "2026-08-31T07:55:11+00:00",
+      "touched_round": 124,
+      "category": "docs",
+      "severity": 0.3,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Docs/CLI consistency: rootCmd.Long + version banner still describe a 'voting system' (suite has nft/token/oracle/voting/lottery); migrate down Example omits the mandatory --confirm; CHANGELOG says NFT TUI list is the 5th menu item (it is the 4th); no v1.92 CHANGELOG entry for rounds 122-124 work"
+    },
+    "ISS-196": {
+      "id": "ISS-196",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T07:34:45+00:00",
+      "updated_at": "2026-08-31T07:55:11+00:00",
+      "touched_round": 124,
+      "title": "Backend error-path inconsistencies: i18n locale config knob reads a dead top-level key so [i18n] locale is inert; Retry-After is hardcoded 60s regardless of the configured rate-limit window; token Info 404 returns NOT_FOUND instead of the classified TOKEN_NOT_FOUND; lottery verify reports real DB read failures as 'lottery not found'",
+      "severity": 0.5
+    },
+    "ISS-197": {
+      "id": "ISS-197",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T07:34:45+00:00",
+      "updated_at": "2026-08-31T07:55:11+00:00",
+      "touched_round": 124,
+      "title": "web lottery.html renders 'No lotteries yet' when the history load actually failed (no distinction between empty and failed, unlike voting/oracle after ISS-191)",
+      "severity": 0.45
+    },
+    "ISS-198": {
+      "id": "ISS-198",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T07:34:45+00:00",
+      "updated_at": "2026-08-31T07:55:12+00:00",
+      "touched_round": 124,
+      "title": "CLI/docs drift: root Long and version banner call Aurora a 'voting system'; migrate down Example omits the mandatory --confirm; CHANGELOG wrongly says NFT TUI list view is the 5th menu item; round 122-124 work has no v1.92 CHANGELOG entry",
+      "severity": 0.3
+    },
+    "CHG-192": {
+      "id": "CHG-192",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T07:55:58+00:00",
+      "updated_at": "2026-08-31T07:55:58+00:00",
+      "touched_round": 124,
+      "title": "Backend error-path sweep: lottery verify no longer masks DB failures; token info 404 uses TOKEN_NOT_FOUND; Retry-After advertises real window; i18n [i18n] locale knob wired (fallback when no LANG)",
+      "commit": "2c649a4"
+    },
+    "CHG-193": {
+      "id": "CHG-193",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T07:55:58+00:00",
+      "updated_at": "2026-08-31T07:55:58+00:00",
+      "touched_round": 124,
+      "title": "web lottery history empty-vs-failure distinction",
+      "commit": "6bf2afc"
+    },
+    "CHG-194": {
+      "id": "CHG-194",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T07:55:58+00:00",
+      "updated_at": "2026-08-31T07:55:58+00:00",
+      "touched_round": 124,
+      "title": "CLI/docs: suite-accurate help+version, migrate down --confirm example, CHANGELOG v1.92 + menu-position fix",
+      "commit": "bdbacfd"
     }
   },
   "edges": [
@@ -13212,6 +13322,78 @@
       "to": "ISS-195",
       "type": "resolves",
       "created_at": "2026-08-31T07:22:26+00:00"
+    },
+    {
+      "from": "TASK-200",
+      "to": "ISS-196",
+      "type": "addresses",
+      "created_at": "2026-08-31T07:35:10+00:00"
+    },
+    {
+      "from": "TASK-201",
+      "to": "ISS-197",
+      "type": "addresses",
+      "created_at": "2026-08-31T07:35:10+00:00"
+    },
+    {
+      "from": "TASK-202",
+      "to": "ISS-198",
+      "type": "addresses",
+      "created_at": "2026-08-31T07:35:11+00:00"
+    },
+    {
+      "from": "ISS-196",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-31T07:35:11+00:00"
+    },
+    {
+      "from": "ISS-197",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-31T07:35:11+00:00"
+    },
+    {
+      "from": "ISS-198",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T07:35:11+00:00"
+    },
+    {
+      "from": "CHG-192",
+      "to": "TASK-200",
+      "type": "implements",
+      "created_at": "2026-08-31T07:56:54+00:00"
+    },
+    {
+      "from": "CHG-192",
+      "to": "ISS-196",
+      "type": "resolves",
+      "created_at": "2026-08-31T07:56:54+00:00"
+    },
+    {
+      "from": "CHG-193",
+      "to": "TASK-201",
+      "type": "implements",
+      "created_at": "2026-08-31T07:56:54+00:00"
+    },
+    {
+      "from": "CHG-193",
+      "to": "ISS-197",
+      "type": "resolves",
+      "created_at": "2026-08-31T07:56:54+00:00"
+    },
+    {
+      "from": "CHG-194",
+      "to": "TASK-202",
+      "type": "implements",
+      "created_at": "2026-08-31T07:56:54+00:00"
+    },
+    {
+      "from": "CHG-194",
+      "to": "ISS-198",
+      "type": "resolves",
+      "created_at": "2026-08-31T07:56:54+00:00"
     }
   ]
 }
