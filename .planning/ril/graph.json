@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 127,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T12:19:17+00:00",
+  "updated_at": "2026-08-31T12:35:03+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -8946,6 +8946,53 @@
       "touched_round": 127,
       "commit": "42ffbfd",
       "title": "Oracle menu digit shortcuts + whitespace-only input rejection in nft/token/oracle TUIs"
+    },
+    "ISS-213": {
+      "id": "ISS-213",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T12:33:13+00:00",
+      "updated_at": "2026-08-31T12:33:13+00:00",
+      "touched_round": 127,
+      "title": "Panic-recovery 500 message 'Internal server error' (capital I) inconsistent with the lowercase 'internal server error' every handler emits for the same INTERNAL_ERROR code"
+    },
+    "TASK-217": {
+      "id": "TASK-217",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T12:33:13+00:00",
+      "updated_at": "2026-08-31T12:33:13+00:00",
+      "touched_round": 127,
+      "category": "dx",
+      "severity": 0.3,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Unify the panic-recovery 500 message casing with handler-generated 500s"
+    },
+    "CHG-206": {
+      "id": "CHG-206",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T12:33:13+00:00",
+      "updated_at": "2026-08-31T12:33:13+00:00",
+      "touched_round": 127,
+      "commit": Infinity,
+      "title": "Panic-recovery 500 message casing unified to internal server error"
+    },
+    "DEC-010": {
+      "id": "DEC-010",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T12:35:03+00:00",
+      "updated_at": "2026-08-31T12:35:03+00:00",
+      "touched_round": 127,
+      "title": "Round-129 residuals postponed as below-threshold polish: token TUI explicit Exit menu item, NFT/lottery result-view scrolling, trailing ?limit/?offset leniency",
+      "rationale": "token TUI already quits via q/Ctrl+C (an Exit row would only change layout and the digit-5 mapping); NFT/lottery result views truncate some fields and the oracle got scroll viewports only as a dedicated task — below-threshold polish. The list/history endpoints silently defaulting a malformed ?limit/?offset to the page default is harmless leniency kept to avoid breaking clients.",
+      "alternatives_rejected": "strict-400 for malformed query params (behavior change w/o operator input); token Exit remap (breaks q/ctrl+c muscle memory, churn); bolting viewport scrolling onto NFT/lottery result views this round (dedicated oracle-style task)."
     }
   },
   "edges": [
@@ -14174,6 +14221,30 @@
       "to": "COMP-oracle",
       "type": "located_in",
       "created_at": "2026-08-31T12:19:17+00:00"
+    },
+    {
+      "from": "CHG-206",
+      "to": "ISS-213",
+      "type": "resolves",
+      "created_at": "2026-08-31T12:35:03+00:00"
+    },
+    {
+      "from": "CHG-206",
+      "to": "TASK-217",
+      "type": "implements",
+      "created_at": "2026-08-31T12:35:03+00:00"
+    },
+    {
+      "from": "TASK-217",
+      "to": "ISS-213",
+      "type": "addresses",
+      "created_at": "2026-08-31T12:35:03+00:00"
+    },
+    {
+      "from": "ISS-213",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-31T12:35:03+00:00"
     }
   ]
 }
