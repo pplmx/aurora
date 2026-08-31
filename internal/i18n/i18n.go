@@ -70,6 +70,7 @@ func (tr *Translator) loadMessages() {
 		"app.name":       "Aurora - Blockchain System",
 		"app.version":    "Version",
 		"app.go_version": "Go Version",
+		"app.build_time": "Build Time",
 
 		// ===== LOTTERY =====
 		// Commands
@@ -102,6 +103,12 @@ func (tr *Translator) loadMessages() {
 		"lottery.verified":     "Lottery Record Verified!",
 		"lottery.exported":     "Exported %d lottery records to %s",
 		"lottery.imported":     "Imported %d lottery records",
+		"lottery.import_partial": "Imported %d of %d lottery records (failed: %d)",
+		"lottery.statistics":   "Lottery Statistics",
+		"lottery.db_info_title": "Database Info",
+		"lottery.db_path":      "Database",
+		"lottery.latest_block": "Latest block",
+		"lottery.total_blocks": "Total blocks",
 		"lottery.reset_done":   "Database reset complete!",
 
 		// TUI
@@ -469,6 +476,7 @@ func (tr *Translator) loadMessages() {
 		"app.name":       "Aurora - 区块链系统",
 		"app.version":    "版本",
 		"app.go_version": "Go 版本",
+		"app.build_time": "构建时间",
 
 		// ===== LOTTERY =====
 		// Commands
@@ -501,6 +509,12 @@ func (tr *Translator) loadMessages() {
 		"lottery.verified":     "抽奖记录已验证！",
 		"lottery.exported":     "已导出 %d 条抽奖记录到 %s",
 		"lottery.imported":     "已导入 %d 条抽奖记录",
+		"lottery.import_partial": "已导入 %d / %d 条抽奖记录（失败: %d）",
+		"lottery.statistics":   "抽奖统计",
+		"lottery.db_info_title": "数据库信息",
+		"lottery.db_path":      "数据库",
+		"lottery.latest_block": "最新区块",
+		"lottery.total_blocks": "总区块数",
 		"lottery.reset_done":   "数据库重置完成！",
 
 		// TUI

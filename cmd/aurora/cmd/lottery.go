@@ -68,9 +68,9 @@ var createCmd = &cobra.Command{
 		}
 
 		fmt.Println("\n✅ " + i18n.GetText("lottery.success"))
-		fmt.Printf("📋 Lottery ID: %s\n", resp.ID)
-		fmt.Printf("🔢 Block height: #%d\n", resp.BlockHeight)
-		fmt.Println("\n🎉 Winners:")
+		fmt.Printf("📋 %s: %s\n", i18n.GetText("lottery.lottery_id"), resp.ID)
+		fmt.Printf("🔢 %s: #%d\n", i18n.GetText("lottery.block_height"), resp.BlockHeight)
+		fmt.Println("\n🎉 " + i18n.GetText("lottery.winners") + ":")
 		for i, w := range resp.Winners {
 			// Guard against mismatched slice lengths (could happen with
 			// imported data, older DB schemas, or partial writes).
@@ -81,8 +81,8 @@ var createCmd = &cobra.Command{
 			}
 			fmt.Printf("   %d. %s (%s)\n", i+1, w, addr)
 		}
-		fmt.Printf("\n🔐 VRF Output: %s...\n", resp.VRFOutput[:min(16, len(resp.VRFOutput))])
-		fmt.Printf("📜 VRF Proof: %s...\n", resp.VRFProof[:min(16, len(resp.VRFProof))])
+		fmt.Printf("\n🔐 %s: %s...\n", i18n.GetText("lottery.vrf_output"), resp.VRFOutput[:min(16, len(resp.VRFOutput))])
+		fmt.Printf("📜 %s: %s...\n", i18n.GetText("lottery.vrf_proof"), resp.VRFProof[:min(16, len(resp.VRFProof))])
 
 		return nil
 	},
@@ -131,7 +131,7 @@ var historyCmd = &cobra.Command{
 			return nil
 		}
 
-		fmt.Printf("\n📜 Total lotteries: %d\n\n", len(records))
+		fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.total"), len(records))
 		for i, record := range records {
 			jsonData, err := record.ToJSON()
 			if err != nil {
@@ -350,7 +350,7 @@ var exportCmd = &cobra.Command{
 			return fmt.Errorf("failed to write file: %w", err)
 		}
 
-		fmt.Printf("✅ Exported %d lottery records to %s\n", len(records), filename)
+		fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.exported", len(records), filename))
 		return nil
 	},
 }
@@ -415,14 +415,14 @@ var importCmd = &cobra.Command{
 		}
 
 		if len(failed) == 0 {
-			fmt.Printf("✅ Imported %d lottery records\n", imported)
+			fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.imported", imported))
 			return nil
 		}
 		// Partial failure: surface the problem honestly. Returning a
 		// non-nil error also lets CI / shell scripts detect the partial
 		// failure via $?, instead of silently treating it as success.
-		fmt.Printf("⚠️  Imported %d of %d lottery records (failed: %d)\n",
-			imported, len(records), len(failed))
+		fmt.Printf("⚠️  %s\n",
+			i18n.GetTextF("lottery.import_partial", imported, len(records), len(failed)))
 		fmt.Printf("   Failed record indices (0-based): %v\n", failed)
 		return fmt.Errorf("import partially failed: %d of %d records rejected", len(failed), len(records))
 	},
@@ -448,10 +448,10 @@ var statsCmd = &cobra.Command{
 			return fmt.Errorf("failed to read history: %w", err)
 		}
 
-		fmt.Println("\n📊 Lottery Statistics")
+		fmt.Println("\n📊 " + i18n.GetText("lottery.statistics"))
 		fmt.Println("────────────────────────────")
-		fmt.Printf("  Total lotteries: %d\n", len(records))
-		fmt.Printf("  Database: %s\n", blockchain.DBPath())
+		fmt.Printf("  %s: %d\n", i18n.GetText("lottery.total"), len(records))
+		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), blockchain.DBPath())
 
 		if len(records) > 0 {
 			// Report the highest recorded block height across persisted draws.
@@ -462,7 +462,7 @@ var statsCmd = &cobra.Command{
 				}
 			}
 			if latest >= 0 {
-				fmt.Printf("  Latest block: #%d\n", latest)
+				fmt.Printf("  %s: #%d\n", i18n.GetText("lottery.latest_block"), latest)
 			}
 		}
 
@@ -557,10 +557,10 @@ var dbInfoCmd = &cobra.Command{
 			return fmt.Errorf("failed to count blocks: %w", err)
 		}
 
-		fmt.Println("\n📁 Database Info")
+		fmt.Println("\n📁 " + i18n.GetText("lottery.db_info_title"))
 		fmt.Println("────────────────────────────")
-		fmt.Printf("  Path: %s\n", blockchain.DBPath())
-		fmt.Printf("  Total blocks: %d\n", count)
+		fmt.Printf("  %s: %s\n", i18n.GetText("lottery.db_path"), blockchain.DBPath())
+		fmt.Printf("  %s: %d\n", i18n.GetText("lottery.total_blocks"), count)
 		return nil
 	},
 }
