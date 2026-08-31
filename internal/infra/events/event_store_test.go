@@ -258,6 +258,26 @@ func TestSQLiteEventStore_GetByAggregate(t *testing.T) {
 	})
 }
 
+// TestSQLiteEventStore_GetByAggregate_ZeroLimitMeansAll locks that a 0/negative
+// limit to GetByAggregate means "no limit" (SQLite -1), matching the NFT list
+// repo's TASK-101 convention. It previously meant "default 50", so a token
+// with >50 mints was silently truncated to the OLDEST 50 by the token history
+// readers, which request the aggregate whole and filter in memory.
+func TestSQLiteEventStore_GetByAggregate_ZeroLimitMeansAll(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	const n = 60
+	for i := 0; i < n; i++ {
+		ev := events.NewBaseEvent("token.mint", "agg-all", []byte(fmt.Sprintf(`{"seq":%d}`, i)))
+		require.NoError(t, store.Save(ev))
+	}
+
+	results, err := store.GetByAggregate("agg-all", 0, 0)
+	require.NoError(t, err)
+	assert.Len(t, results, n, "0 limit must return every stored event, not cap at 50")
+}
+
 func TestEventStore_GetByType_Empty(t *testing.T) {
 	store, cleanup := setupEventStore(t)
 	defer cleanup()

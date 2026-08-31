@@ -478,22 +478,29 @@ func (r *NFTRepository) GetOperations(nftID string) ([]*nft.Operation, error) {
 
 	var results []*nft.Operation
 	for rows.Next() {
-		var id, nftID, opType, fromB64, toB64, sigB64 string
+		var id, nftID, opType string
+		// from_addr/to_addr/signature are nullable columns; scanning NULL into
+		// a plain string makes database/sql error and fails the entire history
+		// read with a 500 for any legacy/NULL row. NullString keeps them lenient.
+		var fromNS, toNS, sigNS sql.NullString
 		var blockHeight, timestamp int64
 
-		if err := rows.Scan(&id, &nftID, &opType, &fromB64, &toB64, &sigB64, &blockHeight, &timestamp); err != nil {
+		if err := rows.Scan(&id, &nftID, &opType, &fromNS, &toNS, &sigNS, &blockHeight, &timestamp); err != nil {
 			return nil, err
 		}
 
 		var from, to, sig []byte
-		if fromB64 != "" {
-			from, _ = base64.StdEncoding.DecodeString(fromB64)
+		// Values are self-written base64; a corrupt one leaves that field nil
+		// rather than failing the whole history (the columns are nullable by
+		// design for pre-history rows).
+		if fromNS.Valid && fromNS.String != "" {
+			from, _ = base64.StdEncoding.DecodeString(fromNS.String)
 		}
-		if toB64 != "" {
-			to, _ = base64.StdEncoding.DecodeString(toB64)
+		if toNS.Valid && toNS.String != "" {
+			to, _ = base64.StdEncoding.DecodeString(toNS.String)
 		}
-		if sigB64 != "" {
-			sig, _ = base64.StdEncoding.DecodeString(sigB64)
+		if sigNS.Valid && sigNS.String != "" {
+			sig, _ = base64.StdEncoding.DecodeString(sigNS.String)
 		}
 
 		results = append(results, &nft.Operation{
