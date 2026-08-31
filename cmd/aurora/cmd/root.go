@@ -21,15 +21,18 @@ var httpTimeout string
 var rootCmd = &cobra.Command{
 	Use:   "aurora",
 	Short: i18n.GetText("app.name"),
-	Long: `Aurora is a blockchain-based digital voting system with VRF lottery.
+	Long: `Aurora is a blockchain-based digital systems suite: VRF lottery,
+signed voting, data oracle, NFT and fungible-token ledgers.
 
 Features:
   - VRF random number generation
-  - Blockchain storage
-  - CLI and TUI interfaces
-  - Database migrations
+  - Ed25519-signed voting and NFT transfers
+  - Blockchain storage with integrity verification
+  - CLI, TUI and web interfaces
+  - Database migrations and backups
 
-Use "aurora lottery --help" for lottery commands.`,
+Use "aurora <module> --help" for module commands (lottery, voting, oracle,
+nft, token).`,
 	Example: `  aurora lottery create -p "Alice,Bob,Charlie" -s "my-seed" -c 2
   aurora lottery tui
   aurora nft mint -n "MyNFT" -c "creator-key"

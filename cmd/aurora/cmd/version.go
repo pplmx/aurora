@@ -29,7 +29,7 @@ var versionCmd = &cobra.Command{
 	Short: "Show version information",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		fmt.Fprintln(out, "Aurora - VRF Lottery System")
+		fmt.Fprintln(out, "Aurora - Blockchain Systems Suite")
 		fmt.Fprintf(out, "Version: %s\n", Version)
 		fmt.Fprintf(out, "Build Time: %s\n", BuildTime)
 		fmt.Fprintf(out, "Go Version: %s\n", runtime.Version())
