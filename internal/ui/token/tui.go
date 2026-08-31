@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
+	"strings"
 
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
@@ -652,15 +653,15 @@ func (m *model) handleCreate() {
 	supplyStr := m.createSupplyInput.Value()
 	decimalsStr := m.createDecimalsInput.Value()
 
-	if name == "" {
+	if strings.TrimSpace(name) == "" {
 		m.err = i18n.GetText("error.name_required")
 		return
 	}
-	if symbol == "" {
+	if strings.TrimSpace(symbol) == "" {
 		m.err = i18n.GetText("error.symbol_required")
 		return
 	}
-	if supplyStr == "" {
+	if strings.TrimSpace(supplyStr) == "" {
 		m.err = i18n.GetText("error.supply_required")
 		return
 	}

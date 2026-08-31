@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
@@ -538,7 +539,7 @@ func (m *model) handleMint() tea.Msg {
 	description := m.descInput.Value()
 	pubkeyStr := m.pubkeyInput.Value()
 
-	if name == "" {
+	if strings.TrimSpace(name) == "" {
 		m.err = i18n.GetText("error.name_required")
 		return nil
 	}

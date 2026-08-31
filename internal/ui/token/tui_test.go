@@ -681,6 +681,16 @@ func TestHandleCreate_InvalidSupply(t *testing.T) {
 	assert.NotEmpty(t, app.err)
 }
 
+func TestHandleCreate_WhitespaceNameSymbol(t *testing.T) {
+	app := NewTokenApp()
+	app.view = "create"
+	app.createNameInput.SetValue("   ")
+	app.createSymbolInput.SetValue("   ")
+	app.createSupplyInput.SetValue("1000")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+}
+
 func TestHandleMint_EmptyTo(t *testing.T) {
 	app := NewTokenApp()
 	app.view = "mint"

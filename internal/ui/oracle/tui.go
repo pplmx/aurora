@@ -146,6 +146,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+		case "1", "2", "3", "4":
+			// Menu quick-select, mirroring the lottery/nft/token TUIs (TASK-…,
+			// the "↑↓ select + Enter" affordance is the same, so the digit
+			// shortcuts should be too). Outside the menu digits fall through
+			// so they stay typable in the fetch/query input fields.
+			if m.view == "menu" {
+				m.menuIndex = int(msg.String()[0] - '1')
+			}
+
 		case "up":
 			switch m.view {
 			case "menu":
@@ -827,7 +836,7 @@ func (m *model) handleAddSource() {
 	url := m.sourceInputURL.Value()
 	sourceType := m.sourceInputType.Value()
 
-	if name == "" || url == "" {
+	if strings.TrimSpace(name) == "" || strings.TrimSpace(url) == "" {
 		m.errMsg = i18n.GetText("error.invalid_input")
 		return
 	}
@@ -838,8 +847,8 @@ func (m *model) handleAddSource() {
 
 	addUseCase := oracleapp.NewAddSourceUseCase(m.repo)
 	_, err := addUseCase.Execute(&oracleapp.AddSourceRequest{
-		Name: name,
-		URL:  url,
+		Name: strings.TrimSpace(name),
+		URL:  strings.TrimSpace(url),
 		Type: sourceType,
 	})
 

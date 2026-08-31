@@ -384,6 +384,30 @@ func TestHandleAddSourceEmptyFields(t *testing.T) {
 	assert.NotEmpty(t, app.errMsg)
 }
 
+func TestHandleAddSourceWhitespaceFields(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.sourceInputName.SetValue("   ")
+	app.sourceInputURL.SetValue("   ")
+	app.sourceInputType.SetValue("")
+	app.handleAddSource()
+	assert.NotEmpty(t, app.errMsg)
+}
+
+func TestUpdate_DigitSelectsMenu(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "menu"
+	app.menuIndex = 0
+	app.Update(keyPress("3"))
+	assert.Equal(t, 2, app.menuIndex)
+}
+
+func TestUpdate_DigitInFormDoesNotNavigate(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "query"
+	app.Update(keyPress("5"))
+	assert.Equal(t, "query", app.view)
+}
+
 func TestHandleFetchEmptySource(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.fetchInputSource.SetValue("")
