@@ -201,6 +201,7 @@ function lotteryApp() {
                 await this.loadHistory();
                 this.participants = '';
                 this.seed = '';
+                this.count = 1;
                 // Advance the Verify Draw id to the fresh draw so the operator
                 // can verify the provably-fair result without copying the id
                 // from the JSON result block (mirrors TASK-150/ISS-148).
@@ -220,6 +221,7 @@ function dashboardApp() {
         // a total first-load failure is never presented as a genuinely empty
         // system (0/0/0/0 + "No recent activity").
         loaded: false,
+        refreshing: false,
         loading: true,
         async init() {
             await this.refresh();
@@ -235,14 +237,22 @@ function dashboardApp() {
         // instead of dipping to 0/- on every 15s poll (TASK-151). The activity
         // entries are collected per-loader and swapped in once all loads
         // finish, so the list no longer clears then re-flashes each cycle.
+        // Reentrancy is guarded so rapid manual clicks can't stack overlapping
+        // refreshes alongside the 15s timer.
         async refresh() {
-            const activity = await Promise.all([
-                this.loadLotteries(),
-                this.loadVoting(),
-                this.loadBlockchain(),
-                this.loadOracleHealth()
-            ]);
-            this.activity = [].concat(...activity);
+            if (this.refreshing) return;
+            this.refreshing = true;
+            try {
+                const activity = await Promise.all([
+                    this.loadLotteries(),
+                    this.loadVoting(),
+                    this.loadBlockchain(),
+                    this.loadOracleHealth()
+                ]);
+                this.activity = [].concat(...activity);
+            } finally {
+                this.refreshing = false;
+            }
         },
         async loadLotteries() {
             const entries = [];
@@ -414,6 +424,14 @@ function nftApp() {
                 if (data && data.id) this.id = data.id;
                 if (data && data.id) this.historyId = data.id;
                 if (data && data.owner) this.owner = data.owner;
+                // The Transfer form keys off its own from field; advance it to
+                // the fresh owner so the post-mint transfer needs no manual
+                // copy of the creator key (same TASK-150 advance contract).
+                if (data && data.owner) this.from = data.owner;
+                // Clear the mint form once the mint committed (the result JSON
+                // below keeps the committed values; consistent with the
+                // voting/oracle forms clearing on success).
+                this.name = ''; this.description = ''; this.imageUrl = ''; this.tokenUri = ''; this.creator = '';
             } catch (e) {
                 this.mintResult = 'Error: ' + e.message;
             }
@@ -747,6 +765,9 @@ function tokenApp() {
                 // blank right after a create while Balance/History auto-fill
                 // (the same TASK-150 context-advance contract, ISS-195).
                 if (data && data.id) this.infoId = data.id;
+                // Clear the create form once the token committed (result JSON
+                // keeps the values; consistent clearing on success).
+                this.name = ''; this.symbol = ''; this.supply = ''; this.decimals = 8; this.createOwner = '';
             } catch (e) {
                 this.createResult = 'Error: ' + e.message;
             }
@@ -784,6 +805,10 @@ function tokenApp() {
                 // success (ISS-150, mirrors TASK-150).
                 if (data && data.to) this.owner = data.to;
                 if (data && data.token_id) this.tokenId = data.token_id;
+                // The Transfer form keys off its own from field (xFrom);
+                // advance it to the mint recipient so the post-mint transfer
+                // needs no manual key copy (same TASK-150 advance contract).
+                if (data && data.to) this.xFrom = data.to;
                 await this.getBalance();
             } catch (e) {
                 this.mintResult = 'Error: ' + e.message;
@@ -860,6 +885,7 @@ function oracleApp() {
     return withBusy({
         sources: [], sourcesFailed: false, loading: true,
         health: [], loadingHealth: true, healthFailed: false,
+        refreshing: false,
         addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
         templates: [],
         fetchSource: '', fetchResult: '',
@@ -873,9 +899,21 @@ function oracleApp() {
             startPolling(this, 15000);
         },
         // refresh re-snapshots sources + feed health + templates; exposed as
-        // the header "↻ Refresh" button and driven by startPolling.
+        // the header "↻ Refresh" button and driven by startPolling. Reentrancy
+        // is guarded so rapid manual clicks can't stack overlapping refreshes
+        // (the timer path and the button share this one entry point).
         async refresh() {
-            await Promise.all([this.listSources(), this.loadHealth(), this.loadTemplates()]);
+            if (this.refreshing) return;
+            this.refreshing = true;
+            try {
+                await Promise.all([this.listSources(), this.loadHealth(), this.loadTemplates()]);
+            } finally {
+                this.refreshing = false;
+            }
+        },
+        sourceName(id) {
+            const s = this.sources.find(x => x.id === id);
+            return s ? s.name : id;
         },
         async loadTemplates() {
             try {
@@ -1009,6 +1047,11 @@ function oracleApp() {
             this.queryError = '';
             try {
                 const limit = this.clampLimit(this.queryLimit);
+                // Reflect the clamped value back so the visible input always
+                // matches what is actually sent (a typed 500 -> shows 100;
+                // without this the input lied while the request was clamped,
+                // ISS-184 feedback contract).
+                this.queryLimit = limit;
                 const res = await apiFetch('/api/v1/oracle/query?source=' + encodeURIComponent(this.querySource) + '&limit=' + limit);
                 const data = await res.json();
                 this.queryRows = (data && data.data) || [];
