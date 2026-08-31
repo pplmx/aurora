@@ -253,8 +253,13 @@ func (e *SQLiteEventStore) GetByModule(module string, limit int) ([]events.Event
 }
 
 func (e *SQLiteEventStore) GetByAggregate(aggID string, limit, offset int) ([]events.Event, error) {
+	// 0/negative means "all": SQLite treats a negative LIMIT as unlimited, and
+	// the only production callers (the token mint/burn history readers, which
+	// filter in memory) request the aggregate whole. Treating 0 as "default
+	// 50" truncated a token's history to its OLDEST 50 mints/burns silently —
+	// the NFT list repo already uses -1 for unlimited (TASK-101 precedent).
 	if limit <= 0 {
-		limit = 50
+		limit = -1
 	}
 
 	rows, err := e.db.Query(`

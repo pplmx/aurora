@@ -127,6 +127,14 @@ func InitBlockChain() *BlockChain {
 					block.Data = []byte(data)
 					chain.Blocks = append(chain.Blocks, &block)
 				}
+				// A mid-iteration driver error would otherwise be silently
+				// dropped with the rows closed; surface it so a failed reload
+				// (which desyncs the in-memory chain from the persisted table
+				// and can let the next append overwrite a stored block via
+				// INSERT OR REPLACE) is never quiet.
+				if err := rows.Err(); err != nil {
+					logger.Error().Err(err).Msg("Failed while iterating persisted blocks")
+				}
 				if err := rows.Close(); err != nil {
 					logger.Warn().Err(err).Msg("Failed to close rows")
 				}
