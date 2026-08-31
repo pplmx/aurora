@@ -136,13 +136,13 @@ var candidateListCmd = &cobra.Command{
 			return fmt.Errorf("failed to list candidates: %w", err)
 		}
 
-		fmt.Println("\n📋 Candidates:")
+		fmt.Println("\n📋 " + i18n.GetText("voting.candidates") + ":")
 		if len(list) == 0 {
-			fmt.Println("   (none)")
+			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
 		for _, c := range list {
-			fmt.Printf("   - %s [%s] - %d votes\n", c.Name, c.Party, c.VoteCount)
-			fmt.Printf("     ID: %s\n", c.ID)
+			fmt.Printf("   - %s [%s] - %s\n", c.Name, c.Party, i18n.GetTextF("voting.votes", c.VoteCount))
+			fmt.Printf("     %s: %s\n", i18n.GetText("voting.id"), c.ID)
 		}
 		return nil
 	},
@@ -197,14 +197,14 @@ var voterListCmd = &cobra.Command{
 			return fmt.Errorf("failed to list voters: %w", err)
 		}
 
-		fmt.Println("\n👥 Voters:")
+		fmt.Println("\n👥 " + i18n.GetText("voting.voters") + ":")
 		if len(list) == 0 {
-			fmt.Println("   (none)")
+			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
 		for _, v := range list {
-			status := "✅ voted"
+			status := "✅ " + i18n.GetText("voting.voted")
 			if !v.HasVoted {
-				status = "⏳ not voted"
+				status = "⏳ " + i18n.GetText("voting.not_voted")
 			}
 			fmt.Printf("   - %s [%s]\n", v.Name, status)
 			if len(v.PublicKey) > 16 {
@@ -319,9 +319,9 @@ var sessionListCmd = &cobra.Command{
 			return fmt.Errorf("failed to list sessions: %w", err)
 		}
 
-		fmt.Println("\n🗳️ Voting Sessions:")
+		fmt.Println("\n🗳️ " + i18n.GetText("voting.sessions") + ":")
 		if len(list) == 0 {
-			fmt.Println("   (none)")
+			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
 		for _, s := range list {
 			fmt.Printf("   - %s [%s]\n", s.Title, s.Status)
@@ -348,7 +348,7 @@ var sessionStartCmd = &cobra.Command{
 			return fmt.Errorf("failed to get session: %w", err)
 		}
 		if session == nil {
-			return fmt.Errorf("session not found")
+			return fmt.Errorf("%s", i18n.GetText("voting.session_not_found"))
 		}
 
 		session.Status = "active"
@@ -378,7 +378,7 @@ var sessionEndCmd = &cobra.Command{
 			return fmt.Errorf("failed to get session: %w", err)
 		}
 		if session == nil {
-			return fmt.Errorf("session not found")
+			return fmt.Errorf("%s", i18n.GetText("voting.session_not_found"))
 		}
 
 		session.Status = "ended"
@@ -408,7 +408,7 @@ var resultsCmd = &cobra.Command{
 			return fmt.Errorf("failed to get session: %w", err)
 		}
 		if session == nil {
-			return fmt.Errorf("session not found")
+			return fmt.Errorf("%s", i18n.GetText("voting.session_not_found"))
 		}
 
 		results := make(map[string]int)
@@ -430,9 +430,9 @@ var resultsCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Println("\n📊 Results:")
+		fmt.Println("\n📊 " + i18n.GetText("voting.results_heading") + ":")
 		for name, count := range results {
-			fmt.Printf("   %s: %d votes\n", name, count)
+			fmt.Printf("   %s: %s\n", name, i18n.GetTextF("voting.votes", count))
 		}
 		return nil
 	},
@@ -487,6 +487,11 @@ func init() {
 	sessionCreateCmd.Flags().Int64P("end-time", "", 0, i18n.GetText("voting.session_end_time"))
 	_ = sessionCreateCmd.MarkFlagRequired("title")
 	_ = sessionCreateCmd.MarkFlagRequired("candidates")
+	// start/end default to 0 and omitting both used to surface a misleading
+	// "session end time must be after start time" (INVALID_SESSION_TIME) from
+	// the domain; mark them required so an omission fails fast like title.
+	_ = sessionCreateCmd.MarkFlagRequired("start-time")
+	_ = sessionCreateCmd.MarkFlagRequired("end-time")
 
 	// --session/-s (not --id/-i) so the session selector is spelled the same
 	// across session start/end and vote/results (TASK-152, ISS-143).
