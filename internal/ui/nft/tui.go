@@ -399,6 +399,10 @@ func (m *model) View() tea.View {
 
 func (m *model) menuView() string {
 	s := components.HeaderStyle().Render("🖼️ "+i18n.GetText("nft.tui.title")+" 🖼️") + "\n\n"
+	// The NFT TUI runs on an in-memory repository; state is lost on quit, so
+	// the sandbox caveat is shown up front instead of only in code comments
+	// (TASK-204/ISS-200 sibling finding).
+	s += "\n" + components.WarningStyle().Render(i18n.GetText("tui.sandbox_notice")) + "\n"
 	items := []string{
 		i18n.GetText("nft.tui.mint"),
 		i18n.GetText("nft.tui.transfer"),
