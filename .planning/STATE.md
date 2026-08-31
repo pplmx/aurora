@@ -5,20 +5,46 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.92 — round-128 web/TUI/CLI polish sweep (web lottery create form validated to the API contract, load-failure vs empty parity on oracle health/dashboard/voting candidates, oracle fetch-form Tab focus desync + confirm-dialog error rendering, NFT/lottery TUI success-message rendering, lottery CLI + `version` command localization, REST/CLI winner-count parity, version/build-time injection across CI/Docker/justfile, dead-code sweep of response.go + FFT math + 23 unused i18n keys)
+**Current focus:** v1.93 — rounds 132–137 config-truthfulness + surface-parity polish (inert config knobs removed: `db.type` and `lottery.defaultSeedPrefix` were set-but-never-read; sample `aurora.toml` no longer ships dead `[[oracle.sources]]` blocks and now explains `[http]`/`[http.rateLimit]` govern the outbound fetcher, not the API server; `cmd/api` releases DB/event-store handles on the fatal bind-failure path; `oracle source add` gained `--method`/`--path` and `source list` prints Method/Path/Interval; oracle TUI add form now sets method/path/interval with client-side interval validation)
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
 Status: v1.24–v1.88 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh, cancellable scheduler fetches, backup traversal rejection, bounded rate-limiters, unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry, web error-surfacing consistency, oracle/dashboard polling polish, burn-amount isolation, NFT mint context advance)
-Last activity: 2026-08-28 — v1.85 closed (round-97 UX deep-dive: three parallel
-  audit agents over the TUI surfaces, CLI ergonomics and web frontend, then
-  the top-three verified defects fixed; round-98 drained the backlog:
-  viewport scroll bindings, destructive-op confirm gates, CLI --help
-  localization; round-99 drained the rest — oracle confirm visible
-  selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine
-  (DEC-007), web auto-refresh):
+Last activity: 2026-09-01 — v1.93 closed (rounds 132–137 config-truthfulness
+  + surface-parity deep-dive: three config knobs proved set-but-never-read
+  (`db.type`, `lottery.defaultSeedPrefix`) or dead-by-design (sample
+  `[[oracle.sources]]` blocks the binary never reads) and were removed /
+  re-documented; `[http]`/`[http.rateLimit]` scope clarified in the sample
+  config; `cmd/api` gained handle release on the fatal bind-failure path;
+  `oracle source add` + TUI add form reached API parity with `--method`/
+  `--path` and interval; oracle scheduler backoff and web/CLI/TUI/API field
+  parity verified):
+
+  1. Inert config knobs removed — `db.type` (DBConfig.Type + default + toml
+     line + two test assertions) and `lottery.defaultSeedPrefix` (viper
+     default + toml line + config-doc claim) were written but never read;
+     the lottery seed is always caller-supplied and SQLite is the only
+     backend. `config/aurora.toml` no longer ships two `[[oracle.sources]]`
+     blocks that nothing reads, with a truthful comment pointing at
+     `aurora oracle source add` / REST / TUI (TASK-223, TASK-226; ISS-219,
+     ISS-220, ISS-224).
+
+  2. Oracle capabilities reached parity: CLI `source add` gained
+     `-m/--method` and `-p/--path` (previously the API/TUI/web-only fields),
+     `source list` prints Method/Path/Interval, and the oracle TUI add form
+     now sets method/path/interval with client-side interval validation
+     (6-field focus cycle; empty -> default 60) (TASK-225, TASK-227;
+     ISS-221, ISS-222, ISS-225).
+
+  3. Lifecycle + docs: `cmd/api` calls the idempotent `srv.Close()` before
+     the fatal ListenAndServe exit so WAL/event-store handles are released;
+     `[http]`/`[http.rateLimit]` documented as outbound-fetcher scope (DEC-008
+     respected — no shipped keys renamed) (TASK-224, TASK-225; ISS-221,
+     ISS-223).
+
+  RIL graph at round 131 (778 nodes, 917 edges).
 
   1. Lottery/token/nft TUI forms were UNTYPABLE — their Update loops never
      forwarded keypresses into the textinput models, so no participant, seed,
