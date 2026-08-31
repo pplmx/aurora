@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 127,
+  "round": 128,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T16:09:27+00:00",
+  "updated_at": "2026-08-31T16:51:23+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -9179,6 +9179,32 @@
       "touched_round": 127,
       "commit": "90a89af",
       "title": "Backup opens hardened via sqlite.DSN"
+    },
+    "ISS-219": {
+      "id": "ISS-219",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T16:49:40+00:00",
+      "updated_at": "2026-08-31T16:49:40+00:00",
+      "touched_round": 128,
+      "title": "config db.type knob is inert (set-but-never-read)",
+      "description": "viper.SetDefault('db.type','sqlite') + DBConfig.Type are written but no code reads cfg.DB.Type; the API/CLI always use the SQLite DSN via resolvedDBPath. Operators setting db.type=<anything but sqlite> silently get SQLite, implying a non-existent backend selection. Severity 0.3: informational/config-truthfulness.",
+      "severity": 0.3,
+      "confidence": 1
+    },
+    "ISS-220": {
+      "id": "ISS-220",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T16:51:23+00:00",
+      "updated_at": "2026-08-31T16:51:23+00:00",
+      "touched_round": 128,
+      "title": "sample aurora.toml ships dead [[oracle.sources]] blocks nothing reads",
+      "description": "config/aurora.toml documents two oracle sources (btc-price, eth-price) but no code reads an [[oracle.sources]] table; operators editing them expect scheduler effect and get none. Sources live in SQLite and are managed via CLI/API/TUI. Severity 0.35: misleading documentation-as-config.",
+      "severity": 0.35,
+      "confidence": 1
     }
   },
   "edges": [

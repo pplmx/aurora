@@ -8,7 +8,7 @@ level = "info"
 path = "./logs/"
 
 [db]
-type = "sqlite"
+# SQLite is the only supported backend; path is the database file location.
 path = "./data/aurora.db"
 
 [migrate]
@@ -29,22 +29,11 @@ timeout = "10s"
 requests = 10
 window = "1m"
 
-[[oracle.sources]]
-id = "btc-price"
-name = "Bitcoin Price"
-url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
-type = "price"
-method = "GET"
-path = "bitcoin.usd"
-interval = 60
-enabled = true
-
-[[oracle.sources]]
-id = "eth-price"
-name = "Ethereum Price"
-url = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
-type = "price"
-method = "GET"
-path = "ethereum.usd"
-interval = 60
-enabled = true
+# Oracle Data Sources
+#
+# Oracle sources are NOT configured from this file: the binary never reads an
+# [[oracle.sources]] table here, so editing one would silently have no effect.
+# Sources live in the SQLite database and are managed at runtime via
+#   aurora oracle source add ...   (or the REST API / `aurora --ui oracle`).
+# The only live oracle settings are [oracle.scheduler] (check cadence, optional);
+# per-source interval is set on each source at add time.

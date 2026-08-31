@@ -49,8 +49,10 @@ type LogConfig struct {
 	Path  string `mapstructure:"path"`
 }
 
+// DBConfig configures the SQLite database location. SQLite is the only
+// backend: the old db.type knob (v1.9x) was set-but-never-read and has been
+// removed so an operator can't expect a non-existent alternate backend.
 type DBConfig struct {
-	Type string `mapstructure:"type"`
 	Path string `mapstructure:"path"`
 }
 
@@ -64,7 +66,6 @@ func Load() (*Config, error) {
 	viper.SetDefault("server.webRoot", "web")
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("log.path", "./logs")
-	viper.SetDefault("db.type", "sqlite")
 	viper.SetDefault("db.path", "./data/aurora.db")
 	// REST API per-client rate limiting (v1.19). Disabled by default; operators
 	// opt in so enabling it can never silently break existing traffic.
