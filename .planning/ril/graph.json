@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 123,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T02:19:24+00:00",
+  "updated_at": "2026-08-31T02:21:43+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -8261,6 +8261,18 @@
       "touched_round": 122,
       "commit": "bd1256d",
       "title": "align Docker/k8s manifests to CLI toolbox"
+    },
+    "DEC-009": {
+      "id": "DEC-009",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T02:21:43+00:00",
+      "updated_at": "2026-08-31T02:21:43+00:00",
+      "touched_round": 123,
+      "rationale": "The Docker image ships only the CLI (cmd/aurora; no HTTP listener, default CMD exits, restart: unless-stopped crash-looping) while compose/k8s mapped ports 6666/8888 + Service + HPA to nothing and README's Web UI (cmd/api) was never in the image. Asked the operator: chose 'align as CLI toolbox' — compose becomes one-shot docker compose run, k8s becomes a batch Job, no ports/Service/HPA, Web UI stays a separate cmd/api binary not containerized.",
+      "alternatives_rejected": "extend the image to also build cmd/api + copy web/ so the Web UI deploys via Docker (rejected by operator: keep the image CLI-only); leave the drifted manifests as-is (misleading + crash-loop, rejected)",
+      "title": "Deployment intent (operator decision): the aurora Docker/k8s image is a CLI toolbox; the Web UI is intentionally a separate non-containerized cmd/api binary (TASK-196, ISS-192)"
     }
   },
   "edges": [
