@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 128,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T16:56:12+00:00",
+  "updated_at": "2026-08-31T17:15:41+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -9232,6 +9232,71 @@
       "severity": 0.35,
       "confidence": 1,
       "effort": 1
+    },
+    "ISS-221": {
+      "id": "ISS-221",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T17:13:20+00:00",
+      "updated_at": "2026-08-31T17:13:20+00:00",
+      "touched_round": 128,
+      "title": "cmd/api fatal path skips srv.Close (DB handles abandoned on bind failure)",
+      "description": "The ListenAndServe failure goroutine calls logger.Fatal (os.Exit) without main's deferred srv.Close, tearing outbox/scheduler goroutines down over an open SQLite handle and leaving the WAL uncleaned. Low severity: only triggers when the server cannot start.",
+      "severity": 0.25,
+      "confidence": 1
+    },
+    "ISS-222": {
+      "id": "ISS-222",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T17:13:20+00:00",
+      "updated_at": "2026-08-31T17:13:20+00:00",
+      "touched_round": 128,
+      "title": "CLI oracle source add cannot set method/JSON path",
+      "description": "source add exposed only --name/--url/--type/--interval while the REST API and TUI support method+path; the documented CLI-based workflow could not create a price source needing JSON-path extraction (e.g. path=bitcoin.usd), and source list did not show what a source does.",
+      "severity": 0.4,
+      "confidence": 1
+    },
+    "TASK-224": {
+      "id": "TASK-224",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-31T17:13:20+00:00",
+      "updated_at": "2026-08-31T17:15:41+00:00",
+      "touched_round": 128,
+      "title": "API lifecycle: release handles on fatal exit; oracle CLI: method/path flags + list detail",
+      "description": "round-133: cmd/api Close before fatal; add -m/--method, -p/--path to source add + print Method/Path/Interval in list (2 i18n keys en+zh).",
+      "category": "maintainability",
+      "severity": 0.4,
+      "confidence": 1,
+      "effort": 2
+    },
+    "CHG-214": {
+      "id": "CHG-214",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T17:14:07+00:00",
+      "updated_at": "2026-08-31T17:14:07+00:00",
+      "touched_round": 128,
+      "title": "cmd/api Close before fatal; oracle CLI method/path flags + list detail",
+      "description": "f495e68: idempotent srv.Close() before logger.Fatal in ListenAndServe failure goroutine. 9fd5ba1: -m/--method + -p/--path flags wired through AddSourceRequest; source list prints Method/Path/Interval; 2 new i18n keys. Verified: go build/vet clean, full -race suite passes.",
+      "commit": "9fd5ba1"
+    },
+    "CHG-215": {
+      "id": "CHG-215",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T17:15:41+00:00",
+      "updated_at": "2026-08-31T17:15:41+00:00",
+      "touched_round": 128,
+      "title": "oracle CLI: method/path flags + list detail",
+      "description": "9fd5ba1: -m/--method + -p/--path flags wired through AddSourceRequest; source list prints Method/Path/Interval; 2 new i18n keys en+zh. Verified: full -race suite passes.",
+      "commit": "9fd5ba1"
     }
   },
   "edges": [
@@ -14646,6 +14711,42 @@
       "to": "TASK-223",
       "type": "implements",
       "created_at": "2026-08-31T16:56:12+00:00"
+    },
+    {
+      "from": "CHG-214",
+      "to": "TASK-224",
+      "type": "implements",
+      "created_at": "2026-08-31T17:14:07+00:00"
+    },
+    {
+      "from": "CHG-214",
+      "to": "ISS-221",
+      "type": "resolves",
+      "created_at": "2026-08-31T17:15:41+00:00"
+    },
+    {
+      "from": "CHG-215",
+      "to": "ISS-222",
+      "type": "resolves",
+      "created_at": "2026-08-31T17:15:41+00:00"
+    },
+    {
+      "from": "TASK-224",
+      "to": "ISS-221",
+      "type": "addresses",
+      "created_at": "2026-08-31T17:15:41+00:00"
+    },
+    {
+      "from": "TASK-224",
+      "to": "ISS-222",
+      "type": "addresses",
+      "created_at": "2026-08-31T17:15:41+00:00"
+    },
+    {
+      "from": "CHG-215",
+      "to": "TASK-224",
+      "type": "implements",
+      "created_at": "2026-08-31T17:15:41+00:00"
     }
   ]
 }
