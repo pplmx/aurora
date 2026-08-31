@@ -228,10 +228,14 @@ just build
 go build -o aurora ./cmd/aurora
 
 # Docker
-just dev      # 开发模式
+just dev      # 构建并启动（CLI 工具箱容器，见 compose.yml 说明）
 just start    # 启动容器
 just stop     # 停止容器
 ```
+
+> Docker 镜像只包含 CLI（`cmd/aurora`），没有 HTTP 监听器；Web UI 由独立的
+> `cmd/api` 二进制提供（见上），不包含在镜像中，因此 compose/k8s 清单没有端口
+> 映射——用 `docker compose run --rm aurora <命令>` 执行一次性 CLI 任务。
 
 ## 测试覆盖率
 

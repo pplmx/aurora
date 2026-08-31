@@ -1,24 +1,31 @@
 version: '3.8'
 
+# Aurora CLI toolbox on Docker.
+#
+# The image ships only the CLI binary (cmd/aurora) — it has no HTTP listener,
+# so there are no port mappings here (the old 6666/8888 maps pointed at
+# nothing; ISS-192). The Web UI is a separate binary (cmd/api) that is not part
+# of this image — build and run it directly, see README.
+#
+# The container runs a CLI command and exits, so this is a one-shot service,
+# not a daemon (restart: "no" — a restart: unless-stopped on an exiting
+# command merely crash-loops the container):
+#
+#   docker compose run --rm aurora lottery create -p "A,B,C" -s "seed" -c 1
+#   docker compose run --rm aurora lottery history
+#   docker compose run --rm aurora token create -n "MyToken" -s "SYM" --supply 1000
+#
+# State (SQLite + logs) persists on the named volumes across runs.
 services:
   aurora:
     image: pplmx/aurora:latest
     container_name: aurora-lottery
-    restart: unless-stopped
-    ports:
-      - "6666:6666"
-      - "8888:8888"
+    restart: "no"
     volumes:
       - aurora-data:/app/data
       - aurora-logs:/app/logs
     environment:
       - LOG_LEVEL=info
-    healthcheck:
-      test: ["CMD", "./aurora", "lottery", "stats"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
 volumes:
   aurora-data:
