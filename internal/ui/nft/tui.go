@@ -480,13 +480,27 @@ func (m *model) queryView() string {
 }
 
 func (m *model) resultView() string {
+	s := ""
+	// A mint/transfer success is otherwise set in handleMint/handleTransfer and
+	// cleared on every exit of this view without ever being rendered; surface
+	// it here (the token TUI shows its successes inline on the form, this is
+	// this TUI's equivalent).
+	if m.successMsg != "" {
+		s += components.SuccessStyle().Render("✓ "+m.successMsg) + "\n\n"
+	}
+
 	if m.nft == nil {
-		s := components.ErrorStyle().Render("⚠ "+i18n.GetText("error.not_found")) + "\n\n"
+		// A failed re-fetch after a *successful* transfer must not read as
+		// "Not found" — the chain write already committed, so show the success
+		// banner alone rather than undercutting it (ISS-156 class).
+		if m.successMsg == "" {
+			s += components.ErrorStyle().Render("⚠ "+i18n.GetText("error.not_found")) + "\n\n"
+		}
 		s += components.BorderStyle().Render("[ESC] " + i18n.GetText("lottery.tui.back"))
 		return s
 	}
 
-	s := components.SuccessStyle().Render("🎉 "+i18n.GetText("nft.tui.nft_detail")) + "\n\n"
+	s += components.SuccessStyle().Render("🎉 "+i18n.GetText("nft.tui.nft_detail")) + "\n\n"
 	s += components.InfoStyle().Render(i18n.GetText("nft.tui.nft_id")+": ") + m.nft.ID + "\n"
 	s += components.InfoStyle().Render(i18n.GetText("nft.tui.name")+": ") + m.nft.Name + "\n"
 	s += components.InfoStyle().Render(i18n.GetText("nft.tui.description")+": ") + m.nft.Description + "\n"

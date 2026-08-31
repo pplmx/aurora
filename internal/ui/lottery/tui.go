@@ -317,11 +317,19 @@ func (m *model) historyView() string {
 }
 
 func (m *model) resultView() string {
+	s := ""
+	// A draw's created-on-chain feedback (and any persist warning appended by
+	// handleCreate) is otherwise set and cleared on every exit of this view
+	// without ever being rendered; surface it here.
+	if m.successMsg != "" {
+		s += components.SuccessStyle().Render("✓ "+m.successMsg) + "\n\n"
+	}
+
 	if m.result == nil {
 		return i18n.GetText("error.not_found")
 	}
 
-	s := components.SuccessStyle().Render("🎉 "+i18n.GetText("lottery.tui.completed")) + "\n\n"
+	s += components.SuccessStyle().Render("🎉 "+i18n.GetText("lottery.tui.completed")) + "\n\n"
 	s += components.InfoStyle().Render(i18n.GetText("lottery.lottery_id")+": ") + m.result.ID + "\n"
 	s += components.InfoStyle().Render(i18n.GetText("lottery.block_height")+": #") + fmt.Sprintf("%d", m.result.BlockHeight) + "\n\n"
 	s += components.SuccessStyle().Render(i18n.GetText("lottery.winners")+":") + "\n"
@@ -482,6 +490,10 @@ func (m *model) runLottery(participants []string, seed string, count int) *lotte
 	if m.repo != nil {
 		if err := m.repo.Save(record); err != nil {
 			m.persistErr = fmt.Sprintf("%s: %v", i18n.GetText("lottery.tui.persist_failed"), err)
+		} else {
+			// A previous draw's persistence failure must not keep tainting
+			// later draw's "created on-chain" text once saving works again.
+			m.persistErr = ""
 		}
 	}
 

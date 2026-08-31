@@ -260,12 +260,19 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.inputFocus = (m.inputFocus + 1) % 3
 				m.updateInputFocus()
 			case "fetch":
-				m.inputFocus = (m.inputFocus + 1) % 2
+				// The fetch view has a single input; cycling (mod 2) could
+				// land focus on a non-existent second field, blur the only
+				// input and leave typing dead. Keep focus on it (mirrors
+				// the 'down' handling for this view).
+				m.inputFocus = 0
 				m.updateFetchInputFocus()
 			case "query":
 				m.inputFocus = (m.inputFocus + 1) % 2
 				m.updateQueryInputFocus()
 			}
+			// Tab is always navigation; never let it also reach the focused
+			// textinput below (consistent with lottery/nft/token TUIs).
+			return m, nil
 
 		case "enter":
 			switch m.view {
@@ -627,6 +634,15 @@ func (m *model) confirmToggleView() string {
 	s += components.HelpTextStyle().Render(i18n.GetText("oracle.tui.yes_no")) + "\n"
 	s += "[ESC] " + i18n.GetText("lottery.tui.back") + "\n"
 
+	// A failed toggle/delete keeps the operator on this dialog; surface the
+	// reason here (the sources view it returns to would clear it on ESC).
+	if m.errMsg != "" {
+		s += "\n" + components.ErrorStyle().Render(m.errMsg)
+	}
+	if m.successMsg != "" {
+		s += "\n" + components.SuccessStyle().Render(m.successMsg)
+	}
+
 	return s
 }
 
@@ -666,6 +682,15 @@ func (m *model) confirmDeleteView() string {
 	s += "\n" + m.confirmChoiceView()
 	s += components.HelpTextStyle().Render(i18n.GetText("oracle.tui.yes_no")) + "\n"
 	s += "[ESC] " + i18n.GetText("lottery.tui.back") + "\n"
+
+	// A failed toggle/delete keeps the operator on this dialog; surface the
+	// reason here (the sources view it returns to would clear it on ESC).
+	if m.errMsg != "" {
+		s += "\n" + components.ErrorStyle().Render(m.errMsg)
+	}
+	if m.successMsg != "" {
+		s += "\n" + components.SuccessStyle().Render(m.successMsg)
+	}
 
 	return s
 }
