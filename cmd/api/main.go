@@ -92,6 +92,11 @@ func main() {
 	go func() {
 		logger.Info().Str("addr", addr).Msg("Starting API server")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			// logger.Fatal exits without running main's deferred srv.Close(),
+			// so release the SQLite/event-store handles here first — otherwise
+			// the WAL is left uncleaned and the outbox/scheduler goroutines are
+			// torn down over an open DB. Idempotent if srv.Close ran already.
+			_ = srv.Close()
 			logger.Fatal().Err(err).Msg("Server failed")
 		}
 	}()
