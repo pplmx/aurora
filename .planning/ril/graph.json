@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 128,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T16:51:23+00:00",
+  "updated_at": "2026-08-31T16:56:12+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -9205,6 +9205,33 @@
       "description": "config/aurora.toml documents two oracle sources (btc-price, eth-price) but no code reads an [[oracle.sources]] table; operators editing them expect scheduler effect and get none. Sources live in SQLite and are managed via CLI/API/TUI. Severity 0.35: misleading documentation-as-config.",
       "severity": 0.35,
       "confidence": 1
+    },
+    "CHG-213": {
+      "id": "CHG-213",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T16:54:58+00:00",
+      "updated_at": "2026-08-31T16:54:58+00:00",
+      "touched_round": 128,
+      "title": "Remove inert db.type knob + make sample aurora.toml truthful about oracle sources",
+      "description": "config.go: drop DBConfig.Type + SetDefault('db.type'); config_test.go: drop db.type assertions/set; aurora.toml: remove type='sqlite' and dead [[oracle.sources]] blocks, replace with honest comments. Verified: build/vet green, config tests pass -race, CLI version against sample config.",
+      "commit": "c387d1b"
+    },
+    "TASK-223": {
+      "id": "TASK-223",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T16:56:11+00:00",
+      "updated_at": "2026-08-31T16:56:12+00:00",
+      "touched_round": 128,
+      "title": "Config truthfulness: inert db.type knob + dead oracle.sources sample",
+      "description": "(round-132) Remove the set-but-never-read db.type config knob and make config/aurora.toml stop shipping [[oracle.sources]] blocks the binary never reads. Category maintainability, severity 0.35, confidence 1, effort 1.",
+      "category": "maintainability",
+      "severity": 0.35,
+      "confidence": 1,
+      "effort": 1
     }
   },
   "edges": [
@@ -14589,6 +14616,36 @@
       "to": "TASK-222",
       "type": "implements",
       "created_at": "2026-08-31T16:09:27+00:00"
+    },
+    {
+      "from": "CHG-213",
+      "to": "ISS-219",
+      "type": "resolves",
+      "created_at": "2026-08-31T16:54:58+00:00"
+    },
+    {
+      "from": "CHG-213",
+      "to": "ISS-220",
+      "type": "resolves",
+      "created_at": "2026-08-31T16:54:59+00:00"
+    },
+    {
+      "from": "TASK-223",
+      "to": "ISS-219",
+      "type": "addresses",
+      "created_at": "2026-08-31T16:56:11+00:00"
+    },
+    {
+      "from": "TASK-223",
+      "to": "ISS-220",
+      "type": "addresses",
+      "created_at": "2026-08-31T16:56:12+00:00"
+    },
+    {
+      "from": "CHG-213",
+      "to": "TASK-223",
+      "type": "implements",
+      "created_at": "2026-08-31T16:56:12+00:00"
     }
   ]
 }
