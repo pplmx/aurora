@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -318,10 +317,10 @@ func (h *TokenHandler) Info(w http.ResponseWriter, r *http.Request) {
 	uc := tokenapp.NewGetTokenInfoUseCase(h.service)
 	result, err := uc.Execute(tokenID)
 	if err != nil {
-		if errors.Is(err, token.ErrTokenNotFound) {
-			writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
-			return
-		}
+		// writeUseCaseError classifies ErrTokenNotFound as 404
+		// TOKEN_NOT_FOUND through the shared table; the bespoke NOT_FOUND here
+		// made this one endpoint diverge from every other token 404
+		// (TASK-200, ISS-196).
 		writeUseCaseError(w, err)
 		return
 	}
