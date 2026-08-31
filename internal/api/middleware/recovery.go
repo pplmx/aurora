@@ -83,7 +83,9 @@ func Recovery(next http.Handler) http.Handler {
 				tracker.Header().Set("Content-Type", "application/json")
 				tracker.WriteHeader(http.StatusInternalServerError)
 				_ = json.NewEncoder(tracker).Encode(map[string]string{
-					"error": "Internal server error",
+					// lowercase to match handler-generated 500s (helpers.go)
+					// so clients see one consistent message shape.
+					"error": "internal server error",
 					"code":  "INTERNAL_ERROR",
 				})
 			}
