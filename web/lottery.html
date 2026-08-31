@@ -64,7 +64,8 @@
                         </template>
                     </tbody>
                 </table>
-                <p x-show="!loading && history.length === 0">No lotteries yet</p>
+                <p x-show="!loading && history.length === 0 && !historyFailed">No lotteries yet</p>
+                <p x-show="!loading && history.length === 0 && historyFailed" class="hint">Failed to load history — check the API / refresh.</p>
             </section>
             <section class="history">
                 <h2>Verify Draw</h2>
