@@ -85,7 +85,8 @@
                                 </label>
                             </div>
                         </template>
-                        <small x-show="sessionCandidateIds.length === 0" class="hint">Select at least one candidate to create a session.</small>
+                        <small x-show="candidatesFailed" class="hint">Failed to load candidates — check the API / refresh.</small>
+                        <small x-show="!candidatesFailed && sessionCandidateIds.length === 0" class="hint">Select at least one candidate to create a session.</small>
                     </div>
                     <!-- A session with an empty candidate roster is rejected by
                          the API (CANDIDATES_REQUIRED); disable the submit until
@@ -155,7 +156,8 @@
                                 <option :value="c.id" x-text="c.name"></option>
                             </template>
                         </select>
-                        <small x-show="sessions.length && !currentSessionCandidates.length" class="hint">This session has no candidates — pick another session.</small>
+                        <small x-show="sessions.length && !currentSessionCandidates.length && !candidatesFailed" class="hint">This session has no candidates — pick another session.</small>
+                        <small x-show="sessions.length && candidatesFailed" class="hint">Failed to load candidates — check the API / refresh.</small>
                     </div>
                     <div class="form-group">
                         <label>Voter Public Key</label>

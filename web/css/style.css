@@ -139,6 +139,11 @@ section h2 {
     outline: none;
     border-color: var(--accent-lottery);
 }
+.form-hint {
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
 
 button {
     padding: 12px 24px;
