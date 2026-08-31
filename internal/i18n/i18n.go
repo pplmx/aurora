@@ -92,24 +92,24 @@ func (tr *Translator) loadMessages() {
 		"lottery.yes":          "Confirm reset",
 
 		// Messages
-		"lottery.success":      "Lottery created successfully!",
-		"lottery.lottery_id":   "Lottery ID",
-		"lottery.block_height": "Block height",
-		"lottery.winners":      "Winners",
-		"lottery.vrf_output":   "VRF Output",
-		"lottery.vrf_proof":    "VRF Proof",
-		"lottery.no_records":   "No lottery records found",
-		"lottery.total":        "Total lotteries",
-		"lottery.verified":     "Lottery Record Verified!",
-		"lottery.exported":     "Exported %d lottery records to %s",
-		"lottery.imported":     "Imported %d lottery records",
+		"lottery.success":        "Lottery created successfully!",
+		"lottery.lottery_id":     "Lottery ID",
+		"lottery.block_height":   "Block height",
+		"lottery.winners":        "Winners",
+		"lottery.vrf_output":     "VRF Output",
+		"lottery.vrf_proof":      "VRF Proof",
+		"lottery.no_records":     "No lottery records found",
+		"lottery.total":          "Total lotteries",
+		"lottery.verified":       "Lottery Record Verified!",
+		"lottery.exported":       "Exported %d lottery records to %s",
+		"lottery.imported":       "Imported %d lottery records",
 		"lottery.import_partial": "Imported %d of %d lottery records (failed: %d)",
-		"lottery.statistics":   "Lottery Statistics",
-		"lottery.db_info_title": "Database Info",
-		"lottery.db_path":      "Database",
-		"lottery.latest_block": "Latest block",
-		"lottery.total_blocks": "Total blocks",
-		"lottery.reset_done":   "Database reset complete!",
+		"lottery.statistics":     "Lottery Statistics",
+		"lottery.db_info_title":  "Database Info",
+		"lottery.db_path":        "Database",
+		"lottery.latest_block":   "Latest block",
+		"lottery.total_blocks":   "Total blocks",
+		"lottery.reset_done":     "Database reset complete!",
 
 		// TUI
 		"lottery.tui.title":                 "VRF Lottery System",
@@ -153,7 +153,6 @@ func (tr *Translator) loadMessages() {
 		"voting.session.end":    "End voting session",
 		"voting.session.list":   "List all sessions",
 		"voting.results":        "Show voting results",
-		"voting.tui":            "Launch Voting TUI",
 
 		// Flags
 		"voting.name":         "Name",
@@ -165,7 +164,6 @@ func (tr *Translator) loadMessages() {
 		"voting.session_id":   "Session ID",
 		"voting.title":        "Session title",
 		"voting.description":  "Session description",
-		"voting.duration":     "Duration (seconds)",
 
 		// Messages
 		"voting.candidate_added":    "Candidate registered: %s",
@@ -174,10 +172,6 @@ func (tr *Translator) loadMessages() {
 		"voting.session_created":    "Voting session created: %s",
 		"voting.session_started":    "Session started!",
 		"voting.session_ended":      "Session ended!",
-		"voting.no_candidates":      "No candidates found",
-		"voting.no_voters":          "No voters found",
-		"voting.no_sessions":        "No voting sessions",
-		"voting.verified":           "Vote verified!",
 		"voting.session_start_time": "Session start time (unix)",
 		"voting.session_end_time":   "Session end time (unix)",
 
@@ -191,7 +185,6 @@ func (tr *Translator) loadMessages() {
 		"nft.list":     "List NFTs by owner",
 		"nft.get":      "Get NFT by ID",
 		"nft.history":  "Get NFT operation history",
-		"nft.tui":      "Launch NFT TUI",
 
 		// Flags
 		"nft.name":        "NFT name",
@@ -206,21 +199,16 @@ func (tr *Translator) loadMessages() {
 		"nft.private_key": "Private key (Base64)",
 
 		// Messages
-		"nft.minted":         "NFT minted successfully!",
-		"nft.transferred":    "NFT transferred successfully!",
-		"nft.burned":         "NFT burned successfully!",
-		"nft.not_found":      "NFT not found",
-		"nft.owner_mismatch": "Caller is not the owner",
-		"nft.block_height":   "Block height",
+		"nft.minted":       "NFT minted successfully!",
+		"nft.transferred":  "NFT transferred successfully!",
+		"nft.burned":       "NFT burned successfully!",
+		"nft.block_height": "Block height",
 
 		// TUI
 		"nft.tui.title":            "NFT System",
 		"nft.tui.mint":             "Mint NFT",
 		"nft.tui.transfer":         "Transfer NFT",
 		"nft.tui.query":            "Query NFT",
-		"nft.tui.exit":             "Exit",
-		"nft.tui.info":             "Information",
-		"nft.tui.cli_tip":          "Use CLI commands to operate NFT:",
 		"nft.tui.name":             "Name",
 		"nft.tui.description":      "Description",
 		"nft.tui.public_key":       "Public Key (Base64)",
@@ -315,7 +303,6 @@ func (tr *Translator) loadMessages() {
 		"token.tui.from_b64":        "From: %s...",
 		"token.tui.to_b64":          "To: %s...",
 		"token.tui.amount_qty":      "Amount: %s %s",
-		"token.tui.exit":            "Exit",
 
 		// ===== ORACLE =====
 		// Commands
@@ -351,18 +338,13 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_deleted":  "Data source deleted!",
 		"oracle.fetched":         "Data fetched successfully!",
 		"oracle.template_added":  "Template added: %s",
-		"oracle.no_sources":      "No data sources found",
 		"oracle.no_data":         "No data found",
-		"oracle.fetch_error":     "Failed to fetch data",
 
 		// TUI
 		"oracle.tui.title":           "Oracle System",
 		"oracle.tui.source_mgmt":     "Data Source Management",
 		"oracle.tui.fetch_data":      "Fetch Data",
 		"oracle.tui.query_data":      "Query Data",
-		"oracle.tui.exit":            "Exit",
-		"oracle.tui.no_sources":      "No data sources",
-		"oracle.tui.cli_tip":         "Use CLI commands:",
 		"oracle.tui.enabled":         "✓",
 		"oracle.tui.disabled":        "✗",
 		"oracle.tui.add_source":      "Add Data Source",
@@ -404,9 +386,7 @@ func (tr *Translator) loadMessages() {
 		// ===== COMMON =====
 		// Help
 		"help.nav":           "Use ↑↓ to select, Enter to confirm, ? for help, q to quit",
-		"help.exit":          "Press q to quit",
 		"tui.sandbox_notice": "⚠ sandbox mode — minted/created items are NOT persisted (in-memory only)",
-		"help.back":          "Press b to go back",
 
 		// TUI help screen (components.HelpView)
 		"tui.help.title":       "Keyboard Shortcuts",
@@ -421,7 +401,6 @@ func (tr *Translator) loadMessages() {
 		"tui.help.back_prompt": "Press ESC or ? to return",
 
 		// ===== MIGRATE =====
-		"migrate.description":      "Database migration management",
 		"migrate.short":            "Manage database migrations",
 		"migrate.long":             "Apply, roll back, or inspect the schema migrations stored in the configured migrations directory.",
 		"migrate.up":               "Apply pending migrations (all by default, or the next N steps)",
@@ -467,8 +446,6 @@ func (tr *Translator) loadMessages() {
 		"error.invalid_input": "Invalid input",
 		"error.not_found":     "Not found",
 		"error.load_failed":   "Failed to load data",
-		"error.unauthorized":  "Unauthorized",
-		"error.internal":      "Internal error",
 	}
 
 	tr.messages["zh"] = map[string]string{
@@ -498,24 +475,24 @@ func (tr *Translator) loadMessages() {
 		"lottery.yes":          "确认重置",
 
 		// Messages
-		"lottery.success":      "抽奖创建成功！",
-		"lottery.lottery_id":   "抽奖ID",
-		"lottery.block_height": "区块高度",
-		"lottery.winners":      "中奖者",
-		"lottery.vrf_output":   "VRF 输出",
-		"lottery.vrf_proof":    "VRF 证明",
-		"lottery.no_records":   "暂无抽奖记录",
-		"lottery.total":        "总抽奖数",
-		"lottery.verified":     "抽奖记录已验证！",
-		"lottery.exported":     "已导出 %d 条抽奖记录到 %s",
-		"lottery.imported":     "已导入 %d 条抽奖记录",
+		"lottery.success":        "抽奖创建成功！",
+		"lottery.lottery_id":     "抽奖ID",
+		"lottery.block_height":   "区块高度",
+		"lottery.winners":        "中奖者",
+		"lottery.vrf_output":     "VRF 输出",
+		"lottery.vrf_proof":      "VRF 证明",
+		"lottery.no_records":     "暂无抽奖记录",
+		"lottery.total":          "总抽奖数",
+		"lottery.verified":       "抽奖记录已验证！",
+		"lottery.exported":       "已导出 %d 条抽奖记录到 %s",
+		"lottery.imported":       "已导入 %d 条抽奖记录",
 		"lottery.import_partial": "已导入 %d / %d 条抽奖记录（失败: %d）",
-		"lottery.statistics":   "抽奖统计",
-		"lottery.db_info_title": "数据库信息",
-		"lottery.db_path":      "数据库",
-		"lottery.latest_block": "最新区块",
-		"lottery.total_blocks": "总区块数",
-		"lottery.reset_done":   "数据库重置完成！",
+		"lottery.statistics":     "抽奖统计",
+		"lottery.db_info_title":  "数据库信息",
+		"lottery.db_path":        "数据库",
+		"lottery.latest_block":   "最新区块",
+		"lottery.total_blocks":   "总区块数",
+		"lottery.reset_done":     "数据库重置完成！",
 
 		// TUI
 		"lottery.tui.title":                 "VRF 透明抽奖系统",
@@ -559,7 +536,6 @@ func (tr *Translator) loadMessages() {
 		"voting.session.end":    "结束投票会话",
 		"voting.session.list":   "列出所有投票会话",
 		"voting.results":        "显示投票结果",
-		"voting.tui":            "启动投票 TUI",
 
 		// Flags
 		"voting.name":         "姓名",
@@ -571,7 +547,6 @@ func (tr *Translator) loadMessages() {
 		"voting.session_id":   "会话ID",
 		"voting.title":        "会话标题",
 		"voting.description":  "会话描述",
-		"voting.duration":     "持续时间（秒）",
 
 		// Messages
 		"voting.candidate_added":    "候选人已注册：%s",
@@ -580,10 +555,6 @@ func (tr *Translator) loadMessages() {
 		"voting.session_created":    "投票会话已创建：%s",
 		"voting.session_started":    "会话已开始！",
 		"voting.session_ended":      "会话已结束！",
-		"voting.no_candidates":      "暂无候选人",
-		"voting.no_voters":          "暂无投票人",
-		"voting.no_sessions":        "暂无投票会话",
-		"voting.verified":           "投票已验证！",
 		"voting.session_start_time": "会话开始时间（Unix）",
 		"voting.session_end_time":   "会话结束时间（Unix）",
 
@@ -597,7 +568,6 @@ func (tr *Translator) loadMessages() {
 		"nft.list":     "列出持有者的 NFT",
 		"nft.get":      "根据 ID 获取 NFT",
 		"nft.history":  "获取 NFT 操作历史",
-		"nft.tui":      "启动 NFT TUI",
 
 		// Flags
 		"nft.name":        "NFT 名称",
@@ -612,21 +582,16 @@ func (tr *Translator) loadMessages() {
 		"nft.private_key": "私钥 (Base64)",
 
 		// Messages
-		"nft.minted":         "NFT 铸造成功！",
-		"nft.transferred":    "NFT 转移成功！",
-		"nft.burned":         "NFT 销毁成功！",
-		"nft.not_found":      "NFT 未找到",
-		"nft.block_height":   "区块高度",
-		"nft.owner_mismatch": "调用者不是持有者",
+		"nft.minted":       "NFT 铸造成功！",
+		"nft.transferred":  "NFT 转移成功！",
+		"nft.burned":       "NFT 销毁成功！",
+		"nft.block_height": "区块高度",
 
 		// TUI
 		"nft.tui.title":            "NFT 系统",
 		"nft.tui.mint":             "铸造 NFT",
 		"nft.tui.transfer":         "转让 NFT",
 		"nft.tui.query":            "查询 NFT",
-		"nft.tui.exit":             "退出",
-		"nft.tui.info":             "信息",
-		"nft.tui.cli_tip":          "请使用 CLI 命令操作 NFT:",
 		"nft.tui.name":             "名称",
 		"nft.tui.description":      "描述",
 		"nft.tui.public_key":       "公钥 (Base64)",
@@ -707,7 +672,6 @@ func (tr *Translator) loadMessages() {
 		"token.tui.mint":            "铸造代币",
 		"token.tui.transfer":        "转移代币",
 		"token.tui.query":           "查询余额",
-		"token.tui.exit":            "退出",
 		"token.tui.no_token":        "请先创建代币",
 		"token.tui.token_label":     "代币",
 		"token.tui.from_label":      "从",
@@ -757,18 +721,13 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_deleted":  "数据源已删除！",
 		"oracle.fetched":         "数据获取成功！",
 		"oracle.template_added":  "模板已添加：%s",
-		"oracle.no_sources":      "暂无数据源",
 		"oracle.no_data":         "未找到数据",
-		"oracle.fetch_error":     "数据获取失败",
 
 		// TUI
 		"oracle.tui.title":           "预言机系统",
 		"oracle.tui.source_mgmt":     "数据源管理",
 		"oracle.tui.fetch_data":      "获取数据",
 		"oracle.tui.query_data":      "数据查询",
-		"oracle.tui.exit":            "退出",
-		"oracle.tui.no_sources":      "暂无数据源",
-		"oracle.tui.cli_tip":         "使用 CLI 命令:",
 		"oracle.tui.enabled":         "✓",
 		"oracle.tui.disabled":        "✗",
 		"oracle.tui.add_source":      "添加数据源",
@@ -808,9 +767,7 @@ func (tr *Translator) loadMessages() {
 		// ===== COMMON =====
 		// Help
 		"help.nav":           "使用 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出",
-		"help.exit":          "按 q 退出",
 		"tui.sandbox_notice": "⚠ 沙盒模式 — 铸造/创建的内容不会持久化（仅存于内存）",
-		"help.back":          "按 b 返回",
 
 		// TUI 帮助页 (components.HelpView)
 		"tui.help.title":       "键盘快捷键",
@@ -825,7 +782,6 @@ func (tr *Translator) loadMessages() {
 		"tui.help.back_prompt": "按 ESC 或 ? 返回",
 
 		// ===== MIGRATE =====
-		"migrate.description":      "数据库迁移管理",
 		"migrate.short":            "管理数据库迁移",
 		"migrate.long":             "应用、回滚或查看配置的迁移目录中的 schema 迁移。",
 		"migrate.up":               "应用待执行的迁移（默认全部，或指定接下来的 N 步）",
@@ -868,8 +824,6 @@ func (tr *Translator) loadMessages() {
 		"error.invalid_input": "输入无效",
 		"error.not_found":     "未找到",
 		"error.load_failed":   "数据加载失败",
-		"error.unauthorized":  "未授权",
-		"error.internal":      "内部错误",
 	}
 
 	// Try to load from config
