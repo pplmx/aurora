@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 128,
+  "round": 129,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T17:15:41+00:00",
+  "updated_at": "2026-08-31T17:31:19+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -9297,6 +9297,46 @@
       "title": "oracle CLI: method/path flags + list detail",
       "description": "9fd5ba1: -m/--method + -p/--path flags wired through AddSourceRequest; source list prints Method/Path/Interval; 2 new i18n keys en+zh. Verified: full -race suite passes.",
       "commit": "9fd5ba1"
+    },
+    "ISS-223": {
+      "id": "ISS-223",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T17:29:33+00:00",
+      "updated_at": "2026-08-31T17:29:33+00:00",
+      "touched_round": 129,
+      "title": "sample [http.rateLimit] reads like API-server limiting but only paces outbound oracle fetches",
+      "description": "config/aurora.toml [http] timeout + [http.rateLimit] feed internal/infra/http/fetcher.go (per-source pacing, config.DurationSeconds keys); the API server's inbound timeouts are fixed constants and its per-client limiter is [api.rateLimit] (default off). An operator reading the sample can expect inbound limiting that does not exist.",
+      "severity": 0.3,
+      "confidence": 1
+    },
+    "TASK-225": {
+      "id": "TASK-225",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T17:29:33+00:00",
+      "updated_at": "2026-08-31T17:31:19+00:00",
+      "touched_round": 129,
+      "title": "Document [http] scope in sample config",
+      "description": "round-134: comment the [http]/[http.rateLimit] section in config/aurora.toml as outbound-oracle-fetch scope; point at [api.rateLimit] for inbound limiting. DEC-008: no key renames.",
+      "category": "docs",
+      "severity": 0.3,
+      "confidence": 1,
+      "effort": 1
+    },
+    "CHG-216": {
+      "id": "CHG-216",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T17:29:33+00:00",
+      "updated_at": "2026-08-31T17:29:33+00:00",
+      "touched_round": 129,
+      "title": "aurora.toml [http] scope comment",
+      "description": "2567fe9 adds a comment explaining [http] timeout + [http.rateLimit] govern the outbound oracle fetcher (per-source pacing), not the API server; inbound limiting is [api.rateLimit].",
+      "commit": "2567fe9"
     }
   },
   "edges": [
@@ -14747,6 +14787,24 @@
       "to": "TASK-224",
       "type": "implements",
       "created_at": "2026-08-31T17:15:41+00:00"
+    },
+    {
+      "from": "CHG-216",
+      "to": "ISS-223",
+      "type": "resolves",
+      "created_at": "2026-08-31T17:29:33+00:00"
+    },
+    {
+      "from": "TASK-225",
+      "to": "ISS-223",
+      "type": "addresses",
+      "created_at": "2026-08-31T17:31:19+00:00"
+    },
+    {
+      "from": "CHG-216",
+      "to": "TASK-225",
+      "type": "implements",
+      "created_at": "2026-08-31T17:31:19+00:00"
     }
   ]
 }
