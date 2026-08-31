@@ -68,7 +68,11 @@
                     <div class="form-group"><label>Type</label><input type="text" x-model="addType" placeholder="custom (optional)"></div>
                     <div class="form-group"><label>Method</label><input type="text" x-model="addMethod" placeholder="GET (optional)"></div>
                     <div class="form-group"><label>Path</label><input type="text" x-model="addPath" placeholder="data field path (optional)"></div>
-                    <div class="form-group"><label>Interval (seconds)</label><input type="number" x-model="addInterval" min="1"></div>
+                    <!-- required so an empty value can never be silently
+                         defaulted to 60 on submit; 0 is a valid "default"
+                         choice (the use case maps 0 -> 60), negatives are
+                         rejected by the server with a clear 400 (ISS-195). -->
+                    <div class="form-group"><label>Interval (seconds)</label><input type="number" x-model="addInterval" min="0" value="60" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.addSource">Add Source</button>
                 </form>
                 <pre x-show="addResult" class="result" x-text="addResult"></pre>
