@@ -191,12 +191,14 @@ func TestCreateLotteryUseCase_InvalidInput(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "zero winners",
+			name: "negative winners",
 			req: CreateLotteryRequest{
 				Participants: "Alice,Bob",
 				Seed:         "seed",
-				WinnerCount:  0,
+				WinnerCount:  -1,
 			},
+			// A negative count is never defaulted (only the JSON zero value
+			// is); it must keep failing with WINNER_COUNT_NOT_POSITIVE.
 			wantErr: true,
 		},
 	}
@@ -209,4 +211,22 @@ func TestCreateLotteryUseCase_InvalidInput(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestCreateLotteryUseCase_DefaultWinnerCount verifies REST/CLI parity: an
+// omitted winner_count (zero value) defaults to DefaultWinnerCount (3) instead
+// of failing with WINNER_COUNT_NOT_POSITIVE, matching the CLI's omitted -c.
+func TestCreateLotteryUseCase_DefaultWinnerCount(t *testing.T) {
+	lotteryRepo := &mockLotteryRepo{}
+	blockChain := &mockBlockChain{}
+
+	uc := NewCreateLotteryUseCase(lotteryRepo, blockChain)
+
+	resp, err := uc.Execute(CreateLotteryRequest{
+		Participants: "Alice,Bob,Carol,Dave",
+		Seed:         "seed",
+		WinnerCount:  0,
+	})
+	require.NoError(t, err)
+	require.Equal(t, lottery.DefaultWinnerCount, len(resp.Winners))
 }

@@ -45,6 +45,15 @@ func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryRespo
 		return nil, fmt.Errorf("invalid seed: %w", err)
 	}
 
+	if req.WinnerCount == 0 {
+		// REST/CLI parity: an omitted winner_count (the JSON zero value, so a
+		// client posting the doc's minimal body) behaves like the CLI's
+		// omitted `-c`, which falls back to the configured lottery.defaultCount
+		// (default 3) — instead of a confusing WINNER_COUNT_NOT_POSITIVE 400.
+		// Mirrors the add-source use case defaulting interval 0→60.
+		req.WinnerCount = lottery.DefaultWinnerCount
+	}
+
 	if err := lottery.ValidateWinnerCount(req.WinnerCount, len(participants)); err != nil {
 		return nil, fmt.Errorf("invalid winner count: %w", err)
 	}
