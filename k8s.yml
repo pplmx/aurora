@@ -1,3 +1,18 @@
+# Aurora CLI toolbox on Kubernetes.
+#
+# The image ships only the CLI binary (cmd/aurora) — a non-interactive run
+# exits, so the image is expressed as a one-shot batch Job rather than a
+# replicated service. The old Deployment opened port 6666 + Service + HPA,
+# but nothing in the image listens on any port (ISS-192); those are gone here.
+#
+# Run it for a specific CLI invocation:
+#   kubectl apply -f k8s.yml
+#   kubectl create job --from=job/aurora-cli aurora-lottery-history \
+#     --image=pplmx/aurora:latest -- ./aurora lottery history
+#   kubectl logs job/aurora-lottery-history
+#
+# The Web UI is a separate binary (cmd/api), not part of this image — see
+# README.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,29 +33,22 @@ spec:
     requests:
       storage: 1Gi
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: aurora
+  name: aurora-cli
   namespace: aurora
-  labels:
-    app: aurora
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: aurora
+  backoffLimit: 2
   template:
-    metadata:
-      labels:
-        app: aurora
     spec:
+      restartPolicy: Never
       containers:
         - name: aurora
           image: pplmx/aurora:latest
-          ports:
-            - containerPort: 6666
-              name: http
+          # Default sanity command; edit or use `kubectl create job --from=...`
+          # for the CLI invocation you actually need.
+          command: ["./aurora", "lottery", "stats"]
           envFrom:
             - configMapRef:
                 name: aurora-config
@@ -54,51 +62,7 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "500m"
-          livenessProbe:
-            exec:
-              command: ["./aurora", "lottery", "stats"]
-            initialDelaySeconds: 10
-            periodSeconds: 30
-          readinessProbe:
-            exec:
-              command: ["./aurora", "lottery", "stats"]
-            initialDelaySeconds: 5
-            periodSeconds: 10
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: aurora-data
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: aurora
-  namespace: aurora
-spec:
-  selector:
-    app: aurora
-  ports:
-    - port: 6666
-      targetPort: 6666
-      name: http
-  type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: aurora-hpa
-  namespace: aurora
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: aurora
-  minReplicas: 1
-  maxReplicas: 3
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 70
