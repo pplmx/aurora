@@ -371,8 +371,11 @@ function nftApp() {
                 this.mintResult = JSON.stringify(data, null, 2);
                 // Advance the shared Get/Transfer/Burn/History context to the
                 // freshly minted NFT so the next step needs no manual copy from
-                // the JSON result block (TASK-150).
+                // the JSON result block (TASK-150). The History form keys off
+                // its own historyId field, so it needs the same advance or it
+                // stays blank while Get/Transfer/Burn auto-fill (ISS-195).
                 if (data && data.id) this.id = data.id;
+                if (data && data.id) this.historyId = data.id;
                 if (data && data.owner) this.owner = data.owner;
             } catch (e) {
                 this.mintResult = 'Error: ' + e.message;
@@ -642,7 +645,7 @@ function votingApp() {
 
 function tokenApp() {
     return withBusy({
-        name: '', symbol: '', supply: '', createOwner: '', createResult: '',
+        name: '', symbol: '', supply: '', decimals: 8, createOwner: '', createResult: '',
         tokenId: '', owner: '', balance: '',
         mintTo: '', mintAmount: '', mintPriv: '', mintResult: '',
         xFrom: '', xTo: '', xAmount: '', xPriv: '', xResult: '',
@@ -669,6 +672,12 @@ function tokenApp() {
                         name: this.name,
                         symbol: this.symbol,
                         total_supply: this.supply,
+                        // The API's decimals is a pointer: an explicit 0 is a
+                        // real 0-decimals token, an omitted field defaults to
+                        // 8 in the domain. Send undefined when the operator
+                        // clears the field so the two stay distinct; matching
+                        // the CLI's --decimals range (0..MaxInt8) (ISS-195).
+                        decimals: (this.decimals === undefined || this.decimals === '') ? undefined : parseInt(this.decimals, 10),
                         // The API requires a valid owner public key; without it
                         // every create 400s with PUBLIC_KEY_REQUIRED (ISS-147).
                         // The key comes from the create form's own createOwner
@@ -689,6 +698,11 @@ function tokenApp() {
                 // operator wants to inspect.
                 if (data && data.id) this.tokenId = data.id;
                 if (data && data.owner) this.owner = data.owner;
+                // The Token Info form keys off its own infoId field, so the
+                // create advance must populate it too — otherwise Info stays
+                // blank right after a create while Balance/History auto-fill
+                // (the same TASK-150 context-advance contract, ISS-195).
+                if (data && data.id) this.infoId = data.id;
             } catch (e) {
                 this.createResult = 'Error: ' + e.message;
             }

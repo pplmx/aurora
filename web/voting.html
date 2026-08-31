@@ -132,7 +132,14 @@
                 <form @submit.prevent="castVote">
                     <div class="form-group">
                         <label>Session</label>
-                        <select x-model="voteSessionId" required x-show="sessions.length">
+                        <!-- @change resets the candidate selection when the
+                             operator picks a different session: the sessions
+                             have disjoint candidate rosters, so a previously
+                             chosen candidate would otherwise submit a
+                             mismatch and 400 with CANDIDATE_NOT_IN_SESSION
+                             (the old value survives the rerender because the
+                             bound voteCandidateId is never reset, ISS-194). -->
+                        <select x-model="voteSessionId" @change="voteCandidateId = ''" required x-show="sessions.length">
                             <option value="" disabled selected>Select a session</option>
                             <template x-for="s in sessions" :key="s.id">
                                 <option :value="s.id" x-text="s.title"></option>
@@ -156,13 +163,20 @@
                     </div>
                     <div class="form-group">
                         <label>Voter Private Key</label>
-                        <input type="text" x-model="votePriv" placeholder="Voter private key (from registration)" required>
+                        <!-- Masked like the token/nft private-key inputs (a
+                             signing secret, consistent cross-page handling,
+                             ISS-194). -->
+                        <input type="password" x-model="votePriv" placeholder="Voter private key (from registration)" required>
                     </div>
                     <!-- An empty session/candidate roster posts empty ids and
                          hits a confusing 400; disable the submit until both a
                          session and a candidate are resolvable, mirroring the
-                         Create Session form's guard (ISS-183). -->
-                    <button type="submit" class="btn-voting" :disabled="busy.castVote || !voteSessionId || !voteCandidateId">Cast Vote</button>
+                         Create Session form's guard (ISS-183). The extra
+                         membership check also guards the header button against
+                         a stale voteCandidateId that survived a session switch
+                         (ISS-194), so a candidate absent from the new session's
+                         roster can never be submitted. -->
+                    <button type="submit" class="btn-voting" :disabled="busy.castVote || !voteSessionId || !voteCandidateId || !currentSessionCandidates.some(c => c && c.id === voteCandidateId)">Cast Vote</button>
                 </form>
                 <div x-show="voteResult" class="result" x-text="voteResult"></div>
             </section>

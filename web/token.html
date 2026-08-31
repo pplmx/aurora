@@ -28,6 +28,12 @@
                     <div class="form-group"><label>Name</label><input type="text" x-model="name" required></div>
                     <div class="form-group"><label>Symbol</label><input type="text" x-model="symbol" required></div>
                     <div class="form-group"><label>Total Supply</label><input type="text" x-model="supply" required></div>
+                    <!-- The API accepts decimals (pointer: omitted -> domain
+                         default 8, explicit 0 -> 0) and the CLI exposes
+                         --decimals; the web form had no way to set it, so every
+                         web-created token was silently 8 (ISS-195). Bound to
+                         its own decimals field (default 8). -->
+                    <div class="form-group"><label>Decimals</label><input type="number" x-model="decimals" min="0" max="127" value="8"></div>
                     <!-- The API rejects a create without a valid owner public key
                          (ErrPublicKeyRequired -> 400), and the CLI generates a fresh
                          keypair for the owner. Mirror the NFT mint "Creator (public

@@ -143,3 +143,42 @@ func TestWebUIContract_VotingReferencesRealEndpoints(t *testing.T) {
 	require.True(t, refs["GET /api/v1/voting/sessions"], "voting page must list sessions via real endpoint")
 	require.True(t, refs["GET /api/v1/voting/candidates"], "voting page must list candidates via real endpoint")
 }
+
+// TestWebUIContract_VoteFormGuards pins the TASK-198 fixes, both of which are
+// the kind of contract-breaking drift the earlier voting-endpoint tests catch:
+// a stale voteCandidateId surviving a session switch would submit a candidate
+// absent from the new session's roster (400 CANDIDATE_NOT_IN_SESSION), and a
+// plaintext voter private key input diverges from the masked token/nft inputs.
+func TestWebUIContract_VoteFormGuards(t *testing.T) {
+	v, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "voting.html"))
+	require.NoError(t, err)
+	html := string(v)
+
+	require.Contains(t, html, `@change="voteCandidateId = ''"`,
+		"voting page must reset the candidate selection when the session changes (stale-candidate 400, ISS-194)")
+	require.Contains(t, html, `currentSessionCandidates.some(c => c && c.id === voteCandidateId)`,
+		"Cast Vote submit guard must verify the candidate is in the current session's roster (ISS-194)")
+	require.Regexp(t, `type="password"[^>]*x-model="votePriv"`, html,
+		"voter private key input must be password-masked like the token/nft private-key inputs (ISS-194)")
+}
+
+// TestWebUIContract_CreateFormsCarryApiFields pins the TASK-199 fixes: web
+// create forms must carry every field the API accepts (token decimals, like
+// the CLI --decimals) and must advance every keyed sibling form after a create
+// (NFT History keys off historyId, Token Info keys off infoId).
+func TestWebUIContract_CreateFormsCarryApiFields(t *testing.T) {
+	tokenHTML, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "token.html"))
+	require.NoError(t, err)
+	require.Contains(t, string(tokenHTML), `x-model="decimals"`,
+		"token create form must expose a decimals field the API accepts (ISS-195)")
+
+	js, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "js", "app.js"))
+	require.NoError(t, err)
+	code := string(js)
+	require.Contains(t, code, `this.historyId = data.id`,
+		"NFT mint must advance historyId so the History form is pre-filled (ISS-195)")
+	require.Contains(t, code, `this.infoId = data.id`,
+		"token create must advance infoId so the Token Info form is pre-filled (ISS-195)")
+	require.Contains(t, code, `this.decimals === undefined || this.decimals === ''`,
+		"token create must send an explicit 0 distinctly from an omitted decimals (ISS-195)")
+}
