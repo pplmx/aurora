@@ -378,7 +378,12 @@ func init() {
 	sourceAddCmd.Flags().StringP("name", "n", "", i18n.GetText("oracle.source_name"))
 	sourceAddCmd.Flags().StringP("url", "u", "", i18n.GetText("oracle.source_url"))
 	sourceAddCmd.Flags().StringP("type", "t", "custom", i18n.GetText("oracle.source_type"))
-	sourceAddCmd.Flags().IntP("interval", "i", 60, i18n.GetText("oracle.interval"))
+	// On `add`, -i/--interval is the refresh interval — deliberately *not* the
+	// family's source-id meaning (-i = --id on delete/enable/disable/fetch/data/
+	// latest, TASK-193). It is NOT remapped (DEC-008: no breaking change to
+	// documented scripts without operator input); the localized usage text
+	// below spells out the divergence instead.
+	sourceAddCmd.Flags().IntP("interval", "i", 60, i18n.GetText("oracle.source_interval"))
 	_ = sourceAddCmd.MarkFlagRequired("name")
 	_ = sourceAddCmd.MarkFlagRequired("url")
 

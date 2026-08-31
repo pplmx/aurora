@@ -113,10 +113,9 @@ func (h *OracleHandler) CreateSource(w http.ResponseWriter, r *http.Request) {
 		Interval: req.Interval,
 	})
 	if err != nil {
-		if errors.Is(err, oracle.ErrInvalidSource) {
-			writeBadRequest(w, err.Error())
-			return
-		}
+		// The generic path maps ErrInvalidSource to 400 INVALID_SOURCE, the
+		// same code every other oracle endpoint uses for it — a per-endpoint
+		// special case here returned INVALID_REQUEST for the identical error.
 		writeUseCaseError(w, err)
 		return
 	}

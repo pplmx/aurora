@@ -329,6 +329,7 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_id":        "Source ID",
 		"oracle.source_id_legacy": "Source ID (legacy spelling --source; prefer --id)",
 		"oracle.interval":         "Refresh interval (seconds)",
+		"oracle.source_interval":  "Refresh interval in seconds (on `source add` -i is the interval; on delete/enable/disable/fetch/data/latest -i is the source id)",
 		"oracle.limit":            "Limit results",
 
 		// Messages
@@ -712,6 +713,7 @@ func (tr *Translator) loadMessages() {
 		"oracle.source_id":        "数据源 ID",
 		"oracle.source_id_legacy": "数据源 ID（旧拼写 --source；推荐 --id）",
 		"oracle.interval":         "刷新间隔（秒）",
+		"oracle.source_interval":  "刷新间隔（秒）（在 source add 中 -i 表示间隔；在 delete/enable/disable/fetch/data/latest 中 -i 表示数据源 ID）",
 		"oracle.limit":            "限制结果数",
 
 		// Messages
