@@ -74,7 +74,8 @@ func setupCastVoteTestDB(t *testing.T) (*sqlite.VotingRepository, *sqlite.TxMana
 	`)
 	require.NoError(t, err)
 
-	repo := sqlite.NewVotingRepository(db)
+	repo, err := sqlite.NewVotingRepository(db)
+	require.NoError(t, err)
 	txMgr := sqlite.NewTxManager(db)
 	cleanup := func() { _ = db.Close() }
 	return repo, txMgr, cleanup

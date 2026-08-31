@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
-	"runtime"
 	"sync"
 	"testing"
 )
@@ -27,31 +25,27 @@ import (
 // Run with `go test -race`. Pre-fix: race detector fires on the
 // concurrent assignment. Post-fix (Round 24): clean.
 func TestVotingGetRepo_ConcurrentNoRace(t *testing.T) {
-	// Reset the singletons so the concurrent calls actually
-	// re-enter the constructor path.
-	resetVotingForTest()
-
-	// Use a temporary directory for the SQLite DB so the test
-	// does not stomp on real data.
-	tmp := t.TempDir()
-	prev := os.Getenv("AURORA_DATA_DIR")
-	t.Setenv("AURORA_DATA_DIR", filepath.Join(tmp, "data"))
-	t.Cleanup(func() { _ = os.Setenv("AURORA_DATA_DIR", prev) })
-
-	// chdir so blockchain.DBPath() resolves to the temp dir.
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("could not determine test file path")
-	}
-	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", ".."))
+	// chdir into a temp dir so blockchain.DBPath() (./data/aurora.db) resolves
+	// to a scratch database, not the repo's committed data DB. (The previous
+	// version chdir'd to the repo root while intending a temp dir, so the DB
+	// path was never actually isolated.)
 	origWd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("getwd: %v", err)
 	}
-	if err := os.Chdir(repoRoot); err != nil {
-		t.Fatalf("chdir(%q): %v", repoRoot, err)
+	if err := os.Chdir(t.TempDir()); err != nil {
+		t.Fatalf("chdir: %v", err)
 	}
 	t.Cleanup(func() { _ = os.Chdir(origWd) })
+
+	// Full reset AFTER chdir: resetCliForTest() re-arms the process-wide
+	// blockchain DB singleton (blockchain.ResetForTest), which a prior test's
+	// t.Cleanup(blockchain.Close()) leaves closed-but-never-re-armed — a
+	// closed handle whose sync.Once already fired. Without the re-arm, the
+	// concurrent InitDB below returns that stale closed DB and the voting
+	// repo's schema bootstrap fails with "database is closed" (TASK-197).
+	t.Cleanup(resetCliForTest)
+	resetCliForTest()
 
 	const goroutines = 32
 	var wg sync.WaitGroup
@@ -74,7 +68,6 @@ func TestVotingGetRepo_ConcurrentNoRace(t *testing.T) {
 	if votingRepo == nil {
 		t.Fatal("votingRepo is nil after concurrent getVotingRepo calls")
 	}
-	resetVotingForTest()
 }
 
 // resetVotingForTest wipes the package-level voting singletons so

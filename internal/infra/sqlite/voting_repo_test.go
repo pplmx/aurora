@@ -58,7 +58,10 @@ func setupVotingTestDB(t *testing.T) (*VotingRepository, func()) {
 		t.Fatalf("Failed to create tables: %v", err)
 	}
 
-	repo := NewVotingRepository(db)
+	repo, err := NewVotingRepository(db)
+	if err != nil {
+		t.Fatalf("Failed to create voting repository: %v", err)
+	}
 
 	cleanup := func() {
 		_ = db.Close()
@@ -91,12 +94,51 @@ func TestNewVotingRepository(t *testing.T) {
 	}
 	defer func() { _ = db.Close() }()
 
-	repo := NewVotingRepository(db)
+	repo, err := NewVotingRepository(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if repo == nil {
 		t.Fatal("Repository should not be nil")
 	} else if repo.db == nil {
 		t.Fatal("Database should not be nil")
 	}
+}
+
+// TestNewVotingRepository_SelfBootstrapsSchema pins the bootstrap contract
+// (TASK-197): the constructor must create the voting tables on a totally
+// empty DB. Every sibling repo (lottery/token/nft/oracle) self-creates its
+// schema, and a fresh install that never ran `aurora migrate up` would
+// otherwise 500 "no such table" on every voting operation while the other
+// modules work out of the box. A write+read through the freshly constructed
+// repo proves the tables are not just created but usable; the single pooled
+// connection avoids SQLite's per-connection :memory: isolation.
+func TestNewVotingRepository_SelfBootstrapsSchema(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Pin one connection so :memory: does not split into per-connection DBs.
+	db.SetMaxOpenConns(1)
+	defer func() { _ = db.Close() }()
+
+	repo, err := NewVotingRepository(db)
+	require.NoError(t, err)
+
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-fresh", Name: "Ada", RegisteredAt: 1}))
+	got, err := repo.GetVoter("pk-fresh")
+	require.NoError(t, err)
+	require.Equal(t, "Ada", got.Name)
+
+	require.NoError(t, repo.SaveCandidate(&voting.Candidate{ID: "cand-fresh", Name: "C", Party: "P", Program: "G", VoteCount: 0, CreatedAt: 1}))
+	c, err := repo.GetCandidate("cand-fresh")
+	require.NoError(t, err)
+	require.Equal(t, "C", c.Name)
+
+	require.NoError(t, repo.SaveSession(&voting.Session{ID: "sess-fresh", Title: "S", Description: "D", StartTime: 1, EndTime: 2, Status: "draft", CreatedAt: 1}))
+	s, err := repo.GetSession("sess-fresh")
+	require.NoError(t, err)
+	require.Equal(t, "draft", s.Status)
 }
 
 func TestVotingRepository_SaveVoter(t *testing.T) {

@@ -29,8 +29,72 @@ type VotingRepository struct {
 	exec votingExec // nil => use db
 }
 
-func NewVotingRepository(db *sql.DB) *VotingRepository {
-	return &VotingRepository{db: db}
+func NewVotingRepository(db *sql.DB) (*VotingRepository, error) {
+	repo := &VotingRepository{db: db}
+	if err := repo.createTables(); err != nil {
+		return nil, fmt.Errorf("failed to create voting tables: %w", err)
+	}
+	return repo, nil
+}
+
+// createTables ensures the voting tables exist on the shared DB handle. Every
+// other module (lottery/token/nft/oracle) self-creates its schema, and the
+// migrations express the same tables with IF NOT EXISTS, so running this on an
+// already-migrated DB is a no-op. Without it a fresh install that has not
+// separately run `aurora migrate up` starts in a state where every lottery/
+// token/nft/oracle operation works but every voting operation fails with
+// "no such table", silently depending on the migrations never running on the
+// API path (cmd/api never runs them; migrate.autoRun defaults to false).
+func (r *VotingRepository) createTables() error {
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS votes (
+			id TEXT PRIMARY KEY,
+			voter_pk TEXT NOT NULL,
+			candidate_id TEXT NOT NULL,
+			signature TEXT NOT NULL,
+			message TEXT NOT NULL,
+			timestamp INTEGER NOT NULL,
+			block_height INTEGER NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_votes_voter ON votes(voter_pk)`,
+		`CREATE INDEX IF NOT EXISTS idx_votes_candidate ON votes(candidate_id)`,
+		`CREATE TABLE IF NOT EXISTS voters (
+			public_key TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			has_voted INTEGER NOT NULL DEFAULT 0,
+			vote_hash TEXT,
+			registered_at INTEGER NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS candidates (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			party TEXT NOT NULL,
+			program TEXT NOT NULL,
+			description TEXT,
+			image_url TEXT,
+			vote_count INTEGER NOT NULL DEFAULT 0,
+			created_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_candidates_created ON candidates(created_at)`,
+		`CREATE TABLE IF NOT EXISTS voting_sessions (
+			id TEXT PRIMARY KEY,
+			title TEXT NOT NULL,
+			description TEXT NOT NULL,
+			start_time INTEGER NOT NULL,
+			end_time INTEGER NOT NULL,
+			status TEXT NOT NULL,
+			candidates TEXT NOT NULL,
+			created_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_sessions_status ON voting_sessions(status)`,
+	}
+
+	for _, query := range queries {
+		if _, err := r.db.Exec(query); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // q returns the executor this repository reads/writes through: the pooled DB

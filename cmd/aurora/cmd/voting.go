@@ -35,7 +35,11 @@ func getVotingRepo() (voting.TransactableRepository, error) {
 		return nil, err
 	}
 	votingDB = db
-	votingRepo = votingrepo.NewVotingRepository(db)
+	repo, err := votingrepo.NewVotingRepository(db)
+	if err != nil {
+		return nil, err
+	}
+	votingRepo = repo
 	return votingRepo, nil
 }
 
