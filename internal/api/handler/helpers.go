@@ -43,6 +43,7 @@ var errorClassification = []struct {
 	{tokenerrors.ErrTransferToZero, http.StatusBadRequest, "TRANSFER_TO_ZERO"},
 	{tokenerrors.ErrInvalidAmount, http.StatusBadRequest, "INVALID_AMOUNT"},
 	{tokenerrors.ErrAmountTooLarge, http.StatusBadRequest, "AMOUNT_TOO_LARGE"},
+	{tokenerrors.ErrTokenDecimalsInvalid, http.StatusBadRequest, "INVALID_DECIMALS"},
 	{tokenerrors.ErrDuplicateTransfer, http.StatusConflict, "DUPLICATE_TRANSFER"},
 	{tokenerrors.ErrTokenNameRequired, http.StatusBadRequest, "TOKEN_NAME_REQUIRED"},
 	{tokenerrors.ErrTokenNameTooLong, http.StatusBadRequest, "TOKEN_NAME_TOO_LONG"},

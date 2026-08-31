@@ -229,6 +229,17 @@ func TestClassifyError_UnknownError(t *testing.T) {
 	assert.Equal(t, "INTERNAL_ERROR", code)
 }
 
+// TestClassifyError_TokenDecimalsInvalid locks TASK-…: ErrTokenDecimalsInvalid
+// is returned by the real token service for a negative decimals value on token
+// create, but was absent from the classification table, so a client posting
+// decimals:-1 got a confusing 500 instead of a 400. It now maps to 400
+// INVALID_DECIMALS.
+func TestClassifyError_TokenDecimalsInvalid(t *testing.T) {
+	status, code := classifyError(token.ErrTokenDecimalsInvalid)
+	assert.Equal(t, http.StatusBadRequest, status)
+	assert.Equal(t, "INVALID_DECIMALS", code)
+}
+
 // TestDecodeJSON_RejectsTrailingGarbage pins the strict single-value body
 // contract (ISS-171): decodeJSON must reject any data after the first JSON
 // value. json.Decoder.Decode reads one value and silently ignores the rest, so
