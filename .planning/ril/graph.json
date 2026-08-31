@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 130,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T17:50:17+00:00",
+  "updated_at": "2026-08-31T18:14:59+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -9377,6 +9377,46 @@
       "title": "lottery.defaultSeedPrefix removal",
       "description": "a6d54ea removes the set-but-never-read lottery.defaultSeedPrefix default/key/assert + fixes the doc sample; seed is always caller-supplied. Verified: full -race suite green.",
       "commit": "a6d54ea"
+    },
+    "ISS-225": {
+      "id": "ISS-225",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T18:13:52+00:00",
+      "updated_at": "2026-08-31T18:13:52+00:00",
+      "touched_round": 130,
+      "title": "oracle TUI add-source form lacks method/path/interval (parity gap)",
+      "description": "internal/ui/oracle addSourceView+handleAddSource only had name/url/type while API/CLI/web all support method+path+interval; round-132 config docs point operators at 'aurora --ui oracle' as a source-management surface, so the TUI could not create a price source with JSON-path extraction. Severity 0.45 usability.",
+      "severity": 0.45,
+      "confidence": 1
+    },
+    "TASK-227": {
+      "id": "TASK-227",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T18:13:52+00:00",
+      "updated_at": "2026-08-31T18:14:59+00:00",
+      "touched_round": 130,
+      "title": "Oracle TUI add form parity: method/path/interval",
+      "description": "round-136: add 3 fields (focus cycle 6 via addSourceFieldCount), forward through AddSourceRequest, validate interval client-side (empty->60, non-numeric/negative->inline error), 6 i18n keys, tests.",
+      "category": "core-feature",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 3
+    },
+    "CHG-218": {
+      "id": "CHG-218",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T18:13:52+00:00",
+      "updated_at": "2026-08-31T18:13:52+00:00",
+      "touched_round": 130,
+      "title": "oracle TUI add-form method/path/interval",
+      "description": "4769772 adds method/path/interval to the add-source form with 6-field focus cycle and client-side interval validation; 6 i18n keys; tab/down/new-field tests. Full -race suite green.",
+      "commit": 4769772
     }
   },
   "edges": [
@@ -14863,6 +14903,24 @@
       "to": "TASK-226",
       "type": "implements",
       "created_at": "2026-08-31T17:48:54+00:00"
+    },
+    {
+      "from": "CHG-218",
+      "to": "ISS-225",
+      "type": "resolves",
+      "created_at": "2026-08-31T18:13:52+00:00"
+    },
+    {
+      "from": "TASK-227",
+      "to": "ISS-225",
+      "type": "addresses",
+      "created_at": "2026-08-31T18:14:59+00:00"
+    },
+    {
+      "from": "CHG-218",
+      "to": "TASK-227",
+      "type": "implements",
+      "created_at": "2026-08-31T18:14:59+00:00"
     }
   ]
 }
