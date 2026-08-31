@@ -23,7 +23,7 @@ func TestRecovery_PanicBeforeWrite_Sends500(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 	body := rr.Body.String()
-	assert.Contains(t, body, "Internal server error")
+	assert.Contains(t, body, "internal server error")
 	assert.Contains(t, body, "INTERNAL_ERROR")
 }
 

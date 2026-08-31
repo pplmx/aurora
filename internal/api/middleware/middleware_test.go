@@ -196,7 +196,7 @@ func TestRecovery_PanicsHandled(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
-	assert.Contains(t, rr.Body.String(), "Internal server error")
+	assert.Contains(t, rr.Body.String(), "internal server error")
 }
 
 func TestRecovery_PanicsWithError(t *testing.T) {
