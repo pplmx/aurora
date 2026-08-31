@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 124,
+  "round": 126,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T08:58:55+00:00",
+  "updated_at": "2026-08-31T11:23:33+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 124,
+      "touched_round": 126,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 124,
+      "touched_round": 126,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 124,
+      "touched_round": 126,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 124,
+      "touched_round": 126,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -8581,6 +8581,255 @@
       "touched_round": 124,
       "title": "NFT/token TUI menus disclose the in-memory sandbox caveat",
       "commit": "485dc0e"
+    },
+    "ISS-202": {
+      "id": "ISS-202",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T10:10:48+00:00",
+      "updated_at": "2026-08-31T10:10:48+00:00",
+      "touched_round": 126,
+      "title": "Release/build artifact versions are always 0.0.1: CHANGELOG documents that Version is injected at build time via -ldflags -X cmd.Version=, but none of .github/workflows/build.yml (uses -s -w only), Dockerfile (uses -w -s only) or justfile build/build-current (plain go build) ever pass it. A v*-tagged release therefore ships binaries whose aurora version says 0.0.1 and 'unknown', contradicting the documented release process and confusing operators verifying the deployed build."
+    },
+    "TASK-206": {
+      "id": "TASK-206",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-08-31T10:11:02+00:00",
+      "updated_at": "2026-08-31T10:15:07+00:00",
+      "touched_round": 126,
+      "category": "dx",
+      "severity": 0.8,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Wire version/build-time injection into every build path (CI build.yml, Dockerfile, justfile) so released and local binaries report the real version instead of the 0.0.1 placeholder default",
+      "lock_owner": "aurora-4d",
+      "lock_until": "2026-08-31T10:45:07+00:00"
+    },
+    "ISS-203": {
+      "id": "ISS-203",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T10:11:05+00:00",
+      "updated_at": "2026-08-31T10:11:05+00:00",
+      "touched_round": 126,
+      "title": "internal/utils/utils.go carries dead FFT math (FFT/IFFT/Radix2FFT/IRadix2FFT/BitReverse/IsComplexEqual) consumed only by its own self-referential tests; only NormalizePath is used in production (internal/logger/zero.go). Leftover from an early experiment, ~120 lines of unused surface confusing codebase readers."
+    },
+    "TASK-207": {
+      "id": "TASK-207",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T10:11:11+00:00",
+      "updated_at": "2026-08-31T10:11:11+00:00",
+      "touched_round": 126,
+      "category": "docs",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": ".planning/STATE.md 'Current focus' still describes v1.91 polish while CHANGELOG/commits are on v1.92 (rounds 126-127: lottery TUI store alignment, oracle source-details retitle, NFT/token TUI sandbox disclosure); refresh STATE.md current-focus paragraph so documentation matches the actual milestone position"
+    },
+    "TASK-208": {
+      "id": "TASK-208",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T10:11:49+00:00",
+      "updated_at": "2026-08-31T10:11:49+00:00",
+      "touched_round": 126,
+      "category": "maintainability",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Remove the dead FFT math from internal/utils/utils.go (keep NormalizePath) and resolve the self-referential utils_test FFT tests; run strict tests before deleting to confirm no hidden consumers"
+    },
+    "ISS-204": {
+      "id": "ISS-204",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:17:58+00:00",
+      "updated_at": "2026-08-31T11:17:58+00:00",
+      "touched_round": 126,
+      "title": "Web lottery create form advertises the seed as optional though the API requires >=3 chars (every seedless submit 400s with SEED_TOO_SHORT); decimal winner counts are silently floored by parseInt and counts above the participant count hit an opaque WINNERS_EXCEED_PARTICIPANTS. Form must match the API contract with clear client-side validation."
+    },
+    "ISS-205": {
+      "id": "ISS-205",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:17:58+00:00",
+      "updated_at": "2026-08-31T11:17:58+00:00",
+      "touched_round": 126,
+      "title": "Web load-failure vs empty conflation (ISS-191 class): oracle Feed Health renders '(no feed activity yet)' on an API failure; the dashboard shows 0/0/0/0 + 'No recent activity' when every endpoint is down; voting candidates-load failure masquerades as an empty roster that blocks create-session and cast-vote."
+    },
+    "ISS-206": {
+      "id": "ISS-206",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:17:58+00:00",
+      "updated_at": "2026-08-31T11:17:58+00:00",
+      "touched_round": 126,
+      "title": "TUI defects: oracle fetch-form Tab cycles focus to a non-existent second field (blurring the only input so typing silently stops) AND falls through into the textinput; oracle toggle/delete failures are set on errMsg but the confirm dialogs never render it; NFT/lottery TUIs set success messages that the result views never display and every exit clears them; a stale lottery persistErr taints later draws' success text."
+    },
+    "ISS-207": {
+      "id": "ISS-207",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:17:58+00:00",
+      "updated_at": "2026-08-31T11:17:58+00:00",
+      "touched_round": 126,
+      "title": "lottery export/import/history/stats/create and the version command print hardcoded English while the catalog already carries the exact keys (lottery.exported/imported/total/lottery_id/block_height/winners/vrf_output/vrf_proof, app.version/app.go_version) that only the TUI/tests use; zh sessions see mixed-language CLI output."
+    },
+    "ISS-208": {
+      "id": "ISS-208",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:17:58+00:00",
+      "updated_at": "2026-08-31T11:17:58+00:00",
+      "touched_round": 126,
+      "title": "REST lottery create rejects an omitted winner_count with WINNER_COUNT_NOT_POSITIVE while the CLI defaults to lottery.defaultCount (3), so a client posting the doc's minimal body gets a confusing 400 the CLI never produces."
+    },
+    "TASK-209": {
+      "id": "TASK-209",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:18:25+00:00",
+      "updated_at": "2026-08-31T11:18:25+00:00",
+      "touched_round": 126,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Web lottery create form: make seed required+minlength 3 (HTML5) and validate seed length / whole-number count / count<=participants before submit so mismatches explain themselves instead of surfacing as opaque 400s"
+    },
+    "TASK-210": {
+      "id": "TASK-210",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:18:25+00:00",
+      "updated_at": "2026-08-31T11:18:25+00:00",
+      "touched_round": 126,
+      "category": "dx",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Add failure flags (healthFailed, dashboard loaded, candidatesFailed) and distinct 'failed to load' hints to oracle Feed Health, dashboard stat cards/activity and the voting pages so an API down is never presented as an empty system"
+    },
+    "TASK-211": {
+      "id": "TASK-211",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:18:25+00:00",
+      "updated_at": "2026-08-31T11:18:25+00:00",
+      "touched_round": 126,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle TUI: keep fetch Tab focus on the single input + early-return after Tab; render errMsg/successMsg in confirm toggle/delete dialogs; NFT/lottery TUIs render successMsg in their result views (and don't undercut a successful transfer with 'Not found'); reset stale lottery persistErr on a successful save"
+    },
+    "TASK-212": {
+      "id": "TASK-212",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:18:25+00:00",
+      "updated_at": "2026-08-31T11:18:25+00:00",
+      "touched_round": 126,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Localize lottery CLI export/import/history/stats/create verdicts+labels and the version command with the existing catalog keys plus app.build_time / lottery stats headers / import_partial keys"
+    },
+    "TASK-213": {
+      "id": "TASK-213",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T11:18:25+00:00",
+      "updated_at": "2026-08-31T11:18:25+00:00",
+      "touched_round": 126,
+      "category": "correctness",
+      "severity": 0.8,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Default lottery winner_count 0->DefaultWinnerCount(3) in the create use case (mirroring the add-source interval 0->60 precedent) so REST omitted winner_count matches the CLI's default instead of a WINNER_COUNT_NOT_POSITIVE 400"
+    },
+    "ISS-209": {
+      "id": "ISS-209",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T11:19:15+00:00",
+      "updated_at": "2026-08-31T11:19:15+00:00",
+      "touched_round": 126,
+      "title": ".planning/STATE.md 'Current focus' still describes v1.91 polish while CHANGELOG/commits are on v1.92 (rounds 126-127); refresh so documentation matches the actual milestone position"
+    },
+    "CHG-197": {
+      "id": "CHG-197",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T11:23:08+00:00",
+      "updated_at": "2026-08-31T11:23:08+00:00",
+      "touched_round": 126,
+      "commit": "8611ef0",
+      "title": "Version/build-time injection wired into CI build.yml, Dockerfile and justfile"
+    },
+    "CHG-198": {
+      "id": "CHG-198",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T11:23:08+00:00",
+      "updated_at": "2026-08-31T11:23:08+00:00",
+      "touched_round": 126,
+      "commit": "c141fd3",
+      "title": "Web lottery create validation + load-failure/empty parity (health/dashboard/voting flags)"
+    },
+    "CHG-199": {
+      "id": "CHG-199",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T11:23:08+00:00",
+      "updated_at": "2026-08-31T11:23:08+00:00",
+      "touched_round": 126,
+      "commit": "06f5173",
+      "title": "Oracle fetch Tab focus + confirm-dialog errors + NFT/lottery result-view success banners + persistErr reset"
+    },
+    "CHG-200": {
+      "id": "CHG-200",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T11:23:08+00:00",
+      "updated_at": "2026-08-31T11:23:08+00:00",
+      "touched_round": 126,
+      "commit": "e95c93c",
+      "title": "Localized lottery CLI output and version command with existing/new i18n keys"
+    },
+    "CHG-201": {
+      "id": "CHG-201",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T11:23:08+00:00",
+      "updated_at": "2026-08-31T11:23:08+00:00",
+      "touched_round": 126,
+      "commit": "3ff3cf5",
+      "title": "Lottery create use case defaults winner_count 0->3 for REST/CLI parity"
     }
   },
   "edges": [
@@ -13563,6 +13812,174 @@
       "to": "ISS-201",
       "type": "resolves",
       "created_at": "2026-08-31T08:58:55+00:00"
+    },
+    {
+      "from": "TASK-206",
+      "to": "ISS-202",
+      "type": "addresses",
+      "created_at": "2026-08-31T10:11:58+00:00"
+    },
+    {
+      "from": "TASK-208",
+      "to": "ISS-203",
+      "type": "addresses",
+      "created_at": "2026-08-31T10:11:58+00:00"
+    },
+    {
+      "from": "ISS-202",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T10:11:59+00:00"
+    },
+    {
+      "from": "ISS-203",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T10:11:59+00:00"
+    },
+    {
+      "from": "TASK-209",
+      "to": "ISS-204",
+      "type": "addresses",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "TASK-210",
+      "to": "ISS-205",
+      "type": "addresses",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "TASK-211",
+      "to": "ISS-206",
+      "type": "addresses",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "TASK-212",
+      "to": "ISS-207",
+      "type": "addresses",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "TASK-213",
+      "to": "ISS-208",
+      "type": "addresses",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "ISS-204",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "ISS-205",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "ISS-206",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "ISS-207",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "ISS-208",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-31T11:18:48+00:00"
+    },
+    {
+      "from": "TASK-207",
+      "to": "ISS-209",
+      "type": "addresses",
+      "created_at": "2026-08-31T11:19:15+00:00"
+    },
+    {
+      "from": "ISS-209",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-08-31T11:19:15+00:00"
+    },
+    {
+      "from": "CHG-197",
+      "to": "TASK-206",
+      "type": "implements",
+      "created_at": "2026-08-31T11:23:32+00:00"
+    },
+    {
+      "from": "CHG-197",
+      "to": "ISS-202",
+      "type": "resolves",
+      "created_at": "2026-08-31T11:23:32+00:00"
+    },
+    {
+      "from": "CHG-198",
+      "to": "TASK-209",
+      "type": "implements",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-198",
+      "to": "TASK-210",
+      "type": "implements",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-198",
+      "to": "ISS-204",
+      "type": "resolves",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-198",
+      "to": "ISS-205",
+      "type": "resolves",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-199",
+      "to": "TASK-211",
+      "type": "implements",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-199",
+      "to": "ISS-206",
+      "type": "resolves",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-200",
+      "to": "TASK-212",
+      "type": "implements",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-200",
+      "to": "ISS-207",
+      "type": "resolves",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-201",
+      "to": "TASK-213",
+      "type": "implements",
+      "created_at": "2026-08-31T11:23:33+00:00"
+    },
+    {
+      "from": "CHG-201",
+      "to": "ISS-208",
+      "type": "resolves",
+      "created_at": "2026-08-31T11:23:33+00:00"
     }
   ]
 }
