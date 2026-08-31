@@ -70,7 +70,6 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, 8080, cfg.Server.Port)
 	assert.Equal(t, "info", cfg.Log.Level)
 	assert.Equal(t, "./logs", cfg.Log.Path)
-	assert.Equal(t, "sqlite", cfg.DB.Type)
 	assert.Equal(t, "./data/aurora.db", cfg.DB.Path)
 	assert.NotEmpty(t, cfg.API.Key, "dev mode should auto-generate an API key")
 }
@@ -113,7 +112,6 @@ path = "/tmp/aurora-data/aurora.db"
 	assert.Equal(t, 9099, cfg.Server.Port, "server.port from config file must be honored")
 	assert.Equal(t, "debug", cfg.Log.Level)
 	assert.Equal(t, "/tmp/aurora-logs", cfg.Log.Path, "log.path value from config file must be honored")
-	assert.Equal(t, "sqlite", cfg.DB.Type)
 	assert.Equal(t, "/tmp/aurora-data/aurora.db", cfg.DB.Path,
 		"db.path from config file must be honored (previously only the CLI read it)")
 }
@@ -166,7 +164,6 @@ func TestLoad_OverridesViaViperSet(t *testing.T) {
 	viper.Set("server.port", 9090)
 	viper.Set("log.level", "debug")
 	viper.Set("log.path", "/var/log/aurora")
-	viper.Set("db.type", "postgres")
 	viper.Set("db.path", "/var/lib/aurora/db")
 	viper.Set("api.key", "custom-dev-key")
 
@@ -178,7 +175,6 @@ func TestLoad_OverridesViaViperSet(t *testing.T) {
 	assert.Equal(t, 9090, cfg.Server.Port)
 	assert.Equal(t, "debug", cfg.Log.Level)
 	assert.Equal(t, "/var/log/aurora", cfg.Log.Path)
-	assert.Equal(t, "postgres", cfg.DB.Type)
 	assert.Equal(t, "/var/lib/aurora/db", cfg.DB.Path)
 	assert.Equal(t, "custom-dev-key", cfg.API.Key)
 }
