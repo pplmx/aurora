@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 123,
+  "round": 124,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T02:21:43+00:00",
+  "updated_at": "2026-08-31T07:22:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 122,
+      "touched_round": 124,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 113,
+      "touched_round": 124,
       "title": "voting module"
     },
     "CHG-008": {
@@ -8273,6 +8273,107 @@
       "rationale": "The Docker image ships only the CLI (cmd/aurora; no HTTP listener, default CMD exits, restart: unless-stopped crash-looping) while compose/k8s mapped ports 6666/8888 + Service + HPA to nothing and README's Web UI (cmd/api) was never in the image. Asked the operator: chose 'align as CLI toolbox' — compose becomes one-shot docker compose run, k8s becomes a batch Job, no ports/Service/HPA, Web UI stays a separate cmd/api binary not containerized.",
       "alternatives_rejected": "extend the image to also build cmd/api + copy web/ so the Web UI deploys via Docker (rejected by operator: keep the image CLI-only); leave the drifted manifests as-is (misleading + crash-loop, rejected)",
       "title": "Deployment intent (operator decision): the aurora Docker/k8s image is a CLI toolbox; the Web UI is intentionally a separate non-containerized cmd/api binary (TASK-196, ISS-192)"
+    },
+    "TASK-197": {
+      "id": "TASK-197",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-31T06:20:39+00:00",
+      "updated_at": "2026-08-31T06:54:00+00:00",
+      "touched_round": 124,
+      "category": "correctness",
+      "severity": 0.9,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Voting module is the only one that does not self-create tables on a fresh DB; voting tables exist only in migrations, so a fresh install (CLI or aurora-api) returns 'no such table' on every voting op while lottery/token/nft/oracle bootstrap themselves",
+      "lock_owner": "aurora-cc",
+      "lock_until": "2026-08-31T07:11:12+00:00"
+    },
+    "TASK-198": {
+      "id": "TASK-198",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-08-31T06:21:06+00:00",
+      "updated_at": "2026-08-31T07:21:30+00:00",
+      "touched_round": 124,
+      "category": "core-feature",
+      "severity": 0.65,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Web voting page: stale voteCandidateId survives a session switch and submits a candidate not in the new session (400 CANDIDATE_NOT_IN_SESSION); vote private-key input is type=text unlike token/nft password fields",
+      "lock_owner": "aurora-cc",
+      "lock_until": "2026-08-31T07:39:00+00:00"
+    },
+    "TASK-199": {
+      "id": "TASK-199",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T06:21:09+00:00",
+      "updated_at": "2026-08-31T07:21:30+00:00",
+      "touched_round": 124,
+      "category": "core-feature",
+      "severity": 0.5,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "Web create-form completeness: token create cannot set decimals (API+CLI support), nft mint never advances historyId (History blank), token create never advances infoId (Info blank), oracle add-source interval unclamped (empty->60 silently)"
+    },
+    "ISS-193": {
+      "id": "ISS-193",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T06:21:53+00:00",
+      "updated_at": "2026-08-31T07:21:30+00:00",
+      "touched_round": 124,
+      "title": "Fresh-DB voting ops fail with no-such-table: VotingRepository is the only repo without createTables() and cmd/api never runs migrations (migrate.autoRun=false), so a fresh install 500s on every /api/v1/voting route and every voting CLI op",
+      "severity": 0.9
+    },
+    "ISS-194": {
+      "id": "ISS-194",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T06:21:57+00:00",
+      "updated_at": "2026-08-31T07:21:30+00:00",
+      "touched_round": 124,
+      "title": "Web voting page: voteCandidateId is not reset on session switch, so a stale candidate not in the new session is POSTed (400 CANDIDATE_NOT_IN_SESSION); votePriv input is type=text unlike token/nft private-key password fields",
+      "severity": 0.6
+    },
+    "ISS-195": {
+      "id": "ISS-195",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T06:22:02+00:00",
+      "updated_at": "2026-08-31T07:21:31+00:00",
+      "touched_round": 124,
+      "title": "Web create forms are incomplete vs API/CLI: token create can't set decimals; nft mint and token create don't advance historyId/infoId so History/Info forms stay blank; oracle add-source interval unclamped (empty->60 silently, negative->400)",
+      "severity": 0.5
+    },
+    "CHG-190": {
+      "id": "CHG-190",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T07:21:56+00:00",
+      "updated_at": "2026-08-31T07:21:56+00:00",
+      "touched_round": 124,
+      "title": "VotingRepository bootstraps its own tables on a fresh DB (constructor now returns error)",
+      "commit": "5d3da8a"
+    },
+    "CHG-191": {
+      "id": "CHG-191",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T07:21:56+00:00",
+      "updated_at": "2026-08-31T07:21:56+00:00",
+      "touched_round": 124,
+      "title": "Web: voting vote-form guards (stale-candidate reset + membership, masked priv key); token decimals + infoId advance; nft historyId advance; oracle interval required",
+      "commit": "46ab1d4"
     }
   },
   "edges": [
@@ -13039,6 +13140,78 @@
       "to": "ISS-192",
       "type": "resolves",
       "created_at": "2026-08-31T02:17:42+00:00"
+    },
+    {
+      "from": "TASK-197",
+      "to": "ISS-193",
+      "type": "addresses",
+      "created_at": "2026-08-31T06:25:14+00:00"
+    },
+    {
+      "from": "TASK-198",
+      "to": "ISS-194",
+      "type": "addresses",
+      "created_at": "2026-08-31T06:25:14+00:00"
+    },
+    {
+      "from": "TASK-199",
+      "to": "ISS-195",
+      "type": "addresses",
+      "created_at": "2026-08-31T06:25:14+00:00"
+    },
+    {
+      "from": "ISS-193",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-08-31T06:25:14+00:00"
+    },
+    {
+      "from": "ISS-194",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-31T06:25:14+00:00"
+    },
+    {
+      "from": "ISS-195",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-08-31T06:25:14+00:00"
+    },
+    {
+      "from": "CHG-190",
+      "to": "TASK-197",
+      "type": "implements",
+      "created_at": "2026-08-31T07:22:26+00:00"
+    },
+    {
+      "from": "CHG-190",
+      "to": "ISS-193",
+      "type": "resolves",
+      "created_at": "2026-08-31T07:22:26+00:00"
+    },
+    {
+      "from": "CHG-191",
+      "to": "TASK-198",
+      "type": "implements",
+      "created_at": "2026-08-31T07:22:26+00:00"
+    },
+    {
+      "from": "CHG-191",
+      "to": "TASK-199",
+      "type": "implements",
+      "created_at": "2026-08-31T07:22:26+00:00"
+    },
+    {
+      "from": "CHG-191",
+      "to": "ISS-194",
+      "type": "resolves",
+      "created_at": "2026-08-31T07:22:26+00:00"
+    },
+    {
+      "from": "CHG-191",
+      "to": "ISS-195",
+      "type": "resolves",
+      "created_at": "2026-08-31T07:22:26+00:00"
     }
   ]
 }
