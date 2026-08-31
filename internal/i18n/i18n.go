@@ -859,11 +859,14 @@ func (tr *Translator) loadMessages() {
 }
 
 func (tr *Translator) loadFromConfig() {
-	// Get locale from config if not set
+	// Get locale from config if not set. The real key is the [i18n] section's
+	// "i18n.locale" (set in config/aurora.toml and setDefaultConfig); the old
+	// top-level "locale" key was never written anywhere, so a configured
+	// locale was silently ignored (TASK-200, ISS-196).
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
 	if tr.locale == "" {
-		tr.locale = viper.GetString("locale")
+		tr.locale = viper.GetString("i18n.locale")
 	}
 	if tr.locale == "" {
 		tr.locale = "en"
@@ -927,6 +930,18 @@ func GetTextF(key string, args ...interface{}) string {
 
 func DetectAndInit() *Translator {
 	locale := DetectLocale()
+	// $LANG is the authoritative source (TASK-128/ISS-123 locked the lazy
+	// default to it); a configured [i18n] locale is the fallback for
+	// environments that declare no LANG, so the config knob is no longer inert
+	// (TASK-200, ISS-196). viper's defaults are installed during the CLI's
+	// initConfig (after main), so on the CLI this only matters when the
+	// config file is loaded first (tests / programmatic use) — the knob never
+	// overrides an explicit $LANG.
+	if os.Getenv("LANG") == "" {
+		if cfg := viper.GetString("i18n.locale"); cfg != "" {
+			locale = cfg
+		}
+	}
 	return Init(locale)
 }
 

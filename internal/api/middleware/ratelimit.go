@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -203,7 +204,10 @@ func RateLimit(limiter *FixedWindowLimiter, trustedProxies []string) func(http.H
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !limiter.Allow(clientRateKey(r, trusted)) {
 				w.Header().Set("Content-Type", "application/json")
-				w.Header().Set("Retry-After", "60")
+				// A hardcoded 60 lied about when the client may retry whenever
+				// the configured window was not 1m; advertise the real window
+				// the limiter was built with (TASK-200, ISS-196).
+				w.Header().Set("Retry-After", strconv.Itoa(int(limiter.window.Seconds())))
 				w.WriteHeader(http.StatusTooManyRequests)
 				_ = json.NewEncoder(w).Encode(map[string]string{
 					"error": "rate limit exceeded",

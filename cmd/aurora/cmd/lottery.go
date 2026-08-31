@@ -172,6 +172,12 @@ var verifyCmd = &cobra.Command{
 		// a substring ID/seed match for convenience.
 		record, err = repo.GetByID(input)
 		if err != nil {
+			if !errors.Is(err, domainlottery.ErrNotFound) {
+				// A genuine DB read failure (corruption, I/O) must not be
+				// misreported as "lottery not found"; the fallbacks below only
+				// cover the input-not-an-exact-ID case (TASK-200, ISS-196).
+				return fmt.Errorf("failed to read lottery record: %w", err)
+			}
 			// Not an exact ID match. If the whole input is a plain decimal
 			// integer, it is a block height.
 			if height, perr := strconv.ParseInt(input, 10, 64); perr == nil {
