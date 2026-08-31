@@ -47,6 +47,21 @@ documented in their per-milestone ROADMAP files.
   suite; the `migrate down` example omitted the mandatory `--confirm`; and the
   v1.90 entry mislabelled the NFT TUI list view as the 5th menu item (it is the
   4th) (TASK-202, ISS-198).
+- **Lottery TUI was invisible to the CLI surfaces**: draws created inside
+  `lottery tui` only reached the chain's `blocks` table, so `lottery history/
+  stats/export/verify` (which read the persistent `lottery_records`) never saw
+  them — while `lottery import`ed draws never appeared in the TUI history,
+  which additionally listed unrelated on-chain records (votes/transfers) as
+  "lotteries". The TUI now dual-writes draws to `lottery_records` and reads
+  history from that store, matching the CLI exactly (TASK-203, ISS-199).
+- **Oracle TUI advertised editing a data source that cannot be edited**: the
+  source detail view was titled "Edit Data Source" with a pencil icon and an
+  "[Enter] Edit source" hint, but the view is read-only (no edit use case
+  exists). Retitled to "Source Details" (TASK-204, ISS-200).
+- **NFT/token TUIs silently dropped their work**: both ran on in-memory
+  repositories (data lost on quit) while the lottery/oracle TUIs persist — a
+  mismatch documented only in code comments. Both menu screens now show an
+  explicit sandbox notice up front (TASK-205, ISS-201).
 
 ## [v1.91] - 2026-08-30
 
