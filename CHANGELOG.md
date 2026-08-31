@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STATE.md`
 (release `Version` is injected at build time via `-ldflags -X cmd.Version=`). The
-entries below summarise v1.64–v1.90; earlier v1.x milestones (v1.0–v1.63) are
+entries below summarise v1.64–v1.92; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
 ## [v1.92] - 2026-08-31
