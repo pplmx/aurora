@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 124,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T07:56:54+00:00",
+  "updated_at": "2026-08-31T08:40:24+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 118,
+      "touched_round": 124,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 113,
+      "touched_round": 124,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -8484,6 +8484,67 @@
       "touched_round": 124,
       "title": "CLI/docs: suite-accurate help+version, migrate down --confirm example, CHANGELOG v1.92 + menu-position fix",
       "commit": "bdbacfd"
+    },
+    "TASK-203": {
+      "id": "TASK-203",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-31T08:01:56+00:00",
+      "updated_at": "2026-08-31T08:40:24+00:00",
+      "touched_round": 124,
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 0.85,
+      "effort": 2,
+      "title": "Lottery TUI store asymmetry: runLottery writes draws only to the chain's blocks table, never lottery_records, so TUI draws are invisible to lottery history/stats/export/verify, while imported draws (lottery_records-only) are invisible to the TUI history view (which also lists unrelated on-chain blocks via GetLotteryRecords). Align the TUI with the persistent store: dual-write in runLottery and read history from lottery_records"
+    },
+    "TASK-204": {
+      "id": "TASK-204",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T08:02:07+00:00",
+      "updated_at": "2026-08-31T08:38:04+00:00",
+      "touched_round": 124,
+      "category": "dx",
+      "severity": 0.3,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle TUI mislabels the read-only source detail view: header says 'Edit Data Source' and footer '[Enter] Edit source', but no edit capability exists (UpdateSource is only Enable/Disable); retitle to a details view"
+    },
+    "ISS-199": {
+      "id": "ISS-199",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T08:02:39+00:00",
+      "updated_at": "2026-08-31T08:38:04+00:00",
+      "touched_round": 124,
+      "title": "Lottery TUI draws never reach lottery_records (invisible to CLI history/stats/export/verify), imported draws never reach the TUI history, and the TUI history lists unrelated on-chain blocks",
+      "severity": 0.55
+    },
+    "ISS-200": {
+      "id": "ISS-200",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T08:02:39+00:00",
+      "updated_at": "2026-08-31T08:38:04+00:00",
+      "touched_round": 124,
+      "title": "Oracle TUI advertises 'Edit Data Source' for a read-only details view (no edit use case exists)",
+      "severity": 0.3
+    },
+    "CHG-195": {
+      "id": "CHG-195",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T08:38:56+00:00",
+      "updated_at": "2026-08-31T08:38:56+00:00",
+      "touched_round": 124,
+      "title": "TUI alignment: lottery TUI dual-writes draws to lottery_records + history reads the persistent store; oracle source view retitled from Edit to Details",
+      "commit": "107f41b"
     }
   },
   "edges": [
@@ -13394,6 +13455,54 @@
       "to": "ISS-198",
       "type": "resolves",
       "created_at": "2026-08-31T07:56:54+00:00"
+    },
+    {
+      "from": "TASK-203",
+      "to": "ISS-199",
+      "type": "addresses",
+      "created_at": "2026-08-31T08:02:39+00:00"
+    },
+    {
+      "from": "TASK-204",
+      "to": "ISS-200",
+      "type": "addresses",
+      "created_at": "2026-08-31T08:02:39+00:00"
+    },
+    {
+      "from": "ISS-199",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-08-31T08:03:47+00:00"
+    },
+    {
+      "from": "ISS-200",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-08-31T08:03:47+00:00"
+    },
+    {
+      "from": "CHG-195",
+      "to": "TASK-203",
+      "type": "implements",
+      "created_at": "2026-08-31T08:38:57+00:00"
+    },
+    {
+      "from": "CHG-195",
+      "to": "TASK-204",
+      "type": "implements",
+      "created_at": "2026-08-31T08:38:57+00:00"
+    },
+    {
+      "from": "CHG-195",
+      "to": "ISS-199",
+      "type": "resolves",
+      "created_at": "2026-08-31T08:38:57+00:00"
+    },
+    {
+      "from": "CHG-195",
+      "to": "ISS-200",
+      "type": "resolves",
+      "created_at": "2026-08-31T08:38:57+00:00"
     }
   ]
 }
