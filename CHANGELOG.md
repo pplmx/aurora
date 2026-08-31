@@ -4,8 +4,45 @@ All notable changes to this project will be documented in this file.
 
 The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STATE.md`
 (release `Version` is injected at build time via `-ldflags -X cmd.Version=`). The
-entries below summarise v1.64–v1.92; earlier v1.x milestones (v1.0–v1.63) are
+entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
+
+## [v1.93] - 2026-09-01
+
+### Fixed
+
+- **Config knobs that were set-but-never-read**: `db.type` was written
+  (`viper.SetDefault` + `DBConfig.Type`) but no code reads it — SQLite is the
+  only backend, so an operator setting `db.type=<other>` silently got SQLite.
+  `lottery.defaultSeedPrefix` was likewise written but never consumed: the
+  lottery seed is never auto-generated, it is always supplied by the caller
+  (CLI `-s/--seed`, API, web form). Both were removed (field, default, sample
+  toml key, and the test assertions / config-doc claims that only validated
+  the dead plumbing) (TASK-223, TASK-226; ISS-219, ISS-224).
+- **The sample config shipped a dead `[[oracle.sources]]` table**: the binary
+  never reads one, so editing those two blocks looked like it configured the
+  scheduler but had no effect. Replaced with a truthful comment: sources live
+  in SQLite and are managed at runtime via `aurora oracle source add` / REST /
+  TUI. The `[http]` / `[http.rateLimit]` sections were also unlabelled — they
+  govern the outbound oracle fetcher (per-source pacing of reads), not the API
+  server's inbound traffic (which uses `[api.rateLimit]`, off by default);
+  documented in place, no shipped keys renamed (DEC-008) (TASK-225; ISS-220,
+  ISS-223).
+- **`cmd/api` tore down over an open DB on a fatal bind failure**:
+  `logger.Fatal` in the `ListenAndServe` failure goroutine exits without main's
+  deferred `srv.Close()`, leaving the outbox/scheduler goroutines ended over an
+  open SQLite handle and the WAL uncleaned (port busy etc.). The idempotent
+  `srv.Close()` now runs before the fatal log (TASK-224; ISS-221).
+
+### Added
+
+- **Oracle source capabilities reach API/CLI/TUI parity**: `aurora oracle
+  source add` gained `-m/--method` and `-p/--path` (a price source's JSON path
+  could previously be set only via REST/web/TUI), `source list` now prints
+  Method/Path/Interval, and the oracle TUI add-source form sets
+  method/path/interval with client-side interval validation (6-field focus
+  cycle; empty → default 60; non-numeric/negative → inline error before any
+  write). Six new i18n keys (en/zh) (TASK-225, TASK-227; ISS-222, ISS-225).
 
 ## [v1.92] - 2026-08-31
 
