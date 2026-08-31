@@ -136,6 +136,7 @@ function lotteryApp() {
         count: 1,
         result: '',
         history: [],
+        historyFailed: false,
         loading: true,
         verifyId: '',
         verifyResult: '',
@@ -156,8 +157,13 @@ function lotteryApp() {
                 const res = await apiFetch('/api/v1/lottery/history');
                 const data = await res.json();
                 this.history = Array.isArray(data) ? data : [];
+                this.historyFailed = false;
             } catch (e) {
+                // Distinguish "no lotteries yet" from "couldn't load" so a
+                // first-load failure isn't misread as an empty system — same
+                // ISS-191 contract TASK-195 applied to voting/oracle.
                 this.history = [];
+                this.historyFailed = true;
             }
             this.loading = false;
         },
