@@ -38,7 +38,16 @@ jobs:
           if [ "$GOOS" = "windows" ]; then
             EXT=".exe"
           fi
-          go build -ldflags="-s -w" -o aurora-${GOOS}-${GOARCH}${EXT} ./cmd/aurora
+          # Inject the real version/build time so released binaries report
+          # what they are instead of the 0.0.1 placeholder (TASK-206).
+          # GITHUB_REF_NAME is the tag (vX.Y.Z) on a tag release, else the
+          # branch name; fall back to the short SHA for straight branch runs.
+          VERSION="${GITHUB_REF_NAME}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+            VERSION="$(git rev-parse --short HEAD)"
+          fi
+          BUILDTIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          go build -trimpath -ldflags="-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=${VERSION} -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=${BUILDTIME}" -o aurora-${GOOS}-${GOARCH}${EXT} ./cmd/aurora
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
