@@ -32,7 +32,7 @@ Features:
   - Database migrations and backups
 
 Use "aurora <module> --help" for module commands (lottery, voting, oracle,
-nft, token).`,
+nft, token) and operational commands (migrate, backup, version).`,
 	Example: `  aurora lottery create -p "Alice,Bob,Charlie" -s "my-seed" -c 2
   aurora lottery tui
   aurora nft mint -n "MyNFT" -c "creator-key"

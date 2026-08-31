@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.91 polish of the v1.90 residual backlog + fresh deep-dive (oracle TUI scrollable viewport for results/sources, per-action web busy state on submit buttons, oracle TUI query limit clamped to [1,100] like CLI/API, help screen documents viewport scroll keys)
+**Current focus:** v1.92 — round-128 web/TUI/CLI polish sweep (web lottery create form validated to the API contract, load-failure vs empty parity on oracle health/dashboard/voting candidates, oracle fetch-form Tab focus desync + confirm-dialog error rendering, NFT/lottery TUI success-message rendering, lottery CLI + `version` command localization, REST/CLI winner-count parity, version/build-time injection across CI/Docker/justfile, dead-code sweep of response.go + FFT math + 23 unused i18n keys)
 
 ## Current Position
 
