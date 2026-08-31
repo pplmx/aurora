@@ -78,7 +78,10 @@ func NewServer() (*Server, error) {
 	}
 	srv.addCloser(lotteryRepo)
 
-	votingRepo := sqlite.NewVotingRepository(db)
+	votingRepo, err := sqlite.NewVotingRepository(db)
+	if err != nil {
+		return nil, err
+	}
 
 	nftRepo, err := sqlite.NewNFTRepository(dbPath)
 	if err != nil {
