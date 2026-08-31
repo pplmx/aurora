@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 124,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T08:40:24+00:00",
+  "updated_at": "2026-08-31T08:58:55+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 113,
+      "touched_round": 124,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -8545,6 +8545,42 @@
       "touched_round": 124,
       "title": "TUI alignment: lottery TUI dual-writes draws to lottery_records + history reads the persistent store; oracle source view retitled from Edit to Details",
       "commit": "107f41b"
+    },
+    "TASK-205": {
+      "id": "TASK-205",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T08:57:07+00:00",
+      "updated_at": "2026-08-31T08:58:13+00:00",
+      "touched_round": 124,
+      "category": "dx",
+      "severity": 0.4,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "NFT/token TUIs run on in-memory repositories (sandbox) while lottery/oracle TUIs persist — state is lost on quit, hidden from the operator; disclose it on the menu screens"
+    },
+    "ISS-201": {
+      "id": "ISS-201",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T08:58:13+00:00",
+      "updated_at": "2026-08-31T08:58:13+00:00",
+      "touched_round": 124,
+      "title": "NFT/token TUI sandbox is undisclosed: mints/creates are in-memory and lost on quit, while lottery/oracle TUIs persist; no on-screen caveat",
+      "severity": 0.4
+    },
+    "CHG-196": {
+      "id": "CHG-196",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T08:58:55+00:00",
+      "updated_at": "2026-08-31T08:58:55+00:00",
+      "touched_round": 124,
+      "title": "NFT/token TUI menus disclose the in-memory sandbox caveat",
+      "commit": "485dc0e"
     }
   },
   "edges": [
@@ -13503,6 +13539,30 @@
       "to": "ISS-200",
       "type": "resolves",
       "created_at": "2026-08-31T08:38:57+00:00"
+    },
+    {
+      "from": "TASK-205",
+      "to": "ISS-201",
+      "type": "addresses",
+      "created_at": "2026-08-31T08:58:13+00:00"
+    },
+    {
+      "from": "ISS-201",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-08-31T08:58:13+00:00"
+    },
+    {
+      "from": "CHG-196",
+      "to": "TASK-205",
+      "type": "implements",
+      "created_at": "2026-08-31T08:58:55+00:00"
+    },
+    {
+      "from": "CHG-196",
+      "to": "ISS-201",
+      "type": "resolves",
+      "created_at": "2026-08-31T08:58:55+00:00"
     }
   ]
 }
