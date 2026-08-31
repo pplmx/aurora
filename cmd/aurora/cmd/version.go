@@ -5,6 +5,8 @@ import (
 	"runtime"
 
 	"github.com/spf13/cobra"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // Version and BuildTime are overridable at link time, e.g.
@@ -29,10 +31,10 @@ var versionCmd = &cobra.Command{
 	Short: "Show version information",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
-		fmt.Fprintln(out, "Aurora - Blockchain Systems Suite")
-		fmt.Fprintf(out, "Version: %s\n", Version)
-		fmt.Fprintf(out, "Build Time: %s\n", BuildTime)
-		fmt.Fprintf(out, "Go Version: %s\n", runtime.Version())
+		fmt.Fprintln(out, i18n.GetText("app.name"))
+		fmt.Fprintf(out, "%s: %s\n", i18n.GetText("app.version"), Version)
+		fmt.Fprintf(out, "%s: %s\n", i18n.GetText("app.build_time"), BuildTime)
+		fmt.Fprintf(out, "%s: %s\n", i18n.GetText("app.go_version"), runtime.Version())
 		return nil
 	},
 }
