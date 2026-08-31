@@ -396,9 +396,10 @@ func (tr *Translator) loadMessages() {
 
 		// ===== COMMON =====
 		// Help
-		"help.nav":  "Use ↑↓ to select, Enter to confirm, ? for help, q to quit",
-		"help.exit": "Press q to quit",
-		"help.back": "Press b to go back",
+		"help.nav":           "Use ↑↓ to select, Enter to confirm, ? for help, q to quit",
+		"help.exit":          "Press q to quit",
+		"tui.sandbox_notice": "⚠ sandbox mode — minted/created items are NOT persisted (in-memory only)",
+		"help.back":          "Press b to go back",
 
 		// TUI help screen (components.HelpView)
 		"tui.help.title":       "Keyboard Shortcuts",
@@ -792,9 +793,10 @@ func (tr *Translator) loadMessages() {
 
 		// ===== COMMON =====
 		// Help
-		"help.nav":  "使用 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出",
-		"help.exit": "按 q 退出",
-		"help.back": "按 b 返回",
+		"help.nav":           "使用 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出",
+		"help.exit":          "按 q 退出",
+		"tui.sandbox_notice": "⚠ 沙盒模式 — 铸造/创建的内容不会持久化（仅存于内存）",
+		"help.back":          "按 b 返回",
 
 		// TUI 帮助页 (components.HelpView)
 		"tui.help.title":       "键盘快捷键",

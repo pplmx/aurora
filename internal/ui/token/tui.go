@@ -512,6 +512,10 @@ func (m *model) handleSelect() {
 
 func (m *model) menuView() string {
 	s := components.HeaderStyle().Render("🪙 "+i18n.GetText("token.tui.title")) + "\n\n"
+	// The Token TUI runs on in-memory repositories; state is lost on quit, so
+	// the sandbox caveat is shown up front instead of only in code comments
+	// (TASK-204/ISS-200 sibling finding).
+	s += "\n" + components.WarningStyle().Render(i18n.GetText("tui.sandbox_notice")) + "\n"
 
 	menuItems := []string{
 		"📦 " + i18n.GetText("token.tui.create"),
