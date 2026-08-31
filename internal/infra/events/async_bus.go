@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/pplmx/aurora/internal/logger"
 )
 
 type AsyncEventBus struct {
@@ -33,12 +34,16 @@ func (b *AsyncEventBus) processLoop() {
 	for {
 		select {
 		case e := <-b.eventChan:
-			_ = b.bus.Publish(e)
+			if err := b.bus.Publish(e); err != nil {
+				logger.Warn().Err(err).Str("event", e.EventType()).Msg("async event bus publish failed")
+			}
 		case <-b.done:
 			for {
 				select {
 				case e := <-b.eventChan:
-					_ = b.bus.Publish(e)
+					if err := b.bus.Publish(e); err != nil {
+						logger.Warn().Err(err).Str("event", e.EventType()).Msg("async event bus drain publish failed")
+					}
 				default:
 					return
 				}

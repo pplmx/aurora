@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/pplmx/aurora/internal/logger"
 )
 
 type EventBus interface {
@@ -88,18 +89,33 @@ func (b *SyncEventBus) Publish(e events.Event) error {
 	b.mu.RUnlock()
 
 	for _, h := range globals {
-		if err := h(e); err != nil {
+		if err := runHandler(h, e); err != nil {
 			return err
 		}
 	}
 
 	for _, h := range typed {
-		if err := h(e); err != nil {
+		if err := runHandler(h, e); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// runHandler invokes one subscriber safely: a panicking handler is recovered
+// and logged so it can neither kill the async dispatcher goroutine (which
+// would silently stop the whole bus forever) nor blow through a sync caller
+// (the API server) after the operation already committed — the caller would
+// otherwise surface a 500 the committed write did not deserve. A returned
+// error still stops the chain (the all-or-nothing error contract is kept).
+func runHandler(h Handler, e events.Event) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error().Interface("panic", r).Str("event", e.EventType()).Msg("event bus subscriber panicked")
+		}
+	}()
+	return h(e)
 }
 
 func (b *SyncEventBus) Subscribe(eventType string, handler Handler) func() {

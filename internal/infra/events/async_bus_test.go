@@ -67,6 +67,36 @@ func TestAsyncEventBus_CloseDrainsRemainingEvents(t *testing.T) {
 	mu.Unlock()
 }
 
+func TestAsyncEventBus_PanickingSubscriberSurvives(t *testing.T) {
+	bus := NewAsyncEventBus(10)
+
+	var healthy sync.WaitGroup
+	healthy.Add(2)
+	bus.SubscribeAll(func(e events.Event) error {
+		panic("boom")
+	})
+	bus.Subscribe("test.event", func(e events.Event) error {
+		healthy.Done()
+		return nil
+	})
+
+	for i := 0; i < 2; i++ {
+		require.NoError(t, bus.Publish(events.NewBaseEvent("test.event", "agg-1", []byte(`{}`))))
+	}
+
+	// The panicking subscriber must not kill the dispatcher goroutine: the
+	// healthy one still receives every event. Before the recover it silently
+	// stopped processing forever after the first panic.
+	done := make(chan struct{})
+	go func() { healthy.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("dispatcher stopped after a panicking subscriber; healthy subscriber missed events")
+	}
+	bus.Close()
+}
+
 func TestAsyncEventBus_Subscribe(t *testing.T) {
 	bus := NewAsyncEventBus(10)
 	defer bus.Close()

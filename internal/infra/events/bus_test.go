@@ -76,6 +76,30 @@ func TestSyncEventBus_Publish_AllOrNothing(t *testing.T) {
 	}
 }
 
+func TestSyncEventBus_Publish_PanickingHandlerDoesNotEscape(t *testing.T) {
+	bus := NewSyncEventBus()
+
+	called := make(chan int, 2)
+	bus.Subscribe("test.event", func(e events.Event) error {
+		panic("boom")
+	})
+	bus.Subscribe("test.event", func(e events.Event) error {
+		called <- 1
+		return nil
+	})
+
+	// The panic must be recovered and logged, Publish must return nil, and
+	// the chain must continue to the next handler (nothing escapes to the
+	// caller after a committed write).
+	err := bus.Publish(newMockEvent("test.event", "agg-1"))
+	assert.NoError(t, err)
+	select {
+	case <-called:
+	case <-time.After(2 * time.Second):
+		t.Fatal("handler after the panicking one was not called")
+	}
+}
+
 func TestSyncEventBus_Publish_GlobalHandlersFirst(t *testing.T) {
 	bus := NewSyncEventBus()
 
