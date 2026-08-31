@@ -20,7 +20,7 @@
                 <a href="/blockchain.html">Blockchain</a>
                 <a href="/nft.html">NFT</a>
             </nav>
-            <button class="btn-refresh" @click="refresh()" title="Reload sources &amp; health now">↻ Refresh</button>
+            <button class="btn-refresh" @click="refresh()" :disabled="refreshing" title="Reload sources &amp; health now">↻ Refresh</button>
         </header>
         <main>
             <section class="history">
@@ -85,7 +85,7 @@
                     <tbody>
                         <template x-for="h in health" :key="h.source_id">
                             <tr>
-                                <td x-text="h.source_id"></td>
+                                <td x-text="sourceName(h.source_id)"></td>
                                 <td x-text="h.attempts"></td>
                                 <td x-text="h.successes"></td>
                                 <td x-text="h.failures"></td>

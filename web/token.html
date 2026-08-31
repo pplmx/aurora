@@ -54,7 +54,7 @@
                 <h2>Balance</h2>
                 <form @submit.prevent="getBalance">
                     <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>Owner Public Key</label><input type="text" x-model="owner" required></div>
+                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.getBalance">Get Balance</button>
                 </form>
                 <pre x-show="balance" class="result" x-text="balance"></pre>

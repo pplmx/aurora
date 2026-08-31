@@ -20,7 +20,7 @@
                 <a href="/blockchain.html">Blockchain</a>
                 <a href="/nft.html">NFT</a>
             </nav>
-            <button class="btn-refresh" @click="refresh()" title="Reload stats now">↻ Refresh</button>
+            <button class="btn-refresh" @click="refresh()" :disabled="refreshing" title="Reload stats now">↻ Refresh</button>
         </header>
         <main>
             <section class="stats-grid">
