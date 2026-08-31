@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 122,
+  "round": 123,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-30T17:21:47+00:00",
+  "updated_at": "2026-08-31T02:19:24+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 117,
+      "touched_round": 122,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -8224,6 +8224,43 @@
       "touched_round": 122,
       "commit": "d94bafd",
       "title": "web failure-vs-empty distinction"
+    },
+    "ISS-192": {
+      "id": "ISS-192",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T02:01:33+00:00",
+      "updated_at": "2026-08-31T02:17:41+00:00",
+      "touched_round": 122,
+      "severity": 0.6,
+      "confidence": 0.95,
+      "title": "Deployment drift: the Docker image ships only the CLI (cmd/aurora) with no web/ or cmd/api, but compose.yml maps ports 6666/8888 and k8s.yml opens 6666 + Service + HPA that nothing listens on; the default CMD /aurora prints help and exits, so restart: unless-stopped crash-loops the container; README's Web UI (cmd/api) is not part of the image at all"
+    },
+    "TASK-196": {
+      "id": "TASK-196",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-08-31T02:01:33+00:00",
+      "updated_at": "2026-08-31T02:17:42+00:00",
+      "touched_round": 122,
+      "category": "docs",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Align the deployment manifests to the actual CLI-toolbox image (user decision): compose.yml drops the fake port mappings and becomes one-shot docker compose run ; k8s.yml drops ports/Service/HPA and expresses the CLI as a batch Job; both document that the Web UI is a separate cmd/api binary not in this image (ISS-192)"
+    },
+    "CHG-189": {
+      "id": "CHG-189",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T02:17:41+00:00",
+      "updated_at": "2026-08-31T02:17:41+00:00",
+      "touched_round": 122,
+      "commit": "bd1256d",
+      "title": "align Docker/k8s manifests to CLI toolbox"
     }
   },
   "edges": [
@@ -12966,6 +13003,30 @@
       "to": "ISS-191",
       "type": "resolves",
       "created_at": "2026-08-30T17:21:47+00:00"
+    },
+    {
+      "from": "TASK-196",
+      "to": "ISS-192",
+      "type": "addresses",
+      "created_at": "2026-08-31T02:02:51+00:00"
+    },
+    {
+      "from": "ISS-192",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-08-31T02:02:51+00:00"
+    },
+    {
+      "from": "CHG-189",
+      "to": "TASK-196",
+      "type": "implements",
+      "created_at": "2026-08-31T02:17:42+00:00"
+    },
+    {
+      "from": "CHG-189",
+      "to": "ISS-192",
+      "type": "resolves",
+      "created_at": "2026-08-31T02:17:42+00:00"
     }
   ]
 }
