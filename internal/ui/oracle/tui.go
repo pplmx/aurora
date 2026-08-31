@@ -574,7 +574,7 @@ func (m *model) sourceDetailView() string {
 		}
 	}
 
-	s := components.HeaderStyle().Render("📝 "+i18n.GetText("oracle.tui.edit_source")) + "\n\n"
+	s := components.HeaderStyle().Render("🔎 "+i18n.GetText("oracle.tui.edit_source")) + "\n\n"
 
 	if source != nil {
 		s += components.KeyValue(i18n.GetText("oracle.tui.source_name"), source.Name) + "\n"

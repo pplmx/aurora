@@ -92,7 +92,16 @@ var tuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: i18n.GetText("lottery.tui"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return uilottery.RunLotteryTUI()
+		// Wire the persistent lottery_records repository into the TUI so draws
+		// created inside it appear in `lottery history/stats/export/verify` and
+		// the TUI history shows imported draws too (TASK-203, ISS-199). The
+		// handle stays open for the TUI session and closes when the TUI exits.
+		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
+		if err != nil {
+			return fmt.Errorf("failed to open lottery repository: %w", err)
+		}
+		defer func() { _ = repo.Close() }()
+		return uilottery.RunLotteryTUI(repo)
 	},
 }
 
