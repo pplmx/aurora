@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 129,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T17:31:19+00:00",
+  "updated_at": "2026-08-31T17:48:54+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -9337,6 +9337,46 @@
       "title": "aurora.toml [http] scope comment",
       "description": "2567fe9 adds a comment explaining [http] timeout + [http.rateLimit] govern the outbound oracle fetcher (per-source pacing), not the API server; inbound limiting is [api.rateLimit].",
       "commit": "2567fe9"
+    },
+    "ISS-224": {
+      "id": "ISS-224",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-08-31T17:47:58+00:00",
+      "updated_at": "2026-08-31T17:47:58+00:00",
+      "touched_round": 129,
+      "title": "lottery.defaultSeedPrefix config knob is set-but-never-read",
+      "description": "viper.SetDefault('lottery.defaultSeedPrefix','aurora-vrf-') in setDefaultConfig + a config/aurora.toml entry + docs/lottery/api.md implied a default seed prefix exists, but nothing reads it: lottery seeds are always caller-supplied (CLI MarkFlagRequired, API, web). Same inert-knob class as the round-132 db.type removal.",
+      "severity": 0.3,
+      "confidence": 1
+    },
+    "TASK-226": {
+      "id": "TASK-226",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-08-31T17:47:58+00:00",
+      "updated_at": "2026-08-31T17:48:54+00:00",
+      "touched_round": 129,
+      "title": "Remove inert lottery.defaultSeedPrefix + fix docs",
+      "description": "round-135: remove the viper default (root.go), the toml key, the TestSetDefaultConfig assertion, and correct docs/lottery/api.md's config sample. Category maintainability, severity 0.3, confidence 1, effort 1.",
+      "category": "maintainability",
+      "severity": 0.3,
+      "confidence": 1,
+      "effort": 1
+    },
+    "CHG-217": {
+      "id": "CHG-217",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-08-31T17:47:58+00:00",
+      "updated_at": "2026-08-31T17:47:58+00:00",
+      "touched_round": 129,
+      "title": "lottery.defaultSeedPrefix removal",
+      "description": "a6d54ea removes the set-but-never-read lottery.defaultSeedPrefix default/key/assert + fixes the doc sample; seed is always caller-supplied. Verified: full -race suite green.",
+      "commit": "a6d54ea"
     }
   },
   "edges": [
@@ -14805,6 +14845,24 @@
       "to": "TASK-225",
       "type": "implements",
       "created_at": "2026-08-31T17:31:19+00:00"
+    },
+    {
+      "from": "CHG-217",
+      "to": "ISS-224",
+      "type": "resolves",
+      "created_at": "2026-08-31T17:47:58+00:00"
+    },
+    {
+      "from": "TASK-226",
+      "to": "ISS-224",
+      "type": "addresses",
+      "created_at": "2026-08-31T17:48:54+00:00"
+    },
+    {
+      "from": "CHG-217",
+      "to": "TASK-226",
+      "type": "implements",
+      "created_at": "2026-08-31T17:48:54+00:00"
     }
   ]
 }
