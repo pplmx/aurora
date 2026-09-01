@@ -232,39 +232,71 @@ func TestFetcher_FetchData_NonJSON(t *testing.T) {
 }
 
 func TestExtractByPath_Nested(t *testing.T) {
-	result := extractByPath(`{"a": {"b": {"c": "value"}}}`, "a.b.c")
-	if result != "value" {
-		t.Errorf("Expected 'value', got '%s'", result)
+	result, ok := extractByPath(`{"a": {"b": {"c": "value"}}}`, "a.b.c")
+	if !ok || result != "value" {
+		t.Errorf("Expected ('value', true), got (%q, %v)", result, ok)
 	}
 }
 
 func TestExtractByPath_InvalidJSON(t *testing.T) {
-	result := extractByPath("not valid json", "a.b")
-	if result != "" {
-		t.Errorf("Expected empty (failed extraction) on invalid JSON, got '%s'", result)
+	result, ok := extractByPath("not valid json", "a.b")
+	if ok {
+		t.Errorf("Expected failed extraction on invalid JSON, got (%q, true)", result)
 	}
 }
 
 func TestExtractByPath_NonExistentPath(t *testing.T) {
-	result := extractByPath(`{"a": "b"}`, "nonexistent")
-	if result != "" {
-		t.Errorf("Expected empty (failed extraction) on non-existent path, got '%s'", result)
+	result, ok := extractByPath(`{"a": "b"}`, "nonexistent")
+	if ok {
+		t.Errorf("Expected failed extraction on non-existent path, got (%q, true)", result)
 	}
 }
 
-// TestExtractByPath_NonObject returns empty when traversal reaches a scalar
-// before the path is exhausted (e.g. path "a.b" against {"a":"x"}).
+// TestExtractByPath_NonObject returns ("" ,false) when traversal reaches a
+// scalar before the path is exhausted (e.g. path "a.b" against {"a":"x"}).
 func TestExtractByPath_NonObject(t *testing.T) {
-	result := extractByPath(`{"a": "x"}`, "a.b")
-	if result != "" {
-		t.Errorf("Expected empty when traversing into a scalar, got '%s'", result)
+	result, ok := extractByPath(`{"a": "x"}`, "a.b")
+	if ok {
+		t.Errorf("Expected failure when traversing into a scalar, got (%q, true)", result)
 	}
 }
 
 func TestExtractByPath_NumberValue(t *testing.T) {
-	result := extractByPath(`{"value": 123.45}`, "value")
-	if result != "123.45" {
-		t.Errorf("Expected '123.45', got '%s'", result)
+	result, ok := extractByPath(`{"value": 123.45}`, "value")
+	if !ok || result != "123.45" {
+		t.Errorf("Expected ('123.45', true), got (%q, %v)", result, ok)
+	}
+}
+
+// TestExtractByPath_EmptyStringIsAValue pins TASK-237/ISS-235: a leaf that
+// legitimately resolves to "" is a real data point (ok=true), not an
+// extraction failure — so FetchDataWithValidationContext records it instead of
+// failing a healthy 200 fetch with ErrInvalidSource.
+func TestExtractByPath_EmptyStringIsAValue(t *testing.T) {
+	result, ok := extractByPath(`{"price": ""}`, "price")
+	if !ok || result != "" {
+		t.Errorf("Expected ('', true) for an empty-string leaf, got (%q, %v)", result, ok)
+	}
+}
+
+// TestExtractByPath_NonScalarFailsClosed pins the second half of TASK-237/
+// ISS-235: a path resolving to a nested object/array/null must be a failed
+// extraction (ok=false), not fmt.Sprintf("%v") Go-representation garbage
+// (map[usd:64000]) persisted as the oracle value.
+func TestExtractByPath_NonScalarFailsClosed(t *testing.T) {
+	for _, tc := range []struct {
+		name, body, path string
+	}{
+		{"nested object", `{"price": {"usd": 64000}}`, "price"},
+		{"array", `{"tags": ["a", "b"]}`, "tags"},
+		{"null", `{"price": null}`, "price"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result, ok := extractByPath(tc.body, tc.path)
+			if ok {
+				t.Errorf("non-scalar leaf must fail extraction, got (%q, true)", result)
+			}
+		})
 	}
 }
 
@@ -338,6 +370,75 @@ func TestFetcher_FetchData_MistypedPathFailsClosed(t *testing.T) {
 	_, err := fetcher.FetchData(source)
 	if !errors.Is(err, oracle.ErrInvalidSource) {
 		t.Fatalf("mistyped path: got err %v, want ErrInvalidSource", err)
+	}
+}
+
+// TestFetcher_FetchData_EmptyStringLeafIsRecorded pins TASK-237/ISS-235: an
+// upstream that legitimately returns {"price": ""} with Path=price must yield a
+// successful fetch whose Value is "" — not ErrInvalidSource (which used to
+// abort a healthy 200 and make the scheduler back off + report "invalid
+// source"). Scripted round tripper so it runs here without a loopback list
+// ener.
+func TestFetcher_FetchData_EmptyStringLeafIsRecorded(t *testing.T) {
+	fetcher := &Fetcher{
+		client: &http.Client{
+			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(`{"price": ""}`)),
+				}, nil
+			}),
+		},
+		rateLimiter: NewRateLimiter(100, time.Minute),
+	}
+
+	source := &oracle.DataSource{
+		ID:      "source-empty-leaf",
+		URL:     "https://example.com/data",
+		Method:  "GET",
+		Path:    "price",
+		Enabled: true,
+	}
+
+	data, err := fetcher.FetchData(source)
+	if err != nil {
+		t.Fatalf("empty-string leaf must be a successful fetch, got err %v", err)
+	}
+	if data.Value != "" {
+		t.Errorf("Expected Value '', got %q", data.Value)
+	}
+}
+
+// TestFetcher_FetchData_NonScalarLeafFailsClosed pins the second half of
+// TASK-237/ISS-235: a path resolving to a nested object must NOT persist
+// fmt.Sprintf("%v", ...) garbage (map[usd:64000]) as the oracle value — the
+// fetch fails closed with ErrInvalidSource just like a missing path.
+func TestFetcher_FetchData_NonScalarLeafFailsClosed(t *testing.T) {
+	fetcher := &Fetcher{
+		client: &http.Client{
+			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(`{"price": {"usd": 64000}}`)),
+				}, nil
+			}),
+		},
+		rateLimiter: NewRateLimiter(100, time.Minute),
+	}
+
+	source := &oracle.DataSource{
+		ID:      "source-object-leaf",
+		URL:     "https://example.com/data",
+		Method:  "GET",
+		Path:    "price",
+		Enabled: true,
+	}
+
+	_, err := fetcher.FetchData(source)
+	if !errors.Is(err, oracle.ErrInvalidSource) {
+		t.Fatalf("object leaf: got err %v, want ErrInvalidSource", err)
 	}
 }
 

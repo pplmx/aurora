@@ -425,10 +425,15 @@ func (f *Fetcher) FetchDataWithValidationContext(ctx context.Context, source *or
 
 	value := string(body)
 	if source.Path != "" {
-		value = extractByPath(string(body), source.Path)
-		if value == "" {
+		var ok bool
+		value, ok = extractByPath(string(body), source.Path)
+		if !ok {
 			return nil, oracle.ErrInvalidSource
 		}
+		// A resolved empty string is a legitimate (if unusual) value: ok is
+		// true, so a healthy 200 whose leaf happens to be "" is recorded as a
+		// data point instead of misreported as an invalid source (TASK-237,
+		// ISS-235).
 	}
 
 	return &oracle.OracleData{
@@ -440,13 +445,21 @@ func (f *Fetcher) FetchDataWithValidationContext(ctx context.Context, source *or
 	}, nil
 }
 
-func extractByPath(jsonStr, path string) string {
+// extractByPath resolves a dotted path in a JSON object to its scalar leaf. It
+// returns (value, false) — and the caller fails the fetch with ErrInvalidSource
+// — when the body is not a JSON object, the path does not resolve, traversal
+// hits a scalar before the path is exhausted, or the resolved node is a nested
+// object/array/null (persisting any of those with %v would store Go
+// representation garbage as the oracle value; TASK-237, ISS-235). A resolved
+// empty string is a REAL value: ok stays true so a healthy 200 that carries ""
+// is recorded instead of being miscategorized as an invalid source.
+func extractByPath(jsonStr, path string) (string, bool) {
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
 		// The configured source is not a JSON object, so there is nothing to
-		// extract: report a failed extraction (empty) rather than returning
-		// the entire raw body as the field value (TASK-076, ISS-068).
-		return ""
+		// extract: report a failed extraction rather than returning the entire
+		// raw body as the field value (TASK-076, ISS-068).
+		return "", false
 	}
 
 	parts := strings.Split(path, ".")
@@ -459,20 +472,26 @@ func extractByPath(jsonStr, path string) string {
 			} else {
 				// Path part missing: fail closed instead of silently adopting
 				// the whole body as the extracted value.
-				return ""
+				return "", false
 			}
 		} else {
-			return ""
+			return "", false
 		}
 	}
 
-	if result, ok := current.(string); ok {
-		return result
+	switch result := current.(type) {
+	case string:
+		return result, true
+	case float64:
+		return fmt.Sprintf("%v", result), true
+	case bool:
+		return fmt.Sprintf("%v", result), true
+	default:
+		// Nested object/array/null: not a scalar leaf — the operator's path
+		// most likely needs a deeper key. Fail closed rather than persist
+		// %v of a Go map/array on-chain.
+		return "", false
 	}
-	if result, ok := current.(float64); ok {
-		return fmt.Sprintf("%v", result)
-	}
-	return fmt.Sprintf("%v", current)
 }
 
 // readBounded reads up to max+1 bytes from r and returns ErrResponseTooLarge

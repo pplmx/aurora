@@ -81,6 +81,22 @@ documented in their per-milestone ROADMAP files.
   reopen, but it must be an explicit click, not a typing accident). Enter in
   that input is now inert; Start/End are explicit button actions (TASK-236;
   ISS-234).
+- **The oracle fetcher mishandled two extraction cases**: a path resolving to a
+  legitimately empty string (upstream returns `{"price": ""}`) aborted a
+  healthy 200 fetch as `ErrInvalidSource` — the scheduler backoff and the
+  operator saw "invalid source" for a valid upstream. And a path resolving to a
+  nested object/array stored Go representation garbage (`map[usd:64000]`) as
+  the on-chain `Value`. `extractByPath` now returns success separately from the
+  value: a real empty-string leaf is recorded as a data point, while a
+  non-scalar leaf fails closed with `ErrInvalidSource` (misconfigured path)
+  instead of persisting garbage (TASK-237; ISS-235).
+- **Every boot after the first logged a false "Failed to insert genesis
+  block"**: the reload skipped the persisted height-0 row into memory, so the
+  chain was "genesis-only" again and the old `len(Blocks) <= 1` guard re-ran a
+  plain `INSERT` of height 0 on a DB that already held it — PRIMARY KEY
+  conflict on every healthy restart (until a block was eventually appended).
+  Genesis is now seeded only into an empty blocks table (`seedGenesisIfEmpty`,
+  keyed on any-persisted-row) with a regression test (TASK-238; ISS-236).
 
 ### Added
 
