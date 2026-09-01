@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 132,
+  "round": 133,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T02:00:21+00:00",
+  "updated_at": "2026-09-01T04:55:13+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 132,
+      "touched_round": 133,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -9525,6 +9525,120 @@
       "touched_round": 132,
       "commit": "89b89ad",
       "title": "README + AGENTS.md oracle source add flags documented"
+    },
+    "ISS-229": {
+      "id": "ISS-229",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T04:29:34+00:00",
+      "updated_at": "2026-09-01T04:55:13+00:00",
+      "touched_round": 133,
+      "title": "Oracle TUI add-source form: method/path/interval inputs never receive typed input — Update only forwards keypresses to name/url/type (tui.go:427-433), so focus on fields 3..5 (updateInputFocus) shows the cursor but typing does nothing; handleAddSource reads empty values and silently defaults method->GET/path->empty/interval->60. The round-137/138 parity feature is dead in the TUI. Source: internal/ui/oracle/tui.go:427-433 (verified read)",
+      "severity": 0.9
+    },
+    "ISS-230": {
+      "id": "ISS-230",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T04:29:34+00:00",
+      "updated_at": "2026-09-01T04:55:13+00:00",
+      "touched_round": 133,
+      "title": "Oracle source interval accepts unbounded positive values: a value >= ~9.22e9 seconds overflows time.Duration in the scheduler (scheduler.go:135 interval := time.Duration(src.Interval) * time.Second) to a negative duration, making now.Sub(last) >= interval always true -> the source is due on every check tick (fetch storm against upstream + rate limiter). Only <0 is rejected (service.go:174); no upper bound anywhere (REST/CLI/web). Source: internal/app/oracle/scheduler.go:135-140 (verified)",
+      "severity": 0.75
+    },
+    "ISS-231": {
+      "id": "ISS-231",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T04:29:34+00:00",
+      "updated_at": "2026-09-01T04:55:13+00:00",
+      "touched_round": 133,
+      "title": "Deleting a non-existent oracle source reports success: domain DeleteSource just calls repo.DeleteSource(id) with no existence check (service.go:212-214), sqlite impl ignores RowsAffected, so the REST handlers ErrSourceNotFound->404 branch (handler/oracle.go:128-141) is dead code and DELETE /oracle/sources/<unknown> returns 200 {\"status\":\"deleted\"}; the CLI prints success too. Every sibling op (enable/disable) returns 404. Source: internal/domain/oracle/service.go:212-214 (verified)",
+      "severity": 0.7
+    },
+    "TASK-231": {
+      "id": "TASK-231",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T04:30:05+00:00",
+      "updated_at": "2026-09-01T04:55:13+00:00",
+      "touched_round": 133,
+      "category": "correctness",
+      "severity": 0.9,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle TUI add-source form: forward keypresses to method/path/interval textinputs (mirror name/url/type), add a regression test typing into focused fields 3..5",
+      "lock_owner": "deepdive-133",
+      "lock_until": "2026-09-01T05:01:32+00:00"
+    },
+    "TASK-232": {
+      "id": "TASK-232",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T04:30:05+00:00",
+      "updated_at": "2026-09-01T04:55:13+00:00",
+      "touched_round": 133,
+      "category": "stability",
+      "severity": 0.75,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "Oracle source interval: add an upper bound rejecting values that overflow time.Duration in the scheduler (and absurd practical values), validated at the domain edge so REST/CLI/web all share it",
+      "lock_owner": "deepdive-133",
+      "lock_until": "2026-09-01T05:01:32+00:00"
+    },
+    "TASK-233": {
+      "id": "TASK-233",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T04:30:05+00:00",
+      "updated_at": "2026-09-01T04:55:13+00:00",
+      "touched_round": 133,
+      "category": "dx",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Oracle DeleteSource: GetSource existence check -> ErrSourceNotFound, so REST returns 404 and CLI exits non-zero for an unknown id (mirror EnableSource/DisableSource)",
+      "lock_owner": "deepdive-133",
+      "lock_until": "2026-09-01T05:01:32+00:00"
+    },
+    "CHG-222": {
+      "id": "CHG-222",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T04:54:53+00:00",
+      "updated_at": "2026-09-01T04:54:53+00:00",
+      "touched_round": 133,
+      "commit": "c571a46",
+      "title": "Oracle TUI add form: forward keypresses to method/path/interval inputs (6-field Update routing) + regression test"
+    },
+    "CHG-223": {
+      "id": "CHG-223",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T04:54:53+00:00",
+      "updated_at": "2026-09-01T04:54:53+00:00",
+      "touched_round": 133,
+      "commit": "c571a46",
+      "title": "Oracle source interval upper bound (MaxSourceIntervalSeconds 30d) rejects Duration-overflow fetch-storm values at the domain edge + test"
+    },
+    "CHG-224": {
+      "id": "CHG-224",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T04:54:53+00:00",
+      "updated_at": "2026-09-01T04:54:53+00:00",
+      "touched_round": 133,
+      "commit": "c571a46",
+      "title": "Oracle DeleteSource reports not-found (service+repo+usecase) so REST 404s and CLI fails on unknown id + tests"
     }
   },
   "edges": [
@@ -15101,6 +15215,78 @@
       "to": "TASK-230",
       "type": "implements",
       "created_at": "2026-09-01T02:00:21+00:00"
+    },
+    {
+      "from": "TASK-231",
+      "to": "ISS-229",
+      "type": "addresses",
+      "created_at": "2026-09-01T04:31:31+00:00"
+    },
+    {
+      "from": "TASK-232",
+      "to": "ISS-230",
+      "type": "addresses",
+      "created_at": "2026-09-01T04:31:31+00:00"
+    },
+    {
+      "from": "TASK-233",
+      "to": "ISS-231",
+      "type": "addresses",
+      "created_at": "2026-09-01T04:31:31+00:00"
+    },
+    {
+      "from": "ISS-229",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T04:31:32+00:00"
+    },
+    {
+      "from": "ISS-230",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T04:31:32+00:00"
+    },
+    {
+      "from": "ISS-231",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T04:31:32+00:00"
+    },
+    {
+      "from": "CHG-222",
+      "to": "ISS-229",
+      "type": "resolves",
+      "created_at": "2026-09-01T04:55:12+00:00"
+    },
+    {
+      "from": "CHG-222",
+      "to": "TASK-231",
+      "type": "implements",
+      "created_at": "2026-09-01T04:55:12+00:00"
+    },
+    {
+      "from": "CHG-223",
+      "to": "ISS-230",
+      "type": "resolves",
+      "created_at": "2026-09-01T04:55:12+00:00"
+    },
+    {
+      "from": "CHG-223",
+      "to": "TASK-232",
+      "type": "implements",
+      "created_at": "2026-09-01T04:55:12+00:00"
+    },
+    {
+      "from": "CHG-224",
+      "to": "ISS-231",
+      "type": "resolves",
+      "created_at": "2026-09-01T04:55:13+00:00"
+    },
+    {
+      "from": "CHG-224",
+      "to": "TASK-233",
+      "type": "implements",
+      "created_at": "2026-09-01T04:55:13+00:00"
     }
   ]
 }
