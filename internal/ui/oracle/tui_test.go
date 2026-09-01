@@ -270,6 +270,23 @@ func TestInitAddSource(t *testing.T) {
 	app.initAddSource()
 	assert.Equal(t, 0, app.inputFocus)
 	assert.Empty(t, app.errMsg)
+	// Re-entering the add-source form must start clean: method/path/interval
+	// were only recreated in NewOracleApp, so an init that skipped them left
+	// the previous attempt's values on screen (TASK-228, ISS-226).
+	app.sourceInputMethod.SetValue("POST")
+	app.sourceInputPath.SetValue("data.result")
+	app.sourceInputInterval.SetValue("30")
+	app.initAddSource()
+	for _, input := range []string{
+		app.sourceInputName.Value(),
+		app.sourceInputURL.Value(),
+		app.sourceInputType.Value(),
+		app.sourceInputMethod.Value(),
+		app.sourceInputPath.Value(),
+		app.sourceInputInterval.Value(),
+	} {
+		assert.Empty(t, input)
+	}
 }
 
 func TestInitFetch(t *testing.T) {
@@ -346,6 +363,47 @@ func TestSourceDetailViewWithSource(t *testing.T) {
 	app.view = "sourceDetail"
 	view := app.sourceDetailView()
 	assert.NotEmpty(t, view)
+}
+
+// TestSourceDetailViewShowsMethodPathInterval pins the round-137 parity fix
+// (TASK-229, ISS-227): the CLI `source list` prints method/path/interval, so
+// the TUI's detail view — where an operator reads a source's full config —
+// must show them too, with a defaulted GET/60 where the fields are unset.
+func TestSourceDetailViewShowsMethodPathInterval(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.selectedSourceID = "1"
+	app.sources = []*oracle.DataSource{
+		{ID: "1", Name: "Test", URL: "https://test.com", Type: "json", Enabled: true},
+	}
+	app.sourceInputMethod.SetValue("")
+	view := app.sourceDetailView()
+	assert.Contains(t, view, "GET") // defaulted method
+	assert.Contains(t, view, "60s") // defaulted interval
+
+	app.sources = []*oracle.DataSource{
+		{ID: "1", Name: "Test", URL: "https://test.com", Type: "json",
+			Method: "POST", Path: "bitcoin.usd", Interval: 45, Enabled: true},
+	}
+	view = app.sourceDetailView()
+	assert.Contains(t, view, "POST")
+	assert.Contains(t, view, "bitcoin.usd")
+	assert.Contains(t, view, "45s")
+}
+
+// TestLoadSourcesCarriesMethodPathInterval pins that loadSources copies the
+// feed-tailoring fields into the TUI's source copy — without the copy they
+// render empty in the detail view despite the repo having them (TASK-229,
+// ISS-227).
+func TestLoadSourcesCarriesMethodPathInterval(t *testing.T) {
+	app := NewOracleApp(&mockRepo{sources: []*oracle.DataSource{
+		{ID: "1", Name: "Test", URL: "https://test.com", Type: "json",
+			Method: "POST", Path: "bitcoin.usd", Interval: 45, Enabled: true},
+	}})
+	app.loadSources()
+	require.Len(t, app.sources, 1)
+	assert.Equal(t, "POST", app.sources[0].Method)
+	assert.Equal(t, "bitcoin.usd", app.sources[0].Path)
+	assert.Equal(t, 45, app.sources[0].Interval)
 }
 
 func TestSourceDetailViewWithError(t *testing.T) {

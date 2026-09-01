@@ -33,6 +33,11 @@ documented in their per-milestone ROADMAP files.
   deferred `srv.Close()`, leaving the outbox/scheduler goroutines ended over an
   open SQLite handle and the WAL uncleaned (port busy etc.). The idempotent
   `srv.Close()` now runs before the fatal log (TASK-224; ISS-221).
+- **The oracle TUI add-source form retained stale values on re-entry**:
+  re-opening the form recreated only the first three fields, so a previous
+  attempt's `method`/`path`/`interval` values stayed on screen — the
+  token/nft/lottery TUIs clear every field on form entry, so the oracle form
+  now recreates all six inputs (TASK-228; ISS-226).
 
 ### Added
 
@@ -43,6 +48,11 @@ documented in their per-milestone ROADMAP files.
   method/path/interval with client-side interval validation (6-field focus
   cycle; empty → default 60; non-numeric/negative → inline error before any
   write). Six new i18n keys (en/zh) (TASK-225, TASK-227; ISS-222, ISS-225).
+- **Oracle TUI source detail reaches CLI `source list` parity**: the detail
+  view now shows method (default GET), JSON path and interval (default 60s)
+  — previously only name/url/type/status — and `loadSources` copies the
+  fields into the TUI's source copy so they don't render empty (TASK-229;
+  ISS-227).
 
 ## [v1.92] - 2026-08-31
 

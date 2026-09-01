@@ -36,16 +36,16 @@ type model struct {
 	sourceInputPath     textinput.Model
 	sourceInputInterval textinput.Model
 	fetchInputSource    textinput.Model
-	queryInputSource textinput.Model
-	queryInputLimit  textinput.Model
-	inputFocus       int
-	showHelp         bool
-	selectedSourceID string
-	confirmAction    string
-	errMsg           string
-	successMsg       string
-	fetchResult      *oracleapp.FetchDataResponse
-	queryResult      *oracleapp.GetDataResponse
+	queryInputSource    textinput.Model
+	queryInputLimit     textinput.Model
+	inputFocus          int
+	showHelp            bool
+	selectedSourceID    string
+	confirmAction       string
+	errMsg              string
+	successMsg          string
+	fetchResult         *oracleapp.FetchDataResponse
+	queryResult         *oracleapp.GetDataResponse
 
 	// chain records TUI-fetched data on the ledger. Every other fetch surface
 	// (REST handler, scheduler, CLI) calls FetchDataUseCase.SetChain; without
@@ -97,9 +97,9 @@ func NewOracleApp(repo domainoracle.Repository) *model {
 	vp := viewport.New(viewport.WithWidth(60), viewport.WithHeight(15))
 
 	return &model{
-		view:             "menu",
-		repo:             repo,
-		listUseCase:      oracleapp.NewListSourcesUseCase(repo),
+		view:                "menu",
+		repo:                repo,
+		listUseCase:         oracleapp.NewListSourcesUseCase(repo),
 		sourceInputName:     nameInput,
 		sourceInputURL:      urlInput,
 		sourceInputType:     typeInput,
@@ -107,9 +107,9 @@ func NewOracleApp(repo domainoracle.Repository) *model {
 		sourceInputPath:     pathInput,
 		sourceInputInterval: intervalInput,
 		fetchInputSource:    fetchInput,
-		queryInputSource: queryInputSource,
-		queryInputLimit:  queryInputLimit,
-		inputFocus:       0,
+		queryInputSource:    queryInputSource,
+		queryInputLimit:     queryInputLimit,
+		inputFocus:          0,
 
 		viewport: vp,
 		menuRows: 15,
@@ -638,6 +638,25 @@ func (m *model) sourceDetailView() string {
 		s += components.KeyValue(i18n.GetText("oracle.tui.source_url"), source.URL) + "\n"
 		s += components.KeyValue(i18n.GetText("oracle.tui.source_type"), source.Type) + "\n"
 
+		// Method/path/interval round out the feed-tailoring fields the CLI
+		// `source list` prints (TASK-225); the detail view is where an operator
+		// reads a source's full configuration, so keep it in parity with the
+		// CLI instead of showing only the subset (TASK-229, ISS-227).
+		method := source.Method
+		if method == "" {
+			method = "GET"
+		}
+		s += components.KeyValue(i18n.GetText("oracle.tui.source_method"), method) + "\n"
+		s += components.KeyValue(i18n.GetText("oracle.tui.source_path"), source.Path) + "\n"
+
+		interval := source.Interval
+		if interval == 0 {
+			// 0 means "unset -> default 60" (AddSourceUseCase maps it); show the
+			// effective value instead of a bare 0 that looks like "no interval".
+			interval = 60
+		}
+		s += components.KeyValue(i18n.GetText("oracle.tui.source_interval"), fmt.Sprintf("%ds", interval)) + "\n"
+
 		status := i18n.GetText("oracle.tui.enabled")
 		if !source.Enabled {
 			status = i18n.GetText("oracle.tui.disabled")
@@ -831,17 +850,24 @@ func (m *model) loadSources() {
 	m.sources = make([]*domainoracle.DataSource, len(list.Sources))
 	for i, s := range list.Sources {
 		m.sources[i] = &domainoracle.DataSource{
-			ID:      s.ID,
-			Name:    s.Name,
-			URL:     s.URL,
-			Type:    s.Type,
-			Enabled: s.Enabled,
+			ID:       s.ID,
+			Name:     s.Name,
+			URL:      s.URL,
+			Type:     s.Type,
+			Method:   s.Method,
+			Path:     s.Path,
+			Interval: s.Interval,
+			Enabled:  s.Enabled,
 		}
 	}
 	m.errMsg = ""
 }
 
 func (m *model) initAddSource() {
+	// Re-create every field, not just the first three: method/path/interval are
+	// textinput models too, and an init that skipped them left their previous
+	// values on screen the next time the form opened (TASK-228, ISS-226; the
+	// token/nft/lottery TUIs all clear every field on form entry).
 	m.sourceInputName = textinput.New()
 	m.sourceInputName.Placeholder = i18n.GetText("oracle.tui.enter_name")
 	m.sourceInputName.Focus()
@@ -851,6 +877,15 @@ func (m *model) initAddSource() {
 
 	m.sourceInputType = textinput.New()
 	m.sourceInputType.Placeholder = i18n.GetText("oracle.tui.enter_type")
+
+	m.sourceInputMethod = textinput.New()
+	m.sourceInputMethod.Placeholder = i18n.GetText("oracle.tui.enter_method")
+
+	m.sourceInputPath = textinput.New()
+	m.sourceInputPath.Placeholder = i18n.GetText("oracle.tui.enter_path")
+
+	m.sourceInputInterval = textinput.New()
+	m.sourceInputInterval.Placeholder = i18n.GetText("oracle.tui.enter_interval")
 
 	m.inputFocus = 0
 	m.errMsg = ""
