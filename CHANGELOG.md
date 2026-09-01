@@ -115,6 +115,20 @@ documented in their per-milestone ROADMAP files.
   long-lived scheduler fetcher throttled. The handler now shares one fetcher
   across requests (same model as the scheduler), so the configured budget is
   enforced at the endpoint that advertises it (TASK-241; ISS-239).
+- **The oracle scheduler kept bookkeeping for deleted sources forever**:
+  `lastFetch`/`failStreak`/`nextAttempt`/`stats` are keyed by source id and
+  were never released, so a deleted source stayed in `GET /oracle/health` and
+  `/metrics/oracle` indefinitely and the maps grew without bound across
+  create/delete cycles (a recreated id would also inherit stale failure/
+  backoff state). Each scheduler pass now reconciles against the repository's
+  live source list and prunes ids that no longer exist (TASK-242; ISS-240).
+- **`voting.html` permanently disabled Cast Vote after a transient load
+  failure**: a candidates load failure at init left `candidatesFailed` set and
+  the roster empty, gating both the candidate dropdown and Cast Vote — and the
+  voting page has no polling, so nothing short of a full browser reload could
+  un-stick it. The page now offers an in-page `↻ Retry` that re-runs the
+  candidates/sessions loaders once the API recovers (TASK-243; ISS-241,
+  regression test executes the shipped JS in Node).
 
 ### Added
 

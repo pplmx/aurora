@@ -87,6 +87,12 @@
                         </template>
                         <small x-show="candidatesFailed" class="hint">Failed to load candidates — check the API / refresh.</small>
                         <small x-show="!candidatesFailed && sessionCandidateIds.length === 0" class="hint">Select at least one candidate to create a session.</small>
+                        <!-- A one-off load failure must not permanently disable
+                             the page: the voting surface has no polling, so an
+                             in-page Retry re-runs the loaders (also covers a
+                             failed sessions load) instead of forcing a full
+                             browser reload (TASK-243, ISS-241). -->
+                        <button type="button" class="btn-voting" x-show="candidatesFailed || sessionsFailed" :disabled="loading" @click="retryLoad()">↻ Retry</button>
                     </div>
                     <!-- A session with an empty candidate roster is rejected by
                          the API (CANDIDATES_REQUIRED); disable the submit until

@@ -412,3 +412,58 @@ const fs = require('fs');
 	require.NoErrorf(t, err, "web/js/app.js keep-prior failed:\n%s", out)
 	require.Contains(t, string(out), "keep-prior-ok", "dashboard integrity/oracle cards must keep prior values across transient poll failures")
 }
+
+// TestWebUIJS_VotingRetryRecoversCastVote executes the SHIPPED web/js/app.js in
+// Node and pins TASK-243/ISS-241: a transient candidates/sessions load failure
+// at init must not permanently disable Cast Vote — the in-page Retry button's
+// retryLoad() re-runs the loaders, so once the API recovers the candidates
+// roster repopulates without a full page reload. Skips cleanly without node.
+func TestWebUIJS_VotingRetryRecoversCastVote(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js voting-retry check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+// API down at page load: both initial loaders reject.
+let apiUp = false;
+const candidates = [{ id: 'c1', name: 'Alice' }];
+global.fetch = (url) => {
+  if (!apiUp) return Promise.reject(new Error('api down'));
+  return Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve(url.includes('/voting/candidates') ? candidates : []),
+  });
+};
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  const app = global.votingApp();
+  await app.init();                       // loaders fail -> candidatesFailed
+  if (app.candidatesFailed !== true || app.candidates.length !== 0) {
+    console.error('initial failure must set candidatesFailed with empty roster'); process.exit(1);
+  }
+
+  // API recovers; in-page Retry must repopulate without a reload.
+  apiUp = true;
+  await app.retryLoad();
+  if (app.candidatesFailed !== false) { console.error('retryLoad must clear candidatesFailed'); process.exit(1); }
+  if (app.candidates.length !== 1 || app.candidates[0].id !== 'c1') {
+    console.error('retryLoad must restore the candidates roster'); process.exit(1);
+  }
+  console.log('voting-retry-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "voting_retry_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js voting-retry failed:\n%s", out)
+	require.Contains(t, string(out), "voting-retry-ok", "voting page retryLoad() must recover Cast Vote without a reload")
+}
