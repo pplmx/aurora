@@ -151,7 +151,7 @@ func (c *BlockChain) appendBlock(data string, stamp func(height int64) string) (
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	for attempt := 0; attempt <= maxHeightRetries; attempt++ {
+	for attempt := 0; attempt < maxHeightRetries; attempt++ {
 		// Re-sync from the shared DB before reserving, so the height we pick is
 		// the DB-authoritative next height even when a concurrent process has
 		// appended blocks this process has not seen yet. Failure degrades to

@@ -3,12 +3,12 @@ package blockchain
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
-	_ "github.com/mattn/go-sqlite3"
+	sqlite3 "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/viper"
 )
@@ -108,6 +108,10 @@ func InitBlockChain() *BlockChain {
 // the multi-process collision tests, which build two independent chains over
 // one DB file to exercise TASK-244 / ISS-242.
 func bindChainToDB(chain *BlockChain, db *sql.DB) {
+	// If the table itself cannot be created, the chain runs in-memory only: the
+	// persist/syncFromDB hooks are left nil so appends don't churn failing DB
+	// round-trips after a boot that already logged the failure (the package's
+	// documented "operate in non-persistent mode" fallback, TASK-244 review LOW).
 	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS blocks (
 			height INTEGER PRIMARY KEY,
@@ -119,7 +123,8 @@ func bindChainToDB(chain *BlockChain, db *sql.DB) {
 			created_at INTEGER NOT NULL
 		)
 	`); err != nil {
-		logger.Error().Err(err).Msg("Failed to create blocks table")
+		logger.Error().Err(err).Msg("Failed to create blocks table; blockchain will operate in non-persistent mode")
+		return
 	}
 
 	// persisted tracks whether ANY block row exists in the blocks table
@@ -216,26 +221,75 @@ func loadBlocksFromDB(chain *BlockChain, db *sql.DB) (bool, error) {
 // DB into the in-memory chain, so the chain's length is the DB-authoritative
 // next height. It is wired as BlockChain.syncFromDB (TASK-244, ISS-242).
 //
-// To keep the common single-writer path cheap it only SELECTs rows at
-// height >= len(chain.Blocks) — i.e. blocks this process has not loaded yet.
-// Under the write lock held by appendBlock this is safe: a successful persist
-// always occurred while this process already had the block in memory, so rows
-// this process committed are never taller than the in-memory tail.
+// Two failure modes are reconciled against the ledger:
+//
+//  1. Peer is ahead: rows at height >= len(chain.Blocks) were committed by a
+//     concurrent process and this process has not loaded them yet. They are
+//     appended in order (only at-or-past the tail, so the common single-writer
+//     case is a no-op).
+//  2. Phantom tail (the dangerous one): a prior persist returned a NON-conflict
+//     error (SQLITE_BUSY after the busy timeout, disk full...). Per the
+//     best-effort contract that block stays in memory, so the in-memory chain
+//     is ONE taller than the DB at the seam. If a peer then commits ITS block
+//     at that same seam height, len == DB height+1 while the DB block at
+//     height len-1 is a DIFFERENT block. The windowed SELECT above would miss
+//     that divergence (the row is below the window) and the next append would
+//     mine on top of a phantom PrevHash — a broken chain that only surfaces as
+//     VerifyIntegrity corruption on the next boot. So before appending, the
+//     seam is checked: the DB block at height len-1 must be exactly the
+//     in-memory tail, else the chain is rebuilt from the authoritative ledger
+//     and the append retries at the true next height.
 func appendBlocksFromDB(chain *BlockChain, db *sql.DB) error {
 	tail := int64(len(chain.Blocks))
+	if tail > 0 {
+		var seamHeight int64
+		var seamHash string
+		// The DB block at or directly below the seam.
+		err := db.QueryRow("SELECT height, hash FROM blocks WHERE height <= ? ORDER BY height DESC LIMIT 1", tail-1).
+			Scan(&seamHeight, &seamHash)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			// DB has nothing below the tail (fresh ledger / reset): in-memory
+			// boot view stands; nothing to fold in.
+			return nil
+		case err != nil:
+			return err
+		}
+		if seamHeight == tail-1 && seamHash != string(chain.Blocks[tail-1].Hash) {
+			// Divergent seam: a peer owns height tail-1 with a different block
+			// than the phantom one this process kept after a persist failure.
+			// Rebuild from the authoritative ledger (drop the phantom tail),
+			// then let appendBlock retry at the true next height.
+			return rebuildChainFromDB(chain, db)
+		}
+		if seamHeight < tail-1 {
+			// DB is genuinely shorter than memory below the seam (persist
+			// failure left the tail in memory only). Safe to widen only if the
+			// DB has NOT climbed past the seam via a different peer chain; any
+			// peer row at or above the seam means the phantom tail no longer
+			// links to the ledger → rebuild.
+			var peerAbove int
+			if err := db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height >= ?", tail).Scan(&peerAbove); err != nil {
+				return err
+			}
+			if peerAbove > 0 {
+				return rebuildChainFromDB(chain, db)
+			}
+			// DB strictly shorter, no peers above: keep the in-memory tail
+			// (non-persistent fallback) and proceed below (no-op SELECT).
+		}
+	}
+
 	rows, err := db.Query("SELECT height, hash, previous_hash, data, nonce, timestamp FROM blocks WHERE height >= ? ORDER BY height", tail)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = rows.Close() }()
 
-	// Unlike boot-time reload (which tolerates a corrupt row by skipping it,
-	// yielding a shorter-but-valid chain), the in-place resync must NOT skip a
-	// bad row and keep appending: subsequent rows link to the skipped height,
-	// so a continuation would wire an invalid PrevHash, and the next append
-	// would mine on top of that broken tail. Abort the whole sync instead;
-	// appendBlock falls back to the stale in-memory height and the persist
-	// conflict check protects the DB.
+	// Appended blocks are buffered and committed to the chain at the end, so a
+	// mid-iteration scan/rows.Err() failure leaves the in-memory chain
+	// untouched (atomic sync) instead of half-folded.
+	var fresh []*Block
 	for rows.Next() {
 		block, err := scanBlockRow(rows)
 		if err != nil {
@@ -244,9 +298,31 @@ func appendBlocksFromDB(chain *BlockChain, db *sql.DB) error {
 		if block.Height == 0 {
 			continue
 		}
-		chain.Blocks = append(chain.Blocks, block)
+		fresh = append(fresh, block)
 	}
-	return rows.Err()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	chain.Blocks = append(chain.Blocks, fresh...)
+	return nil
+}
+
+// rebuildChainFromDB resets the in-memory chain to the authoritative persisted
+// ledger (genesis + every non-genesis block row, in height order). Any phantom
+// tail blocks a persist failure left in memory are dropped: they were never
+// committed, so the shared ledger does not know them. Used by appendBlocksFromDB
+// when the in-memory tail diverges from the DB seam (TASK-244 review, ISS-242).
+func rebuildChainFromDB(chain *BlockChain, db *sql.DB) error {
+	// Keep genesis as the anchor (a bound chain always has one); a nil/empty
+	// chain (constructed bare, e.g. in tests) is re-seeded rather than panicked
+	// on.
+	if len(chain.Blocks) > 0 {
+		chain.Blocks = chain.Blocks[:1]
+	} else {
+		chain.Blocks = []*Block{Genesis()}
+	}
+	_, err := loadBlocksFromDB(chain, db)
+	return err
 }
 
 // scanBlockRow reads one blocks-table row (skip the created_at column) into a
@@ -263,12 +339,25 @@ func scanBlockRow(rows *sql.Rows) (*Block, error) {
 	return &block, nil
 }
 
-// sqliteIsUniqueViolation reports whether err is SQLite's UNIQUE constraint
-// violation (code 2067, "UNIQUE constraint failed: blocks.height"). SQLite
-// surfaces these as errors whose message contains that exact text via
-// mattn/go-sqlite3.
+// sqliteIsUniqueViolation reports whether err is a SQLite constraint violation
+// of the blocks table's height PRIMARY KEY — i.e. the INSERT this process
+// attempted collided with a row a concurrent process committed at the same
+// height. It matches on the extended error code rather than the message text:
+// mattn/go-sqlite3 returns the error by value (so errors.As into its exported
+// value type), and an INTEGER PRIMARY KEY duplicate surfaces as
+// ErrConstraintPrimaryKey (extended 1555) even though SQLite prints "UNIQUE
+// constraint failed: blocks.height". Matching text would both break on driver
+// message-format changes and misclassify a future unrelated UNIQUE constraint
+// as a height collision (TASK-244 review, MEDIUM).
 func sqliteIsUniqueViolation(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed")
+	var sqliteErr sqlite3.Error
+	if errors.As(err, &sqliteErr) {
+		switch sqliteErr.ExtendedCode {
+		case sqlite3.ErrConstraintPrimaryKey, sqlite3.ErrConstraintUnique:
+			return true
+		}
+	}
+	return false
 }
 
 // seedGenesisIfEmpty writes the in-memory genesis block (Blocks[0]) to the

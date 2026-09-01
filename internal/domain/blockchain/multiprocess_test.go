@@ -285,6 +285,82 @@ func TestBlockChain_SyncFromDB_ReconcilesDivergedTail(t *testing.T) {
 	require.True(t, rep.Valid, "reconciled ledger must verify: %+v", rep)
 }
 
+// mineNext returns a freshly-mined child block of prev with the given payload
+// at height prev.Height+1 — how a second process would produce its next block
+// after loading the shared tail.
+func mineNext(t *testing.T, prev *Block, data string) *Block {
+	t.Helper()
+	block := &Block{
+		Height:    prev.Height + 1,
+		PrevHash:  append([]byte(nil), prev.Hash...),
+		Data:      []byte(data),
+		Timestamp: time.Now().Unix(),
+	}
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+	block.Nonce = int64(nonce)
+	block.Hash = append([]byte(nil), hash...)
+	return block
+}
+
+// TestBlockChain_SyncFromDB_PhantomTailRebuild is the regression test for the
+// review HIGH finding on TASK-244: a NON-conflict persist failure (SQLITE_BUSY,
+// disk full) leaves the failed block in memory (best-effort fallback), so the
+// in-memory chain is one taller than the DB at the seam. If a peer then commits
+// ITS block at that seam height, the DB block at len-1 differs from the
+// in-memory tail — the old windowed SELECT (height >= len) missed it and the
+// next append mined on top of a phantom PrevHash, producing a chain that only
+// broke at the next boot's VerifyIntegrity. The seam check must rebuild from
+// the authoritative ledger instead.
+func TestBlockChain_SyncFromDB_PhantomTailRebuild(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "aurora.db")
+
+	db := openSecondHandle(t, dbPath)
+	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	bindChainToDB(chain, db)
+
+	// Process commits height 1 and 2 normally (the shared tail both processes
+	// know).
+	_, err := chain.AddBlock("committed-1")
+	require.NoError(t, err)
+	_, err = chain.AddBlock("committed-2")
+	require.NoError(t, err)
+
+	// Simulate this process's height-3 persist FAILING with a non-conflict error
+	// (per the best-effort fallback the block stays in memory, DB stays at 2):
+	// the in-memory tail at height 3 is now a phantom the DB does not know.
+	chain.mu.Lock()
+	chain.Blocks = append(chain.Blocks, mineNext(t, chain.Blocks[2], "phantom-3"))
+	chain.mu.Unlock()
+	require.Len(t, chain.Blocks, 4, "phantom tail makes in-memory chain one taller than DB")
+
+	// A peer, having loaded the SAME shared tail [g,1,2], commits its own
+	// height 3 and 4 linked to committed-2 (the real second-process behavior).
+	peer3 := mineNext(t, chain.Blocks[2], "peer-committed-3")
+	peer4 := mineNext(t, peer3, "peer-committed-4")
+	insertBlockRaw(t, db, peer3)
+	insertBlockRaw(t, db, peer4)
+	// NOTE: DB height 3 is now peer-committed-3, NOT phantom-3.
+
+	// Re-sync: the seam (DB height 3 crashed)... the DB's height-3 block differs
+	// from the phantom in-memory tail (which was Never persisted). The seam
+	// check must detect it and rebuild from the authoritative ledger.
+	require.NoError(t, chain.syncFromDB())
+	require.Len(t, chain.Blocks, 5, "rebuild must adopt the authoritative ledger (genesis + 4 peer blocks), not the phantom")
+
+	// A subsequent append continues at the true next height (5) linked to the
+	// peer tail, and the whole ledger still verifies.
+	h, err := chain.AddBlock("post-rebuild")
+	require.NoError(t, err)
+	require.Equal(t, int64(5), h)
+
+	reloaded := &BlockChain{Blocks: []*Block{Genesis()}}
+	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
+	rep := reloaded.VerifyIntegrity()
+	require.True(t, rep.Valid, "rebuilt ledger must verify (previously: broken prev-hash at the phantom seam): %+v", rep)
+}
+
 // TestBlockChain_HeightConflict_RetryBounded ensures a pathological endless
 // conflict cannot hang AddBlock forever: the retry loop is capped, after which
 // ErrHeightConflict is returned rather than a livelock.
