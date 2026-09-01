@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 133,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T05:59:32+00:00",
+  "updated_at": "2026-09-01T06:29:53+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1985,7 +1985,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:53:50+00:00",
       "updated_at": "2026-08-23T04:53:50+00:00",
-      "touched_round": 100,
+      "touched_round": 133,
       "title": "Oracle module scheduler/app"
     },
     "EV-005": {
@@ -9943,6 +9943,82 @@
       "touched_round": 133,
       "commit": "db6c0b0",
       "title": "Oracle Fetch handler shares one fetcher across requests so http.rateLimit throttles REST (WithDeps) + test"
+    },
+    "ISS-240": {
+      "id": "ISS-240",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T06:06:43+00:00",
+      "updated_at": "2026-09-01T06:29:53+00:00",
+      "touched_round": 133,
+      "title": "Oracle scheduler never releases per-source bookkeeping: lastFetch/failStreak/nextAttempt/stats (scheduler.go:46-51) are keyed by source id and never removed — deleting a source leaves its row in GET /api/v1/oracle/health and /metrics/oracle forever, and the maps grow without bound across create/delete cycles; a recreated source would also inherit stale failure/backoff state. Source: internal/app/oracle/scheduler.go (verified read)",
+      "severity": 0.55
+    },
+    "ISS-241": {
+      "id": "ISS-241",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T06:06:43+00:00",
+      "updated_at": "2026-09-01T06:29:53+00:00",
+      "touched_round": 133,
+      "title": "Voting web page permanently disables Cast Vote after a transient candidates load failure: loadCandidates sets candidates=[] + candidatesFailed=true on failure (app.js:546-553) and voting.html gates the candidate select (x-show=currentSessionCandidates.length) and Cast Vote submit (voting.html:181) on that list; the voting page has no polling and no refresh/retry control (only the dashboard does), so once a candidates load fails the form stays disabled with just a \"check the API / refresh\" hint until a full browser reload. Source: web/voting.html + web/js/app.js loadCandidates (verified read)",
+      "severity": 0.55
+    },
+    "TASK-242": {
+      "id": "TASK-242",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T06:06:43+00:00",
+      "updated_at": "2026-09-01T06:29:53+00:00",
+      "touched_round": 133,
+      "category": "stability",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Oracle scheduler: reconcile and prune lastFetch/failStreak/nextAttempt/stats for sources no longer in the repository each pass (bounded memory, truthful /oracle/health + /metrics/oracle) + test",
+      "lock_owner": "round143-lifecycle",
+      "lock_until": "2026-09-01T06:36:43+00:00"
+    },
+    "TASK-243": {
+      "id": "TASK-243",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T06:06:43+00:00",
+      "updated_at": "2026-09-01T06:29:53+00:00",
+      "touched_round": 133,
+      "category": "dx",
+      "severity": 0.55,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "Web voting: add an in-page Retry control that re-runs loadCandidates/loadSessions when candidatesFailed/sessionsFailed (un-stick Cast Vote without a full reload)",
+      "lock_owner": "round143-lifecycle",
+      "lock_until": "2026-09-01T06:36:43+00:00"
+    },
+    "CHG-233": {
+      "id": "CHG-233",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T06:29:53+00:00",
+      "updated_at": "2026-09-01T06:29:53+00:00",
+      "touched_round": 133,
+      "commit": "cc81476",
+      "title": "Oracle scheduler: per-pass reconcile prunes lastFetch/stats/failStreak/nextAttempt for deleted sources + test"
+    },
+    "CHG-234": {
+      "id": "CHG-234",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T06:29:53+00:00",
+      "updated_at": "2026-09-01T06:29:53+00:00",
+      "touched_round": 133,
+      "commit": "cc81476",
+      "title": "Web voting: in-page Retry (retryLoad) un-sticks Cast Vote after a transient candidates/sessions load failure + Node regression test"
     }
   },
   "edges": [
@@ -15777,6 +15853,60 @@
       "to": "TASK-241",
       "type": "implements",
       "created_at": "2026-09-01T05:59:32+00:00"
+    },
+    {
+      "from": "TASK-242",
+      "to": "ISS-240",
+      "type": "addresses",
+      "created_at": "2026-09-01T06:06:43+00:00"
+    },
+    {
+      "from": "TASK-243",
+      "to": "ISS-241",
+      "type": "addresses",
+      "created_at": "2026-09-01T06:06:43+00:00"
+    },
+    {
+      "from": "ISS-240",
+      "to": "COMP-005",
+      "type": "located_in",
+      "created_at": "2026-09-01T06:06:43+00:00"
+    },
+    {
+      "from": "ISS-241",
+      "to": "COMP-005",
+      "type": "located_in",
+      "created_at": "2026-09-01T06:06:43+00:00"
+    },
+    {
+      "from": "ISS-241",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-09-01T06:06:43+00:00"
+    },
+    {
+      "from": "CHG-233",
+      "to": "ISS-240",
+      "type": "resolves",
+      "created_at": "2026-09-01T06:29:53+00:00"
+    },
+    {
+      "from": "CHG-233",
+      "to": "TASK-242",
+      "type": "implements",
+      "created_at": "2026-09-01T06:29:53+00:00"
+    },
+    {
+      "from": "CHG-234",
+      "to": "ISS-241",
+      "type": "resolves",
+      "created_at": "2026-09-01T06:29:53+00:00"
+    },
+    {
+      "from": "CHG-234",
+      "to": "TASK-243",
+      "type": "implements",
+      "created_at": "2026-09-01T06:29:53+00:00"
     }
   ]
 }
