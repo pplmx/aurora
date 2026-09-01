@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 133,
+  "round": 135,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T06:37:23+00:00",
+  "updated_at": "2026-09-01T11:22:31+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -986,7 +986,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:06:06+00:00",
       "updated_at": "2026-08-23T00:06:06+00:00",
-      "touched_round": 133,
+      "touched_round": 134,
       "title": "internal/domain/blockchain"
     },
     "CHG-017": {
@@ -10023,22 +10023,22 @@
     "ISS-242": {
       "id": "ISS-242",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-01T06:36:04+00:00",
-      "updated_at": "2026-09-01T06:36:04+00:00",
-      "touched_round": 133,
+      "updated_at": "2026-09-01T11:17:46+00:00",
+      "touched_round": 134,
       "title": "Multi-process writes to a shared chain DB silently overwrite committed blocks: appendBlock derives height := int64(len(c.Blocks)) from the process-local in-memory slice (block.go:116) and the persist callback is INSERT OR REPLACE keyed on that height (init.go). Two processes sharing ./data/aurora.db (documented norms: the API server + a CLI lottery/oracle command), each boots genesis into a 1-element chain, so both compute height 1 for their first post-reload append and REPLACE the same row — the loser payload is silently lost; in-memory chains then diverge (each appends height 2 with its own PrevHash), and the next restart fails VerifyIntegrity. Not merely dropped: the tampered ledger line surfaces as persistent corruption detected only by chain-hash verification. Fix needs a height-reservation / DB-authoritative-height design (revisit DEC-002); registered as a design task. Source: internal/domain/blockchain/block.go:103-151 + init.go persist (verified read)",
       "severity": 0.8
     },
     "TASK-244": {
       "id": "TASK-244",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 3,
       "created_at": "2026-09-01T06:36:04+00:00",
-      "updated_at": "2026-09-01T06:36:04+00:00",
-      "touched_round": 133,
+      "updated_at": "2026-09-01T11:17:46+00:00",
+      "touched_round": 134,
       "category": "correctness",
       "severity": 0.8,
       "confidence": 0.7,
@@ -10046,6 +10046,45 @@
       "title": "Blockchain multi-process height collision: design + implement DB-authoritative height reservation (verify DB high-water mark before append; ON CONFLICT policy + reconciliation) so a second process cannot silently REPLACE a committed block. Plan a dedicated round (revisit DEC-002); test via two chain instances over one DB file",
       "lock_owner": "round144-design",
       "lock_until": "2026-09-01T07:06:04+00:00"
+    },
+    "CHG-235": {
+      "id": "CHG-235",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T11:10:52+00:00",
+      "updated_at": "2026-09-01T11:10:52+00:00",
+      "touched_round": 134,
+      "commit": "a32c085e483c3f27a68e4a66c025c6e628c2b973",
+      "title": "Blockchain multi-process height collision fix: DB-authoritative height reservation (INSERT conflict instead of INSERT OR REPLACE, syncFromDB resync before reserve, bounded retry on ErrHeightConflict)"
+    },
+    "CHG-236": {
+      "id": "CHG-236",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T11:10:52+00:00",
+      "updated_at": "2026-09-01T11:10:52+00:00",
+      "touched_round": 134,
+      "commit": "a32c085e483c3f27a68e4a66c025c6e628c2b973",
+      "title": "Multi-process tests: no-silent-replace, persist conflict rejection, retry-to-next-height, concurrent 2-process append, diverged-tail resync, audit-record restamp, livelock bound"
+    },
+    "DEC-011": {
+      "id": "DEC-011",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T11:15:41+00:00",
+      "updated_at": "2026-09-01T11:15:41+00:00",
+      "touched_round": 134,
+      "title": "Multi-process height reservation is DB-authoritative via plain-INSERT UNIQUE conflict + bounded drop-and-retry (resolves ISS-242, closes TASK-244)",
+      "rationale": "The in-process write lock in appendBlock only serializes callers within one process; two processes sharing a-db each compute height from their process-local len(Blocks), so both can reserve height N and the old INSERT OR REPLACE silently dropped the loser's committed row. Heights must be assigned by the DB, not the local slice. Implemented: persist writes a plain INSERT and maps the height PRIMARY-KEY UNIQUE violation to ErrHeightConflict; appendBlock re-syncs the in-memory chain from the shared DB (syncFromDB, folds rows at height>=tail) before reserving, and on ErrHeightConflict drops its losing candidate and retries at the true next free height (bounded at 5 attempts). This makes a committed block immutable on disk and both processes' payloads survive at distinct heights; audit records re-stamped with the final height. Persisting under the write lock (rather than after unlock) is what makes drop-on-conflict safe — no other local caller can interleave.",
+      "alternatives_rejected": [
+        "INSERT OR REPLACE (the bug: silently lossy)",
+        "check-then-INSERT after mining (TOCTOU race)",
+        "separate reservation table / sequence (overkill: height PK provides the atomic UNIQUE guard)",
+        "give up on multi-process appends and require a lock file (rejects a documented operating norm)"
+      ]
     }
   },
   "edges": [
@@ -15946,6 +15985,30 @@
       "to": "COMP-002",
       "type": "located_in",
       "created_at": "2026-09-01T06:36:04+00:00"
+    },
+    {
+      "from": "CHG-235",
+      "to": "ISS-242",
+      "type": "resolves",
+      "created_at": "2026-09-01T11:11:48+00:00"
+    },
+    {
+      "from": "CHG-236",
+      "to": "TASK-244",
+      "type": "implements",
+      "created_at": "2026-09-01T11:11:48+00:00"
+    },
+    {
+      "from": "DEC-011",
+      "to": "COMP-002",
+      "type": "governs",
+      "created_at": "2026-09-01T11:16:33+00:00"
+    },
+    {
+      "from": "DEC-011",
+      "to": "TASK-244",
+      "type": "governs",
+      "created_at": "2026-09-01T11:16:33+00:00"
     }
   ]
 }
