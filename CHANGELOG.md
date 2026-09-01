@@ -58,9 +58,6 @@ documented in their per-milestone ROADMAP files.
   op (enable/disable/latest) returns 404. `DeleteSource` now reports not-found
   (service + repo + use case), the REST handler returns 404, and the CLI exits
   non-zero with "source not found" (TASK-233; ISS-231).
-
-### Fixed
-
 - **Dashboard integrity/oracle cards regressed to "?" on any transient poll
   failure**: `loadBlockchain`/`loadOracleHealth` blanked their cards
   unconditionally on every 15s poll hiccup, while every sibling loader
