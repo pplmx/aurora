@@ -1054,6 +1054,42 @@ func TestUpdate_ArrowsMoveFocusButDoNotTypeInAddSourceForm(t *testing.T) {
 	assert.Equal(t, "x", app.sourceInputURL.Value(), "arrow keys must not type into the input")
 }
 
+// TestUpdate_MethodPathIntervalTypableInAddSourceForm pins TASK-231/ISS-229:
+// the round-137/138 parity added method/path/interval fields with focus support
+// (updateInputFocus) but their Update routing was missing, so keys typed into
+// fields 3..5 were never forwarded — handleAddSource then read empty values and
+// silently defaulted method->GET/path->""/interval->60. Each of the six fields
+// must now accept typed input when it has focus.
+func TestUpdate_MethodPathIntervalTypableInAddSourceForm(t *testing.T) {
+	app := NewOracleApp(&mockRepo{})
+	app.view = "addSource"
+	app.updateInputFocus()
+
+	// method (field 3)
+	app.inputFocus = 3
+	app.updateInputFocus()
+	for _, ch := range []string{"P", "O", "S", "T"} {
+		app.Update(keyPress(ch))
+	}
+	assert.Equal(t, "POST", app.sourceInputMethod.Value(), "method field must receive typed keys")
+
+	// path (field 4)
+	app.inputFocus = 4
+	app.updateInputFocus()
+	for _, ch := range []string{"b", "i", "t", "c", "o", "i", "n", ".", "u", "s", "d"} {
+		app.Update(keyPress(ch))
+	}
+	assert.Equal(t, "bitcoin.usd", app.sourceInputPath.Value(), "path field must receive typed keys")
+
+	// interval (field 5)
+	app.inputFocus = 5
+	app.updateInputFocus()
+	for _, ch := range []string{"3", "0", "0"} {
+		app.Update(keyPress(ch))
+	}
+	assert.Equal(t, "300", app.sourceInputInterval.Value(), "interval field must receive typed keys")
+}
+
 func TestUpdate_EscClearsMessages(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "sources"

@@ -16,6 +16,14 @@ import (
 // when querying oracle data.
 const defaultQueryLimit = 10
 
+// MaxSourceIntervalSeconds bounds a fetch-scheduling interval. The scheduler
+// converts Interval to a time.Duration (`int64` ns); an interval >= ~9.22e9 s
+// would overflow to a negative duration that the scheduler treats as "always
+// due", turning that source into a fetch-storm on every check tick (TASK-232,
+// ISS-230). 30 days is far above any realistic polling cadence and comfortably
+// below the overflow point.
+const MaxSourceIntervalSeconds = 30 * 24 * 60 * 60
+
 // allowedSourceSchemes is the set of URL schemes an oracle source
 // may use. We block file:// (would let a hostile source read the
 // host filesystem), javascript: (XSS-shaped payloads, not that the
@@ -170,8 +178,11 @@ func (s *service) AddSource(source *DataSource) error {
 	}
 	// A fetch-scheduling interval cannot be negative; only ==0 is defaulted
 	// (to 60) by the use case, so reject negatives here at the contract
-	// boundary alongside the other AddSource validations.
-	if source.Interval < 0 {
+	// boundary alongside the other AddSource validations. An upper bound also
+	// lives here: values >= ~9.22e9 s overflow the scheduler's time.Duration
+	// arithmetic to a negative interval (always-due -> fetch storm), and anything
+	// above 30 days is a misconfiguration regardless (TASK-232, ISS-230).
+	if source.Interval < 0 || source.Interval > MaxSourceIntervalSeconds {
 		return fmt.Errorf("%w: invalid interval", ErrInvalidSource)
 	}
 	if err := validateSourceURL(source.URL); err != nil {
@@ -210,6 +221,17 @@ func (s *service) DisableSource(id string) error {
 }
 
 func (s *service) DeleteSource(id string) error {
+	// Deleting an unknown id must fail loudly (REST 404, CLI non-zero exit),
+	// not report success — mirror the EnableSource/DisableSource existence
+	// check so the handler's ErrSourceNotFound branch is reachable (TASK-233,
+	// ISS-231). The delete itself remains an idempotent DELETE by id.
+	source, err := s.repo.GetSource(id)
+	if err != nil {
+		return err
+	}
+	if source == nil {
+		return ErrSourceNotFound
+	}
 	return s.repo.DeleteSource(id)
 }
 

@@ -68,14 +68,12 @@ func TestOracleSourceAdd_List_Delete(t *testing.T) {
 	assert.NotContains(t, out, ids[0])
 	assert.Contains(t, out, ids[1])
 
-	// delete a non-existent id: the in-memory repository's DeleteSource is
-	// idempotent (no-op for unknown ids), so the CLI reports success. The
-	// DB-backed repo (sqlite) behaves the same (DELETE of a missing row is
-	// not an error). We assert the no-error contract rather than a leaky
-	// "not found" message.
-	out, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id", "--confirm")
-	require.NoError(t, err)
-	assert.Contains(t, out, "deleted")
+	// delete a non-existent id now fails loudly: DeleteSource reports not-found
+	// (mirroring enable/disable and the REST 404) instead of a silent success
+	// that lied about the delete (TASK-233, ISS-231).
+	_, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id", "--confirm")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "source not found")
 
 	// Without --confirm the delete is refused (non-zero exit).
 	_, err = runCmd(t, "oracle", "source", "delete", "--id", "no-such-id")

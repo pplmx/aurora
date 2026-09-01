@@ -272,8 +272,21 @@ func (r *OracleRepository) SetSourceEnabled(id string, enabled bool) error {
 }
 
 func (r *OracleRepository) DeleteSource(id string) error {
-	_, err := r.db.Exec(`DELETE FROM data_sources WHERE id = ?`, id)
-	return err
+	res, err := r.db.Exec(`DELETE FROM data_sources WHERE id = ?`, id)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		// Unknown id: report it (callers map to oracle.ErrSourceNotFound -> 404)
+		// instead of silently claiming a delete that never happened (TASK-233,
+		// ISS-231). Mirrors SetSourceEnabled's RowsAffected check.
+		return ErrNotFound
+	}
+	return nil
 }
 
 type InMemoryOracleRepository struct {
@@ -392,6 +405,9 @@ func (r *InMemoryOracleRepository) SetSourceEnabled(id string, enabled bool) err
 }
 
 func (r *InMemoryOracleRepository) DeleteSource(id string) error {
+	if _, ok := r.dataSources[id]; !ok {
+		return ErrNotFound
+	}
 	delete(r.dataSources, id)
 	return nil
 }

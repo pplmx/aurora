@@ -117,6 +117,12 @@ func (r *InmemRepo) SetSourceEnabled(id string, enabled bool) error {
 }
 
 func (r *InmemRepo) DeleteSource(id string) error {
+	if _, ok := r.sources[id]; !ok {
+		// Unknown id is an error (callers map to 404), not a silent no-op —
+		// mirrors SetSourceEnabled. The use case and API layer rely on this
+		// (TASK-233, ISS-231).
+		return ErrSourceNotFound
+	}
 	delete(r.sources, id)
 	return nil
 }

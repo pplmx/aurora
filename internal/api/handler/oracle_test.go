@@ -205,7 +205,7 @@ func TestOracleHandler_DeleteSource_Success(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `"status":"deleted"`)
 }
 
-func TestOracleHandler_DeleteSource_NotFoundIsIdempotent(t *testing.T) {
+func TestOracleHandler_DeleteSource_UnknownID_NotFound(t *testing.T) {
 	handler := NewOracleHandler(oracle.NewInmemRepo())
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/oracle/sources/missing", nil)
 	rctx := chi.NewRouteContext()
@@ -213,9 +213,11 @@ func TestOracleHandler_DeleteSource_NotFoundIsIdempotent(t *testing.T) {
 	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
 	rr := httptest.NewRecorder()
 	handler.DeleteSource(rr, req)
-	// DELETE is idempotent (plain DELETE FROM ... WHERE id = ? with no
-	// rows-affected check), so a missing source still returns 200.
-	assert.Equal(t, http.StatusOK, rr.Code)
+	// Deleting an unknown id must 404 like every sibling op on an unknown
+	// source (enable/disable/latest/data); a silent 200 "deleted" made the
+	// handler's ErrSourceNotFound branch dead code and lied to the operator
+	// (TASK-233, ISS-231).
+	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
 func TestOracleHandler_SetSourceEnabled(t *testing.T) {
