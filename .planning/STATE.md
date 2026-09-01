@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.93 — rounds 132–137 config-truthfulness + surface-parity polish (inert config knobs removed: `db.type` and `lottery.defaultSeedPrefix` were set-but-never-read; sample `aurora.toml` no longer ships dead `[[oracle.sources]]` blocks and now explains `[http]`/`[http.rateLimit]` govern the outbound fetcher, not the API server; `cmd/api` releases DB/event-store handles on the fatal bind-failure path; `oracle source add` gained `--method`/`--path` and `source list` prints Method/Path/Interval; oracle TUI add form now sets method/path/interval with client-side interval validation)
+**Current focus:** v1.93 — rounds 132–137 config-truthfulness + surface-parity polish (inert config knobs removed: `db.type` and `lottery.defaultSeedPrefix` were set-but-never-read; sample `aurora.toml` no longer ships dead `[[oracle.sources]]` blocks and now explains `[http]`/`[http.rateLimit]` govern the outbound fetcher, not the API server; `cmd/api` releases DB/event-store handles on the fatal bind-failure path; `oracle source add` gained `--method`/`--path` and `source list` prints Method/Path/Interval; oracle TUI add form now sets method/path/interval with client-side interval validation). Round 138: oracle TUI add form no longer retains stale method/path/interval across re-entry (recreates all six inputs); oracle TUI source detail shows method/path/interval for CLI `source list` parity.
 
 ## Current Position
 
@@ -45,6 +45,19 @@ Last activity: 2026-09-01 — v1.93 closed (rounds 132–137 config-truthfulness
      ISS-223).
 
   RIL graph at round 131 (778 nodes, 917 edges).
+
+Last activity: 2026-09-01 — round 138 oracle TUI deep-dive (TASK-228/229,
+  ISS-226/227):
+
+  1. `initAddSource` only recreated name/url/type, so method/path/interval
+     retained the previous attempt's text after a successful add — the
+     token/nft/lottery TUIs clear every field on form entry. Now recreates all
+     six inputs (TASK-228, ISS-226).
+  2. The CLI `source list` prints Method/Path/Interval (TASK-225) but the TUI
+     source detail hid them, and `loadSources` dropped the fields when
+     copying. The detail view now shows method (default GET), JSON path and
+     interval (default 60s), and the copy carries the fields (TASK-229,
+     ISS-227).
 
   1. Lottery/token/nft TUI forms were UNTYPABLE — their Update loops never
      forwarded keypresses into the textinput models, so no participant, seed,

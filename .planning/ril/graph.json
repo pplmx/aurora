@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 131,
+  "round": 132,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-08-31T18:15:29+00:00",
+  "updated_at": "2026-09-01T01:48:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 127,
+      "touched_round": 132,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -9417,6 +9417,78 @@
       "title": "oracle TUI add-form method/path/interval",
       "description": "4769772 adds method/path/interval to the add-source form with 6-field focus cycle and client-side interval validation; 6 i18n keys; tab/down/new-field tests. Full -race suite green.",
       "commit": 4769772
+    },
+    "ISS-226": {
+      "id": "ISS-226",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T01:35:06+00:00",
+      "updated_at": "2026-09-01T01:48:24+00:00",
+      "touched_round": 132,
+      "title": "oracle TUI add-source form retains stale method/path/interval values across visits",
+      "severity": 0.6
+    },
+    "TASK-228": {
+      "id": "TASK-228",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-01T01:35:06+00:00",
+      "updated_at": "2026-09-01T01:48:42+00:00",
+      "touched_round": 132,
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Clear method/path/interval textinputs in oracle TUI initAddSource (stale values survive re-entry)"
+    },
+    "ISS-227": {
+      "id": "ISS-227",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T01:42:32+00:00",
+      "updated_at": "2026-09-01T01:48:24+00:00",
+      "touched_round": 132,
+      "title": "oracle TUI source detail hides method/path/interval that CLI source list prints (display parity gap from TASK-225)",
+      "severity": 0.4
+    },
+    "TASK-229": {
+      "id": "TASK-229",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-01T01:42:32+00:00",
+      "updated_at": "2026-09-01T01:48:42+00:00",
+      "touched_round": 132,
+      "category": "dx",
+      "severity": 0.4,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "Show method/path/interval in oracle TUI sourceDetailView; copy the fields in loadSources"
+    },
+    "CHG-219": {
+      "id": "CHG-219",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T01:48:00+00:00",
+      "updated_at": "2026-09-01T01:48:00+00:00",
+      "touched_round": 132,
+      "commit": "TASK-228",
+      "title": "oracle TUI initAddSource recreates all six inputs; regressions tests"
+    },
+    "CHG-220": {
+      "id": "CHG-220",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T01:48:00+00:00",
+      "updated_at": "2026-09-01T01:48:00+00:00",
+      "touched_round": 132,
+      "commit": "TASK-229",
+      "title": "oracle TUI source detail shows method/path/interval; loadSources carries fields"
     }
   },
   "edges": [
@@ -14921,6 +14993,54 @@
       "to": "TASK-227",
       "type": "implements",
       "created_at": "2026-08-31T18:14:59+00:00"
+    },
+    {
+      "from": "TASK-228",
+      "to": "ISS-226",
+      "type": "addresses",
+      "created_at": "2026-09-01T01:35:32+00:00"
+    },
+    {
+      "from": "ISS-226",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T01:35:32+00:00"
+    },
+    {
+      "from": "TASK-229",
+      "to": "ISS-227",
+      "type": "addresses",
+      "created_at": "2026-09-01T01:42:55+00:00"
+    },
+    {
+      "from": "ISS-227",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T01:42:56+00:00"
+    },
+    {
+      "from": "CHG-219",
+      "to": "ISS-226",
+      "type": "resolves",
+      "created_at": "2026-09-01T01:48:23+00:00"
+    },
+    {
+      "from": "CHG-220",
+      "to": "ISS-227",
+      "type": "resolves",
+      "created_at": "2026-09-01T01:48:23+00:00"
+    },
+    {
+      "from": "CHG-219",
+      "to": "TASK-228",
+      "type": "implements",
+      "created_at": "2026-09-01T01:48:23+00:00"
+    },
+    {
+      "from": "CHG-220",
+      "to": "TASK-229",
+      "type": "implements",
+      "created_at": "2026-09-01T01:48:23+00:00"
     }
   ]
 }
