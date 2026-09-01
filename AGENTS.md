@@ -133,7 +133,7 @@ just stop         # Stop containers: docker compose down
 
 ```bash
 ./aurora oracle source list                             # List data sources
-./aurora oracle source add -n "Name" -u <url>           # Add a source
+./aurora oracle source add -n "Name" -u <url>           # Add a source (-m/--method, -p/--path, --interval optional)
 ./aurora oracle fetch -i <source-id>                    # Fetch data (-s legacy)
 ./aurora oracle data -i <source-id> --limit 10          # Query history
 ./aurora oracle latest -i <source-id>                   # Latest data point

@@ -73,7 +73,8 @@ just dev          # Docker 开发
 
 # 预言机
 ./aurora oracle source list
-./aurora oracle source add --name "btc" --url "https://api.example.com/price"
+./aurora oracle source add --name "btc" --url "https://api.example.com/price" \
+                           --path "data.price" --interval 60   # --method/--path/--interval 可选
 ./aurora oracle source enable --id <source-id>
 ./aurora oracle source disable --id <source-id>
 ./aurora oracle source delete --id <source-id> --confirm   # 需 --confirm
