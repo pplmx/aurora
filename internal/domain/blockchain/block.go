@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -40,8 +41,34 @@ type BlockChain struct {
 	// InitBlockChain. The in-memory slice stays authoritative; a persistence
 	// failure is logged rather than fatal, matching the package's existing
 	// "operate in non-persistent mode" fallback.
+	//
+	// The persist hook must not silently overwrite a committed block: when the
+	// backing store already holds a conflicting block at the same height (a
+	// second process sharing the DB file reserved it first), persist must
+	// return ErrHeightConflict so appendBlock can drop the losing candidate and
+	// retry at the DB-authoritative next height (TASK-244, ISS-242).
 	persist func(*Block) error
+
+	// syncFromDB, when non-nil, is invoked under the write lock *before* the
+	// next height is reserved. It brings the in-memory chain up to date with
+	// blocks a concurrent process committed to the shared DB file, so the
+	// reserved height is DB-authoritative (never a stale len(c.Blocks)).
+	// Left nil by NewBlockChain; wired by InitBlockChain.
+	syncFromDB func() error
 }
+
+// ErrHeightConflict is returned by the persist hook when the backing store
+// already contains a different block at the candidate height (a concurrent
+// process won the race for that height). appendBlock drops the losing in-memory
+// candidate and retries at the next free height instead of overwriting the
+// committed block (TASK-244, ISS-242).
+var ErrHeightConflict = errors.New("blockchain: block height already committed by another process")
+
+// maxHeightRetries bounds the cross-process height-conflict retry loop in
+// appendBlock. Each retry re-syncs from the DB (so it picks the true next
+// height) and re-mines; the bound only trips under pathological multi-writer
+// contention where even repeated fresh heights keep tying.
+const maxHeightRetries = 5
 
 func (b *Block) DeriveHash() {
 	info := bytes.Join([][]byte{b.Data, b.PrevHash}, []byte{})
@@ -90,6 +117,15 @@ func Genesis() *Block {
 // dropped a block per collision on restart. Serializing the whole append under
 // the write lock makes heights unique and the chain valid regardless of how
 // many goroutines call AddBlock concurrently.
+//
+// Cross-process note (TASK-244, ISS-242): the in-process lock only serializes
+// the callers of *this* process. Two processes sharing one DB file each have a
+// process-local chain, so even the serialized reserve can pick a stale height.
+// appendBlock therefore re-syncs the in-memory chain from the shared DB before
+// reserving (syncFromDB) and detects/recovers from a lost height race via the
+// persist hook returning ErrHeightConflict. A committed block is never
+// overwritten; the losing payload is re-appended at the DB-authoritative next
+// height.
 func (c *BlockChain) AddBlock(data string) (int64, error) {
 	return c.appendBlock(data, nil)
 }
@@ -105,49 +141,78 @@ func (c *BlockChain) appendBlock(data string, stamp func(height int64) string) (
 		return 0, fmt.Errorf("blockchain not initialized")
 	}
 
-	// Take the read lock just long enough to copy the previous hash and
-	// the current length. Released before PoW so multiple AddBlock
-	// callers can mine in parallel.
+	// The reserve + mine + append + persist sequence runs entirely under the
+	// write lock. Persisting under the lock (rather than after unlock) is what
+	// makes the cross-process retry loop safe: a concurrent AddBlock caller in
+	// this process cannot interleave between an append and its persist, so a
+	// detected ErrHeightConflict can always be resolved by dropping the block we
+	// just appended (TASK-244, ISS-242). The mining cost dominates anyway; a
+	// short single-row write adds negligible lock hold time.
 	c.mu.Lock()
-	if len(c.Blocks) == 0 {
-		c.mu.Unlock()
-		return 0, fmt.Errorf("blockchain not initialized")
-	}
-	height := int64(len(c.Blocks))
-	if stamp != nil {
-		if stamped := stamp(height); stamped != "" {
-			data = stamped
-		}
-	}
-	prev := c.Blocks[len(c.Blocks)-1]
-	block := &Block{
-		Height:    height,
-		PrevHash:  append([]byte(nil), prev.Hash...),
-		Data:      []byte(data),
-		Nonce:     0,
-		Timestamp: time.Now().Unix(),
-	}
-	// Mine under the lock: consecutive blocks cannot be mined in parallel (see
-	// the AddBlock comment for why), so serializing is both correct and the
-	// only valid option.
-	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
-	block.Nonce = int64(nonce)
-	block.Hash = append([]byte(nil), hash...)
-	c.Blocks = append(c.Blocks, block)
-	persist := c.persist
-	c.mu.Unlock()
+	defer c.mu.Unlock()
 
-	// Best-effort persistence after append (outside the write lock so a slow
-	// DB write never holds up concurrent AddBlock callers). The in-memory
-	// chain is authoritative; failures degrade to non-persistent mode.
-	if persist != nil {
-		if err := persist(block); err != nil {
+	for attempt := 0; attempt <= maxHeightRetries; attempt++ {
+		// Re-sync from the shared DB before reserving, so the height we pick is
+		// the DB-authoritative next height even when a concurrent process has
+		// appended blocks this process has not seen yet. Failure degrades to
+		// the stale in-memory height (best-effort, matching the non-persistent
+		// fallback); the persist conflict check below is the safety net.
+		if c.syncFromDB != nil {
+			if err := c.syncFromDB(); err != nil {
+				logger.Warn().Err(err).Msg("Failed to sync chain from database; using in-memory height")
+			}
+		}
+
+		if len(c.Blocks) == 0 {
+			return 0, fmt.Errorf("blockchain not initialized")
+		}
+		height := int64(len(c.Blocks))
+		if stamp != nil {
+			if stamped := stamp(height); stamped != "" {
+				data = stamped
+			}
+		}
+		prev := c.Blocks[len(c.Blocks)-1]
+		block := &Block{
+			Height:    height,
+			PrevHash:  append([]byte(nil), prev.Hash...),
+			Data:      []byte(data),
+			Nonce:     0,
+			Timestamp: time.Now().Unix(),
+		}
+		// Mine under the lock: consecutive blocks cannot be mined in parallel
+		// (see the AddBlock comment for why), so serializing is both correct
+		// and the only valid option.
+		pow := NewProofOfWork(block)
+		nonce, hash := pow.Run()
+		block.Nonce = int64(nonce)
+		block.Hash = append([]byte(nil), hash...)
+		c.Blocks = append(c.Blocks, block)
+
+		// Best-effort persistence. The in-memory chain is authoritative;
+		// non-conflict failures degrade to non-persistent mode.
+		if c.persist == nil {
+			return height, nil
+		}
+		if err := c.persist(block); err != nil {
+			if errors.Is(err, ErrHeightConflict) {
+				// A concurrent process committed this exact height first (or we
+				// were re-sync'd past it). Our candidate must NOT overwrite it:
+				// drop the block we appended this attempt and retry at the next
+				// free height. Bounded so a pathological multi-writer battle
+				// cannot loop forever; a fresh syncFromDB on the next attempt
+				// yields the true next height.
+				c.Blocks = c.Blocks[:len(c.Blocks)-1]
+				logger.Warn().Int64("height", height).Msg("Block height already committed by another process; retrying at next height")
+				continue
+			}
 			logger.Warn().Err(err).Msg("Failed to persist block")
 		}
+
+		return height, nil
 	}
 
-	return height, nil
+	return 0, ErrHeightConflict
 }
 
 // ResetBlocks re-seeds the in-memory chain back to a single genesis block.
