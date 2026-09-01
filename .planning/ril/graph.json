@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 133,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T05:11:39+00:00",
+  "updated_at": "2026-09-01T05:30:51+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -986,7 +986,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:06:06+00:00",
       "updated_at": "2026-08-23T00:06:06+00:00",
-      "touched_round": 113,
+      "touched_round": 133,
       "title": "internal/domain/blockchain"
     },
     "CHG-017": {
@@ -9753,6 +9753,82 @@
       "touched_round": 133,
       "commit": 5111084,
       "title": "Web voting: Enter in Session ID input is inert (no implicit Start submit); explicit buttons only"
+    },
+    "ISS-235": {
+      "id": "ISS-235",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T05:27:38+00:00",
+      "updated_at": "2026-09-01T05:30:51+00:00",
+      "touched_round": 133,
+      "title": "Oracle fetcher data extraction defects: (a) a path resolving to a legitimately empty string (upstream returns {\"price\": \"\"}) aborts a healthy 200 fetch as ErrInvalidSource -> scheduler backoff + misleading \"invalid source\" (fetcher.go:429-431); (b) a path resolving to a nested object/array/bool stores fmt.Sprintf(\"%v\", ...) Go representation garbage (map[usd:64000]) as the on-chain Value (fetcher.go:469-475). Source: internal/infra/http/fetcher.go-validateJSON-426..475 (verified read)",
+      "severity": 0.65
+    },
+    "ISS-236": {
+      "id": "ISS-236",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T05:27:38+00:00",
+      "updated_at": "2026-09-01T05:30:51+00:00",
+      "touched_round": 133,
+      "title": "Blockchain genesis block is re-inserted on every boot with a persisted DB, logging a spurious Failed to insert genesis block: reload skips the height-0 row into memory, chain.Blocks stays [genesis] (len==1), so the len(Blocks)<=1 guard re-runs a plain INSERT of height 0 on a DB that already holds it -> PRIMARY KEY conflict + false error log on every healthy restart (until a block is appended). Source: internal/domain/blockchain/init.go (verified read)",
+      "severity": 0.5
+    },
+    "TASK-237": {
+      "id": "TASK-237",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T05:27:38+00:00",
+      "updated_at": "2026-09-01T05:30:51+00:00",
+      "touched_round": 133,
+      "category": "correctness",
+      "severity": 0.65,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "Oracle fetcher: split extraction success from value (extractByPath returns (string, bool)); record a legitimate empty-string leaf, fail closed (ErrInvalidSource) on non-scalar object/array/null so no Go map/array garbage is persisted",
+      "lock_owner": "round141-dive",
+      "lock_until": "2026-09-01T05:57:38+00:00"
+    },
+    "TASK-238": {
+      "id": "TASK-238",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T05:27:38+00:00",
+      "updated_at": "2026-09-01T05:30:51+00:00",
+      "touched_round": 133,
+      "category": "maintainability",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Blockchain init: seed genesis only into an empty blocks table (key on any-persisted-row, not chain length); extract seedGenesisIfEmpty helper + unit test for the reload case",
+      "lock_owner": "round141-dive",
+      "lock_until": "2026-09-01T05:57:38+00:00"
+    },
+    "CHG-228": {
+      "id": "CHG-228",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T05:30:50+00:00",
+      "updated_at": "2026-09-01T05:30:50+00:00",
+      "touched_round": 133,
+      "commit": "5df1e07",
+      "title": "Oracle fetcher: extractByPath returns (value,ok); record empty-string leaf, fail closed on non-scalar (no Go garbage persisted)"
+    },
+    "CHG-229": {
+      "id": "CHG-229",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T05:30:50+00:00",
+      "updated_at": "2026-09-01T05:30:50+00:00",
+      "touched_round": 133,
+      "commit": "5df1e07",
+      "title": "Blockchain init: seedGenesisIfEmpty keyed on any-persisted-row (no re-insert of height 0 on reload) + unit test"
     }
   },
   "edges": [
@@ -15467,6 +15543,54 @@
       "to": "TASK-236",
       "type": "implements",
       "created_at": "2026-09-01T05:11:39+00:00"
+    },
+    {
+      "from": "TASK-237",
+      "to": "ISS-235",
+      "type": "addresses",
+      "created_at": "2026-09-01T05:27:38+00:00"
+    },
+    {
+      "from": "TASK-238",
+      "to": "ISS-236",
+      "type": "addresses",
+      "created_at": "2026-09-01T05:27:38+00:00"
+    },
+    {
+      "from": "ISS-235",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T05:27:38+00:00"
+    },
+    {
+      "from": "ISS-236",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-09-01T05:27:38+00:00"
+    },
+    {
+      "from": "CHG-228",
+      "to": "ISS-235",
+      "type": "resolves",
+      "created_at": "2026-09-01T05:30:50+00:00"
+    },
+    {
+      "from": "CHG-228",
+      "to": "TASK-237",
+      "type": "implements",
+      "created_at": "2026-09-01T05:30:50+00:00"
+    },
+    {
+      "from": "CHG-229",
+      "to": "ISS-236",
+      "type": "resolves",
+      "created_at": "2026-09-01T05:30:50+00:00"
+    },
+    {
+      "from": "CHG-229",
+      "to": "TASK-238",
+      "type": "implements",
+      "created_at": "2026-09-01T05:30:51+00:00"
     }
   ]
 }
