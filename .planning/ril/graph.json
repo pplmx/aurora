@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 136,
+  "round": 137,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T14:09:07+00:00",
+  "updated_at": "2026-09-01T15:06:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -10178,6 +10178,27 @@
       "source": "7ccd87d TestAsyncEventBus_PublishRacingClose_NeverSilentlyDrops + manual probe (unfixed bus tripped the invariant 11/400 iterations; fixed bus 0/400)",
       "title": "Old check-then-act Publish vs Close demonstrably dropped events while returning nil; mutex fix makes consumed==success exact",
       "confidence": 1.0
+    },
+    "ISS-244": {
+      "id": "ISS-244",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T15:05:07+00:00",
+      "updated_at": "2026-09-01T15:06:47+00:00",
+      "touched_round": 137,
+      "title": "CHANGELOG v1.93 had two consecutive '### Fixed' headings (round-144 batch split the Fixed block in two), inconsistent with every other version's single-Fixed structure"
+    },
+    "CHG-239": {
+      "id": "CHG-239",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T15:05:42+00:00",
+      "updated_at": "2026-09-01T15:05:42+00:00",
+      "touched_round": 137,
+      "title": "Merge duplicate '### Fixed' heading in CHANGELOG v1.93",
+      "commit": "70f5713"
     }
   },
   "edges": [
@@ -16132,6 +16153,12 @@
       "to": "TASK-245",
       "type": "implements",
       "created_at": "2026-09-01T13:12:41+00:00"
+    },
+    {
+      "from": "CHG-239",
+      "to": "ISS-244",
+      "type": "resolves",
+      "created_at": "2026-09-01T15:06:47+00:00"
     }
   ]
 }
