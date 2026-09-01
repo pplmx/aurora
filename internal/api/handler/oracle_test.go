@@ -424,3 +424,48 @@ func TestOracleHandler_SetChainWiring(t *testing.T) {
 		t.Fatalf("chain should not be called for a missing source, got %d calls", chain.calls)
 	}
 }
+
+// countingFetcher is a FetcherInterface double that counts calls instead of
+// doing any networking, so the shared-fetcher wiring can be asserted
+// hermetically.
+type countingFetcher struct {
+	calls int
+	data  *oracle.OracleData
+}
+
+func (f *countingFetcher) FetchData(source *oracle.DataSource) (*oracle.OracleData, error) {
+	f.calls++
+	return f.data, nil
+}
+
+// TestOracleHandler_FetchUsesSharedFetcher pins TASK-241/ISS-239: the Fetch
+// handler must route every request through ONE shared fetcher (a per-request
+// fetcher starts a fresh RateLimiter each time, making the documented per-source
+// http.rateLimit budget a no-op at the REST surface). Both successive fetches
+// go through the injected instance — a per-request construction would instead
+// reach for its own real fetcher and fail the public-URL SSRF/network path
+// rather than touch this double.
+func TestOracleHandler_FetchUsesSharedFetcher(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "https://example.com/price", Enabled: true})
+	handler := NewOracleHandler(repo)
+	fake := &countingFetcher{data: &oracle.OracleData{ID: "d1", SourceID: "s1", Value: "64000"}}
+	handler.fetcher = fake // white-box: inject the shared fetcher
+
+	post := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/fetch", bytes.NewBufferString(`{"source":"s1"}`))
+		rr := httptest.NewRecorder()
+		handler.Fetch(rr, req)
+		return rr
+	}
+
+	if rr := post(); rr.Code != http.StatusOK {
+		t.Fatalf("first fetch = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	if rr := post(); rr.Code != http.StatusOK {
+		t.Fatalf("second fetch = %d, want 200: %s", rr.Code, rr.Body.String())
+	}
+	if fake.calls != 2 {
+		t.Fatalf("both fetches must route through the SAME fetcher instance, got %d calls", fake.calls)
+	}
+}

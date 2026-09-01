@@ -512,10 +512,15 @@ func readBounded(r io.Reader, max int64) ([]byte, error) {
 
 // applySourceHeaders parses the source's JSON map of request headers and sets
 // them on the outgoing request. An empty string means no headers. Header names
-// and values are taken verbatim from the JSON (settable only by a source
-// operator / API caller, so newline injection is not an out-of-band vector
-// here — JSON cannot carry a raw CRLF untransformed). An unparseable headers
-// payload is treated as invalid source data rather than silently dropping
+// and values are taken from the JSON — an operator already holding source-add
+// authority supplies them, so this is defense-in-depth, NOT the trust
+// boundary — and CR/LF is rejected outright: Go JSON escape sequences ("\r\n")
+// decode to literal CR/LF bytes, so a newline could otherwise be smuggled into
+// a header line toward the upstream provider on the shared keep-alive
+// connection. Modern net/http refuses to WRITE such a request (surfacing as a
+// confusing runtime fetch error), so we fail at apply time with a clear
+// invalid-source instead (TASK-239, ISS-237). An unparseable headers payload
+// is likewise treated as invalid source data rather than silently dropping
 // the operator's intent.
 func applySourceHeaders(req *http.Request, headersJSON string) error {
 	if strings.TrimSpace(headersJSON) == "" {
@@ -526,6 +531,9 @@ func applySourceHeaders(req *http.Request, headersJSON string) error {
 		return fmt.Errorf("%w: invalid headers json", oracle.ErrInvalidSource)
 	}
 	for k, v := range headers {
+		if strings.ContainsAny(k, "\r\n") || strings.ContainsAny(v, "\r\n") {
+			return fmt.Errorf("%w: header %q contains a newline", oracle.ErrInvalidSource, k)
+		}
 		req.Header.Set(k, v)
 	}
 	return nil
