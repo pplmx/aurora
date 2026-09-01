@@ -282,6 +282,19 @@ func TestDeleteSource(t *testing.T) {
 	}
 }
 
+// TestDeleteSource_UnknownID_NotFound pins TASK-233/ISS-231: deleting an id
+// that does not exist must return ErrSourceNotFound (REST 404, CLI non-zero
+// exit), not a silent success.
+func TestDeleteSource_UnknownID_NotFound(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	err := svc.DeleteSource("does-not-exist")
+	if !errors.Is(err, ErrSourceNotFound) {
+		t.Fatalf("expected ErrSourceNotFound for unknown id, got %v", err)
+	}
+}
+
 func TestFetchData(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewService(repo)
@@ -566,5 +579,34 @@ func TestAddSource_NegativeInterval_Rejected(t *testing.T) {
 	})
 	if !errors.Is(err, ErrInvalidSource) {
 		t.Fatalf("expected ErrInvalidSource for negative interval, got %v", err)
+	}
+}
+
+// TestAddSource_OverflowInterval_Rejected pins TASK-232/ISS-230: an interval at
+// or above the Duration-overflow threshold would make the scheduler treat the
+// source as always-due (fetch storm). The domain boundary must reject it, along
+// with any value above the documented 30-day cap.
+func TestAddSource_OverflowInterval_Rejected(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewService(repo)
+
+	for _, interval := range []int{10_000_000_000, 9_223_372_037, int(^uint(0) >> 1), MaxSourceIntervalSeconds + 1} {
+		err := svc.AddSource(&DataSource{
+			Name:     "overflow-interval",
+			URL:      "https://api.example.com",
+			Interval: interval,
+		})
+		if !errors.Is(err, ErrInvalidSource) {
+			t.Fatalf("expected ErrInvalidSource for interval %d, got %v", interval, err)
+		}
+	}
+
+	// The cap itself is still accepted (boundary is inclusive).
+	if err := svc.AddSource(&DataSource{
+		Name:     "max-interval",
+		URL:      "https://api.example.com",
+		Interval: MaxSourceIntervalSeconds,
+	}); err != nil {
+		t.Fatalf("MaxSourceIntervalSeconds must be accepted, got %v", err)
 	}
 }

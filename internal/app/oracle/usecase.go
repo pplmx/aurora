@@ -236,7 +236,16 @@ func NewDeleteSourceUseCase(repo oracle.Repository) *DeleteSourceUseCase {
 }
 
 func (uc *DeleteSourceUseCase) Execute(id string) error {
-	return uc.repo.DeleteSource(id)
+	// Deleting an unknown id must fail loudly (REST 404, CLI non-zero exit),
+	// not report "deleted": mirror Enable/Disable, whose repo primitives return
+	// not-found and are mapped here (TASK-233, ISS-231).
+	if err := uc.repo.DeleteSource(id); err != nil {
+		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, sqlite.ErrNotFound) {
+			return oracle.ErrSourceNotFound
+		}
+		return err
+	}
+	return nil
 }
 
 type EnableSourceUseCase struct {

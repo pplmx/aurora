@@ -5,13 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-08-11)
 
 **Core value:** Complete, production-ready blockchain toolkit with comprehensive test coverage and operational tooling
-**Current focus:** v1.93 — rounds 132–137 config-truthfulness + surface-parity polish (inert config knobs removed: `db.type` and `lottery.defaultSeedPrefix` were set-but-never-read; sample `aurora.toml` no longer ships dead `[[oracle.sources]]` blocks and now explains `[http]`/`[http.rateLimit]` govern the outbound fetcher, not the API server; `cmd/api` releases DB/event-store handles on the fatal bind-failure path; `oracle source add` gained `--method`/`--path` and `source list` prints Method/Path/Interval; oracle TUI add form now sets method/path/interval with client-side interval validation). Round 138: oracle TUI add form no longer retains stale method/path/interval across re-entry (recreates all six inputs); oracle TUI source detail shows method/path/interval for CLI `source list` parity.
+**Current focus:** v1.93 — rounds 132–137 config-truthfulness + surface-parity polish (inert config knobs removed: `db.type` and `lottery.defaultSeedPrefix` were set-but-never-read; sample `aurora.toml` no longer ships dead `[[oracle.sources]]` blocks and now explains `[http]`/`[http.rateLimit]` govern the outbound fetcher, not the API server; `cmd/api` releases DB/event-store handles on the fatal bind-failure path; `oracle source add` gained `--method`/`--path` and `source list` prints Method/Path/Interval; oracle TUI add form now sets method/path/interval with client-side interval validation). Round 138: oracle TUI add form no longer retains stale method/path/interval across re-entry (recreates all six inputs); oracle TUI source detail shows method/path/interval for CLI `source list` parity. Round 139 (oracle deep-dive): oracle TUI method/path/interval fields were UNTYPABLE (Update routing only reached the first three inputs — focus showed the cursor but typing was dropped, so the v1.93 parity feature was dead in the TUI); source `interval` gained a 30-day upper bound (values ≥ ~9.22e9 overflowed the scheduler's Duration math into a negative "always-due" interval = fetch storm); deleting an unknown oracle source now reports not-found (REST 404 / CLI non-zero) instead of a silent `200 {"status":"deleted"}`.
 
 ## Current Position
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
-Status: v1.24–v1.88 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh, cancellable scheduler fetches, backup traversal rejection, bounded rate-limiters, unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry, web error-surfacing consistency, oracle/dashboard polling polish, burn-amount isolation, NFT mint context advance)
+Status: v1.24–v1.88 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh, cancellable scheduler fetches, backup traversal rejection, bounded rate-limiters, unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry, web error-surfacing consistency, oracle/dashboard polling polish, burn-amount isolation, NFT mint context advance; round 139: oracle TUI 6-field typability, bounded oracle interval, delete-unknown-source 404/CLI error)
+Last activity: 2026-09-01 — round 139 oracle input/UX deep-dive (TASK-231/232/233,
+  ISS-229/230/231):
+
+  1. The oracle TUI add-source form's method/path/interval fields accepted no
+     typed input: the Update loop routed keys only through name/url/type, so
+     `updateInputFocus` focus on fields 3..5 showed the cursor but keys were
+     dropped and handleAddSource silently read defaults. All six fields now
+     receive Update; regression test types POST / bitcoin.usd / 300 into the
+     three previously-dead fields (TASK-231, ISS-229).
+  2. A source `interval` above ~9.22e9 s overflowed the scheduler's
+     `time.Duration(src.Interval) * time.Second` to a negative duration treated
+     as "always due" (fetch storm). AddSource now rejects intervals over a
+     documented 30-day `MaxSourceIntervalSeconds` at the shared domain edge so
+     REST/CLI/web all inherit it (TASK-232, ISS-230).
+  3. Deleting an unknown oracle source reported success everywhere: the use
+     case passed delete straight to the repo (no rows-affected check), so REST
+     returned `200 {"status":"deleted"}` and the CLI printed success while
+     enable/disable/latest 404'd. DeleteSource (service + sqlite/inmem repos +
+     use case) now reports not-found; handler 404s and the CLI exits non-zero
+     with "source not found" (TASK-233, ISS-231).
+
 Last activity: 2026-09-01 — v1.93 closed (rounds 132–137 config-truthfulness
   + surface-parity deep-dive: three config knobs proved set-but-never-read
   (`db.type`, `lottery.defaultSeedPrefix`) or dead-by-design (sample

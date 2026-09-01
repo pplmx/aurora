@@ -423,13 +423,19 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Update textinput models
+	// Update textinput models. All six fields: the method/path/interval inputs
+	// were added with focus support (updateInputFocus) but must also receive
+	// Update here or typed keys never land and handleAddSource silently reads
+	// empty defaults (TASK-231, ISS-229). Mirror the name/url/type routing.
 	if m.view == "addSource" {
-		var cmdName, cmdURL, cmdType tea.Cmd
+		var cmdName, cmdURL, cmdType, cmdMethod, cmdPath, cmdInterval tea.Cmd
 		m.sourceInputName, cmdName = m.sourceInputName.Update(msg)
 		m.sourceInputURL, cmdURL = m.sourceInputURL.Update(msg)
 		m.sourceInputType, cmdType = m.sourceInputType.Update(msg)
-		cmd = tea.Batch(cmdName, cmdURL, cmdType)
+		m.sourceInputMethod, cmdMethod = m.sourceInputMethod.Update(msg)
+		m.sourceInputPath, cmdPath = m.sourceInputPath.Update(msg)
+		m.sourceInputInterval, cmdInterval = m.sourceInputInterval.Update(msg)
+		cmd = tea.Batch(cmdName, cmdURL, cmdType, cmdMethod, cmdPath, cmdInterval)
 	}
 
 	if m.view == "fetch" {

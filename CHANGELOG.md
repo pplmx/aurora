@@ -38,6 +38,26 @@ documented in their per-milestone ROADMAP files.
   attempt's `method`/`path`/`interval` values stayed on screen — the
   token/nft/lottery TUIs clear every field on form entry, so the oracle form
   now recreates all six inputs (TASK-228; ISS-226).
+- **The oracle TUI add-source form's method/path/interval fields accepted no
+  typed input**: the round-137/138 parity added the three fields with focus
+  support, but the `Update` loop only forwarded keypresses to name/url/type,
+  so focus on the new fields (3..5) showed the cursor yet typing did nothing
+  and `handleAddSource` silently defaulted method→GET / path→empty /
+  interval→60. All six fields now receive `Update` and a regression test types
+  into each (TASK-231; ISS-229).
+- **An oracle source `interval` had no upper bound**: a value ≥ ~9.22e9
+  overflowed the scheduler's `time.Duration` arithmetic to a negative interval
+  that was treated as "always due", turning that source into a fetch-storm on
+  every check tick. `AddSource` now rejects intervals above a documented
+  30-day cap (`MaxSourceIntervalSeconds`) at the shared domain boundary — the
+  REST/CLI/web surfaces all inherit it (TASK-232; ISS-230).
+- **Deleting a non-existent oracle source reported success everywhere**: the
+  domain use case passed delete-through to the repo (`DELETE ... WHERE id = ?`
+  with no rows-affected check), so `DELETE /oracle/sources/<unknown>` returned
+  `200 {"status":"deleted"}` and the CLI printed success — while every sibling
+  op (enable/disable/latest) returns 404. `DeleteSource` now reports not-found
+  (service + repo + use case), the REST handler returns 404, and the CLI exits
+  non-zero with "source not found" (TASK-233; ISS-231).
 
 ### Added
 
