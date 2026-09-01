@@ -332,3 +332,55 @@ func TestScheduler_CancelInterruptsInFlightFetch(t *testing.T) {
 		t.Fatalf("expected only the in-flight source to be fetched after cancel, got %d calls", atomic.LoadInt64(&calls))
 	}
 }
+
+// TestScheduler_ReconcileRemovesDeletedSource pins TASK-242/ISS-240: deleting a
+// source at runtime must drop its per-source bookkeeping from the scheduler —
+// otherwise /oracle/health and /metrics/oracle advertise sources that no longer
+// exist and the maps (lastFetch, stats, failStreak, nextAttempt) grow without
+// bound across create/delete cycles.
+func TestScheduler_ReconcileRemovesDeletedSource(t *testing.T) {
+	now := time.Unix(1000, 0)
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "keep", Enabled: true, Interval: 60},
+		{ID: "doomed", Enabled: true, Interval: 60},
+	}}
+	s := NewScheduler(repo, func(_ context.Context, id string) error { return nil }, time.Second, func() time.Time { return now })
+	// "doomed" fails on every attempt, so it also accrues failStreak/nextAttempt
+	// state alongside its stats entry.
+	s.execute = func(_ context.Context, id string) error {
+		if id == "doomed" {
+			return errors.New("boom")
+		}
+		return nil
+	}
+
+	s.pass(context.Background())
+	if got := len(s.Stats()); got != 2 {
+		t.Fatalf("after first pass Stats() has %d entries, want 2", got)
+	}
+	s.mu.Lock()
+	_, hadStreak := s.failStreak["doomed"]
+	_, hadNext := s.nextAttempt["doomed"]
+	s.mu.Unlock()
+	if !hadStreak || !hadNext {
+		t.Fatal("doomed source should have accrued failure/backoff state before deletion")
+	}
+
+	// Delete "doomed" from the repo; the next pass must prune it everywhere.
+	repo.sources = repo.sources[:1]
+	s.pass(context.Background())
+
+	stats := s.Stats()
+	if len(stats) != 1 || stats[0].SourceID != "keep" {
+		t.Fatalf("after delete Stats() must contain only the live source, got %v", stats)
+	}
+	s.mu.Lock()
+	_, hasStats := s.stats["doomed"]
+	_, hasStreak := s.failStreak["doomed"]
+	_, hasNext := s.nextAttempt["doomed"]
+	_, hasLast := s.lastFetch["doomed"]
+	s.mu.Unlock()
+	if hasStats || hasStreak || hasNext || hasLast {
+		t.Fatal("deleted source must be fully pruned from scheduler bookkeeping")
+	}
+}

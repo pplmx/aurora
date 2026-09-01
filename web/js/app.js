@@ -557,6 +557,15 @@ function votingApp() {
                 console.error(e);
             }
         },
+        // The voting page has no polling, so a transient failure at init leaves
+        // candidatesFailed/sessionsFailed until a full reload — which disables
+        // Cast Vote permanently in-page. The Retry button re-runs the loaders
+        // instead (TASK-243, ISS-241).
+        async retryLoad() {
+            this.loading = true;
+            await Promise.all([this.loadCandidates(), this.loadSessions()]);
+            this.loading = false;
+        },
         async loadSessions() {
             try {
                 const res = await apiFetch('/api/v1/voting/sessions');

@@ -114,6 +114,14 @@ func (s *Scheduler) pass(ctx context.Context) {
 		return
 	}
 
+	// A source deleted at runtime must drop out of the scheduler's bookkeeping:
+	// otherwise /oracle/health and /metrics/oracle advertise sources that no
+	// longer exist and lastFetch/stats/failStreak/nextAttempt grow without
+	// bound across create/delete cycles (a recreated id would also inherit the
+	// old source's stale failure/backoff state). This pass's source list is the
+	// authoritative live set (TASK-242, ISS-240).
+	s.reconcile(sources)
+
 	first := true
 	for _, src := range sources {
 		// Shutdown mid-pass: stop scheduling further sources instead of
@@ -199,6 +207,42 @@ func (s *Scheduler) seed() {
 			continue
 		}
 		s.lastFetch[src.ID] = time.Unix(d.Timestamp, 0)
+	}
+}
+
+// reconcile prunes per-source bookkeeping (lastFetch, stats, failStreak,
+// nextAttempt) for ids not present in live. Called from pass with the
+// repository's current source list, so a runtime deletion stops appearing in
+// /oracle/health and /metrics/oracle and the maps stay bounded (TASK-242,
+// ISS-240). Safe to call from one goroutine at a time (pass is the only
+// caller of the maps other than Run's fetch completion).
+func (s *Scheduler) reconcile(live []*oracle.DataSource) {
+	liveIDs := make(map[string]struct{}, len(live))
+	for _, src := range live {
+		liveIDs[src.ID] = struct{}{}
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id := range s.stats {
+		if _, ok := liveIDs[id]; !ok {
+			delete(s.stats, id)
+		}
+	}
+	for id := range s.lastFetch {
+		if _, ok := liveIDs[id]; !ok {
+			delete(s.lastFetch, id)
+		}
+	}
+	for id := range s.failStreak {
+		if _, ok := liveIDs[id]; !ok {
+			delete(s.failStreak, id)
+		}
+	}
+	for id := range s.nextAttempt {
+		if _, ok := liveIDs[id]; !ok {
+			delete(s.nextAttempt, id)
+		}
 	}
 }
 
