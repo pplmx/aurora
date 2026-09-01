@@ -13,6 +13,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	httpfetcher "github.com/pplmx/aurora/internal/infra/http"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -89,6 +90,14 @@ func TestWriteUseCaseError_DomainError(t *testing.T) {
 			err:        oracle.ErrSourceNotFound,
 			wantStatus: http.StatusNotFound,
 			wantCode:   "SOURCE_NOT_FOUND",
+		},
+		{
+			// TASK-240, ISS-238: a fetch throttled by the per-source rate
+			// limiter is a 429 client error, never a masked 500.
+			name:       "rate limited oracle fetch",
+			err:        httpfetcher.ErrRateLimited,
+			wantStatus: http.StatusTooManyRequests,
+			wantCode:   "RATE_LIMITED",
 		},
 		{
 			name:       "session not found",

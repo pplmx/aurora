@@ -11,6 +11,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	tokenerrors "github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	httpfetcher "github.com/pplmx/aurora/internal/infra/http"
 )
 
 type ErrorResponse struct {
@@ -88,6 +89,11 @@ var errorClassification = []struct {
 	{oracle.ErrInvalidSource, http.StatusBadRequest, "INVALID_SOURCE"},
 	{oracle.ErrSourceNotFound, http.StatusNotFound, "SOURCE_NOT_FOUND"},
 	{oracle.ErrSourceDisabled, http.StatusBadRequest, "SOURCE_DISABLED"},
+	// A fetch throttled by the outbound per-source rate limiter (the shared
+	// oracle fetcher) is the client pacing against its own documented budget:
+	// a 429 client error with the real cause, not a masked 500 (TASK-240,
+	// ISS-238).
+	{httpfetcher.ErrRateLimited, http.StatusTooManyRequests, "RATE_LIMITED"},
 
 	// Voting domain errors
 	{voting.ErrSessionNotFound, http.StatusNotFound, "SESSION_NOT_FOUND"},

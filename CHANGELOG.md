@@ -97,6 +97,24 @@ documented in their per-milestone ROADMAP files.
   conflict on every healthy restart (until a block was eventually appended).
   Genesis is now seeded only into an empty blocks table (`seedGenesisIfEmpty`,
   keyed on any-persisted-row) with a regression test (TASK-238; ISS-236).
+- **Oracle source request headers accepted newlines**: the header parser set
+  names/values verbatim and claimed "JSON cannot carry a raw CRLF
+  untransformed" — but Go JSON escape sequences (`"\r\n"`) decode to literal
+  CR/LF bytes, an operator-held header-injection vector toward the upstream
+  provider (modern net/http refuses to write such a request, surfacing as a
+  confusing runtime error). Header CR/LF is now rejected at apply time with
+  `INVALID_SOURCE` (TASK-239; ISS-237).
+- **A rate-limited oracle fetch was classified as 500 INTERNAL_ERROR**: the
+  fetcher's `ErrRateLimited` had no entry in `errorClassification`, so a
+  throttled fetch fell through to 500 with the real cause masked. It now maps
+  to `429 RATE_LIMITED` — a truthful client error (TASK-240; ISS-238).
+- **`http.rateLimit` was a no-op at the REST surface**: the oracle Fetch
+  handler built a fresh fetcher (and therefore a fresh per-source
+  `RateLimiter`) on every request, so each call looked like the first of its
+  budget and the documented limit never tripped across REST calls — only the
+  long-lived scheduler fetcher throttled. The handler now shares one fetcher
+  across requests (same model as the scheduler), so the configured budget is
+  enforced at the endpoint that advertises it (TASK-241; ISS-239).
 
 ### Added
 

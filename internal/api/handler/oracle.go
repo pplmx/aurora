@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	httpfetcher "github.com/pplmx/aurora/internal/infra/http"
 )
 
 // defaultQueryLimit is the default limit for oracle data query API responses.
@@ -22,6 +23,12 @@ type OracleHandler struct {
 	repo  oracle.Repository
 	chain oracleapp.ChainInterface
 	stats oracleHealthStats
+	// fetcher is shared across requests so the outbound per-source
+	// http.rateLimit budget actually throttles REST fetches. A fetcher built
+	// per request starts a fresh limiter every time, making the documented
+	// rate limit a no-op at the endpoint that advertises it (TASK-241,
+	// ISS-239). The scheduler already shares one fetcher the same way.
+	fetcher oracleapp.FetcherInterface
 }
 
 // oracleHealthStats is the scheduler's fetch-health surface the health
@@ -33,7 +40,10 @@ type oracleHealthStats interface {
 }
 
 func NewOracleHandler(repo oracle.Repository) *OracleHandler {
-	return &OracleHandler{repo: repo}
+	return &OracleHandler{
+		repo:    repo,
+		fetcher: httpfetcher.NewFetcher(),
+	}
 }
 
 // SetChain wires the blockchain writer used to record fetched data on-chain.
@@ -195,7 +205,7 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uc := oracleapp.NewFetchDataUseCase(h.repo)
+	uc := oracleapp.NewFetchDataUseCaseWithDeps(h.repo, h.fetcher)
 	uc.SetChain(h.chain)
 	result, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: req.Source})
 	if err != nil {

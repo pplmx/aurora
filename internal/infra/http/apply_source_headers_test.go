@@ -53,3 +53,25 @@ func TestApplySourceHeaders_InvalidJSON(t *testing.T) {
 		t.Errorf("expected an error wrapping oracle.ErrInvalidSource, got %v", err)
 	}
 }
+
+// TestApplySourceHeaders_RejectsCRLF pins TASK-239/ISS-237: Go JSON escape
+// sequences ("\r\n") decode to literal CR/LF bytes, so a header name or value
+// could smuggle extra header lines toward the upstream provider. Modern
+// net/http refuses to write such a request (a confusing runtime fetch error),
+// so applySourceHeaders must reject CR/LF up front as an invalid source.
+func TestApplySourceHeaders_RejectsCRLF(t *testing.T) {
+	for _, tc := range []struct {
+		name, json string
+	}{
+		{"value CRLF", `{"X-Test": "v\r\nInjected: 1"}`},
+		{"name CRLF", `{"X-Bad\r\nX-Injected": "v"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodGet, "https://example.com/data", nil)
+			err := applySourceHeaders(req, tc.json)
+			if !errors.Is(err, oracle.ErrInvalidSource) {
+				t.Fatalf("CRLF header must be rejected as invalid source, got %v", err)
+			}
+		})
+	}
+}
