@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 135,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T11:22:31+00:00",
+  "updated_at": "2026-09-01T12:23:07+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -10038,7 +10038,7 @@
       "version": 3,
       "created_at": "2026-09-01T06:36:04+00:00",
       "updated_at": "2026-09-01T11:17:46+00:00",
-      "touched_round": 134,
+      "touched_round": 135,
       "category": "correctness",
       "severity": 0.8,
       "confidence": 0.7,
@@ -10085,6 +10085,41 @@
         "separate reservation table / sequence (overkill: height PK provides the atomic UNIQUE guard)",
         "give up on multi-process appends and require a lock file (rejects a documented operating norm)"
       ]
+    },
+    "CHG-237": {
+      "id": "CHG-237",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T12:20:12+00:00",
+      "updated_at": "2026-09-01T12:20:12+00:00",
+      "touched_round": 135,
+      "commit": "439ce06",
+      "title": "Close TASK-244 review gaps: phantom-tail seam rebuild in appendBlocksFromDB (HIGH), error-code-based unique detection (MEDIUM), exact 5-attempt retry bound (MEDIUM), no persist hooks on CREATE TABLE failure (LOW)"
+    },
+    "EV-051": {
+      "id": "EV-051",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T12:23:07+00:00",
+      "updated_at": "2026-09-01T12:23:07+00:00",
+      "touched_round": 135,
+      "source": "439ce06 TestBlockChain_SyncFromDB_PhantomTailRebuild",
+      "title": "Non-conflict persist failure + concurrent peer commit at the seam no longer corrupts the ledger: seam check rebuilds the in-memory chain from the authoritative DB (regression test green)",
+      "confidence": 1.0
+    },
+    "EV-052": {
+      "id": "EV-052",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T12:23:07+00:00",
+      "updated_at": "2026-09-01T12:23:07+00:00",
+      "touched_round": 135,
+      "source": "manual /tmp/dupcheck: go-sqlite3 duplicate INTEGER PRIMARY KEY returns sqlite3.Error value with ExtendedCode=ErrConstraintPrimaryKey(1555)",
+      "title": "Height-unique detection must match ErrConstraintPrimaryKey via value-typed errors.As, not ErrConstraintUnique nor message substring",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -16009,6 +16044,12 @@
       "to": "TASK-244",
       "type": "governs",
       "created_at": "2026-09-01T11:16:33+00:00"
+    },
+    {
+      "from": "CHG-237",
+      "to": "TASK-244",
+      "type": "implements",
+      "created_at": "2026-09-01T12:20:12+00:00"
     }
   ]
 }
