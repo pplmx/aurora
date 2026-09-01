@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 133,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T05:30:51+00:00",
+  "updated_at": "2026-09-01T05:59:32+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -9829,6 +9829,120 @@
       "touched_round": 133,
       "commit": "5df1e07",
       "title": "Blockchain init: seedGenesisIfEmpty keyed on any-persisted-row (no re-insert of height 0 on reload) + unit test"
+    },
+    "ISS-237": {
+      "id": "ISS-237",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T05:40:11+00:00",
+      "updated_at": "2026-09-01T05:59:32+00:00",
+      "touched_round": 133,
+      "title": "Oracle source request headers can carry CRLF injection: applySourceHeaders sets header names/values verbatim from the source JSON (fetcher.go), and the comment claims \"JSON cannot carry a raw CRLF untransformed\" — but Go JSON escape sequences (\\r\\n) decode to literal CR/LF bytes, so an operator with add-write can put a newline into a header name/value. Modern Go http-client rejects such values at request-write time, so the wire is not actually injected, but the failure surfaces as a confusing runtime fetch error and the in-code security claim is false. Fix: reject CR/LF in header names/values at apply time (INVALID_SOURCE) and correct the comment. Source: internal/infra/http/fetcher.go applySourceHeaders (verified read)",
+      "severity": 0.35
+    },
+    "ISS-238": {
+      "id": "ISS-238",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T05:40:11+00:00",
+      "updated_at": "2026-09-01T05:59:32+00:00",
+      "touched_round": 133,
+      "title": "A rate-limited oracle fetch is classified as 500 INTERNAL_ERROR: the fetcher returns ErrRateLimited (internal/infra/http) but errorClassification has no mapping, so classifyError falls through to 500 and writeUseCaseError replaces the real cause with a generic internal server error; a throttled fetch should be a 429 client error (RATE_LIMITED). Source: internal/api/handler/helpers.go errorClassification (verified read)",
+      "severity": 0.55
+    },
+    "ISS-239": {
+      "id": "ISS-239",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T05:40:11+00:00",
+      "updated_at": "2026-09-01T05:59:32+00:00",
+      "touched_round": 133,
+      "title": "http.rateLimit is ineffective at the REST boundary: the oracle Fetch handler calls NewFetchDataUseCase(h.repo) per request, which constructs a fresh http.NewFetcher() with a brand-new RateLimiter — every request is the \"first\" request of its limiter, so the documented per-source http.rateLimit.requests budget never trips across REST calls; only the long-lived scheduler fetcher actually throttles. Source: internal/api/handler/oracle.go Fetch + internal/app/oracle/usecase.go NewFetchDataUseCase (verified read)",
+      "severity": 0.6
+    },
+    "TASK-239": {
+      "id": "TASK-239",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T05:40:11+00:00",
+      "updated_at": "2026-09-01T05:59:32+00:00",
+      "touched_round": 133,
+      "category": "security",
+      "severity": 0.4,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "Oracle fetcher: reject CR/LF in source header names and values at applySourceHeaders time (return ErrInvalidSource), correct the false JSON-CRLF comment; add tests",
+      "lock_owner": "round142-fetch",
+      "lock_until": "2026-09-01T06:10:12+00:00"
+    },
+    "TASK-240": {
+      "id": "TASK-240",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T05:40:12+00:00",
+      "updated_at": "2026-09-01T05:59:32+00:00",
+      "touched_round": 133,
+      "category": "dx",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Add ErrRateLimited to errorClassification -> 429 RATE_LIMITED (truthful status, unmasked cause) + classify test",
+      "lock_owner": "round142-fetch",
+      "lock_until": "2026-09-01T06:10:12+00:00"
+    },
+    "TASK-241": {
+      "id": "TASK-241",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T05:40:12+00:00",
+      "updated_at": "2026-09-01T05:59:32+00:00",
+      "touched_round": 133,
+      "category": "core-feature",
+      "severity": 0.6,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "Oracle Fetch handler: hold one shared fetcher so http.rateLimit throttles REST fetches (use NewFetchDataUseCaseWithDeps); assert limiter continuity across requests in a test",
+      "lock_owner": "round142-fetch",
+      "lock_until": "2026-09-01T06:10:12+00:00"
+    },
+    "CHG-230": {
+      "id": "CHG-230",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-09-01T05:58:01+00:00",
+      "updated_at": "2026-09-01T05:58:01+00:00",
+      "touched_round": 133,
+      "commit": "db6c0b0",
+      "title": "Oracle fetcher applySourceHeaders rejects CR/LF in header names/values (INVALID_SOURCE) + tests"
+    },
+    "CHG-231": {
+      "id": "CHG-231",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-09-01T05:58:01+00:00",
+      "updated_at": "2026-09-01T05:58:01+00:00",
+      "touched_round": 133,
+      "commit": "db6c0b0",
+      "title": "errorClassification maps ErrRateLimited -> 429 RATE_LIMITED + classify test"
+    },
+    "CHG-232": {
+      "id": "CHG-232",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-09-01T05:58:01+00:00",
+      "updated_at": "2026-09-01T05:58:01+00:00",
+      "touched_round": 133,
+      "commit": "db6c0b0",
+      "title": "Oracle Fetch handler shares one fetcher across requests so http.rateLimit throttles REST (WithDeps) + test"
     }
   },
   "edges": [
@@ -15591,6 +15705,78 @@
       "to": "TASK-238",
       "type": "implements",
       "created_at": "2026-09-01T05:30:51+00:00"
+    },
+    {
+      "from": "TASK-239",
+      "to": "ISS-237",
+      "type": "addresses",
+      "created_at": "2026-09-01T05:40:12+00:00"
+    },
+    {
+      "from": "TASK-240",
+      "to": "ISS-238",
+      "type": "addresses",
+      "created_at": "2026-09-01T05:40:12+00:00"
+    },
+    {
+      "from": "TASK-241",
+      "to": "ISS-239",
+      "type": "addresses",
+      "created_at": "2026-09-01T05:40:12+00:00"
+    },
+    {
+      "from": "ISS-237",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T05:40:12+00:00"
+    },
+    {
+      "from": "ISS-238",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T05:40:12+00:00"
+    },
+    {
+      "from": "ISS-239",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-09-01T05:40:12+00:00"
+    },
+    {
+      "from": "CHG-230",
+      "to": "ISS-237",
+      "type": "resolves",
+      "created_at": "2026-09-01T05:59:32+00:00"
+    },
+    {
+      "from": "CHG-230",
+      "to": "TASK-239",
+      "type": "implements",
+      "created_at": "2026-09-01T05:59:32+00:00"
+    },
+    {
+      "from": "CHG-231",
+      "to": "ISS-238",
+      "type": "resolves",
+      "created_at": "2026-09-01T05:59:32+00:00"
+    },
+    {
+      "from": "CHG-231",
+      "to": "TASK-240",
+      "type": "implements",
+      "created_at": "2026-09-01T05:59:32+00:00"
+    },
+    {
+      "from": "CHG-232",
+      "to": "ISS-239",
+      "type": "resolves",
+      "created_at": "2026-09-01T05:59:32+00:00"
+    },
+    {
+      "from": "CHG-232",
+      "to": "TASK-241",
+      "type": "implements",
+      "created_at": "2026-09-01T05:59:32+00:00"
     }
   ]
 }
