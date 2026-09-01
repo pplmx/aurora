@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 133,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T06:29:53+00:00",
+  "updated_at": "2026-09-01T06:37:23+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -10019,6 +10019,33 @@
       "touched_round": 133,
       "commit": "cc81476",
       "title": "Web voting: in-page Retry (retryLoad) un-sticks Cast Vote after a transient candidates/sessions load failure + Node regression test"
+    },
+    "ISS-242": {
+      "id": "ISS-242",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T06:36:04+00:00",
+      "updated_at": "2026-09-01T06:36:04+00:00",
+      "touched_round": 133,
+      "title": "Multi-process writes to a shared chain DB silently overwrite committed blocks: appendBlock derives height := int64(len(c.Blocks)) from the process-local in-memory slice (block.go:116) and the persist callback is INSERT OR REPLACE keyed on that height (init.go). Two processes sharing ./data/aurora.db (documented norms: the API server + a CLI lottery/oracle command), each boots genesis into a 1-element chain, so both compute height 1 for their first post-reload append and REPLACE the same row — the loser payload is silently lost; in-memory chains then diverge (each appends height 2 with its own PrevHash), and the next restart fails VerifyIntegrity. Not merely dropped: the tampered ledger line surfaces as persistent corruption detected only by chain-hash verification. Fix needs a height-reservation / DB-authoritative-height design (revisit DEC-002); registered as a design task. Source: internal/domain/blockchain/block.go:103-151 + init.go persist (verified read)",
+      "severity": 0.8
+    },
+    "TASK-244": {
+      "id": "TASK-244",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-09-01T06:36:04+00:00",
+      "updated_at": "2026-09-01T06:36:04+00:00",
+      "touched_round": 133,
+      "category": "correctness",
+      "severity": 0.8,
+      "confidence": 0.7,
+      "effort": 5,
+      "title": "Blockchain multi-process height collision: design + implement DB-authoritative height reservation (verify DB high-water mark before append; ON CONFLICT policy + reconciliation) so a second process cannot silently REPLACE a committed block. Plan a dedicated round (revisit DEC-002); test via two chain instances over one DB file",
+      "lock_owner": "round144-design",
+      "lock_until": "2026-09-01T07:06:04+00:00"
     }
   },
   "edges": [
@@ -15907,6 +15934,18 @@
       "to": "TASK-243",
       "type": "implements",
       "created_at": "2026-09-01T06:29:53+00:00"
+    },
+    {
+      "from": "TASK-244",
+      "to": "ISS-242",
+      "type": "addresses",
+      "created_at": "2026-09-01T06:36:04+00:00"
+    },
+    {
+      "from": "ISS-242",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-09-01T06:36:04+00:00"
     }
   ]
 }
