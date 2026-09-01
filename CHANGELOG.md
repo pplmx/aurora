@@ -129,6 +129,28 @@ documented in their per-milestone ROADMAP files.
   un-stick it. The page now offers an in-page `↻ Retry` that re-runs the
   candidates/sessions loaders once the API recovers (TASK-243; ISS-241,
   regression test executes the shipped JS in Node).
+- **Two processes sharing the chain DB silently overwrote committed blocks**:
+  the API server and a CLI lottery/oracle command both boot a process-local
+  `BlockChain`, so each computes the next height from its own `len(Blocks)` —
+  when both booted genesis-only and both appended "height 1", the persist hook
+  (`INSERT OR REPLACE` keyed on height) silently replaced the first process's
+  row, losing its payload; in-memory chains then diverged and the next restart
+  failed `VerifyIntegrity`. Heights are now DB-authoritative: `persist` uses a
+  plain INSERT and maps the height UNIQUE conflict to `ErrHeightConflict` (with
+  a code-level, not message-substring, match); `appendBlock` re-syncs the
+  in-memory chain from the shared DB before reserving, and on a lost height
+  race drops its candidate and retries at the true next free height (bounded).
+  The reseam check also rebuilds from the ledger when a prior non-conflict
+  persist failure left a phantom tail that a peer's commit invisibly diverged
+  from (TASK-244/TASK-245-design; ISS-242, plus review-follow-up).
+- **`AsyncEventBus.Publish` could report success for a silently dropped
+  event**: `Publish` checked `closed` and then sent with no synchronization
+  against `Close`, so a publish racing a close could pass the check, have the
+  consumer drain-and-exit, then land its event in the buffer after the
+  consumer was gone — returning nil while the event was never delivered (a
+  silent loss the audit/outbox layers rely on never happening). The
+  closed-check + send and the close now serialize on a mutex, making "every
+  successful publish is delivered" an exact invariant (ISS-243).
 
 ### Added
 
