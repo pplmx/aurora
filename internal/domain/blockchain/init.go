@@ -105,11 +105,20 @@ func InitBlockChain() *BlockChain {
 				logger.Error().Err(err).Msg("Failed to create blocks table")
 			}
 
+			// persisted tracks whether ANY block row exists in the blocks table
+			// (including the height-0 genesis row). It drives the seed-below:
+			// once genesis is stored, a later boot that reloads only genesis in
+			// memory (len==1) must not try to INSERT OR REPLACE... a plain
+			// INSERT of height 0 again — that would hit the PRIMARY KEY every
+			// start and log a spurious "Failed to insert genesis block" on an
+			// otherwise healthy restart (TASK-238, ISS-236).
+			persisted := false
 			rows, err := db.Query("SELECT height, hash, previous_hash, data, nonce, timestamp FROM blocks ORDER BY height")
 			if err != nil {
 				logger.Error().Err(err).Msg("Failed to query blocks from database")
 			} else {
 				for rows.Next() {
+					persisted = true
 					var block Block
 					var hash, prevHash, data string
 					if err := rows.Scan(&block.Height, &hash, &prevHash, &data, &block.Nonce, &block.Timestamp); err != nil {
@@ -140,17 +149,7 @@ func InitBlockChain() *BlockChain {
 				}
 			}
 
-			if len(chain.Blocks) <= 1 {
-				stmt, err := db.Prepare("INSERT INTO blocks (height, hash, previous_hash, data, nonce, timestamp, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-				if err != nil {
-					logger.Error().Err(err).Msg("Failed to prepare block insert statement")
-				} else {
-					block := chain.Blocks[0]
-					if _, err := stmt.Exec(block.Height, string(block.Hash), string(block.PrevHash), string(block.Data), block.Nonce, block.Timestamp, block.Timestamp); err != nil {
-						logger.Error().Err(err).Msg("Failed to insert genesis block")
-					}
-				}
-			}
+			seedGenesisIfEmpty(db, chain, persisted)
 
 			// Wire persistence: every block appended by AddBlock is written to
 			// the blocks table so heights remain monotonic across restarts.
@@ -176,6 +175,29 @@ func GetBlockChain() *BlockChain {
 		return InitBlockChain()
 	}
 	return instance
+}
+
+// seedGenesisIfEmpty writes the in-memory genesis block (Blocks[0]) to the
+// blocks table ONLY when no block row exists yet. It is keyed on `persisted`
+// (did the reload above read any row, including the height-0 genesis row?)
+// rather than chain length: after a reload the h0 row was skipped into memory,
+// so the chain is "genesis-only" again — the old `len(Blocks) <= 1` guard
+// stayed true and re-inserted height 0 on every boot, tripping the PRIMARY KEY
+// and logging a false "Failed to insert genesis block" (TASK-238, ISS-236).
+func seedGenesisIfEmpty(db *sql.DB, chain *BlockChain, persisted bool) {
+	if persisted {
+		return
+	}
+	stmt, err := db.Prepare("INSERT INTO blocks (height, hash, previous_hash, data, nonce, timestamp, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to prepare block insert statement")
+		return
+	}
+	defer func() { _ = stmt.Close() }()
+	block := chain.Blocks[0]
+	if _, err := stmt.Exec(block.Height, string(block.Hash), string(block.PrevHash), string(block.Data), block.Nonce, block.Timestamp, block.Timestamp); err != nil {
+		logger.Error().Err(err).Msg("Failed to insert genesis block")
+	}
 }
 
 func ResetForTest() {
