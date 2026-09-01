@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 133,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T04:55:13+00:00",
+  "updated_at": "2026-09-01T05:11:39+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 127,
+      "touched_round": 133,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -9639,6 +9639,120 @@
       "touched_round": 133,
       "commit": "c571a46",
       "title": "Oracle DeleteSource reports not-found (service+repo+usecase) so REST 404s and CLI fails on unknown id + tests"
+    },
+    "ISS-232": {
+      "id": "ISS-232",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T04:59:26+00:00",
+      "updated_at": "2026-09-01T05:11:39+00:00",
+      "touched_round": 133,
+      "title": "Dashboard integrity/oracle cards regress to ? on any transient poll failure: loadBlockchain (app.js:334) and loadOracleHealth (app.js:347) set stats.integrity/stats.oracle=? unconditionally in catch, while every sibling loader guards with if (!this.loaded) to keep a previously-seen real value across transient API blips (TASK-151 keep-prior policy). A 15s poll failure blanks OK / N OK to ?. Source: web/js/app.js:333-347 (verified read)",
+      "severity": 0.6
+    },
+    "ISS-233": {
+      "id": "ISS-233",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T04:59:26+00:00",
+      "updated_at": "2026-09-01T05:11:39+00:00",
+      "touched_round": 133,
+      "title": "Token web transfer/transferFrom never advance the shared owner context to the recipient: transfer (app.js:818) and transferFrom (app.js:858) only stringify the response; mint advances owner+xFrom to data.to (the TASK-150 advance contract, ISS-150) and the NFT transfer advances owner. So after a successful transfer the Balance/History/Allowance/Burn forms still key off the sender, and Get Balance shows the drained sender balance that reads as \"transfer failed\". Source: web/js/app.js:818-827,858-867 verified; TransferResponse has json:to (internal/app/token/dto.go:50)",
+      "severity": 0.55
+    },
+    "ISS-234": {
+      "id": "ISS-234",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T04:59:26+00:00",
+      "updated_at": "2026-09-01T05:11:39+00:00",
+      "touched_round": 133,
+      "title": "Voting session-controls form: pressing Enter in the Session ID field fires Start Session because the form submit handler is startSession (voting.html:120-127), even when the operator typed the ID intending to end a session. Backend status semantics (end->active reopen) are intended (DEC-004), but the accidental implicit submit is a UI foot-gun that can silently reactivate an ended election. Source: web/voting.html:120-127 (verified read)",
+      "severity": 0.55
+    },
+    "TASK-234": {
+      "id": "TASK-234",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T04:59:26+00:00",
+      "updated_at": "2026-09-01T05:11:39+00:00",
+      "touched_round": 133,
+      "category": "dx",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Web dashboard: guard loadBlockchain/loadOracleHealth catch with if (!this.loaded) so integrity/oracle cards keep the last good value across transient poll failures (mirror loadSessions/loadLotteries)",
+      "lock_owner": "round140-web",
+      "lock_until": "2026-09-01T05:30:02+00:00"
+    },
+    "TASK-235": {
+      "id": "TASK-235",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T04:59:26+00:00",
+      "updated_at": "2026-09-01T05:11:39+00:00",
+      "touched_round": 133,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Web token: after a successful transfer/transferFrom parse data.to and advance the shared owner (+ xFrom on transfer) to the recipient, then refresh balance — mirroring mint (TASK-150 contract)",
+      "lock_owner": "round140-web",
+      "lock_until": "2026-09-01T05:30:02+00:00"
+    },
+    "TASK-236": {
+      "id": "TASK-236",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-09-01T04:59:26+00:00",
+      "updated_at": "2026-09-01T05:11:39+00:00",
+      "touched_round": 133,
+      "category": "dx",
+      "severity": 0.55,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "Web voting: prevent Enter in the Session ID input from implicitly submitting (firing startSession); operator must click Start/End explicitly",
+      "lock_owner": "round140-web",
+      "lock_until": "2026-09-01T05:30:02+00:00"
+    },
+    "CHG-225": {
+      "id": "CHG-225",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T05:11:16+00:00",
+      "updated_at": "2026-09-01T05:11:16+00:00",
+      "touched_round": 133,
+      "commit": 5111084,
+      "title": "Web dashboard: loadBlockchain/loadOracleHealth keep prior value on transient poll failure (if !this.loaded guards) + Node regression test"
+    },
+    "CHG-226": {
+      "id": "CHG-226",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T05:11:16+00:00",
+      "updated_at": "2026-09-01T05:11:16+00:00",
+      "touched_round": 133,
+      "commit": 5111084,
+      "title": "Web token: transfer/transferFrom advance shared owner (+ xFrom) to recipient and refresh balance after success"
+    },
+    "CHG-227": {
+      "id": "CHG-227",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T05:11:17+00:00",
+      "updated_at": "2026-09-01T05:11:17+00:00",
+      "touched_round": 133,
+      "commit": 5111084,
+      "title": "Web voting: Enter in Session ID input is inert (no implicit Start submit); explicit buttons only"
     }
   },
   "edges": [
@@ -15287,6 +15401,72 @@
       "to": "TASK-233",
       "type": "implements",
       "created_at": "2026-09-01T04:55:13+00:00"
+    },
+    {
+      "from": "ISS-232",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-09-01T05:00:02+00:00"
+    },
+    {
+      "from": "ISS-233",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-09-01T05:00:02+00:00"
+    },
+    {
+      "from": "ISS-234",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-09-01T05:00:02+00:00"
+    },
+    {
+      "from": "TASK-235",
+      "to": "ISS-233",
+      "type": "addresses",
+      "created_at": "2026-09-01T05:00:28+00:00"
+    },
+    {
+      "from": "TASK-236",
+      "to": "ISS-234",
+      "type": "addresses",
+      "created_at": "2026-09-01T05:00:28+00:00"
+    },
+    {
+      "from": "CHG-225",
+      "to": "ISS-232",
+      "type": "resolves",
+      "created_at": "2026-09-01T05:11:39+00:00"
+    },
+    {
+      "from": "CHG-225",
+      "to": "TASK-234",
+      "type": "implements",
+      "created_at": "2026-09-01T05:11:39+00:00"
+    },
+    {
+      "from": "CHG-226",
+      "to": "ISS-233",
+      "type": "resolves",
+      "created_at": "2026-09-01T05:11:39+00:00"
+    },
+    {
+      "from": "CHG-226",
+      "to": "TASK-235",
+      "type": "implements",
+      "created_at": "2026-09-01T05:11:39+00:00"
+    },
+    {
+      "from": "CHG-227",
+      "to": "ISS-234",
+      "type": "resolves",
+      "created_at": "2026-09-01T05:11:39+00:00"
+    },
+    {
+      "from": "CHG-227",
+      "to": "TASK-236",
+      "type": "implements",
+      "created_at": "2026-09-01T05:11:39+00:00"
     }
   ]
 }
