@@ -120,7 +120,8 @@
                 <form @submit.prevent="startSession">
                     <div class="form-group">
                         <label>Session ID</label>
-                        <input type="text" x-model="controlSessionId" placeholder="Session ID" required>
+                        <input type="text" x-model="controlSessionId" placeholder="Session ID" required
+                               @keydown.enter.prevent="holdEnterKey">
                     </div>
                     <button type="submit" class="btn-voting" :disabled="busy.startSession">Start Session</button>
                     <button type="button" class="btn-voting" :disabled="busy.endSession" @click="endSession">End Session</button>

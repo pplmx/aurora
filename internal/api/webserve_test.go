@@ -358,3 +358,57 @@ const fs = require('fs');
 	require.NoErrorf(t, err, "web/js/app.js busy guard failed:\n%s", out)
 	require.Contains(t, string(out), "busy-guard-ok", "web/js/app.js withBusy must guard double-submits")
 }
+
+// TestWebUIJS_DashboardKeepPriorOnPollFailure executes the SHIPPED web/js/app.js
+// in Node with a stub fetch that always rejects, and asserts the keep-prior
+// policy (TASK-151) on the dashboard cards: once a real value has been seen
+// (this.loaded is true), a transient poll failure must NOT blank the integrity
+// / oracle cards to "?" — only a card that never loaded marks itself '?'.
+// This is the regression guard for round-140 TASK-234/ISS-232 (the two cards
+// originally blanked unconditionally on every 15s poll hiccup while every
+// sibling loader kept its value). Skips cleanly without node.
+func TestWebUIJS_DashboardKeepPriorOnPollFailure(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js keep-prior check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+// Every API call fails: simulates a transient API blip mid-poll.
+global.fetch = () => Promise.reject(new Error('api down'));
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  // Cards that HAVE seen a real value keep it across the failure.
+  const app = global.dashboardApp();
+  app.loaded = true;                       // something already answered
+  app.stats.integrity = 'OK';
+  app.stats.oracle = '3 OK';
+  await app.loadBlockchain();
+  await app.loadOracleHealth();
+  if (app.stats.integrity !== 'OK') { console.error('integrity must keep OK after a transient failure, got ' + app.stats.integrity); process.exit(1); }
+  if (app.stats.oracle !== '3 OK') { console.error('oracle must keep 3 OK after a transient failure, got ' + app.stats.oracle); process.exit(1); }
+
+  // Cards that never loaded still mark themselves '?'.
+  const fresh = global.dashboardApp();
+  fresh.loaded = false;
+  await fresh.loadBlockchain();
+  await fresh.loadOracleHealth();
+  if (fresh.stats.integrity !== '?') { console.error('never-loaded integrity must be ?, got ' + fresh.stats.integrity); process.exit(1); }
+  if (fresh.stats.oracle !== '?') { console.error('never-loaded oracle must be ?, got ' + fresh.stats.oracle); process.exit(1); }
+  console.log('keep-prior-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "keep_prior_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js keep-prior failed:\n%s", out)
+	require.Contains(t, string(out), "keep-prior-ok", "dashboard integrity/oracle cards must keep prior values across transient poll failures")
+}

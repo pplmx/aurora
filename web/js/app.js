@@ -330,7 +330,11 @@ function dashboardApp() {
                 const report = await (await apiFetch('/api/v1/blockchain/verify')).json();
                 this.stats.integrity = report.valid ? 'OK' : 'BROKEN';
             } catch (e) {
-                this.stats.integrity = '?';
+                // Keep a previously-seen value across transient poll failures,
+                // like every sibling loader (loadLotteries/loadCandidatesStats/
+                // loadSessionsStats): only a card that never loaded marks itself
+                // '?' (TASK-234, ISS-232; TASK-151 keep-prior policy).
+                if (!this.loaded) this.stats.integrity = '?';
                 console.error(e);
             }
             return []; // the ledger card adds no activity row
@@ -343,7 +347,7 @@ function dashboardApp() {
                 const failed = feeds.filter(f => f.failures > 0).length;
                 this.stats.oracle = healthy + ' OK' + (failed ? ' · ' + failed + ' fail' : '');
             } catch (e) {
-                this.stats.oracle = '?';
+                if (!this.loaded) this.stats.oracle = '?';
                 console.error(e);
             }
             return []; // feed health adds no activity row
@@ -691,6 +695,15 @@ function votingApp() {
             this.controlResult = '…ending';
             await this.sessionAction('/api/v1/voting/session/' + encodeURIComponent(this.controlSessionId) + '/end');
         },
+        // The Session ID input is bound to @keydown.enter.prevent so pressing
+        // Enter after typing an ID does NOT implicitly submit the form — the
+        // submit handler is startSession, and an operator finishing a session
+        // control line could otherwise silently reactivate an ended election
+        // (the backend deliberately permits end->active reopen per DEC-004, but
+        // it must be an explicit click on the button, not a typing accident;
+        // TASK-236, ISS-234). The .prevent modifier does the work; the empty
+        // handler keeps the directive's expression self-documenting.
+        holdEnterKey() {},
         async sessionAction(url) {
             try {
                 const res = await apiFetch(url, { method: 'POST' });
@@ -820,6 +833,15 @@ function tokenApp() {
                     token_id: this.tokenId, from: this.xFrom, to: this.xTo,
                     amount: this.xAmount, private_key: this.xPriv
                 });
+                // A successful transfer credits the recipient; advance the
+                // shared owner (Balance/History/Allowance/Burn) and the
+                // Transfer form's From field to that context, then refresh the
+                // balance — mint's TASK-150 advance contract. Without this the
+                // next Get Balance showed the drained sender and read as "the
+                // transfer failed" (TASK-235, ISS-233).
+                const data = JSON.parse(this.xResult);
+                if (data && data.to) { this.owner = data.to; this.xFrom = data.to; }
+                await this.getBalance();
             } catch (e) {
                 this.xResult = 'Error: ' + e.message;
             }
@@ -861,6 +883,13 @@ function tokenApp() {
                     token_id: this.tokenId, owner: this.tfOwner, to: this.tfTo,
                     amount: this.tfAmount, spender: this.tfSpender, spender_key: this.tfSpenderKey
                 });
+                // The tokens now sit with the recipient; advance the shared
+                // owner so the inspection forms read the freshly-funded account
+                // (mint's TASK-150 advance contract). tfOwner is left alone — it
+                // is the payer whose allowance was spent (TASK-235, ISS-233).
+                const data = JSON.parse(this.tfResult);
+                if (data && data.to) this.owner = data.to;
+                await this.getBalance();
             } catch (e) {
                 this.tfResult = 'Error: ' + e.message;
             }

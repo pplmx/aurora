@@ -59,6 +59,29 @@ documented in their per-milestone ROADMAP files.
   (service + repo + use case), the REST handler returns 404, and the CLI exits
   non-zero with "source not found" (TASK-233; ISS-231).
 
+### Fixed
+
+- **Dashboard integrity/oracle cards regressed to "?" on any transient poll
+  failure**: `loadBlockchain`/`loadOracleHealth` blanked their cards
+  unconditionally on every 15s poll hiccup, while every sibling loader
+  (lotteries/candidates/sessions) keeps a previously-seen value per the TASK-151
+  keep-prior policy. A brief API blip no longer hides a known-good "OK"/"N OK" —
+  only a card that never loaded marks itself "?" (TASK-234; ISS-232, regression
+  test runs the shipped JS in Node).
+- **Token web transfers left the shared owner on the sender**: after a
+  successful `transfer`/`transferFrom` the Balance/History/Allowance/Burn forms
+  still keyed off the sender, so the next "Get Balance" showed the drained
+  sender balance and read as a failed transfer. Both now advance the shared
+  `owner` to the recipient (and Transfer's From field) and refresh the balance —
+  the mint/NFT advance-the-context contract (TASK-235; ISS-233).
+- **`voting.html` Session Controls: Enter in the Session ID field fired "Start
+  Session"**: the form's submit handler is `startSession`, so an operator who
+  typed a session ID and pressed Enter to finish the line could silently
+  reactivate an ended election (the backend deliberately permits end→active
+  reopen, but it must be an explicit click, not a typing accident). Enter in
+  that input is now inert; Start/End are explicit button actions (TASK-236;
+  ISS-234).
+
 ### Added
 
 - **Oracle source capabilities reach API/CLI/TUI parity**: `aurora oracle
