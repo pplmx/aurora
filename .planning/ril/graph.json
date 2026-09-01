@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 135,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T12:23:07+00:00",
+  "updated_at": "2026-09-01T13:15:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -10120,6 +10120,64 @@
       "source": "manual /tmp/dupcheck: go-sqlite3 duplicate INTEGER PRIMARY KEY returns sqlite3.Error value with ExtendedCode=ErrConstraintPrimaryKey(1555)",
       "title": "Height-unique detection must match ErrConstraintPrimaryKey via value-typed errors.As, not ErrConstraintUnique nor message substring",
       "confidence": 1.0
+    },
+    "ISS-243": {
+      "id": "ISS-243",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T12:33:36+00:00",
+      "updated_at": "2026-09-01T13:12:41+00:00",
+      "touched_round": 135,
+      "severity": 0.5,
+      "title": "AsyncEventBus.Publish has a check-then-act race with Close: it tests closed.Load() then does a non-blocking send with no synchronization against Close, so a publish that passes the check just before Close runs can write into eventChan AFTER processLoop has drained and exited — Publish returns nil (success) while the event is silently dropped (never delivered or drained). Violates the bus's no-silent-loss contract (async_bus.go:55-66 + 32-53)."
+    },
+    "TASK-245": {
+      "id": "TASK-245",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-01T12:33:36+00:00",
+      "updated_at": "2026-09-01T13:15:47+00:00",
+      "touched_round": 135,
+      "category": "correctness",
+      "severity": 0.55,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "Serialize AsyncEventBus.Publish against Close: guard the closed-check + channel-send with a mutex (or select { send, done }) so a publish cannot return success for an event the consumer will never see; add a stress/race regression test (async_bus.go)"
+    },
+    "COMP-012": {
+      "id": "COMP-012",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T12:36:21+00:00",
+      "updated_at": "2026-09-01T12:36:21+00:00",
+      "touched_round": 135,
+      "title": "internal/infra/events (sync/async/composite event bus, outbox, event store)"
+    },
+    "CHG-238": {
+      "id": "CHG-238",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T13:12:41+00:00",
+      "updated_at": "2026-09-01T13:12:41+00:00",
+      "touched_round": 135,
+      "commit": "7ccd87d",
+      "title": "AsyncEventBus.Publish x Close check-then-act race fixed: mu serializes closed-check+send vs close, so a racing publish cannot report success for an event the consumer never delivers (ISS-243)"
+    },
+    "EV-053": {
+      "id": "EV-053",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T13:12:41+00:00",
+      "updated_at": "2026-09-01T13:12:41+00:00",
+      "touched_round": 135,
+      "source": "7ccd87d TestAsyncEventBus_PublishRacingClose_NeverSilentlyDrops + manual probe (unfixed bus tripped the invariant 11/400 iterations; fixed bus 0/400)",
+      "title": "Old check-then-act Publish vs Close demonstrably dropped events while returning nil; mutex fix makes consumed==success exact",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -16050,6 +16108,30 @@
       "to": "TASK-244",
       "type": "implements",
       "created_at": "2026-09-01T12:20:12+00:00"
+    },
+    {
+      "from": "TASK-245",
+      "to": "ISS-243",
+      "type": "addresses",
+      "created_at": "2026-09-01T12:33:36+00:00"
+    },
+    {
+      "from": "ISS-243",
+      "to": "COMP-012",
+      "type": "located_in",
+      "created_at": "2026-09-01T12:36:21+00:00"
+    },
+    {
+      "from": "CHG-238",
+      "to": "ISS-243",
+      "type": "resolves",
+      "created_at": "2026-09-01T13:12:41+00:00"
+    },
+    {
+      "from": "CHG-238",
+      "to": "TASK-245",
+      "type": "implements",
+      "created_at": "2026-09-01T13:12:41+00:00"
     }
   ]
 }
