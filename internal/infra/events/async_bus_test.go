@@ -143,6 +143,64 @@ func TestAsyncEventBus_SubscribeAll(t *testing.T) {
 	assert.Equal(t, int64(1), atomic.LoadInt64(&received), "Event should not be received after unsubscribe")
 }
 
+// TestAsyncEventBus_PublishRacingClose_NeverSilentlyDrops is the regression
+// test for ISS-243 / TASK-245: Publish must never report success (nil) for an
+// event the consumer will not deliver.
+//
+// The old implementation checked closed.Load() and then did a non-blocking
+// send, with no synchronization against Close. A publish that passed the check
+// just before Close ran could land its event in the buffer AFTER processLoop
+// had drained and exited: Publish returned nil but the event was never
+// delivered — a silent drop. The fix serializes the closed-check + send against
+// Close (async_bus.mu), which makes "every successful publish is delivered"
+// a hard invariant: any publish that saw closed==false happened-before done was
+// closed, so Close's drain (waited on by wg.Wait) is guaranteed to pick it up.
+//
+// The race window is nanoseconds wide, so a single run detects a reintroduced
+// check-then-act only probabilistically (measured: the unfixed code trips this
+// test across iterations; the fixed code never does, since the invariant is
+// exact rather than statistical).
+func TestAsyncEventBus_PublishRacingClose_NeverSilentlyDrops(t *testing.T) {
+	const iters = 200
+	for iter := 0; iter < iters; iter++ {
+		bus := NewAsyncEventBus(4)
+		var consumed, success int64
+		bus.SubscribeAll(func(e events.Event) error {
+			atomic.AddInt64(&consumed, 1)
+			return nil
+		})
+
+		// A background streamer keeps publishing right across the Close window.
+		stop := make(chan struct{})
+		go func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				if bus.Publish(events.NewBaseEvent("e", "agg", []byte(`{}`))) == nil {
+					atomic.AddInt64(&success, 1)
+				}
+			}
+		}()
+
+		// A burst from this goroutine too, then Close while both are mid-flight.
+		for i := 0; i < 5000; i++ {
+			if bus.Publish(events.NewBaseEvent("e", "agg", []byte(`{}`))) == nil {
+				atomic.AddInt64(&success, 1)
+			}
+		}
+		bus.Close()
+		close(stop)
+
+		got, want := atomic.LoadInt64(&consumed), atomic.LoadInt64(&success)
+		if got != want {
+			t.Fatalf("iteration %d: consumed=%d but success=%d — an event was accepted and silently dropped", iter, got, want)
+		}
+	}
+}
+
 func TestAsyncEventBus_ChannelFull(t *testing.T) {
 	// Subscribe a blocking handler so the consumer goroutine cannot drain
 	// the buffer out from under the test. Without this, Publish would race

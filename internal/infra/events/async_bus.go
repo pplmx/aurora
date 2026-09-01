@@ -14,6 +14,15 @@ type AsyncEventBus struct {
 	done      chan struct{}
 	wg        sync.WaitGroup
 	closed    atomic.Bool
+	// mu serializes Publish against Close. Publish's closed-check + channel
+	// send, and Close's closed-store + done-close, both run under it, so a
+	// publish can never succeed (return nil) after the consumer goroutine has
+	// drained and exited: either it lands before done is closed (and is drained)
+	// or it observes closed and returns ErrEventBusClosed. Without it,
+	// Publish's check-then-act could slip a send in after processLoop had
+	// already exited — silently dropping the event while reporting success
+	// (ISS-243, TASK-245).
+	mu sync.Mutex
 }
 
 func NewAsyncEventBus(bufSize int) *AsyncEventBus {
@@ -53,6 +62,9 @@ func (b *AsyncEventBus) processLoop() {
 }
 
 func (b *AsyncEventBus) Publish(e events.Event) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	if b.closed.Load() {
 		return events.ErrEventBusClosed
 	}
@@ -74,9 +86,17 @@ func (b *AsyncEventBus) SubscribeAll(handler Handler) func() {
 }
 
 func (b *AsyncEventBus) Close() {
+	// Hold the mutex so no in-flight Publish is past its closed-check while we
+	// flip the flag and stop the consumer: a send cannot be accepted after
+	// done is closed and processLoop has been asked to exit (ISS-243, TASK-245).
+	b.mu.Lock()
 	if b.closed.Swap(true) {
+		b.mu.Unlock()
 		return
 	}
 	close(b.done)
+	b.mu.Unlock()
+
+	// Drain what's already queued (the done-drain loop in processLoop).
 	b.wg.Wait()
 }
