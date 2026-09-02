@@ -19,9 +19,24 @@ import (
 // TestMain isolates $HOME so Load()'s config-file lookup (added in TASK-094:
 // $HOME/aurora.toml then ./config/aurora.toml) never picks up a developer's
 // real ~/aurora.toml — the defaults tests must run against a clean baseline.
+//
+// The isolation dir is a NEW unique subdirectory (os.MkdirTemp), not the
+// shared os.TempDir() itself: viper's SetConfigName("aurora") search matches a
+// bare `aurora` file in $HOME too, and in a shared /tmp any other process's
+// binary/data named `aurora` (a test run, a parallel agent checkout) would be
+// mistaken for the config file and fail to parse as TOML (found round-147 when
+// /tmp/aurora existed and every config test failed with "invalid character at
+// start of key"). The dir is removed afterward so the /tmp fixture leaks
+// nothing.
 func TestMain(m *testing.M) {
 	if os.Getenv("AURORA_TEST_KEEP_HOME") == "" {
-		_ = os.Setenv("HOME", os.TempDir())
+		if dir, err := os.MkdirTemp("", "aurora-config-test-"); err == nil {
+			_ = os.Setenv("HOME", dir)
+			defer os.RemoveAll(dir)
+		} else {
+			// Fall back to the shared temp dir rather than failing the suite.
+			_ = os.Setenv("HOME", os.TempDir())
+		}
 	}
 	os.Exit(m.Run())
 }
