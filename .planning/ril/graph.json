@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 143,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T08:57:04+00:00",
+  "updated_at": "2026-09-02T09:01:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -10765,10 +10765,10 @@
     "ISS-255": {
       "id": "ISS-255",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-02T08:14:19+00:00",
-      "updated_at": "2026-09-02T08:14:19+00:00",
+      "updated_at": "2026-09-02T09:01:26+00:00",
       "touched_round": 143,
       "title": "Web form-input consistency: NFT historyId desyncs from shared id; oracle query success-with-zero-rows gives no feedback; token create decimals >127 yields opaque 400",
       "severity": 0.5
@@ -10806,18 +10806,16 @@
     "TASK-259": {
       "id": "TASK-259",
       "type": "task",
-      "status": "active",
-      "version": 3,
+      "status": "resolved",
+      "version": 5,
       "created_at": "2026-09-02T08:14:36+00:00",
-      "updated_at": "2026-09-02T08:57:04+00:00",
+      "updated_at": "2026-09-02T09:01:26+00:00",
       "touched_round": 143,
       "category": "dx",
       "severity": 0.45,
       "confidence": 0.9,
       "effort": 3,
-      "title": "Web form consistency: sync NFT historyId to shared id (ISS-195 follow-up); add oracle query zero-row empty-state; clamp token create decimals to 0..127 (ISS-184 pattern)",
-      "lock_owner": "graph-eng-loop",
-      "lock_until": "2026-09-02T09:27:04+00:00"
+      "title": "Web form consistency: sync NFT historyId to shared id (ISS-195 follow-up); add oracle query zero-row empty-state; clamp token create decimals to 0..127 (ISS-184 pattern)"
     },
     "CHG-251": {
       "id": "CHG-251",
@@ -10840,6 +10838,17 @@
       "touched_round": 143,
       "commit": "b9bab53",
       "title": "Dashboard Recent Activity keeps prior rows across a total poll failure (null-signal list loaders)"
+    },
+    "CHG-253": {
+      "id": "CHG-253",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T09:01:06+00:00",
+      "updated_at": "2026-09-02T09:01:06+00:00",
+      "touched_round": 143,
+      "commit": "15ba475",
+      "title": "NFT History shared-id + oracle query empty-state + token decimals clamp; Node regression tests"
     }
   },
   "edges": [
@@ -17052,6 +17061,18 @@
       "to": "TASK-258",
       "type": "implements",
       "created_at": "2026-09-02T08:40:36+00:00"
+    },
+    {
+      "from": "CHG-253",
+      "to": "ISS-255",
+      "type": "resolves",
+      "created_at": "2026-09-02T09:01:06+00:00"
+    },
+    {
+      "from": "CHG-253",
+      "to": "TASK-259",
+      "type": "implements",
+      "created_at": "2026-09-02T09:01:06+00:00"
     }
   ]
 }
