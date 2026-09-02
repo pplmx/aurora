@@ -74,7 +74,7 @@
             <section class="history">
                 <h2>History</h2>
                 <form @submit.prevent="history">
-                    <div class="form-group"><label for="nft-history-id">NFT ID</label><input id="nft-history-id" type="text" x-model="historyId" required></div>
+                    <div class="form-group"><label for="nft-history-id">NFT ID</label><input id="nft-history-id" type="text" x-model="id" required></div>
                     <button type="submit" class="btn-nft" :disabled="busy.history">Show History</button>
                 </form>
                 <pre x-show="historyResult" class="result" aria-live="polite" x-text="historyResult"></pre>
