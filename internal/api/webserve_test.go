@@ -626,12 +626,14 @@ const fs = require('fs');
 }
 
 // TestWebUIJS_BurnRequiresConfirmation executes the SHIPPED web/js/app.js in
-// Node and pins ISS-253: the NFT and Token burn actions are permanently
-// destructive (the client gated them behind --confirm; the oracle Delete
-// confirms in-page) but the web burn forms were single-click. Each burn must
-// call confirm() first and abort (no fetch) when the operator declines —
-// otherwise a mis-click or a stray Enter on an auto-filled form destroys an
-// asset with no undo. Skips cleanly without node.
+// Node and pins ISS-253/ISS-265: every permanent web action must call
+// confirm() first and abort (no fetch) when the operator declines — NFT and
+// Token burn (ISS-253), and the irreversible transfers (token transfer,
+// token transfer_from, NFT transfer) that move value/ownership to another key
+// with no undo (TASK-269, ISS-265). It also pins TASK-270/ISS-266: a
+// successful NFT transfer advances the transfer form's From field to the
+// recipient so a second transfer does not reuse the stale pre-transfer key.
+// Skips cleanly without node.
 func TestWebUIJS_BurnRequiresConfirmation(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
@@ -682,6 +684,61 @@ const fs = require('fs');
   await tok.burn();
   if (calls !== 1) { console.error('accepted token burn must fetch exactly once, got ' + calls); process.exit(1); }
 
+  // --- Token transfer: declining must abort with no fetch (TASK-269) ---
+  confirmed = true;
+  global.confirm = (msg) => { confirmed = !!msg; return false; };
+  calls = 0;
+  tok.tokenId = 'T1'; tok.xFrom = 'o'; tok.xTo = 'r'; tok.xAmount = '5'; tok.xPriv = 'k';
+  await tok.transfer();
+  if (!confirmed) { console.error('token transfer must ask for confirmation'); process.exit(1); }
+  if (calls !== 0) { console.error('declined token transfer must not fetch, got ' + calls); process.exit(1); }
+
+  // Accepting the token transfer proceeds to the endpoint (the transfer POST
+  // plus the follow-up getBalance refresh = 2 fetches).
+  calls = 0;
+  global.confirm = () => true;
+  await tok.transfer();
+  if (calls !== 2) { console.error('accepted token transfer must fetch transfer+balance, got ' + calls); process.exit(1); }
+
+  // --- Token transfer_from: same guard (TASK-269) ---
+  confirmed = true;
+  global.confirm = (msg) => { confirmed = !!msg; return false; };
+  calls = 0;
+  tok.tfOwner = 'o'; tok.tfTo = 'r'; tok.tfAmount = '5'; tok.tfSpender = 'sp'; tok.tfSpenderKey = 'spk';
+  await tok.transferFrom();
+  if (!confirmed) { console.error('token transfer_from must ask for confirmation'); process.exit(1); }
+  if (calls !== 0) { console.error('declined token transfer_from must not fetch, got ' + calls); process.exit(1); }
+
+  global.confirm = () => true;
+  calls = 0;
+  await tok.transferFrom();
+  if (calls !== 2) { console.error('accepted token transfer_from must fetch spend+balance, got ' + calls); process.exit(1); }
+
+  // --- NFT transfer: declining must abort (TASK-269) ---
+  confirmed = true;
+  global.confirm = (msg) => { confirmed = !!msg; return false; };
+  calls = 0;
+  nft.id = 'NFT-2'; nft.from = 'OWNER2'; nft.to = 'RECV'; nft.privateKey = 'k';
+  await nft.transfer();
+  if (!confirmed) { console.error('nft transfer must ask for confirmation'); process.exit(1); }
+  if (calls !== 0) { console.error('declined nft transfer must not fetch, got ' + calls); process.exit(1); }
+
+  // --- NFT transfer success advances the From field (TASK-270) ---
+  confirmed = true;
+  global.confirm = () => true;
+  calls = 0;
+  // fetch returns {} (no .to), so the shared-owner/from advance is skipped:
+  // exercise the advance via a fetch that answers {to: 'RECV'}.
+  global.fetch = (url, init) => {
+    calls += 1;
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ to: 'RECV' }) });
+  };
+  await nft.transfer();
+  if (calls !== 1) { console.error('accepted nft transfer must fetch exactly once, got ' + calls); process.exit(1); }
+  if (nft.owner !== 'RECV' || nft.from !== 'RECV') {
+    console.error('nft transfer must advance owner AND from to the recipient, got owner=' + nft.owner + ' from=' + nft.from); process.exit(1);
+  }
+
   console.log('burn-confirm-ok');
 })().catch((e) => { console.error(e); process.exit(2); });
 `
@@ -690,7 +747,7 @@ const fs = require('fs');
 	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
 	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
 	require.NoErrorf(t, err, "web/js/app.js burn-confirm guard failed:\n%s", out)
-	require.Contains(t, string(out), "burn-confirm-ok", "NFT/Token burn must require an explicit confirm before destroying")
+	require.Contains(t, string(out), "burn-confirm-ok", "NFT/Token burn + transfers must require an explicit confirm before destroying/moving")
 }
 
 // TestWebUIJS_DashboardActivityKeepPriorOnTotalFailure executes the SHIPPED

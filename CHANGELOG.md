@@ -69,6 +69,21 @@ documented in their per-milestone ROADMAP files.
   stray Enter on an auto-filled form destroyed value with no undo. Both burn
   actions now `confirm()` first and abort when declined, mirroring the oracle
   `deleteSource` guard (TASK-257, ISS-253).
+- **The web transfers that MOVE value/ownership were still single-click
+  while the sibling burns on the same pages confirm()**: a wrong recipient
+  key (or a stray Enter on an auto-filled transfer form after mint/get)
+  permanently sent tokens or an NFT to the wrong account with no undo — the
+  exact failure class the burn-confirm fix covered, but transfers were left
+  out. Token `transfer`, token `transfer_from` (spend allowance) and NFT
+  `transfer` now `confirm()` their amount/recipient first and abort when
+  declined, mirroring the burn guards (TASK-269, ISS-265).
+- **The NFT transfer form's From field desynced after a successful
+  transfer**: `owner` advanced to the recipient but the Transfer form's own
+  From field stayed stale, so a second transfer posted the pre-transfer key
+  and failed "not the owner" (operator had to re-paste it). A successful
+  transfer now advances both the shared owner and the form's From to the
+  recipient, matching the token page's `app.js:898` pattern (TASK-270,
+  ISS-266).
 - **A stale 18 MB compiled `api` binary was tracked in the repo root**: a build
   artifact from `go build ./cmd/api` (README builds it as `./aurora-api`),
   removed in `e02302e` and accidentally re-added by the round-133 RIL state
