@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 148,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T15:36:02+00:00",
+  "updated_at": "2026-09-02T16:35:20+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11186,10 +11186,10 @@
     "ISS-265": {
       "id": "ISS-265",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-02T15:26:22+00:00",
-      "updated_at": "2026-09-02T15:26:22+00:00",
+      "updated_at": "2026-09-02T16:33:33+00:00",
       "touched_round": 148,
       "title": "Web irreversible asset transfers lack confirm() while sibling burn/delete ops on the same pages confirm: token transfer (app.js:885), token transfer_from (app.js:941), NFT transfer (app.js:493) all move value/ownership permanently on a single click or stray Enter, with no guard — the sibling Burn operations on those exact pages DO confirm (token burn app.js:928, nft burn app.js:516). Not a documented tradeoff.",
       "severity": 0.8,
@@ -11199,10 +11199,10 @@
     "ISS-266": {
       "id": "ISS-266",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-02T15:29:02+00:00",
-      "updated_at": "2026-09-02T15:29:02+00:00",
+      "updated_at": "2026-09-02T16:35:20+00:00",
       "touched_round": 148,
       "title": "NFT transfer success leaves the Transfer form's From field stale: app.js:505 advances only the shared owner, not this.from, so a second transfer posts the pre-transfer owner key and fails 'not the owner'; token page handles the same case correctly (app.js:898 sets both owner and xFrom)",
       "severity": 0.6,
@@ -11212,32 +11212,43 @@
     "TASK-269": {
       "id": "TASK-269",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 4,
       "created_at": "2026-09-02T15:31:07+00:00",
-      "updated_at": "2026-09-02T15:36:02+00:00",
+      "updated_at": "2026-09-02T16:25:53+00:00",
       "touched_round": 148,
       "category": "correctness",
       "severity": 0.8,
       "confidence": 0.99,
       "effort": 1,
       "title": "Add confirm() guards to the three irreversible web transfers (token transfer, token transfer_from, NFT transfer) mirroring the sibling burn confirms, so a mis-click or stray Enter cannot permanently send tokens/NFT to the wrong key",
-      "lock_owner": "round147",
-      "lock_until": "2026-09-02T16:06:02+00:00"
+      "evidence": "implemented + regression-tested in TestWebUIJS_BurnRequiresConfirmation; committed as 96dc837"
     },
     "TASK-270": {
       "id": "TASK-270",
       "type": "task",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-02T15:33:01+00:00",
-      "updated_at": "2026-09-02T15:33:01+00:00",
+      "updated_at": "2026-09-02T16:22:46+00:00",
       "touched_round": 148,
       "category": "correctness",
       "severity": 0.6,
       "confidence": 0.99,
       "effort": 1,
-      "title": "Advance this.from alongside this.owner in NFT web transfer success (app.js:505), matching the token page's app.js:898 pattern, so a second transfer uses the new owner as From instead of the stale pre-transfer key"
+      "title": "Advance this.from alongside this.owner in NFT web transfer success (app.js:505), matching the token page's app.js:898 pattern, so a second transfer uses the new owner as From instead of the stale pre-transfer key",
+      "evidence": "implemented + regression-tested in TestWebUIJS_BurnRequiresConfirmation; committed as 96dc837"
+    },
+    "CHG-262": {
+      "id": "CHG-262",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T16:06:52+00:00",
+      "updated_at": "2026-09-02T16:06:52+00:00",
+      "touched_round": 148,
+      "commit": "96dc837",
+      "title": "Web transfers gain confirm() guards + NFT transfer From-field advance"
     }
   },
   "edges": [
@@ -17690,6 +17701,30 @@
       "to": "ISS-266",
       "type": "addresses",
       "created_at": "2026-09-02T15:36:02+00:00"
+    },
+    {
+      "from": "CHG-262",
+      "to": "ISS-265",
+      "type": "resolves",
+      "created_at": "2026-09-02T16:25:53+00:00"
+    },
+    {
+      "from": "CHG-262",
+      "to": "ISS-266",
+      "type": "resolves",
+      "created_at": "2026-09-02T16:25:53+00:00"
+    },
+    {
+      "from": "CHG-262",
+      "to": "TASK-269",
+      "type": "implements",
+      "created_at": "2026-09-02T16:25:53+00:00"
+    },
+    {
+      "from": "CHG-262",
+      "to": "TASK-270",
+      "type": "implements",
+      "created_at": "2026-09-02T16:25:53+00:00"
     }
   ]
 }
