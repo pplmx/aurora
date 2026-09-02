@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 147,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T12:41:10+00:00",
+  "updated_at": "2026-09-02T14:04:34+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 127,
+      "touched_round": 147,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -2740,7 +2740,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:42:51+00:00",
       "updated_at": "2026-08-23T05:42:51+00:00",
-      "touched_round": 76,
+      "touched_round": 147,
       "title": "SQLite persistence layer"
     },
     "EV-020": {
@@ -11116,6 +11116,61 @@
       "touched_round": 147,
       "commit": "732b051",
       "title": "Untrack stale 18MB api binary + add /api gitignore rule + delete orphan .commit-msg.txt"
+    },
+    "ISS-263": {
+      "id": "ISS-263",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T13:26:06+00:00",
+      "updated_at": "2026-09-02T13:26:06+00:00",
+      "touched_round": 147,
+      "title": "cmd/api has no --help/--version/unknown-flag handling: './aurora-api --help' ignores the flag and starts the HTTP server (then dies on busy port); the cobra CLI surface handles these everywhere else",
+      "severity": 0.3,
+      "confidence": 0.99,
+      "evidence": "cmd/api/main.go has zero flag parsing (grep -n flag = none); probe: /tmp/aurora-api-probe --help -> 'Starting API server' + 'bind: address already in use' then Fatal"
+    },
+    "TASK-267": {
+      "id": "TASK-267",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T13:27:30+00:00",
+      "updated_at": "2026-09-02T13:27:30+00:00",
+      "touched_round": 147,
+      "category": "dx",
+      "severity": 0.3,
+      "confidence": 0.99,
+      "effort": 2,
+      "title": "Give cmd/api a minimal flag surface: handle --help (print usage, exit 0), --version (print cmd package version), and reject unknown flags before starting the server — matching the cobra CLI's behavior and preventing 'api --help' from launching an HTTP server"
+    },
+    "ISS-264": {
+      "id": "ISS-264",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T14:02:05+00:00",
+      "updated_at": "2026-09-02T14:02:05+00:00",
+      "touched_round": 147,
+      "title": "config tests fail when any /tmp file is named 'aurora': TestMain's HOME isolation used the shared os.TempDir(), and viper SetConfigName('aurora') search matches a bare  file in /root (an ELF from a parallel build got parsed as TOML -> every config test failed)",
+      "severity": 0.55,
+      "confidence": 0.99,
+      "evidence": "round-147: with /tmp/aurora (19MB ELF, built 14:53 that day) present, ok  \tgithub.com/pplmx/aurora/internal/config\t(cached) failed 14 tests with 'failed to load config file /tmp/aurora: toml: invalid character at start of key'; moved it away -> all pass; fixed TestMain to use a unique MkdirTemp subdir and verified pass WITH the file present"
+    },
+    "TASK-268": {
+      "id": "TASK-268",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T14:03:00+00:00",
+      "updated_at": "2026-09-02T14:04:34+00:00",
+      "touched_round": 147,
+      "category": "test-quality",
+      "severity": 0.55,
+      "confidence": 0.99,
+      "effort": 1,
+      "title": "config TestMain must isolate HOME in a unique MkdirTemp subdir, not the shared os.TempDir(): viper SetConfigName('aurora') matches a bare  file anywhere in the HOME search path, so a parallel-process artifact named aurora in /tmp broke every config test",
+      "evidence": "fixed and verified: TestMain now creates a unique MkdirTemp HOME subdir; ok  \tgithub.com/pplmx/aurora/internal/config\t(cached) passes even with /tmp/aurora present"
     }
   },
   "edges": [
@@ -17508,6 +17563,30 @@
       "to": "TASK-266",
       "type": "implements",
       "created_at": "2026-09-02T12:41:10+00:00"
+    },
+    {
+      "from": "ISS-263",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-09-02T13:28:52+00:00"
+    },
+    {
+      "from": "TASK-267",
+      "to": "ISS-263",
+      "type": "addresses",
+      "created_at": "2026-09-02T13:28:52+00:00"
+    },
+    {
+      "from": "ISS-264",
+      "to": "COMP-010",
+      "type": "located_in",
+      "created_at": "2026-09-02T14:04:33+00:00"
+    },
+    {
+      "from": "TASK-268",
+      "to": "ISS-264",
+      "type": "addresses",
+      "created_at": "2026-09-02T14:04:33+00:00"
     }
   ]
 }
