@@ -89,6 +89,33 @@ documented in their per-milestone ROADMAP files.
   request") with no hint of the 127 bound — the value is now clamped to
   0..127 and reflected back, matching the oracle `clampLimit` contract
   (TASK-259, ISS-255).
+- **Lottery on-chain records always serialized `verified:false` while every
+  other surface reported `verified:true`**: the create use case wrote the
+  immutable chain block from JSON serialized *before* verification ran, so an
+  auditor replaying the chain saw every draw as unverified. Verification now
+  runs before the chain JSON is built, so the on-chain copy carries the same
+  verified state the DB, REST create response, `GET /{id}` and CLI `verify`
+  report (TASK-260, ISS-256; regression test decodes the chain block).
+- **Token history page-size divergence**: the identical no-flag query returned
+  at most 20 events via the REST API but up to 50 via the CLI and the service
+  layer's fallback. The REST default now matches the CLI/service default of 50
+  (TASK-261, ISS-257).
+- **`lottery reset` / `lottery db-info` closed the process-global blockchain
+  DB singleton they borrowed**: `InitDB` returns a `sync.Once`-guarded `*sql.DB`,
+  and closing it without resetting the once poisoned the singleton — any later
+  `InitDB()` in the same process (a composable command flow, a test, a TUI flow
+  calling reset then create) got an already-closed handle. Both commands now let
+  the handle live until process exit, exactly like every other CLI command and
+  `cmd/api` (TASK-262, ISS-258).
+- **Docs truthfulness (round-145)**: the sample `config/aurora.toml` pointed
+  at the nonexistent `aurora --ui oracle` flag (now spelled `aurora oracle
+  tui`); `voting voter list` — a real subcommand — was absent from both
+  quickstarts (README/AGENTS now document it, preserving the round-142 "every
+  subcommand documented" claim); and the `[api.rateLimit]`/`[api.cors]`/
+  `[oracle.scheduler]` keys the server actually reads had no shipped sample
+  (added, cross-checked against `config.go` and verified loadable). Stale
+  `.planning/PROJECT.md` claims (voting web page "In progress", metrics "Out of
+  scope") refreshed to shipped status (TASK-263, TASK-264; ISS-259, ISS-260).
 
 ### Added
 
