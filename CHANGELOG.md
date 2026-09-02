@@ -48,6 +48,20 @@ documented in their per-milestone ROADMAP files.
   such file exists ("executable file not found" on every run — compose was
   unaffected because `docker compose run` appends to the ENTRYPOINT). The
   command now uses the absolute `/aurora` path.
+- **Token read paths masked a nonexistent token as legitimate data**: `GET
+  /token/balance?token_id=MTK_TYPO` returned `200 {"amount":"0"}` and
+  `/allowance` / `/history` returned `200` zero/`[]` for an id that was never
+  created, while `/token/info` 404'd the same id — a client typo or a
+  pre-create existence probe was indistinguishable from "no activity". The
+  read paths now apply the same `requireToken` existence guard every mutator
+  (Mint/Burn/Transfer/TransferFrom/Approve) already used, so unknown ids
+  report `404 TOKEN_NOT_FOUND` across REST/CLI/web (TASK-254, ISS-250;
+  service + REST regression tests). The round-141 triage also re-confirmed
+  three flagged items as intended, non-defect behavior and recorded them as
+  decisions (DEC-013 `voting draft/window acceptance` aligns with the
+  documented window-gated lifecycle DEC-004/DEC-005; DEC-014 the allowance
+  family uniformly writes no on-chain block by design per DEC-002; DEC-015
+  the voting window end is inclusive).
 
 ### Added
 

@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 140,
+  "round": 141,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T04:38:46+00:00",
+  "updated_at": "2026-09-02T05:10:16+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 113,
+      "touched_round": 141,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -1729,7 +1729,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:31:39+00:00",
       "updated_at": "2026-08-23T04:31:39+00:00",
-      "touched_round": 140,
+      "touched_round": 141,
       "title": "web UI static pages (router-injected API key)"
     },
     "EV-003": {
@@ -10501,6 +10501,102 @@
       "touched_round": 140,
       "commit": "57dfc5a",
       "title": "aria-live=polite on 33 result containers + TestWebUIResultLiveRegion"
+    },
+    "ISS-250": {
+      "id": "ISS-250",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T05:01:57+00:00",
+      "updated_at": "2026-09-02T05:09:37+00:00",
+      "touched_round": 141,
+      "severity": 0.6,
+      "title": "token balance/allowance/history return 200 zero/[] for a nonexistent token while /info 404s (missing existence guard on read paths)"
+    },
+    "TASK-254": {
+      "id": "TASK-254",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T05:01:57+00:00",
+      "updated_at": "2026-09-02T05:09:37+00:00",
+      "touched_round": 141,
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 2,
+      "title": "token read paths (balance/allowance/history) must 404 on nonexistent token via shared existence guard"
+    },
+    "CHG-248": {
+      "id": "CHG-248",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:09:14+00:00",
+      "updated_at": "2026-09-02T05:09:14+00:00",
+      "touched_round": 141,
+      "commit": "0c47148",
+      "title": "requireToken guard on token read paths + service/REST regression tests"
+    },
+    "EV-057": {
+      "id": "EV-057",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:09:14+00:00",
+      "updated_at": "2026-09-02T05:09:14+00:00",
+      "touched_round": 141,
+      "source": "TestReadPaths_UnknownToken",
+      "detail": "service-level: balance/allowance/history on NONEXISTENT all return ErrTokenNotFound",
+      "confidence": 1.0
+    },
+    "EV-058": {
+      "id": "EV-058",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:09:14+00:00",
+      "updated_at": "2026-09-02T05:09:14+00:00",
+      "touched_round": 141,
+      "source": "TestTokenNFT_Smoke_ApproveAllowanceAndNFTKeyBinding",
+      "detail": "REST: GET balance/allowance/history?token_id=MTK_TYPO all 404 TOKEN_NOT_FOUND",
+      "confidence": 1.0
+    },
+    "DEC-013": {
+      "id": "DEC-013",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:10:16+00:00",
+      "updated_at": "2026-09-02T05:10:16+00:00",
+      "touched_round": 141,
+      "title": "voting session start/draft-window acceptance is documented, tested behavior — not a defect",
+      "rationale": "Round-141 bug-hunt re-flagged draft/open-window sessions accepting votes and 'session start' being a non-enforcement lifecycle action as a MEDIUM bug. This is exactly the round-96 finding already ruled intended in DEC-005 (and DEC-004): the v1.10 votingsmoke_test.go step 8 lifecycle is window-gated (now<StartTime / now>EndTime) + already-voted + explicit 'ended', and start is a lifecycle/reporting action, not a hard gate. No code change; declined per DEC-004/DEC-005.",
+      "alternatives_rejected": "Add a status==active gate to CastVote (would contradict the documented window-gated contract and duplicate the reverted v1.78 guard); make start enforce the window (start is intentionally non-enforcing)"
+    },
+    "DEC-014": {
+      "id": "DEC-014",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:10:16+00:00",
+      "updated_at": "2026-09-02T05:10:16+00:00",
+      "touched_round": 141,
+      "title": "allowance-family token mutators intentionally write no on-chain block",
+      "rationale": "Round-141 bug-hunt flagged Approve as 'the only token mutator that never writes a block'. Verified the pattern is a coherent family split, not an oversight: balance/ownership mutators (Mint/Transfer/TransferFrom/Burn) all call chain.AddBlock; allowance-granting mutators (Approve/Increase/DecreaseAllowance) uniformly do not — they persist in the approval store + event trail. Consistent with DEC-002's best-effort on-chain audit-block design (blocks record balance-affecting ops; the event/approval stores carry allowances). Not a defect.",
+      "alternatives_rejected": "Add AddBlock to Approve (would make the allowance family write blocks that no blockchain-level operation or verify uses, diverging from its three siblings)"
+    },
+    "DEC-015": {
+      "id": "DEC-015",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:10:16+00:00",
+      "updated_at": "2026-09-02T05:10:16+00:00",
+      "touched_round": 141,
+      "title": "voting window end is inclusive; a ballot at exactly end_time is valid",
+      "rationale": "Round-141 bug-hunt flagged now > EndTime as off-by-one because a vote at exactly end_time passes. Inclusive-until semantics ('voting ends at end_time', rejected strictly after) is the accepted, defensible contract and matches the window-gated lifecycle (DEC-004/DEC-005). No change.",
+      "alternatives_rejected": "Switch to now >= EndTime (end-exclusive) with no contract statement requiring it"
     }
   },
   "edges": [
@@ -16587,6 +16683,30 @@
       "to": "ISS-249",
       "type": "resolves",
       "created_at": "2026-09-02T04:38:46+00:00"
+    },
+    {
+      "from": "TASK-254",
+      "to": "ISS-250",
+      "type": "addresses",
+      "created_at": "2026-09-02T05:02:25+00:00"
+    },
+    {
+      "from": "ISS-250",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-09-02T05:02:25+00:00"
+    },
+    {
+      "from": "CHG-248",
+      "to": "TASK-254",
+      "type": "implements",
+      "created_at": "2026-09-02T05:09:37+00:00"
+    },
+    {
+      "from": "CHG-248",
+      "to": "ISS-250",
+      "type": "resolves",
+      "created_at": "2026-09-02T05:09:37+00:00"
     }
   ]
 }
