@@ -11,6 +11,45 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
+Last activity: 2026-09-02 — round 147/148 web + backend deep-dive (web audit
+  agent + backend audit agent + independent observation). Five closed
+  findings:
+
+  1. Repo hygiene: an 18 MB compiled `api` binary (a `go build ./cmd/api`
+     artifact) was accidentally re-tracked by the round-133 RIL state commit
+     `20ce60e` after `e02302e` removed it; `.gitignore` covered `/aurora` and
+     `/aurora-*` but not `/api`. Untracked, working copy deleted, `/api`
+     gitignore rule added; the orphaned `.commit-msg.txt` (nothing reads it)
+     deleted alongside (TASK-266, ISS-262; CHG-260).
+  2. Config test isolation: `internal/config` TestMain set `$HOME` to the
+     shared `os.TempDir()`, and viper's `SetConfigName("aurora")` matches a
+     bare `aurora` file anywhere in the HOME search path — a parallel
+     process's `/tmp/aurora` ELF broke every config test ("invalid character
+     at start of key"). The isolation home is now a unique per-run
+     `os.MkdirTemp` subdir (TASK-268, ISS-264; CHG-261).
+  3. Web transfers that MOVE value/ownership were single-click while the
+     sibling burns on the same pages confirm(): token transfer, token
+     transfer_from (spend allowance) and NFT transfer now confirm() their
+     amount/recipient and abort when declined (TASK-269, ISS-265; CHG-262).
+  4. The NFT transfer form's From field desynced after success: owner
+     advanced but this.from stayed stale, so a second transfer posted the
+     old key; now both advance to the recipient like the token page's
+     app.js:898 (TASK-270, ISS-266; CHG-262).
+  5. Backend write endpoints stored unbounded free-text while token/lottery
+     capped theirs: voting (candidate party/program + session description),
+     NFT mint (description/image_url/token_uri) and oracle source
+     (name/type/method/path/headers) now carry domain-edge length caps
+     (voting gained validator.go, NFT.Validate extended, oracle AddSource
+     bounded); the two unbounded read endpoints (GET /nft/{id}/history →
+     SQL LIMIT 1000, GET /lottery/history → ?limit/?offset default 50/max
+     100) are bounded like their siblings (TASK-271, ISS-267; CHG-263).
+
+  Three standalone tasks also recorded as backlog: TASK-267/ISS-263
+  (cmd/api ignores --help/--version — `aurora-api --help` starts the server;
+  priority 0.42, below the 3.0 execute threshold) and the pre-existing
+  ISS-084 phantom-block tradeoff stays deferred (DEC-016). Full
+  `go test -race ./...` green at close. RIL graph at round 148 (930 nodes,
+  1085 edges).
 Status: v1.24–v1.88 complete (key-bound VRF verification, truthful on-chain block_height, atomic token-create, all-or-nothing backups, rate-limit window seconds, voting missing-resource 4xx, NFT key-length + base64 keys, CLI token audit events, single CLI error line, lottery default count, consistent envelopes, committed-ops-never-reported-failed, restore same-file+WAL guards, dead app.Wire retired, numeric TOML durations as seconds, failed-audit-publish durable outbox, backup atomic metadata/restore, voting wrong-length-key 400, duplicate roster candidates rejected, typable TUI forms, web API-failure surfacing, truthful CLI version, scrollable viewport TUI views, --confirm gate on destructive CLI ops, localized --help, oracle confirm visible selection, "?" help screen, hardcoded CJK → i18n, vendored Alpine, web auto-refresh, cancellable scheduler fetches, backup traversal rejection, bounded rate-limiters, unknown-resource 404s, listener-mutating event-bus handlers, once-guarded metrics registry, web error-surfacing consistency, oracle/dashboard polling polish, burn-amount isolation, NFT mint context advance; round 139: oracle TUI 6-field typability, bounded oracle interval, delete-unknown-source 404/CLI error)
 Last activity: 2026-09-01 — round 139 oracle input/UX deep-dive (TASK-231/232/233,
   ISS-229/230/231):
