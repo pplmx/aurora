@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 139,
+  "round": 140,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T01:16:25+00:00",
+  "updated_at": "2026-09-02T03:48:49+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1729,7 +1729,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:31:39+00:00",
       "updated_at": "2026-08-23T04:31:39+00:00",
-      "touched_round": 74,
+      "touched_round": 140,
       "title": "web UI static pages (router-injected API key)"
     },
     "EV-003": {
@@ -10153,7 +10153,7 @@
       "version": 1,
       "created_at": "2026-09-01T12:36:21+00:00",
       "updated_at": "2026-09-01T12:36:21+00:00",
-      "touched_round": 137,
+      "touched_round": 140,
       "title": "internal/infra/events (sync/async/composite event bus, outbox, event store)"
     },
     "CHG-238": {
@@ -10370,6 +10370,101 @@
       "touched_round": 139,
       "rationale": "The workspace LV is a host bind-mount: df reports the whole LV (1.8T, can hit 100%) while du only sees the mounted subdir. When /workspace fills, RIL writes fail with 'No space left on device' writing graph.json.tmp. Deleted ~8.3GB of crash-dump residuals (core.<pid> across nova/proxy-x, regenerable debug artifacts, NOT source) to recover headroom. Lesson: when ril.py save fails with ENOSPC, check for core dumps / build artifacts in /workspace before treating it as a code problem; this is environment-level (ISS-245), not a repo defect.",
       "alternatives_rejected": "Treating the ENOSPC as a graph-corruption file bug (it was a full disk); leaving it unfixed (blocked all RIL persistence)"
+    },
+    "TASK-251": {
+      "id": "TASK-251",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T02:50:09+00:00",
+      "updated_at": "2026-09-02T03:31:19+00:00",
+      "touched_round": 140,
+      "category": "dx",
+      "severity": 0.45,
+      "confidence": 0.95,
+      "effort": 4,
+      "title": "web UI: associate every form label with its input (for/id pairs) for accessibility"
+    },
+    "ISS-247": {
+      "id": "ISS-247",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T03:16:18+00:00",
+      "updated_at": "2026-09-02T03:31:19+00:00",
+      "touched_round": 140,
+      "severity": 0.45,
+      "title": "web UI: form labels are not programmatically associated with their inputs (no for/id)"
+    },
+    "CHG-244": {
+      "id": "CHG-244",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T03:25:56+00:00",
+      "updated_at": "2026-09-02T03:25:56+00:00",
+      "touched_round": 140,
+      "commit": "189f2a8",
+      "title": "web lottery/oracle form labels get id+for"
+    },
+    "CHG-245": {
+      "id": "CHG-245",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T03:25:56+00:00",
+      "updated_at": "2026-09-02T03:25:56+00:00",
+      "touched_round": 140,
+      "commit": "334a77a",
+      "title": "web nft/voting/token form labels + fieldset/legend + TestWebUIFormLabelsAssociated"
+    },
+    "EV-056": {
+      "id": "EV-056",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T03:25:56+00:00",
+      "updated_at": "2026-09-02T03:25:56+00:00",
+      "touched_round": 140,
+      "source": "TestWebUIFormLabelsAssociated",
+      "detail": "reads shipped pages; fails if any label lacks a resolving for= or a wrapped control; 81 ids, 0 duplicates",
+      "confidence": 1.0
+    },
+    "ISS-248": {
+      "id": "ISS-248",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T03:41:58+00:00",
+      "updated_at": "2026-09-02T03:48:49+00:00",
+      "touched_round": 140,
+      "severity": 0.4,
+      "title": "web UI: CSS clears the default input focus outline leaving no visible keyboard focus indicator"
+    },
+    "TASK-252": {
+      "id": "TASK-252",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T03:41:58+00:00",
+      "updated_at": "2026-09-02T03:48:49+00:00",
+      "touched_round": 140,
+      "category": "dx",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "web UI: restore a visible keyboard focus ring via :focus-visible on form controls"
+    },
+    "CHG-246": {
+      "id": "CHG-246",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T03:46:49+00:00",
+      "updated_at": "2026-09-02T03:46:49+00:00",
+      "touched_round": 140,
+      "commit": "025240c",
+      "title": "focus-visible ring + TestWebUIFocusVisible"
     }
   },
   "edges": [
@@ -16372,6 +16467,66 @@
       "to": "ISS-246",
       "type": "resolves",
       "created_at": "2026-09-02T01:07:28+00:00"
+    },
+    {
+      "from": "TASK-251",
+      "to": "ISS-247",
+      "type": "addresses",
+      "created_at": "2026-09-02T03:17:31+00:00"
+    },
+    {
+      "from": "ISS-247",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-09-02T03:25:19+00:00"
+    },
+    {
+      "from": "CHG-244",
+      "to": "TASK-251",
+      "type": "implements",
+      "created_at": "2026-09-02T03:28:37+00:00"
+    },
+    {
+      "from": "CHG-245",
+      "to": "TASK-251",
+      "type": "implements",
+      "created_at": "2026-09-02T03:28:37+00:00"
+    },
+    {
+      "from": "CHG-244",
+      "to": "ISS-247",
+      "type": "resolves",
+      "created_at": "2026-09-02T03:28:37+00:00"
+    },
+    {
+      "from": "CHG-245",
+      "to": "ISS-247",
+      "type": "resolves",
+      "created_at": "2026-09-02T03:28:37+00:00"
+    },
+    {
+      "from": "TASK-252",
+      "to": "ISS-248",
+      "type": "addresses",
+      "created_at": "2026-09-02T03:42:56+00:00"
+    },
+    {
+      "from": "ISS-248",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-09-02T03:42:56+00:00"
+    },
+    {
+      "from": "CHG-246",
+      "to": "TASK-252",
+      "type": "implements",
+      "created_at": "2026-09-02T03:47:35+00:00"
+    },
+    {
+      "from": "CHG-246",
+      "to": "ISS-248",
+      "type": "resolves",
+      "created_at": "2026-09-02T03:47:35+00:00"
     }
   ]
 }
