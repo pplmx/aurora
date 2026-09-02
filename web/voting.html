@@ -26,8 +26,8 @@
                 <h2>Register Voter</h2>
                 <form @submit.prevent="registerVoter">
                     <div class="form-group">
-                        <label>Voter Name</label>
-                        <input type="text" x-model="voterName" placeholder="Voter name" required>
+                        <label for="voting-voter-name">Voter Name</label>
+                        <input id="voting-voter-name" type="text" x-model="voterName" placeholder="Voter name" required>
                     </div>
                     <button type="submit" class="btn-voting" :disabled="busy.registerVoter">Register Voter</button>
                 </form>
@@ -40,16 +40,16 @@
                 <h2>Register Candidate</h2>
                 <form @submit.prevent="registerCandidate">
                     <div class="form-group">
-                        <label>Candidate Name</label>
-                        <input type="text" x-model="candName" placeholder="Candidate name" required>
+                        <label for="voting-cand-name">Candidate Name</label>
+                        <input id="voting-cand-name" type="text" x-model="candName" placeholder="Candidate name" required>
                     </div>
                     <div class="form-group">
-                        <label>Party</label>
-                        <input type="text" x-model="candParty" placeholder="Party (optional)">
+                        <label for="voting-cand-party">Party</label>
+                        <input id="voting-cand-party" type="text" x-model="candParty" placeholder="Party (optional)">
                     </div>
                     <div class="form-group">
-                        <label>Program</label>
-                        <input type="text" x-model="candProgram" placeholder="Program (optional)">
+                        <label for="voting-cand-program">Program</label>
+                        <input id="voting-cand-program" type="text" x-model="candProgram" placeholder="Program (optional)">
                     </div>
                     <button type="submit" class="btn-voting" :disabled="busy.registerCandidate">Register Candidate</button>
                 </form>
@@ -60,23 +60,23 @@
                 <h2>Create Session</h2>
                 <form @submit.prevent="createSession">
                     <div class="form-group">
-                        <label>Title</label>
-                        <input type="text" x-model="sessionTitle" placeholder="Session title" required>
+                        <label for="voting-session-title">Title</label>
+                        <input id="voting-session-title" type="text" x-model="sessionTitle" placeholder="Session title" required>
                     </div>
                     <div class="form-group">
-                        <label>Description</label>
-                        <input type="text" x-model="sessionDesc" placeholder="Description (optional)">
+                        <label for="voting-session-desc">Description</label>
+                        <input id="voting-session-desc" type="text" x-model="sessionDesc" placeholder="Description (optional)">
                     </div>
                     <div class="form-group">
-                        <label>Start Time (unix seconds)</label>
-                        <input type="number" x-model="sessionStart" placeholder="e.g. 1750000000" required>
+                        <label for="voting-session-start">Start Time (unix seconds)</label>
+                        <input id="voting-session-start" type="number" x-model="sessionStart" placeholder="e.g. 1750000000" required>
                     </div>
                     <div class="form-group">
-                        <label>End Time (unix seconds)</label>
-                        <input type="number" x-model="sessionEnd" placeholder="e.g. 1751000000" required>
+                        <label for="voting-session-end">End Time (unix seconds)</label>
+                        <input id="voting-session-end" type="number" x-model="sessionEnd" placeholder="e.g. 1751000000" required>
                     </div>
-                    <div class="form-group">
-                        <label>Candidate Roster (select candidates)</label>
+                    <fieldset class="form-group">
+                        <legend>Candidate Roster</legend>
                         <template x-for="c in candidates" :key="c.id">
                             <div class="checkbox-row">
                                 <label>
@@ -93,7 +93,7 @@
                              failed sessions load) instead of forcing a full
                              browser reload (TASK-243, ISS-241). -->
                         <button type="button" class="btn-voting" x-show="candidatesFailed || sessionsFailed" :disabled="loading" @click="retryLoad()">↻ Retry</button>
-                    </div>
+                    </fieldset>
                     <!-- A session with an empty candidate roster is rejected by
                          the API (CANDIDATES_REQUIRED); disable the submit until
                          at least one candidate is checked instead of letting the
@@ -125,8 +125,8 @@
                 <h2>Session Controls</h2>
                 <form @submit.prevent="startSession">
                     <div class="form-group">
-                        <label>Session ID</label>
-                        <input type="text" x-model="controlSessionId" placeholder="Session ID" required
+                        <label for="voting-control-session-id">Session ID</label>
+                        <input id="voting-control-session-id" type="text" x-model="controlSessionId" placeholder="Session ID" required
                                @keydown.enter.prevent="holdEnterKey">
                     </div>
                     <button type="submit" class="btn-voting" :disabled="busy.startSession">Start Session</button>
@@ -139,7 +139,7 @@
                 <h2>Cast Vote</h2>
                 <form @submit.prevent="castVote">
                     <div class="form-group">
-                        <label>Session</label>
+                        <label for="voting-vote-session">Session</label>
                         <!-- @change resets the candidate selection when the
                              operator picks a different session: the sessions
                              have disjoint candidate rosters, so a previously
@@ -147,7 +147,7 @@
                              mismatch and 400 with CANDIDATE_NOT_IN_SESSION
                              (the old value survives the rerender because the
                              bound voteCandidateId is never reset, ISS-194). -->
-                        <select x-model="voteSessionId" @change="voteCandidateId = ''" required x-show="sessions.length">
+                        <select id="voting-vote-session" x-model="voteSessionId" @change="voteCandidateId = ''" required x-show="sessions.length">
                             <option value="" disabled selected>Select a session</option>
                             <template x-for="s in sessions" :key="s.id">
                                 <option :value="s.id" x-text="s.title"></option>
@@ -156,8 +156,8 @@
                         <small x-show="!sessions.length" class="hint">No sessions yet — create one first.</small>
                     </div>
                     <div class="form-group">
-                        <label>Candidate</label>
-                        <select x-model="voteCandidateId" required x-show="currentSessionCandidates.length">
+                        <label for="voting-vote-candidate">Candidate</label>
+                        <select id="voting-vote-candidate" x-model="voteCandidateId" required x-show="currentSessionCandidates.length">
                             <option value="" disabled selected>Select a candidate</option>
                             <template x-for="c in currentSessionCandidates" :key="c.id">
                                 <option :value="c.id" x-text="c.name"></option>
@@ -167,15 +167,15 @@
                         <small x-show="sessions.length && candidatesFailed" class="hint">Failed to load candidates — check the API / refresh.</small>
                     </div>
                     <div class="form-group">
-                        <label>Voter Public Key</label>
-                        <input type="text" x-model="voteVoterPub" placeholder="Voter public key" required>
+                        <label for="voting-vote-pub">Voter Public Key</label>
+                        <input id="voting-vote-pub" type="text" x-model="voteVoterPub" placeholder="Voter public key" required>
                     </div>
                     <div class="form-group">
-                        <label>Voter Private Key</label>
+                        <label for="voting-vote-priv">Voter Private Key</label>
                         <!-- Masked like the token/nft private-key inputs (a
                              signing secret, consistent cross-page handling,
                              ISS-194). -->
-                        <input type="password" x-model="votePriv" placeholder="Voter private key (from registration)" required>
+                        <input id="voting-vote-priv" type="password" x-model="votePriv" placeholder="Voter private key (from registration)" required>
                     </div>
                     <!-- An empty session/candidate roster posts empty ids and
                          hits a confusing 400; disable the submit until both a
@@ -193,8 +193,8 @@
                 <h2>Election Results</h2>
                 <form @submit.prevent="loadResults">
                     <div class="form-group">
-                        <label>Session ID</label>
-                        <input type="text" x-model="resultsSessionId" placeholder="Session ID" required>
+                        <label for="voting-results-session-id">Session ID</label>
+                        <input id="voting-results-session-id" type="text" x-model="resultsSessionId" placeholder="Session ID" required>
                     </div>
                     <button type="submit" class="btn-voting" :disabled="busy.loadResults">Show Results</button>
                 </form>

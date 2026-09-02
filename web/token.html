@@ -25,15 +25,15 @@
             <section class="create-form">
                 <h2>Create Token</h2>
                 <form @submit.prevent="createToken">
-                    <div class="form-group"><label>Name</label><input type="text" x-model="name" required></div>
-                    <div class="form-group"><label>Symbol</label><input type="text" x-model="symbol" required></div>
-                    <div class="form-group"><label>Total Supply</label><input type="text" x-model="supply" required></div>
+                    <div class="form-group"><label for="token-create-name">Name</label><input id="token-create-name" type="text" x-model="name" required></div>
+                    <div class="form-group"><label for="token-create-symbol">Symbol</label><input id="token-create-symbol" type="text" x-model="symbol" required></div>
+                    <div class="form-group"><label for="token-create-supply">Total Supply</label><input id="token-create-supply" type="text" x-model="supply" required></div>
                     <!-- The API accepts decimals (pointer: omitted -> domain
                          default 8, explicit 0 -> 0) and the CLI exposes
                          --decimals; the web form had no way to set it, so every
                          web-created token was silently 8 (ISS-195). Bound to
                          its own decimals field (default 8). -->
-                    <div class="form-group"><label>Decimals</label><input type="number" x-model="decimals" min="0" max="127" value="8"></div>
+                    <div class="form-group"><label for="token-create-decimals">Decimals</label><input id="token-create-decimals" type="number" x-model="decimals" min="0" max="127" value="8"></div>
                     <!-- The API rejects a create without a valid owner public key
                          (ErrPublicKeyRequired -> 400), and the CLI generates a fresh
                          keypair for the owner. Mirror the NFT mint "Creator (public
@@ -45,7 +45,7 @@
                          key typed for a create can never leak into the Balance/History
                          context mid-typing (same isolation as TASK-149); the shared
                          context is advanced deliberately on success. -->
-                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="createOwner" placeholder="base64 public key" required></div>
+                    <div class="form-group"><label for="token-create-owner">Owner (public key)</label><input id="token-create-owner" type="text" x-model="createOwner" placeholder="base64 public key" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.createToken">Create Token</button>
                 </form>
                 <pre x-show="createResult" class="result" x-text="createResult"></pre>
@@ -53,8 +53,8 @@
             <section class="history">
                 <h2>Balance</h2>
                 <form @submit.prevent="getBalance">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
+                    <div class="form-group"><label for="token-balance-id">Token ID</label><input id="token-balance-id" type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label for="token-balance-owner">Owner (public key)</label><input id="token-balance-owner" type="text" x-model="owner" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.getBalance">Get Balance</button>
                 </form>
                 <pre x-show="balance" class="result" x-text="balance"></pre>
@@ -62,7 +62,7 @@
             <section class="history">
                 <h2>Token Info</h2>
                 <form @submit.prevent="info">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="infoId" required></div>
+                    <div class="form-group"><label for="token-info-id">Token ID</label><input id="token-info-id" type="text" x-model="infoId" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.info">Get Token Info</button>
                 </form>
                 <pre x-show="infoResult" class="result" x-text="infoResult"></pre>
@@ -70,10 +70,10 @@
             <section class="history">
                 <h2>Mint</h2>
                 <form @submit.prevent="mint">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>To (public key)</label><input type="text" x-model="mintTo" required></div>
-                    <div class="form-group"><label>Amount</label><input type="text" x-model="mintAmount" required></div>
-                    <div class="form-group"><label>Owner Private Key</label><input type="password" x-model="mintPriv" required></div>
+                    <div class="form-group"><label for="token-mint-id">Token ID</label><input id="token-mint-id" type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label for="token-mint-to">To (public key)</label><input id="token-mint-to" type="text" x-model="mintTo" required></div>
+                    <div class="form-group"><label for="token-mint-amount">Amount</label><input id="token-mint-amount" type="text" x-model="mintAmount" required></div>
+                    <div class="form-group"><label for="token-mint-priv">Owner Private Key</label><input id="token-mint-priv" type="password" x-model="mintPriv" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.mint">Mint</button>
                 </form>
                 <pre x-show="mintResult" class="result" x-text="mintResult"></pre>
@@ -81,11 +81,11 @@
             <section class="history">
                 <h2>Transfer</h2>
                 <form @submit.prevent="transfer">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>From (public key)</label><input type="text" x-model="xFrom" required></div>
-                    <div class="form-group"><label>To (public key)</label><input type="text" x-model="xTo" required></div>
-                    <div class="form-group"><label>Amount</label><input type="text" x-model="xAmount" required></div>
-                    <div class="form-group"><label>From Private Key</label><input type="password" x-model="xPriv" required></div>
+                    <div class="form-group"><label for="token-transfer-id">Token ID</label><input id="token-transfer-id" type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label for="token-transfer-from">From (public key)</label><input id="token-transfer-from" type="text" x-model="xFrom" required></div>
+                    <div class="form-group"><label for="token-transfer-to">To (public key)</label><input id="token-transfer-to" type="text" x-model="xTo" required></div>
+                    <div class="form-group"><label for="token-transfer-amount">Amount</label><input id="token-transfer-amount" type="text" x-model="xAmount" required></div>
+                    <div class="form-group"><label for="token-transfer-priv">From Private Key</label><input id="token-transfer-priv" type="password" x-model="xPriv" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.transfer">Transfer</button>
                 </form>
                 <pre x-show="xResult" class="result" x-text="xResult"></pre>
@@ -93,11 +93,11 @@
             <section class="history">
                 <h2>Approve</h2>
                 <form @submit.prevent="approve">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="approver" required></div>
-                    <div class="form-group"><label>Spender (public key)</label><input type="text" x-model="spender" required></div>
-                    <div class="form-group"><label>Amount</label><input type="text" x-model="approveAmount" required></div>
-                    <div class="form-group"><label>Owner Private Key</label><input type="password" x-model="approvePriv" required></div>
+                    <div class="form-group"><label for="token-approve-id">Token ID</label><input id="token-approve-id" type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label for="token-approve-owner">Owner (public key)</label><input id="token-approve-owner" type="text" x-model="approver" required></div>
+                    <div class="form-group"><label for="token-approve-spender">Spender (public key)</label><input id="token-approve-spender" type="text" x-model="spender" required></div>
+                    <div class="form-group"><label for="token-approve-amount">Amount</label><input id="token-approve-amount" type="text" x-model="approveAmount" required></div>
+                    <div class="form-group"><label for="token-approve-priv">Owner Private Key</label><input id="token-approve-priv" type="password" x-model="approvePriv" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.approve">Approve</button>
                 </form>
                 <pre x-show="approveResult" class="result" x-text="approveResult"></pre>
@@ -105,12 +105,12 @@
             <section class="history">
                 <h2>Transfer From (spend allowance)</h2>
                 <form @submit.prevent="transferFrom">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="tfOwner" required></div>
-                    <div class="form-group"><label>To (public key)</label><input type="text" x-model="tfTo" required></div>
-                    <div class="form-group"><label>Amount</label><input type="text" x-model="tfAmount" required></div>
-                    <div class="form-group"><label>Spender (public key)</label><input type="text" x-model="tfSpender" required></div>
-                    <div class="form-group"><label>Spender Private Key</label><input type="password" x-model="tfSpenderKey" required></div>
+                    <div class="form-group"><label for="token-tf-id">Token ID</label><input id="token-tf-id" type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label for="token-tf-owner">Owner (public key)</label><input id="token-tf-owner" type="text" x-model="tfOwner" required></div>
+                    <div class="form-group"><label for="token-tf-to">To (public key)</label><input id="token-tf-to" type="text" x-model="tfTo" required></div>
+                    <div class="form-group"><label for="token-tf-amount">Amount</label><input id="token-tf-amount" type="text" x-model="tfAmount" required></div>
+                    <div class="form-group"><label for="token-tf-spender">Spender (public key)</label><input id="token-tf-spender" type="text" x-model="tfSpender" required></div>
+                    <div class="form-group"><label for="token-tf-priv">Spender Private Key</label><input id="token-tf-priv" type="password" x-model="tfSpenderKey" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.transferFrom">Transfer From</button>
                 </form>
                 <pre x-show="tfResult" class="result" x-text="tfResult"></pre>
@@ -118,9 +118,9 @@
             <section class="history">
                 <h2>Allowance</h2>
                 <form @submit.prevent="getAllowance">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
-                    <div class="form-group"><label>Spender (public key)</label><input type="text" x-model="allowanceSpender" required></div>
+                    <div class="form-group"><label for="token-allowance-id">Token ID</label><input id="token-allowance-id" type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label for="token-allowance-owner">Owner (public key)</label><input id="token-allowance-owner" type="text" x-model="owner" required></div>
+                    <div class="form-group"><label for="token-allowance-spender">Spender (public key)</label><input id="token-allowance-spender" type="text" x-model="allowanceSpender" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.getAllowance">Get Allowance</button>
                 </form>
                 <pre x-show="allowanceResult" class="result" x-text="allowanceResult"></pre>
@@ -128,10 +128,10 @@
             <section class="history">
                 <h2>Burn</h2>
                 <form @submit.prevent="burn">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>From (public key)</label><input type="text" x-model="owner" required></div>
-                    <div class="form-group"><label>Amount</label><input type="text" x-model="burnAmount" required></div>
-                    <div class="form-group"><label>Owner Private Key</label><input type="password" x-model="burnPriv" required></div>
+                    <div class="form-group"><label for="token-burn-id">Token ID</label><input id="token-burn-id" type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label for="token-burn-from">From (public key)</label><input id="token-burn-from" type="text" x-model="owner" required></div>
+                    <div class="form-group"><label for="token-burn-amount">Amount</label><input id="token-burn-amount" type="text" x-model="burnAmount" required></div>
+                    <div class="form-group"><label for="token-burn-priv">Owner Private Key</label><input id="token-burn-priv" type="password" x-model="burnPriv" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.burn">Burn</button>
                 </form>
                 <pre x-show="burnResult" class="result" x-text="burnResult"></pre>
@@ -139,8 +139,8 @@
             <section class="history">
                 <h2>History</h2>
                 <form @submit.prevent="showHistory">
-                    <div class="form-group"><label>Token ID</label><input type="text" x-model="tokenId" required></div>
-                    <div class="form-group"><label>Owner (public key)</label><input type="text" x-model="owner" required></div>
+                    <div class="form-group"><label for="token-history-id">Token ID</label><input id="token-history-id" type="text" x-model="tokenId" required></div>
+                    <div class="form-group"><label for="token-history-owner">Owner (public key)</label><input id="token-history-owner" type="text" x-model="owner" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.showHistory">Show History</button>
                 </form>
                 <pre x-show="history.length" class="result" x-text="JSON.stringify(history, null, 2)"></pre>
