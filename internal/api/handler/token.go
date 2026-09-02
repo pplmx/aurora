@@ -10,8 +10,11 @@ import (
 	"github.com/pplmx/aurora/internal/domain/token"
 )
 
-// defaultHistoryLimit is the default limit for token transfer history API responses.
-const defaultHistoryLimit = 20
+// defaultHistoryLimit is the default limit for token transfer history API
+// responses. It matches the CLI's --limit default and the service layer's
+// fallback (50) so the identical no-flag query returns the same page size from
+// every surface (TASK-261, ISS-257).
+const defaultHistoryLimit = 50
 
 // maxHistoryLimit caps the user-supplied ?limit= for token history so a
 // key-holding caller cannot force an arbitrarily large event scan.
