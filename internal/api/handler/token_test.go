@@ -259,6 +259,28 @@ func TestTokenHandler_History_CapsUnboundedLimit(t *testing.T) {
 	assert.Equal(t, maxHistoryLimit, svc.gotLimit, "unbounded ?limit must be capped")
 }
 
+// TestTokenHandler_History_DefaultsToServiceLimit pins TASK-261/ISS-257: the
+// REST handler's default limit for the no-?limit= query must equal the service
+// layer fallback and the CLI's default (50), so the identical query returns the
+// same page size from every surface. It was 20 while both the CLI and the
+// service used 50 — same op, same params, different result on a token with >20
+// events.
+func TestTokenHandler_History_DefaultsToServiceLimit(t *testing.T) {
+	svc := &recordingHistoryService{}
+	handler := NewTokenHandler(svc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/history?token_id=t1&owner=YWxpY2U=", nil)
+	rr := httptest.NewRecorder()
+
+	handler.History(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	// 50 is the shared default across the service layer fallback (limit<=0)
+	// and the CLI's --limit resolution; the REST default must match it.
+	assert.Equal(t, 50, svc.gotLimit,
+		"no-?limit query must use the service/CLI default limit (ISS-257)")
+}
+
 func TestTokenHandler_History_CapsUnboundedOffset(t *testing.T) {
 	svc := &recordingHistoryService{}
 	handler := NewTokenHandler(svc)
