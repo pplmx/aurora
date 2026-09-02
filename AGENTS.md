@@ -84,16 +84,17 @@ just stop         # Stop containers: docker compose down
 ./aurora lottery export file.json                      # Export records
 ./aurora lottery import file.json                      # Import records
 ./aurora lottery stats                                 # Show lottery stats
+./aurora lottery db-info                               # Show database info
 ./aurora lottery tui                                   # TUI interface
 ```
 
 ### Voting (Ed25519 signatures)
 
 ```bash
-./aurora voting candidate add -n "Name" -p "Party"     # Register a candidate
+./aurora voting candidate add -n "Name" -p "Party" -m "Program"  # Register a candidate
 ./aurora voting candidate list                          # List candidates
 ./aurora voting voter register -n "Name"               # Register a voter (prints keypair)
-./aurora voting session create -t "Title" -c <cand-id> -c <cand2> --start-time <t> --end-time <t>
+./aurora voting session create -t "Title" -d "Desc" -c <cand-id> -c <cand2> --start-time <t> --end-time <t>
 ./aurora voting session list                           # List sessions
 ./aurora voting session start -s <session-id>          # Start a session
 ./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv-key>
@@ -104,7 +105,7 @@ just stop         # Stop containers: docker compose down
 ### NFT (Ed25519-signed NFTs)
 
 ```bash
-./aurora nft mint -n "MyNFT" -d "Description" -c "creator_key"
+./aurora nft mint -n "MyNFT" -d "Description" -c "creator_key" --image <url> -t <token-uri>  # image/uri optional
 ./aurora nft transfer --nft <id> --from <owner> --to <address> -k "private_key"
 ./aurora nft get --nft <nft_id>
 ./aurora nft list --owner <pubkey>
@@ -133,7 +134,7 @@ just stop         # Stop containers: docker compose down
 
 ```bash
 ./aurora oracle source list                             # List data sources
-./aurora oracle source add -n "Name" -u <url>           # Add a source (-m/--method, -p/--path, --interval optional)
+./aurora oracle source add -n "Name" -u <url>           # Add a source (-t/--type, -m/--method, -p/--path, --interval optional)
 ./aurora oracle fetch -i <source-id>                    # Fetch data (-s legacy)
 ./aurora oracle data -i <source-id> --limit 10          # Query history
 ./aurora oracle latest -i <source-id>                   # Latest data point
