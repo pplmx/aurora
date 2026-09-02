@@ -400,13 +400,13 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 		return nil, err
 	}
 
-	fromBalance, err := s.repo.GetAccountBalance(req.TokenID, req.From)
-	if err != nil {
-		return nil, err
-	}
-	if fromBalance.Cmp(req.Amount) < 0 {
-		return nil, ErrInsufficientBalance
-	}
+	// No balance pre-check here: the atomic TrySubtractBalance in the
+	// transaction below is the single authority — a non-atomic read up front
+	// ran against a different snapshot, so a concurrent top-up between the
+	// read and the transaction returned a spurious INSUFFICIENT_BALANCE 400
+	// even though the atomic debit would (and did) succeed (TASK-265,
+	// ISS-261). The atomic primitive classifies the error itself, and the
+	// handler maps its sentinel to the same 400 code.
 
 	nonce, err := s.replay.ClaimNextNonce(string(req.TokenID), req.From)
 	if err != nil {
@@ -499,19 +499,20 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 		return nil, err
 	}
 	if approval == nil {
-		return nil, ErrInsufficientAllowance
-	}
-	if approval.Amount().Cmp(req.Amount) < 0 {
+		// A nonexistent allowance is distinguished up front so the caller
+		// still gets INSUFFICIENT_ALLOWANCE rather than the repo's not-found
+		// error; the atomic TryDeductApproval below is the authority on the
+		// remaining amount checks (TASK-265, ISS-261).
 		return nil, ErrInsufficientAllowance
 	}
 
-	ownerBalance, err := s.repo.GetAccountBalance(req.TokenID, req.Owner)
-	if err != nil {
-		return nil, err
-	}
-	if ownerBalance.Cmp(req.Amount) < 0 {
-		return nil, ErrInsufficientBalance
-	}
+	// No balance/allowance pre-check here: the atomic TryDeductApproval and
+	// TrySubtractBalance in the transaction below are the single authorities.
+	// Non-atomic reads up front ran against a different snapshot, so a
+	// concurrent allowance increase / owner top-up between the read and the
+	// transaction returned a spurious 400 even though the atomic primitives
+	// would (and did) succeed (TASK-265, ISS-261). Each primitive classifies
+	// its own error and the handler maps the sentinels to the same codes.
 
 	nonce, err := s.replay.ClaimNextNonce(string(req.TokenID), req.Spender)
 	if err != nil {

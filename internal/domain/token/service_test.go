@@ -746,7 +746,10 @@ func TestTransfer_InsufficientBalance(t *testing.T) {
 	}
 
 	_, err = service.Transfer(transferReq)
-	if err != ErrInsufficientBalance {
+	// The balance check now runs only inside the atomic TrySubtractBalance,
+	// which wraps the sentinel ("try subtract balance: ..."), so match with
+	// errors.Is (TASK-265, ISS-261).
+	if !errors.Is(err, ErrInsufficientBalance) {
 		t.Errorf("expected ErrInsufficientBalance, got %v", err)
 	}
 }
@@ -1673,7 +1676,9 @@ func TestTransferFrom_InsufficientAllowance(t *testing.T) {
 	}
 
 	_, err := service.TransferFrom(transferFromReq)
-	if err != ErrInsufficientAllowance {
+	// The allowance check now runs only inside the atomic TryDeductApproval,
+	// which wraps the sentinel, so match with errors.Is (TASK-265, ISS-261).
+	if !errors.Is(err, ErrInsufficientAllowance) {
 		t.Errorf("expected ErrInsufficientAllowance, got %v", err)
 	}
 }
@@ -1715,7 +1720,9 @@ func TestTransferFrom_OwnerInsufficientBalance(t *testing.T) {
 	}
 
 	_, err := service.TransferFrom(transferFromReq)
-	if err != ErrInsufficientBalance {
+	// The balance check now runs only inside the atomic TrySubtractBalance,
+	// which wraps the sentinel, so match with errors.Is (TASK-265, ISS-261).
+	if !errors.Is(err, ErrInsufficientBalance) {
 		t.Errorf("expected ErrInsufficientBalance, got %v", err)
 	}
 }
