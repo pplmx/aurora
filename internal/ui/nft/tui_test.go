@@ -1,9 +1,10 @@
 package nft
 
 import (
-	tea "charm.land/bubbletea/v2"
 	"encoding/base64"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/i18n"
