@@ -201,7 +201,7 @@
                 <div x-show="resultsError" class="result" aria-live="polite" x-text="resultsError"></div>
                 <table x-show="results" x-data>
                     <thead>
-                        <tr><th>Candidate</th><th>Party</th><th>Votes</th></tr>
+                        <tr><th scope="col">Candidate</th><th scope="col">Party</th><th scope="col">Votes</th></tr>
                     </thead>
                     <tbody>
                         <template x-for="c in results.candidates" :key="c.id">

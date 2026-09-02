@@ -35,8 +35,8 @@
                     </div>
                     <div class="form-group">
                         <label for="lottery-count">Count</label>
-                        <input id="lottery-count" type="number" x-model="count" min="1" step="1" value="1" required>
-                        <p class="form-hint">How many winners to draw; must not exceed the participant count.</p>
+                        <input id="lottery-count" type="number" x-model="count" min="1" step="1" value="1" required aria-describedby="lottery-count-hint">
+                        <p id="lottery-count-hint" class="form-hint">How many winners to draw; must not exceed the participant count.</p>
                     </div>
                     <button type="submit" class="btn-lottery" :disabled="busy.createLottery">Create Lottery</button>
                 </form>
@@ -48,10 +48,10 @@
                 <table x-show="!loading && history.length > 0">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Participants</th>
-                            <th>Winners</th>
-                            <th>Created</th>
+                            <th scope="col">ID</th>
+                            <th scope="col">Participants</th>
+                            <th scope="col">Winners</th>
+                            <th scope="col">Created</th>
                         </tr>
                     </thead>
                     <tbody>
