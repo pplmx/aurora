@@ -130,6 +130,23 @@ func TestTokenNFT_Smoke_ApproveAllowanceAndNFTKeyBinding(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &toBal))
 	require.Equal(t, "100", toBal.Amount)
 
+	// ---------- Read paths on a NONEXISTENT token must 404 (ISS-250) ----------
+	// balance/allowance/history previously read a typo'd token_id back as a
+	// legitimate zero balance / empty history (`200 {"amount":"0"}` / `200 []`)
+	// while /token/info 404'd — the shared requireToken guard now puts the
+	// read surfaces on the same unknown-resource->404 contract.
+	for _, path := range []string{
+		"/api/v1/token/balance?token_id=MTK_TYPO&owner=" + url.QueryEscape(ownerPub),
+		"/api/v1/token/allowance?token_id=MTK_TYPO&owner=" + url.QueryEscape(ownerPub) + "&spender=" + url.QueryEscape(spenderPub),
+		"/api/v1/token/history?token_id=MTK_TYPO&owner=" + url.QueryEscape(ownerPub),
+	} {
+		rr = request(http.MethodGet, path, "")
+		require.Equal(t, http.StatusNotFound, rr.Code,
+			"GET %s on a nonexistent token must 404, got %d: %s", path, rr.Code, rr.Body.String())
+		require.Contains(t, rr.Body.String(), "TOKEN_NOT_FOUND",
+			"GET %s must return the TOKEN_NOT_FOUND code, body: %s", path, rr.Body.String())
+	}
+
 	// approve with a MISMATCHED key must be rejected (401)
 	_, attackerPriv := newKeyPairB64(t)
 	rr = request(http.MethodPost, "/api/v1/token/approve", fmt.Sprintf(
