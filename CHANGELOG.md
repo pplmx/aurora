@@ -94,6 +94,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Docs
 
+- **Docs/CLI truthfulness audit (round 142)**: cross-checked every cobra
+  subcommand and flag against README/AGENTS in both directions — zero dead
+  doc claims (every documented command/flag exists; `--start-time`/`--end-time`
+  verified real, `--amend`/`--rm` are git/docker context). Two quickstart
+  gaps closed: `lottery reset --confirm` (was only in the `--confirm` prose
+  footnote) and the `token history --limit/--offset` paging flags (callable
+  but never spelled) (TASK-255, ISS-251).
+
 - README/AGENTS quickstart now spell the CLI flags that exist but were
   undocumented: `oracle source add -t/--type`, `nft mint --image` /
   `-t/--token-uri`, `token create -d/--decimals`, `voting candidate add
