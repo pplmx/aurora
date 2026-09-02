@@ -4,6 +4,12 @@
 .DS_Store
 bin
 
+# Compiled binary from `go build ./cmd/api` (the Web/API server). README builds
+# it as `./aurora-api` (matches the /aurora-* rule above), but a bare `go build`
+# emits `./api`; a stale copy was once committed (TASK-266, ISS-262) so keep the
+# root-level name ignored too.
+/api
+
 # Core dumps (from crashes / panics in tests or binaries)
 core
 core.*

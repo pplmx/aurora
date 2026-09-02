@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 146,
+  "round": 147,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T11:17:47+00:00",
+  "updated_at": "2026-09-02T12:27:00+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 144,
+      "touched_round": 147,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -11077,6 +11077,35 @@
       "touched_round": 145,
       "commit": "9bec360",
       "title": "Token Transfer/TransferFrom drop non-atomic balance pre-checks; atomic primitives authoritative (spurious-400 fix)"
+    },
+    "ISS-262": {
+      "id": "ISS-262",
+      "type": "issue",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-09-02T11:50:57+00:00",
+      "updated_at": "2026-09-02T12:11:19+00:00",
+      "touched_round": 147,
+      "title": "Repo hygiene: 18MB compiled api binary tracked in HEAD + orphan .commit-msg.txt left next to nothing that reads it",
+      "severity": 0.4,
+      "confidence": 0.99,
+      "evidence": "git cat-file -s HEAD:api = 18357272; re-added by 20ce60e after e02302e removed it; .gitignore lacks /api; no hook/CI/script references .commit-msg.txt (only its own 2026 commit)"
+    },
+    "TASK-266": {
+      "id": "TASK-266",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-09-02T11:51:32+00:00",
+      "updated_at": "2026-09-02T12:27:00+00:00",
+      "touched_round": 147,
+      "category": "maintainability",
+      "severity": 0.4,
+      "confidence": 0.99,
+      "effort": 1,
+      "title": "Untrack the 18MB compiled api binary: git rm --cached api + add /api to .gitignore (re-blocked after e02302e removed it, 20ce60e re-added); drop the stale binary so the repo stays build-artifact-free",
+      "lock_owner": "obs-round147",
+      "lock_until": "2026-09-02T12:57:00+00:00"
     }
   },
   "edges": [
@@ -17445,6 +17474,18 @@
       "to": "TASK-265",
       "type": "implements",
       "created_at": "2026-09-02T11:06:51+00:00"
+    },
+    {
+      "from": "ISS-262",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-09-02T12:26:39+00:00"
+    },
+    {
+      "from": "TASK-266",
+      "to": "ISS-262",
+      "type": "addresses",
+      "created_at": "2026-09-02T12:26:39+00:00"
     }
   ]
 }
