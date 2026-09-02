@@ -7,6 +7,63 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [v1.94] - 2026-09-02
+
+### Fixed
+
+- **The lottery TUI created draws the CLI/API reject**: its create form only
+  enforced list-nonempty, count≥1, count≤len and a non-empty seed, so
+  duplicate participant names, an over-short/over-long seed, a winner count
+  above the 100 cap, or a malformed participant name slipped through — and
+  the stored draw then failed `record.Validate()` on re-import, so the rest
+  of the platform treated it as corrupt. `handleCreate` now runs the shared
+  domain validators (`ValidateParticipants`/`ValidateSeed`/
+  `ValidateWinnerCount`) exactly as the CLI/API do, with each sentinel mapped
+  to a localized message (TASK-246, ISS-248). `runLottery` likewise
+  propagates `GenerateKeyPair`/`VRFProve` failures instead of drawing on nil
+  outputs — a discarded crypto error used to record a deterministic,
+  unverifiable "successful" draw with empty VRF fields.
+- **rest lottery create froze the default winner count at 3**: a config
+  `lottery.defaultCount = 4` drew 4 winners through the CLI but 3 via the
+  API, because the endpoint resolved an omitted `winner_count` to the
+  hardcoded `DefaultWinnerCount`. It now resolves `config.LotteryDefaultCount()`
+  (injected into the handler at server wiring), matching the CLI's `-c`
+  absence exactly (TASK-247).
+- **lottery verify reported a corrupt record as valid**: a stored draw with
+  an empty winners slice (partial/corrupt write — a create always records ≥1
+  winner) passed verification, because `SelectWinners(output, roster, 0)`
+  returns an empty set that vacuously matches. Both the use case and the CLI
+  verify path now reject "record has no winners" (TASK-249, ISS-249; the
+  REST/web surfaces inherit the guard through the use case).
+- **`web/lottery` history blanked already-rendered draws on a transient
+  refresh failure**: `createLottery`'s follow-up `loadHistory` reload wiped
+  `history=[]` on a 20s timeout / API blip, hiding a known-good list while
+  the API recovered. It now keeps prior rows on failure (the dashboard/
+  oracle keep-prior-rows policy, TASK-151), still flagging the failure via
+  `historyFailed` so a first-load failure is never misread as an empty system
+  (TASK-250, ISS-246).
+- **The k8s default Job could not start**: the container `command` was
+  `["./aurora", ...]`, but Kubernetes' `command` replaces the image
+  ENTRYPOINT, so it exec'd the relative path against WORKDIR `/app` where no
+  such file exists ("executable file not found" on every run — compose was
+  unaffected because `docker compose run` appends to the ENTRYPOINT). The
+  command now uses the absolute `/aurora` path.
+
+### Docs
+
+- README/AGENTS quickstart now spell the CLI flags that exist but were
+  undocumented: `oracle source add -t/--type`, `nft mint --image` /
+  `-t/--token-uri`, `token create -d/--decimals`, `voting candidate add
+  -m/--program`, `voting session create -d/--description`, and the lottery
+  `stats` / `verify` / `export` / `import` / `db-info` commands (TASK-248).
+  Every added flag was cross-checked against `cmd/aurora/cmd` so the docs
+  never invent a flag.
+- Deleted the orphaned `scripts/go_fmt_check.sh` and `scripts/go_imports_check.sh`
+  — nothing referenced them (the `justfile check` target and
+  `.pre-commit-config.yaml` run gofmt/goimports inline).
+- `justfile clean` now also removes `./aurora` (the `build-current`/`run`
+  binary), not just the cross-build `aurora-<os>-<arch>` artifacts.
+
 ## [v1.93] - 2026-09-01
 
 ### Fixed
