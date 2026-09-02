@@ -90,6 +90,25 @@ func TestCreateLotteryUseCase_Execute(t *testing.T) {
 		t.Error("Expected the stored record to persist the VRF public key")
 	}
 
+	// ISS-256: the ON-CHAIN copy must carry the same verified state every other
+	// surface reports. Before the round-145 fix the block JSON was serialized
+	// before verification ran, so the immutable chain record always said
+	// verified:false while the DB, REST and CLI said true — an auditor
+	// replaying the chain saw every draw as unverified.
+	if len(blockChain.blocks) != 1 {
+		t.Fatalf("Expected 1 on-chain block, got %d", len(blockChain.blocks))
+	}
+	var chainRecord lottery.LotteryRecord
+	if err := json.Unmarshal([]byte(blockChain.blocks[0]), &chainRecord); err != nil {
+		t.Fatalf("on-chain JSON did not decode as a LotteryRecord: %v", err)
+	}
+	if !chainRecord.Verified {
+		t.Error("Expected the on-chain record to be Verified=true (matching resp.Verified)")
+	}
+	if chainRecord.Verified != resp.Verified {
+		t.Error("On-chain verified state must match the create response")
+	}
+
 	// Regression: LotteryResponse previously had no json tags, so the
 	// POST /api/v1/lottery/create payload was PascalCase, inconsistent with the
 	// rest of the snake_case API. Lock the contract.

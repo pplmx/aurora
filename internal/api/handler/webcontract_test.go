@@ -166,7 +166,8 @@ func TestWebUIContract_VoteFormGuards(t *testing.T) {
 // TestWebUIContract_CreateFormsCarryApiFields pins the TASK-199 fixes: web
 // create forms must carry every field the API accepts (token decimals, like
 // the CLI --decimals) and must advance every keyed sibling form after a create
-// (NFT History keys off historyId, Token Info keys off infoId).
+// (NFT History keys off the shared id after ISS-255 — a separate historyId
+// silently desynced on manual edits; Token Info keys off infoId).
 func TestWebUIContract_CreateFormsCarryApiFields(t *testing.T) {
 	tokenHTML, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "token.html"))
 	require.NoError(t, err)
@@ -176,8 +177,8 @@ func TestWebUIContract_CreateFormsCarryApiFields(t *testing.T) {
 	js, err := os.ReadFile(filepath.Join("..", "..", "..", "web", "js", "app.js"))
 	require.NoError(t, err)
 	code := string(js)
-	require.Contains(t, code, `this.historyId = data.id`,
-		"NFT mint must advance historyId so the History form is pre-filled (ISS-195)")
+	require.Contains(t, code, `this.id = data.id`,
+		"NFT mint must advance the shared id so Get/Transfer/Burn/History forms are pre-filled (ISS-195)")
 	require.Contains(t, code, `this.infoId = data.id`,
 		"token create must advance infoId so the Token Info form is pre-filled (ISS-195)")
 	require.Contains(t, code, `this.decimals === undefined || this.decimals === ''`,

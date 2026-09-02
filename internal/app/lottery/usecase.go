@@ -65,6 +65,24 @@ func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryRespo
 
 	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, publicKey, 0)
 
+	// Mark the draw verified at creation time: a draw is only trustworthy if
+	// its recorded proof verifies against the persisted public key (binding
+	// it to the seed) AND the recorded winners are exactly what the
+	// deterministic selection produces from the VRF output. This makes the
+	// audit surface honest (previously Verified stayed permanently false).
+	// The verification runs BEFORE the on-chain JSON is serialized so the
+	// immutable chain copy carries the same verified state the DB, REST and
+	// CLI report — otherwise the chain record always said verified:false
+	// while every other surface said true (ISS-256).
+	if pk, derr := lottery.DecodePublicKey(publicKey); derr == nil {
+		if ok, _ := uc.service.VerifyDraw(record, pk); ok {
+			expected := lottery.SelectWinners(output, participants, req.WinnerCount)
+			if sameStringSet(expected, winners) {
+				record.Verified = true
+			}
+		}
+	}
+
 	jsonData, err := record.ToJSON()
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize record: %w", err)
@@ -76,20 +94,6 @@ func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryRespo
 	}
 
 	record.BlockHeight = height
-
-	// Mark the draw verified at creation time: a draw is only trustworthy if
-	// its recorded proof verifies against the persisted public key (binding
-	// it to the seed) AND the recorded winners are exactly what the
-	// deterministic selection produces from the VRF output. This makes the
-	// audit surface honest (previously Verified stayed permanently false).
-	if pk, derr := lottery.DecodePublicKey(publicKey); derr == nil {
-		if ok, _ := uc.service.VerifyDraw(record, pk); ok {
-			expected := lottery.SelectWinners(output, participants, req.WinnerCount)
-			if sameStringSet(expected, winners) {
-				record.Verified = true
-			}
-		}
-	}
 
 	if err := uc.lotteryRepo.Save(record); err != nil {
 		return nil, fmt.Errorf("failed to save to repository: %w", err)
