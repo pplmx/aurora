@@ -70,6 +70,13 @@ documented in their per-milestone ROADMAP files.
   draws a strong accent ring on keyboard focus, extended to `select` and
   `textarea`. `TestWebUIFocusVisible` guards that the shipped CSS never
   re-suppresses the outline (TASK-252, ISS-248).
+- **Screen readers now announce form submit outcomes**: all 33 async
+  `class="result"` regions across the six pages (dashboard/lottery/voting/
+  token/oracle/nft/blockchain) carry `aria-live="polite"` — a blind user
+  hitting Create Lottery / Mint / Cast Vote previously got no feedback
+  because the container text swapped silently under `x-show`/`x-text`
+  (WCAG 4.1.3). `TestWebUIResultLiveRegion` fails if a future result
+  container loses the attribute (TASK-253, ISS-249).
 
 ### Docs
 
