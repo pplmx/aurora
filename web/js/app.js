@@ -491,6 +491,11 @@ function nftApp() {
             }
         },
         async transfer() {
+            // Transferring an NFT moves ownership permanently — a wrong To key
+            // (or a stray Enter on a form auto-filled from mint/get) transfers
+            // the asset with no undo. Same guard as the sibling Burn confirm
+            // (ISS-253; TASK-269, ISS-265).
+            if (!confirm('Transfer NFT "' + (this.id || '') + '" to ' + (this.to || '(no address)') + '?')) return;
             try {
                 this.transferResult = await this.post('/api/v1/nft/transfer', {
                     nft_id: this.id,
@@ -502,7 +507,10 @@ function nftApp() {
                 // the mint/ token-mint context advances (TASK-150/151): the
                 // List-by-Owner and Burn forms otherwise still target the
                 // pre-transfer owner and Burn errors "not the owner" (ISS-186).
-                if (this.to) this.owner = this.to;
+                // Also advance this transfer form's own From field so a second
+                // transfer sends FROM the new owner, not the stale pre-transfer
+                // key (the token page does both at app.js:898; TASK-270, ISS-266).
+                if (this.to) { this.owner = this.to; this.from = this.to; }
             } catch (e) {
                 this.transferResult = 'Error: ' + e.message;
             }
@@ -883,6 +891,11 @@ function tokenApp() {
             }
         },
         async transfer() {
+            // Sending tokens is permanent and irreversible — a wrong recipient
+            // key (or a stray Enter on a form auto-filled from mint/get) moves
+            // value with no undo. The guard mirrors the CLI --confirm gate and
+            // the sibling Burn confirm (ISS-253; TASK-269, ISS-265).
+            if (!confirm('Transfer ' + (this.xAmount || '') + ' of token "' + (this.tokenId || '') + '" to ' + (this.xTo || '(no address)') + '?')) return;
             try {
                 this.xResult = await this.postToken('/api/v1/token/transfer', {
                     token_id: this.tokenId, from: this.xFrom, to: this.xTo,
@@ -939,6 +952,10 @@ function tokenApp() {
             }
         },
         async transferFrom() {
+            // Spending an allowance moves tokens permanently to the recipient —
+            // a wrong key or stray Enter spends value with no undo. Same guard
+            // as transfer/Burn (TASK-269, ISS-265).
+            if (!confirm('Spend ' + (this.tfAmount || '') + ' of allowance for token "' + (this.tokenId || '') + '" to ' + (this.tfTo || '(no address)') + '?')) return;
             try {
                 this.tfResult = await this.postToken('/api/v1/token/transfer_from', {
                     token_id: this.tokenId, owner: this.tfOwner, to: this.tfTo,
