@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 141,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T05:18:56+00:00",
+  "updated_at": "2026-09-02T05:29:29+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -10609,6 +10609,18 @@
       "title": "ISS-084 phantom-block tradeoff stays deferred after round 144-146 height-authority work",
       "rationale": "Re-examined ISS-084 against the round 144-146 DB-authoritative height reservation (TASK-244, ISS-242): that work makes heights conflict-free across processes (syncFromDB + ErrHeightConflict retry + phantom-tail rebuild) but does NOT address the domain-rollback coupling — the token/NFT/voting/lottery services still call AddBlock before the domain SQLite tx commits, so a losing side of a race (double-spend / already-voted / ownership-changed) leaves a committed on-chain block for a rolled-back op. Voting genuinely needs the block height before its vote-row save, so a blanket post-commit AddBlock is impossible (DEC-002 rejected it). The viable forward path is a reserve-then-finalize protocol (mark a block pending, finalize only on domain commit, reclaim on rollback) — a deliberate cross-subsystem design effort for a dedicated round, not a hasty patch. Tradeoff remains accepted per DEC-002; issue stays active.",
       "alternatives_rejected": "Move AddBlock post-commit for token/nft (changes block ordering, impossible for voting, inconsistent across subsystems — DEC-002); leave ISS-084 unexamined after the round 144-146 change (risk a future loop misreading the height work as having closed it)"
+    },
+    "EV-059": {
+      "id": "EV-059",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:29:29+00:00",
+      "updated_at": "2026-09-02T05:29:29+00:00",
+      "touched_round": 141,
+      "source": "go-review-token141-verdict",
+      "detail": "APPROVE 0c47148: requireToken covers both not-found conventions; no caller relied on zero-for-unknown; both regression tests fail without the guard; idiomatic. Nit (app-layer nil mapping duplication) pre-existing, non-blocking.",
+      "confidence": 1.0
     }
   },
   "edges": [
