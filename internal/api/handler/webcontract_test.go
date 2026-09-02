@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 
+	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
 	domainnft "github.com/pplmx/aurora/internal/domain/nft"
 	domainoracle "github.com/pplmx/aurora/internal/domain/oracle"
 )
@@ -97,7 +98,7 @@ func buildWebRouter() chi.Router {
 	voting := NewVotingHandler(fakeVotingRepo{}, nil)
 	token := NewTokenHandler(fakeTokenServiceFull{})
 	oracle := NewOracleHandler(domainoracle.NewInmemRepo())
-	lottery := NewLotteryHandler(nil)
+	lottery := NewLotteryHandler(nil, domainlottery.DefaultWinnerCount)
 	blockchain := NewBlockchainHandler()
 
 	r.Route("/api/v1/lottery", func(r chi.Router) { lottery.Routes(r) })

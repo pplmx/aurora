@@ -8,7 +8,7 @@
 # Run it for a specific CLI invocation:
 #   kubectl apply -f k8s.yml
 #   kubectl create job --from=job/aurora-cli aurora-lottery-history \
-#     --image=pplmx/aurora:latest -- ./aurora lottery history
+#     --image=pplmx/aurora:latest -- /aurora lottery history
 #   kubectl logs job/aurora-lottery-history
 #
 # The Web UI is a separate binary (cmd/api), not part of this image — see
@@ -48,7 +48,13 @@ spec:
           image: pplmx/aurora:latest
           # Default sanity command; edit or use `kubectl create job --from=...`
           # for the CLI invocation you actually need.
-          command: ["./aurora", "lottery", "stats"]
+          #
+          # The image's ENTRYPOINT is /aurora; in Kubernetes the container
+          # `command` REPLACES that entrypoint (unlike `docker compose run`,
+          # which appends to it), so a relative "./aurora" would exec against
+          # WORKDIR /app where no such file exists and the Job would fail with
+          # "executable file not found" on every run. Use the absolute path.
+          command: ["/aurora", "lottery", "stats"]
           envFrom:
             - configMapRef:
                 name: aurora-config

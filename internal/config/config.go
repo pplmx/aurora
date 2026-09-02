@@ -85,6 +85,12 @@ func Load() (*Config, error) {
 	// Oracle scheduler poll cadence (v1.21). The scheduler's own per-source
 	// interval still gates when each feed is due; this is how often it checks.
 	viper.SetDefault("oracle.scheduler.checkInterval", time.Second)
+	// Default lottery winner count (v1.93, TASK-247): mirrors the CLI's
+	// `lottery.defaultCount` (registered in cmd/aurora/cmd/root.go) so the REST
+	// endpoint resolves an omitted winner_count to the SAME configured default
+	// the CLI does — the API handler previously applied a hardcoded 3, so a
+	// config `lottery.defaultCount = 4` drew 4 through the CLI but 3 via API.
+	viper.SetDefault("lottery.defaultCount", 3)
 
 	// Read the optional config file with the same lookup order the CLI uses
 	// (AGENTS.md: 1. $HOME/aurora.toml  2. ./config/aurora.toml). Previously
@@ -223,6 +229,16 @@ func RateLimitTrustedProxies() []string {
 // would make the scheduler's ticker busy-poll (TASK-118, ISS-110).
 func OracleSchedulerCheckInterval() time.Duration {
 	return DurationSeconds("oracle.scheduler.checkInterval", time.Second)
+}
+
+// LotteryDefaultCount returns the winner count applied by the REST lottery
+// create endpoint when a request omits winner_count (default 3). The CLI
+// resolves its own `-c` absence to the same configured
+// `lottery.defaultCount` (cmd/aurora/cmd/lottery.go); this getter lets the API
+// handler apply the identical configured default instead of a hardcoded 3, so
+// REST and CLI agree on a non-3 configured default (TASK-247, ISS-…).
+func LotteryDefaultCount() int {
+	return viper.GetInt("lottery.defaultCount")
 }
 
 // AllowedCORSOrigins returns the origins allowed to read API/Web UI

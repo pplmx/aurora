@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/stretchr/testify/assert"
 )
@@ -147,13 +149,13 @@ func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryReco
 }
 
 func TestNewLotteryHandler(t *testing.T) {
-	handler := NewLotteryHandler(&mockLotteryRepo{})
+	handler := NewLotteryHandler(&mockLotteryRepo{}, lottery.DefaultWinnerCount)
 	assert.NotNil(t, handler)
 	assert.NotNil(t, handler.repo)
 }
 
 func TestLotteryHandler_Routes(t *testing.T) {
-	handler := NewLotteryHandler(&mockLotteryRepo{})
+	handler := NewLotteryHandler(&mockLotteryRepo{}, lottery.DefaultWinnerCount)
 	r := chi.NewRouter()
 	handler.Routes(r)
 
@@ -229,4 +231,37 @@ func (m *nilLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 }
 func (m *nilLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
 	return nil, lottery.ErrNotFound
+}
+
+// TASK-247: the REST lottery create endpoint previously resolved an omitted
+// winner_count to a hardcoded 3, while the CLI's omitted -c fell back to the
+// configured lottery.defaultCount. A config defaultCount=4 drew 4 winners via
+// CLI but 3 via API. The handler now applies the injected configured default,
+// so an omitted winner_count must draw the configured number of winners, not
+// a hardcoded 3 (the injected value replaces the domain's DefaultWinnerCount
+// in the resolution path; the missing-fields test above still expects a create
+// without participants/seed to error).
+func TestLotteryHandler_Create_UsesInjectedDefaultWinnerCount(t *testing.T) {
+	blockchain.ResetForTest()
+	defer blockchain.ResetForTest()
+
+	h := NewLotteryHandler(&mockLotteryRepo{}, 5) // configured defaultCount = 5
+
+	body, _ := json.Marshal(CreateLotteryRequest{
+		Participants: "Alice,Bob,Charlie,David,Eve",
+		Seed:         "default-count-seed",
+		WinnerCount:  0, // omitted: must resolve to the injected 5, not 3
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/lottery/create", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	h.Create(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code, "body: %s", rr.Body.String())
+	var resp lotteryapp.LotteryResponse
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Len(t, resp.Winners, 5)
+	assert.Equal(t, 5, len(resp.Winners))
+	assert.Len(t, resp.WinnerAddresses, 5)
 }

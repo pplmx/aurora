@@ -178,6 +178,17 @@ func (uc *VerifyLotteryUseCase) Execute(req VerifyLotteryRequest) (*VerifyLotter
 		}
 	}
 
+	// A draw with no winners is corrupt by construction: CreateLotteryUseCase
+	// (and the CLI/API/TUI paths behind it) always stores at least one winner
+	// because ValidateWinnerCount rejects count<=0, so an empty winners slice
+	// can only come from a partial/corrupt write or a hand-crafted record.
+	// Without this guard, SelectWinners(output, roster, 0) returns an empty
+	// set, sameStringSet([], []) is vacuously true, and the record reports
+	// valid:true — masking the corruption (TASK-249, ISS-249).
+	if len(record.Winners) == 0 {
+		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "record has no winners"}, nil
+	}
+
 	// The winners recorded must be exactly what SelectWinners produces from
 	// the stored output for this roster and winner count.
 	expected := lottery.SelectWinners(vrfOutput, record.Participants, len(record.Winners))

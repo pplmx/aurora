@@ -1,6 +1,7 @@
 package lottery
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -402,6 +403,50 @@ func (m *model) handleCreate() tea.Msg {
 		return nil
 	}
 
+	// The TUI must reject the same draws the CLI/API reject (TASK-246,
+	// ISS-248): duplicate participant names, an over-long/over-short seed, a
+	// winner count above the domain cap or >100, or a malformed participant
+	// name previously slipped through here — handleCreate only checked
+	// list-nonempty, count>=1, count<=len and seed=="" — and such a record
+	// then failed record.Validate() on re-import, so a stored draw the rest
+	// of the platform treats as corrupt could be created here. Run the shared
+	// domain validators (the exact boundary CLI/API enforce) and map each
+	// sentinel to a localized message instead of duplicating loose ad-hoc
+	// checks.
+	if err := lottery.ValidateParticipants(participants); err != nil {
+		switch {
+		case errors.Is(err, lottery.ErrDuplicateParticipant):
+			m.err = i18n.GetText("lottery.tui.duplicate_participant")
+		case errors.Is(err, lottery.ErrTooManyParticipants):
+			m.err = i18n.GetText("lottery.tui.participants_too_many")
+		default:
+			// empty/invalid/long participant name → same localized "invalid
+			// input" the other TUIs surface for a malformed field value.
+			m.err = i18n.GetText("error.invalid_input")
+		}
+		return nil
+	}
+	if err := lottery.ValidateSeed(seed); err != nil {
+		switch {
+		case errors.Is(err, lottery.ErrSeedTooShort):
+			m.err = i18n.GetText("lottery.tui.seed_too_short")
+		case errors.Is(err, lottery.ErrSeedTooLong):
+			m.err = i18n.GetText("lottery.tui.seed_too_long")
+		default:
+			m.err = i18n.GetText("error.invalid_input")
+		}
+		return nil
+	}
+	if err := lottery.ValidateWinnerCount(count, len(participants)); err != nil {
+		switch {
+		case errors.Is(err, lottery.ErrTooManyWinners):
+			m.err = i18n.GetText("lottery.tui.winners_too_many")
+		default:
+			m.err = i18n.GetText("lottery.tui.winners_exceed")
+		}
+		return nil
+	}
+
 	result := m.runLottery(participants, seed, count)
 	if result == nil {
 		m.err = i18n.GetText("lottery.tui.create_failed")
@@ -461,8 +506,23 @@ func (m *model) loadHistory() {
 }
 
 func (m *model) runLottery(participants []string, seed string, count int) *lottery.LotteryRecord {
-	pk, sk, _ := lottery.GenerateKeyPair()
-	output, proof, _ := lottery.VRFProve(sk, []byte(seed))
+	// Propagate crypto failures instead of drawing on empty/nil outputs
+	// (TASK-246, ISS-248): a discarded GenerateKeyPair/VRFProve error left
+	// output/proof nil, SelectWinners(nil, ...) resolves the first participant
+	// deterministically, and a "successful" on-chain draw with an empty
+	// VRFOutput/VRFProof was recorded that verify treats as corrupt. The
+	// CLI/API path (service.DrawWinners) propagates these; the TUI now does
+	// too.
+	pk, sk, err := lottery.GenerateKeyPair()
+	if err != nil {
+		m.err = err.Error()
+		return nil
+	}
+	output, proof, err := lottery.VRFProve(sk, []byte(seed))
+	if err != nil {
+		m.err = err.Error()
+		return nil
+	}
 
 	winners := lottery.SelectWinners(output, participants, count)
 	winnerAddrs := make([]string, len(winners))
