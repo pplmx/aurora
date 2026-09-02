@@ -84,6 +84,27 @@ documented in their per-milestone ROADMAP files.
   transfer now advances both the shared owner and the form's From to the
   recipient, matching the token page's `app.js:898` pattern (TASK-270,
   ISS-266).
+- **Backend write endpoints stored unbounded free-text while the token and
+  lottery surfaces capped theirs**: voting candidate `party`/`program` and
+  session `description` (only non-empty name/title were checked), NFT mint
+  `description`/`image_url`/`token_uri`, and oracle source
+  `name`/`type`/`method`/`path`/`headers` all flowed unvalidated into SQLite
+  TEXT columns — a key-holding caller could grow rows and list/detail
+  responses without bound, unlike token (name≤100/symbol≤10) and lottery.
+  Length bounds now live at the shared domain edge so REST/CLI/TUI/web all
+  inherit them: voting gained a `validator.go` mirroring the token validator
+  (voter/candidate name ≤100, party ≤100, program ≤1000, session title ≤200,
+  description ≤1000), NFT.Validate caps name ≤200 and description/image_url/
+  token_uri ≤2000, and oracle AddSource caps name ≤100, type ≤50, method ≤10,
+  path ≤500, headers ≤2000, url ≤2000. Over-length input maps to a 400
+  across all surfaces (TASK-271, ISS-267).
+- **`GET /nft/{id}/history` and `GET /lottery/history` returned every row
+  with no LIMIT while their siblings (token history, NFT list, oracle query)
+  page at parse time**: a key-holding caller could force an unbounded DB
+  scan/response on these two. NFT operations are now capped at 1000 per query
+  (SQL LIMIT); the lottery REST endpoint parses + clamps `?limit`/`?offset`
+  (default 50, max 100, offset ≤10000) like the token handler — the CLI/TUI
+  keep their full local `GetAll` semantics (TASK-271, ISS-267).
 - **A stale 18 MB compiled `api` binary was tracked in the repo root**: a build
   artifact from `go build ./cmd/api` (README builds it as `./aurora-api`),
   removed in `e02302e` and accidentally re-added by the round-133 RIL state

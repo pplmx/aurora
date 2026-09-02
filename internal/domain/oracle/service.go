@@ -24,6 +24,21 @@ const defaultQueryLimit = 10
 // below the overflow point.
 const MaxSourceIntervalSeconds = 30 * 24 * 60 * 60
 
+// Length bounds for oracle source free-text fields. AddSource previously
+// persisted these unbounded (name/type/method/path/headers — only interval
+// and URL scheme were checked) while the token/voting/lottery surfaces cap
+// their free-text inputs; a key-holding caller could grow rows and list/detail
+// responses without bound. These caps are enforced at the shared domain edge
+// so REST/CLI/TUI/web all inherit them (TASK-271, ISS-267).
+const (
+	MaxSourceNameLength   = 100
+	MaxSourceTypeLength   = 50
+	MaxSourceMethodLength = 10
+	MaxSourcePathLength   = 500
+	MaxSourceHeadersLen   = 2000
+	MaxSourceURLLength    = 2000
+)
+
 // allowedSourceSchemes is the set of URL schemes an oracle source
 // may use. We block file:// (would let a hostile source read the
 // host filesystem), javascript: (XSS-shaped payloads, not that the
@@ -175,6 +190,23 @@ func NewService(repo Repository) Service {
 func (s *service) AddSource(source *DataSource) error {
 	if source.Name == "" {
 		return ErrInvalidSource
+	}
+	// Length bounds mirror the token/voting validators: previously only non-empty
+	// name + interval + URL scheme were checked, so a key-holding caller could
+	// grow rows/list responses without bound (TASK-271, ISS-267).
+	switch {
+	case len(source.Name) > MaxSourceNameLength:
+		return fmt.Errorf("%w: name too long", ErrInvalidSource)
+	case len(source.Type) > MaxSourceTypeLength:
+		return fmt.Errorf("%w: type too long", ErrInvalidSource)
+	case len(source.Method) > MaxSourceMethodLength:
+		return fmt.Errorf("%w: method too long", ErrInvalidSource)
+	case len(source.Path) > MaxSourcePathLength:
+		return fmt.Errorf("%w: path too long", ErrInvalidSource)
+	case len(source.Headers) > MaxSourceHeadersLen:
+		return fmt.Errorf("%w: headers too long", ErrInvalidSource)
+	case len(source.URL) > MaxSourceURLLength:
+		return fmt.Errorf("%w: url too long", ErrInvalidSource)
 	}
 	// A fetch-scheduling interval cannot be negative; only ==0 is defaulted
 	// (to 60) by the use case, so reject negatives here at the contract

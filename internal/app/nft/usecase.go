@@ -15,10 +15,6 @@ func NewMintNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *MintN
 }
 
 func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
-	if req.Name == "" {
-		return nil, nft.ErrNameRequired
-	}
-
 	creator, err := decodeKey("creator", req.Creator, pubKeyLen, nft.ErrInvalidPublicKey)
 	if err != nil {
 		return nil, err
@@ -27,6 +23,12 @@ func (u *MintNFTUseCase) Execute(req *MintNFTRequest) (*NFTResponse, error) {
 	n := nft.NewNFT(req.Name, req.Description, req.ImageURL, req.TokenURI, creator, creator)
 	n.Owner = creator
 	n.Creator = creator
+	// Validate via the shared domain entity (not just a non-empty name check)
+	// so the name/description/image_url/token_uri length bounds REST/CLI/web
+	// all inherit are enforced here too (TASK-271, ISS-267).
+	if err := n.Validate(); err != nil {
+		return nil, err
+	}
 
 	result, err := u.service.Mint(n, u.chain)
 	if err != nil {

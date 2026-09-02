@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -188,6 +189,49 @@ func TestAddSource_Invalid(t *testing.T) {
 	err := svc.AddSource(&DataSource{Name: "", URL: "https://api.example.com"})
 	if err == nil {
 		t.Error("expected error for invalid source")
+	}
+}
+
+// TestAddSource_FieldLengthBounds pins the free-text length caps added so a
+// key-holding caller cannot grow rows/list responses without bound, matching
+// the token/voting/lottery surfaces (TASK-271, ISS-267). Exact-bound values
+// are accepted; one-over is rejected.
+func TestAddSource_FieldLengthBounds(t *testing.T) {
+	base := &DataSource{
+		Name: "src",
+		URL:  "https://api.example.com",
+		Type: "http",
+	}
+	svc := NewService(NewInmemRepo())
+
+	over := map[string]func(*DataSource){
+		"name":    func(s *DataSource) { s.Name = strings.Repeat("n", MaxSourceNameLength+1) },
+		"type":    func(s *DataSource) { s.Type = strings.Repeat("t", MaxSourceTypeLength+1) },
+		"method":  func(s *DataSource) { s.Method = strings.Repeat("m", MaxSourceMethodLength+1) },
+		"path":    func(s *DataSource) { s.Path = strings.Repeat("p", MaxSourcePathLength+1) },
+		"headers": func(s *DataSource) { s.Headers = strings.Repeat("h", MaxSourceHeadersLen+1) },
+		"url":     func(s *DataSource) { s.URL = "https://" + strings.Repeat("u", MaxSourceURLLength) },
+	}
+	for field, mutate := range over {
+		t.Run(field+"_too_long", func(t *testing.T) {
+			src := *base
+			mutate(&src)
+			err := svc.AddSource(&src)
+			if !errors.Is(err, ErrInvalidSource) {
+				t.Fatalf("expected ErrInvalidSource for over-long %s, got %v", field, err)
+			}
+		})
+	}
+
+	// Exact bounds are accepted.
+	atBound := *base
+	atBound.Name = strings.Repeat("n", MaxSourceNameLength)
+	atBound.Type = strings.Repeat("t", MaxSourceTypeLength)
+	atBound.Method = strings.Repeat("m", MaxSourceMethodLength)
+	atBound.Path = strings.Repeat("p", MaxSourcePathLength)
+	atBound.Headers = strings.Repeat("h", MaxSourceHeadersLen)
+	if err := svc.AddSource(&atBound); err != nil {
+		t.Fatalf("expected exact-bound source to be accepted, got %v", err)
 	}
 }
 

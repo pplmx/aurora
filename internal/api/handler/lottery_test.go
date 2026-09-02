@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLotteryHandler_Create_InvalidRequest(t *testing.T) {
@@ -112,6 +114,75 @@ func TestLotteryHandler_History(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+}
+
+// TestLotteryHandler_HistoryPagination pins the REST history paging introduced
+// so a key-holding caller cannot force an unbounded scan/response, matching
+// the token/NFT/oracle read surfaces (TASK-271, ISS-267). A repo returning N
+// records must yield at most the requested (clamped) page size, offset-aware.
+func TestLotteryHandler_HistoryPagination(t *testing.T) {
+	const n = 60 // > defaultLotteryHistoryLimit so the default cap is exercised
+	records := make([]*lottery.LotteryRecord, n)
+	for i := range records {
+		records[i] = &lottery.LotteryRecord{ID: fmt.Sprintf("L%d", i)}
+	}
+	handler := &LotteryHandler{repo: &fakeManyLotteryRepo{records: records}}
+
+	t.Run("no-flag default caps at defaultLotteryHistoryLimit", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/history", nil)
+		rr := httptest.NewRecorder()
+		handler.History(rr, req)
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var got []*lottery.LotteryRecord
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
+		require.Len(t, got, defaultLotteryHistoryLimit, "no-flag history must be bounded to the default page size")
+	})
+
+	t.Run("limit=3 returns 3 records", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/history?limit=3", nil)
+		rr := httptest.NewRecorder()
+		handler.History(rr, req)
+		var got []*lottery.LotteryRecord
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
+		require.Len(t, got, 3)
+		require.Equal(t, "L0", got[0].ID, "handler slices the repo's ordered list without re-sorting")
+	})
+
+	t.Run("offset skips the head of the list", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/history?limit=3&offset=7", nil)
+		rr := httptest.NewRecorder()
+		handler.History(rr, req)
+		var got []*lottery.LotteryRecord
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
+		require.Len(t, got, 3)
+		require.Equal(t, "L7", got[0].ID, "offset 7 leaves L7..L9 for a limit of 3")
+	})
+
+	t.Run("oversized limit clamps", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/history?limit=99999", nil)
+		rr := httptest.NewRecorder()
+		handler.History(rr, req)
+		var got []*lottery.LotteryRecord
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
+		require.Len(t, got, n, "limit above maxLotteryHistoryLimit = 100 must clamp, then to the available 60 rows")
+	})
+}
+
+// fakeManyLotteryRepo returns a fixed in-order list so pagination math can be
+// asserted.
+type fakeManyLotteryRepo struct {
+	records []*lottery.LotteryRecord
+}
+
+func (m *fakeManyLotteryRepo) Save(*lottery.LotteryRecord) error { return nil }
+func (m *fakeManyLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
+	return nil, lottery.ErrNotFound
+}
+func (m *fakeManyLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
+	return m.records, nil
+}
+func (m *fakeManyLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
+	return nil, nil
 }
 
 type mockLotteryRepo struct{}

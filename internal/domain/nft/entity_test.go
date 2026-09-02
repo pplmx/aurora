@@ -1,6 +1,7 @@
 package nft
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -33,6 +34,55 @@ func TestNFT_Validate(t *testing.T) {
 				Owner: []byte{},
 			},
 			wantErr: true,
+		},
+		// Length-bound cases (TASK-271, ISS-267): mint free-text fields are
+		// bounded like the token surface so a key-holding caller cannot grow
+		// rows/responses without limit.
+		{
+			name: "name too long",
+			nft: &NFT{
+				Name:  strings.Repeat("n", MaxNFTNameLength+1),
+				Owner: []byte("owner-pk"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "description too long",
+			nft: &NFT{
+				Name:        "Test NFT",
+				Description: strings.Repeat("d", MaxNFTDescriptionLength+1),
+				Owner:       []byte("owner-pk"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "image url too long",
+			nft: &NFT{
+				Name:      "Test NFT",
+				ImageURL:  strings.Repeat("u", MaxNFTImageURLLength+1),
+				Owner:     []byte("owner-pk"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "token uri too long",
+			nft: &NFT{
+				Name:      "Test NFT",
+				TokenURI:  strings.Repeat("t", MaxNFTTokenURILength+1),
+				Owner:     []byte("owner-pk"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "all fields at exact bounds",
+			nft: &NFT{
+				Name:        strings.Repeat("n", MaxNFTNameLength),
+				Description: strings.Repeat("d", MaxNFTDescriptionLength),
+				ImageURL:    strings.Repeat("u", MaxNFTImageURLLength),
+				TokenURI:    strings.Repeat("t", MaxNFTTokenURILength),
+				Owner:       []byte("owner-pk"),
+			},
+			wantErr: false,
 		},
 	}
 

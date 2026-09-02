@@ -44,4 +44,17 @@ var (
 	// roster entry, so a duplicate would double-count the tally and render the
 	// candidate twice (TASK-122, ISS-114).
 	ErrDuplicateCandidate = errors.New("duplicate candidate in session roster")
+
+	// Length-bound sentinels. Voting write endpoints previously stored
+	// unbounded user strings in SQLite TEXT columns while the token surface
+	// capped name/symbol — a key-holding caller could grow rows and list/detail
+	// responses without bound. The caps mirror the token validator
+	// (MaxTokenNameLength) and are enforced at the shared domain edge so
+	// REST/CLI/web all inherit them (TASK-271, ISS-267).
+	ErrVoterNameTooLong     = errors.New("voter name is too long")
+	ErrCandidateNameTooLong = errors.New("candidate name is too long")
+	ErrCandidatePartyTooLong = errors.New("candidate party is too long")
+	ErrCandidateProgramTooLong = errors.New("candidate program is too long")
+	ErrSessionTitleTooLong  = errors.New("session title is too long")
+	ErrSessionDescriptionTooLong = errors.New("session description is too long")
 )

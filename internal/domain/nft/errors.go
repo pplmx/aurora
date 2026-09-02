@@ -20,4 +20,15 @@ var (
 	// Without this, a caller who only knows a public key could forge a
 	// transfer/burn with their own key.
 	ErrKeyMismatch = errors.New("private key does not match the claimed owner")
+
+	// Length-bound sentinels. NFT mint previously persisted unbounded
+	// description/image_url/token_uri strings while the name got only a
+	// non-empty check — a key-holding caller could grow rows and list/detail
+	// responses without bound, unlike the token surface's caps (TASK-271,
+	// ISS-267). These are enforced in NFT.Validate() at the shared domain edge
+	// so REST/CLI/web all inherit them.
+	ErrNameTooLong        = errors.New("NFT name is too long")
+	ErrDescriptionTooLong = errors.New("NFT description is too long")
+	ErrImageURLTooLong    = errors.New("NFT image URL is too long")
+	ErrTokenURITooLong    = errors.New("NFT token URI is too long")
 )

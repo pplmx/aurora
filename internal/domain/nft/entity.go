@@ -33,9 +33,32 @@ type Operation struct {
 	Timestamp   int64
 }
 
+// Length bounds for NFT free-text fields. Mint previously persisted these
+// without bound while the token surface capped name/symbol; the caps here
+// mirror the token validator and are enforced at the shared domain edge so
+// REST/CLI/web all inherit them (TASK-271, ISS-267).
+const (
+	MaxNFTNameLength        = 200
+	MaxNFTDescriptionLength = 2000
+	MaxNFTImageURLLength    = 2000
+	MaxNFTTokenURILength    = 2000
+)
+
 func (n *NFT) Validate() error {
 	if n.Name == "" {
 		return ErrNameRequired
+	}
+	if len(n.Name) > MaxNFTNameLength {
+		return ErrNameTooLong
+	}
+	if len(n.Description) > MaxNFTDescriptionLength {
+		return ErrDescriptionTooLong
+	}
+	if len(n.ImageURL) > MaxNFTImageURLLength {
+		return ErrImageURLTooLong
+	}
+	if len(n.TokenURI) > MaxNFTTokenURILength {
+		return ErrTokenURITooLong
 	}
 	if len(n.Owner) == 0 {
 		return ErrOwnerRequired
