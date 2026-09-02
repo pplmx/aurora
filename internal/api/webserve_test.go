@@ -624,3 +624,72 @@ const fs = require('fs');
 	require.NoErrorf(t, err, "web/js/app.js lottery keep-prior failed:\n%s", out)
 	require.Contains(t, string(out), "lottery-keep-prior-ok", "lottery loadHistory must keep prior rows across a transient refresh failure")
 }
+
+// TestWebUIJS_BurnRequiresConfirmation executes the SHIPPED web/js/app.js in
+// Node and pins ISS-253: the NFT and Token burn actions are permanently
+// destructive (the client gated them behind --confirm; the oracle Delete
+// confirms in-page) but the web burn forms were single-click. Each burn must
+// call confirm() first and abort (no fetch) when the operator declines —
+// otherwise a mis-click or a stray Enter on an auto-filled form destroys an
+// asset with no undo. Skips cleanly without node.
+func TestWebUIJS_BurnRequiresConfirmation(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js burn-confirm check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+let calls = 0;
+global.fetch = (url, init) => {
+  calls += 1;
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
+};
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  // --- NFT burn: declining the confirm must abort with no fetch ---
+  let confirmed = true;            // track what the code asked
+  global.confirm = (msg) => { confirmed = !!msg; return false; };
+  calls = 0;
+  const nft = global.nftApp();
+  nft.id = 'NFT-1'; nft.owner = 'OWNER'; nft.privateKey = 'k';
+  await nft.burn();
+  if (!confirmed) { console.error('nft burn must ask for confirmation'); process.exit(1); }
+  if (calls !== 0) { console.error('declined nft burn must not fetch, got ' + calls); process.exit(1); }
+
+  // Accepting the confirm proceeds to the burn endpoint.
+  calls = 0;
+  global.confirm = () => true;
+  await nft.burn();
+  if (calls !== 1) { console.error('accepted nft burn must fetch exactly once, got ' + calls); process.exit(1); }
+
+  // --- Token burn: same guard ---
+  global.confirm = () => false;
+  calls = 0;
+  const tok = global.tokenApp();
+  tok.tokenId = 'T1'; tok.owner = 'o'; tok.burnAmount = '10'; tok.burnPriv = 'k';
+  await tok.burn();
+  if (calls !== 0) { console.error('declined token burn must not fetch, got ' + calls); process.exit(1); }
+
+  global.confirm = () => true;
+  calls = 0;
+  await tok.burn();
+  if (calls !== 1) { console.error('accepted token burn must fetch exactly once, got ' + calls); process.exit(1); }
+
+  console.log('burn-confirm-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "burn_confirm_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js burn-confirm guard failed:\n%s", out)
+	require.Contains(t, string(out), "burn-confirm-ok", "NFT/Token burn must require an explicit confirm before destroying")
+}
+

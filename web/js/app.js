@@ -487,6 +487,13 @@ function nftApp() {
             }
         },
         async burn() {
+            // Destroying an NFT is permanent and irreversible — one mis-click
+            // (or Enter on the submit while the other fields auto-filled from
+            // mint/transfer/get) would destroy an asset with no undo. The
+            // destructive-op guard mirrors the CLI --confirm gate and the
+            // oracle Delete confirm (ISS-253).
+            if (!confirm('Burn NFT "' + (this.id || '') + '" permanently?')) return;
+            this.burnResult = '';
             try {
                 this.burnResult = await this.post('/api/v1/nft/burn', {
                     nft_id: this.id,
@@ -880,6 +887,12 @@ function tokenApp() {
             }
         },
         async burn() {
+            // Burning tokens is permanent and irreversible — a mis-click or a
+            // stray Enter destroys value with no undo. The destructive-op
+            // guard mirrors the CLI --confirm gate and the NFT/oracle Deletes
+            // (ISS-253).
+            if (!confirm('Burn ' + (this.burnAmount || '') + ' of token "' + (this.tokenId || '') + '" permanently?')) return;
+            this.burnResult = '';
             try {
                 // Burn has its own amount field (not the Transfer xAmount) so
                 // a transfer quantity can never leak into a destroy (TASK-149).
