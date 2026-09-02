@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 145,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T10:19:31+00:00",
+  "updated_at": "2026-09-02T10:34:00+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 144,
+      "touched_round": 145,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -11029,6 +11029,43 @@
       "touched_round": 144,
       "commit": "2bd4530",
       "title": "PROJECT.md stale v1.7/out-of-scope claims refreshed"
+    },
+    "ISS-261": {
+      "id": "ISS-261",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T10:31:47+00:00",
+      "updated_at": "2026-09-02T10:31:47+00:00",
+      "touched_round": 145,
+      "title": "Token Transfer/TransferFrom pre-check reads balance outside the atomic claim — concurrent top-up between read and tx yields a spurious INSUFFICIENT_BALANCE 400 despite the atomic path succeeding",
+      "severity": 0.45
+    },
+    "TASK-265": {
+      "id": "TASK-265",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T10:31:48+00:00",
+      "updated_at": "2026-09-02T10:31:48+00:00",
+      "touched_round": 145,
+      "category": "correctness",
+      "severity": 0.5,
+      "confidence": 0.7,
+      "effort": 3,
+      "title": "Token Transfer/TransferFrom: drop or post-nonce the fast-fail balance pre-check so a concurrent top-up cannot yield a spurious 400 (preserve nonce semantics)"
+    },
+    "DEC-018": {
+      "id": "DEC-018",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T10:34:00+00:00",
+      "updated_at": "2026-09-02T10:34:00+00:00",
+      "touched_round": 146,
+      "title": "Allowance expires_at stays write-only-documented; expiry enforcement deferred (not a defect, aligned with DEC-002)",
+      "rationale": "Round-145 Go audit Finding 4: the allowances table carries an expires_at column and ApproveEvent/Approval expose it, but nothing ever sets a non-zero value (TryAdjustApproval inserts 0 = never) and TransferFrom never consults it. Every allowance in the system is therefore live forever, so no current input produces wrong money behavior — expiry is a documented-but-unimplemented knob, not a funds bug. Options were: (a) enforce expiry in TransferFrom + approval reads, or (b) drop the column/accessors. Enforcement adds a real feature (expiring allowances) that no surface exposes and changes DEC-002 allowance semantics; dropping the column breaks the ApproveEvent API and the shipped schema for no behavior gain. Both are product decisions beyond a polish round and carry migration risk (a schema change on a stored DB with allowance rows). Deferred: record the knobs unimplemented status here so a future round treats it as a decision, not a latent bug.",
+      "alternatives_rejected": "Implement expiry enforcement now (feature scope creep, no surface requests it, changes signed Allowance semantics); drop the expires_at column/accessors (approval API break + schema migration on stored data for zero runtime gain)"
     }
   },
   "edges": [
@@ -17373,6 +17410,18 @@
       "to": "TASK-264",
       "type": "implements",
       "created_at": "2026-09-02T10:07:59+00:00"
+    },
+    {
+      "from": "ISS-261",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-09-02T10:31:48+00:00"
+    },
+    {
+      "from": "TASK-265",
+      "to": "ISS-261",
+      "type": "addresses",
+      "created_at": "2026-09-02T10:31:48+00:00"
     }
   ]
 }
