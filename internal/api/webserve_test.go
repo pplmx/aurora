@@ -3,11 +3,13 @@ package api
 import (
 	"crypto/sha512"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -215,6 +217,48 @@ func TestWebUINoUnusedHtmx(t *testing.T) {
 // (ISS-153). The test skips cleanly when node is absent so Go remains the only
 // hard dependency for offline/local developers; CI's ubuntu-latest image ships
 // Node, so the gate is enforced on every push/PR.
+// TestWebUIFormLabelsAssociated guards the round-140 accessibility contract:
+// every shipped <label> must be programmatically associated with its form
+// control — either via a for attribute that resolves to an element id in the
+// same page, or by wrapping the control (WCAG 2.1 1.3.1 / 4.1.2). Before this
+// guard all 80+ labels across the five form pages were bare siblings of their
+// inputs: screen readers announced every field as "edit text, blank", and
+// clicking a label did not focus its field. A dangling for= (typo'd id) is
+// treated as broken as a missing one.
+func TestWebUIFormLabelsAssociated(t *testing.T) {
+	webDir := realWebDir()
+	pages := []string{"lottery.html", "voting.html", "token.html", "oracle.html", "nft.html"}
+	labelRE := regexp.MustCompile(`(?s)<label\b[^>]*>(.*?)</label>`)
+	forRE := regexp.MustCompile(`for="([^"]+)"`)
+	idRE := regexp.MustCompile(`\bid="([^"]+)"`)
+
+	var problems []string
+	for _, page := range pages {
+		body, err := os.ReadFile(filepath.Join(webDir, page))
+		require.NoError(t, err)
+		ids := map[string]bool{}
+		for _, m := range idRE.FindAllStringSubmatch(string(body), -1) {
+			ids[m[1]] = true
+		}
+		for _, m := range labelRE.FindAllStringSubmatch(string(body), -1) {
+			label, inner := m[0], m[1]
+			openTag := label[:strings.IndexByte(label, '>')]
+			hasFor := strings.Contains(openTag, `for="`)
+			wraps := strings.Contains(inner, "<input") || strings.Contains(inner, "<select") || strings.Contains(inner, "<textarea")
+			if !hasFor && !wraps {
+				problems = append(problems, page+": label neither has for= nor wraps a control: "+label)
+				continue
+			}
+			for _, fm := range forRE.FindAllStringSubmatch(openTag, -1) {
+				if !ids[fm[1]] {
+					problems = append(problems, fmt.Sprintf("%s: label for=%q does not resolve to an element id in the page", page, fm[1]))
+				}
+			}
+		}
+	}
+	require.Empty(t, problems, "shipped form labels must be accessible (TASK-251):\n"+strings.Join(problems, "\n"))
+}
+
 func TestWebUIJS_SyntaxValid(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
