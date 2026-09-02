@@ -499,7 +499,14 @@ var resetCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to init db: %w", err)
 		}
-		defer func() { _ = db.Close() }()
+		// Deliberately no db.Close(): InitDB returns the process-wide
+		// singleton under a sync.Once, and closing it without resetting the
+		// once poisons that singleton — any later InitDB() call in the same
+		// process (a composable command flow or a test) gets an already-
+		// closed handle. Every other CLI command (history/verify/create/...)
+		// and cmd/api (Close once at shutdown) let the handle live until the
+		// process exits, which is exactly right for this single-command
+		// process (TASK-262, ISS-258).
 
 		// A lottery lives in two stores: the chain (`blocks` table) and the
 		// persistent history (`lottery_records` table, which historyCmd,
@@ -549,7 +556,8 @@ var dbInfoCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to init db: %w", err)
 		}
-		defer func() { _ = db.Close() }()
+		// No db.Close() here either — same singleton-ownership reasoning as
+		// the reset command above (TASK-262, ISS-258).
 
 		var count int
 		err = db.QueryRow("SELECT COUNT(*) FROM blocks WHERE height > 0").Scan(&count)
