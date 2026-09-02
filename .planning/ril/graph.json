@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 147,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T12:27:00+00:00",
+  "updated_at": "2026-09-02T12:41:10+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11094,18 +11094,28 @@
     "TASK-266": {
       "id": "TASK-266",
       "type": "task",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 4,
       "created_at": "2026-09-02T11:51:32+00:00",
-      "updated_at": "2026-09-02T12:27:00+00:00",
+      "updated_at": "2026-09-02T12:41:10+00:00",
       "touched_round": 147,
       "category": "maintainability",
       "severity": 0.4,
       "confidence": 0.99,
       "effort": 1,
       "title": "Untrack the 18MB compiled api binary: git rm --cached api + add /api to .gitignore (re-blocked after e02302e removed it, 20ce60e re-added); drop the stale binary so the repo stays build-artifact-free",
-      "lock_owner": "obs-round147",
-      "lock_until": "2026-09-02T12:57:00+00:00"
+      "evidence": "removed: git rm --cached api; deleted worktree copy; .gitignore gained /api rule; orphan .commit-msg.txt deleted; go build ./... green after cleanup; committed as 732b051"
+    },
+    "CHG-260": {
+      "id": "CHG-260",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T12:39:58+00:00",
+      "updated_at": "2026-09-02T12:39:58+00:00",
+      "touched_round": 147,
+      "commit": "732b051",
+      "title": "Untrack stale 18MB api binary + add /api gitignore rule + delete orphan .commit-msg.txt"
     }
   },
   "edges": [
@@ -17486,6 +17496,18 @@
       "to": "ISS-262",
       "type": "addresses",
       "created_at": "2026-09-02T12:26:39+00:00"
+    },
+    {
+      "from": "CHG-260",
+      "to": "ISS-262",
+      "type": "resolves",
+      "created_at": "2026-09-02T12:41:10+00:00"
+    },
+    {
+      "from": "CHG-260",
+      "to": "TASK-266",
+      "type": "implements",
+      "created_at": "2026-09-02T12:41:10+00:00"
     }
   ]
 }

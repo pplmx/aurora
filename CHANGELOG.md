@@ -69,6 +69,14 @@ documented in their per-milestone ROADMAP files.
   stray Enter on an auto-filled form destroyed value with no undo. Both burn
   actions now `confirm()` first and abort when declined, mirroring the oracle
   `deleteSource` guard (TASK-257, ISS-253).
+- **A stale 18 MB compiled `api` binary was tracked in the repo root**: a build
+  artifact from `go build ./cmd/api` (README builds it as `./aurora-api`),
+  removed in `e02302e` and accidentally re-added by the round-133 RIL state
+  commit `20ce60e`. `.gitignore` covered `/aurora` and `/aurora-*` but not the
+  bare `/api` name, so every future accidental `go build` could re-commit it.
+  The binary is untracked, the working-tree copy deleted, and `/api` added to
+  `.gitignore`; the orphaned `.commit-msg.txt` (nothing in the repo reads it)
+  is deleted alongside (TASK-266, ISS-262).
 - **The dashboard Recent Activity list cleared to a false "No recent
   activity" on a transient all-endpoint poll failure**: the stat cards kept
   their last-good values across an API blip (TASK-151/234) but the list
