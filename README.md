@@ -68,6 +68,7 @@ just dev          # Docker 开发
 ./aurora lottery import file.json # 导入记录
 ./aurora lottery tui
 ./aurora lottery db-info          # 数据库信息
+./aurora lottery reset --confirm  # 清空抽奖记录（需 --confirm）
 
 # 投票
 ./aurora voting candidate add -n "Name" -p "Party" -m "Program"
@@ -105,7 +106,7 @@ just dev          # Docker 开发
 ./aurora token mint -t <token-id> --to <address> --amount 100 -k <priv>
 ./aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k <priv>
 ./aurora token balance -t <token-id> --owner <address>
-./aurora token history -t <token-id> --owner <address>
+./aurora token history -t <token-id> --owner <address> --limit 50 --offset 0   # 分页
 ./aurora token approve -t <token-id> --owner <pub> -s <spender-pub> -a <amount> -k <priv>
 ./aurora token allowance -t <token-id> -o <pub> -s <spender-pub>
 ./aurora token transfer-from -t <token-id> -o <pub> -s <spender-pub> --to <recipient> -a <amount> -k <spender-priv>
