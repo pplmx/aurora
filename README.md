@@ -73,6 +73,7 @@ just dev          # Docker 开发
 # 投票
 ./aurora voting candidate add -n "Name" -p "Party" -m "Program"
 ./aurora voting voter register -n "Name"
+./aurora voting voter list                          # 列出已注册投票者及投票状态
 ./aurora voting session create -t "Proposal" -d "Desc" -c <cand-id> --start-time <t> --end-time <t>
 ./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv-key>
 ./aurora voting results -s <session-id>

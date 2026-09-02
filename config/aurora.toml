@@ -26,9 +26,8 @@ locale = "en"
 
 # The [http] and [http.rateLimit] sections govern the OUTBOUND oracle
 # fetcher (HTTP timeout for reading a source; per-source pacing of
-# fetches), not the API server. The API server's own inbound timeouts are
-# fixed constants and its per-client request limiter is [api.rateLimit]
-# (disabled by default — see internal/config/config.go).
+# fetches), not the API server. See [api.rateLimit] for the server's own
+# per-client limiter.
 [http]
 timeout = "10s"
 
@@ -36,11 +35,30 @@ timeout = "10s"
 requests = 10
 window = "1m"
 
+# [api.rateLimit] governs the API server's INBOUND per-client request
+# limiter (default disabled — the nuances are documented in
+# internal/config/config.go). Enable it with:
+[api.rateLimit]
+# enabled = true
+# requests = 120        # per-client budget inside `window`
+# window = "1m"         # seconds; DurationSeconds, e.g. 60 == 60s
+# trustedProxies = []   # CIDR/IPs whose X-Forwarded-For is honored
+
+# [api.cors] configures the CORS allow-list for the REST API. Default is
+# empty (= same-origin only); add origins to permit cross-origin browsers.
+[api.cors]
+# allowedOrigins = ["https://app.example.com"]
+
+# [oracle.scheduler] tunes the oracle fetch scheduler's check cadence.
+# Values are SECONDS (DurationSeconds): `checkInterval = 30` means every 30s.
+[oracle.scheduler]
+# checkInterval = 1
+
 # Oracle Data Sources
 #
 # Oracle sources are NOT configured from this file: the binary never reads an
 # [[oracle.sources]] table here, so editing one would silently have no effect.
 # Sources live in the SQLite database and are managed at runtime via
-#   aurora oracle source add ...   (or the REST API / `aurora --ui oracle`).
+#   aurora oracle source add ...   (or the REST API / `aurora oracle tui`).
 # The only live oracle settings are [oracle.scheduler] (check cadence, optional);
 # per-source interval is set on each source at add time.

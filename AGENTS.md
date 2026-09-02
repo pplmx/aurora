@@ -95,6 +95,7 @@ just stop         # Stop containers: docker compose down
 ./aurora voting candidate add -n "Name" -p "Party" -m "Program"  # Register a candidate
 ./aurora voting candidate list                          # List candidates
 ./aurora voting voter register -n "Name"               # Register a voter (prints keypair)
+./aurora voting voter list                             # List registered voters + voted status
 ./aurora voting session create -t "Title" -d "Desc" -c <cand-id> -c <cand2> --start-time <t> --end-time <t>
 ./aurora voting session list                           # List sessions
 ./aurora voting session start -s <session-id>          # Start a session
