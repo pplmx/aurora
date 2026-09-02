@@ -62,6 +62,33 @@ documented in their per-milestone ROADMAP files.
   documented window-gated lifecycle DEC-004/DEC-005; DEC-014 the allowance
   family uniformly writes no on-chain block by design per DEC-002; DEC-015
   the voting window end is inclusive).
+- **The web NFT/Token burn forms destroyed assets with no confirmation**: one
+  click on "Burn" permanently destroyed an NFT or burned tokens, while the
+  sibling destructive ops were gated everywhere else (oracle Delete confirms
+  in-page; the CLI refused both burns without `--confirm`). A mis-click or a
+  stray Enter on an auto-filled form destroyed value with no undo. Both burn
+  actions now `confirm()` first and abort when declined, mirroring the oracle
+  `deleteSource` guard (TASK-257, ISS-253).
+- **The dashboard Recent Activity list cleared to a false "No recent
+  activity" on a transient all-endpoint poll failure**: the stat cards kept
+  their last-good values across an API blip (TASK-151/234) but the list
+  rebuilt from per-loader arrays that collapse to `[]` on failure, so one
+  all-fail 15s poll wiped a populated list and misled the operator into
+  believing activity stopped. List loaders now return `null` for a failed
+  cycle (vs `[]` = success-with-no-rows) and `refresh()` keeps the prior rows
+  when every source fails (TASK-258, ISS-254).
+- **Three web form-consistency gaps**: (1) NFT History used its own
+  `historyId` that only mint advanced, so a manually pasted id in Get NFT
+  showed one asset while Show History queried another — it now binds the same
+  shared id as Get/Transfer/Burn (the token page's pattern); (2) oracle Query
+  Data success with zero stored rows was indistinguishable from a no-op (the
+  table hides for empty rows, the error sink was cleared), so it now renders
+  "No rows for this source — run Fetch first" for a zero-row success, distinct
+  from the failure path; (3) token create `decimals` min/max only constrained
+  the spinner, so a keyboard-typed 200 hit Go's int8 JSON decode ("invalid
+  request") with no hint of the 127 bound — the value is now clamped to
+  0..127 and reflected back, matching the oracle `clampLimit` contract
+  (TASK-259, ISS-255).
 
 ### Added
 
