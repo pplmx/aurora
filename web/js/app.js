@@ -161,8 +161,13 @@ function lotteryApp() {
             } catch (e) {
                 // Distinguish "no lotteries yet" from "couldn't load" so a
                 // first-load failure isn't misread as an empty system — same
-                // ISS-191 contract TASK-195 applied to voting/oracle.
-                this.history = [];
+                // ISS-191 contract TASK-195 applied to voting/oracle. And
+                // apply the keep-prior-rows policy (TASK-151): a TRANSIENT
+                // refresh failure (e.g. createLottery's follow-up reload
+                // times out) must NOT blank draws that already rendered —
+                // history is left untouched so a known-good list stays on
+                // screen while the API recovers; historyFailed flags the
+                // failure either way (TASK-250, ISS-246).
                 this.historyFailed = true;
             }
             this.loading = false;
