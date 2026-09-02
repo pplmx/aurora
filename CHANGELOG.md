@@ -77,6 +77,15 @@ documented in their per-milestone ROADMAP files.
   The binary is untracked, the working-tree copy deleted, and `/api` added to
   `.gitignore`; the orphaned `.commit-msg.txt` (nothing in the repo reads it)
   is deleted alongside (TASK-266, ISS-262).
+- **The config test suite failed whenever a parallel process left a file named
+  `aurora` in /tmp**: `TestMain` isolated `$HOME` to the shared
+  `os.TempDir()` for a "clean" baseline, but viper's `SetConfigName("aurora")`
+  search matches a bare `aurora` file anywhere in the `$HOME` search path — so
+  a `/tmp/aurora` ELF from an unrelated build was parsed as TOML and every
+  config test failed with "invalid character at start of key". The isolation
+  home is now a fresh per-run `os.MkdirTemp` subdirectory (removed afterward),
+  and the suite passes even with such an interfering file present (TASK-268,
+  ISS-264).
 - **The dashboard Recent Activity list cleared to a false "No recent
   activity" on a transient all-endpoint poll failure**: the stat cards kept
   their last-good values across an API blip (TASK-151/234) but the list
