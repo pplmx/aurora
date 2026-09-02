@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 141,
+  "round": 142,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T05:29:29+00:00",
+  "updated_at": "2026-09-02T05:46:29+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 132,
+      "touched_round": 142,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -10621,6 +10621,54 @@
       "source": "go-review-token141-verdict",
       "detail": "APPROVE 0c47148: requireToken covers both not-found conventions; no caller relied on zero-for-unknown; both regression tests fail without the guard; idiomatic. Nit (app-layer nil mapping duplication) pre-existing, non-blocking.",
       "confidence": 1.0
+    },
+    "ISS-251": {
+      "id": "ISS-251",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T05:44:28+00:00",
+      "updated_at": "2026-09-02T05:46:29+00:00",
+      "touched_round": 142,
+      "severity": 0.2,
+      "title": "docs: lottery reset example line and token history --limit/--offset paging flags missing from quickstart"
+    },
+    "TASK-255": {
+      "id": "TASK-255",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T05:44:28+00:00",
+      "updated_at": "2026-09-02T05:46:29+00:00",
+      "touched_round": 142,
+      "category": "docs",
+      "severity": 0.2,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "docs/CLI truthfulness audit + spell lottery reset and token history paging flags"
+    },
+    "CHG-249": {
+      "id": "CHG-249",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:45:18+00:00",
+      "updated_at": "2026-09-02T05:45:18+00:00",
+      "touched_round": 142,
+      "commit": "62c28c1",
+      "title": "quickstart docs: lottery reset + token history paging flags"
+    },
+    "EV-060": {
+      "id": "EV-060",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:45:19+00:00",
+      "updated_at": "2026-09-02T05:45:19+00:00",
+      "touched_round": 142,
+      "source": "round-142-docs-audit",
+      "detail": "cross-checked every cobra flag+subcommand vs README/AGENTS both directions: zero dead doc claims; all real commands documented after closing 2 gaps",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -16731,6 +16779,30 @@
       "to": "ISS-250",
       "type": "resolves",
       "created_at": "2026-09-02T05:09:37+00:00"
+    },
+    {
+      "from": "TASK-255",
+      "to": "ISS-251",
+      "type": "addresses",
+      "created_at": "2026-09-02T05:45:18+00:00"
+    },
+    {
+      "from": "ISS-251",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-09-02T05:45:18+00:00"
+    },
+    {
+      "from": "CHG-249",
+      "to": "TASK-255",
+      "type": "implements",
+      "created_at": "2026-09-02T05:45:57+00:00"
+    },
+    {
+      "from": "CHG-249",
+      "to": "ISS-251",
+      "type": "resolves",
+      "created_at": "2026-09-02T05:45:57+00:00"
     }
   ]
 }
