@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 148,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T19:32:32+00:00",
+  "updated_at": "2026-09-02T19:46:19+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11253,10 +11253,10 @@
     "ISS-267": {
       "id": "ISS-267",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-02T19:26:38+00:00",
-      "updated_at": "2026-09-02T19:26:38+00:00",
+      "updated_at": "2026-09-02T19:46:19+00:00",
       "touched_round": 148,
       "title": "Backend write endpoints store unbounded user strings / read endpoints return unbounded rows: voting candidate party/program + session description (only name/title non-empty checked), NFT mint description/image_url/token_uri (only name non-empty), oracle source name/type/method/path/headers (only interval+url checked) all flow unvalidated into SQLite TEXT; GET /nft/{id}/history and GET /lottery/history return every row with no LIMIT. Contrast token (name<=100, symbol<=10) and lottery (participant bounds) which already cap.",
       "severity": 0.7,
@@ -11266,16 +11266,28 @@
     "TASK-271": {
       "id": "TASK-271",
       "type": "task",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-02T19:29:25+00:00",
-      "updated_at": "2026-09-02T19:29:25+00:00",
+      "updated_at": "2026-09-02T19:44:22+00:00",
       "touched_round": 148,
       "category": "correctness",
       "severity": 0.7,
       "confidence": 0.99,
       "effort": 3,
-      "title": "Cap free-text lengths at the shared domain edge for voting (voter/candidate name, party, program, session title/description), NFT mint (name/description/image_url/token_uri), oracle source (name/type/method/path/headers/url) mirroring the token validator, and bound the two unbounded read endpoints (GET /nft/{id}/history, GET /lottery/history) like the already-hardened siblings"
+      "title": "Cap free-text lengths at the shared domain edge for voting (voter/candidate name, party, program, session title/description), NFT mint (name/description/image_url/token_uri), oracle source (name/type/method/path/headers/url) mirroring the token validator, and bound the two unbounded read endpoints (GET /nft/{id}/history, GET /lottery/history) like the already-hardened siblings",
+      "evidence": "implemented: voting validator.go + usecases, NFT Validate caps + mint usecase, oracle AddSource caps, NFT ops SQL LIMIT 1000, lottery history pagination; full go test ./... green; committed as 7a7f53d"
+    },
+    "CHG-263": {
+      "id": "CHG-263",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T19:40:22+00:00",
+      "updated_at": "2026-09-02T19:40:22+00:00",
+      "touched_round": 148,
+      "commit": "7a7f53d",
+      "title": "Bound voting/NFT/oracle free-text lengths + page unbounded history reads"
     }
   },
   "edges": [
@@ -17776,6 +17788,18 @@
       "to": "ISS-267",
       "type": "addresses",
       "created_at": "2026-09-02T19:32:32+00:00"
+    },
+    {
+      "from": "CHG-263",
+      "to": "ISS-267",
+      "type": "resolves",
+      "created_at": "2026-09-02T19:42:33+00:00"
+    },
+    {
+      "from": "CHG-263",
+      "to": "TASK-271",
+      "type": "implements",
+      "created_at": "2026-09-02T19:42:33+00:00"
     }
   ]
 }
