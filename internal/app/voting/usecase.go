@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
@@ -246,8 +245,8 @@ func NewRegisterVoterUseCase(repo voting.Repository) *RegisterVoterUseCase {
 }
 
 func (uc *RegisterVoterUseCase) Execute(req RegisterVoterRequest) (*VoterResponse, error) {
-	if strings.TrimSpace(req.Name) == "" {
-		return nil, voting.ErrVoterNameRequired
+	if err := voting.ValidateVoterName(req.Name); err != nil {
+		return nil, err
 	}
 
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
@@ -279,8 +278,14 @@ func NewRegisterCandidateUseCase(repo voting.Repository) *RegisterCandidateUseCa
 }
 
 func (uc *RegisterCandidateUseCase) Execute(req RegisterCandidateRequest) (*CandidateResponse, error) {
-	if strings.TrimSpace(req.Name) == "" {
-		return nil, voting.ErrCandidateNameRequired
+	if err := voting.ValidateCandidateName(req.Name); err != nil {
+		return nil, err
+	}
+	if err := voting.ValidateCandidateParty(req.Party); err != nil {
+		return nil, err
+	}
+	if err := voting.ValidateCandidateProgram(req.Program); err != nil {
+		return nil, err
 	}
 
 	candidate := voting.NewCandidate(req.Name, req.Party, req.Program)
@@ -334,8 +339,11 @@ func NewCreateSessionUseCase(repo voting.Repository) *CreateSessionUseCase {
 }
 
 func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionResponse, error) {
-	if strings.TrimSpace(req.Title) == "" {
-		return nil, voting.ErrSessionTitleRequired
+	if err := voting.ValidateSessionTitle(req.Title); err != nil {
+		return nil, err
+	}
+	if err := voting.ValidateSessionDescription(req.Description); err != nil {
+		return nil, err
 	}
 	if len(req.CandidateIDs) == 0 {
 		return nil, voting.ErrCandidatesRequired

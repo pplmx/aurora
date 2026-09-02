@@ -70,6 +70,12 @@ var errorClassification = []struct {
 	{nfterrors.ErrInvalidPrivateKey, http.StatusBadRequest, "INVALID_PRIVATE_KEY"},
 	{nfterrors.ErrInvalidPublicKey, http.StatusBadRequest, "INVALID_PUBLIC_KEY"},
 	{nfterrors.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
+	// Length-bound sentinels (TASK-271, ISS-267): over-length free-text mint
+	// fields are client input errors (400), mirroring the lottery validator.
+	{nfterrors.ErrNameTooLong, http.StatusBadRequest, "NAME_TOO_LONG"},
+	{nfterrors.ErrDescriptionTooLong, http.StatusBadRequest, "DESCRIPTION_TOO_LONG"},
+	{nfterrors.ErrImageURLTooLong, http.StatusBadRequest, "IMAGE_URL_TOO_LONG"},
+	{nfterrors.ErrTokenURITooLong, http.StatusBadRequest, "TOKEN_URI_TOO_LONG"},
 
 	// Lottery domain errors
 	{lottery.ErrNotFound, http.StatusNotFound, "LOTTERY_NOT_FOUND"},
@@ -112,6 +118,14 @@ var errorClassification = []struct {
 	{voting.ErrInvalidSessionTime, http.StatusBadRequest, "INVALID_SESSION_TIME"},
 	{voting.ErrCandidatesRequired, http.StatusBadRequest, "CANDIDATES_REQUIRED"},
 	{voting.ErrDuplicateCandidate, http.StatusBadRequest, "DUPLICATE_CANDIDATE"},
+	// Length-bound sentinels (TASK-271, ISS-267): over-length free-text fields
+	// are client input errors (400), mirroring the token validator's handling.
+	{voting.ErrVoterNameTooLong, http.StatusBadRequest, "VOTER_NAME_TOO_LONG"},
+	{voting.ErrCandidateNameTooLong, http.StatusBadRequest, "CANDIDATE_NAME_TOO_LONG"},
+	{voting.ErrCandidatePartyTooLong, http.StatusBadRequest, "CANDIDATE_PARTY_TOO_LONG"},
+	{voting.ErrCandidateProgramTooLong, http.StatusBadRequest, "CANDIDATE_PROGRAM_TOO_LONG"},
+	{voting.ErrSessionTitleTooLong, http.StatusBadRequest, "SESSION_TITLE_TOO_LONG"},
+	{voting.ErrSessionDescriptionTooLong, http.StatusBadRequest, "SESSION_DESCRIPTION_TOO_LONG"},
 }
 
 // classifyError maps a domain error to an HTTP status code and error code.

@@ -11,6 +11,11 @@ import (
 	"github.com/pplmx/aurora/internal/domain/nft"
 )
 
+// maxNFTHistoryOps bounds the operations GetOperations returns so an unbounded
+// reads can't be forced through GET /nft/{id}/history / `nft history`
+// (TASK-271, ISS-267).
+const maxNFTHistoryOps = 1000
+
 // nftExec abstracts *sql.DB and *sql.Tx so NFTRepository can run either
 // against the pool or inside an explicit transaction.
 type nftExec interface {
@@ -467,10 +472,16 @@ func (r *NFTRepository) SaveOperation(op *nft.Operation) error {
 }
 
 func (r *NFTRepository) GetOperations(nftID string) ([]*nft.Operation, error) {
+	// Bound the returned operations so a key-holding caller cannot force an
+	// unbounded DB scan/response through GET /nft/{id}/history or `nft history`.
+	// The rest of the REST surface (token history, NFT list, oracle query) caps
+	// ?limit at parse time; this endpoint had no knob, so a fixed cap here
+	// closes the same unbounded-read gap (TASK-271, ISS-267). 1000 is beyond
+	// any realistic per-NFT transfer/burn trail.
 	rows, err := r.q().Query(`
 		SELECT id, nft_id, type, from_addr, to_addr, signature, block_height, timestamp
-		FROM nft_operations WHERE nft_id = ? ORDER BY timestamp DESC
-	`, nftID)
+		FROM nft_operations WHERE nft_id = ? ORDER BY timestamp DESC LIMIT ?
+	`, nftID, maxNFTHistoryOps)
 	if err != nil {
 		return nil, err
 	}

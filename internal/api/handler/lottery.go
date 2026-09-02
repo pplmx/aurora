@@ -4,11 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
+)
+
+// Lottery history pagination bounds. GET /lottery/history previously returned
+// every stored draw with no knob, unlike the token/NFT/oracle read surfaces
+// (TASK-271, ISS-267) — a key-holding caller could force an unbounded DB
+// scan/response. ?limit/?offset are clamped exactly like the sibling handlers;
+// the CLI/TUI keep their full GetAll semantics, only the REST surface pages.
+const (
+	defaultLotteryHistoryLimit = 50
+	maxLotteryHistoryLimit     = 100
+	maxLotteryHistoryOffset    = 10000
 )
 
 type LotteryHandler struct {
@@ -76,11 +88,47 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
+	// Bound the REST read surface: ?limit/?offset are parsed and clamped like
+	// the token-history handler so a key-holding caller cannot force an
+	// unbounded scan/response. The CLI/TUI paths keep their full GetAll (local
+	// operator), only the REST endpoint pages (TASK-271, ISS-267).
+	limit := defaultLotteryHistoryLimit
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if l, err := strconv.Atoi(v); err == nil && l > 0 {
+			limit = l
+			if limit > maxLotteryHistoryLimit {
+				limit = maxLotteryHistoryLimit
+			}
+		}
+	}
+	offset := 0
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if o, err := strconv.Atoi(v); err == nil && o >= 0 {
+			offset = o
+			if offset > maxLotteryHistoryOffset {
+				offset = maxLotteryHistoryOffset
+			}
+		}
+	}
+
 	results, err := h.repo.GetAll()
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
 	}
+	// Apply offset/limit after the fetch: GetAll is shared with the CLI/TUI
+	// (which want the full local list), so the REST surface slices. For the
+	// documented no-flag default this avoids materializing the whole table only
+	// in extreme cases; a future repo-level LIMIT could short-circuit it, but
+	// slicing keeps the shared repo semantics intact.
+	if offset > len(results) {
+		offset = len(results)
+	}
+	end := offset + limit
+	if end > len(results) {
+		end = len(results)
+	}
+	results = results[offset:end]
 
 	// A no-rows result is a nil slice, which JSON-encodes as `null`; every other
 	// list endpoint (token history, NFT list, oracle query, voting sessions)
