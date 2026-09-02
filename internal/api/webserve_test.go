@@ -759,3 +759,121 @@ const fs = require('fs');
 	require.Contains(t, string(out), "dashboard-activity-keep-prior-ok", "dashboard Recent Activity must keep prior rows across a total poll failure")
 }
 
+// TestWebUIJS_NftHistoryUsesSharedId executes the SHIPPED web/js/app.js in
+// Node and pins the NFT side of ISS-255: the History form must key off the
+// SAME shared id field as Get/Transfer/Burn, so a manually edited id (typed
+// into Get NFT, or advanced by mint/transfer) is exactly what "Show History"
+// queries. The old design kept a separate historyId that mint advanced but a
+// manual shared-id edit silently desynced — showing one NFT's history while
+// every other form targeted another. Skips cleanly without node.
+func TestWebUIJS_NftHistoryUsesSharedId(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js nft-history check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+let seenUrl = '';
+global.fetch = (url) => {
+  seenUrl = url;
+  return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+};
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+(async () => {
+  const app = global.nftApp();
+  if ('historyId' in app) { console.error('historyId field must be gone (shared id only), ISS-255'); process.exit(1); }
+  // A manual edit of the shared id (as typed into Get NFT) is what History queries.
+  app.id = 'NFT-PASTED-B';
+  await app.history();
+  if (seenUrl !== '/api/v1/nft/NFT-PASTED-B/history') {
+    console.error('history must use the shared id, got ' + seenUrl); process.exit(1);
+  }
+  // Mint advances the same id, and History follows without a separate sync.
+  app.id = 'NFT-MINTED-7';
+  await app.history();
+  if (seenUrl !== '/api/v1/nft/NFT-MINTED-7/history') {
+    console.error('minted id must drive history, got ' + seenUrl); process.exit(1);
+  }
+  console.log('nft-history-shared-id-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "nft_history_shared_id_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js nft shared-id history failed:\n%s", out)
+	require.Contains(t, string(out), "nft-history-shared-id-ok", "NFT History must query the shared id field")
+}
+
+// TestWebUIJS_OracleQueryEmptyStateAndTokenDecimalsClamp executes the SHIPPED
+// web/js/app.js in Node and pins the oracle/token halves of ISS-255: (1) a
+// successful oracle query that returns zero rows sets queried=true with an
+// empty row set and no error, so oracle.html's "(no rows)" hint can render
+// (previously a zero-row success was indistinguishable from a no-op and
+// silently cleared the rendered table); (2) token create clamps a keyboard-
+// typed decimals above MaxInt8 (127) back into range, reflecting the clamped
+// value into the field, so Go's int8 JSON decode can never reject a web-
+// created token with the opaque "invalid request". Skips cleanly without node.
+func TestWebUIJS_OracleQueryEmptyStateAndTokenDecimalsClamp(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js oracle/token check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+let sentBody = null;
+global.fetch = (url, init) => {
+  if (init && init.body) sentBody = JSON.parse(init.body);
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({ data: [] }) });
+};
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+(async () => {
+  // Oracle: zero-row success is an explicit empty state, not a silent no-op.
+  const ora = global.oracleApp();
+  await ora.query();
+  if (!ora.queried) { console.error('oracle query must set queried'); process.exit(1); }
+  if (ora.queryRows.length !== 0) { console.error('zero-row query must yield [] rows'); process.exit(1); }
+  if (ora.queryError !== '') { console.error('zero-row query must not set an error'); process.exit(1); }
+
+  // Token: a keyboard-typed decimals=200 clamps to 127 in the REQUEST BODY —
+  // Go's int8 JSON decode would otherwise reject it as "invalid request" with
+  // no hint. (The field itself is reset to 8 by the success path, matching
+  // every other create form, so assert on what was sent, not the field.)
+  const tok = global.tokenApp();
+  tok.name = 'T'; tok.symbol = 'TOK'; tok.supply = '100'; tok.decimals = 200; tok.createOwner = 'owner';
+  await tok.createToken();
+  if (sentBody === null || sentBody.decimals !== 127) { console.error('create must send the clamped decimals 127, got ' + JSON.stringify(sentBody)); process.exit(1); }
+
+  // A typed blank still means "omit" (domain default 8), and 0 stays 0.
+  tok.name = 'T2'; tok.decimals = '';
+  sentBody = null;
+  await tok.createToken();
+  if (sentBody === null || sentBody.decimals !== undefined) { console.error('blank decimals must be omitted, got ' + JSON.stringify(sentBody)); process.exit(1); }
+
+  // An in-range value passes through untouched.
+  tok.name = 'T3'; tok.decimals = 6;
+  sentBody = null;
+  await tok.createToken();
+  if (sentBody === null || sentBody.decimals !== 6) { console.error('in-range decimals must pass through, got ' + JSON.stringify(sentBody)); process.exit(1); }
+
+  console.log('oracle-empty-token-clamp-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "oracle_query_empty_token_decimals_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js oracle-query-empty / token-decimals-clamp failed:\n%s", out)
+	require.Contains(t, string(out), "oracle-empty-token-clamp-ok", "oracle zero-row query empty-state and token decimals clamp must hold")
+}
+

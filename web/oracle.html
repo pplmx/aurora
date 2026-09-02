@@ -125,6 +125,10 @@
                         </template>
                     </tbody>
                 </table>
+                <!-- A successful query with zero stored rows must not silently
+                     look like a no-op (the table hides for an empty array); say
+                     so explicitly, distinct from the error path below (ISS-255). -->
+                <p x-show="queried && !queryError && queryRows.length === 0" class="activity-empty" aria-live="polite">No rows for this source — run Fetch first.</p>
                 <div x-show="queryError" class="result" aria-live="polite" x-text="queryError"></div>
             </section>
             <section class="history">

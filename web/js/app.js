@@ -425,7 +425,6 @@ function nftApp() {
         getResult: '',
         transferResult: '',
         burnResult: '',
-        historyId: '',
         historyResult: '',
         async mint() {
             try {
@@ -444,11 +443,11 @@ function nftApp() {
                 this.mintResult = JSON.stringify(data, null, 2);
                 // Advance the shared Get/Transfer/Burn/History context to the
                 // freshly minted NFT so the next step needs no manual copy from
-                // the JSON result block (TASK-150). The History form keys off
-                // its own historyId field, so it needs the same advance or it
-                // stays blank while Get/Transfer/Burn auto-fill (ISS-195).
+                // the JSON result block (TASK-150). Every form (History
+                // included) keys off this single id, so one advance fills them
+                // all — a separate historyId would silently desync on manual
+                // edits (ISS-255, mirroring the token page's shared tokenId).
                 if (data && data.id) this.id = data.id;
-                if (data && data.id) this.historyId = data.id;
                 if (data && data.owner) this.owner = data.owner;
                 // The Transfer form keys off its own from field; advance it to
                 // the fresh owner so the post-mint transfer needs no manual
@@ -480,7 +479,12 @@ function nftApp() {
         },
         async history() {
             try {
-                const res = await apiFetch('/api/v1/nft/' + encodeURIComponent(this.historyId) + '/history');
+                // History keys off the SAME shared id as Get/Transfer/Burn — no
+                // separate historyId field. The token page made every form share
+                // one tokenId context; NFT followed the multi-field pattern, and
+                // a manually edited shared id silently desynced the History box
+                // to a stale value, showing the wrong NFT's history (ISS-255).
+                const res = await apiFetch('/api/v1/nft/' + encodeURIComponent(this.id) + '/history');
                 this.historyResult = JSON.stringify(await res.json(), null, 2);
             } catch (e) {
                 this.historyResult = 'Error: ' + e.message;
@@ -777,6 +781,17 @@ function tokenApp() {
             return JSON.stringify(await res.json(), null, 2);
         },
         async createToken() {
+            // The decimals input is type=number min=0 max=127, but min/max only
+            // constrain the spinner, not keyboard typing — a typed 200 was sent
+            // verbatim and Go's encoding/json rejected it as an out-of-range
+            // int8 ("invalid request (400)") with no hint of the real bound.
+            // Clamp and reflect the value back so the visible field always
+            // matches the request (same contract as oracle clampLimit, ISS-184;
+            // domain accepts 0..127, ISS-255).
+            const parsedDecimals = (this.decimals === undefined || this.decimals === '') ? undefined : parseInt(this.decimals, 10);
+            if (parsedDecimals !== undefined && !isNaN(parsedDecimals)) {
+                this.decimals = Math.min(127, Math.max(0, parsedDecimals));
+            }
             try {
                 const res = await apiFetch('/api/v1/token/create', {
                     method: 'POST',
@@ -790,6 +805,8 @@ function tokenApp() {
                         // 8 in the domain. Send undefined when the operator
                         // clears the field so the two stay distinct; matching
                         // the CLI's --decimals range (0..MaxInt8) (ISS-195).
+                        // The field was clamped to 0..127 above so this is
+                        // always a valid int8 (ISS-255).
                         decimals: (this.decimals === undefined || this.decimals === '') ? undefined : parseInt(this.decimals, 10),
                         // The API requires a valid owner public key; without it
                         // every create 400s with PUBLIC_KEY_REQUIRED (ISS-147).
@@ -962,7 +979,7 @@ function oracleApp() {
         addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
         templates: [],
         fetchSource: '', fetchResult: '',
-        querySource: '', queryLimit: 10, queryRows: [], queryError: '',
+        querySource: '', queryLimit: 10, queryRows: [], queryError: '', queried: false,
         sourcesError: '',
         latestSource: '', latestResult: '',
         async init() {
@@ -1118,6 +1135,7 @@ function oracleApp() {
         },
         async query() {
             this.queryError = '';
+            this.queried = true;
             try {
                 const limit = this.clampLimit(this.queryLimit);
                 // Reflect the clamped value back so the visible input always
@@ -1127,6 +1145,10 @@ function oracleApp() {
                 this.queryLimit = limit;
                 const res = await apiFetch('/api/v1/oracle/query?source=' + encodeURIComponent(this.querySource) + '&limit=' + limit);
                 const data = await res.json();
+                // [] vs [0 rows] distinction: a successful-but-empty query must
+                // be distinguishable from "never queried" — the query table
+                // shows only for non-empty rows, so a zero-row success otherwise
+                // looks like a no-op and silently clears prior rows (ISS-255).
                 this.queryRows = (data && data.data) || [];
             } catch (e) {
                 this.queryRows = [];
