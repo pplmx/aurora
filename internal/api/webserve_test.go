@@ -259,6 +259,20 @@ func TestWebUIFormLabelsAssociated(t *testing.T) {
 	require.Empty(t, problems, "shipped form labels must be accessible (TASK-251):\n"+strings.Join(problems, "\n"))
 }
 
+// TestWebUIFocusVisible guards the round-140 focus-visibility contract
+// (WCAG 2.4.7): the shipped stylesheet must give keyboard focus on form
+// controls a visible indicator. The pre-fix CSS cleared the browser's default
+// outline on input:focus and replaced it with nothing but a subtile
+// border-color change, so a keyboard operator tabbing through a form saw no
+// focus marker at all. A relaxed input:focus border rule for mouse users is
+// fine as long as :focus-visible draws a strong ring on keyboard focus.
+func TestWebUIFocusVisible(t *testing.T) {
+	css := requireServedAsset(t, injectAPIKey(http.FileServer(http.Dir(realWebDir())), "test-serve-key"), "/css/style.css")
+	require.Contains(t, css, ":focus-visible", "style.css must style :focus-visible (keyboard focus indicator, TASK-252)")
+	require.True(t, strings.Contains(css, "outline: 2px solid"), "style.css must draw a visible focus ring (TASK-252)")
+	require.False(t, strings.Contains(css, "outline: none"), "style.css must never suppress the focus outline (WCAG 2.4.7; TASK-252)")
+}
+
 func TestWebUIJS_SyntaxValid(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {

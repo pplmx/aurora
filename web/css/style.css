@@ -136,8 +136,18 @@ section h2 {
 }
 
 .form-group input:focus {
-    outline: none;
     border-color: var(--accent-lottery);
+}
+/* Keyboard focus must stay visible (WCAG 2.4.7): the border-color change
+   alone is too subtle, and the previous rule cleared the browser's default
+   outline, so a keyboard operator tabbing through a form saw no focus
+   indicator at all. :focus-visible keeps clicks ring-free while drawing a
+   strong ring on keyboard/AT focus (TASK-252, ISS-248). */
+.form-group input:focus-visible,
+.form-group select:focus-visible,
+.form-group textarea:focus-visible {
+    outline: 2px solid var(--accent-lottery);
+    outline-offset: 2px;
 }
 .form-hint {
     margin-top: 4px;
