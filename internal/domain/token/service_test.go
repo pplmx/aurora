@@ -362,6 +362,41 @@ func TestGetBalance(t *testing.T) {
 	}
 }
 
+// TestReadPaths_UnknownToken pins ISS-250: balance/allowance/history on a
+// never-created token_id must report ErrTokenNotFound (404 on the REST
+// surface, like /token/info) instead of silently reading back as a legitimate
+// zero balance / empty history.
+func TestReadPaths_UnknownToken(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner := pubKey(1)
+	spender := pubKey(2)
+
+	// The three read paths hit one shared existence guard (requireToken),
+	// which the mutators already applied; without it a typo'd token_id was
+	// indistinguishable from "no activity".
+	t.Run("balance", func(t *testing.T) {
+		_, err := service.GetBalance("NONEXISTENT", owner)
+		if err != ErrTokenNotFound {
+			t.Errorf("expected ErrTokenNotFound, got %v", err)
+		}
+	})
+	t.Run("allowance", func(t *testing.T) {
+		_, err := service.GetAllowance("NONEXISTENT", owner, spender)
+		if err != ErrTokenNotFound {
+			t.Errorf("expected ErrTokenNotFound, got %v", err)
+		}
+	})
+	t.Run("history", func(t *testing.T) {
+		_, err := service.GetTransferHistory("NONEXISTENT", owner, 10, 0)
+		if err != ErrTokenNotFound {
+			t.Errorf("expected ErrTokenNotFound, got %v", err)
+		}
+	})
+}
+
 func TestMint_InvalidToken(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()

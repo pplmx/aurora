@@ -267,11 +267,37 @@ func (s *TokenService) GetTokenInfo(tokenID TokenID) (*Token, error) {
 	return s.repo.GetToken(tokenID)
 }
 
+// requireToken returns ErrTokenNotFound unless a token with tokenID exists,
+// mirroring the existence guard every mutator (Mint/Burn/Transfer/TransferFrom/
+// Approve) applies before touching a row. The read paths (GetBalance/
+// GetAllowance/GetTransferHistory) previously skipped it: a typo'd or never
+// created token_id read back as a legitimate zero balance / empty history on
+// the REST surface while /token/info 404'd — masking an existence probe as
+// "no activity" instead of the unknown-resource->404 contract the rest of the
+// platform enforces (ISS-250). Handles both not-found conventions the repos
+// use (ErrTokenNotFound as err, or a nil token without error).
+func (s *TokenService) requireToken(tokenID TokenID) error {
+	t, err := s.repo.GetToken(tokenID)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		return ErrTokenNotFound
+	}
+	return nil
+}
+
 func (s *TokenService) GetBalance(tokenID TokenID, owner PublicKey) (*Amount, error) {
+	if err := s.requireToken(tokenID); err != nil {
+		return nil, err
+	}
 	return s.repo.GetAccountBalance(tokenID, owner)
 }
 
 func (s *TokenService) GetAllowance(tokenID TokenID, owner, spender PublicKey) (*Amount, error) {
+	if err := s.requireToken(tokenID); err != nil {
+		return nil, err
+	}
 	approval, err := s.repo.GetApproval(tokenID, owner, spender)
 	if err != nil {
 		return nil, err
@@ -757,6 +783,9 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 }
 
 func (s *TokenService) GetTransferHistory(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error) {
+	if err := s.requireToken(tokenID); err != nil {
+		return nil, err
+	}
 	if limit <= 0 {
 		limit = defaultHistoryLimit
 	}
