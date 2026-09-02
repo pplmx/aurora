@@ -30,7 +30,7 @@
                      rows stay visible instead of flashing Loading... (TASK-148). -->
                 <div x-show="loading && sources.length === 0">Loading...</div>
                 <table x-show="sources.length > 0">
-                    <thead><tr><th>Name</th><th>Type</th><th>ID</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">ID</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
                     <tbody>
                         <template x-for="s in sources" :key="s.id">
                             <tr>
@@ -81,7 +81,7 @@
                 <h2>Feed Health</h2>
                 <div x-show="loadingHealth && health.length === 0">Loading health…</div>
                 <table x-show="health.length > 0">
-                    <thead><tr><th>Source</th><th>Attempts</th><th>Successes</th><th>Failures</th><th>Last Success</th><th>Last Error</th></tr></thead>
+                    <thead><tr><th scope="col">Source</th><th scope="col">Attempts</th><th scope="col">Successes</th><th scope="col">Failures</th><th scope="col">Last Success</th><th scope="col">Last Error</th></tr></thead>
                     <tbody>
                         <template x-for="h in health" :key="h.source_id">
                             <tr>
@@ -114,7 +114,7 @@
                     <button type="submit" class="btn-lottery" :disabled="busy.query">Query</button>
                 </form>
                 <table x-show="queryRows.length > 0">
-                    <thead><tr><th>Timestamp</th><th>Value</th><th>Block #</th></tr></thead>
+                    <thead><tr><th scope="col">Timestamp</th><th scope="col">Value</th><th scope="col">Block #</th></tr></thead>
                     <tbody>
                         <template x-for="d in queryRows" :key="d.id">
                             <tr>

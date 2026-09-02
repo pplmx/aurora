@@ -294,6 +294,30 @@ func TestWebUIResultLiveRegion(t *testing.T) {
 	}
 }
 
+// TestWebUITableHeaderScope guards the round-143 data-table accessibility
+// contract: every shipped <th> must declare scope="col" so a screen reader
+// announces the column name for each cell value (WCAG 1.3.1 / 4.1.2), and any
+// form <p class="form-hint"> must be reachable via aria-describedby so the
+// hint is announced with its input.
+func TestWebUITableHeaderScope(t *testing.T) {
+	webDir := realWebDir()
+	pages := []string{"lottery.html", "voting.html", "token.html", "oracle.html", "nft.html", "index.html"}
+	thRE := regexp.MustCompile(`<th(?:\s[^>]*)?>`)
+	for _, page := range pages {
+		body, err := os.ReadFile(filepath.Join(webDir, page))
+		require.NoError(t, err)
+		for _, th := range thRE.FindAllString(string(body), -1) {
+			require.Contains(t, th, `scope="col"`,
+				"%s: table header %q must declare scope=col (TASK-256, ISS-252)", page, th)
+		}
+		// the lottery count hint is the sole prompt; it must pair id+aria-describedby
+		if strings.Contains(string(body), `class="form-hint"`) {
+			require.Contains(t, string(body), `aria-describedby=`,
+				"%s: a form hint exists but no input announces it via aria-describedby", page)
+		}
+	}
+}
+
 func TestWebUIJS_SyntaxValid(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
