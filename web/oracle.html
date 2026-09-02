@@ -47,7 +47,7 @@
                         </template>
                     </tbody>
                 </table>
-                <p x-show="sourcesError" class="result" x-text="sourcesError"></p>
+                <p x-show="sourcesError" class="result" aria-live="polite" x-text="sourcesError"></p>
                 <p x-show="!loading && sources.length === 0 && !sourcesFailed">(no sources)</p>
                 <p x-show="!loading && sources.length === 0 && sourcesFailed" class="hint">Failed to load sources — check the API / refresh.</p>
             </section>
@@ -75,7 +75,7 @@
                     <div class="form-group"><label for="oracle-interval">Interval (seconds)</label><input id="oracle-interval" type="number" x-model="addInterval" min="0" value="60" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.addSource">Add Source</button>
                 </form>
-                <pre x-show="addResult" class="result" x-text="addResult"></pre>
+                <pre x-show="addResult" class="result" aria-live="polite" x-text="addResult"></pre>
             </section>
             <section class="history">
                 <h2>Feed Health</h2>
@@ -104,7 +104,7 @@
                     <div class="form-group"><label for="oracle-fetch-source">Source ID</label><input id="oracle-fetch-source" type="text" x-model="fetchSource" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.fetch">Fetch</button>
                 </form>
-                <pre x-show="fetchResult" class="result" x-text="fetchResult"></pre>
+                <pre x-show="fetchResult" class="result" aria-live="polite" x-text="fetchResult"></pre>
             </section>
             <section class="history">
                 <h2>Query Data</h2>
@@ -125,7 +125,7 @@
                         </template>
                     </tbody>
                 </table>
-                <div x-show="queryError" class="result" x-text="queryError"></div>
+                <div x-show="queryError" class="result" aria-live="polite" x-text="queryError"></div>
             </section>
             <section class="history">
                 <h2>Latest Data</h2>
@@ -133,7 +133,7 @@
                     <div class="form-group"><label for="oracle-latest-source">Source ID</label><input id="oracle-latest-source" type="text" x-model="latestSource" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.latest">Get Latest</button>
                 </form>
-                <pre x-show="latestResult" class="result" x-text="latestResult"></pre>
+                <pre x-show="latestResult" class="result" aria-live="polite" x-text="latestResult"></pre>
             </section>
         </main>
     </div>

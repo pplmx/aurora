@@ -48,7 +48,7 @@
                     <div class="form-group"><label for="token-create-owner">Owner (public key)</label><input id="token-create-owner" type="text" x-model="createOwner" placeholder="base64 public key" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.createToken">Create Token</button>
                 </form>
-                <pre x-show="createResult" class="result" x-text="createResult"></pre>
+                <pre x-show="createResult" class="result" aria-live="polite" x-text="createResult"></pre>
             </section>
             <section class="history">
                 <h2>Balance</h2>
@@ -57,7 +57,7 @@
                     <div class="form-group"><label for="token-balance-owner">Owner (public key)</label><input id="token-balance-owner" type="text" x-model="owner" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.getBalance">Get Balance</button>
                 </form>
-                <pre x-show="balance" class="result" x-text="balance"></pre>
+                <pre x-show="balance" class="result" aria-live="polite" x-text="balance"></pre>
             </section>
             <section class="history">
                 <h2>Token Info</h2>
@@ -65,7 +65,7 @@
                     <div class="form-group"><label for="token-info-id">Token ID</label><input id="token-info-id" type="text" x-model="infoId" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.info">Get Token Info</button>
                 </form>
-                <pre x-show="infoResult" class="result" x-text="infoResult"></pre>
+                <pre x-show="infoResult" class="result" aria-live="polite" x-text="infoResult"></pre>
             </section>
             <section class="history">
                 <h2>Mint</h2>
@@ -76,7 +76,7 @@
                     <div class="form-group"><label for="token-mint-priv">Owner Private Key</label><input id="token-mint-priv" type="password" x-model="mintPriv" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.mint">Mint</button>
                 </form>
-                <pre x-show="mintResult" class="result" x-text="mintResult"></pre>
+                <pre x-show="mintResult" class="result" aria-live="polite" x-text="mintResult"></pre>
             </section>
             <section class="history">
                 <h2>Transfer</h2>
@@ -88,7 +88,7 @@
                     <div class="form-group"><label for="token-transfer-priv">From Private Key</label><input id="token-transfer-priv" type="password" x-model="xPriv" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.transfer">Transfer</button>
                 </form>
-                <pre x-show="xResult" class="result" x-text="xResult"></pre>
+                <pre x-show="xResult" class="result" aria-live="polite" x-text="xResult"></pre>
             </section>
             <section class="history">
                 <h2>Approve</h2>
@@ -100,7 +100,7 @@
                     <div class="form-group"><label for="token-approve-priv">Owner Private Key</label><input id="token-approve-priv" type="password" x-model="approvePriv" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.approve">Approve</button>
                 </form>
-                <pre x-show="approveResult" class="result" x-text="approveResult"></pre>
+                <pre x-show="approveResult" class="result" aria-live="polite" x-text="approveResult"></pre>
             </section>
             <section class="history">
                 <h2>Transfer From (spend allowance)</h2>
@@ -113,7 +113,7 @@
                     <div class="form-group"><label for="token-tf-priv">Spender Private Key</label><input id="token-tf-priv" type="password" x-model="tfSpenderKey" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.transferFrom">Transfer From</button>
                 </form>
-                <pre x-show="tfResult" class="result" x-text="tfResult"></pre>
+                <pre x-show="tfResult" class="result" aria-live="polite" x-text="tfResult"></pre>
             </section>
             <section class="history">
                 <h2>Allowance</h2>
@@ -123,7 +123,7 @@
                     <div class="form-group"><label for="token-allowance-spender">Spender (public key)</label><input id="token-allowance-spender" type="text" x-model="allowanceSpender" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.getAllowance">Get Allowance</button>
                 </form>
-                <pre x-show="allowanceResult" class="result" x-text="allowanceResult"></pre>
+                <pre x-show="allowanceResult" class="result" aria-live="polite" x-text="allowanceResult"></pre>
             </section>
             <section class="history">
                 <h2>Burn</h2>
@@ -134,7 +134,7 @@
                     <div class="form-group"><label for="token-burn-priv">Owner Private Key</label><input id="token-burn-priv" type="password" x-model="burnPriv" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.burn">Burn</button>
                 </form>
-                <pre x-show="burnResult" class="result" x-text="burnResult"></pre>
+                <pre x-show="burnResult" class="result" aria-live="polite" x-text="burnResult"></pre>
             </section>
             <section class="history">
                 <h2>History</h2>
@@ -143,7 +143,7 @@
                     <div class="form-group"><label for="token-history-owner">Owner (public key)</label><input id="token-history-owner" type="text" x-model="owner" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.showHistory">Show History</button>
                 </form>
-                <pre x-show="history.length" class="result" x-text="JSON.stringify(history, null, 2)"></pre>
+                <pre x-show="history.length" class="result" aria-live="polite" x-text="JSON.stringify(history, null, 2)"></pre>
             </section>
         </main>
     </div>

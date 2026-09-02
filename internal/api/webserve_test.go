@@ -273,6 +273,27 @@ func TestWebUIFocusVisible(t *testing.T) {
 	require.False(t, strings.Contains(css, "outline: none"), "style.css must never suppress the focus outline (WCAG 2.4.7; TASK-252)")
 }
 
+// TestWebUIResultLiveRegion guards the round-140 accessible-feedback
+// contract: every async result/error container (class="result") must carry
+// aria-live="polite" so a screen reader announces form submit outcomes
+// ("Create Lottery", "Mint", "Cast Vote" ...) instead of silently updating
+// the underlying text (WCAG 4.1.3 / APG live-region pattern).
+func TestWebUIResultLiveRegion(t *testing.T) {
+	webDir := realWebDir()
+	pages := []string{"index.html", "lottery.html", "voting.html", "token.html", "oracle.html", "nft.html", "blockchain.html"}
+	tagRE := regexp.MustCompile(`<[^>]*>`)
+	for _, page := range pages {
+		body, err := os.ReadFile(filepath.Join(webDir, page))
+		require.NoError(t, err)
+		for _, tag := range tagRE.FindAllString(string(body), -1) {
+			if strings.Contains(tag, `class="result"`) {
+				require.Contains(t, tag, "aria-live",
+					"%s: result container %q must announce updates via aria-live (TASK-253, ISS-249)", page, tag)
+			}
+		}
+	}
+}
+
 func TestWebUIJS_SyntaxValid(t *testing.T) {
 	node, err := exec.LookPath("node")
 	if err != nil {
