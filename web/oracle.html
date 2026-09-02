@@ -55,24 +55,24 @@
                 <h2>Add Source</h2>
                 <form @submit.prevent="addSource">
                     <div class="form-group">
-                        <label>From Template (optional)</label>
-                        <select @change="applyTemplate($event.target.value)">
+                        <label for="oracle-template">From Template (optional)</label>
+                        <select id="oracle-template" @change="applyTemplate($event.target.value)">
                             <option value="">— choose a preset —</option>
                             <template x-for="t in templates" :key="t.id">
                                 <option :value="t.id" x-text="t.id + ' — ' + t.name"></option>
                             </template>
                         </select>
                     </div>
-                    <div class="form-group"><label>Name</label><input type="text" x-model="addName" required></div>
-                    <div class="form-group"><label>URL</label><input type="text" x-model="addUrl" placeholder="https://..." required></div>
-                    <div class="form-group"><label>Type</label><input type="text" x-model="addType" placeholder="custom (optional)"></div>
-                    <div class="form-group"><label>Method</label><input type="text" x-model="addMethod" placeholder="GET (optional)"></div>
-                    <div class="form-group"><label>Path</label><input type="text" x-model="addPath" placeholder="data field path (optional)"></div>
+                    <div class="form-group"><label for="oracle-name">Name</label><input id="oracle-name" type="text" x-model="addName" required></div>
+                    <div class="form-group"><label for="oracle-url">URL</label><input id="oracle-url" type="text" x-model="addUrl" placeholder="https://..." required></div>
+                    <div class="form-group"><label for="oracle-type">Type</label><input id="oracle-type" type="text" x-model="addType" placeholder="custom (optional)"></div>
+                    <div class="form-group"><label for="oracle-method">Method</label><input id="oracle-method" type="text" x-model="addMethod" placeholder="GET (optional)"></div>
+                    <div class="form-group"><label for="oracle-path">Path</label><input id="oracle-path" type="text" x-model="addPath" placeholder="data field path (optional)"></div>
                     <!-- required so an empty value can never be silently
                          defaulted to 60 on submit; 0 is a valid "default"
                          choice (the use case maps 0 -> 60), negatives are
                          rejected by the server with a clear 400 (ISS-195). -->
-                    <div class="form-group"><label>Interval (seconds)</label><input type="number" x-model="addInterval" min="0" value="60" required></div>
+                    <div class="form-group"><label for="oracle-interval">Interval (seconds)</label><input id="oracle-interval" type="number" x-model="addInterval" min="0" value="60" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.addSource">Add Source</button>
                 </form>
                 <pre x-show="addResult" class="result" x-text="addResult"></pre>
@@ -101,7 +101,7 @@
             <section class="create-form">
                 <h2>Fetch Data</h2>
                 <form @submit.prevent="fetch">
-                    <div class="form-group"><label>Source ID</label><input type="text" x-model="fetchSource" required></div>
+                    <div class="form-group"><label for="oracle-fetch-source">Source ID</label><input id="oracle-fetch-source" type="text" x-model="fetchSource" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.fetch">Fetch</button>
                 </form>
                 <pre x-show="fetchResult" class="result" x-text="fetchResult"></pre>
@@ -109,8 +109,8 @@
             <section class="history">
                 <h2>Query Data</h2>
                 <form @submit.prevent="query">
-                    <div class="form-group"><label>Source ID</label><input type="text" x-model="querySource" required></div>
-                    <div class="form-group"><label>Limit</label><input type="number" x-model="queryLimit" min="1" max="100"></div>
+                    <div class="form-group"><label for="oracle-query-source">Source ID</label><input id="oracle-query-source" type="text" x-model="querySource" required></div>
+                    <div class="form-group"><label for="oracle-query-limit">Limit</label><input id="oracle-query-limit" type="number" x-model="queryLimit" min="1" max="100"></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.query">Query</button>
                 </form>
                 <table x-show="queryRows.length > 0">
@@ -130,7 +130,7 @@
             <section class="history">
                 <h2>Latest Data</h2>
                 <form @submit.prevent="latest">
-                    <div class="form-group"><label>Source ID</label><input type="text" x-model="latestSource" required></div>
+                    <div class="form-group"><label for="oracle-latest-source">Source ID</label><input id="oracle-latest-source" type="text" x-model="latestSource" required></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.latest">Get Latest</button>
                 </form>
                 <pre x-show="latestResult" class="result" x-text="latestResult"></pre>
