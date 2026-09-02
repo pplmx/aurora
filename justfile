@@ -75,5 +75,5 @@ prod: image start
 clean:
     go clean
     docker compose down
-    rm -f aurora-*
+    rm -f aurora-* ./aurora
     rm -f coverage.out

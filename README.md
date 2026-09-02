@@ -62,19 +62,24 @@ just dev          # Docker 开发
 # 抽奖
 ./aurora lottery create -p "A,B,C,D" -s "seed" -c 3
 ./aurora lottery history
+./aurora lottery stats            # 统计信息
+./aurora lottery verify <id或高度> # 验证某次抽奖
+./aurora lottery export file.json # 导出记录
+./aurora lottery import file.json # 导入记录
 ./aurora lottery tui
+./aurora lottery db-info          # 数据库信息
 
 # 投票
-./aurora voting candidate add -n "Name" -p "Party"
+./aurora voting candidate add -n "Name" -p "Party" -m "Program"
 ./aurora voting voter register -n "Name"
-./aurora voting session create -t "Proposal" -c <cand-id> --start-time <t> --end-time <t>
+./aurora voting session create -t "Proposal" -d "Desc" -c <cand-id> --start-time <t> --end-time <t>
 ./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv-key>
 ./aurora voting results -s <session-id>
 
 # 预言机
 ./aurora oracle source list
 ./aurora oracle source add --name "btc" --url "https://api.example.com/price" \
-                           --path "data.price" --interval 60   # --method/--path/--interval 可选
+                           --path "data.price" --interval 60   # -t/--type、--method/--path/--interval 可选
 ./aurora oracle source enable --id <source-id>
 ./aurora oracle source disable --id <source-id>
 ./aurora oracle source delete --id <source-id> --confirm   # 需 --confirm
@@ -86,7 +91,7 @@ just dev          # Docker 开发
 ./aurora oracle tui
 
 # NFT
-./aurora nft mint -n "My NFT" -d "Description" -c "<creator-pub>"
+./aurora nft mint -n "My NFT" -d "Description" -c "<creator-pub>" --image <url> -t <token-uri>   # image/uri 可选
 ./aurora nft transfer --nft <id> --from <owner> --to <to> -k <priv>
 ./aurora nft get --nft <nft_id>
 ./aurora nft list --owner <pubkey>
@@ -95,7 +100,7 @@ just dev          # Docker 开发
 ./aurora nft tui
 
 # Token
-./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000
+./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000 -d 8   # -d/--decimals，默认 8
 ./aurora token info -t <token-id>
 ./aurora token mint -t <token-id> --to <address> --amount 100 -k <priv>
 ./aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k <priv>
