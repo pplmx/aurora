@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 143,
+  "round": 144,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T09:01:26+00:00",
+  "updated_at": "2026-09-02T10:09:59+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 142,
+      "touched_round": 144,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 141,
+      "touched_round": 144,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -986,7 +986,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:06:06+00:00",
       "updated_at": "2026-08-23T00:06:06+00:00",
-      "touched_round": 134,
+      "touched_round": 144,
       "title": "internal/domain/blockchain"
     },
     "CHG-017": {
@@ -1729,7 +1729,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:31:39+00:00",
       "updated_at": "2026-08-23T04:31:39+00:00",
-      "touched_round": 143,
+      "touched_round": 144,
       "title": "web UI static pages (router-injected API key)"
     },
     "EV-003": {
@@ -2475,7 +2475,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:26:42+00:00",
       "updated_at": "2026-08-23T05:26:42+00:00",
-      "touched_round": 51,
+      "touched_round": 144,
       "title": "Lottery module app layer"
     },
     "EV-015": {
@@ -10849,6 +10849,186 @@
       "touched_round": 143,
       "commit": "15ba475",
       "title": "NFT History shared-id + oracle query empty-state + token decimals clamp; Node regression tests"
+    },
+    "ISS-256": {
+      "id": "ISS-256",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T09:16:53+00:00",
+      "updated_at": "2026-09-02T09:29:05+00:00",
+      "touched_round": 144,
+      "title": "Lottery on-chain record always serialized as verified:false while DB/REST/CLI report true (audit-truthfulness)",
+      "severity": 0.7
+    },
+    "ISS-257": {
+      "id": "ISS-257",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T09:16:53+00:00",
+      "updated_at": "2026-09-02T09:41:09+00:00",
+      "touched_round": 144,
+      "title": "Token history default page size diverges: REST 20 vs CLI/service 50 for identical query",
+      "severity": 0.45
+    },
+    "ISS-258": {
+      "id": "ISS-258",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T09:16:53+00:00",
+      "updated_at": "2026-09-02T09:47:48+00:00",
+      "touched_round": 144,
+      "title": "lottery reset / db-info Close the process-global blockchain DB singleton (poisoned once; latent data-loss on compose)",
+      "severity": 0.55
+    },
+    "ISS-259": {
+      "id": "ISS-259",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T09:16:53+00:00",
+      "updated_at": "2026-09-02T10:01:29+00:00",
+      "touched_round": 144,
+      "title": "docs: config sample mentions nonexistent \"aurora --ui oracle\" flag; voting \"voter list\" subcommand undocumented; [api.rateLimit]/[api.cors]/[oracle.scheduler] keys read-but-undocumented",
+      "severity": 0.4
+    },
+    "TASK-260": {
+      "id": "TASK-260",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T09:17:18+00:00",
+      "updated_at": "2026-09-02T09:29:05+00:00",
+      "touched_round": 144,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Serialize lottery on-chain record AFTER verification so the chain copy carries verified:true like DB/REST/CLI"
+    },
+    "TASK-261": {
+      "id": "TASK-261",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T09:17:18+00:00",
+      "updated_at": "2026-09-02T09:41:09+00:00",
+      "touched_round": 144,
+      "category": "correctness",
+      "severity": 0.45,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "Align token history default limit across REST (20) and CLI/service (50) for the identical no-flag query"
+    },
+    "TASK-262": {
+      "id": "TASK-262",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T09:17:18+00:00",
+      "updated_at": "2026-09-02T09:47:48+00:00",
+      "touched_round": 144,
+      "category": "stability",
+      "severity": 0.55,
+      "confidence": 0.85,
+      "effort": 2,
+      "title": "lottery reset / db-info must not Close the process-global blockchain DB singleton they borrowed"
+    },
+    "TASK-263": {
+      "id": "TASK-263",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T09:17:18+00:00",
+      "updated_at": "2026-09-02T10:01:29+00:00",
+      "touched_round": 144,
+      "category": "docs",
+      "severity": 0.4,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "Docs truthfulness: fix --ui oracle dead claim; document voting voter list; sample api.rateLimit/api.cors/oracle.scheduler keys"
+    },
+    "CHG-254": {
+      "id": "CHG-254",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T09:28:20+00:00",
+      "updated_at": "2026-09-02T09:28:20+00:00",
+      "touched_round": 144,
+      "commit": "acd685b",
+      "title": "Lottery on-chain record serialized after verification; chain copy now carries verified:true; regression test decodes chain block"
+    },
+    "CHG-255": {
+      "id": "CHG-255",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T09:40:37+00:00",
+      "updated_at": "2026-09-02T09:40:37+00:00",
+      "touched_round": 144,
+      "commit": "8b93c2b",
+      "title": "Token history default limit aligned to 50 across REST/CLI/service; regression test"
+    },
+    "CHG-256": {
+      "id": "CHG-256",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T09:47:20+00:00",
+      "updated_at": "2026-09-02T09:47:20+00:00",
+      "touched_round": 144,
+      "commit": "b94f8ab",
+      "title": "lottery reset/db-info no longer close the process-global blockchain DB singleton"
+    },
+    "CHG-257": {
+      "id": "CHG-257",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T10:00:06+00:00",
+      "updated_at": "2026-09-02T10:00:06+00:00",
+      "touched_round": 144,
+      "commit": "be8d98f",
+      "title": "Docs truthfulness: --ui oracle fixed, voter list documented, api.rateLimit/cors/scheduler sample keys added"
+    },
+    "ISS-260": {
+      "id": "ISS-260",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T10:01:29+00:00",
+      "updated_at": "2026-09-02T10:07:59+00:00",
+      "touched_round": 144,
+      "title": ".planning/PROJECT.md stale claims: voting web page marked \"In progress\" and metrics/observability \"Out of scope\" though both are shipped",
+      "severity": 0.3
+    },
+    "TASK-264": {
+      "id": "TASK-264",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T10:03:27+00:00",
+      "updated_at": "2026-09-02T10:09:59+00:00",
+      "touched_round": 144,
+      "category": "docs",
+      "severity": 0.3,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Refresh .planning/PROJECT.md: voting web page done; metrics endpoint shipped (round-142/144 status)"
+    },
+    "CHG-258": {
+      "id": "CHG-258",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T10:07:59+00:00",
+      "updated_at": "2026-09-02T10:07:59+00:00",
+      "touched_round": 144,
+      "commit": "2bd4530",
+      "title": "PROJECT.md stale v1.7/out-of-scope claims refreshed"
     }
   },
   "edges": [
@@ -17073,6 +17253,126 @@
       "to": "TASK-259",
       "type": "implements",
       "created_at": "2026-09-02T09:01:06+00:00"
+    },
+    {
+      "from": "ISS-256",
+      "to": "COMP-007",
+      "type": "located_in",
+      "created_at": "2026-09-02T09:18:00+00:00"
+    },
+    {
+      "from": "ISS-257",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-09-02T09:18:00+00:00"
+    },
+    {
+      "from": "ISS-258",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-09-02T09:18:00+00:00"
+    },
+    {
+      "from": "ISS-259",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-09-02T09:18:00+00:00"
+    },
+    {
+      "from": "TASK-260",
+      "to": "ISS-256",
+      "type": "addresses",
+      "created_at": "2026-09-02T09:18:00+00:00"
+    },
+    {
+      "from": "TASK-261",
+      "to": "ISS-257",
+      "type": "addresses",
+      "created_at": "2026-09-02T09:18:00+00:00"
+    },
+    {
+      "from": "TASK-262",
+      "to": "ISS-258",
+      "type": "addresses",
+      "created_at": "2026-09-02T09:18:00+00:00"
+    },
+    {
+      "from": "TASK-263",
+      "to": "ISS-259",
+      "type": "addresses",
+      "created_at": "2026-09-02T09:18:00+00:00"
+    },
+    {
+      "from": "CHG-254",
+      "to": "ISS-256",
+      "type": "resolves",
+      "created_at": "2026-09-02T09:28:20+00:00"
+    },
+    {
+      "from": "CHG-254",
+      "to": "TASK-260",
+      "type": "implements",
+      "created_at": "2026-09-02T09:28:20+00:00"
+    },
+    {
+      "from": "CHG-255",
+      "to": "ISS-257",
+      "type": "resolves",
+      "created_at": "2026-09-02T09:40:37+00:00"
+    },
+    {
+      "from": "CHG-255",
+      "to": "TASK-261",
+      "type": "implements",
+      "created_at": "2026-09-02T09:40:37+00:00"
+    },
+    {
+      "from": "CHG-256",
+      "to": "ISS-258",
+      "type": "resolves",
+      "created_at": "2026-09-02T09:47:20+00:00"
+    },
+    {
+      "from": "CHG-256",
+      "to": "TASK-262",
+      "type": "implements",
+      "created_at": "2026-09-02T09:47:20+00:00"
+    },
+    {
+      "from": "CHG-257",
+      "to": "ISS-259",
+      "type": "resolves",
+      "created_at": "2026-09-02T10:00:06+00:00"
+    },
+    {
+      "from": "CHG-257",
+      "to": "TASK-263",
+      "type": "implements",
+      "created_at": "2026-09-02T10:00:06+00:00"
+    },
+    {
+      "from": "ISS-260",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-09-02T10:01:29+00:00"
+    },
+    {
+      "from": "TASK-264",
+      "to": "ISS-260",
+      "type": "addresses",
+      "created_at": "2026-09-02T10:03:27+00:00"
+    },
+    {
+      "from": "CHG-258",
+      "to": "ISS-260",
+      "type": "resolves",
+      "created_at": "2026-09-02T10:07:59+00:00"
+    },
+    {
+      "from": "CHG-258",
+      "to": "TASK-264",
+      "type": "implements",
+      "created_at": "2026-09-02T10:07:59+00:00"
     }
   ]
 }
