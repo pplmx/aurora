@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 137,
+  "round": 138,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-01T15:06:47+00:00",
+  "updated_at": "2026-09-02T01:07:28+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -10139,7 +10139,7 @@
       "version": 4,
       "created_at": "2026-09-01T12:33:36+00:00",
       "updated_at": "2026-09-01T13:15:47+00:00",
-      "touched_round": 135,
+      "touched_round": 137,
       "category": "correctness",
       "severity": 0.55,
       "confidence": 0.9,
@@ -10153,7 +10153,7 @@
       "version": 1,
       "created_at": "2026-09-01T12:36:21+00:00",
       "updated_at": "2026-09-01T12:36:21+00:00",
-      "touched_round": 135,
+      "touched_round": 137,
       "title": "internal/infra/events (sync/async/composite event bus, outbox, event store)"
     },
     "CHG-238": {
@@ -10199,6 +10199,166 @@
       "touched_round": 137,
       "title": "Merge duplicate '### Fixed' heading in CHANGELOG v1.93",
       "commit": "70f5713"
+    },
+    "ISS-245": {
+      "id": "ISS-245",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-01T23:26:39+00:00",
+      "updated_at": "2026-09-01T23:27:03+00:00",
+      "touched_round": 137,
+      "title": "Workspace LV at 100% blocked RIL writes",
+      "severity": 0.9
+    },
+    "EV-054": {
+      "id": "EV-054",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-01T23:27:03+00:00",
+      "updated_at": "2026-09-01T23:27:03+00:00",
+      "touched_round": 137,
+      "source": "session 2026-09-02 df -h /workspace",
+      "title": "1.8T LV 100% full (1.3M avail) blocked graph.json.tmp atomic write; 10 core dumps (~8.3GB) from nova/proxy-x were the visible bloat; deleted; 7.5G free after",
+      "confidence": 1.0
+    },
+    "TASK-246": {
+      "id": "TASK-246",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T00:00:07+00:00",
+      "updated_at": "2026-09-02T00:41:00+00:00",
+      "touched_round": 138,
+      "category": "correctness",
+      "severity": 0.9,
+      "confidence": 0.85,
+      "effort": 3,
+      "title": "Lottery TUI must enforce the same domain validation + error propagation as CLI/API: handleCreate/runLottery never call ValidateParticipants/ValidateSeed/ValidateWinnerCount (duplicate participants, seed <3 chars, count>100 or count>len all pass; stored draws then fail record.Validate() on re-import), and GenerateKeyPair/VRFProve errors are swallowed so an RNG failure records a non-random 'successful' draw with empty VRFOutput/VRFProof"
+    },
+    "TASK-247": {
+      "id": "TASK-247",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T00:00:48+00:00",
+      "updated_at": "2026-09-02T00:40:06+00:00",
+      "touched_round": 138,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "API lottery create freezes winner_count at 3 (hardcoded DefaultWinnerCount with a comment claiming CLI parity) while the CLI resolves the configured lottery.defaultCount: a config lottery.defaultCount=4 creates 4 winners via CLI but 3 via the REST endpoint. Align the API default with the same configured default (or document the divergence as DEC)"
+    },
+    "TASK-248": {
+      "id": "TASK-248",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T00:01:03+00:00",
+      "updated_at": "2026-09-02T00:59:18+00:00",
+      "touched_round": 138,
+      "category": "dx",
+      "severity": 0.5,
+      "confidence": 0.8,
+      "effort": 2,
+      "title": "Docs gaps found in audit: README/AGENTS oracle source add omit -t/--type, nft mint --image/-t/--token-uri, token create -d/--decimals, voting candidate add -m/--program and session create -d/--description, and lottery reset/stats/db-info commands are undocumented; scripts/go_fmt_check.sh + scripts/go_imports_check.sh are orphaned (not referenced by justfile/pre-commit/CI); justfile clean misses ./aurora binary"
+    },
+    "TASK-249": {
+      "id": "TASK-249",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T00:39:12+00:00",
+      "updated_at": "2026-09-02T00:40:06+00:00",
+      "touched_round": 138,
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "Lottery verify reports valid:true for a stored record with an empty winners slice: SelectWinners(output, roster, 0) returns an empty set that vacuously matches, so no positive winner-set check ever runs. Guard in VerifyLotteryUseCase + CLI verify path — fixed (TASK-249)"
+    },
+    "CHG-240": {
+      "id": "CHG-240",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-09-02T00:41:30+00:00",
+      "updated_at": "2026-09-02T00:44:08+00:00",
+      "touched_round": 138,
+      "commit": "65ecfb7",
+      "title": "Lottery TUI/API correctness: TUI enforces shared domain validation + propagates VRF errors; API create resolves configured lottery.defaultCount; verify rejects empty-winners records; k8s Job binary path fixed"
+    },
+    "CHG-241": {
+      "id": "CHG-241",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-09-02T00:42:00+00:00",
+      "updated_at": "2026-09-02T00:44:08+00:00",
+      "touched_round": 138,
+      "commit": "65ecfb7",
+      "title": "k8s.yml: default Job command [] uses absolute /aurora path (command replaces image ENTRYPOINT; ./aurora failed against WORKDIR /app)"
+    },
+    "EV-055": {
+      "id": "EV-055",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T00:44:08+00:00",
+      "updated_at": "2026-09-02T00:44:08+00:00",
+      "touched_round": 138,
+      "source": "65ecfb7 + go test ./... green",
+      "title": "TASK-246/247/249 regression tests pass (TUI validates duplicates/short-seed/over-cap, API honors configured defaultCount, verify rejects empty winners); full suite green",
+      "confidence": 1.0
+    },
+    "CHG-242": {
+      "id": "CHG-242",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T00:59:18+00:00",
+      "updated_at": "2026-09-02T00:59:18+00:00",
+      "touched_round": 138,
+      "commit": "75b6453",
+      "title": "Docs flag-gap fill + orphaned script removal + justfile clean fix (TASK-248)"
+    },
+    "ISS-246": {
+      "id": "ISS-246",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T01:00:28+00:00",
+      "updated_at": "2026-09-02T01:06:53+00:00",
+      "touched_round": 138,
+      "title": "web lottery loadHistory blanks already-displayed history on a transient refresh failure",
+      "severity": 0.5
+    },
+    "TASK-250": {
+      "id": "TASK-250",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T01:00:58+00:00",
+      "updated_at": "2026-09-02T01:06:53+00:00",
+      "touched_round": 138,
+      "category": "correctness",
+      "severity": 0.5,
+      "confidence": 0.95,
+      "effort": 1,
+      "title": "web lottery loadHistory follows keep-prior (TASK-151): a transient refresh failure after a successful create currently sets history=[] and historyFailed=true, wiping the already-rendered draw list on the same page; keep prior rows on error, flag only a first-load failure"
+    },
+    "CHG-243": {
+      "id": "CHG-243",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T01:06:53+00:00",
+      "updated_at": "2026-09-02T01:06:53+00:00",
+      "touched_round": 138,
+      "commit": "36f22fd",
+      "title": "web lottery loadHistory keep-prior on refresh failure (TASK-250, ISS-246)"
     }
   },
   "edges": [
@@ -16159,6 +16319,48 @@
       "to": "ISS-244",
       "type": "resolves",
       "created_at": "2026-09-01T15:06:47+00:00"
+    },
+    {
+      "from": "CHG-240",
+      "to": "TASK-246",
+      "type": "implements",
+      "created_at": "2026-09-02T00:42:00+00:00"
+    },
+    {
+      "from": "CHG-240",
+      "to": "TASK-247",
+      "type": "implements",
+      "created_at": "2026-09-02T00:42:00+00:00"
+    },
+    {
+      "from": "CHG-240",
+      "to": "TASK-249",
+      "type": "implements",
+      "created_at": "2026-09-02T00:42:00+00:00"
+    },
+    {
+      "from": "CHG-241",
+      "to": "TASK-246",
+      "type": "implements",
+      "created_at": "2026-09-02T00:45:48+00:00"
+    },
+    {
+      "from": "CHG-242",
+      "to": "TASK-248",
+      "type": "implements",
+      "created_at": "2026-09-02T00:59:49+00:00"
+    },
+    {
+      "from": "CHG-243",
+      "to": "TASK-250",
+      "type": "implements",
+      "created_at": "2026-09-02T01:07:28+00:00"
+    },
+    {
+      "from": "CHG-243",
+      "to": "ISS-246",
+      "type": "resolves",
+      "created_at": "2026-09-02T01:07:28+00:00"
     }
   ]
 }
