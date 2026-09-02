@@ -246,6 +246,14 @@ var verifyCmd = &cobra.Command{
 		} else if _, err := hex.DecodeString(record.VRFProof); err != nil {
 			fmt.Println("\n❌ Verification FAILED: VRF proof is not valid hex")
 			integrityOK = false
+		} else if len(record.Winners) == 0 {
+			// A successful draw always records at least one winner (the domain
+			// rejects count<=0), so an empty winners slice is a corrupt/partial
+			// write. Without this guard SelectWinners(output, roster, 0) returns
+			// an empty set that vacuously "matches" and the record printed
+			// "✅ Verified" (TASK-249, ISS-249).
+			fmt.Println("\n❌ Verification FAILED: record has no winners (corrupt or partial write)")
+			integrityOK = false
 		} else {
 			expected := domainlottery.SelectWinners(vrfOutputBytes, record.Participants, len(record.Winners))
 			if !sameStringSet(expected, record.Winners) {

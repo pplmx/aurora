@@ -10,6 +10,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/api/handler"
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
+	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -136,7 +137,7 @@ func NewServer() (*Server, error) {
 	}
 	srv.addCloser(oracleRepo)
 
-	srv.lotteryHandler = handler.NewLotteryHandler(lotteryRepo)
+	srv.lotteryHandler = handler.NewLotteryHandler(lotteryRepo, config.LotteryDefaultCount())
 	srv.votingHandler = handler.NewVotingHandler(votingRepo, sqlite.NewTxManager(db))
 	srv.votingHandler.SetChain(blockchain.GetBlockChain())
 	srv.nftHandler = handler.NewNFTHandler(nftRepo, sqlite.NewTxManager(nftRepo.GetDB()))

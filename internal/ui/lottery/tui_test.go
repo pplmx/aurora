@@ -2,6 +2,8 @@ package lottery
 
 import (
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -610,4 +612,64 @@ func TestUpdate_HistoryEnterStillReturnsToMenu(t *testing.T) {
 	app.view = "history"
 	app.Update(keyPress("enter"))
 	assert.Equal(t, "menu", app.view)
+}
+
+// TASK-246 (ISS-248): the TUI create form previously enforced only loose
+// ad-hoc checks (non-empty list, count>=1, count<=len, seed!=""), so draws the
+// CLI/API reject — duplicate participant names, a seed shorter than
+// MinSeedLength, a winner count above MaxWinners — were silently created here
+// and then failed record.Validate() on re-import. These tests pin that the TUI
+// now runs the same shared domain validators as the CLI/API.
+func TestUpdate_HandleCreateRejectsDuplicateParticipants(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("Winner,Winner,Loser")
+	app.seedInput.SetValue("valid-seed")
+	app.countInput.SetValue("1")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+	assert.Equal(t, i18n.GetText("lottery.tui.duplicate_participant"), app.err)
+	// A rejected draw must not advance to the result view.
+	assert.Equal(t, "create", app.view)
+}
+
+func TestUpdate_HandleCreateRejectsShortSeed(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A,B,C")
+	app.seedInput.SetValue("x") // < MinSeedLength=3
+	app.countInput.SetValue("1")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+	assert.Equal(t, i18n.GetText("lottery.tui.seed_too_short"), app.err)
+	assert.Equal(t, "create", app.view)
+}
+
+func TestUpdate_HandleCreateRejectsTooManyWinners(t *testing.T) {
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue("A,B,C")
+	app.seedInput.SetValue("valid-seed")
+	app.countInput.SetValue("150") // > MaxWinners=100, but <= len? no — 150 > 3
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+	assert.Equal(t, "create", app.view)
+}
+
+func TestUpdate_HandleCreateRejectsOverCapWinners(t *testing.T) {
+	// 1-char seed is below MinSeedLength but the domain MaxWinners=100 cap must
+	// also be exercised with a valid seed: 101 winners on 101 participants.
+	var parts []string
+	for i := 0; i < 101; i++ {
+		parts = append(parts, "P"+strconv.Itoa(i))
+	}
+	app := NewLotteryApp()
+	app.view = "create"
+	app.participantsInput.SetValue(strings.Join(parts, ","))
+	app.seedInput.SetValue("valid-seed")
+	app.countInput.SetValue("101")
+	app.handleCreate()
+	assert.NotEmpty(t, app.err)
+	assert.Equal(t, i18n.GetText("lottery.tui.winners_too_many"), app.err)
+	assert.Equal(t, "create", app.view)
 }

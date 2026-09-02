@@ -146,6 +146,30 @@ func TestVerifyLotteryUseCase_TamperedWinners(t *testing.T) {
 	require.False(t, resp.Valid)
 }
 
+// TASK-249 / ISS-249: a stored record with an EMPTY winners slice reported
+// valid:true — SelectWinners(output, roster, 0) returns an empty set that
+// vacuously "matches" the empty record, so nothing ever checked that a draw
+// actually produced winners (a create always records >=1 winner, so an empty
+// slice is a corrupt/partial write and must fail verify).
+func TestVerifyLotteryUseCase_EmptyWinnersIsInvalid(t *testing.T) {
+	lotteryRepo := &mockLotteryRepo{}
+	blockChain := &mockBlockChain{}
+	if _, err := NewCreateLotteryUseCase(lotteryRepo, blockChain).Execute(CreateLotteryRequest{
+		Participants: "Alice,Bob,Charlie",
+		Seed:         "verify-seed-3",
+		WinnerCount:  1,
+	}); err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	record := lotteryRepo.records[0]
+	record.Winners = []string{}
+
+	resp, err := NewVerifyLotteryUseCase(lotteryRepo, lottery.NewService()).Execute(VerifyLotteryRequest{ID: record.ID})
+	require.NoError(t, err)
+	require.False(t, resp.Valid)
+	require.Contains(t, resp.Reason, "no winners")
+}
+
 func TestVerifyLotteryUseCase_NotFound(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
 	_, err := NewVerifyLotteryUseCase(lotteryRepo, lottery.NewService()).Execute(VerifyLotteryRequest{ID: "missing"})

@@ -12,11 +12,20 @@ import (
 )
 
 type LotteryHandler struct {
-	repo lottery.Repository
+	repo               lottery.Repository
+	defaultWinnerCount int
 }
 
-func NewLotteryHandler(repo lottery.Repository) *LotteryHandler {
-	return &LotteryHandler{repo: repo}
+// NewLotteryHandler wires the lottery REST surface. defaultWinnerCount is the
+// winner count applied when a create request omits winner_count (the CLI's
+// configured `lottery.defaultCount` defaults to 3); the server injects
+// config.LotteryDefaultCount() so REST and CLI agree on a non-3 configured
+// default instead of the API silently drawing 3 (TASK-247).
+func NewLotteryHandler(repo lottery.Repository, defaultWinnerCount int) *LotteryHandler {
+	if defaultWinnerCount <= 0 {
+		defaultWinnerCount = lottery.DefaultWinnerCount
+	}
+	return &LotteryHandler{repo: repo, defaultWinnerCount: defaultWinnerCount}
 }
 
 type CreateLotteryRequest struct {
@@ -40,6 +49,15 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	blockChain := blockchain.InitBlockChain()
 	uc := lotteryapp.NewCreateLotteryUseCase(h.repo, blockChain)
+
+	// Resolve the configured default winner count at the API boundary, exactly
+	// as the CLI's RunE resolves its `-c` absence to `lottery.defaultCount` —
+	// an omitted winner_count must not silently fall to a hardcoded 3 when the
+	// operator configured a different default (TASK-247; the use case keeps
+	// DefaultWinnerCount as its own fallback for direct programmatic use).
+	if req.WinnerCount == 0 {
+		req.WinnerCount = h.defaultWinnerCount
+	}
 
 	appReq := lotteryapp.CreateLotteryRequest{
 		Participants: req.Participants,
