@@ -467,3 +467,57 @@ const fs = require('fs');
 	require.NoErrorf(t, err, "web/js/app.js voting-retry failed:\n%s", out)
 	require.Contains(t, string(out), "voting-retry-ok", "voting page retryLoad() must recover Cast Vote without a reload")
 }
+
+// TestWebUIJS_LotteryLoadHistoryKeepPrior executes the SHIPPED web/js/app.js in
+// Node and pins TASK-250/ISS-246: a transient refresh failure must NOT blank
+// draws that already rendered. loadHistory previously set history=[] in its
+// catch, so createLottery's follow-up reload after a successful create would
+// wipe the visible list on a 20s timeout / API blip — the opposite of the
+// dashboard's keep-prior-rows policy (TASK-151). Skips cleanly without node.
+func TestWebUIJS_LotteryLoadHistoryKeepPrior(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js lottery keep-prior check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+let mode = 'ok';
+global.fetch = (url) => {
+  return mode === 'ok'
+    ? Promise.resolve({ ok: true, json: () => Promise.resolve([{ id: 'd1', winners: ['a'] }, { id: 'd2', winners: ['b'] }]) })
+    : Promise.reject(new Error('api down'));
+};
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  const app = global.lotteryApp();
+  await app.loadHistory();                      // first load succeeds
+  if (app.history.length !== 2) { console.error('expected 2 draws after a successful load, got ' + app.history.length); process.exit(1); }
+  mode = 'fail';                                // transient blip on the follow-up reload
+  await app.loadHistory();
+  if (app.history.length !== 2) { console.error('history must keep 2 rows after a transient failure, got ' + app.history.length); process.exit(1); }
+  if (!app.historyFailed) { console.error('historyFailed must still flag the failure'); process.exit(1); }
+
+  // A first-load failure (nothing ever rendered) still distinguishes
+  // "couldn't load" from a genuinely empty system via historyFailed.
+  const fresh = global.lotteryApp();
+  mode = 'fail';
+  await fresh.loadHistory();
+  if (fresh.history.length !== 0) { console.error('never-loaded history must stay empty, got ' + fresh.history.length); process.exit(1); }
+  if (!fresh.historyFailed) { console.error('first-load failure must set historyFailed'); process.exit(1); }
+  console.log('lottery-keep-prior-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "lottery_keep_prior_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js lottery keep-prior failed:\n%s", out)
+	require.Contains(t, string(out), "lottery-keep-prior-ok", "lottery loadHistory must keep prior rows across a transient refresh failure")
+}
