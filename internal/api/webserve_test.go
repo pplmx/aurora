@@ -693,3 +693,69 @@ const fs = require('fs');
 	require.Contains(t, string(out), "burn-confirm-ok", "NFT/Token burn must require an explicit confirm before destroying")
 }
 
+// TestWebUIJS_DashboardActivityKeepPriorOnTotalFailure executes the SHIPPED
+// web/js/app.js in Node and pins TASK-258/ISS-254: the dashboard Recent
+// Activity list must survive a poll cycle in which every endpoint fails. The
+// stat cards already kept their last-good values on a transient blip (TASK-151/
+// TASK-234), but the list rebuilt itself from per-loader return arrays that
+// collapse to [] on failure — so one all-fail 15s poll wiped a populated list
+// and replaced it with the false "No recent activity" empty-state. The list
+// loaders now signal a failed cycle with null (vs [] = success-with-no-rows)
+// and refresh() keeps the prior rows when all of them fail. Skips cleanly
+// without node.
+func TestWebUIJS_DashboardActivityKeepPriorOnTotalFailure(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js dashboard-activity keep-prior check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+let mode = 'ok';
+global.fetch = (url) => {
+  if (mode === 'fail') return Promise.reject(new Error('down'));
+  const routes = {
+    '/api/v1/lottery/history': () => [{ id: 'L1', winners: [1] }],
+    '/api/v1/voting/candidates': () => [],
+    '/api/v1/voting/sessions': () => [{ id: 'S1', title: 'S1', status: 'open', candidates: [] }],
+    '/api/v1/blockchain/verify': () => ({ valid: true }),
+    '/api/v1/oracle/health': () => [{ successes: 1, failures: 0 }]
+  };
+  const h = routes[url];
+  return Promise.resolve({ ok: true, json: () => Promise.resolve(h ? h() : []) });
+};
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  // A successful cycle renders 2 rows (lottery L1 + session S1).
+  const app = global.dashboardApp();
+  await app.refresh();
+  if (app.activity.length !== 2) { console.error('expected 2 rows after success, got ' + app.activity.length); process.exit(1); }
+
+  // A full poll failure must NOT collapse the list into "No recent activity".
+  mode = 'fail';
+  await app.refresh();
+  if (app.activity.length !== 2) { console.error('all-endpoint failure must keep the prior rows, got ' + app.activity.length); process.exit(1); }
+
+  // A fresh app whose very first load fails stays empty (nothing to keep) —
+  // index.html distinguishes this via loaded=false -> "Couldn't load activity".
+  const fresh = global.dashboardApp();
+  await fresh.refresh();
+  if (fresh.activity.length !== 0) { console.error('never-loaded app must stay empty, got ' + fresh.activity.length); process.exit(1); }
+
+  console.log('dashboard-activity-keep-prior-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "dashboard_activity_keep_prior_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js dashboard activity keep-prior failed:\n%s", out)
+	require.Contains(t, string(out), "dashboard-activity-keep-prior-ok", "dashboard Recent Activity must keep prior rows across a total poll failure")
+}
+

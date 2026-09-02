@@ -254,7 +254,18 @@ function dashboardApp() {
                     this.loadBlockchain(),
                     this.loadOracleHealth()
                 ]);
-                this.activity = [].concat(...activity);
+                // A list loader returns null on a failed cycle (vs [] for a
+                // success with no rows). When EVERY source of activity rows
+                // fails on a transient poll blip, keep the already-rendered
+                // list instead of collapsing it into a false "No recent
+                // activity" empty-state — the same keep-prior-rows policy the
+                // stat cards already follow (TASK-151). The cards' loaders
+                // (blockchain/oracle-health) never add rows, so they don't
+                // participate in this decision.
+                const lists = activity.slice(0, 2).filter(r => r !== null);
+                if (lists.length > 0) {
+                    this.activity = [].concat(...lists);
+                }
             } finally {
                 this.refreshing = false;
             }
@@ -281,6 +292,7 @@ function dashboardApp() {
                 // kept across transient poll failures (keep-prior-rows policy).
                 if (!this.loaded) this.stats.lotteries = '?';
                 console.error(e);
+                return null; // failed cycle: signal refresh to keep prior rows
             }
             return entries;
         },
@@ -289,7 +301,11 @@ function dashboardApp() {
             // one endpoint (e.g. sessions 500) blanks only its own card instead
             // of the shared Promise.all dropping the sibling stats too (TASK-147).
             const groups = await Promise.all([this.loadCandidatesStats(), this.loadSessionsStats()]);
-            return [].concat(...groups);
+            // Candidates never contribute activity rows; sessions do. Keep the
+            // null (failed-cycle) signal from the only voting source of rows so
+            // refresh() can preserve the rendered list on an all-endpoint blip
+            // (TASK-258, ISS-254; loadCandidatesStats [] is a success-with-no-rows).
+            return groups[1] === null ? null : [].concat(...groups);
         },
         async loadCandidatesStats() {
             try {
@@ -327,6 +343,7 @@ function dashboardApp() {
             } catch (e) {
                 if (!this.loaded) this.stats.sessions = '?';
                 console.error(e);
+                return null; // failed cycle: signal refresh to keep prior rows
             }
             return entries;
         },
