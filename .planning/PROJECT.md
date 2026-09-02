@@ -96,7 +96,7 @@ Performance: Pagination, interruptible mining, configurable timeouts
 | Focus                                                  | Target                             |
 | ------------------------------------------------------ | ---------------------------------- |
 | `GET /api/v1/voting/sessions` (sessions list)          | ✅ Shipped (00ab212)               |
-| Voting web page (create session / list / cast vote)    | 🚧 In progress                     |
+| Voting web page (create session / list / cast vote)    | ✅ Shipped (web/voting.html + voting handler routes; round-144) |
 
 ## Context
 
@@ -150,7 +150,8 @@ Performance: Pagination, interruptible mining, configurable timeouts
 
 ### Out of Scope
 
-- Metrics/observability (Prometheus, OpenTelemetry) — defer to future
+- OpenTelemetry / richer observability beyond the shipped `/metrics` and
+  `/metrics/oracle` Prometheus endpoints (internal/api/router.go)
 - Performance optimization beyond current requirements
 - Mobile app
 
@@ -188,4 +189,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-08-11 after v1.4 completion / v1.5 kickoff*
+*Last updated: 2026-09-02 after v1.5+ continuous deep-dive loop (round-144 status; voting web page + metrics endpoint shipped)*
