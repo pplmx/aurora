@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 147,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T14:08:24+00:00",
+  "updated_at": "2026-09-02T14:48:32+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11081,10 +11081,10 @@
     "ISS-262": {
       "id": "ISS-262",
       "type": "issue",
-      "status": "active",
-      "version": 2,
+      "status": "resolved",
+      "version": 3,
       "created_at": "2026-09-02T11:50:57+00:00",
-      "updated_at": "2026-09-02T12:11:19+00:00",
+      "updated_at": "2026-09-02T14:48:32+00:00",
       "touched_round": 147,
       "title": "Repo hygiene: 18MB compiled api binary tracked in HEAD + orphan .commit-msg.txt left next to nothing that reads it",
       "severity": 0.4,
@@ -11147,10 +11147,10 @@
     "ISS-264": {
       "id": "ISS-264",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-02T14:02:05+00:00",
-      "updated_at": "2026-09-02T14:02:05+00:00",
+      "updated_at": "2026-09-02T14:48:32+00:00",
       "touched_round": 147,
       "title": "config tests fail when any /tmp file is named 'aurora': TestMain's HOME isolation used the shared os.TempDir(), and viper SetConfigName('aurora') search matches a bare  file in /root (an ELF from a parallel build got parsed as TOML -> every config test failed)",
       "severity": 0.55,
