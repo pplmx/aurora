@@ -116,6 +116,17 @@ documented in their per-milestone ROADMAP files.
   (added, cross-checked against `config.go` and verified loadable). Stale
   `.planning/PROJECT.md` claims (voting web page "In progress", metrics "Out of
   scope") refreshed to shipped status (TASK-263, TASK-264; ISS-259, ISS-260).
+- **Token `transfer` / `transfer_from` could return a spurious
+  `INSUFFICIENT_BALANCE`/`INSUFFICIENT_ALLOWANCE` 400**: each read the balance /
+  allowance once *before* the atomic transaction and refused if the read looked
+  short — but that read ran against a different snapshot than the transaction,
+  so a concurrent top-up (a mint/credit to the same account) between the read
+  and the atomic debit produced a 400 even though the atomic path would have
+  succeeded. The ledger was always safe (the atomic
+  `TrySubtractBalance`/`TryDeductApproval` primitives are authoritative); only
+  the pre-check could lie. Both fast-fail reads are gone; the atomic primitives
+  classify their own errors and the handler maps them to the same codes
+  (TASK-265, ISS-261).
 
 ### Added
 
