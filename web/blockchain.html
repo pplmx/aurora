@@ -30,14 +30,14 @@
                     and each stored hash is a valid proof-of-work over its fields.
                 </p>
                 <button @click="verify" class="btn-blockchain" :disabled="loading">Run Verification</button>
-                <div x-show="loading" class="result">Verifying…</div>
-                <div x-show="report" class="result">
+                <div x-show="loading" class="result" aria-live="polite">Verifying…</div>
+                <div x-show="report" class="result" aria-live="polite">
                     <p><strong>Valid:</strong> <span x-text="report.valid ? 'Yes' : 'No'" :style="'color:' + (report.valid ? '#98c379' : '#e06c75')"></span></p>
                     <p><strong>Chain length:</strong> <span x-text="report.length"></span></p>
                     <p x-show="!report.valid"><strong>First broken index:</strong> <span x-text="report.first_broken_index"></span></p>
                     <p x-show="!report.valid"><strong>Reason:</strong> <span x-text="report.first_broken_reason"></span></p>
                 </div>
-                <div x-show="error" class="result" x-text="error"></div>
+                <div x-show="error" class="result" aria-live="polite" x-text="error"></div>
             </section>
         </main>
     </div>

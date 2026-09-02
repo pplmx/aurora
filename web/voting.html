@@ -31,7 +31,7 @@
                     </div>
                     <button type="submit" class="btn-voting" :disabled="busy.registerVoter">Register Voter</button>
                 </form>
-                <div x-show="voterResult" class="result" x-text="voterResult"></div>
+                <div x-show="voterResult" class="result" aria-live="polite" x-text="voterResult"></div>
                 <p class="proposal-meta" x-show="voterPrivateKey">Keep this private key to cast votes:
                     <span x-text="voterPrivateKey"></span></p>
             </section>
@@ -53,7 +53,7 @@
                     </div>
                     <button type="submit" class="btn-voting" :disabled="busy.registerCandidate">Register Candidate</button>
                 </form>
-                <div x-show="candResult" class="result" x-text="candResult"></div>
+                <div x-show="candResult" class="result" aria-live="polite" x-text="candResult"></div>
             </section>
 
             <section class="create-form">
@@ -101,7 +101,7 @@
                          checkboxes have no HTML-required group semantics). -->
                     <button type="submit" class="btn-voting" :disabled="busy.createSession || sessionCandidateIds.length === 0">Create Session</button>
                 </form>
-                <div x-show="sessionResult" class="result" x-text="sessionResult"></div>
+                <div x-show="sessionResult" class="result" aria-live="polite" x-text="sessionResult"></div>
             </section>
 
             <section class="sessions">
@@ -132,7 +132,7 @@
                     <button type="submit" class="btn-voting" :disabled="busy.startSession">Start Session</button>
                     <button type="button" class="btn-voting" :disabled="busy.endSession" @click="endSession">End Session</button>
                 </form>
-                <div x-show="controlResult" class="result" x-text="controlResult"></div>
+                <div x-show="controlResult" class="result" aria-live="polite" x-text="controlResult"></div>
             </section>
 
             <section class="votes">
@@ -187,7 +187,7 @@
                          roster can never be submitted. -->
                     <button type="submit" class="btn-voting" :disabled="busy.castVote || !voteSessionId || !voteCandidateId || !currentSessionCandidates.some(c => c && c.id === voteCandidateId)">Cast Vote</button>
                 </form>
-                <div x-show="voteResult" class="result" x-text="voteResult"></div>
+                <div x-show="voteResult" class="result" aria-live="polite" x-text="voteResult"></div>
             </section>
             <section class="history">
                 <h2>Election Results</h2>
@@ -198,7 +198,7 @@
                     </div>
                     <button type="submit" class="btn-voting" :disabled="busy.loadResults">Show Results</button>
                 </form>
-                <div x-show="resultsError" class="result" x-text="resultsError"></div>
+                <div x-show="resultsError" class="result" aria-live="polite" x-text="resultsError"></div>
                 <table x-show="results" x-data>
                     <thead>
                         <tr><th>Candidate</th><th>Party</th><th>Votes</th></tr>
@@ -213,7 +213,7 @@
                         </template>
                     </tbody>
                 </table>
-                <div x-show="results" class="result" x-text="'Total votes: ' + results.total_votes"></div>
+                <div x-show="results" class="result" aria-live="polite" x-text="'Total votes: ' + results.total_votes"></div>
             </section>
         </main>
     </div>

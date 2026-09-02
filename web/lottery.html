@@ -40,7 +40,7 @@
                     </div>
                     <button type="submit" class="btn-lottery" :disabled="busy.createLottery">Create Lottery</button>
                 </form>
-                <div x-show="result" class="result" x-text="result"></div>
+                <div x-show="result" class="result" aria-live="polite" x-text="result"></div>
             </section>
             <section class="history">
                 <h2>Lottery History</h2>
@@ -77,7 +77,7 @@
                     </div>
                     <button type="submit" class="btn-lottery" :disabled="busy.verifyDraw">Verify Draw</button>
                 </form>
-                <pre x-show="verifyResult" class="result" x-text="verifyResult"></pre>
+                <pre x-show="verifyResult" class="result" aria-live="polite" x-text="verifyResult"></pre>
             </section>
         </main>
     </div>

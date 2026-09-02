@@ -32,7 +32,7 @@
                     <div class="form-group"><label for="nft-mint-creator">Creator (public key)</label><input id="nft-mint-creator" type="text" x-model="creator" required></div>
                     <button type="submit" class="btn-nft" :disabled="busy.mint">Mint NFT</button>
                 </form>
-                <pre x-show="mintResult" class="result" x-text="mintResult"></pre>
+                <pre x-show="mintResult" class="result" aria-live="polite" x-text="mintResult"></pre>
             </section>
             <section class="history">
                 <h2>List by Owner</h2>
@@ -40,7 +40,7 @@
                     <div class="form-group"><label for="nft-list-owner">Owner (public key)</label><input id="nft-list-owner" type="text" x-model="owner" required></div>
                     <button type="submit" class="btn-nft" :disabled="busy.list">List NFTs</button>
                 </form>
-                <pre x-show="listResult" class="result" x-text="listResult"></pre>
+                <pre x-show="listResult" class="result" aria-live="polite" x-text="listResult"></pre>
             </section>
             <section class="history">
                 <h2>Get NFT</h2>
@@ -48,7 +48,7 @@
                     <div class="form-group"><label for="nft-get-id">NFT ID</label><input id="nft-get-id" type="text" x-model="id" required></div>
                     <button type="submit" class="btn-nft" :disabled="busy.get">Get NFT</button>
                 </form>
-                <pre x-show="getResult" class="result" x-text="getResult"></pre>
+                <pre x-show="getResult" class="result" aria-live="polite" x-text="getResult"></pre>
             </section>
             <section class="history">
                 <h2>Transfer</h2>
@@ -59,7 +59,7 @@
                     <div class="form-group"><label for="nft-transfer-key">Private Key</label><input id="nft-transfer-key" type="password" x-model="privateKey" required></div>
                     <button type="submit" class="btn-nft" :disabled="busy.transfer">Transfer</button>
                 </form>
-                <pre x-show="transferResult" class="result" x-text="transferResult"></pre>
+                <pre x-show="transferResult" class="result" aria-live="polite" x-text="transferResult"></pre>
             </section>
             <section class="history">
                 <h2>Burn</h2>
@@ -69,7 +69,7 @@
                     <div class="form-group"><label for="nft-burn-key">Private Key</label><input id="nft-burn-key" type="password" x-model="privateKey" required></div>
                     <button type="submit" class="btn-nft" :disabled="busy.burn">Burn</button>
                 </form>
-                <pre x-show="burnResult" class="result" x-text="burnResult"></pre>
+                <pre x-show="burnResult" class="result" aria-live="polite" x-text="burnResult"></pre>
             </section>
             <section class="history">
                 <h2>History</h2>
@@ -77,7 +77,7 @@
                     <div class="form-group"><label for="nft-history-id">NFT ID</label><input id="nft-history-id" type="text" x-model="historyId" required></div>
                     <button type="submit" class="btn-nft" :disabled="busy.history">Show History</button>
                 </form>
-                <pre x-show="historyResult" class="result" x-text="historyResult"></pre>
+                <pre x-show="historyResult" class="result" aria-live="polite" x-text="historyResult"></pre>
             </section>
         </main>
     </div>
