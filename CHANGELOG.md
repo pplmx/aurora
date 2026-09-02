@@ -91,6 +91,13 @@ documented in their per-milestone ROADMAP files.
   because the container text swapped silently under `x-show`/`x-text`
   (WCAG 4.1.3). `TestWebUIResultLiveRegion` fails if a future result
   container loses the attribute (TASK-253, ISS-249).
+- **Data tables expose their column names to screen readers**: all five
+  shipped tables (lottery history, oracle sources/health/query, voting
+  results) declare `scope="col"` on their headers, and the lottery Count
+  field's hint is linked via `aria-describedby` (previously it floated
+  unannounced below its input). `TestWebUITableHeaderScope` fails if any
+  future `<th>` drops `scope` or a form hint appears unlinked (TASK-256,
+  ISS-252).
 
 ### Docs
 

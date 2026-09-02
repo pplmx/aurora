@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 142,
+  "round": 143,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T05:46:29+00:00",
+  "updated_at": "2026-09-02T05:56:22+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1729,7 +1729,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:31:39+00:00",
       "updated_at": "2026-08-23T04:31:39+00:00",
-      "touched_round": 141,
+      "touched_round": 143,
       "title": "web UI static pages (router-injected API key)"
     },
     "EV-003": {
@@ -10669,6 +10669,54 @@
       "source": "round-142-docs-audit",
       "detail": "cross-checked every cobra flag+subcommand vs README/AGENTS both directions: zero dead doc claims; all real commands documented after closing 2 gaps",
       "confidence": 1.0
+    },
+    "ISS-252": {
+      "id": "ISS-252",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-02T05:50:56+00:00",
+      "updated_at": "2026-09-02T05:56:22+00:00",
+      "touched_round": 143,
+      "severity": 0.25,
+      "title": "web UI: data tables lack th scope=col and the lottery count form-hint is not linked to its input"
+    },
+    "TASK-256": {
+      "id": "TASK-256",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-02T05:50:56+00:00",
+      "updated_at": "2026-09-02T05:56:22+00:00",
+      "touched_round": 143,
+      "category": "dx",
+      "severity": 0.25,
+      "confidence": 0.9,
+      "effort": 1,
+      "title": "web UI: scope=col on table headers + aria-describedby linking the lottery count hint"
+    },
+    "CHG-250": {
+      "id": "CHG-250",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:55:14+00:00",
+      "updated_at": "2026-09-02T05:55:14+00:00",
+      "touched_round": 143,
+      "commit": "db5999d",
+      "title": "scope=col on 5 tables + aria-describedby hint + TestWebUITableHeaderScope"
+    },
+    "EV-061": {
+      "id": "EV-061",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-02T05:55:14+00:00",
+      "updated_at": "2026-09-02T05:55:14+00:00",
+      "touched_round": 143,
+      "source": "TestWebUITableHeaderScope",
+      "detail": "all <th> across 6 pages carry scope=col; form hints require aria-describedby; 0 bare <th> remain",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -16803,6 +16851,30 @@
       "to": "ISS-251",
       "type": "resolves",
       "created_at": "2026-09-02T05:45:57+00:00"
+    },
+    {
+      "from": "TASK-256",
+      "to": "ISS-252",
+      "type": "addresses",
+      "created_at": "2026-09-02T05:51:32+00:00"
+    },
+    {
+      "from": "ISS-252",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-09-02T05:51:32+00:00"
+    },
+    {
+      "from": "CHG-250",
+      "to": "TASK-256",
+      "type": "implements",
+      "created_at": "2026-09-02T05:55:50+00:00"
+    },
+    {
+      "from": "CHG-250",
+      "to": "ISS-252",
+      "type": "resolves",
+      "created_at": "2026-09-02T05:55:50+00:00"
     }
   ]
 }
