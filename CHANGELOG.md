@@ -62,6 +62,14 @@ documented in their per-milestone ROADMAP files.
   `TestWebUIFormLabelsAssociated` reads the shipped pages and fails if any
   label lacks a resolving `for=` or a wrapped control, so a future page
   cannot silently reintroduce unlabeled inputs (TASK-251, ISS-247).
+- **Keyboard focus is visible again on every web form**: `style.css` had
+  cleared the browser's default focus outline on `input:focus` and replaced
+  it with only a subtle border-color change, so a keyboard/AT user tabbing
+  through a form saw no focus marker at all (WCAG 2.4.7). The border change
+  now applies on `:focus` (mouse clicks stay ring-free) and `:focus-visible`
+  draws a strong accent ring on keyboard focus, extended to `select` and
+  `textarea`. `TestWebUIFocusVisible` guards that the shipped CSS never
+  re-suppresses the outline (TASK-252, ISS-248).
 
 ### Docs
 
