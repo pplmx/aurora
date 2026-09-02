@@ -49,6 +49,20 @@ documented in their per-milestone ROADMAP files.
   unaffected because `docker compose run` appends to the ENTRYPOINT). The
   command now uses the absolute `/aurora` path.
 
+### Added
+
+- **The web UI forms are now keyboard/screen-reader accessible**: every
+  `<label>` across the five form pages (`lottery`, `oracle`, `nft`,
+  `voting`, `token` — 81 controls) gained an `id` + `for` pair. Previously
+  the labels were bare siblings of their inputs, so no programmatic
+  association existed: screen readers announced every field as
+  "edit text, blank", and clicking a label did not focus its field
+  (WCAG 2.1 1.3.1 / 4.1.2). The voting "Candidate Roster" group is now a
+  `<fieldset>/<legend>` (its checkboxes already wrap their labels).
+  `TestWebUIFormLabelsAssociated` reads the shipped pages and fails if any
+  label lacks a resolving `for=` or a wrapped control, so a future page
+  cannot silently reintroduce unlabeled inputs (TASK-251, ISS-247).
+
 ### Docs
 
 - README/AGENTS quickstart now spell the CLI flags that exist but were
