@@ -11,6 +11,11 @@ import "net/http"
 // These are safe defaults for the single-origin web UI: it does not use frames
 // and all authenticating REST calls send the X-API-Key header rather than
 // relying on the Referer.
+//
+// Content-Security-Policy is deliberately NOT set here: it must carry a
+// per-response nonce for the API-key bootstrap script the webauth injector
+// writes into served HTML, so it lives in api.injectAPIKey
+// (internal/api/webauth.go, round-151 ISS-268).
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
