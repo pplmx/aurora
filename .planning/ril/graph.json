@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 150,
+  "round": 151,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-03T07:33:45+00:00",
+  "updated_at": "2026-09-03T09:01:48+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11322,6 +11322,55 @@
       "source": "4f9174d",
       "confidence": 1.0,
       "note": "cmd/api flag surface verified end-to-end:  binary reports injected git ref (v1.1-596-gab89fa0-dirty) via --version; --help exits 0; unknown flag / stray positional exit 1 with usage hint; LANG=zh_CN.UTF-8 suite passes (locale-proof version labels, review M2); full go test -race -count=1 ./... green"
+    },
+    "ISS-268": {
+      "id": "ISS-268",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-03T08:43:03+00:00",
+      "updated_at": "2026-09-03T08:43:03+00:00",
+      "touched_round": 150,
+      "severity": 0.55,
+      "confidence": 0.95,
+      "title": "Web UI served HTML emits no Content-Security-Policy: the gateway embeds the API key as window.AURORA_API_KEY in HTML and a knocked-in XSS payload could load remote script or exfiltrate the key via fetch/connect; every resource is same-origin and the only inline script is the key bootstrap, so a strict nonce-based CSP fits"
+    },
+    "TASK-272": {
+      "id": "TASK-272",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-03T08:43:03+00:00",
+      "updated_at": "2026-09-03T08:43:03+00:00",
+      "touched_round": 150,
+      "category": "security",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 3,
+      "title": "Add a nonce-based Content-Security-Policy to served web HTML (script-src 'self' 'nonce-..', connect-src 'self', object-src/base-uri/frame-ancestors none), with the bootstrap script carrying the same per-response nonce; regression tests"
+    },
+    "CHG-266": {
+      "id": "CHG-266",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-03T08:43:03+00:00",
+      "updated_at": "2026-09-03T08:43:03+00:00",
+      "touched_round": 150,
+      "commit": "406325e",
+      "title": "Serve the Web UI with a strict nonce-based CSP; bootstrap carries the response nonce (ISS-268, TASK-272)"
+    },
+    "EV-web-csp": {
+      "id": "EV-web-csp",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-03T09:01:47+00:00",
+      "updated_at": "2026-09-03T09:01:47+00:00",
+      "touched_round": 150,
+      "source": "406325e",
+      "confidence": 1.0,
+      "note": "Web CSP verified: HTML responses carry Content-Security-Policy with default-src 'self' + connect-src 'self'; the injected bootstrap carries the same nonce the header echoes (regex-asserted in TestInjectAPIKey_SetsCSPOnHTML); non-HTML assets get no CSP; full go test -race -count=1 ./... green with the vendored eval-free Alpine"
     }
   },
   "edges": [
@@ -17852,6 +17901,24 @@
       "to": "TASK-267",
       "type": "implements",
       "created_at": "2026-09-03T07:05:51+00:00"
+    },
+    {
+      "from": "TASK-272",
+      "to": "ISS-268",
+      "type": "addresses",
+      "created_at": "2026-09-03T08:43:03+00:00"
+    },
+    {
+      "from": "CHG-266",
+      "to": "ISS-268",
+      "type": "resolves",
+      "created_at": "2026-09-03T08:43:03+00:00"
+    },
+    {
+      "from": "CHG-266",
+      "to": "TASK-272",
+      "type": "implements",
+      "created_at": "2026-09-03T08:43:03+00:00"
     }
   ]
 }

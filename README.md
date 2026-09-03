@@ -166,7 +166,11 @@ AURORA_API_KEY="your-strong-key" ./aurora-api
 - **可观测**：`/metrics`（Prometheus 文本）暴露请求计数器与按模块计数；
   `/metrics/oracle` 暴露各预言机源的抓取健康统计。
 - **安全**：API 支持请求体大小上限（4 MiB）、速率限制（按客户端）、CORS
-  白名单，生产环境拒绝弱 API key（`ErrInsecureAPIKey`）。
+  白名单，生产环境拒绝弱 API key（`ErrInsecureAPIKey`）。Web 页面响应带
+  严格的 nonce 化 Content-Security-Policy（`connect-src 'self'` /
+  `script-src 'self' 'nonce-…'`），内嵌的 `window.AURORA_API_KEY`
+  只以带 nonce 的 bootstrap 脚本执行——即使注入脚本也无法外联或远程加载，
+  防止 key 被 XSS 外带（round-151）。
 
 ## 项目结构 (DDD 架构)
 

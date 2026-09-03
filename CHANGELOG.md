@@ -7,6 +7,25 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [v1.96] - 2026-09-03
+
+### Security
+
+- **The served Web UI had no Content-Security-Policy**: the gateway embeds the
+  API key as `window.AURORA_API_KEY` in every HTML document, and a knocked-in
+  XSS payload could therefore load remote script or exfiltrate the key to an
+  external origin (no CSP to stop it). Every resource the UI loads is
+  same-origin (js/app.js, css/style.css, the vendored eval-free Alpine) and
+  its only inline script is the key bootstrap, so a strict policy holds
+  (ISS-268, TASK-272): `default-src 'self'`, `script-src 'self'
+  'nonce-<n>'` (the bootstrap carries a per-response crypto/rand nonce the
+  header echoes, so ONLY that script runs inline), `connect-src 'self'`,
+  `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`,
+  `frame-ancestors 'none'` (+ `img`/`font`). `style-src` keeps
+  `'unsafe-inline'` because the blockchain page's Alpine `:style` binding
+  writes the style attribute at runtime. Regression tests assert the CSP on
+  HTML, its absence on non-HTML assets, and header-nonce == script-nonce.
+
 ## [v1.95] - 2026-09-03
 
 ### Fixed
