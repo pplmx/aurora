@@ -32,6 +32,10 @@ check:
 # instead of the 0.0.1 placeholder (TASK-206).
 ldflags := `printf '%s' "-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD) -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"`
 
+# Same refs injected into cmd/api's own package-main vars (the api recipe
+# below); kept separate because the -X paths differ per binary.
+api-ldflags := `printf '%s' "-s -w -X main.Version=$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD) -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"`
+
 # Build all platforms
 build: check test
     CGO_ENABLED=0 GOARCH=arm64 GOOS=darwin go build -trimpath -ldflags="{{ldflags}}" -o aurora-darwin-arm64 ./cmd/aurora
@@ -43,6 +47,13 @@ build: check test
 # Build for current platform
 build-current:
     go build -trimpath -ldflags="{{ldflags}}" -o aurora ./cmd/aurora
+
+# Build the standalone REST API + Web server binary (cmd/api). Injects the
+# same git-derived version/build-time refs into cmd/api's own Version/BuildTime
+# vars so `aurora-api --version` reports the real source ref, mirroring the
+# CLI's ldflags above (TASK-267, ISS-263).
+api:
+    go build -trimpath -ldflags="{{api-ldflags}}" -o aurora-api ./cmd/api
 
 # Run the application locally (builds for the current platform then runs a sample)
 run: build-current
