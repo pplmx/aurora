@@ -2,9 +2,13 @@ package api
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // bodyCapture records the status, headers and body of a downstream handler so
@@ -51,7 +55,16 @@ func injectAPIKey(next http.Handler, apiKey string) http.Handler {
 
 		body := rec.buf.Bytes()
 		if isHTML(rec.header.Get("Content-Type")) {
-			body = injectKeyIntoHTML(body, apiKey)
+			// Per-response CSP nonce (round-151, ISS-268): the served UI's only
+			// inline script is this bootstrap, and everything else loads from
+			// same-origin, so a strict policy holds. The nonce lets ONLY this
+			// bootstrap run inline while script-src 'self' + connect-src 'self'
+			// block a knocked-in XSS payload from loading remote script or
+			// exfiltrating the embedded window.AURORA_API_KEY to an external
+			// origin. See contentSecurityPolicy / newNonce.
+			nonce := newNonce()
+			body = injectKeyIntoHTML(body, apiKey, nonce)
+			w.Header().Set("Content-Security-Policy", contentSecurityPolicy(nonce))
 		}
 
 		for k, vv := range rec.header {
@@ -81,10 +94,12 @@ func isHTML(contentType string) bool {
 
 // injectKeyIntoHTML inserts the API-key bootstrap script just before </head>
 // (falling back to prepending it) so the value is defined before the page's
-// scripts run.
-func injectKeyIntoHTML(body []byte, apiKey string) []byte {
+// scripts run. The script carries the response's CSP nonce (see
+// contentSecurityPolicy) so the browser executes it as the sole allowed
+// inline script.
+func injectKeyIntoHTML(body []byte, apiKey, nonce string) []byte {
 	keyJSON, _ := json.Marshal(apiKey)
-	script := []byte("<script>window.AURORA_API_KEY = " + string(keyJSON) + ";</script>")
+	script := []byte("<script nonce=\"" + nonce + "\">window.AURORA_API_KEY = " + string(keyJSON) + ";</script>")
 
 	lower := bytes.ToLower(body)
 	if i := bytes.Index(lower, []byte("</head>")); i >= 0 {
@@ -99,4 +114,41 @@ func injectKeyIntoHTML(body []byte, apiKey string) []byte {
 	out = append(out, script...)
 	out = append(out, body...)
 	return out
+}
+
+// contentSecurityPolicy builds the per-response CSP for a served HTML page.
+// Every resource the UI loads is same-origin (web/js/app.js,
+// web/css/style.css, vendored web/vendor/alpine.min.js — itself an
+// eval-free build), so a strict policy needs no 'unsafe-inline'/'unsafe-eval':
+// the only inline script is the nonce'd API-key bootstrap. style-src keeps
+// 'unsafe-inline' because the blockchain page's Alpine :style binding writes
+// the style attribute at runtime; object-src 'none' + base-uri 'none' +
+// frame-ancestors 'none' shut down the remaining injection/framing vectors
+// (round-151, ISS-268).
+func contentSecurityPolicy(nonce string) string {
+	return "default-src 'self'; " +
+		"script-src 'self' 'nonce-" + nonce + "'; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data:; " +
+		"connect-src 'self'; " +
+		"font-src 'self'; " +
+		"object-src 'none'; " +
+		"base-uri 'none'; " +
+		"form-action 'self'; " +
+		"frame-ancestors 'none'"
+}
+
+// newNonce returns a random 128-bit hex nonce so each HTML response's CSP
+// admits exactly that response's bootstrap script. crypto/rand.Read failing
+// is effectively impossible on supported kernels; the fallback seeds from a
+// monotonic-ish clock pair merely to keep the response buildable, and is
+// weaker by design (documented rather than silently dropped).
+func newNonce() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		now := uint64(time.Now().UnixNano())
+		binary.LittleEndian.PutUint64(b[:8], now)
+		binary.LittleEndian.PutUint64(b[8:], now>>1)
+	}
+	return hex.EncodeToString(b[:])
 }
