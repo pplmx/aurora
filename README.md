@@ -52,6 +52,7 @@ go build -o aurora ./cmd/aurora
 ```bash
 just test          # 运行测试
 just build        # 构建所有平台
+just api          # 构建独立 Web / API 服务器（./aurora-api）
 just lint         # 代码检查
 just dev          # Docker 开发
 ```
