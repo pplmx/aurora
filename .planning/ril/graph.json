@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 149,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-02T20:01:59+00:00",
+  "updated_at": "2026-09-03T07:10:48+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11120,11 +11120,11 @@
     "ISS-263": {
       "id": "ISS-263",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-09-02T13:26:06+00:00",
-      "updated_at": "2026-09-02T13:26:06+00:00",
-      "touched_round": 147,
+      "updated_at": "2026-09-03T07:06:54+00:00",
+      "touched_round": 149,
       "title": "cmd/api has no --help/--version/unknown-flag handling: './aurora-api --help' ignores the flag and starts the HTTP server (then dies on busy port); the cobra CLI surface handles these everywhere else",
       "severity": 0.3,
       "confidence": 0.99,
@@ -11133,11 +11133,11 @@
     "TASK-267": {
       "id": "TASK-267",
       "type": "task",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 4,
       "created_at": "2026-09-02T13:27:30+00:00",
-      "updated_at": "2026-09-02T13:27:30+00:00",
-      "touched_round": 147,
+      "updated_at": "2026-09-03T07:06:54+00:00",
+      "touched_round": 149,
       "category": "dx",
       "severity": 0.3,
       "confidence": 0.99,
@@ -11288,6 +11288,40 @@
       "touched_round": 148,
       "commit": "7a7f53d",
       "title": "Bound voting/NFT/oracle free-text lengths + page unbounded history reads"
+    },
+    "CHG-264": {
+      "id": "CHG-264",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-03T07:05:50+00:00",
+      "updated_at": "2026-09-03T07:05:50+00:00",
+      "touched_round": 149,
+      "commit": "4f9174d",
+      "title": "cmd/api gains a flag surface: --help/-h (usage, exit 0), -v/--version (build identity, exit 0), unknown flags + positional args rejected before server start; new just api recipe injects -X main.Version/BuildTime (TASK-267, ISS-263)"
+    },
+    "CHG-265": {
+      "id": "CHG-265",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-03T07:05:50+00:00",
+      "updated_at": "2026-09-03T07:05:50+00:00",
+      "touched_round": 149,
+      "commit": "5706ec0",
+      "title": "cmd/api flag parsing tightened per go-review: positionals rejected before --version, locale-proof version-label test, alias-default + stdlib edge-case coverage (TASK-267 follow-up)"
+    },
+    "EV-api-flag-surface": {
+      "id": "EV-api-flag-surface",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-03T07:10:48+00:00",
+      "updated_at": "2026-09-03T07:10:48+00:00",
+      "touched_round": 149,
+      "source": "4f9174d",
+      "confidence": 1.0,
+      "note": "cmd/api flag surface verified end-to-end:  binary reports injected git ref (v1.1-596-gab89fa0-dirty) via --version; --help exits 0; unknown flag / stray positional exit 1 with usage hint; LANG=zh_CN.UTF-8 suite passes (locale-proof version labels, review M2); full go test -race -count=1 ./... green"
     }
   },
   "edges": [
@@ -17800,6 +17834,24 @@
       "to": "TASK-271",
       "type": "implements",
       "created_at": "2026-09-02T19:42:33+00:00"
+    },
+    {
+      "from": "CHG-264",
+      "to": "ISS-263",
+      "type": "resolves",
+      "created_at": "2026-09-03T07:05:51+00:00"
+    },
+    {
+      "from": "CHG-264",
+      "to": "TASK-267",
+      "type": "implements",
+      "created_at": "2026-09-03T07:05:51+00:00"
+    },
+    {
+      "from": "CHG-265",
+      "to": "TASK-267",
+      "type": "implements",
+      "created_at": "2026-09-03T07:05:51+00:00"
     }
   ]
 }
