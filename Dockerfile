@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 ### Build
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 # Version/build-time injected so `aurora version` inside the image reports the
 # real source ref instead of the 0.0.1 placeholder (set by `just image`;
