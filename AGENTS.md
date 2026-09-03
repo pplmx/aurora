@@ -10,6 +10,7 @@ just lint         # Run golangci-lint (requires golangci-lint installed)
 just check        # Run gofmt, goimports, go vet
 just build        # Runs check + test, then builds for darwin/linux/windows
 just build-current  # Build for the current platform (./aurora)
+just api          # Build the standalone REST API + Web server (./aurora-api, -X-injected version)
 just run          # Run locally
 ```
 
