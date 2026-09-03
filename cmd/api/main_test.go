@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // TestParseFlags locks the cmd/api flag surface (TASK-267, ISS-263): the
@@ -29,8 +31,13 @@ func TestParseFlags(t *testing.T) {
 		{"single dash version", []string{"-version"}, runVersion, false},
 		{"short v alias", []string{"-v"}, runVersion, false},
 		{"version with equals", []string{"--version=true"}, runVersion, false},
+		{"version false", []string{"--version=false"}, runServer, false},
+		{"bare terminator", []string{"--"}, runServer, false},
+		{"version then stray positional", []string{"--version", "foo"}, runServer, true},
 		{"unknown flag", []string{"--bogus"}, runServer, true},
 		{"unknown short flag", []string{"-x"}, runServer, true},
+		{"bare single dash", []string{"-"}, runServer, true},
+		{"bad flag syntax", []string{"-=x"}, runServer, true},
 		{"stray positional", []string{"serve"}, runServer, true},
 		{"positional after terminator", []string{"--", "x"}, runServer, true},
 		{"version then unknown", []string{"--version", "--bogus"}, runServer, true},
@@ -56,7 +63,15 @@ func TestPrintVersion_ReportsRealBuild(t *testing.T) {
 	var buf bytes.Buffer
 	printVersion(&buf)
 	out := buf.String()
-	for _, want := range []string{"Version:", "Build Time:", "Go Version:"} {
+	// Assert against the same i18n labels printVersion uses, not the English
+	// literals: under LANG=zh the labels render as 版本/构建时间/Go 版本, so
+	// hardcoded English assertions would fail in a localized environment
+	// (cmd/api review M2).
+	for _, want := range []string{
+		i18n.GetText("app.version") + ": ",
+		i18n.GetText("app.build_time") + ": ",
+		i18n.GetText("app.go_version") + ": ",
+	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("printVersion output missing %q:\n%s", want, out)
 		}

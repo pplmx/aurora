@@ -57,18 +57,22 @@ func parseFlags(args []string) (runMode, error) {
 	// help lands on stdout and errors on stderr, never both.
 	fs.SetOutput(io.Discard)
 	showVersion := fs.Bool("version", false, "show version information and exit")
-	fs.BoolVar(showVersion, "v", false, "alias for --version")
+	fs.BoolVar(showVersion, "v", *showVersion, "alias for --version")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return runHelp, nil
 		}
 		return 0, err
 	}
-	if *showVersion {
-		return runVersion, nil
-	}
+	// Reject stray positionals before the version branch so `--version foo`
+	// cannot silently drop the argument: a server binary takes no positional
+	// args in any mode (iss 263 / review M1). Help still short-circuits in
+	// flag.Parse, so `--help anything` prints help as stdlib convention.
 	if fs.NArg() > 0 {
 		return 0, fmt.Errorf("unexpected argument %q (aurora-api takes no positional arguments)", fs.Arg(0))
+	}
+	if *showVersion {
+		return runVersion, nil
 	}
 	return runServer, nil
 }
