@@ -145,11 +145,17 @@ Aurora 提供内置的 REST API 与 Web 界面，由独立的 `cmd/api` 二进�
 配置 `webRoot = "/path/to/web"` 指定实际路径，TASK-181）。
 
 ```bash
-go build -o aurora-api ./cmd/api
+just api                      # 或 go build -o aurora-api ./cmd/api
+./aurora-api --help           # 查看启动参数；--version 查看构建版本
 AURORA_API_KEY="your-strong-key" ./aurora-api
 # 默认监听 0.0.0.0:8080（可通过 [server] 配置 host / port 调整）
 # 然后浏览器访问 http://localhost:8080
 ```
+
+`aurora-api` 支持最小参数面：`--help`/`-h` 打印用法，
+`--version`/`-v` 打印构建标识（版本、构建时间、Go 工具链，
+由 `just api` 注入真实的 git 引用），未知参数会在启动服务器前
+直接拒绝并提示用法（TASK-267）。
 
 - **鉴权**：API 通过 `X-API-Key` 请求头校验密钥。密钥来自
   `AURORA_API_KEY` 环境变量或配置项 `api.key`；开发模式下未设置时会生成

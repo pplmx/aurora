@@ -2,19 +2,103 @@ package main
 
 import (
 	"context"
+	"errors"
+	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
 	"github.com/pplmx/aurora/internal/api"
 	"github.com/pplmx/aurora/internal/config"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/logger"
 )
 
 const shutdownTimeout = 15 * time.Second
+
+// Version and BuildTime are overridable at link time, e.g.
+//
+//	go build -ldflags "-X main.Version=v1.2.3 -X main.BuildTime=2026-09-03T00:00:00Z"
+//
+// (The root package of a binary links as "main", unlike the CLI's
+// cmd/aurora/cmd vars which live in an importable package.) They mirror
+// cmd/aurora/cmd.Version/BuildTime so `aurora-api --version` reports the
+// exact build the binary carries instead of a placeholder; the justfile `api`
+// recipe injects them the same way the CLI's are set (TASK-267, ISS-263).
+var (
+	Version   = "0.0.1"
+	BuildTime = "unknown"
+)
+
+// runMode classifies what the process should do after flag parsing, so the
+// flag surface stays decoupled from (and testable without) the server boot.
+type runMode int
+
+const (
+	runServer  runMode = iota // start the HTTP server (the only default)
+	runHelp                   // print usage and exit 0
+	runVersion                // print version and exit 0
+)
+
+// parseFlags classifies the command line. Before this guard the server binary
+// ignored every flag, so `aurora-api --help` (or any misspelled flag) started
+// the HTTP server anyway and only died when the bind failed. Unknown flags
+// and stray positional arguments are rejected here, before config loading or
+// any listener is created. parseFlags writes nothing itself — the caller
+// routes the output to stdout for help/version and stderr for errors.
+func parseFlags(args []string) (runMode, error) {
+	fs := flag.NewFlagSet("aurora-api", flag.ContinueOnError)
+	// Swallow flag's own error/usage echo; we print exactly once ourselves so
+	// help lands on stdout and errors on stderr, never both.
+	fs.SetOutput(io.Discard)
+	showVersion := fs.Bool("version", false, "show version information and exit")
+	fs.BoolVar(showVersion, "v", false, "alias for --version")
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return runHelp, nil
+		}
+		return 0, err
+	}
+	if *showVersion {
+		return runVersion, nil
+	}
+	if fs.NArg() > 0 {
+		return 0, fmt.Errorf("unexpected argument %q (aurora-api takes no positional arguments)", fs.Arg(0))
+	}
+	return runServer, nil
+}
+
+// printUsage writes the command's flag surface. Kept English: the server has
+// no interactive surface and the few lines stay stable; the CLI (cobra) owns
+// full localization.
+func printUsage(w io.Writer) {
+	fmt.Fprintf(w, "%s\n", i18n.GetText("app.name"))
+	fmt.Fprintln(w, "  REST API and Web server")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Usage:")
+	fmt.Fprintln(w, "  aurora-api [flags]")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Flags:")
+	fmt.Fprintln(w, "  -h, --help      Show this help and exit")
+	fmt.Fprintln(w, "  -v, --version   Show version information and exit")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Configuration is loaded from the same sources as the aurora")
+	fmt.Fprintln(w, "CLI: environment variables, configuration file and defaults.")
+}
+
+// printVersion reports the link-time build identity, mirroring the CLI's
+// `aurora version` output shape (i18n labels included).
+func printVersion(w io.Writer) {
+	fmt.Fprintln(w, i18n.GetText("app.name"))
+	fmt.Fprintf(w, "%s: %s\n", i18n.GetText("app.version"), Version)
+	fmt.Fprintf(w, "%s: %s\n", i18n.GetText("app.build_time"), BuildTime)
+	fmt.Fprintf(w, "%s: %s\n", i18n.GetText("app.go_version"), runtime.Version())
+}
 
 // HTTP server timeouts (v1.60). net/http defaults leave ReadHeaderTimeout,
 // ReadTimeout, WriteTimeout and IdleTimeout at zero, meaning a connection that
@@ -47,6 +131,21 @@ func newServer(addr string, handler http.Handler) *http.Server {
 }
 
 func main() {
+	mode, err := parseFlags(os.Args[1:])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, `Run "aurora-api --help" for usage.`)
+		os.Exit(1)
+	}
+	switch mode {
+	case runHelp:
+		printUsage(os.Stdout)
+		os.Exit(0)
+	case runVersion:
+		printVersion(os.Stdout)
+		os.Exit(0)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
