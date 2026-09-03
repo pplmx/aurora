@@ -11,6 +11,27 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
+Last activity: 2026-09-03 — round 151 (web CSP hardening). Finding #1 of the
+  round-151 deep-dive: the served Web UI had no Content-Security-Policy, and
+  the gateway embeds the API key as `window.AURORA_API_KEY` in every HTML
+  document — a knocked-in XSS payload could load remote script or exfiltrate
+  the key to an external origin. Every resource the UI loads is same-origin
+  (js/app.js, css/style.css, the vendored eval-free build of Alpine) and its
+  only inline script is the key bootstrap, so a strict policy holds
+  (ISS-268, TASK-272, CHG-266 406325e): `default-src 'self'; script-src
+  'self' 'nonce-<n>'; connect-src 'self'; object-src 'none'; base-uri
+  'none'; form-action 'self'; frame-ancestors 'none'`. The bootstrap script
+  carries a per-response crypto/rand nonce the header echoes (only that
+  script runs inline); `style-src 'unsafe-inline'` stays because the
+  blockchain page's Alpine `:style` binding writes the style attribute at
+  runtime. Regression tests assert CSP-on-HTML / no-CSP-on-assets /
+  header-nonce==script-nonce. Cross-surface re-checks this round came back
+  clean: REST error classification (helpers.go) is exhaustive, web voting
+  POST field names match the handler decode structs, outbox drainer is
+  bounded+backed-off by design, and every oracle HTTP client sets a timeout.
+  Full `go test -race -count=1 ./...` green. RIL graph at round 150 close:
+  933 nodes → CSP work adds ISS-268/TASK-272/CHG-266, now 936 nodes.
+
 Last activity: 2026-09-03 — round 150 (cmd/api flag-surface + deep-dive open).
   The single active backlog item from round 148 shipped: `aurora-api` now
   handles `--help`/`-h` (usage, exit 0), `-v`/`--version` (build identity,
