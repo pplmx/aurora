@@ -7,6 +7,26 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [v1.95] - 2026-09-03
+
+### Fixed
+
+- **`aurora-api` ignored its command line**: `./aurora-api --help` (or any
+  misspelled flag) ignored the argument and started the HTTP server, dying
+  only when the bind failed, while the cobra CLI handled these surfaces
+  everywhere else. The server now has a minimal flag surface: `--help`/`-h`
+  prints usage and exits 0, `-v`/`--version` prints the build identity and
+  exits 0, and unknown flags / stray positional arguments are rejected
+  before config loading or any listener is created (exit 1 with a usage
+  hint). `--version` mirrors the CLI's `aurora version` output shape (i18n
+  labels, real Go toolchain) and reports the link-time-injected ref; a new
+  `just api` recipe builds the binary with `-X main.Version/BuildTime`
+  injected (the root package of a binary links as `main`, so the `-X`
+  symbol differs from the CLI's `cmd/aurora/cmd` vars). README documents
+  the surface (TASK-267, ISS-263; post-review tightening in a follow-up,
+  e.g. `--version` no longer drops a stray positional and the version test
+  asserts locale-aware labels so the suite passes under `LANG=zh`).
+
 ## [v1.94] - 2026-09-02
 
 ### Fixed

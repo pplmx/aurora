@@ -11,6 +11,26 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
+Last activity: 2026-09-03 — round 150 (cmd/api flag-surface + deep-dive open).
+  The single active backlog item from round 148 shipped: `aurora-api` now
+  handles `--help`/`-h` (usage, exit 0), `-v`/`--version` (build identity,
+  exit 0) and rejects unknown flags / stray positionals before config
+  loading or any listener (TASK-267, ISS-263; CHG-264 4f9174d). The version
+  vars are package-main link-time targets injected via a new `just api`
+  recipe (`-X main.Version/BuildTime` — the root package of a binary links
+  as `main`, not by import path), mirroring the CLI's ldflags; `--version`
+  prints the same i18n-labeled shape as `aurora version`. A go-reviewer
+  pass (no CRITICAL/HIGH) closed as a follow-up (CHG-265 5706ec0): NArg is
+  checked before the `--version` branch so `--version foo` errors instead
+  of silently dropping the arg, the version test asserts via the same i18n
+  keys the function renders (passes under `LANG=zh_CN.UTF-8`, review-M2),
+  the `-v` alias registers its default from `*showVersion`, and five stdlib
+  edge cases are pinned (`--version=false`, bare `--`, `--version foo`,
+  lone `-`, `-=x`). README documents the flag surface; AGENTS.md lists the
+  `just api` recipe. RIL graph at round 150 close: 933 nodes, 1088 edges,
+  no active tasks; only ISS-084 stays parked (DEC-016). Deep-dive continues
+  in the same session (round 151).
+
 Last activity: 2026-09-02 — round 147/148 web + backend deep-dive (web audit
   agent + backend audit agent + independent observation). Five closed
   findings:
