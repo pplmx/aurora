@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 151,
+  "round": 152,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-03T09:01:48+00:00",
+  "updated_at": "2026-09-07T06:18:48+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 147,
+      "touched_round": 152,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -11371,6 +11371,43 @@
       "source": "406325e",
       "confidence": 1.0,
       "note": "Web CSP verified: HTML responses carry Content-Security-Policy with default-src 'self' + connect-src 'self'; the injected bootstrap carries the same nonce the header echoes (regex-asserted in TestInjectAPIKey_SetsCSPOnHTML); non-HTML assets get no CSP; full go test -race -count=1 ./... green with the vendored eval-free Alpine"
+    },
+    "ISS-269": {
+      "id": "ISS-269",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-09-07T05:36:43+00:00",
+      "updated_at": "2026-09-07T06:17:54+00:00",
+      "touched_round": 152,
+      "title": "aurora-api has no command-line --host/--port override: operators colliding on the busy default 0.0.0.0:8080 must edit config/aurora.toml (or die with bind: address already in use); the help text promises \"environment variables, configuration file and defaults\" but only api.key is env-bound, so host/port are config-only",
+      "severity": 0.55,
+      "confidence": 0.95
+    },
+    "TASK-273": {
+      "id": "TASK-273",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-09-07T05:36:44+00:00",
+      "updated_at": "2026-09-07T06:18:48+00:00",
+      "touched_round": 152,
+      "title": "Add aurora-api --host/--port (-H/-p) command-line overrides with flag > env > config > default precedence (AURORA_SERVER_HOST/AURORA_SERVER_PORT env binding), port range validation, and unit tests; document in --help/README/AGENTS",
+      "category": "dx",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 2
+    },
+    "CHG-267": {
+      "id": "CHG-267",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-09-07T06:17:54+00:00",
+      "updated_at": "2026-09-07T06:17:54+00:00",
+      "touched_round": 152,
+      "commit": "e042464",
+      "title": "Add aurora-api -H/--host and -p/--port listen-address overrides with flag > env > config > default precedence (AURORA_SERVER_HOST/PORT env bindings), range validation, and unit tests (ISS-269, TASK-273)"
     }
   },
   "edges": [
@@ -17919,6 +17956,30 @@
       "to": "TASK-272",
       "type": "implements",
       "created_at": "2026-09-03T08:43:03+00:00"
+    },
+    {
+      "from": "TASK-273",
+      "to": "ISS-269",
+      "type": "addresses",
+      "created_at": "2026-09-07T05:37:15+00:00"
+    },
+    {
+      "from": "ISS-269",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-09-07T05:37:15+00:00"
+    },
+    {
+      "from": "CHG-267",
+      "to": "TASK-273",
+      "type": "implements",
+      "created_at": "2026-09-07T06:17:54+00:00"
+    },
+    {
+      "from": "CHG-267",
+      "to": "ISS-269",
+      "type": "resolves",
+      "created_at": "2026-09-07T06:17:54+00:00"
     }
   ]
 }

@@ -11,6 +11,22 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
+Last activity: 2026-09-07 — round 152 (aurora-api listen-address DX). User
+  reported the flag surface from round 150 covered only --help/--version: an
+  operator colliding on the busy default 0.0.0.0:8080 had no command-line or
+  env way to move the listener and got `bind: address already in use`
+  (TASK-273, ISS-269). `-H`/`--host` and `-p`/`--port` (range 1-65535,
+  validated pre-bind) now override the address with flag > env > config >
+  default precedence; `config.Load` also binds AURORA_SERVER_HOST /
+  AURORA_SERVER_PORT so the help text's "environment variables" claim finally
+  holds for host/port (previously only AURORA_API_KEY was env-bound).
+  parseFlags returns a `serverOptions` struct + a pure `resolveAddr(opts,
+  cfg)` precedence helper; unit tests cover the expanded flag table (aliases,
+  invalid ports, help/version ignoring bad ports) and two config env-binding
+  tests (env overrides default; env beats a $HOME/aurora.toml, mirroring the
+  API-key precedence test). CHG-267 ships it; README documents the precedence
+  chain, AGENTS.md lists the new flags. Full `go test -race -count=1 ./...`
+  green. RIL graph: +ISS-269/TASK-273/CHG-267 → 940 nodes.
 Last activity: 2026-09-03 — round 151 (web CSP hardening). Finding #1 of the
   round-151 deep-dive: the served Web UI had no Content-Security-Policy, and
   the gateway embeds the API key as `window.AURORA_API_KEY` in every HTML
