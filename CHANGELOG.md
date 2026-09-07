@@ -7,6 +7,24 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [v1.97] - 2026-09-07
+
+### Added
+
+- **`aurora-api` now overrides its listen host/port from the command line**:
+  before this, the round-150 flag surface covered only `--help`/`--version`,
+  so an operator colliding on the busy default `0.0.0.0:8080` had to edit
+  `config/aurora.toml` (or watch the server die with `bind: address already
+  in use`). `-H`/`--host` and `-p`/`--port` (1-65535, range validated before
+  any listener is created) now resolve the listen address with flag >
+  environment > config file > default precedence; the same chain is
+  completed for the environment with `AURORA_SERVER_HOST` /
+  `AURORA_SERVER_PORT` bindings in `config.Load` (the help text's
+  "environment variables" claim previously held only for `AURORA_API_KEY`).
+  parseFlags returns the overrides in a `serverOptions` struct and a pure
+  `resolveAddr(opts, cfg)` helper carries the precedence, both unit-tested
+  alongside the config env-bindings tests (TASK-273, ISS-269).
+
 ## [v1.96] - 2026-09-03
 
 ### Security

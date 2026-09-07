@@ -149,14 +149,23 @@ Aurora 提供内置的 REST API 与 Web 界面，由独立的 `cmd/api` 二进�
 just api                      # 或 go build -o aurora-api ./cmd/api
 ./aurora-api --help           # 查看启动参数；--version 查看构建版本
 AURORA_API_KEY="your-strong-key" ./aurora-api
-# 默认监听 0.0.0.0:8080（可通过 [server] 配置 host / port 调整）
-# 然后浏览器访问 http://localhost:8080
+# 默认监听 0.0.0.0:8080；然后浏览器访问 http://localhost:8080
+```
+
+监听地址的优先级链是 **flag > 环境变量 > 配置文件 > 默认**，任一层都
+可覆盖默认的 `0.0.0.0:8080`：
+
+```bash
+./aurora-api --host 127.0.0.1 --port 9090   # 命令行覆盖（-H / -p 短别名）
+AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api  # 环境变量
+# 或 config/aurora.toml 的 [server].host / [server].port（TASK-273, ISS-269）
 ```
 
 `aurora-api` 支持最小参数面：`--help`/`-h` 打印用法，
 `--version`/`-v` 打印构建标识（版本、构建时间、Go 工具链，
-由 `just api` 注入真实的 git 引用），未知参数会在启动服务器前
-直接拒绝并提示用法（TASK-267）。
+由 `just api` 注入真实的 git 引用），`-H`/`--host` 与 `-p`/`--port`
+覆盖监听地址（端口范围 1-65535，越界在启动前即拒绝），未知参数会在
+启动服务器前直接拒绝并提示用法（TASK-267）。
 
 - **鉴权**：API 通过 `X-API-Key` 请求头校验密钥。密钥来自
   `AURORA_API_KEY` 环境变量或配置项 `api.key`；开发模式下未设置时会生成
