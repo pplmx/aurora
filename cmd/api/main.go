@@ -45,36 +45,85 @@ const (
 	runVersion                // print version and exit 0
 )
 
+// serverOptions carries the listen-address overrides a CLI flag may set.
+// The *Set bools distinguish "flag absent (fall back to config)" from an
+// explicit value, so the precedence chain runs flag > env > config > default
+// (env and defaults are applied by config.Load).
+type serverOptions struct {
+	host    string
+	port    int
+	hostSet bool
+	portSet bool
+}
+
 // parseFlags classifies the command line. Before this guard the server binary
 // ignored every flag, so `aurora-api --help` (or any misspelled flag) started
 // the HTTP server anyway and only died when the bind failed. Unknown flags
 // and stray positional arguments are rejected here, before config loading or
 // any listener is created. parseFlags writes nothing itself — the caller
 // routes the output to stdout for help/version and stderr for errors.
-func parseFlags(args []string) (runMode, error) {
+func parseFlags(args []string) (runMode, *serverOptions, error) {
 	fs := flag.NewFlagSet("aurora-api", flag.ContinueOnError)
 	// Swallow flag's own error/usage echo; we print exactly once ourselves so
 	// help lands on stdout and errors on stderr, never both.
 	fs.SetOutput(io.Discard)
+	opts := &serverOptions{}
 	showVersion := fs.Bool("version", false, "show version information and exit")
 	fs.BoolVar(showVersion, "v", *showVersion, "alias for --version")
+	fs.StringVar(&opts.host, "host", "", "listen host (overrides config [server].host)")
+	fs.StringVar(&opts.host, "H", "", "alias for --host")
+	fs.IntVar(&opts.port, "port", 0, "listen port (overrides config [server].port; 1-65535)")
+	fs.IntVar(&opts.port, "p", 0, "alias for --port")
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			return runHelp, nil
+			return runHelp, nil, nil
 		}
-		return 0, err
+		return 0, nil, err
 	}
 	// Reject stray positionals before the version branch so `--version foo`
 	// cannot silently drop the argument: a server binary takes no positional
 	// args in any mode (iss 263 / review M1). Help still short-circuits in
 	// flag.Parse, so `--help anything` prints help as stdlib convention.
 	if fs.NArg() > 0 {
-		return 0, fmt.Errorf("unexpected argument %q (aurora-api takes no positional arguments)", fs.Arg(0))
+		return 0, nil, fmt.Errorf("unexpected argument %q (aurora-api takes no positional arguments)", fs.Arg(0))
 	}
+	// Visit marks only flags explicitly present on the command line, so a set
+	// option is never mistaken for its zero default (explicit `-p 0` errors
+	// below, not silently treats 0 as "unset").
+	fs.Visit(func(f *flag.Flag) {
+		switch f.Name {
+		case "host", "H":
+			opts.hostSet = true
+		case "port", "p":
+			opts.portSet = true
+		}
+	})
+	// Version/help are one-shot modes: validate the port only on the server
+	// path so `aurora-api --version -p 99999` still prints its version.
 	if *showVersion {
-		return runVersion, nil
+		return runVersion, nil, nil
 	}
-	return runServer, nil
+	if opts.portSet && (opts.port < 1 || opts.port > 65535) {
+		return 0, nil, fmt.Errorf("invalid port %d (must be 1-65535)", opts.port)
+	}
+	return runServer, opts, nil
+}
+
+// resolveAddr applies the listen-address precedence chain: an explicit
+// --host/--port flag wins over the loaded config (whose env binding and
+// defaults are applied inside config.Load). Extracted as a pure helper so the
+// precedence is unit-testable without binding a socket (ISS-065 style).
+func resolveAddr(opts *serverOptions, cfg *config.Config) string {
+	host, port := cfg.Server.Host, cfg.Server.Port
+	if opts != nil {
+		if opts.hostSet {
+			host = opts.host
+		}
+		if opts.portSet {
+			port = opts.port
+		}
+	}
+	return fmt.Sprintf("%s:%d", host, port)
 }
 
 // printUsage writes the command's flag surface. Kept English: the server has
@@ -89,10 +138,12 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Flags:")
 	fmt.Fprintln(w, "  -h, --help      Show this help and exit")
+	fmt.Fprintln(w, "  -H, --host IP   Listen host (default from config [server].host)")
+	fmt.Fprintln(w, "  -p, --port N    Listen port, 1-65535 (default from config [server].port)")
 	fmt.Fprintln(w, "  -v, --version   Show version information and exit")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Configuration is loaded from the same sources as the aurora")
-	fmt.Fprintln(w, "CLI: environment variables, configuration file and defaults.")
+	fmt.Fprintln(w, "Configuration is loaded with flag > environment > config file >")
+	fmt.Fprintln(w, "default precedence (AURORA_SERVER_HOST / AURORA_SERVER_PORT).")
 }
 
 // printVersion reports the link-time build identity, mirroring the CLI's
@@ -135,7 +186,7 @@ func newServer(addr string, handler http.Handler) *http.Server {
 }
 
 func main() {
-	mode, err := parseFlags(os.Args[1:])
+	mode, opts, err := parseFlags(os.Args[1:])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		fmt.Fprintln(os.Stderr, `Run "aurora-api --help" for usage.`)
@@ -189,7 +240,7 @@ func main() {
 
 	router := srv.Router()
 
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+	addr := resolveAddr(opts, cfg)
 	server := newServer(addr, router)
 
 	go func() {
