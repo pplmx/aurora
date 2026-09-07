@@ -171,6 +171,50 @@ port = 9123
 	require.Equal(t, 9123, cfg.Server.Port, "config file and env should coexist")
 }
 
+// TestLoad_EnvOverridesServerHostPort pins the AURORA_SERVER_HOST /
+// AURORA_SERVER_PORT env channel (TASK-273, ISS-269). Before it, the help
+// text's "environment variables, configuration file and defaults" precedence
+// was only true for the API key — operators colliding on the busy default
+// 0.0.0.0:8080 had to edit a config file. Env must resolve straight into the
+// loaded config.
+func TestLoad_EnvOverridesServerHostPort(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	t.Setenv("AURORA_SERVER_HOST", "127.0.0.1")
+	t.Setenv("AURORA_SERVER_PORT", "9081")
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.Equal(t, "127.0.0.1", cfg.Server.Host, "AURORA_SERVER_HOST must override the default host")
+	assert.Equal(t, 9081, cfg.Server.Port, "AURORA_SERVER_PORT must override the default port")
+}
+
+// TestLoad_EnvHostPortWinsWithConfigFilePresent checks env still beats a
+// $HOME/aurora.toml that sets host/port, mirroring the API-key precedence
+// test above: the documented chain is flag > env > config > default, so a
+// portable deployment override (env) must not lose to a machine-specific
+// config file.
+func TestLoad_EnvHostPortWinsWithConfigFilePresent(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	tmp := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(tmp, "aurora.toml"), []byte(`
+[server]
+host = "10.0.0.5"
+port = 9123
+`), 0o644))
+	t.Setenv("HOME", tmp)
+	t.Setenv("AURORA_SERVER_HOST", "127.0.0.1")
+	t.Setenv("AURORA_SERVER_PORT", "9081")
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.Equal(t, "127.0.0.1", cfg.Server.Host, "env host must beat the config file")
+	assert.Equal(t, 9081, cfg.Server.Port, "env port must beat the config file")
+}
+
 func TestLoad_OverridesViaViperSet(t *testing.T) {
 	resetViper()
 	setDevEnv(t)

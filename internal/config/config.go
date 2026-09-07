@@ -121,6 +121,13 @@ func Load() (*Config, error) {
 	// so both paths receive the operator's key (v1.73, ISS-079).
 	viper.AutomaticEnv()
 	_ = viper.BindEnv("api.key", "AURORA_API_KEY")
+	// The listen host/port had no env channel either: after the round-150 flag
+	// surface work, `--host`/`--port` did not exist and config/aurora.toml was
+	// the only way to escape a busy 0.0.0.0:8080. Bind the documented variables
+	// so the flag > env > config > default precedence the help promises actually
+	// holds for the listen address too (TASK-273, ISS-269).
+	_ = viper.BindEnv("server.host", "AURORA_SERVER_HOST")
+	_ = viper.BindEnv("server.port", "AURORA_SERVER_PORT")
 
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
