@@ -109,13 +109,43 @@ func TestShowMessageForwardsTheSeverity(t *testing.T) {
 	var got mygo.MessageOptions
 	messageBox = func(opts mygo.MessageOptions) { got = opts }
 
-	showMessage(mygo.MessageError, "Import failed", "boom", "/tmp/draws.json")
+	showMessage(nil, mygo.MessageError, "Import failed", "boom", "/tmp/draws.json")
 	assert.Equal(t, mygo.MessageOptions{
 		Type:    mygo.MessageError,
 		Title:   "Import failed",
 		Message: "boom",
 		Detail:  "/tmp/draws.json",
 	}, got)
+}
+
+// TestDialogsWithoutAWindowStandAlone pins the half of the parenting contract
+// a unit test can reach: MyGo attaches a dialog with a Parent to that window
+// (a sheet on macOS, a modal child elsewhere), and with none it stands alone.
+//
+// The other half - that the window MyGo hands a menu click reaches the dialog -
+// is enforced by the signatures: exportLotteries, importLotteries,
+// backUpDatabase and showAbout take the window and pass it through parent(),
+// so a handler cannot silently drop it the way the old `func(*mygo.MenuItem,
+// *mygo.Window)` closures did.
+func TestDialogsWithoutAWindowStandAlone(t *testing.T) {
+	originalOpen := openDialog
+	t.Cleanup(func() { openDialog = originalOpen })
+	originalBox := messageBox
+	t.Cleanup(func() { messageBox = originalBox })
+
+	var parentSeen *mygo.Window
+	var dialogs []mygo.MessageOptions
+	openDialog = func(opts mygo.OpenDialogOptions) ([]string, error) {
+		parentSeen = opts.Parent
+		return nil, errors.New("the picker is unavailable")
+	}
+	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
+
+	backUpDatabase(About{DBPath: "/tmp/aurora.db"}, nil)
+	require.Len(t, dialogs, 1)
+	assert.Nil(t, parentSeen, "no window means the picker is not parented")
+	assert.Nil(t, dialogs[0].Parent, "no window means a standalone dialog")
+	assert.Nil(t, parent(nil), "a nil window is never a parent")
 }
 
 // TestBackupReportsAPickerFailure pins the distinction a bare `err != nil ||
@@ -132,7 +162,7 @@ func TestBackupReportsAPickerFailure(t *testing.T) {
 	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
 
 	// A window with no database path must complain instead of doing nothing.
-	backUpDatabase(About{})
+	backUpDatabase(About{}, nil)
 	require.Len(t, dialogs, 1)
 	assert.Equal(t, mygo.MessageError, dialogs[0].Type)
 	assert.Equal(t, "Backup failed", dialogs[0].Title)
@@ -141,13 +171,13 @@ func TestBackupReportsAPickerFailure(t *testing.T) {
 	openDialog = func(mygo.OpenDialogOptions) ([]string, error) {
 		return nil, errors.New("the portal is not running")
 	}
-	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
+	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")}, nil)
 	require.Len(t, dialogs, 2)
 	assert.Equal(t, mygo.MessageError, dialogs[1].Type)
 	assert.Contains(t, dialogs[1].Message, "portal", "the reason must reach the user")
 
 	// Cancel stays silent: no error, no path selected.
 	openDialog = func(mygo.OpenDialogOptions) ([]string, error) { return nil, nil }
-	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
+	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")}, nil)
 	assert.Len(t, dialogs, 2, "cancel must not raise a dialog")
 }
