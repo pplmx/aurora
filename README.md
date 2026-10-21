@@ -326,10 +326,16 @@ just desktop-test                                  # 桌面模块的测试（jus
   `go-version-file: desktop/go.mod` 装 Go 1.27，跑 gofmt / build / vet /
   `test -race`），本地等价入口是 `just desktop-check`；
   `desktop/internal/deskapp/ci_test.go` 断言两边跑的是同一组命令，防止
-  job 被删掉后无人察觉。该 job 只编译不打包：核心的 `mattn/go-sqlite3`
-  是 cgo，跨平台打包会在 `runtime/cgo` 阶段失败（实测
+  job 被删掉后无人察觉。CI 还有 `desktop-package` job 在 Ubuntu 上跑
+  `go tool mygo build -platform linux/amd64`，并校验可执行文件、desktop
+  entry、`.deb`、tarball 与 `aurora://` MIME 注册，防止坏掉的
+  `mygo.config.ts` 直到发版才暴露。发版时
+  `.github/workflows/desktop-build.yml` 在原生 Linux amd64/arm64、
+  macOS arm64/amd64 与 Windows amd64 runner 上分别打包，再由
+  `release.yml` 与 CLI 产物一起发布。核心的 `mattn/go-sqlite3` 是 cgo，
+  跨平台打包会在 `runtime/cgo` 阶段失败（实测
   `desktop-package -platform windows/amd64` → `windows.h: No such file`），
-  所以 `.deb`/`.exe`/`.app` 必须在对应系统上构建。
+  所以 `.deb`/`.exe`/`.app` 必须在对应系统上构建；CI 不伪造跨平台包。
 - **cgo**：核心用 `mattn/go-sqlite3`，桌面壳必须在本机原生构建（不能
   `CGO_ENABLED=0` 交叉编译）；MyGo 本身无 cgo，窗口层仍可跨平台。
 

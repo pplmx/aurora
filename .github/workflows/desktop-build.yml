@@ -1,0 +1,127 @@
+name: Desktop Build
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ${{ github.ref }}
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  package:
+    name: Package ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux amd64
+            os: ubuntu-latest
+            platform: linux/amd64
+            artifact: aurora-desktop-linux-amd64
+            path: dist/desktop/linux-amd64
+          - name: Linux arm64
+            os: ubuntu-24.04-arm
+            platform: linux/arm64
+            artifact: aurora-desktop-linux-arm64
+            path: dist/desktop/linux-arm64
+          - name: macOS arm64
+            os: macos-latest
+            platform: darwin/arm64
+            artifact: aurora-desktop-darwin-arm64
+            path: dist/desktop/darwin-arm64
+          - name: macOS amd64
+            os: macos-15-intel
+            platform: darwin/amd64
+            artifact: aurora-desktop-darwin-amd64
+            path: dist/desktop/darwin-amd64
+          - name: Windows amd64
+            os: windows-latest
+            platform: windows/amd64
+            artifact: aurora-desktop-windows-amd64
+            path: dist/desktop/windows-amd64
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+          # mygo.config.ts derives the package version with `git describe`.
+          # A shallow checkout has no tags, so a release would be stamped
+          # with a bare SHA instead of the tag.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: desktop/go.mod
+          cache: true
+          cache-dependency-path: desktop/go.sum
+
+      # mygo.config.ts is evaluated with Bun or Node.js. Pin Node 22 so the
+      # TypeScript configuration works the same on every runner.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # mattn/go-sqlite3 is cgo. Windows runners do not always expose a C
+      # compiler on PATH, so install MinGW before the native package build.
+      - name: Install MinGW
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install mingw nsis --no-progress -y
+          @(
+            "C:\ProgramData\mingw64\mingw64\bin",
+            "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin"
+          ) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # MyGo defaults CGO_ENABLED to 0. Aurora's SQLite driver needs cgo, and
+      # the package must be built on its target OS (not cross-compiled).
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        env:
+          CGO_ENABLED: '1'
+          CC: gcc
+        run: go tool mygo build -platform ${{ matrix.platform }}
+        working-directory: desktop
+
+      - name: Package
+        if: runner.os != 'Windows'
+        env:
+          CGO_ENABLED: '1'
+        run: go tool mygo build -platform ${{ matrix.platform }}
+        working-directory: desktop
+
+      # A successful `mygo build` is not enough for a release: the installer
+      # or disk image can be skipped when a platform tool is missing. Fail
+      # before uploading a partial package.
+      - name: Verify package
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux)
+              test -x "${{ matrix.path }}/aurora"
+              test -f "${{ matrix.path }}/aurora.desktop"
+              test -f "${{ matrix.path }}/install.sh"
+              test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.deb' -print -quit)"
+              test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.tar.gz' -print -quit)"
+              grep -q 'MimeType=x-scheme-handler/aurora;' "${{ matrix.path }}/aurora.desktop"
+              ;;
+            macOS)
+              test -d "${{ matrix.path }}/Aurora.app"
+              test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.dmg' -print -quit)"
+              ;;
+            Windows)
+              test -f "${{ matrix.path }}/Aurora.exe"
+              test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*Setup*.exe' -print -quit)"
+              ;;
+          esac
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          retention-days: 5
