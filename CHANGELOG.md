@@ -100,6 +100,45 @@ documented in their per-milestone ROADMAP files.
   entry points, and the menu imports through `ImportLotteryFile` like the
   others instead of repeating the read/open/import sequence. A regression test
   pins the shell dialog to the menu dialog byte for byte.
+- **A failed import from the shell looked like a notice**: `showMessage`, the
+  constructor behind every desktop message, hard-coded `mygo.MessageInfo` and
+  discarded the severity its callers passed. An unreadable export or an
+  unsupported drop therefore appeared under a blue info icon while the same
+  failure from File → Import was a red error, and the warning a partial import
+  deserves was computed and then dropped. The type now flows from each call
+  site to `mygo.Dialog.Message`, and a test replaces the dialog itself,
+  because the shell tests replace `Shell.report` and would stay green while
+  every real message came out as a notice.
+- **A second launch that named another data directory was ignored**: MyGo
+  forwards the raw command line, and the shell skipped every flag in it, so
+  `aurora-desktop --data-dir X` against a running instance left the user
+  looking at the first instance's database with no message. A launch that
+  names a different `--data-dir` or `--web-root` is now reported and its links
+  and exports are not applied at all (importing into the wrong database is
+  worse than doing nothing); the flags are scanned wherever they appear,
+  because `flag.Parse` stops at the first positional argument, and a
+  matching value — absolute or relative to the launcher's directory — is still
+  a silent no-op.
+- **A deep link forwarded during startup was dropped**: a second launch can
+  reach `OnSecondInstance` after the single-instance lock is taken but before
+  `WhenReady` created the window, and navigation with no window simply
+  returned. `aurora-desktop aurora://token` against an instance that was still
+  booting opened the dashboard instead. The newest such page is now held and
+  loaded as soon as the window attaches.
+- **The scheme transport dropped Go's streaming interfaces**:
+  `cspDroppingWriter` is the outermost writer around every desktop response
+  and implemented only `Header`/`Write`/`WriteHeader`, so on `aurora://` a
+  streamed response lost its flushes and `http.ResponseController` reported
+  "feature not supported", even though the API's recovery and metrics
+  middlewares document that they preserve `http.Flusher` and friends. `Flush`
+  (stripping CSP first, since flushing commits the headers), `Hijack` and
+  `Unwrap` are forwarded now.
+- **`--web-root` was a hint rather than an answer**: an explicit path that did
+  not contain `index.html` fell through to the executable-relative, working
+  directory or configured copy, so a typo silently rendered a UI the developer
+  was not editing. An explicit path is now the only candidate and startup
+  fails with "web root ... does not contain index.html"; the fallback list
+  remains for the no-flag case the embedded UI and `go run` use.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default

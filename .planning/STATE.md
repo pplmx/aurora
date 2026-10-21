@@ -78,11 +78,32 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   all three entry points and the menu calls `ImportLotteryFile` like the other
   two; `TestShellAndMenuShareImportReporting` pins the shell dialog to the
   menu's byte for byte, and dropping the path from the partial detail turns it
-  red. Gates:
+  red.
+  The round continued into the rest of the same startup/dialog surface.
+  showMessage hard-coded MessageInfo, so the shell's failures (unreadable
+  export, unsupported drop, bad link) looked like notices while the menu's were
+  red errors and importReportType was computed then discarded; the type now
+  flows from every call site, and because the shell tests replace Shell.report
+  a second test replaces the dialog itself (hard-coding MessageInfo turns only
+  that one red). A second launch carrying a different --data-dir/--web-root was
+  skipped as "just a flag", leaving the user in the first instance's database
+  with no message: ForwardedPaths scans the argv wherever the flags appear
+  (flag.Parse stops at the first positional), compares against the running
+  instance relative to the launcher's directory, and refuses the launch rather
+  than importing into the wrong database; the refusal also owns its link
+  echoes, because MyGo's deliverArgs runs anyway and would have opened the very
+  page the dialog declined. A link forwarded before WhenReady found no window
+  and was dropped, so Navigate now holds the newest intent for Attach. Two
+  transport bugs came from reading the wrappers: cspDroppingWriter, the
+  outermost writer, kept no Flusher/Hijacker/Unwrap (streamed responses and
+  ResponseController were broken on aurora:// despite the middlewares'
+  documented promise), and ResolveWebRoot fell through an unusable explicit
+  --web-root to another copy, so a typo rendered pages the developer was not
+  editing. Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 993 nodes, 1145 edges.
+  RIL graph at round 155: 1014 nodes, 1167 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four

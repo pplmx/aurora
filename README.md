@@ -213,6 +213,9 @@ just desktop-test                                  # 桌面模块的测试（jus
 - **UI 打进二进制**：`web/` 由根包的 `//go:embed all:web`（`embed.go`）
   内嵌，双击启动的 bundle 即使工作目录与仓库无关也能渲染仪表盘。
   `--web-root DIR` 是开发开关：显式指定时改用磁盘目录，改页面无需重编译。
+  这个参数是**权威**的——目录里没有 `index.html` 就直接报错退出，不会再
+  退回可执行文件旁 / 工作目录 / `server.webRoot` 的另一份页面（否则打错
+  路径时窗口会渲染一份你并没有在改的 UI）。
 - **复用同一后端**：`api.NewServer` 原样启动，预言机定时调度器与审计
   outbox 补偿循环照常运行；`Runtime.Close` 在退出时释放 SQLite 句柄。
 - **数据落在用户目录**：默认 MyGo 的 `App.Path(PathUserData)`，即
@@ -224,7 +227,9 @@ just desktop-test                                  # 桌面模块的测试（jus
   在 `aurora://` 下不执行**任何** CSP 下的页面脚本（实测 `'self' aurora:`、
   `'self' aurora://localhost`、`*` 三种策略都让窗口失去响应、`/api/v1`
   请求为 0）。桌面壳因此剥掉该响应头，改由传输层兜底：scheme handler 只
-  提供内嵌文件，没有监听端口，也不存在外部 origin。
+  提供内嵌文件，没有监听端口，也不存在外部 origin。剥头的 wrapper 同时
+  转交 `Flush`/`Hijack`/`Unwrap`：它是每个响应最外层的一层，缺了这些
+  接口，流式响应会丢掉 flush，`http.ResponseController` 也会误报"不支持"。
 - **菜单**：File → Back Up Database… 调用与 CLI 相同的
   `BackupService`（WAL 完整快照 + 校验和）；Export/Import Lotteries 调用
   与 `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、
@@ -241,6 +246,8 @@ just desktop-test                                  # 桌面模块的测试（jus
   参数，保证只导入一次。菜单、拖放与命令行三条入口共用
   `ImportLotteryFile` 与同一个结果对话框（`importReport`：部分失败时列出
   0-based 记录下标、拒绝原因和文件路径），不会因为入口不同而说法不一。
+  失败与"部分失败"的弹窗级别也统一：拖放/命令行路径现在报 error 或
+  warning，与菜单一致（此前一律是 info）。
 - **第二次启动**：`App.OnSecondInstance` 拿到的是原始命令行，而 MyGo 只会
   把「已声明 scheme 的 URL」和「已关联的文件类型」转成
   `OnOpenURL`/`OnOpenFile`。本应用刻意不声明 `.json` 关联（否则会抢走
@@ -252,6 +259,11 @@ just desktop-test                                  # 桌面模块的测试（jus
   `cd ~/Downloads && aurora-desktop draws.json` 会在第一个实例的目录里找
   文件，静默什么也不做（实测）。实测第二次启动后第一条实例加载了
   `/voting.html`，且转发文件（绝对与相对路径）都落库。
+  如果转发参数里带了**不同**的 `--data-dir` / `--web-root`，运行中的实例
+  无法照办，现在会明确弹窗，并把这次启动的链接与文件全部忽略——默默写进
+  用户没有指定的数据库比什么都不做更糟；与当前实例一致的参数（绝对路径或
+  相对发起目录）仍按普通 flag 静默跳过。窗口还没创建时到达的链接会暂存，
+  在 `Attach` 后立即加载，不会退化成仪表盘。
 - **去重只针对 MyGo 的回声**：MyGo 对「刚处理过的启动参数」会再投递一次
   （冷启动时 `ParseFlags` 已读的那份、以及 `OnSecondInstance` 回调后
   MyGo 自己 `deliverArgs` 的那份）。`Shell` 只为这类参数记一次待抵消的回声，
