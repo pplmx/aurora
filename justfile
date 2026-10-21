@@ -77,6 +77,17 @@ desktop-run: desktop
 desktop-test:
     cd desktop && go test ./...
 
+# Everything CI runs for the desktop module, in the same order (ci.yml's
+# `desktop` job). Kept as a recipe so a local run and the pipeline cannot
+# drift: `just test`/`just check` at the root do not look inside a nested
+# module at all, so without one of these a broken window layer passes every
+# gate.
+desktop-check:
+    cd desktop && out=$(gofmt -l .) && test -z "$out" && echo "gofmt: clean" || { echo "gofmt would change: $out"; exit 1; }
+    cd desktop && go build ./...
+    cd desktop && go vet ./...
+    cd desktop && go test -race ./...
+
 # Package the desktop app with `go tool mygo build` (desktop/mygo.config.ts):
 # a native executable, a desktop entry that registers aurora:// links, a
 # Debian package and an installable tarball under dist/desktop/<os>-<arch>/.

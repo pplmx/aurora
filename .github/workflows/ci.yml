@@ -51,3 +51,46 @@ jobs:
         with:
           version: latest
           args: --timeout=5m -D errcheck
+
+  # The desktop shell is a nested module (Go 1.27, MyGo) and `go test ./...`
+  # at the root does not look inside it: without this job a broken window
+  # layer - the embedded UI, the aurora:// write path, deep-link routing -
+  # passed every gate silently.
+  #
+  # Its own toolchain is installed here rather than through GO_VERSION: MyGo
+  # requires Go 1.27 while the core module stays on 1.26 so the pinned
+  # golangci-lint binary and the release image keep working.
+  desktop:
+    name: Desktop (MyGo shell)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: desktop/go.mod
+          cache: true
+          cache-dependency-path: desktop/go.sum
+
+      # mattn/go-sqlite3 (the core's storage driver) and MyGo's build both
+      # need cgo, and the shell is only ever packaged on its own platform:
+      # a cross build from Linux fails in runtime/cgo before it compiles any
+      # of our code. Building here is a compile check, not a package.
+      - name: Format
+        run: test -z "$(gofmt -l .)"
+        working-directory: desktop
+
+      - name: Build
+        run: go build ./...
+        working-directory: desktop
+
+      - name: Vet
+        run: go vet ./...
+        working-directory: desktop
+
+      # `just desktop-check` runs exactly these three steps locally; the race
+      # detector needs cgo, which is on by default on the runner.
+      - name: Test
+        run: go test -race ./...
+        working-directory: desktop
