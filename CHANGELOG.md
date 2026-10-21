@@ -72,8 +72,10 @@ documented in their per-milestone ROADMAP files.
   registration. `desktop-build.yml` packages the native release matrix
   (Linux amd64/arm64, macOS arm64/amd64, Windows amd64), and `release.yml`
   waits for it before publishing, so the MyGo app is downloadable from the
-  same release as the CLI. The release upload is idempotent because a
-  tag-triggered release is also republished by the `release` event.
+  same release as the CLI. A tag push is the single release trigger; a
+  manual `workflow_dispatch` retry can republish an existing tag without
+  rebuilding after the release event. Uploads overwrite files from an
+  interrupted run.
 - **The desktop shell is a packaged MyGo app, not just a window**:
   `desktop/mygo.config.ts` declares the app identity (name, reverse-DNS
   identifier, version, Linux description) and `just desktop-package` runs

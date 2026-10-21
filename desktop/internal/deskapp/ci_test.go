@@ -146,8 +146,12 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	releaseWorkflow := string(release)
 	require.Contains(t, releaseWorkflow, "uses: ./.github/workflows/desktop-build.yml")
 	require.Contains(t, releaseWorkflow, "needs: [build, desktop-build]")
+	require.NotContains(t, releaseWorkflow, "release:\n    types: [published]",
+		"a release event would rebuild the tag after its own run creates the release")
+	require.Contains(t, releaseWorkflow, "workflow_dispatch:")
+	require.Contains(t, releaseWorkflow, "tag_name: ${{ inputs.tag || github.ref_name }}")
 	require.Contains(t, releaseWorkflow, "overwrite_files: true",
-		"a tag-triggered release is republished by the release event")
+		"a manual republish must replace files from an interrupted run")
 	require.Contains(t, releaseWorkflow, "permissions:\n  contents: write")
 	assert.NotContains(t, releaseWorkflow, "files: artifacts/**/*",
 		"the release must list installable artifacts, not every file in the .app bundle")

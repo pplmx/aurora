@@ -1,11 +1,19 @@
 name: Release
 
 on:
-  release:
-    types: [published]
   push:
     tags:
       - 'v*'
+  # A failed or interrupted tag run can be retried without re-tagging. The
+  # normal path is the tag push above; listening to `release: published` as
+  # well made every tag build the whole native matrix twice, because creating
+  # the release from that run emits the event again.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to publish
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -17,12 +25,12 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
     with:
-      ref: ${{ github.ref }}
+      ref: ${{ inputs.tag || github.ref }}
 
   desktop-build:
     uses: ./.github/workflows/desktop-build.yml
     with:
-      ref: ${{ github.ref }}
+      ref: ${{ inputs.tag || github.ref }}
 
   release:
     name: Create Release
@@ -39,6 +47,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           # List the distributables explicitly. `artifacts/**/*` also matched
           # files inside the macOS .app bundle, which cannot be installed on
           # their own and would collide between the two Mac builds.
