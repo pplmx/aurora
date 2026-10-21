@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T07:34:25+00:00",
+  "updated_at": "2026-10-21T07:40:24+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12710,6 +12710,40 @@
       "source": "go test -race ./... under LANG=zh_CN and en_US.UTF-8 (core + desktop); fault injection: commenting out i18n.Init(en) in cmd main_test.go reproduces the failures",
       "title": "All suites now pass regardless of LANG; removing the pin turns cmd red under zh_CN",
       "confidence": 0.95
+    },
+    "ISS-293": {
+      "id": "ISS-293",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T07:40:24+00:00",
+      "updated_at": "2026-10-21T07:40:24+00:00",
+      "touched_round": 155,
+      "title": "Desktop failure reasons and launch errors stay English under a Chinese UI",
+      "description": "ResolveWebRoot, ParseFlags, WebViewAvailable, prepareDataDir, platformUserDataDir, WebFS and openLotteryRepo built English errors shown inside a localized dialog/stderr."
+    },
+    "TASK-297": {
+      "id": "TASK-297",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T07:40:24+00:00",
+      "updated_at": "2026-10-21T07:40:24+00:00",
+      "touched_round": 155,
+      "title": "Route desktop error reasons through desktop.error.* keys",
+      "category": "dx",
+      "priority_score": 6
+    },
+    "CHG-296": {
+      "id": "CHG-296",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T07:40:24+00:00",
+      "updated_at": "2026-10-21T07:40:24+00:00",
+      "touched_round": 155,
+      "title": "Localize desktop startup/flag/database error reasons; tests TestStartupErrorsFollowTheLocale and TestFlagErrorsFollowTheLocale",
+      "commit": "0068d6f"
     }
   },
   "edges": [
@@ -19894,6 +19928,24 @@
       "to": "HYP-016",
       "type": "validates",
       "created_at": "2026-10-21T07:34:25+00:00"
+    },
+    {
+      "from": "TASK-297",
+      "to": "ISS-293",
+      "type": "addresses",
+      "created_at": "2026-10-21T07:40:24+00:00"
+    },
+    {
+      "from": "CHG-296",
+      "to": "ISS-293",
+      "type": "resolves",
+      "created_at": "2026-10-21T07:40:24+00:00"
+    },
+    {
+      "from": "CHG-296",
+      "to": "TASK-297",
+      "type": "implements",
+      "created_at": "2026-10-21T07:40:24+00:00"
     }
   ]
 }
