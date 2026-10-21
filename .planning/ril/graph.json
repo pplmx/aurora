@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 154,
+  "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T04:35:47+00:00",
+  "updated_at": "2026-10-21T05:00:32+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11634,6 +11634,231 @@
       "touched_round": 154,
       "commit": "47a52f2",
       "title": "Deep-linked lottery verdict scrolls into view; Node harness pins the ?id read, verify request and scroll (ISS-272)"
+    },
+    "COMP-014": {
+      "id": "COMP-014",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T04:55:28+00:00",
+      "updated_at": "2026-10-21T04:55:28+00:00",
+      "touched_round": 155,
+      "name": "desktop-shell",
+      "path": "desktop/internal/deskapp",
+      "description": "MyGo desktop shell: scheme transport, intents, menus, launch-argument routing"
+    },
+    "ISS-273": {
+      "id": "ISS-273",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T04:55:34+00:00",
+      "updated_at": "2026-10-21T05:00:32+00:00",
+      "touched_round": 155,
+      "title": "Second launch drops forwarded lottery export and never reveals the window",
+      "severity": "medium",
+      "description": "App.OnSecondInstance receives the raw command line; MyGo only converts arguments to OnOpenURL/OnOpenFile for declared schemes and file types. Aurora declares no .json association, so a forwarded export was silently discarded and a bare second launch did not raise a minimized window."
+    },
+    "ISS-274": {
+      "id": "ISS-274",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T04:55:34+00:00",
+      "updated_at": "2026-10-21T05:00:14+00:00",
+      "touched_round": 155,
+      "title": "File logging silently degrades to console on first run",
+      "severity": "high",
+      "description": "logger.Init ran utils.NormalizePath (requires an existing directory) before os.MkdirAll, so the shipped default log.path = \"./logs/\" never produced a log file. A packaged desktop app has no console, so the entire log was lost."
+    },
+    "ISS-275": {
+      "id": "ISS-275",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T04:55:37+00:00",
+      "updated_at": "2026-10-21T05:00:14+00:00",
+      "touched_round": 155,
+      "title": "Desktop writes logs into the launch directory when config spells ./logs/",
+      "severity": "medium",
+      "description": "The \"keep logs beside the database\" guard compared log.path to the exact string \"./logs\"; the shipped config/aurora.toml uses \"./logs/\", so a packaged app created ./logs relative to whatever directory launched it (observed: /workspace/aurora/logs/aurora.log)."
+    },
+    "ISS-276": {
+      "id": "ISS-276",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T04:55:38+00:00",
+      "updated_at": "2026-10-21T05:00:14+00:00",
+      "touched_round": 155,
+      "title": "Packaged app ships with an empty desktop-entry icon",
+      "severity": "low",
+      "description": "desktop/mygo.config.ts set no icon and the repository contained no resources/icon.png, so the generated aurora.desktop had Icon= and an installed app showed the theme placeholder."
+    },
+    "TASK-276": {
+      "id": "TASK-276",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T04:55:40+00:00",
+      "updated_at": "2026-10-21T05:00:24+00:00",
+      "touched_round": 155,
+      "title": "Route forwarded launch arguments through the shell",
+      "category": "correctness",
+      "severity": 0.55,
+      "effort": 1,
+      "confidence": 0.95,
+      "priority_score": 7,
+      "description": "Add Shell.HandleLaunchArgs parsing links, exports and flags, plus Reveal to restore/focus the window; wire it to App.OnSecondInstance."
+    },
+    "TASK-277": {
+      "id": "TASK-277",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T04:55:41+00:00",
+      "updated_at": "2026-10-21T05:00:24+00:00",
+      "touched_round": 155,
+      "title": "Create the log directory before normalizing it",
+      "category": "correctness",
+      "severity": 0.8,
+      "effort": 1,
+      "confidence": 0.95,
+      "priority_score": 8,
+      "description": "Swap NormalizePath/MkdirAll order in logger.Init and add a first-run regression test."
+    },
+    "TASK-278": {
+      "id": "TASK-278",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T04:55:50+00:00",
+      "updated_at": "2026-10-21T05:00:24+00:00",
+      "touched_round": 155,
+      "title": "Anchor the desktop log path regardless of spelling",
+      "category": "correctness",
+      "severity": 0.5,
+      "effort": 1,
+      "confidence": 0.9,
+      "description": "Compare filepath.Clean(log.path) against logs in deskapp.Start, cover ./logs, ./logs/, logs/ and empty in a test, and gitignore /logs."
+    },
+    "TASK-279": {
+      "id": "TASK-279",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T04:55:50+00:00",
+      "updated_at": "2026-10-21T05:00:24+00:00",
+      "touched_round": 155,
+      "title": "Give the app an icon for packaging and the window",
+      "category": "dx",
+      "severity": 0.2,
+      "effort": 1,
+      "confidence": 0.9,
+      "description": "Add desktop/resources/icon.png (1024 square), embed it, call Window.SetIcon in main, and pin the shape/size with a test."
+    },
+    "CHG-274": {
+      "id": "CHG-274",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:03+00:00",
+      "updated_at": "2026-10-21T05:00:03+00:00",
+      "touched_round": 155,
+      "commit": "6d5ee1b13d987ff6aef4d7c73f2eb7ed706672f7",
+      "summary": "logger.Init creates log.path before NormalizePath; first-run test replaces the no-panic assertion"
+    },
+    "CHG-275": {
+      "id": "CHG-275",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:03+00:00",
+      "updated_at": "2026-10-21T05:00:03+00:00",
+      "touched_round": 155,
+      "commit": "3b2f0b77ed742e243915b5352f229fec98c4290e",
+      "summary": "deskapp.Start compares filepath.Clean(log.path) to logs; four spellings covered; /logs gitignored"
+    },
+    "CHG-276": {
+      "id": "CHG-276",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:03+00:00",
+      "updated_at": "2026-10-21T05:00:03+00:00",
+      "touched_round": 155,
+      "commit": "2d0df3d2a1a657998d427c2e6fec2826c6bf02f3",
+      "summary": "Shell.HandleLaunchArgs parses forwarded links and exports and calls Reveal; wired to OnSecondInstance"
+    },
+    "CHG-277": {
+      "id": "CHG-277",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:03+00:00",
+      "updated_at": "2026-10-21T05:00:03+00:00",
+      "touched_round": 155,
+      "commit": "12657507589bfb5189cda95b53ea9eebd68366ec",
+      "summary": "desktop/resources/icon.png embedded for Window.SetIcon and picked up by mygo build; square/size test"
+    },
+    "EV-066": {
+      "id": "EV-066",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:08+00:00",
+      "updated_at": "2026-10-21T05:00:08+00:00",
+      "touched_round": 155,
+      "source": "Xvfb live run: second launch with aurora://voting + draws.json; sqlite rows",
+      "summary": "First instance loaded /voting.html (request log) and stored second-launch-import in ~/.config/Aurora/aurora.db; second process exited 0",
+      "confidence": 0.95
+    },
+    "EV-067": {
+      "id": "EV-067",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:08+00:00",
+      "updated_at": "2026-10-21T05:00:08+00:00",
+      "touched_round": 155,
+      "source": "Xvfb live run: logger output before/after fix",
+      "summary": "Before: \"logger: falling back to console output ... /workspace/aurora/logs\" and a stray /workspace/aurora/logs/aurora.log; after: log written to ~/.config/Aurora/logs/aurora.log, warning count 0, no stray dir",
+      "confidence": 0.95
+    },
+    "EV-068": {
+      "id": "EV-068",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:08+00:00",
+      "updated_at": "2026-10-21T05:00:08+00:00",
+      "touched_round": 155,
+      "source": "just desktop-package -platform linux/amd64",
+      "summary": "desktop entry now Icon=aurora; deb contains usr/share/icons/hicolor/{256x256,512x512}/apps/aurora.png",
+      "confidence": 0.95
+    },
+    "DEC-021": {
+      "id": "DEC-021",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:28+00:00",
+      "updated_at": "2026-10-21T05:00:28+00:00",
+      "touched_round": 155,
+      "title": "The desktop shell parses forwarded launch arguments itself",
+      "rationale": "MyGo converts OnSecondInstance arguments into OnOpenURL/OnOpenFile only for schemes in urlSchemes and extensions in fileAssociations. Aurora declares no .json association on purpose (it would claim every JSON file on the desktop), so a forwarded lottery export never reaches OnOpenFile. Parsing the raw args with the same ParseIntent used at cold start keeps one code path and one page allow-list, instead of adding a broad file association just to receive our own exports.",
+      "alternatives_rejected": "Declare fileAssociations for .json (would hijack every JSON file and still would not cover the case where MyGo is not configured); duplicate a second parser inside main (splits the page allow-list); rely on OnOpenFile only (silently drops exports, the original defect)"
+    },
+    "CHG-278": {
+      "id": "CHG-278",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:00:32+00:00",
+      "updated_at": "2026-10-21T05:00:32+00:00",
+      "touched_round": 155,
+      "commit": "dfb23bcc60b421496a7c3c671bfc738fa78a99b8",
+      "summary": "README/AGENTS/CHANGELOG/STATE document second-instance routing, icon source and the data-directory rule"
     }
   },
   "edges": [
@@ -18332,6 +18557,90 @@
       "to": "ISS-272",
       "type": "resolves",
       "created_at": "2026-10-21T04:35:47+00:00"
+    },
+    {
+      "from": "TASK-276",
+      "to": "ISS-273",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:00:11+00:00"
+    },
+    {
+      "from": "TASK-277",
+      "to": "ISS-274",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:00:11+00:00"
+    },
+    {
+      "from": "TASK-278",
+      "to": "ISS-275",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:00:11+00:00"
+    },
+    {
+      "from": "TASK-279",
+      "to": "ISS-276",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:00:11+00:00"
+    },
+    {
+      "from": "CHG-274",
+      "to": "TASK-277",
+      "type": "implements",
+      "created_at": "2026-10-21T05:00:11+00:00"
+    },
+    {
+      "from": "CHG-275",
+      "to": "TASK-278",
+      "type": "implements",
+      "created_at": "2026-10-21T05:00:11+00:00"
+    },
+    {
+      "from": "CHG-276",
+      "to": "TASK-276",
+      "type": "implements",
+      "created_at": "2026-10-21T05:00:11+00:00"
+    },
+    {
+      "from": "CHG-277",
+      "to": "TASK-279",
+      "type": "implements",
+      "created_at": "2026-10-21T05:00:11+00:00"
+    },
+    {
+      "from": "CHG-274",
+      "to": "ISS-274",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:00:18+00:00"
+    },
+    {
+      "from": "CHG-275",
+      "to": "ISS-275",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:00:18+00:00"
+    },
+    {
+      "from": "CHG-276",
+      "to": "ISS-273",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:00:18+00:00"
+    },
+    {
+      "from": "CHG-277",
+      "to": "ISS-276",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:00:18+00:00"
+    },
+    {
+      "from": "DEC-021",
+      "to": "COMP-014",
+      "type": "governs",
+      "created_at": "2026-10-21T05:00:28+00:00"
+    },
+    {
+      "from": "CHG-278",
+      "to": "TASK-276",
+      "type": "implements",
+      "created_at": "2026-10-21T05:00:32+00:00"
     }
   ]
 }
