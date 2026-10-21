@@ -23,6 +23,13 @@ documented in their per-milestone ROADMAP files.
   runs before `Start` so the startup-failure dialog is translated too. A
   configured `[i18n] locale` (used when `$LANG` is unset) now reaches the
   window as well as the CLI.
+- **The test suites no longer depend on the machine's language**: the CLI and
+  TUI tests assert English output while `internal/i18n` follows `$LANG`, so a
+  `go test ./...` run on a `LANG=zh_CN` machine failed `cmd/aurora/cmd`
+  (backup, lottery, ...) and `internal/ui/components` on wording that had
+  nothing to do with the code under test (reproduced on the previous commit).
+  Each package pins its language in `TestMain`, and the lazy-init test sets
+  the `LANG` it is about.
 - **The desktop module is covered by CI**: `desktop/` is a nested module, so
   the root `go test ./...` never looked inside it and a broken window layer
   passed every gate. `ci.yml` gains a `desktop` job (its own Go 1.27
