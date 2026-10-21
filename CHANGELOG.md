@@ -103,6 +103,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A packaged desktop build reported `Build Time: unknown`**: `mygo build`
+  supplies its own `-ldflags`, so the justfile's `-X main.BuildTime` never
+  reached a bundled app. The packaging command now stamps the build time
+  into `resources/build-time.txt` before MyGo copies it next to the
+  executable, and the shell reads that value back. The Linux packaging gate
+  rejects a build that still reports `unknown`.
 - **`aurora-api` could not listen on an IPv6 address**: `--host ::1`,
   `AURORA_SERVER_HOST=::1` and `[server].host = "::1"` were joined to the
   port with a plain `%s:%d`, producing `::1:9090`, which `net.Listen` rejects

@@ -67,6 +67,11 @@ just stop         # Stop containers: docker compose down
   `desktop/appicon/icon.png` is the app icon for both packaging and the window;
   it sits outside `desktop/resources/` so MyGo does not copy the Go source and
   tests of the embedding package into every package.
+  `mygo build` runs `desktop/scripts/stamp-build-time.mjs` before copying
+  resources, and the shell reads `resources/build-time.txt` back because MyGo
+  supplies its own `-ldflags`; the Linux packaging gate rejects
+  `Build Time: unknown`. `MYGO_GENERATE` returns before `Start`, so extracting
+  the (empty) TypeScript client does not open the database.
   CI packages Linux amd64 in `ci.yml`; `desktop-build.yml` packages the native
   release matrix (Linux amd64/arm64, macOS arm64/amd64, Windows amd64), and
   `release.yml` publishes those artifacts with the CLI binaries.

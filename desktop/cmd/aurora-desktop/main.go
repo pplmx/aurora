@@ -4,8 +4,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
+	"time"
 
 	"github.com/egoist/mygo"
 	// MyGo's own strings (menu roles, native dialog buttons) in Chinese. The
@@ -17,13 +21,22 @@ import (
 	"github.com/pplmx/aurora/desktop/internal/deskapp"
 )
 
+// generationRequested reports whether MyGo compiled this binary only to
+// extract a TypeScript client. Such a run must not start the shell: Aurora
+// binds no MyGo services, so there is no client to write, and booting the
+// database and HTTP router would make a package build depend on a writable
+// user-data directory.
+func generationRequested() bool { return os.Getenv("MYGO_GENERATE") != "" }
+
 // Injected at build time by the justfile `desktop` recipe. A `mygo build`
 // bundle links its own packageVersion instead, so version() prefers that and
 // falls back to these for `go build`/`just desktop`.
 var (
 	Version   = "0.0.1"
-	BuildTime = "unknown"
+	BuildTime = unknownBuildTime
 )
+
+const unknownBuildTime = "unknown"
 
 // version is the version a user sees. MyGo knows the version linked into a
 // packaged app (mygo.config.ts), which the justfile's -X main.Version cannot
@@ -37,6 +50,62 @@ func version() string {
 	return Version
 }
 
+// buildTime is the build timestamp a user sees. `mygo build` supplies its own
+// -ldflags, so the justfile's -X main.BuildTime never lands in a packaged
+// binary. mygo.config.ts runs scripts/stamp-build-time.mjs before MyGo copies
+// resources/, so a package carries the time it was built next to the
+// executable. The executable's timestamp remains a last fallback for a plain
+// `go build` without ldflags.
+func buildTime() string {
+	return resolveBuildTime(BuildTime, stampedBuildTime, os.Executable, os.Stat)
+}
+
+// resolveBuildTime is buildTime with its inputs as parameters, so tests can
+// exercise the fallback without replacing the test binary.
+func resolveBuildTime(
+	linked string,
+	stamped func() (string, error),
+	executable func() (string, error),
+	stat func(string) (fs.FileInfo, error),
+) string {
+	if linked != "" && linked != unknownBuildTime {
+		return linked
+	}
+	if stamped != nil {
+		if value, err := stamped(); err == nil && value != "" {
+			return value
+		}
+	}
+	exe, err := executable()
+	if err != nil {
+		return unknownBuildTime
+	}
+	info, err := stat(exe)
+	if err != nil || info.ModTime().IsZero() {
+		return unknownBuildTime
+	}
+	return info.ModTime().UTC().Format(time.RFC3339)
+}
+
+// stampedBuildTime reads the timestamp written by
+// scripts/stamp-build-time.mjs into the app's runtime resources.
+func stampedBuildTime() (string, error) {
+	dir, err := mygo.App.Path(mygo.PathResources)
+	if err != nil {
+		return "", err
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "build-time.txt"))
+	if err != nil {
+		return "", err
+	}
+	value := strings.TrimSpace(string(data))
+	built, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return "", err
+	}
+	return built.UTC().Format(time.RFC3339), nil
+}
+
 // userDataDir is the default data directory for a packaged app: MyGo's
 // per-user application directory, next to its window state. Outside a package
 // (go run, go test, `just desktop`) MyGo still answers with the same XDG /
@@ -47,6 +116,19 @@ func userDataDir() (string, error) {
 }
 
 func main() {
+	// `mygo build` runs the compiled app once with MYGO_GENERATE to extract a
+	// TypeScript client. Aurora binds no MyGo services, so there is nothing to
+	// generate, and starting the whole shell first would create a database and
+	// logs merely to write an empty client. App.Run already returns without
+	// starting the event loop in this mode.
+	if generationRequested() {
+		if err := mygo.App.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// Aurora's own strings (menus, dialogs, --help) go through internal/i18n,
 	// which has to be initialized before the first one is read: MyGo picks its
 	// own language from the user's, and FollowAppLocale below pins Aurora's
@@ -61,10 +143,10 @@ func main() {
 	}
 	switch mode {
 	case deskapp.ModeHelp:
-		deskapp.Usage(os.Stdout, version(), BuildTime)
+		deskapp.Usage(os.Stdout, version(), buildTime())
 		return
 	case deskapp.ModeVersion:
-		fmt.Print(deskapp.VersionText(version(), BuildTime))
+		fmt.Print(deskapp.VersionText(version(), buildTime()))
 		return
 	}
 	// Declare the languages this build ships - MyGo's own strings and Aurora's
@@ -140,7 +222,7 @@ func main() {
 	}
 	meta := deskapp.About{
 		Version:   version(),
-		BuildTime: BuildTime,
+		BuildTime: buildTime(),
 		WebRoot:   rt.WebRoot(),
 		DBPath:    rt.DBPath(),
 	}

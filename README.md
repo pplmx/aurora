@@ -316,7 +316,10 @@ just desktop-test                                  # 桌面模块的测试（jus
   `install.sh`、`.tar.gz` 与带 `MimeType=x-scheme-handler/aurora;` 的
   desktop entry。版本由 `git describe` 在配置里计算，并由 `mygo build`
   链接进二进制——**不用** `-X main.Version`（`mygo build` 自带 ldflags，
-  实测那样打出的包会把 `--version` 报成 `0.0.1`）。
+  实测那样打出的包会把 `--version` 报成 `0.0.1`）。构建时间同理无法由
+  justfile 注入，因此 `buildCommand` 在打包前把时间写入
+  `resources/build-time.txt`，随资源一起安装并由 `--version` 读取；CI 会
+  拒绝仍报告 `Build Time: unknown` 的包。
 - **为什么是嵌套模块**：MyGo 要求 Go 1.27，而主模块固定在 1.26 以保持
   镜像构建（`Dockerfile` 的 `golang:1.26-alpine`）与现有工具链可用。
   `desktop/go.mod` 的 `go 1.27.1` 不会污染 `go build ./...` /
