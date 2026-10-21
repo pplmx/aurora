@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T06:30:18+00:00",
+  "updated_at": "2026-10-21T07:16:16+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12597,6 +12597,73 @@
       "source": "temporary MyGo probe under Xvfb :142 + TestShellMainWindowRecreatesAClosedWindow",
       "summary": "OnWindowAllClosed firing on Linux still returns from App.Run (exit 0), so the non-macOS branch is harmless; MainWindow calls the factory when no window exists (test red if it returns early)",
       "confidence": 0.9
+    },
+    "ISS-291": {
+      "id": "ISS-291",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T07:12:34+00:00",
+      "updated_at": "2026-10-21T07:16:16+00:00",
+      "touched_round": 155,
+      "title": "Desktop menu and dialogs stay English while MyGo translates its own roles",
+      "description": "Mixed-language menu under zh-CN: MyGo role labels are Chinese but Aurora-written labels (Export/Import/Back Up/About) and every dialog, --help and the startup dialog are hardcoded English. Also: desktop never called i18n.DetectAndInit, only zh-Hans was declared so zh-TW/zh-HK matched nothing and MyGo answered en, and SetLanguages ran after Start so the startup-failure dialog had an English OK."
+    },
+    "COMP-016": {
+      "id": "COMP-016",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T07:12:54+00:00",
+      "updated_at": "2026-10-21T07:12:54+00:00",
+      "touched_round": 155,
+      "title": "desktop/internal/deskapp locale bridge (T/TFormat, FollowAppLocale, ApplyConfiguredLocale)"
+    },
+    "TASK-295": {
+      "id": "TASK-295",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T07:12:54+00:00",
+      "updated_at": "2026-10-21T07:16:16+00:00",
+      "touched_round": 155,
+      "title": "Localize the desktop shell through internal/i18n and follow App.Locale",
+      "category": "dx",
+      "priority_score": 8
+    },
+    "EV-083": {
+      "id": "EV-083",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T07:13:34+00:00",
+      "updated_at": "2026-10-21T07:13:34+00:00",
+      "touched_round": 155,
+      "source": "desktop/internal/deskapp/locale_test.go TestMenuLabelsFollowTheLocale, TestImportReportFollowsTheLocale, TestUsageFollowsTheLocale, TestSyncLocale; live Xvfb :162 (zh_CN) menu screenshot before/after; Xvfb :166 (zh_TW)",
+      "title": "Desktop strings now follow App.Locale; hardcoding labels or dropping T() turns the tests red",
+      "confidence": 0.95
+    },
+    "CHG-294": {
+      "id": "CHG-294",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T07:15:35+00:00",
+      "updated_at": "2026-10-21T07:15:35+00:00",
+      "touched_round": 155,
+      "title": "Localize desktop menu, dialogs, --help and startup failure via internal/i18n, follow App.Locale, link both MyGo zh catalogs, declare languages before Start",
+      "commit": "1a02002"
+    },
+    "HYP-016": {
+      "id": "HYP-016",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T07:16:10+00:00",
+      "updated_at": "2026-10-21T07:16:16+00:00",
+      "touched_round": 155,
+      "title": "Desktop strings are hardcoded English while MyGo translates its roles, so a zh session is bilingual",
+      "confidence": 0.9
     }
   },
   "edges": [
@@ -19721,6 +19788,42 @@
       "to": "ISS-290",
       "type": "resolves",
       "created_at": "2026-10-21T06:30:18+00:00"
+    },
+    {
+      "from": "TASK-295",
+      "to": "ISS-291",
+      "type": "addresses",
+      "created_at": "2026-10-21T07:13:30+00:00"
+    },
+    {
+      "from": "ISS-291",
+      "to": "COMP-016",
+      "type": "located_in",
+      "created_at": "2026-10-21T07:13:30+00:00"
+    },
+    {
+      "from": "ISS-291",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T07:13:30+00:00"
+    },
+    {
+      "from": "CHG-294",
+      "to": "ISS-291",
+      "type": "resolves",
+      "created_at": "2026-10-21T07:15:36+00:00"
+    },
+    {
+      "from": "CHG-294",
+      "to": "TASK-295",
+      "type": "implements",
+      "created_at": "2026-10-21T07:15:36+00:00"
+    },
+    {
+      "from": "EV-083",
+      "to": "HYP-016",
+      "type": "validates",
+      "created_at": "2026-10-21T07:16:10+00:00"
     }
   ]
 }
