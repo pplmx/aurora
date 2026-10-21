@@ -327,6 +327,52 @@ func TestParseIntentIn_RejectsWhatIsNotThere(t *testing.T) {
 	assert.False(t, ok)
 }
 
+// TestParseIntentIn_DoesNotResolveAgainstTheWrongDirectory pins the path a
+// forwarded relative argument names. ParseIntentIn used to try the argument
+// as written first, so a file of the same name in the running instance's own
+// working directory won: a second launch from ~/Downloads imported the wrong
+// export, and the one the user named was never opened. A relative argument
+// can only be relative to the launcher's directory.
+func TestParseIntentIn_DoesNotResolveAgainstTheWrongDirectory(t *testing.T) {
+	launcherDir := t.TempDir()
+	want := filepath.Join(launcherDir, "draws.json")
+	require.NoError(t, os.WriteFile(want, []byte(`[{"id":"launcher"}]`), 0o644))
+
+	runningDir := t.TempDir()
+	decoy := filepath.Join(runningDir, "draws.json")
+	require.NoError(t, os.WriteFile(decoy, []byte(`[{"id":"decoy"}]`), 0o644))
+
+	prev, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(runningDir))
+	t.Cleanup(func() { require.NoError(t, os.Chdir(prev)) })
+
+	in, ok := ParseIntentIn("draws.json", launcherDir)
+	require.True(t, ok)
+	assert.Equal(t, Intent{File: want, Raw: "draws.json"}, in,
+		"the argument is relative to the launcher, not to this process")
+}
+
+// TestParseIntentIn_ResolvesRelativeFileURLsAgainstTheLauncher pins the other
+// half of the same rule: a launcher may hand over `file:draws.json`, and that
+// URL is relative too. Treating its path as absolute (or trying it against
+// this process) opens the wrong file or nothing at all.
+func TestParseIntentIn_ResolvesRelativeFileURLsAgainstTheLauncher(t *testing.T) {
+	launcherDir := t.TempDir()
+	want := filepath.Join(launcherDir, "draws.json")
+	require.NoError(t, os.WriteFile(want, []byte(`[{"id":"launcher"}]`), 0o644))
+
+	in, ok := ParseIntentIn("file:draws.json", launcherDir)
+	require.True(t, ok)
+	assert.Equal(t, Intent{File: want, Raw: "file:draws.json"}, in)
+
+	// file:./draws.json is the same spelling with an explicit dot, and it is
+	// still relative.
+	in, ok = ParseIntentIn("file:./draws.json", launcherDir)
+	require.True(t, ok)
+	assert.Equal(t, Intent{File: want, Raw: "file:./draws.json"}, in)
+}
+
 // TestForwardedPaths covers the flags a second launch can carry. They are
 // scanned by hand because flag.Parse stops at the first positional argument,
 // so `aurora://voting --data-dir X` must find the directory the same way

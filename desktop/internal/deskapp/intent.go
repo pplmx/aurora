@@ -89,34 +89,50 @@ func ParseIntent(arg string) (Intent, bool) {
 // accepts; so does this.
 func ParseIntentIn(arg, workDir string) (Intent, bool) {
 	arg = strings.TrimSpace(arg)
-	if in, ok := ParseIntent(arg); ok || arg == "" || IsDeepLink(arg) || workDir == "" {
-		return in, ok
-	}
-	if path, ok := fileURLPath(arg); ok {
-		if in, ok := ParseIntent(path); ok {
-			return in, true
-		}
-	}
-	if filepath.IsAbs(arg) {
+	if arg == "" {
 		return Intent{}, false
 	}
+	if IsDeepLink(arg) {
+		return ParseIntent(arg)
+	}
+	raw := arg
+	if path, ok := fileURLPath(arg); ok {
+		arg = path
+	}
+	if filepath.IsAbs(arg) {
+		return ParseIntent(arg)
+	}
+	if workDir == "" {
+		return Intent{}, false
+	}
+
 	path := filepath.Join(workDir, arg)
 	if !isLotteryDocument(path) {
 		return Intent{}, false
 	}
 	// File is the resolved, importable path; Raw stays as the launching
 	// process wrote it, which is what Intent.Raw means.
-	return Intent{File: path, Raw: arg}, true
+	return Intent{File: path, Raw: raw}, true
 }
 
 // fileURLPath converts a file:// URL to the path it names, for the launchers
 // that pass files that way instead of as arguments.
 func fileURLPath(arg string) (string, bool) {
 	u, err := url.Parse(arg)
-	if err != nil || !strings.EqualFold(u.Scheme, "file") || u.Path == "" {
+	if err != nil || !strings.EqualFold(u.Scheme, "file") {
 		return "", false
 	}
-	path := filepath.FromSlash(u.Path)
+	// file:draws.json and file:./draws.json have no path segment at all:
+	// net/url keeps what follows the colon in Opaque. Treating those as "no
+	// file" made a relative file URL from a launcher unresolvable.
+	path := u.Path
+	if path == "" {
+		path = u.Opaque
+	}
+	if path == "" {
+		return "", false
+	}
+	path = filepath.FromSlash(path)
 	if runtime.GOOS == "windows" {
 		// file:///C:/x arrives as /C:/x.
 		path = strings.TrimPrefix(path, string(filepath.Separator))
