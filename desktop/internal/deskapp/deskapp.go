@@ -166,10 +166,17 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	viper.Set("db.path", dbPath)
 
 	// logger.Init reads viper's log.path, whose default is the CWD-relative
-	// ./logs. A packaged app must not write next to its install directory, so
-	// while the value is still the default, keep logs beside the database.
-	// Any explicit value (config file, env, or a caller's viper.Set) wins.
-	if path := viper.GetString("log.path"); path == "" || path == "./logs" {
+	// ./logs. A packaged app must not write into its install directory - nor
+	// into whatever directory a launcher happened to start it from - so while
+	// the value is still that default, keep logs beside the database.
+	//
+	// The comparison is on the cleaned path because the shipped
+	// config/aurora.toml spells it "./logs/", which is the same directory as
+	// "./logs" but a different string: an equality test on the raw value let a
+	// packaged app create ./logs relative to the launch directory (measured,
+	// while verifying the logger fix). Any other value wins, so an explicit
+	// log.path in the config still decides.
+	if path := viper.GetString("log.path"); path == "" || filepath.Clean(path) == "logs" {
 		viper.Set("log.path", filepath.Join(filepath.Dir(dbPath), "logs"))
 	}
 	logger.Init()

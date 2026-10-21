@@ -52,3 +52,7 @@ out/
 data/
 test/data/
 .worktrees/
+
+# Default log directory (`log.path` in config/aurora.toml), created on the
+# first file-logging run. Runtime state, never source.
+/logs
