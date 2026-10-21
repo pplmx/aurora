@@ -16,6 +16,7 @@ just api          # Build the standalone REST API + Web server (./aurora-api, -X
 just desktop      # Build the MyGo desktop shell (./aurora-desktop); nested module desktop/,
                   #   needs Go 1.27 + a native cgo build (WebKitGTK / WebView2 / WKWebView)
 just desktop-run  # Build then launch the window (embedded Web UI; --web-root for UI dev)
+just desktop-test # Run the desktop module's tests (just test only covers the core module)
 just run          # Run locally
 ```
 
