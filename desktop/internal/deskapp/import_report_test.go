@@ -1,6 +1,7 @@
 package deskapp
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -115,4 +116,38 @@ func TestShowMessageForwardsTheSeverity(t *testing.T) {
 		Message: "boom",
 		Detail:  "/tmp/draws.json",
 	}, got)
+}
+
+// TestBackupReportsAPickerFailure pins the distinction a bare `err != nil ||
+// empty` test erased: Cancel never returns an error, so a picker that DID fail
+// was silently treated as "the user changed their mind" and the backup never
+// happened with nothing on screen to say so.
+func TestBackupReportsAPickerFailure(t *testing.T) {
+	originalOpen := openDialog
+	t.Cleanup(func() { openDialog = originalOpen })
+
+	var dialogs []mygo.MessageOptions
+	originalBox := messageBox
+	t.Cleanup(func() { messageBox = originalBox })
+	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
+
+	// A window with no database path must complain instead of doing nothing.
+	backUpDatabase(About{})
+	require.Len(t, dialogs, 1)
+	assert.Equal(t, mygo.MessageError, dialogs[0].Type)
+	assert.Equal(t, "Backup failed", dialogs[0].Title)
+
+	// A picker that fails must be reported as a failure.
+	openDialog = func(mygo.OpenDialogOptions) ([]string, error) {
+		return nil, errors.New("the portal is not running")
+	}
+	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
+	require.Len(t, dialogs, 2)
+	assert.Equal(t, mygo.MessageError, dialogs[1].Type)
+	assert.Contains(t, dialogs[1].Message, "portal", "the reason must reach the user")
+
+	// Cancel stays silent: no error, no path selected.
+	openDialog = func(mygo.OpenDialogOptions) ([]string, error) { return nil, nil }
+	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
+	assert.Len(t, dialogs, 2, "cancel must not raise a dialog")
 }

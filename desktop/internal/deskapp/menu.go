@@ -2,6 +2,7 @@ package deskapp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -70,11 +71,19 @@ func NewMenu(meta About) *mygo.Menu {
 // `aurora lottery export` writes and `aurora lottery import` reads.
 var lotteryJSONFilter = []mygo.FileFilter{{Name: "Lottery export", Extensions: []string{"json"}}}
 
+// The file dialogs are variables so a test can drive a failed picker without
+// a live window. A bare error return is easy to drop on the floor, which is
+// exactly what made a failed folder picker look like Cancel.
+var (
+	openDialog = mygo.Dialog.Open
+	saveDialog = mygo.Dialog.Save
+)
+
 // exportLotteries writes the portable document through the same app-layer
 // serializer the CLI uses, so a desktop export and `aurora lottery export`
 // produce byte-identical files for the same database.
 func exportLotteries(meta About) {
-	path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{
+	path, err := saveDialog(mygo.SaveDialogOptions{
 		Title:       "Export Lotteries",
 		DefaultPath: "aurora-lotteries.json",
 		ButtonLabel: "Export",
@@ -114,7 +123,7 @@ func exportLotteries(meta About) {
 // (TASK-069), identical partial-failure accounting. A partial import reports a
 // warning — the valid records ARE stored — matching the CLI's "⚠" message.
 func importLotteries(meta About) {
-	paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
+	paths, err := openDialog(mygo.OpenDialogOptions{
 		Title:   "Import Lotteries",
 		Filters: lotteryJSONFilter,
 	})
@@ -166,13 +175,21 @@ func showError(title string, err error) {
 // BackupService the CLI uses (WAL-complete, checksummed metadata).
 func backUpDatabase(meta About) {
 	if meta.DBPath == "" {
+		showError("Backup failed", errors.New("this window has no database path"))
 		return
 	}
-	dirs, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
+	dirs, err := openDialog(mygo.OpenDialogOptions{
 		Title:     "Choose where to store the backup",
 		Directory: true,
 	})
-	if err != nil || len(dirs) == 0 || dirs[0] == "" {
+	if err != nil {
+		// Cancel is "no error, no directory"; a picker that failed is a
+		// failure, and silently returning made it look like the user had
+		// cancelled.
+		showError("Backup failed", err)
+		return
+	}
+	if len(dirs) == 0 || dirs[0] == "" {
 		return
 	}
 	dest := filepath.Join(dirs[0], "aurora-backup-"+BackupStamp(time.Now()))
