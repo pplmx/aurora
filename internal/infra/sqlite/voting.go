@@ -58,6 +58,11 @@ func (r *VotingRepository) createTables() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_votes_voter ON votes(voter_pk)`,
 		`CREATE INDEX IF NOT EXISTS idx_votes_candidate ON votes(candidate_id)`,
+		`CREATE TABLE IF NOT EXISTS vote_sessions (
+			vote_id TEXT PRIMARY KEY,
+			session_id TEXT NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_vote_sessions_session_vote ON vote_sessions(session_id, vote_id)`,
 		`CREATE TABLE IF NOT EXISTS voters (
 			public_key TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
@@ -114,21 +119,59 @@ func (r *VotingRepository) WithTx(tx *sql.Tx) voting.Repository {
 }
 
 func (r *VotingRepository) SaveVote(vote *voting.Vote) error {
+	if r.exec == nil {
+		tx, err := r.db.Begin()
+		if err != nil {
+			return fmt.Errorf("begin vote save: %w", err)
+		}
+		txRepo := &VotingRepository{db: r.db, exec: tx}
+		if err := txRepo.saveVote(vote); err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit vote save: %w", err)
+		}
+		return nil
+	}
+	return r.saveVote(vote)
+}
+
+func (r *VotingRepository) saveVote(vote *voting.Vote) error {
 	_, err := r.q().Exec(
 		`INSERT OR REPLACE INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		vote.ID, vote.VoterPublicKey, vote.CandidateID, vote.Signature, vote.Message, vote.Timestamp, vote.BlockHeight,
 	)
+	if err != nil {
+		return err
+	}
+
+	// Keep the session mapping separate from the legacy votes table so
+	// migration 000003 never has to rebuild votes or discard a mapping that
+	// the self-bootstrapping repository already wrote.
+	if vote.SessionID == "" {
+		_, err = r.q().Exec(`DELETE FROM vote_sessions WHERE vote_id = ?`, vote.ID)
+	} else {
+		_, err = r.q().Exec(
+			`INSERT OR REPLACE INTO vote_sessions (vote_id, session_id) VALUES (?, ?)`,
+			vote.ID, vote.SessionID,
+		)
+	}
 	return err
 }
 
 func (r *VotingRepository) GetVote(id string) (*voting.Vote, error) {
 	row := r.q().QueryRow(
-		`SELECT id, voter_pk, candidate_id, signature, message, timestamp, block_height FROM votes WHERE id = ?`,
+		`SELECT v.id, v.voter_pk, v.candidate_id, COALESCE(vs.session_id, ''),
+		        v.signature, v.message, v.timestamp, v.block_height
+		 FROM votes v
+		 LEFT JOIN vote_sessions vs ON vs.vote_id = v.id
+		 WHERE v.id = ?`,
 		id,
 	)
 	v := &voting.Vote{}
-	err := row.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight)
+	err := row.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.SessionID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight)
 	if err == sql.ErrNoRows {
 		return nil, ErrNotFound
 	}
@@ -139,13 +182,21 @@ func (r *VotingRepository) GetVote(id string) (*voting.Vote, error) {
 // (the whole ballot runs in one transaction); it is retained for
 // administrative / corrective flows.
 func (r *VotingRepository) DeleteVote(id string) error {
+	if _, err := r.q().Exec(`DELETE FROM vote_sessions WHERE vote_id = ?`, id); err != nil {
+		return err
+	}
 	_, err := r.q().Exec(`DELETE FROM votes WHERE id = ?`, id)
 	return err
 }
 
 func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vote, error) {
 	rows, err := r.q().Query(
-		`SELECT id, voter_pk, candidate_id, signature, message, timestamp, block_height FROM votes WHERE candidate_id = ? ORDER BY timestamp DESC`,
+		`SELECT v.id, v.voter_pk, v.candidate_id, COALESCE(vs.session_id, ''),
+		        v.signature, v.message, v.timestamp, v.block_height
+		 FROM votes v
+		 LEFT JOIN vote_sessions vs ON vs.vote_id = v.id
+		 WHERE v.candidate_id = ?
+		 ORDER BY v.timestamp DESC`,
 		candidateID,
 	)
 	if err != nil {
@@ -156,7 +207,7 @@ func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vo
 	var votes []*voting.Vote
 	for rows.Next() {
 		v := &voting.Vote{}
-		if err := rows.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight); err != nil {
+		if err := rows.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.SessionID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight); err != nil {
 			return nil, err
 		}
 		votes = append(votes, v)
@@ -164,9 +215,32 @@ func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vo
 	return votes, rows.Err()
 }
 
+// CountVotesBySession counts the vote rows for one candidate in one session.
+// This is the source of truth for the results API: candidates.vote_count is
+// a global lifetime tally and must not leak across sessions (ISS-299).
+func (r *VotingRepository) CountVotesBySession(sessionID, candidateID string) (int, error) {
+	var count int
+	err := r.q().QueryRow(
+		`SELECT COUNT(*)
+		 FROM votes v
+		 JOIN vote_sessions vs ON vs.vote_id = v.id
+		 WHERE vs.session_id = ? AND v.candidate_id = ?`,
+		sessionID, candidateID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count votes for session %s candidate %s: %w", sessionID, candidateID, err)
+	}
+	return count, nil
+}
+
 func (r *VotingRepository) GetVotesByVoter(voterPK string) ([]*voting.Vote, error) {
 	rows, err := r.q().Query(
-		`SELECT id, voter_pk, candidate_id, signature, message, timestamp, block_height FROM votes WHERE voter_pk = ? ORDER BY timestamp DESC`,
+		`SELECT v.id, v.voter_pk, v.candidate_id, COALESCE(vs.session_id, ''),
+		        v.signature, v.message, v.timestamp, v.block_height
+		 FROM votes v
+		 LEFT JOIN vote_sessions vs ON vs.vote_id = v.id
+		 WHERE v.voter_pk = ?
+		 ORDER BY v.timestamp DESC`,
 		voterPK,
 	)
 	if err != nil {
@@ -177,7 +251,7 @@ func (r *VotingRepository) GetVotesByVoter(voterPK string) ([]*voting.Vote, erro
 	var votes []*voting.Vote
 	for rows.Next() {
 		v := &voting.Vote{}
-		if err := rows.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight); err != nil {
+		if err := rows.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.SessionID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight); err != nil {
 			return nil, err
 		}
 		votes = append(votes, v)

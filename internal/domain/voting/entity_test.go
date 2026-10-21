@@ -21,6 +21,16 @@ func TestNewVote(t *testing.T) {
 	}
 }
 
+func TestNewSessionVote(t *testing.T) {
+	vote := NewSessionVote("voter-pk", "candidate-1", "session-1", "sig", "msg")
+	if vote.SessionID != "session-1" {
+		t.Errorf("SessionID = %v, want session-1", vote.SessionID)
+	}
+	if vote.CandidateID != "candidate-1" {
+		t.Errorf("CandidateID = %v, want candidate-1", vote.CandidateID)
+	}
+}
+
 func TestNewVoter(t *testing.T) {
 	voter := NewVoter("John")
 

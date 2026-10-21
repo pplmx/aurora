@@ -38,7 +38,13 @@ func (m *mockVotingRepo) SaveVote(*domainvoting.Vote) error                     
 func (m *mockVotingRepo) GetVote(string) (*domainvoting.Vote, error)               { return nil, nil }
 func (m *mockVotingRepo) GetVotesByCandidate(string) ([]*domainvoting.Vote, error) { return nil, nil }
 func (m *mockVotingRepo) GetVotesByVoter(string) ([]*domainvoting.Vote, error)     { return nil, nil }
-func (m *mockVotingRepo) DeleteVote(string) error                                  { return nil }
+func (m *mockVotingRepo) CountVotesBySession(_, candidateID string) (int, error) {
+	if c, ok := m.candidates[candidateID]; ok {
+		return c.VoteCount, nil
+	}
+	return 0, nil
+}
+func (m *mockVotingRepo) DeleteVote(string) error { return nil }
 
 // WithTx satisfies domainvoting.TransactableRepository; the mock has no
 // transaction state, so it returns itself.

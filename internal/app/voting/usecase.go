@@ -199,7 +199,7 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 			return err
 		}
 
-		vote := voting.NewVote(req.VoterPublicKey, req.CandidateID, signature, message)
+		vote := voting.NewSessionVote(req.VoterPublicKey, req.CandidateID, req.SessionID, signature, message)
 		vote.BlockHeight = blockHeight
 		if err := txRepo.SaveVote(vote); err != nil {
 			return fmt.Errorf("failed to save vote: %w", err)
@@ -465,8 +465,9 @@ func containsString(list []string, target string) bool {
 
 // GetResultsUseCase returns the per-candidate tally for a session from its
 // declared candidate roster, plus the total vote count (v1.23 Voting Results
-// API). This closes a CLI↔API parity gap: the CLI exposed `voting results`
-// but the REST API had no results surface.
+// API). Votes are counted from vote rows scoped to this session, not from the
+// candidate's global lifetime vote_count: a candidate reused in another
+// election must not carry those votes into this result (ISS-299).
 type GetResultsUseCase struct {
 	repo voting.Repository
 }
@@ -507,13 +508,17 @@ func (uc *GetResultsUseCase) Execute(sessionID string) (*ResultsResponse, error)
 			candidates = append(candidates, CandidateResult{ID: cid})
 			continue
 		}
+		voteCount, err := uc.repo.CountVotesBySession(session.ID, cid)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count votes for candidate %s: %w", cid, err)
+		}
 		candidates = append(candidates, CandidateResult{
 			ID:        c.ID,
 			Name:      c.Name,
 			Party:     c.Party,
-			VoteCount: c.VoteCount,
+			VoteCount: voteCount,
 		})
-		total += c.VoteCount
+		total += voteCount
 	}
 
 	return &ResultsResponse{

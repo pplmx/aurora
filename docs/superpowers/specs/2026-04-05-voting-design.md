@@ -273,6 +273,12 @@ CREATE TABLE votes (
     FOREIGN KEY (candidate_id) REFERENCES candidates(id)
 );
 
+-- 会话归属独立映射，避免重建 votes 或覆盖已写入的 session_id。
+CREATE TABLE vote_sessions (
+    vote_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL
+);
+
 -- 投票会话表
 CREATE TABLE voting_sessions (
     id TEXT PRIMARY KEY,

@@ -1,0 +1,8 @@
+fix(voting): count results per session (RIL TASK-303, ISS-299)
+
+- Persist each ballot's session in a dedicated vote_sessions mapping, so a
+  candidate reused across elections no longer inherits earlier tallies.
+- Count results from session-scoped rows in both the REST API and CLI, while
+  keeping candidates.vote_count as the global lifetime tally.
+- Add migration 000003 and regressions for legacy ballots, bootstrapped
+  schemas, two-session isolation, and CLI/API result parity.

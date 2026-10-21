@@ -204,6 +204,32 @@ func TestVotingResults_HappyPath(t *testing.T) {
 	})
 }
 
+// TestVotingResults_DoesNotLeakAcrossSessions pins ISS-299 for the CLI:
+// reusing a candidate in a second election must not report the first
+// election's ballots in the second session's result.
+func TestVotingResults_DoesNotLeakAcrossSessions(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		candID, sessionID, voterPub, voterPriv := votingFixture(t)
+
+		_, err := runCmd(t, "voting", "vote",
+			"--voter", voterPub, "--candidate", candID,
+			"--private-key", voterPriv, "--session", sessionID)
+		require.NoError(t, err)
+
+		sout, err := runCmd(t, "voting", "session", "create",
+			"--title", "Election 2027", "--candidates", candID,
+			"--start-time", "1700000000", "--end-time", "9999999999")
+		require.NoError(t, err, "reusing the candidate in a second session")
+		session2 := extractField(t, sout, "ID:")
+		require.NotEmpty(t, session2)
+
+		out, err := runCmd(t, "voting", "results", "--session", session2)
+		require.NoError(t, err)
+		assert.Contains(t, out, "Alice")
+		assert.Contains(t, out, "0 votes", "session 2 must not inherit session 1's vote")
+	})
+}
+
 func TestVotingVote_RequiresSessionFlag(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		candID, _, voterPub, voterPriv := votingFixture(t)

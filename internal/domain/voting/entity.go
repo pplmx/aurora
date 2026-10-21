@@ -13,6 +13,7 @@ type Vote struct {
 	ID             string
 	VoterPublicKey string
 	CandidateID    string
+	SessionID      string
 	Signature      string
 	Message        string
 	Timestamp      int64
@@ -29,6 +30,15 @@ func NewVote(voterPublicKey, candidateID, signature, message string) *Vote {
 		Timestamp:      time.Now().Unix(),
 		BlockHeight:    0,
 	}
+}
+
+// NewSessionVote creates a vote bound to the election session it was cast in.
+// SessionID is what makes per-session results possible when a candidate is
+// reused across elections.
+func NewSessionVote(voterPublicKey, candidateID, sessionID, signature, message string) *Vote {
+	vote := NewVote(voterPublicKey, candidateID, signature, message)
+	vote.SessionID = sessionID
+	return vote
 }
 
 // Voter represents a voter in the voting system.
