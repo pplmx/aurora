@@ -75,30 +75,31 @@ func ParseFlags(args []string) (Mode, Flags, error) {
 // Usage writes the flag surface.
 func Usage(w io.Writer, version, buildTime string) {
 	fmt.Fprintln(w, "Aurora Desktop")
-	fmt.Fprintln(w, "  Blockchain toolkit desktop shell")
+	fmt.Fprintln(w, "  "+T("desktop.help.tagline"))
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Usage:")
+	fmt.Fprintln(w, T("desktop.help.usage"))
 	fmt.Fprintln(w, "  aurora-desktop [flags] [aurora://link | lottery-export.json]")
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Examples:")
-	fmt.Fprintln(w, "  aurora-desktop                          # dashboard")
-	fmt.Fprintln(w, "  aurora-desktop aurora://lottery?id=abc  # verify that draw")
-	fmt.Fprintln(w, "  aurora-desktop draws.json               # import an export")
+	fmt.Fprintln(w, T("desktop.help.examples"))
+	fmt.Fprintln(w, T("desktop.help.example_dashboard"))
+	fmt.Fprintln(w, T("desktop.help.example_link"))
+	fmt.Fprintln(w, T("desktop.help.example_file"))
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Flags:")
-	fmt.Fprintln(w, "  -h, --help          Show this help and exit")
-	fmt.Fprintln(w, "      --web-root DIR  Serve the web UI from DIR instead of the copy")
-	fmt.Fprintln(w, "                      embedded in this binary (for UI development)")
-	fmt.Fprintln(w, "      --data-dir DIR  Directory holding aurora.db (default: per-user data dir)")
-	fmt.Fprintln(w, "  -v, --version       Show version information and exit")
+	fmt.Fprintln(w, T("desktop.help.flags"))
+	fmt.Fprintln(w, T("desktop.help.help_flag"))
+	fmt.Fprintln(w, T("desktop.help.web_root_flag"))
+	fmt.Fprintln(w, T("desktop.help.web_root_cont"))
+	fmt.Fprintln(w, T("desktop.help.data_dir_flag"))
+	fmt.Fprintln(w, T("desktop.help.version_flag"))
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "Version: %s\nBuild time: %s\nGo: %s\n", version, buildTime, runtime.Version())
+	fmt.Fprintf(w, "%s: %s\n%s: %s\n%s: %s\n",
+		T("app.version"), version, T("app.build_time"), buildTime, T("app.go_version"), runtime.Version())
 }
 
 // VersionText renders the version block for --version.
 func VersionText(version, buildTime string) string {
-	return fmt.Sprintf("Aurora Desktop\nVersion: %s\nBuild time: %s\nGo: %s\n",
-		version, buildTime, runtime.Version())
+	return fmt.Sprintf("Aurora Desktop\n%s: %s\n%s: %s\n%s: %s\n",
+		T("app.version"), version, T("app.build_time"), buildTime, T("app.go_version"), runtime.Version())
 }
 
 // ForwardedPaths returns the --data-dir and --web-root values of a launch that

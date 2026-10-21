@@ -131,7 +131,8 @@ func (s *Shell) OpenURL(raw string) {
 	}
 	in, ok := ParseIntent(raw)
 	if !ok || in.File != "" {
-		s.reportError("Aurora could not open that link", fmt.Errorf("%s is not an aurora:// link to a page", raw))
+		s.reportError(T("desktop.error.open_link_title"),
+			fmt.Errorf(T("desktop.error.open_link_message"), raw))
 		return
 	}
 	s.Navigate(in)
@@ -150,7 +151,7 @@ func (s *Shell) OpenURL(raw string) {
 func (s *Shell) OpenFile(path string) {
 	result, err := ImportLotteryFile(s.meta, path)
 	if err != nil {
-		s.reportError("Import failed", err)
+		s.reportError(T("desktop.error.import_failed"), err)
 		return
 	}
 	s.reportImport(path, result)
@@ -183,10 +184,8 @@ func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
 	if conflict := s.pathConflict(args, workDir); conflict != "" {
 		// The message stands on its own: Linux shows the message box without
 		// the title, so "quit it before ..." alone would not say what "it" is.
-		s.reportError("This Aurora is already running", errors.New(
-			"Aurora is already running with a different "+conflict+
-				". This window keeps the data directory and Web UI it started with; "+
-				"quit Aurora first to launch with another one."))
+		s.reportError(T("desktop.error.already_running_title"),
+			errors.New(TFormat("desktop.error.already_running_message", conflict)))
 		// MyGo runs deliverArgs right after this callback regardless of what
 		// we did, so the refused launch's links would navigate on their own.
 		// Own those echoes: a refusal that still opened the page would not be
@@ -328,8 +327,8 @@ func (s *Shell) Navigate(in Intent) {
 func (s *Shell) ImportDropped(paths []string) {
 	for _, path := range paths {
 		if !isLotteryDocument(path) {
-			s.reportError("Unsupported file",
-				fmt.Errorf("%s is not an Aurora lottery export (.json); nothing was imported", filepath.Base(path)))
+			s.reportError(T("desktop.error.unsupported_file_title"),
+				fmt.Errorf(T("desktop.error.unsupported_file_message"), filepath.Base(path)))
 			continue
 		}
 		s.OpenFile(path)

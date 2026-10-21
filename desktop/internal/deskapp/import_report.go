@@ -1,8 +1,6 @@
 package deskapp
 
 import (
-	"fmt"
-
 	"github.com/egoist/mygo"
 	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
 )
@@ -17,14 +15,11 @@ import (
 // find the offending records in the file.
 func importReport(result lotteryapp.ImportResult, path string) (title, message, detail string) {
 	if len(result.Rejected) > 0 {
-		return "Import partially failed",
-			fmt.Sprintf("Imported %d of %d lottery records (failed: %d).", result.Imported, result.Total, len(result.Rejected)),
-			fmt.Sprintf("Rejected record indices (0-based): %v\n\n"+
-				"A record is rejected when it fails validation, when its ID already exists "+
-				"(re-importing an export is refused rather than overwriting the stored draw), "+
-				"or when it cannot be written.\n\n%s", result.Rejected, path)
+		return T("desktop.dialog.import_partial_title"),
+			TFormat("desktop.dialog.import_partial_message", result.Imported, result.Total, len(result.Rejected)),
+			TFormat("desktop.dialog.import_rejected_detail", result.Rejected, path)
 	}
-	return "Lotteries imported", fmt.Sprintf("%d draws imported.", result.Imported), path
+	return T("desktop.dialog.imported_title"), TFormat("desktop.dialog.imported_message", result.Imported), path
 }
 
 // importReportType is the dialog severity matching importReport: a partial

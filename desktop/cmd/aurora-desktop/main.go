@@ -8,6 +8,11 @@ import (
 	"runtime"
 
 	"github.com/egoist/mygo"
+	// MyGo's own strings (menu roles, native dialog buttons) in Chinese. The
+	// app declares the languages below with SetLanguages, and without the
+	// catalog imported MyGo would fall back to English and log a warning.
+	_ "github.com/egoist/mygo/locales/zh-Hans"
+	_ "github.com/egoist/mygo/locales/zh-Hant"
 	"github.com/pplmx/aurora/desktop/internal/deskapp"
 	"github.com/pplmx/aurora/desktop/resources"
 )
@@ -42,6 +47,12 @@ func userDataDir() (string, error) {
 }
 
 func main() {
+	// Aurora's own strings (menus, dialogs, --help) go through internal/i18n,
+	// which has to be initialized before the first one is read: MyGo picks its
+	// own language from the user's, and FollowAppLocale below pins Aurora's
+	// translator to it so one window does not mix two languages.
+	deskapp.InitLocale()
+
 	mode, opts, err := deskapp.ParseFlags(os.Args[1:])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -56,6 +67,20 @@ func main() {
 		fmt.Print(deskapp.VersionText(version(), BuildTime))
 		return
 	}
+	// Declare the languages this build ships - MyGo's own strings and Aurora's
+	// both - before anything can show one. MyGo translates its menu roles and
+	// the native dialog buttons (OK/Cancel) in the language the app shows, and
+	// can only pick Chinese if it knows the app is written in it. Setting this
+	// after Start left the startup-failure dialog - the one dialog a broken
+	// start shows - with an English "OK" and English menu roles, because a
+	// failed Start returns before the call was reached.
+	//
+	// Both Chinese catalogs are declared so a zh-TW/zh-HK reader keeps
+	// Chinese: MyGo answers "zh-Hant" for those and says its own roles in
+	// Traditional, while Aurora's strings come from internal/i18n, which has
+	// one Chinese table (Simplified). Declaring Simplified only made MyGo
+	// match nothing and answer "en", so the whole window went English.
+	mygo.App.SetLanguages("en", "zh-Hans", "zh-Hant")
 
 	// Name the app before ANYTHING asks MyGo about identity. Two things depend
 	// on it and would otherwise disagree between runs:
@@ -97,6 +122,9 @@ func main() {
 		failStartup(err)
 	}
 	defer func() { _ = rt.Close() }()
+	// Start loaded the config; a configured [i18n] locale now applies to the
+	// window too, not only to the CLI of the same build.
+	deskapp.ApplyConfiguredLocale()
 
 	// Serve the very same router cmd/api serves, but over the app's own
 	// scheme instead of a TCP listener.
@@ -170,6 +198,9 @@ func main() {
 	})
 
 	mygo.App.WhenReady(func() {
+		deskapp.FollowAppLocale(func() {
+			mygo.App.SetMenu(deskapp.NewMenu(meta))
+		})
 		openMainWindow(shell, opts)
 		// A lottery export named on the command line is imported once the app
 		// is ready: the storage layer is already open, and the result dialog
@@ -259,8 +290,8 @@ func failStartup(err error) {
 func startupFailureDialog(err error) mygo.MessageOptions {
 	return mygo.MessageOptions{
 		Type:    mygo.MessageError,
-		Title:   "Aurora could not start",
-		Message: "Aurora did not open its window.",
+		Title:   deskapp.T("desktop.startup.title"),
+		Message: deskapp.T("desktop.startup.message"),
 		Detail:  err.Error(),
 	}
 }
