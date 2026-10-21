@@ -41,25 +41,29 @@ func Init() {
 
 	if cfg.LogPath != "" && cfg.LogPath != "./log" {
 		// Try to use file
-		if normPath, err := utils.NormalizePath(cfg.LogPath); err != nil {
+		//
+		// Create the directory BEFORE normalizing it. NormalizePath requires the
+		// target to exist, so validating first made every first run fall back to
+		// console - including this repository's own shipped default
+		// (config/aurora.toml sets log.path = "./logs/"), whose directory is
+		// only created by the very call that never ran. A desktop app has no
+		// console to fall back to, so that lost the whole log.
+		if err := os.MkdirAll(cfg.LogPath, 0755); err != nil {
+			fallbackToConsole(fmt.Sprintf("Failed to create log directory: %v", err))
+		} else if normPath, err := utils.NormalizePath(cfg.LogPath); err != nil {
 			fallbackToConsole(fmt.Sprintf("Failed to normalize log path: %v", err))
 		} else {
-			// Ensure directory exists
-			if err := os.MkdirAll(normPath, 0755); err != nil {
-				fallbackToConsole(fmt.Sprintf("Failed to create log directory: %v", err))
+			f, err := os.OpenFile(normPath+"/aurora.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				fallbackToConsole(fmt.Sprintf("Failed to open log file: %v", err))
 			} else {
-				f, err := os.OpenFile(normPath+"/aurora.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				if err != nil {
-					fallbackToConsole(fmt.Sprintf("Failed to open log file: %v", err))
-				} else {
-					// Close any prior handle before replacing it (repeated
-					// Init() calls used to leak the previous file).
-					Close()
-					logFile = f
-					output = zerolog.New(f).With().Timestamp().Logger()
-					Log = output
-					return
-				}
+				// Close any prior handle before replacing it (repeated
+				// Init() calls used to leak the previous file).
+				Close()
+				logFile = f
+				output = zerolog.New(f).With().Timestamp().Logger()
+				Log = output
+				return
 			}
 		}
 	}

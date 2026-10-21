@@ -85,14 +85,23 @@ func TestInit_FileLogger(t *testing.T) {
 	require.Contains(t, string(data), "file-logger-debug")
 }
 
-// TestInit_FileLoggerFallback_NormalizePathCovered covers the fallback path
-// for an invalid log path (does not exist, so NormalizePath fails): Init must
-// not fail and must fall back to the console logger.
-func TestInit_FileLoggerFallback_NonExistentPath(t *testing.T) {
-	setLogConfig(t, "info", filepath.Join(t.TempDir(), "no-such-dir"))
+// TestInit_FileLoggerCreatesMissingDirectory is the first-run defect: Init
+// validated the log directory with NormalizePath (which requires it to exist)
+// before creating it, so a fresh checkout - and this repository's own
+// config/aurora.toml default `log.path = "./logs/"` - fell back to the console
+// logger and wrote no file at all. A packaged desktop app has no console, so
+// the entire log was lost.
+func TestInit_FileLoggerCreatesMissingDirectory(t *testing.T) {
+	logPath := filepath.Join(t.TempDir(), "no-such-dir", "logs")
+	setLogConfig(t, "info", logPath)
 
 	Init()
-	require.NotNil(t, Log)
+	Info().Msg("first-run-marker")
+
+	require.DirExists(t, logPath, "Init must create the configured log directory")
+	data, err := os.ReadFile(filepath.Join(logPath, "aurora.log"))
+	require.NoError(t, err, "the file logger must be used, not the console fallback")
+	require.Contains(t, string(data), "first-run-marker")
 }
 
 // TestInit_FileLoggerFallback_MkdirFailure covers the fallback path where the
