@@ -42,7 +42,7 @@
                 </form>
                 <div x-show="result" class="result" aria-live="polite" x-text="result"></div>
             </section>
-            <section class="history">
+            <section class="history" id="verify">
                 <h2>Lottery History</h2>
                 <div x-show="loading">Loading...</div>
                 <table x-show="!loading && history.length > 0">
