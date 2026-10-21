@@ -27,6 +27,10 @@ func T(key string) string { return i18n.GetText(key) }
 // TFormat is T for a key holding fmt verbs.
 func TFormat(key string, args ...any) string { return i18n.GetTextF(key, args...) }
 
+// appLocale is the language MyGo shows. It is a variable so a test can build
+// the menu without the running backend App.Locale asks for.
+var appLocale = func() string { return mygo.App.Locale() }
+
 // auroraLocale maps a BCP 47 tag - what MyGo reports, e.g. "zh-Hans",
 // "zh-Hant-TW", "en-GB" - onto one of the locales internal/i18n ships.
 //
@@ -110,11 +114,18 @@ func syncLocale(tag string) bool {
 // NewMenu builds it, so the caller rebuilds the menu. It must be called once
 // the app is ready (App.Locale needs the running backend).
 func FollowAppLocale(onChange func()) {
+	followLocale(appLocale, mygo.App.OnLocaleChanged, onChange)
+}
+
+// followLocale is FollowAppLocale with its two inputs as parameters, so a
+// test can drive a language change without a running backend (App.Locale and
+// OnLocaleChanged both need one).
+func followLocale(current func() string, listen func(func(string)) func(), onChange func()) {
 	apply := func(tag string) {
 		if syncLocale(tag) && onChange != nil {
 			onChange()
 		}
 	}
-	apply(mygo.App.Locale())
-	mygo.App.OnLocaleChanged(apply)
+	apply(current())
+	listen(apply)
 }

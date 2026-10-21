@@ -211,3 +211,72 @@ func TestFlagErrorsFollowTheLocale(t *testing.T) {
 		assert.Contains(t, err.Error(), "意外参数")
 	})
 }
+
+// TestLanguageMenuSwitchesAndTicks covers the run-time switcher: MyGo
+// persists SetLocale and relabels its own roles, and FollowAppLocale rebuilds
+// Aurora's labels; the radio group has to show which language is in effect
+// after that rebuild, because a new menu starts with nothing ticked.
+func TestLanguageMenuSwitchesAndTicks(t *testing.T) {
+	original := appLocale
+	t.Cleanup(func() { appLocale = original })
+
+	appLocale = func() string { return "zh-Hans" }
+	menu := NewMenu(About{})
+
+	// Each item says its language in itself, so it reads the same whatever
+	// language the app is in (MyGo's own convention for a language menu).
+	withLocale(t, "en", func() {
+		menu = NewMenu(About{})
+	})
+	require.NotNil(t, menu.ItemByID(languageSimplifiedID))
+	require.NotNil(t, menu.ItemByID(languageTraditionalID))
+	assert.Equal(t, "简体中文", menu.ItemByID(languageSimplifiedID).Label)
+
+	MarkLanguage(menu)
+	assert.True(t, menu.ItemByID(languageSimplifiedID).IsChecked())
+	assert.False(t, menu.ItemByID(languageEnglishID).IsChecked())
+
+	appLocale = func() string { return "en" }
+	MarkLanguage(menu)
+	assert.True(t, menu.ItemByID(languageEnglishID).IsChecked())
+	assert.False(t, menu.ItemByID(languageSimplifiedID).IsChecked(),
+		"a radio group must not leave two languages ticked")
+
+	// A pseudo locale (en-XA, a translation test) matches no item.
+	appLocale = func() string { return "en-XA" }
+	MarkLanguage(menu)
+	for _, id := range []string{languageEnglishID, languageSimplifiedID, languageTraditionalID} {
+		assert.False(t, menu.ItemByID(id).IsChecked(), "%s must not be ticked for en-XA", id)
+	}
+}
+
+// TestLanguageSwitchRebuildsTheMenu is the wiring a live window would use:
+// MyGo hears SetLocale, FollowAppLocale's listener follows it, and the menu
+// callback rebuilds the bar. The translator and the menu must move together,
+// or the rebuilt menu is built in the old language.
+func TestLanguageSwitchRebuildsTheMenu(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	current := "en"
+	var heard func(string)
+	rebuilds := 0
+	followLocale(
+		func() string { return current },
+		func(fn func(string)) func() { heard = fn; return func() {} },
+		func() { rebuilds++ },
+	)
+	require.Equal(t, 0, rebuilds, "the first sync is not a change")
+
+	current = "zh-Hans"
+	require.NotNil(t, heard)
+	heard(current)
+	assert.Equal(t, "zh", tr.GetLocale(), "the translator must follow MyGo")
+	assert.Equal(t, 1, rebuilds, "the menu must be rebuilt in the new language")
+
+	// A second listener call for the same language is not another change:
+	// rebuilding on every event would make the menu flicker for nothing.
+	heard(current)
+	assert.Equal(t, 1, rebuilds)
+}

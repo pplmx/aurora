@@ -199,7 +199,9 @@ func main() {
 	mygo.App.WhenReady(func() {
 		deskapp.FollowAppLocale(func() {
 			mygo.App.SetMenu(deskapp.NewMenu(meta))
+			deskapp.MarkLanguage(mygo.App.Menu())
 		})
+		deskapp.MarkLanguage(mygo.App.Menu())
 		openMainWindow(shell, opts)
 		// A lottery export named on the command line is imported once the app
 		// is ready: the storage layer is already open, and the result dialog
