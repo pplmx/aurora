@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"net"
 	"strings"
 	"testing"
 
@@ -109,13 +110,20 @@ func TestResolveAddr_Precedence(t *testing.T) {
 		{"empty opts", &serverOptions{}, "0.0.0.0:8080"},
 		{"host only", &serverOptions{host: "127.0.0.1", hostSet: true}, "127.0.0.1:8080"},
 		{"port only", &serverOptions{port: 9090, portSet: true}, "0.0.0.0:9090"},
-		{"both", &serverOptions{host: "::1", hostSet: true, port: 9090, portSet: true}, "::1:9090"},
+		{"IPv6 host", &serverOptions{host: "::1", hostSet: true, port: 9090, portSet: true}, "[::1]:9090"},
+		{"bracketed IPv6 host", &serverOptions{host: "[::1]", hostSet: true, port: 9090, portSet: true}, "[::1]:9090"},
 		{"set flag keeps config port", &serverOptions{host: "127.0.0.1", hostSet: true}, "127.0.0.1:8080"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := resolveAddr(tt.opts, cfg); got != tt.want {
+			got := resolveAddr(tt.opts, cfg)
+			if got != tt.want {
 				t.Errorf("resolveAddr(%v, cfg) = %q, want %q", tt.opts, got, tt.want)
+			}
+			if host, port, err := net.SplitHostPort(got); err != nil {
+				t.Errorf("resolveAddr(%v, cfg) = %q, not a valid listen address: %v", tt.opts, got, err)
+			} else if host == "" || port == "" {
+				t.Errorf("resolveAddr(%v, cfg) = %q, split into empty host/port", tt.opts, got)
 			}
 		})
 	}

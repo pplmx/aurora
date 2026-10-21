@@ -6,10 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -123,7 +126,14 @@ func resolveAddr(opts *serverOptions, cfg *config.Config) string {
 			port = opts.port
 		}
 	}
-	return fmt.Sprintf("%s:%d", host, port)
+	// net.JoinHostPort brackets IPv6 literals (::1 -> [::1]:9090); plain
+	// host:port concatenation produces an address ListenAndServe cannot bind.
+	// Accept an already-bracketed host as well, since operators commonly copy
+	// the [addr]:port spelling from logs or documentation.
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		host = host[1 : len(host)-1]
+	}
+	return net.JoinHostPort(host, strconv.Itoa(port))
 }
 
 // printUsage writes the command's flag surface. Kept English: the server has
