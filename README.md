@@ -255,6 +255,12 @@ just desktop-test                                  # 桌面模块的测试（jus
   `SetLanguages` 放在 `Start` 之前，因为启动失败会提前返回——否则失败弹窗
   只有一个英文 “OK”。`[i18n] locale` 配置（`$LANG` 未设置时的兜底）现在
   同样作用于窗口，与 CLI 一致。
+  Help → Language 可在运行时切换（跟随系统 / English / 简体中文 / 繁體中文）：
+  MyGo 会记住选择（macOS 写进系统设置，其他平台写用户数据目录），并翻译
+  自己的 role 菜单项；Aurora 的菜单项由 `OnLocaleChanged` 监听器重建。
+  各语言项用自身语言书写，当前项带单选勾；"跟随系统" 对应
+  `SetLocale("")`。构建菜单时不能读 `App.Locale()`（`Run` 之前它会阻塞在
+  主线程队列上），所以勾选状态在菜单装好之后由 `MarkLanguage` 设置。
 - **深链**：`aurora://lottery?id=<draw>` 由 `mygo.config.ts` 的
   `urlSchemes` 注册；Linux/Windows 每次启动还会调用
   `App.RegisterURLScheme`（无需安装器）。链接落到对应页面并**自动滚动**到
