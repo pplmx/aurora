@@ -125,6 +125,27 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   `quitsOnLastWindowClosed`, and both the startup and reopen paths build the
   window through `openMainWindow` (verified with a temporary MyGo probe under
   Xvfb that an OnWindowAllClosed listener is harmless on Linux).
+  The last pass of the round read MyGo's locale model against the shell and
+  found the window bilingual: MyGo translates the menu items that carry a
+  role, but every label Aurora writes itself ("Export Lotteries...", "Back Up
+  Database...", the About item) and every dialog was hardcoded English, so a
+  zh-CN session showed 文件/编辑/显示/窗口/帮助 beside English app items
+  (measured under Xvfb with LANG=zh_CN). The shell now reads its own strings
+  from internal/i18n (`deskapp.T`/`TFormat`, ~55 new `desktop.*` keys in en and
+  zh), `FollowAppLocale` points that translator at `App.Locale()` and rebuilds
+  the menu on `OnLocaleChanged`, and main initializes the translator before
+  anything can print. Linking BOTH MyGo catalogs was not optional: declaring
+  only `zh-Hans` made `zh-TW`/`zh-HK` match nothing, so MyGo answered "en" and
+  the whole window went English (reproduced, then fixed by declaring
+  `zh-Hant` too; the menu screenshot under zh_TW is now Chinese). `SetLanguages`
+  moved before `Start` because a failed start returns early — the
+  startup-failure dialog, the one dialog such a start shows, still had an
+  English "OK" button until then (verified live: it now reads 好). The
+  `[i18n] locale` config knob, previously CLI-only, reaches the window through
+  `ApplyConfiguredLocale`; `$LANG` still wins, as on the CLI. Fault injection:
+  hardcoding the two export/import labels turns
+  `TestMenuLabelsFollowTheLocale` red, and dropping the `T()` call from
+  `importReport` turns `TestImportReportFollowsTheLocale` red.
   Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree

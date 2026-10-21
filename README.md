@@ -243,6 +243,18 @@ just desktop-test                                  # 桌面模块的测试（jus
   只在非 macOS 调 `Quit`），点 Dock 图标（`OnActivate` 且无可见窗口）会重建
   窗口；Linux/Windows 仍是关窗即退出。两条路径共用 `openMainWindow`，重开的
   窗口不会缺图标或拖放处理。
+- **界面语言跟随系统**：MyGo 只翻译带 role 的菜单项（文件/编辑/显示/窗口/
+  帮助、退出、原生对话框的“好/取消”），Aurora 自己的菜单项、文件选择器标题、
+  结果/错误弹窗、启动失败弹窗和 `--help`/`--version` 都由
+  `internal/i18n` 提供（`desktop.*` 键，en/zh 两套）。启动时
+  `FollowAppLocale` 把翻译器对齐到 `App.Locale()`，并监听
+  `OnLocaleChanged` 在运行时切换语言后重建菜单；否则同一条菜单栏会一半中文
+  一半英文（实测 zh-CN 下 MyGo 的“文件”旁边是 “Export Lotteries...”）。
+  MyGo 的两套中文目录（`zh-Hans`、`zh-Hant`）都必须链接：只声明简体时
+  zh-TW/zh-HK 匹配不到任何语言，MyGo 会退回英文，整个窗口变英文。
+  `SetLanguages` 放在 `Start` 之前，因为启动失败会提前返回——否则失败弹窗
+  只有一个英文 “OK”。`[i18n] locale` 配置（`$LANG` 未设置时的兜底）现在
+  同样作用于窗口，与 CLI 一致。
 - **深链**：`aurora://lottery?id=<draw>` 由 `mygo.config.ts` 的
   `urlSchemes` 注册；Linux/Windows 每次启动还会调用
   `App.RegisterURLScheme`（无需安装器）。链接落到对应页面并**自动滚动**到
