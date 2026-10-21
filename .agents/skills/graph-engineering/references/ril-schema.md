@@ -78,6 +78,13 @@ Notes:
 - Decisions are immutable except `status`; evidence is append-only.
 - Commit messages reference node ids, e.g.
   `fix(core): ... (RIL TASK-001, ISS-001)`.
+- Do not commit `graph.json` after every node or edge update. It is process
+  record, not project output: accumulate roughly 10–30 graph-worthy changes
+  (or one milestone / consistency check), then make one `chore(graph): ...`
+  snapshot commit. Code, test, config and user-doc commits stay focused on
+  their own logical unit. Commit the graph with a change only when a build,
+  test, release, or cross-environment handoff actually depends on it, and say
+  why in the commit message.
 - **`tasks --top K` / `tasks` with zero `status=active` tasks prints NOTHING
   and exits 0.** That is not a CLI failure — it means the graph has no active
   task, which is the signal to enter deep-dive mode (SKILL §8 Deep-Dive) rather
