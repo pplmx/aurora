@@ -56,7 +56,7 @@ func main() {
 	mode, opts, err := deskapp.ParseFlags(os.Args[1:])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		fmt.Fprintln(os.Stderr, `Run "aurora-desktop --help" for usage.`)
+		fmt.Fprintln(os.Stderr, deskapp.T("desktop.help.run_help"))
 		os.Exit(1)
 	}
 	switch mode {
@@ -95,8 +95,7 @@ func main() {
 	// NewWindow panics when the platform has none, and a raw panic with a Go
 	// stack trace is useless to a user who is missing a system package.
 	if !mygo.WebViewAvailable() {
-		fmt.Fprintln(os.Stderr, "aurora-desktop: no system webview available; "+
-			"install WebKitGTK (libwebkit2gtk-4.1-0 on Debian/Ubuntu) to show the UI")
+		fmt.Fprintln(os.Stderr, "aurora-desktop: "+deskapp.T("desktop.error.no_webview"))
 		os.Exit(1)
 	}
 

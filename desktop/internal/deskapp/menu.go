@@ -173,10 +173,10 @@ func importLotteries(meta About, win *mygo.Window) {
 // benefit, and each action is a one-shot file operation.
 func openLotteryRepo(meta About) (lottery.Repository, func(), error) {
 	if meta.DBPath == "" {
-		return nil, nil, fmt.Errorf("no database path")
+		return nil, nil, fmt.Errorf("%s", T("desktop.error.no_database_path"))
 	}
 	if _, err := os.Stat(meta.DBPath); err != nil {
-		return nil, nil, fmt.Errorf("database %s: %w", filepath.Base(meta.DBPath), err)
+		return nil, nil, fmt.Errorf(T("desktop.error.database"), filepath.Base(meta.DBPath), err)
 	}
 	repo, err := sqlite.NewLotteryRepository(meta.DBPath)
 	if err != nil {

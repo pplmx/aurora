@@ -2,6 +2,7 @@ package deskapp
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -176,5 +177,33 @@ func TestShowErrorUsesTheLocalizedReason(t *testing.T) {
 		showError(nil, T("desktop.error.backup_failed"), errors.New("boom"))
 		assert.Equal(t, "备份失败", got.Title)
 		assert.Equal(t, "boom", got.Message)
+	})
+}
+
+// TestStartupErrorsFollowTheLocale covers the reasons a start fails, which
+// end up in the startup-failure dialog: a translated title over an English
+// reason is still half a message, and the reason is the part the user has to
+// act on.
+func TestStartupErrorsFollowTheLocale(t *testing.T) {
+	withLocale(t, "zh", func() {
+		dir := t.TempDir()
+
+		_, err := ResolveWebRoot(filepath.Join(dir, "missing"), "")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Web 目录")
+		assert.Contains(t, err.Error(), "index.html", "the file name stays literal")
+
+		_, err = ResolveWebRoot("", "")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "找不到 Web 界面")
+	})
+}
+
+// TestFlagErrorsFollowTheLocale pins the first thing a mistaken launch prints.
+func TestFlagErrorsFollowTheLocale(t *testing.T) {
+	withLocale(t, "zh", func() {
+		_, _, err := ParseFlags([]string{"extra"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "意外参数")
 	})
 }
