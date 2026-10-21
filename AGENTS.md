@@ -13,6 +13,9 @@ just build-current  # Build for the current platform (./aurora)
 just api          # Build the standalone REST API + Web server (./aurora-api, -X-injected version); $ ./aurora-api --help
                   #   supports -h/--help, -v/--version, -H/--host, -p/--port (listen addr
                   #   precedence: flag > AURORA_SERVER_HOST/PORT env > [server] config > default)
+just desktop      # Build the MyGo desktop shell (./aurora-desktop); nested module desktop/,
+                  #   needs Go 1.27 + a native cgo build (WebKitGTK / WebView2 / WKWebView)
+just desktop-run  # Build then launch the window (embedded Web UI; --web-root for UI dev)
 just run          # Run locally
 ```
 
@@ -47,6 +50,10 @@ just stop         # Stop containers: docker compose down
 - **NFT module**: `internal/domain/nft/`, `internal/app/nft/`, `internal/ui/nft/`
 - **Token (FT) module**: `internal/domain/token/`, `internal/app/token/`, `internal/ui/token/`
 - **Oracle module**: `internal/domain/oracle/`, `internal/app/oracle/`, `internal/ui/oracle/`
+- **Desktop shell**: `desktop/` (nested Go module; `cmd/aurora-desktop` + `internal/deskapp`)
+  hosts the same `internal/api` router in a MyGo window over the `aurora://` scheme,
+  serving the UI embedded by the root package's `embed.go` (ships `./aurora-desktop`;
+  data defaults to `os.UserConfigDir()/aurora`, override with `--data-dir`)
 - **Core logic**: `internal/domain/blockchain/`, `internal/i18n/`, `internal/utils/`
 - **Tests**: `e2e/*_test.go` (E2E), `internal/*/ *_test.go` (unit)
 - **Config**: `config/aurora.toml` (Viper loads from `$HOME` or `./config/`)
