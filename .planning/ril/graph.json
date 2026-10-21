@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T05:22:13+00:00",
+  "updated_at": "2026-10-21T05:48:40+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12074,6 +12074,267 @@
       "source": "desktop/internal/deskapp/import_report_test.go (fault injection: path removed from the partial-import detail)",
       "summary": "Syntax/behavior test goes red (detail does not contain \"/tmp/draws.json\"); restored file: go test -race ./... in desktop and core both green",
       "confidence": 0.95
+    },
+    "ISS-281": {
+      "id": "ISS-281",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:01+00:00",
+      "updated_at": "2026-10-21T05:48:01+00:00",
+      "touched_round": 155,
+      "title": "Shell dialogs lost their severity",
+      "severity": 0.5,
+      "description": "showMessage hard-coded mygo.MessageInfo, so a failed import/unsupported drop/bad link reported as a notice while the menu used an error dialog; importReportType was computed then dropped."
+    },
+    "ISS-282": {
+      "id": "ISS-282",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:01+00:00",
+      "updated_at": "2026-10-21T05:48:01+00:00",
+      "touched_round": 155,
+      "title": "A second launch with another --data-dir is silently ignored",
+      "severity": 0.6,
+      "description": "HandleLaunchArgs skipped all flags, so aurora-desktop --data-dir X against a running instance showed the first instance data with no message."
+    },
+    "ISS-283": {
+      "id": "ISS-283",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:01+00:00",
+      "updated_at": "2026-10-21T05:48:01+00:00",
+      "touched_round": 155,
+      "title": "A deep link forwarded during startup is dropped",
+      "severity": 0.5,
+      "description": "Navigate returned when no window existed yet, so a link arriving between RequestSingleInstanceLock and WhenReady was lost and the dashboard opened instead."
+    },
+    "ISS-284": {
+      "id": "ISS-284",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:01+00:00",
+      "updated_at": "2026-10-21T05:48:01+00:00",
+      "touched_round": 155,
+      "title": "The scheme transport wrapper drops Flush/Hijack/Unwrap",
+      "severity": 0.5,
+      "description": "cspDroppingWriter implemented only Header/Write/WriteHeader, so streamed responses and http.ResponseController lost their interfaces on aurora:// despite middleware promising to preserve them."
+    },
+    "ISS-285": {
+      "id": "ISS-285",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:01+00:00",
+      "updated_at": "2026-10-21T05:48:01+00:00",
+      "touched_round": 155,
+      "title": "An unusable --web-root silently falls back to another UI copy",
+      "severity": 0.6,
+      "description": "ResolveWebRoot kept trying executable/cwd/server.webRoot after an explicit path failed, so a typo rendered the wrong pages with no warning."
+    },
+    "TASK-285": {
+      "id": "TASK-285",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:07+00:00",
+      "updated_at": "2026-10-21T05:48:07+00:00",
+      "touched_round": 155,
+      "title": "Carry the message type from every caller to the dialog",
+      "category": "maintainability",
+      "severity": 0.5,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "Shell.report takes mygo.MessageType; reportError=error, reportImport=importReportType; menu dialogs build through showMessage; messageBox is the testable seam."
+    },
+    "TASK-286": {
+      "id": "TASK-286",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:07+00:00",
+      "updated_at": "2026-10-21T05:48:07+00:00",
+      "touched_round": 155,
+      "title": "Refuse a second launch that names another data directory",
+      "category": "correctness",
+      "severity": 0.6,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "ForwardedPaths scans --data-dir/--web-root anywhere in the forwarded argv; pathConflict compares against the running instance (relative to the launcher dir) and aborts the launch when they differ."
+    },
+    "TASK-287": {
+      "id": "TASK-287",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:07+00:00",
+      "updated_at": "2026-10-21T05:48:07+00:00",
+      "touched_round": 155,
+      "title": "Hold a deep link until the window exists",
+      "category": "correctness",
+      "severity": 0.5,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "Navigate stores the newest intent when win is nil and Attach loads it; a destroyed window stays a no-op."
+    },
+    "TASK-288": {
+      "id": "TASK-288",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:07+00:00",
+      "updated_at": "2026-10-21T05:48:07+00:00",
+      "touched_round": 155,
+      "title": "Preserve Flusher/Hijacker/Unwrap on the scheme transport",
+      "category": "stability",
+      "severity": 0.5,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "Forward the optional ResponseWriter interfaces from cspDroppingWriter and strip CSP before flushing."
+    },
+    "TASK-289": {
+      "id": "TASK-289",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:07+00:00",
+      "updated_at": "2026-10-21T05:48:07+00:00",
+      "touched_round": 155,
+      "title": "Make an explicit --web-root authoritative",
+      "category": "correctness",
+      "severity": 0.6,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "ResolveWebRoot fails on an explicit path without index.html instead of continuing through the fallback candidates."
+    },
+    "CHG-283": {
+      "id": "CHG-283",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:48:15+00:00",
+      "updated_at": "2026-10-21T05:48:26+00:00",
+      "touched_round": 155,
+      "commit": "24e5b30de875b5b705ca9e766404b22734a0e235",
+      "summary": "Shell.report carries mygo.MessageType; reportError=MessageError; reportImport=importReportType; menu dialogs via showMessage; messageBox seam + two tests"
+    },
+    "CHG-284": {
+      "id": "CHG-284",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:48:15+00:00",
+      "updated_at": "2026-10-21T05:48:26+00:00",
+      "touched_round": 155,
+      "commit": "54f3f993eebe1e339101b6cb3956e4cb9070ab6b",
+      "summary": "ForwardedPaths + Shell.pathConflict: a launch naming another --data-dir/--web-root is reported and acted on nowhere"
+    },
+    "CHG-285": {
+      "id": "CHG-285",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:48:15+00:00",
+      "updated_at": "2026-10-21T05:48:26+00:00",
+      "touched_round": 155,
+      "commit": "9b8238f8e27e2ca4fee4f972b1982d8c4af4340c",
+      "summary": "Navigate keeps the newest intent while win==nil; Attach loads it once the window exists"
+    },
+    "CHG-286": {
+      "id": "CHG-286",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:48:15+00:00",
+      "updated_at": "2026-10-21T05:48:26+00:00",
+      "touched_round": 155,
+      "commit": "9317e9717ff28d39b6ef2a3f31f3f2dea95eb3f4",
+      "summary": "cspDroppingWriter forwards Flush/Hijack/Unwrap and strips CSP on the flush path; TestStripCSPPreservesStreaming"
+    },
+    "CHG-287": {
+      "id": "CHG-287",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:48:15+00:00",
+      "updated_at": "2026-10-21T05:48:26+00:00",
+      "touched_round": 155,
+      "commit": "08c30f6110bc25958ac7847edd2f856e2bd045ea",
+      "summary": "ResolveWebRoot returns an error for an unusable explicit path instead of falling through to another copy"
+    },
+    "CHG-288": {
+      "id": "CHG-288",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:26+00:00",
+      "updated_at": "2026-10-21T05:48:26+00:00",
+      "touched_round": 155,
+      "commit": "c4c8b5f6fde59f7db394dcf5669ec0ccb07b5a4e",
+      "summary": "A refused launch owes the echoes of its links, so MyGo re-delivery cannot navigate the page the refusal just declined"
+    },
+    "EV-073": {
+      "id": "EV-073",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:32+00:00",
+      "updated_at": "2026-10-21T05:48:32+00:00",
+      "touched_round": 155,
+      "source": "import_report_test.go: TestShellReportsWithTheMenuSeverity + TestShowMessageForwardsTheSeverity (fault injection: hard-code MessageInfo in showMessage)",
+      "summary": "Hard-coding MessageInfo turns TestShowMessageForwardsTheSeverity red (expected error, got info); shell tests alone stayed green, which is why the dialog seam is tested separately",
+      "confidence": 0.95
+    },
+    "EV-074": {
+      "id": "EV-074",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:32+00:00",
+      "updated_at": "2026-10-21T05:48:32+00:00",
+      "touched_round": 155,
+      "source": "Xvfb :135/:134 live second launch with --data-dir /tmp/dd3-other",
+      "summary": "Second launch exits 0, /tmp/dd3-other stays empty, first instance keeps serving and shows \"Aurora is already running with a different --data-dir ...\"; dropping the path check turns TestShell_RefusesAForeignDataDir red",
+      "confidence": 0.95
+    },
+    "EV-075": {
+      "id": "EV-075",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:32+00:00",
+      "updated_at": "2026-10-21T05:48:32+00:00",
+      "touched_round": 155,
+      "source": "Xvfb :136 live launch while the first instance is still booting",
+      "summary": "Second aurora://token launch produced exactly one /token.html GET and no dashboard GET; removing the pending assignment in Navigate turns the test red",
+      "confidence": 0.95
+    },
+    "EV-076": {
+      "id": "EV-076",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:33+00:00",
+      "updated_at": "2026-10-21T05:48:33+00:00",
+      "touched_round": 155,
+      "source": "deskapp_test.go: TestStripCSPPreservesStreaming (fault injection: delete Flush from cspDroppingWriter)",
+      "summary": "Without Flush the http.Flusher assertion fails; with it, plain Flush and ResponseController.Flush both reach the underlying writer",
+      "confidence": 0.95
+    },
+    "EV-077": {
+      "id": "EV-077",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:48:33+00:00",
+      "updated_at": "2026-10-21T05:48:33+00:00",
+      "touched_round": 155,
+      "source": "Xvfb :138 live --web-root /tmp/wr-web (exists, no index.html)",
+      "summary": "Startup now exits 1 with web root \"/tmp/wr-web\" does not contain index.html; restoring the fallthrough serves another copy instead",
+      "confidence": 0.95
     }
   },
   "edges": [
@@ -18946,6 +19207,138 @@
       "to": "ISS-280",
       "type": "resolves",
       "created_at": "2026-10-21T05:22:07+00:00"
+    },
+    {
+      "from": "TASK-285",
+      "to": "ISS-281",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "ISS-281",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-283",
+      "to": "TASK-285",
+      "type": "implements",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-283",
+      "to": "ISS-281",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "TASK-286",
+      "to": "ISS-282",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "ISS-282",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-284",
+      "to": "TASK-286",
+      "type": "implements",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-284",
+      "to": "ISS-282",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-288",
+      "to": "TASK-286",
+      "type": "implements",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-288",
+      "to": "ISS-282",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "TASK-287",
+      "to": "ISS-283",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "ISS-283",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-285",
+      "to": "TASK-287",
+      "type": "implements",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-285",
+      "to": "ISS-283",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "TASK-288",
+      "to": "ISS-284",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "ISS-284",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-286",
+      "to": "TASK-288",
+      "type": "implements",
+      "created_at": "2026-10-21T05:48:39+00:00"
+    },
+    {
+      "from": "CHG-286",
+      "to": "ISS-284",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:48:40+00:00"
+    },
+    {
+      "from": "TASK-289",
+      "to": "ISS-285",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:48:40+00:00"
+    },
+    {
+      "from": "ISS-285",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T05:48:40+00:00"
+    },
+    {
+      "from": "CHG-287",
+      "to": "TASK-289",
+      "type": "implements",
+      "created_at": "2026-10-21T05:48:40+00:00"
+    },
+    {
+      "from": "CHG-287",
+      "to": "ISS-285",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:48:40+00:00"
     }
   ]
 }
