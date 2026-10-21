@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/desktop/internal/deskapp"
@@ -69,4 +70,16 @@ func TestStartupFailureDialogCarriesTheReason(t *testing.T) {
 	require.Contains(t, opts.Detail, "/tmp/typo")
 	require.Contains(t, opts.Message, "did not open",
 		"the message must say what happened: Linux shows it without the title")
+}
+
+// TestQuitOnLastWindowClosed pins the platform split. MyGo quits when the last
+// window closes unless a listener says otherwise, and on macOS that is wrong:
+// Cmd+W should close the window and leave the app in the Dock, where clicking
+// it reopens the window. A single wrong answer here either kills a macOS app
+// on Cmd+W or leaves a windowless process running on Linux and Windows.
+func TestQuitOnLastWindowClosed(t *testing.T) {
+	assert.True(t, quitsOnLastWindowClosed("linux"))
+	assert.True(t, quitsOnLastWindowClosed("windows"))
+	assert.False(t, quitsOnLastWindowClosed("darwin"),
+		"macOS keeps the app alive after Cmd+W and reopens the window from the Dock")
 }

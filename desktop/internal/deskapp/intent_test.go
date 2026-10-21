@@ -464,6 +464,25 @@ func TestShellAttachIsSafeWithoutAWindow(t *testing.T) {
 	var _ *mygo.Window = nil // the attach signature takes a MyGo window
 }
 
+// TestShellMainWindowRecreatesAClosedWindow pins the macOS reopen path: the
+// app stays alive with no window, and a Dock click must run the window factory
+// rather than return nil and leave the user with an app that cannot be opened.
+//
+// A real *mygo.Window needs the running app, so the factory here returns nil;
+// what is being pinned is that it is called at all, and that the shell does
+// not claim success without a window.
+func TestShellMainWindowRecreatesAClosedWindow(t *testing.T) {
+	shell := NewShell(About{})
+
+	calls := 0
+	assert.Nil(t, shell.MainWindow(func() *mygo.Window { calls++; return nil }))
+	assert.Equal(t, 1, calls, "with no window the factory must run")
+
+	// Without a factory (tests, a shell that cannot create windows) there is
+	// nothing to reopen and no panic.
+	assert.NotPanics(t, func() { assert.Nil(t, shell.MainWindow(nil)) })
+}
+
 // TestShellDeliversALinkThatArrivesBeforeTheWindow pins the startup window: a
 // second launch can reach OnSecondInstance after the single-instance lock is
 // taken but before WhenReady created the window. Navigate had nowhere to go
