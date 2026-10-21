@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
@@ -237,3 +238,48 @@ func shippedWebRoot(t *testing.T) string {
 	require.True(t, ok)
 	return filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "web"))
 }
+
+// TestStripCSPPreservesStreaming pins the interface contract of the transport
+// wrapper. cspDroppingWriter is the outermost writer around every desktop
+// response; a wrapper that does not forward http.Flusher silently turns a
+// streamed response into one delivered at the end, and one without Unwrap
+// makes http.ResponseController report "feature not supported" even though the
+// writer underneath supports flushing. The API's own recovery middleware
+// promises to preserve both, so the transport must not undo that promise.
+func TestStripCSPPreservesStreaming(t *testing.T) {
+	var flushed bool
+	var controllerErr error
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Security-Policy", "default-src 'none'")
+		f, ok := w.(http.Flusher)
+		require.True(t, ok, "the transport wrapper must keep http.Flusher")
+		f.Flush()
+		flushed = true
+
+		// http.ResponseController walks Unwrap, which must reach the writer
+		// that really implements Flush.
+		controllerErr = http.NewResponseController(w).Flush()
+	})
+
+	under := &flushRecorder{header: http.Header{}}
+	stripCSP(next).ServeHTTP(under, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	assert.True(t, flushed)
+	require.NoError(t, controllerErr, "ResponseController must reach the underlying flusher through Unwrap")
+	assert.True(t, under.flushed, "Flush must reach the writer underneath")
+	assert.Empty(t, under.header.Get("Content-Security-Policy"), "the CSP must still be stripped on the flush path")
+}
+
+// flushRecorder is a ResponseWriter that records flushes, so the test can tell
+// a forwarded Flush from a dropped one.
+type flushRecorder struct {
+	header  http.Header
+	flushed bool
+}
+
+func (r *flushRecorder) Header() http.Header { return r.header }
+func (r *flushRecorder) Write(p []byte) (int, error) {
+	return len(p), nil
+}
+func (r *flushRecorder) WriteHeader(int) {}
+func (r *flushRecorder) Flush()          { r.flushed = true }
