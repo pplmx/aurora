@@ -37,6 +37,11 @@ documented in their per-milestone ROADMAP files.
   "no database path" behind the menu actions were English on stderr or in the
   result box. Those reasons now come from `desktop.error.*`, so the actionable
   half of the message is in the same language as its title.
+- **A configured Traditional Chinese locale stayed Traditional**:
+  `ApplyConfiguredLocale` sent every Chinese `[i18n] locale` to `zh-Hans`, so
+  a config asking for `zh-TW` got Simplified MyGo roles. `zh-TW`, `zh-HK` and
+  `zh-Hant-*` now map onto `zh-Hant`; Aurora's own strings keep using the one
+  Chinese table it ships, the same split the system-locale path already uses.
 - **The desktop module is covered by CI**: `desktop/` is a nested module, so
   the root `go test ./...` never looked inside it and a broken window layer
   passed every gate. `ci.yml` gains a `desktop` job (its own Go 1.27

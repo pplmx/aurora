@@ -170,11 +170,18 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   the old English web-root message back turns the first one red, and the live
   build under LANG=zh_CN prints 运行 "aurora-desktop --help" 查看用法。 for
   `--nope`.
+  One more asymmetry came out of exercising the config path: with LANG unset
+  and `[i18n] locale = "zh-TW"`, ApplyConfiguredLocale mapped every Chinese
+  tag onto zh-Hans, so MyGo's roles came out Simplified. mygoTag now maps
+  zh-TW/zh-HK/zh-Hant-* onto zh-Hant while Aurora's strings keep using the
+  single Chinese table internal/i18n ships (the same split as the
+  system-locale path). Verified live under Xvfb with LANG unset and the
+  config above: the menu is Chinese with Traditional roles.
   Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 1048 nodes, 1200 edges.
+  RIL graph at round 155: 1050 nodes, 1201 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
