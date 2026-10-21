@@ -224,15 +224,10 @@ func (s *Shell) reportError(title string, err error) {
 
 // reportImport shows the same accounting the File > Import action shows, so a
 // file opened from the file manager and one chosen in the dialog report
-// identically.
+// identically: one place builds the wording (importReport), not two.
 func (s *Shell) reportImport(path string, result lotteryapp.ImportResult) {
-	if len(result.Rejected) > 0 {
-		s.report("Import partially failed",
-			fmt.Sprintf("Imported %d of %d lottery records (failed: %d).", result.Imported, result.Total, len(result.Rejected)),
-			fmt.Sprintf("Rejected record indices (0-based): %v\n\n%s", result.Rejected, path))
-		return
-	}
-	s.report("Lotteries imported", fmt.Sprintf("%d draws imported.", result.Imported), path)
+	title, message, detail := importReport(result, path)
+	s.report(title, message, detail)
 }
 
 func showMessage(title, message, detail string) {
