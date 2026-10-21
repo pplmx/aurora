@@ -114,11 +114,22 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   scheduler, the outbox drainer and request handlers were logging. The logger
   is published under an RWMutex now, `Init`/`Close` serialize, and the
   redundant `TimeFieldFormat` write is gone (RFC3339 is zerolog's default).
+  The last pass read MyGo's own app/menu documentation against the code and
+  found that the integration used neither the window a menu click carries nor
+  the `Parent` a dialog accepts, so pickers and result boxes were stray windows
+  instead of macOS sheets; the actions take the window now and `showMessage`
+  parents every dialog. MyGo also quits when the last window closes unless a
+  listener says otherwise, which is wrong on macOS: Cmd+W ended the process and
+  a Dock click had nothing to reopen. The app now implements the documented
+  macOS lifecycle (stay alive, reopen on activate) with the platform split in
+  `quitsOnLastWindowClosed`, and both the startup and reopen paths build the
+  window through `openMainWindow` (verified with a temporary MyGo probe under
+  Xvfb that an OnWindowAllClosed listener is harmless on Linux).
   Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 1027 nodes, 1179 edges.
+  RIL graph at round 155: 1035 nodes, 1187 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four

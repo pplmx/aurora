@@ -156,6 +156,20 @@ documented in their per-milestone ROADMAP files.
   desktop start, which re-initializes logging while those loops run. The
   logger is published under a lock and every accessor reads it under the read
   lock; `Init` and `Close` serialize on the same mutex.
+- **Every desktop dialog floated free of its window**: MyGo passes the window a
+  menu was chosen from and attaches a dialog to a `Parent` (a sheet on macOS, a
+  modal child elsewhere), but the menu handlers discarded the window and no
+  dialog set one, so file pickers and result boxes were stray windows the user
+  could leave behind. The actions take the window now and `showMessage` is the
+  single place that builds a dialog, so the shell's own messages are parented
+  too.
+- **On macOS, closing the window ended the app**: nothing handled
+  `OnWindowAllClosed` or `OnActivate`, so MyGo's default applied — Cmd+W closed
+  the window and quit, and clicking the Dock icon had no window to bring back.
+  macOS now keeps running without windows and reopens one on activation (the
+  documented pattern), every other platform still quits with its window, and
+  both paths build the window through `openMainWindow` so a reopened window is
+  never missing its icon or file-drop handler.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default
