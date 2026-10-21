@@ -21,11 +21,20 @@ import (
 // duplicate) or reload the page the window just loaded. Shell remembers what
 // it has already honored and ignores the repeat, so the two delivery paths
 // cannot double-fire an action.
+//
+// The bookkeeping is an "expect one echo" count, not a permanent set: a link
+// the user opens again later must work again. Only the echo that MyGo delivers
+// for an argument this shell has just acted on is suppressed, and the entry is
+// dropped once that echo has been seen, so the map never grows.
 type Shell struct {
-	mu      sync.Mutex
-	meta    About
-	win     *mygo.Window
-	handled map[string]bool
+	mu   sync.Mutex
+	meta About
+	win  *mygo.Window
+	// expectEcho counts deliveries still owed to MyGo for arguments this shell
+	// already acted on: the cold-start arguments ParseFlags read, and the ones
+	// a second launch forwarded (MyGo re-delivers both through
+	// OnOpenURL/OnOpenFile).
+	expectEcho map[string]int
 	// report shows a message to the operator. A shell launched from a file
 	// manager has no terminal, so failures must be visible in a dialog.
 	report func(title, message, detail string)
@@ -37,7 +46,7 @@ type Shell struct {
 // NewShell builds a shell for meta. The window is attached later, once MyGo
 // has created it.
 func NewShell(meta About) *Shell {
-	return &Shell{meta: meta, handled: map[string]bool{}, report: showMessage}
+	return &Shell{meta: meta, expectEcho: map[string]int{}, report: showMessage}
 }
 
 // Attach points the shell at the main window. Until then, navigation requests
@@ -55,19 +64,35 @@ func (s *Shell) Consume(args ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, arg := range args {
-		s.handled[arg] = true
+		s.expectEcho[arg]++
 	}
 }
 
-// take reports whether arg is new, marking it handled.
+// take reports whether arg should be acted on now. The first delivery after
+// Consume (or after this shell acted on a forwarded launch argument) is MyGo's
+// echo of a request already honored, so it is dropped; anything later is a new
+// request and is acted on.
 func (s *Shell) take(arg string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.handled[arg] {
+	if s.expectEcho[arg] > 0 {
+		if s.expectEcho[arg]--; s.expectEcho[arg] == 0 {
+			delete(s.expectEcho, arg)
+		}
 		return false
 	}
-	s.handled[arg] = true
 	return true
+}
+
+// oweEcho records that MyGo will re-deliver arg once, because this shell just
+// acted on it in the OnSecondInstance callback (MyGo runs its own
+// deliverArgs immediately after that callback).
+func (s *Shell) oweEcho(args []string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, arg := range args {
+		s.expectEcho[arg]++
+	}
 }
 
 // OpenURL handles a deep link from MyGo.
@@ -85,10 +110,15 @@ func (s *Shell) OpenURL(raw string) {
 
 // OpenFile handles a lottery export from MyGo: a file dropped on the window,
 // or a path MyGo delivered from the launch arguments.
+//
+// Unlike links, files are not deduped here. MyGo only fires OnOpenFile for
+// extensions named in the packaged fileAssociations, and Aurora deliberately
+// declares none - so the launch-argument path never echoes a file back, and
+// a permanent "already imported" entry would only ever block the user's next
+// genuine import of that file. Importing the same export twice is already
+// handled where it belongs: ImportRecords refuses the duplicate record and
+// reports it, so the database keeps one copy.
 func (s *Shell) OpenFile(path string) {
-	if !s.take(path) {
-		return
-	}
 	result, err := ImportLotteryFile(s.meta, path)
 	if err != nil {
 		s.reportError("Import failed", err)
@@ -114,6 +144,7 @@ func (s *Shell) OpenFile(path string) {
 // path is relative to THAT, not to this process (see ParseIntentIn), which is
 // the same rule MyGo applies to the files it delivers itself.
 func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
+	var echoed []string
 	for _, arg := range args {
 		in, ok := ParseIntentIn(arg, workDir)
 		if !ok {
@@ -121,6 +152,7 @@ func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
 			// unrelated positionals are not.
 			if IsDeepLink(arg) {
 				s.OpenURL(arg)
+				echoed = append(echoed, arg)
 			}
 			continue
 		}
@@ -129,7 +161,13 @@ func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
 			continue
 		}
 		s.OpenURL(in.Raw)
+		echoed = append(echoed, in.Raw)
 	}
+	// MyGo runs its own deliverArgs right after this callback, so each link
+	// acted on here arrives once more. Owning that echo keeps the window
+	// from reloading the page it just loaded, without the link being dead
+	// the next time the user opens it.
+	s.oweEcho(echoed)
 	s.Reveal()
 }
 
