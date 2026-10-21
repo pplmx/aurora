@@ -13,8 +13,8 @@ import (
 	// catalog imported MyGo would fall back to English and log a warning.
 	_ "github.com/egoist/mygo/locales/zh-Hans"
 	_ "github.com/egoist/mygo/locales/zh-Hant"
+	"github.com/pplmx/aurora/desktop/appicon"
 	"github.com/pplmx/aurora/desktop/internal/deskapp"
-	"github.com/pplmx/aurora/desktop/resources"
 )
 
 // Injected at build time by the justfile `desktop` recipe. A `mygo build`
@@ -246,10 +246,10 @@ func openMainWindow(shell *deskapp.Shell, opts deskapp.Flags) *mygo.Window {
 		BackgroundColor: "#1a1a1a",
 		StateKey:        "main",
 	})
-	// A packaged build takes the icon from resources/icon.png at build time;
+	// A packaged build takes the icon from appicon/icon.png at build time;
 	// an unpackaged one would fall back to the toolkit's placeholder in its
 	// title bar and taskbar, so set the very same image here.
-	if err := win.SetIcon(resources.IconPNG); err != nil {
+	if err := win.SetIcon(appicon.IconPNG); err != nil {
 		fmt.Fprintf(os.Stderr, "aurora-desktop: set window icon: %v\n", err)
 	}
 	shell.Attach(win)

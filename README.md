@@ -305,10 +305,12 @@ just desktop-test                                  # 桌面模块的测试（jus
   产生两次 `/voting.html` 请求）。导出文件完全不去重：MyGo 从不回声文件
   （本应用不声明文件关联），重复导入交给 `ImportRecords` 的重复记录保护，
   会明确报 "Import partially failed" 而不是静默。
-- **图标**：`desktop/resources/icon.png`（1024²）是打包与运行时的唯一图标
+- **图标**：`desktop/appicon/icon.png`（1024²）是打包与运行时的唯一图标
   来源——`mygo build` 用它生成 `.icns`/`.ico`/desktop entry 的 `Icon=`
   并装进 `.deb` 的 hicolor 目录，同一份 PNG 又被 embed，未打包的
-  `just desktop` 窗口也能在标题栏/任务栏显示它。
+  `just desktop` 窗口也能在标题栏/任务栏显示它。图标包放在
+  `desktop/resources/` 之外：MyGo 会把该目录的每个文件原样装进应用，
+  放在里面会连 `icon.go`、`icon_test.go` 一起进 `.deb`/tarball。
 - **打包**：`desktop/mygo.config.ts` 描述应用身份（name/identifier/版本/
   版权/Linux 描述），`go tool mygo build` 产出可安装的 `.deb`、
   `install.sh`、`.tar.gz` 与带 `MimeType=x-scheme-handler/aurora;` 的

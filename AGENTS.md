@@ -64,7 +64,9 @@ just stop         # Stop containers: docker compose down
   data defaults to MyGo's `PathUserData` = `$XDG_CONFIG_HOME/Aurora`, override with
   `--data-dir`). Also handles `aurora://<page>?id=` deep links, imports a dropped or
   command-line lottery export, and packages via `desktop/mygo.config.ts`.
-  `desktop/resources/icon.png` is the app icon for both packaging and the window.
+  `desktop/appicon/icon.png` is the app icon for both packaging and the window;
+  it sits outside `desktop/resources/` so MyGo does not copy the Go source and
+  tests of the embedding package into every package.
   CI packages Linux amd64 in `ci.yml`; `desktop-build.yml` packages the native
   release matrix (Linux amd64/arm64, macOS arm64/amd64, Windows amd64), and
   `release.yml` publishes those artifacts with the CLI binaries.
