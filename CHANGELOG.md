@@ -11,6 +11,18 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **The desktop shell speaks Chinese end to end**: the menu, the file
+  dialogs, every result and error box, the startup-failure dialog and
+  `aurora-desktop --help`/`--version` now read from `internal/i18n` instead of
+  hardcoded English, and follow the language MyGo resolved for the app
+  (`App.Locale()` / `OnLocaleChanged`). MyGo already translates the labels of
+  the items that carry a role — its own `文件`/`编辑`/`显示`/`窗口`/`帮助`,
+  the native `好`/`取消` buttons — so a zh-CN session used to show those
+  beside Aurora's English items and dialogs in one window. Both MyGo catalogs
+  are linked (`locales/zh-Hans` and `locales/zh-Hant`), and `SetLanguages`
+  runs before `Start` so the startup-failure dialog is translated too. A
+  configured `[i18n] locale` (used when `$LANG` is unset) now reaches the
+  window as well as the CLI.
 - **The desktop module is covered by CI**: `desktop/` is a nested module, so
   the root `go test ./...` never looked inside it and a broken window layer
   passed every gate. `ci.yml` gains a `desktop` job (its own Go 1.27
