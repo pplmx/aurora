@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T07:16:16+00:00",
+  "updated_at": "2026-10-21T07:34:25+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12664,6 +12664,52 @@
       "touched_round": 155,
       "title": "Desktop strings are hardcoded English while MyGo translates its roles, so a zh session is bilingual",
       "confidence": 0.9
+    },
+    "ISS-292": {
+      "id": "ISS-292",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T07:34:08+00:00",
+      "updated_at": "2026-10-21T07:34:08+00:00",
+      "touched_round": 155,
+      "title": "Core test suites fail under LANG=zh_CN because assertions are English but strings follow LANG",
+      "description": "cmd/aurora/cmd, internal/ui/components and TestGetTranslator_LazyInit assert English output while internal/i18n follows $LANG. Reproduced on 821b585 (before the desktop localization work), so pre-existing; the desktop suite inherited the same problem once its strings moved to i18n."
+    },
+    "TASK-296": {
+      "id": "TASK-296",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T07:34:08+00:00",
+      "updated_at": "2026-10-21T07:34:09+00:00",
+      "touched_round": 155,
+      "title": "Pin the language in TestMain for cmd and components; pin LANG in the lazy-init test",
+      "category": "test-quality",
+      "priority_score": 7
+    },
+    "CHG-295": {
+      "id": "CHG-295",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T07:34:08+00:00",
+      "updated_at": "2026-10-21T07:34:08+00:00",
+      "touched_round": 155,
+      "title": "TestMain pins en for cmd, desktop/deskapp and components; lazy-init test pins LANG=en",
+      "commit": "0e7e3e6"
+    },
+    "EV-084": {
+      "id": "EV-084",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T07:34:08+00:00",
+      "updated_at": "2026-10-21T07:34:08+00:00",
+      "touched_round": 155,
+      "source": "go test -race ./... under LANG=zh_CN and en_US.UTF-8 (core + desktop); fault injection: commenting out i18n.Init(en) in cmd main_test.go reproduces the failures",
+      "title": "All suites now pass regardless of LANG; removing the pin turns cmd red under zh_CN",
+      "confidence": 0.95
     }
   },
   "edges": [
@@ -19824,6 +19870,30 @@
       "to": "HYP-016",
       "type": "validates",
       "created_at": "2026-10-21T07:16:10+00:00"
+    },
+    {
+      "from": "TASK-296",
+      "to": "ISS-292",
+      "type": "addresses",
+      "created_at": "2026-10-21T07:34:08+00:00"
+    },
+    {
+      "from": "CHG-295",
+      "to": "ISS-292",
+      "type": "resolves",
+      "created_at": "2026-10-21T07:34:08+00:00"
+    },
+    {
+      "from": "CHG-295",
+      "to": "TASK-296",
+      "type": "implements",
+      "created_at": "2026-10-21T07:34:08+00:00"
+    },
+    {
+      "from": "EV-084",
+      "to": "HYP-016",
+      "type": "validates",
+      "created_at": "2026-10-21T07:34:25+00:00"
     }
   ]
 }
