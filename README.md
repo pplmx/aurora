@@ -54,6 +54,8 @@ just test          # 运行测试
 just build        # 构建所有平台
 just api          # 构建独立 Web / API 服务器（./aurora-api）
 just desktop      # 构建桌面壳（./aurora-desktop，需 Go 1.27）
+just desktop-test # 运行桌面模块测试（just test 只覆盖核心模块）
+just desktop-package # mygo build：产出 .deb / tar.gz / desktop entry
 just lint         # 代码检查
 just dev          # Docker 开发
 ```
@@ -195,6 +197,8 @@ just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / W
 ./aurora-desktop --version
 ./aurora-desktop --data-dir /path/to/data          # 换数据库位置
 ./aurora-desktop --web-root /path/to/web           # 开发 UI：改用磁盘上的页面
+./aurora-desktop 'aurora://lottery?id=<draw>'      # 深链：直接验该期开奖
+./aurora-desktop aurora-lotteries.json             # 导入一份导出文件
 just desktop-test                                  # 桌面模块的测试（just test 只覆盖核心模块）
 ```
 
@@ -222,6 +226,22 @@ just desktop-test                                  # 桌面模块的测试（jus
   `BackupService`（WAL 完整快照 + 校验和）；Export/Import Lotteries 调用
   与 `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、
   同一覆盖保护）。About 显示版本、构建时间、数据库与 Web UI 来源。
+- **深链**：`aurora://lottery?id=<draw>` 由 `mygo.config.ts` 的
+  `urlSchemes` 注册；Linux/Windows 每次启动还会调用
+  `App.RegisterURLScheme`（无需安装器）。链接落到对应页面并**自动滚动**到
+  Verify 面板、填入 id 并立即验票——真实窗口实测该请求返回 200，且此前
+  面板在首屏之外（只加自动验票而不滚动，用户看不到结论）。已运行的实例
+  通过 `App.OnSecondInstance` 接收后续链接，不会起第二个数据库写者。
+- **拖放导入**：把导出文件拖到窗口即导入（`Window.OnFileDrop`）；非
+  `.json` 文件会明确报"不支持"而不是静默忽略。命令行直接给一个导出文件
+  同样导入，且冷启动时 MyGo 会二次投递同一个参数，`Shell` 记录已处理的
+  参数，保证只导入一次。
+- **打包**：`desktop/mygo.config.ts` 描述应用身份（name/identifier/版本/
+  版权/Linux 描述），`go tool mygo build` 产出可安装的 `.deb`、
+  `install.sh`、`.tar.gz` 与带 `MimeType=x-scheme-handler/aurora;` 的
+  desktop entry。版本由 `git describe` 在配置里计算，并由 `mygo build`
+  链接进二进制——**不用** `-X main.Version`（`mygo build` 自带 ldflags，
+  实测那样打出的包会把 `--version` 报成 `0.0.1`）。
 - **为什么是嵌套模块**：MyGo 要求 Go 1.27，而主模块固定在 1.26 以保持
   镜像构建（`Dockerfile` 的 `golang:1.26-alpine`）与现有工具链可用。
   `desktop/go.mod` 的 `go 1.27.1` 不会污染 `go build ./...` /

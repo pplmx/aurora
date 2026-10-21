@@ -17,6 +17,8 @@ just desktop      # Build the MyGo desktop shell (./aurora-desktop); nested modu
                   #   needs Go 1.27 + a native cgo build (WebKitGTK / WebView2 / WKWebView)
 just desktop-run  # Build then launch the window (embedded Web UI; --web-root for UI dev)
 just desktop-test # Run the desktop module's tests (just test only covers the core module)
+just desktop-package *ARGS  # go tool mygo build: dist/desktop/<os>-<arch>/ (.deb, tar.gz,
+                            #   desktop entry with the aurora:// handler); needs cgo
 just run          # Run locally
 ```
 
@@ -54,7 +56,9 @@ just stop         # Stop containers: docker compose down
 - **Desktop shell**: `desktop/` (nested Go module; `cmd/aurora-desktop` + `internal/deskapp`)
   hosts the same `internal/api` router in a MyGo window over the `aurora://` scheme,
   serving the UI embedded by the root package's `embed.go` (ships `./aurora-desktop`;
-  data defaults to `os.UserConfigDir()/aurora`, override with `--data-dir`)
+  data defaults to MyGo's `PathUserData` = `$XDG_CONFIG_HOME/Aurora`, override with
+  `--data-dir`). Also handles `aurora://<page>?id=` deep links, imports a dropped or
+  command-line lottery export, and packages via `desktop/mygo.config.ts`.
 - **Core logic**: `internal/domain/blockchain/`, `internal/i18n/`, `internal/utils/`
 - **Tests**: `e2e/*_test.go` (E2E), `internal/*/ *_test.go` (unit)
 - **Config**: `config/aurora.toml` (Viper loads from `$HOME` or `./config/`)

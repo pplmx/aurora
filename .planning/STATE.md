@@ -11,6 +11,40 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
+Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
+  shipped a working window; this round made it a MyGo *app* and fixed four
+  defects the packaging exposed. `desktop/mygo.config.ts` now declares the app
+  identity and `just desktop-package` (`go tool mygo build`, pinned as a
+  module tool in desktop/go.mod, CGO_ENABLED=1) emits an executable, a
+  desktop entry with `MimeType=x-scheme-handler/aurora;`, a .deb and a
+  tarball. Version is computed by `git describe` inside the config because
+  `mygo build` supplies its own ldflags — with the justfile's
+  `-X main.Version` alone the packaged binary reported 0.0.1 (measured),
+  so `version()` now prefers `App.Version()`. Fixed: (1) that version lie;
+  (2) `App.SetName` running after `App.Path(PathUserData)`, which created
+  `~/.config/MyGo` on one run and `~/.config/Aurora` on the next and split
+  the single-instance key; (3) a deep link verifies the draw but the Verify
+  panel was below the fold, so the 200 verdict was invisible — the page now
+  scrolls it into view; (4) a `desktop … draws.json` argument was marked
+  handled and then never imported. Deep links (`aurora://lottery?id=`,
+  also the `aurora://localhost/...` spelling) go through
+  `deskapp.ParseIntent`/`Shell`, are restricted to pages the UI serves, and
+  a second launch forwards to the running instance via `OnSecondInstance`
+  (live-verified: second process exited 0, first loaded /voting.html). Cold
+  start delivers the same argument twice (our flag parser + MyGo's
+  `OnOpenURL`/`OnOpenFile`), so `Shell.take` makes it fire once. Drops and
+  command-line imports share `ImportLotteryFile` with the File menu. Live
+  evidence under Xvfb: real draw `2abe5c26b678538e` → `/verify` 200 with the
+  verdict rendered; `aurora draws.json` → row in `~/.config/Aurora/aurora.db`.
+  Fault injection on each new guard (deep-link read, scroll, version
+  fallback, take-once) turns the corresponding test red. Tests:
+  `go test -race ./...` (core), `desktop go test -race ./...`, plus Node
+  harnesses for the page; `go vet` clean. Shipped as CHG-272 (02d06d1,
+  links/drops/CLI + version and data-dir fixes), CHG-271 (13f3006, packaging
+  config) and CHG-273 (47a52f2, verdict scroll), with DEC-020 recording why
+  MyGo is now the app framework rather than only a window host. RIL graph at
+  round 154: 958 nodes, 1116 edges.
+
 Last activity: 2026-10-21 — round 153 (mygo desktop shell). User asked for a
   deep mygo integration rather than a wrapper script. `desktop/` is a nested Go
   module (Go 1.27 for MyGo; the core module stays on 1.26 so CI and the pinned
