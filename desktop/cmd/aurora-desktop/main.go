@@ -147,8 +147,8 @@ func main() {
 	// file types it is configured to handle; an export is not one of those
 	// (aurora claims no .json association on purpose), so the shell parses the
 	// arguments itself.
-	mygo.App.OnSecondInstance(func(args []string, _ string) {
-		shell.HandleLaunchArgs(args)
+	mygo.App.OnSecondInstance(func(args []string, workDir string) {
+		shell.HandleLaunchArgs(args, workDir)
 	})
 
 	mygo.App.WhenReady(func() {

@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
@@ -75,6 +76,52 @@ func ParseIntent(arg string) (Intent, bool) {
 		return Intent{File: arg, Raw: arg}, true
 	}
 	return Intent{}, false
+}
+
+// ParseIntentIn is ParseIntent for an argument that came from another process.
+//
+// A launch argument is relative to the directory the launching process ran
+// in, not to ours: `cd ~/Downloads && aurora-desktop draws.json` names
+// ~/Downloads/draws.json. MyGo's own file delivery resolves such a path
+// against the working directory it forwards with the argument, so a shell
+// that parses the arguments itself must do the same or the file never
+// resolves. Linux launchers may also hand over file:// URLs, which MyGo
+// accepts; so does this.
+func ParseIntentIn(arg, workDir string) (Intent, bool) {
+	arg = strings.TrimSpace(arg)
+	if in, ok := ParseIntent(arg); ok || arg == "" || IsDeepLink(arg) || workDir == "" {
+		return in, ok
+	}
+	if path, ok := fileURLPath(arg); ok {
+		if in, ok := ParseIntent(path); ok {
+			return in, true
+		}
+	}
+	if filepath.IsAbs(arg) {
+		return Intent{}, false
+	}
+	path := filepath.Join(workDir, arg)
+	if !isLotteryDocument(path) {
+		return Intent{}, false
+	}
+	// File is the resolved, importable path; Raw stays as the launching
+	// process wrote it, which is what Intent.Raw means.
+	return Intent{File: path, Raw: arg}, true
+}
+
+// fileURLPath converts a file:// URL to the path it names, for the launchers
+// that pass files that way instead of as arguments.
+func fileURLPath(arg string) (string, bool) {
+	u, err := url.Parse(arg)
+	if err != nil || !strings.EqualFold(u.Scheme, "file") || u.Path == "" {
+		return "", false
+	}
+	path := filepath.FromSlash(u.Path)
+	if runtime.GOOS == "windows" {
+		// file:///C:/x arrives as /C:/x.
+		path = strings.TrimPrefix(path, string(filepath.Separator))
+	}
+	return path, true
 }
 
 func parseDeepLink(raw string) (Intent, bool) {
