@@ -219,7 +219,7 @@ var tokenCreateCmd = &cobra.Command{
 			Symbol:      symbol,
 			TotalSupply: totalSupply,
 			Owner:       token.PublicKey(pub),
-			Decimals:    decimals,
+			Decimals:    &decimals,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create token: %w", err)

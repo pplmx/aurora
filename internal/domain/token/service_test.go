@@ -126,19 +126,20 @@ func TestCreateToken(t *testing.T) {
 
 // TestCreateToken_Decimals locks the v1.79 fix that honors the create
 // request's Decimals field instead of silently defaulting every token to
-// defaultDecimals (TASK-099, ISS-091). 0 is the "unset" sentinel and falls
-// back to the default; negative values are rejected.
+// defaultDecimals (TASK-099, ISS-091). Omission (nil) falls back to the
+// default, explicit 0 is honored, and negative values are rejected (ISS-126).
 func TestCreateToken_Decimals(t *testing.T) {
 	cases := []struct {
 		name     string
-		decimals int8
+		decimals *int8
 		want     int8
 		wantErr  bool
 	}{
-		{name: "unset falls back to default", decimals: 0, want: 8},
-		{name: "explicit decimals honored", decimals: 6, want: 6},
-		{name: "max int8 accepted", decimals: 127, want: 127},
-		{name: "negative rejected", decimals: -1, wantErr: true},
+		{name: "omitted falls back to default", decimals: nil, want: 8},
+		{name: "explicit zero honored", decimals: int8Ptr(0), want: 0},
+		{name: "explicit decimals honored", decimals: int8Ptr(6), want: 6},
+		{name: "max int8 accepted", decimals: int8Ptr(127), want: 127},
+		{name: "negative rejected", decimals: int8Ptr(-1), wantErr: true},
 	}
 
 	for _, tc := range cases {
@@ -147,7 +148,11 @@ func TestCreateToken_Decimals(t *testing.T) {
 			eventStore := NewMockEventStore()
 			service := newTestService(repo, eventStore)
 
-			symbol := fmt.Sprintf("DEC%d", tc.decimals)
+			label := "omitted"
+			if tc.decimals != nil {
+				label = fmt.Sprintf("%d", *tc.decimals)
+			}
+			symbol := fmt.Sprintf("DEC%s", label)
 			tok, err := service.CreateToken(&CreateTokenRequest{
 				Name:        "Decimals Tok",
 				Symbol:      symbol,
@@ -179,6 +184,8 @@ func TestCreateToken_Decimals(t *testing.T) {
 		})
 	}
 }
+
+func int8Ptr(v int8) *int8 { return &v }
 
 // TestCreateToken_RejectsDuplicateSymbol locks the v1.62 data-loss fix: a
 // token's ID is its symbol and persistence uses INSERT OR REPLACE keyed on it,

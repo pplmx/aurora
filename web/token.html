@@ -29,10 +29,10 @@
                     <div class="form-group"><label for="token-create-symbol">Symbol</label><input id="token-create-symbol" type="text" x-model="symbol" required></div>
                     <div class="form-group"><label for="token-create-supply">Total Supply</label><input id="token-create-supply" type="text" x-model="supply" required></div>
                     <!-- The API accepts decimals (pointer: omitted -> domain
-                         default 8, explicit 0 -> 0) and the CLI exposes
-                         --decimals; the web form had no way to set it, so every
-                         web-created token was silently 8 (ISS-195). Bound to
-                         its own decimals field (default 8). -->
+                         default 8, explicit 0 -> a real zero-decimal token)
+                         and the CLI exposes --decimals; the web form had no
+                         way to set it, so every web-created token was silently
+                         8 (ISS-195). Bound to its own decimals field (default 8). -->
                     <div class="form-group"><label for="token-create-decimals">Decimals</label><input id="token-create-decimals" type="number" x-model="decimals" min="0" max="127" value="8"></div>
                     <!-- The API rejects a create without a valid owner public key
                          (ErrPublicKeyRequired -> 400), and the CLI generates a fresh

@@ -5,9 +5,9 @@ type CreateTokenRequest struct {
 	Symbol      string
 	TotalSupply string
 	Owner       string
-	// Decimals is the optional decimal places; 0 (or the *int8 request's nil)
-	// falls back to the domain default of 8 (TASK-099, ISS-091).
-	Decimals int8
+	// Decimals is the optional decimal places. nil means the field was omitted
+	// (use the domain default of 8); a non-nil value is explicit, including 0.
+	Decimals *int8
 }
 
 type CreateTokenResponse struct {

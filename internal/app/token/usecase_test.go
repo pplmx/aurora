@@ -55,7 +55,11 @@ func TestGetTokenInfoUseCase_NotFound(t *testing.T) {
 }
 
 func (m *mockTokenService) CreateToken(req *token.CreateTokenRequest) (*token.Token, error) {
-	t := token.NewTokenWithDecimals(token.TokenID(req.Symbol), req.Name, req.Symbol, req.TotalSupply, req.Owner, req.Decimals)
+	decimals := int8(8)
+	if req.Decimals != nil {
+		decimals = *req.Decimals
+	}
+	t := token.NewTokenWithDecimals(token.TokenID(req.Symbol), req.Name, req.Symbol, req.TotalSupply, req.Owner, decimals)
 	m.tokens[t.ID()] = t
 	balanceKey := string(req.Owner) + "|" + string(t.ID())
 	m.balances[balanceKey] = req.TotalSupply
@@ -234,19 +238,20 @@ func TestCreateTokenUseCase_Execute(t *testing.T) {
 	}
 }
 
-// TestCreateTokenUseCase_Decimals locks that the request Decimals is threaded
-// through to the service (TASK-099, ISS-091): 0 maps to the default (8),
-// an explicit value is honored and reflected in the response.
+// TestCreateTokenUseCase_Decimals locks that the optional request Decimals is
+// threaded through to the service (TASK-099, ISS-091): nil maps to the default
+// (8), while explicit values including 0 are honored (ISS-126).
 func TestCreateTokenUseCase_Decimals(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(nil)
 
 	cases := []struct {
 		name     string
-		decimals int8
+		decimals *int8
 		want     int8
 	}{
-		{"unset falls back to default", 0, 8},
-		{"explicit decimals honored", 6, 6},
+		{"omitted falls back to default", nil, 8},
+		{"explicit 0 honored", int8Ptr(0), 0},
+		{"explicit decimals honored", int8Ptr(6), 6},
 	}
 
 	for _, tc := range cases {
@@ -264,6 +269,8 @@ func TestCreateTokenUseCase_Decimals(t *testing.T) {
 		})
 	}
 }
+
+func int8Ptr(v int8) *int8 { return &v }
 
 func TestCreateTokenUseCase_InvalidOwner(t *testing.T) {
 	service := newMockTokenService()
