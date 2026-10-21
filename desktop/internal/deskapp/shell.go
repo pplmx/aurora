@@ -54,7 +54,22 @@ type Shell struct {
 // NewShell builds a shell for meta. The window is attached later, once MyGo
 // has created it.
 func NewShell(meta About) *Shell {
-	return &Shell{meta: meta, expectEcho: map[string]int{}, report: showMessage}
+	s := &Shell{meta: meta, expectEcho: map[string]int{}}
+	// The shell's own messages belong to the shell's window, so a dialog about
+	// a dropped file is a sheet on that window rather than a floating box.
+	// Before Attach (tests, an early failure) there is no window and the
+	// dialog stands alone, which is what MyGo does with a nil Parent.
+	s.report = func(typ mygo.MessageType, title, message, detail string) {
+		showMessage(s.Window(), typ, title, message, detail)
+	}
+	return s
+}
+
+// Window returns the attached window, or nil before Attach.
+func (s *Shell) Window() *mygo.Window {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.win
 }
 
 // Attach points the shell at the main window. Until then, navigation requests
@@ -248,9 +263,7 @@ func resolveAgainst(path, workDir string) string {
 // was minimized must show the page, not load it behind the user's other
 // windows.
 func (s *Shell) Reveal() {
-	s.mu.Lock()
-	win := s.win
-	s.mu.Unlock()
+	win := s.Window()
 	if win == nil || win.IsDestroyed() || win.Page() == nil {
 		return
 	}
@@ -321,6 +334,15 @@ var messageBox = func(opts mygo.MessageOptions) {
 
 // showMessage is the one message dialog constructor for the shell and the
 // menu: same call, same severity handling, wherever the message comes from.
-func showMessage(typ mygo.MessageType, title, message, detail string) {
-	messageBox(mygo.MessageOptions{Type: typ, Title: title, Message: message, Detail: detail})
+// parentWin attaches the dialog to that window when there is one, so it is a
+// sheet on macOS and a child modal elsewhere instead of a stray window the
+// user can leave behind while the app carries on.
+func showMessage(parentWin *mygo.Window, typ mygo.MessageType, title, message, detail string) {
+	messageBox(mygo.MessageOptions{
+		Parent:  parentWin,
+		Type:    typ,
+		Title:   title,
+		Message: message,
+		Detail:  detail,
+	})
 }

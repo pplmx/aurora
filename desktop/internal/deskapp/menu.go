@@ -33,23 +33,23 @@ func NewMenu(meta About) *mygo.Menu {
 				ID:          "export-lotteries",
 				Label:       "Export Lotteries...",
 				Accelerator: "CmdOrCtrl+E",
-				Click: func(*mygo.MenuItem, *mygo.Window) {
-					exportLotteries(meta)
+				Click: func(_ *mygo.MenuItem, win *mygo.Window) {
+					exportLotteries(meta, win)
 				},
 			},
 			{
 				ID:          "import-lotteries",
 				Label:       "Import Lotteries...",
 				Accelerator: "CmdOrCtrl+I",
-				Click: func(*mygo.MenuItem, *mygo.Window) {
-					importLotteries(meta)
+				Click: func(_ *mygo.MenuItem, win *mygo.Window) {
+					importLotteries(meta, win)
 				},
 			},
 			mygo.Separator(),
-			{Label: "Back Up Database...", Accelerator: "CmdOrCtrl+B", Click: func(*mygo.MenuItem, *mygo.Window) {
-				backUpDatabase(meta)
+			{Label: "Back Up Database...", Accelerator: "CmdOrCtrl+B", Click: func(_ *mygo.MenuItem, win *mygo.Window) {
+				backUpDatabase(meta, win)
 			}},
-			{Label: "Show Data Folder", Click: func(*mygo.MenuItem, *mygo.Window) {
+			{Label: "Show Data Folder", Click: func(_ *mygo.MenuItem, _ *mygo.Window) {
 				mygo.Shell.ShowItemInFolder(meta.DBPath)
 			}},
 			mygo.Separator(),
@@ -60,8 +60,8 @@ func NewMenu(meta About) *mygo.Menu {
 		{Role: mygo.RoleViewMenu},
 		{Role: mygo.RoleWindowMenu},
 		{Label: "Help", Submenu: []*mygo.MenuItem{
-			{Label: "About Aurora", Click: func(*mygo.MenuItem, *mygo.Window) {
-				showAbout(meta)
+			{Label: "About Aurora", Click: func(_ *mygo.MenuItem, win *mygo.Window) {
+				showAbout(meta, win)
 			}},
 		}},
 	})
@@ -79,18 +79,31 @@ var (
 	saveDialog = mygo.Dialog.Save
 )
 
+// parent is the window a dialog belongs to. MyGo attaches a dialog with a
+// Parent to that window - a sheet on macOS, a modal child elsewhere - instead
+// of letting it float free of the window the action was started from. Linux
+// and Windows pass the window whose menu was chosen, macOS the focused one,
+// both of which are nil when no window has focus.
+func parent(win *mygo.Window) *mygo.Window {
+	if win == nil || win.IsDestroyed() {
+		return nil
+	}
+	return win
+}
+
 // exportLotteries writes the portable document through the same app-layer
 // serializer the CLI uses, so a desktop export and `aurora lottery export`
 // produce byte-identical files for the same database.
-func exportLotteries(meta About) {
+func exportLotteries(meta About, win *mygo.Window) {
 	path, err := saveDialog(mygo.SaveDialogOptions{
+		Parent:      parent(win),
 		Title:       "Export Lotteries",
 		DefaultPath: "aurora-lotteries.json",
 		ButtonLabel: "Export",
 		Filters:     lotteryJSONFilter,
 	})
 	if err != nil {
-		showError("Export failed", err)
+		showError(parent(win), "Export failed", err)
 		return
 	}
 	if path == "" {
@@ -99,22 +112,22 @@ func exportLotteries(meta About) {
 
 	repo, closeRepo, err := openLotteryRepo(meta)
 	if err != nil {
-		showError("Export failed", err)
+		showError(parent(win), "Export failed", err)
 		return
 	}
 	defer closeRepo()
 
 	document, count, err := lotteryapp.ExportRecords(repo)
 	if err != nil {
-		showError("Export failed", err)
+		showError(parent(win), "Export failed", err)
 		return
 	}
 	if err := os.WriteFile(path, document, 0o644); err != nil {
-		showError("Export failed", err)
+		showError(parent(win), "Export failed", err)
 		return
 	}
 
-	showMessage(mygo.MessageInfo, "Lotteries exported",
+	showMessage(parent(win), mygo.MessageInfo, "Lotteries exported",
 		fmt.Sprintf("%d draws written.", count), path)
 }
 
@@ -122,13 +135,14 @@ func exportLotteries(meta About) {
 // importer the CLI uses: identical validation, identical overwrite guard
 // (TASK-069), identical partial-failure accounting. A partial import reports a
 // warning — the valid records ARE stored — matching the CLI's "⚠" message.
-func importLotteries(meta About) {
+func importLotteries(meta About, win *mygo.Window) {
 	paths, err := openDialog(mygo.OpenDialogOptions{
+		Parent:  parent(win),
 		Title:   "Import Lotteries",
 		Filters: lotteryJSONFilter,
 	})
 	if err != nil {
-		showError("Import failed", err)
+		showError(parent(win), "Import failed", err)
 		return
 	}
 	if len(paths) == 0 || paths[0] == "" {
@@ -139,12 +153,12 @@ func importLotteries(meta About) {
 	// all three entry points report identically (see Shell.OpenFile).
 	result, err := ImportLotteryFile(meta, paths[0])
 	if err != nil {
-		showError("Import failed", err)
+		showError(parent(win), "Import failed", err)
 		return
 	}
 
 	title, message, detail := importReport(result, paths[0])
-	showMessage(importReportType(result), title, message, detail)
+	showMessage(parent(win), importReportType(result), title, message, detail)
 }
 
 // openLotteryRepo opens the same database the shell's gateway uses. The
@@ -167,18 +181,19 @@ func openLotteryRepo(meta About) (lottery.Repository, func(), error) {
 
 // showError reports a failure in a native dialog: the shell may be launched
 // from a file manager, where stderr goes nowhere.
-func showError(title string, err error) {
-	showMessage(mygo.MessageError, title, err.Error(), "")
+func showError(win *mygo.Window, title string, err error) {
+	showMessage(parent(win), mygo.MessageError, title, err.Error(), "")
 }
 
 // backUpDatabase snapshots the live SQLite database through the same
 // BackupService the CLI uses (WAL-complete, checksummed metadata).
-func backUpDatabase(meta About) {
+func backUpDatabase(meta About, win *mygo.Window) {
 	if meta.DBPath == "" {
-		showError("Backup failed", errors.New("this window has no database path"))
+		showError(parent(win), "Backup failed", errors.New("this window has no database path"))
 		return
 	}
 	dirs, err := openDialog(mygo.OpenDialogOptions{
+		Parent:    parent(win),
 		Title:     "Choose where to store the backup",
 		Directory: true,
 	})
@@ -186,7 +201,7 @@ func backUpDatabase(meta About) {
 		// Cancel is "no error, no directory"; a picker that failed is a
 		// failure, and silently returning made it look like the user had
 		// cancelled.
-		showError("Backup failed", err)
+		showError(parent(win), "Backup failed", err)
 		return
 	}
 	if len(dirs) == 0 || dirs[0] == "" {
@@ -197,20 +212,20 @@ func backUpDatabase(meta About) {
 	svc := backup.NewBackupService(map[string]string{"aurora": meta.DBPath})
 	res, err := svc.Create(context.Background(), dest)
 	if err != nil {
-		showMessage(mygo.MessageError, "Backup failed",
+		showMessage(parent(win), mygo.MessageError, "Backup failed",
 			"Aurora could not back up the database.", err.Error())
 		return
 	}
-	showMessage(mygo.MessageInfo, "Backup complete", "The database backup was written.", res.File)
+	showMessage(parent(win), mygo.MessageInfo, "Backup complete", "The database backup was written.", res.File)
 }
 
 // showAbout reports what this build is running against.
-func showAbout(meta About) {
+func showAbout(meta About, win *mygo.Window) {
 	ui := meta.WebRoot
 	if ui == "" {
 		ui = "(embedded in the app)"
 	}
-	showMessage(mygo.MessageInfo, "About Aurora", "Aurora Desktop "+meta.Version,
+	showMessage(parent(win), mygo.MessageInfo, "About Aurora", "Aurora Desktop "+meta.Version,
 		"Built: "+meta.BuildTime+
 			"\nDatabase: "+meta.DBPath+
 			"\nWeb UI: "+ui)
