@@ -30,6 +30,13 @@ documented in their per-milestone ROADMAP files.
   nothing to do with the code under test (reproduced on the previous commit).
   Each package pins its language in `TestMain`, and the lazy-init test sets
   the `LANG` it is about.
+- **The reasons behind a failed launch are translated too**: the startup
+  dialog's title had been localized but its body still carried English from
+  `ResolveWebRoot` ("web root ... does not contain index.html"), and an
+  unknown flag, a missing webview, an unusable data directory and the
+  "no database path" behind the menu actions were English on stderr or in the
+  result box. Those reasons now come from `desktop.error.*`, so the actionable
+  half of the message is in the same language as its title.
 - **The desktop module is covered by CI**: `desktop/` is a nested module, so
   the root `go test ./...` never looked inside it and a broken window layer
   passed every gate. `ci.yml` gains a `desktop` job (its own Go 1.27
