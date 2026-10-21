@@ -6,6 +6,26 @@ on:
       ref:
         type: string
         default: ${{ github.ref }}
+      require_signed_macos:
+        description: Fail unless every macOS signing secret is configured
+        type: boolean
+        default: false
+    # The caller passes these with `secrets: inherit`. They stay optional
+    # here so local/dev calls can still produce an ad-hoc package, while
+    # release.yml sets require_signed_macos and refuses to publish one.
+    secrets:
+      MACOS_CERTIFICATE:
+        required: false
+      MACOS_CERTIFICATE_PASSWORD:
+        required: false
+      MACOS_SIGNING_IDENTITY:
+        required: false
+      APPLE_ID:
+        required: false
+      APPLE_TEAM_ID:
+        required: false
+      APPLE_APP_PASSWORD:
+        required: false
 
 env:
   NODE_VERSION: '22'
@@ -65,6 +85,88 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # A macOS release that is only ad-hoc signed is not installable on
+      # another Mac: Gatekeeper rejects it. Import the Developer ID and the
+      # notary profile before packaging, and make the contract explicit so a
+      # release can never silently publish that package.
+      - name: Configure macOS signing
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          REQUIRE_SIGNED_MACOS: ${{ inputs.require_signed_macos }}
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          names=(
+            MACOS_CERTIFICATE
+            MACOS_CERTIFICATE_PASSWORD
+            MACOS_SIGNING_IDENTITY
+            APPLE_ID
+            APPLE_TEAM_ID
+            APPLE_APP_PASSWORD
+          )
+          missing=()
+          missing_count=0
+          for name in "${names[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("$name")
+              ((missing_count += 1))
+            fi
+          done
+
+          if (( missing_count == 0 )); then
+            keychain="$RUNNER_TEMP/aurora-signing.keychain-db"
+            notary_profile="aurora-notary"
+            password="$(openssl rand -base64 24)"
+            security create-keychain -p "$password" "$keychain"
+            security set-keychain-settings -lut 21600 "$keychain"
+            security unlock-keychain -p "$password" "$keychain"
+            printf '%s' "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/aurora-certificate.p12"
+            security import "$RUNNER_TEMP/aurora-certificate.p12" -k "$keychain" \
+              -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            rm -f "$RUNNER_TEMP/aurora-certificate.p12"
+            security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" >/dev/null
+            security list-keychains -d user -s "$keychain" login.keychain
+
+            identity_out="$(security find-identity -v -p codesigning "$keychain")"
+            if ! grep -Fq "\"$MACOS_SIGNING_IDENTITY\"" <<<"$identity_out"; then
+              printf 'The imported certificate does not contain the requested signing identity: %s\n' "$MACOS_SIGNING_IDENTITY" >&2
+              printf '%s\n' "$identity_out" >&2
+              exit 1
+            fi
+
+            xcrun notarytool store-credentials "$notary_profile" --keychain "$keychain" \
+              --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
+            {
+              echo "MACOS_SIGNING=enabled"
+              echo "MACOS_SIGNING_IDENTITY=$MACOS_SIGNING_IDENTITY"
+              echo "NOTARY_KEYCHAIN_PROFILE=$notary_profile"
+              echo "NOTARY_KEYCHAIN=$keychain"
+            } >> "$GITHUB_ENV"
+            echo "macOS signing and notarization configured."
+            exit 0
+          fi
+
+          if [[ "${REQUIRE_SIGNED_MACOS:-false}" == "true" ]]; then
+            printf 'This release requires signed and notarized macOS packages, but these repository secrets are missing: %s\n' "${missing[*]}" >&2
+            printf 'See README.md "macOS 发布签名" for the exact secret contract.\n' >&2
+            exit 1
+          fi
+
+          if (( missing_count < ${#names[@]} )); then
+            printf 'macOS signing secrets are partially configured; set all of them or none: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+          echo "MACOS_SIGNING=disabled" >> "$GITHUB_ENV"
+          echo "macOS signing is not configured; the package is ad-hoc signed and is not releasable."
+
       # mattn/go-sqlite3 is cgo. Windows runners do not always expose a C
       # compiler on PATH, so install MinGW before the native package build.
       - name: Install MinGW
@@ -100,6 +202,7 @@ jobs:
       - name: Verify package
         shell: bash
         run: |
+          set -euo pipefail
           case "${{ runner.os }}" in
             Linux)
               test -x "${{ matrix.path }}/aurora"
@@ -112,10 +215,19 @@ jobs:
               test -z "$(find "${{ matrix.path }}" -name '*.go' -print -quit)"
               ;;
             macOS)
-              test -d "${{ matrix.path }}/Aurora.app"
-              test -f "${{ matrix.path }}/Aurora.app/Contents/Resources/build-time.txt"
-              test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.dmg' -print -quit)"
-              test -z "$(find "${{ matrix.path }}/Aurora.app" -name '*.go' -print -quit)"
+              app="${{ matrix.path }}/Aurora.app"
+              test -d "$app"
+              test -f "$app/Contents/Resources/build-time.txt"
+              dmg="$(find "${{ matrix.path }}" -maxdepth 1 -name '*.dmg' -print -quit)"
+              test -n "$dmg"
+              test -z "$(find "$app" -name '*.go' -print -quit)"
+              if [[ "${MACOS_SIGNING:-disabled}" == "enabled" ]]; then
+                codesign --verify --deep --strict --verbose=2 "$app"
+                codesign -dv --verbose=4 "$app" 2>&1 | grep -F 'Authority=Developer ID Application'
+                spctl --assess --type execute --verbose=2 "$app"
+                xcrun stapler validate "$app"
+                xcrun stapler validate "$dmg"
+              fi
               ;;
             Windows)
               test -f "${{ matrix.path }}/Aurora.exe"

@@ -1,0 +1,8 @@
+ci(release): require signed and notarized macOS packages (RIL TASK-308, ISS-304)
+
+- pass the six macOS signing secrets through release.yml and require them for
+  tag releases instead of publishing an ad-hoc DMG that Gatekeeper rejects
+- import the Developer ID certificate and notary profile into a temporary
+  keychain, fail on incomplete credentials, and pass them to MyGo
+- verify the signed app and DMG with codesign, spctl and stapler, document the
+  repository secret contract, and add a fault-injected regression test
