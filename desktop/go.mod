@@ -9,7 +9,7 @@ require (
 	github.com/egoist/mygo v0.6.0
 	github.com/pplmx/aurora v0.0.0
 	github.com/spf13/viper v1.21.0
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 )
 
 require (
