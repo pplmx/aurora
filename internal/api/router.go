@@ -1,7 +1,9 @@
 package api
 
 import (
+	"io/fs"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -10,7 +12,17 @@ import (
 	"github.com/pplmx/aurora/internal/metrics"
 )
 
+// newRouter builds the gateway over the checkout's web root (config.WebRoot,
+// default "web"). The source is factored out so a host that carries the UI
+// elsewhere — the mygo desktop shell embeds it in its binary — serves the SAME
+// routes, API-key bootstrap and CSP from its own filesystem.
 func newRouter(s *Server) http.Handler {
+	return newRouterWithWebFS(s, os.DirFS(config.WebRoot()))
+}
+
+// newRouterWithWebFS is newRouter with an explicit Web UI source. The source
+// supplies only the static documents; every API route below is unaffected.
+func newRouterWithWebFS(s *Server, webFS fs.FS) http.Handler {
 	r := chi.NewRouter()
 
 	// Request observability: a stdlib Prometheus-text /metrics endpoint
@@ -92,7 +104,7 @@ func newRouter(s *Server) http.Handler {
 		})
 	})
 
-	r.Handle("/*", injectAPIKey(http.FileServer(http.Dir(config.WebRoot())), config.GetAPIKey()))
+	r.Handle("/*", injectAPIKey(http.FileServerFS(webFS), config.GetAPIKey()))
 
 	return r
 }
