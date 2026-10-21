@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T07:44:17+00:00",
+  "updated_at": "2026-10-21T07:55:23+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12765,6 +12765,29 @@
       "touched_round": 155,
       "title": "mygoTag maps zh-TW/zh-HK/zh-Hant to zh-Hant; config path verified under Xvfb",
       "commit": "19cbdb9"
+    },
+    "TASK-298": {
+      "id": "TASK-298",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T07:55:22+00:00",
+      "updated_at": "2026-10-21T07:55:23+00:00",
+      "touched_round": 155,
+      "title": "Add a run-time language switcher to the desktop Help menu",
+      "category": "core-feature",
+      "priority_score": 6
+    },
+    "CHG-298": {
+      "id": "CHG-298",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T07:55:23+00:00",
+      "updated_at": "2026-10-21T07:55:23+00:00",
+      "touched_round": 155,
+      "title": "Help → Language (system/en/zh-Hans/zh-Hant), MarkLanguage radio state, followLocale seam",
+      "commit": "ae04588"
     }
   },
   "edges": [
@@ -19973,6 +19996,12 @@
       "to": "ISS-294",
       "type": "resolves",
       "created_at": "2026-10-21T07:44:17+00:00"
+    },
+    {
+      "from": "CHG-298",
+      "to": "TASK-298",
+      "type": "implements",
+      "created_at": "2026-10-21T07:55:23+00:00"
     }
   ]
 }
