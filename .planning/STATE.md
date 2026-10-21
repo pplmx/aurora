@@ -177,11 +177,23 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   single Chinese table internal/i18n ships (the same split as the
   system-locale path). Verified live under Xvfb with LANG unset and the
   config above: the menu is Chinese with Traditional roles.
+  The locale work then gained the surface a user actually needs: Help →
+  Language (Follow System / English / 简体中文 / 繁體中文), each item named in
+  its own language as MyGo's docs do, with SetLocale persisting the choice.
+  Building that menu exposed a MyGo constraint worth recording: App.Locale()
+  cannot be called before Run (shownLocale posts to the main thread and waits,
+  so the test suite hung for two minutes), so the menu is built without a
+  locale and MarkLanguage sets the radio tick after installation and after
+  every rebuild. Fault injection: pinning markLanguage to "en" turns
+  TestLanguageMenuSwitchesAndTicks red; not subscribing the listener in
+  followLocale turns TestLanguageSwitchRebuildsTheMenu red. GTK renders menu
+  popups as empty black boxes under Xvfb, so the popup contents are covered
+  by unit tests while the bar itself was verified live.
   Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 1050 nodes, 1201 edges.
+  RIL graph at round 155: 1052 nodes, 1202 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four

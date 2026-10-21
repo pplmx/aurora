@@ -42,6 +42,13 @@ documented in their per-milestone ROADMAP files.
   a config asking for `zh-TW` got Simplified MyGo roles. `zh-TW`, `zh-HK` and
   `zh-Hant-*` now map onto `zh-Hant`; Aurora's own strings keep using the one
   Chinese table it ships, the same split the system-locale path already uses.
+- **The language can be switched from the window**: Help → Language offers
+  Follow System / English / 简体中文 / 繁體中文. `App.SetLocale` persists the
+  choice for the next launch (System Settings on macOS, a file in the user
+  data directory elsewhere) and relabels MyGo's own roles; the same
+  `OnLocaleChanged` listener rebuilds Aurora's labels and ticks the item in
+  effect. Previously the only way to get another language was to change the
+  system locale or the config file.
 - **The desktop module is covered by CI**: `desktop/` is a nested module, so
   the root `go test ./...` never looked inside it and a broken window layer
   passed every gate. `ci.yml` gains a `desktop` job (its own Go 1.27
