@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -54,4 +55,18 @@ func TestUserDataDirFollowsTheAppName(t *testing.T) {
 	// why the database, the logs and the window geometry now travel together.
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "aurora.db"), nil, 0o644))
 	require.FileExists(t, filepath.Join(dir, "aurora.db"))
+}
+
+// TestStartupFailureDialogCarriesTheReason pins the dialog shown when Start
+// fails. A packaged app has no console, so stderr is invisible; the reason and
+// its severity both have to survive into the dialog, or a bad --web-root is
+// indistinguishable from a double-click that did nothing.
+func TestStartupFailureDialogCarriesTheReason(t *testing.T) {
+	cause := errors.New(`web root "/tmp/typo" does not contain index.html`)
+	opts := startupFailureDialog(cause)
+
+	require.Equal(t, mygo.MessageError, opts.Type, "a failed start is an error, not a notice")
+	require.Contains(t, opts.Detail, "/tmp/typo")
+	require.Contains(t, opts.Message, "did not open",
+		"the message must say what happened: Linux shows it without the title")
 }
