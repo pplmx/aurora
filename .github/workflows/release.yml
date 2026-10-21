@@ -29,8 +29,10 @@ jobs:
 
   desktop-build:
     uses: ./.github/workflows/desktop-build.yml
+    secrets: inherit
     with:
       ref: ${{ inputs.tag || github.ref }}
+      require_signed_macos: true
 
   release:
     name: Create Release

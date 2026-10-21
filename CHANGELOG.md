@@ -76,6 +76,15 @@ documented in their per-milestone ROADMAP files.
   manual `workflow_dispatch` retry can republish an existing tag without
   rebuilding after the release event. Uploads overwrite files from an
   interrupted run.
+- **macOS desktop releases must be signed and notarized**: `desktop-build.yml`
+  now imports a Developer ID certificate into a temporary keychain, stores
+  notary credentials under `aurora-notary`, and passes
+  `macos.signingIdentity`/`macos.notarize` to MyGo when the six repository
+  secrets are present. `release.yml` marks signing as required, so a tag
+  release fails before packaging if they are missing or partial instead of
+  publishing a Gatekeeper-blocked ad-hoc DMG. Signed packages are checked
+  with `codesign`, `spctl` and `stapler validate`; local
+  `just desktop-package` remains ad-hoc when the environment is unset.
 - **The desktop shell is a packaged MyGo app, not just a window**:
   `desktop/mygo.config.ts` declares the app identity (name, reverse-DNS
   identifier, version, Linux description) and `just desktop-package` runs

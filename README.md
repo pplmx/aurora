@@ -320,6 +320,38 @@ just desktop-test                                  # 桌面模块的测试（jus
   justfile 注入，因此 `buildCommand` 在打包前把时间写入
   `resources/build-time.txt`，随资源一起安装并由 `--version` 读取；CI 会
   拒绝仍报告 `Build Time: unknown` 的包。
+- **macOS 发布签名**：发布 tag 的 DMG 必须是 Developer ID 签名并公证的，
+  否则 Gatekeeper 只在构建它的那台 Mac 上放行。`desktop-build.yml` 从
+  6 个仓库 secrets 读取凭据，导入临时 keychain 后由 MyGo 使用
+  `macos.signingIdentity` 与 `macos.notarize.keychainProfile`：
+
+  | secret | 内容 |
+  | --- | --- |
+  | `MACOS_CERTIFICATE` | Developer ID Application 证书（含私钥）`.p12` 的 base64 |
+  | `MACOS_CERTIFICATE_PASSWORD` | 该 `.p12` 的密码 |
+  | `MACOS_SIGNING_IDENTITY` | `security find-identity -v -p codesigning` 显示的完整身份，如 `Developer ID Application: ... (TEAMID)` |
+  | `APPLE_ID` | Apple Developer 账号的 Apple ID |
+  | `APPLE_TEAM_ID` | 该证书的 Team ID |
+  | `APPLE_APP_PASSWORD` | Apple ID 的 app-specific password（不是账号密码） |
+
+  在仓库里一次配置：
+
+  ```bash
+  base64 -i certificate.p12 | gh secret set MACOS_CERTIFICATE
+  gh secret set MACOS_CERTIFICATE_PASSWORD
+  gh secret set MACOS_SIGNING_IDENTITY
+  gh secret set APPLE_ID
+  gh secret set APPLE_TEAM_ID
+  gh secret set APPLE_APP_PASSWORD
+  ```
+
+  `release.yml` 通过 `secrets: inherit` 传入这些值，并设置
+  `require_signed_macos: true`：缺少任意一个时，"Configure macOS signing"
+  在打包前失败，不会发布只能在本机运行的 ad-hoc DMG；只配置一部分也会
+  明确报错。证书和 `notarytool` 凭据只进入 job 的临时 keychain，日志不
+  打印密码。签名完成后 CI 用 `codesign`、`spctl` 和 `stapler validate`
+  验收 app 与 DMG。本地 `just desktop-package` 不设置这些环境变量时仍
+  生成 ad-hoc 包，仅供本机测试。
 - **为什么是嵌套模块**：MyGo 要求 Go 1.27，而主模块固定在 1.26 以保持
   镜像构建（`Dockerfile` 的 `golang:1.26-alpine`）与现有工具链可用。
   `desktop/go.mod` 的 `go 1.27.1` 不会污染 `go build ./...` /

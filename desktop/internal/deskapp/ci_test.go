@@ -202,6 +202,92 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/Aurora.exe")
 }
 
+// TestReleaseRequiresSignedAndNotarizedMacOSPackages pins the macOS release
+// contract: an ad-hoc-signed DMG runs only on the runner that built it, so a
+// tag release must fail before packaging when the Developer ID and notary
+// credentials are absent or incomplete. The workflow imports the certificate
+// into a temporary keychain, and the package gate checks the resulting app
+// with Gatekeeper rather than trusting that `mygo build` signed it.
+func TestReleaseRequiresSignedAndNotarizedMacOSPackages(t *testing.T) {
+	root := repoRoot(t)
+
+	desktop, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "desktop-build.yml"))
+	require.NoError(t, err)
+	desktopWorkflow := string(desktop)
+
+	require.Contains(t, desktopWorkflow, "require_signed_macos:")
+	require.Contains(t, desktopWorkflow, "default: false")
+	for _, secret := range []string{
+		"MACOS_CERTIFICATE",
+		"MACOS_CERTIFICATE_PASSWORD",
+		"MACOS_SIGNING_IDENTITY",
+		"APPLE_ID",
+		"APPLE_TEAM_ID",
+		"APPLE_APP_PASSWORD",
+	} {
+		assert.Contains(t, desktopWorkflow, secret,
+			"the reusable workflow must declare the %s secret", secret)
+	}
+	for _, step := range []string{
+		"Configure macOS signing",
+		"security create-keychain",
+		"security import",
+		`grep -Fq "\"$MACOS_SIGNING_IDENTITY\"" <<<"$identity_out"`,
+		`xcrun notarytool store-credentials "$notary_profile"`,
+		"MACOS_SIGNING=enabled",
+		"This release requires signed and notarized macOS packages",
+		"macOS signing secrets are partially configured",
+		"codesign --verify --deep --strict",
+		"spctl --assess --type execute",
+		"xcrun stapler validate",
+	} {
+		assert.Contains(t, desktopWorkflow, step,
+			"the macOS release contract must include %q", step)
+	}
+
+	release, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "release.yml"))
+	require.NoError(t, err)
+	releaseWorkflow := string(release)
+	require.Contains(t, releaseWorkflow, "secrets: inherit",
+		"the release caller must pass the signing secrets to the reusable workflow")
+	require.Contains(t, releaseWorkflow, "require_signed_macos: true",
+		"a tag release must not publish an ad-hoc-signed macOS package")
+
+	config, err := os.ReadFile(filepath.Join(root, "desktop", "mygo.config.ts"))
+	require.NoError(t, err)
+	configText := string(config)
+	for _, env := range []string{
+		"process.env.MACOS_SIGNING_IDENTITY",
+		"process.env.NOTARY_KEYCHAIN_PROFILE",
+		"process.env.NOTARY_KEYCHAIN",
+	} {
+		assert.Contains(t, configText, env,
+			"the MyGo config must pass %s through to signing", env)
+	}
+	assert.Contains(t, configText, `signingIdentity: signingIdentity || "-"`,
+		"local packages without credentials must remain ad-hoc signed")
+	assert.Contains(t, configText, `...(signingIdentity && notaryProfile`,
+		"notarization must be enabled only with a real signing identity")
+
+	readme, err := os.ReadFile(filepath.Join(root, "README.md"))
+	require.NoError(t, err)
+	readmeText := string(readme)
+	require.Contains(t, readmeText, "macOS 发布签名")
+	require.Contains(t, readmeText, "`macos.signingIdentity`")
+	require.Contains(t, readmeText, "`macos.notarize.keychainProfile`")
+	for _, secret := range []string{
+		"MACOS_CERTIFICATE",
+		"MACOS_CERTIFICATE_PASSWORD",
+		"MACOS_SIGNING_IDENTITY",
+		"APPLE_ID",
+		"APPLE_TEAM_ID",
+		"APPLE_APP_PASSWORD",
+	} {
+		assert.Contains(t, readmeText, secret,
+			"README must document the exact %s secret", secret)
+	}
+}
+
 // TestPackagedResourcesHoldNoGoSources guards MyGo's resource contract:
 // everything under desktop/resources is copied next to the executable and
 // into the .deb/tarball. The icon used to live there together with its Go
