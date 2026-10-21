@@ -144,6 +144,18 @@ documented in their per-milestone ROADMAP files.
   show — a bad `--web-root` or an unusable data directory looked like a
   double-click that did nothing. The shell now keeps running long enough to
   put the reason in a native error dialog, then exits 1.
+- **A failed backup folder picker looked like Cancel**: the action treated
+  "the picker returned an error" and "no folder selected" as the same silent
+  return, so a broken picker (no portal, permission problem) left the backup
+  undone with nothing on screen. An error is reported now; only an empty
+  selection stays quiet, and a shell with no database path says so too.
+- **`logger.Init` raced with everything that logs**: it replaced the package
+  logger — and zerolog's process-global time format, for the value zerolog
+  already defaults to — while the oracle scheduler, the audit-outbox drainer
+  and request handlers were logging. The race detector caught it through the
+  desktop start, which re-initializes logging while those loops run. The
+  logger is published under a lock and every accessor reads it under the read
+  lock; `Init` and `Close` serialize on the same mutex.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default
