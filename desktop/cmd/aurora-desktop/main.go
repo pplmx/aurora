@@ -150,29 +150,27 @@ func main() {
 		shell.HandleLaunchArgs(args, workDir)
 	})
 
-	mygo.App.WhenReady(func() {
-		win := mygo.NewWindow(mygo.WindowOptions{
-			Title:           deskapp.AppName,
-			URL:             opts.Intent.URL(),
-			Width:           1280,
-			Height:          860,
-			MinWidth:        900,
-			MinHeight:       600,
-			BackgroundColor: "#1a1a1a",
-			StateKey:        "main",
-		})
-		// A packaged build takes the icon from resources/icon.png at build
-		// time; an unpackaged one would fall back to the toolkit's placeholder
-		// in its title bar and taskbar, so set the very same image here.
-		if err := win.SetIcon(resources.IconPNG); err != nil {
-			fmt.Fprintf(os.Stderr, "aurora-desktop: set window icon: %v\n", err)
+	// A macOS app outlives its window: Cmd+W closes the window, the app stays
+	// in the Dock, and clicking it there (OnActivate with no visible windows)
+	// must bring the window back. Without these two listeners MyGo's defaults
+	// apply - closing the last window quits everywhere - so on macOS a closed
+	// window was the end of the app, and a Dock click had no way back.
+	//
+	// Elsewhere the default is what users expect: closing the window quits,
+	// and the single-instance lock exits the process with it.
+	mygo.App.OnWindowAllClosed(func() {
+		if quitsOnLastWindowClosed(runtime.GOOS) {
+			mygo.App.Quit()
 		}
-		shell.Attach(win)
-		// Dropping a lottery export on the window imports it, the same way
-		// opening one from the file manager does. Anything else is reported
-		// rather than silently ignored.
-		win.OnFileDrop(func(e *mygo.FileDropEvent) { shell.ImportDropped(e.Paths) })
-		win.Focus()
+	})
+	mygo.App.OnActivate(func(hasVisibleWindows bool) {
+		if !hasVisibleWindows {
+			shell.MainWindow(func() *mygo.Window { return openMainWindow(shell, opts) })
+		}
+	})
+
+	mygo.App.WhenReady(func() {
+		openMainWindow(shell, opts)
 		// A lottery export named on the command line is imported once the app
 		// is ready: the storage layer is already open, and the result dialog
 		// MyGo shows needs the running app (calling it before Run panics).
@@ -187,6 +185,48 @@ func main() {
 		fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// quitsOnLastWindowClosed reports whether closing the last window should end
+// the app.
+//
+// On macOS it should not: the app stays in the Dock and OnActivate brings the
+// window back, which is what the platform's users expect from Cmd+W. Every
+// other platform quits with its window. MyGo applies the same split to its own
+// default menu, so an app that does nothing here would quit on macOS too -
+// exactly the behavior this function exists to prevent.
+func quitsOnLastWindowClosed(goos string) bool {
+	return goos != "darwin"
+}
+
+// openMainWindow creates the app's window and wires it to the shell. It runs
+// both at startup and when a macOS Dock click reopens a closed window, so the
+// two paths cannot produce differently-behaved windows (a missing file-drop
+// handler on the reopened one, for instance).
+func openMainWindow(shell *deskapp.Shell, opts deskapp.Flags) *mygo.Window {
+	win := mygo.NewWindow(mygo.WindowOptions{
+		Title:           deskapp.AppName,
+		URL:             opts.Intent.URL(),
+		Width:           1280,
+		Height:          860,
+		MinWidth:        900,
+		MinHeight:       600,
+		BackgroundColor: "#1a1a1a",
+		StateKey:        "main",
+	})
+	// A packaged build takes the icon from resources/icon.png at build time;
+	// an unpackaged one would fall back to the toolkit's placeholder in its
+	// title bar and taskbar, so set the very same image here.
+	if err := win.SetIcon(resources.IconPNG); err != nil {
+		fmt.Fprintf(os.Stderr, "aurora-desktop: set window icon: %v\n", err)
+	}
+	shell.Attach(win)
+	// Dropping a lottery export on the window imports it, the same way opening
+	// one from the file manager does. Anything else is reported rather than
+	// silently ignored.
+	win.OnFileDrop(func(e *mygo.FileDropEvent) { shell.ImportDropped(e.Paths) })
+	win.Focus()
+	return win
 }
 
 // failStartup reports a failure to start and exits 1.

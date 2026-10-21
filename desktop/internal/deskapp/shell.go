@@ -274,6 +274,31 @@ func (s *Shell) Reveal() {
 	win.Focus()
 }
 
+// MainWindow is the window a macOS Dock click or a second launch asks for,
+// creating it again when it was closed. Closing the last window on macOS
+// leaves the app running (see main's OnWindowAllClosed), so "open the app"
+// must mean "show the window again" rather than "do nothing".
+//
+// create runs only on macOS and only when there is no live window; the caller
+// wires the new window exactly like the first one. It is a nil-able hook so a
+// shell without a window factory (tests) still answers.
+func (s *Shell) MainWindow(create func() *mygo.Window) *mygo.Window {
+	if win := s.Window(); win != nil && !win.IsDestroyed() {
+		s.Reveal()
+		return win
+	}
+	if create == nil {
+		return nil
+	}
+	win := create()
+	if win == nil {
+		return nil
+	}
+	s.Attach(win)
+	s.Reveal()
+	return win
+}
+
 // Navigate loads the page an intent names in the window, when there is one.
 func (s *Shell) Navigate(in Intent) {
 	if s.navigate != nil {
