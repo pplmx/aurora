@@ -16,6 +16,11 @@ const signingIdentity = process.env.MACOS_SIGNING_IDENTITY?.trim();
 const notaryKeychain = process.env.NOTARY_KEYCHAIN?.trim();
 const notaryProfile = process.env.NOTARY_KEYCHAIN_PROFILE?.trim();
 
+// The Windows job decodes WINDOWS_CERTIFICATE into this file. MyGo reads the
+// password from MYGO_WINDOWS_CERTIFICATE_PASSWORD and signs the app, resources
+// and NSIS installer with signtool. Development packages remain unsigned.
+const windowsCertificate = process.env.WINDOWS_CERTIFICATE_FILE?.trim();
+
 export default {
   name: "Aurora",
   identifier: "com.pplmx.aurora",
@@ -56,5 +61,9 @@ export default {
     maintainer: "Aurora contributors <noreply@pplmx.dev>",
     comment: "Blockchain toolkit: provably fair lotteries, voting, tokens, NFTs and oracles",
     categories: ["Utility"],
+  },
+
+  windows: {
+    ...(windowsCertificate ? { certificate: windowsCertificate } : {}),
   },
 };

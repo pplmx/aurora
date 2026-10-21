@@ -33,6 +33,7 @@ jobs:
     with:
       ref: ${{ inputs.tag || github.ref }}
       require_signed_macos: true
+      require_signed_windows: true
 
   release:
     name: Create Release
