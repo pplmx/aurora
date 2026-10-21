@@ -35,6 +35,8 @@ out/
 /aurora-desktop
 # `mygo build` output (packaged app, .deb, tarball, desktop entry)
 /dist
+# Written by desktop/scripts/stamp-build-time.mjs during `mygo build`.
+/desktop/resources/build-time.txt
 *.exe
 *.exe~
 *.dll

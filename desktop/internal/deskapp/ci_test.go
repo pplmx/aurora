@@ -123,9 +123,13 @@ func TestCIPackagesTheDesktopApp(t *testing.T) {
 	require.Contains(t, workflow, "go tool mygo build -platform linux/amd64")
 	require.Contains(t, workflow, "aurora --version")
 	require.Contains(t, workflow, `!= "0.0.1"`)
+	require.Contains(t, workflow, `s/^Build Time: //p`)
+	require.Contains(t, workflow, `!= "unknown"`)
 	for _, artifact := range []string{"aurora", "aurora.desktop", "install.sh", "*.deb", "*.tar.gz"} {
 		assert.Contains(t, workflow, artifact, "the packaging gate must verify %q", artifact)
 	}
+	assert.Contains(t, workflow, "build-time.txt",
+		"the packaging gate must verify the packaged build timestamp")
 	assert.Contains(t, workflow, "MimeType=x-scheme-handler/aurora;")
 	assert.Contains(t, workflow, "actions/upload-artifact@v7")
 }
@@ -187,6 +191,10 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	assert.Contains(t, desktopWorkflow, `-name '*.deb'`)
 	assert.Contains(t, desktopWorkflow, `-name '*.dmg'`)
 	assert.Contains(t, desktopWorkflow, `-name '*Setup*.exe'`)
+	assert.Contains(t, desktopWorkflow, "Contents/Resources/build-time.txt",
+		"the macOS package must carry the build stamp in its bundle resources")
+	assert.Contains(t, desktopWorkflow, `"${{ matrix.path }}/build-time.txt"`,
+		"Linux and Windows packages must carry the build stamp next to the executable")
 	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/Aurora.exe")
 }
 
@@ -221,4 +229,11 @@ func TestPackagedResourcesHoldNoGoSources(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, string(config), `icon: "./appicon/icon.png"`,
 		"the packaging icon must stay outside desktop/resources")
+	assert.Contains(t, string(config), `buildCommand: "node scripts/stamp-build-time.mjs"`,
+		"packaging must stamp the build time before resources are copied")
+
+	ignore, err := os.ReadFile(filepath.Join(root, ".gitignore"))
+	require.NoError(t, err)
+	assert.Contains(t, string(ignore), "/desktop/resources/build-time.txt",
+		"the generated build stamp is packaging state, not source")
 }

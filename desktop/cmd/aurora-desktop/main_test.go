@@ -2,11 +2,13 @@ package main
 
 import (
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +32,85 @@ func TestVersionPrefersThePackagedIdentity(t *testing.T) {
 
 	mygo.App.SetVersion("")
 	require.Equal(t, Version, version(), "an unbundled build falls back to the ldflags value")
+}
+
+// TestBuildTimePrefersTheLinkedValue pins the `just desktop` path: a build
+// with -X main.BuildTime must keep exactly what the linker supplied.
+func TestBuildTimePrefersTheLinkedValue(t *testing.T) {
+	linked := "2026-10-21T11:00:00Z"
+	got := resolveBuildTime(linked,
+		func() (string, error) { return "", errors.New("must not read resources") },
+		func() (string, error) { return "", errors.New("must not stat") },
+		func(string) (fs.FileInfo, error) { return nil, errors.New("must not stat") })
+	require.Equal(t, linked, got)
+}
+
+// TestBuildTimeUsesThePackagedStamp is the packaged-build fix: `mygo build`
+// replaces the justfile's ldflags, so BuildTime stays "unknown" and the
+// resource written before packaging carries the build identity.
+func TestBuildTimeUsesThePackagedStamp(t *testing.T) {
+	dir := t.TempDir()
+	mygo.App.SetPath(mygo.PathResources, dir)
+	t.Cleanup(func() { mygo.App.SetPath(mygo.PathResources, "") })
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "build-time.txt"),
+		[]byte("2026-10-21T11:22:33.456Z\n"), 0o644))
+
+	original := BuildTime
+	t.Cleanup(func() { BuildTime = original })
+	BuildTime = unknownBuildTime
+
+	require.Equal(t, "2026-10-21T11:22:33Z", buildTime(),
+		"the packaged resource must win over the executable timestamp")
+}
+
+// TestStampedBuildTimeRejectsAMalformedResource keeps a corrupt stamp from
+// reaching --version: the resolver falls back rather than printing junk.
+func TestStampedBuildTimeRejectsAMalformedResource(t *testing.T) {
+	dir := t.TempDir()
+	mygo.App.SetPath(mygo.PathResources, dir)
+	t.Cleanup(func() { mygo.App.SetPath(mygo.PathResources, "") })
+
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "build-time.txt"), []byte("not a timestamp\n"), 0o644))
+	_, err := stampedBuildTime()
+	require.Error(t, err, "a malformed stamp must fall through, not reach --version")
+}
+
+// TestBuildTimeFallsBackToTheExecutable covers a plain `go build` without
+// ldflags: there is no linked value and no packaged resource.
+func TestBuildTimeFallsBackToTheExecutable(t *testing.T) {
+	exe := filepath.Join(t.TempDir(), "aurora")
+	require.NoError(t, os.WriteFile(exe, []byte("binary"), 0o755))
+	built := time.Date(2026, 10, 21, 11, 22, 33, 987, time.UTC)
+	require.NoError(t, os.Chtimes(exe, built, built))
+
+	got := resolveBuildTime(unknownBuildTime,
+		func() (string, error) { return "", os.ErrNotExist },
+		func() (string, error) { return exe, nil },
+		os.Stat)
+	require.Equal(t, "2026-10-21T11:22:33Z", got)
+}
+
+// TestBuildTimeStaysUnknownWithoutAnExecutable keeps the fallback honest: a
+// failed lookup must not invent a timestamp.
+func TestBuildTimeStaysUnknownWithoutAnExecutable(t *testing.T) {
+	got := resolveBuildTime(unknownBuildTime,
+		func() (string, error) { return "", os.ErrNotExist },
+		func() (string, error) { return "", errors.New("no executable") },
+		func(string) (fs.FileInfo, error) { return nil, errors.New("must not stat") })
+	require.Equal(t, unknownBuildTime, got)
+}
+
+// TestGenerationModeSkipsTheShell pins the package-build contract. `mygo
+// build` runs the app with MYGO_GENERATE to write a TypeScript client; Aurora
+// has no bindings, so the run must return before Start opens the database and
+// logs. That failure blocked a real package build on a read-only HOME.
+func TestGenerationModeSkipsTheShell(t *testing.T) {
+	// MYGO_GENERATE is a path, so this is the same invocation mygo build makes.
+	t.Setenv("MYGO_GENERATE", filepath.Join(t.TempDir(), "mygo.ts"))
+	require.True(t, generationRequested())
+
+	t.Setenv("MYGO_GENERATE", "")
+	require.False(t, generationRequested())
 }
 
 // TestUserDataDirFollowsTheAppName pins the ordering bug found live: MyGo

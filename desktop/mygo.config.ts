@@ -13,6 +13,9 @@ export default {
   identifier: "com.pplmx.aurora",
   version,
   main: "./cmd/aurora-desktop",
+  // mygo build supplies its own -ldflags, so this runs before resources are
+  // copied and leaves the only build timestamp a packaged binary can read.
+  buildCommand: "node scripts/stamp-build-time.mjs",
   // appicon/ holds the Go package that embeds this file for the window icon.
   // It is deliberately outside resources/: every file there is copied into
   // the shipped app, which would otherwise include Go source and tests.

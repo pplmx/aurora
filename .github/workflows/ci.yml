@@ -132,12 +132,14 @@ jobs:
           version="$(dist/desktop/linux-amd64/aurora --version)"
           printf '%s\n' "$version"
           test "$(printf '%s\n' "$version" | sed -n 's/^Version: //p')" != "0.0.1"
+          test "$(printf '%s\n' "$version" | sed -n 's/^Build Time: //p')" != "unknown"
 
       - name: Verify package
         run: |
           test -x dist/desktop/linux-amd64/aurora
           test -f dist/desktop/linux-amd64/aurora.desktop
           test -f dist/desktop/linux-amd64/install.sh
+          test -f dist/desktop/linux-amd64/build-time.txt
           test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.deb' -print -quit)"
           test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.tar.gz' -print -quit)"
           grep -q 'MimeType=x-scheme-handler/aurora;' dist/desktop/linux-amd64/aurora.desktop
