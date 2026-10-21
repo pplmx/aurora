@@ -146,11 +146,24 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   hardcoding the two export/import labels turns
   `TestMenuLabelsFollowTheLocale` red, and dropping the `T()` call from
   `importReport` turns `TestImportReportFollowsTheLocale` red.
+  Running the full gate with `LANG=zh_CN` to check the new code exposed a
+  pre-existing test defect rather than a product one: the CLI and TUI suites
+  assert English output while internal/i18n follows `$LANG`, so
+  `go test ./...` on a Chinese machine failed cmd/aurora/cmd (backup, lottery,
+  ...) and internal/ui/components (the help screen's "scroll" hint), plus the
+  lazy-init test that asserts "en". Reproduced on the previous commit
+  (821b585), so none of it came from the localization work; each package now
+  pins its language in TestMain, the lazy-init test sets the `LANG` it
+  asserts, and the desktop suite (whose strings just moved to i18n) gets the
+  same pin. Fault injection: commenting out `i18n.Init("en")` in
+  cmd/aurora/cmd/main_test.go turns the CLI suite red again under zh_CN. Both
+  `go test ./...` and `go test -race ./...` are now green under zh_CN and
+  en_US, for core and desktop.
   Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 1035 nodes, 1187 edges.
+  RIL graph at round 155: 1045 nodes, 1197 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
