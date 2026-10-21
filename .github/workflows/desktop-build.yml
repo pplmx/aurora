@@ -10,9 +10,13 @@ on:
         description: Fail unless every macOS signing secret is configured
         type: boolean
         default: false
+      require_signed_windows:
+        description: Fail unless every Windows signing secret is configured
+        type: boolean
+        default: false
     # The caller passes these with `secrets: inherit`. They stay optional
-    # here so local/dev calls can still produce an ad-hoc package, while
-    # release.yml sets require_signed_macos and refuses to publish one.
+    # here so development calls can still produce an unsigned package, while
+    # release.yml requires both signing contracts and refuses to publish one.
     secrets:
       MACOS_CERTIFICATE:
         required: false
@@ -25,6 +29,10 @@ on:
       APPLE_TEAM_ID:
         required: false
       APPLE_APP_PASSWORD:
+        required: false
+      WINDOWS_CERTIFICATE:
+        required: false
+      WINDOWS_CERTIFICATE_PASSWORD:
         required: false
 
 env:
@@ -179,6 +187,78 @@ jobs:
             "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin"
           ) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      # An unsigned installer makes SmartScreen warn on every download. The
+      # certificate and its password stay optional for development builds,
+      # while release.yml makes them mandatory before packaging.
+      - name: Configure Windows signing
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          REQUIRE_SIGNED_WINDOWS: ${{ inputs.require_signed_windows }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $missing = @()
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE)) {
+            $missing += "WINDOWS_CERTIFICATE"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+            $missing += "WINDOWS_CERTIFICATE_PASSWORD"
+          }
+
+          if ($missing.Count -gt 0) {
+            if ($env:REQUIRE_SIGNED_WINDOWS -eq "true") {
+              Write-Error "This release requires Authenticode-signed Windows packages, but these repository secrets are missing: $($missing -join ', '). See README.md `"Windows 发布签名`" for the exact secret contract."
+              exit 1
+            }
+            if ($missing.Count -lt 2) {
+              Write-Error "Windows signing secrets are partially configured; set WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD, or neither."
+              exit 1
+            }
+            "WINDOWS_SIGNING=disabled" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "Windows signing is not configured; the package is unsigned and is not releasable."
+            exit 0
+          }
+
+          $pfx = Join-Path $env:RUNNER_TEMP "aurora-code-signing.pfx"
+          try {
+            $encoded = $env:WINDOWS_CERTIFICATE -replace '\s', ''
+            $bytes = [Convert]::FromBase64String($encoded)
+            [IO.File]::WriteAllBytes($pfx, $bytes)
+            $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+              $pfx,
+              $env:WINDOWS_CERTIFICATE_PASSWORD,
+              [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet
+            )
+          } catch {
+            Write-Error "The Windows signing certificate is unusable: $($_.Exception.Message)"
+            exit 1
+          }
+          if (-not $certificate.HasPrivateKey) {
+            Write-Error "WINDOWS_CERTIFICATE must contain a code-signing certificate with its private key."
+            exit 1
+          }
+
+          $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
+          if (-not $signtool) {
+            $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+            if (-not $signtool) {
+              Write-Error "Windows signing is configured, but signtool.exe was not found. Install the Windows SDK."
+              exit 1
+            }
+            Split-Path $signtool.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+
+          @(
+            "WINDOWS_CERTIFICATE_FILE=$pfx",
+            "WINDOWS_SIGNING=enabled",
+            "WINDOWS_SIGNING_SUBJECT=$($certificate.Subject)",
+            "WINDOWS_SIGNING_THUMBPRINT=$($certificate.Thumbprint)"
+          ) | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Windows Authenticode signing configured for $($certificate.Subject)."
+
       # MyGo defaults CGO_ENABLED to 0. Aurora's SQLite driver needs cgo, and
       # the package must be built on its target OS (not cross-compiled).
       - name: Package (Windows)
@@ -186,6 +266,7 @@ jobs:
         env:
           CGO_ENABLED: '1'
           CC: gcc
+          MYGO_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: go tool mygo build -platform ${{ matrix.platform }}
         working-directory: desktop
 
@@ -236,6 +317,52 @@ jobs:
               test -z "$(find "${{ matrix.path }}" -name '*.go' -print -quit)"
               ;;
           esac
+
+      # SmartScreen trusts the publisher only when the Authenticode signature
+      # validates and is timestamped. Check both published executables rather
+      # than assuming that `mygo build` signed them.
+      - name: Verify Windows signatures
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          REQUIRE_SIGNED_WINDOWS: ${{ inputs.require_signed_windows }}
+        run: |
+          if ($env:WINDOWS_SIGNING -ne "enabled") {
+            if ($env:REQUIRE_SIGNED_WINDOWS -eq "true") {
+              Write-Error "This release requires Authenticode-signed Windows packages, but signing was not enabled."
+              exit 1
+            }
+            Write-Host "Windows signing is not configured; skipping Authenticode verification for this development package."
+            exit 0
+          }
+
+          $files = @()
+          $files += Get-Item "${{ matrix.path }}/Aurora.exe" -ErrorAction Stop
+          $files += @(Get-ChildItem "${{ matrix.path }}" -File -Filter "*Setup*.exe" -ErrorAction Stop)
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature -FilePath $file.FullName
+            if ($signature.Status -ne "Valid") {
+              Write-Error "$($file.Name) has an invalid Authenticode signature: $($signature.StatusMessage)"
+              exit 1
+            }
+            if ($null -eq $signature.SignerCertificate) {
+              Write-Error "$($file.Name) has no signer certificate."
+              exit 1
+            }
+            if ($signature.SignerCertificate.Subject -ne $env:WINDOWS_SIGNING_SUBJECT) {
+              Write-Error "$($file.Name) is signed by the wrong subject: $($signature.SignerCertificate.Subject)"
+              exit 1
+            }
+            if ($signature.SignerCertificate.Thumbprint -ne $env:WINDOWS_SIGNING_THUMBPRINT) {
+              Write-Error "$($file.Name) is signed by the wrong certificate: $($signature.SignerCertificate.Thumbprint)"
+              exit 1
+            }
+            if ($null -eq $signature.TimeStamperCertificate) {
+              Write-Error "$($file.Name) is signed without an RFC 3161 timestamp."
+              exit 1
+            }
+            Write-Host "$($file.Name): valid Authenticode signature from $($signature.SignerCertificate.Subject)"
+          }
 
       - name: Upload package
         uses: actions/upload-artifact@v7

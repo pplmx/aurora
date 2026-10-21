@@ -352,6 +352,33 @@ just desktop-test                                  # 桌面模块的测试（jus
   打印密码。签名完成后 CI 用 `codesign`、`spctl` 和 `stapler validate`
   验收 app 与 DMG。本地 `just desktop-package` 不设置这些环境变量时仍
   生成 ad-hoc 包，仅供本机测试。
+- **Windows 发布签名**：未签名的 `Aurora.exe` 与安装器会让 SmartScreen
+  对每次下载报警，也无法向用户证明发布者。`desktop-build.yml` 在原生
+  Windows runner 上从 2 个仓库 secrets 读取 Authenticode 证书，把 base64
+  解码到 job 的临时目录，再由 MyGo 的 `windows.certificate` 用 `signtool`
+  签名 app、资源中的可执行文件和 NSIS 安装器/卸载器：
+
+  | secret | 内容 |
+  | --- | --- |
+  | `WINDOWS_CERTIFICATE` | Authenticode 代码签名证书（含私钥）`.pfx` 的 base64 |
+  | `WINDOWS_CERTIFICATE_PASSWORD` | 该 `.pfx` 的密码 |
+
+  在仓库里一次配置：
+
+  ```bash
+  base64 -i certificate.pfx | gh secret set WINDOWS_CERTIFICATE
+  gh secret set WINDOWS_CERTIFICATE_PASSWORD
+  ```
+
+  `release.yml` 设置 `require_signed_windows: true`：缺少任意一个 secret
+  时，"Configure Windows signing" 在打包前失败；只配置一个也会明确报错，
+  不会发布未签名安装器。证书密码通过
+  `MYGO_WINDOWS_CERTIFICATE_PASSWORD` 传给 MyGo，日志不打印；证书只落在
+  `$RUNNER_TEMP`。打包后 CI 对 `Aurora.exe` 和每个 `*Setup*.exe` 运行
+  `Get-AuthenticodeSignature`，要求状态为 `Valid`、签名者证书与导入证书
+  一致且带 RFC 3161 时间戳。本地 `just desktop-package` 不设置
+  `WINDOWS_CERTIFICATE_FILE` 与 `MYGO_WINDOWS_CERTIFICATE_PASSWORD` 时仍
+  生成未签名包，仅供本机测试。
 - **为什么是嵌套模块**：MyGo 要求 Go 1.27，而主模块固定在 1.26 以保持
   镜像构建（`Dockerfile` 的 `golang:1.26-alpine`）与现有工具链可用。
   `desktop/go.mod` 的 `go 1.27.1` 不会污染 `go build ./...` /

@@ -85,6 +85,16 @@ documented in their per-milestone ROADMAP files.
   publishing a Gatekeeper-blocked ad-hoc DMG. Signed packages are checked
   with `codesign`, `spctl` and `stapler validate`; local
   `just desktop-package` remains ad-hoc when the environment is unset.
+- **Windows desktop releases must be Authenticode-signed**: the native
+  Windows package job now decodes `WINDOWS_CERTIFICATE` into a temporary
+  `.pfx`, passes it to MyGo through `windows.certificate`, and reads its
+  password from `WINDOWS_CERTIFICATE_PASSWORD`. `release.yml` requires both
+  secrets, so a tag release fails before packaging when they are missing or
+  partial instead of publishing an installer that triggers SmartScreen.
+  `Aurora.exe` and every `*Setup*.exe` are then checked with
+  `Get-AuthenticodeSignature`: the signature must be valid, use the imported
+  certificate, and carry an RFC 3161 timestamp. Local packages remain
+  unsigned when the signing environment is unset.
 - **The desktop shell is a packaged MyGo app, not just a window**:
   `desktop/mygo.config.ts` declares the app identity (name, reverse-DNS
   identifier, version, Linux description) and `just desktop-package` runs

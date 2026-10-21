@@ -288,6 +288,84 @@ func TestReleaseRequiresSignedAndNotarizedMacOSPackages(t *testing.T) {
 	}
 }
 
+// TestReleaseRequiresAuthenticodeSignedWindowsPackages pins the Windows
+// counterpart of the macOS contract. An unsigned installer makes SmartScreen
+// warn on every download and gives users no publisher to verify, so a tag
+// release must fail before packaging when the certificate is absent or
+// partial, and the package gate must validate the actual Authenticode
+// signatures rather than trust that `mygo build` signed them.
+func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
+	root := repoRoot(t)
+
+	desktop, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "desktop-build.yml"))
+	require.NoError(t, err)
+	desktopWorkflow := string(desktop)
+
+	require.Contains(t, desktopWorkflow, "require_signed_windows:")
+	for _, secret := range []string{
+		"WINDOWS_CERTIFICATE",
+		"WINDOWS_CERTIFICATE_PASSWORD",
+	} {
+		assert.Contains(t, desktopWorkflow, secret,
+			"the reusable workflow must declare the %s secret", secret)
+	}
+	for _, step := range []string{
+		"Configure Windows signing",
+		"$env:REQUIRE_SIGNED_WINDOWS",
+		"WINDOWS_CERTIFICATE_FILE",
+		"MYGO_WINDOWS_CERTIFICATE_PASSWORD",
+		"Convert]::FromBase64String",
+		"$certificate.HasPrivateKey",
+		"WINDOWS_SIGNING=enabled",
+		"Windows signing is not configured; the package is unsigned",
+		"This release requires Authenticode-signed Windows packages",
+		"Windows signing secrets are partially configured",
+		"signtool.exe was not found",
+		"Verify Windows signatures",
+		"Get-AuthenticodeSignature",
+		`$signature.Status -ne "Valid"`,
+		"$signature.SignerCertificate.Subject",
+		"$signature.SignerCertificate.Thumbprint",
+		"$signature.TimeStamperCertificate",
+	} {
+		assert.Contains(t, desktopWorkflow, step,
+			"the Windows release contract must include %q", step)
+	}
+	assert.Contains(t, desktopWorkflow, `Get-ChildItem "${{ matrix.path }}" -File -Filter "*Setup*.exe"`,
+		"every Windows installer must be signature-checked")
+
+	release, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "release.yml"))
+	require.NoError(t, err)
+	releaseWorkflow := string(release)
+	require.Contains(t, releaseWorkflow, "secrets: inherit",
+		"the release caller must pass the signing secrets to the reusable workflow")
+	require.Contains(t, releaseWorkflow, "require_signed_windows: true",
+		"a tag release must not publish an unsigned Windows package")
+
+	config, err := os.ReadFile(filepath.Join(root, "desktop", "mygo.config.ts"))
+	require.NoError(t, err)
+	configText := string(config)
+	require.Contains(t, configText, "process.env.WINDOWS_CERTIFICATE_FILE",
+		"the MyGo config must pass the decoded certificate path to signing")
+	require.Contains(t, configText, "windows: {",
+		"the MyGo config must declare Windows signing options")
+	require.Contains(t, configText, "...(windowsCertificate ? { certificate: windowsCertificate } : {})",
+		"local packages without credentials must remain unsigned")
+
+	readme, err := os.ReadFile(filepath.Join(root, "README.md"))
+	require.NoError(t, err)
+	readmeText := string(readme)
+	require.Contains(t, readmeText, "Windows 发布签名")
+	require.Contains(t, readmeText, "`windows.certificate`")
+	for _, secret := range []string{
+		"WINDOWS_CERTIFICATE",
+		"WINDOWS_CERTIFICATE_PASSWORD",
+	} {
+		assert.Contains(t, readmeText, secret,
+			"README must document the exact %s secret", secret)
+	}
+}
+
 // TestPackagedResourcesHoldNoGoSources guards MyGo's resource contract:
 // everything under desktop/resources is copied next to the executable and
 // into the .deb/tarball. The icon used to live there together with its Go
