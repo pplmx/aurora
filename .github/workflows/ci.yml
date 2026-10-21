@@ -94,3 +94,56 @@ jobs:
       - name: Test
         run: go test -race ./...
         working-directory: desktop
+
+  # The desktop job above compiles the nested module. This job also runs the
+  # real MyGo packaging path, so a broken mygo.config.ts or missing artifact
+  # fails CI before a release tag is created. Other platforms are packaged by
+  # desktop-build.yml on native runners during release.
+  desktop-package:
+    name: Desktop package (Linux amd64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # mygo.config.ts runs `git describe`; the packaging gate must see
+          # the tags or it tests a SHA-only version.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: desktop/go.mod
+          cache: true
+          cache-dependency-path: desktop/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Package
+        env:
+          CGO_ENABLED: '1'
+          CC: gcc
+        run: go tool mygo build -platform linux/amd64 -skip-dmg
+        working-directory: desktop
+
+      - name: Verify the packaged binary reports its build identity
+        run: |
+          version="$(dist/desktop/linux-amd64/aurora --version)"
+          printf '%s\n' "$version"
+          test "$(printf '%s\n' "$version" | sed -n 's/^Version: //p')" != "0.0.1"
+
+      - name: Verify package
+        run: |
+          test -x dist/desktop/linux-amd64/aurora
+          test -f dist/desktop/linux-amd64/aurora.desktop
+          test -f dist/desktop/linux-amd64/install.sh
+          test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.deb' -print -quit)"
+          test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.tar.gz' -print -quit)"
+          grep -q 'MimeType=x-scheme-handler/aurora;' dist/desktop/linux-amd64/aurora.desktop
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: aurora-desktop-linux-amd64
+          path: dist/desktop/linux-amd64
+          retention-days: 5

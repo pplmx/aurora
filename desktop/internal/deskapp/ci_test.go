@@ -100,3 +100,92 @@ func TestDesktopIsPackagedOnItsOwnPlatform(t *testing.T) {
 			"%s is expected to be the cgo SQLite dependency that blocks cross builds", file)
 	}
 }
+
+// TestCIPackagesTheDesktopApp pins the packaging gate. The desktop job only
+// compiles the module; without this job a bad mygo.config.ts, a missing
+// desktop entry, or a package that silently drops the .deb/tarball would
+// reach a release tag. The commands are deliberately the same as
+// `just desktop-package` (CGO_ENABLED=1 + go tool mygo build).
+func TestCIPackagesTheDesktopApp(t *testing.T) {
+	root := repoRoot(t)
+
+	ci, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "ci.yml"))
+	require.NoError(t, err)
+	workflow := string(ci)
+
+	require.Contains(t, workflow, "  desktop-package:", "ci.yml must package the desktop app")
+	require.Contains(t, workflow, "fetch-depth: 0",
+		"the packaging gate must fetch tags for git describe")
+	require.Contains(t, workflow, "go-version-file: desktop/go.mod")
+	require.Contains(t, workflow, "node-version: '22'")
+	require.Contains(t, workflow, "CGO_ENABLED: '1'")
+	require.Contains(t, workflow, "CC: gcc")
+	require.Contains(t, workflow, "go tool mygo build -platform linux/amd64")
+	require.Contains(t, workflow, "aurora --version")
+	require.Contains(t, workflow, `!= "0.0.1"`)
+	for _, artifact := range []string{"aurora", "aurora.desktop", "install.sh", "*.deb", "*.tar.gz"} {
+		assert.Contains(t, workflow, artifact, "the packaging gate must verify %q", artifact)
+	}
+	assert.Contains(t, workflow, "MimeType=x-scheme-handler/aurora;")
+	assert.Contains(t, workflow, "actions/upload-artifact@v7")
+}
+
+// TestReleasePackagesEveryDesktopPlatform pins the release matrix. A release
+// that only uploads the CLI leaves the MyGo app unavailable even though the
+// repository can build it locally; each target needs its own native runner
+// because the SQLite dependency is cgo.
+func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
+	root := repoRoot(t)
+
+	release, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "release.yml"))
+	require.NoError(t, err)
+	releaseWorkflow := string(release)
+	require.Contains(t, releaseWorkflow, "uses: ./.github/workflows/desktop-build.yml")
+	require.Contains(t, releaseWorkflow, "needs: [build, desktop-build]")
+	require.Contains(t, releaseWorkflow, "overwrite_files: true",
+		"a tag-triggered release is republished by the release event")
+	require.Contains(t, releaseWorkflow, "permissions:\n  contents: write")
+	assert.NotContains(t, releaseWorkflow, "files: artifacts/**/*",
+		"the release must list installable artifacts, not every file in the .app bundle")
+	for _, releaseFile := range []string{
+		"artifacts/aurora-linux-amd64/aurora-linux-amd64",
+		"artifacts/aurora-desktop-darwin-amd64/*.dmg",
+		"artifacts/aurora-desktop-linux-amd64/*.deb",
+		"artifacts/aurora-desktop-linux-amd64/*.tar.gz",
+		"artifacts/aurora-desktop-linux-amd64/install.sh",
+		"artifacts/aurora-desktop-windows-amd64/*Setup*.exe",
+	} {
+		assert.Contains(t, releaseWorkflow, releaseFile,
+			"the release must publish %s", releaseFile)
+	}
+
+	desktop, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "desktop-build.yml"))
+	require.NoError(t, err)
+	desktopWorkflow := string(desktop)
+	require.Contains(t, desktopWorkflow, "CGO_ENABLED: '1'")
+	require.Contains(t, desktopWorkflow, "fetch-depth: 0",
+		"the release package must fetch tags for git describe")
+	require.Contains(t, desktopWorkflow, "Package (Windows)")
+	require.Contains(t, desktopWorkflow, "CC: gcc")
+	require.Contains(t, desktopWorkflow, "go tool mygo build")
+	require.Contains(t, desktopWorkflow, "go-version-file: desktop/go.mod")
+	for _, platform := range []string{
+		"linux/amd64",
+		"linux/arm64",
+		"darwin/arm64",
+		"darwin/amd64",
+		"windows/amd64",
+	} {
+		assert.Contains(t, desktopWorkflow, platform, "release matrix must package %s", platform)
+	}
+	for _, osName := range []string{"ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest"} {
+		assert.Contains(t, desktopWorkflow, osName, "release matrix must use a native %s runner", osName)
+	}
+	assert.Contains(t, desktopWorkflow, "choco install mingw nsis")
+	assert.Contains(t, desktopWorkflow, "C:\\ProgramData\\mingw64\\mingw64\\bin")
+	assert.Contains(t, desktopWorkflow, "Verify package")
+	assert.Contains(t, desktopWorkflow, `-name '*.deb'`)
+	assert.Contains(t, desktopWorkflow, `-name '*.dmg'`)
+	assert.Contains(t, desktopWorkflow, `-name '*Setup*.exe'`)
+	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/Aurora.exe")
+}

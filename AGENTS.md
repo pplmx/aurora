@@ -65,6 +65,9 @@ just stop         # Stop containers: docker compose down
   `--data-dir`). Also handles `aurora://<page>?id=` deep links, imports a dropped or
   command-line lottery export, and packages via `desktop/mygo.config.ts`.
   `desktop/resources/icon.png` is the app icon for both packaging and the window.
+  CI packages Linux amd64 in `ci.yml`; `desktop-build.yml` packages the native
+  release matrix (Linux amd64/arm64, macOS arm64/amd64, Windows amd64), and
+  `release.yml` publishes those artifacts with the CLI binaries.
   A second launch is forwarded by `App.OnSecondInstance` as a raw command line, so
   `deskapp.Shell.HandleLaunchArgs` parses links *and* `.json` exports itself (MyGo
   only converts arguments for declared schemes/file types, and Aurora declares none).

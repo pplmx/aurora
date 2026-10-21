@@ -7,6 +7,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 env:
   GO_VERSION: '1.26'
 
@@ -16,10 +19,15 @@ jobs:
     with:
       ref: ${{ github.ref }}
 
+  desktop-build:
+    uses: ./.github/workflows/desktop-build.yml
+    with:
+      ref: ${{ github.ref }}
+
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, desktop-build]
 
     steps:
       - uses: actions/checkout@v6
@@ -31,5 +39,24 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          # List the distributables explicitly. `artifacts/**/*` also matched
+          # files inside the macOS .app bundle, which cannot be installed on
+          # their own and would collide between the two Mac builds.
+          files: |
+            artifacts/aurora-darwin-amd64/aurora-darwin-amd64
+            artifacts/aurora-darwin-arm64/aurora-darwin-arm64
+            artifacts/aurora-linux-amd64/aurora-linux-amd64
+            artifacts/aurora-linux-arm64/aurora-linux-arm64
+            artifacts/aurora-windows-amd64/aurora-windows-amd64.exe
+            artifacts/aurora-windows-arm64/aurora-windows-arm64.exe
+            artifacts/aurora-desktop-darwin-amd64/*.dmg
+            artifacts/aurora-desktop-darwin-arm64/*.dmg
+            artifacts/aurora-desktop-linux-amd64/*.deb
+            artifacts/aurora-desktop-linux-arm64/*.deb
+            artifacts/aurora-desktop-linux-amd64/*.tar.gz
+            artifacts/aurora-desktop-linux-arm64/*.tar.gz
+            artifacts/aurora-desktop-linux-amd64/install.sh
+            artifacts/aurora-desktop-windows-amd64/Aurora.exe
+            artifacts/aurora-desktop-windows-amd64/*Setup*.exe
           generate_release_notes: true
+          overwrite_files: true

@@ -63,8 +63,17 @@ documented in their per-milestone ROADMAP files.
   toolchain via `go-version-file`, then gofmt, build, vet and
   `go test -race`), and `just desktop-check` runs the same four commands
   locally. `deskapp/ci_test.go` fails if the job disappears or drifts from the
-  recipe. The job compiles rather than packages: packaging needs cgo and the
-  target platform (see Fixed below).
+  recipe. That job compiles rather than packages: packaging needs cgo and the
+  target platform (see Fixed below); the separate `desktop-package` job below
+  covers the real Linux package path.
+- **Desktop packages ship with releases**: `ci.yml` now runs the real
+  `go tool mygo build -platform linux/amd64` packaging path and verifies the
+  executable, desktop entry, `.deb`, tarball and `x-scheme-handler/aurora`
+  registration. `desktop-build.yml` packages the native release matrix
+  (Linux amd64/arm64, macOS arm64/amd64, Windows amd64), and `release.yml`
+  waits for it before publishing, so the MyGo app is downloadable from the
+  same release as the CLI. The release upload is idempotent because a
+  tag-triggered release is also republished by the `release` event.
 - **The desktop shell is a packaged MyGo app, not just a window**:
   `desktop/mygo.config.ts` declares the app identity (name, reverse-DNS
   identifier, version, Linux description) and `just desktop-package` runs
