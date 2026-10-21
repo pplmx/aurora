@@ -11,6 +11,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **The desktop module is covered by CI**: `desktop/` is a nested module, so
+  the root `go test ./...` never looked inside it and a broken window layer
+  passed every gate. `ci.yml` gains a `desktop` job (its own Go 1.27
+  toolchain via `go-version-file`, then gofmt, build, vet and
+  `go test -race`), and `just desktop-check` runs the same four commands
+  locally. `deskapp/ci_test.go` fails if the job disappears or drifts from the
+  recipe. The job compiles rather than packages: packaging needs cgo and the
+  target platform (see Fixed below).
 - **The desktop shell is a packaged MyGo app, not just a window**:
   `desktop/mygo.config.ts` declares the app identity (name, reverse-DNS
   identifier, version, Linux description) and `just desktop-package` runs
@@ -87,6 +95,13 @@ documented in their per-milestone ROADMAP files.
   the shipped config spells it `./logs/`, so a packaged app created `./logs`
   relative to wherever it was started from. The comparison is now on the
   cleaned path.
+- **The documented cross-build of the desktop app could not work**: `just
+  desktop-package -platform windows/amd64` fails in `runtime/cgo` with
+  `windows.h: No such file or directory`, because the core's `mattn/go-sqlite3`
+  storage needs cgo and no Windows C toolchain is present. That is now stated
+  where people will look (README's integration notes, the CI job's comment and
+  `deskapp/ci_test.go`), so packaging is expected on each target OS instead of
+  failing mysteriously in a release pipeline.
 
 ## [v1.98] - 2026-10-21
 

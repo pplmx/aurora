@@ -43,6 +43,17 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   that directory and accepts `file://` URLs; live-verified with a second
   launch from `/tmp/rel-launch` storing `relative-launch-import`, and
   discarding the workDir turns the new test red.
+  The round also closed the coverage gap the nested module lived in: the root
+  gate never enters `desktop/`, so a broken window layer passed silently.
+  `ci.yml` now has a `desktop` job with its own Go 1.27 toolchain
+  (`go-version-file: desktop/go.mod`) running gofmt / build / vet /
+  `test -race`, `just desktop-check` mirrors those four commands, and
+  `deskapp/ci_test.go` fails if either side drifts (verified by renaming the
+  job: the test goes red). The job compiles but does not package, because
+  packaging needs cgo and the target OS: `desktop-package -platform
+  windows/amd64` fails in `runtime/cgo` (`windows.h: No such file`) from the
+  core's `mattn/go-sqlite3`, which is now documented instead of being a
+  release-time surprise (pinned by `TestDesktopIsPackagedOnItsOwnPlatform`).
   Also added the missing app icon: `desktop/resources/icon.png` (1024², picked
   up by `mygo build`) makes the packaged desktop entry say `Icon=aurora` and
   the `.deb` install 256/512 px copies, and the same PNG is embedded so an

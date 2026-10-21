@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T05:04:33+00:00",
+  "updated_at": "2026-10-21T05:13:44+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11909,6 +11909,71 @@
       "source": "Xvfb live run: cd /tmp/rel-launch && aurora-desktop draws.json against a running instance",
       "summary": "Second process exited 0; the running instance stored relative-launch-import, proving relative forwarded paths resolve against the launcher directory",
       "confidence": 0.95
+    },
+    "ISS-278": {
+      "id": "ISS-278",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T05:13:36+00:00",
+      "updated_at": "2026-10-21T05:13:43+00:00",
+      "touched_round": 155,
+      "title": "Desktop module has no CI coverage: nested module escapes the root gate",
+      "severity": 0.6,
+      "description": "go test ./..., go vet ./..., just test/check/build all walk only the main module, so desktop/ (Go 1.27, MyGo) could break without any gate turning red."
+    },
+    "TASK-281": {
+      "id": "TASK-281",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T05:13:36+00:00",
+      "updated_at": "2026-10-21T05:13:43+00:00",
+      "touched_round": 155,
+      "title": "Add a desktop CI job and a matching local check recipe",
+      "category": "test-quality",
+      "severity": 0.6,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "ci.yml desktop job with go-version-file: desktop/go.mod running gofmt/build/vet/test -race; just desktop-check mirrors it; ci_test.go guards both."
+    },
+    "TASK-282": {
+      "id": "TASK-282",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T05:13:36+00:00",
+      "updated_at": "2026-10-21T05:13:44+00:00",
+      "touched_round": 155,
+      "title": "Document that the desktop app must be packaged per-OS",
+      "category": "docs",
+      "severity": 0.3,
+      "effort": 1,
+      "confidence": 0.9,
+      "description": "Cross-building with -platform fails in runtime/cgo because core storage is mattn/go-sqlite3; record in README, CI comment and TestDesktopIsPackagedOnItsOwnPlatform."
+    },
+    "CHG-280": {
+      "id": "CHG-280",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:13:40+00:00",
+      "updated_at": "2026-10-21T05:13:43+00:00",
+      "touched_round": 155,
+      "commit": "c08d30dcbddd96ec4f848b7995aed6b5190c1641",
+      "summary": "ci.yml desktop job (own Go toolchain, gofmt/build/vet/test -race), just desktop-check, ci_test.go guard"
+    },
+    "EV-070": {
+      "id": "EV-070",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:13:44+00:00",
+      "updated_at": "2026-10-21T05:13:44+00:00",
+      "touched_round": 155,
+      "source": "actionlint on .github/workflows/ci.yml; local run of just desktop-check",
+      "summary": "actionlint clean (and reports errors when fed a broken workflow); just desktop-check passes gofmt/build/vet/test -race, and a deliberately unformatted file makes it exit 1",
+      "confidence": 0.9
     }
   },
   "edges": [
@@ -18709,6 +18774,36 @@
       "to": "ISS-277",
       "type": "resolves",
       "created_at": "2026-10-21T05:04:31+00:00"
+    },
+    {
+      "from": "TASK-281",
+      "to": "ISS-278",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:13:43+00:00"
+    },
+    {
+      "from": "TASK-282",
+      "to": "ISS-278",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:13:43+00:00"
+    },
+    {
+      "from": "CHG-280",
+      "to": "TASK-281",
+      "type": "implements",
+      "created_at": "2026-10-21T05:13:43+00:00"
+    },
+    {
+      "from": "CHG-280",
+      "to": "TASK-282",
+      "type": "implements",
+      "created_at": "2026-10-21T05:13:43+00:00"
+    },
+    {
+      "from": "CHG-280",
+      "to": "ISS-278",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:13:43+00:00"
     }
   ]
 }

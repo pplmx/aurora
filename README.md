@@ -55,6 +55,7 @@ just build        # 构建所有平台
 just api          # 构建独立 Web / API 服务器（./aurora-api）
 just desktop      # 构建桌面壳（./aurora-desktop，需 Go 1.27）
 just desktop-test # 运行桌面模块测试（just test 只覆盖核心模块）
+just desktop-check # gofmt + build + vet + test -race（CI 的 desktop job 同款）
 just desktop-package # mygo build：产出 .deb / tar.gz / desktop entry
 just lint         # 代码检查
 just dev          # Docker 开发
@@ -265,6 +266,15 @@ just desktop-test                                  # 桌面模块的测试（jus
   `go test ./...`。注意 `golangci-lint` 必须与其内置的 Go 版本一致：
   用 Go 1.26 构建的 lint 二进制读不了 Go 1.27 标准库的 export data，
   会直接 panic。
+- **CI 覆盖**：嵌套模块不会被根目录的 `go test ./...` 看到，因此
+  `.github/workflows/ci.yml` 有一个独立的 `desktop` job（用
+  `go-version-file: desktop/go.mod` 装 Go 1.27，跑 gofmt / build / vet /
+  `test -race`），本地等价入口是 `just desktop-check`；
+  `desktop/internal/deskapp/ci_test.go` 断言两边跑的是同一组命令，防止
+  job 被删掉后无人察觉。该 job 只编译不打包：核心的 `mattn/go-sqlite3`
+  是 cgo，跨平台打包会在 `runtime/cgo` 阶段失败（实测
+  `desktop-package -platform windows/amd64` → `windows.h: No such file`），
+  所以 `.deb`/`.exe`/`.app` 必须在对应系统上构建。
 - **cgo**：核心用 `mattn/go-sqlite3`，桌面壳必须在本机原生构建（不能
   `CGO_ENABLED=0` 交叉编译）；MyGo 本身无 cgo，窗口层仍可跨平台。
 
