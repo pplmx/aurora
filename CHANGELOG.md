@@ -92,6 +92,14 @@ documented in their per-milestone ROADMAP files.
   the shell has just handled, and forgets it once it arrives — bounded, and a
   genuine repeat is a real request again. A re-import surfaces the app layer's
   duplicate guard ("Import partially failed") instead of nothing.
+- **The same import told the user two different stories**: File → Import built
+  its own partial-failure dialog listing the 0-based rejected record indices
+  and why a record is refused, while the path a dropped file or a command-line
+  argument takes printed the bare index slice and nothing else. `importReport`
+  now owns the wording (and `importReportType` the severity) for all three
+  entry points, and the menu imports through `ImportLotteryFile` like the
+  others instead of repeating the read/open/import sequence. A regression test
+  pins the shell dialog to the menu dialog byte for byte.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default
