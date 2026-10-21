@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T05:19:11+00:00",
+  "updated_at": "2026-10-21T05:22:13+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12024,6 +12024,56 @@
       "source": "Xvfb: two consecutive launches with the same aurora://voting",
       "summary": "Both launches exited 0 and aurora.log shows two GET /voting.html (the permanent set produced one, then silence)",
       "confidence": 0.95
+    },
+    "ISS-280": {
+      "id": "ISS-280",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T05:21:56+00:00",
+      "updated_at": "2026-10-21T05:22:09+00:00",
+      "touched_round": 155,
+      "title": "The import result dialog has two divergent copies",
+      "severity": 0.5,
+      "description": "File > Import listed the 0-based rejected indices plus why a record is refused; Shell.reportImport (dropped file, CLI argument) printed the raw index slice only, so the same file produced different dialogs and the weaker one gave no way to find or explain the bad records."
+    },
+    "TASK-284": {
+      "id": "TASK-284",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:21:59+00:00",
+      "updated_at": "2026-10-21T05:21:59+00:00",
+      "touched_round": 155,
+      "title": "Build the import result dialog in one place",
+      "category": "maintainability",
+      "severity": 0.5,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "Extract importReport/importReportType in deskapp, have the File > Import menu call ImportLotteryFile like the drop and CLI paths, and assert the shell dialog equals the menu dialog."
+    },
+    "CHG-282": {
+      "id": "CHG-282",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:22:02+00:00",
+      "updated_at": "2026-10-21T05:22:06+00:00",
+      "touched_round": 155,
+      "commit": "7fead639e9bbfe553c0437c99e293ded78dbe6dd",
+      "summary": "import_report.go owns wording+severity; menu delegates to ImportLotteryFile; shell.reportImport delegates; TestShellAndMenuShareImportReporting pins equality"
+    },
+    "EV-072": {
+      "id": "EV-072",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:22:13+00:00",
+      "updated_at": "2026-10-21T05:22:13+00:00",
+      "touched_round": 155,
+      "source": "desktop/internal/deskapp/import_report_test.go (fault injection: path removed from the partial-import detail)",
+      "summary": "Syntax/behavior test goes red (detail does not contain \"/tmp/draws.json\"); restored file: go test -race ./... in desktop and core both green",
+      "confidence": 0.95
     }
   },
   "edges": [
@@ -18872,6 +18922,30 @@
       "to": "ISS-279",
       "type": "resolves",
       "created_at": "2026-10-21T05:19:10+00:00"
+    },
+    {
+      "from": "TASK-284",
+      "to": "ISS-280",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:22:07+00:00"
+    },
+    {
+      "from": "ISS-280",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T05:22:07+00:00"
+    },
+    {
+      "from": "CHG-282",
+      "to": "TASK-284",
+      "type": "implements",
+      "created_at": "2026-10-21T05:22:07+00:00"
+    },
+    {
+      "from": "CHG-282",
+      "to": "ISS-280",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:22:07+00:00"
     }
   ]
 }
