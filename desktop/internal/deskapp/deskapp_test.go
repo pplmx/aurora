@@ -87,7 +87,7 @@ func TestUsageAndVersionText(t *testing.T) {
 	version := VersionText("v1.2.3", "built-then")
 	require.Contains(t, version, "v1.2.3")
 	require.Contains(t, version, "built-then")
-	require.Contains(t, version, "Go: go")
+	require.Contains(t, version, T("app.go_version")+": go")
 }
 
 func TestResolveWebRoot(t *testing.T) {

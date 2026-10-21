@@ -453,6 +453,67 @@ func (tr *Translator) loadMessages() {
 		"backup.confirm_flag":     "Proceed with restore (overwrites the live database)",
 		"backup.confirm_required": "⚠️ restore overwrites the live database; pass --confirm to proceed",
 
+		// ===== DESKTOP (MyGo shell) =====
+		// Menu labels, dialog text and --help. MyGo translates the labels of
+		// the menu items that carry a role; everything Aurora writes itself
+		// has to come from here or a zh-CN session shows MyGo's Chinese roles
+		// next to English app items (ISS-291).
+		"desktop.menu.file":                     "File",
+		"desktop.menu.export":                   "Export Lotteries...",
+		"desktop.menu.import":                   "Import Lotteries...",
+		"desktop.menu.backup":                   "Back Up Database...",
+		"desktop.menu.show_data_folder":         "Show Data Folder",
+		"desktop.menu.help":                     "Help",
+		"desktop.menu.about":                    "About Aurora",
+		"desktop.filter.lottery_export":         "Lottery export",
+		"desktop.dialog.export_title":           "Export Lotteries",
+		"desktop.dialog.export_button":          "Export",
+		"desktop.dialog.exported_title":         "Lotteries exported",
+		"desktop.dialog.exported_message":       "%d draws written.",
+		"desktop.dialog.import_title":           "Import Lotteries",
+		"desktop.dialog.imported_title":         "Lotteries imported",
+		"desktop.dialog.imported_message":       "%d draws imported.",
+		"desktop.dialog.import_partial_title":   "Import partially failed",
+		"desktop.dialog.import_partial_message": "Imported %d of %d lottery records (failed: %d).",
+		"desktop.dialog.import_rejected_detail": "Rejected record indices (0-based): %v\n\n" +
+			"A record is rejected when it fails validation, when its ID already exists " +
+			"(re-importing an export is refused rather than overwriting the stored draw), " +
+			"or when it cannot be written.\n\n%s",
+		"desktop.dialog.backup_pick_dir":      "Choose where to store the backup",
+		"desktop.dialog.backup_could_not":     "Aurora could not back up the database.",
+		"desktop.dialog.backup_done_title":    "Backup complete",
+		"desktop.dialog.backup_done_message":  "The database backup was written.",
+		"desktop.dialog.about_title":          "About Aurora",
+		"desktop.dialog.about_message":        "Aurora Desktop %s",
+		"desktop.dialog.about_detail":         "Built: %s\nDatabase: %s\nWeb UI: %s",
+		"desktop.dialog.about_embedded":       "(embedded in the app)",
+		"desktop.startup.title":               "Aurora could not start",
+		"desktop.startup.message":             "Aurora did not open its window.",
+		"desktop.error.export_failed":         "Export failed",
+		"desktop.error.import_failed":         "Import failed",
+		"desktop.error.backup_failed":         "Backup failed",
+		"desktop.error.backup_no_db":          "this window has no database path",
+		"desktop.error.open_link_title":       "Aurora could not open that link",
+		"desktop.error.open_link_message":     "%s is not an aurora:// link to a page",
+		"desktop.error.already_running_title": "This Aurora is already running",
+		"desktop.error.already_running_message": "Aurora is already running with a different %s. " +
+			"This window keeps the data directory and Web UI it started with; " +
+			"quit Aurora first to launch with another one.",
+		"desktop.error.unsupported_file_title":   "Unsupported file",
+		"desktop.error.unsupported_file_message": "%s is not an Aurora lottery export (.json); nothing was imported",
+		"desktop.help.tagline":                   "Blockchain toolkit desktop shell",
+		"desktop.help.usage":                     "Usage:",
+		"desktop.help.examples":                  "Examples:",
+		"desktop.help.flags":                     "Flags:",
+		"desktop.help.help_flag":                 "  -h, --help          Show this help and exit",
+		"desktop.help.web_root_flag":             "      --web-root DIR  Serve the web UI from DIR instead of the copy",
+		"desktop.help.web_root_cont":             "                      embedded in this binary (for UI development)",
+		"desktop.help.data_dir_flag":             "      --data-dir DIR  Directory holding aurora.db (default: per-user data dir)",
+		"desktop.help.version_flag":              "  -v, --version       Show version information and exit",
+		"desktop.help.example_dashboard":         "  aurora-desktop                          # dashboard",
+		"desktop.help.example_link":              "  aurora-desktop aurora://lottery?id=abc  # verify that draw",
+		"desktop.help.example_file":              "  aurora-desktop draws.json               # import an export",
+
 		// Destructive-op --confirm gate shared by token burn / nft burn /
 		// oracle source delete / migrate down / lottery reset (TASK-186,
 		// ISS-182): one localized refusal + flag help for every command that
@@ -857,6 +918,65 @@ func (tr *Translator) loadMessages() {
 		"backup.restore_done":     "✅ 已从 %s 恢复数据库",
 		"backup.confirm_flag":     "确认恢复（将覆盖实时数据库）",
 		"backup.confirm_required": "⚠️ 恢复将覆盖实时数据库；请传入 --confirm 以继续",
+
+		// ===== 桌面壳（MyGo） =====
+		// 菜单、弹窗与 --help。MyGo 只翻译带 role 的菜单项；Aurora 自己写的
+		// 文案必须走这里，否则 zh-CN 会话里 MyGo 的中文 role 会与英文菜单项
+		// 混在一起（ISS-291）。
+		"desktop.menu.file":                     "文件",
+		"desktop.menu.export":                   "导出抽奖记录…",
+		"desktop.menu.import":                   "导入抽奖记录…",
+		"desktop.menu.backup":                   "备份数据库…",
+		"desktop.menu.show_data_folder":         "打开数据目录",
+		"desktop.menu.help":                     "帮助",
+		"desktop.menu.about":                    "关于 Aurora",
+		"desktop.filter.lottery_export":         "抽奖导出文件",
+		"desktop.dialog.export_title":           "导出抽奖记录",
+		"desktop.dialog.export_button":          "导出",
+		"desktop.dialog.exported_title":         "抽奖记录已导出",
+		"desktop.dialog.exported_message":       "已写入 %d 条抽奖记录。",
+		"desktop.dialog.import_title":           "导入抽奖记录",
+		"desktop.dialog.imported_title":         "抽奖记录已导入",
+		"desktop.dialog.imported_message":       "已导入 %d 条抽奖记录。",
+		"desktop.dialog.import_partial_title":   "部分导入失败",
+		"desktop.dialog.import_partial_message": "已导入 %d / %d 条抽奖记录（失败 %d 条）。",
+		"desktop.dialog.import_rejected_detail": "被拒绝的记录下标（从 0 开始）：%v\n\n" +
+			"记录被拒绝的原因：未通过校验、ID 已存在（重新导入同一份导出会被拒绝，" +
+			"而不是覆盖已存的开奖），或者无法写入。\n\n%s",
+		"desktop.dialog.backup_pick_dir":      "选择备份存放目录",
+		"desktop.dialog.backup_could_not":     "Aurora 无法备份数据库。",
+		"desktop.dialog.backup_done_title":    "备份完成",
+		"desktop.dialog.backup_done_message":  "数据库备份已写入。",
+		"desktop.dialog.about_title":          "关于 Aurora",
+		"desktop.dialog.about_message":        "Aurora 桌面版 %s",
+		"desktop.dialog.about_detail":         "构建时间：%s\n数据库：%s\nWeb 界面：%s",
+		"desktop.dialog.about_embedded":       "（已内置于应用中）",
+		"desktop.startup.title":               "Aurora 无法启动",
+		"desktop.startup.message":             "Aurora 未能打开窗口。",
+		"desktop.error.export_failed":         "导出失败",
+		"desktop.error.import_failed":         "导入失败",
+		"desktop.error.backup_failed":         "备份失败",
+		"desktop.error.backup_no_db":          "当前窗口没有数据库路径",
+		"desktop.error.open_link_title":       "Aurora 无法打开该链接",
+		"desktop.error.open_link_message":     "%s 不是指向页面的 aurora:// 链接",
+		"desktop.error.already_running_title": "Aurora 已在运行",
+		"desktop.error.already_running_message": "另一个 %s 的 Aurora 已在运行。" +
+			"当前窗口继续使用它启动时的数据目录与 Web 界面；" +
+			"如需换用其他路径，请先退出 Aurora。",
+		"desktop.error.unsupported_file_title":   "不支持的文件",
+		"desktop.error.unsupported_file_message": "%s 不是 Aurora 的抽奖导出文件（.json）；未导入任何内容",
+		"desktop.help.tagline":                   "区块链工具箱桌面壳",
+		"desktop.help.usage":                     "用法：",
+		"desktop.help.examples":                  "示例：",
+		"desktop.help.flags":                     "参数：",
+		"desktop.help.help_flag":                 "  -h, --help          显示此帮助并退出",
+		"desktop.help.web_root_flag":             "      --web-root DIR  改用 DIR 里的页面，而不是内嵌副本",
+		"desktop.help.web_root_cont":             "                      （用于开发 Web 界面）",
+		"desktop.help.data_dir_flag":             "      --data-dir DIR  存放 aurora.db 的目录（默认：用户数据目录）",
+		"desktop.help.version_flag":              "  -v, --version       显示版本信息并退出",
+		"desktop.help.example_dashboard":         "  aurora-desktop                          # 仪表盘",
+		"desktop.help.example_link":              "  aurora-desktop aurora://lottery?id=abc  # 验证该期开奖",
+		"desktop.help.example_file":              "  aurora-desktop draws.json               # 导入一份导出文件",
 
 		// 破坏性操作 --confirm 门（token burn / nft burn / oracle source
 		// delete / migrate down / lottery reset 共用，TASK-186，ISS-182）

@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/desktop/internal/deskapp"
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // TestVersionPrefersThePackagedIdentity is the defect this file exists for:
@@ -63,6 +64,11 @@ func TestUserDataDirFollowsTheAppName(t *testing.T) {
 // its severity both have to survive into the dialog, or a bad --web-root is
 // indistinguishable from a double-click that did nothing.
 func TestStartupFailureDialogCarriesTheReason(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+	tr.SetLocale("en")
+
 	cause := errors.New(`web root "/tmp/typo" does not contain index.html`)
 	opts := startupFailureDialog(cause)
 
@@ -70,6 +76,22 @@ func TestStartupFailureDialogCarriesTheReason(t *testing.T) {
 	require.Contains(t, opts.Detail, "/tmp/typo")
 	require.Contains(t, opts.Message, "did not open",
 		"the message must say what happened: Linux shows it without the title")
+}
+
+// TestStartupFailureDialogFollowsTheLocale is the half a failed start is most
+// likely to show: the window never opens, so this dialog is the only thing the
+// user sees, and it was hardcoded English even when MyGo's role labels were
+// Chinese. internal/i18n is initialized in main before Start can fail, so the
+// dialog can read it.
+func TestStartupFailureDialogFollowsTheLocale(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("zh")
+	opts := startupFailureDialog(errors.New("boom"))
+	require.Equal(t, "Aurora 无法启动", opts.Title)
+	require.Equal(t, "Aurora 未能打开窗口。", opts.Message)
 }
 
 // TestQuitOnLastWindowClosed pins the platform split. MyGo quits when the last
