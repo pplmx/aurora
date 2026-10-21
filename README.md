@@ -250,6 +250,14 @@ just desktop-test                                  # 桌面模块的测试（jus
   `cd ~/Downloads && aurora-desktop draws.json` 会在第一个实例的目录里找
   文件，静默什么也不做（实测）。实测第二次启动后第一条实例加载了
   `/voting.html`，且转发文件（绝对与相对路径）都落库。
+- **去重只针对 MyGo 的回声**：MyGo 对「刚处理过的启动参数」会再投递一次
+  （冷启动时 `ParseFlags` 已读的那份、以及 `OnSecondInstance` 回调后
+  MyGo 自己 `deliverArgs` 的那份）。`Shell` 只为这类参数记一次待抵消的回声，
+  收到即删除——所以**同一个链接过一会儿再打开仍然有效**，映射也不会无限增长
+  （早先的永久集合会让第二次点击链接永久失效，实测确认修复后两次启动
+  产生两次 `/voting.html` 请求）。导出文件完全不去重：MyGo 从不回声文件
+  （本应用不声明文件关联），重复导入交给 `ImportRecords` 的重复记录保护，
+  会明确报 "Import partially failed" 而不是静默。
 - **图标**：`desktop/resources/icon.png`（1024²）是打包与运行时的唯一图标
   来源——`mygo build` 用它生成 `.icns`/`.ico`/desktop entry 的 `Icon=`
   并装进 `.deb` 的 hicolor 目录，同一份 PNG 又被 embed，未打包的

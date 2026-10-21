@@ -84,6 +84,14 @@ documented in their per-milestone ROADMAP files.
   `draws.json` against the *running* instance's directory, found nothing and
   did nothing. Forwarded arguments are now resolved against the launcher's
   directory, and `file://` URLs are accepted like paths.
+- **The same link stopped working after the first time**: the shell remembered
+  every argument it had ever honored, so reopening `aurora://lottery?id=<draw>`
+  later in the session was silently ignored, and so was re-importing an export
+  (which MyGo never echoes anyway, since Aurora declares no file association).
+  The bookkeeping now counts exactly the one echo MyGo delivers for a launch
+  the shell has just handled, and forgets it once it arrives — bounded, and a
+  genuine repeat is a real request again. A re-import surfaces the app layer's
+  duplicate guard ("Import partially failed") instead of nothing.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default

@@ -54,6 +54,16 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   windows/amd64` fails in `runtime/cgo` (`windows.h: No such file`) from the
   core's `mattn/go-sqlite3`, which is now documented instead of being a
   release-time surprise (pinned by `TestDesktopIsPackagedOnItsOwnPlatform`).
+  A fourth routing defect: `Shell`, which exists to swallow MyGo's
+  re-delivery of a launch argument, remembered every argument forever. The
+  same `aurora://` link opened again later was therefore ignored for the rest
+  of the process, and re-importing an export was swallowed too even though
+  MyGo never echoes files (Aurora declares no file association). The
+  bookkeeping is now an owed-echo count that is deleted when consumed, so it
+  is bounded and a genuine repeat works; exports skip dedupe entirely and rely
+  on `ImportRecords`' duplicate guard. Live-verified with two consecutive
+  `aurora://voting` launches producing two `/voting.html` requests; both the
+  permanent-set and the no-echo variants turn their tests red.
   Also added the missing app icon: `desktop/resources/icon.png` (1024², picked
   up by `mygo build`) makes the packaged desktop entry say `Icon=aurora` and
   the `.deb` install 256/512 px copies, and the same PNG is embedded so an
@@ -62,7 +72,7 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 979 nodes, 1133 edges.
+  RIL graph at round 155: 989 nodes, 1141 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
