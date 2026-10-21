@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 153,
+  "round": 154,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T03:51:32+00:00",
+  "updated_at": "2026-10-21T04:35:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11416,7 +11416,7 @@
       "version": 2,
       "created_at": "2026-10-21T03:17:02+00:00",
       "updated_at": "2026-10-21T03:51:14+00:00",
-      "touched_round": 152,
+      "touched_round": 154,
       "name": "desktop/cmd/aurora-desktop",
       "path": "desktop/cmd/aurora-desktop",
       "description": "mygo desktop shell in the nested desktop/ module: embeds the Web UI (root package embed.go) and serves the internal/api router from an in-process aurora:// scheme handler that never opens a listener; File menu shares lottery export/import, backup, show-data-folder"
@@ -11522,6 +11522,118 @@
         "Serve the UI from a loopback HTTP listener (reintroduces a port, CORS allow-list, and a network path for the API key)"
       ],
       "confidence": 1.0
+    },
+    "ISS-271": {
+      "id": "ISS-271",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T04:32:04+00:00",
+      "updated_at": "2026-10-21T04:32:34+00:00",
+      "touched_round": 154,
+      "title": "Packaged desktop build reported 0.0.1, and the data directory depended on whether SetName ran before Path(PathUserData)",
+      "severity": 0.55
+    },
+    "ISS-272": {
+      "id": "ISS-272",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T04:32:04+00:00",
+      "updated_at": "2026-10-21T04:32:34+00:00",
+      "touched_round": 154,
+      "title": "Deep link verified the draw off screen, and a command-line lottery export was marked handled and never imported",
+      "severity": 0.5
+    },
+    "TASK-275": {
+      "id": "TASK-275",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T04:32:10+00:00",
+      "updated_at": "2026-10-21T04:32:34+00:00",
+      "touched_round": 154,
+      "category": "core-feature",
+      "title": "Use MyGo as the app framework: mygo.config.ts packaging, aurora:// deep links, drop/CLI import, and fix the four defects packaging exposed (version, data dir, off-screen verdict, dropped import)",
+      "severity": 0.65,
+      "confidence": 0.95,
+      "effort": 3
+    },
+    "EV-064": {
+      "id": "EV-064",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T04:32:14+00:00",
+      "updated_at": "2026-10-21T04:32:14+00:00",
+      "touched_round": 154,
+      "title": "mygo build packages the shell; packaged version and data dir verified live",
+      "source": "dist/desktop/linux-amd64/aurora --version (v1.1-616-g81fc546-dirty); dpkg-deb desktop entry MimeType=x-scheme-handler/aurora; Xvfb runs 2026-10-21",
+      "summary": "With main.Version only, the packaged binary printed 0.0.1 while the .deb was git-versioned; App.Version() fixes it. Data dir was ~/.config/MyGo before SetName moved ahead of Path(PathUserData) (then ~/.config/Aurora in both dev and packaged runs).",
+      "confidence": 1.0
+    },
+    "EV-065": {
+      "id": "EV-065",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T04:32:15+00:00",
+      "updated_at": "2026-10-21T04:32:15+00:00",
+      "touched_round": 154,
+      "title": "Deep link reaches the lottery page and verifies; second instance forwards its link",
+      "source": "live Xvfb: /api/v1/lottery/2abe5c26b678538e/verify 200 with verdict rendered; second process exit 0 then first logged GET /voting.html",
+      "summary": "Aurora://lottery?id= lands on lottery.html, fills Verify and verifies (scrolls the panel into view, since it sits below the fold). A second launch with aurora://voting handed the URL to the running instance rather than opening a second database writer. Command-line draws.json imports exactly once.",
+      "confidence": 1.0
+    },
+    "CHG-271": {
+      "id": "CHG-271",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T04:32:19+00:00",
+      "updated_at": "2026-10-21T04:35:40+00:00",
+      "touched_round": 154,
+      "commit": "02d06d1",
+      "title": "Add mygo.config.ts + desktop-package, aurora:// deep links (Intent/Shell), drop and CLI import, and fix packaged version, SetName ordering, off-screen verdict (TASK-275, ISS-271, ISS-272)"
+    },
+    "DEC-020": {
+      "id": "DEC-020",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T04:32:31+00:00",
+      "updated_at": "2026-10-21T04:32:31+00:00",
+      "touched_round": 154,
+      "title": "MyGo is the app framework (mygo build + mygo.config.ts), not only a window host",
+      "rationale": "Round 153 used only mygo.NewWindow/Protocol.Handle. The framework's value for Aurora is packaging and OS integration: a versioned .deb/tarball with a desktop entry, aurora:// scheme registration, and file drops. mygo build supplies its own -ldflags, so build-time identity moves into mygo.config.ts (version from git describe) and the shell reads App.Version() instead of -X main.Version. The CLI is pinned as a module tool, keeping the toolchain requirement inside desktop/.",
+      "alternatives_rejected": [
+        "Keep just desktop and hand-roll a .deb/desktop entry",
+        "Pass -X main.Version and accept mygo build overwriting it",
+        "Shell out to mygo from just without pinning it in go.mod"
+      ],
+      "confidence": 0.95
+    },
+    "CHG-272": {
+      "id": "CHG-272",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T04:35:43+00:00",
+      "updated_at": "2026-10-21T04:35:43+00:00",
+      "touched_round": 154,
+      "commit": "13f3006",
+      "title": "Package the desktop shell as a MyGo app: mygo.config.ts identity + scheme, just desktop-package, version from git describe (TASK-275, DEC-020)"
+    },
+    "CHG-273": {
+      "id": "CHG-273",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T04:35:43+00:00",
+      "updated_at": "2026-10-21T04:35:43+00:00",
+      "touched_round": 154,
+      "commit": "47a52f2",
+      "title": "Deep-linked lottery verdict scrolls into view; Node harness pins the ?id read, verify request and scroll (ISS-272)"
     }
   },
   "edges": [
@@ -18148,6 +18260,78 @@
       "to": "TASK-274",
       "type": "governs",
       "created_at": "2026-10-21T03:51:29+00:00"
+    },
+    {
+      "from": "TASK-275",
+      "to": "ISS-271",
+      "type": "addresses",
+      "created_at": "2026-10-21T04:32:22+00:00"
+    },
+    {
+      "from": "TASK-275",
+      "to": "ISS-272",
+      "type": "addresses",
+      "created_at": "2026-10-21T04:32:22+00:00"
+    },
+    {
+      "from": "ISS-271",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-21T04:32:22+00:00"
+    },
+    {
+      "from": "ISS-272",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-21T04:32:22+00:00"
+    },
+    {
+      "from": "CHG-271",
+      "to": "TASK-275",
+      "type": "implements",
+      "created_at": "2026-10-21T04:32:22+00:00"
+    },
+    {
+      "from": "CHG-271",
+      "to": "ISS-271",
+      "type": "resolves",
+      "created_at": "2026-10-21T04:32:22+00:00"
+    },
+    {
+      "from": "CHG-271",
+      "to": "ISS-272",
+      "type": "resolves",
+      "created_at": "2026-10-21T04:32:23+00:00"
+    },
+    {
+      "from": "DEC-020",
+      "to": "COMP-013",
+      "type": "governs",
+      "created_at": "2026-10-21T04:32:34+00:00"
+    },
+    {
+      "from": "CHG-272",
+      "to": "TASK-275",
+      "type": "implements",
+      "created_at": "2026-10-21T04:35:46+00:00"
+    },
+    {
+      "from": "CHG-273",
+      "to": "TASK-275",
+      "type": "implements",
+      "created_at": "2026-10-21T04:35:47+00:00"
+    },
+    {
+      "from": "CHG-272",
+      "to": "ISS-271",
+      "type": "resolves",
+      "created_at": "2026-10-21T04:35:47+00:00"
+    },
+    {
+      "from": "CHG-273",
+      "to": "ISS-272",
+      "type": "resolves",
+      "created_at": "2026-10-21T04:35:47+00:00"
     }
   ]
 }
