@@ -63,6 +63,8 @@ just stop         # Stop containers: docker compose down
   A second launch is forwarded by `App.OnSecondInstance` as a raw command line, so
   `deskapp.Shell.HandleLaunchArgs` parses links *and* `.json` exports itself (MyGo
   only converts arguments for declared schemes/file types, and Aurora declares none).
+  Relative forwarded paths resolve against the launcher's working directory, not the
+  running instance's.
 - **Core logic**: `internal/domain/blockchain/`, `internal/i18n/`, `internal/utils/`
 - **Tests**: `e2e/*_test.go` (E2E), `internal/*/ *_test.go` (unit)
 - **Config**: `config/aurora.toml` (Viper loads from `$HOME` or `./config/`)
