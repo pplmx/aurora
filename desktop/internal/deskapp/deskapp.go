@@ -8,10 +8,12 @@
 package deskapp
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -88,27 +90,56 @@ func (r *Runtime) Handler() http.Handler {
 // stripCSP removes Content-Security-Policy from every response. See Handler.
 func stripCSP(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(cspDroppingWriter{ResponseWriter: w}, r)
+		next.ServeHTTP(&cspDroppingWriter{ResponseWriter: w}, r)
 	})
 }
 
 // cspDroppingWriter drops CSP from both Header() writes and the WriteHeader
 // call, because injectAPIKey sets it through Header() after the downstream
 // handler has already written its own headers.
+//
+// The optional interfaces are forwarded explicitly. This wrapper is the
+// outermost one around every desktop response, and Go's net/http adapters do
+// not see through a wrapper that lacks them: without Flush a streaming
+// handler (the API's own recovery middleware promises to preserve
+// http.Flusher) would have its flushes silently dropped on the custom scheme,
+// and without Unwrap an http.ResponseController would report "feature not
+// supported" instead of reaching the writer underneath.
 type cspDroppingWriter struct {
 	http.ResponseWriter
 }
 
-func (w cspDroppingWriter) WriteHeader(status int) {
+func (w *cspDroppingWriter) WriteHeader(status int) {
 	w.ResponseWriter.Header().Del("Content-Security-Policy")
 	w.ResponseWriter.WriteHeader(status)
 }
 
-func (w cspDroppingWriter) Write(p []byte) (int, error) {
+func (w *cspDroppingWriter) Write(p []byte) (int, error) {
 	// A handler that writes without an explicit WriteHeader triggers an
 	// implicit 200; drop the header then too.
 	w.ResponseWriter.Header().Del("Content-Security-Policy")
 	return w.ResponseWriter.Write(p)
+}
+
+// Unwrap lets http.ResponseController find the writer underneath for the
+// features this wrapper does not implement itself (deadlines, full duplex).
+func (w *cspDroppingWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+// Flush implements http.Flusher so a streamed response is streamed.
+func (w *cspDroppingWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		w.ResponseWriter.Header().Del("Content-Security-Policy")
+		f.Flush()
+	}
+}
+
+// Hijack implements http.Hijacker for handlers that take the connection.
+func (w *cspDroppingWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("deskapp: underlying writer is not an http.Hijacker")
+	}
+	return h.Hijack()
 }
 
 // WebRoot reports the directory the UI is served from, or "" when the UI is
