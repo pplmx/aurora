@@ -11,7 +11,7 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
-- **The desktop shell is a packaged MyGo app, not just a window**: 
+- **The desktop shell is a packaged MyGo app, not just a window**:
   `desktop/mygo.config.ts` declares the app identity (name, reverse-DNS
   identifier, version, Linux description) and `just desktop-package` runs
   `go tool mygo build` to produce a native executable, a desktop entry that
@@ -32,6 +32,11 @@ documented in their per-milestone ROADMAP files.
   File → Import (TASK-069's overwrite guard included), and a `.json` path on
   the command line does the same. Unsupported files are reported rather than
   ignored.
+- **The app has an icon**: `desktop/resources/icon.png` (1024×1024) is picked
+  up by `mygo build`, so the desktop entry names `Icon=aurora` instead of
+  leaving it empty and the `.deb` installs 256/512 px copies under
+  `usr/share/icons/hicolor`. The same PNG is embedded so an unpackaged
+  `just desktop` window shows it in its title bar and taskbar too.
 
 ### Fixed
 
@@ -57,6 +62,25 @@ documented in their per-milestone ROADMAP files.
   covers it) and then nothing acted on it. The import now runs from
   `WhenReady`, where MyGo's dialogs are usable, and `Shell` guarantees it
   happens exactly once even though MyGo re-delivers the argument.
+- **A second launch dropped its export and never raised the window**: MyGo
+  forwards a second instance's raw arguments to `OnSecondInstance`, but it
+  only converts them into `OnOpenURL`/`OnOpenFile` for schemes and file types
+  it is configured to handle. Aurora deliberately claims no `.json`
+  association (that would take over every JSON file on the desktop), so
+  `aurora-desktop draws.json` against a running instance was silently
+  discarded. The shell now parses the forwarded arguments itself (links and
+  exports) and reveals the window, restoring it first when minimized.
+- **File logging fell back to the console on every first run**: `logger.Init`
+  validated `log.path` with `utils.NormalizePath` — which requires the
+  directory to exist — before creating it, so the shipped default
+  (`config/aurora.toml`, `path = "./logs/"`) never produced a log file. A
+  desktop app has no console, so its entire log was lost. The directory is now
+  created first, then normalized.
+- **The desktop wrote its logs into the launch directory**: the "keep logs
+  beside the database" default only matched the exact string `./logs`, while
+  the shipped config spells it `./logs/`, so a packaged app created `./logs`
+  relative to wherever it was started from. The comparison is now on the
+  cleaned path.
 
 ## [v1.98] - 2026-10-21
 

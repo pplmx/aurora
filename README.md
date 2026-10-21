@@ -214,9 +214,11 @@ just desktop-test                                  # 桌面模块的测试（jus
   `--web-root DIR` 是开发开关：显式指定时改用磁盘目录，改页面无需重编译。
 - **复用同一后端**：`api.NewServer` 原样启动，预言机定时调度器与审计
   outbox 补偿循环照常运行；`Runtime.Close` 在退出时释放 SQLite 句柄。
-- **数据落在用户目录**：默认 `os.UserConfigDir()/aurora/aurora.db`，
+- **数据落在用户目录**：默认 MyGo 的 `App.Path(PathUserData)`，即
+  `$XDG_CONFIG_HOME/Aurora/aurora.db`（macOS/Windows 对应各自的用户目录），
   日志写在同目录 `logs/`，不再依赖启动时的工作目录；可用 `--data-dir`
-  覆盖。
+  覆盖。`Shell` 在 `Start` 之前调用 `App.SetName`，否则同一台机器上会出现
+  `MyGo/` 与 `Aurora/` 两个目录（实测）。
 - **CSP 由传输层接管**：HTTP 网关保留 round-151 的严格 CSP，但 WebKitGTK
   在 `aurora://` 下不执行**任何** CSP 下的页面脚本（实测 `'self' aurora:`、
   `'self' aurora://localhost`、`*` 三种策略都让窗口失去响应、`/api/v1`
@@ -236,6 +238,17 @@ just desktop-test                                  # 桌面模块的测试（jus
   `.json` 文件会明确报"不支持"而不是静默忽略。命令行直接给一个导出文件
   同样导入，且冷启动时 MyGo 会二次投递同一个参数，`Shell` 记录已处理的
   参数，保证只导入一次。
+- **第二次启动**：`App.OnSecondInstance` 拿到的是原始命令行，而 MyGo 只会
+  把「已声明 scheme 的 URL」和「已关联的文件类型」转成
+  `OnOpenURL`/`OnOpenFile`。本应用刻意不声明 `.json` 关联（否则会抢走
+  桌面上所有 JSON 文件），因此转发过来的导出文件由 `Shell.HandleLaunchArgs`
+  自己解析：链接导航、`.json` 导入、flag 跳过、非法 `aurora://` 链接弹窗
+  报错，最后把窗口还原并前置（最小化时先 `Restore`）。实测第二次启动后
+  第一条实例加载了 `/voting.html`，且转发文件落库。
+- **图标**：`desktop/resources/icon.png`（1024²）是打包与运行时的唯一图标
+  来源——`mygo build` 用它生成 `.icns`/`.ico`/desktop entry 的 `Icon=`
+  并装进 `.deb` 的 hicolor 目录，同一份 PNG 又被 embed，未打包的
+  `just desktop` 窗口也能在标题栏/任务栏显示它。
 - **打包**：`desktop/mygo.config.ts` 描述应用身份（name/identifier/版本/
   版权/Linux 描述），`go tool mygo build` 产出可安装的 `.deb`、
   `install.sh`、`.tar.gz` 与带 `MimeType=x-scheme-handler/aurora;` 的
