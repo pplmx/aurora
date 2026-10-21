@@ -67,8 +67,78 @@ func NewMenu(meta About) *mygo.Menu {
 			{Label: T("desktop.menu.about"), Click: func(_ *mygo.MenuItem, win *mygo.Window) {
 				showAbout(meta, win)
 			}},
+			mygo.Separator(),
+			{Label: T("desktop.menu.language"), Submenu: languageMenu()},
 		}},
 	})
+}
+
+// The language items' IDs, so the chosen one can be ticked without asking
+// MyGo for the locale while the menu is being built (before Run, App.Locale
+// waits for the main thread, which is not running yet).
+const (
+	languageSystemID      = "language-system"
+	languageEnglishID     = "language-en"
+	languageSimplifiedID  = "language-zh-hans"
+	languageTraditionalID = "language-zh-hant"
+)
+
+// languageMenu lets the user choose the language at run time. MyGo keeps the
+// choice for the next launch (System Settings on macOS, a file in
+// PathUserData elsewhere), and OnLocaleChanged tells FollowAppLocale, which
+// relabels Aurora's own items and lets MyGo relabel the roles.
+//
+// "Follow System" is SetLocale(""), not a tag: MyGo then follows the user's
+// languages again, which is the state a first launch starts in.
+func languageMenu() []*mygo.MenuItem {
+	item := func(id, label, tag string) *mygo.MenuItem {
+		return &mygo.MenuItem{
+			ID:    id,
+			Label: label,
+			Type:  mygo.MenuItemRadio,
+			Click: func(*mygo.MenuItem, *mygo.Window) {
+				mygo.App.SetLocale(tag)
+			},
+		}
+	}
+	return []*mygo.MenuItem{
+		item(languageSystemID, T("desktop.menu.language_system"), ""),
+		mygo.Separator(),
+		item(languageEnglishID, T("desktop.menu.language_en"), "en"),
+		item(languageSimplifiedID, T("desktop.menu.language_zh"), "zh-Hans"),
+		item(languageTraditionalID, T("desktop.menu.language_zh_hant"), "zh-Hant"),
+	}
+}
+
+// markLanguage ticks the item of the language the app shows. It runs once the
+// app is ready, on the menu in use, and after each change: a radio group
+// normally ticks itself, but the rebuilt menu starts with none ticked, and a
+// pseudo locale (en-XA, a test of translations) matches no item.
+//
+// "Follow System" is not ticked even when that is how the language was
+// chosen: App.Locale reports the resolved language, not whether an override
+// is set, so ticking it would be a guess. The language in effect is what the
+// menu can state, and it does.
+func markLanguage(menu *mygo.Menu) {
+	locale := appLocale()
+	for id, tag := range map[string]string{
+		languageEnglishID:     "en",
+		languageSimplifiedID:  "zh-Hans",
+		languageTraditionalID: "zh-Hant",
+	} {
+		if item := menu.ItemByID(id); item != nil {
+			item.SetChecked(locale == tag)
+		}
+	}
+}
+
+// MarkLanguage is markLanguage for the app: it runs after the menu is
+// installed and after a language change, when App.Locale is available.
+func MarkLanguage(menu *mygo.Menu) {
+	if menu == nil {
+		return
+	}
+	markLanguage(menu)
 }
 
 // lotteryJSONFilter is the file-dialog filter for the portable document
