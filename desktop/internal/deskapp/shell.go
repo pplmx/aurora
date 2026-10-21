@@ -37,7 +37,9 @@ type Shell struct {
 	expectEcho map[string]int
 	// report shows a message to the operator. A shell launched from a file
 	// manager has no terminal, so failures must be visible in a dialog.
-	report func(title, message, detail string)
+	// It takes the severity too: a failure that arrives by a dropped file must
+	// look like a failure, exactly as it does from the File menu.
+	report func(typ mygo.MessageType, title, message, detail string)
 	// navigate loads an intent in the window. Tests replace it to observe
 	// exactly which links reach the page; the default needs a live window.
 	navigate func(Intent)
@@ -219,22 +221,28 @@ func (s *Shell) ImportDropped(paths []string) {
 }
 
 func (s *Shell) reportError(title string, err error) {
-	s.report(title, err.Error(), "")
+	s.report(mygo.MessageError, title, err.Error(), "")
 }
 
 // reportImport shows the same accounting the File > Import action shows, so a
 // file opened from the file manager and one chosen in the dialog report
-// identically: one place builds the wording (importReport), not two.
+// identically: one place builds both the wording (importReport) and the
+// severity (importReportType), so a partial import is a warning on every path
+// and never a plain success.
 func (s *Shell) reportImport(path string, result lotteryapp.ImportResult) {
 	title, message, detail := importReport(result, path)
-	s.report(title, message, detail)
+	s.report(importReportType(result), title, message, detail)
 }
 
-func showMessage(title, message, detail string) {
-	_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-		Type:    mygo.MessageInfo,
-		Title:   title,
-		Message: message,
-		Detail:  detail,
-	})
+// messageBox puts a message on screen. It is a variable rather than a direct
+// call so a test can observe the dialog a shell or menu action would show
+// without needing a live window.
+var messageBox = func(opts mygo.MessageOptions) {
+	_, _ = mygo.Dialog.Message(opts)
+}
+
+// showMessage is the one message dialog constructor for the shell and the
+// menu: same call, same severity handling, wherever the message comes from.
+func showMessage(typ mygo.MessageType, title, message, detail string) {
+	messageBox(mygo.MessageOptions{Type: typ, Title: title, Message: message, Detail: detail})
 }

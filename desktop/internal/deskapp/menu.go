@@ -105,12 +105,8 @@ func exportLotteries(meta About) {
 		return
 	}
 
-	_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-		Type:    mygo.MessageInfo,
-		Title:   "Lotteries exported",
-		Message: fmt.Sprintf("%d draws written.", count),
-		Detail:  path,
-	})
+	showMessage(mygo.MessageInfo, "Lotteries exported",
+		fmt.Sprintf("%d draws written.", count), path)
 }
 
 // importLotteries stores a portable document through the same app-layer
@@ -139,12 +135,7 @@ func importLotteries(meta About) {
 	}
 
 	title, message, detail := importReport(result, paths[0])
-	_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-		Type:    importReportType(result),
-		Title:   title,
-		Message: message,
-		Detail:  detail,
-	})
+	showMessage(importReportType(result), title, message, detail)
 }
 
 // openLotteryRepo opens the same database the shell's gateway uses. The
@@ -168,11 +159,7 @@ func openLotteryRepo(meta About) (lottery.Repository, func(), error) {
 // showError reports a failure in a native dialog: the shell may be launched
 // from a file manager, where stderr goes nowhere.
 func showError(title string, err error) {
-	_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-		Type:    mygo.MessageError,
-		Title:   title,
-		Message: err.Error(),
-	})
+	showMessage(mygo.MessageError, title, err.Error(), "")
 }
 
 // backUpDatabase snapshots the live SQLite database through the same
@@ -193,20 +180,11 @@ func backUpDatabase(meta About) {
 	svc := backup.NewBackupService(map[string]string{"aurora": meta.DBPath})
 	res, err := svc.Create(context.Background(), dest)
 	if err != nil {
-		_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-			Type:    mygo.MessageError,
-			Title:   "Backup failed",
-			Message: "Aurora could not back up the database.",
-			Detail:  err.Error(),
-		})
+		showMessage(mygo.MessageError, "Backup failed",
+			"Aurora could not back up the database.", err.Error())
 		return
 	}
-	_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-		Type:    mygo.MessageInfo,
-		Title:   "Backup complete",
-		Message: "The database backup was written.",
-		Detail:  res.File,
-	})
+	showMessage(mygo.MessageInfo, "Backup complete", "The database backup was written.", res.File)
 }
 
 // showAbout reports what this build is running against.
@@ -215,12 +193,8 @@ func showAbout(meta About) {
 	if ui == "" {
 		ui = "(embedded in the app)"
 	}
-	_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-		Type:    mygo.MessageInfo,
-		Title:   "About Aurora",
-		Message: "Aurora Desktop " + meta.Version,
-		Detail: "Built: " + meta.BuildTime +
-			"\nDatabase: " + meta.DBPath +
-			"\nWeb UI: " + ui,
-	})
+	showMessage(mygo.MessageInfo, "About Aurora", "Aurora Desktop "+meta.Version,
+		"Built: "+meta.BuildTime+
+			"\nDatabase: "+meta.DBPath+
+			"\nWeb UI: "+ui)
 }
