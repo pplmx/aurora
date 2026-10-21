@@ -5,16 +5,40 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/egoist/mygo"
 	"github.com/pplmx/aurora/desktop/internal/deskapp"
 )
 
-// Injected at build time by the justfile `desktop` recipe.
+// Injected at build time by the justfile `desktop` recipe. A `mygo build`
+// bundle links its own packageVersion instead, so version() prefers that and
+// falls back to these for `go build`/`just desktop`.
 var (
 	Version   = "0.0.1"
 	BuildTime = "unknown"
 )
+
+// version is the version a user sees. MyGo knows the version linked into a
+// packaged app (mygo.config.ts), which the justfile's -X main.Version cannot
+// reach: `mygo build` supplies its own -ldflags. Without this fallback a
+// .deb built from the same source reported 0.0.1 (measured), so
+// `aurora-desktop --version` disagreed with the installer's package version.
+func version() string {
+	if v := mygo.App.Version(); v != "" {
+		return v
+	}
+	return Version
+}
+
+// userDataDir is the default data directory for a packaged app: MyGo's
+// per-user application directory, next to its window state. Outside a package
+// (go run, go test, `just desktop`) MyGo still answers with the same XDG /
+// AppData location, so the database does not move between development and a
+// bundle.
+func userDataDir() (string, error) {
+	return mygo.App.Path(mygo.PathUserData)
+}
 
 func main() {
 	mode, opts, err := deskapp.ParseFlags(os.Args[1:])
@@ -25,12 +49,21 @@ func main() {
 	}
 	switch mode {
 	case deskapp.ModeHelp:
-		deskapp.Usage(os.Stdout, Version, BuildTime)
+		deskapp.Usage(os.Stdout, version(), BuildTime)
 		return
 	case deskapp.ModeVersion:
-		fmt.Print(deskapp.VersionText(Version, BuildTime))
+		fmt.Print(deskapp.VersionText(version(), BuildTime))
 		return
 	}
+
+	// Name the app before ANYTHING asks MyGo about identity. Two things depend
+	// on it and would otherwise disagree between runs:
+	//   - App.Path(PathUserData) joins the application name, so resolving the
+	//     data directory before SetName created ~/.config/MyGo on one run and
+	//     ~/.config/Aurora on the next (measured);
+	//   - the single-instance lock is keyed by the name, so two launches that
+	//     named themselves differently would both believe they were first.
+	mygo.App.SetName(deskapp.AppName)
 
 	// Refuse to start without a system webview BEFORE booting the window:
 	// NewWindow panics when the platform has none, and a raw panic with a Go
@@ -50,7 +83,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	rt, err := deskapp.Start(ctx, deskapp.Options{WebRoot: opts.WebRoot, DataDir: opts.DataDir})
+	// Let MyGo own the per-user directory when the app is packaged: the
+	// database, the logs and MyGo's window-state.json then live under one
+	// application directory (and the name MyGo already resolved), instead of
+	// our own guess next to it.
+	rt, err := deskapp.Start(ctx, deskapp.Options{
+		WebRoot:        opts.WebRoot,
+		DataDir:        opts.DataDir,
+		DataDirDefault: userDataDir,
+	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", err)
 		os.Exit(1)
@@ -64,19 +105,56 @@ func main() {
 		os.Exit(1)
 	}
 
-	mygo.App.SetName("Aurora")
-	mygo.App.SetVersion(Version)
-	mygo.App.SetMenu(deskapp.NewMenu(deskapp.About{
-		Version:   Version,
+	// Only override the version `mygo build` linked in; SetVersion("") would
+	// erase it (App.Version falls back to the packaged identity only when no
+	// override is set).
+	if mygo.App.Version() == "" {
+		mygo.App.SetVersion(Version)
+	}
+	meta := deskapp.About{
+		Version:   version(),
 		BuildTime: BuildTime,
 		WebRoot:   rt.WebRoot(),
 		DBPath:    rt.DBPath(),
-	}))
+	}
+	mygo.App.SetMenu(deskapp.NewMenu(meta))
+
+	// Operating-system integration. On macOS the scheme and file association
+	// come from mygo.config.ts at packaging time; on Linux and Windows the
+	// app registers the scheme on every start, which is cheap and works
+	// without an installer.
+	shell := deskapp.NewShell(meta)
+	if runtime.GOOS != "darwin" {
+		if err := mygo.App.RegisterURLScheme(deskapp.DeepLinkScheme); err != nil {
+			fmt.Fprintf(os.Stderr, "aurora-desktop: register %s://: %v\n", deskapp.DeepLinkScheme, err)
+		}
+	}
+	// A deep link is re-delivered by MyGo once the app is ready, but the
+	// window already opens at opts.Intent.URL(); mark it handled so the
+	// delivery does not reload the page. A file is NOT marked here: the import
+	// needs a running app, so it happens in WhenReady, and Shell.take makes
+	// whichever of that call and MyGo's delivery arrives first the only one
+	// that imports.
+	if opts.Intent.File == "" && opts.Intent.Raw != "" {
+		shell.Consume(opts.Intent.Raw)
+	}
+	mygo.App.OnOpenURL(shell.OpenURL)
+	mygo.App.OnOpenFile(shell.OpenFile)
+	// A second launch with another link or file must reach this instance
+	// rather than start a rival database writer.
+	mygo.App.OnSecondInstance(func(args []string, _ string) {
+		for _, arg := range args {
+			switch {
+			case deskapp.IsDeepLink(arg):
+				shell.OpenURL(arg)
+			}
+		}
+	})
 
 	mygo.App.WhenReady(func() {
 		win := mygo.NewWindow(mygo.WindowOptions{
-			Title:           "Aurora",
-			URL:             deskapp.URL(),
+			Title:           deskapp.AppName,
+			URL:             opts.Intent.URL(),
 			Width:           1280,
 			Height:          860,
 			MinWidth:        900,
@@ -84,7 +162,20 @@ func main() {
 			BackgroundColor: "#1a1a1a",
 			StateKey:        "main",
 		})
+		shell.Attach(win)
+		// Dropping a lottery export on the window imports it, the same way
+		// opening one from the file manager does. Anything else is reported
+		// rather than silently ignored.
+		win.OnFileDrop(func(e *mygo.FileDropEvent) { shell.ImportDropped(e.Paths) })
 		win.Focus()
+		// A lottery export named on the command line is imported once the app
+		// is ready: the storage layer is already open, and the result dialog
+		// MyGo shows needs the running app (calling it before Run panics).
+		// The path is already consumed, so MyGo's own delivery of it is a
+		// no-op and the file is imported exactly once.
+		if opts.Intent.File != "" {
+			shell.OpenFile(opts.Intent.File)
+		}
 	})
 
 	if err := mygo.App.Run(); err != nil {
