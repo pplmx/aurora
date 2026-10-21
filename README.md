@@ -220,8 +220,11 @@ just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / W
   与 `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、
   同一覆盖保护）。About 显示版本、构建时间、数据库与 Web UI 来源。
 - **为什么是嵌套模块**：MyGo 要求 Go 1.27，而主模块固定在 1.26 以保持
-  CI 与本地 `golangci-lint` 可用。`desktop/go.mod` 的 `go 1.27.1` 不会
-  污染 `go build ./...` / `go test ./...`。
+  镜像构建（`Dockerfile` 的 `golang:1.26-alpine`）与现有工具链可用。
+  `desktop/go.mod` 的 `go 1.27.1` 不会污染 `go build ./...` /
+  `go test ./...`。注意 `golangci-lint` 必须与其内置的 Go 版本一致：
+  用 Go 1.26 构建的 lint 二进制读不了 Go 1.27 标准库的 export data，
+  会直接 panic。
 - **cgo**：核心用 `mattn/go-sqlite3`，桌面壳必须在本机原生构建（不能
   `CGO_ENABLED=0` 交叉编译）；MyGo 本身无 cgo，窗口层仍可跨平台。
 
