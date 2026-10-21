@@ -7,6 +7,57 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [v1.99] - 2026-10-21
+
+### Added
+
+- **The desktop shell is a packaged MyGo app, not just a window**: 
+  `desktop/mygo.config.ts` declares the app identity (name, reverse-DNS
+  identifier, version, Linux description) and `just desktop-package` runs
+  `go tool mygo build` to produce a native executable, a desktop entry that
+  registers `x-scheme-handler/aurora`, a Debian package and an installable
+  tarball under `dist/desktop/<os>-<arch>/`. The `mygo` CLI is a pinned
+  module tool in `desktop/go.mod`, and the version comes from `git describe`
+  inside the config so the binary, the `.deb` and the tarball name always
+  agree.
+- **`aurora://` deep links**: `aurora://lottery?id=<draw>` (and the
+  `aurora://localhost/lottery.html?id=<draw>` spelling the window itself
+  uses) opens the app on that draw, fills the Verify field and verifies it
+  immediately. Declared in `urlSchemes` for bundles and registered at run
+  time on Linux/Windows; a second launch forwards its link to the running
+  instance through `App.OnSecondInstance` instead of starting a second
+  SQLite writer.
+- **File drops and command-line imports**: dropping a lottery export on the
+  window imports it through the same app-layer function as
+  File → Import (TASK-069's overwrite guard included), and a `.json` path on
+  the command line does the same. Unsupported files are reported rather than
+  ignored.
+
+### Fixed
+
+- **A packaged build reported the wrong version**: `mygo build` supplies its
+  own `-ldflags`, so the justfile's `-X main.Version` never landed in a
+  bundle; `aurora-desktop --version` printed the `0.0.1` placeholder while the
+  `.deb` it shipped in was versioned from git. The shell now prefers
+  `App.Version()` (what the package links in) and only falls back to the
+  build-time variable.
+- **The data directory depended on call order**: `App.Path(PathUserData)`
+  joins the application name, and the shell resolved it before
+  `App.SetName`, so one run created `~/.config/MyGo` and the next
+  `~/.config/Aurora`. The name is now set before anything asks MyGo about
+  identity, which also keeps the single-instance lock (keyed by that name)
+  consistent.
+- **A deep link fetched the verdict out of sight**: the Verify panel sits
+  below Create and History, so the `/verify` call returned 200 while the
+  visible viewport still showed the create form. The panel is scrolled into
+  view once the verdict renders (measured in a real window under Xvfb,
+  before and after).
+- **A command-line lottery export was never imported**: the launch argument
+  was marked as already handled (correct for a page link, whose window URL
+  covers it) and then nothing acted on it. The import now runs from
+  `WhenReady`, where MyGo's dialogs are usable, and `Shell` guarantees it
+  happens exactly once even though MyGo re-delivers the argument.
+
 ## [v1.98] - 2026-10-21
 
 ### Added
