@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +51,7 @@ func TestRealMigrations_Apply(t *testing.T) {
 
 	for _, table := range []string{
 		"blocks", "lottery_records",
-		"votes", "voters", "candidates", "voting_sessions",
+		"votes", "vote_sessions", "voters", "candidates", "voting_sessions",
 		"nfts", "nft_operations",
 		"tokens", "accounts", "allowances",
 		"data_sources", "oracle_data",
@@ -72,6 +74,106 @@ func TestRealMigrations_UpTwice_NoChange(t *testing.T) {
 
 	_, err = m.Up(0)
 	require.NoError(t, err, "second Up must be a no-op, not an error")
+}
+
+// TestRealMigrations_VotesSessionID proves migration 000003 adds the session
+// mapping without rebuilding votes or losing legacy ballots. Legacy rows stay
+// unattributed, while new vote/session pairs can be counted per election
+// (ISS-299).
+func TestRealMigrations_VotesSessionID(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+
+	db, err := sql.Open("sqlite3", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec(`
+		CREATE TABLE votes (
+			id TEXT PRIMARY KEY,
+			voter_pk TEXT NOT NULL,
+			candidate_id TEXT NOT NULL,
+			signature TEXT NOT NULL,
+			message TEXT NOT NULL,
+			timestamp INTEGER NOT NULL,
+			block_height INTEGER NOT NULL
+		);
+		INSERT INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
+		VALUES ('legacy', 'voter', 'cand', 'sig', 'msg', 1, 1);
+	`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	m, err := New(dbPath, realMigrationsDir())
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+	_, err = m.Up(0)
+	require.NoError(t, err, "upgrading a legacy votes table must not fail")
+
+	db, err = sql.Open("sqlite3", dbPath)
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	var legacyCount int
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM votes WHERE id = 'legacy'`).Scan(&legacyCount))
+	require.Equal(t, 1, legacyCount, "migration must preserve legacy ballots")
+
+	var legacyMappings int
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM vote_sessions WHERE vote_id = 'legacy'`).Scan(&legacyMappings))
+	require.Equal(t, 0, legacyMappings, "legacy ballots cannot be attributed to a session")
+
+	_, err = db.Exec(`INSERT INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
+		VALUES ('new', 'voter2', 'cand', 'sig', 'msg', 2, 2)`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO vote_sessions (vote_id, session_id) VALUES ('new', 's1')`)
+	require.NoError(t, err)
+
+	var n int
+	require.NoError(t, db.QueryRow(`
+		SELECT count(*)
+		FROM votes v
+		JOIN vote_sessions vs ON vs.vote_id = v.id
+		WHERE vs.session_id = 's1' AND v.candidate_id = 'cand'
+	`).Scan(&n))
+	require.Equal(t, 1, n)
+}
+
+// TestRealMigrations_PreservesBootstrappedVoteSessions is the regression for
+// applying 000003 after VotingRepository has already self-bootstrapped the
+// schema and recorded a session vote. The migration must not rebuild votes or
+// discard the mapping the repository wrote (ISS-299).
+func TestRealMigrations_PreservesBootstrappedVoteSessions(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+
+	db, err := sql.Open("sqlite3", sqlite.DSN(dbPath))
+	require.NoError(t, err)
+	repo, err := sqlite.NewVotingRepository(db)
+	require.NoError(t, err)
+
+	require.NoError(t, repo.SaveVote(&voting.Vote{
+		ID:             "bootstrapped",
+		VoterPublicKey: "voter",
+		CandidateID:    "cand",
+		SessionID:      "s1",
+		Signature:      "sig",
+		Message:        "msg",
+		Timestamp:      1,
+		BlockHeight:    1,
+	}))
+	require.NoError(t, db.Close())
+
+	m, err := New(dbPath, realMigrationsDir())
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+	_, err = m.Up(0)
+	require.NoError(t, err, "migration must accept an already-bootstrapped schema")
+
+	db, err = sql.Open("sqlite3", dbPath)
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	var sessionID string
+	require.NoError(t, db.QueryRow(
+		`SELECT session_id FROM vote_sessions WHERE vote_id = 'bootstrapped'`,
+	).Scan(&sessionID))
+	require.Equal(t, "s1", sessionID, "migration must preserve the repository's session mapping")
 }
 
 func assertTableExists(t *testing.T, db *sql.DB, table string) {

@@ -278,9 +278,9 @@ func TestVotingRepository_GetVotesByCandidate(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
-	vote1 := voting.NewVote("voter1", "cand-1", "sig1", "msg1")
-	vote2 := voting.NewVote("voter2", "cand-1", "sig2", "msg2")
-	vote3 := voting.NewVote("voter3", "cand-2", "sig3", "msg3")
+	vote1 := voting.NewSessionVote("voter1", "cand-1", "s1", "sig1", "msg1")
+	vote2 := voting.NewSessionVote("voter2", "cand-1", "s1", "sig2", "msg2")
+	vote3 := voting.NewSessionVote("voter3", "cand-2", "s1", "sig3", "msg3")
 
 	err := repo.SaveVote(vote1)
 	if err != nil {
@@ -303,6 +303,80 @@ func TestVotingRepository_GetVotesByCandidate(t *testing.T) {
 	if len(votes) != 2 {
 		t.Errorf("Expected 2 votes, got %d", len(votes))
 	}
+	if votes[0].SessionID != "s1" || votes[1].SessionID != "s1" {
+		t.Errorf("session_id must round-trip, got %q and %q", votes[0].SessionID, votes[1].SessionID)
+	}
+}
+
+// TestVotingRepository_CountVotesBySession pins the ISS-299 source of truth:
+// per-session tallies count vote rows scoped to that session, so the same
+// candidate's global lifetime vote_count cannot leak into a later election.
+func TestVotingRepository_CountVotesBySession(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	for _, v := range []*voting.Vote{
+		voting.NewSessionVote("v1", "cand-1", "s1", "sig", "msg"),
+		voting.NewSessionVote("v2", "cand-1", "s1", "sig", "msg"),
+		voting.NewSessionVote("v3", "cand-1", "s2", "sig", "msg"),
+		voting.NewSessionVote("v4", "cand-2", "s1", "sig", "msg"),
+	} {
+		require.NoError(t, repo.SaveVote(v))
+	}
+
+	n, err := repo.CountVotesBySession("s1", "cand-1")
+	require.NoError(t, err)
+	require.Equal(t, 2, n)
+
+	n, err = repo.CountVotesBySession("s2", "cand-1")
+	require.NoError(t, err)
+	require.Equal(t, 1, n)
+
+	n, err = repo.CountVotesBySession("s1", "missing")
+	require.NoError(t, err)
+	require.Equal(t, 0, n)
+}
+
+// TestVotingRepository_BootstrapsVoteSessions proves the self-bootstrap path
+// adds the session mapping table without altering the legacy votes table.
+func TestVotingRepository_BootstrapsVoteSessions(t *testing.T) {
+	db, err := sql.Open("sqlite3", ":memory:")
+	require.NoError(t, err)
+	db.SetMaxOpenConns(1)
+	defer func() { _ = db.Close() }()
+
+	_, err = db.Exec(`
+		CREATE TABLE votes (
+			id TEXT PRIMARY KEY,
+			voter_pk TEXT NOT NULL,
+			candidate_id TEXT NOT NULL,
+			signature TEXT NOT NULL,
+			message TEXT NOT NULL,
+			timestamp INTEGER NOT NULL,
+			block_height INTEGER NOT NULL
+		);
+		INSERT INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
+		VALUES ('legacy', 'voter', 'cand', 'sig', 'msg', 1, 1);
+	`)
+	require.NoError(t, err)
+
+	repo, err := NewVotingRepository(db)
+	require.NoError(t, err)
+
+	var tableCount int
+	require.NoError(t, db.QueryRow(
+		`SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'vote_sessions'`,
+	).Scan(&tableCount))
+	require.Equal(t, 1, tableCount)
+
+	legacy, err := repo.GetVote("legacy")
+	require.NoError(t, err)
+	require.Equal(t, "", legacy.SessionID, "legacy votes cannot be attributed to a session")
+
+	require.NoError(t, repo.SaveVote(voting.NewSessionVote("v2", "cand", "s1", "sig", "msg")))
+	n, err := repo.CountVotesBySession("s1", "cand")
+	require.NoError(t, err)
+	require.Equal(t, 1, n)
 }
 
 func TestVotingRepository_SaveSession(t *testing.T) {

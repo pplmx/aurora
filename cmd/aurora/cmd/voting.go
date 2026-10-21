@@ -424,7 +424,11 @@ var resultsCmd = &cobra.Command{
 				return fmt.Errorf("failed to load candidate %s for results: %w", cid, err)
 			}
 			if cand != nil {
-				results[fmt.Sprintf("%s (%s)", cand.Name, cand.Party)] = cand.VoteCount
+				count, err := repo.CountVotesBySession(session.ID, cid)
+				if err != nil {
+					return fmt.Errorf("failed to count votes for candidate %s: %w", cid, err)
+				}
+				results[fmt.Sprintf("%s (%s)", cand.Name, cand.Party)] = count
 			} else {
 				results[cid] = 0
 			}

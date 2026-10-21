@@ -32,6 +32,7 @@ type mockVotingRepo struct {
 	errTryMarkVoted                error
 	errSaveSession                 error
 	errGetSession                  error
+	errCountVotesBySession         error
 
 	// snapshot supports the mock TransactionManager: beginTx captures voter
 	// flags + the votes slice so rollbackTx can restore them.
@@ -215,6 +216,19 @@ func (m *mockVotingRepo) GetVote(id string) (*voting.Vote, error) {
 
 func (m *mockVotingRepo) GetVotesByCandidate(candidateID string) ([]*voting.Vote, error) {
 	return nil, nil
+}
+
+func (m *mockVotingRepo) CountVotesBySession(sessionID, candidateID string) (int, error) {
+	if m.errCountVotesBySession != nil {
+		return 0, m.errCountVotesBySession
+	}
+	count := 0
+	for _, v := range m.votes {
+		if v.SessionID == sessionID && v.CandidateID == candidateID {
+			count++
+		}
+	}
+	return count, nil
 }
 
 func (m *mockVotingRepo) GetVotesByVoter(voterPK string) ([]*voting.Vote, error) {
@@ -1345,15 +1359,54 @@ func TestGetResultsUseCase_Execute(t *testing.T) {
 		sessions: []*voting.Session{
 			{ID: "s1", Candidates: []string{"c1", "c2"}},
 		},
+		votes: []*voting.Vote{
+			{ID: "v1", CandidateID: "c1", SessionID: "s1"},
+			{ID: "v2", CandidateID: "c1", SessionID: "s1"},
+			{ID: "v3", CandidateID: "c2", SessionID: "s1"},
+		},
 	}
 	uc := NewGetResultsUseCase(repo)
 	res, err := uc.Execute("s1")
 	require.NoError(t, err)
 	require.Equal(t, "s1", res.SessionID)
-	require.Equal(t, 8, res.TotalVotes)
+	require.Equal(t, 3, res.TotalVotes)
 	require.Len(t, res.Candidates, 2)
-	require.Equal(t, 5, res.Candidates[0].VoteCount)
-	require.Equal(t, 3, res.Candidates[1].VoteCount)
+	require.Equal(t, 2, res.Candidates[0].VoteCount)
+	require.Equal(t, 1, res.Candidates[1].VoteCount)
+}
+
+// TestGetResultsUseCase_DoesNotLeakVotesAcrossSessions is the ISS-299
+// regression: the same candidate can run in two elections, but each result
+// must count only the ballots cast in that session. The candidate's global
+// vote_count intentionally remains a lifetime tally and must not be used as
+// the per-session result.
+func TestGetResultsUseCase_DoesNotLeakVotesAcrossSessions(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "c1", Name: "Alice", Party: "A", VoteCount: 5},
+		},
+		sessions: []*voting.Session{
+			{ID: "s1", Candidates: []string{"c1"}},
+			{ID: "s2", Candidates: []string{"c1"}},
+		},
+		votes: []*voting.Vote{
+			{ID: "v1", CandidateID: "c1", SessionID: "s1"},
+			{ID: "v2", CandidateID: "c1", SessionID: "s1"},
+			{ID: "v3", CandidateID: "c1", SessionID: "s1"},
+			{ID: "v4", CandidateID: "c1", SessionID: "s2"},
+		},
+	}
+	uc := NewGetResultsUseCase(repo)
+
+	s1, err := uc.Execute("s1")
+	require.NoError(t, err)
+	require.Equal(t, 3, s1.TotalVotes)
+	require.Equal(t, 3, s1.Candidates[0].VoteCount)
+
+	s2, err := uc.Execute("s2")
+	require.NoError(t, err)
+	require.Equal(t, 1, s2.TotalVotes, "session 2 must not inherit session 1 votes")
+	require.Equal(t, 1, s2.Candidates[0].VoteCount)
 }
 
 func TestGetResultsUseCase_SessionNotFound(t *testing.T) {
@@ -1398,14 +1451,32 @@ func TestGetResultsUseCase_DeletedCandidateCountsZero(t *testing.T) {
 		sessions: []*voting.Session{
 			{ID: "s1", Candidates: []string{"c1", "c2"}},
 		},
+		votes: []*voting.Vote{
+			{ID: "v1", CandidateID: "c1", SessionID: "s1"},
+		},
 	}
 	uc := NewGetResultsUseCase(repo)
 	res, err := uc.Execute("s1")
 	require.NoError(t, err)
-	require.Equal(t, 5, res.TotalVotes)
+	require.Equal(t, 1, res.TotalVotes)
 	require.Len(t, res.Candidates, 2)
 	require.Equal(t, "c2", res.Candidates[1].ID)
 	require.Equal(t, 0, res.Candidates[1].VoteCount)
+}
+
+func TestGetResultsUseCase_VoteCountErrorNotSwallowed(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "c1", Name: "Alice", Party: "A"},
+		},
+		sessions: []*voting.Session{
+			{ID: "s1", Candidates: []string{"c1"}},
+		},
+		errCountVotesBySession: errors.New("database is locked"),
+	}
+	uc := NewGetResultsUseCase(repo)
+	_, err := uc.Execute("s1")
+	require.Error(t, err, "a real per-session count failure must surface")
 }
 
 // TestCastVoteUseCase_WrongLengthPrivateKey is the regression test for the

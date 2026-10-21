@@ -514,7 +514,8 @@ func (f fakeVotingRepo) GetVotesByCandidate(string) ([]*domainvoting.Vote, error
 func (f fakeVotingRepo) GetVotesByVoter(string) ([]*domainvoting.Vote, error) {
 	return nil, nil
 }
-func (f fakeVotingRepo) DeleteVote(string) error { return nil }
+func (f fakeVotingRepo) CountVotesBySession(string, string) (int, error) { return 0, nil }
+func (f fakeVotingRepo) DeleteVote(string) error                         { return nil }
 
 // WithTx satisfies domainvoting.TransactableRepository; the fake has no
 // state that needs transaction semantics, so it returns itself.

@@ -76,11 +76,12 @@ func TestMigrateUp_FreshDB(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Current version: 2", "all migrations applied")
+		assert.Contains(t, out, "Current version: 3", "all migrations applied")
 
-		assert.Equal(t, 2, appliedSchemaVersion(t))
+		assert.Equal(t, 3, appliedSchemaVersion(t))
 		assert.True(t, tableExists(t, "candidates"), "migration 000001 should create candidates")
 		assert.True(t, tableExists(t, "token_transfers"), "migration 000002 should create token_transfers")
+		assert.True(t, tableExists(t, "vote_sessions"), "migration 000003 should add vote_sessions")
 	})
 }
 
@@ -99,6 +100,12 @@ func TestMigrateUp_WithSteps(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 2")
 		assert.Equal(t, 2, appliedSchemaVersion(t))
+		assert.False(t, tableExists(t, "vote_sessions"), "step 2 must not apply 000003")
+
+		out, err = runCmd(t, "migrate", "up", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Current version: 3")
+		assert.Equal(t, 3, appliedSchemaVersion(t))
 	})
 }
 
@@ -111,7 +118,7 @@ func TestMigrateUp_AlreadyApplied(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err, "re-running up on a migrated DB is a no-op, not an error")
-		assert.Contains(t, out, "Current version: 2")
+		assert.Contains(t, out, "Current version: 3")
 	})
 }
 
@@ -138,8 +145,8 @@ func TestMigrateStatus_AfterUp(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "status")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Current version: 2")
-		assert.Contains(t, out, "Applied: 1, 2")
+		assert.Contains(t, out, "Current version: 3")
+		assert.Contains(t, out, "Applied: 1, 2, 3")
 		assert.Contains(t, out, "Pending: (none)")
 	})
 }
@@ -153,10 +160,15 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "down", "1", "--confirm")
 		require.NoError(t, err)
+		assert.Contains(t, out, "Current version: 2")
+		assert.Equal(t, 2, appliedSchemaVersion(t))
+
+		// Roll down one step at a time until the bottom.
+		out, err = runCmd(t, "migrate", "down", "1", "--confirm")
+		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 1")
 		assert.Equal(t, 1, appliedSchemaVersion(t))
 
-		// down twice reaches the bottom (version 0).
 		out, err = runCmd(t, "migrate", "down", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 0")
@@ -170,21 +182,21 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 }
 
 // TestMigrateUp_OverrunCapsAtPending guards against golang-migrate's
-// Steps(N) overrun: "up 5" with only 2 pending must apply both and succeed,
-// not apply-then-error ("limit 3 short" / "file does not exist").
+// Steps(N) overrun: "up 5" with fewer pending migrations must apply all and
+// succeed, not apply-then-error ("limit N short" / "file does not exist").
 func TestMigrateUp_OverrunCapsAtPending(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setMigrationsPathForTest(t)
 
 		out, err := runCmd(t, "migrate", "up", "5")
 		require.NoError(t, err, "up with N larger than pending must succeed")
-		assert.Contains(t, out, "Current version: 2")
-		assert.Equal(t, 2, appliedSchemaVersion(t))
+		assert.Contains(t, out, "Current version: 3")
+		assert.Equal(t, 3, appliedSchemaVersion(t))
 	})
 }
 
 // TestMigrateDown_OverrunRollsBackAll guards the mirror case: "down 5" on a
-// version-2 DB must roll everything back and report success — previously it
+// fully migrated DB must roll everything back and report success — previously it
 // rolled back both steps, then errored and misprinted "nothing to roll back".
 func TestMigrateDown_OverrunRollsBackAll(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
@@ -257,6 +269,6 @@ func TestMigrateDown_RequiresConfirm(t *testing.T) {
 		_, err = runCmd(t, "migrate", "down", "1")
 		require.Error(t, err, "down without --confirm must be refused")
 		assert.Contains(t, err.Error(), "--confirm")
-		assert.Equal(t, 2, appliedSchemaVersion(t), "no migration may roll back without confirmation")
+		assert.Equal(t, 3, appliedSchemaVersion(t), "no migration may roll back without confirmation")
 	})
 }

@@ -880,6 +880,14 @@ documented in their per-milestone ROADMAP files.
   on ANY candidate-read error, treating a real DB failure as a deleted
   candidate (0 votes). Only `sqlite.ErrNotFound` counts as 0 now; genuine
   failures abort the report.
+- **Voting results counted a candidate's whole history, not one election**:
+  `votes` had no `session_id` and `GetResultsUseCase` summed the candidate's
+  global `vote_count`, so reusing a candidate in a second session reported
+  every earlier ballot there too. Votes now persist their session, results
+  (REST and CLI) count `(session_id, candidate_id)` rows, and migration
+  `000003` adds a `vote_sessions` mapping without rebuilding `votes`; legacy
+  rows remain unattributed rather than being assigned to an arbitrary
+  election. The global candidate tally remains the dashboard/lifetime count.
 - **Oracle pollers wiped live tables** on a transient poll failure, violating
   the keep-existing-data invariant the dashboard honours; they now leave prior
   rows in place and let the shared API-error banner report the failure.
