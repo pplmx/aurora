@@ -390,6 +390,12 @@ func TestShell_RefusesAForeignDataDir(t *testing.T) {
 		"the message must name the app: Linux shows the box without its title")
 	assert.Empty(t, navigated, "the refused launch must not navigate either")
 
+	// MyGo delivers the launch's own arguments again right after the
+	// OnSecondInstance callback. That echo must not sneak the refused page in
+	// through the back door.
+	shell.OpenURL("aurora://voting")
+	assert.Empty(t, navigated, "MyGo's echo of the refused link must not navigate")
+
 	stored, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = stored.Close() })
