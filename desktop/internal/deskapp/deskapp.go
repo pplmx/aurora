@@ -1,0 +1,260 @@
+// Package deskapp hosts Aurora in a MyGo desktop window.
+//
+// The window does not talk to a listening HTTP server: the app's own router is
+// served over the "aurora" URL scheme, so the page and the REST API share one
+// origin. That keeps the API key off the network entirely — the same
+// injectAPIKey gateway embeds it into the served HTML, and every fetch stays
+// inside the process.
+package deskapp
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io/fs"
+	"net/http"
+	"os"
+	"path/filepath"
+	"time"
+
+	aurora "github.com/pplmx/aurora"
+	"github.com/pplmx/aurora/internal/api"
+	"github.com/pplmx/aurora/internal/config"
+	"github.com/pplmx/aurora/internal/logger"
+	"github.com/spf13/viper"
+)
+
+// Scheme is the custom URL scheme the window loads the UI from. MyGo resolves
+// aurora://localhost/... through the handler registered with Protocol.Handle.
+const Scheme = "aurora"
+
+// Options carries the desktop-only overrides. Empty fields fall back to the
+// same precedence the CLI and API server use.
+type Options struct {
+	// WebRoot is the directory holding index.html and the assets. When set it
+	// wins over the embedded UI, for developing the pages without a rebuild.
+	// When empty the shell serves the UI embedded in the binary.
+	WebRoot string
+	// DataDir holds the SQLite database. When empty the app uses the platform
+	// user-data directory so a packaged app never writes into its install dir.
+	DataDir string
+}
+
+// Runtime is a started in-process Aurora server plus stop hooks for its
+// background loops. Close releases the SQLite handles.
+type Runtime struct {
+	server        *api.Server
+	webRoot       string
+	webFS         fs.FS
+	dbPath        string
+	stopScheduler func()
+	stopOutbox    func()
+}
+
+// Handler returns the router the window's scheme serves.
+//
+// The router keeps its own CSP (the HTTP gateway's strict same-origin policy),
+// so this wrapper strips the header for the custom-scheme transport.
+//
+// Why stripping is necessary, and why the policy is not simply widened: on
+// aurora://localhost/ WebKitGTK refuses to run the page's own scripts under any
+// CSP source expression. Measured with the shipped UI, every one of
+// `'self' aurora:`, `'self' aurora://localhost`, and even `*` left the window
+// inert — no x-show evaluation and zero /api/v1 requests — while removing the
+// header made all six dashboard calls fire. The policy's job here is done by
+// the transport instead: the scheme handler serves only this app's embedded
+// files, there is no network listener, and no remote origin is reachable, so
+// there is no cross-origin script or exfiltration channel for a CSP to close.
+// The HTTP gateway keeps its strict policy untouched.
+func (r *Runtime) Handler() http.Handler {
+	webFS := r.webFS
+	if webFS == nil {
+		webFS = os.DirFS(r.webRoot)
+	}
+	return stripCSP(r.server.RouterWithWebFS(webFS))
+}
+
+// stripCSP removes Content-Security-Policy from every response. See Handler.
+func stripCSP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(cspDroppingWriter{ResponseWriter: w}, r)
+	})
+}
+
+// cspDroppingWriter drops CSP from both Header() writes and the WriteHeader
+// call, because injectAPIKey sets it through Header() after the downstream
+// handler has already written its own headers.
+type cspDroppingWriter struct {
+	http.ResponseWriter
+}
+
+func (w cspDroppingWriter) WriteHeader(status int) {
+	w.ResponseWriter.Header().Del("Content-Security-Policy")
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w cspDroppingWriter) Write(p []byte) (int, error) {
+	// A handler that writes without an explicit WriteHeader triggers an
+	// implicit 200; drop the header then too.
+	w.ResponseWriter.Header().Del("Content-Security-Policy")
+	return w.ResponseWriter.Write(p)
+}
+
+// WebRoot reports the directory the UI is served from, or "" when the UI is
+// the one embedded in the binary.
+func (r *Runtime) WebRoot() string { return r.webRoot }
+
+// DBPath reports the SQLite file the app is using.
+func (r *Runtime) DBPath() string { return r.dbPath }
+
+// Close stops the background loops and releases every SQLite handle.
+func (r *Runtime) Close() error {
+	if r.stopScheduler != nil {
+		r.stopScheduler()
+	}
+	if r.stopOutbox != nil {
+		r.stopOutbox()
+	}
+	return r.server.Close()
+}
+
+// Start loads the configuration, points it at the desktop paths and boots the
+// API server with the oracle scheduler and audit-outbox drainer running, the
+// same background work cmd/api starts.
+func Start(ctx context.Context, opts Options) (*Runtime, error) {
+	if _, err := config.Load(); err != nil {
+		return nil, err
+	}
+
+	// The default is the UI embedded in the binary: a double-clicked bundle
+	// has no checkout, so resolving web/ from disk would fail for every user
+	// who did not happen to launch from the repository. An explicit
+	// --web-root (or a configured server.webRoot) still serves the pages from
+	// disk, which is what developing the UI needs.
+	var webFS fs.FS
+	var webRoot string
+	if opts.WebRoot != "" {
+		root, err := ResolveWebRoot(opts.WebRoot, config.WebRoot())
+		if err != nil {
+			return nil, err
+		}
+		webRoot = root
+		viper.Set("server.webRoot", root)
+	} else {
+		embedded, err := aurora.WebFS()
+		if err != nil {
+			return nil, fmt.Errorf("embedded web assets: %w", err)
+		}
+		webFS = embedded
+	}
+
+	dbPath, err := prepareDataDir(opts.DataDir)
+	if err != nil {
+		return nil, err
+	}
+	viper.Set("db.path", dbPath)
+
+	// logger.Init reads viper's log.path, whose default is the CWD-relative
+	// ./logs. A packaged app must not write next to its install directory, so
+	// while the value is still the default, keep logs beside the database.
+	// Any explicit value (config file, env, or a caller's viper.Set) wins.
+	if path := viper.GetString("log.path"); path == "" || path == "./logs" {
+		viper.Set("log.path", filepath.Join(filepath.Dir(dbPath), "logs"))
+	}
+	logger.Init()
+
+	srv, err := api.NewServer()
+	if err != nil {
+		return nil, err
+	}
+
+	rt := &Runtime{server: srv, webRoot: webRoot, webFS: webFS, dbPath: dbPath}
+	rt.stopScheduler = srv.StartOracleScheduler(ctx, config.OracleSchedulerCheckInterval())
+	rt.stopOutbox = srv.StartAuditOutboxDrainer(ctx)
+	return rt, nil
+}
+
+// prepareDataDir resolves the directory holding aurora.db and creates it. A
+// packaged desktop app must not depend on its working directory, so the
+// default is the platform user-data directory rather than ./data.
+func prepareDataDir(dir string) (string, error) {
+	if dir == "" {
+		base, err := userDataDir()
+		if err != nil {
+			return "", err
+		}
+		dir = base
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", fmt.Errorf("create data directory %s: %w", dir, err)
+	}
+	return filepath.Join(dir, "aurora.db"), nil
+}
+
+// userDataDir is overridable in tests.
+var userDataDir = platformUserDataDir
+
+// platformUserDataDir follows the OS convention (XDG on Linux,
+// ~/Library/Application Support on macOS, %AppData% on Windows).
+func platformUserDataDir() (string, error) {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve user config directory: %w", err)
+	}
+	return filepath.Join(base, "aurora"), nil
+}
+
+// ResolveWebRoot finds the shipped web/ directory. explicit wins; otherwise
+// the candidates are tried in order and the first one holding index.html is
+// used. Resolving next to the executable first means a staged bundle works
+// regardless of the directory it is launched from.
+func ResolveWebRoot(explicit, configured string) (string, error) {
+	var candidates []string
+	add := func(p string) {
+		if p == "" {
+			return
+		}
+		abs, err := filepath.Abs(p)
+		if err != nil {
+			return
+		}
+		for _, c := range candidates {
+			if c == abs {
+				return
+			}
+		}
+		candidates = append(candidates, abs)
+	}
+
+	add(explicit)
+	if exe, err := os.Executable(); err == nil {
+		add(filepath.Join(filepath.Dir(exe), "web"))
+	}
+	if wd, err := os.Getwd(); err == nil {
+		add(filepath.Join(wd, "web"))
+	}
+	add(configured)
+
+	for _, dir := range candidates {
+		if isWebRoot(dir) {
+			return dir, nil
+		}
+	}
+	if explicit != "" {
+		return "", fmt.Errorf("web root %q does not contain index.html", explicit)
+	}
+	return "", errors.New("could not locate the web UI (looked for web/index.html next to the executable, in the working directory, and at server.webRoot)")
+}
+
+func isWebRoot(dir string) bool {
+	info, err := os.Stat(filepath.Join(dir, "index.html"))
+	return err == nil && info.Mode().IsRegular()
+}
+
+// URL is the page the main window loads.
+func URL() string { return Scheme + "://localhost/" }
+
+// BackupStamp is the directory-name suffix for a menu-triggered backup.
+func BackupStamp(now time.Time) string {
+	return now.Format("20060102-150405")
+}

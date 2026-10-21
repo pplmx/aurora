@@ -1,0 +1,108 @@
+package deskapp
+
+import (
+	"encoding/json"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
+	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
+)
+
+// TestExportImport_RoundTripThroughSharedAppLayer pins the contract the desktop
+// menu actions rely on: the SAME app-layer functions the CLI calls move a draw
+// out of one database and into another, and the overwrite guard still refuses a
+// re-import.
+//
+// The menu handlers add only the file dialogs around these calls, so this test
+// covers the behavior a desktop Export/Import would produce without opening a
+// window.
+func TestExportImport_RoundTripThroughSharedAppLayer(t *testing.T) {
+	src, err := sqlite.NewLotteryRepository(filepath.Join(t.TempDir(), "source.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = src.Close() })
+
+	record := domainlottery.LotteryRecord{
+		ID:              "desktop-roundtrip-id",
+		BlockHeight:     11,
+		Seed:            "desktop-roundtrip-seed",
+		Participants:    []string{"Alice", "Bob", "Carol"},
+		Winners:         []string{"Bob"},
+		WinnerAddresses: []string{"addr-bob"},
+		VRFOutput:       "0011223344556677889900aabbccddeeff00112233445566778899aabbccddee",
+		VRFProof:        "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100",
+		Verified:        true,
+	}
+	require.NoError(t, src.Save(&record))
+
+	document, count, err := lotteryapp.ExportRecords(src)
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
+	require.Contains(t, string(document), `"desktop-roundtrip-id"`)
+
+	dst, err := sqlite.NewLotteryRepository(filepath.Join(t.TempDir(), "dest.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = dst.Close() })
+
+	result, err := lotteryapp.ImportRecords(dst, document)
+	require.NoError(t, err)
+	require.Equal(t, lotteryapp.ImportResult{Total: 1, Imported: 1}, result)
+
+	got, err := dst.GetByID(record.ID)
+	require.NoError(t, err)
+	assert.Equal(t, record.Winners, got.Winners)
+	assert.True(t, got.Verified, "the Verified flag must survive the round trip")
+
+	// Re-importing into the same database must be refused, not silently
+	// replace the stored draw (TASK-069, ISS-061) - the desktop menu reports
+	// this as a warning, exactly like the CLI's non-zero "partial failure".
+	again, err := lotteryapp.ImportRecords(dst, document)
+	require.NoError(t, err)
+	assert.Equal(t, lotteryapp.ImportResult{Total: 1, Imported: 0, Rejected: []int{0}}, again)
+}
+
+// TestImportRecords_RejectsMalformedDocument keeps a corrupt file from being
+// half-applied: the document must parse before anything is written.
+func TestImportRecords_RejectsMalformedDocument(t *testing.T) {
+	repo, err := sqlite.NewLotteryRepository(filepath.Join(t.TempDir(), "bad.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = repo.Close() })
+
+	_, err = lotteryapp.ImportRecords(repo, []byte(`{not json`))
+	require.Error(t, err)
+
+	records, err := repo.GetAll()
+	require.NoError(t, err)
+	assert.Empty(t, records, "a malformed document must store nothing")
+}
+
+// TestImportRecords_PartialFailureMatchesCLIContract covers the mixed file a
+// user is most likely to produce: one valid draw and one that fails
+// validation. The valid one lands and the invalid one is reported by index.
+func TestImportRecords_PartialFailureMatchesCLIContract(t *testing.T) {
+	repo, err := sqlite.NewLotteryRepository(filepath.Join(t.TempDir(), "mixed.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = repo.Close() })
+
+	valid := domainlottery.LotteryRecord{
+		ID:              "valid-mixed-id",
+		Seed:            "mixed-seed-long",
+		Participants:    []string{"A", "B"},
+		Winners:         []string{"A"},
+		WinnerAddresses: []string{"addr"},
+		VRFOutput:       "0011223344556677889900aabbccddeeff00112233445566778899aabbccddee",
+		VRFProof:        "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100",
+	}
+	invalid := domainlottery.LotteryRecord{ID: "bad", Seed: "x"} // no participants/winners
+
+	document, err := json.Marshal([]domainlottery.LotteryRecord{valid, invalid})
+	require.NoError(t, err)
+
+	result, err := lotteryapp.ImportRecords(repo, document)
+	require.NoError(t, err)
+	assert.Equal(t, lotteryapp.ImportResult{Total: 2, Imported: 1, Rejected: []int{1}}, result)
+}
