@@ -111,6 +111,16 @@ func TestResolveWebRoot(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "does not contain index.html")
 
+	// An explicit --web-root is authoritative. Falling through to another
+	// candidate made a typo look like it worked: the window rendered the
+	// configured copy while the developer edited the directory they named.
+	_, err = ResolveWebRoot(empty, good)
+	require.Error(t, err, "an unusable --web-root must not fall back to another copy")
+	require.Contains(t, err.Error(), "does not contain index.html")
+
+	_, err = ResolveWebRoot(filepath.Join(root, "does-not-exist"), good)
+	require.Error(t, err, "a missing --web-root must not fall back either")
+
 	_, err = ResolveWebRoot("", "")
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "could not locate the web UI")
