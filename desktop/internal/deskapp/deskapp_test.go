@@ -144,6 +144,41 @@ func TestBackupStamp(t *testing.T) {
 	require.Equal(t, "20261021-130405", got)
 }
 
+// TestStart_KeepsDefaultLogsBesideTheDatabase pins where a packaged app writes
+// its log. The shipped config/aurora.toml spells the default as "./logs/",
+// while the guard compared against "./logs": the trailing slash slipped past
+// it and the log landed in ./logs relative to the launch directory (measured
+// in the packaged build under Xvfb), which is uncontrollable for an app opened
+// from a file manager.
+func TestStart_KeepsDefaultLogsBesideTheDatabase(t *testing.T) {
+	for _, configured := range []string{"./logs", "./logs/", "logs/", ""} {
+		t.Run(configured, func(t *testing.T) {
+			resetState(t)
+			viperKey(t)
+			viper.Set("log.path", configured)
+			// resetState chdirs into a temp dir, so a path that stays relative
+			// would land there - exactly the bug this test rules out.
+			cwd, err := os.Getwd()
+			require.NoError(t, err)
+
+			dataDir := t.TempDir()
+			ctx, cancel := context.WithCancel(context.Background())
+			t.Cleanup(cancel)
+
+			rt, err := Start(ctx, Options{DataDir: dataDir})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, rt.Close()) })
+
+			want := filepath.Join(dataDir, "logs")
+			require.Equal(t, want, viper.GetString("log.path"),
+				"a default relative log path must be anchored to the data directory")
+			require.DirExists(t, want)
+			require.NoFileExists(t, filepath.Join(cwd, "logs", "aurora.log"),
+				"nothing may be written relative to the launch directory")
+		})
+	}
+}
+
 // TestRuntimeServesTheShippedUIOverTheAppScheme is the integration test: it
 // boots the real API server against a temp database and drives the actual
 // router — the same handler the window's aurora:// scheme calls — proving the
