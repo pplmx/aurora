@@ -130,6 +130,13 @@ documented in their per-milestone ROADMAP files.
   `draws.json` against the *running* instance's directory, found nothing and
   did nothing. Forwarded arguments are now resolved against the launcher's
   directory, and `file://` URLs are accepted like paths.
+- **A forwarded relative export could still hit a same-named file in the
+  running instance's directory**: the first fix tried the argument as written
+  before joining the launcher's directory, so if the running app happened to
+  contain `draws.json`, that decoy won over the export the user launched. The
+  launcher directory is now the only base for a relative path, and the
+  relative URL spellings `file:draws.json` / `file:./draws.json` (whose path
+  Go keeps in `URL.Opaque`) resolve there too.
 - **The same link stopped working after the first time**: the shell remembered
   every argument it had ever honored, so reopening `aurora://lottery?id=<draw>`
   later in the session was silently ignored, and so was re-importing an export

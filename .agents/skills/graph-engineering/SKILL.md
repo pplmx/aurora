@@ -150,6 +150,8 @@ priority_score = category_weight × severity × confidence × (1 / sqrt(effort))
 
 Commit 时在 message 里引用相关 task/issue 节点 id，保证代码历史和图谱可以互相追溯。
 
+图谱写入不等于每次都要提交 `graph.json`。它是迭代记录而不是项目产出：让图谱改动在工作区累积约 10–30 次相关改动（或一个里程碑 / 一次 `ril.py check`）后，再单独生成一个 `chore(graph): ...` 快照 commit。功能、修复、测试和用户文档按自己的逻辑单元提交，不要为了带上图谱而把它们拆碎；也不要为了清空工作区而频繁生成图谱 commit。只有构建、测试或发布确实依赖图谱文件，或需要跨环境传递时，才随对应改动提交并说明原因。同样的批量规则适用于其他纯记录性、自动生成的状态快照。
+
 ## 8. 深度探索（无明显 TODO 时）
 
 主动做 Repository Intelligence Deep Dive，寻找隐藏 bug、边界问题、并发问题、错误处理缺陷、资源泄漏、性能瓶颈、测试缺口、安全风险、架构耦合、技术债务，优先形成"证据 → 根因 → 修复 → 验证"闭环。
