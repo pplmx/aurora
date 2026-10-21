@@ -1,6 +1,8 @@
 package deskapp
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/egoist/mygo"
@@ -42,13 +44,75 @@ func TestImportReportIsOneContract(t *testing.T) {
 // dialog must be exactly what the menu would show for the same result.
 func TestShellAndMenuShareImportReporting(t *testing.T) {
 	shell := NewShell(About{})
+	var gotType mygo.MessageType
 	var got [3]string
-	shell.report = func(title, message, detail string) { got = [3]string{title, message, detail} }
+	shell.report = func(typ mygo.MessageType, title, message, detail string) {
+		gotType, got = typ, [3]string{title, message, detail}
+	}
 
 	result := lotteryapp.ImportResult{Total: 2, Imported: 1, Rejected: []int{0}}
 	shell.reportImport("/tmp/draws.json", result)
 
 	title, message, detail := importReport(result, "/tmp/draws.json")
+	assert.Equal(t, mygo.MessageWarning, gotType,
+		"a dropped partial import must be a warning, like the menu's")
 	require.Equal(t, [3]string{title, message, detail}, got,
 		"the dropped-file dialog must be built by the same function as the menu's")
+}
+
+// TestShellReportsWithTheMenuSeverity closes the other half of the drift: the
+// shell used to hand every message to showMessage, which hard-coded
+// MessageInfo. A failed import or an unsupported drop therefore appeared under
+// a blue info icon, while the same failure from File > Import was a red error
+// dialog, and a partial import lost the warning importReportType had just
+// computed.
+func TestShellReportsWithTheMenuSeverity(t *testing.T) {
+	type dialog struct {
+		typ     mygo.MessageType
+		title   string
+		message string
+	}
+	shell := NewShell(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
+	var dialogs []dialog
+	shell.report = func(typ mygo.MessageType, title, message, _ string) {
+		dialogs = append(dialogs, dialog{typ, title, message})
+	}
+
+	// An import that cannot even open the database is an error, not a notice.
+	shell.OpenFile(filepath.Join(t.TempDir(), "missing.json"))
+	require.Len(t, dialogs, 1)
+	assert.Equal(t, mygo.MessageError, dialogs[0].typ)
+	assert.Equal(t, "Import failed", dialogs[0].title)
+
+	// Dropping something that is not an export is an error too.
+	other := filepath.Join(t.TempDir(), "report.csv")
+	require.NoError(t, os.WriteFile(other, []byte("a,b"), 0o644))
+	shell.ImportDropped([]string{other})
+	require.Len(t, dialogs, 2)
+	assert.Equal(t, mygo.MessageError, dialogs[1].typ, "an unsupported drop must look like a failure")
+
+	// A bad link is reported by the shell as well.
+	shell.OpenURL("https://example.com")
+	require.Len(t, dialogs, 3)
+	assert.Equal(t, mygo.MessageError, dialogs[2].typ)
+}
+
+// TestShowMessageForwardsTheSeverity is the end of the wire the shell tests
+// cannot reach: they replace Shell.report, so a dialog constructor that
+// hard-coded MessageInfo would still pass them while every real message came
+// out blue. This test replaces the dialog itself.
+func TestShowMessageForwardsTheSeverity(t *testing.T) {
+	original := messageBox
+	t.Cleanup(func() { messageBox = original })
+
+	var got mygo.MessageOptions
+	messageBox = func(opts mygo.MessageOptions) { got = opts }
+
+	showMessage(mygo.MessageError, "Import failed", "boom", "/tmp/draws.json")
+	assert.Equal(t, mygo.MessageOptions{
+		Type:    mygo.MessageError,
+		Title:   "Import failed",
+		Message: "boom",
+		Detail:  "/tmp/draws.json",
+	}, got)
 }
