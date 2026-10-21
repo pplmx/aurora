@@ -1,14 +1,14 @@
-package cmd
+package lottery
 
 import "testing"
 
-// TestSameStringSet covers the helper used by verifyCmd to compare the
-// re-derived winners against the stored winners.
+// TestSameStringSet covers the helper that compares re-derived winners with
+// the stored ones.
 //
-// SelectWinners returns winners in the order they fall out of the VRF
-// stream. If a record is exported/imported through a tool that reorders
-// the array, an ordered comparison would falsely report tampering. We
-// compare as multisets.
+// SelectWinners returns winners in the order they fall out of the VRF stream.
+// If a record is exported/imported through a tool that reorders the array, an
+// ordered comparison would falsely report tampering, so the comparison is a
+// multiset one.
 func TestSameStringSet(t *testing.T) {
 	tests := []struct {
 		name string

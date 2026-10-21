@@ -1,17 +1,12 @@
 package cmd
 
 import (
-	"encoding/hex"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"
@@ -161,63 +156,14 @@ var verifyCmd = &cobra.Command{
 		}
 		defer func() { _ = repo.Close() }()
 
-		var record *domainlottery.LotteryRecord
-
-		// Disambiguation between "lottery-id" and "block-height".
-		//
-		// A lottery ID is a 16-hex-char hash prefix (see CreateLotteryRecord),
-		// which may begin with a decimal digit (e.g. "07551e0cac54a4cf"), and
-		// may even consist entirely of digits. Trying to parse the height first
-		// via fmt.Sscanf(input, "%d", &height) is wrong on two counts:
-		//  1. Sscanf accepts a PARTIAL numeric prefix, so an ID that starts
-		//     with a digit is swallowed as a (bogus) height.
-		//  2. A numeric-prefix ID (or an all-digit ID) would never reach the
-		//     ID lookup at all, so "verify <valid-id>" would report
-		//     "lottery not found" for an existing draw.
-		//
-		// So we check the exact ID match first (the common case: users paste
-		// an ID from create/history), then treat the input as a height only
-		// if the ENTIRE input is a decimal integer, and only then fall back to
-		// a substring ID/seed match for convenience.
-		record, err = repo.GetByID(input)
+		// Resolution (exact ID → whole block height → substring) and the
+		// integrity checks live in the app layer, shared with the desktop
+		// shell so both report identical verdicts for the same record.
+		report, err := lotteryapp.VerifyInput(repo, input)
 		if err != nil {
-			if !errors.Is(err, domainlottery.ErrNotFound) {
-				// A genuine DB read failure (corruption, I/O) must not be
-				// misreported as "lottery not found"; the fallbacks below only
-				// cover the input-not-an-exact-ID case (TASK-200, ISS-196).
-				return fmt.Errorf("failed to read lottery record: %w", err)
-			}
-			// Not an exact ID match. If the whole input is a plain decimal
-			// integer, it is a block height.
-			if height, perr := strconv.ParseInt(input, 10, 64); perr == nil {
-				records, rerr := repo.GetByBlockHeight(height)
-				if rerr != nil {
-					return fmt.Errorf("failed to read by block height: %w", rerr)
-				}
-				if len(records) == 0 {
-					return fmt.Errorf("lottery not found: %s", input)
-				}
-				record = records[0]
-			} else {
-				// Fall back to a substring match so partial IDs work the
-				// way they did before this command was rewritten to read
-				// from the persistent store.
-				all, getAllErr := repo.GetAll()
-				if getAllErr != nil {
-					return fmt.Errorf("failed to read history: %w", getAllErr)
-				}
-				for _, r := range all {
-					if strings.Contains(r.ID, input) || strings.Contains(r.Seed, input) {
-						record = r
-						err = nil
-						break
-					}
-				}
-				if err != nil {
-					return fmt.Errorf("lottery not found: %s", input)
-				}
-			}
+			return err
 		}
+		record := report.Record
 
 		// Display verification info
 		fmt.Println("\n📋 " + i18n.GetText("lottery.lottery_id") + ": " + record.ID)
@@ -226,59 +172,21 @@ var verifyCmd = &cobra.Command{
 		fmt.Printf("👥 Participants: %d\n", len(record.Participants))
 		fmt.Printf("🎉 Winners: %d\n", len(record.Winners))
 
-		// Perform deterministic verification. Draws created before v1.31 have
-		// no persisted public key, so we fall back to re-running SelectWinners
-		// on the stored VRF output and checking the recorded winners match
-		// what the deterministic selection function would produce. Draws
-		// created from v1.31 onward also carry a VRFPublicKey; when present we
-		// additionally verify the proof against that key and surface the
-		// decoded key in the output for independent cross-checking.
-		//
-		// Note on the "✅ Verified" UX: previously this command printed
-		// "✅ Lottery Record Verified!" after a plain JSON parse — that
-		// was a false positive. We now actually check the record's
-		// integrity and report honest results.
-		integrityOK := true
-		vrfOutputBytes, err := hex.DecodeString(record.VRFOutput)
-		if err != nil {
-			fmt.Println("\n❌ Verification FAILED: VRF output is not valid hex")
-			integrityOK = false
-		} else if _, err := hex.DecodeString(record.VRFProof); err != nil {
-			fmt.Println("\n❌ Verification FAILED: VRF proof is not valid hex")
-			integrityOK = false
-		} else if len(record.Winners) == 0 {
-			// A successful draw always records at least one winner (the domain
-			// rejects count<=0), so an empty winners slice is a corrupt/partial
-			// write. Without this guard SelectWinners(output, roster, 0) returns
-			// an empty set that vacuously "matches" and the record printed
-			// "✅ Verified" (TASK-249, ISS-249).
-			fmt.Println("\n❌ Verification FAILED: record has no winners (corrupt or partial write)")
-			integrityOK = false
-		} else {
-			expected := domainlottery.SelectWinners(vrfOutputBytes, record.Participants, len(record.Winners))
-			if !sameStringSet(expected, record.Winners) {
-				fmt.Println("\n❌ Verification FAILED: stored winners do not match the VRF output")
-				fmt.Println("   Expected:", expected)
-				fmt.Println("   Stored:  ", record.Winners)
-				integrityOK = false
-			} else if len(record.Winners) != len(record.WinnerAddresses) {
-				fmt.Println("\n⚠️  Stored record has mismatched winner/address slices (possible data corruption)")
-				integrityOK = false
+		// Draws created before v1.31 have no persisted public key, so the
+		// verdict falls back to a deterministic winner match; later draws also
+		// get the cryptographic proof check (see app/lottery.VerifyRecord).
+		// The "✅ Verified" line is printed only for a passing record — it must
+		// never follow a plain parse, which was a false positive.
+		for _, check := range report.Checks {
+			if check.Status == lotteryapp.VerifyFail {
+				fmt.Println("\n❌ Verification FAILED: " + check.Message)
+			}
+		}
+		if report.IntegrityOK {
+			if report.ProofVerified {
+				fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
 			} else {
-				if record.VRFPublicKey != "" {
-					pk, dierr := domainlottery.DecodePublicKey(record.VRFPublicKey)
-					if dierr != nil {
-						fmt.Println("\n❌ Verification FAILED: stored VRF public key is malformed")
-						integrityOK = false
-					} else if ok, _ := domainlottery.NewService().VerifyDraw(record, pk); !ok {
-						fmt.Println("\n❌ Verification FAILED: VRF proof does not verify against the stored public key")
-						integrityOK = false
-					} else {
-						fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
-					}
-				} else {
-					fmt.Println("\n✅ " + i18n.GetText("lottery.verified") + " (deterministic winner match; pre-v1.31 draw has no stored key)")
-				}
+				fmt.Println("\n✅ " + i18n.GetText("lottery.verified") + " (deterministic winner match; pre-v1.31 draw has no stored key)")
 			}
 		}
 
@@ -299,34 +207,13 @@ var verifyCmd = &cobra.Command{
 		}
 		fmt.Printf("⏰ Timestamp: %d\n", record.Timestamp)
 
-		if !integrityOK {
+		if !report.IntegrityOK {
 			// Surface the failure to the caller (e.g. shell scripts that
 			// check $?) without also printing the success summary.
-			return fmt.Errorf("lottery record failed integrity check")
+			return lotteryapp.ErrVerificationFailed
 		}
 		return nil
 	},
-}
-
-// sameStringSet returns true if a and b contain the same elements,
-// regardless of order. SelectWinners returns winners in the order they
-// were drawn from the VRF stream, but the stored record could be reordered
-// in transit; we want to compare sets, not ordered lists.
-func sameStringSet(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	count := make(map[string]int, len(a))
-	for _, s := range a {
-		count[s]++
-	}
-	for _, s := range b {
-		count[s]--
-		if count[s] < 0 {
-			return false
-		}
-	}
-	return true
 }
 
 var exportCmd = &cobra.Command{
@@ -344,21 +231,16 @@ var exportCmd = &cobra.Command{
 		}
 		defer func() { _ = repo.Close() }()
 
-		records, err := repo.GetAll()
+		output, count, err := lotteryapp.ExportRecords(repo)
 		if err != nil {
-			return fmt.Errorf("failed to read records: %w", err)
-		}
-
-		output, err := json.MarshalIndent(records, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal: %w", err)
+			return fmt.Errorf("failed to export records: %w", err)
 		}
 
 		if err := os.WriteFile(filename, output, 0644); err != nil {
 			return fmt.Errorf("failed to write file: %w", err)
 		}
 
-		fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.exported", len(records), filename))
+		fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.exported", count, filename))
 		return nil
 	},
 }
@@ -375,11 +257,6 @@ var importCmd = &cobra.Command{
 			return fmt.Errorf("failed to read file: %w", err)
 		}
 
-		var records []domainlottery.LotteryRecord
-		if err := json.Unmarshal(data, &records); err != nil {
-			return fmt.Errorf("failed to parse file: %w", err)
-		}
-
 		// Persist via the SQLite repository so the structured draw record
 		// (ID, winners, VRF proof, block height) survives restarts; the
 		// blockchain is a separate append-only audit log.
@@ -389,50 +266,26 @@ var importCmd = &cobra.Command{
 		}
 		defer func() { _ = repo.Close() }()
 
-		imported := 0
-		var failed []int // indices of records that failed to import
-
-		for i, record := range records {
-			// Validate the record before accepting it. An imported file is
-			// untrusted input — we must not let bad data corrupt the chain.
-			if err := record.Validate(); err != nil {
-				failed = append(failed, i)
-				continue
-			}
-
-			// Audit-trail integrity (TASK-069): refuse to overwrite a draw
-			// that already exists locally. The record ID is deterministic
-			// (sha256 of seed + VRF output), and Save uses INSERT OR REPLACE
-			// keyed on that ID — without this guard, re-importing an export
-			// file, or importing a file whose draw collides with an existing
-			// record (including the Verified flag and history), would silently
-			// replace the stored draw. Skip colliding IDs rather than clobber.
-			if existing, gErr := repo.GetByID(record.ID); gErr == nil && existing != nil {
-				failed = append(failed, i)
-				continue
-			} else if gErr != nil && !errors.Is(gErr, domainlottery.ErrNotFound) {
-				failed = append(failed, i)
-				continue
-			}
-
-			if err := repo.Save(&record); err != nil {
-				failed = append(failed, i)
-				continue
-			}
-			imported++
+		// Validate + collision-check + save live in the app layer, so the
+		// desktop shell's native Import performs exactly this import instead of
+		// a re-implementation that could drift (validation, the TASK-069
+		// overwrite guard, partial-failure accounting).
+		result, err := lotteryapp.ImportRecords(repo, data)
+		if err != nil {
+			return fmt.Errorf("failed to import records: %w", err)
 		}
 
-		if len(failed) == 0 {
-			fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.imported", imported))
+		if len(result.Rejected) == 0 {
+			fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.imported", result.Imported))
 			return nil
 		}
 		// Partial failure: surface the problem honestly. Returning a
 		// non-nil error also lets CI / shell scripts detect the partial
 		// failure via $?, instead of silently treating it as success.
 		fmt.Printf("⚠️  %s\n",
-			i18n.GetTextF("lottery.import_partial", imported, len(records), len(failed)))
-		fmt.Printf("   Failed record indices (0-based): %v\n", failed)
-		return fmt.Errorf("import partially failed: %d of %d records rejected", len(failed), len(records))
+			i18n.GetTextF("lottery.import_partial", result.Imported, result.Total, len(result.Rejected)))
+		fmt.Printf("   Failed record indices (0-based): %v\n", result.Rejected)
+		return fmt.Errorf("import partially failed: %d of %d records rejected", len(result.Rejected), result.Total)
 	},
 }
 
