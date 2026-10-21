@@ -51,8 +51,12 @@ func TestParseFlags(t *testing.T) {
 		{name: "data dir", args: []string{"--data-dir", "/var/lib/aurora"}, mode: ModeRun, opts: Flags{DataDir: "/var/lib/aurora"}},
 		{name: "both paths", args: []string{"--web-root", "w", "--data-dir", "d"}, mode: ModeRun, opts: Flags{WebRoot: "w", DataDir: "d"}},
 		{name: "unknown flag", args: []string{"--nope"}, wantErr: "flag provided but not defined"},
-		{name: "positional rejected", args: []string{"extra"}, wantErr: "takes no positional"},
-		{name: "positional rejected after version", args: []string{"--version", "extra"}, wantErr: "takes no positional"},
+		{name: "positional rejected", args: []string{"extra"}, wantErr: "unexpected argument"},
+		{name: "positional rejected after version", args: []string{"--version", "extra"}, wantErr: "unexpected argument"},
+		{name: "deep link", args: []string{"aurora://lottery?id=abc"}, mode: ModeRun, opts: Flags{Intent: Intent{Page: "lottery", LotteryID: "abc", Raw: "aurora://lottery?id=abc"}}},
+		{name: "deep link to the dashboard", args: []string{"aurora://"}, mode: ModeRun, opts: Flags{Intent: Intent{Raw: "aurora://"}}},
+		{name: "deep link with flags", args: []string{"--data-dir", "/d", "aurora://token"}, mode: ModeRun, opts: Flags{DataDir: "/d", Intent: Intent{Page: "token", Raw: "aurora://token"}}},
+		{name: "two links rejected", args: []string{"aurora://token", "aurora://nft"}, wantErr: "only one link or file"},
 		{name: "missing value", args: []string{"--data-dir"}, wantErr: "flag needs an argument"},
 	}
 
@@ -75,7 +79,7 @@ func TestUsageAndVersionText(t *testing.T) {
 	var b strings.Builder
 	Usage(&b, "v9.9.9", "2026-10-21T00:00:00Z")
 	out := b.String()
-	for _, want := range []string{"aurora-desktop [flags]", "--web-root", "--data-dir", "v9.9.9", "2026-10-21T00:00:00Z"} {
+	for _, want := range []string{"aurora-desktop [flags]", "--web-root", "--data-dir", "aurora://lottery?id=abc", "draws.json", "v9.9.9", "2026-10-21T00:00:00Z"} {
 		require.Contains(t, out, want)
 	}
 
@@ -120,7 +124,7 @@ func mustAbs(t *testing.T, p string) string {
 
 func TestPrepareDataDir(t *testing.T) {
 	dir := t.TempDir()
-	path, err := prepareDataDir(dir)
+	path, err := prepareDataDir(dir, nil)
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(dir, "aurora.db"), path)
 	require.DirExists(t, dir)
@@ -129,7 +133,7 @@ func TestPrepareDataDir(t *testing.T) {
 	t.Cleanup(func() { userDataDir = original })
 	userDataDir = func() (string, error) { return filepath.Join(dir, "userdata"), nil }
 
-	path, err = prepareDataDir("")
+	path, err = prepareDataDir("", nil)
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(dir, "userdata", "aurora.db"), path)
 	require.DirExists(t, filepath.Join(dir, "userdata"))

@@ -24,6 +24,10 @@ const (
 type Flags struct {
 	WebRoot string
 	DataDir string
+	// Intent is the page (or lottery export) the launch argument asked for:
+	// an aurora:// deep link, or the path of a file the app opens. The zero
+	// value means "open the dashboard".
+	Intent Intent
 }
 
 // ParseFlags parses the desktop binary's flags. Positional arguments are
@@ -47,7 +51,19 @@ func ParseFlags(args []string) (Mode, Flags, error) {
 		return ModeRun, Flags{}, err
 	}
 	if fs.NArg() > 0 {
-		return ModeRun, Flags{}, fmt.Errorf("unexpected argument %q (aurora-desktop takes no positional arguments)", fs.Arg(0))
+		// A positional argument is either a deep link or a lottery export the
+		// operating system handed us (file association), or a mistake. MyGo
+		// delivers the same arguments through OnOpenURL/OnOpenFile; parsing
+		// them here too means `aurora-desktop aurora://lottery?id=x` and a
+		// file-manager double-click both work without a running app.
+		if in, ok := ParseIntent(fs.Arg(0)); ok {
+			opts.Intent = in
+		} else {
+			return ModeRun, Flags{}, fmt.Errorf("unexpected argument %q (aurora-desktop takes flags, aurora:// links, or .json lottery exports)", fs.Arg(0))
+		}
+		if fs.NArg() > 1 {
+			return ModeRun, Flags{}, fmt.Errorf("unexpected argument %q (only one link or file can be opened at a time)", fs.Arg(1))
+		}
 	}
 	if showVersion {
 		return ModeVersion, opts, nil
@@ -61,7 +77,12 @@ func Usage(w io.Writer, version, buildTime string) {
 	fmt.Fprintln(w, "  Blockchain toolkit desktop shell")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
-	fmt.Fprintln(w, "  aurora-desktop [flags]")
+	fmt.Fprintln(w, "  aurora-desktop [flags] [aurora://link | lottery-export.json]")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Examples:")
+	fmt.Fprintln(w, "  aurora-desktop                          # dashboard")
+	fmt.Fprintln(w, "  aurora-desktop aurora://lottery?id=abc  # verify that draw")
+	fmt.Fprintln(w, "  aurora-desktop draws.json               # import an export")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Flags:")
 	fmt.Fprintln(w, "  -h, --help          Show this help and exit")

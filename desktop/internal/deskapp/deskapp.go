@@ -28,6 +28,11 @@ import (
 // aurora://localhost/... through the handler registered with Protocol.Handle.
 const Scheme = "aurora"
 
+// AppName is the name the app shows and the identity MyGo derives its
+// per-user directory and single-instance lock from, so it must match `name`
+// in desktop/mygo.config.ts.
+const AppName = "Aurora"
+
 // Options carries the desktop-only overrides. Empty fields fall back to the
 // same precedence the CLI and API server use.
 type Options struct {
@@ -38,6 +43,12 @@ type Options struct {
 	// DataDir holds the SQLite database. When empty the app uses the platform
 	// user-data directory so a packaged app never writes into its install dir.
 	DataDir string
+	// DataDirDefault, when set, resolves that user-data directory. MyGo's
+	// App.Path(PathUserData) is the default so a `mygo build` bundle keeps
+	// the database, the logs and MyGo's own window-state.json in one
+	// application directory; nil keeps platformUserDataDir, which is what
+	// tests and `go run` use.
+	DataDirDefault func() (string, error)
 }
 
 // Runtime is a started in-process Aurora server plus stop hooks for its
@@ -148,7 +159,7 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 		webFS = embedded
 	}
 
-	dbPath, err := prepareDataDir(opts.DataDir)
+	dbPath, err := prepareDataDir(opts.DataDir, opts.DataDirDefault)
 	if err != nil {
 		return nil, err
 	}
@@ -177,9 +188,13 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 // prepareDataDir resolves the directory holding aurora.db and creates it. A
 // packaged desktop app must not depend on its working directory, so the
 // default is the platform user-data directory rather than ./data.
-func prepareDataDir(dir string) (string, error) {
+func prepareDataDir(dir string, defaultDir func() (string, error)) (string, error) {
 	if dir == "" {
-		base, err := userDataDir()
+		resolve := defaultDir
+		if resolve == nil {
+			resolve = userDataDir
+		}
+		base, err := resolve()
 		if err != nil {
 			return "", err
 		}
