@@ -216,6 +216,9 @@ just desktop-test                                  # 桌面模块的测试（jus
   这个参数是**权威**的——目录里没有 `index.html` 就直接报错退出，不会再
   退回可执行文件旁 / 工作目录 / `server.webRoot` 的另一份页面（否则打错
   路径时窗口会渲染一份你并没有在改的 UI）。
+  启动失败（`--web-root` 无效、数据目录不可用等）不再只写 stderr：打包后的
+  应用从桌面项启动时没有终端，因此会先弹出原生错误对话框说明原因，再以
+  退出码 1 结束。
 - **复用同一后端**：`api.NewServer` 原样启动，预言机定时调度器与审计
   outbox 补偿循环照常运行；`Runtime.Close` 在退出时释放 SQLite 句柄。
 - **数据落在用户目录**：默认 MyGo 的 `App.Path(PathUserData)`，即
