@@ -102,19 +102,58 @@ func TestShell_IgnoresRepeatedDelivery(t *testing.T) {
 	assert.Empty(t, navigated, "the argument ParseFlags already honored must not navigate again")
 	assert.Empty(t, reports, "the argument ParseFlags already honored must not be re-applied")
 
-	// Without Consume (e.g. a second instance's URL) it runs, but only once.
-	shell.OpenURL("aurora://token")
-	shell.OpenURL("aurora://token")
+	// The echo is consumed, not remembered forever: clicking the same link
+	// again later is a new request and must work. A permanent set swallowed
+	// every repeat for the life of the process.
+	shell.OpenURL("aurora://lottery?id=abc")
 	require.Len(t, navigated, 1)
-	assert.Equal(t, Intent{Page: "token", Raw: "aurora://token"}, navigated[0])
+	assert.Equal(t, Intent{Page: "lottery", LotteryID: "abc", Raw: "aurora://lottery?id=abc"}, navigated[0])
+
+	// Without Consume (e.g. a second instance's URL) it runs every time.
+	shell.OpenURL("aurora://token")
+	shell.OpenURL("aurora://token")
+	require.Len(t, navigated, 3)
+	assert.Equal(t, Intent{Page: "token", Raw: "aurora://token"}, navigated[1])
+	assert.Equal(t, Intent{Page: "token", Raw: "aurora://token"}, navigated[2])
 	assert.Empty(t, reports, "a valid link produces no error dialog")
+
+	// Nothing is left behind in the echo bookkeeping either: a map that only
+	// ever grows would leak one entry per link for the life of the app.
+	shell.mu.Lock()
+	defer shell.mu.Unlock()
+	assert.Empty(t, shell.expectEcho, "the echo bookkeeping must not grow without bound")
 }
 
-// TestShell_FileIsImportedExactlyOnce covers the cold-start file path: the
-// command line names an export and MyGo also delivers it through OnOpenFile,
-// so the file must reach the importer once. Both deliveries go through
-// Shell.take; this pins that whichever arrives first wins.
-func TestShell_FileIsImportedExactlyOnce(t *testing.T) {
+// TestShell_ForwardedLaunchEchoIsAbsorbed is the second-instance counterpart:
+// MyGo runs its own deliverArgs immediately after OnSecondInstance, so the
+// link the shell just acted on arrives once more. That one echo must be a
+// no-op, and the link must still work the next time the user opens it.
+func TestShell_ForwardedLaunchEchoIsAbsorbed(t *testing.T) {
+	shell := NewShell(About{})
+	var navigated []Intent
+	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+
+	shell.HandleLaunchArgs([]string{"aurora://token"}, "")
+	require.Len(t, navigated, 1, "the forwarded link navigates once")
+
+	// MyGo's echo of that same argument.
+	shell.OpenURL("aurora://token")
+	require.Len(t, navigated, 1, "MyGo's echo must not reload the page")
+
+	// A later, genuine second launch of the same link must still work.
+	shell.HandleLaunchArgs([]string{"aurora://token"}, "")
+	require.Len(t, navigated, 2)
+}
+
+// TestShell_FileIsImportedOnceFromTheCommandLine is the cold-start file path:
+// the argument is on our command line, and because Aurora declares no file
+// association MyGo never echoes it through OnOpenFile - so the shell must act
+// on it exactly once itself, with no dedupe needed.
+//
+// The earlier version of this test pinned a permanent "already imported" set
+// instead, which silently swallowed the user's next import of the same file
+// and grew one entry per path for the life of the app.
+func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 	exportPath := filepath.Join(dir, "draws.json")
@@ -132,8 +171,7 @@ func TestShell_FileIsImportedExactlyOnce(t *testing.T) {
 	var reports []string
 	shell.report = func(title, message, _ string) { reports = append(reports, title+" | "+message) }
 
-	shell.OpenFile(exportPath)
-	shell.OpenFile(exportPath) // MyGo's post-ready delivery
+	shell.HandleLaunchArgs([]string{exportPath}, dir)
 
 	require.Len(t, reports, 1, "the export must be imported once, not twice")
 	assert.Contains(t, reports[0], "Lotteries imported")
@@ -145,6 +183,13 @@ func TestShell_FileIsImportedExactlyOnce(t *testing.T) {
 	record, err := stored.GetByID("deep-link-import")
 	require.NoError(t, err)
 	assert.Equal(t, []string{"A"}, record.Winners)
+
+	// Opening the same export again is a new request. The records are already
+	// stored, so the app-layer overwrite guard refuses them - as a reported
+	// failure, not a silent no-op at the shell level.
+	shell.HandleLaunchArgs([]string{exportPath}, dir)
+	require.Len(t, reports, 2, "a second import attempt must be reported, not dropped")
+	assert.Contains(t, reports[1], "Import partially failed")
 }
 
 func TestShell_ReportsBadLinks(t *testing.T) {
