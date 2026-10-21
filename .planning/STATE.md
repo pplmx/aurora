@@ -11,6 +11,40 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
+Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-launch
+  run under Xvfb found that MyGo forwards a second instance's raw command line
+  to `App.OnSecondInstance` but only converts arguments into
+  `OnOpenURL`/`OnOpenFile` for schemes and file types the package declares —
+  Aurora declares no `.json` association on purpose, so
+  `aurora-desktop draws.json` against a running instance was dropped silently.
+  `Shell.HandleLaunchArgs` now parses the forwarded arguments itself (skipping
+  flags, reporting malformed `aurora://` links) and raises the window,
+  restoring it first when minimized; `Navigate` shares that reveal path.
+  Verified live: the first instance logged `/voting.html` while the forwarded
+  export landed as `second-launch-import` in `~/.config/Aurora/aurora.db`;
+  removing the file branch turns `TestShell_HandleLaunchArgs` red. Two logger
+  defects surfaced from the same run: (1) `logger.Init` normalized `log.path`
+  before creating it, and `NormalizePath` requires the directory to exist, so
+  the shipped `config/aurora.toml` default (`path = "./logs/"`) made every
+  first run fall back to the console — which a packaged app does not have, so
+  the log vanished; the directory is created first now. (2) The desktop's
+  "keep logs beside the database" guard compared against `./logs` while the
+  shipped config says `./logs/`, so a packaged app wrote `./logs` into
+  whatever directory it was launched from (measured: a stray
+  `/workspace/aurora/logs/aurora.log`); the guard now compares the cleaned
+  path. After the fix the same run wrote `~/.config/Aurora/logs/aurora.log`
+  and left no stray directory, and
+  `TestStart_KeepsDefaultLogsBesideTheDatabase` covers all four spellings.
+  Also added the missing app icon: `desktop/resources/icon.png` (1024², picked
+  up by `mygo build`) makes the packaged desktop entry say `Icon=aurora` and
+  the `.deb` install 256/512 px copies, and the same PNG is embedded so an
+  unpackaged window is not left with the toolkit placeholder. Fault injection
+  on the icon shape test (cropping to 1024×512) turns it red. Gates:
+  `go test -race ./...` core (34 packages) and desktop, `go vet` both
+  modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
+  (the pinned binary is built with Go 1.26 and panics), documented in README.
+  RIL graph at round 155: 969 nodes, 1133 edges.
+
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
   defects the packaging exposed. `desktop/mygo.config.ts` now declares the app

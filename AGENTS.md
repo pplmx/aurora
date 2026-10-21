@@ -39,9 +39,9 @@ just stop         # Stop containers: docker compose down
 
 - **禁止使用 `git commit --amend`**：每次提交应该是独立的、完整的。如果需要修改，使用新的提交
 - **提交粒度：完整但不零碎，也不过大**。
-  - 不要每个小改动单独一个 commit —— 一组小的相关改动（同一 task / 同一逻辑单元）应合并进**一个完整 commit**。
-  - 反过来也不要一个 commit 塞进太大范围的东西 —— 以"一个自洽的逻辑单元"为单位（一次 bug 修复、一个 feature、一次同主题重构），参考 commit message 里的 task/issue 编号（TASK-x / ISS-x）来判断边界。
-  - 实践中一个里程碑通常由 3–4 个功能级 commit 加 1 个文档收尾 commit 组成，而非几十个碎片。
+    - 不要每个小改动单独一个 commit —— 一组小的相关改动（同一 task / 同一逻辑单元）应合并进**一个完整 commit**。
+    - 反过来也不要一个 commit 塞进太大范围的东西 —— 以"一个自洽的逻辑单元"为单位（一次 bug 修复、一个 feature、一次同主题重构），参考 commit message 里的 task/issue 编号（TASK-x / ISS-x）来判断边界。
+    - 实践中一个里程碑通常由 3–4 个功能级 commit 加 1 个文档收尾 commit 组成，而非几十个碎片。
 - 提交前确保所有 pre-commit hooks 通过
 - 如果 hooks 自动修改了文件，需要将这些修改添加到提交中
 
@@ -59,6 +59,10 @@ just stop         # Stop containers: docker compose down
   data defaults to MyGo's `PathUserData` = `$XDG_CONFIG_HOME/Aurora`, override with
   `--data-dir`). Also handles `aurora://<page>?id=` deep links, imports a dropped or
   command-line lottery export, and packages via `desktop/mygo.config.ts`.
+  `desktop/resources/icon.png` is the app icon for both packaging and the window.
+  A second launch is forwarded by `App.OnSecondInstance` as a raw command line, so
+  `deskapp.Shell.HandleLaunchArgs` parses links *and* `.json` exports itself (MyGo
+  only converts arguments for declared schemes/file types, and Aurora declares none).
 - **Core logic**: `internal/domain/blockchain/`, `internal/i18n/`, `internal/utils/`
 - **Tests**: `e2e/*_test.go` (E2E), `internal/*/ *_test.go` (unit)
 - **Config**: `config/aurora.toml` (Viper loads from `$HOME` or `./config/`)
