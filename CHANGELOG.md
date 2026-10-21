@@ -94,6 +94,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **`aurora-api` could not listen on an IPv6 address**: `--host ::1`,
+  `AURORA_SERVER_HOST=::1` and `[server].host = "::1"` were joined to the
+  port with a plain `%s:%d`, producing `::1:9090`, which `net.Listen` rejects
+  as having too many colons. The listen address now goes through
+  `net.JoinHostPort`, so IPv6 literals are bracketed (`[::1]:9090`); an
+  already-bracketed `[::1]` input is accepted as well.
 - **A packaged build reported the wrong version**: `mygo build` supplies its
   own `-ldflags`, so the justfile's `-X main.Version` never landed in a
   bundle; `aurora-desktop --version` printed the `0.0.1` placeholder while the
