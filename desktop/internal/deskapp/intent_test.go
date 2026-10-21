@@ -180,7 +180,7 @@ func TestShell_HandleLaunchArgs(t *testing.T) {
 
 	// What a second `aurora-desktop --data-dir X aurora://voting draws.json`
 	// forwards. Flags are not intents and must be skipped, not reported.
-	shell.HandleLaunchArgs([]string{"--data-dir", "/tmp/x", "aurora://voting", exportPath})
+	shell.HandleLaunchArgs([]string{"--data-dir", "/tmp/x", "aurora://voting", exportPath}, dir)
 
 	require.Len(t, navigated, 1, "the forwarded link must reach the window")
 	assert.Equal(t, Intent{Page: "voting", Raw: "aurora://voting"}, navigated[0])
@@ -194,13 +194,91 @@ func TestShell_HandleLaunchArgs(t *testing.T) {
 	assert.NoError(t, err, "the export named by the second launch must be stored")
 
 	// A malformed link of our own scheme is still ours to report.
-	shell.HandleLaunchArgs([]string{"aurora://settings"})
+	shell.HandleLaunchArgs([]string{"aurora://settings"}, dir)
 	require.Len(t, reports, 2)
 	assert.Contains(t, reports[1], "could not open that link")
 
 	// A second launch with no arguments just raises the window; without one
 	// attached that must be a no-op rather than a panic.
-	require.NotPanics(t, func() { shell.HandleLaunchArgs(nil) })
+	require.NotPanics(t, func() { shell.HandleLaunchArgs(nil, "") })
+}
+
+// TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory pins the relative
+// path rule. MyGo forwards the launching process's working directory with the
+// arguments, and its own file delivery joins relative paths onto it; a shell
+// that parsed the arguments but dropped workDir looked for `draws.json` in the
+// FIRST instance's directory and never found the file - a silent no-op that
+// looks exactly like "the forward did nothing".
+func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
+	launcherDir := t.TempDir()
+	dataDir := t.TempDir()
+	dbPath := filepath.Join(dataDir, "aurora.db")
+
+	document := `[{"id":"relative-path-import","block_height":3,"seed":"relative-seed","participants":["A","B"],"winners":["A"],"winner_addresses":["addr-a"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	require.NoError(t, os.WriteFile(filepath.Join(launcherDir, "draws.json"), []byte(document), 0o644))
+
+	repo, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	require.NoError(t, repo.Close())
+
+	shell := NewShell(About{DBPath: dbPath})
+	var reports []string
+	shell.report = func(title, message, _ string) { reports = append(reports, title+" | "+message) }
+
+	// The first instance runs elsewhere; only workDir can find the file.
+	shell.HandleLaunchArgs([]string{"draws.json"}, launcherDir)
+
+	require.Len(t, reports, 1, "the relative export must be found and imported")
+	assert.Contains(t, reports[0], "Lotteries imported")
+
+	stored, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = stored.Close() })
+	_, err = stored.GetByID("relative-path-import")
+	assert.NoError(t, err, "the draw from the launcher's directory must be stored")
+
+	// The same file via a file:// URL, which Linux launchers also send.
+	other := `[{"id":"file-url-import","block_height":4,"seed":"file-url-seed","participants":["C","D"],"winners":["D"],"winner_addresses":["addr-d"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	urlPath := filepath.Join(launcherDir, "from-url.json")
+	require.NoError(t, os.WriteFile(urlPath, []byte(other), 0o644))
+
+	shell.HandleLaunchArgs([]string{"file://" + filepath.ToSlash(urlPath)}, launcherDir)
+	require.Len(t, reports, 2)
+	assert.Contains(t, reports[1], "Lotteries imported")
+
+	_, err = stored.GetByID("file-url-import")
+	assert.NoError(t, err, "a file:// argument must import like a plain path")
+}
+
+// TestParseIntentIn_RejectsWhatIsNotThere keeps the resolver from turning a
+// stray word into an import: only a regular .json file, absolute or under the
+// launcher's directory, is an intent.
+func TestParseIntentIn_RejectsWhatIsNotThere(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("x"), 0o644))
+
+	for _, arg := range []string{"", "   ", "notes.txt", "--data-dir", "aurora://settings", "/no/such/draws.json"} {
+		_, ok := ParseIntentIn(arg, dir)
+		assert.False(t, ok, "ParseIntentIn(%q) must be rejected", arg)
+	}
+
+	// An absolute path that does exist still works, and keeps its absolute
+	// Raw so the take-once bookkeeping matches the argument that was sent.
+	abs := filepath.Join(dir, "draws.json")
+	require.NoError(t, os.WriteFile(abs, []byte("[]"), 0o644))
+	in, ok := ParseIntentIn(abs, dir)
+	require.True(t, ok)
+	assert.Equal(t, Intent{File: abs, Raw: abs}, in)
+
+	// A relative one records the path as sent plus where it resolved to.
+	in, ok = ParseIntentIn("draws.json", dir)
+	require.True(t, ok)
+	assert.Equal(t, Intent{File: abs, Raw: "draws.json"}, in)
+
+	// Without a working directory a relative path is not resolvable; an
+	// absolute one is.
+	_, ok = ParseIntentIn("draws.json", "")
+	assert.False(t, ok)
 }
 
 // TestShell_ImportDropped pins what a drop does with each kind of file.

@@ -109,9 +109,13 @@ func (s *Shell) OpenFile(path string) {
 //
 // The launch also raises the window, which is what a second double-click
 // without arguments asks for.
-func (s *Shell) HandleLaunchArgs(args []string) {
+//
+// workDir is the directory the launching process ran in. A relative export
+// path is relative to THAT, not to this process (see ParseIntentIn), which is
+// the same rule MyGo applies to the files it delivers itself.
+func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
 	for _, arg := range args {
-		in, ok := ParseIntent(arg)
+		in, ok := ParseIntentIn(arg, workDir)
 		if !ok {
 			// A malformed aurora:// link is still ours to report; flags and
 			// unrelated positionals are not.
