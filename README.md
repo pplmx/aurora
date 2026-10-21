@@ -195,13 +195,16 @@ just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / W
 ./aurora-desktop --version
 ./aurora-desktop --data-dir /path/to/data          # 换数据库位置
 ./aurora-desktop --web-root /path/to/web           # 开发 UI：改用磁盘上的页面
+just desktop-test                                  # 桌面模块的测试（just test 只覆盖核心模块）
 ```
 
 设计要点：
 
 - **不监听端口**：窗口通过自定义 scheme `aurora://localhost/` 加载页面，
-  MyGo 的 `Protocol.Handle` 直接调用 `internal/api` 的 `Router()`。页面与
-  REST API 同源，不需要 CORS 白名单，API key 也不会经过任何网络。
+  MyGo 的 `Protocol.Handle` 直接调用 `internal/api` 的
+  `Server.RouterWithWebFS`（与 `Router()` 同一条路由，只是页面来源换成内嵌
+  文件系统）。页面与 REST API 同源，不需要 CORS 白名单，API key 也不会
+  经过任何网络。
 - **UI 打进二进制**：`web/` 由根包的 `//go:embed all:web`（`embed.go`）
   内嵌，双击启动的 bundle 即使工作目录与仓库无关也能渲染仪表盘。
   `--web-root DIR` 是开发开关：显式指定时改用磁盘目录，改页面无需重编译。
