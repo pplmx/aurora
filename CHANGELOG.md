@@ -70,6 +70,12 @@ documented in their per-milestone ROADMAP files.
   `aurora-desktop draws.json` against a running instance was silently
   discarded. The shell now parses the forwarded arguments itself (links and
   exports) and reveals the window, restoring it first when minimized.
+- **A forwarded relative export looked for the wrong file**: `OnSecondInstance`
+  also passes the launching process's working directory, which the shell
+  discarded. `cd ~/Downloads && aurora-desktop draws.json` therefore resolved
+  `draws.json` against the *running* instance's directory, found nothing and
+  did nothing. Forwarded arguments are now resolved against the launcher's
+  directory, and `file://` URLs are accepted like paths.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default

@@ -243,8 +243,12 @@ just desktop-test                                  # 桌面模块的测试（jus
   `OnOpenURL`/`OnOpenFile`。本应用刻意不声明 `.json` 关联（否则会抢走
   桌面上所有 JSON 文件），因此转发过来的导出文件由 `Shell.HandleLaunchArgs`
   自己解析：链接导航、`.json` 导入、flag 跳过、非法 `aurora://` 链接弹窗
-  报错，最后把窗口还原并前置（最小化时先 `Restore`）。实测第二次启动后
-  第一条实例加载了 `/voting.html`，且转发文件落库。
+  报错，最后把窗口还原并前置（最小化时先 `Restore`）。相对路径按**发起进程
+  的工作目录**解析（`OnSecondInstance` 的 `workingDir`，与 MyGo 自己投递
+  文件的规则一致），`file://` URL 同样接受——否则
+  `cd ~/Downloads && aurora-desktop draws.json` 会在第一个实例的目录里找
+  文件，静默什么也不做（实测）。实测第二次启动后第一条实例加载了
+  `/voting.html`，且转发文件（绝对与相对路径）都落库。
 - **图标**：`desktop/resources/icon.png`（1024²）是打包与运行时的唯一图标
   来源——`mygo build` 用它生成 `.icns`/`.ico`/desktop entry 的 `Icon=`
   并装进 `.deb` 的 hicolor 目录，同一份 PNG 又被 embed，未打包的

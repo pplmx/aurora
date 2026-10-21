@@ -35,6 +35,14 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   path. After the fix the same run wrote `~/.config/Aurora/logs/aurora.log`
   and left no stray directory, and
   `TestStart_KeepsDefaultLogsBesideTheDatabase` covers all four spellings.
+  A third second-instance defect came out of that run: MyGo forwards the
+  launching process's working directory, but the shell dropped it, so
+  `cd ~/Downloads && aurora-desktop draws.json` against a running instance
+  resolved the path against the FIRST instance's directory and silently did
+  nothing. `ParseIntentIn` now resolves relative forwarded arguments against
+  that directory and accepts `file://` URLs; live-verified with a second
+  launch from `/tmp/rel-launch` storing `relative-launch-import`, and
+  discarding the workDir turns the new test red.
   Also added the missing app icon: `desktop/resources/icon.png` (1024², picked
   up by `mygo build`) makes the packaged desktop entry say `Icon=aurora` and
   the `.deb` install 256/512 px copies, and the same PNG is embedded so an
@@ -43,7 +51,7 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 969 nodes, 1133 edges.
+  RIL graph at round 155: 979 nodes, 1133 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
