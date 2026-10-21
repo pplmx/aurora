@@ -95,6 +95,14 @@ documented in their per-milestone ROADMAP files.
   `Get-AuthenticodeSignature`: the signature must be valid, use the imported
   certificate, and carry an RFC 3161 timestamp. Local packages remain
   unsigned when the signing environment is unset.
+- **Docker images are published only from reviewed commits**: `docker.yml`
+  used to authenticate to Docker Hub and GHCR and push on pull requests, where
+  fork builds cannot read the required secrets. PRs now build both
+  architectures without logging in or pushing. Main and tag pushes publish
+  with an explicit short-SHA tag and semver tags for `v*`, and the smoke test
+  runs a separately loaded native image instead of asking for a full-SHA tag
+  that `metadata-action` never created. A tag push already builds the release
+  image, so the duplicate `release: published` trigger is gone.
 - **The desktop shell is a packaged MyGo app, not just a window**:
   `desktop/mygo.config.ts` declares the app identity (name, reverse-DNS
   identifier, version, Linux description) and `just desktop-package` runs
