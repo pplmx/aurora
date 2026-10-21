@@ -53,6 +53,7 @@ go build -o aurora ./cmd/aurora
 just test          # 运行测试
 just build        # 构建所有平台
 just api          # 构建独立 Web / API 服务器（./aurora-api）
+just desktop      # 构建桌面壳（./aurora-desktop，需 Go 1.27）
 just lint         # 代码检查
 just dev          # Docker 开发
 ```
@@ -147,6 +148,7 @@ Aurora 提供内置的 REST API 与 Web 界面，由独立的 `cmd/api` 二进�
 
 ```bash
 just api                      # 或 go build -o aurora-api ./cmd/api
+just desktop                  # 构建 MyGo 桌面壳（./aurora-desktop，见下节）
 ./aurora-api --help           # 查看启动参数；--version 查看构建版本
 AURORA_API_KEY="your-strong-key" ./aurora-api
 # 默认监听 0.0.0.0:8080；然后浏览器访问 http://localhost:8080
@@ -182,11 +184,53 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api  # 环境变�
   只以带 nonce 的 bootstrap 脚本执行——即使注入脚本也无法外联或远程加载，
   防止 key 被 XSS 外带（round-151）。
 
+## 桌面壳（MyGo）
+
+`desktop/` 是一个嵌套 Go 模块，用 [MyGo](https://github.com/egoist/mygo)
+把同一个 `internal/api` 路由装进原生窗口，得到单文件桌面应用：
+
+```bash
+just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / WebView2）
+./aurora-desktop      # 打开窗口；首次运行在用户数据目录创建 aurora.db
+./aurora-desktop --version
+./aurora-desktop --data-dir /path/to/data          # 换数据库位置
+./aurora-desktop --web-root /path/to/web           # 开发 UI：改用磁盘上的页面
+```
+
+设计要点：
+
+- **不监听端口**：窗口通过自定义 scheme `aurora://localhost/` 加载页面，
+  MyGo 的 `Protocol.Handle` 直接调用 `internal/api` 的 `Router()`。页面与
+  REST API 同源，不需要 CORS 白名单，API key 也不会经过任何网络。
+- **UI 打进二进制**：`web/` 由根包的 `//go:embed all:web`（`embed.go`）
+  内嵌，双击启动的 bundle 即使工作目录与仓库无关也能渲染仪表盘。
+  `--web-root DIR` 是开发开关：显式指定时改用磁盘目录，改页面无需重编译。
+- **复用同一后端**：`api.NewServer` 原样启动，预言机定时调度器与审计
+  outbox 补偿循环照常运行；`Runtime.Close` 在退出时释放 SQLite 句柄。
+- **数据落在用户目录**：默认 `os.UserConfigDir()/aurora/aurora.db`，
+  日志写在同目录 `logs/`，不再依赖启动时的工作目录；可用 `--data-dir`
+  覆盖。
+- **CSP 由传输层接管**：HTTP 网关保留 round-151 的严格 CSP，但 WebKitGTK
+  在 `aurora://` 下不执行**任何** CSP 下的页面脚本（实测 `'self' aurora:`、
+  `'self' aurora://localhost`、`*` 三种策略都让窗口失去响应、`/api/v1`
+  请求为 0）。桌面壳因此剥掉该响应头，改由传输层兜底：scheme handler 只
+  提供内嵌文件，没有监听端口，也不存在外部 origin。
+- **菜单**：File → Back Up Database… 调用与 CLI 相同的
+  `BackupService`（WAL 完整快照 + 校验和）；Export/Import Lotteries 调用
+  与 `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、
+  同一覆盖保护）。About 显示版本、构建时间、数据库与 Web UI 来源。
+- **为什么是嵌套模块**：MyGo 要求 Go 1.27，而主模块固定在 1.26 以保持
+  CI 与本地 `golangci-lint` 可用。`desktop/go.mod` 的 `go 1.27.1` 不会
+  污染 `go build ./...` / `go test ./...`。
+- **cgo**：核心用 `mattn/go-sqlite3`，桌面壳必须在本机原生构建（不能
+  `CGO_ENABLED=0` 交叉编译）；MyGo 本身无 cgo，窗口层仍可跨平台。
+
 ## 项目结构 (DDD 架构)
 
 ```text
 cmd/aurora/              # CLI 入口
 cmd/api/                 # REST API + Web 服务入口（go build ./cmd/api）
+desktop/                 # MyGo 桌面壳（嵌套模块；cmd/aurora-desktop + internal/deskapp）
 web/                     # Web 前端（HTML + Alpine.js，由 cmd/api 托管）
 internal/
 ├── domain/               # 领域层 - 实体、服务、仓储接口

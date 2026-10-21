@@ -7,6 +7,52 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [v1.98] - 2026-10-21
+
+### Added
+
+- **A native desktop shell for the same backend** (`desktop/`, a nested Go
+  module): until now every non-terminal surface meant running `aurora-api`,
+  i.e. binding a TCP port and pointing a browser at it, with the API key in
+  the page. `aurora-desktop` hosts the exact `internal/api` router inside a
+  [MyGo](https://github.com/egoist/mygo) window over the custom scheme
+  `aurora://localhost/`, so there is no listener, no CORS allow-list and no
+  network path for the key (TASK-274, ISS-270, COMP-013). The Web UI is
+  embedded in the binary via the root package's `//go:embed all:web`
+  (`embed.go`, which also keeps MyGo's Go 1.27 requirement out of the core
+  module's build graph); `--web-root` serves it from disk for UI development.
+  Data defaults to `os.UserConfigDir()/aurora/aurora.db` (override
+  `--data-dir`) with logs beside it, the oracle scheduler and audit-outbox
+  drainer start exactly as `cmd/api` starts them, and the File menu offers
+  Export/Import Lotteries (shared app-layer serializer, same overwrite guard
+  as the CLI), Back Up Database (same `BackupService`), and Show Data Folder.
+
+### Changed
+
+- **The lottery export/import/verify logic moved out of the Cobra command**
+  into `internal/app/lottery` (`ExportRecords`, `ImportRecords`,
+  `VerifyInput`/`VerifyRecord`), so the CLI and the desktop menu cannot drift
+  apart: one implementation of the resolution order (exact ID → whole block
+  height → substring), one set of integrity checks, one import contract
+  (`ImportResult.Rejected` indexes, malformed document hard-fails before any
+  write). CLI output and exit codes are unchanged, and the moved unit test
+  now lives with the code it tests.
+- **The gateway's router accepts a Web UI filesystem**
+  (`newRouterWithWebFS` / `Server.RouterWithWebFS`), letting a host serve the
+  same routes, API-key bootstrap and CSP from any `fs.FS`. `Router()`
+  behavior is unchanged (it still uses `config.WebRoot()`).
+
+### Notes
+
+- The desktop transport strips the gateway's `Content-Security-Policy`
+  header. This was measured, not assumed: on `aurora://localhost/` WebKitGTK
+  refuses to run the page's own scripts under any policy — `'self' aurora:`,
+  `'self' aurora://localhost` and even `*` each left the window inert with
+  zero `/api/v1` requests, while removing the header made all six dashboard
+  calls fire. The transport substitutes for the policy: the scheme handler
+  serves only the embedded files and no listener or remote origin exists. The
+  HTTP gateway keeps its strict nonce-based CSP untouched.
+
 ## [v1.97] - 2026-09-07
 
 ### Added

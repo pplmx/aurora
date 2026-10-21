@@ -11,6 +11,47 @@ See: .planning/PROJECT.md (updated 2026-08-11)
 
 Phase: v1.5+ Continuous Deep-Dive Loop
 Plan: Incremental milestones tracked in the RIL graph and git history
+Last activity: 2026-10-21 — round 153 (mygo desktop shell). User asked for a
+  deep mygo integration rather than a wrapper script. `desktop/` is a nested Go
+  module (Go 1.27 for MyGo; the core module stays on 1.26 so CI and the pinned
+  golangci-lint keep working) whose `cmd/aurora-desktop` hosts the SAME
+  `internal/api` router in a native window over the custom scheme
+  `aurora://localhost/` — no TCP listener, no CORS allow-list, and the API key
+  never crosses a network (TASK-274, ISS-270, COMP-013). The UI ships inside
+  the binary through the root package's `//go:embed all:web` (`embed.go`; it
+  must be at the repository root because go:embed cannot reach a sibling
+  directory, and being stdlib it adds no dependency to the core go.mod);
+  `--web-root` remains the UI-development escape hatch. Boot parity with
+  `cmd/api`: oracle scheduler + audit-outbox drainer start, `Close` releases
+  every SQLite handle, logs land beside a database that defaults to
+  `os.UserConfigDir()/aurora/aurora.db`, and a missing system webview is
+  reported before `NewWindow` can panic. The File menu runs Export/Import
+  Lotteries and Back Up Database through the same app-layer functions and
+  services the CLI uses, so a desktop export is byte-identical to
+  `aurora lottery export`. To make that sharing possible, lottery
+  export/import/verify moved from the Cobra command into
+  `internal/app/lottery` (`ExportRecords`, `ImportRecords`,
+  `VerifyInput`/`VerifyRecord`; the resolution-order and integrity comments
+  moved with the code and the CLI keeps its output and exit codes), and the
+  gateway's router gained an explicit `fs.FS` source
+  (`Server.RouterWithWebFS`) with `Router()` unchanged. The desktop transport
+  strips CSP, which is measured rather than assumed: under
+  `aurora://localhost/` WebKitGTK ran none of the page's own scripts with
+  `'self' aurora:`, `'self' aurora://localhost`, or `*` (inert window, zero
+  `/api/v1` requests); with the header removed all six dashboard calls fired.
+  The scheme handler serves only embedded files, so the transport — not a
+  policy list — is what bounds reachability; the HTTP gateway keeps its strict
+  nonce CSP. Verification: `go test -race -count=1 ./...` (core) green,
+  `desktop` build + `go test ./...` green, `go vet ./...` clean, a live window
+  under Xvfb rendered the dashboard with real data, the create path is covered
+  by a test that POSTs over the app scheme and re-reads the draw through a
+  second SQLite connection, and reverting the embedded→disk resolution makes
+  `TestStart_ServesTheEmbeddedUI` fail as intended. Shipped as CHG-268
+  (ca87902, app-layer extraction), CHG-270 (1661cb3, fs.FS router + embed.go)
+  and CHG-269 (18f6ad3, desktop module), with DEC-019 recording why the CSP is
+  stripped on the transport instead of weakened in the shared policy. RIL
+  graph at round 153: 949 nodes, 1104 edges.
+
 Last activity: 2026-09-07 — round 152 (aurora-api listen-address DX). User
   reported the flag surface from round 150 covered only --help/--version: an
   operator colliding on the busy default 0.0.0.0:8080 had no command-line or
