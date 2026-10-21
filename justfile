@@ -36,6 +36,10 @@ ldflags := `printf '%s' "-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version
 # below); kept separate because the -X paths differ per binary.
 api-ldflags := `printf '%s' "-s -w -X main.Version=$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD) -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"`
 
+# Same refs for the MyGo desktop binary. It is built from desktop/ (a nested
+# module), so this is the last ldflags var; it mirrors the two above.
+desktop-ldflags := `printf '%s' "-s -w -X main.Version=$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD) -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)"`
+
 # Build all platforms
 build: check test
     CGO_ENABLED=0 GOARCH=arm64 GOOS=darwin go build -trimpath -ldflags="{{ldflags}}" -o aurora-darwin-arm64 ./cmd/aurora
@@ -54,6 +58,16 @@ build-current:
 # CLI's ldflags above (TASK-267, ISS-263).
 api:
     go build -trimpath -ldflags="{{api-ldflags}}" -o aurora-api ./cmd/api
+
+# Build the MyGo desktop shell (desktop/cmd/aurora-desktop). The shell is a
+# nested Go module: MyGo needs Go 1.27 while the core module stays on 1.26, so
+# the desktop toolchain requirement never leaks into `go build ./...` or CI.
+desktop:
+    cd desktop && go build -trimpath -ldflags="{{desktop-ldflags}}" -o ../aurora-desktop ./cmd/aurora-desktop
+
+# Run the desktop shell (build first, then window)
+desktop-run: desktop
+    ./aurora-desktop
 
 # Run the application locally (builds for the current platform then runs a sample)
 run: build-current

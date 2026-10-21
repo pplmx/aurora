@@ -32,6 +32,7 @@ out/
 # every test file under it — which is exactly what happened here.
 /aurora
 /aurora-*
+/aurora-desktop
 *.exe
 *.exe~
 *.dll
