@@ -257,10 +257,16 @@ func platformUserDataDir() (string, error) {
 	return filepath.Join(base, "aurora"), nil
 }
 
-// ResolveWebRoot finds the shipped web/ directory. explicit wins; otherwise
-// the candidates are tried in order and the first one holding index.html is
-// used. Resolving next to the executable first means a staged bundle works
-// regardless of the directory it is launched from.
+// ResolveWebRoot finds the shipped web/ directory. explicit is authoritative:
+// when it is given it must be a web root, and nothing else is tried, because
+// `--web-root DIR` is how a developer says "these are the pages I am editing".
+// Falling through to another copy made a typo look like a working flag: the
+// window rendered some other directory's UI, so edits never appeared and
+// nothing said why.
+//
+// Without an explicit value the candidates are tried in order and the first
+// one holding index.html is used. Resolving next to the executable first means
+// a staged bundle works regardless of the directory it is launched from.
 func ResolveWebRoot(explicit, configured string) (string, error) {
 	var candidates []string
 	add := func(p string) {
@@ -280,6 +286,15 @@ func ResolveWebRoot(explicit, configured string) (string, error) {
 	}
 
 	add(explicit)
+	if explicit != "" {
+		if len(candidates) == 0 {
+			return "", fmt.Errorf("web root %q: cannot resolve the path", explicit)
+		}
+		if dir := candidates[0]; isWebRoot(dir) {
+			return dir, nil
+		}
+		return "", fmt.Errorf("web root %q does not contain index.html", explicit)
+	}
 	if exe, err := os.Executable(); err == nil {
 		add(filepath.Join(filepath.Dir(exe), "web"))
 	}
@@ -292,9 +307,6 @@ func ResolveWebRoot(explicit, configured string) (string, error) {
 		if isWebRoot(dir) {
 			return dir, nil
 		}
-	}
-	if explicit != "" {
-		return "", fmt.Errorf("web root %q does not contain index.html", explicit)
 	}
 	return "", errors.New("could not locate the web UI (looked for web/index.html next to the executable, in the working directory, and at server.webRoot)")
 }
