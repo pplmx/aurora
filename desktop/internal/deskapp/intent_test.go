@@ -90,7 +90,7 @@ func TestIntentURL(t *testing.T) {
 func TestShell_IgnoresRepeatedDelivery(t *testing.T) {
 	shell := NewShell(About{})
 	var reports []string
-	shell.report = func(title, message, _ string) { reports = append(reports, title+": "+message) }
+	shell.report = func(_ mygo.MessageType, title, message, _ string) { reports = append(reports, title+": "+message) }
 	var navigated []Intent
 	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
 
@@ -169,7 +169,7 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 
 	shell := NewShell(About{DBPath: dbPath})
 	var reports []string
-	shell.report = func(title, message, _ string) { reports = append(reports, title+" | "+message) }
+	shell.report = func(_ mygo.MessageType, title, message, _ string) { reports = append(reports, title+" | "+message) }
 
 	shell.HandleLaunchArgs([]string{exportPath}, dir)
 
@@ -195,7 +195,7 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 func TestShell_ReportsBadLinks(t *testing.T) {
 	shell := NewShell(About{})
 	var got string
-	shell.report = func(title, message, _ string) { got = title + " | " + message }
+	shell.report = func(_ mygo.MessageType, title, message, _ string) { got = title + " | " + message }
 
 	shell.OpenURL("https://example.com")
 	assert.Contains(t, got, "could not open that link")
@@ -219,13 +219,14 @@ func TestShell_HandleLaunchArgs(t *testing.T) {
 
 	shell := NewShell(About{DBPath: dbPath})
 	var reports []string
-	shell.report = func(title, message, _ string) { reports = append(reports, title+" | "+message) }
+	shell.report = func(_ mygo.MessageType, title, message, _ string) { reports = append(reports, title+" | "+message) }
 	var navigated []Intent
 	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
 
 	// What a second `aurora-desktop --data-dir X aurora://voting draws.json`
-	// forwards. Flags are not intents and must be skipped, not reported.
-	shell.HandleLaunchArgs([]string{"--data-dir", "/tmp/x", "aurora://voting", exportPath}, dir)
+	// forwards. Flags are not intents; the data directory names the one this
+	// instance already uses, so it is not a conflict either.
+	shell.HandleLaunchArgs([]string{"--data-dir", dir, "aurora://voting", exportPath}, dir)
 
 	require.Len(t, navigated, 1, "the forwarded link must reach the window")
 	assert.Equal(t, Intent{Page: "voting", Raw: "aurora://voting"}, navigated[0])
@@ -268,7 +269,7 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 
 	shell := NewShell(About{DBPath: dbPath})
 	var reports []string
-	shell.report = func(title, message, _ string) { reports = append(reports, title+" | "+message) }
+	shell.report = func(_ mygo.MessageType, title, message, _ string) { reports = append(reports, title+" | "+message) }
 
 	// The first instance runs elsewhere; only workDir can find the file.
 	shell.HandleLaunchArgs([]string{"draws.json"}, launcherDir)
@@ -326,11 +327,101 @@ func TestParseIntentIn_RejectsWhatIsNotThere(t *testing.T) {
 	assert.False(t, ok)
 }
 
+// TestForwardedPaths covers the flags a second launch can carry. They are
+// scanned by hand because flag.Parse stops at the first positional argument,
+// so `aurora://voting --data-dir X` must find the directory the same way
+// `--data-dir X aurora://voting` does.
+func TestForwardedPaths(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		dataDir string
+		webRoot string
+	}{
+		{name: "none", args: []string{"aurora://voting"}},
+		{name: "before the link", args: []string{"--data-dir", "/d", "aurora://voting"}, dataDir: "/d"},
+		{name: "after the link", args: []string{"aurora://voting", "--data-dir", "/d"}, dataDir: "/d"},
+		{name: "equals form", args: []string{"--data-dir=/d"}, dataDir: "/d"},
+		{name: "both", args: []string{"--web-root", "/w", "--data-dir", "/d"}, dataDir: "/d", webRoot: "/w"},
+		{name: "short dashes", args: []string{"-data-dir", "/d"}, dataDir: "/d"},
+		{name: "missing value", args: []string{"--data-dir"}},
+		{name: "unrelated flags", args: []string{"--version", "draws.json"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dataDir, webRoot := ForwardedPaths(tt.args)
+			assert.Equal(t, tt.dataDir, dataDir)
+			assert.Equal(t, tt.webRoot, webRoot)
+		})
+	}
+}
+
+// TestShell_RefusesAForeignDataDir pins what a second launch with a different
+// startup path must do: say so, and act on nothing. Importing its export into
+// this instance's database would write the draws into a directory the user
+// did not name, silently.
+func TestShell_RefusesAForeignDataDir(t *testing.T) {
+	dir := t.TempDir()
+	dataDir := t.TempDir()
+	dbPath := filepath.Join(dataDir, "aurora.db")
+	exportPath := filepath.Join(dir, "draws.json")
+	document := `[{"id":"wrong-db-import","block_height":5,"seed":"seed","participants":["A","B"],"winners":["A"],"winner_addresses":["addr"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
+
+	repo, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	require.NoError(t, repo.Close())
+
+	shell := NewShell(About{DBPath: dbPath})
+	var reports []string
+	shell.report = func(_ mygo.MessageType, title, message, _ string) {
+		reports = append(reports, title+" | "+message)
+	}
+	var navigated []Intent
+	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+
+	other := filepath.Join(t.TempDir(), "other")
+	shell.HandleLaunchArgs([]string{"--data-dir", other, "aurora://voting", exportPath}, dir)
+
+	require.Len(t, reports, 1, "a launch naming another database must be reported, not half-applied")
+	assert.Contains(t, reports[0], "already running")
+	assert.Contains(t, reports[0], other)
+	assert.Contains(t, reports[0], "quit Aurora first",
+		"the message must name the app: Linux shows the box without its title")
+	assert.Empty(t, navigated, "the refused launch must not navigate either")
+
+	stored, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = stored.Close() })
+	_, err = stored.GetByID("wrong-db-import")
+	assert.Error(t, err, "the export must not be imported into the database the launch did not name")
+
+	// The same directory this instance is using is not a conflict: a launcher
+	// that spells out --data-dir on every start keeps working.
+	shell.HandleLaunchArgs([]string{"--data-dir", dataDir, "aurora://voting"}, dir)
+	require.Len(t, reports, 1, "a matching --data-dir must not warn")
+	require.Len(t, navigated, 1)
+
+	// The same directory spelled relative to the launcher is the same
+	// directory, not a conflict.
+	launcher := t.TempDir()
+	relData := filepath.Join(launcher, "db")
+	require.NoError(t, os.MkdirAll(relData, 0o755))
+	relShell := NewShell(About{DBPath: filepath.Join(relData, "aurora.db")})
+	relShell.navigate = func(Intent) {}
+	var relReports []string
+	relShell.report = func(_ mygo.MessageType, title, message, _ string) {
+		relReports = append(relReports, title+" | "+message)
+	}
+	relShell.HandleLaunchArgs([]string{"--data-dir", "db", "aurora://voting"}, launcher)
+	assert.Empty(t, relReports, "a relative --data-dir naming the running database must not warn")
+}
+
 // TestShell_ImportDropped pins what a drop does with each kind of file.
 func TestShell_ImportDropped(t *testing.T) {
 	shell := NewShell(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
 	var reports []string
-	shell.report = func(title, message, _ string) { reports = append(reports, title+" | "+message) }
+	shell.report = func(_ mygo.MessageType, title, message, _ string) { reports = append(reports, title+" | "+message) }
 
 	other := filepath.Join(t.TempDir(), "report.csv")
 	require.NoError(t, os.WriteFile(other, []byte("a,b"), 0o644))

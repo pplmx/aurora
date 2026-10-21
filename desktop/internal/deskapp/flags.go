@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"strings"
 )
 
 // Mode classifies what the process should do after parsing.
@@ -98,4 +99,35 @@ func Usage(w io.Writer, version, buildTime string) {
 func VersionText(version, buildTime string) string {
 	return fmt.Sprintf("Aurora Desktop\nVersion: %s\nBuild time: %s\nGo: %s\n",
 		version, buildTime, runtime.Version())
+}
+
+// ForwardedPaths returns the --data-dir and --web-root values of a launch that
+// was forwarded to an already running instance (App.OnSecondInstance), or ""
+// for one that was not given.
+//
+// The flags are scanned here instead of being handed to flag.Parse because a
+// launch line may put them after the link ("aurora://voting --data-dir X") and
+// flag.Parse stops at the first positional argument. The values are always
+// well formed: the second process parsed and validated its own command line
+// before it forwarded it.
+func ForwardedPaths(args []string) (dataDir, webRoot string) {
+	for i := 0; i < len(args); i++ {
+		name, value, hasValue := strings.Cut(strings.TrimLeft(args[i], "-"), "=")
+		if !strings.HasPrefix(args[i], "-") || (name != "data-dir" && name != "web-root") {
+			continue
+		}
+		if !hasValue {
+			if i+1 >= len(args) {
+				continue
+			}
+			i++
+			value = args[i]
+		}
+		if name == "data-dir" {
+			dataDir = value
+		} else {
+			webRoot = value
+		}
+	}
+	return dataDir, webRoot
 }

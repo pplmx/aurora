@@ -1,8 +1,10 @@
 package deskapp
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/egoist/mygo"
@@ -142,11 +144,27 @@ func (s *Shell) OpenFile(path string) {
 // The launch also raises the window, which is what a second double-click
 // without arguments asks for.
 //
+// A launch that asks for a different --data-dir or --web-root is refused
+// rather than half-applied: this process cannot move its database or swap its
+// UI, and importing an export into the running instance's database when the
+// user named another one would write to the wrong place without saying so.
+// Flags that match what is already running are a no-op, like any other flag.
+//
 // workDir is the directory the launching process ran in. A relative export
 // path is relative to THAT, not to this process (see ParseIntentIn), which is
 // the same rule MyGo applies to the files it delivers itself.
 func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
 	var echoed []string
+	if conflict := s.pathConflict(args, workDir); conflict != "" {
+		// The message stands on its own: Linux shows the message box without
+		// the title, so "quit it before ..." alone would not say what "it" is.
+		s.reportError("This Aurora is already running", errors.New(
+			"Aurora is already running with a different "+conflict+
+				". This window keeps the data directory and Web UI it started with; "+
+				"quit Aurora first to launch with another one."))
+		s.Reveal()
+		return
+	}
 	for _, arg := range args {
 		in, ok := ParseIntentIn(arg, workDir)
 		if !ok {
@@ -171,6 +189,38 @@ func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
 	// the next time the user opens it.
 	s.oweEcho(echoed)
 	s.Reveal()
+}
+
+// pathConflict reports the startup flag of a forwarded launch that this
+// running instance cannot honor, or "" when there is none. An empty value
+// means "not given", and a value naming what is already running is not a
+// conflict.
+//
+// A relative value is joined onto workDir, the way MyGo resolves the files it
+// delivers itself: `cd ~/Downloads && aurora-desktop --data-dir db` names
+// ~/Downloads/db, not a directory beside this process.
+func (s *Shell) pathConflict(args []string, workDir string) string {
+	dataDir, webRoot := ForwardedPaths(args)
+	var conflicts []string
+	if dataDir != "" {
+		want := filepath.Join(resolveAgainst(dataDir, workDir), "aurora.db")
+		if s.meta.DBPath == "" || filepath.Clean(want) != filepath.Clean(s.meta.DBPath) {
+			conflicts = append(conflicts, "--data-dir "+dataDir)
+		}
+	}
+	if webRoot != "" && filepath.Clean(resolveAgainst(webRoot, workDir)) != filepath.Clean(s.meta.WebRoot) {
+		conflicts = append(conflicts, "--web-root "+webRoot)
+	}
+	return strings.Join(conflicts, " and ")
+}
+
+// resolveAgainst makes a forwarded path absolute against the launching
+// process's working directory, when it is relative and one was given.
+func resolveAgainst(path, workDir string) string {
+	if filepath.IsAbs(path) || workDir == "" {
+		return path
+	}
+	return filepath.Join(workDir, path)
 }
 
 // Reveal brings the main window back to the front: a link opened while Aurora
