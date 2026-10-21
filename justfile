@@ -70,6 +70,13 @@ desktop:
 desktop-run: desktop
     ./aurora-desktop
 
+# Test the desktop module. `just test` only covers the core module, so the
+# shell's own tests (embedded UI, app-scheme write path, export/import) need
+# their own entry point: a broken window layer must not pass CI silently just
+# because its module is nested.
+desktop-test:
+    cd desktop && go test ./...
+
 # Run the application locally (builds for the current platform then runs a sample)
 run: build-current
     ./aurora lottery create -p "A,B,C" -s "seed" -c 3
