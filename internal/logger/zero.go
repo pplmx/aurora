@@ -4,14 +4,25 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/pplmx/aurora/internal/utils"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
+// Log is the current logger. It stays a package variable for the tests and
+// packages that install their own logger (middleware's request-id test swaps
+// in a buffer), but it is only written under logMu: Init publishes while the
+// oracle scheduler, the audit-outbox drainer and request handlers are already
+// logging, and an unguarded assignment was a data race the detector reported.
+//
+// Every accessor below takes the lock, which also covers zerolog's global
+// TimeFieldFormat that Init sets and every timestamped event reads.
 var Log zerolog.Logger
+
+// logMu guards Log.
+var logMu sync.RWMutex
 
 // logFile tracks the open file backing a file-based logger so tests (and any
 // caller that re-Init()s) can release it. Without this the handle is only
@@ -19,12 +30,20 @@ var Log zerolog.Logger
 // blocks deletion of the temp dir, and repeated Init() calls leak handles.
 var logFile *os.File
 
+// initMu serializes Init and Close: both touch logFile and the published
+// logger, and a desktop start or a test calling Init again must not interleave
+// with a background goroutine's logging.
+var initMu sync.Mutex
+
 type Config struct {
 	LogLevel string
 	LogPath  string
 }
 
 func Init() {
+	initMu.Lock()
+	defer initMu.Unlock()
+
 	cfg := loadConfig()
 
 	// Parse log level
@@ -33,9 +52,6 @@ func Init() {
 		level = zerolog.InfoLevel
 	}
 	zerolog.SetGlobalLevel(level)
-
-	// Configure output
-	zerolog.TimeFieldFormat = time.RFC3339
 
 	var output zerolog.Logger
 
@@ -58,11 +74,12 @@ func Init() {
 				fallbackToConsole(fmt.Sprintf("Failed to open log file: %v", err))
 			} else {
 				// Close any prior handle before replacing it (repeated
-				// Init() calls used to leak the previous file).
-				Close()
+				// Init() calls used to leak the previous file). Called as
+				// the locked body: Close takes initMu, which Init holds.
+				closeFile()
 				logFile = f
 				output = zerolog.New(f).With().Timestamp().Logger()
-				Log = output
+				publish(output)
 				return
 			}
 		}
@@ -70,13 +87,27 @@ func Init() {
 
 	// Default to console
 	output = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
-	Log = output
+	publish(output)
+}
+
+// publish installs l as the logger.
+func publish(l zerolog.Logger) {
+	logMu.Lock()
+	Log = l
+	logMu.Unlock()
 }
 
 // Close releases the file handle underlying a file-based logger. Tests use it
 // in their cleanup so t.TempDir() can remove the log dir on Windows (an open
 // file cannot be deleted there; Unix tolerates unlink-of-open-file).
 func Close() {
+	initMu.Lock()
+	defer initMu.Unlock()
+	closeFile()
+}
+
+// closeFile is Close's body, for callers that already hold initMu.
+func closeFile() {
 	if logFile != nil {
 		_ = logFile.Close()
 		logFile = nil
@@ -98,30 +129,39 @@ func loadConfig() *Config {
 }
 
 func Info() *zerolog.Event {
-	return Log.Info()
+	return withLogger((*zerolog.Logger).Info)
 }
 
 func Debug() *zerolog.Event {
-	return Log.Debug()
+	return withLogger((*zerolog.Logger).Debug)
 }
 
 func Error() *zerolog.Event {
-	return Log.Error()
+	return withLogger((*zerolog.Logger).Error)
 }
 
 func Warn() *zerolog.Event {
-	return Log.Warn()
+	return withLogger((*zerolog.Logger).Warn)
 }
 
 func Fatal() *zerolog.Event {
-	return Log.Fatal()
+	return withLogger((*zerolog.Logger).Fatal)
 }
 
 func With() zerolog.Context {
-	return Log.With()
+	return withLogger((*zerolog.Logger).With)
+}
+
+// withLogger calls fn on the current logger under the read lock, so an
+// accessor can never read Log while Init is replacing it. zerolog builds the
+// event immediately, so the lock is released before the caller writes it.
+func withLogger[T any](fn func(*zerolog.Logger) T) T {
+	logMu.RLock()
+	defer logMu.RUnlock()
+	return fn(&Log)
 }
 
 // Printf prints a formatted message at info level
 func Printf(format string, v ...interface{}) {
-	Log.Info().Msg(fmt.Sprintf(format, v...))
+	Info().Msg(fmt.Sprintf(format, v...))
 }
