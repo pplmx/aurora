@@ -45,6 +45,10 @@ type Shell struct {
 	// navigate loads an intent in the window. Tests replace it to observe
 	// exactly which links reach the page; the default needs a live window.
 	navigate func(Intent)
+	// pending is the last page an aurora:// link asked for while there was no
+	// window yet (a second launch can arrive between RequestSingleInstanceLock
+	// and WhenReady). It is loaded by Attach instead of being dropped.
+	pending *Intent
 }
 
 // NewShell builds a shell for meta. The window is attached later, once MyGo
@@ -55,11 +59,17 @@ func NewShell(meta About) *Shell {
 
 // Attach points the shell at the main window. Until then, navigation requests
 // are parsed and recorded but not loaded, which is what a test without a
-// window needs.
+// window needs; a page that was requested in that gap is loaded here, once
+// there is a window to load it in.
 func (s *Shell) Attach(win *mygo.Window) {
 	s.mu.Lock()
 	s.win = win
+	pending := s.pending
+	s.pending = nil
 	s.mu.Unlock()
+	if pending != nil {
+		s.Navigate(*pending)
+	}
 }
 
 // Consume marks launch arguments as already handled, so the delivery MyGo
@@ -248,10 +258,17 @@ func (s *Shell) Navigate(in Intent) {
 	}
 	s.mu.Lock()
 	win := s.win
-	s.mu.Unlock()
 	if win == nil || win.IsDestroyed() || win.Page() == nil {
+		if win == nil {
+			s.pending = &in
+		}
+		// No window yet is a startup race, not a reason to forget the link:
+		// keep the newest one for Attach. A window that exists but has been
+		// destroyed is a different case - there is nothing to show it in.
+		s.mu.Unlock()
 		return
 	}
+	s.mu.Unlock()
 	win.Page().LoadURL(in.URL())
 	s.Reveal()
 }

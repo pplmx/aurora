@@ -457,3 +457,35 @@ func TestShellAttachIsSafeWithoutAWindow(t *testing.T) {
 	})
 	var _ *mygo.Window = nil // the attach signature takes a MyGo window
 }
+
+// TestShellDeliversALinkThatArrivesBeforeTheWindow pins the startup window: a
+// second launch can reach OnSecondInstance after the single-instance lock is
+// taken but before WhenReady created the window. Navigate had nowhere to go
+// and the link was dropped, so `aurora-desktop aurora://lottery?id=x` started
+// against an instance that was still booting opened the dashboard instead.
+func TestShellDeliversALinkThatArrivesBeforeTheWindow(t *testing.T) {
+	shell := NewShell(About{})
+
+	// No window yet, and nothing to observe navigation with: the link must be
+	// held, not forgotten.
+	shell.Navigate(Intent{Page: "lottery", LotteryID: "abc", Raw: "aurora://lottery?id=abc"})
+
+	var navigated []Intent
+	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+	shell.Attach(nil)
+
+	require.Len(t, navigated, 1, "the link held before the window existed must be loaded")
+	assert.Equal(t, Intent{Page: "lottery", LotteryID: "abc", Raw: "aurora://lottery?id=abc"}, navigated[0])
+
+	// A second early link replaces the first: the window can show one page,
+	// and the newest request is the one the user just made.
+	shell.navigate = nil
+	shell.Attach(nil)
+	shell.Navigate(Intent{Page: "token", Raw: "aurora://token"})
+	shell.Navigate(Intent{Page: "nft", Raw: "aurora://nft"})
+	var second []Intent
+	shell.navigate = func(in Intent) { second = append(second, in) }
+	shell.Attach(nil)
+	require.Len(t, second, 1)
+	assert.Equal(t, "nft", second[0].Page)
+}
