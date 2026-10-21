@@ -97,6 +97,55 @@ func (s *Shell) OpenFile(path string) {
 	s.reportImport(path, result)
 }
 
+// HandleLaunchArgs applies the arguments of a launch that reached this already
+// running instance (App.OnSecondInstance): later links and later exports must
+// land in the one window instead of starting a rival database writer.
+//
+// MyGo forwards every argument as it is, flags included, but it only fires
+// OnOpenFile for extensions named in the packaged fileAssociations. Aurora
+// deliberately declares none (every .json file would be claimed), so a second
+// `aurora-desktop draws.json` reaches this handler alone: without the file
+// branch the argument was dropped silently, and nothing was imported.
+//
+// The launch also raises the window, which is what a second double-click
+// without arguments asks for.
+func (s *Shell) HandleLaunchArgs(args []string) {
+	for _, arg := range args {
+		in, ok := ParseIntent(arg)
+		if !ok {
+			// A malformed aurora:// link is still ours to report; flags and
+			// unrelated positionals are not.
+			if IsDeepLink(arg) {
+				s.OpenURL(arg)
+			}
+			continue
+		}
+		if in.File != "" {
+			s.OpenFile(in.File)
+			continue
+		}
+		s.OpenURL(in.Raw)
+	}
+	s.Reveal()
+}
+
+// Reveal brings the main window back to the front: a link opened while Aurora
+// was minimized must show the page, not load it behind the user's other
+// windows.
+func (s *Shell) Reveal() {
+	s.mu.Lock()
+	win := s.win
+	s.mu.Unlock()
+	if win == nil || win.IsDestroyed() || win.Page() == nil {
+		return
+	}
+	if win.IsMinimized() {
+		win.Restore()
+	}
+	win.Show()
+	win.Focus()
+}
+
 // Navigate loads the page an intent names in the window, when there is one.
 func (s *Shell) Navigate(in Intent) {
 	if s.navigate != nil {
@@ -110,8 +159,7 @@ func (s *Shell) Navigate(in Intent) {
 		return
 	}
 	win.Page().LoadURL(in.URL())
-	win.Show()
-	win.Focus()
+	s.Reveal()
 }
 
 // ImportDropped handles files dropped onto the window: a lottery export is

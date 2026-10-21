@@ -156,6 +156,53 @@ func TestShell_ReportsBadLinks(t *testing.T) {
 	assert.Contains(t, got, "could not open that link")
 }
 
+// TestShell_HandleLaunchArgs covers the second-instance path, which MyGo
+// reaches through App.OnSecondInstance with the raw command line. MyGo only
+// converts arguments it recognises (declared schemes, associated file types)
+// into OnOpenURL/OnOpenFile, and Aurora claims no .json association, so a
+// forwarded export used to be dropped without a word.
+func TestShell_HandleLaunchArgs(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "aurora.db")
+	exportPath := filepath.Join(dir, "draws.json")
+	document := `[{"id":"second-instance-import","block_height":2,"seed":"second-seed","participants":["A","B"],"winners":["B"],"winner_addresses":["addr-b"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
+
+	repo, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	require.NoError(t, repo.Close())
+
+	shell := NewShell(About{DBPath: dbPath})
+	var reports []string
+	shell.report = func(title, message, _ string) { reports = append(reports, title+" | "+message) }
+	var navigated []Intent
+	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+
+	// What a second `aurora-desktop --data-dir X aurora://voting draws.json`
+	// forwards. Flags are not intents and must be skipped, not reported.
+	shell.HandleLaunchArgs([]string{"--data-dir", "/tmp/x", "aurora://voting", exportPath})
+
+	require.Len(t, navigated, 1, "the forwarded link must reach the window")
+	assert.Equal(t, Intent{Page: "voting", Raw: "aurora://voting"}, navigated[0])
+	require.Len(t, reports, 1, "the forwarded export must be imported once")
+	assert.Contains(t, reports[0], "Lotteries imported")
+
+	stored, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = stored.Close() })
+	_, err = stored.GetByID("second-instance-import")
+	assert.NoError(t, err, "the export named by the second launch must be stored")
+
+	// A malformed link of our own scheme is still ours to report.
+	shell.HandleLaunchArgs([]string{"aurora://settings"})
+	require.Len(t, reports, 2)
+	assert.Contains(t, reports[1], "could not open that link")
+
+	// A second launch with no arguments just raises the window; without one
+	// attached that must be a no-op rather than a panic.
+	require.NotPanics(t, func() { shell.HandleLaunchArgs(nil) })
+}
+
 // TestShell_ImportDropped pins what a drop does with each kind of file.
 func TestShell_ImportDropped(t *testing.T) {
 	shell := NewShell(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
