@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 152,
+  "round": 153,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-09-07T06:18:48+00:00",
+  "updated_at": "2026-10-21T03:51:32+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11408,6 +11408,120 @@
       "touched_round": 152,
       "commit": "e042464",
       "title": "Add aurora-api -H/--host and -p/--port listen-address overrides with flag > env > config > default precedence (AURORA_SERVER_HOST/PORT env bindings), range validation, and unit tests (ISS-269, TASK-273)"
+    },
+    "COMP-013": {
+      "id": "COMP-013",
+      "type": "component",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T03:17:02+00:00",
+      "updated_at": "2026-10-21T03:51:14+00:00",
+      "touched_round": 152,
+      "name": "desktop/cmd/aurora-desktop",
+      "path": "desktop/cmd/aurora-desktop",
+      "description": "mygo desktop shell in the nested desktop/ module: embeds the Web UI (root package embed.go) and serves the internal/api router from an in-process aurora:// scheme handler that never opens a listener; File menu shares lottery export/import, backup, show-data-folder"
+    },
+    "ISS-270": {
+      "id": "ISS-270",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T03:17:06+00:00",
+      "updated_at": "2026-10-21T03:51:17+00:00",
+      "touched_round": 152,
+      "title": "Desktop shell cannot verify server state offline; web UI alone requires a bound HTTP port (resolved by the mygo desktop shell hosting the router over aurora://)",
+      "severity": 0.5
+    },
+    "TASK-274": {
+      "id": "TASK-274",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T03:17:06+00:00",
+      "updated_at": "2026-10-21T03:51:17+00:00",
+      "touched_round": 152,
+      "title": "Ship desktop/cmd/aurora-desktop: mygo desktop shell over the embedded Web UI + in-process API (aurora:// scheme, no listener)",
+      "category": "core-feature",
+      "severity": 0.7,
+      "confidence": 0.9,
+      "effort": 4,
+      "priority_score": 4.5
+    },
+    "EV-062": {
+      "id": "EV-062",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T03:50:52+00:00",
+      "updated_at": "2026-10-21T03:50:52+00:00",
+      "touched_round": 152,
+      "title": "Desktop shell embeds web/ and serves it over aurora:// with no listener",
+      "source": "desktop/internal/deskapp/embedded_test.go (TestStart_ServesTheEmbeddedUI, TestCreateDraw_ThroughTheAppScheme_ReachesTheDatabase); live Xvfb run 2026-10-21",
+      "summary": "Under Xvfb the window rendered the dashboard from the embedded copy with real data and 9 requests incl. 6 /api/v1; the create test POSTs over the app scheme and re-reads the draw through a second SQLite connection. Reverting the embedded->disk resolution makes TestStart_ServesTheEmbeddedUI fail.",
+      "confidence": 1.0
+    },
+    "EV-063": {
+      "id": "EV-063",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T03:50:53+00:00",
+      "updated_at": "2026-10-21T03:50:53+00:00",
+      "touched_round": 152,
+      "title": "WebKitGTK runs no page script under any CSP on aurora://localhost",
+      "source": "desktop/internal/deskapp/deskapp.go Handler/stripCSP; measured 2026-10-21 under Xvfb",
+      "summary": "Measured three policies: self+aurora:, self+aurora://localhost, and * each left the window inert (no x-show evaluation, 0 /api/v1 requests). Removing the header => all 6 dashboard API calls fire. Hence the desktop transport strips CSP while the HTTP gateway keeps it.",
+      "confidence": 1.0
+    },
+    "CHG-268": {
+      "id": "CHG-268",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T03:51:04+00:00",
+      "updated_at": "2026-10-21T03:51:04+00:00",
+      "touched_round": 152,
+      "commit": "ca87902",
+      "title": "Extract lottery export/import/verify into internal/app/lottery so the CLI and desktop menu share one implementation (TASK-274, ISS-270)"
+    },
+    "CHG-269": {
+      "id": "CHG-269",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T03:51:04+00:00",
+      "updated_at": "2026-10-21T03:51:04+00:00",
+      "touched_round": 152,
+      "commit": "18f6ad3",
+      "title": "Add desktop/ mygo shell: embedded UI over aurora:// scheme, in-process router, export/import/backup menu, CSP stripped on the custom transport (TASK-274, ISS-270)"
+    },
+    "CHG-270": {
+      "id": "CHG-270",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T03:51:07+00:00",
+      "updated_at": "2026-10-21T03:51:07+00:00",
+      "touched_round": 152,
+      "commit": "1661cb3",
+      "title": "gateway router accepts an fs.FS web source (RouterWithWebFS) and root-package embed.go embeds web/ for the desktop shell (TASK-274)"
+    },
+    "DEC-019": {
+      "id": "DEC-019",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T03:51:27+00:00",
+      "updated_at": "2026-10-21T03:51:27+00:00",
+      "touched_round": 152,
+      "title": "CSP is stripped on the aurora:// transport; the HTTP gateway keeps its strict nonce policy",
+      "rationale": "Measured under Xvfb: on aurora://localhost/ WebKitGTK executes no page script under any CSP source expression (self+scheme, self+origin, and * each produced an inert window and zero /api/v1 requests; removing the header made all six dashboard calls fire). Widening or weakening the shared policy would also weaken the HTTP gateway, which does have a network origin and needs the CSP. So the transport, not the policy, is made responsible for the custom-scheme window: stripCSP wraps only Runtime.Handler, and reachability is bounded by the scheme handler serving just the embedded files with no listener and no remote origin.",
+      "alternatives_rejected": [
+        "Ship a CSP with src-list variants on aurora:// (measured to block all page scripts, dead window)",
+        "Set a single shared CSP of * for both transports (measured dead on aurora:// AND removes the gateway protection)",
+        "Serve the UI from a loopback HTTP listener (reintroduces a port, CORS allow-list, and a network path for the API key)"
+      ],
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -17980,6 +18094,60 @@
       "to": "ISS-269",
       "type": "resolves",
       "created_at": "2026-09-07T06:17:54+00:00"
+    },
+    {
+      "from": "TASK-274",
+      "to": "ISS-270",
+      "type": "addresses",
+      "created_at": "2026-10-21T03:17:10+00:00"
+    },
+    {
+      "from": "ISS-270",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-21T03:17:10+00:00"
+    },
+    {
+      "from": "CHG-268",
+      "to": "TASK-274",
+      "type": "implements",
+      "created_at": "2026-10-21T03:51:11+00:00"
+    },
+    {
+      "from": "CHG-269",
+      "to": "TASK-274",
+      "type": "implements",
+      "created_at": "2026-10-21T03:51:11+00:00"
+    },
+    {
+      "from": "CHG-270",
+      "to": "TASK-274",
+      "type": "implements",
+      "created_at": "2026-10-21T03:51:11+00:00"
+    },
+    {
+      "from": "CHG-269",
+      "to": "ISS-270",
+      "type": "resolves",
+      "created_at": "2026-10-21T03:51:11+00:00"
+    },
+    {
+      "from": "CHG-268",
+      "to": "ISS-270",
+      "type": "resolves",
+      "created_at": "2026-10-21T03:51:11+00:00"
+    },
+    {
+      "from": "DEC-019",
+      "to": "COMP-013",
+      "type": "governs",
+      "created_at": "2026-10-21T03:51:29+00:00"
+    },
+    {
+      "from": "DEC-019",
+      "to": "TASK-274",
+      "type": "governs",
+      "created_at": "2026-10-21T03:51:29+00:00"
     }
   ]
 }
