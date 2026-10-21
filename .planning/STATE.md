@@ -159,11 +159,22 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   cmd/aurora/cmd/main_test.go turns the CLI suite red again under zh_CN. Both
   `go test ./...` and `go test -race ./...` are now green under zh_CN and
   en_US, for core and desktop.
+  A final read of the same surface found the last English left in it: the
+  dialog TITLES were localized but the REASONS they carry were not.
+  ResolveWebRoot's "web root ... does not contain index.html", the unknown-flag
+  error and its usage hint, the missing-webview and data-directory errors on
+  stderr, and openLotteryRepo's "no database path"/"database ..." were all
+  built in English and handed to a Chinese dialog. They now read
+  desktop.error.* keys at the point of failure, with
+  TestStartupErrorsFollowTheLocale and TestFlagErrorsFollowTheLocale; putting
+  the old English web-root message back turns the first one red, and the live
+  build under LANG=zh_CN prints 运行 "aurora-desktop --help" 查看用法。 for
+  `--nope`.
   Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 1045 nodes, 1197 edges.
+  RIL graph at round 155: 1048 nodes, 1200 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
