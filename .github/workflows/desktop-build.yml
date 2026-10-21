@@ -108,14 +108,17 @@ jobs:
               test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.deb' -print -quit)"
               test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.tar.gz' -print -quit)"
               grep -q 'MimeType=x-scheme-handler/aurora;' "${{ matrix.path }}/aurora.desktop"
+              test -z "$(find "${{ matrix.path }}" -name '*.go' -print -quit)"
               ;;
             macOS)
               test -d "${{ matrix.path }}/Aurora.app"
               test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*.dmg' -print -quit)"
+              test -z "$(find "${{ matrix.path }}/Aurora.app" -name '*.go' -print -quit)"
               ;;
             Windows)
               test -f "${{ matrix.path }}/Aurora.exe"
               test -n "$(find "${{ matrix.path }}" -maxdepth 1 -name '*Setup*.exe' -print -quit)"
+              test -z "$(find "${{ matrix.path }}" -name '*.go' -print -quit)"
               ;;
           esac
 

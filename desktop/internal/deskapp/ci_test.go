@@ -189,3 +189,36 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	assert.Contains(t, desktopWorkflow, `-name '*Setup*.exe'`)
 	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/Aurora.exe")
 }
+
+// TestPackagedResourcesHoldNoGoSources guards MyGo's resource contract:
+// everything under desktop/resources is copied next to the executable and
+// into the .deb/tarball. The icon used to live there together with its Go
+// package and test, so every package carried resources.go and
+// resources_test.go. Keep the directory free of build-only files, and make
+// the packaging gates reject them if they return.
+func TestPackagedResourcesHoldNoGoSources(t *testing.T) {
+	root := repoRoot(t)
+
+	entries, err := os.ReadDir(filepath.Join(root, "desktop", "resources"))
+	if err == nil {
+		for _, entry := range entries {
+			assert.False(t, strings.HasSuffix(entry.Name(), ".go"),
+				"desktop/resources/%s would ship as a runtime resource", entry.Name())
+		}
+	} else {
+		require.ErrorIs(t, err, os.ErrNotExist,
+			"desktop/resources may be absent, but an unreadable directory is a packaging bug")
+	}
+
+	for _, workflow := range []string{"ci.yml", "desktop-build.yml"} {
+		src, err := os.ReadFile(filepath.Join(root, ".github", "workflows", workflow))
+		require.NoError(t, err)
+		assert.Contains(t, string(src), "-name '*.go'",
+			"%s must reject Go sources in packaged artifacts", workflow)
+	}
+
+	config, err := os.ReadFile(filepath.Join(root, "desktop", "mygo.config.ts"))
+	require.NoError(t, err)
+	assert.Contains(t, string(config), `icon: "./appicon/icon.png"`,
+		"the packaging icon must stay outside desktop/resources")
+}

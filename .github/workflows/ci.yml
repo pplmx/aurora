@@ -141,6 +141,7 @@ jobs:
           test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.deb' -print -quit)"
           test -n "$(find dist/desktop/linux-amd64 -maxdepth 1 -name '*.tar.gz' -print -quit)"
           grep -q 'MimeType=x-scheme-handler/aurora;' dist/desktop/linux-amd64/aurora.desktop
+          test -z "$(find dist/desktop/linux-amd64 -name '*.go' -print -quit)"
 
       - uses: actions/upload-artifact@v7
         with:

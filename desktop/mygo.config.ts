@@ -13,6 +13,10 @@ export default {
   identifier: "com.pplmx.aurora",
   version,
   main: "./cmd/aurora-desktop",
+  // appicon/ holds the Go package that embeds this file for the window icon.
+  // It is deliberately outside resources/: every file there is copied into
+  // the shipped app, which would otherwise include Go source and tests.
+  icon: "./appicon/icon.png",
   out: "../dist/desktop",
   copyright: "Aurora contributors",
 

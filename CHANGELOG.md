@@ -95,7 +95,7 @@ documented in their per-milestone ROADMAP files.
   File → Import (TASK-069's overwrite guard included), and a `.json` path on
   the command line does the same. Unsupported files are reported rather than
   ignored.
-- **The app has an icon**: `desktop/resources/icon.png` (1024×1024) is picked
+- **The app has an icon**: `desktop/appicon/icon.png` (1024×1024) is picked
   up by `mygo build`, so the desktop entry names `Icon=aurora` instead of
   leaving it empty and the `.deb` installs 256/512 px copies under
   `usr/share/icons/hicolor`. The same PNG is embedded so an unpackaged

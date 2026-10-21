@@ -1,4 +1,4 @@
-package resources
+package appicon
 
 import (
 	"bytes"
@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestIconIsASquarePNG is the packaging contract: `mygo build` decodes
-// resources/icon.png and renders the .icns, .ico and .desktop icons from it,
-// and Window.SetIcon decodes the embedded copy. A non-PNG or a non-square
-// file fails the build or draws a stretched icon, so pin both.
+// TestIconIsASquarePNG is the packaging contract: mygo.config.ts points
+// `mygo build` at appicon/icon.png and it renders the .icns, .ico and desktop
+// icons from it, while Window.SetIcon decodes the embedded copy. A non-PNG or
+// a non-square file fails the build or draws a stretched icon, so pin both.
 func TestIconIsASquarePNG(t *testing.T) {
-	require.NotEmpty(t, IconPNG, "resources/icon.png must be embedded")
+	require.NotEmpty(t, IconPNG, "appicon/icon.png must be embedded")
 
 	img, err := png.Decode(bytes.NewReader(IconPNG))
 	require.NoError(t, err, "MyGo decodes the icon as PNG")
