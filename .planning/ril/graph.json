@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T07:55:23+00:00",
+  "updated_at": "2026-10-21T08:06:55+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12788,6 +12788,55 @@
       "touched_round": 155,
       "title": "Help → Language (system/en/zh-Hans/zh-Hant), MarkLanguage radio state, followLocale seam",
       "commit": "ae04588"
+    },
+    "ISS-295": {
+      "id": "ISS-295",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T08:06:30+00:00",
+      "updated_at": "2026-10-21T08:06:55+00:00",
+      "touched_round": 155,
+      "title": "The File menu has no Open Recent list, so every import repeats the picker",
+      "description": "RoleOpenRecent was absent and successful shell/menu imports and exports never called App.AddRecentDocument; MyGo can persist recent-documents.json and reopen an entry through OnOpenFile, which Aurora already routes to ImportLotteryFile."
+    },
+    "TASK-299": {
+      "id": "TASK-299",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T08:06:34+00:00",
+      "updated_at": "2026-10-21T08:06:55+00:00",
+      "touched_round": 155,
+      "title": "Wire File > Open Recent to successful imports and exports",
+      "category": "core-feature",
+      "priority_score": 6,
+      "severity": 0.85,
+      "confidence": 0.95,
+      "effort": 2
+    },
+    "CHG-299": {
+      "id": "CHG-299",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T08:06:43+00:00",
+      "updated_at": "2026-10-21T08:06:43+00:00",
+      "touched_round": 155,
+      "title": "File menu carries RoleOpenRecent; rememberDocument records successful shell and picker imports and exports after app readiness; TestOpenedDocumentsAreRemembered",
+      "commit": "3e8eb09"
+    },
+    "EV-085": {
+      "id": "EV-085",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T08:06:47+00:00",
+      "updated_at": "2026-10-21T08:06:47+00:00",
+      "touched_round": 155,
+      "title": "Recent entries persist after a successful import and the readiness guard prevents a pre-Run hang",
+      "source": "desktop/internal/deskapp/import_report_test.go TestOpenedDocumentsAreRemembered; Xvfb :170 with LANG=zh_CN and a forwarded /tmp/recent-demo.json; fault injection removing !appReady() turns the test red",
+      "confidence": 0.95
     }
   },
   "edges": [
@@ -20002,6 +20051,30 @@
       "to": "TASK-298",
       "type": "implements",
       "created_at": "2026-10-21T07:55:23+00:00"
+    },
+    {
+      "from": "TASK-299",
+      "to": "ISS-295",
+      "type": "addresses",
+      "created_at": "2026-10-21T08:06:51+00:00"
+    },
+    {
+      "from": "CHG-299",
+      "to": "ISS-295",
+      "type": "resolves",
+      "created_at": "2026-10-21T08:06:51+00:00"
+    },
+    {
+      "from": "CHG-299",
+      "to": "TASK-299",
+      "type": "implements",
+      "created_at": "2026-10-21T08:06:51+00:00"
+    },
+    {
+      "from": "EV-085",
+      "to": "HYP-016",
+      "type": "validates",
+      "created_at": "2026-10-21T08:06:51+00:00"
     }
   ]
 }
