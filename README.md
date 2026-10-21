@@ -261,6 +261,12 @@ just desktop-test                                  # 桌面模块的测试（jus
   各语言项用自身语言书写，当前项带单选勾；"跟随系统" 对应
   `SetLocale("")`。构建菜单时不能读 `App.Locale()`（`Run` 之前它会阻塞在
   主线程队列上），所以勾选状态在菜单装好之后由 `MarkLanguage` 设置。
+- **Open Recent**：File → Open Recent 由 MyGo 维护（用户数据目录的
+  `recent-documents.json`，同时写入系统自己的最近文档列表）。菜单导入/
+  导出、拖放与命令行导入成功后都会记录路径；选中一项仍走 `OnOpenFile`
+  的同一条导入路径，覆盖保护与重复记录保护照常生效。记录只在
+  `App.IsReady()` 之后进行——`App.AddRecentDocument` 会向主线程投递并等待，
+  `Run` 之前调用会卡住启动；记录失败也不会把已经成功的导入/导出报成错误。
 - **深链**：`aurora://lottery?id=<draw>` 由 `mygo.config.ts` 的
   `urlSchemes` 注册；Linux/Windows 每次启动还会调用
   `App.RegisterURLScheme`（无需安装器）。链接落到对应页面并**自动滚动**到

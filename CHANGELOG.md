@@ -49,6 +49,14 @@ documented in their per-milestone ROADMAP files.
   `OnLocaleChanged` listener rebuilds Aurora's labels and ticks the item in
   effect. Previously the only way to get another language was to change the
   system locale or the config file.
+- **File → Open Recent lists the exports you used**: MyGo keeps the recent
+  documents list (and feeds the system's own recent list), and Aurora now
+  records every successful import or export, from the menu, a drop, or a
+  launch argument. Choosing an entry goes through the same `OnOpenFile` import
+  path, so the overwrite and duplicate guards still apply. Recording waits
+  until the app is ready (`App.IsReady`) because `App.AddRecentDocument`
+  reaches the main thread and would hang before `Run`; a recording failure
+  never turns a completed import into an error.
 - **The desktop module is covered by CI**: `desktop/` is a nested module, so
   the root `go test ./...` never looked inside it and a broken window layer
   passed every gate. `ci.yml` gains a `desktop` job (its own Go 1.27
