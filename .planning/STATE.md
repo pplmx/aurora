@@ -189,11 +189,20 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   followLocale turns TestLanguageSwitchRebuildsTheMenu red. GTK renders menu
   popups as empty black boxes under Xvfb, so the popup contents are covered
   by unit tests while the bar itself was verified live.
+  The File menu then gained MyGo's Open Recent list: successful imports and
+  exports (menu picker, drop, launch argument) now call App.AddRecentDocument,
+  and choosing an entry re-enters the existing OnOpenFile import path. The
+  call is gated on App.IsReady because AddRecentDocument reaches App.Path and
+  the system list, which post to the main thread and wait; without the gate
+  TestOpenedDocumentsAreRemembered hangs/red. A recording failure is ignored
+  rather than failing the completed import. Live-verified under Xvfb :170
+  with LANG=zh_CN: a forwarded /tmp/recent-demo.json appeared in
+  ~/.config/Aurora/recent-documents.json.
   Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 1052 nodes, 1202 edges.
+  RIL graph at round 155: 1056 nodes, 1206 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
