@@ -185,7 +185,7 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	} else {
 		embedded, err := aurora.WebFS()
 		if err != nil {
-			return nil, fmt.Errorf("embedded web assets: %w", err)
+			return nil, fmt.Errorf(T("desktop.error.embedded_assets"), err)
 		}
 		webFS = embedded
 	}
@@ -239,7 +239,7 @@ func prepareDataDir(dir string, defaultDir func() (string, error)) (string, erro
 		dir = base
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", fmt.Errorf("create data directory %s: %w", dir, err)
+		return "", fmt.Errorf(T("desktop.error.data_dir"), dir, err)
 	}
 	return filepath.Join(dir, "aurora.db"), nil
 }
@@ -252,7 +252,7 @@ var userDataDir = platformUserDataDir
 func platformUserDataDir() (string, error) {
 	base, err := os.UserConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("resolve user config directory: %w", err)
+		return "", fmt.Errorf(T("desktop.error.user_config_dir"), err)
 	}
 	return filepath.Join(base, "aurora"), nil
 }
@@ -288,12 +288,12 @@ func ResolveWebRoot(explicit, configured string) (string, error) {
 	add(explicit)
 	if explicit != "" {
 		if len(candidates) == 0 {
-			return "", fmt.Errorf("web root %q: cannot resolve the path", explicit)
+			return "", fmt.Errorf(T("desktop.error.web_root_unresolvable"), explicit)
 		}
 		if dir := candidates[0]; isWebRoot(dir) {
 			return dir, nil
 		}
-		return "", fmt.Errorf("web root %q does not contain index.html", explicit)
+		return "", fmt.Errorf(T("desktop.error.web_root_no_index"), explicit)
 	}
 	if exe, err := os.Executable(); err == nil {
 		add(filepath.Join(filepath.Dir(exe), "web"))
@@ -308,7 +308,7 @@ func ResolveWebRoot(explicit, configured string) (string, error) {
 			return dir, nil
 		}
 	}
-	return "", errors.New("could not locate the web UI (looked for web/index.html next to the executable, in the working directory, and at server.webRoot)")
+	return "", errors.New(T("desktop.error.web_root_not_found"))
 }
 
 func isWebRoot(dir string) bool {

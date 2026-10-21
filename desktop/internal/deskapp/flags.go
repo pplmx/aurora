@@ -60,10 +60,10 @@ func ParseFlags(args []string) (Mode, Flags, error) {
 		if in, ok := ParseIntent(fs.Arg(0)); ok {
 			opts.Intent = in
 		} else {
-			return ModeRun, Flags{}, fmt.Errorf("unexpected argument %q (aurora-desktop takes flags, aurora:// links, or .json lottery exports)", fs.Arg(0))
+			return ModeRun, Flags{}, fmt.Errorf(T("desktop.error.unexpected_arg"), fs.Arg(0))
 		}
 		if fs.NArg() > 1 {
-			return ModeRun, Flags{}, fmt.Errorf("unexpected argument %q (only one link or file can be opened at a time)", fs.Arg(1))
+			return ModeRun, Flags{}, fmt.Errorf(T("desktop.error.extra_arg"), fs.Arg(1))
 		}
 	}
 	if showVersion {

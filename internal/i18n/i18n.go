@@ -513,6 +513,18 @@ func (tr *Translator) loadMessages() {
 		"desktop.help.example_dashboard":         "  aurora-desktop                          # dashboard",
 		"desktop.help.example_link":              "  aurora-desktop aurora://lottery?id=abc  # verify that draw",
 		"desktop.help.example_file":              "  aurora-desktop draws.json               # import an export",
+		"desktop.help.run_help":                  `Run "aurora-desktop --help" for usage.`,
+		"desktop.error.unexpected_arg":           "unexpected argument %q (aurora-desktop takes flags, aurora:// links, or .json lottery exports)",
+		"desktop.error.extra_arg":                "unexpected argument %q (only one link or file can be opened at a time)",
+		"desktop.error.no_webview":               "no system webview available; install WebKitGTK (libwebkit2gtk-4.1-0 on Debian/Ubuntu) to show the UI",
+		"desktop.error.web_root_unresolvable":    "web root %q: cannot resolve the path",
+		"desktop.error.web_root_no_index":        "web root %q does not contain index.html",
+		"desktop.error.web_root_not_found":       "could not locate the web UI (looked for web/index.html next to the executable, in the working directory, and at server.webRoot)",
+		"desktop.error.data_dir":                 "create data directory %s: %w",
+		"desktop.error.user_config_dir":          "resolve user config directory: %w",
+		"desktop.error.embedded_assets":          "embedded web assets: %w",
+		"desktop.error.no_database_path":         "no database path",
+		"desktop.error.database":                 "database %s: %w",
 
 		// Destructive-op --confirm gate shared by token burn / nft burn /
 		// oracle source delete / migrate down / lottery reset (TASK-186,
@@ -977,6 +989,18 @@ func (tr *Translator) loadMessages() {
 		"desktop.help.example_dashboard":         "  aurora-desktop                          # 仪表盘",
 		"desktop.help.example_link":              "  aurora-desktop aurora://lottery?id=abc  # 验证该期开奖",
 		"desktop.help.example_file":              "  aurora-desktop draws.json               # 导入一份导出文件",
+		"desktop.help.run_help":                  `运行 "aurora-desktop --help" 查看用法。`,
+		"desktop.error.unexpected_arg":           "意外参数 %q（aurora-desktop 只接受参数、aurora:// 链接或 .json 抽奖导出文件）",
+		"desktop.error.extra_arg":                "意外参数 %q（一次只能打开一个链接或文件）",
+		"desktop.error.no_webview":               "没有可用的系统 WebView；请安装 WebKitGTK（Debian/Ubuntu 上是 libwebkit2gtk-4.1-0）以显示界面",
+		"desktop.error.web_root_unresolvable":    "Web 目录 %q：无法解析该路径",
+		"desktop.error.web_root_no_index":        "Web 目录 %q 中没有 index.html",
+		"desktop.error.web_root_not_found":       "找不到 Web 界面（已查找可执行文件旁、工作目录下以及 server.webRoot 配置的 web/index.html）",
+		"desktop.error.data_dir":                 "创建数据目录 %s 失败：%w",
+		"desktop.error.user_config_dir":          "解析用户配置目录失败：%w",
+		"desktop.error.embedded_assets":          "内嵌 Web 资源出错：%w",
+		"desktop.error.no_database_path":         "没有数据库路径",
+		"desktop.error.database":                 "数据库 %s：%w",
 
 		// 破坏性操作 --confirm 门（token burn / nft burn / oracle source
 		// delete / migrate down / lottery reset 共用，TASK-186，ISS-182）
