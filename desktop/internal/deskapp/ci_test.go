@@ -405,3 +405,37 @@ func TestPackagedResourcesHoldNoGoSources(t *testing.T) {
 	assert.Contains(t, string(ignore), "/desktop/resources/build-time.txt",
 		"the generated build stamp is packaging state, not source")
 }
+
+// TestDockerPublishesOnlyReviewedCommits pins the Docker publishing contract:
+// pull requests must be validation-only (fork PRs cannot read repository
+// secrets), and a published image must be tested by the tag that was actually
+// built. The workflow used to push on every event and then smoke-test the
+// long commit SHA even though metadata-action emitted the short SHA.
+func TestDockerPublishesOnlyReviewedCommits(t *testing.T) {
+	root := repoRoot(t)
+
+	src, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "docker.yml"))
+	require.NoError(t, err)
+	workflow := string(src)
+
+	require.Contains(t, workflow, "pull_request:")
+	require.NotContains(t, workflow, "release:\n    types: [published]",
+		"the tag push already builds the release image; a release event duplicates it")
+	require.Contains(t, workflow, "PUBLISH: ${{ github.event_name != 'pull_request' }}")
+	require.Contains(t, workflow, "push: ${{ env.PUBLISH == 'true' }}")
+	for _, step := range []string{
+		"name: Login to Docker Hub\n        if: env.PUBLISH == 'true'",
+		"name: Login to GitHub Container Registry\n        if: env.PUBLISH == 'true'",
+	} {
+		assert.Contains(t, workflow, step,
+			"pull requests must not authenticate to an image registry")
+	}
+	require.Contains(t, workflow, "type=sha,format=short,prefix=",
+		"the explicit short SHA tag must match the smoke-tested image")
+	require.Contains(t, workflow, "type=semver,pattern={{version}}",
+		"tag releases must publish a version image, not only branch and SHA tags")
+	require.Contains(t, workflow, "type=semver,pattern={{major}}.{{minor}}")
+	require.Contains(t, workflow, "aurora-smoke-test:${{ github.sha }}")
+	require.NotContains(t, workflow, "${{ env.DOCKER_IMAGE }}:${{ github.sha }}",
+		"the image is tagged with the short SHA, not the full commit SHA")
+}
