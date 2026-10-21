@@ -9,6 +9,7 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/pplmx/aurora/desktop/internal/deskapp"
+	"github.com/pplmx/aurora/desktop/resources"
 )
 
 // Injected at build time by the justfile `desktop` recipe. A `mygo build`
@@ -141,14 +142,13 @@ func main() {
 	mygo.App.OnOpenURL(shell.OpenURL)
 	mygo.App.OnOpenFile(shell.OpenFile)
 	// A second launch with another link or file must reach this instance
-	// rather than start a rival database writer.
+	// rather than start a rival database writer. MyGo hands us the raw
+	// arguments, and only turns them into OnOpenURL/OnOpenFile for schemes and
+	// file types it is configured to handle; an export is not one of those
+	// (aurora claims no .json association on purpose), so the shell parses the
+	// arguments itself.
 	mygo.App.OnSecondInstance(func(args []string, _ string) {
-		for _, arg := range args {
-			switch {
-			case deskapp.IsDeepLink(arg):
-				shell.OpenURL(arg)
-			}
-		}
+		shell.HandleLaunchArgs(args)
 	})
 
 	mygo.App.WhenReady(func() {
@@ -162,6 +162,12 @@ func main() {
 			BackgroundColor: "#1a1a1a",
 			StateKey:        "main",
 		})
+		// A packaged build takes the icon from resources/icon.png at build
+		// time; an unpackaged one would fall back to the toolkit's placeholder
+		// in its title bar and taskbar, so set the very same image here.
+		if err := win.SetIcon(resources.IconPNG); err != nil {
+			fmt.Fprintf(os.Stderr, "aurora-desktop: set window icon: %v\n", err)
+		}
 		shell.Attach(win)
 		// Dropping a lottery export on the window imports it, the same way
 		// opening one from the file manager does. Anything else is reported
