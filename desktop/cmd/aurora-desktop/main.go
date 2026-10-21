@@ -94,8 +94,7 @@ func main() {
 		DataDirDefault: userDataDir,
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", err)
-		os.Exit(1)
+		failStartup(err)
 	}
 	defer func() { _ = rt.Close() }()
 
@@ -187,5 +186,41 @@ func main() {
 	if err := mygo.App.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// failStartup reports a failure to start and exits 1.
+//
+// Printing to stderr is not enough: a packaged app is launched from a desktop
+// entry or a file manager, which gives it no console at all, so a bad
+// --web-root or an unusable data directory looked exactly like a double-click
+// that did nothing. The app is run just long enough to show the reason in a
+// native dialog. A dialog needs the running app (MyGo panics on one before
+// Run), which is why this starts the event loop instead of calling
+// Dialog.Message directly.
+func failStartup(err error) {
+	fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", err)
+	mygo.App.WhenReady(func() {
+		_, _ = mygo.Dialog.Message(startupFailureDialog(err))
+		mygo.App.Quit()
+	})
+	if runErr := mygo.App.Run(); runErr != nil {
+		// No display, no webview, or the loop died before the dialog: the
+		// stderr line above is then the only report there can be.
+		fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", runErr)
+	}
+	os.Exit(1)
+}
+
+// startupFailureDialog is what a failed start tells the user. The reason is in
+// Detail so it is readable in full (a web root path can be long) and the
+// message states the consequence, because Linux shows the body without the
+// title.
+func startupFailureDialog(err error) mygo.MessageOptions {
+	return mygo.MessageOptions{
+		Type:    mygo.MessageError,
+		Title:   "Aurora could not start",
+		Message: "Aurora did not open its window.",
+		Detail:  err.Error(),
 	}
 }
