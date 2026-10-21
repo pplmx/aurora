@@ -105,11 +105,20 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   the process alive long enough to show the reason in a native error dialog
   (measured under Xvfb: the window stays up reading "Aurora did not open its
   window." with the web-root error beneath it, where before the process was
-  gone within a second). Gates:
+  gone within a second). Two more silent failures fell out of reading the same
+  menu: backUpDatabase merged "the folder picker failed" with "the user
+  cancelled", so a broken portal left the backup undone with no message
+  (separated, with a test that drives both branches); and a `-race` run while
+  finishing the desktop work reported a genuine race in `logger.Init`, which
+  replaced the package logger and zerolog's global time format while the
+  scheduler, the outbox drainer and request handlers were logging. The logger
+  is published under an RWMutex now, `Init`/`Close` serialize, and the
+  redundant `TimeFieldFormat` write is gone (RFC3339 is zerolog's default).
+  Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 1018 nodes, 1171 edges.
+  RIL graph at round 155: 1027 nodes, 1179 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
