@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T05:48:40+00:00",
+  "updated_at": "2026-10-21T05:58:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12335,6 +12335,56 @@
       "source": "Xvfb :138 live --web-root /tmp/wr-web (exists, no index.html)",
       "summary": "Startup now exits 1 with web root \"/tmp/wr-web\" does not contain index.html; restoring the fallthrough serves another copy instead",
       "confidence": 0.95
+    },
+    "ISS-286": {
+      "id": "ISS-286",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:58:37+00:00",
+      "updated_at": "2026-10-21T05:58:37+00:00",
+      "touched_round": 155,
+      "title": "A failed desktop startup exits without any visible reason",
+      "severity": 0.6,
+      "description": "Start errors went to stderr and exit(1); a packaged app has no console, so a bad --web-root or unusable data dir looked like a double-click that did nothing."
+    },
+    "TASK-290": {
+      "id": "TASK-290",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T05:58:37+00:00",
+      "updated_at": "2026-10-21T05:58:37+00:00",
+      "touched_round": 155,
+      "title": "Show a native dialog with the startup error",
+      "category": "stability",
+      "severity": 0.6,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "failStartup schedules an error dialog from WhenReady, runs the loop, then exits 1; startupFailureDialog is a pure function so the dialog is testable."
+    },
+    "CHG-289": {
+      "id": "CHG-289",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:58:37+00:00",
+      "updated_at": "2026-10-21T05:58:42+00:00",
+      "touched_round": 155,
+      "commit": "ed79d80c32ff9d338289ff8c37cf001e8c709420",
+      "summary": "main.failStartup + startupFailureDialog: a failed Start shows MessageError with the reason instead of only stderr"
+    },
+    "EV-078": {
+      "id": "EV-078",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:58:37+00:00",
+      "updated_at": "2026-10-21T05:58:37+00:00",
+      "touched_round": 155,
+      "source": "Xvfb :140 live --web-root /tmp/fd2-web (exists, no index.html)",
+      "summary": "Process stays alive with a dialog reading \"Aurora did not open its window.\" + \"web root ... does not contain index.html\"; before the change it exited within a second and the screen stayed empty",
+      "confidence": 0.95
     }
   },
   "edges": [
@@ -19339,6 +19389,30 @@
       "to": "ISS-285",
       "type": "resolves",
       "created_at": "2026-10-21T05:48:40+00:00"
+    },
+    {
+      "from": "TASK-290",
+      "to": "ISS-286",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:58:42+00:00"
+    },
+    {
+      "from": "ISS-286",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T05:58:42+00:00"
+    },
+    {
+      "from": "CHG-289",
+      "to": "TASK-290",
+      "type": "implements",
+      "created_at": "2026-10-21T05:58:42+00:00"
+    },
+    {
+      "from": "CHG-289",
+      "to": "ISS-286",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:58:42+00:00"
     }
   ]
 }
