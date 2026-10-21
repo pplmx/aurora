@@ -217,6 +217,10 @@ func forceLazyTranslatorForTest() (*Translator, func()) {
 // GetTranslator: when package t is nil, the first call must spin up an English
 // translator instead of returning nil.
 func TestGetTranslator_LazyInit(t *testing.T) {
+	// The lazy default follows LANG by design (TASK-128/ISS-123), so this
+	// test pins the environment it asserts instead of inheriting one.
+	t.Setenv("LANG", "en_US.UTF-8")
+
 	tr, restore := forceLazyTranslatorForTest()
 	defer restore()
 
