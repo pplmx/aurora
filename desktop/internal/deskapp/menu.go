@@ -130,45 +130,20 @@ func importLotteries(meta About) {
 		return // canceled
 	}
 
-	document, err := os.ReadFile(paths[0])
+	// The same call a dropped file and a command-line argument go through, so
+	// all three entry points report identically (see Shell.OpenFile).
+	result, err := ImportLotteryFile(meta, paths[0])
 	if err != nil {
 		showError("Import failed", err)
 		return
 	}
 
-	repo, closeRepo, err := openLotteryRepo(meta)
-	if err != nil {
-		showError("Import failed", err)
-		return
-	}
-	defer closeRepo()
-
-	result, err := lotteryapp.ImportRecords(repo, document)
-	if err != nil {
-		showError("Import failed", err)
-		return
-	}
-
-	// Report every rejection with the same wording as the CLI, including the
-	// 0-based indices a user needs to find the offending records in the file.
-	if len(result.Rejected) > 0 {
-		_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-			Type:    mygo.MessageWarning,
-			Title:   "Import partially failed",
-			Message: fmt.Sprintf("Imported %d of %d lottery records (failed: %d).", result.Imported, result.Total, len(result.Rejected)),
-			Detail: fmt.Sprintf("Rejected record indices (0-based): %v\n\n"+
-				"A record is rejected when it fails validation, when its ID already exists "+
-				"(re-importing an export is refused rather than overwriting the stored draw), "+
-				"or when it cannot be written.", result.Rejected),
-		})
-		return
-	}
-
+	title, message, detail := importReport(result, paths[0])
 	_, _ = mygo.Dialog.Message(mygo.MessageOptions{
-		Type:    mygo.MessageInfo,
-		Title:   "Lotteries imported",
-		Message: fmt.Sprintf("%d draws imported.", result.Imported),
-		Detail:  paths[0],
+		Type:    importReportType(result),
+		Title:   title,
+		Message: message,
+		Detail:  detail,
 	})
 }
 
