@@ -139,6 +139,11 @@ documented in their per-milestone ROADMAP files.
   was not editing. An explicit path is now the only candidate and startup
   fails with "web root ... does not contain index.html"; the fallback list
   remains for the no-flag case the embedded UI and `go run` use.
+- **A failed startup was silent**: `Start` errors went to stderr and the
+  process exited, which a packaged app launched from a desktop entry cannot
+  show — a bad `--web-root` or an unusable data directory looked like a
+  double-click that did nothing. The shell now keeps running long enough to
+  put the reason in a native error dialog, then exits 1.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default

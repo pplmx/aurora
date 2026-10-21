@@ -99,11 +99,17 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   ResponseController were broken on aurora:// despite the middlewares'
   documented promise), and ResolveWebRoot fell through an unusable explicit
   --web-root to another copy, so a typo rendered pages the developer was not
-  editing. Gates:
+  editing. Fixing the fallthrough exposed the last step of the same chain: a
+  refused start printed to stderr and exited, and a packaged app has no
+  console, so the now-correct error was still invisible. failStartup keeps
+  the process alive long enough to show the reason in a native error dialog
+  (measured under Xvfb: the window stays up reading "Aurora did not open its
+  window." with the web-root error beneath it, where before the process was
+  gone within a second). Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 1014 nodes, 1167 edges.
+  RIL graph at round 155: 1018 nodes, 1171 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four
