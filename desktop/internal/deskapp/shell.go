@@ -172,6 +172,17 @@ func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
 			"Aurora is already running with a different "+conflict+
 				". This window keeps the data directory and Web UI it started with; "+
 				"quit Aurora first to launch with another one."))
+		// MyGo runs deliverArgs right after this callback regardless of what
+		// we did, so the refused launch's links would navigate on their own.
+		// Own those echoes: a refusal that still opened the page would not be
+		// a refusal.
+		var links []string
+		for _, arg := range args {
+			if IsDeepLink(arg) {
+				links = append(links, arg)
+			}
+		}
+		s.oweEcho(links)
 		s.Reveal()
 		return
 	}
