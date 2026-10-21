@@ -77,6 +77,15 @@ desktop-run: desktop
 desktop-test:
     cd desktop && go test ./...
 
+# Package the desktop app with `go tool mygo build` (desktop/mygo.config.ts):
+# a native executable, a desktop entry that registers aurora:// links, a
+# Debian package and an installable tarball under dist/desktop/<os>-<arch>/.
+# The mygo CLI is a module tool in desktop/go.mod, so its version is pinned
+# like any other dependency. Needs Go 1.27 and cgo (mattn/go-sqlite3); MYGO
+# defaults CGO_ENABLED to 0, which would fail to build this app's storage.
+desktop-package *ARGS:
+    cd desktop && CGO_ENABLED=1 go tool mygo build {{ARGS}}
+
 # Run the application locally (builds for the current platform then runs a sample)
 run: build-current
     ./aurora lottery create -p "A,B,C" -s "seed" -c 3

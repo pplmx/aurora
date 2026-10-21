@@ -33,6 +33,8 @@ out/
 /aurora
 /aurora-*
 /aurora-desktop
+# `mygo build` output (packaged app, .deb, tarball, desktop entry)
+/dist
 *.exe
 *.exe~
 *.dll
