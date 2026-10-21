@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T05:58:42+00:00",
+  "updated_at": "2026-10-21T06:11:41+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -1729,7 +1729,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:31:39+00:00",
       "updated_at": "2026-08-23T04:31:39+00:00",
-      "touched_round": 144,
+      "touched_round": 155,
       "title": "web UI static pages (router-injected API key)"
     },
     "EV-003": {
@@ -12385,6 +12385,118 @@
       "source": "Xvfb :140 live --web-root /tmp/fd2-web (exists, no index.html)",
       "summary": "Process stays alive with a dialog reading \"Aurora did not open its window.\" + \"web root ... does not contain index.html\"; before the change it exited within a second and the screen stayed empty",
       "confidence": 0.95
+    },
+    "ISS-287": {
+      "id": "ISS-287",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T06:10:37+00:00",
+      "updated_at": "2026-10-21T06:10:37+00:00",
+      "touched_round": 155,
+      "title": "A failed backup folder picker is indistinguishable from Cancel",
+      "severity": 0.5,
+      "description": "backUpDatabase returned without a word for both err != nil and an empty selection, so a broken picker looked like the user cancelled; a shell without a DBPath was silent too."
+    },
+    "ISS-288": {
+      "id": "ISS-288",
+      "type": "issue",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T06:10:37+00:00",
+      "updated_at": "2026-10-21T06:10:37+00:00",
+      "touched_round": 155,
+      "title": "logger.Init races with concurrent logging",
+      "severity": 0.6,
+      "description": "Init replaced the package logger and zerolog TimeFieldFormat while scheduler/drainer/request goroutines logged; the race detector reported it via desktop Start."
+    },
+    "TASK-291": {
+      "id": "TASK-291",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T06:10:38+00:00",
+      "updated_at": "2026-10-21T06:10:38+00:00",
+      "touched_round": 155,
+      "title": "Separate picker failure from cancel in the backup action",
+      "category": "correctness",
+      "severity": 0.5,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "Show Backup failed with the cause on error; keep silence only for an empty selection; report a missing DBPath. Dialogs become variables for tests."
+    },
+    "TASK-292": {
+      "id": "TASK-292",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T06:10:38+00:00",
+      "updated_at": "2026-10-21T06:10:38+00:00",
+      "touched_round": 155,
+      "title": "Publish the logger under an RWMutex",
+      "category": "stability",
+      "severity": 0.6,
+      "effort": 1,
+      "confidence": 0.9,
+      "description": "Init/Close serialize on initMu; accessors read Log under logMu; drop the redundant TimeFieldFormat write."
+    },
+    "CHG-290": {
+      "id": "CHG-290",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T06:10:44+00:00",
+      "updated_at": "2026-10-21T06:10:44+00:00",
+      "touched_round": 155,
+      "commit": "46da645b3022839009c67706105a5e7b222ffbf2",
+      "summary": "backUpDatabase reports a picker error and a missing DBPath; cancel stays silent; openDialog/saveDialog are test seams"
+    },
+    "CHG-291": {
+      "id": "CHG-291",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T06:10:44+00:00",
+      "updated_at": "2026-10-21T06:10:44+00:00",
+      "touched_round": 155,
+      "commit": "d9a737bb6b8eee82741b20907aacda1c17547a91",
+      "summary": "logger: initMu + logMu, accessors via withLogger, no global TimeFieldFormat write; TestInitIsSafeWhileLogging"
+    },
+    "EV-079": {
+      "id": "EV-079",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T06:10:44+00:00",
+      "updated_at": "2026-10-21T06:10:44+00:00",
+      "touched_round": 155,
+      "source": "internal/deskapp TestBackupReportsAPickerFailure (fault injection: merge err and empty-selection branches)",
+      "summary": "Merged branches turn the test red (1 dialog instead of 2); separated, cancel produces none and a picker error produces MessageError with the cause",
+      "confidence": 0.95
+    },
+    "EV-080": {
+      "id": "EV-080",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T06:10:44+00:00",
+      "updated_at": "2026-10-21T06:10:44+00:00",
+      "touched_round": 155,
+      "source": "internal/logger TestInitIsSafeWhileLogging under -race (fault injection: drop the read lock in withLogger)",
+      "summary": "go test -race reports a data race on Log when the read lock is removed; with it, 3 consecutive -race runs pass",
+      "confidence": 0.95
+    },
+    "COMP-015": {
+      "id": "COMP-015",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T06:11:41+00:00",
+      "updated_at": "2026-10-21T06:11:41+00:00",
+      "touched_round": 155,
+      "name": "logger",
+      "path": "internal/logger",
+      "description": "zerolog wrapper: Init/Close lifecycle, global level, file logging; shared by CLI, API server and desktop shell"
     }
   },
   "edges": [
@@ -19413,6 +19525,54 @@
       "to": "ISS-286",
       "type": "resolves",
       "created_at": "2026-10-21T05:58:42+00:00"
+    },
+    {
+      "from": "TASK-291",
+      "to": "ISS-287",
+      "type": "addresses",
+      "created_at": "2026-10-21T06:11:22+00:00"
+    },
+    {
+      "from": "ISS-287",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-21T06:11:22+00:00"
+    },
+    {
+      "from": "CHG-290",
+      "to": "TASK-291",
+      "type": "implements",
+      "created_at": "2026-10-21T06:11:23+00:00"
+    },
+    {
+      "from": "CHG-290",
+      "to": "ISS-287",
+      "type": "resolves",
+      "created_at": "2026-10-21T06:11:23+00:00"
+    },
+    {
+      "from": "TASK-292",
+      "to": "ISS-288",
+      "type": "addresses",
+      "created_at": "2026-10-21T06:11:23+00:00"
+    },
+    {
+      "from": "CHG-291",
+      "to": "TASK-292",
+      "type": "implements",
+      "created_at": "2026-10-21T06:11:23+00:00"
+    },
+    {
+      "from": "CHG-291",
+      "to": "ISS-288",
+      "type": "resolves",
+      "created_at": "2026-10-21T06:11:23+00:00"
+    },
+    {
+      "from": "ISS-288",
+      "to": "COMP-015",
+      "type": "located_in",
+      "created_at": "2026-10-21T06:11:41+00:00"
     }
   ]
 }
