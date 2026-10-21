@@ -53,6 +53,10 @@ func TestMygoTag(t *testing.T) {
 	assert.Equal(t, "en", mygoTag("en"))
 	assert.Equal(t, "en", mygoTag(""))
 	assert.Equal(t, "zh-Hans", mygoTag("zh"))
+	assert.Equal(t, "zh-Hans", mygoTag("zh-CN"))
+	assert.Equal(t, "zh-Hant", mygoTag("zh-TW"), "a configured Traditional locale keeps MyGo's roles Traditional")
+	assert.Equal(t, "zh-Hant", mygoTag("zh-HK"))
+	assert.Equal(t, "zh-Hant", mygoTag("zh-Hant-TW"))
 }
 
 func TestSyncLocale(t *testing.T) {

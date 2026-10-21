@@ -47,15 +47,21 @@ func auroraLocale(tag string) string {
 // applies to a window opened by a launcher that exports no LANG.
 func InitLocale() { i18n.DetectAndInit() }
 
-// mygoTag maps one of Aurora's locales onto a language MyGo can show. The
-// matrix only has "en" and "zh", and MyGo cannot be handed "zh": it is not a
-// normalized language on its own. Simplified Chinese is what internal/i18n
-// ships, so that is the tag chosen in either direction.
+// mygoTag maps one of Aurora's locales onto a language MyGo can show. MyGo
+// cannot be handed "zh": it is not a language on its own, only a script
+// family. A configured Traditional tag keeps MyGo's own roles Traditional
+// (Aurora's strings still come from the one Chinese table internal/i18n
+// ships), and every other Chinese tag means Simplified.
 func mygoTag(locale string) string {
-	if auroraLocale(locale) == "zh" {
+	tag := strings.ToLower(strings.TrimSpace(locale))
+	switch {
+	case strings.HasPrefix(tag, "zh-hant"), strings.HasPrefix(tag, "zh-tw"), strings.HasPrefix(tag, "zh-hk"):
+		return "zh-Hant"
+	case strings.HasPrefix(tag, "zh"):
 		return "zh-Hans"
+	default:
+		return "en"
 	}
-	return "en"
 }
 
 // ApplyConfiguredLocale makes MyGo show the language [i18n] locale asks for
