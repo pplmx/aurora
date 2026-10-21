@@ -66,7 +66,8 @@ just stop         # Stop containers: docker compose down
   `deskapp.Shell.HandleLaunchArgs` parses links *and* `.json` exports itself (MyGo
   only converts arguments for declared schemes/file types, and Aurora declares none).
   Relative forwarded paths resolve against the launcher's working directory, not the
-  running instance's.
+  running instance's. Dedupe (`Shell.take`) only absorbs the single echo MyGo sends
+  for a launch already handled, so opening the same link again later still works.
 - **Core logic**: `internal/domain/blockchain/`, `internal/i18n/`, `internal/utils/`
 - **Tests**: `e2e/*_test.go` (E2E), `internal/*/ *_test.go` (unit)
 - **Config**: `config/aurora.toml` (Viper loads from `$HOME` or `./config/`)

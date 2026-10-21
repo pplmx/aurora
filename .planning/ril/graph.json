@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 155,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T05:13:44+00:00",
+  "updated_at": "2026-10-21T05:19:11+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11974,6 +11974,56 @@
       "source": "actionlint on .github/workflows/ci.yml; local run of just desktop-check",
       "summary": "actionlint clean (and reports errors when fed a broken workflow); just desktop-check passes gofmt/build/vet/test -race, and a deliberately unformatted file makes it exit 1",
       "confidence": 0.9
+    },
+    "ISS-279": {
+      "id": "ISS-279",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T05:19:07+00:00",
+      "updated_at": "2026-10-21T05:19:11+00:00",
+      "touched_round": 155,
+      "title": "Shell dedupe is permanent: repeated links and re-imports go dead",
+      "severity": 0.6,
+      "description": "Shell.handled remembered every argument forever, so reopening the same aurora:// link later was ignored and a file re-import was swallowed even though MyGo never echoes files (no fileAssociations)."
+    },
+    "TASK-283": {
+      "id": "TASK-283",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T05:19:07+00:00",
+      "updated_at": "2026-10-21T05:19:11+00:00",
+      "touched_round": 155,
+      "title": "Replace the permanent dedupe with a bounded echo count",
+      "category": "correctness",
+      "severity": 0.6,
+      "effort": 1,
+      "confidence": 0.95,
+      "description": "Count one owed echo per honored launch argument and delete it when consumed; drop file dedupe entirely and rely on ImportRecords duplicate guard."
+    },
+    "CHG-281": {
+      "id": "CHG-281",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-21T05:19:07+00:00",
+      "updated_at": "2026-10-21T05:19:10+00:00",
+      "touched_round": 155,
+      "commit": "cd7496b2fc1f71f8e0a9c7153dd4acc3cd520179",
+      "summary": "Shell.expectEcho replaces the unbounded handled set; HandleLaunchArgs owes one echo per link; OpenFile no longer dedupes"
+    },
+    "EV-071": {
+      "id": "EV-071",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T05:19:11+00:00",
+      "updated_at": "2026-10-21T05:19:11+00:00",
+      "touched_round": 155,
+      "source": "Xvfb: two consecutive launches with the same aurora://voting",
+      "summary": "Both launches exited 0 and aurora.log shows two GET /voting.html (the permanent set produced one, then silence)",
+      "confidence": 0.95
     }
   },
   "edges": [
@@ -18804,6 +18854,24 @@
       "to": "ISS-278",
       "type": "resolves",
       "created_at": "2026-10-21T05:13:43+00:00"
+    },
+    {
+      "from": "TASK-283",
+      "to": "ISS-279",
+      "type": "addresses",
+      "created_at": "2026-10-21T05:19:10+00:00"
+    },
+    {
+      "from": "CHG-281",
+      "to": "TASK-283",
+      "type": "implements",
+      "created_at": "2026-10-21T05:19:10+00:00"
+    },
+    {
+      "from": "CHG-281",
+      "to": "ISS-279",
+      "type": "resolves",
+      "created_at": "2026-10-21T05:19:10+00:00"
     }
   ]
 }
