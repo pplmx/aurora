@@ -40,6 +40,21 @@ function auroraHeaders(extra) {
 // only genuinely stuck connections trip it.
 const REQUEST_TIMEOUT_MS = 20000;
 
+// deepLinkParam reads a query parameter from the page URL. It exists so an
+// `aurora://lottery?id=<draw>` link (opened from a terminal, a chat message,
+// or a file manager) can focus a page on the thing it names instead of
+// dropping the operator on a blank form. Returns '' outside a browser (the
+// Node tests execute this file with no location) and for an unparseable URL,
+// so a page never fails to initialize because of a malformed link.
+function deepLinkParam(name) {
+    try {
+        if (typeof location === 'undefined' || !location.search) return '';
+        return new URLSearchParams(location.search).get(name) || '';
+    } catch (e) {
+        return '';
+    }
+}
+
 async function apiFetch(path, options) {
     // Merge the caller's headers (e.g. Content-Type for JSON bodies) ON TOP of
     // the API key rather than in place of it. A naive
@@ -142,6 +157,30 @@ function lotteryApp() {
         verifyResult: '',
         async init() {
             await this.loadHistory();
+            // Deep link: `aurora://lottery?id=<draw>` (and the same link
+            // written as /lottery.html?id=...) opens this page focused on
+            // that draw. The shell's Intent.URL builds exactly this query, so
+            // the window and a browser tab behave the same. Read it AFTER
+            // loadHistory so a later refresh cannot overwrite the field, and
+            // verify immediately: the operator followed a link to a verdict,
+            // not to a form they still have to submit.
+            const linked = deepLinkParam('id');
+            if (linked) {
+                this.verifyId = linked;
+                await this.verifyDraw();
+                // The Verify panel sits below Create and History, so a link
+                // that has just fetched a verdict would otherwise land the
+                // operator at the top of the page with the answer off screen
+                // (measured: the /verify call returned 200 while the visible
+                // viewport still showed "Create Lottery"). Scroll the panel
+                // into view after the verdict renders.
+                const panel = typeof document.getElementById === 'function'
+                    ? document.getElementById('verify')
+                    : null;
+                if (panel && panel.scrollIntoView) {
+                    panel.scrollIntoView({ block: 'start' });
+                }
+            }
         },
         async verifyDraw() {
             try {
