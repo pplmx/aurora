@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"io"
+	"io/fs"
 	"net/http"
 	"sync"
 	"time"
@@ -254,4 +255,16 @@ func (s *Server) MetricsHandler() http.Handler {
 
 func (s *Server) Router() http.Handler {
 	return newRouter(s)
+}
+
+// RouterWithWebFS is Router over an explicit Web UI source instead of
+// config.WebRoot(). The mygo desktop shell passes the UI embedded in its
+// binary, so the window loads exactly the routes and API-key bootstrap the
+// HTTP gateway serves, with no checkout and no listener involved.
+//
+// The caller owns the transport's security policy: a host serving these
+// documents over a custom scheme must drop the CSP, because no CSP source
+// expression satisfies WebKit there (see desktop/internal/deskapp).
+func (s *Server) RouterWithWebFS(webFS fs.FS) http.Handler {
+	return newRouterWithWebFS(s, webFS)
 }
