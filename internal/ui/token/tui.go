@@ -672,12 +672,12 @@ func (m *model) handleCreate() {
 		return
 	}
 
-	// Decimals is int8 (0..127 per ValidateTokenDecimals) and 0 is the
-	// "unset, use defaultDecimals" sentinel. Parse the field once and clamp it
-	// to that range instead of using it only as a validity check — the
-	// previous code validated but never assigned, so a create with "18"
-	// silently produced an 8-decimal token (TASK-162, ISS-155).
-	var decimals int8
+	// Parse the field once and clamp it to int8 (0..127) instead of using it
+	// only as a validity check — the previous code validated but never
+	// assigned, so a create with "18" silently produced an 8-decimal token
+	// (TASK-162, ISS-155). Blank means omitted (default 8); explicit 0 is a
+	// real zero-decimal token (ISS-126).
+	var decimals *int8
 	if decimalsStr != "" {
 		d, err := strconv.Atoi(decimalsStr)
 		if err != nil {
@@ -688,7 +688,8 @@ func (m *model) handleCreate() {
 			m.err = i18n.GetText("error.invalid_decimals")
 			return
 		}
-		decimals = int8(d)
+		v := int8(d)
+		decimals = &v
 	}
 
 	req := &token.CreateTokenRequest{

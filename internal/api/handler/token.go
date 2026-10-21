@@ -117,18 +117,13 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var decimals int8
-	if req.Decimals != nil {
-		decimals = *req.Decimals
-	}
-
 	uc := tokenapp.NewCreateTokenUseCase(h.service)
 	result, err := uc.Execute(&tokenapp.CreateTokenRequest{
 		Name:        req.Name,
 		Symbol:      req.Symbol,
 		TotalSupply: req.TotalSupply,
 		Owner:       req.Owner,
-		Decimals:    decimals,
+		Decimals:    req.Decimals,
 	})
 	if err != nil {
 		writeUseCaseError(w, err)

@@ -160,9 +160,10 @@ type CreateTokenRequest struct {
 	Symbol      string
 	TotalSupply *Amount
 	Owner       PublicKey
-	// Decimals is the number of decimal places stored on the token (default
-	// defaultDecimals when 0 — the unset sentinel, TASK-099, ISS-091).
-	Decimals int8
+	// Decimals is optional. nil means the caller omitted it and the token gets
+	// defaultDecimals; a non-nil value is explicit and may be 0 (TASK-099,
+	// ISS-091, ISS-126).
+	Decimals *int8
 }
 
 type MintRequest struct {
@@ -225,7 +226,11 @@ func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
 	if err := ValidatePublicKey(req.Owner); err != nil {
 		return nil, err
 	}
-	if err := ValidateTokenDecimals(req.Decimals); err != nil {
+	decimals := int8(defaultDecimals)
+	if req.Decimals != nil {
+		decimals = *req.Decimals
+	}
+	if err := ValidateTokenDecimals(decimals); err != nil {
 		return nil, err
 	}
 
@@ -244,7 +249,7 @@ func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
 		return nil, ErrTokenExists
 	}
 
-	token := NewTokenWithDecimals(tokenID, req.Name, req.Symbol, req.TotalSupply, req.Owner, req.Decimals)
+	token := NewTokenWithDecimals(tokenID, req.Name, req.Symbol, req.TotalSupply, req.Owner, decimals)
 
 	// CreateToken performs two writes (token row + owner balance) that must
 	// be atomic: a failure between them would otherwise leave a token with

@@ -150,4 +150,18 @@ func TestTokenCreate_DecimalsOverHTTP(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr.Code, "info body: %s", rr.Body.String())
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &info))
 	require.Equal(t, int8(8), info.Decimals, "omitted decimals must fall back to 8")
+
+	// An explicit decimals=0 is a real zero-decimal token, not the omitted
+	// sentinel: the handler must preserve the pointer distinction all the way
+	// to the domain instead of coercing it to the default 8 (ISS-126).
+	rr = request(http.MethodPost, "/api/v1/token/create", fmt.Sprintf(
+		`{"name":"ZERO","symbol":"ZERO","total_supply":"1000","owner":"%s","decimals":0}`, ownerPub))
+	require.Equal(t, http.StatusOK, rr.Code, "create body: %s", rr.Body.String())
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &create))
+	require.Equal(t, int8(0), create.Decimals, "create response must report explicit decimals 0")
+
+	rr = request(http.MethodGet, "/api/v1/token/info?token_id=ZERO", "")
+	require.Equal(t, http.StatusOK, rr.Code, "info body: %s", rr.Body.String())
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &info))
+	require.Equal(t, int8(0), info.Decimals, "explicit 0 decimals must persist as 0")
 }
