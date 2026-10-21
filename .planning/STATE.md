@@ -68,11 +68,21 @@ Last activity: 2026-10-21 — round 155 (mygo app hardening). A live second-laun
   up by `mygo build`) makes the packaged desktop entry say `Icon=aurora` and
   the `.deb` install 256/512 px copies, and the same PNG is embedded so an
   unpackaged window is not left with the toolkit placeholder. Fault injection
-  on the icon shape test (cropping to 1024×512) turns it red. Gates:
+  on the icon shape test (cropping to 1024×512) turns it red.
+  A fifth, smaller defect was found by reading the three import entry points
+  side by side: File → Import had its own partial-failure dialog (0-based
+  rejected indices plus why a record is refused), while the drop/opened-file
+  path printed only the raw index slice, so the same file told the user two
+  different stories and the weaker copy gave no way to find or explain the bad
+  records. `importReport`/`importReportType` (deskapp) now own that dialog for
+  all three entry points and the menu calls `ImportLotteryFile` like the other
+  two; `TestShellAndMenuShareImportReporting` pins the shell dialog to the
+  menu's byte for byte, and dropping the path from the partial detail turns it
+  red. Gates:
   `go test -race ./...` core (34 packages) and desktop, `go vet` both
   modules, gofmt clean; `golangci-lint` still cannot read this Go 1.27 tree
   (the pinned binary is built with Go 1.26 and panics), documented in README.
-  RIL graph at round 155: 989 nodes, 1141 edges.
+  RIL graph at round 155: 993 nodes, 1145 edges.
 
 Last activity: 2026-10-21 — round 154 (mygo framework integration). Round 153
   shipped a working window; this round made it a MyGo *app* and fixed four

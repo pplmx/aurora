@@ -238,7 +238,9 @@ just desktop-test                                  # 桌面模块的测试（jus
 - **拖放导入**：把导出文件拖到窗口即导入（`Window.OnFileDrop`）；非
   `.json` 文件会明确报"不支持"而不是静默忽略。命令行直接给一个导出文件
   同样导入，且冷启动时 MyGo 会二次投递同一个参数，`Shell` 记录已处理的
-  参数，保证只导入一次。
+  参数，保证只导入一次。菜单、拖放与命令行三条入口共用
+  `ImportLotteryFile` 与同一个结果对话框（`importReport`：部分失败时列出
+  0-based 记录下标、拒绝原因和文件路径），不会因为入口不同而说法不一。
 - **第二次启动**：`App.OnSecondInstance` 拿到的是原始命令行，而 MyGo 只会
   把「已声明 scheme 的 URL」和「已关联的文件类型」转成
   `OnOpenURL`/`OnOpenFile`。本应用刻意不声明 `.json` 关联（否则会抢走
