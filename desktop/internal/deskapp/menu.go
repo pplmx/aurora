@@ -57,6 +57,11 @@ func NewMenu(meta About) *mygo.Menu {
 				mygo.Shell.ShowItemInFolder(meta.DBPath)
 			}},
 			mygo.Separator(),
+			// MyGo keeps the list (recent-documents.json in PathUserData),
+			// records each file with the system's own recent list, and opens a
+			// chosen one through OnOpenFile - which is the import path above.
+			{Role: mygo.RoleOpenRecent},
+			mygo.Separator(),
 			{Role: mygo.RoleClose},
 			{Role: mygo.RoleQuit},
 		}},
@@ -153,7 +158,28 @@ func lotteryJSONFilter() []mygo.FileFilter {
 var (
 	openDialog = mygo.Dialog.Open
 	saveDialog = mygo.Dialog.Save
+	// addRecentDocument records a document the user opened or saved. MyGo
+	// keeps the list for File → Open Recent and for the system's own recent
+	// documents (the Dock menu, the jump list, the file manager); it is a
+	// variable so a test does not write into the real user directory.
+	addRecentDocument = mygo.App.AddRecentDocument
+	// appReady gates that call. App.Path and the system's recent-documents
+	// API need the running app: before Run they post to the main thread and
+	// wait, which hangs a test (measured: the suite stopped in
+	// TestShell_FileIsImportedOnceFromTheCommandLine) and would hang a
+	// command-line import that ran too early.
+	appReady = mygo.App.IsReady
 )
+
+// rememberDocument feeds File → Open Recent. A failure to record the file is
+// not a reason to fail the import or export that succeeded: the document is
+// already where the user wanted it, and the recent list is a convenience.
+func rememberDocument(path string) {
+	if path == "" || !appReady() {
+		return
+	}
+	_ = addRecentDocument(path)
+}
 
 // parent is the window a dialog belongs to. MyGo attaches a dialog with a
 // Parent to that window - a sheet on macOS, a modal child elsewhere - instead
@@ -202,6 +228,7 @@ func exportLotteries(meta About, win *mygo.Window) {
 		showError(parent(win), T("desktop.error.export_failed"), err)
 		return
 	}
+	rememberDocument(path)
 
 	showMessage(parent(win), mygo.MessageInfo, T("desktop.dialog.exported_title"),
 		TFormat("desktop.dialog.exported_message", count), path)
@@ -232,6 +259,7 @@ func importLotteries(meta About, win *mygo.Window) {
 		showError(parent(win), T("desktop.error.import_failed"), err)
 		return
 	}
+	rememberDocument(paths[0])
 
 	title, message, detail := importReport(result, paths[0])
 	showMessage(parent(win), importReportType(result), title, message, detail)

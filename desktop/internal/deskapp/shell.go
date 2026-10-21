@@ -154,6 +154,7 @@ func (s *Shell) OpenFile(path string) {
 		s.reportError(T("desktop.error.import_failed"), err)
 		return
 	}
+	rememberDocument(path)
 	s.reportImport(path, result)
 }
 

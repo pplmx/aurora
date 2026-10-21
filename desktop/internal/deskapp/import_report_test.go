@@ -181,3 +181,33 @@ func TestBackupReportsAPickerFailure(t *testing.T) {
 	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")}, nil)
 	assert.Len(t, dialogs, 2, "cancel must not raise a dialog")
 }
+
+// TestOpenedDocumentsAreRemembered pins the Open Recent integration: an
+// import through the shell (a dropped file or a launch argument) records the
+// file, so File → Open Recent offers it later. A recording failure must not
+// turn a successful import into an error, and nothing is recorded before the
+// app is ready (the call would block on the main thread).
+func TestOpenedDocumentsAreRemembered(t *testing.T) {
+	originalAdd := addRecentDocument
+	originalReady := appReady
+	t.Cleanup(func() { addRecentDocument = originalAdd; appReady = originalReady })
+
+	var recorded []string
+	addRecentDocument = func(path string) error {
+		recorded = append(recorded, path)
+		return errors.New("the system refused the entry")
+	}
+
+	// Before Run: MyGo's path lookup waits for the main thread, so skip it.
+	appReady = func() bool { return false }
+	rememberDocument("/tmp/early.json")
+	assert.Empty(t, recorded, "nothing may touch MyGo before the app is ready")
+
+	appReady = func() bool { return true }
+	rememberDocument("/tmp/draws.json")
+	require.Equal(t, []string{"/tmp/draws.json"}, recorded)
+
+	// An empty path is not a document (a cancelled picker).
+	rememberDocument("")
+	assert.Len(t, recorded, 1)
+}
