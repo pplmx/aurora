@@ -230,6 +230,13 @@ documented in their per-milestone ROADMAP files.
   because `flag.Parse` stops at the first positional argument, and a
   matching value — absolute or relative to the launcher's directory — is still
   a silent no-op.
+- **The same relative `--data-dir` was reported as a different database**:
+  the first instance recorded `db/aurora.db` as spelled, while a second launch
+  resolved `--data-dir db` against its launcher directory to an absolute
+  path. The two names pointed at one database but compared unequal, so every
+  normal relaunch was refused. The startup path now records an absolute
+  `aurora.db` path, and a regression test starts from a relative directory
+  before forwarding the same flag.
 - **A deep link forwarded during startup was dropped**: a second launch can
   reach `OnSecondInstance` after the single-instance lock is taken but before
   `WhenReady` created the window, and navigation with no window simply

@@ -225,7 +225,10 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 
 // prepareDataDir resolves the directory holding aurora.db and creates it. A
 // packaged desktop app must not depend on its working directory, so the
-// default is the platform user-data directory rather than ./data.
+// default is the platform user-data directory rather than ./data. The result
+// is absolute even when the caller spelled a relative --data-dir: the shell
+// compares it with paths forwarded by later launches, which MyGo resolves
+// against the launcher's directory.
 func prepareDataDir(dir string, defaultDir func() (string, error)) (string, error) {
 	if dir == "" {
 		resolve := defaultDir
@@ -241,7 +244,11 @@ func prepareDataDir(dir string, defaultDir func() (string, error)) (string, erro
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf(T("desktop.error.data_dir"), dir, err)
 	}
-	return filepath.Join(dir, "aurora.db"), nil
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return "", fmt.Errorf(T("desktop.error.data_dir"), dir, err)
+	}
+	return filepath.Join(abs, "aurora.db"), nil
 }
 
 // userDataDir is overridable in tests.
