@@ -205,6 +205,30 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 		"the macOS package must carry the build stamp in its bundle resources")
 	assert.Contains(t, desktopWorkflow, `"${{ matrix.path }}/build-time.txt"`,
 		"Linux and Windows packages must carry the build stamp next to the executable")
+
+	// Every matrix leg used to stop at "the files exist". A package can pass
+	// that and still die before its window appears (a missing WebKitGTK
+	// runtime, a broken embedded UI), so the Linux legs - the only ones a
+	// GitHub runner can give a display - must start the real artifact.
+	for _, step := range []string{
+		"libwebkit2gtk-4.1-0 libgtk-3-0 xvfb",
+		"name: Smoke-test the packaged app",
+		`if: runner.os == 'Linux'`,
+		`app="${{ matrix.path }}/aurora"`,
+		`"$app" --version`,
+		`!= "0.0.1"`,
+		`!= "unknown"`,
+		`xvfb-run -a "$app" --data-dir "$data"`,
+		`test -f "$data/aurora.db"`,
+		`kill -0 "$pid"`,
+	} {
+		assert.Contains(t, desktopWorkflow, step,
+			"the release package gate must include %q", step)
+	}
+	for _, target := range []string{"linux/amd64", "linux/arm64"} {
+		assert.Contains(t, desktopWorkflow, target,
+			"the startup smoke test must cover %s", target)
+	}
 	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/Aurora.exe")
 }
 
