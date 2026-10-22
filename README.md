@@ -241,8 +241,10 @@ just desktop-test                                  # 桌面模块的测试（jus
   其他平台是子模态），而不是可以留在背后的游离窗口。
 - **窗口生命周期**：macOS 上关闭最后一个窗口不退出应用（`OnWindowAllClosed`
   只在非 macOS 调 `Quit`），点 Dock 图标（`OnActivate` 且无可见窗口）会重建
-  窗口；Linux/Windows 仍是关窗即退出。两条路径共用 `openMainWindow`，重开的
-  窗口不会缺图标或拖放处理。窗口关闭后到达的深链、导出文件或第二次启动也会
+  窗口；Linux/Windows 仍是关窗即退出。两条路径共用 `openMainWindow` 的
+  `mainWindowOptions`/`wireMainWindow`，重开的窗口保持 `StateKey: "main"`
+  的窗口状态、同一启动页面、应用图标、聚焦和拖放处理；应用菜单仍归 MyGo
+  所有，不会在重建时被替换。窗口关闭后到达的深链、导出文件或第二次启动也会
   先通过同一个工厂重建窗口再处理请求，而不是把页面导航到已销毁的窗口、或在
   看不见窗口的情况下完成导入。
 - **界面语言跟随系统**：MyGo 只翻译带 role 的菜单项（文件/编辑/显示/窗口/

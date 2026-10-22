@@ -324,12 +324,20 @@ func quitsOnLastWindowClosed(goos string) bool {
 	return goos != "darwin"
 }
 
-// openMainWindow creates the app's window and wires it to the shell. It runs
-// both at startup and when a macOS Dock click reopens a closed window, so the
-// two paths cannot produce differently-behaved windows (a missing file-drop
-// handler on the reopened one, for instance).
-func openMainWindow(shell *deskapp.Shell, opts deskapp.Flags) *mygo.Window {
-	win := mygo.NewWindow(mygo.WindowOptions{
+// mainWindowHooks are the per-window bindings that must survive recreation.
+// Keeping them behind an interface lets the tests exercise the wiring without
+// a native MyGo window.
+type mainWindowHooks interface {
+	SetIcon([]byte) error
+	OnFileDrop(func(*mygo.FileDropEvent)) func()
+	Focus()
+}
+
+// mainWindowOptions is the one specification for the main window. Startup and
+// macOS window recreation both go through it, so a reopened window keeps the
+// same state key, page, and appearance as the first one.
+func mainWindowOptions(opts deskapp.Flags) mygo.WindowOptions {
+	return mygo.WindowOptions{
 		Title:           deskapp.AppName,
 		URL:             opts.Intent.URL(),
 		Width:           1280,
@@ -338,20 +346,49 @@ func openMainWindow(shell *deskapp.Shell, opts deskapp.Flags) *mygo.Window {
 		MinHeight:       600,
 		BackgroundColor: "#1a1a1a",
 		StateKey:        "main",
-	})
+	}
+}
+
+// wireMainWindow installs the bindings a window needs regardless of whether
+// it is the first window or a replacement. The application menu is not
+// per-window on macOS; MyGo installs the existing application menu on each
+// new window on Linux and Windows, so recreating a window must not replace or
+// clear it.
+func wireMainWindow(shell *deskapp.Shell, win *mygo.Window, hooks mainWindowHooks) {
 	// A packaged build takes the icon from appicon/icon.png at build time;
 	// an unpackaged one would fall back to the toolkit's placeholder in its
 	// title bar and taskbar, so set the very same image here.
-	if err := win.SetIcon(appicon.IconPNG); err != nil {
+	if err := hooks.SetIcon(appicon.IconPNG); err != nil {
 		fmt.Fprintf(os.Stderr, "aurora-desktop: set window icon: %v\n", err)
 	}
 	shell.Attach(win)
 	// Dropping a lottery export on the window imports it, the same way opening
 	// one from the file manager does. Anything else is reported rather than
 	// silently ignored.
-	win.OnFileDrop(func(e *mygo.FileDropEvent) { shell.ImportDropped(e.Paths) })
-	win.Focus()
+	hooks.OnFileDrop(func(e *mygo.FileDropEvent) { shell.ImportDropped(e.Paths) })
+	hooks.Focus()
+}
+
+type mainWindowConstructor func(mygo.WindowOptions) (*mygo.Window, mainWindowHooks)
+
+// buildMainWindow applies the shared specification and wiring through an
+// injectable constructor, so a test can prove that a replacement window gets
+// the same state and handlers as the first.
+func buildMainWindow(shell *deskapp.Shell, opts deskapp.Flags, create mainWindowConstructor) *mygo.Window {
+	win, hooks := create(mainWindowOptions(opts))
+	wireMainWindow(shell, win, hooks)
 	return win
+}
+
+// openMainWindow creates the app's window and wires it to the shell. It runs
+// both at startup and when a macOS Dock click reopens a closed window, so the
+// two paths cannot produce differently-behaved windows (a missing file-drop
+// handler on the reopened one, for instance).
+func openMainWindow(shell *deskapp.Shell, opts deskapp.Flags) *mygo.Window {
+	return buildMainWindow(shell, opts, func(options mygo.WindowOptions) (*mygo.Window, mainWindowHooks) {
+		win := mygo.NewWindow(options)
+		return win, win
+	})
 }
 
 // failStartup reports a failure to start and exits 1.

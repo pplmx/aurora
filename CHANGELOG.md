@@ -288,6 +288,15 @@ documented in their per-milestone ROADMAP files.
   recreates the main window first through the same `openMainWindow` factory,
   and a page requested while no window can show it is held until the
   replacement attaches.
+- **A recreated window had no regression guard for its identity and bindings**:
+  the shared `openMainWindow` factory looked correct, but the window options
+  and per-window wiring were embedded in a function that needed a running
+  native app, so nothing proved a replacement kept `StateKey: "main"`, the
+  launch page, the icon, focus, or the drop handler. `mainWindowOptions` and
+  `wireMainWindow` are now injectable seams covered across two consecutive
+  creations; fault injection (removing the state key, drop handler, or focus)
+  turns the test red. The application menu stays installed across recreation
+  rather than being rebuilt or cleared.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default
