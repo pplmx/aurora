@@ -933,4 +933,3 @@ const fs = require('fs');
 	require.NoErrorf(t, err, "web/js/app.js oracle-query-empty / token-decimals-clamp failed:\n%s", out)
 	require.Contains(t, string(out), "oracle-empty-token-clamp-ok", "oracle zero-row query empty-state and token decimals clamp must hold")
 }
-

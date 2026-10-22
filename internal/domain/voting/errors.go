@@ -51,10 +51,10 @@ var (
 	// responses without bound. The caps mirror the token validator
 	// (MaxTokenNameLength) and are enforced at the shared domain edge so
 	// REST/CLI/web all inherit them (TASK-271, ISS-267).
-	ErrVoterNameTooLong     = errors.New("voter name is too long")
-	ErrCandidateNameTooLong = errors.New("candidate name is too long")
-	ErrCandidatePartyTooLong = errors.New("candidate party is too long")
-	ErrCandidateProgramTooLong = errors.New("candidate program is too long")
-	ErrSessionTitleTooLong  = errors.New("session title is too long")
+	ErrVoterNameTooLong          = errors.New("voter name is too long")
+	ErrCandidateNameTooLong      = errors.New("candidate name is too long")
+	ErrCandidatePartyTooLong     = errors.New("candidate party is too long")
+	ErrCandidateProgramTooLong   = errors.New("candidate program is too long")
+	ErrSessionTitleTooLong       = errors.New("session title is too long")
 	ErrSessionDescriptionTooLong = errors.New("session description is too long")
 )

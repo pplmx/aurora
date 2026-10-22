@@ -58,18 +58,18 @@ func TestNFT_Validate(t *testing.T) {
 		{
 			name: "image url too long",
 			nft: &NFT{
-				Name:      "Test NFT",
-				ImageURL:  strings.Repeat("u", MaxNFTImageURLLength+1),
-				Owner:     []byte("owner-pk"),
+				Name:     "Test NFT",
+				ImageURL: strings.Repeat("u", MaxNFTImageURLLength+1),
+				Owner:    []byte("owner-pk"),
 			},
 			wantErr: true,
 		},
 		{
 			name: "token uri too long",
 			nft: &NFT{
-				Name:      "Test NFT",
-				TokenURI:  strings.Repeat("t", MaxNFTTokenURILength+1),
-				Owner:     []byte("owner-pk"),
+				Name:     "Test NFT",
+				TokenURI: strings.Repeat("t", MaxNFTTokenURILength+1),
+				Owner:    []byte("owner-pk"),
 			},
 			wantErr: true,
 		},
