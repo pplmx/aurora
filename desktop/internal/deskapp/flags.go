@@ -85,7 +85,7 @@ func ParseFlags(args []string) (Mode, Flags, error) {
 		}
 		flagArgs = append(flagArgs, arg)
 		name, _, hasValue := strings.Cut(strings.TrimLeft(arg, "-"), "=")
-		if !hasValue && (name == "data-dir" || name == "web-root") && i+1 < len(args) {
+		if isValueFlag(name) && !hasValue && i+1 < len(args) {
 			i++
 			flagArgs = append(flagArgs, args[i])
 		}
@@ -156,7 +156,7 @@ func VersionText(version, buildTime string) string {
 func ForwardedPaths(args []string) (dataDir, webRoot string) {
 	for i := 0; i < len(args); i++ {
 		name, value, hasValue := strings.Cut(strings.TrimLeft(args[i], "-"), "=")
-		if !strings.HasPrefix(args[i], "-") || (name != "data-dir" && name != "web-root") {
+		if !strings.HasPrefix(args[i], "-") || !isValueFlag(name) {
 			continue
 		}
 		if !hasValue {
@@ -173,4 +173,11 @@ func ForwardedPaths(args []string) (dataDir, webRoot string) {
 		}
 	}
 	return dataDir, webRoot
+}
+
+// isValueFlag reports whether name takes a separate argument. The parser
+// needs this when flags surround the intent: it must keep a value attached to
+// its flag instead of mistaking that value for the intent.
+func isValueFlag(name string) bool {
+	return name == "data-dir" || name == "web-root"
 }
