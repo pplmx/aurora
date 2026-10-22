@@ -187,6 +187,77 @@ func TestQuitOnLastWindowClosed(t *testing.T) {
 		"macOS keeps the app alive after Cmd+W and reopens the window from the Dock")
 }
 
+type recordingMainWindow struct {
+	icon     []byte
+	onDrop   func(*mygo.FileDropEvent)
+	focused  bool
+	iconCall int
+	dropCall int
+}
+
+func (w *recordingMainWindow) SetIcon(icon []byte) error {
+	w.icon = append([]byte(nil), icon...)
+	w.iconCall++
+	return nil
+}
+
+func (w *recordingMainWindow) OnFileDrop(fn func(*mygo.FileDropEvent)) func() {
+	w.onDrop = fn
+	w.dropCall++
+	return func() {}
+}
+
+func (w *recordingMainWindow) Focus() { w.focused = true }
+
+// TestMainWindowRecreationKeepsStateAndWiring pins the lifecycle the macOS
+// Dock and second-launch paths use: both windows come from the same
+// specification and receive the same bindings. StateKey is what restores the
+// saved geometry; losing it made a reopened window forget its size and place.
+func TestMainWindowRecreationKeepsStateAndWiring(t *testing.T) {
+	intent, ok := deskapp.ParseIntent("aurora://lottery?id=abc")
+	require.True(t, ok)
+	opts := deskapp.Flags{Intent: intent}
+
+	originalMenu := mygo.App.Menu()
+	t.Cleanup(func() { mygo.App.SetMenu(originalMenu) })
+	menu := mygo.NewMenu([]*mygo.MenuItem{{Role: mygo.RoleAppMenu}})
+	mygo.App.SetMenu(menu)
+
+	shell := deskapp.NewShell(deskapp.About{})
+	for i := range 2 {
+		win := &mygo.Window{}
+		hooks := &recordingMainWindow{}
+		var got mygo.WindowOptions
+
+		gotWin := buildMainWindow(shell, opts, func(options mygo.WindowOptions) (*mygo.Window, mainWindowHooks) {
+			got = options
+			return win, hooks
+		})
+
+		require.Same(t, win, gotWin)
+		assert.Equal(t, "main", got.StateKey,
+			"window %d must use the stable state key", i+1)
+		assert.Equal(t, intent.URL(), got.URL,
+			"window %d must keep the launch page", i+1)
+		assert.Equal(t, deskapp.AppName, got.Title)
+		assert.Equal(t, 1280, got.Width)
+		assert.Equal(t, 860, got.Height)
+		assert.Equal(t, 900, got.MinWidth)
+		assert.Equal(t, 600, got.MinHeight)
+		assert.Equal(t, "#1a1a1a", got.BackgroundColor)
+
+		assert.Equal(t, 1, hooks.iconCall, "window %d must get the app icon", i+1)
+		assert.NotEmpty(t, hooks.icon)
+		assert.Equal(t, 1, hooks.dropCall, "window %d must accept dropped exports", i+1)
+		require.NotNil(t, hooks.onDrop)
+		hooks.onDrop(&mygo.FileDropEvent{})
+		assert.True(t, hooks.focused, "window %d must be focused", i+1)
+		assert.Same(t, win, shell.Window())
+		assert.Same(t, menu, mygo.App.Menu(),
+			"recreating window %d must not replace the application menu", i+1)
+	}
+}
+
 // TestStartupRequiresWebViewBeforeDatabase pins the order that matters when a
 // user launches a package on a machine without WebKitGTK: the app must report
 // the missing runtime without first creating a database or logs. A packaged
