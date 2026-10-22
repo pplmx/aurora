@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  GO_VERSION: '1.26'
+  GO_VERSION: '1.27.2'
 
 jobs:
   test:
@@ -66,7 +66,11 @@ jobs:
 
       - uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          # Pin the binary: `latest` silently tracks new major releases and
+          # the config schema between them is not compatible (v1 -> v2 moved
+          # issues.exclude-rules), which is how lint started failing on a
+          # config it used to pass.
+          version: v2.15.0
           args: --timeout=5m -D errcheck
 
   # The desktop shell is a nested module (Go 1.27, MyGo) and `go test ./...`
@@ -74,9 +78,8 @@ jobs:
   # layer - the embedded UI, the aurora:// write path, deep-link routing -
   # passed every gate silently.
   #
-  # Its own toolchain is installed here rather than through GO_VERSION: MyGo
-  # requires Go 1.27 while the core module stays on 1.26 so the pinned
-  # golangci-lint binary and the release image keep working.
+  # Its own toolchain is installed here from desktop/go.mod rather than
+  # through GO_VERSION so the nested module keeps declaring its own minimum.
   desktop:
     name: Desktop (MyGo shell)
     runs-on: ubuntu-latest
@@ -133,7 +136,7 @@ jobs:
           cache: true
           cache-dependency-path: desktop/go.sum
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '22'
 
