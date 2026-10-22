@@ -6,18 +6,39 @@ on:
       ref:
         type: string
         default: ${{ github.ref }}
+      require_signed_windows:
+        description: Fail unless every Windows signing secret is configured
+        type: boolean
+        default: false
+    secrets:
+      WINDOWS_CERTIFICATE:
+        required: false
+      WINDOWS_CERTIFICATE_PASSWORD:
+        required: false
 
 env:
   GO_VERSION: '1.26'
+  ZIG_VERSION: '0.14.1'
 
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.goos }} ${{ matrix.goarch }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        goos: [darwin, linux, windows]
-        goarch: [amd64, arm64]
+        include:
+          - goos: darwin
+            goarch: amd64
+            runner: macos-15-intel
+          - goos: darwin
+            goarch: arm64
+            runner: macos-latest
+          - goos: linux
+            goarch: amd64
+            runner: ubuntu-latest
+          - goos: linux
+            goarch: arm64
+            runner: ubuntu-24.04-arm
 
     steps:
       - uses: actions/checkout@v6
@@ -29,29 +50,137 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      # mattn/go-sqlite3 is cgo, so a stub cross-build cannot compile the CLI
+      # correctly. Each binary is built on its target OS; release.yml asserts
+      # the resulting binaries really have cgo enabled.
       - name: Build
         env:
+          REF: ${{ inputs.ref }}
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
         run: |
-          EXT=""
-          if [ "$GOOS" = "windows" ]; then
-            EXT=".exe"
-          fi
           # Inject the real version/build time so released binaries report
           # what they are instead of the 0.0.1 placeholder (TASK-206).
-          # GITHUB_REF_NAME is the tag (vX.Y.Z) on a tag release, else the
-          # branch name; fall back to the short SHA for straight branch runs.
-          VERSION="${GITHUB_REF_NAME}"
-          if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
-            VERSION="$(git rev-parse --short HEAD)"
+          # Derive the version from the requested ref. GITHUB_REF_NAME still
+          # points at the caller's branch during workflow_dispatch, even when
+          # `ref` names an existing release tag.
+          if [[ "$REF" == refs/tags/* ]]; then
+            VERSION="${REF#refs/tags/}"
+          else
+            VERSION="${REF#refs/heads/}"
+            if [ -z "$VERSION" ] || [ "$VERSION" = "main" ]; then
+              VERSION="$(git rev-parse --short HEAD)"
+            fi
           fi
           BUILDTIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          go build -trimpath -ldflags="-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=${VERSION} -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=${BUILDTIME}" -o aurora-${GOOS}-${GOARCH}${EXT} ./cmd/aurora
+          go build -trimpath -ldflags="-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=${VERSION} -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=${BUILDTIME}" -o aurora-${GOOS}-${GOARCH} ./cmd/aurora
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: aurora-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: aurora-*
+          retention-days: 5
+
+  windows:
+    name: Windows CLI (${{ matrix.goarch }})
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - goarch: amd64
+            zig_target: x86_64-windows-gnu
+          - goarch: arm64
+            zig_target: aarch64-windows-gnu
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # One x64 Windows runner builds both PE architectures. Zig supplies the
+      # C compiler for mattn/go-sqlite3 without depending on an ARM64 runner
+      # image whose MinGW toolchain changes independently.
+      - uses: mlugg/setup-zig@v2.2.1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+          cache-key: windows-${{ matrix.goarch }}
+
+      - name: Configure Windows signing
+        uses: ./.github/actions/windows-signing
+        with:
+          require_signed: ${{ inputs.require_signed_windows }}
+          certificate: ${{ secrets.WINDOWS_CERTIFICATE }}
+          certificate_password: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+      - name: Build
+        shell: pwsh
+        env:
+          REF: ${{ inputs.ref }}
+          GOOS: windows
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '1'
+          CC: zig cc -target ${{ matrix.zig_target }}
+        run: |
+          if ($env:REF -like "refs/tags/*") {
+            $version = $env:REF -replace '^refs/tags/', ''
+          } else {
+            $version = $env:REF -replace '^refs/heads/', ''
+            if ([string]::IsNullOrWhiteSpace($version) -or $version -eq "main") {
+              $version = git rev-parse --short HEAD
+            }
+          }
+          $buildTime = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+          $ldflags = "-s -w -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=$version -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=$buildTime"
+          go build -trimpath -ldflags $ldflags -o "aurora-windows-$env:GOARCH.exe" ./cmd/aurora
+
+      # An unsigned development build stays usable; a release build has
+      # already failed closed above if the certificate contract is incomplete.
+      - name: Sign and verify Windows artifact
+        if: env.WINDOWS_SIGNING == 'enabled'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $exe = "aurora-windows-${{ matrix.goarch }}.exe"
+          $signArgs = @("sign", "/f", $env:WINDOWS_CERTIFICATE_FILE, "/fd", "sha256", "/tr", "http://timestamp.digicert.com", "/td", "sha256")
+          if (-not [string]::IsNullOrEmpty($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+            $signArgs += @("/p", $env:WINDOWS_CERTIFICATE_PASSWORD)
+          }
+          $signArgs += $exe
+          signtool @signArgs
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "signtool failed to sign $exe."
+            exit 1
+          }
+          $signature = Get-AuthenticodeSignature -FilePath $exe
+          if ($signature.Status -ne "Valid") {
+            Write-Error "$exe has an invalid Authenticode signature: $($signature.StatusMessage)"
+            exit 1
+          }
+          if ($signature.SignerCertificate.Subject -ne $env:WINDOWS_SIGNING_SUBJECT) {
+            Write-Error "$exe is signed by the wrong subject: $($signature.SignerCertificate.Subject)"
+            exit 1
+          }
+          if ($signature.SignerCertificate.Thumbprint -ne $env:WINDOWS_SIGNING_THUMBPRINT) {
+            Write-Error "$exe is signed by the wrong certificate: $($signature.SignerCertificate.Thumbprint)"
+            exit 1
+          }
+          if ($null -eq $signature.TimeStamperCertificate) {
+            Write-Error "$exe is signed without an RFC 3161 timestamp."
+            exit 1
+          }
+          Write-Host "$exe: valid Authenticode signature from $($signature.SignerCertificate.Subject)"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: aurora-windows-${{ matrix.goarch }}
           path: aurora-*
           retention-days: 5

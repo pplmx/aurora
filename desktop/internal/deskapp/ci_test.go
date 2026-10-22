@@ -300,24 +300,28 @@ func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
 	desktop, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "desktop-build.yml"))
 	require.NoError(t, err)
 	desktopWorkflow := string(desktop)
+	signingAction, err := os.ReadFile(filepath.Join(root, ".github", "actions", "windows-signing", "action.yml"))
+	require.NoError(t, err)
+	signingContract := desktopWorkflow + string(signingAction)
 
 	require.Contains(t, desktopWorkflow, "require_signed_windows:")
 	for _, secret := range []string{
 		"WINDOWS_CERTIFICATE",
 		"WINDOWS_CERTIFICATE_PASSWORD",
 	} {
-		assert.Contains(t, desktopWorkflow, secret,
+		assert.Contains(t, signingContract, secret,
 			"the reusable workflow must declare the %s secret", secret)
 	}
+	require.Contains(t, desktopWorkflow, "uses: ./.github/actions/windows-signing",
+		"desktop packaging must use the shared signing setup")
 	for _, step := range []string{
-		"Configure Windows signing",
 		"$env:REQUIRE_SIGNED_WINDOWS",
 		"WINDOWS_CERTIFICATE_FILE",
 		"MYGO_WINDOWS_CERTIFICATE_PASSWORD",
 		"Convert]::FromBase64String",
 		"$certificate.HasPrivateKey",
 		"WINDOWS_SIGNING=enabled",
-		"Windows signing is not configured; the package is unsigned",
+		"Windows signing is not configured; the artifact is unsigned",
 		"This release requires Authenticode-signed Windows packages",
 		"Windows signing secrets are partially configured",
 		"signtool.exe was not found",
@@ -328,11 +332,14 @@ func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
 		"$signature.SignerCertificate.Thumbprint",
 		"$signature.TimeStamperCertificate",
 	} {
-		assert.Contains(t, desktopWorkflow, step,
+		assert.Contains(t, signingContract, step,
 			"the Windows release contract must include %q", step)
 	}
 	assert.Contains(t, desktopWorkflow, `Get-ChildItem "${{ matrix.path }}" -File -Filter "*Setup*.exe"`,
 		"every Windows installer must be signature-checked")
+	require.Contains(t, desktopWorkflow,
+		`if ($env:REQUIRE_SIGNED_WINDOWS -eq "true" -and $env:WINDOWS_SIGNING -ne "enabled") {`,
+		"a release must fail before the development-only signature skip")
 
 	release, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "release.yml"))
 	require.NoError(t, err)
@@ -363,6 +370,102 @@ func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
 	} {
 		assert.Contains(t, readmeText, secret,
 			"README must document the exact %s secret", secret)
+	}
+}
+
+// TestReleaseCLIBinariesAreNativeCgoBuilds pins the release CLI contract.
+// build.yml used to cross-compile with CGO_ENABLED=0, which silently linked
+// the mattn/go-sqlite3 stub: `aurora --help` worked, but every database
+// command failed. The release job must also verify Go's embedded build
+// metadata, sign the Windows executables, and publish checksums generated
+// without splitting on spaces in macOS DMG names.
+func TestReleaseCLIBinariesAreNativeCgoBuilds(t *testing.T) {
+	root := repoRoot(t)
+
+	build, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "build.yml"))
+	require.NoError(t, err)
+	buildWorkflow := string(build)
+
+	action, err := os.ReadFile(filepath.Join(root, ".github", "actions", "windows-signing", "action.yml"))
+	require.NoError(t, err)
+	actionText := string(action)
+	require.Contains(t, actionText, "shell: pwsh", "the Windows signing script must use a pinned shell")
+
+	require.Contains(t, buildWorkflow, "uses: mlugg/setup-zig@v2.2.1", "Zig setup must use a pinned major version")
+	require.Contains(t, buildWorkflow, "ZIG_VERSION: '0.14.1'", "Zig must be pinned independently of the action default")
+
+	require.Contains(t, buildWorkflow, "runs-on: ${{ matrix.runner }}")
+	for _, target := range []struct {
+		goos   string
+		goarch string
+		runner string
+	}{
+		{"darwin", "amd64", "macos-15-intel"},
+		{"darwin", "arm64", "macos-latest"},
+		{"linux", "amd64", "ubuntu-latest"},
+		{"linux", "arm64", "ubuntu-24.04-arm"},
+	} {
+		assert.Contains(t, buildWorkflow, "goos: "+target.goos,
+			"the CLI matrix must build %s", target.goos)
+		assert.Contains(t, buildWorkflow, "goarch: "+target.goarch,
+			"the CLI matrix must build %s/%s", target.goos, target.goarch)
+		assert.Contains(t, buildWorkflow, "runner: "+target.runner,
+			"%s/%s must use its native runner", target.goos, target.goarch)
+	}
+	require.Contains(t, buildWorkflow, "CGO_ENABLED: 1")
+	require.Contains(t, buildWorkflow, "REF: ${{ inputs.ref }}",
+		"the build must derive its version from the requested tag, not the caller's branch")
+	assert.Contains(t, buildWorkflow, `if [[ "$REF" == refs/tags/* ]]; then`)
+	assert.Contains(t, buildWorkflow, `if ($env:REF -like "refs/tags/*") {`)
+	assert.NotContains(t, buildWorkflow, "CGO_ENABLED=0",
+		"the release CLI cannot link the SQLite stub")
+
+	for _, windows := range []string{
+		"goarch: amd64",
+		"goarch: arm64",
+		"zig_target: x86_64-windows-gnu",
+		"zig_target: aarch64-windows-gnu",
+		"uses: ./.github/actions/windows-signing",
+		"CC: zig cc -target ${{ matrix.zig_target }}",
+		"signtool @signArgs",
+		"Get-AuthenticodeSignature",
+		`$signature.Status -ne "Valid"`,
+		"$signature.SignerCertificate.Subject",
+		"$signature.SignerCertificate.Thumbprint",
+		"$signature.TimeStamperCertificate",
+	} {
+		assert.Contains(t, buildWorkflow, windows,
+			"the Windows CLI contract must include %q", windows)
+	}
+	assert.NotContains(t, buildWorkflow, "$args",
+		"$args is a PowerShell automatic variable; use a named array")
+
+	release, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "release.yml"))
+	require.NoError(t, err)
+	releaseWorkflow := string(release)
+	require.Contains(t, releaseWorkflow, "name: Verify release artifacts",
+		"the release job must validate native CLI artifacts before publication")
+	for _, step := range []string{
+		"secrets: inherit",
+		"require_signed_windows: true",
+		"name: Verify release artifacts",
+		`grep -Fq $'\tbuild\tCGO_ENABLED=1'`,
+		`grep -Fq $'\tbuild\tGOOS='`,
+		`grep -Fq $'\tbuild\tGOARCH='`,
+		`artifacts/aurora-linux-amd64/aurora-linux-amd64 version`,
+		`grep -Fq "Version: $RELEASE_VERSION"`,
+		`grep -Fq "Build Time: unknown"`,
+		"name: Generate release checksums",
+		"-print0",
+		"sort -z",
+		"xargs -0 -r sha256sum",
+		"sha256sum -c checksums.txt",
+		`sed -E 's#  .*/#  #' checksums.txt`,
+		`! grep -Eq '  .*/' checksums.txt`,
+		"artifacts/checksums.txt",
+	} {
+		assert.Contains(t, releaseWorkflow, step,
+			"the release workflow must include %q", step)
 	}
 }
 

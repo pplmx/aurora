@@ -95,6 +95,14 @@ documented in their per-milestone ROADMAP files.
   `Get-AuthenticodeSignature`: the signature must be valid, use the imported
   certificate, and carry an RFC 3161 timestamp. Local packages remain
   unsigned when the signing environment is unset.
+- **Release CLI binaries are native and verifiable too**: `build.yml` now
+  builds each CLI binary on its target OS with cgo enabled, signs both Windows
+  architectures with the same fail-closed Authenticode action as the desktop
+  package, and `release.yml` checks the embedded `CGO_ENABLED`, `GOOS` and
+  `GOARCH` before publishing. It also writes a `checksums.txt` covering every
+  CLI binary and desktop distributable, verifies that manifest with
+  `sha256sum -c`, and publishes it alongside the release files. Branch builds
+  remain unsigned when the signing secrets are absent.
 - **Docker images are published only from reviewed commits**: `docker.yml`
   used to authenticate to Docker Hub and GHCR and push on pull requests, where
   fork builds cannot read the required secrets. PRs now build both

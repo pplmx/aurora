@@ -1,0 +1,87 @@
+name: Configure Windows Authenticode signing
+description: Validate a PFX secret, decode it into RUNNER_TEMP, and locate signtool
+
+inputs:
+  require_signed:
+    description: Fail when the certificate or password is absent or partial
+    required: false
+    default: "false"
+  certificate:
+    description: Base64-encoded PFX certificate containing its private key
+    required: false
+    default: ""
+  certificate_password:
+    description: Password for the PFX certificate
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Configure Windows signing
+      shell: pwsh
+      env:
+        REQUIRE_SIGNED_WINDOWS: ${{ inputs.require_signed }}
+        WINDOWS_CERTIFICATE: ${{ inputs.certificate }}
+        WINDOWS_CERTIFICATE_PASSWORD: ${{ inputs.certificate_password }}
+      run: |
+        $missing = @()
+        if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE)) {
+          $missing += "WINDOWS_CERTIFICATE"
+        }
+        if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+          $missing += "WINDOWS_CERTIFICATE_PASSWORD"
+        }
+
+        if ($missing.Count -gt 0) {
+          if ($env:REQUIRE_SIGNED_WINDOWS -eq "true") {
+            Write-Error "This release requires Authenticode-signed Windows artifacts, but these repository secrets are missing: $($missing -join ', '). See README.md `"Windows 发布签名`" for the exact secret contract."
+            exit 1
+          }
+          if ($missing.Count -lt 2) {
+            Write-Error "Windows signing secrets are partially configured; set WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD, or neither."
+            exit 1
+          }
+          "WINDOWS_SIGNING=disabled" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Windows signing is not configured; the artifact is unsigned and is not releasable."
+          exit 0
+        }
+
+        $pfx = Join-Path $env:RUNNER_TEMP "aurora-code-signing.pfx"
+        try {
+          $encoded = $env:WINDOWS_CERTIFICATE -replace '\s', ''
+          $bytes = [Convert]::FromBase64String($encoded)
+          [IO.File]::WriteAllBytes($pfx, $bytes)
+          $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+            $pfx,
+            $env:WINDOWS_CERTIFICATE_PASSWORD,
+            [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet
+          )
+        } catch {
+          Write-Error "The Windows signing certificate is unusable: $($_.Exception.Message)"
+          exit 1
+        }
+        if (-not $certificate.HasPrivateKey) {
+          Write-Error "WINDOWS_CERTIFICATE must contain a code-signing certificate with its private key."
+          exit 1
+        }
+
+        $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
+        if (-not $signtool) {
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signtool) {
+            Write-Error "Windows signing is configured, but signtool.exe was not found. Install the Windows SDK."
+            exit 1
+          }
+          Split-Path $signtool.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        }
+
+        @(
+          "WINDOWS_CERTIFICATE_FILE=$pfx",
+          "WINDOWS_SIGNING=enabled",
+          "WINDOWS_SIGNING_SUBJECT=$($certificate.Subject)",
+          "WINDOWS_SIGNING_THUMBPRINT=$($certificate.Thumbprint)"
+        ) | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Write-Host "Windows Authenticode signing configured for $($certificate.Subject)."

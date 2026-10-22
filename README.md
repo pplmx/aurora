@@ -379,6 +379,13 @@ just desktop-test                                  # 桌面模块的测试（jus
   一致且带 RFC 3161 时间戳。本地 `just desktop-package` 不设置
   `WINDOWS_CERTIFICATE_FILE` 与 `MYGO_WINDOWS_CERTIFICATE_PASSWORD` 时仍
   生成未签名包，仅供本机测试。
+  CLI 的 Windows 二进制也使用同一个 `.github/actions/windows-signing`
+  契约：`build.yml` 在发布时同样 fail-closed，并在上传前用
+  `Get-AuthenticodeSignature` 校验签名、签名者和时间戳；普通分支构建
+  没有证书时保持未签名。`release.yml` 发布前还会读取 `go version -m`
+  确认每个 CLI 二进制是目标平台的原生 cgo 构建，生成
+  `checksums.txt` 覆盖 CLI 与桌面安装包，并在创建 Release 前用
+  `sha256sum -c` 复核。
 - **为什么是嵌套模块**：MyGo 要求 Go 1.27，而主模块固定在 1.26 以保持
   镜像构建（`Dockerfile` 的 `golang:1.26-alpine`）与现有工具链可用。
   `desktop/go.mod` 的 `go 1.27.1` 不会污染 `go build ./...` /
