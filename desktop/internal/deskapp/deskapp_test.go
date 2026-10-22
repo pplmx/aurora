@@ -36,6 +36,9 @@ func resetState(t *testing.T) {
 }
 
 func TestParseFlags(t *testing.T) {
+	export := filepath.Join(t.TempDir(), "draws.json")
+	require.NoError(t, os.WriteFile(export, []byte("[]"), 0o644))
+
 	tests := []struct {
 		name    string
 		args    []string
@@ -52,11 +55,19 @@ func TestParseFlags(t *testing.T) {
 		{name: "data dir", args: []string{"--data-dir", "/var/lib/aurora"}, mode: ModeRun, opts: Flags{DataDir: "/var/lib/aurora"}},
 		{name: "both paths", args: []string{"--web-root", "w", "--data-dir", "d"}, mode: ModeRun, opts: Flags{WebRoot: "w", DataDir: "d"}},
 		{name: "unknown flag", args: []string{"--nope"}, wantErr: "flag provided but not defined"},
+		{name: "bare dash rejected", args: []string{"-"}, wantErr: "unexpected argument"},
+		{name: "flags after terminator rejected", args: []string{"--", "--data-dir", "/d"}, wantErr: "only one link or file"},
+		{name: "intent after terminator", args: []string{"--", "aurora://token"}, mode: ModeRun, opts: Flags{Intent: Intent{Page: "token", Raw: "aurora://token"}}},
 		{name: "positional rejected", args: []string{"extra"}, wantErr: "unexpected argument"},
 		{name: "positional rejected after version", args: []string{"--version", "extra"}, wantErr: "unexpected argument"},
 		{name: "deep link", args: []string{"aurora://lottery?id=abc"}, mode: ModeRun, opts: Flags{Intent: Intent{Page: "lottery", LotteryID: "abc", Raw: "aurora://lottery?id=abc"}}},
 		{name: "deep link to the dashboard", args: []string{"aurora://"}, mode: ModeRun, opts: Flags{Intent: Intent{Raw: "aurora://"}}},
 		{name: "deep link with flags", args: []string{"--data-dir", "/d", "aurora://token"}, mode: ModeRun, opts: Flags{DataDir: "/d", Intent: Intent{Page: "token", Raw: "aurora://token"}}},
+		{name: "deep link with trailing flags", args: []string{"aurora://token", "--data-dir", "/d", "--web-root", "/w"}, mode: ModeRun, opts: Flags{DataDir: "/d", WebRoot: "/w", Intent: Intent{Page: "token", Raw: "aurora://token"}}},
+		{name: "deep link with interspersed flags", args: []string{"--web-root", "/w", "aurora://token", "--data-dir=/d"}, mode: ModeRun, opts: Flags{DataDir: "/d", WebRoot: "/w", Intent: Intent{Page: "token", Raw: "aurora://token"}}},
+		{name: "export with trailing flags", args: []string{export, "--data-dir", "/d"}, mode: ModeRun, opts: Flags{DataDir: "/d", Intent: Intent{File: export, Raw: export}}},
+		{name: "trailing flag missing value", args: []string{"aurora://token", "--data-dir"}, wantErr: "flag needs an argument"},
+		{name: "unknown trailing flag", args: []string{"aurora://token", "--nope"}, wantErr: "flag provided but not defined"},
 		{name: "two links rejected", args: []string{"aurora://token", "aurora://nft"}, wantErr: "only one link or file"},
 		{name: "missing value", args: []string{"--data-dir"}, wantErr: "flag needs an argument"},
 	}
@@ -80,7 +91,7 @@ func TestUsageAndVersionText(t *testing.T) {
 	var b strings.Builder
 	Usage(&b, "v9.9.9", "2026-10-21T00:00:00Z")
 	out := b.String()
-	for _, want := range []string{"aurora-desktop [flags]", "--web-root", "--data-dir", "aurora://lottery?id=abc", "draws.json", "v9.9.9", "2026-10-21T00:00:00Z"} {
+	for _, want := range []string{"aurora-desktop [flags]", "lottery-export.json] [flags]", "--web-root", "--data-dir", "aurora://lottery?id=abc", "draws.json", "v9.9.9", "2026-10-21T00:00:00Z"} {
 		require.Contains(t, out, want)
 	}
 
