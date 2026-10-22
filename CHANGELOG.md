@@ -248,6 +248,12 @@ documented in their per-milestone ROADMAP files.
   (or the reverse), and the conflict check rejected the launch even though
   both name the directory the window is serving. Both path comparisons now
   use one canonical spelling, with a regression test for either direction.
+- **A symlink alias of the running data directory looked like another
+  database**: the conflict check compared cleaned path strings, so a second
+  launch that reached the same `aurora.db` or web root through a symlinked
+  directory was refused. Existing paths are now compared by filesystem
+  identity (`os.SameFile`), while missing paths still fall back to the
+  lexical check and remain a conflict.
 - **A deep link forwarded during startup was dropped**: a second launch can
   reach `OnSecondInstance` after the single-instance lock is taken but before
   `WhenReady` created the window, and navigation with no window simply
