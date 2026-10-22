@@ -12,7 +12,7 @@
 - ui/ 层：TUI 界面
 - cmd/ 层：CLI 入口
 
-**Tech Stack:** Go 1.26+, Cobra, Bubble Tea v2, SQLite
+**Tech Stack:** Go 1.27+, Cobra, Bubble Tea v2, SQLite
 
 ---
 

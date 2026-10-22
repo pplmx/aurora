@@ -6,7 +6,7 @@
 
 **Architecture:** 使用 filippo.io/bbls12381 库实现 BLS12-381 VRF，通过 tview 构建 TUI 界面，扩展现有区块链存储抽奖记录
 
-**Tech Stack:** Go 1.26+, filippo.io/bbls12381, tview, Cobra, Viper
+**Tech Stack:** Go 1.27+, filippo.io/bbls12381, tview, Cobra, Viper
 
 ---
 

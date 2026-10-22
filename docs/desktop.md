@@ -7,7 +7,7 @@ Aurora 的主要使用方式：CLI、TUI 与 `aurora-api` 仍然保留，供脚�
 ## 快速开始
 
 ```bash
-just desktop          # 构建 ./aurora-desktop（需 Go 1.27.1+ 与 WebKitGTK / WebView2）
+just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / WebView2）
 ./aurora-desktop      # 打开窗口；首次运行在用户数据目录创建 aurora.db
 ./aurora-desktop --version
 ./aurora-desktop --data-dir /path/to/data          # 换数据库位置
@@ -226,12 +226,11 @@ gh secret set WINDOWS_CERTIFICATE_PASSWORD
 
 ## 模块、工具链与 CI
 
-- **为什么是嵌套模块**：MyGo 要求 Go 1.27，而主模块固定在 1.26 以保持镜像
-  构建（`Dockerfile` 的 `golang:1.26-alpine`）与现有工具链可用。
-  `desktop/go.mod` 的 `go 1.27.1` 不会污染 `go build ./...` /
-  `go test ./...`。注意 `golangci-lint` 必须与其内置的 Go 版本一致：用
-  Go 1.26 构建的 lint 二进制读不了 Go 1.27 标准库的 export data，会直接
-  panic。
+- **为什么是嵌套模块**：MyGo 依赖在 `desktop/go.mod` 中声明，嵌套模块让
+  `go build ./...` / `go test ./...`（根模块）不被桌面壳的工具链牵连。
+  两个模块统一要求 Go 1.27（`go.mod` 与 `desktop/go.mod` 均为
+  `go 1.27.2`）。注意 `golangci-lint` 必须与其内置的 Go 版本一致：旧版本
+  二进制读不了新 Go 标准库的 export data 会直接 panic。
 - **cgo**：核心用 `mattn/go-sqlite3`，桌面壳必须在本机原生构建（不能
   `CGO_ENABLED=0` 交叉编译）；跨平台打包会在 `runtime/cgo` 阶段失败（实测
   `desktop-package -platform windows/amd64` → `windows.h: No such file`），

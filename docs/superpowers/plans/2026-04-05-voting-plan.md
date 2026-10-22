@@ -6,7 +6,7 @@
 
 **Architecture:** 使用 Go 标准库 Ed25519 签名，Bubble Tea 构建 TUI，SQLite + 内存混合存储，复用现有 blockchain 模块上链
 
-**Tech Stack:** Go 1.26+, crypto/ed25519, github.com/mattn/go-sqlite3, Bubble Tea, Cobra
+**Tech Stack:** Go 1.27+, crypto/ed25519, github.com/mattn/go-sqlite3, Bubble Tea, Cobra
 
 ---
 

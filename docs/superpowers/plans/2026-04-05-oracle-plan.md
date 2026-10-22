@@ -6,7 +6,7 @@
 
 **Architecture:** 使用 Go 标准库 net/http 获取数据，复用 voting 模块的存储层，Bubble Tea 构建 TUI
 
-**Tech Stack:** Go 1.26+, net/http, github.com/mattn/go-sqlite3, Bubble Tea, Cobra
+**Tech Stack:** Go 1.27+, net/http, github.com/mattn/go-sqlite3, Bubble Tea, Cobra
 
 ---
 
