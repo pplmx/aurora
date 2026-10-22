@@ -179,3 +179,37 @@ func TestExportLotteriesReplacesTheDocumentAtomically(t *testing.T) {
 	assert.Equal(t, mygo.MessageInfo, dialogs[0].Type)
 	assert.Equal(t, "Lotteries exported", dialogs[0].Title)
 }
+
+// TestExportLotteriesRefusesTheLiveDatabase pins the menu half of the guard:
+// choosing the data directory in the save dialog must not replace aurora.db
+// with the JSON export, and the failure must reach the user.
+func TestExportLotteriesRefusesTheLiveDatabase(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+	repo, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	require.NoError(t, repo.Close())
+
+	before, err := os.ReadFile(dbPath)
+	require.NoError(t, err)
+
+	originalSave := saveDialog
+	originalBox := messageBox
+	t.Cleanup(func() { saveDialog = originalSave; messageBox = originalBox })
+	saveDialog = func(mygo.SaveDialogOptions) (string, error) { return dbPath, nil }
+	var dialogs []mygo.MessageOptions
+	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
+
+	exportLotteries(About{DBPath: dbPath}, nil)
+
+	require.Len(t, dialogs, 1)
+	assert.Equal(t, mygo.MessageError, dialogs[0].Type)
+	assert.Equal(t, "Export failed", dialogs[0].Title)
+
+	after, err := os.ReadFile(dbPath)
+	require.NoError(t, err)
+	assert.Equal(t, before, after, "the menu must not overwrite the live database")
+
+	info, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err, "the database must still open as SQLite")
+	require.NoError(t, info.Close())
+}

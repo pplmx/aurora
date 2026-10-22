@@ -140,6 +140,15 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **`aurora lottery export` could overwrite the live database**: the command
+  read the records and then wrote the chosen filename without checking what
+  that filename was. Passing `./data/aurora.db` (or a symlink to it, or its
+  `-wal`/`-shm` sidecar) replaced the SQLite file with the JSON export and
+  still printed success; only the already-open handle made `history` appear to
+  work until the process exited. Export now goes through one app-layer entry
+  point that refuses a destination aliasing the live database before writing,
+  for both the CLI and File → Export (the backup path already had this guard,
+  ISS-071).
 - **An empty lottery export was `null`, and importing `null` looked like a
   success**: `ExportRecords` marshalled the repository's nil slice, so
   `aurora lottery export` and File → Export wrote `null` for a database with

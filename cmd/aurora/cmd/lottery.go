@@ -11,7 +11,6 @@ import (
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"
 	uilottery "github.com/pplmx/aurora/internal/ui/lottery"
-	"github.com/pplmx/aurora/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -232,12 +231,8 @@ var exportCmd = &cobra.Command{
 		}
 		defer func() { _ = repo.Close() }()
 
-		output, count, err := lotteryapp.ExportRecords(repo)
+		count, err := lotteryapp.WriteRecordsToFile(repo, filename)
 		if err != nil {
-			return fmt.Errorf("failed to export records: %w", err)
-		}
-
-		if err := utils.WriteFileAtomic(filename, output, 0o644); err != nil {
 			return fmt.Errorf("failed to write file: %w", err)
 		}
 
