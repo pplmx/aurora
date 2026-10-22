@@ -82,6 +82,19 @@ func TestImportRecords_RejectsMalformedDocument(t *testing.T) {
 	assert.Empty(t, records, "a malformed document must store nothing")
 }
 
+func TestImportRecords_RejectsNullDocument(t *testing.T) {
+	repo, err := sqlite.NewLotteryRepository(filepath.Join(t.TempDir(), "null.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = repo.Close() })
+
+	_, err = lotteryapp.ImportRecords(repo, []byte("null"))
+	require.Error(t, err, "null is not a portable lottery document")
+
+	records, err := repo.GetAll()
+	require.NoError(t, err)
+	assert.Empty(t, records)
+}
+
 // TestImportRecords_PartialFailureMatchesCLIContract covers the mixed file a
 // user is most likely to produce: one valid draw and one that fails
 // validation. The valid one lands and the invalid one is reported by index.

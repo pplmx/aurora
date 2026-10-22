@@ -20,6 +20,13 @@ func ExportRecords(repo lottery.Repository) (document []byte, count int, err err
 	if err != nil {
 		return nil, 0, fmt.Errorf("read records: %w", err)
 	}
+	// A repository with no draws returns a nil slice, which json.MarshalIndent
+	// would encode as `null`. The portable format is always a JSON array, so
+	// an empty export must be `[]` - a null document is not something the
+	// importer can tell apart from an empty list.
+	if records == nil {
+		records = []*lottery.LotteryRecord{}
+	}
 	output, err := json.MarshalIndent(records, "", "  ")
 	if err != nil {
 		return nil, 0, fmt.Errorf("marshal records: %w", err)
@@ -61,7 +68,12 @@ func ImportRecords(repo lottery.Repository, document []byte) (ImportResult, erro
 	if err := json.Unmarshal(document, &records); err != nil {
 		return ImportResult{}, fmt.Errorf("parse document: %w", err)
 	}
-
+	// json.Unmarshal accepts a literal null into a slice and leaves it nil.
+	// Treating that as an empty document reported a successful import of 0
+	// records for a file that is not the portable array format at all.
+	if records == nil {
+		return ImportResult{}, fmt.Errorf("parse document: expected a JSON array of lottery records, got null")
+	}
 	result := ImportResult{Total: len(records)}
 	for i, record := range records {
 		if err := record.Validate(); err != nil {

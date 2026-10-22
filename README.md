@@ -237,7 +237,8 @@ just desktop-test                                  # 桌面模块的测试（jus
   `BackupService`（WAL 完整快照 + 校验和）；Export/Import Lotteries 调用
   与 `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、
   同一覆盖保护），导出目标经同目录临时文件原子替换，写入失败不会先清空
-  上一份导出。About 显示版本、构建时间、数据库与 Web UI 来源。所有弹窗
+  上一份导出；空库导出也是合法的 JSON 数组 `[]`，`null` 不会被导入成功。
+  About 显示版本、构建时间、数据库与 Web UI 来源。所有弹窗
   都带 `Parent`：文件选择器与结果框挂在发起操作的窗口上（macOS 上是 sheet，
   其他平台是子模态），而不是可以留在背后的游离窗口。
 - **窗口生命周期**：macOS 上关闭最后一个窗口不退出应用（`OnWindowAllClosed`
