@@ -263,14 +263,22 @@ func (s *Shell) pathConflict(args []string, workDir string) string {
 	var conflicts []string
 	if dataDir != "" {
 		want := filepath.Join(resolveAgainst(dataDir, workDir), "aurora.db")
-		if s.meta.DBPath == "" || filepath.Clean(want) != filepath.Clean(s.meta.DBPath) {
+		if s.meta.DBPath == "" || !samePath(want, s.meta.DBPath) {
 			conflicts = append(conflicts, "--data-dir "+dataDir)
 		}
 	}
-	if webRoot != "" && filepath.Clean(resolveAgainst(webRoot, workDir)) != filepath.Clean(s.meta.WebRoot) {
+	if webRoot != "" && !samePath(resolveAgainst(webRoot, workDir), s.meta.WebRoot) {
 		conflicts = append(conflicts, "--web-root "+webRoot)
 	}
 	return strings.Join(conflicts, " and ")
+}
+
+// samePath reports whether two spellings name the same path. The running
+// instance's WebRoot comes from ResolveWebRoot, which keeps the trailing
+// separator the caller used; the launcher may spell the same directory
+// without it.
+func samePath(a, b string) bool {
+	return filepath.Clean(a) == filepath.Clean(b)
 }
 
 // resolveAgainst makes a forwarded path absolute against the launching

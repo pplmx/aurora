@@ -496,6 +496,30 @@ func TestShell_AcceptsTheRelativeDataDirItStartedWith(t *testing.T) {
 	assert.Equal(t, Intent{Page: "voting", Raw: "aurora://voting"}, navigated[0])
 }
 
+// TestShell_AcceptsEquivalentWebRootSpellings pins the same path rule for the
+// UI. A first launch may record --web-root with a trailing separator while a
+// later launch spells the directory without it; both name the directory the
+// window is serving, so neither spelling is a conflict.
+func TestShell_AcceptsEquivalentWebRootSpellings(t *testing.T) {
+	launcher := t.TempDir()
+	webRoot := filepath.Join(launcher, "web")
+
+	for _, running := range []string{webRoot, webRoot + string(filepath.Separator)} {
+		shell := NewShell(About{WebRoot: running})
+		var reports []string
+		shell.report = func(_ mygo.MessageType, title, message, _ string) {
+			reports = append(reports, title+" | "+message)
+		}
+		var navigated []Intent
+		shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+
+		shell.HandleLaunchArgs([]string{"--web-root", "web", "aurora://voting"}, launcher)
+
+		assert.Empty(t, reports, "running web root %q and forwarded \"web\" name the same UI", running)
+		require.Len(t, navigated, 1, "running web root %q must still accept the forwarded link", running)
+	}
+}
+
 // TestShell_ImportDropped pins what a drop does with each kind of file.
 func TestShell_ImportDropped(t *testing.T) {
 	shell := NewShell(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
