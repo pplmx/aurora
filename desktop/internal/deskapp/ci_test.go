@@ -25,6 +25,17 @@ func repoRoot(t *testing.T) string {
 	}
 }
 
+// desktopGuide is the shipped desktop documentation. The release contract
+// below is user-facing: the secrets tables and the packaging rules must be
+// explained somewhere a reader can find, so the guard reads the page that is
+// supposed to carry them instead of a heading in the front-page README.
+func desktopGuide(t *testing.T) string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), "docs", "desktop.md"))
+	require.NoError(t, err, "docs/desktop.md must document the desktop release contract")
+	return string(data)
+}
+
 // TestCIWiresTheDesktopModule is the guard for the gap this module lived in:
 // `go test ./...` at the root never enters a nested module, so a broken
 // window layer passed every gate silently. The fix is a `desktop` job in
@@ -299,12 +310,10 @@ func TestReleaseRequiresSignedAndNotarizedMacOSPackages(t *testing.T) {
 	assert.Contains(t, configText, `...(signingIdentity && notaryProfile`,
 		"notarization must be enabled only with a real signing identity")
 
-	readme, err := os.ReadFile(filepath.Join(root, "README.md"))
-	require.NoError(t, err)
-	readmeText := string(readme)
-	require.Contains(t, readmeText, "macOS 发布签名")
-	require.Contains(t, readmeText, "`macos.signingIdentity`")
-	require.Contains(t, readmeText, "`macos.notarize.keychainProfile`")
+	guideText := desktopGuide(t)
+	require.Contains(t, guideText, "macOS 发布签名")
+	require.Contains(t, guideText, "`macos.signingIdentity`")
+	require.Contains(t, guideText, "`macos.notarize.keychainProfile`")
 	for _, secret := range []string{
 		"MACOS_CERTIFICATE",
 		"MACOS_CERTIFICATE_PASSWORD",
@@ -313,8 +322,8 @@ func TestReleaseRequiresSignedAndNotarizedMacOSPackages(t *testing.T) {
 		"APPLE_TEAM_ID",
 		"APPLE_APP_PASSWORD",
 	} {
-		assert.Contains(t, readmeText, secret,
-			"README must document the exact %s secret", secret)
+		assert.Contains(t, guideText, secret,
+			"docs/desktop.md must document the exact %s secret", secret)
 	}
 }
 
@@ -389,17 +398,15 @@ func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
 	require.Contains(t, configText, "...(windowsCertificate ? { certificate: windowsCertificate } : {})",
 		"local packages without credentials must remain unsigned")
 
-	readme, err := os.ReadFile(filepath.Join(root, "README.md"))
-	require.NoError(t, err)
-	readmeText := string(readme)
-	require.Contains(t, readmeText, "Windows 发布签名")
-	require.Contains(t, readmeText, "`windows.certificate`")
+	guideText := desktopGuide(t)
+	require.Contains(t, guideText, "Windows 发布签名")
+	require.Contains(t, guideText, "`windows.certificate`")
 	for _, secret := range []string{
 		"WINDOWS_CERTIFICATE",
 		"WINDOWS_CERTIFICATE_PASSWORD",
 	} {
-		assert.Contains(t, readmeText, secret,
-			"README must document the exact %s secret", secret)
+		assert.Contains(t, guideText, secret,
+			"docs/desktop.md must document the exact %s secret", secret)
 	}
 }
 

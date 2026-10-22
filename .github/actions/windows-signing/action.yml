@@ -35,7 +35,7 @@ runs:
 
         if ($missing.Count -gt 0) {
           if ($env:REQUIRE_SIGNED_WINDOWS -eq "true") {
-            Write-Error "This release requires Authenticode-signed Windows artifacts, but these repository secrets are missing: $($missing -join ', '). See README.md `"Windows 发布签名`" for the exact secret contract."
+            Write-Error "This release requires Authenticode-signed Windows artifacts, but these repository secrets are missing: $($missing -join ', '). See docs/desktop.md "Windows 发布签名" for the exact secret contract."
             exit 1
           }
           if ($missing.Count -lt 2) {
