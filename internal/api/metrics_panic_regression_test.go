@@ -28,7 +28,8 @@ func TestMetrics_RecordsRecoveredPanicAs500(t *testing.T) {
 	// metrics registered FIRST (outermost), matching the v1.59 router.
 	r.Use(metrics.Middleware(reg))
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	r.Use(apimw.PeerIP)
+	r.Use(apimw.ClientIP(nil))
 	r.Use(apimw.Logger)
 	r.Use(apimw.Recovery)
 	r.Use(apimw.CORS(nil))

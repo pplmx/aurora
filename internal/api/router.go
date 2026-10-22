@@ -43,14 +43,16 @@ func newRouterWithWebFS(s *Server, webFS fs.FS) http.Handler {
 	r.Use(metrics.Middleware(reg))
 
 	r.Use(middleware.RequestID)
-	// PeerIP MUST precede chi's RealIP: it snapshots the true socket peer
-	// into the request context before RealIP overwrites r.RemoteAddr from
-	// X-Forwarded-For / X-Real-IP / True-Client-IP. The rate limiter keys on
-	// that peer (or on the forwarded client only when the peer is a
-	// configured trusted proxy), so spoofed headers can never rotate past
-	// the budget (v1.69, ISS-073).
+	// PeerIP MUST precede ClientIP: it snapshots the true socket peer into the
+	// request context before ClientIP rewrites r.RemoteAddr from the forwarded
+	// chain. Both layers read the same allow-list, so a forwarded address is
+	// believed only when the direct peer is a configured trusted proxy and
+	// spoofed headers can never rotate past the rate-limit budget (v1.69,
+	// ISS-073). chi's middleware.RealIP is deliberately not used: it trusts
+	// those headers from any peer and is deprecated for that reason
+	// (GHSA-3fxj-6jh8-hvhx).
 	r.Use(apimw.PeerIP)
-	r.Use(middleware.RealIP)
+	r.Use(apimw.ClientIP(config.RateLimitTrustedProxies()))
 	r.Use(apimw.Logger)
 	r.Use(apimw.Recovery)
 	r.Use(apimw.CORS(config.AllowedCORSOrigins()))

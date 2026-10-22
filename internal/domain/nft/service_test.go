@@ -784,16 +784,8 @@ func (m *mockTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
 	return nil
 }
 
-func newMockTxManager() *mockTxManager {
-	return &mockTxManager{}
-}
-
 func newMockTxManagerWithRepo(repo *inmemRepo) *mockTxManager {
 	return &mockTxManager{repo: repo}
-}
-
-func newFailingTxManager(failStep int) *mockTxManager {
-	return &mockTxManager{shouldFail: true, failStep: failStep}
 }
 
 func newFailingTxManagerWithRepo(repo *inmemRepo, failStep int) *mockTxManager {

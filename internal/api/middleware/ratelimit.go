@@ -106,11 +106,11 @@ func (l *FixedWindowLimiter) Reset() {
 type peerIPKey struct{}
 
 // PeerIP returns middleware that records the socket-level peer address in the
-// request context BEFORE chi's RealIP middleware rewrites r.RemoteAddr from
-// the X-Forwarded-For / X-Real-IP / True-Client-IP headers. It MUST be
-// registered outer to middleware.RealIP. The rate limiter reads this value so
-// its per-client budget is keyed on the untrusted, unspoofable direct peer
-// rather than on a client-supplied header (v1.69, ISS-073).
+// request context BEFORE ClientIP rewrites r.RemoteAddr from the forwarded
+// headers of a trusted proxy. It MUST be registered outer to ClientIP. The
+// rate limiter reads this value so its per-client budget is keyed on the
+// unspoofable direct peer rather than on a client-supplied header (v1.69,
+// ISS-073).
 func PeerIP(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), peerIPKey{}, r.RemoteAddr)
@@ -174,11 +174,10 @@ func isTrusted(ip net.IP, proxies []trustedProxy) bool {
 // clientRateKey returns the identifier used to rate-limit a request: the
 // client's socket peer recorded by PeerIP (the true, unspoofable source).
 // Only when that peer is in the configured trusted-proxy allow-list does the
-// key fall back to r.RemoteAddr (which middleware.RealIP has already set from
-// the proxy's X-Forwarded-For / X-Real-IP / True-Client-IP header) — i.e. the
-// forwarded client behind our own proxy. A directly-connected attacker who
-// rotates those headers just rotates nothing: the key stays their peer, so
-// the budget still applies (v1.69, ISS-073).
+// key fall back to r.RemoteAddr (which ClientIP has already set from the
+// proxy's forward chain) — i.e. the forwarded client behind our own proxy. A
+// directly-connected attacker who rotates those headers just rotates nothing:
+// the key stays their peer, so the budget still applies (v1.69, ISS-073).
 func clientRateKey(r *http.Request, trusted []trustedProxy) string {
 	peerHost := hostOnly(r.RemoteAddr)
 	if peer, ok := peerFromContext(r); ok {
@@ -196,8 +195,8 @@ func clientRateKey(r *http.Request, trusted []trustedProxy) string {
 // concurrent use. trustedProxies names the reverse proxies/CDNs whose
 // forwarded client headers the limiter may believe (see clientRateKey).
 //
-// Register PeerIP outer to middleware.RealIP (as the router does) so the
-// socket peer is captured before header substitution.
+// Register PeerIP outer to ClientIP (as the router does) so the socket peer is
+// captured before header substitution.
 func RateLimit(limiter *FixedWindowLimiter, trustedProxies []string) func(http.Handler) http.Handler {
 	trusted := parseTrustedProxies(trustedProxies)
 	return func(next http.Handler) http.Handler {

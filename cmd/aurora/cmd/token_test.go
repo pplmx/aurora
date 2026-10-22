@@ -89,7 +89,7 @@ func TestTokenCreate_DecimalsHonored(t *testing.T) {
 		require.Contains(t, out, "Decimals: 6", "created token must report the honored --decimals value")
 
 		// Unset flag keeps the documented default of 8.
-		out, err = runCmd(t, "token", "create",
+		_, err = runCmd(t, "token", "create",
 			"--name", "DefaultCoin", "--symbol", "DFLT", "--supply", "1000000")
 		require.NoError(t, err)
 		out, err = runCmd(t, "token", "info", "--token", "DFLT")

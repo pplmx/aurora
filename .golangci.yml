@@ -8,10 +8,11 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-
-issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - staticcheck
-      text: "SA5011"
+  exclusions:
+    rules:
+      # Test files legitimately assert on values the analyzer cannot prove
+      # non-nil, and the repo's helpers make SA5011 noise instead of signal.
+      - path: _test\.go
+        linters:
+          - staticcheck
+        text: "SA5011"

@@ -141,7 +141,7 @@ func isSliceType(t string) bool {
 // test helpers; the layout is pinned by go.mod's pflag version).
 func resetSliceFlag(f *pflag.Flag) {
 	rv := reflect.ValueOf(f.Value)
-	if rv.Kind() != reflect.Ptr {
+	if rv.Kind() != reflect.Pointer {
 		return
 	}
 	elem := rv.Elem()
@@ -151,7 +151,7 @@ func resetSliceFlag(f *pflag.Flag) {
 
 	// value *[]string -> rebuild the backing slice to empty.
 	valueField := elem.FieldByName("value")
-	if valueField.IsValid() && valueField.Kind() == reflect.Ptr {
+	if valueField.IsValid() && valueField.Kind() == reflect.Pointer {
 		ptr := reflect.NewAt(valueField.Type(), unsafe.Pointer(valueField.UnsafeAddr()))
 		p := ptr.Elem()
 		if p.Elem().Kind() == reflect.Slice {
