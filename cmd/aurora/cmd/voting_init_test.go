@@ -69,10 +69,3 @@ func TestVotingGetRepo_ConcurrentNoRace(t *testing.T) {
 		t.Fatal("votingRepo is nil after concurrent getVotingRepo calls")
 	}
 }
-
-// resetVotingForTest wipes the package-level voting singletons so
-// tests can exercise the initialisation path repeatedly.
-func resetVotingForTest() {
-	votingRepo = nil
-	votingService = nil
-}

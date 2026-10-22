@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,10 +66,10 @@ func TestFixedWindowLimiter_Concurrent(t *testing.T) {
 
 // rateLimitChain composes the middleware exactly as the router does (minus
 // logging/metrics): PeerIP outer (snapshots the socket peer before header
-// substitution), then chi's RealIP (rewrites r.RemoteAddr from forwarded
-// headers), then RateLimit innermost.
+// substitution), then ClientIP (rewrites r.RemoteAddr from the forward chain
+// of a trusted proxy), then RateLimit innermost.
 func rateLimitChain(limiter *FixedWindowLimiter, trusted []string) http.Handler {
-	return PeerIP(middleware.RealIP(RateLimit(limiter, trusted)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return PeerIP(ClientIP(trusted)(RateLimit(limiter, trusted)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))))
 }
@@ -126,7 +125,7 @@ func TestRateLimit_RejectsSpoofedForwardedHeaderRotation(t *testing.T) {
 
 // TestRateLimit_TrustsForwardedClientBehindConfiguredProxy pins the other
 // side of the trust model: when the socket peer IS the configured reverse
-// proxy, chi RealIP's rewritten r.RemoteAddr (proxy's X-Forwarded-For) is the
+// proxy, ClientIP's rewritten r.RemoteAddr (the forwarded client) is the
 // per-client key — so distinct real clients behind OUR proxy keep distinct
 // budgets (no over-limiting from one shared proxy IP).
 func TestRateLimit_TrustsForwardedClientBehindConfiguredProxy(t *testing.T) {

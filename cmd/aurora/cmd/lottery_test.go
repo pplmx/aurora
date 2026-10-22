@@ -38,9 +38,10 @@ func TestLotteryCreate_DefaultCount(t *testing.T) {
 		require.NoError(t, err, "lottery create without --count must succeed (default 3)")
 		assert.Contains(t, out, "Winners:")
 		// The default of 3 must actually draw 3 winners from the 5 participants.
+		winnerLine := regexp.MustCompile(`^\s+\d+\. `)
 		winnerLines := 0
 		for _, line := range strings.Split(out, "\n") {
-			if matched, _ := regexp.MatchString(`^\s+\d+\. `, line); matched {
+			if winnerLine.MatchString(line) {
 				winnerLines++
 			}
 		}

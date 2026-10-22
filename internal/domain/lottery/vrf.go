@@ -224,11 +224,7 @@ func VRFVerify(public *edwards25519.Point, message []byte, output, proof []byte)
 	// R₂ ?= s·H − c·output
 	sH := new(edwards25519.Point).ScalarMult(s, h)
 	cOut := new(edwards25519.Point).ScalarMult(c, outputPoint)
-	if new(edwards25519.Point).Subtract(sH, cOut).Equal(r2) != 1 {
-		return false
-	}
-
-	return true
+	return new(edwards25519.Point).Subtract(sH, cOut).Equal(r2) == 1
 }
 
 // challengeSeed computes the Fiat-Shamir challenge input for the VRF proof as
