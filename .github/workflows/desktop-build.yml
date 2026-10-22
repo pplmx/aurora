@@ -93,6 +93,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # MyGo loads GTK/WebKit at runtime, and the smoke test below starts the
+      # real package. Installing the runtime before packaging makes a missing
+      # library a clear failure here instead of a window that never appears on
+      # a user's machine.
+      - name: Install desktop runtime dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            libwebkit2gtk-4.1-0 libgtk-3-0 xvfb
+
       # A macOS release that is only ad-hoc signed is not installable on
       # another Mac: Gatekeeper rejects it. Import the Developer ID and the
       # notary profile before packaging, and make the contract explicit so a
@@ -163,7 +174,7 @@ jobs:
 
           if [[ "${REQUIRE_SIGNED_MACOS:-false}" == "true" ]]; then
             printf 'This release requires signed and notarized macOS packages, but these repository secrets are missing: %s\n' "${missing[*]}" >&2
-            printf 'See README.md "macOS 发布签名" for the exact secret contract.\n' >&2
+            printf 'See docs/desktop.md "macOS 发布签名" for the exact secret contract.\n' >&2
             exit 1
           fi
 
@@ -256,6 +267,54 @@ jobs:
               test -z "$(find "${{ matrix.path }}" -name '*.go' -print -quit)"
               ;;
           esac
+
+      # "test -x" cannot tell a package that dies before opening its window
+      # from a working one: a missing WebKitGTK runtime or a broken embedded
+      # UI passes every file check. Start the real artifact against an empty
+      # data directory and require the database to appear while the process is
+      # still alive, on both Linux architectures. `--version` is checked from
+      # the same artifact, so the release cannot ship a 0.0.1 build stamp.
+      - name: Smoke-test the packaged app
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="${{ matrix.path }}/aurora"
+          version="$("$app" --version)"
+          printf '%s\n' "$version"
+          test "$(printf '%s\n' "$version" | sed -n 's/^Version: //p')" != "0.0.1"
+          build_time="$(printf '%s\n' "$version" | sed -n 's/^Build Time: //p')"
+          test -n "$build_time"
+          test "$build_time" != "unknown"
+
+          tmp="$(mktemp -d)"
+          data="$tmp/data"
+          pid=""
+          cleanup() {
+            if [[ -n "$pid" ]]; then
+              kill "$pid" 2>/dev/null || true
+              wait "$pid" 2>/dev/null || true
+            fi
+            rm -rf "$tmp"
+          }
+          trap cleanup EXIT
+          HOME="$tmp/home" XDG_CONFIG_HOME="$tmp/config" \
+            xvfb-run -a "$app" --data-dir "$data" \
+            >"$tmp/stdout" 2>"$tmp/stderr" &
+          pid=$!
+          for _ in $(seq 1 50); do
+            if [[ -f "$data/aurora.db" ]]; then
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              cat "$tmp/stdout" "$tmp/stderr" >&2
+              echo "the packaged app exited before creating its database" >&2
+              exit 1
+            fi
+            sleep 0.2
+          done
+          test -f "$data/aurora.db"
+          kill -0 "$pid"
 
       # SmartScreen trusts the publisher only when the Authenticode signature
       # validates and is timestamped. Check both published executables rather

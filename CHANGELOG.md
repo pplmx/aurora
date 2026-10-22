@@ -66,6 +66,15 @@ documented in their per-milestone ROADMAP files.
   recipe. That job compiles rather than packages: packaging needs cgo and the
   target platform (see Fixed below); the separate `desktop-package` job below
   covers the real Linux package path.
+- **The release matrix now starts what it ships**: `desktop-build.yml` used
+  to verify only that each artifact existed, so a Linux package whose
+  WebKitGTK runtime was missing — or whose embedded UI never loaded — passed
+  the gate and failed on the user's machine. The Linux legs now install the
+  runtime plus Xvfb, check `--version` on the packaged binary (non-`0.0.1`,
+  known build time), then launch it against an empty data directory and
+  require `aurora.db` to appear while the process is alive. The same contract
+  is pinned in `deskapp/ci_test.go`, so the smoke test cannot quietly drop
+  out of the release matrix.
 - **Desktop packages ship with releases**: `ci.yml` now runs the real
   `go tool mygo build -platform linux/amd64` packaging path and verifies the
   executable, desktop entry, `.deb`, tarball and `x-scheme-handler/aurora`
