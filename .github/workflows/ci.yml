@@ -24,6 +24,23 @@ jobs:
           cache-dependency-path: go.sum
 
       - run: go mod download
+
+      # The desktop job below already rejects unformatted code, but the core
+      # module had no such gate: commit 7a7f53d landed three unformatted Go
+      # files and nothing failed until a contributor happened to run
+      # `just check` locally. Formatting is checked here with the same flags
+      # the justfile uses (`gofmt -s`), over this module's packages only, so a
+      # newer desktop toolchain cannot make this job depend on desktop/.
+      - name: Format
+        run: |
+          set -euo pipefail
+          dirs="$(go list -f '{{.Dir}}' ./...)"
+          unformatted="$(gofmt -s -l $dirs)"
+          if [[ -n "$unformatted" ]]; then
+            printf 'gofmt would change:\n%s\n' "$unformatted" >&2
+            exit 1
+          fi
+
       - run: go vet ./...
 
       - run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
