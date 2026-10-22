@@ -45,9 +45,13 @@ type Shell struct {
 	// navigate loads an intent in the window. Tests replace it to observe
 	// exactly which links reach the page; the default needs a live window.
 	navigate func(Intent)
+	// createWindow recreates the main window after it was closed. It is set by
+	// main and nil in tests or before the app can create windows.
+	createWindow func() *mygo.Window
 	// pending is the last page an aurora:// link asked for while there was no
-	// window yet (a second launch can arrive between RequestSingleInstanceLock
-	// and WhenReady). It is loaded by Attach instead of being dropped.
+	// live window. A second launch can arrive before WhenReady creates one, or
+	// after macOS kept the app alive with its last window closed. Attach loads
+	// the newest request once there is a window for it.
 	pending *Intent
 }
 
@@ -70,6 +74,16 @@ func (s *Shell) Window() *mygo.Window {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.win
+}
+
+// SetWindowFactory gives the shell a way to recreate the main window after it
+// was closed. On macOS the process deliberately outlives its last window, so
+// an OS request that arrives later must not be handled against a destroyed
+// window. The factory is nil-able for tests and for callers without a window.
+func (s *Shell) SetWindowFactory(create func() *mygo.Window) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.createWindow = create
 }
 
 // Attach points the shell at the main window. Until then, navigation requests
@@ -135,6 +149,7 @@ func (s *Shell) OpenURL(raw string) {
 			fmt.Errorf(T("desktop.error.open_link_message"), raw))
 		return
 	}
+	s.EnsureWindow()
 	s.Navigate(in)
 }
 
@@ -149,6 +164,9 @@ func (s *Shell) OpenURL(raw string) {
 // handled where it belongs: ImportRecords refuses the duplicate record and
 // reports it, so the database keeps one copy.
 func (s *Shell) OpenFile(path string) {
+	// Reopen before importing: both the result and a failure are shown in a
+	// dialog, and on macOS the process may still be alive with no window.
+	s.EnsureWindow()
 	result, err := ImportLotteryFile(s.meta, path)
 	if err != nil {
 		s.reportError(T("desktop.error.import_failed"), err)
@@ -181,6 +199,11 @@ func (s *Shell) OpenFile(path string) {
 // path is relative to THAT, not to this process (see ParseIntentIn), which is
 // the same rule MyGo applies to the files it delivers itself.
 func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
+	// A launch is also a request to see the app. On macOS the process can
+	// still be running with its last window closed, so importing or navigating
+	// before recreating it would apply the request invisibly.
+	s.EnsureWindow()
+
 	var echoed []string
 	if conflict := s.pathConflict(args, workDir); conflict != "" {
 		// The message stands on its own: Linux shows the message box without
@@ -279,9 +302,9 @@ func (s *Shell) Reveal() {
 // leaves the app running (see main's OnWindowAllClosed), so "open the app"
 // must mean "show the window again" rather than "do nothing".
 //
-// create runs only on macOS and only when there is no live window; the caller
-// wires the new window exactly like the first one. It is a nil-able hook so a
-// shell without a window factory (tests) still answers.
+// create runs only when there is no live window; the caller wires the new
+// window exactly like the first one. It is a nil-able hook so a shell without
+// a window factory (tests) still answers.
 func (s *Shell) MainWindow(create func() *mygo.Window) *mygo.Window {
 	if win := s.Window(); win != nil && !win.IsDestroyed() {
 		s.Reveal()
@@ -299,6 +322,22 @@ func (s *Shell) MainWindow(create func() *mygo.Window) *mygo.Window {
 	return win
 }
 
+// EnsureWindow returns the live main window, recreating it when the app is
+// still running without one. It is the path every OS-delivered intent uses:
+// deep links and files must land in a visible window instead of being applied
+// to a destroyed one.
+func (s *Shell) EnsureWindow() *mygo.Window {
+	// Before WhenReady, NewWindow panics. A request that arrives that early is
+	// not lost: Navigate records it and the startup Attach loads it.
+	if !appReady() {
+		return nil
+	}
+	s.mu.Lock()
+	create := s.createWindow
+	s.mu.Unlock()
+	return s.MainWindow(create)
+}
+
 // Navigate loads the page an intent names in the window, when there is one.
 func (s *Shell) Navigate(in Intent) {
 	if s.navigate != nil {
@@ -308,12 +347,10 @@ func (s *Shell) Navigate(in Intent) {
 	s.mu.Lock()
 	win := s.win
 	if win == nil || win.IsDestroyed() || win.Page() == nil {
-		if win == nil {
-			s.pending = &in
-		}
-		// No window yet is a startup race, not a reason to forget the link:
-		// keep the newest one for Attach. A window that exists but has been
-		// destroyed is a different case - there is nothing to show it in.
+		// No live window is either a startup race or a macOS process whose
+		// last window was closed. Keep the newest request for the next Attach;
+		// EnsureWindow is what turns that into a visible window.
+		s.pending = &in
 		s.mu.Unlock()
 		return
 	}

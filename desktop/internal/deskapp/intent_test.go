@@ -529,6 +529,118 @@ func TestShellMainWindowRecreatesAClosedWindow(t *testing.T) {
 	assert.NotPanics(t, func() { assert.Nil(t, shell.MainWindow(nil)) })
 }
 
+// TestShellEnsureWindowWaitsForReady keeps a startup request from asking MyGo
+// for a window before the app can create one: NewWindow panics in that gap.
+// Once the app is ready, the same call runs the factory.
+func TestShellEnsureWindowWaitsForReady(t *testing.T) {
+	originalReady := appReady
+	t.Cleanup(func() { appReady = originalReady })
+
+	shell := NewShell(About{})
+	calls := 0
+	shell.SetWindowFactory(func() *mygo.Window {
+		calls++
+		return nil
+	})
+
+	appReady = func() bool { return false }
+	assert.Nil(t, shell.EnsureWindow())
+	assert.Zero(t, calls, "a window must not be created before WhenReady")
+
+	appReady = func() bool { return true }
+	assert.Nil(t, shell.EnsureWindow())
+	assert.Equal(t, 1, calls, "a request after the app is ready must try to reopen the window")
+}
+
+// TestShellForwardedLaunchRecreatesWindow pins the macOS lifecycle: Cmd+W
+// leaves the process running, and the next launch must reopen the window
+// before routing its link. Without this, OnSecondInstance reached Navigate
+// with a destroyed window and the page request disappeared.
+func TestShellForwardedLaunchRecreatesWindow(t *testing.T) {
+	originalReady := appReady
+	t.Cleanup(func() { appReady = originalReady })
+	appReady = func() bool { return true }
+
+	shell := NewShell(About{})
+	factoryCalls := 0
+	shell.SetWindowFactory(func() *mygo.Window {
+		factoryCalls++
+		return nil // a real window needs the running MyGo app
+	})
+	var navigated []Intent
+	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+
+	shell.HandleLaunchArgs([]string{"aurora://lottery?id=abc"}, "")
+
+	assert.Equal(t, 2, factoryCalls,
+		"both the launch and its link must ask for a live window")
+	require.Len(t, navigated, 1, "the link must still reach the shell")
+	assert.Equal(t, Intent{Page: "lottery", LotteryID: "abc", Raw: "aurora://lottery?id=abc"}, navigated[0])
+}
+
+// TestShellOpenedFileRecreatesWindow covers macOS delivering a file directly
+// through OnOpenFile, without an OnSecondInstance callback. Importing it while
+// the last window is closed would update the database with no visible result.
+func TestShellOpenedFileRecreatesWindow(t *testing.T) {
+	originalReady, originalAdd := appReady, addRecentDocument
+	t.Cleanup(func() { appReady, addRecentDocument = originalReady, originalAdd })
+	appReady = func() bool { return true }
+	addRecentDocument = func(string) error { return nil }
+
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "aurora.db")
+	exportPath := filepath.Join(dir, "draws.json")
+	document := `[{"id":"reopened-window-import","block_height":6,"seed":"reopen-seed","participants":["A","B"],"winners":["A"],"winner_addresses":["addr"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
+
+	repo, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	require.NoError(t, repo.Close())
+
+	shell := NewShell(About{DBPath: dbPath})
+	factoryCalls := 0
+	shell.SetWindowFactory(func() *mygo.Window {
+		factoryCalls++
+		return nil
+	})
+	var reports []string
+	shell.report = func(_ mygo.MessageType, title, message, _ string) {
+		reports = append(reports, title+" | "+message)
+	}
+
+	shell.OpenFile(exportPath)
+
+	assert.Equal(t, 1, factoryCalls, "a successfully imported file must recreate the window")
+	require.Len(t, reports, 1)
+	assert.Contains(t, reports[0], "Lotteries imported")
+}
+
+// TestShellFailedImportStillRecreatesWindow keeps a failed file open from
+// becoming invisible. The dialog needs a parent and the user needs to see why
+// the file was refused, so the window must exist on the failure path too.
+func TestShellFailedImportStillRecreatesWindow(t *testing.T) {
+	originalReady := appReady
+	t.Cleanup(func() { appReady = originalReady })
+	appReady = func() bool { return true }
+
+	shell := NewShell(About{DBPath: filepath.Join(t.TempDir(), "missing", "aurora.db")})
+	factoryCalls := 0
+	shell.SetWindowFactory(func() *mygo.Window {
+		factoryCalls++
+		return nil
+	})
+	var reports []string
+	shell.report = func(_ mygo.MessageType, title, message, _ string) {
+		reports = append(reports, title+" | "+message)
+	}
+
+	shell.OpenFile(filepath.Join(t.TempDir(), "draws.json"))
+
+	assert.Equal(t, 1, factoryCalls, "a failed import must still reopen the window")
+	require.Len(t, reports, 1)
+	assert.Contains(t, reports[0], "Import failed")
+}
+
 // TestShellDeliversALinkThatArrivesBeforeTheWindow pins the startup window: a
 // second launch can reach OnSecondInstance after the single-instance lock is
 // taken but before WhenReady created the window. Navigate had nowhere to go
@@ -559,4 +671,22 @@ func TestShellDeliversALinkThatArrivesBeforeTheWindow(t *testing.T) {
 	shell.Attach(nil)
 	require.Len(t, second, 1)
 	assert.Equal(t, "nft", second[0].Page)
+}
+
+// TestShellHoldsANavigationForAWindowThatCannotShowIt covers the other half
+// of the lifecycle: a window object can still be attached after it stopped
+// being displayable. The newest intent must survive until Attach receives the
+// replacement window instead of being dropped by Navigate.
+func TestShellHoldsANavigationForAWindowThatCannotShowIt(t *testing.T) {
+	shell := NewShell(About{})
+	shell.Attach(&mygo.Window{}) // no page: not displayable
+
+	shell.Navigate(Intent{Page: "voting", Raw: "aurora://voting"})
+
+	var navigated []Intent
+	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+	shell.Attach(nil)
+
+	require.Len(t, navigated, 1, "the replacement window must receive the held page")
+	assert.Equal(t, Intent{Page: "voting", Raw: "aurora://voting"}, navigated[0])
 }

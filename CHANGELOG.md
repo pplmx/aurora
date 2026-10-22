@@ -281,6 +281,13 @@ documented in their per-milestone ROADMAP files.
   documented pattern), every other platform still quits with its window, and
   both paths build the window through `openMainWindow` so a reopened window is
   never missing its icon or file-drop handler.
+- **A launch after Cmd+W was applied without a window**: the macOS process
+  outlives its last window, but a later launch only routed its link or export
+  through the shell. Navigation was dropped for the destroyed window and an
+  import could finish with no visible result. Every OS-delivered intent now
+  recreates the main window first through the same `openMainWindow` factory,
+  and a page requested while no window can show it is held until the
+  replacement attaches.
 - **File logging fell back to the console on every first run**: `logger.Init`
   validated `log.path` with `utils.NormalizePath` — which requires the
   directory to exist — before creating it, so the shipped default
