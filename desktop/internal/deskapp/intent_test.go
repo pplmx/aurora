@@ -469,6 +469,33 @@ func TestShell_RefusesAForeignDataDir(t *testing.T) {
 	assert.Empty(t, relReports, "a relative --data-dir naming the running database must not warn")
 }
 
+// TestShell_AcceptsTheRelativeDataDirItStartedWith is the other half of the
+// relative-path contract. Start records the database path, and a later launch
+// forwards the same relative flag resolved against its launcher directory. If
+// the first path stays relative, the two spellings describe one database but
+// compare unequal, so every normal relaunch is refused as a conflict.
+func TestShell_AcceptsTheRelativeDataDirItStartedWith(t *testing.T) {
+	launcher := t.TempDir()
+	t.Chdir(launcher)
+
+	dbPath, err := prepareDataDir("db", nil)
+	require.NoError(t, err)
+
+	shell := NewShell(About{DBPath: dbPath})
+	var reports []string
+	shell.report = func(_ mygo.MessageType, title, message, _ string) {
+		reports = append(reports, title+" | "+message)
+	}
+	var navigated []Intent
+	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+
+	shell.HandleLaunchArgs([]string{"--data-dir", "db", "aurora://voting"}, launcher)
+
+	assert.Empty(t, reports, "the same relative --data-dir must not look like a foreign database")
+	require.Len(t, navigated, 1)
+	assert.Equal(t, Intent{Page: "voting", Raw: "aurora://voting"}, navigated[0])
+}
+
 // TestShell_ImportDropped pins what a drop does with each kind of file.
 func TestShell_ImportDropped(t *testing.T) {
 	shell := NewShell(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})

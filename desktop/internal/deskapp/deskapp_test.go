@@ -140,6 +140,17 @@ func TestPrepareDataDir(t *testing.T) {
 	require.Equal(t, filepath.Join(dir, "aurora.db"), path)
 	require.DirExists(t, dir)
 
+	t.Run("relative directory", func(t *testing.T) {
+		work := t.TempDir()
+		t.Chdir(work)
+
+		path, err := prepareDataDir("db", nil)
+		require.NoError(t, err)
+		require.Equal(t, filepath.Join(work, "db", "aurora.db"), path)
+		require.True(t, filepath.IsAbs(path), "the recorded database path must not depend on the launch directory")
+		require.DirExists(t, filepath.Join(work, "db"))
+	})
+
 	original := userDataDir
 	t.Cleanup(func() { userDataDir = original })
 	userDataDir = func() (string, error) { return filepath.Join(dir, "userdata"), nil }
