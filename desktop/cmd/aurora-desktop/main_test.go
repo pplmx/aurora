@@ -186,3 +186,33 @@ func TestQuitOnLastWindowClosed(t *testing.T) {
 	assert.False(t, quitsOnLastWindowClosed("darwin"),
 		"macOS keeps the app alive after Cmd+W and reopens the window from the Dock")
 }
+
+// TestStartupRequiresWebViewBeforeDatabase pins the order that matters when a
+// user launches a package on a machine without WebKitGTK: the app must report
+// the missing runtime without first creating a database or logs. A packaged
+// launch from a desktop entry has no console, so the only useful report is the
+// startup dialog, and it must not leave partial state behind.
+func TestStartupRequiresWebViewBeforeDatabase(t *testing.T) {
+	var calls []string
+	err := startDesktop(
+		func() bool { calls = append(calls, "webview"); return false },
+		func() error { calls = append(calls, "start"); return nil },
+	)
+	require.Error(t, err)
+	require.Equal(t, []string{"webview"}, calls,
+		"a missing webview must stop startup before the database opens")
+	require.Contains(t, err.Error(), "no system webview")
+}
+
+// TestStartupRunsAfterWebView confirms the successful path still starts the
+// shell once the runtime check passes; otherwise the early return would turn
+// a missing webview into a reason to skip startup on every machine.
+func TestStartupRunsAfterWebView(t *testing.T) {
+	var calls []string
+	err := startDesktop(
+		func() bool { calls = append(calls, "webview"); return true },
+		func() error { calls = append(calls, "start"); return nil },
+	)
+	require.NoError(t, err)
+	require.Equal(t, []string{"webview", "start"}, calls)
+}

@@ -121,6 +121,12 @@ func TestCIPackagesTheDesktopApp(t *testing.T) {
 	require.Contains(t, workflow, "CGO_ENABLED: '1'")
 	require.Contains(t, workflow, "CC: gcc")
 	require.Contains(t, workflow, "go tool mygo build -platform linux/amd64")
+	require.Contains(t, workflow, "libwebkit2gtk-4.1-0 libgtk-3-0 xvfb",
+		"the package smoke test needs the runtime webview and a display")
+	require.Contains(t, workflow, "name: Smoke-test the packaged app")
+	require.Contains(t, workflow, "aurora.db")
+	require.Contains(t, workflow, `kill -0 "$pid"`,
+		"the app must still be alive after initializing its database")
 	require.Contains(t, workflow, "aurora --version")
 	require.Contains(t, workflow, `!= "0.0.1"`)
 	require.Contains(t, workflow, `s/^Build Time: //p`)
