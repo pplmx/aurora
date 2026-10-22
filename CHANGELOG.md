@@ -140,6 +140,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Startup flags written after a deep link were rejected**: `flag.Parse`
+  stops at the first positional argument, so
+  `aurora-desktop aurora://voting --data-dir X` failed as an extra argument
+  even though a second launch with the same ordering was handled. The shell
+  now collects the one link or export and parses startup flags on either side
+  of it, while preserving `--`, missing-value, and unknown-flag errors.
 - **A packaged desktop build reported `Build Time: unknown`**: `mygo build`
   supplies its own `-ldflags`, so the justfile's `-X main.BuildTime` never
   reached a bundled app. The packaging command now stamps the build time
