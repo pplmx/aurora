@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 169,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-22T03:03:54+00:00",
+  "updated_at": "2026-10-22T03:21:15+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -14496,6 +14496,73 @@
       "source": "desktop-build.yml Smoke-test the packaged app (run against dist/desktop/linux-amd64/aurora)",
       "description": "Extracting the workflow step verbatim (with matrix.path substituted) and running it against the existing linux-amd64 package exited 0: --version reported v1.1-683-g6a87ea8-dirty and a real build time, and aurora.db was created while the process stayed alive. The same command without an X display exits before the window ('cannot open display'), which is exactly the failure the file-existence check used to miss.",
       "confidence": 0.95
+    },
+    "ISS-321": {
+      "id": "ISS-321",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T03:20:34+00:00",
+      "updated_at": "2026-10-22T03:21:15+00:00",
+      "touched_round": 169,
+      "title": "Core module has no gofmt gate, so unformatted code reached main",
+      "description": "Commit 7a7f53d landed three unformatted Go files (internal/domain/voting/errors.go's length sentinels and two struct literals in internal/domain/nft/entity_test.go, plus a trailing blank line in internal/api/webserve_test.go). Both ci.yml's test and lint jobs run vet/test/lint but never gofmt, so nothing failed; the desktop job was the only formatted gate, and it does not see the core module.  would have caught it, but nothing enforced that it ran.",
+      "severity": 0.45,
+      "resolution": "Core module now has a gofmt gate in ci.yml plus a Go test; the unformatted files from 7a7f53d are formatted."
+    },
+    "HYP-036": {
+      "id": "HYP-036",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T03:20:34+00:00",
+      "updated_at": "2026-10-22T03:20:34+00:00",
+      "touched_round": 169,
+      "title": "A core-module format gate would have blocked 7a7f53d",
+      "description": "Adding  over  to ci.yml, plus a Go test that runs the same check and asserts the workflow step exists, makes an unformatted core file fail both locally and in CI. The -s flag matches the justfile so a locally-formatted tree is exactly what CI accepts.",
+      "confidence": 0.92
+    },
+    "TASK-325": {
+      "id": "TASK-325",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T03:21:00+00:00",
+      "updated_at": "2026-10-22T03:21:15+00:00",
+      "touched_round": 169,
+      "category": "maintainability",
+      "title": "Gate the core module on gofmt",
+      "description": "Commit 7a7f53d landed three unformatted Go files because ci.yml only ran vet/test/lint on the core module; only the desktop job formatted anything. Run gofmt -s over go list ./... in ci.yml's test job, keep the desktop job's own gate, and add ci_format_test.go so a plain go test ./... and the workflow contract both catch unformatted code.",
+      "severity": 0.45,
+      "confidence": 0.92,
+      "effort": 1,
+      "unlock_factor": 1.2,
+      "outcome": "ci.yml's test job runs gofmt -s over go list ./... before vet; ci_format_test.go runs the same check and asserts the workflow step exists. The three files 7a7f53d left unformatted are restored to gofmt output; misaligning one sentinel fails both gates."
+    },
+    "EV-116": {
+      "id": "EV-116",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T03:21:01+00:00",
+      "updated_at": "2026-10-22T03:21:01+00:00",
+      "touched_round": 169,
+      "title": "Unformatting one sentinel block fails both the workflow gate and the Go test",
+      "source": "internal/domain/voting/errors.go + ci_format_test.go TestCoreModuleIsGofmtClean + .github/workflows/ci.yml Format",
+      "description": "Misaligning ErrVoterNameTooLong in internal/domain/voting/errors.go made  (the extracted workflow step) print 'gofmt would change: internal/domain/voting/errors.go' and exit 1, and made TestCoreModuleIsGofmtClean fail with 'run gofmt -s -w on these files'. Restoring the file made both pass.",
+      "confidence": 0.95
+    },
+    "CHG-324": {
+      "id": "CHG-324",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T03:21:10+00:00",
+      "updated_at": "2026-10-22T03:21:10+00:00",
+      "touched_round": 169,
+      "title": "Format the core module and gate it on gofmt",
+      "commit": "06431cc",
+      "description": "ci.yml's test job runs gofmt -s over this module's packages before vet; ci_format_test.go runs the same check and asserts the workflow step. Restores gofmt on the three files 7a7f53d committed unformatted."
     }
   },
   "edges": [
@@ -22545,6 +22612,30 @@
       "to": "HYP-034",
       "type": "validates",
       "created_at": "2026-10-22T02:58:26+00:00"
+    },
+    {
+      "from": "EV-116",
+      "to": "HYP-036",
+      "type": "validates",
+      "created_at": "2026-10-22T03:21:10+00:00"
+    },
+    {
+      "from": "CHG-324",
+      "to": "ISS-321",
+      "type": "resolves",
+      "created_at": "2026-10-22T03:21:10+00:00"
+    },
+    {
+      "from": "CHG-324",
+      "to": "TASK-325",
+      "type": "implements",
+      "created_at": "2026-10-22T03:21:10+00:00"
+    },
+    {
+      "from": "TASK-325",
+      "to": "ISS-321",
+      "type": "addresses",
+      "created_at": "2026-10-22T03:21:10+00:00"
     }
   ]
 }
