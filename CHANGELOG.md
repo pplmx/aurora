@@ -149,6 +149,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The README had turned into an engineering log**: 528 lines, half of them
+  the desktop design rationale, pushed install and quick start below the fold
+  and left 12 `rumdl` table errors behind. The front page is now a release
+  landing page (three entry points, install, desktop menu, CLI, API, config,
+  structure, coverage, doc index); the desktop rationale moved to
+  `docs/desktop.md`, and the CLI/API references to `docs/cli.md` and
+  `docs/api.md`. The CI/release secret contracts are still guarded, now
+  against the page that documents them, and every new page passes `rumdl`.
 - **`aurora lottery export` could overwrite the live database**: the command
   read the records and then wrote the chosen filename without checking what
   that filename was. Passing `./data/aurora.db` (or a symlink to it, or its
