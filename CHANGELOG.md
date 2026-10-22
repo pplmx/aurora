@@ -140,6 +140,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A failed lottery export destroyed the previous export**: both
+  `aurora lottery export` and File → Export called `os.WriteFile`, which
+  truncates the destination before writing. A disk-full or I/O failure
+  therefore left an empty or partial file where the user's last good export
+  had been. Exports now go through a temporary sibling and an atomic rename;
+  an existing file keeps its permissions, a symlink keeps pointing at its
+  target, and any failure leaves the previous document untouched.
 - **Startup flags written after a deep link were rejected**: `flag.Parse`
   stops at the first positional argument, so
   `aurora-desktop aurora://voting --data-dir X` failed as an extra argument

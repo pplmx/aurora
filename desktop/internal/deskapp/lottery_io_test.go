@@ -2,9 +2,11 @@ package deskapp
 
 import (
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/egoist/mygo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -105,4 +107,62 @@ func TestImportRecords_PartialFailureMatchesCLIContract(t *testing.T) {
 	result, err := lotteryapp.ImportRecords(repo, document)
 	require.NoError(t, err)
 	assert.Equal(t, lotteryapp.ImportResult{Total: 2, Imported: 1, Rejected: []int{1}}, result)
+}
+
+// TestExportLotteriesReplacesTheDocumentAtomically pins the menu path, not
+// just the shared writer: File > Export must produce the same document the CLI
+// does, keep an existing file's permissions, and leave no temporary sibling.
+func TestExportLotteriesReplacesTheDocumentAtomically(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+	repo, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	record := domainlottery.LotteryRecord{
+		ID:              "menu-export-id",
+		BlockHeight:     3,
+		Seed:            "menu-export-seed",
+		Participants:    []string{"A", "B"},
+		Winners:         []string{"A"},
+		WinnerAddresses: []string{"addr"},
+		VRFOutput:       "0011223344556677889900aabbccddeeff00112233445566778899aabbccddee",
+		VRFProof:        "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100",
+		Verified:        true,
+	}
+	require.NoError(t, repo.Save(&record))
+	require.NoError(t, repo.Close())
+
+	exportPath := filepath.Join(t.TempDir(), "aurora-lotteries.json")
+	require.NoError(t, os.WriteFile(exportPath, []byte(`["stale"]`), 0o600))
+	require.NoError(t, os.Chmod(exportPath, 0o640))
+
+	originalSave := saveDialog
+	originalBox := messageBox
+	originalReady := appReady
+	t.Cleanup(func() {
+		saveDialog = originalSave
+		messageBox = originalBox
+		appReady = originalReady
+	})
+	saveDialog = func(mygo.SaveDialogOptions) (string, error) { return exportPath, nil }
+	var dialogs []mygo.MessageOptions
+	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
+	appReady = func() bool { return false }
+
+	exportLotteries(About{DBPath: dbPath}, nil)
+
+	data, err := os.ReadFile(exportPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "menu-export-id")
+	assert.NotContains(t, string(data), `"stale"`)
+
+	info, err := os.Stat(exportPath)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o640), info.Mode().Perm())
+
+	entries, err := os.ReadDir(filepath.Dir(exportPath))
+	require.NoError(t, err)
+	assert.Len(t, entries, 1, "the export must not leave a temporary sibling")
+
+	require.Len(t, dialogs, 1)
+	assert.Equal(t, mygo.MessageInfo, dialogs[0].Type)
+	assert.Equal(t, "Lotteries exported", dialogs[0].Title)
 }
