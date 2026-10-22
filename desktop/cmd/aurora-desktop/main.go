@@ -282,9 +282,10 @@ func main() {
 			mygo.App.Quit()
 		}
 	})
+	shell.SetWindowFactory(func() *mygo.Window { return openMainWindow(shell, opts) })
 	mygo.App.OnActivate(func(hasVisibleWindows bool) {
 		if !hasVisibleWindows {
-			shell.MainWindow(func() *mygo.Window { return openMainWindow(shell, opts) })
+			shell.EnsureWindow()
 		}
 	})
 
