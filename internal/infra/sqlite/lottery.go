@@ -56,6 +56,12 @@ func NewLotteryRepository(dbPath string) (*LotteryRepository, error) {
 	return repo, nil
 }
 
+// DBPath reports the SQLite file this repository writes. Export needs it to
+// refuse a destination that aliases the live database: replacing that file
+// with a JSON export destroys the store, even though the open handle keeps
+// serving reads until the process exits.
+func (r *LotteryRepository) DBPath() string { return r.dbPath }
+
 func (r *LotteryRepository) createTables() error {
 	if _, err := r.db.Exec("PRAGMA journal_mode=WAL"); err != nil {
 		return fmt.Errorf("failed to set WAL mode: %w", err)

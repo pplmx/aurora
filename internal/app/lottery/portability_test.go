@@ -1,6 +1,8 @@
 package lottery
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,4 +46,54 @@ func TestImportRecords_RejectsNull(t *testing.T) {
 	assert.Contains(t, err.Error(), "null")
 	assert.Empty(t, repo.records, "a null document must store nothing")
 	assert.Zero(t, result.Imported)
+}
+
+type pathLotteryRepo struct {
+	emptyLotteryRepo
+	path string
+}
+
+func (r pathLotteryRepo) DBPath() string { return r.path }
+
+// TestWriteRecordsToFile_RefusesTheLiveDatabase covers the shared export entry
+// point: the file it would replace may be the database itself, an alias of it,
+// or one of SQLite's sidecars.
+func TestWriteRecordsToFile_RefusesTheLiveDatabase(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "aurora.db")
+	require.NoError(t, os.WriteFile(dbPath, []byte("not really sqlite"), 0o644))
+	repo := pathLotteryRepo{path: dbPath}
+
+	for _, dest := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
+		_, err := WriteRecordsToFile(repo, dest)
+		require.Error(t, err, "exporting to %s must be refused", dest)
+		assert.Contains(t, err.Error(), "live database")
+	}
+
+	data, err := os.ReadFile(dbPath)
+	require.NoError(t, err)
+	assert.Equal(t, "not really sqlite", string(data), "a refused export must leave the database alone")
+}
+
+func TestWriteRecordsToFile_RefusesASymlinkAlias(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "aurora.db")
+	alias := filepath.Join(dir, "draws.json")
+	require.NoError(t, os.WriteFile(dbPath, []byte("not really sqlite"), 0o644))
+	require.NoError(t, os.Symlink(dbPath, alias))
+
+	_, err := WriteRecordsToFile(pathLotteryRepo{path: dbPath}, alias)
+	require.Error(t, err, "a symlink to the database is the database")
+	assert.Contains(t, err.Error(), "live database")
+}
+
+func TestWriteRecordsToFile_WritesAnEmptyArray(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "empty.json")
+	count, err := WriteRecordsToFile(emptyLotteryRepo{}, path)
+	require.NoError(t, err)
+	assert.Zero(t, count)
+
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.JSONEq(t, "[]", string(data))
 }

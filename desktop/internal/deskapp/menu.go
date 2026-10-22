@@ -13,7 +13,6 @@ import (
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/infra/backup"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
-	"github.com/pplmx/aurora/internal/utils"
 )
 
 // About is what the About dialog and the backup action report.
@@ -220,12 +219,8 @@ func exportLotteries(meta About, win *mygo.Window) {
 	}
 	defer closeRepo()
 
-	document, count, err := lotteryapp.ExportRecords(repo)
+	count, err := lotteryapp.WriteRecordsToFile(repo, path)
 	if err != nil {
-		showError(parent(win), T("desktop.error.export_failed"), err)
-		return
-	}
-	if err := utils.WriteFileAtomic(path, document, 0o644); err != nil {
 		showError(parent(win), T("desktop.error.export_failed"), err)
 		return
 	}

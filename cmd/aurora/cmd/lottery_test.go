@@ -291,6 +291,30 @@ func TestLotteryExport_EmptyDatabaseIsAnArray(t *testing.T) {
 	})
 }
 
+// TestLotteryExport_RefusesToOverwriteTheDatabase pins the guard the probe
+// found missing: the export used to replace the SQLite file with JSON and
+// print success, and only the already-open handle kept history working.
+func TestLotteryExport_RefusesToOverwriteTheDatabase(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		_, err := runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "self-export", "--count", "1")
+		require.NoError(t, err)
+
+		dbPath := "./data/aurora.db"
+		before, err := os.ReadFile(dbPath)
+		require.NoError(t, err)
+		require.Equal(t, "SQLite format 3\x00", string(before[:16]))
+
+		_, err = runCmd(t, "lottery", "export", dbPath)
+		require.Error(t, err, "exporting over the live database must be refused")
+		assert.Contains(t, err.Error(), "live database")
+
+		after, err := os.ReadFile(dbPath)
+		require.NoError(t, err)
+		assert.Equal(t, before, after, "a refused export must not touch the database")
+	})
+}
+
 func TestLotteryImport_RejectsNullDocument(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		path := filepath.Join(t.TempDir(), "null.json")

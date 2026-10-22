@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/utils"
 )
 
 // ExportRecords serializes every stored draw as the portable JSON document
@@ -32,6 +35,63 @@ func ExportRecords(repo lottery.Repository) (document []byte, count int, err err
 		return nil, 0, fmt.Errorf("marshal records: %w", err)
 	}
 	return output, len(records), nil
+}
+
+// WriteRecordsToFile writes the portable document of repo to path. It is the
+// one export entry point for the CLI and the desktop menu, so both apply the
+// same safety checks: the destination may not be the live database (or one of
+// its sidecars), and the write is atomic.
+func WriteRecordsToFile(repo lottery.Repository, path string) (count int, err error) {
+	if provider, ok := repo.(interface{ DBPath() string }); ok {
+		if err := refuseLiveDatabaseDestination(provider.DBPath(), path); err != nil {
+			return 0, err
+		}
+	}
+	document, count, err := ExportRecords(repo)
+	if err != nil {
+		return 0, err
+	}
+	if err := utils.WriteFileAtomic(path, document, 0o644); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// refuseLiveDatabaseDestination rejects a destination that would replace the
+// database being exported. os.SameFile catches a symlink or hard-link alias;
+// the cleaned path comparison also covers a sidecar that does not exist yet
+// but whose exact name would land on the live database's WAL or SHM file.
+func refuseLiveDatabaseDestination(dbPath, dest string) error {
+	if dbPath == "" {
+		return nil
+	}
+	for _, live := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
+		if sameExistingFile(live, dest) || sameCleanPath(live, dest) {
+			return fmt.Errorf("refusing to export over the live database file %q", live)
+		}
+	}
+	return nil
+}
+
+func sameExistingFile(a, b string) bool {
+	aInfo, err := os.Stat(a)
+	if err != nil {
+		return false
+	}
+	bInfo, err := os.Stat(b)
+	if err != nil {
+		return false
+	}
+	return os.SameFile(aInfo, bInfo)
+}
+
+func sameCleanPath(a, b string) bool {
+	aAbs, aErr := filepath.Abs(a)
+	bAbs, bErr := filepath.Abs(b)
+	if aErr != nil || bErr != nil {
+		return filepath.Clean(a) == filepath.Clean(b)
+	}
+	return filepath.Clean(aAbs) == filepath.Clean(bAbs)
 }
 
 // ImportResult reports what ImportRecords did with a document.
