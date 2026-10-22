@@ -192,72 +192,11 @@ jobs:
       # while release.yml makes them mandatory before packaging.
       - name: Configure Windows signing
         if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          REQUIRE_SIGNED_WINDOWS: ${{ inputs.require_signed_windows }}
-          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: |
-          $missing = @()
-          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE)) {
-            $missing += "WINDOWS_CERTIFICATE"
-          }
-          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
-            $missing += "WINDOWS_CERTIFICATE_PASSWORD"
-          }
-
-          if ($missing.Count -gt 0) {
-            if ($env:REQUIRE_SIGNED_WINDOWS -eq "true") {
-              Write-Error "This release requires Authenticode-signed Windows packages, but these repository secrets are missing: $($missing -join ', '). See README.md `"Windows 发布签名`" for the exact secret contract."
-              exit 1
-            }
-            if ($missing.Count -lt 2) {
-              Write-Error "Windows signing secrets are partially configured; set WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD, or neither."
-              exit 1
-            }
-            "WINDOWS_SIGNING=disabled" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            Write-Host "Windows signing is not configured; the package is unsigned and is not releasable."
-            exit 0
-          }
-
-          $pfx = Join-Path $env:RUNNER_TEMP "aurora-code-signing.pfx"
-          try {
-            $encoded = $env:WINDOWS_CERTIFICATE -replace '\s', ''
-            $bytes = [Convert]::FromBase64String($encoded)
-            [IO.File]::WriteAllBytes($pfx, $bytes)
-            $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
-              $pfx,
-              $env:WINDOWS_CERTIFICATE_PASSWORD,
-              [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet
-            )
-          } catch {
-            Write-Error "The Windows signing certificate is unusable: $($_.Exception.Message)"
-            exit 1
-          }
-          if (-not $certificate.HasPrivateKey) {
-            Write-Error "WINDOWS_CERTIFICATE must contain a code-signing certificate with its private key."
-            exit 1
-          }
-
-          $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
-          if (-not $signtool) {
-            $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\x64\signtool.exe" -ErrorAction SilentlyContinue |
-              Sort-Object FullName -Descending |
-              Select-Object -First 1
-            if (-not $signtool) {
-              Write-Error "Windows signing is configured, but signtool.exe was not found. Install the Windows SDK."
-              exit 1
-            }
-            Split-Path $signtool.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          }
-
-          @(
-            "WINDOWS_CERTIFICATE_FILE=$pfx",
-            "WINDOWS_SIGNING=enabled",
-            "WINDOWS_SIGNING_SUBJECT=$($certificate.Subject)",
-            "WINDOWS_SIGNING_THUMBPRINT=$($certificate.Thumbprint)"
-          ) | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "Windows Authenticode signing configured for $($certificate.Subject)."
+        uses: ./.github/actions/windows-signing
+        with:
+          require_signed: ${{ inputs.require_signed_windows }}
+          certificate: ${{ secrets.WINDOWS_CERTIFICATE }}
+          certificate_password: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
       # MyGo defaults CGO_ENABLED to 0. Aurora's SQLite driver needs cgo, and
       # the package must be built on its target OS (not cross-compiled).
@@ -327,11 +266,11 @@ jobs:
         env:
           REQUIRE_SIGNED_WINDOWS: ${{ inputs.require_signed_windows }}
         run: |
+          if ($env:REQUIRE_SIGNED_WINDOWS -eq "true" -and $env:WINDOWS_SIGNING -ne "enabled") {
+            Write-Error "This release requires Authenticode-signed Windows packages, but signing was not enabled."
+            exit 1
+          }
           if ($env:WINDOWS_SIGNING -ne "enabled") {
-            if ($env:REQUIRE_SIGNED_WINDOWS -eq "true") {
-              Write-Error "This release requires Authenticode-signed Windows packages, but signing was not enabled."
-              exit 1
-            }
             Write-Host "Windows signing is not configured; skipping Authenticode verification for this development package."
             exit 0
           }

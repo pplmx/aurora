@@ -24,8 +24,10 @@ env:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
+    secrets: inherit
     with:
       ref: ${{ inputs.tag || github.ref }}
+      require_signed_windows: true
 
   desktop-build:
     uses: ./.github/workflows/desktop-build.yml
@@ -46,6 +48,73 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # The previous stub cross-build produced files whose database commands
+      # failed at runtime. Read Go's own build metadata before publishing and
+      # smoke-test the native Linux binary.
+      - name: Verify release artifacts
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          while read -r file goos goarch; do
+            metadata="$(go version -m "$file")"
+            grep -Fq $'\tbuild\tCGO_ENABLED=1' <<<"$metadata"
+            grep -Fq $'\tbuild\tGOOS='"$goos" <<<"$metadata"
+            grep -Fq $'\tbuild\tGOARCH='"$goarch" <<<"$metadata"
+          done <<EOF
+          artifacts/aurora-darwin-amd64/aurora-darwin-amd64 darwin amd64
+          artifacts/aurora-darwin-arm64/aurora-darwin-arm64 darwin arm64
+          artifacts/aurora-linux-amd64/aurora-linux-amd64 linux amd64
+          artifacts/aurora-linux-arm64/aurora-linux-arm64 linux arm64
+          artifacts/aurora-windows-amd64/aurora-windows-amd64.exe windows amd64
+          artifacts/aurora-windows-arm64/aurora-windows-arm64.exe windows arm64
+          EOF
+
+          output="$(artifacts/aurora-linux-amd64/aurora-linux-amd64 version)"
+          grep -Fq "Version: $RELEASE_VERSION" <<<"$output"
+          if grep -Fq "Build Time: unknown" <<<"$output"; then
+            echo "the release binary has no build timestamp" >&2
+            exit 1
+          fi
+
+      - name: Generate release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd artifacts
+          find \
+            aurora-darwin-amd64 aurora-darwin-arm64 \
+            aurora-linux-amd64 aurora-linux-arm64 \
+            aurora-windows-amd64 aurora-windows-arm64 \
+            -maxdepth 1 -type f -print0 |
+            sort -z |
+            xargs -0 -r sha256sum > checksums.txt
+          find \
+            aurora-desktop-darwin-amd64 aurora-desktop-darwin-arm64 \
+            aurora-desktop-linux-amd64 aurora-desktop-linux-arm64 \
+            aurora-desktop-windows-amd64 \
+            -maxdepth 1 -type f \
+            \( -name '*.dmg' -o -name '*.deb' -o -name '*.tar.gz' -o -name 'install.sh' -o -name 'Aurora.exe' -o -name '*Setup*.exe' \) \
+            -print0 |
+            sort -z |
+            xargs -0 -r sha256sum >> checksums.txt
+          # Six CLI binaries plus nine desktop distributables (two DMGs, two
+          # debs, two tarballs, install.sh, Aurora.exe and one NSIS installer).
+          test "$(wc -l < checksums.txt)" -ge 15
+          sha256sum -c checksums.txt
+          # GitHub Releases flatten assets into one directory. Drop the local
+          # artifact directory from each line so a downloaded checksums.txt
+          # verifies the files users actually receive.
+          sed -E 's#  .*/#  #' checksums.txt > checksums.release.txt
+          mv checksums.release.txt checksums.txt
+          ! grep -Eq '  .*/' checksums.txt
+          test -s checksums.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -70,5 +139,6 @@ jobs:
             artifacts/aurora-desktop-linux-amd64/install.sh
             artifacts/aurora-desktop-windows-amd64/Aurora.exe
             artifacts/aurora-desktop-windows-amd64/*Setup*.exe
+            artifacts/checksums.txt
           generate_release_notes: true
           overwrite_files: true
