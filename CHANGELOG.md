@@ -237,6 +237,11 @@ documented in their per-milestone ROADMAP files.
   normal relaunch was refused. The startup path now records an absolute
   `aurora.db` path, and a regression test starts from a relative directory
   before forwarding the same flag.
+- **The same `--web-root` with a trailing slash looked different**: the
+  first instance stored `/srv/web/` while a later launch forwarded `/srv/web`
+  (or the reverse), and the conflict check rejected the launch even though
+  both name the directory the window is serving. Both path comparisons now
+  use one canonical spelling, with a regression test for either direction.
 - **A deep link forwarded during startup was dropped**: a second launch can
   reach `OnSecondInstance` after the single-instance lock is taken but before
   `WhenReady` created the window, and navigation with no window simply
