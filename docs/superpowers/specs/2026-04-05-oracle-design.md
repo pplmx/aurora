@@ -17,7 +17,7 @@
 
 | 组件        | 技术          | 版本                        |
 | ----------- | ------------- | --------------------------- |
-| 语言        | Go            | 1.26+                       |
+| 语言        | Go            | 1.27+                       |
 | HTTP 客户端 | net/http      | 标准库                      |
 | 存储        | 内存 + SQLite | github.com/mattn/go-sqlite3 |
 | TUI         | Bubble Tea    | latest                      |

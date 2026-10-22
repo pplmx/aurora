@@ -95,7 +95,7 @@ just stop         # Stop containers: docker compose down
 
 ## Dependencies
 
-- Go 1.26+
+- Go 1.27+
 - Cobra (CLI framework)
 - Viper (config)
 - Zerolog (logging)

@@ -93,7 +93,7 @@ go test ./e2e/ -v
 
 ## 依赖
 
-- Go 1.26+
+- Go 1.27+
 - filippo.io/edwards25519 - Edwards25519 曲线实现
 - github.com/charmbracelet/bubbletea - TUI 框架
 - github.com/charmbracelet/lipgloss - 样式

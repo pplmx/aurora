@@ -33,9 +33,9 @@ FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**
 从源码构建：
 
 ```bash
-go build -o aurora ./cmd/aurora          # CLI（Go 1.26+）
+go build -o aurora ./cmd/aurora          # CLI（Go 1.27+）
 go build -o aurora-api ./cmd/api         # REST API + Web
-just desktop                             # 桌面壳（Go 1.27.1+、cgo、WebKitGTK/WebView2）
+just desktop                             # 桌面壳（Go 1.27+、cgo、WebKitGTK/WebView2）
 ```
 
 `just` 是唯一的任务入口（没有 Makefile）：
@@ -82,6 +82,9 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 完整架构、窗口生命周期、打包与签名流程见 [docs/desktop.md](docs/desktop.md)。
 
 ## CLI 快速开始
+
+桌面端就是上面同一套功能的图形入口；下面的命令用于脚本、自动化和无图形
+环境。
 
 ```bash
 ./aurora lottery create -p "A,B,C,D" -s "seed" -c 3   # VRF 抽奖
@@ -170,7 +173,7 @@ DDD 分层：`domain` 持有实体、领域服务与仓储接口；`app` 编排�
 
 ## 技术栈
 
-Go 1.26+（桌面模块 1.27.1）、Cobra、Viper、Zerolog、Bubble Tea v2、SQLite
+Go 1.27+、Cobra、Viper、Zerolog、Bubble Tea v2、SQLite
 （mattn/go-sqlite3，cgo）、filippo.io/edwards25519、MyGo、Alpine.js。
 
 ## 开发

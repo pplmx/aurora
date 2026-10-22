@@ -18,7 +18,7 @@
 
 | 组件 | 技术           | 版本                        |
 | ---- | -------------- | --------------------------- |
-| 语言 | Go             | 1.26+                       |
+| 语言 | Go             | 1.27+                       |
 | 签名 | crypto/ed25519 | 标准库                      |
 | 存储 | 内存 + SQLite  | github.com/mattn/go-sqlite3 |
 | TUI  | Bubble Tea     | latest                      |

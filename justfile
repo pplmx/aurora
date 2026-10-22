@@ -59,9 +59,8 @@ build-current:
 api:
     go build -trimpath -ldflags="{{api-ldflags}}" -o aurora-api ./cmd/api
 
-# The desktop shell is a nested Go module: MyGo needs Go 1.27 while the core
-# module stays on 1.26, so the desktop toolchain requirement never leaks into
-# `go build ./...` or CI (that is why this is a separate `cd desktop` build).
+# The desktop shell is a nested Go module: its MyGo toolchain stays out of
+# the root build graph (that is why this is a separate `cd desktop` build).
 # Build the MyGo desktop shell (needs Go 1.27 + native cgo)
 desktop:
     cd desktop && go build -trimpath -ldflags="{{desktop-ldflags}}" -o ../aurora-desktop ./cmd/aurora-desktop
