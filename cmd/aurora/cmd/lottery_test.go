@@ -275,6 +275,33 @@ func TestLotteryExport_Import(t *testing.T) {
 	})
 }
 
+// TestLotteryExport_EmptyDatabaseIsAnArray pins the document an empty database
+// produces. The nil slice used to marshal as `null`, which the importer then
+// accepted as "0 records imported" even though it is not an export document.
+func TestLotteryExport_EmptyDatabaseIsAnArray(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		exportPath := filepath.Join(t.TempDir(), "empty.json")
+		out, err := runCmd(t, "lottery", "export", exportPath)
+		require.NoError(t, err)
+		assert.Contains(t, out, "Exported 0 lottery records")
+
+		data, err := os.ReadFile(exportPath)
+		require.NoError(t, err)
+		assert.JSONEq(t, `[]`, string(data), "an empty export must be a JSON array")
+	})
+}
+
+func TestLotteryImport_RejectsNullDocument(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "null.json")
+		require.NoError(t, os.WriteFile(path, []byte("null"), 0o644))
+
+		_, err := runCmd(t, "lottery", "import", path)
+		require.Error(t, err, "null is not a portable export and must not report a successful import")
+		assert.Contains(t, err.Error(), "null")
+	})
+}
+
 func TestLotteryImport_InvalidFile(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		bad := filepath.Join(t.TempDir(), "bad.json")

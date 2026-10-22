@@ -140,6 +140,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **An empty lottery export was `null`, and importing `null` looked like a
+  success**: `ExportRecords` marshalled the repository's nil slice, so
+  `aurora lottery export` and File → Export wrote `null` for a database with
+  no draws. `json.Unmarshal` accepts that into a slice, so
+  `aurora lottery import null.json` (and a dropped `null` export) reported
+  "imported 0 records" for a document that is not the portable array format.
+  Empty exports are now `[]`, and a null document is refused before anything
+  is written.
 - **A failed lottery export destroyed the previous export**: both
   `aurora lottery export` and File → Export called `os.WriteFile`, which
   truncates the destination before writing. A disk-full or I/O failure
