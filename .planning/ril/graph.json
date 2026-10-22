@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 155,
+  "round": 169,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-21T08:06:55+00:00",
+  "updated_at": "2026-10-22T03:03:54+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 145,
+      "touched_round": 155,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 124,
+      "touched_round": 166,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 152,
+      "touched_round": 155,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 148,
+      "touched_round": 155,
       "title": "voting module"
     },
     "CHG-008": {
@@ -5906,7 +5906,7 @@
       "version": 2,
       "created_at": "2026-08-28T14:17:35+00:00",
       "updated_at": "2026-08-28T15:38:58+00:00",
-      "touched_round": 100,
+      "touched_round": 155,
       "severity": 0.5,
       "title": "Token create API coerces an explicit 0 decimals to the default 8: the handler signals omitted-vs-0 with a *int8 pointer (TASK-099 intent) but dereferences into a plain int8 before resolveDecimals maps <=0 to default — a client cannot express a 0-decimal token and gets a silently different definition"
     },
@@ -5980,12 +5980,12 @@
       "id": "CHG-130",
       "type": "change",
       "status": "active",
-      "version": 1,
+      "version": 2,
       "created_at": "2026-08-28T15:36:03+00:00",
-      "updated_at": "2026-08-28T15:36:03+00:00",
-      "touched_round": 100,
+      "updated_at": "2026-10-21T12:50:31+00:00",
+      "touched_round": 155,
       "commit": "0932e41",
-      "title": "Backup Verify/Restore reject path-traversal database names; fixes TASK-135/ISS-126"
+      "title": "Backup Verify/Restore reject path-traversal database names; fixes TASK-135 (ISS-126 was mis-linked)"
     },
     "CHG-131": {
       "id": "CHG-131",
@@ -10737,7 +10737,7 @@
       "version": 1,
       "created_at": "2026-09-02T06:54:45+00:00",
       "updated_at": "2026-09-02T06:54:45+00:00",
-      "touched_round": 143,
+      "touched_round": 155,
       "title": "repository-intelligence-layer (RIL): .planning/ril graph store + CLI"
     },
     "ISS-253": {
@@ -11416,7 +11416,7 @@
       "version": 2,
       "created_at": "2026-10-21T03:17:02+00:00",
       "updated_at": "2026-10-21T03:51:14+00:00",
-      "touched_round": 154,
+      "touched_round": 165,
       "name": "desktop/cmd/aurora-desktop",
       "path": "desktop/cmd/aurora-desktop",
       "description": "mygo desktop shell in the nested desktop/ module: embeds the Web UI (root package embed.go) and serves the internal/api router from an in-process aurora:// scheme handler that never opens a listener; File menu shares lottery export/import, backup, show-data-folder"
@@ -11642,7 +11642,7 @@
       "version": 1,
       "created_at": "2026-10-21T04:55:28+00:00",
       "updated_at": "2026-10-21T04:55:28+00:00",
-      "touched_round": 155,
+      "touched_round": 166,
       "name": "desktop-shell",
       "path": "desktop/internal/deskapp",
       "description": "MyGo desktop shell: scheme transport, intents, menus, launch-argument routing"
@@ -12836,6 +12836,1665 @@
       "touched_round": 155,
       "title": "Recent entries persist after a successful import and the readiness guard prevents a pre-Run hang",
       "source": "desktop/internal/deskapp/import_report_test.go TestOpenedDocumentsAreRemembered; Xvfb :170 with LANG=zh_CN and a forwarded /tmp/recent-demo.json; fault injection removing !appReady() turns the test red",
+      "confidence": 0.95
+    },
+    "ISS-296": {
+      "id": "ISS-296",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:49:48+00:00",
+      "updated_at": "2026-10-21T12:49:49+00:00",
+      "touched_round": 155,
+      "title": "A forwarded relative file URL resolves against the running instance instead of the launcher",
+      "description": "ParseIntentIn tried a relative argument as written before joining workDir, so when the running instance had a same-named .json it won. file:draws.json was also rejected because net/url keeps that relative path in Opaque, not Path."
+    },
+    "TASK-300": {
+      "id": "TASK-300",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T12:49:48+00:00",
+      "updated_at": "2026-10-21T12:49:49+00:00",
+      "touched_round": 155,
+      "category": "correctness",
+      "title": "Resolve forwarded relative paths only against the launcher directory",
+      "severity": 0.75,
+      "confidence": 0.98,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "HYP-017": {
+      "id": "HYP-017",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:49:48+00:00",
+      "updated_at": "2026-10-21T12:49:49+00:00",
+      "touched_round": 155,
+      "title": "ParseIntentIn resolves relative forwarded paths against the running process before the launcher directory",
+      "confidence": 0.98
+    },
+    "EV-086": {
+      "id": "EV-086",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:49:48+00:00",
+      "updated_at": "2026-10-21T12:49:48+00:00",
+      "touched_round": 155,
+      "title": "Regression test decoy in the running CWD is rejected and file:draws.json resolves under the launcher; removing the launcher-only branch turns it red",
+      "source": "desktop/internal/deskapp/intent_test.go TestParseIntentIn_DoesNotResolveAgainstTheWrongDirectory, TestParseIntentIn_ResolvesRelativeFileURLsAgainstTheLauncher",
+      "confidence": 1.0
+    },
+    "ISS-297": {
+      "id": "ISS-297",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:49:49+00:00",
+      "updated_at": "2026-10-21T12:49:49+00:00",
+      "touched_round": 155,
+      "title": "ParseIntentIn resolves relative forwarded paths against the running process before the launcher directory",
+      "description": "Root cause hypothesis HYP-017, validated by EV-086."
+    },
+    "CHG-300": {
+      "id": "CHG-300",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:49:49+00:00",
+      "updated_at": "2026-10-21T12:49:49+00:00",
+      "touched_round": 155,
+      "title": "Forwarded relative paths resolve only under the launcher directory; relative file URLs are accepted",
+      "commit": "d4529f2"
+    },
+    "DEC-022": {
+      "id": "DEC-022",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:11+00:00",
+      "updated_at": "2026-10-21T12:50:11+00:00",
+      "touched_round": 155,
+      "title": "Batch graph bookkeeping commits instead of recording every change",
+      "rationale": "The user asked to stop committing graph.json after every task: it is an iteration record, not project output, and per-change graph commits bloat git log. Accumulate roughly 10-30 graph-worthy changes or one milestone, then commit one graph snapshot; keep code/test/doc commits focused. The same rule applies to other pure process-record snapshots.",
+      "alternatives_rejected": "Commit graph after every change (the behavior this decision supersedes); fold graph edits into every feature/fix commit (couples unrelated artifacts and still fragments history); stop recording the graph (loses cross-session evidence and traceability)"
+    },
+    "ISS-298": {
+      "id": "ISS-298",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:50:11+00:00",
+      "updated_at": "2026-10-21T12:50:12+00:00",
+      "touched_round": 155,
+      "title": "IPv6 listen hosts produce an unbindable server address",
+      "description": "resolveAddr joins host and port with fmt.Sprintf(\"%s:%d\"), so --host ::1 yields ::1:9090 instead of [::1]:9090; the current test pins the invalid spelling. Root cause hypothesis HYP-018."
+    },
+    "TASK-301": {
+      "id": "TASK-301",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T12:50:11+00:00",
+      "updated_at": "2026-10-21T12:50:12+00:00",
+      "touched_round": 155,
+      "category": "correctness",
+      "title": "Format aurora-api listen addresses with net.JoinHostPort",
+      "severity": 0.75,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0
+    },
+    "HYP-018": {
+      "id": "HYP-018",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:50:11+00:00",
+      "updated_at": "2026-10-21T12:50:12+00:00",
+      "touched_round": 155,
+      "confidence": 0.99,
+      "title": "Manual host:port concatenation fails to bracket IPv6 literals"
+    },
+    "EV-087": {
+      "id": "EV-087",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:11+00:00",
+      "updated_at": "2026-10-21T12:50:11+00:00",
+      "touched_round": 155,
+      "title": "IPv6 listen-address regression fails on manual host:port formatting and passes with net.JoinHostPort",
+      "source": "cmd/api/main_test.go TestResolveAddr_Precedence/IPv6_host: old fmt.Sprintf produced ::1:9090 and net.SplitHostPort rejected it; net.JoinHostPort yields [::1]:9090 and go test -race ./cmd/api passes",
+      "confidence": 1.0
+    },
+    "CHG-301": {
+      "id": "CHG-301",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:12+00:00",
+      "updated_at": "2026-10-21T12:50:12+00:00",
+      "touched_round": 155,
+      "title": "aurora-api listen addresses are formatted with net.JoinHostPort",
+      "commit": "4a22887"
+    },
+    "TASK-302": {
+      "id": "TASK-302",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T12:50:30+00:00",
+      "updated_at": "2026-10-21T12:50:31+00:00",
+      "touched_round": 155,
+      "category": "correctness",
+      "severity": 0.75,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "summary": "Fix ISS-126: preserve omitted-vs-explicit-0 token decimals end to end. Make CreateTokenRequest.Decimals optional (*int8) at domain and app boundaries, keep explicit 0 as 0, default only when omitted, and add domain/app/HTTP regressions."
+    },
+    "EV-088": {
+      "id": "EV-088",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:31+00:00",
+      "updated_at": "2026-10-21T12:50:31+00:00",
+      "touched_round": 155,
+      "source": "go test ./internal/domain/token ./internal/app/token ./internal/api -run TestCreateToken_Decimals|TestCreateTokenUseCase_Decimals|TestTokenCreate_DecimalsOverHTTP: with the old 0=>default behavior injected, explicit-zero assertions fail (domain got 8; HTTP create got 8)",
+      "summary": "Fault injection proves the new explicit-zero regressions exercise the bug: restoring 0=>8 makes both domain and HTTP tests red.",
+      "confidence": 1.0
+    },
+    "HYP-019": {
+      "id": "HYP-019",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:31+00:00",
+      "updated_at": "2026-10-21T12:50:31+00:00",
+      "touched_round": 155,
+      "confidence": 0.98,
+      "title": "ISS-126 root cause: the API pointer distinction is erased when the handler dereferences Decimals into an int8 and the domain resolves 0 as the unset sentinel; explicit 0 therefore cannot survive the create path."
+    },
+    "CHG-302": {
+      "id": "CHG-302",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:31+00:00",
+      "updated_at": "2026-10-21T12:50:31+00:00",
+      "touched_round": 155,
+      "commit": "96a2807",
+      "title": "Honor explicit 0 token decimals end to end; nil means omitted/default 8"
+    },
+    "ISS-299": {
+      "id": "ISS-299",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:50:39+00:00",
+      "updated_at": "2026-10-21T12:50:40+00:00",
+      "touched_round": 155,
+      "severity": 0.8,
+      "title": "Voting results are global rather than per-session: candidates.vote_count is one global counter and GetResultsUseCase sums each roster candidate global VoteCount (internal/app/voting/usecase.go), so a candidate reused in a later session reports votes from every session. votes rows carry no session_id (internal/infra/sqlite/voting.go), so a correct per-session tally needs a schema/migration and a product decision for legacy rows; global voters.has_voted remains the documented contract (DEC-004/005)."
+    },
+    "HYP-020": {
+      "id": "HYP-020",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:40+00:00",
+      "updated_at": "2026-10-21T12:50:40+00:00",
+      "touched_round": 155,
+      "confidence": 0.9,
+      "title": "Voting results contamination root cause: vote rows have no session_id and candidate tallies are global, so session-scoped results cannot be derived from stored votes or candidate rows."
+    },
+    "EV-089": {
+      "id": "EV-089",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:40+00:00",
+      "updated_at": "2026-10-21T12:50:40+00:00",
+      "touched_round": 155,
+      "source": "internal/app/voting/usecase.go:478-521 + internal/infra/sqlite/voting.go:50-59,116-124,357-373 + migrations/000001_init_schema.up.sql:51-61 (verified read): GetResultsUseCase sums GetCandidate(cid).VoteCount; votes rows have no session_id; candidates.vote_count has no session dimension",
+      "summary": "Schema and use-case read prove a session result is the candidate global lifetime tally, so a candidate reused across sessions reports cross-session votes.",
+      "confidence": 1.0
+    },
+    "TASK-303": {
+      "id": "TASK-303",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T12:50:40+00:00",
+      "updated_at": "2026-10-21T12:50:40+00:00",
+      "touched_round": 155,
+      "category": "correctness",
+      "severity": 0.8,
+      "confidence": 0.92,
+      "effort": 5,
+      "unlock_factor": 1.2,
+      "summary": "Fix ISS-299 cross-session voting tallies: persist session_id on each vote (migration + self-bootstrap upgrade for existing DBs), count votes per (session_id, candidate_id) for GetResultsUseCase, and add a two-session reuse regression proving session B does not inherit session A votes."
+    },
+    "CHG-303": {
+      "id": "CHG-303",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:40+00:00",
+      "updated_at": "2026-10-21T12:50:40+00:00",
+      "touched_round": 155,
+      "commit": "6742ac8",
+      "summary": "Count voting results from vote_sessions mappings so candidate tallies stay scoped to each election."
+    },
+    "ISS-300": {
+      "id": "ISS-300",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:50:48+00:00",
+      "updated_at": "2026-10-21T12:50:48+00:00",
+      "touched_round": 155,
+      "title": "The release pipeline publishes CLI and Docker artifacts but never packages the MyGo desktop app",
+      "description": "desktop/ is covered by ci.yml only as gofmt/build/vet/test; release.yml calls build.yml for CLI binaries and creates a GitHub release, but no workflow runs mygo build, so users cannot download the .deb/.dmg/.exe/tarball that the MyGo integration produces. Packaging must run on native runners because mattn/go-sqlite3 is cgo.",
+      "severity": 0.8
+    },
+    "TASK-304": {
+      "id": "TASK-304",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T12:50:48+00:00",
+      "updated_at": "2026-10-21T12:50:48+00:00",
+      "touched_round": 155,
+      "title": "Add native MyGo desktop packaging to the release CI/CD pipeline",
+      "description": "Add a reusable desktop packaging workflow that runs mygo build on native Linux, macOS Intel/ARM and Windows runners, uploads the packaged artifacts, and makes release.yml publish them alongside the CLI binaries. Keep the local just desktop-package recipe as the equivalent entry point.",
+      "category": "stability",
+      "severity": 0.8,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1.2
+    },
+    "CHG-304": {
+      "id": "CHG-304",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:48+00:00",
+      "updated_at": "2026-10-21T12:50:48+00:00",
+      "touched_round": 155,
+      "title": "Package and publish the MyGo desktop app in CI and release workflows",
+      "commit": "473ed0e",
+      "description": "ci.yml now runs and verifies a real Linux MyGo package; desktop-build.yml packages native Linux amd64/arm64, macOS arm64/amd64 and Windows amd64; release.yml waits for those artifacts and publishes installers alongside the CLI binaries."
+    },
+    "ISS-301": {
+      "id": "ISS-301",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:50:55+00:00",
+      "updated_at": "2026-10-21T12:50:55+00:00",
+      "touched_round": 155,
+      "title": "The MyGo package ships the icon package Go source and tests as runtime resources",
+      "description": "desktop/resources is both the Go appicon package and MyGo’s resource directory, so mygo build copies resources.go and resources_test.go next to the executable and into the .deb/tarball. Only icon.png is needed at runtime; shipping source and tests bloats and exposes build-only files.",
+      "severity": 0.45
+    },
+    "TASK-305": {
+      "id": "TASK-305",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T12:50:55+00:00",
+      "updated_at": "2026-10-21T12:50:55+00:00",
+      "touched_round": 155,
+      "title": "Keep the app icon out of MyGo runtime resources",
+      "description": "Move the icon and embed package outside desktop/resources, point mygo.config.ts at the icon explicitly, and make CI reject Go source files in packaged artifacts.",
+      "category": "maintainability",
+      "severity": 0.45,
+      "confidence": 0.95,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "CHG-305": {
+      "id": "CHG-305",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:50:55+00:00",
+      "updated_at": "2026-10-21T12:50:55+00:00",
+      "touched_round": 155,
+      "title": "Keep the icon package outside MyGo runtime resources",
+      "commit": "6a87ea8",
+      "description": "Moved icon.png and its embedding package to desktop/appicon, set mygo.config.ts icon explicitly, rejected *.go in packaged artifacts, and added a regression test for the resource contract."
+    },
+    "ISS-302": {
+      "id": "ISS-302",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:51:05+00:00",
+      "updated_at": "2026-10-21T12:51:06+00:00",
+      "touched_round": 155,
+      "title": "A packaged desktop build reports Build Time: unknown",
+      "description": "mygo build supplies its own ldflags, so the justfile -X main.BuildTime never lands in a packaged aurora-desktop. --version and About show unknown even though the binary has a real artifact timestamp.",
+      "severity": 0.45
+    },
+    "TASK-306": {
+      "id": "TASK-306",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T12:51:05+00:00",
+      "updated_at": "2026-10-21T12:51:06+00:00",
+      "touched_round": 155,
+      "title": "Report a real build time for packaged desktop builds",
+      "description": "Derive the build identity once for both ldflags builds and mygo build packages, and make the packaging gate reject Build Time: unknown. Keep the runtime fallback deterministic.",
+      "category": "correctness",
+      "severity": 0.45,
+      "confidence": 0.95,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "EV-090": {
+      "id": "EV-090",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:05+00:00",
+      "updated_at": "2026-10-21T12:51:05+00:00",
+      "touched_round": 155,
+      "title": "Generation mode bypass is covered by the build itself",
+      "source": "main.go generationRequested branch; real mygo build with HOME=/tmp/aurora-home completed after previously failing on /root/.config/Aurora; desktop/cmd/aurora-desktop TestGenerationModeSkipsTheShell",
+      "confidence": 0.98
+    },
+    "EV-091": {
+      "id": "EV-091",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:05+00:00",
+      "updated_at": "2026-10-21T12:51:05+00:00",
+      "touched_round": 155,
+      "title": "Build time stamp survives the real Linux package build",
+      "source": "desktop/resources/build-time.txt generated by scripts/stamp-build-time.mjs; real mygo build; dist/desktop/linux-amd64/aurora --version printed 2026-10-21T11:42:23Z; stamp found at opt/aurora/build-time.txt in the .deb and at the tarball root",
+      "confidence": 0.99
+    },
+    "HYP-021": {
+      "id": "HYP-021",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:51:05+00:00",
+      "updated_at": "2026-10-21T12:51:05+00:00",
+      "touched_round": 155,
+      "title": "The package timestamp can be carried as a runtime resource because mygo build cannot receive justfile ldflags",
+      "description": "mygo build compiles the app with its own package flags; a buildCommand-generated resource is copied next to the executable and read before falling back to its mtime.",
+      "confidence": 0.95
+    },
+    "EV-092": {
+      "id": "EV-092",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:05+00:00",
+      "updated_at": "2026-10-21T12:51:05+00:00",
+      "touched_round": 155,
+      "title": "Old buildTime shape turns the packaged-stamp test red",
+      "source": "desktop/cmd/aurora-desktop/main_test.go TestBuildTimeUsesThePackagedStamp; fault injection replacing buildTime with return BuildTime failed expected 2026-10-21T11:22:33Z got unknown; restored code is green",
+      "confidence": 0.99
+    },
+    "CHG-306": {
+      "id": "CHG-306",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:06+00:00",
+      "updated_at": "2026-10-21T12:51:06+00:00",
+      "touched_round": 155,
+      "title": "Stamp packaged build time into MyGo runtime resources",
+      "description": "Add buildCommand stamp script, read build-time.txt with executable mtime fallback, bypass shell startup under MYGO_GENERATE, and verify the stamp in Linux/macOS/Windows packages.",
+      "commit": "e41ab72"
+    },
+    "ISS-303": {
+      "id": "ISS-303",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:51:14+00:00",
+      "updated_at": "2026-10-21T12:51:14+00:00",
+      "touched_round": 155,
+      "title": "The release workflow rebuilds every artifact twice for a tag",
+      "description": "release.yml listens to both push tags and release published. The tag run creates a release, which emits release published and starts the same native matrix again; overwrite_files makes uploads safe but the second run doubles CI cost and can race the first upload.",
+      "severity": 0.55
+    },
+    "TASK-307": {
+      "id": "TASK-307",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T12:51:14+00:00",
+      "updated_at": "2026-10-21T12:51:14+00:00",
+      "touched_round": 155,
+      "title": "Make release publication idempotent without rebuilding the tag twice",
+      "description": "Separate build from release publication so a tag run builds once and either creates or fills the release, while a release-published rerun uploads artifacts without duplicating the native packaging matrix.",
+      "category": "stability",
+      "severity": 0.55,
+      "confidence": 0.85,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "EV-093": {
+      "id": "EV-093",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:14+00:00",
+      "updated_at": "2026-10-21T12:51:14+00:00",
+      "touched_round": 155,
+      "title": "Release event no longer retriggers the native matrix",
+      "source": "desktop/internal/deskapp TestReleasePackagesEveryDesktopPlatform; fault injection removing workflow_dispatch and tag_name turned the regression test red; restored release.yml is green and actionlint clean",
+      "confidence": 0.98
+    },
+    "HYP-022": {
+      "id": "HYP-022",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:51:14+00:00",
+      "updated_at": "2026-10-21T12:51:14+00:00",
+      "touched_round": 159,
+      "title": "Removing the release published trigger makes tag publication single-run and retryable",
+      "description": "A tag push runs the build and creates the release; a manual workflow_dispatch with an existing tag is an explicit retry and does not create an event loop.",
+      "confidence": 0.95
+    },
+    "CHG-307": {
+      "id": "CHG-307",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:14+00:00",
+      "updated_at": "2026-10-21T12:51:14+00:00",
+      "touched_round": 155,
+      "title": "Build release artifacts once per tag and expose a manual retry",
+      "description": "Remove release published trigger; add workflow_dispatch tag input and explicit tag_name while retaining overwrite_files for interrupted runs.",
+      "commit": "efee126"
+    },
+    "ISS-304": {
+      "id": "ISS-304",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:51:24+00:00",
+      "updated_at": "2026-10-21T12:51:25+00:00",
+      "touched_round": 156,
+      "title": "macOS desktop releases are ad-hoc signed and Gatekeeper blocks them on other Macs",
+      "description": "desktop-build.yml packages darwin/arm64 and darwin/amd64 without macos.signingIdentity or notarization. mygo build defaults to ad-hoc signing, which runs only on the build machine; release DMGs are not usable by normal users without bypassing Gatekeeper.",
+      "severity": 0.85
+    },
+    "TASK-308": {
+      "id": "TASK-308",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T12:51:24+00:00",
+      "updated_at": "2026-10-21T12:51:25+00:00",
+      "touched_round": 156,
+      "title": "Make signed and notarized macOS releases an explicit pipeline contract",
+      "description": "Wire signing and notarization secrets into the native macOS package jobs when configured, fail clearly when absent or incomplete, and document the exact repository secret requirements without storing credentials.",
+      "category": "security",
+      "severity": 0.85,
+      "confidence": 0.9,
+      "effort": 3,
+      "unlock_factor": 2,
+      "lock_owner": "aurora-desktop-ci",
+      "lock_until": "2026-10-21T13:51:24+00:00"
+    },
+    "COMP-017": {
+      "id": "COMP-017",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:24+00:00",
+      "updated_at": "2026-10-21T12:51:24+00:00",
+      "touched_round": 159,
+      "name": "release-workflows",
+      "path": ".github/workflows",
+      "description": "Release pipeline: build.yml CLI matrix, desktop-build.yml native MyGo packages, release.yml publication"
+    },
+    "HYP-023": {
+      "id": "HYP-023",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:25+00:00",
+      "updated_at": "2026-10-21T12:51:25+00:00",
+      "touched_round": 159,
+      "confidence": 0.95,
+      "title": "Release macOS artifacts fail Gatekeeper unless signing and notarization are enforced before packaging",
+      "description": "MyGo defaults to ad-hoc signing; the release workflow must require a Developer ID identity and notary credentials, import them into a temporary keychain, and verify the final app/DMG."
+    },
+    "EV-094": {
+      "id": "EV-094",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:25+00:00",
+      "updated_at": "2026-10-21T12:51:25+00:00",
+      "touched_round": 156,
+      "source": "desktop/internal/deskapp TestReleaseRequiresSignedAndNotarizedMacOSPackages; fault injection removed require_signed_macos, secrets: inherit, and the signing-identity gate, each making the test red; signed mygo.config.ts evaluation returned Developer ID + notary profile",
+      "confidence": 0.99,
+      "title": "The macOS release contract is enforced and regression-tested"
+    },
+    "DEC-023": {
+      "id": "DEC-023",
+      "type": "decision",
+      "status": "superseded",
+      "version": 2,
+      "created_at": "2026-10-21T12:51:25+00:00",
+      "updated_at": "2026-10-21T13:13:31+00:00",
+      "touched_round": 157,
+      "rationale": "Ad-hoc-signed macOS packages are unusable off the build machine, so release.yml must require all six signing secrets and desktop-build.yml must verify Developer ID signing, notarization, and stapling before uploading. The reusable workflow keeps optional secrets for non-release/dev packages.",
+      "alternatives_rejected": "Publish ad-hoc DMGs with a bypass note; make all callers require signing even for local/dev packaging; rely only on mygo build success without checking Gatekeeper acceptance",
+      "title": "Release macOS packages require a complete signing and notarization contract"
+    },
+    "CHG-308": {
+      "id": "CHG-308",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T12:51:25+00:00",
+      "updated_at": "2026-10-21T12:51:25+00:00",
+      "touched_round": 156,
+      "commit": "fd148b0",
+      "title": "Require signed and notarized macOS desktop releases",
+      "description": "Release workflow passes signing secrets to desktop-build, requires all six, imports the Developer ID and notary profile into a temporary keychain, configures MyGo signing/notarization, and verifies the app/DMG with codesign, spctl and stapler. README and CHANGELOG document the secret contract."
+    },
+    "ISS-305": {
+      "id": "ISS-305",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T12:58:23+00:00",
+      "updated_at": "2026-10-21T13:08:54+00:00",
+      "touched_round": 157,
+      "title": "Windows desktop releases are unsigned and SmartScreen warns on every installer",
+      "description": "desktop-build.yml packages the Windows app and NSIS installer but configures no Authenticode certificate. mygo.config.ts passes only macOS signing values, so release.yml publishes unsigned executables even though the macOS path is fail-closed. Windows users must bypass SmartScreen, and a tampered installer has no publisher signature to verify.",
+      "severity": 0.85,
+      "resolution": "Windows packaging now fails closed without a complete Authenticode certificate/password pair, passes windows.certificate to MyGo, and verifies Aurora.exe and every installer with Get-AuthenticodeSignature."
+    },
+    "TASK-309": {
+      "id": "TASK-309",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T12:58:23+00:00",
+      "updated_at": "2026-10-21T13:10:33+00:00",
+      "touched_round": 157,
+      "title": "Make signed Windows desktop releases an explicit pipeline contract",
+      "description": "Wire an Authenticode certificate and password into the native Windows package job, fail closed for releases when they are absent or partial, verify every packaged executable with Get-AuthenticodeSignature, and document the exact secret contract without storing credentials.",
+      "category": "security",
+      "severity": 0.85,
+      "confidence": 0.9,
+      "effort": 2,
+      "unlock_factor": 1.5,
+      "outcome": "Implemented and verified; golangci-lint remains blocked by the pre-existing Go 1.26 lint binary vs Go 1.27 desktop module mismatch."
+    },
+    "CHG-309": {
+      "id": "CHG-309",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T13:10:24+00:00",
+      "updated_at": "2026-10-21T13:10:24+00:00",
+      "touched_round": 157,
+      "commit": "daca7a3",
+      "title": "Windows desktop releases require a complete Authenticode signing contract"
+    },
+    "DEC-024": {
+      "id": "DEC-024",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T13:11:26+00:00",
+      "updated_at": "2026-10-21T13:11:26+00:00",
+      "touched_round": 157,
+      "title": "Release desktop packages require complete platform signing contracts",
+      "rationale": "Unsigned or ad-hoc desktop artifacts expose users to Gatekeeper and SmartScreen warnings and cannot be authenticated. release.yml therefore sets require_signed_macos and require_signed_windows; desktop-build.yml fails before packaging when required credentials are absent or partial, and verifies the resulting platform signatures rather than trusting the packaging tool.",
+      "alternatives_rejected": "Publish unsigned or ad-hoc artifacts with bypass instructions; silently degrade when a release secret is missing; trust mygo build success without verifying platform signatures"
+    },
+    "ISS-306": {
+      "id": "ISS-306",
+      "type": "issue",
+      "status": "abandoned",
+      "version": 2,
+      "created_at": "2026-10-21T13:15:47+00:00",
+      "updated_at": "2026-10-21T13:16:01+00:00",
+      "touched_round": 158,
+      "title": "Windows installer signature verification does not require a timestamp countersignature",
+      "severity": 0.6,
+      "description": "desktop-build.yml checks Get-AuthenticodeSignature Status, signer subject/thumbprint, and TimeStamperCertificate, but does not require the timestamp status to be Valid. A malformed or untrusted timestamp could pass while the signature does not remain verifiable after the signing certificate expires.",
+      "resolution": "Rejected after checking the PowerShell contract: Get-AuthenticodeSignature.Status is Valid only when both the Authenticode signature and the timestamp countersignature validate; TimeStamperCertificate is an additional presence check, not the sole timestamp validation."
+    },
+    "ISS-307": {
+      "id": "ISS-307",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T13:17:31+00:00",
+      "updated_at": "2026-10-21T13:22:00+00:00",
+      "touched_round": 158,
+      "title": "Docker CI attempts registry pushes from pull requests and tests an image tag it never creates",
+      "severity": 0.75,
+      "description": "docker.yml logs into Docker Hub and GHCR and sets push: true for pull_request runs, so fork PRs fail on unavailable secrets and same-repo PRs publish unreviewed images. Its test runs pplmx/aurora:${github.sha}, but metadata-action emits a short sha tag by default, and tag pushes publish no semver image tags. The workflow also rebuilds on release: published after the tag push already built the same commit.",
+      "resolution": "Pull requests now build without registry authentication or pushing; main/tag pushes publish explicit short-SHA and semver tags, and the smoke test uses a separately loaded native image. The duplicate release trigger was removed."
+    },
+    "TASK-310": {
+      "id": "TASK-310",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-21T13:17:37+00:00",
+      "updated_at": "2026-10-21T13:22:14+00:00",
+      "touched_round": 158,
+      "title": "Make Docker publishing branch/tag-only and verify the tags it pushes",
+      "category": "security",
+      "severity": 0.75,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1.5,
+      "description": "Split docker.yml into build-only PR validation and publish-on-main/tag jobs. Never authenticate or push on pull_request. Add explicit short-sha and semver tag rules, test the exact generated tag, and remove the duplicate release:published trigger now covered by the tag push.",
+      "outcome": "Docker publishing now runs validation-only on pull requests, publishes short-SHA and semver tags on main/tag pushes, and smoke-tests a separately loaded native image. Contract test and full gates pass."
+    },
+    "COMP-018": {
+      "id": "COMP-018",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T13:17:42+00:00",
+      "updated_at": "2026-10-21T13:17:42+00:00",
+      "touched_round": 158,
+      "name": "docker-workflow",
+      "path": ".github/workflows/docker.yml",
+      "description": "Docker image workflow: multi-arch build, Docker Hub and GHCR publishing, tag metadata and smoke test"
+    },
+    "CHG-310": {
+      "id": "CHG-310",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-21T13:22:10+00:00",
+      "updated_at": "2026-10-21T13:22:10+00:00",
+      "touched_round": 158,
+      "commit": "32843d0",
+      "title": "Docker publishing is validation-only on PRs and tests the built image"
+    },
+    "ISS-308": {
+      "id": "ISS-308",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T13:22:50+00:00",
+      "updated_at": "2026-10-22T00:23:55+00:00",
+      "touched_round": 159,
+      "title": "Release CLI binaries are not Authenticode-signed while desktop releases are fail-closed",
+      "severity": 0.8,
+      "description": "build.yml compiles six aurora CLI binaries and release.yml publishes the Windows .exe files without Authenticode signing. The desktop Windows installer now fails closed when signing secrets are missing, but the CLI download still triggers SmartScreen and has no publisher signature to verify. The workflow also publishes no checksums.",
+      "resolution": "build.yml signs Windows CLI artifacts with the shared Authenticode action, release.yml requires the signing contract and verifies signatures plus a checksum manifest before publication."
+    },
+    "TASK-311": {
+      "id": "TASK-311",
+      "type": "task",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-21T13:22:57+00:00",
+      "updated_at": "2026-10-22T00:23:55+00:00",
+      "touched_round": 159,
+      "title": "Sign and checksum release CLI binaries, with Windows signing fail-closed",
+      "category": "security",
+      "severity": 0.8,
+      "confidence": 0.9,
+      "effort": 3,
+      "unlock_factor": 1.5,
+      "description": "Extend build.yml for release tags so the Windows CLI binaries are Authenticode-signed with the same certificate contract as the desktop app, and publish a checksum manifest covering every release file. Keep ordinary branch builds unsigned and verify the signatures before release.yml publishes them.",
+      "lock_owner": "codex-cli-signing",
+      "lock_until": "2026-10-21T14:23:02+00:00",
+      "outcome": "Release CLI builds now use native runners with cgo, Windows binaries are Authenticode-signed fail-closed through the shared action, and release.yml verifies Go build metadata plus generates and validates a checksum manifest for all published files."
+    },
+    "ISS-309": {
+      "id": "ISS-309",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T13:23:26+00:00",
+      "updated_at": "2026-10-22T00:23:56+00:00",
+      "touched_round": 159,
+      "title": "Windows certificate decoding and signing configuration are duplicated between desktop and CLI workflows",
+      "severity": 0.45,
+      "description": "desktop-build.yml contains a PowerShell block for validating and decoding WINDOWS_CERTIFICATE plus signtool setup. Signing the CLI Windows binaries needs the same fail-closed logic, so copying it into build.yml would create two copies of a security contract that can drift.",
+      "resolution": "Windows Authenticode setup is a single composite action shared by desktop-build.yml and build.yml, eliminating the duplicated security contract."
+    },
+    "TASK-312": {
+      "id": "TASK-312",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-21T13:23:32+00:00",
+      "updated_at": "2026-10-22T00:23:56+00:00",
+      "touched_round": 159,
+      "title": "Extract one reusable Windows Authenticode setup action",
+      "category": "maintainability",
+      "severity": 0.45,
+      "confidence": 0.9,
+      "effort": 2,
+      "unlock_factor": 1.2,
+      "description": "Move the fail-closed certificate validation/decoding and signtool discovery from desktop-build.yml into a composite action used by both desktop and CLI Windows builds. Keep behavior, env names and verification assertions identical, and test that both workflows invoke the action.",
+      "outcome": "The Windows certificate validation, PFX decoding, signtool discovery and environment contract now live in .github/actions/windows-signing and are used by both desktop and CLI workflows; ci_test.go checks both callers."
+    },
+    "CHG-311": {
+      "id": "CHG-311",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-22T00:24:00+00:00",
+      "updated_at": "2026-10-22T00:25:33+00:00",
+      "touched_round": 159,
+      "commit": "81e8f16",
+      "title": "Sign and checksum release artifacts through one Windows signing contract",
+      "description": "Native cgo CLI builds, fail-closed Authenticode signing for Windows CLI and desktop packages through one composite action, release metadata/signature verification, and a checksum manifest covering every published file."
+    },
+    "EV-095": {
+      "id": "EV-095",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T00:25:37+00:00",
+      "updated_at": "2026-10-22T00:25:37+00:00",
+      "touched_round": 159,
+      "source": "desktop/internal/deskapp/ci_test.go TestReleaseCLIBinariesAreNativeCgoBuilds and TestReleaseRequiresAuthenticodeSignedWindowsPackages; actionlint v1.7.12 on build.yml/desktop-build.yml/release.yml/ci.yml; go test ./... and go test -race ./... in desktop/",
+      "title": "Release signing and checksum contract is covered and lint-clean",
+      "summary": "The CLI and desktop workflows share one Windows signing action; release verification checks native cgo metadata, Authenticode signatures and a checksum manifest. Moving the development-only skip ahead of the required-signing failure makes the contract test red.",
+      "confidence": 0.99
+    },
+    "HYP-024": {
+      "id": "HYP-024",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T00:25:45+00:00",
+      "updated_at": "2026-10-22T00:29:18+00:00",
+      "touched_round": 159,
+      "confidence": 0.8,
+      "title": "Desktop release artifacts still need an end-to-end runtime smoke test",
+      "description": "The workflows prove native cgo metadata, Authenticode/codesign signatures and checksums, but no release job launches a packaged desktop binary against a disposable data directory and exercises the embedded UI/API. A package can therefore pass every static gate while failing to start on a clean machine."
+    },
+    "ISS-310": {
+      "id": "ISS-310",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T00:25:49+00:00",
+      "updated_at": "2026-10-22T00:28:59+00:00",
+      "touched_round": 159,
+      "title": "Desktop packages have no post-build runtime smoke test",
+      "severity": 0.65,
+      "description": "The Linux package gate checks files and --version, but never starts the packaged aurora-desktop long enough to prove its embedded UI and API work from a clean data directory. A startup regression (webview bootstrap, database open, aurora:// handler) can reach users despite green packaging checks.",
+      "resolution": "CI smoke-tests the packaged Linux app under Xvfb and startup now checks the system webview before creating the database, so a package that cannot open its window fails before leaving partial state."
+    },
+    "TASK-313": {
+      "id": "TASK-313",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T00:25:53+00:00",
+      "updated_at": "2026-10-22T00:28:59+00:00",
+      "touched_round": 159,
+      "category": "test-quality",
+      "severity": 0.65,
+      "confidence": 0.8,
+      "effort": 3,
+      "unlock_factor": 1.4,
+      "title": "Smoke-test the packaged desktop app at runtime",
+      "description": "In the Linux packaging job, launch the built aurora-desktop under Xvfb with a disposable --data-dir, wait until its own SQLite database exists, and fail if the process exits before that point. This proves a package starts outside the Go test harness without requiring screenshot automation; keep --version and static artifact checks.",
+      "outcome": "The Linux package job now installs GTK/WebKit and Xvfb, starts the real packaged binary with an empty data directory, and requires it to remain alive after creating aurora.db. Startup checks WebView availability before opening the database; fault injection makes both guards red."
+    },
+    "CHG-312": {
+      "id": "CHG-312",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T00:29:03+00:00",
+      "updated_at": "2026-10-22T00:29:03+00:00",
+      "touched_round": 159,
+      "commit": "66d3528",
+      "title": "Smoke-test packaged desktop startup and check WebView before database",
+      "description": "Linux packaging installs the webview runtime and Xvfb, launches the real package against an empty data directory, and verifies it remains alive after aurora.db appears. Startup checks WebView availability before creating database or logs."
+    },
+    "EV-096": {
+      "id": "EV-096",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T00:29:12+00:00",
+      "updated_at": "2026-10-22T00:29:12+00:00",
+      "touched_round": 159,
+      "source": "desktop/cmd/aurora-desktop TestStartupRequiresWebViewBeforeDatabase and TestStartupRunsAfterWebView; .github/workflows/ci.yml Smoke-test the packaged app; go test ./..., go test -race ./..., go vet ./... and gofmt in desktop/",
+      "title": "Packaged startup is covered by a real-process smoke test and an ordering unit test",
+      "summary": "Moving the WebView check after Start makes the ordering test red; the CI smoke test launches the packaged binary under Xvfb and requires the database to appear while the process remains alive. Local Xvfb cannot create an X socket in the sandbox, so the real-process proof must run in CI.",
+      "confidence": 0.95
+    },
+    "HYP-025": {
+      "id": "HYP-025",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T00:34:07+00:00",
+      "updated_at": "2026-10-22T00:46:55+00:00",
+      "touched_round": 160,
+      "confidence": 0.9,
+      "title": "A second launch after the last window is destroyed leaves Aurora running without a window and loses the forwarded intent",
+      "description": "On macOS the process deliberately survives OnWindowAllClosed. OnSecondInstance only calls HandleLaunchArgs, and Shell.Navigate drops an intent when the attached window IsDestroyed. A later aurora:// link or export can therefore be handled against no visible window, and the user sees an app that appears not to open."
+    },
+    "TASK-314": {
+      "id": "TASK-314",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T00:34:18+00:00",
+      "updated_at": "2026-10-22T00:47:12+00:00",
+      "touched_round": 160,
+      "category": "correctness",
+      "severity": 0.85,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "Recreate the window before handling a second launch after it was closed",
+      "description": "On macOS the app survives closing its last window. OnSecondInstance currently forwards arguments without ensuring a live window, so a deep link is dropped by Navigate and an export is imported invisibly. Recreate the window through the same factory used by Dock activation, keep a page intent until Attach, and cover link, export, and bare relaunch paths.",
+      "outcome": "EnsureWindow recreates the main window through the shared openMainWindow factory before forwarded links/files; Navigate retains the newest intent for a destroyed or otherwise unusable window; desktop tests and fault injections pass."
+    },
+    "EV-097": {
+      "id": "EV-097",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T00:34:23+00:00",
+      "updated_at": "2026-10-22T00:34:23+00:00",
+      "touched_round": 160,
+      "source": "desktop/cmd/aurora-desktop/main.go:268 and desktop/internal/deskapp/shell.go:303 (OnSecondInstance calls HandleLaunchArgs; Navigate drops a destroyed window; OnActivate is the only path that recreates it)",
+      "summary": "Static trace confirms a second launch cannot recreate a window that was closed: only OnActivate invokes MainWindow, while OnSecondInstance only routes arguments.",
+      "confidence": 1.0
+    },
+    "ISS-311": {
+      "id": "ISS-311",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T00:38:53+00:00",
+      "updated_at": "2026-10-22T00:46:55+00:00",
+      "touched_round": 160,
+      "severity": 0.7,
+      "title": "A second launch cannot reopen Aurora after its last window was closed",
+      "description": "On macOS closing the last window leaves the process running. A later launch or deep link reaches OnSecondInstance while the shell still holds a destroyed window; HandleLaunchArgs imports or navigates without recreating it, so the requested page is lost and an export is applied invisibly.",
+      "resolution": "Shell.EnsureWindow now recreates the main window before a second launch or OS-delivered file is applied, and Navigate holds a page request until Attach has a usable window."
+    },
+    "EV-098": {
+      "id": "EV-098",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T00:46:42+00:00",
+      "updated_at": "2026-10-22T00:46:42+00:00",
+      "touched_round": 160,
+      "source": "desktop/internal/deskapp/intent_test.go TestShellForwardedLaunchRecreatesWindow, TestShellOpenedFileRecreatesWindow, TestShellFailedImportStillRecreatesWindow, TestShellEnsureWindowWaitsForReady, TestShellHoldsANavigationForAWindowThatCannotShowIt; fault injections removed EnsureWindow and the destroyed-window pending branch",
+      "summary": "Window recreation is required before handling forwarded launches and OS-delivered files; the tests go red when EnsureWindow is bypassed or Navigate forgets a request for a non-live window, and green after restoration.",
+      "confidence": 1.0
+    },
+    "CHG-313": {
+      "id": "CHG-313",
+      "type": "change",
+      "status": "active",
+      "version": 3,
+      "created_at": "2026-10-22T00:47:07+00:00",
+      "updated_at": "2026-10-22T00:48:34+00:00",
+      "touched_round": 160,
+      "commit": "8b22749",
+      "title": "Reopen the main window before applying a launch after it was closed",
+      "summary": "Shell.EnsureWindow uses the shared openMainWindow factory from OnActivate, second launches, and OS-delivered files; Navigate holds an intent for a destroyed or unusable window until Attach; tests cover link, export, failure, startup, and pending navigation paths."
+    },
+    "TASK-315": {
+      "id": "TASK-315",
+      "type": "task",
+      "status": "resolved",
+      "version": 6,
+      "created_at": "2026-10-22T00:50:10+00:00",
+      "updated_at": "2026-10-22T00:58:38+00:00",
+      "touched_round": 160,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.85,
+      "effort": 2,
+      "title": "Keep the app menu and window-state bindings on a recreated main window",
+      "description": "After the last window is closed on macOS, openMainWindow recreates the window with the same app menu and StateKey, but no regression test pins that lifecycle path. Audit whether per-window menu state, locale relabeling, and drop handlers remain correct after recreation, and add a testable window-wiring seam if the current factory cannot prove it.",
+      "outcome": "mainWindowOptions and wireMainWindow are the shared lifecycle seam; TestMainWindowRecreationKeepsStateAndWiring covers two consecutive creations and fault injection proves state, drop, and focus bindings."
+    },
+    "ISS-312": {
+      "id": "ISS-312",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T00:50:32+00:00",
+      "updated_at": "2026-10-22T00:58:31+00:00",
+      "touched_round": 160,
+      "severity": 0.55,
+      "title": "Recreated main windows lack a regression test for menu and state wiring",
+      "description": "The Dock and second-launch paths recreate the window through openMainWindow, but that factory creates a native window directly and cannot be exercised without a running MyGo app. The recreated window is intended to keep the app menu, StateKey and drop handler, yet only the initial startup path is covered indirectly.",
+      "resolution": "A shared mainWindowOptions/wireMainWindow seam plus TestMainWindowRecreationKeepsStateAndWiring now pins the recreated window state and bindings; the app menu remains unchanged."
+    },
+    "HYP-026": {
+      "id": "HYP-026",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T00:57:29+00:00",
+      "updated_at": "2026-10-22T00:58:35+00:00",
+      "touched_round": 160,
+      "confidence": 0.9,
+      "title": "Recreated main windows need the same tested specification and bindings",
+      "description": "The macOS reopen path uses openMainWindow, but without an injectable specification the lifecycle test cannot prove the replacement keeps StateKey, launch URL, icon, focus, drop handling, or leaves the application menu untouched.",
+      "outcome": "Validated by the two-creation lifecycle test and three fault injections; the shared seam now guards the recreated window contract."
+    },
+    "EV-099": {
+      "id": "EV-099",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T00:57:33+00:00",
+      "updated_at": "2026-10-22T00:57:33+00:00",
+      "touched_round": 160,
+      "source": "desktop/cmd/aurora-desktop/main_test.go TestMainWindowRecreationKeepsStateAndWiring",
+      "summary": "Two consecutive buildMainWindow calls both receive StateKey main, the launch URL, title/size/background, icon, drop handler, and focus; the application menu remains the same object.",
+      "confidence": 1.0
+    },
+    "EV-100": {
+      "id": "EV-100",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T00:57:37+00:00",
+      "updated_at": "2026-10-22T00:57:37+00:00",
+      "touched_round": 160,
+      "source": "Fault injection on desktop/cmd/aurora-desktop/main.go: remove StateKey main, remove hooks.OnFileDrop, or remove hooks.Focus",
+      "summary": "The lifecycle test failed for each of the three removals and passed again after restoration, proving the test guards state restoration, drop handling, and focus rather than only exercising code.",
+      "confidence": 1.0
+    },
+    "CHG-314": {
+      "id": "CHG-314",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T00:58:19+00:00",
+      "updated_at": "2026-10-22T00:58:19+00:00",
+      "touched_round": 160,
+      "commit": "e75ec3f",
+      "title": "Test the shared main-window specification and bindings",
+      "summary": "mainWindowOptions and wireMainWindow isolate the lifecycle contract; buildMainWindow accepts an injectable constructor so two consecutive windows are checked for state, URL, icon, drop, focus, and untouched application menu."
+    },
+    "ISS-313": {
+      "id": "ISS-313",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T01:42:37+00:00",
+      "updated_at": "2026-10-22T01:45:28+00:00",
+      "touched_round": 163,
+      "title": "A relative --data-dir makes the next launch look like a different database",
+      "severity": 0.7,
+      "description": "prepareDataDir returns a relative DBPath when --data-dir is relative. A later launch forwarding the same relative --data-dir is resolved against its workDir to an absolute path, so pathConflict rejects the launch as if it named another database.",
+      "resolution": "prepareDataDir now records an absolute aurora.db path, so a later launch forwarding the same relative --data-dir resolves to the same path instead of being refused as a foreign database."
+    },
+    "HYP-027": {
+      "id": "HYP-027",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T01:42:41+00:00",
+      "updated_at": "2026-10-22T01:45:32+00:00",
+      "touched_round": 163,
+      "confidence": 0.9,
+      "title": "prepareDataDir should record an absolute database path",
+      "description": "If prepareDataDir converts the selected data directory to an absolute path before joining aurora.db, pathConflict will compare the same canonical path a second launch resolves against workDir, regardless of how --data-dir was spelled.",
+      "outcome": "Validated by the relative-directory prepareDataDir assertion, the forwarded-launch regression test, and a fault injection that restored the old relative return."
+    },
+    "EV-101": {
+      "id": "EV-101",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T01:42:47+00:00",
+      "updated_at": "2026-10-22T01:42:47+00:00",
+      "touched_round": 163,
+      "confidence": 0.95,
+      "source": "desktop/internal/deskapp/deskapp.go prepareDataDir returns filepath.Join(dir, aurora.db) without filepath.Abs; desktop/internal/deskapp/shell.go pathConflict resolves the forwarded dir against workDir before comparing with About.DBPath",
+      "summary": "With --data-dir db, the running instance records db/aurora.db while the next launch compares /launcher/db/aurora.db. filepath.Clean cannot bridge absolute and relative paths, so the equal database appears to conflict."
+    },
+    "TASK-316": {
+      "id": "TASK-316",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T01:42:53+00:00",
+      "updated_at": "2026-10-22T01:45:43+00:00",
+      "touched_round": 163,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.9,
+      "effort": 2,
+      "title": "Anchor a relative --data-dir before recording its database path",
+      "description": "Make prepareDataDir return an absolute aurora.db path so a second launch forwarding the same relative --data-dir is recognized as the running database. Add a regression test that prepares a relative directory, then drives HandleLaunchArgs with the same relative flag and launcher workDir; prove the old implementation fails.",
+      "outcome": "prepareDataDir records an absolute aurora.db path; TestPrepareDataDir and TestShell_AcceptsTheRelativeDataDirItStartedWith cover it; fault injection restoring the relative return fails both tests."
+    },
+    "EV-102": {
+      "id": "EV-102",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T01:43:01+00:00",
+      "updated_at": "2026-10-22T01:43:01+00:00",
+      "touched_round": 163,
+      "confidence": 0.7,
+      "source": "desktop/internal/deskapp/intent_test.go TestShell_RefusesAForeignDataDir builds About.DBPath with t.TempDir, always absolute, so the relative --data-dir half never exercises a relative recorded DBPath",
+      "summary": "The existing matching-relative-path assertion starts from an absolute database path and therefore cannot detect the prepareDataDir/pathConflict spelling mismatch."
+    },
+    "EV-103": {
+      "id": "EV-103",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T01:45:17+00:00",
+      "updated_at": "2026-10-22T01:45:17+00:00",
+      "touched_round": 163,
+      "confidence": 1.0,
+      "source": "desktop/internal/deskapp/deskapp_test.go TestPrepareDataDir/relative_directory and intent_test.go TestShell_AcceptsTheRelativeDataDirItStartedWith; fault injection restoring filepath.Join(dir, aurora.db)",
+      "summary": "With the old relative return, both new tests failed: prepareDataDir yielded db/aurora.db and the shell reported already running with a different --data-dir. Restoring filepath.Abs made the focused and full desktop suites pass."
+    },
+    "CHG-315": {
+      "id": "CHG-315",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T01:46:33+00:00",
+      "updated_at": "2026-10-22T01:46:33+00:00",
+      "touched_round": 163,
+      "commit": "e506b95",
+      "title": "Anchor relative --data-dir paths before recording the database",
+      "description": "prepareDataDir converts the selected data directory to an absolute path and records an absolute aurora.db path; regression tests cover startup and a forwarded relative launch."
+    },
+    "ISS-314": {
+      "id": "ISS-314",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T01:49:21+00:00",
+      "updated_at": "2026-10-22T01:52:15+00:00",
+      "touched_round": 166,
+      "severity": 0.55,
+      "title": "The desktop --web-root conflict check treats a trailing slash as a different UI",
+      "description": "Runtime.WebRoot is absolute but keeps a caller-supplied trailing separator. pathConflict only filepath.Clean()s the forwarded value, so a running instance started with --web-root /srv/web/ rejects a later launch with the same directory spelled /srv/web (or the reverse). The database comparison cleans both sides and does not have this bug.",
+      "resolution": "pathConflict now compares both the forwarded and running paths through samePath, so trailing-separator spellings of the same web root are accepted."
+    },
+    "HYP-028": {
+      "id": "HYP-028",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T01:49:26+00:00",
+      "updated_at": "2026-10-22T01:52:20+00:00",
+      "touched_round": 163,
+      "confidence": 0.8,
+      "title": "Cleaning both sides makes equivalent web-root spellings compare equal",
+      "description": "If pathConflict compares filepath.Clean of both the resolved forwarded web root and About.WebRoot, a trailing separator cannot turn the same directory into a conflict.",
+      "outcome": "Validated by TestShell_AcceptsEquivalentWebRootSpellings in both directions and by restoring the one-sided comparison, which made the test fail."
+    },
+    "EV-104": {
+      "id": "EV-104",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T01:49:30+00:00",
+      "updated_at": "2026-10-22T01:49:30+00:00",
+      "touched_round": 163,
+      "confidence": 0.95,
+      "source": "desktop/internal/deskapp/shell.go pathConflict: webRoot compares filepath.Clean(resolveAgainst(webRoot, workDir)) with filepath.Clean(s.meta.WebRoot); Runtime.WebRoot comes from ResolveWebRoot and is not cleaned after filepath.Abs",
+      "summary": "The data-directory branch cleans both values, but the web-root branch cannot canonicalize the trailing separator from the first launch because it stores that spelling as-is."
+    },
+    "TASK-317": {
+      "id": "TASK-317",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T01:49:38+00:00",
+      "updated_at": "2026-10-22T01:52:32+00:00",
+      "touched_round": 163,
+      "category": "correctness",
+      "severity": 0.55,
+      "confidence": 0.8,
+      "effort": 1,
+      "title": "Canonicalize web-root spellings in the forwarded-launch conflict check",
+      "description": "Compare cleaned web-root paths so /srv/web and /srv/web/ are recognized as the same UI on a later launch. Add a regression test that starts from the trailing-slash spelling and forwards the other, and prove the old comparison refuses it.",
+      "outcome": "samePath now canonicalizes both sides of both forwarded path checks; TestShell_AcceptsEquivalentWebRootSpellings covers both slash directions and fails under the old one-sided comparison."
+    },
+    "EV-105": {
+      "id": "EV-105",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T01:49:47+00:00",
+      "updated_at": "2026-10-22T01:49:47+00:00",
+      "touched_round": 163,
+      "confidence": 0.7,
+      "source": "desktop/internal/deskapp/intent_test.go has no test that varies only the web-root spelling; TestShell_RefusesAForeignDataDir only varies the data directory",
+      "summary": "The web-root conflict branch is untested for equivalent path spellings, so the asymmetry in the comparison is invisible to the current suite."
+    },
+    "EV-106": {
+      "id": "EV-106",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T01:52:07+00:00",
+      "updated_at": "2026-10-22T01:52:07+00:00",
+      "touched_round": 163,
+      "confidence": 1.0,
+      "source": "desktop/internal/deskapp/intent_test.go TestShell_AcceptsEquivalentWebRootSpellings; fault injection replacing samePath with direct filepath.Clean comparison of only the forwarded path",
+      "summary": "The trailing-slash case failed with the old one-sided comparison and passed after both sides used samePath; the full desktop suite, race, vet and build also passed."
+    },
+    "CHG-316": {
+      "id": "CHG-316",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T01:52:59+00:00",
+      "updated_at": "2026-10-22T01:52:59+00:00",
+      "touched_round": 163,
+      "commit": "201d322",
+      "title": "Compare forwarded data-dir and web-root paths with one canonical helper",
+      "description": "pathConflict now uses samePath for both checks, accepting trailing-separator spellings of the running web root while preserving foreign-path rejection."
+    },
+    "HYP-029": {
+      "id": "HYP-029",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:08:54+00:00",
+      "updated_at": "2026-10-22T02:13:51+00:00",
+      "touched_round": 165,
+      "title": "The first desktop process cannot accept flags after its deep link",
+      "description": "ParseFlags hands argv to Go flag.Parse, which stops at the first positional argument. Although ForwardedPaths deliberately scans flags anywhere for second-instance launches, the cold-start path rejects aurora://voting --data-dir X as an extra positional instead of parsing the flag.",
+      "confidence": 0.98
+    },
+    "ISS-315": {
+      "id": "ISS-315",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:08:55+00:00",
+      "updated_at": "2026-10-22T02:13:40+00:00",
+      "touched_round": 165,
+      "title": "A desktop launch rejects flags written after its deep link",
+      "description": "desktop/internal/deskapp/flags.go uses flag.Parse, which stops at the first positional. A launch such as aurora-desktop aurora://voting --data-dir /tmp/db therefore reaches the two-positional branch and exits with an unexpected-argument error, even though ForwardedPaths documents and tests the same ordering for launches forwarded to a running instance.",
+      "severity": 0.5,
+      "resolution": "ParseFlags now separates the single link/export from flags on either side and parses the flags together, so the cold-start path accepts the same ordering as a forwarded launch while retaining flag.Parse diagnostics."
+    },
+    "EV-107": {
+      "id": "EV-107",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:08:59+00:00",
+      "updated_at": "2026-10-22T02:08:59+00:00",
+      "touched_round": 165,
+      "title": "flag.Parse leaves the post-link flag as an extra positional",
+      "description": "The current parser accepts --data-dir before a link but returns unexpected argument for aurora://voting --data-dir /d. ForwardedPaths has an explicit after-the-link case, so the two parsing paths disagree.",
+      "source": "desktop/internal/deskapp/flags.go:43; desktop/internal/deskapp/deskapp_test.go:55; desktop/internal/deskapp/intent_test.go:389",
+      "confidence": 1.0
+    },
+    "TASK-318": {
+      "id": "TASK-318",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T02:09:00+00:00",
+      "updated_at": "2026-10-22T02:13:44+00:00",
+      "touched_round": 165,
+      "title": "Parse desktop flags written after the launch intent",
+      "description": "Make ParseFlags accept the same flag placement that ForwardedPaths already scans: flags may precede or follow the single aurora:// link or .json export. Add table cases for both flags after a link and a file, reject a missing value and duplicate positional intents, then prove the old parser fails those cases.",
+      "category": "correctness",
+      "severity": 0.5,
+      "confidence": 0.98,
+      "effort": 2,
+      "outcome": "ParseFlags now accepts startup flags before or after the one link/export, keeps -- semantics and normal flag diagnostics, and the help synopsis documents both positions. Fault injection with HEAD flags.go fails all six new placement/error cases; desktop tests, race, vet, build, and root tests pass."
+    },
+    "EV-108": {
+      "id": "EV-108",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:13:06+00:00",
+      "updated_at": "2026-10-22T02:13:06+00:00",
+      "touched_round": 165,
+      "title": "post-link flags now parse and the injected old parser fails",
+      "description": "The expanded TestParseFlags table passes with the parser change. Restoring HEAD flags.go makes all six new placement/error cases fail, including deep-link trailing flags and unknown trailing flags.",
+      "source": "desktop/internal/deskapp/deskapp_test.go:TestParseFlags; fault injection against HEAD desktop/internal/deskapp/flags.go",
+      "confidence": 1.0
+    },
+    "CHG-317": {
+      "id": "CHG-317",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:13:30+00:00",
+      "updated_at": "2026-10-22T02:13:30+00:00",
+      "touched_round": 165,
+      "title": "Parse startup flags on either side of the desktop launch intent",
+      "description": "ParseFlags now separates the one link/export from surrounding flags and feeds the flags to flag.Parse, preserving --, missing-value, and unknown-flag behavior. The help synopsis and changelog describe the accepted order.",
+      "commit": "66b4bb7"
+    },
+    "ISS-316": {
+      "id": "ISS-316",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:19:00+00:00",
+      "updated_at": "2026-10-22T02:21:41+00:00",
+      "touched_round": 166,
+      "title": "The forwarded --data-dir check rejects a symlink alias of the running database",
+      "description": "Shell.pathConflict compares the forwarded aurora.db with the running one using filepath.Clean only. If either directory is reached through a symlink, both name the same file but the strings differ, so a second launch is refused even though it names the database already running. The comparison must recognize filesystem identity, while keeping a missing forwarded path a conflict.",
+      "severity": 0.6,
+      "resolution": "samePath now compares existing paths with os.SameFile, so symlinked aliases of the running aurora.db and web root are accepted; missing paths retain the cleaned-path conflict behavior."
+    },
+    "HYP-030": {
+      "id": "HYP-030",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:19:00+00:00",
+      "updated_at": "2026-10-22T02:21:41+00:00",
+      "touched_round": 166,
+      "title": "The path conflict check needs filesystem identity, not only lexical cleaning",
+      "description": "os.SameFile can compare the running database file with the forwarded candidate when both exist. A fallback for paths that do not exist must still compare cleaned absolute paths and must not make an unusable path look equivalent.",
+      "confidence": 0.95
+    },
+    "TASK-319": {
+      "id": "TASK-319",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T02:19:00+00:00",
+      "updated_at": "2026-10-22T02:21:41+00:00",
+      "touched_round": 166,
+      "title": "Recognize symlink aliases of the running database in forwarded launches",
+      "description": "Add a regression test using a symlinked data directory, compare existing files with os.SameFile, retain lexical equivalence as the fallback, fault-inject the old comparison, and update README/CHANGELOG.",
+      "category": "correctness",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "outcome": "samePath compares existing paths with os.SameFile and falls back to filepath.Clean for missing paths; TestShell_AcceptsSymlinkAliasesOfRunningPaths fails under the old comparison and desktop-check plus root go test ./... pass."
+    },
+    "EV-109": {
+      "id": "EV-109",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:21:10+00:00",
+      "updated_at": "2026-10-22T02:21:10+00:00",
+      "touched_round": 166,
+      "source": "desktop/internal/deskapp/intent_test.go: TestShell_AcceptsSymlinkAliasesOfRunningPaths; fault injection reverted samePath to filepath.Clean and the test failed with a different --data-dir /alias/data and --web-root /alias/web dialog",
+      "summary": "The regression test fails against the old lexical-only comparison and passes with filesystem identity.",
+      "confidence": 1.0
+    },
+    "CHG-318": {
+      "id": "CHG-318",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:21:34+00:00",
+      "updated_at": "2026-10-22T02:21:34+00:00",
+      "touched_round": 166,
+      "title": "Compare forwarded and running paths by filesystem identity",
+      "summary": "samePath uses os.SameFile when both paths exist and filepath.Clean otherwise; symlink aliases of the running data directory and web root are accepted.",
+      "commit": "23015ff"
+    },
+    "ISS-317": {
+      "id": "ISS-317",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:24:01+00:00",
+      "updated_at": "2026-10-22T02:37:01+00:00",
+      "touched_round": 166,
+      "title": "Lottery export truncates an existing file before the new document is fully written",
+      "description": "Both the CLI and desktop export actions call os.WriteFile directly on the user-selected path. os.WriteFile opens with O_TRUNC, so a short write, disk-full error, or crash after truncation destroys the previous export while the command reports failure. The export needs a temp sibling plus rename so the destination is either the old document or the complete new one.",
+      "severity": 0.7,
+      "resolution": "CLI and desktop lottery exports now use utils.WriteFileAtomic, which keeps the previous document when writing or promoting the replacement fails."
+    },
+    "HYP-031": {
+      "id": "HYP-031",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:24:01+00:00",
+      "updated_at": "2026-10-22T02:37:01+00:00",
+      "touched_round": 166,
+      "title": "Exporting through a same-directory temp file and rename preserves the previous document on write failure",
+      "description": "A helper can create a temp file in the destination directory, write and sync the document, close it, then rename over the destination. Rename is atomic on one filesystem; any failure before rename leaves the old destination intact and removes the temp.",
+      "confidence": 0.95
+    },
+    "TASK-320": {
+      "id": "TASK-320",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T02:24:01+00:00",
+      "updated_at": "2026-10-22T02:37:01+00:00",
+      "touched_round": 166,
+      "title": "Write lottery exports atomically in the CLI and desktop shell",
+      "description": "Add one shared atomic file writer, use it for lottery export in both entry points, and add a regression test that injects a failure after truncation would have happened and asserts the old file survives. Fault-inject the direct os.WriteFile implementation, then run CLI, desktop, and root gates.",
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "outcome": "utils.WriteFileAtomic writes through an exclusive same-directory sibling, syncs, preserves an existing file mode or symlink target, and renames into place; the CLI and desktop export both use it. The promotion-failure test is red under os.WriteFile; root tests, vet, and desktop-check pass."
+    },
+    "EV-110": {
+      "id": "EV-110",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:36:41+00:00",
+      "updated_at": "2026-10-22T02:36:41+00:00",
+      "touched_round": 166,
+      "source": "internal/utils/atomicfile_test.go: TestWriteFileAtomic_KeepsTheOldExportWhenPromotionFails; fault injection replaced WriteFileAtomic with os.WriteFile and the promoted-failure assertion failed (nil error)",
+      "summary": "The atomic export writer keeps the previous document when the rename fails; the old os.WriteFile implementation cannot pass the injected failure.",
+      "confidence": 1.0
+    },
+    "CHG-319": {
+      "id": "CHG-319",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:36:57+00:00",
+      "updated_at": "2026-10-22T02:36:57+00:00",
+      "touched_round": 166,
+      "title": "Write lottery exports atomically",
+      "summary": "utils.WriteFileAtomic replaces the direct os.WriteFile in the CLI and desktop export paths, using a synced same-directory temp sibling and atomic rename while preserving mode and symlink targets.",
+      "commit": "7af6c61"
+    },
+    "ISS-318": {
+      "id": "ISS-318",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:38:28+00:00",
+      "updated_at": "2026-10-22T02:40:25+00:00",
+      "touched_round": 166,
+      "title": "An empty lottery export is JSON null, and importing null reports a false success",
+      "description": "ExportRecords marshals a nil repository slice, so an empty database writes the document `null` instead of `[]`. json.Unmarshal accepts null into a slice, so `aurora lottery import` and the desktop importer report a successful import of 0 records for a document that is not the portable array format. Export must emit an empty array and import must reject null.",
+      "severity": 0.65,
+      "resolution": "ExportRecords now emits [] for an empty database and ImportRecords rejects a null document, so both directions follow the JSON-array contract."
+    },
+    "HYP-032": {
+      "id": "HYP-032",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:38:28+00:00",
+      "updated_at": "2026-10-22T02:40:25+00:00",
+      "touched_round": 166,
+      "title": "The portable lottery document must always be a JSON array",
+      "description": "Exporting an empty result through a non-nil empty slice yields `[]`, and a decoder that rejects a nil top-level value prevents null from being accepted as an empty import.",
+      "confidence": 0.95
+    },
+    "TASK-321": {
+      "id": "TASK-321",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T02:38:28+00:00",
+      "updated_at": "2026-10-22T02:40:25+00:00",
+      "touched_round": 166,
+      "title": "Emit [] for empty exports and reject null imports",
+      "description": "Make ExportRecords encode an empty array, reject a null document in ImportRecords, cover both in app/CLI tests, fault-inject the old encoder and decoder, update docs, and run root and desktop gates.",
+      "category": "correctness",
+      "severity": 0.65,
+      "confidence": 0.95,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "outcome": "ExportRecords emits [] for an empty database and ImportRecords rejects a null document; app, CLI, and desktop regression tests cover both. Removing either guard makes the new tests fail; root tests, vet, and desktop-check pass."
+    },
+    "EV-111": {
+      "id": "EV-111",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:40:02+00:00",
+      "updated_at": "2026-10-22T02:40:02+00:00",
+      "touched_round": 166,
+      "source": "internal/app/lottery/portability_test.go: TestExportRecords_EmptyIsAnArray + TestImportRecords_RejectsNull; fault injection removed both guards and both tests failed (export was null, import returned nil error)",
+      "summary": "Empty exports now marshal as [] and a null document is refused; both assertions fail against the previous code.",
+      "confidence": 1.0
+    },
+    "CHG-320": {
+      "id": "CHG-320",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:40:20+00:00",
+      "updated_at": "2026-10-22T02:40:20+00:00",
+      "touched_round": 166,
+      "title": "Keep lottery exports and imports on the JSON array contract",
+      "summary": "ExportRecords turns a nil result into an empty array and ImportRecords rejects a null document, so empty exports and null imports agree on one portable format.",
+      "commit": "d1ec8fd"
+    },
+    "ISS-319": {
+      "id": "ISS-319",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:41:22+00:00",
+      "updated_at": "2026-10-22T02:43:16+00:00",
+      "touched_round": 166,
+      "title": "lottery export can overwrite the live database it just read",
+      "description": "exportCmd opens blockchain.DBPath(), reads the records, then writes the chosen filename. Passing ./data/aurora.db (or a symlink/hard link alias of it) replaces the SQLite database with the JSON export and prints success. Reproduced: after export the DB began with the JSON array, and history only kept working through an already-open handle. Backup already refuses to write over its live source (ISS-071), but export has no equivalent guard.",
+      "severity": 0.85,
+      "resolution": "CLI and desktop exports now go through WriteRecordsToFile, which refuses a destination aliasing the live database or its sidecars before writing."
+    },
+    "HYP-033": {
+      "id": "HYP-033",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:41:22+00:00",
+      "updated_at": "2026-10-22T02:43:16+00:00",
+      "touched_round": 166,
+      "title": "Export needs the same same-file guard as backup before writing",
+      "description": "The export destination exists and can be compared with the live database path using os.SameFile before the atomic rename. A guard in the shared app-layer export entry point protects both the CLI and the desktop menu.",
+      "confidence": 0.95
+    },
+    "TASK-322": {
+      "id": "TASK-322",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T02:41:22+00:00",
+      "updated_at": "2026-10-22T02:43:16+00:00",
+      "touched_round": 166,
+      "title": "Refuse to export over the live lottery database",
+      "description": "Add an app-layer ExportRecordsToFile/guard that compares the destination with the repository database, rejects same-file (including symlink and hard-link aliases), and keep it shared by the CLI and desktop. Add CLI and desktop regression tests, fault-inject the missing guard, update docs, and run all gates.",
+      "category": "correctness",
+      "severity": 0.85,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1.0,
+      "outcome": "lotteryapp.WriteRecordsToFile is now the shared export entry point; it refuses the live DB, -wal/-shm, and symlink/hard-link aliases before an atomic write. CLI, app, and desktop tests cover the refusal; removing the guard fails all three. Root tests, vet, and desktop-check pass."
+    },
+    "EV-112": {
+      "id": "EV-112",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:42:54+00:00",
+      "updated_at": "2026-10-22T02:42:54+00:00",
+      "touched_round": 166,
+      "source": "internal/app/lottery/portability_test.go: TestWriteRecordsToFile_RefusesTheLiveDatabase + TestWriteRecordsToFile_RefusesASymlinkAlias; cmd/aurora/cmd/lottery_test.go: TestLotteryExport_RefusesToOverwriteTheDatabase; fault injection removed the guard and all three failed, and the CLI probe replaced aurora.db with a JSON array while reporting success",
+      "summary": "The live-database guard is required: without it export overwrites the SQLite file; with it the destination, sidecars, and symlink aliases are refused and the database is unchanged.",
+      "confidence": 1.0
+    },
+    "CHG-321": {
+      "id": "CHG-321",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:43:10+00:00",
+      "updated_at": "2026-10-22T02:43:10+00:00",
+      "touched_round": 166,
+      "title": "Guard the shared lottery export entry point against the live database",
+      "summary": "WriteRecordsToFile refuses aurora.db, its -wal/-shm sidecars, and any same-file alias before atomically writing the portable document; the CLI and desktop menu both call it.",
+      "commit": "a5313d8"
+    },
+    "ISS-320": {
+      "id": "ISS-320",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:48:14+00:00",
+      "updated_at": "2026-10-22T02:57:51+00:00",
+      "touched_round": 168,
+      "title": "README has grown into an engineering log and the release matrix never starts its package",
+      "description": "README.md is 528 lines: the desktop design rationale (CSP, echo dedupe, nested module, i18n, CI) dominates the front page while install/quick start is buried, and 12 rumdl MD060 table issues make it non-clean. Separately, desktop-build.yml only checks that each release artifact exists; a Linux package that dies on startup (missing webview runtime, broken embedded assets) would pass the gate because only ci.yml's amd64 job launches the app.",
+      "severity": 0.5,
+      "resolution": "Release matrix now starts the Linux packages and checks their build identity; README was split into README + docs/desktop.md + docs/cli.md + docs/api.md, with the secret tables guarded from their new home and rumdl clean."
+    },
+    "TASK-323": {
+      "id": "TASK-323",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-22T02:50:58+00:00",
+      "updated_at": "2026-10-22T02:57:51+00:00",
+      "touched_round": 168,
+      "category": "docs",
+      "title": "Split the README into a release-ready front page and a desktop guide",
+      "description": "README.md is 528 lines and half of it is the desktop design log (CSP, echo dedupe, i18n, signing, CI), so the install/quick-start path is buried and the page carries 12 rumdl MD060 table issues. Keep README as the landing page (what it is, install, three entry points, command table, config, dev, doc index) and move the desktop rationale into docs/desktop.md. Update ci_test.go's README assertions and the workflow/action messages that point at README headings, then make rumdl clean.",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 3,
+      "unlock_factor": 2.0,
+      "outcome": "README is a 230-line landing page; docs/desktop.md, docs/cli.md and docs/api.md carry the detail. deskapp guards now read docs/desktop.md (deleting APPLE_TEAM_ID turns the test red) and all four pages pass rumdl."
+    },
+    "TASK-324": {
+      "id": "TASK-324",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-22T02:50:59+00:00",
+      "updated_at": "2026-10-22T02:57:51+00:00",
+      "touched_round": 168,
+      "category": "test-quality",
+      "title": "Start the packaged app on both Linux release architectures",
+      "description": "desktop-build.yml verifies only that files exist for each matrix target; a Linux package whose webview runtime is missing or whose embedded UI is broken would pass, because the only startup smoke test lives in ci.yml for linux/amd64. Install the webview runtime plus Xvfb in the Linux matrix legs, start the real artifact against an empty data directory, require aurora.db to appear while the process is alive, and check --version reports the git tag and a known build time. Pin the new contract in desktop/internal/deskapp/ci_test.go.",
+      "severity": 0.6,
+      "confidence": 0.9,
+      "effort": 2,
+      "unlock_factor": 1.5,
+      "outcome": "Linux amd64/arm64 release legs install the webview runtime plus Xvfb, verify --version on the packaged binary, then start it against an empty data dir and require aurora.db while alive. deskapp/ci_test.go fails if the step is removed; a live run of dist/desktop/linux-amd64/aurora created aurora.db."
+    },
+    "HYP-034": {
+      "id": "HYP-034",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:57:29+00:00",
+      "updated_at": "2026-10-22T02:57:29+00:00",
+      "touched_round": 168,
+      "title": "The release matrix can publish a package that never starts",
+      "description": "desktop-build.yml only checks artifact presence per target. The startup path (WebKitGTK runtime, embedded UI, database creation) is exercised only by ci.yml's Linux amd64 desktop-package job, so the other release legs can ship a package that dies on launch.",
+      "confidence": 0.85
+    },
+    "EV-113": {
+      "id": "EV-113",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:57:29+00:00",
+      "updated_at": "2026-10-22T02:57:29+00:00",
+      "touched_round": 168,
+      "title": "Removing the Linux release smoke step turns the release-matrix guard red",
+      "source": "desktop/internal/deskapp/ci_test.go TestReleasePackagesEveryDesktopPlatform",
+      "description": "With the Smoke-test step deleted from desktop-build.yml, desktop/internal/deskapp/ci_test.go failed on the missing 'Smoke-test the packaged app' and 'aurora.db' assertions; restoring the step made the package pass. The runtime package in dist/desktop/linux-amd64 was also started under Xvfb and created aurora.db, while a run without a display exited before the window.",
+      "confidence": 0.95
+    },
+    "HYP-035": {
+      "id": "HYP-035",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:57:34+00:00",
+      "updated_at": "2026-10-22T02:57:34+00:00",
+      "touched_round": 168,
+      "title": "The README's desktop log buries install and is unguarded by tests",
+      "description": "README.md was 528 lines with 12 rumdl MD060 errors, and its desktop design rationale sat between quick start and project structure. Moving that material needs the CI secret contracts relocated too, or the deskapp guards stop protecting anything.",
+      "confidence": 0.9
+    },
+    "EV-114": {
+      "id": "EV-114",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:57:34+00:00",
+      "updated_at": "2026-10-22T02:57:34+00:00",
+      "touched_round": 168,
+      "title": "Removing one secret name from docs/desktop.md turns the macOS contract test red",
+      "source": "desktop/internal/deskapp/ci_test.go TestReleaseRequiresSignedAndNotarizedMacOSPackages",
+      "description": "After replacing APPLE_TEAM_ID in docs/desktop.md with a wrong spelling, TestReleaseRequiresSignedAndNotarizedMacOSPackages failed with 'does not contain APPLE_TEAM_ID'; restoring the name passed. rumdl reports no issues across README.md, docs/desktop.md, docs/cli.md and docs/api.md (the old README had 12).",
+      "confidence": 0.95
+    },
+    "CHG-322": {
+      "id": "CHG-322",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:57:38+00:00",
+      "updated_at": "2026-10-22T02:57:38+00:00",
+      "touched_round": 168,
+      "title": "Smoke-test the packaged Linux release before upload",
+      "commit": "cc20c99",
+      "description": "desktop-build.yml installs the WebKitGTK/GTK runtime and Xvfb on Linux legs, checks --version on the packaged binary, then launches it against an empty data dir and requires aurora.db while alive. deskapp/ci_test.go pins the contract."
+    },
+    "CHG-323": {
+      "id": "CHG-323",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:57:38+00:00",
+      "updated_at": "2026-10-22T02:57:38+00:00",
+      "touched_round": 168,
+      "title": "Split README into a landing page plus desktop/CLI/API docs",
+      "commit": "ee801e5",
+      "description": "README is now the release landing page; docs/desktop.md carries the MyGo design and signing contracts, docs/cli.md and docs/api.md the references. ci_test.go guards the relocated secret tables; rumdl is clean."
+    },
+    "EV-115": {
+      "id": "EV-115",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-22T02:58:22+00:00",
+      "updated_at": "2026-10-22T02:58:22+00:00",
+      "touched_round": 168,
+      "title": "The new release smoke script passes on the real packaged binary under Xvfb",
+      "source": "desktop-build.yml Smoke-test the packaged app (run against dist/desktop/linux-amd64/aurora)",
+      "description": "Extracting the workflow step verbatim (with matrix.path substituted) and running it against the existing linux-amd64 package exited 0: --version reported v1.1-683-g6a87ea8-dirty and a real build time, and aurora.db was created while the process stayed alive. The same command without an X display exits before the window ('cannot open display'), which is exactly the failure the file-existence check used to miss.",
       "confidence": 0.95
     }
   },
@@ -16192,12 +17851,6 @@
       "from": "CHG-130",
       "to": "TASK-135",
       "type": "implements",
-      "created_at": "2026-08-28T15:36:04+00:00"
-    },
-    {
-      "from": "CHG-130",
-      "to": "ISS-126",
-      "type": "resolves",
       "created_at": "2026-08-28T15:36:04+00:00"
     },
     {
@@ -20075,6 +21728,823 @@
       "to": "HYP-016",
       "type": "validates",
       "created_at": "2026-10-21T08:06:51+00:00"
+    },
+    {
+      "from": "TASK-300",
+      "to": "ISS-296",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:49:48+00:00"
+    },
+    {
+      "from": "ISS-296",
+      "to": "COMP-016",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:49:48+00:00"
+    },
+    {
+      "from": "EV-086",
+      "to": "HYP-017",
+      "type": "validates",
+      "created_at": "2026-10-21T12:49:49+00:00"
+    },
+    {
+      "from": "ISS-297",
+      "to": "ISS-296",
+      "type": "causes",
+      "created_at": "2026-10-21T12:49:49+00:00",
+      "root_cause": true
+    },
+    {
+      "from": "ISS-297",
+      "to": "COMP-016",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:49:49+00:00"
+    },
+    {
+      "from": "TASK-300",
+      "to": "ISS-297",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:49:49+00:00"
+    },
+    {
+      "from": "CHG-300",
+      "to": "ISS-296",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:49:49+00:00"
+    },
+    {
+      "from": "DEC-022",
+      "to": "COMP-ril",
+      "type": "governs",
+      "created_at": "2026-10-21T12:50:11+00:00"
+    },
+    {
+      "from": "TASK-301",
+      "to": "ISS-298",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:50:11+00:00"
+    },
+    {
+      "from": "ISS-298",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:50:11+00:00"
+    },
+    {
+      "from": "EV-087",
+      "to": "HYP-018",
+      "type": "validates",
+      "created_at": "2026-10-21T12:50:11+00:00"
+    },
+    {
+      "from": "CHG-301",
+      "to": "TASK-301",
+      "type": "implements",
+      "created_at": "2026-10-21T12:50:12+00:00"
+    },
+    {
+      "from": "CHG-301",
+      "to": "ISS-298",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:50:12+00:00"
+    },
+    {
+      "from": "EV-088",
+      "to": "HYP-019",
+      "type": "validates",
+      "created_at": "2026-10-21T12:50:31+00:00"
+    },
+    {
+      "from": "TASK-302",
+      "to": "ISS-126",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:50:31+00:00"
+    },
+    {
+      "from": "ISS-126",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:50:31+00:00"
+    },
+    {
+      "from": "CHG-302",
+      "to": "TASK-302",
+      "type": "implements",
+      "created_at": "2026-10-21T12:50:31+00:00"
+    },
+    {
+      "from": "CHG-302",
+      "to": "ISS-126",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:50:31+00:00"
+    },
+    {
+      "from": "ISS-299",
+      "to": "COMP-001",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:50:40+00:00"
+    },
+    {
+      "from": "EV-089",
+      "to": "HYP-020",
+      "type": "validates",
+      "created_at": "2026-10-21T12:50:40+00:00"
+    },
+    {
+      "from": "TASK-303",
+      "to": "ISS-299",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:50:40+00:00"
+    },
+    {
+      "from": "CHG-303",
+      "to": "TASK-303",
+      "type": "implements",
+      "created_at": "2026-10-21T12:50:40+00:00"
+    },
+    {
+      "from": "CHG-303",
+      "to": "ISS-299",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:50:40+00:00"
+    },
+    {
+      "from": "TASK-304",
+      "to": "ISS-300",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:50:48+00:00"
+    },
+    {
+      "from": "ISS-300",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:50:48+00:00"
+    },
+    {
+      "from": "CHG-304",
+      "to": "TASK-304",
+      "type": "implements",
+      "created_at": "2026-10-21T12:50:48+00:00"
+    },
+    {
+      "from": "CHG-304",
+      "to": "ISS-300",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:50:48+00:00"
+    },
+    {
+      "from": "CHG-305",
+      "to": "TASK-305",
+      "type": "implements",
+      "created_at": "2026-10-21T12:50:55+00:00"
+    },
+    {
+      "from": "CHG-305",
+      "to": "ISS-301",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:50:55+00:00"
+    },
+    {
+      "from": "TASK-306",
+      "to": "ISS-302",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:51:05+00:00"
+    },
+    {
+      "from": "ISS-302",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:51:05+00:00"
+    },
+    {
+      "from": "EV-091",
+      "to": "HYP-021",
+      "type": "validates",
+      "created_at": "2026-10-21T12:51:05+00:00"
+    },
+    {
+      "from": "EV-090",
+      "to": "HYP-021",
+      "type": "validates",
+      "created_at": "2026-10-21T12:51:05+00:00"
+    },
+    {
+      "from": "EV-092",
+      "to": "HYP-021",
+      "type": "validates",
+      "created_at": "2026-10-21T12:51:05+00:00"
+    },
+    {
+      "from": "CHG-306",
+      "to": "ISS-302",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:51:06+00:00"
+    },
+    {
+      "from": "CHG-306",
+      "to": "TASK-306",
+      "type": "implements",
+      "created_at": "2026-10-21T12:51:06+00:00"
+    },
+    {
+      "from": "TASK-307",
+      "to": "ISS-303",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:51:14+00:00"
+    },
+    {
+      "from": "EV-093",
+      "to": "HYP-022",
+      "type": "validates",
+      "created_at": "2026-10-21T12:51:14+00:00"
+    },
+    {
+      "from": "CHG-307",
+      "to": "ISS-303",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:51:14+00:00"
+    },
+    {
+      "from": "CHG-307",
+      "to": "TASK-307",
+      "type": "implements",
+      "created_at": "2026-10-21T12:51:14+00:00"
+    },
+    {
+      "from": "TASK-308",
+      "to": "ISS-304",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:51:24+00:00"
+    },
+    {
+      "from": "ISS-304",
+      "to": "COMP-017",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:51:24+00:00"
+    },
+    {
+      "from": "EV-094",
+      "to": "HYP-023",
+      "type": "validates",
+      "created_at": "2026-10-21T12:51:25+00:00"
+    },
+    {
+      "from": "DEC-023",
+      "to": "TASK-308",
+      "type": "governs",
+      "created_at": "2026-10-21T12:51:25+00:00"
+    },
+    {
+      "from": "DEC-023",
+      "to": "COMP-017",
+      "type": "governs",
+      "created_at": "2026-10-21T12:51:25+00:00"
+    },
+    {
+      "from": "CHG-308",
+      "to": "TASK-308",
+      "type": "implements",
+      "created_at": "2026-10-21T12:51:25+00:00"
+    },
+    {
+      "from": "CHG-308",
+      "to": "ISS-304",
+      "type": "resolves",
+      "created_at": "2026-10-21T12:51:25+00:00"
+    },
+    {
+      "from": "TASK-309",
+      "to": "ISS-305",
+      "type": "addresses",
+      "created_at": "2026-10-21T12:58:27+00:00"
+    },
+    {
+      "from": "ISS-305",
+      "to": "COMP-017",
+      "type": "located_in",
+      "created_at": "2026-10-21T12:58:27+00:00"
+    },
+    {
+      "from": "CHG-309",
+      "to": "TASK-309",
+      "type": "implements",
+      "created_at": "2026-10-21T13:10:28+00:00"
+    },
+    {
+      "from": "CHG-309",
+      "to": "ISS-305",
+      "type": "resolves",
+      "created_at": "2026-10-21T13:10:28+00:00"
+    },
+    {
+      "from": "DEC-024",
+      "to": "DEC-023",
+      "type": "supersedes",
+      "created_at": "2026-10-21T13:11:31+00:00"
+    },
+    {
+      "from": "DEC-024",
+      "to": "TASK-309",
+      "type": "governs",
+      "created_at": "2026-10-21T13:11:31+00:00"
+    },
+    {
+      "from": "DEC-024",
+      "to": "COMP-017",
+      "type": "governs",
+      "created_at": "2026-10-21T13:11:31+00:00"
+    },
+    {
+      "from": "ISS-306",
+      "to": "COMP-017",
+      "type": "located_in",
+      "created_at": "2026-10-21T13:16:09+00:00"
+    },
+    {
+      "from": "TASK-310",
+      "to": "ISS-307",
+      "type": "addresses",
+      "created_at": "2026-10-21T13:17:42+00:00"
+    },
+    {
+      "from": "ISS-307",
+      "to": "COMP-018",
+      "type": "located_in",
+      "created_at": "2026-10-21T13:17:42+00:00"
+    },
+    {
+      "from": "CHG-310",
+      "to": "TASK-310",
+      "type": "implements",
+      "created_at": "2026-10-21T13:22:10+00:00"
+    },
+    {
+      "from": "CHG-310",
+      "to": "ISS-307",
+      "type": "resolves",
+      "created_at": "2026-10-21T13:22:10+00:00"
+    },
+    {
+      "from": "TASK-311",
+      "to": "ISS-308",
+      "type": "addresses",
+      "created_at": "2026-10-21T13:22:57+00:00"
+    },
+    {
+      "from": "ISS-308",
+      "to": "COMP-017",
+      "type": "located_in",
+      "created_at": "2026-10-21T13:22:57+00:00"
+    },
+    {
+      "from": "TASK-312",
+      "to": "ISS-309",
+      "type": "addresses",
+      "created_at": "2026-10-21T13:23:32+00:00"
+    },
+    {
+      "from": "ISS-309",
+      "to": "COMP-017",
+      "type": "located_in",
+      "created_at": "2026-10-21T13:23:32+00:00"
+    },
+    {
+      "from": "TASK-312",
+      "to": "TASK-311",
+      "type": "blocks",
+      "created_at": "2026-10-21T13:23:32+00:00"
+    },
+    {
+      "from": "CHG-311",
+      "to": "TASK-311",
+      "type": "implements",
+      "created_at": "2026-10-22T00:24:04+00:00"
+    },
+    {
+      "from": "CHG-311",
+      "to": "TASK-312",
+      "type": "implements",
+      "created_at": "2026-10-22T00:24:04+00:00"
+    },
+    {
+      "from": "CHG-311",
+      "to": "ISS-308",
+      "type": "resolves",
+      "created_at": "2026-10-22T00:24:04+00:00"
+    },
+    {
+      "from": "CHG-311",
+      "to": "ISS-309",
+      "type": "resolves",
+      "created_at": "2026-10-22T00:24:04+00:00"
+    },
+    {
+      "from": "EV-095",
+      "to": "HYP-023",
+      "type": "validates",
+      "created_at": "2026-10-22T00:25:41+00:00"
+    },
+    {
+      "from": "EV-095",
+      "to": "HYP-022",
+      "type": "validates",
+      "created_at": "2026-10-22T00:25:41+00:00"
+    },
+    {
+      "from": "TASK-313",
+      "to": "ISS-310",
+      "type": "addresses",
+      "created_at": "2026-10-22T00:25:57+00:00"
+    },
+    {
+      "from": "ISS-310",
+      "to": "COMP-017",
+      "type": "located_in",
+      "created_at": "2026-10-22T00:25:57+00:00"
+    },
+    {
+      "from": "EV-095",
+      "to": "HYP-024",
+      "type": "validates",
+      "created_at": "2026-10-22T00:25:57+00:00"
+    },
+    {
+      "from": "CHG-312",
+      "to": "TASK-313",
+      "type": "implements",
+      "created_at": "2026-10-22T00:29:07+00:00"
+    },
+    {
+      "from": "CHG-312",
+      "to": "ISS-310",
+      "type": "resolves",
+      "created_at": "2026-10-22T00:29:07+00:00"
+    },
+    {
+      "from": "EV-096",
+      "to": "HYP-024",
+      "type": "validates",
+      "created_at": "2026-10-22T00:29:15+00:00"
+    },
+    {
+      "from": "EV-097",
+      "to": "HYP-025",
+      "type": "validates",
+      "created_at": "2026-10-22T00:35:30+00:00"
+    },
+    {
+      "from": "TASK-314",
+      "to": "ISS-311",
+      "type": "addresses",
+      "created_at": "2026-10-22T00:38:56+00:00"
+    },
+    {
+      "from": "ISS-311",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-22T00:38:57+00:00"
+    },
+    {
+      "from": "EV-098",
+      "to": "HYP-025",
+      "type": "validates",
+      "created_at": "2026-10-22T00:46:46+00:00"
+    },
+    {
+      "from": "CHG-313",
+      "to": "TASK-314",
+      "type": "implements",
+      "created_at": "2026-10-22T00:47:12+00:00"
+    },
+    {
+      "from": "CHG-313",
+      "to": "ISS-311",
+      "type": "resolves",
+      "created_at": "2026-10-22T00:47:12+00:00"
+    },
+    {
+      "from": "TASK-315",
+      "to": "ISS-312",
+      "type": "addresses",
+      "created_at": "2026-10-22T00:50:36+00:00"
+    },
+    {
+      "from": "ISS-312",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-22T00:50:36+00:00"
+    },
+    {
+      "from": "EV-099",
+      "to": "HYP-026",
+      "type": "validates",
+      "created_at": "2026-10-22T00:57:41+00:00"
+    },
+    {
+      "from": "EV-100",
+      "to": "HYP-026",
+      "type": "validates",
+      "created_at": "2026-10-22T00:57:45+00:00"
+    },
+    {
+      "from": "CHG-314",
+      "to": "TASK-315",
+      "type": "implements",
+      "created_at": "2026-10-22T00:58:23+00:00"
+    },
+    {
+      "from": "CHG-314",
+      "to": "ISS-312",
+      "type": "resolves",
+      "created_at": "2026-10-22T00:58:27+00:00"
+    },
+    {
+      "from": "EV-101",
+      "to": "HYP-027",
+      "type": "validates",
+      "created_at": "2026-10-22T01:42:50+00:00"
+    },
+    {
+      "from": "TASK-316",
+      "to": "ISS-313",
+      "type": "addresses",
+      "created_at": "2026-10-22T01:42:57+00:00"
+    },
+    {
+      "from": "EV-102",
+      "to": "HYP-027",
+      "type": "validates",
+      "created_at": "2026-10-22T01:43:05+00:00"
+    },
+    {
+      "from": "EV-103",
+      "to": "HYP-027",
+      "type": "validates",
+      "created_at": "2026-10-22T01:45:20+00:00"
+    },
+    {
+      "from": "CHG-315",
+      "to": "ISS-313",
+      "type": "resolves",
+      "created_at": "2026-10-22T01:46:36+00:00"
+    },
+    {
+      "from": "CHG-315",
+      "to": "TASK-316",
+      "type": "implements",
+      "created_at": "2026-10-22T01:46:36+00:00"
+    },
+    {
+      "from": "EV-104",
+      "to": "HYP-028",
+      "type": "validates",
+      "created_at": "2026-10-22T01:49:34+00:00"
+    },
+    {
+      "from": "TASK-317",
+      "to": "ISS-314",
+      "type": "addresses",
+      "created_at": "2026-10-22T01:49:43+00:00"
+    },
+    {
+      "from": "EV-105",
+      "to": "HYP-028",
+      "type": "validates",
+      "created_at": "2026-10-22T01:49:52+00:00"
+    },
+    {
+      "from": "EV-106",
+      "to": "HYP-028",
+      "type": "validates",
+      "created_at": "2026-10-22T01:52:11+00:00"
+    },
+    {
+      "from": "CHG-316",
+      "to": "ISS-314",
+      "type": "resolves",
+      "created_at": "2026-10-22T01:53:03+00:00"
+    },
+    {
+      "from": "CHG-316",
+      "to": "TASK-317",
+      "type": "implements",
+      "created_at": "2026-10-22T01:53:03+00:00"
+    },
+    {
+      "from": "EV-107",
+      "to": "HYP-029",
+      "type": "validates",
+      "created_at": "2026-10-22T02:09:03+00:00"
+    },
+    {
+      "from": "TASK-318",
+      "to": "ISS-315",
+      "type": "addresses",
+      "created_at": "2026-10-22T02:09:07+00:00"
+    },
+    {
+      "from": "ISS-315",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-22T02:09:07+00:00"
+    },
+    {
+      "from": "CHG-317",
+      "to": "TASK-318",
+      "type": "implements",
+      "created_at": "2026-10-22T02:13:35+00:00"
+    },
+    {
+      "from": "CHG-317",
+      "to": "ISS-315",
+      "type": "resolves",
+      "created_at": "2026-10-22T02:13:35+00:00"
+    },
+    {
+      "from": "EV-108",
+      "to": "HYP-029",
+      "type": "validates",
+      "created_at": "2026-10-22T02:13:35+00:00"
+    },
+    {
+      "from": "TASK-319",
+      "to": "ISS-316",
+      "type": "addresses",
+      "created_at": "2026-10-22T02:19:03+00:00"
+    },
+    {
+      "from": "ISS-316",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-22T02:19:03+00:00"
+    },
+    {
+      "from": "ISS-316",
+      "to": "ISS-314",
+      "type": "causes",
+      "created_at": "2026-10-22T02:19:04+00:00"
+    },
+    {
+      "from": "EV-109",
+      "to": "HYP-030",
+      "type": "validates",
+      "created_at": "2026-10-22T02:21:15+00:00"
+    },
+    {
+      "from": "CHG-318",
+      "to": "TASK-319",
+      "type": "implements",
+      "created_at": "2026-10-22T02:21:41+00:00"
+    },
+    {
+      "from": "CHG-318",
+      "to": "ISS-316",
+      "type": "resolves",
+      "created_at": "2026-10-22T02:21:41+00:00"
+    },
+    {
+      "from": "TASK-320",
+      "to": "ISS-317",
+      "type": "addresses",
+      "created_at": "2026-10-22T02:24:07+00:00"
+    },
+    {
+      "from": "ISS-317",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-22T02:24:07+00:00"
+    },
+    {
+      "from": "EV-110",
+      "to": "HYP-031",
+      "type": "validates",
+      "created_at": "2026-10-22T02:36:45+00:00"
+    },
+    {
+      "from": "CHG-319",
+      "to": "TASK-320",
+      "type": "implements",
+      "created_at": "2026-10-22T02:37:01+00:00"
+    },
+    {
+      "from": "CHG-319",
+      "to": "ISS-317",
+      "type": "resolves",
+      "created_at": "2026-10-22T02:37:01+00:00"
+    },
+    {
+      "from": "TASK-321",
+      "to": "ISS-318",
+      "type": "addresses",
+      "created_at": "2026-10-22T02:38:32+00:00"
+    },
+    {
+      "from": "ISS-318",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-10-22T02:38:32+00:00"
+    },
+    {
+      "from": "EV-111",
+      "to": "HYP-032",
+      "type": "validates",
+      "created_at": "2026-10-22T02:40:08+00:00"
+    },
+    {
+      "from": "CHG-320",
+      "to": "TASK-321",
+      "type": "implements",
+      "created_at": "2026-10-22T02:40:25+00:00"
+    },
+    {
+      "from": "CHG-320",
+      "to": "ISS-318",
+      "type": "resolves",
+      "created_at": "2026-10-22T02:40:25+00:00"
+    },
+    {
+      "from": "TASK-322",
+      "to": "ISS-319",
+      "type": "addresses",
+      "created_at": "2026-10-22T02:41:28+00:00"
+    },
+    {
+      "from": "ISS-319",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-10-22T02:41:28+00:00"
+    },
+    {
+      "from": "EV-112",
+      "to": "HYP-033",
+      "type": "validates",
+      "created_at": "2026-10-22T02:42:59+00:00"
+    },
+    {
+      "from": "CHG-321",
+      "to": "TASK-322",
+      "type": "implements",
+      "created_at": "2026-10-22T02:43:15+00:00"
+    },
+    {
+      "from": "CHG-321",
+      "to": "ISS-319",
+      "type": "resolves",
+      "created_at": "2026-10-22T02:43:15+00:00"
+    },
+    {
+      "from": "TASK-323",
+      "to": "ISS-320",
+      "type": "addresses",
+      "created_at": "2026-10-22T02:51:10+00:00"
+    },
+    {
+      "from": "TASK-324",
+      "to": "ISS-320",
+      "type": "addresses",
+      "created_at": "2026-10-22T02:51:10+00:00"
+    },
+    {
+      "from": "EV-113",
+      "to": "HYP-034",
+      "type": "validates",
+      "created_at": "2026-10-22T02:57:41+00:00"
+    },
+    {
+      "from": "CHG-322",
+      "to": "ISS-320",
+      "type": "resolves",
+      "created_at": "2026-10-22T02:57:41+00:00"
+    },
+    {
+      "from": "CHG-322",
+      "to": "TASK-324",
+      "type": "implements",
+      "created_at": "2026-10-22T02:57:42+00:00"
+    },
+    {
+      "from": "EV-114",
+      "to": "HYP-035",
+      "type": "validates",
+      "created_at": "2026-10-22T02:57:42+00:00"
+    },
+    {
+      "from": "CHG-323",
+      "to": "ISS-320",
+      "type": "resolves",
+      "created_at": "2026-10-22T02:57:42+00:00"
+    },
+    {
+      "from": "CHG-323",
+      "to": "TASK-323",
+      "type": "implements",
+      "created_at": "2026-10-22T02:57:42+00:00"
+    },
+    {
+      "from": "EV-115",
+      "to": "HYP-034",
+      "type": "validates",
+      "created_at": "2026-10-22T02:58:26+00:00"
     }
   ]
 }
