@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -115,6 +116,16 @@ func userDataDir() (string, error) {
 	return mygo.App.Path(mygo.PathUserData)
 }
 
+// startDesktop performs the checks that must happen before any durable state
+// is created. The webview check is first: a packaged app launched without
+// WebKitGTK must report that fact without creating a database or log file.
+func startDesktop(webViewAvailable func() bool, start func() error) error {
+	if !webViewAvailable() {
+		return errors.New(deskapp.T("desktop.error.no_webview"))
+	}
+	return start()
+}
+
 func main() {
 	// `mygo build` runs the compiled app once with MYGO_GENERATE to extract a
 	// TypeScript client. Aurora binds no MyGo services, so there is nothing to
@@ -173,14 +184,6 @@ func main() {
 	//     named themselves differently would both believe they were first.
 	mygo.App.SetName(deskapp.AppName)
 
-	// Refuse to start without a system webview BEFORE booting the window:
-	// NewWindow panics when the platform has none, and a raw panic with a Go
-	// stack trace is useless to a user who is missing a system package.
-	if !mygo.WebViewAvailable() {
-		fmt.Fprintln(os.Stderr, "aurora-desktop: "+deskapp.T("desktop.error.no_webview"))
-		os.Exit(1)
-	}
-
 	// One desktop instance per user: the database is single-writer (SQLite)
 	// and the shell owns the window, so a second launch focuses the first.
 	if !mygo.App.RequestSingleInstanceLock() {
@@ -194,11 +197,18 @@ func main() {
 	// database, the logs and MyGo's window-state.json then live under one
 	// application directory (and the name MyGo already resolved), instead of
 	// our own guess next to it.
-	rt, err := deskapp.Start(ctx, deskapp.Options{
-		WebRoot:        opts.WebRoot,
-		DataDir:        opts.DataDir,
-		DataDirDefault: userDataDir,
-	})
+	var rt *deskapp.Runtime
+	err = startDesktop(
+		mygo.WebViewAvailable,
+		func() (err error) {
+			rt, err = deskapp.Start(ctx, deskapp.Options{
+				WebRoot:        opts.WebRoot,
+				DataDir:        opts.DataDir,
+				DataDirDefault: userDataDir,
+			})
+			return err
+		},
+	)
 	if err != nil {
 		failStartup(err)
 	}
