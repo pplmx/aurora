@@ -3,6 +3,7 @@ package deskapp
 import (
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -273,11 +274,18 @@ func (s *Shell) pathConflict(args []string, workDir string) string {
 	return strings.Join(conflicts, " and ")
 }
 
-// samePath reports whether two spellings name the same path. The running
-// instance's WebRoot comes from ResolveWebRoot, which keeps the trailing
-// separator the caller used; the launcher may spell the same directory
-// without it.
+// samePath reports whether two spellings name the same filesystem object.
+// Cleaning catches trailing separators and redundant components. When both
+// paths exist, os.SameFile also catches a symlinked directory alias: that is
+// still the database and UI the running instance uses, not a different one.
+// A missing path falls back to the lexical comparison so it remains a
+// conflict instead of matching some other nonexistent spelling by accident.
 func samePath(a, b string) bool {
+	if aInfo, aErr := os.Stat(a); aErr == nil {
+		if bInfo, bErr := os.Stat(b); bErr == nil {
+			return os.SameFile(aInfo, bInfo)
+		}
+	}
 	return filepath.Clean(a) == filepath.Clean(b)
 }
 

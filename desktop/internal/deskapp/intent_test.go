@@ -520,6 +520,45 @@ func TestShell_AcceptsEquivalentWebRootSpellings(t *testing.T) {
 	}
 }
 
+// TestShell_AcceptsSymlinkAliasesOfRunningPaths pins filesystem identity, not
+// string identity. A launcher may reach the same database and web root through
+// a symlinked directory; refusing that launch would claim it names another
+// database even though both paths resolve to the files the instance already
+// uses.
+func TestShell_AcceptsSymlinkAliasesOfRunningPaths(t *testing.T) {
+	root := t.TempDir()
+	dataDir := filepath.Join(root, "data")
+	webRoot := filepath.Join(root, "web")
+	alias := filepath.Join(root, "alias")
+	require.NoError(t, os.MkdirAll(dataDir, 0o755))
+	require.NoError(t, os.MkdirAll(webRoot, 0o755))
+	if err := os.Symlink(root, alias); err != nil {
+		t.Skipf("symlinks are unavailable: %v", err)
+	}
+
+	dbPath := filepath.Join(dataDir, "aurora.db")
+	repo, err := sqlite.NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	require.NoError(t, repo.Close())
+
+	shell := NewShell(About{DBPath: dbPath, WebRoot: webRoot})
+	var reports []string
+	shell.report = func(_ mygo.MessageType, title, message, _ string) {
+		reports = append(reports, title+" | "+message)
+	}
+	var navigated []Intent
+	shell.navigate = func(in Intent) { navigated = append(navigated, in) }
+
+	shell.HandleLaunchArgs([]string{
+		"--data-dir", filepath.Join(alias, "data"),
+		"--web-root", filepath.Join(alias, "web"),
+		"aurora://voting",
+	}, root)
+
+	assert.Empty(t, reports, "symlink aliases name the database and UI already running")
+	require.Len(t, navigated, 1)
+}
+
 // TestShell_ImportDropped pins what a drop does with each kind of file.
 func TestShell_ImportDropped(t *testing.T) {
 	shell := NewShell(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")})
