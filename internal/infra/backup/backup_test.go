@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
+	_ "modernc.org/sqlite"
 )
 
 func TestBackupService_Create(t *testing.T) {
@@ -21,7 +21,7 @@ func TestBackupService_Create(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll("/tmp/test_backup_src") }()
 
-	db, err := sql.Open("sqlite3", "/tmp/test_backup_src/blockchain.db")
+	db, err := sql.Open("sqlite", "/tmp/test_backup_src/blockchain.db")
 	if err != nil {
 		t.Fatalf("Create test db: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestBackupService_Create_OutputPathIsFile(t *testing.T) {
 
 	// A real DB so the failure we assert is the output-path one, not an
 	// earlier step.
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)")
 	require.NoError(t, err)
@@ -101,7 +101,7 @@ func TestBackupService_Verify(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll("/tmp/test_verify_src") }()
 
-	db, err := sql.Open("sqlite3", "/tmp/test_verify_src/blockchain.db")
+	db, err := sql.Open("sqlite", "/tmp/test_verify_src/blockchain.db")
 	if err != nil {
 		t.Fatalf("Create test db: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestBackupService_VerifyCorruptMetadata(t *testing.T) {
 	}
 	defer func() { _ = os.RemoveAll("/tmp/test_corrupt") }()
 
-	db, err := sql.Open("sqlite3", "/tmp/test_corrupt/blockchain.db")
+	db, err := sql.Open("sqlite", "/tmp/test_corrupt/blockchain.db")
 	if err != nil {
 		t.Fatalf("Create test db: %v", err)
 	}
@@ -208,7 +208,7 @@ func TestBackupService_Restore_RefusesCorruptBackup(t *testing.T) {
 func makeTestDB(t *testing.T, path string) {
 	t.Helper()
 	require.NoError(t, os.MkdirAll(filepath.Dir(path), 0755))
-	db, err := sql.Open("sqlite3", path)
+	db, err := sql.Open("sqlite", path)
 	require.NoError(t, err)
 	_, err = db.Exec("CREATE TABLE test (id INTEGER PRIMARY KEY)")
 	require.NoError(t, err)
@@ -450,7 +450,7 @@ func TestBackupService_Create_RefusesSelfOverwrite(t *testing.T) {
 	dbPath := filepath.Join(dataDir, "aurora.db")
 
 	makeTestDB(t, dbPath)
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
 	_, err = db.Exec("INSERT INTO test (id) VALUES (42)")
 	require.NoError(t, err)
@@ -462,7 +462,7 @@ func TestBackupService_Create_RefusesSelfOverwrite(t *testing.T) {
 	require.ErrorContains(t, err, "into itself")
 
 	// The live database must still hold the marker row — no truncation.
-	reopened, err := sql.Open("sqlite3", dbPath)
+	reopened, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
 	defer reopened.Close()
 	var count int
@@ -485,7 +485,7 @@ func TestBackupService_Create_AbortLeavesPreviousSetIntact(t *testing.T) {
 	mkDB := func(rel string, table string) string {
 		p := filepath.Join(dir, "src", rel)
 		require.NoError(t, os.MkdirAll(filepath.Dir(p), 0755))
-		db, err := sql.Open("sqlite3", p)
+		db, err := sql.Open("sqlite", p)
 		require.NoError(t, err)
 		_, err = db.Exec("CREATE TABLE " + table + " (id INTEGER PRIMARY KEY)")
 		require.NoError(t, err)

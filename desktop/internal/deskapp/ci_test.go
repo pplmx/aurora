@@ -86,29 +86,29 @@ func TestRootGateCoversTheNestedModule(t *testing.T) {
 		"desktop/ must stay its own module, which is why the root gate cannot see it")
 }
 
-// TestDesktopIsPackagedOnItsOwnPlatform pins why the CI job builds instead of
-// packaging, and why `just desktop-package` is not run with a foreign
-// -platform: the app's storage is cgo, so a cross build fails in runtime/cgo
-// long before our own code. If storage ever becomes pure Go this test will
-// say so, and the packaging matrix can start cross-building.
-func TestDesktopIsPackagedOnItsOwnPlatform(t *testing.T) {
+// TestDesktopStorageStaysPureGo pins the storage contract that makes the
+// desktop shell cross-buildable: the core's SQLite driver is pure Go, and
+// neither module may reintroduce a cgo-only driver.
+func TestDesktopStorageStaysPureGo(t *testing.T) {
 	root := repoRoot(t)
 
 	recipe, err := os.ReadFile(filepath.Join(root, "justfile"))
 	require.NoError(t, err)
-	assert.Contains(t, string(recipe), "CGO_ENABLED=1 go tool mygo build",
-		"MyGo defaults CGO_ENABLED to 0, which cannot build the cgo storage")
+	assert.Contains(t, string(recipe), "CGO_ENABLED=0 go tool mygo build",
+		"MyGo packaging must build with cgo disabled now that storage is pure Go")
+	assert.NotContains(t, string(recipe), "CGO_ENABLED=1 go tool mygo build",
+		"the pure-Go storage must not require a cgo packaging toolchain")
 
-	// The reason: the core's database driver is cgo-only, and the desktop
-	// module imports the core.
 	for _, file := range []string{
 		filepath.Join("internal", "infra", "sqlite", "lottery.go"),
 		filepath.Join("internal", "domain", "blockchain", "init.go"),
 	} {
 		src, err := os.ReadFile(filepath.Join(root, file))
 		require.NoError(t, err)
-		assert.Contains(t, string(src), `"github.com/mattn/go-sqlite3"`,
-			"%s is expected to be the cgo SQLite dependency that blocks cross builds", file)
+		assert.Contains(t, string(src), `"modernc.org/sqlite"`,
+			"%s must use the pure-Go SQLite driver", file)
+		assert.NotContains(t, string(src), `"github.com/mattn/go-sqlite3"`,
+			"%s must not reintroduce the cgo-only SQLite driver", file)
 	}
 }
 
@@ -116,7 +116,7 @@ func TestDesktopIsPackagedOnItsOwnPlatform(t *testing.T) {
 // compiles the module; without this job a bad mygo.config.ts, a missing
 // desktop entry, or a package that silently drops the .deb/tarball would
 // reach a release tag. The commands are deliberately the same as
-// `just desktop-package` (CGO_ENABLED=1 + go tool mygo build).
+// `just desktop-package` (CGO_ENABLED=0 + go tool mygo build).
 func TestCIPackagesTheDesktopApp(t *testing.T) {
 	root := repoRoot(t)
 
@@ -129,8 +129,8 @@ func TestCIPackagesTheDesktopApp(t *testing.T) {
 		"the packaging gate must fetch tags for git describe")
 	require.Contains(t, workflow, "go-version-file: desktop/go.mod")
 	require.Contains(t, workflow, "node-version: '22'")
-	require.Contains(t, workflow, "CGO_ENABLED: '1'")
-	require.Contains(t, workflow, "CC: gcc")
+	require.Contains(t, workflow, "CGO_ENABLED: '0'")
+	require.NotContains(t, workflow, "CC: gcc")
 	require.Contains(t, workflow, "go tool mygo build -platform linux/amd64")
 	require.Contains(t, workflow, "libwebkit2gtk-4.1-0 libgtk-3-0 xvfb",
 		"the package smoke test needs the runtime webview and a display")
@@ -153,8 +153,8 @@ func TestCIPackagesTheDesktopApp(t *testing.T) {
 
 // TestReleasePackagesEveryDesktopPlatform pins the release matrix. A release
 // that only uploads the CLI leaves the MyGo app unavailable even though the
-// repository can build it locally; each target needs its own native runner
-// because the SQLite dependency is cgo.
+// repository can build it locally; the pure-Go storage means the matrix is
+// free to cross-build rather than requiring native cgo runners.
 func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	root := repoRoot(t)
 
@@ -187,11 +187,11 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	desktop, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "desktop-build.yml"))
 	require.NoError(t, err)
 	desktopWorkflow := string(desktop)
-	require.Contains(t, desktopWorkflow, "CGO_ENABLED: '1'")
+	require.Contains(t, desktopWorkflow, "CGO_ENABLED: '0'")
 	require.Contains(t, desktopWorkflow, "fetch-depth: 0",
 		"the release package must fetch tags for git describe")
-	require.Contains(t, desktopWorkflow, "Package (Windows)")
-	require.Contains(t, desktopWorkflow, "CC: gcc")
+	require.Contains(t, desktopWorkflow, "Package")
+	require.NotContains(t, desktopWorkflow, "CC: gcc")
 	require.Contains(t, desktopWorkflow, "go tool mygo build")
 	require.Contains(t, desktopWorkflow, "go-version-file: desktop/go.mod")
 	for _, platform := range []string{
@@ -204,10 +204,9 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 		assert.Contains(t, desktopWorkflow, platform, "release matrix must package %s", platform)
 	}
 	for _, osName := range []string{"ubuntu-latest", "ubuntu-24.04-arm", "macos-latest", "macos-15-intel", "windows-latest"} {
-		assert.Contains(t, desktopWorkflow, osName, "release matrix must use a native %s runner", osName)
+		assert.Contains(t, desktopWorkflow, osName, "release matrix must use a %s runner", osName)
 	}
-	assert.Contains(t, desktopWorkflow, "choco install mingw nsis")
-	assert.Contains(t, desktopWorkflow, "C:\\ProgramData\\mingw64\\mingw64\\bin")
+	assert.NotContains(t, desktopWorkflow, "choco install mingw nsis")
 	assert.Contains(t, desktopWorkflow, "Verify package")
 	assert.Contains(t, desktopWorkflow, `-name '*.deb'`)
 	assert.Contains(t, desktopWorkflow, `-name '*.dmg'`)
@@ -410,13 +409,12 @@ func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
 	}
 }
 
-// TestReleaseCLIBinariesAreNativeCgoBuilds pins the release CLI contract.
-// build.yml used to cross-compile with CGO_ENABLED=0, which silently linked
-// the mattn/go-sqlite3 stub: `aurora --help` worked, but every database
-// command failed. The release job must also verify Go's embedded build
-// metadata, sign the Windows executables, and publish checksums generated
-// without splitting on spaces in macOS DMG names.
-func TestReleaseCLIBinariesAreNativeCgoBuilds(t *testing.T) {
+// TestReleaseCLIBinariesArePureGoBuilds pins the release CLI contract: every
+// target cross-builds with cgo off, and the release job verifies that Go's
+// embedded build metadata says CGO_ENABLED=0. It also signs the Windows
+// executables and publishes checksums without splitting on spaces in macOS
+// DMG names.
+func TestReleaseCLIBinariesArePureGoBuilds(t *testing.T) {
 	root := repoRoot(t)
 
 	build, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "build.yml"))
@@ -428,8 +426,8 @@ func TestReleaseCLIBinariesAreNativeCgoBuilds(t *testing.T) {
 	actionText := string(action)
 	require.Contains(t, actionText, "shell: pwsh", "the Windows signing script must use a pinned shell")
 
-	require.Contains(t, buildWorkflow, "uses: mlugg/setup-zig@v2.2.1", "Zig setup must use a pinned major version")
-	require.Contains(t, buildWorkflow, "ZIG_VERSION: '0.14.1'", "Zig must be pinned independently of the action default")
+	assert.NotContains(t, buildWorkflow, "setup-zig", "pure-Go builds must not require Zig")
+	assert.NotContains(t, buildWorkflow, "ZIG_VERSION", "pure-Go builds must not pin a C toolchain")
 
 	require.Contains(t, buildWorkflow, "runs-on: ${{ matrix.runner }}")
 	for _, target := range []struct {
@@ -449,21 +447,18 @@ func TestReleaseCLIBinariesAreNativeCgoBuilds(t *testing.T) {
 		assert.Contains(t, buildWorkflow, "runner: "+target.runner,
 			"%s/%s must use its native runner", target.goos, target.goarch)
 	}
-	require.Contains(t, buildWorkflow, "CGO_ENABLED: 1")
+	require.Contains(t, buildWorkflow, "CGO_ENABLED: 0")
 	require.Contains(t, buildWorkflow, "REF: ${{ inputs.ref }}",
 		"the build must derive its version from the requested tag, not the caller's branch")
 	assert.Contains(t, buildWorkflow, `if [[ "$REF" == refs/tags/* ]]; then`)
 	assert.Contains(t, buildWorkflow, `if ($env:REF -like "refs/tags/*") {`)
-	assert.NotContains(t, buildWorkflow, "CGO_ENABLED=0",
-		"the release CLI cannot link the SQLite stub")
+	assert.NotContains(t, buildWorkflow, "CGO_ENABLED: 1",
+		"the pure-Go release CLI must not require cgo")
 
 	for _, windows := range []string{
 		"goarch: amd64",
 		"goarch: arm64",
-		"zig_target: x86_64-windows-gnu",
-		"zig_target: aarch64-windows-gnu",
 		"uses: ./.github/actions/windows-signing",
-		"CC: zig cc -target ${{ matrix.zig_target }}",
 		"signtool @signArgs",
 		"Get-AuthenticodeSignature",
 		`$signature.Status -ne "Valid"`,
@@ -486,7 +481,7 @@ func TestReleaseCLIBinariesAreNativeCgoBuilds(t *testing.T) {
 		"secrets: inherit",
 		"require_signed_windows: true",
 		"name: Verify release artifacts",
-		`grep -Fq $'\tbuild\tCGO_ENABLED=1'`,
+		`grep -Fq $'\tbuild\tCGO_ENABLED=0'`,
 		`grep -Fq $'\tbuild\tGOOS='`,
 		`grep -Fq $'\tbuild\tGOARCH='`,
 		`artifacts/aurora-linux-amd64/aurora-linux-amd64 version`,

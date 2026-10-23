@@ -14,17 +14,17 @@ lint:
 
 # Run tests
 test:
-    go test ./...
+    CGO_ENABLED=0 go test ./...
 
 # Run tests with coverage
 test-coverage:
-    go test ./... -coverprofile=coverage.out
+    CGO_ENABLED=0 go test ./... -coverprofile=coverage.out
 
 # Code format and vet
 check:
     gofmt -l -s -w .
     goimports -l -w .
-    go vet ./...
+    CGO_ENABLED=0 go vet ./...
 
 # Build-time version info derived once, shared by every build recipe. Injects
 # the real git ref (tag if reachable, else commit-ish) and build time into
@@ -50,20 +50,20 @@ build: check test
 
 # Build for current platform
 build-current:
-    go build -trimpath -ldflags="{{ldflags}}" -o aurora ./cmd/aurora
+    CGO_ENABLED=0 go build -trimpath -ldflags="{{ldflags}}" -o aurora ./cmd/aurora
 
 # Build the standalone REST API + Web server binary (cmd/api). Injects the
 # same git-derived version/build-time refs into cmd/api's own Version/BuildTime
 # vars so `aurora-api --version` reports the real source ref, mirroring the
 # CLI's ldflags above (TASK-267, ISS-263).
 api:
-    go build -trimpath -ldflags="{{api-ldflags}}" -o aurora-api ./cmd/api
+    CGO_ENABLED=0 go build -trimpath -ldflags="{{api-ldflags}}" -o aurora-api ./cmd/api
 
 # The desktop shell is a nested Go module: its MyGo toolchain stays out of
 # the root build graph (that is why this is a separate `cd desktop` build).
-# Build the MyGo desktop shell (needs Go 1.27 + native cgo)
+# Build the MyGo desktop shell (Go 1.27; storage is pure Go)
 desktop:
-    cd desktop && go build -trimpath -ldflags="{{desktop-ldflags}}" -o ../aurora-desktop ./cmd/aurora-desktop
+    cd desktop && CGO_ENABLED=0 go build -trimpath -ldflags="{{desktop-ldflags}}" -o ../aurora-desktop ./cmd/aurora-desktop
 
 # Run the desktop shell (build first, then window)
 desktop-run: desktop
@@ -74,7 +74,7 @@ desktop-run: desktop
 # their own entry point: a broken window layer must not pass CI silently just
 # because its module is nested.
 desktop-test:
-    cd desktop && go test ./...
+    cd desktop && CGO_ENABLED=0 go test ./...
 
 # Everything CI runs for the desktop module, in the same order (ci.yml's
 # `desktop` job). Kept as a recipe so a local run and the pipeline cannot
@@ -83,18 +83,18 @@ desktop-test:
 # gate.
 desktop-check:
     cd desktop && out=$(gofmt -l .) && test -z "$out" && echo "gofmt: clean" || { echo "gofmt would change: $out"; exit 1; }
-    cd desktop && go build ./...
-    cd desktop && go vet ./...
+    cd desktop && CGO_ENABLED=0 go build ./...
+    cd desktop && CGO_ENABLED=0 go vet ./...
     cd desktop && go test -race ./...
 
 # Package the desktop app with `go tool mygo build` (desktop/mygo.config.ts):
 # a native executable, a desktop entry that registers aurora:// links, a
 # Debian package and an installable tarball under dist/desktop/<os>-<arch>/.
 # The mygo CLI is a module tool in desktop/go.mod, so its version is pinned
-# like any other dependency. Needs Go 1.27 and cgo (mattn/go-sqlite3); MYGO
-# defaults CGO_ENABLED to 0, which would fail to build this app's storage.
+# like any other dependency. Needs Go 1.27; storage is pure Go, so packaging
+# works without a native C toolchain.
 desktop-package *ARGS:
-    cd desktop && CGO_ENABLED=1 go tool mygo build {{ARGS}}
+    cd desktop && CGO_ENABLED=0 go tool mygo build {{ARGS}}
 
 # Run the application locally (builds for the current platform then runs a sample)
 run: build-current

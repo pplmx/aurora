@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
+	_ "modernc.org/sqlite"
 )
 
 // openSecondHandle opens an independent SQLite handle onto the same DB file,
@@ -16,7 +16,7 @@ import (
 // the documented API-server + CLI lottery/oracle multi-process norm).
 func openSecondHandle(t *testing.T, dbPath string) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
+	db, err := sql.Open("sqlite", dbPath+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 	return db

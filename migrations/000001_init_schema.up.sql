@@ -2,7 +2,7 @@
 -- Version: 000001
 --
 -- NOTE: this migration must NOT contain `PRAGMA journal_mode=WAL` or
--- `PRAGMA foreign_keys=ON`. golang-migrate's sqlite3 driver runs each
+-- `PRAGMA foreign_keys=ON`. golang-migrate's sqlite driver runs each
 -- migration inside an explicit transaction, and switching WAL mode is not
 -- permitted inside a transaction — the whole migration batch used to fail
 -- with "cannot change into wal mode from within a transaction" the very

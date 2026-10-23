@@ -11,7 +11,7 @@ import (
 )
 
 func setupVotingTestDB(t *testing.T) (*VotingRepository, func()) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open database: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestVotingRepository_UnmarkVoted(t *testing.T) {
 }
 
 func TestNewVotingRepository(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +114,7 @@ func TestNewVotingRepository(t *testing.T) {
 // repo proves the tables are not just created but usable; the single pooled
 // connection avoids SQLite's per-connection :memory: isolation.
 func TestNewVotingRepository_SelfBootstrapsSchema(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -340,7 +340,7 @@ func TestVotingRepository_CountVotesBySession(t *testing.T) {
 // TestVotingRepository_BootstrapsVoteSessions proves the self-bootstrap path
 // adds the session mapping table without altering the legacy votes table.
 func TestVotingRepository_BootstrapsVoteSessions(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
 	db.SetMaxOpenConns(1)
 	defer func() { _ = db.Close() }()

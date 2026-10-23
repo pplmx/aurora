@@ -6,11 +6,11 @@ import (
 	"runtime"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	_ "modernc.org/sqlite"
 )
 
 // realMigrationsDir resolves the repository's migrations/ directory from
@@ -45,7 +45,7 @@ func TestRealMigrations_Apply(t *testing.T) {
 
 	t.Logf("migrations applied to version %d", version)
 
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -83,7 +83,7 @@ func TestRealMigrations_UpTwice_NoChange(t *testing.T) {
 func TestRealMigrations_VotesSessionID(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "aurora.db")
 
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
 	_, err = db.Exec(`
 		CREATE TABLE votes (
@@ -107,7 +107,7 @@ func TestRealMigrations_VotesSessionID(t *testing.T) {
 	_, err = m.Up(0)
 	require.NoError(t, err, "upgrading a legacy votes table must not fail")
 
-	db, err = sql.Open("sqlite3", dbPath)
+	db, err = sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
 
@@ -142,7 +142,7 @@ func TestRealMigrations_VotesSessionID(t *testing.T) {
 func TestRealMigrations_PreservesBootstrappedVoteSessions(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "aurora.db")
 
-	db, err := sql.Open("sqlite3", sqlite.DSN(dbPath))
+	db, err := sql.Open("sqlite", sqlite.DSN(dbPath))
 	require.NoError(t, err)
 	repo, err := sqlite.NewVotingRepository(db)
 	require.NoError(t, err)
@@ -165,7 +165,7 @@ func TestRealMigrations_PreservesBootstrappedVoteSessions(t *testing.T) {
 	_, err = m.Up(0)
 	require.NoError(t, err, "migration must accept an already-bootstrapped schema")
 
-	db, err = sql.Open("sqlite3", dbPath)
+	db, err = sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
 

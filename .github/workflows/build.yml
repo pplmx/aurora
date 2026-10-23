@@ -18,7 +18,6 @@ on:
 
 env:
   GO_VERSION: '1.27.2'
-  ZIG_VERSION: '0.14.1'
 
 jobs:
   build:
@@ -50,15 +49,13 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      # mattn/go-sqlite3 is cgo, so a stub cross-build cannot compile the CLI
-      # correctly. Each binary is built on its target OS; release.yml asserts
-      # the resulting binaries really have cgo enabled.
+      # SQLite is pure Go, so every CLI target cross-compiles with cgo off.
       - name: Build
         env:
           REF: ${{ inputs.ref }}
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 1
+          CGO_ENABLED: 0
         run: |
           # Inject the real version/build time so released binaries report
           # what they are instead of the 0.0.1 placeholder (TASK-206).
@@ -90,9 +87,7 @@ jobs:
       matrix:
         include:
           - goarch: amd64
-            zig_target: x86_64-windows-gnu
           - goarch: arm64
-            zig_target: aarch64-windows-gnu
 
     steps:
       - uses: actions/checkout@v6
@@ -103,14 +98,6 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
-
-      # One x64 Windows runner builds both PE architectures. Zig supplies the
-      # C compiler for mattn/go-sqlite3 without depending on an ARM64 runner
-      # image whose MinGW toolchain changes independently.
-      - uses: mlugg/setup-zig@v2.2.1
-        with:
-          version: ${{ env.ZIG_VERSION }}
-          cache-key: windows-${{ matrix.goarch }}
 
       - name: Configure Windows signing
         uses: ./.github/actions/windows-signing
@@ -125,8 +112,7 @@ jobs:
           REF: ${{ inputs.ref }}
           GOOS: windows
           GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: '1'
-          CC: zig cc -target ${{ matrix.zig_target }}
+          CGO_ENABLED: '0'
         run: |
           if ($env:REF -like "refs/tags/*") {
             $version = $env:REF -replace '^refs/tags/', ''

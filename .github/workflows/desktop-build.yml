@@ -186,18 +186,6 @@ jobs:
           echo "MACOS_SIGNING=disabled" >> "$GITHUB_ENV"
           echo "macOS signing is not configured; the package is ad-hoc signed and is not releasable."
 
-      # mattn/go-sqlite3 is cgo. Windows runners do not always expose a C
-      # compiler on PATH, so install MinGW before the native package build.
-      - name: Install MinGW
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          choco install mingw nsis --no-progress -y
-          @(
-            "C:\ProgramData\mingw64\mingw64\bin",
-            "C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin"
-          ) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       # An unsigned installer makes SmartScreen warn on every download. The
       # certificate and its password stay optional for development builds,
       # while release.yml makes them mandatory before packaging.
@@ -209,13 +197,11 @@ jobs:
           certificate: ${{ secrets.WINDOWS_CERTIFICATE }}
           certificate_password: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
-      # MyGo defaults CGO_ENABLED to 0. Aurora's SQLite driver needs cgo, and
-      # the package must be built on its target OS (not cross-compiled).
+      # Storage is pure Go; keep packaging free of a native C toolchain.
       - name: Package (Windows)
         if: runner.os == 'Windows'
         env:
-          CGO_ENABLED: '1'
-          CC: gcc
+          CGO_ENABLED: '0'
           MYGO_WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: go tool mygo build -platform ${{ matrix.platform }}
         working-directory: desktop
@@ -223,7 +209,7 @@ jobs:
       - name: Package
         if: runner.os != 'Windows'
         env:
-          CGO_ENABLED: '1'
+          CGO_ENABLED: '0'
         run: go tool mygo build -platform ${{ matrix.platform }}
         working-directory: desktop
 

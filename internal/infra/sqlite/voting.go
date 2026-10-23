@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	_ "modernc.org/sqlite"
 )
 
 // ErrAlreadyVoted is returned by TryMarkVoted when the voter has already

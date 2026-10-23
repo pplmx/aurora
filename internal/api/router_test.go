@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
+	_ "modernc.org/sqlite"
 )
 
 // resetForAPITest resets all package-level singletons and viper so each test
@@ -35,7 +35,7 @@ func resetForAPITest(t *testing.T) {
 // openInMemorySQLite returns an in-memory SQLite DB for health-check tests.
 func openInMemorySQLite(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 	require.NoError(t, db.Ping())
@@ -67,7 +67,7 @@ func TestReadinessHandler_HealthyDB(t *testing.T) {
 
 func TestReadinessHandler_UnhealthyDB(t *testing.T) {
 	// Create a DB and immediately close it so PingContext will fail.
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
 
@@ -122,7 +122,7 @@ func TestReadinessHandler_RespectsContextDeadline(t *testing.T) {
 func TestReadinessHandler_DBReturningCustomError(t *testing.T) {
 	// Build a *sql.DB whose PingContext always returns a non-Ping error
 	// by closing it but still passing it to the handler.
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
 

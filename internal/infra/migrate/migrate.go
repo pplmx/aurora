@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	migratesqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	_ "modernc.org/sqlite"
 )
 
 type Migrator struct {
@@ -37,12 +37,12 @@ func New(dbPath, migPath string) (*Migrator, error) {
 
 	// Use the same hardened DSN every repository opens (foreign keys + BEGIN
 	// IMMEDIATE + 5s busy timeout, sqlite.WriteDSNSuffix) instead of the bare
-	// `?_foreign_keys=ON`. mattn's default busy timeout is 0, so an unhardened
-	// migrate running against a DB another CLI/API process holds the write lock
-	// on failed instantly with "database is locked"; with _busy_timeout it
+	// `?_foreign_keys=ON`. SQLite's default busy timeout is 0, so an
+	// unhardened migrate running against a DB another CLI/API process holds the
+	// write lock on failed instantly with "database is locked"; with _busy_timeout it
 	// waits up to 5s, and _txlock=immediate kills the fatal SQLITE_BUSY_SNAPSHOT
 	// class the repos eliminated (v1.70, ISS-076; TASK-170, ISS-165).
-	db, err := sql.Open("sqlite3", sqlite.DSN(dbPath))
+	db, err := sql.Open("sqlite", sqlite.DSN(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -62,9 +62,9 @@ func New(dbPath, migPath string) (*Migrator, error) {
 }
 
 func (m *Migrator) initMigrate() error {
-	instance, err := sqlite3.WithInstance(m.db, &sqlite3.Config{})
+	instance, err := migratesqlite.WithInstance(m.db, &migratesqlite.Config{})
 	if err != nil {
-		return fmt.Errorf("failed to create sqlite3 driver: %w", err)
+		return fmt.Errorf("failed to create sqlite driver: %w", err)
 	}
 
 	absMigPath, err := filepath.Abs(m.migPath)

@@ -7,6 +7,17 @@ The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STA
 entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
 
+## [Unreleased]
+
+### Changed
+
+- **SQLite storage is now pure Go**: Aurora uses `modernc.org/sqlite`
+  instead of the cgo-only `mattn/go-sqlite3`, and golang-migrate uses its
+  matching `database/sqlite` driver. The hardened DSN (foreign keys,
+  immediate write transactions, 5s busy timeout) is unchanged. CLI, API,
+  Docker and desktop builds now run with `CGO_ENABLED=0`; cgo is only
+  needed when the race detector is enabled during testing.
+
 ## [v1.99] - 2026-10-21
 
 ### Added

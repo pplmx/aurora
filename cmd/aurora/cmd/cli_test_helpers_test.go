@@ -256,7 +256,7 @@ func extractKey(t *testing.T, out, marker string) string {
 // withTempDir context so the path points at the isolated test DB.
 func openTestAuroraDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite3", "./data/aurora.db")
+	db, err := sql.Open("sqlite", "./data/aurora.db")
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
 	}

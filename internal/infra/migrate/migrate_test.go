@@ -59,7 +59,7 @@ func TestMigrator_New(t *testing.T) {
 // TestMigrator_New_DSNHardened guards the parallel-safety fix (TASK-170,
 // ISS-165): New must open SQLite with the same hardened DSN every repository
 // uses (_busy_timeout=5000, _txlock=immediate). Previously it opened with a
-// bare `?_foreign_keys=ON`, whose mattn default busy timeout is 0 — a migrate
+// bare `?_foreign_keys=ON`, whose default busy timeout is 0 — a migrate
 // run against a DB another CLI/API process held the write lock on failed
 // instantly with "database is locked" instead of waiting up to 5s. The PRAGMA
 // below reads back the value the DSN param set on the real connection.

@@ -11,17 +11,10 @@ ARG BUILD_TIME=unknown
 WORKDIR /app
 
 ENV GOOS=linux
-# mattn/go-sqlite3 is a cgo driver and the CLI cannot even COMPILE with cgo
-# disabled: the nocgo build of the driver is a stub without sqlite3.Error or
-# the extended result codes that internal/domain/blockchain matches on, so
-# `CGO_ENABLED=0` failed at `undefined: sqlite3.Error` (the Docker job's red
-# build). A cgo binary is dynamically linked, which the distroless
-# `static` deploy stage cannot run, so the binary is linked statically against
-# musl instead — hence gcc/musl-dev below and `-linkmode external`.
-ENV CGO_ENABLED=1
+# SQLite is pure Go, so the image needs no C toolchain and produces a static
+# binary that the distroless/static deploy stage can run.
+ENV CGO_ENABLED=0
 ENV GOPROXY=https://goproxy.cn,direct
-
-RUN apk add --no-cache gcc musl-dev
 
 COPY go.mod go.sum ./
 RUN go mod download
@@ -30,9 +23,8 @@ COPY . .
 
 # Build the binary: -ldflags="-w -s" for the much smaller binary, -trimpath
 # removes all file system paths from the resulting executable.
-# Version/build-time are -X-injected (TASK-206). The external static link is
-# what lets the cgo build run on distroless/static (no libc in the image).
-RUN go build -trimpath -ldflags="-w -s -linkmode external -extldflags '-static' -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=${VERSION} -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=${BUILD_TIME}" -o ./out/aurora ./cmd/aurora
+# Version/build-time are -X-injected (TASK-206).
+RUN go build -trimpath -ldflags="-w -s -X github.com/pplmx/aurora/cmd/aurora/cmd.Version=${VERSION} -X github.com/pplmx/aurora/cmd/aurora/cmd.BuildTime=${BUILD_TIME}" -o ./out/aurora ./cmd/aurora
 
 # Pre-create the runtime state directories so the distroless deploy stage can
 # COPY them (gcr.io/distroless has no shell — RUN mkdir/chown would fail).

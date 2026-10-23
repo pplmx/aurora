@@ -231,10 +231,10 @@ gh secret set WINDOWS_CERTIFICATE_PASSWORD
   两个模块统一要求 Go 1.27（`go.mod` 与 `desktop/go.mod` 均为
   `go 1.27.2`）。注意 `golangci-lint` 必须与其内置的 Go 版本一致：旧版本
   二进制读不了新 Go 标准库的 export data 会直接 panic。
-- **cgo**：核心用 `mattn/go-sqlite3`，桌面壳必须在本机原生构建（不能
-  `CGO_ENABLED=0` 交叉编译）；跨平台打包会在 `runtime/cgo` 阶段失败（实测
-  `desktop-package -platform windows/amd64` → `windows.h: No such file`），
-  所以 `.deb`/`.exe`/`.app` 必须在对应系统上构建。MyGo 本身无 cgo，窗口层仍
+- **纯 Go**：核心用 `modernc.org/sqlite`，桌面壳和 CLI 都可以在
+  `CGO_ENABLED=0` 下构建与交叉编译，不再需要本机 C 工具链或 Zig。
+  `.deb`/`.exe`/`.app` 仍建议在对应系统上打包，以便运行各平台的安装器、
+  签名与 smoke test；但存储层本身不限制交叉编译。MyGo 本身无 cgo，窗口层仍
   可跨平台。
 - **CI 覆盖**：嵌套模块不会被根目录的 `go test ./...` 看到，因此
   `.github/workflows/ci.yml` 有一个独立的 `desktop` job（用

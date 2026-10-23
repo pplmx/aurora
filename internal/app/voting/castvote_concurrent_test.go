@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	_ "modernc.org/sqlite"
 )
 
 // setupCastVoteTestDB opens a real file-backed SQLite database with the
@@ -28,7 +28,10 @@ func setupCastVoteTestDB(t *testing.T) (*sqlite.VotingRepository, *sqlite.TxMana
 	t.Helper()
 
 	dbPath := filepath.Join(t.TempDir(), "castvote.db")
-	db, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON", dbPath))
+	// Use the production write DSN: BEGIN IMMEDIATE + a 5s busy timeout.
+	// Without them, concurrent ballots race for the write lock and fail
+	// immediately with SQLITE_BUSY instead of waiting their turn.
+	db, err := sql.Open("sqlite", sqlite.DSN(dbPath))
 	require.NoError(t, err)
 
 	_, err = db.Exec("PRAGMA journal_mode=WAL")
