@@ -50,6 +50,12 @@ type BlockChain struct {
 	// retry at the DB-authoritative next height (TASK-244, ISS-242).
 	persist func(*Block) error
 
+	// removePersist compensates for a best-effort persist in the nil-tx
+	// fallback when the business callback or transaction manager then fails.
+	// It must delete only the exact block it is given (height and hash), never
+	// a different block a peer may have reserved at the same height.
+	removePersist func(*Block) error
+
 	// syncFromDB, when non-nil, is invoked under the write lock *before* the
 	// next height is reserved. It brings the in-memory chain up to date with
 	// blocks a concurrent process committed to the shared DB file, so the
@@ -263,6 +269,7 @@ func (c *BlockChain) withAppendTransaction(
 			return err
 		}
 
+		var persistedNoOp bool
 		err = txManager.WithTransaction(func(tx *sql.Tx) error {
 			if tx == nil {
 				// A no-op/mock transaction cannot insert the block atomically.
@@ -275,6 +282,8 @@ func (c *BlockChain) withAppendTransaction(
 							return persistErr
 						}
 						logger.Warn().Err(persistErr).Msg("Failed to persist block")
+					} else {
+						persistedNoOp = true
 					}
 				}
 				return fn(nil, block.Height)
@@ -286,6 +295,17 @@ func (c *BlockChain) withAppendTransaction(
 			return fn(tx, block.Height)
 		})
 		if err != nil {
+			if persistedNoOp {
+				if c.removePersist == nil {
+					rollbackErr := errors.New("blockchain: persistent block rollback not configured")
+					logger.Error().Err(rollbackErr).Int64("height", block.Height).Msg("Failed to roll back persisted no-op transaction block")
+					return errors.Join(err, rollbackErr)
+				}
+				if rollbackErr := c.removePersist(block); rollbackErr != nil {
+					logger.Error().Err(rollbackErr).Int64("height", block.Height).Msg("Failed to roll back persisted no-op transaction block")
+					return errors.Join(err, fmt.Errorf("blockchain: roll back persisted block at height %d: %w", block.Height, rollbackErr))
+				}
+			}
 			if errors.Is(err, ErrHeightConflict) {
 				logger.Warn().Int64("height", block.Height).Msg("Block height already committed by another process; retrying at next height")
 				continue
