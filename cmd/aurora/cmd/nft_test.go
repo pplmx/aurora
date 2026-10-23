@@ -226,3 +226,27 @@ func TestNFTHistory_ShowsMintOp(t *testing.T) {
 		assert.Contains(t, hout, "mint")
 	})
 }
+
+// TestNFTHistory_AfterBurn locks ISS-359 on the persistent CLI path: burn
+// removes the NFT row but keeps its audit trail, so history must remain
+// available after the destructive operation.
+func TestNFTHistory_AfterBurn(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		pub, priv := nftKeypair(t)
+
+		out, err := runCmd(t, "nft", "mint", "--name", "Burned", "--creator", pub)
+		require.NoError(t, err)
+		id := extractField(t, out, "ID:")
+		require.NotEmpty(t, id)
+
+		_, err = runCmd(t, "nft", "burn",
+			"--nft", id, "--owner", pub, "--private-key", priv, "--confirm")
+		require.NoError(t, err)
+
+		hout, err := runCmd(t, "nft", "history", "--nft", id)
+		require.NoError(t, err)
+		assert.Contains(t, hout, "Operations: 2")
+		assert.Contains(t, hout, "mint")
+		assert.Contains(t, hout, "burn")
+	})
+}
