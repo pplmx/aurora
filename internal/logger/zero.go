@@ -3,6 +3,8 @@ package logger
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -40,6 +42,11 @@ type Config struct {
 	LogPath  string
 }
 
+const (
+	logDirMode  os.FileMode = 0o700
+	logFileMode os.FileMode = 0o600
+)
+
 func Init() {
 	initMu.Lock()
 	defer initMu.Unlock()
@@ -64,12 +71,12 @@ func Init() {
 		// (config/aurora.toml sets log.path = "./logs/"), whose directory is
 		// only created by the very call that never ran. A desktop app has no
 		// console to fall back to, so that lost the whole log.
-		if err := os.MkdirAll(cfg.LogPath, 0755); err != nil {
-			fallbackToConsole(fmt.Sprintf("Failed to create log directory: %v", err))
+		if err := ensurePrivateLogDir(cfg.LogPath); err != nil {
+			fallbackToConsole(fmt.Sprintf("Failed to prepare private log directory: %v", err))
 		} else if normPath, err := utils.NormalizePath(cfg.LogPath); err != nil {
 			fallbackToConsole(fmt.Sprintf("Failed to normalize log path: %v", err))
 		} else {
-			f, err := os.OpenFile(normPath+"/aurora.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			f, err := openPrivateLogFile(filepath.Join(normPath, "aurora.log"))
 			if err != nil {
 				fallbackToConsole(fmt.Sprintf("Failed to open log file: %v", err))
 			} else {
@@ -88,6 +95,37 @@ func Init() {
 	// Default to console
 	output = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
 	publish(output)
+}
+
+// ensurePrivateLogDir also repairs directories created by older versions or a
+// permissive umask. Logs can contain operator activity and sensitive errors.
+func ensurePrivateLogDir(path string) error {
+	if err := os.MkdirAll(path, logDirMode); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	if err := os.Chmod(path, logDirMode); err != nil {
+		return fmt.Errorf("restrict log directory: %w", err)
+	}
+	return nil
+}
+
+// openPrivateLogFile enforces the mode on both new and pre-existing files:
+// OpenFile's perm argument is ignored when the file already exists.
+func openPrivateLogFile(path string) (*os.File, error) {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFileMode)
+	if err != nil {
+		return nil, err
+	}
+	if runtime.GOOS != "windows" {
+		if err := f.Chmod(logFileMode); err != nil {
+			_ = f.Close()
+			return nil, fmt.Errorf("restrict log file: %w", err)
+		}
+	}
+	return f, nil
 }
 
 // publish installs l as the logger.
