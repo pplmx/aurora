@@ -106,15 +106,26 @@ async function apiFetch(path, options) {
 // interval.
 function startPolling(target, intervalMs) {
     let running = false;
-    setInterval(async () => {
+    const poll = async () => {
         if (running || typeof target.refresh !== 'function') return;
+        // A minimized desktop window or background browser tab has no visible
+        // consumer, but the dashboard refresh still runs five API calls
+        // including a full ledger verification. Keep the timer installed but
+        // defer work until the document is visible again.
+        if (typeof document !== 'undefined' && document.hidden) return;
         running = true;
         try {
             await target.refresh();
         } finally {
             running = false;
         }
-    }, intervalMs);
+    };
+    setInterval(poll, intervalMs);
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) poll();
+        });
+    }
 }
 
 // withBusy wraps the named async actions of an Alpine app object so each sets

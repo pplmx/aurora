@@ -331,6 +331,65 @@ func TestWebUIJS_SyntaxValid(t *testing.T) {
 	require.NotContains(t, string(out), "SyntaxError", "web/js/app.js must contain no SyntaxError")
 }
 
+// TestWebUIJS_PollingPausesWhenHidden executes the shipped polling helper in
+// Node: a background tab must not keep refreshing the dashboard (including
+// its full ledger-verification call), and returning to the page should refresh
+// immediately instead of waiting for the next 15-second tick.
+func TestWebUIJS_PollingPausesWhenHidden(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js polling check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+let tick = null;
+let visibilityHandler = null;
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = {
+  hidden: true,
+  createElement: () => makeEl(),
+  body: { appendChild: () => {} },
+  addEventListener: (name, handler) => {
+    if (name === 'visibilitychange') visibilityHandler = handler;
+  },
+};
+global.setInterval = (fn) => { tick = fn; return 1; };
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  let calls = 0;
+  global.startPolling({ refresh: async () => { calls += 1; } }, 15000);
+  if (typeof tick !== 'function') {
+    console.error('startPolling must install an interval callback'); process.exit(1);
+  }
+  await tick();
+  if (calls !== 0) {
+    console.error('hidden timer tick must not refresh, got ' + calls); process.exit(1);
+  }
+  if (typeof visibilityHandler !== 'function') {
+    console.error('startPolling must listen for visibilitychange'); process.exit(1);
+  }
+  global.document.hidden = false;
+  await visibilityHandler();
+  if (calls !== 1) {
+    console.error('becoming visible must refresh exactly once, got ' + calls); process.exit(1);
+  }
+  console.log('poll-visibility-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "poll_visibility_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js polling visibility failed:\n%s", out)
+	require.Contains(t, string(out), "poll-visibility-ok",
+		"web/js/app.js polling must pause while hidden and refresh on visibility")
+}
+
 // TestWebUIJS_ApiFetchKeepsAuthHeader executes the SHIPPED web/js/app.js in
 // Node with stubbed window/document/fetch and asserts apiFetch always sends
 // X-API-Key — even when a call site supplies its own headers (Content-Type
