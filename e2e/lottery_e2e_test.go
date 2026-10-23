@@ -199,6 +199,7 @@ func TestLotteryE2E_AddressConversion(t *testing.T) {
 }
 
 func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
+	blockchain.ResetForTest()
 	chain := blockchain.InitBlockChain()
 	initialCount := len(chain.GetLotteryRecords())
 

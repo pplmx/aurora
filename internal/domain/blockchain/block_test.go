@@ -419,14 +419,10 @@ func TestResetForTest_ClearsSingleton(t *testing.T) {
 }
 
 func TestResetForTest_RemovesDataDir(t *testing.T) {
-	prevDir, err := os.Getwd()
-	require.NoError(t, err)
-	dir := t.TempDir()
-	require.NoError(t, os.Chdir(dir))
-	t.Cleanup(func() { _ = os.Chdir(prevDir) })
+	resetChainForTest(t)
 
 	// Trigger DB creation so ./data exists.
-	_, err = InitDB()
+	_, err := InitDB()
 	require.NoError(t, err)
 	_, err = os.Stat("./data")
 	require.NoError(t, err, "./data should exist after InitDB")
