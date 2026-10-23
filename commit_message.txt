@@ -1,7 +1,0 @@
-fix(backup): keep desktop database backups private (RIL TASK-339, ISS-333)
-
-- Create new backup sets with mode 0700 and force SQLite snapshots and
-  metadata to 0600 on Unix-like systems.
-- Preserve the permissions of an explicitly reused output directory while
-  keeping every new file inside it owner-only.
-- Prove the modes under umask 022 and document the desktop backup boundary.
