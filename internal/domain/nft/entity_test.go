@@ -1,6 +1,9 @@
 package nft
 
 import (
+	"bytes"
+	"crypto/ed25519"
+	"errors"
 	"strings"
 	"testing"
 )
@@ -93,6 +96,15 @@ func TestNFT_Validate(t *testing.T) {
 				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestNFT_Validate_RejectsZeroOwner(t *testing.T) {
+	zero := bytes.Repeat([]byte{0}, ed25519.PublicKeySize)
+	n := NewNFT("Zero Owner", "", "", "", zero, zero)
+
+	if err := n.Validate(); !errors.Is(err, ErrZeroAddress) {
+		t.Fatalf("Validate() error = %v, want ErrZeroAddress", err)
 	}
 }
 

@@ -95,6 +95,10 @@ func (s *NFTService) withBlockTransaction(
 }
 
 func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) {
+	if err := nft.Validate(); err != nil {
+		return nil, err
+	}
+
 	nft.ID = uuid.New().String()
 	nft.Timestamp = time.Now().Unix()
 
@@ -169,8 +173,8 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 	if len(from) != ed25519.PublicKeySize {
 		return nil, ErrInvalidPublicKey
 	}
-	if len(to) != ed25519.PublicKeySize {
-		return nil, ErrInvalidPublicKey
+	if err := ValidateRecipient(to); err != nil {
+		return nil, err
 	}
 	// The caller must hold the private key for `from`; otherwise a forged
 	// transfer (knowing only the public key) would be accepted.

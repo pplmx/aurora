@@ -166,6 +166,56 @@ func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {
 	assert.Contains(t, rr.Header().Get("Content-Type"), "application/json")
 }
 
+func TestNFTHandler_RejectsZeroAddress(t *testing.T) {
+	repo := domainnft.NewInmemRepo()
+	handler := NewNFTHandler(repo, nil)
+	zero := base64.StdEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
+
+	mintBody, err := json.Marshal(map[string]string{
+		"name":    "Zero Owner",
+		"creator": zero,
+	})
+	require.NoError(t, err)
+	mintReq := httptest.NewRequest(http.MethodPost, "/api/v1/nft/mint", bytes.NewReader(mintBody))
+	mintReq.Header.Set("Content-Type", "application/json")
+	mintRR := httptest.NewRecorder()
+	handler.Mint(mintRR, mintReq)
+	require.Equal(t, http.StatusBadRequest, mintRR.Code)
+	require.Contains(t, mintRR.Body.String(), `"code":"ZERO_ADDRESS"`)
+
+	owner, privateKey, err := ed25519.GenerateKey(nil)
+	require.NoError(t, err)
+	validMintBody, err := json.Marshal(map[string]string{
+		"name":    "Transferable",
+		"creator": base64.StdEncoding.EncodeToString(owner),
+	})
+	require.NoError(t, err)
+	validMintReq := httptest.NewRequest(http.MethodPost, "/api/v1/nft/mint", bytes.NewReader(validMintBody))
+	validMintReq.Header.Set("Content-Type", "application/json")
+	validMintRR := httptest.NewRecorder()
+	handler.Mint(validMintRR, validMintReq)
+	require.Equal(t, http.StatusOK, validMintRR.Code)
+
+	var minted struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(validMintRR.Body.Bytes(), &minted))
+
+	transferBody, err := json.Marshal(map[string]string{
+		"nft_id":      minted.ID,
+		"from":        base64.StdEncoding.EncodeToString(owner),
+		"to":          zero,
+		"private_key": base64.StdEncoding.EncodeToString(privateKey),
+	})
+	require.NoError(t, err)
+	transferReq := httptest.NewRequest(http.MethodPost, "/api/v1/nft/transfer", bytes.NewReader(transferBody))
+	transferReq.Header.Set("Content-Type", "application/json")
+	transferRR := httptest.NewRecorder()
+	handler.Transfer(transferRR, transferReq)
+	require.Equal(t, http.StatusBadRequest, transferRR.Code)
+	require.Contains(t, transferRR.Body.String(), `"code":"ZERO_ADDRESS"`)
+}
+
 func TestNFTHandler_Burn_InvalidJSON(t *testing.T) {
 	handler := NewNFTHandler(nil, nil)
 

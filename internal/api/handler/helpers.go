@@ -69,6 +69,7 @@ var errorClassification = []struct {
 	{nfterrors.ErrKeyMismatch, http.StatusUnauthorized, "KEY_MISMATCH"},
 	{nfterrors.ErrInvalidPrivateKey, http.StatusBadRequest, "INVALID_PRIVATE_KEY"},
 	{nfterrors.ErrInvalidPublicKey, http.StatusBadRequest, "INVALID_PUBLIC_KEY"},
+	{nfterrors.ErrZeroAddress, http.StatusBadRequest, "ZERO_ADDRESS"},
 	{nfterrors.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
 	// Length-bound sentinels (TASK-271, ISS-267): over-length free-text mint
 	// fields are client input errors (400), mirroring the lottery validator.

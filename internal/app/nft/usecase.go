@@ -57,6 +57,9 @@ func (u *TransferNFTUseCase) Execute(req *TransferNFTRequest) (*OperationRespons
 	if err != nil {
 		return nil, err
 	}
+	if err := nft.ValidateRecipient(to); err != nil {
+		return nil, err
+	}
 
 	privateKey, err := decodeKey("privatekey", req.PrivateKey, privKeyLen, nft.ErrInvalidPrivateKey)
 	if err != nil {

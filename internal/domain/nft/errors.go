@@ -7,6 +7,7 @@ var (
 	ErrOwnerRequired     = errors.New("NFT owner is required")
 	ErrNotOwner          = errors.New("not the owner")
 	ErrNFTNotFound       = errors.New("NFT not found")
+	ErrZeroAddress       = errors.New("zero address is not allowed")
 	ErrStorageNotInit    = errors.New("storage not initialized")
 	ErrInvalidSignature  = errors.New("invalid signature")
 	ErrInvalidPrivateKey = errors.New("invalid private key length")
