@@ -204,11 +204,52 @@ func ParseSourceHeaders(headersJSON string) (map[string]string, error) {
 		return nil, fmt.Errorf("%w: headers must be a JSON object", ErrInvalidSource)
 	}
 	for name, value := range headers {
-		if strings.ContainsAny(name, "\r\n") || strings.ContainsAny(value, "\r\n") {
+		if strings.ContainsAny(name, "\r\n") {
 			return nil, fmt.Errorf("%w: header %q contains a newline", ErrInvalidSource, name)
+		}
+		if !isHTTPToken(name) {
+			return nil, fmt.Errorf("%w: invalid header name %q", ErrInvalidSource, name)
+		}
+		if strings.ContainsAny(value, "\r\n") {
+			return nil, fmt.Errorf("%w: header %q contains a newline", ErrInvalidSource, name)
+		}
+		if !isValidHTTPHeaderValue(value) {
+			return nil, fmt.Errorf("%w: header %q contains an invalid control character", ErrInvalidSource, name)
 		}
 	}
 	return headers, nil
+}
+
+// isHTTPToken reports whether value is a non-empty RFC 7230 token, matching
+// the grammar net/http enforces for request methods and header names.
+func isHTTPToken(value string) bool {
+	if value == "" {
+		return false
+	}
+	const punctuation = "!#$%&'*+-.^_`|~"
+	for i := 0; i < len(value); i++ {
+		c := value[i]
+		if c >= 'a' && c <= 'z' ||
+			c >= 'A' && c <= 'Z' ||
+			c >= '0' && c <= '9' ||
+			strings.ContainsRune(punctuation, rune(c)) {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+// isValidHTTPHeaderValue mirrors net/http's control-character rule: tab and
+// visible/obs-text bytes are allowed, while all other CTLs and DEL are not.
+func isValidHTTPHeaderValue(value string) bool {
+	for i := 0; i < len(value); i++ {
+		c := value[i]
+		if c < ' ' && c != '\t' || c == 0x7f {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *service) AddSource(source *DataSource) error {
@@ -240,6 +281,9 @@ func (s *service) AddSource(source *DataSource) error {
 	// above 30 days is a misconfiguration regardless (TASK-232, ISS-230).
 	if source.Interval < 0 || source.Interval > MaxSourceIntervalSeconds {
 		return fmt.Errorf("%w: invalid interval", ErrInvalidSource)
+	}
+	if source.Method != "" && !isHTTPToken(source.Method) {
+		return fmt.Errorf("%w: invalid HTTP method", ErrInvalidSource)
 	}
 	if _, err := ParseSourceHeaders(source.Headers); err != nil {
 		return err

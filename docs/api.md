@@ -113,7 +113,8 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 | GET    | `/api/v1/oracle/health`         | 抓取健康统计                                |
 
 `POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
-`{"Authorization":"Bearer ...","X-API-Key":"..."}`；请求头 JSON、CR/LF 和长度
+`{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，
+请求头名称也必须是 token，值不能包含除 tab 外的控制字符。JSON、CR/LF 和长度
 都在写入前校验（`INVALID_SOURCE`）。`extractByPath` 允许合法的空字符串值，但
 对象/数组/null 叶子会失败而不是把 Go map 存成链上数据。
 

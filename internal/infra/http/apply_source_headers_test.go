@@ -75,3 +75,22 @@ func TestApplySourceHeaders_RejectsCRLF(t *testing.T) {
 		})
 	}
 }
+
+func TestApplySourceHeaders_RejectsInvalidHTTPFields(t *testing.T) {
+	for _, tc := range []struct {
+		name, json string
+	}{
+		{"name with space", `{"Bad Header":"value"}`},
+		{"name with colon", `{"X-Bad:Name":"value"}`},
+		{"value with NUL", "{\"X-Test\":\"bad\\u0000value\"}"},
+		{"value with DEL", "{\"X-Test\":\"bad\\u007fvalue\"}"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodGet, "https://example.com/data", nil)
+			err := applySourceHeaders(req, tc.json)
+			if !errors.Is(err, oracle.ErrInvalidSource) {
+				t.Fatalf("invalid HTTP header field must be rejected as invalid source, got %v", err)
+			}
+		})
+	}
+}
