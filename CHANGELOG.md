@@ -53,6 +53,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Native form controls now match the Web UI's dark theme**: the Voting
+  session/candidate pickers and Oracle template picker used the browser's
+  light control chrome because only text inputs carried the shared background,
+  border, text color and padding. Inputs, selects and textareas now share the
+  same theme and focus border, and `color-scheme: dark` keeps native dropdown
+  popups and control chrome consistent.
 - **Rolled-back domain writes no longer leave on-chain audit blocks**:
   token, NFT, voting, lottery and Oracle writes share `aurora.db`, but each
   appended its audit block before the business SQLite transaction committed.
