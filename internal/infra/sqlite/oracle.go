@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/utils"
 	_ "modernc.org/sqlite"
 )
 
@@ -38,6 +39,10 @@ func NewOracleRepository(path string) (*OracleRepository, error) {
 	if err := repo.initTables(); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("failed to init tables: %w", err)
+	}
+	if err := utils.RestrictSQLiteFiles(path); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("failed to secure database files: %w", err)
 	}
 	return repo, nil
 }

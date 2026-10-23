@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/utils"
 	_ "modernc.org/sqlite"
 )
 
@@ -58,6 +59,10 @@ func NewLotteryRepository(dbPath string) (*LotteryRepository, error) {
 	if err := repo.createTables(); err != nil {
 		_ = database.Close()
 		return nil, fmt.Errorf("failed to create tables: %w", err)
+	}
+	if err := utils.RestrictSQLiteFiles(dbPath); err != nil {
+		_ = database.Close()
+		return nil, fmt.Errorf("failed to secure database files: %w", err)
 	}
 
 	return repo, nil

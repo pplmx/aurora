@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/utils"
 	_ "modernc.org/sqlite"
 )
 
@@ -61,6 +62,10 @@ func NewTokenRepository(dbPath string) (*TokenRepository, error) {
 	if err := repo.createTables(); err != nil {
 		_ = database.Close()
 		return nil, fmt.Errorf("failed to create tables: %w", err)
+	}
+	if err := utils.RestrictSQLiteFiles(dbPath); err != nil {
+		_ = database.Close()
+		return nil, fmt.Errorf("failed to secure database files: %w", err)
 	}
 
 	return repo, nil
