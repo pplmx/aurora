@@ -202,16 +202,16 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；Web UI 由独立的 `aurora
 
 ## 测试覆盖率
 
-`go test ./... -cover -count=1` 实测（2026-10-22）：
+`go test ./... -cover -count=1` 实测（2026-10-23）：
 
 | 模块    | Domain | App   |
 | ------- | ------ | ----- |
-| Lottery | 90.2%  | 50.8% |
+| Lottery | 90.6%  | 50.8% |
 | Voting  | 94.1%  | 82.2% |
-| NFT     | 88.6%  | 88.5% |
+| NFT     | 88.2%  | 88.5% |
 | Token   | 90.1%  | 91.8% |
 | Oracle  | 88.7%  | 87.4% |
-| SQLite  | -      | 81.4% |
+| SQLite  | -      | 80.4% |
 
 `internal/app/lottery` 偏低是因为 `verify.go` 的 `VerifyInput`/`VerifyRecord`
 目前只被 CLI 与桌面端的集成路径覆盖；这是已知测试缺口，不虚构数字。
@@ -221,6 +221,7 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；Web UI 由独立的 `aurora
 - [docs/desktop.md](docs/desktop.md)：桌面端架构、菜单、深链、打包与签名
 - [docs/cli.md](docs/cli.md)：完整 CLI / TUI 与运维命令参考
 - [docs/api.md](docs/api.md)：REST API、鉴权、限流、可观测性
+- [docs/ablation.md](docs/ablation.md)：纯 Go 构建边界与模块消融结论
 - [docs/lottery/](docs/lottery/)：抽奖模块的 API、测试与使用说明
 - [CHANGELOG.md](CHANGELOG.md)：逐版本变更
 - [SECURITY.md](SECURITY.md)：漏洞报告流程

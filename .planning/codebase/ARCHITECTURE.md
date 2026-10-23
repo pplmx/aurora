@@ -1,6 +1,6 @@
 # Architecture
 
-**Analysis Date:** 2026-04-30
+**Analysis Date:** 2026-10-23
 
 ## System Overview
 
@@ -10,9 +10,9 @@ Aurora is a blockchain-based digital voting system with VRF (Verifiable Random F
 ┌─────────────────────────────────────────────────────────────────┐
 │                        ENTRY POINTS                              │
 ├───────────────────────────┬─────────────────────────────────────┤
-│   cmd/aurora/main.go      │   cmd/api/main.go                   │
-│   (CLI/TUI)               │   (HTTP API Server)                 │
-│   Cobra commands          │   Chi router                        │
+│ cmd/aurora/main.go        │ cmd/api/main.go                     │
+│ desktop/cmd/aurora-desktop│ (HTTP API Server)                   │
+│ (CLI/TUI/desktop)         │ Chi router                          │
 └─────────────┬─────────────┴─────────────────────────────────────┘
               │
               ▼
@@ -53,7 +53,7 @@ Aurora is a blockchain-based digital voting system with VRF (Verifiable Random F
 | Domain Services | Core business logic             | `internal/domain/*/service.go` |
 | Domain Entities | Data models, validation         | `internal/domain/*/entity.go`  |
 | Repositories    | Data persistence                | `internal/infra/sqlite/*.go`   |
-| Event Bus       | Async event handling            | `internal/infra/events/*.go`   |
+| Event Bus       | Synchronous audit delivery      | `internal/infra/events/*.go`   |
 | Handlers        | HTTP request handling           | `internal/api/handler/*.go`    |
 
 ## Pattern Overview
@@ -65,8 +65,10 @@ Aurora is a blockchain-based digital voting system with VRF (Verifiable Random F
 - Domain layer has no external dependencies (pure business logic)
 - Use cases orchestrate domain services with input validation
 - Infrastructure implements domain interfaces (repository pattern)
-- Event-driven architecture via composite event bus
-- Dual entry points: CLI (Cobra) and HTTP API (Chi)
+- Event-driven architecture via `SyncEventBus`, with a durable outbox
+  (`pending_events`) for transient audit-delivery failures
+- Three hosts share one backend: CLI/TUI (Cobra), HTTP API + Web (Chi), and the
+  MyGo desktop shell serving the same router over `aurora://`
 
 ## Layers
 
@@ -85,6 +87,14 @@ Aurora is a blockchain-based digital voting system with VRF (Verifiable Random F
 - Contains: HTTP server initialization
 - Depends on: `internal/api`, `internal/infra`
 - Used by: Client applications
+
+**Desktop Entry (`desktop/`):**
+
+- Location: `desktop/cmd/aurora-desktop`, `desktop/internal/deskapp`
+- Contains: MyGo window lifecycle, `aurora://` protocol handling, deep links,
+  menus, and desktop packaging
+- Depends on: `internal/api` and the root module's embedded `web/` assets
+- Used by: Desktop users; no TCP listener is opened
 
 ### UI Layer (`internal/ui/`)
 
@@ -147,13 +157,12 @@ func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryRespo
 
 **Event System (`internal/infra/events/`):**
 
-- Purpose: Event-driven communication
+- Purpose: Synchronous event delivery and durable audit persistence
 - Components:
-    - `bus.go`: Sync event bus
-    - `async_bus.go`: Async event processing
-    - `composite_bus.go`: Combines sync/async
-    - `event_store.go`: Event persistence
-    - `handlers.go`: Event handlers (audit, stats)
+    - `bus.go`: `SyncEventBus`, the only production bus
+    - `event_store.go`: Event persistence and the `pending_events` outbox
+    - `handlers.go`: Audit and stats handlers
+    - `outbox.go`: Retry/backoff drainer for failed audit delivery
 
 **HTTP Client (`internal/infra/http/`):**
 
@@ -228,7 +237,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request)
     - Calls use case or domain directly
     - Returns JSON response
 
-4. **Response** (`internal/api/response.go`)
+4. **Response** (`internal/api/handler/helpers.go`)
     - Standard JSON envelope
     - Error formatting
 
@@ -238,7 +247,8 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request)
 **Configuration:** Viper with TOML files via `internal/config/`
 **Internationalization:** i18n via `internal/i18n/`
 **Error Handling:** Custom errors in `internal/domain/*/errors.go`
-**Event Handling:** Composite event bus with replay protection
+**Event Handling:** Synchronous event bus with panic isolation, replay
+protection, and a durable audit outbox
 
 ## Entry Points
 
@@ -274,4 +284,4 @@ type Service interface {
 
 ---
 
-*Architecture analysis: 2026-04-30*
+*Architecture analysis: 2026-10-23*

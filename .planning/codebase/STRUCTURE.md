@@ -1,6 +1,6 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-04-30
+**Analysis Date:** 2026-10-23
 
 ## Directory Layout
 
@@ -26,8 +26,9 @@ aurora/
 ├── migrations/            # Database migrations
 ├── e2e/                   # End-to-end tests
 ├── web/                   # Static web assets
+├── desktop/               # Nested MyGo desktop module
 ├── docs/                  # Documentation
-└── scripts/               # Build/deployment scripts
+└── dist/                  # Generated packaging artifacts (ignored)
 ```
 
 ## Directory Purposes
@@ -75,16 +76,16 @@ aurora/
     - `lottery/`: `usecase.go`, `dto.go`
     - `voting/`: `usecase.go`, `dto.go`
     - `nft/`: `usecase.go`, `dto.go`
-    - `token/`: `usecase.go`, `dto.go`, `mint.go`, `transfer.go`, etc.
+    - `token/`: `dto.go`, `create.go`, `mint.go`, `transfer.go`, etc.
     - `oracle/`: `usecase.go`, `dto.go`
-- Shared: `wire.go` - Dependency injection wiring
+- Dependency wiring is local to each host: `cmd/aurora/cmd/root.go` for the CLI
+  and `internal/api/server.go` for the API/desktop router.
 
 **`internal/ui/`** - Terminal UI
 
 - Purpose: Bubble Tea TUI components
 - Structure: One directory per module
     - `lottery/tui.go`: Lottery TUI
-    - `voting/tui.go`: Voting TUI
     - `nft/tui.go`: NFT TUI
     - `token/tui.go`: Token TUI
     - `oracle/tui.go`: Oracle TUI
@@ -96,7 +97,8 @@ aurora/
 - Structure:
     - `server.go`: Server initialization
     - `router.go`: Chi router setup
-    - `response.go`: JSON response helpers
+    - `health.go`: Liveness and readiness handlers
+    - `handler/helpers.go`: JSON response and error-classification helpers
     - `handler/`: HTTP handlers per module
         - `lottery.go`, `voting.go`, `nft.go`, `token.go`, `oracle.go`
     - `middleware/`: HTTP middleware
@@ -115,11 +117,10 @@ aurora/
         - `tx.go`: Transaction management
         - `errors.go`: Database errors
     - `events/`: Event bus system
-        - `bus.go`: Sync event bus
-        - `async_bus.go`: Async event bus
-        - `composite_bus.go`: Combined bus
+        - `bus.go`: Synchronous event bus
         - `event_store.go`: Event persistence
         - `handlers.go`: Event handlers (audit, stats)
+        - `outbox.go`: Durable audit retry loop
         - `replay.go`: Replay protection
     - `http/`: HTTP client
         - `fetcher.go`: External data fetching
@@ -180,12 +181,13 @@ aurora/
 
 **Core Logic:**
 
-| File                                 | Purpose              |
-| ------------------------------------ | -------------------- |
-| `internal/domain/lottery/service.go` | VRF lottery logic    |
-| `internal/domain/voting/service.go`  | Voting logic         |
-| `internal/domain/token/service.go`   | Token logic          |
-| `internal/app/wire.go`               | Dependency injection |
+| File                                 | Purpose                       |
+| ------------------------------------ | ----------------------------- |
+| `internal/domain/lottery/service.go` | VRF lottery logic             |
+| `internal/domain/voting/service.go`  | Voting logic                  |
+| `internal/domain/token/service.go`   | Token logic                   |
+| `cmd/aurora/cmd/root.go`             | CLI dependency wiring         |
+| `internal/api/server.go`             | API/desktop dependency wiring |
 
 **Persistence:**
 
@@ -278,7 +280,7 @@ aurora/
 1. Create `*{Module}UseCase` struct
 2. Implement `Execute(*Request) (*Response, error)` method
 3. Inject dependencies via constructor
-4. Register in `internal/app/wire.go` if needed
+4. Wire it in `cmd/aurora/cmd/root.go` and/or `internal/api/server.go`
 
 ## Special Directories
 
@@ -293,7 +295,7 @@ aurora/
 - Purpose: Event bus implementation
 - Generated: No
 - Committed: Yes
-- Contains: Sync/async event processing
+- Contains: Synchronous event delivery and durable audit outbox
 
 **`migrations/`**
 
@@ -311,4 +313,4 @@ aurora/
 
 ---
 
-*Structure analysis: 2026-04-30*
+*Structure analysis: 2026-10-23*
