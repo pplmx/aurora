@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 170,
+  "round": 176,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-23T09:04:44+00:00",
+  "updated_at": "2026-10-23T14:19:50+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -2589,7 +2589,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:33:22+00:00",
       "updated_at": "2026-08-23T05:33:22+00:00",
-      "touched_round": 100,
+      "touched_round": 175,
       "title": "Oracle REST fetcher (infra/http)"
     },
     "EV-017": {
@@ -11642,7 +11642,7 @@
       "version": 1,
       "created_at": "2026-10-21T04:55:28+00:00",
       "updated_at": "2026-10-21T04:55:28+00:00",
-      "touched_round": 166,
+      "touched_round": 176,
       "name": "desktop-shell",
       "path": "desktop/internal/deskapp",
       "description": "MyGo desktop shell: scheme transport, intents, menus, launch-argument routing"
@@ -14858,7 +14858,7 @@
       "version": 2,
       "created_at": "2026-10-23T08:08:15+00:00",
       "updated_at": "2026-10-23T09:04:38+00:00",
-      "touched_round": 170,
+      "touched_round": 173,
       "title": "All five business modules remain reachable; TUI is a product decision rather than dead code",
       "description": "CLI command registration, API route mounting, Web calls and desktop deep links keep lottery/voting/NFT/token/oracle reachable. TUI packages are wired through subcommands and have tests, so their large line count is a product-coherence question rather than evidence of implementation redundancy.",
       "confidence": 0.95
@@ -14937,13 +14937,13 @@
     "TASK-331": {
       "id": "TASK-331",
       "type": "task",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 4,
       "created_at": "2026-10-23T08:08:56+00:00",
-      "updated_at": "2026-10-23T08:08:56+00:00",
-      "touched_round": 170,
+      "updated_at": "2026-10-23T13:49:16+00:00",
+      "touched_round": 173,
       "title": "Decide the TUI product boundary before deleting reachable UI code",
-      "description": "Audit the four TUIs for persistence, duplication with CLI/Web, and product coherence. Document whether to retain, narrow or remove each surface; do not delete code until the product owner chooses because every TUI is reachable and tested.",
+      "description": "Resolved by DEC-032: retain all four reachable TUIs. lottery/oracle remain durable SQLite interfaces; NFT/token remain intentional in-memory sandboxes with a localized menu warning now pinned by regression tests. Durable NFT/token operations are directed to CLI, REST/Web and desktop.",
       "category": "maintainability",
       "severity": 0.4,
       "confidence": 0.95,
@@ -15066,6 +15066,620 @@
       "source": "Go 1.27.3 GOROOT src/cmd/go/internal/work/init.go:195-199; src/runtime/race/race.go:1-16; CGO_ENABLED=0 go test -race ./internal/infra/events",
       "description": "The local toolchain reports go: -race requires cgo; enable cgo by setting CGO_ENABLED=1. cmd/go enforces this on Linux and Windows, and runtime/race imports C to link the prebuilt ThreadSanitizer runtime. Darwin is the documented exception and can run race without a C toolchain.",
       "confidence": 1.0
+    },
+    "ISS-327": {
+      "id": "ISS-327",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T10:09:58+00:00",
+      "updated_at": "2026-10-23T10:12:43+00:00",
+      "touched_round": 171,
+      "title": "The five-platform desktop release matrix has no independent manual validation entry point",
+      "description": "desktop-build.yml is reusable only through workflow_call, so validating the Linux amd64/arm64, macOS amd64/arm64 and Windows amd64 packages requires creating a release tag. The matrix therefore has no remote build evidence until an irreversible release is started, and unsigned packaging cannot be rehearsed directly.",
+      "severity": 0.7,
+      "confidence": 1.0
+    },
+    "TASK-332": {
+      "id": "TASK-332",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T10:10:01+00:00",
+      "updated_at": "2026-10-23T10:12:41+00:00",
+      "touched_round": 171,
+      "category": "dx",
+      "title": "Expose the desktop build matrix as a standalone manual workflow",
+      "description": "Add workflow_dispatch inputs to desktop-build.yml, default an empty ref to the selected branch, document the gh invocation, and pin the entry point with a regression test. Do not publish a release from a manual run.",
+      "severity": 0.7,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.5
+    },
+    "EV-128": {
+      "id": "EV-128",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T10:10:09+00:00",
+      "updated_at": "2026-10-23T10:10:09+00:00",
+      "touched_round": 171,
+      "source": "desktop/internal/deskapp/ci_test.go TestDesktopBuildCanRunTheNativeMatrixManually",
+      "description": "Removing workflow_dispatch from desktop-build.yml made the new guard fail on the missing input block; restoring it made the guard pass. The full desktop test suite and the targeted release-contract tests pass, and YAML parsing reports on keys workflow_call,workflow_dispatch.",
+      "confidence": 1.0
+    },
+    "HYP-044": {
+      "id": "HYP-044",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T10:10:14+00:00",
+      "updated_at": "2026-10-23T10:12:45+00:00",
+      "touched_round": 171,
+      "title": "A manual desktop matrix run can validate all native packages without a release tag",
+      "description": "workflow_dispatch with an empty ref defaulting to github.ref should let maintainers run desktop-build.yml on main, package all five targets, and upload artifacts while signing remains optional.",
+      "confidence": 0.95
+    },
+    "DEC-029": {
+      "id": "DEC-029",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T10:10:16+00:00",
+      "updated_at": "2026-10-23T10:10:16+00:00",
+      "touched_round": 171,
+      "title": "Keep manual desktop matrix runs unsigned by default and release-only signing strict",
+      "rationale": "The missing capability is remote packaging evidence, not a second release path. workflow_dispatch should reuse the exact workflow_call matrix, default to the selected branch, upload artifacts, and never publish. Signing requirements remain opt-in inputs so maintainers can rehearse the matrix without secrets, while release.yml continues to set both require_signed flags to true.",
+      "alternatives_rejected": "Require signing secrets for every manual run (blocks the first validation); duplicate the matrix in a second workflow (drift risk); create a pre-release tag just to exercise the matrix (violates the release human boundary)."
+    },
+    "EV-129": {
+      "id": "EV-129",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T10:11:30+00:00",
+      "updated_at": "2026-10-23T10:11:30+00:00",
+      "touched_round": 171,
+      "source": "GOCACHE=/tmp/aurora-gocache just desktop-check; actionlint v1.7.12 on desktop-build.yml, release.yml, ci.yml, build.yml",
+      "description": "just desktop-check passed gofmt, pure-Go build, vet and tests. actionlint v1.7.12 (module cache) exited 0 for desktop-build.yml, release.yml, ci.yml and build.yml. YAML parse confirmed workflow_call and workflow_dispatch under on.",
+      "confidence": 1.0
+    },
+    "EV-130": {
+      "id": "EV-130",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:05:43+00:00",
+      "updated_at": "2026-10-23T13:05:43+00:00",
+      "touched_round": 171,
+      "source": "GitHub Actions Desktop Build run 39957695361 (workflow_dispatch, main, acb6827)",
+      "description": "All five package jobs completed successfully: Linux amd64/arm64, macOS amd64/arm64, Windows amd64. Each uploaded an artifact, and the run log confirms macOS signing was disabled/ad-hoc and Windows signing was disabled for this unsigned rehearsal.",
+      "confidence": 1.0
+    },
+    "ISS-328": {
+      "id": "ISS-328",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:05:44+00:00",
+      "updated_at": "2026-10-23T13:05:44+00:00",
+      "touched_round": 171,
+      "title": "macOS and Windows signing secrets are absent, so the signed release matrix cannot run",
+      "description": "The repository secret list contains only DOCKERHUB_TOKEN. None of MACOS_CERTIFICATE, MACOS_CERTIFICATE_PASSWORD, MACOS_SIGNING_IDENTITY, APPLE_ID, APPLE_TEAM_ID, APPLE_APP_PASSWORD, WINDOWS_CERTIFICATE, or WINDOWS_CERTIFICATE_PASSWORD is configured. The unsigned five-platform rehearsal passed, but release.yml correctly requires both signing contracts.",
+      "severity": 0.75,
+      "confidence": 1.0
+    },
+    "TASK-333": {
+      "id": "TASK-333",
+      "type": "task",
+      "status": "active",
+      "version": 9,
+      "created_at": "2026-10-23T13:05:46+00:00",
+      "updated_at": "2026-10-23T13:48:03+00:00",
+      "touched_round": 173,
+      "category": "security",
+      "title": "Provision real signing credentials and validate the signed five-platform release",
+      "description": "SignPath Foundation form fields and public signing/privacy pages are prepared, and the v1.1 download page now discloses the pending application. An automated Chromium submission reached the official HubSpot endpoint with a reCAPTCHA token but was rejected with HTTP 401 \"Failed to validate Captcha\"; the provider-owned human verification cannot be completed by the agent. A human applicant must submit or complete that challenge, then a maintainer must approve SignPath source-bound signing and adapt the Windows release workflow. Separately, Apple Developer Program enrollment requires the account holder, 2FA, legal agreement, and payment. After both identities are valid, run desktop-build.yml with both require_signed flags, verify codesign/notary/stapler and timestamped Authenticode signatures, then perform the explicitly approved tag release.",
+      "severity": 0.75,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.5
+    },
+    "DEC-030": {
+      "id": "DEC-030",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:10:54+00:00",
+      "updated_at": "2026-10-23T13:10:54+00:00",
+      "touched_round": 172,
+      "title": "Never substitute self-signed certificates for public release signing",
+      "rationale": "The unsigned five-platform rehearsal is complete, but a releaseable macOS app requires an Apple Developer ID identity plus Apple notarization credentials, and a releaseable Windows app requires a CA-issued Authenticode identity. Generating local self-signed certificates would exercise command syntax but would still be rejected by Gatekeeper/SmartScreen and cannot be presented as release verification.",
+      "alternatives_rejected": "Create self-signed macOS/Windows certificates and loosen signature checks; store fake secrets; ship an ad-hoc macOS app or unsigned installer as if it were releaseable."
+    },
+    "HYP-045": {
+      "id": "HYP-045",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T13:22:40+00:00",
+      "updated_at": "2026-10-23T13:23:06+00:00",
+      "touched_round": 173,
+      "title": "Repository authorization alone can provision valid public-release signing identities",
+      "description": "The user authorized creation of signing resources, so an agent with repository admin access can obtain Apple Developer ID and CA-issued Authenticode identities without a separate human account holder, legal identity, payment, or human verification.",
+      "confidence": 0.2
+    },
+    "EV-131": {
+      "id": "EV-131",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:22:43+00:00",
+      "updated_at": "2026-10-23T13:22:43+00:00",
+      "touched_round": 172,
+      "source": "https://developer.apple.com/programs/enroll/ fetched 2026-10-23",
+      "description": "Apple requires a two-factor-enabled Apple Account, the legal-age or legally-binding account holder, acceptance of the Developer Program License Agreement, and a 99 USD annual membership purchase. Organization enrollment additionally requires a legal entity, D-U-N-S number, organization email/website, and binding authority. Repository admin authorization supplies none of these prerequisites.",
+      "confidence": 1.0
+    },
+    "EV-132": {
+      "id": "EV-132",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:22:46+00:00",
+      "updated_at": "2026-10-23T13:22:46+00:00",
+      "touched_round": 172,
+      "source": "SignPath Foundation application form https://signpath.org/apply, submission attempt 2026-10-23",
+      "description": "The official application accepts Aurora usernames, repository, policy/privacy URLs, maintainer role, GitHub Actions build system, and code-of-conduct/privacy consent. The HSForms submission returned HTTP 401 with the visible error \"Failed to validate Captcha. Please try again.\" The repository can prepare the application, but a human CAPTCHA remains a provider-enforced approval boundary.",
+      "confidence": 1.0
+    },
+    "DEC-031": {
+      "id": "DEC-031",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:22:50+00:00",
+      "updated_at": "2026-10-23T13:22:50+00:00",
+      "touched_round": 172,
+      "title": "Use SignPath Foundation for Windows OSS signing and keep Apple enrollment human-controlled",
+      "rationale": "SignPath Foundation is a legitimate free path for public OSS Windows artifacts, keeps keys in an HSM, enforces source provenance, and requires manual release approval. Its application has a provider-owned CAPTCHA and acceptance step. macOS has no equivalent free identity: Developer ID and notarization require a human-controlled Apple Developer account, legal agreement, 2FA, and payment. The agent may prepare public policy and form data, but must not bypass CAPTCHA, invent identity data, or substitute self-signed certificates.",
+      "alternatives_rejected": "Self-signed certificates presented as release signing; filling fake secret values; automating around SignPath reCAPTCHA; creating Apple enrollment without the account holder identity, 2FA, or payment."
+    },
+    "CHG-330": {
+      "id": "CHG-330",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:24:18+00:00",
+      "updated_at": "2026-10-23T13:24:18+00:00",
+      "touched_round": 172,
+      "commit": "f69849c14e6242dae92b27459339417041902155",
+      "title": "Publish SignPath and privacy onboarding contract",
+      "description": "Added public code-signing policy, privacy statement, exact SignPath Foundation disclosure, maintainer approval roles, Apple Developer Program prerequisite, README/desktop links, changelog entry, and a regression test that prevents claiming SignPath signing before acceptance."
+    },
+    "CHG-331": {
+      "id": "CHG-331",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:29:21+00:00",
+      "updated_at": "2026-10-23T13:29:21+00:00",
+      "touched_round": 172,
+      "commit": "e12fda572fe16024199eedbff4d04f3ac2726601",
+      "title": "Attest final release artifacts with GitHub build provenance",
+      "description": "release.yml now grants attestations/id-token permissions and runs actions/attest-build-provenance@v4.2.2 against the final flattened checksums.txt before publishing. Documentation explains gh attestation verify and explicitly keeps provenance separate from Authenticode and Developer ID signing."
+    },
+    "EV-133": {
+      "id": "EV-133",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:47:09+00:00",
+      "updated_at": "2026-10-23T13:47:09+00:00",
+      "touched_round": 173,
+      "source": "Playwright submission to SignPath Foundation application form, 2026-10-23",
+      "description": "The authorized application was filled end-to-end (project, URLs, privacy policy, reputation, maintainer, GitHub Actions, contact identity, Code of Conduct and data-processing consents) in a real Chromium session. HubSpot generated a reCAPTCHA token, but the multipart submit endpoint returned HTTP 401 with the provider error \"Failed to validate Captcha. Please try again.\" No application was accepted or account created.",
+      "confidence": 1.0
+    },
+    "EV-134": {
+      "id": "EV-134",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:47:10+00:00",
+      "updated_at": "2026-10-23T13:47:10+00:00",
+      "touched_round": 173,
+      "source": "GitHub release v1.1 edited 2026-10-23 via gh release edit",
+      "description": "The existing public download page now discloses that Aurora is applying to SignPath Foundation and does not present current Windows artifacts as SignPath-signed. The existing changelog link was preserved, satisfying the form requirement that the download page mention the signing program before a future application retry.",
+      "confidence": 1.0
+    },
+    "DEC-032": {
+      "id": "DEC-032",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:49:15+00:00",
+      "updated_at": "2026-10-23T13:49:15+00:00",
+      "touched_round": 173,
+      "title": "Retain all four TUIs and make the NFT/token sandbox boundary explicit",
+      "rationale": "All four TUIs are reachable, tested and documented. lottery/oracle already operate on the same SQLite repositories as CLI/API, while NFT/token deliberately use isolated in-memory repositories for safe signing and transfer exploration. Removing working commands would be a product regression; silently treating sandbox state as durable would be a correctness trap. Retaining them with a persistent menu warning and directing durable NFT/token work to CLI, REST/Web or desktop gives users the exploratory interface without changing persistence semantics.",
+      "alternatives_rejected": "Delete all TUI code as allegedly redundant; wire NFT/token TUIs to SQLite immediately (larger, unrequested persistence contract); keep the sandbox but rely only on source comments and a non-enforced warning."
+    },
+    "EV-135": {
+      "id": "EV-135",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:49:15+00:00",
+      "updated_at": "2026-10-23T13:49:15+00:00",
+      "touched_round": 173,
+      "source": "internal/ui/nft/tui_test.go TestMenuViewRenders; internal/ui/token/tui_test.go TestMenuViewRenders; 2026-10-23 fault injection",
+      "description": "Both menu tests assert the localized sandbox_notice. Replacing the warning render with an empty string made both packages fail with the new persistence-disclosure messages; restoring the render made the targeted tests pass. just check and CGO_ENABLED=0 go test -count=1 ./... both passed after restoration.",
+      "confidence": 1.0
+    },
+    "CHG-332": {
+      "id": "CHG-332",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:49:15+00:00",
+      "updated_at": "2026-10-23T13:49:15+00:00",
+      "touched_round": 173,
+      "commit": "a7c8dc9",
+      "title": "Define durable and sandbox TUI product boundaries",
+      "description": "Documented the retain/narrow decision, directed durable NFT/token work to CLI/API/Web/desktop, added the boundary to the CLI guide and changelog, and pinned the existing localized sandbox notices in both TUI menu tests."
+    },
+    "HYP-046": {
+      "id": "HYP-046",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T13:50:46+00:00",
+      "updated_at": "2026-10-23T13:52:18+00:00",
+      "touched_round": 174,
+      "title": "Manual release dispatch can publish artifacts under a tag that was never validated",
+      "description": "release.yml uses the workflow_dispatch tag input both as the build ref and as softprops/action-gh-release tag_name. An existing branch name passes checkout, while action-gh-release defaults target_commitish to the default branch and can create a missing tag, so artifacts from one ref can be published under a different tag.",
+      "confidence": 0.98
+    },
+    "EV-136": {
+      "id": "EV-136",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:50:46+00:00",
+      "updated_at": "2026-10-23T13:50:46+00:00",
+      "touched_round": 174,
+      "source": ".github/workflows/release.yml:11-43,143; softprops/action-gh-release v2 README target_commitish/tag_name docs fetched 2026-10-23",
+      "description": "The workflow describes the input as an existing tag but never checks refs/tags before build. The pinned action documents that tag_name can name a tag that does not exist and target_commitish defaults to the repository default branch, which confirms the branch/SHA-to-new-tag mismatch path.",
+      "confidence": 1.0
+    },
+    "ISS-329": {
+      "id": "ISS-329",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T13:50:46+00:00",
+      "updated_at": "2026-10-23T13:52:18+00:00",
+      "touched_round": 174,
+      "title": "Manual release dispatch does not require the input to resolve to an existing release tag",
+      "description": "A workflow_dispatch value is passed unchanged to both the reusable build checkout and action-gh-release. No validation enforces a v* tag or that refs/tags/<input> exists before spending build time, and action-gh-release can create a missing tag from the default branch. A mistaken branch name can therefore pair artifacts built from that branch with a newly created tag at a different commit.",
+      "severity": 0.9,
+      "confidence": 1.0
+    },
+    "TASK-334": {
+      "id": "TASK-334",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T13:50:46+00:00",
+      "updated_at": "2026-10-23T13:52:19+00:00",
+      "touched_round": 174,
+      "title": "Require an existing version tag before any manual release build",
+      "description": "Resolved by CHG-333: release.yml validates an existing version-shaped tag in a read-only prerequisite job before builds. Both build matrices depend on it and receive contents:read; the publish job also depends on validation. Fault-injected workflow tests and actionlint pass.",
+      "category": "security",
+      "severity": 0.9,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.5
+    },
+    "EV-137": {
+      "id": "EV-137",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:52:18+00:00",
+      "updated_at": "2026-10-23T13:52:18+00:00",
+      "touched_round": 174,
+      "source": "desktop/internal/deskapp/ci_test.go TestReleaseRequiresAnExistingVersionTag; actionlint v1.7.12; fault injection 2026-10-23",
+      "description": "The workflow-contract test requires a read-only validate-tag job, exact v* regex, refs/tags/<tag>^{commit} verification, read-only build jobs gated on validation, and a publish job gated on all three. Removing validate-tag from the release needs made the test fail on the publishing dependency; restoring it passed. actionlint passed all four main workflows, and the tag regex accepted v1/v1.2/v1.2.3/prerelease/build metadata while rejecting main, plain semver and malformed tags.",
+      "confidence": 1.0
+    },
+    "CHG-333": {
+      "id": "CHG-333",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:52:18+00:00",
+      "updated_at": "2026-10-23T13:52:18+00:00",
+      "touched_round": 174,
+      "commit": "7f88e2b",
+      "title": "Validate an existing version tag before manual release builds",
+      "description": "release.yml now validates workflow_dispatch input or the pushed ref as an existing version-shaped tag, fetches repository tags, and resolves refs/tags/<tag>^{commit} before either build matrix. Build/desktop jobs receive contents:read; publishing depends on validation plus both matrices. A workflow-contract regression test and changelog entry document the supply-chain guarantee."
+    },
+    "HYP-047": {
+      "id": "HYP-047",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T13:53:28+00:00",
+      "updated_at": "2026-10-23T13:54:01+00:00",
+      "touched_round": 175,
+      "title": "Concurrent runs for one release tag can publish a mixed artifact set",
+      "description": "release.yml has no concurrency group while its final action overwrites release assets. Two runs for the same tag can upload different build-time binaries and checksums concurrently, leaving assets from one run with checksums or provenance from another.",
+      "confidence": 0.95
+    },
+    "EV-138": {
+      "id": "EV-138",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:53:28+00:00",
+      "updated_at": "2026-10-23T13:53:28+00:00",
+      "touched_round": 175,
+      "source": ".github/workflows/release.yml jobs.release; softprops/action-gh-release overwrite_files setting; GitHub Actions concurrency documentation",
+      "description": "The workflow can be started both by a tag push and by workflow_dispatch, and has no workflow-level concurrency key. The release job uses overwrite_files: true and uploads a multi-file asset set, so overlapping runs are not serialized and can interleave final assets.",
+      "confidence": 1.0
+    },
+    "ISS-330": {
+      "id": "ISS-330",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T13:53:28+00:00",
+      "updated_at": "2026-10-23T13:54:01+00:00",
+      "touched_round": 175,
+      "title": "Release runs for the same tag are not serialized",
+      "description": "A tag push and a retry, or two manual retries, may build and upload concurrently. Because the publisher overwrites files one release at a time but not atomically as a set, the final download page can combine assets and checksums from different runs. Conditional signing/provenance makes the mismatch materially observable.",
+      "severity": 0.8,
+      "confidence": 1.0
+    },
+    "TASK-335": {
+      "id": "TASK-335",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T13:53:28+00:00",
+      "updated_at": "2026-10-23T13:54:01+00:00",
+      "touched_round": 175,
+      "title": "Serialize release workflows by validated tag",
+      "description": "Resolved by CHG-334: release runs for the same tag share a non-cancelling workflow-level concurrency group. The contract test and actionlint pass; fault injection proved the test fails if the group changes.",
+      "category": "security",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.4
+    },
+    "EV-139": {
+      "id": "EV-139",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:54:00+00:00",
+      "updated_at": "2026-10-23T13:54:00+00:00",
+      "touched_round": 175,
+      "source": "desktop/internal/deskapp/ci_test.go TestReleaseRunsAreSerializedByTag; actionlint v1.7.12; fault injection 2026-10-23",
+      "description": "The release workflow now has a non-cancelling concurrency group keyed by the same tag expression used by tag pushes and manual retries; overwrite_files remains the documented retry behavior inside the serialized group. Changing the group name made the new test fail; restoring it passed. just desktop-check and actionlint are green.",
+      "confidence": 1.0
+    },
+    "CHG-334": {
+      "id": "CHG-334",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T13:54:00+00:00",
+      "updated_at": "2026-10-23T13:54:00+00:00",
+      "touched_round": 175,
+      "commit": "c5c060b",
+      "title": "Serialize release publishing by tag",
+      "description": "Added workflow-level concurrency keyed by inputs.tag || github.ref_name with cancel-in-progress false. The regression test pins the shared queue alongside overwrite_files so separate tag runs remain parallel while same-tag publishing cannot interleave."
+    },
+    "ISS-331": {
+      "id": "ISS-331",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T14:02:49+00:00",
+      "updated_at": "2026-10-23T14:07:45+00:00",
+      "touched_round": 175,
+      "title": "Oversized Oracle response test depends on a 10-second production timeout",
+      "description": "TestFetcher_FetchData_RejectsOversized streams 10 MiB in 1 KiB flushed chunks through a NewFetcher whose default client timeout is 10 seconds. On the loaded Renovate PR CI runner the assertion received context deadline exceeded instead of ErrResponseTooLarge, failing an otherwise unrelated MyGo v0.6.3 upgrade (run 39961696870). The test must verify the size cap without racing the product timeout.",
+      "severity": 0.65,
+      "confidence": 1.0,
+      "effort": 1
+    },
+    "TASK-336": {
+      "id": "TASK-336",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T14:02:52+00:00",
+      "updated_at": "2026-10-23T14:07:48+00:00",
+      "touched_round": 175,
+      "category": "test-quality",
+      "title": "Make the oversized Oracle response regression deterministic under loaded CI",
+      "description": "Use a test-scoped timeout that cannot race the bounded-read assertion, reduce flush overhead, and assert ErrResponseTooLarge through the error chain so the test detects the intended contract. Verify the old shape still fails under an injected short timeout.",
+      "severity": 0.65,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.4,
+      "outcome": "The oversized FetchData test uses a 64 KiB fixture, a test-scoped one-minute timeout, and errors.Is. It passed 50 real-loopback iterations; removing the bound turned it red."
+    },
+    "TASK-337": {
+      "id": "TASK-337",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T14:02:55+00:00",
+      "updated_at": "2026-10-23T14:07:48+00:00",
+      "touched_round": 175,
+      "category": "stability",
+      "title": "Upgrade MyGo desktop framework to v0.6.3",
+      "description": "Adopt the v0.6.3 patch release, which includes Windows WebView2 event-token lifetime fixes, task-dialog result stack safety, text-field paste handling, content-rule support, and UI rendering fixes relevant to Aurora desktop. Re-run the nested module gates, packaging contracts, and dependency diff checks before landing.",
+      "severity": 0.6,
+      "confidence": 0.95,
+      "effort": 1,
+      "unlock_factor": 1.3,
+      "outcome": "MyGo v0.6.3 is pinned in desktop/go.mod; tidy diff, pure-Go and race tests, Linux package contract, and a real Xvfb startup smoke all pass."
+    },
+    "EV-140": {
+      "id": "EV-140",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:07:40+00:00",
+      "updated_at": "2026-10-23T14:07:40+00:00",
+      "touched_round": 175,
+      "source": "go test -count=50 -run oversized ./internal/infra/http; fault injection: removing readBounded limit returned nil and turned TestFetcher_FetchData_RejectsOversized red",
+      "title": "Oversized response regression is deterministic and fault-sensitive",
+      "confidence": 1.0
+    },
+    "CHG-335": {
+      "id": "CHG-335",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:07:40+00:00",
+      "updated_at": "2026-10-23T14:07:40+00:00",
+      "touched_round": 175,
+      "commit": "d1d9107",
+      "title": "Make oversized Oracle response regression deterministic"
+    },
+    "EV-141": {
+      "id": "EV-141",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:07:40+00:00",
+      "updated_at": "2026-10-23T14:07:40+00:00",
+      "touched_round": 175,
+      "source": "just desktop-check; just desktop-race; go mod tidy -diff; just desktop-package -platform linux/amd64; Xvfb real packaged startup smoke",
+      "title": "MyGo v0.6.3 desktop gates, package, and runtime startup pass",
+      "confidence": 1.0
+    },
+    "CHG-336": {
+      "id": "CHG-336",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:07:40+00:00",
+      "updated_at": "2026-10-23T14:07:40+00:00",
+      "touched_round": 175,
+      "commit": "dd34f13",
+      "title": "Upgrade MyGo desktop framework to v0.6.3"
+    },
+    "ISS-332": {
+      "id": "ISS-332",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T14:09:04+00:00",
+      "updated_at": "2026-10-23T14:19:40+00:00",
+      "touched_round": 176,
+      "title": "Desktop data directory and SQLite files are readable by other local users",
+      "description": "A real packaged launch under umask 022 created $XDG_CONFIG_HOME/Aurora with mode 0755 and aurora.db, aurora.db-wal, aurora.db-shm and logs/aurora.log with mode 0644. The database stores operator-supplied Oracle request headers, which may contain bearer tokens, so another local account on a shared machine can read application state.",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 1
+    },
+    "TASK-338": {
+      "id": "TASK-338",
+      "type": "task",
+      "status": "resolved",
+      "version": 5,
+      "created_at": "2026-10-23T14:09:04+00:00",
+      "updated_at": "2026-10-23T14:19:50+00:00",
+      "touched_round": 176,
+      "category": "security",
+      "title": "Make the desktop application data directory private by default",
+      "description": "Create the desktop data directory with 0700 and tighten an existing desktop-owned directory before SQLite or logs open, while preserving explicit-path behavior and cross-platform startup. Add a Unix permission regression plus a real packaged-launch verification of the database and log tree.",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.5,
+      "outcome": "The default data directory is 0700 before storage opens; legacy defaults are tightened; SQLite, WAL/SHM and logs are 0600. Explicit existing --data-dir permissions are preserved. Unit, race, full repository, actionlint and real packaged-launch checks pass, including a runuser denial for another local account."
+    },
+    "HYP-048": {
+      "id": "HYP-048",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T14:19:20+00:00",
+      "updated_at": "2026-10-23T14:19:41+00:00",
+      "touched_round": 176,
+      "title": "Owner-only desktop state is enforced from startup through packaged Linux smoke tests",
+      "description": "The default app directory is tightened before storage opens, the database/WAL/SHM/log files are chmodded to 0600, and the release smoke test launches the real package under umask 022 to assert the same modes and deny another local account.",
+      "confidence": 0.98
+    },
+    "EV-142": {
+      "id": "EV-142",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:19:23+00:00",
+      "updated_at": "2026-10-23T14:19:23+00:00",
+      "touched_round": 176,
+      "source": "go test ./internal/deskapp -run TestPrepareDataDirKeepsTheDefaultApplicationStatePrivate|TestStartKeepsApplicationFilesPrivate; fault injection removed directory chmod and file chmod separately",
+      "title": "Permission regressions fail under both old behaviors",
+      "description": "Disabling the default-directory chmod failed with mode 0755 instead of 0700. Disabling keepApplicationFilesPrivate failed for aurora.db, aurora.db-wal, aurora.db-shm and aurora.log with mode 0644 instead of 0600. Restoring both returned the targeted tests to green.",
+      "confidence": 1.0
+    },
+    "EV-143": {
+      "id": "EV-143",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:19:26+00:00",
+      "updated_at": "2026-10-23T14:19:26+00:00",
+      "touched_round": 176,
+      "source": "just desktop-package -platform linux/amd64; Xvfb packaged launch under umask 022 (2026-10-23)",
+      "title": "Real package creates owner-only state and denies another local user",
+      "description": "The running package created $XDG_CONFIG_HOME/Aurora at 0700, aurora.db/WAL/SHM and logs/aurora.log at 0600, and logs/ at 0755 behind the private parent. runuser -u nobody could not read either the database or log.",
+      "confidence": 1.0
+    },
+    "EV-144": {
+      "id": "EV-144",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:19:28+00:00",
+      "updated_at": "2026-10-23T14:19:28+00:00",
+      "touched_round": 176,
+      "source": "just check; just test; just desktop-check; just desktop-race; actionlint v1.7.12 on ci.yml and desktop-build.yml",
+      "title": "Full repository gates pass after the privacy change",
+      "description": "Root formatting, vet, all tests and E2E passed; the nested desktop module passed build, vet, tests and race; actionlint reported no workflow errors. The CI and release smoke contracts also assert WAL/SHM presence and 0600 modes.",
+      "confidence": 1.0
+    },
+    "CHG-337": {
+      "id": "CHG-337",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:19:30+00:00",
+      "updated_at": "2026-10-23T14:19:30+00:00",
+      "touched_round": 176,
+      "commit": "dcc4a98",
+      "title": "Keep desktop application state private"
+    },
+    "CHG-338": {
+      "id": "CHG-338",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:19:31+00:00",
+      "updated_at": "2026-10-23T14:19:31+00:00",
+      "touched_round": 176,
+      "commit": 680910000000.0,
+      "title": "Pin private SQLite sidecars in package smoke tests"
     }
   },
   "edges": [
@@ -23397,6 +24011,246 @@
       "to": "HYP-042",
       "type": "validates",
       "created_at": "2026-10-23T09:04:14+00:00"
+    },
+    {
+      "from": "TASK-332",
+      "to": "ISS-327",
+      "type": "addresses",
+      "created_at": "2026-10-23T10:10:06+00:00"
+    },
+    {
+      "from": "EV-128",
+      "to": "HYP-044",
+      "type": "validates",
+      "created_at": "2026-10-23T10:10:21+00:00"
+    },
+    {
+      "from": "DEC-029",
+      "to": "TASK-332",
+      "type": "governs",
+      "created_at": "2026-10-23T10:10:21+00:00"
+    },
+    {
+      "from": "EV-129",
+      "to": "HYP-044",
+      "type": "validates",
+      "created_at": "2026-10-23T10:11:34+00:00"
+    },
+    {
+      "from": "TASK-333",
+      "to": "ISS-328",
+      "type": "addresses",
+      "created_at": "2026-10-23T13:05:50+00:00"
+    },
+    {
+      "from": "EV-130",
+      "to": "HYP-044",
+      "type": "validates",
+      "created_at": "2026-10-23T13:05:51+00:00"
+    },
+    {
+      "from": "DEC-029",
+      "to": "TASK-333",
+      "type": "governs",
+      "created_at": "2026-10-23T13:05:52+00:00"
+    },
+    {
+      "from": "EV-131",
+      "to": "HYP-045",
+      "type": "refutes",
+      "created_at": "2026-10-23T13:22:54+00:00"
+    },
+    {
+      "from": "EV-132",
+      "to": "HYP-045",
+      "type": "refutes",
+      "created_at": "2026-10-23T13:22:55+00:00"
+    },
+    {
+      "from": "DEC-030",
+      "to": "TASK-333",
+      "type": "governs",
+      "created_at": "2026-10-23T13:22:56+00:00"
+    },
+    {
+      "from": "DEC-031",
+      "to": "TASK-333",
+      "type": "governs",
+      "created_at": "2026-10-23T13:22:57+00:00"
+    },
+    {
+      "from": "CHG-330",
+      "to": "TASK-333",
+      "type": "implements",
+      "created_at": "2026-10-23T13:24:21+00:00"
+    },
+    {
+      "from": "CHG-331",
+      "to": "TASK-333",
+      "type": "implements",
+      "created_at": "2026-10-23T13:29:24+00:00"
+    },
+    {
+      "from": "EV-133",
+      "to": "HYP-045",
+      "type": "refutes",
+      "created_at": "2026-10-23T13:47:18+00:00"
+    },
+    {
+      "from": "EV-135",
+      "to": "HYP-041",
+      "type": "validates",
+      "created_at": "2026-10-23T13:49:15+00:00"
+    },
+    {
+      "from": "DEC-032",
+      "to": "TASK-331",
+      "type": "governs",
+      "created_at": "2026-10-23T13:49:15+00:00"
+    },
+    {
+      "from": "CHG-332",
+      "to": "TASK-331",
+      "type": "implements",
+      "created_at": "2026-10-23T13:49:16+00:00"
+    },
+    {
+      "from": "EV-136",
+      "to": "HYP-046",
+      "type": "validates",
+      "created_at": "2026-10-23T13:50:46+00:00"
+    },
+    {
+      "from": "TASK-334",
+      "to": "ISS-329",
+      "type": "addresses",
+      "created_at": "2026-10-23T13:50:46+00:00"
+    },
+    {
+      "from": "EV-137",
+      "to": "HYP-046",
+      "type": "validates",
+      "created_at": "2026-10-23T13:52:18+00:00"
+    },
+    {
+      "from": "CHG-333",
+      "to": "ISS-329",
+      "type": "resolves",
+      "created_at": "2026-10-23T13:52:18+00:00"
+    },
+    {
+      "from": "CHG-333",
+      "to": "TASK-334",
+      "type": "implements",
+      "created_at": "2026-10-23T13:52:18+00:00"
+    },
+    {
+      "from": "EV-138",
+      "to": "HYP-047",
+      "type": "validates",
+      "created_at": "2026-10-23T13:53:28+00:00"
+    },
+    {
+      "from": "TASK-335",
+      "to": "ISS-330",
+      "type": "addresses",
+      "created_at": "2026-10-23T13:53:28+00:00"
+    },
+    {
+      "from": "EV-139",
+      "to": "HYP-047",
+      "type": "validates",
+      "created_at": "2026-10-23T13:54:00+00:00"
+    },
+    {
+      "from": "CHG-334",
+      "to": "ISS-330",
+      "type": "resolves",
+      "created_at": "2026-10-23T13:54:00+00:00"
+    },
+    {
+      "from": "CHG-334",
+      "to": "TASK-335",
+      "type": "implements",
+      "created_at": "2026-10-23T13:54:01+00:00"
+    },
+    {
+      "from": "ISS-331",
+      "to": "COMP-009",
+      "type": "located_in",
+      "created_at": "2026-10-23T14:02:59+00:00"
+    },
+    {
+      "from": "TASK-336",
+      "to": "ISS-331",
+      "type": "addresses",
+      "created_at": "2026-10-23T14:02:59+00:00"
+    },
+    {
+      "from": "CHG-335",
+      "to": "TASK-336",
+      "type": "implements",
+      "created_at": "2026-10-23T14:07:45+00:00"
+    },
+    {
+      "from": "CHG-335",
+      "to": "ISS-331",
+      "type": "resolves",
+      "created_at": "2026-10-23T14:07:45+00:00"
+    },
+    {
+      "from": "CHG-336",
+      "to": "TASK-337",
+      "type": "implements",
+      "created_at": "2026-10-23T14:07:45+00:00"
+    },
+    {
+      "from": "ISS-332",
+      "to": "COMP-014",
+      "type": "located_in",
+      "created_at": "2026-10-23T14:09:07+00:00"
+    },
+    {
+      "from": "TASK-338",
+      "to": "ISS-332",
+      "type": "addresses",
+      "created_at": "2026-10-23T14:09:07+00:00"
+    },
+    {
+      "from": "EV-142",
+      "to": "HYP-048",
+      "type": "validates",
+      "created_at": "2026-10-23T14:19:35+00:00"
+    },
+    {
+      "from": "EV-143",
+      "to": "HYP-048",
+      "type": "validates",
+      "created_at": "2026-10-23T14:19:35+00:00"
+    },
+    {
+      "from": "EV-144",
+      "to": "HYP-048",
+      "type": "validates",
+      "created_at": "2026-10-23T14:19:35+00:00"
+    },
+    {
+      "from": "CHG-337",
+      "to": "TASK-338",
+      "type": "implements",
+      "created_at": "2026-10-23T14:19:35+00:00"
+    },
+    {
+      "from": "CHG-338",
+      "to": "TASK-338",
+      "type": "implements",
+      "created_at": "2026-10-23T14:19:36+00:00"
+    },
+    {
+      "from": "CHG-337",
+      "to": "ISS-332",
+      "type": "resolves",
+      "created_at": "2026-10-23T14:19:36+00:00"
     }
   ]
 }
