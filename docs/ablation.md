@@ -17,8 +17,9 @@
 4. **本轮只删除生产不可达的表面。** 异步/组合事件总线、重复的内存 Oracle
    仓储，以及若干没有调用者的领域/仓储查询接口被消融；同步事件总线、审计
    outbox、迁移、备份和全部业务入口保留。
-5. **TUI 是可达且有测试的产品表面。** lottery/oracle TUI 持久化，NFT/token
-   TUI 目前是内存沙箱；是否保留这些 TUI 属于产品决策，不是死代码删除。
+5. **四个 TUI 都保留，但产品边界分为持久化与沙盒两类。** lottery/oracle TUI
+   与 CLI/API 共用 SQLite；NFT/token TUI 明确标记为内存沙盒，退出即丢弃状态。
+   需要持久化的 NFT/token 操作应使用 CLI、REST/Web 或桌面端。
 
 ## cgo 构建矩阵
 
@@ -92,13 +93,14 @@
 
 | TUI     | 仓储                          | 当前行为                  | 决策                                         |
 | ------- | ----------------------------- | ------------------------- | -------------------------------------------- |
-| lottery | `sqlite.NewLotteryRepository` | 与 CLI/API 共用持久化记录 | 保留                                         |
-| oracle  | `sqlite.NewOracleRepository`  | 数据源与抓取结果持久化    | 保留                                         |
-| NFT     | `nft.NewInmemRepo`            | 退出后状态丢失            | 产品决策；当前可达且有测试，不能按死代码删除 |
-| token   | token TUI 的内存仓储/事件存储 | 退出后状态丢失            | 产品决策；当前可达且有测试，不能按死代码删除 |
+| lottery | `sqlite.NewLotteryRepository` | 与 CLI/API 共用持久化记录 | 保留；持久化交互入口                         |
+| oracle  | `sqlite.NewOracleRepository`  | 数据源与抓取结果持久化    | 保留；持久化交互入口                         |
+| NFT     | `nft.NewInmemRepo`            | 退出后状态丢失            | 保留为沙盒；界面必须持续提示不持久化         |
+| token   | token TUI 的内存仓储/事件存储 | 退出后状态丢失            | 保留为沙盒；界面必须持续提示不持久化         |
 
-NFT/token TUI 的合理后续是接入 SQLite，或在界面上明确标注“演示/临时会话”；
-在未得到产品选择前删除整个 TUI 会移除用户可执行的命令，而不是消融死代码。
+这是有意收窄产品承诺，而不是删除可达代码。NFT/token TUI 适合探索签名、转移和
+余额流程；持久化操作仍由 CLI、REST/Web 与桌面端承担。菜单级沙盒提示由
+`internal/ui/{nft,token}` 的回归测试锁定，避免将来悄悄把临时会话伪装成持久化。
 
 ## 暂缓的破坏性清理
 

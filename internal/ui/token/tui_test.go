@@ -74,6 +74,8 @@ func TestMenuViewRenders(t *testing.T) {
 	app.view = "menu"
 	view := app.menuView()
 	assert.NotEmpty(t, view)
+	assert.Contains(t, view, i18n.GetText("tui.sandbox_notice"),
+		"the token TUI must disclose that its in-memory state is not persisted")
 }
 
 func TestCreateViewRenders(t *testing.T) {

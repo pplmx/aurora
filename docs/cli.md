@@ -131,3 +131,7 @@ aurora migrate down --confirm # 回滚一步
 | `Esc`   | 返回                              |
 | `?`     | 帮助                              |
 | `q`     | 退出（表单内输入 `q` 不会误退出） |
+
+TUI 的产品边界是有意区分的：`lottery tui` 与 `oracle tui` 读写默认 SQLite
+数据库；`nft tui`、`token tui` 是内存沙盒，退出后状态丢失，菜单会显示明确
+警告。需要持久化的 NFT/token 操作请使用对应 CLI、REST/Web 或桌面端。
