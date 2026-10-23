@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 169,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-23T07:15:03+00:00",
+  "updated_at": "2026-10-23T07:28:40+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -13359,7 +13359,7 @@
       "version": 1,
       "created_at": "2026-10-21T12:51:24+00:00",
       "updated_at": "2026-10-21T12:51:24+00:00",
-      "touched_round": 159,
+      "touched_round": 169,
       "name": "release-workflows",
       "path": ".github/workflows",
       "description": "Release pipeline: build.yml CLI matrix, desktop-build.yml native MyGo packages, release.yml publication"
@@ -14638,6 +14638,81 @@
       "title": "Use modernc.org/sqlite for storage",
       "rationale": "Pure-Go SQLite lets every CLI/API/Docker/desktop artifact build with CGO_ENABLED=0; modernc v1.61 accepts the existing hardened DSN and golang-migrate ships a matching database/sqlite driver.",
       "alternatives_rejected": "Keep mattn/go-sqlite3 and native cgo runners; switch only the tests while leaving production cgo; use a custom SQLite binding"
+    },
+    "ISS-322": {
+      "id": "ISS-322",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T07:26:04+00:00",
+      "updated_at": "2026-10-23T07:28:40+00:00",
+      "touched_round": 169,
+      "title": "Release verifier and sandbox gates do not fully enforce pure-Go artifacts",
+      "description": "release.yml ran the downloaded Linux CLI without restoring the executable bit and verified Go build metadata only for CLI binaries, not the five desktop executables. just desktop-check also required the cgo race detector, and the CLI release matrix still used native macOS/Linux runners despite pure-Go storage.",
+      "severity": 0.6
+    },
+    "TASK-327": {
+      "id": "TASK-327",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T07:26:09+00:00",
+      "updated_at": "2026-10-23T07:28:40+00:00",
+      "touched_round": 169,
+      "title": "Harden pure-Go release and sandbox gates",
+      "description": "Verify CLI and desktop binary build metadata before release, restore the executable bit on downloaded Linux artifacts, add an immediate desktop package metadata gate, make desktop-check cgo-free with an explicit desktop-race recipe, and cross-compile all non-Windows CLI targets on one Ubuntu runner.",
+      "category": "maintainability",
+      "priority_score": 8.4,
+      "severity": 0.6,
+      "confidence": 0.98,
+      "effort": 3
+    },
+    "HYP-038": {
+      "id": "HYP-038",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T07:26:13+00:00",
+      "updated_at": "2026-10-23T07:26:13+00:00",
+      "touched_round": 169,
+      "title": "Pure-Go release and sandbox gates can be enforced without native C toolchains",
+      "description": "Reading Go build metadata works for cross-platform CLI and desktop binaries; pure-Go desktop tests and cross-compilation remain valid without cgo, while race detection can stay a separate explicit gate.",
+      "confidence": 0.98
+    },
+    "EV-118": {
+      "id": "EV-118",
+      "type": "evidence",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T07:26:17+00:00",
+      "updated_at": "2026-10-23T07:26:17+00:00",
+      "touched_round": 169,
+      "source": "CGO_ENABLED=0 just test and just desktop-check; CGO_ENABLED=1 root race and just desktop-race; four-target CLI cross-build on one host with CGO_ENABLED=0 and go version -m checks; desktop package metadata check; fault injections removed release chmod and restored desktop-check race, both red then green",
+      "description": "Pure-Go release and sandbox gate verification evidence.",
+      "confidence": 1.0
+    },
+    "CHG-326": {
+      "id": "CHG-326",
+      "type": "change",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-23T07:26:21+00:00",
+      "updated_at": "2026-10-23T07:28:40+00:00",
+      "touched_round": 169,
+      "commit": "2b48b9cf0584be8bc445cac990c906009502cc8c",
+      "description": "Verify all release binaries as pure Go, restore downloaded CLI executable permissions, split pure-Go desktop checks from race, and cross-compile non-Windows CLI targets on Linux."
+    },
+    "DEC-026": {
+      "id": "DEC-026",
+      "type": "decision",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T07:26:25+00:00",
+      "updated_at": "2026-10-23T07:26:25+00:00",
+      "touched_round": 169,
+      "title": "Keep race detection separate from mandatory pure-Go gates",
+      "rationale": "All production binaries and ordinary verification must run with CGO_ENABLED=0. Go race detection still needs cgo, so CI and local tooling expose it as a separate explicit gate instead of weakening pure-Go builds or silently skipping races.",
+      "alternatives_rejected": "Require cgo for desktop-check; remove race detection entirely; keep native macOS/Linux CLI runners after the storage migration"
     }
   },
   "edges": [
@@ -22741,6 +22816,48 @@
       "to": "TASK-326",
       "type": "governs",
       "created_at": "2026-10-23T05:55:21+00:00"
+    },
+    {
+      "from": "TASK-327",
+      "to": "ISS-322",
+      "type": "addresses",
+      "created_at": "2026-10-23T07:26:28+00:00"
+    },
+    {
+      "from": "ISS-322",
+      "to": "COMP-017",
+      "type": "located_in",
+      "created_at": "2026-10-23T07:26:32+00:00"
+    },
+    {
+      "from": "CHG-326",
+      "to": "TASK-327",
+      "type": "implements",
+      "created_at": "2026-10-23T07:26:35+00:00"
+    },
+    {
+      "from": "CHG-326",
+      "to": "ISS-322",
+      "type": "resolves",
+      "created_at": "2026-10-23T07:26:38+00:00"
+    },
+    {
+      "from": "EV-118",
+      "to": "HYP-038",
+      "type": "validates",
+      "created_at": "2026-10-23T07:28:06+00:00"
+    },
+    {
+      "from": "DEC-026",
+      "to": "COMP-017",
+      "type": "governs",
+      "created_at": "2026-10-23T07:28:06+00:00"
+    },
+    {
+      "from": "DEC-026",
+      "to": "TASK-327",
+      "type": "governs",
+      "created_at": "2026-10-23T07:28:06+00:00"
     }
   ]
 }
