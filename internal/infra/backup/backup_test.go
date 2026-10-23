@@ -378,11 +378,13 @@ func TestBackupService_Create_MetadataFailureRollsBackPreviousSet(t *testing.T) 
 	require.NoError(t, err)
 	require.NoError(t, db.Close())
 
-	// Fail the metadata temp write after the new snapshot has already been
-	// promoted over the previous database.
-	require.NoError(t, os.Mkdir(filepath.Join(out, "metadata.json.tmp"), 0o700))
+	// Fail the metadata write after the new snapshot has already been promoted
+	// over the previous database.
+	svc.writeFileFn = func(string, []byte, os.FileMode) error {
+		return fmt.Errorf("injected metadata write failure")
+	}
 	_, err = svc.Create(context.Background(), out)
-	require.Error(t, err)
+	require.ErrorContains(t, err, "injected metadata write failure")
 
 	afterDB, err := os.ReadFile(filepath.Join(out, "blockchain.db"))
 	require.NoError(t, err)
@@ -401,13 +403,8 @@ func TestBackupService_Create_NewOutputCleansUpAfterMetadataFailure(t *testing.T
 
 	out := filepath.Join(dir, "out")
 	svc := NewBackupService(map[string]string{"blockchain": dbPath})
-	svc.renameFn = func(oldPath, newPath string) error {
-		// The snapshot has been written and is ready to promote. Occupy the
-		// metadata temp path now so the failure lands after promotion.
-		if err := os.Mkdir(filepath.Join(out, "metadata.json.tmp"), 0o700); err != nil {
-			return fmt.Errorf("create metadata temp blocker: %w", err)
-		}
-		return os.Rename(oldPath, newPath)
+	svc.writeFileFn = func(string, []byte, os.FileMode) error {
+		return fmt.Errorf("injected metadata write failure")
 	}
 
 	_, err := svc.Create(context.Background(), out)
@@ -416,6 +413,30 @@ func TestBackupService_Create_NewOutputCleansUpAfterMetadataFailure(t *testing.T
 	require.NoFileExists(t, filepath.Join(out, "blockchain.db"), "failed first Create must remove its promoted database")
 	require.NoFileExists(t, filepath.Join(out, "metadata.json"), "failed first Create must not publish metadata")
 	requireNoCreateRollbackDirs(t, out)
+}
+
+func TestBackupService_Create_DoesNotFollowSymlinkedMetadataTemp(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "src", "blockchain.db")
+	makeTestDB(t, dbPath)
+
+	out := filepath.Join(dir, "out")
+	require.NoError(t, os.Mkdir(out, 0o700))
+	victim := filepath.Join(dir, "victim.txt")
+	require.NoError(t, os.WriteFile(victim, []byte("do not overwrite"), 0o600))
+	if err := os.Symlink(victim, filepath.Join(out, "metadata.json.tmp")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	svc := NewBackupService(map[string]string{"blockchain": dbPath})
+	_, err := svc.Create(context.Background(), out)
+	require.NoError(t, err)
+
+	got, err := os.ReadFile(victim)
+	require.NoError(t, err)
+	require.Equal(t, "do not overwrite", string(got), "Create must unlink the temp symlink, not write through it")
+	require.NoFileExists(t, filepath.Join(out, "metadata.json.tmp"))
+	require.NoError(t, svc.Verify(context.Background(), out))
 }
 
 func TestBackupService_Create_PromotionFailureRollsBackPreviousSet(t *testing.T) {

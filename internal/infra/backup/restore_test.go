@@ -465,6 +465,86 @@ func TestRestore_RefusesBackupThatAliasesLiveDB(t *testing.T) {
 	}
 }
 
+// TestVerifyAndRestore_RejectSymlinkedDatabase proves backup archives are
+// self-contained: Verify must not follow a database symlink out of the archive
+// directory, and Restore must refuse it before touching the live database.
+func TestVerifyAndRestore_RejectSymlinkedDatabase(t *testing.T) {
+	tmp := t.TempDir()
+	backupDir := filepath.Join(tmp, "backup")
+	if err := os.MkdirAll(backupDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	outsideDB := filepath.Join(tmp, "outside.db")
+	newDB(t, outsideDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'outside')",
+	)
+	backupDB := filepath.Join(backupDir, "blockchain.db")
+	if err := os.Symlink(outsideDB, backupDB); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	writeMeta(t, backupDir, "blockchain")
+
+	liveDB := filepath.Join(tmp, "dst", "blockchain.db")
+	newDB(t, liveDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'original')",
+	)
+	svc := NewBackupService(map[string]string{"blockchain": liveDB})
+
+	if err := svc.Verify(context.Background(), backupDir); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+		t.Fatalf("Verify error = %v, want symlinked database refusal", err)
+	}
+	if err := svc.Restore(context.Background(), backupDir); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+		t.Fatalf("Restore error = %v, want symlinked database refusal", err)
+	}
+	if got := readKV(t, liveDB, "answer"); got != "original" {
+		t.Fatalf("refused Restore modified live DB: kv[answer]=%q, want original", got)
+	}
+}
+
+// TestVerifyAndRestore_RejectSymlinkedMetadata covers the other archive entry
+// boundary: metadata must be a regular file inside the backup directory rather
+// than a link to a file the archive does not own.
+func TestVerifyAndRestore_RejectSymlinkedMetadata(t *testing.T) {
+	tmp := t.TempDir()
+	backupDir := filepath.Join(tmp, "backup")
+	if err := os.MkdirAll(backupDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	newDB(t, filepath.Join(backupDir, "blockchain.db"),
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'archive')",
+	)
+	writeMeta(t, backupDir, "blockchain")
+
+	outsideMeta := filepath.Join(tmp, "outside-metadata.json")
+	if err := os.Rename(filepath.Join(backupDir, "metadata.json"), outsideMeta); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outsideMeta, filepath.Join(backupDir, "metadata.json")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	liveDB := filepath.Join(tmp, "dst", "blockchain.db")
+	newDB(t, liveDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'original')",
+	)
+	svc := NewBackupService(map[string]string{"blockchain": liveDB})
+
+	if err := svc.Verify(context.Background(), backupDir); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+		t.Fatalf("Verify error = %v, want symlinked metadata refusal", err)
+	}
+	if err := svc.Restore(context.Background(), backupDir); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+		t.Fatalf("Restore error = %v, want symlinked metadata refusal", err)
+	}
+	if got := readKV(t, liveDB, "answer"); got != "original" {
+		t.Fatalf("refused Restore modified live DB: kv[answer]=%q, want original", got)
+	}
+}
+
 // TestRestore_PreRestoreSnapshot_IsWALComplete locks the WAL-complete half of
 // TASK-116 / ISS-108: the pre-restore safety copy must be an online VACUUM INTO
 // snapshot, not a raw .db file copy. Under WAL mode the main .db can lag
