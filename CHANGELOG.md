@@ -18,6 +18,20 @@ documented in their per-milestone ROADMAP files.
   Docker and desktop builds now run with `CGO_ENABLED=0`; cgo is only
   needed when the race detector is enabled during testing.
 
+### Fixed
+
+- **Pure-Go release gates now inspect every shipped executable**: release
+  verification reads Go build metadata from the CLI and all desktop binaries,
+  rejecting any artifact built with cgo, and restores the executable bit on
+  the downloaded Linux CLI before running its `version` smoke test.
+- **CLI release builds no longer occupy native macOS/Linux runners**: all four
+  non-Windows CLI targets cross-compile with `CGO_ENABLED=0` on one Ubuntu
+  runner. Windows keeps a native runner solely for Authenticode signing.
+- **Sandbox checks no longer require cgo by default**: `just desktop-check`
+  and the main desktop CI gate run their build, vet and tests with
+  `CGO_ENABLED=0`; `just desktop-race` and a separate CI step explicitly opt
+  in to the race detector's cgo runtime.
+
 ## [v1.99] - 2026-10-21
 
 ### Added

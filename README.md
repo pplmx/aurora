@@ -47,7 +47,8 @@ just api             # ./aurora-api，注入 git 版本与构建时间
 just desktop         # ./aurora-desktop（本地开发构建）
 just desktop-run     # 构建并打开窗口
 just desktop-test    # 桌面模块测试（根目录 just test 不进嵌套模块）
-just desktop-check   # gofmt + build + vet + test -race（CI 同款）
+just desktop-check   # gofmt + build + vet + 纯 Go 测试（无需 C 工具链）
+just desktop-race    # 可选 race 检测（显式启用 cgo）
 just desktop-package # mygo build：.deb / tar.gz / desktop entry
 just lint            # golangci-lint
 just dev             # Docker 开发镜像
@@ -183,6 +184,7 @@ just check      # gofmt + goimports + go vet
 just test       # go test ./...
 just lint       # golangci-lint（errcheck 关闭）
 just desktop-check
+just desktop-race # 可选：race detector 需要 cgo
 go test ./... -cover
 
 just dev        # 构建并启动 CLI 工具箱容器
@@ -226,7 +228,7 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；Web UI 由独立的 `aurora
 ## 贡献
 
 欢迎提交 Issue 和 PR！提交前请跑 `just check && just test`（改动桌面端时再加
-`just desktop-check`）。
+`just desktop-check`；需要 race 检测时另跑 `just desktop-race`）。
 
 ## 许可证
 

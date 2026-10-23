@@ -17,8 +17,9 @@ just desktop      # Build the MyGo desktop shell (./aurora-desktop); nested modu
                   #   needs Go 1.27 + the native webview runtime (WebKitGTK / WebView2 / WKWebView)
 just desktop-run  # Build then launch the window (embedded Web UI; --web-root for UI dev)
 just desktop-test # Run the desktop module's tests (just test only covers the core module)
-just desktop-check  # gofmt + build + vet + test -race for desktop/ (what CI's
-                    #   `desktop` job runs)
+just desktop-check  # cgo-free gofmt + build + vet + tests for desktop/ (CI also
+                    #   runs this before the optional race gate)
+just desktop-race   # desktop race detector; explicitly uses cgo
 just desktop-package *ARGS  # go tool mygo build: dist/desktop/<os>-<arch>/ (.deb, tar.gz,
                             #   desktop entry with the aurora:// handler)
 just run          # Run locally

@@ -54,8 +54,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       # The previous stub cross-build produced files whose database commands
-      # failed at runtime. Read Go's own build metadata before publishing and
-      # smoke-test the native Linux binary.
+      # failed at runtime. Read Go's own build metadata from every CLI and
+      # desktop executable before publishing, then smoke-test the Linux CLI.
       - name: Verify release artifacts
         shell: bash
         env:
@@ -74,9 +74,18 @@ jobs:
           artifacts/aurora-linux-arm64/aurora-linux-arm64 linux arm64
           artifacts/aurora-windows-amd64/aurora-windows-amd64.exe windows amd64
           artifacts/aurora-windows-arm64/aurora-windows-arm64.exe windows arm64
+          artifacts/aurora-desktop-darwin-amd64/Aurora.app/Contents/MacOS/Aurora darwin amd64
+          artifacts/aurora-desktop-darwin-arm64/Aurora.app/Contents/MacOS/Aurora darwin arm64
+          artifacts/aurora-desktop-linux-amd64/aurora linux amd64
+          artifacts/aurora-desktop-linux-arm64/aurora linux arm64
+          artifacts/aurora-desktop-windows-amd64/Aurora.exe windows amd64
           EOF
 
-          output="$(artifacts/aurora-linux-amd64/aurora-linux-amd64 version)"
+          # upload-artifact does not preserve the executable bit. Restore it
+          # before the only release artifact that this Linux job can run.
+          cli="artifacts/aurora-linux-amd64/aurora-linux-amd64"
+          chmod +x "$cli"
+          output="$("$cli" version)"
           grep -Fq "Version: $RELEASE_VERSION" <<<"$output"
           if grep -Fq "Build Time: unknown" <<<"$output"; then
             echo "the release binary has no build timestamp" >&2
