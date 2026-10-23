@@ -11,6 +11,8 @@
     --accent-nft: #e5c07b;
     --accent-token: #61afef;
     --accent-blockchain: #d19a66;
+    --accent-oracle: #56b6c2;
+    --accent-page: var(--accent-token);
 }
 
 * {
@@ -22,6 +24,9 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
     background-color: var(--bg-primary);
+    background-image:
+        radial-gradient(circle at 15% -10%, rgba(198, 120, 221, 0.1), transparent 34rem),
+        radial-gradient(circle at 85% 5%, rgba(97, 175, 239, 0.08), transparent 30rem);
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
@@ -37,6 +42,8 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 16px 24px;
     padding: 20px 0;
     border-bottom: 1px solid var(--border);
     margin-bottom: 30px;
@@ -55,7 +62,10 @@ header h1 {
 
 nav {
     display: flex;
-    gap: 20px;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 12px;
 }
 
 nav a {
@@ -63,12 +73,36 @@ nav a {
     text-decoration: none;
     padding: 8px 16px;
     border-radius: 6px;
-    transition: background-color 0.2s;
+    white-space: nowrap;
+    transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 nav a:hover {
     background-color: var(--bg-card);
 }
+
+nav a[aria-current="page"] {
+    background-color: var(--bg-primary);
+    box-shadow: inset 0 -2px var(--accent-page);
+}
+
+nav a[aria-current="page"]:hover {
+    background-color: var(--bg-primary);
+}
+
+nav a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--accent-page);
+    outline-offset: 2px;
+}
+
+.container[data-module="dashboard"] { --accent-page: var(--text-secondary); }
+.container[data-module="lottery"] { --accent-page: var(--accent-lottery); }
+.container[data-module="voting"] { --accent-page: var(--accent-voting); }
+.container[data-module="token"] { --accent-page: var(--accent-token); }
+.container[data-module="oracle"] { --accent-page: var(--accent-oracle); }
+.container[data-module="blockchain"] { --accent-page: var(--accent-blockchain); }
+.container[data-module="nft"] { --accent-page: var(--accent-nft); }
 
 .stats-grid {
     display: grid;
@@ -165,7 +199,9 @@ button {
     padding: 12px 24px;
     border: none;
     border-radius: 8px;
+    font-family: inherit;
     font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: opacity 0.2s;
 }
@@ -190,7 +226,6 @@ button:disabled {
     color: var(--text-secondary);
     border: 1px solid var(--text-secondary);
     border-radius: 6px;
-    margin-left: 12px;
     vertical-align: middle;
 }
 
@@ -201,6 +236,11 @@ button:disabled {
 
 .btn-voting {
     background-color: var(--accent-voting);
+    color: var(--button-ink);
+}
+
+.btn-token {
+    background-color: var(--accent-token);
     color: var(--button-ink);
 }
 

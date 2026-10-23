@@ -30,6 +30,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The Web UI now keeps its bearings at every width**: the shared header no
+  longer forces the title, seven module links and Refresh action into one
+  nowrap row, and every page marks its current navigation item with
+  `aria-current="page"` and that module's accent. Token actions now use their
+  own blue accent instead of Lottery purple, while a subtle two-tone background
+  gives the shared shell the same visual character as the module cards.
 - **Web UI polling now pauses in the background**: the dashboard and Oracle
   pages used to keep their 15-second refresh timers active while minimized or
   hidden, including the dashboard's full ledger-verification scan. Polling
