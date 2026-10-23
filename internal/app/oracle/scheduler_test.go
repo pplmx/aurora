@@ -239,6 +239,40 @@ func TestScheduler_StatsTracksSuccessAndFailure(t *testing.T) {
 	}
 }
 
+func TestScheduler_SuccessClearsRecoveredError(t *testing.T) {
+	now := time.Unix(1000, 0)
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "recovered", Enabled: true, Interval: 60},
+	}}
+	fail := true
+	s := NewScheduler(repo, func(_ context.Context, _ string) error {
+		if fail {
+			return errors.New("upstream timeout")
+		}
+		return nil
+	}, time.Second, func() time.Time { return now })
+
+	s.pass(context.Background())
+	now = now.Add(2 * time.Second)
+	fail = false
+	s.pass(context.Background())
+
+	stats := s.Stats()
+	if len(stats) != 1 {
+		t.Fatalf("Stats() returned %d entries, want 1", len(stats))
+	}
+	st := stats[0]
+	if st.Attempts != 2 || st.Successes != 1 || st.Failures != 1 {
+		t.Fatalf("expected cumulative attempts=2 successes=1 failures=1, got %+v", st)
+	}
+	if st.LastError != "" {
+		t.Fatalf("recovered source must clear its active error, got %q", st.LastError)
+	}
+	if st.LastSuccessAt != now.Unix() {
+		t.Fatalf("last success = %d, want %d", st.LastSuccessAt, now.Unix())
+	}
+}
+
 func TestScheduler_PrometheusText(t *testing.T) {
 	now := time.Unix(1000, 0)
 	repo := &fakeSourceRepo{sources: []*oracle.DataSource{

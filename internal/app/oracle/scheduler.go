@@ -53,7 +53,9 @@ type Scheduler struct {
 
 // SourceStat is the cumulative fetch-health counter for one data source. It is
 // the operator-visible feed-health surface (v1.16): attempts / successes /
-// failures since process start, plus the last error and last-success time.
+// failures since process start, plus the current unresolved error and
+// last-success time. LastError is cleared when a fetch recovers; cumulative
+// Failures remains available for historical accounting.
 type SourceStat struct {
 	SourceID      string `json:"source_id"`
 	Attempts      uint64 `json:"attempts"`
@@ -173,6 +175,7 @@ func (s *Scheduler) pass(ctx context.Context) {
 		s.mu.Lock()
 		st.Successes++
 		st.LastSuccessAt = now.Unix()
+		st.LastError = ""
 		s.lastFetch[src.ID] = now
 		delete(s.failStreak, src.ID)
 		delete(s.nextAttempt, src.ID)

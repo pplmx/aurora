@@ -415,8 +415,11 @@ function dashboardApp() {
             try {
                 const feeds = await (await apiFetch('/api/v1/oracle/health')).json();
                 if (!Array.isArray(feeds) || feeds.length === 0) { this.stats.oracle = '-'; return []; }
-                const healthy = feeds.filter(f => f.successes > 0 && f.failures === 0).length;
-                const failed = feeds.filter(f => f.failures > 0).length;
+                // Failures are cumulative; last_error describes whether the
+                // feed is currently failing. A recovered feed stays healthy
+                // even though its historical failure count is nonzero.
+                const healthy = feeds.filter(f => f.successes > 0 && !f.last_error).length;
+                const failed = feeds.filter(f => !!f.last_error).length;
                 this.stats.oracle = healthy + ' OK' + (failed ? ' · ' + failed + ' fail' : '');
             } catch (e) {
                 if (!this.loaded) this.stats.oracle = '?';
