@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -159,6 +160,9 @@ func bindChainToDB(chain *BlockChain, db *sql.DB) {
 	// chain rather than erroring twice on the same height.
 	chain.persist = func(b *Block) error {
 		return insertBlock(db, b)
+	}
+	chain.removePersist = func(b *Block) error {
+		return removeBlock(db, b)
 	}
 
 	// Wire the DB-authoritative height source: before every append the
@@ -365,6 +369,24 @@ func insertBlock(exec blockInserter, block *Block) error {
 			return ErrHeightConflict
 		}
 		return err
+	}
+	return nil
+}
+
+// removeBlock deletes only the exact persisted block supplied by the nil-tx
+// rollback path. Matching both height and hash prevents cleanup from deleting a
+// different block that another process committed at the same height.
+func removeBlock(db *sql.DB, block *Block) error {
+	result, err := db.Exec(`DELETE FROM blocks WHERE height = ? AND hash = ?`, block.Height, string(block.Hash))
+	if err != nil {
+		return err
+	}
+	removed, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if removed != 1 {
+		return fmt.Errorf("blockchain: expected to remove one persisted block at height %d, removed %d", block.Height, removed)
 	}
 	return nil
 }

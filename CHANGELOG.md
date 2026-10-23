@@ -53,6 +53,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Failed in-memory transactions no longer leave phantom ledger rows**: the
+  token TUI's nil-transaction fallback persisted its audit block before running
+  a transfer that could still fail. A hash-qualified compensating delete now
+  removes that exact row on failure, so a later successful transfer reuses the
+  same height instead of re-syncing the failed block into memory.
 - **Native form controls now match the Web UI's dark theme**: the Voting
   session/candidate pickers and Oracle template picker used the browser's
   light control chrome because only text inputs carried the shared background,
