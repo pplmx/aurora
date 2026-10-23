@@ -118,19 +118,6 @@ func (r *inmemRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, err
 	return result, nil
 }
 
-func (r *inmemRepo) GetNFTsByCreator(creator []byte) ([]*NFT, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	var result []*NFT
-	for _, nft := range r.nfts {
-		if bytes.Equal(nft.Creator, creator) {
-			result = append(result, nft)
-		}
-	}
-	return result, nil
-}
-
 func (r *inmemRepo) UpdateNFT(nft *NFT) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

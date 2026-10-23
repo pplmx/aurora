@@ -35,12 +35,6 @@ func (b *inmemEventBus) Publish(e events.Event) error {
 	switch evt := e.(type) {
 	case *token.TransferEvent:
 		b.eventStore.transferEvents = append(b.eventStore.transferEvents, evt)
-	case *token.MintEvent:
-		b.eventStore.mintEvents = append(b.eventStore.mintEvents, evt)
-	case *token.BurnEvent:
-		b.eventStore.burnEvents = append(b.eventStore.burnEvents, evt)
-	case *token.ApproveEvent:
-		b.eventStore.approveEvents = append(b.eventStore.approveEvents, evt)
 	}
 	return nil
 }
@@ -124,9 +118,6 @@ func NewTokenApp() *model {
 	}
 	eventStore := &inmemEventStore{
 		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents:     make([]*token.BurnEvent, 0),
-		approveEvents:  make([]*token.ApproveEvent, 0),
 	}
 	eventBus := newInmemEventBus(eventStore)
 	replay := newInmemReplayProtection()
@@ -937,16 +928,6 @@ func (r *inmemRepo) GetApproval(tokenID token.TokenID, owner, spender token.Publ
 	return r.approvals[key], nil
 }
 
-func (r *inmemRepo) GetApprovalsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.Approval, error) {
-	var result []*token.Approval
-	for _, approval := range r.approvals {
-		if approval.TokenID() == tokenID && string(approval.Owner()) == string(owner) {
-			result = append(result, approval)
-		}
-	}
-	return result, nil
-}
-
 func (r *inmemRepo) GetAccountBalance(tokenID token.TokenID, owner token.PublicKey) (*token.Amount, error) {
 	key := string(tokenID) + string(owner)
 	if balance, ok := r.balances[key]; ok {
@@ -1063,9 +1044,6 @@ func (r *inmemRepo) TryAdjustApproval(tokenID token.TokenID, owner, spender toke
 
 type inmemEventStore struct {
 	transferEvents []*token.TransferEvent
-	mintEvents     []*token.MintEvent
-	burnEvents     []*token.BurnEvent
-	approveEvents  []*token.ApproveEvent
 }
 
 func (e *inmemEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
@@ -1086,26 +1064,6 @@ func (e *inmemEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner 
 		end = len(result)
 	}
 	return result[offset:end], nil
-}
-
-func (e *inmemEventStore) GetMintEventsByToken(tokenID token.TokenID) ([]*token.MintEvent, error) {
-	var result []*token.MintEvent
-	for _, ev := range e.mintEvents {
-		if ev.TokenID() == tokenID {
-			result = append(result, ev)
-		}
-	}
-	return result, nil
-}
-
-func (e *inmemEventStore) GetBurnEventsByToken(tokenID token.TokenID) ([]*token.BurnEvent, error) {
-	var result []*token.BurnEvent
-	for _, ev := range e.burnEvents {
-		if ev.TokenID() == tokenID {
-			result = append(result, ev)
-		}
-	}
-	return result, nil
 }
 
 func min(a, b int) int {

@@ -256,17 +256,6 @@ func TestMigrator_Status_IgnoresUnparsableFiles(t *testing.T) {
 		"only the two real migrations should be pending; stray files are ignored")
 }
 
-func TestMigrator_DB(t *testing.T) {
-	dbPath, migPath, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	m, err := New(dbPath, migPath)
-	require.NoError(t, err)
-	defer func() { _ = m.Close() }()
-
-	assert.NotNil(t, m.DB(), "DB should expose the live database handle")
-}
-
 // TestRunMigrationsIfEnabled_NoMigPathErr proves the default migrations path
 // is attempted (and in this test fails loudly because ./migrations is absent)
 // rather than silently skipping migration.

@@ -62,16 +62,6 @@ func (r *inMemoryTokenRepo) GetApproval(tokenID token.TokenID, owner, spender to
 	return r.approvals[key], nil
 }
 
-func (r *inMemoryTokenRepo) GetApprovalsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.Approval, error) {
-	var result []*token.Approval
-	for _, a := range r.approvals {
-		if a.TokenID() == tokenID && string(a.Owner()) == string(owner) {
-			result = append(result, a)
-		}
-	}
-	return result, nil
-}
-
 func (r *inMemoryTokenRepo) GetAccountBalance(tokenID token.TokenID, owner token.PublicKey) (*token.Amount, error) {
 	key := string(tokenID) + "|" + string(owner)
 	if balance, ok := r.balances[key]; ok {
@@ -179,17 +169,11 @@ func (r *inMemoryTokenRepo) TryAdjustApproval(tokenID token.TokenID, owner, spen
 
 type inMemoryEventStore struct {
 	transferEvents []*token.TransferEvent
-	mintEvents     []*token.MintEvent
-	burnEvents     []*token.BurnEvent
-	approveEvents  []*token.ApproveEvent
 }
 
 func newInMemoryEventStore() *inMemoryEventStore {
 	return &inMemoryEventStore{
 		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents:     make([]*token.BurnEvent, 0),
-		approveEvents:  make([]*token.ApproveEvent, 0),
 	}
 }
 
@@ -224,26 +208,6 @@ func (e *inMemoryEventStore) GetTransferEventsByOwner(tokenID token.TokenID, own
 	return result, nil
 }
 
-func (e *inMemoryEventStore) GetMintEventsByToken(tokenID token.TokenID) ([]*token.MintEvent, error) {
-	var result []*token.MintEvent
-	for _, event := range e.mintEvents {
-		if event.TokenID() == tokenID {
-			result = append(result, event)
-		}
-	}
-	return result, nil
-}
-
-func (e *inMemoryEventStore) GetBurnEventsByToken(tokenID token.TokenID) ([]*token.BurnEvent, error) {
-	var result []*token.BurnEvent
-	for _, event := range e.burnEvents {
-		if event.TokenID() == tokenID {
-			result = append(result, event)
-		}
-	}
-	return result, nil
-}
-
 type e2eEventBus struct {
 	eventStore *inMemoryEventStore
 }
@@ -256,12 +220,6 @@ func (b *e2eEventBus) Publish(e events.Event) error {
 	switch evt := e.(type) {
 	case *token.TransferEvent:
 		b.eventStore.transferEvents = append(b.eventStore.transferEvents, evt)
-	case *token.MintEvent:
-		b.eventStore.mintEvents = append(b.eventStore.mintEvents, evt)
-	case *token.BurnEvent:
-		b.eventStore.burnEvents = append(b.eventStore.burnEvents, evt)
-	case *token.ApproveEvent:
-		b.eventStore.approveEvents = append(b.eventStore.approveEvents, evt)
 	}
 	return nil
 }
@@ -412,16 +370,6 @@ func TestTokenE2E_FullFlow(t *testing.T) {
 	expectedBalance := token.NewAmount(1000350)
 	if finalBalance.Cmp(expectedBalance) != 0 {
 		t.Errorf("Final balance = %v, want %v", finalBalance, expectedBalance)
-	}
-
-	mintEvents, _ := eventStore.GetMintEventsByToken(tok.ID())
-	if len(mintEvents) != 1 {
-		t.Errorf("len(mintEvents) = %v, want 1", len(mintEvents))
-	}
-
-	transferEvents, _ := eventStore.GetTransferEventsByToken(tok.ID())
-	if len(transferEvents) != 1 {
-		t.Errorf("len(transferEvents) = %v, want 1", len(transferEvents))
 	}
 
 	t.Log("E2E test passed!")

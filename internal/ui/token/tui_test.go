@@ -166,20 +166,11 @@ func TestInmemRepo(t *testing.T) {
 func TestInmemEventStore(t *testing.T) {
 	es := &inmemEventStore{
 		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents:     make([]*token.BurnEvent, 0),
-		approveEvents:  make([]*token.ApproveEvent, 0),
 	}
 	assert.NotNil(t, es)
 	events, err := es.GetTransferEventsByOwner("token1", token.PublicKey{}, 10, 0)
 	assert.NoError(t, err)
 	assert.Empty(t, events)
-	mintEvents, err := es.GetMintEventsByToken("token1")
-	assert.NoError(t, err)
-	assert.Empty(t, mintEvents)
-	burnEvents, err := es.GetBurnEventsByToken("token1")
-	assert.NoError(t, err)
-	assert.Empty(t, burnEvents)
 }
 
 func TestNoOpTxManager(t *testing.T) {
@@ -239,9 +230,6 @@ func TestBalanceViewWithSuccess(t *testing.T) {
 func TestInmemEventBusPublishTransfer(t *testing.T) {
 	es := &inmemEventStore{
 		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents:     make([]*token.BurnEvent, 0),
-		approveEvents:  make([]*token.ApproveEvent, 0),
 	}
 	bus := newInmemEventBus(es)
 
@@ -262,46 +250,13 @@ func TestInmemEventBusPublishTransfer(t *testing.T) {
 func TestInmemEventBusPublishMint(t *testing.T) {
 	es := &inmemEventStore{
 		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents:     make([]*token.BurnEvent, 0),
-		approveEvents:  make([]*token.ApproveEvent, 0),
 	}
 	bus := newInmemEventBus(es)
 
 	evt := token.NewMintEvent("token1", token.PublicKey([]byte("to")), token.NewAmount(500))
 	err := bus.Publish(evt)
 	assert.NoError(t, err)
-	assert.Len(t, es.mintEvents, 1)
-}
-
-func TestInmemEventBusPublishBurn(t *testing.T) {
-	es := &inmemEventStore{
-		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents:     make([]*token.BurnEvent, 0),
-		approveEvents:  make([]*token.ApproveEvent, 0),
-	}
-	bus := newInmemEventBus(es)
-
-	evt := token.NewBurnEvent("token1", token.PublicKey([]byte("from")), token.NewAmount(50))
-	err := bus.Publish(evt)
-	assert.NoError(t, err)
-	assert.Len(t, es.burnEvents, 1)
-}
-
-func TestInmemEventBusPublishApprove(t *testing.T) {
-	es := &inmemEventStore{
-		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents:     make([]*token.BurnEvent, 0),
-		approveEvents:  make([]*token.ApproveEvent, 0),
-	}
-	bus := newInmemEventBus(es)
-
-	evt := token.NewApproveEvent("token1", token.PublicKey([]byte("owner")), token.PublicKey([]byte("spender")), token.NewAmount(200))
-	err := bus.Publish(evt)
-	assert.NoError(t, err)
-	assert.Len(t, es.approveEvents, 1)
+	assert.Empty(t, es.transferEvents, "non-transfer events do not affect transfer history")
 }
 
 func TestInmemRepoSaveAndGetToken(t *testing.T) {
@@ -348,22 +303,6 @@ func TestInmemRepoSaveAndGetApproval(t *testing.T) {
 	assert.Equal(t, "token1", string(retrieved.TokenID()))
 }
 
-func TestInmemRepoGetApprovalsByOwner(t *testing.T) {
-	repo := &inmemRepo{
-		tokens:    make(map[token.TokenID]*token.Token),
-		balances:  make(map[string]*token.Amount),
-		approvals: make(map[string]*token.Approval),
-	}
-
-	approval := token.NewApproval("token1", token.PublicKey([]byte("owner")), token.PublicKey([]byte("spender")), token.NewAmount(100))
-	err := repo.SaveApproval(approval)
-	assert.NoError(t, err)
-
-	approvals, err := repo.GetApprovalsByOwner("token1", token.PublicKey([]byte("owner")))
-	assert.NoError(t, err)
-	assert.Len(t, approvals, 1)
-}
-
 func TestInmemRepoGetSetAccountBalance(t *testing.T) {
 	repo := &inmemRepo{
 		tokens:    make(map[token.TokenID]*token.Token),
@@ -400,9 +339,6 @@ func TestInmemEventStoreGetTransferEventsByOwner(t *testing.T) {
 		transferEvents: []*token.TransferEvent{
 			token.NewTransferEvent("token1", token.PublicKey([]byte("owner")), token.PublicKey([]byte("recipient")), token.NewAmount(100), 1, token.Signature{}),
 		},
-		mintEvents:    make([]*token.MintEvent, 0),
-		burnEvents:    make([]*token.BurnEvent, 0),
-		approveEvents: make([]*token.ApproveEvent, 0),
 	}
 
 	events, err := es.GetTransferEventsByOwner("token1", token.PublicKey([]byte("owner")), 10, 0)
@@ -413,9 +349,6 @@ func TestInmemEventStoreGetTransferEventsByOwner(t *testing.T) {
 func TestInmemEventStoreGetTransferEventsByOwnerEmpty(t *testing.T) {
 	es := &inmemEventStore{
 		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents:     make([]*token.BurnEvent, 0),
-		approveEvents:  make([]*token.ApproveEvent, 0),
 	}
 
 	events, err := es.GetTransferEventsByOwner("token1", token.PublicKey([]byte("owner")), 0, 0)
@@ -429,42 +362,9 @@ func TestInmemEventStoreGetTransferEventsByOwnerOffset(t *testing.T) {
 			token.NewTransferEvent("token1", token.PublicKey([]byte("owner")), token.PublicKey([]byte("recipient")), token.NewAmount(100), 1, token.Signature{}),
 			token.NewTransferEvent("token1", token.PublicKey([]byte("owner")), token.PublicKey([]byte("recipient2")), token.NewAmount(200), 2, token.Signature{}),
 		},
-		mintEvents:    make([]*token.MintEvent, 0),
-		burnEvents:    make([]*token.BurnEvent, 0),
-		approveEvents: make([]*token.ApproveEvent, 0),
 	}
 
 	events, err := es.GetTransferEventsByOwner("token1", token.PublicKey([]byte("owner")), 10, 1)
-	assert.NoError(t, err)
-	assert.Len(t, events, 1)
-}
-
-func TestInmemEventStoreGetMintEventsByToken(t *testing.T) {
-	es := &inmemEventStore{
-		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents: []*token.MintEvent{
-			token.NewMintEvent("token1", token.PublicKey([]byte("owner")), token.NewAmount(1000)),
-		},
-		burnEvents:    make([]*token.BurnEvent, 0),
-		approveEvents: make([]*token.ApproveEvent, 0),
-	}
-
-	events, err := es.GetMintEventsByToken("token1")
-	assert.NoError(t, err)
-	assert.Len(t, events, 1)
-}
-
-func TestInmemEventStoreGetBurnEventsByToken(t *testing.T) {
-	es := &inmemEventStore{
-		transferEvents: make([]*token.TransferEvent, 0),
-		mintEvents:     make([]*token.MintEvent, 0),
-		burnEvents: []*token.BurnEvent{
-			token.NewBurnEvent("token1", token.PublicKey([]byte("owner")), token.NewAmount(50)),
-		},
-		approveEvents: make([]*token.ApproveEvent, 0),
-	}
-
-	events, err := es.GetBurnEventsByToken("token1")
 	assert.NoError(t, err)
 	assert.Len(t, events, 1)
 }

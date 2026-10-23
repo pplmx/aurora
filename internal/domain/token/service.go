@@ -46,7 +46,6 @@ type Repository interface {
 
 	SaveApproval(approval *Approval) error
 	GetApproval(tokenID TokenID, owner, spender PublicKey) (*Approval, error)
-	GetApprovalsByOwner(tokenID TokenID, owner PublicKey) ([]*Approval, error)
 
 	// TryDeductApproval atomically subtracts amount from the
 	// allowance (tokenID, owner, spender) and returns the new
@@ -110,8 +109,6 @@ type TransactableRepository interface {
 
 type EventReader interface {
 	GetTransferEventsByOwner(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error)
-	GetMintEventsByToken(tokenID TokenID) ([]*MintEvent, error)
-	GetBurnEventsByToken(tokenID TokenID) ([]*BurnEvent, error)
 }
 
 type TokenService struct {

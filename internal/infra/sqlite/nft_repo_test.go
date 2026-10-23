@@ -201,51 +201,6 @@ func TestNFTRepository_GetNFTsByOwnerPaged(t *testing.T) {
 	require.Len(t, page, 5)
 }
 
-func TestNFTRepository_GetNFTsByCreator(t *testing.T) {
-	repo, cleanup := setupNFTTestDB(t)
-	defer cleanup()
-
-	creator := []byte("testcreator")
-
-	nft1 := &nft.NFT{
-		ID:      "nft-1",
-		Name:    "NFT 1",
-		Creator: creator,
-	}
-	nft2 := &nft.NFT{
-		ID:      "nft-2",
-		Name:    "NFT 2",
-		Creator: creator,
-	}
-	nft3 := &nft.NFT{
-		ID:      "nft-3",
-		Name:    "NFT 3",
-		Creator: []byte("other"),
-	}
-
-	err := repo.SaveNFT(nft1)
-	if err != nil {
-		t.Fatalf("Failed to save NFT1: %v", err)
-	}
-	err = repo.SaveNFT(nft2)
-	if err != nil {
-		t.Fatalf("Failed to save NFT2: %v", err)
-	}
-	err = repo.SaveNFT(nft3)
-	if err != nil {
-		t.Fatalf("Failed to save NFT3: %v", err)
-	}
-
-	nfts, err := repo.GetNFTsByCreator(creator)
-	if err != nil {
-		t.Fatalf("Failed to get NFTs by creator: %v", err)
-	}
-
-	if len(nfts) != 2 {
-		t.Errorf("Expected 2 NFTs, got %d", len(nfts))
-	}
-}
-
 func TestNFTRepository_SaveOperation(t *testing.T) {
 	repo, cleanup := setupNFTTestDB(t)
 	defer cleanup()

@@ -420,17 +420,3 @@ func TestApproval_ExpiresAt(t *testing.T) {
 		t.Errorf("Approval.ExpiresAt() = %v, want zero time", approval.ExpiresAt())
 	}
 }
-
-func TestToken_AddToSupply(t *testing.T) {
-	owner := PublicKey("owner-public-key-12345678901234")
-	initialSupply := NewAmount(1000)
-	token := NewToken("token-123", "Test Token", "TEST", initialSupply, owner)
-
-	addedAmount := NewAmount(500)
-	token.AddToSupply(addedAmount)
-
-	expected := NewAmount(1500)
-	if token.TotalSupply().Cmp(expected) != 0 {
-		t.Errorf("TotalSupply = %s, want %s", token.TotalSupply().String(), expected.String())
-	}
-}

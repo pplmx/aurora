@@ -35,12 +35,6 @@ func (m *mockEventStore) GetByAggregate(aggID string, limit, offset int) ([]even
 	return m.events[offset:end], nil
 }
 
-// GetByAggregateAndType mirrors the SQLite store's type filter: it pages over
-// only events whose EventType matches, applying limit/offset over those rows.
-func (m *mockEventStore) GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error) {
-	return m.get(aggID, eventType, "", "", limit, offset)
-}
-
 // GetByAggregateAndTypePayload mirrors the SQLite store's payload-predicate
 // paging (TASK-093, ISS-086): pages over events matching aggregate + type AND
 // whose json "from" field equals value.
@@ -77,9 +71,8 @@ func (m *mockEventStore) GetByAggregateAndTypePayloadEither(aggID, eventType, pa
 	return m.page(matching, limit, offset)
 }
 
-// get implements the shared paging semantics of both typed-pagination methods.
-// When payloadPath is non-empty the in-memory stream is filtered by the
-// payload's "from" field to mimic the SQL json_extract predicate.
+// get implements payload-predicate paging, filtering the mock's in-memory
+// stream by the payload's "from" field to mimic SQL json_extract.
 func (m *mockEventStore) get(aggID, eventType, payloadPath, value string, limit, offset int) ([]events.Event, error) {
 	if m.err != nil {
 		return nil, m.err
@@ -105,8 +98,7 @@ func (m *mockEventStore) get(aggID, eventType, payloadPath, value string, limit,
 	return m.page(matching, limit, offset)
 }
 
-// page applies the shared LIMIT/OFFSET semantics of the typed-pagination
-// mocks (default limit 50, out-of-range offset -> nil).
+// page applies the SQL LIMIT/OFFSET semantics used by the mock.
 func (m *mockEventStore) page(matching []events.Event, limit, offset int) ([]events.Event, error) {
 	if limit <= 0 {
 		limit = 50
@@ -132,20 +124,12 @@ func makeTransferEvent(id, tokenID, from, to string, amount string, nonce uint64
 	return events.NewBaseEvent("token.transfer", tokenID, payload)
 }
 
-func makeMintEvent(id, tokenID, to string, amount string) events.Event {
+func makeMintEvent(tokenID, to string, amount string) events.Event {
 	payload, _ := json.Marshal(map[string]interface{}{
 		"to":     to,
 		"amount": amount,
 	})
 	return events.NewBaseEvent("token.mint", tokenID, payload)
-}
-
-func makeBurnEvent(id, tokenID, from string, amount string) events.Event {
-	payload, _ := json.Marshal(map[string]interface{}{
-		"from":   from,
-		"amount": amount,
-	})
-	return events.NewBaseEvent("token.burn", tokenID, payload)
 }
 
 func TestTokenEventReader_GetTransferEventsByOwner(t *testing.T) {
@@ -156,7 +140,7 @@ func TestTokenEventReader_GetTransferEventsByOwner(t *testing.T) {
 
 	evt1 := makeTransferEvent("e1", "TOK", ownerB64, recipientB64, "100", 1, "sig1")
 	evt2 := makeTransferEvent("e2", "TOK", recipientB64, ownerB64, "50", 2, "sig2")
-	evt3 := makeMintEvent("e3", "TOK", ownerB64, "1000")
+	evt3 := makeMintEvent("TOK", ownerB64, "1000")
 
 	store := &mockEventStore{events: []events.Event{evt1, evt2, evt3}}
 	reader := NewTokenEventReader(store)
@@ -277,61 +261,6 @@ func TestTokenEventReader_GetTransferEventsByOwner_LimitAndOffset(t *testing.T) 
 	require.Len(t, results, 2, "limit=2 offset=1 on 3 events returns 2 results")
 }
 
-func TestTokenEventReader_GetMintEventsByToken(t *testing.T) {
-	to := []byte("recipient-key")
-	toB64 := base64.StdEncoding.EncodeToString(to)
-
-	evt1 := makeMintEvent("m1", "TOK", toB64, "500")
-	evt2 := makeTransferEvent("t1", "TOK", toB64, toB64, "100", 1, "s1")
-	evt3 := makeMintEvent("m2", "TOK", toB64, "600")
-
-	store := &mockEventStore{events: []events.Event{evt1, evt2, evt3}}
-	reader := NewTokenEventReader(store)
-
-	results, err := reader.GetMintEventsByToken("TOK")
-	require.NoError(t, err)
-	require.Len(t, results, 2, "only mints should be returned")
-	require.Equal(t, "500", results[0].Amount().String())
-	require.Equal(t, "600", results[1].Amount().String())
-}
-
-func TestTokenEventReader_GetMintEventsByToken_Empty(t *testing.T) {
-	store := &mockEventStore{events: nil}
-	reader := NewTokenEventReader(store)
-
-	results, err := reader.GetMintEventsByToken("TOK")
-	require.NoError(t, err)
-	require.Empty(t, results)
-}
-
-func TestTokenEventReader_GetBurnEventsByToken(t *testing.T) {
-	from := []byte("owner-key")
-	fromB64 := base64.StdEncoding.EncodeToString(from)
-	recipientB64 := base64.StdEncoding.EncodeToString([]byte("recipient-key"))
-
-	evt1 := makeBurnEvent("b1", "TOK", fromB64, "300")
-	evt2 := makeTransferEvent("t1", "TOK", fromB64, recipientB64, "100", 1, "s1")
-	evt3 := makeBurnEvent("b2", "TOK", fromB64, "200")
-
-	store := &mockEventStore{events: []events.Event{evt1, evt2, evt3}}
-	reader := NewTokenEventReader(store)
-
-	results, err := reader.GetBurnEventsByToken("TOK")
-	require.NoError(t, err)
-	require.Len(t, results, 2, "only burns should be returned")
-	require.Equal(t, "300", results[0].Amount().String())
-	require.Equal(t, "200", results[1].Amount().String())
-}
-
-func TestTokenEventReader_GetBurnEventsByToken_Empty(t *testing.T) {
-	store := &mockEventStore{events: nil}
-	reader := NewTokenEventReader(store)
-
-	results, err := reader.GetBurnEventsByToken("TOK")
-	require.NoError(t, err)
-	require.Empty(t, results)
-}
-
 var errTest = newTestError()
 
 type testError struct{}
@@ -347,12 +276,6 @@ func TestTokenEventReader_StoreError(t *testing.T) {
 	_, err := reader.GetTransferEventsByOwner("TOK", []byte("owner"), 10, 0)
 	require.Error(t, err)
 	require.ErrorIs(t, err, errTest)
-
-	_, err = reader.GetMintEventsByToken("TOK")
-	require.Error(t, err)
-
-	_, err = reader.GetBurnEventsByToken("TOK")
-	require.Error(t, err)
 }
 
 func TestTokenEventReader_SkipsMalformedPayload(t *testing.T) {
