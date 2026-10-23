@@ -53,8 +53,13 @@ func Init() {
 
 	cfg := loadConfig()
 
-	// Parse log level
-	level, err := zerolog.ParseLevel(strings.ToLower(cfg.LogLevel))
+	// ParseLevel("") returns NoLevel without an error, which suppresses info
+	// logs. Make the documented default explicit for the CLI bootstrap call.
+	levelName := strings.TrimSpace(strings.ToLower(cfg.LogLevel))
+	if levelName == "" {
+		levelName = "info"
+	}
+	level, err := zerolog.ParseLevel(levelName)
 	if err != nil {
 		level = zerolog.InfoLevel
 	}

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	tokenerrors "github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -97,6 +98,33 @@ func TestInitConfig_FallbackPath(t *testing.T) {
 	initConfig()
 
 	assert.Equal(t, "info", viper.GetString("log.level"), "defaults should be set by initConfig")
+}
+
+// TestRootCommandInitializesFileLoggingFromConfig exercises the real Cobra
+// lifecycle with an alternate config file. main used to initialize the logger
+// before Cobra loaded [log], so the empty level disabled output and the
+// configured path was never opened.
+func TestRootCommandInitializesFileLoggingFromConfig(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		viper.Reset()
+		logPath := filepath.Join(t.TempDir(), "configured-logs")
+		configPath := filepath.Join(t.TempDir(), "aurora.toml")
+		config := fmt.Appendf(nil, "[log]\nlevel = \"info\"\npath = %q\n", logPath)
+		require.NoError(t, os.WriteFile(configPath, config, 0o600))
+
+		previousConfig := cfgFile
+		cfgFile = ""
+		t.Cleanup(func() { cfgFile = previousConfig })
+		t.Cleanup(logger.Close)
+
+		resetFlags(rootCmd)
+		rootCmd.SetArgs([]string{"--config", configPath, "version"})
+		require.NoError(t, rootCmd.Execute())
+
+		data, err := os.ReadFile(filepath.Join(logPath, "aurora.log"))
+		require.NoError(t, err, "the configured CLI log file must be created")
+		assert.Contains(t, string(data), "Aurora starting")
+	})
 }
 
 // TestRootCommandTree asserts that all five module commands plus version
@@ -193,6 +221,8 @@ func TestNoPhantomHomeDataDir(t *testing.T) {
 	t.Setenv("HOME", home)
 	viper.Reset()
 	viper.Set("migrate.autoRun", false)
+	viper.Set("log.path", filepath.Join(t.TempDir(), "logs"))
+	t.Cleanup(logger.Close)
 
 	prev := rootCmd.PersistentPreRunE
 	t.Cleanup(func() { rootCmd.PersistentPreRunE = prev })

@@ -46,6 +46,16 @@ nft, token) and operational commands (migrate, backup, version).`,
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// Cobra runs initConfig before this hook, so [log] settings are now
+		// available. The bootstrap logger in main necessarily ran too early
+		// and used console output.
+		logger.Init()
+		logger.Info().
+			Str("version", Version).
+			Str("build_time", BuildTime).
+			Str("locale", i18n.GetTranslator().GetLocale()).
+			Msg("Aurora starting")
+
 		// NOTE: the previous version of this hook resolved a `data.dir`
 		// (default $HOME/.aurora/data), mkdir'd it, and called app.Wire(dataDir),
 		// stashing the result in the never-read GlobalApp. That ran on EVERY

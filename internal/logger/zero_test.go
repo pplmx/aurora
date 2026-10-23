@@ -126,6 +126,22 @@ func TestInit_InvalidLevel(t *testing.T) {
 	require.NotNil(t, Log)
 }
 
+// TestInit_EmptyLevelDefaultsToInfo pins the CLI bootstrap path: before the
+// config file is loaded, viper returns an empty log level. zerolog.ParseLevel
+// treats "" as NoLevel without an error, which silently suppressed every
+// ordinary log instead of using the documented info default.
+func TestInit_EmptyLevelDefaultsToInfo(t *testing.T) {
+	logPath := t.TempDir()
+	setLogConfig(t, "", logPath)
+
+	Init()
+	Info().Msg("empty-level-marker")
+
+	data, err := os.ReadFile(filepath.Join(logPath, "aurora.log"))
+	require.NoError(t, err)
+	require.Contains(t, string(data), "empty-level-marker")
+}
+
 // TestLogger_Fatal constructs a fatal event without sending it. zerolog only
 // calls os.Exit when a Fatal event is sent (Msg), so merely obtaining the
 // event must not terminate the test process.
