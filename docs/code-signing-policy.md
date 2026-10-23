@@ -41,7 +41,15 @@ The desktop application does not collect telemetry. See the
 
 ## Verification
 
-Release users can verify the published SHA-256 values in `checksums.txt`.
+Release users can verify the published SHA-256 values in `checksums.txt` and
+the GitHub build-provenance attestation attached to every listed asset:
+
+```bash
+gh attestation verify <downloaded-artifact> --repo pplmx/aurora
+```
+
 Windows releases must also pass the workflow's `Get-AuthenticodeSignature`
 checks, including the expected signer and an RFC 3161 timestamp. macOS releases
 must pass `codesign`, Gatekeeper, and `stapler validate` before publication.
+Provenance proves which workflow built a file; it does not replace either
+operating system's publisher signature.

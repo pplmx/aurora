@@ -17,6 +17,8 @@ on:
 
 permissions:
   contents: write
+  attestations: write
+  id-token: write
 
 env:
   GO_VERSION: '1.27.2'
@@ -124,6 +126,14 @@ jobs:
           mv checksums.release.txt checksums.txt
           ! grep -Eq '  .*/' checksums.txt
           test -s checksums.txt
+
+      # The checksums file now names the exact release assets, including any
+      # platform signatures applied by the build jobs. Bind those final files
+      # to this workflow run before publishing them.
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@v4.2.2
+        with:
+          subject-checksums: artifacts/checksums.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
