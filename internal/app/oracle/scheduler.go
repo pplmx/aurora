@@ -185,21 +185,21 @@ func (s *Scheduler) pass(ctx context.Context) {
 
 // seed initialises lastFetch from each source's latest recorded data so a
 // freshly started process does not immediately re-fetch a source whose data is
-// still inside its refresh interval. It runs exactly once (idempotent) and
-// tolerates sources whose data cannot be read.
+// still inside its refresh interval. It runs once after the first successful
+// source enumeration and tolerates sources whose data cannot be read.
 func (s *Scheduler) seed() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.seeded {
 		return
 	}
-	s.seeded = true
 
 	sources, err := s.repo.ListSources()
 	if err != nil {
 		logger.Warn().Err(err).Msg("oracle scheduler: failed to list sources on seed")
 		return
 	}
+	s.seeded = true
 	for _, src := range sources {
 		d, err := s.repo.GetLatestData(src.ID)
 		if err != nil {
