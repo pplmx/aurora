@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/pplmx/aurora/internal/domain/oracle"
 )
@@ -105,9 +106,11 @@ func TestFetcher_FetchData_RejectsOversized(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Generate payload lazily to avoid wasting test memory.
 		_, _ = w.Write([]byte(`{"big":"`))
-		chunk := strings.Repeat("x", 1024)
-		for i := 0; i < maxResponseBytes/1024+1; i++ {
-			_, _ = w.Write([]byte(chunk))
+		chunk := []byte(strings.Repeat("x", 64<<10))
+		for range maxResponseBytes/len(chunk) + 2 {
+			if _, err := w.Write(chunk); err != nil {
+				return
+			}
 			if f, ok := w.(http.Flusher); ok {
 				f.Flush()
 			}
@@ -116,8 +119,14 @@ func TestFetcher_FetchData_RejectsOversized(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
-	_, err := fetcher.FetchData(&oracle.DataSource{
+	// This test checks the size cap, not the production client timeout. Give
+	// the deliberately throttled 10 MiB response enough time even on a loaded
+	// CI runner so a deadline can never mask the expected ErrResponseTooLarge.
+	fetcher, err := NewFetcherWithTimeout(10, time.Minute, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = fetcher.FetchData(&oracle.DataSource{
 		ID:   "test-source",
 		URL:  server.URL,
 		Type: "json",
@@ -125,7 +134,7 @@ func TestFetcher_FetchData_RejectsOversized(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for oversized response, got nil")
 	}
-	if !strings.Contains(err.Error(), "response body exceeds maximum size") {
+	if !errors.Is(err, ErrResponseTooLarge) {
 		t.Errorf("expected ErrResponseTooLarge in error chain, got: %v", err)
 	}
 }
