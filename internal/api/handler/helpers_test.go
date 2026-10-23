@@ -249,6 +249,12 @@ func TestClassifyError_TokenDecimalsInvalid(t *testing.T) {
 	assert.Equal(t, "INVALID_DECIMALS", code)
 }
 
+func TestClassifyError_TransferToZero(t *testing.T) {
+	status, code := classifyError(token.ErrTransferToZero)
+	assert.Equal(t, http.StatusBadRequest, status)
+	assert.Equal(t, "TRANSFER_TO_ZERO", code)
+}
+
 // TestDecodeJSON_RejectsTrailingGarbage pins the strict single-value body
 // contract (ISS-171): decodeJSON must reject any data after the first JSON
 // value. json.Decoder.Decode reads one value and silently ignores the rest, so

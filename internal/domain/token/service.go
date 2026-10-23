@@ -357,7 +357,7 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 		return nil, err
 	}
 
-	if err := ValidatePublicKey(req.To); err != nil {
+	if err := ValidateRecipient(req.To); err != nil {
 		return nil, err
 	}
 	if err := ValidateAmount(req.Amount); err != nil {
@@ -416,7 +416,7 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	if err := ValidatePublicKey(req.From); err != nil {
 		return nil, err
 	}
-	if err := ValidatePublicKey(req.To); err != nil {
+	if err := ValidateRecipient(req.To); err != nil {
 		return nil, err
 	}
 	if err := VerifyPrivateKeyMatches(req.From, req.PrivateKey); err != nil {
@@ -501,7 +501,7 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	if err := ValidatePublicKey(req.Owner); err != nil {
 		return nil, err
 	}
-	if err := ValidatePublicKey(req.To); err != nil {
+	if err := ValidateRecipient(req.To); err != nil {
 		return nil, err
 	}
 	if err := ValidatePublicKey(req.Spender); err != nil {
