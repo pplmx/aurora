@@ -207,7 +207,7 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 
 	uc := oracleapp.NewFetchDataUseCaseWithDeps(h.repo, h.fetcher)
 	uc.SetChain(h.chain)
-	result, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: req.Source})
+	result, err := uc.ExecuteContext(r.Context(), &oracleapp.FetchDataRequest{SourceID: req.Source})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return

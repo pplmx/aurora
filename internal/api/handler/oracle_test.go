@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -436,6 +437,80 @@ type countingFetcher struct {
 func (f *countingFetcher) FetchData(source *oracle.DataSource) (*oracle.OracleData, error) {
 	f.calls++
 	return f.data, nil
+}
+
+type cancellationFetcher struct {
+	started chan struct{}
+	seen    chan bool
+}
+
+func (f *cancellationFetcher) FetchData(*oracle.DataSource) (*oracle.OracleData, error) {
+	return nil, context.Canceled
+}
+
+func (f *cancellationFetcher) FetchDataContext(ctx context.Context, _ *oracle.DataSource) (*oracle.OracleData, error) {
+	close(f.started)
+	select {
+	case <-ctx.Done():
+		f.seen <- true
+	case <-time.After(500 * time.Millisecond):
+		f.seen <- false
+	}
+	return nil, context.Canceled
+}
+
+// TestOracleHandler_FetchPropagatesRequestCancellation pins the REST half of
+// TASK-134: the scheduler already cancels an in-flight fetch on shutdown, but
+// the handler called Execute, which hardcodes context.Background. A client
+// disconnect must therefore reach the outbound fetcher instead of leaving it
+// running until its own timeout.
+func TestOracleHandler_FetchPropagatesRequestCancellation(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	_ = repo.SaveSource(&oracle.DataSource{
+		ID:      "s1",
+		URL:     "https://8.8.8.8/price",
+		Enabled: true,
+	})
+	handler := NewOracleHandler(repo)
+	fake := &cancellationFetcher{
+		started: make(chan struct{}),
+		seen:    make(chan bool, 1),
+	}
+	handler.fetcher = fake
+
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/oracle/fetch",
+		bytes.NewBufferString(`{"source":"s1"}`),
+	).WithContext(ctx)
+	rr := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		handler.Fetch(rr, req)
+		close(done)
+	}()
+
+	select {
+	case <-fake.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("fetch never reached the context-aware fetcher")
+	}
+	cancel()
+
+	select {
+	case observed := <-fake.seen:
+		if !observed {
+			t.Fatal("outbound fetch did not observe cancellation of r.Context()")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("fetcher did not report cancellation")
+	}
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("handler remained blocked after request cancellation")
+	}
 }
 
 // TestOracleHandler_FetchUsesSharedFetcher pins TASK-241/ISS-239: the Fetch
