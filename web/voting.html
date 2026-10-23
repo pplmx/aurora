@@ -199,20 +199,22 @@
                     <button type="submit" class="btn-voting" :disabled="busy.loadResults">Show Results</button>
                 </form>
                 <div x-show="resultsError" class="result" aria-live="polite" x-text="resultsError"></div>
-                <table x-show="results" x-data>
-                    <thead>
-                        <tr><th scope="col">Candidate</th><th scope="col">Party</th><th scope="col">Votes</th></tr>
-                    </thead>
-                    <tbody>
-                        <template x-for="c in results.candidates" :key="c.id">
-                            <tr>
-                                <td x-text="c.name"></td>
-                                <td x-text="c.party"></td>
-                                <td x-text="c.vote_count"></td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+                <div class="table-scroll" role="region" aria-label="Election results" tabindex="0" x-show="results">
+                    <table>
+                        <thead>
+                            <tr><th scope="col">Candidate</th><th scope="col">Party</th><th scope="col">Votes</th></tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="c in results.candidates" :key="c.id">
+                                <tr>
+                                    <td x-text="c.name"></td>
+                                    <td x-text="c.party"></td>
+                                    <td x-text="c.vote_count"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
                 <div x-show="results" class="result" aria-live="polite" x-text="'Total votes: ' + results.total_votes"></div>
             </section>
         </main>

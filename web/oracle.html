@@ -29,24 +29,29 @@
                      data has loaded yet; during a 15s background poll existing
                      rows stay visible instead of flashing Loading... (TASK-148). -->
                 <div x-show="loading && sources.length === 0">Loading...</div>
-                <table x-show="sources.length > 0">
-                    <thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">ID</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
-                    <tbody>
-                        <template x-for="s in sources" :key="s.id">
-                            <tr>
-                                <td x-text="s.name"></td>
-                                <td x-text="s.type"></td>
-                                <td x-text="s.id"></td>
-                                <td x-text="s.enabled ? 'enabled' : 'disabled'"></td>
-                                <td>
-                                    <button type="button" class="btn-lottery" :disabled="busy.setEnabled" @click="setEnabled(s, true)" x-show="!s.enabled">Enable</button>
-                                    <button type="button" class="btn-lottery" :disabled="busy.setEnabled" @click="setEnabled(s, false)" x-show="s.enabled">Disable</button>
-                                    <button type="button" class="btn-voting" :disabled="busy.deleteSource" @click="deleteSource(s)">Delete</button>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+                <div class="table-scroll" role="region" aria-label="Oracle data sources" tabindex="0"
+                     x-show="sources.length > 0">
+                    <table>
+                        <thead><tr><th scope="col">Name</th><th scope="col">Type</th><th scope="col">ID</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+                        <tbody>
+                            <template x-for="s in sources" :key="s.id">
+                                <tr>
+                                    <td x-text="s.name"></td>
+                                    <td x-text="s.type"></td>
+                                    <td x-text="s.id"></td>
+                                    <td x-text="s.enabled ? 'enabled' : 'disabled'"></td>
+                                    <td>
+                                        <div class="table-actions">
+                                            <button type="button" class="btn-lottery" :disabled="busy.setEnabled" @click="setEnabled(s, true)" x-show="!s.enabled">Enable</button>
+                                            <button type="button" class="btn-lottery" :disabled="busy.setEnabled" @click="setEnabled(s, false)" x-show="s.enabled">Disable</button>
+                                            <button type="button" class="btn-voting" :disabled="busy.deleteSource" @click="deleteSource(s)">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
                 <p x-show="sourcesError" class="result" aria-live="polite" x-text="sourcesError"></p>
                 <p x-show="!loading && sources.length === 0 && !sourcesFailed">(no sources)</p>
                 <p x-show="!loading && sources.length === 0 && sourcesFailed" class="hint">Failed to load sources — check the API / refresh.</p>
@@ -80,21 +85,24 @@
             <section class="history">
                 <h2>Feed Health</h2>
                 <div x-show="loadingHealth && health.length === 0">Loading health…</div>
-                <table x-show="health.length > 0">
-                    <thead><tr><th scope="col">Source</th><th scope="col">Attempts</th><th scope="col">Successes</th><th scope="col">Failures</th><th scope="col">Last Success</th><th scope="col">Last Error</th></tr></thead>
-                    <tbody>
-                        <template x-for="h in health" :key="h.source_id">
-                            <tr>
-                                <td x-text="sourceName(h.source_id)"></td>
-                                <td x-text="h.attempts"></td>
-                                <td x-text="h.successes"></td>
-                                <td x-text="h.failures"></td>
-                                <td x-text="h.last_success_at ? new Date(h.last_success_at * 1000).toLocaleString() : '-'"></td>
-                                <td x-text="h.last_error || '-'"></td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+                <div class="table-scroll" role="region" aria-label="Oracle feed health" tabindex="0"
+                     x-show="health.length > 0">
+                    <table>
+                        <thead><tr><th scope="col">Source</th><th scope="col">Attempts</th><th scope="col">Successes</th><th scope="col">Failures</th><th scope="col">Last Success</th><th scope="col">Last Error</th></tr></thead>
+                        <tbody>
+                            <template x-for="h in health" :key="h.source_id">
+                                <tr>
+                                    <td x-text="sourceName(h.source_id)"></td>
+                                    <td x-text="h.attempts"></td>
+                                    <td x-text="h.successes"></td>
+                                    <td x-text="h.failures"></td>
+                                    <td x-text="h.last_success_at ? new Date(h.last_success_at * 1000).toLocaleString() : '-'"></td>
+                                    <td x-text="h.last_error || '-'"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
                 <p x-show="!loadingHealth && health.length === 0 && !healthFailed">(no feed activity yet)</p>
                 <p x-show="!loadingHealth && health.length === 0 && healthFailed" class="hint">Failed to load feed health — check the API / refresh.</p>
             </section>
@@ -113,18 +121,21 @@
                     <div class="form-group"><label for="oracle-query-limit">Limit</label><input id="oracle-query-limit" type="number" x-model="queryLimit" min="1" max="100"></div>
                     <button type="submit" class="btn-lottery" :disabled="busy.query">Query</button>
                 </form>
-                <table x-show="queryRows.length > 0">
-                    <thead><tr><th scope="col">Timestamp</th><th scope="col">Value</th><th scope="col">Block #</th></tr></thead>
-                    <tbody>
-                        <template x-for="d in queryRows" :key="d.id">
-                            <tr>
-                                <td x-text="new Date(d.timestamp * 1000).toLocaleString()"></td>
-                                <td x-text="d.value"></td>
-                                <td x-text="d.block_height"></td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+                <div class="table-scroll" role="region" aria-label="Oracle query data" tabindex="0"
+                     x-show="queryRows.length > 0">
+                    <table>
+                        <thead><tr><th scope="col">Timestamp</th><th scope="col">Value</th><th scope="col">Block #</th></tr></thead>
+                        <tbody>
+                            <template x-for="d in queryRows" :key="d.id">
+                                <tr>
+                                    <td x-text="new Date(d.timestamp * 1000).toLocaleString()"></td>
+                                    <td x-text="d.value"></td>
+                                    <td x-text="d.block_height"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
                 <!-- A successful query with zero stored rows must not silently
                      look like a no-op (the table hides for an empty array); say
                      so explicitly, distinct from the error path below (ISS-255). -->
