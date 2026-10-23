@@ -161,6 +161,37 @@ func TestOracleSourceAdd_RejectsInvalidHeaders(t *testing.T) {
 	})
 }
 
+func TestOracleSourceAdd_RejectsInvalidHTTPConfig(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{name: "method", args: []string{"--method", "BAD METHOD"}},
+		{name: "header name", args: []string{"--headers", `{"Bad Header":"value"}`}},
+		{name: "header value", args: []string{"--headers", `{"X-Test":"bad\u0000value"}`}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			withTempDir(t, func(t *testing.T) {
+				args := append([]string{
+					"oracle", "source", "add",
+					"--name", "private-feed",
+					"--url", "https://api.example.com/private",
+				}, tc.args...)
+				_, err := runCmd(t, args...)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid source")
+
+				repo, cleanup, err := newOracleRepo()
+				require.NoError(t, err)
+				defer cleanup()
+				sources, err := repo.ListSources()
+				require.NoError(t, err)
+				assert.Empty(t, sources)
+			})
+		})
+	}
+}
+
 func TestOracleFetch_SourceNotFound(t *testing.T) {
 	resetCliForTest()
 

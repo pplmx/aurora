@@ -145,6 +145,49 @@ func TestAddSource_RejectsInvalidSourceHeaders(t *testing.T) {
 	}
 }
 
+func TestAddSource_RejectsInvalidHTTPRequestConfig(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		method string
+		header string
+	}{
+		{name: "method with space", method: "BAD METHOD"},
+		{name: "method with colon", method: "GET:evil"},
+		{name: "header name with space", header: `{"Bad Header":"value"}`},
+		{name: "header name with colon", header: `{"X-Bad:Name":"value"}`},
+		{name: "header value with NUL", header: "{\"X-Test\":\"bad\\u0000value\"}"},
+		{name: "header value with DEL", header: "{\"X-Test\":\"bad\\u007fvalue\"}"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewInmemRepo()
+			err := NewService(repo).AddSource(&DataSource{
+				Name:    "Private Feed",
+				URL:     "https://api.example.com/private",
+				Method:  tc.method,
+				Headers: tc.header,
+			})
+			require.ErrorIs(t, err, ErrInvalidSource)
+			sources, listErr := repo.ListSources()
+			require.NoError(t, listErr)
+			require.Empty(t, sources)
+		})
+	}
+}
+
+func TestAddSource_AcceptsHTTPExtensionMethodAndTokenHeader(t *testing.T) {
+	repo := NewInmemRepo()
+	err := NewService(repo).AddSource(&DataSource{
+		Name:    "Search Feed",
+		URL:     "https://api.example.com/search",
+		Method:  "M-SEARCH",
+		Headers: `{"X-Vendor_Key":"value","X-Test":"a\tb"}`,
+	})
+	require.NoError(t, err)
+	sources, listErr := repo.ListSources()
+	require.NoError(t, listErr)
+	require.Len(t, sources, 1)
+}
+
 func TestOracleData_TimeFields(t *testing.T) {
 	now := time.Now().Unix()
 	data := &OracleData{

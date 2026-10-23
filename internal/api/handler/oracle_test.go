@@ -243,6 +243,39 @@ func TestOracleHandler_CreateSource_RejectsUnsafeHeaders(t *testing.T) {
 	assert.Empty(t, sources)
 }
 
+func TestOracleHandler_CreateSource_RejectsInvalidHTTPConfig(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		method string
+		header map[string]string
+	}{
+		{name: "method", method: "BAD METHOD"},
+		{name: "header name", header: map[string]string{"Bad Header": "value"}},
+		{name: "header value", header: map[string]string{"X-Test": "bad\x00value"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := oracle.NewInmemRepo()
+			handler := NewOracleHandler(repo)
+			body, _ := json.Marshal(map[string]any{
+				"name":    "Private Feed",
+				"url":     "http://example.com/private",
+				"method":  tc.method,
+				"headers": tc.header,
+			})
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/sources", bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+			rr := httptest.NewRecorder()
+			handler.CreateSource(rr, req)
+
+			require.Equal(t, http.StatusBadRequest, rr.Code, rr.Body.String())
+			assert.Contains(t, rr.Body.String(), `"code":"INVALID_SOURCE"`)
+			sources, err := repo.ListSources()
+			require.NoError(t, err)
+			assert.Empty(t, sources)
+		})
+	}
+}
+
 func TestOracleHandler_DeleteSource_Success(t *testing.T) {
 	repo := oracle.NewInmemRepo()
 	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})

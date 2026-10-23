@@ -95,9 +95,10 @@ aurora oracle latest -i <source-id>
 aurora oracle tui
 ```
 
-`--headers` 接受 JSON 对象；非法 JSON、CR/LF 或超过长度上限会在写入前拒绝。
-`interval` 上限 30 天；越界会在写入前拒绝（更大的值会让调度器溢出成“永远
-到期”的抓取风暴）。
+`--method` 必须是 HTTP token；`--headers` 接受 JSON 对象，名称必须是 token，
+值不能包含除 tab 外的控制字符。非法 JSON、CR/LF 或超过长度上限会在写入前
+拒绝。`interval` 上限 30 天；越界会在写入前拒绝（更大的值会让调度器溢出成
+“永远到期”的抓取风暴）。
 
 ## 运维命令
 
