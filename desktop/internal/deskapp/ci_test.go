@@ -265,6 +265,52 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/Aurora.exe")
 }
 
+// TestDesktopBuildCanRunTheNativeMatrixManually pins the independent
+// validation entry point. desktop-build.yml used to be callable only from
+// release.yml, so the five-platform matrix could not be exercised without
+// publishing a tag. A manual run must package the same matrix, default to the
+// selected branch when no ref is supplied, and keep signing optional.
+func TestDesktopBuildCanRunTheNativeMatrixManually(t *testing.T) {
+	root := repoRoot(t)
+
+	src, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "desktop-build.yml"))
+	require.NoError(t, err)
+	workflow := string(src)
+
+	require.Contains(t, workflow, `  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit SHA to package
+        required: false
+        type: string
+        default: ''
+      require_signed_macos:
+        description: Fail unless every macOS signing secret is configured
+        type: boolean
+        default: false
+      require_signed_windows:
+        description: Fail unless every Windows signing secret is configured
+        type: boolean
+        default: false
+`)
+	require.Contains(t, workflow, "ref: ${{ inputs.ref || github.ref }}",
+		"a manual run with no ref must package the selected branch")
+
+	for _, platform := range []string{
+		"linux/amd64",
+		"linux/arm64",
+		"darwin/arm64",
+		"darwin/amd64",
+		"windows/amd64",
+	} {
+		assert.Contains(t, workflow, platform,
+			"the manual entry point must package %s", platform)
+	}
+	require.Contains(t, workflow, "name: Upload package")
+	require.NotContains(t, workflow, "softprops/action-gh-release",
+		"manual validation must not publish a release")
+}
+
 // TestReleaseRequiresSignedAndNotarizedMacOSPackages pins the macOS release
 // contract: an ad-hoc-signed DMG runs only on the runner that built it, so a
 // tag release must fail before packaging when the Developer ID and notary

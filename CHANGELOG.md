@@ -9,6 +9,15 @@ documented in their per-milestone ROADMAP files.
 
 ## [Unreleased]
 
+### Added
+
+- **The five-platform desktop matrix has a manual validation entry point**:
+  `desktop-build.yml` now accepts `workflow_dispatch` in addition to
+  `workflow_call`. A manual run defaults to the selected branch, packages
+  Linux amd64/arm64, macOS amd64/arm64 and Windows amd64, uploads the
+  artifacts, and does not create a release; signing remains optional unless
+  the `require_signed_*` inputs are set.
+
 ### Changed
 
 - **SQLite storage is now pure Go**: Aurora uses `modernc.org/sqlite`

@@ -34,6 +34,24 @@ on:
         required: false
       WINDOWS_CERTIFICATE_PASSWORD:
         required: false
+  # Keep a direct entry point for validating the native matrix without
+  # creating a release. A manual run on main packages all five targets with
+  # signing disabled unless the repository secrets are explicitly configured.
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit SHA to package
+        required: false
+        type: string
+        default: ''
+      require_signed_macos:
+        description: Fail unless every macOS signing secret is configured
+        type: boolean
+        default: false
+      require_signed_windows:
+        description: Fail unless every Windows signing secret is configured
+        type: boolean
+        default: false
 
 env:
   NODE_VERSION: '22'
@@ -75,7 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.ref }}
           # mygo.config.ts derives the package version with `git describe`.
           # A shallow checkout has no tags, so a release would be stamped
           # with a bare SHA instead of the tag.

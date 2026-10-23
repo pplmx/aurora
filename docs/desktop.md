@@ -23,6 +23,23 @@ just desktop-package                               # 产出 .deb / tar.gz / desk
 发布包由 `.github/workflows/desktop-build.yml` 在原生 runner 上构建：
 Linux amd64/arm64、macOS arm64/amd64、Windows amd64。
 
+### 手动验证五平台矩阵
+
+`desktop-build.yml` 也支持 `workflow_dispatch`，因此不必创建 tag 就能验证
+五平台打包。在 GitHub Actions 页面选择 `Desktop Build` → `Run workflow`，
+或使用已登录的 `gh`：
+
+```bash
+gh workflow run desktop-build.yml --ref main
+```
+
+`ref` 留空时使用触发分支（上例是 `main`）；也可以传入分支、tag 或 commit
+SHA。每个原生 runner 都会打包并上传 artifact，但不会创建 Release。默认
+`require_signed_macos` / `require_signed_windows` 为 `false`，仓库没有签名
+secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式要求签名验证。
+正式 tag 发布仍由 `release.yml` 触发，并要求 macOS 与 Windows 的签名 secrets
+全部配置。
+
 ## 架构
 
 - **不监听端口**：窗口通过自定义 scheme `aurora://localhost/` 加载页面，
