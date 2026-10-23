@@ -73,6 +73,14 @@ func NewServer() (*Server, error) {
 	}
 
 	srv := &Server{db: db, metrics: metrics.NewRegistry()}
+	// NewServer is all-or-nothing: every handle opened after InitDB is owned
+	// by srv, so a later construction failure must run the same Close path.
+	complete := false
+	defer func() {
+		if !complete {
+			_ = srv.Close()
+		}
+	}()
 
 	lotteryRepo, err := sqlite.NewLotteryRepository(dbPath)
 	if err != nil {
@@ -150,6 +158,7 @@ func NewServer() (*Server, error) {
 	// and the package's documented "record on-chain" intent. Without this,
 	// REST fetch results came back with BlockHeight 0.
 	srv.oracleHandler.SetChain(blockchain.GetBlockChain())
+	complete = true
 	return srv, nil
 }
 
