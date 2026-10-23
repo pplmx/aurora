@@ -30,6 +30,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **Wide Web UI tables now stay inside their cards**: Lottery history, Voting
+  results and the three Oracle tables scroll horizontally on narrow screens
+  instead of widening the whole document. Long IDs and feed errors wrap within
+  cells, and Oracle's state and delete actions keep a visible gap.
 - **The Web UI now keeps its bearings at every width**: the shared header no
   longer forces the title, seven module links and Refresh action into one
   nowrap row, and every page marks its current navigation item with

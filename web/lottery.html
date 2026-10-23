@@ -45,26 +45,29 @@
             <section class="history" id="verify">
                 <h2>Lottery History</h2>
                 <div x-show="loading">Loading...</div>
-                <table x-show="!loading && history.length > 0">
-                    <thead>
-                        <tr>
-                            <th scope="col">ID</th>
-                            <th scope="col">Participants</th>
-                            <th scope="col">Winners</th>
-                            <th scope="col">Created</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template x-for="item in history" :key="item.id">
+                <div class="table-scroll" role="region" aria-label="Lottery history" tabindex="0"
+                     x-show="!loading && history.length > 0">
+                    <table>
+                        <thead>
                             <tr>
-                                <td x-text="item.id"></td>
-                                <td x-text="item.participants?.join(', ')"></td>
-                                <td x-text="item.winners?.join(', ')"></td>
-                                <td x-text="new Date(item.timestamp * 1000).toLocaleString()"></td>
+                                <th scope="col">ID</th>
+                                <th scope="col">Participants</th>
+                                <th scope="col">Winners</th>
+                                <th scope="col">Created</th>
                             </tr>
-                        </template>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <template x-for="item in history" :key="item.id">
+                                <tr>
+                                    <td x-text="item.id"></td>
+                                    <td x-text="item.participants?.join(', ')"></td>
+                                    <td x-text="item.winners?.join(', ')"></td>
+                                    <td x-text="new Date(item.timestamp * 1000).toLocaleString()"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
                 <p x-show="!loading && history.length === 0 && !historyFailed">No lotteries yet</p>
                 <p x-show="!loading && history.length === 0 && historyFailed" class="hint">Failed to load history — check the API / refresh.</p>
             </section>

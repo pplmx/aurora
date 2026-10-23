@@ -267,6 +267,33 @@ table {
     border-collapse: collapse;
 }
 
+.table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    margin-top: 12px;
+    scrollbar-color: var(--accent-page) var(--bg-primary);
+}
+
+.table-scroll:focus-visible {
+    outline: 2px solid var(--accent-page);
+    outline-offset: 2px;
+}
+
+.table-scroll table {
+    min-width: 40rem;
+}
+
+.table-scroll td {
+    overflow-wrap: anywhere;
+    vertical-align: top;
+}
+
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 th, td {
     text-align: left;
     padding: 12px;
