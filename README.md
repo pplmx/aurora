@@ -29,6 +29,10 @@ FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**
 - **CLI**：`aurora-<os>-<arch>`，纯 Go 构建，发布时附 `checksums.txt`。
 - 发布流程会校验版本号与构建时间，不发布 `0.0.1` / `Build Time: unknown`
   的产物。
+- **签名与隐私**：Windows 包正在申请 SignPath Foundation 的免费开源签名；
+  macOS 包仍需要维护者持有的 Apple Developer Program 身份。发布门槛、角色与
+  验收方式见[代码签名策略](docs/code-signing-policy.md)，本机数据与网络边界见
+  [隐私说明](docs/privacy.md)。
 
 从源码构建：
 

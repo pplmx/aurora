@@ -17,6 +17,11 @@ documented in their per-milestone ROADMAP files.
   Linux amd64/arm64, macOS amd64/arm64 and Windows amd64, uploads the
   artifacts, and does not create a release; signing remains optional unless
   the `require_signed_*` inputs are set.
+- **Code-signing and privacy boundaries are now public**: the README and
+  desktop guide link a signing policy and privacy statement. The policy names
+  the maintainer approval roles, applies the SignPath Foundation phrase only
+  after acceptance, and records that SignPath cannot replace the Apple
+  Developer Program identity required for macOS notarization.
 
 ### Changed
 

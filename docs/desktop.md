@@ -213,6 +213,12 @@ gh secret set APPLE_APP_PASSWORD
 后 CI 用 `codesign`、`spctl` 和 `stapler validate` 验收 app 与 DMG。本地
 `just desktop-package` 不设置这些环境变量时仍生成 ad-hoc 包，仅供本机测试。
 
+Apple Developer Program 是 Developer ID 证书与公证凭据的唯一合法来源。
+注册者必须有启用双重认证的 Apple Account，由本人接受开发者协议并支付年费；
+以组织身份注册时还要提供法定主体、D-U-N-S 编号和有法律约束力的代表人。
+CI、自签名证书或仓库管理员权限都不能替代这项外部身份与付款验证。公开的
+申请条件见 [Apple Developer Program enrollment](https://developer.apple.com/programs/enroll/)。
+
 ## Windows 发布签名
 
 未签名的 `Aurora.exe` 与安装器会让 SmartScreen 对每次下载报警，也无法向用户
@@ -241,6 +247,17 @@ gh secret set WINDOWS_CERTIFICATE_PASSWORD
 证书与导入证书一致且带 RFC 3161 时间戳。本地 `just desktop-package` 不设置
 `WINDOWS_CERTIFICATE_FILE` 与 `MYGO_WINDOWS_CERTIFICATE_PASSWORD` 时仍生成
 未签名包，仅供本机测试。
+
+Aurora 正在申请 [SignPath Foundation](https://signpath.org/) 的免费开源签名。
+该项目用仓库来源校验与人工批准代替个人代码签名证书的购买和身份验证，适合
+当前没有商业 Authenticode 证书的情况。SignPath 在服务端 HSM 中签名并返回
+产物，不会交出 `.pfx` 私钥，因此获批后要把本节的临时 PFX 流程改成 SignPath
+签名请求，而不能把现有两个 secrets 填成伪造值。完整资格、角色、产物和隐私
+边界见[代码签名策略](code-signing-policy.md)。
+
+Aurora 的 macOS 与 Windows 签名边界相互独立：SignPath Foundation 不是 Apple
+Developer 账号，不能提供 Developer ID 或公证身份；Apple 的 Apple ID 也不能
+签 Windows 安装器。两端都通过真实签名验收前，`release.yml` 不会发布桌面包。
 
 ## 模块、工具链与 CI
 

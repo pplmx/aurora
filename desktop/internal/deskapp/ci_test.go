@@ -395,6 +395,49 @@ func TestReleaseRequiresSignedAndNotarizedMacOSPackages(t *testing.T) {
 	}
 }
 
+// TestSigningPolicyDocumentsExternalCredentialBoundary keeps the public policy
+// honest while signing access is being acquired. A SignPath Foundation
+// certificate cannot stand in for an Apple Developer ID, and repository admin
+// rights cannot satisfy either provider's identity checks. The policy must
+// name the approver, cover the provider's privacy requirement, and avoid
+// claiming an active Windows signature before the application is accepted.
+func TestSigningPolicyDocumentsExternalCredentialBoundary(t *testing.T) {
+	root := repoRoot(t)
+
+	src, err := os.ReadFile(filepath.Join(root, "docs", "code-signing-policy.md"))
+	require.NoError(t, err)
+	policy := string(src)
+	require.Contains(t, policy,
+		"Free code signing provided by SignPath.io, certificate by SignPath Foundation.")
+	require.Contains(t, policy,
+		"This statement applies only after SignPath accepts Aurora")
+	require.Contains(t, policy, "Committers and reviewers:")
+	require.Contains(t, policy, "Approvers:")
+	require.Contains(t, policy, "[@pplmx](https://github.com/pplmx)")
+	require.Contains(t, policy, "[privacy statement](privacy.md)")
+	require.Contains(t, policy, "cannot supply an")
+	require.Contains(t, policy, "Apple Developer ID identity")
+
+	privacySrc, err := os.ReadFile(filepath.Join(root, "docs", "privacy.md"))
+	require.NoError(t, err)
+	privacy := string(privacySrc)
+	require.Contains(t, privacy, "does not\ninclude analytics, telemetry")
+	require.Contains(t, privacy,
+		"This program will not transfer any information to other networked systems\nunless specifically requested by the user")
+
+	readmeSrc, err := os.ReadFile(filepath.Join(root, "README.md"))
+	require.NoError(t, err)
+	readme := string(readmeSrc)
+	require.Contains(t, readme, "[代码签名策略](docs/code-signing-policy.md)")
+	require.Contains(t, readme, "[隐私说明](docs/privacy.md)")
+
+	guide := desktopGuide(t)
+	require.Contains(t, guide, "Apple Developer Program")
+	require.Contains(t, guide, "SignPath Foundation")
+	require.Contains(t, guide, "不会交出 `.pfx` 私钥")
+	require.Contains(t, guide, "SignPath Foundation 不是 Apple")
+}
+
 // TestReleaseRequiresAuthenticodeSignedWindowsPackages pins the Windows
 // counterpart of the macOS contract. An unsigned installer makes SmartScreen
 // warn on every download and gives users no publisher to verify, so a tag
