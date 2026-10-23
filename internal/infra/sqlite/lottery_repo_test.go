@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
@@ -39,6 +40,7 @@ func sampleLotteryRecord(id string, blockHeight int64) *lottery.LotteryRecord {
 		WinnerAddresses: []string{"addr1", "addr2"},
 		VRFProof:        "0xproof-" + id,
 		VRFOutput:       "0xoutput-" + id,
+		VRFPublicKey:    "public-key-" + id,
 		Timestamp:       time.Now().Unix(),
 		Verified:        true,
 	}
@@ -166,8 +168,72 @@ func TestLotteryRepository_Save_AndGetByID(t *testing.T) {
 	assert.Equal(t, original.WinnerAddresses, got.WinnerAddresses)
 	assert.Equal(t, original.VRFProof, got.VRFProof)
 	assert.Equal(t, original.VRFOutput, got.VRFOutput)
+	assert.Equal(t, original.VRFPublicKey, got.VRFPublicKey)
 	assert.Equal(t, original.Timestamp, got.Timestamp)
 	assert.Equal(t, original.Verified, got.Verified)
+}
+
+func TestLotteryRepository_VRFPublicKeyOnEveryReadPath(t *testing.T) {
+	repo, cleanup := setupLotteryTestDB(t)
+	defer cleanup()
+
+	original := sampleLotteryRecord("L-keyed", 42)
+	require.NoError(t, repo.Save(original))
+
+	byID, err := repo.GetByID(original.ID)
+	require.NoError(t, err)
+	assert.Equal(t, original.VRFPublicKey, byID.VRFPublicKey)
+
+	all, err := repo.GetAll()
+	require.NoError(t, err)
+	require.Len(t, all, 1)
+	assert.Equal(t, original.VRFPublicKey, all[0].VRFPublicKey)
+
+	byHeight, err := repo.GetByBlockHeight(original.BlockHeight)
+	require.NoError(t, err)
+	require.Len(t, byHeight, 1)
+	assert.Equal(t, original.VRFPublicKey, byHeight[0].VRFPublicKey)
+}
+
+func TestLotteryRepository_UpgradesLegacySchemaWithVRFKeyTable(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "legacy.db")
+	db, err := sql.Open("sqlite", DSN(dbPath))
+	require.NoError(t, err)
+	_, err = db.Exec(`
+		CREATE TABLE lottery_records (
+			id TEXT PRIMARY KEY,
+			block_height INTEGER NOT NULL,
+			seed TEXT NOT NULL,
+			participants TEXT NOT NULL,
+			winners TEXT NOT NULL,
+			winner_addresses TEXT NOT NULL,
+			vrf_proof TEXT NOT NULL,
+			vrf_output TEXT NOT NULL,
+			timestamp INTEGER NOT NULL,
+			verified INTEGER NOT NULL DEFAULT 0
+		);
+		INSERT INTO lottery_records
+			(id, block_height, seed, participants, winners, winner_addresses,
+			 vrf_proof, vrf_output, timestamp, verified)
+		VALUES ('legacy', 1, 'legacy-seed', '["alice"]', '["alice"]', '["addr"]',
+			'proof', 'output', 1, 0);
+	`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	repo, err := NewLotteryRepository(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = repo.Close() })
+
+	legacy, err := repo.GetByID("legacy")
+	require.NoError(t, err)
+	assert.Empty(t, legacy.VRFPublicKey, "legacy draws have no recoverable key")
+
+	keyed := sampleLotteryRecord("keyed-after-upgrade", 2)
+	require.NoError(t, repo.Save(keyed), "the self-bootstrap must add the key table")
+	got, err := repo.GetByID(keyed.ID)
+	require.NoError(t, err)
+	assert.Equal(t, keyed.VRFPublicKey, got.VRFPublicKey)
 }
 
 func TestLotteryRepository_Save_OverwritesExistingRecord(t *testing.T) {

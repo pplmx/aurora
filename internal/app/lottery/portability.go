@@ -113,11 +113,14 @@ func (r ImportResult) Partial() bool { return r.Imported > 0 && len(r.Rejected) 
 // implementation behind `aurora lottery import` and the desktop shell's native
 // Import action.
 //
-// The document is untrusted input, so every record is validated first. A
-// record whose ID already exists is skipped instead of replaced: IDs are
-// deterministic (sha256 of seed + VRF output) and the repository's Save is an
-// INSERT OR REPLACE, so a re-import would otherwise silently overwrite the
-// stored draw's Verified flag and audit trail (TASK-069, ISS-061).
+// The document is untrusted input, so every record is validated and its stored
+// winners, output, proof and public key are checked with VerifyRecord before
+// it can be stored. The serialized Verified bit is not trusted: it is derived
+// from the verifier, and records without proof-verifiable evidence remain
+// unverified. A record whose ID already exists is skipped instead of replaced:
+// IDs are deterministic (sha256 of seed + VRF output) and the repository's Save
+// is an INSERT OR REPLACE, so a re-import would otherwise silently overwrite
+// the stored draw's Verified flag and audit trail (TASK-069, ISS-061).
 //
 // A malformed document is a hard error (nothing is written). Per-record
 // rejections are reported in ImportResult.Rejected, not as an error: callers
@@ -140,6 +143,12 @@ func ImportRecords(repo lottery.Repository, document []byte) (ImportResult, erro
 			result.Rejected = append(result.Rejected, i)
 			continue
 		}
+		report := VerifyRecord(&record)
+		if !report.IntegrityOK {
+			result.Rejected = append(result.Rejected, i)
+			continue
+		}
+		record.Verified = report.ProofVerified
 		if existing, err := repo.GetByID(record.ID); err == nil && existing != nil {
 			result.Rejected = append(result.Rejected, i)
 			continue

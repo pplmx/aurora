@@ -48,7 +48,7 @@ func TestRealMigrations_Apply(t *testing.T) {
 	defer db.Close()
 
 	for _, table := range []string{
-		"blocks", "lottery_records",
+		"blocks", "lottery_records", "lottery_vrf_keys",
 		"votes", "vote_sessions", "voters", "candidates", "voting_sessions",
 		"nfts", "nft_operations",
 		"tokens", "accounts", "allowances",
@@ -56,6 +56,53 @@ func TestRealMigrations_Apply(t *testing.T) {
 	} {
 		assertTableExists(t, db, table)
 	}
+}
+
+// TestRealMigrations_LotteryVRFKeyUpgrade proves migration 000004 adds the
+// idempotent proof-key side table to an existing version-3 database without
+// touching already stored lottery records.
+func TestRealMigrations_LotteryVRFKeyUpgrade(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+
+	m, err := New(dbPath, realMigrationsDir())
+	require.NoError(t, err)
+	_, err = m.Up(3)
+	require.NoError(t, err)
+	require.NoError(t, m.Close())
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec(`
+		INSERT INTO lottery_records
+			(id, block_height, seed, participants, winners, winner_addresses,
+			 vrf_proof, vrf_output, timestamp, verified)
+		VALUES ('legacy', 1, 'legacy-seed', '["alice"]', '["alice"]', '["addr"]',
+			'proof', 'output', 1, 0);
+	`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	m, err = New(dbPath, realMigrationsDir())
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+	_, err = m.Up(0)
+	require.NoError(t, err, "migration 000004 must upgrade a populated version-3 database")
+
+	db, err = sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	var legacyCount int
+	require.NoError(t, db.QueryRow(
+		`SELECT COUNT(*) FROM lottery_records WHERE id = 'legacy'`,
+	).Scan(&legacyCount))
+	assert.Equal(t, 1, legacyCount, "adding the key table must preserve existing draws")
+
+	var keyCount int
+	require.NoError(t, db.QueryRow(
+		`SELECT COUNT(*) FROM lottery_vrf_keys WHERE record_id = 'legacy'`,
+	).Scan(&keyCount))
+	assert.Zero(t, keyCount, "legacy draws have no recoverable public key")
 }
 
 // TestRealMigrations_UpTwice_NoChange hammers the idempotency contract:

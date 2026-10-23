@@ -15,6 +15,20 @@ import (
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
+func genuineDesktopLotteryRecord(t *testing.T, seed string) domainlottery.LotteryRecord {
+	t.Helper()
+	participants := []string{"Alice", "Bob", "Carol"}
+	winners, addresses, output, proof, publicKey, err := domainlottery.NewService().DrawWinners(
+		participants, seed, 2,
+	)
+	require.NoError(t, err)
+	record := domainlottery.CreateLotteryRecord(
+		seed, participants, winners, addresses, output, proof, publicKey, 1,
+	)
+	record.Verified = true
+	return *record
+}
+
 // TestExportImport_RoundTripThroughSharedAppLayer pins the contract the desktop
 // menu actions rely on: the SAME app-layer functions the CLI calls move a draw
 // out of one database and into another, and the overwrite guard still refuses a
@@ -28,17 +42,9 @@ func TestExportImport_RoundTripThroughSharedAppLayer(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = src.Close() })
 
-	record := domainlottery.LotteryRecord{
-		ID:              "desktop-roundtrip-id",
-		BlockHeight:     11,
-		Seed:            "desktop-roundtrip-seed",
-		Participants:    []string{"Alice", "Bob", "Carol"},
-		Winners:         []string{"Bob"},
-		WinnerAddresses: []string{"addr-bob"},
-		VRFOutput:       "0011223344556677889900aabbccddeeff00112233445566778899aabbccddee",
-		VRFProof:        "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100",
-		Verified:        true,
-	}
+	record := genuineDesktopLotteryRecord(t, "desktop-roundtrip-seed")
+	record.ID = "desktop-roundtrip-id"
+	record.BlockHeight = 11
 	require.NoError(t, src.Save(&record))
 
 	document, count, err := lotteryapp.ExportRecords(src)
@@ -57,6 +63,7 @@ func TestExportImport_RoundTripThroughSharedAppLayer(t *testing.T) {
 	got, err := dst.GetByID(record.ID)
 	require.NoError(t, err)
 	assert.Equal(t, record.Winners, got.Winners)
+	assert.Equal(t, record.VRFPublicKey, got.VRFPublicKey, "the proof key must survive export and import")
 	assert.True(t, got.Verified, "the Verified flag must survive the round trip")
 
 	// Re-importing into the same database must be refused, not silently
@@ -103,15 +110,7 @@ func TestImportRecords_PartialFailureMatchesCLIContract(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = repo.Close() })
 
-	valid := domainlottery.LotteryRecord{
-		ID:              "valid-mixed-id",
-		Seed:            "mixed-seed-long",
-		Participants:    []string{"A", "B"},
-		Winners:         []string{"A"},
-		WinnerAddresses: []string{"addr"},
-		VRFOutput:       "0011223344556677889900aabbccddeeff00112233445566778899aabbccddee",
-		VRFProof:        "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100",
-	}
+	valid := genuineDesktopLotteryRecord(t, "mixed-seed-long")
 	invalid := domainlottery.LotteryRecord{ID: "bad", Seed: "x"} // no participants/winners
 
 	document, err := json.Marshal([]domainlottery.LotteryRecord{valid, invalid})

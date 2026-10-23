@@ -76,12 +76,13 @@ func TestMigrateUp_FreshDB(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Current version: 3", "all migrations applied")
+		assert.Contains(t, out, "Current version: 4", "all migrations applied")
 
-		assert.Equal(t, 3, appliedSchemaVersion(t))
+		assert.Equal(t, 4, appliedSchemaVersion(t))
 		assert.True(t, tableExists(t, "candidates"), "migration 000001 should create candidates")
 		assert.True(t, tableExists(t, "token_transfers"), "migration 000002 should create token_transfers")
 		assert.True(t, tableExists(t, "vote_sessions"), "migration 000003 should add vote_sessions")
+		assert.True(t, tableExists(t, "lottery_vrf_keys"), "migration 000004 should add lottery_vrf_keys")
 	})
 }
 
@@ -106,6 +107,12 @@ func TestMigrateUp_WithSteps(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 3")
 		assert.Equal(t, 3, appliedSchemaVersion(t))
+
+		out, err = runCmd(t, "migrate", "up", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Current version: 4")
+		assert.Equal(t, 4, appliedSchemaVersion(t))
+		assert.True(t, tableExists(t, "lottery_vrf_keys"), "step 4 applies 000004")
 	})
 }
 
@@ -118,7 +125,7 @@ func TestMigrateUp_AlreadyApplied(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err, "re-running up on a migrated DB is a no-op, not an error")
-		assert.Contains(t, out, "Current version: 3")
+		assert.Contains(t, out, "Current version: 4")
 	})
 }
 
@@ -145,8 +152,8 @@ func TestMigrateStatus_AfterUp(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "status")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Current version: 3")
-		assert.Contains(t, out, "Applied: 1, 2, 3")
+		assert.Contains(t, out, "Current version: 4")
+		assert.Contains(t, out, "Applied: 1, 2, 3, 4")
 		assert.Contains(t, out, "Pending: (none)")
 	})
 }
@@ -160,10 +167,16 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "down", "1", "--confirm")
 		require.NoError(t, err)
+		assert.Contains(t, out, "Current version: 3")
+		assert.Equal(t, 3, appliedSchemaVersion(t))
+		assert.False(t, tableExists(t, "lottery_vrf_keys"), "rolling back 000004 must drop its side table")
+
+		// Roll down one step at a time until the bottom.
+		out, err = runCmd(t, "migrate", "down", "1", "--confirm")
+		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 2")
 		assert.Equal(t, 2, appliedSchemaVersion(t))
 
-		// Roll down one step at a time until the bottom.
 		out, err = runCmd(t, "migrate", "down", "1", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 1")
@@ -189,8 +202,8 @@ func TestMigrateUp_OverrunCapsAtPending(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up", "5")
 		require.NoError(t, err, "up with N larger than pending must succeed")
-		assert.Contains(t, out, "Current version: 3")
-		assert.Equal(t, 3, appliedSchemaVersion(t))
+		assert.Contains(t, out, "Current version: 4")
+		assert.Equal(t, 4, appliedSchemaVersion(t))
 	})
 }
 
@@ -268,6 +281,6 @@ func TestMigrateDown_RequiresConfirm(t *testing.T) {
 		_, err = runCmd(t, "migrate", "down", "1")
 		require.Error(t, err, "down without --confirm must be refused")
 		assert.Contains(t, err.Error(), "--confirm")
-		assert.Equal(t, 3, appliedSchemaVersion(t), "no migration may roll back without confirmation")
+		assert.Equal(t, 4, appliedSchemaVersion(t), "no migration may roll back without confirmation")
 	})
 }
