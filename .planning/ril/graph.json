@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 176,
+  "round": 179,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-23T14:19:50+00:00",
+  "updated_at": "2026-10-23T14:52:28+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -986,7 +986,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:06:06+00:00",
       "updated_at": "2026-08-23T00:06:06+00:00",
-      "touched_round": 144,
+      "touched_round": 179,
       "title": "internal/domain/blockchain"
     },
     "CHG-017": {
@@ -2532,7 +2532,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:29:29+00:00",
       "updated_at": "2026-08-23T05:29:29+00:00",
-      "touched_round": 100,
+      "touched_round": 177,
       "title": "Backup/restore subsystem"
     },
     "EV-016": {
@@ -2740,7 +2740,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:42:51+00:00",
       "updated_at": "2026-08-23T05:42:51+00:00",
-      "touched_round": 147,
+      "touched_round": 179,
       "title": "SQLite persistence layer"
     },
     "EV-020": {
@@ -4087,21 +4087,21 @@
     "ISS-084": {
       "id": "ISS-084",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-08-24T19:23:11+00:00",
-      "updated_at": "2026-08-24T19:23:11+00:00",
-      "touched_round": 85,
+      "updated_at": "2026-10-23T14:52:28+00:00",
+      "touched_round": 179,
       "title": "Phantom on-chain blocks on rolled-back transactions: token Mint/Transfer/TransferFrom/Burn, NFT Transfer/Burn, voting CastVote and lottery all call chain.AddBlock BEFORE the domain transaction commits; a lost race (double-spend/ownership-changed/already-voted) rolls the tx back but the block persists, violating the chain invariant that every block = a committed operation. Voting documents it as an accepted best-effort tradeoff (its vote-row needs the height before save). Deferred: see DEC-002."
     },
     "DEC-002": {
       "id": "DEC-002",
       "type": "decision",
-      "status": "active",
-      "version": 1,
+      "status": "superseded",
+      "version": 2,
       "created_at": "2026-08-24T19:23:11+00:00",
-      "updated_at": "2026-08-24T19:23:11+00:00",
-      "touched_round": 85,
+      "updated_at": "2026-10-23T14:52:16+00:00",
+      "touched_round": 179,
       "rationale": "Best-effort on-chain audit blocks are accepted for now: block height must exist before the domain row save (audit records carry it), and the chain is a separate DB + in-memory singleton that a domain DB rollback cannot undo, so atomicity needs a cross-DB redesign. The token EVENT trail is already hardened (events publish only after commit, v1.68 / ISS-074) and a pre-tx race merely leaves a best-effort audit block, never corrupts committed balances. Revisit when a block-height reservation or after-commit height backfill design lands.",
       "alternatives_rejected": "Moving AddBlock post-commit for token only changes block ordering and is inconsistent across subsystems"
     },
@@ -15680,6 +15680,120 @@
       "touched_round": 176,
       "commit": 680910000000.0,
       "title": "Pin private SQLite sidecars in package smoke tests"
+    },
+    "ISS-333": {
+      "id": "ISS-333",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T14:22:32+00:00",
+      "updated_at": "2026-10-23T14:26:17+00:00",
+      "touched_round": 177,
+      "title": "Desktop database backups are readable by other local users",
+      "description": "The desktop File > Backup action snapshots the SQLite database into a timestamped directory chosen by the user. BackupService.Create uses MkdirAll(output, 0755), lets VACUUM INTO create the database with the process umask (0644 under the default 022), and writes metadata.json as 0640. The database stores operator-supplied Oracle request headers, which may contain bearer tokens, so another local account can read a backup even though the live desktop data tree is now owner-only.",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 1
+    },
+    "TASK-339": {
+      "id": "TASK-339",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T14:22:35+00:00",
+      "updated_at": "2026-10-23T14:26:17+00:00",
+      "touched_round": 177,
+      "category": "security",
+      "title": "Make desktop database backups private by default",
+      "description": "Create each backup set as an owner-only directory and force the SQLite snapshots and metadata to 0600 on Unix-like systems, without weakening existing output directories. Add a regression that runs Create under umask 022 and asserts the backup directory and files cannot be read by another local account; pin the resulting desktop action through the shared backup service.",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.3,
+      "outcome": "New backup sets are 0700 and SQLite snapshots plus metadata are 0600; an existing output directory keeps its own mode but new files remain owner-only. The red test observed 0755/0644 under umask 022, then passed at 0700/0600 after the fix; the backup package, desktop checks and desktop race suite are green."
+    },
+    "TASK-340": {
+      "id": "TASK-340",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T14:24:51+00:00",
+      "updated_at": "2026-10-23T14:52:28+00:00",
+      "touched_round": 179,
+      "category": "correctness",
+      "severity": 0.9,
+      "confidence": 0.92,
+      "effort": 5,
+      "unlock_factor": 2,
+      "title": "Make on-chain audit blocks atomic with domain SQLite transactions",
+      "description": "Use the shared aurora.db transaction to insert each block together with token/NFT/voting/lottery/oracle state. Add a transaction-aware BlockChain write API that mines under the chain lock, inserts through the domain *sql.Tx, appends to memory only after commit, and retries height conflicts. Refactor every pre-transaction AddBlock/AddLotteryRecord caller and prove rollback leaves neither a database row nor an in-memory block. Replace the obsolete cross-DB deferral in DEC-002.",
+      "outcome": "Blocks and domain rows now commit or roll back together for token, NFT, voting, lottery, and Oracle over the shared aurora.db. The chain holds its lock through commit, appends to memory only after success, and retries height conflicts before any business callback. Real-SQLite rollback tests are green; fault-injecting the old ordering made all five regressions red with a phantom in-memory block. Full CGO_ENABLED=0 tests, relevant race tests, golangci-lint, desktop-check, desktop-race, and build-current passed."
+    },
+    "CHG-339": {
+      "id": "CHG-339",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:26:10+00:00",
+      "updated_at": "2026-10-23T14:26:10+00:00",
+      "touched_round": 177,
+      "commit": "0ec24f5",
+      "title": "Keep desktop database backups private"
+    },
+    "ISS-334": {
+      "id": "ISS-334",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:27:29+00:00",
+      "updated_at": "2026-10-23T14:27:29+00:00",
+      "touched_round": 178,
+      "title": "Concurrent SQLite migrators observe transient dirty state or both pass the version check",
+      "description": "TestMigrator_ConcurrentOpenersSerialize fails deterministically with migration up failed: database is dirty at version 1 (go test -count=20 ./internal/infra/migrate -run TestMigrator_ConcurrentOpenersSerialize). Migrator.up reads schema_migrations before opening a write transaction, then run() marks dirty, applies SQL and clears dirty in three separate transactions. A peer can therefore read the transient dirty marker and fail even though the migration is succeeding; two peers that both read the same clean version can also enter the same migration before either marks it dirty. BEGIN IMMEDIATE and busy_timeout only serialize transactions, not this read/check/run gap.",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 2
+    },
+    "TASK-341": {
+      "id": "TASK-341",
+      "type": "task",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-23T14:27:33+00:00",
+      "updated_at": "2026-10-23T14:27:40+00:00",
+      "touched_round": 178,
+      "category": "correctness",
+      "title": "Serialize migration version checks with the migration transaction",
+      "description": "Hold one BEGIN IMMEDIATE transaction across the dirty check and every migration step so concurrent openers wait, then re-read the committed version and skip work already applied by the winner. Preserve crash-safety: a failed SQL body rolls back only that migration through a savepoint, leaves the target version dirty, and returns the original failure. Cover concurrent up/down and the existing failed-migration dirty contract without weakening assertions.",
+      "severity": 0.8,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1.1,
+      "lock_owner": "codex-desktop-iteration",
+      "lock_until": "2026-10-23T14:57:40+00:00"
+    },
+    "CHG-340": {
+      "id": "CHG-340",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:52:05+00:00",
+      "updated_at": "2026-10-23T14:52:05+00:00",
+      "touched_round": 179,
+      "commit": "de3782e",
+      "title": "Commit business rows and on-chain audit blocks in one SQLite transaction; insert under the chain lock, append memory after commit, retry height conflicts, and cover token/NFT/voting/lottery/Oracle rollback with real SQLite tests (ISS-084)"
+    },
+    "DEC-033": {
+      "id": "DEC-033",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:52:10+00:00",
+      "updated_at": "2026-10-23T14:52:10+00:00",
+      "touched_round": 179,
+      "title": "Place audit blocks and domain rows in one shared-SQLite transaction",
+      "rationale": "Token, NFT, voting, lottery and Oracle already share aurora.db. The chain now exposes a transaction-aware append API that inserts the proof-of-work block through the caller's *sql.Tx, runs the domain mutation before commit, and appends to the in-memory chain only after commit. The chain lock spans height reservation through commit so concurrent writers cannot mine against an uncommitted predecessor; lock ordering is chain then SQLite. Height conflicts remain DB-authoritative and retry before the business callback, so failed attempts have no domain side effects. Tests prove rollback removes both the block row and in-memory block across all five subsystems.",
+      "alternatives_rejected": "Cross-DB block reservation plus after-commit height backfill; appending the block only after commit while leaving the business row without its audit height; relying on compensation or background reconciliation instead of one transaction"
     }
   },
   "edges": [
@@ -24251,6 +24365,78 @@
       "to": "ISS-332",
       "type": "resolves",
       "created_at": "2026-10-23T14:19:36+00:00"
+    },
+    {
+      "from": "TASK-339",
+      "to": "ISS-333",
+      "type": "addresses",
+      "created_at": "2026-10-23T14:22:38+00:00"
+    },
+    {
+      "from": "ISS-333",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-10-23T14:22:38+00:00"
+    },
+    {
+      "from": "CHG-339",
+      "to": "TASK-339",
+      "type": "implements",
+      "created_at": "2026-10-23T14:26:17+00:00"
+    },
+    {
+      "from": "CHG-339",
+      "to": "ISS-333",
+      "type": "resolves",
+      "created_at": "2026-10-23T14:26:17+00:00"
+    },
+    {
+      "from": "TASK-341",
+      "to": "ISS-334",
+      "type": "addresses",
+      "created_at": "2026-10-23T14:27:39+00:00"
+    },
+    {
+      "from": "ISS-334",
+      "to": "COMP-010",
+      "type": "located_in",
+      "created_at": "2026-10-23T14:27:40+00:00"
+    },
+    {
+      "from": "TASK-340",
+      "to": "ISS-084",
+      "type": "addresses",
+      "created_at": "2026-10-23T14:28:08+00:00"
+    },
+    {
+      "from": "CHG-340",
+      "to": "TASK-340",
+      "type": "implements",
+      "created_at": "2026-10-23T14:52:16+00:00"
+    },
+    {
+      "from": "CHG-340",
+      "to": "ISS-084",
+      "type": "resolves",
+      "created_at": "2026-10-23T14:52:16+00:00"
+    },
+    {
+      "from": "DEC-033",
+      "to": "DEC-002",
+      "type": "supersedes",
+      "created_at": "2026-10-23T14:52:16+00:00"
+    },
+    {
+      "from": "DEC-033",
+      "to": "COMP-002",
+      "type": "governs",
+      "created_at": "2026-10-23T14:52:16+00:00"
+    },
+    {
+      "from": "DEC-033",
+      "to": "COMP-010",
+      "type": "governs",
+      "created_at": "2026-10-23T14:52:16+00:00"
     }
   ]
 }
