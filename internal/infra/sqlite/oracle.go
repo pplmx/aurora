@@ -12,8 +12,15 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+type oracleExec interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 type OracleRepository struct {
-	db *sql.DB
+	db   *sql.DB
+	exec oracleExec
 }
 
 func NewOracleRepository(path string) (*OracleRepository, error) {
@@ -41,6 +48,31 @@ func NewOracleRepository(path string) (*OracleRepository, error) {
 // released on all platforms (Windows in particular).
 func (r *OracleRepository) Close() error {
 	return r.db.Close()
+}
+
+func (r *OracleRepository) q() oracleExec {
+	if r.exec != nil {
+		return r.exec
+	}
+	return r.db
+}
+
+// WithTx returns a repository whose operations participate in tx.
+func (r *OracleRepository) WithTx(tx *sql.Tx) oracle.Repository {
+	return &OracleRepository{db: r.db, exec: tx}
+}
+
+// WithTransaction runs fn in one write transaction on the repository's DB.
+// FetchDataUseCase passes this repository to the blockchain transaction writer
+// so an observation and its audit block commit or roll back together.
+func (r *OracleRepository) WithTransaction(fn func(tx *sql.Tx) error) error {
+	return NewTxManager(r.db).WithTransaction(fn)
+}
+
+// GetDB exposes the underlying pool for callers that need to share a
+// transaction manager with the repository.
+func (r *OracleRepository) GetDB() *sql.DB {
+	return r.db
 }
 
 func (r *OracleRepository) initTables() error {
@@ -88,7 +120,7 @@ func (r *OracleRepository) SaveData(data *oracle.OracleData) error {
 	if data.Timestamp == 0 {
 		data.Timestamp = time.Now().Unix()
 	}
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`INSERT OR REPLACE INTO oracle_data (id, source_id, value, raw_response, timestamp, block_height)
 		 VALUES (?, ?, ?, ?, ?, ?)`,
 		data.ID, data.SourceID, data.Value, data.RawResponse, data.Timestamp, data.BlockHeight,
@@ -97,7 +129,7 @@ func (r *OracleRepository) SaveData(data *oracle.OracleData) error {
 }
 
 func (r *OracleRepository) GetData(id string) (*oracle.OracleData, error) {
-	row := r.db.QueryRow(
+	row := r.q().QueryRow(
 		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE id = ?`,
 		id,
 	)
@@ -113,7 +145,7 @@ func (r *OracleRepository) GetDataBySource(sourceID string, limit int) ([]*oracl
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := r.db.Query(
+	rows, err := r.q().Query(
 		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE source_id = ? ORDER BY timestamp DESC LIMIT ?`,
 		sourceID, limit,
 	)
@@ -134,7 +166,7 @@ func (r *OracleRepository) GetDataBySource(sourceID string, limit int) ([]*oracl
 }
 
 func (r *OracleRepository) GetLatestData(sourceID string) (*oracle.OracleData, error) {
-	row := r.db.QueryRow(
+	row := r.q().QueryRow(
 		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE source_id = ? ORDER BY timestamp DESC LIMIT 1`,
 		sourceID,
 	)
@@ -151,7 +183,7 @@ func (r *OracleRepository) GetLatestData(sourceID string) (*oracle.OracleData, e
 }
 
 func (r *OracleRepository) GetDataByTimeRange(sourceID string, start, end int64) ([]*oracle.OracleData, error) {
-	rows, err := r.db.Query(
+	rows, err := r.q().Query(
 		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE source_id = ? AND timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC`,
 		sourceID, start, end,
 	)
@@ -185,7 +217,7 @@ func (r *OracleRepository) SaveSource(source *oracle.DataSource) error {
 	if source.Enabled {
 		enabled = 1
 	}
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`INSERT OR REPLACE INTO data_sources (id, name, url, type, method, headers, path, interval, enabled, created_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		source.ID, source.Name, source.URL, source.Type, source.Method, source.Headers, source.Path, source.Interval, enabled, source.CreatedAt,
@@ -194,7 +226,7 @@ func (r *OracleRepository) SaveSource(source *oracle.DataSource) error {
 }
 
 func (r *OracleRepository) GetSource(id string) (*oracle.DataSource, error) {
-	row := r.db.QueryRow(
+	row := r.q().QueryRow(
 		`SELECT id, name, url, type, method, headers, path, interval, enabled, created_at FROM data_sources WHERE id = ?`,
 		id,
 	)
@@ -209,7 +241,7 @@ func (r *OracleRepository) GetSource(id string) (*oracle.DataSource, error) {
 }
 
 func (r *OracleRepository) ListSources() ([]*oracle.DataSource, error) {
-	rows, err := r.db.Query(
+	rows, err := r.q().Query(
 		`SELECT id, name, url, type, method, headers, path, interval, enabled, created_at FROM data_sources ORDER BY created_at DESC`,
 	)
 	if err != nil {
@@ -235,7 +267,7 @@ func (r *OracleRepository) UpdateSource(ds *oracle.DataSource) error {
 	if ds.Enabled {
 		enabled = 1
 	}
-	_, err := r.db.Exec(
+	_, err := r.q().Exec(
 		`UPDATE data_sources SET name = ?, url = ?, type = ?, method = ?, headers = ?, path = ?, interval = ?, enabled = ? WHERE id = ?`,
 		ds.Name, ds.URL, ds.Type, ds.Method, ds.Headers, ds.Path, ds.Interval, enabled, ds.ID,
 	)
@@ -256,7 +288,7 @@ func (r *OracleRepository) SetSourceEnabled(id string, enabled bool) error {
 	if enabled {
 		val = 1
 	}
-	res, err := r.db.Exec(`UPDATE data_sources SET enabled = ? WHERE id = ?`, val, id)
+	res, err := r.q().Exec(`UPDATE data_sources SET enabled = ? WHERE id = ?`, val, id)
 	if err != nil {
 		return err
 	}
@@ -271,7 +303,7 @@ func (r *OracleRepository) SetSourceEnabled(id string, enabled bool) error {
 }
 
 func (r *OracleRepository) DeleteSource(id string) error {
-	res, err := r.db.Exec(`DELETE FROM data_sources WHERE id = ?`, id)
+	res, err := r.q().Exec(`DELETE FROM data_sources WHERE id = ?`, id)
 	if err != nil {
 		return err
 	}

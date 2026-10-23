@@ -5,6 +5,7 @@ package blockchain
 import (
 	"bytes"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -163,30 +164,11 @@ func (c *BlockChain) appendBlock(data string, stamp func(height int64) string) (
 			}
 		}
 
-		if len(c.Blocks) == 0 {
-			return 0, fmt.Errorf("blockchain not initialized")
+		block, err := c.nextBlock(data, stamp)
+		if err != nil {
+			return 0, err
 		}
-		height := int64(len(c.Blocks))
-		if stamp != nil {
-			if stamped := stamp(height); stamped != "" {
-				data = stamped
-			}
-		}
-		prev := c.Blocks[len(c.Blocks)-1]
-		block := &Block{
-			Height:    height,
-			PrevHash:  append([]byte(nil), prev.Hash...),
-			Data:      []byte(data),
-			Nonce:     0,
-			Timestamp: time.Now().Unix(),
-		}
-		// Mine under the lock: consecutive blocks cannot be mined in parallel
-		// (see the AddBlock comment for why), so serializing is both correct
-		// and the only valid option.
-		pow := NewProofOfWork(block)
-		nonce, hash := pow.Run()
-		block.Nonce = int64(nonce)
-		block.Hash = append([]byte(nil), hash...)
+		height := block.Height
 		c.Blocks = append(c.Blocks, block)
 
 		// Best-effort persistence. The in-memory chain is authoritative;
@@ -213,6 +195,137 @@ func (c *BlockChain) appendBlock(data string, stamp func(height int64) string) (
 	}
 
 	return 0, ErrHeightConflict
+}
+
+// WithBlockTransaction appends data while running fn in the same SQLite
+// transaction. The transaction inserts the block before fn runs, so a failed
+// business mutation rolls back both rows and the in-memory chain never sees a
+// phantom block.
+//
+// The chain write lock is held from height reservation through commit. This is
+// required for two reasons: consecutive proof-of-work inputs cannot be mined
+// in parallel, and no other caller may observe or extend the chain between a
+// successful commit and the in-memory append. The lock order is always
+// chain -> database, matching AddBlock, so transaction callbacks must not call
+// back into this chain.
+func (c *BlockChain) WithBlockTransaction(
+	data string,
+	txManager TransactionManager,
+	fn func(tx *sql.Tx, height int64) error,
+) error {
+	return c.withAppendTransaction(data, nil, txManager, fn)
+}
+
+// WithLotteryRecordTransaction is WithBlockTransaction with the same
+// block_height stamping used by AddLotteryRecord.
+func (c *BlockChain) WithLotteryRecordTransaction(
+	data string,
+	txManager TransactionManager,
+	fn func(tx *sql.Tx, height int64) error,
+) error {
+	return c.withAppendTransaction(data, func(height int64) string {
+		stamped, err := stampRecordHeight(data, height)
+		if err != nil {
+			return ""
+		}
+		return stamped
+	}, txManager, fn)
+}
+
+func (c *BlockChain) withAppendTransaction(
+	data string,
+	stamp func(height int64) string,
+	txManager TransactionManager,
+	fn func(tx *sql.Tx, height int64) error,
+) error {
+	if c == nil {
+		return fmt.Errorf("blockchain not initialized")
+	}
+	if txManager == nil {
+		return fmt.Errorf("blockchain transaction manager not configured")
+	}
+	if fn == nil {
+		return fmt.Errorf("blockchain transaction callback not configured")
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for range maxHeightRetries {
+		if c.syncFromDB != nil {
+			if err := c.syncFromDB(); err != nil {
+				logger.Warn().Err(err).Msg("Failed to sync chain from database; using in-memory height")
+			}
+		}
+
+		block, err := c.nextBlock(data, stamp)
+		if err != nil {
+			return err
+		}
+
+		err = txManager.WithTransaction(func(tx *sql.Tx) error {
+			if tx == nil {
+				// A no-op/mock transaction cannot insert the block atomically.
+				// Preserve the legacy best-effort behavior for in-memory
+				// repositories, but still append the in-memory block only
+				// after the callback succeeds.
+				if c.persist != nil {
+					if persistErr := c.persist(block); persistErr != nil {
+						if errors.Is(persistErr, ErrHeightConflict) {
+							return persistErr
+						}
+						logger.Warn().Err(persistErr).Msg("Failed to persist block")
+					}
+				}
+				return fn(nil, block.Height)
+			}
+
+			if insertErr := insertBlock(tx, block); insertErr != nil {
+				return insertErr
+			}
+			return fn(tx, block.Height)
+		})
+		if err != nil {
+			if errors.Is(err, ErrHeightConflict) {
+				logger.Warn().Int64("height", block.Height).Msg("Block height already committed by another process; retrying at next height")
+				continue
+			}
+			return err
+		}
+
+		c.Blocks = append(c.Blocks, block)
+		return nil
+	}
+
+	return ErrHeightConflict
+}
+
+// nextBlock reserves and mines the next chain block. The caller must hold the
+// chain write lock.
+func (c *BlockChain) nextBlock(data string, stamp func(height int64) string) (*Block, error) {
+	if len(c.Blocks) == 0 {
+		return nil, fmt.Errorf("blockchain not initialized")
+	}
+
+	height := int64(len(c.Blocks))
+	if stamp != nil {
+		if stamped := stamp(height); stamped != "" {
+			data = stamped
+		}
+	}
+	prev := c.Blocks[len(c.Blocks)-1]
+	block := &Block{
+		Height:    height,
+		PrevHash:  append([]byte(nil), prev.Hash...),
+		Data:      []byte(data),
+		Nonce:     0,
+		Timestamp: time.Now().Unix(),
+	}
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+	block.Nonce = int64(nonce)
+	block.Hash = append([]byte(nil), hash...)
+	return block, nil
 }
 
 // ResetBlocks re-seeds the in-memory chain back to a single genesis block.
@@ -347,4 +460,15 @@ func verifyBlockPoW(b *Block) (bool, string) {
 
 func NewBlockChain() *BlockChain {
 	return &BlockChain{Blocks: []*Block{Genesis()}}
+}
+
+// NewBlockChainWithDB builds an independent persistent chain over db. It uses
+// the same schema and conflict handling as the process singleton, without
+// claiming the global instance. Callers that pair the chain with a domain
+// repository must pass the same SQLite database so transactional block
+// appends and business rows share one commit.
+func NewBlockChainWithDB(db *sql.DB) *BlockChain {
+	chain := NewBlockChain()
+	bindChainToDB(chain, db)
+	return chain
 }

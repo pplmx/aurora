@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
@@ -143,6 +144,7 @@ func TestRunLotteryPersistsToRecorder(t *testing.T) {
 
 	app := NewLotteryApp()
 	app.repo = repo
+	app.chain = blockchain.NewBlockChainWithDB(repo.GetDB())
 
 	result := app.runLottery([]string{"p1", "p2", "p3", "p4", "p5"}, "seed", 2)
 	assert.NotNil(t, result)

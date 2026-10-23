@@ -69,6 +69,28 @@ func (uc *CastVoteUseCase) txRepo(tx *sql.Tx) voting.Repository {
 	return uc.repo.WithTx(tx)
 }
 
+func (uc *CastVoteUseCase) withVoteBlock(data string, fn func(repo voting.Repository, height int64) error) error {
+	if uc.chain == nil {
+		return uc.txManager.WithTransaction(func(tx *sql.Tx) error {
+			return fn(uc.txRepo(tx), 0)
+		})
+	}
+
+	if writer, ok := uc.chain.(blockchain.BlockTransactionWriter); ok {
+		return writer.WithBlockTransaction(data, uc.txManager, func(tx *sql.Tx, height int64) error {
+			return fn(uc.txRepo(tx), height)
+		})
+	}
+
+	height, err := uc.chain.AddBlock(data)
+	if err != nil {
+		return fmt.Errorf("failed to record vote on chain: %w", err)
+	}
+	return uc.txManager.WithTransaction(func(tx *sql.Tx) error {
+		return fn(uc.txRepo(tx), height)
+	})
+}
+
 func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	session, err := uc.repo.GetSession(req.SessionID)
 	if err != nil {
@@ -177,37 +199,22 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	var voteID string
 	var blockHeight int64
 
-	// Record the ballot on-chain (documented intent: "blockchain-based vote
-	// recording"). The block is added before the transaction, matching the
-	// token/NFT services: a block height must exist before the vote row is
-	// persisted so the audit record carries it. A failed transaction (e.g. a
-	// concurrently-lost double-vote claim) leaves a best-effort audit block,
-	// the same accepted tradeoff as Mint/Transfer/Burn.
-	if uc.chain != nil {
-		data := fmt.Sprintf("vote|%s|%s|%s", req.VoterPublicKey, req.CandidateID, req.SessionID)
-		h, cErr := uc.chain.AddBlock(data)
-		if cErr != nil {
-			return nil, fmt.Errorf("failed to record vote on chain: %w", cErr)
-		}
-		blockHeight = h
-	}
+	data := fmt.Sprintf("vote|%s|%s|%s", req.VoterPublicKey, req.CandidateID, req.SessionID)
+	err = uc.withVoteBlock(data, func(repo voting.Repository, height int64) error {
+		blockHeight = height
 
-	err = uc.txManager.WithTransaction(func(tx *sql.Tx) error {
-		txRepo := uc.txRepo(tx)
-
-		if err := txRepo.TryMarkVoted(req.VoterPublicKey, voteHash); err != nil {
+		if err := repo.TryMarkVoted(req.VoterPublicKey, voteHash); err != nil {
 			return err
 		}
 
 		vote := voting.NewSessionVote(req.VoterPublicKey, req.CandidateID, req.SessionID, signature, message)
-		vote.BlockHeight = blockHeight
-		if err := txRepo.SaveVote(vote); err != nil {
+		vote.BlockHeight = height
+		if err := repo.SaveVote(vote); err != nil {
 			return fmt.Errorf("failed to save vote: %w", err)
 		}
 		voteID = vote.ID
-		blockHeight = vote.BlockHeight
 
-		if err := txRepo.IncrementCandidateVoteCount(req.CandidateID); err != nil {
+		if err := repo.IncrementCandidateVoteCount(req.CandidateID); err != nil {
 			return err
 		}
 		return nil

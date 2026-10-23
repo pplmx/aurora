@@ -47,6 +47,16 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Rolled-back domain writes no longer leave on-chain audit blocks**:
+  token, NFT, voting, lottery and Oracle writes share `aurora.db`, but each
+  appended its audit block before the business SQLite transaction committed.
+  A losing concurrent write therefore left a permanent block for an operation
+  that never happened (for example, an insufficient-balance transfer or a
+  double vote). The block and domain row now commit or roll back together;
+  the chain keeps its write lock through commit, appends to memory only after
+  success, and still retries DB-authoritative height conflicts. Real SQLite
+  regressions cover all five subsystems, and fault injection restores the
+  pre-transaction ordering to prove each one detects the phantom block.
 - **Desktop state is private to the current user**: the SQLite database can
   contain operator-supplied Oracle bearer headers, but the default app tree
   was created with mode `0755` and its database/log files with `0644`. The

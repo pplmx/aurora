@@ -1,12 +1,20 @@
 package lottery
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"strings"
 
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 )
+
+type transactionalLotteryRepository interface {
+	lottery.Repository
+	WithTx(tx *sql.Tx) lottery.Repository
+	WithTransaction(fn func(tx *sql.Tx) error) error
+}
 
 type CreateLotteryUseCase struct {
 	lotteryRepo lottery.Repository
@@ -27,6 +35,34 @@ func NewCreateLotteryUseCase(
 		blockRepo:   blockRepo,
 		service:     lottery.NewService(),
 	}
+}
+
+func (uc *CreateLotteryUseCase) saveWithBlock(jsonData string, record *lottery.LotteryRecord) error {
+	txRepo, repoOK := uc.lotteryRepo.(transactionalLotteryRepository)
+	writer, chainOK := uc.blockRepo.(blockchain.LotteryRecordTransactionWriter)
+	if repoOK && chainOK {
+		err := writer.WithLotteryRecordTransaction(jsonData, txRepo, func(tx *sql.Tx, height int64) error {
+			record.BlockHeight = height
+			if err := txRepo.WithTx(tx).Save(record); err != nil {
+				return fmt.Errorf("failed to save to repository: %w", err)
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("failed to persist lottery draw: %w", err)
+		}
+		return nil
+	}
+
+	height, err := uc.blockRepo.AddLotteryRecord(jsonData)
+	if err != nil {
+		return fmt.Errorf("failed to add to blockchain: %w", err)
+	}
+	record.BlockHeight = height
+	if err := uc.lotteryRepo.Save(record); err != nil {
+		return fmt.Errorf("failed to save to repository: %w", err)
+	}
+	return nil
 }
 
 func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryResponse, error) {
@@ -88,15 +124,8 @@ func (uc *CreateLotteryUseCase) Execute(req CreateLotteryRequest) (*LotteryRespo
 		return nil, fmt.Errorf("failed to serialize record: %w", err)
 	}
 
-	height, err := uc.blockRepo.AddLotteryRecord(jsonData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to add to blockchain: %w", err)
-	}
-
-	record.BlockHeight = height
-
-	if err := uc.lotteryRepo.Save(record); err != nil {
-		return nil, fmt.Errorf("failed to save to repository: %w", err)
+	if err := uc.saveWithBlock(jsonData, record); err != nil {
+		return nil, err
 	}
 
 	return &LotteryResponse{
