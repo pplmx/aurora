@@ -16,6 +16,7 @@ import (
 
 var cfgFile string
 var httpTimeout string
+var configErr error
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -46,6 +47,10 @@ nft, token) and operational commands (migrate, backup, version).`,
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if configErr != nil {
+			return configErr
+		}
+
 		// Cobra runs initConfig before this hook, so [log] settings are now
 		// available. The bootstrap logger in main necessarily ran too early
 		// and used console output.
@@ -154,6 +159,7 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	configErr = nil
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -176,10 +182,17 @@ func initConfig() {
 	_ = viper.BindPFlag("http.timeout", rootCmd.PersistentFlags().Lookup("http-timeout"))
 	viper.AutomaticEnv() // read in environment variables that match
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	// A missing optional config during the $HOME/cwd search is fine. A missing
+	// explicit --config or any parse/read failure must abort before a command
+	// can run against defaults the operator did not intend.
+	if err := viper.ReadInConfig(); err != nil {
+		var notFound viper.ConfigFileNotFoundError
+		if cfgFile != "" || !errors.As(err, &notFound) {
+			configErr = fmt.Errorf("failed to read config: %w", err)
+		}
+		return
 	}
+	fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 }
 
 func setDefaultConfig() {
