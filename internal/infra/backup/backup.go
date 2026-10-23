@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -93,7 +94,7 @@ func (s *BackupService) removeTemps(snaps []snapshot) {
 }
 
 func (s *BackupService) Create(ctx context.Context, output string) (*BackupResult, error) {
-	if err := os.MkdirAll(output, 0755); err != nil {
+	if err := os.MkdirAll(output, 0o700); err != nil {
 		return nil, fmt.Errorf("create output dir: %w", err)
 	}
 
@@ -163,6 +164,10 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 			return nil, fmt.Errorf("close %s: %w", name, err)
 		}
 		snapshots = append(snapshots, snapshot{name: name, destPath: destPath, tmpPath: tmpPath})
+		if err := restrictBackupFile(tmpPath); err != nil {
+			s.removeTemps(snapshots)
+			return nil, fmt.Errorf("restrict snapshot %s: %w", name, err)
+		}
 	}
 
 	// Phase 2: promote every completed snapshot into place. os.Rename is
@@ -210,8 +215,12 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 	// fails Verify with no good copy recoverable. Write to a temp sibling and
 	// os.Rename into place, the same promote primitive the snapshots use.
 	metaTmp := metaPath + ".tmp"
-	if err := os.WriteFile(metaTmp, metaData, 0640); err != nil {
+	if err := os.WriteFile(metaTmp, metaData, 0o600); err != nil {
 		return nil, fmt.Errorf("write metadata: %w", err)
+	}
+	if err := restrictBackupFile(metaTmp); err != nil {
+		_ = os.Remove(metaTmp)
+		return nil, fmt.Errorf("restrict metadata: %w", err)
 	}
 	if err := os.Rename(metaTmp, metaPath); err != nil {
 		_ = os.Remove(metaTmp)
@@ -235,6 +244,18 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 		Checksum:      checksum,
 		SchemaVersion: schemaVersion,
 	}, nil
+}
+
+// restrictBackupFile makes a database snapshot or its metadata owner-only.
+// SQLite's VACUUM INTO creates the snapshot with the process umask, so the
+// file itself was 0644 under the common 022 default even when the caller
+// selected a private directory. Windows backup directories inherit the user's
+// ACL and do not use these Unix mode bits.
+func restrictBackupFile(path string) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	return os.Chmod(path, 0o600)
 }
 
 // getSchemaVersion returns the highest schema_migrations.version found

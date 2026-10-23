@@ -54,6 +54,13 @@ documented in their per-milestone ROADMAP files.
   before storage opens, including directories left by older releases, and
   keeps the SQLite/WAL/SHM and log files at `0600`. An explicit `--data-dir`
   keeps an existing directory's permissions.
+- **Desktop database backups are private too**: File → Back Up Database used
+  to create its timestamped backup directory as `0755`, the VACUUM INTO
+  database snapshot as `0644`, and metadata as `0640`. The same Oracle bearer
+  headers therefore remained readable from the backup even after the live
+  data tree was protected. New backup sets are now `0700`; their database and
+  metadata files are forced to `0600`, while an explicitly reused output
+  directory keeps its existing permissions.
 - **Concurrent release runs are serialized by tag**: a tag push and one or
   more manual retries use the same non-cancelling concurrency group, so the
   publisher cannot interleave binaries, checksums, or provenance from different
