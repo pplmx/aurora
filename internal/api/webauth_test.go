@@ -97,6 +97,34 @@ func TestInjectAPIKey_SetsCSPOnHTML(t *testing.T) {
 		"non-HTML assets carry no CSP (set only with the key-bootstrap injection)")
 }
 
+// TestInjectAPIKey_HTMLIsNotCacheable protects the credential embedded in
+// every served page. FileServer provides Last-Modified, and without an
+// explicit cache policy a browser or shared proxy may reuse a response that
+// contains window.AURORA_API_KEY.
+func TestInjectAPIKey_HTMLIsNotCacheable(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"),
+		[]byte("<html><head><title>t</title></head><body>hello</body></html>"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "style.css"), []byte("body{}"), 0o644))
+
+	handler := injectAPIKey(http.FileServer(http.Dir(dir)), "top-secret")
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `window.AURORA_API_KEY = "top-secret";`)
+	assert.Equal(t, "no-store", rr.Header().Get("Cache-Control"),
+		"HTML carrying the API key must never be stored by a browser or shared cache")
+
+	req = httptest.NewRequest(http.MethodGet, "/style.css", nil)
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Empty(t, rr.Header().Get("Cache-Control"),
+		"non-secret static assets should keep their normal cache policy")
+}
+
 func TestInjectAPIKey_EmptyKey_PassesThrough(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"),
