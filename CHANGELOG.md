@@ -30,6 +30,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **Web UI polling now pauses in the background**: the dashboard and Oracle
+  pages used to keep their 15-second refresh timers active while minimized or
+  hidden, including the dashboard's full ledger-verification scan. Polling
+  now skips hidden documents and refreshes immediately when the page becomes
+  visible again, so a returning operator sees current data without keeping
+  idle windows busy.
 - **The desktop shell now uses MyGo v0.6.3**: the patch release brings
   Windows WebView2 event-token and task-dialog lifetime fixes, WebKit content
   rules, and UI paste/rendering corrections. The Linux package and its real
