@@ -2,14 +2,11 @@
 -- Version: 000001
 --
 -- NOTE: this migration must NOT contain `PRAGMA journal_mode=WAL` or
--- `PRAGMA foreign_keys=ON`. golang-migrate's sqlite driver runs each
--- migration inside an explicit transaction, and switching WAL mode is not
--- permitted inside a transaction — the whole migration batch used to fail
--- with "cannot change into wal mode from within a transaction" the very
--- first time it ran. WAL mode and foreign keys are per-connection settings
--- already applied by every repository's DSN/constructor (e.g.
--- `?_foreign_keys=ON`, PRAGMA journal_mode=WAL in repo init), so they do
--- not belong in schema migrations.
+-- `PRAGMA foreign_keys=ON`. The migration runner executes each file inside an
+-- explicit transaction, and switching WAL mode is not permitted inside a
+-- transaction. WAL mode and foreign keys are per-connection settings already
+-- applied by every repository's DSN/constructor, so they do not belong in
+-- schema migrations.
 
 -- Blockchain blocks table.
 -- Schema matches internal/domain/blockchain/init.go's CREATE TABLE exactly

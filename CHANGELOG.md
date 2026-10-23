@@ -12,8 +12,7 @@ documented in their per-milestone ROADMAP files.
 ### Changed
 
 - **SQLite storage is now pure Go**: Aurora uses `modernc.org/sqlite`
-  instead of the cgo-only `mattn/go-sqlite3`, and golang-migrate uses its
-  matching `database/sqlite` driver. The hardened DSN (foreign keys,
+  instead of the cgo-only `mattn/go-sqlite3`. The hardened DSN (foreign keys,
   immediate write transactions, 5s busy timeout) is unchanged. CLI, API,
   Docker and desktop builds now run with `CGO_ENABLED=0`; cgo is only
   needed when the race detector is enabled during testing.
@@ -31,6 +30,12 @@ documented in their per-milestone ROADMAP files.
   and the main desktop CI gate run their build, vet and tests with
   `CGO_ENABLED=0`; `just desktop-race` and a separate CI step explicitly opt
   in to the race detector's cgo runtime.
+- **The migration engine is now SQLite-only**: the repository no longer
+  depends on `golang-migrate` and its multi-database backend graph. A small
+  in-tree runner preserves the `schema_migrations` table, ordered up/down
+  steps, dirty-state refusal, hardened DSN and CLI output contracts. It
+  rejects duplicate version files and missing down files instead of silently
+  choosing one or skipping a rollback.
 
 ## [v1.99] - 2026-10-21
 

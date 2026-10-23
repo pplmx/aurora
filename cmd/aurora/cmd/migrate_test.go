@@ -22,10 +22,10 @@ func setMigrationsPathForTest(t *testing.T) {
 	viper.Set("migrate.path", repoMigrationsDir())
 }
 
-// appliedSchemaVersion queries the golang-migrate version table directly to
+// appliedSchemaVersion queries the schema_migrations table directly to
 // cross-check what the CLI command actually wrote, independent of the
-// command's own status output. golang-migrate deletes the schema_migrations
-// row when fully rolled back to version 0, so a missing row means 0.
+// command's own status output. The runner deletes the row when fully rolled
+// back to version 0, so a missing row means 0.
 func appliedSchemaVersion(t *testing.T) (version int) {
 	t.Helper()
 	db := openTestAuroraDB(t)
@@ -181,9 +181,8 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 	})
 }
 
-// TestMigrateUp_OverrunCapsAtPending guards against golang-migrate's
-// Steps(N) overrun: "up 5" with fewer pending migrations must apply all and
-// succeed, not apply-then-error ("limit N short" / "file does not exist").
+// TestMigrateUp_OverrunCapsAtPending guards the CLI's step cap: "up 5" with
+// fewer pending migrations must apply all and succeed, not apply-then-error.
 func TestMigrateUp_OverrunCapsAtPending(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setMigrationsPathForTest(t)

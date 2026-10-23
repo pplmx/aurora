@@ -2,23 +2,17 @@ package migrate
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 
-	"github.com/golang-migrate/migrate/v4"
-	migratesqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
-	"github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	_ "modernc.org/sqlite"
 )
 
 type Migrator struct {
 	db      *sql.DB
-	m       *migrate.Migrate
-	dbPath  string
 	migPath string
 }
 
@@ -36,190 +30,97 @@ func New(dbPath, migPath string) (*Migrator, error) {
 	}
 
 	// Use the same hardened DSN every repository opens (foreign keys + BEGIN
-	// IMMEDIATE + 5s busy timeout, sqlite.WriteDSNSuffix) instead of the bare
-	// `?_foreign_keys=ON`. SQLite's default busy timeout is 0, so an
-	// unhardened migrate running against a DB another CLI/API process holds the
-	// write lock on failed instantly with "database is locked"; with _busy_timeout it
-	// waits up to 5s, and _txlock=immediate kills the fatal SQLITE_BUSY_SNAPSHOT
-	// class the repos eliminated (v1.70, ISS-076; TASK-170, ISS-165).
+	// IMMEDIATE + 5s busy timeout, sqlite.WriteDSNSuffix) instead of a bare
+	// `?_foreign_keys=ON`. An unhardened migration against a DB another
+	// CLI/API process holds the write lock on otherwise fails immediately with
+	// "database is locked" (v1.70, ISS-076; TASK-170, ISS-165).
 	db, err := sql.Open("sqlite", sqlite.DSN(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	migrator := &Migrator{
-		db:      db,
-		dbPath:  dbPath,
-		migPath: migPath,
-	}
-
-	if err := migrator.initMigrate(); err != nil {
+	m := &Migrator{db: db, migPath: migPath}
+	if err := m.ensureVersionTable(); err != nil {
 		_ = db.Close()
-		return nil, err
+		return nil, fmt.Errorf("failed to create migration table: %w", err)
 	}
-
-	return migrator, nil
+	if _, err := m.migrations(); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("failed to open migration source: %w", err)
+	}
+	return m, nil
 }
 
-func (m *Migrator) initMigrate() error {
-	instance, err := migratesqlite.WithInstance(m.db, &migratesqlite.Config{})
+func (m *Migrator) ensureVersionTable() error {
+	tx, err := m.db.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to create sqlite driver: %w", err)
+		return err
 	}
-
-	absMigPath, err := filepath.Abs(m.migPath)
-	if err != nil {
-		absMigPath = m.migPath
+	if _, err := tx.Exec(`
+		CREATE TABLE IF NOT EXISTS ` + migrationsTable + ` (version INTEGER PRIMARY KEY, dirty INTEGER NOT NULL DEFAULT 0);
+		CREATE UNIQUE INDEX IF NOT EXISTS version_unique ON ` + migrationsTable + `(version);
+	`); err != nil {
+		_ = tx.Rollback()
+		return err
 	}
-
-	// golang-migrate's file driver parses the URL with net/url. On Windows an
-	// absolute path like C:\Users\...\migrations must be expressed with forward
-	// slashes, otherwise url.Parse reads "C" as the host and "\Users..." as an
-	// invalid port. filepath.ToSlash is a no-op on Unix, preserving prior behavior.
-	src, err := (&file.File{}).Open("file://" + filepath.ToSlash(absMigPath))
-	if err != nil {
-		return fmt.Errorf("failed to open migration source: %w", err)
-	}
-
-	m.m, err = migrate.NewWithInstance("file", src, "aurora", instance)
-	if err != nil {
-		return fmt.Errorf("failed to create migrator: %w", err)
-	}
-
-	return nil
+	return tx.Commit()
 }
 
 func (m *Migrator) Up(steps int) (uint, error) {
-	if steps <= 0 {
-		if err := m.m.Up(); err != nil && err != migrate.ErrNoChange {
-			return 0, fmt.Errorf("migration up failed: %w", err)
-		}
-	} else {
-		if err := m.m.Steps(steps); err != nil && err != migrate.ErrNoChange {
-			return 0, fmt.Errorf("migration steps failed: %w", err)
-		}
+	version, err := m.up(steps)
+	if errors.Is(err, errNoChange) {
+		return version, nil
 	}
-
-	version, _, err := m.m.Version()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("migration up failed: %w", err)
 	}
-
 	return version, nil
 }
 
 func (m *Migrator) Down(steps int) (uint, error) {
-	if steps <= 0 {
-		if err := m.m.Down(); err != nil && err != migrate.ErrNoChange {
-			return 0, fmt.Errorf("migration down failed: %w", err)
-		}
-	} else {
-		if err := m.m.Steps(-steps); err != nil && err != migrate.ErrNoChange {
-			return 0, fmt.Errorf("migration steps failed: %w", err)
-		}
+	version, err := m.down(steps)
+	if errors.Is(err, errNoChange) {
+		return version, nil
 	}
-
-	version, _, err := m.m.Version()
-	if err != nil && err != migrate.ErrNilVersion {
-		return 0, err
+	if err != nil {
+		return 0, fmt.Errorf("migration down failed: %w", err)
 	}
-
 	return version, nil
 }
 
 func (m *Migrator) Status() (*MigrationStatus, error) {
-	version, dirty, err := m.m.Version()
-	if err != nil && err != migrate.ErrNilVersion {
+	items, err := m.migrations()
+	if err != nil {
+		return nil, err
+	}
+	current, dirty, err := m.version()
+	if err != nil {
 		return nil, fmt.Errorf("failed to get version: %w", err)
 	}
 
-	applied, err := m.getAppliedMigrations()
-	if err != nil {
-		return nil, err
+	applied := make([]uint, 0)
+	pending := make([]uint, 0)
+	for _, item := range items {
+		if item.version <= current {
+			applied = append(applied, item.version)
+		} else {
+			pending = append(pending, item.version)
+		}
 	}
-
-	pendingVersions, err := m.getPendingMigrations()
-	if err != nil {
-		return nil, err
-	}
-
 	return &MigrationStatus{
-		Current:         version,
+		Current:         current,
 		Dirty:           dirty,
 		Applied:         applied,
-		PendingVersions: pendingVersions,
+		PendingVersions: pending,
 	}, nil
 }
 
-func (m *Migrator) getAppliedMigrations() ([]uint, error) {
-	currentVersion, dirty, err := m.m.Version()
-	if err != nil && err != migrate.ErrNilVersion {
-		return nil, fmt.Errorf("failed to get version: %w", err)
-	}
-
-	if currentVersion == 0 && !dirty {
-		return []uint{}, nil
-	}
-
-	var versions []uint
-	for v := uint(1); v <= currentVersion; v++ {
-		versions = append(versions, v)
-	}
-
-	return versions, nil
-}
-
-func (m *Migrator) getPendingMigrations() ([]uint, error) {
-	currentVersion, _, err := m.m.Version()
-	if err != nil && err != migrate.ErrNilVersion {
-		return nil, fmt.Errorf("failed to get version: %w", err)
-	}
-
-	entries, err := os.ReadDir(m.migPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read migrations directory: %w", err)
-	}
-
-	seen := make(map[uint]bool)
-	var versions []uint
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		name := e.Name()
-		if !strings.HasSuffix(name, ".up.sql") {
-			continue
-		}
-		var v uint
-		_, err := fmt.Sscanf(name, "%d", &v)
-		if err != nil {
-			continue
-		}
-		if v > currentVersion && !seen[v] {
-			versions = append(versions, v)
-			seen[v] = true
-		}
-	}
-
-	sort.Slice(versions, func(i, j int) bool {
-		return versions[i] < versions[j]
-	})
-
-	return versions, nil
-}
-
 func (m *Migrator) Version() (uint, error) {
-	version, _, err := m.m.Version()
-	if err == migrate.ErrNilVersion {
-		return 0, nil
-	}
+	version, _, err := m.version()
 	return version, err
 }
 
 func (m *Migrator) Close() error {
-	if m.m != nil {
-		_, _ = m.m.Close()
-	}
 	if m.db != nil {
 		return m.db.Close()
 	}
@@ -239,21 +140,17 @@ func RunMigrationsIfEnabled(dbPath string, cfg MigrateConfig) error {
 	if !cfg.AutoMigrate {
 		return nil
 	}
-
 	migPath := cfg.MigPath
 	if migPath == "" {
 		migPath = "./migrations"
 	}
-
 	m, err := New(dbPath, migPath)
 	if err != nil {
 		return fmt.Errorf("failed to create migrator: %w", err)
 	}
 	defer func() { _ = m.Close() }()
-
-	if err := m.m.Up(); err != nil && err != migrate.ErrNoChange {
+	if _, err := m.Up(0); err != nil {
 		return fmt.Errorf("auto migration failed: %w", err)
 	}
-
 	return nil
 }

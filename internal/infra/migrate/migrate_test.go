@@ -196,8 +196,8 @@ func TestMigrator_New_InvalidMigrationPath(t *testing.T) {
 }
 
 // TestMigrator_Up_NoChangeExercised drives a fully-applied migration set and
-// then asks for one more step, which golang-migrate reports as ErrNoChange.
-// Up must swallow that sentinel and still report the current version.
+// then asks for one more step. Up must treat "nothing pending" as success and
+// still report the current version.
 func TestMigrator_Up_NoChangeExercised(t *testing.T) {
 	dbPath, migPath, cleanup := setupTestDB(t)
 	defer cleanup()
@@ -319,4 +319,138 @@ func TestRunMigrationsIfEnabled(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, uint(1), version)
 	})
+}
+
+// TestMigrator_RejectsDuplicateVersionFiles proves a second up/down file for
+// the same version fails at construction. Otherwise map iteration order would
+// silently decide which SQL runs, and the loser would never be audited.
+func TestMigrator_RejectsDuplicateVersionFiles(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		file string
+	}{
+		{name: "up", file: "000001_duplicate.up.sql"},
+		{name: "down", file: "000001_duplicate.down.sql"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dbPath, migPath, cleanup := setupTestDB(t)
+			defer cleanup()
+			require.NoError(t, os.WriteFile(
+				filepath.Join(migPath, tc.file), []byte("SELECT 1;"), 0644,
+			))
+
+			m, err := New(dbPath, migPath)
+			require.ErrorContains(t, err, "duplicate "+tc.name+" migration")
+			if m != nil {
+				_ = m.Close()
+			}
+		})
+	}
+}
+
+// TestMigrator_DirtyDatabaseRefusesMigrations proves the dirty bit survives
+// an interrupted migration and blocks both directions until an operator
+// inspects the database. Silently retrying could apply half a schema twice.
+func TestMigrator_DirtyDatabaseRefusesMigrations(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	require.NoError(t, m.setVersion(1, true))
+
+	_, err = m.Up(0)
+	require.ErrorContains(t, err, "database is dirty at version 1")
+	_, err = m.Down(1)
+	require.ErrorContains(t, err, "database is dirty at version 1")
+
+	status, err := m.Status()
+	require.NoError(t, err)
+	assert.True(t, status.Dirty)
+	assert.Equal(t, uint(1), status.Current)
+	require.NoError(t, m.Close())
+}
+
+// TestMigrator_MissingDownFileFailsLoudly proves rollback never skips a
+// version merely because its down file is absent: that would leave a schema
+// object behind while recording an older version.
+func TestMigrator_MissingDownFileFailsLoudly(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+	require.NoError(t, os.Remove(filepath.Join(migPath, "000002_add_posts.down.sql")))
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+	_, err = m.Up(0)
+	require.NoError(t, err)
+
+	_, err = m.Down(1)
+	require.ErrorContains(t, err, "migration 2 has no down file")
+}
+
+// TestMigrator_ConcurrentOpenersSerialize proves two processes racing to
+// migrate the same database leave exactly one schema version and apply each
+// migration once. The hardened DSN's BEGIN IMMEDIATE + busy timeout is what
+// turns SQLITE_BUSY from an immediate failure into a short wait.
+func TestMigrator_ConcurrentOpenersSerialize(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	start := make(chan struct{})
+	errs := make(chan error, 2)
+	for range 2 {
+		go func() {
+			<-start
+			m, err := New(dbPath, migPath)
+			if err != nil {
+				errs <- err
+				return
+			}
+			defer func() { _ = m.Close() }()
+			_, err = m.Up(0)
+			errs <- err
+		}()
+	}
+	close(start)
+	for range 2 {
+		require.NoError(t, <-errs)
+	}
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+	status, err := m.Status()
+	require.NoError(t, err)
+	assert.Equal(t, uint(2), status.Current)
+	assert.False(t, status.Dirty)
+	assert.Empty(t, status.PendingVersions)
+}
+
+// TestMigrator_FailedMigrationLeavesDirtyVersion proves a failed migration
+// records the target version as dirty before executing its SQL. A retry must
+// refuse to run rather than pretend the half-applied schema is current.
+func TestMigrator_FailedMigrationLeavesDirtyVersion(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(migPath, "000001_init.up.sql"),
+		[]byte("CREATE TABLE users (id INTEGER PRIMARY KEY); THIS IS NOT SQL;"),
+		0644,
+	))
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+
+	_, err = m.Up(1)
+	require.ErrorContains(t, err, "migration 1 up failed")
+
+	status, err := m.Status()
+	require.NoError(t, err)
+	assert.Equal(t, uint(1), status.Current)
+	assert.True(t, status.Dirty, "a failed migration must be marked dirty")
+
+	_, err = m.Up(1)
+	require.ErrorContains(t, err, "database is dirty at version 1")
 }
