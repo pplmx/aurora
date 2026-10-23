@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ import (
 
 type BackupService struct {
 	dbPaths map[string]string
+	// removeSidecarFn is injectable so tests can exercise post-promotion rollback.
+	removeSidecarFn func(string) error
 }
 
 type BackupResult struct {
@@ -72,7 +75,7 @@ func sqlLiteral(s string) string {
 }
 
 func NewBackupService(dbPaths map[string]string) *BackupService {
-	return &BackupService{dbPaths: dbPaths}
+	return &BackupService{dbPaths: dbPaths, removeSidecarFn: os.Remove}
 }
 
 // snapshot tracks one DB's temp sibling inside a Create run so an aborted run
@@ -462,6 +465,11 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 		}
 	}
 
+	operations, err := s.planRestore(backupPath, metadata.Databases)
+	if err != nil {
+		return err
+	}
+
 	preRestoreDir := backupPath + ".pre_restore"
 	if err := os.MkdirAll(preRestoreDir, 0o700); err != nil {
 		return fmt.Errorf("create pre-restore dir: %w", err)
@@ -470,93 +478,231 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 		return fmt.Errorf("restrict pre-restore dir: %w", err)
 	}
 
-	for name, destPath := range s.dbPaths {
-		backupDbPath := filepath.Join(backupPath, name+".db")
+	if err := prepareRestore(operations, preRestoreDir); err != nil {
+		cleanupRestoreTemps(operations)
+		return err
+	}
 
-		// Same-file guard: if the backup DB aliases a live DB (a hard link, a
-		// symlink, or a backup dropped into the live data dir), restore would
-		// read the file, unlink it, and write it back — a silent self-restore
-		// that appears to succeed. Mirror of the v1.71 Create guard (ISS-071).
-		if backupInfo, statErr := os.Stat(backupDbPath); statErr == nil {
-			if destInfo, destErr := os.Stat(destPath); destErr == nil && os.SameFile(backupInfo, destInfo) {
-				return fmt.Errorf("refusing to restore %s: backup database %q aliases the live database %q", name, backupDbPath, destPath)
-			}
+	promoted, err := s.promoteRestore(ctx, operations)
+	if err != nil {
+		rollbackErr := rollbackRestore(operations, promoted)
+		cleanupRestoreTemps(operations)
+		if rollbackErr != nil {
+			return errors.Join(err, fmt.Errorf("rollback restored databases: %w", rollbackErr))
 		}
+		return fmt.Errorf("restore failed and was rolled back: %w", err)
+	}
 
-		if _, err := os.Stat(destPath); err == nil {
-			prePath := filepath.Join(preRestoreDir, name+".db")
-			// The safety copy must be a WAL-complete online snapshot, not a
-			// bare .db copy: under WAL mode the main .db file can lag committed
-			// frames that still live in -wal, so a raw copy would make the undo
-			// path resurrect the DB missing recent commits (TASK-116, ISS-108).
-			// Same VACUUM INTO primitive Create uses.
-			if err := os.Remove(prePath); err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("remove stale pre-restore %s: %w", name, err)
-			}
-			if err := vacuumInto(destPath, prePath); err != nil {
-				_ = os.Remove(prePath)
-				return fmt.Errorf("snapshot current %s before restore: %w", name, err)
-			}
-			if err := restrictBackupFile(prePath); err != nil {
-				_ = os.Remove(prePath)
-				return fmt.Errorf("restrict pre-restore %s: %w", name, err)
-			}
+	cleanupRestoreTemps(operations)
+	return nil
+}
+
+type restoreOperation struct {
+	name       string
+	backupPath string
+	destPath   string
+	prePath    string
+	tmpPath    string
+	hadDest    bool
+}
+
+// planRestore validates every database before any live file is read or
+// replaced. The archive and the running configuration must describe the same
+// set: silently restoring a subset would leave a multi-store installation with
+// mixed generations even though Restore returned success.
+func (s *BackupService) planRestore(backupDir string, archiveNames []string) ([]restoreOperation, error) {
+	if len(archiveNames) != len(s.dbPaths) {
+		return nil, fmt.Errorf(
+			"backup contains %d databases but %d are configured",
+			len(archiveNames), len(s.dbPaths),
+		)
+	}
+
+	seen := make(map[string]struct{}, len(archiveNames))
+	for _, name := range archiveNames {
+		if _, duplicate := seen[name]; duplicate {
+			return nil, fmt.Errorf("backup metadata lists database %q more than once", name)
 		}
+		if _, configured := s.dbPaths[name]; !configured {
+			return nil, fmt.Errorf("backup database %q is not configured", name)
+		}
+		seen[name] = struct{}{}
+	}
 
-		src, err := os.Open(backupDbPath)
+	names := make([]string, 0, len(s.dbPaths))
+	for name := range s.dbPaths {
+		if _, present := seen[name]; !present {
+			return nil, fmt.Errorf("configured database %q is missing from backup metadata", name)
+		}
+		names = append(names, name)
+	}
+	slices.Sort(names)
+
+	operations := make([]restoreOperation, 0, len(names))
+	for _, name := range names {
+		destPath := s.dbPaths[name]
+		backupDBPath := filepath.Join(backupDir, name+".db")
+		backupInfo, err := os.Stat(backupDBPath)
 		if err != nil {
-			return fmt.Errorf("open backup %s: %w", name, err)
+			return nil, fmt.Errorf("stat backup %s: %w", name, err)
 		}
-		// Copy through a temp sibling and atomic-rename into place (mirror of
-		// Create's promote phase). The old code O_TRUNC'd the live dest then
-		// io.Copy'd onto it, so a mid-copy failure (disk full, I/O error) left a
-		// truncated .db at the live path with the previous state only in
-		// .pre_restore. Copying to a sibling first means the live DB is only
-		// replaced once the fully-written replacement is ready (TASK-120).
-		tmpPath := destPath + ".tmp"
-		if err := os.Remove(tmpPath); err != nil && !os.IsNotExist(err) {
-			_ = src.Close()
-			return fmt.Errorf("remove stale temp %s: %w", name, err)
-		}
-		dest, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
-		if err != nil {
-			_ = src.Close()
-			return fmt.Errorf("create temp %s: %w", name, err)
-		}
-		if _, err := io.Copy(dest, src); err != nil {
-			_ = src.Close()
-			_ = dest.Close()
-			_ = os.Remove(tmpPath)
-			return fmt.Errorf("restore %s: %w", name, err)
-		}
-		if err := src.Close(); err != nil {
-			_ = dest.Close()
-			_ = os.Remove(tmpPath)
-			return fmt.Errorf("close backup %s: %w", name, err)
-		}
-		if err := dest.Close(); err != nil {
-			_ = os.Remove(tmpPath)
-			return fmt.Errorf("close temp %s: %w", name, err)
-		}
-		if err := restrictBackupFile(tmpPath); err != nil {
-			_ = os.Remove(tmpPath)
-			return fmt.Errorf("restrict restored %s: %w", name, err)
-		}
-		if err := os.Rename(tmpPath, destPath); err != nil {
-			_ = os.Remove(tmpPath)
-			return fmt.Errorf("promote restored %s: %w", name, err)
+		if !backupInfo.Mode().IsRegular() {
+			return nil, fmt.Errorf("backup database %q is not a regular file", backupDBPath)
 		}
 
-		// The restored archive is a complete standalone snapshot; a stale
-		// -wal/-shm left next to it from the pre-restore live DB would be
-		// replayed against the mismatched .db on next open, resurrecting
-		// pre-restore committed frames (v1.75, ISS-082).
+		op := restoreOperation{
+			name:       name,
+			backupPath: backupDBPath,
+			destPath:   destPath,
+			tmpPath:    destPath + ".tmp",
+		}
+		destInfo, err := os.Stat(destPath)
+		switch {
+		case err == nil:
+			if destInfo.IsDir() {
+				return nil, fmt.Errorf("restore destination %q is a directory", destPath)
+			}
+			if os.SameFile(backupInfo, destInfo) {
+				return nil, fmt.Errorf("refusing to restore %s: backup database %q aliases the live database %q", name, backupDBPath, destPath)
+			}
+			op.hadDest = true
+		case !os.IsNotExist(err):
+			return nil, fmt.Errorf("stat restore destination %s: %w", name, err)
+		}
+		operations = append(operations, op)
+	}
+	return operations, nil
+}
+
+// prepareRestore makes every safety snapshot and replacement file before the
+// first destination is renamed. Any preparation failure therefore leaves all
+// live databases untouched.
+func prepareRestore(operations []restoreOperation, preRestoreDir string) error {
+	for i := range operations {
+		op := &operations[i]
+		if op.hadDest {
+			op.prePath = filepath.Join(preRestoreDir, op.name+".db")
+			if err := os.Remove(op.prePath); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("remove stale pre-restore %s: %w", op.name, err)
+			}
+			// The safety copy must include committed WAL frames so rollback
+			// cannot resurrect an older database state (TASK-116, ISS-108).
+			if err := vacuumInto(op.destPath, op.prePath); err != nil {
+				_ = os.Remove(op.prePath)
+				return fmt.Errorf("snapshot current %s before restore: %w", op.name, err)
+			}
+			if err := restrictBackupFile(op.prePath); err != nil {
+				_ = os.Remove(op.prePath)
+				return fmt.Errorf("restrict pre-restore %s: %w", op.name, err)
+			}
+		}
+		if err := copyFileAtomic(op.backupPath, op.tmpPath); err != nil {
+			return fmt.Errorf("prepare restored %s: %w", op.name, err)
+		}
+	}
+	return nil
+}
+
+func copyFileAtomic(srcPath, dstPath string) error {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("open source: %w", err)
+	}
+	if err := os.Remove(dstPath); err != nil && !os.IsNotExist(err) {
+		_ = src.Close()
+		return fmt.Errorf("remove stale temp: %w", err)
+	}
+	dst, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		_ = src.Close()
+		return fmt.Errorf("create temp: %w", err)
+	}
+	if _, err := io.Copy(dst, src); err != nil {
+		_ = src.Close()
+		_ = dst.Close()
+		_ = os.Remove(dstPath)
+		return fmt.Errorf("copy: %w", err)
+	}
+	if err := src.Close(); err != nil {
+		_ = dst.Close()
+		_ = os.Remove(dstPath)
+		return fmt.Errorf("close source: %w", err)
+	}
+	if err := dst.Close(); err != nil {
+		_ = os.Remove(dstPath)
+		return fmt.Errorf("close temp: %w", err)
+	}
+	if err := restrictBackupFile(dstPath); err != nil {
+		_ = os.Remove(dstPath)
+		return fmt.Errorf("restrict temp: %w", err)
+	}
+	return nil
+}
+
+func (s *BackupService) promoteRestore(ctx context.Context, operations []restoreOperation) ([]int, error) {
+	promoted := make([]int, 0, len(operations))
+	for i := range operations {
+		op := &operations[i]
+		if err := ctx.Err(); err != nil {
+			return promoted, fmt.Errorf("restore cancelled before %s: %w", op.name, err)
+		}
+		if err := os.Rename(op.tmpPath, op.destPath); err != nil {
+			return promoted, fmt.Errorf("promote restored %s: %w", op.name, err)
+		}
+		promoted = append(promoted, i)
+
+		// A stale WAL/SHM from the pre-restore DB would be replayed against
+		// the new archive on next open (v1.75, ISS-082).
+		if err := s.removeSidecars(op.destPath, op.name); err != nil {
+			return promoted, err
+		}
+	}
+	return promoted, nil
+}
+
+func (s *BackupService) removeSidecars(destPath, name string) error {
+	remove := s.removeSidecarFn
+	if remove == nil {
+		remove = os.Remove
+	}
+	for _, ext := range []string{"-wal", "-shm"} {
+		if err := remove(destPath + ext); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove stale %s for %s: %w", ext, name, err)
+		}
+	}
+	return nil
+}
+
+func rollbackRestore(operations []restoreOperation, promoted []int) error {
+	var rollbackErrors []error
+	for i := len(promoted) - 1; i >= 0; i-- {
+		op := operations[promoted[i]]
+		if op.hadDest {
+			if err := copyFileAtomic(op.prePath, op.tmpPath); err != nil {
+				rollbackErrors = append(rollbackErrors, fmt.Errorf("recover %s: %w", op.name, err))
+				continue
+			}
+			if err := os.Rename(op.tmpPath, op.destPath); err != nil {
+				_ = os.Remove(op.tmpPath)
+				rollbackErrors = append(rollbackErrors, fmt.Errorf("recover %s: %w", op.name, err))
+				continue
+			}
+		} else if err := os.Remove(op.destPath); err != nil && !os.IsNotExist(err) {
+			rollbackErrors = append(rollbackErrors, fmt.Errorf("remove newly created %s: %w", op.name, err))
+			continue
+		}
+
 		for _, ext := range []string{"-wal", "-shm"} {
-			if err := os.Remove(destPath + ext); err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("remove stale %s for %s: %w", ext, name, err)
+			if err := os.Remove(op.destPath + ext); err != nil && !os.IsNotExist(err) {
+				rollbackErrors = append(rollbackErrors, fmt.Errorf("remove rolled-back %s%s: %w", op.name, ext, err))
 			}
 		}
 	}
+	return errors.Join(rollbackErrors...)
+}
 
-	return nil
+func cleanupRestoreTemps(operations []restoreOperation) {
+	for _, op := range operations {
+		_ = os.Remove(op.tmpPath)
+	}
 }
