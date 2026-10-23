@@ -63,6 +63,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Cancelled Oracle REST fetches now stop their upstream request**: the
+  protected `/oracle/fetch` handler called the background-context use case, so
+  a disconnected client left the outbound request running until the fetcher
+  timeout. The handler now passes `r.Context()` through to the context-aware
+  fetch path, matching the scheduler's shutdown behavior.
 - **Multi-database restores are now all-or-nothing**: Restore used to replace
   each configured database as it walked a map, so a later alias refusal or
   preparation error could leave earlier databases restored, and a stale-WAL
