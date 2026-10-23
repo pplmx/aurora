@@ -109,6 +109,42 @@ func TestDataSource_Headers(t *testing.T) {
 	}
 }
 
+func TestParseSourceHeaders(t *testing.T) {
+	headers, err := ParseSourceHeaders(`{"Authorization":"Bearer token123","X-API-Key":"feed-key"}`)
+	require.NoError(t, err)
+	require.Equal(t, "Bearer token123", headers["Authorization"])
+	require.Equal(t, "feed-key", headers["X-API-Key"])
+
+	headers, err = ParseSourceHeaders(" ")
+	require.NoError(t, err)
+	require.Nil(t, headers)
+}
+
+func TestAddSource_RejectsInvalidSourceHeaders(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		headers string
+	}{
+		{"invalid JSON", "not-json"},
+		{"null object", "null"},
+		{"value CRLF", `{"X-Test":"value\r\nInjected: true"}`},
+		{"name CRLF", `{"X-Bad\r\nX-Injected":"value"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := NewInmemRepo()
+			err := NewService(repo).AddSource(&DataSource{
+				Name:    "Private Feed",
+				URL:     "https://api.example.com/private",
+				Headers: tc.headers,
+			})
+			require.ErrorIs(t, err, ErrInvalidSource)
+			sources, listErr := repo.ListSources()
+			require.NoError(t, listErr)
+			require.Empty(t, sources)
+		})
+	}
+}
+
 func TestOracleData_TimeFields(t *testing.T) {
 	now := time.Now().Unix()
 	data := &OracleData{
@@ -229,7 +265,11 @@ func TestAddSource_FieldLengthBounds(t *testing.T) {
 	atBound.Type = strings.Repeat("t", MaxSourceTypeLength)
 	atBound.Method = strings.Repeat("m", MaxSourceMethodLength)
 	atBound.Path = strings.Repeat("p", MaxSourcePathLength)
-	atBound.Headers = strings.Repeat("h", MaxSourceHeadersLen)
+	const headersPrefix, headersSuffix = `{"X":"`, `"}`
+	atBound.Headers = headersPrefix +
+		strings.Repeat("h", MaxSourceHeadersLen-len(headersPrefix)-len(headersSuffix)) +
+		headersSuffix
+	require.Len(t, atBound.Headers, MaxSourceHeadersLen)
 	if err := svc.AddSource(&atBound); err != nil {
 		t.Fatalf("expected exact-bound source to be accepted, got %v", err)
 	}

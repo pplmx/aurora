@@ -614,18 +614,12 @@ func readBounded(r io.Reader, max int64) ([]byte, error) {
 // is likewise treated as invalid source data rather than silently dropping
 // the operator's intent.
 func applySourceHeaders(req *http.Request, headersJSON string) error {
-	if strings.TrimSpace(headersJSON) == "" {
-		return nil
+	headers, err := oracle.ParseSourceHeaders(headersJSON)
+	if err != nil {
+		return err
 	}
-	var headers map[string]string
-	if err := json.Unmarshal([]byte(headersJSON), &headers); err != nil {
-		return fmt.Errorf("%w: invalid headers json", oracle.ErrInvalidSource)
-	}
-	for k, v := range headers {
-		if strings.ContainsAny(k, "\r\n") || strings.ContainsAny(v, "\r\n") {
-			return fmt.Errorf("%w: header %q contains a newline", oracle.ErrInvalidSource, k)
-		}
-		req.Header.Set(k, v)
+	for name, value := range headers {
+		req.Header.Set(name, value)
 	}
 	return nil
 }

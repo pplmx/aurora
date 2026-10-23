@@ -275,6 +275,7 @@ func TestInitAddSource(t *testing.T) {
 	// the previous attempt's values on screen (TASK-228, ISS-226).
 	app.sourceInputMethod.SetValue("POST")
 	app.sourceInputPath.SetValue("data.result")
+	app.sourceInputHeaders.SetValue(`{"Authorization":"Bearer old"}`)
 	app.sourceInputInterval.SetValue("30")
 	app.initAddSource()
 	for _, input := range []string{
@@ -283,6 +284,7 @@ func TestInitAddSource(t *testing.T) {
 		app.sourceInputType.Value(),
 		app.sourceInputMethod.Value(),
 		app.sourceInputPath.Value(),
+		app.sourceInputHeaders.Value(),
 		app.sourceInputInterval.Value(),
 	} {
 		assert.Empty(t, input)
@@ -382,11 +384,13 @@ func TestSourceDetailViewShowsMethodPathInterval(t *testing.T) {
 
 	app.sources = []*oracle.DataSource{
 		{ID: "1", Name: "Test", URL: "https://test.com", Type: "json",
-			Method: "POST", Path: "bitcoin.usd", Interval: 45, Enabled: true},
+			Method: "POST", Headers: `{"Authorization":"Bearer secret"}`,
+			Path: "bitcoin.usd", Interval: 45, Enabled: true},
 	}
 	view = app.sourceDetailView()
 	assert.Contains(t, view, "POST")
 	assert.Contains(t, view, "bitcoin.usd")
+	assert.Contains(t, view, "configured")
 	assert.Contains(t, view, "45s")
 }
 
@@ -463,6 +467,7 @@ func TestHandleAddSourceSavesMethodPathInterval(t *testing.T) {
 	app.sourceInputType.SetValue("price")
 	app.sourceInputMethod.SetValue("POST")
 	app.sourceInputPath.SetValue("bitcoin.usd")
+	app.sourceInputHeaders.SetValue(`{"Authorization":"Bearer secret"}`)
 	app.sourceInputInterval.SetValue("45")
 	app.handleAddSource()
 	assert.Empty(t, app.errMsg)
@@ -470,6 +475,7 @@ func TestHandleAddSourceSavesMethodPathInterval(t *testing.T) {
 	saved := app.repo.(*mockRepo).sources[0]
 	assert.Equal(t, "POST", saved.Method)
 	assert.Equal(t, "bitcoin.usd", saved.Path)
+	assert.JSONEq(t, `{"Authorization":"Bearer secret"}`, saved.Headers)
 	assert.Equal(t, 45, saved.Interval)
 }
 
@@ -1054,13 +1060,10 @@ func TestUpdate_ArrowsMoveFocusButDoNotTypeInAddSourceForm(t *testing.T) {
 	assert.Equal(t, "x", app.sourceInputURL.Value(), "arrow keys must not type into the input")
 }
 
-// TestUpdate_MethodPathIntervalTypableInAddSourceForm pins TASK-231/ISS-229:
-// the round-137/138 parity added method/path/interval fields with focus support
-// (updateInputFocus) but their Update routing was missing, so keys typed into
-// fields 3..5 were never forwarded — handleAddSource then read empty values and
-// silently defaulted method->GET/path->""/interval->60. Each of the six fields
-// must now accept typed input when it has focus.
-func TestUpdate_MethodPathIntervalTypableInAddSourceForm(t *testing.T) {
+// TestUpdate_MethodPathHeadersIntervalTypableInAddSourceForm pins TASK-231/
+// ISS-229 plus the header field: every non-leading add-source field must route
+// typed keys to its focused input instead of silently dropping them.
+func TestUpdate_MethodPathHeadersIntervalTypableInAddSourceForm(t *testing.T) {
 	app := NewOracleApp(&mockRepo{})
 	app.view = "addSource"
 	app.updateInputFocus()
@@ -1081,8 +1084,16 @@ func TestUpdate_MethodPathIntervalTypableInAddSourceForm(t *testing.T) {
 	}
 	assert.Equal(t, "bitcoin.usd", app.sourceInputPath.Value(), "path field must receive typed keys")
 
-	// interval (field 5)
+	// headers (field 5)
 	app.inputFocus = 5
+	app.updateInputFocus()
+	for _, ch := range []string{"X", "-", "K", "e", "y"} {
+		app.Update(keyPress(ch))
+	}
+	assert.Equal(t, "X-Key", app.sourceInputHeaders.Value(), "headers field must receive typed keys")
+
+	// interval (field 6)
+	app.inputFocus = 6
 	app.updateInputFocus()
 	for _, ch := range []string{"3", "0", "0"} {
 		app.Update(keyPress(ch))

@@ -121,6 +121,7 @@ func TestWebUIServe_RealAssetsInjectedWithAPIKey(t *testing.T) {
 	require.Contains(t, dashboard, `@click="refresh()"`, "dashboard must expose a refresh button")
 	oracle := requireServedAsset(t, handler, "/oracle.html", `window.AURORA_API_KEY = "test-serve-key";`)
 	require.Contains(t, oracle, `@click="refresh()"`, "oracle page must expose a refresh button")
+	require.Contains(t, oracle, `id="oracle-headers"`, "oracle page must expose a request-headers input")
 
 	requireServedAsset(t, handler, "/css/style.css", "--accent-voting")
 }
@@ -991,4 +992,62 @@ const fs = require('fs');
 	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
 	require.NoErrorf(t, err, "web/js/app.js oracle-query-empty / token-decimals-clamp failed:\n%s", out)
 	require.Contains(t, string(out), "oracle-empty-token-clamp-ok", "oracle zero-row query empty-state and token decimals clamp must hold")
+}
+
+// TestWebUIJS_OracleAddSourceSendsHeaders executes the shipped oracleApp form
+// handler and verifies the textarea's JSON object reaches the create request.
+// It also pins the client-side malformed-JSON guard so a typo never sends an
+// opaque request that the API rejects after a round trip.
+func TestWebUIJS_OracleAddSourceSendsHeaders(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js oracle headers check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+let createBody = null;
+let createCalls = 0;
+global.fetch = (url, init) => {
+  if (init && init.method === 'POST') {
+    createCalls += 1;
+    createBody = JSON.parse(init.body);
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'Private Feed', id: 's1' }) });
+  }
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({ sources: [] }) });
+};
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+(async () => {
+  const ora = global.oracleApp();
+  ora.addName = 'Private Feed';
+  ora.addUrl = 'https://api.example.com/private';
+  ora.addHeaders = '{"Authorization":"Bearer secret","X-API-Key":"feed-key"}';
+  await ora.addSource();
+  if (createCalls !== 1) { console.error('expected one create request, got ' + createCalls); process.exit(1); }
+  if (!createBody || !createBody.headers || createBody.headers.Authorization !== 'Bearer secret') {
+    console.error('create body did not carry headers: ' + JSON.stringify(createBody)); process.exit(1);
+  }
+  if (ora.addHeaders !== '') { console.error('successful add must clear headers'); process.exit(1); }
+
+  ora.addName = 'Bad Feed';
+  ora.addUrl = 'https://api.example.com/bad';
+  ora.addHeaders = 'not-json';
+  await ora.addSource();
+  if (createCalls !== 1) { console.error('malformed headers must not send a request'); process.exit(1); }
+  if (!ora.addResult.startsWith('Error: headers must be a valid JSON object')) {
+    console.error('malformed headers must show a client-side error, got ' + ora.addResult); process.exit(1);
+  }
+  console.log('oracle-add-headers-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "oracle_add_headers_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js oracle add headers failed:\n%s", out)
+	require.Contains(t, string(out), "oracle-add-headers-ok")
 }

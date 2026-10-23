@@ -180,6 +180,7 @@ func (uc *AddSourceUseCase) Execute(req *AddSourceRequest) (*SourceResponse, err
 		URL:      req.URL,
 		Type:     req.Type,
 		Method:   req.Method,
+		Headers:  req.Headers,
 		Path:     req.Path,
 		Interval: req.Interval,
 	}

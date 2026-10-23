@@ -19,8 +19,8 @@ import (
 
 // addSourceFieldCount is the number of fields in the add-source form; the
 // up/down/tab handlers and updateInputFocus must agree on it so focus cycles
-// the whole form (name, url, type, method, path, interval).
-const addSourceFieldCount = 6
+// the whole form (name, url, type, method, path, headers, interval).
+const addSourceFieldCount = 7
 
 type model struct {
 	view        string
@@ -34,6 +34,7 @@ type model struct {
 	sourceInputType     textinput.Model
 	sourceInputMethod   textinput.Model
 	sourceInputPath     textinput.Model
+	sourceInputHeaders  textinput.Model
 	sourceInputInterval textinput.Model
 	fetchInputSource    textinput.Model
 	queryInputSource    textinput.Model
@@ -82,6 +83,9 @@ func NewOracleApp(repo domainoracle.Repository) *model {
 	pathInput := textinput.New()
 	pathInput.Placeholder = i18n.GetText("oracle.tui.enter_path")
 
+	headersInput := textinput.New()
+	headersInput.Placeholder = i18n.GetText("oracle.tui.enter_headers")
+
 	intervalInput := textinput.New()
 	intervalInput.Placeholder = i18n.GetText("oracle.tui.enter_interval")
 
@@ -105,6 +109,7 @@ func NewOracleApp(repo domainoracle.Repository) *model {
 		sourceInputType:     typeInput,
 		sourceInputMethod:   methodInput,
 		sourceInputPath:     pathInput,
+		sourceInputHeaders:  headersInput,
 		sourceInputInterval: intervalInput,
 		fetchInputSource:    fetchInput,
 		queryInputSource:    queryInputSource,
@@ -423,19 +428,19 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Update textinput models. All six fields: the method/path/interval inputs
-	// were added with focus support (updateInputFocus) but must also receive
-	// Update here or typed keys never land and handleAddSource silently reads
-	// empty defaults (TASK-231, ISS-229). Mirror the name/url/type routing.
+	// Update every add-source textinput. Focus alone is not enough: fields that
+	// are not routed here never receive typed keys, so handleAddSource silently
+	// reads empty defaults (TASK-231, ISS-229).
 	if m.view == "addSource" {
-		var cmdName, cmdURL, cmdType, cmdMethod, cmdPath, cmdInterval tea.Cmd
+		var cmdName, cmdURL, cmdType, cmdMethod, cmdPath, cmdHeaders, cmdInterval tea.Cmd
 		m.sourceInputName, cmdName = m.sourceInputName.Update(msg)
 		m.sourceInputURL, cmdURL = m.sourceInputURL.Update(msg)
 		m.sourceInputType, cmdType = m.sourceInputType.Update(msg)
 		m.sourceInputMethod, cmdMethod = m.sourceInputMethod.Update(msg)
 		m.sourceInputPath, cmdPath = m.sourceInputPath.Update(msg)
+		m.sourceInputHeaders, cmdHeaders = m.sourceInputHeaders.Update(msg)
 		m.sourceInputInterval, cmdInterval = m.sourceInputInterval.Update(msg)
-		cmd = tea.Batch(cmdName, cmdURL, cmdType, cmdMethod, cmdPath, cmdInterval)
+		cmd = tea.Batch(cmdName, cmdURL, cmdType, cmdMethod, cmdPath, cmdHeaders, cmdInterval)
 	}
 
 	if m.view == "fetch" {
@@ -610,8 +615,15 @@ func (m *model) addSourceView() string {
 		s += "  " + m.sourceInputPath.View() + "\n\n"
 	}
 
-	s += components.CaptionStyle().Render(i18n.GetText("oracle.tui.source_interval") + ":\n")
+	s += components.CaptionStyle().Render(i18n.GetText("oracle.tui.source_headers") + ":\n")
 	if m.inputFocus == 5 {
+		s += components.MenuSelectedStyle().Render("> "+m.sourceInputHeaders.View()) + "\n\n"
+	} else {
+		s += "  " + m.sourceInputHeaders.View() + "\n\n"
+	}
+
+	s += components.CaptionStyle().Render(i18n.GetText("oracle.tui.source_interval") + ":\n")
+	if m.inputFocus == 6 {
 		s += components.MenuSelectedStyle().Render("> "+m.sourceInputInterval.View()) + "\n\n"
 	} else {
 		s += "  " + m.sourceInputInterval.View() + "\n\n"
@@ -645,15 +657,20 @@ func (m *model) sourceDetailView() string {
 		s += components.KeyValue(i18n.GetText("oracle.tui.source_type"), source.Type) + "\n"
 
 		// Method/path/interval round out the feed-tailoring fields the CLI
-		// `source list` prints (TASK-225); the detail view is where an operator
-		// reads a source's full configuration, so keep it in parity with the
-		// CLI instead of showing only the subset (TASK-229, ISS-227).
+		// `source list` prints (TASK-225); headers are summarized without
+		// exposing their credential values. The detail view is where an
+		// operator reads a source's full configuration (TASK-229, ISS-227).
 		method := source.Method
 		if method == "" {
 			method = "GET"
 		}
 		s += components.KeyValue(i18n.GetText("oracle.tui.source_method"), method) + "\n"
 		s += components.KeyValue(i18n.GetText("oracle.tui.source_path"), source.Path) + "\n"
+		headersStatus := "-"
+		if source.Headers != "" {
+			headersStatus = "configured"
+		}
+		s += components.KeyValue(i18n.GetText("oracle.tui.source_headers"), headersStatus) + "\n"
 
 		interval := source.Interval
 		if interval == 0 {
@@ -861,6 +878,7 @@ func (m *model) loadSources() {
 			URL:      s.URL,
 			Type:     s.Type,
 			Method:   s.Method,
+			Headers:  s.Headers,
 			Path:     s.Path,
 			Interval: s.Interval,
 			Enabled:  s.Enabled,
@@ -870,9 +888,9 @@ func (m *model) loadSources() {
 }
 
 func (m *model) initAddSource() {
-	// Re-create every field, not just the first three: method/path/interval are
-	// textinput models too, and an init that skipped them left their previous
-	// values on screen the next time the form opened (TASK-228, ISS-226; the
+	// Re-create every field, not just the first three: all source inputs are
+	// model-backed, and an init that skipped one left its previous value on
+	// screen the next time the form opened (TASK-228, ISS-226; the
 	// token/nft/lottery TUIs all clear every field on form entry).
 	m.sourceInputName = textinput.New()
 	m.sourceInputName.Placeholder = i18n.GetText("oracle.tui.enter_name")
@@ -890,6 +908,9 @@ func (m *model) initAddSource() {
 	m.sourceInputPath = textinput.New()
 	m.sourceInputPath.Placeholder = i18n.GetText("oracle.tui.enter_path")
 
+	m.sourceInputHeaders = textinput.New()
+	m.sourceInputHeaders.Placeholder = i18n.GetText("oracle.tui.enter_headers")
+
 	m.sourceInputInterval = textinput.New()
 	m.sourceInputInterval.Placeholder = i18n.GetText("oracle.tui.enter_interval")
 
@@ -904,6 +925,7 @@ func (m *model) updateInputFocus() {
 	m.sourceInputType.Blur()
 	m.sourceInputMethod.Blur()
 	m.sourceInputPath.Blur()
+	m.sourceInputHeaders.Blur()
 	m.sourceInputInterval.Blur()
 
 	switch m.inputFocus {
@@ -918,6 +940,8 @@ func (m *model) updateInputFocus() {
 	case 4:
 		m.sourceInputPath.Focus()
 	case 5:
+		m.sourceInputHeaders.Focus()
+	case 6:
 		m.sourceInputInterval.Focus()
 	}
 }
@@ -928,6 +952,7 @@ func (m *model) handleAddSource() {
 	sourceType := m.sourceInputType.Value()
 	method := strings.TrimSpace(m.sourceInputMethod.Value())
 	path := strings.TrimSpace(m.sourceInputPath.Value())
+	headers := strings.TrimSpace(m.sourceInputHeaders.Value())
 	intervalStr := strings.TrimSpace(m.sourceInputInterval.Value())
 
 	if strings.TrimSpace(name) == "" || strings.TrimSpace(url) == "" {
@@ -958,6 +983,7 @@ func (m *model) handleAddSource() {
 		URL:      strings.TrimSpace(url),
 		Type:     sourceType,
 		Method:   method,
+		Headers:  headers,
 		Path:     path,
 		Interval: interval,
 	})

@@ -55,6 +55,7 @@ var sourceAddCmd = &cobra.Command{
 		dataType, _ := cmd.Flags().GetString("type")
 		interval, _ := cmd.Flags().GetInt("interval")
 		method, _ := cmd.Flags().GetString("method")
+		headers, _ := cmd.Flags().GetString("headers")
 		path, _ := cmd.Flags().GetString("path")
 
 		uc := oracleapp.NewAddSourceUseCase(repo)
@@ -63,6 +64,7 @@ var sourceAddCmd = &cobra.Command{
 			URL:      url,
 			Type:     dataType,
 			Method:   method,
+			Headers:  headers,
 			Path:     path,
 			Interval: interval,
 		})
@@ -107,6 +109,9 @@ var sourceListCmd = &cobra.Command{
 			fmt.Printf("     ID: %s\n", ds.ID)
 			fmt.Printf("     URL: %s\n", ds.URL)
 			fmt.Printf("     Method: %s  Path: %s  Interval: %ds\n", ds.Method, ds.Path, ds.Interval)
+			if ds.Headers != "" {
+				fmt.Println("     Headers: configured")
+			}
 		}
 		return nil
 	},
@@ -384,6 +389,7 @@ func init() {
 	sourceAddCmd.Flags().StringP("url", "u", "", i18n.GetText("oracle.source_url"))
 	sourceAddCmd.Flags().StringP("type", "t", "custom", i18n.GetText("oracle.source_type"))
 	sourceAddCmd.Flags().StringP("method", "m", "GET", i18n.GetText("oracle.source_method"))
+	sourceAddCmd.Flags().String("headers", "", i18n.GetText("oracle.source_headers"))
 	sourceAddCmd.Flags().StringP("path", "p", "", i18n.GetText("oracle.source_path"))
 	// On `add`, -i/--interval is the refresh interval — deliberately *not* the
 	// family's source-id meaning (-i = --id on delete/enable/disable/fetch/data/

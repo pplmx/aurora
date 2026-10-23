@@ -101,6 +101,7 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 ./aurora voting candidate add -n "Name" -p "Party" -m "Program"
 ./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv>
 ./aurora oracle source add -n "btc" -u "https://api.example.com/price" -p "data.price"
+./aurora oracle source add -n "private" -u <url> --headers '{"Authorization":"Bearer ..."}'
 ./aurora nft mint -n "My NFT" -c "<creator-pub>" -t <token-uri>
 ./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000
 ./aurora lottery tui                                  # 任一模块都有 TUI

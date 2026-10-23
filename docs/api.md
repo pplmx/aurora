@@ -103,7 +103,7 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 | 方法   | 路径                            | 说明                                        |
 | ------ | ------------------------------- | ------------------------------------------- |
 | GET    | `/api/v1/oracle/sources`        | 数据源列表                                  |
-| POST   | `/api/v1/oracle/sources`        | 新建数据源（URL/type/method/path/interval） |
+| POST   | `/api/v1/oracle/sources`        | 新建数据源（URL/type/method/headers/path/interval） |
 | PATCH  | `/api/v1/oracle/sources/{id}`   | 启用/停用                                   |
 | DELETE | `/api/v1/oracle/sources/{id}`   | 删除，未知 id 404                           |
 | GET    | `/api/v1/oracle/templates`      | 内置模板                                    |
@@ -112,9 +112,10 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 | GET    | `/api/v1/oracle/latest`         | 最新数据点                                  |
 | GET    | `/api/v1/oracle/health`         | 抓取健康统计                                |
 
-数据源的 URL 中的请求头/来源在写入前校验；CR/LF 会被拒绝（`INVALID_SOURCE`），
-`extractByPath` 允许合法的空字符串值，但对象/数组/null 叶子会失败而不是把 Go
-map 存成链上数据。
+`POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
+`{"Authorization":"Bearer ...","X-API-Key":"..."}`；请求头 JSON、CR/LF 和长度
+都在写入前校验（`INVALID_SOURCE`）。`extractByPath` 允许合法的空字符串值，但
+对象/数组/null 叶子会失败而不是把 Go map 存成链上数据。
 
 ## 区块链
 
