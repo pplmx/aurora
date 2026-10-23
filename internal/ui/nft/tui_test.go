@@ -65,6 +65,8 @@ func TestMenuViewRenders(t *testing.T) {
 	app.view = "menu"
 	view := app.menuView()
 	assert.NotEmpty(t, view)
+	assert.Contains(t, view, i18n.GetText("tui.sandbox_notice"),
+		"the NFT TUI must disclose that its in-memory state is not persisted")
 }
 
 func TestMintViewRenders(t *testing.T) {

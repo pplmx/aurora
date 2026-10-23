@@ -30,6 +30,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The TUI product boundary is explicit**: all four reachable TUIs remain, but
+  lottery/oracle are durable SQLite interfaces while NFT/token are intentionally
+  sandboxed in-memory interfaces. The sandbox menus keep their localized warning,
+  now pinned by regression tests, and the CLI/ablation docs direct durable
+  NFT/token work to the CLI, REST/Web, or desktop surfaces.
 - **SQLite storage is now pure Go**: Aurora uses `modernc.org/sqlite`
   instead of the cgo-only `mattn/go-sqlite3`. The hardened DSN (foreign keys,
   immediate write transactions, 5s busy timeout) is unchanged. CLI, API,
