@@ -98,6 +98,7 @@ func TestInitConfig_FallbackPath(t *testing.T) {
 	initConfig()
 
 	assert.Equal(t, "info", viper.GetString("log.level"), "defaults should be set by initConfig")
+	assert.NoError(t, configErr, "a config absent from the optional search paths must use defaults")
 }
 
 // TestRootCommandInitializesFileLoggingFromConfig exercises the real Cobra
@@ -124,6 +125,37 @@ func TestRootCommandInitializesFileLoggingFromConfig(t *testing.T) {
 		data, err := os.ReadFile(filepath.Join(logPath, "aurora.log"))
 		require.NoError(t, err, "the configured CLI log file must be created")
 		assert.Contains(t, string(data), "Aurora starting")
+	})
+}
+
+// TestRootCommandRejectsInvalidExplicitConfig makes sure a bad operator config
+// cannot silently fall back to default DB and logging paths. Only the absence
+// of an optional config during the normal $HOME/cwd search is benign.
+func TestRootCommandRejectsInvalidExplicitConfig(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		malformed := filepath.Join(t.TempDir(), "malformed.toml")
+		require.NoError(t, os.WriteFile(malformed, []byte("[db\npath = \"unterminated\"\n"), 0o600))
+
+		for _, tc := range []struct {
+			name string
+			path string
+		}{
+			{name: "malformed", path: malformed},
+			{name: "explicitly missing", path: filepath.Join(t.TempDir(), "missing.toml")},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				viper.Reset()
+				resetFlags(rootCmd)
+				rootCmd.SetArgs([]string{"--config", tc.path, "version"})
+
+				capture := captureStdout(t)
+				err := rootCmd.Execute()
+				_ = capture()
+
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "config")
+			})
+		}
 	})
 }
 

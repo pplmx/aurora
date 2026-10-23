@@ -122,6 +122,8 @@ aurora migrate down --confirm # 回滚一步
   的专用警告，退出码同样非零。
 - `[log] level/path` 在命令执行前加载，默认写入 `./logs/aurora.log`；Unix-like
   系统上目录为 `0700`、文件为 `0600`。
+- 显式 `--config` 缺失或配置文件语法错误会直接中止，不会静默回退到默认数据库；
+  只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
 - 所有输出遵循 `[i18n] locale` 或 `$LANG`；`aurora <cmd> --help` 同样本地化。
 
 ## TUI 通用按键
