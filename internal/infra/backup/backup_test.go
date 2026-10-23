@@ -215,6 +215,15 @@ func makeTestDB(t *testing.T, path string) {
 	require.NoError(t, db.Close())
 }
 
+func requireNoCreateRollbackDirs(t *testing.T, output string) {
+	t.Helper()
+	entries, err := os.ReadDir(output)
+	require.NoError(t, err)
+	for _, entry := range entries {
+		require.NotContains(t, entry.Name(), ".create-rollback-")
+	}
+}
+
 // TestBackupService_Verify_DetectsDBContentCorruption proves the v1.55
 // per-database content checksum: a corrupted .db whose data changed (but which
 // still opens and has a table) must be rejected by Verify. Before v1.55 Verify
@@ -329,11 +338,12 @@ func TestBackupService_Create_MetadataWrittenAtomically(t *testing.T) {
 	require.Equal(t, sha256hex(raw), storedChecksum, "metadata checksum field verifies")
 
 	require.NoFileExists(t, metaPath+".tmp", "no metadata temp sibling leaks after success")
+	requireNoCreateRollbackDirs(t, out)
 }
 
-// TestBackupService_Create_MetadataWriteError covers the metadata.json write
-// failure branch: a pre-existing directory at the destination path makes
-// os.WriteFile fail after the DB copies succeeded.
+// TestBackupService_Create_MetadataWriteError covers a malformed output whose
+// metadata.json path is a directory. Create must reject it without promoting
+// database snapshots over a set it cannot describe with metadata.
 func TestBackupService_Create_MetadataWriteError(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "src", "blockchain.db")
@@ -345,6 +355,118 @@ func TestBackupService_Create_MetadataWriteError(t *testing.T) {
 	svc := NewBackupService(map[string]string{"blockchain": dbPath})
 	_, err := svc.Create(context.Background(), out)
 	require.Error(t, err, "metadata.json sunken by a directory must surface as an error")
+}
+
+func TestBackupService_Create_MetadataFailureRollsBackPreviousSet(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "src", "blockchain.db")
+	makeTestDB(t, dbPath)
+
+	out := filepath.Join(dir, "out")
+	svc := NewBackupService(map[string]string{"blockchain": dbPath})
+	_, err := svc.Create(context.Background(), out)
+	require.NoError(t, err)
+
+	oldDB, err := os.ReadFile(filepath.Join(out, "blockchain.db"))
+	require.NoError(t, err)
+	oldMeta, err := os.ReadFile(filepath.Join(out, "metadata.json"))
+	require.NoError(t, err)
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO test (id) VALUES (2)`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	// Fail the metadata temp write after the new snapshot has already been
+	// promoted over the previous database.
+	require.NoError(t, os.Mkdir(filepath.Join(out, "metadata.json.tmp"), 0o700))
+	_, err = svc.Create(context.Background(), out)
+	require.Error(t, err)
+
+	afterDB, err := os.ReadFile(filepath.Join(out, "blockchain.db"))
+	require.NoError(t, err)
+	require.Equal(t, sha256hex(oldDB), sha256hex(afterDB), "failed Create must restore the previous database")
+	afterMeta, err := os.ReadFile(filepath.Join(out, "metadata.json"))
+	require.NoError(t, err)
+	require.Equal(t, oldMeta, afterMeta, "failed Create must preserve the previous metadata")
+	require.NoError(t, svc.Verify(context.Background(), out), "failed Create must leave a verifiable backup set")
+	requireNoCreateRollbackDirs(t, out)
+}
+
+func TestBackupService_Create_NewOutputCleansUpAfterMetadataFailure(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "src", "blockchain.db")
+	makeTestDB(t, dbPath)
+
+	out := filepath.Join(dir, "out")
+	svc := NewBackupService(map[string]string{"blockchain": dbPath})
+	svc.renameFn = func(oldPath, newPath string) error {
+		// The snapshot has been written and is ready to promote. Occupy the
+		// metadata temp path now so the failure lands after promotion.
+		if err := os.Mkdir(filepath.Join(out, "metadata.json.tmp"), 0o700); err != nil {
+			return fmt.Errorf("create metadata temp blocker: %w", err)
+		}
+		return os.Rename(oldPath, newPath)
+	}
+
+	_, err := svc.Create(context.Background(), out)
+	require.ErrorContains(t, err, "write metadata")
+
+	require.NoFileExists(t, filepath.Join(out, "blockchain.db"), "failed first Create must remove its promoted database")
+	require.NoFileExists(t, filepath.Join(out, "metadata.json"), "failed first Create must not publish metadata")
+	requireNoCreateRollbackDirs(t, out)
+}
+
+func TestBackupService_Create_PromotionFailureRollsBackPreviousSet(t *testing.T) {
+	dir := t.TempDir()
+	a := filepath.Join(dir, "src", "a.db")
+	b := filepath.Join(dir, "src", "b.db")
+	makeTestDB(t, a)
+	makeTestDB(t, b)
+
+	out := filepath.Join(dir, "out")
+	svc := NewBackupService(map[string]string{"a": a, "b": b})
+	_, err := svc.Create(context.Background(), out)
+	require.NoError(t, err)
+
+	oldA, err := os.ReadFile(filepath.Join(out, "a.db"))
+	require.NoError(t, err)
+	oldB, err := os.ReadFile(filepath.Join(out, "b.db"))
+	require.NoError(t, err)
+	oldMeta, err := os.ReadFile(filepath.Join(out, "metadata.json"))
+	require.NoError(t, err)
+
+	for _, path := range []string{a, b} {
+		db, err := sql.Open("sqlite", path)
+		require.NoError(t, err)
+		_, err = db.Exec(`INSERT INTO test (id) VALUES (2)`)
+		require.NoError(t, err)
+		require.NoError(t, db.Close())
+	}
+
+	renames := 0
+	svc.renameFn = func(oldPath, newPath string) error {
+		renames++
+		if renames == 2 {
+			return fmt.Errorf("injected promotion failure")
+		}
+		return os.Rename(oldPath, newPath)
+	}
+	_, err = svc.Create(context.Background(), out)
+	require.ErrorContains(t, err, "injected promotion failure")
+
+	afterA, err := os.ReadFile(filepath.Join(out, "a.db"))
+	require.NoError(t, err)
+	require.Equal(t, sha256hex(oldA), sha256hex(afterA), "failed Create must restore the first promoted database")
+	afterB, err := os.ReadFile(filepath.Join(out, "b.db"))
+	require.NoError(t, err)
+	require.Equal(t, sha256hex(oldB), sha256hex(afterB), "failed Create must preserve the unpromoted database")
+	afterMeta, err := os.ReadFile(filepath.Join(out, "metadata.json"))
+	require.NoError(t, err)
+	require.Equal(t, oldMeta, afterMeta, "failed Create must preserve metadata")
+	require.NoError(t, svc.Verify(context.Background(), out), "failed Create must leave a verifiable backup set")
+	requireNoCreateRollbackDirs(t, out)
 }
 
 // TestBackupService_Verify_MissingDatabaseFile covers the branch where the
