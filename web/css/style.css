@@ -1,4 +1,5 @@
 :root {
+    color-scheme: dark;
     --bg-primary: #1a1a1a;
     --bg-card: #252525;
     --border: #333333;
@@ -126,7 +127,9 @@ section h2 {
     font-size: 0.9rem;
 }
 
-.form-group input {
+.form-group input,
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 12px;
     background-color: var(--bg-primary);
@@ -136,7 +139,9 @@ section h2 {
     font-size: 1rem;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
     border-color: var(--accent-lottery);
 }
 /* Keyboard focus must stay visible (WCAG 2.4.7): the border-color change
