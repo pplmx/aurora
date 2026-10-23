@@ -1,6 +1,83 @@
 package lottery
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	lotterydomain "github.com/pplmx/aurora/internal/domain/lottery"
+)
+
+func verifiableLotteryRecord(t *testing.T) *lotterydomain.LotteryRecord {
+	t.Helper()
+	participants := []string{"Alice", "Bob", "Carol"}
+	service := lotterydomain.NewService()
+	winners, addresses, output, proof, publicKey, err := service.DrawWinners(
+		participants, "address-integrity-seed", 2,
+	)
+	if err != nil {
+		t.Fatalf("DrawWinners: %v", err)
+	}
+	return lotterydomain.CreateLotteryRecord(
+		"address-integrity-seed", participants, winners, addresses, output, proof, publicKey, 1,
+	)
+}
+
+func TestVerifyRecord_AcceptsCanonicalWinnerAddresses(t *testing.T) {
+	report := VerifyRecord(verifiableLotteryRecord(t))
+	if !report.IntegrityOK {
+		t.Fatalf("canonical draw must verify: %+v", report.Checks)
+	}
+	if !report.ProofVerified {
+		t.Fatal("keyed draw must include proof verification")
+	}
+}
+
+func TestVerifyRecord_RejectsTruncatedWinnerAddresses(t *testing.T) {
+	record := verifiableLotteryRecord(t)
+	record.WinnerAddresses = record.WinnerAddresses[:len(record.WinnerAddresses)-1]
+
+	report := VerifyRecord(record)
+	if report.IntegrityOK {
+		t.Fatal("a missing winner address must fail verification")
+	}
+	if !hasVerifyFailure(report, "winner/address") {
+		t.Fatalf("failure must identify the address mismatch: %+v", report.Checks)
+	}
+}
+
+func TestVerifyRecord_RejectsTamperedWinnerAddress(t *testing.T) {
+	record := verifiableLotteryRecord(t)
+	record.WinnerAddresses[0] = lotterydomain.NameToAddress("Mallory")
+
+	report := VerifyRecord(record)
+	if report.IntegrityOK {
+		t.Fatal("a same-length tampered winner address must fail verification")
+	}
+	if !hasVerifyFailure(report, "winner address") {
+		t.Fatalf("failure must identify the tampered address: %+v", report.Checks)
+	}
+}
+
+func TestVerifyRecord_AcceptsConsistentlyReorderedWinnerAddresses(t *testing.T) {
+	record := verifiableLotteryRecord(t)
+	record.Winners[0], record.Winners[1] = record.Winners[1], record.Winners[0]
+	record.WinnerAddresses[0], record.WinnerAddresses[1] =
+		record.WinnerAddresses[1], record.WinnerAddresses[0]
+
+	report := VerifyRecord(record)
+	if !report.IntegrityOK {
+		t.Fatalf("reordering winner/address pairs must remain verifiable: %+v", report.Checks)
+	}
+}
+
+func hasVerifyFailure(report *VerifyReport, fragment string) bool {
+	for _, check := range report.Checks {
+		if check.Status == VerifyFail && strings.Contains(check.Message, fragment) {
+			return true
+		}
+	}
+	return false
+}
 
 // TestSameStringSet covers the helper that compares re-derived winners with
 // the stored ones.

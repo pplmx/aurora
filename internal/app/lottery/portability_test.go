@@ -112,6 +112,19 @@ func TestImportRecords_RejectsAnInvalidKeyedProof(t *testing.T) {
 	assert.Empty(t, repo.records, "an invalid proof must not be persisted")
 }
 
+func TestImportRecords_RejectsATamperedWinnerAddress(t *testing.T) {
+	repo := &mockLotteryRepo{}
+	record := genuinePortableRecord(t)
+	record.WinnerAddresses[0] = lottery.NameToAddress("Mallory")
+	document, err := json.Marshal([]lottery.LotteryRecord{record})
+	require.NoError(t, err)
+
+	result, err := ImportRecords(repo, document)
+	require.NoError(t, err)
+	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0}}, result)
+	assert.Empty(t, repo.records, "a tampered payout address must not be imported")
+}
+
 type pathLotteryRepo struct {
 	emptyLotteryRepo
 	path string

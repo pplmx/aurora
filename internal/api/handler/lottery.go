@@ -158,14 +158,13 @@ func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(result)
 }
 
-// Verify re-verifies a persisted draw (proof vs stored public key + winner
-// set) and returns {id, valid, reason}. It uses the same key-bound check as
-// creation, so a draw created after the v1.31 feature can be cryptographically
-// confirmed from the record alone.
+// Verify re-verifies a persisted draw and returns {id, valid, reason}. The use
+// case delegates to the same VerifyRecord implementation as CLI, desktop and
+// import, including winner/address pairing checks.
 func (h *LotteryHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	uc := lotteryapp.NewVerifyLotteryUseCase(h.repo, lottery.NewService())
+	uc := lotteryapp.NewVerifyLotteryUseCase(h.repo)
 	result, err := uc.Execute(lotteryapp.VerifyLotteryRequest{ID: id})
 	if err != nil {
 		if errors.Is(err, lottery.ErrNotFound) {

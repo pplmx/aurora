@@ -12,9 +12,9 @@ import (
 
 // ErrVerificationFailed means the record was found but its contents do not
 // hold up: a malformed VRF proof/output, an empty winners list, winners that
-// do not match the VRF output, a malformed public key, or a proof that does
-// not verify against it. Callers turn this into a non-zero exit (CLI) or an
-// explicit failure report (desktop/REST).
+// do not match the VRF output, a missing or altered winner address, a malformed
+// public key, or a proof that does not verify against it. Callers turn this
+// into a non-zero exit (CLI) or an explicit failure report (desktop/REST/import).
 var ErrVerificationFailed = errors.New("lottery record failed integrity check")
 
 // VerifyReport is the structured outcome of VerifyRecord. It carries the
@@ -35,7 +35,7 @@ type VerifyReport struct {
 
 // VerifyCheck is one finding.
 type VerifyCheck struct {
-	// Status is "ok", "warn" or "fail".
+	// Status is "ok" or "fail".
 	Status string `json:"status"`
 	// Message explains the finding.
 	Message string `json:"message"`
@@ -44,7 +44,6 @@ type VerifyCheck struct {
 // Status values for VerifyCheck.
 const (
 	VerifyOK   = "ok"
-	VerifyWarn = "warn"
 	VerifyFail = "fail"
 )
 
@@ -106,7 +105,8 @@ func resolveRecord(repo lottery.Repository, input string) (*lottery.LotteryRecor
 // Draws created before v1.31 have no persisted public key, so the check falls
 // back to re-running SelectWinners on the stored VRF output and comparing the
 // resulting set with the recorded winners. Draws from v1.31 onward also carry a
-// VRFPublicKey; when present the cryptographic proof is checked as well.
+// VRFPublicKey; when present the cryptographic proof is checked as well. Every
+// winner must remain paired with its deterministic NameToAddress value.
 func VerifyRecord(record *lottery.LotteryRecord) *VerifyReport {
 	report := &VerifyReport{Record: record}
 	fail := func(format string, args ...any) {
@@ -131,11 +131,8 @@ func VerifyRecord(record *lottery.LotteryRecord) *VerifyReport {
 			fail("stored winners do not match the VRF output (expected %v, stored %v)", expected, record.Winners)
 			break
 		}
-		if len(record.Winners) != len(record.WinnerAddresses) {
-			report.Checks = append(report.Checks, VerifyCheck{
-				Status:  VerifyWarn,
-				Message: "stored record has mismatched winner/address slices (possible data corruption)",
-			})
+		if err := verifyWinnerAddresses(record); err != nil {
+			fail("%v", err)
 			break
 		}
 		if record.VRFPublicKey == "" {
@@ -170,6 +167,25 @@ func VerifyRecord(record *lottery.LotteryRecord) *VerifyReport {
 		}
 	}
 	return report
+}
+
+func verifyWinnerAddresses(record *lottery.LotteryRecord) error {
+	if len(record.Winners) != len(record.WinnerAddresses) {
+		return fmt.Errorf(
+			"winner/address length mismatch (%d winners, %d addresses)",
+			len(record.Winners), len(record.WinnerAddresses),
+		)
+	}
+	for i, winner := range record.Winners {
+		want := lottery.NameToAddress(winner)
+		if record.WinnerAddresses[i] != want {
+			return fmt.Errorf(
+				"winner address %d does not match winner %q (expected %s, stored %s)",
+				i, winner, want, record.WinnerAddresses[i],
+			)
+		}
+	}
+	return nil
 }
 
 func isHex(s string) bool {
