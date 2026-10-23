@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 194,
+  "round": 202,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-23T16:48:01+00:00",
+  "updated_at": "2026-10-23T17:52:10+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 147,
+      "touched_round": 202,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 166,
+      "touched_round": 200,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 148,
+      "touched_round": 201,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 194,
+      "touched_round": 202,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 155,
+      "touched_round": 202,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 188,
+      "touched_round": 202,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -2532,7 +2532,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:29:29+00:00",
       "updated_at": "2026-08-23T05:29:29+00:00",
-      "touched_round": 193,
+      "touched_round": 198,
       "title": "Backup/restore subsystem"
     },
     "EV-016": {
@@ -16583,6 +16583,587 @@
       "commit": "c8d4e32",
       "title": "Propagate request cancellation through Oracle REST fetch",
       "summary": "OracleHandler.Fetch now calls FetchDataUseCase.ExecuteContext(r.Context()) instead of the background-context Execute wrapper. A blocking context-aware fetcher regression proved the old path ignored cancellation and now observes it immediately. Handler/API package tests and race tests pass."
+    },
+    "COMP-021": {
+      "id": "COMP-021",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:52:13+00:00",
+      "updated_at": "2026-10-23T16:52:13+00:00",
+      "touched_round": 195,
+      "name": "internal/api/server.go",
+      "path": "internal/api/server.go",
+      "description": "HTTP API composition root: NewServer opens the blockchain singleton plus lottery, voting, NFT, token, event, replay, and oracle SQLite handles and wires their handlers; Server.Close owns their release."
+    },
+    "ISS-354": {
+      "id": "ISS-354",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:52:15+00:00",
+      "updated_at": "2026-10-23T16:56:05+00:00",
+      "touched_round": 195,
+      "severity": 0.62,
+      "title": "NewServer leaks every SQLite handle opened before a later dependency fails",
+      "description": "internal/api/server.go initializes the blockchain singleton and several repositories in sequence, registering successful opens in Server.closers, but every later constructor error returns nil without calling Close. A boot-time schema/open failure therefore strands the global DB and all earlier repository/event/replay handles until process exit. Source: NewServer error returns at server.go and Server.Close ownership contract (verified read)."
+    },
+    "TASK-361": {
+      "id": "TASK-361",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:52:18+00:00",
+      "updated_at": "2026-10-23T16:56:05+00:00",
+      "touched_round": 195,
+      "category": "correctness",
+      "severity": 0.62,
+      "confidence": 0.98,
+      "effort": 2,
+      "unlock_factor": 1,
+      "title": "Release every SQLite handle when NewServer initialization fails",
+      "description": "Made NewServer all-or-nothing: incomplete construction now runs Server.Close so every registered repository/event/replay handle and the blockchain singleton are released. The regression forces voting setup to fail after lottery opens via a pre-existing incompatible votes table, asserts the blockchain pool is closed, and on Linux checks /proc/self/fd for leaked main/WAL/SHM handles. Fault injections proved both total and partial cleanup regressions turn it red."
+    },
+    "HYP-049": {
+      "id": "HYP-049",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:55:49+00:00",
+      "updated_at": "2026-10-23T16:55:54+00:00",
+      "touched_round": 195,
+      "confidence": 0.98,
+      "title": "NewServer direct error returns leave every SQLite handle opened before the failing constructor live",
+      "description": "The constructor registers successful repositories in Server.closers, but direct error returns bypass Close. A deterministic voting schema failure after the blockchain and lottery opens should therefore leave both DB pools live; routing every incomplete construction through Server.Close should release all handles."
+    },
+    "EV-145": {
+      "id": "EV-145",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:55:51+00:00",
+      "updated_at": "2026-10-23T16:55:51+00:00",
+      "touched_round": 195,
+      "confidence": 1,
+      "source": "internal/api/server_cleanup_test.go; 2026-10-24 fault injections: removing cleanup defer made db.Ping succeed after NewServer error; replacing Server.Close with blockchain.Close made /proc/self/fd show the lottery pool plus aurora.db/WAL/SHM; final go test ./internal/api -shuffle=on -count=20, -race -count=3, and go test ./... -cover all green",
+      "title": "A mid-construction failure is deterministic and the regression detects both total and partial handle leaks"
+    },
+    "CHG-360": {
+      "id": "CHG-360",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:55:57+00:00",
+      "updated_at": "2026-10-23T16:55:57+00:00",
+      "touched_round": 195,
+      "commit": "996261b",
+      "title": "Route incomplete API server construction through Server.Close",
+      "description": "Adds an all-or-nothing completion flag and deferred Server.Close on every pre-success return, plus a schema-conflict regression that checks the blockchain pool is closed and Linux /proc file descriptors contain no leaked repository/WAL/SHM handles."
+    },
+    "ISS-355": {
+      "id": "ISS-355",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:00:06+00:00",
+      "updated_at": "2026-10-23T17:09:29+00:00",
+      "touched_round": 197,
+      "severity": 0.7,
+      "title": "Backup Create can replace the previous database set and then fail before publishing matching metadata",
+      "description": "internal/infra/backup/backup.go Create snapshots every DB to temp and then promotes each snapshot over the existing backup before checksumming/writing metadata. A checksum, metadata write, metadata rename, or output walk failure after promotion returns an error while the previous good .db set is already gone and the old metadata.json no longer matches it. The existing MetadataWriteError test asserts only that Create errors, not that the previous verifiable set survives. Source: Create phase 2 through metadata tail (verified read)."
+    },
+    "TASK-362": {
+      "id": "TASK-362",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T17:00:10+00:00",
+      "updated_at": "2026-10-23T17:09:29+00:00",
+      "touched_round": 197,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.99,
+      "effort": 4,
+      "unlock_factor": 1,
+      "title": "Roll back Create after any snapshot promotion or metadata-tail failure",
+      "description": "Make BackupService.Create transactional over an existing output directory: preflight names and metadata paths, retain a private rollback copy of every pre-existing DB and metadata file before promotion, restore that exact set if any promotion/checksum/metadata/walk step fails, and remove files newly created by the failed run. Add deterministic regressions for a post-promotion metadata temp collision and an injected mid-promotion rename failure; both must leave the previous backup byte-identical and Verify-green."
+    },
+    "DEC-035": {
+      "id": "DEC-035",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:09:02+00:00",
+      "updated_at": "2026-10-23T17:09:02+00:00",
+      "touched_round": 197,
+      "title": "Stage every previous BackupService.Create output and roll it back before publishing a new set",
+      "rationale": "Create cannot atomically replace multiple database files plus metadata with one rename. Before promotion, validate configured names and path shapes, then hard-link every existing database and metadata file into a private same-filesystem rollback directory (falling back to an atomic copy). On any promotion, checksum, metadata, or output-walk failure, restore promoted files in reverse order, remove outputs that did not previously exist, and discard the rollback directory only when every restore succeeds. Retaining that directory after a rollback failure preserves the prior data for operator recovery. The refactor exceeds the 300-line advisory because it adds transactional staging and three fault-injected regressions.",
+      "alternatives_rejected": "Roll back only metadata (leaves newly promoted databases under old metadata); replace the whole output directory atomically (no portable multi-file exchange and would delete unrelated files); leave the new database set and return an error (creates an unverifiable mixed set); delete rollback artifacts even when restoring a previous file fails (discards the only retained recovery copy)."
+    },
+    "HYP-050": {
+      "id": "HYP-050",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:09:24+00:00",
+      "updated_at": "2026-10-23T17:09:24+00:00",
+      "touched_round": 197,
+      "confidence": 0.99,
+      "title": "Replacing every previous backup database before the metadata tail leaves failed Create calls with no consistent restorable set",
+      "description": "BackupService.Create promotes each new database snapshot by rename, then computes checksums, writes metadata, promotes metadata, and walks the output. Before this change, any error in that tail returned after the old database files and metadata were already unrecoverable, leaving new databases beside old or absent metadata. Staging the complete previous visible set before promotion and restoring it on every tail failure should make Create all-or-nothing."
+    },
+    "EV-146": {
+      "id": "EV-146",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:09:24+00:00",
+      "updated_at": "2026-10-23T17:09:24+00:00",
+      "touched_round": 197,
+      "confidence": 1.0,
+      "title": "Fault-injected promotion, metadata, and first-create failures all preserve or clean the backup set",
+      "source": "internal/infra/backup/backup_test.go:360 TestBackupService_Create_MetadataFailureRollsBackPreviousSet, :397 TestBackupService_Create_NewOutputCleansUpAfterMetadataFailure, :421 TestBackupService_Create_PromotionFailureRollsBackPreviousSet; 2026-10-24 fault injection: removing rollbackCreate made both previous-set tests fail on changed database hashes; final go test ./internal/infra/backup -shuffle=on -count=20, CGO_ENABLED=1 go test -race ./internal/infra/backup -shuffle=on -count=3, go test ./... -cover, just check, just desktop-check, and golangci-lint v2.15.0 all green"
+    },
+    "CHG-361": {
+      "id": "CHG-361",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:09:24+00:00",
+      "updated_at": "2026-10-23T17:09:24+00:00",
+      "touched_round": 197,
+      "commit": "576e85256cf9c3d0a0bec1f22ab3b5c726b4d7ab",
+      "title": "Make BackupService.Create transactional over existing output directories",
+      "description": "Validate configured names, stage the previous databases and metadata in a private same-filesystem rollback directory, promote in deterministic order, and restore the previous set or remove newly created outputs after any promotion, checksum, metadata, or walk failure. Add regressions for the first create, a post-promotion metadata blocker, and an injected mid-promotion failure."
+    },
+    "ISS-356": {
+      "id": "ISS-356",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:12:51+00:00",
+      "updated_at": "2026-10-23T17:16:48+00:00",
+      "touched_round": 198,
+      "severity": 0.62,
+      "title": "Backup Verify/Restore follow database symlinks outside the archive and Create writes metadata through a symlinked temp file",
+      "description": "internal/infra/backup/backup.go uses os.Stat for archive <name>.db in Verify and planRestore, so a symlink inside an operator-supplied backup directory is accepted as a regular database and its target is hashed/opened/copied during restore. Create also writes metadata.json.tmp in the caller-controlled output directory with os.WriteFile, which follows a planted symlink and can overwrite an arbitrary target before renaming the symlink itself to metadata.json. Source: Verify database stat/open loop, planRestore backup stat, and Create metadata-tail write (verified read)."
+    },
+    "TASK-363": {
+      "id": "TASK-363",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T17:12:51+00:00",
+      "updated_at": "2026-10-23T17:16:48+00:00",
+      "touched_round": 198,
+      "category": "security",
+      "severity": 0.62,
+      "confidence": 0.98,
+      "effort": 2,
+      "unlock_factor": 1,
+      "title": "Reject symlinked backup artifacts and keep Create metadata staging private",
+      "description": "Require archive database and metadata files to be regular directory entries rather than symlinks; restore must refuse an external symlink before touching live data. Move Create metadata staging into the private same-filesystem rollback directory, remove stale caller-controlled metadata temp entries safely, and inject metadata-write failure so post-promotion rollback stays deterministic. Add regressions for an external database symlink and a symlinked metadata temp that must not modify its target."
+    },
+    "DEC-036": {
+      "id": "DEC-036",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:16:22+00:00",
+      "updated_at": "2026-10-23T17:16:22+00:00",
+      "touched_round": 198,
+      "title": "Treat backup archive files as regular directory entries and stage Create metadata only inside the private rollback directory",
+      "rationale": "Archive database and metadata paths are attacker-influenced. Following a symlink makes Verify or Restore read, hash, or copy a file outside the supplied archive, while a planted metadata.json.tmp symlink made Create overwrite an arbitrary host file before renaming the link to metadata.json. Lstat regular-file checks reject link directory entries without rejecting legitimate hard-linked regular files. Create now writes and renames metadata from the already-required 0700 same-filesystem rollback directory, so no caller-controlled temp path is opened, and an injectable writer keeps post-promotion failure tests deterministic.",
+      "alternatives_rejected": "Resolve symlinks and compare path prefixes (still racy and vulnerable to link swaps), rely on database checksums (the target is read before the checksum can reject it), open the public metadata temp with O_NOFOLLOW (non-portable and leaves a writable temp surface), or unlink symlinks during Restore (mutates the operator input instead of refusing a non-self-contained archive)."
+    },
+    "HYP-051": {
+      "id": "HYP-051",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:16:44+00:00",
+      "updated_at": "2026-10-23T17:16:44+00:00",
+      "touched_round": 198,
+      "confidence": 0.98,
+      "title": "Following backup archive and public temp symlinks lets backup operations escape their declared directory",
+      "description": "Verify and planRestore treated a symlinked database as a regular archive file because they used os.Stat, so a crafted archive could make verification and restore read or copy an external target. Create wrote metadata.json.tmp in the caller-controlled output directory, so a planted symlink caused os.WriteFile to overwrite its target and could leave metadata.json as that symlink. Lstat-based regular-entry checks plus private metadata staging should close both paths without breaking hard-linked backups."
+    },
+    "EV-147": {
+      "id": "EV-147",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:16:44+00:00",
+      "updated_at": "2026-10-23T17:16:44+00:00",
+      "touched_round": 198,
+      "confidence": 1.0,
+      "title": "Symlink regressions fail on the old Stat/public-temp implementation and pass with private staging",
+      "source": "internal/infra/backup/backup_test.go:418 TestBackupService_Create_DoesNotFollowSymlinkedMetadataTemp, internal/infra/backup/restore_test.go:471 TestVerifyAndRestore_RejectSymlinkedDatabase, :510 TestVerifyAndRestore_RejectSymlinkedMetadata; 2026-10-24 fault injection: restoring os.Stat plus the output metadata temp made the victim file contain metadata JSON and Verify accept an external database symlink; final backup tests -shuffle -count=20, backup race -count=3, go test -race ./..., go test ./... -cover, just check, just desktop-check, and golangci-lint v2.15.0 all green"
+    },
+    "CHG-362": {
+      "id": "CHG-362",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:16:44+00:00",
+      "updated_at": "2026-10-23T17:16:44+00:00",
+      "touched_round": 198,
+      "commit": "e3a6776ea70b315b739e8fb2acb410d35dbfbde6",
+      "title": "Reject symlinked backup archive files and stage Create metadata privately",
+      "description": "Require metadata and database archive entries to pass Lstat regular-file checks in Verify, Restore, and planRestore. Move metadata writing into the private rollback directory and safely unlink a stale caller-controlled metadata.json.tmp entry. Inject the metadata writer so rollback tests can still fail after promotion."
+    },
+    "HYP-052": {
+      "id": "HYP-052",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:22:44+00:00",
+      "updated_at": "2026-10-23T17:29:24+00:00",
+      "touched_round": 199,
+      "title": "SQLite persistence drops the lottery VRF public key and trusts imported verification flags",
+      "description": "The domain record carries VRFPublicKey and the API verifies proofs against it, but the self-bootstrapped SQLite schema, Save statement, and all SELECT scans omit the key. Every read therefore returns an empty key and verification silently downgrades to deterministic winner matching. The portable importer also stores the caller-provided Verified bit without re-verifying the proof.",
+      "confidence": 0.99
+    },
+    "EV-148": {
+      "id": "EV-148",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:22:48+00:00",
+      "updated_at": "2026-10-23T17:22:48+00:00",
+      "touched_round": 199,
+      "title": "All lottery repository paths omit VRFPublicKey",
+      "description": "internal/infra/sqlite/lottery.go:112-123 creates lottery_records without vrf_public_key; Save at :147-162 does not bind record.VRFPublicKey; GetByID/GetAll/GetByBlockHeight at :171-174, :202-205, :243-246 select no key and return records without it. internal/app/lottery/portability.go:138-150 validates and saves imported records without calling VerifyRecord or canonicalizing Verified.",
+      "source": "internal/infra/sqlite/lottery.go:112-276; internal/app/lottery/portability.go:138-150; static read at HEAD e3a6776",
+      "confidence": 0.99
+    },
+    "ISS-357": {
+      "id": "ISS-357",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:22:51+00:00",
+      "updated_at": "2026-10-23T17:29:24+00:00",
+      "touched_round": 199,
+      "title": "Lottery VRF evidence is lost in SQLite and import trusts Verified metadata",
+      "description": "Records created with a VRF public key are stored without it, so history/export/import and post-restart verification lose the cryptographic proof anchor and fall back to deterministic winner matching. Separately, ImportRecords accepts the serialized Verified=true flag without checking the key or proof, allowing a portable document to manufacture a verified audit trail.",
+      "severity": 0.85
+    },
+    "TASK-364": {
+      "id": "TASK-364",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T17:22:55+00:00",
+      "updated_at": "2026-10-23T17:29:24+00:00",
+      "touched_round": 199,
+      "category": "security",
+      "title": "Persist and re-verify lottery VRF evidence across SQLite and imports",
+      "description": "Add an idempotent lottery VRF-key side table through both self-bootstrap and migration 000004 so legacy databases upgrade safely. Save the public key and join it into every lottery read. Make ImportRecords reject records whose stored winners/proof/key fail VerifyRecord and canonicalize Verified from the proof result instead of trusting document metadata. Add repository, migration, CLI, app, and desktop round-trip regressions, including a forged Verified fault injection.",
+      "severity": 0.85,
+      "confidence": 0.99,
+      "effort": 2,
+      "unlock_factor": 1.1
+    },
+    "DEC-037": {
+      "id": "DEC-037",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:28:32+00:00",
+      "updated_at": "2026-10-23T17:28:32+00:00",
+      "touched_round": 199,
+      "title": "Persist lottery VRF keys in an idempotent side table and derive import Verified from verification",
+      "rationale": "lottery_records is created both by self-bootstrapping repositories and by migrations. A column added by ALTER TABLE in 000004 would fail with duplicate-column if the updated repository bootstrapped first; checking table_info in plain SQL is not portable in the migration runner. lottery_vrf_keys uses CREATE TABLE IF NOT EXISTS in both paths, mirrors the vote_sessions upgrade precedent, and keeps the proof key atomic with Save inside a transaction. ImportRecords must run the same VerifyRecord used by CLI/API/desktop, reject inconsistent records, and derive Verified from ProofVerified so JSON metadata cannot manufacture an audit claim.",
+      "alternatives_rejected": "Adding vrf_public_key to 000001 mutates an already-applied migration and cannot upgrade existing databases. ALTER TABLE in 000004 plus a self-bootstrap ALTER makes migration order non-idempotent. Trusting the imported Verified boolean permits forged verification metadata. Rejecting every keyless legacy record would break backward-compatible imports, so keyless records remain importable but unverified."
+    },
+    "DEC-038": {
+      "id": "DEC-038",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:28:36+00:00",
+      "updated_at": "2026-10-23T17:28:36+00:00",
+      "touched_round": 199,
+      "title": "Keep lottery storage and import evidence hardening in one commit despite the test-heavy diff",
+      "rationale": "The change is one audit-integrity invariant exercised at both boundaries: a key must survive SQLite/export and an importer must not trust metadata. The apparent diff exceeds the usual 300-line soft limit because multiple existing desktop/CLI fixtures fabricated unverifiable VRF proofs and had to be replaced with real signed draws. Splitting the commits would leave fake or untrusted-evidence fixtures inconsistent with one half of the invariant and make either commit fail its own end-to-end tests. The production-code delta is small; most added lines are regression coverage and migration-version updates.",
+      "alternatives_rejected": "Splitting into persistence and import commits would create an intermediate revision whose shared export/import tests cannot all pass without temporary fixture churn. Reducing coverage or preserving fabricated-proof fixtures would hide the exact regression this task fixes."
+    },
+    "EV-149": {
+      "id": "EV-149",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:29:11+00:00",
+      "updated_at": "2026-10-23T17:29:11+00:00",
+      "touched_round": 199,
+      "title": "Lottery VRF evidence survives SQLite, migration, export/import and forged metadata tests",
+      "description": "Commit 917b8b5 adds the key side table and migration 000004, joins the key into all read paths, verifies imports, and derives Verified from ProofVerified. Fault injection removing the key upsert made TestLotteryRepository_Save_AndGetByID, TestLotteryRepository_VRFPublicKeyOnEveryReadPath, and TestLotteryRepository_UpgradesLegacySchemaWithVRFKeyTable fail with an empty key. Removing the import verifier made TestImportRecords_DoesNotTrustVerifiedWithoutAKey and TestImportRecords_RejectsAnInvalidKeyedProof fail. Restoration passed focused tests, full go test ./..., full race, coverage, just check, just desktop-check, and golangci-lint with 0 issues.",
+      "source": "commit 917b8b5; tests TestLotteryRepository_*VRF*, TestImportRecords_DerivesVerifiedFromStoredProof, TestImportRecords_DoesNotTrustVerifiedWithoutAKey, TestImportRecords_RejectsAnInvalidKeyedProof, TestRealMigrations_LotteryVRFKeyUpgrade, TestLotteryExport_Import, TestExportImport_RoundTripThroughSharedAppLayer",
+      "confidence": 1.0
+    },
+    "CHG-363": {
+      "id": "CHG-363",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:29:15+00:00",
+      "updated_at": "2026-10-23T17:29:15+00:00",
+      "touched_round": 199,
+      "title": "Persist lottery VRF keys and re-verify imported evidence",
+      "description": "Adds lottery_vrf_keys through repository self-bootstrap and migration 000004, writes it transactionally with every draw, joins it into ID/history/height reads, clears it on reset, and rejects or canonicalizes imported records through VerifyRecord. Updates CLI/desktop fixtures to use real signed draws and migration tests through version 4.",
+      "commit": "917b8b5"
+    },
+    "HYP-053": {
+      "id": "HYP-053",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:30:46+00:00",
+      "updated_at": "2026-10-23T17:34:07+00:00",
+      "touched_round": 200,
+      "title": "A VRF-valid lottery draw can report tampered or missing winner addresses as verified",
+      "description": "DrawWinners derives each winner address as NameToAddress(winner), but VerifyRecord only warns when the address slice length differs and never compares same-length address values. VerifyLotteryUseCase separately checks only slice length. A record with a valid key/proof and altered payout address therefore reports verified through CLI/desktop and valid:true through REST, and ImportRecords now accepts it as cryptographically verified.",
+      "confidence": 0.99
+    },
+    "EV-150": {
+      "id": "EV-150",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:30:51+00:00",
+      "updated_at": "2026-10-23T17:30:51+00:00",
+      "touched_round": 200,
+      "title": "Verifier checks address length but never address values",
+      "description": "At 917b8b5, internal/app/lottery/verify.go:134-140 appends VerifyWarn for a winner/address length mismatch and leaves IntegrityOK true after the switch. It never compares same-length entries. internal/app/lottery/usecase.go:225-235 only checks same winner set and equal address-slice length. internal/domain/lottery/service.go:42-47 proves every legitimate address is NameToAddress(winner), so any other value is corruption or tampering.",
+      "source": "internal/app/lottery/verify.go:134-140; internal/app/lottery/usecase.go:225-235; internal/domain/lottery/service.go:42-47; static read at commit 917b8b5",
+      "confidence": 0.99
+    },
+    "ISS-358": {
+      "id": "ISS-358",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:30:55+00:00",
+      "updated_at": "2026-10-23T17:34:07+00:00",
+      "touched_round": 200,
+      "title": "Tampered lottery winner addresses pass verification and import",
+      "description": "A keyed draw with a valid VRF proof can change one or more WinnerAddresses without invalidating the record. VerifyRecord only warns on address-slice length mismatch and ignores values; the REST verify use case only checks length. CLI/desktop report the draw verified, REST returns valid:true, and imports preserve the tampered payout destination.",
+      "severity": 0.85
+    },
+    "TASK-365": {
+      "id": "TASK-365",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T17:30:59+00:00",
+      "updated_at": "2026-10-23T17:34:07+00:00",
+      "touched_round": 200,
+      "category": "security",
+      "title": "Verify winner addresses and unify all lottery integrity verdicts",
+      "description": "Make VerifyRecord fail on winner/address length mismatch or any address that differs from NameToAddress(winner at the same index). Route VerifyLotteryUseCase through VerifyRecord so CLI, desktop, REST and import share one verdict. Add direct verifier, REST use-case, and import regressions for truncated, same-length tampered, and correctly ordered/reordered address evidence; prove them red by restoring the old length-only behavior.",
+      "severity": 0.85,
+      "confidence": 0.99,
+      "effort": 1.5,
+      "unlock_factor": 1.2
+    },
+    "DEC-039": {
+      "id": "DEC-039",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:33:41+00:00",
+      "updated_at": "2026-10-23T17:33:41+00:00",
+      "touched_round": 200,
+      "title": "Verify deterministic winner-address pairs and route every lottery verdict through VerifyRecord",
+      "rationale": "DrawWinners derives WinnerAddresses from the ordered winner list via NameToAddress, so an address mismatch is objective corruption rather than a warning. VerifyRecord now rejects length or value mismatches while accepting consistent pair reordering. VerifyLotteryUseCase delegates to that report and exposes its first failure reason, eliminating a weaker REST-only copy that could drift from CLI, desktop and import. A valid VRF proof authenticates the winner stream, not arbitrary JSON payout destinations, so both checks are required for an honest verified verdict.",
+      "alternatives_rejected": "Checking only slice lengths accepts same-length payout tampering. Failing every reordered array would reject lossless tooling that keeps winner/address pairs together. Keeping duplicated REST verification logic caused the observed cross-surface split and would recreate it after future verifier changes. Making address mismatch a warning would continue returning valid:true for a record with a wrong payout destination."
+    },
+    "EV-151": {
+      "id": "EV-151",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:33:57+00:00",
+      "updated_at": "2026-10-23T17:33:57+00:00",
+      "touched_round": 200,
+      "title": "Winner-address tampering now fails direct, REST, and import verification",
+      "description": "Commit a2a1214 makes VerifyRecord reject truncated addresses and any same-length value not equal to NameToAddress(winner at that index), while accepting consistently reordered pairs. VerifyLotteryUseCase delegates to VerifyRecord and REST returns the first failure reason. Before the code change, the new direct verifier, REST use-case, and import tests all failed: REST returned valid:true and import accepted the tampered payout address. After the change, 20 shuffled runs, focused race tests, full go test ./..., full race, coverage, just check, just desktop-check, and golangci-lint (0 issues) passed.",
+      "source": "commit a2a1214; tests TestVerifyRecord_RejectsTruncatedWinnerAddresses, TestVerifyRecord_RejectsTamperedWinnerAddress, TestVerifyRecord_AcceptsConsistentlyReorderedWinnerAddresses, TestVerifyLotteryUseCase_TamperedWinnerAddress, TestLotteryHandler_Verify_TamperedWinnerAddress, TestImportRecords_RejectsATamperedWinnerAddress",
+      "confidence": 1.0
+    },
+    "CHG-364": {
+      "id": "CHG-364",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:34:01+00:00",
+      "updated_at": "2026-10-23T17:34:01+00:00",
+      "touched_round": 200,
+      "title": "Verify deterministic winner-address pairs and unify lottery verdicts",
+      "description": "VerifyRecord now fails on winner/address length or value mismatch, accepts consistent pair reordering, and VerifyLotteryUseCase delegates to it so REST, CLI, desktop, and import share one verdict. Adds direct, REST handler, use-case, and import tampering regressions and removes the now-unused warning status.",
+      "commit": "a2a1214"
+    },
+    "ISS-359": {
+      "id": "ISS-359",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:38:03+00:00",
+      "updated_at": "2026-10-23T17:41:42+00:00",
+      "touched_round": 201,
+      "title": "NFT audit history is unreachable after burn: nft_operations intentionally retains the mint/transfer/burn trail, but GetNFTOperationsUseCase requires GetNFTByID to succeed before reading operations, so CLI and REST history return NFT_NOT_FOUND after a successful burn",
+      "severity": 0.75,
+      "confidence": 0.98
+    },
+    "HYP-054": {
+      "id": "HYP-054",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:38:05+00:00",
+      "updated_at": "2026-10-23T17:41:42+00:00",
+      "touched_round": 201,
+      "title": "The burned-NFT history regression is in the app-layer existence gate, not the repository: operations survive in SQLite, but the use case short-circuits on the deleted nfts row before consulting them",
+      "confidence": 0.99
+    },
+    "TASK-366": {
+      "id": "TASK-366",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T17:38:08+00:00",
+      "updated_at": "2026-10-23T17:41:45+00:00",
+      "touched_round": 201,
+      "category": "correctness",
+      "title": "Return the preserved NFT audit trail after burn while keeping unknown IDs at 404",
+      "description": "Change GetNFTOperationsUseCase to consult operations before treating a missing nft row as unknown. Preserve 404 only when both the NFT and its operation trail are absent. Add app-layer, SQLite-backed surface/CLI regressions and fault-inject the old GetNFTByID-first ordering.",
+      "severity": 0.75,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "EV-152": {
+      "id": "EV-152",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:38:34+00:00",
+      "updated_at": "2026-10-23T17:38:34+00:00",
+      "touched_round": 201,
+      "source": "internal/app/nft/usecase_test.go::TestGetNFTOperationsUseCase_BurnedNFTKeepsAuditTrail",
+      "title": "Pre-fix SQLite-backed mint+burn regression failed with NFT not found even though nft_operations retained both rows",
+      "confidence": 1.0
+    },
+    "EV-153": {
+      "id": "EV-153",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:40:39+00:00",
+      "updated_at": "2026-10-23T17:40:39+00:00",
+      "touched_round": 201,
+      "source": "internal/app/nft/usecase_test.go::TestGetNFTOperationsUseCase_BurnedNFTKeepsAuditTrail; internal/api/handler/nft_test.go::TestNFTHandler_History_AfterBurn; cmd/aurora/cmd/nft_test.go::TestNFTHistory_AfterBurn",
+      "title": "Operations-first history lookup returns mint+burn at app, REST, and CLI boundaries; fault injection restoring the NFT-first gate made all three regressions fail with NFT not found/404",
+      "confidence": 1.0
+    },
+    "CHG-365": {
+      "id": "CHG-365",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:41:28+00:00",
+      "updated_at": "2026-10-23T17:41:28+00:00",
+      "touched_round": 201,
+      "commit": "9bf1923",
+      "title": "Return preserved NFT audit trails after burn"
+    },
+    "ISS-360": {
+      "id": "ISS-360",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:44:23+00:00",
+      "updated_at": "2026-10-23T17:52:10+00:00",
+      "touched_round": 202,
+      "severity": 0.72,
+      "title": "Oracle request headers cannot be set through any source creation surface",
+      "description": "DataSource.Headers is persisted and returned by GET /api/v1/oracle/sources, and the HTTP fetcher applies it to outgoing requests, but AddSourceRequest has no Headers field and AddSourceUseCase never copies one. The REST CreateSource decoder, CLI oracle source add, web Add Source form, and oracle TUI form likewise expose no header input. Authenticated/private feeds that require Authorization or vendor API-key headers therefore cannot be configured through any public write surface despite storage/fetch support. Source: internal/app/oracle/dto.go, internal/app/oracle/usecase.go, internal/api/handler/oracle.go, cmd/aurora/cmd/oracle.go, web/oracle.html, internal/ui/oracle/tui.go (verified read)."
+    },
+    "TASK-367": {
+      "id": "TASK-367",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T17:44:26+00:00",
+      "updated_at": "2026-10-23T17:52:10+00:00",
+      "touched_round": 202,
+      "category": "core-feature",
+      "severity": 0.8,
+      "confidence": 0.99,
+      "effort": 2,
+      "unlock_factor": 1.1,
+      "title": "Expose oracle request headers end-to-end across REST, CLI, web, and TUI",
+      "description": "Add Headers to AddSourceRequest and propagate it into oracle.DataSource. Accept JSON-object headers on REST POST /api/v1/oracle/sources, CLI oracle source add --headers, the web Add Source form, and the oracle TUI form. Keep effective headers visible where source configuration is shown. Reuse the domain MaxSourceHeadersLen bound and the fetcher CR/LF/invalid-JSON checks; add app, REST, persistent CLI, and surface regressions, then fault-inject the dropped field."
+    },
+    "HYP-055": {
+      "id": "HYP-055",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:51:52+00:00",
+      "updated_at": "2026-10-23T17:51:52+00:00",
+      "touched_round": 202,
+      "confidence": 0.99,
+      "title": "AddSource drops headers before persistence because the app DTO and every public source form omit the field",
+      "description": "The storage entity and HTTP fetcher already support DataSource.Headers, but AddSourceRequest has no Headers member, AddSourceUseCase cannot copy it, and REST/CLI/web/TUI creation surfaces provide no input. Private feeds therefore cannot be configured even though the fetch path would apply stored headers."
+    },
+    "EV-154": {
+      "id": "EV-154",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:51:56+00:00",
+      "updated_at": "2026-10-23T17:51:56+00:00",
+      "touched_round": 202,
+      "confidence": 1.0,
+      "source": "pre-fix: go test ./internal/api/handler -run TestOracleHandler_CreateSource_PersistsHeaders (empty headers) and go test ./cmd/aurora/cmd -run TestOracleSourceAdd_PersistsHeaders (unknown flag --headers); fault injection: removing Headers from AddSourceUseCase made app, REST, persistent CLI, and TUI header regressions fail with an empty header value",
+      "title": "The missing app-field propagation is the root cause, and the new regressions fail before the fix and under fault injection"
+    },
+    "EV-155": {
+      "id": "EV-155",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:51:59+00:00",
+      "updated_at": "2026-10-23T17:51:59+00:00",
+      "touched_round": 202,
+      "confidence": 1.0,
+      "source": "commit 24ccc0c; focused packages: domain/oracle, app/oracle, infra/http, api/handler, cmd/aurora/cmd, ui/oracle, api; gates: CGO_ENABLED=0 go test ./..., CGO_ENABLED=1 go test -race ./..., go test ./... -cover, just check, just desktop-check, golangci-lint v2.15.0 with errcheck disabled (0 issues)",
+      "title": "Headers now persist from every creation surface, unsafe JSON/CRLF is rejected at source creation, and all focused plus repository-wide gates pass"
+    },
+    "DEC-040": {
+      "id": "DEC-040",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:52:02+00:00",
+      "updated_at": "2026-10-23T17:52:02+00:00",
+      "touched_round": 202,
+      "title": "Deliver oracle request-header support as one cross-surface change",
+      "rationale": "The 374-line diff is above the usual 300-line deep-dive budget, but roughly half is regression coverage and documentation. REST, CLI, web, and TUI must agree on one request/storage contract; splitting them would create transient half-working surfaces and make fault-injection evidence harder to trace.",
+      "alternatives_rejected": "Backend-only commit followed later by UI work; separate web-only commit; deferring TUI support."
+    },
+    "CHG-366": {
+      "id": "CHG-366",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:52:05+00:00",
+      "updated_at": "2026-10-23T17:52:05+00:00",
+      "touched_round": 202,
+      "commit": "24ccc0c",
+      "title": "Expose oracle request headers across source creation surfaces"
     }
   },
   "edges": [
@@ -25688,6 +26269,306 @@
       "to": "ISS-353",
       "type": "resolves",
       "created_at": "2026-10-23T16:48:01+00:00"
+    },
+    {
+      "from": "TASK-361",
+      "to": "ISS-354",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:52:20+00:00"
+    },
+    {
+      "from": "ISS-354",
+      "to": "COMP-021",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:52:20+00:00"
+    },
+    {
+      "from": "EV-145",
+      "to": "HYP-049",
+      "type": "validates",
+      "created_at": "2026-10-23T16:55:53+00:00"
+    },
+    {
+      "from": "CHG-360",
+      "to": "TASK-361",
+      "type": "implements",
+      "created_at": "2026-10-23T16:56:02+00:00"
+    },
+    {
+      "from": "CHG-360",
+      "to": "ISS-354",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:56:02+00:00"
+    },
+    {
+      "from": "TASK-362",
+      "to": "ISS-355",
+      "type": "addresses",
+      "created_at": "2026-10-23T17:00:13+00:00"
+    },
+    {
+      "from": "ISS-355",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:00:14+00:00"
+    },
+    {
+      "from": "DEC-035",
+      "to": "COMP-008",
+      "type": "governs",
+      "created_at": "2026-10-23T17:09:02+00:00"
+    },
+    {
+      "from": "EV-146",
+      "to": "HYP-050",
+      "type": "validates",
+      "created_at": "2026-10-23T17:09:24+00:00"
+    },
+    {
+      "from": "CHG-361",
+      "to": "TASK-362",
+      "type": "implements",
+      "created_at": "2026-10-23T17:09:24+00:00"
+    },
+    {
+      "from": "CHG-361",
+      "to": "ISS-355",
+      "type": "resolves",
+      "created_at": "2026-10-23T17:09:24+00:00"
+    },
+    {
+      "from": "TASK-363",
+      "to": "ISS-356",
+      "type": "addresses",
+      "created_at": "2026-10-23T17:12:51+00:00"
+    },
+    {
+      "from": "ISS-356",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:12:51+00:00"
+    },
+    {
+      "from": "DEC-036",
+      "to": "COMP-008",
+      "type": "governs",
+      "created_at": "2026-10-23T17:16:22+00:00"
+    },
+    {
+      "from": "EV-147",
+      "to": "HYP-051",
+      "type": "validates",
+      "created_at": "2026-10-23T17:16:44+00:00"
+    },
+    {
+      "from": "CHG-362",
+      "to": "TASK-363",
+      "type": "implements",
+      "created_at": "2026-10-23T17:16:44+00:00"
+    },
+    {
+      "from": "CHG-362",
+      "to": "ISS-356",
+      "type": "resolves",
+      "created_at": "2026-10-23T17:16:44+00:00"
+    },
+    {
+      "from": "EV-148",
+      "to": "HYP-052",
+      "type": "validates",
+      "created_at": "2026-10-23T17:22:51+00:00"
+    },
+    {
+      "from": "TASK-364",
+      "to": "ISS-357",
+      "type": "addresses",
+      "created_at": "2026-10-23T17:22:59+00:00"
+    },
+    {
+      "from": "ISS-357",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:22:59+00:00"
+    },
+    {
+      "from": "DEC-037",
+      "to": "COMP-lottery",
+      "type": "governs",
+      "created_at": "2026-10-23T17:28:39+00:00"
+    },
+    {
+      "from": "DEC-037",
+      "to": "TASK-364",
+      "type": "governs",
+      "created_at": "2026-10-23T17:28:39+00:00"
+    },
+    {
+      "from": "DEC-038",
+      "to": "TASK-364",
+      "type": "governs",
+      "created_at": "2026-10-23T17:28:39+00:00"
+    },
+    {
+      "from": "EV-149",
+      "to": "HYP-052",
+      "type": "validates",
+      "created_at": "2026-10-23T17:29:21+00:00"
+    },
+    {
+      "from": "CHG-363",
+      "to": "TASK-364",
+      "type": "implements",
+      "created_at": "2026-10-23T17:29:21+00:00"
+    },
+    {
+      "from": "CHG-363",
+      "to": "ISS-357",
+      "type": "resolves",
+      "created_at": "2026-10-23T17:29:21+00:00"
+    },
+    {
+      "from": "EV-150",
+      "to": "HYP-053",
+      "type": "validates",
+      "created_at": "2026-10-23T17:30:55+00:00"
+    },
+    {
+      "from": "TASK-365",
+      "to": "ISS-358",
+      "type": "addresses",
+      "created_at": "2026-10-23T17:31:02+00:00"
+    },
+    {
+      "from": "ISS-358",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:31:02+00:00"
+    },
+    {
+      "from": "DEC-039",
+      "to": "COMP-lottery",
+      "type": "governs",
+      "created_at": "2026-10-23T17:33:44+00:00"
+    },
+    {
+      "from": "DEC-039",
+      "to": "TASK-365",
+      "type": "governs",
+      "created_at": "2026-10-23T17:33:44+00:00"
+    },
+    {
+      "from": "EV-151",
+      "to": "HYP-053",
+      "type": "validates",
+      "created_at": "2026-10-23T17:34:04+00:00"
+    },
+    {
+      "from": "CHG-364",
+      "to": "TASK-365",
+      "type": "implements",
+      "created_at": "2026-10-23T17:34:04+00:00"
+    },
+    {
+      "from": "CHG-364",
+      "to": "ISS-358",
+      "type": "resolves",
+      "created_at": "2026-10-23T17:34:04+00:00"
+    },
+    {
+      "from": "TASK-366",
+      "to": "ISS-359",
+      "type": "addresses",
+      "created_at": "2026-10-23T17:38:11+00:00"
+    },
+    {
+      "from": "ISS-359",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:38:12+00:00"
+    },
+    {
+      "from": "EV-152",
+      "to": "HYP-054",
+      "type": "validates",
+      "created_at": "2026-10-23T17:38:36+00:00"
+    },
+    {
+      "from": "EV-153",
+      "to": "HYP-054",
+      "type": "validates",
+      "created_at": "2026-10-23T17:40:41+00:00"
+    },
+    {
+      "from": "CHG-365",
+      "to": "TASK-366",
+      "type": "implements",
+      "created_at": "2026-10-23T17:41:31+00:00"
+    },
+    {
+      "from": "CHG-365",
+      "to": "ISS-359",
+      "type": "resolves",
+      "created_at": "2026-10-23T17:41:32+00:00"
+    },
+    {
+      "from": "TASK-367",
+      "to": "ISS-360",
+      "type": "addresses",
+      "created_at": "2026-10-23T17:44:30+00:00"
+    },
+    {
+      "from": "ISS-360",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:44:30+00:00"
+    },
+    {
+      "from": "ISS-360",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:44:30+00:00"
+    },
+    {
+      "from": "ISS-360",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:44:30+00:00"
+    },
+    {
+      "from": "ISS-360",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:44:30+00:00"
+    },
+    {
+      "from": "EV-154",
+      "to": "HYP-055",
+      "type": "validates",
+      "created_at": "2026-10-23T17:52:09+00:00"
+    },
+    {
+      "from": "EV-155",
+      "to": "HYP-055",
+      "type": "validates",
+      "created_at": "2026-10-23T17:52:09+00:00"
+    },
+    {
+      "from": "CHG-366",
+      "to": "TASK-367",
+      "type": "implements",
+      "created_at": "2026-10-23T17:52:09+00:00"
+    },
+    {
+      "from": "CHG-366",
+      "to": "ISS-360",
+      "type": "resolves",
+      "created_at": "2026-10-23T17:52:10+00:00"
+    },
+    {
+      "from": "DEC-040",
+      "to": "TASK-367",
+      "type": "governs",
+      "created_at": "2026-10-23T17:52:10+00:00"
     }
   ]
 }
