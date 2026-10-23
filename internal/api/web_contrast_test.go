@@ -41,6 +41,7 @@ func TestWebUITextContrast(t *testing.T) {
 	for _, class := range []string{
 		"btn-lottery",
 		"btn-voting",
+		"btn-token",
 		"btn-blockchain",
 		"btn-nft",
 		"btn-yes",
