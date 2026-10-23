@@ -25,6 +25,9 @@ type BackupService struct {
 	// renameFn is injectable so tests can exercise a failure after one DB
 	// snapshot has been promoted but before the complete set is in place.
 	renameFn func(string, string) error
+	// writeFileFn is injectable so tests can fail the metadata write after all
+	// database snapshots have been promoted.
+	writeFileFn func(string, []byte, os.FileMode) error
 	// removeSidecarFn is injectable so tests can exercise post-promotion rollback.
 	removeSidecarFn func(string) error
 }
@@ -78,7 +81,12 @@ func sqlLiteral(s string) string {
 }
 
 func NewBackupService(dbPaths map[string]string) *BackupService {
-	return &BackupService{dbPaths: dbPaths, renameFn: os.Rename, removeSidecarFn: os.Remove}
+	return &BackupService{
+		dbPaths:         dbPaths,
+		renameFn:        os.Rename,
+		writeFileFn:     os.WriteFile,
+		removeSidecarFn: os.Remove,
+	}
 }
 
 // snapshot tracks one DB's temp sibling inside a Create run so an aborted run
@@ -109,6 +117,27 @@ type createRollback struct {
 	metadataExisted  bool
 }
 
+// removeStaleCreateMetadataTemp removes a temp entry left by an older Create or
+// a crash. It unlinks the directory entry without following it, so a planted
+// metadata.json.tmp symlink cannot redirect a later write outside output.
+func removeStaleCreateMetadataTemp(output string) error {
+	path := filepath.Join(output, "metadata.json.tmp")
+	info, err := os.Lstat(path)
+	switch {
+	case os.IsNotExist(err):
+		return nil
+	case err != nil:
+		return fmt.Errorf("inspect stale metadata temp: %w", err)
+	case info.Mode().IsRegular(), info.Mode()&os.ModeSymlink != 0:
+		if err := os.Remove(path); err != nil {
+			return fmt.Errorf("remove stale metadata temp: %w", err)
+		}
+		return nil
+	default:
+		return fmt.Errorf("stale metadata temp path %q is not a regular file or symlink", path)
+	}
+}
+
 // stageRollbackFile preserves an existing output file without a full copy when
 // the filesystem supports hard links. The staged copy lives inside the backup
 // directory, so it is on the same filesystem as the destination and can be
@@ -137,6 +166,9 @@ func stageRollbackFile(src, dst string) (bool, error) {
 // snapshot replaces it. A post-promotion metadata failure can then restore the
 // exact files that Verify accepted before this Create call.
 func stageCreateRollback(output string, snaps []snapshot) (createRollback, error) {
+	if err := removeStaleCreateMetadataTemp(output); err != nil {
+		return createRollback{}, err
+	}
 	dir, err := os.MkdirTemp(output, ".create-rollback-*")
 	if err != nil {
 		return createRollback{}, fmt.Errorf("create rollback dir: %w", err)
@@ -144,7 +176,7 @@ func stageCreateRollback(output string, snaps []snapshot) (createRollback, error
 	rb := createRollback{
 		dir:         dir,
 		metaPath:    filepath.Join(output, "metadata.json"),
-		metaTmpPath: filepath.Join(output, "metadata.json.tmp"),
+		metaTmpPath: filepath.Join(dir, "metadata.json.tmp"),
 	}
 	fail := func(err error) (createRollback, error) {
 		_ = os.RemoveAll(dir)
@@ -382,9 +414,13 @@ func (s *BackupService) Create(ctx context.Context, output string) (result *Back
 	// Write metadata atomically (TASK-120): a plain os.WriteFile over the live
 	// metadata.json can leave a truncated file on top of brand-new .db files if
 	// the process dies mid-write or the write short-fails — the backup set then
-	// fails Verify with no good copy recoverable. Write to a temp sibling and
-	// os.Rename into place, the same promote primitive the snapshots use.
-	if err := os.WriteFile(rollback.metaTmpPath, metaData, 0o600); err != nil {
+	// fails Verify with no good copy recoverable. Write to the private
+	// same-filesystem rollback directory, then os.Rename into place.
+	writeFile := s.writeFileFn
+	if writeFile == nil {
+		writeFile = os.WriteFile
+	}
+	if err := writeFile(rollback.metaTmpPath, metaData, 0o600); err != nil {
 		return nil, fmt.Errorf("write metadata: %w", err)
 	}
 	if err := restrictBackupFile(rollback.metaTmpPath); err != nil {
@@ -536,6 +572,13 @@ func validateDatabaseName(name string) error {
 
 func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 	metaPath := filepath.Join(backupPath, "metadata.json")
+	metaInfo, err := os.Lstat(metaPath)
+	if err != nil {
+		return fmt.Errorf("metadata not found: %w", err)
+	}
+	if !metaInfo.Mode().IsRegular() {
+		return fmt.Errorf("metadata path %q is not a regular file", metaPath)
+	}
 	metaData, err := os.ReadFile(metaPath)
 	if err != nil {
 		return fmt.Errorf("metadata not found: %w", err)
@@ -565,8 +608,12 @@ func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 
 	for _, name := range metadata.Databases {
 		dbPath := filepath.Join(backupPath, name+".db")
-		if _, err := os.Stat(dbPath); err != nil {
+		dbInfo, err := os.Lstat(dbPath)
+		if err != nil {
 			return fmt.Errorf("missing database file: %s", name)
+		}
+		if !dbInfo.Mode().IsRegular() {
+			return fmt.Errorf("database file %q is not a regular file", dbPath)
 		}
 
 		// Content integrity (v1.55): when the backup recorded a per-database
@@ -615,6 +662,13 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 	}
 
 	metaPath := filepath.Join(backupPath, "metadata.json")
+	metaInfo, err := os.Lstat(metaPath)
+	if err != nil {
+		return fmt.Errorf("read metadata: %w", err)
+	}
+	if !metaInfo.Mode().IsRegular() {
+		return fmt.Errorf("read metadata: %q is not a regular file", metaPath)
+	}
 	metaData, err := os.ReadFile(metaPath)
 	if err != nil {
 		return fmt.Errorf("read metadata: %w", err)
@@ -712,7 +766,7 @@ func (s *BackupService) planRestore(backupDir string, archiveNames []string) ([]
 	for _, name := range names {
 		destPath := s.dbPaths[name]
 		backupDBPath := filepath.Join(backupDir, name+".db")
-		backupInfo, err := os.Stat(backupDBPath)
+		backupInfo, err := os.Lstat(backupDBPath)
 		if err != nil {
 			return nil, fmt.Errorf("stat backup %s: %w", name, err)
 		}
