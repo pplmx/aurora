@@ -126,7 +126,7 @@ func TestNewSecurityTransportFromOverridesTLSDialHooks(t *testing.T) {
 		DialTLSContext: func(context.Context, string, string) (net.Conn, error) {
 			return nil, nil
 		},
-		DialTLS: func(string, string) (net.Conn, error) {
+		DialTLS: func(string, string) (net.Conn, error) { //nolint:staticcheck // Construct the bypass this regression must reject.
 			return nil, nil
 		},
 	}
@@ -135,7 +135,7 @@ func TestNewSecurityTransportFromOverridesTLSDialHooks(t *testing.T) {
 	if base.DialTLSContext != nil {
 		t.Fatal("DialTLSContext still bypasses the destination guard")
 	}
-	if base.DialTLS != nil {
+	if base.DialTLS != nil { //nolint:staticcheck // Verify the deprecated bypass was cleared.
 		t.Fatal("DialTLS still bypasses the destination guard")
 	}
 	if security.dialer == nil || security.dialer.ControlContext == nil {

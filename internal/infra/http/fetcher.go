@@ -368,7 +368,7 @@ func newSecurityTransportFrom(transport *http.Transport, userAgent string) *secu
 	// A custom TLS dial hook would bypass DialContext (and therefore the
 	// destination guard) for non-proxied HTTPS requests.
 	transport.DialTLSContext = nil
-	transport.DialTLS = nil
+	transport.DialTLS = nil //nolint:staticcheck // Intentional: this deprecated hook bypasses the guarded DialContext.
 	if proxy := transport.Proxy; proxy != nil {
 		transport.Proxy = func(req *http.Request) (*url.URL, error) {
 			proxyURL, err := proxy(req)
