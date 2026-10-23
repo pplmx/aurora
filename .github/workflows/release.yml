@@ -21,6 +21,13 @@ permissions:
 env:
   GO_VERSION: '1.27.2'
 
+# Publishing replaces release files one by one. Serialize every path that can
+# target the same tag (tag push and manual retries) so one complete asset set
+# cannot be interleaved with another run's binaries, checksums or provenance.
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   # workflow_dispatch is the retry path for an interrupted tag run. It must
   # never turn an arbitrary branch or commit input into a new release tag:

@@ -43,6 +43,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Concurrent release runs are serialized by tag**: a tag push and one or
+  more manual retries use the same non-cancelling concurrency group, so the
+  publisher cannot interleave binaries, checksums, or provenance from different
+  runs on one release page.
 - **Manual release retries cannot mint a tag from an arbitrary ref**: the
   release workflow now validates `workflow_dispatch` input as an existing
   version-shaped tag before either build matrix starts. The build jobs receive

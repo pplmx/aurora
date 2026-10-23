@@ -304,6 +304,25 @@ func TestReleaseRequiresAnExistingVersionTag(t *testing.T) {
 		"the release must use the already-validated tag, never create its target from a branch")
 }
 
+// TestReleaseRunsAreSerializedByTag pins the publisher's asset-set atomicity.
+// A tag push and a manual retry can target the same release, while the final
+// action overwrites files sequentially. Serializing by tag prevents binaries,
+// checksums and provenance from two runs being interleaved on one release.
+func TestReleaseRunsAreSerializedByTag(t *testing.T) {
+	root := repoRoot(t)
+
+	src, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "release.yml"))
+	require.NoError(t, err)
+	workflow := string(src)
+
+	require.Contains(t, workflow, "concurrency:\n"+
+		"  group: release-${{ inputs.tag || github.ref_name }}\n"+
+		"  cancel-in-progress: false",
+		"tag push and retry paths for one release must share a non-cancelling queue")
+	require.Contains(t, workflow, "overwrite_files: true",
+		"the retry path intentionally replaces assets, which is why runs must serialize")
+}
+
 // TestDesktopBuildCanRunTheNativeMatrixManually pins the independent
 // validation entry point. desktop-build.yml used to be callable only from
 // release.yml, so the five-platform matrix could not be exercised without
