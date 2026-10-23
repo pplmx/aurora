@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/utils"
 	_ "modernc.org/sqlite"
 )
 
@@ -47,6 +48,10 @@ func New(dbPath, migPath string) (*Migrator, error) {
 	if _, err := m.migrations(); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("failed to open migration source: %w", err)
+	}
+	if err := utils.RestrictSQLiteFiles(dbPath); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("failed to secure database files: %w", err)
 	}
 	return m, nil
 }

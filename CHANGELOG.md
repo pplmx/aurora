@@ -53,6 +53,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **CLI and API SQLite state is owner-only too**: the default `0644` umask
+  made the live database and its WAL/SHM files readable by other local users
+  even though they can contain Oracle bearer headers and operator state. Every
+  live SQLite constructor now tightens the database and existing sidecars to
+  `0600`; an existing world-readable database is corrected on its next open,
+  while sidecars that SQLite has not created yet remain optional.
 - **Oracle fetches now enforce the SSRF boundary at connect time**: source
   validation resolved a hostname before the request, but `net/http` resolved it
   again while dialing, leaving a DNS-rebinding window into loopback, private,

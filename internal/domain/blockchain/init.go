@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/pplmx/aurora/internal/logger"
+	"github.com/pplmx/aurora/internal/utils"
 	"github.com/spf13/viper"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -77,6 +78,11 @@ func InitDB() (*sql.DB, error) {
 		}
 
 		if err := db.Ping(); err != nil {
+			_ = db.Close()
+			dbInitErr = err
+			return
+		}
+		if err := utils.RestrictSQLiteFiles(path); err != nil {
 			_ = db.Close()
 			dbInitErr = err
 			return

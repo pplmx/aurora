@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/pplmx/aurora/internal/utils"
 	_ "modernc.org/sqlite"
 )
 
@@ -48,6 +49,10 @@ func NewSQLiteEventStore(dbPath string) (*SQLiteEventStore, error) {
 	if err := es.createTables(); err != nil {
 		_ = database.Close()
 		return nil, fmt.Errorf("failed to create tables: %w", err)
+	}
+	if err := utils.RestrictSQLiteFiles(dbPath); err != nil {
+		_ = database.Close()
+		return nil, fmt.Errorf("failed to secure database files: %w", err)
 	}
 
 	return es, nil
