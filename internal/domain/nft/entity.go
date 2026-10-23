@@ -3,6 +3,7 @@
 package nft
 
 import (
+	"crypto/ed25519"
 	"time"
 
 	"github.com/google/uuid"
@@ -63,7 +64,35 @@ func (n *NFT) Validate() error {
 	if len(n.Owner) == 0 {
 		return ErrOwnerRequired
 	}
+	if isZeroAddress(n.Owner) {
+		return ErrZeroAddress
+	}
 	return nil
+}
+
+// ValidateRecipient rejects the all-zero Ed25519 public key. It has the right
+// length but no corresponding private key, so accepting it on mint or transfer
+// permanently strands the NFT.
+func ValidateRecipient(pubKey []byte) error {
+	if len(pubKey) != ed25519.PublicKeySize {
+		return ErrInvalidPublicKey
+	}
+	if isZeroAddress(pubKey) {
+		return ErrZeroAddress
+	}
+	return nil
+}
+
+func isZeroAddress(pubKey []byte) bool {
+	if len(pubKey) == 0 {
+		return false
+	}
+	for _, b := range pubKey {
+		if b != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func (n *NFT) IsOwner(pubKey []byte) bool {

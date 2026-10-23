@@ -246,7 +246,8 @@ func mintNFT(t *testing.T) (*model, []byte, []byte) {
 
 func TestHandleTransfer_Success(t *testing.T) {
 	app, _, priv := mintNFT(t)
-	toPub := make([]byte, ed25519.PublicKeySize)
+	toPub, _, err := ed25519.GenerateKey(nil)
+	require.NoError(t, err)
 
 	app.nftIDInput.SetValue(app.nft.ID)
 	app.fromKeyInput.SetValue(base64.StdEncoding.EncodeToString(priv))
@@ -258,7 +259,20 @@ func TestHandleTransfer_Success(t *testing.T) {
 	assert.Equal(t, "result", app.view)
 	assert.Equal(t, i18n.GetText("nft.tui.transfer_success"), app.successMsg)
 	assert.NotNil(t, app.nft, "result view must render the transferred NFT (not Not found)")
-	assert.Equal(t, app.nft.Owner, toPub, "result view must show the post-transfer owner")
+	assert.Equal(t, []byte(toPub), app.nft.Owner, "result view must show the post-transfer owner")
+}
+
+func TestHandleTransfer_RejectsZeroRecipient(t *testing.T) {
+	app, _, priv := mintNFT(t)
+	zero := base64.StdEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
+
+	app.nftIDInput.SetValue(app.nft.ID)
+	app.fromKeyInput.SetValue(base64.StdEncoding.EncodeToString(priv))
+	app.toAddrInput.SetValue(zero)
+
+	app.handleTransfer()
+	assert.Contains(t, app.err, nft.ErrZeroAddress.Error())
+	assert.NotEqual(t, make([]byte, ed25519.PublicKeySize), app.nft.Owner)
 }
 
 func TestHandleQuery_Success(t *testing.T) {

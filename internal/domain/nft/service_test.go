@@ -155,6 +155,56 @@ func TestNFTService_Transfer(t *testing.T) {
 	}
 }
 
+func TestNFTService_Mint_RejectsZeroOwner(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewServiceWithoutTx(repo)
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	zero := make([]byte, ed25519.PublicKeySize)
+	_, err := svc.Mint(NewNFT("Zero Owner", "", "", "", zero, zero), chain)
+	if !errors.Is(err, ErrZeroAddress) {
+		t.Fatalf("Mint() error = %v, want ErrZeroAddress", err)
+	}
+}
+
+func TestNFTService_Transfer_RejectsZeroRecipient(t *testing.T) {
+	repo := NewInmemRepo()
+	svc := NewServiceWithoutTx(repo)
+	chain := blockchain.InitBlockChain()
+	blockchain.ResetForTest()
+
+	creatorPub, creatorPriv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("failed to generate key: %v", err)
+	}
+	minted, err := svc.Mint(NewNFT("Test NFT", "", "", "", creatorPub, creatorPub), chain)
+	if err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+
+	zero := make([]byte, ed25519.PublicKeySize)
+	_, err = svc.Transfer(minted.ID, creatorPub, zero, creatorPriv, chain)
+	if !errors.Is(err, ErrZeroAddress) {
+		t.Fatalf("Transfer() error = %v, want ErrZeroAddress", err)
+	}
+
+	stored, err := svc.GetNFTByID(minted.ID)
+	if err != nil {
+		t.Fatalf("GetNFTByID failed: %v", err)
+	}
+	if !bytes.Equal(stored.Owner, creatorPub) {
+		t.Fatal("rejected transfer must leave the original owner unchanged")
+	}
+	ops, err := svc.GetOperations(minted.ID)
+	if err != nil {
+		t.Fatalf("GetOperations failed: %v", err)
+	}
+	if len(ops) != 1 {
+		t.Fatalf("rejected transfer must not save an operation, got %d operations", len(ops))
+	}
+}
+
 func TestNFTService_Transfer_NotOwner(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)

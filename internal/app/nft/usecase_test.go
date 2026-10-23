@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -418,6 +419,31 @@ func TestMintNFTUseCase_RejectsShortCreatorKey(t *testing.T) {
 	// A zero-length (empty) key is also rejected, not minted.
 	_, err = uc.Execute(&MintNFTRequest{Name: "X", Creator: ""})
 	require.Error(t, err)
+}
+
+func TestMintNFTUseCase_RejectsZeroCreator(t *testing.T) {
+	uc := NewMintNFTUseCase(&mockNFTService{}, &mockBlockWriter{})
+	zero := base64.StdEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
+
+	_, err := uc.Execute(&MintNFTRequest{Name: "X", Creator: zero})
+	if !errors.Is(err, nft.ErrZeroAddress) {
+		t.Fatalf("Execute() error = %v, want ErrZeroAddress", err)
+	}
+}
+
+func TestTransferNFTUseCase_RejectsZeroRecipient(t *testing.T) {
+	uc := NewTransferNFTUseCase(&mockNFTService{}, &mockBlockWriter{})
+	zero := base64.StdEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
+
+	_, err := uc.Execute(&TransferNFTRequest{
+		NFTID:      "nft-123",
+		From:       testPubB64,
+		To:         zero,
+		PrivateKey: testPrivB64,
+	})
+	if !errors.Is(err, nft.ErrZeroAddress) {
+		t.Fatalf("Execute() error = %v, want ErrZeroAddress", err)
+	}
 }
 
 // TestToNFTResponse_KeysAreBase64 is the regression test for the unreadable
