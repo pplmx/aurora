@@ -369,6 +369,7 @@ var resetCmd = &cobra.Command{
 		// a missing table is "no such table" — tolerated, not an error.
 		for _, stmt := range []string{
 			"DELETE FROM blocks WHERE height > 0",
+			"DELETE FROM lottery_vrf_keys",
 			"DELETE FROM lottery_records",
 		} {
 			if _, err := db.Exec(stmt); err != nil && !isNoSuchTable(err) {

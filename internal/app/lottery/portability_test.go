@@ -1,6 +1,7 @@
 package lottery
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -46,6 +47,69 @@ func TestImportRecords_RejectsNull(t *testing.T) {
 	assert.Contains(t, err.Error(), "null")
 	assert.Empty(t, repo.records, "a null document must store nothing")
 	assert.Zero(t, result.Imported)
+}
+
+func genuinePortableRecord(t *testing.T) lottery.LotteryRecord {
+	t.Helper()
+	winners, addresses, output, proof, publicKey, err := lottery.NewService().DrawWinners(
+		[]string{"Alice", "Bob", "Carol"}, "portable-integrity-seed", 2,
+	)
+	require.NoError(t, err)
+	record := lottery.CreateLotteryRecord(
+		"portable-integrity-seed",
+		[]string{"Alice", "Bob", "Carol"},
+		winners,
+		addresses,
+		output,
+		proof,
+		publicKey,
+		7,
+	)
+	return *record
+}
+
+func TestImportRecords_DerivesVerifiedFromStoredProof(t *testing.T) {
+	repo := &mockLotteryRepo{}
+	record := genuinePortableRecord(t)
+	record.Verified = true
+	document, err := json.Marshal([]lottery.LotteryRecord{record})
+	require.NoError(t, err)
+
+	result, err := ImportRecords(repo, document)
+	require.NoError(t, err)
+	assert.Equal(t, ImportResult{Total: 1, Imported: 1}, result)
+	require.Len(t, repo.records, 1)
+	assert.NotEmpty(t, repo.records[0].VRFPublicKey)
+	assert.True(t, repo.records[0].Verified, "a valid keyed proof must be marked verified")
+}
+
+func TestImportRecords_DoesNotTrustVerifiedWithoutAKey(t *testing.T) {
+	repo := &mockLotteryRepo{}
+	record := genuinePortableRecord(t)
+	record.VRFPublicKey = ""
+	record.Verified = true
+	document, err := json.Marshal([]lottery.LotteryRecord{record})
+	require.NoError(t, err)
+
+	result, err := ImportRecords(repo, document)
+	require.NoError(t, err)
+	assert.Equal(t, ImportResult{Total: 1, Imported: 1}, result)
+	require.Len(t, repo.records, 1)
+	assert.False(t, repo.records[0].Verified, "keyless legacy data cannot claim cryptographic verification")
+}
+
+func TestImportRecords_RejectsAnInvalidKeyedProof(t *testing.T) {
+	repo := &mockLotteryRepo{}
+	record := genuinePortableRecord(t)
+	record.VRFProof = ""
+	record.Verified = true
+	document, err := json.Marshal([]lottery.LotteryRecord{record})
+	require.NoError(t, err)
+
+	result, err := ImportRecords(repo, document)
+	require.NoError(t, err)
+	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0}}, result)
+	assert.Empty(t, repo.records, "an invalid proof must not be persisted")
 }
 
 type pathLotteryRepo struct {

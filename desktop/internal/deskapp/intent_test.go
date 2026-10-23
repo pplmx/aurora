@@ -1,6 +1,7 @@
 package deskapp
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
@@ -158,7 +160,11 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 	dbPath := filepath.Join(dir, "aurora.db")
 	exportPath := filepath.Join(dir, "draws.json")
 
-	document := `[{"id":"deep-link-import","block_height":1,"seed":"seed-value","participants":["A","B"],"winners":["A"],"winner_addresses":["addr"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	draw := genuineDesktopLotteryRecord(t, "seed-value")
+	draw.ID = "deep-link-import"
+	draw.BlockHeight = 1
+	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
 
 	// Start() opens this database before WhenReady, which is what makes the
@@ -182,7 +188,7 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 	t.Cleanup(func() { _ = stored.Close() })
 	record, err := stored.GetByID("deep-link-import")
 	require.NoError(t, err)
-	assert.Equal(t, []string{"A"}, record.Winners)
+	assert.Equal(t, draw.Winners, record.Winners)
 
 	// Opening the same export again is a new request. The records are already
 	// stored, so the app-layer overwrite guard refuses them - as a reported
@@ -210,7 +216,11 @@ func TestShell_HandleLaunchArgs(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 	exportPath := filepath.Join(dir, "draws.json")
-	document := `[{"id":"second-instance-import","block_height":2,"seed":"second-seed","participants":["A","B"],"winners":["B"],"winner_addresses":["addr-b"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	draw := genuineDesktopLotteryRecord(t, "second-seed")
+	draw.ID = "second-instance-import"
+	draw.BlockHeight = 2
+	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
 
 	repo, err := sqlite.NewLotteryRepository(dbPath)
@@ -260,7 +270,11 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 	dataDir := t.TempDir()
 	dbPath := filepath.Join(dataDir, "aurora.db")
 
-	document := `[{"id":"relative-path-import","block_height":3,"seed":"relative-seed","participants":["A","B"],"winners":["A"],"winner_addresses":["addr-a"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	draw := genuineDesktopLotteryRecord(t, "relative-seed")
+	draw.ID = "relative-path-import"
+	draw.BlockHeight = 3
+	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(launcherDir, "draws.json"), []byte(document), 0o644))
 
 	repo, err := sqlite.NewLotteryRepository(dbPath)
@@ -284,7 +298,11 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 	assert.NoError(t, err, "the draw from the launcher's directory must be stored")
 
 	// The same file via a file:// URL, which Linux launchers also send.
-	other := `[{"id":"file-url-import","block_height":4,"seed":"file-url-seed","participants":["C","D"],"winners":["D"],"winner_addresses":["addr-d"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	urlDraw := genuineDesktopLotteryRecord(t, "file-url-seed")
+	urlDraw.ID = "file-url-import"
+	urlDraw.BlockHeight = 4
+	other, err := json.Marshal([]domainlottery.LotteryRecord{urlDraw})
+	require.NoError(t, err)
 	urlPath := filepath.Join(launcherDir, "from-url.json")
 	require.NoError(t, os.WriteFile(urlPath, []byte(other), 0o644))
 
@@ -411,7 +429,11 @@ func TestShell_RefusesAForeignDataDir(t *testing.T) {
 	dataDir := t.TempDir()
 	dbPath := filepath.Join(dataDir, "aurora.db")
 	exportPath := filepath.Join(dir, "draws.json")
-	document := `[{"id":"wrong-db-import","block_height":5,"seed":"seed","participants":["A","B"],"winners":["A"],"winner_addresses":["addr"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	draw := genuineDesktopLotteryRecord(t, "wrong-db-seed")
+	draw.ID = "wrong-db-import"
+	draw.BlockHeight = 5
+	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
 
 	repo, err := sqlite.NewLotteryRepository(dbPath)
@@ -680,7 +702,11 @@ func TestShellOpenedFileRecreatesWindow(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 	exportPath := filepath.Join(dir, "draws.json")
-	document := `[{"id":"reopened-window-import","block_height":6,"seed":"reopen-seed","participants":["A","B"],"winners":["A"],"winner_addresses":["addr"],"vrf_output":"0011223344556677889900aabbccddeeff00112233445566778899aabbccddee","vrf_proof":"ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100","verified":true}]`
+	draw := genuineDesktopLotteryRecord(t, "reopen-seed")
+	draw.ID = "reopened-window-import"
+	draw.BlockHeight = 6
+	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
 
 	repo, err := sqlite.NewLotteryRepository(dbPath)

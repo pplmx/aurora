@@ -97,6 +97,7 @@ func TestLotteryVerify_ByHeight_Found(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Block Height: #1")
 		assert.Contains(t, out, "Verified")
+		assert.Contains(t, out, "VRF Public Key:", "SQLite must preserve the proof key for cryptographic verification")
 	})
 }
 
@@ -202,6 +203,20 @@ func extractLotteryID(t *testing.T, out string) string {
 	return ""
 }
 
+func genuineLotteryRecord(t *testing.T, seed string, blockHeight int64) domainlottery.LotteryRecord {
+	t.Helper()
+	participants := []string{"Alice", "Bob", "Carol"}
+	winners, addresses, output, proof, publicKey, err := domainlottery.NewService().DrawWinners(
+		participants, seed, 2,
+	)
+	require.NoError(t, err)
+	record := domainlottery.CreateLotteryRecord(
+		seed, participants, winners, addresses, output, proof, publicKey, blockHeight,
+	)
+	record.Verified = true
+	return *record
+}
+
 func TestLotteryVerify_NotFound(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		_, err := runCmd(t, "lottery", "verify", "42")
@@ -260,6 +275,8 @@ func TestLotteryExport_Import(t *testing.T) {
 		var records []domainlottery.LotteryRecord
 		require.NoError(t, json.Unmarshal(data, &records))
 		require.Len(t, records, 1)
+		require.NotEmpty(t, records[0].VRFPublicKey, "export must carry the persisted proof key")
+		id := records[0].ID
 
 		// Re-import into a fresh DB by running against a new temp cwd.
 		t.Run("import_to_fresh_db", func(t *testing.T) {
@@ -271,6 +288,12 @@ func TestLotteryExport_Import(t *testing.T) {
 				out, err = runCmd(t, "lottery", "history")
 				require.NoError(t, err)
 				assert.Contains(t, out, "Total lotteries: 1")
+
+				out, err = runCmd(t, "lottery", "verify", id)
+				require.NoError(t, err)
+				assert.Contains(t, out, "VRF Public Key:")
+				assert.NotContains(t, out, "pre-v1.31",
+					"an imported draw with its key must retain cryptographic verification")
 			})
 		})
 	})
@@ -345,16 +368,7 @@ func TestLotteryImport_PartialFailure(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		// One valid record + one that fails validation (empty participants).
 		mixed := filepath.Join(t.TempDir(), "mixed.json")
-		valid := domainlottery.LotteryRecord{
-			ID:              "fixed-valid-id",
-			Seed:            "mix-seed-long",
-			Participants:    []string{"A", "B"},
-			Winners:         []string{"A"},
-			WinnerAddresses: []string{"addr"},
-			BlockHeight:     7,
-			VRFOutput:       strings.Repeat("ab", 32),
-			VRFProof:        strings.Repeat("cd", 32),
-		}
+		valid := genuineLotteryRecord(t, "mix-seed-long", 7)
 		invalid := domainlottery.LotteryRecord{ID: "bad", Seed: "x"} // zero participants/winners
 		payload, _ := json.Marshal([]domainlottery.LotteryRecord{valid, invalid})
 		require.NoError(t, os.WriteFile(mixed, payload, 0644))
@@ -409,16 +423,7 @@ func TestLotteryImport_RefusesToOverwriteExistingDraw(t *testing.T) {
 func TestLotteryImport_AllowsFreshValidImport(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		importPath := filepath.Join(t.TempDir(), "fresh.json")
-		rec := domainlottery.LotteryRecord{
-			ID:              "fresh-import-id",
-			Seed:            "fresh-import-seed-long",
-			Participants:    []string{"A", "B"},
-			Winners:         []string{"A"},
-			WinnerAddresses: []string{"addr"},
-			BlockHeight:     3,
-			VRFOutput:       strings.Repeat("ef", 32),
-			VRFProof:        strings.Repeat("12", 32),
-		}
+		rec := genuineLotteryRecord(t, "fresh-import-seed-long", 3)
 		payload, _ := json.Marshal([]domainlottery.LotteryRecord{rec})
 		require.NoError(t, os.WriteFile(importPath, payload, 0644))
 
@@ -448,16 +453,7 @@ func TestLotteryStats(t *testing.T) {
 func TestLotteryStats_AgreesWithHistoryForImportedRecord(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		importPath := filepath.Join(t.TempDir(), "imp.json")
-		rec := domainlottery.LotteryRecord{
-			ID:              "stats-import-id",
-			Seed:            "stats-import-seed-long",
-			Participants:    []string{"A", "B"},
-			Winners:         []string{"A"},
-			WinnerAddresses: []string{"addr"},
-			BlockHeight:     5,
-			VRFOutput:       strings.Repeat("ef", 32),
-			VRFProof:        strings.Repeat("12", 32),
-		}
+		rec := genuineLotteryRecord(t, "stats-import-seed-long", 5)
 		payload, _ := json.Marshal([]domainlottery.LotteryRecord{rec})
 		require.NoError(t, os.WriteFile(importPath, payload, 0644))
 
@@ -509,6 +505,11 @@ func TestLotteryReset_WithYes(t *testing.T) {
 		out, err = runCmd(t, "lottery", "history")
 		require.NoError(t, err)
 		assert.Contains(t, out, "No lottery records found")
+
+		db := openTestAuroraDB(t)
+		var keyCount int
+		require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM lottery_vrf_keys`).Scan(&keyCount))
+		assert.Zero(t, keyCount, "reset must clear the proof-key side table")
 	})
 }
 
