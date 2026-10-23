@@ -64,31 +64,55 @@ func (s *NFTService) txRepo(tx *sql.Tx) Repository {
 	return s.repo.WithTx(tx)
 }
 
+func (s *NFTService) withBlockTransaction(
+	chain blockchain.BlockWriter,
+	data string,
+	fn func(repo Repository, height int64) error,
+) (int64, error) {
+	if chain == nil {
+		return 0, fmt.Errorf("blockchain not initialized")
+	}
+
+	if writer, ok := chain.(blockchain.BlockTransactionWriter); ok {
+		var height int64
+		err := writer.WithBlockTransaction(data, s.txManager, func(tx *sql.Tx, blockHeight int64) error {
+			height = blockHeight
+			return fn(s.txRepo(tx), blockHeight)
+		})
+		return height, err
+	}
+
+	height, err := chain.AddBlock(data)
+	if err != nil {
+		return 0, err
+	}
+	if err := s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		return fn(s.txRepo(tx), height)
+	}); err != nil {
+		return 0, err
+	}
+	return height, nil
+}
+
 func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) {
 	nft.ID = uuid.New().String()
 	nft.Timestamp = time.Now().Unix()
 
 	data := fmt.Sprintf("%s|%s|%s", nft.ID, nft.Name, nft.Owner)
-	height, err := chain.AddBlock(data)
-	if err != nil {
-		return nil, err
-	}
-	nft.BlockHeight = height
-
 	// Persist the NFT row and its mint operation as ONE transaction. The
 	// pre-transaction implementation saved the NFT first and, if the
 	// operation save failed, ran a best-effort DeleteNFT compensation whose
 	// own error was silently swallowed (_ = repo.DeleteNFT) — a crash or a
 	// failed compensation left an orphaned NFT row with no audit record.
 	// With a real transaction the partial state can never commit.
-	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		txRepo := s.txRepo(tx)
-		if err := txRepo.SaveNFT(nft); err != nil {
+	_, err := s.withBlockTransaction(chain, data, func(repo Repository, height int64) error {
+		nft.BlockHeight = height
+		if err := repo.SaveNFT(nft); err != nil {
 			return err
 		}
 		op := NewOperation(nft.ID, "mint", nil, nft.Owner, nil)
 		op.BlockHeight = height
-		if err := txRepo.SaveOperation(op); err != nil {
+		if err := repo.SaveOperation(op); err != nil {
 			return fmt.Errorf("failed to save mint operation: %w", err)
 		}
 		return nil
@@ -160,11 +184,6 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 	signature := ed25519.Sign(privateKey, messageHash[:])
 
 	op := NewOperation(nftID, "transfer", from, to, signature)
-	height, err := chain.AddBlock(fmt.Sprintf("%s|%s", op.ID, op.Type))
-	if err != nil {
-		return nil, err
-	}
-	op.BlockHeight = height
 	op.Timestamp = timestamp
 
 	// Persist the operation record and the ownership transfer as ONE
@@ -175,12 +194,12 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 	// operation row behind as an orphan "attempt" record; with a real
 	// transaction the whole unit rolls back, so nft_operations only ever
 	// contains operations that actually applied.
-	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		txRepo := s.txRepo(tx)
-		if err := txRepo.SaveOperation(op); err != nil {
+	_, err = s.withBlockTransaction(chain, fmt.Sprintf("%s|%s", op.ID, op.Type), func(repo Repository, height int64) error {
+		op.BlockHeight = height
+		if err := repo.SaveOperation(op); err != nil {
 			return fmt.Errorf("failed to save transfer operation: %w", err)
 		}
-		return txRepo.TryTransferOwnership(nftID, from, to)
+		return repo.TryTransferOwnership(nftID, from, to)
 	})
 	if err != nil {
 		if errors.Is(err, ErrOwnershipChanged) {
@@ -219,23 +238,18 @@ func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockcha
 	signature := ed25519.Sign(privateKey, messageHash[:])
 
 	op := NewOperation(nftID, "burn", owner, nil, signature)
-	height, err := chain.AddBlock(fmt.Sprintf("%s|%s", op.ID, op.Type))
-	if err != nil {
-		return err
-	}
-	op.BlockHeight = height
 	op.Timestamp = timestamp
 
 	// Persist the burn operation and the conditional delete as ONE
 	// transaction. TryDeleteNFTIfOwned remains the atomic ownership check:
 	// only the caller that still holds the NFT succeeds, and a rejected
 	// burn rolls back its operation record along with the failed delete.
-	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		txRepo := s.txRepo(tx)
-		if err := txRepo.SaveOperation(op); err != nil {
+	_, err = s.withBlockTransaction(chain, fmt.Sprintf("%s|%s", op.ID, op.Type), func(repo Repository, height int64) error {
+		op.BlockHeight = height
+		if err := repo.SaveOperation(op); err != nil {
 			return fmt.Errorf("failed to save burn operation: %w", err)
 		}
-		return txRepo.TryDeleteNFTIfOwned(nftID, owner)
+		return repo.TryDeleteNFTIfOwned(nftID, owner)
 	})
 	if err != nil {
 		if errors.Is(err, ErrOwnershipChanged) {

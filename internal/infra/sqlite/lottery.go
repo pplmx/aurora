@@ -27,9 +27,16 @@ func jsonToArray(data string) []string {
 	return arr
 }
 
+type lotteryExec interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 type LotteryRepository struct {
 	db     *sql.DB
 	dbPath string
+	exec   lotteryExec
 }
 
 func NewLotteryRepository(dbPath string) (*LotteryRepository, error) {
@@ -61,6 +68,31 @@ func NewLotteryRepository(dbPath string) (*LotteryRepository, error) {
 // with a JSON export destroys the store, even though the open handle keeps
 // serving reads until the process exits.
 func (r *LotteryRepository) DBPath() string { return r.dbPath }
+
+// GetDB exposes the underlying pool for callers that need to share a
+// blockchain transaction with the repository.
+func (r *LotteryRepository) GetDB() *sql.DB {
+	return r.db
+}
+
+func (r *LotteryRepository) q() lotteryExec {
+	if r.exec != nil {
+		return r.exec
+	}
+	return r.db
+}
+
+// WithTx returns a repository whose operations participate in tx.
+func (r *LotteryRepository) WithTx(tx *sql.Tx) lottery.Repository {
+	return &LotteryRepository{db: r.db, dbPath: r.dbPath, exec: tx}
+}
+
+// WithTransaction runs fn in one write transaction on the repository's DB.
+// The lottery use case passes this repository to the blockchain transaction
+// writer so the record row and its audit block share one commit/rollback.
+func (r *LotteryRepository) WithTransaction(fn func(tx *sql.Tx) error) error {
+	return NewTxManager(r.db).WithTransaction(fn)
+}
 
 func (r *LotteryRepository) createTables() error {
 	if _, err := r.db.Exec("PRAGMA journal_mode=WAL"); err != nil {
@@ -107,7 +139,7 @@ func (r *LotteryRepository) Save(record *lottery.LotteryRecord) error {
 		verified = 1
 	}
 
-	_, err := r.db.Exec(`
+	_, err := r.q().Exec(`
 		INSERT OR REPLACE INTO lottery_records
 		(id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -131,7 +163,7 @@ func (r *LotteryRepository) GetByID(id string) (*lottery.LotteryRecord, error) {
 	var blockHeight, timestamp int64
 	var verified int
 
-	err := r.db.QueryRow(`
+	err := r.q().QueryRow(`
 		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified
 		FROM lottery_records WHERE id = ?
 	`, id).Scan(&id, &blockHeight, &seed, &participantsJSON, &winnersJSON, &winnerAddressesJSON, &vrfProof, &vrfOutput, &timestamp, &verified)
@@ -162,7 +194,7 @@ func (r *LotteryRepository) GetByID(id string) (*lottery.LotteryRecord, error) {
 }
 
 func (r *LotteryRepository) GetAll() ([]*lottery.LotteryRecord, error) {
-	rows, err := r.db.Query(`
+	rows, err := r.q().Query(`
 		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified
 		FROM lottery_records ORDER BY timestamp DESC
 	`)
@@ -203,7 +235,7 @@ func (r *LotteryRepository) GetAll() ([]*lottery.LotteryRecord, error) {
 }
 
 func (r *LotteryRepository) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
-	rows, err := r.db.Query(`
+	rows, err := r.q().Query(`
 		SELECT id, block_height, seed, participants, winners, winner_addresses, vrf_proof, vrf_output, timestamp, verified
 		FROM lottery_records WHERE block_height = ?
 	`, height)

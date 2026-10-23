@@ -158,17 +158,7 @@ func bindChainToDB(chain *BlockChain, db *sql.DB) {
 	// in-memory candidate and re-syncs it from the DB, converging to the same
 	// chain rather than erroring twice on the same height.
 	chain.persist = func(b *Block) error {
-		_, err := db.Exec(`
-			INSERT INTO blocks (height, hash, previous_hash, data, nonce, timestamp, created_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?)
-		`, b.Height, string(b.Hash), string(b.PrevHash), string(b.Data), b.Nonce, b.Timestamp, b.Timestamp)
-		if err != nil {
-			if sqliteIsUniqueViolation(err) {
-				return ErrHeightConflict
-			}
-			return err
-		}
-		return nil
+		return insertBlock(db, b)
 	}
 
 	// Wire the DB-authoritative height source: before every append the
@@ -359,6 +349,24 @@ func sqliteIsUniqueViolation(err error) bool {
 		}
 	}
 	return false
+}
+
+type blockInserter interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
+func insertBlock(exec blockInserter, block *Block) error {
+	_, err := exec.Exec(`
+		INSERT INTO blocks (height, hash, previous_hash, data, nonce, timestamp, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, block.Height, string(block.Hash), string(block.PrevHash), string(block.Data), block.Nonce, block.Timestamp, block.Timestamp)
+	if err != nil {
+		if sqliteIsUniqueViolation(err) {
+			return ErrHeightConflict
+		}
+		return err
+	}
+	return nil
 }
 
 // seedGenesisIfEmpty writes the in-memory genesis block (Blocks[0]) to the

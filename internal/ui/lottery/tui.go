@@ -1,6 +1,7 @@
 package lottery
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
@@ -24,6 +25,12 @@ import (
 type recorder interface {
 	Save(record *lottery.LotteryRecord) error
 	GetAll() ([]*lottery.LotteryRecord, error)
+}
+
+type transactionalRecorder interface {
+	recorder
+	WithTx(tx *sql.Tx) lottery.Repository
+	WithTransaction(fn func(tx *sql.Tx) error) error
 }
 
 type model struct {
@@ -536,6 +543,20 @@ func (m *model) runLottery(participants []string, seed string, count int) *lotte
 	if err != nil {
 		return nil
 	}
+
+	if txRepo, ok := m.repo.(transactionalRecorder); ok {
+		err := m.chain.WithLotteryRecordTransaction(jsonData, txRepo, func(tx *sql.Tx, height int64) error {
+			record.BlockHeight = height
+			return txRepo.WithTx(tx).Save(record)
+		})
+		if err != nil {
+			m.err = err.Error()
+			return nil
+		}
+		m.persistErr = ""
+		return record
+	}
+
 	height, err := m.chain.AddLotteryRecord(jsonData)
 	if err != nil {
 		return nil

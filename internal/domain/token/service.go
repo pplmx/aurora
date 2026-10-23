@@ -152,6 +152,36 @@ func (s *TokenService) txRepo(tx *sql.Tx) Repository {
 	return s.repo.WithTx(tx)
 }
 
+// withBlockTransaction runs the token mutation and its audit block in one
+// database transaction when the chain supports it. The fallback preserves the
+// legacy best-effort order for in-memory/fake chains without transaction
+// support.
+func (s *TokenService) withBlockTransaction(data string, fn func(repo Repository, height int64) error) (int64, error) {
+	if s.chain == nil {
+		return 0, fmt.Errorf("blockchain not initialized")
+	}
+
+	if writer, ok := s.chain.(blockchain.BlockTransactionWriter); ok {
+		var height int64
+		err := writer.WithBlockTransaction(data, s.txManager, func(tx *sql.Tx, blockHeight int64) error {
+			height = blockHeight
+			return fn(s.txRepo(tx), blockHeight)
+		})
+		return height, err
+	}
+
+	height, err := s.chain.AddBlock(data)
+	if err != nil {
+		return 0, err
+	}
+	if err := s.txManager.WithTransaction(func(tx *sql.Tx) error {
+		return fn(s.txRepo(tx), height)
+	}); err != nil {
+		return 0, err
+	}
+	return height, nil
+}
+
 type CreateTokenRequest struct {
 	Name        string
 	Symbol      string
@@ -337,14 +367,8 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 	event := NewMintEvent(req.TokenID, req.To, req.Amount)
 
 	data := fmt.Sprintf("mint|%s|%s", req.TokenID, req.To)
-	height, err := s.chain.AddBlock(data)
-	if err != nil {
-		return nil, err
-	}
-	event.SetBlockHeight(height)
-
-	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		r := s.txRepo(tx)
+	_, err = s.withBlockTransaction(data, func(r Repository, height int64) error {
+		event.SetBlockHeight(height)
 
 		// Atomic supply increment: closes the TOCTOU window
 		// where two concurrent mints both read total_supply,
@@ -420,14 +444,8 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 	event := NewTransferEvent(req.TokenID, req.From, req.To, req.Amount, nonce, signature)
 
 	data := fmt.Sprintf("transfer|%s|%s|%s", req.TokenID, req.From, req.To)
-	height, err := s.chain.AddBlock(data)
-	if err != nil {
-		return nil, err
-	}
-	event.SetBlockHeight(height)
-
-	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		r := s.txRepo(tx)
+	_, err = s.withBlockTransaction(data, func(r Repository, height int64) error {
+		event.SetBlockHeight(height)
 
 		// ClaimNextNonce above already persisted the nonce atomically on the
 		// replay store's own connection, so re-saving it here would be a
@@ -526,14 +544,8 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 	event := NewTransferEvent(req.TokenID, req.Owner, req.To, req.Amount, nonce, signature)
 
 	data := fmt.Sprintf("transferfrom|%s|%s|%s", req.TokenID, req.Owner, req.To)
-	height, err := s.chain.AddBlock(data)
-	if err != nil {
-		return nil, err
-	}
-	event.SetBlockHeight(height)
-
-	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		r := s.txRepo(tx)
+	_, err = s.withBlockTransaction(data, func(r Repository, height int64) error {
+		event.SetBlockHeight(height)
 
 		// No replay.SaveNonce here for the same reason as Transfer: the
 		// nonce was already persisted atomically by ClaimNextNonce above, and
@@ -742,14 +754,8 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 	event := NewBurnEvent(req.TokenID, req.From, req.Amount)
 
 	data := fmt.Sprintf("burn|%s|%s", req.TokenID, req.From)
-	height, err := s.chain.AddBlock(data)
-	if err != nil {
-		return nil, err
-	}
-	event.SetBlockHeight(height)
-
-	err = s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		r := s.txRepo(tx)
+	_, err = s.withBlockTransaction(data, func(r Repository, height int64) error {
+		event.SetBlockHeight(height)
 
 		// Atomic balance subtract: closes the TOCTOU race the
 		// pre-fix path had, where two concurrent burns both

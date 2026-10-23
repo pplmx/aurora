@@ -2,10 +2,12 @@ package oracle
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/infra/http"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
@@ -27,6 +29,12 @@ type FetchDataUseCase struct {
 	repo    oracle.Repository
 	fetcher FetcherInterface
 	chain   ChainInterface
+}
+
+type transactionalOracleRepository interface {
+	oracle.Repository
+	WithTx(tx *sql.Tx) oracle.Repository
+	WithTransaction(fn func(tx *sql.Tx) error) error
 }
 
 func NewFetchDataUseCase(repo oracle.Repository) *FetchDataUseCase {
@@ -113,6 +121,23 @@ func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchData
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal oracle data: %w", err)
 		}
+
+		txRepo, repoOK := uc.repo.(transactionalOracleRepository)
+		writer, chainOK := chain.(blockchain.LotteryRecordTransactionWriter)
+		if repoOK && chainOK {
+			err := writer.WithLotteryRecordTransaction(string(jsonData), txRepo, func(tx *sql.Tx, height int64) error {
+				data.BlockHeight = height
+				if err := txRepo.WithTx(tx).SaveData(data); err != nil {
+					return fmt.Errorf("failed to save data: %w", err)
+				}
+				return nil
+			})
+			if err != nil {
+				return nil, err
+			}
+			return fetchResponse(data), nil
+		}
+
 		height, err := chain.AddLotteryRecord(string(jsonData))
 		if err != nil {
 			return nil, fmt.Errorf("failed to record on chain: %w", err)
@@ -124,13 +149,17 @@ func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchData
 		return nil, fmt.Errorf("failed to save data: %w", err)
 	}
 
+	return fetchResponse(data), nil
+}
+
+func fetchResponse(data *oracle.OracleData) *FetchDataResponse {
 	return &FetchDataResponse{
 		ID:          data.ID,
 		SourceID:    data.SourceID,
 		Value:       data.Value,
 		Timestamp:   data.Timestamp,
 		BlockHeight: data.BlockHeight,
-	}, nil
+	}
 }
 
 type ChainInterface interface {
