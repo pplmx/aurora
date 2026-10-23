@@ -22,22 +22,21 @@ env:
 jobs:
   build:
     name: Build (${{ matrix.goos }} ${{ matrix.goarch }})
-    runs-on: ${{ matrix.runner }}
+    # Pure-Go CLI builds need neither a native C toolchain nor a target-OS
+    # runner. Windows stays in its own job because Authenticode signing needs
+    # Windows, not because the Go build itself does.
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
           - goos: darwin
             goarch: amd64
-            runner: macos-15-intel
           - goos: darwin
             goarch: arm64
-            runner: macos-latest
           - goos: linux
             goarch: amd64
-            runner: ubuntu-latest
           - goos: linux
             goarch: arm64
-            runner: ubuntu-24.04-arm
 
     steps:
       - uses: actions/checkout@v6

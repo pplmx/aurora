@@ -15,7 +15,8 @@ just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / W
 ./aurora-desktop 'aurora://lottery?id=<draw>'      # 深链：直接验该期开奖
 ./aurora-desktop aurora-lotteries.json             # 导入一份导出文件
 just desktop-test                                  # 桌面模块测试（just test 只覆盖核心模块）
-just desktop-check                                 # gofmt + build + vet + test -race
+just desktop-check                                 # gofmt + build + vet + 纯 Go 测试
+just desktop-race                                  # 可选 race detector（显式启用 cgo）
 just desktop-package                               # 产出 .deb / tar.gz / desktop entry
 ```
 
@@ -239,9 +240,15 @@ gh secret set WINDOWS_CERTIFICATE_PASSWORD
 - **CI 覆盖**：嵌套模块不会被根目录的 `go test ./...` 看到，因此
   `.github/workflows/ci.yml` 有一个独立的 `desktop` job（用
   `go-version-file: desktop/go.mod` 装 Go 1.27，跑 gofmt / build / vet /
-  `test -race`），本地等价入口是 `just desktop-check`；
+  `CGO_ENABLED=0 test`，再单独跑需要 cgo 的 race gate）。本地无 C 工具链
+  等价入口是 `just desktop-check`，需要更强并发检查时再跑
+  `just desktop-race`；
   `desktop/internal/deskapp/ci_test.go` 断言两边跑的是同一组命令，防止 job
   被删掉后无人察觉。
+- **发布元数据门禁**：release 在发布前读取 CLI 和五个桌面可执行文件的
+  Go build metadata，要求 `CGO_ENABLED=0`、目标 `GOOS/GOARCH` 一致；下载的
+  Linux CLI 先恢复可执行位再运行 `version`。CI 的 Linux 打包 job 同样在
+  `mygo build` 后立即校验桌面二进制的元数据，避免纯 Go 契约只在文档里成立。
 - **打包门禁**：`ci.yml` 的 `desktop-package` job 在 Ubuntu 上跑
   `go tool mygo build -platform linux/amd64`，校验可执行文件、desktop entry、
   `.deb`、tarball 与 `aurora://` MIME 注册，并用 Xvfb 启动真实产物、等

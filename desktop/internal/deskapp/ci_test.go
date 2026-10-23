@@ -53,20 +53,34 @@ func TestCIWiresTheDesktopModule(t *testing.T) {
 		"the desktop job needs MyGo's Go version, not the core module's")
 	require.Contains(t, workflow, "working-directory: desktop")
 
-	for _, step := range []string{"gofmt -l .", "go build ./...", "go vet ./...", "go test -race ./..."} {
+	for _, step := range []string{"gofmt -l .", "go build ./...", "go vet ./..."} {
 		assert.Contains(t, workflow, step,
 			"the desktop job must run %q, like `just desktop-check`", step)
 	}
+	require.Contains(t, workflow, "      - name: Test (pure Go)\n"+
+		"        run: CGO_ENABLED=0 go test -count=1 ./...\n"+
+		"        working-directory: desktop",
+		"the desktop job must exercise the cgo-free test path")
+	require.Contains(t, workflow, "      - name: Test (race)\n"+
+		"        env:\n"+
+		"          CGO_ENABLED: '1'\n"+
+		"        run: go test -race -count=1 ./...\n"+
+		"        working-directory: desktop",
+		"the race detector must be a separate, explicit cgo gate")
 
 	recipe, err := os.ReadFile(filepath.Join(root, "justfile"))
 	require.NoError(t, err)
 	local := string(recipe)
 
 	require.Contains(t, local, "desktop-check:", "the local entry point must exist")
-	for _, step := range []string{"gofmt -l .", "go build ./...", "go vet ./...", "go test -race ./..."} {
+	for _, step := range []string{"gofmt -l .", "go build ./...", "go vet ./..."} {
 		assert.Contains(t, local, step,
 			"`just desktop-check` must run %q, like the CI job", step)
 	}
+	require.Contains(t, local, "cd desktop && CGO_ENABLED=0 go test -count=1 ./...",
+		"`just desktop-check` must run the cgo-free tests")
+	require.Contains(t, local, "desktop-race:\n    cd desktop && CGO_ENABLED=1 go test -race -count=1 ./...",
+		"the cgo race gate must remain available as an explicit command")
 }
 
 // TestRootGateCoversTheNestedModule pins the reason the job exists, so the
@@ -148,6 +162,15 @@ func TestCIPackagesTheDesktopApp(t *testing.T) {
 	assert.Contains(t, workflow, "build-time.txt",
 		"the packaging gate must verify the packaged build timestamp")
 	assert.Contains(t, workflow, "MimeType=x-scheme-handler/aurora;")
+	require.Contains(t, workflow, "name: Verify pure-Go build metadata")
+	for _, metadata := range []string{
+		`grep -Fq $'\tbuild\tCGO_ENABLED=0'`,
+		`grep -Fq $'\tbuild\tGOOS=linux'`,
+		`grep -Fq $'\tbuild\tGOARCH=amd64'`,
+	} {
+		assert.Contains(t, workflow, metadata,
+			"the Linux package gate must verify %q", metadata)
+	}
 	assert.Contains(t, workflow, "actions/upload-artifact@v7")
 }
 
@@ -409,11 +432,11 @@ func TestReleaseRequiresAuthenticodeSignedWindowsPackages(t *testing.T) {
 	}
 }
 
-// TestReleaseCLIBinariesArePureGoBuilds pins the release CLI contract: every
-// target cross-builds with cgo off, and the release job verifies that Go's
-// embedded build metadata says CGO_ENABLED=0. It also signs the Windows
-// executables and publishes checksums without splitting on spaces in macOS
-// DMG names.
+// TestReleaseCLIBinariesArePureGoBuilds pins the release binary contract:
+// every CLI target cross-builds with cgo off, and the release job verifies
+// that Go's embedded metadata says CGO_ENABLED=0 for both the CLI and every
+// desktop executable. It also restores the Linux artifact's executable bit,
+// signs the Windows executables, and publishes space-safe checksums.
 func TestReleaseCLIBinariesArePureGoBuilds(t *testing.T) {
 	root := repoRoot(t)
 
@@ -429,23 +452,21 @@ func TestReleaseCLIBinariesArePureGoBuilds(t *testing.T) {
 	assert.NotContains(t, buildWorkflow, "setup-zig", "pure-Go builds must not require Zig")
 	assert.NotContains(t, buildWorkflow, "ZIG_VERSION", "pure-Go builds must not pin a C toolchain")
 
-	require.Contains(t, buildWorkflow, "runs-on: ${{ matrix.runner }}")
-	for _, target := range []struct {
-		goos   string
-		goarch string
-		runner string
-	}{
-		{"darwin", "amd64", "macos-15-intel"},
-		{"darwin", "arm64", "macos-latest"},
-		{"linux", "amd64", "ubuntu-latest"},
-		{"linux", "arm64", "ubuntu-24.04-arm"},
+	require.Contains(t, buildWorkflow, "  build:\n"+
+		"    name: Build (${{ matrix.goos }} ${{ matrix.goarch }})\n"+
+		"    # Pure-Go CLI builds need neither a native C toolchain nor a target-OS\n"+
+		"    # runner. Windows stays in its own job because Authenticode signing needs\n"+
+		"    # Windows, not because the Go build itself does.\n"+
+		"    runs-on: ubuntu-latest",
+		"macOS and Linux CLI targets must cross-compile on one Linux runner")
+	for _, target := range []string{
+		"          - goos: darwin\n            goarch: amd64",
+		"          - goos: darwin\n            goarch: arm64",
+		"          - goos: linux\n            goarch: amd64",
+		"          - goos: linux\n            goarch: arm64",
 	} {
-		assert.Contains(t, buildWorkflow, "goos: "+target.goos,
-			"the CLI matrix must build %s", target.goos)
-		assert.Contains(t, buildWorkflow, "goarch: "+target.goarch,
-			"the CLI matrix must build %s/%s", target.goos, target.goarch)
-		assert.Contains(t, buildWorkflow, "runner: "+target.runner,
-			"%s/%s must use its native runner", target.goos, target.goarch)
+		assert.Contains(t, buildWorkflow, target,
+			"the Linux CLI cross-build matrix must contain %q", target)
 	}
 	require.Contains(t, buildWorkflow, "CGO_ENABLED: 0")
 	require.Contains(t, buildWorkflow, "REF: ${{ inputs.ref }}",
@@ -476,7 +497,7 @@ func TestReleaseCLIBinariesArePureGoBuilds(t *testing.T) {
 	require.NoError(t, err)
 	releaseWorkflow := string(release)
 	require.Contains(t, releaseWorkflow, "name: Verify release artifacts",
-		"the release job must validate native CLI artifacts before publication")
+		"the release job must validate CLI and desktop binaries before publication")
 	for _, step := range []string{
 		"secrets: inherit",
 		"require_signed_windows: true",
@@ -484,7 +505,6 @@ func TestReleaseCLIBinariesArePureGoBuilds(t *testing.T) {
 		`grep -Fq $'\tbuild\tCGO_ENABLED=0'`,
 		`grep -Fq $'\tbuild\tGOOS='`,
 		`grep -Fq $'\tbuild\tGOARCH='`,
-		`artifacts/aurora-linux-amd64/aurora-linux-amd64 version`,
 		`grep -Fq "Version: $RELEASE_VERSION"`,
 		`grep -Fq "Build Time: unknown"`,
 		"name: Generate release checksums",
@@ -499,6 +519,20 @@ func TestReleaseCLIBinariesArePureGoBuilds(t *testing.T) {
 		assert.Contains(t, releaseWorkflow, step,
 			"the release workflow must include %q", step)
 	}
+	for _, desktopBinary := range []string{
+		"artifacts/aurora-desktop-darwin-amd64/Aurora.app/Contents/MacOS/Aurora darwin amd64",
+		"artifacts/aurora-desktop-darwin-arm64/Aurora.app/Contents/MacOS/Aurora darwin arm64",
+		"artifacts/aurora-desktop-linux-amd64/aurora linux amd64",
+		"artifacts/aurora-desktop-linux-arm64/aurora linux arm64",
+		"artifacts/aurora-desktop-windows-amd64/Aurora.exe windows amd64",
+	} {
+		assert.Contains(t, releaseWorkflow, desktopBinary,
+			"the release metadata gate must verify %s", desktopBinary)
+	}
+	assert.Contains(t, releaseWorkflow, `chmod +x "$cli"`,
+		"download-artifact may strip the executable bit from the Linux CLI")
+	assert.Contains(t, releaseWorkflow, `output="$("$cli" version)"`,
+		"the release smoke test must run the chmod-restored binary")
 }
 
 // TestPackagedResourcesHoldNoGoSources guards MyGo's resource contract:

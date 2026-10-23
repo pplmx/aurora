@@ -1,6 +1,10 @@
 package aurora
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,6 +21,28 @@ func readRepoFile(t *testing.T, parts ...string) string {
 	data, err := os.ReadFile(filepath.Join(parts...))
 	require.NoError(t, err)
 	return string(data)
+}
+
+// justRecipe returns one top-level recipe body from the justfile.
+func justRecipe(t *testing.T, source, name string) string {
+	t.Helper()
+	lines := strings.Split(source, "\n")
+	for i, line := range lines {
+		if !strings.HasPrefix(line, name+":") {
+			continue
+		}
+		var body []string
+		for _, next := range lines[i+1:] {
+			if next == "" || (next[0] != ' ' && next[0] != '\t') {
+				break
+			}
+			body = append(body, next)
+		}
+		require.NotEmpty(t, body, "just recipe %q has no commands", name)
+		return strings.Join(body, "\n")
+	}
+	require.FailNow(t, "just recipe not found", name)
+	return ""
 }
 
 // TestGoModVersionIsPinnedEverywhere guards the three-way contract between
@@ -67,10 +93,80 @@ func TestSQLiteStorageStaysPureGo(t *testing.T) {
 	assert.Contains(t, desktopGoMod, "modernc.org/sqlite v1.61.0 // indirect")
 	assert.NotContains(t, desktopGoMod, "github.com/mattn/go-sqlite3")
 
+	assertGoSourcesUsePureSQLite(t, ".")
+
 	justfile := readRepoFile(t, "justfile")
 	assert.Contains(t, justfile, "CGO_ENABLED=0 go build")
 	assert.Contains(t, justfile, "CGO_ENABLED=0 go vet")
 	assert.Contains(t, justfile, "CGO_ENABLED=0 go test")
+}
+
+func assertGoSourcesUsePureSQLite(t *testing.T, root string) {
+	t.Helper()
+	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			if path != root && (entry.Name() == "dist" || entry.Name() == "vendor" ||
+				strings.HasPrefix(entry.Name(), ".")) {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if filepath.Ext(path) != ".go" {
+			return nil
+		}
+		parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.SkipObjectResolution)
+		require.NoError(t, err)
+		rel, err := filepath.Rel(root, path)
+		require.NoError(t, err)
+		for _, imported := range parsed.Imports {
+			if imported.Path.Value == `"github.com/mattn/go-sqlite3"` {
+				t.Errorf("%s must not import the cgo-only SQLite driver", rel)
+			}
+		}
+		ast.Inspect(parsed, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok || len(call.Args) == 0 {
+				return true
+			}
+			selector, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok || selector.Sel.Name != "Open" {
+				return true
+			}
+			pkg, ok := selector.X.(*ast.Ident)
+			if !ok || pkg.Name != "sql" {
+				return true
+			}
+			driver, ok := call.Args[0].(*ast.BasicLit)
+			if ok && driver.Kind == token.STRING && driver.Value == `"sqlite3"` {
+				t.Errorf("%s must open SQLite through the pure-Go driver", rel)
+			}
+			return true
+		})
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+// TestDesktopCheckStaysCgoFree separates the mandatory sandbox gate from the
+// optional race detector. A C compiler must never be required merely to build,
+// vet, and test the pure-Go desktop module.
+func TestDesktopCheckStaysCgoFree(t *testing.T) {
+	justfile := readRepoFile(t, "justfile")
+
+	check := justRecipe(t, justfile, "desktop-check")
+	assert.Contains(t, check, "CGO_ENABLED=0 go test -count=1 ./...")
+	assert.NotContains(t, check, "-race",
+		"desktop-check must remain runnable where the race detector's cgo runtime is unavailable")
+
+	test := justRecipe(t, justfile, "desktop-test")
+	assert.Contains(t, test, "CGO_ENABLED=0 go test -count=1 ./...")
+
+	race := justRecipe(t, justfile, "desktop-race")
+	assert.Contains(t, race, "CGO_ENABLED=1 go test -race -count=1 ./...",
+		"the cgo requirement of the race detector must be explicit")
 }
 
 // TestGolangciLintVersionIsPinned pins the workflow's golangci-lint binary.

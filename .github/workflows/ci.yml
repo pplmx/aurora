@@ -113,10 +113,17 @@ jobs:
         run: CGO_ENABLED=0 go vet ./...
         working-directory: desktop
 
-      # `just desktop-check` runs exactly these three steps locally. The
-      # race detector needs cgo, which is on by default on the runner.
-      - name: Test
-        run: go test -race ./...
+      # `just desktop-check` runs the same cgo-free gates locally.
+      - name: Test (pure Go)
+        run: CGO_ENABLED=0 go test -count=1 ./...
+        working-directory: desktop
+
+      # Keep the stronger race gate explicit: the detector itself needs cgo,
+      # even though the desktop production build no longer does.
+      - name: Test (race)
+        env:
+          CGO_ENABLED: '1'
+        run: go test -race -count=1 ./...
         working-directory: desktop
 
   # The desktop job above compiles the nested module. This job also runs the
@@ -157,6 +164,13 @@ jobs:
           CGO_ENABLED: '0'
         run: go tool mygo build -platform linux/amd64 -skip-dmg
         working-directory: desktop
+
+      - name: Verify pure-Go build metadata
+        run: |
+          metadata="$(go version -m dist/desktop/linux-amd64/aurora)"
+          grep -Fq $'\tbuild\tCGO_ENABLED=0' <<<"$metadata"
+          grep -Fq $'\tbuild\tGOOS=linux' <<<"$metadata"
+          grep -Fq $'\tbuild\tGOARCH=amd64' <<<"$metadata"
 
       - name: Verify the packaged binary reports its build identity
         run: |

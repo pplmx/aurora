@@ -74,18 +74,23 @@ desktop-run: desktop
 # their own entry point: a broken window layer must not pass CI silently just
 # because its module is nested.
 desktop-test:
-    cd desktop && CGO_ENABLED=0 go test ./...
+    cd desktop && CGO_ENABLED=0 go test -count=1 ./...
 
-# Everything CI runs for the desktop module, in the same order (ci.yml's
-# `desktop` job). Kept as a recipe so a local run and the pipeline cannot
-# drift: `just test`/`just check` at the root do not look inside a nested
-# module at all, so without one of these a broken window layer passes every
-# gate.
+# Every mandatory desktop gate that works in a cgo-free Go sandbox. Kept as a
+# recipe so a local run and CI cannot drift: `just test`/`just check` at the
+# root do not look inside a nested module at all, so without one of these a
+# broken window layer passes every gate.
 desktop-check:
     cd desktop && out=$(gofmt -l .) && test -z "$out" && echo "gofmt: clean" || { echo "gofmt would change: $out"; exit 1; }
     cd desktop && CGO_ENABLED=0 go build ./...
     cd desktop && CGO_ENABLED=0 go vet ./...
-    cd desktop && go test -race ./...
+    cd desktop && CGO_ENABLED=0 go test -count=1 ./...
+
+# The race detector needs cgo even when every production dependency is pure
+# Go. Keep it as an explicit opt-in so `desktop-check` remains usable in a
+# sandbox with no C compiler while CI still runs the stronger gate.
+desktop-race:
+    cd desktop && CGO_ENABLED=1 go test -race -count=1 ./...
 
 # Package the desktop app with `go tool mygo build` (desktop/mygo.config.ts):
 # a native executable, a desktop entry that registers aurora:// links, a
