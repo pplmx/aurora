@@ -576,6 +576,52 @@ const fs = require('fs');
 	require.Contains(t, string(out), "keep-prior-ok", "dashboard integrity/oracle cards must keep prior values across transient poll failures")
 }
 
+// TestWebUIJS_DashboardOracleHealthRecovers executes the SHIPPED web/js/app.js
+// in Node and pins ISS-362: cumulative failure counters are historical, while
+// an empty last_error marks the feed's current error state as recovered. A
+// pending feed (no success and no error yet) is neither OK nor failed.
+func TestWebUIJS_DashboardOracleHealthRecovers(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js oracle-health recovery check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+const makeEl = () => ({ style: {}, textContent: '' });
+global.document = { createElement: () => makeEl(), body: { appendChild: () => {} } };
+const feeds = [
+  { source_id: 'recovered', attempts: 2, successes: 1, failures: 1, last_error: '' },
+  { source_id: 'failing', attempts: 5, successes: 2, failures: 3, last_error: 'timeout' },
+  { source_id: 'pending', attempts: 1, successes: 0, failures: 0 }
+];
+global.fetch = () => Promise.resolve({
+  ok: true,
+  json: () => Promise.resolve(feeds)
+});
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+(async () => {
+  const app = global.dashboardApp();
+  await app.loadOracleHealth();
+  if (app.stats.oracle !== '1 OK \u00b7 1 fail') {
+    console.error('recovered health summary = ' + app.stats.oracle + ', want 1 OK / 1 fail');
+    process.exit(1);
+  }
+  console.log('oracle-health-recovery-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "oracle_health_recovery_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js oracle-health recovery failed:\n%s", out)
+	require.Contains(t, string(out), "oracle-health-recovery-ok", "dashboard must classify oracle health by the active error, not cumulative failures")
+}
+
 // TestWebUIJS_VotingRetryRecoversCastVote executes the SHIPPED web/js/app.js in
 // Node and pins TASK-243/ISS-241: a transient candidates/sessions load failure
 // at init must not permanently disable Cast Vote — the in-page Retry button's
