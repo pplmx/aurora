@@ -81,7 +81,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 - **数据库备份同样只对当前用户开放**：File → Back Up Database 新建的备份
   目录为 `0700`，SQLite 快照和 `metadata.json` 固定为 `0600`。如果用户明确
   选择一个已存在的备份目录，该目录自身的权限保持不变，但其中的新文件仍是
-  owner-only；这样 Oracle Bearer 头不会随备份暴露给同机其他账号。
+  owner-only；这样 Oracle Bearer 头不会随备份暴露给同机其他账号。Restore
+  生成的隐藏 `.pre_restore` 撤销快照同样收紧为 `0700/0600`，恢复后写回的
+  活动数据库也保持 `0600`。
 - **界面语言跟随系统**：MyGo 只翻译带 role 的菜单项（文件/编辑/显示/窗口/
   帮助、退出、原生对话框的“好/取消”），Aurora 自己的菜单项、文件选择器标题、
   结果/错误弹窗、启动失败弹窗和 `--help`/`--version` 都由 `internal/i18n`

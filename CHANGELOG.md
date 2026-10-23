@@ -70,7 +70,10 @@ documented in their per-milestone ROADMAP files.
   headers therefore remained readable from the backup even after the live
   data tree was protected. New backup sets are now `0700`; their database and
   metadata files are forced to `0600`, while an explicitly reused output
-  directory keeps its existing permissions.
+  directory keeps its existing permissions. Restore now applies the same
+  owner-only contract to its hidden `.pre_restore` undo snapshot and to the
+  promoted live database, including staging directories left by older
+  releases.
 - **Concurrent release runs are serialized by tag**: a tag push and one or
   more manual retries use the same non-cancelling concurrency group, so the
   publisher cannot interleave binaries, checksums, or provenance from different

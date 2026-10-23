@@ -16,7 +16,9 @@ existing operator-managed directory; a newly created explicit directory is
 still owner-only. A new database backup set is created as an owner-only
 `0700` directory whose database and metadata files are `0600`; an existing
 backup directory keeps its own permissions while new files in it remain
-owner-only.
+owner-only. Restore keeps its hidden undo-snapshot directory at `0700`, its
+database copy at `0600`, and promotes the restored live database with the same
+owner-only file mode.
 
 **This program will not transfer any information to other networked systems
 unless specifically requested by the user or the person installing or

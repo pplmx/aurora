@@ -258,6 +258,26 @@ func restrictBackupFile(path string) error {
 	return os.Chmod(path, 0o600)
 }
 
+// restrictBackupDir tightens the hidden restore staging directory, including
+// directories left behind by older releases at 0755. A deliberate symlink is
+// rejected so Chmod cannot retarget an unrelated directory.
+func restrictBackupDir(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("%q is a symlink", path)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%q is not a directory", path)
+	}
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	return os.Chmod(path, 0o700)
+}
+
 // getSchemaVersion returns the highest schema_migrations.version found
 // across all configured DBs. Returns 0 if none of the DBs have a
 // schema_migrations table or all queries fail.
@@ -443,8 +463,11 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 	}
 
 	preRestoreDir := backupPath + ".pre_restore"
-	if err := os.MkdirAll(preRestoreDir, 0755); err != nil {
+	if err := os.MkdirAll(preRestoreDir, 0o700); err != nil {
 		return fmt.Errorf("create pre-restore dir: %w", err)
+	}
+	if err := restrictBackupDir(preRestoreDir); err != nil {
+		return fmt.Errorf("restrict pre-restore dir: %w", err)
 	}
 
 	for name, destPath := range s.dbPaths {
@@ -474,6 +497,10 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 				_ = os.Remove(prePath)
 				return fmt.Errorf("snapshot current %s before restore: %w", name, err)
 			}
+			if err := restrictBackupFile(prePath); err != nil {
+				_ = os.Remove(prePath)
+				return fmt.Errorf("restrict pre-restore %s: %w", name, err)
+			}
 		}
 
 		src, err := os.Open(backupDbPath)
@@ -491,7 +518,7 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 			_ = src.Close()
 			return fmt.Errorf("remove stale temp %s: %w", name, err)
 		}
-		dest, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0640)
+		dest, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			_ = src.Close()
 			return fmt.Errorf("create temp %s: %w", name, err)
@@ -510,6 +537,10 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 		if err := dest.Close(); err != nil {
 			_ = os.Remove(tmpPath)
 			return fmt.Errorf("close temp %s: %w", name, err)
+		}
+		if err := restrictBackupFile(tmpPath); err != nil {
+			_ = os.Remove(tmpPath)
+			return fmt.Errorf("restrict restored %s: %w", name, err)
 		}
 		if err := os.Rename(tmpPath, destPath); err != nil {
 			_ = os.Remove(tmpPath)
