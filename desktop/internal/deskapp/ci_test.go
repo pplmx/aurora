@@ -458,6 +458,17 @@ func TestReleaseAttestsPublishedArtifacts(t *testing.T) {
 		require.Contains(t, release, permission,
 			"the release job must grant %s for build provenance", permission)
 	}
+	releaseJob := strings.Index(release, "\n  release:\n")
+	require.GreaterOrEqual(t, releaseJob, 0)
+	require.Contains(t, release[releaseJob:], `    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+`)
+	require.NotContains(t, release[:releaseJob], "attestations: write",
+		"only the publishing job should receive attestation authority")
+	require.NotContains(t, release[:releaseJob], "id-token: write",
+		"build jobs should not receive OIDC signing authority")
 	require.Contains(t, release,
 		"uses: actions/attest-build-provenance@v4.2.2")
 	require.Contains(t, release,
