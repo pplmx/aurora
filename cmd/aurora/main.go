@@ -7,14 +7,10 @@ import (
 )
 
 func main() {
+	// Bootstrap diagnostics before Cobra can load [log]. The command hook
+	// reinitializes from config once initConfig has populated Viper.
 	logger.Init()
 	i18n.DetectAndInit()
-
-	logger.Info().
-		Str("version", cmd.Version).
-		Str("build_time", cmd.BuildTime).
-		Str("locale", i18n.GetTranslator().GetLocale()).
-		Msg("Aurora starting")
 
 	cmd.Execute()
 }

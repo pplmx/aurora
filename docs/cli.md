@@ -120,6 +120,8 @@ aurora migrate down --confirm # 回滚一步
 - 失败只打印一行 `❌ Error: ...`（同时写结构化日志）后 `exit 1`；
   token 操作已提交但审计事件发布失败时打印 `⚠ ... DID commit. Do NOT retry`
   的专用警告，退出码同样非零。
+- `[log] level/path` 在命令执行前加载，默认写入 `./logs/aurora.log`；Unix-like
+  系统上目录为 `0700`、文件为 `0600`。
 - 所有输出遵循 `[i18n] locale` 或 `$LANG`；`aurora <cmd> --help` 同样本地化。
 
 ## TUI 通用按键
