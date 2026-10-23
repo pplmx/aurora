@@ -158,9 +158,10 @@ func TestLotteryVerify_NumericPrefixIsHeight(t *testing.T) {
 // char, 0-9 or a-f) was misread as a block height and reported as
 // "lottery not found" even though the draw existed.
 //
-// We plant a record with a digit-prefixed ID directly in the DB to make
-// the test deterministic (the CLI has no "choose the id" flag), then
-// verify it is found by its exact ID and by an 8-char prefix.
+// We plant a canonical keyless draw whose deterministic ID starts with a
+// decimal digit (the CLI has no "choose the id" flag), then verify it is found
+// by its exact ID and by an 8-char prefix. The seed/output pair is fixed so
+// the ID remains derivable and passes the integrity verifier.
 func TestLotteryVerify_NumericPrefixID(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		// Establish the DB (tables + a real draw) through the CLI first.
@@ -168,19 +169,52 @@ func TestLotteryVerify_NumericPrefixID(t *testing.T) {
 			"--participants", "Alice,Bob", "--seed", "numeric-seed", "--count", "1")
 		require.NoError(t, err)
 
-		// Rewrite the record's ID to one that begins with a decimal digit,
-		// mimicking a 16-hex hash that happens to start with 0-9.
+		seed := "numeric-seed"
+		participants := []string{"Alice", "Bob"}
+		output := []byte{0x00}
+		winners := domainlottery.SelectWinners(output, participants, 1)
+		record := domainlottery.CreateLotteryRecord(
+			seed,
+			participants,
+			winners,
+			[]string{domainlottery.NameToAddress(winners[0])},
+			output,
+			[]byte{0x00},
+			"",
+			1,
+		)
+		const numericID = "3f6b943059e93f5f"
+		require.Equal(t, numericID, record.ID)
+
+		participantsJSON, err := json.Marshal(record.Participants)
+		require.NoError(t, err)
+		winnersJSON, err := json.Marshal(record.Winners)
+		require.NoError(t, err)
+		addressesJSON, err := json.Marshal(record.WinnerAddresses)
+		require.NoError(t, err)
+
+		// Replace the random draw with the fixed canonical record. It has no
+		// stored VRF key, exercising the legacy deterministic-winner path.
 		db := openTestAuroraDB(t)
-		_, err = db.Exec(`UPDATE lottery_records SET id = '07551e0cac54a4cf' WHERE id != ''`)
-		require.NoError(t, err, "plant the digit-prefixed id")
+		_, err = db.Exec(`DELETE FROM lottery_vrf_keys`)
+		require.NoError(t, err)
+		_, err = db.Exec(`
+			UPDATE lottery_records
+			SET id = ?, seed = ?, participants = ?, winners = ?,
+			    winner_addresses = ?, vrf_proof = ?, vrf_output = ?, verified = 0
+			WHERE id != ''`,
+			record.ID, record.Seed, string(participantsJSON), string(winnersJSON),
+			string(addressesJSON), record.VRFProof, record.VRFOutput,
+		)
+		require.NoError(t, err, "plant the canonical digit-prefixed draw")
 
 		// Exact id match must work despite the numeric prefix.
-		vout, err := runCmd(t, "lottery", "verify", "07551e0cac54a4cf")
+		vout, err := runCmd(t, "lottery", "verify", numericID)
 		require.NoError(t, err, "verify by digit-prefixed id should succeed")
 		assert.Contains(t, vout, "Block Height: #")
 
 		// Prefix fallback: first 8 chars (also numeric).
-		vout, err = runCmd(t, "lottery", "verify", "07551e0c")
+		vout, err = runCmd(t, "lottery", "verify", numericID[:8])
 		require.NoError(t, err)
 		assert.Contains(t, vout, "Block Height: #")
 	})

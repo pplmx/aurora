@@ -119,6 +119,8 @@ func VerifyRecord(record *lottery.LotteryRecord) *VerifyReport {
 		fail("VRF output is not valid hex")
 	case !isHex(record.VRFProof):
 		fail("VRF proof is not valid hex")
+	case record.ID != lottery.LotteryRecordID(record.Seed, vrfOutputBytes):
+		fail("record ID does not match the seed and VRF output")
 	case len(record.Winners) == 0:
 		// A successful draw always records at least one winner (the domain
 		// rejects count<=0), so an empty winners slice is a corrupt or partial

@@ -125,6 +125,19 @@ func TestImportRecords_RejectsATamperedWinnerAddress(t *testing.T) {
 	assert.Empty(t, repo.records, "a tampered payout address must not be imported")
 }
 
+func TestImportRecords_RejectsRecordIDNotDerivedFromEvidence(t *testing.T) {
+	repo := &mockLotteryRepo{}
+	record := genuinePortableRecord(t)
+	record.ID = "0000000000000000"
+	document, err := json.Marshal([]lottery.LotteryRecord{record})
+	require.NoError(t, err)
+
+	result, err := ImportRecords(repo, document)
+	require.NoError(t, err)
+	assert.Equal(t, ImportResult{Total: 1, Rejected: []int{0}}, result)
+	assert.Empty(t, repo.records, "a forged ID must not bypass duplicate-draw detection")
+}
+
 type pathLotteryRepo struct {
 	emptyLotteryRepo
 	path string

@@ -161,7 +161,6 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 	exportPath := filepath.Join(dir, "draws.json")
 
 	draw := genuineDesktopLotteryRecord(t, "seed-value")
-	draw.ID = "deep-link-import"
 	draw.BlockHeight = 1
 	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
 	require.NoError(t, err)
@@ -186,7 +185,7 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 	stored, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = stored.Close() })
-	record, err := stored.GetByID("deep-link-import")
+	record, err := stored.GetByID(draw.ID)
 	require.NoError(t, err)
 	assert.Equal(t, draw.Winners, record.Winners)
 
@@ -217,7 +216,6 @@ func TestShell_HandleLaunchArgs(t *testing.T) {
 	dbPath := filepath.Join(dir, "aurora.db")
 	exportPath := filepath.Join(dir, "draws.json")
 	draw := genuineDesktopLotteryRecord(t, "second-seed")
-	draw.ID = "second-instance-import"
 	draw.BlockHeight = 2
 	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
 	require.NoError(t, err)
@@ -246,7 +244,7 @@ func TestShell_HandleLaunchArgs(t *testing.T) {
 	stored, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = stored.Close() })
-	_, err = stored.GetByID("second-instance-import")
+	_, err = stored.GetByID(draw.ID)
 	assert.NoError(t, err, "the export named by the second launch must be stored")
 
 	// A malformed link of our own scheme is still ours to report.
@@ -271,7 +269,6 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 	dbPath := filepath.Join(dataDir, "aurora.db")
 
 	draw := genuineDesktopLotteryRecord(t, "relative-seed")
-	draw.ID = "relative-path-import"
 	draw.BlockHeight = 3
 	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
 	require.NoError(t, err)
@@ -294,12 +291,11 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 	stored, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = stored.Close() })
-	_, err = stored.GetByID("relative-path-import")
+	_, err = stored.GetByID(draw.ID)
 	assert.NoError(t, err, "the draw from the launcher's directory must be stored")
 
 	// The same file via a file:// URL, which Linux launchers also send.
 	urlDraw := genuineDesktopLotteryRecord(t, "file-url-seed")
-	urlDraw.ID = "file-url-import"
 	urlDraw.BlockHeight = 4
 	other, err := json.Marshal([]domainlottery.LotteryRecord{urlDraw})
 	require.NoError(t, err)
@@ -310,7 +306,7 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 	require.Len(t, reports, 2)
 	assert.Contains(t, reports[1], "Lotteries imported")
 
-	_, err = stored.GetByID("file-url-import")
+	_, err = stored.GetByID(urlDraw.ID)
 	assert.NoError(t, err, "a file:// argument must import like a plain path")
 }
 
@@ -430,7 +426,6 @@ func TestShell_RefusesAForeignDataDir(t *testing.T) {
 	dbPath := filepath.Join(dataDir, "aurora.db")
 	exportPath := filepath.Join(dir, "draws.json")
 	draw := genuineDesktopLotteryRecord(t, "wrong-db-seed")
-	draw.ID = "wrong-db-import"
 	draw.BlockHeight = 5
 	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
 	require.NoError(t, err)
@@ -467,7 +462,7 @@ func TestShell_RefusesAForeignDataDir(t *testing.T) {
 	stored, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = stored.Close() })
-	_, err = stored.GetByID("wrong-db-import")
+	_, err = stored.GetByID(draw.ID)
 	assert.Error(t, err, "the export must not be imported into the database the launch did not name")
 
 	// The same directory this instance is using is not a conflict: a launcher
@@ -703,7 +698,6 @@ func TestShellOpenedFileRecreatesWindow(t *testing.T) {
 	dbPath := filepath.Join(dir, "aurora.db")
 	exportPath := filepath.Join(dir, "draws.json")
 	draw := genuineDesktopLotteryRecord(t, "reopen-seed")
-	draw.ID = "reopened-window-import"
 	draw.BlockHeight = 6
 	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
 	require.NoError(t, err)
