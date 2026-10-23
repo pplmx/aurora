@@ -43,6 +43,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Manual release retries cannot mint a tag from an arbitrary ref**: the
+  release workflow now validates `workflow_dispatch` input as an existing
+  version-shaped tag before either build matrix starts. The build jobs receive
+  read-only repository access, and publishing waits for the tag check, so a
+  branch or commit cannot be paired with a newly created tag at another
+  commit.
 - **Pure-Go release gates now inspect every shipped executable**: release
   verification reads Go build metadata from the CLI and all desktop binaries,
   rejecting any artifact built with cgo, and restores the executable bit on
