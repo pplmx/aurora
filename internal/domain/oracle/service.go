@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/netip"
@@ -187,6 +188,29 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
+// ParseSourceHeaders decodes the JSON object stored in DataSource.Headers and
+// rejects header names or values containing CR/LF. Keeping this validation in
+// the domain means source creation fails before persisting a configuration
+// that the fetcher could only reject later.
+func ParseSourceHeaders(headersJSON string) (map[string]string, error) {
+	if strings.TrimSpace(headersJSON) == "" {
+		return nil, nil
+	}
+	var headers map[string]string
+	if err := json.Unmarshal([]byte(headersJSON), &headers); err != nil {
+		return nil, fmt.Errorf("%w: invalid headers json", ErrInvalidSource)
+	}
+	if headers == nil {
+		return nil, fmt.Errorf("%w: headers must be a JSON object", ErrInvalidSource)
+	}
+	for name, value := range headers {
+		if strings.ContainsAny(name, "\r\n") || strings.ContainsAny(value, "\r\n") {
+			return nil, fmt.Errorf("%w: header %q contains a newline", ErrInvalidSource, name)
+		}
+	}
+	return headers, nil
+}
+
 func (s *service) AddSource(source *DataSource) error {
 	if source.Name == "" {
 		return ErrInvalidSource
@@ -216,6 +240,9 @@ func (s *service) AddSource(source *DataSource) error {
 	// above 30 days is a misconfiguration regardless (TASK-232, ISS-230).
 	if source.Interval < 0 || source.Interval > MaxSourceIntervalSeconds {
 		return fmt.Errorf("%w: invalid interval", ErrInvalidSource)
+	}
+	if _, err := ParseSourceHeaders(source.Headers); err != nil {
+		return err
 	}
 	if err := validateSourceURL(source.URL); err != nil {
 		return fmt.Errorf("%w: %v", ErrInvalidSource, err)

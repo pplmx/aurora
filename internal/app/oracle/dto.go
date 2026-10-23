@@ -17,6 +17,7 @@ type AddSourceRequest struct {
 	URL      string
 	Type     string
 	Method   string
+	Headers  string
 	Path     string
 	Interval int
 }

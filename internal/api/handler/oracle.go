@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -102,15 +103,26 @@ func (h *OracleHandler) Templates(w http.ResponseWriter, r *http.Request) {
 // feed. Validation lives in the domain (URL-scheme SSRF guard, name checks).
 func (h *OracleHandler) CreateSource(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name     string `json:"name"`
-		URL      string `json:"url"`
-		Type     string `json:"type"`
-		Method   string `json:"method"`
-		Path     string `json:"path"`
-		Interval int    `json:"interval"`
+		Name     string            `json:"name"`
+		URL      string            `json:"url"`
+		Type     string            `json:"type"`
+		Method   string            `json:"method"`
+		Headers  map[string]string `json:"headers"`
+		Path     string            `json:"path"`
+		Interval int               `json:"interval"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
+	}
+
+	headers := ""
+	if len(req.Headers) > 0 {
+		encoded, err := json.Marshal(req.Headers)
+		if err != nil {
+			writeUseCaseError(w, fmt.Errorf("%w: invalid headers json", oracle.ErrInvalidSource))
+			return
+		}
+		headers = string(encoded)
 	}
 
 	uc := oracleapp.NewAddSourceUseCase(h.repo)
@@ -119,6 +131,7 @@ func (h *OracleHandler) CreateSource(w http.ResponseWriter, r *http.Request) {
 		URL:      req.URL,
 		Type:     req.Type,
 		Method:   req.Method,
+		Headers:  headers,
 		Path:     req.Path,
 		Interval: req.Interval,
 	})

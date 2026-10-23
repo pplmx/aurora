@@ -174,6 +174,22 @@ func TestAddSourceUseCase(t *testing.T) {
 	}
 }
 
+func TestAddSourceUseCase_PersistsHeaders(t *testing.T) {
+	repo := &mockOracleRepo{}
+	uc := NewAddSourceUseCase(repo)
+	headers := `{"Authorization":"Bearer secret","X-API-Key":"feed-key"}`
+
+	resp, err := uc.Execute(&AddSourceRequest{
+		Name:    "Private Feed",
+		URL:     "https://api.example.com/private",
+		Headers: headers,
+	})
+	require.NoError(t, err)
+	require.Len(t, repo.sources, 1)
+	require.JSONEq(t, headers, resp.Headers)
+	require.JSONEq(t, headers, repo.sources[0].Headers)
+}
+
 func TestAddSourceUseCase_DefaultValues(t *testing.T) {
 	repo := &mockOracleRepo{}
 	uc := NewAddSourceUseCase(repo)

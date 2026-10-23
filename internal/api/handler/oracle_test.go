@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
 	"github.com/pplmx/aurora/internal/domain/oracle"
@@ -188,6 +189,58 @@ func TestOracleHandler_CreateSource_Success(t *testing.T) {
 	}
 	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &created))
 	assert.NotEmpty(t, created.ID)
+}
+
+func TestOracleHandler_CreateSource_PersistsHeaders(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	handler := NewOracleHandler(repo)
+	body, _ := json.Marshal(map[string]any{
+		"name": "Private Feed",
+		"url":  "http://example.com/private",
+		"headers": map[string]string{
+			"Authorization": "Bearer secret",
+			"X-API-Key":     "feed-key",
+		},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/sources", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.CreateSource(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	var created struct {
+		ID      string `json:"id"`
+		Headers string `json:"headers"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &created))
+	assert.JSONEq(t, `{"Authorization":"Bearer secret","X-API-Key":"feed-key"}`, created.Headers)
+
+	source, err := repo.GetSource(created.ID)
+	require.NoError(t, err)
+	require.NotNil(t, source)
+	assert.JSONEq(t, `{"Authorization":"Bearer secret","X-API-Key":"feed-key"}`, source.Headers)
+}
+
+func TestOracleHandler_CreateSource_RejectsUnsafeHeaders(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	handler := NewOracleHandler(repo)
+	body, _ := json.Marshal(map[string]any{
+		"name": "Private Feed",
+		"url":  "http://example.com/private",
+		"headers": map[string]string{
+			"X-Test": "value\r\nInjected: true",
+		},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/oracle/sources", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler.CreateSource(rr, req)
+
+	require.Equal(t, http.StatusBadRequest, rr.Code, rr.Body.String())
+	assert.Contains(t, rr.Body.String(), `"code":"INVALID_SOURCE"`)
+	sources, err := repo.ListSources()
+	require.NoError(t, err)
+	assert.Empty(t, sources)
 }
 
 func TestOracleHandler_DeleteSource_Success(t *testing.T) {

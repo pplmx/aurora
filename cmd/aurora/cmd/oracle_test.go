@@ -116,6 +116,51 @@ func TestOracleSourceAdd_ValidationErrors(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestOracleSourceAdd_PersistsHeaders(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		out, err := runCmd(t, "oracle", "source", "add",
+			"--name", "private-feed",
+			"--url", "https://api.example.com/private",
+			"--headers", `{"Authorization":"Bearer secret","X-API-Key":"feed-key"}`,
+		)
+		require.NoError(t, err)
+		ids := extractSourceIDs(t, out)
+		require.Len(t, ids, 1)
+
+		list, err := runCmd(t, "oracle", "source", "list")
+		require.NoError(t, err)
+		assert.Contains(t, list, "Headers: configured")
+
+		repo, cleanup, err := newOracleRepo()
+		require.NoError(t, err)
+		defer cleanup()
+
+		source, err := repo.GetSource(ids[0])
+		require.NoError(t, err)
+		require.NotNil(t, source)
+		assert.JSONEq(t, `{"Authorization":"Bearer secret","X-API-Key":"feed-key"}`, source.Headers)
+	})
+}
+
+func TestOracleSourceAdd_RejectsInvalidHeaders(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		_, err := runCmd(t, "oracle", "source", "add",
+			"--name", "private-feed",
+			"--url", "https://api.example.com/private",
+			"--headers", "not-json",
+		)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid headers json")
+
+		repo, cleanup, err := newOracleRepo()
+		require.NoError(t, err)
+		defer cleanup()
+		sources, err := repo.ListSources()
+		require.NoError(t, err)
+		assert.Empty(t, sources)
+	})
+}
+
 func TestOracleFetch_SourceNotFound(t *testing.T) {
 	resetCliForTest()
 

@@ -1043,7 +1043,7 @@ function oracleApp() {
         sources: [], sourcesFailed: false, loading: true,
         health: [], loadingHealth: true, healthFailed: false,
         refreshing: false,
-        addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addInterval: 60, addResult: '',
+        addName: '', addUrl: '', addType: '', addMethod: '', addPath: '', addHeaders: '', addInterval: 60, addResult: '',
         templates: [],
         fetchSource: '', fetchResult: '',
         querySource: '', queryLimit: 10, queryRows: [], queryError: '', queried: false,
@@ -1087,6 +1087,7 @@ function oracleApp() {
             this.addType = t.type || '';
             this.addMethod = t.method || '';
             this.addPath = t.path || '';
+            this.addHeaders = '';
             this.addInterval = t.interval || 60;
         },
         async loadHealth() {
@@ -1105,6 +1106,20 @@ function oracleApp() {
             this.loadingHealth = false;
         },
         async addSource() {
+            let headers;
+            const rawHeaders = this.addHeaders.trim();
+            if (rawHeaders) {
+                try {
+                    headers = JSON.parse(rawHeaders);
+                } catch (e) {
+                    this.addResult = 'Error: headers must be a valid JSON object';
+                    return;
+                }
+                if (headers === null || Array.isArray(headers) || typeof headers !== 'object') {
+                    this.addResult = 'Error: headers must be a valid JSON object';
+                    return;
+                }
+            }
             try {
                 const res = await apiFetch('/api/v1/oracle/sources', {
                     method: 'POST',
@@ -1115,6 +1130,7 @@ function oracleApp() {
                         type: this.addType || undefined,
                         method: this.addMethod || undefined,
                         path: this.addPath || undefined,
+                        headers: headers && Object.keys(headers).length ? headers : undefined,
                         interval: parseInt(this.addInterval)
                     })
                 });
@@ -1124,7 +1140,7 @@ function oracleApp() {
                 // votingApp guards were the same class — ISS-149).
                 const data = await res.json();
                 this.addResult = 'Source "' + data.name + '" added (id: ' + data.id + ')';
-                this.addName = ''; this.addUrl = ''; this.addType = ''; this.addMethod = ''; this.addPath = '';
+                this.addName = ''; this.addUrl = ''; this.addType = ''; this.addMethod = ''; this.addPath = ''; this.addHeaders = '';
                 // Advance the shared Fetch/Query/Latest source ids to the fresh
                 // source (mirrors TASK-150): a newly added source's natural next
                 // step is fetching/querying it, and that needed a manual id copy

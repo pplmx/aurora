@@ -82,6 +82,8 @@ aurora token tui
 aurora oracle source list
 aurora oracle source add -n "btc" -u "https://api.example.com/price" \
   -t json -m GET -p "data.price" -i 60        # -t/-m/-p/-i 可选
+aurora oracle source add -n "private" -u "https://api.example.com/private" \
+  --headers '{"Authorization":"Bearer ...","X-API-Key":"..."}'
 aurora oracle source enable --id <source-id>
 aurora oracle source disable --id <source-id>
 aurora oracle source delete --id <source-id> --confirm
@@ -93,6 +95,7 @@ aurora oracle latest -i <source-id>
 aurora oracle tui
 ```
 
+`--headers` 接受 JSON 对象；非法 JSON、CR/LF 或超过长度上限会在写入前拒绝。
 `interval` 上限 30 天；越界会在写入前拒绝（更大的值会让调度器溢出成“永远
 到期”的抓取风暴）。
 
