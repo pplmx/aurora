@@ -14,13 +14,13 @@ just api          # Build the standalone REST API + Web server (./aurora-api, -X
                   #   supports -h/--help, -v/--version, -H/--host, -p/--port (listen addr
                   #   precedence: flag > AURORA_SERVER_HOST/PORT env > [server] config > default)
 just desktop      # Build the MyGo desktop shell (./aurora-desktop); nested module desktop/,
-                  #   needs Go 1.27 + a native cgo build (WebKitGTK / WebView2 / WKWebView)
+                  #   needs Go 1.27 + the native webview runtime (WebKitGTK / WebView2 / WKWebView)
 just desktop-run  # Build then launch the window (embedded Web UI; --web-root for UI dev)
 just desktop-test # Run the desktop module's tests (just test only covers the core module)
 just desktop-check  # gofmt + build + vet + test -race for desktop/ (what CI's
                     #   `desktop` job runs)
 just desktop-package *ARGS  # go tool mygo build: dist/desktop/<os>-<arch>/ (.deb, tar.gz,
-                            #   desktop entry with the aurora:// handler); needs cgo
+                            #   desktop entry with the aurora:// handler)
 just run          # Run locally
 ```
 
@@ -102,6 +102,7 @@ just stop         # Stop containers: docker compose down
 - filippo.io/edwards25519 (VRF, Ed25519 signing)
 - charmbracelet/bubbletea (TUI)
 - charmbracelet/lipgloss (styling)
+- modernc.org/sqlite (pure-Go SQLite storage)
 
 ## Go Style
 

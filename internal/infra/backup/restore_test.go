@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // newDB creates a SQLite file at path with the given DDL statements applied.
@@ -21,7 +21,7 @@ func newDB(t *testing.T, path string, ddl ...string) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	db, err := sql.Open("sqlite3", path)
+	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
@@ -405,7 +405,7 @@ func TestRestore_RefusesCorruptBackup(t *testing.T) {
 // readKV opens the SQLite DB at path and returns the value of kv[k].
 func readKV(t *testing.T, path, k string) string {
 	t.Helper()
-	db, err := sql.Open("sqlite3", path)
+	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
@@ -484,7 +484,7 @@ func TestRestore_PreRestoreSnapshot_IsWALComplete(t *testing.T) {
 	// Keep the writer connection open so its committed frames stay in -wal
 	// uncheckpointed when Restore runs (the live-server shape, same technique
 	// as TestBackupService_Create_IncludesUncheckpointedWAL).
-	live, err := sql.Open("sqlite3", dstDB)
+	live, err := sql.Open("sqlite", dstDB)
 	if err != nil {
 		t.Fatalf("open live db: %v", err)
 	}

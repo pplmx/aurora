@@ -44,17 +44,33 @@ func TestGoModVersionIsPinnedEverywhere(t *testing.T) {
 		"the Docker builder must track go.mod's Go major.minor")
 }
 
-// TestDockerBuildRequiresCgo locks the fix for the red Docker job: the image
-// built with CGO_ENABLED=0, which does not compile — the nocgo build of
-// mattn/go-sqlite3 is a stub without sqlite3.Error. If someone "simplifies"
-// the Dockerfile back to CGO_ENABLED=0, this test fails before CI does.
-func TestDockerBuildRequiresCgo(t *testing.T) {
+// TestDockerBuildStaysPureGo pins the pure-Go image contract: no C
+// toolchain, no external link mode, and a distroless/static runtime.
+func TestDockerBuildStaysPureGo(t *testing.T) {
 	dockerfile := readRepoFile(t, "Dockerfile")
-	assert.NotRegexp(t, `(?m)^ENV CGO_ENABLED=0`, dockerfile,
-		"the sqlite driver needs cgo; CGO_ENABLED=0 does not compile")
-	assert.Contains(t, dockerfile, "CGO_ENABLED=1")
-	assert.Contains(t, dockerfile, "musl-dev",
-		"the static cgo build needs musl's gcc in the alpine builder")
+	assert.Contains(t, dockerfile, "ENV CGO_ENABLED=0")
+	assert.NotContains(t, dockerfile, "CGO_ENABLED=1")
+	assert.NotContains(t, dockerfile, "musl-dev")
+	assert.NotContains(t, dockerfile, "-linkmode external")
+}
+
+// TestSQLiteStorageStaysPureGo prevents the SQLite driver from drifting back
+// to a cgo-only implementation. The root module owns the storage dependency;
+// the nested desktop module must resolve the same pure-Go driver through its
+// replace directive.
+func TestSQLiteStorageStaysPureGo(t *testing.T) {
+	goMod := readRepoFile(t, "go.mod")
+	assert.Contains(t, goMod, "modernc.org/sqlite v1.61.0")
+	assert.NotContains(t, goMod, "github.com/mattn/go-sqlite3")
+
+	desktopGoMod := readRepoFile(t, "desktop", "go.mod")
+	assert.Contains(t, desktopGoMod, "modernc.org/sqlite v1.61.0 // indirect")
+	assert.NotContains(t, desktopGoMod, "github.com/mattn/go-sqlite3")
+
+	justfile := readRepoFile(t, "justfile")
+	assert.Contains(t, justfile, "CGO_ENABLED=0 go build")
+	assert.Contains(t, justfile, "CGO_ENABLED=0 go vet")
+	assert.Contains(t, justfile, "CGO_ENABLED=0 go test")
 }
 
 // TestGolangciLintVersionIsPinned pins the workflow's golangci-lint binary.

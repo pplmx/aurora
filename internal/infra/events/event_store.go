@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/events"
+	_ "modernc.org/sqlite"
 )
 
 type EventRepository interface {
@@ -45,7 +45,7 @@ func NewSQLiteEventStore(dbPath string) (*SQLiteEventStore, error) {
 	// _txlock is not needed here; _busy_timeout makes a concurrent publish wait
 	// for the WAL write lock over the API pool instead of failing with
 	// SQLITE_BUSY (v1.70, ISS-076 — same value as the v1.67 replay DSN).
-	database, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON&_busy_timeout=5000", dbPath))
+	database, err := sql.Open("sqlite", fmt.Sprintf("%s?_foreign_keys=ON&_busy_timeout=5000", dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

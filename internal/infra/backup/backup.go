@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
@@ -148,7 +148,7 @@ func (s *BackupService) Create(ctx context.Context, output string) (*BackupResul
 		// was ignored) + bare .db file copy, which silently produced a stale
 		// snapshot missing whatever committed between checkpoint and copy
 		// (v1.75, ISS-082).
-		db, err := sql.Open("sqlite3", sqlite.DSN(path))
+		db, err := sql.Open("sqlite", sqlite.DSN(path))
 		if err != nil {
 			s.removeTemps(snapshots)
 			return nil, fmt.Errorf("open %s: %w", name, err)
@@ -260,7 +260,7 @@ func vacuumInto(src, dest string) error {
 	// Hardened DSN so VACUUM INTO against a DB an API/CLI process holds the
 	// write lock on waits instead of failing instantly (migrate fix class,
 	// TASK-170/ISS-165).
-	db, err := sql.Open("sqlite3", sqlite.DSN(src))
+	db, err := sql.Open("sqlite", sqlite.DSN(src))
 	if err != nil {
 		return err
 	}
@@ -283,7 +283,7 @@ func querySchemaVersion(path string) uint {
 	if _, err := os.Stat(path); err != nil {
 		return 0
 	}
-	db, err := sql.Open("sqlite3", sqlite.DSN(path))
+	db, err := sql.Open("sqlite", sqlite.DSN(path))
 	if err != nil {
 		return 0
 	}
@@ -370,7 +370,7 @@ func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 				return fmt.Errorf("database %s checksum mismatch: backup may be corrupted", name)
 			}
 		} else {
-			db, err := sql.Open("sqlite3", sqlite.DSN(dbPath))
+			db, err := sql.Open("sqlite", sqlite.DSN(dbPath))
 			if err != nil {
 				return fmt.Errorf("cannot open %s: %w", name, err)
 			}

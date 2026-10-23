@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/token"
+	_ "modernc.org/sqlite"
 )
 
 // tokenExec abstracts *sql.DB and *sql.Tx so TokenRepository can run either
@@ -48,7 +48,7 @@ func NewTokenRepository(dbPath string) (*TokenRepository, error) {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	database, err := sql.Open("sqlite3", DSN(dbPath))
+	database, err := sql.Open("sqlite", DSN(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

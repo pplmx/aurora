@@ -7,9 +7,9 @@ import (
 	"sync"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	_ "modernc.org/sqlite"
 )
 
 func setupReplayProtection(t *testing.T) (*SQLiteReplayProtection, func()) {
@@ -195,7 +195,7 @@ func TestReplayProtection_Integration(t *testing.T) {
 }
 
 func TestBase64Encoding(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite", ":memory:")
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
 

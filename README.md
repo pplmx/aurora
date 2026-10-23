@@ -26,16 +26,16 @@ FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**
 
 - **桌面端**：Linux `.deb` / `.tar.gz`+`install.sh`（amd64、arm64）、macOS
   `.dmg`（arm64、amd64）、Windows `Aurora.exe` / `*Setup*.exe`。
-- **CLI**：`aurora-<os>-<arch>`，原生 cgo 构建，发布时附 `checksums.txt`。
+- **CLI**：`aurora-<os>-<arch>`，纯 Go 构建，发布时附 `checksums.txt`。
 - 发布流程会校验版本号与构建时间，不发布 `0.0.1` / `Build Time: unknown`
   的产物。
 
 从源码构建：
 
 ```bash
-go build -o aurora ./cmd/aurora          # CLI（Go 1.27+）
-go build -o aurora-api ./cmd/api         # REST API + Web
-just desktop                             # 桌面壳（Go 1.27+、cgo、WebKitGTK/WebView2）
+CGO_ENABLED=0 go build -o aurora ./cmd/aurora      # CLI（Go 1.27+）
+CGO_ENABLED=0 go build -o aurora-api ./cmd/api     # REST API + Web
+just desktop                             # 桌面壳（Go 1.27+、WebKitGTK/WebView2）
 ```
 
 `just` 是唯一的任务入口（没有 Makefile）：
@@ -174,7 +174,7 @@ DDD 分层：`domain` 持有实体、领域服务与仓储接口；`app` 编排�
 ## 技术栈
 
 Go 1.27+、Cobra、Viper、Zerolog、Bubble Tea v2、SQLite
-（mattn/go-sqlite3，cgo）、filippo.io/edwards25519、MyGo、Alpine.js。
+（modernc.org/sqlite，纯 Go）、filippo.io/edwards25519、MyGo、Alpine.js。
 
 ## 开发
 

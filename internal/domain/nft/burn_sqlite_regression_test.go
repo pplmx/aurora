@@ -95,7 +95,7 @@ func TestNFTRepository_EnsureNoCascadeFKUpgradesLegacyDB(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "legacy_nft.db")
 
 	// Build a legacy DB exactly as the pre-fix createTables did.
-	raw, err := sql.Open("sqlite3", dbPath+"?_foreign_keys=ON")
+	raw, err := sql.Open("sqlite", dbPath+"?_foreign_keys=ON")
 	if err != nil {
 		t.Fatalf("open legacy db: %v", err)
 	}

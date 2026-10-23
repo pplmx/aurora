@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/nft"
+	_ "modernc.org/sqlite"
 )
 
 // maxNFTHistoryOps bounds the operations GetOperations returns so an unbounded
@@ -58,7 +58,7 @@ func NewNFTRepository(dbPath string) (*NFTRepository, error) {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	database, err := sql.Open("sqlite3", DSN(dbPath))
+	database, err := sql.Open("sqlite", DSN(dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

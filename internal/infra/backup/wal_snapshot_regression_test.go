@@ -22,7 +22,7 @@ func TestBackupService_Create_IncludesUncheckpointedWAL(t *testing.T) {
 
 	// Keep the writer connection open so its committed frames stay in -wal
 	// uncheckpointed when the backup runs (the live-server shape).
-	db, err := sql.Open("sqlite3", srcPath)
+	db, err := sql.Open("sqlite", srcPath)
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
 
@@ -35,7 +35,7 @@ func TestBackupService_Create_IncludesUncheckpointedWAL(t *testing.T) {
 
 	// Sanity: the write is not yet visible in the bare .db file (it lives only
 	// in -wal), which is exactly what the old copy would have missed.
-	bare, err := sql.Open("sqlite3", srcPath)
+	bare, err := sql.Open("sqlite", srcPath)
 	require.NoError(t, err)
 	var before int
 	require.NoError(t, bare.QueryRow("SELECT COUNT(*) FROM t").Scan(&before))
@@ -47,7 +47,7 @@ func TestBackupService_Create_IncludesUncheckpointedWAL(t *testing.T) {
 	_, err = svc.Create(context.Background(), out)
 	require.NoError(t, err)
 
-	backup, err := sql.Open("sqlite3", filepath.Join(out, "live.db"))
+	backup, err := sql.Open("sqlite", filepath.Join(out, "live.db"))
 	require.NoError(t, err)
 	defer func() { _ = backup.Close() }()
 
@@ -66,7 +66,7 @@ func TestBackupService_Restore_RemovesStaleWAL(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(livePath), 0755))
 
 	// A "current" live DB in WAL mode with a stale WAL file present.
-	live, err := sql.Open("sqlite3", livePath)
+	live, err := sql.Open("sqlite", livePath)
 	require.NoError(t, err)
 	_, err = live.Exec("PRAGMA journal_mode=WAL")
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func TestBackupService_Restore_RemovesStaleWAL(t *testing.T) {
 	require.NoError(t, os.MkdirAll(filepath.Dir(srcPath), 0755))
 	svcSrc := NewBackupService(map[string]string{"live": srcPath})
 	// create the archive from a populated DB
-	archDB, err := sql.Open("sqlite3", srcPath)
+	archDB, err := sql.Open("sqlite", srcPath)
 	require.NoError(t, err)
 	_, err = archDB.Exec("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)")
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestBackupService_Restore_RemovesStaleWAL(t *testing.T) {
 	// (simulate a prior live server). Keep the writer connection open so the
 	// -wal stays uncheckpointed on disk at restore time. Restore must remove
 	// the stale -wal so it cannot replay pre-restore frames.
-	revive, err := sql.Open("sqlite3", livePath+"?_txlock=immediate")
+	revive, err := sql.Open("sqlite", livePath+"?_txlock=immediate")
 	require.NoError(t, err)
 	_, err = revive.Exec("INSERT INTO t (v) VALUES ('stale-frame')")
 	require.NoError(t, err)
@@ -108,7 +108,7 @@ func TestBackupService_Restore_RemovesStaleWAL(t *testing.T) {
 	require.NoFileExists(t, livePath+"-shm", "restore must not leave a stale -shm next to the restored file")
 	require.NoError(t, revive.Close())
 
-	got, err := sql.Open("sqlite3", livePath)
+	got, err := sql.Open("sqlite", livePath)
 	require.NoError(t, err)
 	defer func() { _ = got.Close() }()
 	var v string

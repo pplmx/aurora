@@ -41,9 +41,15 @@ jobs:
             exit 1
           fi
 
-      - run: go vet ./...
+      - run: CGO_ENABLED=0 go vet ./...
 
-      - run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+      # Keep a cgo-free test run in CI; the race detector below is the only
+      # gate that needs cgo.
+      - name: Test (pure Go)
+        run: CGO_ENABLED=0 go test -count=1 ./...
+
+      - name: Test (race)
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
       - uses: codecov/codecov-action@v6
         if: github.event_name == 'pull_request'
@@ -93,24 +99,22 @@ jobs:
           cache: true
           cache-dependency-path: desktop/go.sum
 
-      # mattn/go-sqlite3 (the core's storage driver) and MyGo's build both
-      # need cgo, and the shell is only ever packaged on its own platform:
-      # a cross build from Linux fails in runtime/cgo before it compiles any
-      # of our code. Building here is a compile check, not a package.
+      # Storage is pure Go, so the desktop module builds without a C
+      # toolchain. The race detector still needs cgo; see the Test step.
       - name: Format
         run: test -z "$(gofmt -l .)"
         working-directory: desktop
 
       - name: Build
-        run: go build ./...
+        run: CGO_ENABLED=0 go build ./...
         working-directory: desktop
 
       - name: Vet
-        run: go vet ./...
+        run: CGO_ENABLED=0 go vet ./...
         working-directory: desktop
 
-      # `just desktop-check` runs exactly these three steps locally; the race
-      # detector needs cgo, which is on by default on the runner.
+      # `just desktop-check` runs exactly these three steps locally. The
+      # race detector needs cgo, which is on by default on the runner.
       - name: Test
         run: go test -race ./...
         working-directory: desktop
@@ -150,8 +154,7 @@ jobs:
 
       - name: Package
         env:
-          CGO_ENABLED: '1'
-          CC: gcc
+          CGO_ENABLED: '0'
         run: go tool mygo build -platform linux/amd64 -skip-dmg
         working-directory: desktop
 

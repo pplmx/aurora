@@ -64,7 +64,7 @@ jobs:
           set -euo pipefail
           while read -r file goos goarch; do
             metadata="$(go version -m "$file")"
-            grep -Fq $'\tbuild\tCGO_ENABLED=1' <<<"$metadata"
+            grep -Fq $'\tbuild\tCGO_ENABLED=0' <<<"$metadata"
             grep -Fq $'\tbuild\tGOOS='"$goos" <<<"$metadata"
             grep -Fq $'\tbuild\tGOARCH='"$goarch" <<<"$metadata"
           done <<EOF

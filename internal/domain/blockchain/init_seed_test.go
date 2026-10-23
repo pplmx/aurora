@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
+	_ "modernc.org/sqlite"
 )
 
 // TestSeedGenesisIfEmpty pins the genesis seeding contract (TASK-238, ISS-236):
@@ -18,7 +18,7 @@ import (
 // restart. Keying on `persisted` (any row exists) fixes it.
 func TestSeedGenesisIfEmpty(t *testing.T) {
 	dir := t.TempDir()
-	db, err := sql.Open("sqlite3", filepath.Join(dir, "seed.db"))
+	db, err := sql.Open("sqlite", filepath.Join(dir, "seed.db"))
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 

@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	_ "modernc.org/sqlite"
 )
 
 func setupEventStore(t *testing.T) (*SQLiteEventStore, func()) {

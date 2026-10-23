@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type ReplayProtection interface {
@@ -31,7 +31,7 @@ func NewSQLiteReplayProtection(dbPath string) (*SQLiteReplayProtection, error) {
 	// finds the lock momentarily held waits up to 5s instead of erroring out
 	// with SQLITE_BUSY. Without it the concurrent nonce claim would
 	// intermittently fail under load (ISS-075).
-	database, err := sql.Open("sqlite3", fmt.Sprintf("%s?_foreign_keys=ON&_busy_timeout=5000", dbPath))
+	database, err := sql.Open("sqlite", fmt.Sprintf("%s?_foreign_keys=ON&_busy_timeout=5000", dbPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

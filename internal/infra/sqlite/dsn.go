@@ -23,7 +23,7 @@ import "fmt"
 // Exported because the migrate tool opens the same database for DDL and would
 // otherwise reintroduce the immediate-fail SQLITE_BUSY class whenever it runs
 // concurrently with a CLI/API process holding the write lock (TASK-170,
-// ISS-165): an un-hardened `sql.Open("sqlite3", path)` defaults mattn's busy
+// ISS-165): an un-hardened `sql.Open("sqlite", path)` defaults the busy
 // timeout to 0, failing instantly instead of waiting up to 5s.
 const WriteDSNSuffix = "?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000"
 

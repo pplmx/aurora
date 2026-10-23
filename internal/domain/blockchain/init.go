@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"sync"
 
-	sqlite3 "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/viper"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 var (
@@ -68,7 +69,7 @@ func InitDB() (*sql.DB, error) {
 		// un-waitable SQLITE_BUSY_SNAPSHOT — serialize writers at BEGIN and
 		// wait up to 5s for the lock instead (v1.70, ISS-076; same values as
 		// internal/infra/sqlite/dsn.go).
-		db, err := sql.Open("sqlite3", path+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
+		db, err := sql.Open("sqlite", path+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
 		if err != nil {
 			dbInitErr = err
 			return
@@ -343,17 +344,17 @@ func scanBlockRow(rows *sql.Rows) (*Block, error) {
 // of the blocks table's height PRIMARY KEY — i.e. the INSERT this process
 // attempted collided with a row a concurrent process committed at the same
 // height. It matches on the extended error code rather than the message text:
-// mattn/go-sqlite3 returns the error by value (so errors.As into its exported
-// value type), and an INTEGER PRIMARY KEY duplicate surfaces as
-// ErrConstraintPrimaryKey (extended 1555) even though SQLite prints "UNIQUE
+// modernc.org/sqlite exposes the SQLite result code through *sqlite.Error,
+// and an INTEGER PRIMARY KEY duplicate surfaces as
+// SQLITE_CONSTRAINT_PRIMARYKEY (extended 1555) even though SQLite prints "UNIQUE
 // constraint failed: blocks.height". Matching text would both break on driver
 // message-format changes and misclassify a future unrelated UNIQUE constraint
 // as a height collision (TASK-244 review, MEDIUM).
 func sqliteIsUniqueViolation(err error) bool {
-	var sqliteErr sqlite3.Error
+	var sqliteErr *sqlite.Error
 	if errors.As(err, &sqliteErr) {
-		switch sqliteErr.ExtendedCode {
-		case sqlite3.ErrConstraintPrimaryKey, sqlite3.ErrConstraintUnique:
+		switch sqliteErr.Code() {
+		case sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY, sqlite3.SQLITE_CONSTRAINT_UNIQUE:
 			return true
 		}
 	}

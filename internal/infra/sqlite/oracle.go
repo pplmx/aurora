@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	_ "modernc.org/sqlite"
 )
 
 type OracleRepository struct {
@@ -23,7 +23,7 @@ func NewOracleRepository(path string) (*OracleRepository, error) {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite3", DSN(path))
+	db, err := sql.Open("sqlite", DSN(path))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
