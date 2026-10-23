@@ -22,6 +22,11 @@ documented in their per-milestone ROADMAP files.
   the maintainer approval roles, applies the SignPath Foundation phrase only
   after acceptance, and records that SignPath cannot replace the Apple
   Developer Program identity required for macOS notarization.
+- **Release assets now receive GitHub build provenance**: after checksums are
+  generated for the final signed-or-unsigned artifacts, the release workflow
+  attests every checksum subject to the repository workflow run. Users can
+  verify downloads with `gh attestation verify`; the attestation supplements
+  but does not replace Authenticode or Apple Developer ID signatures.
 
 ### Changed
 

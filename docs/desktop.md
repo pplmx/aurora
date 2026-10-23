@@ -259,6 +259,19 @@ Aurora 的 macOS 与 Windows 签名边界相互独立：SignPath Foundation 不�
 Developer 账号，不能提供 Developer ID 或公证身份；Apple 的 Apple ID 也不能
 签 Windows 安装器。两端都通过真实签名验收前，`release.yml` 不会发布桌面包。
 
+## 发布来源证明
+
+`release.yml` 在生成最终 `checksums.txt` 后，把其中的全部 CLI 和桌面资产提交
+给 `actions/attest-build-provenance`。下载任意发布文件后可执行：
+
+```bash
+gh attestation verify <artifact> --repo pplmx/aurora
+```
+
+证明绑定仓库、commit、工作流和文件摘要，可发现校验和文件本身被整体替换的
+供应链问题。它不改变 Gatekeeper 或 SmartScreen 的发布者判断，因此不能代替
+Developer ID、公证或 Authenticode，也不会让未签名包变成可发布包。
+
 ## 模块、工具链与 CI
 
 - **为什么是嵌套模块**：MyGo 依赖在 `desktop/go.mod` 中声明，嵌套模块让

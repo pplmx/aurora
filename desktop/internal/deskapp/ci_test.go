@@ -438,6 +438,54 @@ func TestSigningPolicyDocumentsExternalCredentialBoundary(t *testing.T) {
 	require.Contains(t, guide, "SignPath Foundation 不是 Apple")
 }
 
+// TestReleaseAttestsPublishedArtifacts pins the supply-chain boundary around
+// the files users actually download. Checksums catch corruption but can be
+// replaced together with the artifacts; a GitHub build-provenance attestation
+// binds the final checksum subjects to the repository and workflow run. It is
+// intentionally after signing and checksum generation, and is not presented as
+// a replacement for Authenticode or Developer ID.
+func TestReleaseAttestsPublishedArtifacts(t *testing.T) {
+	root := repoRoot(t)
+
+	src, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "release.yml"))
+	require.NoError(t, err)
+	release := string(src)
+	for _, permission := range []string{
+		"attestations: write",
+		"contents: write",
+		"id-token: write",
+	} {
+		require.Contains(t, release, permission,
+			"the release job must grant %s for build provenance", permission)
+	}
+	require.Contains(t, release,
+		"uses: actions/attest-build-provenance@v4.2.2")
+	require.Contains(t, release,
+		"subject-checksums: artifacts/checksums.txt")
+
+	checksums := strings.Index(release, "- name: Generate release checksums")
+	attest := strings.Index(release, "- name: Attest release artifacts")
+	publish := strings.Index(release, "- name: Create Release")
+	require.GreaterOrEqual(t, checksums, 0)
+	require.Greater(t, attest, checksums,
+		"provenance must cover the final checksum subjects")
+	require.Greater(t, publish, attest,
+		"artifacts must be attested before they are published")
+
+	readmeSrc, err := os.ReadFile(filepath.Join(root, "README.md"))
+	require.NoError(t, err)
+	readme := string(readmeSrc)
+	require.Contains(t, readme,
+		"gh attestation verify <artifact> --repo pplmx/aurora")
+	require.Contains(t, readme, "不能替代 macOS/Windows 的操作系统级签名")
+
+	guide := desktopGuide(t)
+	require.Contains(t, guide, "## 发布来源证明")
+	require.Contains(t, guide,
+		"gh attestation verify <artifact> --repo pplmx/aurora")
+	require.Contains(t, guide, "不会让未签名包变成可发布包")
+}
+
 // TestReleaseRequiresAuthenticodeSignedWindowsPackages pins the Windows
 // counterpart of the macOS contract. An unsigned installer makes SmartScreen
 // warn on every download and gives users no publisher to verify, so a tag
