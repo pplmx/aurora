@@ -546,10 +546,17 @@ func (f *Fetcher) FetchDataWithValidationContext(ctx context.Context, source *or
 // is recorded instead of being miscategorized as an invalid source.
 func extractByPath(jsonStr, path string) (string, bool) {
 	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(jsonStr))
+	decoder.UseNumber()
+	if err := decoder.Decode(&data); err != nil {
 		// The configured source is not a JSON object, so there is nothing to
 		// extract: report a failed extraction rather than returning the entire
 		// raw body as the field value (TASK-076, ISS-068).
+		return "", false
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		// Decode accepts one value at a time; require the response to contain
+		// exactly that value so trailing JSON cannot be silently ignored.
 		return "", false
 	}
 
@@ -573,8 +580,10 @@ func extractByPath(jsonStr, path string) (string, bool) {
 	switch result := current.(type) {
 	case string:
 		return result, true
-	case float64:
-		return fmt.Sprintf("%v", result), true
+	case json.Number:
+		// UseNumber above keeps the exact JSON lexeme. Decoding into float64
+		// rounded integers above 2^53 and silently changed the persisted value.
+		return result.String(), true
 	case bool:
 		return fmt.Sprintf("%v", result), true
 	default:
