@@ -63,6 +63,19 @@ func ValidatePublicKey(pk PublicKey) error {
 	return nil
 }
 
+// ValidateOwner rejects the all-zero address as a token owner. The owner
+// receives the initial supply and is the only key authorized to mint, so no
+// signer could ever recover either if this value were accepted.
+func ValidateOwner(pk PublicKey) error {
+	if err := ValidatePublicKey(pk); err != nil {
+		return err
+	}
+	if isZeroAddress(pk) {
+		return ErrZeroOwner
+	}
+	return nil
+}
+
 // ValidateRecipient applies the extra rule that credit-producing operations
 // need: the all-zero address is syntactically a 32-byte public key, but no
 // signer can control it, so minting or transferring to it destroys the value.
@@ -70,12 +83,19 @@ func ValidateRecipient(pk PublicKey) error {
 	if err := ValidatePublicKey(pk); err != nil {
 		return err
 	}
+	if isZeroAddress(pk) {
+		return ErrTransferToZero
+	}
+	return nil
+}
+
+func isZeroAddress(pk PublicKey) bool {
 	for _, b := range pk {
 		if b != 0 {
-			return nil
+			return false
 		}
 	}
-	return ErrTransferToZero
+	return true
 }
 
 // ValidatePrivateKey checks that the private key has the correct length

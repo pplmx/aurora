@@ -10,6 +10,7 @@ var (
 	ErrNonceTooLow           = errors.New("nonce too low")
 	ErrAmountMustBePositive  = errors.New("amount must be positive")
 	ErrNotTokenOwner         = errors.New("not token owner")
+	ErrZeroOwner             = errors.New("token owner must not be the zero address")
 	ErrTokenNotMintable      = errors.New("token not mintable")
 	ErrTokenNotBurnable      = errors.New("token not burnable")
 	ErrUnauthorized          = errors.New("unauthorized")

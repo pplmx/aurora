@@ -124,6 +124,37 @@ func TestCreateToken(t *testing.T) {
 	}
 }
 
+func TestCreateToken_RejectsZeroOwner(t *testing.T) {
+	repo := NewMockRepository()
+	service := newTestService(repo, NewMockEventStore())
+	zero := PublicKey(bytes.Repeat([]byte{0}, ed25519.PublicKeySize))
+
+	_, err := service.CreateToken(&CreateTokenRequest{
+		Name:        "Zero Owner",
+		Symbol:      "ZERO",
+		TotalSupply: NewAmount(1000),
+		Owner:       zero,
+	})
+	if !errors.Is(err, ErrZeroOwner) {
+		t.Fatalf("CreateToken error = %v, want ErrZeroOwner", err)
+	}
+
+	stored, err := repo.GetToken("ZERO")
+	if err != nil {
+		t.Fatalf("GetToken failed: %v", err)
+	}
+	if stored != nil {
+		t.Fatal("rejected zero-owner create must not persist a token")
+	}
+	balance, err := repo.GetAccountBalance("ZERO", zero)
+	if err != nil {
+		t.Fatalf("GetAccountBalance failed: %v", err)
+	}
+	if balance.Sign() != 0 {
+		t.Fatalf("rejected zero-owner create must not fund the zero address, got %s", balance)
+	}
+}
+
 // TestCreateToken_Decimals locks the v1.79 fix that honors the create
 // request's Decimals field instead of silently defaulting every token to
 // defaultDecimals (TASK-099, ISS-091). Omission (nil) falls back to the
