@@ -250,7 +250,7 @@ func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
 	if err := ValidateAmount(req.TotalSupply); err != nil {
 		return nil, err
 	}
-	if err := ValidatePublicKey(req.Owner); err != nil {
+	if err := ValidateOwner(req.Owner); err != nil {
 		return nil, err
 	}
 	decimals := int8(defaultDecimals)

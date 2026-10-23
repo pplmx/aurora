@@ -62,8 +62,17 @@ func TestTokenNFT_Smoke_ApproveAllowanceAndNFTKeyBinding(t *testing.T) {
 	// ---------- TOKEN: create, approve, allowance ----------
 	ownerPub, ownerPriv := newKeyPairB64(t)
 
-	// create token
+	// The initial supply and mint authority are bound to the owner, so the
+	// all-zero address would permanently lock both. It must be rejected before
+	// either the token row or its owner balance is persisted.
+	zeroOwner := base64.StdEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
 	rr := request(http.MethodPost, "/api/v1/token/create", fmt.Sprintf(
+		`{"name":"Zero Owner","symbol":"ZERO","total_supply":"1000","owner":"%s"}`, zeroOwner))
+	require.Equal(t, http.StatusBadRequest, rr.Code, "zero-owner create body: %s", rr.Body.String())
+	require.Contains(t, rr.Body.String(), `"code":"ZERO_OWNER"`)
+
+	// create token
+	rr = request(http.MethodPost, "/api/v1/token/create", fmt.Sprintf(
 		`{"name":"MTK","symbol":"MTK","total_supply":"1000000","owner":"%s"}`, ownerPub))
 	require.Equal(t, http.StatusOK, rr.Code, "create token body: %s", rr.Body.String())
 	var tok struct {

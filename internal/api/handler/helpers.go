@@ -38,6 +38,7 @@ var errorClassification = []struct {
 	{tokenerrors.ErrNonceTooLow, http.StatusConflict, "NONCE_TOO_LOW"},
 	{tokenerrors.ErrAmountMustBePositive, http.StatusBadRequest, "AMOUNT_MUST_BE_POSITIVE"},
 	{tokenerrors.ErrNotTokenOwner, http.StatusForbidden, "NOT_TOKEN_OWNER"},
+	{tokenerrors.ErrZeroOwner, http.StatusBadRequest, "ZERO_OWNER"},
 	{tokenerrors.ErrTokenNotMintable, http.StatusBadRequest, "TOKEN_NOT_MINTABLE"},
 	{tokenerrors.ErrTokenNotBurnable, http.StatusBadRequest, "TOKEN_NOT_BURNABLE"},
 	{tokenerrors.ErrUnauthorized, http.StatusUnauthorized, "UNAUTHORIZED"},
