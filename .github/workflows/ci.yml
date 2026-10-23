@@ -213,7 +213,7 @@ jobs:
             >"$tmp/stdout" 2>"$tmp/stderr" &
           pid=$!
           for _ in $(seq 1 50); do
-            if [[ -f "$data/aurora.db" && -f "$data/logs/aurora.log" ]]; then
+            if [[ -f "$data/aurora.db" && -f "$data/aurora.db-wal" && -f "$data/aurora.db-shm" && -f "$data/logs/aurora.log" ]]; then
               break
             fi
             if ! kill -0 "$pid" 2>/dev/null; then
@@ -224,9 +224,13 @@ jobs:
             sleep 0.2
           done
           test -f "$data/aurora.db"
+          test -f "$data/aurora.db-wal"
+          test -f "$data/aurora.db-shm"
           test -f "$data/logs/aurora.log"
           test "$(stat -c '%a' "$data")" = "700"
           test "$(stat -c '%a' "$data/aurora.db")" = "600"
+          test "$(stat -c '%a' "$data/aurora.db-wal")" = "600"
+          test "$(stat -c '%a' "$data/aurora.db-shm")" = "600"
           test "$(stat -c '%a' "$data/logs/aurora.log")" = "600"
           kill -0 "$pid"
 
