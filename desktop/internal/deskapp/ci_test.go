@@ -185,7 +185,7 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 	require.NoError(t, err)
 	releaseWorkflow := string(release)
 	require.Contains(t, releaseWorkflow, "uses: ./.github/workflows/desktop-build.yml")
-	require.Contains(t, releaseWorkflow, "needs: [build, desktop-build]")
+	require.Contains(t, releaseWorkflow, "needs: [validate-tag, build, desktop-build]")
 	require.NotContains(t, releaseWorkflow, "release:\n    types: [published]",
 		"a release event would rebuild the tag after its own run creates the release")
 	require.Contains(t, releaseWorkflow, "workflow_dispatch:")
@@ -263,6 +263,45 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 			"the startup smoke test must cover %s", target)
 	}
 	assert.Contains(t, releaseWorkflow, "artifacts/aurora-desktop-windows-amd64/Aurora.exe")
+}
+
+// TestReleaseRequiresAnExistingVersionTag pins the retry path against tag
+// creation. The pinned release action can create a missing tag from the
+// default branch, so accepting an arbitrary branch/SHA in the manual input
+// could publish artifacts from one commit under a tag pointing at another.
+// Every build and publish job must wait for an exact refs/tags/<v...> check.
+func TestReleaseRequiresAnExistingVersionTag(t *testing.T) {
+	root := repoRoot(t)
+
+	src, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "release.yml"))
+	require.NoError(t, err)
+	workflow := string(src)
+
+	require.Contains(t, workflow, "  validate-tag:\n"+
+		"    name: Validate release tag\n"+
+		"    runs-on: ubuntu-latest\n"+
+		"    permissions:\n"+
+		"      contents: read",
+		"tag validation must be a read-only prerequisite job")
+	require.Contains(t, workflow, "RELEASE_TAG: ${{ inputs.tag || github.ref_name }}")
+	require.Contains(t, workflow,
+		`[[ ! "$RELEASE_TAG" =~ ^v[0-9]+(\.[0-9]+){0,2}(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]`,
+		"manual input must be restricted to a version-shaped tag")
+	require.Contains(t, workflow,
+		`git rev-parse --verify --quiet "refs/tags/${RELEASE_TAG}^{commit}"`,
+		"the tag must already exist locally after fetching repository tags")
+
+	for _, dependency := range []string{
+		"  build:\n    uses: ./.github/workflows/build.yml\n    needs: validate-tag\n    permissions:\n      contents: read",
+		"  desktop-build:\n    uses: ./.github/workflows/desktop-build.yml\n    needs: validate-tag\n    permissions:\n      contents: read",
+	} {
+		assert.Contains(t, workflow, dependency,
+			"build jobs must wait for tag validation and receive read-only contents access")
+	}
+	require.Contains(t, workflow, "needs: [validate-tag, build, desktop-build]",
+		"publishing must wait for tag validation and both artifact matrices")
+	require.NotContains(t, workflow, "target_commitish:",
+		"the release must use the already-validated tag, never create its target from a branch")
 }
 
 // TestDesktopBuildCanRunTheNativeMatrixManually pins the independent
