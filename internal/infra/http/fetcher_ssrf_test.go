@@ -70,7 +70,7 @@ func TestFetcher_RedirectToPrivateIPBlocked(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcherWithConfig(100, time.Minute)
+	fetcher := newLoopbackFetcherWithConfig(100, time.Minute)
 	_, err := fetcher.Get(server.URL)
 	if err == nil {
 		t.Fatal("expected error when a redirect targets a private address")
@@ -89,7 +89,7 @@ func TestFetcher_RedirectToNonHTTPSchemeBlocked(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcherWithConfig(100, time.Minute)
+	fetcher := newLoopbackFetcherWithConfig(100, time.Minute)
 	_, err := fetcher.Get(server.URL)
 	if err == nil {
 		t.Fatal("expected error when a redirect switches to a non-HTTP scheme")
@@ -109,7 +109,7 @@ func TestFetcher_RedirectToLocalhostBlocked(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcherWithConfig(100, time.Minute)
+	fetcher := newLoopbackFetcherWithConfig(100, time.Minute)
 	_, err := fetcher.Get(server.URL)
 	if err == nil {
 		t.Fatal("expected error when a redirect targets localhost")
@@ -128,7 +128,7 @@ func TestFetcher_RedirectToUnresolvableHostBlocked(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcherWithConfig(100, time.Minute)
+	fetcher := newLoopbackFetcherWithConfig(100, time.Minute)
 	_, err := fetcher.Get(server.URL)
 	if err == nil {
 		t.Fatal("expected error when a redirect target cannot be resolved")

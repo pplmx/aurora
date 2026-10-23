@@ -21,7 +21,7 @@ func TestFetcher_Get_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	data, err := fetcher.Get(server.URL)
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
@@ -43,7 +43,7 @@ func TestNewFetcher_BareNumericDurationFromViper(t *testing.T) {
 	viper.Set("http.rateLimit.window", 10)
 	t.Cleanup(func() { viper.Reset() })
 
-	f := NewFetcher()
+	f := newLoopbackFetcher()
 	if got := f.client.Timeout; got != 60*time.Second {
 		t.Fatalf("expected 60s HTTP timeout from bare `timeout = 60`, got %v", got)
 	}
@@ -53,7 +53,7 @@ func TestNewFetcher_BareNumericDurationFromViper(t *testing.T) {
 }
 
 func TestFetcher_Get_Error(t *testing.T) {
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	_, err := fetcher.Get("http://invalid-domain-that-does-not-exist.local")
 	if err == nil {
 		t.Fatal("Expected error for invalid domain")
@@ -70,7 +70,7 @@ func TestFetcher_FetchData_GET(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "source-1",
 		URL:     server.URL,
@@ -102,7 +102,7 @@ func TestFetcher_FetchData_POST(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "source-2",
 		URL:     server.URL,
@@ -123,7 +123,7 @@ func TestFetcher_FetchData_WithPath(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "source-3",
 		URL:     server.URL,
@@ -143,7 +143,7 @@ func TestFetcher_FetchData_WithPath(t *testing.T) {
 }
 
 func TestFetcher_FetchData_InvalidURL(t *testing.T) {
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:     "source-4",
 		URL:    "http://invalid-url-that-does-not-exist.local",
@@ -163,7 +163,7 @@ func TestFetcher_FetchData_NestedPath(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "source-5",
 		URL:     server.URL,
@@ -189,7 +189,7 @@ func TestFetcher_FetchData_InvalidPath(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "source-6",
 		URL:     server.URL,
@@ -213,7 +213,7 @@ func TestFetcher_FetchData_NonJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "source-7",
 		URL:     server.URL,
@@ -562,7 +562,7 @@ func TestFetcher_RateLimited(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcherWithConfig(2, time.Minute)
+	fetcher := newLoopbackFetcherWithConfig(2, time.Minute)
 
 	source := &oracle.DataSource{
 		ID:      "rate-test-1",
@@ -591,7 +591,7 @@ func TestFetcher_RateLimitResetsAfterWindow(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcherWithConfig(1, 50*time.Millisecond)
+	fetcher := newLoopbackFetcherWithConfig(1, 50*time.Millisecond)
 
 	source := &oracle.DataSource{
 		ID:      "rate-test-2",
@@ -624,7 +624,7 @@ func TestFetcher_Get_HasSecurityHeaders(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	_, _ = fetcher.Get(server.URL)
 
 	// Hardened: a failed fetch used to leave capturedReq nil and panic the
@@ -652,7 +652,7 @@ func TestFetcher_FetchData_HasSecurityHeaders(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "header-test",
 		URL:     server.URL,
@@ -684,7 +684,7 @@ func TestFetcher_FetchData_POST_HasContentType(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "post-header-test",
 		URL:     server.URL,
@@ -710,7 +710,7 @@ func TestFetcher_FetchData_PUT_HasContentType(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "put-header-test",
 		URL:     server.URL,
@@ -736,7 +736,7 @@ func TestFetcher_CustomUserAgent(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher(WithUserAgent("CustomAgent/2.0"))
+	fetcher := newLoopbackFetcher(WithUserAgent("CustomAgent/2.0"))
 	source := &oracle.DataSource{
 		ID:      "ua-test",
 		URL:     server.URL,
@@ -754,7 +754,7 @@ func TestFetcher_CustomUserAgent(t *testing.T) {
 }
 
 func TestFetcherWithTimeout_Success(t *testing.T) {
-	fetcher, err := NewFetcherWithTimeout(10, time.Minute, 5*time.Second)
+	fetcher, err := newLoopbackFetcherWithTimeout(10, time.Minute, 5*time.Second)
 	if err != nil {
 		t.Fatalf("NewFetcherWithTimeout failed: %v", err)
 	}
@@ -764,7 +764,7 @@ func TestFetcherWithTimeout_Success(t *testing.T) {
 }
 
 func TestFetcherWithTimeout_InvalidZero(t *testing.T) {
-	_, err := NewFetcherWithTimeout(10, time.Minute, 0)
+	_, err := newLoopbackFetcherWithTimeout(10, time.Minute, 0)
 	if err == nil {
 		t.Fatal("Expected error for zero timeout")
 	}
@@ -774,7 +774,7 @@ func TestFetcherWithTimeout_InvalidZero(t *testing.T) {
 }
 
 func TestFetcherWithTimeout_InvalidNegative(t *testing.T) {
-	_, err := NewFetcherWithTimeout(10, time.Minute, -1*time.Second)
+	_, err := newLoopbackFetcherWithTimeout(10, time.Minute, -1*time.Second)
 	if err == nil {
 		t.Fatal("Expected error for negative timeout")
 	}
@@ -784,7 +784,7 @@ func TestFetcherWithTimeout_InvalidNegative(t *testing.T) {
 }
 
 func TestFetcherWithTimeout_UsesDefaults(t *testing.T) {
-	fetcher, err := NewFetcherWithTimeout(0, 0, 30*time.Second)
+	fetcher, err := newLoopbackFetcherWithTimeout(0, 0, 30*time.Second)
 	if err != nil {
 		t.Fatalf("NewFetcherWithTimeout failed: %v", err)
 	}
@@ -800,7 +800,7 @@ func TestFetcher_TimeoutFromConfig(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher, err := NewFetcherWithTimeout(10, time.Minute, 500*time.Millisecond)
+	fetcher, err := newLoopbackFetcherWithTimeout(10, time.Minute, 500*time.Millisecond)
 	if err != nil {
 		t.Fatalf("NewFetcherWithTimeout failed: %v", err)
 	}
@@ -816,7 +816,7 @@ func TestFetcher_TimeoutFromConfig(t *testing.T) {
 
 func TestNewFetcherWithTimeout_SetsCorrectClientTimeout(t *testing.T) {
 	expectedTimeout := 15 * time.Second
-	fetcher, err := NewFetcherWithTimeout(5, time.Minute, expectedTimeout)
+	fetcher, err := newLoopbackFetcherWithTimeout(5, time.Minute, expectedTimeout)
 	if err != nil {
 		t.Fatalf("NewFetcherWithTimeout failed: %v", err)
 	}
@@ -827,7 +827,7 @@ func TestNewFetcherWithTimeout_SetsCorrectClientTimeout(t *testing.T) {
 }
 
 func TestNewFetcherWithTimeout_SetsRateLimiter(t *testing.T) {
-	fetcher, err := NewFetcherWithTimeout(20, 2*time.Minute, 10*time.Second)
+	fetcher, err := newLoopbackFetcherWithTimeout(20, 2*time.Minute, 10*time.Second)
 	if err != nil {
 		t.Fatalf("NewFetcherWithTimeout failed: %v", err)
 	}
@@ -849,7 +849,7 @@ func TestFetcher_Get_HTTPError_4xx(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	_, err := fetcher.Get(server.URL)
 	if err == nil {
 		t.Fatal("Expected error for 4xx status")
@@ -867,7 +867,7 @@ func TestFetcher_Get_HTTPError_5xx(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	_, err := fetcher.Get(server.URL)
 	if err == nil {
 		t.Fatal("Expected error for 5xx status")
@@ -885,7 +885,7 @@ func TestFetcher_FetchData_HTTPError_4xx(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "error-1",
 		URL:     server.URL,
@@ -910,7 +910,7 @@ func TestFetcher_FetchData_HTTPError_5xx(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "error-2",
 		URL:     server.URL,
@@ -935,7 +935,7 @@ func TestFetcher_FetchData_EmptyResponse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "empty-1",
 		URL:     server.URL,
@@ -959,7 +959,7 @@ func TestFetcher_FetchData_Validation_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "valid-1",
 		URL:     server.URL,
@@ -985,7 +985,7 @@ func TestFetcher_FetchData_Validation_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "invalid-1",
 		URL:     server.URL,
@@ -1047,7 +1047,7 @@ func TestFetcher_FetchData_Timeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher, err := NewFetcherWithTimeout(10, time.Minute, 50*time.Millisecond)
+	fetcher, err := newLoopbackFetcherWithTimeout(10, time.Minute, 50*time.Millisecond)
 	if err != nil {
 		t.Fatalf("NewFetcherWithTimeout failed: %v", err)
 	}
@@ -1075,7 +1075,7 @@ func TestFetcher_FetchData_DefaultMethod(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:      "default-method",
 		URL:     server.URL,
@@ -1090,7 +1090,7 @@ func TestFetcher_FetchData_DefaultMethod(t *testing.T) {
 }
 
 func TestFetcher_FetchData_EmptyURL(t *testing.T) {
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	source := &oracle.DataSource{
 		ID:     "empty-url",
 		URL:    "",
@@ -1110,7 +1110,7 @@ func TestFetcher_FetchData_RateLimitedError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcherWithConfig(1, time.Minute)
+	fetcher := newLoopbackFetcherWithConfig(1, time.Minute)
 
 	source := &oracle.DataSource{
 		ID:      "rate-1",
@@ -1144,7 +1144,7 @@ func TestFetcher_FetchData_SuccessStatus(t *testing.T) {
 			}))
 			defer server.Close()
 
-			fetcher := NewFetcher()
+			fetcher := newLoopbackFetcher()
 			source := &oracle.DataSource{
 				ID:      fmt.Sprintf("success-%d", status),
 				URL:     server.URL,

@@ -87,7 +87,7 @@ func TestFetcher_Get_OversizedResponseRejected(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewFetcher()
+	fetcher := newLoopbackFetcher()
 	_, err := fetcher.Get(server.URL)
 	if err == nil {
 		t.Fatal("expected error for oversized response, got nil")
@@ -122,7 +122,7 @@ func TestFetcher_FetchData_RejectsOversized(t *testing.T) {
 	// This test checks the size cap, not the production client timeout. Give
 	// the deliberately throttled 10 MiB response enough time even on a loaded
 	// CI runner so a deadline can never mask the expected ErrResponseTooLarge.
-	fetcher, err := NewFetcherWithTimeout(10, time.Minute, time.Minute)
+	fetcher, err := newLoopbackFetcherWithTimeout(10, time.Minute, time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -53,6 +53,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle fetches now enforce the SSRF boundary at connect time**: source
+  validation resolved a hostname before the request, but `net/http` resolved it
+  again while dialing, leaving a DNS-rebinding window into loopback, private,
+  link-local or cloud-metadata addresses. The fetcher now checks the concrete
+  IP immediately before each direct connection, closing that application-side
+  gap for both initial requests and redirects.
 - **Failed in-memory transactions no longer leave phantom ledger rows**: the
   token TUI's nil-transaction fallback persisted its audit block before running
   a transfer that could still fail. A hash-qualified compensating delete now

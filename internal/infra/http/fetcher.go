@@ -9,8 +9,11 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,11 +35,11 @@ var (
 	// maxResponseBytes. Without a cap, a malicious or buggy oracle
 	// source could OOM the process by streaming a multi-GB body.
 	ErrResponseTooLarge = errors.New("response body exceeds maximum size")
-	// ErrBlockedDestination is returned when a redirect would take the
-	// fetcher to an internal/private address (SSRF) or to a non-HTTP(S)
-	// scheme. Blocks loops where a compromised or hostile source URL
-	// bounces us at 127.0.0.1, 169.254.169.254, RFC1918 space, etc.
-	ErrBlockedDestination = errors.New("redirect to blocked destination")
+	// ErrBlockedDestination is returned when an initial or redirected request
+	// would reach an internal/private address (SSRF) or a non-HTTP(S) scheme.
+	// Blocks a hostile source from probing 127.0.0.1, 169.254.169.254,
+	// RFC1918 space, etc., even when DNS changes between validation and dial.
+	ErrBlockedDestination = errors.New("blocked destination")
 )
 
 // maxResponseBytes caps the size of any oracle-source response we read.
@@ -44,11 +47,12 @@ var (
 // to keep the process memory-safe even under sustained attack.
 const maxResponseBytes = 10 * 1024 * 1024
 
-// blockedCIDRs are the address ranges the fetcher refuses to be redirected
-// into: loopback, RFC1918 private, link-local (incl. cloud metadata
+// blockedCIDRs are the address ranges the fetcher refuses to reach, whether
+// from an initial request, a redirect, or the concrete address resolved at
+// dial time: loopback, RFC1918 private, link-local (including cloud metadata
 // 169.254.169.254), CGNAT, IPv6 loopback/link-local/unique-local, and the
-// unspecified address. A query to one of these through a redirect is the
-// classic SSRF primitive for probing or reading internal services.
+// unspecified address. These are the classic SSRF primitives for probing or
+// reading internal services.
 var blockedCIDRs = []netip.Prefix{
 	netip.MustParsePrefix("0.0.0.0/8"),
 	netip.MustParsePrefix("10.0.0.0/8"),
@@ -89,6 +93,42 @@ func isBlockedHost(host string) bool {
 		return false
 	}
 	return isBlockedIP(ip)
+}
+
+// validateDialDestination is the last line of SSRF defense. The URL-level
+// checks resolve a hostname before the request, but net/http resolves it again
+// when dialing, which leaves a DNS-rebinding window between the two lookups.
+// Dialer.ControlContext sees the concrete address immediately before connect,
+// so a public answer that later resolves to a private address is still refused.
+func validateDialDestination(address string) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return fmt.Errorf("%w: invalid dial address %q", ErrBlockedDestination, address)
+	}
+	if i := strings.LastIndexByte(host, '%'); i >= 0 {
+		host = host[:i]
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return fmt.Errorf("%w: unresolved dial address %q", ErrBlockedDestination, address)
+	}
+	if isBlockedIP(ip) {
+		return fmt.Errorf("%w: dial target %q", ErrBlockedDestination, address)
+	}
+	return nil
+}
+
+type proxyDialState struct {
+	proxied atomic.Bool
+}
+
+type proxyDialContextKey struct{}
+
+func checkDialDestination(ctx context.Context, _, address string, _ syscall.RawConn) error {
+	if state, _ := ctx.Value(proxyDialContextKey{}).(*proxyDialState); state != nil && state.proxied.Load() {
+		return nil
+	}
+	return validateDialDestination(address)
 }
 
 // redirectHostBlocked decides whether a redirect target host is out of bounds.
@@ -259,10 +299,7 @@ func NewFetcher(opts ...FetcherOption) *Fetcher {
 	for _, opt := range opts {
 		opt(f)
 	}
-	f.client.Transport = &securityTransport{
-		transport: http.DefaultTransport,
-		userAgent: f.userAgent,
-	}
+	f.client.Transport = newSecurityTransport(f.userAgent)
 	return f
 }
 
@@ -281,10 +318,7 @@ func NewFetcherWithConfig(limit int, window time.Duration) *Fetcher {
 		rateLimiter: NewRateLimiter(limit, window),
 		userAgent:   defaultUserAgent,
 	}
-	f.client.Transport = &securityTransport{
-		transport: http.DefaultTransport,
-		userAgent: f.userAgent,
-	}
+	f.client.Transport = newSecurityTransport(f.userAgent)
 	return f
 }
 
@@ -306,10 +340,7 @@ func NewFetcherWithTimeout(limit int, window, timeout time.Duration) (*Fetcher, 
 		rateLimiter: NewRateLimiter(limit, window),
 		userAgent:   defaultUserAgent,
 	}
-	f.client.Transport = &securityTransport{
-		transport: http.DefaultTransport,
-		userAgent: f.userAgent,
-	}
+	f.client.Transport = newSecurityTransport(f.userAgent)
 	return f, nil
 }
 
@@ -324,9 +355,69 @@ func WithUserAgent(ua string) FetcherOption {
 type securityTransport struct {
 	transport http.RoundTripper
 	userAgent string
+	dialer    *net.Dialer
+}
+
+func newSecurityTransport(userAgent string) *securityTransport {
+	return newSecurityTransportFrom(secureBaseTransport(), userAgent)
+}
+
+func newSecurityTransportFrom(transport *http.Transport, userAgent string) *securityTransport {
+	dialer := newSecurityDialer()
+	transport.DialContext = dialer.DialContext
+	// A custom TLS dial hook would bypass DialContext (and therefore the
+	// destination guard) for non-proxied HTTPS requests.
+	transport.DialTLSContext = nil
+	transport.DialTLS = nil
+	if proxy := transport.Proxy; proxy != nil {
+		transport.Proxy = func(req *http.Request) (*url.URL, error) {
+			proxyURL, err := proxy(req)
+			if err == nil && proxyURL != nil {
+				if state, _ := req.Context().Value(proxyDialContextKey{}).(*proxyDialState); state != nil {
+					state.proxied.Store(true)
+				}
+			}
+			return proxyURL, err
+		}
+	}
+	return &securityTransport{transport: transport, userAgent: userAgent, dialer: dialer}
+}
+
+// secureBaseTransport clones the standard transport so this fetcher owns its
+// connection pool. If an embedding application replaced http.DefaultTransport
+// with a non-standard RoundTripper, fall back to explicit net/http defaults
+// rather than silently dropping the dial guard. A proxy selected by that
+// transport is a trusted operator egress path: the dial guard sees the proxy
+// address, so the proxy's own egress policy must complement the pre-request URL
+// validation.
+func secureBaseTransport() *http.Transport {
+	if base, ok := http.DefaultTransport.(*http.Transport); ok {
+		return base.Clone()
+	}
+	return &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: time.Second,
+	}
+}
+
+func newSecurityDialer() *net.Dialer {
+	dialer := &net.Dialer{
+		Timeout:        30 * time.Second,
+		KeepAlive:      30 * time.Second,
+		ControlContext: checkDialDestination,
+	}
+	return dialer
 }
 
 func (t *securityTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Record the concrete proxy decision made by this transport. A private
+	// endpoint is normal for an operator-configured proxy, while a direct
+	// dial must still pass the destination guard.
+	req = req.WithContext(context.WithValue(req.Context(), proxyDialContextKey{}, &proxyDialState{}))
 	req.Header.Set("User-Agent", t.userAgent)
 	req.Header.Set("Accept", "application/json, text/plain, */*")
 	if req.Header.Get("Content-Type") == "" && (req.Method == http.MethodPost || req.Method == http.MethodPut || req.Method == http.MethodPatch) {
