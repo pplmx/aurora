@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -524,13 +525,13 @@ func TestRestore_PreRestoreSnapshot_IsWALComplete(t *testing.T) {
 }
 
 // writeMeta writes a valid metadata.json referencing the named DB.
-func writeMeta(t *testing.T, backupDir, dbName string) {
+func writeMeta(t *testing.T, backupDir string, dbNames ...string) {
 	t.Helper()
 	meta := BackupMetadata{
 		Version:       "1.2",
 		Timestamp:     "2026-04-30T00:00:00Z",
 		Checksum:      "",
-		Databases:     []string{dbName},
+		Databases:     dbNames,
 		SchemaVersion: 1,
 	}
 	raw, _ := json.Marshal(meta)
@@ -579,6 +580,94 @@ func TestRestore_LeavesNoTempSiblingAfterSuccess(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dstDir, "blockchain.db.tmp")); !os.IsNotExist(err) {
 		t.Fatalf("no temp sibling left in dst dir (err=%v)", err)
+	}
+}
+
+// TestRestore_PostPromotionFailureRollsBackLiveDB pins the all-or-nothing
+// contract for failures after the destination rename. A stale -wal path that
+// cannot be removed makes Restore report an error; the live database must not
+// stay replaced with archive data just because cleanup happened after promote.
+func TestRestore_PostPromotionFailureRollsBackLiveDB(t *testing.T) {
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "dst")
+	backupDir := filepath.Join(tmp, "backup")
+	for _, d := range []string{dstDir, backupDir} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	dstDB := filepath.Join(dstDir, "blockchain.db")
+	backupDB := filepath.Join(backupDir, "blockchain.db")
+	newDB(t, dstDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'original')",
+	)
+	newDB(t, backupDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'archive')",
+	)
+	writeMeta(t, backupDir, "blockchain")
+
+	svc := NewBackupService(map[string]string{"blockchain": dstDB})
+	svc.removeSidecarFn = func(path string) error {
+		if strings.HasSuffix(path, "-wal") {
+			return errors.New("injected stale-WAL cleanup failure")
+		}
+		return os.Remove(path)
+	}
+	err := svc.Restore(context.Background(), backupDir)
+	if err == nil {
+		t.Fatal("Restore must report the stale-WAL cleanup failure")
+	}
+	if got := readKV(t, dstDB, "answer"); got != "original" {
+		t.Fatalf("failed Restore left archive data live: kv[answer]=%q, want original", got)
+	}
+}
+
+// TestRestore_PreflightsEveryDatabaseBeforePromotion makes sure one later
+// alias refusal cannot leave an earlier database restored. The repeated runs
+// exercise Go's randomized map iteration; a per-database loop without a full
+// preflight is caught whenever the valid database happens to be restored
+// first.
+func TestRestore_PreflightsEveryDatabaseBeforePromotion(t *testing.T) {
+	for attempt := range 32 {
+		tmp := t.TempDir()
+		dstDir := filepath.Join(tmp, "dst")
+		backupDir := filepath.Join(tmp, "backup")
+		for _, d := range []string{dstDir, backupDir} {
+			if err := os.MkdirAll(d, 0o755); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		dstA := filepath.Join(dstDir, "a.db")
+		dstB := filepath.Join(dstDir, "b.db")
+		newDB(t, dstA,
+			"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+			"INSERT INTO kv (k, v) VALUES ('answer', 'original')",
+		)
+		newDB(t, dstB,
+			"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+			"INSERT INTO kv (k, v) VALUES ('answer', 'live-b')",
+		)
+		newDB(t, filepath.Join(backupDir, "a.db"),
+			"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+			"INSERT INTO kv (k, v) VALUES ('answer', 'archive')",
+		)
+		if err := os.Link(dstB, filepath.Join(backupDir, "b.db")); err != nil {
+			t.Fatal(err)
+		}
+		writeMeta(t, backupDir, "a", "b")
+
+		svc := NewBackupService(map[string]string{"a": dstA, "b": dstB})
+		err := svc.Restore(context.Background(), backupDir)
+		if err == nil || !strings.Contains(err.Error(), "aliases") {
+			t.Fatalf("attempt %d: Restore error = %v, want alias refusal", attempt, err)
+		}
+		if got := readKV(t, dstA, "answer"); got != "original" {
+			t.Fatalf("attempt %d: alias refusal partially restored a: kv[answer]=%q, want original", attempt, got)
+		}
 	}
 }
 

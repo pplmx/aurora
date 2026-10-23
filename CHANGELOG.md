@@ -63,6 +63,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Multi-database restores are now all-or-nothing**: Restore used to replace
+  each configured database as it walked a map, so a later alias refusal or
+  preparation error could leave earlier databases restored, and a stale-WAL
+  cleanup failure could return an error after archive data was already live.
+  Restore now requires the archive and configured database set to match,
+  preflights every destination, stages every snapshot and replacement before
+  promoting any of them, and rolls back all promoted files on a later failure.
 - **CLI and API SQLite state is owner-only too**: the default `0644` umask
   made the live database and its WAL/SHM files readable by other local users
   even though they can contain Oracle bearer headers and operator state. Every
