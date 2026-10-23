@@ -30,6 +30,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop shell now uses MyGo v0.6.3**: the patch release brings
+  Windows WebView2 event-token and task-dialog lifetime fixes, WebKit content
+  rules, and UI paste/rendering corrections. The Linux package and its real
+  Xvfb startup smoke test pass with the upgraded framework.
 - **The TUI product boundary is explicit**: all four reachable TUIs remain, but
   lottery/oracle are durable SQLite interfaces while NFT/token are intentionally
   sandboxed in-memory interfaces. The sandbox menus keep their localized warning,
