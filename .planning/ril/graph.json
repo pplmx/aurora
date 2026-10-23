@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 179,
+  "round": 194,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-23T14:52:28+00:00",
+  "updated_at": "2026-10-23T16:48:01+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 155,
+      "touched_round": 184,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 148,
+      "touched_round": 194,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -291,7 +291,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:34:56+00:00",
       "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 148,
+      "touched_round": 188,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -986,7 +986,7 @@
       "version": 1,
       "created_at": "2026-08-23T00:06:06+00:00",
       "updated_at": "2026-08-23T00:06:06+00:00",
-      "touched_round": 179,
+      "touched_round": 184,
       "title": "internal/domain/blockchain"
     },
     "CHG-017": {
@@ -1729,7 +1729,7 @@
       "version": 1,
       "created_at": "2026-08-23T04:31:39+00:00",
       "updated_at": "2026-08-23T04:31:39+00:00",
-      "touched_round": 155,
+      "touched_round": 181,
       "title": "web UI static pages (router-injected API key)"
     },
     "EV-003": {
@@ -2532,7 +2532,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:29:29+00:00",
       "updated_at": "2026-08-23T05:29:29+00:00",
-      "touched_round": 177,
+      "touched_round": 193,
       "title": "Backup/restore subsystem"
     },
     "EV-016": {
@@ -2740,7 +2740,7 @@
       "version": 1,
       "created_at": "2026-08-23T05:42:51+00:00",
       "updated_at": "2026-08-23T05:42:51+00:00",
-      "touched_round": 179,
+      "touched_round": 186,
       "title": "SQLite persistence layer"
     },
     "EV-020": {
@@ -12493,7 +12493,7 @@
       "version": 1,
       "created_at": "2026-10-21T06:11:41+00:00",
       "updated_at": "2026-10-21T06:11:41+00:00",
-      "touched_round": 155,
+      "touched_round": 192,
       "name": "logger",
       "path": "internal/logger",
       "description": "zerolog wrapper: Init/Close lifecycle, global level, file logging; shared by CLI, API server and desktop shell"
@@ -15794,6 +15794,795 @@
       "title": "Place audit blocks and domain rows in one shared-SQLite transaction",
       "rationale": "Token, NFT, voting, lottery and Oracle already share aurora.db. The chain now exposes a transaction-aware append API that inserts the proof-of-work block through the caller's *sql.Tx, runs the domain mutation before commit, and appends to the in-memory chain only after commit. The chain lock spans height reservation through commit so concurrent writers cannot mine against an uncommitted predecessor; lock ordering is chain then SQLite. Height conflicts remain DB-authoritative and retry before the business callback, so failed attempts have no domain side effects. Tests prove rollback removes both the block row and in-memory block across all five subsystems.",
       "alternatives_rejected": "Cross-DB block reservation plus after-commit height backfill; appending the block only after commit while leaving the business row without its audit height; relying on compensation or background reconciliation instead of one transaction"
+    },
+    "ISS-335": {
+      "id": "ISS-335",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T14:55:36+00:00",
+      "updated_at": "2026-10-23T14:58:14+00:00",
+      "touched_round": 179,
+      "severity": 0.75,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "BackupService.Restore leaves owner-sensitive database copies group-readable: the hidden <backup>.pre_restore directory is created 0755, its WAL-complete VACUUM snapshot inherits 0644 under umask 022, the restored live database temp is opened 0640, and no file is tightened afterward. A restore therefore weakens desktop 0700/0600 state and exposes Oracle request headers in the undo snapshot."
+    },
+    "TASK-342": {
+      "id": "TASK-342",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T14:55:39+00:00",
+      "updated_at": "2026-10-23T14:58:14+00:00",
+      "touched_round": 179,
+      "category": "security",
+      "severity": 0.75,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.2,
+      "title": "Keep pre-restore and restored SQLite files owner-only",
+      "description": "Make BackupService.Restore create/tighten the hidden pre-restore directory to 0700, force each VACUUM INTO undo snapshot and the promoted live database to 0600, and add a umask-022 Unix regression that proves both new and pre-existing 0755 staging directories cannot expose database bytes.",
+      "outcome": "Restore now creates or tightens the hidden pre-restore directory to 0700, forces the VACUUM undo snapshot and promoted live database to 0600, and rejects a symlinked staging directory. The umask-022 regression failed on the old 0755 directory before the fix and now passes for both fresh and legacy staging dirs; symlink protection is separately pinned. Backup race tests, all non-migration repository tests, vet, golangci-lint, desktop-check, and build-current pass."
+    },
+    "CHG-341": {
+      "id": "CHG-341",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T14:58:06+00:00",
+      "updated_at": "2026-10-23T14:58:06+00:00",
+      "touched_round": 179,
+      "commit": "2c9de2a",
+      "title": "Keep restore's hidden undo snapshot directory/file and promoted live SQLite database owner-only, reject staging-directory symlinks, and cover new plus legacy 0755 directories under umask 022 (ISS-335)"
+    },
+    "ISS-336": {
+      "id": "ISS-336",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T15:01:23+00:00",
+      "updated_at": "2026-10-23T15:05:58+00:00",
+      "touched_round": 179,
+      "severity": 0.65,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Shipped Web UI text fails WCAG AA contrast: white labels on the pastel voting/NFT/token/blockchain/lottery/destructive buttons measure 1.73-3.20:1 (need 4.5:1 for normal text), and --text-secondary #808080 on --bg-card #252525 measures 3.88:1 across labels, hints, table headers and activity text."
+    },
+    "TASK-343": {
+      "id": "TASK-343",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T15:01:26+00:00",
+      "updated_at": "2026-10-23T15:05:58+00:00",
+      "touched_round": 179,
+      "category": "core-feature",
+      "severity": 0.65,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Bring Web UI interactive labels and secondary text to WCAG AA contrast",
+      "description": "Keep the existing dark visual language but use dark ink on every pastel action button and lighten secondary text enough to reach 4.5:1 on both card and page surfaces. Add a stylesheet contract test that resolves the shipped CSS variables/button declarations and computes WCAG contrast instead of pinning arbitrary hex values.",
+      "outcome": "All six action buttons now use --button-ink #1a1a1a and --text-secondary is #a0a0a0. Fault injection left .btn-lottery on white and failed at 2.94:1; restoring dark ink made TestWebUITextContrast pass. API tests, the full non-migration suite, go vet, desktop-check, and build-current all pass."
+    },
+    "CHG-342": {
+      "id": "CHG-342",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T15:05:50+00:00",
+      "updated_at": "2026-10-23T15:05:50+00:00",
+      "touched_round": 179,
+      "commit": "22b09c5",
+      "title": "Make shipped Web UI text meet WCAG AA contrast",
+      "description": "Replaced white labels on all six pastel/destructive action buttons with the shared dark button ink and lightened secondary text from #808080 to #a0a0a0. Added TestWebUITextContrast, which parses the shipped stylesheet, resolves CSS variables, and computes WCAG relative-luminance ratios for secondary text on page/card surfaces and every action button."
+    },
+    "ISS-337": {
+      "id": "ISS-337",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T15:07:36+00:00",
+      "updated_at": "2026-10-23T15:08:48+00:00",
+      "touched_round": 180,
+      "severity": 0.78,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Gateway-injected HTML embeds the API key but sends no Cache-Control: no-store, so browser or shared HTTP caches may retain and replay a response containing window.AURORA_API_KEY. The static FileServer sets Last-Modified and can therefore receive heuristic freshness, letting any cache between the gateway and another client hand out the credential without requiring the key itself."
+    },
+    "TASK-344": {
+      "id": "TASK-344",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T15:07:39+00:00",
+      "updated_at": "2026-10-23T15:08:48+00:00",
+      "touched_round": 180,
+      "category": "security",
+      "severity": 0.78,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Prevent caching of Web UI HTML that contains the injected API key",
+      "description": "Set a no-store cache policy on every successful HTML response produced by injectAPIKey, while leaving non-HTML assets untouched. Add a response-header regression that fails when the injected key page is cacheable and verifies CSS/JS keep their normal static caching behavior.",
+      "outcome": "Every HTML response that contains window.AURORA_API_KEY now sends Cache-Control: no-store; CSS/JS keep their existing cache headers. The response-header regression failed before the fix with an empty Cache-Control and now passes. API tests, the full non-migration repository suite, go vet, desktop-check, and build-current all pass."
+    },
+    "CHG-343": {
+      "id": "CHG-343",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T15:08:45+00:00",
+      "updated_at": "2026-10-23T15:08:45+00:00",
+      "touched_round": 180,
+      "commit": "d721548",
+      "title": "Prevent caching of Web UI pages that embed the API key",
+      "description": "injectAPIKey now sets Cache-Control: no-store after copying downstream headers on every HTML response, while non-HTML assets remain untouched. TestInjectAPIKey_HTMLIsNotCacheable verifies the key-bearing page is not cacheable and the stylesheet retains its existing static cache behavior."
+    },
+    "ISS-338": {
+      "id": "ISS-338",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T15:10:29+00:00",
+      "updated_at": "2026-10-23T15:12:07+00:00",
+      "touched_round": 181,
+      "severity": 0.65,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Web UI polling continues while the document is hidden: startPolling's 15-second setInterval always calls refresh, so a minimized desktop window or background browser tab keeps hitting the dashboard's lottery/voting/blockchain/Oracle endpoints. The dashboard includes a full ledger verification scan on every cycle, wasting CPU, disk I/O and battery with no visible consumer; returning to the page also waits up to 15 seconds for fresh data instead of refreshing immediately."
+    },
+    "TASK-345": {
+      "id": "TASK-345",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T15:10:32+00:00",
+      "updated_at": "2026-10-23T15:12:07+00:00",
+      "touched_round": 181,
+      "category": "performance",
+      "severity": 0.65,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Pause Web UI polling while hidden and refresh on return",
+      "description": "Make startPolling skip refreshes while document.hidden and perform one immediate refresh when visibilitychange returns the page to visible. Keep the existing reentrancy guard and timer cadence. Add a Node regression against the shipped app.js that proves hidden timer ticks issue no refresh and becoming visible triggers exactly one.",
+      "outcome": "startPolling now performs no work while document.hidden and polls immediately on visibilitychange when visible. The Node regression failed before the fix (one hidden refresh) and passes now. API tests, the full non-migration suite, go vet, desktop-check, and build-current pass."
+    },
+    "CHG-344": {
+      "id": "CHG-344",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T15:12:03+00:00",
+      "updated_at": "2026-10-23T15:12:03+00:00",
+      "touched_round": 181,
+      "commit": "0b26df9",
+      "title": "Pause Web UI polling while the document is hidden",
+      "description": "startPolling now skips refresh while document.hidden and installs a visibilitychange handler that performs one immediate poll when the page becomes visible, retaining the existing running guard. TestWebUIJS_PollingPausesWhenHidden executes the shipped app.js and proves hidden ticks cause zero refreshes and visibility return causes exactly one."
+    },
+    "ISS-339": {
+      "id": "ISS-339",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T15:12:23+00:00",
+      "updated_at": "2026-10-23T15:14:25+00:00",
+      "touched_round": 181,
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Root gofmt gate is flaky under concurrent package tests: TestCoreModuleIsGofmtClean invokes gofmt recursively on each go-list package directory, while the e2e package's TestMain calls blockchain.ResetForTest and removes its runtime ./data directory. A full go test ./... run can therefore fail with 'open /workspace/aurora/e2e/data: no such file or directory' even when every Go source file is formatted. Observed once in the full non-migration suite, then passed unchanged on rerun."
+    },
+    "TASK-346": {
+      "id": "TASK-346",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T15:12:27+00:00",
+      "updated_at": "2026-10-23T15:14:25+00:00",
+      "touched_round": 181,
+      "category": "stability",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Make the repository gofmt gate independent of transient runtime data",
+      "description": "Change the root format gate to enumerate Go sources directly from each go-list package directory instead of asking gofmt to recurse through those directories. Runtime data created or deleted by parallel package tests must no longer affect the gate. Add a helper-level regression that proves only Go files are passed to gofmt and every reported file exists.",
+      "outcome": "The format gate now passes explicit Go files rather than recursively walking package directories; all 263 non-desktop Go sources remain covered. The new helper regression failed against the old directory-returning stub and now passes. The full non-migration suite passed three consecutive runs, and go vet, desktop-check, and build-current pass."
+    },
+    "CHG-345": {
+      "id": "CHG-345",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T15:14:20+00:00",
+      "updated_at": "2026-10-23T15:14:20+00:00",
+      "touched_round": 181,
+      "commit": "e02e50e",
+      "title": "Make the root gofmt gate ignore transient runtime directories",
+      "description": "TestCoreModuleIsGofmtClean now expands each go-list package directory into explicit top-level Go source files before invoking gofmt, so runtime directories such as e2e/data cannot race the formatter. TestGofmtTargetsOnlyGoFiles pins that every target is an existing .go file. A direct comparison found all 263 non-desktop Go sources covered."
+    },
+    "ISS-340": {
+      "id": "ISS-340",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T15:16:03+00:00",
+      "updated_at": "2026-10-23T15:19:02+00:00",
+      "touched_round": 182,
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 1,
+      "title": "Dark-theme form styling stops at input elements: the Voting session/candidate pickers and Oracle template picker are native <select> controls with no shared background, border, text color or padding, so they render with the browser's light control chrome inside otherwise dark form cards. Their mouse-focus state also lacks the accent border applied to text inputs, and :root does not declare color-scheme, leaving native dropdown popups inconsistent with the page."
+    },
+    "TASK-347": {
+      "id": "TASK-347",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T15:16:07+00:00",
+      "updated_at": "2026-10-23T15:19:02+00:00",
+      "touched_round": 182,
+      "category": "core-feature",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1.0,
+      "title": "Apply the dark form-control theme to select and textarea elements",
+      "description": "Extend the shared .form-group control rule to input, select and textarea, share the accent focus border across those controls, and declare color-scheme: dark at the root so native dropdowns follow the dark palette. Add a stylesheet contract test that resolves the actual selector block and declarations instead of pinning only a screenshot or arbitrary markup.",
+      "outcome": "Inputs, selects and textareas now share the same dark background, border, radius, text color, padding, font size and accent mouse-focus border, and :root declares color-scheme: dark so native dropdown chrome follows the page. TestWebUIFormControlsUseDarkTheme resolves the shipped selector groups and failed on the old stylesheet before the fix. API tests, all non-migration repository tests, go vet, desktop-check and build-current pass."
+    },
+    "CHG-346": {
+      "id": "CHG-346",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T15:18:55+00:00",
+      "updated_at": "2026-10-23T15:18:55+00:00",
+      "touched_round": 182,
+      "commit": "90b4424",
+      "title": "Theme native selects and textareas like the rest of the Web UI dark form controls (ISS-340)",
+      "description": "Extended the shared .form-group control and focus rules from input-only to input, select and textarea, and declared color-scheme: dark at the root. Added TestWebUIFormControlsUseDarkTheme to resolve the shipped selector blocks and declarations; it failed on the missing root color scheme before the CSS fix and passes after it."
+    },
+    "ISS-341": {
+      "id": "ISS-341",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-23T15:22:40+00:00",
+      "updated_at": "2026-10-23T15:25:36+00:00",
+      "touched_round": 183,
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "title": "Two blockchain reset tests are order-dependent: TestResetForTest_RemovesDataDir chdirs into a fresh temp dir and calls InitDB without clearing the package-level dbInitOnce/dbInstance, while e2e TestLotteryE2E_HistoryRetrieval starts from whichever persistent lottery blocks an earlier test left behind. Shuffled runs therefore fail even though the production code is unchanged.",
+      "description": "Reproduced with go test ./internal/domain/blockchain -shuffle=1792768914796676806 (no ./data after cached InitDB) and go test ./e2e -shuffle=1792768978101338390 (HistoryRetrieval expected 1 record after reset but saw a phantom block persisted by a prior failed-token test)."
+    },
+    "TASK-348": {
+      "id": "TASK-348",
+      "type": "task",
+      "status": "resolved",
+      "version": 5,
+      "created_at": "2026-10-23T15:22:42+00:00",
+      "updated_at": "2026-10-23T15:25:37+00:00",
+      "touched_round": 183,
+      "category": "test-quality",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Make blockchain reset regressions independent of prior package and persistent-chain state",
+      "description": "Reset the blockchain singleton before TestResetForTest_RemovesDataDir calls InitDB through resetChainForTest, and reset the chain before e2e HistoryRetrieval records its baseline. Prove both previously failing shuffle seeds and repeated shuffled runs.",
+      "outcome": "Both regressions now establish their own clean blockchain state. The original package shuffle seed and e2e shuffle seed failed before the test changes; each package then passed repeated shuffled runs (blockchain -count=10, e2e -count=10), and the full non-migration suite passed with -shuffle=on -count=5. go vet, desktop-check and build-current also pass."
+    },
+    "CHG-347": {
+      "id": "CHG-347",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-23T15:25:22+00:00",
+      "updated_at": "2026-10-23T15:25:27+00:00",
+      "touched_round": 183,
+      "commit": "0fa9450",
+      "title": "Isolate blockchain reset assertions from prior package and persistent-chain state (ISS-341, TASK-348)",
+      "description": "TestResetForTest_RemovesDataDir now starts through resetChainForTest, which owns a temp cwd and clears dbInitOnce/dbInstance before InitDB. e2e HistoryRetrieval now clears the persistent chain before capturing initialCount. Both original shuffle seeds failed before these changes and pass after them; the package repeated shuffled runs and the full non-migration suite with shuffle/count=5 pass."
+    },
+    "ISS-342": {
+      "id": "ISS-342",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T15:26:17+00:00",
+      "updated_at": "2026-10-23T15:31:31+00:00",
+      "touched_round": 184,
+      "severity": 0.65,
+      "confidence": 1,
+      "effort": 2,
+      "title": "The no-op transaction fallback in BlockChain.withAppendTransaction persists the audit block before invoking the business callback and never deletes it when that callback fails. A failed token transfer through the in-memory token TUI (or any caller using a nil-tx manager with the persistent chain) therefore leaves a phantom block; a later successful append re-syncs that row into memory, so a single success can produce two non-genesis records."
+    },
+    "TASK-349": {
+      "id": "TASK-349",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T15:26:20+00:00",
+      "updated_at": "2026-10-23T15:31:35+00:00",
+      "touched_round": 184,
+      "category": "correctness",
+      "severity": 0.65,
+      "confidence": 1,
+      "effort": 2,
+      "unlock_factor": 1,
+      "title": "Roll back a pre-callback persisted block when a no-op transaction fails",
+      "description": "Add a guarded persistent-block removal hook used only by the nil-tx fallback when the callback or nil-tx manager returns an error, preserving retry-before-callback behavior for height conflicts. Add a real SQLite regression proving a failed no-op transaction leaves no non-genesis row and a subsequent successful append starts at height 1; fault-inject by removing the rollback and requiring the test to fail."
+    },
+    "CHG-348": {
+      "id": "CHG-348",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T15:31:29+00:00",
+      "updated_at": "2026-10-23T15:31:29+00:00",
+      "touched_round": 184,
+      "commit": "20317b3",
+      "title": "Roll back a nil-tx audit block when its callback or manager fails (TASK-349, ISS-342)",
+      "description": "Added BlockChain.removePersist, wired to a DELETE constrained by both height and hash, and invoked only after a successful best-effort persist in the nil-tx fallback when the callback or transaction manager returns an error. The new SQLite regression was RED for both failure variants before the fix, then proved no non-genesis row remains and the next success reuses height 1; a no-op height-conflict regression proves the callback runs only after retrying. Blockchain shuffle/count=10, the full non-migration shuffle/count=5 suite, vet, desktop-check, check and build-current pass."
+    },
+    "ISS-343": {
+      "id": "ISS-343",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T15:38:08+00:00",
+      "updated_at": "2026-10-23T15:47:19+00:00",
+      "touched_round": 185,
+      "severity": 0.85,
+      "title": "Oracle SSRF validation still has a DNS rebinding window: ValidateSourceURL resolves the source hostname before the request, but net/http resolves it again at dial time; an attacker-controlled DNS answer can be public during validation and private for the actual connection, and the same gap exists when checkRedirectAllowed resolves a redirect target",
+      "description": "The v1.54 fetch-time revalidation (CHG-065) narrows but does not close ISS-059. It performs one resolver lookup, then http.Client performs another. securityTransport previously delegated to http.DefaultTransport without checking the concrete resolved IP, so a rebinding response could reach loopback, RFC1918, link-local/cloud metadata, or other blocked space. The redirected-request policy has the same validation/dial gap because its lookup is not pinned either. Fix belongs at net.Dialer.ControlContext, where the exact IP about to be connected is available."
+    },
+    "TASK-350": {
+      "id": "TASK-350",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T15:38:08+00:00",
+      "updated_at": "2026-10-23T15:47:19+00:00",
+      "touched_round": 185,
+      "category": "security",
+      "severity": 0.85,
+      "confidence": 0.98,
+      "effort": 2,
+      "unlock_factor": 1.1,
+      "title": "Enforce the oracle SSRF private-address policy on the concrete IP net/http dials",
+      "description": "Install a net.Dialer.ControlContext on the oracle fetcher transport that rejects blocked IPs immediately before connect, preserving the standard transport behavior and redirect policy. Add direct policy tests for IPv4/IPv6 blocked and public addresses plus a regression that the default Fetcher transport attaches the guard; keep httptest loopback tests on an explicit test-only unguarded transport."
+    },
+    "CHG-349": {
+      "id": "CHG-349",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T15:47:11+00:00",
+      "updated_at": "2026-10-23T15:47:11+00:00",
+      "touched_round": 185,
+      "commit": "5e9cd33",
+      "title": "Guard the concrete oracle dial address and close custom TLS-dial bypasses (TASK-350, ISS-343)",
+      "description": "Added a ControlContext destination check to every Fetcher transport, including IPv4/IPv6 loopback, private, link-local and unresolved addresses. The transport now clears custom TLS dial hooks so HTTPS cannot bypass DialContext, tracks the actual proxy selection per request so only operator-configured proxy endpoints are exempt, and keeps test-only loopback fetchers behind an explicit helper. Fault injection first failed with the sandbox socket error rather than ErrBlockedDestination; the new regression then passed. Oracle HTTP shuffle/count=20, full non-migration shuffle/count=5, vet, desktop-check, check and build-current all pass."
+    },
+    "ISS-344": {
+      "id": "ISS-344",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T15:51:48+00:00",
+      "updated_at": "2026-10-23T15:58:39+00:00",
+      "touched_round": 186,
+      "severity": 0.85,
+      "title": "CLI/API create the live SQLite database, WAL and SHM files world-readable (0644 under the default umask), exposing Oracle bearer headers and operator state to other local users",
+      "description": "Evidence from a CLI run in an isolated HOME with umask 022: ./data was 0755 and aurora.db, aurora.db-wal and aurora.db-shm were all 0644. The desktop shell already hardens its application DB and sidecars to 0600, and backups do the same, but the CLI/API repositories, blockchain singleton, event/outbox stores, replay protection and migration runner each create or reopen the same state files without restricting them. The Oracle source table stores operator-supplied Headers values that can contain bearer credentials."
+    },
+    "TASK-351": {
+      "id": "TASK-351",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T15:51:48+00:00",
+      "updated_at": "2026-10-23T15:58:39+00:00",
+      "touched_round": 186,
+      "category": "security",
+      "severity": 0.85,
+      "confidence": 0.98,
+      "effort": 2,
+      "unlock_factor": 1.1,
+      "title": "Keep live SQLite state files owner-only across every CLI/API constructor",
+      "description": "Centralize SQLite main/WAL/SHM permission hardening in a shared helper, apply it after every constructor that opens or creates the live DB (blockchain singleton, lottery/NFT/token/oracle repositories, event store, outbox/replay protection, migration runner), preserve sidecar-not-yet-created semantics, and add a regression that turns a pre-existing 0644 database into 0600 while leaving absent sidecars non-fatal. Fault-inject the helper call to prove the regression is red."
+    },
+    "CHG-350": {
+      "id": "CHG-350",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T15:58:34+00:00",
+      "updated_at": "2026-10-23T15:58:34+00:00",
+      "touched_round": 186,
+      "commit": "526aa7c",
+      "title": "Keep every live SQLite database and sidecar owner-only (TASK-351, ISS-344)",
+      "description": "Added a shared Unix SQLite file-hardening helper and invoked it after the blockchain singleton, lottery/NFT/token/oracle repositories, event store, replay protection and migration runner initialize their handles. The helper forces the main database, WAL, SHM and rollback-journal files to 0600, tolerates sidecars SQLite has not created yet, and leaves memory/URI/Windows paths alone. The repository regression failed under fault injection with 0644 state files, then passed after restoring the helper; utility/repository/events/blockchain shuffle/count=5, the migration package, the full non-migration shuffle/count=5 suite, vet, desktop-check, check and build-current pass. Real CLI and API startup probes under umask 022 produced a 0600 live database."
+    },
+    "ISS-345": {
+      "id": "ISS-345",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:01:48+00:00",
+      "updated_at": "2026-10-23T16:05:19+00:00",
+      "touched_round": 187,
+      "severity": 0.6,
+      "confidence": 1,
+      "effort": 1,
+      "title": "Web UI header overflows at tablet widths, navigation never marks the current page, and every Token action uses the Lottery purple accent",
+      "description": "The shared header is a single nowrap flex row until the 768px breakpoint, so the title, seven module links and optional Refresh button do not fit on 769-1100px tablet/landscape widths. The seven repeated nav bars also provide no aria-current or visual current-page state, and web/token.html applies btn-lottery to all ten actions even though the stylesheet already defines --accent-token and no .btn-token rule exists. This makes orientation and module identity inconsistent across the shipped pages."
+    },
+    "TASK-352": {
+      "id": "TASK-352",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:01:52+00:00",
+      "updated_at": "2026-10-23T16:05:19+00:00",
+      "touched_round": 187,
+      "category": "core-feature",
+      "severity": 0.6,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Make the Web UI header wrap cleanly, mark the active page and use the Token accent on Token actions",
+      "description": "Allow the shared header and nav to wrap at every viewport, add exactly one accessible aria-current=page marker to each shipped page and a shared active-navigation style, and replace the Token page button class with a contrast-safe .btn-token using --accent-token. Add source-contract regressions that fail on the current pages/CSS, then run the API/Web tests, full non-migration suite, vet, desktop-check, check and build-current."
+    },
+    "CHG-351": {
+      "id": "CHG-351",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:05:13+00:00",
+      "updated_at": "2026-10-23T16:05:13+00:00",
+      "touched_round": 187,
+      "commit": "d584015",
+      "title": "Clarify Web UI navigation and module accents (TASK-352, ISS-345)",
+      "description": "Added per-page data-module and exactly one aria-current=page marker to all seven shipped pages, a page-accent active navigation underline, and tablet-safe wrapping for the shared header and module nav. Token actions now use a contrast-tested .btn-token blue accent, Oracle gained its own cyan page accent, and the shared shell has a subtle two-tone background. Source-contract regressions failed on the pre-fix pages/CSS for missing current-page state, nowrap header, absent .btn-token and Lottery-purple Token actions, then passed after the change. API shuffle/count=20, the full non-migration shuffle/count=5 suite, vet, desktop-check, check, build-current and just api pass."
+    },
+    "ISS-346": {
+      "id": "ISS-346",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:05:46+00:00",
+      "updated_at": "2026-10-23T16:08:56+00:00",
+      "touched_round": 188,
+      "severity": 0.55,
+      "confidence": 1,
+      "effort": 1,
+      "title": "Web UI data tables overflow narrow viewports and Oracle row actions have no separation",
+      "description": "Five shipped tables are direct section children with no horizontal-scroll frame. Long UUIDs, participant lists, feed errors and the five-column Oracle source table therefore expand the document beyond a phone or split desktop pane instead of scrolling inside the card. The Oracle action cell also places Enable/Disable and Delete buttons directly adjacent with no gap, making destructive and state-changing controls visually run together."
+    },
+    "TASK-353": {
+      "id": "TASK-353",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:05:49+00:00",
+      "updated_at": "2026-10-23T16:08:56+00:00",
+      "touched_round": 188,
+      "category": "core-feature",
+      "severity": 0.55,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Contain wide Web UI tables in horizontal scroll frames and separate Oracle row actions",
+      "description": "Wrap every shipped data table in a reusable .table-scroll frame, preserve x-show visibility on the wrapper, allow long IDs/errors to wrap inside cells, and group Oracle row actions with a flex gap so Enable/Disable and Delete cannot visually merge. Add source-contract regressions for all five tables and the action group; they must fail before the markup/CSS change."
+    },
+    "CHG-352": {
+      "id": "CHG-352",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:08:50+00:00",
+      "updated_at": "2026-10-23T16:08:50+00:00",
+      "touched_round": 188,
+      "commit": "b030ecb",
+      "title": "Contain responsive Web UI tables and group Oracle actions (TASK-353, ISS-346)",
+      "description": "Wrapped all five shipped data tables in named, keyboard-focusable horizontal scroll regions with page-accent focus rings, preserved x-show visibility on the frames, allowed long cell values to wrap, and grouped Oracle Enable/Disable/Delete controls in a wrapping 8px-gap action row. The new source-contract tests were RED before the frames, CSS and action group existed, then passed after the change. API shuffle/count=20, the full non-migration shuffle/count=5 suite, vet, desktop-check, check, build-current and just api pass."
+    },
+    "ISS-347": {
+      "id": "ISS-347",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:12:04+00:00",
+      "updated_at": "2026-10-23T16:15:19+00:00",
+      "touched_round": 189,
+      "severity": 0.82,
+      "title": "CLI/API file logging leaves the log directory 0755 and aurora.log 0644, exposing request errors and operator activity to other local users",
+      "description": "Observed in an isolated API run under umask 022: logs/ was 0755 and logs/aurora.log was 0644, while the adjacent SQLite files were already 0600. logger.Init creates the directory with 0755, opens the file with 0644, and never repairs an existing loose mode. API request logs and operator errors can contain paths, identifiers and sensitive failure context."
+    },
+    "TASK-354": {
+      "id": "TASK-354",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:12:04+00:00",
+      "updated_at": "2026-10-23T16:15:19+00:00",
+      "touched_round": 189,
+      "category": "security",
+      "severity": 0.82,
+      "confidence": 0.98,
+      "effort": 1,
+      "unlock_factor": 1.1,
+      "title": "Keep CLI/API log directories and files owner-only, including pre-existing loose paths",
+      "description": "Create log directories as 0700, create aurora.log as 0600, and chmod existing paths during logger.Init so a prior umask or version cannot preserve exposure. Add a Unix regression that pre-creates loose paths and one that creates them under umask 022; both must fail before the permissions change."
+    },
+    "CHG-353": {
+      "id": "CHG-353",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:15:19+00:00",
+      "updated_at": "2026-10-23T16:15:19+00:00",
+      "touched_round": 189,
+      "commit": "4eb17b7",
+      "title": "Keep logger directories and files owner-only and repair loose modes",
+      "description": "logger.Init now creates log directories as 0700, opens aurora.log as 0600, chmods existing paths, skips Unix chmod on Windows, and falls back to console if hardening fails. Unix regressions cover fresh and pre-existing loose paths."
+    },
+    "ISS-348": {
+      "id": "ISS-348",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:17:54+00:00",
+      "updated_at": "2026-10-23T16:20:48+00:00",
+      "touched_round": 190,
+      "severity": 0.72,
+      "title": "CLI initializes logging before Cobra loads config, so the empty level disables every log and the configured log path and level are ignored",
+      "description": "Evidence: an isolated `aurora version` run under umask 022 emitted no structured log and created no logs directory. cmd/aurora/main.go calls logger.Init before rootCmd.Execute, but [log] defaults and the config file are loaded by Cobra initConfig during Execute. zerolog.ParseLevel(\"\") returns NoLevel without an error, so the early logger suppresses Info and later calls never reinitialize it with the loaded path."
+    },
+    "TASK-355": {
+      "id": "TASK-355",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:17:54+00:00",
+      "updated_at": "2026-10-23T16:20:48+00:00",
+      "touched_round": 190,
+      "category": "correctness",
+      "severity": 0.72,
+      "confidence": 1,
+      "effort": 1.3,
+      "unlock_factor": 1.1,
+      "title": "Initialize CLI file logging after config loading and treat an empty level as info",
+      "description": "Move the operational startup log behind config initialization, reinitialize the logger from the loaded [log] settings before command execution, and make logger.Init default an empty level to info. Add an end-to-end CLI regression with an alternate --config log path; it must produce the startup record in that file and fail against the old initialization order."
+    },
+    "CHG-354": {
+      "id": "CHG-354",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:20:48+00:00",
+      "updated_at": "2026-10-23T16:20:48+00:00",
+      "touched_round": 190,
+      "commit": "f01851b",
+      "title": "Apply CLI logging config before command execution and default empty levels to info",
+      "description": "Cobra now reinitializes the logger from [log] in PersistentPreRunE and emits the startup record only after config loading. logger.Init maps an empty level to info instead of zerolog NoLevel. A real root-command regression verifies the alternate config path receives the startup record, and CLI test logging is isolated to temp paths."
+    },
+    "ISS-349": {
+      "id": "ISS-349",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:23:18+00:00",
+      "updated_at": "2026-10-23T16:24:51+00:00",
+      "touched_round": 191,
+      "severity": 0.75,
+      "title": "CLI silently ignores malformed or explicitly missing config files and runs against defaults",
+      "description": "Evidence: `aurora --config <malformed.toml> version` exits 0, prints normal version output and creates the default ./logs path with no warning. cmd/aurora/cmd/root.go calls viper.ReadInConfig but only checks err == nil, swallowing syntax errors and missing explicit files just like the benign no-config-found search result. Dangerous commands can therefore operate on the default database after the operator supplied an invalid config."
+    },
+    "TASK-356": {
+      "id": "TASK-356",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:23:18+00:00",
+      "updated_at": "2026-10-23T16:24:51+00:00",
+      "touched_round": 191,
+      "category": "correctness",
+      "severity": 0.75,
+      "confidence": 1,
+      "effort": 1.2,
+      "unlock_factor": 1.1,
+      "title": "Fail CLI startup on malformed or explicitly missing config files while allowing optional search absence",
+      "description": "Capture viper.ReadInConfig errors, tolerate only ConfigFileNotFoundError during default path search, and return every other error from PersistentPreRunE before initializing logging or running a command. Add root-command regressions for malformed content and an explicit missing --config path; both must fail before the production change."
+    },
+    "CHG-355": {
+      "id": "CHG-355",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:24:50+00:00",
+      "updated_at": "2026-10-23T16:24:50+00:00",
+      "touched_round": 191,
+      "commit": "f6054bc",
+      "title": "Reject malformed or explicitly missing CLI config before command execution",
+      "description": "CLI initConfig now records every ReadInConfig error except ConfigFileNotFoundError during the optional $HOME/cwd search. PersistentPreRunE returns that error before logging initialization or command work. Regressions cover malformed TOML and an explicitly missing --config path."
+    },
+    "ISS-350": {
+      "id": "ISS-350",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:25:03+00:00",
+      "updated_at": "2026-10-23T16:28:31+00:00",
+      "touched_round": 192,
+      "severity": 0.62,
+      "title": "Logger console fallback writes structured logs to stdout, contaminating CLI output and duplicating errors",
+      "description": "Observed while rejecting malformed config: the friendly error goes to stderr, but logger.Error also prints a console-formatted Application error record to stdout. Any script consuming CLI stdout receives a non-result line, and docs promise failures use one stderr line. The same fallback applies when a configured log file cannot be opened."
+    },
+    "TASK-357": {
+      "id": "TASK-357",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:25:04+00:00",
+      "updated_at": "2026-10-23T16:28:31+00:00",
+      "touched_round": 192,
+      "category": "correctness",
+      "severity": 0.62,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Route console fallback logs to stderr so CLI stdout remains machine-readable",
+      "description": "Change the zerolog ConsoleWriter fallback from stdout to stderr and add a regression that captures both streams around logger.Init plus a log event. Verify command errors leave stdout empty while stderr retains the structured diagnostic and friendly error line."
+    },
+    "CHG-356": {
+      "id": "CHG-356",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:28:25+00:00",
+      "updated_at": "2026-10-23T16:28:25+00:00",
+      "touched_round": 192,
+      "commit": "22c088c"
+    },
+    "ISS-351": {
+      "id": "ISS-351",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:36:56+00:00",
+      "updated_at": "2026-10-23T16:43:37+00:00",
+      "touched_round": 193,
+      "severity": 0.68,
+      "title": "Restore can report failure after replacing the live database and commits multiple databases one at a time, leaving a partially restored multi-store state",
+      "description": "internal/infra/backup/backup.go:473-559 restores each configured DB inside one map loop. Alias/pre-restore/copy errors for a later DB return after earlier destinations were renamed; even a single DB can commit os.Rename then return an error from the -wal/-shm cleanup. A caller sees failure although live data changed. TASK-120 documented multi-DB atomicity but closed with only per-file temp+rename."
+    },
+    "TASK-358": {
+      "id": "TASK-358",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:36:59+00:00",
+      "updated_at": "2026-10-23T16:43:37+00:00",
+      "touched_round": 193,
+      "category": "stability",
+      "severity": 0.68,
+      "confidence": 0.98,
+      "effort": 3,
+      "unlock_factor": 1,
+      "title": "Make BackupService.Restore all-or-nothing across configured databases and post-promotion failures",
+      "description": "Preflight every configured database name, alias, destination shape, and backup copy before touching live files; prepare every replacement temp and WAL-complete pre-restore snapshot first; then promote in deterministic order. If any promotion or stale-WAL cleanup fails, roll back every already-promoted database from its pre-restore snapshot and remove destinations that did not previously exist. Add a regression that injects a post-promotion -wal cleanup failure and proves the original live DB is restored while Restore returns the failure."
+    },
+    "DEC-034": {
+      "id": "DEC-034",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:43:14+00:00",
+      "updated_at": "2026-10-23T16:43:14+00:00",
+      "touched_round": 193,
+      "title": "Stage and roll back every BackupService.Restore database instead of committing them one at a time",
+      "rationale": "Separate databases on arbitrary filesystems cannot share one atomic filesystem transaction. Full preflight plus staged snapshots/replacements removes all known preparation and alias failures from the commit window. Deterministic promotion and rollback from WAL-complete pre-restore snapshots make post-promotion failures recoverable and testable. The refactor exceeds the normal 300-line advisory because it replaces the embedded per-DB loop with explicit plan, prepare, promote, and rollback phases.",
+      "alternatives_rejected": "Keep per-file temp+rename and document that a failed multi-DB restore may be partial; attach every SQLite database to one transaction (not portable across separate filesystems configured paths and does not handle arbitrary files); rely on the operator manually recovering earlier databases from .pre_restore after an error."
+    },
+    "CHG-357": {
+      "id": "CHG-357",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:43:33+00:00",
+      "updated_at": "2026-10-23T16:43:33+00:00",
+      "touched_round": 193,
+      "commit": "d885eb2",
+      "title": "Atomic staged rollback for multi-database backup restore",
+      "summary": "BackupService.Restore now requires archive/configuration database sets to match, preflights all aliases and destination shapes, prepares every WAL-complete pre-restore snapshot and replacement temp before touching a live DB, promotes in sorted order, and rolls back all promoted files on a later failure. Fault injection added for post-promotion WAL cleanup; the multi-DB alias regression reproduced the old partial restore on attempt 0 and is now green."
+    },
+    "ISS-352": {
+      "id": "ISS-352",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:44:53+00:00",
+      "updated_at": "2026-10-23T16:45:39+00:00",
+      "touched_round": 193,
+      "severity": 0.62,
+      "title": "The pinned golangci-lint v2.15.0 CI gate fails with three SA1019 warnings because the SSRF transport intentionally references deprecated Transport.DialTLS to neutralize it",
+      "description": "go run with golangci-lint v2.15.0 on Go 1.27.2 reports SA1019 for internal/infra/http/fetcher.go:371 and fetcher_dial_guard_test.go:129,138. CI runs the same version with errcheck disabled, so these are the only remaining mandatory lint failures. The production reference is intentional: a cloned embedding transport may carry the deprecated DialTLS hook, which would bypass the guarded DialContext for direct HTTPS."
+    },
+    "TASK-359": {
+      "id": "TASK-359",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:44:56+00:00",
+      "updated_at": "2026-10-23T16:45:39+00:00",
+      "touched_round": 193,
+      "category": "maintainability",
+      "severity": 0.62,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1.4,
+      "title": "Keep the intentional deprecated TLS-hook neutralization while restoring the pinned lint gate",
+      "description": "Add narrowly scoped staticcheck suppressions that explain why DialTLS must be cleared for security and why the regression test constructs it. Do not remove the DialTLS clearing or weaken the dial guard. Verify the full CI lint command (golangci-lint v2.15.0, errcheck disabled) exits clean, then rerun the fetcher tests and full non-migrate test suite."
+    },
+    "CHG-358": {
+      "id": "CHG-358",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:45:36+00:00",
+      "updated_at": "2026-10-23T16:45:36+00:00",
+      "touched_round": 193,
+      "commit": "2dd1a83",
+      "title": "Lint-clean intentional TLS dial-hook neutralization",
+      "summary": "Added targeted staticcheck explanations at the production DialTLS clear and the two deprecated-field references in the SSRF regression test. The guard behavior is unchanged; golangci-lint v2.15.0 with errcheck disabled now reports 0 issues, matching the CI command."
+    },
+    "ISS-353": {
+      "id": "ISS-353",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T16:46:46+00:00",
+      "updated_at": "2026-10-23T16:48:01+00:00",
+      "touched_round": 194,
+      "severity": 0.7,
+      "title": "The protected Oracle fetch endpoint discards the HTTP request context, so client disconnects and server shutdown cannot cancel the outbound fetch",
+      "description": "internal/api/handler/oracle.go:208-213 constructs the use case and calls Execute, which hardcodes context.Background in internal/app/oracle/usecase.go:75-77. The scheduler already calls ExecuteContext, but REST fetch does not. A disconnected client leaves the upstream request running until the fetcher timeout (10s default), consuming a handler goroutine, rate-limit budget, and outbound connection; request cancellation is observable in r.Context()."
+    },
+    "TASK-360": {
+      "id": "TASK-360",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T16:46:49+00:00",
+      "updated_at": "2026-10-23T16:48:01+00:00",
+      "touched_round": 194,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Propagate the REST request context into Oracle FetchDataUseCase",
+      "description": "Call ExecuteContext(r.Context()) from OracleHandler.Fetch and add a cancellation regression with a context-aware fetcher that blocks until the request is canceled. Keep the existing shared-fetcher and scheduler behavior unchanged, then run handler/API tests, race tests, vet, lint, and build."
+    },
+    "CHG-359": {
+      "id": "CHG-359",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T16:47:58+00:00",
+      "updated_at": "2026-10-23T16:47:58+00:00",
+      "touched_round": 194,
+      "commit": "c8d4e32",
+      "title": "Propagate request cancellation through Oracle REST fetch",
+      "summary": "OracleHandler.Fetch now calls FetchDataUseCase.ExecuteContext(r.Context()) instead of the background-context Execute wrapper. A blocking context-aware fetcher regression proved the old path ignored cancellation and now observes it immediately. Handler/API package tests and race tests pass."
     }
   },
   "edges": [
@@ -24437,6 +25226,468 @@
       "to": "COMP-010",
       "type": "governs",
       "created_at": "2026-10-23T14:52:16+00:00"
+    },
+    {
+      "from": "TASK-342",
+      "to": "ISS-335",
+      "type": "addresses",
+      "created_at": "2026-10-23T14:55:42+00:00"
+    },
+    {
+      "from": "ISS-335",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-10-23T14:55:42+00:00"
+    },
+    {
+      "from": "CHG-341",
+      "to": "TASK-342",
+      "type": "implements",
+      "created_at": "2026-10-23T14:58:13+00:00"
+    },
+    {
+      "from": "CHG-341",
+      "to": "ISS-335",
+      "type": "resolves",
+      "created_at": "2026-10-23T14:58:13+00:00"
+    },
+    {
+      "from": "TASK-343",
+      "to": "ISS-336",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:01:30+00:00"
+    },
+    {
+      "from": "ISS-336",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:01:30+00:00"
+    },
+    {
+      "from": "CHG-342",
+      "to": "TASK-343",
+      "type": "implements",
+      "created_at": "2026-10-23T15:05:58+00:00"
+    },
+    {
+      "from": "CHG-342",
+      "to": "ISS-336",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:05:58+00:00"
+    },
+    {
+      "from": "TASK-344",
+      "to": "ISS-337",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:07:42+00:00"
+    },
+    {
+      "from": "ISS-337",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:07:42+00:00"
+    },
+    {
+      "from": "CHG-343",
+      "to": "TASK-344",
+      "type": "implements",
+      "created_at": "2026-10-23T15:08:48+00:00"
+    },
+    {
+      "from": "CHG-343",
+      "to": "ISS-337",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:08:48+00:00"
+    },
+    {
+      "from": "TASK-345",
+      "to": "ISS-338",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:10:34+00:00"
+    },
+    {
+      "from": "ISS-338",
+      "to": "COMP-004",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:10:35+00:00"
+    },
+    {
+      "from": "CHG-344",
+      "to": "TASK-345",
+      "type": "implements",
+      "created_at": "2026-10-23T15:12:07+00:00"
+    },
+    {
+      "from": "CHG-344",
+      "to": "ISS-338",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:12:07+00:00"
+    },
+    {
+      "from": "TASK-346",
+      "to": "ISS-339",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:12:38+00:00"
+    },
+    {
+      "from": "CHG-345",
+      "to": "TASK-346",
+      "type": "implements",
+      "created_at": "2026-10-23T15:14:25+00:00"
+    },
+    {
+      "from": "CHG-345",
+      "to": "ISS-339",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:14:25+00:00"
+    },
+    {
+      "from": "TASK-347",
+      "to": "ISS-340",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:16:10+00:00"
+    },
+    {
+      "from": "ISS-340",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:16:10+00:00"
+    },
+    {
+      "from": "CHG-346",
+      "to": "TASK-347",
+      "type": "implements",
+      "created_at": "2026-10-23T15:18:57+00:00"
+    },
+    {
+      "from": "CHG-346",
+      "to": "ISS-340",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:18:58+00:00"
+    },
+    {
+      "from": "TASK-348",
+      "to": "ISS-341",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:22:44+00:00"
+    },
+    {
+      "from": "ISS-341",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:22:45+00:00"
+    },
+    {
+      "from": "CHG-347",
+      "to": "TASK-348",
+      "type": "implements",
+      "created_at": "2026-10-23T15:25:30+00:00"
+    },
+    {
+      "from": "CHG-347",
+      "to": "ISS-341",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:25:30+00:00"
+    },
+    {
+      "from": "TASK-349",
+      "to": "ISS-342",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:26:22+00:00"
+    },
+    {
+      "from": "ISS-342",
+      "to": "COMP-002",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:26:23+00:00"
+    },
+    {
+      "from": "ISS-342",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:26:23+00:00"
+    },
+    {
+      "from": "CHG-348",
+      "to": "TASK-349",
+      "type": "implements",
+      "created_at": "2026-10-23T15:31:31+00:00"
+    },
+    {
+      "from": "CHG-348",
+      "to": "ISS-342",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:31:31+00:00"
+    },
+    {
+      "from": "TASK-350",
+      "to": "ISS-343",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:38:08+00:00"
+    },
+    {
+      "from": "ISS-343",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:38:08+00:00"
+    },
+    {
+      "from": "CHG-349",
+      "to": "TASK-350",
+      "type": "implements",
+      "created_at": "2026-10-23T15:47:13+00:00"
+    },
+    {
+      "from": "CHG-349",
+      "to": "ISS-343",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:47:13+00:00"
+    },
+    {
+      "from": "TASK-351",
+      "to": "ISS-344",
+      "type": "addresses",
+      "created_at": "2026-10-23T15:51:50+00:00"
+    },
+    {
+      "from": "ISS-344",
+      "to": "COMP-010",
+      "type": "located_in",
+      "created_at": "2026-10-23T15:51:51+00:00"
+    },
+    {
+      "from": "CHG-350",
+      "to": "TASK-351",
+      "type": "implements",
+      "created_at": "2026-10-23T15:58:37+00:00"
+    },
+    {
+      "from": "CHG-350",
+      "to": "ISS-344",
+      "type": "resolves",
+      "created_at": "2026-10-23T15:58:37+00:00"
+    },
+    {
+      "from": "TASK-352",
+      "to": "ISS-345",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:01:54+00:00"
+    },
+    {
+      "from": "ISS-345",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:01:54+00:00"
+    },
+    {
+      "from": "CHG-351",
+      "to": "TASK-352",
+      "type": "implements",
+      "created_at": "2026-10-23T16:05:16+00:00"
+    },
+    {
+      "from": "CHG-351",
+      "to": "ISS-345",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:05:16+00:00"
+    },
+    {
+      "from": "TASK-353",
+      "to": "ISS-346",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:05:51+00:00"
+    },
+    {
+      "from": "ISS-346",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:05:52+00:00"
+    },
+    {
+      "from": "CHG-352",
+      "to": "TASK-353",
+      "type": "implements",
+      "created_at": "2026-10-23T16:08:53+00:00"
+    },
+    {
+      "from": "CHG-352",
+      "to": "ISS-346",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:08:53+00:00"
+    },
+    {
+      "from": "TASK-354",
+      "to": "ISS-347",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:12:04+00:00"
+    },
+    {
+      "from": "ISS-347",
+      "to": "COMP-015",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:12:04+00:00"
+    },
+    {
+      "from": "CHG-353",
+      "to": "TASK-354",
+      "type": "implements",
+      "created_at": "2026-10-23T16:15:19+00:00"
+    },
+    {
+      "from": "CHG-353",
+      "to": "ISS-347",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:15:19+00:00"
+    },
+    {
+      "from": "TASK-355",
+      "to": "ISS-348",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:17:54+00:00"
+    },
+    {
+      "from": "ISS-348",
+      "to": "COMP-015",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:17:54+00:00"
+    },
+    {
+      "from": "CHG-354",
+      "to": "TASK-355",
+      "type": "implements",
+      "created_at": "2026-10-23T16:20:48+00:00"
+    },
+    {
+      "from": "CHG-354",
+      "to": "ISS-348",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:20:48+00:00"
+    },
+    {
+      "from": "TASK-356",
+      "to": "ISS-349",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:23:18+00:00"
+    },
+    {
+      "from": "ISS-349",
+      "to": "COMP-015",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:23:18+00:00"
+    },
+    {
+      "from": "CHG-355",
+      "to": "TASK-356",
+      "type": "implements",
+      "created_at": "2026-10-23T16:24:50+00:00"
+    },
+    {
+      "from": "CHG-355",
+      "to": "ISS-349",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:24:51+00:00"
+    },
+    {
+      "from": "TASK-357",
+      "to": "ISS-350",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:25:04+00:00"
+    },
+    {
+      "from": "ISS-350",
+      "to": "COMP-015",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:25:04+00:00"
+    },
+    {
+      "from": "CHG-356",
+      "to": "TASK-357",
+      "type": "implements",
+      "created_at": "2026-10-23T16:28:31+00:00"
+    },
+    {
+      "from": "CHG-356",
+      "to": "ISS-350",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:28:31+00:00"
+    },
+    {
+      "from": "TASK-358",
+      "to": "ISS-351",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:37:00+00:00"
+    },
+    {
+      "from": "ISS-351",
+      "to": "COMP-008",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:37:01+00:00"
+    },
+    {
+      "from": "DEC-034",
+      "to": "TASK-358",
+      "type": "governs",
+      "created_at": "2026-10-23T16:43:16+00:00"
+    },
+    {
+      "from": "CHG-357",
+      "to": "TASK-358",
+      "type": "implements",
+      "created_at": "2026-10-23T16:43:35+00:00"
+    },
+    {
+      "from": "CHG-357",
+      "to": "ISS-351",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:43:35+00:00"
+    },
+    {
+      "from": "TASK-359",
+      "to": "ISS-352",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:44:59+00:00"
+    },
+    {
+      "from": "ISS-352",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:44:59+00:00"
+    },
+    {
+      "from": "CHG-358",
+      "to": "TASK-359",
+      "type": "implements",
+      "created_at": "2026-10-23T16:45:39+00:00"
+    },
+    {
+      "from": "CHG-358",
+      "to": "ISS-352",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:45:39+00:00"
+    },
+    {
+      "from": "TASK-360",
+      "to": "ISS-353",
+      "type": "addresses",
+      "created_at": "2026-10-23T16:46:52+00:00"
+    },
+    {
+      "from": "ISS-353",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-10-23T16:46:52+00:00"
+    },
+    {
+      "from": "CHG-359",
+      "to": "TASK-360",
+      "type": "implements",
+      "created_at": "2026-10-23T16:48:00+00:00"
+    },
+    {
+      "from": "CHG-359",
+      "to": "ISS-353",
+      "type": "resolves",
+      "created_at": "2026-10-23T16:48:01+00:00"
     }
   ]
 }
