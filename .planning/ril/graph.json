@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 169,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-22T03:21:15+00:00",
+  "updated_at": "2026-10-23T07:15:03+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 155,
+      "touched_round": 169,
       "title": "voting module"
     },
     "CHG-008": {
@@ -14563,6 +14563,81 @@
       "title": "Format the core module and gate it on gofmt",
       "commit": "06431cc",
       "description": "ci.yml's test job runs gofmt -s over this module's packages before vet; ci_format_test.go runs the same check and asserts the workflow step. Restores gofmt on the three files 7a7f53d committed unformatted."
+    },
+    "TASK-326": {
+      "id": "TASK-326",
+      "type": "task",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T05:53:30+00:00",
+      "updated_at": "2026-10-23T05:53:30+00:00",
+      "touched_round": 169,
+      "title": "Migrate SQLite storage from cgo mattn to pure-Go modernc",
+      "category": "maintainability",
+      "priority_score": 8,
+      "severity": 0.8,
+      "confidence": 1,
+      "effort": 4,
+      "description": "Replace mattn/go-sqlite3 with modernc.org/sqlite, switch golang-migrate to database/sqlite, and make CLI/Docker/CI/desktop builds CGO_ENABLED=0 while retaining the hardened DSN and SQLite constraint handling."
+    },
+    "COMP-019": {
+      "id": "COMP-019",
+      "type": "component",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T05:53:40+00:00",
+      "updated_at": "2026-10-23T05:53:40+00:00",
+      "touched_round": 169,
+      "name": "SQLite storage",
+      "path": "internal/infra/sqlite",
+      "description": "Pure-Go SQLite repositories and hardened DSN shared by CLI/API/desktop."
+    },
+    "EV-117": {
+      "id": "EV-117",
+      "type": "evidence",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T05:53:47+00:00",
+      "updated_at": "2026-10-23T05:53:47+00:00",
+      "touched_round": 169,
+      "source": "CGO_ENABLED=0 go test ./... (root and desktop), CGO_ENABLED=1 go test -race ./..., go vet; five-target CLI and desktop cross-builds with metadata CGO_ENABLED=0; linux CLI lottery stats created SQLite DB",
+      "description": "Pure-Go migration verification evidence.",
+      "confidence": 1.0
+    },
+    "CHG-325": {
+      "id": "CHG-325",
+      "type": "change",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T05:54:45+00:00",
+      "updated_at": "2026-10-23T07:15:03+00:00",
+      "touched_round": 169,
+      "commit": "9d802e6",
+      "description": "Pure-Go SQLite migration and CGO_ENABLED=0 build pipeline."
+    },
+    "HYP-037": {
+      "id": "HYP-037",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T05:54:56+00:00",
+      "updated_at": "2026-10-23T05:54:56+00:00",
+      "touched_round": 169,
+      "confidence": 1,
+      "title": "Pure-Go SQLite removes the cgo build constraint without changing storage semantics",
+      "description": "modernc.org/sqlite and golang-migrate database/sqlite preserve the existing DSN behavior and SQLite result-code handling."
+    },
+    "DEC-025": {
+      "id": "DEC-025",
+      "type": "decision",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T05:55:17+00:00",
+      "updated_at": "2026-10-23T05:55:17+00:00",
+      "touched_round": 169,
+      "title": "Use modernc.org/sqlite for storage",
+      "rationale": "Pure-Go SQLite lets every CLI/API/Docker/desktop artifact build with CGO_ENABLED=0; modernc v1.61 accepts the existing hardened DSN and golang-migrate ships a matching database/sqlite driver.",
+      "alternatives_rejected": "Keep mattn/go-sqlite3 and native cgo runners; switch only the tests while leaving production cgo; use a custom SQLite binding"
     }
   },
   "edges": [
@@ -22636,6 +22711,36 @@
       "to": "ISS-321",
       "type": "addresses",
       "created_at": "2026-10-22T03:21:10+00:00"
+    },
+    {
+      "from": "COMP-019",
+      "to": "COMP-001",
+      "type": "part_of",
+      "created_at": "2026-10-23T05:54:40+00:00"
+    },
+    {
+      "from": "CHG-325",
+      "to": "TASK-326",
+      "type": "implements",
+      "created_at": "2026-10-23T05:54:50+00:00"
+    },
+    {
+      "from": "EV-117",
+      "to": "HYP-037",
+      "type": "validates",
+      "created_at": "2026-10-23T05:55:00+00:00"
+    },
+    {
+      "from": "DEC-025",
+      "to": "COMP-019",
+      "type": "governs",
+      "created_at": "2026-10-23T05:55:21+00:00"
+    },
+    {
+      "from": "DEC-025",
+      "to": "TASK-326",
+      "type": "governs",
+      "created_at": "2026-10-23T05:55:21+00:00"
     }
   ]
 }
