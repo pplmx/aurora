@@ -70,6 +70,19 @@ func TestVerifyRecord_AcceptsConsistentlyReorderedWinnerAddresses(t *testing.T) 
 	}
 }
 
+func TestVerifyRecord_RejectsRecordIDNotDerivedFromEvidence(t *testing.T) {
+	record := verifiableLotteryRecord(t)
+	record.ID = strings.Repeat("0", 16)
+
+	report := VerifyRecord(record)
+	if report.IntegrityOK {
+		t.Fatal("a record ID not derived from the seed and VRF output must fail verification")
+	}
+	if !hasVerifyFailure(report, "record ID") {
+		t.Fatalf("failure must identify the record ID mismatch: %+v", report.Checks)
+	}
+}
+
 func hasVerifyFailure(report *VerifyReport, fragment string) bool {
 	for _, check := range report.Checks {
 		if check.Status == VerifyFail && strings.Contains(check.Message, fragment) {

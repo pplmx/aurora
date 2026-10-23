@@ -43,14 +43,13 @@ func TestExportImport_RoundTripThroughSharedAppLayer(t *testing.T) {
 	t.Cleanup(func() { _ = src.Close() })
 
 	record := genuineDesktopLotteryRecord(t, "desktop-roundtrip-seed")
-	record.ID = "desktop-roundtrip-id"
 	record.BlockHeight = 11
 	require.NoError(t, src.Save(&record))
 
 	document, count, err := lotteryapp.ExportRecords(src)
 	require.NoError(t, err)
 	require.Equal(t, 1, count)
-	require.Contains(t, string(document), `"desktop-roundtrip-id"`)
+	require.Contains(t, string(document), `"`+record.ID+`"`)
 
 	dst, err := sqlite.NewLotteryRepository(filepath.Join(t.TempDir(), "dest.db"))
 	require.NoError(t, err)

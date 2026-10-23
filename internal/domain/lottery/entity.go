@@ -107,6 +107,18 @@ func SelectWinners(output []byte, participants []string, count int) []string {
 	return winners
 }
 
+// LotteryRecordID derives the deterministic identifier for a draw from its
+// seed and VRF output. The identifier is part of the record's integrity
+// surface: importers use it for collision detection, so verification must
+// recompute it rather than trusting untrusted JSON metadata.
+func LotteryRecordID(seed string, output []byte) string {
+	idSrc := make([]byte, 0, len(seed)+len(output))
+	idSrc = append(idSrc, seed...)
+	idSrc = append(idSrc, output...)
+	idHash := sha256.Sum256(idSrc)
+	return hex.EncodeToString(idHash[:])[:16]
+}
+
 func CreateLotteryRecord(
 	seed string,
 	participants []string,
@@ -126,14 +138,8 @@ func CreateLotteryRecord(
 	// Why this matters: the repository uses INSERT OR REPLACE keyed on
 	// the ID, so two records with the same ID would silently overwrite
 	// one another — unacceptable for an audit trail.
-	idSrc := make([]byte, 0, len(seed)+len(output))
-	idSrc = append(idSrc, []byte(seed)...)
-	idSrc = append(idSrc, output...)
-	idHash := sha256.Sum256(idSrc)
-	id := hex.EncodeToString(idHash[:])[:16]
-
 	return &LotteryRecord{
-		ID:              id,
+		ID:              LotteryRecordID(seed, output),
 		Seed:            seed,
 		Participants:    participants,
 		Winners:         winners,
