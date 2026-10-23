@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 169,
+  "round": 170,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-23T07:51:37+00:00",
+  "updated_at": "2026-10-23T09:04:44+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -635,7 +635,7 @@
       "version": 1,
       "created_at": "2026-08-22T16:44:18+00:00",
       "updated_at": "2026-08-22T16:44:18+00:00",
-      "touched_round": 169,
+      "touched_round": 170,
       "title": "voting module"
     },
     "CHG-008": {
@@ -10153,7 +10153,7 @@
       "version": 1,
       "created_at": "2026-09-01T12:36:21+00:00",
       "updated_at": "2026-09-01T12:36:21+00:00",
-      "touched_round": 140,
+      "touched_round": 170,
       "title": "internal/infra/events (sync/async/composite event bus, outbox, event store)"
     },
     "CHG-238": {
@@ -13359,7 +13359,7 @@
       "version": 1,
       "created_at": "2026-10-21T12:51:24+00:00",
       "updated_at": "2026-10-21T12:51:24+00:00",
-      "touched_round": 169,
+      "touched_round": 170,
       "name": "release-workflows",
       "path": ".github/workflows",
       "description": "Release pipeline: build.yml CLI matrix, desktop-build.yml native MyGo packages, release.yml publication"
@@ -14587,7 +14587,7 @@
       "version": 1,
       "created_at": "2026-10-23T05:53:40+00:00",
       "updated_at": "2026-10-23T05:53:40+00:00",
-      "touched_round": 169,
+      "touched_round": 170,
       "name": "SQLite storage",
       "path": "internal/infra/sqlite",
       "description": "Pure-Go SQLite repositories and hardened DSN shared by CLI/API/desktop."
@@ -14802,6 +14802,270 @@
       "name": "sqlite-migrations",
       "path": "internal/infra/migrate",
       "description": "SQLite-only schema migration runner and CLI integration"
+    },
+    "ISS-324": {
+      "id": "ISS-324",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T08:07:52+00:00",
+      "updated_at": "2026-10-23T09:04:31+00:00",
+      "touched_round": 170,
+      "title": "Production event wiring contains unused asynchronous bus abstractions",
+      "description": "Aurora production CLI/API paths instantiate SyncEventBus only. AsyncEventBus and CompositeEventBus are referenced by package tests but no production caller; their retained tests exercise abstractions that cannot affect runtime behavior.",
+      "severity": 0.55
+    },
+    "ISS-325": {
+      "id": "ISS-325",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T08:07:58+00:00",
+      "updated_at": "2026-10-23T09:04:34+00:00",
+      "touched_round": 170,
+      "title": "Oracle SQLite package duplicates a test repository owned by the domain",
+      "description": "InMemoryOracleRepository lives in internal/infra/sqlite and is used only by its own tests. The domain already exposes oracle.InmemRepo, which is used by API/domain tests. Two map-backed repositories drift in ID/timestamp behavior and error contracts, while production uses only OracleRepository.",
+      "severity": 0.4
+    },
+    "ISS-326": {
+      "id": "ISS-326",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T08:08:03+00:00",
+      "updated_at": "2026-10-23T09:04:35+00:00",
+      "touched_round": 170,
+      "title": "Large reachable modules have no evidence-based redundancy decision",
+      "description": "Lottery, voting, NFT, token, oracle, blockchain and TUI surfaces remain wired through CLI/API/Web/desktop. Their size alone is not evidence of dead code, but there is no repo-native ablation report that separates reachable product surfaces, safe dead-code removal, intentional duplication and tooling-only cgo boundaries.",
+      "severity": 0.5
+    },
+    "HYP-040": {
+      "id": "HYP-040",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T08:08:08+00:00",
+      "updated_at": "2026-10-23T09:04:37+00:00",
+      "touched_round": 170,
+      "title": "Unused event buses and duplicate test repository can be ablated without changing production behavior",
+      "description": "If AsyncEventBus/CompositeEventBus have no production constructor callers and InMemoryOracleRepository has no non-test caller, removing them and migrating their tests to SyncEventBus/domain.InmemRepo should preserve all runtime behavior and keep handler/audit coverage.",
+      "confidence": 0.9
+    },
+    "HYP-041": {
+      "id": "HYP-041",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T08:08:15+00:00",
+      "updated_at": "2026-10-23T09:04:38+00:00",
+      "touched_round": 170,
+      "title": "All five business modules remain reachable; TUI is a product decision rather than dead code",
+      "description": "CLI command registration, API route mounting, Web calls and desktop deep links keep lottery/voting/NFT/token/oracle reachable. TUI packages are wired through subcommands and have tests, so their large line count is a product-coherence question rather than evidence of implementation redundancy.",
+      "confidence": 0.95
+    },
+    "EV-120": {
+      "id": "EV-120",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:08:21+00:00",
+      "updated_at": "2026-10-23T08:08:21+00:00",
+      "touched_round": 170,
+      "title": "Production event wiring uses SyncEventBus",
+      "source": "internal/api/server.go:109; cmd/aurora/cmd/token.go:46",
+      "description": "Both production event-bus construction sites call infraevents.NewSyncEventBus. Repository search finds NewAsyncEventBus/NewCompositeEventBus only in package tests.",
+      "confidence": 1
+    },
+    "EV-121": {
+      "id": "EV-121",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:08:27+00:00",
+      "updated_at": "2026-10-23T08:08:27+00:00",
+      "touched_round": 170,
+      "title": "Domain oracle repository is the shared in-memory test implementation",
+      "source": "internal/domain/oracle/repo.go:30; internal/api/handler/oracle_test.go:20",
+      "description": "oracle.NewInmemRepo is used by domain and API tests; InMemoryOracleRepository is referenced only from internal/infra/sqlite/oracle_repo_test.go. Production uses OracleRepository.",
+      "confidence": 1
+    },
+    "EV-122": {
+      "id": "EV-122",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:08:35+00:00",
+      "updated_at": "2026-10-23T08:08:35+00:00",
+      "touched_round": 170,
+      "title": "Feature modules and TUIs are wired into user-facing entry points",
+      "source": "cmd/aurora/cmd/root.go; internal/api/router.go; web/js/app.js; cmd/aurora/cmd/lottery.go:86; cmd/aurora/cmd/nft.go:63; cmd/aurora/cmd/oracle.go:344; cmd/aurora/cmd/token.go:602",
+      "description": "All five feature domains are registered in CLI and API/Web routing; each TUI subcommand has an execution path and dedicated tests. Removing any module or TUI therefore changes a documented user-facing surface, not dead code.",
+      "confidence": 1
+    },
+    "TASK-329": {
+      "id": "TASK-329",
+      "type": "task",
+      "status": "resolved",
+      "version": 5,
+      "created_at": "2026-10-23T08:08:40+00:00",
+      "updated_at": "2026-10-23T09:04:29+00:00",
+      "touched_round": 170,
+      "title": "Ablate unused event buses and duplicate oracle test repository",
+      "description": "Remove AsyncEventBus/CompositeEventBus and adapt their tests/integration coverage to SyncEventBus. Remove sqlite.InMemoryOracleRepository and its duplicate tests while retaining domain oracle.InmemRepo. Preserve audit, panic-recovery, ordering, outbox, and API behavior; prove with targeted tests and a fault-injected check.",
+      "category": "maintainability",
+      "severity": 0.55,
+      "confidence": 0.9,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "TASK-330": {
+      "id": "TASK-330",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T08:08:52+00:00",
+      "updated_at": "2026-10-23T09:04:30+00:00",
+      "touched_round": 170,
+      "title": "Document the cgo boundary and evidence-based project ablation",
+      "description": "Add a repo-native report that maps production binaries and sandbox gates to CGO_ENABLED=0, explains the race-detector exception, records module reachability, lists removed dead code and intentionally retained duplication, and refreshes stale .planning/codebase claims.",
+      "category": "docs",
+      "severity": 0.55,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "TASK-331": {
+      "id": "TASK-331",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:08:56+00:00",
+      "updated_at": "2026-10-23T08:08:56+00:00",
+      "touched_round": 170,
+      "title": "Decide the TUI product boundary before deleting reachable UI code",
+      "description": "Audit the four TUIs for persistence, duplication with CLI/Web, and product coherence. Document whether to retain, narrow or remove each surface; do not delete code until the product owner chooses because every TUI is reachable and tested.",
+      "category": "maintainability",
+      "severity": 0.4,
+      "confidence": 0.95,
+      "effort": 3,
+      "unlock_factor": 1
+    },
+    "CHG-328": {
+      "id": "CHG-328",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:56:16+00:00",
+      "updated_at": "2026-10-23T08:56:16+00:00",
+      "touched_round": 170,
+      "commit": "60aa329"
+    },
+    "CHG-329": {
+      "id": "CHG-329",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:56:29+00:00",
+      "updated_at": "2026-10-23T08:56:29+00:00",
+      "touched_round": 170,
+      "commit": "7f1a00e"
+    },
+    "DEC-028": {
+      "id": "DEC-028",
+      "type": "decision",
+      "status": "resolved",
+      "version": 1,
+      "created_at": "2026-10-23T08:57:11+00:00",
+      "updated_at": "2026-10-23T08:57:11+00:00",
+      "touched_round": 170,
+      "title": "Keep all reachable product modules and the cgo boundary at the race detector",
+      "rationale": "Every large module and TUI surface is reachable from CLI/API/Web/desktop or a shipped command; size alone is not dead-code evidence. Production and default gates are cgo-free with modernc SQLite; only Go race detector runtime needs cgo, so removing race would reduce verification rather than make production more portable.",
+      "alternatives_rejected": "Delete whole lottery/voting/NFT/token/oracle modules by size; delete reachable TUI commands without a product decision; keep unused async/composite buses to avoid a refactor; remove the race gate to claim universal cgo-free testing"
+    },
+    "EV-123": {
+      "id": "EV-123",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:57:30+00:00",
+      "updated_at": "2026-10-23T08:57:30+00:00",
+      "touched_round": 170,
+      "source": "2026-10-23: just build; CGO_ENABLED=0 go test/vet; five-target cross-build",
+      "description": "Pure-Go production gate passed: just build ran gofmt/goimports/vet, CGO_ENABLED=0 tests, and darwin/linux/windows amd64/arm64 CLI builds.",
+      "confidence": 1.0
+    },
+    "EV-124": {
+      "id": "EV-124",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:57:35+00:00",
+      "updated_at": "2026-10-23T08:57:35+00:00",
+      "touched_round": 170,
+      "source": "2026-10-23: just desktop-check; just desktop-race; root CGO_ENABLED=1 go test -race ./...",
+      "description": "Desktop cgo-free build/vet/test and both race suites passed; race is the only gate requiring cgo.",
+      "confidence": 1.0
+    },
+    "EV-125": {
+      "id": "EV-125",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:57:41+00:00",
+      "updated_at": "2026-10-23T08:57:41+00:00",
+      "touched_round": 170,
+      "source": "2026-10-23: git diff --numstat; rg reachability audit; commits 60aa329/7f1a00e",
+      "description": "Ablation removed 1532 net lines of unreachable surfaces while all five module entry points, sync audit/outbox, migrations, and reachable TUIs remained; no go.mod/go.sum change.",
+      "confidence": 1.0
+    },
+    "EV-126": {
+      "id": "EV-126",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T08:57:45+00:00",
+      "updated_at": "2026-10-23T08:57:45+00:00",
+      "touched_round": 170,
+      "source": "2026-10-23: just lint; golangci-lint version",
+      "description": "Local golangci-lint 2.11.4 was built with Go 1.26.1 and cannot load a Go 1.27.2 module; CI pins v2.15.0. This is a toolchain limitation, not a lint result.",
+      "confidence": 1.0
+    },
+    "HYP-042": {
+      "id": "HYP-042",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T09:03:29+00:00",
+      "updated_at": "2026-10-23T09:04:42+00:00",
+      "touched_round": 170,
+      "title": "The race detector cgo requirement is a Go toolchain boundary, not removable Aurora cgo",
+      "description": "Aurora production builds and ordinary tests are pure Go, but cmd/go rejects -race with CGO_ENABLED=0 on Linux/Windows and runtime/race imports C to link the ThreadSanitizer runtime. No Aurora refactor can remove this toolchain constraint; only deleting the race gate can.",
+      "confidence": 1.0
+    },
+    "HYP-043": {
+      "id": "HYP-043",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T09:03:31+00:00",
+      "updated_at": "2026-10-23T09:04:44+00:00",
+      "touched_round": 170,
+      "title": "Pure-Go and ablation gates preserve reachable behavior while removing dead surfaces",
+      "description": "The five feature modules, sync audit/outbox, migrations and reachable TUIs remain reachable after the ablation; pure-Go production gates and explicit race gates pass, and the local lint failure is isolated to an older locally installed binary.",
+      "confidence": 0.98
+    },
+    "EV-127": {
+      "id": "EV-127",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T09:04:09+00:00",
+      "updated_at": "2026-10-23T09:04:09+00:00",
+      "touched_round": 170,
+      "title": "Go toolchain rejects -race when cgo is disabled",
+      "source": "Go 1.27.3 GOROOT src/cmd/go/internal/work/init.go:195-199; src/runtime/race/race.go:1-16; CGO_ENABLED=0 go test -race ./internal/infra/events",
+      "description": "The local toolchain reports go: -race requires cgo; enable cgo by setting CGO_ENABLED=1. cmd/go enforces this on Linux and Windows, and runtime/race imports C to link the prebuilt ThreadSanitizer runtime. Darwin is the documented exception and can run race without a C toolchain.",
+      "confidence": 1.0
     }
   },
   "edges": [
@@ -22989,6 +23253,150 @@
       "to": "TASK-328",
       "type": "governs",
       "created_at": "2026-10-23T07:49:27+00:00"
+    },
+    {
+      "from": "EV-120",
+      "to": "HYP-040",
+      "type": "validates",
+      "created_at": "2026-10-23T08:09:01+00:00"
+    },
+    {
+      "from": "EV-121",
+      "to": "HYP-040",
+      "type": "validates",
+      "created_at": "2026-10-23T08:09:03+00:00"
+    },
+    {
+      "from": "EV-122",
+      "to": "HYP-041",
+      "type": "validates",
+      "created_at": "2026-10-23T08:09:04+00:00"
+    },
+    {
+      "from": "TASK-329",
+      "to": "ISS-324",
+      "type": "addresses",
+      "created_at": "2026-10-23T08:09:09+00:00"
+    },
+    {
+      "from": "TASK-329",
+      "to": "ISS-325",
+      "type": "addresses",
+      "created_at": "2026-10-23T08:09:11+00:00"
+    },
+    {
+      "from": "TASK-330",
+      "to": "ISS-326",
+      "type": "addresses",
+      "created_at": "2026-10-23T08:09:13+00:00"
+    },
+    {
+      "from": "TASK-331",
+      "to": "ISS-326",
+      "type": "addresses",
+      "created_at": "2026-10-23T08:09:14+00:00"
+    },
+    {
+      "from": "ISS-325",
+      "to": "COMP-019",
+      "type": "located_in",
+      "created_at": "2026-10-23T08:09:21+00:00"
+    },
+    {
+      "from": "ISS-324",
+      "to": "COMP-012",
+      "type": "located_in",
+      "created_at": "2026-10-23T08:09:47+00:00"
+    },
+    {
+      "from": "ISS-326",
+      "to": "COMP-012",
+      "type": "located_in",
+      "created_at": "2026-10-23T08:09:50+00:00"
+    },
+    {
+      "from": "TASK-330",
+      "to": "TASK-329",
+      "type": "depends_on",
+      "created_at": "2026-10-23T08:09:52+00:00"
+    },
+    {
+      "from": "TASK-331",
+      "to": "TASK-329",
+      "type": "depends_on",
+      "created_at": "2026-10-23T08:09:53+00:00"
+    },
+    {
+      "from": "CHG-328",
+      "to": "TASK-329",
+      "type": "implements",
+      "created_at": "2026-10-23T08:57:19+00:00"
+    },
+    {
+      "from": "CHG-328",
+      "to": "ISS-324",
+      "type": "resolves",
+      "created_at": "2026-10-23T08:57:19+00:00"
+    },
+    {
+      "from": "CHG-328",
+      "to": "ISS-325",
+      "type": "resolves",
+      "created_at": "2026-10-23T08:57:19+00:00"
+    },
+    {
+      "from": "CHG-329",
+      "to": "TASK-330",
+      "type": "implements",
+      "created_at": "2026-10-23T08:57:19+00:00"
+    },
+    {
+      "from": "CHG-329",
+      "to": "ISS-326",
+      "type": "resolves",
+      "created_at": "2026-10-23T08:57:19+00:00"
+    },
+    {
+      "from": "EV-124",
+      "to": "HYP-042",
+      "type": "validates",
+      "created_at": "2026-10-23T09:03:41+00:00"
+    },
+    {
+      "from": "EV-123",
+      "to": "HYP-043",
+      "type": "validates",
+      "created_at": "2026-10-23T09:03:42+00:00"
+    },
+    {
+      "from": "EV-125",
+      "to": "HYP-043",
+      "type": "validates",
+      "created_at": "2026-10-23T09:03:44+00:00"
+    },
+    {
+      "from": "EV-126",
+      "to": "HYP-043",
+      "type": "validates",
+      "created_at": "2026-10-23T09:03:46+00:00"
+    },
+    {
+      "from": "DEC-028",
+      "to": "TASK-331",
+      "type": "governs",
+      "created_at": "2026-10-23T09:03:48+00:00"
+    },
+    {
+      "from": "DEC-028",
+      "to": "TASK-330",
+      "type": "governs",
+      "created_at": "2026-10-23T09:03:53+00:00"
+    },
+    {
+      "from": "EV-127",
+      "to": "HYP-042",
+      "type": "validates",
+      "created_at": "2026-10-23T09:04:14+00:00"
     }
   ]
 }
