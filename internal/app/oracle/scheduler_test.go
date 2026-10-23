@@ -14,9 +14,10 @@ import (
 type fakeSourceRepo struct {
 	sources []*oracle.DataSource
 	data    map[string]*oracle.OracleData
+	listErr error
 }
 
-func (f *fakeSourceRepo) ListSources() ([]*oracle.DataSource, error) { return f.sources, nil }
+func (f *fakeSourceRepo) ListSources() ([]*oracle.DataSource, error) { return f.sources, f.listErr }
 
 func (f *fakeSourceRepo) GetLatestData(sourceID string) (*oracle.OracleData, error) {
 	return f.data[sourceID], nil
@@ -198,6 +199,34 @@ func TestScheduler_SeedsLastFetchFromRepo(t *testing.T) {
 		t.Fatalf("fresh source should NOT be re-fetched (data still inside interval), got %v", fetched)
 	}
 }
+
+func TestScheduler_RetriesSeedAfterTransientListError(t *testing.T) {
+	now := time.Unix(1000, 0)
+	repo := &fakeSourceRepo{
+		sources: []*oracle.DataSource{{ID: "fresh", Enabled: true, Interval: 60}},
+		data: map[string]*oracle.OracleData{
+			"fresh": {SourceID: "fresh", Timestamp: now.Add(-10 * time.Second).Unix()},
+		},
+		listErr: errors.New("database busy"),
+	}
+	fetched := 0
+	s := NewScheduler(repo, func(_ context.Context, _ string) error {
+		fetched++
+		return nil
+	}, time.Second, func() time.Time { return now })
+
+	s.pass(context.Background())
+	if fetched != 0 {
+		t.Fatalf("first pass fetched %d sources while the repository was unavailable, want 0", fetched)
+	}
+
+	repo.listErr = nil
+	s.pass(context.Background())
+	if fetched != 0 {
+		t.Fatalf("recovered seed must deduplicate a fresh source, got %d fetch(es)", fetched)
+	}
+}
+
 func TestScheduler_StatsTracksSuccessAndFailure(t *testing.T) {
 	now := time.Unix(1000, 0)
 	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
