@@ -121,7 +121,8 @@ aurora migrate down --confirm # 回滚一步
   token 操作已提交但审计事件发布失败时打印 `⚠ ... DID commit. Do NOT retry`
   的专用警告，退出码同样非零。
 - `[log] level/path` 在命令执行前加载，默认写入 `./logs/aurora.log`；Unix-like
-  系统上目录为 `0700`、文件为 `0600`。
+  系统上目录为 `0700`、文件为 `0600`。日志文件不可用时，结构化回退日志写入
+  `stderr`，`stdout` 只保留命令结果。
 - 显式 `--config` 缺失或配置文件语法错误会直接中止，不会静默回退到默认数据库；
   只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
 - 所有输出遵循 `[i18n] locale` 或 `$LANG`；`aurora <cmd> --help` 同样本地化。

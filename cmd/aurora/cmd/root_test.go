@@ -150,10 +150,11 @@ func TestRootCommandRejectsInvalidExplicitConfig(t *testing.T) {
 
 				capture := captureStdout(t)
 				err := rootCmd.Execute()
-				_ = capture()
+				stdout := capture()
 
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "config")
+				assert.Empty(t, stdout, "a config error must not write a structured log into command output")
 			})
 		}
 	})

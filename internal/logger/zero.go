@@ -97,8 +97,9 @@ func Init() {
 		}
 	}
 
-	// Default to console
-	output = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout}).With().Timestamp().Logger()
+	// Console output is diagnostics, not command data. Keep stdout clean for
+	// machine-readable results and CLI pipelines.
+	output = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
 	publish(output)
 }
 
