@@ -74,6 +74,13 @@ documented in their per-milestone ROADMAP files.
   owner-only contract to its hidden `.pre_restore` undo snapshot and to the
   promoted live database, including staging directories left by older
   releases.
+- **Web UI action labels and secondary copy meet WCAG AA contrast**: the
+  pastel action buttons used white text at only `1.73–3.20:1`, and secondary
+  text measured `4.41:1` on the page background and `3.88:1` on cards.
+  Buttons now use dark page ink on every accent surface, and secondary text
+  is light enough to exceed `4.5:1` on both backgrounds without changing the
+  existing dark visual language. A stylesheet contract test computes the
+  ratios from the shipped CSS variables.
 - **Concurrent release runs are serialized by tag**: a tag push and one or
   more manual retries use the same non-cancelling concurrency group, so the
   publisher cannot interleave binaries, checksums, or provenance from different

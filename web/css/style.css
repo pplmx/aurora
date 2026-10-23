@@ -3,7 +3,8 @@
     --bg-card: #252525;
     --border: #333333;
     --text-primary: #d4d4d4;
-    --text-secondary: #808080;
+    --text-secondary: #a0a0a0;
+    --button-ink: #1a1a1a;
     --accent-lottery: #c678dd;
     --accent-voting: #98c379;
     --accent-nft: #e5c07b;
@@ -190,22 +191,22 @@ button:disabled {
 
 .btn-lottery {
     background-color: var(--accent-lottery);
-    color: #fff;
+    color: var(--button-ink);
 }
 
 .btn-voting {
     background-color: var(--accent-voting);
-    color: #fff;
+    color: var(--button-ink);
 }
 
 .btn-blockchain {
     background-color: var(--accent-blockchain);
-    color: #fff;
+    color: var(--button-ink);
 }
 
 .btn-nft {
     background-color: var(--accent-nft);
-    color: #fff;
+    color: var(--button-ink);
 }
 
 .result {
@@ -262,12 +263,12 @@ th {
 
 .btn-yes {
     background-color: var(--accent-voting);
-    color: #fff;
+    color: var(--button-ink);
 }
 
 .btn-no {
     background-color: #e06c75;
-    color: #fff;
+    color: var(--button-ink);
 }
 
 .activity #activity-list {
