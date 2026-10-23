@@ -47,6 +47,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Desktop state is private to the current user**: the SQLite database can
+  contain operator-supplied Oracle bearer headers, but the default app tree
+  was created with mode `0755` and its database/log files with `0644`. The
+  desktop now creates and tightens its default Unix data directory to `0700`
+  before storage opens, including directories left by older releases, and
+  keeps the SQLite/WAL/SHM and log files at `0600`. An explicit `--data-dir`
+  keeps an existing directory's permissions.
 - **Concurrent release runs are serialized by tag**: a tag push and one or
   more manual retries use the same non-cancelling concurrency group, so the
   publisher cannot interleave binaries, checksums, or provenance from different

@@ -7,7 +7,12 @@ reporting service.
 The desktop application stores its SQLite database, logs, backups, exports,
 and recent-document metadata under the user's local data directory. These
 files remain on the user's machine unless the user explicitly copies or
-shares them.
+shares them. On Unix-like systems the default application data directory is
+created (or tightened) with mode `0700` so other local accounts cannot
+traverse the database or logs; the SQLite files, WAL/SHM sidecars and log file
+are also kept at mode `0600`. An explicit `--data-dir` keeps the permissions
+of an existing operator-managed directory; a newly created explicit directory
+is still owner-only.
 
 **This program will not transfer any information to other networked systems
 unless specifically requested by the user or the person installing or

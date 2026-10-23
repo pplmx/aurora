@@ -152,6 +152,17 @@ func TestCIPackagesTheDesktopApp(t *testing.T) {
 	require.Contains(t, workflow, "aurora.db")
 	require.Contains(t, workflow, `kill -0 "$pid"`,
 		"the app must still be alive after initializing its database")
+	for _, step := range []string{
+		"umask 022",
+		`data="$tmp/config/Aurora"`,
+		`xvfb-run -a dist/desktop/linux-amd64/aurora \`,
+		`test "$(stat -c '%a' "$data")" = "700"`,
+		`test "$(stat -c '%a' "$data/aurora.db")" = "600"`,
+		`test "$(stat -c '%a' "$data/logs/aurora.log")" = "600"`,
+	} {
+		assert.Contains(t, workflow, step,
+			"the packaging gate must verify %q", step)
+	}
 	require.Contains(t, workflow, "aurora --version")
 	require.Contains(t, workflow, `!= "0.0.1"`)
 	require.Contains(t, workflow, `s/^Build Time: //p`)
@@ -251,8 +262,13 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 		`"$app" --version`,
 		`!= "0.0.1"`,
 		`!= "unknown"`,
-		`xvfb-run -a "$app" --data-dir "$data"`,
-		`test -f "$data/aurora.db"`,
+		"umask 022",
+		`data="$tmp/config/Aurora"`,
+		`xvfb-run -a "$app" \`,
+		`test -f "$data/logs/aurora.log"`,
+		`test "$(stat -c '%a' "$data")" = "700"`,
+		`test "$(stat -c '%a' "$data/aurora.db")" = "600"`,
+		`test "$(stat -c '%a' "$data/logs/aurora.log")" = "600"`,
 		`kill -0 "$pid"`,
 	} {
 		assert.Contains(t, desktopWorkflow, step,
