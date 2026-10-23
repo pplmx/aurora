@@ -77,6 +77,14 @@ func injectAPIKey(next http.Handler, apiKey string) http.Handler {
 				w.Header().Add(k, v)
 			}
 		}
+		// FileServer adds Last-Modified, which permits heuristic caching. That
+		// would allow a browser or shared proxy to retain and replay the
+		// injected API key. Only HTML carries the credential; static assets
+		// keep their normal cache behavior. Set this after copying downstream
+		// headers so the downstream cannot accidentally weaken the policy.
+		if isHTML(rec.header.Get("Content-Type")) {
+			w.Header().Set("Cache-Control", "no-store")
+		}
 		w.WriteHeader(rec.status)
 		_, _ = w.Write(body)
 	})

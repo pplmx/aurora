@@ -81,6 +81,12 @@ documented in their per-milestone ROADMAP files.
   is light enough to exceed `4.5:1` on both backgrounds without changing the
   existing dark visual language. A stylesheet contract test computes the
   ratios from the shipped CSS variables.
+- **API-key-bearing Web UI pages are never cacheable**: the gateway injects
+  the resolved API key into each HTML document, but the static file server
+  supplied `Last-Modified` without a cache policy. Browsers and shared proxies
+  could therefore retain and replay the credential. Injected HTML now sends
+  `Cache-Control: no-store`, while CSS and JavaScript keep their normal static
+  cache behavior; a response-header regression pins both paths.
 - **Concurrent release runs are serialized by tag**: a tag push and one or
   more manual retries use the same non-cancelling concurrency group, so the
   publisher cannot interleave binaries, checksums, or provenance from different
