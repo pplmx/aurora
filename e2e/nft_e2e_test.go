@@ -11,18 +11,16 @@ import (
 )
 
 type inMemoryNFTRepo struct {
-	nfts          map[string]*nftdomain.NFT
-	operations    map[string][]*nftdomain.Operation
-	nftsByOwner   map[string][]*nftdomain.NFT
-	nftsByCreator map[string][]*nftdomain.NFT
+	nfts        map[string]*nftdomain.NFT
+	operations  map[string][]*nftdomain.Operation
+	nftsByOwner map[string][]*nftdomain.NFT
 }
 
 func newInMemoryNFTRepo() *inMemoryNFTRepo {
 	return &inMemoryNFTRepo{
-		nfts:          make(map[string]*nftdomain.NFT),
-		operations:    make(map[string][]*nftdomain.Operation),
-		nftsByOwner:   make(map[string][]*nftdomain.NFT),
-		nftsByCreator: make(map[string][]*nftdomain.NFT),
+		nfts:        make(map[string]*nftdomain.NFT),
+		operations:  make(map[string][]*nftdomain.Operation),
+		nftsByOwner: make(map[string][]*nftdomain.NFT),
 	}
 }
 
@@ -30,8 +28,6 @@ func (r *inMemoryNFTRepo) SaveNFT(nft *nftdomain.NFT) error {
 	r.nfts[nft.ID] = nft
 	ownerKey := string(nft.Owner)
 	r.nftsByOwner[ownerKey] = append(r.nftsByOwner[ownerKey], nft)
-	creatorKey := string(nft.Creator)
-	r.nftsByCreator[creatorKey] = append(r.nftsByCreator[creatorKey], nft)
 	return nil
 }
 
@@ -55,10 +51,6 @@ func (r *inMemoryNFTRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nf
 		all = all[offset:end]
 	}
 	return all, nil
-}
-
-func (r *inMemoryNFTRepo) GetNFTsByCreator(creator []byte) ([]*nftdomain.NFT, error) {
-	return r.nftsByCreator[string(creator)], nil
 }
 
 func (r *inMemoryNFTRepo) UpdateNFT(nft *nftdomain.NFT) error {

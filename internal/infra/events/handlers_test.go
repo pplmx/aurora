@@ -1,10 +1,8 @@
 package events
 
 import (
-	"errors"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/pplmx/aurora/internal/domain/events"
 )
@@ -33,88 +31,6 @@ func (s *mockAuditStore) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.events = nil
-}
-
-func TestCompositeEventBus_Publish(t *testing.T) {
-	bus := NewCompositeEventBus()
-
-	var syncCalled, asyncCalled, pluginCalled bool
-	var mu sync.Mutex
-
-	bus.SyncBus.Subscribe("test.event", func(e events.Event) error {
-		mu.Lock()
-		syncCalled = true
-		mu.Unlock()
-		return nil
-	})
-
-	bus.AsyncBus.Subscribe("test.event", func(e events.Event) error {
-		mu.Lock()
-		asyncCalled = true
-		mu.Unlock()
-		return nil
-	})
-
-	bus.PluginBus.Subscribe("test.event", func(e events.Event) error {
-		mu.Lock()
-		pluginCalled = true
-		mu.Unlock()
-		return nil
-	})
-
-	e := newMockEvent("test.event", "agg-1")
-	if err := bus.Publish(e); err != nil {
-		t.Fatalf("Publish failed: %v", err)
-	}
-
-	time.Sleep(10 * time.Millisecond)
-
-	mu.Lock()
-	if !syncCalled {
-		t.Error("sync bus handler was not called")
-	}
-	if !asyncCalled {
-		t.Error("async bus handler was not called")
-	}
-	if !pluginCalled {
-		t.Error("plugin bus handler was not called")
-	}
-	mu.Unlock()
-}
-
-func TestCompositeEventBus_SyncErrorStopsAsyncPlugin(t *testing.T) {
-	bus := NewCompositeEventBus()
-
-	var asyncCalled, pluginCalled bool
-	bus.AsyncBus.Subscribe("error.event", func(e events.Event) error {
-		asyncCalled = true
-		return nil
-	})
-
-	bus.PluginBus.Subscribe("error.event", func(e events.Event) error {
-		pluginCalled = true
-		return nil
-	})
-
-	bus.SyncBus.Subscribe("error.event", func(e events.Event) error {
-		return errors.New("sync error")
-	})
-
-	e := newMockEvent("error.event", "agg-1")
-	err := bus.Publish(e)
-	if err == nil {
-		t.Fatal("expected error from sync bus")
-	}
-	if err.Error() != "sync error" {
-		t.Errorf("expected 'sync error', got '%s'", err.Error())
-	}
-
-	if asyncCalled {
-		t.Error("async bus handler should not be called when sync bus errors")
-	}
-	if pluginCalled {
-		t.Error("plugin bus handler should not be called when sync bus errors")
-	}
 }
 
 func TestAuditHandler_Handle(t *testing.T) {

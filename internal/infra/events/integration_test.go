@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/stretchr/testify/require"
 )
 
-func TestFullFlow_CompositeBus(t *testing.T) {
+func TestFullFlow_SyncBus(t *testing.T) {
 	storeFile, err := os.CreateTemp("", "events-integration-*.db")
 	if err != nil {
 		t.Fatal(err)
@@ -25,7 +24,7 @@ func TestFullFlow_CompositeBus(t *testing.T) {
 	}
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	for i := 0; i < 5; i++ {
@@ -59,7 +58,7 @@ func TestFullFlow_PublishRetrieve(t *testing.T) {
 	}
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	testPayload := map[string]interface{}{
@@ -113,7 +112,7 @@ func TestFullFlow_MultipleAggregates(t *testing.T) {
 	}
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	for i := 0; i < 3; i++ {
@@ -280,7 +279,7 @@ func TestFullFlow_EventBusWithStatsHandler(t *testing.T) {
 	}
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 
 	statsHandler := NewStatsHandler()
 	auditHandler := NewAuditHandler(eventStore)
@@ -335,7 +334,7 @@ func TestFullFlow_Unsubscribe(t *testing.T) {
 	}
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 
 	statsHandler := NewStatsHandler()
 	unsubscribe := bus.Subscribe("test.event", statsHandler.Handle)
@@ -375,7 +374,7 @@ func TestFullFlow_ModuleFiltering(t *testing.T) {
 	}
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	_ = bus.Publish(events.NewBaseEvent("token.mint", "agg-1", []byte(`{}`)))
@@ -399,41 +398,6 @@ func TestFullFlow_ModuleFiltering(t *testing.T) {
 	}
 }
 
-func TestFullFlow_CompositeBus_AllBuses(t *testing.T) {
-	storeFile, err := os.CreateTemp("", "events-integration-*.db")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.Remove(storeFile.Name()) }()
-	_ = storeFile.Close()
-
-	eventStore, err := NewSQLiteEventStore(storeFile.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = eventStore.Close() }()
-
-	bus := NewCompositeEventBus()
-
-	statsHandler := NewStatsHandler()
-	bus.AsyncBus.Subscribe("test.event", statsHandler.Handle)
-
-	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
-
-	e := events.NewBaseEvent("test.event", "agg-1", []byte(`{}`))
-	if err := bus.Publish(e); err != nil {
-		t.Fatalf("Publish() error = %v", err)
-	}
-
-	eventsResult, err := eventStore.GetByType("test.event", 10)
-	if err != nil {
-		t.Fatalf("GetByType() error = %v", err)
-	}
-	if len(eventsResult) != 1 {
-		t.Errorf("len(events) = %d, want 1", len(eventsResult))
-	}
-}
-
 func TestEventFlow_TokenTransfer(t *testing.T) {
 	storeFile, _ := os.CreateTemp("", "events-flow-*.db")
 	defer func() { _ = os.Remove(storeFile.Name()) }()
@@ -443,7 +407,7 @@ func TestEventFlow_TokenTransfer(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	from := []byte("sender-public-key")
@@ -460,8 +424,6 @@ func TestEventFlow_TokenTransfer(t *testing.T) {
 	err = bus.Publish(e)
 	require.NoError(t, err)
 
-	time.Sleep(100 * time.Millisecond)
-
 	stored, err := eventStore.GetByAggregate("token-TEST", 50, 0)
 	require.NoError(t, err)
 	require.Len(t, stored, 1)
@@ -477,7 +439,7 @@ func TestEventFlow_TokenMint(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	to := []byte("receiver-public-key")
@@ -490,8 +452,6 @@ func TestEventFlow_TokenMint(t *testing.T) {
 
 	err = bus.Publish(e)
 	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	stored, err := eventStore.GetByAggregate("token-TEST", 50, 0)
 	require.NoError(t, err)
@@ -508,7 +468,7 @@ func TestEventFlow_TokenBurn(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	from := []byte("owner-public-key")
@@ -521,8 +481,6 @@ func TestEventFlow_TokenBurn(t *testing.T) {
 
 	err = bus.Publish(e)
 	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	stored, err := eventStore.GetByAggregate("token-TEST", 50, 0)
 	require.NoError(t, err)
@@ -539,7 +497,7 @@ func TestEventFlow_NFTMint(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	owner := []byte("nft-owner")
@@ -552,8 +510,6 @@ func TestEventFlow_NFTMint(t *testing.T) {
 
 	err = bus.Publish(e)
 	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	stored, err := eventStore.GetByAggregate("nft-123", 50, 0)
 	require.NoError(t, err)
@@ -570,7 +526,7 @@ func TestEventFlow_NFTTransfer(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	from := []byte("from-owner")
@@ -584,8 +540,6 @@ func TestEventFlow_NFTTransfer(t *testing.T) {
 
 	err = bus.Publish(e)
 	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	stored, err := eventStore.GetByAggregate("nft-456", 50, 0)
 	require.NoError(t, err)
@@ -602,7 +556,7 @@ func TestEventFlow_VotingVote(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	voter := []byte("voter-public-key")
@@ -615,8 +569,6 @@ func TestEventFlow_VotingVote(t *testing.T) {
 
 	err = bus.Publish(e)
 	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	stored, err := eventStore.GetByAggregate("proposal-1", 50, 0)
 	require.NoError(t, err)
@@ -633,7 +585,7 @@ func TestEventFlow_LotteryDraw(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	payload := map[string]interface{}{
@@ -645,8 +597,6 @@ func TestEventFlow_LotteryDraw(t *testing.T) {
 
 	err = bus.Publish(e)
 	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	stored, err := eventStore.GetByAggregate("lottery-1", 50, 0)
 	require.NoError(t, err)
@@ -663,7 +613,7 @@ func TestEventFlow_OracleFetch(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = eventStore.Close() }()
 
-	bus := NewCompositeEventBus()
+	bus := NewSyncEventBus()
 	bus.SubscribeAll(NewAuditHandler(eventStore).Handle)
 
 	payload := map[string]interface{}{
@@ -675,8 +625,6 @@ func TestEventFlow_OracleFetch(t *testing.T) {
 
 	err = bus.Publish(e)
 	require.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	stored, err := eventStore.GetByAggregate("fetch-1", 50, 0)
 	require.NoError(t, err)

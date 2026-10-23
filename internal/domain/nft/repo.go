@@ -17,7 +17,6 @@ type Repository interface {
 	// LIMIT/OFFSET. limit <= 0 means unbounded (0, 0 is the CLI/TUI default;
 	// the REST layer always passes a bounded limit, TASK-101, ISS-093).
 	GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error)
-	GetNFTsByCreator(creator []byte) ([]*NFT, error)
 	UpdateNFT(nft *NFT) error
 
 	// TryTransferOwnership atomically transfers ownership from

@@ -258,49 +258,6 @@ func TestNFTService_GetNFTsByOwner(t *testing.T) {
 	}
 }
 
-func TestNFTService_GetNFTsByCreator(t *testing.T) {
-	repo := NewInmemRepo()
-	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
-	blockchain.ResetForTest()
-
-	creatorPub, _, _ := ed25519.GenerateKey(nil)
-	otherPub, _, _ := ed25519.GenerateKey(nil)
-
-	nft1 := NewNFT("NFT 1", "Desc", "", "", creatorPub, creatorPub)
-	nft2 := NewNFT("NFT 2", "Desc", "", "", creatorPub, creatorPub)
-	nft3 := NewNFT("NFT 3", "Desc", "", "", otherPub, otherPub)
-
-	_, err := svc.Mint(nft1, chain)
-	if err != nil {
-		t.Fatalf("Mint failed: %v", err)
-	}
-	_, err = svc.Mint(nft2, chain)
-	if err != nil {
-		t.Fatalf("Mint failed: %v", err)
-	}
-	_, err = svc.Mint(nft3, chain)
-	if err != nil {
-		t.Fatalf("Mint failed: %v", err)
-	}
-
-	creatorNFTs, err := svc.GetNFTsByCreator(creatorPub)
-	if err != nil {
-		t.Fatalf("GetNFTsByCreator failed: %v", err)
-	}
-	if len(creatorNFTs) != 2 {
-		t.Errorf("expected 2 NFTs for creator, got %d", len(creatorNFTs))
-	}
-
-	otherNFTs, err := svc.GetNFTsByCreator(otherPub)
-	if err != nil {
-		t.Fatalf("GetNFTsByCreator failed: %v", err)
-	}
-	if len(otherNFTs) != 1 {
-		t.Errorf("expected 1 NFT for other, got %d", len(otherNFTs))
-	}
-}
-
 func TestNFTService_GetNFTsByOwner_Empty(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
@@ -676,14 +633,6 @@ func TestNFTService_BatchMint(t *testing.T) {
 		mintedNFTs = append(mintedNFTs, minted)
 	}
 
-	creatorNFTs, err := svc.GetNFTsByCreator(creatorPub)
-	if err != nil {
-		t.Fatalf("GetNFTsByCreator failed: %v", err)
-	}
-	if len(creatorNFTs) != 5 {
-		t.Errorf("expected 5 NFTs, got %d", len(creatorNFTs))
-	}
-
 	for _, minted := range mintedNFTs {
 		found, _ := svc.GetNFTByID(minted.ID)
 		if found == nil {
@@ -822,10 +771,6 @@ func (r *FailingRepo) GetNFT(id string) (*NFT, error) {
 
 func (r *FailingRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error) {
 	return r.inmemRepo.GetNFTsByOwner(owner, limit, offset)
-}
-
-func (r *FailingRepo) GetNFTsByCreator(creator []byte) ([]*NFT, error) {
-	return r.inmemRepo.GetNFTsByCreator(creator)
 }
 
 func (r *FailingRepo) UpdateNFT(nft *NFT) error {

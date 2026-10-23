@@ -303,51 +303,6 @@ func (r *NFTRepository) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.
 	return results, rows.Err()
 }
 
-func (r *NFTRepository) GetNFTsByCreator(creator []byte) ([]*nft.NFT, error) {
-	creatorB64 := base64.StdEncoding.EncodeToString(creator)
-	rows, err := r.q().Query(`
-		SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
-		FROM nfts WHERE creator = ?
-	`, creatorB64)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-
-	var results []*nft.NFT
-	for rows.Next() {
-		var id, name, description, imageURL, tokenURI, ownerB64, creatorStr string
-		var blockHeight, timestamp int64
-
-		if err := rows.Scan(&id, &name, &description, &imageURL, &tokenURI, &ownerB64, &creatorStr, &blockHeight, &timestamp); err != nil {
-			return nil, err
-		}
-
-		owner, err := base64.StdEncoding.DecodeString(ownerB64)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode owner: %w", err)
-		}
-		creatorBytes, err := base64.StdEncoding.DecodeString(creatorStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode creator: %w", err)
-		}
-
-		results = append(results, &nft.NFT{
-			ID:          id,
-			Name:        name,
-			Description: description,
-			ImageURL:    imageURL,
-			TokenURI:    tokenURI,
-			Owner:       owner,
-			Creator:     creatorBytes,
-			BlockHeight: blockHeight,
-			Timestamp:   timestamp,
-		})
-	}
-
-	return results, rows.Err()
-}
-
 func (r *NFTRepository) UpdateNFT(n *nft.NFT) error {
 	_, err := r.q().Exec(`
 		UPDATE nfts SET name = ?, description = ?, image_url = ?, token_uri = ?, owner = ?, block_height = ?, timestamp = ?

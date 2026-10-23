@@ -568,44 +568,6 @@ func (r *TokenRepository) TryAddBalance(tokenID token.TokenID, owner token.Publi
 	return r.GetAccountBalance(tokenID, owner)
 }
 
-func (r *TokenRepository) GetApprovalsByOwner(tokenID token.TokenID, owner token.PublicKey) ([]*token.Approval, error) {
-	ownerB64 := base64.StdEncoding.EncodeToString(owner)
-
-	rows, err := r.q().Query("SELECT token_id, owner, spender, amount, expires_at FROM allowances WHERE token_id = ? AND owner = ?",
-		tokenID, ownerB64)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-
-	var approvals []*token.Approval
-	for rows.Next() {
-		var tkID, ownB64, spendB64, amountStr string
-		var expiresAt int64
-
-		if err := rows.Scan(&tkID, &ownB64, &spendB64, &amountStr, &expiresAt); err != nil {
-			return nil, err
-		}
-
-		own, err := base64.StdEncoding.DecodeString(ownB64)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode owner: %w", err)
-		}
-		spend, err := base64.StdEncoding.DecodeString(spendB64)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode spender: %w", err)
-		}
-		amount, err := token.NewAmountFromString(amountStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode amount: %w", err)
-		}
-
-		approvals = append(approvals, token.NewApproval(token.TokenID(tkID), own, spend, amount))
-	}
-
-	return approvals, rows.Err()
-}
-
 func (r *TokenRepository) Close() error {
 	if r.db != nil {
 		return r.db.Close()

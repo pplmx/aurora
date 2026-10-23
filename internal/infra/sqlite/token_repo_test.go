@@ -187,34 +187,6 @@ func TestTokenRepository_GetApproval_NotFound(t *testing.T) {
 	}
 }
 
-func TestTokenRepository_GetApprovalsByOwner(t *testing.T) {
-	repo, cleanup := setupTokenTestDB(t)
-	defer cleanup()
-
-	owner := token.PublicKey([]byte("owner"))
-	spender1 := token.PublicKey([]byte("spender1"))
-	spender2 := token.PublicKey([]byte("spender2"))
-
-	err := repo.SaveApproval(token.NewApproval("TEST", owner, spender1, token.NewAmount(100)))
-	if err != nil {
-		t.Fatalf("Failed to save approval: %v", err)
-	}
-
-	err = repo.SaveApproval(token.NewApproval("TEST2", owner, spender2, token.NewAmount(200)))
-	if err != nil {
-		t.Fatalf("Failed to save approval: %v", err)
-	}
-
-	approvals, err := repo.GetApprovalsByOwner("TEST", owner)
-	if err != nil {
-		t.Fatalf("Failed to get approvals: %v", err)
-	}
-
-	if len(approvals) != 1 {
-		t.Errorf("Expected 1 approval, got %d", len(approvals))
-	}
-}
-
 func TestTokenRepository_Close(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test.db")

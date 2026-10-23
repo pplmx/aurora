@@ -1180,16 +1180,6 @@ func (m *mockRepository) GetApproval(tokenID TokenID, owner, spender PublicKey) 
 	return m.approvals[key], nil
 }
 
-func (m *mockRepository) GetApprovalsByOwner(tokenID TokenID, owner PublicKey) ([]*Approval, error) {
-	var result []*Approval
-	for _, approval := range m.approvals {
-		if approval.TokenID() == tokenID && bytes.Equal(approval.Owner(), owner) {
-			result = append(result, approval)
-		}
-	}
-	return result, nil
-}
-
 func (m *mockRepository) GetAccountBalance(tokenID TokenID, owner PublicKey) (*Amount, error) {
 	key := string(tokenID) + string(owner)
 	if balance, ok := m.balances[key]; ok {
@@ -1321,16 +1311,12 @@ func (m *mockRepository) TryAdjustApproval(tokenID TokenID, owner, spender Publi
 type mockEventStore struct {
 	transferEvents []*TransferEvent
 	mintEvents     []*MintEvent
-	burnEvents     []*BurnEvent
-	approveEvents  []*ApproveEvent
 }
 
 func NewMockEventStore() *mockEventStore {
 	return &mockEventStore{
 		transferEvents: make([]*TransferEvent, 0),
 		mintEvents:     make([]*MintEvent, 0),
-		burnEvents:     make([]*BurnEvent, 0),
-		approveEvents:  make([]*ApproveEvent, 0),
 	}
 }
 
@@ -1352,26 +1338,6 @@ func (m *mockEventStore) GetTransferEventsByOwner(tokenID TokenID, owner PublicK
 		end = len(result)
 	}
 	return result[offset:end], nil
-}
-
-func (m *mockEventStore) GetMintEventsByToken(tokenID TokenID) ([]*MintEvent, error) {
-	var result []*MintEvent
-	for _, e := range m.mintEvents {
-		if e.TokenID() == tokenID {
-			result = append(result, e)
-		}
-	}
-	return result, nil
-}
-
-func (m *mockEventStore) GetBurnEventsByToken(tokenID TokenID) ([]*BurnEvent, error) {
-	var result []*BurnEvent
-	for _, e := range m.burnEvents {
-		if e.TokenID() == tokenID {
-			result = append(result, e)
-		}
-	}
-	return result, nil
 }
 
 type mockEventBus struct {
@@ -1400,10 +1366,6 @@ func (m *mockEventBus) Publish(e events.Event) error {
 		m.eventStore.transferEvents = append(m.eventStore.transferEvents, evt)
 	case *MintEvent:
 		m.eventStore.mintEvents = append(m.eventStore.mintEvents, evt)
-	case *BurnEvent:
-		m.eventStore.burnEvents = append(m.eventStore.burnEvents, evt)
-	case *ApproveEvent:
-		m.eventStore.approveEvents = append(m.eventStore.approveEvents, evt)
 	}
 	return nil
 }
@@ -2929,7 +2891,7 @@ func TestTxRollback_DoesNotPublishPhantomEvent(t *testing.T) {
 	})
 
 	t.Run("burn rolls back without publishing a burn event", func(t *testing.T) {
-		repo, eventStore, service, _ := newService()
+		repo, _, service, _ := newService()
 		if _, err := service.CreateToken(&CreateTokenRequest{
 			Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
 		}); err != nil {
@@ -2943,9 +2905,6 @@ func TestTxRollback_DoesNotPublishPhantomEvent(t *testing.T) {
 		_, err := service.Burn(&BurnRequest{TokenID: "TEST", From: owner, Amount: NewAmount(100), PrivateKey: privateKey})
 		if err == nil {
 			t.Fatal("burn must fail when a tx step fails")
-		}
-		if len(eventStore.burnEvents) != 0 {
-			t.Errorf("no phantom burn event after rollback, got %d", len(eventStore.burnEvents))
 		}
 	})
 

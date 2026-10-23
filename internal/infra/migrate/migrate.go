@@ -127,10 +127,6 @@ func (m *Migrator) Close() error {
 	return nil
 }
 
-func (m *Migrator) DB() *sql.DB {
-	return m.db
-}
-
 type MigrateConfig struct {
 	AutoMigrate bool
 	MigPath     string

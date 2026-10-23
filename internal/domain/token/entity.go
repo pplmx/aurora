@@ -114,9 +114,6 @@ func (t *Token) Name() string         { return t.name }
 func (t *Token) Symbol() string       { return t.symbol }
 func (t *Token) TotalSupply() *Amount { return t.totalSupply }
 
-func (t *Token) AddToSupply(amount *Amount) {
-	t.totalSupply = &Amount{new(big.Int).Add(t.totalSupply.Int, amount.Int)}
-}
 func (t *Token) Decimals() int8       { return t.decimals }
 func (t *Token) Owner() PublicKey     { return t.owner }
 func (t *Token) IsMintable() bool     { return t.isMintable }

@@ -70,10 +70,6 @@ func (m *mockNFTService) GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*
 	return all, nil
 }
 
-func (m *mockNFTService) GetNFTsByCreator(creatorPub []byte) ([]*nft.NFT, error) {
-	return m.nfts, nil
-}
-
 func (m *mockNFTService) GetOperations(nftID string) ([]*nft.Operation, error) {
 	return nil, nil
 }
