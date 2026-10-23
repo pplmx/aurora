@@ -268,6 +268,56 @@ func TestExtractByPath_NumberValue(t *testing.T) {
 	}
 }
 
+func TestExtractByPath_PreservesExactNumberLexemes(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body string
+		want string
+	}{
+		{
+			name: "integer above float64 precision",
+			body: `{"value": 9007199254740993}`,
+			want: "9007199254740993",
+		},
+		{
+			name: "large integer",
+			body: `{"value": 1234567890123456789}`,
+			want: "1234567890123456789",
+		},
+		{
+			name: "high precision decimal",
+			body: `{"value": 12345678901234567890.123456789}`,
+			want: "12345678901234567890.123456789",
+		},
+		{
+			name: "exponent",
+			body: `{"value": 1e3}`,
+			want: "1e3",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result, ok := extractByPath(tc.body, "value")
+			if !ok || result != tc.want {
+				t.Errorf("extractByPath() = (%q, %v), want (%q, true)", result, ok, tc.want)
+			}
+		})
+	}
+}
+
+func TestExtractByPath_RejectsTrailingJSON(t *testing.T) {
+	result, ok := extractByPath(`{"value": 1} {"value": 2}`, "value")
+	if ok {
+		t.Errorf("trailing JSON must fail extraction, got (%q, true)", result)
+	}
+}
+
+func TestExtractByPath_BooleanValue(t *testing.T) {
+	result, ok := extractByPath(`{"value": true}`, "value")
+	if !ok || result != "true" {
+		t.Errorf("extractByPath() = (%q, %v), want (\"true\", true)", result, ok)
+	}
+}
+
 // TestExtractByPath_EmptyStringIsAValue pins TASK-237/ISS-235: a leaf that
 // legitimately resolves to "" is a real data point (ok=true), not an
 // extraction failure — so FetchDataWithValidationContext records it instead of
@@ -439,6 +489,37 @@ func TestFetcher_FetchData_NonScalarLeafFailsClosed(t *testing.T) {
 	_, err := fetcher.FetchData(source)
 	if !errors.Is(err, oracle.ErrInvalidSource) {
 		t.Fatalf("object leaf: got err %v, want ErrInvalidSource", err)
+	}
+}
+
+func TestFetcher_FetchData_PreservesLargeIntegerValue(t *testing.T) {
+	fetcher := &Fetcher{
+		client: &http.Client{
+			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(`{"block": 9007199254740993}`)),
+				}, nil
+			}),
+		},
+		rateLimiter: NewRateLimiter(100, time.Minute),
+	}
+
+	source := &oracle.DataSource{
+		ID:      "source-large-integer",
+		URL:     "https://example.com/data",
+		Method:  "GET",
+		Path:    "block",
+		Enabled: true,
+	}
+
+	data, err := fetcher.FetchData(source)
+	if err != nil {
+		t.Fatalf("FetchData failed: %v", err)
+	}
+	if data.Value != "9007199254740993" {
+		t.Fatalf("Value = %q, want exact source integer 9007199254740993", data.Value)
 	}
 }
 
