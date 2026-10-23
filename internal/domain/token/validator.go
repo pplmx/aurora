@@ -63,6 +63,21 @@ func ValidatePublicKey(pk PublicKey) error {
 	return nil
 }
 
+// ValidateRecipient applies the extra rule that credit-producing operations
+// need: the all-zero address is syntactically a 32-byte public key, but no
+// signer can control it, so minting or transferring to it destroys the value.
+func ValidateRecipient(pk PublicKey) error {
+	if err := ValidatePublicKey(pk); err != nil {
+		return err
+	}
+	for _, b := range pk {
+		if b != 0 {
+			return nil
+		}
+	}
+	return ErrTransferToZero
+}
+
 // ValidatePrivateKey checks that the private key has the correct length
 // for an Ed25519 private key (seed + public key = 64 bytes).
 func ValidatePrivateKey(priv PrivateKey) error {

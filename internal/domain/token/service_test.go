@@ -642,6 +642,98 @@ func TestTransfer_InvalidTo(t *testing.T) {
 	}
 }
 
+func TestTokenMutations_RejectZeroRecipient(t *testing.T) {
+	zero := PublicKey(bytes.Repeat([]byte{0}, ed25519.PublicKeySize))
+	owner := pubKey(1)
+	spender := pubKey(2)
+
+	newService := func(t *testing.T) (*TokenService, *mockRepository, *mockEventStore) {
+		t.Helper()
+		repo := NewMockRepository()
+		eventStore := NewMockEventStore()
+		service := newTestService(repo, eventStore)
+		_, err := service.CreateToken(&CreateTokenRequest{
+			Name:        "Test Token",
+			Symbol:      "TEST",
+			TotalSupply: NewAmount(1000),
+			Owner:       owner,
+		})
+		if err != nil {
+			t.Fatalf("CreateToken failed: %v", err)
+		}
+		return service, repo, eventStore
+	}
+
+	assertRejected := func(t *testing.T, repo *mockRepository, eventStore *mockEventStore) {
+		t.Helper()
+		balance, err := repo.GetAccountBalance("TEST", zero)
+		if err != nil {
+			t.Fatalf("GetAccountBalance failed: %v", err)
+		}
+		if balance.Sign() != 0 {
+			t.Fatalf("zero address must not receive a balance, got %s", balance)
+		}
+		if len(eventStore.mintEvents) != 0 || len(eventStore.transferEvents) != 0 {
+			t.Fatal("rejected zero-address operation must not publish an audit event")
+		}
+	}
+
+	t.Run("mint", func(t *testing.T) {
+		service, repo, eventStore := newService(t)
+		_, err := service.Mint(&MintRequest{
+			TokenID:    "TEST",
+			To:         zero,
+			Amount:     NewAmount(100),
+			PrivateKey: privKey(1),
+		})
+		if !errors.Is(err, ErrTransferToZero) {
+			t.Fatalf("Mint error = %v, want ErrTransferToZero", err)
+		}
+		assertRejected(t, repo, eventStore)
+	})
+
+	t.Run("transfer", func(t *testing.T) {
+		service, repo, eventStore := newService(t)
+		_, err := service.Transfer(&TransferRequest{
+			TokenID:    "TEST",
+			From:       owner,
+			To:         zero,
+			Amount:     NewAmount(100),
+			PrivateKey: privKey(1),
+		})
+		if !errors.Is(err, ErrTransferToZero) {
+			t.Fatalf("Transfer error = %v, want ErrTransferToZero", err)
+		}
+		assertRejected(t, repo, eventStore)
+	})
+
+	t.Run("transfer from", func(t *testing.T) {
+		service, repo, eventStore := newService(t)
+		_, err := service.Approve(&ApproveRequest{
+			TokenID:    "TEST",
+			Owner:      owner,
+			Spender:    spender,
+			Amount:     NewAmount(100),
+			PrivateKey: privKey(1),
+		})
+		if err != nil {
+			t.Fatalf("Approve failed: %v", err)
+		}
+		_, err = service.TransferFrom(&TransferFromRequest{
+			TokenID:    "TEST",
+			Owner:      owner,
+			To:         zero,
+			Amount:     NewAmount(100),
+			Spender:    spender,
+			SpenderKey: privKey(2),
+		})
+		if !errors.Is(err, ErrTransferToZero) {
+			t.Fatalf("TransferFrom error = %v, want ErrTransferToZero", err)
+		}
+		assertRejected(t, repo, eventStore)
+	})
+}
+
 func TestTransfer_InvalidAmount(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
