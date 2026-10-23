@@ -1,19 +1,19 @@
 # Technology Stack
 
-**Analysis Date:** 2026-04-30
+**Analysis Date:** 2026-10-23
 
 ## Languages
 
 **Primary:**
 
-- Go 1.26.0 - All application code (CLI, TUI, HTTP server, blockchain logic)
+- Go 1.27.2 - All application code (CLI, TUI, HTTP server, blockchain logic)
 
 ## Runtime
 
 **Environment:**
 
-- Go 1.26 ( Alpine Linux-based container builds)
-- CGO_ENABLED=0 (static linking, no C dependencies)
+- Go 1.27 (Alpine Linux-based container builds)
+- `CGO_ENABLED=0` for every production build and the default test gate
 
 **Package Manager:**
 
@@ -29,13 +29,13 @@
 
 **TUI (Terminal UI):**
 
-- `charm.land/bubbletea/v2 v2.0.2` - Interactive TUI framework (Bubble Tea)
-- `charm.land/bubbles/v2 v2.1.0` - TUI components (text input, table, viewport, etc.)
-- `charm.land/lipgloss/v2 v2.0.2` - Terminal styling system
+- `charm.land/bubbletea/v2 v2.1.0` - Interactive TUI framework (Bubble Tea)
+- `charm.land/bubbles/v2 v2.2.1` - TUI components (text input, table, viewport, etc.)
+- `charm.land/lipgloss/v2 v2.0.6` - Terminal styling system
 
 **HTTP/REST:**
 
-- `github.com/go-chi/chi/v5 v5.2.5` - Lightweight HTTP router (REST API)
+- `github.com/go-chi/chi/v5 v5.5.0` - Lightweight HTTP router (REST API)
 - Custom HTTP Fetcher in `internal/infra/http/fetcher.go` - Rate-limited HTTP client
 
 **Cryptography:**
@@ -45,13 +45,13 @@
 
 **Logging:**
 
-- `github.com/rs/zerolog v1.35.0` - Structured JSON logging
+- `github.com/rs/zerolog v1.35.1` - Structured JSON logging
 
 ## Testing
 
 **Framework:**
 
-- `github.com/stretchr/testify v1.11.1` - Assertions and mocking
+- `github.com/stretchr/testify v1.12.1` - Assertions and mocking
 
 **Run Commands:**
 
@@ -63,14 +63,15 @@ go test -cover ./...          # With coverage
 
 **CI/CD Testing:**
 
-- Go 1.26 on Ubuntu latest
+- Go 1.27.2 on Ubuntu latest
+- Cgo-free unit tests plus an explicit cgo-backed race-detector gate
 - Codecov integration for coverage tracking
 
 ## Build & Linting
 
 **Linter:**
 
-- golangci-lint (via `.golangci.yml`)
+- golangci-lint v2.15.0 in CI (via `.golangci.yml`)
 - Enabled: errcheck, govet, ineffassign, staticcheck, unused
 
 **Build Tool:**
@@ -82,7 +83,7 @@ go test -cover ./...          # With coverage
 
 **SQLite:**
 
-- `github.com/mattn/go-sqlite3 v1.14.41` - Pure Go SQLite driver (cgo)
+- `modernc.org/sqlite v1.61.0` - Pure Go SQLite driver
 - WAL mode enabled for concurrency
 - Foreign keys enforced
 
@@ -97,14 +98,14 @@ go test -cover ./...          # With coverage
 | ----------------------- | -------- | -------------------- |
 | spf13/cobra             | v1.10.2  | CLI framework        |
 | spf13/viper             | v1.21.0  | Config (TOML)        |
-| charmbracelet/bubbletea | v2.0.2   | TUI framework        |
-| charmbracelet/lipgloss  | v2.0.2   | Terminal styling     |
-| go-chi/chi              | v5.2.5   | HTTP router          |
-| rs/zerolog              | v1.35.0  | Logging              |
-| mattn/go-sqlite3        | v1.14.41 | Database             |
+| charm.land/bubbletea/v2 | v2.1.0   | TUI framework        |
+| charm.land/lipgloss/v2  | v2.0.6   | Terminal styling     |
+| go-chi/chi              | v5.5.0   | HTTP router          |
+| rs/zerolog              | v1.35.1  | Logging              |
+| modernc.org/sqlite      | v1.61.0  | Database             |
 | filippo.io/edwards25519 | v1.2.0   | Crypto (Ed25519/VRF) |
 | google/uuid             | v1.6.0   | UUID generation      |
-| stretchr/testify        | v1.11.1  | Testing              |
+| stretchr/testify        | v1.12.1  | Testing              |
 
 ## Configuration
 
@@ -122,14 +123,14 @@ go test -cover ./...          # With coverage
 - `log` - Log level and path
 - `db` - SQLite database path
 - `http.rateLimit` - Requests per window for external fetches
-- `oracle.sources` - Data source configurations
+- `oracle.scheduler` - Oracle scheduler cadence
 
 ## Platform Requirements
 
 **Development:**
 
-- Go 1.26+
-- SQLite3 (via go-sqlite3 driver)
+- Go 1.27.2+
+- No C toolchain for production builds or the default test gate
 - Optional: golangci-lint, goreleaser
 
 **Production:**
@@ -140,4 +141,4 @@ go test -cover ./...          # With coverage
 
 ---
 
-*Stack analysis: 2026-04-30*
+*Stack analysis: 2026-10-23*

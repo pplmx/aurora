@@ -1,13 +1,13 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-04-30
+**Analysis Date:** 2026-10-23
 
 ## Test Framework
 
 **Test Runner:**
 
 - Go standard `testing` package
-- Version: Go 1.26+
+- Version: Go 1.27.2+
 
 **Assertion Libraries:**
 
@@ -16,7 +16,9 @@
 **Run Commands:**
 
 ```bash
-just test              # Run all tests
+just test              # Cgo-free core tests
+just desktop-check     # Cgo-free nested desktop module gates
+just desktop-race      # Explicit cgo-backed race gate
 go test ./... -cover   # With coverage report
 just test-coverage     # Generate coverage.out
 ```
@@ -328,15 +330,15 @@ func TestLotteryHandler_Create_InvalidRequest(t *testing.T) {
 
 ## Coverage Requirements
 
-**Current coverage by module:**
+**Measured coverage by module (2026-10-23):**
 
 | Module  | Domain | App   |
 | ------- | ------ | ----- |
-| Lottery | 93.3%  | 87.1% |
-| Voting  | 87.5%  | 76.8% |
-| NFT     | 93.8%  | 88.1% |
-| Token   | 90.3%  | 91.9% |
-| Oracle  | 76.1%  | 94.5% |
+| Lottery | 90.6%  | 50.8% |
+| Voting  | 94.1%  | 82.2% |
+| NFT     | 88.2%  | 88.5% |
+| Token   | 90.1%  | 91.8% |
+| Oracle  | 88.7%  | 87.4% |
 
 **Command:**
 
@@ -345,12 +347,16 @@ go test ./... -coverprofile=coverage.out
 go tool cover -func=coverage.out
 ```
 
-**Low coverage areas:**
+**Lower coverage areas:**
 
-- `internal/api` (3.6% - handler coverage)
-- `internal/api/handler` (9.5%)
-- `internal/domain/blockchain` (30.9%)
-- `internal/infra/sqlite` (49.1%)
+- `internal/app/lottery` (50.8%)
+- `internal/utils` (69.6%)
+- `internal/infra/backup` (78.4%)
+- `internal/infra/sqlite` (80.4%)
+
+API and TUI packages are no longer zero-coverage areas. Coverage is evidence of
+test reach, not by itself a reason to retain or delete a reachable product
+surface.
 
 ## Test Naming Conventions
 
@@ -431,4 +437,4 @@ Other hooks:
 
 ---
 
-*Testing analysis: 2026-04-30*
+*Testing analysis: 2026-10-23*

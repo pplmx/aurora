@@ -1,16 +1,17 @@
 # External Integrations
 
-**Analysis Date:** 2026-04-30
+**Analysis Date:** 2026-10-23
 
 ## APIs & External Services
 
 **Oracle Data Sources:**
 
-- **CoinGecko API** - Cryptocurrency price feeds
-    - Endpoint: `https://api.coingecko.com/api/v3/simple/price`
-    - Sources configured: Bitcoin (BTC) and Ethereum (ETH) prices in USD
-    - Usage: `internal/infra/http/fetcher.go` - Rate-limited HTTP client with configurable requests/window
-    - Config: `config/aurora.toml` section `[[oracle.sources]]`
+- Sources are persisted in SQLite at runtime through `aurora oracle source add`,
+  the REST API, or the Oracle TUI. `config/aurora.toml` intentionally does not
+  read an `[[oracle.sources]]` table.
+- Built-in templates and operator-defined HTTP sources can target arbitrary
+  public HTTP(S) endpoints. SSRF checks run both when a source is added and
+  immediately before each fetch.
 
 **Custom HTTP Fetcher:**
 
@@ -32,7 +33,7 @@
 
 **SQLite Database:**
 
-- Driver: `github.com/mattn/go-sqlite3 v1.14.41`
+- Driver: `modernc.org/sqlite v1.61.0` (pure Go)
 - Path: `./data/aurora.db` (configurable)
 - Mode: WAL (Write-Ahead Logging)
 - Schema migrations: `migrations/*.sql`
@@ -54,6 +55,10 @@
 | `allowances`      | Token allowances (ERC-20 style) |
 | `data_sources`    | Oracle source configurations    |
 | `oracle_data`     | Fetched data records            |
+| `events`          | Durable audit event log         |
+| `pending_events`  | Audit-delivery outbox           |
+| `nonces`          | Token replay protection         |
+| `token_transfers` | Legacy table; no production I/O |
 
 **File Storage:**
 
@@ -81,7 +86,7 @@
 
 **Logging:**
 
-- Framework: `rs/zerolog v1.35.0`
+- Framework: `rs/zerolog v1.35.1`
 - Format: Structured JSON to stdout and file
 - Default level: `info`
 - Config path: `./logs/`
@@ -91,35 +96,40 @@
 - codecov/codecov-action@v6 (GitHub Actions)
 - Coverage reports: `coverage.out`
 
-**Health Check:**
+**Health and Metrics Endpoints:**
 
-- Docker healthcheck: `./aurora lottery stats`
-- Interval: 30s
+- `/healthz`, `/readyz`, and `/health` are served by `aurora-api`.
+- `/metrics` exposes bounded request counters and latency histograms;
+  `/metrics/oracle` exposes per-source fetch health.
+- The Docker image contains only the CLI and therefore has no HTTP health
+  endpoint or Docker `HEALTHCHECK`.
 
 ## CI/CD & Deployment
 
 **GitHub Actions:**
 
 - **ci.yml** - Run tests on push/PR to main
-    - Go 1.26
-    - Race detector enabled
+    - Go 1.27.2
+    - Cgo-free test gate plus an explicit race-detector gate
     - Codecov upload
-    - Linting (golangci-lint)
+    - Linting with golangci-lint v2.15.0
 
 - **build.yml** - Cross-platform binary builds
     - Platforms: darwin, linux, windows
     - Architectures: amd64, arm64
     - Artifacts uploaded for 5 days
+    - Go build metadata must report `CGO_ENABLED=0` and the expected target
 
-- **docker.yml** - Docker image builds
+- **desktop-build.yml** - Native desktop packaging and signed release matrix
 - **release.yml** - Release automation
 
 **Docker:**
 
-- Base image: `golang:1.26-alpine` (builder)
+- Base image: `golang:1.27-alpine` (builder)
 - Runtime: `gcr.io/distroless/static:nonroot`
 - Image: `pplmx/aurora:latest` (Docker Hub)
 - Published via GitHub Actions
+- Builder uses `CGO_ENABLED=0`; SQLite requires no native C library
 
 **Kubernetes:**
 
@@ -141,7 +151,6 @@ level = "info"
 path = "./logs/"
 
 [db]
-type = "sqlite"
 path = "./data/aurora.db"
 
 [http]
@@ -152,27 +161,15 @@ requests = 10
 window = "1m"
 ```
 
-**Oracle Source Example:**
-
-```toml
-[[oracle.sources]]
-id = "btc-price"
-name = "Bitcoin Price"
-url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
-type = "price"
-method = "GET"
-path = "bitcoin.usd"
-interval = 60
-enabled = true
-```
-
 ## Web Interface
 
 **Static Files:**
 
 - Location: `web/`
 - Files: HTML, CSS, JavaScript
-- Served by embedded file server or external nginx
+- Embedded into the CLI/API/desktop binaries and served by the same Chi router
+- The desktop shell serves the same router over `aurora://` without a TCP
+  listener
 
 **HTTP Server:**
 
@@ -183,4 +180,4 @@ enabled = true
 
 ---
 
-*Integration audit: 2026-04-30*
+*Integration audit: 2026-10-23*
