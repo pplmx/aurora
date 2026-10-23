@@ -21,12 +21,10 @@ func realMigrationsDir() string {
 }
 
 // TestRealMigrations_Apply is the regression test for the latent migration
-// bug: migrations/000001 began with `PRAGMA journal_mode=WAL;`, which
-// golang-migrate's sqlite3 driver executes inside an explicit transaction
-// where WAL mode cannot be switched → every real migration run failed with
-// "cannot change into wal mode from within a transaction". The migrate
-// package's own tests used synthetic migrations, so the real files were
-// never exercised.
+// bug: migrations/000001 began with `PRAGMA journal_mode=WAL;`, which the
+// migration runner executes inside an explicit transaction where WAL mode
+// cannot be switched. The migrate package's own tests used synthetic
+// migrations, so the real files were never exercised.
 //
 // This test applies the ACTUAL checkout migrations and asserts the tables
 // they promise exist. It must stay green as long as the migrations apply.

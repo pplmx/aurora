@@ -94,11 +94,9 @@ var migrateUpCmd = &cobra.Command{
 			return err
 		}
 
-		// Cap an explicit N to the number of genuinely pending migrations.
-		// golang-migrate's Steps(N) applies what it can and then errors on the
-		// overrun ("limit 3 short" / "file does not exist"), so "up 5" with
-		// two pending would apply both and still exit non-zero. We instead
-		// apply min(N, pending) as a plain success.
+		// Cap an explicit N to the number of genuinely pending migrations, so
+		// "up 5" with two pending applies both and exits successfully instead
+		// of treating the overrun as an error after changing the schema.
 		if steps > 0 {
 			st, err := m.Status()
 			if err != nil {
@@ -153,9 +151,8 @@ var migrateDownCmd = &cobra.Command{
 		}
 
 		// Cap N to the applied count so "down 5" on a version-2 DB rolls back
-		// both steps and reports success instead of hitting golang-migrate's
-		// overrun error after the rollback already happened (which previously
-		// also misprinted "nothing to roll back").
+		// both steps and reports success instead of erroring after the
+		// rollback already happened.
 		if steps > int(before) {
 			steps = int(before)
 		}
