@@ -158,20 +158,25 @@ func NewGetNFTOperationsUseCase(service nft.Service) *GetNFTOperationsUseCase {
 }
 
 func (u *GetNFTOperationsUseCase) Execute(nftID string) ([]*OperationResponse, error) {
-	// A history for a nonexistent NFT must 404, not return an empty 200 [] list
-	// (ISS-130) — same resource-status contract as GET /nft/{id}. A real NFT
-	// with no operations keeps returning 200 [].
-	nftById, err := u.service.GetNFTByID(nftID)
-	if err != nil {
-		return nil, err
-	}
-	if nftById == nil {
-		return nil, nft.ErrNFTNotFound
-	}
-
+	// Burn deletes the NFT row but deliberately keeps nft_operations as its
+	// permanent audit trail. Read the trail first so a burned NFT remains
+	// inspectable through `nft history` and GET /nft/{id}/history.
 	results, err := u.service.GetOperations(nftID)
 	if err != nil {
 		return nil, err
+	}
+
+	// A history for a truly nonexistent NFT must still 404, not return an
+	// empty 200 [] list (ISS-130). An existing NFT with no operations keeps
+	// returning 200 [].
+	if len(results) == 0 {
+		nftByID, err := u.service.GetNFTByID(nftID)
+		if err != nil {
+			return nil, err
+		}
+		if nftByID == nil {
+			return nil, nft.ErrNFTNotFound
+		}
 	}
 
 	responses := make([]*OperationResponse, len(results))

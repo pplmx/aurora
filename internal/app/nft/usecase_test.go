@@ -2,13 +2,16 @@ package nft
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"encoding/base64"
 	"fmt"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/require"
 )
 
@@ -371,6 +374,31 @@ func TestGetNFTOperationsUseCase_UnknownNFT(t *testing.T) {
 
 	_, err := uc.Execute("does-not-exist")
 	require.ErrorIs(t, err, nft.ErrNFTNotFound)
+}
+
+// TestGetNFTOperationsUseCase_BurnedNFTKeepsAuditTrail locks ISS-359: burn
+// deliberately deletes the nfts row but retains nft_operations as the
+// permanent audit trail. The app boundary must not classify that burned NFT as
+// unknown before consulting the operations that still exist for it.
+func TestGetNFTOperationsUseCase_BurnedNFTKeepsAuditTrail(t *testing.T) {
+	repo, err := sqlite.NewNFTRepository(filepath.Join(t.TempDir(), "nft_history.db"))
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, repo.Close()) })
+
+	svc := nft.NewService(repo, sqlite.NewTxManager(repo.GetDB()))
+	chain := &mockBlockWriter{}
+
+	owner, privateKey, err := ed25519.GenerateKey(nil)
+	require.NoError(t, err)
+
+	minted, err := svc.Mint(nft.NewNFT("Burned", "", "", "", owner, owner), chain)
+	require.NoError(t, err)
+	require.NoError(t, svc.Burn(minted.ID, owner, privateKey, chain))
+
+	resp, err := NewGetNFTOperationsUseCase(svc).Execute(minted.ID)
+	require.NoError(t, err)
+	require.Len(t, resp, 2)
+	require.ElementsMatch(t, []string{"mint", "burn"}, []string{resp[0].Type, resp[1].Type})
 }
 
 // TestMintNFTUseCase_RejectsShortCreatorKey is the regression test for the

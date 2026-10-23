@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -97,6 +98,57 @@ func TestNFTHandler_History_ReturnsMintOperation(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &ops))
 	assert.True(t, len(ops) >= 1, "expected at least the mint operation, got %d", len(ops))
 	require.Contains(t, rr.Body.String(), `"type":"mint"`)
+}
+
+// TestNFTHandler_History_AfterBurn locks ISS-359 on the REST surface: burn
+// intentionally removes the NFT while retaining its operation trail, so
+// GET /nft/{id}/history must keep returning that trail instead of 404ing.
+func TestNFTHandler_History_AfterBurn(t *testing.T) {
+	repo := domainnft.NewInmemRepo()
+	handler := NewNFTHandler(repo, nil)
+
+	owner, privateKey, err := ed25519.GenerateKey(nil)
+	require.NoError(t, err)
+
+	mintBody, err := json.Marshal(map[string]string{
+		"name":    "Burned",
+		"creator": base64.StdEncoding.EncodeToString(owner),
+	})
+	require.NoError(t, err)
+	mintReq := httptest.NewRequest(http.MethodPost, "/api/v1/nft/mint", bytes.NewReader(mintBody))
+	mintReq.Header.Set("Content-Type", "application/json")
+	mintRR := httptest.NewRecorder()
+	handler.Mint(mintRR, mintReq)
+	require.Equal(t, http.StatusOK, mintRR.Code)
+
+	var minted struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(mintRR.Body.Bytes(), &minted))
+	require.NotEmpty(t, minted.ID)
+
+	burnBody, err := json.Marshal(map[string]string{
+		"nft_id":      minted.ID,
+		"owner":       base64.StdEncoding.EncodeToString(owner),
+		"private_key": base64.StdEncoding.EncodeToString(privateKey),
+	})
+	require.NoError(t, err)
+	burnReq := httptest.NewRequest(http.MethodPost, "/api/v1/nft/burn", bytes.NewReader(burnBody))
+	burnReq.Header.Set("Content-Type", "application/json")
+	burnRR := httptest.NewRecorder()
+	handler.Burn(burnRR, burnReq)
+	require.Equal(t, http.StatusOK, burnRR.Code)
+
+	historyReq := httptest.NewRequest(http.MethodGet, "/api/v1/nft/"+minted.ID+"/history", nil)
+	routeCtx := chi.NewRouteContext()
+	routeCtx.URLParams.Add("id", minted.ID)
+	historyReq = historyReq.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, routeCtx))
+	historyRR := httptest.NewRecorder()
+	handler.History(historyRR, historyReq)
+
+	require.Equal(t, http.StatusOK, historyRR.Code)
+	require.Contains(t, historyRR.Body.String(), `"type":"mint"`)
+	require.Contains(t, historyRR.Body.String(), `"type":"burn"`)
 }
 
 func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {
