@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/logger"
 )
 
 // resetState isolates a test from the process-wide viper config and the
@@ -170,6 +171,100 @@ func TestPrepareDataDir(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, filepath.Join(dir, "userdata", "aurora.db"), path)
 	require.DirExists(t, filepath.Join(dir, "userdata"))
+}
+
+func TestPrepareDataDirKeepsTheDefaultApplicationStatePrivate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows protects the per-user AppData tree with ACLs, not Unix mode bits")
+	}
+
+	root := t.TempDir()
+	for _, tt := range []struct {
+		name  string
+		setup func(t *testing.T, dir string)
+	}{
+		{
+			name:  "new nested directory",
+			setup: func(*testing.T, string) {},
+		},
+		{
+			name: "directory created by an older release",
+			setup: func(t *testing.T, dir string) {
+				t.Helper()
+				require.NoError(t, os.Mkdir(dir, 0o755))
+			},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := filepath.Join(root, strings.ReplaceAll(tt.name, " ", "-"))
+			tt.setup(t, dir)
+
+			_, err := prepareDataDir("", func() (string, error) { return dir, nil })
+			require.NoError(t, err)
+
+			info, err := os.Stat(dir)
+			require.NoError(t, err)
+			assert.Equal(t, os.FileMode(0o700), info.Mode().Perm(),
+				"the database and logs can contain operator credentials; other local users must not traverse their directory")
+		})
+	}
+}
+
+func TestPrepareDataDirPreservesAnExplicitDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows protects the per-user AppData tree with ACLs, not Unix mode bits")
+	}
+
+	dir := filepath.Join(t.TempDir(), "managed")
+	require.NoError(t, os.Mkdir(dir, 0o750))
+	require.NoError(t, os.Chmod(dir, 0o750))
+
+	_, err := prepareDataDir(dir, nil)
+	require.NoError(t, err)
+
+	info, err := os.Stat(dir)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o750), info.Mode().Perm(),
+		"an explicitly managed data directory must keep the operator's existing permissions")
+}
+
+func TestStartKeepsApplicationFilesPrivate(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows protects the per-user AppData tree with ACLs, not Unix mode bits")
+	}
+
+	resetState(t)
+	viperKey(t)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	dataDir := filepath.Join(t.TempDir(), "legacy", "Aurora")
+	require.NoError(t, os.MkdirAll(dataDir, 0o755))
+	rt, err := Start(ctx, Options{
+		DataDirDefault: func() (string, error) { return dataDir, nil },
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		cancel()
+		require.NoError(t, rt.Close())
+		logger.Close()
+	})
+
+	info, err := os.Stat(dataDir)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o700), info.Mode().Perm(),
+		"the default app directory must be tightened before durable state is exposed")
+
+	for _, path := range []string{
+		rt.DBPath(),
+		rt.DBPath() + "-wal",
+		rt.DBPath() + "-shm",
+		filepath.Join(viper.GetString("log.path"), "aurora.log"),
+	} {
+		info, err := os.Stat(path)
+		require.NoError(t, err)
+		assert.Equal(t, os.FileMode(0o600), info.Mode().Perm(),
+			"%s can contain credentials or request details", path)
+	}
 }
 
 func TestBackupStamp(t *testing.T) {

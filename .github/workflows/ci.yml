@@ -191,30 +191,43 @@ jobs:
           test -z "$(find dist/desktop/linux-amd64 -name '*.go' -print -quit)"
 
       # A package can pass every file check and still die before opening its
-      # window. Start the real artifact against an empty data directory and
-      # require the database to appear while the process is still alive.
+      # window. Start the real artifact against its default app directory and
+      # require the database, log and owner-only modes to appear while it runs.
       - name: Smoke-test the packaged app
         run: |
           set -euo pipefail
           tmp="$(mktemp -d)"
-          data="$tmp/data"
-          trap 'kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; rm -rf "$tmp"' EXIT
+          data="$tmp/config/Aurora"
+          pid=""
+          cleanup() {
+            if [[ -n "$pid" ]]; then
+              kill "$pid" 2>/dev/null || true
+              wait "$pid" 2>/dev/null || true
+            fi
+            rm -rf "$tmp"
+          }
+          trap cleanup EXIT
+          umask 022
           HOME="$tmp/home" XDG_CONFIG_HOME="$tmp/config" \
-            xvfb-run -a dist/desktop/linux-amd64/aurora --data-dir "$data" \
+            xvfb-run -a dist/desktop/linux-amd64/aurora \
             >"$tmp/stdout" 2>"$tmp/stderr" &
           pid=$!
           for _ in $(seq 1 50); do
-            if [[ -f "$data/aurora.db" ]]; then
+            if [[ -f "$data/aurora.db" && -f "$data/logs/aurora.log" ]]; then
               break
             fi
             if ! kill -0 "$pid" 2>/dev/null; then
               cat "$tmp/stdout" "$tmp/stderr" >&2
-              echo "the packaged app exited before creating its database" >&2
+              echo "the packaged app exited before creating its state" >&2
               exit 1
             fi
             sleep 0.2
           done
           test -f "$data/aurora.db"
+          test -f "$data/logs/aurora.log"
+          test "$(stat -c '%a' "$data")" = "700"
+          test "$(stat -c '%a' "$data/aurora.db")" = "600"
+          test "$(stat -c '%a' "$data/logs/aurora.log")" = "600"
           kill -0 "$pid"
 
       - uses: actions/upload-artifact@v7

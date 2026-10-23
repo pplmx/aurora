@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	aurora "github.com/pplmx/aurora"
@@ -216,6 +217,11 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := keepApplicationFilesPrivate(dbPath, viper.GetString("log.path")); err != nil {
+		_ = srv.Close()
+		logger.Close()
+		return nil, fmt.Errorf(T("desktop.error.data_dir"), filepath.Dir(dbPath), err)
+	}
 
 	rt := &Runtime{server: srv, webRoot: webRoot, webFS: webFS, dbPath: dbPath}
 	rt.stopScheduler = srv.StartOracleScheduler(ctx, config.OracleSchedulerCheckInterval())
@@ -230,6 +236,7 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 // compares it with paths forwarded by later launches, which MyGo resolves
 // against the launcher's directory.
 func prepareDataDir(dir string, defaultDir func() (string, error)) (string, error) {
+	privateByDefault := dir == ""
 	if dir == "" {
 		resolve := defaultDir
 		if resolve == nil {
@@ -241,14 +248,57 @@ func prepareDataDir(dir string, defaultDir func() (string, error)) (string, erro
 		}
 		dir = base
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	// The database stores operator-supplied Oracle headers, which can include
+	// bearer credentials, and the adjacent log can contain request details.
+	// Keep a newly created application tree private to this OS user. An
+	// explicit --data-dir may intentionally point at a managed or shared
+	// directory, so only tighten the automatically selected app directory;
+	// changing permissions on an operator's existing path would be surprising
+	// and could break other consumers. MkdirAll's mode does not tighten a
+	// directory left by an older release, so the default needs an explicit
+	// Chmod before SQLite or the logger create files inside it.
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", fmt.Errorf(T("desktop.error.data_dir"), dir, err)
+	}
+	if privateByDefault && runtime.GOOS != "windows" {
+		if err := os.Chmod(dir, 0o700); err != nil {
+			return "", fmt.Errorf(T("desktop.error.data_dir"), dir, err)
+		}
 	}
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return "", fmt.Errorf(T("desktop.error.data_dir"), dir, err)
 	}
 	return filepath.Join(abs, "aurora.db"), nil
+}
+
+// keepApplicationFilesPrivate applies owner-only modes to the state SQLite
+// and the logger create before they are exposed to the shell. The directory's
+// 0700 mode is the primary boundary, but these files can contain Oracle
+// bearer headers and request details; keeping the files themselves at 0600
+// also protects them if that directory is later copied or its mode is changed.
+// SQLite manages the WAL and shared-memory sidecars alongside the database.
+func keepApplicationFilesPrivate(dbPath, logPath string) error {
+	if runtime.GOOS == "windows" {
+		// AppData inherits a per-user ACL; Unix permission bits do not apply.
+		return nil
+	}
+
+	paths := []string{dbPath, dbPath + "-wal", dbPath + "-shm"}
+	if logPath != "" {
+		paths = append(paths, filepath.Join(logPath, "aurora.log"))
+	}
+	for _, path := range paths {
+		if err := os.Chmod(path, 0o600); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				// SQLite need not have created a sidecar yet, and an explicit
+				// console log path has no file to protect.
+				continue
+			}
+			return fmt.Errorf("restrict %s to owner: %w", path, err)
+		}
+	}
+	return nil
 }
 
 // userDataDir is overridable in tests.
