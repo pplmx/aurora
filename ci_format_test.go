@@ -1,8 +1,10 @@
 package aurora
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -22,13 +24,31 @@ func TestCoreModuleIsGofmtClean(t *testing.T) {
 	dirs := goListDirs(t)
 	require.NotEmpty(t, dirs, "go list must report this module's packages")
 
-	args := append([]string{"-s", "-l"}, dirs...)
+	files, err := gofmtTargets(dirs)
+	require.NoError(t, err)
+	args := append([]string{"-s", "-l"}, files...)
 	out, err := exec.Command("gofmt", args...).CombinedOutput()
 	require.NoErrorf(t, err, "gofmt failed:\n%s", out)
 
 	unformatted := strings.Fields(string(out))
 	require.Empty(t, unformatted,
 		"run `gofmt -s -w` on these files; CI's Format step rejects them")
+}
+
+// TestGofmtTargetsOnlyGoFiles keeps the format gate independent of transient
+// runtime data. Recursing through package directories made the gate race with
+// the e2e package's cleanup of e2e/data; passing explicit Go files keeps the
+// check deterministic without narrowing which source files are covered.
+func TestGofmtTargetsOnlyGoFiles(t *testing.T) {
+	files, err := gofmtTargets(goListDirs(t))
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+	for _, file := range files {
+		require.True(t, strings.HasSuffix(file, ".go"), "gofmt target must be a Go source file: %s", file)
+		info, err := os.Stat(file)
+		require.NoError(t, err, "gofmt target must exist: %s", file)
+		require.False(t, info.IsDir(), "gofmt target must be a file: %s", file)
+	}
 }
 
 // TestCIRunsTheFormatGate pins the workflow half of the same rule. Without it
@@ -67,4 +87,21 @@ func goListDirs(t *testing.T) []string {
 		}
 	}
 	return dirs
+}
+
+func gofmtTargets(dirs []string) ([]string, error) {
+	var files []string
+	for _, dir := range dirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil, fmt.Errorf("read package directory %s: %w", dir, err)
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") {
+				continue
+			}
+			files = append(files, filepath.Join(dir, entry.Name()))
+		}
+	}
+	return files, nil
 }
