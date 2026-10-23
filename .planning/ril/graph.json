@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 169,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-23T07:28:40+00:00",
+  "updated_at": "2026-10-23T07:51:37+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -12616,7 +12616,7 @@
       "version": 1,
       "created_at": "2026-10-21T07:12:54+00:00",
       "updated_at": "2026-10-21T07:12:54+00:00",
-      "touched_round": 155,
+      "touched_round": 169,
       "title": "desktop/internal/deskapp locale bridge (T/TFormat, FollowAppLocale, ApplyConfiguredLocale)"
     },
     "TASK-295": {
@@ -14713,6 +14713,95 @@
       "title": "Keep race detection separate from mandatory pure-Go gates",
       "rationale": "All production binaries and ordinary verification must run with CGO_ENABLED=0. Go race detection still needs cgo, so CI and local tooling expose it as a separate explicit gate instead of weakening pure-Go builds or silently skipping races.",
       "alternatives_rejected": "Require cgo for desktop-check; remove race detection entirely; keep native macOS/Linux CLI runners after the storage migration"
+    },
+    "ISS-323": {
+      "id": "ISS-323",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T07:44:36+00:00",
+      "updated_at": "2026-10-23T07:51:21+00:00",
+      "touched_round": 169,
+      "title": "Migration dependency is redundant for a single-dialect SQLite app",
+      "description": "golang-migrate pulls a large multi-database dependency graph even though Aurora uses only SQLite and wraps the framework in a narrow Migrator API. Ablating the framework behind the same schema_migrations contract can remove unused code without changing CLI behavior.",
+      "severity": 0.35
+    },
+    "TASK-328": {
+      "id": "TASK-328",
+      "type": "task",
+      "status": "resolved",
+      "version": 5,
+      "created_at": "2026-10-23T07:48:33+00:00",
+      "updated_at": "2026-10-23T07:51:21+00:00",
+      "touched_round": 169,
+      "title": "Replace golang-migrate with a SQLite-only migration runner",
+      "description": "Ablate the multi-database migration dependency while preserving schema_migrations compatibility, ordered up/down steps, dirty refusal, hardened DSN, CLI output and real migration behavior; add duplicate/missing-file and concurrency regressions.",
+      "category": "maintainability",
+      "priority_score": 7.2,
+      "severity": 0.8,
+      "confidence": 0.98,
+      "effort": 3
+    },
+    "HYP-039": {
+      "id": "HYP-039",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T07:48:47+00:00",
+      "updated_at": "2026-10-23T07:51:37+00:00",
+      "touched_round": 169,
+      "title": "SQLite-only migration runner preserves behavior while removing unused backends",
+      "description": "The narrow Migrator API and existing tests can validate an in-tree runner without golang-migrate; schema_migrations remains compatible and dirty-state semantics can be tested directly.",
+      "confidence": 0.98
+    },
+    "EV-119": {
+      "id": "EV-119",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T07:48:50+00:00",
+      "updated_at": "2026-10-23T07:48:50+00:00",
+      "touched_round": 169,
+      "title": "SQLite-only migration ablation evidence",
+      "source": "CGO_ENABLED=0 go test ./...; desktop CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./internal/infra/migrate ./cmd/aurora/cmd; CGO_ENABLED=0 builds of cmd/aurora and cmd/api with go version -m; go mod tidy -diff both modules; injected dirty-check removal made dirty tests red",
+      "description": "Ablation evidence for replacing golang-migrate with an in-tree SQLite runner.",
+      "confidence": 1.0
+    },
+    "CHG-327": {
+      "id": "CHG-327",
+      "type": "change",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-23T07:48:53+00:00",
+      "updated_at": "2026-10-23T07:51:16+00:00",
+      "touched_round": 169,
+      "title": "Replace golang-migrate with SQLite-only runner",
+      "commit": "f1f9152",
+      "description": "Remove the golang-migrate dependency and implement ordered SQLite migrations with schema_migrations compatibility, dirty refusal, duplicate/missing-file validation, and regression tests."
+    },
+    "DEC-027": {
+      "id": "DEC-027",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T07:48:56+00:00",
+      "updated_at": "2026-10-23T07:48:56+00:00",
+      "touched_round": 169,
+      "title": "Keep migration execution in-tree for the SQLite-only product",
+      "rationale": "Aurora has one database dialect and a narrow migration surface. Owning the runner removes unused multi-database dependencies while preserving schema_migrations and explicit dirty-state safety.",
+      "alternatives_rejected": "Keep golang-migrate for hypothetical databases; skip dirty-state handling; rely on implicit migration ordering"
+    },
+    "COMP-020": {
+      "id": "COMP-020",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T07:49:20+00:00",
+      "updated_at": "2026-10-23T07:49:20+00:00",
+      "touched_round": 169,
+      "name": "sqlite-migrations",
+      "path": "internal/infra/migrate",
+      "description": "SQLite-only schema migration runner and CLI integration"
     }
   },
   "edges": [
@@ -22858,6 +22947,48 @@
       "to": "TASK-327",
       "type": "governs",
       "created_at": "2026-10-23T07:28:06+00:00"
+    },
+    {
+      "from": "TASK-328",
+      "to": "ISS-323",
+      "type": "addresses",
+      "created_at": "2026-10-23T07:49:04+00:00"
+    },
+    {
+      "from": "ISS-323",
+      "to": "COMP-020",
+      "type": "located_in",
+      "created_at": "2026-10-23T07:49:27+00:00"
+    },
+    {
+      "from": "EV-119",
+      "to": "HYP-039",
+      "type": "validates",
+      "created_at": "2026-10-23T07:49:27+00:00"
+    },
+    {
+      "from": "CHG-327",
+      "to": "TASK-328",
+      "type": "implements",
+      "created_at": "2026-10-23T07:49:27+00:00"
+    },
+    {
+      "from": "CHG-327",
+      "to": "ISS-323",
+      "type": "resolves",
+      "created_at": "2026-10-23T07:49:27+00:00"
+    },
+    {
+      "from": "DEC-027",
+      "to": "COMP-020",
+      "type": "governs",
+      "created_at": "2026-10-23T07:49:27+00:00"
+    },
+    {
+      "from": "DEC-027",
+      "to": "TASK-328",
+      "type": "governs",
+      "created_at": "2026-10-23T07:49:27+00:00"
     }
   ]
 }
