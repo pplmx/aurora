@@ -104,6 +104,35 @@ func TestLotteryHandler_Verify_ValidDraw(t *testing.T) {
 	assert.True(t, resp.Valid)
 }
 
+func TestLotteryHandler_Verify_TamperedWinnerAddress(t *testing.T) {
+	svc := lottery.NewService()
+	participants := []string{"Alice", "Bob", "Charlie"}
+	winners, addrs, output, proof, pubKey, err := svc.DrawWinners(participants, "verify-address-seed", 1)
+	require.NoError(t, err)
+	record := lottery.CreateLotteryRecord(
+		"verify-address-seed", participants, winners, addrs, output, proof, pubKey, 1,
+	)
+	record.WinnerAddresses[0] = lottery.NameToAddress("Mallory")
+
+	handler := &LotteryHandler{repo: &stubLotteryRepo{record: record}}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/"+record.ID+"/verify", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", record.ID)
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+
+	handler.Verify(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var resp struct {
+		Valid  bool   `json:"valid"`
+		Reason string `json:"reason"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.False(t, resp.Valid, "REST must reject a tampered payout address")
+	assert.Contains(t, resp.Reason, "winner address")
+}
+
 func TestLotteryHandler_History(t *testing.T) {
 	handler := &LotteryHandler{repo: &mockLotteryRepo{}}
 

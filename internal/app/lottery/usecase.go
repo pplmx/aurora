@@ -2,7 +2,6 @@ package lottery
 
 import (
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -164,19 +163,16 @@ type VerifyLotteryResponse struct {
 	Reason string `json:"reason,omitempty"`
 }
 
-// VerifyLotteryUseCase re-verifies a persisted draw: it loads the record, and
-// when the stored VRF public key is present it re-runs the same proof/key
-// verification and winner-set check that creation performed. Records created
-// before this feature (no public key) fall back to the deterministic
-// winner-set check so they do not hard-fail.
+// VerifyLotteryUseCase re-verifies a persisted draw through VerifyRecord, the
+// same verifier used by the CLI, desktop shell and importer. Keeping one
+// implementation prevents REST from accepting evidence another surface rejects.
 type VerifyLotteryUseCase struct {
-	repo    lottery.Repository
-	service lottery.Service
+	repo lottery.Repository
 }
 
 // NewVerifyLotteryUseCase builds the re-verification use case.
-func NewVerifyLotteryUseCase(repo lottery.Repository, service lottery.Service) *VerifyLotteryUseCase {
-	return &VerifyLotteryUseCase{repo: repo, service: service}
+func NewVerifyLotteryUseCase(repo lottery.Repository) *VerifyLotteryUseCase {
+	return &VerifyLotteryUseCase{repo: repo}
 }
 
 // Execute re-verifies the draw identified by req.ID.
@@ -189,50 +185,18 @@ func (uc *VerifyLotteryUseCase) Execute(req VerifyLotteryRequest) (*VerifyLotter
 		return nil, lottery.ErrNotFound
 	}
 
-	// Decode the VRF output for the deterministic winner-set check.
-	vrfOutput, err := hex.DecodeString(record.VRFOutput)
-	if err != nil {
-		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "vrf output is not valid hex"}, nil
+	report := VerifyRecord(record)
+	if report.IntegrityOK {
+		return &VerifyLotteryResponse{ID: record.ID, Valid: true}, nil
 	}
-	if _, err := hex.DecodeString(record.VRFProof); err != nil {
-		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "vrf proof is not valid hex"}, nil
-	}
-
-	// Optional key-bound proof verification (draws created before this
-	// feature have no stored key and are checked deterministically only).
-	if record.VRFPublicKey != "" {
-		pk, derr := lottery.DecodePublicKey(record.VRFPublicKey)
-		if derr != nil {
-			return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "stored public key is malformed"}, nil
-		}
-		ok, verr := uc.service.VerifyDraw(record, pk)
-		if verr != nil || !ok {
-			return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "VRF proof does not verify against the stored key"}, nil
+	for _, check := range report.Checks {
+		if check.Status == VerifyFail {
+			return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: check.Message}, nil
 		}
 	}
-
-	// A draw with no winners is corrupt by construction: CreateLotteryUseCase
-	// (and the CLI/API/TUI paths behind it) always stores at least one winner
-	// because ValidateWinnerCount rejects count<=0, so an empty winners slice
-	// can only come from a partial/corrupt write or a hand-crafted record.
-	// Without this guard, SelectWinners(output, roster, 0) returns an empty
-	// set, sameStringSet([], []) is vacuously true, and the record reports
-	// valid:true — masking the corruption (TASK-249, ISS-249).
-	if len(record.Winners) == 0 {
-		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "record has no winners"}, nil
-	}
-
-	// The winners recorded must be exactly what SelectWinners produces from
-	// the stored output for this roster and winner count.
-	expected := lottery.SelectWinners(vrfOutput, record.Participants, len(record.Winners))
-	if !sameStringSet(expected, record.Winners) {
-		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "stored winners do not match the VRF output"}, nil
-	}
-	if len(record.Winners) != len(record.WinnerAddresses) {
-		return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: "winner/address slice length mismatch"}, nil
-	}
-
-	return &VerifyLotteryResponse{ID: record.ID, Valid: true}, nil
+	return &VerifyLotteryResponse{
+		ID: record.ID, Valid: false, Reason: "lottery record failed integrity check",
+	}, nil
 }
 
 func sameStringSet(a, b []string) bool {
