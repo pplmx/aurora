@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -318,4 +320,20 @@ func TestLocalesHaveMatchingKeys(t *testing.T) {
 			t.Errorf("en is missing key %q (present in zh)", key)
 		}
 	}
+}
+
+// TestCatalogsCoverTheSameKeys keeps the two shipped catalogs in step. A key
+// added to English but not Chinese (or the reverse) renders as the key itself
+// for every user of that language, which the fallback hides on a developer
+// machine running English.
+func TestCatalogsCoverTheSameKeys(t *testing.T) {
+	for key := range englishMessages {
+		_, ok := chineseMessages[key]
+		assert.True(t, ok, "english has %q but chinese does not", key)
+	}
+	for key := range chineseMessages {
+		_, ok := englishMessages[key]
+		assert.True(t, ok, "chinese has %q but english does not", key)
+	}
+	assert.NotEmpty(t, englishMessages)
 }
