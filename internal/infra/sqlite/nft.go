@@ -123,6 +123,11 @@ func (r *NFTRepository) createTables() error {
 		`CREATE INDEX IF NOT EXISTS idx_nft_owner ON nfts(owner)`,
 		`CREATE INDEX IF NOT EXISTS idx_nft_creator ON nfts(creator)`,
 		`CREATE INDEX IF NOT EXISTS idx_nft_ops_nft_id ON nft_operations(nft_id)`,
+		// Operation history filters on nft_id and orders by timestamp DESC; the
+		// single-column index forced a temp B-tree sort before the LIMIT could
+		// apply (measured with EXPLAIN QUERY PLAN). The composite index makes
+		// the LIMIT a real early stop (v1.100).
+		`CREATE INDEX IF NOT EXISTS idx_nft_ops_nft_ts ON nft_operations(nft_id, timestamp DESC)`,
 	}
 
 	for _, query := range queries {
@@ -184,6 +189,10 @@ func (r *NFTRepository) ensureNoCascadeFK() error {
 		`DROP TABLE nft_operations`,
 		`ALTER TABLE nft_operations_v2 RENAME TO nft_operations`,
 		`CREATE INDEX IF NOT EXISTS idx_nft_ops_nft_id ON nft_operations(nft_id)`,
+		// The rebuild drops the table, and with it every index; recreate the
+		// ordered-read composite so a migrated database keeps the same query
+		// plan as a freshly created one (v1.100).
+		`CREATE INDEX IF NOT EXISTS idx_nft_ops_nft_ts ON nft_operations(nft_id, timestamp DESC)`,
 	}
 	for _, q := range rebuild {
 		if _, err := tx.Exec(q); err != nil {

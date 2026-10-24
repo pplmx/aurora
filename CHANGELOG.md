@@ -43,6 +43,19 @@ documented in their per-milestone ROADMAP files.
   (darker red), achieving 4.5:1 contrast against white text for better visibility.
 - **Nav hover state contrast increased**: Background opacity raised from 5% to 10%,
   achieving the required 4.5:1 AA ratio for keyboard navigation focus indicators.
+- **Per-source history reads no longer sort before limiting**: Oracle history
+  (`GetDataBySource`, `GetDataByTimeRange`) and NFT operation history
+  (`GetOperations`) filter on the parent id and order by `timestamp DESC`.
+  With only the single-column `source_id`/`nft_id` indexes, SQLite built a
+  temporary B-tree over every matching row before the `LIMIT` could apply —
+  measured with `EXPLAIN QUERY PLAN` as `USE TEMP B-TREE FOR ORDER BY` on all
+  three queries. Migration `000005` adds `idx_oracle_data_source_ts` and
+  `idx_nft_ops_nft_ts` (both `(parent, timestamp DESC)`); the same plan output
+  now walks the index directly, so the `LIMIT` is a real early stop. The
+  repository self-bootstrap and the `nft_operations` cascade-FK rebuild create
+  the same indexes, so a fresh database, a migrated one and a rebuilt one
+  agree. `internal/infra/sqlite/query_plan_test.go` pins both plans and fails
+  if the sort reappears.
 
 
 ### Changed

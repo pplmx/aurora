@@ -39,6 +39,18 @@ func appliedSchemaVersion(t *testing.T) (version int) {
 	return version
 }
 
+// indexExists reports whether the given index exists in ./data/aurora.db.
+func indexExists(t *testing.T, name string) bool {
+	t.Helper()
+	db := openTestAuroraDB(t)
+	var n int
+	require.NoError(t, db.QueryRow(
+		"SELECT count(*) FROM sqlite_master WHERE type='index' AND name=?",
+		name,
+	).Scan(&n))
+	return n > 0
+}
+
 // tableExists reports whether the given table exists in ./data/aurora.db.
 func tableExists(t *testing.T, name string) bool {
 	t.Helper()
@@ -76,13 +88,15 @@ func TestMigrateUp_FreshDB(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Current version: 4", "all migrations applied")
+		assert.Contains(t, out, "Current version: 5", "all migrations applied")
 
-		assert.Equal(t, 4, appliedSchemaVersion(t))
+		assert.Equal(t, 5, appliedSchemaVersion(t))
 		assert.True(t, tableExists(t, "candidates"), "migration 000001 should create candidates")
 		assert.True(t, tableExists(t, "token_transfers"), "migration 000002 should create token_transfers")
 		assert.True(t, tableExists(t, "vote_sessions"), "migration 000003 should add vote_sessions")
 		assert.True(t, tableExists(t, "lottery_vrf_keys"), "migration 000004 should add lottery_vrf_keys")
+		assert.True(t, indexExists(t, "idx_oracle_data_source_ts"), "migration 000005 should add the ordered oracle index")
+		assert.True(t, indexExists(t, "idx_nft_ops_nft_ts"), "migration 000005 should add the ordered NFT index")
 	})
 }
 
@@ -113,6 +127,13 @@ func TestMigrateUp_WithSteps(t *testing.T) {
 		assert.Contains(t, out, "Current version: 4")
 		assert.Equal(t, 4, appliedSchemaVersion(t))
 		assert.True(t, tableExists(t, "lottery_vrf_keys"), "step 4 applies 000004")
+		assert.False(t, indexExists(t, "idx_oracle_data_source_ts"), "step 4 must not apply 000005")
+
+		out, err = runCmd(t, "migrate", "up", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Current version: 5")
+		assert.Equal(t, 5, appliedSchemaVersion(t))
+		assert.True(t, indexExists(t, "idx_oracle_data_source_ts"), "step 5 applies 000005")
 	})
 }
 
@@ -125,7 +146,7 @@ func TestMigrateUp_AlreadyApplied(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err, "re-running up on a migrated DB is a no-op, not an error")
-		assert.Contains(t, out, "Current version: 4")
+		assert.Contains(t, out, "Current version: 5")
 	})
 }
 
@@ -152,8 +173,8 @@ func TestMigrateStatus_AfterUp(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "status")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Current version: 4")
-		assert.Contains(t, out, "Applied: 1, 2, 3, 4")
+		assert.Contains(t, out, "Current version: 5")
+		assert.Contains(t, out, "Applied: 1, 2, 3, 4, 5")
 		assert.Contains(t, out, "Pending: (none)")
 	})
 }
@@ -167,11 +188,19 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "down", "1", "--confirm")
 		require.NoError(t, err)
+		assert.Contains(t, out, "Current version: 4")
+		assert.Equal(t, 4, appliedSchemaVersion(t))
+		assert.False(t, indexExists(t, "idx_oracle_data_source_ts"), "rolling back 000005 must drop its ordered index")
+		assert.False(t, indexExists(t, "idx_nft_ops_nft_ts"), "rolling back 000005 must drop its ordered index")
+		assert.True(t, tableExists(t, "lottery_vrf_keys"), "rolling back 000005 must not touch 000004")
+
+		// Roll down one step at a time until the bottom.
+		out, err = runCmd(t, "migrate", "down", "1", "--confirm")
+		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 3")
 		assert.Equal(t, 3, appliedSchemaVersion(t))
 		assert.False(t, tableExists(t, "lottery_vrf_keys"), "rolling back 000004 must drop its side table")
 
-		// Roll down one step at a time until the bottom.
 		out, err = runCmd(t, "migrate", "down", "1", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 2")
@@ -200,10 +229,10 @@ func TestMigrateUp_OverrunCapsAtPending(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setMigrationsPathForTest(t)
 
-		out, err := runCmd(t, "migrate", "up", "5")
+		out, err := runCmd(t, "migrate", "up", "6")
 		require.NoError(t, err, "up with N larger than pending must succeed")
-		assert.Contains(t, out, "Current version: 4")
-		assert.Equal(t, 4, appliedSchemaVersion(t))
+		assert.Contains(t, out, "Current version: 5")
+		assert.Equal(t, 5, appliedSchemaVersion(t))
 	})
 }
 
@@ -217,7 +246,7 @@ func TestMigrateDown_OverrunRollsBackAll(t *testing.T) {
 		_, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err)
 
-		out, err := runCmd(t, "migrate", "down", "5", "--confirm")
+		out, err := runCmd(t, "migrate", "down", "6", "--confirm")
 		require.NoError(t, err, "down with N larger than applied must succeed")
 		assert.Contains(t, out, "Current version: 0")
 		assert.Equal(t, 0, appliedSchemaVersion(t))
@@ -281,6 +310,6 @@ func TestMigrateDown_RequiresConfirm(t *testing.T) {
 		_, err = runCmd(t, "migrate", "down", "1")
 		require.Error(t, err, "down without --confirm must be refused")
 		assert.Contains(t, err.Error(), "--confirm")
-		assert.Equal(t, 4, appliedSchemaVersion(t), "no migration may roll back without confirmation")
+		assert.Equal(t, 5, appliedSchemaVersion(t), "no migration may roll back without confirmation")
 	})
 }
