@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	votingapp "github.com/pplmx/aurora/internal/app/voting"
+	"github.com/pplmx/aurora/internal/app/votingapp"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/i18n"

@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 )
@@ -59,7 +59,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	blockChain := blockchain.InitBlockChain()
-	uc := lotteryapp.NewCreateLotteryUseCase(h.repo, blockChain)
+	uc := lotteryapp.NewCreate(h.repo, blockChain)
 
 	// Resolve the configured default winner count at the API boundary, exactly
 	// as the CLI's RunE resolves its `-c` absence to `lottery.defaultCount` —
@@ -160,7 +160,7 @@ func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (h *LotteryHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	uc := lotteryapp.NewVerifyLotteryUseCase(h.repo)
+	uc := lotteryapp.NewVerify(h.repo)
 	result, err := uc.Execute(lotteryapp.VerifyLotteryRequest{ID: id})
 	if err != nil {
 		if errors.Is(err, lottery.ErrNotFound) {

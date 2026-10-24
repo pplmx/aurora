@@ -11,15 +11,15 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	domainvoting "github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type mockVotingRepo struct {
-	voters         map[string]*domainvoting.Voter
-	candidates     map[string]*domainvoting.Candidate
-	sessions       map[string]*domainvoting.Session
+	voters         map[string]*voting.Voter
+	candidates     map[string]*voting.Candidate
+	sessions       map[string]*voting.Session
 	saveVoterErr   error
 	saveCandErr    error
 	saveSessionErr error
@@ -28,16 +28,16 @@ type mockVotingRepo struct {
 
 func newMockVotingRepo() *mockVotingRepo {
 	return &mockVotingRepo{
-		voters:     make(map[string]*domainvoting.Voter),
-		candidates: make(map[string]*domainvoting.Candidate),
-		sessions:   make(map[string]*domainvoting.Session),
+		voters:     make(map[string]*voting.Voter),
+		candidates: make(map[string]*voting.Candidate),
+		sessions:   make(map[string]*voting.Session),
 	}
 }
 
-func (m *mockVotingRepo) SaveVote(*domainvoting.Vote) error                        { return nil }
-func (m *mockVotingRepo) GetVote(string) (*domainvoting.Vote, error)               { return nil, nil }
-func (m *mockVotingRepo) GetVotesByCandidate(string) ([]*domainvoting.Vote, error) { return nil, nil }
-func (m *mockVotingRepo) GetVotesByVoter(string) ([]*domainvoting.Vote, error)     { return nil, nil }
+func (m *mockVotingRepo) SaveVote(*voting.Vote) error                        { return nil }
+func (m *mockVotingRepo) GetVote(string) (*voting.Vote, error)               { return nil, nil }
+func (m *mockVotingRepo) GetVotesByCandidate(string) ([]*voting.Vote, error) { return nil, nil }
+func (m *mockVotingRepo) GetVotesByVoter(string) ([]*voting.Vote, error)     { return nil, nil }
 func (m *mockVotingRepo) CountVotesBySession(_, candidateID string) (int, error) {
 	if c, ok := m.candidates[candidateID]; ok {
 		return c.VoteCount, nil
@@ -46,62 +46,62 @@ func (m *mockVotingRepo) CountVotesBySession(_, candidateID string) (int, error)
 }
 func (m *mockVotingRepo) DeleteVote(string) error { return nil }
 
-// WithTx satisfies domainvoting.TransactableRepository; the mock has no
+// WithTx satisfies voting.TransactableRepository; the mock has no
 // transaction state, so it returns itself.
-func (m *mockVotingRepo) WithTx(_ *sql.Tx) domainvoting.Repository { return m }
+func (m *mockVotingRepo) WithTx(_ *sql.Tx) voting.Repository { return m }
 
-func (m *mockVotingRepo) SaveVoter(voter *domainvoting.Voter) error {
+func (m *mockVotingRepo) SaveVoter(voter *voting.Voter) error {
 	if m.saveVoterErr != nil {
 		return m.saveVoterErr
 	}
 	m.voters[voter.PublicKey] = voter
 	return nil
 }
-func (m *mockVotingRepo) GetVoter(pk string) (*domainvoting.Voter, error) {
+func (m *mockVotingRepo) GetVoter(pk string) (*voting.Voter, error) {
 	return m.voters[pk], nil
 }
-func (m *mockVotingRepo) UpdateVoter(*domainvoting.Voter) error      { return nil }
-func (m *mockVotingRepo) TryMarkVoted(_, _ string) error             { return nil }
-func (m *mockVotingRepo) UnmarkVoted(_ string) error                 { return nil }
-func (m *mockVotingRepo) ListVoters() ([]*domainvoting.Voter, error) { return nil, nil }
+func (m *mockVotingRepo) UpdateVoter(*voting.Voter) error      { return nil }
+func (m *mockVotingRepo) TryMarkVoted(_, _ string) error       { return nil }
+func (m *mockVotingRepo) UnmarkVoted(_ string) error           { return nil }
+func (m *mockVotingRepo) ListVoters() ([]*voting.Voter, error) { return nil, nil }
 
-func (m *mockVotingRepo) SaveCandidate(candidate *domainvoting.Candidate) error {
+func (m *mockVotingRepo) SaveCandidate(candidate *voting.Candidate) error {
 	if m.saveCandErr != nil {
 		return m.saveCandErr
 	}
 	m.candidates[candidate.ID] = candidate
 	return nil
 }
-func (m *mockVotingRepo) GetCandidate(id string) (*domainvoting.Candidate, error) {
+func (m *mockVotingRepo) GetCandidate(id string) (*voting.Candidate, error) {
 	return m.candidates[id], nil
 }
-func (m *mockVotingRepo) UpdateCandidate(*domainvoting.Candidate) error { return nil }
-func (m *mockVotingRepo) IncrementCandidateVoteCount(string) error      { return nil }
-func (m *mockVotingRepo) DeleteCandidate(string) error                  { return nil }
-func (m *mockVotingRepo) ListCandidates() ([]*domainvoting.Candidate, error) {
-	candidates := make([]*domainvoting.Candidate, 0, len(m.candidates))
+func (m *mockVotingRepo) UpdateCandidate(*voting.Candidate) error  { return nil }
+func (m *mockVotingRepo) IncrementCandidateVoteCount(string) error { return nil }
+func (m *mockVotingRepo) DeleteCandidate(string) error             { return nil }
+func (m *mockVotingRepo) ListCandidates() ([]*voting.Candidate, error) {
+	candidates := make([]*voting.Candidate, 0, len(m.candidates))
 	for _, c := range m.candidates {
 		candidates = append(candidates, c)
 	}
 	return candidates, nil
 }
 
-func (m *mockVotingRepo) SaveSession(session *domainvoting.Session) error {
+func (m *mockVotingRepo) SaveSession(session *voting.Session) error {
 	if m.saveSessionErr != nil {
 		return m.saveSessionErr
 	}
 	m.sessions[session.ID] = session
 	return nil
 }
-func (m *mockVotingRepo) GetSession(id string) (*domainvoting.Session, error) {
+func (m *mockVotingRepo) GetSession(id string) (*voting.Session, error) {
 	if m.getSessionErr != nil {
 		return nil, m.getSessionErr
 	}
 	return m.sessions[id], nil
 }
-func (m *mockVotingRepo) UpdateSession(*domainvoting.Session) error { return nil }
-func (m *mockVotingRepo) ListSessions() ([]*domainvoting.Session, error) {
-	sessions := make([]*domainvoting.Session, 0, len(m.sessions))
+func (m *mockVotingRepo) UpdateSession(*voting.Session) error { return nil }
+func (m *mockVotingRepo) ListSessions() ([]*voting.Session, error) {
+	sessions := make([]*voting.Session, 0, len(m.sessions))
 	for _, s := range m.sessions {
 		sessions = append(sessions, s)
 	}
@@ -110,8 +110,8 @@ func (m *mockVotingRepo) ListSessions() ([]*domainvoting.Session, error) {
 
 func TestVotingHandler_ListSessions(t *testing.T) {
 	repo := newMockVotingRepo()
-	repo.sessions["s1"] = &domainvoting.Session{ID: "s1", Title: "Board Vote", Status: "active"}
-	repo.sessions["s2"] = &domainvoting.Session{ID: "s2", Title: "Referendum", Status: "closed"}
+	repo.sessions["s1"] = &voting.Session{ID: "s1", Title: "Board Vote", Status: "active"}
+	repo.sessions["s2"] = &voting.Session{ID: "s2", Title: "Referendum", Status: "closed"}
 
 	h := NewVotingHandler(repo, nil)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/voting/sessions", nil)
@@ -180,7 +180,7 @@ func TestVotingHandler_Vote_InvalidJSON(t *testing.T) {
 }
 
 func TestVotingHandler_RegisterVoter_Success(t *testing.T) {
-	handler := &VotingHandler{repo: newMockVotingRepo(), service: domainvoting.NewEd25519Service()}
+	handler := &VotingHandler{repo: newMockVotingRepo(), service: voting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]string{"name": "Alice"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/register/voter", bytes.NewBuffer(body))
@@ -195,7 +195,7 @@ func TestVotingHandler_RegisterVoter_Success(t *testing.T) {
 func TestVotingHandler_RegisterVoter_RepoError(t *testing.T) {
 	repo := newMockVotingRepo()
 	repo.saveVoterErr = assert.AnError
-	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
+	handler := &VotingHandler{repo: repo, service: voting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]string{"name": "Alice"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/register/voter", bytes.NewBuffer(body))
@@ -207,7 +207,7 @@ func TestVotingHandler_RegisterVoter_RepoError(t *testing.T) {
 }
 
 func TestVotingHandler_RegisterCandidate_Success(t *testing.T) {
-	handler := &VotingHandler{repo: newMockVotingRepo(), service: domainvoting.NewEd25519Service()}
+	handler := &VotingHandler{repo: newMockVotingRepo(), service: voting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]string{"name": "Bob", "party": "ABC", "program": "Do stuff"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/register/candidate", bytes.NewBuffer(body))
@@ -222,7 +222,7 @@ func TestVotingHandler_RegisterCandidate_Success(t *testing.T) {
 func TestVotingHandler_RegisterCandidate_RepoError(t *testing.T) {
 	repo := newMockVotingRepo()
 	repo.saveCandErr = assert.AnError
-	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
+	handler := &VotingHandler{repo: repo, service: voting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]string{"name": "Bob", "party": "ABC", "program": "Do stuff"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/voting/register/candidate", bytes.NewBuffer(body))
@@ -235,8 +235,8 @@ func TestVotingHandler_RegisterCandidate_RepoError(t *testing.T) {
 
 func TestVotingHandler_CreateSession_Success(t *testing.T) {
 	repo := newMockVotingRepo()
-	repo.candidates["cand1"] = &domainvoting.Candidate{ID: "cand1", Name: "Cand1"}
-	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
+	repo.candidates["cand1"] = &voting.Candidate{ID: "cand1", Name: "Cand1"}
+	handler := &VotingHandler{repo: repo, service: voting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]interface{}{
 		"title":         "Test Session",
@@ -257,8 +257,8 @@ func TestVotingHandler_CreateSession_Success(t *testing.T) {
 func TestVotingHandler_CreateSession_RepoError(t *testing.T) {
 	repo := newMockVotingRepo()
 	repo.saveSessionErr = assert.AnError
-	repo.candidates["cand1"] = &domainvoting.Candidate{ID: "cand1", Name: "Cand1"}
-	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
+	repo.candidates["cand1"] = &voting.Candidate{ID: "cand1", Name: "Cand1"}
+	handler := &VotingHandler{repo: repo, service: voting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]interface{}{
 		"title":         "Test Session",
@@ -277,7 +277,7 @@ func TestVotingHandler_CreateSession_RepoError(t *testing.T) {
 
 func TestVotingHandler_Vote_Success(t *testing.T) {
 	repo := newMockVotingRepo()
-	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
+	handler := &VotingHandler{repo: repo, service: voting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]string{
 		"voter_public_key": "pk1",
@@ -293,7 +293,7 @@ func TestVotingHandler_Vote_Success(t *testing.T) {
 }
 
 func TestVotingHandler_GetSession_NotFound_Repo(t *testing.T) {
-	handler := &VotingHandler{repo: newMockVotingRepo(), service: domainvoting.NewEd25519Service()}
+	handler := &VotingHandler{repo: newMockVotingRepo(), service: voting.NewEd25519Service()}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/voting/session/nonexistent", nil)
 	rr := httptest.NewRecorder()
@@ -312,7 +312,7 @@ func TestVotingHandler_GetSession_NotFound_Repo(t *testing.T) {
 func TestVotingHandler_GetSession_ServerErrorIsNot404(t *testing.T) {
 	repo := newMockVotingRepo()
 	repo.getSessionErr = errors.New("database is locked")
-	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
+	handler := &VotingHandler{repo: repo, service: voting.NewEd25519Service()}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/voting/session/s1", nil)
 	rr := httptest.NewRecorder()
@@ -339,7 +339,7 @@ func TestVotingHandler_NewVotingHandler(t *testing.T) {
 
 func TestVotingHandler_Vote_MissingSessionID(t *testing.T) {
 	repo := newMockVotingRepo()
-	handler := &VotingHandler{repo: repo, service: domainvoting.NewEd25519Service()}
+	handler := &VotingHandler{repo: repo, service: voting.NewEd25519Service()}
 
 	body, _ := json.Marshal(map[string]string{
 		"voter_public_key": "pk1",
@@ -363,7 +363,7 @@ func TestVotingHandler_Vote_MissingSessionID(t *testing.T) {
 
 func TestVotingHandler_StartEndSession(t *testing.T) {
 	repo := newMockVotingRepo()
-	repo.sessions["s1"] = &domainvoting.Session{ID: "s1", Title: "Election", Status: "draft"}
+	repo.sessions["s1"] = &voting.Session{ID: "s1", Title: "Election", Status: "draft"}
 	handler := NewVotingHandler(repo, nil)
 
 	setParam := func(h http.HandlerFunc, method, id string) *httptest.ResponseRecorder {
@@ -402,9 +402,9 @@ func requestWithParam(method, path, id string) *http.Request {
 
 func TestVotingHandler_GetResults(t *testing.T) {
 	repo := newMockVotingRepo()
-	repo.sessions["s1"] = &domainvoting.Session{ID: "s1", Candidates: []string{"c1", "c2"}}
-	repo.candidates["c1"] = &domainvoting.Candidate{ID: "c1", Name: "Alice", Party: "A", VoteCount: 5}
-	repo.candidates["c2"] = &domainvoting.Candidate{ID: "c2", Name: "Bob", Party: "B", VoteCount: 3}
+	repo.sessions["s1"] = &voting.Session{ID: "s1", Candidates: []string{"c1", "c2"}}
+	repo.candidates["c1"] = &voting.Candidate{ID: "c1", Name: "Alice", Party: "A", VoteCount: 5}
+	repo.candidates["c2"] = &voting.Candidate{ID: "c2", Name: "Bob", Party: "B", VoteCount: 3}
 
 	h := NewVotingHandler(repo, nil)
 	rr := httptest.NewRecorder()

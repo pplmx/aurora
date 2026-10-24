@@ -237,14 +237,16 @@ func TestMainWindowRecreationKeepsStateAndWiring(t *testing.T) {
 		require.Same(t, win, gotWin)
 		assert.Equal(t, "main", got.StateKey,
 			"window %d must use the stable state key", i+1)
-		assert.Equal(t, intent.URL(), got.URL,
-			"window %d must keep the launch page", i+1)
+		// A native window has no URL: the launch intent selects the view the
+		// App renders, and Content is what carries it.
+		assert.Empty(t, got.URL, "window %d must not host a web page", i+1)
+		require.NotNil(t, got.Content, "window %d must render the native view", i+1)
 		assert.Equal(t, deskapp.AppName, got.Title)
 		assert.Equal(t, 1280, got.Width)
 		assert.Equal(t, 860, got.Height)
 		assert.Equal(t, 900, got.MinWidth)
 		assert.Equal(t, 600, got.MinHeight)
-		assert.Equal(t, "#1a1a1a", got.BackgroundColor)
+		assert.Equal(t, "#0c2228", got.BackgroundColor)
 
 		assert.Equal(t, 1, hooks.iconCall, "window %d must get the app icon", i+1)
 		assert.NotEmpty(t, hooks.icon)

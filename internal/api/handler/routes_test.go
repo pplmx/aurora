@@ -12,13 +12,12 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domainnft "github.com/pplmx/aurora/internal/domain/nft"
-	"github.com/pplmx/aurora/internal/domain/oracle"
-	domaintoken "github.com/pplmx/aurora/internal/domain/token"
-	domainvoting "github.com/pplmx/aurora/internal/domain/voting"
 )
 
 // =================================================================
@@ -86,8 +85,8 @@ func TestVotingHandler_Routes_RegistersAllEndpoints(t *testing.T) {
 // =================================================================
 
 func TestNFTHandler_Get_FoundAndNotFound(t *testing.T) {
-	repo := domainnft.NewInmemRepo()
-	_ = repo.SaveNFT(&domainnft.NFT{ID: "nft-1", Name: "Aurora", Owner: []byte("alice")})
+	repo := nft.NewInmemRepo()
+	_ = repo.SaveNFT(&nft.NFT{ID: "nft-1", Name: "Aurora", Owner: []byte("alice")})
 
 	h := NewNFTHandler(repo, nil)
 
@@ -112,7 +111,7 @@ func TestNFTHandler_Get_FoundAndNotFound(t *testing.T) {
 }
 
 func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
-	repo := domainnft.NewInmemRepo()
+	repo := nft.NewInmemRepo()
 
 	h := NewNFTHandler(repo, nil)
 
@@ -126,7 +125,7 @@ func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	// Owner with NFTs
-	_ = repo.SaveNFT(&domainnft.NFT{ID: "nft-2", Owner: owner32})
+	_ = repo.SaveNFT(&nft.NFT{ID: "nft-2", Owner: owner32})
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner="+ownerB64, nil)
 	rr = httptest.NewRecorder()
 	h.List(rr, req)
@@ -351,7 +350,7 @@ func TestTokenHandler_History_ServiceError(t *testing.T) {
 
 func TestVotingHandler_GetSession_Success(t *testing.T) {
 	h := NewVotingHandler(fakeVotingRepo{
-		getSession: &domainvoting.Session{ID: "s1", Title: "Election 2026"},
+		getSession: &voting.Session{ID: "s1", Title: "Election 2026"},
 	}, nil)
 
 	rctx := chi.NewRouteContext()
@@ -407,127 +406,127 @@ func TestVotingHandler_ListCandidates_ServiceError(t *testing.T) {
 // Test helpers — fake services and repos
 // =================================================================
 
-// fakeTokenServiceFull implements the entire domaintoken.Service interface with
+// fakeTokenServiceFull implements the entire token.Service interface with
 // pass-through behavior. `err` controls whether Balance/History return errors.
 type fakeTokenServiceFull struct {
 	err error
 }
 
-func (f fakeTokenServiceFull) CreateToken(req *domaintoken.CreateTokenRequest) (*domaintoken.Token, error) {
+func (f fakeTokenServiceFull) CreateToken(req *token.CreateTokenRequest) (*token.Token, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) GetTokenInfo(id domaintoken.TokenID) (*domaintoken.Token, error) {
+func (f fakeTokenServiceFull) GetTokenInfo(id token.TokenID) (*token.Token, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) Mint(req *domaintoken.MintRequest) (*domaintoken.MintEvent, error) {
+func (f fakeTokenServiceFull) Mint(req *token.MintRequest) (*token.MintEvent, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) Transfer(req *domaintoken.TransferRequest) (*domaintoken.TransferEvent, error) {
+func (f fakeTokenServiceFull) Transfer(req *token.TransferRequest) (*token.TransferEvent, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) TransferFrom(req *domaintoken.TransferFromRequest) (*domaintoken.TransferEvent, error) {
+func (f fakeTokenServiceFull) TransferFrom(req *token.TransferFromRequest) (*token.TransferEvent, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) Approve(req *domaintoken.ApproveRequest) (*domaintoken.ApproveEvent, error) {
+func (f fakeTokenServiceFull) Approve(req *token.ApproveRequest) (*token.ApproveEvent, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
-	return domaintoken.NewApproveEvent(req.TokenID, req.Owner, req.Spender, req.Amount), nil
+	return token.NewApproveEvent(req.TokenID, req.Owner, req.Spender, req.Amount), nil
 }
-func (f fakeTokenServiceFull) IncreaseAllowance(req *domaintoken.AllowanceRequest) (*domaintoken.ApproveEvent, error) {
+func (f fakeTokenServiceFull) IncreaseAllowance(req *token.AllowanceRequest) (*token.ApproveEvent, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) DecreaseAllowance(req *domaintoken.AllowanceRequest) (*domaintoken.ApproveEvent, error) {
+func (f fakeTokenServiceFull) DecreaseAllowance(req *token.AllowanceRequest) (*token.ApproveEvent, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) Burn(req *domaintoken.BurnRequest) (*domaintoken.BurnEvent, error) {
+func (f fakeTokenServiceFull) Burn(req *token.BurnRequest) (*token.BurnEvent, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) GetBalance(_ domaintoken.TokenID, _ domaintoken.PublicKey) (*domaintoken.Amount, error) {
+func (f fakeTokenServiceFull) GetBalance(_ token.TokenID, _ token.PublicKey) (*token.Amount, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
-	return domaintoken.NewAmount(100), nil
+	return token.NewAmount(100), nil
 }
-func (f fakeTokenServiceFull) GetAllowance(_ domaintoken.TokenID, _, _ domaintoken.PublicKey) (*domaintoken.Amount, error) {
+func (f fakeTokenServiceFull) GetAllowance(_ token.TokenID, _, _ token.PublicKey) (*token.Amount, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) GetTransferHistory(_ domaintoken.TokenID, _ domaintoken.PublicKey, _, _ int) ([]*domaintoken.TransferEvent, error) {
+func (f fakeTokenServiceFull) GetTransferHistory(_ token.TokenID, _ token.PublicKey, _, _ int) ([]*token.TransferEvent, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
 	return nil, nil
 }
 
-// fakeVotingRepo implements domainvoting.Repository for handler tests.
+// fakeVotingRepo implements voting.Repository for handler tests.
 type fakeVotingRepo struct {
-	getSession *domainvoting.Session
+	getSession *voting.Session
 	candidates []string
 	err        error
 }
 
-func (f fakeVotingRepo) SaveVoter(*domainvoting.Voter) error { return nil }
-func (f fakeVotingRepo) GetVoter(string) (*domainvoting.Voter, error) {
+func (f fakeVotingRepo) SaveVoter(*voting.Voter) error { return nil }
+func (f fakeVotingRepo) GetVoter(string) (*voting.Voter, error) {
 	return nil, nil
 }
-func (f fakeVotingRepo) UpdateVoter(*domainvoting.Voter) error { return nil }
-func (f fakeVotingRepo) TryMarkVoted(string, string) error     { return nil }
-func (f fakeVotingRepo) UnmarkVoted(string) error              { return nil }
-func (f fakeVotingRepo) ListVoters() ([]*domainvoting.Voter, error) {
+func (f fakeVotingRepo) UpdateVoter(*voting.Voter) error   { return nil }
+func (f fakeVotingRepo) TryMarkVoted(string, string) error { return nil }
+func (f fakeVotingRepo) UnmarkVoted(string) error          { return nil }
+func (f fakeVotingRepo) ListVoters() ([]*voting.Voter, error) {
 	return nil, nil
 }
-func (f fakeVotingRepo) SaveCandidate(*domainvoting.Candidate) error { return nil }
-func (f fakeVotingRepo) GetCandidate(string) (*domainvoting.Candidate, error) {
+func (f fakeVotingRepo) SaveCandidate(*voting.Candidate) error { return nil }
+func (f fakeVotingRepo) GetCandidate(string) (*voting.Candidate, error) {
 	return nil, nil
 }
-func (f fakeVotingRepo) UpdateCandidate(*domainvoting.Candidate) error { return nil }
-func (f fakeVotingRepo) IncrementCandidateVoteCount(string) error      { return nil }
-func (f fakeVotingRepo) DeleteCandidate(string) error                  { return nil }
-func (f fakeVotingRepo) ListCandidates() ([]*domainvoting.Candidate, error) {
+func (f fakeVotingRepo) UpdateCandidate(*voting.Candidate) error  { return nil }
+func (f fakeVotingRepo) IncrementCandidateVoteCount(string) error { return nil }
+func (f fakeVotingRepo) DeleteCandidate(string) error             { return nil }
+func (f fakeVotingRepo) ListCandidates() ([]*voting.Candidate, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
-	out := make([]*domainvoting.Candidate, 0, len(f.candidates))
+	out := make([]*voting.Candidate, 0, len(f.candidates))
 	for _, c := range f.candidates {
-		out = append(out, &domainvoting.Candidate{ID: c})
+		out = append(out, &voting.Candidate{ID: c})
 	}
 	return out, nil
 }
-func (f fakeVotingRepo) SaveSession(*domainvoting.Session) error { return nil }
-func (f fakeVotingRepo) GetSession(string) (*domainvoting.Session, error) {
+func (f fakeVotingRepo) SaveSession(*voting.Session) error { return nil }
+func (f fakeVotingRepo) GetSession(string) (*voting.Session, error) {
 	if f.getSession == nil {
 		return nil, f.err
 	}
 	return f.getSession, f.err
 }
-func (f fakeVotingRepo) UpdateSession(*domainvoting.Session) error { return nil }
-func (f fakeVotingRepo) ListSessions() ([]*domainvoting.Session, error) {
+func (f fakeVotingRepo) UpdateSession(*voting.Session) error { return nil }
+func (f fakeVotingRepo) ListSessions() ([]*voting.Session, error) {
 	return nil, nil
 }
-func (f fakeVotingRepo) SaveVote(*domainvoting.Vote) error { return nil }
-func (f fakeVotingRepo) GetVote(string) (*domainvoting.Vote, error) {
+func (f fakeVotingRepo) SaveVote(*voting.Vote) error { return nil }
+func (f fakeVotingRepo) GetVote(string) (*voting.Vote, error) {
 	return nil, nil
 }
-func (f fakeVotingRepo) GetVotesByCandidate(string) ([]*domainvoting.Vote, error) {
+func (f fakeVotingRepo) GetVotesByCandidate(string) ([]*voting.Vote, error) {
 	return nil, nil
 }
-func (f fakeVotingRepo) GetVotesByVoter(string) ([]*domainvoting.Vote, error) {
+func (f fakeVotingRepo) GetVotesByVoter(string) ([]*voting.Vote, error) {
 	return nil, nil
 }
 func (f fakeVotingRepo) CountVotesBySession(string, string) (int, error) { return 0, nil }
 func (f fakeVotingRepo) DeleteVote(string) error                         { return nil }
 
-// WithTx satisfies domainvoting.TransactableRepository; the fake has no
+// WithTx satisfies voting.TransactableRepository; the fake has no
 // state that needs transaction semantics, so it returns itself.
-func (f fakeVotingRepo) WithTx(_ *sql.Tx) domainvoting.Repository { return f }
+func (f fakeVotingRepo) WithTx(_ *sql.Tx) voting.Repository { return f }
 
 // failingNFTRepo makes every Save* method return err.
 type failingNFTRepo struct {
 	err error
 }
 
-func (f *failingNFTRepo) SaveNFT(*domainnft.NFT) error   { return f.err }
-func (f *failingNFTRepo) UpdateNFT(*domainnft.NFT) error { return f.err }
+func (f *failingNFTRepo) SaveNFT(*nft.NFT) error   { return f.err }
+func (f *failingNFTRepo) UpdateNFT(*nft.NFT) error { return f.err }
 func (f *failingNFTRepo) TryTransferOwnership(string, []byte, []byte) error {
 	return f.err
 }
@@ -536,18 +535,18 @@ func (f *failingNFTRepo) TryDeleteNFTIfOwned(string, []byte) error {
 }
 func (f *failingNFTRepo) DeleteNFT(string) error { return f.err }
 
-// WithTx satisfies domainnft.TransactableRepository; the failing repo has no
+// WithTx satisfies nft.TransactableRepository; the failing repo has no
 // state, so it simply returns itself.
-func (f *failingNFTRepo) WithTx(_ *sql.Tx) domainnft.Repository { return f }
-func (f *failingNFTRepo) GetNFT(string) (*domainnft.NFT, error) {
+func (f *failingNFTRepo) WithTx(_ *sql.Tx) nft.Repository { return f }
+func (f *failingNFTRepo) GetNFT(string) (*nft.NFT, error) {
 	return nil, f.err
 }
-func (f *failingNFTRepo) GetNFTsByOwner(_ []byte, _ int, _ int) ([]*domainnft.NFT, error) {
+func (f *failingNFTRepo) GetNFTsByOwner(_ []byte, _ int, _ int) ([]*nft.NFT, error) {
 	return nil, f.err
 }
-func (f *failingNFTRepo) SaveOperation(*domainnft.Operation) error {
+func (f *failingNFTRepo) SaveOperation(*nft.Operation) error {
 	return f.err
 }
-func (f *failingNFTRepo) GetOperations(string) ([]*domainnft.Operation, error) {
+func (f *failingNFTRepo) GetOperations(string) ([]*nft.Operation, error) {
 	return nil, f.err
 }

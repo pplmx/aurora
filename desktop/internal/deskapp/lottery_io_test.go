@@ -7,22 +7,21 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
-	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
-func genuineDesktopLotteryRecord(t *testing.T, seed string) domainlottery.LotteryRecord {
+func genuineDesktopLotteryRecord(t *testing.T, seed string) lottery.LotteryRecord {
 	t.Helper()
 	participants := []string{"Alice", "Bob", "Carol"}
-	winners, addresses, output, proof, publicKey, err := domainlottery.NewService().DrawWinners(
+	winners, addresses, output, proof, publicKey, err := lottery.NewService().DrawWinners(
 		participants, seed, 2,
 	)
 	require.NoError(t, err)
-	record := domainlottery.CreateLotteryRecord(
+	record := lottery.CreateLotteryRecord(
 		seed, participants, winners, addresses, output, proof, publicKey, 1,
 	)
 	record.Verified = true
@@ -110,9 +109,9 @@ func TestImportRecords_PartialFailureMatchesCLIContract(t *testing.T) {
 	t.Cleanup(func() { _ = repo.Close() })
 
 	valid := genuineDesktopLotteryRecord(t, "mixed-seed-long")
-	invalid := domainlottery.LotteryRecord{ID: "bad", Seed: "x"} // no participants/winners
+	invalid := lottery.LotteryRecord{ID: "bad", Seed: "x"} // no participants/winners
 
-	document, err := json.Marshal([]domainlottery.LotteryRecord{valid, invalid})
+	document, err := json.Marshal([]lottery.LotteryRecord{valid, invalid})
 	require.NoError(t, err)
 
 	result, err := lotteryapp.ImportRecords(repo, document)
@@ -127,7 +126,7 @@ func TestExportLotteriesReplacesTheDocumentAtomically(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "aurora.db")
 	repo, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
-	record := domainlottery.LotteryRecord{
+	record := lottery.LotteryRecord{
 		ID:              "menu-export-id",
 		BlockHeight:     3,
 		Seed:            "menu-export-seed",

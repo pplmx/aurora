@@ -11,11 +11,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pplmx/aurora/internal/app/oracleapp"
+	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
-	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
 func TestOracleHandler_Sources_Empty(t *testing.T) {

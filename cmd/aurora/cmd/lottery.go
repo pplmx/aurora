@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
@@ -48,7 +48,7 @@ var createCmd = &cobra.Command{
 
 		blockChain := blockchain.InitBlockChain()
 
-		uc := lotteryapp.NewCreateLotteryUseCase(lotteryRepo, blockChain)
+		uc := lotteryapp.NewCreate(lotteryRepo, blockChain)
 
 		req := lotteryapp.CreateLotteryRequest{
 			Participants: participantsStr,

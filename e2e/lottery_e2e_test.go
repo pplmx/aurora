@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	lottery "github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/domain/lottery"
 )
 
 func TestLotteryE2E_FullFlow(t *testing.T) {

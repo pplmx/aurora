@@ -2,17 +2,15 @@ package deskapp
 
 import (
 	"errors"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
-	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // withLocale runs fn with Aurora's translator in locale and restores the one
@@ -181,25 +179,6 @@ func TestShowErrorUsesTheLocalizedReason(t *testing.T) {
 		showError(nil, T("desktop.error.backup_failed"), errors.New("boom"))
 		assert.Equal(t, "备份失败", got.Title)
 		assert.Equal(t, "boom", got.Message)
-	})
-}
-
-// TestStartupErrorsFollowTheLocale covers the reasons a start fails, which
-// end up in the startup-failure dialog: a translated title over an English
-// reason is still half a message, and the reason is the part the user has to
-// act on.
-func TestStartupErrorsFollowTheLocale(t *testing.T) {
-	withLocale(t, "zh", func() {
-		dir := t.TempDir()
-
-		_, err := ResolveWebRoot(filepath.Join(dir, "missing"), "")
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Web 目录")
-		assert.Contains(t, err.Error(), "index.html", "the file name stays literal")
-
-		_, err = ResolveWebRoot("", "")
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "找不到 Web 界面")
 	})
 }
 

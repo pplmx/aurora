@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/egoist/mygo"
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
+	"github.com/pplmx/aurora/desktop/internal/nativeui"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 )
 
 // Shell routes what the operating system asks the app to open onto the one
@@ -54,6 +54,9 @@ type Shell struct {
 	// after macOS kept the app alive with its last window closed. Attach loads
 	// the newest request once there is a window for it.
 	pending *Intent
+	// app is the window's state. The shell sets its current page when a link
+	// or a second launch names one, and the window's Content closure reads it.
+	app *nativeui.App
 }
 
 // NewShell builds a shell for meta. The window is attached later, once MyGo
@@ -68,6 +71,21 @@ func NewShell(meta About) *Shell {
 		showMessage(s.Window(), typ, title, message, detail)
 	}
 	return s
+}
+
+// SetApp gives the shell the window state a link can steer. It must be called
+// before any link is handled, so Navigate has something to point at.
+func (s *Shell) SetApp(app *nativeui.App) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.app = app
+}
+
+// App returns the window state, or nil before SetApp.
+func (s *Shell) App() *nativeui.App {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.app
 }
 
 // Window returns the attached window, or nil before Attach.
@@ -260,18 +278,15 @@ func (s *Shell) HandleLaunchArgs(args []string, workDir string) {
 // delivers itself: `cd ~/Downloads && aurora-desktop --data-dir db` names
 // ~/Downloads/db, not a directory beside this process.
 func (s *Shell) pathConflict(args []string, workDir string) string {
-	dataDir, webRoot := ForwardedPaths(args)
-	var conflicts []string
-	if dataDir != "" {
-		want := filepath.Join(resolveAgainst(dataDir, workDir), "aurora.db")
-		if s.meta.DBPath == "" || !samePath(want, s.meta.DBPath) {
-			conflicts = append(conflicts, "--data-dir "+dataDir)
-		}
+	dataDir := ForwardedPaths(args)
+	if dataDir == "" {
+		return ""
 	}
-	if webRoot != "" && !samePath(resolveAgainst(webRoot, workDir), s.meta.WebRoot) {
-		conflicts = append(conflicts, "--web-root "+webRoot)
+	want := filepath.Join(resolveAgainst(dataDir, workDir), "aurora.db")
+	if s.meta.DBPath == "" || !samePath(want, s.meta.DBPath) {
+		return "--data-dir " + dataDir
 	}
-	return strings.Join(conflicts, " and ")
+	return ""
 }
 
 // samePath reports whether two spellings name the same filesystem object.
@@ -362,7 +377,8 @@ func (s *Shell) Navigate(in Intent) {
 	}
 	s.mu.Lock()
 	win := s.win
-	if win == nil || win.IsDestroyed() || win.Page() == nil {
+	app := s.app
+	if win == nil || win.IsDestroyed() || app == nil {
 		// No live window is either a startup race or a macOS process whose
 		// last window was closed. Keep the newest request for the next Attach;
 		// EnsureWindow is what turns that into a visible window.
@@ -371,7 +387,12 @@ func (s *Shell) Navigate(in Intent) {
 		return
 	}
 	s.mu.Unlock()
-	win.Page().LoadURL(in.URL())
+	// A native window has no page to load: the link selects which view the
+	// App renders, and MyGo repaints on the next frame.
+	app.ShowPage(in.Page)
+	if id := in.LotteryID; id != "" {
+		app.ShowLotteryDraw(id)
+	}
 	s.Reveal()
 }
 

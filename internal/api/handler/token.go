@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	tokenapp "github.com/pplmx/aurora/internal/app/token"
+	"github.com/pplmx/aurora/internal/app/tokenapp"
 	"github.com/pplmx/aurora/internal/domain/token"
 )
 
@@ -114,7 +114,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uc := tokenapp.NewCreateTokenUseCase(h.service)
+	uc := tokenapp.NewCreate(h.service)
 	result, err := uc.Execute(&tokenapp.CreateTokenRequest{
 		Name:        req.Name,
 		Symbol:      req.Symbol,

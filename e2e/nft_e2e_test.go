@@ -7,35 +7,35 @@ import (
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	nftdomain "github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/nft"
 )
 
 type inMemoryNFTRepo struct {
-	nfts        map[string]*nftdomain.NFT
-	operations  map[string][]*nftdomain.Operation
-	nftsByOwner map[string][]*nftdomain.NFT
+	nfts        map[string]*nft.NFT
+	operations  map[string][]*nft.Operation
+	nftsByOwner map[string][]*nft.NFT
 }
 
 func newInMemoryNFTRepo() *inMemoryNFTRepo {
 	return &inMemoryNFTRepo{
-		nfts:        make(map[string]*nftdomain.NFT),
-		operations:  make(map[string][]*nftdomain.Operation),
-		nftsByOwner: make(map[string][]*nftdomain.NFT),
+		nfts:        make(map[string]*nft.NFT),
+		operations:  make(map[string][]*nft.Operation),
+		nftsByOwner: make(map[string][]*nft.NFT),
 	}
 }
 
-func (r *inMemoryNFTRepo) SaveNFT(nft *nftdomain.NFT) error {
+func (r *inMemoryNFTRepo) SaveNFT(nft *nft.NFT) error {
 	r.nfts[nft.ID] = nft
 	ownerKey := string(nft.Owner)
 	r.nftsByOwner[ownerKey] = append(r.nftsByOwner[ownerKey], nft)
 	return nil
 }
 
-func (r *inMemoryNFTRepo) GetNFT(id string) (*nftdomain.NFT, error) {
+func (r *inMemoryNFTRepo) GetNFT(id string) (*nft.NFT, error) {
 	return r.nfts[id], nil
 }
 
-func (r *inMemoryNFTRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nftdomain.NFT, error) {
+func (r *inMemoryNFTRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.NFT, error) {
 	all := r.nftsByOwner[string(owner)]
 	if limit > 0 {
 		if offset < 0 {
@@ -53,38 +53,38 @@ func (r *inMemoryNFTRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nf
 	return all, nil
 }
 
-func (r *inMemoryNFTRepo) UpdateNFT(nft *nftdomain.NFT) error {
-	old, ok := r.nfts[nft.ID]
+func (r *inMemoryNFTRepo) UpdateNFT(item *nft.NFT) error {
+	old, ok := r.nfts[item.ID]
 	if !ok {
-		return nftdomain.ErrNFTNotFound
+		return nft.ErrNFTNotFound
 	}
 	oldOwnerKey := string(old.Owner)
-	newOwnerKey := string(nft.Owner)
+	newOwnerKey := string(item.Owner)
 
-	var updatedList []*nftdomain.NFT
+	var updatedList []*nft.NFT
 	for _, n := range r.nftsByOwner[oldOwnerKey] {
-		if n.ID != nft.ID {
+		if n.ID != item.ID {
 			updatedList = append(updatedList, n)
 		}
 	}
 	r.nftsByOwner[oldOwnerKey] = updatedList
 
-	r.nfts[nft.ID] = nft
-	r.nftsByOwner[newOwnerKey] = append(r.nftsByOwner[newOwnerKey], nft)
+	r.nfts[item.ID] = item
+	r.nftsByOwner[newOwnerKey] = append(r.nftsByOwner[newOwnerKey], item)
 	return nil
 }
 
 func (r *inMemoryNFTRepo) TryTransferOwnership(nftID string, from, to []byte) error {
 	existing, ok := r.nfts[nftID]
 	if !ok {
-		return nftdomain.ErrNFTNotFound
+		return nft.ErrNFTNotFound
 	}
 	if string(existing.Owner) != string(from) {
-		return nftdomain.ErrOwnershipChanged
+		return nft.ErrOwnershipChanged
 	}
 	oldOwnerKey := string(existing.Owner)
 	newOwnerKey := string(to)
-	var updatedList []*nftdomain.NFT
+	var updatedList []*nft.NFT
 	for _, n := range r.nftsByOwner[oldOwnerKey] {
 		if n.ID != nftID {
 			updatedList = append(updatedList, n)
@@ -98,11 +98,11 @@ func (r *inMemoryNFTRepo) TryTransferOwnership(nftID string, from, to []byte) er
 }
 
 func (r *inMemoryNFTRepo) DeleteNFT(id string) error {
-	nft, ok := r.nfts[id]
+	item, ok := r.nfts[id]
 	if !ok {
-		return nftdomain.ErrNFTNotFound
+		return nft.ErrNFTNotFound
 	}
-	ownerKey := string(nft.Owner)
+	ownerKey := string(item.Owner)
 	for i, n := range r.nftsByOwner[ownerKey] {
 		if n.ID == id {
 			r.nftsByOwner[ownerKey] = append(r.nftsByOwner[ownerKey][:i], r.nftsByOwner[ownerKey][i+1:]...)
@@ -116,10 +116,10 @@ func (r *inMemoryNFTRepo) DeleteNFT(id string) error {
 func (r *inMemoryNFTRepo) TryDeleteNFTIfOwned(nftID string, expectedOwner []byte) error {
 	existing, ok := r.nfts[nftID]
 	if !ok {
-		return nftdomain.ErrNFTNotFound
+		return nft.ErrNFTNotFound
 	}
 	if string(existing.Owner) != string(expectedOwner) {
-		return nftdomain.ErrOwnershipChanged
+		return nft.ErrOwnershipChanged
 	}
 	ownerKey := string(existing.Owner)
 	for i, n := range r.nftsByOwner[ownerKey] {
@@ -132,25 +132,25 @@ func (r *inMemoryNFTRepo) TryDeleteNFTIfOwned(nftID string, expectedOwner []byte
 	return nil
 }
 
-func (r *inMemoryNFTRepo) SaveOperation(op *nftdomain.Operation) error {
+func (r *inMemoryNFTRepo) SaveOperation(op *nft.Operation) error {
 	r.operations[op.NFTID] = append(r.operations[op.NFTID], op)
 	return nil
 }
 
-func (r *inMemoryNFTRepo) GetOperations(nftID string) ([]*nftdomain.Operation, error) {
+func (r *inMemoryNFTRepo) GetOperations(nftID string) ([]*nft.Operation, error) {
 	return r.operations[nftID], nil
 }
 
-// WithTx satisfies nftdomain.TransactableRepository. E2E tests run
+// WithTx satisfies nft.TransactableRepository. E2E tests run
 // single-goroutine against this in-memory repo with no transaction manager,
 // so the repo simply returns itself (same approach as inMemoryTokenRepo).
-func (r *inMemoryNFTRepo) WithTx(_ *sql.Tx) nftdomain.Repository {
+func (r *inMemoryNFTRepo) WithTx(_ *sql.Tx) nft.Repository {
 	return r
 }
 
 func TestNFTE2E(t *testing.T) {
 	repo := newInMemoryNFTRepo()
-	service := nftdomain.NewServiceWithoutTx(repo)
+	service := nft.NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 
 	_, creatorPriv, _ := ed25519.GenerateKey(rand.Reader)
@@ -159,7 +159,7 @@ func TestNFTE2E(t *testing.T) {
 	_, toPriv, _ := ed25519.GenerateKey(rand.Reader)
 	toPub := toPriv.Public().(ed25519.PublicKey)
 
-	nftItem := &nftdomain.NFT{
+	nftItem := &nft.NFT{
 		Name:        "Test NFT",
 		Description: "Description",
 		ImageURL:    "https://example.com/img.png",
@@ -210,7 +210,7 @@ func TestNFTE2E(t *testing.T) {
 
 func TestNFTMultipleOwners(t *testing.T) {
 	repo := newInMemoryNFTRepo()
-	service := nftdomain.NewServiceWithoutTx(repo)
+	service := nft.NewServiceWithoutTx(repo)
 	chain := blockchain.InitBlockChain()
 
 	_, user1Priv, _ := ed25519.GenerateKey(rand.Reader)
@@ -222,9 +222,9 @@ func TestNFTMultipleOwners(t *testing.T) {
 	_, user3Priv, _ := ed25519.GenerateKey(rand.Reader)
 	user3Pub := user3Priv.Public().(ed25519.PublicKey)
 
-	nft1 := &nftdomain.NFT{Name: "NFT 1", Owner: user1Pub, Creator: user1Pub}
-	nft2 := &nftdomain.NFT{Name: "NFT 2", Owner: user1Pub, Creator: user1Pub}
-	nft3 := &nftdomain.NFT{Name: "NFT 3", Owner: user1Pub, Creator: user1Pub}
+	nft1 := &nft.NFT{Name: "NFT 1", Owner: user1Pub, Creator: user1Pub}
+	nft2 := &nft.NFT{Name: "NFT 2", Owner: user1Pub, Creator: user1Pub}
+	nft3 := &nft.NFT{Name: "NFT 3", Owner: user1Pub, Creator: user1Pub}
 
 	minted1, _ := service.Mint(nft1, chain)
 	minted2, _ := service.Mint(nft2, chain)

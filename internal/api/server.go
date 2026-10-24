@@ -4,13 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"io"
-	"io/fs"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/pplmx/aurora/internal/api/handler"
-	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
+	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/oracle"
@@ -25,6 +24,7 @@ type Server struct {
 	metrics              *metrics.Registry
 	metricsOnce          sync.Once
 	oracleRepo           oracle.Repository
+	oracleSQLiteRepo     *sqlite.OracleRepository
 	oracleMu             sync.Mutex
 	oracleScheduler      *oracleapp.Scheduler
 	oracleSchedulerFetch *oracleapp.FetchDataUseCase
@@ -35,6 +35,17 @@ type Server struct {
 	oracleHandler        *handler.OracleHandler
 	blockchainHandler    *handler.BlockchainHandler
 	eventStore           *infraevents.SQLiteEventStore
+
+	// The wired repositories and services are kept so a non-HTTP presentation
+	// layer (the desktop window) can drive the same instances instead of
+	// opening a second set of handles.
+	lotteryRepo  *sqlite.LotteryRepository
+	votingRepo   *sqlite.VotingRepository
+	nftRepo      *sqlite.NFTRepository
+	tokenRepo    *sqlite.TokenRepository
+	tokenService token.Service
+	txManager    *sqlite.TxManager
+	chain        *blockchain.BlockChain
 
 	// closers releases every SQLite handle NewServer opened (repos, event
 	// store, replay protection) plus the shared blockchain DB. Tests use
@@ -145,12 +156,21 @@ func NewServer() (*Server, error) {
 	}
 	srv.addCloser(oracleRepo)
 
+	srv.lotteryRepo = lotteryRepo
+	srv.votingRepo = votingRepo
+	srv.nftRepo = nftRepo
+	srv.tokenRepo = tokenRepo
+	srv.tokenService = tokenService
+	srv.txManager = txManager
+	srv.chain = chain
+
 	srv.lotteryHandler = handler.NewLotteryHandler(lotteryRepo, config.LotteryDefaultCount())
 	srv.votingHandler = handler.NewVotingHandler(votingRepo, sqlite.NewTxManager(db))
 	srv.votingHandler.SetChain(blockchain.GetBlockChain())
 	srv.nftHandler = handler.NewNFTHandler(nftRepo, sqlite.NewTxManager(nftRepo.GetDB()))
 	srv.tokenHandler = handler.NewTokenHandler(tokenService)
 	srv.oracleRepo = oracleRepo
+	srv.oracleSQLiteRepo = oracleRepo
 	srv.oracleHandler = handler.NewOracleHandler(oracleRepo)
 	srv.blockchainHandler = handler.NewBlockchainHandler()
 	// Record API-fetched oracle data on-chain, consistent with the scheduler
@@ -265,14 +285,46 @@ func (s *Server) Router() http.Handler {
 	return newRouter(s)
 }
 
-// RouterWithWebFS is Router over an explicit Web UI source instead of
-// config.WebRoot(). The mygo desktop shell passes the UI embedded in its
-// binary, so the window loads exactly the routes and API-key bootstrap the
-// HTTP gateway serves, with no checkout and no listener involved.
+// Services exposes the assembled application services so a non-HTTP
+// presentation layer (the desktop app's native UI) can drive the same
+// repositories and services the REST handlers use, without re-implementing
+// NewServer's wiring or opening a second set of SQLite handles.
 //
-// The caller owns the transport's security policy: a host serving these
-// documents over a custom scheme must drop the CSP, because no CSP source
-// expression satisfies WebKit there (see desktop/internal/deskapp).
-func (s *Server) RouterWithWebFS(webFS fs.FS) http.Handler {
-	return newRouterWithWebFS(s, webFS)
+// It is a read-only view: the caller must not close these handles — Server.Close
+// owns their lifetime.
+func (s *Server) Services() Services {
+	return Services{
+		DB:           s.db,
+		LotteryRepo:  s.lotteryRepo,
+		VotingRepo:   s.votingRepo,
+		NFTRepo:      s.nftRepo,
+		TokenRepo:    s.tokenRepo,
+		OracleRepo:   s.oracleSQLiteRepo,
+		TokenService: s.tokenService,
+		TxManager:    s.txManager,
+		Chain:        s.chain,
+		EventStore:   s.eventStore,
+	}
+}
+
+// Services exposes the wired repositories and services a non-HTTP presentation
+// layer drives. A native window calls the same application use cases the REST
+// handlers call, over the same handles, so a record created in the window is
+// the record the CLI prints and the gateway returns.
+//
+// The handles are owned by Server: a caller must not close them.
+type Services struct {
+	DB *sql.DB
+
+	LotteryRepo *sqlite.LotteryRepository
+	VotingRepo  *sqlite.VotingRepository
+	NFTRepo     *sqlite.NFTRepository
+	TokenRepo   *sqlite.TokenRepository
+	OracleRepo  *sqlite.OracleRepository
+
+	TokenService token.Service
+	TxManager    *sqlite.TxManager
+	Chain        *blockchain.BlockChain
+
+	EventStore *infraevents.SQLiteEventStore
 }

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
+	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
 	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"

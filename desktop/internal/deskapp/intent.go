@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 )
 
 // DeepLinkScheme is the scheme the operating system hands to the app: an

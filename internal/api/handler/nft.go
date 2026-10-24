@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	nftapp "github.com/pplmx/aurora/internal/app/nft"
+	"github.com/pplmx/aurora/internal/app/nftapp"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	domainnft "github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/nft"
 )
 
 // defaultNFTListLimit is the default page size for GET /nft/list?owner=.
@@ -22,18 +22,18 @@ const maxNFTListLimit = 100
 const maxNFTListOffset = 1000
 
 type NFTHandler struct {
-	repo    domainnft.Repository
-	service domainnft.Service
+	repo    nft.Repository
+	service nft.Service
 	chain   blockchain.BlockWriter
 }
 
 // NewNFTHandler wires the NFT service over a transaction-capable repository.
 // txManager may be nil (handler tests); the service then falls back to
 // non-transactional writes via NewService's nil guard.
-func NewNFTHandler(repo domainnft.TransactableRepository, txManager domainnft.TransactionManager) *NFTHandler {
+func NewNFTHandler(repo nft.TransactableRepository, txManager nft.TransactionManager) *NFTHandler {
 	return &NFTHandler{
 		repo:    repo,
-		service: domainnft.NewService(repo, txManager),
+		service: nft.NewService(repo, txManager),
 		chain:   blockchain.InitBlockChain(),
 	}
 }
@@ -59,7 +59,7 @@ func (h *NFTHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uc := nftapp.NewMintNFTUseCase(h.service, h.chain)
+	uc := nftapp.NewMint(h.service, h.chain)
 	result, err := uc.Execute(&nftapp.MintNFTRequest{
 		Name:        req.Name,
 		Description: req.Description,
@@ -128,7 +128,7 @@ func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
 func (h *NFTHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	uc := nftapp.NewGetNFTUseCase(h.service)
+	uc := nftapp.NewGet(h.service)
 	result, err := uc.Execute(id)
 	if err != nil {
 		writeUseCaseError(w, err)
@@ -168,7 +168,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	uc := nftapp.NewListNFTsByOwnerUseCase(h.service)
+	uc := nftapp.NewListByOwner(h.service)
 	result, err := uc.Execute(&nftapp.ListNFTsByOwnerRequest{
 		Owner:  owner,
 		Limit:  limit,

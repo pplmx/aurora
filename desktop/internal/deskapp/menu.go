@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo"
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/infra/backup"
 	"github.com/pplmx/aurora/internal/infra/sqlite"

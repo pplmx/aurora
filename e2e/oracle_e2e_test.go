@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	oracle "github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
 func TestOracleE2E_DataSourceCreation(t *testing.T) {

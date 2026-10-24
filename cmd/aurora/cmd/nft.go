@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	appnft "github.com/pplmx/aurora/internal/app/nft"
+	"github.com/pplmx/aurora/internal/app/nftapp"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	nftdomain "github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
@@ -32,7 +32,7 @@ var (
 	nftRepoErr  error
 )
 
-func getNFTRepo() (nftdomain.TransactableRepository, error) {
+func getNFTRepo() (nft.TransactableRepository, error) {
 	nftRepoOnce.Do(func() {
 		nftRepo, nftRepoErr = sqlite.NewNFTRepository(blockchain.DBPath())
 	})
@@ -42,7 +42,7 @@ func getNFTRepo() (nftdomain.TransactableRepository, error) {
 	return nftRepo, nil
 }
 
-func nftService() (nftdomain.Service, error) {
+func nftService() (nft.Service, error) {
 	repo, err := getNFTRepo()
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func nftService() (nftdomain.Service, error) {
 	// transaction; the TxManager must share the repository's pool so the
 	// tx-scoped repository and the transaction operate on the same database.
 	txManager := sqlite.NewTxManager(nftRepo.GetDB())
-	return nftdomain.NewService(repo, txManager), nil
+	return nft.NewService(repo, txManager), nil
 }
 
 func nftChain() *blockchain.BlockChain {
@@ -76,8 +76,8 @@ var mintCmd = &cobra.Command{
 		tokenURI, _ := cmd.Flags().GetString("token-uri")
 		creator, _ := cmd.Flags().GetString("creator")
 
-		mintUC := appnft.NewMintNFTUseCase(service, nftChain())
-		req := &appnft.MintNFTRequest{
+		mintUC := nftapp.NewMint(service, nftChain())
+		req := &nftapp.MintNFTRequest{
 			Name:        name,
 			Description: description,
 			ImageURL:    imageURL,
@@ -114,8 +114,8 @@ var transferCmd = &cobra.Command{
 		to, _ := cmd.Flags().GetString("to")
 		privateKey, _ := cmd.Flags().GetString("private-key")
 
-		transferUC := appnft.NewTransferNFTUseCase(service, nftChain())
-		req := &appnft.TransferNFTRequest{
+		transferUC := nftapp.NewTransferNFTUseCase(service, nftChain())
+		req := &nftapp.TransferNFTRequest{
 			NFTID:      nftID,
 			From:       from,
 			To:         to,
@@ -155,8 +155,8 @@ var burnCmd = &cobra.Command{
 		owner, _ := cmd.Flags().GetString("owner")
 		privateKey, _ := cmd.Flags().GetString("private-key")
 
-		burnUC := appnft.NewBurnNFTUseCase(service, nftChain())
-		req := &appnft.BurnNFTRequest{
+		burnUC := nftapp.NewBurnNFTUseCase(service, nftChain())
+		req := &nftapp.BurnNFTRequest{
 			NFTID:      nftID,
 			Owner:      owner,
 			PrivateKey: privateKey,
@@ -183,7 +183,7 @@ var getCmd = &cobra.Command{
 
 		nftID, _ := cmd.Flags().GetString("nft")
 
-		getUC := appnft.NewGetNFTUseCase(service)
+		getUC := nftapp.NewGet(service)
 		result, err := getUC.Execute(nftID)
 		if err != nil {
 			return fmt.Errorf("failed to get NFT: %w", err)
@@ -216,8 +216,8 @@ var listCmd = &cobra.Command{
 
 		// The CLI lists the full collection (0,0 = unbounded); only the REST
 		// list is paged/bounded (TASK-101, ISS-093).
-		listUC := appnft.NewListNFTsByOwnerUseCase(service)
-		results, err := listUC.Execute(&appnft.ListNFTsByOwnerRequest{Owner: owner})
+		listUC := nftapp.NewListByOwner(service)
+		results, err := listUC.Execute(&nftapp.ListNFTsByOwnerRequest{Owner: owner})
 		if err != nil {
 			return fmt.Errorf("failed to list NFTs: %w", err)
 		}
@@ -245,7 +245,7 @@ var nftHistoryCmd = &cobra.Command{
 
 		nftID, _ := cmd.Flags().GetString("nft")
 
-		historyUC := appnft.NewGetNFTOperationsUseCase(service)
+		historyUC := nftapp.NewGetNFTOperationsUseCase(service)
 		results, err := historyUC.Execute(nftID)
 		if err != nil {
 			return fmt.Errorf("failed to get history: %w", err)
