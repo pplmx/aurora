@@ -165,20 +165,22 @@ defaultCount = 3              # 未传 -c 时的获奖人数；种子始终由�
 
 ```text
 cmd/aurora/     # CLI 入口
-cmd/api/        # REST API + Web 服务入口
+cmd/api/        # REST API 服务入口
 desktop/        # MyGo 桌面壳（嵌套模块；cmd/aurora-desktop + internal/deskapp）
 internal/
 ├── domain/     # 领域层：blockchain / lottery / voting / nft / token / oracle
-├── app/        # 应用层：用例编排
+├── app/        # 应用层：用例编排（<module>app 包）
 ├── infra/      # 基础设施：SQLite、HTTP 客户端、备份、迁移、事件
 ├── api/        # 路由、handler、中间件
 ├── i18n/       # 国际化
+├── repocheck/  # 仓库级契约测试（格式、工具链、纯 Go 边界）
 └── utils/      # 工具（含原子写文件）
 e2e/            # E2E 测试
 ```
 
-DDD 分层：`domain` 持有实体、领域服务与仓储接口；`app` 编排用例；`infra` 实现
-外部依赖；`ui`/`api`/`desktop` 是三种表示层，共用 `app`。
+DDD 分层：`domain` 持有实体、领域服务与仓储接口，不依赖任何其他层；`app`
+编排用例；`infra` 实现外部依赖；`api`（REST）与 `desktop`（原生 Go 窗口）是两种
+表示层，共用 `app`。
 
 ## 技术栈
 
