@@ -344,69 +344,6 @@ func TestOracleRepository_SetSourceEnabled_NotFound(t *testing.T) {
 	}
 }
 
-func TestOracleRepository_GetData(t *testing.T) {
-	repo, cleanup := setupOracleTestDB(t)
-	defer cleanup()
-
-	data := &oracle.OracleData{
-		ID:          "data-1",
-		SourceID:    "btc-price",
-		Value:       "50000.00",
-		RawResponse: `{"result": 50000}`,
-		Timestamp:   1234567890,
-		BlockHeight: 1,
-	}
-	require.NoError(t, repo.SaveData(data))
-
-	retrieved, err := repo.GetData("data-1")
-	require.NoError(t, err)
-	require.NotNil(t, retrieved)
-	require.Equal(t, "data-1", retrieved.ID)
-	require.Equal(t, "btc-price", retrieved.SourceID)
-	require.Equal(t, "50000.00", retrieved.Value)
-	require.Equal(t, int64(1234567890), retrieved.Timestamp)
-}
-
-func TestOracleRepository_GetData_NotFound(t *testing.T) {
-	repo, cleanup := setupOracleTestDB(t)
-	defer cleanup()
-
-	retrieved, err := repo.GetData("nonexistent")
-	require.NoError(t, err)
-	require.Nil(t, retrieved)
-}
-
-func TestOracleRepository_GetDataByTimeRange(t *testing.T) {
-	repo, cleanup := setupOracleTestDB(t)
-	defer cleanup()
-
-	d1 := &oracle.OracleData{ID: "d1", SourceID: "src-1", Value: "100", Timestamp: 1000}
-	d2 := &oracle.OracleData{ID: "d2", SourceID: "src-1", Value: "200", Timestamp: 2000}
-	d3 := &oracle.OracleData{ID: "d3", SourceID: "src-1", Value: "300", Timestamp: 3000}
-	d4 := &oracle.OracleData{ID: "d4", SourceID: "src-2", Value: "400", Timestamp: 2000}
-
-	for _, d := range []*oracle.OracleData{d1, d2, d3, d4} {
-		require.NoError(t, repo.SaveData(d))
-	}
-
-	results, err := repo.GetDataByTimeRange("src-1", 1500, 2500)
-	require.NoError(t, err)
-	require.Len(t, results, 1)
-	require.Equal(t, "d2", results[0].ID)
-}
-
-func TestOracleRepository_GetDataByTimeRange_Empty(t *testing.T) {
-	repo, cleanup := setupOracleTestDB(t)
-	defer cleanup()
-
-	d1 := &oracle.OracleData{ID: "d1", SourceID: "src-1", Value: "100", Timestamp: 1000}
-	require.NoError(t, repo.SaveData(d1))
-
-	results, err := repo.GetDataByTimeRange("src-1", 5000, 9000)
-	require.NoError(t, err)
-	require.Empty(t, results)
-}
-
 func TestOracleRepository_UpdateSource(t *testing.T) {
 	repo, cleanup := setupOracleTestDB(t)
 	defer cleanup()

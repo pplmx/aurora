@@ -9,7 +9,6 @@ import (
 type Service interface {
 	SignVote(message string, privateKey []byte) (string, error)
 	VerifyVote(voterPK, message, signature string) bool
-	CountVotes(candidates []Candidate) map[string]int
 }
 
 type Ed25519Service struct{}
@@ -47,12 +46,4 @@ func (s *Ed25519Service) VerifyVote(voterPK, message, signature string) bool {
 	}
 
 	return ed25519.Verify(pubBytes, []byte(message), sigBytes)
-}
-
-func (s *Ed25519Service) CountVotes(candidates []Candidate) map[string]int {
-	results := make(map[string]int)
-	for _, c := range candidates {
-		results[c.ID] = c.VoteCount
-	}
-	return results
 }

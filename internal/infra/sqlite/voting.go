@@ -161,34 +161,9 @@ func (r *VotingRepository) saveVote(vote *voting.Vote) error {
 	return err
 }
 
-func (r *VotingRepository) GetVote(id string) (*voting.Vote, error) {
-	row := r.q().QueryRow(
-		`SELECT v.id, v.voter_pk, v.candidate_id, COALESCE(vs.session_id, ''),
-		        v.signature, v.message, v.timestamp, v.block_height
-		 FROM votes v
-		 LEFT JOIN vote_sessions vs ON vs.vote_id = v.id
-		 WHERE v.id = ?`,
-		id,
-	)
-	v := &voting.Vote{}
-	err := row.Scan(&v.ID, &v.VoterPublicKey, &v.CandidateID, &v.SessionID, &v.Signature, &v.Message, &v.Timestamp, &v.BlockHeight)
-	if err == sql.ErrNoRows {
-		return nil, ErrNotFound
-	}
-	return v, err
-}
-
 // DeleteVote removes a vote by id. CastVote no longer needs it for rollback
 // (the whole ballot runs in one transaction); it is retained for
 // administrative / corrective flows.
-func (r *VotingRepository) DeleteVote(id string) error {
-	if _, err := r.q().Exec(`DELETE FROM vote_sessions WHERE vote_id = ?`, id); err != nil {
-		return err
-	}
-	_, err := r.q().Exec(`DELETE FROM votes WHERE id = ?`, id)
-	return err
-}
-
 func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vote, error) {
 	rows, err := r.q().Query(
 		`SELECT v.id, v.voter_pk, v.candidate_id, COALESCE(vs.session_id, ''),
@@ -367,14 +342,6 @@ func (r *VotingRepository) TryMarkVoted(publicKey, voteHash string) error {
 // voter. Historically the best-effort rollback when SaveVote failed after
 // TryMarkVoted succeeded; CastVote now runs in a real transaction, so this
 // primitive is retained for administrative / corrective flows only.
-func (r *VotingRepository) UnmarkVoted(publicKey string) error {
-	_, err := r.q().Exec(
-		`UPDATE voters SET has_voted = 0, vote_hash = '' WHERE public_key = ?`,
-		publicKey,
-	)
-	return err
-}
-
 func (r *VotingRepository) ListVoters() ([]*voting.Voter, error) {
 	rows, err := r.q().Query(
 		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters ORDER BY registered_at DESC`,
@@ -420,14 +387,6 @@ func (r *VotingRepository) GetCandidate(id string) (*voting.Candidate, error) {
 	return c, err
 }
 
-func (r *VotingRepository) UpdateCandidate(candidate *voting.Candidate) error {
-	_, err := r.q().Exec(
-		`UPDATE candidates SET name = ?, party = ?, program = ?, image_url = ?, vote_count = ? WHERE id = ?`,
-		candidate.Name, candidate.Party, candidate.Program, candidate.ImageURL, candidate.VoteCount, candidate.ID,
-	)
-	return err
-}
-
 // IncrementCandidateVoteCount atomically increments a candidate's stored
 // vote_count, closing the TOCTOU window in CastVoteUseCase where the count
 // was read into a struct, incremented in memory, then written back — under
@@ -454,11 +413,6 @@ func (r *VotingRepository) IncrementCandidateVoteCount(candidateID string) error
 		return ErrNotFound
 	}
 	return nil
-}
-
-func (r *VotingRepository) DeleteCandidate(id string) error {
-	_, err := r.q().Exec(`DELETE FROM candidates WHERE id = ?`, id)
-	return err
 }
 
 func (r *VotingRepository) ListCandidates() ([]*voting.Candidate, error) {

@@ -464,65 +464,6 @@ func TestFetchData_Disabled(t *testing.T) {
 	}
 }
 
-func TestQueryData(t *testing.T) {
-	repo := NewInmemRepo()
-	svc := NewService(repo)
-
-	source := &DataSource{
-		ID:   "test-id",
-		Name: "test-source",
-		URL:  "https://api.example.com",
-		Type: "http",
-	}
-	_ = repo.SaveSource(source)
-
-	for i := 0; i < 3; i++ {
-		data := &OracleData{
-			ID:        "data-" + string(rune('0'+i)),
-			SourceID:  "test-id",
-			Value:     "100",
-			Timestamp: int64(i),
-		}
-		_ = repo.SaveData(data)
-	}
-
-	results, err := svc.QueryData("test-id", 10)
-	if err != nil {
-		t.Fatalf("QueryData failed: %v", err)
-	}
-	if len(results) != 3 {
-		t.Errorf("expected 3 results, got %d", len(results))
-	}
-}
-
-func TestQueryData_Empty(t *testing.T) {
-	repo := NewInmemRepo()
-	svc := NewService(repo)
-
-	results, err := svc.QueryData("non-existent", 10)
-	if err != nil {
-		t.Fatalf("QueryData failed: %v", err)
-	}
-	if len(results) != 0 {
-		t.Errorf("expected 0 results, got %d", len(results))
-	}
-}
-
-func TestInmemRepo_GetData(t *testing.T) {
-	repo := NewInmemRepo()
-	data := &OracleData{ID: "d1", SourceID: "s1", Value: "100", Timestamp: 1000}
-	require.NoError(t, repo.SaveData(data))
-
-	retrieved, err := repo.GetData("d1")
-	require.NoError(t, err)
-	require.NotNil(t, retrieved)
-	require.Equal(t, "100", retrieved.Value)
-
-	retrieved, err = repo.GetData("nonexistent")
-	require.NoError(t, err)
-	require.Nil(t, retrieved)
-}
-
 func TestInmemRepo_GetLatestData(t *testing.T) {
 	repo := NewInmemRepo()
 	require.NoError(t, repo.SaveData(&OracleData{ID: "d1", SourceID: "s1", Value: "100", Timestamp: 1000}))
@@ -537,19 +478,6 @@ func TestInmemRepo_GetLatestData(t *testing.T) {
 	latest, err = repo.GetLatestData("nonexistent")
 	require.NoError(t, err)
 	require.Nil(t, latest)
-}
-
-func TestInmemRepo_GetDataByTimeRange(t *testing.T) {
-	repo := NewInmemRepo()
-	require.NoError(t, repo.SaveData(&OracleData{ID: "d1", SourceID: "s1", Value: "100", Timestamp: 1000}))
-	require.NoError(t, repo.SaveData(&OracleData{ID: "d2", SourceID: "s1", Value: "200", Timestamp: 2000}))
-	require.NoError(t, repo.SaveData(&OracleData{ID: "d3", SourceID: "s1", Value: "300", Timestamp: 3000}))
-	require.NoError(t, repo.SaveData(&OracleData{ID: "d4", SourceID: "s2", Value: "400", Timestamp: 2000}))
-
-	results, err := repo.GetDataByTimeRange("s1", 1500, 2500)
-	require.NoError(t, err)
-	require.Len(t, results, 1)
-	require.Equal(t, "200", results[0].Value)
 }
 
 func TestInmemRepo_SetSourceEnabled(t *testing.T) {

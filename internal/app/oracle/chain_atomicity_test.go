@@ -71,7 +71,9 @@ func TestFetchOracleDataRollbackLeavesNoOnChainBlock(t *testing.T) {
 	require.NoError(t, repo.GetDB().QueryRow(`SELECT COUNT(*) FROM blocks WHERE height > 0`).Scan(&blockCount))
 	require.Zero(t, blockCount, "failed data save must not persist a block")
 
-	stored, err := repo.GetData("data-1")
-	require.NoError(t, err)
-	require.Nil(t, stored)
+	// The forced save failure must leave no oracle_data row behind. GetData
+	// was removed as dead code, so assert the table directly.
+	var storedRows int
+	require.NoError(t, repo.GetDB().QueryRow(`SELECT COUNT(*) FROM oracle_data`).Scan(&storedRows))
+	require.Zero(t, storedRows, "failed data save must not persist an oracle_data row")
 }

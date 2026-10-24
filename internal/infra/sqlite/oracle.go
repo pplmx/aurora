@@ -139,19 +139,6 @@ func (r *OracleRepository) SaveData(data *oracle.OracleData) error {
 	return err
 }
 
-func (r *OracleRepository) GetData(id string) (*oracle.OracleData, error) {
-	row := r.q().QueryRow(
-		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE id = ?`,
-		id,
-	)
-	d := &oracle.OracleData{}
-	err := row.Scan(&d.ID, &d.SourceID, &d.Value, &d.RawResponse, &d.Timestamp, &d.BlockHeight)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	return d, err
-}
-
 func (r *OracleRepository) GetDataBySource(sourceID string, limit int) ([]*oracle.OracleData, error) {
 	if limit <= 0 {
 		limit = 100
@@ -191,27 +178,6 @@ func (r *OracleRepository) GetLatestData(sourceID string) (*oracle.OracleData, e
 		return nil, nil
 	}
 	return d, err
-}
-
-func (r *OracleRepository) GetDataByTimeRange(sourceID string, start, end int64) ([]*oracle.OracleData, error) {
-	rows, err := r.q().Query(
-		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE source_id = ? AND timestamp >= ? AND timestamp <= ? ORDER BY timestamp DESC`,
-		sourceID, start, end,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-
-	var data []*oracle.OracleData
-	for rows.Next() {
-		d := &oracle.OracleData{}
-		if err := rows.Scan(&d.ID, &d.SourceID, &d.Value, &d.RawResponse, &d.Timestamp, &d.BlockHeight); err != nil {
-			return nil, err
-		}
-		data = append(data, d)
-	}
-	return data, rows.Err()
 }
 
 func (r *OracleRepository) SaveSource(source *oracle.DataSource) error {
