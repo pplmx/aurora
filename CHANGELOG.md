@@ -78,6 +78,21 @@ documented in their per-milestone ROADMAP files.
 
 ### Removed
 
+- **The four Bubble Tea TUIs are gone**: `aurora {lottery,voting,nft,token,oracle} tui`
+  no longer exists and `internal/ui/` was deleted. The ablation criterion was
+  not reachability but necessity: every operation those TUIs exposed already has
+  a Web page and a CLI command, none had a capability of its own, and two of
+  them (NFT/token) were in-memory sandboxes whose state vanished on exit — the
+  opposite of the persistent semantics the rest of the product promises, which
+  made them a trap rather than a convenience. Removed with them: the
+  `charm.land/{bubbles,bubbletea,lipgloss}` dependencies, 234 TUI-only i18n
+  keys, and the tests that existed only to pin TUI presence. The interactive
+  surface is the desktop app and the `aurora-api` Web UI, both sharing the same
+  app layer and SQLite database as the CLI. Net change: about 7.9k lines
+  removed; `just test` drops from 34 packages to 29 and stays green.
+
+### Removed
+
 - **Dead APIs and duplicate implementations found by a global ablation pass**:
   a symbol-level audit (every exported function/method with zero non-test
   callers) replaced the previous module-level reachability check. Removed:

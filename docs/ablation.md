@@ -2,7 +2,7 @@
 
 **分析日期：** 2026-10-23  
 **基线：** `3c6a700`（`main`）  
-**范围：** 生产入口、SQLite 存储、事件系统、TUI，以及五个业务模块的可达性。
+**范围：** 生产入口、SQLite 存储、事件系统，以及五个业务模块的可达性。
 
 ## 结论
 
@@ -17,9 +17,9 @@
 4. **本轮只删除生产不可达的表面。** 异步/组合事件总线、重复的内存 Oracle
    仓储，以及若干没有调用者的领域/仓储查询接口被消融；同步事件总线、审计
    outbox、迁移、备份和全部业务入口保留。
-5. **四个 TUI 都保留，但产品边界分为持久化与沙盒两类。** lottery/oracle TUI
-   与 CLI/API 共用 SQLite；NFT/token TUI 明确标记为内存沙盒，退出即丢弃状态。
-   需要持久化的 NFT/token 操作应使用 CLI、REST/Web 或桌面端。
+5. **四个 TUI 已在 2026-10-24 的全局消融中删除。** 它们覆盖的操作在 Web 与
+   CLI 中都有入口，NFT/token 两个还是退出即丢的内存沙盒；保留三套表示层只增加
+   维护面。界面能力由桌面端与 `aurora-api` 的 Web UI 承担。
 
 ## cgo 构建矩阵
 
@@ -46,17 +46,15 @@
 
 | 模块       | 生产入口                                                                                       | 结论                                     |
 | ---------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| lottery    | `aurora lottery ...`、`/api/v1/lottery/*`、`web/lottery.html`、桌面路由、lottery TUI           | 保留；VRF 证明与审计记录是核心功能       |
-| voting     | `aurora voting ...`、`/api/v1/voting/*`、`web/voting.html`、桌面路由                           | 保留；没有独立的 voting TUI              |
-| NFT        | `aurora nft ...`、`/api/v1/nft/*`、`web/nft.html`、桌面路由、NFT TUI                           | 保留；TUI 的持久化边界见下文             |
-| token      | `aurora token ...`、`/api/v1/token/*`、`web/token.html`、桌面路由、token TUI                   | 保留；TUI 的持久化边界见下文             |
-| oracle     | `aurora oracle ...`、`/api/v1/oracle/*`、`web/oracle.html`、桌面路由、oracle TUI、调度器       | 保留；定时抓取、健康度与链上存证都有入口 |
+| lottery    | `aurora lottery ...`、`/api/v1/lottery/*`、`web/lottery.html`、桌面路由 | 保留；VRF 证明与审计记录是核心功能       |
+| voting     | `aurora voting ...`、`/api/v1/voting/*`、`web/voting.html`、桌面路由                           | 保留                                     |
+| NFT        | `aurora nft ...`、`/api/v1/nft/*`、`web/nft.html`、桌面路由                                   | 保留                                     |
+| token      | `aurora token ...`、`/api/v1/token/*`、`web/token.html`、桌面路由                               | 保留                                     |
+| oracle     | `aurora oracle ...`、`/api/v1/oracle/*`、`web/oracle.html`、桌面路由、调度器                   | 保留；定时抓取、健康度与链上存证都有入口 |
 | blockchain | 各业务模块的 `AddLotteryRecord`/`AddBlock`、`/api/v1/blockchain/verify`、`web/blockchain.html` | 保留；不是独立产品页面，而是审计基底     |
 | events     | CLI/API/桌面端的同步发布、审计 handler、`pending_events` outbox                                | 保留；生产只使用 `SyncEventBus`          |
 | migrations | `aurora migrate`、启动配置与仓储自举 schema                                                    | 保留；迁移与自举共同服务新库/旧库        |
 | backup     | `aurora backup ...`、桌面 File 菜单                                                            | 保留；用户数据恢复路径                   |
-
-`internal/ui/voting/` 并不存在；旧分析文档中的 voting TUI 描述已过期。
 
 ## 全局消融：按「真实调用者」重判（2026-10-24）
 
@@ -122,7 +120,7 @@ Web 与桌面路由中的多个真实调用点，blockchain 是它们的审计�
   `domain/oracle.InmemRepo` 作为唯一的内存测试实现。
 - token 的 `GetMintEventsByToken`、`GetBurnEventsByToken`、
   `GetApprovalsByOwner`、`Token.AddToSupply`：无生产调用者。
-- NFT 的 `GetNFTsByCreator`：CLI/API/Web/TUI 均只按 owner 查询。
+- NFT 的 `GetNFTsByCreator`：CLI/API/Web 均只按 owner 查询。
 - `Migrator.DB`：没有调用者；迁移器只暴露 `Version`/`Status`/`Up`/`Down`。
 - 上述接口的测试替身、mock 和重复断言同步删除，避免测试继续维护死 API。
 
@@ -133,25 +131,30 @@ Web 与桌面路由中的多个真实调用点，blockchain 是它们的审计�
 - **仓储自举 schema + SQL migrations**：新安装可能先打开仓储再执行迁移；
   自举保证每个模块单独可用，迁移负责已有数据库的版本化演进。删除任一侧都会
   破坏已有启动路径。
-- **内存仓储与 SQLite 仓储**：内存实现用于 TUI、E2E 和领域测试，SQLite
+- **内存仓储与 SQLite 仓储**：内存实现用于 E2E 和领域测试，SQLite
   实现用于生产持久化；接口相同，生命周期和故障模型不同。
 - **`GetByType`/`GetByModule`**：当前主要由事件存储的断言/回归测试使用；
   它们保留事件存储的可观察查询面，不应因为生产 handler 不调用就删除。
 - **迁移文件中的历史表**：迁移是历史记录，不能因为当前代码不读某张表就
   改写已发布迁移。
 
-## TUI 产品边界
+## TUI 消融（2026-10-24）
 
-| TUI     | 仓储                          | 当前行为                  | 决策                                         |
-| ------- | ----------------------------- | ------------------------- | -------------------------------------------- |
-| lottery | `sqlite.NewLotteryRepository` | 与 CLI/API 共用持久化记录 | 保留；持久化交互入口                         |
-| oracle  | `sqlite.NewOracleRepository`  | 数据源与抓取结果持久化    | 保留；持久化交互入口                         |
-| NFT     | `nft.NewInmemRepo`            | 退出后状态丢失            | 保留为沙盒；界面必须持续提示不持久化         |
-| token   | token TUI 的内存仓储/事件存储 | 退出后状态丢失            | 保留为沙盒；界面必须持续提示不持久化         |
+四个 Bubble Tea TUI 已整体删除。判据不是"能否到达"，而是"是否是同一能力的
+必要表示层"：
 
-这是有意收窄产品承诺，而不是删除可达代码。NFT/token TUI 适合探索签名、转移和
-余额流程；持久化操作仍由 CLI、REST/Web 与桌面端承担。菜单级沙盒提示由
-`internal/ui/{nft,token}` 的回归测试锁定，避免将来悄悄把临时会话伪装成持久化。
+| 判据 | 结论 |
+| --- | --- |
+| 覆盖范围 | lottery/voting/NFT/token/oracle 的每个操作在 Web 页面与 CLI 中都有入口 |
+| 独有能力 | 无。lottery/oracle TUI 只是读写同一个 SQLite；NFT/token TUI 是内存沙盒，退出即丢，与 CLI 的持久化语义**相反** |
+| 维护成本 | `internal/ui/` 约 4k 行生产代码 + 对应测试，另有 234 行 TUI 专用 i18n 键 |
+| 用户影响 | 无图形环境下的交互式入口消失；这些场景本就用 CLI，且 TUI 的沙盒语义会误导用户 |
+
+删除内容：`internal/ui/{components,lottery,nft,oracle,token}`、四个
+`<module> tui` 子命令、`charm.land/{bubbles,bubbletea,lipgloss}` 依赖、
+TUI 专用 i18n 键，以及只锁定 TUI 存在性的测试
+（`TestTUISubcommandsUseRunE`、`TestTokenTUI_Wired`）。界面能力由桌面端与
+`aurora-api` 的 Web UI 承担，两者与 CLI 共用同一份 app 层与数据库。
 
 ## 暂缓的破坏性清理
 

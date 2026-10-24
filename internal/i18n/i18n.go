@@ -83,7 +83,6 @@ func (tr *Translator) loadMessages() {
 		"lottery.stats":   "Show lottery statistics",
 		"lottery.reset":   "Reset the database",
 		"lottery.db_info": "Show database information",
-		"lottery.tui":     "Launch TUI interface",
 
 		// Flags
 		"lottery.participants": "Participant names (comma-separated)",
@@ -112,35 +111,6 @@ func (tr *Translator) loadMessages() {
 		"lottery.reset_done":     "Database reset complete!",
 
 		// TUI
-		"lottery.tui.title":                 "VRF Lottery System",
-		"lottery.tui.create":                "Create Lottery",
-		"lottery.tui.history":               "View History",
-		"lottery.tui.exit":                  "Exit",
-		"lottery.tui.participants":          "Participants (comma separated)",
-		"lottery.tui.seed":                  "Random Seed",
-		"lottery.tui.winners":               "Number of Winners",
-		"lottery.tui.create_btn":            "[Create Lottery]",
-		"lottery.tui.back":                  "[Back]",
-		"lottery.tui.completed":             "Lottery completed!",
-		"lottery.tui.confirm":               "[Confirm]",
-		"lottery.tui.next":                  "[Next]",
-		"lottery.tui.search":                "[Search]",
-		"lottery.tui.participants_required": "Participants are required",
-		"lottery.tui.participants_too_many": "Too many participants",
-		"lottery.tui.duplicate_participant": "Duplicate participant names are not allowed",
-		"lottery.tui.seed_too_short":        "Seed must be at least 3 characters",
-		"lottery.tui.seed_too_long":         "Seed is too long",
-		"lottery.tui.winners_positive":      "Winner count must be at least 1",
-		"lottery.tui.winners_exceed":        "Winner count cannot exceed participants",
-		"lottery.tui.winners_too_many":      "Winner count cannot exceed the limit",
-		"lottery.tui.winners_invalid":       "Winner count must be a number",
-		"lottery.tui.seed_required":         "Seed is required",
-		"lottery.tui.create_failed":         "Failed to create lottery, please try again",
-		"lottery.tui.created_onchain":       "Lottery created and stored on-chain",
-		"lottery.tui.persist_failed":        "on-chain, but could not be written to lottery history",
-		"lottery.tui.no_records":            "No lottery records yet",
-		"lottery.tui.create_hint":           "Use 'lottery create' to create a lottery",
-		"lottery.tui.history_item":          "--- Lottery #%d ---\n%s\n\n",
 
 		// ===== VOTING =====
 		// Commands
@@ -193,7 +163,6 @@ func (tr *Translator) loadMessages() {
 		// ===== NFT =====
 		// Commands
 		"nft.cmd":      "NFT system",
-		"nft.tui.cmd":  "Launch TUI interface",
 		"nft.mint":     "Mint a new NFT",
 		"nft.transfer": "Transfer NFT ownership",
 		"nft.burn":     "Burn an NFT",
@@ -220,24 +189,6 @@ func (tr *Translator) loadMessages() {
 		"nft.block_height": "Block height",
 
 		// TUI
-		"nft.tui.title":            "NFT System",
-		"nft.tui.mint":             "Mint NFT",
-		"nft.tui.transfer":         "Transfer NFT",
-		"nft.tui.query":            "Query NFT",
-		"nft.tui.name":             "Name",
-		"nft.tui.description":      "Description",
-		"nft.tui.public_key":       "Public Key (Base64)",
-		"nft.tui.private_key":      "Private Key (Base64)",
-		"nft.tui.nft_id":           "NFT ID",
-		"nft.tui.to_address":       "To Address (Base64)",
-		"nft.tui.owner":            "Owner",
-		"nft.tui.mint_success":     "NFT minted successfully!",
-		"nft.tui.transfer_success": "NFT transferred successfully!",
-		"nft.tui.nft_detail":       "NFT Details",
-		"nft.tui.nft_list":         "NFT List",
-		"nft.tui.no_nfts":          "No NFTs found",
-		"nft.tui.list_owner":       "List by Owner",
-		"nft.tui.enter_owner_hint": "Type an owner public key, then press Enter",
 
 		// Errors
 		"error.name_required":       "Name is required",
@@ -272,7 +223,6 @@ func (tr *Translator) loadMessages() {
 		"token.allowance.cmd":     "Query allowance",
 		"token.history.cmd":       "Query transfer history",
 		"token.info.cmd":          "Query token info",
-		"token.tui.cmd":           "Launch Token TUI",
 
 		// Flags
 		"token.name":        "Token name",
@@ -299,25 +249,6 @@ func (tr *Translator) loadMessages() {
 		"token.no_history":  "No transfer history found",
 
 		// TUI
-		"token.tui.title":           "Token System",
-		"token.tui.create":          "Create Token",
-		"token.tui.mint":            "Mint Tokens",
-		"token.tui.transfer":        "Transfer Tokens",
-		"token.tui.query":           "Query Balance",
-		"token.tui.no_token":        "Please create a token first",
-		"token.tui.token_label":     "Token",
-		"token.tui.from_label":      "From",
-		"token.tui.balance_label":   "Balance",
-		"token.tui.address_label":   "Address",
-		"token.tui.no_tokens_view":  "No tokens yet",
-		"token.tui.create_hint":     "Use 'Create Token' to create a token",
-		"token.tui.history_failed":  "Failed to load history: %s",
-		"token.tui.no_transfers":    "No transfer records yet",
-		"token.tui.transfer_hint":   "Records appear after transfers",
-		"token.tui.transfer_header": "--- Transfer #%d ---",
-		"token.tui.from_b64":        "From: %s...",
-		"token.tui.to_b64":          "To: %s...",
-		"token.tui.amount_qty":      "Amount: %s %s",
 
 		// ===== ORACLE =====
 		// Commands
@@ -334,7 +265,6 @@ func (tr *Translator) loadMessages() {
 		"oracle.fetch":          "Fetch data from source",
 		"oracle.data.list":      "Query oracle data",
 		"oracle.latest":         "Get latest data from source",
-		"oracle.tui":            "Launch Oracle TUI",
 
 		// Flags
 		"oracle.source_name":      "Source name",
@@ -360,55 +290,8 @@ func (tr *Translator) loadMessages() {
 		"oracle.no_data":         "No data found",
 
 		// TUI
-		"oracle.tui.title":           "Oracle System",
-		"oracle.tui.source_mgmt":     "Data Source Management",
-		"oracle.tui.fetch_data":      "Fetch Data",
-		"oracle.tui.query_data":      "Query Data",
-		"oracle.tui.enabled":         "✓",
-		"oracle.tui.disabled":        "✗",
-		"oracle.tui.add_source":      "Add Data Source",
-		"oracle.tui.edit_source":     "Source Details",
-		"oracle.tui.delete_source":   "Delete Data Source",
-		"oracle.tui.source_name":     "Name",
-		"oracle.tui.source_url":      "URL",
-		"oracle.tui.source_type":     "Type",
-		"oracle.tui.source_method":   "Method (default GET)",
-		"oracle.tui.source_headers":  "Request headers (JSON)",
-		"oracle.tui.source_path":     "JSON path (e.g. bitcoin.usd)",
-		"oracle.tui.source_interval": "Interval (seconds; default 60)",
-		"oracle.tui.enter_name":      "Enter source name...",
-		"oracle.tui.enter_url":       "Enter source URL...",
-		"oracle.tui.enter_type":      "Enter source type (custom/api)...",
-		"oracle.tui.enter_method":    "GET / POST / ...",
-		"oracle.tui.enter_headers":   "e.g. {\"Authorization\":\"Bearer ...\"}",
-		"oracle.tui.enter_path":      "e.g. bitcoin.usd",
-		"oracle.tui.enter_interval":  "e.g. 60",
-		"oracle.tui.enter_source_id": "Enter source ID...",
-		"oracle.tui.enter_limit":     "Enter result limit (default 10)...",
-		"oracle.tui.add_success":     "Source added successfully",
-		"oracle.tui.delete_success":  "Source deleted successfully",
-		"oracle.tui.toggle_success":  "Source status updated",
-		"oracle.tui.source_id":       "Source ID",
-		"oracle.tui.limit":           "Limit",
-		"oracle.tui.fetch_result":    "Fetch Result",
-		"oracle.tui.query_result":    "Query Result",
-		"oracle.tui.fetch_success":   "Data fetched successfully!",
-		"oracle.tui.no_data":         "No data yet",
-		"oracle.tui.confirm_delete":  "Confirm Delete",
-		"oracle.tui.confirm_toggle":  "Confirm Status Change",
-		"oracle.tui.sure_delete":     "Are you sure you want to delete this source?",
-		"oracle.tui.sure_disable":    "Disable this source?",
-		"oracle.tui.sure_enable":     "Enable this source?",
-		"oracle.tui.yes":             "Yes",
-		"oracle.tui.no":              "No",
-		"oracle.tui.yes_no":          "[Y]es / [N]o",
 		// Source detail / result labels (previously hardcoded English leaked
 		// into zh sessions — ISS-170).
-		"oracle.tui.status":       "Status",
-		"oracle.tui.toggle":       "[T] Toggle On/Off",
-		"oracle.tui.value":        "Value",
-		"oracle.tui.timestamp":    "Timestamp",
-		"oracle.tui.block_height": "BlockHeight",
 
 		// ===== COMMON =====
 		// Help
@@ -571,7 +454,6 @@ func (tr *Translator) loadMessages() {
 		"lottery.stats":   "显示统计信息",
 		"lottery.reset":   "重置数据库",
 		"lottery.db_info": "显示数据库信息",
-		"lottery.tui":     "启动 TUI 界面",
 
 		// Flags
 		"lottery.participants": "参与者名单（逗号分隔）",
@@ -600,35 +482,6 @@ func (tr *Translator) loadMessages() {
 		"lottery.reset_done":     "数据库重置完成！",
 
 		// TUI
-		"lottery.tui.title":                 "VRF 透明抽奖系统",
-		"lottery.tui.create":                "创建抽奖",
-		"lottery.tui.history":               "查看历史",
-		"lottery.tui.exit":                  "退出",
-		"lottery.tui.participants":          "参与者（逗号分隔）",
-		"lottery.tui.seed":                  "随机种子",
-		"lottery.tui.winners":               "获奖人数",
-		"lottery.tui.create_btn":            "[创建抽奖]",
-		"lottery.tui.back":                  "[返回]",
-		"lottery.tui.completed":             "抽奖完成！",
-		"lottery.tui.confirm":               "[确认]",
-		"lottery.tui.next":                  "[下一步]",
-		"lottery.tui.search":                "[查询]",
-		"lottery.tui.participants_required": "请输入参与者名单",
-		"lottery.tui.participants_too_many": "参与者数量过多",
-		"lottery.tui.duplicate_participant": "不允许重复的参与者名称",
-		"lottery.tui.seed_too_short":        "随机种子至少需要 3 个字符",
-		"lottery.tui.seed_too_long":         "随机种子过长",
-		"lottery.tui.winners_positive":      "获奖人数必须至少为 1",
-		"lottery.tui.winners_exceed":        "获奖人数不能超过参与者人数",
-		"lottery.tui.winners_too_many":      "获奖人数不能超过上限",
-		"lottery.tui.winners_invalid":       "获奖人数必须为数字",
-		"lottery.tui.seed_required":         "请输入随机种子",
-		"lottery.tui.create_failed":         "抽奖创建失败，请稍后重试",
-		"lottery.tui.created_onchain":       "抽奖已创建并上链",
-		"lottery.tui.persist_failed":        "已上链，但未能写入抽奖历史",
-		"lottery.tui.no_records":            "暂无抽奖记录",
-		"lottery.tui.create_hint":           "使用 'lottery create' 创建抽奖",
-		"lottery.tui.history_item":          "--- 抽奖 #%d ---\n%s\n\n",
 
 		// ===== VOTING =====
 		// Commands
@@ -681,7 +534,6 @@ func (tr *Translator) loadMessages() {
 		// ===== NFT =====
 		// Commands
 		"nft.cmd":      "NFT 系统",
-		"nft.tui.cmd":  "启动 TUI 界面",
 		"nft.mint":     "铸造新 NFT",
 		"nft.transfer": "转移 NFT 所有权",
 		"nft.burn":     "销毁 NFT",
@@ -708,24 +560,6 @@ func (tr *Translator) loadMessages() {
 		"nft.block_height": "区块高度",
 
 		// TUI
-		"nft.tui.title":            "NFT 系统",
-		"nft.tui.mint":             "铸造 NFT",
-		"nft.tui.transfer":         "转让 NFT",
-		"nft.tui.query":            "查询 NFT",
-		"nft.tui.name":             "名称",
-		"nft.tui.description":      "描述",
-		"nft.tui.public_key":       "公钥 (Base64)",
-		"nft.tui.private_key":      "私钥 (Base64)",
-		"nft.tui.nft_id":           "NFT ID",
-		"nft.tui.to_address":       "目标地址 (Base64)",
-		"nft.tui.owner":            "持有者",
-		"nft.tui.mint_success":     "NFT 铸造成功！",
-		"nft.tui.transfer_success": "NFT 转让成功！",
-		"nft.tui.nft_detail":       "NFT 详情",
-		"nft.tui.nft_list":         "NFT 列表",
-		"nft.tui.no_nfts":          "未找到 NFT",
-		"nft.tui.list_owner":       "按持有者列出",
-		"nft.tui.enter_owner_hint": "输入持有者公钥, 按回车",
 
 		// Errors
 		"error.name_required":       "名称不能为空",
@@ -760,7 +594,6 @@ func (tr *Translator) loadMessages() {
 		"token.allowance.cmd":     "查询额度",
 		"token.history.cmd":       "查询转账历史",
 		"token.info.cmd":          "查询代币信息",
-		"token.tui.cmd":           "启动代币 TUI",
 
 		// Flags
 		"token.name":        "代币名称",
@@ -787,25 +620,6 @@ func (tr *Translator) loadMessages() {
 		"token.no_history":  "未找到转账历史",
 
 		// TUI
-		"token.tui.title":           "代币系统",
-		"token.tui.create":          "创建代币",
-		"token.tui.mint":            "铸造代币",
-		"token.tui.transfer":        "转移代币",
-		"token.tui.query":           "查询余额",
-		"token.tui.no_token":        "请先创建代币",
-		"token.tui.token_label":     "代币",
-		"token.tui.from_label":      "从",
-		"token.tui.balance_label":   "余额",
-		"token.tui.address_label":   "地址",
-		"token.tui.no_tokens_view":  "暂无代币",
-		"token.tui.create_hint":     "使用 '创建代币' 创建代币",
-		"token.tui.history_failed":  "加载历史失败: %s",
-		"token.tui.no_transfers":    "暂无转账记录",
-		"token.tui.transfer_hint":   "进行转账操作后会显示记录",
-		"token.tui.transfer_header": "--- 转账 #%d ---",
-		"token.tui.from_b64":        "从: %s...",
-		"token.tui.to_b64":          "到: %s...",
-		"token.tui.amount_qty":      "数量: %s %s",
 
 		// ===== ORACLE =====
 		// Commands
@@ -822,7 +636,6 @@ func (tr *Translator) loadMessages() {
 		"oracle.fetch":          "从数据源获取数据",
 		"oracle.data.list":      "查询预言机数据",
 		"oracle.latest":         "获取数据源最新数据",
-		"oracle.tui":            "启动预言机 TUI",
 
 		// Flags
 		"oracle.source_name":      "数据源名称",
@@ -848,53 +661,6 @@ func (tr *Translator) loadMessages() {
 		"oracle.no_data":         "未找到数据",
 
 		// TUI
-		"oracle.tui.title":           "预言机系统",
-		"oracle.tui.source_mgmt":     "数据源管理",
-		"oracle.tui.fetch_data":      "获取数据",
-		"oracle.tui.query_data":      "数据查询",
-		"oracle.tui.enabled":         "✓",
-		"oracle.tui.disabled":        "✗",
-		"oracle.tui.add_source":      "添加数据源",
-		"oracle.tui.edit_source":     "数据源详情",
-		"oracle.tui.delete_source":   "删除数据源",
-		"oracle.tui.source_name":     "名称",
-		"oracle.tui.source_url":      "地址",
-		"oracle.tui.source_type":     "类型",
-		"oracle.tui.source_method":   "请求方法（默认 GET）",
-		"oracle.tui.source_headers":  "请求头（JSON）",
-		"oracle.tui.source_path":     "JSON 路径（如 bitcoin.usd）",
-		"oracle.tui.source_interval": "刷新间隔（秒；默认 60）",
-		"oracle.tui.enter_name":      "输入数据源名称...",
-		"oracle.tui.enter_url":       "输入数据源地址...",
-		"oracle.tui.enter_type":      "输入数据类型 (custom/api)...",
-		"oracle.tui.enter_method":    "GET / POST / ...",
-		"oracle.tui.enter_headers":   "如 {\"Authorization\":\"Bearer ...\"}",
-		"oracle.tui.enter_path":      "如 bitcoin.usd",
-		"oracle.tui.enter_interval":  "如 60",
-		"oracle.tui.enter_source_id": "输入数据源 ID...",
-		"oracle.tui.enter_limit":     "输入返回条数（默认 10）...",
-		"oracle.tui.add_success":     "数据源添加成功",
-		"oracle.tui.delete_success":  "数据源删除成功",
-		"oracle.tui.toggle_success":  "数据源状态已更新",
-		"oracle.tui.source_id":       "数据源 ID",
-		"oracle.tui.limit":           "条数",
-		"oracle.tui.fetch_result":    "获取结果",
-		"oracle.tui.query_result":    "查询结果",
-		"oracle.tui.fetch_success":   "数据获取成功！",
-		"oracle.tui.no_data":         "暂无数据",
-		"oracle.tui.confirm_delete":  "确认删除",
-		"oracle.tui.confirm_toggle":  "确认状态变更",
-		"oracle.tui.sure_delete":     "确定要删除此数据源吗?",
-		"oracle.tui.sure_disable":    "确定要禁用此数据源吗?",
-		"oracle.tui.sure_enable":     "确定要启用此数据源吗?",
-		"oracle.tui.yes":             "是",
-		"oracle.tui.no":              "否",
-		"oracle.tui.yes_no":          "[Y]是 / [N]否",
-		"oracle.tui.status":          "状态",
-		"oracle.tui.toggle":          "[T] 切换开/关",
-		"oracle.tui.value":           "值",
-		"oracle.tui.timestamp":       "时间戳",
-		"oracle.tui.block_height":    "区块高度",
 
 		// ===== COMMON =====
 		// Help

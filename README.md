@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/pplmx/aurora)](https://github.com/pplmx/aurora/releases)
 
 基于区块链的数字系统套件：VRF 透明抽奖、Ed25519 签名投票、数据预言机、NFT 与
-FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**桌面应用**、CLI/TUI
+FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**桌面应用**、CLI
 和 REST API + Web 界面。
 
 ## 三个入口
@@ -13,7 +13,7 @@ FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**
 | 入口           | 二进制           | 适合谁                                       |
 | -------------- | ---------------- | -------------------------------------------- |
 | 桌面应用       | `aurora-desktop` | **主要使用方式**：双击即用，无需终端或浏览器 |
-| CLI / TUI      | `aurora`         | 脚本、批量任务、服务器与无图形环境           |
+| CLI            | `aurora`         | 脚本、批量任务、服务器与无图形环境           |
 | REST API + Web | `aurora-api`     | 集成方、浏览器访问、需要监听的部署           |
 
 桌面端与 API 用同一套路由和同一份 SQLite 数据库；桌面端通过自定义 scheme
@@ -104,7 +104,6 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 ./aurora oracle source add -n "private" -u <url> --headers '{"Authorization":"Bearer ..."}'
 ./aurora nft mint -n "My NFT" -c "<creator-pub>" -t <token-uri>
 ./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000
-./aurora lottery tui                                  # 任一模块都有 TUI
 ```
 
 全部子命令、参数与运维命令（`backup`、`migrate`、`version`）见
@@ -131,7 +130,7 @@ AURORA_API_KEY="your-strong-key" ./aurora-api   # 默认 0.0.0.0:8080
 ## 功能模块
 
 - **VRF 透明抽奖**：Edwards25519 VRF 抽签，结果上链存证，任何人可复验；支持
-  CLI、TUI、Web 与桌面端。
+  CLI、Web 与桌面端。
 - **透明投票**：Ed25519 签名投票、候选人/选民注册、会期生命周期与实时计票。
 - **数据预言机**：通用 HTTP 数据源（method/path/interval）、内置模板、定时
   抓取、链上存证与抓取健康统计。
@@ -171,7 +170,6 @@ internal/
 ├── domain/     # 领域层：blockchain / lottery / voting / nft / token / oracle
 ├── app/        # 应用层：用例编排
 ├── infra/      # 基础设施：SQLite、HTTP 客户端、备份、迁移、事件
-├── ui/         # 表示层：Bubble Tea TUI
 ├── api/        # 路由、handler、中间件
 ├── i18n/       # 国际化
 └── utils/      # 工具（含原子写文件）
@@ -183,7 +181,7 @@ DDD 分层：`domain` 持有实体、领域服务与仓储接口；`app` 编排�
 
 ## 技术栈
 
-Go 1.27+、Cobra、Viper、Zerolog、Bubble Tea v2、SQLite
+Go 1.27+、Cobra、Viper、Zerolog、SQLite
 （modernc.org/sqlite，纯 Go）、filippo.io/edwards25519、MyGo、Alpine.js。
 
 ## 开发
@@ -228,7 +226,7 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；Web UI 由独立的 `aurora
 ## 文档
 
 - [docs/desktop.md](docs/desktop.md)：桌面端架构、菜单、深链、打包与签名
-- [docs/cli.md](docs/cli.md)：完整 CLI / TUI 与运维命令参考
+- [docs/cli.md](docs/cli.md)：完整 CLI 与运维命令参考
 - [docs/api.md](docs/api.md)：REST API、鉴权、限流、可观测性
 - [docs/ablation.md](docs/ablation.md)：纯 Go 构建边界与模块消融结论
 - [docs/lottery/](docs/lottery/)：抽奖模块的 API、测试与使用说明

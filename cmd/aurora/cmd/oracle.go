@@ -7,7 +7,6 @@ import (
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
 	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"
-	oracleui "github.com/pplmx/aurora/internal/ui/oracle"
 	"github.com/spf13/cobra"
 )
 
@@ -345,28 +344,8 @@ var templateAddCmd = &cobra.Command{
 	},
 }
 
-var oracleTuiCmd = &cobra.Command{
-	Use:   "tui",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("oracle.tui"),
-	// RunE (not Run): repo-open and TUI failures must propagate to Execute()
-	// so the process exits 1 and the error goes to stderr — the old Run:
-	// printed to stdout and exited 0, so $?-checking scripts/CI reported
-	// success on a failed run (v1.76, ISS-083).
-	RunE: func(cmd *cobra.Command, args []string) error {
-		repo, cleanup, err := newOracleRepo()
-		if err != nil {
-			return err
-		}
-		defer cleanup()
-		return oracleui.RunOracleTUI(repo)
-	},
-}
-
 func init() {
 	rootCmd.AddCommand(oracleCmd)
-
-	oracleCmd.AddCommand(oracleTuiCmd)
 
 	oracleCmd.AddCommand(sourceCmd)
 	sourceCmd.AddCommand(sourceAddCmd)

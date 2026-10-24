@@ -14,7 +14,6 @@ import (
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"
-	tokenui "github.com/pplmx/aurora/internal/ui/token"
 	"github.com/spf13/cobra"
 )
 
@@ -93,7 +92,6 @@ func init() {
 	tokenCmd.AddCommand(tokenAllowanceCmd)
 	tokenCmd.AddCommand(tokenHistoryCmd)
 	tokenCmd.AddCommand(tokenInfoCmd)
-	tokenCmd.AddCommand(tokenTuiCmd)
 
 	tokenCreateCmd.Flags().StringP("name", "n", "", i18n.GetText("token.name"))
 	tokenCreateCmd.Flags().StringP("symbol", "s", "", i18n.GetText("token.symbol"))
@@ -595,15 +593,6 @@ var tokenInfoCmd = &cobra.Command{
 		fmt.Printf("   Mintable: %v\n", tk.IsMintable())
 		fmt.Printf("   Burnable: %v\n", tk.IsBurnable())
 		return nil
-	},
-}
-
-var tokenTuiCmd = &cobra.Command{
-	Use:   "tui",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("token.tui.cmd"),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return tokenui.RunTokenTUI()
 	},
 }
 

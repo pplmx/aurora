@@ -9,7 +9,6 @@ import (
 	nftdomain "github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
-	uinftr "github.com/pplmx/aurora/internal/ui/nft"
 	"github.com/spf13/cobra"
 )
 
@@ -57,19 +56,6 @@ func nftService() (nftdomain.Service, error) {
 
 func nftChain() *blockchain.BlockChain {
 	return blockchain.InitBlockChain()
-}
-
-var nftTuiCmd = &cobra.Command{
-	Use:   "tui",
-	Args:  cobra.NoArgs,
-	Short: i18n.GetText("nft.tui.cmd"),
-	// RunE (not Run): a TUI failure must propagate to Execute() so the process
-	// exits 1 and the error goes to stderr — the old Run: printed to stdout
-	// and exited 0, so $?-checking scripts/CI reported success on a failed run
-	// (v1.76, ISS-083).
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return uinftr.RunNFTUI()
-	},
 }
 
 var mintCmd = &cobra.Command{
@@ -279,7 +265,6 @@ var nftHistoryCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(nftCmd)
 
-	nftCmd.AddCommand(nftTuiCmd)
 	nftCmd.AddCommand(mintCmd)
 	nftCmd.AddCommand(transferCmd)
 	nftCmd.AddCommand(burnCmd)

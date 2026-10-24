@@ -1,6 +1,6 @@
-# CLI 与 TUI 参考
+# CLI 参考
 
-`aurora` 是纯 CLI/TUI 二进制，不启动 HTTP 服务。所有模块共用同一个 SQLite
+`aurora` 是纯 CLI 二进制，不启动 HTTP 服务。所有模块共用同一个 SQLite
 数据库（默认 `./data/aurora.db`，可用 `[db] path` 或 `$HOME/aurora.toml` 覆盖）。
 
 ```bash
@@ -21,7 +21,6 @@ aurora lottery export draws.json     # 原子写入，空库导出 []
 aurora lottery import draws.json     # 重复记录会被拒绝并逐条报告
 aurora lottery db-info               # 数据库路径与大小
 aurora lottery reset --confirm       # 清空抽奖记录（也接受 --yes）
-aurora lottery tui                   # 交互式界面
 ```
 
 `verify` 的解析顺序：精确 ID → 整数区块高度 → ID/seed 子串。记录没有中奖者、
@@ -54,7 +53,6 @@ aurora nft get --nft <id>
 aurora nft list --owner <pubkey>
 aurora nft history --nft <id>
 aurora nft burn --nft <id> --owner <owner> -k "<private-key>" --confirm
-aurora nft tui
 ```
 
 ## 代币（FT）
@@ -71,7 +69,6 @@ aurora token allowance -t <token-id> --owner <addr> --spender <addr>
 aurora token transfer-from -t <token-id> -o <owner> --to <addr> -a <amount> \
   -s <spender> -k "<spender-key>"
 aurora token burn -t <token-id> --from <addr> --amount 10 -k "<key>" --confirm
-aurora token tui
 ```
 
 `-d/--decimals` 默认 8，取值 0..127；显式传 `0` 会被尊重。
@@ -92,7 +89,6 @@ aurora oracle template add -t <template-name>
 aurora oracle fetch -i <source-id>            # 旧拼写 -s 仍可用
 aurora oracle data -i <source-id> --limit 10
 aurora oracle latest -i <source-id>
-aurora oracle tui
 ```
 
 `--method` 必须是 HTTP token；`--headers` 接受 JSON 对象，名称必须是 token，
@@ -131,16 +127,8 @@ aurora migrate down --confirm # 回滚一步
   只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
 - 所有输出遵循 `[i18n] locale` 或 `$LANG`；`aurora <cmd> --help` 同样本地化。
 
-## TUI 通用按键
+## 交互式界面
 
-| 按键    | 作用                              |
-| ------- | --------------------------------- |
-| `↑↓`    | 移动选择                          |
-| `Enter` | 确认                              |
-| `Esc`   | 返回                              |
-| `?`     | 帮助                              |
-| `q`     | 退出（表单内输入 `q` 不会误退出） |
-
-TUI 的产品边界是有意区分的：`lottery tui` 与 `oracle tui` 读写默认 SQLite
-数据库；`nft tui`、`token tui` 是内存沙盒，退出后状态丢失，菜单会显示明确
-警告。需要持久化的 NFT/token 操作请使用对应 CLI、REST/Web 或桌面端。
+CLI 只提供命令。需要表单式操作时使用桌面端或 `aurora-api` 的 Web 界面，
+两者与 CLI 共用同一份 SQLite 数据库和 app 层实现，因此一条命令写入的记录
+在界面里立即可见，反之亦然。

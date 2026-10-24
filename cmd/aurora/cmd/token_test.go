@@ -266,19 +266,6 @@ func TestTokenInfo_NotFound(t *testing.T) {
 	})
 }
 
-func TestTokenTUI_Wired(t *testing.T) {
-	withTempDir(t, func(t *testing.T) {
-		out, err := runCmd(t, "token", "tui")
-		// token tui is now wired to the real internal/ui/token program
-		// (RunTokenTUI), not the old placeholder. In the non-interactive
-		// test harness there is no TTY, so it fails fast with a TTY error
-		// instead of printing a stub.
-		require.Error(t, err)
-		assert.NotContains(t, out, "not implemented")
-		assert.Contains(t, err.Error(), "TTY")
-	})
-}
-
 // NOTE: newTokenService's first-step error branch (sqlite.NewTokenRepository
 // failure) is not unit-tested. Forcing it would require a hostile filesystem
 // state (./data as a non-directory), but blockchain.DBPath() swallows that by
