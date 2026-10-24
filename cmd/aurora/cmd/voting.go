@@ -10,7 +10,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/i18n"
-	votingrepo "github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ func getVotingRepo() (voting.TransactableRepository, error) {
 		return nil, err
 	}
 	votingDB = db
-	repo, err := votingrepo.NewVotingRepository(db)
+	repo, err := sqlite.NewVotingRepository(db)
 	if err != nil {
 		return nil, err
 	}
@@ -46,14 +46,14 @@ func getVotingRepo() (voting.TransactableRepository, error) {
 // getVotingTxManager returns the transaction manager sharing the voting
 // repository's database handle. CastVote's voter claim + vote row + tally
 // increment run in one SQLite transaction through it.
-func getVotingTxManager() (*votingrepo.TxManager, error) {
+func getVotingTxManager() (*sqlite.TxManager, error) {
 	if _, err := getVotingRepo(); err != nil {
 		return nil, err
 	}
 	votingInitMu.Lock()
 	defer votingInitMu.Unlock()
 	if votingTxManager == nil {
-		votingTxManager = votingrepo.NewTxManager(votingDB)
+		votingTxManager = sqlite.NewTxManager(votingDB)
 	}
 	return votingTxManager, nil
 }
@@ -72,7 +72,7 @@ var (
 	votingRepo      voting.TransactableRepository
 	votingService   voting.Service
 	votingDB        *sql.DB
-	votingTxManager *votingrepo.TxManager
+	votingTxManager *sqlite.TxManager
 )
 
 var votingCmd = &cobra.Command{
@@ -414,7 +414,7 @@ var resultsCmd = &cobra.Command{
 		results := make(map[string]int)
 		for _, cid := range session.Candidates {
 			cand, err := repo.GetCandidate(cid)
-			if errors.Is(err, votingrepo.ErrNotFound) {
+			if errors.Is(err, sqlite.ErrNotFound) {
 				// The roster references a candidate that no longer exists —
 				// show the bare id at 0 votes instead of hiding it (TASK-154).
 				results[cid] = 0

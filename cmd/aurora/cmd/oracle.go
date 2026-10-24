@@ -6,7 +6,7 @@ import (
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
-	oracleinfra "github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
 )
 
@@ -17,8 +17,8 @@ import (
 // — the documented multi-command workflow could not work. Every other module
 // (lottery/token/nft/voting) persists via blockchain.DBPath(); oracle now does
 // too.
-func newOracleRepo() (*oracleinfra.OracleRepository, func(), error) {
-	repo, err := oracleinfra.NewOracleRepository(blockchain.DBPath())
+func newOracleRepo() (*sqlite.OracleRepository, func(), error) {
+	repo, err := sqlite.NewOracleRepository(blockchain.DBPath())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open oracle repository: %w", err)
 	}
