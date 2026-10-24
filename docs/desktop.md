@@ -11,7 +11,6 @@ just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / W
 ./aurora-desktop      # 打开窗口；首次运行在用户数据目录创建 aurora.db
 ./aurora-desktop --version
 ./aurora-desktop --data-dir /path/to/data          # 换数据库位置
-./aurora-desktop --web-root /path/to/web           # 开发 UI：改用磁盘上的页面
 ./aurora-desktop 'aurora://lottery?id=<draw>'      # 深链：直接验该期开奖
 ./aurora-desktop aurora-lotteries.json             # 导入一份导出文件
 just desktop-test                                  # 桌面模块测试（just test 只覆盖核心模块）
@@ -42,31 +41,27 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 
 ## 架构
 
-- **不监听端口**：窗口通过自定义 scheme `aurora://localhost/` 加载页面，
-  MyGo 的 `Protocol.Handle` 直接调用 `internal/api` 的
-  `Server.RouterWithWebFS`（与 `Router()` 同一条路由，只是页面来源换成内嵌
-  文件系统）。页面与 REST API 同源，不需要 CORS 白名单，API key 也不会经过
-  任何网络。
-- **UI 打进二进制**：`web/` 由根包的 `//go:embed all:web`（`embed.go`）内嵌，
-  双击启动的 bundle 即使工作目录与仓库无关也能渲染仪表盘。`--web-root DIR`
-  是开发开关：显式指定时改用磁盘目录，改页面无需重编译。这个参数是**权威**
-  的——目录里没有 `index.html` 就直接报错退出，不会再退回可执行文件旁 /
-  工作目录 / `server.webRoot` 的另一份页面（否则打错路径时窗口会渲染一份你
-  并没有在改的 UI）。启动失败（`--web-root` 无效、数据目录不可用等）会先弹出
-  原生错误对话框说明原因，再以退出码 1 结束：打包后的应用从桌面项启动时没有
-  终端，只写 stderr 等于什么都没说。
+- **界面是原生 Go，不是网页**：窗口用 MyGo 自己的控件绘制
+  （`desktop/internal/nativeui`）。一个视图是应用状态的函数，MyGo 每帧重建它，
+  所以界面和业务代码一样受类型检查。这里没有 HTML、没有 JavaScript、没有
+  Content-Security-Policy，也就没有"策略写错导致整个界面静默失效"这一类缺陷
+  —— 之前正是 CSP 缺 `unsafe-eval` 让 Alpine 的所有指令失效，HTTP 界面任何
+  表单都提交不了，而桌面端因为剥离 CSP 掩盖了它。
+- **七个页面**：仪表盘、抽奖、投票、代币、预言机、NFT、账本，全部通过
+  `api.Services` 调用与 REST handler 相同的应用层用例。窗口里创建的记录，CLI
+  立刻能读到；反过来也一样。
+- **不可逆操作先确认**：销毁代币/NFT、删除预言机数据源都会先弹出
+  `ui.AlertDialog`，对应 CLI 的 `--confirm` 门槛。
+- **字段级校验**：输入被拒时错误显示在出问题的那个输入下面，而不是只给一条
+  页面级消息。
+- **可无窗口测试**：`ui.Tester` 在内存里渲染帧并注入输入，
+  `desktop/internal/nativeui/app_test.go` 用它在没有 X server 的情况下跑完七个
+  页面，并验证空参与者、过短种子、超额中奖数、空验证 ID 都在调用服务之前被
+  拒绝。
 - **复用同一后端**：`api.NewServer` 原样启动，预言机定时调度器与审计 outbox
   补偿循环照常运行；`Runtime.Close` 在退出时释放 SQLite 句柄。
-- **CSP 由传输层接管**：HTTP 网关保留 round-151 的严格 CSP，但 WebKitGTK 在
-  `aurora://` 下不执行**任何** CSP 下的页面脚本（实测 `'self' aurora:`、
-  `'self' aurora://localhost`、`*` 三种策略都让窗口失去响应、`/api/v1` 请求
-  为 0）。桌面壳因此剥掉该响应头，改由传输层兜底：scheme handler 只提供内嵌
-  文件，没有监听端口，也不存在外部 origin。剥头的 wrapper 同时转交
-  `Flush`/`Hijack`/`Unwrap`：它是每个响应最外层的一层，缺了这些接口，流式响应
-  会丢掉 flush，`http.ResponseController` 也会误报“不支持”。
-
-## 数据、日志与语言
-
+- **复用同一后端**：`api.NewServer` 原样启动，预言机定时调度器与审计 outbox
+  补偿循环照常运行；`Runtime.Close` 在退出时释放 SQLite 句柄。
 - **数据落在用户目录**：默认 MyGo 的 `App.Path(PathUserData)`，即
   `$XDG_CONFIG_HOME/Aurora/aurora.db`（macOS/Windows 对应各自的用户目录），
   日志写在同目录 `logs/`，不依赖启动时的工作目录；可用 `--data-dir` 覆盖。
@@ -111,7 +106,7 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   保护），导出目标经同目录临时文件原子替换，写入失败不会先清空上一份导出；
   空库导出也是合法的 JSON 数组 `[]`，`null` 不会被导入成功。导出目标若就是
   正在使用的 `aurora.db`（含符号链接/硬链接别名或 `-wal`/`-shm` 边车文件）
-  会被拒绝，不会把数据库盖成 JSON。About 显示版本、构建时间、数据库与 Web UI
+  会被拒绝，不会把数据库盖成 JSON。About 显示版本、构建时间与数据库
   来源。所有弹窗都带 `Parent`：文件选择器与结果框挂在发起操作的窗口上
   （macOS 上是 sheet，其他平台是子模态），而不是可以留在背后的游离窗口。
 - **Open Recent**：File → Open Recent 由 MyGo 维护（用户数据目录的
@@ -146,13 +141,12 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   `workingDir`，与 MyGo 自己投递文件的规则一致），`file://` URL 同样接受——
   否则 `cd ~/Downloads && aurora-desktop draws.json` 会在第一个实例的目录里
   找文件，静默什么也不做（实测）。
-- 如果转发参数里带了**不同**的 `--data-dir` / `--web-root`，运行中的实例无法
+- 如果转发参数里带了**不同**的 `--data-dir`，运行中的实例无法
   照办，会明确弹窗，并把这次启动的链接与文件全部忽略——默默写进用户没有指定
   的数据库比什么都不做更糟；与当前实例一致的参数（绝对路径或相对发起目录）
   仍按普通 flag 静默跳过。首个实例即使是用相对 `--data-dir` 启动的，也会把
   数据库路径规范成绝对路径再记录，因此后续相同拼写不会被误判成另一个数据库；
-  `--web-root` 的结尾斜杠差异也按同一目录处理。同一目录经符号链接别名访问时
-  同样视为一致，不会因为路径字符串不同而拒绝启动。窗口还没创建时到达的链接
+  同一目录经符号链接别名访问时同样视为一致，不会因为路径字符串不同而拒绝启动。窗口还没创建时到达的链接
   会暂存，在 `Attach` 后立即加载，不会退化成仪表盘。
 - **去重只针对 MyGo 的回声**：MyGo 对「刚处理过的启动参数」会再投递一次
   （冷启动时 `ParseFlags` 已读的那份、以及 `OnSecondInstance` 回调后 MyGo

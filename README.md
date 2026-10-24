@@ -16,8 +16,8 @@ FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**
 | CLI            | `aurora`         | 脚本、批量任务、服务器与无图形环境           |
 | REST API + Web | `aurora-api`     | 集成方、浏览器访问、需要监听的部署           |
 
-桌面端与 API 用同一套路由和同一份 SQLite 数据库；桌面端通过自定义 scheme
-`aurora://localhost/` 在进程内加载页面，不监听端口，API key 不出本机。设计细节见
+桌面端用 MyGo 原生控件绘制界面，API 提供同一套应用层能力；两者共用同一份
+SQLite 数据库，因此窗口里创建的记录 CLI 立刻能读到。设计细节见
 [docs/desktop.md](docs/desktop.md)。
 
 ## 安装
@@ -71,7 +71,6 @@ just dev             # Docker 开发镜像
 aurora-desktop                                  # 打开窗口
 aurora-desktop --version                        # 版本与构建时间
 aurora-desktop --data-dir /path/to/data         # 换数据库位置
-aurora-desktop --web-root /path/to/web          # 开发 UI：改用磁盘页面
 aurora-desktop 'aurora://lottery?id=<draw>'     # 深链：直接验该期开奖
 aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 ```
@@ -85,8 +84,11 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 - **系统集成**：`aurora://` 深链在 macOS 由 bundle 注册，Linux/Windows 每次
   启动注册；第二次启动不会起第二个数据库写者，而是把链接或导出文件交给已运行
   的窗口；导出文件也可直接拖到窗口导入。
-- **失败可见**：打包后的应用没有终端，启动失败（`--web-root` 无效、数据目录
-  不可用、缺少 WebView 运行时）会弹出原生对话框说明原因。
+- **界面是原生 Go**：窗口用 MyGo 自己的控件绘制（`desktop/internal/nativeui`），
+  不是网页。没有 HTML、没有 JavaScript、没有 CSP，界面和业务代码一样受类型检查，
+  也能在没有窗口的情况下测试。
+- **失败可见**：打包后的应用没有终端，启动失败（数据目录不可用、缺少图形运行时）
+  会弹出原生对话框说明原因。
 
 完整架构、窗口生命周期、打包与签名流程见 [docs/desktop.md](docs/desktop.md)。
 
@@ -165,7 +167,6 @@ defaultCount = 3              # 未传 -c 时的获奖人数；种子始终由�
 cmd/aurora/     # CLI 入口
 cmd/api/        # REST API + Web 服务入口
 desktop/        # MyGo 桌面壳（嵌套模块；cmd/aurora-desktop + internal/deskapp）
-web/            # Web 前端（HTML + Alpine.js，嵌入二进制）
 internal/
 ├── domain/     # 领域层：blockchain / lottery / voting / nft / token / oracle
 ├── app/        # 应用层：用例编排
@@ -203,8 +204,8 @@ just stop       # docker compose down
 `git commit --amend`、提交粒度以“一个自洽的逻辑单元”为单位、过程记录
 （`.planning/ril/graph.json`）批量提交。
 
-Docker 镜像只包含 CLI，没有 HTTP 监听器；Web UI 由独立的 `aurora-api` 提供，
-因此 compose/k8s 清单没有端口映射——用
+Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST API
+（没有静态页面），因此 compose/k8s 清单没有端口映射——用
 `docker compose run --rm aurora <命令>` 执行一次性任务。
 
 ## 测试覆盖率
