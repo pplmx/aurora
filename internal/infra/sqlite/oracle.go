@@ -108,6 +108,12 @@ func (r *OracleRepository) initTables() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_oracle_data_source ON oracle_data(source_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_oracle_data_timestamp ON oracle_data(timestamp)`,
+		// Per-source history reads filter on source_id and order by timestamp
+		// DESC. With only the single-column index SQLite had to build a temp
+		// B-tree for that sort and only then apply LIMIT (measured with
+		// EXPLAIN QUERY PLAN). The composite index serves both the filter and
+		// the order, so the LIMIT becomes a real early stop (v1.100).
+		`CREATE INDEX IF NOT EXISTS idx_oracle_data_source_ts ON oracle_data(source_id, timestamp DESC)`,
 	}
 
 	for _, query := range queries {
