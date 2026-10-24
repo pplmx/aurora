@@ -25,6 +25,12 @@ type BaseEvent struct {
 	payload   []byte
 }
 
+// NewBaseEvent builds a fresh event with a generated id and the current time.
+//
+// Production code does not call it: a real event is a typed value (a token
+// transfer, a lottery draw) constructed by its own module, and readers decode
+// a stored row with NewStoredEvent. Tests use it to publish a bare event
+// through a bus or store without standing up a whole domain operation.
 func NewBaseEvent(eventType, aggID string, payload []byte) *BaseEvent {
 	module := strings.SplitN(eventType, ".", 2)[0]
 	return &BaseEvent{
