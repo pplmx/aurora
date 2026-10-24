@@ -101,7 +101,6 @@ just stop         # Stop containers: docker compose down
 - Viper (config)
 - Zerolog (logging)
 - filippo.io/edwards25519 (VRF, Ed25519 signing)
-- charmbracelet/bubbletea (TUI)
 - charmbracelet/lipgloss (styling)
 - modernc.org/sqlite (pure-Go SQLite storage)
 
@@ -125,7 +124,6 @@ just stop         # Stop containers: docker compose down
 ./aurora lottery stats                                 # Show lottery stats
 ./aurora lottery db-info                               # Show database info
 ./aurora lottery reset --confirm                       # Clear lottery records (requires --confirm)
-./aurora lottery tui                                   # TUI interface
 ```
 
 ### Voting (Ed25519 signatures)
@@ -152,7 +150,6 @@ just stop         # Stop containers: docker compose down
 ./aurora nft list --owner <pubkey>
 ./aurora nft burn --nft <id> --owner <owner> -k "private_key" --confirm   # 需 --confirm
 ./aurora nft history --nft <id>
-./aurora nft tui                                       # TUI interface
 ```
 
 ### Token (Fungible Token)
@@ -168,7 +165,6 @@ just stop         # Stop containers: docker compose down
 ./aurora token transfer-from -t <token-id> -o <owner> --to <addr> -a <amount> -s <spender> -k <spender_key>
 ./aurora token burn -t <token-id> --from <addr> --amount 10 -k "private_key" --confirm   # 需 --confirm
 ./aurora token history -t <token-id> --owner <address> --limit 50 --offset 0   # Paged
-./aurora token tui                                       # TUI interface
 ```
 
 ### Oracle (Data Oracle)
@@ -181,7 +177,6 @@ just stop         # Stop containers: docker compose down
 ./aurora oracle latest -i <source-id>                   # Latest data point
 ./aurora oracle template list                           # Built-in templates
 ./aurora oracle template add -t <template>              # Add a template source
-./aurora oracle tui                                     # TUI interface
 ```
 
 ## Testing

@@ -10,7 +10,6 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"
-	uilottery "github.com/pplmx/aurora/internal/ui/lottery"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -80,23 +79,6 @@ var createCmd = &cobra.Command{
 		fmt.Printf("📜 %s: %s...\n", i18n.GetText("lottery.vrf_proof"), resp.VRFProof[:min(16, len(resp.VRFProof))])
 
 		return nil
-	},
-}
-
-var tuiCmd = &cobra.Command{
-	Use:   "tui",
-	Short: i18n.GetText("lottery.tui"),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Wire the persistent lottery_records repository into the TUI so draws
-		// created inside it appear in `lottery history/stats/export/verify` and
-		// the TUI history shows imported draws too (TASK-203, ISS-199). The
-		// handle stays open for the TUI session and closes when the TUI exits.
-		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
-		if err != nil {
-			return fmt.Errorf("failed to open lottery repository: %w", err)
-		}
-		defer func() { _ = repo.Close() }()
-		return uilottery.RunLotteryTUI(repo)
 	},
 }
 
@@ -438,7 +420,6 @@ func init() {
 	lotteryCmd.AddCommand(verifyCmd)
 	lotteryCmd.AddCommand(exportCmd)
 	lotteryCmd.AddCommand(importCmd)
-	lotteryCmd.AddCommand(tuiCmd)
 	lotteryCmd.AddCommand(statsCmd)
 	lotteryCmd.AddCommand(resetCmd)
 	lotteryCmd.AddCommand(dbInfoCmd)

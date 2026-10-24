@@ -7,7 +7,6 @@
 - 🎲 **VRF 随机数** - 基于 Edwards25519 曲线生成可验证的随机数
 - ✅ **上链存证** - 抽奖结果存储在区块链上，不可篡改
 - 🔍 **可验证** - 任何人都可以验证抽奖结果的公平性
-- 🖥️ **TUI 界面** - 使用 Bubble Tea 的交互式终端界面
 - 📖 **CLI 命令** - 便捷的命令行工具
 
 ## 快速开始
@@ -31,12 +30,6 @@ go build -o aurora ./cmd/aurora
 
 # 查看历史
 ./aurora lottery history
-```
-
-### TUI 模式
-
-```bash
-./aurora lottery tui
 ```
 
 ## 技术实现
@@ -64,7 +57,6 @@ cmd/aurora/cmd/
 └── lottery.go           # CLI 命令入口
 
 internal/domain/lottery/  # 领域层: 实体、VRF、抽奖核心逻辑、仓储接口
-internal/ui/lottery/      # 表示层: TUI 界面 (Bubble Tea)
 
 e2e/
 └── lottery_e2e_test.go  # E2E 功能测试
@@ -95,8 +87,6 @@ go test ./e2e/ -v
 
 - Go 1.27+
 - filippo.io/edwards25519 - Edwards25519 曲线实现
-- github.com/charmbracelet/bubbletea - TUI 框架
-- github.com/charmbracelet/lipgloss - 样式
 - github.com/spf13/cobra - CLI 框架
 
 ## 相关文档

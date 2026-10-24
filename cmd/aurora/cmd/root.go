@@ -29,13 +29,12 @@ Features:
   - VRF random number generation
   - Ed25519-signed voting and NFT transfers
   - Blockchain storage with integrity verification
-  - CLI, TUI and web interfaces
+  - CLI, desktop and web interfaces
   - Database migrations and backups
 
 Use "aurora <module> --help" for module commands (lottery, voting, oracle,
 nft, token) and operational commands (migrate, backup, version).`,
 	Example: `  aurora lottery create -p "Alice,Bob,Charlie" -s "my-seed" -c 2
-  aurora lottery tui
   aurora nft mint -n "MyNFT" -c "creator-key"
   aurora token create -n "MyToken" -s "MTK" --supply 1000000
   aurora voting candidate add -n "Alice" -p "Party"`,
