@@ -76,6 +76,29 @@ documented in their per-milestone ROADMAP files.
   if the sort reappears.
 
 
+### Changed
+
+- **The desktop window draws native Go, and the web UI is gone**: the app used
+  to host the same HTML the REST gateway served, which made a Go project depend
+  on a browser engine and 3.6k lines of HTML/CSS/JavaScript — and it produced a
+  defect only a browser could catch: a CSP without `'unsafe-eval'` silently
+  disabled every Alpine directive, so no form in the HTTP UI could be
+  submitted while the desktop masked it by stripping CSP. The window now builds
+  seven pages from `desktop/internal/nativeui` with MyGo's own widgets over the
+  same `api.Services` the REST handlers use. Removed with it: `web/`, the root
+  embed package, the gateway's static-file branch and API-key HTML injection,
+  the per-response CSP builder, the desktop CSP-stripping transport, and the
+  `--web-root` flag. Irreversible actions (burn token/NFT, delete oracle
+  source) ask through a native dialog, matching the CLI's `--confirm`. The view
+  suite renders every page through `ui.Tester`, so the interface is testable
+  without a window or an X server.
+- **The five application packages took an `app` suffix**: `app/lottery` is now
+  `app/lotteryapp` (and likewise voting, nft, token, oracle), so a domain
+  package and its application package no longer share a name. That removed 41
+  of 73 import aliases that existed only to tell them apart, and use-case
+  constructors lost their stutter — `lottery.NewCreateLotteryUseCase` is
+  `lotteryapp.NewCreate`.
+
 ### Removed
 
 - **The four Bubble Tea TUIs are gone**: `aurora {lottery,voting,nft,token,oracle} tui`
