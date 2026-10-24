@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -62,14 +63,10 @@ func (m *Migrator) migrations() ([]migration, error) {
 		}
 	}
 
-	versions := make([]int, 0, len(byVersion))
-	for version := range byVersion {
-		versions = append(versions, int(version))
-	}
-	sort.Ints(versions)
-	result := make([]migration, 0, len(versions))
-	for _, version := range versions {
-		item := byVersion[uint(version)]
+	// Sorted map keys: migration order must never depend on map iteration order.
+	result := make([]migration, 0, len(byVersion))
+	for _, version := range slices.Sorted(maps.Keys(byVersion)) {
+		item := byVersion[version]
 		if item.up == "" {
 			return nil, fmt.Errorf("migration %06d has no up file", version)
 		}
@@ -114,43 +111,70 @@ func (m *Migrator) version() (uint, bool, error) {
 	return version, dirty, err
 }
 
-func (m *Migrator) setVersion(version uint, dirty bool) error {
-	tx, err := m.db.Begin()
-	if err != nil {
-		return err
+// txVersion reads the committed/current transactional migration state. It is
+// called only while already holding the database write lock, so concurrent
+// migrators cannot observe an in-flight dirty marker.
+func txVersion(q queryer) (uint, bool, error) {
+	var version uint
+	var dirty bool
+	err := q.QueryRow(`SELECT version, dirty FROM schema_migrations LIMIT 1`).Scan(&version, &dirty)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, false, nil
 	}
+	return version, dirty, err
+}
+
+func setTxVersion(tx *sql.Tx, version uint, dirty bool) error {
 	if _, err := tx.Exec(`DELETE FROM schema_migrations`); err != nil {
-		_ = tx.Rollback()
 		return err
 	}
 	if version > 0 || dirty {
 		if _, err := tx.Exec(`INSERT INTO schema_migrations (version, dirty) VALUES (?, ?)`, version, dirty); err != nil {
-			_ = tx.Rollback()
 			return err
 		}
 	}
-	return tx.Commit()
+	return nil
 }
 
-// run marks the target version dirty before applying the SQL, then clears the
-// bit in the same successful path. A failure leaves the database visibly dirty
-// so neither up nor down will retry a partially applied schema.
-func (m *Migrator) run(version uint, body string) error {
-	if err := m.setVersion(version, true); err != nil {
-		return err
-	}
-	tx, err := m.db.Begin()
-	if err != nil {
+// applyTx runs one migration body and records the version the schema is at
+// afterwards. `version` identifies the migration being applied or rolled back
+// and names the savepoint; `target` is the resulting schema version, which for
+// a rollback is version-1 (the migration the schema no longer carries).
+//
+// The savepoint keeps a failed body from poisoning the outer transaction: the
+// body is undone on its own, so earlier steps in the same run survive and the
+// caller can still commit a dirty marker for the attempt.
+func applyTx(tx *sql.Tx, version, target uint, body string) error {
+	if _, err := tx.Exec(fmt.Sprintf("SAVEPOINT migration_%d", version)); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(body); err != nil {
-		_ = tx.Rollback()
+		if _, rollbackErr := tx.Exec(fmt.Sprintf("ROLLBACK TO migration_%d", version)); rollbackErr != nil {
+			return rollbackErr
+		}
 		return err
+	}
+	if _, err := tx.Exec(fmt.Sprintf("RELEASE migration_%d", version)); err != nil {
+		return err
+	}
+	return setTxVersion(tx, target, false)
+}
+
+// markFailedTx durably records a failed migration's target version as dirty
+// and commits that marker. The body has already been rolled back to its
+// savepoint, so the schema is consistent — the marker exists to make the next
+// run refuse rather than silently repeat an attempt whose outcome is unknown.
+// Returns nil when the marker is committed.
+func markFailedTx(tx *sql.Tx, target uint) error {
+	if err := setTxVersion(tx, target, true); err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("could not record the failed migration as dirty: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return err
+		_ = tx.Rollback()
+		return fmt.Errorf("could not record the failed migration as dirty: %w", err)
 	}
-	return m.setVersion(version, false)
+	return nil
 }
 
 func (m *Migrator) up(steps int) (uint, error) {
@@ -158,11 +182,18 @@ func (m *Migrator) up(steps int) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
-	current, dirty, err := m.version()
+
+	tx, err := m.db.Begin()
 	if err != nil {
 		return 0, err
 	}
+	current, dirty, err := txVersion(tx)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
 	if dirty {
+		_ = tx.Rollback()
 		return current, fmt.Errorf("database is dirty at version %d", current)
 	}
 
@@ -174,16 +205,29 @@ func (m *Migrator) up(steps int) (uint, error) {
 		if steps > 0 && applied >= steps {
 			break
 		}
-		if err := m.run(item.version, item.up); err != nil {
-			return current, fmt.Errorf("migration %d up failed: %w", item.version, err)
+		bodyErr := applyTx(tx, item.version, item.version, item.up)
+		if bodyErr != nil {
+			// The body was undone on its own savepoint, so the migrations that
+			// already ran in this transaction are intact. Record the attempt as
+			// dirty at its target version and commit that marker; a later run
+			// must refuse instead of guessing whether it partially applied.
+			if markErr := markFailedTx(tx, item.version); markErr != nil {
+				return current, errors.Join(
+					fmt.Errorf("migration %d up failed: %w", item.version, bodyErr), markErr)
+			}
+			return current, fmt.Errorf("migration %d up failed: %w", item.version, bodyErr)
 		}
 		current = item.version
 		applied++
 	}
+
 	if applied == 0 {
+		// Nothing to do, but the transaction is already open and holds the write
+		// lock: release it instead of leaving it for the connection pool to GC.
+		_ = tx.Rollback()
 		return current, errNoChange
 	}
-	return current, nil
+	return current, tx.Commit()
 }
 
 func (m *Migrator) down(steps int) (uint, error) {
@@ -191,11 +235,18 @@ func (m *Migrator) down(steps int) (uint, error) {
 	if err != nil {
 		return 0, err
 	}
-	current, dirty, err := m.version()
+
+	tx, err := m.db.Begin()
 	if err != nil {
 		return 0, err
 	}
+	current, dirty, err := txVersion(tx)
+	if err != nil {
+		_ = tx.Rollback()
+		return 0, err
+	}
 	if dirty {
+		_ = tx.Rollback()
 		return current, fmt.Errorf("database is dirty at version %d", current)
 	}
 
@@ -209,16 +260,33 @@ func (m *Migrator) down(steps int) (uint, error) {
 			break
 		}
 		if item.down == "" {
+			_ = tx.Rollback()
 			return current, fmt.Errorf("migration %d has no down file", item.version)
 		}
-		if err := m.run(item.version-1, item.down); err != nil {
-			return current, fmt.Errorf("migration %d down failed: %w", item.version, err)
+		// Rolling back migration N leaves the schema at N-1, so that is the
+		// version to record on success and the one to mark dirty on failure —
+		// the same "target version" rule the up loop uses.
+		target := item.version - 1
+		bodyErr := applyTx(tx, item.version, target, item.down)
+		if bodyErr != nil {
+			if markErr := markFailedTx(tx, target); markErr != nil {
+				return current, errors.Join(
+					fmt.Errorf("migration %d down failed: %w", item.version, bodyErr), markErr)
+			}
+			return current, fmt.Errorf("migration %d down failed: %w", item.version, bodyErr)
 		}
-		current = item.version - 1
+		current = target
 		applied++
 	}
 	if applied == 0 {
+		_ = tx.Rollback()
 		return current, errNoChange
 	}
-	return current, nil
+	return current, tx.Commit()
+}
+
+// queryer is the subset of *sql.Tx used to read the transactional migration
+// state without coupling helper functions to the concrete transaction type.
+type queryer interface {
+	QueryRow(query string, args ...any) *sql.Row
 }
