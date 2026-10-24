@@ -106,9 +106,6 @@ type ImportResult struct {
 	Rejected []int
 }
 
-// Partial reports whether some records were stored and some rejected.
-func (r ImportResult) Partial() bool { return r.Imported > 0 && len(r.Rejected) > 0 }
-
 // ImportRecords stores the draws of a portable document. It is the single
 // implementation behind `aurora lottery import` and the desktop shell's native
 // Import action.

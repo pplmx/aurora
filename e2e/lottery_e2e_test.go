@@ -57,12 +57,14 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 	// serialized with block_height=0 (the height is only known after the
 	// append), and AddLotteryRecord stamps the true height into the JSON
 	// (ISS-097). Assert the block echoes the record with height corrected.
-	data, err := chain.GetBlockData(1)
-	if err != nil {
-		t.Fatalf("GetBlockData failed: %v", err)
+	// Blocks is the chain's authoritative in-memory slice (reads are guarded
+	// by its mutex in the accessors; a single-threaded test reads it directly).
+	if len(chain.Blocks) <= 1 {
+		t.Fatalf("expected a block at height 1, got %d blocks", len(chain.Blocks))
 	}
+	data := chain.Blocks[1].Data
 	var onChain map[string]interface{}
-	if err := json.Unmarshal([]byte(data), &onChain); err != nil {
+	if err := json.Unmarshal(data, &onChain); err != nil {
 		t.Fatalf("on-chain block data is not valid JSON: %v", err)
 	}
 	if got, _ := onChain["block_height"].(float64); int64(got) != height {

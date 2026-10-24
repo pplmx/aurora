@@ -28,33 +28,6 @@ func resetChainForTest(t *testing.T) {
 	ResetForTest()
 }
 
-func TestDeriveHash_IsDeterministic(t *testing.T) {
-	b := &Block{Data: []byte("hello"), PrevHash: []byte("prev")}
-	b.DeriveHash()
-	first := append([]byte{}, b.Hash...)
-
-	b.DeriveHash()
-	assert.Equal(t, first, b.Hash, "DeriveHash should be deterministic")
-
-	assert.Len(t, b.Hash, 32, "SHA-256 hash should be 32 bytes")
-}
-
-func TestDeriveHash_ChangesWithData(t *testing.T) {
-	b1 := &Block{Data: []byte("one"), PrevHash: []byte("p")}
-	b2 := &Block{Data: []byte("two"), PrevHash: []byte("p")}
-	b1.DeriveHash()
-	b2.DeriveHash()
-	assert.NotEqual(t, b1.Hash, b2.Hash, "different data must yield different hash")
-}
-
-func TestDeriveHash_ChangesWithPrevHash(t *testing.T) {
-	b1 := &Block{Data: []byte("d"), PrevHash: []byte("p1")}
-	b2 := &Block{Data: []byte("d"), PrevHash: []byte("p2")}
-	b1.DeriveHash()
-	b2.DeriveHash()
-	assert.NotEqual(t, b1.Hash, b2.Hash, "different prev-hash must yield different hash")
-}
-
 func TestGenesis_ReturnsMinedBlock(t *testing.T) {
 	g := Genesis()
 	require.NotNil(t, g)
@@ -111,36 +84,6 @@ func TestBlockChain_AddBlock_OnNilOrEmpty(t *testing.T) {
 	_, err = empty.AddBlock("x")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not initialized")
-}
-
-func TestBlockChain_GetBlockData(t *testing.T) {
-	c := NewBlockChain()
-	_, err := c.AddBlock("alice")
-	require.NoError(t, err)
-	_, err = c.AddBlock("bob")
-	require.NoError(t, err)
-
-	data, err := c.GetBlockData(0)
-	require.NoError(t, err)
-	assert.Equal(t, "Genesis", data)
-
-	data, err = c.GetBlockData(1)
-	require.NoError(t, err)
-	assert.Equal(t, "alice", data)
-
-	data, err = c.GetBlockData(2)
-	require.NoError(t, err)
-	assert.Equal(t, "bob", data)
-}
-
-func TestBlockChain_GetBlockData_OutOfRange(t *testing.T) {
-	c := NewBlockChain()
-
-	for _, height := range []int64{-1, -100, 1, 9999} {
-		_, err := c.GetBlockData(height)
-		require.Error(t, err, "height=%d", height)
-		assert.Contains(t, err.Error(), "invalid block height")
-	}
 }
 
 func TestBlockChain_GetLotteryRecords_SkipsGenesis(t *testing.T) {

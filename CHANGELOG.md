@@ -62,7 +62,7 @@ documented in their per-milestone ROADMAP files.
 - **Nav hover state contrast increased**: Background opacity raised from 5% to 10%,
   achieving the required 4.5:1 AA ratio for keyboard navigation focus indicators.
 - **Per-source history reads no longer sort before limiting**: Oracle history
-  (`GetDataBySource`, `GetDataByTimeRange`) and NFT operation history
+  (`GetDataBySource`) and NFT operation history
   (`GetOperations`) filter on the parent id and order by `timestamp DESC`.
   With only the single-column `source_id`/`nft_id` indexes, SQLite built a
   temporary B-tree over every matching row before the `LIMIT` could apply —
@@ -147,10 +147,6 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
-- **Shared validation utilities extracted to `internal/utils`**: New package
-  provides `ValidateName`, `ValidateLength`, `ValidateCount`, `SanitizeString`,
-  `IsValidPublicKey`, and `IsValidSeed` for reuse across lottery, voting, token,
-  and nft modules. This reduces duplicate regex patterns and length checks (TASK-259).
 - **Voting forms now have ARIA invalid/error attributes**: Register Voter and
   Register Candidate sections carry `aria-invalid="false"` inputs with field-specific
   error spans using `role="alert" aria-live="assertive"`, so screen readers announce

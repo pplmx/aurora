@@ -71,22 +71,6 @@ func setupVotingTestDB(t *testing.T) (*VotingRepository, func()) {
 	return repo, cleanup
 }
 
-func TestVotingRepository_UnmarkVoted(t *testing.T) {
-	repo, cleanup := setupVotingTestDB(t)
-	defer cleanup()
-
-	voter := &voting.Voter{PublicKey: "pk", Name: "Alice", RegisteredAt: 1}
-	require.NoError(t, repo.SaveVoter(voter))
-
-	// Mark as voted, then a second mark is rejected.
-	require.NoError(t, repo.TryMarkVoted("pk", "hash-1"))
-	require.ErrorIs(t, repo.TryMarkVoted("pk", "hash-2"), ErrAlreadyVoted)
-
-	// UnmarkVoted resets the flag so the voter can be marked again.
-	require.NoError(t, repo.UnmarkVoted("pk"))
-	require.NoError(t, repo.TryMarkVoted("pk", "hash-3"))
-}
-
 func TestNewVotingRepository(t *testing.T) {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
@@ -254,26 +238,6 @@ func TestVotingRepository_SaveVote(t *testing.T) {
 	}
 }
 
-func TestVotingRepository_GetVote(t *testing.T) {
-	repo, cleanup := setupVotingTestDB(t)
-	defer cleanup()
-
-	vote := voting.NewVote("voter-pk", "candidate-id", "signature", "message")
-
-	err := repo.SaveVote(vote)
-	if err != nil {
-		t.Fatalf("Failed to save vote: %v", err)
-	}
-
-	retrieved, err := repo.GetVote(vote.ID)
-	if err != nil {
-		t.Fatalf("Failed to get vote: %v", err)
-	}
-	if retrieved.CandidateID != "candidate-id" {
-		t.Errorf("Expected candidate ID 'candidate-id', got '%s'", retrieved.CandidateID)
-	}
-}
-
 func TestVotingRepository_GetVotesByCandidate(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
@@ -369,9 +333,16 @@ func TestVotingRepository_BootstrapsVoteSessions(t *testing.T) {
 	).Scan(&tableCount))
 	require.Equal(t, 1, tableCount)
 
-	legacy, err := repo.GetVote("legacy")
-	require.NoError(t, err)
-	require.Equal(t, "", legacy.SessionID, "legacy votes cannot be attributed to a session")
+	// A vote written before the session column existed must read back with an
+	// empty session id, not an error or a fabricated one. The repository's
+	// GetVote accessor was removed as dead code, so assert the stored value
+	// directly.
+	var legacySession string
+	require.NoError(t, db.QueryRow(
+		`SELECT COALESCE(vs.session_id, '') FROM votes v
+		 LEFT JOIN vote_sessions vs ON vs.vote_id = v.id WHERE v.id = 'legacy'`,
+	).Scan(&legacySession))
+	require.Equal(t, "", legacySession, "legacy votes cannot be attributed to a session")
 
 	require.NoError(t, repo.SaveVote(voting.NewSessionVote("v2", "cand", "s1", "sig", "msg")))
 	n, err := repo.CountVotesBySession("s1", "cand")
@@ -436,31 +407,6 @@ func TestVotingRepository_UpdateSession(t *testing.T) {
 	if retrieved.Status != "active" {
 		t.Errorf("Expected status 'active', got '%s'", retrieved.Status)
 	}
-}
-
-func TestVotingRepository_DeleteVote(t *testing.T) {
-	repo, cleanup := setupVotingTestDB(t)
-	defer cleanup()
-
-	vote := voting.NewVote("voter-1", "cand-1", "sig", "msg")
-	require.NoError(t, repo.SaveVote(vote))
-
-	require.NoError(t, repo.DeleteVote(vote.ID))
-
-	_, err := repo.GetVote(vote.ID)
-	require.Error(t, err)
-	require.ErrorIs(t, err, ErrNotFound)
-}
-
-func TestVotingRepository_DeleteVote_AlreadyDeleted(t *testing.T) {
-	repo, cleanup := setupVotingTestDB(t)
-	defer cleanup()
-
-	vote := voting.NewVote("voter-1", "cand-1", "sig", "msg")
-	require.NoError(t, repo.SaveVote(vote))
-
-	require.NoError(t, repo.DeleteVote(vote.ID))
-	require.NoError(t, repo.DeleteVote(vote.ID))
 }
 
 func TestVotingRepository_GetVotesByVoter(t *testing.T) {
@@ -542,64 +488,6 @@ func TestVotingRepository_ListVoters_Empty(t *testing.T) {
 	voters, err := repo.ListVoters()
 	require.NoError(t, err)
 	require.Empty(t, voters)
-}
-
-func TestVotingRepository_UpdateCandidate(t *testing.T) {
-	repo, cleanup := setupVotingTestDB(t)
-	defer cleanup()
-
-	cand := &voting.Candidate{
-		ID:        "cand-1",
-		Name:      "Original",
-		Party:     "Party A",
-		Program:   "Original Program",
-		ImageURL:  "https://example.com/orig.png",
-		VoteCount: 10,
-		CreatedAt: 1000,
-	}
-	require.NoError(t, repo.SaveCandidate(cand))
-
-	cand.Name = "Updated"
-	cand.Party = "Party B"
-	cand.Program = "New Program"
-	cand.ImageURL = "https://example.com/new.png"
-	cand.VoteCount = 20
-	require.NoError(t, repo.UpdateCandidate(cand))
-
-	retrieved, err := repo.GetCandidate("cand-1")
-	require.NoError(t, err)
-	require.NotNil(t, retrieved)
-	require.Equal(t, "Updated", retrieved.Name)
-	require.Equal(t, "Party B", retrieved.Party)
-	require.Equal(t, "New Program", retrieved.Program)
-	require.Equal(t, "https://example.com/new.png", retrieved.ImageURL)
-	require.Equal(t, 20, retrieved.VoteCount)
-}
-
-func TestVotingRepository_DeleteCandidate(t *testing.T) {
-	repo, cleanup := setupVotingTestDB(t)
-	defer cleanup()
-
-	cand := &voting.Candidate{
-		ID:        "cand-1",
-		Name:      "ToDelete",
-		Party:     "Party A",
-		CreatedAt: 1000,
-	}
-	require.NoError(t, repo.SaveCandidate(cand))
-
-	require.NoError(t, repo.DeleteCandidate("cand-1"))
-
-	_, err := repo.GetCandidate("cand-1")
-	require.Error(t, err)
-	require.ErrorIs(t, err, ErrNotFound)
-}
-
-func TestVotingRepository_DeleteCandidate_AlreadyDeleted(t *testing.T) {
-	repo, cleanup := setupVotingTestDB(t)
-	defer cleanup()
-
-	require.NoError(t, repo.DeleteCandidate("nonexistent"))
 }
 
 func TestVotingRepository_ListSessions(t *testing.T) {

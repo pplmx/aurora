@@ -2,10 +2,8 @@ package oracle
 
 type Repository interface {
 	SaveData(data *OracleData) error
-	GetData(id string) (*OracleData, error)
 	GetDataBySource(sourceID string, limit int) ([]*OracleData, error)
 	GetLatestData(sourceID string) (*OracleData, error)
-	GetDataByTimeRange(sourceID string, start, end int64) ([]*OracleData, error)
 
 	SaveSource(source *DataSource) error
 	GetSource(id string) (*DataSource, error)
@@ -44,10 +42,6 @@ func (r *InmemRepo) SaveData(data *OracleData) error {
 	return nil
 }
 
-func (r *InmemRepo) GetData(id string) (*OracleData, error) {
-	return r.data[id], nil
-}
-
 func (r *InmemRepo) GetDataBySource(sourceID string, limit int) ([]*OracleData, error) {
 	var result []*OracleData
 	count := 0
@@ -73,16 +67,6 @@ func (r *InmemRepo) GetLatestData(sourceID string) (*OracleData, error) {
 		}
 	}
 	return latest, nil
-}
-
-func (r *InmemRepo) GetDataByTimeRange(sourceID string, start, end int64) ([]*OracleData, error) {
-	var result []*OracleData
-	for _, d := range r.data {
-		if d.SourceID == sourceID && d.Timestamp >= start && d.Timestamp <= end {
-			result = append(result, d)
-		}
-	}
-	return result, nil
 }
 
 func (r *InmemRepo) SaveSource(source *DataSource) error {

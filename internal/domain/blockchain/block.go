@@ -77,12 +77,6 @@ var ErrHeightConflict = errors.New("blockchain: block height already committed b
 // contention where even repeated fresh heights keep tying.
 const maxHeightRetries = 5
 
-func (b *Block) DeriveHash() {
-	info := bytes.Join([][]byte{b.Data, b.PrevHash}, []byte{})
-	hash := sha256.Sum256(info)
-	b.Hash = hash[:]
-}
-
 func NewBlock(data string, prevHash []byte) *Block {
 	block := &Block{
 		Height:    0,
@@ -362,18 +356,6 @@ func (c *BlockChain) ResetBlocks() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.Blocks = []*Block{Genesis()}
-}
-
-func (c *BlockChain) GetBlockData(blockHeight int64) (string, error) {
-	if c == nil {
-		return "", fmt.Errorf("blockchain not initialized")
-	}
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if blockHeight < 0 || blockHeight >= int64(len(c.Blocks)) {
-		return "", fmt.Errorf("invalid block height: %d", blockHeight)
-	}
-	return string(c.Blocks[blockHeight].Data), nil
 }
 
 func (c *BlockChain) GetLotteryRecords() []string {

@@ -25,7 +25,6 @@ type TransactableRepository interface {
 
 type Repository interface {
 	SaveVote(vote *Vote) error
-	GetVote(id string) (*Vote, error)
 	GetVotesByCandidate(candidateID string) ([]*Vote, error)
 	GetVotesByVoter(voterPK string) ([]*Vote, error)
 	// CountVotesBySession returns the number of votes for one candidate in one
@@ -33,7 +32,6 @@ type Repository interface {
 	// multiple elections, and candidates.vote_count is its global lifetime
 	// tally (ISS-299).
 	CountVotesBySession(sessionID, candidateID string) (int, error)
-	DeleteVote(id string) error
 
 	SaveVoter(voter *Voter) error
 	GetVoter(pk string) (*Voter, error)
@@ -44,16 +42,10 @@ type Repository interface {
 	// sentinel error. This is the primitive that closes the TOCTOU
 	// double-vote window in CastVoteUseCase.
 	TryMarkVoted(publicKey, voteHash string) error
-	// UnmarkVoted resets the voter's has_voted flag. Historically the
-	// best-effort rollback for a failed CastVote; CastVote now runs in a
-	// real transaction, so this primitive is retained for administrative /
-	// corrective flows only.
-	UnmarkVoted(publicKey string) error
 	ListVoters() ([]*Voter, error)
 
 	SaveCandidate(candidate *Candidate) error
 	GetCandidate(id string) (*Candidate, error)
-	UpdateCandidate(candidate *Candidate) error
 	// IncrementCandidateVoteCount atomically adds one to the candidate's
 	// vote_count. Implementations MUST be concurrency-safe (e.g. via a
 	// conditional UPDATE) so concurrent CastVote calls to the same candidate
@@ -61,7 +53,6 @@ type Repository interface {
 	// increment is a silently under-counted election. Must return the
 	// repository's not-found sentinel if the candidate no longer exists.
 	IncrementCandidateVoteCount(candidateID string) error
-	DeleteCandidate(id string) error
 	ListCandidates() ([]*Candidate, error)
 
 	SaveSession(session *Session) error

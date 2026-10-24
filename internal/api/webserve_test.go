@@ -1177,3 +1177,61 @@ function fail(msg) { console.error(msg); process.exit(1); }
 	require.Contains(t, string(out), "form-field-errors-ok",
 		"field-level validation state must back the markup's aria-invalid bindings")
 }
+
+// TestWebUIJS_EveryXShowBindingResolves executes the shipped web/js/app.js and
+// checks each page's x-show="name" against the object its x-data returns.
+//
+// A previous pass added aria-invalid and inline error nodes bound to names like
+// seedError without adding that state to lotteryApp, so every x-show stayed
+// false and the accessibility wiring announced nothing while looking complete.
+// Alpine tolerates an unknown name silently, so only executing the app factory
+// catches it.
+func TestWebUIJS_EveryXShowBindingResolves(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js binding check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+global.document = { getElementById: () => null, addEventListener: () => {}, body: { appendChild: () => {} }, createElement: () => ({ style: {} }) };
+global.fetch = async () => { throw new Error('binding check must not touch the network'); };
+
+const fs = require('fs');
+const path = require('path');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+const webDir = path.dirname(path.dirname(process.argv[2]));
+
+const pages = {
+  'index.html': dashboardApp,
+  'lottery.html': lotteryApp,
+  'voting.html': votingApp,
+  'token.html': tokenApp,
+  'oracle.html': oracleApp,
+  'nft.html': nftApp,
+  'blockchain.html': blockchainApp,
+};
+
+let bad = 0;
+for (const [file, factory] of Object.entries(pages)) {
+  const html = fs.readFileSync(path.join(webDir, file), 'utf8');
+  const app = factory();
+  const names = [...html.matchAll(/x-show="([A-Za-z_][A-Za-z0-9_]*)"/g)].map((m) => m[1]);
+  for (const name of new Set(names)) {
+    if (!(name in app)) {
+      console.error(file + ': x-show="' + name + '" is not a property of ' + factory.name + '()');
+      bad++;
+    }
+  }
+}
+if (bad > 0) process.exit(1);
+console.log('x-show-bindings-ok');
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "xshow_bindings_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js x-show bindings failed:\n%s", out)
+	require.Contains(t, string(out), "x-show-bindings-ok")
+}

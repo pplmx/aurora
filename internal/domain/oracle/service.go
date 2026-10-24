@@ -177,7 +177,6 @@ type Service interface {
 	DisableSource(id string) error
 	DeleteSource(id string) error
 	FetchData(source *DataSource) (*OracleData, error)
-	QueryData(sourceID string, limit int) ([]*OracleData, error)
 }
 
 type service struct {
