@@ -281,11 +281,8 @@ func TestFullFlow_EventBusWithStatsHandler(t *testing.T) {
 
 	bus := NewSyncEventBus()
 
-	statsHandler := NewStatsHandler()
 	auditHandler := NewAuditHandler(eventStore)
 
-	bus.Subscribe("token.mint", statsHandler.Handle)
-	bus.Subscribe("token.transfer", statsHandler.Handle)
 	bus.SubscribeAll(auditHandler.Handle)
 
 	for i := 0; i < 3; i++ {
@@ -304,11 +301,12 @@ func TestFullFlow_EventBusWithStatsHandler(t *testing.T) {
 		}
 	}
 
-	if count := statsHandler.GetCount("token.mint"); count != 3 {
-		t.Errorf("token.mint count = %d, want 3", count)
+	transferEvents, err := eventStore.GetByType("token.transfer", 10)
+	if err != nil {
+		t.Fatalf("GetByType() error = %v", err)
 	}
-	if count := statsHandler.GetCount("token.transfer"); count != 2 {
-		t.Errorf("token.transfer count = %d, want 2", count)
+	if len(transferEvents) != 2 {
+		t.Errorf("len(transfer events) = %d, want 2", len(transferEvents))
 	}
 
 	eventsResult, err := eventStore.GetByType("token.mint", 10)
@@ -336,8 +334,11 @@ func TestFullFlow_Unsubscribe(t *testing.T) {
 
 	bus := NewSyncEventBus()
 
-	statsHandler := NewStatsHandler()
-	unsubscribe := bus.Subscribe("test.event", statsHandler.Handle)
+	var delivered int
+	unsubscribe := bus.Subscribe("test.event", func(events.Event) error {
+		delivered++
+		return nil
+	})
 
 	payload1, _ := json.Marshal(map[string]interface{}{"index": 0})
 	e1 := events.NewBaseEvent("test.event", "agg-1", payload1)
@@ -353,8 +354,8 @@ func TestFullFlow_Unsubscribe(t *testing.T) {
 		t.Fatalf("Publish() error = %v", err)
 	}
 
-	if count := statsHandler.GetCount("test.event"); count != 1 {
-		t.Errorf("count after unsubscribe = %d, want 1", count)
+	if delivered != 1 {
+		t.Errorf("deliveries after unsubscribe = %d, want 1", delivered)
 	}
 
 	_ = eventStore

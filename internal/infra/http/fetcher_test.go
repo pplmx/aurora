@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -1049,7 +1050,7 @@ func TestFetcher_FetchData_Validation_Success(t *testing.T) {
 		Enabled: true,
 	}
 
-	data, err := fetcher.FetchDataWithValidation(source, true)
+	data, err := fetcher.FetchDataWithValidationContext(context.Background(), source, true)
 	if err != nil {
 		t.Fatalf("FetchDataWithValidation failed: %v", err)
 	}
@@ -1074,7 +1075,7 @@ func TestFetcher_FetchData_Validation_InvalidJSON(t *testing.T) {
 		Enabled: true,
 	}
 
-	_, err := fetcher.FetchDataWithValidation(source, true)
+	_, err := fetcher.FetchDataWithValidationContext(context.Background(), source, true)
 	if err == nil {
 		t.Fatal("Expected error for invalid JSON")
 	}
@@ -1112,10 +1113,10 @@ func TestFetcher_FetchData_Validation_InvalidPath(t *testing.T) {
 		Enabled: true,
 	}
 
-	if _, err := fetcher.FetchDataWithValidation(source, false); !errors.Is(err, oracle.ErrInvalidSource) {
+	if _, err := fetcher.FetchDataWithValidationContext(context.Background(), source, false); !errors.Is(err, oracle.ErrInvalidSource) {
 		t.Fatalf("invalid path without validation: got err=%v, want ErrInvalidSource", err)
 	}
-	if data, err := fetcher.FetchDataWithValidation(source, true); !errors.Is(err, oracle.ErrInvalidSource) {
+	if data, err := fetcher.FetchDataWithValidationContext(context.Background(), source, true); !errors.Is(err, oracle.ErrInvalidSource) {
 		t.Fatalf("invalid path with validation: got err=%v data=%v, want ErrInvalidSource", err, data)
 	}
 }

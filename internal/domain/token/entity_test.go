@@ -244,30 +244,6 @@ func TestValidatePublicKey(t *testing.T) {
 	}
 }
 
-func TestValidateNonce(t *testing.T) {
-	tests := []struct {
-		name         string
-		nonce        uint64
-		currentNonce uint64
-		wantErr      bool
-	}{
-		{"valid nonce", 10, 5, false},
-		{"nonce equal to current", 5, 5, true},
-		{"nonce less than current", 3, 5, true},
-		{"nonce is zero", 0, 0, true},
-		{"nonce is one higher", 6, 5, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateNonce(tt.nonce, tt.currentNonce)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ValidateNonce(%d, %d) error = %v, wantErr %v", tt.nonce, tt.currentNonce, err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestAmount_String(t *testing.T) {
 	tests := []struct {
 		name     string

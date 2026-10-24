@@ -111,6 +111,9 @@ func (o *Operation) IsTransfer() bool {
 	return o.Type == "transfer"
 }
 
+// IsMint reports whether the operation created the NFT. Kept beside
+// IsTransfer/IsBurn so callers can classify a history row without comparing
+// raw type strings.
 func (o *Operation) IsMint() bool {
 	return o.Type == "mint"
 }

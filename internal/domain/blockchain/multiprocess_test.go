@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"context"
 	"database/sql"
 	"path/filepath"
 	"sync"
@@ -297,7 +298,7 @@ func mineNext(t *testing.T, prev *Block, data string) *Block {
 		Timestamp: time.Now().Unix(),
 	}
 	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
+	nonce, hash, _ := pow.Run(context.Background())
 	block.Nonce = int64(nonce)
 	block.Hash = append([]byte(nil), hash...)
 	return block

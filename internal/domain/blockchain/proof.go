@@ -49,38 +49,19 @@ func (pow *ProofOfWork) InitNonce(nonce int) []byte {
 	return data
 }
 
-func (pow *ProofOfWork) Run() (int, []byte) {
+// Run mines the block and returns the winning nonce and hash. It polls ctx
+// between attempts, so a cancelled context stops the search instead of
+// spinning to MaxInt64; callers that cannot be interrupted pass
+// context.Background(). This is the only mining loop: MineBlockWithContext
+// used to duplicate it solely to gain cancellation.
+func (pow *ProofOfWork) Run(ctx context.Context) (int, []byte, error) {
 	var intHash big.Int
 	var hash [32]byte
 
 	nonce := 0
 	for nonce < math.MaxInt64 {
-		data := pow.InitNonce(nonce)
-		hash = sha256.Sum256(data)
-
-		intHash.SetBytes(hash[:])
-
-		if intHash.Cmp(pow.Target) == -1 {
-			break
-		} else {
-			nonce++
-		}
-
-	}
-
-	return nonce, hash[:]
-}
-
-func MineBlockWithContext(ctx context.Context, pow *ProofOfWork) (int, []byte, error) {
-	var intHash big.Int
-	var hash [32]byte
-
-	nonce := 0
-	for nonce < math.MaxInt64 {
-		select {
-		case <-ctx.Done():
-			return nonce, hash[:], ctx.Err()
-		default:
+		if err := ctx.Err(); err != nil {
+			return nonce, hash[:], err
 		}
 
 		data := pow.InitNonce(nonce)
@@ -96,13 +77,6 @@ func MineBlockWithContext(ctx context.Context, pow *ProofOfWork) (int, []byte, e
 	}
 
 	return nonce, hash[:], errors.New("max iterations exceeded")
-}
-
-func ValidateProof(data []byte, hash []byte, target *big.Int) bool {
-	var intHash big.Int
-	h := sha256.Sum256(data)
-	intHash.SetBytes(h[:])
-	return intHash.Cmp(target) == -1
 }
 
 func (pow *ProofOfWork) Validate() bool {
