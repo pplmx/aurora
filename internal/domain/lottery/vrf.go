@@ -256,15 +256,6 @@ func isIdentity(p *edwards25519.Point) bool {
 	return p.Equal(edwards25519.NewIdentityPoint()) == 1
 }
 
-func VRFOutputToBytes(output []byte) []byte {
-	if len(output) >= 32 {
-		return output[:32]
-	}
-	result := make([]byte, 32)
-	copy(result, output)
-	return result
-}
-
 func sha256Hash(message []byte) [32]byte {
 	h := sha256.Sum256(message)
 	return h

@@ -125,10 +125,3 @@ func VerifyPrivateKeyMatches(pub PublicKey, priv PrivateKey) error {
 	}
 	return nil
 }
-
-func ValidateNonce(nonce uint64, currentNonce uint64) error {
-	if nonce <= currentNonce {
-		return ErrNonceTooLow
-	}
-	return nil
-}

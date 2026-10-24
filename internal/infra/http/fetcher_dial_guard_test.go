@@ -17,9 +17,9 @@ func TestFetcherConstructorsInstallDialGuard(t *testing.T) {
 	}{
 		{name: "NewFetcher", create: func() (*Fetcher, error) { return NewFetcher(), nil }},
 		{
-			name: "NewFetcherWithConfig",
+			name: "NewFetcher with rate-limit option",
 			create: func() (*Fetcher, error) {
-				return NewFetcherWithConfig(10, time.Minute), nil
+				return NewFetcher(WithRateLimit(10, time.Minute)), nil
 			},
 		},
 		{

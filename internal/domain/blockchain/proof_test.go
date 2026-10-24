@@ -2,7 +2,6 @@ package blockchain
 
 import (
 	"context"
-	"math/big"
 	"testing"
 	"time"
 )
@@ -16,7 +15,10 @@ func TestProofOfWork_Run(t *testing.T) {
 	}
 
 	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
+	nonce, hash, err := pow.Run(context.Background())
+	if err != nil {
+		t.Fatalf("mine: %v", err)
+	}
 
 	if nonce < 0 {
 		t.Errorf("nonce should be non-negative, got %d", nonce)
@@ -32,7 +34,7 @@ func TestProofOfWork_Run(t *testing.T) {
 	}
 }
 
-func TestMineBlockWithContext_Success(t *testing.T) {
+func TestProofOfWorkRun_Success(t *testing.T) {
 	block := &Block{
 		Height:    0,
 		PrevHash:  []byte{},
@@ -43,7 +45,7 @@ func TestMineBlockWithContext_Success(t *testing.T) {
 	ctx := context.Background()
 	pow := NewProofOfWork(block)
 
-	nonce, hash, err := MineBlockWithContext(ctx, pow)
+	nonce, hash, err := pow.Run(ctx)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -56,13 +58,13 @@ func TestMineBlockWithContext_Success(t *testing.T) {
 		t.Errorf("hash should be 32 bytes, got %d", len(hash))
 	}
 
-	data := pow.InitNonce(nonce)
-	if !ValidateProof(data, hash, pow.Target) {
+	pow.Block.Nonce = int64(nonce)
+	if !pow.Validate() {
 		t.Error("proof of work should be valid")
 	}
 }
 
-func TestMineBlockWithContext_Interrupt(t *testing.T) {
+func TestProofOfWorkRun_Interrupt(t *testing.T) {
 	block := &Block{
 		Height:    0,
 		PrevHash:  []byte{},
@@ -75,7 +77,7 @@ func TestMineBlockWithContext_Interrupt(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, _, err := MineBlockWithContext(ctx, pow)
+	_, _, err := pow.Run(ctx)
 	if err == nil {
 		t.Fatal("expected error on context cancellation, got nil")
 	}
@@ -84,7 +86,7 @@ func TestMineBlockWithContext_Interrupt(t *testing.T) {
 	}
 }
 
-func TestMineBlockWithContext_Deadline(t *testing.T) {
+func TestProofOfWorkRun_Deadline(t *testing.T) {
 	block := &Block{
 		Height:    0,
 		PrevHash:  []byte{},
@@ -98,7 +100,7 @@ func TestMineBlockWithContext_Deadline(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), past)
 	defer cancel()
 
-	_, _, err := MineBlockWithContext(ctx, pow)
+	_, _, err := pow.Run(ctx)
 	if err == nil {
 		t.Fatal("expected error on deadline exceeded, got nil")
 	}
@@ -107,10 +109,10 @@ func TestMineBlockWithContext_Deadline(t *testing.T) {
 	}
 }
 
-func TestValidateProof(t *testing.T) {
-	target := big.NewInt(1)
-	target.Lsh(target, uint(256-Difficulty))
-
+// TestProofOfWorkValidate pins the proof check the chain actually runs:
+// BlockChain.Verify calls pow.Validate(), and the standalone ValidateProof
+// helper that duplicated its comparison was removed.
+func TestProofOfWorkValidate(t *testing.T) {
 	block := &Block{
 		Height:    0,
 		PrevHash:  []byte{},
@@ -120,15 +122,17 @@ func TestValidateProof(t *testing.T) {
 
 	pow := NewProofOfWork(block)
 
-	nonce, _ := pow.Run()
-	data := pow.InitNonce(nonce)
-
-	if !ValidateProof(data, nil, target) {
-		t.Error("valid proof should pass validation")
+	nonce, _, err := pow.Run(context.Background())
+	if err != nil {
+		t.Fatalf("mine: %v", err)
+	}
+	block.Nonce = int64(nonce)
+	if !pow.Validate() {
+		t.Error("a freshly mined proof must validate")
 	}
 
-	invalidData := pow.InitNonce(nonce + 1)
-	if ValidateProof(invalidData, nil, target) {
-		t.Error("invalid proof should fail validation")
+	block.Nonce = int64(nonce + 1)
+	if pow.Validate() {
+		t.Error("a tampered nonce must not validate")
 	}
 }

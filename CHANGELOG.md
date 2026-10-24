@@ -58,6 +58,27 @@ documented in their per-milestone ROADMAP files.
   if the sort reappears.
 
 
+### Removed
+
+- **Dead APIs and duplicate implementations found by a global ablation pass**:
+  a symbol-level audit (every exported function/method with zero non-test
+  callers) replaced the previous module-level reachability check. Removed:
+  `http.NewFetcherWithConfig` (a third near-identical constructor),
+  `Fetcher.FetchDataWithValidation`, `blockchain.MineBlockWithContext`
+  (folded into `ProofOfWork.Run(ctx)`), `blockchain.ValidateProof`,
+  `blockchain.Serialize`/`Deserialize`, `token.ValidateNonce` together with
+  `ErrNonceTooLow` and its unreachable `NONCE_TOO_LOW` 409 mapping,
+  `token.NewMintEventFromData`/`NewBurnEventFromData`, `lottery.VRFOutputToBytes`,
+  `lottery.GetWinners`, and `ApproveEvent.SetExpiresAt`.
+- **The event `StatsHandler` no longer runs**: `server.go` subscribed it to
+  every event, but nothing ever read the counters — each publish paid a mutex
+  lock and map increment for a value with no consumer. The subscription is
+  gone; audit persistence is unchanged.
+- **Deliberately kept, with reasons recorded in `docs/ablation.md`**:
+  `Operation.IsTransfer`/`IsBurn`/`IsMint`, `RateLimiter.Remaining`/`Reset`,
+  `LotteryRecord.FromJSON`, and `Fetcher.FetchData` all have real production
+  or regression-test consumers.
+
 ### Changed
 
 - **Wide Web UI tables now stay inside their cards**: Lottery history, Voting

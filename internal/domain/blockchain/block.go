@@ -4,9 +4,9 @@ package blockchain
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"database/sql"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"sync"
@@ -93,7 +93,7 @@ func NewBlock(data string, prevHash []byte) *Block {
 		Timestamp: time.Now().Unix(),
 	}
 	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
+	nonce, hash, _ := pow.Run(context.Background())
 
 	block.Hash = hash[:]
 	block.Nonce = int64(nonce)
@@ -342,7 +342,7 @@ func (c *BlockChain) nextBlock(data string, stamp func(height int64) string) (*B
 		Timestamp: time.Now().Unix(),
 	}
 	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
+	nonce, hash, _ := pow.Run(context.Background())
 	block.Nonce = int64(nonce)
 	block.Hash = append([]byte(nil), hash...)
 	return block, nil
@@ -362,31 +362,6 @@ func (c *BlockChain) ResetBlocks() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.Blocks = []*Block{Genesis()}
-}
-
-func (b *Block) Serialize() ([]byte, error) {
-	var res bytes.Buffer
-	encoder := gob.NewEncoder(&res)
-
-	err := encoder.Encode(b)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.Bytes(), nil
-}
-
-func Deserialize(data []byte) (*Block, error) {
-	var block Block
-
-	decoder := gob.NewDecoder(bytes.NewReader(data))
-
-	err := decoder.Decode(&block)
-	if err != nil {
-		return nil, err
-	}
-
-	return &block, nil
 }
 
 func (c *BlockChain) GetBlockData(blockHeight int64) (string, error) {

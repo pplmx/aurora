@@ -98,17 +98,6 @@ func NewMintEvent(tokenID TokenID, to PublicKey, amount *Amount) *MintEvent {
 	}
 }
 
-func NewMintEventFromData(id string, tokenID TokenID, to PublicKey, amount *Amount, blockHeight int64, timestamp time.Time) *MintEvent {
-	return &MintEvent{
-		id:          id,
-		tokenID:     tokenID,
-		to:          to,
-		amount:      amount,
-		blockHeight: blockHeight,
-		timestamp:   timestamp,
-	}
-}
-
 func (e *MintEvent) ID() string             { return e.id }
 func (e *MintEvent) TokenID() TokenID       { return e.tokenID }
 func (e *MintEvent) To() PublicKey          { return e.to }
@@ -150,17 +139,6 @@ func NewBurnEvent(tokenID TokenID, from PublicKey, amount *Amount) *BurnEvent {
 		from:      from,
 		amount:    amount,
 		timestamp: time.Now(),
-	}
-}
-
-func NewBurnEventFromData(id string, tokenID TokenID, from PublicKey, amount *Amount, blockHeight int64, timestamp time.Time) *BurnEvent {
-	return &BurnEvent{
-		id:          id,
-		tokenID:     tokenID,
-		from:        from,
-		amount:      amount,
-		blockHeight: blockHeight,
-		timestamp:   timestamp,
 	}
 }
 

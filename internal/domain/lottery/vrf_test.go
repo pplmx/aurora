@@ -130,43 +130,6 @@ func TestVRFVerify_WithDifferentKeyPair(t *testing.T) {
 	_ = output2
 }
 
-func TestVRFOutputToBytes_ShortInput(t *testing.T) {
-	input := []byte("short")
-	result := VRFOutputToBytes(input)
-	if len(result) != 32 {
-		t.Errorf("VRFOutputToBytes() short input length = %d, want 32", len(result))
-	}
-}
-
-func TestVRFOutputToBytes_LongInput(t *testing.T) {
-	input := []byte("this-is-a-long-input-that-exceeds-32-bytes")
-	result := VRFOutputToBytes(input)
-	if len(result) != 32 {
-		t.Errorf("VRFOutputToBytes() long input length = %d, want 32", len(result))
-	}
-	if result[0] != input[0] || result[1] != input[1] {
-		t.Error("VRFOutputToBytes() should preserve first bytes")
-	}
-}
-
-func TestVRFOutputToBytes_ExactLength(t *testing.T) {
-	input := make([]byte, 32)
-	for i := range input {
-		input[i] = byte(i)
-	}
-	result := VRFOutputToBytes(input)
-	if len(result) != 32 {
-		t.Errorf("VRFOutputToBytes() exact length = %d, want 32", len(result))
-	}
-}
-
-func TestVRFOutputToBytes_EmptyInput(t *testing.T) {
-	result := VRFOutputToBytes([]byte{})
-	if len(result) != 32 {
-		t.Errorf("VRFOutputToBytes() empty input length = %d, want 32", len(result))
-	}
-}
-
 func TestGenerateKeyPair_Deterministic(t *testing.T) {
 	pk1, sk1, err := GenerateKeyPair()
 	if err != nil {

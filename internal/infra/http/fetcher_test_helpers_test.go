@@ -14,7 +14,7 @@ func newLoopbackFetcher(opts ...FetcherOption) *Fetcher {
 }
 
 func newLoopbackFetcherWithConfig(limit int, window time.Duration) *Fetcher {
-	return allowTestLoopback(NewFetcherWithConfig(limit, window))
+	return allowTestLoopback(NewFetcher(WithRateLimit(limit, window)))
 }
 
 func newLoopbackFetcherWithTimeout(limit int, window, timeout time.Duration) (*Fetcher, error) {

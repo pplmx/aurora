@@ -303,25 +303,20 @@ func NewFetcher(opts ...FetcherOption) *Fetcher {
 	return f
 }
 
-func NewFetcherWithConfig(limit int, window time.Duration) *Fetcher {
-	if limit <= 0 {
-		limit = 10
+type FetcherOption func(*Fetcher)
+
+// WithUserAgent overrides the User-Agent sent with every fetch. The default is
+// defaultUserAgent; this exists so a caller can identify itself to a feed.
+func WithUserAgent(ua string) FetcherOption {
+	return func(f *Fetcher) {
+		f.userAgent = ua
 	}
-	if window <= 0 {
-		window = time.Minute
-	}
-	f := &Fetcher{
-		client: &http.Client{
-			Timeout:       defaultHTTPTimeout,
-			CheckRedirect: checkRedirectAllowed,
-		},
-		rateLimiter: NewRateLimiter(limit, window),
-		userAgent:   defaultUserAgent,
-	}
-	f.client.Transport = newSecurityTransport(f.userAgent)
-	return f
 }
 
+// NewFetcherWithTimeout builds a fetcher with an explicit request budget and
+// client timeout. It is the only constructor that can report ErrInvalidTimeout:
+// a non-positive timeout would make every oracle fetch fail immediately, so it
+// is rejected instead of silently falling back to the default.
 func NewFetcherWithTimeout(limit int, window, timeout time.Duration) (*Fetcher, error) {
 	if timeout <= 0 {
 		return nil, ErrInvalidTimeout
@@ -344,11 +339,18 @@ func NewFetcherWithTimeout(limit int, window, timeout time.Duration) (*Fetcher, 
 	return f, nil
 }
 
-type FetcherOption func(*Fetcher)
-
-func WithUserAgent(ua string) FetcherOption {
+// WithRateLimit overrides the request budget. Non-positive values fall back to
+// the same defaults NewFetcher applies (10 requests per minute), so a caller
+// can pass config values through without pre-validating them.
+func WithRateLimit(limit int, window time.Duration) FetcherOption {
 	return func(f *Fetcher) {
-		f.userAgent = ua
+		if limit <= 0 {
+			limit = 10
+		}
+		if window <= 0 {
+			window = time.Minute
+		}
+		f.rateLimiter = NewRateLimiter(limit, window)
 	}
 }
 
@@ -447,10 +449,6 @@ func (f *Fetcher) Get(url string) ([]byte, error) {
 
 func (f *Fetcher) FetchData(source *oracle.DataSource) (*oracle.OracleData, error) {
 	return f.FetchDataContext(context.Background(), source)
-}
-
-func (f *Fetcher) FetchDataWithValidation(source *oracle.DataSource, validateJSON bool) (*oracle.OracleData, error) {
-	return f.FetchDataWithValidationContext(context.Background(), source, validateJSON)
 }
 
 // FetchDataContext is the cancellable form of FetchData used by the oracle

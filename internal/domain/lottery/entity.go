@@ -57,10 +57,6 @@ func (r *LotteryRecord) Validate() error {
 	return nil
 }
 
-func (r *LotteryRecord) GetWinners() []string {
-	return r.Winners
-}
-
 func (r *LotteryRecord) ToJSON() (string, error) {
 	data, err := json.Marshal(r)
 	if err != nil {
@@ -69,6 +65,8 @@ func (r *LotteryRecord) ToJSON() (string, error) {
 	return string(data), nil
 }
 
+// FromJSON decodes a record document. Import validates the decoded record
+// against its evidence, so this stays the single decode entry point.
 func (r *LotteryRecord) FromJSON(data string) error {
 	return json.Unmarshal([]byte(data), r)
 }

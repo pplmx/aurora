@@ -5,16 +5,6 @@ import (
 	"testing"
 )
 
-func TestGetWinners(t *testing.T) {
-	record := &LotteryRecord{
-		Winners: []string{"Alice", "Bob"},
-	}
-	got := record.GetWinners()
-	if len(got) != 2 || got[0] != "Alice" || got[1] != "Bob" {
-		t.Errorf("GetWinners() = %v, want [Alice Bob]", got)
-	}
-}
-
 func TestLotteryRecord_ToJSON(t *testing.T) {
 	record := &LotteryRecord{
 		ID:           "test-id",

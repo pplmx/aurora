@@ -35,7 +35,6 @@ var errorClassification = []struct {
 	{tokenerrors.ErrInsufficientBalance, http.StatusBadRequest, "INSUFFICIENT_BALANCE"},
 	{tokenerrors.ErrInsufficientAllowance, http.StatusBadRequest, "INSUFFICIENT_ALLOWANCE"},
 	{tokenerrors.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_SIGNATURE"},
-	{tokenerrors.ErrNonceTooLow, http.StatusConflict, "NONCE_TOO_LOW"},
 	{tokenerrors.ErrAmountMustBePositive, http.StatusBadRequest, "AMOUNT_MUST_BE_POSITIVE"},
 	{tokenerrors.ErrNotTokenOwner, http.StatusForbidden, "NOT_TOKEN_OWNER"},
 	{tokenerrors.ErrZeroOwner, http.StatusBadRequest, "ZERO_OWNER"},

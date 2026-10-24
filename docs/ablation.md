@@ -58,6 +58,57 @@
 
 `internal/ui/voting/` 并不存在；旧分析文档中的 voting TUI 描述已过期。
 
+## 全局消融：按「真实调用者」重判（2026-10-24）
+
+上一轮消融（2026-10-23）按「生产入口是否可达」判断模块去留。这一轮换了判据：
+**每个导出符号是否有真实生产调用者**。可达模块里的死 API 和「有调用者但结果
+没人读」的代码，都按同一个标准处理。
+
+### 判定方法
+
+1. 对每个包的导出函数与方法，统计 `internal/`、`cmd/`、`desktop/`、`e2e/`
+   中排除 `_test.go` 后的引用数；`refs<=1`（只有定义本身）进入候选。
+2. 候选逐个确认调用点，区分三类：
+   - **死 API**：生产零调用，测试只在自测它 → 删除。
+   - **重复实现**：同一算法有两条路径，生产只走一条 → 合并到保留的那条。
+   - **测试基础设施**：生产不用，但真实回归测试用它断言行为 → 保留。
+3. 删除后跑 `just check` 与 `just test`，并对保留/删除有争议的项做故障注入。
+
+### 删除的死 API 与重复实现
+
+| 位置 | 符号 | 证据 | 处理 |
+| --- | --- | --- | --- |
+| `infra/http` | `NewFetcherWithConfig` | 生产只用 `NewFetcher()`；与 `NewFetcherWithTimeout` 三份几乎相同的构造器 | 删除；调用方改用 `NewFetcher(WithRateLimit(...))` |
+| `infra/http` | `FetchDataWithValidation` | 无 ctx 的薄封装，生产只走 `FetchDataContext` | 删除；测试改调 Context 版本 |
+| `domain/blockchain` | `MineBlockWithContext` | 与 `ProofOfWork.Run` 完整重复，仅多一个 ctx 检查 | 把 ctx 折进 `Run(ctx)`，删除重复函数 |
+| `domain/blockchain` | `ValidateProof` | 与 `ProofOfWork.Validate` 同一比较 | 删除；测试改断 `pow.Validate()` |
+| `domain/blockchain` | `Serialize` / `Deserialize` | 块从 SQLite 按列重建，生产不读 gob | 删除这一对及其往返测试 |
+| `domain/token` | `ValidateNonce` + `ErrNonceTooLow` + `NONCE_TOO_LOW` 映射 | nonce 由 `ClaimNextNonce` 原子分配，该错误从未被返回 | 删除整条链；409 映射随之移除 |
+| `domain/token` | `NewMintEventFromData` / `NewBurnEventFromData` | 生产用 `NewMintEvent`/`NewBurnEvent` 创建；无 mint/burn 事件回读器 | 删除（transfer 的 `FromData` 保留，历史回读在用） |
+| `domain/lottery` | `VRFOutputToBytes` | `SelectWinners` 自行处理输出，无调用者 | 删除 |
+| `domain/lottery` | `GetWinners` | 纯 getter，`Winners` 字段本就导出 | 删除及其自测 |
+| `domain/token` | `ApproveEvent.SetExpiresAt` | 无调用者 | 删除 |
+| `infra/events` | `StatsHandler`（含 `GetCount`/`GetAllCounts`） | `server.go` 订阅了 `Handle`，但计数结果无人读取 | 删除 handler 与订阅；订阅/退订语义改由审计 handler 与计数闭包断言 |
+
+### 有意保留（看似死代码，实际有真实用途）
+
+- **`Operation.IsBurn` / `IsMint` / `IsTransfer`**：`IsTransfer` 在
+  `nft/service.go` 的生产路径使用；三者是同族谓词，`IsBurn` 还被
+  `burn_sqlite_regression_test.go` 当作断言工具。保留全部三个以维持对称。
+- **`RateLimiter.Remaining` / `Reset`**：生产不调用，但限流器测试用它们断言
+  预算与窗口语义；`Remaining` 也是 `WithRateLimit` 的可观测面。保留。
+- **`LotteryRecord.FromJSON`**：与 `ToJSON` 构成导入文档的解码契约。
+- **`Fetcher.FetchData`**：`app/oracle/usecase.go` 的默认路径在用。
+- **`NewMockRepository` / `NewMockEventStore`**：它们定义在 `_test.go` 内，
+  是测试替身而非生产 API。
+
+### 结论
+
+六个业务模块全部保留：lottery、voting、NFT、token、oracle 各自有 CLI、REST、
+Web 与桌面路由中的多个真实调用点，blockchain 是它们的审计基底。本轮删掉的是
+模块**内部**的重复实现与死 API，不改变任何用户可见行为；`just test` 的 34 个
+包在删除前后都是绿的。
+
 ## 本轮删除的不可达表面
 
 - `internal/infra/events/async_bus.go` 与测试：生产从未构造 `AsyncEventBus`。

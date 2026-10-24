@@ -7,7 +7,6 @@ var (
 	ErrInsufficientBalance   = errors.New("insufficient balance")
 	ErrInsufficientAllowance = errors.New("insufficient allowance")
 	ErrInvalidSignature      = errors.New("invalid signature")
-	ErrNonceTooLow           = errors.New("nonce too low")
 	ErrAmountMustBePositive  = errors.New("amount must be positive")
 	ErrNotTokenOwner         = errors.New("not token owner")
 	ErrZeroOwner             = errors.New("token owner must not be the zero address")

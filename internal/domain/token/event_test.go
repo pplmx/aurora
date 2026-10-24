@@ -134,21 +134,6 @@ func TestNewMintEvent(t *testing.T) {
 	}
 }
 
-func TestNewMintEventFromData(t *testing.T) {
-	to := PublicKey(make([]byte, 32))
-	amount := NewAmount(100)
-	timestamp := time.Now()
-
-	event := NewMintEventFromData("custom-id", "TEST", to, amount, 42, timestamp)
-
-	if event.ID() != "custom-id" {
-		t.Errorf("MintEvent.ID() = %s, want custom-id", event.ID())
-	}
-	if event.BlockHeight() != 42 {
-		t.Errorf("MintEvent.BlockHeight() = %d, want 42", event.BlockHeight())
-	}
-}
-
 func TestMintEvent_SetBlockHeight(t *testing.T) {
 	to := PublicKey(make([]byte, 32))
 	amount := NewAmount(100)
@@ -211,21 +196,6 @@ func TestNewBurnEvent(t *testing.T) {
 	}
 	if event.Timestamp().IsZero() {
 		t.Error("BurnEvent.Timestamp() should not be zero")
-	}
-}
-
-func TestNewBurnEventFromData(t *testing.T) {
-	from := PublicKey(make([]byte, 32))
-	amount := NewAmount(100)
-	timestamp := time.Now()
-
-	event := NewBurnEventFromData("custom-id", "TEST", from, amount, 42, timestamp)
-
-	if event.ID() != "custom-id" {
-		t.Errorf("BurnEvent.ID() = %s, want custom-id", event.ID())
-	}
-	if event.BlockHeight() != 42 {
-		t.Errorf("BurnEvent.BlockHeight() = %d, want 42", event.BlockHeight())
 	}
 }
 

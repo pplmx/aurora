@@ -128,7 +128,6 @@ func NewServer() (*Server, error) {
 	// (started by cmd/api/main.go like the oracle scheduler) retries it. This
 	// heals the gap v1.82 only reported.
 	eventBus.SubscribeAll(infraevents.NewAuditHandlerWithOutbox(eventStore, eventStore).Handle)
-	eventBus.SubscribeAll(infraevents.NewStatsHandler().Handle)
 
 	replay, err := infraevents.NewSQLiteReplayProtection(dbPath)
 	if err != nil {
