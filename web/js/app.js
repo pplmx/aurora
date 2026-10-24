@@ -160,11 +160,19 @@ function lotteryApp() {
         participants: '',
         seed: '',
         count: 1,
+        // Field-level validation state. The markup binds aria-invalid and the
+        // inline error nodes to these, so a rejected field is announced by
+        // assistive tech next to the input instead of only as a page-level
+        // result line. Cleared on every submit attempt and on input.
+        participantsError: '',
+        seedError: '',
+        countError: '',
         result: '',
         history: [],
         historyFailed: false,
         loading: true,
         verifyId: '',
+        verifyIdError: '',
         verifyResult: '',
         async init() {
             await this.loadHistory();
@@ -194,6 +202,11 @@ function lotteryApp() {
             }
         },
         async verifyDraw() {
+            this.verifyIdError = '';
+            if (!(this.verifyId || '').trim()) {
+                this.verifyIdError = 'Enter a lottery ID or block height.';
+                return;
+            }
             try {
                 const res = await apiFetch('/api/v1/lottery/' + encodeURIComponent(this.verifyId) + '/verify');
                 this.verifyResult = JSON.stringify(await res.json(), null, 2);
@@ -229,16 +242,24 @@ function lotteryApp() {
             const participants = this.participants.split(',').map(p => p.trim()).filter(Boolean);
             const seed = (this.seed || '').trim();
             const count = Number(this.count);
+            this.participantsError = '';
+            this.seedError = '';
+            this.countError = '';
+            this.result = '';
+            if (participants.length === 0) {
+                this.participantsError = 'List at least one participant.';
+                return;
+            }
             if (seed.length < 3) {
-                this.result = 'Seed is required and must be at least 3 characters.';
+                this.seedError = 'Seed is required and must be at least 3 characters.';
                 return;
             }
             if (!Number.isInteger(count) || count < 1) {
-                this.result = 'Winner count must be a whole number of at least 1.';
+                this.countError = 'Winner count must be a whole number of at least 1.';
                 return;
             }
             if (count > participants.length) {
-                this.result = 'Winner count (' + count + ') cannot exceed the number of participants (' + participants.length + ').';
+                this.countError = 'Winner count (' + count + ') cannot exceed the number of participants (' + participants.length + ').';
                 return;
             }
             try {
@@ -606,9 +627,14 @@ function votingApp() {
         voterName: '',
         voterResult: '',
         voterPrivateKey: '',
+        // Field-level validation state for the register forms; the markup binds
+        // aria-invalid and inline error nodes to these so a rejected field is
+        // announced next to the input (WCAG 4.1.3).
+        voterNameError: '',
         candName: '',
         candParty: '',
         candProgram: '',
+        candNameError: '',
         candResult: '',
         sessionTitle: '',
         sessionDesc: '',
@@ -688,6 +714,11 @@ function votingApp() {
                 .filter(Boolean);
         },
         async registerVoter() {
+            this.voterNameError = '';
+            if (!(this.voterName || '').trim()) {
+                this.voterNameError = 'Voter name is required.';
+                return;
+            }
             try {
                 const res = await apiFetch('/api/v1/voting/register/voter', {
                     method: 'POST',
@@ -705,6 +736,11 @@ function votingApp() {
             }
         },
         async registerCandidate() {
+            this.candNameError = '';
+            if (!(this.candName || '').trim()) {
+                this.candNameError = 'Candidate name is required.';
+                return;
+            }
             try {
                 const res = await apiFetch('/api/v1/voting/register/candidate', {
                     method: 'POST',

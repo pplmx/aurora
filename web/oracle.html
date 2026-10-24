@@ -23,8 +23,28 @@
             <button class="btn-refresh" @click="refresh()" :disabled="refreshing" title="Reload sources &amp; health now">↻ Refresh</button>
         </header>
         <main>
-            <section class="history">
-                <h2>Data Sources</h2>
+            <section class="page-intro" aria-labelledby="oracle-workspace-title">
+                <p class="eyebrow">Oracle workspace</p>
+                <h2 id="oracle-workspace-title">Sources in, verified data out.</h2>
+                <p>Register a feed, watch its health, then fetch and query the values it recorded on chain — every operation below shares one source registry.</p>
+                <div class="workspace-index" role="navigation" aria-label="Oracle operations">
+                    <a href="#oracle-sources">Sources</a>
+                    <a href="#oracle-add">Add source</a>
+                    <a href="#oracle-health">Feed health</a>
+                    <a href="#oracle-fetch">Fetch</a>
+                    <a href="#oracle-query">Query</a>
+                    <a href="#oracle-latest">Latest</a>
+                </div>
+            </section>
+            <div class="workspace-grid">
+            <section id="oracle-sources" class="history workspace-panel--wide">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">01</span>
+                    <div>
+                        <h2>Data Sources</h2>
+                        <p>Every registered feed, its transport, and whether it is currently polled.</p>
+                    </div>
+                </div>
                 <!-- The loading placeholder only replaces the table while no
                      data has loaded yet; during a 15s background poll existing
                      rows stay visible instead of flashing Loading... (TASK-148). -->
@@ -57,9 +77,15 @@
                 <p x-show="!loading && sources.length === 0 && !sourcesFailed">(no sources)</p>
                 <p x-show="!loading && sources.length === 0 && sourcesFailed" class="hint">Failed to load sources — check the API / refresh.</p>
             </section>
-            <section class="create-form">
-                <h2>Add Source</h2>
-                <form @submit.prevent="addSource">
+            <section id="oracle-add" class="create-form workspace-panel--wide">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">02</span>
+                    <div>
+                        <h2>Add Source</h2>
+                        <p>Point Aurora at an HTTP endpoint; the interval controls how often it is polled.</p>
+                    </div>
+                </div>
+                <form class="form-grid" @submit.prevent="addSource">
                     <div class="form-group">
                         <label for="oracle-template">From Template (optional)</label>
                         <select id="oracle-template" @change="applyTemplate($event.target.value)">
@@ -84,12 +110,18 @@
                          choice (the use case maps 0 -> 60), negatives are
                          rejected by the server with a clear 400 (ISS-195). -->
                     <div class="form-group"><label for="oracle-interval">Interval (seconds)</label><input id="oracle-interval" type="number" x-model="addInterval" min="0" value="60" required></div>
-                    <button type="submit" class="btn-lottery" :disabled="busy.addSource">Add Source</button>
+                    <div class="form-actions"><button type="submit" class="btn-lottery" :disabled="busy.addSource">Add Source</button></div>
                 </form>
                 <pre x-show="addResult" class="result" aria-live="polite" x-text="addResult"></pre>
             </section>
-            <section class="history">
-                <h2>Feed Health</h2>
+            <section id="oracle-health" class="history workspace-panel--wide">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">03</span>
+                    <div>
+                        <h2>Feed Health</h2>
+                        <p>Attempt, success and failure counters per source, with the last error kept verbatim.</p>
+                    </div>
+                </div>
                 <div x-show="loadingHealth && health.length === 0">Loading health…</div>
                 <div class="table-scroll" role="region" aria-label="Oracle feed health" tabindex="0"
                      x-show="health.length > 0">
@@ -112,20 +144,32 @@
                 <p x-show="!loadingHealth && health.length === 0 && !healthFailed">(no feed activity yet)</p>
                 <p x-show="!loadingHealth && health.length === 0 && healthFailed" class="hint">Failed to load feed health — check the API / refresh.</p>
             </section>
-            <section class="create-form">
-                <h2>Fetch Data</h2>
+            <section id="oracle-fetch" class="create-form">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">04</span>
+                    <div>
+                        <h2>Fetch Data</h2>
+                        <p>Run one fetch now instead of waiting for the scheduler.</p>
+                    </div>
+                </div>
                 <form @submit.prevent="fetch">
                     <div class="form-group"><label for="oracle-fetch-source">Source ID</label><input id="oracle-fetch-source" type="text" x-model="fetchSource" required></div>
-                    <button type="submit" class="btn-lottery" :disabled="busy.fetch">Fetch</button>
+                    <div class="form-actions"><button type="submit" class="btn-lottery" :disabled="busy.fetch">Fetch</button></div>
                 </form>
                 <pre x-show="fetchResult" class="result" aria-live="polite" x-text="fetchResult"></pre>
             </section>
-            <section class="history">
-                <h2>Query Data</h2>
-                <form @submit.prevent="query">
+            <section id="oracle-query" class="history">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">05</span>
+                    <div>
+                        <h2>Query Data</h2>
+                        <p>Read the most recent stored values for one source.</p>
+                    </div>
+                </div>
+                <form class="form-grid" @submit.prevent="query">
                     <div class="form-group"><label for="oracle-query-source">Source ID</label><input id="oracle-query-source" type="text" x-model="querySource" required></div>
                     <div class="form-group"><label for="oracle-query-limit">Limit</label><input id="oracle-query-limit" type="number" x-model="queryLimit" min="1" max="100"></div>
-                    <button type="submit" class="btn-lottery" :disabled="busy.query">Query</button>
+                    <div class="form-actions"><button type="submit" class="btn-lottery" :disabled="busy.query">Query</button></div>
                 </form>
                 <div class="table-scroll" role="region" aria-label="Oracle query data" tabindex="0"
                      x-show="queryRows.length > 0">
@@ -148,14 +192,21 @@
                 <p x-show="queried && !queryError && queryRows.length === 0" class="activity-empty" aria-live="polite">No rows for this source — run Fetch first.</p>
                 <div x-show="queryError" class="result" aria-live="polite" x-text="queryError"></div>
             </section>
-            <section class="history">
-                <h2>Latest Data</h2>
+            <section id="oracle-latest" class="history">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">06</span>
+                    <div>
+                        <h2>Latest Data</h2>
+                        <p>The single most recent value recorded for a source.</p>
+                    </div>
+                </div>
                 <form @submit.prevent="latest">
                     <div class="form-group"><label for="oracle-latest-source">Source ID</label><input id="oracle-latest-source" type="text" x-model="latestSource" required></div>
-                    <button type="submit" class="btn-lottery" :disabled="busy.latest">Get Latest</button>
+                    <div class="form-actions"><button type="submit" class="btn-lottery" :disabled="busy.latest">Get Latest</button></div>
                 </form>
                 <pre x-show="latestResult" class="result" aria-live="polite" x-text="latestResult"></pre>
             </section>
+            </div>
         </main>
     </div>
     <script src="/js/app.js"></script>

@@ -1097,3 +1097,83 @@ const fs = require('fs');
 	require.NoErrorf(t, err, "web/js/app.js oracle add headers failed:\n%s", out)
 	require.Contains(t, string(out), "oracle-add-headers-ok")
 }
+
+// TestWebUIJS_FormFieldErrorsAreBound executes the shipped web/js/app.js and
+// asserts the field-level validation the markup depends on actually exists:
+// lottery.html binds aria-invalid and inline error nodes to participantsError,
+// seedError, countError and verifyIdError, and voting.html does the same for
+// voterNameError / candNameError. A previous pass added those bindings without
+// the state behind them, so every x-show stayed false and every aria-invalid
+// stayed false — the accessibility wiring looked complete while announcing
+// nothing. This test fails if the state or the guards disappear.
+func TestWebUIJS_FormFieldErrorsAreBound(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("node not on PATH; skipping web/js/app.js form-error check")
+	}
+	appJS := filepath.Join(realWebDir(), "js", "app.js")
+
+	const harness = `'use strict';
+global.window = { AURORA_API_KEY: 'testkey' };
+global.document = { getElementById: () => null, addEventListener: () => {}, body: { appendChild: () => {} }, createElement: () => ({ style: {} }) };
+global.fetch = async () => { throw new Error('network must not be reached by validation'); };
+
+const fs = require('fs');
+(0, eval)(fs.readFileSync(process.argv[2], 'utf8'));
+
+function fail(msg) { console.error(msg); process.exit(1); }
+
+(async () => {
+  const lot = lotteryApp();
+
+  lot.participants = '';
+  lot.seed = 'abc';
+  lot.count = 1;
+  await lot.createLottery();
+  if (!lot.participantsError) fail('empty participants must set participantsError');
+
+  lot.participants = 'a,b';
+  lot.seed = 'ab';
+  await lot.createLottery();
+  if (!lot.seedError) fail('short seed must set seedError');
+
+  lot.seed = 'abcdef';
+  lot.count = 5;
+  await lot.createLottery();
+  if (!lot.countError) fail('count above roster must set countError');
+
+  lot.count = 2;
+  try { await lot.createLottery(); } catch (e) {}
+  if (lot.participantsError || lot.seedError || lot.countError) {
+    fail('a valid attempt must clear the field errors');
+  }
+
+  lot.verifyId = '   ';
+  await lot.verifyDraw();
+  if (!lot.verifyIdError) fail('blank verify id must set verifyIdError');
+
+  const vote = votingApp();
+
+  vote.voterName = '  ';
+  await vote.registerVoter();
+  if (!vote.voterNameError) fail('blank voter name must set voterNameError');
+
+  vote.voterName = 'Alice';
+  try { await vote.registerVoter(); } catch (e) {}
+  if (vote.voterNameError) fail('a valid voter name must clear voterNameError');
+
+  vote.candName = '';
+  await vote.registerCandidate();
+  if (!vote.candNameError) fail('blank candidate name must set candNameError');
+
+  console.log('form-field-errors-ok');
+})().catch((e) => { console.error(e); process.exit(2); });
+`
+	dir := t.TempDir()
+	harnessPath := filepath.Join(dir, "form_field_errors_harness.js")
+	require.NoError(t, os.WriteFile(harnessPath, []byte(harness), 0o600))
+	out, err := exec.Command(node, harnessPath, appJS).CombinedOutput()
+	require.NoErrorf(t, err, "web/js/app.js form field errors failed:\n%s", out)
+	require.Contains(t, string(out), "form-field-errors-ok",
+		"field-level validation state must back the markup's aria-invalid bindings")
+}
