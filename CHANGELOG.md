@@ -29,6 +29,24 @@ documented in their per-milestone ROADMAP files.
   but does not replace Authenticode or Apple Developer ID signatures.
 ### Fixed
 
+- **The HTTP/API Web UI was inert: no form could be submitted**: the served
+  pages carried `script-src 'self' 'nonce-…'` with no `'unsafe-eval'`, but the
+  vendored Alpine 3 compiles every `x-*` expression at runtime. The browser
+  therefore refused each compilation (`EvalError: … 'unsafe-eval' is not an
+  allowed source`) and every binding silently did nothing: `x-show` never hid
+  anything, `x-text` stayed empty, and `@submit.prevent` never ran — so create,
+  vote, mint, transfer and every other web action was dead on `aurora-api`,
+  while the desktop shell masked it by stripping CSP. Found by driving the real
+  served page in a browser; `script-src` now admits `'unsafe-eval'` while
+  staying same-origin, and the rest of the policy (`connect-src 'self'`,
+  `object-src`/`base-uri`/`frame-ancestors 'none'`, nonce'd bootstrap) is
+  unchanged. Verified live: the lottery seed error renders with
+  `aria-invalid="true"`, the submit button disables, and a real draw creates,
+  lists and pre-fills Verify. `TestCSP_AllowsAlpineEval` pins the policy and
+  fails if `'unsafe-eval'` is dropped again.
+
+### Fixed
+
 - **Form inputs now have proper ARIA invalid/error attributes**: All forms across the
   web UI (lottery, voting, token, oracle, nft) carry `aria-invalid="false"` on inputs
   and field-specific error spans with `role="alert" aria-live="assertive"`, so screen
