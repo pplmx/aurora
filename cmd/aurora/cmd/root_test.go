@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	tokenerrors "github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -26,7 +26,7 @@ import (
 func TestFormatCLIError_CommittedAuditFailure(t *testing.T) {
 	// Wrapped exactly as internal/domain/token/service.go wraps its
 	// post-commit publish sites: sentinel as %w, cause as %v.
-	err := fmt.Errorf("failed to transfer: %w", fmt.Errorf("%w: %v", tokenerrors.ErrAuditPublishFailed, errors.New("disk full")))
+	err := fmt.Errorf("failed to transfer: %w", fmt.Errorf("%w: %v", token.ErrAuditPublishFailed, errors.New("disk full")))
 
 	out := formatCLIError(err)
 	if !strings.Contains(out, "committed") {

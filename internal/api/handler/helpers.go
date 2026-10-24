@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
-	nfterrors "github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
-	tokenerrors "github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	httpfetcher "github.com/pplmx/aurora/internal/infra/http"
 )
@@ -30,53 +30,53 @@ var errorClassification = []struct {
 	code       string
 }{
 	// Token domain errors
-	{tokenerrors.ErrTokenNotFound, http.StatusNotFound, "TOKEN_NOT_FOUND"},
-	{tokenerrors.ErrTokenExists, http.StatusConflict, "TOKEN_EXISTS"},
-	{tokenerrors.ErrInsufficientBalance, http.StatusBadRequest, "INSUFFICIENT_BALANCE"},
-	{tokenerrors.ErrInsufficientAllowance, http.StatusBadRequest, "INSUFFICIENT_ALLOWANCE"},
-	{tokenerrors.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_SIGNATURE"},
-	{tokenerrors.ErrAmountMustBePositive, http.StatusBadRequest, "AMOUNT_MUST_BE_POSITIVE"},
-	{tokenerrors.ErrNotTokenOwner, http.StatusForbidden, "NOT_TOKEN_OWNER"},
-	{tokenerrors.ErrZeroOwner, http.StatusBadRequest, "ZERO_OWNER"},
-	{tokenerrors.ErrTokenNotMintable, http.StatusBadRequest, "TOKEN_NOT_MINTABLE"},
-	{tokenerrors.ErrTokenNotBurnable, http.StatusBadRequest, "TOKEN_NOT_BURNABLE"},
-	{tokenerrors.ErrUnauthorized, http.StatusUnauthorized, "UNAUTHORIZED"},
-	{tokenerrors.ErrTransferToZero, http.StatusBadRequest, "TRANSFER_TO_ZERO"},
-	{tokenerrors.ErrInvalidAmount, http.StatusBadRequest, "INVALID_AMOUNT"},
-	{tokenerrors.ErrAmountTooLarge, http.StatusBadRequest, "AMOUNT_TOO_LARGE"},
-	{tokenerrors.ErrTokenDecimalsInvalid, http.StatusBadRequest, "INVALID_DECIMALS"},
-	{tokenerrors.ErrDuplicateTransfer, http.StatusConflict, "DUPLICATE_TRANSFER"},
-	{tokenerrors.ErrTokenNameRequired, http.StatusBadRequest, "TOKEN_NAME_REQUIRED"},
-	{tokenerrors.ErrTokenNameTooLong, http.StatusBadRequest, "TOKEN_NAME_TOO_LONG"},
-	{tokenerrors.ErrTokenSymbolRequired, http.StatusBadRequest, "TOKEN_SYMBOL_REQUIRED"},
-	{tokenerrors.ErrTokenSymbolTooLong, http.StatusBadRequest, "TOKEN_SYMBOL_TOO_LONG"},
-	{tokenerrors.ErrPublicKeyRequired, http.StatusBadRequest, "PUBLIC_KEY_REQUIRED"},
-	{tokenerrors.ErrInvalidPublicKeyLength, http.StatusBadRequest, "INVALID_PUBLIC_KEY_LENGTH"},
-	{tokenerrors.ErrPrivateKeyRequired, http.StatusBadRequest, "PRIVATE_KEY_REQUIRED"},
-	{tokenerrors.ErrInvalidPrivateKeyLength, http.StatusBadRequest, "INVALID_PRIVATE_KEY_LENGTH"},
-	{tokenerrors.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
+	{token.ErrTokenNotFound, http.StatusNotFound, "TOKEN_NOT_FOUND"},
+	{token.ErrTokenExists, http.StatusConflict, "TOKEN_EXISTS"},
+	{token.ErrInsufficientBalance, http.StatusBadRequest, "INSUFFICIENT_BALANCE"},
+	{token.ErrInsufficientAllowance, http.StatusBadRequest, "INSUFFICIENT_ALLOWANCE"},
+	{token.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_SIGNATURE"},
+	{token.ErrAmountMustBePositive, http.StatusBadRequest, "AMOUNT_MUST_BE_POSITIVE"},
+	{token.ErrNotTokenOwner, http.StatusForbidden, "NOT_TOKEN_OWNER"},
+	{token.ErrZeroOwner, http.StatusBadRequest, "ZERO_OWNER"},
+	{token.ErrTokenNotMintable, http.StatusBadRequest, "TOKEN_NOT_MINTABLE"},
+	{token.ErrTokenNotBurnable, http.StatusBadRequest, "TOKEN_NOT_BURNABLE"},
+	{token.ErrUnauthorized, http.StatusUnauthorized, "UNAUTHORIZED"},
+	{token.ErrTransferToZero, http.StatusBadRequest, "TRANSFER_TO_ZERO"},
+	{token.ErrInvalidAmount, http.StatusBadRequest, "INVALID_AMOUNT"},
+	{token.ErrAmountTooLarge, http.StatusBadRequest, "AMOUNT_TOO_LARGE"},
+	{token.ErrTokenDecimalsInvalid, http.StatusBadRequest, "INVALID_DECIMALS"},
+	{token.ErrDuplicateTransfer, http.StatusConflict, "DUPLICATE_TRANSFER"},
+	{token.ErrTokenNameRequired, http.StatusBadRequest, "TOKEN_NAME_REQUIRED"},
+	{token.ErrTokenNameTooLong, http.StatusBadRequest, "TOKEN_NAME_TOO_LONG"},
+	{token.ErrTokenSymbolRequired, http.StatusBadRequest, "TOKEN_SYMBOL_REQUIRED"},
+	{token.ErrTokenSymbolTooLong, http.StatusBadRequest, "TOKEN_SYMBOL_TOO_LONG"},
+	{token.ErrPublicKeyRequired, http.StatusBadRequest, "PUBLIC_KEY_REQUIRED"},
+	{token.ErrInvalidPublicKeyLength, http.StatusBadRequest, "INVALID_PUBLIC_KEY_LENGTH"},
+	{token.ErrPrivateKeyRequired, http.StatusBadRequest, "PRIVATE_KEY_REQUIRED"},
+	{token.ErrInvalidPrivateKeyLength, http.StatusBadRequest, "INVALID_PRIVATE_KEY_LENGTH"},
+	{token.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
 	// ErrAuditPublishFailed is a server-side persistence failure, but unlike
 	// generic 500s the operation DID commit — clients must see the distinct
 	// code so they never auto-retry a completed write (TASK-117, ISS-109).
-	{tokenerrors.ErrAuditPublishFailed, http.StatusInternalServerError, "AUDIT_PUBLISH_FAILED"},
+	{token.ErrAuditPublishFailed, http.StatusInternalServerError, "AUDIT_PUBLISH_FAILED"},
 
 	// NFT domain errors
-	{nfterrors.ErrNFTNotFound, http.StatusNotFound, "NFT_NOT_FOUND"},
-	{nfterrors.ErrNameRequired, http.StatusBadRequest, "NAME_REQUIRED"},
-	{nfterrors.ErrOwnerRequired, http.StatusBadRequest, "OWNER_REQUIRED"},
-	{nfterrors.ErrNotOwner, http.StatusForbidden, "NOT_NFT_OWNER"},
-	{nfterrors.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_SIGNATURE"},
-	{nfterrors.ErrKeyMismatch, http.StatusUnauthorized, "KEY_MISMATCH"},
-	{nfterrors.ErrInvalidPrivateKey, http.StatusBadRequest, "INVALID_PRIVATE_KEY"},
-	{nfterrors.ErrInvalidPublicKey, http.StatusBadRequest, "INVALID_PUBLIC_KEY"},
-	{nfterrors.ErrZeroAddress, http.StatusBadRequest, "ZERO_ADDRESS"},
-	{nfterrors.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
+	{nft.ErrNFTNotFound, http.StatusNotFound, "NFT_NOT_FOUND"},
+	{nft.ErrNameRequired, http.StatusBadRequest, "NAME_REQUIRED"},
+	{nft.ErrOwnerRequired, http.StatusBadRequest, "OWNER_REQUIRED"},
+	{nft.ErrNotOwner, http.StatusForbidden, "NOT_NFT_OWNER"},
+	{nft.ErrInvalidSignature, http.StatusUnauthorized, "INVALID_SIGNATURE"},
+	{nft.ErrKeyMismatch, http.StatusUnauthorized, "KEY_MISMATCH"},
+	{nft.ErrInvalidPrivateKey, http.StatusBadRequest, "INVALID_PRIVATE_KEY"},
+	{nft.ErrInvalidPublicKey, http.StatusBadRequest, "INVALID_PUBLIC_KEY"},
+	{nft.ErrZeroAddress, http.StatusBadRequest, "ZERO_ADDRESS"},
+	{nft.ErrInvalidBase64, http.StatusBadRequest, "INVALID_BASE64"},
 	// Length-bound sentinels (TASK-271, ISS-267): over-length free-text mint
 	// fields are client input errors (400), mirroring the lottery validator.
-	{nfterrors.ErrNameTooLong, http.StatusBadRequest, "NAME_TOO_LONG"},
-	{nfterrors.ErrDescriptionTooLong, http.StatusBadRequest, "DESCRIPTION_TOO_LONG"},
-	{nfterrors.ErrImageURLTooLong, http.StatusBadRequest, "IMAGE_URL_TOO_LONG"},
-	{nfterrors.ErrTokenURITooLong, http.StatusBadRequest, "TOKEN_URI_TOO_LONG"},
+	{nft.ErrNameTooLong, http.StatusBadRequest, "NAME_TOO_LONG"},
+	{nft.ErrDescriptionTooLong, http.StatusBadRequest, "DESCRIPTION_TOO_LONG"},
+	{nft.ErrImageURLTooLong, http.StatusBadRequest, "IMAGE_URL_TOO_LONG"},
+	{nft.ErrTokenURITooLong, http.StatusBadRequest, "TOKEN_URI_TOO_LONG"},
 
 	// Lottery domain errors
 	{lottery.ErrNotFound, http.StatusNotFound, "LOTTERY_NOT_FOUND"},
@@ -175,7 +175,7 @@ func writeUseCaseError(w http.ResponseWriter, err error) {
 	message := err.Error()
 	if statusCode == http.StatusInternalServerError {
 		switch {
-		case errors.Is(err, tokenerrors.ErrAuditPublishFailed):
+		case errors.Is(err, token.ErrAuditPublishFailed):
 			// Controlled message for the one classified server-side failure
 			// whose "committed" signal a client must see: a generic
 			// "internal server error" would invite a retry of a write that

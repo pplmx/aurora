@@ -1,4 +1,4 @@
-package aurora
+package repocheck
 
 import (
 	"fmt"
@@ -57,7 +57,7 @@ func TestGofmtTargetsOnlyGoFiles(t *testing.T) {
 func TestCIRunsTheFormatGate(t *testing.T) {
 	// This package lives at the checkout root, which is also where the
 	// workflow file is, so the relative path is stable for `go test`.
-	data, err := os.ReadFile(".github/workflows/ci.yml")
+	data, err := os.ReadFile(filepath.Join(repoRoot(t), ".github/workflows/ci.yml"))
 	require.NoError(t, err)
 	workflow := string(data)
 

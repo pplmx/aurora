@@ -438,7 +438,7 @@ func ResetForTest() {
 // so the immutable on-chain payload is self-describing.
 //
 // The app-layer callers (lottery create, oracle fetch, the scheduler, the
-// TUI) serialized their record while its height was still 0, called
+// desktop) serialized their record while its height was still 0, called
 // AddLotteryRecord, and only then set BlockHeight from the return value — so
 // the permanent chain copy claimed "block_height":0 and a consumer replaying
 // the chain could never correlate a block to its record (ISS-097). Stamping

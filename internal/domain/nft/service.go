@@ -38,7 +38,7 @@ func NewService(repo TransactableRepository, txManager TransactionManager) *NFTS
 
 // noOpTxManager executes the callback directly without a transaction. Used by
 // callers that build the service over a repository with no transaction
-// support (in-memory repos in the TUI and tests).
+// support (in-memory repos in tests).
 type noOpTxManager struct{}
 
 func (noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {

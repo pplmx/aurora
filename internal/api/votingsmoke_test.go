@@ -10,12 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	"github.com/pplmx/aurora/internal/infra/migrate"
 )
 
 // realMigrationsDir resolves the repository migrations/ directory from this

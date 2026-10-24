@@ -9,7 +9,6 @@ import (
 	"math/big"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
-	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )
 
 // defaultHistoryLimit is the default maximum number of transfer events to return
@@ -114,13 +113,13 @@ type EventReader interface {
 type TokenService struct {
 	repo        TransactableRepository
 	txManager   TransactionManager
-	eventBus    infraevents.EventBus
+	eventBus    EventBus
 	eventReader EventReader
-	replay      infraevents.ReplayProtection
+	replay      ReplayProtection
 	chain       blockchain.BlockWriter
 }
 
-func NewService(repo TransactableRepository, txManager TransactionManager, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
+func NewService(repo TransactableRepository, txManager TransactionManager, eventBus EventBus, eventReader EventReader, replay ReplayProtection, chain blockchain.BlockWriter) *TokenService {
 	return &TokenService{
 		repo:        repo,
 		txManager:   txManager,
@@ -137,7 +136,7 @@ func (noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
 	return fn(nil)
 }
 
-func NewServiceWithoutTx(repo TransactableRepository, eventBus infraevents.EventBus, eventReader EventReader, replay infraevents.ReplayProtection, chain blockchain.BlockWriter) *TokenService {
+func NewServiceWithoutTx(repo TransactableRepository, eventBus EventBus, eventReader EventReader, replay ReplayProtection, chain blockchain.BlockWriter) *TokenService {
 	return NewService(repo, noOpTxManager{}, eventBus, eventReader, replay, chain)
 }
 

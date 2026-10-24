@@ -1,7 +1,7 @@
 package nftapp
 
 import (
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 )
 
@@ -117,7 +117,7 @@ func (u *Get) Execute(id string) (*NFTResponse, error) {
 }
 
 // ListNFTsByOwnerRequest pages an owner's NFT collection. Limit <= 0 is
-// unbounded (0,0 — the CLI/TUI default); the REST layer always sends a
+// unbounded (0,0 — the CLI default); the REST layer always sends a
 // bounded limit so a key-holding caller cannot force an unbounded response
 // (TASK-101, ISS-093).
 type ListNFTsByOwnerRequest struct {

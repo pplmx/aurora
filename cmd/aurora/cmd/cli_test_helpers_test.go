@@ -14,7 +14,7 @@ import (
 	"testing"
 	"unsafe"
 
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

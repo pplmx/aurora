@@ -87,7 +87,7 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 
 // Templates lists the built-in oracle source presets (v1.49). Previously the
 // catalog lived only in the CLI; exposing it over REST + the shared app-layer
-// catalog lets the web UI offer one-click source presets.
+// catalog lets a client offer one-click source presets.
 func (h *OracleHandler) Templates(w http.ResponseWriter, r *http.Request) {
 	list := oracleapp.ListTemplates()
 	if list == nil {
@@ -97,7 +97,7 @@ func (h *OracleHandler) Templates(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateSource adds a new data source (v1.40). Previously adding a source was
-// CLI-only; the REST API and web UI could list and fetch but never bootstrap a
+// CLI-only; the REST API could list and fetch but never bootstrap a
 // feed. Validation lives in the domain (URL-scheme SSRF guard, name checks).
 func (h *OracleHandler) CreateSource(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -194,7 +194,7 @@ func (h *OracleHandler) SetSourceEnabled(w http.ResponseWriter, r *http.Request)
 // Health returns the scheduler's per-source fetch-health statistics as JSON
 // (v1.33). The same data is exposed as Prometheus text on /metrics/oracle, but
 // this protected endpoint gives operators a readable, key-authenticated JSON
-// view that the web UI consumes. It is nil-safe: before the scheduler starts
+// view that a client consumes. It is nil-safe: before the scheduler starts
 // it returns an empty list.
 func (h *OracleHandler) Health(w http.ResponseWriter, r *http.Request) {
 	stats := []oracleapp.SourceStat{}
@@ -257,7 +257,7 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 }
 
 // Latest returns the single most recent data point for a source (v1.45). The
-// CLI exposed this as `oracle latest` but the REST API and web UI had no way to
+// CLI exposed this as `oracle latest` but the REST API had no way to
 // read a source's current value.
 func (h *OracleHandler) Latest(w http.ResponseWriter, r *http.Request) {
 	source := r.URL.Query().Get("source")

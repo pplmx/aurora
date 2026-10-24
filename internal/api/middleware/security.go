@@ -3,12 +3,12 @@ package middleware
 import "net/http"
 
 // SecurityHeaders sets conservative security headers on every response
-// (v1.48). Rails-adjacent hardening for the served API and web UI:
+// (v1.48). Rails-adjacent hardening for the served API:
 //   - X-Content-Type-Options: nosniff      prevent MIME-type sniffing
-//   - X-Frame-Options: DENY                prevent clickjacking of the web UI
+//   - X-Frame-Options: DENY                prevent clickjacking of the API's responses
 //   - Referrer-Policy: no-referrer         prevent referrer leakage
 //
-// These are safe defaults for the single-origin web UI: it does not use frames
+// These are safe defaults for a single-origin API client: it does not use frames
 // and all authenticating REST calls send the X-API-Key header rather than
 // relying on the Referer.
 //

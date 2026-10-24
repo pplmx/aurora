@@ -263,7 +263,7 @@ func (r *NFTRepository) GetNFT(id string) (*nft.NFT, error) {
 
 func (r *NFTRepository) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.NFT, error) {
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
-	// SQLite treats a negative LIMIT as unlimited, so 0,0 (the CLI/TUI
+	// SQLite treats a negative LIMIT as unlimited, so 0,0 (the CLI
 	// default) pages the whole collection while the REST layer's bounded
 	// limit caps the response (TASK-101, ISS-093).
 	if limit <= 0 {

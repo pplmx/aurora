@@ -285,7 +285,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 
 	// Encode the bare transfer array, not the HistoryResponse wrapper: every
 	// other list endpoint (lottery history, NFT list/history, oracle query)
-	// returns a top-level JSON array, and the web UI (web/js/app.js) reads
+	// returns a top-level JSON array, and the desktop window reads
 	// history as `Array.isArray(data) ? data : (data.data || [])`, so the old
 	// {"transfers":[...]} envelope made the token history page render empty
 	// forever. The use case still speaks HistoryResponse internally (TASK-093,
@@ -295,7 +295,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 
 // Info returns a token's metadata (name/symbol/total supply/decimals/owner) by
 // token_id (v1.36). This closes the CLI-only gap: `token info` existed in the
-// CLI but the REST API and web UI had no read path for token metadata.
+// CLI but the REST API had no read path for token metadata.
 func (h *TokenHandler) Info(w http.ResponseWriter, r *http.Request) {
 	tokenID := r.URL.Query().Get("token_id")
 	if tokenID == "" {

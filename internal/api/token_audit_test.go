@@ -16,11 +16,10 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	"github.com/pplmx/aurora/internal/infra/migrate"
 )
 
 func TestTokenAudit_TransferAppearsInHistoryOverHTTP(t *testing.T) {

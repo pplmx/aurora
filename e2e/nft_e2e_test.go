@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"testing"
 
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 )
 

@@ -7,11 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	"github.com/pplmx/aurora/internal/infra/migrate"
 )
 
 // TestLotterySmoke_CreateThenVerifyOverHTTP boots the real server wiring

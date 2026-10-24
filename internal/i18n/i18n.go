@@ -110,8 +110,6 @@ func (tr *Translator) loadMessages() {
 		"lottery.total_blocks":   "Total blocks",
 		"lottery.reset_done":     "Database reset complete!",
 
-		// TUI
-
 		// ===== VOTING =====
 		// Commands
 		"voting.cmd":            "Ed25519 signature based transparent voting system",
@@ -183,32 +181,13 @@ func (tr *Translator) loadMessages() {
 		"nft.private_key": "Private key (Base64)",
 
 		// Messages
-		"nft.minted":       "NFT minted successfully!",
-		"nft.transferred":  "NFT transferred successfully!",
-		"nft.burned":       "NFT burned successfully!",
-		"nft.block_height": "Block height",
-
-		// TUI
+		"nft.minted":      "NFT minted successfully!",
+		"nft.transferred": "NFT transferred successfully!",
+		"nft.burned":      "NFT burned successfully!",
 
 		// Errors
-		"error.name_required":       "Name is required",
-		"error.pubkey_required":     "Public key is required",
-		"error.invalid_pubkey":      "Invalid public key format",
-		"error.privkey_required":    "Private key is required",
-		"error.invalid_privkey":     "Invalid private key format",
-		"error.to_address_required": "To address is required",
-		"error.invalid_address":     "Invalid address format",
-		"error.nft_id_required":     "NFT ID is required",
 
 		// Token errors
-		"error.symbol_required":    "Symbol is required",
-		"error.supply_required":    "Supply is required",
-		"error.invalid_supply":     "Invalid supply value",
-		"error.invalid_decimals":   "Invalid decimals value",
-		"error.amount_required":    "Amount is required",
-		"error.invalid_amount":     "Invalid amount value",
-		"error.address_required":   "Address is required",
-		"error.create_token_first": "Please create token first",
 
 		// ===== TOKEN =====
 		// Commands
@@ -248,8 +227,6 @@ func (tr *Translator) loadMessages() {
 		"token.not_found":   "Token not found",
 		"token.no_history":  "No transfer history found",
 
-		// TUI
-
 		// ===== ORACLE =====
 		// Commands
 		"oracle.cmd":            "Oracle data service",
@@ -273,7 +250,6 @@ func (tr *Translator) loadMessages() {
 		"oracle.template":         "Template name",
 		"oracle.source_id":        "Source ID",
 		"oracle.source_id_legacy": "Source ID (legacy spelling --source; prefer --id)",
-		"oracle.interval":         "Refresh interval (seconds)",
 		"oracle.source_interval":  "Refresh interval in seconds (on `source add` -i is the interval; on delete/enable/disable/fetch/data/latest -i is the source id)",
 		"oracle.source_method":    "HTTP method to query the source with (default GET)",
 		"oracle.source_headers":   "Request headers as a JSON object (e.g. {\"Authorization\":\"Bearer ...\"})",
@@ -289,26 +265,11 @@ func (tr *Translator) loadMessages() {
 		"oracle.template_added":  "Template added: %s",
 		"oracle.no_data":         "No data found",
 
-		// TUI
 		// Source detail / result labels (previously hardcoded English leaked
 		// into zh sessions — ISS-170).
 
 		// ===== COMMON =====
 		// Help
-		"help.nav":           "Use ↑↓ to select, Enter to confirm, ? for help, q to quit",
-		"tui.sandbox_notice": "⚠ sandbox mode — minted/created items are NOT persisted (in-memory only)",
-
-		// TUI help screen (components.HelpView)
-		"tui.help.title":       "Keyboard Shortcuts",
-		"tui.help.nav_header":  "Navigation",
-		"tui.help.up_down":     "↑/k move up, ↓/j move down",
-		"tui.help.scroll":      "pgup/pgdn/space/b/u/d: scroll long lists",
-		"tui.help.tab":         "Tab: cycle form fields",
-		"tui.help.enter":       "Enter: confirm",
-		"tui.help.esc":         "ESC: go back",
-		"tui.help.quit":        "q: quit (from menu)",
-		"tui.help.help":        "?: toggle this help",
-		"tui.help.back_prompt": "Press ESC or ? to return",
 
 		// ===== MIGRATE =====
 		"migrate.short":            "Manage database migrations",
@@ -397,25 +358,20 @@ func (tr *Translator) loadMessages() {
 		"desktop.help.examples":                  "Examples:",
 		"desktop.help.flags":                     "Flags:",
 		"desktop.help.help_flag":                 "  -h, --help          Show this help and exit",
-		"desktop.help.web_root_flag":             "      --web-root DIR  Serve the web UI from DIR instead of the copy",
-		"desktop.help.web_root_cont":             "                      embedded in this binary (for UI development)",
-		"desktop.help.data_dir_flag":             "      --data-dir DIR  Directory holding aurora.db (default: per-user data dir)",
-		"desktop.help.version_flag":              "  -v, --version       Show version information and exit",
-		"desktop.help.example_dashboard":         "  aurora-desktop                          # dashboard",
-		"desktop.help.example_link":              "  aurora-desktop aurora://lottery?id=abc  # verify that draw",
-		"desktop.help.example_file":              "  aurora-desktop draws.json               # import an export",
-		"desktop.help.run_help":                  `Run "aurora-desktop --help" for usage.`,
-		"desktop.error.unexpected_arg":           "unexpected argument %q (aurora-desktop takes flags, aurora:// links, or .json lottery exports)",
-		"desktop.error.extra_arg":                "unexpected argument %q (only one link or file can be opened at a time)",
-		"desktop.error.no_webview":               "no system webview available; install WebKitGTK (libwebkit2gtk-4.1-0 on Debian/Ubuntu) to show the UI",
-		"desktop.error.web_root_unresolvable":    "web root %q: cannot resolve the path",
-		"desktop.error.web_root_no_index":        "web root %q does not contain index.html",
-		"desktop.error.web_root_not_found":       "could not locate the web UI (looked for web/index.html next to the executable, in the working directory, and at server.webRoot)",
-		"desktop.error.data_dir":                 "create data directory %s: %w",
-		"desktop.error.user_config_dir":          "resolve user config directory: %w",
-		"desktop.error.embedded_assets":          "embedded web assets: %w",
-		"desktop.error.no_database_path":         "no database path",
-		"desktop.error.database":                 "database %s: %w",
+
+		"desktop.help.data_dir_flag":     "      --data-dir DIR  Directory holding aurora.db (default: per-user data dir)",
+		"desktop.help.version_flag":      "  -v, --version       Show version information and exit",
+		"desktop.help.example_dashboard": "  aurora-desktop                          # dashboard",
+		"desktop.help.example_link":      "  aurora-desktop aurora://lottery?id=abc  # verify that draw",
+		"desktop.help.example_file":      "  aurora-desktop draws.json               # import an export",
+		"desktop.help.run_help":          `Run "aurora-desktop --help" for usage.`,
+		"desktop.error.unexpected_arg":   "unexpected argument %q (aurora-desktop takes flags, aurora:// links, or .json lottery exports)",
+		"desktop.error.extra_arg":        "unexpected argument %q (only one link or file can be opened at a time)",
+		"desktop.error.no_webview":       "no system webview available; install WebKitGTK (libwebkit2gtk-4.1-0 on Debian/Ubuntu) to show the UI",
+		"desktop.error.data_dir":         "create data directory %s: %w",
+		"desktop.error.user_config_dir":  "resolve user config directory: %w",
+		"desktop.error.no_database_path": "no database path",
+		"desktop.error.database":         "database %s: %w",
 
 		// Destructive-op --confirm gate shared by token burn / nft burn /
 		// oracle source delete / migrate down / lottery reset (TASK-186,
@@ -432,8 +388,6 @@ func (tr *Translator) loadMessages() {
 
 		// Errors
 		"error.invalid_input": "Invalid input",
-		"error.not_found":     "Not found",
-		"error.load_failed":   "Failed to load data",
 	}
 
 	tr.messages["zh"] = map[string]string{
@@ -480,8 +434,6 @@ func (tr *Translator) loadMessages() {
 		"lottery.latest_block":   "最新区块",
 		"lottery.total_blocks":   "总区块数",
 		"lottery.reset_done":     "数据库重置完成！",
-
-		// TUI
 
 		// ===== VOTING =====
 		// Commands
@@ -554,32 +506,13 @@ func (tr *Translator) loadMessages() {
 		"nft.private_key": "私钥 (Base64)",
 
 		// Messages
-		"nft.minted":       "NFT 铸造成功！",
-		"nft.transferred":  "NFT 转移成功！",
-		"nft.burned":       "NFT 销毁成功！",
-		"nft.block_height": "区块高度",
-
-		// TUI
+		"nft.minted":      "NFT 铸造成功！",
+		"nft.transferred": "NFT 转移成功！",
+		"nft.burned":      "NFT 销毁成功！",
 
 		// Errors
-		"error.name_required":       "名称不能为空",
-		"error.pubkey_required":     "公钥不能为空",
-		"error.invalid_pubkey":      "公钥格式无效",
-		"error.privkey_required":    "私钥不能为空",
-		"error.invalid_privkey":     "私钥格式无效",
-		"error.to_address_required": "目标地址不能为空",
-		"error.invalid_address":     "地址格式无效",
-		"error.nft_id_required":     "NFT ID 不能为空",
 
 		// Token errors
-		"error.symbol_required":    "符号不能为空",
-		"error.supply_required":    "供应量不能为空",
-		"error.invalid_supply":     "无效的供应量",
-		"error.invalid_decimals":   "无效的小数位数",
-		"error.amount_required":    "数量不能为空",
-		"error.invalid_amount":     "无效的数量",
-		"error.address_required":   "地址不能为空",
-		"error.create_token_first": "请先创建代币",
 
 		// ===== TOKEN =====
 		// Commands
@@ -619,8 +552,6 @@ func (tr *Translator) loadMessages() {
 		"token.not_found":   "代币未找到",
 		"token.no_history":  "未找到转账历史",
 
-		// TUI
-
 		// ===== ORACLE =====
 		// Commands
 		"oracle.cmd":            "预言机数据服务",
@@ -644,7 +575,6 @@ func (tr *Translator) loadMessages() {
 		"oracle.template":         "模板名称",
 		"oracle.source_id":        "数据源 ID",
 		"oracle.source_id_legacy": "数据源 ID（旧拼写 --source；推荐 --id）",
-		"oracle.interval":         "刷新间隔（秒）",
 		"oracle.source_interval":  "刷新间隔（秒）（在 source add 中 -i 表示间隔；在 delete/enable/disable/fetch/data/latest 中 -i 表示数据源 ID）",
 		"oracle.source_method":    "请求数据源的 HTTP 方法（默认 GET）",
 		"oracle.source_headers":   "请求头 JSON 对象（如 {\"Authorization\":\"Bearer ...\"}）",
@@ -660,24 +590,8 @@ func (tr *Translator) loadMessages() {
 		"oracle.template_added":  "模板已添加：%s",
 		"oracle.no_data":         "未找到数据",
 
-		// TUI
-
 		// ===== COMMON =====
 		// Help
-		"help.nav":           "使用 ↑↓ 选择, 回车确认, ? 查看帮助, q 退出",
-		"tui.sandbox_notice": "⚠ 沙盒模式 — 铸造/创建的内容不会持久化（仅存于内存）",
-
-		// TUI 帮助页 (components.HelpView)
-		"tui.help.title":       "键盘快捷键",
-		"tui.help.nav_header":  "导航",
-		"tui.help.up_down":     "↑/k 上移, ↓/j 下移",
-		"tui.help.scroll":      "pgup/pgdn/space/b/u/d: 滚动长列表",
-		"tui.help.tab":         "Tab: 切换输入框",
-		"tui.help.enter":       "回车: 确认",
-		"tui.help.esc":         "ESC: 返回",
-		"tui.help.quit":        "q: 退出 (菜单页)",
-		"tui.help.help":        "?: 切换此帮助",
-		"tui.help.back_prompt": "按 ESC 或 ? 返回",
 
 		// ===== MIGRATE =====
 		"migrate.short":            "管理数据库迁移",
@@ -764,25 +678,20 @@ func (tr *Translator) loadMessages() {
 		"desktop.help.examples":                  "示例：",
 		"desktop.help.flags":                     "参数：",
 		"desktop.help.help_flag":                 "  -h, --help          显示此帮助并退出",
-		"desktop.help.web_root_flag":             "      --web-root DIR  改用 DIR 里的页面，而不是内嵌副本",
-		"desktop.help.web_root_cont":             "                      （用于开发 Web 界面）",
-		"desktop.help.data_dir_flag":             "      --data-dir DIR  存放 aurora.db 的目录（默认：用户数据目录）",
-		"desktop.help.version_flag":              "  -v, --version       显示版本信息并退出",
-		"desktop.help.example_dashboard":         "  aurora-desktop                          # 仪表盘",
-		"desktop.help.example_link":              "  aurora-desktop aurora://lottery?id=abc  # 验证该期开奖",
-		"desktop.help.example_file":              "  aurora-desktop draws.json               # 导入一份导出文件",
-		"desktop.help.run_help":                  `运行 "aurora-desktop --help" 查看用法。`,
-		"desktop.error.unexpected_arg":           "意外参数 %q（aurora-desktop 只接受参数、aurora:// 链接或 .json 抽奖导出文件）",
-		"desktop.error.extra_arg":                "意外参数 %q（一次只能打开一个链接或文件）",
-		"desktop.error.no_webview":               "没有可用的系统 WebView；请安装 WebKitGTK（Debian/Ubuntu 上是 libwebkit2gtk-4.1-0）以显示界面",
-		"desktop.error.web_root_unresolvable":    "Web 目录 %q：无法解析该路径",
-		"desktop.error.web_root_no_index":        "Web 目录 %q 中没有 index.html",
-		"desktop.error.web_root_not_found":       "找不到 Web 界面（已查找可执行文件旁、工作目录下以及 server.webRoot 配置的 web/index.html）",
-		"desktop.error.data_dir":                 "创建数据目录 %s 失败：%w",
-		"desktop.error.user_config_dir":          "解析用户配置目录失败：%w",
-		"desktop.error.embedded_assets":          "内嵌 Web 资源出错：%w",
-		"desktop.error.no_database_path":         "没有数据库路径",
-		"desktop.error.database":                 "数据库 %s：%w",
+
+		"desktop.help.data_dir_flag":     "      --data-dir DIR  存放 aurora.db 的目录（默认：用户数据目录）",
+		"desktop.help.version_flag":      "  -v, --version       显示版本信息并退出",
+		"desktop.help.example_dashboard": "  aurora-desktop                          # 仪表盘",
+		"desktop.help.example_link":      "  aurora-desktop aurora://lottery?id=abc  # 验证该期开奖",
+		"desktop.help.example_file":      "  aurora-desktop draws.json               # 导入一份导出文件",
+		"desktop.help.run_help":          `运行 "aurora-desktop --help" 查看用法。`,
+		"desktop.error.unexpected_arg":   "意外参数 %q（aurora-desktop 只接受参数、aurora:// 链接或 .json 抽奖导出文件）",
+		"desktop.error.extra_arg":        "意外参数 %q（一次只能打开一个链接或文件）",
+		"desktop.error.no_webview":       "没有可用的系统 WebView；请安装 WebKitGTK（Debian/Ubuntu 上是 libwebkit2gtk-4.1-0）以显示界面",
+		"desktop.error.data_dir":         "创建数据目录 %s 失败：%w",
+		"desktop.error.user_config_dir":  "解析用户配置目录失败：%w",
+		"desktop.error.no_database_path": "没有数据库路径",
+		"desktop.error.database":         "数据库 %s：%w",
 
 		// 破坏性操作 --confirm 门（token burn / nft burn / oracle source
 		// delete / migrate down / lottery reset 共用，TASK-186，ISS-182）
@@ -796,8 +705,6 @@ func (tr *Translator) loadMessages() {
 
 		// Errors
 		"error.invalid_input": "输入无效",
-		"error.not_found":     "未找到",
-		"error.load_failed":   "数据加载失败",
 	}
 
 	// Try to load from config

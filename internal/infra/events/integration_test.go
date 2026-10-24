@@ -90,7 +90,7 @@ func TestFullFlow_PublishRetrieve(t *testing.T) {
 	}
 
 	var parsed map[string]interface{}
-	if err := events.ParsePayload(byType[0], &parsed); err != nil {
+	if err := json.Unmarshal(byType[0].Payload(), &parsed); err != nil {
 		t.Fatalf("ParsePayload() error = %v", err)
 	}
 	if parsed["token_id"] != "token-123" {
