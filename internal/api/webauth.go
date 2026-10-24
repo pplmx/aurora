@@ -125,17 +125,34 @@ func injectKeyIntoHTML(body []byte, apiKey, nonce string) []byte {
 }
 
 // contentSecurityPolicy builds the per-response CSP for a served HTML page.
-// Every resource the UI loads is same-origin (web/js/app.js,
-// web/css/style.css, vendored web/vendor/alpine.min.js — itself an
-// eval-free build), so a strict policy needs no 'unsafe-inline'/'unsafe-eval':
-// the only inline script is the nonce'd API-key bootstrap. style-src keeps
-// 'unsafe-inline' because the blockchain page's Alpine :style binding writes
-// the style attribute at runtime; object-src 'none' + base-uri 'none' +
-// frame-ancestors 'none' shut down the remaining injection/framing vectors
-// (round-151, ISS-268).
+//
+// script-src MUST include 'unsafe-eval'. Alpine compiles every x-* expression
+// (x-data, x-show, x-text, x-model, @submit.prevent, :attr) with the Function
+// constructor, and the vendored build is NOT eval-free — an earlier comment
+// here claimed it was, which is why the omission survived. Under the previous
+// policy the browser raised "EvalError: ... 'unsafe-eval' is not an allowed
+// source" for each directive and every Alpine binding silently did nothing:
+// the page rendered but x-show never hid anything, x-text stayed empty and
+// @submit.prevent never ran, so no form in the HTTP/API UI could be submitted
+// (the desktop shell was unaffected only because it strips CSP entirely).
+// Verified in a real browser: with the header relaxed, x-show flips to
+// display:none and the lottery seed error appears with aria-invalid="true";
+// with the old header both stay inert.
+//
+// The eval allowance is bounded by the rest of the policy, which still does
+// the security work that matters for a page carrying an embedded API key:
+// script-src 'self' (no remote script can be loaded to eval), connect-src
+// 'self' (no exfiltration to another origin), object-src/base-uri/
+// frame-ancestors 'none'. The nonce admits exactly one inline script, the
+// API-key bootstrap.
+//
+// style-src keeps 'unsafe-inline' because Alpine :style bindings write the
+// style attribute at runtime.
 func contentSecurityPolicy(nonce string) string {
 	return "default-src 'self'; " +
-		"script-src 'self' 'nonce-" + nonce + "'; " +
+		// 'unsafe-eval' is required by Alpine's expression compiler; see the
+		// comment above before removing it.
+		"script-src 'self' 'unsafe-eval' 'nonce-" + nonce + "'; " +
 		"style-src 'self' 'unsafe-inline'; " +
 		"img-src 'self' data:; " +
 		"connect-src 'self'; " +
