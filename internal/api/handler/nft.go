@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -73,8 +72,7 @@ func (h *NFTHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
@@ -100,8 +98,7 @@ func (h *NFTHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
@@ -125,8 +122,7 @@ func (h *NFTHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "burned"})
+	writeJSON(w, http.StatusOK, map[string]string{"status": "burned"})
 }
 
 func (h *NFTHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -139,8 +135,7 @@ func (h *NFTHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -184,8 +179,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // History returns the mint/transfer/burn operation trail for one NFT
@@ -202,6 +196,5 @@ func (h *NFTHandler) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }

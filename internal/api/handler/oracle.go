@@ -82,8 +82,7 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // Templates lists the built-in oracle source presets (v1.49). Previously the
@@ -94,8 +93,7 @@ func (h *OracleHandler) Templates(w http.ResponseWriter, r *http.Request) {
 	if list == nil {
 		list = []oracleapp.DataSource{}
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(list)
+	writeJSON(w, http.StatusOK, list)
 }
 
 // CreateSource adds a new data source (v1.40). Previously adding a source was
@@ -143,8 +141,7 @@ func (h *OracleHandler) CreateSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // DeleteSource removes a data source (v1.41).
@@ -159,8 +156,7 @@ func (h *OracleHandler) DeleteSource(w http.ResponseWriter, r *http.Request) {
 		writeUseCaseError(w, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 // SetSourceEnabled enables or disables a source based on the PATCH body's
@@ -192,8 +188,7 @@ func (h *OracleHandler) SetSourceEnabled(w http.ResponseWriter, r *http.Request)
 		writeUseCaseError(w, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]bool{"enabled": *req.Enabled})
+	writeJSON(w, http.StatusOK, map[string]bool{"enabled": *req.Enabled})
 }
 
 // Health returns the scheduler's per-source fetch-health statistics as JSON
@@ -206,8 +201,7 @@ func (h *OracleHandler) Health(w http.ResponseWriter, r *http.Request) {
 	if h.stats != nil {
 		stats = h.stats.Stats()
 	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(stats)
+	writeJSON(w, http.StatusOK, stats)
 }
 
 func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
@@ -226,8 +220,7 @@ func (h *OracleHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
@@ -260,8 +253,7 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // Latest returns the single most recent data point for a source (v1.45). The
@@ -281,6 +273,5 @@ func (h *OracleHandler) Latest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }

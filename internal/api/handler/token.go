@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -73,8 +72,7 @@ func (h *TokenHandler) Approve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // Allowance returns the amount spender may transfer on behalf of owner.
@@ -99,8 +97,7 @@ func (h *TokenHandler) Allowance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -130,8 +127,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
@@ -157,8 +153,7 @@ func (h *TokenHandler) Mint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
@@ -186,8 +181,7 @@ func (h *TokenHandler) Transfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
@@ -213,8 +207,7 @@ func (h *TokenHandler) Burn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
@@ -236,8 +229,7 @@ func (h *TokenHandler) Balance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
@@ -298,8 +290,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	// {"transfers":[...]} envelope made the token history page render empty
 	// forever. The use case still speaks HistoryResponse internally (TASK-093,
 	// ISS-086).
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result.Transfers)
+	writeJSON(w, http.StatusOK, result.Transfers)
 }
 
 // Info returns a token's metadata (name/symbol/total supply/decimals/owner) by
@@ -323,8 +314,7 @@ func (h *TokenHandler) Info(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // TransferFrom spends an allowance on the owner's behalf: the spender signs
@@ -359,6 +349,5 @@ func (h *TokenHandler) TransferFrom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }

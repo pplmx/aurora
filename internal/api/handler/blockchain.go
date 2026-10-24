@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -24,6 +23,5 @@ func (h *BlockchainHandler) Routes(r chi.Router) {
 // the result (valid, length, first broken index + reason) as JSON.
 func (h *BlockchainHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	report := blockchain.GetBlockChain().VerifyIntegrity()
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(report)
+	writeJSON(w, http.StatusOK, report)
 }

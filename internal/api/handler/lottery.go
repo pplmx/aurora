@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -83,8 +82,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
@@ -137,8 +135,7 @@ func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 		results = []*lottery.LotteryRecord{}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(results)
+	writeJSON(w, http.StatusOK, results)
 }
 
 func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -154,8 +151,7 @@ func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // Verify re-verifies a persisted draw and returns {id, valid, reason}. The use
@@ -175,6 +171,5 @@ func (h *LotteryHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }

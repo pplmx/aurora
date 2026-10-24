@@ -143,6 +143,15 @@ func classifyError(err error) (int, string) {
 	return http.StatusInternalServerError, "INTERNAL_ERROR"
 }
 
+// writeJSON writes v as a JSON response with the given status. Every success
+// path used to repeat the Content-Type/Encode pair, which also meant a handler
+// could forget the header; this is the single place it is set.
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
 func writeError(w http.ResponseWriter, message string, code string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
