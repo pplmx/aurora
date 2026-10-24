@@ -191,3 +191,28 @@ golangci-lint is lower than the targeted Go version (1.27.2)`。CI 固定使用
   `TestSyncEventBus_Publish_GlobalHandlersFirst` 失败；恢复后通过。
 - 让 Oracle `GetData` 对不存在的记录返回错误后，对应“空结果是 nil, nil”回归
   测试失败；恢复后通过。
+
+## 已知架构债务：`domain/blockchain` 承担了存储职责（2026-10-25）
+
+`internal/domain/blockchain` 既是领域模型（区块、哈希链、PoW），也是存储层：
+
+- `init.go` 直接 `sql.Open` 并维护进程级 `dbInstance` 单例；
+- 每个 `BlockChain` 方法自己读写 `blocks` 表，没有仓储接口；
+- 它调用 `utils.RestrictSQLiteFiles` 收紧数据库文件权限。
+
+其余五个模块都遵守「domain 定义仓储接口、infra/sqlite 实现」，只有
+blockchain 例外。这违反了 README 描述的分层，也让 blockchain 无法在不打开
+数据库的情况下使用（测试只能用 `ResetForTest` 绕开单例）。
+
+**为什么本轮不拆**：`BlockChain` 是六个模块的写入基底，`AddBlock`、
+`WithBlockTransaction`、`WithLotteryRecordTransaction` 被 token/NFT/lottery/
+oracle 的原子性路径直接调用；`DBPath`/`InitDB` 又被 CLI、API、桌面在每个进程
+入口调用。把它拆成 `domain` 接口 + `infra/sqlite` 实现涉及：
+
+1. 引入 `blockchain.Repository`，把五个方法从实体移到接口；
+2. 把 `InitDB`/`DBPath` 单例移到 `infra/sqlite`，并在三个入口改为注入；
+3. 更新 token/NFT/lottery/oracle 的用例构造签名；
+4. 重写 `multiprocess_test.go`（它靠 `InitDB` 打开第二个句柄模拟另一个进程）。
+
+这是一次独立的、可单独验证的迁移，不适合夹在「清理死代码」的提交里。记录在
+此，作为下一步的候选工作。
