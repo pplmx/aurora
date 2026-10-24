@@ -49,3 +49,24 @@ func AppendWithRecord(
 	}
 	return height, nil
 }
+
+// AppendRecordWithHeight is AppendWithRecord for the height-stamping variant:
+// the record callback receives the final height, which the caller writes into
+// the record's own JSON so the on-chain copy names the block it landed in.
+//
+// lottery and oracle each open-coded this branch, with slightly different
+// error wrapping; having one function keeps the transactional path identical
+// for both and leaves the wrapping to the caller.
+func AppendRecordWithHeight(
+	writer LotteryRecordTransactionWriter,
+	txManager TransactionManager,
+	data string,
+	record func(tx *sql.Tx, height int64) error,
+) (int64, error) {
+	var height int64
+	err := writer.WithLotteryRecordTransaction(data, txManager, func(tx *sql.Tx, blockHeight int64) error {
+		height = blockHeight
+		return record(tx, blockHeight)
+	})
+	return height, err
+}
