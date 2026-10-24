@@ -27,34 +27,36 @@
                 <form @submit.prevent="registerVoter">
                     <div class="form-group">
                         <label for="voting-voter-name">Voter Name</label>
-                        <input id="voting-voter-name" type="text" x-model="voterName" placeholder="Voter name" required>
+                        <input id="voting-voter-name" type="text" x-model="voterName" placeholder="Voter name" required aria-invalid="false" aria-describedby="voterName-error">
+                        <span id="voterName-error" role="alert" aria-live="assertive" class="error-message" x-show="voterNameError" x-text="voterNameError"></span>
                     </div>
-                    <button type="submit" class="btn-voting" :disabled="busy.registerVoter">Register Voter</button>
+                    <button type="submit" class="btn-voting" :disabled="busy.registerVoter || !!voterNameError">Register Voter</button>
                 </form>
-                <div x-show="voterResult" class="result" aria-live="polite" x-text="voterResult"></div>
-                <p class="proposal-meta" x-show="voterPrivateKey">Keep this private key to cast votes:
-                    <span x-text="voterPrivateKey"></span></p>
+                <div x-show="voterResult && !voterResult.includes('error')" class="result success" aria-live="polite" x-text="voterResult"></div>
+                <div x-show="voterResult && voterResult.includes('error')" class="result error" aria-live="assertive" x-text="voterResult"></div>
             </section>
 
             <section class="create-form">
                 <h2>Register Candidate</h2>
-                <form @submit.prevent="registerCandidate">
                     <div class="form-group">
                         <label for="voting-cand-name">Candidate Name</label>
-                        <input id="voting-cand-name" type="text" x-model="candName" placeholder="Candidate name" required>
+                        <input id="voting-cand-name" type="text" x-model="candName" placeholder="Candidate name" required aria-invalid="false" aria-describedby="candName-error">
+                        <span id="candName-error" role="alert" aria-live="assertive" class="error-message" x-show="candNameError" x-text="candNameError"></span>
                     </div>
                     <div class="form-group">
                         <label for="voting-cand-party">Party</label>
-                        <input id="voting-cand-party" type="text" x-model="candParty" placeholder="Party (optional)">
+                        <input id="voting-cand-party" type="text" x-model="candParty" placeholder="Party (optional)" aria-invalid="false" aria-describedby="candParty-error">
+                        <span id="candParty-error" role="alert" aria-live="assertive" class="error-message" x-show="candPartyError" x-text="candPartyError"></span>
                     </div>
                     <div class="form-group">
                         <label for="voting-cand-program">Program</label>
-                        <input id="voting-cand-program" type="text" x-model="candProgram" placeholder="Program (optional)">
+                        <input id="voting-cand-program" type="text" x-model="candProgram" placeholder="Program (optional)" aria-invalid="false" aria-describedby="candProgram-error">
+                        <span id="candProgram-error" role="alert" aria-live="assertive" class="error-message" x-show="candProgramError" x-text="candProgramError"></span>
                     </div>
-                    <button type="submit" class="btn-voting" :disabled="busy.registerCandidate">Register Candidate</button>
+                    <button type="submit" class="btn-voting" :disabled="busy.registerCandidate || !!candNameError || !!candPartyError || !!candProgramError">Register Candidate</button>
                 </form>
-                <div x-show="candResult" class="result" aria-live="polite" x-text="candResult"></div>
-            </section>
+                <div x-show="candResult && !candResult.includes('error')" class="result success" aria-live="polite" x-text="candResult"></div>
+                <div x-show="candResult && candResult.includes('error')" class="result error" aria-live="assertive" x-text="candResult"></div>
 
             <section class="create-form">
                 <h2>Create Session</h2>

@@ -63,23 +63,30 @@ func TestWebUINavigationMarksCurrentPage(t *testing.T) {
 	}
 }
 
-// TestWebUIResponsiveShell keeps the title, full module navigation and the
-// optional Refresh action from competing in one nowrap row. The old 768px-only
-// breakpoint left tablet and landscape widths overflowing.
+// TestWebUIResponsiveShell keeps the module navigation in a compact,
+// horizontally scrollable command bar instead of wrapping it into four rows
+// on phones. The header itself is a deliberate grid: brand and action stay on
+// the first row while navigation owns the second row on small screens.
 func TestWebUIResponsiveShell(t *testing.T) {
 	cssBytes, err := os.ReadFile(filepath.Join(realWebDir(), "css", "style.css"))
 	require.NoError(t, err)
 	css := string(cssBytes)
 
 	header := cssRuleForSelectors(t, css, "header")
-	require.Equal(t, "wrap", cssDeclaration(t, header, "flex-wrap"))
+	require.Equal(t, "grid", cssDeclaration(t, header, "display"))
+	require.Equal(t, "auto minmax(0, 1fr) auto", cssDeclaration(t, header, "grid-template-columns"))
 
 	nav := cssRuleForSelectors(t, css, "nav")
-	require.Equal(t, "wrap", cssDeclaration(t, nav, "flex-wrap"))
+	require.Equal(t, "nowrap", cssDeclaration(t, nav, "flex-wrap"))
+	require.Equal(t, "auto", cssDeclaration(t, nav, "overflow-x"))
 
 	active := cssRuleForSelectors(t, css, `nav a[aria-current="page"]`)
 	require.Contains(t, cssDeclaration(t, active, "box-shadow"), "var(--accent-page)",
 		"the current navigation link must carry the page accent")
+	require.Contains(t, css, "@media (max-width: 48rem)",
+		"the compact navigation must have a phone/tablet breakpoint")
+	require.Contains(t, css, "grid-column: 1 / -1;",
+		"mobile navigation must move below the brand and action")
 
 	for module, accent := range map[string]string{
 		"dashboard":  "var(--text-secondary)",

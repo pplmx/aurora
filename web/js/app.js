@@ -16,7 +16,7 @@ function auroraHeaders(extra) {
         if (banner) return banner;
         banner = document.createElement('div');
         banner.id = 'api-error-banner';
-        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;' +
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#c62828;' +
             'color:#fff;padding:10px 16px;text-align:center;font:13px/1.4 system-ui,sans-serif;' +
             'display:none;box-shadow:0 2px 6px rgba(0,0,0,.3);';
         document.body.appendChild(banner);
