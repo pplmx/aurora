@@ -27,19 +27,23 @@
                 <form @submit.prevent="createLottery">
                     <div class="form-group">
                         <label for="lottery-participants">Participants (comma-separated)</label>
-                        <input id="lottery-participants" type="text" x-model="participants" placeholder="A,B,C,D" required>
+                        <input id="lottery-participants" type="text" x-model="participants" placeholder="A,B,C,D" required aria-invalid="false" aria-describedby="participants-error">
+                        <span id="participants-error" role="alert" aria-live="assertive" class="error-message" x-show="participantsError" x-text="participantsError"></span>
                     </div>
                     <div class="form-group">
                         <label for="lottery-seed">Seed (required)</label>
-                        <input id="lottery-seed" type="text" x-model="seed" placeholder="at least 3 characters" required minlength="3">
+                        <input id="lottery-seed" type="text" x-model="seed" placeholder="at least 3 characters" required minlength="3" aria-invalid="false" aria-describedby="seed-error">
+                        <span id="seed-error" role="alert" aria-live="assertive" class="error-message" x-show="seedError" x-text="seedError"></span>
                     </div>
                     <div class="form-group">
                         <label for="lottery-count">Count</label>
-                        <input id="lottery-count" type="number" x-model="count" min="1" step="1" value="1" required aria-describedby="lottery-count-hint">
+                        <input id="lottery-count" type="number" x-model="count" min="1" step="1" value="1" required aria-describedby="lottery-count-h Lottery-count-error" :aria-invalid="!!countError">
                         <p id="lottery-count-hint" class="form-hint">How many winners to draw; must not exceed the participant count.</p>
+                        <span id="count-error" role="alert" aria-live="assertive" class="error-message" x-show="countError" x-text="countError"></span>
                     </div>
-                    <button type="submit" class="btn-lottery" :disabled="busy.createLottery">Create Lottery</button>
-                </form>
+                    <button type="submit" class="btn-lottery" :disabled="busy.createLottery || !!participantsError || !!seedError || !!countError">Create Lottery</button>
+                    <div x-show="result && !result.includes('failed')" class="result success" aria-live="polite" x-text="result"></div>
+                    <div x-show="result && result.includes('failed')" class="result error" aria-live="assertive" x-text="result"></div>
                 <div x-show="result" class="result" aria-live="polite" x-text="result"></div>
             </section>
             <section class="history" id="verify">
@@ -73,12 +77,12 @@
             </section>
             <section class="history">
                 <h2>Verify Draw</h2>
-                <form @submit.prevent="verifyDraw">
                     <div class="form-group">
                         <label for="lottery-verify-id">Lottery ID</label>
-                        <input id="lottery-verify-id" type="text" x-model="verifyId" placeholder="Lottery ID" required>
+                        <input id="lottery-verify-id" type="text" x-model="verifyId" placeholder="Lottery ID" required aria-invalid="false" aria-describedby="verifyId-error">
+                        <span id="verifyId-error" role="alert" aria-live="assertive" class="error-message" x-show="verifyIdError" x-text="verifyIdError"></span>
                     </div>
-                    <button type="submit" class="btn-lottery" :disabled="busy.verifyDraw">Verify Draw</button>
+                    <button type="submit" class="btn-lottery" :disabled="busy.verifyDraw || !!verifyIdError">Verify Draw</button>
                 </form>
                 <pre x-show="verifyResult" class="result" aria-live="polite" x-text="verifyResult"></pre>
             </section>

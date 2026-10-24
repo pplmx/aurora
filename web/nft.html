@@ -32,7 +32,59 @@
                     <div class="form-group"><label for="nft-mint-creator">Creator (public key)</label><input id="nft-mint-creator" type="text" x-model="creator" required></div>
                     <button type="submit" class="btn-nft" :disabled="busy.mint">Mint NFT</button>
                 </form>
-                <pre x-show="mintResult" class="result" aria-live="polite" x-text="mintResult"></pre>
+                <div x-show="mintResult" class="result" aria-live="polite"><pre x-text="mintResult"></pre></div>
+                <div x-show="busy.mint">Loading...</div>
+            </section>
+            <section class="history">
+                <h2>List by Owner</h2>
+                <form @submit.prevent="list">
+                    <div class="form-group"><label for="nft-list-owner">Owner (public key)</label><input id="nft-list-owner" type="text" x-model="owner" required></div>
+                    <button type="submit" class="btn-nft" :disabled="busy.list">List NFTs</button>
+                </form>
+                <div x-show="listResult" class="result" aria-live="polite"><pre x-text="listResult"></pre></div>
+                <div x-show="busy.list">Loading...</div>
+            </section>
+            <section class="history">
+                <h2>Get NFT</h2>
+                <form @submit.prevent="get">
+                    <div class="form-group"><label for="nft-get-id">NFT ID</label><input id="nft-get-id" type="text" x-model="id" required></div>
+                    <button type="submit" class="btn-nft" :disabled="busy.get">Get NFT</button>
+                </form>
+                <div x-show="getResult" class="result" aria-live="polite"><pre x-text="getResult"></pre></div>
+                <div x-show="busy.get">Loading...</div>
+            </section>
+            <section class="history">
+                <h2>Transfer</h2>
+                <form @submit.prevent="transfer">
+                    <div class="form-group"><label for="nft-transfer-id">NFT ID</label><input id="nft-transfer-id" type="text" x-model="id" required></div>
+                    <div class="form-group"><label for="nft-transfer-from">From (public key)</label><input id="nft-transfer-from" type="text" x-model="from" required></div>
+                    <div class="form-group"><label for="nft-transfer-to">To (public key)</label><input id="nft-transfer-to" type="text" x-model="to" required></div>
+                    <div class="form-group"><label for="nft-transfer-key">Private Key</label><input id="nft-transfer-key" type="password" x-model="privateKey" required></div>
+                    <button type="submit" class="btn-nft" :disabled="busy.transfer">Transfer</button>
+                </form>
+                <div x-show="transferResult" class="result" aria-live="polite"><pre x-text="transferResult"></pre></div>
+                <div x-show="busy.transfer">Loading...</div>
+            </section>
+            <section class="history">
+                <h2>Burn</h2>
+                <form @submit.prevent="burn">
+                    <div class="form-group"><label for="nft-burn-id">NFT ID</label><input id="nft-burn-id" type="text" x-model="id" required></div>
+                    <div class="form-group"><label for="nft-burn-owner">Owner (public key)</label><input id="nft-burn-owner" type="text" x-model="owner" required></div>
+                    <div class="form-group"><label for="nft-burn-key">Private Key</label><input id="nft-burn-key" type="password" x-model="privateKey" required></div>
+                    <button type="submit" class="btn-nft" :disabled="busy.burn">Burn</button>
+                </form>
+                <div x-show="burnResult" class="result" aria-live="polite"><pre x-text="burnResult"></pre></div>
+                <div x-show="busy.burn">Loading...</div>
+            </section>
+            <section class="history">
+                <h2>History</h2>
+                <form @submit.prevent="history">
+                    <div class="form-group"><label for="nft-history-id">NFT ID</label><input id="nft-history-id" type="text" x-model="id" required></div>
+                    <button type="submit" class="btn-nft" :disabled="busy.history">Show History</button>
+                </form>
+                <div x-show="historyResult" class="result" aria-live="polite"><pre x-text="historyResult"></pre></div>
+                <div x-show="busy.history">Loading...</div>
+            </section>
             </section>
             <section class="history">
                 <h2>List by Owner</h2>

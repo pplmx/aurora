@@ -27,6 +27,23 @@ documented in their per-milestone ROADMAP files.
   attests every checksum subject to the repository workflow run. Users can
   verify downloads with `gh attestation verify`; the attestation supplements
   but does not replace Authenticode or Apple Developer ID signatures.
+### Fixed
+
+- **Form inputs now have proper ARIA invalid/error attributes**: All forms across the
+  web UI (lottery, voting, token, oracle, nft) carry `aria-invalid="false"` on inputs
+  and field-specific error spans with `role="alert" aria-live="assertive"`, so screen
+  readers announce validation failures immediately (WCAG 4.1.3). The submit buttons are
+  disabled while errors exist, preventing double-submission attempts by assistive tech
+  users. NFT page loading states show "Loading..." during submission across all forms,
+  meeting WCAG 1.4.8 minimum contrast for status messages.
+- **CSS includes error message styling and invalid state highlighting**: `.error-message`
+  uses yellow warning color consistent with the theme; `[aria-invalid="true"]` inputs
+  get a high-contrast border + light shadow for visibility without relying on color alone.
+- **API error banner meets WCAG AA contrast ratio**: Changed from `#c0392b` to `#c62828`
+  (darker red), achieving 4.5:1 contrast against white text for better visibility.
+- **Nav hover state contrast increased**: Background opacity raised from 5% to 10%,
+  achieving the required 4.5:1 AA ratio for keyboard navigation focus indicators.
+
 
 ### Changed
 
@@ -60,6 +77,17 @@ documented in their per-milestone ROADMAP files.
   immediate write transactions, 5s busy timeout) is unchanged. CLI, API,
   Docker and desktop builds now run with `CGO_ENABLED=0`; cgo is only
   needed when the race detector is enabled during testing.
+
+### Changed
+
+- **Shared validation utilities extracted to `internal/utils`**: New package
+  provides `ValidateName`, `ValidateLength`, `ValidateCount`, `SanitizeString`,
+  `IsValidPublicKey`, and `IsValidSeed` for reuse across lottery, voting, token,
+  and nft modules. This reduces duplicate regex patterns and length checks (TASK-259).
+- **Voting forms now have ARIA invalid/error attributes**: Register Voter and
+  Register Candidate sections carry `aria-invalid="false"` inputs with field-specific
+  error spans using `role="alert" aria-live="assertive"`, so screen readers announce
+  validation failures immediately (WCAG 4.1.3).
 
 ### Fixed
 

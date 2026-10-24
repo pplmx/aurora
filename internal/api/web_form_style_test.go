@@ -36,7 +36,7 @@ func TestWebUIFormControlsUseDarkTheme(t *testing.T) {
 	)
 	require.Equal(t, "var(--bg-primary)", cssDeclaration(t, controls, "background-color"))
 	require.Equal(t, "1px solid var(--border)", cssDeclaration(t, controls, "border"))
-	require.Equal(t, "8px", cssDeclaration(t, controls, "border-radius"))
+	require.Equal(t, "10px", cssDeclaration(t, controls, "border-radius"))
 	require.Equal(t, "var(--text-primary)", cssDeclaration(t, controls, "color"))
 	require.Equal(t, "1rem", cssDeclaration(t, controls, "font-size"))
 
