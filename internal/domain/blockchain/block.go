@@ -28,7 +28,7 @@ type Block struct {
 // BlockChain represents the blockchain data structure.
 //
 // Concurrency: Blocks is mutated only under mu. Reads (GetBlockData,
-// GetLotteryRecords) also take mu (RLock) so HTTP handlers can read
+// BlockData) also take mu (RLock) so HTTP handlers can read
 // safely while other goroutines are appending blocks via AddBlock.
 // Without this mutex, a real production server with concurrent API
 // traffic lost blocks and tripped the race detector (see
@@ -358,7 +358,10 @@ func (c *BlockChain) ResetBlocks() {
 	c.Blocks = []*Block{Genesis()}
 }
 
-func (c *BlockChain) GetLotteryRecords() []string {
+// BlockData returns the payload of every non-genesis block, in height order.
+// It is the read side of the audit trail: callers that want to inspect what was
+// recorded without knowing each module's row schema use this.
+func (c *BlockChain) BlockData() []string {
 	if c == nil {
 		return nil
 	}

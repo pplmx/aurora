@@ -159,9 +159,11 @@ func (s *nativeServices) LedgerStatus() (nativeui.LedgerStatus, error) {
 		return nativeui.LedgerStatus{}, fmt.Errorf("blockchain not initialised")
 	}
 	return nativeui.LedgerStatus{
+		// Len takes the chain's read lock; reading the Blocks slice directly
+		// raced with a concurrent AddBlock on a busy API.
 		Valid:  s.chain.VerifyIntegrity().Valid,
-		Height: len(s.chain.Blocks) - 1,
-		Blocks: len(s.chain.Blocks),
+		Height: s.chain.Len() - 1,
+		Blocks: s.chain.Len(),
 	}, nil
 }
 
