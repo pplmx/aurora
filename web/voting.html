@@ -22,8 +22,29 @@
             </nav>
         </header>
         <main>
-            <section class="create-form">
-                <h2>Register Voter</h2>
+            <section class="page-intro" aria-labelledby="voting-workspace-title">
+                <p class="eyebrow">Voting workspace</p>
+                <h2 id="voting-workspace-title">Ballots that anyone can recount.</h2>
+                <p>Register voters and candidates, open a session, then cast and tally signed ballots — every step is written to the same ledger.</p>
+                <div class="workspace-index" role="navigation" aria-label="Voting operations">
+                    <a href="#voting-voter">Register voter</a>
+                    <a href="#voting-candidate">Register candidate</a>
+                    <a href="#voting-session">Create session</a>
+                    <a href="#voting-sessions">Sessions</a>
+                    <a href="#voting-control">Session controls</a>
+                    <a href="#voting-vote">Cast vote</a>
+                    <a href="#voting-results">Results</a>
+                </div>
+            </section>
+            <div class="workspace-grid">
+            <section id="voting-voter" class="create-form">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">01</span>
+                    <div>
+                        <h2>Register Voter</h2>
+                        <p>Returns the key pair the voter signs ballots with; keep the private half.</p>
+                    </div>
+                </div>
                 <form @submit.prevent="registerVoter">
                     <div class="form-group">
                         <label for="voting-voter-name">Voter Name</label>
@@ -36,30 +57,41 @@
                 <div x-show="voterResult && voterResult.includes('error')" class="result error" aria-live="assertive" x-text="voterResult"></div>
             </section>
 
-            <section class="create-form">
-                <h2>Register Candidate</h2>
+            <section id="voting-candidate" class="create-form">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">02</span>
+                    <div>
+                        <h2>Register Candidate</h2>
+                        <p>Only the name is required; party and program are shown on the ballot when present.</p>
+                    </div>
+                </div>
+                <form @submit.prevent="registerCandidate">
                     <div class="form-group">
                         <label for="voting-cand-name">Candidate Name</label>
-                        <input id="voting-cand-name" type="text" x-model="candName" placeholder="Candidate name" required aria-invalid="false" aria-describedby="candName-error">
+                        <input id="voting-cand-name" type="text" x-model="candName" placeholder="Candidate name" required :aria-invalid="!!candNameError" aria-describedby="candName-error">
                         <span id="candName-error" role="alert" aria-live="assertive" class="error-message" x-show="candNameError" x-text="candNameError"></span>
                     </div>
                     <div class="form-group">
                         <label for="voting-cand-party">Party</label>
-                        <input id="voting-cand-party" type="text" x-model="candParty" placeholder="Party (optional)" aria-invalid="false" aria-describedby="candParty-error">
-                        <span id="candParty-error" role="alert" aria-live="assertive" class="error-message" x-show="candPartyError" x-text="candPartyError"></span>
+                        <input id="voting-cand-party" type="text" x-model="candParty" placeholder="Party (optional)">
                     </div>
                     <div class="form-group">
                         <label for="voting-cand-program">Program</label>
-                        <input id="voting-cand-program" type="text" x-model="candProgram" placeholder="Program (optional)" aria-invalid="false" aria-describedby="candProgram-error">
-                        <span id="candProgram-error" role="alert" aria-live="assertive" class="error-message" x-show="candProgramError" x-text="candProgramError"></span>
+                        <input id="voting-cand-program" type="text" x-model="candProgram" placeholder="Program (optional)">
                     </div>
-                    <button type="submit" class="btn-voting" :disabled="busy.registerCandidate || !!candNameError || !!candPartyError || !!candProgramError">Register Candidate</button>
+                    <div class="form-actions"><button type="submit" class="btn-voting" :disabled="busy.registerCandidate || !!candNameError">Register Candidate</button></div>
                 </form>
-                <div x-show="candResult && !candResult.includes('error')" class="result success" aria-live="polite" x-text="candResult"></div>
-                <div x-show="candResult && candResult.includes('error')" class="result error" aria-live="assertive" x-text="candResult"></div>
+                <div x-show="candResult" class="result" aria-live="polite" x-text="candResult"></div>
+            </section>
 
-            <section class="create-form">
-                <h2>Create Session</h2>
+            <section id="voting-session" class="create-form">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">03</span>
+                    <div>
+                        <h2>Create Session</h2>
+                        <p>Choose the roster and the window during which ballots are accepted.</p>
+                    </div>
+                </div>
                 <form @submit.prevent="createSession">
                     <div class="form-group">
                         <label for="voting-session-title">Title</label>
@@ -106,8 +138,14 @@
                 <div x-show="sessionResult" class="result" aria-live="polite" x-text="sessionResult"></div>
             </section>
 
-            <section class="sessions">
-                <h2>Sessions</h2>
+            <section id="voting-sessions" class="sessions workspace-panel--wide">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">04</span>
+                    <div>
+                        <h2>Sessions</h2>
+                        <p>Every governance window with its roster and status.</p>
+                    </div>
+                </div>
                 <div x-show="loading">Loading...</div>
                 <template x-for="s in sessions" :key="s.id">
                     <div class="proposal-card">
@@ -123,22 +161,36 @@
                 <p x-show="!loading && sessions.length === 0 && sessionsFailed" class="hint">Failed to load sessions — check the API / refresh.</p>
             </section>
 
-            <section class="create-form">
-                <h2>Session Controls</h2>
+            <section id="voting-control" class="create-form">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">05</span>
+                    <div>
+                        <h2>Session Controls</h2>
+                        <p>Start or end a session by id; ballots are only accepted inside that window.</p>
+                    </div>
+                </div>
                 <form @submit.prevent="startSession">
                     <div class="form-group">
                         <label for="voting-control-session-id">Session ID</label>
                         <input id="voting-control-session-id" type="text" x-model="controlSessionId" placeholder="Session ID" required
                                @keydown.enter.prevent="holdEnterKey">
                     </div>
-                    <button type="submit" class="btn-voting" :disabled="busy.startSession">Start Session</button>
-                    <button type="button" class="btn-voting" :disabled="busy.endSession" @click="endSession">End Session</button>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-voting" :disabled="busy.startSession">Start Session</button>
+                        <button type="button" class="btn-voting" :disabled="busy.endSession" @click="endSession">End Session</button>
+                    </div>
                 </form>
                 <div x-show="controlResult" class="result" aria-live="polite" x-text="controlResult"></div>
             </section>
 
-            <section class="votes">
-                <h2>Cast Vote</h2>
+            <section id="voting-vote" class="votes">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">06</span>
+                    <div>
+                        <h2>Cast Vote</h2>
+                        <p>Sign a ballot for one candidate in one session.</p>
+                    </div>
+                </div>
                 <form @submit.prevent="castVote">
                     <div class="form-group">
                         <label for="voting-vote-session">Session</label>
@@ -187,12 +239,18 @@
                          a stale voteCandidateId that survived a session switch
                          (ISS-194), so a candidate absent from the new session's
                          roster can never be submitted. -->
-                    <button type="submit" class="btn-voting" :disabled="busy.castVote || !voteSessionId || !voteCandidateId || !currentSessionCandidates.some(c => c && c.id === voteCandidateId)">Cast Vote</button>
+                    <div class="form-actions"><button type="submit" class="btn-voting" :disabled="busy.castVote || !voteSessionId || !voteCandidateId || !currentSessionCandidates.some(c => c && c.id === voteCandidateId)">Cast Vote</button></div>
                 </form>
                 <div x-show="voteResult" class="result" aria-live="polite" x-text="voteResult"></div>
             </section>
-            <section class="history">
-                <h2>Election Results</h2>
+            <section id="voting-results" class="history workspace-panel--wide">
+                <div class="panel-heading">
+                    <span class="panel-number" aria-hidden="true">07</span>
+                    <div>
+                        <h2>Election Results</h2>
+                        <p>Live tally per candidate for a session.</p>
+                    </div>
+                </div>
                 <form @submit.prevent="loadResults">
                     <div class="form-group">
                         <label for="voting-results-session-id">Session ID</label>
@@ -219,6 +277,7 @@
                 </div>
                 <div x-show="results" class="result" aria-live="polite" x-text="'Total votes: ' + results.total_votes"></div>
             </section>
+            </div>
         </main>
     </div>
     <script src="/js/app.js"></script>

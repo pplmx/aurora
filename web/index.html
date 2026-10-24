@@ -23,41 +23,95 @@
             <button class="btn-refresh" @click="refresh()" :disabled="refreshing" title="Reload stats now">↻ Refresh</button>
         </header>
         <main>
-            <section class="stats-grid">
-                <div class="stat-card">
+            <section class="overview-hero" aria-labelledby="overview-title">
+                <div class="hero-copy">
+                    <p class="eyebrow">Live ledger overview</p>
+                    <h2 id="overview-title">One ledger. Six capabilities.</h2>
+                    <p class="hero-lede">Provably fair draws, signed governance, digital assets, and live data feeds, composed into one verifiable chain.</p>
+                </div>
+                <aside class="hero-status" aria-label="Live system snapshot">
+                    <span class="hero-status-label">System pulse</span>
+                    <div class="hero-status-row">
+                        <span>Ledger</span>
+                        <strong x-text="stats.integrity">-</strong>
+                    </div>
+                    <div class="hero-status-row">
+                        <span>Oracle network</span>
+                        <strong x-text="stats.oracle">-</strong>
+                    </div>
+                    <div class="hero-status-row">
+                        <span>Refresh cycle</span>
+                        <strong>15 sec</strong>
+                    </div>
+                </aside>
+            </section>
+            <section class="stats-panel" aria-labelledby="stats-title">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Network pulse</p>
+                        <h2 id="stats-title">At a glance</h2>
+                    </div>
+                    <p>Live counters from every Aurora domain. Values remain visible during transient API interruptions.</p>
+                </div>
+                <div class="stats-grid">
+                <article class="stat-card stat-card--lottery">
+                    <span class="stat-index" aria-hidden="true">01</span>
                     <span class="stat-label">Total Lotteries</span>
                     <span class="stat-value" x-text="stats.lotteries">-</span>
-                </div>
-                <div class="stat-card">
+                    <span class="stat-meta">VRF draws recorded</span>
+                </article>
+                <article class="stat-card stat-card--voting">
+                    <span class="stat-index" aria-hidden="true">02</span>
                     <span class="stat-label">Total Votes</span>
                     <span class="stat-value" x-text="stats.votes">-</span>
-                </div>
-                <div class="stat-card">
+                    <span class="stat-meta">Signed ballots cast</span>
+                </article>
+                <article class="stat-card stat-card--voting">
+                    <span class="stat-index" aria-hidden="true">03</span>
                     <span class="stat-label">Candidates</span>
                     <span class="stat-value" x-text="stats.candidates">-</span>
-                </div>
-                <div class="stat-card">
+                    <span class="stat-meta">Registered contenders</span>
+                </article>
+                <article class="stat-card stat-card--token">
+                    <span class="stat-index" aria-hidden="true">04</span>
                     <span class="stat-label">Voting Sessions</span>
                     <span class="stat-value" x-text="stats.sessions">-</span>
-                </div>
-                <div class="stat-card">
+                    <span class="stat-meta">Governance windows</span>
+                </article>
+                <article class="stat-card stat-card--ledger">
+                    <span class="stat-index" aria-hidden="true">05</span>
                     <span class="stat-label">Ledger Integrity</span>
                     <span class="stat-value" x-text="stats.integrity">-</span>
-                </div>
-                <div class="stat-card">
+                    <span class="stat-meta">Hash-chain verification</span>
+                </article>
+                <article class="stat-card stat-card--oracle">
+                    <span class="stat-index" aria-hidden="true">06</span>
                     <span class="stat-label">Oracle Feeds</span>
                     <span class="stat-value" x-text="stats.oracle">-</span>
+                    <span class="stat-meta">Current source health</span>
+                </article>
                 </div>
             </section>
-            <section class="activity">
-                <h2>Recent Activity</h2>
-                <div x-show="loading">Loading...</div>
-                <template x-for="item in activity" :key="item.key">
-                    <div class="proposal-card">
-                        <h3 x-text="item.title"></h3>
-                        <p class="proposal-meta" x-text="item.detail"></p>
+            <section class="activity-panel" aria-labelledby="activity-title">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Latest writes</p>
+                        <h2 id="activity-title">Recent Activity</h2>
                     </div>
+                    <span class="activity-count" x-text="activity.length + ' updates'">0 updates</span>
+                </div>
+                <div x-show="loading" class="panel-status" role="status">Loading activity...</div>
+                <ol class="activity-feed" aria-label="Recent lottery and voting activity">
+                <template x-for="item in activity" :key="item.key">
+                    <li class="activity-item">
+                        <span class="activity-marker" aria-hidden="true"></span>
+                        <div>
+                            <h3 x-text="item.title"></h3>
+                            <p class="proposal-meta" x-text="item.detail"></p>
+                        </div>
+                    </li>
                 </template>
+                </ol>
                 <p x-show="!loading && activity.length === 0 && loaded" class="activity-empty">No recent activity</p>
                 <p x-show="!loading && activity.length === 0 && !loaded" class="hint">Couldn't load activity — check the API / refresh.</p>
             </section>
