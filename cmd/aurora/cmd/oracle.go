@@ -72,8 +72,8 @@ var sourceAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("oracle.source_added")+"\n", resp.Name)
-		fmt.Printf("   ID: %s\n", resp.ID)
-		fmt.Printf("   URL: %s\n", resp.URL)
+		printField("ID", resp.ID)
+		printField("URL", resp.URL)
 		return nil
 	},
 }
@@ -105,8 +105,8 @@ var sourceListCmd = &cobra.Command{
 				status = "⏳ disabled"
 			}
 			fmt.Printf("   - %s [%s] %s\n", ds.Name, ds.Type, status)
-			fmt.Printf("     ID: %s\n", ds.ID)
-			fmt.Printf("     URL: %s\n", ds.URL)
+			printField("  ID", ds.ID)
+			printField("  URL", ds.URL)
 			fmt.Printf("     Method: %s  Path: %s  Interval: %ds\n", ds.Method, ds.Path, ds.Interval)
 			if ds.Headers != "" {
 				fmt.Println("     Headers: configured")
@@ -212,7 +212,7 @@ var fetchCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("oracle.fetched"))
-		fmt.Printf("   Value: %s\n", resp.Value)
+		printField("Value", resp.Value)
 		fmt.Printf("   Timestamp: %d\n", resp.Timestamp)
 		fmt.Printf("   Block Height: %d\n", resp.BlockHeight)
 		return nil
@@ -280,7 +280,7 @@ var latestCmd = &cobra.Command{
 		}
 
 		fmt.Println("\n📈 Latest Data:")
-		fmt.Printf("   Value: %s\n", resp.Data.Value)
+		printField("Value", resp.Data.Value)
 		fmt.Printf("   Timestamp: %d\n", resp.Data.Timestamp)
 		fmt.Printf("   Block Height: %d\n", resp.Data.BlockHeight)
 		return nil
@@ -339,7 +339,7 @@ var templateAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("oracle.template_added")+"\n", resp.Name)
-		fmt.Printf("   ID: %s\n", resp.ID)
+		printField("ID", resp.ID)
 		return nil
 	},
 }

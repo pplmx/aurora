@@ -91,9 +91,9 @@ var mintCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.minted"))
-		fmt.Printf("   ID: %s\n", result.ID)
-		fmt.Printf("   Name: %s\n", result.Name)
-		fmt.Printf("   Owner: %s\n", result.Owner)
+		printField("ID", result.ID)
+		printField("Name", result.Name)
+		printField("Owner", result.Owner)
 		fmt.Printf("   Block Height: #%d\n", result.BlockHeight)
 		return nil
 	},
@@ -128,9 +128,9 @@ var transferCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.transferred"))
-		fmt.Printf("   Operation ID: %s\n", result.ID)
-		fmt.Printf("   From: %s\n", truncateBase64(result.From))
-		fmt.Printf("   To: %s\n", truncateBase64(result.To))
+		printField("Operation ID", result.ID)
+		printField("From", truncateBase64(result.From))
+		printField("To", truncateBase64(result.To))
 		fmt.Printf("   Block Height: #%d\n", result.BlockHeight)
 		return nil
 	},
@@ -190,13 +190,13 @@ var getCmd = &cobra.Command{
 		}
 
 		fmt.Println("\n🎨 NFT Details:")
-		fmt.Printf("   ID: %s\n", result.ID)
-		fmt.Printf("   Name: %s\n", result.Name)
-		fmt.Printf("   Description: %s\n", result.Description)
-		fmt.Printf("   Image URL: %s\n", result.ImageURL)
-		fmt.Printf("   Token URI: %s\n", result.TokenURI)
-		fmt.Printf("   Creator: %s\n", result.Creator)
-		fmt.Printf("   Owner: %s\n", result.Owner)
+		printField("ID", result.ID)
+		printField("Name", result.Name)
+		printField("Description", result.Description)
+		printField("Image URL", result.ImageURL)
+		printField("Token URI", result.TokenURI)
+		printField("Creator", result.Creator)
+		printField("Owner", result.Owner)
 		fmt.Printf("   Block Height: #%d\n", result.BlockHeight)
 		return nil
 	},

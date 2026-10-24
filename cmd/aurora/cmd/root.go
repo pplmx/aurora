@@ -205,3 +205,10 @@ func setDefaultConfig() {
 	viper.SetDefault("http.rateLimit.requests", 10)
 	viper.SetDefault("http.rateLimit.window", "1m")
 }
+
+// printField prints one indented "Label: value" line under a command's result
+// header. Four modules wrote this line by hand 55 times; the alignment is part
+// of the CLI's output contract, so it lives in one place.
+func printField(label, value string) {
+	fmt.Printf("   %s: %s\n", label, value)
+}
