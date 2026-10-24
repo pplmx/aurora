@@ -45,7 +45,7 @@ func TestRealMigrations_Apply(t *testing.T) {
 
 	db, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	for _, table := range []string{
 		"blocks", "lottery_records", "lottery_vrf_keys",

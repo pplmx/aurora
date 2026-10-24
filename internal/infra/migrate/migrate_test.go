@@ -1,6 +1,7 @@
 package migrate
 
 import (
+	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
@@ -346,7 +347,10 @@ func TestMigrator_DirtyDatabaseRefusesMigrations(t *testing.T) {
 
 	m, err := New(dbPath, migPath)
 	require.NoError(t, err)
-	require.NoError(t, m.setVersion(1, true))
+	tx, err := m.db.Begin()
+	require.NoError(t, err)
+	require.NoError(t, setTxVersion(tx, 1, true))
+	require.NoError(t, tx.Commit())
 
 	_, err = m.Up(0)
 	require.ErrorContains(t, err, "database is dirty at version 1")
@@ -376,6 +380,52 @@ func TestMigrator_MissingDownFileFailsLoudly(t *testing.T) {
 
 	_, err = m.Down(1)
 	require.ErrorContains(t, err, "migration 2 has no down file")
+}
+
+// TestMigrator_NoOpPathsReleaseTheWriteLock proves a run that finds nothing to
+// do still lets other writers in. Up/Down open one transaction up front to read
+// the version, so the "nothing pending / nothing applied" early return must
+// release it: a leaked transaction keeps SQLite's write lock for as long as the
+// pool holds that connection, stalling every later CLI/API write on the same
+// database.
+func TestMigrator_NoOpPathsReleaseTheWriteLock(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+
+	_, err = m.Up(0)
+	require.NoError(t, err)
+
+	_, err = m.Up(0)
+	require.NoError(t, err, "up on a fully-migrated DB is a success no-op")
+	requireWriteLockFree(t, dbPath, "after an up no-op")
+
+	_, err = m.Down(0)
+	require.NoError(t, err)
+	_, err = m.Down(0)
+	require.NoError(t, err, "down on an empty DB is a success no-op")
+	requireWriteLockFree(t, dbPath, "after a down no-op")
+}
+
+// requireWriteLockFree fails when a second connection cannot take SQLite's write
+// lock, i.e. when the migrator still holds a transaction open. busy_timeout=0
+// makes a held lock fail immediately instead of waiting out the 5s default.
+func requireWriteLockFree(t *testing.T, dbPath, when string) {
+	t.Helper()
+
+	probe, err := sql.Open("sqlite", dbPath+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=0")
+	require.NoError(t, err)
+	defer func() { _ = probe.Close() }()
+	probe.SetMaxOpenConns(1)
+
+	tx, err := probe.Begin()
+	if !assert.NoErrorf(t, err, "the write lock must be free %s", when) {
+		return
+	}
+	require.NoError(t, tx.Rollback())
 }
 
 // TestMigrator_ConcurrentOpenersSerialize proves two processes racing to
@@ -416,6 +466,50 @@ func TestMigrator_ConcurrentOpenersSerialize(t *testing.T) {
 	assert.Empty(t, status.PendingVersions)
 }
 
+// TestMigrator_ConcurrentRollbacksSerialize proves rollback has the same
+// version-check contract as up. A peer must wait for the full rollback
+// transaction instead of observing a transient dirty version or racing the
+// same down migration.
+func TestMigrator_ConcurrentRollbacksSerialize(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	_, err = m.Up(0)
+	require.NoError(t, err)
+	require.NoError(t, m.Close())
+
+	start := make(chan struct{})
+	errs := make(chan error, 4)
+	for range 4 {
+		go func() {
+			<-start
+			m, err := New(dbPath, migPath)
+			if err != nil {
+				errs <- err
+				return
+			}
+			defer func() { _ = m.Close() }()
+			_, err = m.Down(0)
+			errs <- err
+		}()
+	}
+	close(start)
+	for range 4 {
+		require.NoError(t, <-errs)
+	}
+
+	m, err = New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+	status, err := m.Status()
+	require.NoError(t, err)
+	assert.Equal(t, uint(0), status.Current)
+	assert.False(t, status.Dirty)
+	assert.Equal(t, []uint{1, 2}, status.PendingVersions)
+}
+
 // TestMigrator_FailedMigrationLeavesDirtyVersion proves a failed migration
 // records the target version as dirty before executing its SQL. A retry must
 // refuse to run rather than pretend the half-applied schema is current.
@@ -439,6 +533,12 @@ func TestMigrator_FailedMigrationLeavesDirtyVersion(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, uint(1), status.Current)
 	assert.True(t, status.Dirty, "a failed migration must be marked dirty")
+
+	var tableCount int
+	require.NoError(t, m.db.QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'users'`,
+	).Scan(&tableCount))
+	assert.Zero(t, tableCount, "a failed migration body must not leave partial schema behind")
 
 	_, err = m.Up(1)
 	require.ErrorContains(t, err, "database is dirty at version 1")

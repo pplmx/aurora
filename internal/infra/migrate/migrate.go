@@ -57,18 +57,13 @@ func New(dbPath, migPath string) (*Migrator, error) {
 }
 
 func (m *Migrator) ensureVersionTable() error {
-	tx, err := m.db.Begin()
-	if err != nil {
-		return err
-	}
-	if _, err := tx.Exec(`
+	if _, err := m.db.Exec(`
 		CREATE TABLE IF NOT EXISTS ` + migrationsTable + ` (version INTEGER PRIMARY KEY, dirty INTEGER NOT NULL DEFAULT 0);
 		CREATE UNIQUE INDEX IF NOT EXISTS version_unique ON ` + migrationsTable + `(version);
 	`); err != nil {
-		_ = tx.Rollback()
 		return err
 	}
-	return tx.Commit()
+	return nil
 }
 
 func (m *Migrator) Up(steps int) (uint, error) {
