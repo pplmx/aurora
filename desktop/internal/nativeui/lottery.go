@@ -1,10 +1,13 @@
 package nativeui
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/pplmx/aurora/internal/domain/lottery"
 )
 
 // lotteryState is the Lottery page's form and result state.
@@ -68,7 +71,7 @@ func (a *App) lotteryCreate(c *ui.Context) {
 	if a.lottery.participantsErr != "" {
 		ui.Text(c, a.lottery.participantsErr).FontSize(11).TextColor(ui.Hex("#c62828"))
 	}
-	field(c, "Seed (at least 3 characters)", &a.lottery.seed)
+	field(c, fmt.Sprintf("Seed (at least %d characters)", lottery.MinSeedLength), &a.lottery.seed)
 	if a.lottery.seedErr != "" {
 		ui.Text(c, a.lottery.seedErr).FontSize(11).TextColor(ui.Hex("#c62828"))
 	}
@@ -95,20 +98,23 @@ func (a *App) createLottery() {
 	seed := strings.TrimSpace(a.lottery.seed)
 	count, countErr := strconv.Atoi(strings.TrimSpace(a.lottery.count))
 
-	if len(participants) == 0 {
-		a.lottery.participantsErr = "List at least one participant."
+	// The rules live in the domain validators, not here: a window that
+	// hardcoded "at least 3 characters" would silently disagree with the CLI
+	// and the API the day MinSeedLength changed.
+	if err := lottery.ValidateParticipants(participants); err != nil {
+		a.lottery.participantsErr = err.Error()
 		return
 	}
-	if len(seed) < 3 {
-		a.lottery.seedErr = "Seed is required and must be at least 3 characters."
+	if err := lottery.ValidateSeed(seed); err != nil {
+		a.lottery.seedErr = err.Error()
 		return
 	}
-	if countErr != nil || count < 1 {
-		a.lottery.countErr = "Winner count must be a whole number of at least 1."
+	if countErr != nil {
+		a.lottery.countErr = "Winner count must be a whole number."
 		return
 	}
-	if count > len(participants) {
-		a.lottery.countErr = "Winner count (" + strconv.Itoa(count) + ") cannot exceed the number of participants (" + strconv.Itoa(len(participants)) + ")."
+	if err := lottery.ValidateWinnerCount(count, len(participants)); err != nil {
+		a.lottery.countErr = err.Error()
 		return
 	}
 
