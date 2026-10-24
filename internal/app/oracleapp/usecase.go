@@ -125,7 +125,7 @@ func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchData
 		txRepo, repoOK := uc.repo.(transactionalOracleRepository)
 		writer, chainOK := chain.(blockchain.LotteryRecordTransactionWriter)
 		if repoOK && chainOK {
-			err := writer.WithLotteryRecordTransaction(string(jsonData), txRepo, func(tx *sql.Tx, height int64) error {
+			_, err := blockchain.AppendRecordWithHeight(writer, txRepo, string(jsonData), func(tx *sql.Tx, height int64) error {
 				data.BlockHeight = height
 				if err := txRepo.WithTx(tx).SaveData(data); err != nil {
 					return fmt.Errorf("failed to save data: %w", err)

@@ -40,7 +40,7 @@ func (uc *Create) saveWithBlock(jsonData string, record *lottery.LotteryRecord) 
 	txRepo, repoOK := uc.lotteryRepo.(transactionalLotteryRepository)
 	writer, chainOK := uc.blockRepo.(blockchain.LotteryRecordTransactionWriter)
 	if repoOK && chainOK {
-		err := writer.WithLotteryRecordTransaction(jsonData, txRepo, func(tx *sql.Tx, height int64) error {
+		_, err := blockchain.AppendRecordWithHeight(writer, txRepo, jsonData, func(tx *sql.Tx, height int64) error {
 			record.BlockHeight = height
 			if err := txRepo.WithTx(tx).Save(record); err != nil {
 				return fmt.Errorf("failed to save to repository: %w", err)
