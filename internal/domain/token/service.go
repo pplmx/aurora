@@ -155,30 +155,11 @@ func (s *TokenService) txRepo(tx *sql.Tx) Repository {
 // database transaction when the chain supports it. The fallback preserves the
 // legacy best-effort order for in-memory/fake chains without transaction
 // support.
+// withBlockTransaction appends the audit block and applies fn in one
+// transaction, via the chain's own branching (see blockchain.AppendWithRecord).
 func (s *TokenService) withBlockTransaction(data string, fn func(repo Repository, height int64) error) (int64, error) {
-	if s.chain == nil {
-		return 0, fmt.Errorf("blockchain not initialized")
-	}
-
-	if writer, ok := s.chain.(blockchain.BlockTransactionWriter); ok {
-		var height int64
-		err := writer.WithBlockTransaction(data, s.txManager, func(tx *sql.Tx, blockHeight int64) error {
-			height = blockHeight
-			return fn(s.txRepo(tx), blockHeight)
-		})
-		return height, err
-	}
-
-	height, err := s.chain.AddBlock(data)
-	if err != nil {
-		return 0, err
-	}
-	if err := s.txManager.WithTransaction(func(tx *sql.Tx) error {
-		return fn(s.txRepo(tx), height)
-	}); err != nil {
-		return 0, err
-	}
-	return height, nil
+	return blockchain.AppendWithRecord(s.chain, s.txManager, data,
+		func(tx *sql.Tx, height int64) error { return fn(s.txRepo(tx), height) })
 }
 
 type CreateTokenRequest struct {
