@@ -86,18 +86,18 @@ func TestBlockChain_AddBlock_OnNilOrEmpty(t *testing.T) {
 	assert.Contains(t, err.Error(), "not initialized")
 }
 
-func TestBlockChain_GetLotteryRecords_SkipsGenesis(t *testing.T) {
+func TestBlockChain_BlockData_SkipsGenesis(t *testing.T) {
 	c := NewBlockChain()
 	_, _ = c.AddBlock("lottery-1")
 	_, _ = c.AddBlock("lottery-2")
 
-	records := c.GetLotteryRecords()
+	records := c.BlockData()
 	assert.Equal(t, []string{"lottery-1", "lottery-2"}, records)
 }
 
-func TestBlockChain_GetLotteryRecords_EmptyChain(t *testing.T) {
+func TestBlockChain_BlockData_EmptyChain(t *testing.T) {
 	c := NewBlockChain()
-	records := c.GetLotteryRecords()
+	records := c.BlockData()
 	assert.Empty(t, records, "only Genesis present → no records")
 }
 
@@ -111,12 +111,12 @@ func TestBlockChain_AddLotteryRecord_DelegatesToAddBlock(t *testing.T) {
 }
 
 func TestBlockChain_RecordsIncludeEmptyBlockData(t *testing.T) {
-	// GetLotteryRecords should include blocks whose Data is non-empty and
+	// BlockData should include blocks whose Data is non-empty and
 	// is not the literal "Genesis" string — empty data should be skipped.
 	c := NewBlockChain()
 	_, _ = c.AddBlock("")
 
-	records := c.GetLotteryRecords()
+	records := c.BlockData()
 	// Either Genesis-only (no records) or empty-data block filtered out.
 	for _, r := range records {
 		assert.NotEmpty(t, r, "no empty records allowed")

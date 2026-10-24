@@ -106,7 +106,7 @@ func TestLotteryE2E_MultipleLotteries(t *testing.T) {
 		t.Errorf("Expected %d blocks, got %d", initialHeight+3, len(chain.Blocks))
 	}
 
-	records := chain.GetLotteryRecords()
+	records := chain.BlockData()
 	if len(records) != 3 {
 		t.Errorf("Expected 3 records, got %d", len(records))
 	}
@@ -203,7 +203,7 @@ func TestLotteryE2E_AddressConversion(t *testing.T) {
 func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
 	blockchain.ResetForTest()
 	chain := blockchain.InitBlockChain()
-	initialCount := len(chain.GetLotteryRecords())
+	initialCount := len(chain.BlockData())
 
 	pk, sk, _ := lottery.GenerateKeyPair()
 	output, proof, _ := lottery.VRFProve(sk, []byte("history-test"))
@@ -214,7 +214,7 @@ func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
 	jsonData, _ := record.ToJSON()
 	_, _ = chain.AddLotteryRecord(jsonData)
 
-	records := chain.GetLotteryRecords()
+	records := chain.BlockData()
 	if len(records) != initialCount+1 {
 		t.Errorf("Expected %d records, got %d", initialCount+1, len(records))
 	}
