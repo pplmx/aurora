@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -63,8 +62,7 @@ func (h *VotingHandler) RegisterVoter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request) {
@@ -88,8 +86,7 @@ func (h *VotingHandler) RegisterCandidate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
@@ -117,8 +114,7 @@ func (h *VotingHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
@@ -145,8 +141,7 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
@@ -157,8 +152,7 @@ func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
@@ -169,8 +163,7 @@ func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
@@ -187,8 +180,7 @@ func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(session)
+	writeJSON(w, http.StatusOK, session)
 }
 
 // GetResults returns the per-candidate tally for a session (v1.23 Voting
@@ -202,8 +194,7 @@ func (h *VotingHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(result)
+	writeJSON(w, http.StatusOK, result)
 }
 
 // updateSessionStatus applies a status transition to an existing session,
@@ -228,8 +219,7 @@ func (h *VotingHandler) updateSessionStatus(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(session)
+	writeJSON(w, http.StatusOK, session)
 }
 
 func (h *VotingHandler) StartSession(w http.ResponseWriter, r *http.Request) {
