@@ -189,3 +189,39 @@ func TestGolangciLintVersionIsPinned(t *testing.T) {
 	require.NotNil(t, m, "ci.yml must pin the golangci-lint version, not use latest")
 	assert.NotEqual(t, "latest", m[1])
 }
+
+// TestDomainLayerHasNoOutboundDependencies enforces the layering the README
+// describes. A domain package that imports app, api or infra turns the domain
+// into a consumer of the very layers meant to depend on it, which is how the
+// token service ended up importing infra/events for its EventBus parameter.
+//
+// The rule is checked by reading imports, not by convention: a new violating
+// import fails here.
+func TestDomainLayerHasNoOutboundDependencies(t *testing.T) {
+	forbidden := []string{
+		"github.com/pplmx/aurora/internal/app",
+		"github.com/pplmx/aurora/internal/api",
+		"github.com/pplmx/aurora/internal/infra",
+	}
+	err := filepath.WalkDir(filepath.Join(repoRoot(t), "internal", "domain"),
+		func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			f, perr := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
+			require.NoError(t, perr)
+			for _, imp := range f.Imports {
+				p := strings.Trim(imp.Path.Value, `"`)
+				for _, bad := range forbidden {
+					assert.False(t, strings.HasPrefix(p, bad),
+						"%s imports %s: the domain layer must not depend on %s",
+						filepath.Base(filepath.Dir(path)), p, bad)
+				}
+			}
+			return nil
+		})
+	require.NoError(t, err)
+}
