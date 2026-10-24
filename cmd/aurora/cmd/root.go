@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	tokenerrors "github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/pplmx/aurora/internal/logger"
@@ -127,7 +127,7 @@ func requireConfirm(cmd *cobra.Command, actionKey string) error {
 // warning instead (exit code stays nonzero so the audit gap surfaces in
 // scripts; the message is explicit that the operation did commit).
 func formatCLIError(err error) string {
-	if errors.Is(err, tokenerrors.ErrAuditPublishFailed) {
+	if errors.Is(err, token.ErrAuditPublishFailed) {
 		return fmt.Sprintf(
 			"⚠ %v\n  The operation DID commit. Do NOT retry it — inspect the event store.\n", err,
 		)

@@ -1,6 +1,7 @@
 package events
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 )
@@ -67,7 +68,7 @@ func TestParsePayload(t *testing.T) {
 		Value int    `json:"value"`
 	}
 
-	if err := ParsePayload(e, &result); err != nil {
+	if err := json.Unmarshal(e.Payload(), &result); err != nil {
 		t.Fatalf("ParsePayload() error = %v", err)
 	}
 	if result.Name != "test" {
@@ -83,7 +84,7 @@ func TestParsePayload_InvalidJSON(t *testing.T) {
 	e := NewBaseEvent("test.parse", "id", payload)
 
 	var result map[string]interface{}
-	if err := ParsePayload(e, &result); err == nil {
+	if err := json.Unmarshal(e.Payload(), &result); err == nil {
 		t.Error("ParsePayload() expected error for invalid JSON")
 	}
 }

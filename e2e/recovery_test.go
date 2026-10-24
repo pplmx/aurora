@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/token"

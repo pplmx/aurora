@@ -102,7 +102,7 @@ func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchData
 	// hostname that was public can be DNS-rebound to a loopback / RFC1918 /
 	// cloud-metadata address. Re-apply the domain SSRF policy immediately
 	// before fetching so a rebound source fails closed instead of reaching
-	// internal services. This runs on every fetch path (CLI, REST, TUI,
+	// internal services. This runs on every fetch path (CLI, REST, desktop,
 	// scheduler) that funnels through this use case. (An empty URL is not an
 	// SSRF vector and is left to the fetcher's own empty-URL handling.)
 	if source.URL != "" {

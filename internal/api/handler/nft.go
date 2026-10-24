@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/nftapp"
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 )
 

@@ -127,8 +127,6 @@ func Usage(w io.Writer, version, buildTime string) {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, T("desktop.help.flags"))
 	fmt.Fprintln(w, T("desktop.help.help_flag"))
-	fmt.Fprintln(w, T("desktop.help.web_root_flag"))
-	fmt.Fprintln(w, T("desktop.help.web_root_cont"))
 	fmt.Fprintln(w, T("desktop.help.data_dir_flag"))
 	fmt.Fprintln(w, T("desktop.help.version_flag"))
 	fmt.Fprintln(w)

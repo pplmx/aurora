@@ -1,4 +1,4 @@
-package aurora
+package repocheck
 
 import (
 	"go/ast"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -15,10 +16,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// readRepoFile resolves a checkout file relative to this test package.
+// repoRoot resolves the checkout root from this file's location, so the tests
+// work whatever directory `go test` runs them from.
+func repoRoot(t *testing.T) string {
+	t.Helper()
+	_, thisFile, _, ok := runtime.Caller(0)
+	require.True(t, ok)
+	return filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", ".."))
+}
+
+// readRepoFile resolves a checkout file relative to the repository root.
 func readRepoFile(t *testing.T, parts ...string) string {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(parts...))
+	data, err := os.ReadFile(filepath.Join(append([]string{repoRoot(t)}, parts...)...))
 	require.NoError(t, err)
 	return string(data)
 }

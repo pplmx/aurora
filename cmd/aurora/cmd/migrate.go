@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/spf13/cobra"

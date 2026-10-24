@@ -1,7 +1,6 @@
 package events
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 
@@ -60,7 +59,3 @@ func (e *BaseEvent) Module() string       { return e.module }
 func (e *BaseEvent) AggregateID() string  { return e.aggID }
 func (e *BaseEvent) Timestamp() time.Time { return e.timestamp }
 func (e *BaseEvent) Payload() []byte      { return e.payload }
-
-func ParsePayload(e Event, dest interface{}) error {
-	return json.Unmarshal(e.Payload(), dest)
-}

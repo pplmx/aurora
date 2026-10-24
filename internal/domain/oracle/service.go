@@ -30,7 +30,7 @@ const MaxSourceIntervalSeconds = 30 * 24 * 60 * 60
 // and URL scheme were checked) while the token/voting/lottery surfaces cap
 // their free-text inputs; a key-holding caller could grow rows and list/detail
 // responses without bound. These caps are enforced at the shared domain edge
-// so REST/CLI/TUI/web all inherit them (TASK-271, ISS-267).
+// so REST/CLI/desktop all inherit them (TASK-271, ISS-267).
 const (
 	MaxSourceNameLength   = 100
 	MaxSourceTypeLength   = 50

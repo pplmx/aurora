@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/domain/blockchain"
 )
 
 func TestMain(m *testing.M) {

@@ -14,7 +14,7 @@ type Repository interface {
 	SaveNFT(nft *NFT) error
 	GetNFT(id string) (*NFT, error)
 	// GetNFTsByOwner returns the NFTs owned by owner, paged with SQL
-	// LIMIT/OFFSET. limit <= 0 means unbounded (0, 0 is the CLI/TUI default;
+	// LIMIT/OFFSET. limit <= 0 means unbounded (0, 0 is the CLI default;
 	// the REST layer always passes a bounded limit, TASK-101, ISS-093).
 	GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error)
 	UpdateNFT(nft *NFT) error

@@ -44,8 +44,8 @@ var knownAPIModules = map[string]struct{}{
 
 // classifyModule buckets a request path into a small set of high-level labels
 // for the per-module metrics. API routes live under /api/v1/<module> (token,
-// nft, voting, lottery, oracle, blockchain); health and metrics endpoints and
-// the static web UI are separate buckets. Grouping by module (rather than full
+// nft, voting, lottery, oracle, blockchain); health and metrics endpoints are
+// separate buckets. Grouping by module (rather than full
 // route pattern) keeps the label cardinality bounded while still showing which
 // subsystem a request touched.
 func classifyModule(path string) string {
