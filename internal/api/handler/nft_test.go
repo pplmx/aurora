@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	domainnft "github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,7 +61,7 @@ func TestNFTHandler_Routes(t *testing.T) {
 }
 
 func TestNFTHandler_History_ReturnsMintOperation(t *testing.T) {
-	repo := domainnft.NewInmemRepo()
+	repo := nft.NewInmemRepo()
 	handler := NewNFTHandler(repo, nil)
 
 	creator := make([]byte, 32)
@@ -104,7 +104,7 @@ func TestNFTHandler_History_ReturnsMintOperation(t *testing.T) {
 // intentionally removes the NFT while retaining its operation trail, so
 // GET /nft/{id}/history must keep returning that trail instead of 404ing.
 func TestNFTHandler_History_AfterBurn(t *testing.T) {
-	repo := domainnft.NewInmemRepo()
+	repo := nft.NewInmemRepo()
 	handler := NewNFTHandler(repo, nil)
 
 	owner, privateKey, err := ed25519.GenerateKey(nil)
@@ -167,7 +167,7 @@ func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {
 }
 
 func TestNFTHandler_RejectsZeroAddress(t *testing.T) {
-	repo := domainnft.NewInmemRepo()
+	repo := nft.NewInmemRepo()
 	handler := NewNFTHandler(repo, nil)
 	zero := base64.StdEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
 
@@ -243,13 +243,13 @@ func TestNFTHandler_List_EmptyOwner(t *testing.T) {
 // ISS-093): GET /nft/list?owner= must honor ?limit/?offset (default 20, cap
 // 100) instead of returning an owner's entire collection unbounded.
 func TestNFTHandler_List_Paged(t *testing.T) {
-	handler := NewNFTHandler(domainnft.NewInmemRepo(), nil)
+	handler := NewNFTHandler(nft.NewInmemRepo(), nil)
 
 	// A 32-byte owner: the list use case rejects wrong-length owners as client
 	// errors (TASK-112), and the in-memory matching is exact on the key bytes.
 	ownerPub := bytes.Repeat([]byte{0x41}, 32)
 	for i := 0; i < 5; i++ {
-		err := handler.repo.SaveNFT(&domainnft.NFT{
+		err := handler.repo.SaveNFT(&nft.NFT{
 			ID:    fmt.Sprintf("nft-%d", i),
 			Name:  fmt.Sprintf("NFT %d", i),
 			Owner: ownerPub,

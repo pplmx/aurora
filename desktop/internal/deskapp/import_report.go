@@ -2,7 +2,7 @@ package deskapp
 
 import (
 	"github.com/egoist/mygo"
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 )
 
 // importReport builds what the user is told after an import. It is the single

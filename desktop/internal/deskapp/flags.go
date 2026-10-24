@@ -23,7 +23,6 @@ const (
 
 // Flags carries the desktop command line.
 type Flags struct {
-	WebRoot string
 	DataDir string
 	// Intent is the page (or lottery export) the launch argument asked for:
 	// an aurora:// deep link, or the path of a file the app opens. The zero
@@ -43,7 +42,6 @@ func ParseFlags(args []string) (Mode, Flags, error) {
 	var showVersion bool
 	fs.BoolVar(&showVersion, "version", false, "show version information and exit")
 	fs.BoolVar(&showVersion, "v", false, "alias for --version")
-	fs.StringVar(&opts.WebRoot, "web-root", "", "serve the web UI from this directory instead of the embedded copy")
 	fs.StringVar(&opts.DataDir, "data-dir", "", "directory holding aurora.db (default: per-user data directory)")
 
 	// flag.Parse stops at the first positional argument, but a launcher may
@@ -144,16 +142,16 @@ func VersionText(version, buildTime string) string {
 		T("app.version"), version, T("app.build_time"), buildTime, T("app.go_version"), runtime.Version())
 }
 
-// ForwardedPaths returns the --data-dir and --web-root values of a launch that
-// was forwarded to an already running instance (App.OnSecondInstance), or ""
-// for one that was not given.
+// ForwardedPaths returns the --data-dir value of a launch that was forwarded to
+// an already running instance (App.OnSecondInstance), or "" for one that was
+// not given.
 //
 // The flags are scanned here instead of being handed to flag.Parse because a
 // launch line may put them after the link ("aurora://voting --data-dir X") and
 // flag.Parse stops at the first positional argument. The values are always
 // well formed: the second process parsed and validated its own command line
 // before it forwarded it.
-func ForwardedPaths(args []string) (dataDir, webRoot string) {
+func ForwardedPaths(args []string) (dataDir string) {
 	for i := 0; i < len(args); i++ {
 		name, value, hasValue := strings.Cut(strings.TrimLeft(args[i], "-"), "=")
 		if !strings.HasPrefix(args[i], "-") || !isValueFlag(name) {
@@ -168,16 +166,14 @@ func ForwardedPaths(args []string) (dataDir, webRoot string) {
 		}
 		if name == "data-dir" {
 			dataDir = value
-		} else {
-			webRoot = value
 		}
 	}
-	return dataDir, webRoot
+	return dataDir
 }
 
 // isValueFlag reports whether name takes a separate argument. The parser
 // needs this when flags surround the intent: it must keep a value attached to
 // its flag instead of mistaking that value for the intent.
 func isValueFlag(name string) bool {
-	return name == "data-dir" || name == "web-root"
+	return name == "data-dir"
 }

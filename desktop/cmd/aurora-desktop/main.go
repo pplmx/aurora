@@ -18,8 +18,10 @@ import (
 	// catalog imported MyGo would fall back to English and log a warning.
 	_ "github.com/egoist/mygo/locales/zh-Hans"
 	_ "github.com/egoist/mygo/locales/zh-Hant"
+	"github.com/egoist/mygo/ui"
 	"github.com/pplmx/aurora/desktop/appicon"
 	"github.com/pplmx/aurora/desktop/internal/deskapp"
+	"github.com/pplmx/aurora/desktop/internal/nativeui"
 )
 
 // generationRequested reports whether MyGo compiled this binary only to
@@ -202,7 +204,6 @@ func main() {
 		mygo.WebViewAvailable,
 		func() (err error) {
 			rt, err = deskapp.Start(ctx, deskapp.Options{
-				WebRoot:        opts.WebRoot,
 				DataDir:        opts.DataDir,
 				DataDirDefault: userDataDir,
 			})
@@ -217,13 +218,6 @@ func main() {
 	// window too, not only to the CLI of the same build.
 	deskapp.ApplyConfiguredLocale()
 
-	// Serve the very same router cmd/api serves, but over the app's own
-	// scheme instead of a TCP listener.
-	if err := mygo.Protocol.Handle(deskapp.Scheme, rt.Handler()); err != nil {
-		fmt.Fprintf(os.Stderr, "aurora-desktop: %v\n", err)
-		os.Exit(1)
-	}
-
 	// Only override the version `mygo build` linked in; SetVersion("") would
 	// erase it (App.Version falls back to the packaged identity only when no
 	// override is set).
@@ -233,7 +227,6 @@ func main() {
 	meta := deskapp.About{
 		Version:   version(),
 		BuildTime: buildTime(),
-		WebRoot:   rt.WebRoot(),
 		DBPath:    rt.DBPath(),
 	}
 	mygo.App.SetMenu(deskapp.NewMenu(meta))
@@ -243,6 +236,9 @@ func main() {
 	// app registers the scheme on every start, which is cheap and works
 	// without an installer.
 	shell := deskapp.NewShell(meta)
+	// The window draws native widgets from this state; a link or a second
+	// launch steers it, so the shell needs it before any intent arrives.
+	shell.SetApp(rt.App())
 	if runtime.GOOS != "darwin" {
 		if err := mygo.App.RegisterURLScheme(deskapp.DeepLinkScheme); err != nil {
 			fmt.Fprintf(os.Stderr, "aurora-desktop: register %s://: %v\n", deskapp.DeepLinkScheme, err)
@@ -335,16 +331,20 @@ type mainWindowHooks interface {
 
 // mainWindowOptions is the one specification for the main window. Startup and
 // macOS window recreation both go through it, so a reopened window keeps the
-// same state key, page, and appearance as the first one.
-func mainWindowOptions(opts deskapp.Flags) mygo.WindowOptions {
+// same state key and appearance as the first one.
+//
+// Content replaces URL: the window draws MyGo's own widgets instead of hosting
+// the REST gateway's HTML. There is no web page, no browser engine and no
+// Content-Security-Policy to get wrong.
+func mainWindowOptions(app *nativeui.App, opts deskapp.Flags) mygo.WindowOptions {
 	return mygo.WindowOptions{
 		Title:           deskapp.AppName,
-		URL:             opts.Intent.URL(),
+		Content:         ui.View(app.View),
 		Width:           1280,
 		Height:          860,
 		MinWidth:        900,
 		MinHeight:       600,
-		BackgroundColor: "#1a1a1a",
+		BackgroundColor: "#0c2228",
 		StateKey:        "main",
 	}
 }
@@ -375,7 +375,7 @@ type mainWindowConstructor func(mygo.WindowOptions) (*mygo.Window, mainWindowHoo
 // injectable constructor, so a test can prove that a replacement window gets
 // the same state and handlers as the first.
 func buildMainWindow(shell *deskapp.Shell, opts deskapp.Flags, create mainWindowConstructor) *mygo.Window {
-	win, hooks := create(mainWindowOptions(opts))
+	win, hooks := create(mainWindowOptions(shell.App(), opts))
 	wireMainWindow(shell, win, hooks)
 	return win
 }

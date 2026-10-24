@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	oracleapp "github.com/pplmx/aurora/internal/app/oracle"
+	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

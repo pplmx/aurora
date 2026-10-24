@@ -9,10 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
 )
 
 func TestLotteryCreate_HappyPath(t *testing.T) {
@@ -172,12 +171,12 @@ func TestLotteryVerify_NumericPrefixID(t *testing.T) {
 		seed := "numeric-seed"
 		participants := []string{"Alice", "Bob"}
 		output := []byte{0x00}
-		winners := domainlottery.SelectWinners(output, participants, 1)
-		record := domainlottery.CreateLotteryRecord(
+		winners := lottery.SelectWinners(output, participants, 1)
+		record := lottery.CreateLotteryRecord(
 			seed,
 			participants,
 			winners,
-			[]string{domainlottery.NameToAddress(winners[0])},
+			[]string{lottery.NameToAddress(winners[0])},
 			output,
 			[]byte{0x00},
 			"",
@@ -237,14 +236,14 @@ func extractLotteryID(t *testing.T, out string) string {
 	return ""
 }
 
-func genuineLotteryRecord(t *testing.T, seed string, blockHeight int64) domainlottery.LotteryRecord {
+func genuineLotteryRecord(t *testing.T, seed string, blockHeight int64) lottery.LotteryRecord {
 	t.Helper()
 	participants := []string{"Alice", "Bob", "Carol"}
-	winners, addresses, output, proof, publicKey, err := domainlottery.NewService().DrawWinners(
+	winners, addresses, output, proof, publicKey, err := lottery.NewService().DrawWinners(
 		participants, seed, 2,
 	)
 	require.NoError(t, err)
-	record := domainlottery.CreateLotteryRecord(
+	record := lottery.CreateLotteryRecord(
 		seed, participants, winners, addresses, output, proof, publicKey, blockHeight,
 	)
 	record.Verified = true
@@ -306,7 +305,7 @@ func TestLotteryExport_Import(t *testing.T) {
 
 		data, err := os.ReadFile(exportPath)
 		require.NoError(t, err)
-		var records []domainlottery.LotteryRecord
+		var records []lottery.LotteryRecord
 		require.NoError(t, json.Unmarshal(data, &records))
 		require.Len(t, records, 1)
 		require.NotEmpty(t, records[0].VRFPublicKey, "export must carry the persisted proof key")
@@ -403,8 +402,8 @@ func TestLotteryImport_PartialFailure(t *testing.T) {
 		// One valid record + one that fails validation (empty participants).
 		mixed := filepath.Join(t.TempDir(), "mixed.json")
 		valid := genuineLotteryRecord(t, "mix-seed-long", 7)
-		invalid := domainlottery.LotteryRecord{ID: "bad", Seed: "x"} // zero participants/winners
-		payload, _ := json.Marshal([]domainlottery.LotteryRecord{valid, invalid})
+		invalid := lottery.LotteryRecord{ID: "bad", Seed: "x"} // zero participants/winners
+		payload, _ := json.Marshal([]lottery.LotteryRecord{valid, invalid})
 		require.NoError(t, os.WriteFile(mixed, payload, 0644))
 
 		_, err := runCmd(t, "lottery", "import", mixed)
@@ -458,7 +457,7 @@ func TestLotteryImport_AllowsFreshValidImport(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		importPath := filepath.Join(t.TempDir(), "fresh.json")
 		rec := genuineLotteryRecord(t, "fresh-import-seed-long", 3)
-		payload, _ := json.Marshal([]domainlottery.LotteryRecord{rec})
+		payload, _ := json.Marshal([]lottery.LotteryRecord{rec})
 		require.NoError(t, os.WriteFile(importPath, payload, 0644))
 
 		out, err := runCmd(t, "lottery", "import", importPath)
@@ -488,7 +487,7 @@ func TestLotteryStats_AgreesWithHistoryForImportedRecord(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		importPath := filepath.Join(t.TempDir(), "imp.json")
 		rec := genuineLotteryRecord(t, "stats-import-seed-long", 5)
-		payload, _ := json.Marshal([]domainlottery.LotteryRecord{rec})
+		payload, _ := json.Marshal([]lottery.LotteryRecord{rec})
 		require.NoError(t, os.WriteFile(importPath, payload, 0644))
 
 		out, err := runCmd(t, "lottery", "import", importPath)

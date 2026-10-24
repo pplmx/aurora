@@ -10,10 +10,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domaintoken "github.com/pplmx/aurora/internal/domain/token"
 )
 
 func TestTokenHandler_Create_InvalidJSON(t *testing.T) {
@@ -85,7 +84,7 @@ func TestTokenHandler_Info_NotFound(t *testing.T) {
 // "internal server error" that a client would blindly retry.
 func TestTokenHandler_Approve_AuditPublishFailed(t *testing.T) {
 	h := NewTokenHandler(fakeTokenServiceFull{
-		err: fmt.Errorf("%w: %v", domaintoken.ErrAuditPublishFailed, errors.New("event store unavailable")),
+		err: fmt.Errorf("%w: %v", token.ErrAuditPublishFailed, errors.New("event store unavailable")),
 	})
 
 	// Valid base64 keys (32-byte public, 64-byte private) so the usecase
@@ -239,7 +238,7 @@ type recordingHistoryService struct {
 	gotOffset int
 }
 
-func (r *recordingHistoryService) GetTransferHistory(_ domaintoken.TokenID, _ domaintoken.PublicKey, limit, offset int) ([]*domaintoken.TransferEvent, error) {
+func (r *recordingHistoryService) GetTransferHistory(_ token.TokenID, _ token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
 	r.gotLimit = limit
 	r.gotOffset = offset
 	return nil, nil

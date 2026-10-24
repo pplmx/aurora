@@ -4,26 +4,26 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	votingapp "github.com/pplmx/aurora/internal/app/voting"
+	"github.com/pplmx/aurora/internal/app/votingapp"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
-	domainvoting "github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/domain/voting"
 )
 
 type VotingHandler struct {
-	repo      domainvoting.TransactableRepository
-	txManager domainvoting.TransactionManager
-	service   domainvoting.Service
+	repo      voting.TransactableRepository
+	txManager voting.TransactionManager
+	service   voting.Service
 	chain     blockchain.BlockWriter
 }
 
 // NewVotingHandler wires the voting use cases over a transaction-capable
 // repository. txManager may be nil (handler tests); CastVote then falls back
 // to non-transactional writes via the use case's nil guard.
-func NewVotingHandler(repo domainvoting.TransactableRepository, txManager domainvoting.TransactionManager) *VotingHandler {
+func NewVotingHandler(repo voting.TransactableRepository, txManager voting.TransactionManager) *VotingHandler {
 	return &VotingHandler{
 		repo:      repo,
 		txManager: txManager,
-		service:   domainvoting.NewEd25519Service(),
+		service:   voting.NewEd25519Service(),
 	}
 }
 

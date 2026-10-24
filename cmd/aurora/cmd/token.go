@@ -7,7 +7,7 @@ import (
 	"math"
 	"strconv"
 
-	tokent "github.com/pplmx/aurora/internal/app/token"
+	"github.com/pplmx/aurora/internal/app/tokenapp"
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
@@ -241,14 +241,14 @@ var tokenMintCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		uc := tokent.NewMintUseCase(service)
+		uc := tokenapp.NewMintUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
 		to, _ := cmd.Flags().GetString("to")
 		amount, _ := cmd.Flags().GetString("amount")
 		privKey, _ := cmd.Flags().GetString("private-key")
 
-		req := &tokent.MintRequest{
+		req := &tokenapp.MintRequest{
 			TokenID:    tokenID,
 			To:         to,
 			Amount:     amount,
@@ -279,7 +279,7 @@ var tokenTransferCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		uc := tokent.NewTransferUseCase(service)
+		uc := tokenapp.NewTransferUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
 		from, _ := cmd.Flags().GetString("from")
@@ -287,7 +287,7 @@ var tokenTransferCmd = &cobra.Command{
 		amount, _ := cmd.Flags().GetString("amount")
 		privKey, _ := cmd.Flags().GetString("private-key")
 
-		req := &tokent.TransferRequest{
+		req := &tokenapp.TransferRequest{
 			TokenID:    tokenID,
 			From:       from,
 			To:         to,
@@ -320,7 +320,7 @@ var tokenApproveCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		uc := tokent.NewApproveUseCase(service)
+		uc := tokenapp.NewApproveUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
 		owner, _ := cmd.Flags().GetString("owner")
@@ -328,7 +328,7 @@ var tokenApproveCmd = &cobra.Command{
 		amount, _ := cmd.Flags().GetString("amount")
 		privKey, _ := cmd.Flags().GetString("private-key")
 
-		req := &tokent.ApproveRequest{
+		req := &tokenapp.ApproveRequest{
 			TokenID:    tokenID,
 			Owner:      owner,
 			Spender:    spender,
@@ -361,7 +361,7 @@ var tokenTransferFromCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		uc := tokent.NewTransferFromUseCase(service)
+		uc := tokenapp.NewTransferFromUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
 		owner, _ := cmd.Flags().GetString("owner")
@@ -370,7 +370,7 @@ var tokenTransferFromCmd = &cobra.Command{
 		spender, _ := cmd.Flags().GetString("spender")
 		privateKey, _ := cmd.Flags().GetString("private-key")
 
-		req := &tokent.TransferFromRequest{
+		req := &tokenapp.TransferFromRequest{
 			TokenID:    tokenID,
 			Owner:      owner,
 			To:         to,
@@ -410,14 +410,14 @@ var tokenBurnCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		uc := tokent.NewBurnUseCase(service)
+		uc := tokenapp.NewBurnUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
 		from, _ := cmd.Flags().GetString("from")
 		amount, _ := cmd.Flags().GetString("amount")
 		privKey, _ := cmd.Flags().GetString("private-key")
 
-		req := &tokent.BurnRequest{
+		req := &tokenapp.BurnRequest{
 			TokenID:    tokenID,
 			From:       from,
 			Amount:     amount,
@@ -448,12 +448,12 @@ var tokenBalanceCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		uc := tokent.NewGetBalanceUseCase(service)
+		uc := tokenapp.NewGetBalanceUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
 		owner, _ := cmd.Flags().GetString("owner")
 
-		req := &tokent.BalanceRequest{
+		req := &tokenapp.BalanceRequest{
 			TokenID: tokenID,
 			Owner:   owner,
 		}
@@ -482,13 +482,13 @@ var tokenAllowanceCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		uc := tokent.NewGetAllowanceUseCase(service)
+		uc := tokenapp.NewGetAllowanceUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
 		owner, _ := cmd.Flags().GetString("owner")
 		spender, _ := cmd.Flags().GetString("spender")
 
-		req := &tokent.AllowanceRequest{
+		req := &tokenapp.AllowanceRequest{
 			TokenID: tokenID,
 			Owner:   owner,
 			Spender: spender,
@@ -519,7 +519,7 @@ var tokenHistoryCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		uc := tokent.NewGetHistoryUseCase(service)
+		uc := tokenapp.NewGetHistoryUseCase(service)
 
 		tokenID, _ := cmd.Flags().GetString("token")
 		owner, _ := cmd.Flags().GetString("owner")
@@ -538,7 +538,7 @@ var tokenHistoryCmd = &cobra.Command{
 			offset = 1000
 		}
 
-		req := &tokent.HistoryRequest{
+		req := &tokenapp.HistoryRequest{
 			TokenID: tokenID,
 			Owner:   owner,
 			Limit:   limit,

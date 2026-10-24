@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo"
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	lotteryapp "github.com/pplmx/aurora/internal/app/lottery"
 )
 
 // TestImportReportIsOneContract pins the shared wording. Before this existed,

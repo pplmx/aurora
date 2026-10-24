@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo"
+	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	domainlottery "github.com/pplmx/aurora/internal/domain/lottery"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 func TestParseIntent_DeepLinks(t *testing.T) {
@@ -162,7 +161,7 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 
 	draw := genuineDesktopLotteryRecord(t, "seed-value")
 	draw.BlockHeight = 1
-	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	document, err := json.Marshal([]lottery.LotteryRecord{draw})
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
 
@@ -217,7 +216,7 @@ func TestShell_HandleLaunchArgs(t *testing.T) {
 	exportPath := filepath.Join(dir, "draws.json")
 	draw := genuineDesktopLotteryRecord(t, "second-seed")
 	draw.BlockHeight = 2
-	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	document, err := json.Marshal([]lottery.LotteryRecord{draw})
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
 
@@ -270,7 +269,7 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 
 	draw := genuineDesktopLotteryRecord(t, "relative-seed")
 	draw.BlockHeight = 3
-	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	document, err := json.Marshal([]lottery.LotteryRecord{draw})
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(filepath.Join(launcherDir, "draws.json"), []byte(document), 0o644))
 
@@ -297,7 +296,7 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 	// The same file via a file:// URL, which Linux launchers also send.
 	urlDraw := genuineDesktopLotteryRecord(t, "file-url-seed")
 	urlDraw.BlockHeight = 4
-	other, err := json.Marshal([]domainlottery.LotteryRecord{urlDraw})
+	other, err := json.Marshal([]lottery.LotteryRecord{urlDraw})
 	require.NoError(t, err)
 	urlPath := filepath.Join(launcherDir, "from-url.json")
 	require.NoError(t, os.WriteFile(urlPath, []byte(other), 0o644))
@@ -402,16 +401,13 @@ func TestForwardedPaths(t *testing.T) {
 		{name: "before the link", args: []string{"--data-dir", "/d", "aurora://voting"}, dataDir: "/d"},
 		{name: "after the link", args: []string{"aurora://voting", "--data-dir", "/d"}, dataDir: "/d"},
 		{name: "equals form", args: []string{"--data-dir=/d"}, dataDir: "/d"},
-		{name: "both", args: []string{"--web-root", "/w", "--data-dir", "/d"}, dataDir: "/d", webRoot: "/w"},
 		{name: "short dashes", args: []string{"-data-dir", "/d"}, dataDir: "/d"},
 		{name: "missing value", args: []string{"--data-dir"}},
 		{name: "unrelated flags", args: []string{"--version", "draws.json"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dataDir, webRoot := ForwardedPaths(tt.args)
-			assert.Equal(t, tt.dataDir, dataDir)
-			assert.Equal(t, tt.webRoot, webRoot)
+			assert.Equal(t, tt.dataDir, ForwardedPaths(tt.args))
 		})
 	}
 }
@@ -427,7 +423,7 @@ func TestShell_RefusesAForeignDataDir(t *testing.T) {
 	exportPath := filepath.Join(dir, "draws.json")
 	draw := genuineDesktopLotteryRecord(t, "wrong-db-seed")
 	draw.BlockHeight = 5
-	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	document, err := json.Marshal([]lottery.LotteryRecord{draw})
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
 
@@ -513,30 +509,6 @@ func TestShell_AcceptsTheRelativeDataDirItStartedWith(t *testing.T) {
 	assert.Equal(t, Intent{Page: "voting", Raw: "aurora://voting"}, navigated[0])
 }
 
-// TestShell_AcceptsEquivalentWebRootSpellings pins the same path rule for the
-// UI. A first launch may record --web-root with a trailing separator while a
-// later launch spells the directory without it; both name the directory the
-// window is serving, so neither spelling is a conflict.
-func TestShell_AcceptsEquivalentWebRootSpellings(t *testing.T) {
-	launcher := t.TempDir()
-	webRoot := filepath.Join(launcher, "web")
-
-	for _, running := range []string{webRoot, webRoot + string(filepath.Separator)} {
-		shell := NewShell(About{WebRoot: running})
-		var reports []string
-		shell.report = func(_ mygo.MessageType, title, message, _ string) {
-			reports = append(reports, title+" | "+message)
-		}
-		var navigated []Intent
-		shell.navigate = func(in Intent) { navigated = append(navigated, in) }
-
-		shell.HandleLaunchArgs([]string{"--web-root", "web", "aurora://voting"}, launcher)
-
-		assert.Empty(t, reports, "running web root %q and forwarded \"web\" name the same UI", running)
-		require.Len(t, navigated, 1, "running web root %q must still accept the forwarded link", running)
-	}
-}
-
 // TestShell_AcceptsSymlinkAliasesOfRunningPaths pins filesystem identity, not
 // string identity. A launcher may reach the same database and web root through
 // a symlinked directory; refusing that launch would claim it names another
@@ -568,7 +540,6 @@ func TestShell_AcceptsSymlinkAliasesOfRunningPaths(t *testing.T) {
 
 	shell.HandleLaunchArgs([]string{
 		"--data-dir", filepath.Join(alias, "data"),
-		"--web-root", filepath.Join(alias, "web"),
 		"aurora://voting",
 	}, root)
 
@@ -699,7 +670,7 @@ func TestShellOpenedFileRecreatesWindow(t *testing.T) {
 	exportPath := filepath.Join(dir, "draws.json")
 	draw := genuineDesktopLotteryRecord(t, "reopen-seed")
 	draw.BlockHeight = 6
-	document, err := json.Marshal([]domainlottery.LotteryRecord{draw})
+	document, err := json.Marshal([]lottery.LotteryRecord{draw})
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(exportPath, []byte(document), 0o644))
 

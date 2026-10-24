@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	blockchain "github.com/pplmx/aurora/internal/domain/blockchain"
-	voting "github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/domain/voting"
 )
 
 func TestVotingE2E_CandidateRegistration(t *testing.T) {
