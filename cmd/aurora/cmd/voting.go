@@ -114,8 +114,8 @@ var candidateAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.candidate_added")+"\n", cand.Name)
-		fmt.Printf("   ID: %s\n", cand.ID)
-		fmt.Printf("   Party: %s\n", cand.Party)
+		printField("ID", cand.ID)
+		printField("Party", cand.Party)
 		return nil
 	},
 }
@@ -210,7 +210,7 @@ var voterListCmd = &cobra.Command{
 			if len(v.PublicKey) > 16 {
 				fmt.Printf("     Public Key: %s...\n", v.PublicKey[:16])
 			} else {
-				fmt.Printf("     Public Key: %s\n", v.PublicKey)
+				printField("  Public Key", v.PublicKey)
 			}
 		}
 		return nil
@@ -298,8 +298,8 @@ var sessionCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.session_created")+"\n", session.Title)
-		fmt.Printf("   ID: %s\n", session.ID)
-		fmt.Printf("   Status: %s\n", session.Status)
+		printField("ID", session.ID)
+		printField("Status", session.Status)
 		return nil
 	},
 }
@@ -325,7 +325,7 @@ var sessionListCmd = &cobra.Command{
 		}
 		for _, s := range list {
 			fmt.Printf("   - %s [%s]\n", s.Title, s.Status)
-			fmt.Printf("     ID: %s\n", s.ID)
+			printField("  ID", s.ID)
 		}
 		return nil
 	},

@@ -224,7 +224,7 @@ var tokenCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf(i18n.GetText("token.created"), tk.ID(), tk.Name(), tk.Symbol())
-		fmt.Printf("   Owner Public Key: %s\n", b64Encode(pub))
+		printField("Owner Public Key", b64Encode(pub))
 		fmt.Printf("   Owner Private Key: %s (SAVE THIS!)\n", b64Encode(priv))
 		return nil
 	},
@@ -261,9 +261,9 @@ var tokenMintCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.minted"))
-		fmt.Printf("   ID: %s\n", resp.ID)
-		fmt.Printf("   To: %s\n", truncateBase64(resp.To))
-		fmt.Printf("   Amount: %s\n", resp.Amount)
+		printField("ID", resp.ID)
+		printField("To", truncateBase64(resp.To))
+		printField("Amount", resp.Amount)
 		return nil
 	},
 }
@@ -301,10 +301,10 @@ var tokenTransferCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.transferred"))
-		fmt.Printf("   ID: %s\n", resp.ID)
-		fmt.Printf("   From: %s\n", truncateBase64(resp.From))
-		fmt.Printf("   To: %s\n", truncateBase64(resp.To))
-		fmt.Printf("   Amount: %s\n", resp.Amount)
+		printField("ID", resp.ID)
+		printField("From", truncateBase64(resp.From))
+		printField("To", truncateBase64(resp.To))
+		printField("Amount", resp.Amount)
 		return nil
 	},
 }
@@ -342,10 +342,10 @@ var tokenApproveCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.approved"))
-		fmt.Printf("   ID: %s\n", resp.ID)
-		fmt.Printf("   Owner: %s\n", truncateBase64(resp.Owner))
-		fmt.Printf("   Spender: %s\n", truncateBase64(resp.Spender))
-		fmt.Printf("   Amount: %s\n", resp.Amount)
+		printField("ID", resp.ID)
+		printField("Owner", truncateBase64(resp.Owner))
+		printField("Spender", truncateBase64(resp.Spender))
+		printField("Amount", resp.Amount)
 		return nil
 	},
 }
@@ -385,11 +385,11 @@ var tokenTransferFromCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.transferred"))
-		fmt.Printf("   ID: %s\n", resp.ID)
-		fmt.Printf("   Owner: %s\n", truncateBase64(resp.From))
-		fmt.Printf("   To: %s\n", truncateBase64(resp.To))
-		fmt.Printf("   Spender: %s\n", truncateBase64(req.Spender))
-		fmt.Printf("   Amount: %s\n", resp.Amount)
+		printField("ID", resp.ID)
+		printField("Owner", truncateBase64(resp.From))
+		printField("To", truncateBase64(resp.To))
+		printField("Spender", truncateBase64(req.Spender))
+		printField("Amount", resp.Amount)
 		return nil
 	},
 }
@@ -430,9 +430,9 @@ var tokenBurnCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.burned"))
-		fmt.Printf("   ID: %s\n", resp.ID)
-		fmt.Printf("   From: %s\n", truncateBase64(resp.From))
-		fmt.Printf("   Amount: %s\n", resp.Amount)
+		printField("ID", resp.ID)
+		printField("From", truncateBase64(resp.From))
+		printField("Amount", resp.Amount)
 		return nil
 	},
 }
@@ -464,9 +464,9 @@ var tokenBalanceCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n💰 Balance:\n")
-		fmt.Printf("   Token: %s\n", resp.TokenID)
-		fmt.Printf("   Owner: %s\n", truncateBase64(resp.Owner))
-		fmt.Printf("   Balance: %s\n", resp.Amount)
+		printField("Token", resp.TokenID)
+		printField("Owner", truncateBase64(resp.Owner))
+		printField("Balance", resp.Amount)
 		return nil
 	},
 }
@@ -500,10 +500,10 @@ var tokenAllowanceCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n🔑 Allowance:\n")
-		fmt.Printf("   Token: %s\n", resp.TokenID)
-		fmt.Printf("   Owner: %s\n", truncateBase64(resp.Owner))
-		fmt.Printf("   Spender: %s\n", truncateBase64(resp.Spender))
-		fmt.Printf("   Allowance: %s\n", resp.Amount)
+		printField("Token", resp.TokenID)
+		printField("Owner", truncateBase64(resp.Owner))
+		printField("Spender", truncateBase64(resp.Spender))
+		printField("Allowance", resp.Amount)
 		return nil
 	},
 }
@@ -584,12 +584,12 @@ var tokenInfoCmd = &cobra.Command{
 		}
 
 		fmt.Printf("\n🪙 Token Info:\n")
-		fmt.Printf("   ID: %s\n", tk.ID())
-		fmt.Printf("   Name: %s\n", tk.Name())
-		fmt.Printf("   Symbol: %s\n", tk.Symbol())
-		fmt.Printf("   Total Supply: %s\n", tk.TotalSupply().String())
+		printField("ID", string(tk.ID()))
+		printField("Name", tk.Name())
+		printField("Symbol", tk.Symbol())
+		printField("Total Supply", tk.TotalSupply().String())
 		fmt.Printf("   Decimals: %d\n", tk.Decimals())
-		fmt.Printf("   Owner: %s\n", b64Encode(tk.Owner()))
+		printField("Owner", b64Encode(tk.Owner()))
 		fmt.Printf("   Mintable: %v\n", tk.IsMintable())
 		fmt.Printf("   Burnable: %v\n", tk.IsBurnable())
 		return nil
