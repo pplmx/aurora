@@ -1,10 +1,13 @@
 package nativeui
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/domain/lottery"
 )
 
 // fakeServices is a Services implementation for view tests: it returns fixed
@@ -178,4 +181,18 @@ func TestDeepLinkVerifiesTheDraw(t *testing.T) {
 	require.NotNil(t, app.lottery.verifyResult)
 	require.True(t, app.lottery.verifyResult.Valid)
 	tester.Frame()
+}
+
+// TestSeedLabelFollowsTheDomainConstant proves the window shows the rule the
+// domain enforces, not a copy of it. A hardcoded "at least 3 characters" would
+// keep claiming 3 after MinSeedLength changed.
+func TestSeedLabelFollowsTheDomainConstant(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 860)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	want := fmt.Sprintf("Seed (at least %d characters)", lottery.MinSeedLength)
+	require.True(t, tester.HasText(want),
+		"the create form must label the seed with the domain's minimum, want %q", want)
 }
