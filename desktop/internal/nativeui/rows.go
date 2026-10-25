@@ -93,8 +93,16 @@ type SourceInput struct {
 
 // TemplateRow is a built-in oracle preset.
 type TemplateRow struct {
-	ID   string
-	Name string
+	ID string
+	// Name, URL, Method, Path and Interval are the preset's values: choosing
+	// one fills the form with all of them, the way `oracle source template`
+	// does. Carrying only the name and type produced a form missing the URL,
+	// so Add Source refused a preset the CLI would have accepted.
+	Name     string
+	URL      string
+	Method   string
+	Path     string
+	Interval int
 }
 
 // DataRow is one stored oracle reading.

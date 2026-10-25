@@ -207,7 +207,11 @@ func TestSessionListShowsTheBallotWindow(t *testing.T) {
 // entirely.
 func TestOraclePresetKeepsItsChoice(t *testing.T) {
 	fake := &fakeServices{}
-	fake.templates = []TemplateRow{{ID: "coingecko", Name: "CoinGecko price"}}
+	fake.templates = []TemplateRow{{
+		ID: "coingecko", Name: "CoinGecko price",
+		URL:  "https://api.example.com/price",
+		Path: "bitcoin.usd", Method: "GET", Interval: 60,
+	}}
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 2400)
 	app.ShowPage("Oracle")
@@ -223,6 +227,35 @@ func TestOraclePresetKeepsItsChoice(t *testing.T) {
 	require.Equal(t, "coingecko", app.oracle.addType)
 	require.Equal(t, "coingecko — CoinGecko price", app.oracle.template,
 		"the choice must survive the next frame")
+}
+
+// TestChoosingAPresetFillsEveryField pins the whole preset, not just its name.
+// Filling only the name left the URL empty, so Add Source refused a preset the
+// CLI adds without complaint — the two surfaces disagreed about what a preset
+// is.
+func TestChoosingAPresetFillsEveryField(t *testing.T) {
+	fake := &fakeServices{templates: []TemplateRow{{
+		ID: "btc-price", Name: "Bitcoin Price",
+		URL:    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+		Method: "GET", Path: "bitcoin.usd", Interval: 60,
+	}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.applyTemplate("btc-price")
+
+	require.Equal(t, "Bitcoin Price", app.oracle.addName)
+	require.Equal(t, "btc-price", app.oracle.addType)
+	require.Equal(t, "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+		app.oracle.addURL, "the preset's URL must reach the form")
+	require.Equal(t, "GET", app.oracle.addMethod)
+	require.Equal(t, "bitcoin.usd", app.oracle.addPath)
+	require.Equal(t, "60", app.oracle.addInterval)
+
+	// And the filled form is addable: no field the service needs is blank.
+	require.NotEmpty(t, app.oracle.addURL, "Add Source needs a URL")
 }
 
 // TestShortIDKeepsACopyablePrefix pins the table-cell shortening: long ids keep

@@ -213,13 +213,24 @@ func (a *App) oracleAddBody(c *ui.Context) {
 	})
 }
 
+// applyTemplate fills the Add Source form from a preset: every field the
+// preset defines, so the operator can review and add it. Filling only the name
+// left the form without a URL, and Add Source then refused a preset that
+// `oracle source template` adds without complaint.
 func (a *App) applyTemplate(id string) {
 	for _, t := range a.oracle.templates {
-		if t.ID == id {
-			a.oracle.addName = t.Name
-			a.oracle.addType = t.ID
-			return
+		if t.ID != id {
+			continue
 		}
+		a.oracle.addName = t.Name
+		a.oracle.addType = t.ID
+		a.oracle.addURL = t.URL
+		a.oracle.addMethod = t.Method
+		a.oracle.addPath = t.Path
+		if t.Interval > 0 {
+			a.oracle.addInterval = strconv.Itoa(t.Interval)
+		}
+		return
 	}
 }
 

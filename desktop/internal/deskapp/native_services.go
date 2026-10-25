@@ -553,7 +553,10 @@ func (s *nativeServices) OracleTemplates() ([]nativeui.TemplateRow, error) {
 	templates := oracleapp.ListTemplates()
 	rows := make([]nativeui.TemplateRow, 0, len(templates))
 	for _, t := range templates {
-		rows = append(rows, nativeui.TemplateRow{ID: t.ID, Name: t.Name})
+		rows = append(rows, nativeui.TemplateRow{
+			ID: t.ID, Name: t.Name, URL: t.URL, Method: t.Method,
+			Path: t.Path, Interval: t.Interval,
+		})
 	}
 	return rows, nil
 }
