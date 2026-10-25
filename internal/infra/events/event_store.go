@@ -80,6 +80,23 @@ func (e *SQLiteEventStore) createTables() error {
 		`CREATE INDEX IF NOT EXISTS idx_events_module ON events(module)`,
 		`CREATE INDEX IF NOT EXISTS idx_events_agg ON events(agg_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp DESC)`,
+		// Every history read filters on the aggregate and orders by timestamp:
+		// token transfer history, NFT operations and the per-key listings.
+		// Measured with EXPLAIN QUERY PLAN before this index:
+		//   WHERE agg_id = ? ORDER BY timestamp DESC, id DESC LIMIT n
+		//     -> SEARCH events USING INDEX idx_events_agg (agg_id=?)
+		//        USE TEMP B-TREE FOR ORDER BY
+		// so the matching rows were all materialised and sorted before the
+		// LIMIT could apply. The composite carries the sort, making the LIMIT
+		// a real early stop.
+		//
+		// These live here rather than in a migration: the events table is owned
+		// by this store (no migration creates it), so a migration adding an
+		// index on it would fail against a database that has never opened the
+		// store. NewSQLiteEventStore runs on every open, so an existing
+		// database picks the indexes up on its next start.
+		`CREATE INDEX IF NOT EXISTS idx_events_agg_ts ON events(agg_id, timestamp, id)`,
+		`CREATE INDEX IF NOT EXISTS idx_events_agg_type_ts ON events(agg_id, event_type, timestamp, id)`,
 		// pending_events is the durable outbox for audit events whose direct
 		// delivery INSERT failed (TASK-119, ISS-111). The PK is the event's own
 		// id (a random UUID), so EnqueuePending is idempotent and a drainer retry
