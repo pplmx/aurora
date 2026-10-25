@@ -434,3 +434,43 @@ func testKeyPair(t *testing.T) keyPair {
 	require.NoError(t, err)
 	return keyPair{public: base64.StdEncoding.EncodeToString(pub)}
 }
+
+// TestLedgerPayloadsReadAsText pins what the ledger table shows for each
+// payload shape the chain holds. Token and NFT blocks are `verb|field|field`
+// with raw public-key bytes; rendering them verbatim printed mojibake in the
+// table, which is worse than saying nothing.
+func TestLedgerPayloadsReadAsText(t *testing.T) {
+	// A lottery record names itself by its fields.
+	assert.Equal(t, "lottery", blockModule(`{"block_height":1,"participants":["A"],"seed":"s"}`))
+	assert.Contains(t, blockSummary(`{"block_height":1,"participants":["A"]}`), `"participants"`)
+
+	// A token block carries binary key bytes after its verb.
+	summary := blockSummary("mint|AUR|\x00\x01\x02binary")
+	assert.Contains(t, summary, "token")
+	assert.Contains(t, summary, "AUR")
+	assert.NotContains(t, summary, "\x00", "raw bytes must not reach the table")
+	assert.Contains(t, summary, "AAECYmluYXJ5", "binary fields are shown as base64")
+
+	// An unknown shape is left alone rather than mangled.
+	assert.Equal(t, "AUR|transfer", blockSummary("AUR|transfer"))
+}
+
+// TestLedgerReadsAnNFTMintPayload covers the shape with no verb: an NFT's own
+// mint record is `<id>|<name>|<owner key>`, and without recognising it the
+// ledger table printed its binary key bytes as mojibake.
+func TestLedgerReadsAnNFTMintPayload(t *testing.T) {
+	summary := blockSummary("5c43a418-ca80-46ba-af63-cc7893d1a5e3|First Art|\xae\xbb\x10:")
+	assert.Contains(t, summary, "nft")
+	assert.Contains(t, summary, "First Art")
+	assert.NotContains(t, summary, "\xae")
+}
+
+// TestLedgerModuleNamesEveryPayloadShape pins the Module column: a token or NFT
+// block has no JSON to name it, so its module comes from its decoded payload
+// rather than reading "—".
+func TestLedgerModuleNamesEveryPayloadShape(t *testing.T) {
+	assert.Equal(t, "lottery", blockModuleFor(`{"participants":["A"]}`))
+	assert.Equal(t, "token", blockModuleFor("mint|AUR|\x00\x01"))
+	assert.Equal(t, "nft", blockModuleFor("5c43a418-ca80-46ba-af63-cc7893d1a5e3|Art|\xae"))
+	assert.Equal(t, "—", blockModuleFor("something else entirely"))
+}

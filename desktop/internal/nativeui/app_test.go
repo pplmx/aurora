@@ -45,6 +45,9 @@ type fakeServices struct {
 
 	// sources is what OracleSources returns.
 	sources []SourceRow
+
+	// blocks is what LedgerBlocks returns.
+	blocks []BlockRow
 }
 
 func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
@@ -72,6 +75,7 @@ func (f *fakeServices) Dashboard() (DashboardStats, error) {
 	return DashboardStats{Lotteries: 3, Votes: 9, Candidates: 2, Sessions: 1, Integrity: "verified", Oracle: 4}, nil
 }
 
+func (f *fakeServices) LedgerBlocks() ([]BlockRow, error) { return f.blocks, nil }
 func (f *fakeServices) LedgerStatus() (LedgerStatus, error) {
 	return LedgerStatus{Valid: true, Height: 5, Blocks: 6}, nil
 }

@@ -362,3 +362,22 @@ func TestChoosingAnOracleRowFillsTheActions(t *testing.T) {
 	require.Equal(t, full, app.oracle.queryID, "the query card must receive it")
 	require.Equal(t, full, app.oracle.latestID, "the latest card must receive it")
 }
+
+// TestLedgerListsRecordedBlocks pins that the ledger page shows what the chain
+// recorded, not only how many blocks there are: an audit trail nobody can read
+// is not an audit trail.
+func TestLedgerListsRecordedBlocks(t *testing.T) {
+	fake := &fakeServices{blocks: []BlockRow{
+		{Height: 2, Module: "token", Summary: `{"module":"token","amount":"100"}`},
+		{Height: 1, Module: "lottery", Summary: `{"module":"lottery","seed":"abc"}`},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Height"))
+	require.True(t, tester.HasText("token"), "a recorded module must be listed")
+	require.True(t, tester.HasText("lottery"))
+	require.Contains(t, joinedTexts(tester), `"amount":"100"`)
+}

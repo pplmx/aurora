@@ -29,6 +29,8 @@ type blockchainState struct {
 	checked bool
 	height  int
 	blocks  int
+	rows    []BlockRow
+	table   ui.ListState
 	loadErr error
 }
 
@@ -110,6 +112,11 @@ func (a *App) loadBlockchain() {
 	a.blockchain.checked = true
 	a.blockchain.height = res.Height
 	a.blockchain.blocks = res.Blocks
+	// The blocks themselves are what an auditor reads; the counters alone say
+	// how much chain there is, not what it recorded.
+	if rows, err := a.services.LedgerBlocks(); err == nil {
+		a.blockchain.rows = rows
+	}
 }
 
 func (a *App) blockchainView(c *ui.Context) {
@@ -140,6 +147,31 @@ func (a *App) blockchainBody(c *ui.Context) {
 			badge(c, "Hash chain verified", auroraGreen, night)
 		} else {
 			badge(c, "Hash chain is broken", auroraRed, night)
+		}
+	})
+	a.blockchainBlocks(c)
+}
+
+// blockchainBlocks lists what the chain recorded, newest first.
+func (a *App) blockchainBlocks(c *ui.Context) {
+	if len(a.blockchain.rows) == 0 {
+		emptyNote(c, "Nothing recorded on the chain yet.")
+		return
+	}
+	rows := a.blockchain.rows
+	ui.Table(c, &a.blockchain.table, []ui.TableColumn{
+		{Title: "Height", Width: 90, Align: ui.End},
+		{Title: "Module", Width: 130},
+		{Title: "Payload", MinWidth: 200},
+	}, len(rows), func(row, col int) {
+		b := rows[row]
+		switch col {
+		case 0:
+			ui.Text(c, strconv.FormatInt(b.Height, 10))
+		case 1:
+			ui.Text(c, b.Module).SingleLine()
+		case 2:
+			ui.Text(c, b.Summary).FontSize(12).SingleLine()
 		}
 	})
 }
