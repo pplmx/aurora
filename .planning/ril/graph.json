@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 227,
+  "round": 228,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T17:43:20+00:00",
+  "updated_at": "2026-10-25T17:50:08+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18670,6 +18670,52 @@
       "confidence": 1,
       "source": "15 consecutive go test ./internal/domain/lottery/ -cover runs",
       "summary": "Lottery domain holds 91.7% on every run; all 13 domain/app/sqlite packages report one distinct value across 4 runs each."
+    },
+    "ISS-386": {
+      "id": "ISS-386",
+      "type": "issue",
+      "status": "resolved",
+      "version": 3,
+      "created_at": "2026-10-25T17:49:59+00:00",
+      "updated_at": "2026-10-25T17:50:08+00:00",
+      "touched_round": 228,
+      "title": "A desktop oracle preset filled only its name, so Add Source refused it",
+      "severity": 0.5,
+      "description": "Choosing a preset set Name and Type and left URL empty, so Add Source rejected a preset that the CLI template command adds without complaint. TemplateRow carried only ID and Name; the catalog URL/Method/Path/Interval were dropped."
+    },
+    "ISS-387": {
+      "id": "ISS-387",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T17:49:59+00:00",
+      "updated_at": "2026-10-25T17:50:00+00:00",
+      "touched_round": 228,
+      "title": "The new token listing sorted the whole table before its LIMIT",
+      "severity": 0.45,
+      "description": "EXPLAIN QUERY PLAN on a repository-created database: SELECT ... FROM tokens ORDER BY created_at DESC, id -> SCAN tokens, USE TEMP B-TREE FOR ORDER BY. The listing added for token list / REST / desktop had no index."
+    },
+    "CHG-401": {
+      "id": "CHG-401",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T17:49:59+00:00",
+      "updated_at": "2026-10-25T17:49:59+00:00",
+      "touched_round": 228,
+      "commit": "3b218f6",
+      "title": "Fill every preset field in the desktop's Add Source form"
+    },
+    "CHG-402": {
+      "id": "CHG-402",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T17:49:59+00:00",
+      "updated_at": "2026-10-25T17:49:59+00:00",
+      "touched_round": 228,
+      "commit": "ad95348",
+      "title": "Index the token listing and pin both collection plans"
     }
   },
   "edges": [
@@ -28663,6 +28709,18 @@
       "to": "ISS-385",
       "type": "resolves",
       "created_at": "2026-10-25T17:43:20+00:00"
+    },
+    {
+      "from": "CHG-401",
+      "to": "ISS-386",
+      "type": "resolves",
+      "created_at": "2026-10-25T17:49:59+00:00"
+    },
+    {
+      "from": "CHG-402",
+      "to": "ISS-387",
+      "type": "resolves",
+      "created_at": "2026-10-25T17:50:00+00:00"
     }
   ]
 }
