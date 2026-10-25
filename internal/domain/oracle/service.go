@@ -352,13 +352,6 @@ func (s *service) FetchData(source *DataSource) (*OracleData, error) {
 	return data, s.repo.SaveData(data)
 }
 
-func (s *service) QueryData(sourceID string, limit int) ([]*OracleData, error) {
-	if limit <= 0 {
-		limit = defaultQueryLimit
-	}
-	return s.repo.GetDataBySource(sourceID, limit)
-}
-
 // generateID produces a unique identifier for oracle sources and data
 // entries. The previous implementations used time.Now() with second, then
 // nanosecond, precision — but time.Now() resolution is not monotonic enough

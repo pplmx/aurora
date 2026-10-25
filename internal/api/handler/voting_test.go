@@ -35,7 +35,6 @@ func newMockVotingRepo() *mockVotingRepo {
 }
 
 func (m *mockVotingRepo) SaveVote(*voting.Vote) error                        { return nil }
-func (m *mockVotingRepo) GetVote(string) (*voting.Vote, error)               { return nil, nil }
 func (m *mockVotingRepo) GetVotesByCandidate(string) ([]*voting.Vote, error) { return nil, nil }
 func (m *mockVotingRepo) GetVotesByVoter(string) ([]*voting.Vote, error)     { return nil, nil }
 func (m *mockVotingRepo) CountVotesBySession(_, candidateID string) (int, error) {
@@ -44,7 +43,6 @@ func (m *mockVotingRepo) CountVotesBySession(_, candidateID string) (int, error)
 	}
 	return 0, nil
 }
-func (m *mockVotingRepo) DeleteVote(string) error { return nil }
 
 // WithTx satisfies voting.TransactableRepository; the mock has no
 // transaction state, so it returns itself.
@@ -62,7 +60,6 @@ func (m *mockVotingRepo) GetVoter(pk string) (*voting.Voter, error) {
 }
 func (m *mockVotingRepo) UpdateVoter(*voting.Voter) error      { return nil }
 func (m *mockVotingRepo) TryMarkVoted(_, _ string) error       { return nil }
-func (m *mockVotingRepo) UnmarkVoted(_ string) error           { return nil }
 func (m *mockVotingRepo) ListVoters() ([]*voting.Voter, error) { return nil, nil }
 
 func (m *mockVotingRepo) SaveCandidate(candidate *voting.Candidate) error {
@@ -75,9 +72,7 @@ func (m *mockVotingRepo) SaveCandidate(candidate *voting.Candidate) error {
 func (m *mockVotingRepo) GetCandidate(id string) (*voting.Candidate, error) {
 	return m.candidates[id], nil
 }
-func (m *mockVotingRepo) UpdateCandidate(*voting.Candidate) error  { return nil }
 func (m *mockVotingRepo) IncrementCandidateVoteCount(string) error { return nil }
-func (m *mockVotingRepo) DeleteCandidate(string) error             { return nil }
 func (m *mockVotingRepo) ListCandidates() ([]*voting.Candidate, error) {
 	candidates := make([]*voting.Candidate, 0, len(m.candidates))
 	for _, c := range m.candidates {
