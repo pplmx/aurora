@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"database/sql"
+	"sort"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
@@ -33,6 +34,28 @@ func (r *inMemoryNFTRepo) SaveNFT(nft *nft.NFT) error {
 
 func (r *inMemoryNFTRepo) GetNFT(id string) (*nft.NFT, error) {
 	return r.nfts[id], nil
+}
+
+func (r *inMemoryNFTRepo) ListNFTs(limit, offset int) ([]*nft.NFT, error) {
+	var all []*nft.NFT
+	for _, byOwner := range r.nftsByOwner {
+		all = append(all, byOwner...)
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].ID < all[j].ID })
+	if limit > 0 {
+		if offset < 0 {
+			offset = 0
+		}
+		if offset >= len(all) {
+			return nil, nil
+		}
+		end := offset + limit
+		if end > len(all) {
+			end = len(all)
+		}
+		all = all[offset:end]
+	}
+	return all, nil
 }
 
 func (r *inMemoryNFTRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.NFT, error) {

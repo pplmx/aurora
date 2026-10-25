@@ -56,6 +56,24 @@ func (m *mockNFTService) GetNFTByID(id string) (*nft.NFT, error) {
 	return nil, nil
 }
 
+func (m *mockNFTService) ListNFTs(limit, offset int) ([]*nft.NFT, error) {
+	all := m.nfts
+	if limit > 0 {
+		if offset < 0 {
+			offset = 0
+		}
+		if offset >= len(all) {
+			return nil, nil
+		}
+		end := offset + limit
+		if end > len(all) {
+			end = len(all)
+		}
+		all = all[offset:end]
+	}
+	return all, nil
+}
+
 func (m *mockNFTService) GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*nft.NFT, error) {
 	all := m.nfts
 	if limit > 0 {

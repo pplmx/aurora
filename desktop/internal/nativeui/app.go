@@ -82,6 +82,9 @@ type Services interface {
 	MintNFT(name, description, imageURL, tokenURI, creator string) (NFTRow, error)
 	GetNFT(id string) (NFTRow, error)
 	ListNFTs(owner string) ([]NFTRow, error)
+	// ListAllNFTs returns every NFT, newest first. Without it the page could
+	// only reach an asset whose owner key the operator already had.
+	ListAllNFTs() ([]NFTRow, error)
 	TransferNFT(id, from, to, priv string) error
 	BurnNFT(id, owner, priv string) error
 	NFTHistory(id string) ([]NFTOpRow, error)
@@ -123,6 +126,7 @@ func New(services Services) *App {
 	// unset value or the first click on row 0 would look like no change.
 	a.lottery.selected = -1
 	a.token.chosen = -1
+	a.nft.selected = -1
 	a.refresh()
 	return a
 }

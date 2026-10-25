@@ -39,6 +39,9 @@ type fakeServices struct {
 
 	// tokenRows is what ListTokens returns.
 	tokenRows []TokenRow
+
+	// nftRows is what ListAllNFTs returns.
+	nftRows []NFTRow
 }
 
 func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
@@ -124,6 +127,7 @@ func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator st
 }
 func (f *fakeServices) GetNFT(id string) (NFTRow, error)            { return NFTRow{ID: id}, nil }
 func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error)     { return nil, nil }
+func (f *fakeServices) ListAllNFTs() ([]NFTRow, error)              { return f.nftRows, nil }
 func (f *fakeServices) TransferNFT(id, from, to, priv string) error { return nil }
 func (f *fakeServices) BurnNFT(id, owner, priv string) error        { return nil }
 func (f *fakeServices) NFTHistory(id string) ([]NFTOpRow, error)    { return nil, nil }

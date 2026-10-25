@@ -281,3 +281,40 @@ func TestTokenListFillsTheSubject(t *testing.T) {
 	require.Equal(t, "AUR", app.token.tokenID,
 		"choosing a token must make it the subject of the write cards")
 }
+
+// TestNFTCollectionLoadsOnOpen pins the page's entry point: the whole
+// collection is listed without asking for an owner key, so an asset minted in
+// another session is reachable.
+func TestNFTCollectionLoadsOnOpen(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{
+		{ID: "n1", Name: "First Art", Owner: "owner-a", Creator: "owner-a", BlockHeight: 5},
+		{ID: "n2", Name: "Second Art", Owner: "owner-b", Creator: "owner-b", BlockHeight: 6},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	require.True(t, tester.HasText("First Art"), "the collection must load with the page")
+	require.True(t, tester.HasText("Second Art"))
+	require.Len(t, app.nft.list, 2)
+}
+
+// TestChoosingAnNFTRowFillsEveryCard pins the path from a shortened id in the
+// collection to the full one: choosing a row fills Inspect, Transfer, Burn and
+// History with that asset, so no card asks for an id the table cut.
+func TestChoosingAnNFTRowFillsEveryCard(t *testing.T) {
+	const full = "5c43a418-ca80-46ba-af63-cc7893d1a5e3"
+	fake := &fakeServices{nftRows: []NFTRow{{ID: full, Name: "First Art", BlockHeight: 5}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	require.NoError(t, tester.Click(shortID(full)), "click the row's id cell")
+	tester.Frame()
+	require.Equal(t, full, app.nft.id, "Inspect must receive the asset")
+	require.Equal(t, full, app.nft.transferID, "Transfer must receive the asset")
+	require.Equal(t, full, app.nft.burnID, "Burn must receive the asset")
+	require.Equal(t, full, app.nft.historyID, "History must receive the asset")
+}

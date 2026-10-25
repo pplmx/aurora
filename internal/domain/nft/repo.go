@@ -17,6 +17,10 @@ type Repository interface {
 	// LIMIT/OFFSET. limit <= 0 means unbounded (0, 0 is the CLI default;
 	// the REST layer always passes a bounded limit, TASK-101, ISS-093).
 	GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error)
+	// ListNFTs returns every NFT, newest first. GetNFTsByOwner needs an owner
+	// key, which is the one thing a caller who did not mint the asset does not
+	// have: without this, an NFT's id was reachable only from the mint output.
+	ListNFTs(limit, offset int) ([]*NFT, error)
 	UpdateNFT(nft *NFT) error
 
 	// TryTransferOwnership atomically transfers ownership from

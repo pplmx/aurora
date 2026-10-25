@@ -542,6 +542,7 @@ func (f *failingNFTRepo) WithTx(_ *sql.Tx) nft.Repository { return f }
 func (f *failingNFTRepo) GetNFT(string) (*nft.NFT, error) {
 	return nil, f.err
 }
+func (f *failingNFTRepo) ListNFTs(_ int, _ int) ([]*nft.NFT, error) { return nil, nil }
 func (f *failingNFTRepo) GetNFTsByOwner(_ []byte, _ int, _ int) ([]*nft.NFT, error) {
 	return nil, f.err
 }

@@ -3,6 +3,7 @@ package nft
 import (
 	"bytes"
 	"database/sql"
+	"sort"
 	"sync"
 )
 
@@ -102,6 +103,34 @@ func (r *inmemRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, err
 	// ISS-093). Map iteration order is nondeterministic, so in-memory
 	// paging is best-effort — only the SQLite repo carries a stable
 	// rowid order.
+	if limit > 0 {
+		if offset < 0 {
+			offset = 0
+		}
+		if offset >= len(result) {
+			return nil, nil
+		}
+		end := offset + limit
+		if end > len(result) {
+			end = len(result)
+		}
+		result = result[offset:end]
+	}
+	return result, nil
+}
+
+// ListNFTs returns every NFT, paged like GetNFTsByOwner.
+func (r *inmemRepo) ListNFTs(limit, offset int) ([]*NFT, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	result := make([]*NFT, 0, len(r.nfts))
+	for _, n := range r.nfts {
+		result = append(result, n)
+	}
+	// Map iteration order is not stable, so sort by id to make the listing
+	// repeatable; the SQLite repo orders by rowid.
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	if limit > 0 {
 		if offset < 0 {
 			offset = 0
