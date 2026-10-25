@@ -20,6 +20,12 @@ type nftState struct {
 	id    string
 	owner string
 
+	// Each write form names its own NFT: one shared field meant typing an id
+	// in the Transfer card silently retargeted Inspect, Burn and History too.
+	transferID string
+	burnID     string
+	historyID  string
+
 	nft     *NFTRow
 	list    []NFTRow
 	history []NFTOpRow
@@ -48,41 +54,60 @@ func (a *App) loadNFT() {
 
 func (a *App) nftView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
-		ui.Column(c).FillWidth().Gap(16).Children(func() {
+		renderStatus(c, a.nft.status)
+		twoColumns(c, func() {
 			a.nftMint(c)
 			a.nftRead(c)
+		}, func() {
 			a.nftWrite(c)
-			a.renderNFTBurnDialog(c)
 		})
+		a.renderNFTBurnDialog(c)
 	})
 }
 
 func (a *App) nftMint(c *ui.Context) {
-	sectionTitle(c, "Mint NFT", "Create a unique asset owned by the creator key.")
+	formCard(c, "Mint NFT", "Create a unique asset owned by the creator key.", func() {
+		a.nftMintBody(c)
+	})
+}
+
+func (a *App) nftMintBody(c *ui.Context) {
 	field(c, "Name", &a.nft.name)
 	field(c, "Description (optional)", &a.nft.description)
 	field(c, "Image URL (optional)", &a.nft.imageURL)
 	field(c, "Token URI (optional)", &a.nft.tokenURI)
 	fieldHint(c, "Creator (base64 public key)", "The creator becomes the first owner.", &a.nft.creator)
-	if ui.PrimaryButton(c, "Mint NFT").Clicked() {
-		n, err := a.services.MintNFT(
-			strings.TrimSpace(a.nft.name), strings.TrimSpace(a.nft.description),
-			strings.TrimSpace(a.nft.imageURL), strings.TrimSpace(a.nft.tokenURI),
-			strings.TrimSpace(a.nft.creator))
-		if err != nil {
-			a.nft.status = errStatus(err)
-		} else {
-			a.nft.status = okStatus("Minted %s (%s) at block %d", n.Name, n.ID, n.BlockHeight)
-			a.nft.id = n.ID
-			a.nft.name, a.nft.description, a.nft.imageURL, a.nft.tokenURI = "", "", "", ""
+	ui.Row(c).Children(func() {
+		if ui.PrimaryButton(c, "Mint NFT").Clicked() {
+			a.mintNFT()
 		}
+	})
+}
+
+// mintNFT mints the asset described by the Mint card's inputs.
+func (a *App) mintNFT() {
+	n, err := a.services.MintNFT(
+		strings.TrimSpace(a.nft.name), strings.TrimSpace(a.nft.description),
+		strings.TrimSpace(a.nft.imageURL), strings.TrimSpace(a.nft.tokenURI),
+		strings.TrimSpace(a.nft.creator))
+	if err != nil {
+		a.nft.status = errStatus(err)
+		return
 	}
-	renderStatus(c, a.nft.status)
+	a.nft.status = okStatus("Minted %s (%s) at block %d", n.Name, n.ID, n.BlockHeight)
+	// The new asset becomes the subject of every other card: the operator just
+	// created it, so making them retype the id four times would be busywork.
+	a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
+	a.nft.name, a.nft.description, a.nft.imageURL, a.nft.tokenURI = "", "", "", ""
 }
 
 func (a *App) nftRead(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Inspect", "Look up one NFT by id, or list everything an owner holds.")
+	formCard(c, "Inspect", "Look up one NFT by id, or list everything an owner holds.", func() {
+		a.nftReadBody(c)
+	})
+}
+
+func (a *App) nftReadBody(c *ui.Context) {
 	field(c, "NFT ID", &a.nft.id)
 	if ui.Button(c, "Get NFT").Clicked() {
 		n, err := a.services.GetNFT(strings.TrimSpace(a.nft.id))
@@ -95,12 +120,11 @@ func (a *App) nftRead(c *ui.Context) {
 		}
 	}
 	if n := a.nft.nft; n != nil {
-		ui.Text(c, n.Name).FontSize(15).Bold()
+		rows := []readoutRow{{"Name", n.Name}, {"Owner", n.Owner}, {"Creator", n.Creator}}
 		if n.Description != "" {
-			ui.Text(c, n.Description).FontSize(12)
+			rows = append(rows, readoutRow{"About", n.Description})
 		}
-		ui.Text(c, "Owner "+n.Owner).FontSize(12).TextColor(ui.Hex("#6b7c7f"))
-		ui.Text(c, "Creator "+n.Creator).FontSize(12).TextColor(ui.Hex("#6b7c7f"))
+		readout(c, rows)
 	}
 
 	field(c, "Owner (base64 public key)", &a.nft.owner)
@@ -115,6 +139,7 @@ func (a *App) nftRead(c *ui.Context) {
 		}
 	}
 	if len(a.nft.list) == 0 {
+		emptyNote(c, "No NFTs listed yet.")
 		return
 	}
 	list := a.nft.list
@@ -136,41 +161,60 @@ func (a *App) nftRead(c *ui.Context) {
 }
 
 func (a *App) nftWrite(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Transfer", "Move an NFT to a new owner; the transfer is signed by the current one.")
-	field(c, "NFT ID", &a.nft.id)
-	field(c, "From (base64 public key)", &a.nft.from)
-	field(c, "To (base64 public key)", &a.nft.to)
-	field(c, "From Private Key", &a.nft.priv)
-	if ui.Button(c, "Transfer").Clicked() {
-		a.nft.status = wrapErr(a.services.TransferNFT(
-			strings.TrimSpace(a.nft.id), strings.TrimSpace(a.nft.from),
-			strings.TrimSpace(a.nft.to), strings.TrimSpace(a.nft.priv)))
-	}
+	formCard(c, "Transfer", "Move an NFT to a new owner; the transfer is signed by the current one.", func() {
+		field(c, "NFT ID", &a.nft.transferID)
+		field(c, "From (base64 public key)", &a.nft.from)
+		field(c, "To (base64 public key)", &a.nft.to)
+		field(c, "From Private Key", &a.nft.priv)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Transfer").Clicked() {
+				a.transferNFT()
+			}
+		})
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "Burn", "Destroy an NFT permanently. This cannot be undone.")
-	field(c, "NFT ID", &a.nft.id)
-	field(c, "Owner (base64 public key)", &a.nft.burnOwner)
-	field(c, "Owner Private Key", &a.nft.burnPriv)
-	if ui.Button(c, "Burn NFT").Clicked() {
-		a.nft.askBurn = true
-	}
+	formCard(c, "Burn", "Destroy an NFT permanently. This cannot be undone.", func() {
+		field(c, "NFT ID", &a.nft.burnID)
+		field(c, "Owner (base64 public key)", &a.nft.burnOwner)
+		field(c, "Owner Private Key", &a.nft.burnPriv)
+		ui.Row(c).Children(func() {
+			// A destructive action carries the danger colour, and the
+			// confirmation still stands between it and the write.
+			burn := ui.Button(c, "Burn NFT…").Background(ui.Hex(auroraRed)).TextColor(ui.Hex(night))
+			if burn.Clicked() {
+				a.nft.askBurn = true
+			}
+		})
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "History", "Every mint, transfer and burn recorded for this NFT.")
-	field(c, "NFT ID", &a.nft.id)
-	if ui.Button(c, "Show History").Clicked() {
-		ops, err := a.services.NFTHistory(strings.TrimSpace(a.nft.id))
-		if err != nil {
-			a.nft.status = errStatus(err)
-			a.nft.history = nil
-		} else {
-			a.nft.history = ops
-			a.nft.status = statusLine{}
-		}
-	}
+	formCard(c, "History", "Every mint, transfer and burn recorded for this NFT.", func() {
+		field(c, "NFT ID", &a.nft.historyID)
+		ui.Row(c).Children(func() {
+			if ui.Button(c, "Show History").Clicked() {
+				ops, err := a.services.NFTHistory(strings.TrimSpace(a.nft.historyID))
+				if err != nil {
+					a.nft.status = errStatus(err)
+					a.nft.history = nil
+				} else {
+					a.nft.history = ops
+					a.nft.status = statusLine{}
+				}
+			}
+		})
+		a.nftHistoryTable(c)
+	})
+}
+
+// transferNFT moves the asset named by the Transfer card.
+func (a *App) transferNFT() {
+	a.nft.status = wrapErr(a.services.TransferNFT(
+		strings.TrimSpace(a.nft.transferID), strings.TrimSpace(a.nft.from),
+		strings.TrimSpace(a.nft.to), strings.TrimSpace(a.nft.priv)))
+}
+
+func (a *App) nftHistoryTable(c *ui.Context) {
 	if len(a.nft.history) == 0 {
+		emptyNote(c, "No history loaded yet.")
 		return
 	}
 	ops := a.nft.history
@@ -204,7 +248,7 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 		"Cancel", "Burn") {
 	case 1:
 		a.nft.status = wrapErr(a.services.BurnNFT(
-			strings.TrimSpace(a.nft.id), strings.TrimSpace(a.nft.burnOwner),
+			strings.TrimSpace(a.nft.burnID), strings.TrimSpace(a.nft.burnOwner),
 			strings.TrimSpace(a.nft.burnPriv)))
 	}
 }

@@ -234,3 +234,73 @@ func TestWindowOpensWithTheDashboardLoaded(t *testing.T) {
 	require.True(t, tester.HasText("Total Lotteries"), "the dashboard counters must be on screen")
 	require.True(t, tester.HasText("9"), "the vote count must come from the services")
 }
+
+// TestAuroraThemeIsDarkAndDistinct pins the palette the window draws with. The
+// build before this set a dark window background and then let MyGo draw its
+// light theme on top, so every control was a white panel on a black page.
+func TestAuroraThemeIsDarkAndDistinct(t *testing.T) {
+	theme := auroraTheme()
+	require.True(t, theme.Dark, "the window is dark by design, whatever the system appearance")
+	require.Equal(t, ui.Hex(night), theme.Background)
+	require.Equal(t, ui.Hex(surface), theme.Surface)
+	require.Equal(t, ui.Hex(aurora), theme.Accent)
+	require.Equal(t, ui.Hex(ink), theme.Text)
+
+	// The surface has to be visible above the background, and the accent above
+	// both: a theme whose three tones collapse into one is unreadable however
+	// pleasant the individual colours are.
+	require.NotEqual(t, theme.Background, theme.Surface)
+	require.NotEqual(t, theme.Surface, theme.Accent)
+	require.NotEqual(t, theme.Text, theme.Background)
+
+	// A status line's two colours must differ, or a failure reads as success.
+	require.NotEqual(t, ui.Hex(auroraRed), ui.Hex(auroraGreen))
+}
+
+// TestEveryPageRendersItsSectionsAsCards proves the layout did not drop a
+// section while the pages were being restructured: each page's own headings
+// must still be on screen, in a window tall enough to hold them.
+func TestEveryPageRendersItsSectionsAsCards(t *testing.T) {
+	want := map[page][]string{
+		pageDashboard:  {"Dashboard", "Total Lotteries", "Ledger Integrity"},
+		pageLottery:    {"Create Draw", "Verify a Draw", "History"},
+		pageVoting:     {"Register Voter", "Register Candidate", "Create Session", "Cast Vote", "Results"},
+		pageToken:      {"Create Token", "Inspect", "Mint", "Transfer", "Approve", "Burn", "Allowance", "History"},
+		pageOracle:     {"Add Source", "Data Sources", "Feed Health", "Query Data", "Latest Data"},
+		pageNFT:        {"Mint NFT", "Inspect", "Transfer", "Burn", "History"},
+		pageBlockchain: {"Ledger"},
+	}
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	// The sidebar must switch pages too: the page order and the ids the
+	// Sidebar chooses by are two separate tables, and a mismatch left every
+	// item selecting nothing.
+	for _, p := range pageOrder {
+		require.NoError(t, tester.Click(pageTitles[p]), "sidebar item %q", pageTitles[p])
+		tester.Frame()
+		require.Equal(t, p, app.page, "clicking %q must select that page", pageTitles[p])
+	}
+	for p, titles := range want {
+		app.ShowPage(pageTitles[p])
+		tester.Frame()
+		for _, title := range titles {
+			require.True(t, tester.HasText(title),
+				"page %q must show the %q section", pageTitles[p], title)
+		}
+	}
+}
+
+// TestDrawFormOpensReady pins the winner-count default. newLotteryState set
+// it, but nothing ever called it, so the field opened empty and the first
+// Create click failed to parse a value the operator never saw.
+func TestDrawFormOpensReady(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	require.Equal(t, "1", app.lottery.count)
+
+	app.lottery.participants = "Alice,Bob"
+	app.lottery.seed = "seed-abc"
+	app.createLottery()
+	require.Empty(t, app.lottery.countErr, "the default count must be usable as-is")
+	require.NotNil(t, fake.created, "the form must submit with only participants and seed typed")
+}

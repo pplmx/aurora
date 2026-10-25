@@ -36,10 +36,6 @@ type lotteryState struct {
 	table ui.ListState
 }
 
-func newLotteryState() lotteryState {
-	return lotteryState{count: "1"}
-}
-
 // loadLottery fetches the stored draws.
 func (a *App) loadLottery() {
 	if a.services == nil {
@@ -58,31 +54,28 @@ func (a *App) loadLottery() {
 func (a *App) lotteryView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
+			renderStatus(c, a.lottery.status)
 			a.lotteryCreate(c)
-			a.lotteryHistory(c)
 			a.lotteryVerify(c)
+			a.lotteryHistory(c)
 		})
 	})
 }
 
 func (a *App) lotteryCreate(c *ui.Context) {
-	sectionTitle(c, "Create Lottery", "Participants and seed determine the draw; the count is how many winners to pick.")
-	field(c, "Participants (comma-separated)", &a.lottery.participants)
-	if a.lottery.participantsErr != "" {
-		ui.Text(c, a.lottery.participantsErr).FontSize(11).TextColor(ui.Hex("#c62828"))
-	}
-	field(c, fmt.Sprintf("Seed (at least %d characters)", lottery.MinSeedLength), &a.lottery.seed)
-	if a.lottery.seedErr != "" {
-		ui.Text(c, a.lottery.seedErr).FontSize(11).TextColor(ui.Hex("#c62828"))
-	}
-	fieldHint(c, "Count", "How many winners to draw; must not exceed the participant count.", &a.lottery.count)
-	if a.lottery.countErr != "" {
-		ui.Text(c, a.lottery.countErr).FontSize(11).TextColor(ui.Hex("#c62828"))
-	}
-	if ui.PrimaryButton(c, "Create Lottery").Clicked() {
-		a.createLottery()
-	}
-	renderStatus(c, a.lottery.status)
+	formCard(c, "Create Draw", "Participants and seed determine the draw; the count is how many winners to pick.", func() {
+		field(c, "Participants (comma-separated)", &a.lottery.participants)
+		fieldError(c, a.lottery.participantsErr)
+		field(c, fmt.Sprintf("Seed (at least %d characters)", lottery.MinSeedLength), &a.lottery.seed)
+		fieldError(c, a.lottery.seedErr)
+		fieldHint(c, "Count", "How many winners to draw; must not exceed the participant count.", &a.lottery.count)
+		fieldError(c, a.lottery.countErr)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Create Draw").Clicked() {
+				a.createLottery()
+			}
+		})
+	})
 }
 
 // createLottery validates against the API contract before calling the service,
@@ -146,13 +139,18 @@ func splitParticipants(s string) []string {
 }
 
 func (a *App) lotteryHistory(c *ui.Context) {
-	sectionTitle(c, "Lottery History", "Every recorded draw, newest first.")
+	formCard(c, "History", "Every recorded draw, newest first.", func() {
+		a.lotteryHistoryBody(c)
+	})
+}
+
+func (a *App) lotteryHistoryBody(c *ui.Context) {
 	if a.lottery.loadErr != nil {
-		ui.Text(c, "Failed to load history: "+a.lottery.loadErr.Error()).FontSize(12).TextColor(ui.Hex("#c62828"))
+		ui.Text(c, "Failed to load history: "+a.lottery.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
 		return
 	}
 	if len(a.lottery.rows) == 0 {
-		emptyNote(c, "No lotteries yet.")
+		emptyNote(c, "No draws recorded yet. Create one above.")
 		return
 	}
 	rows := a.lottery.rows
@@ -177,24 +175,30 @@ func (a *App) lotteryHistory(c *ui.Context) {
 }
 
 func (a *App) lotteryVerify(c *ui.Context) {
-	sectionTitle(c, "Verify Draw", "Recompute the winners from the stored VRF proof for any draw.")
-	field(c, "Lottery ID or block height", &a.lottery.verifyID)
-	if a.lottery.verifyErr != "" {
-		ui.Text(c, a.lottery.verifyErr).FontSize(11).TextColor(ui.Hex("#c62828"))
-	}
-	if ui.Button(c, "Verify Draw").Clicked() {
-		a.verifyLottery()
-	}
-	if r := a.lottery.verifyResult; r != nil {
-		if r.Valid {
-			ui.Text(c, "✅ "+r.ID+" verified").TextColor(ui.Hex("#2e7d32"))
-		} else {
-			ui.Text(c, "❌ "+r.ID+" failed verification").TextColor(ui.Hex("#c62828"))
+	formCard(c, "Verify a Draw", "Recompute the winners from the stored VRF proof for any draw.", func() {
+		field(c, "Draw ID or block height", &a.lottery.verifyID)
+		fieldError(c, a.lottery.verifyErr)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Verify").Clicked() {
+				a.verifyLottery()
+			}
+		})
+		if r := a.lottery.verifyResult; r != nil {
+			// The verdict is a word first and a colour second: the tick or
+			// cross is decoration for a reader who can see it.
+			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
+				if r.Valid {
+					ui.Badge(c, "Verified").Background(ui.Hex(auroraGreen)).TextColor(ui.Hex(night))
+				} else {
+					ui.Badge(c, "Failed").Background(ui.Hex(auroraRed)).TextColor(ui.Hex(night))
+				}
+				ui.Text(c, r.ID).FontSize(12).TextColor(ui.Hex(inkMuted)).SingleLine()
+			})
+			for _, line := range r.Checks {
+				ui.Text(c, "• "+line).FontSize(12).TextColor(ui.Hex(inkMuted))
+			}
 		}
-		for _, line := range r.Checks {
-			ui.Text(c, "• "+line).FontSize(12)
-		}
-	}
+	})
 }
 
 func (a *App) verifyLottery() {

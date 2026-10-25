@@ -46,39 +46,55 @@ func (a *App) loadDashboard() {
 }
 
 func (a *App) dashboardView(c *ui.Context) {
-	sectionTitle(c, "At a glance", "Live counters from every Aurora domain.")
 	if a.dashboard.loadErr != nil {
-		ui.Text(c, "Couldn't load stats: "+a.dashboard.loadErr.Error()).FontSize(12).TextColor(ui.Hex("#c62828"))
+		ui.Text(c, "Couldn't load stats: "+a.dashboard.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
 	}
 	if !a.dashboard.loaded {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(ui.Hex("#6b7c7f"))
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Spinner(c)
+			ui.Text(c, "Loading counters…").FontSize(12).TextColor(ui.Hex(inkMuted))
+		})
 		return
 	}
 
-	// A 3x2 grid, the same composition the Web UI dashboard used: six metrics
-	// read as one block instead of a wall of cards.
-	metrics := []struct {
-		label string
-		value string
-		note  string
-	}{
-		{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded"},
-		{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast"},
-		{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders"},
-		{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows"},
-		{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification"},
-		{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Current source health"},
+	// A 3x2 grid of cards: six counters read as one block. The ledger verdict
+	// is the one value that can be bad news, so it takes the colour that says
+	// which it is — and its note still spells the outcome out in words.
+	integrityTone := auroraGreen
+	if a.dashboard.Integrity != "verified" {
+		integrityTone = auroraRed
 	}
-	ui.Grid(c).Columns(3).Gap(12).Children(func() {
-		for _, m := range metrics {
-			m := m
-			ui.Column(c).Padding(14).Gap(4).Children(func() {
-				ui.Text(c, m.label).FontSize(11).TextColor(ui.Hex("#6b7c7f"))
-				ui.Text(c, m.value).FontSize(24).Bold()
-				ui.Text(c, m.note).FontSize(11).TextColor(ui.Hex("#6b7c7f"))
-			})
-		}
-	})
+	metrics := []struct {
+		label   string
+		value   string
+		note    string
+		tone    string
+		numeric bool
+	}{
+		{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", ink, true},
+		{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", ink, true},
+		{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", ink, true},
+		{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", ink, true},
+		{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification", integrityTone, false},
+		{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Current source health", ink, true},
+	}
+	// A fresh install is all zeroes and a verified empty chain, which is
+	// correct but says nothing about what to do next. One line names the
+	// first move instead of leaving the operator to guess.
+	if a.dashboard.Lotteries == 0 && a.dashboard.Votes == 0 && a.dashboard.Oracle == 0 {
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, "Nothing recorded yet — start from Lottery to run a verifiable draw.").
+				FontSize(12).TextColor(ui.Hex(inkMuted))
+		})
+	}
+	for start := 0; start < len(metrics); start += 3 {
+		start := start
+		row := metrics[start:min(start+3, len(metrics))]
+		metricRow(c, len(row), func(i int) {
+			m := row[i]
+			metricCard(c, m.label, m.value, m.note, m.tone, m.numeric)
+		})
+	}
 }
 
 func (a *App) loadBlockchain() {
@@ -97,20 +113,27 @@ func (a *App) loadBlockchain() {
 }
 
 func (a *App) blockchainView(c *ui.Context) {
-	sectionTitle(c, "Ledger", "The audit chain every module writes to.")
+	formCard(c, "Ledger", "The audit chain every module writes to.", func() {
+		a.blockchainBody(c)
+	})
+}
+
+func (a *App) blockchainBody(c *ui.Context) {
 	if a.blockchain.loadErr != nil {
-		ui.Text(c, "Couldn't read the chain: "+a.blockchain.loadErr.Error()).FontSize(12).TextColor(ui.Hex("#c62828"))
+		ui.Text(c, "Couldn't read the chain: "+a.blockchain.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
 		return
 	}
 	if !a.blockchain.checked {
 		emptyNote(c, "Press Refresh to verify the chain.")
 		return
 	}
-	ui.Text(c, "Blocks: "+strconv.Itoa(a.blockchain.blocks)).FontSize(13)
-	ui.Text(c, "Height: "+strconv.Itoa(a.blockchain.height)).FontSize(13)
+	readout(c, []readoutRow{
+		{"Blocks", strconv.Itoa(a.blockchain.blocks)},
+		{"Height", strconv.Itoa(a.blockchain.height)},
+	})
 	if a.blockchain.valid {
-		ui.Text(c, "✅ Hash chain verified").TextColor(ui.Hex("#2e7d32"))
+		ui.Badge(c, "Hash chain verified").Background(ui.Hex(auroraGreen)).TextColor(ui.Hex(night))
 	} else {
-		ui.Text(c, "❌ Hash chain is broken").TextColor(ui.Hex("#c62828"))
+		ui.Badge(c, "Hash chain is broken").Background(ui.Hex(auroraRed)).TextColor(ui.Hex(night))
 	}
 }
