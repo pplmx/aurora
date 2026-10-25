@@ -7,12 +7,6 @@ import (
 	"github.com/pplmx/aurora/internal/logger"
 )
 
-type EventBus interface {
-	Publish(events.Event) error
-	Subscribe(eventType string, handler Handler) func()
-	SubscribeAll(handler Handler) func()
-}
-
 type Handler func(events.Event) error
 
 // subscription carries enough information to find and remove the

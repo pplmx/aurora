@@ -158,13 +158,6 @@ func (m *mockVotingRepo) ListCandidates() ([]*voting.Candidate, error) {
 	return m.candidates, nil
 }
 
-func (m *mockVotingRepo) UpdateCandidate(c *voting.Candidate) error {
-	if m.errUpdateCandidate != nil {
-		return m.errUpdateCandidate
-	}
-	return nil
-}
-
 func (m *mockVotingRepo) IncrementCandidateVoteCount(id string) error {
 	if m.errIncrementCandidateVoteCount != nil {
 		return m.errIncrementCandidateVoteCount
@@ -176,10 +169,6 @@ func (m *mockVotingRepo) IncrementCandidateVoteCount(id string) error {
 		}
 	}
 	return sqlite.ErrNotFound
-}
-
-func (m *mockVotingRepo) DeleteCandidate(id string) error {
-	return nil
 }
 
 func (m *mockVotingRepo) SaveVoter(v *voting.Voter) error {
@@ -210,10 +199,6 @@ func (m *mockVotingRepo) SaveVote(v *voting.Vote) error {
 	return nil
 }
 
-func (m *mockVotingRepo) GetVote(id string) (*voting.Vote, error) {
-	return nil, nil
-}
-
 func (m *mockVotingRepo) GetVotesByCandidate(candidateID string) ([]*voting.Vote, error) {
 	return nil, nil
 }
@@ -233,10 +218,6 @@ func (m *mockVotingRepo) CountVotesBySession(sessionID, candidateID string) (int
 
 func (m *mockVotingRepo) GetVotesByVoter(voterPK string) ([]*voting.Vote, error) {
 	return nil, nil
-}
-
-func (m *mockVotingRepo) DeleteVote(id string) error {
-	return nil
 }
 
 // TryMarkVoted mirrors the real SQLite repo semantics: the first
@@ -260,17 +241,6 @@ func (m *mockVotingRepo) TryMarkVoted(publicKey, voteHash string) error {
 	return sqlite.ErrNotFound
 }
 
-func (m *mockVotingRepo) UnmarkVoted(publicKey string) error {
-	for _, v := range m.voters {
-		if v.PublicKey == publicKey {
-			v.HasVoted = false
-			v.VoteHash = ""
-			return nil
-		}
-	}
-	return nil
-}
-
 func (m *mockVotingRepo) SaveSession(s *voting.Session) error {
 	if m.errSaveSession != nil {
 		return m.errSaveSession
@@ -289,10 +259,6 @@ func (m *mockVotingRepo) GetSession(id string) (*voting.Session, error) {
 		}
 	}
 	return nil, nil
-}
-
-func (m *mockVotingRepo) GetAllVoters() ([]*voting.Voter, error) {
-	return m.voters, nil
 }
 
 func (m *mockVotingRepo) ListVoters() ([]*voting.Voter, error) {
@@ -361,14 +327,6 @@ func (m *mockVotingService) SignVote(message string, privateKey []byte) (string,
 
 func (m *mockVotingService) VerifyVote(voterPK, message, signature string) bool {
 	return true
-}
-
-func (m *mockVotingService) CountVotes(candidates []voting.Candidate) map[string]int {
-	results := make(map[string]int)
-	for _, c := range candidates {
-		results[c.ID] = c.VoteCount
-	}
-	return results
 }
 
 func TestCastVoteUseCase_Execute(t *testing.T) {
