@@ -203,14 +203,16 @@ func readout(c *ui.Context, rows []readoutRow) {
 // sure of before a write.
 func tokenSubject(c *ui.Context, id string) {
 	if id == "" {
-		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			badge(c, "No token selected", auroraAmber, night)
-			ui.Text(c, "Create or inspect a token first; the cards below act on it.").
-				FontSize(12).TextColor(ui.Hex(inkMuted))
-		})
+		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
+			Background(ui.Hex(warningTint)).BorderWidth(1).BorderColor(ui.Hex(auroraAmber)).
+			Children(func() {
+				badge(c, "No token selected", auroraAmber, night)
+				ui.Text(c, "Create or inspect one first.").FontSize(12).TextColor(ui.Hex(ink))
+			})
 		return
 	}
-	ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
+		Background(ui.Hex(night)).Children(func() {
 		ui.Text(c, "Acting on").FontSize(11).TextColor(ui.Hex(inkMuted))
 		ui.Text(c, id).FontSize(13).Bold().TextColor(ui.Hex(aurora)).SingleLine()
 	})
