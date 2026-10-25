@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 202,
+  "round": 213,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-23T17:52:10+00:00",
+  "updated_at": "2026-10-25T14:09:35+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11,7 +11,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 202,
+      "touched_round": 203,
       "title": "cmd/aurora/cmd"
     },
     "COMP-token": {
@@ -21,7 +21,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 184,
+      "touched_round": 210,
       "title": "token-module"
     },
     "COMP-lottery": {
@@ -31,7 +31,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 200,
+      "touched_round": 213,
       "title": "lottery-module"
     },
     "COMP-nft": {
@@ -41,7 +41,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:27+00:00",
       "updated_at": "2026-08-22T15:10:27+00:00",
-      "touched_round": 201,
+      "touched_round": 209,
       "title": "nft-module"
     },
     "COMP-oracle": {
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 202,
+      "touched_round": 208,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -61,7 +61,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 202,
+      "touched_round": 203,
       "title": "api-module"
     },
     "ISS-token-tui-stub": {
@@ -287,11 +287,11 @@
     "COMP-web": {
       "id": "COMP-web",
       "type": "component",
-      "status": "active",
-      "version": 1,
+      "status": "abandoned",
+      "version": 2,
       "created_at": "2026-08-22T15:34:56+00:00",
-      "updated_at": "2026-08-22T15:34:56+00:00",
-      "touched_round": 202,
+      "updated_at": "2026-10-25T14:09:30+00:00",
+      "touched_round": 213,
       "title": "web-ui"
     },
     "ISS-sessions-list-gap": {
@@ -15758,10 +15758,10 @@
       "id": "TASK-341",
       "type": "task",
       "status": "active",
-      "version": 2,
+      "version": 3,
       "created_at": "2026-10-23T14:27:33+00:00",
-      "updated_at": "2026-10-23T14:27:40+00:00",
-      "touched_round": 178,
+      "updated_at": "2026-10-24T00:40:49+00:00",
+      "touched_round": 211,
       "category": "correctness",
       "title": "Serialize migration version checks with the migration transaction",
       "description": "Hold one BEGIN IMMEDIATE transaction across the dirty check and every migration step so concurrent openers wait, then re-read the committed version and skip work already applied by the winner. Preserve crash-safety: a failed SQL body rolls back only that migration through a savepoint, leaves the target version dirty, and returns the original failure. Cover concurrent up/down and the existing failed-migration dirty contract without weakening assertions.",
@@ -15769,8 +15769,8 @@
       "confidence": 1.0,
       "effort": 2,
       "unlock_factor": 1.1,
-      "lock_owner": "codex-desktop-iteration",
-      "lock_until": "2026-10-23T14:57:40+00:00"
+      "lock_owner": "codex-aurora-20261024",
+      "lock_until": "2026-10-24T01:45:00+00:00"
     },
     "CHG-340": {
       "id": "CHG-340",
@@ -17164,6 +17164,809 @@
       "touched_round": 202,
       "commit": "24ccc0c",
       "title": "Expose oracle request headers across source creation surfaces"
+    },
+    "ISS-361": {
+      "id": "ISS-361",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:53:36+00:00",
+      "updated_at": "2026-10-23T17:57:37+00:00",
+      "touched_round": 203,
+      "severity": 0.62,
+      "title": "Oracle source creation accepts HTTP-invalid methods and headers that fail only at fetch time",
+      "description": "AddSource validates field lengths, interval, URL scheme, header JSON, and CRLF, but it does not enforce the HTTP token grammar for Method or header names, nor the control-character rule for header values. net/http.NewRequestWithContext rejects invalid methods and Transport rejects invalid header names/values, so REST/CLI/TUI can persist a source that returns INVALID_SOURCE or a transport error on every fetch. Example accepted configuration: method \"BAD METHOD\", header name \"Bad Header\", or value containing NUL. Source: internal/domain/oracle/service.go ParseSourceHeaders/AddSource, internal/infra/http/fetcher.go request construction and applySourceHeaders, Go 1.27 net/http request/transport validation (verified read)."
+    },
+    "TASK-368": {
+      "id": "TASK-368",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T17:53:39+00:00",
+      "updated_at": "2026-10-23T17:57:37+00:00",
+      "touched_round": 203,
+      "category": "correctness",
+      "severity": 0.62,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Reject HTTP-invalid oracle methods and header fields before persistence",
+      "description": "Validate a non-empty Method as an RFC HTTP token and validate header names as tokens plus header values under the net/http control-character rule in the shared domain boundary. Preserve empty-method defaulting, capitalize nothing, and return ErrInvalidSource with field-specific context. Add domain, REST, persistent CLI, and fetcher parity regressions; fault-inject the new validation and run full gates."
+    },
+    "HYP-056": {
+      "id": "HYP-056",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:57:23+00:00",
+      "updated_at": "2026-10-23T17:57:23+00:00",
+      "touched_round": 203,
+      "confidence": 0.99,
+      "title": "Oracle source creation omits the HTTP token and control-character validation that net/http applies at fetch time",
+      "description": "ParseSourceHeaders checked JSON shape and CRLF only, while AddSource never validated Method. This allowed persisted sources with invalid method/header syntax. The transport rejects those at request construction or write time, so every later fetch fails despite successful creation."
+    },
+    "EV-156": {
+      "id": "EV-156",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:57:27+00:00",
+      "updated_at": "2026-10-23T17:57:27+00:00",
+      "touched_round": 203,
+      "confidence": 1.0,
+      "source": "pre-fix tests: domain TestAddSource_RejectsInvalidHTTPRequestConfig accepted BAD METHOD, Bad Header, NUL and DEL; REST returned 200; CLI returned success; fetcher applySourceHeaders accepted them. Fault injection removing the token/control checks reproduced the same failures.",
+      "title": "The missing HTTP grammar checks are the root cause and all four boundary regressions fail without them"
+    },
+    "EV-157": {
+      "id": "EV-157",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:57:31+00:00",
+      "updated_at": "2026-10-23T17:57:31+00:00",
+      "touched_round": 203,
+      "confidence": 1.0,
+      "source": "commit 44eef90; focused race/shuffle count=3 across domain/oracle, app/oracle, infra/http, api/handler, cmd/aurora/cmd, ui/oracle, api; CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./...; go test ./... -cover; just check; just desktop-check; golangci-lint v2.15.0 with errcheck disabled (0 issues)",
+      "title": "Invalid HTTP request configuration is rejected before persistence while valid extension methods and token headers remain accepted; all full gates pass"
+    },
+    "CHG-367": {
+      "id": "CHG-367",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T17:57:33+00:00",
+      "updated_at": "2026-10-23T17:57:33+00:00",
+      "touched_round": 203,
+      "commit": "44eef90",
+      "title": "Reject invalid oracle HTTP methods and header fields at source creation"
+    },
+    "ISS-362": {
+      "id": "ISS-362",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T17:58:30+00:00",
+      "updated_at": "2026-10-23T18:04:03+00:00",
+      "touched_round": 204,
+      "severity": 0.62,
+      "title": "Recovered oracle feeds remain permanently marked failed in health views",
+      "description": "Scheduler success increments Successes and LastSuccessAt but never clears LastError. The oracle Feed Health table therefore keeps showing the old error after recovery, and dashboardApp.loadOracleHealth classifies a source as failed whenever cumulative Failures > 0, with healthy requiring Failures == 0. A single transient failure therefore permanently moves that feed from the dashboard OK count to fail even after subsequent successful fetches. Cumulative counters should remain cumulative, but current health must clear the unresolved error/current failure state. Source: internal/app/oracle/scheduler.go success branch, web/js/app.js loadOracleHealth (verified read)."
+    },
+    "TASK-369": {
+      "id": "TASK-369",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T18:00:42+00:00",
+      "updated_at": "2026-10-23T18:04:04+00:00",
+      "touched_round": 204,
+      "category": "correctness",
+      "severity": 0.62,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Clear recovered oracle feed errors and classify current health correctly",
+      "description": "Preserve cumulative oracle fetch attempts/successes/failures, but clear SourceStat.LastError when a previously failing source succeeds. Update dashboardApp.loadOracleHealth so an empty last_error/current-error signal determines healthy/failed classification instead of treating any historical failure as still active. Add scheduler and shipped-web regressions, fault-inject the LastError clear, and run focused plus full gates."
+    },
+    "HYP-057": {
+      "id": "HYP-057",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:04:00+00:00",
+      "updated_at": "2026-10-23T18:04:00+00:00",
+      "touched_round": 204,
+      "confidence": 0.99,
+      "title": "Recovered oracle feeds stay failed because success does not clear LastError and the dashboard treats cumulative failures as current",
+      "description": "The scheduler success branch updated success counters and backoff state but left the previous error string on SourceStat. Separately, dashboardApp.loadOracleHealth derived healthy and failed counts from cumulative Failures, so a source that failed once could never return to the OK count even after a later successful fetch."
+    },
+    "EV-158": {
+      "id": "EV-158",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:04:00+00:00",
+      "updated_at": "2026-10-23T18:04:00+00:00",
+      "touched_round": 204,
+      "title": "The two stale-health regressions fail before the fix and under fault injection",
+      "source": "pre-fix and fault injection: TestScheduler_SuccessClearsRecoveredError observed LastError upstream timeout; TestWebUIJS_DashboardOracleHealthRecovers observed 0 OK / 2 fail. Reverting either production change made its regression fail.",
+      "confidence": 1.0
+    },
+    "EV-159": {
+      "id": "EV-159",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:04:00+00:00",
+      "updated_at": "2026-10-23T18:04:00+00:00",
+      "touched_round": 204,
+      "title": "Recovered feeds clear the active error while cumulative failures remain visible and all gates pass",
+      "source": "commit 6ad27b5; focused race tests on internal/app/oracle and internal/api with count=3 and shuffle; CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./...; go test ./... -cover; just check; just desktop-check; golangci-lint v2.15.0 with errcheck disabled (0 issues).",
+      "confidence": 1.0
+    },
+    "CHG-368": {
+      "id": "CHG-368",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:04:00+00:00",
+      "updated_at": "2026-10-23T18:04:00+00:00",
+      "touched_round": 204,
+      "commit": "6ad27b5",
+      "title": "Clear recovered oracle feed errors and classify dashboard health from the active error"
+    },
+    "ISS-363": {
+      "id": "ISS-363",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T18:05:36+00:00",
+      "updated_at": "2026-10-23T18:07:09+00:00",
+      "touched_round": 205,
+      "severity": 0.52,
+      "title": "A transient scheduler seed error disables restart deduplication for the process lifetime",
+      "description": "Scheduler.seed sets s.seeded=true before repo.ListSources succeeds. If that first read fails transiently, every later seed call returns immediately even after the repository recovers. The following pass lists sources again and, with lastFetch empty, immediately fetches every enabled due source despite persisted latest-data timestamps inside their intervals. This defeats the documented restart deduplication and can create an avoidable upstream fetch burst or rate-limit hit. Source: internal/app/oracle/scheduler.go seed/pass (verified read)."
+    },
+    "TASK-370": {
+      "id": "TASK-370",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T18:05:36+00:00",
+      "updated_at": "2026-10-23T18:07:09+00:00",
+      "touched_round": 205,
+      "category": "correctness",
+      "severity": 0.52,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Retry scheduler seed initialization after a transient source-list failure",
+      "description": "Mark Scheduler.seed complete only after repo.ListSources succeeds, so a transient repository error is retried on the next pass before due sources are evaluated. Add a regression where the first seed/list attempt fails, the repository recovers, and a persisted fresh source must not be fetched. Fault-inject the early seeded flag and run focused plus full gates."
+    },
+    "HYP-058": {
+      "id": "HYP-058",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:07:06+00:00",
+      "updated_at": "2026-10-23T18:07:06+00:00",
+      "touched_round": 205,
+      "confidence": 0.99,
+      "title": "Scheduler seed marks itself complete before source enumeration succeeds",
+      "description": "Scheduler.seed set seeded=true before calling repo.ListSources. A transient error therefore consumed the only seeding attempt, leaving lastFetch empty while later passes could list sources and fetch all due feeds immediately despite fresh persisted data."
+    },
+    "EV-160": {
+      "id": "EV-160",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:07:06+00:00",
+      "updated_at": "2026-10-23T18:07:06+00:00",
+      "touched_round": 205,
+      "title": "The seed-retry regression fetches a fresh source before the fix and under fault injection",
+      "source": "pre-fix and fault injection: TestScheduler_RetriesSeedAfterTransientListError expected 0 fetches after a transient ListSources error followed by recovery, but observed 1 fetch when seeded was set before enumeration.",
+      "confidence": 1.0
+    },
+    "EV-161": {
+      "id": "EV-161",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:07:06+00:00",
+      "updated_at": "2026-10-23T18:07:06+00:00",
+      "touched_round": 205,
+      "title": "Seed completion is deferred until successful enumeration and all gates pass",
+      "source": "commit cb24de4; focused race test count=3 shuffle; CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./...; go test ./... -cover; just check; just desktop-check; golangci-lint v2.15.0 with errcheck disabled (0 issues).",
+      "confidence": 1.0
+    },
+    "CHG-369": {
+      "id": "CHG-369",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:07:06+00:00",
+      "updated_at": "2026-10-23T18:07:06+00:00",
+      "touched_round": 205,
+      "commit": "cb24de4",
+      "title": "Retry oracle scheduler seeding after a transient source-list failure"
+    },
+    "ISS-364": {
+      "id": "ISS-364",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T18:10:07+00:00",
+      "updated_at": "2026-10-23T18:15:45+00:00",
+      "touched_round": 207,
+      "severity": 0.55,
+      "title": "Lottery verification does not bind record IDs to the seed and VRF output, allowing duplicate imported draws",
+      "description": "CreateLotteryRecord derives a 16-hex record ID from sha256(seed || VRF output), and ImportRecords uses that ID for collision detection. VerifyRecord checks the output, proof, public key, winners and addresses but never recomputes the ID. An imported record can therefore keep valid draw evidence while changing only its ID, bypass the existing-draw check, and store the same logical draw multiple times under different IDs, inflating history and stats. Source: internal/domain/lottery/entity.go CreateLotteryRecord, internal/app/lottery/verify.go VerifyRecord, internal/app/lottery/portability.go ImportRecords (verified read)."
+    },
+    "TASK-371": {
+      "id": "TASK-371",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T18:10:07+00:00",
+      "updated_at": "2026-10-23T18:15:45+00:00",
+      "touched_round": 207,
+      "category": "correctness",
+      "severity": 0.55,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Bind lottery integrity verification to the deterministic record ID",
+      "description": "Extract the canonical seed-plus-VRF-output record ID derivation in the lottery domain, reuse it from CreateLotteryRecord, and make VerifyRecord fail when a stored/imported ID does not match. Add verify and import regressions proving altered IDs are rejected while canonical records still import. Fault-inject the ID check and run focused plus full gates."
+    },
+    "HYP-059": {
+      "id": "HYP-059",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:15:26+00:00",
+      "updated_at": "2026-10-23T18:15:26+00:00",
+      "touched_round": 207,
+      "confidence": 0.99,
+      "title": "Lottery record IDs are treated as trusted metadata even though import collision detection relies on them as the logical draw key",
+      "description": "CreateLotteryRecord derives the ID from seed plus VRF output, but VerifyRecord previously accepted any 16-hex-looking ID. ImportRecords verifies draw evidence and then uses the supplied ID for duplicate detection, so changing only the ID creates an alias for the same logical draw and bypasses replay protection."
+    },
+    "EV-162": {
+      "id": "EV-162",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:15:29+00:00",
+      "updated_at": "2026-10-23T18:15:29+00:00",
+      "touched_round": 207,
+      "confidence": 1.0,
+      "title": "Removing the record-ID derivation check makes forged-ID verification and import regressions fail",
+      "source": "pre-fix/fault injection at be8b9db: without the internal/app/lottery/verify.go record-ID comparison, TestVerifyRecord_RejectsRecordIDNotDerivedFromEvidence accepts an all-zero ID and TestImportRecords_RejectsRecordIDNotDerivedFromEvidence imports the forged alias instead of rejecting it."
+    },
+    "EV-163": {
+      "id": "EV-163",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:15:32+00:00",
+      "updated_at": "2026-10-23T18:15:32+00:00",
+      "touched_round": 207,
+      "confidence": 1.0,
+      "title": "Canonical records still verify and import while forged IDs are rejected; all full gates pass",
+      "source": "commit be8b9db; verify and import regressions pass; CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./...; go test ./... -cover; just check; just desktop-check; golangci-lint v2.15.0 with errcheck disabled (0 issues)."
+    },
+    "CHG-370": {
+      "id": "CHG-370",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:15:34+00:00",
+      "updated_at": "2026-10-23T18:15:34+00:00",
+      "touched_round": 207,
+      "commit": "be8b9db",
+      "title": "Derive and verify lottery record IDs from seed plus VRF output"
+    },
+    "ISS-365": {
+      "id": "ISS-365",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T18:18:09+00:00",
+      "updated_at": "2026-10-23T18:22:35+00:00",
+      "touched_round": 207,
+      "severity": 0.68,
+      "title": "Token mint and transfer paths accept the all-zero Ed25519 address as a recipient",
+      "description": "ValidatePublicKey accepts any 32-byte value, and Mint, Transfer, and TransferFrom validate To only through that length check. A 32-byte all-zero address therefore receives a successful mint/transfer/transferFrom credit that no private key can spend. ErrTransferToZero and its 400 TRANSFER_TO_ZERO mapping already exist, but no production path returns the sentinel. Source: internal/domain/token/validator.go:56, internal/domain/token/service.go:360/419/504, internal/api/handler/helpers.go:44 (verified read)."
+    },
+    "TASK-372": {
+      "id": "TASK-372",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T18:18:13+00:00",
+      "updated_at": "2026-10-23T18:22:35+00:00",
+      "touched_round": 207,
+      "category": "security",
+      "severity": 0.68,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Reject the all-zero Ed25519 address on every token recipient path",
+      "description": "Add one shared recipient validator that applies the existing ErrTransferToZero sentinel after public-key length validation. Use it for Mint, Transfer, and TransferFrom recipients; keep sender/owner/spender key checks unchanged. Add domain regressions for all three token creation/transfer surfaces, verify the API maps the sentinel to 400 TRANSFER_TO_ZERO, fault-inject the zero check, and run focused plus full gates."
+    },
+    "HYP-060": {
+      "id": "HYP-060",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:18:21+00:00",
+      "updated_at": "2026-10-23T18:18:21+00:00",
+      "touched_round": 207,
+      "confidence": 0.99,
+      "title": "The token recipient check validates key length but omits the specified zero-address rejection",
+      "description": "The intended contract already defines ErrTransferToZero and maps it to a client error, but ValidatePublicKey only checks presence and Ed25519 length. Because all three credit-producing operations call that generic validator on To, an all-zero recipient passes and receives an unspendable balance."
+    },
+    "EV-164": {
+      "id": "EV-164",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:21:18+00:00",
+      "updated_at": "2026-10-23T18:21:18+00:00",
+      "touched_round": 207,
+      "confidence": 1.0,
+      "title": "All three credit-producing token operations accepted the zero recipient before the shared check",
+      "source": "pre-fix regression TestTokenMutations_RejectZeroRecipient: Mint, Transfer, and TransferFrom all returned nil with a 32-byte all-zero To and credited the zero account; fault injection making ValidateRecipient return nil after length validation reproduced all three failures."
+    },
+    "EV-165": {
+      "id": "EV-165",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:22:21+00:00",
+      "updated_at": "2026-10-23T18:22:21+00:00",
+      "touched_round": 207,
+      "confidence": 1.0,
+      "title": "All token recipient paths reject the zero address before moving value; all full gates pass",
+      "source": "commit 37c8df8; focused CGO_ENABLED=1 go test -race ./internal/domain/token -run TestTokenMutations_RejectZeroRecipient -count=3 and handler classification regression pass; CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./...; go test ./... -cover; just check; just desktop-check; golangci-lint v2.15.0 with errcheck disabled (0 issues)."
+    },
+    "CHG-371": {
+      "id": "CHG-371",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:22:24+00:00",
+      "updated_at": "2026-10-23T18:22:24+00:00",
+      "touched_round": 207,
+      "commit": "37c8df8",
+      "title": "Reject all-zero token recipients on mint, transfer, and transferFrom"
+    },
+    "ISS-366": {
+      "id": "ISS-366",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T18:23:54+00:00",
+      "updated_at": "2026-10-23T18:26:05+00:00",
+      "touched_round": 208,
+      "severity": 0.58,
+      "title": "Oracle dotted-path extraction rounds large JSON numbers before persisting the extracted value",
+      "description": "extractByPath unmarshals JSON numbers into interface{} without json.Decoder.UseNumber, so every numeric leaf becomes float64. Integers above 2^53 lose precision before fmt.Sprintf converts them to the persisted oracle Value. For example, 9007199254740993 becomes 9.007199254740992e+15 and 1234567890123456789 becomes 1.2345678901234568e+18, even though RawResponse retains the exact JSON. Any source extracting an ID, wei amount, or other large integer records a different value on-chain. Source: internal/infra/http/fetcher.go extractByPath (verified by local repro)."
+    },
+    "TASK-373": {
+      "id": "TASK-373",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T18:23:58+00:00",
+      "updated_at": "2026-10-23T18:26:05+00:00",
+      "touched_round": 208,
+      "category": "correctness",
+      "severity": 0.58,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Preserve exact JSON number lexemes in oracle path extraction",
+      "description": "Decode oracle JSON with Decoder.UseNumber while retaining strict full-document parsing, return json.Number.String for numeric leaves, and keep string/boolean/object/array/null behavior unchanged. Add regressions for integers above 2^53, large decimals, booleans, empty strings, and invalid/trailing JSON. Fault-inject the float64 path and run focused plus full gates."
+    },
+    "HYP-061": {
+      "id": "HYP-061",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:24:01+00:00",
+      "updated_at": "2026-10-23T18:24:01+00:00",
+      "touched_round": 208,
+      "confidence": 0.99,
+      "title": "Default interface decoding converts oracle JSON integers to float64 and loses precision before stringification",
+      "description": "json.Unmarshal into map[string]interface{} represents every JSON number as float64. extractByPath then formats that rounded float with %v, so large integral values no longer match the source document. Decoding with UseNumber preserves the exact JSON number lexeme as json.Number."
+    },
+    "EV-166": {
+      "id": "EV-166",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:25:05+00:00",
+      "updated_at": "2026-10-23T18:25:05+00:00",
+      "touched_round": 208,
+      "confidence": 1.0,
+      "title": "The old decoder rounded every large numeric leaf before path extraction returned it",
+      "source": "pre-fix/fault injection: TestExtractByPath_PreservesExactNumberLexemes returned 9.007199254740992e+15 for 9007199254740993, 1.2345678901234568e+18 for 1234567890123456789, rounded the high-precision decimal, and changed 1e3 to 1000. Restoring float64 decoding after the fix reproduced all four failures."
+    },
+    "EV-167": {
+      "id": "EV-167",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:25:57+00:00",
+      "updated_at": "2026-10-23T18:25:57+00:00",
+      "touched_round": 208,
+      "confidence": 1.0,
+      "title": "Oracle extraction preserves exact numeric lexemes end to end and rejects trailing JSON; all full gates pass",
+      "source": "commit 3abe0a0; focused CGO_ENABLED=1 go test -race ./internal/infra/http -run TestExtractByPath_|TestFetcher_FetchData_PreservesLargeIntegerValue -count=3 -shuffle=on passes; CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./...; go test ./... -cover; just check; just desktop-check; golangci-lint v2.15.0 with errcheck disabled (0 issues)."
+    },
+    "CHG-372": {
+      "id": "CHG-372",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:25:59+00:00",
+      "updated_at": "2026-10-23T18:25:59+00:00",
+      "touched_round": 208,
+      "commit": "3abe0a0",
+      "title": "Decode oracle JSON numbers with json.Number and return their exact lexemes"
+    },
+    "ISS-367": {
+      "id": "ISS-367",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T18:29:39+00:00",
+      "updated_at": "2026-10-23T18:33:25+00:00",
+      "touched_round": 209,
+      "title": "NFT mint and transfer accept the all-zero Ed25519 address, creating an unspendable asset",
+      "description": "Mint copies the creator directly into Owner after only a 32-byte length check. Transfer validates To only by length. No Ed25519 private key can control the all-zero address, so either operation succeeds and permanently strands the NFT. Entity.Validate checks Owner only for emptiness, and direct service callers bypass the app-layer mint validation. Source: internal/app/nft/usecase.go:20-30, internal/domain/nft/entity.go:44-65, internal/domain/nft/service.go:88-175.",
+      "severity": 0.68
+    },
+    "TASK-374": {
+      "id": "TASK-374",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T18:29:43+00:00",
+      "updated_at": "2026-10-23T18:33:25+00:00",
+      "touched_round": 209,
+      "category": "security",
+      "severity": 0.68,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Reject the all-zero Ed25519 address on NFT mint and transfer",
+      "description": "Add one NFT domain validator for the all-zero address, enforce it through entity validation plus service Mint/Transfer, and map a dedicated ErrZeroAddress sentinel to HTTP 400 ZERO_ADDRESS. Cover entity, service, app use case, and REST handler boundaries; fault-inject the zero check and run focused plus full gates."
+    },
+    "HYP-062": {
+      "id": "HYP-062",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:32:45+00:00",
+      "updated_at": "2026-10-23T18:32:45+00:00",
+      "touched_round": 209,
+      "confidence": 0.99,
+      "title": "NFT owner validation checks only presence and key length, never whether the address can be controlled",
+      "description": "NFT.Validate accepted a nonempty all-zero Owner, the app mint path checked only decoded length, and both the app and domain transfer paths checked only the recipient length. The all-zero Ed25519 value therefore passed every guard even though no signer can control it."
+    },
+    "EV-168": {
+      "id": "EV-168",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:32:48+00:00",
+      "updated_at": "2026-10-23T18:32:48+00:00",
+      "touched_round": 209,
+      "title": "All NFT mint and transfer layers accepted the all-zero Ed25519 address before the fix",
+      "source": "pre-fix/fault injection: TestNFT_Validate_RejectsZeroOwner, TestNFTService_Mint_RejectsZeroOwner, TestNFTService_Transfer_RejectsZeroRecipient, TestMintNFTUseCase_RejectsZeroCreator, TestTransferNFTUseCase_RejectsZeroRecipient, TestNFTHandler_RejectsZeroAddress, and TestHandleTransfer_RejectsZeroRecipient all failed before the validator existed. Temporarily forcing isZeroAddress to return false after the fix reproduced the same acceptances; the REST mint returned HTTP 200 and the service left the NFT owner unchanged only when validation ran.",
+      "confidence": 1.0
+    },
+    "EV-169": {
+      "id": "EV-169",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:33:20+00:00",
+      "updated_at": "2026-10-23T18:33:20+00:00",
+      "touched_round": 209,
+      "title": "Zero-address owners and recipients are rejected at every NFT boundary; all full gates pass",
+      "source": "commit 013d037; focused CGO_ENABLED=1 go test -race -shuffle=on -count=3 ./internal/domain/nft ./internal/app/nft ./internal/api/handler ./internal/ui/nft passes; CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./...; CGO_ENABLED=0 go test ./... -cover; just check; just desktop-check; golangci-lint v2.15.0 with errcheck disabled (0 issues). No gates were skipped or blocked.",
+      "confidence": 1.0
+    },
+    "CHG-373": {
+      "id": "CHG-373",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:33:20+00:00",
+      "updated_at": "2026-10-23T18:33:20+00:00",
+      "touched_round": 209,
+      "commit": "013d037",
+      "title": "Reject all-zero Ed25519 owners and recipients across NFT mint and transfer"
+    },
+    "ISS-368": {
+      "id": "ISS-368",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-23T18:34:39+00:00",
+      "updated_at": "2026-10-23T18:36:24+00:00",
+      "touched_round": 210,
+      "title": "Token creation accepts the all-zero owner and permanently locks the initial supply and mint authority",
+      "description": "CreateToken validates Owner with ValidatePublicKey, which checks only presence and length. The all-zero 32-byte Ed25519 address therefore becomes the token owner and receives the entire initial supply. No private key can satisfy VerifyPrivateKeyMatches for that owner, so the supply cannot be transferred or burned and the owner cannot mint. The real router returned HTTP 200 and persisted token ZERO with owner AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=. Source: internal/domain/token/service.go:243-288 and internal/domain/token/validator.go:49-63.",
+      "severity": 0.72
+    },
+    "TASK-375": {
+      "id": "TASK-375",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-23T18:34:42+00:00",
+      "updated_at": "2026-10-23T18:36:24+00:00",
+      "touched_round": 210,
+      "category": "security",
+      "severity": 0.72,
+      "confidence": 0.99,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Reject the all-zero Ed25519 owner when creating a token",
+      "description": "Add a domain owner validator that distinguishes the zero-owner failure from recipient-to-zero, enforce it in CreateToken before any repository writes, and map the sentinel to HTTP 400 ZERO_OWNER. Prove no token row or balance is persisted, add a real-router SQLite smoke regression, fault-inject the zero check, and run focused plus full gates."
+    },
+    "HYP-063": {
+      "id": "HYP-063",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:35:56+00:00",
+      "updated_at": "2026-10-23T18:35:56+00:00",
+      "touched_round": 210,
+      "confidence": 0.99,
+      "title": "Token creation validates the owner only as a 32-byte public key and accepts the uncontrollable all-zero address",
+      "description": "CreateToken called ValidatePublicKey but never the recipient zero check. An all-zero owner therefore received the initial balance and became the sole mint authority even though VerifyPrivateKeyMatches can never succeed for it."
+    },
+    "EV-170": {
+      "id": "EV-170",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:36:01+00:00",
+      "updated_at": "2026-10-23T18:36:01+00:00",
+      "touched_round": 210,
+      "title": "Token creation persisted the all-zero owner and its initial supply before the owner-validator fix",
+      "source": "pre-fix/fault injection: TestCreateToken_RejectsZeroOwner failed because CreateToken returned nil error, and the real-router SQLite smoke returned HTTP 200 for POST /api/v1/token/create with owner AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=. Temporarily forcing isZeroAddress to return false after the fix reproduced both failures and also reopened the three existing recipient-to-zero paths.",
+      "confidence": 1.0
+    },
+    "EV-171": {
+      "id": "EV-171",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:36:20+00:00",
+      "updated_at": "2026-10-23T18:36:20+00:00",
+      "touched_round": 210,
+      "title": "Token creation rejects zero owners before persistence; all full gates pass",
+      "source": "commit f2bb01d; focused CGO_ENABLED=1 go test -race -shuffle=on -count=3 ./internal/domain/token ./internal/api passes; CGO_ENABLED=0 go test ./...; CGO_ENABLED=1 go test -race ./...; CGO_ENABLED=0 go test ./... -cover; just check; just desktop-check; golangci-lint v2.15.0 with errcheck disabled (0 issues). No gates were skipped or blocked.",
+      "confidence": 1.0
+    },
+    "CHG-374": {
+      "id": "CHG-374",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-23T18:36:20+00:00",
+      "updated_at": "2026-10-23T18:36:20+00:00",
+      "touched_round": 210,
+      "commit": "f2bb01d",
+      "title": "Reject the all-zero Ed25519 owner during token creation"
+    },
+    "ISS-369": {
+      "id": "ISS-369",
+      "type": "issue",
+      "status": "abandoned",
+      "version": 2,
+      "created_at": "2026-10-23T18:42:24+00:00",
+      "updated_at": "2026-10-25T14:09:30+00:00",
+      "touched_round": 213,
+      "severity": 0.62,
+      "title": "Web UI has weak information hierarchy and inefficient responsive layouts",
+      "description": "The shared Alpine.js UI still uses a generic dark card system. At 1440px the dashboard six-card auto-fit grid resolves to five cards plus one orphan, while at 390px the header navigation wraps into four centered rows and stat cards collapse into a long single column. The token page stacks ten full-width forms with low above-the-fold density despite available width. Visual harness evidence: /tmp/aurora-dashboard-before.png, /tmp/aurora-dashboard-mobile-before.png, /tmp/aurora-token-before.png; source web/css/style.css, web/index.html, web/token.html."
+    },
+    "TASK-376": {
+      "id": "TASK-376",
+      "type": "task",
+      "status": "abandoned",
+      "version": 3,
+      "created_at": "2026-10-23T18:42:28+00:00",
+      "updated_at": "2026-10-25T14:09:29+00:00",
+      "touched_round": 213,
+      "category": "core-feature",
+      "severity": 0.82,
+      "confidence": 1,
+      "effort": 2.5,
+      "unlock_factor": 1.1,
+      "title": "Redesign the Web UI hierarchy and responsive workspaces",
+      "description": "Replace the generic purple-tinted card shell with a coherent Aurora visual system: expressive local typography, polar-night surfaces, deliberate module accents, a compact mobile command bar, an explicit 3x2 desktop dashboard composition, a richer overview and activity hierarchy, and grouped two-column token workspaces. Preserve all Alpine behavior, API-key auth, busy guards, confirmations, deep links, live regions, table scrolling, focus visibility, dark color-scheme, and WCAG AA contrast. Add structural CSS/HTML regression tests, capture desktop/mobile/tablet screenshots, and run focused plus full gates.",
+      "lock_owner": "codex-aurora-web-ui-20261024",
+      "lock_until": "2026-10-23T19:42:33+00:00"
+    },
+    "EV-172": {
+      "id": "EV-172",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-24T00:43:00+00:00",
+      "updated_at": "2026-10-24T00:43:00+00:00",
+      "touched_round": 211,
+      "source": "internal/infra/migrate/migrate_test.go:TestMigrator_ConcurrentRollbacksSerialize (f71ddbf)",
+      "summary": "Before transactional runner, four concurrent rollback rounds observed transient dirty state and failed with database is dirty at version 0.",
+      "confidence": 1.0
+    },
+    "HYP-064": {
+      "id": "HYP-064",
+      "type": "hypothesis",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-24T00:43:32+00:00",
+      "updated_at": "2026-10-24T00:43:32+00:00",
+      "touched_round": 211,
+      "confidence": 0.9,
+      "statement": "Serializing the dirty check and migration application in one immediate transaction removes the transient-dirty race for concurrent up and down."
+    },
+    "ISS-370": {
+      "id": "ISS-370",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:07:24+00:00",
+      "updated_at": "2026-10-25T14:09:35+00:00",
+      "touched_round": 213,
+      "title": "Lottery verify resolution panics on a nil record from a (nil, nil) repository",
+      "severity": 0.7,
+      "description": "resolveRecord treated a nil record with a nil error as a hit and passed it to VerifyRecord, which dereferences it; the CLI, desktop verifier and REST verify endpoint all crashed instead of reporting not found for repositories that spell absence as (nil, nil)."
+    },
+    "HYP-065": {
+      "id": "HYP-065",
+      "type": "hypothesis",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:07:29+00:00",
+      "updated_at": "2026-10-25T14:09:35+00:00",
+      "touched_round": 213,
+      "confidence": 0.95,
+      "statement": "The resolution path assumes GetByID either returns a record or lottery.ErrNotFound, but the Repository interface also permits (nil, nil), which reaches VerifyRecord and panics."
+    },
+    "TASK-377": {
+      "id": "TASK-377",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:07:29+00:00",
+      "updated_at": "2026-10-25T14:09:34+00:00",
+      "touched_round": 213,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 1.2,
+      "unlock_factor": 1.2,
+      "title": "Treat a nil lottery record as not found and test every resolution branch",
+      "description": "resolveRecord must fall through on a nil record instead of verifying it; add direct tests for exact ID, block height, substring, nil entries and read-failure propagation so the CLI/desktop/REST verdicts are pinned without the integration path."
+    },
+    "ISS-371": {
+      "id": "ISS-371",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:07:29+00:00",
+      "updated_at": "2026-10-25T14:09:35+00:00",
+      "touched_round": 213,
+      "title": "User docs still advertise the Web UI deleted in 353751b",
+      "severity": 0.65,
+      "description": "README, AGENTS, docs/api.md, docs/cli.md, docs/desktop.md, docs/ablation.md, docs/privacy.md and docs/lottery/api.md described a static web UI, Alpine.js, CSP nonce injection and an embedded UI location; the gateway serves no static files and the About dialog still printed 'Web UI: (embedded in the app)'."
+    },
+    "TASK-378": {
+      "id": "TASK-378",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:07:34+00:00",
+      "updated_at": "2026-10-25T14:09:34+00:00",
+      "touched_round": 213,
+      "category": "docs",
+      "severity": 0.65,
+      "confidence": 1,
+      "effort": 1.5,
+      "unlock_factor": 1,
+      "title": "Remove every claim about the deleted Web UI from user docs and the About dialog",
+      "description": "Rewrite README/AGENTS entry table, REST section, stack list and coverage table; correct docs/api.md, docs/cli.md, docs/desktop.md, docs/ablation.md, docs/privacy.md and docs/lottery/api.md; drop the dead Options.WebRoot/About.WebRoot fields and the about_embedded i18n key, and pin the About dialog with a regression test."
+    },
+    "EV-173": {
+      "id": "EV-173",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:07:34+00:00",
+      "updated_at": "2026-10-25T14:07:34+00:00",
+      "touched_round": 213,
+      "confidence": 1,
+      "source": "internal/app/lotteryapp/verify_resolution_test.go:TestVerifyInput_NilRecordFallsThrough (pre-fix run)",
+      "summary": "Before the fix, a repository returning (nil, nil) made VerifyInput panic in VerifyRecord at verify.go:116; the new test reproduced it and the guard turned it green."
+    },
+    "EV-174": {
+      "id": "EV-174",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:07:34+00:00",
+      "updated_at": "2026-10-25T14:07:34+00:00",
+      "touched_round": 213,
+      "confidence": 1,
+      "source": "desktop/internal/deskapp/import_report_test.go:TestAboutNamesOnlyWhatTheBuildHas",
+      "summary": "The About dialog printed 'Web UI: (embedded in the app)' although no web UI ships; reintroducing the third format argument turns the new test red."
+    },
+    "EV-175": {
+      "id": "EV-175",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:07:35+00:00",
+      "updated_at": "2026-10-25T14:07:35+00:00",
+      "touched_round": 213,
+      "confidence": 1,
+      "source": "CGO_ENABLED=0 go test ./... and ./desktop/... -count=1; just lint; gofmt -s -l",
+      "summary": "Both modules' tests pass, golangci-lint reports 0 issues after removing two dead symbols it flagged on main, and a live CLI run created and verified a draw (exit 0) while an unknown reference exited 1."
+    },
+    "CHG-375": {
+      "id": "CHG-375",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:09:21+00:00",
+      "updated_at": "2026-10-25T14:09:21+00:00",
+      "touched_round": 213,
+      "commit": "uncommitted",
+      "title": "Treat a nil lottery record as not found during verify resolution"
+    },
+    "CHG-376": {
+      "id": "CHG-376",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:09:21+00:00",
+      "updated_at": "2026-10-25T14:09:21+00:00",
+      "touched_round": 213,
+      "commit": "uncommitted",
+      "title": "Remove the deleted Web UI from user docs and the About dialog"
+    },
+    "COMP-desktop": {
+      "id": "COMP-desktop",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:09:29+00:00",
+      "updated_at": "2026-10-25T14:09:29+00:00",
+      "touched_round": 213,
+      "title": "desktop"
+    },
+    "DEC-041": {
+      "id": "DEC-041",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:09:34+00:00",
+      "updated_at": "2026-10-25T14:09:34+00:00",
+      "touched_round": 213,
+      "title": "The lottery Repository contract permits (nil, nil) for a missing row, so resolution must not assume the ErrNotFound sentinel",
+      "rationale": "The SQLite implementation returns lottery.ErrNotFound, while in-memory fakes and the oracle module's documented convention return (nil, nil). resolveRecord treated only the sentinel as absence, so a nil record reached VerifyRecord and panicked in the CLI, desktop verifier and REST endpoint. Accepting both spellings is cheaper and less coupling than forcing one convention on every implementation.",
+      "alternatives_rejected": [
+        "Require ErrNotFound in the interface and fix every implementation: would break the oracle-style convention and add a migration burden for fakes",
+        "Guard only inside VerifyRecord: leaves resolution silently reporting a nil record as a hit"
+      ]
     }
   },
   "edges": [
@@ -26569,6 +27372,390 @@
       "to": "TASK-367",
       "type": "governs",
       "created_at": "2026-10-23T17:52:10+00:00"
+    },
+    {
+      "from": "TASK-368",
+      "to": "ISS-361",
+      "type": "addresses",
+      "created_at": "2026-10-23T17:53:43+00:00"
+    },
+    {
+      "from": "ISS-361",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:53:43+00:00"
+    },
+    {
+      "from": "ISS-361",
+      "to": "COMP-api",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:53:43+00:00"
+    },
+    {
+      "from": "ISS-361",
+      "to": "COMP-cli",
+      "type": "located_in",
+      "created_at": "2026-10-23T17:53:43+00:00"
+    },
+    {
+      "from": "EV-156",
+      "to": "HYP-056",
+      "type": "validates",
+      "created_at": "2026-10-23T17:57:37+00:00"
+    },
+    {
+      "from": "EV-157",
+      "to": "HYP-056",
+      "type": "validates",
+      "created_at": "2026-10-23T17:57:37+00:00"
+    },
+    {
+      "from": "CHG-367",
+      "to": "TASK-368",
+      "type": "implements",
+      "created_at": "2026-10-23T17:57:37+00:00"
+    },
+    {
+      "from": "CHG-367",
+      "to": "ISS-361",
+      "type": "resolves",
+      "created_at": "2026-10-23T17:57:37+00:00"
+    },
+    {
+      "from": "TASK-369",
+      "to": "ISS-362",
+      "type": "addresses",
+      "created_at": "2026-10-23T18:01:10+00:00"
+    },
+    {
+      "from": "ISS-362",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:01:10+00:00"
+    },
+    {
+      "from": "ISS-362",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:01:10+00:00"
+    },
+    {
+      "from": "EV-158",
+      "to": "HYP-057",
+      "type": "validates",
+      "created_at": "2026-10-23T18:04:00+00:00"
+    },
+    {
+      "from": "EV-159",
+      "to": "HYP-057",
+      "type": "validates",
+      "created_at": "2026-10-23T18:04:00+00:00"
+    },
+    {
+      "from": "CHG-368",
+      "to": "TASK-369",
+      "type": "implements",
+      "created_at": "2026-10-23T18:04:00+00:00"
+    },
+    {
+      "from": "CHG-368",
+      "to": "ISS-362",
+      "type": "resolves",
+      "created_at": "2026-10-23T18:04:00+00:00"
+    },
+    {
+      "from": "ISS-363",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:05:36+00:00"
+    },
+    {
+      "from": "TASK-370",
+      "to": "ISS-363",
+      "type": "addresses",
+      "created_at": "2026-10-23T18:05:39+00:00"
+    },
+    {
+      "from": "EV-160",
+      "to": "HYP-058",
+      "type": "validates",
+      "created_at": "2026-10-23T18:07:06+00:00"
+    },
+    {
+      "from": "EV-161",
+      "to": "HYP-058",
+      "type": "validates",
+      "created_at": "2026-10-23T18:07:06+00:00"
+    },
+    {
+      "from": "CHG-369",
+      "to": "TASK-370",
+      "type": "implements",
+      "created_at": "2026-10-23T18:07:06+00:00"
+    },
+    {
+      "from": "CHG-369",
+      "to": "ISS-363",
+      "type": "resolves",
+      "created_at": "2026-10-23T18:07:06+00:00"
+    },
+    {
+      "from": "TASK-371",
+      "to": "ISS-364",
+      "type": "addresses",
+      "created_at": "2026-10-23T18:10:07+00:00"
+    },
+    {
+      "from": "ISS-364",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:10:07+00:00"
+    },
+    {
+      "from": "EV-162",
+      "to": "HYP-059",
+      "type": "validates",
+      "created_at": "2026-10-23T18:15:42+00:00"
+    },
+    {
+      "from": "EV-163",
+      "to": "HYP-059",
+      "type": "validates",
+      "created_at": "2026-10-23T18:15:42+00:00"
+    },
+    {
+      "from": "CHG-370",
+      "to": "TASK-371",
+      "type": "implements",
+      "created_at": "2026-10-23T18:15:42+00:00"
+    },
+    {
+      "from": "CHG-370",
+      "to": "ISS-364",
+      "type": "resolves",
+      "created_at": "2026-10-23T18:15:42+00:00"
+    },
+    {
+      "from": "TASK-372",
+      "to": "ISS-365",
+      "type": "addresses",
+      "created_at": "2026-10-23T18:18:24+00:00"
+    },
+    {
+      "from": "ISS-365",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:18:24+00:00"
+    },
+    {
+      "from": "EV-164",
+      "to": "HYP-060",
+      "type": "validates",
+      "created_at": "2026-10-23T18:21:20+00:00"
+    },
+    {
+      "from": "EV-165",
+      "to": "HYP-060",
+      "type": "validates",
+      "created_at": "2026-10-23T18:22:27+00:00"
+    },
+    {
+      "from": "CHG-371",
+      "to": "TASK-372",
+      "type": "implements",
+      "created_at": "2026-10-23T18:22:27+00:00"
+    },
+    {
+      "from": "CHG-371",
+      "to": "ISS-365",
+      "type": "resolves",
+      "created_at": "2026-10-23T18:22:27+00:00"
+    },
+    {
+      "from": "TASK-373",
+      "to": "ISS-366",
+      "type": "addresses",
+      "created_at": "2026-10-23T18:24:04+00:00"
+    },
+    {
+      "from": "ISS-366",
+      "to": "COMP-oracle",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:24:05+00:00"
+    },
+    {
+      "from": "EV-166",
+      "to": "HYP-061",
+      "type": "validates",
+      "created_at": "2026-10-23T18:25:07+00:00"
+    },
+    {
+      "from": "EV-167",
+      "to": "HYP-061",
+      "type": "validates",
+      "created_at": "2026-10-23T18:26:02+00:00"
+    },
+    {
+      "from": "CHG-372",
+      "to": "TASK-373",
+      "type": "implements",
+      "created_at": "2026-10-23T18:26:02+00:00"
+    },
+    {
+      "from": "CHG-372",
+      "to": "ISS-366",
+      "type": "resolves",
+      "created_at": "2026-10-23T18:26:02+00:00"
+    },
+    {
+      "from": "TASK-374",
+      "to": "ISS-367",
+      "type": "addresses",
+      "created_at": "2026-10-23T18:29:46+00:00"
+    },
+    {
+      "from": "ISS-367",
+      "to": "COMP-nft",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:29:46+00:00"
+    },
+    {
+      "from": "EV-168",
+      "to": "HYP-062",
+      "type": "validates",
+      "created_at": "2026-10-23T18:32:48+00:00"
+    },
+    {
+      "from": "EV-169",
+      "to": "HYP-062",
+      "type": "validates",
+      "created_at": "2026-10-23T18:33:20+00:00"
+    },
+    {
+      "from": "CHG-373",
+      "to": "TASK-374",
+      "type": "implements",
+      "created_at": "2026-10-23T18:33:25+00:00"
+    },
+    {
+      "from": "CHG-373",
+      "to": "ISS-367",
+      "type": "resolves",
+      "created_at": "2026-10-23T18:33:25+00:00"
+    },
+    {
+      "from": "TASK-375",
+      "to": "ISS-368",
+      "type": "addresses",
+      "created_at": "2026-10-23T18:34:44+00:00"
+    },
+    {
+      "from": "ISS-368",
+      "to": "COMP-token",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:34:44+00:00"
+    },
+    {
+      "from": "EV-170",
+      "to": "HYP-063",
+      "type": "validates",
+      "created_at": "2026-10-23T18:36:01+00:00"
+    },
+    {
+      "from": "EV-171",
+      "to": "HYP-063",
+      "type": "validates",
+      "created_at": "2026-10-23T18:36:20+00:00"
+    },
+    {
+      "from": "CHG-374",
+      "to": "TASK-375",
+      "type": "implements",
+      "created_at": "2026-10-23T18:36:24+00:00"
+    },
+    {
+      "from": "CHG-374",
+      "to": "ISS-368",
+      "type": "resolves",
+      "created_at": "2026-10-23T18:36:24+00:00"
+    },
+    {
+      "from": "TASK-376",
+      "to": "ISS-369",
+      "type": "addresses",
+      "created_at": "2026-10-23T18:42:30+00:00"
+    },
+    {
+      "from": "ISS-369",
+      "to": "COMP-web",
+      "type": "located_in",
+      "created_at": "2026-10-23T18:42:31+00:00"
+    },
+    {
+      "from": "EV-172",
+      "to": "HYP-064",
+      "type": "validates",
+      "created_at": "2026-10-24T00:43:45+00:00"
+    },
+    {
+      "from": "CHG-375",
+      "to": "ISS-370",
+      "type": "resolves",
+      "created_at": "2026-10-25T14:09:21+00:00"
+    },
+    {
+      "from": "CHG-376",
+      "to": "ISS-371",
+      "type": "resolves",
+      "created_at": "2026-10-25T14:09:21+00:00"
+    },
+    {
+      "from": "CHG-375",
+      "to": "TASK-377",
+      "type": "implements",
+      "created_at": "2026-10-25T14:09:21+00:00"
+    },
+    {
+      "from": "CHG-376",
+      "to": "TASK-378",
+      "type": "implements",
+      "created_at": "2026-10-25T14:09:21+00:00"
+    },
+    {
+      "from": "EV-173",
+      "to": "HYP-065",
+      "type": "validates",
+      "created_at": "2026-10-25T14:09:21+00:00"
+    },
+    {
+      "from": "TASK-377",
+      "to": "ISS-370",
+      "type": "addresses",
+      "created_at": "2026-10-25T14:09:21+00:00"
+    },
+    {
+      "from": "TASK-378",
+      "to": "ISS-371",
+      "type": "addresses",
+      "created_at": "2026-10-25T14:09:21+00:00"
+    },
+    {
+      "from": "ISS-370",
+      "to": "COMP-lottery",
+      "type": "located_in",
+      "created_at": "2026-10-25T14:09:21+00:00"
+    },
+    {
+      "from": "ISS-371",
+      "to": "COMP-desktop",
+      "type": "located_in",
+      "created_at": "2026-10-25T14:09:29+00:00"
+    },
+    {
+      "from": "DEC-041",
+      "to": "COMP-lottery",
+      "type": "governs",
+      "created_at": "2026-10-25T14:09:34+00:00"
     }
   ]
 }
