@@ -447,3 +447,45 @@ func TestScheduler_ReconcileRemovesDeletedSource(t *testing.T) {
 		t.Fatal("deleted source must be fully pruned from scheduler bookkeeping")
 	}
 }
+
+// TestScheduler_RecreatedSourceStartsClean proves the consequence that matters
+// operationally, which the reconcile test above only implies: a source deleted
+// and added again under the same id must not inherit the old one's backoff.
+// The inherited failure streak and next_attempt would silently delay the first
+// fetch of a feed the operator has just fixed.
+func TestScheduler_RecreatedSourceStartsClean(t *testing.T) {
+	now := time.Unix(1000, 0)
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "feed", Enabled: true, Interval: 60},
+	}}
+	fail := true
+	s := NewScheduler(repo, func(_ context.Context, id string) error {
+		if fail {
+			return errors.New("upstream is down")
+		}
+		return nil
+	}, time.Second, func() time.Time { return now })
+
+	s.pass(context.Background())
+	if s.nextAttempt["feed"].IsZero() {
+		t.Fatal("a failed fetch should set a backoff")
+	}
+
+	// The operator deletes the broken source and creates a fresh one with the
+	// same id, now pointing at a working endpoint.
+	repo.sources = nil
+	s.pass(context.Background())
+	repo.sources = []*oracle.DataSource{{ID: "feed", Enabled: true, Interval: 60}}
+	fail = false
+
+	// It is due at once: no inherited backoff, no inherited failure streak.
+	s.pass(context.Background())
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.failStreak["feed"] != 0 {
+		t.Errorf("a recreated source must not inherit a failure streak, got %d", s.failStreak["feed"])
+	}
+	if st := s.stats["feed"]; st == nil || st.Successes != 1 {
+		t.Errorf("the recreated source should have fetched successfully, got %+v", st)
+	}
+}
