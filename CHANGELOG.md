@@ -11,6 +11,25 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **The desktop window has a visual design of its own**: `nativeui/theme.go` is
+  the single palette — a polar-night background, one raised card surface,
+  Aurora's accent and three status hues — applied on every frame instead of
+  accepting the system appearance. The window used to set a dark background and
+  then let MyGo draw its light theme over it, so every control was a white panel
+  on a black page. The module list is a real `ui.Sidebar` (the toolkit tracks
+  and tints the chosen item; arrows and first letters move between modules), the
+  pages lay their work out as cards in two columns, and each page has one status
+  line that states "Done" or "Failed" in words as well as colour.
+- **Tokens and NFTs can be listed**: `token.Repository`/`nft.Repository` gained
+  a list operation, exposed as `aurora token list`, `aurora nft list` (no longer
+  requiring `-o`), `GET /api/v1/token/list` and
+  `GET /api/v1/nft/list` without `?owner`. Both pages lead with the collection
+  and choosing a row makes that asset the subject of the write cards. Before
+  this, an id was reachable only from the output of the process that created it.
+- **A voting session carries its ballot window**: `SessionResponse` includes
+  `start_time`/`end_time`, and the desktop session table shows the window — the
+  fact that explains a refused ballot.
+
 - **The five-platform desktop matrix has a manual validation entry point**:
   `desktop-build.yml` now accepts `workflow_dispatch` in addition to
   `workflow_call`. A manual run defaults to the selected branch, packages
