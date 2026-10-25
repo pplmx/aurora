@@ -67,13 +67,13 @@ func (a *App) oracleView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
 		renderStatus(c, a.oracle.status)
 		// The add form is the tallest card on the page, so it gets a column of
-		// its own beside the three read-only cards.
+		// its own; the short read cards fill the other one.
 		twoColumns(c, func() {
 			a.oracleAdd(c)
-			a.oracleRead(c)
 		}, func() {
 			a.oracleSources(c)
 			a.oracleHealth(c)
+			a.oracleRead(c)
 		})
 	})
 }
@@ -90,7 +90,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		return
 	}
 	if len(a.oracle.sources) == 0 {
-		emptyNote(c, "No sources yet. Add one from the card on the right.")
+		emptyNote(c, "No sources yet. Add one with Add Source.")
 		return
 	}
 	srcs := a.oracle.sources
