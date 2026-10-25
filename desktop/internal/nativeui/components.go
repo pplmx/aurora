@@ -94,19 +94,26 @@ func errStatus(err error) statusLine {
 	return statusLine{text: err.Error(), isErr: true}
 }
 
-// renderStatus draws a status line, if there is one. The colour is the only
-// difference between success and failure, so the text always states which it
-// is — a reader who cannot see the colour still learns the outcome.
+// renderStatus draws a status line, if there is one.
+//
+// The line carries a word ("Failed"/"Done") as well as the colour, on a panel
+// tinted by the outcome: colour alone is not a signal for a reader with a
+// colour-vision difference, and a one-line sentence was easy to miss above a
+// page of cards.
 func renderStatus(c *ui.Context, s statusLine) {
 	if s.empty() {
 		return
 	}
-	text := ui.Text(c, s.text)
+	label, tone, tint := "Done", auroraGreen, successTint
 	if s.isErr {
-		text.TextColor(ui.Hex(auroraRed))
-	} else {
-		text.TextColor(ui.Hex(auroraGreen))
+		label, tone, tint = "Failed", auroraRed, errorTint
 	}
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
+		Background(ui.Hex(tint)).BorderWidth(1).BorderColor(ui.Hex(tone)).
+		Children(func() {
+			badge(c, label, tone, night)
+			ui.Text(c, s.text).FontSize(12).TextColor(ui.Hex(ink))
+		})
 }
 
 // field builds a labelled input row. MyGo's Field draws the label above the
