@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 223,
+  "round": 224,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T16:08:58+00:00",
+  "updated_at": "2026-10-25T16:15:21+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18435,6 +18435,29 @@
       "unlock_factor": 1,
       "title": "Join the new list surfaces to the real store",
       "description": "TestWindowListsWhatTheStoreHolds covers the empty case and the created case for both lists."
+    },
+    "ISS-383": {
+      "id": "ISS-383",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:15:21+00:00",
+      "updated_at": "2026-10-25T16:15:21+00:00",
+      "touched_round": 224,
+      "title": "The ledger page showed a block count but could not show the blocks",
+      "severity": 0.5,
+      "description": "BlockData() existed and the page showed only Blocks/Height plus a verdict, so the audit trail could not be read. Rendering the payloads then exposed mojibake (token/NFT blocks carry raw key bytes) and a Module column that always read '-'."
+    },
+    "CHG-393": {
+      "id": "CHG-393",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:15:21+00:00",
+      "updated_at": "2026-10-25T16:15:21+00:00",
+      "touched_round": 224,
+      "commit": "7a8c8fd",
+      "title": "List the ledger's blocks and decode their payloads for display"
     }
   },
   "edges": [
@@ -28380,6 +28403,12 @@
       "to": "TASK-385",
       "type": "implements",
       "created_at": "2026-10-25T16:08:58+00:00"
+    },
+    {
+      "from": "CHG-393",
+      "to": "ISS-383",
+      "type": "resolves",
+      "created_at": "2026-10-25T16:15:21+00:00"
     }
   ]
 }
