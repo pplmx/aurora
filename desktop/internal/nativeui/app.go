@@ -41,6 +41,10 @@ type Services interface {
 	Dashboard() (DashboardStats, error)
 	// LedgerStatus verifies the audit chain.
 	LedgerStatus() (LedgerStatus, error)
+	// LedgerBlocks returns the payload of every recorded block, newest
+	// first, so the page can show what the chain holds rather than only how
+	// much of it there is.
+	LedgerBlocks() ([]BlockRow, error)
 
 	// Voting surface.
 	RegisterVoter(name string) (VoterRow, error)
@@ -98,6 +102,16 @@ type DrawRow struct {
 	Participants []string
 	Winners      []string
 	Timestamp    int64
+}
+
+// BlockRow is one audit block as the ledger page shows it.
+type BlockRow struct {
+	// Height is the block's position in the chain.
+	Height int64
+	// Module names the subsystem that recorded it, taken from the payload.
+	Module string
+	// Summary is the payload, shortened for a table cell.
+	Summary string
 }
 
 // VerifyResult is the outcome of re-checking a draw.
