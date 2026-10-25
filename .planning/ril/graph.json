@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 224,
+  "round": 225,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T16:15:21+00:00",
+  "updated_at": "2026-10-25T16:26:51+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18458,6 +18458,119 @@
       "touched_round": 224,
       "commit": "7a8c8fd",
       "title": "List the ledger's blocks and decode their payloads for display"
+    },
+    "ISS-384": {
+      "id": "ISS-384",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:26:44+00:00",
+      "updated_at": "2026-10-25T16:26:44+00:00",
+      "touched_round": 225,
+      "title": "A dirty migration left the database unusable with no recovery command",
+      "severity": 0.7,
+      "description": "A failed migration marks its target version dirty; up and down then both refuse by design, and the CLI offered nothing else. Measured: every direction failed with 'database is dirty at version 5'; the only remaining option was deleting the database."
+    },
+    "CHG-394": {
+      "id": "CHG-394",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:26:44+00:00",
+      "updated_at": "2026-10-25T16:26:44+00:00",
+      "touched_round": 225,
+      "commit": "f0b4ce4",
+      "title": "Add migrate repair, gated by --confirm"
+    },
+    "CHG-395": {
+      "id": "CHG-395",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:26:44+00:00",
+      "updated_at": "2026-10-25T16:26:44+00:00",
+      "touched_round": 225,
+      "commit": "bfc4e4c",
+      "title": "Cover SQLite listing, transaction and audit-rebuild paths"
+    },
+    "CHG-396": {
+      "id": "CHG-396",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:26:44+00:00",
+      "updated_at": "2026-10-25T16:26:44+00:00",
+      "touched_round": 225,
+      "commit": "d22ca75",
+      "title": "Pin what a cancelled restore leaves behind"
+    },
+    "CHG-397": {
+      "id": "CHG-397",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:26:44+00:00",
+      "updated_at": "2026-10-25T16:26:44+00:00",
+      "touched_round": 225,
+      "commit": "01af6f3",
+      "title": "Cover the audit outbox Run loop"
+    },
+    "EV-180": {
+      "id": "EV-180",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:26:44+00:00",
+      "updated_at": "2026-10-25T16:26:44+00:00",
+      "touched_round": 225,
+      "confidence": 1,
+      "source": "internal/infra/sqlite, backup, events coverage runs and CGO_ENABLED=1 go test -race",
+      "summary": "sqlite 73.6% -> 80.6%, backup 75.9% with cancellation tests, events 82.1% -> 84.6%; the whole root module is race-clean."
+    },
+    "TASK-386": {
+      "id": "TASK-386",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:26:50+00:00",
+      "updated_at": "2026-10-25T16:26:51+00:00",
+      "touched_round": 225,
+      "category": "test-quality",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Cover the SQLite listing, transaction and audit-rebuild paths"
+    },
+    "TASK-387": {
+      "id": "TASK-387",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:26:50+00:00",
+      "updated_at": "2026-10-25T16:26:51+00:00",
+      "touched_round": 225,
+      "category": "test-quality",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Pin what a cancelled restore leaves behind"
+    },
+    "TASK-388": {
+      "id": "TASK-388",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:26:50+00:00",
+      "updated_at": "2026-10-25T16:26:51+00:00",
+      "touched_round": 225,
+      "category": "test-quality",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Cover the audit outbox Run loop"
     }
   },
   "edges": [
@@ -28409,6 +28522,30 @@
       "to": "ISS-383",
       "type": "resolves",
       "created_at": "2026-10-25T16:15:21+00:00"
+    },
+    {
+      "from": "CHG-394",
+      "to": "ISS-384",
+      "type": "resolves",
+      "created_at": "2026-10-25T16:26:44+00:00"
+    },
+    {
+      "from": "CHG-395",
+      "to": "TASK-386",
+      "type": "implements",
+      "created_at": "2026-10-25T16:26:50+00:00"
+    },
+    {
+      "from": "CHG-396",
+      "to": "TASK-387",
+      "type": "implements",
+      "created_at": "2026-10-25T16:26:50+00:00"
+    },
+    {
+      "from": "CHG-397",
+      "to": "TASK-388",
+      "type": "implements",
+      "created_at": "2026-10-25T16:26:51+00:00"
     }
   ]
 }
