@@ -3,6 +3,7 @@ package nativeui
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -200,6 +201,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		{Title: "ID", Width: 140},
 		{Title: "Title"},
 		{Title: "Status", Width: 100},
+		{Title: "Window", Width: 200},
 	}, len(sessions), func(row, col int) {
 		s := sessions[row]
 		switch col {
@@ -209,6 +211,10 @@ func (a *App) votingSessionList(c *ui.Context) {
 			ui.Text(c, s.Title)
 		case 2:
 			ui.Text(c, s.Status)
+		case 3:
+			// The window is why a ballot is refused, so it belongs in the
+			// list rather than only in the error a voter sees afterwards.
+			ui.Text(c, sessionWindow(s.StartTime, s.EndTime)).FontSize(12)
 		}
 	})
 }
@@ -309,6 +315,16 @@ func (a *App) castVote() {
 	}
 	a.voting.voteResult = "Ballot recorded."
 	a.voting.votePriv = ""
+}
+
+// sessionWindow renders a session's acceptance window as a compact pair of
+// local times.
+func sessionWindow(start, end int64) string {
+	if start == 0 && end == 0 {
+		return "—"
+	}
+	const layout = "2006-01-02 15:04"
+	return time.Unix(start, 0).Format(layout) + " → " + time.Unix(end, 0).Format(layout)
 }
 
 func (a *App) votingResults(c *ui.Context) {

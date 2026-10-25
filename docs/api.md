@@ -67,6 +67,9 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 | GET  | `/api/v1/voting/session/{id}`       | 单个会期                 |
 | GET  | `/api/v1/voting/results/{id}`       | 计票结果                 |
 
+会期对象带 `start_time` / `end_time`（unix 秒），即选票被接受的时间窗：窗口之外
+的投票会被拒绝，调用方据此可以在提交前解释原因。
+
 ## NFT
 
 | 方法 | 路径                       | 说明                              |
