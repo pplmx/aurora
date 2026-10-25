@@ -135,6 +135,17 @@ func fieldHint(c *ui.Context, label, hint string, value *string) {
 	})
 }
 
+// shortID shortens an identifier for a table cell, keeping enough of it to
+// recognise and paste: the first 12 characters, with an ellipsis when there is
+// more. Full ids are still reachable where a form takes one as input.
+func shortID(id string) string {
+	const keep = 12
+	if len(id) <= keep {
+		return id
+	}
+	return id[:keep] + "…"
+}
+
 // joinList renders a []string for a table cell. The Web UI used
 // participants.join(', '); a nil slice reads as an em dash so an empty cell is
 // visibly empty rather than blank.

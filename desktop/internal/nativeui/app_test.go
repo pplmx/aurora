@@ -33,6 +33,9 @@ type fakeServices struct {
 	// createErr makes CreateDraw fail, so a test can see what a failed action
 	// reports.
 	createErr error
+
+	// templates is what OracleTemplates returns.
+	templates []TemplateRow
 }
 
 func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
@@ -101,7 +104,7 @@ func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([
 }
 
 func (f *fakeServices) OracleSources() ([]SourceRow, error)     { return nil, nil }
-func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) { return nil, nil }
+func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) { return f.templates, nil }
 func (f *fakeServices) AddOracleSource(in SourceInput) (SourceRow, error) {
 	return SourceRow{ID: "src"}, nil
 }

@@ -199,3 +199,27 @@ func TestSessionListShowsTheBallotWindow(t *testing.T) {
 	require.True(t, tester.HasText(sessionWindow(start.Unix(), end.Unix())),
 		"the session's acceptance window must be on screen")
 }
+
+// TestOraclePresetKeepsItsChoice pins that the preset box holds what the
+// operator picked. The selection lived in a local variable, which the next
+// frame reset, so the box always read empty and the caption was missing
+// entirely.
+func TestOraclePresetKeepsItsChoice(t *testing.T) {
+	fake := &fakeServices{}
+	fake.templates = []TemplateRow{{ID: "coingecko", Name: "CoinGecko price"}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Preset (optional)"), "the box needs a caption")
+
+	// Choosing a preset fills the form from it and is remembered.
+	app.oracle.template = "coingecko — CoinGecko price"
+	app.applyTemplate("coingecko")
+	tester.Frame()
+	require.Equal(t, "CoinGecko price", app.oracle.addName)
+	require.Equal(t, "coingecko", app.oracle.addType)
+	require.Equal(t, "coingecko — CoinGecko price", app.oracle.template,
+		"the choice must survive the next frame")
+}
