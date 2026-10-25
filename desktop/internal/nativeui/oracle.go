@@ -94,21 +94,25 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		return
 	}
 	srcs := a.oracle.sources
+	// The id is a timestamp plus a hash, far too long for a column that also
+	// holds a name and a status; the actions below take the id as input, so a
+	// short prefix is what a reader copies. "Name" gets a minimum so its own
+	// header cannot be clipped by the columns beside it.
 	ui.Table(c, &a.oracle.sourceTable, []ui.TableColumn{
-		{Title: "Name"},
+		{Title: "Name", MinWidth: 110},
 		{Title: "Type", Width: 100},
-		{Title: "ID", Width: 140},
+		{Title: "ID", Width: 150},
 		{Title: "Status", Width: 100},
 		{Title: "Headers", Width: 100},
 	}, len(srcs), func(row, col int) {
 		s := srcs[row]
 		switch col {
 		case 0:
-			ui.Text(c, s.Name)
+			ui.Text(c, s.Name).SingleLine()
 		case 1:
 			ui.Text(c, s.Type)
 		case 2:
-			ui.Text(c, s.ID).SingleLine()
+			ui.Text(c, shortID(s.ID)).SingleLine()
 		case 3:
 			if s.Enabled {
 				ui.Text(c, "enabled")
@@ -171,15 +175,21 @@ func (a *App) oracleAdd(c *ui.Context) {
 
 func (a *App) oracleAddBody(c *ui.Context) {
 	if len(a.oracle.templates) > 0 {
+		// The choice lives in the page's state: a local variable reset it to
+		// empty on the next frame, so the box never showed what was picked.
+		// It is labelled, because a bare box above "Name" read as a Name
+		// field with no caption.
 		names := make([]string, 0, len(a.oracle.templates)+1)
 		names = append(names, "— choose a preset —")
 		for _, t := range a.oracle.templates {
 			names = append(names, t.ID+" — "+t.Name)
 		}
-		chosen := ""
-		if ui.Combobox(c, &chosen, names).Changed() && chosen != "" && chosen != names[0] {
-			a.applyTemplate(strings.SplitN(chosen, " — ", 2)[0])
-		}
+		ui.Field(c, "Preset (optional)", func() {
+			if ui.Combobox(c, &a.oracle.template, names).Changed() &&
+				a.oracle.template != "" && a.oracle.template != names[0] {
+				a.applyTemplate(strings.SplitN(a.oracle.template, " — ", 2)[0])
+			}
+		})
 	}
 	field(c, "Name", &a.oracle.addName)
 	field(c, "URL", &a.oracle.addURL)
