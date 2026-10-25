@@ -36,12 +36,17 @@ type lotteryState struct {
 	table ui.ListState
 }
 
+// lotteryHistoryLimit is how many draws the history table asks for. It is one
+// page of the store, newest first, which is what an operator scrolling a list
+// reads; the CLI's own history command pages the same way.
+const lotteryHistoryLimit = 100
+
 // loadLottery fetches the stored draws.
 func (a *App) loadLottery() {
 	if a.services == nil {
 		return
 	}
-	rows, err := a.services.LotteryHistory(100)
+	rows, err := a.services.LotteryHistory(lotteryHistoryLimit)
 	a.lottery.loadErr = err
 	if err == nil {
 		a.lottery.rows = rows
