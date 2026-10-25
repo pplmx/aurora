@@ -389,3 +389,183 @@ func TestVRFVerify_TamperedProof(t *testing.T) {
 		}
 	}
 }
+
+// The tests above derive their inputs from a randomly generated key pair, so
+// which validation branch a malformed input takes depends on the draw: a
+// made-up proof either fails to decode, decodes to a point that is not the
+// group identity, or decodes to the identity — all "false", but through
+// different code. The package's coverage therefore wandered between runs
+// (measured: 89.8%, 90.3% and 90.8% on consecutive runs).
+//
+// These cases name the bytes instead, so every rejection reason is exercised
+// every time.
+
+// identityNonCanonical is the 32-byte identity point. SetBytes accepts it, and
+// isIdentity must then reject it: a proof built on the point at infinity is
+// forgeable.
+var identityNonCanonical = []byte{
+	0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+}
+
+// TestVRFVerify_RejectsTheIdentityPoint drives the isIdentity guard directly:
+// r1 is the identity, so the proof is refused before any group arithmetic.
+func TestVRFVerify_RejectsTheIdentityPoint(t *testing.T) {
+	pk, _, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+
+	proof := make([]byte, vrfProofLen)
+	copy(proof[:32], identityNonCanonical)   // r1 = identity
+	copy(proof[32:64], identityNonCanonical) // r2 = identity
+	for i := 64; i < vrfProofLen; i++ {
+		proof[i] = 1 // a valid canonical scalar
+	}
+	output := make([]byte, 32)
+	copy(output, identityNonCanonical) // identity output
+
+	if VRFVerify(pk, []byte("identity"), output, proof) {
+		t.Fatal("a proof built on the identity point must be rejected")
+	}
+}
+
+// invalidPointEncoding is rejected by edwards25519.Point.SetBytes: the y
+// coordinate it holds is not a field element. Note that 0xFF repeated — what
+// an earlier version of this test used — IS a valid encoding, so it exercised
+// the identity guard rather than the decode guard, and which one it reached
+// depended on the random key pair. Measured: the package's coverage wandered
+// between 89.8% and 90.8% across consecutive runs until these cases named
+// their bytes.
+var invalidPointEncoding = func() []byte {
+	b := make([]byte, 32)
+	for i := range b {
+		b[i] = 0x7F
+	}
+	return b
+}()
+
+// TestVRFVerify_RejectsAnInvalidPointEncoding proves the decode guard: the
+// bytes are not a point at all, so the proof is refused before any group
+// arithmetic.
+func TestVRFVerify_RejectsAnInvalidPointEncoding(t *testing.T) {
+	pk, _, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+
+	proof := make([]byte, vrfProofLen)
+	copy(proof[:32], invalidPointEncoding)   // r1
+	copy(proof[32:64], invalidPointEncoding) // r2
+	for i := 64; i < vrfProofLen; i++ {
+		proof[i] = 1
+	}
+
+	if VRFVerify(pk, []byte("invalid-point"), invalidPointEncoding, proof) {
+		t.Fatal("a proof of an invalid point encoding must be rejected")
+	}
+}
+
+// TestVRFVerify_RejectsInvalidR1Alone isolates r1's decode guard: r2 and the
+// scalar are valid, so only the r1 check can reject this proof. The existing
+// tampered-proof test hits it only when its random key pair produced a proof
+// whose first 32 bytes happen to corrupt into a non-point.
+func TestVRFVerify_RejectsInvalidR1Alone(t *testing.T) {
+	pk, sk, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+	output, proof, err := VRFProve(sk, []byte("r1-only"))
+	if err != nil {
+		t.Fatalf("VRFProve() error = %v", err)
+	}
+
+	copy(proof[:32], invalidPointEncoding) // r1 invalid, r2 and s intact
+
+	if VRFVerify(pk, []byte("r1-only"), output, proof) {
+		t.Fatal("a proof whose r1 is not a point must be rejected")
+	}
+}
+
+// TestVRFVerify_RejectsInvalidR2Alone isolates r2's decode guard the same way.
+func TestVRFVerify_RejectsInvalidR2Alone(t *testing.T) {
+	pk, sk, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+	output, proof, err := VRFProve(sk, []byte("r2-only"))
+	if err != nil {
+		t.Fatalf("VRFProve() error = %v", err)
+	}
+
+	copy(proof[32:64], invalidPointEncoding) // r2 invalid, r1 and s intact
+
+	if VRFVerify(pk, []byte("r2-only"), output, proof) {
+		t.Fatal("a proof whose r2 is not a point must be rejected")
+	}
+}
+
+// TestVRFVerify_RejectsAnInvalidOutputEncoding covers the same guard on the
+// output half: the proof's points decode, but the output does not.
+func TestVRFVerify_RejectsAnInvalidOutputEncoding(t *testing.T) {
+	pk, sk, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+	_, proof, err := VRFProve(sk, []byte("invalid-output"))
+	if err != nil {
+		t.Fatalf("VRFProve() error = %v", err)
+	}
+
+	if VRFVerify(pk, []byte("invalid-output"), invalidPointEncoding, proof) {
+		t.Fatal("an output that is not a point must be rejected")
+	}
+}
+
+// TestVRFVerify_RejectsNonCanonicalScalar drives the scalar decode guard: the
+// point halves decode, but the 32-byte scalar is above the group order.
+func TestVRFVerify_RejectsNonCanonicalScalar(t *testing.T) {
+	pk, sk, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+	output, proof, err := VRFProve(sk, []byte("scalar"))
+	if err != nil {
+		t.Fatalf("VRFProve() error = %v", err)
+	}
+
+	// Keep the two valid points, corrupt only the scalar: it is no longer
+	// canonical (all 0xFF exceeds the group order).
+	for i := 64; i < vrfProofLen; i++ {
+		proof[i] = 0xFF
+	}
+
+	if VRFVerify(pk, []byte("scalar"), output, proof) {
+		t.Fatal("a non-canonical scalar must be rejected")
+	}
+}
+
+// TestVRFVerify_RejectsAProofOfADifferentMessage keeps the final equation
+// honest: a well-formed proof for another message must not verify.
+func TestVRFVerify_RejectsAProofOfADifferentMessage(t *testing.T) {
+	pk, sk, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+	output, proof, err := VRFProve(sk, []byte("message-a"))
+	if err != nil {
+		t.Fatalf("VRFProve() error = %v", err)
+	}
+
+	if VRFVerify(pk, []byte("message-b"), output, proof) {
+		t.Fatal("a proof must not verify for a different message")
+	}
+}
+
+// TestVRFVerify_RejectsNilKey covers the nil guard, which a caller reaches when
+// a record carries no stored public key.
+func TestVRFVerify_RejectsNilKey(t *testing.T) {
+	if VRFVerify(nil, []byte("m"), make([]byte, 32), make([]byte, vrfProofLen)) {
+		t.Fatal("a nil public key must be rejected")
+	}
+}
