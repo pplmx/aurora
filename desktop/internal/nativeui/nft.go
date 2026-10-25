@@ -109,16 +109,18 @@ func (a *App) nftRead(c *ui.Context) {
 
 func (a *App) nftReadBody(c *ui.Context) {
 	field(c, "NFT ID", &a.nft.id)
-	if ui.Button(c, "Get NFT").Clicked() {
-		n, err := a.services.GetNFT(strings.TrimSpace(a.nft.id))
-		if err != nil {
-			a.nft.status = errStatus(err)
-			a.nft.nft = nil
-		} else {
-			a.nft.nft = &n
-			a.nft.status = statusLine{}
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "Get NFT").Clicked() {
+			n, err := a.services.GetNFT(strings.TrimSpace(a.nft.id))
+			if err != nil {
+				a.nft.status = errStatus(err)
+				a.nft.nft = nil
+			} else {
+				a.nft.nft = &n
+				a.nft.status = statusLine{}
+			}
 		}
-	}
+	})
 	if n := a.nft.nft; n != nil {
 		rows := []readoutRow{{"Name", n.Name}, {"Owner", n.Owner}, {"Creator", n.Creator}}
 		if n.Description != "" {
@@ -128,16 +130,18 @@ func (a *App) nftReadBody(c *ui.Context) {
 	}
 
 	field(c, "Owner (base64 public key)", &a.nft.owner)
-	if ui.Button(c, "List NFTs").Clicked() {
-		rows, err := a.services.ListNFTs(strings.TrimSpace(a.nft.owner))
-		if err != nil {
-			a.nft.status = errStatus(err)
-			a.nft.list = nil
-		} else {
-			a.nft.list = rows
-			a.nft.status = statusLine{}
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "List NFTs").Clicked() {
+			rows, err := a.services.ListNFTs(strings.TrimSpace(a.nft.owner))
+			if err != nil {
+				a.nft.status = errStatus(err)
+				a.nft.list = nil
+			} else {
+				a.nft.list = rows
+				a.nft.status = statusLine{}
+			}
 		}
-	}
+	})
 	if len(a.nft.list) == 0 {
 		emptyNote(c, "No NFTs listed yet.")
 		return
