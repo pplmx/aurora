@@ -365,22 +365,24 @@ func (a *App) tokenHistory(c *ui.Context) {
 func (a *App) tokenHistoryBody(c *ui.Context) {
 	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.account)
 	field(c, "Limit", &a.token.historyLimit)
-	if ui.Button(c, "Load History").Clicked() {
-		limit := 50
-		if s := strings.TrimSpace(a.token.historyLimit); s != "" {
-			if n, err := strconv.Atoi(s); err == nil && n > 0 {
-				limit = n
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "Load History").Clicked() {
+			limit := 50
+			if s := strings.TrimSpace(a.token.historyLimit); s != "" {
+				if n, err := strconv.Atoi(s); err == nil && n > 0 {
+					limit = n
+				}
+			}
+			rows, err := a.services.TokenHistory(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.account), limit, 0)
+			if err != nil {
+				a.token.status = errStatus(err)
+				a.token.history = nil
+			} else {
+				a.token.history = rows
+				a.token.status = statusLine{}
 			}
 		}
-		rows, err := a.services.TokenHistory(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.account), limit, 0)
-		if err != nil {
-			a.token.status = errStatus(err)
-			a.token.history = nil
-		} else {
-			a.token.history = rows
-			a.token.status = statusLine{}
-		}
-	}
+	})
 	if len(a.token.history) == 0 {
 		emptyNote(c, "No transfers loaded yet.")
 		return
