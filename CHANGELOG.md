@@ -46,6 +46,7 @@ documented in their per-milestone ROADMAP files.
   attests every checksum subject to the repository workflow run. Users can
   verify downloads with `gh attestation verify`; the attestation supplements
   but does not replace Authenticode or Apple Developer ID signatures.
+
 ### Fixed
 
 - **Lottery verification no longer panics on a missing draw**: the resolution
@@ -80,7 +81,6 @@ documented in their per-milestone ROADMAP files.
   the same indexes, so a fresh database, a migrated one and a rebuilt one
   agree. `internal/infra/sqlite/query_plan_test.go` pins both plans and fails
   if the sort reappears.
-
 
 ### Changed
 
@@ -120,8 +120,6 @@ documented in their per-milestone ROADMAP files.
   the CLI. Net change: about 7.9k lines
   removed; `just test` drops from 34 packages to 29 and stays green.
 
-### Removed
-
 - **Dead APIs and duplicate implementations found by a global ablation pass**:
   a symbol-level audit (every exported function/method with zero non-test
   callers) replaced the previous module-level reachability check. Removed:
@@ -141,8 +139,6 @@ documented in their per-milestone ROADMAP files.
   `LotteryRecord.FromJSON`, and `Fetcher.FetchData` all have real production
   or regression-test consumers.
 
-### Changed
-
 - **The desktop shell now uses MyGo v0.6.3**: the patch release brings
   Windows WebView2 event-token and task-dialog lifetime fixes, WebKit content
   rules, and UI paste/rendering corrections. The Linux package and its real
@@ -157,8 +153,6 @@ documented in their per-milestone ROADMAP files.
   immediate write transactions, 5s busy timeout) is unchanged. CLI, API,
   Docker and desktop builds now run with `CGO_ENABLED=0`; cgo is only
   needed when the race detector is enabled during testing.
-
-### Fixed
 
 - **Cancelled Oracle REST fetches now stop their upstream request**: the
   protected `/oracle/fetch` handler called the background-context use case, so
