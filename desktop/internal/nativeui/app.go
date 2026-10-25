@@ -102,11 +102,18 @@ type VerifyResult struct {
 	Checks  []string
 }
 
-// New builds the window's state. A nil Services is a programming error, not a
-// user-visible condition: the shell only constructs an App after it has wired
-// the database.
+// New builds the window's state and loads the first page. A nil Services is a
+// programming error, not a user-visible condition: the shell only constructs
+// an App after it has wired the database.
+//
+// The first page is loaded here rather than on the first render because a view
+// only draws what the state already holds: a window that opened on the
+// dashboard and never switched pages showed "Loading…" forever, since nothing
+// else asked the services for the counters.
 func New(services Services) *App {
-	return &App{services: services, page: pageDashboard}
+	a := &App{services: services, page: pageDashboard}
+	a.refresh()
+	return a
 }
 
 // View is the frame builder handed to mygo.WindowOptions.Content.
@@ -205,6 +212,22 @@ func (a *App) ShowPage(name string) {
 			a.refresh()
 			return
 		}
+	}
+}
+
+// ShowIntent applies a deep link: it selects the page the link names and, when
+// the link also names a draw, verifies that draw. An empty page leaves the
+// current page alone, so a malformed link cannot blank the window.
+//
+// Both the operating system's requests and the launch arguments go through
+// this one method, so a link behaves the same whether it started the process
+// or reached a running one.
+func (a *App) ShowIntent(page, lotteryID string) {
+	if page != "" {
+		a.ShowPage(page)
+	}
+	if lotteryID != "" {
+		a.ShowLotteryDraw(lotteryID)
 	}
 }
 

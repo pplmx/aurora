@@ -389,10 +389,7 @@ func (s *Shell) Navigate(in Intent) {
 	s.mu.Unlock()
 	// A native window has no page to load: the link selects which view the
 	// App renders, and MyGo repaints on the next frame.
-	app.ShowPage(in.Page)
-	if id := in.LotteryID; id != "" {
-		app.ShowLotteryDraw(id)
-	}
+	app.ShowIntent(in.Page, in.LotteryID)
 	s.Reveal()
 }
 

@@ -244,12 +244,17 @@ func main() {
 			fmt.Fprintf(os.Stderr, "aurora-desktop: register %s://: %v\n", deskapp.DeepLinkScheme, err)
 		}
 	}
-	// A deep link is re-delivered by MyGo once the app is ready, but the
-	// window already opens at opts.Intent.URL(); mark it handled so the
-	// delivery does not reload the page. A file is NOT marked here: the import
-	// needs a running app, so it happens in WhenReady, and Shell.take makes
-	// whichever of that call and MyGo's delivery arrives first the only one
-	// that imports.
+	// A launch argument is acted on twice on a cold start: ParseFlags read it
+	// from our own command line, and MyGo re-delivers it through
+	// OnOpenURL/OnOpenFile once the app is ready. A link is consumed here
+	// because this process applies it itself in WhenReady, below; MyGo's echo
+	// of the same link is then dropped by Shell.take instead of navigating
+	// twice.
+	//
+	// A file is deliberately NOT consumed: MyGo never echoes one (Aurora
+	// declares no file association), and ImportRecords already refuses the
+	// duplicate record, so the guard would only block the operator's next
+	// genuine import of that file.
 	if opts.Intent.File == "" && opts.Intent.Raw != "" {
 		shell.Consume(opts.Intent.Raw)
 	}
@@ -292,11 +297,17 @@ func main() {
 		})
 		deskapp.MarkLanguage(mygo.App.Menu())
 		openMainWindow(shell, opts)
-		// A lottery export named on the command line is imported once the app
-		// is ready: the storage layer is already open, and the result dialog
-		// MyGo shows needs the running app (calling it before Run panics).
-		// The path is already consumed, so MyGo's own delivery of it is a
-		// no-op and the file is imported exactly once.
+		// The launch's own request is applied now that there is a window: a
+		// deep link selects its page (and verifies the draw it names), and an
+		// export is imported. Both are already consumed, so MyGo's own
+		// delivery of the same argument is a no-op and each happens once.
+		//
+		// Applying the link only through MyGo's delivery is not enough: that
+		// path exists on Linux and Windows, and a macOS launch that names a
+		// draw reached an app that never opened the page.
+		if opts.Intent.Raw != "" && opts.Intent.File == "" {
+			shell.Navigate(opts.Intent)
+		}
 		if opts.Intent.File != "" {
 			shell.OpenFile(opts.Intent.File)
 		}
