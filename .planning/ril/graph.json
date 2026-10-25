@@ -2,7 +2,7 @@
   "ril_version": 1,
   "round": 217,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T15:38:19+00:00",
+  "updated_at": "2026-10-25T15:38:35+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -14798,7 +14798,7 @@
       "version": 1,
       "created_at": "2026-10-23T07:49:20+00:00",
       "updated_at": "2026-10-23T07:49:20+00:00",
-      "touched_round": 169,
+      "touched_round": 217,
       "name": "sqlite-migrations",
       "path": "internal/infra/migrate",
       "description": "SQLite-only schema migration runner and CLI integration"
@@ -18218,6 +18218,66 @@
       "confidence": 1,
       "source": "go test ./desktop/internal/deskapp -run TestWindowDrivesRealServices",
       "summary": "A draw created through the window's state is read back from SQLite and verifies true, so the views and the store are joined, not just each tested alone."
+    },
+    "ISS-378": {
+      "id": "ISS-378",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T15:38:29+00:00",
+      "updated_at": "2026-10-25T15:38:30+00:00",
+      "touched_round": 217,
+      "title": "Voting session responses omitted the ballot window and the desktop list could not show it",
+      "severity": 0.5,
+      "description": "SessionResponse carried id/title/status/roster but not start_time/end_time, so neither the API nor the desktop table could explain a refused ballot without a second request."
+    },
+    "TASK-381": {
+      "id": "TASK-381",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T15:38:29+00:00",
+      "updated_at": "2026-10-25T15:38:30+00:00",
+      "touched_round": 217,
+      "category": "core-feature",
+      "severity": 0.5,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Carry the session ballot window to every surface",
+      "description": "Add start_time/end_time to SessionResponse, show them in the desktop session table, and document the fields in docs/api.md."
+    },
+    "TASK-382": {
+      "id": "TASK-382",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T15:38:29+00:00",
+      "updated_at": "2026-10-25T15:38:30+00:00",
+      "touched_round": 217,
+      "category": "test-quality",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Join the desktop views to the real store in one test",
+      "description": "The view tests use fakes and Start's test only checked an App exists; a real create-then-verify through the window's services closes that gap."
+    },
+    "TASK-383": {
+      "id": "TASK-383",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T15:38:35+00:00",
+      "updated_at": "2026-10-25T15:38:35+00:00",
+      "touched_round": 217,
+      "category": "docs",
+      "severity": 0.4,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Describe the window's actual interface in the desktop guide",
+      "description": "Update docs/desktop.md with the palette, sidebar, card layout, status lines and keyboard paths, and remove the duplicated backend bullet."
     }
   },
   "edges": [
@@ -28085,6 +28145,42 @@
       "to": "ISS-377",
       "type": "resolves",
       "created_at": "2026-10-25T15:29:58+00:00"
+    },
+    {
+      "from": "CHG-383",
+      "to": "ISS-378",
+      "type": "resolves",
+      "created_at": "2026-10-25T15:38:29+00:00"
+    },
+    {
+      "from": "CHG-383",
+      "to": "TASK-381",
+      "type": "implements",
+      "created_at": "2026-10-25T15:38:29+00:00"
+    },
+    {
+      "from": "CHG-384",
+      "to": "TASK-382",
+      "type": "implements",
+      "created_at": "2026-10-25T15:38:29+00:00"
+    },
+    {
+      "from": "TASK-381",
+      "to": "ISS-378",
+      "type": "addresses",
+      "created_at": "2026-10-25T15:38:29+00:00"
+    },
+    {
+      "from": "ISS-378",
+      "to": "COMP-020",
+      "type": "located_in",
+      "created_at": "2026-10-25T15:38:29+00:00"
+    },
+    {
+      "from": "CHG-385",
+      "to": "TASK-383",
+      "type": "implements",
+      "created_at": "2026-10-25T15:38:35+00:00"
     }
   ]
 }
