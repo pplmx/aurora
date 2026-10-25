@@ -127,6 +127,7 @@ func New(services Services) *App {
 	a.lottery.selected = -1
 	a.token.chosen = -1
 	a.nft.selected = -1
+	a.oracle.selected = -1
 	a.refresh()
 	return a
 }

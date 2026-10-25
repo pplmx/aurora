@@ -33,6 +33,9 @@ type oracleState struct {
 
 	loadErr error
 
+	// selected is the source row chosen, -1 for none.
+	selected int
+
 	// askDelete drives the source-deletion confirmation: deleting a source is
 	// irreversible for its scheduling entry, so it gets the same gate as burn.
 	askDelete bool
@@ -94,11 +97,12 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		return
 	}
 	srcs := a.oracle.sources
-	// The id is a timestamp plus a hash, far too long for a column that also
-	// holds a name and a status; the actions below take the id as input, so a
-	// short prefix is what a reader copies. "Name" gets a minimum so its own
-	// header cannot be clipped by the columns beside it.
-	ui.Table(c, &a.oracle.sourceTable, []ui.TableColumn{
+	// The id is a timestamp plus a hash, too long for a column that also holds
+	// a name and a status, so the cell shows a prefix. Choosing the row loads
+	// the full id into the actions and the read cards below, which is how a
+	// source reaches them without retyping an id nobody has in full.
+	a.oracle.sourceTable.Selected = &a.oracle.selected
+	table := ui.Table(c, &a.oracle.sourceTable, []ui.TableColumn{
 		{Title: "Name", MinWidth: 110},
 		{Title: "Type", Width: 100},
 		{Title: "ID", Width: 150},
@@ -127,11 +131,14 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 			}
 		}
 	})
+	if table.Changed() && a.oracle.selected >= 0 && a.oracle.selected < len(srcs) {
+		id := srcs[a.oracle.selected].ID
+		a.oracle.fetchID, a.oracle.queryID, a.oracle.latestID = id, id, id
+	}
 
 	// Per-source actions. A table row cannot host a button per cell without
-	// making the whole grid interactive, so the id is entered once and the
-	// actions apply to it — the same shape the Web UI's per-row buttons had,
-	// with the selection made explicit.
+	// making the whole grid interactive, so the id is entered once — or loaded
+	// by choosing a row above — and the actions apply to it.
 	field(c, "Source ID for the actions below", &a.oracle.fetchID)
 	ui.Row(c).Gap(8).Children(func() {
 		if ui.Button(c, "Enable").Clicked() {

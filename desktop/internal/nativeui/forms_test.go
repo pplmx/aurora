@@ -343,3 +343,22 @@ func TestTableRowsKeepTheirHeight(t *testing.T) {
 	require.Equal(t, row([]string{"Bob"}), row([]string{long, "Bob"}),
 		"a long value must not make the row taller: the cell is one line")
 }
+
+// TestChoosingAnOracleRowFillsTheActions pins that a source's id reaches the
+// action buttons and the read cards. The table shows a shortened id, so
+// choosing the row is the only way to aim an action at it.
+func TestChoosingAnOracleRowFillsTheActions(t *testing.T) {
+	const full = "20261025233845.347259429-29ee362515b7c1fc06313345ef6be416"
+	fake := &fakeServices{}
+	fake.sources = []SourceRow{{ID: full, Name: "btc", Enabled: true}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2400)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.NoError(t, tester.Click(shortID(full)), "click the row's id cell")
+	tester.Frame()
+	require.Equal(t, full, app.oracle.fetchID, "the actions must receive the source")
+	require.Equal(t, full, app.oracle.queryID, "the query card must receive it")
+	require.Equal(t, full, app.oracle.latestID, "the latest card must receive it")
+}
