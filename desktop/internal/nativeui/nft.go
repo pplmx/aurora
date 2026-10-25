@@ -146,7 +146,7 @@ func (a *App) nftReadBody(c *ui.Context) {
 	ui.Table(c, &a.nft.listTable, []ui.TableColumn{
 		{Title: "ID", Width: 150},
 		{Title: "Name"},
-		{Title: "Block", Width: 70, Align: ui.End},
+		{Title: "Block", Width: 80, Align: ui.End},
 	}, len(list), func(row, col int) {
 		n := list[row]
 		switch col {
@@ -219,10 +219,10 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 	}
 	ops := a.nft.history
 	ui.Table(c, &a.nft.historyTable, []ui.TableColumn{
-		{Title: "Type", Width: 90},
+		{Title: "Type", Width: 100},
 		{Title: "From", Width: 160},
 		{Title: "To", Width: 160},
-		{Title: "Block", Width: 70, Align: ui.End},
+		{Title: "Block", Width: 80, Align: ui.End},
 	}, len(ops), func(row, col int) {
 		op := ops[row]
 		switch col {

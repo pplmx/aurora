@@ -98,8 +98,8 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		{Title: "Name"},
 		{Title: "Type", Width: 100},
 		{Title: "ID", Width: 140},
-		{Title: "Status", Width: 90},
-		{Title: "Headers", Width: 90},
+		{Title: "Status", Width: 100},
+		{Title: "Headers", Width: 100},
 	}, len(srcs), func(row, col int) {
 		s := srcs[row]
 		switch col {

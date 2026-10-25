@@ -368,7 +368,7 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 		{Title: "From", Width: 160},
 		{Title: "To", Width: 160},
 		{Title: "Amount", Width: 100, Align: ui.End},
-		{Title: "Nonce", Width: 70, Align: ui.End},
+		{Title: "Nonce", Width: 80, Align: ui.End},
 	}, len(hist), func(row, col int) {
 		h := hist[row]
 		switch col {
