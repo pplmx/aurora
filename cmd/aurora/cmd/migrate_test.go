@@ -88,9 +88,9 @@ func TestMigrateUp_FreshDB(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Current version: 5", "all migrations applied")
+		assert.Contains(t, out, "Current version: 6", "all migrations applied")
 
-		assert.Equal(t, 5, appliedSchemaVersion(t))
+		assert.Equal(t, 6, appliedSchemaVersion(t))
 		assert.True(t, tableExists(t, "candidates"), "migration 000001 should create candidates")
 		assert.True(t, tableExists(t, "token_transfers"), "migration 000002 should create token_transfers")
 		assert.True(t, tableExists(t, "vote_sessions"), "migration 000003 should add vote_sessions")
@@ -134,6 +134,15 @@ func TestMigrateUp_WithSteps(t *testing.T) {
 		assert.Contains(t, out, "Current version: 5")
 		assert.Equal(t, 5, appliedSchemaVersion(t))
 		assert.True(t, indexExists(t, "idx_oracle_data_source_ts"), "step 5 applies 000005")
+
+		// Step 6 adds the token listing index. A fresh database gets the same
+		// index from the repository's own bootstrap, so the migrated and the
+		// fresh schema must agree.
+		out, err = runCmd(t, "migrate", "up", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Current version: 6")
+		assert.Equal(t, 6, appliedSchemaVersion(t))
+		assert.True(t, indexExists(t, "idx_tokens_created"), "step 6 applies 000006")
 	})
 }
 
@@ -146,7 +155,7 @@ func TestMigrateUp_AlreadyApplied(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up")
 		require.NoError(t, err, "re-running up on a migrated DB is a no-op, not an error")
-		assert.Contains(t, out, "Current version: 5")
+		assert.Contains(t, out, "Current version: 6")
 	})
 }
 
@@ -173,7 +182,7 @@ func TestMigrateStatus_AfterUp(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "status")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Current version: 5")
+		assert.Contains(t, out, "Current version: 6")
 		assert.Contains(t, out, "Applied: 1, 2, 3, 4, 5")
 		assert.Contains(t, out, "Pending: (none)")
 	})
@@ -187,6 +196,12 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 		require.NoError(t, err)
 
 		out, err := runCmd(t, "migrate", "down", "1", "--confirm")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Current version: 5")
+		assert.Equal(t, 5, appliedSchemaVersion(t))
+		assert.False(t, indexExists(t, "idx_tokens_created"), "rolling back 000006 must drop its listing index")
+
+		out, err = runCmd(t, "migrate", "down", "1", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Current version: 4")
 		assert.Equal(t, 4, appliedSchemaVersion(t))
@@ -231,8 +246,8 @@ func TestMigrateUp_OverrunCapsAtPending(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "up", "6")
 		require.NoError(t, err, "up with N larger than pending must succeed")
-		assert.Contains(t, out, "Current version: 5")
-		assert.Equal(t, 5, appliedSchemaVersion(t))
+		assert.Contains(t, out, "Current version: 6")
+		assert.Equal(t, 6, appliedSchemaVersion(t))
 	})
 }
 
@@ -310,7 +325,7 @@ func TestMigrateDown_RequiresConfirm(t *testing.T) {
 		_, err = runCmd(t, "migrate", "down", "1")
 		require.Error(t, err, "down without --confirm must be refused")
 		assert.Contains(t, err.Error(), "--confirm")
-		assert.Equal(t, 5, appliedSchemaVersion(t), "no migration may roll back without confirmation")
+		assert.Equal(t, 6, appliedSchemaVersion(t), "no migration may roll back without confirmation")
 	})
 }
 
@@ -342,13 +357,13 @@ func TestMigrateRepair_UnsticksADirtyDatabase(t *testing.T) {
 
 		out, err := runCmd(t, "migrate", "repair", "--confirm")
 		require.NoError(t, err)
-		assert.Contains(t, out, "cleared at version 5")
+		assert.Contains(t, out, "cleared at version 6")
 
 		// The database is usable again, at the version it was at.
 		out, err = runCmd(t, "migrate", "status")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Dirty: false")
-		assert.Contains(t, out, "Current version: 5")
+		assert.Contains(t, out, "Current version: 6")
 
 		_, err = runCmd(t, "migrate", "up")
 		require.NoError(t, err, "up must work again after a repair")
