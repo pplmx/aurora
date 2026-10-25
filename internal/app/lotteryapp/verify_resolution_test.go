@@ -151,11 +151,20 @@ func TestVerifyInput_HeightListOfOnlyNilIsNotFound(t *testing.T) {
 
 // TestVerifyInput_ResolvesBySubstring pins the third step for both fields the
 // help text promises: an ID fragment and a seed fragment.
+//
+// The record is built from literals rather than from DrawWinners: the real ID
+// is a hash whose characters depend on a freshly generated key pair, so an
+// 8-character fragment was occasionally all digits and then parsed as a block
+// height instead of reaching the substring step (measured: the test failed
+// with "lottery not found: 31506309").
 func TestVerifyInput_ResolvesBySubstring(t *testing.T) {
-	record := verifiableLotteryRecord(t)
+	record := &lottery.LotteryRecord{
+		ID:   "ab12cd34ef567890",
+		Seed: "address-integrity",
+	}
 	repo := &scriptedRepo{byIDErr: lottery.ErrNotFound, all: []*lottery.LotteryRecord{record}}
 
-	for _, ref := range []string{record.ID[:8], "address-integrity"} {
+	for _, ref := range []string{"ab12cd34", "address-integrity"} {
 		report, err := VerifyInput(repo, ref)
 		if err != nil {
 			t.Fatalf("VerifyInput(%q): %v", ref, err)
