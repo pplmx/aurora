@@ -17,6 +17,12 @@ type VoterRow struct {
 	PublicKey string
 	Name      string
 	HasVoted  bool
+	// PrivateKey is the ballot-signing key the registration generated. It is
+	// returned once, by RegisterVoter only: the stored voter keeps just the
+	// public half, so a window that dropped it left the operator with a voter
+	// that can never cast a signed ballot. Empty when the row came from a list
+	// read, where the key is not available.
+	PrivateKey string
 }
 
 // CandidateRow is one registered candidate.
