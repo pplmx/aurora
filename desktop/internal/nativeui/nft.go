@@ -46,18 +46,31 @@ type nftState struct {
 
 	listTable    ui.ListState
 	historyTable ui.ListState
+	// selected is the collection row chosen, -1 for none.
+	selected int
 }
 
 func (a *App) loadNFT() {
-	a.nft.loadErr = nil
+	if a.services == nil {
+		return
+	}
+	// The collection is the page's entry point: an asset minted in another
+	// session is otherwise reachable only by an id nobody wrote down.
+	rows, err := a.services.ListAllNFTs()
+	a.nft.loadErr = err
+	if err == nil {
+		a.nft.list = rows
+	}
 }
 
 func (a *App) nftView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
 		renderStatus(c, a.nft.status)
+		// The collection leads: what exists comes before adding to it, and the
+		// cards below act on the row it selects.
 		twoColumns(c, func() {
-			a.nftMint(c)
 			a.nftRead(c)
+			a.nftMint(c)
 		}, func() {
 			a.nftWrite(c)
 		})
@@ -95,6 +108,7 @@ func (a *App) mintNFT() {
 		return
 	}
 	a.nft.status = okStatus("Minted %s (%s) at block %d", n.Name, n.ID, n.BlockHeight)
+	a.loadNFT()
 	// The new asset becomes the subject of every other card: the operator just
 	// created it, so making them retype the id four times would be busywork.
 	a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
@@ -102,7 +116,10 @@ func (a *App) mintNFT() {
 }
 
 func (a *App) nftRead(c *ui.Context) {
-	formCard(c, "Inspect", "Look up one NFT by id, or list everything an owner holds.", func() {
+	formCard(c, "Collection", "Every stored asset, newest first. Choose a row to load its id into the cards below.", func() {
+		a.nftListBody(c)
+	})
+	formCard(c, "Inspect", "Look up one NFT by id, or narrow the collection to one owner.", func() {
 		a.nftReadBody(c)
 	})
 }
@@ -129,9 +146,11 @@ func (a *App) nftReadBody(c *ui.Context) {
 		readout(c, rows)
 	}
 
-	field(c, "Owner (base64 public key)", &a.nft.owner)
-	ui.Row(c).Children(func() {
-		if ui.Button(c, "List NFTs").Clicked() {
+	// The Collection card holds the whole collection; this narrows it to one
+	// owner, and Show All restores everything.
+	fieldHint(c, "Owner (base64 public key)", "Narrow the Collection card to one owner.", &a.nft.owner)
+	ui.Row(c).Gap(8).Children(func() {
+		if ui.Button(c, "Filter by Owner").Clicked() {
 			rows, err := a.services.ListNFTs(strings.TrimSpace(a.nft.owner))
 			if err != nil {
 				a.nft.status = errStatus(err)
@@ -141,13 +160,26 @@ func (a *App) nftReadBody(c *ui.Context) {
 				a.nft.status = statusLine{}
 			}
 		}
+		if ui.Button(c, "Show All").Clicked() {
+			a.nft.owner = ""
+			a.loadNFT()
+		}
 	})
+}
+
+// nftListBody draws the collection table.
+func (a *App) nftListBody(c *ui.Context) {
+	if a.nft.loadErr != nil {
+		ui.Text(c, "Failed to load NFTs: "+a.nft.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+		return
+	}
 	if len(a.nft.list) == 0 {
-		emptyNote(c, "No NFTs listed yet.")
+		emptyNote(c, "No NFTs yet. Mint one above.")
 		return
 	}
 	list := a.nft.list
-	ui.Table(c, &a.nft.listTable, []ui.TableColumn{
+	a.nft.listTable.Selected = &a.nft.selected
+	table := ui.Table(c, &a.nft.listTable, []ui.TableColumn{
 		{Title: "ID", Width: 150},
 		{Title: "Name", MinWidth: 110},
 		{Title: "Block", Width: 80, Align: ui.End},
@@ -162,6 +194,12 @@ func (a *App) nftReadBody(c *ui.Context) {
 			ui.Text(c, strconv.FormatInt(n.BlockHeight, 10))
 		}
 	})
+	if table.Changed() && a.nft.selected >= 0 && a.nft.selected < len(list) {
+		// Choosing a row fills every card's id with that asset, which is how
+		// the full id reaches a form after the table shortened it.
+		n := list[a.nft.selected]
+		a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
+	}
 }
 
 func (a *App) nftWrite(c *ui.Context) {

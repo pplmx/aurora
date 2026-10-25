@@ -216,13 +216,24 @@ var listCmd = &cobra.Command{
 
 		// The CLI lists the full collection (0,0 = unbounded); only the REST
 		// list is paged/bounded (TASK-101, ISS-093).
-		listUC := nftapp.NewListByOwner(service)
-		results, err := listUC.Execute(&nftapp.ListNFTsByOwnerRequest{Owner: owner})
+		var results []*nftapp.NFTResponse
+		if owner == "" {
+			// Without an owner this is the whole collection: an owner key is
+			// what a caller who did not mint the asset does not have.
+			results, err = nftapp.NewListAll(service).Execute(&nftapp.ListNFTsRequest{})
+		} else {
+			results, err = nftapp.NewListByOwner(service).Execute(
+				&nftapp.ListNFTsByOwnerRequest{Owner: owner})
+		}
 		if err != nil {
 			return fmt.Errorf("failed to list NFTs: %w", err)
 		}
 
-		fmt.Printf("\n🎨 NFTs owned: %d\n", len(results))
+		label := "NFTs owned"
+		if owner == "" {
+			label = "NFTs"
+		}
+		fmt.Printf("\n🎨 %s: %d\n", label, len(results))
 		if len(results) == 0 {
 			fmt.Println("   (none)")
 		}
@@ -307,8 +318,9 @@ func init() {
 	getCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
 	_ = getCmd.MarkFlagRequired("nft")
 
+	// The owner is optional: without it the command lists every NFT, which is
+	// the only way to reach an asset whose owner key the caller never had.
 	listCmd.Flags().StringP("owner", "o", "", i18n.GetText("nft.owner"))
-	_ = listCmd.MarkFlagRequired("owner")
 
 	nftHistoryCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
 	_ = nftHistoryCmd.MarkFlagRequired("nft")

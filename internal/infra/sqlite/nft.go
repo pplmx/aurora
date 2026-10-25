@@ -317,6 +317,61 @@ func (r *NFTRepository) GetNFTsByOwner(owner []byte, limit, offset int) ([]*nft.
 	return results, rows.Err()
 }
 
+// ListNFTs returns every NFT, newest first. It shares the row decoding with
+// GetNFTsByOwner so a listed asset carries the same fields a fetched one does.
+func (r *NFTRepository) ListNFTs(limit, offset int) ([]*nft.NFT, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	rows, err := r.q().Query(`
+		SELECT id, name, description, image_url, token_uri, owner, creator, block_height, timestamp
+		FROM nfts ORDER BY rowid DESC
+		LIMIT ? OFFSET ?
+	`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var results []*nft.NFT
+	for rows.Next() {
+		n, err := scanNFT(rows)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, n)
+	}
+	return results, rows.Err()
+}
+
+// scanNFT decodes one row of the NFT column list. Both list queries select the
+// same columns in the same order, so they share the decoding.
+func scanNFT(rows interface {
+	Scan(dest ...any) error
+}) (*nft.NFT, error) {
+	var id, name, description, imageURL, tokenURI, ownerStr, creatorB64 string
+	var blockHeight, timestamp int64
+	if err := rows.Scan(&id, &name, &description, &imageURL, &tokenURI, &ownerStr, &creatorB64, &blockHeight, &timestamp); err != nil {
+		return nil, err
+	}
+	ownerBytes, err := base64.StdEncoding.DecodeString(ownerStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode owner: %w", err)
+	}
+	creator, err := base64.StdEncoding.DecodeString(creatorB64)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode creator: %w", err)
+	}
+	return &nft.NFT{
+		ID: id, Name: name, Description: description, ImageURL: imageURL,
+		TokenURI: tokenURI, Owner: ownerBytes, Creator: creator,
+		BlockHeight: blockHeight, Timestamp: timestamp,
+	}, nil
+}
+
 func (r *NFTRepository) UpdateNFT(n *nft.NFT) error {
 	_, err := r.q().Exec(`
 		UPDATE nfts SET name = ?, description = ?, image_url = ?, token_uri = ?, owner = ?, block_height = ?, timestamp = ?

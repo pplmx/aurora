@@ -126,6 +126,12 @@ type ListNFTsByOwnerRequest struct {
 	Offset int
 }
 
+// ListNFTsRequest pages the whole collection.
+type ListNFTsRequest struct {
+	Limit  int
+	Offset int
+}
+
 type ListByOwner struct {
 	service nft.Service
 }
@@ -148,6 +154,28 @@ func (u *ListByOwner) Execute(req *ListNFTsByOwnerRequest) ([]*NFTResponse, erro
 	responses := make([]*NFTResponse, len(results))
 	for i, n := range results {
 		responses[i] = ToNFTResponse(n)
+	}
+	return responses, nil
+}
+
+// ListAllNFTsUseCase returns every NFT, newest first. ListByOwner needs an
+// owner key, which a caller who did not mint the asset does not have.
+type ListAllNFTsUseCase struct {
+	service nft.Service
+}
+
+func NewListAll(service nft.Service) *ListAllNFTsUseCase {
+	return &ListAllNFTsUseCase{service: service}
+}
+
+func (u *ListAllNFTsUseCase) Execute(req *ListNFTsRequest) ([]*NFTResponse, error) {
+	results, err := u.service.ListNFTs(req.Limit, req.Offset)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]*NFTResponse, 0, len(results))
+	for _, n := range results {
+		responses = append(responses, ToNFTResponse(n))
 	}
 	return responses, nil
 }

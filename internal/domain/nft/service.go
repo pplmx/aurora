@@ -21,6 +21,8 @@ type Service interface {
 	VerifyTransfer(op *Operation) (bool, error)
 	GetNFTByID(id string) (*NFT, error)
 	GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*NFT, error)
+	// ListNFTs returns every NFT, newest first.
+	ListNFTs(limit, offset int) ([]*NFT, error)
 	GetOperations(nftID string) ([]*Operation, error)
 }
 
@@ -263,6 +265,11 @@ func (s *NFTService) GetNFTByID(id string) (*NFT, error) {
 
 func (s *NFTService) GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*NFT, error) {
 	return s.repo.GetNFTsByOwner(ownerPub, limit, offset)
+}
+
+// ListNFTs returns every NFT, newest first.
+func (s *NFTService) ListNFTs(limit, offset int) ([]*NFT, error) {
+	return s.repo.ListNFTs(limit, offset)
 }
 
 func (s *NFTService) GetOperations(nftID string) ([]*Operation, error) {

@@ -819,6 +819,10 @@ func (r *FailingRepo) GetNFT(id string) (*NFT, error) {
 	return r.inmemRepo.GetNFT(id)
 }
 
+func (r *FailingRepo) ListNFTs(limit, offset int) ([]*NFT, error) {
+	return nil, errors.New("list failed")
+}
+
 func (r *FailingRepo) GetNFTsByOwner(owner []byte, limit, offset int) ([]*NFT, error) {
 	return r.inmemRepo.GetNFTsByOwner(owner, limit, offset)
 }

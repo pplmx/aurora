@@ -227,16 +227,21 @@ func TestNFTHandler_Burn_InvalidJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
-func TestNFTHandler_List_EmptyOwner(t *testing.T) {
-	handler := NewNFTHandler(nil, nil)
+// TestNFTHandler_List_WithoutOwnerListsEverything covers the case the old
+// 400 blocked: a caller who did not mint the asset has no owner key to ask
+// with, and requiring one made every NFT unreachable unless its id was already
+// known.
+func TestNFTHandler_List_WithoutOwnerListsEverything(t *testing.T) {
+	repo := nft.NewInmemRepo()
+	handler := NewNFTHandler(repo, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list", nil)
 	rr := httptest.NewRecorder()
-
 	handler.List(rr, req)
 
-	// Empty owner -> 400 Bad Request (validated before service call)
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "[]\n", rr.Body.String(),
+		"an empty collection must encode as [], not null and not a 400")
 }
 
 // TestNFTHandler_List_Paged locks the v1.79 bounded-paging fix (TASK-101,

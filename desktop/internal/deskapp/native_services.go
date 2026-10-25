@@ -518,6 +518,22 @@ func (s *nativeServices) ListNFTs(owner string) ([]nativeui.NFTRow, error) {
 	return rows, nil
 }
 
+func (s *nativeServices) ListAllNFTs() ([]nativeui.NFTRow, error) {
+	uc := nftapp.NewListAll(nft.NewService(s.nftRepo, s.nftTx))
+	resp, err := uc.Execute(&nftapp.ListNFTsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	rows := make([]nativeui.NFTRow, 0, len(resp))
+	for _, n := range resp {
+		rows = append(rows, nativeui.NFTRow{
+			ID: n.ID, Name: n.Name, Description: n.Description,
+			Owner: n.Owner, Creator: n.Creator, BlockHeight: n.BlockHeight,
+		})
+	}
+	return rows, nil
+}
+
 func (s *nativeServices) TransferNFT(id, from, to, priv string) error {
 	uc := nftapp.NewTransferNFTUseCase(nft.NewService(s.nftRepo, s.nftTx), s.chain)
 	_, err := uc.Execute(&nftapp.TransferNFTRequest{NFTID: id, From: from, To: to, PrivateKey: priv})

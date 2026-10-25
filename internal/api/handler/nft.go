@@ -140,10 +140,6 @@ func (h *NFTHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 	owner := r.URL.Query().Get("owner")
-	if owner == "" {
-		writeBadRequest(w, "owner parameter is required")
-		return
-	}
 
 	// The list must be bounded: pre-fix it returned every NFT the owner
 	// had with no limit or caps, letting a key-holding caller force an
@@ -166,6 +162,24 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 				offset = maxNFTListOffset
 			}
 		}
+	}
+
+	// Without an owner the call lists the whole collection: an owner key is
+	// exactly what a caller who did not mint the asset does not have, and
+	// requiring it made every NFT unreachable unless its id was already known.
+	if owner == "" {
+		all, err := nftapp.NewListAll(h.service).Execute(&nftapp.ListNFTsRequest{
+			Limit: limit, Offset: offset,
+		})
+		if err != nil {
+			writeUseCaseError(w, err)
+			return
+		}
+		if all == nil {
+			all = []*nftapp.NFTResponse{}
+		}
+		writeJSON(w, http.StatusOK, all)
+		return
 	}
 
 	uc := nftapp.NewListByOwner(h.service)
