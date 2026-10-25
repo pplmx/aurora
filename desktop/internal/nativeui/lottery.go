@@ -192,9 +192,9 @@ func (a *App) lotteryVerify(c *ui.Context) {
 			// cross is decoration for a reader who can see it.
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				if r.Valid {
-					ui.Badge(c, "Verified").Background(ui.Hex(auroraGreen)).TextColor(ui.Hex(night))
+					badge(c, "Verified", auroraGreen, night)
 				} else {
-					ui.Badge(c, "Failed").Background(ui.Hex(auroraRed)).TextColor(ui.Hex(night))
+					badge(c, "Failed", auroraRed, night)
 				}
 				ui.Text(c, r.ID).FontSize(12).TextColor(ui.Hex(inkMuted)).SingleLine()
 			})

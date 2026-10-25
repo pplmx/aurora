@@ -113,7 +113,9 @@ func (a *App) loadBlockchain() {
 }
 
 func (a *App) blockchainView(c *ui.Context) {
-	formCard(c, "Ledger", "The audit chain every module writes to.", func() {
+	// The page header already says what the ledger is, so the card does not
+	// repeat it.
+	formCard(c, "Ledger", "", func() {
 		a.blockchainBody(c)
 	})
 }
@@ -131,9 +133,13 @@ func (a *App) blockchainBody(c *ui.Context) {
 		{"Blocks", strconv.Itoa(a.blockchain.blocks)},
 		{"Height", strconv.Itoa(a.blockchain.height)},
 	})
-	if a.blockchain.valid {
-		ui.Badge(c, "Hash chain verified").Background(ui.Hex(auroraGreen)).TextColor(ui.Hex(night))
-	} else {
-		ui.Badge(c, "Hash chain is broken").Background(ui.Hex(auroraRed)).TextColor(ui.Hex(night))
-	}
+	// The badge is inline: drawn straight into the card it took the card's
+	// whole width and read as a banner rather than a verdict.
+	ui.Row(c).Children(func() {
+		if a.blockchain.valid {
+			badge(c, "Hash chain verified", auroraGreen, night)
+		} else {
+			badge(c, "Hash chain is broken", auroraRed, night)
+		}
+	})
 }

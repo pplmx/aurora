@@ -204,7 +204,7 @@ func readout(c *ui.Context, rows []readoutRow) {
 func tokenSubject(c *ui.Context, id string) {
 	if id == "" {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Badge(c, "No token selected").Background(ui.Hex(auroraAmber)).TextColor(ui.Hex(night))
+			badge(c, "No token selected", auroraAmber, night)
 			ui.Text(c, "Create or inspect a token first; the cards below act on it.").
 				FontSize(12).TextColor(ui.Hex(inkMuted))
 		})
