@@ -48,6 +48,7 @@ const (
 	// verdict's hue, dark enough that the text on it keeps its contrast.
 	successTint = "#12291f"
 	errorTint   = "#2a1417"
+	warningTint = "#2a2213"
 )
 
 // auroraTheme returns the theme the window draws with: the dark theme with
