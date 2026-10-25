@@ -228,6 +228,11 @@ var englishMessages = map[string]string{
 	"migrate.applied":          "Applied: %s",
 	"migrate.pending":          "Pending: %s",
 	"migrate.none":             "(none)",
+	"migrate.repair":           "Clear the dirty marker a failed migration left, after checking the schema",
+	"migrate.repair_action":    "clears the dirty marker a failed migration left (it does not undo or re-run that migration)",
+	"migrate.repair_long":      "Clear the dirty marker a failed migration left, after checking the schema. This does not undo or re-run the failed migration.",
+	"migrate.repair_done":      "✅ Dirty marker cleared at version %d. Check the schema, then run `migrate up` or `migrate down`.",
+	"migrate.repair_clean":     "💤 Database is not dirty; nothing to repair (version %d)",
 
 	// ===== BACKUP =====
 	"backup.short":            "Create and manage database backups",

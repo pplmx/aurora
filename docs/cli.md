@@ -107,7 +107,13 @@ aurora migrate status         # 当前 / 已应用 / 待应用
 aurora migrate up             # 应用全部待迁移
 aurora migrate up 2           # 应用接下来两步
 aurora migrate down --confirm # 回滚一步
+aurora migrate repair --confirm # 清除失败迁移留下的脏标记
 ```
+
+迁移失败时，记录的目标版本会被标记为 dirty，此后 `up` 与 `down` 都拒绝执行——
+运行器无法判断半执行的 SQL 是否已提交，这是有意的安全选择。`migrate repair`
+只清除这个标记，不撤销也不重跑失败的迁移；确认表结构后，再用 `up` / `down`
+把版本推进或回退到正确位置。没有它时，唯一的出路是删库重建。
 
 备份目录不能被指定为数据库自身所在目录（会把 live DB 覆盖成快照）；
 `backup create` 先写同目录临时文件再原子改名，失败不会破坏上一份可用备份。
@@ -115,7 +121,7 @@ aurora migrate down --confirm # 回滚一步
 ## 确认门与错误输出
 
 - `token burn`、`nft burn`、`oracle source delete`、`migrate down`、
-  `backup restore`、`lottery reset` 需要 `-y/--confirm`；
+  `migrate repair`、`backup restore`、`lottery reset` 需要 `-y/--confirm`；
   `lottery reset` 额外接受 `--yes`。缺少确认会以非零退出码拒绝，便于脚本判断。
 - 失败只打印一行 `❌ Error: ...`（同时写结构化日志）后 `exit 1`；
   token 操作已提交但审计事件发布失败时打印 `⚠ ... DID commit. Do NOT retry`

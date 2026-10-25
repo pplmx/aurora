@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -196,11 +197,42 @@ var migrateStatusCmd = &cobra.Command{
 	},
 }
 
+var migrateRepairCmd = &cobra.Command{
+	Use:   "repair",
+	Short: i18n.GetText("migrate.repair"),
+	Long:  i18n.GetText("migrate.repair_confirm"),
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := requireConfirm(cmd, "migrate.repair_action"); err != nil {
+			return err
+		}
+		m, err := newCLIMigrator()
+		if err != nil {
+			return err
+		}
+		defer func() { _ = m.Close() }()
+
+		version, err := m.Repair()
+		if errors.Is(err, migrate.ErrNotDirty()) {
+			fmt.Println(i18n.GetTextF("migrate.repair_clean", version))
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Println(i18n.GetTextF("migrate.repair_done", version))
+		return nil
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(migrateCmd)
 	migrateCmd.AddCommand(migrateUpCmd)
 	migrateCmd.AddCommand(migrateDownCmd)
 	migrateCmd.AddCommand(migrateStatusCmd)
+	migrateCmd.AddCommand(migrateRepairCmd)
 	// Rolling back is destructive; require -y/--confirm first.
 	addConfirmFlag(migrateDownCmd, "cli.confirm.migrate_down")
+	// Repair changes the recorded schema state, so it takes the same gate.
+	addConfirmFlag(migrateRepairCmd, "migrate.repair_action")
 }

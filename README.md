@@ -112,7 +112,7 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 [docs/cli.md](docs/cli.md)，或 `aurora <module> --help`。
 
 > **破坏性操作确认门：** `token burn`、`nft burn`、`oracle source delete`、
-> `migrate down`、`backup restore`、`lottery reset` 都需要 `-y/--confirm`
+> `migrate down`、`migrate repair`、`backup restore`、`lottery reset` 都需要 `-y/--confirm`
 > （`lottery reset` 也接受旧写法 `--yes`）。缺少确认标志会以非零退出码拒绝
 > 执行，脚本可据此判断。
 
@@ -212,20 +212,21 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 
 ## 测试覆盖率
 
-`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-10-25）：
+`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-10-26）：
 
 | 模块    | Domain | App   |
 | ------- | ------ | ----- |
 | Lottery | 90.8%  | 86.5% |
 | Voting  | 93.6%  | 82.6% |
-| NFT     | 88.9%  | 90.1% |
-| Token   | 91.1%  | 91.8% |
+| NFT     | 82.1%  | 82.0% |
+| Token   | 90.9%  | 86.6% |
 | Oracle  | 85.5%  | 88.9% |
-| SQLite  | -      | 78.1% |
+| SQLite  | -      | 80.6% |
 
-SQLite 仍低于 80% 门槛：未被覆盖的部分集中在仓储构造函数、`Close` 与事务
-委托这几类“装配/收尾”路径。抽奖的解析顺序（精确 ID → 区块高度 → 子串）由
-`verify_resolution_test.go` 直接锁定，不再只靠 CLI 集成路径。
+所有模块都在 80% 门槛之上。SQLite 剩余缺口集中在仓储构造函数的错误分支
+（目录不可建、建表失败、权限收紧失败）；正常路径与事务委托都有直接测试。
+抽奖的解析顺序（精确 ID → 区块高度 → 子串）由 `verify_resolution_test.go`
+直接锁定；`nft_cascade_test.go` 用一个旧 schema 数据库验证审计表重建不丢行。
 
 ## 文档
 

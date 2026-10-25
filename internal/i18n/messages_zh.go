@@ -225,6 +225,11 @@ var chineseMessages = map[string]string{
 	"migrate.applied":          "已应用: %s",
 	"migrate.pending":          "待执行: %s",
 	"migrate.none":             "（无）",
+	"migrate.repair":           "清除失败迁移留下的脏标记（先确认表结构）",
+	"migrate.repair_action":    "清除失败迁移留下的脏标记（不会撤销或重跑该迁移）",
+	"migrate.repair_long":      "在确认表结构后清除失败迁移留下的脏标记。不会撤销或重跑失败的迁移。",
+	"migrate.repair_done":      "✅ 已在版本 %d 清除脏标记。确认表结构后执行 `migrate up` 或 `migrate down`。",
+	"migrate.repair_clean":     "💤 数据库没有脏标记，无需修复（版本 %d）",
 
 	// ===== BACKUP =====
 	"backup.short":            "创建和管理数据库备份",
