@@ -112,53 +112,76 @@ type VerifyResult struct {
 // else asked the services for the counters.
 func New(services Services) *App {
 	a := &App{services: services, page: pageDashboard}
+	// The draw form opens ready to submit: one winner is the domain's own
+	// default, and an empty count field rejected the first Create click with a
+	// parse error for a value the operator never had a chance to see.
+	a.lottery.count = "1"
 	a.refresh()
 	return a
 }
 
 // View is the frame builder handed to mygo.WindowOptions.Content.
+//
+// The window is a sidebar of modules beside one scrolling page. The theme is
+// set here rather than left to the system appearance: Aurora is dark by
+// design, and a light system theme used to paint white controls onto the dark
+// window.
 func (a *App) View(c *ui.Context) {
+	c.SetTheme(auroraTheme())
 	ui.Row(c).Fill().Children(func() {
 		a.sidebar(c)
-		ui.Column(c).Fill().Grow(1).Padding(20).Gap(16).Children(func() {
+		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).Children(func() {
 			a.header(c)
-			ui.Divider(c)
 			a.body(c)
 		})
 	})
 }
 
-// sidebar draws the module list. It replaces the Web UI's horizontal nav: a
-// desktop window has vertical room, and seven entries fit without scrolling.
+// sidebar draws the module list as a real sidebar: a chosen item that the
+// toolkit tracks, arrows and first-letter keys to move between modules, and
+// one focus stop for the whole list. It used to be seven buttons, where the
+// only sign of the current page was a "▸" prefix glued to the label.
 func (a *App) sidebar(c *ui.Context) {
-	ui.Column(c).Width(180).FillHeight().Padding(12).Gap(4).Children(func() {
-		ui.Text(c, "Aurora").FontSize(18).Bold()
-		ui.Text(c, "Ledger suite").FontSize(11).TextColor(ui.Hex("#6b7c7f"))
-		ui.Divider(c)
-		for _, p := range pageOrder {
-			p := p
-			label := pageTitles[p]
-			if a.page == p {
-				label = "▸ " + label
+	selected := pageIDs[a.page]
+	ui.Sidebar(c, &selected, func() {
+		ui.SidebarSection(c, "Modules", nil, func() {
+			for _, p := range pageOrder {
+				// The chosen item is already tinted by the toolkit; a marker
+				// beside it would say the same thing twice.
+				ui.SidebarItem(c, pageIDs[p], nil, pageTitles[p])
 			}
-			if ui.Button(c, label).Clicked() {
-				a.page = p
-				a.refresh()
-			}
-		}
-	})
+		})
+	}).Width(216).FillHeight()
+	if p, ok := pageByID(selected); ok && p != a.page {
+		a.page = p
+		a.refresh()
+	}
 }
 
 // header names the page and gives the one action every page shares.
 func (a *App) header(c *ui.Context) {
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Grow(1).Gap(2).Children(func() {
-			ui.Text(c, pageTitles[a.page]).FontSize(20).Bold()
+			ui.Text(c, pageTitles[a.page]).FontSize(26).Bold().TextColor(ui.Hex(ink))
+			ui.Text(c, pagePurpose[a.page]).FontSize(12).TextColor(ui.Hex(inkMuted))
 		})
 		if ui.Button(c, "Refresh").Clicked() {
 			a.refresh()
 		}
 	})
+	ui.Divider(c)
+}
+
+// pagePurpose is the one line under a page title: what the module is for,
+// stated once in the chrome instead of repeated by every section.
+var pagePurpose = map[page]string{
+	pageDashboard:  "Live counters from every module",
+	pageLottery:    "Verifiable random draws, re-checkable from the stored proof",
+	pageVoting:     "Signed ballots, registered voters and session tallies",
+	pageToken:      "Mint, transfer, approve and burn fungible tokens",
+	pageOracle:     "HTTP data sources, their schedule and fetch health",
+	pageNFT:        "Mint, transfer and burn unique assets",
+	pageBlockchain: "The audit chain every module writes to",
 }
 
 // body dispatches to the current page.
