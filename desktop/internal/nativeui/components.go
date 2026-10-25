@@ -174,11 +174,15 @@ func card(c *ui.Context, fn func()) ui.Element {
 func metricCard(c *ui.Context, label, value, note string, tone string, numeric bool) {
 	card(c, func() {
 		ui.Text(c, label).FontSize(11).TextColor(ui.Hex(inkMuted)).SingleLine()
+		// The value sits in a fixed-height slot so a word verdict and a
+		// one-digit number put their note on the same line across the row.
 		size := float32(20)
 		if numeric {
 			size = 30
 		}
-		ui.Text(c, value).FontSize(size).Bold().TextColor(ui.Hex(tone)).SingleLine()
+		ui.Column(c).Height(38).Justify(ui.Center).Children(func() {
+			ui.Text(c, value).FontSize(size).Bold().TextColor(ui.Hex(tone)).SingleLine()
+		})
 		ui.Text(c, note).FontSize(11).TextColor(ui.Hex(inkMuted))
 	})
 }
