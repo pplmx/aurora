@@ -28,6 +28,17 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 	// The Either predicate ALSO matches $.to == owner, so transfers the account
 	// RECEIVED show up next to the ones it sent instead of a one-sided history
 	// (ISS-162); the post-scan re-check below keeps the memory path honest.
+	//
+	// That re-check can shrink a page: a stored event whose JSON does not
+	// decode, or whose amount is unreadable, is skipped after the query, so a
+	// page of 3 can come back with 2 rows while a third matching row exists.
+	// Measured with one malformed transfer among three.
+	//
+	// CONTRACT: a short page does not mean the end of the data. A client paging
+	// through this MUST advance by the offset it asked for and stop on an empty
+	// page; treating `len(page) < limit` as the last page silently skips the
+	// remainder. The CLI and the REST handler both read one page per request,
+	// so neither trips over it today.
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 
 	events, err := r.store.GetByAggregateAndTypePayloadEither(string(tokenID), "token.transfer", "$.from", ownerB64, "$.to", ownerB64, limit, offset)
