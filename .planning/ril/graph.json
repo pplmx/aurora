@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 225,
+  "round": 226,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T16:26:51+00:00",
+  "updated_at": "2026-10-25T16:31:57+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18571,6 +18571,70 @@
       "effort": 1,
       "unlock_factor": 1,
       "title": "Cover the audit outbox Run loop"
+    },
+    "CHG-398": {
+      "id": "CHG-398",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:31:57+00:00",
+      "updated_at": "2026-10-25T16:31:57+00:00",
+      "touched_round": 226,
+      "commit": "50abaf2",
+      "title": "Prove a slow or hanging oracle upstream is cut off"
+    },
+    "CHG-399": {
+      "id": "CHG-399",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:31:57+00:00",
+      "updated_at": "2026-10-25T16:31:57+00:00",
+      "touched_round": 226,
+      "commit": "548c3c9",
+      "title": "Cover the blockchain chain singleton"
+    },
+    "EV-181": {
+      "id": "EV-181",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:31:57+00:00",
+      "updated_at": "2026-10-25T16:31:57+00:00",
+      "touched_round": 226,
+      "confidence": 1,
+      "source": "internal/infra/http/fetcher_timeout_test.go; internal/domain/blockchain/singleton_test.go",
+      "summary": "Fetcher 95.9% -> 96.3% with timeout/cancellation/blackhole tests; blockchain 77.8% -> 78.7% with GetBlockChain 0% -> 100%. Removing the configured timeout makes the hanging-upstream test wait 10s instead of 150ms and fail."
+    },
+    "TASK-389": {
+      "id": "TASK-389",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:31:57+00:00",
+      "updated_at": "2026-10-25T16:31:57+00:00",
+      "touched_round": 226,
+      "category": "test-quality",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Prove a slow upstream is bounded"
+    },
+    "TASK-390": {
+      "id": "TASK-390",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:31:57+00:00",
+      "updated_at": "2026-10-25T16:31:57+00:00",
+      "touched_round": 226,
+      "category": "test-quality",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Cover the blockchain singleton"
     }
   },
   "edges": [
@@ -28546,6 +28610,18 @@
       "to": "TASK-388",
       "type": "implements",
       "created_at": "2026-10-25T16:26:51+00:00"
+    },
+    {
+      "from": "CHG-398",
+      "to": "TASK-389",
+      "type": "implements",
+      "created_at": "2026-10-25T16:31:57+00:00"
+    },
+    {
+      "from": "CHG-399",
+      "to": "TASK-390",
+      "type": "implements",
+      "created_at": "2026-10-25T16:31:57+00:00"
     }
   ]
 }
