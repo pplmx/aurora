@@ -77,11 +77,15 @@ func (a *App) loadVoting() {
 func (a *App) votingView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
 		renderStatus(c, a.voting.status)
+		// The session list leads: an operator reads what exists before
+		// registering more of it, and it was the one card pushed below the
+		// fold by three registration forms.
 		twoColumns(c, func() {
+			a.votingSessionListCard(c)
 			a.votingRegister(c)
-			a.votingSessions(c)
 		}, func() {
 			a.votingVote(c)
+			a.votingSessions(c)
 			a.votingResults(c)
 		})
 	})
@@ -170,7 +174,10 @@ func (a *App) votingSessions(c *ui.Context) {
 	formCard(c, "Create Session", "Choose the roster and the window during which ballots are accepted.", func() {
 		a.votingCreateSessionBody(c)
 	})
-	formCard(c, "Sessions", "Every governance window with its status.", func() {
+}
+
+func (a *App) votingSessionListCard(c *ui.Context) {
+	formCard(c, "Sessions", "Every governance window, its status and when ballots are accepted.", func() {
 		a.votingSessionList(c)
 	})
 }
