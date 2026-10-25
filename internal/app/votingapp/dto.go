@@ -51,6 +51,12 @@ type SessionResponse struct {
 	Description string   `json:"description"`
 	Status      string   `json:"status"`
 	Candidates  []string `json:"candidates"`
+	// StartTime and EndTime are the window during which a ballot is
+	// accepted, in unix seconds. They are the reason a vote is refused, so a
+	// caller that lists sessions needs them to explain the window without a
+	// second request.
+	StartTime int64 `json:"start_time"`
+	EndTime   int64 `json:"end_time"`
 }
 
 type ResultsRequest struct {

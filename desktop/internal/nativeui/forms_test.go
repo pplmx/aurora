@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
@@ -176,4 +177,25 @@ func TestTokenWritesNameTheirSubject(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("Acting on"))
 	require.True(t, tester.HasText("AUR"))
+}
+
+// TestSessionListShowsTheBallotWindow pins that a listed session carries the
+// window a ballot is accepted in. The list used to show id, title and status
+// only, so the one fact that explains a refused vote was missing until the
+// voter tried and failed.
+func TestSessionListShowsTheBallotWindow(t *testing.T) {
+	start := time.Date(2026, 10, 25, 9, 0, 0, 0, time.Local)
+	end := start.Add(2 * time.Hour)
+	fake := &fakeServices{sessions: []SessionRow{{
+		ID: "s1", Title: "Budget", Status: "active",
+		StartTime: start.Unix(), EndTime: end.Unix(),
+	}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Window"), "the column must be labelled")
+	require.True(t, tester.HasText(sessionWindow(start.Unix(), end.Unix())),
+		"the session's acceptance window must be on screen")
 }

@@ -244,6 +244,7 @@ func (s *nativeServices) Sessions() ([]nativeui.SessionRow, error) {
 	for _, sess := range resp {
 		rows = append(rows, nativeui.SessionRow{
 			ID: sess.ID, Title: sess.Title, Status: sess.Status, Candidates: sess.Candidates,
+			StartTime: sess.StartTime, EndTime: sess.EndTime,
 		})
 	}
 	return rows, nil

@@ -425,6 +425,8 @@ func (uc *ListSessionsUseCase) Execute() ([]*SessionResponse, error) {
 			Description: s.Description,
 			Status:      s.Status,
 			Candidates:  s.Candidates,
+			StartTime:   s.StartTime,
+			EndTime:     s.EndTime,
 		}
 	}
 	return responses, nil
