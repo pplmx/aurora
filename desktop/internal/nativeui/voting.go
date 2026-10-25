@@ -206,14 +206,14 @@ func (a *App) votingSessionList(c *ui.Context) {
 	sessions := a.voting.sessions
 	ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
 		{Title: "ID", Width: 140},
-		{Title: "Title"},
+		{Title: "Title", MinWidth: 110},
 		{Title: "Status", Width: 100},
 		{Title: "Window", Width: 200},
 	}, len(sessions), func(row, col int) {
 		s := sessions[row]
 		switch col {
 		case 0:
-			ui.Text(c, s.ID).SingleLine()
+			ui.Text(c, shortID(s.ID)).SingleLine()
 		case 1:
 			ui.Text(c, s.Title)
 		case 2:

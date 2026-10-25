@@ -34,6 +34,11 @@ type lotteryState struct {
 	// table holds the history table's scroll position and column layout, which
 	// MyGo persists across frames by identity.
 	table ui.ListState
+
+	// selected is the history row the operator chose. The id column shows a
+	// shortened id (the full one does not fit beside the roster), so choosing
+	// a row is how the full id reaches the verifier.
+	selected int
 }
 
 // lotteryHistoryLimit is how many draws the history table asks for. It is one
@@ -148,7 +153,7 @@ func splitParticipants(s string) []string {
 }
 
 func (a *App) lotteryHistory(c *ui.Context) {
-	formCard(c, "History", "Every recorded draw, newest first. Paste an id into Verify to re-check it.", func() {
+	formCard(c, "History", "Every recorded draw, newest first. Choose a row to load its id into Verify.", func() {
 		a.lotteryHistoryBody(c)
 	})
 }
@@ -163,16 +168,19 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		return
 	}
 	rows := a.lottery.rows
-	ui.Table(c, &a.lottery.table, []ui.TableColumn{
+	// Choosing a row fills the verifier with that draw's full id: the table
+	// shows a shortened id, so this is how a reader gets the real one.
+	a.lottery.table.Selected = &a.lottery.selected
+	table := ui.Table(c, &a.lottery.table, []ui.TableColumn{
 		{Title: "ID", Width: 150},
 		{Title: "Block", Width: 80, Align: ui.End},
-		{Title: "Participants"},
-		{Title: "Winners"},
+		{Title: "Participants", MinWidth: 140},
+		{Title: "Winners", MinWidth: 120},
 	}, len(rows), func(row, col int) {
 		r := rows[row]
 		switch col {
 		case 0:
-			ui.Text(c, r.ID).SingleLine()
+			ui.Text(c, shortID(r.ID)).SingleLine()
 		case 1:
 			ui.Text(c, strconv.FormatInt(r.BlockHeight, 10))
 		case 2:
@@ -181,6 +189,9 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 			ui.Text(c, joinList(r.Winners))
 		}
 	})
+	if table.Changed() && a.lottery.selected >= 0 && a.lottery.selected < len(rows) {
+		a.lottery.verifyID = rows[a.lottery.selected].ID
+	}
 }
 
 func (a *App) lotteryVerify(c *ui.Context) {

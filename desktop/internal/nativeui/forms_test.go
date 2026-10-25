@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -222,4 +223,37 @@ func TestOraclePresetKeepsItsChoice(t *testing.T) {
 	require.Equal(t, "coingecko", app.oracle.addType)
 	require.Equal(t, "coingecko — CoinGecko price", app.oracle.template,
 		"the choice must survive the next frame")
+}
+
+// TestShortIDKeepsACopyablePrefix pins the table-cell shortening: long ids keep
+// enough of themselves to recognise and paste, and are marked when cut.
+func TestShortIDKeepsACopyablePrefix(t *testing.T) {
+	require.Equal(t, "abc", shortID("abc"), "a short id is left alone")
+	require.Equal(t, "draw-1", shortID("draw-1"))
+
+	long := "20261025233845.347259429-29ee362515b7c1fc06313345ef6be416"
+	got := shortID(long)
+	require.Equal(t, "202610252338…", got)
+	require.True(t, strings.HasPrefix(long, strings.TrimSuffix(got, "…")),
+		"the shortened id must be a prefix of the real one")
+}
+
+// TestChoosingAHistoryRowFillsTheVerifier pins the path from a shortened id in
+// the table to the full one the verifier needs: a row click loads the draw's
+// real id, which is the only place the table's ellipsis does not cut.
+func TestChoosingAHistoryRowFillsTheVerifier(t *testing.T) {
+	const full = "54c95915ba8b8f3e"
+	fake := &fakeServices{draws: []DrawRow{{ID: full, BlockHeight: 2, Winners: []string{"Dan"}}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	require.Equal(t, "54c95915ba8b…", shortID(full), "the table shows a shortened id")
+	require.Empty(t, app.lottery.verifyID)
+
+	require.NoError(t, tester.Click(shortID(full)), "click the row's id cell")
+	tester.Frame()
+	require.Equal(t, full, app.lottery.verifyID,
+		"choosing the row must load the full id into the verifier")
 }
