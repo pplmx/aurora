@@ -1,8 +1,8 @@
 # REST API 参考
 
-`aurora-api` 是独立的 API + Web 服务二进制（`./aurora` 不带监听端口）。桌面端复用
-同一套路由，通过 `aurora://localhost/` 在进程内加载，因此下面的路径对桌面端同样
-成立（页面内部调用）。
+`aurora-api` 是独立的 REST 服务二进制（`./aurora` 不带监听端口）。它只服务
+`/api/v1`、健康检查与指标接口，没有静态页面；桌面端通过进程内调用复用同一套
+应用层，因此下面的路径与桌面端窗口看到的行为一致。
 
 ```bash
 just api                                          # 构建 ./aurora-api（注入 git 版本）
@@ -19,11 +19,9 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 
 - **`X-API-Key`**：密钥来自 `AURORA_API_KEY` 或 `api.key`。开发模式下未设置会
   生成随机密钥并打印在启动日志；生产环境拒绝弱密钥（`ErrInsecureAPIKey`）。
-  `/healthz`、`/readyz`、`/health`、`/metrics`、`/metrics/oracle` 与静态页面
-  不需要 key。
-- **Web 页面同源注入**：`window.AURORA_API_KEY` 由带 nonce 的 bootstrap 脚本写入，
-  CSP 为 `connect-src 'self'` / `script-src 'self' 'nonce-…'`，页面请求无需手动
-  带 header；桌面端剥掉 CSP 但传输层仍是进程内 scheme（无监听、无外部 origin）。
+  `/healthz`、`/readyz`、`/health`、`/metrics`、`/metrics/oracle` 不需要 key。
+- **没有 Web 界面**：网关不提供静态文件，也不注入任何脚本；`/` 与任何未注册路径
+  都返回 404。界面只有桌面端的原生窗口。
 - **请求体上限**：4 MiB，超出返回 `413`，在鉴权之前生效。
 - **限流**：默认关闭；`[api.rateLimit]` 可开启，按客户端固定窗口计数，只有
   `trustedProxies` 中的来源才采信 `X-Forwarded-For`（否则无法绕过）。

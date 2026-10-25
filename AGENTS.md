@@ -6,15 +6,15 @@
 
 基于区块链的数字系统套件：VRF 透明抽奖、Ed25519 签名投票、数据预言机、NFT 与
 FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**桌面应用**、CLI
-和 REST API + Web 界面。
+和 REST API。
 
 ## 三个入口
 
-| 入口           | 二进制           | 适合谁                                       |
-| -------------- | ---------------- | -------------------------------------------- |
-| 桌面应用       | `aurora-desktop` | **主要使用方式**：双击即用，无需终端或浏览器 |
-| CLI            | `aurora`         | 脚本、批量任务、服务器与无图形环境           |
-| REST API + Web | `aurora-api`     | 集成方、浏览器访问、需要监听的部署           |
+| 入口     | 二进制           | 适合谁                                       |
+| -------- | ---------------- | -------------------------------------------- |
+| 桌面应用 | `aurora-desktop` | **主要使用方式**：双击即用，无需终端或浏览器 |
+| CLI      | `aurora`         | 脚本、批量任务、服务器与无图形环境           |
+| REST API | `aurora-api`     | 集成方与需要监听的部署；只提供 JSON 接口     |
 
 桌面端用 MyGo 原生控件绘制界面，API 提供同一套应用层能力；两者共用同一份
 SQLite 数据库，因此窗口里创建的记录 CLI 立刻能读到。设计细节见
@@ -42,7 +42,7 @@ SQLite 数据库，因此窗口里创建的记录 CLI 立刻能读到。设计�
 
 ```bash
 CGO_ENABLED=0 go build -o aurora ./cmd/aurora      # CLI（Go 1.27+）
-CGO_ENABLED=0 go build -o aurora-api ./cmd/api     # REST API + Web
+CGO_ENABLED=0 go build -o aurora-api ./cmd/api     # REST API
 just desktop                             # 桌面壳（Go 1.27+、WebKitGTK/WebView2）
 ```
 
@@ -116,7 +116,7 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 > （`lottery reset` 也接受旧写法 `--yes`）。缺少确认标志会以非零退出码拒绝
 > 执行，脚本可据此判断。
 
-## REST API + Web
+## REST API
 
 ```bash
 AURORA_API_KEY="your-strong-key" ./aurora-api   # 默认 0.0.0.0:8080
@@ -125,14 +125,14 @@ AURORA_API_KEY="your-strong-key" ./aurora-api   # 默认 0.0.0.0:8080
 
 监听地址优先级：**flag > 环境变量 > 配置文件 > 默认**。服务同时运行预言机调度器
 与审计 outbox 补偿循环，SIGINT/SIGTERM 优雅停机；`/metrics`、`/metrics/oracle`
-暴露请求与抓取健康统计。鉴权用 `X-API-Key`，Web 页面同源自动注入；请求体上限
-4 MiB，支持按客户端限流与 CORS 白名单，Web 响应带 nonce 化 CSP。
-详见 [docs/api.md](docs/api.md)。
+暴露请求与抓取健康统计。网关只提供 `/api/v1`、健康检查与指标接口，没有静态页面：
+界面只有桌面端的原生窗口。鉴权用 `X-API-Key`，请求体上限 4 MiB，支持按客户端
+限流与 CORS 白名单。详见 [docs/api.md](docs/api.md)。
 
 ## 功能模块
 
 - **VRF 透明抽奖**：Edwards25519 VRF 抽签，结果上链存证，任何人可复验；支持
-  CLI、Web 与桌面端。
+  CLI、REST API 与桌面端。
 - **透明投票**：Ed25519 签名投票、候选人/选民注册、会期生命周期与实时计票。
 - **数据预言机**：通用 HTTP 数据源（method/path/interval）、内置模板、定时
   抓取、链上存证与抓取健康统计。
@@ -165,7 +165,7 @@ defaultCount = 3              # 未传 -c 时的获奖人数；种子始终由�
 
 ```text
 cmd/aurora/     # CLI 入口
-cmd/api/        # REST API + Web 服务入口
+cmd/api/        # REST API 服务入口
 desktop/        # MyGo 桌面壳（嵌套模块；cmd/aurora-desktop + internal/deskapp）
 internal/
 ├── domain/     # 领域层：blockchain / lottery / voting / nft / token / oracle
@@ -178,12 +178,12 @@ e2e/            # E2E 测试
 ```
 
 DDD 分层：`domain` 持有实体、领域服务与仓储接口；`app` 编排用例；`infra` 实现
-外部依赖；`ui`/`api`/`desktop` 是三种表示层，共用 `app`。
+外部依赖；`api`（REST）与 `desktop`（原生 Go 窗口）是两种表示层，共用 `app`。
 
 ## 技术栈
 
 Go 1.27+、Cobra、Viper、Zerolog、SQLite
-（modernc.org/sqlite，纯 Go）、filippo.io/edwards25519、MyGo、Alpine.js。
+（modernc.org/sqlite，纯 Go）、filippo.io/edwards25519、MyGo。
 
 ## 开发
 
@@ -210,19 +210,20 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 
 ## 测试覆盖率
 
-`go test ./... -cover -count=1` 实测（2026-10-23）：
+`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-10-25）：
 
 | 模块    | Domain | App   |
 | ------- | ------ | ----- |
-| Lottery | 90.6%  | 50.8% |
-| Voting  | 94.1%  | 82.2% |
-| NFT     | 88.2%  | 88.5% |
-| Token   | 90.1%  | 91.8% |
-| Oracle  | 88.7%  | 87.4% |
-| SQLite  | -      | 80.4% |
+| Lottery | 90.8%  | 86.5% |
+| Voting  | 93.6%  | 82.6% |
+| NFT     | 88.9%  | 90.1% |
+| Token   | 91.1%  | 91.8% |
+| Oracle  | 85.5%  | 88.9% |
+| SQLite  | -      | 78.1% |
 
-`internal/app/lottery` 偏低是因为 `verify.go` 的 `VerifyInput`/`VerifyRecord`
-目前只被 CLI 与桌面端的集成路径覆盖；这是已知测试缺口，不虚构数字。
+SQLite 仍低于 80% 门槛：未被覆盖的部分集中在仓储构造函数、`Close` 与事务
+委托这几类“装配/收尾”路径。抽奖的解析顺序（精确 ID → 区块高度 → 子串）由
+`verify_resolution_test.go` 直接锁定，不再只靠 CLI 集成路径。
 
 ## 文档
 

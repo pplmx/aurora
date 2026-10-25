@@ -17,9 +17,12 @@
 4. **本轮只删除生产不可达的表面。** 异步/组合事件总线、重复的内存 Oracle
    仓储，以及若干没有调用者的领域/仓储查询接口被消融；同步事件总线、审计
    outbox、迁移、备份和全部业务入口保留。
-5. **四个 TUI 已在 2026-10-24 的全局消融中删除。** 它们覆盖的操作在 Web 与
-   CLI 中都有入口，NFT/token 两个还是退出即丢的内存沙盒；保留三套表示层只增加
-   维护面。界面能力由桌面端与 `aurora-api` 的 Web UI 承担。
+5. **四个 TUI 已在 2026-10-24 的全局消融中删除。** 它们覆盖的操作在 CLI 与
+   桌面端都有入口，NFT/token 两个还是退出即丢的内存沙盒；多一套表示层只增加
+   维护面。
+6. **Web UI 已在 2026-10-25 删除。** 网关的静态页面分支、CSP 构造与
+   `window.AURORA_API_KEY` 注入一并移除；`aurora-api` 现在只服务 `/api/v1`、
+   健康检查与指标，界面能力由桌面端原生窗口承担。
 
 ## cgo 构建矩阵
 
@@ -153,8 +156,8 @@ Web 与桌面路由中的多个真实调用点，blockchain 是它们的审计�
 删除内容：`internal/ui/{components,lottery,nft,oracle,token}`、四个
 `<module> tui` 子命令、`charm.land/{bubbles,bubbletea,lipgloss}` 依赖、
 TUI 专用 i18n 键，以及只锁定 TUI 存在性的测试
-（`TestTUISubcommandsUseRunE`、`TestTokenTUI_Wired`）。界面能力由桌面端与
-`aurora-api` 的 Web UI 承担，两者与 CLI 共用同一份 app 层与数据库。
+（`TestTUISubcommandsUseRunE`、`TestTokenTUI_Wired`）。界面能力由桌面端承担，
+它与 CLI 共用同一份 app 层与数据库。
 
 ## 暂缓的破坏性清理
 

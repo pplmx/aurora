@@ -210,3 +210,27 @@ func TestOpenedDocumentsAreRemembered(t *testing.T) {
 	rememberDocument("")
 	assert.Len(t, recorded, 1)
 }
+
+// TestAboutNamesOnlyWhatTheBuildHas pins the About dialog's content against
+// the UI the app actually ships. It used to end with "Web UI: (embedded in
+// the app)" long after the HTML UI was deleted, so a user asking what this
+// build contains was told about a surface that no longer exists. The window
+// is native now, so the dialog reports the version, the build time and the
+// database, and nothing about a UI location.
+func TestAboutNamesOnlyWhatTheBuildHas(t *testing.T) {
+	originalBox := messageBox
+	t.Cleanup(func() { messageBox = originalBox })
+	var got mygo.MessageOptions
+	messageBox = func(opts mygo.MessageOptions) { got = opts }
+
+	showAbout(About{Version: "v9.9.9", BuildTime: "2026-10-25T00:00:00Z", DBPath: "/data/aurora.db"}, nil)
+
+	assert.Equal(t, "About Aurora", got.Title)
+	assert.Contains(t, got.Message, "v9.9.9")
+	assert.Contains(t, got.Detail, "2026-10-25T00:00:00Z")
+	assert.Contains(t, got.Detail, "/data/aurora.db")
+	for _, stale := range []string{"Web UI", "Web 界面", "embedded", "%s"} {
+		assert.NotContains(t, got.Detail, stale,
+			"the About detail must not mention a UI that does not exist")
+	}
+}

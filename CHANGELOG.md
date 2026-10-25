@@ -29,38 +29,25 @@ documented in their per-milestone ROADMAP files.
   but does not replace Authenticode or Apple Developer ID signatures.
 ### Fixed
 
-- **The HTTP/API Web UI was inert: no form could be submitted**: the served
-  pages carried `script-src 'self' 'nonce-…'` with no `'unsafe-eval'`, but the
-  vendored Alpine 3 compiles every `x-*` expression at runtime. The browser
-  therefore refused each compilation (`EvalError: … 'unsafe-eval' is not an
-  allowed source`) and every binding silently did nothing: `x-show` never hid
-  anything, `x-text` stayed empty, and `@submit.prevent` never ran — so create,
-  vote, mint, transfer and every other web action was dead on `aurora-api`,
-  while the desktop shell masked it by stripping CSP. Found by driving the real
-  served page in a browser; `script-src` now admits `'unsafe-eval'` while
-  staying same-origin, and the rest of the policy (`connect-src 'self'`,
-  `object-src`/`base-uri`/`frame-ancestors 'none'`, nonce'd bootstrap) is
-  unchanged. Verified live: the lottery seed error renders with
-  `aria-invalid="true"`, the submit button disables, and a real draw creates,
-  lists and pre-fills Verify. `TestCSP_AllowsAlpineEval` pins the policy and
-  fails if `'unsafe-eval'` is dropped again.
-
-### Fixed
-
-- **Form inputs now have proper ARIA invalid/error attributes**: All forms across the
-  web UI (lottery, voting, token, oracle, nft) carry `aria-invalid="false"` on inputs
-  and field-specific error spans with `role="alert" aria-live="assertive"`, so screen
-  readers announce validation failures immediately (WCAG 4.1.3). The submit buttons are
-  disabled while errors exist, preventing double-submission attempts by assistive tech
-  users. NFT page loading states show "Loading..." during submission across all forms,
-  meeting WCAG 1.4.8 minimum contrast for status messages.
-- **CSS includes error message styling and invalid state highlighting**: `.error-message`
-  uses yellow warning color consistent with the theme; `[aria-invalid="true"]` inputs
-  get a high-contrast border + light shadow for visibility without relying on color alone.
-- **API error banner meets WCAG AA contrast ratio**: Changed from `#c0392b` to `#c62828`
-  (darker red), achieving 4.5:1 contrast against white text for better visibility.
-- **Nav hover state contrast increased**: Background opacity raised from 5% to 10%,
-  achieving the required 4.5:1 AA ratio for keyboard navigation focus indicators.
+- **Lottery verification no longer panics on a missing draw**: the resolution
+  path assumed a repository either returns the record or `lottery.ErrNotFound`,
+  but the `lottery.Repository` contract also permits a nil record with a nil
+  error (in-memory fakes and the oracle module's documented convention). That
+  spelling reached `VerifyRecord`, which dereferences the record, so
+  `aurora lottery verify`, the desktop verifier and `GET /api/v1/lottery/{id}/verify`
+  crashed instead of reporting "not found". A nil record now falls through to
+  the block-height and substring steps, nil entries in those result slices are
+  skipped, and a genuine read failure still propagates instead of being folded
+  into "not found". `verify_resolution_test.go` pins each step directly — the
+  path was previously covered only through CLI/desktop integration.
+- **User docs no longer describe the deleted Web UI**: README, AGENTS and the
+  API, CLI, desktop, ablation, privacy and lottery guides still advertised
+  static pages, Alpine.js, a CSP nonce bootstrap and an embedded UI location.
+  The gateway serves no static files, so the entry table, the REST section, the
+  stack list and the About dialog now say what ships: a native window plus a
+  JSON-only gateway. The About dialog's dead `Web UI: (embedded in the app)`
+  line and its `desktop.dialog.about_embedded` key are gone, and a regression
+  test fails if a UI location is reported again.
 - **Per-source history reads no longer sort before limiting**: Oracle history
   (`GetDataBySource`) and NFT operation history
   (`GetOperations`) filter on the parent id and order by `timestamp DESC`.
@@ -103,15 +90,15 @@ documented in their per-milestone ROADMAP files.
 
 - **The four Bubble Tea TUIs are gone**: `aurora {lottery,voting,nft,token,oracle} tui`
   no longer exists and `internal/ui/` was deleted. The ablation criterion was
-  not reachability but necessity: every operation those TUIs exposed already has
-  a Web page and a CLI command, none had a capability of its own, and two of
-  them (NFT/token) were in-memory sandboxes whose state vanished on exit — the
-  opposite of the persistent semantics the rest of the product promises, which
-  made them a trap rather than a convenience. Removed with them: the
+  not reachability but necessity: every operation those TUIs exposed already had
+  a CLI command and a desktop surface, none had a capability of its own, and two
+  of them (NFT/token) were in-memory sandboxes whose state vanished on exit —
+  the opposite of the persistent semantics the rest of the product promises,
+  which made them a trap rather than a convenience. Removed with them: the
   `charm.land/{bubbles,bubbletea,lipgloss}` dependencies, 234 TUI-only i18n
   keys, and the tests that existed only to pin TUI presence. The interactive
-  surface is the desktop app and the `aurora-api` Web UI, both sharing the same
-  app layer and SQLite database as the CLI. Net change: about 7.9k lines
+  surface is the desktop app, sharing the same app layer and SQLite database as
+  the CLI. Net change: about 7.9k lines
   removed; `just test` drops from 34 packages to 29 and stays green.
 
 ### Removed
@@ -137,22 +124,6 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
-- **Wide Web UI tables now stay inside their cards**: Lottery history, Voting
-  results and the three Oracle tables scroll horizontally on narrow screens
-  instead of widening the whole document. Long IDs and feed errors wrap within
-  cells, and Oracle's state and delete actions keep a visible gap.
-- **The Web UI now keeps its bearings at every width**: the shared header no
-  longer forces the title, seven module links and Refresh action into one
-  nowrap row, and every page marks its current navigation item with
-  `aria-current="page"` and that module's accent. Token actions now use their
-  own blue accent instead of Lottery purple, while a subtle two-tone background
-  gives the shared shell the same visual character as the module cards.
-- **Web UI polling now pauses in the background**: the dashboard and Oracle
-  pages used to keep their 15-second refresh timers active while minimized or
-  hidden, including the dashboard's full ledger-verification scan. Polling
-  now skips hidden documents and refreshes immediately when the page becomes
-  visible again, so a returning operator sees current data without keeping
-  idle windows busy.
 - **The desktop shell now uses MyGo v0.6.3**: the patch release brings
   Windows WebView2 event-token and task-dialog lifetime fixes, WebKit content
   rules, and UI paste/rendering corrections. The Linux package and its real
@@ -167,13 +138,6 @@ documented in their per-milestone ROADMAP files.
   immediate write transactions, 5s busy timeout) is unchanged. CLI, API,
   Docker and desktop builds now run with `CGO_ENABLED=0`; cgo is only
   needed when the race detector is enabled during testing.
-
-### Changed
-
-- **Voting forms now have ARIA invalid/error attributes**: Register Voter and
-  Register Candidate sections carry `aria-invalid="false"` inputs with field-specific
-  error spans using `role="alert" aria-live="assertive"`, so screen readers announce
-  validation failures immediately (WCAG 4.1.3).
 
 ### Fixed
 
@@ -206,12 +170,6 @@ documented in their per-milestone ROADMAP files.
   a transfer that could still fail. A hash-qualified compensating delete now
   removes that exact row on failure, so a later successful transfer reuses the
   same height instead of re-syncing the failed block into memory.
-- **Native form controls now match the Web UI's dark theme**: the Voting
-  session/candidate pickers and Oracle template picker used the browser's
-  light control chrome because only text inputs carried the shared background,
-  border, text color and padding. Inputs, selects and textareas now share the
-  same theme and focus border, and `color-scheme: dark` keeps native dropdown
-  popups and control chrome consistent.
 - **Rolled-back domain writes no longer leave on-chain audit blocks**:
   token, NFT, voting, lottery and Oracle writes share `aurora.db`, but each
   appended its audit block before the business SQLite transaction committed.
@@ -239,19 +197,6 @@ documented in their per-milestone ROADMAP files.
   owner-only contract to its hidden `.pre_restore` undo snapshot and to the
   promoted live database, including staging directories left by older
   releases.
-- **Web UI action labels and secondary copy meet WCAG AA contrast**: the
-  pastel action buttons used white text at only `1.73–3.20:1`, and secondary
-  text measured `4.41:1` on the page background and `3.88:1` on cards.
-  Buttons now use dark page ink on every accent surface, and secondary text
-  is light enough to exceed `4.5:1` on both backgrounds without changing the
-  existing dark visual language. A stylesheet contract test computes the
-  ratios from the shipped CSS variables.
-- **API-key-bearing Web UI pages are never cacheable**: the gateway injects
-  the resolved API key into each HTML document, but the static file server
-  supplied `Last-Modified` without a cache policy. Browsers and shared proxies
-  could therefore retain and replay the credential. Injected HTML now sends
-  `Cache-Control: no-store`, while CSS and JavaScript keep their normal static
-  cache behavior; a response-header regression pins both paths.
 - **Concurrent release runs are serialized by tag**: a tag push and one or
   more manual retries use the same non-cancelling concurrency group, so the
   publisher cannot interleave binaries, checksums, or provenance from different
