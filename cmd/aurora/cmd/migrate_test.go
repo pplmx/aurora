@@ -313,3 +313,49 @@ func TestMigrateDown_RequiresConfirm(t *testing.T) {
 		assert.Equal(t, 5, appliedSchemaVersion(t), "no migration may roll back without confirmation")
 	})
 }
+
+// TestMigrateRepair_UnsticksADirtyDatabase covers the recovery path end to
+// end: a failed migration leaves the database refusing both directions, and
+// `migrate repair` is the only way back without deleting every record.
+func TestMigrateRepair_UnsticksADirtyDatabase(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setMigrationsPathForTest(t)
+
+		_, err := runCmd(t, "migrate", "up")
+		require.NoError(t, err)
+
+		// Mark the database dirty, as a failed migration would.
+		db := openTestAuroraDB(t)
+		_, err = db.Exec(`UPDATE schema_migrations SET dirty = 1`)
+		require.NoError(t, err)
+
+		// Both directions refuse, which is the state this command exists for.
+		_, err = runCmd(t, "migrate", "up")
+		require.ErrorContains(t, err, "dirty")
+		_, err = runCmd(t, "migrate", "down", "--confirm")
+		require.ErrorContains(t, err, "dirty")
+
+		// Repair without the confirmation flag refuses, like every other
+		// command that changes recorded schema state.
+		_, err = runCmd(t, "migrate", "repair")
+		require.ErrorContains(t, err, "confirm")
+
+		out, err := runCmd(t, "migrate", "repair", "--confirm")
+		require.NoError(t, err)
+		assert.Contains(t, out, "cleared at version 5")
+
+		// The database is usable again, at the version it was at.
+		out, err = runCmd(t, "migrate", "status")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Dirty: false")
+		assert.Contains(t, out, "Current version: 5")
+
+		_, err = runCmd(t, "migrate", "up")
+		require.NoError(t, err, "up must work again after a repair")
+
+		// A second repair reports that there was nothing to do.
+		out, err = runCmd(t, "migrate", "repair", "--confirm")
+		require.NoError(t, err)
+		assert.Contains(t, out, "not dirty")
+	})
+}

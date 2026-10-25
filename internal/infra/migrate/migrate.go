@@ -88,6 +88,50 @@ func (m *Migrator) Down(steps int) (uint, error) {
 	return version, nil
 }
 
+// Repair clears the dirty marker left by a failed migration, after the
+// operator has checked the schema. A dirty database refuses both Up and Down —
+// by design, because the runner cannot know whether a half-applied body
+// committed — so without this the only way out of a failed migration was to
+// delete the database and lose every record in it.
+//
+// It deliberately does not roll anything back or re-run a migration: it only
+// clears the flag. The caller decides what the schema is at, which is why the
+// CLI asks for --confirm and prints the version it cleared.
+func (m *Migrator) Repair() (uint, error) {
+	current, dirty, err := m.version()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get version: %w", err)
+	}
+	if !dirty {
+		return current, errNotDirty
+	}
+	if err := setTxVersionTx(m.db, current, false); err != nil {
+		return 0, fmt.Errorf("failed to clear the dirty marker: %w", err)
+	}
+	return current, nil
+}
+
+// errNotDirty reports a repair of a database that is not dirty, so the CLI can
+// say "nothing to repair" instead of pretending it fixed something.
+var errNotDirty = errors.New("database is not dirty")
+
+// ErrNotDirty exposes errNotDirty to callers that report it.
+func ErrNotDirty() error { return errNotDirty }
+
+// setTxVersionTx writes the migration row outside a transaction, for the
+// repair path that has none.
+func setTxVersionTx(db *sql.DB, version uint, dirty bool) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	if err := setTxVersion(tx, version, dirty); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
 func (m *Migrator) Status() (*MigrationStatus, error) {
 	items, err := m.migrations()
 	if err != nil {

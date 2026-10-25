@@ -543,3 +543,86 @@ func TestMigrator_FailedMigrationLeavesDirtyVersion(t *testing.T) {
 	_, err = m.Up(1)
 	require.ErrorContains(t, err, "database is dirty at version 1")
 }
+
+// TestMigrator_RepairClearsTheDirtyMarker covers the only way out of a failed
+// migration. A dirty database refuses both Up and Down by design — the runner
+// cannot know whether a half-applied body committed — so before Repair the
+// operator's choices were "delete the database" or "stay stuck".
+func TestMigrator_RepairClearsTheDirtyMarker(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(migPath, "000001_init.up.sql"),
+		[]byte("CREATE TABLE users (id INTEGER PRIMARY KEY); THIS IS NOT SQL;"),
+		0644,
+	))
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+
+	_, err = m.Up(1)
+	require.ErrorContains(t, err, "migration 1 up failed")
+
+	// Stuck: neither direction will run.
+	_, err = m.Up(0)
+	require.ErrorContains(t, err, "database is dirty")
+	_, err = m.Down(0)
+	require.ErrorContains(t, err, "database is dirty")
+
+	// Repair clears the marker at the version the failure recorded.
+	version, err := m.Repair()
+	require.NoError(t, err)
+	assert.Equal(t, uint(1), version)
+
+	status, err := m.Status()
+	require.NoError(t, err)
+	assert.False(t, status.Dirty)
+	assert.Equal(t, uint(1), status.Current,
+		"repair must keep the version, not reset the schema")
+
+	// Repair is idempotent in effect but says so rather than lying.
+	_, err = m.Repair()
+	require.ErrorIs(t, err, ErrNotDirty(), "a clean database has nothing to repair")
+}
+
+// TestMigrator_RepairLetsAMigrationBeFixedAndRerun proves the point of the
+// repair: after fixing the migration body, the operator can move forward
+// again without recreating the database.
+func TestMigrator_RepairLetsAMigrationBeFixedAndRerun(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+	require.NoError(t, os.WriteFile(
+		filepath.Join(migPath, "000001_init.up.sql"),
+		[]byte("CREATE TABLE users (id INTEGER PRIMARY KEY); THIS IS NOT SQL;"),
+		0644,
+	))
+
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+	_, err = m.Up(1)
+	require.Error(t, err)
+
+	// The operator fixes the file and repairs the marker.
+	require.NoError(t, os.WriteFile(
+		filepath.Join(migPath, "000001_init.up.sql"),
+		[]byte("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY);"),
+		0644,
+	))
+	_, err = m.Repair()
+	require.NoError(t, err)
+
+	// Down then up re-runs the corrected body: the failed attempt recorded
+	// version 1 as current, so rolling back is what makes it re-applicable.
+	_, err = m.Down(0)
+	require.NoError(t, err)
+	_, err = m.Up(0)
+	require.NoError(t, err)
+
+	var tableCount int
+	require.NoError(t, m.db.QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'users'`,
+	).Scan(&tableCount))
+	assert.Equal(t, 1, tableCount, "the corrected migration must apply")
+}
