@@ -163,7 +163,7 @@ func TestNFTRepository_GetNFTsByOwner(t *testing.T) {
 // TestNFTRepository_GetNFTsByOwnerPaged locks the v1.79 bounded-paging fix
 // (TASK-101, ISS-093): the SQL layer must honor LIMIT/OFFSET with a stable
 // insertion (rowid) order so pages don't overlap or skip, and 0,0 stays
-// unbounded for the CLI/TUI.
+// unbounded for the CLI.
 func TestNFTRepository_GetNFTsByOwnerPaged(t *testing.T) {
 	repo, cleanup := setupNFTTestDB(t)
 	defer cleanup()

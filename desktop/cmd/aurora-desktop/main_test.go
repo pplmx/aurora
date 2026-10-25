@@ -142,7 +142,7 @@ func TestUserDataDirFollowsTheAppName(t *testing.T) {
 
 // TestStartupFailureDialogCarriesTheReason pins the dialog shown when Start
 // fails. A packaged app has no console, so stderr is invisible; the reason and
-// its severity both have to survive into the dialog, or a bad --web-root is
+// its severity both have to survive into the dialog, or a failed start is
 // indistinguishable from a double-click that did nothing.
 func TestStartupFailureDialogCarriesTheReason(t *testing.T) {
 	tr := i18n.GetTranslator()

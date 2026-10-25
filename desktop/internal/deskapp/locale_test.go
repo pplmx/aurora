@@ -167,8 +167,8 @@ func TestApplyConfiguredLocale(t *testing.T) {
 	assert.Equal(t, "en", tr.GetLocale())
 }
 
-// TestStartupDialogAndErrorsFollowTheLocale keeps the failure the user is
-// most likely to hit (a bad --web-root) speaking the app's language.
+// TestStartupDialogAndErrorsFollowTheLocale keeps a startup failure speaking
+// the app's language: the title was translated before, the reason was not.
 func TestShowErrorUsesTheLocalizedReason(t *testing.T) {
 	withLocale(t, "zh", func() {
 		original := messageBox
