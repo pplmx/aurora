@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 216,
+  "round": 217,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T15:29:58+00:00",
+  "updated_at": "2026-10-25T15:38:19+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18173,6 +18173,51 @@
       "touched_round": 216,
       "commit": "0515b91",
       "title": "Status lines state their outcome in words and inline badges"
+    },
+    "CHG-383": {
+      "id": "CHG-383",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T15:38:18+00:00",
+      "updated_at": "2026-10-25T15:38:18+00:00",
+      "touched_round": 217,
+      "commit": "1e2b6e4",
+      "title": "List a voting session's ballot window in the response and the window"
+    },
+    "CHG-384": {
+      "id": "CHG-384",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T15:38:18+00:00",
+      "updated_at": "2026-10-25T15:38:18+00:00",
+      "touched_round": 217,
+      "commit": "2f702f3",
+      "title": "Prove the window's services reach the real store"
+    },
+    "CHG-385": {
+      "id": "CHG-385",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T15:38:18+00:00",
+      "updated_at": "2026-10-25T15:38:18+00:00",
+      "touched_round": 217,
+      "commit": "ea3e664",
+      "title": "Describe the interface the desktop window actually draws"
+    },
+    "EV-179": {
+      "id": "EV-179",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T15:38:19+00:00",
+      "updated_at": "2026-10-25T15:38:19+00:00",
+      "touched_round": 217,
+      "confidence": 1,
+      "source": "go test ./desktop/internal/deskapp -run TestWindowDrivesRealServices",
+      "summary": "A draw created through the window's state is read back from SQLite and verifies true, so the views and the store are joined, not just each tested alone."
     }
   },
   "edges": [
