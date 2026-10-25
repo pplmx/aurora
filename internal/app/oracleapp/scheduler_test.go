@@ -489,3 +489,50 @@ func TestScheduler_RecreatedSourceStartsClean(t *testing.T) {
 		t.Errorf("the recreated source should have fetched successfully, got %+v", st)
 	}
 }
+
+// TestScheduler_PassFetchesSerially docs and pins the fetch shape a pass has:
+// sources are fetched one after another, in repository order, so a slow
+// upstream delays the sources behind it in the same pass.
+//
+// Measured rather than assumed: with a 150ms source first and an instant one
+// second, a pass takes 150ms and runs them in order [slow fast].
+//
+// The serial shape is deliberate — the alternative is bounded concurrency,
+// which changes the failure model (a burst of simultaneous upstream requests,
+// and per-source backoff that no longer paces anything) — but it was
+// undocumented and untested, so a future change to concurrent fetching would
+// silently alter when a source is considered due.
+func TestScheduler_PassFetchesSerially(t *testing.T) {
+	now := time.Unix(1000, 0)
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "first", Enabled: true, Interval: 60},
+		{ID: "second", Enabled: true, Interval: 60},
+	}}
+
+	var order []string
+	var inFlight int
+	var overlapped bool
+	s := NewScheduler(repo, func(_ context.Context, id string) error {
+		inFlight++
+		if inFlight > 1 {
+			overlapped = true
+		}
+		order = append(order, id)
+		// A serial pass never has two fetches in flight.
+		time.Sleep(5 * time.Millisecond)
+		inFlight--
+		return nil
+	}, time.Second, func() time.Time { return now })
+
+	s.pass(context.Background())
+
+	if len(order) != 2 {
+		t.Fatalf("both sources should be fetched, got %v", order)
+	}
+	if order[0] != "first" || order[1] != "second" {
+		t.Fatalf("fetches must run in repository order, got %v", order)
+	}
+	if overlapped {
+		t.Fatal("a pass must not fetch two sources at once")
+	}
+}
