@@ -144,3 +144,19 @@ func TestRegisterVoterRejectsAnEmptyName(t *testing.T) {
 	require.NotEmpty(t, app.voting.voterNameErr)
 	require.Empty(t, app.voting.votePriv, "a rejected registration must not fill the ballot key")
 }
+
+// TestOracleLatestIsReachableWithoutData pins that the single-value read is
+// always on screen. It used to be the tail of Query Data, which returned early
+// when a query found no rows — so on a database with no stored readings the
+// "Get Latest" control did not exist at all.
+func TestOracleLatestIsReachableWithoutData(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Query Data"))
+	require.True(t, tester.HasText("Latest Data"),
+		"the latest-value section must render even when no readings are loaded")
+	require.True(t, tester.HasText("Get Latest"), "its button must be on screen")
+}

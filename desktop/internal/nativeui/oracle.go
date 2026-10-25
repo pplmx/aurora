@@ -283,22 +283,29 @@ func (a *App) oracleRead(c *ui.Context) {
 		}
 	}
 	renderStatus(c, a.oracle.status)
-	if len(a.oracle.data) == 0 {
-		return
+	if len(a.oracle.data) > 0 {
+		data := a.oracle.data
+		ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
+			{Title: "Value"},
+			{Title: "Block", Width: 80, Align: ui.End},
+		}, len(data), func(row, col int) {
+			d := data[row]
+			if col == 0 {
+				ui.Text(c, d.Value)
+			} else {
+				ui.Text(c, strconv.FormatInt(d.BlockHeight, 10))
+			}
+		})
 	}
-	data := a.oracle.data
-	ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
-		{Title: "Value"},
-		{Title: "Block", Width: 80, Align: ui.End},
-	}, len(data), func(row, col int) {
-		d := data[row]
-		if col == 0 {
-			ui.Text(c, d.Value)
-		} else {
-			ui.Text(c, strconv.FormatInt(d.BlockHeight, 10))
-		}
-	})
 
+	a.oracleLatest(c)
+}
+
+// oracleLatest draws the single-value read. It is its own section rather than
+// the tail of Query Data: a query that returns nothing used to return early
+// and hide this form entirely, so the one control that answers "what is the
+// current value?" was unreachable on a database with no stored readings.
+func (a *App) oracleLatest(c *ui.Context) {
 	ui.Divider(c)
 	sectionTitle(c, "Latest Data", "The single most recent value recorded for a source.")
 	field(c, "Source ID", &a.oracle.latestID)
