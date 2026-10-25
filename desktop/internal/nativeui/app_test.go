@@ -358,3 +358,22 @@ func joinedTexts(tester *ui.Tester) string {
 	}
 	return out
 }
+
+// TestHistoryTableShowsEveryStoredDraw covers the table a draw's history
+// renders: both rows must appear, with their winners, so a reader can pick an
+// id to verify.
+func TestHistoryTableShowsEveryStoredDraw(t *testing.T) {
+	fake := &fakeServices{draws: []DrawRow{
+		{ID: "aaaa1111", BlockHeight: 1, Participants: []string{"Alice", "Bob"}, Winners: []string{"Alice"}},
+		{ID: "bbbb2222", BlockHeight: 2, Participants: []string{"Carol"}, Winners: []string{"Carol"}},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	require.True(t, tester.HasText("aaaa1111"))
+	require.True(t, tester.HasText("bbbb2222"))
+	require.True(t, tester.HasText("Carol"), "a winner must be shown in its row")
+	require.Equal(t, lotteryHistoryLimit, fake.historyN, "the page asks for one page of draws")
+}
