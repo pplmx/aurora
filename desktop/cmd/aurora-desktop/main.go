@@ -177,6 +177,17 @@ func main() {
 	// match nothing and answer "en", so the whole window went English.
 	mygo.App.SetLanguages("en", "zh-Hans", "zh-Hant")
 
+	// Aurora is dark by design, so the window chrome follows: the menu bar,
+	// title bar and dialogs are GTK's own widgets, and on a light desktop they
+	// stayed white around a dark window (measured: a white menu bar over the
+	// polar-night interface). The view sets its own palette on top of this.
+	//
+	// This asks GTK for its dark variant. A theme without one — plain Adwaita,
+	// which is what a bare X server gets — has nothing to switch to, so the
+	// menu bar there stays light however this is set; measured by forcing
+	// gtk-application-prefer-dark-theme with and without a themed variant.
+	mygo.Theme.SetSource(mygo.ThemeDark)
+
 	// Name the app before ANYTHING asks MyGo about identity. Two things depend
 	// on it and would otherwise disagree between runs:
 	//   - App.Path(PathUserData) joins the application name, so resolving the
