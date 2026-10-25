@@ -114,6 +114,9 @@ func (r *OracleRepository) initTables() error {
 		// EXPLAIN QUERY PLAN). The composite index serves both the filter and
 		// the order, so the LIMIT becomes a real early stop (v1.100).
 		`CREATE INDEX IF NOT EXISTS idx_oracle_data_source_ts ON oracle_data(source_id, timestamp DESC)`,
+		// ListSources reads every source newest first; without the index
+		// SQLite scans and sorts the table in a temp B-tree (measured).
+		`CREATE INDEX IF NOT EXISTS idx_oracle_sources_created ON data_sources(created_at)`,
 	}
 
 	for _, query := range queries {
