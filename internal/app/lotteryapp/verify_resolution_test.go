@@ -178,13 +178,16 @@ func TestVerifyInput_ResolvesBySubstring(t *testing.T) {
 // TestVerifyInput_SubstringSkipsNilEntries keeps a corrupt history slice from
 // panicking the third step the same way the first one did.
 func TestVerifyInput_SubstringSkipsNilEntries(t *testing.T) {
-	record := verifiableLotteryRecord(t)
+	// A literal id keeps the reference a hash prefix: an 8-character slice of
+	// a real ID was sometimes all digits and parsed as a block height instead
+	// of reaching the substring step (measured, same flaw as the test above).
+	record := &lottery.LotteryRecord{ID: "ab12cd34ef567890", Seed: "address-integrity"}
 	repo := &scriptedRepo{
 		byIDErr: lottery.ErrNotFound,
 		all:     []*lottery.LotteryRecord{nil, record},
 	}
 
-	report, err := VerifyInput(repo, record.ID[:8])
+	report, err := VerifyInput(repo, "ab12cd34")
 	if err != nil {
 		t.Fatalf("VerifyInput: %v", err)
 	}
