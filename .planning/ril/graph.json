@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 214,
+  "round": 215,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T14:21:18+00:00",
+  "updated_at": "2026-10-25T14:41:21+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -17950,7 +17950,7 @@
       "version": 1,
       "created_at": "2026-10-25T14:09:29+00:00",
       "updated_at": "2026-10-25T14:09:29+00:00",
-      "touched_round": 213,
+      "touched_round": 215,
       "title": "desktop"
     },
     "DEC-041": {
@@ -18093,6 +18093,52 @@
       "confidence": 1,
       "source": "CGO_ENABLED=0 go test ./... in both modules; go vet; gofmt -l -s; just lint",
       "summary": "All gates green after the desktop fixes; golangci-lint reports 0 issues."
+    },
+    "ISS-375": {
+      "id": "ISS-375",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:41:21+00:00",
+      "updated_at": "2026-10-25T14:41:21+00:00",
+      "touched_round": 215,
+      "title": "The desktop window drew MyGo's light theme over its dark background",
+      "severity": 0.6,
+      "description": "mainWindowOptions set BackgroundColor #0c2228 but the view never called SetTheme, so every control, input and table was a light-theme panel on a near-black page. The palette also lived in 26 hardcoded hex literals across the views."
+    },
+    "ISS-376": {
+      "id": "ISS-376",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:41:21+00:00",
+      "updated_at": "2026-10-25T14:41:21+00:00",
+      "touched_round": 215,
+      "title": "Desktop pages stacked ten full-width forms and drew most write outcomes nowhere",
+      "severity": 0.65,
+      "description": "One column of forms pushed every action below the fold, and each page's single status line was drawn inside its first section, so mint/transfer/approve/burn/fetch/vote results were invisible. The NFT page also bound one id field to four sections."
+    },
+    "CHG-379": {
+      "id": "CHG-379",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:41:21+00:00",
+      "updated_at": "2026-10-25T14:41:21+00:00",
+      "touched_round": 215,
+      "commit": "0798854",
+      "title": "Draw the window with Aurora's own theme and a real sidebar"
+    },
+    "CHG-380": {
+      "id": "CHG-380",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:41:21+00:00",
+      "updated_at": "2026-10-25T14:41:21+00:00",
+      "touched_round": 215,
+      "commit": "142bb97",
+      "title": "Lay every page out as cards and fix the defects that exposed"
     }
   },
   "edges": [
@@ -27924,6 +27970,30 @@
       "to": "ISS-374",
       "type": "addresses",
       "created_at": "2026-10-25T14:21:12+00:00"
+    },
+    {
+      "from": "CHG-379",
+      "to": "ISS-375",
+      "type": "resolves",
+      "created_at": "2026-10-25T14:41:21+00:00"
+    },
+    {
+      "from": "CHG-380",
+      "to": "ISS-376",
+      "type": "resolves",
+      "created_at": "2026-10-25T14:41:21+00:00"
+    },
+    {
+      "from": "ISS-375",
+      "to": "COMP-desktop",
+      "type": "located_in",
+      "created_at": "2026-10-25T14:41:21+00:00"
+    },
+    {
+      "from": "ISS-376",
+      "to": "COMP-desktop",
+      "type": "located_in",
+      "created_at": "2026-10-25T14:41:21+00:00"
     }
   ]
 }
