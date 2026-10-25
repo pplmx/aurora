@@ -318,3 +318,28 @@ func TestChoosingAnNFTRowFillsEveryCard(t *testing.T) {
 	require.Equal(t, full, app.nft.burnID, "Burn must receive the asset")
 	require.Equal(t, full, app.nft.historyID, "History must receive the asset")
 }
+
+// TestTableRowsKeepTheirHeight pins the rule the clipped rows taught: a table
+// row is as high as its tallest cell, and a wrapped cell is cut off at that
+// height. With every free-text cell on one line, a row showing a long value is
+// exactly as high as a row showing a short one.
+func TestTableRowsKeepTheirHeight(t *testing.T) {
+	long := "A very long participant list that would certainly wrap onto a second line if it were allowed to"
+	row := func(participants []string) float32 {
+		fake := &fakeServices{draws: []DrawRow{{
+			ID: "aaaa1111", BlockHeight: 1, Participants: participants, Winners: participants[:1],
+		}}}
+		app := New(fake)
+		// A narrow window: with room to spare nothing wraps, so the row height
+		// only tells the two cases apart where the column is squeezed.
+		tester := ui.NewTester(app.View, 900, 2000)
+		app.ShowPage("Lottery")
+		tester.Frame()
+		r, ok := tester.Find(shortID("aaaa1111"))
+		require.True(t, ok)
+		return r.H
+	}
+
+	require.Equal(t, row([]string{"Bob"}), row([]string{long, "Bob"}),
+		"a long value must not make the row taller: the cell is one line")
+}

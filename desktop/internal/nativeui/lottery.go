@@ -184,9 +184,9 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		case 1:
 			ui.Text(c, strconv.FormatInt(r.BlockHeight, 10))
 		case 2:
-			ui.Text(c, joinList(r.Participants))
+			ui.Text(c, joinList(r.Participants)).SingleLine()
 		case 3:
-			ui.Text(c, joinList(r.Winners))
+			ui.Text(c, joinList(r.Winners)).SingleLine()
 		}
 	})
 	if table.Changed() && a.lottery.selected >= 0 && a.lottery.selected < len(rows) {
