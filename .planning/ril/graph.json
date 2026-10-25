@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 215,
+  "round": 216,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T14:41:21+00:00",
+  "updated_at": "2026-10-25T15:29:58+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18139,6 +18139,40 @@
       "touched_round": 215,
       "commit": "142bb97",
       "title": "Lay every page out as cards and fix the defects that exposed"
+    },
+    "ISS-377": {
+      "id": "ISS-377",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T15:29:58+00:00",
+      "updated_at": "2026-10-25T15:29:58+00:00",
+      "touched_round": 216,
+      "title": "Desktop tables clipped their own headers and cells, and buttons stretched full width",
+      "severity": 0.45,
+      "description": "Block column at 60 DIPs rendered 'Blo…'; half-width history cells clipped wrapped participant lists; a Button drawn straight into a card took the card's width; a Badge drawn the same way became a full-width banner."
+    },
+    "CHG-381": {
+      "id": "CHG-381",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T15:29:58+00:00",
+      "updated_at": "2026-10-25T15:29:58+00:00",
+      "touched_round": 216,
+      "commit": "2cd965b",
+      "title": "Stop tables clipping headers and cells"
+    },
+    "CHG-382": {
+      "id": "CHG-382",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T15:29:58+00:00",
+      "updated_at": "2026-10-25T15:29:58+00:00",
+      "touched_round": 216,
+      "commit": "0515b91",
+      "title": "Status lines state their outcome in words and inline badges"
     }
   },
   "edges": [
@@ -27994,6 +28028,18 @@
       "to": "COMP-desktop",
       "type": "located_in",
       "created_at": "2026-10-25T14:41:21+00:00"
+    },
+    {
+      "from": "CHG-381",
+      "to": "ISS-377",
+      "type": "resolves",
+      "created_at": "2026-10-25T15:29:58+00:00"
+    },
+    {
+      "from": "CHG-382",
+      "to": "ISS-377",
+      "type": "resolves",
+      "created_at": "2026-10-25T15:29:58+00:00"
     }
   ]
 }
