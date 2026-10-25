@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 217,
+  "round": 218,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T15:38:35+00:00",
+  "updated_at": "2026-10-25T15:43:15+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18278,6 +18278,40 @@
       "unlock_factor": 1,
       "title": "Describe the window's actual interface in the desktop guide",
       "description": "Update docs/desktop.md with the palette, sidebar, card layout, status lines and keyboard paths, and remove the duplicated backend bullet."
+    },
+    "ISS-379": {
+      "id": "ISS-379",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T15:43:14+00:00",
+      "updated_at": "2026-10-25T15:43:15+00:00",
+      "touched_round": 218,
+      "title": "Oracle and id tables clipped their own headers and made full ids unreachable",
+      "severity": 0.5,
+      "description": "Name rendered as 'Na…', a source id was cut to an unusable prefix with no way to get the full value, and the preset combobox had no caption and reset its choice every frame."
+    },
+    "CHG-386": {
+      "id": "CHG-386",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T15:43:14+00:00",
+      "updated_at": "2026-10-25T15:43:14+00:00",
+      "touched_round": 218,
+      "commit": "50d5d83",
+      "title": "Stop the oracle cards clipping their content"
+    },
+    "CHG-387": {
+      "id": "CHG-387",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T15:43:15+00:00",
+      "updated_at": "2026-10-25T15:43:15+00:00",
+      "touched_round": 218,
+      "commit": "82742a8",
+      "title": "Shorten ids safely and let a history row load its full id"
     }
   },
   "edges": [
@@ -28181,6 +28215,18 @@
       "to": "TASK-383",
       "type": "implements",
       "created_at": "2026-10-25T15:38:35+00:00"
+    },
+    {
+      "from": "CHG-386",
+      "to": "ISS-379",
+      "type": "resolves",
+      "created_at": "2026-10-25T15:43:15+00:00"
+    },
+    {
+      "from": "CHG-387",
+      "to": "ISS-379",
+      "type": "resolves",
+      "created_at": "2026-10-25T15:43:15+00:00"
     }
   ]
 }
