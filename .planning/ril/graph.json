@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 213,
+  "round": 214,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T14:09:35+00:00",
+  "updated_at": "2026-10-25T14:21:18+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -15743,11 +15743,11 @@
     "ISS-334": {
       "id": "ISS-334",
       "type": "issue",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-10-23T14:27:29+00:00",
-      "updated_at": "2026-10-23T14:27:29+00:00",
-      "touched_round": 178,
+      "updated_at": "2026-10-25T14:10:21+00:00",
+      "touched_round": 213,
       "title": "Concurrent SQLite migrators observe transient dirty state or both pass the version check",
       "description": "TestMigrator_ConcurrentOpenersSerialize fails deterministically with migration up failed: database is dirty at version 1 (go test -count=20 ./internal/infra/migrate -run TestMigrator_ConcurrentOpenersSerialize). Migrator.up reads schema_migrations before opening a write transaction, then run() marks dirty, applies SQL and clears dirty in three separate transactions. A peer can therefore read the transient dirty marker and fail even though the migration is succeeding; two peers that both read the same clean version can also enter the same migration before either marks it dirty. BEGIN IMMEDIATE and busy_timeout only serialize transactions, not this read/check/run gap.",
       "severity": 0.8,
@@ -15757,11 +15757,11 @@
     "TASK-341": {
       "id": "TASK-341",
       "type": "task",
-      "status": "active",
-      "version": 3,
+      "status": "resolved",
+      "version": 4,
       "created_at": "2026-10-23T14:27:33+00:00",
-      "updated_at": "2026-10-24T00:40:49+00:00",
-      "touched_round": 211,
+      "updated_at": "2026-10-25T14:10:21+00:00",
+      "touched_round": 213,
       "category": "correctness",
       "title": "Serialize migration version checks with the migration transaction",
       "description": "Hold one BEGIN IMMEDIATE transaction across the dirty check and every migration step so concurrent openers wait, then re-read the committed version and skip work already applied by the winner. Preserve crash-safety: a failed SQL body rolls back only that migration through a savepoint, leaves the target version dirty, and returns the original failure. Cover concurrent up/down and the existing failed-migration dirty contract without weakening assertions.",
@@ -17810,11 +17810,11 @@
     "HYP-064": {
       "id": "HYP-064",
       "type": "hypothesis",
-      "status": "active",
-      "version": 1,
+      "status": "resolved",
+      "version": 2,
       "created_at": "2026-10-24T00:43:32+00:00",
-      "updated_at": "2026-10-24T00:43:32+00:00",
-      "touched_round": 211,
+      "updated_at": "2026-10-25T14:10:21+00:00",
+      "touched_round": 213,
       "confidence": 0.9,
       "statement": "Serializing the dirty check and migration application in one immediate transaction removes the transient-dirty race for concurrent up and down."
     },
@@ -17967,6 +17967,132 @@
         "Require ErrNotFound in the interface and fix every implementation: would break the oracle-style convention and add a migration burden for fakes",
         "Guard only inside VerifyRecord: leaves resolution silently reporting a nil record as a hit"
       ]
+    },
+    "ISS-372": {
+      "id": "ISS-372",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:21:06+00:00",
+      "updated_at": "2026-10-25T14:21:18+00:00",
+      "touched_round": 214,
+      "title": "A desktop launch that names a page opens the dashboard instead",
+      "severity": 0.75,
+      "description": "The native cutover removed the window URL but nothing applied opts.Intent, so the launch argument was consumed as handled and dropped. Measured: aurora-desktop 'aurora://lottery?id=deadbeef' showed the Dashboard."
+    },
+    "ISS-373": {
+      "id": "ISS-373",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:21:06+00:00",
+      "updated_at": "2026-10-25T14:21:18+00:00",
+      "touched_round": 214,
+      "title": "The desktop window's opening page never loads its data",
+      "severity": 0.8,
+      "description": "App.New left the dashboard unloaded and nothing else called loadDashboard, so every launch sat on 'Loading...' until the operator switched pages or pressed Refresh. Measured under Xvfb on a fresh data directory."
+    },
+    "ISS-374": {
+      "id": "ISS-374",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:21:06+00:00",
+      "updated_at": "2026-10-25T14:21:18+00:00",
+      "touched_round": 214,
+      "title": "Token Approve and Allowance sign for the Transfer form's account",
+      "severity": 0.7,
+      "description": "Neither section had an owner input; both sent a.token.xFrom, so an approval was granted on behalf of whatever account the operator had typed into the Transfer section. Transfer From borrowed Transfer's recipient too."
+    },
+    "TASK-379": {
+      "id": "TASK-379",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:21:12+00:00",
+      "updated_at": "2026-10-25T14:21:18+00:00",
+      "touched_round": 214,
+      "category": "correctness",
+      "severity": 0.75,
+      "confidence": 1,
+      "effort": 1.4,
+      "unlock_factor": 1.2,
+      "title": "Route the launch intent and load the first page",
+      "description": "fix-startup-intent"
+    },
+    "TASK-380": {
+      "id": "TASK-380",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T14:21:12+00:00",
+      "updated_at": "2026-10-25T14:21:18+00:00",
+      "touched_round": 214,
+      "category": "correctness",
+      "severity": 0.7,
+      "confidence": 1,
+      "effort": 1.3,
+      "unlock_factor": 1.2,
+      "title": "Give every token form its own inputs",
+      "description": "fix-token-forms"
+    },
+    "CHG-377": {
+      "id": "CHG-377",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:21:12+00:00",
+      "updated_at": "2026-10-25T14:21:12+00:00",
+      "touched_round": 214,
+      "commit": "a290533",
+      "title": "Apply the launch intent and load the opening page"
+    },
+    "CHG-378": {
+      "id": "CHG-378",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:21:12+00:00",
+      "updated_at": "2026-10-25T14:21:12+00:00",
+      "touched_round": 214,
+      "commit": "a849b6e",
+      "title": "Give every token form its own inputs"
+    },
+    "EV-176": {
+      "id": "EV-176",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:21:17+00:00",
+      "updated_at": "2026-10-25T14:21:17+00:00",
+      "touched_round": 214,
+      "confidence": 1,
+      "source": "Xvfb screenshot: /tmp/dl4-before.png vs /tmp/dl2-after.png, /tmp/dl7-voting.png",
+      "summary": "The pre-fix binary launched with aurora://lottery?id=deadbeef showed Dashboard/Loading...; the fixed binary shows the Lottery page with the verifier filled, and aurora://voting opens Voting."
+    },
+    "EV-177": {
+      "id": "EV-177",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:21:18+00:00",
+      "updated_at": "2026-10-25T14:21:18+00:00",
+      "touched_round": 214,
+      "confidence": 1,
+      "source": "desktop/internal/nativeui/token_forms_test.go:TestTokenWriteFormsUseTheirOwnInputs",
+      "summary": "With a leftover Transfer From address planted, Approve sent it as the owner and Allowance read it; restoring the shared field turns the test red."
+    },
+    "EV-178": {
+      "id": "EV-178",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T14:21:18+00:00",
+      "updated_at": "2026-10-25T14:21:18+00:00",
+      "touched_round": 214,
+      "confidence": 1,
+      "source": "CGO_ENABLED=0 go test ./... in both modules; go vet; gofmt -l -s; just lint",
+      "summary": "All gates green after the desktop fixes; golangci-lint reports 0 issues."
     }
   },
   "edges": [
@@ -27756,6 +27882,48 @@
       "to": "COMP-lottery",
       "type": "governs",
       "created_at": "2026-10-25T14:09:34+00:00"
+    },
+    {
+      "from": "CHG-377",
+      "to": "ISS-372",
+      "type": "resolves",
+      "created_at": "2026-10-25T14:21:12+00:00"
+    },
+    {
+      "from": "CHG-377",
+      "to": "ISS-373",
+      "type": "resolves",
+      "created_at": "2026-10-25T14:21:12+00:00"
+    },
+    {
+      "from": "CHG-378",
+      "to": "ISS-374",
+      "type": "resolves",
+      "created_at": "2026-10-25T14:21:12+00:00"
+    },
+    {
+      "from": "CHG-377",
+      "to": "TASK-379",
+      "type": "implements",
+      "created_at": "2026-10-25T14:21:12+00:00"
+    },
+    {
+      "from": "CHG-378",
+      "to": "TASK-380",
+      "type": "implements",
+      "created_at": "2026-10-25T14:21:12+00:00"
+    },
+    {
+      "from": "TASK-379",
+      "to": "ISS-372",
+      "type": "addresses",
+      "created_at": "2026-10-25T14:21:12+00:00"
+    },
+    {
+      "from": "TASK-380",
+      "to": "ISS-374",
+      "type": "addresses",
+      "created_at": "2026-10-25T14:21:12+00:00"
     }
   ]
 }
