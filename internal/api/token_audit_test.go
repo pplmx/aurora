@@ -71,8 +71,7 @@ func TestTokenAudit_TransferAppearsInHistoryOverHTTP(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr.Code, "history body: %s", rr.Body.String())
 
 	// /api/v1/token/history returns the bare array like every other list
-	// endpoint (TASK-093, ISS-086) — not the old {"transfers":[...]} wrapper
-	// the web UI could never consume.
+	// endpoint (TASK-093, ISS-086) — not the old {"transfers":[...]} wrapper.
 	var resp []struct {
 		ID          string `json:"id"`
 		From        string `json:"from"`
