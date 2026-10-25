@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 221,
+  "round": 223,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T16:05:03+00:00",
+  "updated_at": "2026-10-25T16:08:58+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18381,6 +18381,60 @@
       "touched_round": 221,
       "commit": "45568a2",
       "title": "Keep every free-text table cell on one line"
+    },
+    "CHG-391": {
+      "id": "CHG-391",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:08:58+00:00",
+      "updated_at": "2026-10-25T16:08:58+00:00",
+      "touched_round": 223,
+      "commit": "3dc40a5",
+      "title": "Choose an oracle source row to aim the actions at it"
+    },
+    "CHG-392": {
+      "id": "CHG-392",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T16:08:58+00:00",
+      "updated_at": "2026-10-25T16:08:58+00:00",
+      "touched_round": 223,
+      "commit": "01b3869",
+      "title": "Prove the token and NFT lists reach the real store"
+    },
+    "TASK-384": {
+      "id": "TASK-384",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:08:58+00:00",
+      "updated_at": "2026-10-25T16:08:58+00:00",
+      "touched_round": 223,
+      "category": "core-feature",
+      "severity": 0.45,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Aim the oracle actions from a chosen source row",
+      "description": "The table shortened the id while every action needs the full one; choosing a row now fills the action field and both read cards."
+    },
+    "TASK-385": {
+      "id": "TASK-385",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T16:08:58+00:00",
+      "updated_at": "2026-10-25T16:08:58+00:00",
+      "touched_round": 223,
+      "category": "test-quality",
+      "severity": 0.4,
+      "confidence": 1,
+      "effort": 1,
+      "unlock_factor": 1,
+      "title": "Join the new list surfaces to the real store",
+      "description": "TestWindowListsWhatTheStoreHolds covers the empty case and the created case for both lists."
     }
   },
   "edges": [
@@ -28314,6 +28368,18 @@
       "to": "ISS-382",
       "type": "resolves",
       "created_at": "2026-10-25T16:05:03+00:00"
+    },
+    {
+      "from": "CHG-391",
+      "to": "TASK-384",
+      "type": "implements",
+      "created_at": "2026-10-25T16:08:58+00:00"
+    },
+    {
+      "from": "CHG-392",
+      "to": "TASK-385",
+      "type": "implements",
+      "created_at": "2026-10-25T16:08:58+00:00"
     }
   ]
 }
