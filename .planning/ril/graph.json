@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 226,
+  "round": 227,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T16:31:57+00:00",
+  "updated_at": "2026-10-25T17:43:20+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18635,6 +18635,41 @@
       "effort": 1,
       "unlock_factor": 1,
       "title": "Cover the blockchain singleton"
+    },
+    "ISS-385": {
+      "id": "ISS-385",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T17:43:20+00:00",
+      "updated_at": "2026-10-25T17:43:20+00:00",
+      "touched_round": 227,
+      "title": "Lottery package coverage moved between identical runs",
+      "severity": 0.4,
+      "description": "Measured 89.8%, 90.3% and 90.8% on consecutive runs. The VRF rejection tests derived inputs from a random key pair, so a corrupted proof reached the decode guard, the identity guard or neither depending on the draw. 0xFF repeated is a valid edwards25519 point, so the 'invalid bytes' test never exercised the guard it was written for."
+    },
+    "CHG-400": {
+      "id": "CHG-400",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T17:43:20+00:00",
+      "updated_at": "2026-10-25T17:43:20+00:00",
+      "touched_round": 227,
+      "commit": "6bbad2b",
+      "title": "Name the VRF rejection bytes so every guard runs every time"
+    },
+    "EV-182": {
+      "id": "EV-182",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T17:43:20+00:00",
+      "updated_at": "2026-10-25T17:43:20+00:00",
+      "touched_round": 227,
+      "confidence": 1,
+      "source": "15 consecutive go test ./internal/domain/lottery/ -cover runs",
+      "summary": "Lottery domain holds 91.7% on every run; all 13 domain/app/sqlite packages report one distinct value across 4 runs each."
     }
   },
   "edges": [
@@ -28622,6 +28657,12 @@
       "to": "TASK-390",
       "type": "implements",
       "created_at": "2026-10-25T16:31:57+00:00"
+    },
+    {
+      "from": "CHG-400",
+      "to": "ISS-385",
+      "type": "resolves",
+      "created_at": "2026-10-25T17:43:20+00:00"
     }
   ]
 }
