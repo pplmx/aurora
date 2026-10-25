@@ -195,7 +195,29 @@ func readout(c *ui.Context, rows []readoutRow) {
 	})
 }
 
+// tokenSubject names the token every write on this page acts on.
+//
+// The cards take no token id of their own: they all use a.token.tokenID, which
+// Create and Inspect set. Without saying so, the right-hand column gave no
+// sign of which token a Mint would hit — the one thing an operator must be
+// sure of before a write.
+func tokenSubject(c *ui.Context, id string) {
+	if id == "" {
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Badge(c, "No token selected").Background(ui.Hex(auroraAmber)).TextColor(ui.Hex(night))
+			ui.Text(c, "Create or inspect a token first; the cards below act on it.").
+				FontSize(12).TextColor(ui.Hex(inkMuted))
+		})
+		return
+	}
+	ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, "Acting on").FontSize(11).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, id).FontSize(13).Bold().TextColor(ui.Hex(aurora)).SingleLine()
+	})
+}
+
 func (a *App) tokenWrites(c *ui.Context) {
+	tokenSubject(c, a.token.tokenID)
 	formCard(c, "Mint", "Only the token owner can mint, and only for a mintable token.", func() {
 		field(c, "To (base64 public key)", &a.token.mintTo)
 		field(c, "Amount", &a.token.mintAmount)

@@ -160,3 +160,20 @@ func TestOracleLatestIsReachableWithoutData(t *testing.T) {
 		"the latest-value section must render even when no readings are loaded")
 	require.True(t, tester.HasText("Get Latest"), "its button must be on screen")
 }
+
+// TestTokenWritesNameTheirSubject pins the one thing a write card cannot show
+// by itself: which token it acts on. All the write cards use the same token
+// id, set by Create or Inspect, and the page used to give no sign of it.
+func TestTokenWritesNameTheirSubject(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Token")
+	tester.Frame()
+	require.True(t, tester.HasText("No token selected"),
+		"an empty selection must be stated, not implied")
+
+	app.token.tokenID = "AUR"
+	tester.Frame()
+	require.True(t, tester.HasText("Acting on"))
+	require.True(t, tester.HasText("AUR"))
+}
