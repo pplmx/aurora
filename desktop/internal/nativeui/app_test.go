@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -28,6 +29,10 @@ type fakeServices struct {
 
 	verifyResult VerifyResult
 	verifyErr    error
+
+	// createErr makes CreateDraw fail, so a test can see what a failed action
+	// reports.
+	createErr error
 }
 
 func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
@@ -36,6 +41,9 @@ func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
 }
 
 func (f *fakeServices) CreateDraw(participants []string, seed string, winners int) (DrawRow, error) {
+	if f.createErr != nil {
+		return DrawRow{}, f.createErr
+	}
 	f.created = &struct {
 		participants []string
 		seed         string
@@ -303,4 +311,50 @@ func TestDrawFormOpensReady(t *testing.T) {
 	app.createLottery()
 	require.Empty(t, app.lottery.countErr, "the default count must be usable as-is")
 	require.NotNil(t, fake.created, "the form must submit with only participants and seed typed")
+}
+
+// TestStatusLinesStateTheirOutcomeInWords pins that a status line is not
+// colour-only. Both outcomes must say "Done" or "Failed", because a reader who
+// cannot separate the two hues would otherwise have no signal at all.
+func TestStatusLinesStateTheirOutcomeInWords(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	app.lottery.participants = "Alice,Bob"
+	app.lottery.seed = "seed-abc"
+	app.createLottery()
+	tester.Frame()
+	require.True(t, tester.HasText("Done"), "a successful action must say so")
+	require.Contains(t, joinedTexts(tester), "recorded at block")
+
+	// A rejected action takes the other word, not just the other colour. A
+	// field-level rejection is drawn under its input; a service failure is the
+	// status line's job.
+	app.lottery.seed = "ab"
+	app.createLottery()
+	tester.Frame()
+	require.True(t, tester.HasText("at least 3 characters"),
+		"a rejected seed must be explained under the seed field")
+
+	fake.createErr = errors.New("storage is unavailable")
+	// A successful create clears the form, so put the roster back before
+	// asking the service to fail.
+	app.lottery.participants = "Alice,Bob"
+	app.lottery.seed = "seed-abc"
+	app.createLottery()
+	tester.Frame()
+	require.True(t, tester.HasText("Failed"), "a failed action must say so")
+	require.Contains(t, joinedTexts(tester), "storage is unavailable")
+}
+
+// joinedTexts is every label the last frame drew, for substring checks.
+func joinedTexts(tester *ui.Tester) string {
+	out := ""
+	for _, s := range tester.Texts() {
+		out += s + "\n"
+	}
+	return out
 }

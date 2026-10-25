@@ -44,6 +44,10 @@ const (
 	focusRing = "#7dd3fc"
 	// Scrollbar is the thumb of a scroll bar.
 	scrollbar = "#3b5064"
+	// successTint and errorTint are the backgrounds of a status line: the
+	// verdict's hue, dark enough that the text on it keeps its contrast.
+	successTint = "#12291f"
+	errorTint   = "#2a1417"
 )
 
 // auroraTheme returns the theme the window draws with: the dark theme with
