@@ -257,3 +257,27 @@ func TestChoosingAHistoryRowFillsTheVerifier(t *testing.T) {
 	require.Equal(t, full, app.lottery.verifyID,
 		"choosing the row must load the full id into the verifier")
 }
+
+// TestTokenListFillsTheSubject pins the page's entry point: the stored tokens
+// are listed, and choosing one makes it the token every other card acts on.
+// Before this the page could only work with an id the operator already had,
+// which nothing in the window showed.
+func TestTokenListFillsTheSubject(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{
+		{ID: "AUR", Name: "Aurora Coin", Symbol: "AUR", TotalSupply: "1000"},
+		{ID: "GOLD", Name: "Gold", Symbol: "AU", TotalSupply: "50"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Aurora Coin"), "the stored tokens must be listed")
+	require.True(t, tester.HasText("Gold"))
+	require.Empty(t, app.token.tokenID, "nothing is chosen until the operator picks")
+
+	require.NoError(t, tester.Click("AUR"))
+	tester.Frame()
+	require.Equal(t, "AUR", app.token.tokenID,
+		"choosing a token must make it the subject of the write cards")
+}

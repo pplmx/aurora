@@ -140,6 +140,8 @@ var chineseMessages = map[string]string{
 	"token.allowance.cmd":     "查询额度",
 	"token.history.cmd":       "查询转账历史",
 	"token.info.cmd":          "查询代币信息",
+	"token.list.cmd":          "列出全部代币",
+	"token.no_tokens":         "暂无代币",
 
 	// Flags
 	"token.name":        "代币名称",
@@ -163,6 +165,7 @@ var chineseMessages = map[string]string{
 	"token.approved":    "额度批准成功！",
 	"token.burned":      "代币销毁成功！",
 	"token.not_found":   "代币未找到",
+	"token.total":       "总计",
 	"token.no_history":  "未找到转账历史",
 
 	// ===== ORACLE =====

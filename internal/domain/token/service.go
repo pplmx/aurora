@@ -18,6 +18,8 @@ const defaultHistoryLimit = 50
 type Service interface {
 	CreateToken(req *CreateTokenRequest) (*Token, error)
 	GetTokenInfo(tokenID TokenID) (*Token, error)
+	// ListTokens returns every stored token, newest first.
+	ListTokens() ([]*Token, error)
 
 	Mint(req *MintRequest) (*MintEvent, error)
 
@@ -42,6 +44,11 @@ type TransactionManager interface {
 type Repository interface {
 	SaveToken(token *Token) error
 	GetToken(id TokenID) (*Token, error)
+	// ListTokens returns every stored token, newest first. Without it a
+	// token's id — the only handle every other operation takes — is lost as
+	// soon as the process that created it exits: the CLI prints it once and
+	// no surface can list what exists.
+	ListTokens() ([]*Token, error)
 
 	SaveApproval(approval *Approval) error
 	GetApproval(tokenID TokenID, owner, spender PublicKey) (*Approval, error)
@@ -277,6 +284,11 @@ func (s *TokenService) CreateToken(req *CreateTokenRequest) (*Token, error) {
 
 func (s *TokenService) GetTokenInfo(tokenID TokenID) (*Token, error) {
 	return s.repo.GetToken(tokenID)
+}
+
+// ListTokens returns every stored token, newest first.
+func (s *TokenService) ListTokens() ([]*Token, error) {
+	return s.repo.ListTokens()
 }
 
 // requireToken returns ErrTokenNotFound unless a token with tokenID exists,

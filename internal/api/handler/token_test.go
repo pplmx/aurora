@@ -369,3 +369,15 @@ func TestTokenHandler_Allowance_MissingParams(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
+
+// TestTokenHandler_List_EmptyArray pins the envelope contract: a store with no
+// tokens returns [], not null, like every other list endpoint.
+func TestTokenHandler_List_EmptyArray(t *testing.T) {
+	h := NewTokenHandler(fakeTokenServiceFull{})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/list", nil)
+	rr := httptest.NewRecorder()
+	h.List(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "[]\n", rr.Body.String(), "an empty list must encode as []")
+}

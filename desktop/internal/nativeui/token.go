@@ -49,6 +49,12 @@ type tokenState struct {
 	allowance string
 	history   []TransferRow
 
+	// tokens is every stored token. It is what lets an operator pick one
+	// instead of already knowing its id, which nothing in the window showed.
+	tokens []TokenRow
+	// chosen is the row chosen in that list, -1 for none.
+	chosen int
+
 	loadErr error
 
 	// askBurn drives the irreversible-burn confirmation. The burn only runs
@@ -59,12 +65,20 @@ type tokenState struct {
 	status statusLine
 
 	historyTable ui.ListState
+	list         ui.ListState
 }
 
 func (a *App) loadToken() {
-	// The token page is form-driven: nothing loads until the operator asks for
-	// a specific token, so a page switch only clears a stale error.
-	a.token.loadErr = nil
+	if a.services == nil {
+		return
+	}
+	// The list is the page's entry point: without it a token created in an
+	// earlier session could not be reached at all.
+	tokens, err := a.services.ListTokens()
+	a.token.loadErr = err
+	if err == nil {
+		a.token.tokens = tokens
+	}
 }
 
 // tokenView lays the page out in two columns: the token you are working with
@@ -78,6 +92,7 @@ func (a *App) tokenView(c *ui.Context) {
 			// writes to a.token.status, so drawing it inside the Create
 			// card hid the outcome of mint, transfer, approve and burn.
 			renderStatus(c, a.token.status)
+			a.tokenList(c)
 			a.tokenCreate(c)
 			a.tokenRead(c)
 			a.tokenHistory(c)
@@ -85,6 +100,45 @@ func (a *App) tokenView(c *ui.Context) {
 			a.tokenWrites(c)
 		})
 		a.renderBurnDialog(c)
+	})
+}
+
+// tokenList draws the stored tokens and lets the operator choose one: a
+// choice fills the id every other card acts on, so a token created in an
+// earlier session is reachable without remembering its id.
+func (a *App) tokenList(c *ui.Context) {
+	formCard(c, "Tokens", "Every stored token. Choose one to make it the subject of the cards here.", func() {
+		if a.token.loadErr != nil {
+			ui.Text(c, "Failed to load tokens: "+a.token.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+			return
+		}
+		if len(a.token.tokens) == 0 {
+			emptyNote(c, "No tokens yet. Create one below.")
+			return
+		}
+		rows := a.token.tokens
+		a.token.list.Selected = &a.token.chosen
+		table := ui.Table(c, &a.token.list, []ui.TableColumn{
+			{Title: "ID", Width: 150},
+			{Title: "Name", MinWidth: 120},
+			{Title: "Symbol", Width: 90},
+			{Title: "Supply", Width: 130, Align: ui.End},
+		}, len(rows), func(row, col int) {
+			t := rows[row]
+			switch col {
+			case 0:
+				ui.Text(c, shortID(t.ID)).SingleLine()
+			case 1:
+				ui.Text(c, t.Name).SingleLine()
+			case 2:
+				ui.Text(c, t.Symbol)
+			case 3:
+				ui.Text(c, t.TotalSupply)
+			}
+		})
+		if table.Changed() && a.token.chosen >= 0 && a.token.chosen < len(rows) {
+			a.token.tokenID = rows[a.token.chosen].ID
+		}
 	})
 }
 
@@ -127,6 +181,9 @@ func (a *App) createToken() {
 	}
 	a.token.status = okStatus("Created %s (%s) with supply %s. Owner: %s", t.Name, t.Symbol, t.TotalSupply, t.Owner)
 	a.token.tokenID = t.ID
+	// The list is the page's entry point, so a new token joins it at once and
+	// the row it lands on is the one chosen.
+	a.loadToken()
 	a.token.name, a.token.symbol, a.token.supply = "", "", ""
 }
 

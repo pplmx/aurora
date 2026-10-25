@@ -299,6 +299,22 @@ func (s *nativeServices) TokenInfo(id string) (nativeui.TokenRow, error) {
 	}, nil
 }
 
+func (s *nativeServices) ListTokens() ([]nativeui.TokenRow, error) {
+	uc := tokenapp.NewListTokensUseCase(s.tokenService)
+	resp, err := uc.Execute()
+	if err != nil {
+		return nil, err
+	}
+	rows := make([]nativeui.TokenRow, 0, len(resp))
+	for _, t := range resp {
+		rows = append(rows, nativeui.TokenRow{
+			ID: t.ID, Name: t.Name, Symbol: t.Symbol,
+			TotalSupply: t.TotalSupply, Decimals: int(t.Decimals), Owner: t.Owner,
+		})
+	}
+	return rows, nil
+}
+
 func (s *nativeServices) TokenBalance(tokenID, owner string) (string, error) {
 	uc := tokenapp.NewGetBalanceUseCase(s.tokenService)
 	resp, err := uc.Execute(&tokenapp.BalanceRequest{TokenID: tokenID, Owner: owner})

@@ -190,6 +190,43 @@ func (r *TokenRepository) GetToken(id token.TokenID) (*token.Token, error) {
 	), nil
 }
 
+// ListTokens returns every token, newest first. The scan mirrors GetToken so a
+// listed token carries the same attributes a fetched one does.
+func (r *TokenRepository) ListTokens() ([]*token.Token, error) {
+	rows, err := r.q().Query(`
+		SELECT id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at
+		FROM tokens ORDER BY created_at DESC, id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var out []*token.Token
+	for rows.Next() {
+		var idStr, name, symbol, totalSupplyStr, ownerB64 string
+		var decimals int8
+		var isMintable, isBurnable int
+		var createdAt int64
+		if err := rows.Scan(&idStr, &name, &symbol, &totalSupplyStr, &decimals, &ownerB64, &isMintable, &isBurnable, &createdAt); err != nil {
+			return nil, err
+		}
+		owner, err := base64.StdEncoding.DecodeString(ownerB64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode owner: %w", err)
+		}
+		amount, err := token.NewAmountFromString(totalSupplyStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode amount: %w", err)
+		}
+		out = append(out, token.NewTokenFromRecord(
+			token.TokenID(idStr), name, symbol, amount, owner, decimals,
+			isMintable != 0, isBurnable != 0, time.Unix(createdAt, 0),
+		))
+	}
+	return out, rows.Err()
+}
+
 func (r *TokenRepository) TrySubtractFromSupply(tokenID token.TokenID, amount *token.Amount) (*token.Amount, error) {
 	amountStr := amount.String()
 	id := string(tokenID)

@@ -97,6 +97,36 @@ func (uc *GetAllowanceUseCase) Execute(req *AllowanceRequest) (*AllowanceRespons
 	}, nil
 }
 
+// ListTokensUseCase returns every stored token. It exists because a token's id
+// is the handle every other operation takes, and nothing could list what
+// exists: the create output was the only place it appeared.
+type ListTokensUseCase struct {
+	service token.Service
+}
+
+func NewListTokensUseCase(service token.Service) *ListTokensUseCase {
+	return &ListTokensUseCase{service: service}
+}
+
+func (uc *ListTokensUseCase) Execute() ([]*TokenInfoResponse, error) {
+	tokens, err := uc.service.ListTokens()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*TokenInfoResponse, 0, len(tokens))
+	for _, t := range tokens {
+		out = append(out, &TokenInfoResponse{
+			ID:          string(t.ID()),
+			Name:        t.Name(),
+			Symbol:      t.Symbol(),
+			TotalSupply: t.TotalSupply().String(),
+			Decimals:    t.Decimals(),
+			Owner:       base64.StdEncoding.EncodeToString(t.Owner()),
+		})
+	}
+	return out, nil
+}
+
 type GetHistoryUseCase struct {
 	service token.Service
 }

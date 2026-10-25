@@ -92,6 +92,7 @@ func init() {
 	tokenCmd.AddCommand(tokenAllowanceCmd)
 	tokenCmd.AddCommand(tokenHistoryCmd)
 	tokenCmd.AddCommand(tokenInfoCmd)
+	tokenCmd.AddCommand(tokenListCmd)
 
 	tokenCreateCmd.Flags().StringP("name", "n", "", i18n.GetText("token.name"))
 	tokenCreateCmd.Flags().StringP("symbol", "s", "", i18n.GetText("token.symbol"))
@@ -557,6 +558,40 @@ var tokenHistoryCmd = &cobra.Command{
 		for _, t := range resp.Transfers {
 			fmt.Printf("   - From: %s -> To: %s | Amount: %s | Height: %d\n",
 				truncateBase64(t.From), truncateBase64(t.To), t.Amount, t.BlockHeight)
+		}
+		return nil
+	},
+}
+
+var tokenListCmd = &cobra.Command{
+	Use:   "list",
+	Args:  cobra.NoArgs,
+	Short: i18n.GetText("token.list.cmd"),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		service, cleanup, err := newTokenService()
+		if err != nil {
+			return err
+		}
+		defer cleanup()
+
+		tokens, err := service.ListTokens()
+		if err != nil {
+			return fmt.Errorf("failed to list tokens: %w", err)
+		}
+		if len(tokens) == 0 {
+			fmt.Println(i18n.GetText("token.no_tokens"))
+			return nil
+		}
+
+		fmt.Printf("\n🪙 %s: %d\n\n", i18n.GetText("token.total"), len(tokens))
+		for _, tk := range tokens {
+			fmt.Println("---")
+			printField("ID", string(tk.ID()))
+			printField("Name", tk.Name())
+			printField("Symbol", tk.Symbol())
+			printField("Total Supply", tk.TotalSupply().String())
+			fmt.Printf("   Decimals: %d\n", tk.Decimals())
+			printField("Owner", b64Encode(tk.Owner()))
 		}
 		return nil
 	},
