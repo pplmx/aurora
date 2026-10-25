@@ -42,6 +42,9 @@ type fakeServices struct {
 
 	// nftRows is what ListAllNFTs returns.
 	nftRows []NFTRow
+
+	// sources is what OracleSources returns.
+	sources []SourceRow
 }
 
 func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
@@ -110,7 +113,7 @@ func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([
 	return nil, nil
 }
 
-func (f *fakeServices) OracleSources() ([]SourceRow, error)     { return nil, nil }
+func (f *fakeServices) OracleSources() ([]SourceRow, error)     { return f.sources, nil }
 func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) { return f.templates, nil }
 func (f *fakeServices) AddOracleSource(in SourceInput) (SourceRow, error) {
 	return SourceRow{ID: "src"}, nil
