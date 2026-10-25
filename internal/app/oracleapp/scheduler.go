@@ -35,6 +35,12 @@ const backoffBase = time.Second
 // Interval. The Interval field was stored and exposed through the API/CLI but
 // never acted on — this closes that gap (v1.15 Oracle Scheduled Fetching).
 //
+// A pass fetches due sources serially, in repository order: a slow upstream
+// delays the sources behind it in the same pass. That shape is deliberate —
+// the alternative changes the failure model (a burst of simultaneous upstream
+// requests, and per-source backoff that no longer paces anything) — and is
+// pinned by TestScheduler_PassFetchesSerially.
+//
 // It is concurrency-safe: the last-fetch bookkeeping is guarded by a mutex so
 // Run/stop and the fetch callback never race.
 type Scheduler struct {
