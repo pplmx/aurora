@@ -24,25 +24,27 @@ type tokenState struct {
 	balance string
 
 	// Write forms.
-	mintTo       string
-	mintAmount   string
-	mintPriv     string
-	xFrom        string
-	xTo          string
-	xAmount      string
-	xPriv        string
-	approveTo    string
-	approveAmt   string
-	approvePriv  string
-	fromOwner    string
-	fromSpender  string
-	fromAmount   string
-	fromPriv     string
-	burnFrom     string
-	burnAmount   string
-	burnPriv     string
-	allowanceTo  string
-	historyLimit string
+	mintTo         string
+	mintAmount     string
+	mintPriv       string
+	xFrom          string
+	xTo            string
+	xAmount        string
+	xPriv          string
+	approveOwner   string
+	approveTo      string
+	approveAmt     string
+	approvePriv    string
+	fromOwner      string
+	fromTo         string
+	fromAmount     string
+	fromPriv       string
+	burnFrom       string
+	burnAmount     string
+	burnPriv       string
+	allowanceOwner string
+	allowanceTo    string
+	historyLimit   string
 
 	allowance string
 	history   []TransferRow
@@ -160,9 +162,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 	field(c, "Amount", &a.token.mintAmount)
 	field(c, "Owner Private Key", &a.token.mintPriv)
 	if ui.Button(c, "Mint").Clicked() {
-		a.token.status = wrapErr(a.services.MintToken(
-			strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.mintTo),
-			strings.TrimSpace(a.token.mintAmount), strings.TrimSpace(a.token.mintPriv)))
+		a.mintToken()
 	}
 
 	ui.Divider(c)
@@ -172,35 +172,27 @@ func (a *App) tokenWrites(c *ui.Context) {
 	field(c, "Amount", &a.token.xAmount)
 	field(c, "From Private Key", &a.token.xPriv)
 	if ui.Button(c, "Transfer").Clicked() {
-		a.token.status = wrapErr(a.services.TransferToken(
-			strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.xFrom),
-			strings.TrimSpace(a.token.xTo), strings.TrimSpace(a.token.xAmount),
-			strings.TrimSpace(a.token.xPriv)))
+		a.transferToken()
 	}
 
 	ui.Divider(c)
 	sectionTitle(c, "Approve", "Let a spender move up to an amount on the owner's behalf.")
+	field(c, "Owner (base64 public key)", &a.token.approveOwner)
 	field(c, "Spender (base64 public key)", &a.token.approveTo)
 	field(c, "Amount", &a.token.approveAmt)
 	field(c, "Owner Private Key", &a.token.approvePriv)
 	if ui.Button(c, "Approve").Clicked() {
-		a.token.status = wrapErr(a.services.ApproveToken(
-			strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.xFrom),
-			strings.TrimSpace(a.token.approveTo), strings.TrimSpace(a.token.approveAmt),
-			strings.TrimSpace(a.token.approvePriv)))
+		a.approveToken()
 	}
 
 	ui.Divider(c)
 	sectionTitle(c, "Transfer From", "Spend an allowance the owner granted.")
 	field(c, "Owner (base64 public key)", &a.token.fromOwner)
-	field(c, "To (base64 public key)", &a.token.xTo)
+	field(c, "To (base64 public key)", &a.token.fromTo)
 	field(c, "Amount", &a.token.fromAmount)
 	field(c, "Spender Private Key", &a.token.fromPriv)
 	if ui.Button(c, "Transfer From").Clicked() {
-		a.token.status = wrapErr(a.services.TransferFromToken(
-			strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.fromOwner),
-			strings.TrimSpace(a.token.xTo), strings.TrimSpace(a.token.fromAmount),
-			strings.TrimSpace(a.token.fromPriv)))
+		a.transferFromToken()
 	}
 
 	ui.Divider(c)
@@ -216,21 +208,58 @@ func (a *App) tokenWrites(c *ui.Context) {
 
 	ui.Divider(c)
 	sectionTitle(c, "Allowance", "Read how much a spender may still move.")
+	field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
 	field(c, "Spender (base64 public key)", &a.token.allowanceTo)
 	if ui.Button(c, "Get Allowance").Clicked() {
-		amt, err := a.services.TokenAllowance(
-			strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.xFrom),
-			strings.TrimSpace(a.token.allowanceTo))
-		if err != nil {
-			a.token.status = errStatus(err)
-		} else {
-			a.token.allowance = amt
-			a.token.status = statusLine{}
-		}
+		a.loadAllowance()
 	}
 	if a.token.allowance != "" {
 		ui.Text(c, "Allowance: "+a.token.allowance).FontSize(13).Bold()
 	}
+}
+
+// The write handlers below read only the inputs of the section that invoked
+// them. Sharing one address field between sections (as the page once did for
+// Approve and Allowance) signs for an account the operator typed somewhere
+// else and cannot see from the form they used.
+
+func (a *App) mintToken() {
+	a.token.status = wrapErr(a.services.MintToken(
+		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.mintTo),
+		strings.TrimSpace(a.token.mintAmount), strings.TrimSpace(a.token.mintPriv)))
+}
+
+func (a *App) transferToken() {
+	a.token.status = wrapErr(a.services.TransferToken(
+		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.xFrom),
+		strings.TrimSpace(a.token.xTo), strings.TrimSpace(a.token.xAmount),
+		strings.TrimSpace(a.token.xPriv)))
+}
+
+func (a *App) approveToken() {
+	a.token.status = wrapErr(a.services.ApproveToken(
+		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.approveOwner),
+		strings.TrimSpace(a.token.approveTo), strings.TrimSpace(a.token.approveAmt),
+		strings.TrimSpace(a.token.approvePriv)))
+}
+
+func (a *App) transferFromToken() {
+	a.token.status = wrapErr(a.services.TransferFromToken(
+		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.fromOwner),
+		strings.TrimSpace(a.token.fromTo), strings.TrimSpace(a.token.fromAmount),
+		strings.TrimSpace(a.token.fromPriv)))
+}
+
+func (a *App) loadAllowance() {
+	amt, err := a.services.TokenAllowance(
+		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.allowanceOwner),
+		strings.TrimSpace(a.token.allowanceTo))
+	if err != nil {
+		a.token.status = errStatus(err)
+		return
+	}
+	a.token.allowance = amt
+	a.token.status = statusLine{}
 }
 
 // renderBurnDialog shows the confirmation while a burn is pending. MyGo draws
