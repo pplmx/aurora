@@ -68,12 +68,20 @@ func VerifyInput(repo lottery.Repository, input string) (*VerifyReport, error) {
 	return VerifyRecord(record), nil
 }
 
+// resolveRecord turns a user reference into exactly one stored draw.
+//
+// The repository contract has two legal spellings for "no such row": the
+// lottery.ErrNotFound sentinel (the SQLite implementation) and a nil record
+// with a nil error (in-memory fakes, and the oracle module's documented
+// convention). Both mean "keep resolving", so a nil record falls through to
+// the height and substring steps instead of reaching VerifyRecord, which
+// dereferences it. Only a genuine read failure stops resolution.
 func resolveRecord(repo lottery.Repository, input string) (*lottery.LotteryRecord, error) {
 	record, err := repo.GetByID(input)
-	if err == nil {
+	if err == nil && record != nil {
 		return record, nil
 	}
-	if !errors.Is(err, lottery.ErrNotFound) {
+	if err != nil && !errors.Is(err, lottery.ErrNotFound) {
 		return nil, fmt.Errorf("failed to read lottery record: %w", err)
 	}
 
@@ -82,10 +90,12 @@ func resolveRecord(repo lottery.Repository, input string) (*lottery.LotteryRecor
 		if rerr != nil {
 			return nil, fmt.Errorf("failed to read by block height: %w", rerr)
 		}
-		if len(records) == 0 {
-			return nil, fmt.Errorf("lottery not found: %s", input)
+		for _, r := range records {
+			if r != nil {
+				return r, nil
+			}
 		}
-		return records[0], nil
+		return nil, fmt.Errorf("lottery not found: %s", input)
 	}
 
 	all, gerr := repo.GetAll()
@@ -93,6 +103,9 @@ func resolveRecord(repo lottery.Repository, input string) (*lottery.LotteryRecor
 		return nil, fmt.Errorf("failed to read history: %w", gerr)
 	}
 	for _, r := range all {
+		if r == nil {
+			continue
+		}
 		if strings.Contains(r.ID, input) || strings.Contains(r.Seed, input) {
 			return r, nil
 		}

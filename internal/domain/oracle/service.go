@@ -13,10 +13,6 @@ import (
 	"time"
 )
 
-// defaultQueryLimit is the default maximum number of data records to return
-// when querying oracle data.
-const defaultQueryLimit = 10
-
 // MaxSourceIntervalSeconds bounds a fetch-scheduling interval. The scheduler
 // converts Interval to a time.Duration (`int64` ns); an interval >= ~9.22e9 s
 // would overflow to a negative duration that the scheduler treats as "always

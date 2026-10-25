@@ -24,7 +24,6 @@ type mockVotingRepo struct {
 	errSaveCandidate               error
 	errGetCandidate                error
 	errListCandidates              error
-	errUpdateCandidate             error
 	errIncrementCandidateVoteCount error
 	errSaveVoter                   error
 	errGetVoter                    error
