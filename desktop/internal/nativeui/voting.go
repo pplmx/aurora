@@ -69,11 +69,17 @@ func (a *App) loadVoting() {
 	a.voting.loadErr = nil
 }
 
+// votingView pairs the setup work (who votes, who runs, in which window) with
+// the act of voting and reading the tally: two columns, because a session
+// operator moves between them constantly and scrolling past four stacked forms
+// to reach the ballot was the wrong shape for that.
 func (a *App) votingView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
-		ui.Column(c).FillWidth().Gap(16).Children(func() {
+		renderStatus(c, a.voting.status)
+		twoColumns(c, func() {
 			a.votingRegister(c)
 			a.votingSessions(c)
+		}, func() {
 			a.votingVote(c)
 			a.votingResults(c)
 		})
@@ -81,43 +87,47 @@ func (a *App) votingView(c *ui.Context) {
 }
 
 func (a *App) votingRegister(c *ui.Context) {
-	sectionTitle(c, "Register Voter", "Returns the key pair the voter signs ballots with; keep the private half.")
-	field(c, "Voter Name", &a.voting.voterName)
-	if a.voting.voterNameErr != "" {
-		ui.Text(c, a.voting.voterNameErr).FontSize(11).TextColor(ui.Hex("#c62828"))
-	}
-	if ui.Button(c, "Register Voter").Clicked() {
-		a.registerVoter()
-	}
-	renderStatus(c, a.voting.status)
+	formCard(c, "Register Voter", "Returns the key pair the voter signs ballots with; keep the private half.", func() {
+		field(c, "Voter Name", &a.voting.voterName)
+		fieldError(c, a.voting.voterNameErr)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Register Voter").Clicked() {
+				a.registerVoter()
+			}
+		})
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "Register Candidate", "Only the name is required; party and program are shown on the ballot when present.")
+	formCard(c, "Register Candidate", "Only the name is required; party and program are shown on the ballot when present.", func() {
+		a.votingRegisterCandidateBody(c)
+	})
+}
+
+func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 	field(c, "Candidate Name", &a.voting.candName)
-	if a.voting.candNameErr != "" {
-		ui.Text(c, a.voting.candNameErr).FontSize(11).TextColor(ui.Hex("#c62828"))
-	}
+	fieldError(c, a.voting.candNameErr)
 	field(c, "Party (optional)", &a.voting.candParty)
 	field(c, "Program (optional)", &a.voting.candProgram)
-	if ui.Button(c, "Register Candidate").Clicked() {
-		a.voting.candNameErr = ""
-		a.voting.candResult = ""
-		if strings.TrimSpace(a.voting.candName) == "" {
-			a.voting.candNameErr = "Candidate name is required."
-		} else if cand, err := a.services.RegisterCandidate(
-			strings.TrimSpace(a.voting.candName),
-			strings.TrimSpace(a.voting.candParty),
-			strings.TrimSpace(a.voting.candProgram),
-		); err != nil {
-			a.voting.candResult = err.Error()
-		} else {
-			a.voting.candResult = "Registered " + cand.Name + " (" + cand.ID + ")"
-			a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
-			a.loadVoting()
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "Register Candidate").Clicked() {
+			a.voting.candNameErr = ""
+			a.voting.candResult = ""
+			if strings.TrimSpace(a.voting.candName) == "" {
+				a.voting.candNameErr = "Candidate name is required."
+			} else if cand, err := a.services.RegisterCandidate(
+				strings.TrimSpace(a.voting.candName),
+				strings.TrimSpace(a.voting.candParty),
+				strings.TrimSpace(a.voting.candProgram),
+			); err != nil {
+				a.voting.candResult = err.Error()
+			} else {
+				a.voting.candResult = "Registered " + cand.Name + " (" + cand.ID + ")"
+				a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
+				a.loadVoting()
+			}
 		}
-	}
+	})
 	if a.voting.candResult != "" {
-		ui.Text(c, a.voting.candResult).FontSize(12)
+		ui.Text(c, a.voting.candResult).FontSize(12).TextColor(ui.Hex(inkMuted))
 	}
 }
 
@@ -156,22 +166,31 @@ func (a *App) applyVoterRegistration(v VoterRow) {
 }
 
 func (a *App) votingSessions(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Create Session", "Choose the roster and the window during which ballots are accepted.")
+	formCard(c, "Create Session", "Choose the roster and the window during which ballots are accepted.", func() {
+		a.votingCreateSessionBody(c)
+	})
+	formCard(c, "Sessions", "Every governance window with its status.", func() {
+		a.votingSessionList(c)
+	})
+}
+
+func (a *App) votingCreateSessionBody(c *ui.Context) {
 	field(c, "Title", &a.voting.sessionTitle)
 	field(c, "Description (optional)", &a.voting.sessionDesc)
 	fieldHint(c, "Start (unix seconds)", "Ballots are rejected before this time.", &a.voting.sessionStart)
 	fieldHint(c, "End (unix seconds)", "Ballots are rejected after this time.", &a.voting.sessionEnd)
 	fieldHint(c, "Candidate IDs (comma-separated)", "Leave empty to include every registered candidate.", &a.voting.sessionIDs)
-	if ui.PrimaryButton(c, "Create Session").Clicked() {
-		a.createVotingSession()
-	}
+	ui.Row(c).Children(func() {
+		if ui.PrimaryButton(c, "Create Session").Clicked() {
+			a.createVotingSession()
+		}
+	})
 	if a.voting.sessionResult != "" {
-		ui.Text(c, a.voting.sessionResult).FontSize(12)
+		ui.Text(c, a.voting.sessionResult).FontSize(12).TextColor(ui.Hex(inkMuted))
 	}
+}
 
-	ui.Divider(c)
-	sectionTitle(c, "Sessions", "Every governance window with its status.")
+func (a *App) votingSessionList(c *ui.Context) {
 	if len(a.voting.sessions) == 0 {
 		emptyNote(c, "No sessions yet.")
 		return
@@ -231,41 +250,45 @@ func (a *App) createVotingSession() {
 }
 
 func (a *App) votingVote(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Session Controls", "Start or end a session by id.")
-	field(c, "Session ID", &a.voting.controlID)
-	if ui.Button(c, "Start Session").Clicked() {
-		if err := a.services.StartSession(strings.TrimSpace(a.voting.controlID)); err != nil {
-			a.voting.controlResult = err.Error()
-		} else {
-			a.voting.controlResult = "Session started."
-			a.loadVoting()
+	formCard(c, "Session Controls", "Start or end a session by id.", func() {
+		field(c, "Session ID", &a.voting.controlID)
+		ui.Row(c).Gap(8).Children(func() {
+			if ui.Button(c, "Start Session").Clicked() {
+				if err := a.services.StartSession(strings.TrimSpace(a.voting.controlID)); err != nil {
+					a.voting.controlResult = err.Error()
+				} else {
+					a.voting.controlResult = "Session started."
+					a.loadVoting()
+				}
+			}
+			if ui.Button(c, "End Session").Clicked() {
+				if err := a.services.EndSession(strings.TrimSpace(a.voting.controlID)); err != nil {
+					a.voting.controlResult = err.Error()
+				} else {
+					a.voting.controlResult = "Session ended."
+					a.loadVoting()
+				}
+			}
+		})
+		if a.voting.controlResult != "" {
+			ui.Text(c, a.voting.controlResult).FontSize(12).TextColor(ui.Hex(inkMuted))
 		}
-	}
-	if ui.Button(c, "End Session").Clicked() {
-		if err := a.services.EndSession(strings.TrimSpace(a.voting.controlID)); err != nil {
-			a.voting.controlResult = err.Error()
-		} else {
-			a.voting.controlResult = "Session ended."
-			a.loadVoting()
-		}
-	}
-	if a.voting.controlResult != "" {
-		ui.Text(c, a.voting.controlResult).FontSize(12)
-	}
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "Cast Vote", "Sign a ballot for one candidate in one session.")
-	field(c, "Session ID", &a.voting.voteSession)
-	field(c, "Candidate ID", &a.voting.voteCandidate)
-	field(c, "Voter Public Key", &a.voting.voteVoterPub)
-	field(c, "Voter Private Key", &a.voting.votePriv)
-	if ui.PrimaryButton(c, "Cast Vote").Clicked() {
-		a.castVote()
-	}
-	if a.voting.voteResult != "" {
-		ui.Text(c, a.voting.voteResult).FontSize(12)
-	}
+	formCard(c, "Cast Vote", "Sign a ballot for one candidate in one session.", func() {
+		field(c, "Session ID", &a.voting.voteSession)
+		field(c, "Candidate ID", &a.voting.voteCandidate)
+		field(c, "Voter Public Key", &a.voting.voteVoterPub)
+		field(c, "Voter Private Key", &a.voting.votePriv)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Cast Vote").Clicked() {
+				a.castVote()
+			}
+		})
+		if a.voting.voteResult != "" {
+			ui.Text(c, a.voting.voteResult).FontSize(12).TextColor(ui.Hex(inkMuted))
+		}
+	})
 }
 
 func (a *App) castVote() {
@@ -289,21 +312,27 @@ func (a *App) castVote() {
 }
 
 func (a *App) votingResults(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Results", "Live tally per candidate for a session.")
+	formCard(c, "Results", "Live tally per candidate for a session.", func() {
+		a.votingResultsBody(c)
+	})
+}
+
+func (a *App) votingResultsBody(c *ui.Context) {
 	field(c, "Session ID", &a.voting.resultsSession)
-	if ui.Button(c, "Show Results").Clicked() {
-		rows, err := a.services.SessionResults(strings.TrimSpace(a.voting.resultsSession))
-		if err != nil {
-			a.voting.results = nil
-			a.voting.status = errStatus(err)
-		} else {
-			a.voting.results = rows
-			a.voting.status = statusLine{}
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "Show Results").Clicked() {
+			rows, err := a.services.SessionResults(strings.TrimSpace(a.voting.resultsSession))
+			if err != nil {
+				a.voting.results = nil
+				a.voting.status = errStatus(err)
+			} else {
+				a.voting.results = rows
+				a.voting.status = statusLine{}
+			}
 		}
-	}
-	renderStatus(c, a.voting.status)
+	})
 	if len(a.voting.results) == 0 {
+		emptyNote(c, "No tally loaded yet.")
 		return
 	}
 	results := a.voting.results

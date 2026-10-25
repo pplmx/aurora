@@ -67,29 +67,40 @@ func (a *App) loadToken() {
 	a.token.loadErr = nil
 }
 
+// tokenView lays the page out in two columns: the token you are working with
+// on the left (create, inspect, history), and the operations that change it on
+// the right (mint, transfer, approve, transfer-from, burn, allowance). Ten
+// full-width forms stacked in one column buried every write below the fold.
 func (a *App) tokenView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
-		ui.Column(c).FillWidth().Gap(16).Children(func() {
+		twoColumns(c, func() {
+			// One status line for the whole page: every action on it
+			// writes to a.token.status, so drawing it inside the Create
+			// card hid the outcome of mint, transfer, approve and burn.
+			renderStatus(c, a.token.status)
 			a.tokenCreate(c)
 			a.tokenRead(c)
-			a.tokenWrites(c)
 			a.tokenHistory(c)
-			a.renderBurnDialog(c)
+		}, func() {
+			a.tokenWrites(c)
 		})
+		a.renderBurnDialog(c)
 	})
 }
 
 func (a *App) tokenCreate(c *ui.Context) {
-	sectionTitle(c, "Create Token", "Define supply and attach the owner key that will authorize future writes.")
-	field(c, "Name", &a.token.name)
-	field(c, "Symbol", &a.token.symbol)
-	field(c, "Total Supply", &a.token.supply)
-	fieldHint(c, "Decimals", "0 for a whole-unit token; 8 matches most asset conventions.", &a.token.decimals)
-	fieldHint(c, "Owner (base64 public key)", "Required: the owner signs every later mint, transfer and burn.", &a.token.owner)
-	if ui.PrimaryButton(c, "Create Token").Clicked() {
-		a.createToken()
-	}
-	renderStatus(c, a.token.status)
+	formCard(c, "Create Token", "Define supply and attach the owner key that will authorize future writes.", func() {
+		field(c, "Name", &a.token.name)
+		field(c, "Symbol", &a.token.symbol)
+		field(c, "Total Supply", &a.token.supply)
+		fieldHint(c, "Decimals", "0 for a whole-unit token; 8 matches most asset conventions.", &a.token.decimals)
+		fieldHint(c, "Owner (base64 public key)", "Required: the owner signs every later mint, transfer and burn.", &a.token.owner)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Create Token").Clicked() {
+				a.createToken()
+			}
+		})
+	})
 }
 
 func (a *App) createToken() {
@@ -120,102 +131,145 @@ func (a *App) createToken() {
 }
 
 func (a *App) tokenRead(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Inspect", "Read a token's metadata and an account's balance.")
+	formCard(c, "Inspect", "Read a token's metadata and an account's balance.", func() {
+		a.tokenReadBody(c)
+	})
+}
+
+func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Token ID", &a.token.tokenID)
-	if ui.Button(c, "Get Token Info").Clicked() {
-		t, err := a.services.TokenInfo(strings.TrimSpace(a.token.tokenID))
-		if err != nil {
-			a.token.status = errStatus(err)
-			a.token.info = nil
-		} else {
-			a.token.info = &t
-			a.token.status = statusLine{}
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "Get Token Info").Clicked() {
+			t, err := a.services.TokenInfo(strings.TrimSpace(a.token.tokenID))
+			if err != nil {
+				a.token.status = errStatus(err)
+				a.token.info = nil
+			} else {
+				a.token.info = &t
+				a.token.status = statusLine{}
+			}
 		}
-	}
+	})
 	if info := a.token.info; info != nil {
-		ui.Text(c, info.Name+" ("+info.Symbol+")").FontSize(14).Bold()
-		ui.Text(c, "Supply "+info.TotalSupply+" · decimals "+strconv.Itoa(info.Decimals)).FontSize(12)
-		ui.Text(c, "Owner "+info.Owner).FontSize(12).TextColor(ui.Hex("#6b7c7f"))
+		readout(c, []readoutRow{
+			{"Name", info.Name + " (" + info.Symbol + ")"},
+			{"Supply", info.TotalSupply},
+			{"Decimals", strconv.Itoa(info.Decimals)},
+			{"Owner", info.Owner},
+		})
 	}
 
 	field(c, "Account (base64 public key)", &a.token.account)
-	if ui.Button(c, "Get Balance").Clicked() {
-		bal, err := a.services.TokenBalance(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.account))
-		if err != nil {
-			a.token.status = errStatus(err)
-			a.token.balance = ""
-		} else {
-			a.token.balance = bal
-			a.token.status = statusLine{}
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "Get Balance").Clicked() {
+			bal, err := a.services.TokenBalance(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.account))
+			if err != nil {
+				a.token.status = errStatus(err)
+				a.token.balance = ""
+			} else {
+				a.token.balance = bal
+				a.token.status = statusLine{}
+			}
 		}
-	}
+	})
 	if a.token.balance != "" {
-		ui.Text(c, "Balance: "+a.token.balance).FontSize(13).Bold()
+		readout(c, []readoutRow{{"Balance", a.token.balance}})
 	}
 }
 
+// readoutRow is one label/value pair in a readout.
+type readoutRow struct{ label, value string }
+
+// readout draws the result of a read as label/value rows on a recessed panel,
+// so an answer is visibly an answer rather than another line of prose that
+// looks like the hint above it.
+func readout(c *ui.Context, rows []readoutRow) {
+	ui.Column(c).FillWidth().Padding(10).Gap(4).Radius(8).
+		Background(ui.Hex(night)).Children(func() {
+		for _, r := range rows {
+			ui.Row(c).Gap(8).Children(func() {
+				ui.Text(c, r.label).FontSize(11).Width(72).TextColor(ui.Hex(inkMuted))
+				ui.Text(c, r.value).FontSize(12).TextColor(ui.Hex(ink)).SingleLine()
+			})
+		}
+	})
+}
+
 func (a *App) tokenWrites(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Mint", "Only the token owner can mint, and only for a mintable token.")
-	field(c, "To (base64 public key)", &a.token.mintTo)
-	field(c, "Amount", &a.token.mintAmount)
-	field(c, "Owner Private Key", &a.token.mintPriv)
-	if ui.Button(c, "Mint").Clicked() {
-		a.mintToken()
-	}
+	formCard(c, "Mint", "Only the token owner can mint, and only for a mintable token.", func() {
+		field(c, "To (base64 public key)", &a.token.mintTo)
+		field(c, "Amount", &a.token.mintAmount)
+		field(c, "Owner Private Key", &a.token.mintPriv)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Mint").Clicked() {
+				a.mintToken()
+			}
+		})
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "Transfer", "Move tokens from one account to another.")
-	field(c, "From (base64 public key)", &a.token.xFrom)
-	field(c, "To (base64 public key)", &a.token.xTo)
-	field(c, "Amount", &a.token.xAmount)
-	field(c, "From Private Key", &a.token.xPriv)
-	if ui.Button(c, "Transfer").Clicked() {
-		a.transferToken()
-	}
+	formCard(c, "Transfer", "Move tokens from one account to another.", func() {
+		field(c, "From (base64 public key)", &a.token.xFrom)
+		field(c, "To (base64 public key)", &a.token.xTo)
+		field(c, "Amount", &a.token.xAmount)
+		field(c, "From Private Key", &a.token.xPriv)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Transfer").Clicked() {
+				a.transferToken()
+			}
+		})
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "Approve", "Let a spender move up to an amount on the owner's behalf.")
-	field(c, "Owner (base64 public key)", &a.token.approveOwner)
-	field(c, "Spender (base64 public key)", &a.token.approveTo)
-	field(c, "Amount", &a.token.approveAmt)
-	field(c, "Owner Private Key", &a.token.approvePriv)
-	if ui.Button(c, "Approve").Clicked() {
-		a.approveToken()
-	}
+	formCard(c, "Approve", "Let a spender move up to an amount on the owner's behalf.", func() {
+		field(c, "Owner (base64 public key)", &a.token.approveOwner)
+		field(c, "Spender (base64 public key)", &a.token.approveTo)
+		field(c, "Amount", &a.token.approveAmt)
+		field(c, "Owner Private Key", &a.token.approvePriv)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Approve").Clicked() {
+				a.approveToken()
+			}
+		})
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "Transfer From", "Spend an allowance the owner granted.")
-	field(c, "Owner (base64 public key)", &a.token.fromOwner)
-	field(c, "To (base64 public key)", &a.token.fromTo)
-	field(c, "Amount", &a.token.fromAmount)
-	field(c, "Spender Private Key", &a.token.fromPriv)
-	if ui.Button(c, "Transfer From").Clicked() {
-		a.transferFromToken()
-	}
+	formCard(c, "Transfer From", "Spend an allowance the owner granted.", func() {
+		field(c, "Owner (base64 public key)", &a.token.fromOwner)
+		field(c, "To (base64 public key)", &a.token.fromTo)
+		field(c, "Amount", &a.token.fromAmount)
+		field(c, "Spender Private Key", &a.token.fromPriv)
+		ui.Row(c).Children(func() {
+			if ui.PrimaryButton(c, "Transfer From").Clicked() {
+				a.transferFromToken()
+			}
+		})
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "Burn", "Destroy tokens from an account. This cannot be undone.")
-	field(c, "From (base64 public key)", &a.token.burnFrom)
-	field(c, "Amount", &a.token.burnAmount)
-	field(c, "Owner Private Key", &a.token.burnPriv)
-	if ui.Button(c, "Burn").Clicked() {
-		// Burning is irreversible: the CLI requires --confirm, so the window
-		// asks through a dialog instead of acting on a bare click.
-		a.token.askBurn = true
-	}
+	formCard(c, "Burn", "Destroy tokens from an account. This cannot be undone.", func() {
+		field(c, "From (base64 public key)", &a.token.burnFrom)
+		field(c, "Amount", &a.token.burnAmount)
+		field(c, "Owner Private Key", &a.token.burnPriv)
+		ui.Row(c).Children(func() {
+			// A destructive action does not look like the others: the button
+			// carries the danger colour, and the confirmation still stands
+			// between it and the write.
+			burn := ui.Button(c, "Burn…").Background(ui.Hex(auroraRed)).TextColor(ui.Hex(night))
+			if burn.Clicked() {
+				a.token.askBurn = true
+			}
+		})
+	})
 
-	ui.Divider(c)
-	sectionTitle(c, "Allowance", "Read how much a spender may still move.")
-	field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
-	field(c, "Spender (base64 public key)", &a.token.allowanceTo)
-	if ui.Button(c, "Get Allowance").Clicked() {
-		a.loadAllowance()
-	}
-	if a.token.allowance != "" {
-		ui.Text(c, "Allowance: "+a.token.allowance).FontSize(13).Bold()
-	}
+	formCard(c, "Allowance", "Read how much a spender may still move.", func() {
+		field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
+		field(c, "Spender (base64 public key)", &a.token.allowanceTo)
+		ui.Row(c).Children(func() {
+			if ui.Button(c, "Get Allowance").Clicked() {
+				a.loadAllowance()
+			}
+		})
+		if a.token.allowance != "" {
+			readout(c, []readoutRow{{"Allowance", a.token.allowance}})
+		}
+	})
 }
 
 // The write handlers below read only the inputs of the section that invoked
@@ -281,8 +335,12 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 }
 
 func (a *App) tokenHistory(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "History", "Transfers this account sent or received.")
+	formCard(c, "History", "Transfers this account sent or received.", func() {
+		a.tokenHistoryBody(c)
+	})
+}
+
+func (a *App) tokenHistoryBody(c *ui.Context) {
 	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.account)
 	field(c, "Limit", &a.token.historyLimit)
 	if ui.Button(c, "Load History").Clicked() {
@@ -302,6 +360,7 @@ func (a *App) tokenHistory(c *ui.Context) {
 		}
 	}
 	if len(a.token.history) == 0 {
+		emptyNote(c, "No transfers loaded yet.")
 		return
 	}
 	hist := a.token.history

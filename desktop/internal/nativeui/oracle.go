@@ -65,23 +65,32 @@ func (a *App) loadOracle() {
 
 func (a *App) oracleView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
-		ui.Column(c).FillWidth().Gap(16).Children(func() {
-			a.oracleSources(c)
+		renderStatus(c, a.oracle.status)
+		// The add form is the tallest card on the page, so it gets a column of
+		// its own beside the three read-only cards.
+		twoColumns(c, func() {
 			a.oracleAdd(c)
-			a.oracleHealth(c)
 			a.oracleRead(c)
+		}, func() {
+			a.oracleSources(c)
+			a.oracleHealth(c)
 		})
 	})
 }
 
 func (a *App) oracleSources(c *ui.Context) {
-	sectionTitle(c, "Data Sources", "Every registered feed, its transport, and whether it is currently polled.")
+	formCard(c, "Data Sources", "Every registered feed, its transport, and whether it is currently polled.", func() {
+		a.oracleSourcesBody(c)
+	})
+}
+
+func (a *App) oracleSourcesBody(c *ui.Context) {
 	if a.oracle.loadErr != nil {
-		ui.Text(c, "Failed to load sources: "+a.oracle.loadErr.Error()).FontSize(12).TextColor(ui.Hex("#c62828"))
+		ui.Text(c, "Failed to load sources: "+a.oracle.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
 		return
 	}
 	if len(a.oracle.sources) == 0 {
-		emptyNote(c, "No sources yet.")
+		emptyNote(c, "No sources yet. Add one from the card on the right.")
 		return
 	}
 	srcs := a.oracle.sources
@@ -137,7 +146,6 @@ func (a *App) oracleSources(c *ui.Context) {
 			a.oracle.askDelete = true
 		}
 	})
-	renderStatus(c, a.oracle.status)
 	a.renderDeleteDialog(c)
 }
 
@@ -156,8 +164,12 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 }
 
 func (a *App) oracleAdd(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Add Source", "Point Aurora at an HTTP endpoint; the interval controls how often it is polled.")
+	formCard(c, "Add Source", "Point Aurora at an HTTP endpoint; the interval controls how often it is polled.", func() {
+		a.oracleAddBody(c)
+	})
+}
+
+func (a *App) oracleAddBody(c *ui.Context) {
 	if len(a.oracle.templates) > 0 {
 		names := make([]string, 0, len(a.oracle.templates)+1)
 		names = append(names, "— choose a preset —")
@@ -177,9 +189,11 @@ func (a *App) oracleAdd(c *ui.Context) {
 	fieldHint(c, "Request Headers (optional JSON object)",
 		"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
 	fieldHint(c, "Interval (seconds)", "0 uses the default of 60.", &a.oracle.addInterval)
-	if ui.PrimaryButton(c, "Add Source").Clicked() {
-		a.addOracleSource()
-	}
+	ui.Row(c).Children(func() {
+		if ui.PrimaryButton(c, "Add Source").Clicked() {
+			a.addOracleSource()
+		}
+	})
 }
 
 func (a *App) applyTemplate(id string) {
@@ -223,8 +237,12 @@ func (a *App) addOracleSource() {
 }
 
 func (a *App) oracleHealth(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Feed Health", "Attempt, success and failure counters per source, with the last error kept verbatim.")
+	formCard(c, "Feed Health", "Attempt, success and failure counters per source, with the last error kept verbatim.", func() {
+		a.oracleHealthBody(c)
+	})
+}
+
+func (a *App) oracleHealthBody(c *ui.Context) {
 	if len(a.oracle.health) == 0 {
 		emptyNote(c, "(no feed activity yet)")
 		return
@@ -262,27 +280,33 @@ func (a *App) oracleHealth(c *ui.Context) {
 }
 
 func (a *App) oracleRead(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Query Data", "Read the most recent stored values for one source.")
+	formCard(c, "Query Data", "Read the most recent stored values for one source.", func() {
+		a.oracleReadBody(c)
+	})
+	a.oracleLatest(c)
+}
+
+func (a *App) oracleReadBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.queryID)
 	field(c, "Limit", &a.oracle.queryLim)
-	if ui.Button(c, "Query").Clicked() {
-		limit := 20
-		if s := strings.TrimSpace(a.oracle.queryLim); s != "" {
-			if n, err := strconv.Atoi(s); err == nil && n > 0 {
-				limit = n
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "Query").Clicked() {
+			limit := 20
+			if s := strings.TrimSpace(a.oracle.queryLim); s != "" {
+				if n, err := strconv.Atoi(s); err == nil && n > 0 {
+					limit = n
+				}
+			}
+			rows, err := a.services.OracleData(strings.TrimSpace(a.oracle.queryID), limit)
+			if err != nil {
+				a.oracle.status = errStatus(err)
+				a.oracle.data = nil
+			} else {
+				a.oracle.data = rows
+				a.oracle.status = statusLine{}
 			}
 		}
-		rows, err := a.services.OracleData(strings.TrimSpace(a.oracle.queryID), limit)
-		if err != nil {
-			a.oracle.status = errStatus(err)
-			a.oracle.data = nil
-		} else {
-			a.oracle.data = rows
-			a.oracle.status = statusLine{}
-		}
-	}
-	renderStatus(c, a.oracle.status)
+	})
 	if len(a.oracle.data) > 0 {
 		data := a.oracle.data
 		ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
@@ -297,8 +321,6 @@ func (a *App) oracleRead(c *ui.Context) {
 			}
 		})
 	}
-
-	a.oracleLatest(c)
 }
 
 // oracleLatest draws the single-value read. It is its own section rather than
@@ -306,20 +328,26 @@ func (a *App) oracleRead(c *ui.Context) {
 // and hide this form entirely, so the one control that answers "what is the
 // current value?" was unreachable on a database with no stored readings.
 func (a *App) oracleLatest(c *ui.Context) {
-	ui.Divider(c)
-	sectionTitle(c, "Latest Data", "The single most recent value recorded for a source.")
+	formCard(c, "Latest Data", "The single most recent value recorded for a source.", func() {
+		a.oracleLatestBody(c)
+	})
+}
+
+func (a *App) oracleLatestBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.latestID)
-	if ui.Button(c, "Get Latest").Clicked() {
-		d, err := a.services.OracleLatest(strings.TrimSpace(a.oracle.latestID))
-		if err != nil {
-			a.oracle.status = errStatus(err)
-			a.oracle.latest = nil
-		} else {
-			a.oracle.latest = &d
-			a.oracle.status = statusLine{}
+	ui.Row(c).Children(func() {
+		if ui.Button(c, "Get Latest").Clicked() {
+			d, err := a.services.OracleLatest(strings.TrimSpace(a.oracle.latestID))
+			if err != nil {
+				a.oracle.status = errStatus(err)
+				a.oracle.latest = nil
+			} else {
+				a.oracle.latest = &d
+				a.oracle.status = statusLine{}
+			}
 		}
-	}
+	})
 	if l := a.oracle.latest; l != nil {
-		ui.Text(c, l.Value).FontSize(16).Bold()
+		readout(c, []readoutRow{{"Value", l.Value}, {"Block", strconv.FormatInt(l.BlockHeight, 10)}})
 	}
 }
