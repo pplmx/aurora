@@ -3,10 +3,14 @@ package sqlite
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/pplmx/aurora/internal/domain/token"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/stretchr/testify/require"
 )
 
@@ -296,4 +300,44 @@ func TestTokenEventReader_SkipsMalformedPayload(t *testing.T) {
 func TestTokenEventReader_Close(t *testing.T) {
 	reader := NewTokenEventReader(&mockEventStore{})
 	require.NoError(t, reader.Close())
+}
+
+// TestGetTransferEventsByOwner_ShortPageIsNotTheEnd pins the contract that the
+// post-scan re-check can shrink a page: a stored event whose amount will not
+// parse is skipped after the SQL query, so a page of 3 can hold 2 rows while a
+// third matching row still exists.
+//
+// A client that treats `len(page) < limit` as "no more data" therefore loses
+// the remainder. This test states the actual behaviour so nobody adds such a
+// loop without meeting the contract first.
+func TestGetTransferEventsByOwner_ShortPageIsNotTheEnd(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "token_short_page_*.db")
+	require.NoError(t, err)
+	_ = tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+
+	store, err := infraevents.NewSQLiteEventStore(tmpFile.Name())
+	require.NoError(t, err)
+	defer func() { _ = store.Close() }()
+
+	owner := token.PublicKey([]byte("owner"))
+	ownerB64 := base64.StdEncoding.EncodeToString(owner)
+	// Three transfers for the owner; the middle one's amount is unreadable.
+	for i, amount := range []string{"10", "not-a-number", "30"} {
+		payload := fmt.Sprintf(
+			`{"from":%q,"to":"x","amount":%q,"nonce":%d,"sig":"","block_height":1}`,
+			ownerB64, amount, i+1)
+		require.NoError(t, store.Save(events.NewStoredEvent(
+			fmt.Sprintf("ev-%d", i), time.Unix(int64(1000+i), 0), "token.transfer", "TK", []byte(payload))))
+	}
+
+	reader := NewTokenEventReader(store)
+	page, err := reader.GetTransferEventsByOwner("TK", owner, 3, 0)
+	require.NoError(t, err)
+	require.Len(t, page, 2, "the unreadable event is skipped, shrinking the page")
+
+	// And a subsequent page proves more data exists behind the short one.
+	next, err := reader.GetTransferEventsByOwner("TK", owner, 3, 2)
+	require.NoError(t, err)
+	require.Len(t, next, 1, "the row the short page did not fill is still reachable by offset")
 }
