@@ -117,6 +117,9 @@ func New(services Services) *App {
 	// default, and an empty count field rejected the first Create click with a
 	// parse error for a value the operator never had a chance to see.
 	a.lottery.count = "1"
+	// -1 is "no row chosen": 0 is a real row, so it cannot double as the
+	// unset value or the first click on row 0 would look like no change.
+	a.lottery.selected = -1
 	a.refresh()
 	return a
 }

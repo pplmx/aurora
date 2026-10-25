@@ -149,13 +149,13 @@ func (a *App) nftReadBody(c *ui.Context) {
 	list := a.nft.list
 	ui.Table(c, &a.nft.listTable, []ui.TableColumn{
 		{Title: "ID", Width: 150},
-		{Title: "Name"},
+		{Title: "Name", MinWidth: 110},
 		{Title: "Block", Width: 80, Align: ui.End},
 	}, len(list), func(row, col int) {
 		n := list[row]
 		switch col {
 		case 0:
-			ui.Text(c, n.ID).SingleLine()
+			ui.Text(c, shortID(n.ID)).SingleLine()
 		case 1:
 			ui.Text(c, n.Name)
 		case 2:
