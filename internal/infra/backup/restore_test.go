@@ -12,6 +12,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -820,4 +823,97 @@ func TestRestore_PathTraversalDatabaseName(t *testing.T) {
 	if err := svc.Restore(context.Background(), backupDir); err == nil {
 		t.Fatal("expected traversal database name to be rejected on restore, got nil")
 	}
+}
+
+// TestRestore_CancelledBeforePromotionLeavesLiveData pins the cancellation
+// path: a restore that is cancelled part-way must leave every live database
+// exactly as it was. Restore verifies, stages, then promotes each database one
+// at a time, and promoteRestore checks the context before every rename — so a
+// cancelled restore can stop between two databases, which is the state that
+// would leave an installation half-migrated if the rollback were wrong.
+func TestRestore_CancelledBeforePromotionLeavesLiveData(t *testing.T) {
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "dst")
+	backupDir := filepath.Join(tmp, "backup")
+	for _, d := range []string{dstDir, backupDir} {
+		require.NoError(t, os.MkdirAll(d, 0o755))
+	}
+
+	// Two databases, so the cancel can land between their promotions.
+	dstA := filepath.Join(dstDir, "a.db")
+	dstB := filepath.Join(dstDir, "b.db")
+	for _, p := range []string{dstA, dstB} {
+		newDB(t, p,
+			"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+			"INSERT INTO kv (k, v) VALUES ('answer', 'LIVE')",
+		)
+	}
+	for _, name := range []string{"a.db", "b.db"} {
+		newDB(t, filepath.Join(backupDir, name),
+			"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+			"INSERT INTO kv (k, v) VALUES ('answer', 'ARCHIVE')",
+		)
+	}
+	writeMeta(t, backupDir, "a", "b")
+
+	svc := NewBackupService(map[string]string{"a": dstA, "b": dstB})
+
+	// Cancel before the call: the first promotion must not happen.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := svc.Restore(ctx, backupDir)
+	require.Error(t, err, "a cancelled restore must fail")
+	require.ErrorIs(t, err, context.Canceled)
+
+	assert.Equal(t, "LIVE", readKV(t, dstA, "answer"),
+		"a cancelled restore must not replace the live database")
+	assert.Equal(t, "LIVE", readKV(t, dstB, "answer"))
+}
+
+// TestRestore_CancelledMidPromotionRollsBack pins the harder case: the cancel
+// arrives after the first database was promoted. The promoted file must be put
+// back from the pre-restore snapshot, so the two databases never disagree.
+func TestRestore_CancelledMidPromotionRollsBack(t *testing.T) {
+	tmp := t.TempDir()
+	dstDir := filepath.Join(tmp, "dst")
+	backupDir := filepath.Join(tmp, "backup")
+	for _, d := range []string{dstDir, backupDir} {
+		require.NoError(t, os.MkdirAll(d, 0o755))
+	}
+
+	dstA := filepath.Join(dstDir, "a.db")
+	dstB := filepath.Join(dstDir, "b.db")
+	for _, p := range []string{dstA, dstB} {
+		newDB(t, p,
+			"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+			"INSERT INTO kv (k, v) VALUES ('answer', 'LIVE')",
+		)
+	}
+	for _, name := range []string{"a.db", "b.db"} {
+		newDB(t, filepath.Join(backupDir, name),
+			"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+			"INSERT INTO kv (k, v) VALUES ('answer', 'ARCHIVE')",
+		)
+	}
+	writeMeta(t, backupDir, "a", "b")
+
+	svc := NewBackupService(map[string]string{"a": dstA, "b": dstB})
+
+	// Cancel as soon as the first database has been promoted: the sidecar
+	// removal after each promotion is the first thing that runs there.
+	ctx, cancel := context.WithCancel(context.Background())
+	svc.removeSidecarFn = func(string) error {
+		cancel()
+		return nil
+	}
+
+	err := svc.Restore(ctx, backupDir)
+	require.Error(t, err, "a restore cancelled mid-promotion must fail")
+	require.ErrorIs(t, err, context.Canceled)
+
+	// Both databases must hold the pre-restore data: a mixed generation is the
+	// failure this rollback exists to prevent.
+	assert.Equal(t, "LIVE", readKV(t, dstA, "answer"),
+		"the promoted database must be rolled back to its pre-restore content")
+	assert.Equal(t, "LIVE", readKV(t, dstB, "answer"))
 }
