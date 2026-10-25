@@ -112,6 +112,12 @@ func (r *TokenRepository) createTables() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_accounts_token_owner ON accounts(token_id, owner)`,
 		`CREATE INDEX IF NOT EXISTS idx_allowances_owner ON allowances(token_id, owner, spender)`,
+		// The collection listing reads every token newest first. Without this
+		// composite index SQLite materialises and sorts the whole table before
+		// the LIMIT can apply (measured: "USE TEMP B-TREE FOR ORDER BY").
+		// Migration 000006 creates the same index, so a fresh database and a
+		// migrated one agree.
+		`CREATE INDEX IF NOT EXISTS idx_tokens_created ON tokens(created_at DESC, id)`,
 	}
 
 	for _, query := range queries {
