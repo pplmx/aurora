@@ -395,7 +395,7 @@ func openMainWindow(shell *deskapp.Shell, opts deskapp.Flags) *mygo.Window {
 //
 // Printing to stderr is not enough: a packaged app is launched from a desktop
 // entry or a file manager, which gives it no console at all, so a bad
-// --web-root or an unusable data directory looked exactly like a double-click
+// --data-dir or an unusable data directory looked exactly like a double-click
 // that did nothing. The app is run just long enough to show the reason in a
 // native dialog. A dialog needs the running app (MyGo panics on one before
 // Run), which is why this starts the event loop instead of calling

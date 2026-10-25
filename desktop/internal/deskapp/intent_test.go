@@ -510,17 +510,14 @@ func TestShell_AcceptsTheRelativeDataDirItStartedWith(t *testing.T) {
 }
 
 // TestShell_AcceptsSymlinkAliasesOfRunningPaths pins filesystem identity, not
-// string identity. A launcher may reach the same database and web root through
-// a symlinked directory; refusing that launch would claim it names another
-// database even though both paths resolve to the files the instance already
-// uses.
+// string identity. A launcher may reach the same database through a symlinked
+// directory; refusing that launch would claim it names another database even
+// though both paths resolve to the file the instance already uses.
 func TestShell_AcceptsSymlinkAliasesOfRunningPaths(t *testing.T) {
 	root := t.TempDir()
 	dataDir := filepath.Join(root, "data")
-	webRoot := filepath.Join(root, "web")
 	alias := filepath.Join(root, "alias")
 	require.NoError(t, os.MkdirAll(dataDir, 0o755))
-	require.NoError(t, os.MkdirAll(webRoot, 0o755))
 	if err := os.Symlink(root, alias); err != nil {
 		t.Skipf("symlinks are unavailable: %v", err)
 	}
@@ -530,7 +527,7 @@ func TestShell_AcceptsSymlinkAliasesOfRunningPaths(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, repo.Close())
 
-	shell := NewShell(About{DBPath: dbPath, WebRoot: webRoot})
+	shell := NewShell(About{DBPath: dbPath})
 	var reports []string
 	shell.report = func(_ mygo.MessageType, title, message, _ string) {
 		reports = append(reports, title+" | "+message)
@@ -543,7 +540,7 @@ func TestShell_AcceptsSymlinkAliasesOfRunningPaths(t *testing.T) {
 		"aurora://voting",
 	}, root)
 
-	assert.Empty(t, reports, "symlink aliases name the database and UI already running")
+	assert.Empty(t, reports, "a symlink alias names the database already running")
 	require.Len(t, navigated, 1)
 }
 

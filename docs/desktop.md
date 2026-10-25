@@ -2,7 +2,7 @@
 
 `desktop/` 是一个嵌套 Go 模块，用 [MyGo](https://github.com/egoist/mygo) 把
 同一个 `internal/api` 路由装进原生窗口，得到可直接安装的桌面应用。桌面端是
-Aurora 的主要使用方式：CLI、TUI 与 `aurora-api` 仍然保留，供脚本和服务器使用。
+Aurora 的主要使用方式：CLI 与 `aurora-api` 仍然保留，供脚本和服务器使用。
 
 ## 快速开始
 

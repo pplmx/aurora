@@ -19,7 +19,6 @@ import (
 type About struct {
 	Version   string
 	BuildTime string
-	WebRoot   string
 	DBPath    string
 }
 
@@ -320,13 +319,11 @@ func backUpDatabase(meta About, win *mygo.Window) {
 		T("desktop.dialog.backup_done_message"), res.File)
 }
 
-// showAbout reports what this build is running against.
+// showAbout reports what this build is running against: the version, when it
+// was built, and which database it has open. The window is native, so there is
+// no UI location to name.
 func showAbout(meta About, win *mygo.Window) {
-	ui := meta.WebRoot
-	if ui == "" {
-		ui = T("desktop.dialog.about_embedded")
-	}
 	showMessage(parent(win), mygo.MessageInfo, T("desktop.dialog.about_title"),
 		TFormat("desktop.dialog.about_message", meta.Version),
-		TFormat("desktop.dialog.about_detail", meta.BuildTime, meta.DBPath, ui))
+		TFormat("desktop.dialog.about_detail", meta.BuildTime, meta.DBPath))
 }

@@ -37,10 +37,6 @@ const AppName = "Aurora"
 // Options carries the desktop-only overrides. Empty fields fall back to the
 // same precedence the CLI and API server use.
 type Options struct {
-	// WebRoot is the directory holding index.html and the assets. When set it
-	// wins over the embedded UI, for developing the pages without a rebuild.
-	// When empty the shell serves the UI embedded in the binary.
-	WebRoot string
 	// DataDir holds the SQLite database. When empty the app uses the platform
 	// user-data directory so a packaged app never writes into its install dir.
 	DataDir string

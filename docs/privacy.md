@@ -25,8 +25,8 @@ unless specifically requested by the user or the person installing or
 operating it.** In particular:
 
 - Oracle data sources contact only the URLs configured by the operator.
-- The REST API and web server listen only on the configured address; clients
-  connect only when the operator runs them.
+- The REST server listens only on the configured address; clients connect only
+  when the operator runs it.
 - Downloading a release, opening a documentation link, or using GitHub services
   contacts those services at the user's request.
 - Signing providers receive release build artifacts and provenance metadata

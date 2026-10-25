@@ -208,7 +208,7 @@ func (s *Shell) OpenFile(path string) {
 // The launch also raises the window, which is what a second double-click
 // without arguments asks for.
 //
-// A launch that asks for a different --data-dir or --web-root is refused
+// A launch that asks for a different --data-dir is refused
 // rather than half-applied: this process cannot move its database or swap its
 // UI, and importing an export into the running instance's database when the
 // user named another one would write to the wrong place without saying so.
