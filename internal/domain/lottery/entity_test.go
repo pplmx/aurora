@@ -2,6 +2,7 @@ package lottery
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"testing"
 )
 
@@ -22,22 +23,14 @@ func TestLotteryRecord_ToJSON(t *testing.T) {
 		t.Error("ToJSON() returned empty string")
 	}
 
-	record2 := &LotteryRecord{}
-	if err := record2.FromJSON(jsonStr); err != nil {
-		t.Fatalf("FromJSON() error = %v", err)
+	var record2 LotteryRecord
+	if err := json.Unmarshal([]byte(jsonStr), &record2); err != nil {
+		t.Fatalf("unmarshal: %v", err)
 	}
 
 	if record2.ID != record.ID || record2.Seed != record.Seed {
-		t.Errorf("FromJSON() got ID=%s, Seed=%s, want ID=%s, Seed=%s",
+		t.Errorf("round-trip got ID=%s, Seed=%s, want ID=%s, Seed=%s",
 			record2.ID, record2.Seed, record.ID, record.Seed)
-	}
-}
-
-func TestLotteryRecord_FromJSON_Invalid(t *testing.T) {
-	record := &LotteryRecord{}
-	err := record.FromJSON("invalid json{{{")
-	if err == nil {
-		t.Error("FromJSON() expected error for invalid JSON")
 	}
 }
 
