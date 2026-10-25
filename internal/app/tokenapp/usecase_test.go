@@ -70,6 +70,14 @@ func (m *mockTokenService) GetTokenInfo(tokenID token.TokenID) (*token.Token, er
 	return m.tokens[tokenID], nil
 }
 
+func (m *mockTokenService) ListTokens() ([]*token.Token, error) {
+	out := make([]*token.Token, 0, len(m.tokens))
+	for _, t := range m.tokens {
+		out = append(out, t)
+	}
+	return out, nil
+}
+
 func (m *mockTokenService) Mint(req *token.MintRequest) (*token.MintEvent, error) {
 	t, ok := m.tokens[req.TokenID]
 	if !ok || t == nil {

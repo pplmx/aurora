@@ -36,6 +36,9 @@ type fakeServices struct {
 
 	// templates is what OracleTemplates returns.
 	templates []TemplateRow
+
+	// tokenRows is what ListTokens returns.
+	tokenRows []TokenRow
 }
 
 func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
@@ -88,6 +91,7 @@ func (f *fakeServices) CreateToken(name, symbol, supply, owner string, decimals 
 	return TokenRow{ID: "t1", Name: name, Symbol: symbol, TotalSupply: supply, Decimals: decimals, Owner: owner}, nil
 }
 func (f *fakeServices) TokenInfo(id string) (TokenRow, error)                           { return TokenRow{ID: id}, nil }
+func (f *fakeServices) ListTokens() ([]TokenRow, error)                                 { return f.tokenRows, nil }
 func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error)              { return "42", nil }
 func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error                { return nil }
 func (f *fakeServices) TransferToken(tokenID, from, to, amount, priv string) error      { return nil }

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sort"
 	"sync"
 	"testing"
 
@@ -1176,6 +1177,7 @@ type mockRepository struct {
 	approvals map[string]*Approval
 
 	errGetToken              bool
+	errListTokens            bool
 	saveTokenError           bool
 	setAccountBalanceError   bool
 	setAccountBalanceToError bool
@@ -1279,6 +1281,20 @@ func (m *mockRepository) GetToken(id TokenID) (*Token, error) {
 		return nil, ErrTokenNotFound
 	}
 	return m.tokens[id], nil
+}
+
+// ListTokens returns the mock's tokens in a stable order, so a test that
+// lists them twice sees the same result.
+func (m *mockRepository) ListTokens() ([]*Token, error) {
+	if m.errListTokens {
+		return nil, fmt.Errorf("list tokens error")
+	}
+	out := make([]*Token, 0, len(m.tokens))
+	for _, t := range m.tokens {
+		out = append(out, t)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID() < out[j].ID() })
+	return out, nil
 }
 
 // WithTx satisfies TransactableRepository. The mock simulates transaction

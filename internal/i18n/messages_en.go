@@ -140,6 +140,8 @@ var englishMessages = map[string]string{
 	"token.allowance.cmd":     "Query allowance",
 	"token.history.cmd":       "Query transfer history",
 	"token.info.cmd":          "Query token info",
+	"token.list.cmd":          "List every token",
+	"token.no_tokens":         "No tokens yet",
 
 	// Flags
 	"token.name":        "Token name",
@@ -163,6 +165,7 @@ var englishMessages = map[string]string{
 	"token.approved":    "Allowance approved successfully!",
 	"token.burned":      "Tokens burned successfully!",
 	"token.not_found":   "Token not found",
+	"token.total":       "Total",
 	"token.no_history":  "No transfer history found",
 
 	// ===== ORACLE =====

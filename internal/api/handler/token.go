@@ -42,6 +42,24 @@ func (h *TokenHandler) Routes(r chi.Router) {
 	r.Get("/allowance", h.Allowance)
 	r.Get("/history", h.History)
 	r.Get("/info", h.Info)
+	r.Get("/list", h.List)
+}
+
+// List returns every stored token (GET /list). A token's id is the handle every
+// other operation takes, so a caller that lost it — or never had it, having
+// created the token in another process — had no way to find it again.
+func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
+	uc := tokenapp.NewListTokensUseCase(h.service)
+	results, err := uc.Execute()
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+	// A nil slice would encode as null; every other list endpoint returns [].
+	if results == nil {
+		results = []*tokenapp.TokenInfoResponse{}
+	}
+	writeJSON(w, http.StatusOK, results)
 }
 
 // Approve sets an allowance of amount from owner to spender (POST /approve).

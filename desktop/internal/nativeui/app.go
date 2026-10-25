@@ -56,6 +56,8 @@ type Services interface {
 	// Token surface.
 	CreateToken(name, symbol, supply, owner string, decimals int) (TokenRow, error)
 	TokenInfo(id string) (TokenRow, error)
+	// ListTokens returns every stored token, newest first.
+	ListTokens() ([]TokenRow, error)
 	TokenBalance(tokenID, owner string) (string, error)
 	MintToken(tokenID, to, amount, priv string) error
 	TransferToken(tokenID, from, to, amount, priv string) error
@@ -120,6 +122,7 @@ func New(services Services) *App {
 	// -1 is "no row chosen": 0 is a real row, so it cannot double as the
 	// unset value or the first click on row 0 would look like no change.
 	a.lottery.selected = -1
+	a.token.chosen = -1
 	a.refresh()
 	return a
 }
@@ -161,9 +164,8 @@ func (a *App) sidebar(c *ui.Context) {
 			}
 		})
 	}).Width(216).FillHeight()
-	if p, ok := pageByID(selected); ok && p != a.page {
-		a.page = p
-		a.refresh()
+	if p, ok := pageByID(selected); ok {
+		a.setPage(p)
 	}
 }
 
@@ -256,11 +258,22 @@ func (a *App) refresh() {
 func (a *App) ShowPage(name string) {
 	for p, title := range pageTitles {
 		if strings.EqualFold(title, name) {
-			a.page = p
-			a.refresh()
+			a.setPage(p)
 			return
 		}
 	}
+}
+
+// setPage switches the window to p and loads its data, which is what every
+// entry point (a sidebar click, a deep link) has to do: a page that only drew
+// what was already loaded showed an empty list until the operator pressed
+// Refresh.
+func (a *App) setPage(p page) {
+	if a.page == p {
+		return
+	}
+	a.page = p
+	a.refresh()
 }
 
 // ShowIntent applies a deep link: it selects the page the link names and, when
@@ -285,8 +298,7 @@ func (a *App) ShowLotteryDraw(id string) {
 	if id == "" {
 		return
 	}
-	a.page = pageLottery
+	a.setPage(pageLottery)
 	a.lottery.verifyID = id
-	a.refresh()
 	a.verifyLottery()
 }

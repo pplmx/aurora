@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sort"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/blockchain"
@@ -49,6 +50,15 @@ func (r *inMemoryTokenRepo) SaveToken(t *token.Token) error {
 
 func (r *inMemoryTokenRepo) GetToken(id token.TokenID) (*token.Token, error) {
 	return r.tokens[id], nil
+}
+
+func (r *inMemoryTokenRepo) ListTokens() ([]*token.Token, error) {
+	out := make([]*token.Token, 0, len(r.tokens))
+	for _, t := range r.tokens {
+		out = append(out, t)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID() < out[j].ID() })
+	return out, nil
 }
 
 func (r *inMemoryTokenRepo) SaveApproval(a *token.Approval) error {
