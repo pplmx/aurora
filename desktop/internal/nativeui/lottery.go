@@ -53,12 +53,16 @@ func (a *App) loadLottery() {
 // lotteryView renders the draw form, the history table and the verifier.
 func (a *App) lotteryView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
-		ui.Column(c).FillWidth().Gap(16).Children(func() {
-			renderStatus(c, a.lottery.status)
+		renderStatus(c, a.lottery.status)
+		// The two forms sit side by side; the history table keeps the full
+		// width, because a half-width table wrapped participant lists onto a
+		// second line that the fixed row height then clipped.
+		twoColumns(c, func() {
 			a.lotteryCreate(c)
+		}, func() {
 			a.lotteryVerify(c)
-			a.lotteryHistory(c)
 		})
+		a.lotteryHistory(c)
 	})
 }
 
@@ -139,7 +143,7 @@ func splitParticipants(s string) []string {
 }
 
 func (a *App) lotteryHistory(c *ui.Context) {
-	formCard(c, "History", "Every recorded draw, newest first.", func() {
+	formCard(c, "History", "Every recorded draw, newest first. Paste an id into Verify to re-check it.", func() {
 		a.lotteryHistoryBody(c)
 	})
 }
@@ -156,7 +160,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 	rows := a.lottery.rows
 	ui.Table(c, &a.lottery.table, []ui.TableColumn{
 		{Title: "ID", Width: 150},
-		{Title: "Block", Width: 60, Align: ui.End},
+		{Title: "Block", Width: 80, Align: ui.End},
 		{Title: "Participants"},
 		{Title: "Winners"},
 	}, len(rows), func(row, col int) {
