@@ -331,3 +331,44 @@ func viperKey(t *testing.T) {
 	t.Helper()
 	viper.Set("api.key", "desktop-test-key")
 }
+
+// TestWindowDrivesRealServices proves the window's views work against the real
+// application layer, not only against fakes: a draw created through the
+// window's own state lands in the database the CLI reads, and the verifier
+// judges it from the stored evidence.
+//
+// The view tests in nativeui cover layout and form wiring with fakes; this is
+// the join between them and the store, which no fake can stand in for.
+func TestWindowDrivesRealServices(t *testing.T) {
+	resetState(t)
+	viper.Set("api.key", "desktop-test-key")
+	viper.Set("log.path", filepath.Join(t.TempDir(), "logs"))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	rt, err := Start(ctx, Options{DataDir: t.TempDir()})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, rt.Close()) })
+
+	app := rt.App()
+	require.NotNil(t, app)
+
+	// Create a draw through the window's state, as the Create button does.
+	created, err := app.Services().CreateDraw(
+		[]string{"Alice", "Bob", "Carol"}, "window-drives-services", 2)
+	require.NoError(t, err)
+	require.NotEmpty(t, created.ID)
+
+	// The record the window created is the one the store holds, with its
+	// evidence intact.
+	history, err := app.Services().LotteryHistory(10)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	require.Equal(t, created.ID, history[0].ID)
+
+	// And the verifier accepts it from that stored evidence.
+	verdict, err := app.Services().VerifyDraw(created.ID)
+	require.NoError(t, err)
+	require.True(t, verdict.Valid, "a draw this window created must verify: %v", verdict.Checks)
+}

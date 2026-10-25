@@ -121,6 +121,11 @@ func New(services Services) *App {
 	return a
 }
 
+// Services returns the application layer the window drives. It is how a test
+// (and any other in-process surface) reaches the same calls a view makes,
+// without a window or a click.
+func (a *App) Services() Services { return a.services }
+
 // View is the frame builder handed to mygo.WindowOptions.Content.
 //
 // The window is a sidebar of modules beside one scrolling page. The theme is
