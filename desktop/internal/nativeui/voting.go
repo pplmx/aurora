@@ -206,22 +206,24 @@ func (a *App) votingSessionList(c *ui.Context) {
 	sessions := a.voting.sessions
 	ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
 		{Title: "ID", Width: 140},
-		{Title: "Title", MinWidth: 110},
+		// SingleLine on every cell: a wrapped cell is clipped by the row's
+		// fixed height, which cut "Budget 2026" in half.
+		{Title: "Title", MinWidth: 130},
 		{Title: "Status", Width: 100},
-		{Title: "Window", Width: 200},
+		{Title: "Window", Width: 210},
 	}, len(sessions), func(row, col int) {
 		s := sessions[row]
 		switch col {
 		case 0:
 			ui.Text(c, shortID(s.ID)).SingleLine()
 		case 1:
-			ui.Text(c, s.Title)
+			ui.Text(c, s.Title).SingleLine()
 		case 2:
 			ui.Text(c, s.Status)
 		case 3:
 			// The window is why a ballot is refused, so it belongs in the
 			// list rather than only in the error a voter sees afterwards.
-			ui.Text(c, sessionWindow(s.StartTime, s.EndTime)).FontSize(12)
+			ui.Text(c, sessionWindow(s.StartTime, s.EndTime)).FontSize(12).SingleLine()
 		}
 	})
 }
@@ -365,7 +367,7 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	}, len(results), func(row, col int) {
 		r := results[row]
 		if col == 0 {
-			ui.Text(c, r.Name)
+			ui.Text(c, r.Name).SingleLine()
 		} else {
 			ui.Text(c, strconv.Itoa(r.Votes))
 		}

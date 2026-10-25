@@ -189,7 +189,7 @@ func (a *App) nftListBody(c *ui.Context) {
 		case 0:
 			ui.Text(c, shortID(n.ID)).SingleLine()
 		case 1:
-			ui.Text(c, n.Name)
+			ui.Text(c, n.Name).SingleLine()
 		case 2:
 			ui.Text(c, strconv.FormatInt(n.BlockHeight, 10))
 		}
