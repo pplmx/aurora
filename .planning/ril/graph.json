@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 229,
+  "round": 230,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T17:58:37+00:00",
+  "updated_at": "2026-10-25T18:04:40+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -51,7 +51,7 @@
       "version": 1,
       "created_at": "2026-08-22T15:10:28+00:00",
       "updated_at": "2026-08-22T15:10:28+00:00",
-      "touched_round": 208,
+      "touched_round": 230,
       "title": "oracle-module"
     },
     "COMP-api": {
@@ -18773,6 +18773,91 @@
       "touched_round": 229,
       "commit": "d758d2f",
       "title": "Build the resolution tests' records from literals"
+    },
+    "EV-183": {
+      "id": "EV-183",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T18:04:20+00:00",
+      "updated_at": "2026-10-25T18:04:20+00:00",
+      "touched_round": 230,
+      "confidence": 1,
+      "source": "EXPLAIN QUERY PLAN and timings on a 3000-row lottery table and a 2000-event aggregate",
+      "description": "placeholder"
+    },
+    "ISS-390": {
+      "id": "ISS-390",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T18:04:28+00:00",
+      "updated_at": "2026-10-25T18:04:28+00:00",
+      "touched_round": 230,
+      "title": "A scheduler pass fetches sources serially and this was undocumented",
+      "severity": 0.3,
+      "description": "Measured: with a 150ms source first and an instant one second, a pass takes 150ms and runs [slow fast]. The shape is deliberate but nothing said so, so a change to concurrent fetching would silently alter when a source counts as due."
+    },
+    "ISS-391": {
+      "id": "ISS-391",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-25T18:04:28+00:00",
+      "updated_at": "2026-10-25T18:04:28+00:00",
+      "touched_round": 230,
+      "title": "A transfer-history page can be shorter than its limit while more rows exist",
+      "severity": 0.35,
+      "description": "The reader skips rows whose amount will not parse after the SQL query, so a limit=3 page returned 2 with a third row still reachable by offset. A client treating len(page) as the end loses the remainder; the contract was undocumented."
+    },
+    "CHG-406": {
+      "id": "CHG-406",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T18:04:28+00:00",
+      "updated_at": "2026-10-25T18:04:28+00:00",
+      "touched_round": 230,
+      "commit": "2574ffa",
+      "title": "Document and pin the scheduler's serial fetch shape"
+    },
+    "CHG-407": {
+      "id": "CHG-407",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T18:04:28+00:00",
+      "updated_at": "2026-10-25T18:04:28+00:00",
+      "touched_round": 230,
+      "commit": "6f2ff85",
+      "title": "Document and pin the short-page contract"
+    },
+    "EV-184": {
+      "id": "EV-184",
+      "type": "evidence",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T18:04:40+00:00",
+      "updated_at": "2026-10-25T18:04:40+00:00",
+      "touched_round": 230,
+      "confidence": 1,
+      "source": "EXPLAIN QUERY PLAN and timings on a 3000-row lottery table and a 2000-event aggregate",
+      "summary": "Measured: GetAll over 3000 lottery records is 1.5ms; the owner-scoped transfer predicate over 2000 events with the composite index is 0.4ms, flat across offsets 0..5000. Neither is a bottleneck, so both were left alone. Supersedes EV-183, whose fields were created from a placeholder."
+    },
+    "DEC-042": {
+      "id": "DEC-042",
+      "type": "decision",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-25T18:04:40+00:00",
+      "updated_at": "2026-10-25T18:04:40+00:00",
+      "touched_round": 230,
+      "title": "A scheduler pass fetches serially, and a short transfer-history page is not the end of the data",
+      "rationale": "Both behaviours are deliberate: serial fetching keeps the per-source backoff meaningful and avoids a burst of simultaneous upstream requests; skipping undecodable rows keeps a corrupt record from failing a whole page. Both were undocumented and untested, so either could have been changed silently. They are now pinned by tests and stated where the code decides.",
+      "alternatives_rejected": [
+        "Fetch sources concurrently: changes the failure model and makes per-source backoff meaningless",
+        "Fail the whole page on one undecodable row: one corrupt record would hide all healthy history"
+      ]
     }
   },
   "edges": [
@@ -28796,6 +28881,24 @@
       "to": "ISS-389",
       "type": "resolves",
       "created_at": "2026-10-25T17:58:37+00:00"
+    },
+    {
+      "from": "CHG-406",
+      "to": "ISS-390",
+      "type": "resolves",
+      "created_at": "2026-10-25T18:04:28+00:00"
+    },
+    {
+      "from": "CHG-407",
+      "to": "ISS-391",
+      "type": "resolves",
+      "created_at": "2026-10-25T18:04:28+00:00"
+    },
+    {
+      "from": "DEC-042",
+      "to": "COMP-oracle",
+      "type": "governs",
+      "created_at": "2026-10-25T18:04:40+00:00"
     }
   ]
 }
