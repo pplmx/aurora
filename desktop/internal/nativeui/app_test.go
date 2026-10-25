@@ -377,3 +377,22 @@ func TestHistoryTableShowsEveryStoredDraw(t *testing.T) {
 	require.True(t, tester.HasText("Carol"), "a winner must be shown in its row")
 	require.Equal(t, lotteryHistoryLimit, fake.historyN, "the page asks for one page of draws")
 }
+
+// TestRefreshShortcutReloadsThePage pins the keyboard path to a refresh. The
+// window's data is a read of the database, so the platform's reload shortcut
+// must work without hunting for the button.
+func TestRefreshShortcutReloadsThePage(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2000)
+	tester.Frame()
+
+	app.ShowPage("Lottery")
+	tester.Frame()
+	fake.historyN = 0
+
+	tester.Key(platformRefreshModifier(), ui.KeyR)
+	tester.Frame()
+	require.Equal(t, lotteryHistoryLimit, fake.historyN,
+		"the reload shortcut must ask the page for its data again")
+}

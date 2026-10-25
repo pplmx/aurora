@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"runtime"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -159,17 +160,33 @@ func (a *App) sidebar(c *ui.Context) {
 }
 
 // header names the page and gives the one action every page shares.
+//
+// Refresh carries the shortcut its platform uses for "reload": a page whose
+// data is a read of the database is refreshed the way any other window is,
+// without hunting for a button.
 func (a *App) header(c *ui.Context) {
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Grow(1).Gap(2).Children(func() {
 			ui.Text(c, pageTitles[a.page]).FontSize(26).Bold().TextColor(ui.Hex(ink))
 			ui.Text(c, pagePurpose[a.page]).FontSize(12).TextColor(ui.Hex(inkMuted))
 		})
-		if ui.Button(c, "Refresh").Clicked() {
+		// Ctrl on Linux and Windows, Cmd on macOS: the platform's own
+		// modifier for a reload. The shortcut is the window's, not the
+		// button's: an element's shortcut only fires while that element has
+		// the keyboard focus, and a reload has to work from anywhere.
+		if c.Shortcut(platformRefreshModifier(), ui.KeyR) || ui.Button(c, "Refresh").Clicked() {
 			a.refresh()
 		}
 	})
 	ui.Divider(c)
+}
+
+// platformRefreshModifier is the modifier a desktop uses for "reload".
+func platformRefreshModifier() ui.Modifiers {
+	if runtime.GOOS == "darwin" {
+		return ui.Super
+	}
+	return ui.Ctrl
 }
 
 // pagePurpose is the one line under a page title: what the module is for,
