@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"testing"
@@ -187,3 +188,71 @@ func (f *failSavePendingStore) SaveIdempotent(events.Event) error {
 }
 
 var errFSPS = os.ErrClosed
+
+// TestOutboxDrainer_RunDrainsUntilCancelled covers the loop the server actually
+// starts: Run ticks once a second and returns when the context is cancelled.
+// DrainOnce was tested; the loop that calls it on a real server was not, so a
+// regression that never ticked — or that outlived its context — would only
+// show up as audit events that never arrive.
+func TestOutboxDrainer_RunDrainsUntilCancelled(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+
+	require.NoError(t, store.EnqueuePending(mintEvent(t, "agg-run")))
+
+	d := NewOutboxDrainer(store, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	done := make(chan struct{})
+	go func() {
+		d.Run(ctx)
+		close(done)
+	}()
+
+	// Run ticks after a second; wait for the event to land rather than
+	// sleeping a fixed time, so the test is not a race against the clock.
+	deadline := time.After(5 * time.Second)
+	for {
+		byType, err := store.GetByType("token.mint", 10)
+		require.NoError(t, err)
+		if len(byType) == 1 {
+			break
+		}
+		select {
+		case <-deadline:
+			t.Fatal("Run never drained the pending event")
+		case <-time.After(20 * time.Millisecond):
+		}
+	}
+
+	// Cancelling must stop it: Run is what a server shutdown waits on.
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Run did not return after its context was cancelled")
+	}
+}
+
+// TestOutboxDrainer_RunStopsImmediatelyOnACancelledContext proves Run does not
+// wait for its first tick when the context is already done — a server that
+// starts and stops quickly must not linger for a second.
+func TestOutboxDrainer_RunStopsImmediatelyOnACancelledContext(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	done := make(chan struct{})
+	go func() {
+		NewOutboxDrainer(store, nil).Run(ctx)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("Run must return at once when its context is already cancelled")
+	}
+}
