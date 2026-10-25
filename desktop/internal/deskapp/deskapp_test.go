@@ -2,6 +2,9 @@ package deskapp
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -371,4 +374,63 @@ func TestWindowDrivesRealServices(t *testing.T) {
 	verdict, err := app.Services().VerifyDraw(created.ID)
 	require.NoError(t, err)
 	require.True(t, verdict.Valid, "a draw this window created must verify: %v", verdict.Checks)
+}
+
+// TestWindowListsWhatTheStoreHolds proves the listing surfaces the window now
+// offers reach the real store: a token and an NFT created through the window's
+// own services are what its list calls return.
+func TestWindowListsWhatTheStoreHolds(t *testing.T) {
+	resetState(t)
+	viper.Set("api.key", "desktop-test-key")
+	viper.Set("log.path", filepath.Join(t.TempDir(), "logs"))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	rt, err := Start(ctx, Options{DataDir: t.TempDir()})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, rt.Close()) })
+
+	app := rt.App()
+	require.NotNil(t, app)
+
+	// Nothing stored yet: both lists are empty, not an error.
+	tokens, err := app.Services().ListTokens()
+	require.NoError(t, err)
+	require.Empty(t, tokens)
+	nfts, err := app.Services().ListAllNFTs()
+	require.NoError(t, err)
+	require.Empty(t, nfts)
+
+	// Create one of each through the window's services, then list them.
+	owner := testKeyPair(t)
+	created, err := app.Services().CreateToken("Aurora Coin", "AUR", "1000", owner.public, 8)
+	require.NoError(t, err)
+	require.NotEmpty(t, created.ID)
+
+	minted, err := app.Services().MintNFT("First Art", "", "", "", owner.public)
+	require.NoError(t, err)
+	require.NotEmpty(t, minted.ID)
+
+	tokens, err = app.Services().ListTokens()
+	require.NoError(t, err)
+	require.Len(t, tokens, 1)
+	require.Equal(t, created.ID, tokens[0].ID)
+	require.Equal(t, "Aurora Coin", tokens[0].Name)
+
+	nfts, err = app.Services().ListAllNFTs()
+	require.NoError(t, err)
+	require.Len(t, nfts, 1)
+	require.Equal(t, minted.ID, nfts[0].ID)
+}
+
+// testKeyPair is a fresh Ed25519 identity as the base64 strings the services
+// take.
+type keyPair struct{ public, private string }
+
+func testKeyPair(t *testing.T) keyPair {
+	t.Helper()
+	pub, _, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	return keyPair{public: base64.StdEncoding.EncodeToString(pub)}
 }
