@@ -87,17 +87,7 @@ func (a *App) votingRegister(c *ui.Context) {
 		ui.Text(c, a.voting.voterNameErr).FontSize(11).TextColor(ui.Hex("#c62828"))
 	}
 	if ui.Button(c, "Register Voter").Clicked() {
-		a.voting.voterNameErr = ""
-		a.voting.status = statusLine{}
-		if strings.TrimSpace(a.voting.voterName) == "" {
-			a.voting.voterNameErr = "Voter name is required."
-		} else if v, err := a.services.RegisterVoter(strings.TrimSpace(a.voting.voterName)); err != nil {
-			a.voting.status = errStatus(err)
-		} else {
-			a.voting.status = okStatus("Registered %s (public key %s)", v.Name, v.PublicKey)
-			a.voting.voteVoterPub = v.PublicKey
-			a.voting.voterName = ""
-		}
+		a.registerVoter()
 	}
 	renderStatus(c, a.voting.status)
 
@@ -129,6 +119,40 @@ func (a *App) votingRegister(c *ui.Context) {
 	if a.voting.candResult != "" {
 		ui.Text(c, a.voting.candResult).FontSize(12)
 	}
+}
+
+// registerVoter registers the named voter and carries the generated key pair
+// into the ballot form.
+func (a *App) registerVoter() {
+	a.voting.voterNameErr = ""
+	a.voting.status = statusLine{}
+	name := strings.TrimSpace(a.voting.voterName)
+	if name == "" {
+		a.voting.voterNameErr = "Voter name is required."
+		return
+	}
+	v, err := a.services.RegisterVoter(name)
+	if err != nil {
+		a.voting.status = errStatus(err)
+		return
+	}
+	a.applyVoterRegistration(v)
+}
+
+// applyVoterRegistration reports the new voter and fills the ballot form from
+// it.
+//
+// The registration generates the ballot key pair and the store keeps only the
+// public half, so this is the one chance to hand the private key to the
+// operator. Filling the ballot fields means the voter can sign straight away
+// instead of copying a key that is no longer readable anywhere.
+func (a *App) applyVoterRegistration(v VoterRow) {
+	a.voting.status = okStatus(
+		"Registered %s (public key %s). Ballot signing key: %s",
+		v.Name, v.PublicKey, v.PrivateKey)
+	a.voting.voteVoterPub = v.PublicKey
+	a.voting.votePriv = v.PrivateKey
+	a.voting.voterName = ""
 }
 
 func (a *App) votingSessions(c *ui.Context) {

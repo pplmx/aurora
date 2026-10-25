@@ -175,7 +175,7 @@ func (s *nativeServices) RegisterVoter(name string) (nativeui.VoterRow, error) {
 	if err != nil {
 		return nativeui.VoterRow{}, err
 	}
-	return nativeui.VoterRow{PublicKey: resp.PublicKey, Name: resp.Name}, nil
+	return nativeui.VoterRow{PublicKey: resp.PublicKey, Name: resp.Name, PrivateKey: resp.PrivateKey}, nil
 }
 
 func (s *nativeServices) RegisterCandidate(name, party, program string) (nativeui.CandidateRow, error) {

@@ -103,3 +103,44 @@ func TestTokenFormsRenderTheirOwnerInputs(t *testing.T) {
 		require.Positive(t, count, "the Token page must show a %q input", want)
 	}
 }
+
+// voterKeyRecorder returns a registration that carries a private key, the way
+// the real service does.
+type voterKeyRecorder struct {
+	*fakeServices
+}
+
+func (r *voterKeyRecorder) RegisterVoter(name string) (VoterRow, error) {
+	return VoterRow{PublicKey: "pk-" + name, Name: name, PrivateKey: "sk-" + name}, nil
+}
+
+// TestRegisterVoterKeepsTheSigningKey covers the one-time key handover. The
+// registration generates the ballot key pair and stores only the public half,
+// so a window that dropped the private key left the operator with a voter that
+// could never sign a ballot — and nothing else can produce that key again.
+func TestRegisterVoterKeepsTheSigningKey(t *testing.T) {
+	app := New(&voterKeyRecorder{fakeServices: &fakeServices{}})
+	app.voting.voterName = "  Alice  "
+
+	app.registerVoter()
+
+	require.Empty(t, app.voting.voterNameErr)
+	require.Equal(t, "pk-Alice", app.voting.voteVoterPub)
+	require.Equal(t, "sk-Alice", app.voting.votePriv,
+		"the ballot form must receive the signing key the registration returned")
+	require.Contains(t, app.voting.status.text, "sk-Alice",
+		"the status line must show the key: it is the only copy")
+	require.Empty(t, app.voting.voterName, "a successful registration clears the form")
+}
+
+// TestRegisterVoterRejectsAnEmptyName keeps the guard in front of the service,
+// where it names the field instead of surfacing an opaque error.
+func TestRegisterVoterRejectsAnEmptyName(t *testing.T) {
+	app := New(&voterKeyRecorder{fakeServices: &fakeServices{}})
+	app.voting.voterName = "   "
+
+	app.registerVoter()
+
+	require.NotEmpty(t, app.voting.voterNameErr)
+	require.Empty(t, app.voting.votePriv, "a rejected registration must not fill the ballot key")
+}
