@@ -214,7 +214,7 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 
 | 模块    | Domain | App   |
 | ------- | ------ | ----- |
-| Lottery | 90.8%  | 86.5% |
+| Lottery | 91.7%  | 86.5% |
 | Voting  | 93.6%  | 82.6% |
 | NFT     | 82.1%  | 82.0% |
 | Token   | 90.9%  | 86.6% |
