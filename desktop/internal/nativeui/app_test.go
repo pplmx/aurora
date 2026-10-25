@@ -196,3 +196,41 @@ func TestSeedLabelFollowsTheDomainConstant(t *testing.T) {
 	require.True(t, tester.HasText(want),
 		"the create form must label the seed with the domain's minimum, want %q", want)
 }
+
+// TestShowIntentAppliesAPageAndADraw covers the single entry point the shell
+// uses for every deep link. A cold start applies the launch argument through
+// it, and so does an aurora:// link that reaches a running window; the two
+// used to diverge, and a launch that named a draw opened the dashboard.
+func TestShowIntentAppliesAPageAndADraw(t *testing.T) {
+	fake := &fakeServices{verifyResult: VerifyResult{ID: "draw-7", Valid: true}}
+	app := New(fake)
+
+	app.ShowIntent("voting", "")
+	require.Equal(t, pageVoting, app.page, "a link that names only a page must select it")
+
+	app.ShowIntent("", "draw-7")
+	require.Equal(t, pageLottery, app.page, "a link that names a draw must open the Lottery page")
+	require.Equal(t, "draw-7", app.lottery.verifyID)
+	require.NotNil(t, app.lottery.verifyResult, "the named draw must be verified immediately")
+
+	app.ShowIntent("token", "draw-7")
+	require.Equal(t, pageLottery, app.page, "the draw wins over the page named in the same link")
+
+	// An unknown page must not blank the window.
+	app.ShowIntent("no-such-page", "")
+	require.Equal(t, pageLottery, app.page)
+}
+
+// TestWindowOpensWithTheDashboardLoaded pins the first frame. A view draws
+// only what the state holds, and nothing else loaded the opening page: the
+// window sat on "Loading…" until the operator switched pages or pressed
+// Refresh, which a screenshot of a real launch caught.
+func TestWindowOpensWithTheDashboardLoaded(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+
+	require.False(t, tester.HasText("Loading"), "the opening frame must not be a placeholder")
+	require.True(t, tester.HasText("Total Lotteries"), "the dashboard counters must be on screen")
+	require.True(t, tester.HasText("9"), "the vote count must come from the services")
+}
