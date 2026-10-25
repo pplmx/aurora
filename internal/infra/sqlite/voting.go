@@ -92,6 +92,12 @@ func (r *VotingRepository) createTables() error {
 			created_at INTEGER NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_status ON voting_sessions(status)`,
+		// ListSessions and ListVoters read the whole collection newest first.
+		// Without these, SQLite scans and sorts every row in a temp B-tree
+		// before the caller sees it (measured). idx_candidates_created above
+		// already covers the candidate list the same way.
+		`CREATE INDEX IF NOT EXISTS idx_sessions_created ON voting_sessions(created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_voters_registered ON voters(registered_at)`,
 	}
 
 	for _, query := range queries {

@@ -100,3 +100,26 @@ func TestNFTListingNeedsNoTempBTree(t *testing.T) {
 		 FROM nfts ORDER BY rowid DESC LIMIT ? OFFSET ?`, 100, 0)
 	requireNoTempBTree(t, details, "nft listing")
 }
+
+// TestCollectionListsUseTheirIndexes covers the three whole-collection reads
+// the operator sees as lists: oracle sources, voters and voting sessions. Each
+// orders newest first over the entire table, so without an index every row is
+// materialised and sorted before the caller sees anything (measured: "SCAN ...
+// USE TEMP B-TREE FOR ORDER BY"). idx_candidates_created already covered the
+// candidate list the same way.
+func TestCollectionListsUseTheirIndexes(t *testing.T) {
+	oracleRepo, oracleCleanup := setupOracleTestDB(t)
+	defer oracleCleanup()
+	requireNoTempBTree(t, queryPlanDetails(t, oracleRepo.GetDB(),
+		`SELECT id, name, url, type, method, headers, path, interval, enabled, created_at
+		 FROM data_sources ORDER BY created_at DESC`), "oracle source list")
+
+	votingRepo, votingCleanup := setupVotingTestDB(t)
+	defer votingCleanup()
+	requireNoTempBTree(t, queryPlanDetails(t, votingRepo.db,
+		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters ORDER BY registered_at DESC`),
+		"voter list")
+	requireNoTempBTree(t, queryPlanDetails(t, votingRepo.db,
+		`SELECT id, title, description, start_time, end_time, status, candidates, created_at
+		 FROM voting_sessions ORDER BY created_at DESC`), "session list")
+}
