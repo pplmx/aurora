@@ -10,14 +10,22 @@ import (
 
 // votingState is the Voting page's state.
 type votingState struct {
-	voterName   string
-	voterResult string
-	voterPriv   string
+	voterName string
+	// voterPub/voterPriv are the key pair from the last registration. They are
+	// kept so the operator can copy them: the store keeps only the public half,
+	// and native text is not selectable, so a key shown once in a status line
+	// could never leave the window.
+	voterPub  string
+	voterPriv string
 
 	candName    string
 	candParty   string
 	candProgram string
 	candResult  string
+	// candCopyID is the id of the candidate just registered, kept so the card
+	// can offer a Copy button. The candidate table shortens ids and its
+	// selection feeds the ballot, not the session roster field.
+	candCopyID string
 
 	sessionTitle  string
 	sessionDesc   string
@@ -25,6 +33,9 @@ type votingState struct {
 	sessionEnd    string
 	sessionIDs    string
 	sessionResult string
+	// sessionCopyID is the id of the session just created, offered for copying
+	// the same way.
+	sessionCopyID string
 
 	controlID     string
 	controlResult string
@@ -47,8 +58,15 @@ type votingState struct {
 
 	status statusLine
 
-	sessionTable ui.ListState
-	resultsTable ui.ListState
+	sessionTable   ui.ListState
+	candidateTable ui.ListState
+	resultsTable   ui.ListState
+
+	// sessionChoice/candChoice are the rows chosen in those tables, -1 for
+	// none. The tables shorten UUIDs to fit, so choosing a row is the only way
+	// the full id reaches the forms.
+	sessionChoice int
+	candChoice    int
 }
 
 func (a *App) loadVoting() {
@@ -77,11 +95,19 @@ func (a *App) loadVoting() {
 func (a *App) votingView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
 		renderStatus(c, a.voting.status)
+		// loadVoting keeps both lists when either read fails, so the warning
+		// is drawn once for the page and both lists keep their last successful
+		// rows. It used to be invisible entirely: nothing rendered loadErr.
+		if a.voting.loadErr != nil {
+			loadWarning(c, "Failed to load voting data", a.voting.loadErr,
+				len(a.voting.sessions) > 0 || len(a.voting.candidates) > 0)
+		}
 		// The session list leads: an operator reads what exists before
 		// registering more of it, and it was the one card pushed below the
 		// fold by three registration forms.
 		twoColumns(c, func() {
 			a.votingSessionListCard(c)
+			a.votingCandidateListCard(c)
 			a.votingRegister(c)
 		}, func() {
 			a.votingVote(c)
@@ -100,6 +126,17 @@ func (a *App) votingRegister(c *ui.Context) {
 				a.registerVoter()
 			}
 		})
+		if a.voting.voterPriv != "" {
+			ui.Text(c, "New voter key pair").FontSize(12).Bold().TextColor(ui.Hex(ink))
+			copyRow(c, "Public key", a.voting.voterPub, func() {
+				a.voting.status = okStatus("Public key copied.")
+			})
+			copyRow(c, "Private key", a.voting.voterPriv, func() {
+				a.voting.status = okStatus("Private key copied. The store keeps only the public half; keep it safe.")
+			})
+			ui.Text(c, "The store keeps only the public half, so this is the only copy of the signing key.").
+				FontSize(11).TextColor(ui.Hex(auroraAmber))
+		}
 	})
 
 	formCard(c, "Register Candidate", "Only the name is required; party and program are shown on the ballot when present.", func() {
@@ -114,26 +151,44 @@ func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 	field(c, "Program (optional)", &a.voting.candProgram)
 	ui.Row(c).Children(func() {
 		if ui.Button(c, "Register Candidate").Clicked() {
-			a.voting.candNameErr = ""
-			a.voting.candResult = ""
-			if strings.TrimSpace(a.voting.candName) == "" {
-				a.voting.candNameErr = "Candidate name is required."
-			} else if cand, err := a.services.RegisterCandidate(
-				strings.TrimSpace(a.voting.candName),
-				strings.TrimSpace(a.voting.candParty),
-				strings.TrimSpace(a.voting.candProgram),
-			); err != nil {
-				a.voting.candResult = err.Error()
-			} else {
-				a.voting.candResult = "Registered " + cand.Name + " (" + cand.ID + ")"
-				a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
-				a.loadVoting()
-			}
+			a.registerCandidate()
 		}
 	})
 	if a.voting.candResult != "" {
 		ui.Text(c, a.voting.candResult).FontSize(12).TextColor(ui.Hex(inkMuted))
 	}
+	if a.voting.candCopyID != "" {
+		copyRow(c, "Candidate ID", a.voting.candCopyID, func() {
+			a.voting.status = okStatus("Candidate ID copied.")
+		})
+	}
+}
+
+// registerCandidate registers the candidate described by the card and keeps
+// its id for the Copy button: the row list shortens ids, and the session
+// roster field needs the full one.
+func (a *App) registerCandidate() {
+	a.voting.candNameErr = ""
+	a.voting.candResult = ""
+	a.voting.candCopyID = ""
+	name := strings.TrimSpace(a.voting.candName)
+	if name == "" {
+		a.voting.candNameErr = "Candidate name is required."
+		return
+	}
+	cand, err := a.services.RegisterCandidate(
+		name,
+		strings.TrimSpace(a.voting.candParty),
+		strings.TrimSpace(a.voting.candProgram),
+	)
+	if err != nil {
+		a.voting.candResult = err.Error()
+		return
+	}
+	a.voting.candResult = "Registered " + cand.Name
+	a.voting.candCopyID = cand.ID
+	a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
+	a.loadVoting()
 }
 
 // registerVoter registers the named voter and carries the generated key pair
@@ -159,12 +214,13 @@ func (a *App) registerVoter() {
 //
 // The registration generates the ballot key pair and the store keeps only the
 // public half, so this is the one chance to hand the private key to the
-// operator. Filling the ballot fields means the voter can sign straight away
-// instead of copying a key that is no longer readable anywhere.
+// operator. The pair is kept in the page state so the card can offer a Copy
+// button for both halves, and the ballot fields are filled so the voter can
+// sign straight away instead of copying a key that is no longer readable
+// anywhere.
 func (a *App) applyVoterRegistration(v VoterRow) {
-	a.voting.status = okStatus(
-		"Registered %s (public key %s). Ballot signing key: %s",
-		v.Name, v.PublicKey, v.PrivateKey)
+	a.voting.voterPub, a.voting.voterPriv = v.PublicKey, v.PrivateKey
+	a.voting.status = okStatus("Registered %s. The ballot fields are filled from the new key pair.", v.Name)
 	a.voting.voteVoterPub = v.PublicKey
 	a.voting.votePriv = v.PrivateKey
 	a.voting.voterName = ""
@@ -196,21 +252,26 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	if a.voting.sessionResult != "" {
 		ui.Text(c, a.voting.sessionResult).FontSize(12).TextColor(ui.Hex(inkMuted))
 	}
+	if a.voting.sessionCopyID != "" {
+		copyRow(c, "Session ID", a.voting.sessionCopyID, func() {
+			a.voting.status = okStatus("Session ID copied.")
+		})
+	}
 }
 
 func (a *App) votingSessionList(c *ui.Context) {
-	// loadVoting keeps both lists when either read fails; without this the
-	// page said nothing at all about the failure, and with no stored sessions
-	// it claimed there were none.
-	if a.voting.loadErr != nil && !loadWarning(c, "Failed to load voting data", a.voting.loadErr, len(a.voting.sessions) > 0) {
-		return
-	}
 	if len(a.voting.sessions) == 0 {
-		emptyNote(c, "No sessions yet.")
+		// A failed load is reported once, above the cards; with no rows there
+		// is nothing to keep, and "No sessions yet" would claim the store is
+		// empty when it could not be read.
+		if a.voting.loadErr == nil {
+			emptyNote(c, "No sessions yet.")
+		}
 		return
 	}
 	sessions := a.voting.sessions
-	ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
+	a.voting.sessionTable.Selected = &a.voting.sessionChoice
+	table := ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
 		{Title: "ID", Width: 140},
 		// SingleLine on every cell: a wrapped cell is clipped by the row's
 		// fixed height, which cut "Budget 2026" in half.
@@ -232,10 +293,58 @@ func (a *App) votingSessionList(c *ui.Context) {
 			ui.Text(c, sessionWindow(s.StartTime, s.EndTime)).FontSize(12).SingleLine()
 		}
 	})
+	if table.Changed() && a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
+		// The row shows a shortened UUID and every form needs the real one:
+		// choosing the row loads it into the controls, the ballot and the
+		// tally reader at once, the same contract the other pages' tables
+		// follow.
+		id := sessions[a.voting.sessionChoice].ID
+		a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
+	}
+}
+
+// votingCandidateListCard lists the registered candidates. Before it existed
+// the only place a candidate id appeared was the one-line result of
+// Register Candidate: after the next action or a restart, nothing in the
+// window could produce the id a session roster or a ballot requires.
+func (a *App) votingCandidateListCard(c *ui.Context) {
+	formCard(c, "Candidates", "Every registered candidate. Choose one to load its id into the ballot.", func() {
+		a.votingCandidateList(c)
+	})
+}
+
+func (a *App) votingCandidateList(c *ui.Context) {
+	if len(a.voting.candidates) == 0 {
+		if a.voting.loadErr == nil {
+			emptyNote(c, "No candidates registered yet.")
+		}
+		return
+	}
+	candidates := a.voting.candidates
+	a.voting.candidateTable.Selected = &a.voting.candChoice
+	table := ui.Table(c, &a.voting.candidateTable, []ui.TableColumn{
+		{Title: "ID", Width: 150},
+		{Title: "Name", MinWidth: 120},
+		{Title: "Party", MinWidth: 100},
+	}, len(candidates), func(row, col int) {
+		cand := candidates[row]
+		switch col {
+		case 0:
+			ui.Text(c, shortID(cand.ID)).SingleLine()
+		case 1:
+			ui.Text(c, cand.Name).SingleLine()
+		case 2:
+			ui.Text(c, cand.Party).SingleLine()
+		}
+	})
+	if table.Changed() && a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates) {
+		a.voting.voteCandidate = candidates[a.voting.candChoice].ID
+	}
 }
 
 func (a *App) createVotingSession() {
 	a.voting.sessionResult = ""
+	a.voting.sessionCopyID = ""
 	start, err := strconv.ParseInt(strings.TrimSpace(a.voting.sessionStart), 10, 64)
 	if err != nil {
 		a.voting.sessionResult = "Start time must be a unix timestamp in seconds."
@@ -265,7 +374,8 @@ func (a *App) createVotingSession() {
 		a.voting.sessionResult = err.Error()
 		return
 	}
-	a.voting.sessionResult = "Created session " + s.ID
+	a.voting.sessionResult = "Created session " + s.Title
+	a.voting.sessionCopyID = s.ID
 	a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionStart, a.voting.sessionEnd, a.voting.sessionIDs = "", "", "", "", ""
 	a.loadVoting()
 }

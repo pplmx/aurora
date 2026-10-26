@@ -20,6 +20,13 @@ type nftState struct {
 	id    string
 	owner string
 
+	// filterOwner is the owner filter currently applied to the Collection
+	// card, empty for the whole collection. It is separate from the owner
+	// input so a refresh re-applies the filter the list is showing instead of
+	// silently replacing a filtered list with every NFT while the field still
+	// names an owner.
+	filterOwner string
+
 	// Each write form names its own NFT: one shared field meant typing an id
 	// in the Transfer card silently retargeted Inspect, Burn and History too.
 	transferID string
@@ -55,8 +62,17 @@ func (a *App) loadNFT() {
 		return
 	}
 	// The collection is the page's entry point: an asset minted in another
-	// session is otherwise reachable only by an id nobody wrote down.
-	rows, err := a.services.ListAllNFTs()
+	// session is otherwise reachable only by an id nobody wrote down. A filter
+	// that is applied stays applied across refreshes and page switches.
+	var (
+		rows []NFTRow
+		err  error
+	)
+	if a.nft.filterOwner != "" {
+		rows, err = a.services.ListNFTs(a.nft.filterOwner)
+	} else {
+		rows, err = a.services.ListAllNFTs()
+	}
 	a.nft.loadErr = err
 	if err == nil {
 		a.nft.list = rows
@@ -151,20 +167,27 @@ func (a *App) nftReadBody(c *ui.Context) {
 	fieldHint(c, "Owner (base64 public key)", "Narrow the Collection card to one owner.", &a.nft.owner)
 	ui.Row(c).Gap(8).Children(func() {
 		if ui.Button(c, "Filter by Owner").Clicked() {
-			rows, err := a.services.ListNFTs(strings.TrimSpace(a.nft.owner))
-			if err != nil {
-				a.nft.status = errStatus(err)
-				a.nft.list = nil
-			} else {
-				a.nft.list = rows
-				a.nft.status = statusLine{}
-			}
+			a.filterNFTs()
 		}
 		if ui.Button(c, "Show All").Clicked() {
-			a.nft.owner = ""
-			a.loadNFT()
+			a.showAllNFTs()
 		}
 	})
+}
+
+// filterNFTs applies the owner named in the field. It goes through loadNFT so
+// the filter survives refreshes and a failed read keeps the rows already shown
+// instead of blanking the collection.
+func (a *App) filterNFTs() {
+	a.nft.filterOwner = strings.TrimSpace(a.nft.owner)
+	a.loadNFT()
+}
+
+// showAllNFTs clears the filter and reloads the whole collection.
+func (a *App) showAllNFTs() {
+	a.nft.owner = ""
+	a.nft.filterOwner = ""
+	a.loadNFT()
 }
 
 // nftListBody draws the collection table.
@@ -173,6 +196,10 @@ func (a *App) nftListBody(c *ui.Context) {
 		return
 	}
 	if len(a.nft.list) == 0 {
+		if a.nft.filterOwner != "" {
+			emptyNote(c, "No NFTs for this owner. Show All restores the collection.")
+			return
+		}
 		emptyNote(c, "No NFTs yet. Mint one above.")
 		return
 	}

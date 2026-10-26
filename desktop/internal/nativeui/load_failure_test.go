@@ -89,6 +89,7 @@ func TestFailedFirstLoadIsNotAnEmptyState(t *testing.T) {
 	boom := errors.New("database is locked")
 	fake := &fakeServices{}
 	fake.loadErrs.history = boom
+	fake.loadErrs.candidates = boom
 	fake.loadErrs.sessions = boom
 	fake.loadErrs.stats = boom
 	app := New(fake)
@@ -109,5 +110,6 @@ func TestFailedFirstLoadIsNotAnEmptyState(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("Failed to load voting data"))
 	require.False(t, tester.HasText("No sessions yet."))
+	require.False(t, tester.HasText("No candidates registered yet."))
 	require.False(t, tester.HasText("Showing the last successful load."))
 }

@@ -162,6 +162,39 @@ func emptyNote(c *ui.Context, text string) {
 	ui.Text(c, text).FontSize(12).TextColor(ui.Hex(inkMuted))
 }
 
+// copyRow draws a labelled value with a Copy button.
+//
+// Native text is not selectable, and some values exist nowhere else once the
+// frame is gone — a voter registration returns the only copy of its signing
+// key. Without the button the operator would have to retype an 88-character
+// base64 key, or lose it.
+func copyRow(c *ui.Context, label, value string, onCopied func()) {
+	if value == "" {
+		return
+	}
+	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, label).FontSize(11).Width(72).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, abbreviate(value)).FontSize(12).TextColor(ui.Hex(ink)).SingleLine()
+		if ui.Button(c, "Copy "+label).Clicked() {
+			// The whole value is copied, not the shortened cell.
+			c.Services().WriteClipboard(value)
+			if onCopied != nil {
+				onCopied()
+			}
+		}
+	})
+}
+
+// abbreviate keeps both ends of a long value so the row shows what it holds
+// without stretching across the card.
+func abbreviate(value string) string {
+	const head, tail = 10, 6
+	if len(value) <= head+tail+1 {
+		return value
+	}
+	return value[:head] + "…" + value[len(value)-tail:]
+}
+
 // loadWarning reports a failed refresh above whatever the page already showed.
 //
 // Every loader keeps its previous rows when a read fails, but the views used to
