@@ -55,6 +55,15 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A failed desktop read can no longer leave another subject's answer on
+  screen**: Token Inspect/Balance/History, NFT Inspect/History and Oracle
+  Query/Latest now remember the token, account, asset, source, limit or offset
+  they were loaded for. Changing the subject or query clears the readout
+  before the new read, so a failure reports the error instead of showing the
+  old answer under the new id; a same-subject refresh failure keeps the last
+  successful rows and marks them stale. The tests fail each read after a
+  selection, a query change and a Refresh and assert both the cleared/retained
+  state and the warning.
 - **The desktop Feed Health card reads the running scheduler**: the adapter
   returned an empty list unconditionally, so the Oracle page always said
   "(no feed activity yet)" while `GET /api/v1/oracle/health` had counters. The

@@ -38,6 +38,15 @@ type oracleState struct {
 	healthErr error
 	data      []DataRow
 	latest    *DataRow
+	// The Query and Latest cards are caches keyed by the source (and, for
+	// Query, the limit). A selection or fetch changes those inputs; without
+	// the key, a failed read left the previous source's value under the new
+	// id. The error keeps a failed same-input refresh visible.
+	dataErr            error
+	dataLoadedSource   string
+	dataLoadedLimit    int
+	latestErr          error
+	latestLoadedSource string
 
 	loadErr error
 	// templatesErr is the last failure to read the preset catalog; old presets
@@ -196,10 +205,14 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 				// A reading just stored must appear in the read cards already
 				// showing that source; leaving the old value beside "Done"
 				// reads as a fetch that stored nothing.
-				if strings.TrimSpace(a.oracle.queryID) == sourceID && len(a.oracle.data) > 0 {
-					_ = a.loadOracleData(sourceID, a.oracleQueryLimit())
+				if strings.TrimSpace(a.oracle.queryID) == sourceID &&
+					(len(a.oracle.data) > 0 || a.oracle.dataErr != nil) {
+					limit := a.oracleQueryLimit()
+					a.clearOracleDataForAnotherRead(sourceID, limit)
+					_ = a.loadOracleData(sourceID, limit)
 				}
-				if strings.TrimSpace(a.oracle.latestID) == sourceID && a.oracle.latest != nil {
+				if strings.TrimSpace(a.oracle.latestID) == sourceID &&
+					(a.oracle.latest != nil || a.oracle.latestErr != nil) {
 					_ = a.loadOracleLatest(sourceID)
 				}
 			}
@@ -246,9 +259,13 @@ func (a *App) deleteOracleSource() {
 	if err == nil {
 		if strings.TrimSpace(a.oracle.queryID) == id {
 			a.oracle.data = nil
+			a.oracle.dataErr = nil
+			a.oracle.dataLoadedSource = ""
 		}
 		if strings.TrimSpace(a.oracle.latestID) == id {
 			a.oracle.latest = nil
+			a.oracle.latestErr = nil
+			a.oracle.latestLoadedSource = ""
 		}
 	}
 	a.loadOracle()
@@ -420,14 +437,19 @@ func (a *App) oracleReadBody(c *ui.Context) {
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Query").Clicked() {
 			sourceID := strings.TrimSpace(a.oracle.queryID)
-			if err := a.loadOracleData(sourceID, a.oracleQueryLimit()); err != nil {
+			limit := a.oracleQueryLimit()
+			a.clearOracleDataForAnotherRead(sourceID, limit)
+			if err := a.loadOracleData(sourceID, limit); err != nil {
 				a.oracle.status = errStatus(err)
-				a.oracle.data = nil
 			} else {
 				a.oracle.status = statusLine{}
 			}
 		}
 	})
+	if a.oracle.dataErr != nil &&
+		!loadWarning(c, "Couldn't load readings", a.oracle.dataErr, len(a.oracle.data) > 0) {
+		return
+	}
 	if len(a.oracle.data) > 0 {
 		data := a.oracle.data
 		ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
@@ -444,14 +466,21 @@ func (a *App) oracleReadBody(c *ui.Context) {
 	}
 }
 
-// refreshOracleReads re-reads the Query and Latest cards that are already
-// showing data, for the Refresh action.
+// refreshOracleReads re-reads the Query and Latest cards that are already open
+// (they hold rows or a failure). The key check invalidates a card whose source
+// or limit changed, so a failed read cannot leave the previous answer under
+// the new input.
 func (a *App) refreshOracleReads() {
-	if len(a.oracle.data) > 0 {
-		_ = a.loadOracleData(strings.TrimSpace(a.oracle.queryID), a.oracleQueryLimit())
+	if len(a.oracle.data) > 0 || a.oracle.dataErr != nil {
+		sourceID := strings.TrimSpace(a.oracle.queryID)
+		limit := a.oracleQueryLimit()
+		a.clearOracleDataForAnotherRead(sourceID, limit)
+		_ = a.loadOracleData(sourceID, limit)
 	}
-	if a.oracle.latest != nil {
-		_ = a.loadOracleLatest(strings.TrimSpace(a.oracle.latestID))
+	if a.oracle.latest != nil || a.oracle.latestErr != nil {
+		sourceID := strings.TrimSpace(a.oracle.latestID)
+		a.clearOracleLatestForAnotherSource(sourceID)
+		_ = a.loadOracleLatest(sourceID)
 	}
 }
 
@@ -468,24 +497,53 @@ func (a *App) oracleQueryLimit() int {
 	return limit
 }
 
-// loadOracleData reads a source's recent values into the Query card.
+// loadOracleData reads a source's recent values into the Query card. A failure
+// keeps the rows only when the same source and limit produced them; the caller
+// invalidates them when either input changes.
 func (a *App) loadOracleData(sourceID string, limit int) error {
 	rows, err := a.services.OracleData(sourceID, limit)
 	if err != nil {
+		a.oracle.dataErr = err
+		a.oracle.dataLoadedSource, a.oracle.dataLoadedLimit = sourceID, limit
 		return err
 	}
 	a.oracle.data = rows
+	a.oracle.dataLoadedSource, a.oracle.dataLoadedLimit = sourceID, limit
+	a.oracle.dataErr = nil
 	return nil
 }
 
-// loadOracleLatest reads a source's newest value into the Latest card.
+func (a *App) clearOracleDataForAnotherRead(sourceID string, limit int) {
+	if a.oracle.dataLoadedSource == sourceID && a.oracle.dataLoadedLimit == limit {
+		return
+	}
+	a.oracle.data = nil
+	a.oracle.dataErr = nil
+	a.oracle.dataLoadedSource = ""
+}
+
+// loadOracleLatest reads a source's newest value into the Latest card. The
+// source is the key: a failure keeps the value only for the same source.
 func (a *App) loadOracleLatest(sourceID string) error {
 	data, err := a.services.OracleLatest(sourceID)
 	if err != nil {
+		a.oracle.latestErr = err
+		a.oracle.latestLoadedSource = sourceID
 		return err
 	}
 	a.oracle.latest = &data
+	a.oracle.latestLoadedSource = sourceID
+	a.oracle.latestErr = nil
 	return nil
+}
+
+func (a *App) clearOracleLatestForAnotherSource(sourceID string) {
+	if a.oracle.latestLoadedSource == sourceID {
+		return
+	}
+	a.oracle.latest = nil
+	a.oracle.latestErr = nil
+	a.oracle.latestLoadedSource = ""
 }
 
 // oracleLatest draws the single-value read. It is its own section rather than
@@ -502,14 +560,19 @@ func (a *App) oracleLatestBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.latestID)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get Latest").Clicked() {
-			if err := a.loadOracleLatest(strings.TrimSpace(a.oracle.latestID)); err != nil {
+			sourceID := strings.TrimSpace(a.oracle.latestID)
+			a.clearOracleLatestForAnotherSource(sourceID)
+			if err := a.loadOracleLatest(sourceID); err != nil {
 				a.oracle.status = errStatus(err)
-				a.oracle.latest = nil
 			} else {
 				a.oracle.status = statusLine{}
 			}
 		}
 	})
+	if a.oracle.latestErr != nil &&
+		!loadWarning(c, "Couldn't load the latest value", a.oracle.latestErr, a.oracle.latest != nil) {
+		return
+	}
 	if l := a.oracle.latest; l != nil {
 		readout(c, []readoutRow{{"Value", l.Value}, {"Block", strconv.FormatInt(l.BlockHeight, 10)}})
 	}
