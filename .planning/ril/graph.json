@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 255,
+  "round": 256,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T07:00:38+00:00",
+  "updated_at": "2026-10-26T07:09:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 254,
+      "touched_round": 255,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -19981,6 +19981,47 @@
       "commit": "e406752",
       "title": "Wire desktop readouts to their real data",
       "description": "Desktop Feed Health reads api.Server scheduler stats; token history carries the replay nonce; the voting tally tracks its loaded session and reports failed reads."
+    },
+    "ISS-439": {
+      "id": "ISS-439",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:02:18+00:00",
+      "updated_at": "2026-10-26T07:09:26+00:00",
+      "touched_round": 255,
+      "title": "Desktop readouts can keep another subject data after a failed reload",
+      "description": "Token Inspect/Balance/History, NFT Inspect/History and oracle Query/Latest are refreshed on selection and Refresh by checking only whether they currently hold a value. A failed read is ignored, so rows fetched for the previous token/NFT/source remain under the new id with no warning, and a same-subject refresh failure is invisible. Explicit reads clear data but still do not report the reload failure in the card.",
+      "severity": 0.75,
+      "confidence": 0.95
+    },
+    "TASK-394": {
+      "id": "TASK-394",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-26T07:02:24+00:00",
+      "updated_at": "2026-10-26T07:09:26+00:00",
+      "touched_round": 255,
+      "category": "correctness",
+      "title": "Key every desktop readout to its inputs and surface failed reloads",
+      "description": "Track the subject each token/NFT/oracle readout was loaded for. Invalidate the readout when the subject or query changes before re-reading, keep same-subject rows on failure with a stale warning, never fall through to an empty-state note after a failure, and clear errors on recovery. Cover selection, create, explicit read, Refresh and fetch paths.",
+      "severity": 0.75,
+      "confidence": 0.9,
+      "effort": 3,
+      "unlock_factor": 1
+    },
+    "CHG-453": {
+      "id": "CHG-453",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:09:25+00:00",
+      "updated_at": "2026-10-26T07:09:25+00:00",
+      "touched_round": 255,
+      "commit": "adfb1fe",
+      "title": "Key desktop readouts to their inputs",
+      "description": "Token, NFT and oracle detail readouts track their subject/query, invalidate before a changed read, retain same-input rows with a stale warning on failure, and surface the reason in the card."
     }
   },
   "edges": [
@@ -30358,6 +30399,30 @@
       "to": "TASK-393",
       "type": "implements",
       "created_at": "2026-10-26T07:00:38+00:00"
+    },
+    {
+      "from": "TASK-394",
+      "to": "ISS-439",
+      "type": "addresses",
+      "created_at": "2026-10-26T07:02:24+00:00"
+    },
+    {
+      "from": "ISS-439",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T07:02:24+00:00"
+    },
+    {
+      "from": "CHG-453",
+      "to": "ISS-439",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:09:26+00:00"
+    },
+    {
+      "from": "CHG-453",
+      "to": "TASK-394",
+      "type": "implements",
+      "created_at": "2026-10-26T07:09:26+00:00"
     }
   ]
 }
