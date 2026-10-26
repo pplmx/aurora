@@ -63,9 +63,9 @@ desktop          ─┘                                              ^
 `errors.Is(err, sqlite.ErrNotFound)` / `sqlite.ErrAlreadyVoted` 把仓储结果映射成
 领域错误。应用层因此知道 SQLite 的存在。
 
-**目标**：把仓储通用的 not-found/already-voted 哨兵放进领域侧的共享小包
-（或各领域包），`infra/sqlite` 返回同一个哨兵（可用 alias 保持旧测试），应用层
-只 import 领域。这样替换存储实现时不会连带改用例。
+**已做**：通用 not-found 哨兵移到 `internal/domain/repoerr`；`sqlite.ErrNotFound`
+和 `sqlite.ErrAlreadyVoted` 保留为 alias，分别指向 `repoerr.ErrNotFound` 与
+`voting.ErrAlreadyVoted`。`oracleapp`/`votingapp` 不再 import `infra/sqlite`。
 
 ### 3. `api.Server` 是表示层 + 组合根 + 服务容器
 
@@ -124,7 +124,7 @@ internal/
 
 - [x] 建立依赖事实表，确定“domain 不碰 infra”的硬规则。
 - [x] `internal/domain/blockchain` → `internal/blockchain`，同步 import/文档。
-- [ ] 领域错误包，移除 `app` → `infra/sqlite` 的错误哨兵依赖。
+- [x] 领域错误包，移除 `app` → `infra/sqlite` 的错误哨兵依赖。
 - [ ] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
       `native_token.go` / `native_nft.go` / `native_oracle.go` /
       `native_ledger.go`。

@@ -3,18 +3,15 @@ package sqlite
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
 	_ "modernc.org/sqlite"
 )
 
-// ErrAlreadyVoted is returned by TryMarkVoted when the voter has already
-// cast a vote. The usecase surfaces this as a 409 Conflict at the HTTP
-// boundary. Returning a sentinel error (not just sql.ErrNoRows) lets the
-// caller distinguish "lost the race" from "no such voter".
-var ErrAlreadyVoted = errors.New("voter has already voted")
+// ErrAlreadyVoted is an alias for the domain sentinel. The repository returns
+// it so the use case can classify a lost race without importing this package.
+var ErrAlreadyVoted = voting.ErrAlreadyVoted
 
 // votingExec abstracts *sql.DB and *sql.Tx so VotingRepository can run
 // either against the pool or inside an explicit transaction.

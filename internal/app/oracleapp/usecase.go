@@ -9,8 +9,8 @@ import (
 
 	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/pplmx/aurora/internal/infra/http"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 type FetcherInterface interface {
@@ -270,7 +270,7 @@ func (uc *DeleteSourceUseCase) Execute(id string) error {
 	// not report "deleted": mirror Enable/Disable, whose repo primitives return
 	// not-found and are mapped here (TASK-233, ISS-231).
 	if err := uc.repo.DeleteSource(id); err != nil {
-		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, sqlite.ErrNotFound) {
+		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, repoerr.ErrNotFound) {
 			return oracle.ErrSourceNotFound
 		}
 		return err
@@ -290,7 +290,7 @@ func (uc *EnableSourceUseCase) Execute(id string) error {
 	// Atomic primitive: closes the TOCTOU window where
 	// Enable-vs-UpdateURL could clobber each other's fields.
 	if err := uc.repo.SetSourceEnabled(id, true); err != nil {
-		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, sqlite.ErrNotFound) {
+		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, repoerr.ErrNotFound) {
 			return oracle.ErrSourceNotFound
 		}
 		return err
@@ -310,7 +310,7 @@ func (uc *DisableSourceUseCase) Execute(id string) error {
 	// Atomic primitive: closes the TOCTOU window where
 	// Disable-vs-UpdateURL could clobber each other's fields.
 	if err := uc.repo.SetSourceEnabled(id, false); err != nil {
-		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, sqlite.ErrNotFound) {
+		if errors.Is(err, oracle.ErrSourceNotFound) || errors.Is(err, repoerr.ErrNotFound) {
 			return oracle.ErrSourceNotFound
 		}
 		return err

@@ -325,6 +325,17 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The ledger subsystem is no longer presented as a domain package**:
+  `internal/domain/blockchain` moved to `internal/blockchain`, where its SQLite
+  bootstrap, singleton and file-permission work no longer blur the pure
+  `domain` boundary. The package API and behavior are unchanged; a new
+  `docs/architecture.md` records the dependency contract and the remaining
+  refactor order.
+- **Application use cases no longer import SQLite for error classification**:
+  the generic not-found sentinel now lives in `internal/domain/repoerr`, and
+  SQLite keeps compatibility aliases for it and `voting.ErrAlreadyVoted`.
+  `oracleapp`/`votingapp` depend on domain errors only, so the storage
+  implementation can change without editing a use case.
 - **The whole desktop follows the language switch, not only its menu**: page
   titles and purposes, navigation, buttons, field labels, hints, empty states,
   table headers, guides, dialogs and status lines go through `nativeui.tr`.
