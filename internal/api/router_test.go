@@ -147,8 +147,8 @@ func TestRouter_RegistersAllExpectedRoutes(t *testing.T) {
 	viper.Set("api.key", "test-api-key")
 
 	srv := &Server{
-		db:             openInMemorySQLite(t),
-		lotteryHandler: nil, // Routes() is called via package wiring only when non-nil
+		db:       openInMemorySQLite(t),
+		handlers: &handlers{}, // route registration only needs method values
 	}
 	router := newRouter(srv)
 
@@ -289,11 +289,11 @@ func TestNewServer_SuccessWithTempDB(t *testing.T) {
 	t.Cleanup(func() { _ = srv.Close() })
 
 	assert.NotNil(t, srv.db)
-	assert.NotNil(t, srv.lotteryHandler)
-	assert.NotNil(t, srv.votingHandler)
-	assert.NotNil(t, srv.nftHandler)
-	assert.NotNil(t, srv.tokenHandler)
-	assert.NotNil(t, srv.oracleHandler)
+	assert.NotNil(t, srv.handlers.lottery)
+	assert.NotNil(t, srv.handlers.voting)
+	assert.NotNil(t, srv.handlers.nft)
+	assert.NotNil(t, srv.handlers.token)
+	assert.NotNil(t, srv.handlers.oracle)
 
 	// Router must be non-nil and serve liveness.
 	router := srv.Router()

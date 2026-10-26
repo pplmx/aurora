@@ -8,12 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pplmx/aurora/internal/api/handler"
 	"github.com/pplmx/aurora/internal/app/container"
 	"github.com/pplmx/aurora/internal/app/oracleapp"
-	"github.com/pplmx/aurora/internal/config"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/metrics"
 )
 
@@ -28,12 +25,7 @@ type Server struct {
 	oracleMu             sync.Mutex
 	oracleScheduler      *oracleapp.Scheduler
 	oracleSchedulerFetch *oracleapp.FetchDataUseCase
-	lotteryHandler       *handler.LotteryHandler
-	votingHandler        *handler.VotingHandler
-	nftHandler           *handler.NFTHandler
-	tokenHandler         *handler.TokenHandler
-	oracleHandler        *handler.OracleHandler
-	blockchainHandler    *handler.BlockchainHandler
+	handlers             *handlers
 }
 
 // Close releases the container (every SQLite handle and the shared ledger).
@@ -51,15 +43,7 @@ func NewServer() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	srv := &Server{db: c.DB, container: c, metrics: metrics.NewRegistry()}
-	srv.lotteryHandler = handler.NewLotteryHandler(c.LotteryRepo, config.LotteryDefaultCount())
-	srv.votingHandler = handler.NewVotingHandler(c.VotingRepo, sqlite.NewTxManager(c.DB))
-	srv.votingHandler.SetChain(c.Chain)
-	srv.nftHandler = handler.NewNFTHandler(c.NFTRepo, sqlite.NewTxManager(c.NFTRepo.GetDB()))
-	srv.tokenHandler = handler.NewTokenHandler(c.TokenService)
-	srv.oracleHandler = handler.NewOracleHandler(c.OracleRepo)
-	srv.oracleHandler.SetChain(c.Chain)
-	srv.blockchainHandler = handler.NewBlockchainHandler()
+	srv := &Server{db: c.DB, container: c, metrics: metrics.NewRegistry(), handlers: newHandlers(c)}
 	return srv, nil
 }
 
@@ -126,8 +110,8 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 	s.oracleMu.Unlock()
 	// Expose the scheduler's fetch-health stats to the protected
 	// GET /api/v1/oracle/health endpoint (v1.33), not just /metrics/oracle.
-	if s.oracleHandler != nil {
-		s.oracleHandler.SetStats(sched)
+	if s.handlers != nil {
+		s.handlers.oracle.SetStats(sched)
 	}
 	schedCtx, cancel := context.WithCancel(ctx)
 	go sched.Run(schedCtx)

@@ -74,28 +74,36 @@ func newRouter(s *Server) http.Handler {
 		}
 		api.Use(apimw.APIKeyAuth(apiKey))
 
+		// A Server built only for health/metrics tests has no handlers. Keep
+		// route registration possible; the nil method values still return an
+		// auth response before a handler runs.
+		h := s.handlers
+		if h == nil {
+			h = &handlers{}
+		}
+
 		api.Route("/api/v1/lottery", func(r chi.Router) {
-			s.lotteryHandler.Routes(r)
+			h.lottery.Routes(r)
 		})
 
 		api.Route("/api/v1/voting", func(r chi.Router) {
-			s.votingHandler.Routes(r)
+			h.voting.Routes(r)
 		})
 
 		api.Route("/api/v1/nft", func(r chi.Router) {
-			s.nftHandler.Routes(r)
+			h.nft.Routes(r)
 		})
 
 		api.Route("/api/v1/token", func(r chi.Router) {
-			s.tokenHandler.Routes(r)
+			h.token.Routes(r)
 		})
 
 		api.Route("/api/v1/oracle", func(r chi.Router) {
-			s.oracleHandler.Routes(r)
+			h.oracle.Routes(r)
 		})
 
 		api.Route("/api/v1/blockchain", func(r chi.Router) {
-			s.blockchainHandler.Routes(r)
+			h.blockchain.Routes(r)
 		})
 	})
 

@@ -365,6 +365,10 @@ documented in their per-milestone ROADMAP files.
   contracts, constructor, transaction helpers and request types; queries, mint,
   transfer, approval and burn live in service_*.go files. The 811-line file is
   now a 223-line core plus focused units.
+- **API handler assembly has its own seam**: `internal/api/handlers.go` builds
+  the six handlers from a container; `Server` keeps lifecycle, metrics and the
+  scheduler. Router tests may still construct a handler-less server without a
+  nil dereference.
 - **Transaction management is one shared port**: token, NFT and voting domain
   packages now alias `ledger.TransactionManager` instead of declaring three
   identical interfaces. Existing mocks and constructors stay source-compatible.

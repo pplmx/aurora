@@ -80,9 +80,12 @@ desktop          ─┘                                              ^
 构造 handler 和 oracle 调度器，`Close`/`Services` 委托给容器。容器是唯一的
 存储句柄所有者，桌面仍通过同一份实例驱动窗口。
 
-**下一步**：把 `api.Server` 中剩余的 handler/调度器组装也收进一个 HTTP
-模块的函数，让 `Server` 成为纯路由宿主；`Services()` 可进一步改成窄接口，
-避免桌面看到具体 SQLite 类型。
+**已做**：handler 组装移到 `internal/api/handlers.go`；`Server` 只持有
+container、metrics、scheduler 和 handler 集，构造失败不再散落在 `NewServer`。
+路由在测试构造的无 handler Server 上仍可注册（nil 方法值只会在鉴权后失败）。
+
+**下一步**：把 oracle scheduler 的生命周期也从 `Server` 抽出；`Services()`
+可进一步改成桌面所需的窄接口，避免看到具体 SQLite 类型。
 
 ### 4. 桌面适配器重复组合并泄漏具体类型
 
