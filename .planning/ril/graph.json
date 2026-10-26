@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 269,
+  "round": 270,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T09:39:17+00:00",
+  "updated_at": "2026-10-26T09:41:06+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20424,7 +20424,7 @@
       "version": 2,
       "created_at": "2026-10-26T08:48:29+00:00",
       "updated_at": "2026-10-26T08:48:37+00:00",
-      "touched_round": 266,
+      "touched_round": 269,
       "category": "core-feature",
       "title": "Localize the whole desktop window",
       "description": "Translate every nativeui label through a literal-keyed helper, add a desktop Chinese table, keep service errors verbatim, and test a Chinese dashboard/Token page. Merge the desktop table into the English and Chinese catalogs without changing CLI keys.",
@@ -20526,6 +20526,18 @@
       "commit": "70ed3ee",
       "title": "Localize known service errors",
       "description": "errStatus translates exact messages and wrapped tails; unknown diagnostics stay original; Chinese domain error table added."
+    },
+    "CHG-467": {
+      "id": "CHG-467",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T09:41:06+00:00",
+      "updated_at": "2026-10-26T09:41:06+00:00",
+      "touched_round": 269,
+      "commit": 4.811e+79,
+      "title": "Match stable page ids in ShowPage",
+      "description": "Page ids are checked before translated titles; tests cover every id."
     }
   },
   "edges": [
@@ -31221,6 +31233,12 @@
       "to": "TASK-406",
       "type": "implements",
       "created_at": "2026-10-26T09:39:17+00:00"
+    },
+    {
+      "from": "CHG-467",
+      "to": "TASK-404",
+      "type": "implements",
+      "created_at": "2026-10-26T09:41:06+00:00"
     }
   ]
 }
