@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 230,
+  "round": 231,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-25T18:04:40+00:00",
+  "updated_at": "2026-10-26T04:14:11+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -18858,6 +18858,489 @@
         "Fetch sources concurrently: changes the failure model and makes per-source backoff meaningless",
         "Fail the whole page on one undecodable row: one corrupt record would hide all healthy history"
       ]
+    },
+    "ISS-392": {
+      "id": "ISS-392",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:12:24+00:00",
+      "updated_at": "2026-10-26T04:12:59+00:00",
+      "touched_round": 231,
+      "title": "Desktop pages blanked the rows they had already loaded on a refresh failure",
+      "severity": 0.4,
+      "description": "Voting did not render loadErr at all, and the other pages returned on the error line alone, so a transient read failure hid content the loaders had kept. The renderer now keeps the last successful rows, labels them stale, and shows failures instead of empty-state notes."
+    },
+    "CHG-408": {
+      "id": "CHG-408",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-26T04:12:59+00:00",
+      "updated_at": "2026-10-26T04:13:42+00:00",
+      "touched_round": 231,
+      "commit": "1e05346",
+      "title": "Render a failed refresh as a warning above the last loaded rows"
+    },
+    "CHG-409": {
+      "id": "CHG-409",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:12:59+00:00",
+      "updated_at": "2026-10-26T04:12:59+00:00",
+      "touched_round": 231,
+      "commit": "6c1498b",
+      "title": "Order lottery history by chain height within a second and index it"
+    },
+    "ISS-393": {
+      "id": "ISS-393",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:13:42+00:00",
+      "updated_at": "2026-10-26T04:14:06+00:00",
+      "touched_round": 231,
+      "title": "Lottery history ordered same-second draws by insertion order",
+      "severity": 0.45,
+      "description": "GetAll ordered by timestamp DESC alone; two draws in one second tied and SQLite returned rowid order, so an older imported draw came first and paged requests could repeat or skip a row. The order is timestamp DESC, block_height DESC, id, backed by idx_lottery_recency (migration 000007)."
+    },
+    "ISS-394": {
+      "id": "ISS-394",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:06+00:00",
+      "updated_at": "2026-10-26T04:14:07+00:00",
+      "touched_round": 231,
+      "title": "Two CLI help screens printed raw translation keys",
+      "severity": 0.35,
+      "description": "lottery.tui.title and migrate.repair_confirm had no catalog entry, so T rendered the key itself in --help. The first now uses lottery.cmd, the second migrate.repair_long, and internal/repocheck scans literal GetText/T calls against both catalogs."
+    },
+    "CHG-410": {
+      "id": "CHG-410",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:06+00:00",
+      "updated_at": "2026-10-26T04:14:06+00:00",
+      "touched_round": 231,
+      "commit": "40c4a0f",
+      "title": "Use catalogued keys and fail the build when a used key is missing"
+    },
+    "ISS-395": {
+      "id": "ISS-395",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:07+00:00",
+      "updated_at": "2026-10-26T04:14:07+00:00",
+      "touched_round": 231,
+      "title": "Global CLI flags and the repair prompt were not localized",
+      "severity": 0.3,
+      "description": "--config and --http-timeout were hardcoded English while module flags were translated, and migrate repair used its long description as the --confirm action phrase. Both flags and the action phrase now come from the catalogs; the repocheck scan also checks requireConfirm/addConfirmFlag keys."
+    },
+    "CHG-411": {
+      "id": "CHG-411",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:07+00:00",
+      "updated_at": "2026-10-26T04:14:07+00:00",
+      "touched_round": 231,
+      "commit": "382f45f",
+      "title": "Localize the global flags and give repair a short action phrase"
+    },
+    "ISS-396": {
+      "id": "ISS-396",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:07+00:00",
+      "updated_at": "2026-10-26T04:14:07+00:00",
+      "touched_round": 231,
+      "title": "docs/cli.md omitted aurora token list and described nft list as owner-only",
+      "severity": 0.3,
+      "description": "The reference had no token list line, and its NFT section predated listing without an owner; the nft.list help text still said 'by owner'. Two repocheck tests now walk the cobra tree from cmd/aurora/cmd and fail on an undocumented command or a documented dead path."
+    },
+    "CHG-412": {
+      "id": "CHG-412",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:07+00:00",
+      "updated_at": "2026-10-26T04:14:07+00:00",
+      "touched_round": 231,
+      "commit": "40fd9ee",
+      "title": "Document token list and pin the CLI reference to the command tree"
+    },
+    "ISS-397": {
+      "id": "ISS-397",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:07+00:00",
+      "updated_at": "2026-10-26T04:14:07+00:00",
+      "touched_round": 231,
+      "title": "The desktop Voting page could not reach the ids it asked for and one-time keys could not leave the window",
+      "severity": 0.55,
+      "description": "Candidates were loaded but never rendered, session rows showed 12-character UUIDs with no selection, and the voter registration's private key existed only in a non-selectable status line. Candidates and sessions now render with row selection, new ids and key pairs have Copy buttons, and the NFT owner filter is list state."
+    },
+    "CHG-413": {
+      "id": "CHG-413",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:07+00:00",
+      "updated_at": "2026-10-26T04:14:07+00:00",
+      "touched_round": 231,
+      "commit": "feadf45",
+      "title": "Render the voting lists, fill ids from rows, and copy one-time values"
+    },
+    "ISS-398": {
+      "id": "ISS-398",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:07+00:00",
+      "updated_at": "2026-10-26T04:14:08+00:00",
+      "touched_round": 231,
+      "title": "The desktop window had no shared design system and the session window required epoch seconds",
+      "severity": 0.3,
+      "description": "Sidebar rows had no glyphs, cards were a border alone, and the button appearance varied by call site. The window now has a brand block, per-page Lucide icons, elevated cards, four button styles with hover/press feedback, and Ctrl/Cmd+1..7; the session form edits local dates with DateInput/TimeInput, defaulting to now -> +24h."
+    },
+    "CHG-414": {
+      "id": "CHG-414",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:07+00:00",
+      "updated_at": "2026-10-26T04:14:07+00:00",
+      "touched_round": 231,
+      "commit": "cfe7181",
+      "title": "Unify the desktop chrome and edit the session window as local time"
+    },
+    "ISS-399": {
+      "id": "ISS-399",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:08+00:00",
+      "updated_at": "2026-10-26T04:14:08+00:00",
+      "touched_round": 231,
+      "title": "Desktop feedback contradicted successful writes and destructive dialogs named no target",
+      "severity": 0.45,
+      "description": "Mint/transfer/burn/NFT writes left the collection, Inspect, history and open tally at pre-write values; burn/delete dialogs said only 'this'. Successes now re-read what the page shows, failed refreshes keep previous rows, dialogs name amount/account/asset/source, and copies raise a toast."
+    },
+    "CHG-415": {
+      "id": "CHG-415",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:08+00:00",
+      "updated_at": "2026-10-26T04:14:08+00:00",
+      "touched_round": 231,
+      "commit": "a3fc170",
+      "title": "Refresh after writes and name the target in destructive confirmations"
+    },
+    "ISS-400": {
+      "id": "ISS-400",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:08+00:00",
+      "updated_at": "2026-10-26T04:14:08+00:00",
+      "touched_round": 231,
+      "title": "The desktop status line scrolled out of view with the form",
+      "severity": 0.4,
+      "description": "Each page drew its statusLine as the first scrolling child (Token inside its left column), so an action at the bottom could fail above the viewport. pageStatus() now renders once in the fixed chrome below the header; design_test scrolls the body and asserts the line does not move."
+    },
+    "CHG-416": {
+      "id": "CHG-416",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:08+00:00",
+      "updated_at": "2026-10-26T04:14:08+00:00",
+      "touched_round": 231,
+      "commit": "4a20c19",
+      "title": "Render the page outcome in the fixed chrome"
+    },
+    "ISS-401": {
+      "id": "ISS-401",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:08+00:00",
+      "updated_at": "2026-10-26T04:14:08+00:00",
+      "touched_round": 231,
+      "title": "The desktop dashboard answered how much but not what happened",
+      "severity": 0.25,
+      "description": "The landing page showed six counters and a ledger verdict only. A Recent activity card lists the newest five chain entries from LedgerBlocks, with its own error line so a chain read failure cannot blank the counters."
+    },
+    "CHG-417": {
+      "id": "CHG-417",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:08+00:00",
+      "updated_at": "2026-10-26T04:14:08+00:00",
+      "touched_round": 231,
+      "commit": "de6d6b6",
+      "title": "List the newest chain entries on the dashboard"
+    },
+    "ISS-402": {
+      "id": "ISS-402",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:08+00:00",
+      "updated_at": "2026-10-26T04:14:09+00:00",
+      "touched_round": 231,
+      "title": "The desktop collections could not be narrowed and the tally made the reader add the column",
+      "severity": 0.3,
+      "description": "Tokens and NFTs loaded every row with no search; the Results card had no total. Both collections now have a SearchField by id/name/symbol, and the Results card prints the sum of the per-candidate counts."
+    },
+    "CHG-418": {
+      "id": "CHG-418",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:08+00:00",
+      "updated_at": "2026-10-26T04:14:08+00:00",
+      "touched_round": 231,
+      "commit": "b60ce44",
+      "title": "Search tokens and NFTs and show the tally total"
+    },
+    "ISS-403": {
+      "id": "ISS-403",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:09+00:00",
+      "updated_at": "2026-10-26T04:14:09+00:00",
+      "touched_round": 231,
+      "title": "A custom voting session roster required copying UUIDs by hand",
+      "severity": 0.4,
+      "description": "The Create Session field takes comma-separated ids, so any roster other than 'every candidate' needed manual UUID copies from a shortened table. Choosing a candidate and pressing Add to session roster appends it once to the field."
+    },
+    "CHG-419": {
+      "id": "CHG-419",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:09+00:00",
+      "updated_at": "2026-10-26T04:14:09+00:00",
+      "touched_round": 231,
+      "commit": "b5baf93",
+      "title": "Build a session roster from the candidate list"
+    },
+    "ISS-404": {
+      "id": "ISS-404",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:09+00:00",
+      "updated_at": "2026-10-26T04:14:09+00:00",
+      "touched_round": 231,
+      "title": "The desktop page shortcuts were undiscoverable",
+      "severity": 0.25,
+      "description": "Ctrl/Cmd+1..7 worked but no UI element named them. A Go menu lists the pages in sidebar order with the same accelerators, built after the app state exists; NewMenu takes the page switcher and omits the menu when nil."
+    },
+    "CHG-420": {
+      "id": "CHG-420",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:09+00:00",
+      "updated_at": "2026-10-26T04:14:09+00:00",
+      "touched_round": 231,
+      "commit": "145c2a3",
+      "title": "Add a Go menu for the seven pages"
+    },
+    "ISS-405": {
+      "id": "ISS-405",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:09+00:00",
+      "updated_at": "2026-10-26T04:14:09+00:00",
+      "touched_round": 231,
+      "title": "The desktop voting candidate and session lists could not be searched",
+      "severity": 0.3,
+      "description": "Both lists loaded every row; the ballot candidate and the session a form needs became a scrolling hunt. Both gained a SearchField (id/name/party and id/title/status), with selection resolved against the filtered rows."
+    },
+    "CHG-421": {
+      "id": "CHG-421",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:09+00:00",
+      "updated_at": "2026-10-26T04:14:09+00:00",
+      "touched_round": 231,
+      "commit": "51576da",
+      "title": "Search the voting candidate and session lists"
+    },
+    "ISS-406": {
+      "id": "ISS-406",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:09+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "title": "The desktop draw history and oracle source lists could not be searched",
+      "severity": 0.3,
+      "description": "History and Data Sources loaded every stored row. Draws now filter by id, seed, participant or winner and sources by name, id, type or URL, with a chosen row resolved from the filtered slice."
+    },
+    "CHG-422": {
+      "id": "CHG-422",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:09+00:00",
+      "updated_at": "2026-10-26T04:14:09+00:00",
+      "touched_round": 231,
+      "commit": "e3d7727",
+      "title": "Search the draw history and oracle sources"
+    },
+    "ISS-407": {
+      "id": "ISS-407",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:10+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "title": "A desktop search left the row highlight on a different record",
+      "severity": 0.35,
+      "description": "Selection indexes the filtered rows, so an old index after a new query highlighted a different record than the forms still held. Each list tracks the applied query and clears the highlight when it changes."
+    },
+    "CHG-423": {
+      "id": "CHG-423",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:10+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "commit": "c30eeb8",
+      "title": "Clear the row highlight when a list query changes"
+    },
+    "ISS-408": {
+      "id": "ISS-408",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:10+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "title": "Desktop numeric forms rejected values for their spelling",
+      "severity": 0.3,
+      "description": "Winner count, token decimals, oracle interval and list sizes were text parsed on submit. They are ui.NumberInput now with domain bounds, an interval ceiling of 30 days and list sizes capped at 1000."
+    },
+    "CHG-424": {
+      "id": "CHG-424",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:10+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "commit": "e5af26c",
+      "title": "Use number inputs with the domain bounds"
+    },
+    "ISS-409": {
+      "id": "ISS-409",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:10+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "title": "Desktop write forms kept a used signing key on screen",
+      "severity": 0.4,
+      "description": "Token mint/transfer/approve/transfer-from/burn and NFT transfer/burn left the private key in its input after success. Each success clears its own field; a failure keeps it for the retry."
+    },
+    "CHG-425": {
+      "id": "CHG-425",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:10+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "commit": "1f78793",
+      "title": "Clear each signing key after its write succeeds"
+    },
+    "ISS-410": {
+      "id": "ISS-410",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:10+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "title": "The desktop could not create a token or mint an NFT without an external key generator",
+      "severity": 0.5,
+      "description": "Both forms required a base64 public key nothing in the window produced, while the CLI generates an owner pair when the flag is omitted. Generate key pair fills the field from a fresh Ed25519 pair and shows the private half once with Copy and Dismiss."
+    },
+    "CHG-426": {
+      "id": "CHG-426",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:10+00:00",
+      "updated_at": "2026-10-26T04:14:10+00:00",
+      "touched_round": 231,
+      "commit": "21c7922",
+      "title": "Generate owner/creator keys in the token and NFT forms"
+    },
+    "ISS-411": {
+      "id": "ISS-411",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:11+00:00",
+      "updated_at": "2026-10-26T04:14:11+00:00",
+      "touched_round": 231,
+      "title": "Long desktop free-text fields were single-line inputs",
+      "severity": 0.2,
+      "description": "The oracle Request Headers JSON and NFT Description could not be read while edited. Both are ui.TextArea through shared helpers."
+    },
+    "CHG-427": {
+      "id": "CHG-427",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:11+00:00",
+      "updated_at": "2026-10-26T04:14:11+00:00",
+      "touched_round": 231,
+      "commit": "b8f2b3e",
+      "title": "Use text areas for long free-text fields"
+    },
+    "ISS-412": {
+      "id": "ISS-412",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:14:11+00:00",
+      "updated_at": "2026-10-26T04:14:11+00:00",
+      "touched_round": 231,
+      "title": "A SQLITE_BUSY during migration surfaced as an opaque failure",
+      "severity": 0.35,
+      "description": "The migrate command reported the raw driver error, so a retryable lock from a concurrent reader looked like a broken migration. It now explains the conflict as retryable."
+    },
+    "CHG-428": {
+      "id": "CHG-428",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:14:11+00:00",
+      "updated_at": "2026-10-26T04:14:11+00:00",
+      "touched_round": 231,
+      "commit": "a4027e9",
+      "title": "Explain SQLITE_BUSY as a retryable conflict"
     }
   },
   "edges": [
@@ -28899,6 +29382,132 @@
       "to": "COMP-oracle",
       "type": "governs",
       "created_at": "2026-10-25T18:04:40+00:00"
+    },
+    {
+      "from": "CHG-408",
+      "to": "ISS-392",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:12:59+00:00"
+    },
+    {
+      "from": "CHG-409",
+      "to": "ISS-393",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:06+00:00"
+    },
+    {
+      "from": "CHG-410",
+      "to": "ISS-394",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:07+00:00"
+    },
+    {
+      "from": "CHG-411",
+      "to": "ISS-395",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:07+00:00"
+    },
+    {
+      "from": "CHG-412",
+      "to": "ISS-396",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:07+00:00"
+    },
+    {
+      "from": "CHG-413",
+      "to": "ISS-397",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:07+00:00"
+    },
+    {
+      "from": "CHG-414",
+      "to": "ISS-398",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:07+00:00"
+    },
+    {
+      "from": "CHG-415",
+      "to": "ISS-399",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:08+00:00"
+    },
+    {
+      "from": "CHG-416",
+      "to": "ISS-400",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:08+00:00"
+    },
+    {
+      "from": "CHG-417",
+      "to": "ISS-401",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:08+00:00"
+    },
+    {
+      "from": "CHG-418",
+      "to": "ISS-402",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:08+00:00"
+    },
+    {
+      "from": "CHG-419",
+      "to": "ISS-403",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:09+00:00"
+    },
+    {
+      "from": "CHG-420",
+      "to": "ISS-404",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:09+00:00"
+    },
+    {
+      "from": "CHG-421",
+      "to": "ISS-405",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:09+00:00"
+    },
+    {
+      "from": "CHG-422",
+      "to": "ISS-406",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:09+00:00"
+    },
+    {
+      "from": "CHG-423",
+      "to": "ISS-407",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:10+00:00"
+    },
+    {
+      "from": "CHG-424",
+      "to": "ISS-408",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:10+00:00"
+    },
+    {
+      "from": "CHG-425",
+      "to": "ISS-409",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:10+00:00"
+    },
+    {
+      "from": "CHG-426",
+      "to": "ISS-410",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:10+00:00"
+    },
+    {
+      "from": "CHG-427",
+      "to": "ISS-411",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:11+00:00"
+    },
+    {
+      "from": "CHG-428",
+      "to": "ISS-412",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:14:11+00:00"
     }
   ]
 }
