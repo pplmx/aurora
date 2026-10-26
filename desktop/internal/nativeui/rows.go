@@ -5,6 +5,43 @@ package nativeui
 // depends on a domain package's shape and a domain change cannot ripple into
 // layout code.
 
+// DrawRow is one draw as a view shows it.
+type DrawRow struct {
+	ID           string
+	BlockHeight  int64
+	Seed         string
+	Participants []string
+	Winners      []string
+	Timestamp    int64
+}
+
+// BlockRow is one audit block as the ledger page shows it.
+type BlockRow struct {
+	// Height is the block's position in the chain.
+	Height int64
+	// Module names the subsystem that recorded it, taken from the payload.
+	Module string
+	// Summary is the payload, shortened for a table cell.
+	Summary string
+}
+
+// VerifyResult is the outcome of re-checking a draw.
+type VerifyResult struct {
+	ID      string
+	Valid   bool
+	Summary string
+	Checks  []string
+}
+
+// New builds the window's state and loads the first page. A nil Services is a
+// programming error, not a user-visible condition: the shell only constructs
+// an App after it has wired the database.
+//
+// The first page is loaded here rather than on the first render because a view
+// only draws what the state already holds: a window that opened on the
+// dashboard and never switched pages showed "Loading…" forever, since nothing
+// else asked the services for the counters.
+
 // LedgerStatus is the audit chain's verified state.
 type LedgerStatus struct {
 	Valid  bool
