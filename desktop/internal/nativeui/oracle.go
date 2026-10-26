@@ -298,9 +298,7 @@ func (a *App) applyTemplate(id string) {
 		a.oracle.addURL = t.URL
 		a.oracle.addMethod = t.Method
 		a.oracle.addPath = t.Path
-		if t.Interval > 0 {
-			a.oracle.addInterval = float64(t.Interval)
-		}
+		a.oracle.addInterval = float64(t.Interval)
 		return
 	}
 }
@@ -324,6 +322,10 @@ func (a *App) addOracleSource() {
 	a.oracle.addName, a.oracle.addURL, a.oracle.addType = "", "", ""
 	a.oracle.addMethod, a.oracle.addPath, a.oracle.addHeaders = "", "", ""
 	a.oracle.addInterval = 0
+	// The preset choice is part of the form, not a permanent mode: leaving it
+	// selected would show a preset whose fields were just cleared, and picking
+	// it again would not report a change.
+	a.oracle.template = ""
 	a.loadOracle()
 }
 
