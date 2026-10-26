@@ -132,7 +132,7 @@ func (a *App) nftMint(c *ui.Context) {
 
 func (a *App) nftMintBody(c *ui.Context) {
 	field(c, "Name", &a.nft.name)
-	ui.Collapsible(c, "Optional details", &a.nft.mintAdvanced, func() {
+	ui.Collapsible(c, tr("Optional details"), &a.nft.mintAdvanced, func() {
 		textArea(c, "Description (optional)", &a.nft.description)
 		field(c, "Image URL (optional)", &a.nft.imageURL)
 		field(c, "Token URI (optional)", &a.nft.tokenURI)
@@ -150,7 +150,7 @@ func (a *App) nftMintBody(c *ui.Context) {
 		copyRow(c, "Creator private key", a.nft.creatorPriv, func() {
 			a.nft.status = okStatus("Creator private key copied.")
 		})
-		ui.Text(c, "This is the only copy of the creator key; the store keeps the public half.").
+		ui.Text(c, tr("This is the only copy of the creator key; the store keeps the public half.")).
 			FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
 	}
 	ui.Row(c).Children(func() {
@@ -293,7 +293,7 @@ func (a *App) nftListBody(c *ui.Context) {
 		emptyNote(c, "No NFTs yet. Mint one above.")
 		return
 	}
-	ui.SearchField(c, &a.nft.search).Label("Search NFTs")
+	ui.SearchField(c, &a.nft.search).Label(tr("Search NFTs"))
 	if a.nft.search != a.nft.appliedSearch {
 		a.nft.appliedSearch = a.nft.search
 		a.nft.selected = -1
@@ -305,14 +305,14 @@ func (a *App) nftListBody(c *ui.Context) {
 		}
 	}
 	if len(list) == 0 {
-		emptyNote(c, "No NFTs match “"+strings.TrimSpace(a.nft.search)+"”.")
+		emptyNote(c, fmt.Sprintf(tr("No NFTs match “%s”."), strings.TrimSpace(a.nft.search)))
 		return
 	}
 	a.nft.listTable.Selected = &a.nft.selected
 	table := ui.Table(c, &a.nft.listTable, []ui.TableColumn{
-		{Title: "ID", Width: 150},
-		{Title: "Name", MinWidth: 110},
-		{Title: "Block", Width: 80, Align: ui.End},
+		{Title: tr("ID"), Width: 150},
+		{Title: tr("Name"), MinWidth: 110},
+		{Title: tr("Block"), Width: 80, Align: ui.End},
 	}, len(list), func(row, col int) {
 		n := list[row]
 		switch col {
@@ -338,7 +338,7 @@ func (a *App) nftListBody(c *ui.Context) {
 }
 
 func (a *App) nftWrite(c *ui.Context) {
-	ui.Tabs(c, &a.nft.opTab, "Transfer", "Burn", "History")
+	ui.Tabs(c, &a.nft.opTab, tr("Transfer"), tr("Burn"), tr("History"))
 	switch a.nft.opTab {
 	case 0:
 		formCard(c, "Transfer", "Move an NFT to a new owner; the transfer is signed by the current one.", func() {
@@ -522,10 +522,10 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 	}
 	ops := a.nft.history
 	ui.Table(c, &a.nft.historyTable, []ui.TableColumn{
-		{Title: "Type", Width: 100},
-		{Title: "From", Width: 160},
-		{Title: "To", Width: 160},
-		{Title: "Block", Width: 80, Align: ui.End},
+		{Title: tr("Type"), Width: 100},
+		{Title: tr("From"), Width: 160},
+		{Title: tr("To"), Width: 160},
+		{Title: tr("Block"), Width: 80, Align: ui.End},
 	}, len(ops), func(row, col int) {
 		op := ops[row]
 		switch col {
@@ -547,15 +547,15 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 	}
 	// Say which asset is about to be destroyed. A name is friendlier than a
 	// UUID, but only when the Inspect card loaded that same asset.
-	detail := "The asset is destroyed and cannot be recovered."
+	detail := tr("The asset is destroyed and cannot be recovered.")
 	if id := strings.TrimSpace(a.nft.burnID); id != "" {
 		target := shortID(id)
 		if a.nft.nft != nil && a.nft.nft.ID == id && a.nft.nft.Name != "" {
 			target = a.nft.nft.Name + " (" + shortID(id) + ")"
 		}
-		detail = fmt.Sprintf("Burn %s? The asset is destroyed and cannot be recovered.", target)
+		detail = fmt.Sprintf(tr("Burn %s? The asset is destroyed and cannot be recovered."), target)
 	}
-	switch ui.AlertDialog(c, &a.nft.askBurn, "Burn this NFT?", detail, "Cancel", "Burn") {
+	switch ui.AlertDialog(c, &a.nft.askBurn, tr("Burn this NFT?"), detail, tr("Cancel"), tr("Burn")) {
 	case 1:
 		id := strings.TrimSpace(a.nft.burnID)
 		err := a.services.BurnNFT(id, strings.TrimSpace(a.nft.burnOwner), strings.TrimSpace(a.nft.burnPriv))

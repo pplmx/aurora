@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -119,7 +120,7 @@ func (a *App) oracleView(c *ui.Context) {
 		twoColumns(c, func() {
 			a.oracleAdd(c)
 		}, func() {
-			ui.Tabs(c, &a.oracle.tab, "Sources", "Health", "Readings")
+			ui.Tabs(c, &a.oracle.tab, tr("Sources"), tr("Health"), tr("Readings"))
 			switch a.oracle.tab {
 			case 0:
 				a.oracleSources(c)
@@ -147,7 +148,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		return
 	}
 	srcs := make([]SourceRow, 0, len(a.oracle.sources))
-	ui.SearchField(c, &a.oracle.search).Label("Search sources")
+	ui.SearchField(c, &a.oracle.search).Label(tr("Search sources"))
 	if a.oracle.search != a.oracle.appliedSearch {
 		a.oracle.appliedSearch = a.oracle.search
 		a.oracle.selected = -1
@@ -158,7 +159,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		}
 	}
 	if len(srcs) == 0 {
-		emptyNote(c, "No sources match “"+strings.TrimSpace(a.oracle.search)+"”.")
+		emptyNote(c, fmt.Sprintf(tr("No sources match “%s”."), strings.TrimSpace(a.oracle.search)))
 		return
 	}
 	// The id is a timestamp plus a hash, too long for a column that also holds
@@ -167,11 +168,11 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	// source reaches them without retyping an id nobody has in full.
 	a.oracle.sourceTable.Selected = &a.oracle.selected
 	table := ui.Table(c, &a.oracle.sourceTable, []ui.TableColumn{
-		{Title: "Name", MinWidth: 110},
-		{Title: "Type", Width: 100},
-		{Title: "ID", Width: 150},
-		{Title: "Status", Width: 100},
-		{Title: "Headers", Width: 100},
+		{Title: tr("Name"), MinWidth: 110},
+		{Title: tr("Type"), Width: 100},
+		{Title: tr("ID"), Width: 150},
+		{Title: tr("Status"), Width: 100},
+		{Title: tr("Headers"), Width: 100},
 	}, len(srcs), func(row, col int) {
 		s := srcs[row]
 		switch col {
@@ -183,15 +184,15 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 			ui.Text(c, shortID(s.ID)).SingleLine()
 		case 3:
 			if s.Enabled {
-				ui.Text(c, "enabled")
+				ui.Text(c, tr("enabled"))
 			} else {
-				ui.Text(c, "disabled")
+				ui.Text(c, tr("disabled"))
 			}
 		case 4:
 			if s.HasHeaders {
-				ui.Text(c, "configured")
+				ui.Text(c, tr("configured"))
 			} else {
-				ui.Text(c, "—")
+				ui.Text(c, tr("—"))
 			}
 		}
 	})
@@ -259,7 +260,7 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 	// Name the source being deleted, from the loaded list when it is there:
 	// the actions share one id field, and "Delete this source?" gave the
 	// operator nothing to check it against.
-	detail := "The source and its scheduling entry are removed. Readings already stored stay."
+	detail := tr("The source and its scheduling entry are removed. Readings already stored stay.")
 	if id := strings.TrimSpace(a.oracle.fetchID); id != "" {
 		target := shortID(id)
 		for _, source := range a.oracle.sources {
@@ -268,9 +269,9 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 				break
 			}
 		}
-		detail = "Delete " + target + "? Its scheduling entry is removed; readings already stored stay."
+		detail = fmt.Sprintf(tr("Delete %s? Its scheduling entry is removed; readings already stored stay."), target)
 	}
-	switch ui.AlertDialog(c, &a.oracle.askDelete, "Delete this source?", detail, "Cancel", "Delete") {
+	switch ui.AlertDialog(c, &a.oracle.askDelete, tr("Delete this source?"), detail, tr("Cancel"), tr("Delete")) {
 	case 1:
 		a.deleteOracleSource()
 	}
@@ -317,11 +318,11 @@ func (a *App) oracleAddBody(c *ui.Context) {
 		// It is labelled, because a bare box above "Name" read as a Name
 		// field with no caption.
 		names := make([]string, 0, len(a.oracle.templates)+1)
-		names = append(names, "— choose a preset —")
+		names = append(names, tr("— choose a preset —"))
 		for _, t := range a.oracle.templates {
 			names = append(names, t.ID+" — "+t.Name)
 		}
-		ui.Field(c, "Preset (optional)", func() {
+		ui.Field(c, tr("Preset (optional)"), func() {
 			if ui.Combobox(c, &a.oracle.template, names).Changed() &&
 				a.oracle.template != "" && a.oracle.template != names[0] {
 				a.applyTemplate(strings.SplitN(a.oracle.template, " — ", 2)[0])
@@ -330,13 +331,13 @@ func (a *App) oracleAddBody(c *ui.Context) {
 	}
 	field(c, "Name", &a.oracle.addName)
 	field(c, "URL", &a.oracle.addURL)
-	ui.Collapsible(c, "Advanced", &a.oracle.addAdvanced, func() {
+	ui.Collapsible(c, tr("Advanced"), &a.oracle.addAdvanced, func() {
 		field(c, "Type (optional)", &a.oracle.addType)
 		field(c, "Method (optional, defaults to GET)", &a.oracle.addMethod)
 		field(c, "Path (optional JSON field)", &a.oracle.addPath)
 		textAreaHint(c, "Request Headers (optional JSON object)",
 			"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
-		ui.Field(c, "Interval (seconds)", func() {
+		ui.Field(c, tr("Interval (seconds)"), func() {
 			ui.Column(c).Gap(2).Children(func() {
 				ui.NumberInput(c, &a.oracle.addInterval, 0, maxOracleIntervalSeconds, 1)
 				hint(c, "0 uses the default of 60; at most 30 days.")
@@ -422,11 +423,11 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		names[source.ID] = source.Name
 	}
 	ui.Table(c, &a.oracle.healthTable, []ui.TableColumn{
-		{Title: "Source"},
-		{Title: "Attempts", Width: 80, Align: ui.End},
-		{Title: "Successes", Width: 80, Align: ui.End},
-		{Title: "Failures", Width: 80, Align: ui.End},
-		{Title: "Last error"},
+		{Title: tr("Source")},
+		{Title: tr("Attempts"), Width: 80, Align: ui.End},
+		{Title: tr("Successes"), Width: 80, Align: ui.End},
+		{Title: tr("Failures"), Width: 80, Align: ui.End},
+		{Title: tr("Last error")},
 	}, len(health), func(row, col int) {
 		h := health[row]
 		switch col {
@@ -447,7 +448,7 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 			ui.Text(c, strconv.Itoa(h.Failures))
 		case 4:
 			if h.LastError == "" {
-				ui.Text(c, "—")
+				ui.Text(c, tr("—"))
 			} else {
 				ui.Text(c, h.LastError)
 			}
@@ -464,7 +465,7 @@ func (a *App) oracleRead(c *ui.Context) {
 
 func (a *App) oracleReadBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.queryID)
-	ui.Field(c, "Limit", func() {
+	ui.Field(c, tr("Limit"), func() {
 		ui.NumberInput(c, &a.oracle.queryLim, 1, maxListLimit, 1)
 	})
 	ui.Row(c).Children(func() {
@@ -486,8 +487,8 @@ func (a *App) oracleReadBody(c *ui.Context) {
 	if len(a.oracle.data) > 0 {
 		data := a.oracle.data
 		ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
-			{Title: "Value"},
-			{Title: "Block", Width: 80, Align: ui.End},
+			{Title: tr("Value")},
+			{Title: tr("Block"), Width: 80, Align: ui.End},
 		}, len(data), func(row, col int) {
 			d := data[row]
 			if col == 0 {
@@ -521,7 +522,7 @@ func (a *App) refreshOracleReads() {
 // means the scheduler never polls it, which is different from a very long one.
 func sourceInterval(seconds int) string {
 	if seconds <= 0 {
-		return "not polled"
+		return tr("not polled")
 	}
 	return strconv.Itoa(seconds) + "s"
 }

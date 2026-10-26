@@ -85,7 +85,7 @@ type statusLine struct {
 func (s statusLine) empty() bool { return s.text == "" }
 
 func okStatus(format string, args ...any) statusLine {
-	return statusLine{text: fmt.Sprintf(format, args...)}
+	return statusLine{text: fmt.Sprintf(tr(format), args...)}
 }
 
 func errStatus(err error) statusLine {
@@ -148,13 +148,13 @@ type guideState struct {
 // the operator asks "what is the order here?".
 func guide(c *ui.Context, open *bool, steps ...string) {
 	card(c, func() {
-		ui.Collapsible(c, "How this works", open, func() {
+		ui.Collapsible(c, tr("How this works"), open, func() {
 			ui.Column(c).Gap(6).Children(func() {
 				for i, step := range steps {
 					ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
-						ui.Text(c, fmt.Sprintf("%d.", i+1)).FontSize(textSize(c, 12)).Bold().
+						ui.Text(c, fmt.Sprintf(tr("%d."), i+1)).FontSize(textSize(c, 12)).Bold().
 							Width(18).TextColor(ui.Hex(aurora))
-						ui.Text(c, step).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+						ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 					})
 				}
 			})
@@ -165,7 +165,7 @@ func guide(c *ui.Context, open *bool, steps ...string) {
 // field builds a labelled input row. MyGo's Field draws the label above the
 // control it wraps, which is the same relationship the HTML <label for> had.
 func field(c *ui.Context, label string, value *string) {
-	ui.Field(c, label, func() {
+	ui.Field(c, tr(label), func() {
 		ui.TextInput(c, value)
 	})
 }
@@ -202,6 +202,7 @@ func dangerButton(c *ui.Context, label string) ui.Element {
 // quietButton is the small, low-emphasis action used inside a card: copying a
 // value, for instance, which should not compete with the card's main button.
 func quietButton(c *ui.Context, label string) ui.Element {
+	label = tr(label)
 	b := ui.ButtonBase(c).Height(26).PaddingX(10).Radius(6).
 		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(inkMuted))
 	fill := ui.Transparent
@@ -216,6 +217,7 @@ func quietButton(c *ui.Context, label string) ui.Element {
 }
 
 func styledButton(c *ui.Context, label string, fill, hover, pressed ui.Color, textColor string) ui.Element {
+	label = tr(label)
 	b := ui.ButtonBase(c).Height(34).PaddingX(14).Radius(buttonRadius).
 		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(textColor))
 	state := fill
@@ -240,7 +242,7 @@ func styledButton(c *ui.Context, label string, fill, hover, pressed ui.Color, te
 // fieldHint builds a labelled input with a hint under it, for inputs whose
 // accepted range is not obvious from the label.
 func fieldHint(c *ui.Context, label, hintText string, value *string) {
-	ui.Field(c, label, func() {
+	ui.Field(c, tr(label), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.TextInput(c, value)
 			hint(c, hintText)
@@ -251,7 +253,7 @@ func fieldHint(c *ui.Context, label, hintText string, value *string) {
 // textArea builds a labelled multi-line input, for values that are naturally
 // longer than one line (JSON headers, a description).
 func textArea(c *ui.Context, label string, value *string) {
-	ui.Field(c, label, func() {
+	ui.Field(c, tr(label), func() {
 		ui.TextArea(c, value).Height(64)
 	})
 }
@@ -259,7 +261,7 @@ func textArea(c *ui.Context, label string, value *string) {
 // textAreaHint is textArea with a line under it, for a value whose format the
 // label does not explain.
 func textAreaHint(c *ui.Context, label, hintText string, value *string) {
-	ui.Field(c, label, func() {
+	ui.Field(c, tr(label), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.TextArea(c, value).Height(64)
 			hint(c, hintText)
@@ -283,7 +285,7 @@ func textSize(c *ui.Context, size float32) float32 {
 // hint draws a muted line under a control, explaining a value the label
 // cannot.
 func hint(c *ui.Context, text string) {
-	ui.Text(c, text).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, tr(text)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
 }
 
 // shortID shortens an identifier for a table cell, keeping enough of it to
@@ -310,7 +312,7 @@ func joinList(items []string) string {
 // emptyNote draws the "nothing here yet" line a table shows instead of an empty
 // body, distinct from a load failure.
 func emptyNote(c *ui.Context, text string) {
-	ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, tr(text)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 }
 
 // copyRow draws a labelled value with a Copy button.
@@ -323,15 +325,16 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 	if value == "" {
 		return
 	}
+	label = tr(label)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, label).FontSize(textSize(c, 11)).Width(copyLabelWidth(label)).TextColor(ui.Hex(inkMuted))
 		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).SingleLine()
-		if quietButton(c, "Copy "+label).Clicked() {
+		if quietButton(c, tr("Copy")+" "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
 			c.Services().WriteClipboard(value)
 			// The status line lives above the cards and may be scrolled out of
 			// sight; the toast confirms the copy where the pointer is.
-			c.Toast(label + " is on the clipboard")
+			c.Toast(fmt.Sprintf(tr("%s is on the clipboard"), label))
 			if onCopied != nil {
 				onCopied()
 			}
@@ -375,11 +378,11 @@ func abbreviate(value string) string {
 // through to its "nothing here yet" note, which would claim the store is empty
 // when the truth is that it could not be read.
 func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
-	ui.Text(c, what+": "+err.Error()).FontSize(textSize(c, 12)).TextColor(ui.Hex(auroraRed))
+	ui.Text(c, tr(what)+": "+err.Error()).FontSize(textSize(c, 12)).TextColor(ui.Hex(auroraRed))
 	if !hasContent {
 		return false
 	}
-	ui.Text(c, "Showing the last successful load.").FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, tr("Showing the last successful load.")).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 	return true
 }
 
@@ -468,7 +471,7 @@ func card(c *ui.Context, fn func()) ui.Element {
 // reads as an error rather than a summary.
 func metricCard(c *ui.Context, label, value, note string, tone string, numeric bool) {
 	card(c, func() {
-		ui.Text(c, label).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
+		ui.Text(c, tr(label)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
 		// The value sits in a fixed-height slot so a word verdict and a
 		// one-digit number put their note on the same line across the row.
 		size := float32(20)
@@ -476,9 +479,9 @@ func metricCard(c *ui.Context, label, value, note string, tone string, numeric b
 			size = 30
 		}
 		ui.Column(c).Height(38).Justify(ui.Center).Children(func() {
-			ui.Text(c, value).FontSize(textSize(c, size)).Bold().TextColor(ui.Hex(tone)).SingleLine()
+			ui.Text(c, tr(value)).FontSize(textSize(c, size)).Bold().TextColor(ui.Hex(tone)).SingleLine()
 		})
-		ui.Text(c, note).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, tr(note)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
 	})
 }
 
@@ -499,9 +502,9 @@ func metricRow(c *ui.Context, n int, fn func(i int)) {
 // the page header for the same attention.
 func sectionHeading(c *ui.Context, title, purpose string) {
 	ui.Column(c).Gap(2).Children(func() {
-		ui.Text(c, title).FontSize(textSize(c, 16)).Bold().TextColor(ui.Hex(ink))
+		ui.Text(c, tr(title)).FontSize(textSize(c, 16)).Bold().TextColor(ui.Hex(ink))
 		if purpose != "" {
-			ui.Text(c, purpose).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+			ui.Text(c, tr(purpose)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 		}
 	})
 }
@@ -509,7 +512,7 @@ func sectionHeading(c *ui.Context, title, purpose string) {
 // badge draws a small pill of text. It must sit in a row: a badge drawn
 // straight into a card's column takes the whole width and reads as a banner.
 func badge(c *ui.Context, text, background, foreground string) {
-	ui.Badge(c, text).Background(ui.Hex(background)).TextColor(ui.Hex(foreground))
+	ui.Badge(c, tr(text)).Background(ui.Hex(background)).TextColor(ui.Hex(foreground))
 }
 
 // verdictBadge draws a good/bad pill: green for a verdict that holds, red for
@@ -538,5 +541,5 @@ func fieldError(c *ui.Context, message string) {
 	if message == "" {
 		return
 	}
-	ui.Text(c, message).FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraRed))
+	ui.Text(c, tr(message)).FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraRed))
 }

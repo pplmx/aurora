@@ -88,7 +88,7 @@ func (a *App) dashboardView(c *ui.Context) {
 	if !a.dashboard.loaded {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Spinner(c)
-			ui.Text(c, "Loading counters…").FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+			ui.Text(c, tr("Loading counters…")).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 		})
 		return
 	}
@@ -171,9 +171,9 @@ func (a *App) dashboardRecent(c *ui.Context) {
 		}
 		rows := a.dashboard.recent
 		ui.Table(c, &a.dashboard.recentTable, []ui.TableColumn{
-			{Title: "Block", Width: 80, Align: ui.End},
-			{Title: "Module", Width: 120},
-			{Title: "Summary", MinWidth: 200},
+			{Title: tr("Block"), Width: 80, Align: ui.End},
+			{Title: tr("Module"), Width: 120},
+			{Title: tr("Summary"), MinWidth: 200},
 		}, len(rows), func(row, col int) {
 			entry := rows[row]
 			switch col {
@@ -264,9 +264,9 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 	}
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 		ui.Row(c).Grow(1).Children(func() {
-			ui.SearchField(c, &a.blockchain.search).Label("Search blocks")
+			ui.SearchField(c, &a.blockchain.search).Label(tr("Search blocks"))
 		})
-		ui.Field(c, "Show", func() {
+		ui.Field(c, tr("Show"), func() {
 			ui.NumberInput(c, &a.blockchain.blockLimit, 10, 10000, 10)
 		})
 	})
@@ -277,7 +277,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		}
 	}
 	if len(matching) == 0 {
-		emptyNote(c, "No blocks match “"+a.blockchain.search+"”.")
+		emptyNote(c, fmt.Sprintf(tr("No blocks match “%s”."), a.blockchain.search))
 		return
 	}
 	limit := int(a.blockchain.blockLimit)
@@ -289,9 +289,9 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		rows = rows[:limit]
 	}
 	ui.Table(c, &a.blockchain.table, []ui.TableColumn{
-		{Title: "Height", Width: 90, Align: ui.End},
-		{Title: "Module", Width: 130},
-		{Title: "Payload", MinWidth: 200},
+		{Title: tr("Height"), Width: 90, Align: ui.End},
+		{Title: tr("Module"), Width: 130},
+		{Title: tr("Payload"), MinWidth: 200},
 	}, len(rows), func(row, col int) {
 		b := rows[row]
 		switch col {
@@ -304,6 +304,6 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		}
 	})
 	if len(rows) < len(matching) {
-		hint(c, fmt.Sprintf("Showing the newest %d of %d matching entries; raise Show or search to narrow.", len(rows), len(matching)))
+		hint(c, fmt.Sprintf(tr("Showing the newest %d of %d matching entries; raise Show or search to narrow."), len(rows), len(matching)))
 	}
 }
