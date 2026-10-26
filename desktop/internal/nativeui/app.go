@@ -413,13 +413,3 @@ func (a *App) ShowLotteryDraw(id string) {
 	a.lottery.verifyID = id
 	a.verifyLottery()
 }
-
-// PageTitles returns the pages in sidebar order. The desktop menu uses it to
-// offer the same destinations as the sidebar, with the same number shortcuts.
-func PageTitles() []string {
-	titles := make([]string, 0, len(pageOrder))
-	for _, p := range pageOrder {
-		titles = append(titles, pageTitles[p])
-	}
-	return titles
-}

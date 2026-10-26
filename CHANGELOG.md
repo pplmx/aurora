@@ -336,8 +336,10 @@ documented in their per-milestone ROADMAP files.
   installs no application menu there at all; `AutoHideMenuBar` is only a
   fallback if a host supplies one. Cmd/Ctrl+E/I/B are registered by the window,
   and the shell's file/help/language work moved to a sidebar Actions menu,
-  including Open Recent, so it stays discoverable. macOS keeps its application
-  menu because the platform owns that bar.
+  including Open Recent, so it stays discoverable. macOS cannot remove its
+  global bar, so it keeps only the platform roles (app menu, File→Close, Edit,
+  Window); Aurora's own actions appear in the sidebar Actions menu on all three
+  platforms, so the menu contents no longer fork.
 - **The desktop has a high-contrast variant of its palette**: when the OS asks
   for increased contrast, the same polar-night design uses brighter hairlines,
   primary/secondary text, focus ring and selection tint (`auroraTheme(true)`).

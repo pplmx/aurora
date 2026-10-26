@@ -263,16 +263,13 @@ func main() {
 		SetLanguage:     shell.SetLanguage,
 		Language:        shell.Language,
 	})
-	// The menu's Go items switch pages, so it is built once the window's state
-	// exists. mygo.App.SetMenu before Run only stores the template; the
-	// callbacks run later.
-	//
-	// Linux and Windows install no application menu at all: the sidebar owns
-	// navigation and the Actions menu owns file/help/language work, so an empty
-	// menu bar would be a strip with nothing useful in it. macOS keeps the menu
-	// because the platform shows it above every app.
+	// macOS owns a global menu bar; give it only the platform's roles (app,
+	// File/Close, Edit, Window) because Aurora's own actions live in the
+	// window's Actions menu on every platform. Linux and Windows install no
+	// application menu at all: the sidebar owns navigation and the Actions menu
+	// owns file/help/language work, so an empty bar would have nothing useful.
 	if runtime.GOOS == "darwin" {
-		mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
+		mygo.App.SetMenu(deskapp.NewPlatformMenu())
 	}
 	if runtime.GOOS != "darwin" {
 		if err := mygo.App.RegisterURLScheme(deskapp.DeepLinkScheme); err != nil {
@@ -327,19 +324,13 @@ func main() {
 
 	mygo.App.WhenReady(func() {
 		deskapp.FollowAppLocale(func() {
-			if runtime.GOOS == "darwin" {
-				mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
-				deskapp.MarkLanguage(mygo.App.Menu())
-			}
-			// The sidebar's Actions menu reads Aurora's translator directly;
-			// redraw it so a language switch relabels it.
+			// MyGo relabels the platform roles itself; the only Aurora text in
+			// the window is the sidebar Actions menu, which reads the
+			// translator on the next frame.
 			if win := shell.Window(); win != nil && !win.IsDestroyed() {
 				win.Invalidate()
 			}
 		})
-		if runtime.GOOS == "darwin" {
-			deskapp.MarkLanguage(mygo.App.Menu())
-		}
 		openMainWindow(shell, opts)
 		// The launch's own request is applied now that there is a window: a
 		// deep link selects its page (and verifies the draw it names), and an

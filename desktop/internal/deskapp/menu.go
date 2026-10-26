@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo"
-	"github.com/pplmx/aurora/desktop/internal/nativeui"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/infra/backup"
@@ -23,161 +22,18 @@ type About struct {
 	DBPath    string
 }
 
-// NewMenu builds the application menu. It is safe to call before App.Run;
-// the click handlers run on the main thread once the app is ready.
-//
-// The labels are Aurora's own and are taken in the language the app shows, so
-// the menu has to be rebuilt (SetMenu again) when that language changes; the
-// items that carry a role are relabelled by MyGo itself. See FollowAppLocale.
-func NewMenu(meta About, showPage func(string), reload func()) *mygo.Menu {
-	items := []*mygo.MenuItem{
+// NewPlatformMenu builds the menu macOS owns: the application menu, a File
+// menu with Close, Edit for clipboard roles, and Window. It carries no Aurora
+// actions: backup, export/import, recent exports, About and Language live in
+// the window's Actions menu on every platform. The bar is therefore the
+// platform's own chrome, which MyGo relabels when the locale changes.
+func NewPlatformMenu() *mygo.Menu {
+	return mygo.NewMenu([]*mygo.MenuItem{
 		{Role: mygo.RoleAppMenu},
-		{Label: T("desktop.menu.file"), Submenu: []*mygo.MenuItem{
-			{
-				ID:          "export-lotteries",
-				Label:       T("desktop.menu.export"),
-				Accelerator: "CmdOrCtrl+E",
-				Click: func(_ *mygo.MenuItem, win *mygo.Window) {
-					exportLotteries(meta, win)
-				},
-			},
-			{
-				ID:          "import-lotteries",
-				Label:       T("desktop.menu.import"),
-				Accelerator: "CmdOrCtrl+I",
-				Click: func(_ *mygo.MenuItem, win *mygo.Window) {
-					importLotteries(meta, win, reload)
-				},
-			},
-			mygo.Separator(),
-			{Label: T("desktop.menu.backup"), Accelerator: "CmdOrCtrl+B", Click: func(_ *mygo.MenuItem, win *mygo.Window) {
-				backUpDatabase(meta, win)
-			}},
-			{Label: T("desktop.menu.show_data_folder"), Click: func(_ *mygo.MenuItem, _ *mygo.Window) {
-				mygo.Shell.ShowItemInFolder(meta.DBPath)
-			}},
-			mygo.Separator(),
-			// MyGo keeps the list (recent-documents.json in PathUserData),
-			// records each file with the system's own recent list, and opens a
-			// chosen one through OnOpenFile - which is the import path above.
-			{Role: mygo.RoleOpenRecent},
-			mygo.Separator(),
-			{Role: mygo.RoleClose},
-			{Role: mygo.RoleQuit},
-		}},
+		{Role: mygo.RoleFileMenu},
 		{Role: mygo.RoleEditMenu},
-	}
-	// The pages are in the menu bar so the number shortcuts are discoverable;
-	// a shortcut nobody can find is half a feature.
-	if goItem := goMenu(showPage); goItem != nil {
-		items = append(items, goItem)
-	}
-	items = append(items, []*mygo.MenuItem{
-		{Role: mygo.RoleViewMenu},
 		{Role: mygo.RoleWindowMenu},
-		{Label: T("desktop.menu.help"), Submenu: []*mygo.MenuItem{
-			{Label: T("desktop.menu.about"), Click: func(_ *mygo.MenuItem, win *mygo.Window) {
-				showAbout(meta, win)
-			}},
-			mygo.Separator(),
-			{Label: T("desktop.menu.language"), Submenu: languageMenu()},
-		}},
-	}...)
-	return mygo.NewMenu(items)
-}
-
-// goMenu offers the window's pages from the menu bar with the same number
-// shortcuts the window registers. Menu accelerators also work while a text
-// field has the keyboard focus, which is where an operator is when switching
-// pages is most useful.
-func goMenu(showPage func(string)) *mygo.MenuItem {
-	if showPage == nil {
-		return nil
-	}
-	titles := nativeui.PageTitles()
-	items := make([]*mygo.MenuItem, 0, len(titles))
-	for i, title := range titles {
-		title := title
-		items = append(items, &mygo.MenuItem{
-			Label:       title,
-			Accelerator: fmt.Sprintf("CmdOrCtrl+%d", i+1),
-			Click: func(_ *mygo.MenuItem, win *mygo.Window) {
-				showPage(title)
-				if win != nil {
-					win.Invalidate()
-				}
-			},
-		})
-	}
-	return &mygo.MenuItem{Label: T("desktop.menu.go"), Submenu: items}
-}
-
-// The language items' IDs, so the chosen one can be ticked without asking
-// MyGo for the locale while the menu is being built (before Run, App.Locale
-// waits for the main thread, which is not running yet).
-const (
-	languageSystemID      = "language-system"
-	languageEnglishID     = "language-en"
-	languageSimplifiedID  = "language-zh-hans"
-	languageTraditionalID = "language-zh-hant"
-)
-
-// languageMenu lets the user choose the language at run time. MyGo keeps the
-// choice for the next launch (System Settings on macOS, a file in
-// PathUserData elsewhere), and OnLocaleChanged tells FollowAppLocale, which
-// relabels Aurora's own items and lets MyGo relabel the roles.
-//
-// "Follow System" is SetLocale(""), not a tag: MyGo then follows the user's
-// languages again, which is the state a first launch starts in.
-func languageMenu() []*mygo.MenuItem {
-	item := func(id, label, tag string) *mygo.MenuItem {
-		return &mygo.MenuItem{
-			ID:    id,
-			Label: label,
-			Type:  mygo.MenuItemRadio,
-			Click: func(*mygo.MenuItem, *mygo.Window) {
-				mygo.App.SetLocale(tag)
-			},
-		}
-	}
-	return []*mygo.MenuItem{
-		item(languageSystemID, T("desktop.menu.language_system"), ""),
-		mygo.Separator(),
-		item(languageEnglishID, T("desktop.menu.language_en"), "en"),
-		item(languageSimplifiedID, T("desktop.menu.language_zh"), "zh-Hans"),
-		item(languageTraditionalID, T("desktop.menu.language_zh_hant"), "zh-Hant"),
-	}
-}
-
-// markLanguage ticks the item of the language the app shows. It runs once the
-// app is ready, on the menu in use, and after each change: a radio group
-// normally ticks itself, but the rebuilt menu starts with none ticked, and a
-// pseudo locale (en-XA, a test of translations) matches no item.
-//
-// "Follow System" is not ticked even when that is how the language was
-// chosen: App.Locale reports the resolved language, not whether an override
-// is set, so ticking it would be a guess. The language in effect is what the
-// menu can state, and it does.
-func markLanguage(menu *mygo.Menu) {
-	locale := appLocale()
-	for id, tag := range map[string]string{
-		languageEnglishID:     "en",
-		languageSimplifiedID:  "zh-Hans",
-		languageTraditionalID: "zh-Hant",
-	} {
-		if item := menu.ItemByID(id); item != nil {
-			item.SetChecked(locale == tag)
-		}
-	}
-}
-
-// MarkLanguage is markLanguage for the app: it runs after the menu is
-// installed and after a language change, when App.Locale is available.
-func MarkLanguage(menu *mygo.Menu) {
-	if menu == nil {
-		return
-	}
-	markLanguage(menu)
+	})
 }
 
 // lotteryJSONFilter is the file-dialog filter for the portable document
