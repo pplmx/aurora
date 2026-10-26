@@ -55,6 +55,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop oracle preset cannot get stuck on an emptied form**: adding a
+  source cleared the fields but kept the preset selected, so the same preset
+  could not be applied again (a combobox reports changes only when the choice
+  changes), and a preset with no interval left the previous one's value behind.
+  The choice is cleared with the fields and every preset sets the interval it
+  defines, including 0.
 - **Choosing a desktop row now moves the readouts with it**: the Token Inspect,
   balance and history cards, the NFT detail/history cards and the oracle
   Query/Latest cards and an open voting tally kept describing the previously

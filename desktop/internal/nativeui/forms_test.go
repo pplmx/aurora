@@ -415,3 +415,28 @@ func TestLedgerListsRecordedBlocks(t *testing.T) {
 	require.True(t, tester.HasText("lottery"))
 	require.Contains(t, joinedTexts(tester), `"amount":"100"`)
 }
+
+// TestOraclePresetResetsAndFillsItsInterval pins two edges of the preset
+// combobox: a preset without an interval must clear the previous preset's
+// value, and adding the source clears the choice along with the fields, since
+// a selected preset whose fields are empty cannot be picked again (no change).
+func TestOraclePresetResetsAndFillsItsInterval(t *testing.T) {
+	fake := &fakeServices{templates: []TemplateRow{
+		{ID: "with-interval", Name: "Interval", URL: "https://example.com/a", Method: "GET", Interval: 60},
+		{ID: "no-interval", Name: "Default", URL: "https://example.com/b", Method: "GET", Interval: 0},
+	}}
+	app := New(fake)
+	app.ShowPage("Oracle")
+
+	app.applyTemplate("with-interval")
+	require.Equal(t, float64(60), app.oracle.addInterval)
+
+	app.applyTemplate("no-interval")
+	require.Zero(t, app.oracle.addInterval, "a preset without an interval must clear the previous value")
+
+	app.applyTemplate("with-interval")
+	app.addOracleSource()
+	require.Empty(t, app.oracle.template, "adding the source must clear the preset choice")
+	require.Zero(t, app.oracle.addInterval)
+	require.Empty(t, app.oracle.addURL)
+}
