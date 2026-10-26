@@ -72,6 +72,7 @@ type fakeServices struct {
 	lastNFTHistoryID       string
 	lastOracleDataSource   string
 	lastOracleLatestSource string
+	lastSessionResultsID   string
 	listAllNFTsCalls       int
 	nftHistoryCalls        int
 	sessionResultsCalls    int
@@ -147,6 +148,7 @@ func (f *fakeServices) CreateSession(title, description string, ids []string, st
 func (f *fakeServices) CastVote(sessionID, candidateID, voterPub, voterPriv string) error { return nil }
 func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error) {
 	f.sessionResultsCalls++
+	f.lastSessionResultsID = sessionID
 	return nil, nil
 }
 func (f *fakeServices) Candidates() ([]CandidateRow, error) {

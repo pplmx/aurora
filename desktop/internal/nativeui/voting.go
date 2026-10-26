@@ -342,6 +342,11 @@ func (a *App) votingSessionList(c *ui.Context) {
 		// follow.
 		id := sessions[a.voting.sessionChoice].ID
 		a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
+		if len(a.voting.results) > 0 {
+			// The tally on screen belongs to the previously chosen session; a
+			// selection must not leave it beside a new session id.
+			_ = a.loadSessionResults(id)
+		}
 	}
 	if a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
 		// The row cannot show the roster (the window column already fills the
