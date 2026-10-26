@@ -240,7 +240,6 @@ func main() {
 		BuildTime: buildTime(),
 		DBPath:    rt.DBPath(),
 	}
-	mygo.App.SetMenu(deskapp.NewMenu(meta))
 
 	// Operating-system integration. On macOS the scheme and file association
 	// come from mygo.config.ts at packaging time; on Linux and Windows the
@@ -250,6 +249,10 @@ func main() {
 	// The window draws native widgets from this state; a link or a second
 	// launch steers it, so the shell needs it before any intent arrives.
 	shell.SetApp(rt.App())
+	// The menu's Go items switch pages, so it is built once the window's state
+	// exists. mygo.App.SetMenu before Run only stores the template; the
+	// callbacks run later.
+	mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage))
 	if runtime.GOOS != "darwin" {
 		if err := mygo.App.RegisterURLScheme(deskapp.DeepLinkScheme); err != nil {
 			fmt.Fprintf(os.Stderr, "aurora-desktop: register %s://: %v\n", deskapp.DeepLinkScheme, err)
@@ -303,7 +306,7 @@ func main() {
 
 	mygo.App.WhenReady(func() {
 		deskapp.FollowAppLocale(func() {
-			mygo.App.SetMenu(deskapp.NewMenu(meta))
+			mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage))
 			deskapp.MarkLanguage(mygo.App.Menu())
 		})
 		deskapp.MarkLanguage(mygo.App.Menu())

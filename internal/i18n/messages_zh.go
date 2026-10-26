@@ -252,6 +252,7 @@ var chineseMessages = map[string]string{
 	"desktop.menu.import":                   "导入抽奖记录…",
 	"desktop.menu.backup":                   "备份数据库…",
 	"desktop.menu.show_data_folder":         "打开数据目录",
+	"desktop.menu.go":                       "前往",
 	"desktop.menu.help":                     "帮助",
 	"desktop.menu.about":                    "关于 Aurora",
 	"desktop.menu.language":                 "语言",
