@@ -101,8 +101,11 @@ func goMenu(showPage func(string)) *mygo.MenuItem {
 		items = append(items, &mygo.MenuItem{
 			Label:       title,
 			Accelerator: fmt.Sprintf("CmdOrCtrl+%d", i+1),
-			Click: func(*mygo.MenuItem, *mygo.Window) {
+			Click: func(_ *mygo.MenuItem, win *mygo.Window) {
 				showPage(title)
+				if win != nil {
+					win.Invalidate()
+				}
 			},
 		})
 	}

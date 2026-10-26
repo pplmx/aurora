@@ -388,8 +388,12 @@ func (s *Shell) Navigate(in Intent) {
 	}
 	s.mu.Unlock()
 	// A native window has no page to load: the link selects which view the
-	// App renders, and MyGo repaints on the next frame.
+	// App renders, and changing that state does not schedule a frame on its own
+	// (a second launch would switch the state but leave the old page on screen
+	// until the next click). Invalidate draws the new page now, then Reveal
+	// brings the window forward.
 	app.ShowIntent(in.Page, in.LotteryID)
+	win.Invalidate()
 	s.Reveal()
 }
 

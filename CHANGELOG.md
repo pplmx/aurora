@@ -55,6 +55,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A link forwarded to a running window now repaints it**: `Shell.Navigate`
+  changed the app state but never asked the native window for a frame, so a
+  second launch with `aurora://voting` left the old page on screen until the
+  next click. Measured under Xvfb: before the fix the screenshot after the
+  second launch was byte-identical to the token page; with `win.Invalidate()`
+  it matches the voting page. The Go menu's page actions invalidate the same
+  way, since a menu click is also outside the view's event loop.
 - **A dashboard deep link now switches to the dashboard**: the parser spelled
   `aurora://` and `aurora://index` as an empty page, and ShowIntent treats an
   empty page as "leave the window alone", so the link did nothing when the
