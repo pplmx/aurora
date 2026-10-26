@@ -485,7 +485,7 @@ type fakeChain struct {
 	height int64
 }
 
-func (f *fakeChain) AddLotteryRecord(data string) (int64, error) {
+func (f *fakeChain) AddRecord(data string) (int64, error) {
 	f.calls++
 	return f.height, nil
 }

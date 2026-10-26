@@ -276,7 +276,7 @@ func TestTokenE2E_FullFlow(t *testing.T) {
 	eventStore := newInMemoryEventStore()
 	eventBus := newE2EEventBus(eventStore)
 	replay := newE2EReplayProtection()
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	txManager := &noOpTxManager{}
 	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
 

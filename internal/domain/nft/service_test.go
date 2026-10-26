@@ -122,7 +122,7 @@ func TestNFTService_VerifyTransfer_InvalidSignature(t *testing.T) {
 func TestNFTService_Transfer(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, creatorPriv, _ := ed25519.GenerateKey(nil)
@@ -158,7 +158,7 @@ func TestNFTService_Transfer(t *testing.T) {
 func TestNFTService_Mint_RejectsZeroOwner(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	zero := make([]byte, ed25519.PublicKeySize)
@@ -171,7 +171,7 @@ func TestNFTService_Mint_RejectsZeroOwner(t *testing.T) {
 func TestNFTService_Transfer_RejectsZeroRecipient(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, creatorPriv, err := ed25519.GenerateKey(nil)
@@ -208,7 +208,7 @@ func TestNFTService_Transfer_RejectsZeroRecipient(t *testing.T) {
 func TestNFTService_Transfer_NotOwner(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, _, _ := ed25519.GenerateKey(nil)
@@ -230,7 +230,7 @@ func TestNFTService_Transfer_NotOwner(t *testing.T) {
 func TestNFTService_GetNFTByID(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, _, _ := ed25519.GenerateKey(nil)
@@ -268,7 +268,7 @@ func TestNFTService_GetNFTByID_NotFound(t *testing.T) {
 func TestNFTService_GetNFTsByOwner(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	ownerPub, _, _ := ed25519.GenerateKey(nil)
@@ -325,7 +325,7 @@ func TestNFTService_GetNFTsByOwner_Empty(t *testing.T) {
 func TestNFTService_Burn(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
@@ -360,7 +360,7 @@ func TestNFTService_Burn(t *testing.T) {
 func TestNFTService_Burn_NotOwner(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	ownerPub, _, _ := ed25519.GenerateKey(nil)
@@ -380,7 +380,7 @@ func TestNFTService_Burn_NotOwner(t *testing.T) {
 func TestNFTService_Burn_NotFound(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 
 	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
 	err := svc.Burn("nonexistent-id", ownerPub, ownerPriv, chain)
@@ -392,7 +392,7 @@ func TestNFTService_Burn_NotFound(t *testing.T) {
 func TestNFTService_Burn_VerifyOperationSignature(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
@@ -449,7 +449,7 @@ func TestNFTService_Mint_ChainError(t *testing.T) {
 func TestNFTService_Mint_RepoSaveError(t *testing.T) {
 	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnSaveNFT: true}
 	svc := NewService(repo, newMockTxManagerWithRepo(repo.inmemRepo))
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, _, _ := ed25519.GenerateKey(nil)
@@ -464,7 +464,7 @@ func TestNFTService_Mint_RepoSaveError(t *testing.T) {
 func TestNFTService_Transfer_NotFound(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	pub, priv, _ := ed25519.GenerateKey(nil)
@@ -484,7 +484,7 @@ func TestNFTService_Transfer_NotFound(t *testing.T) {
 func TestNFTService_Transfer_Atomicity(t *testing.T) {
 	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnTryTransferOwnership: true}
 	svc := NewService(repo, newMockTxManagerWithRepo(repo.inmemRepo))
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, creatorPriv, _ := ed25519.GenerateKey(nil)
@@ -533,7 +533,7 @@ func TestNFTService_Transfer_Atomicity(t *testing.T) {
 func TestNFTService_Mint_Atomicity(t *testing.T) {
 	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnSaveOperation: true}
 	svc := NewService(repo, newMockTxManagerWithRepo(repo.inmemRepo))
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, _, _ := ed25519.GenerateKey(nil)
@@ -560,7 +560,7 @@ func TestNFTService_Mint_Atomicity(t *testing.T) {
 func TestNFTService_Burn_Atomicity(t *testing.T) {
 	repo := &FailingRepo{inmemRepo: NewInmemRepo().(*inmemRepo), failOnTryDeleteNFTIfOwned: true}
 	svc := NewService(repo, newMockTxManagerWithRepo(repo.inmemRepo))
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
@@ -604,7 +604,7 @@ func TestNFTService_Mint_TxManagerFailure(t *testing.T) {
 	// The manager fails on the first transaction, rolling back everything the
 	// callback wrote through the repo.
 	svc := NewService(repo, newFailingTxManagerWithRepo(repo, 1))
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, _, _ := ed25519.GenerateKey(nil)
@@ -622,7 +622,7 @@ func TestNFTService_Mint_TxManagerFailure(t *testing.T) {
 func TestNFTService_Transfer_VerifyOperationSaved(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, creatorPriv, _ := ed25519.GenerateKey(nil)
@@ -647,7 +647,7 @@ func TestNFTService_Transfer_VerifyOperationSaved(t *testing.T) {
 func TestNFTService_Transfer_SelfTransfer(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	ownerPub, ownerPriv, _ := ed25519.GenerateKey(nil)
@@ -668,7 +668,7 @@ func TestNFTService_Transfer_SelfTransfer(t *testing.T) {
 func TestNFTService_BatchMint(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, _, _ := ed25519.GenerateKey(nil)
@@ -698,7 +698,7 @@ func TestNFTService_BatchMint(t *testing.T) {
 func TestNFTService_MultipleTransfers(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	owner1Pub, owner1Priv, _ := ed25519.GenerateKey(nil)
@@ -885,7 +885,7 @@ func (r *FailingRepo) GetOperations(nftID string) ([]*Operation, error) {
 func TestNFTService_Transfer_ConcurrentOnlyOneWinner(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	creatorPub, creatorPriv, err := ed25519.GenerateKey(nil)
@@ -1009,7 +1009,7 @@ func TestNFTService_Transfer_ConcurrentOnlyOneWinner(t *testing.T) {
 func TestNFTService_Burn_ConcurrentOnlyOneWinner(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	ownerPub, ownerPriv, err := ed25519.GenerateKey(nil)
@@ -1103,7 +1103,7 @@ func TestNFTService_Burn_ConcurrentOnlyOneWinner(t *testing.T) {
 func TestNFTService_Transfer_ForgeMismatchedKey(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	victimPub, _, _ := ed25519.GenerateKey(nil) // victim's public key only
@@ -1125,7 +1125,7 @@ func TestNFTService_Transfer_ForgeMismatchedKey(t *testing.T) {
 func TestNFTService_Burn_ForgeMismatchedKey(t *testing.T) {
 	repo := NewInmemRepo()
 	svc := NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	blockchain.ResetForTest()
 
 	victimPub, _, _ := ed25519.GenerateKey(nil) // victim's public key only

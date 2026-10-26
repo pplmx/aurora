@@ -24,7 +24,7 @@ type nativeServices struct {
 	nftRepo     *sqlite.NFTRepository
 	tokenRepo   *sqlite.TokenRepository
 	oracleRepo  *sqlite.OracleRepository
-	chain       *blockchain.BlockChain
+	chain       *blockchain.Chain
 
 	// tokenService carries the audit bus and replay protection the token use
 	// cases publish through, so a window mint is recorded exactly like a CLI
@@ -50,7 +50,7 @@ func newNativeServices(
 	oracleRepo *sqlite.OracleRepository,
 	tokenService token.Service,
 	txManager *sqlite.TxManager,
-	chain *blockchain.BlockChain,
+	chain *blockchain.Chain,
 	health func() []oracleapp.SourceStat,
 ) *nativeServices {
 	return &nativeServices{

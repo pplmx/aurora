@@ -23,7 +23,7 @@ func TestCastVoteRollbackLeavesNoOnChainBlock(t *testing.T) {
 
 	repo, err := sqlite.NewVotingRepository(db)
 	require.NoError(t, err)
-	chain := blockchain.NewBlockChainWithDB(db)
+	chain := blockchain.NewWithDB(db)
 
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)

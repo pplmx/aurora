@@ -85,7 +85,7 @@ func TestTokenE2E_ErrorHandling_InsufficientBalance(t *testing.T) {
 	eventStore := newInMemoryEventStore()
 	eventBus := newE2EEventBus(eventStore)
 	replay := newE2EReplayProtection()
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	txManager := &noOpTxManager{}
 	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
 
@@ -127,7 +127,7 @@ func TestTokenE2E_ErrorHandling_BurnInsufficientBalance(t *testing.T) {
 	eventStore := newInMemoryEventStore()
 	eventBus := newE2EEventBus(eventStore)
 	replay := newE2EReplayProtection()
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	txManager := &noOpTxManager{}
 	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
 
@@ -161,7 +161,7 @@ func TestTokenE2E_ErrorHandling_TransferToSelf(t *testing.T) {
 	eventStore := newInMemoryEventStore()
 	eventBus := newE2EEventBus(eventStore)
 	replay := newE2EReplayProtection()
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	txManager := &noOpTxManager{}
 	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
 
@@ -196,7 +196,7 @@ func TestTokenE2E_ErrorHandling_ZeroAmountTransfer(t *testing.T) {
 	eventStore := newInMemoryEventStore()
 	eventBus := newE2EEventBus(eventStore)
 	replay := newE2EReplayProtection()
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	txManager := &noOpTxManager{}
 	svc := token.NewService(repo, txManager, eventBus, eventStore, replay, chain)
 

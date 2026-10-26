@@ -41,7 +41,7 @@ func TestSeedGenesisIfEmpty(t *testing.T) {
 		return n
 	}
 
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 
 	// First boot: empty table -> genesis is seeded exactly once.
 	seedGenesisIfEmpty(db, chain, false)

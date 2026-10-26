@@ -46,9 +46,9 @@ var createCmd = &cobra.Command{
 		}
 		defer func() { _ = lotteryRepo.Close() }()
 
-		blockChain := blockchain.InitBlockChain()
+		chain := blockchain.Init()
 
-		uc := lotteryapp.NewCreate(lotteryRepo, blockChain)
+		uc := lotteryapp.NewCreate(lotteryRepo, chain)
 
 		req := lotteryapp.CreateLotteryRequest{
 			Participants: participantsStr,
@@ -347,7 +347,7 @@ var resetCmd = &cobra.Command{
 		// records!" confirmation. Clear both.
 		//
 		// On a brand-new DB neither table exists yet (created lazily by
-		// InitBlockChain / the repository / migrations), so a DELETE against
+		// Init / the repository / migrations), so a DELETE against
 		// a missing table is "no such table" — tolerated, not an error.
 		for _, stmt := range []string{
 			"DELETE FROM blocks WHERE height > 0",
@@ -360,12 +360,12 @@ var resetCmd = &cobra.Command{
 		}
 
 		// Reset the in-memory chain singleton back to genesis. The chain is
-		// created once (InitBlockChain's sync.Once) and is not rebuilt by the
+		// created once (Init's sync.Once) and is not rebuilt by the
 		// DELETEs above, so without this a subsequent `lottery create` would
 		// keep building on the stale pre-reset blocks: the new draw would get
 		// a block height continuing from the old count and a PrevHash pointing
 		// at a block the reset deleted (TASK-071, ISS-063).
-		blockchain.GetBlockChain().ResetBlocks()
+		blockchain.Get().ResetBlocks()
 
 		logger.Info().Msg("Database reset successfully")
 		fmt.Println("✅ " + i18n.GetText("lottery.reset_done"))

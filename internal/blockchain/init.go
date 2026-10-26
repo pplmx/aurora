@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	instance   *BlockChain
+	instance   *Chain
 	dbInstance *sql.DB
 	dbInitOnce sync.Once
 	dbInitErr  error
@@ -93,9 +93,9 @@ func InitDB() (*sql.DB, error) {
 	return dbInstance, dbInitErr
 }
 
-func InitBlockChain() *BlockChain {
+func Init() *Chain {
 	once.Do(func() {
-		chain := &BlockChain{Blocks: []*Block{Genesis()}}
+		chain := &Chain{Blocks: []*Block{Genesis()}}
 
 		if db, err := InitDB(); err != nil {
 			logger.Warn().Err(err).Msg("Failed to initialize database; blockchain will operate in non-persistent mode")
@@ -112,10 +112,10 @@ func InitBlockChain() *BlockChain {
 // bindChainToDB wires a chain to a blocks table in the given DB: creates the
 // table if needed, reloads persisted blocks, seeds genesis when the table is
 // empty, and installs the conflict-detecting persist + DB-authoritative height
-// resync hooks. It is shared by InitBlockChain (via the process singleton) and
+// resync hooks. It is shared by Init (via the process singleton) and
 // the multi-process collision tests, which build two independent chains over
 // one DB file to exercise TASK-244 / ISS-242.
-func bindChainToDB(chain *BlockChain, db *sql.DB) {
+func bindChainToDB(chain *Chain, db *sql.DB) {
 	// If the table itself cannot be created, the chain runs in-memory only: the
 	// persist/syncFromDB hooks are left nil so appends don't churn failing DB
 	// round-trips after a boot that already logged the failure (the package's
@@ -182,9 +182,9 @@ func bindChainToDB(chain *BlockChain, db *sql.DB) {
 	}
 }
 
-func GetBlockChain() *BlockChain {
+func Get() *Chain {
 	if instance == nil {
-		return InitBlockChain()
+		return Init()
 	}
 	return instance
 }
@@ -195,7 +195,7 @@ func GetBlockChain() *BlockChain {
 // genesis seeding; a nil error means the table was queried successfully
 // (possibly empty). The height-0 genesis row is skipped because genesis is
 // always seeded in memory; skipping it avoids doubling it on reload.
-func loadBlocksFromDB(chain *BlockChain, db *sql.DB) (bool, error) {
+func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 	persisted := false
 	rows, err := db.Query("SELECT height, hash, previous_hash, data, nonce, timestamp FROM blocks ORDER BY height")
 	if err != nil {
@@ -220,7 +220,7 @@ func loadBlocksFromDB(chain *BlockChain, db *sql.DB) (bool, error) {
 
 // appendBlocksFromDB folds blocks a concurrent process committed to the shared
 // DB into the in-memory chain, so the chain's length is the DB-authoritative
-// next height. It is wired as BlockChain.syncFromDB (TASK-244, ISS-242).
+// next height. It is wired as Chain.syncFromDB (TASK-244, ISS-242).
 //
 // Two failure modes are reconciled against the ledger:
 //
@@ -240,7 +240,7 @@ func loadBlocksFromDB(chain *BlockChain, db *sql.DB) (bool, error) {
 //     seam is checked: the DB block at height len-1 must be exactly the
 //     in-memory tail, else the chain is rebuilt from the authoritative ledger
 //     and the append retries at the true next height.
-func appendBlocksFromDB(chain *BlockChain, db *sql.DB) error {
+func appendBlocksFromDB(chain *Chain, db *sql.DB) error {
 	tail := int64(len(chain.Blocks))
 	if tail > 0 {
 		var seamHeight int64
@@ -313,7 +313,7 @@ func appendBlocksFromDB(chain *BlockChain, db *sql.DB) error {
 // tail blocks a persist failure left in memory are dropped: they were never
 // committed, so the shared ledger does not know them. Used by appendBlocksFromDB
 // when the in-memory tail diverges from the DB seam (TASK-244 review, ISS-242).
-func rebuildChainFromDB(chain *BlockChain, db *sql.DB) error {
+func rebuildChainFromDB(chain *Chain, db *sql.DB) error {
 	// Keep genesis as the anchor (a bound chain always has one); a nil/empty
 	// chain (constructed bare, e.g. in tests) is re-seeded rather than panicked
 	// on.
@@ -404,7 +404,7 @@ func removeBlock(db *sql.DB, block *Block) error {
 // so the chain is "genesis-only" again — the old `len(Blocks) <= 1` guard
 // stayed true and re-inserted height 0 on every boot, tripping the PRIMARY KEY
 // and logging a false "Failed to insert genesis block" (TASK-238, ISS-236).
-func seedGenesisIfEmpty(db *sql.DB, chain *BlockChain, persisted bool) {
+func seedGenesisIfEmpty(db *sql.DB, chain *Chain, persisted bool) {
 	if persisted {
 		return
 	}
@@ -432,19 +432,19 @@ func ResetForTest() {
 	_ = os.RemoveAll("./data")
 }
 
-// AddLotteryRecord appends a lottery or oracle audit record to the chain and
+// AddRecord appends a lottery or oracle audit record to the chain and
 // returns its height. Unlike AddBlock, it stamps the true height into the
 // record's JSON `block_height` field immediately before the block is mined,
 // so the immutable on-chain payload is self-describing.
 //
 // The app-layer callers (lottery create, oracle fetch, the scheduler, the
 // desktop) serialized their record while its height was still 0, called
-// AddLotteryRecord, and only then set BlockHeight from the return value — so
+// AddRecord, and only then set BlockHeight from the return value — so
 // the permanent chain copy claimed "block_height":0 and a consumer replaying
 // the chain could never correlate a block to its record (ISS-097). Stamping
 // here, under the same lock that assigns the height, fixes every caller at
 // the one point they all funnel through.
-func (c *BlockChain) AddLotteryRecord(data string) (int64, error) {
+func (c *Chain) AddRecord(data string) (int64, error) {
 	return c.appendBlock(data, func(height int64) string {
 		stamped, err := stampRecordHeight(data, height)
 		if err != nil {

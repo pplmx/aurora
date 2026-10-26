@@ -37,15 +37,15 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 
 	record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	jsonData, err := record.ToJSON()
 	if err != nil {
 		t.Fatalf("ToJSON failed: %v", err)
 	}
 
-	height, err := chain.AddLotteryRecord(jsonData)
+	height, err := chain.AddRecord(jsonData)
 	if err != nil {
-		t.Fatalf("AddLotteryRecord failed: %v", err)
+		t.Fatalf("AddRecord failed: %v", err)
 	}
 	record.BlockHeight = height
 
@@ -55,7 +55,7 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 
 	// The immutable on-chain payload must be self-describing: the caller
 	// serialized with block_height=0 (the height is only known after the
-	// append), and AddLotteryRecord stamps the true height into the JSON
+	// append), and AddRecord stamps the true height into the JSON
 	// (ISS-097). Assert the block echoes the record with height corrected.
 	// Blocks is the chain's authoritative in-memory slice (reads are guarded
 	// by its mutex in the accessors; a single-threaded test reads it directly).
@@ -81,7 +81,7 @@ func TestLotteryE2E_FullFlow(t *testing.T) {
 
 func TestLotteryE2E_MultipleLotteries(t *testing.T) {
 	blockchain.ResetForTest()
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	initialHeight := len(chain.Blocks)
 
 	seeds := []string{"seed-1", "seed-2", "seed-3"}
@@ -99,7 +99,7 @@ func TestLotteryE2E_MultipleLotteries(t *testing.T) {
 
 		record := lottery.CreateLotteryRecord(seed, participants, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 		jsonData, _ := record.ToJSON()
-		_, _ = chain.AddLotteryRecord(jsonData)
+		_, _ = chain.AddRecord(jsonData)
 	}
 
 	if len(chain.Blocks) != initialHeight+3 {
@@ -202,7 +202,7 @@ func TestLotteryE2E_AddressConversion(t *testing.T) {
 
 func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
 	blockchain.ResetForTest()
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 	initialCount := len(chain.BlockData())
 
 	pk, sk, _ := lottery.GenerateKeyPair()
@@ -212,7 +212,7 @@ func TestLotteryE2E_HistoryRetrieval(t *testing.T) {
 
 	record := lottery.CreateLotteryRecord("history-test", []string{"A", "B", "C", "D"}, winners, winnerAddrs, output, proof, lottery.EncodePublicKey(pk), 0)
 	jsonData, _ := record.ToJSON()
-	_, _ = chain.AddLotteryRecord(jsonData)
+	_, _ = chain.AddRecord(jsonData)
 
 	records := chain.BlockData()
 	if len(records) != initialCount+1 {

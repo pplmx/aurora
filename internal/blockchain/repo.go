@@ -28,7 +28,7 @@ type BlockTransactionWriter interface {
 // lottery and oracle records. The on-chain JSON carries the final height even
 // when a cross-process height conflict forces a retry.
 type LotteryRecordTransactionWriter interface {
-	WithLotteryRecordTransaction(
+	WithRecordTransaction(
 		data string,
 		txManager TransactionManager,
 		fn func(tx *sql.Tx, height int64) error,

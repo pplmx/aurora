@@ -37,7 +37,7 @@ type mockChain struct {
 	calls  []string
 }
 
-func (m *mockChain) AddLotteryRecord(data string) (int64, error) {
+func (m *mockChain) AddRecord(data string) (int64, error) {
 	m.calls = append(m.calls, data)
 	return m.height, m.err
 }

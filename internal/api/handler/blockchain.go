@@ -22,6 +22,6 @@ func (h *BlockchainHandler) Routes(r chi.Router) {
 // Verify runs a full integrity verification of the in-memory chain and returns
 // the result (valid, length, first broken index + reason) as JSON.
 func (h *BlockchainHandler) Verify(w http.ResponseWriter, r *http.Request) {
-	report := blockchain.GetBlockChain().VerifyIntegrity()
+	report := blockchain.Get().VerifyIntegrity()
 	writeJSON(w, http.StatusOK, report)
 }

@@ -10,8 +10,8 @@ import (
 
 	"github.com/pplmx/aurora/internal/api/handler"
 	"github.com/pplmx/aurora/internal/app/oracleapp"
-	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
@@ -45,7 +45,7 @@ type Server struct {
 	tokenRepo    *sqlite.TokenRepository
 	tokenService token.Service
 	txManager    *sqlite.TxManager
-	chain        *blockchain.BlockChain
+	chain        *blockchain.Chain
 
 	// closers releases every SQLite handle NewServer opened (repos, event
 	// store, replay protection) plus the shared blockchain DB. Tests use
@@ -146,7 +146,7 @@ func NewServer() (*Server, error) {
 	}
 	srv.addCloser(replay)
 
-	chain := blockchain.GetBlockChain()
+	chain := blockchain.Get()
 	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
 	tokenService := token.NewService(tokenRepo, txManager, eventBus, eventReader, replay, chain)
 
@@ -166,7 +166,7 @@ func NewServer() (*Server, error) {
 
 	srv.lotteryHandler = handler.NewLotteryHandler(lotteryRepo, config.LotteryDefaultCount())
 	srv.votingHandler = handler.NewVotingHandler(votingRepo, sqlite.NewTxManager(db))
-	srv.votingHandler.SetChain(blockchain.GetBlockChain())
+	srv.votingHandler.SetChain(blockchain.Get())
 	srv.nftHandler = handler.NewNFTHandler(nftRepo, sqlite.NewTxManager(nftRepo.GetDB()))
 	srv.tokenHandler = handler.NewTokenHandler(tokenService)
 	srv.oracleRepo = oracleRepo
@@ -176,7 +176,7 @@ func NewServer() (*Server, error) {
 	// Record API-fetched oracle data on-chain, consistent with the scheduler
 	// and the package's documented "record on-chain" intent. Without this,
 	// REST fetch results came back with BlockHeight 0.
-	srv.oracleHandler.SetChain(blockchain.GetBlockChain())
+	srv.oracleHandler.SetChain(blockchain.Get())
 	complete = true
 	return srv, nil
 }
@@ -226,10 +226,10 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 	fetch := oracleapp.NewFetchDataUseCase(s.oracleRepo)
 	// Record scheduler-fetched data on-chain, consistent with the REST handler
 	// and CLI paths (NewServer: srv.oracleHandler.SetChain(blockchain.
-	// GetBlockChain())). Without SetChain the continuously running scheduler
-	// path silently skipped chain.AddLotteryRecord and stored block_height=0
+	// Get())). Without SetChain the continuously running scheduler
+	// path silently skipped chain.AddRecord and stored block_height=0
 	// for every observation it persisted (TASK-097, ISS-090).
-	fetch.SetChain(blockchain.GetBlockChain())
+	fetch.SetChain(blockchain.Get())
 	runner := func(ctx context.Context, sourceID string) error {
 		// ctx-aware fetch: an in-flight HTTP request is interrupted when the
 		// scheduler is shut down instead of blocking up to the client timeout
@@ -339,7 +339,7 @@ type Services struct {
 
 	TokenService token.Service
 	TxManager    *sqlite.TxManager
-	Chain        *blockchain.BlockChain
+	Chain        *blockchain.Chain
 
 	EventStore *infraevents.SQLiteEventStore
 }

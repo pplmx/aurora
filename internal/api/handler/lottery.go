@@ -58,8 +58,8 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blockChain := blockchain.InitBlockChain()
-	uc := lotteryapp.NewCreate(h.repo, blockChain)
+	chain := blockchain.Init()
+	uc := lotteryapp.NewCreate(h.repo, chain)
 
 	// Resolve the configured default winner count at the API boundary, exactly
 	// as the CLI's RunE resolves its `-c` absence to `lottery.defaultCount` —

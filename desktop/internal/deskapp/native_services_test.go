@@ -94,7 +94,7 @@ func TestSessionRowsCarryDescriptions(t *testing.T) {
 // The adapter used each payload's index in the filtered chain, so the first
 // recorded block displayed height 0 and every row was one too low.
 func TestLedgerBlocksCarryBlockHeights(t *testing.T) {
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	_, err := chain.AddBlock(`{"module":"lottery"}`)
 	require.NoError(t, err)
 	_, err = chain.AddBlock(`{"module":"voting"}`)

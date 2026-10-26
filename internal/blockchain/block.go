@@ -25,21 +25,21 @@ type Block struct {
 	Timestamp int64
 }
 
-// BlockChain represents the blockchain data structure.
+// Chain represents the blockchain data structure.
 //
 // Concurrency: Blocks is mutated only under mu. Reads (GetBlockData,
 // BlockData) also take mu (RLock) so HTTP handlers can read
 // safely while other goroutines are appending blocks via AddBlock.
 // Without this mutex, a real production server with concurrent API
 // traffic lost blocks and tripped the race detector (see
-// TestBlockChain_ConcurrentAddBlock_DataRace for the regression).
-type BlockChain struct {
+// TestChain_ConcurrentAddBlock_DataRace for the regression).
+type Chain struct {
 	mu     sync.RWMutex
 	Blocks []*Block
 	// persist, when non-nil, is invoked after a block is appended so the
-	// chain can survive process restarts. It is left nil by NewBlockChain
+	// chain can survive process restarts. It is left nil by New
 	// (pure in-memory use, e.g. tests) and wired to the blocks table by
-	// InitBlockChain. The in-memory slice stays authoritative; a persistence
+	// Init. The in-memory slice stays authoritative; a persistence
 	// failure is logged rather than fatal, matching the package's existing
 	// "operate in non-persistent mode" fallback.
 	//
@@ -60,7 +60,7 @@ type BlockChain struct {
 	// next height is reserved. It brings the in-memory chain up to date with
 	// blocks a concurrent process committed to the shared DB file, so the
 	// reserved height is DB-authoritative (never a stale len(c.Blocks)).
-	// Left nil by NewBlockChain; wired by InitBlockChain.
+	// Left nil by New; wired by Init.
 	syncFromDB func() error
 }
 
@@ -127,7 +127,7 @@ func Genesis() *Block {
 // persist hook returning ErrHeightConflict. A committed block is never
 // overwritten; the losing payload is re-appended at the DB-authoritative next
 // height.
-func (c *BlockChain) AddBlock(data string) (int64, error) {
+func (c *Chain) AddBlock(data string) (int64, error) {
 	return c.appendBlock(data, nil)
 }
 
@@ -137,7 +137,7 @@ func (c *BlockChain) AddBlock(data string) (int64, error) {
 // mined, so callers can finalize the payload (e.g. stamp a self-describing
 // height into an audit record's JSON) before Data becomes part of the PoW
 // hash. A stamp that returns "" leaves data unchanged.
-func (c *BlockChain) appendBlock(data string, stamp func(height int64) string) (int64, error) {
+func (c *Chain) appendBlock(data string, stamp func(height int64) string) (int64, error) {
 	if c == nil {
 		return 0, fmt.Errorf("blockchain not initialized")
 	}
@@ -208,7 +208,7 @@ func (c *BlockChain) appendBlock(data string, stamp func(height int64) string) (
 // successful commit and the in-memory append. The lock order is always
 // chain -> database, matching AddBlock, so transaction callbacks must not call
 // back into this chain.
-func (c *BlockChain) WithBlockTransaction(
+func (c *Chain) WithBlockTransaction(
 	data string,
 	txManager TransactionManager,
 	fn func(tx *sql.Tx, height int64) error,
@@ -216,9 +216,9 @@ func (c *BlockChain) WithBlockTransaction(
 	return c.withAppendTransaction(data, nil, txManager, fn)
 }
 
-// WithLotteryRecordTransaction is WithBlockTransaction with the same
-// block_height stamping used by AddLotteryRecord.
-func (c *BlockChain) WithLotteryRecordTransaction(
+// WithRecordTransaction is WithBlockTransaction with the same
+// block_height stamping used by AddRecord.
+func (c *Chain) WithRecordTransaction(
 	data string,
 	txManager TransactionManager,
 	fn func(tx *sql.Tx, height int64) error,
@@ -232,7 +232,7 @@ func (c *BlockChain) WithLotteryRecordTransaction(
 	}, txManager, fn)
 }
 
-func (c *BlockChain) withAppendTransaction(
+func (c *Chain) withAppendTransaction(
 	data string,
 	stamp func(height int64) string,
 	txManager TransactionManager,
@@ -316,7 +316,7 @@ func (c *BlockChain) withAppendTransaction(
 
 // nextBlock reserves and mines the next chain block. The caller must hold the
 // chain write lock.
-func (c *BlockChain) nextBlock(data string, stamp func(height int64) string) (*Block, error) {
+func (c *Chain) nextBlock(data string, stamp func(height int64) string) (*Block, error) {
 	if len(c.Blocks) == 0 {
 		return nil, fmt.Errorf("blockchain not initialized")
 	}
@@ -349,7 +349,7 @@ func (c *BlockChain) nextBlock(data string, stamp func(height int64) string) (*B
 // so a post-reset AddBlock would compute a stale height and a PrevHash that
 // references a block the reset deleted. Re-seeding makes the next AddBlock
 // start at height 1 with a valid genesis PrevHash (TASK-071, ISS-063).
-func (c *BlockChain) ResetBlocks() {
+func (c *Chain) ResetBlocks() {
 	if c == nil {
 		return
 	}
@@ -361,7 +361,7 @@ func (c *BlockChain) ResetBlocks() {
 // BlockData returns the payload of every non-genesis block, in height order.
 // It is the read side of the audit trail: callers that want to inspect what was
 // recorded without knowing each module's row schema use this.
-func (c *BlockChain) BlockData() []string {
+func (c *Chain) BlockData() []string {
 	if c == nil {
 		return nil
 	}
@@ -388,7 +388,7 @@ type BlockEntry struct {
 // height. Callers that only show the latest few avoid materialising the whole
 // chain, and skipping a payload can never shift a height: the number comes
 // from the block, not from the payload's position in a filtered slice.
-func (c *BlockChain) BlockEntries(limit int) []BlockEntry {
+func (c *Chain) BlockEntries(limit int) []BlockEntry {
 	if c == nil {
 		return nil
 	}
@@ -409,7 +409,7 @@ func (c *BlockChain) BlockEntries(limit int) []BlockEntry {
 	return entries
 }
 
-func (c *BlockChain) Len() int {
+func (c *Chain) Len() int {
 	if c == nil {
 		return 0
 	}
@@ -433,7 +433,7 @@ type IntegrityReport struct {
 //
 // This is the tamper-evidence surface behind the "blockchain-based" guarantees
 // of the module (v1.25): operators can prove the ledger is internally consistent.
-func (c *BlockChain) VerifyIntegrity() *IntegrityReport {
+func (c *Chain) VerifyIntegrity() *IntegrityReport {
 	if c == nil {
 		return &IntegrityReport{Valid: false, FirstBrokenIndex: 0, FirstBrokenReason: "nil chain"}
 	}
@@ -470,17 +470,17 @@ func verifyBlockPoW(b *Block) (bool, string) {
 	return true, ""
 }
 
-func NewBlockChain() *BlockChain {
-	return &BlockChain{Blocks: []*Block{Genesis()}}
+func New() *Chain {
+	return &Chain{Blocks: []*Block{Genesis()}}
 }
 
-// NewBlockChainWithDB builds an independent persistent chain over db. It uses
+// NewWithDB builds an independent persistent chain over db. It uses
 // the same schema and conflict handling as the process singleton, without
 // claiming the global instance. Callers that pair the chain with a domain
 // repository must pass the same SQLite database so transactional block
 // appends and business rows share one commit.
-func NewBlockChainWithDB(db *sql.DB) *BlockChain {
-	chain := NewBlockChain()
+func NewWithDB(db *sql.DB) *Chain {
+	chain := New()
 	bindChainToDB(chain, db)
 	return chain
 }

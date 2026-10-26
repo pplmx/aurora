@@ -589,7 +589,7 @@ func TestMint(t *testing.T) {
 func TestTransfer_InvalidToken(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -614,7 +614,7 @@ func TestTransfer_InvalidToken(t *testing.T) {
 func TestTransfer_InvalidFrom(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -646,7 +646,7 @@ func TestTransfer_InvalidFrom(t *testing.T) {
 func TestTransfer_InvalidTo(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -769,7 +769,7 @@ func TestTokenMutations_RejectZeroRecipient(t *testing.T) {
 func TestTransfer_InvalidAmount(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -801,7 +801,7 @@ func TestTransfer_InvalidAmount(t *testing.T) {
 func TestTransfer(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -848,7 +848,7 @@ func TestTransfer(t *testing.T) {
 func TestTransfer_InsufficientBalance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -930,7 +930,7 @@ func TestApprove(t *testing.T) {
 func TestTransferFrom(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1136,7 +1136,7 @@ func TestBurn_InsufficientBalance(t *testing.T) {
 func TestGetTransferHistory(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1592,7 +1592,7 @@ func TestAuditPublishFailure_OpStillCommits(t *testing.T) {
 	eventStore := NewMockEventStore()
 	busErr := errors.New("event store unavailable")
 	eventBus := newMockEventBusWithErr(eventStore, busErr)
-	service := NewService(repo, newMockTxManager(), eventBus, eventStore, newMockReplayProtection(), blockchain.NewBlockChain())
+	service := NewService(repo, newMockTxManager(), eventBus, eventStore, newMockReplayProtection(), blockchain.New())
 
 	owner := pubKey(1)
 	recipient := pubKey(2)
@@ -1716,7 +1716,7 @@ func TestMint_InvalidTokenRepoError(t *testing.T) {
 func TestTransferFrom_NilApproval(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1750,7 +1750,7 @@ func TestTransferFrom_NilApproval(t *testing.T) {
 func TestTransferFrom_InsufficientAllowance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1794,7 +1794,7 @@ func TestTransferFrom_InsufficientAllowance(t *testing.T) {
 func TestTransferFrom_OwnerInsufficientBalance(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1838,7 +1838,7 @@ func TestTransferFrom_OwnerInsufficientBalance(t *testing.T) {
 func TestTransferFrom_InvalidOwner(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1872,7 +1872,7 @@ func TestTransferFrom_InvalidOwner(t *testing.T) {
 func TestTransferFrom_InvalidSpender(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1905,7 +1905,7 @@ func TestTransferFrom_InvalidSpender(t *testing.T) {
 func TestTransferFrom_InvalidAmount(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1939,7 +1939,7 @@ func TestTransferFrom_InvalidAmount(t *testing.T) {
 func TestTransferFrom_InvalidToken(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -1970,7 +1970,7 @@ func TestTransfer_Atomicity_FromBalanceUpdateFails(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -2004,7 +2004,7 @@ func TestTransfer_Atomicity_ToBalanceUpdateFails(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -2271,7 +2271,7 @@ func TestBurn_InvalidToken(t *testing.T) {
 func TestGetTransferHistory_DefaultLimit(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -2297,7 +2297,7 @@ func TestGetTransferHistory_DefaultLimit(t *testing.T) {
 func TestGetTransferHistory_WithPagination(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -2335,7 +2335,7 @@ func TestGetTransferHistory_WithPagination(t *testing.T) {
 func TestGetTransferHistory_WithOffset(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -2526,7 +2526,7 @@ func TestTransferFrom_SetBalanceError(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -2563,7 +2563,7 @@ func TestTransferFrom_AllowanceDeductionFailure(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -2616,7 +2616,7 @@ func TestTransferFrom_AtomicityRollbackOnCreditFailure(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	// Bound the tx manager to the repo so a failing step triggers a true
@@ -2682,7 +2682,7 @@ func TestTransfer_PublishFailureDoesNotRollbackCommittedTransfer(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	replay := newMockReplayProtection()
 	txManager := newMockTxManager()
 	eventBus := &failingEventBus{err: fmt.Errorf("publish failed")}
@@ -2725,7 +2725,7 @@ func TestTransferFrom_AtomicityRollbackOnToBalanceFailure(t *testing.T) {
 		txTokens:  make(map[TokenID]*Token),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	replay := newMockReplayProtection()
 	eventBus := newMockEventBus(eventStore)
 	txManager := newMockTxManagerWithRepo(repo)
@@ -2775,7 +2775,7 @@ func TestMint_AtomicityRollbackOnBalanceUpdateFailure(t *testing.T) {
 		txTokens:  make(map[TokenID]*Token),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	replay := newMockReplayProtection()
 	eventBus := newMockEventBus(eventStore)
 	txManager := newMockTxManagerWithRepo(repo)
@@ -2811,7 +2811,7 @@ func TestBurn_AtomicityRollbackOnBalanceUpdateFailure(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	replay := newMockReplayProtection()
 	eventBus := newMockEventBus(eventStore)
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -2846,7 +2846,7 @@ func TestBurn_SupplyBelowBurnAmountRollsBackBalance(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	replay := newMockReplayProtection()
 	eventBus := newMockEventBus(eventStore)
 	// The manager is bound to the repo so a failing step triggers a true
@@ -2891,7 +2891,7 @@ func TestTransfer_AtomicityTransactionFailureDoesNotCorruptState(t *testing.T) {
 		approvals: make(map[string]*Approval),
 	}
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	replay := newMockReplayProtection()
 	eventBus := newMockEventBus(eventStore)
 	txManager := newFailingTxManager(1)
@@ -2951,7 +2951,7 @@ func TestTxRollback_DoesNotPublishPhantomEvent(t *testing.T) {
 			approvals: make(map[string]*Approval),
 		}
 		eventStore := NewMockEventStore()
-		chain := blockchain.NewBlockChain()
+		chain := blockchain.New()
 		replay := newMockReplayProtection()
 		eventBus := newMockEventBus(eventStore)
 		txManager := newMockTxManagerWithRepo(repo)
@@ -3097,7 +3097,7 @@ func (f *failingEventBus) SubscribeAll(handler infraevents.Handler) func() {
 func TestNoOpTxManager_ExecutesCallback(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	service := NewServiceWithoutTx(repo, newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
 
 	owner := pubKey(1)
@@ -3145,7 +3145,7 @@ func TestNoOpTxManager_ExecutesCallback(t *testing.T) {
 func TestNoOpTxManager_TransferWorksThroughNoOpTx(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	service := NewServiceWithoutTx(repo, newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
 
 	owner := pubKey(1)
@@ -3438,7 +3438,7 @@ func TestBurn_UnauthorizedPrivateKey(t *testing.T) {
 func TestTransfer_UnauthorizedPrivateKey(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -3473,7 +3473,7 @@ func TestTransfer_UnauthorizedPrivateKey(t *testing.T) {
 func TestTransferFrom_UnauthorizedPrivateKey(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -3551,7 +3551,7 @@ func TestApprove_UnauthorizedPrivateKey(t *testing.T) {
 func TestIncreaseAllowance_UnauthorizedPrivateKey(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)
@@ -3586,7 +3586,7 @@ func TestIncreaseAllowance_UnauthorizedPrivateKey(t *testing.T) {
 func TestDecreaseAllowance_UnauthorizedPrivateKey(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()
-	chain := blockchain.NewBlockChain()
+	chain := blockchain.New()
 	eventBus := newMockEventBus(eventStore)
 	replay := newMockReplayProtection()
 	service := NewService(repo, newMockTxManager(), eventBus, eventStore, replay, chain)

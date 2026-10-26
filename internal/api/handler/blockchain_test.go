@@ -26,7 +26,7 @@ func TestBlockchainVerifyRoute(t *testing.T) {
 	var report blockchain.IntegrityReport
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &report))
 
-	want := blockchain.GetBlockChain().VerifyIntegrity()
+	want := blockchain.Get().VerifyIntegrity()
 	require.Equal(t, want.Valid, report.Valid)
 	require.Equal(t, want.Length, report.Length)
 
