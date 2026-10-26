@@ -46,6 +46,9 @@ type Shell struct {
 	// navigate loads an intent in the window. Tests replace it to observe
 	// exactly which links reach the page; the default needs a live window.
 	navigate func(Intent)
+	// reload re-reads the current page after an import. Tests replace it; the
+	// default reaches the App when one is attached.
+	reload func()
 	// createWindow recreates the main window after it was closed. It is set by
 	// main and nil in tests or before the app can create windows.
 	createWindow func() *mygo.Window
@@ -423,7 +426,10 @@ func (s *Shell) reloadWindow() {
 	s.mu.Lock()
 	win, app := s.win, s.app
 	s.mu.Unlock()
-	if app != nil {
+	switch {
+	case s.reload != nil:
+		s.reload()
+	case app != nil:
 		app.Reload()
 	}
 	if win != nil && !win.IsDestroyed() {

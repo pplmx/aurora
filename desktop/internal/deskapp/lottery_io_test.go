@@ -210,3 +210,43 @@ func TestExportLotteriesRefusesTheLiveDatabase(t *testing.T) {
 	require.NoError(t, err, "the database must still open as SQLite")
 	require.NoError(t, info.Close())
 }
+
+// TestOpenFileReloadsAfterImport pins the wiring between an import and the
+// page behind its result dialog: rows were stored but the history stayed as it
+// was until the operator pressed Refresh. The shell's reload is observed
+// directly; the dialog is replaced so the test needs no window.
+func TestOpenFileReloadsAfterImport(t *testing.T) {
+	src, err := sqlite.NewLotteryRepository(filepath.Join(t.TempDir(), "src.db"))
+	require.NoError(t, err)
+	record := genuineDesktopLotteryRecord(t, "desktop-import-reload")
+	require.NoError(t, src.Save(&record))
+	document, _, err := lotteryapp.ExportRecords(src)
+	require.NoError(t, err)
+	require.NoError(t, src.Close())
+
+	exportPath := filepath.Join(t.TempDir(), "draws.json")
+	require.NoError(t, os.WriteFile(exportPath, document, 0o644))
+
+	dstPath := filepath.Join(t.TempDir(), "dest.db")
+	dst, err := sqlite.NewLotteryRepository(dstPath)
+	require.NoError(t, err)
+	require.NoError(t, dst.Close())
+
+	originalBox := messageBox
+	messageBox = func(mygo.MessageOptions) {}
+	t.Cleanup(func() { messageBox = originalBox })
+
+	shell := NewShell(About{DBPath: dstPath})
+	reloads := 0
+	shell.reload = func() { reloads++ }
+	shell.OpenFile(exportPath)
+
+	require.Equal(t, 1, reloads, "a stored import must reload the page")
+	check, err := sqlite.NewLotteryRepository(dstPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = check.Close() })
+	stored, err := check.GetAll()
+	require.NoError(t, err)
+	require.Len(t, stored, 1)
+	require.Equal(t, record.ID, stored[0].ID)
+}
