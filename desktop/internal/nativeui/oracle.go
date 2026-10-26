@@ -127,6 +127,7 @@ func (a *App) oracleView(c *ui.Context) {
 			case 1:
 				a.oracleHealth(c)
 			default:
+				a.loadOpenReadings()
 				a.oracleRead(c)
 			}
 		})
@@ -497,6 +498,24 @@ func (a *App) oracleReadBody(c *ui.Context) {
 				ui.Text(c, strconv.FormatInt(d.BlockHeight, 10))
 			}
 		})
+	}
+}
+
+// loadOpenReadings fills the Readings stage for the source already selected in
+// the action field. It runs once per source/limit: a successful empty result or
+// a failure is recorded in the same key, so opening the tab does not hammer the
+// database every frame. The explicit Query/Get Latest buttons remain the retry.
+func (a *App) loadOpenReadings() {
+	if id := strings.TrimSpace(a.oracle.queryID); id != "" {
+		limit := a.oracleQueryLimit()
+		if a.oracle.dataLoadedSource != id || a.oracle.dataLoadedLimit != limit {
+			a.clearOracleDataForAnotherRead(id, limit)
+			_ = a.loadOracleData(id, limit)
+		}
+	}
+	if id := strings.TrimSpace(a.oracle.latestID); id != "" && a.oracle.latestLoadedSource != id {
+		a.clearOracleLatestForAnotherSource(id)
+		_ = a.loadOracleLatest(id)
 	}
 }
 

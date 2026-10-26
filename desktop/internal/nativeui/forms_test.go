@@ -521,3 +521,21 @@ func TestSelectedSourceShowsItsEndpointAndInterval(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, endpoint, tester.Clipboard())
 }
+
+// TestReadingsStageLoadsTheChosenSource pins the Oracle equivalent: selecting
+// a source and opening Readings queries that source without another click.
+func TestReadingsStageLoadsTheChosenSource(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("s1"))
+	tester.Frame()
+	require.Zero(t, fake.oracleDataCalls, "selecting a source alone does not read values")
+	require.NoError(t, tester.Click("Readings"))
+	tester.Frame()
+	require.Positive(t, fake.oracleDataCalls, "Readings must query the selected source")
+	require.Positive(t, fake.oracleLatestCalls, "Readings must read the latest value")
+}

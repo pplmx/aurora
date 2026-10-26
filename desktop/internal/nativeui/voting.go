@@ -145,6 +145,13 @@ func (a *App) votingView(c *ui.Context) {
 		case 1:
 			a.votingVote(c)
 		default:
+			if id := strings.TrimSpace(a.voting.resultsSession); id != "" && a.voting.resultsLoadedID != id {
+				// Opening Results with a session already chosen should show its
+				// tally, not require another Show Results click. A failed or
+				// empty load records the id, so it does not repeat every frame.
+				a.clearTallyForAnotherSession(id)
+				_ = a.loadSessionResults(id)
+			}
 			a.votingResults(c)
 		}
 	})
