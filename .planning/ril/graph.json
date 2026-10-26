@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 259,
+  "round": 260,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T07:21:43+00:00",
+  "updated_at": "2026-10-26T07:38:39+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 257,
+      "touched_round": 259,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20145,6 +20145,47 @@
       "commit": "3f55414",
       "title": "Auto-hide the desktop menu bar",
       "description": "Linux/Windows windows set AutoHideMenuBar; the application menu and shortcuts remain available on demand, macOS keeps its platform menu."
+    },
+    "ISS-443": {
+      "id": "ISS-443",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:38:32+00:00",
+      "updated_at": "2026-10-26T07:38:39+00:00",
+      "touched_round": 259,
+      "title": "The desktop workbench exposes every form at once and hides app actions behind a menu bar",
+      "description": "Token stacks six write forms and NFT three in one scrolling column; the two-column layout squeezes cards at the 900px minimum; current ids cannot be copied because native text is not selectable; and hiding the native menu bar left backup/export/import/language without a discoverable entry point.",
+      "severity": 0.65,
+      "confidence": 1.0
+    },
+    "TASK-398": {
+      "id": "TASK-398",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:38:32+00:00",
+      "updated_at": "2026-10-26T07:38:39+00:00",
+      "touched_round": 259,
+      "category": "core-feature",
+      "title": "Redesign the desktop workbench for interaction and discoverability",
+      "description": "Add a sidebar Actions menu wired to the shell; put Token/NFT write operations behind tabs; stack columns below 1000px; add copy rows for current ids; localize the new labels. Pin each behavior with view tests and run the desktop and core gates.",
+      "severity": 0.65,
+      "confidence": 1.0,
+      "effort": 4,
+      "unlock_factor": 1
+    },
+    "CHG-457": {
+      "id": "CHG-457",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:38:39+00:00",
+      "updated_at": "2026-10-26T07:38:39+00:00",
+      "touched_round": 259,
+      "commit": "26d3f9f",
+      "title": "Redesign the desktop workbench",
+      "description": "Sidebar Actions menu with recent documents, operation tabs for Token/NFT, responsive columns, copy rows for current ids, localized action labels."
     }
   },
   "edges": [
@@ -30618,6 +30659,30 @@
       "to": "TASK-397",
       "type": "implements",
       "created_at": "2026-10-26T07:21:43+00:00"
+    },
+    {
+      "from": "TASK-398",
+      "to": "ISS-443",
+      "type": "addresses",
+      "created_at": "2026-10-26T07:38:38+00:00"
+    },
+    {
+      "from": "ISS-443",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T07:38:38+00:00"
+    },
+    {
+      "from": "CHG-457",
+      "to": "ISS-443",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:38:39+00:00"
+    },
+    {
+      "from": "CHG-457",
+      "to": "TASK-398",
+      "type": "implements",
+      "created_at": "2026-10-26T07:38:39+00:00"
     }
   ]
 }
