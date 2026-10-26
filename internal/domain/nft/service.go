@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/blockchain"
 )
 
 type Service interface {

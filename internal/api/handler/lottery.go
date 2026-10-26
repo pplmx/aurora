@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
-	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 )
 

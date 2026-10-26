@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 )
 

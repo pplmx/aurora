@@ -13,7 +13,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/events"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )

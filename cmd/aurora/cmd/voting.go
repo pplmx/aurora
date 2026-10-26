@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/pplmx/aurora/internal/app/votingapp"
-	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
@@ -20,7 +20,7 @@ import (
 // running in parallel, or tests using t.Parallel) both observe
 // votingRepo == nil, both call NewVotingRepository, and race on
 // the assignment. The assignment itself is racy even when InitDB
-// is safe — see internal/domain/blockchain/init.go for the
+// is safe — see internal/blockchain/init.go for the
 // underlying DB initialisation fix (Round 19).
 var votingInitMu sync.Mutex
 

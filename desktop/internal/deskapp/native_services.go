@@ -16,7 +16,7 @@ import (
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/app/tokenapp"
 	"github.com/pplmx/aurora/internal/app/votingapp"
-	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/domain/voting"
