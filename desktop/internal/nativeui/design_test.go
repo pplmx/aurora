@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -80,4 +81,25 @@ func TestStatusStaysInTheFixedChrome(t *testing.T) {
 	require.True(t, ok, "the status line must remain on screen while the body scrolls")
 	require.InDelta(t, float64(statusBefore.Y), float64(statusAfter.Y), 0.5,
 		"the status line is fixed chrome: only the body may move")
+}
+
+// TestDashboardListsTheNewestChainEntries pins the overview's activity card:
+// the counters say how much the store holds, the list says what happened, and
+// only the newest few belong on the landing page.
+func TestDashboardListsTheNewestChainEntries(t *testing.T) {
+	blocks := make([]BlockRow, 7)
+	for i := range blocks {
+		blocks[i] = BlockRow{
+			Height:  int64(len(blocks) - i),
+			Module:  "module-" + strconv.Itoa(i),
+			Summary: "payload-" + strconv.Itoa(i),
+		}
+	}
+	app := New(&fakeServices{blocks: blocks})
+	tester := ui.NewTester(app.View, 1280, 1000)
+	tester.Frame()
+
+	require.True(t, tester.HasText("payload-0"), "the newest entry must be listed")
+	require.True(t, tester.HasText("payload-4"), "the fifth newest entry must be listed")
+	require.False(t, tester.HasText("payload-5"), "the card must show only the newest five")
 }
