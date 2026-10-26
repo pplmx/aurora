@@ -53,6 +53,14 @@ const (
 	successTint = "#12291f"
 	errorTint   = "#2a1417"
 	warningTint = "#2a2213"
+	// High-contrast variants: the same hues, with the borders, primary and
+	// secondary text and focus ring pushed apart from the surfaces. The OS
+	// asks for this through Preferences.HighContrast.
+	hcBorder    = "#7c97ad"
+	hcInk       = "#ffffff"
+	hcInkMuted  = "#c9d8e5"
+	hcFocusRing = "#ffffff"
+	hcSelection = "#2c4f6d"
 )
 
 // auroraTheme returns the theme the window draws with: the dark theme with
@@ -63,15 +71,21 @@ const (
 // appearance, because the product is dark by design: the previous build set a
 // dark window background and then drew MyGo's light theme on top of it, so
 // every button, input and table read as a white panel on a black page.
-func auroraTheme() *ui.Theme {
+func auroraTheme(highContrast bool) *ui.Theme {
+	borderColor, textColor, mutedColor := border, ink, inkMuted
+	focusColor, selectionColor := focusRing, selection
+	if highContrast {
+		borderColor, textColor, mutedColor = hcBorder, hcInk, hcInkMuted
+		focusColor, selectionColor = hcFocusRing, hcSelection
+	}
 	t := ui.DarkTheme()
 	t.Background = ui.Hex(night)
 	t.Surface = ui.Hex(surface)
 	t.SurfaceHover = ui.Hex(surfaceHover)
 	t.SurfacePressed = ui.Hex(surfacePressed)
-	t.Border = ui.Hex(border)
-	t.Text = ui.Hex(ink)
-	t.TextMuted = ui.Hex(inkMuted)
+	t.Border = ui.Hex(borderColor)
+	t.Text = ui.Hex(textColor)
+	t.TextMuted = ui.Hex(mutedColor)
 	t.Accent = ui.Hex(aurora)
 	t.AccentHover = ui.Hex(auroraHover)
 	t.AccentPressed = ui.Hex(auroraPressed)
@@ -79,8 +93,8 @@ func auroraTheme() *ui.Theme {
 	t.Danger = ui.Hex(auroraRed)
 	t.Warning = ui.Hex(auroraAmber)
 	t.Success = ui.Hex(auroraGreen)
-	t.Selection = ui.Hex(selection)
-	t.Focus = ui.Hex(focusRing)
+	t.Selection = ui.Hex(selectionColor)
+	t.Focus = ui.Hex(focusColor)
 	t.Scrollbar = ui.Hex(scrollbar)
 	t.Radius = 8
 	t.Spacing = 4
