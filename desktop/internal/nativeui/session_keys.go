@@ -1,6 +1,8 @@
 package nativeui
 
 import (
+	"crypto/ed25519"
+	"encoding/base64"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -12,13 +14,36 @@ import (
 // in a more confusing way.
 func (a *App) rememberSuccessfulKey(publicKey, privateKey string) {
 	publicKey, privateKey = strings.TrimSpace(publicKey), strings.TrimSpace(privateKey)
-	if !a.rememberKeys || publicKey == "" || privateKey == "" {
+	if !a.rememberKeys || privateKey == "" {
+		return
+	}
+	actual, ok := publicKeyForPrivate(privateKey)
+	if !ok {
+		return
+	}
+	// A form's optional public field can be wrong (Transfer From does not send
+	// it to the service). Store under the key the private half really belongs
+	// to, and refuse an explicitly different pair rather than create a mapping
+	// that would fill a wrong key later.
+	if publicKey != "" && publicKey != actual {
 		return
 	}
 	if a.savedKeys == nil {
 		a.savedKeys = make(map[string]string)
 	}
-	a.savedKeys[publicKey] = privateKey
+	a.savedKeys[actual] = privateKey
+}
+
+// publicKeyForPrivate derives the base64 public half of an Ed25519 private key.
+// The services accept the 64-byte form; deriving here keeps the key ring from
+// trusting a public field that was never sent to the service.
+func publicKeyForPrivate(privateKey string) (string, bool) {
+	raw, err := base64.StdEncoding.DecodeString(privateKey)
+	if err != nil || len(raw) != ed25519.PrivateKeySize {
+		return "", false
+	}
+	public := ed25519.PrivateKey(raw).Public().(ed25519.PublicKey)
+	return base64.StdEncoding.EncodeToString(public), true
 }
 
 // savedKey returns the private key remembered for a public key.
