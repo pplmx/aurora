@@ -381,6 +381,14 @@ func (a *App) ShowPage(name string) {
 		a.setPage(pageDashboard)
 		return
 	}
+	for p, id := range pageIDs {
+		// The ids are the stable contract (sidebar choices, deep links); the
+		// titles are shown text and may be translated.
+		if strings.EqualFold(id, name) {
+			a.setPage(p)
+			return
+		}
+	}
 	for p, title := range pageTitles {
 		if strings.EqualFold(title, name) {
 			a.setPage(p)
