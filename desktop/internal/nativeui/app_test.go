@@ -59,6 +59,9 @@ type fakeServices struct {
 	// test can prove the page refreshes what it shows after a write.
 	listTokensCalls     int
 	tokenInfoCalls      int
+	tokenBalanceCalls   int
+	tokenHistoryCalls   int
+	getNFTCalls         int
 	listAllNFTsCalls    int
 	nftHistoryCalls     int
 	sessionResultsCalls int
@@ -169,7 +172,10 @@ func (f *fakeServices) ListTokens() ([]TokenRow, error) {
 	}
 	return f.tokenRows, nil
 }
-func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error)              { return "42", nil }
+func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error) {
+	f.tokenBalanceCalls++
+	return "42", nil
+}
 func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error                { return nil }
 func (f *fakeServices) TransferToken(tokenID, from, to, amount, priv string) error      { return nil }
 func (f *fakeServices) ApproveToken(tokenID, owner, spender, amount, priv string) error { return nil }
@@ -182,6 +188,7 @@ func (f *fakeServices) TokenAllowance(tokenID, owner, spender string) (string, e
 }
 func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([]TransferRow, error) {
 	f.tokenHistoryLimit = limit
+	f.tokenHistoryCalls++
 	return nil, nil
 }
 
@@ -212,7 +219,10 @@ func (f *fakeServices) OracleHealth() ([]HealthRow, error) { return nil, nil }
 func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator string) (NFTRow, error) {
 	return NFTRow{ID: "n1", Name: name, Owner: creator}, nil
 }
-func (f *fakeServices) GetNFT(id string) (NFTRow, error) { return NFTRow{ID: id}, nil }
+func (f *fakeServices) GetNFT(id string) (NFTRow, error) {
+	f.getNFTCalls++
+	return NFTRow{ID: id}, nil
+}
 func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) {
 	if f.loadErrs.nfts != nil {
 		return nil, f.loadErrs.nfts

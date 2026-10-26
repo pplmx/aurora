@@ -406,6 +406,17 @@ func (a *App) oracleReadBody(c *ui.Context) {
 	}
 }
 
+// refreshOracleReads re-reads the Query and Latest cards that are already
+// showing data, for the Refresh action.
+func (a *App) refreshOracleReads() {
+	if len(a.oracle.data) > 0 {
+		_ = a.loadOracleData(strings.TrimSpace(a.oracle.queryID), a.oracleQueryLimit())
+	}
+	if a.oracle.latest != nil {
+		_ = a.loadOracleLatest(strings.TrimSpace(a.oracle.latestID))
+	}
+}
+
 // oracleQueryLimit is the Query card's limit: 20 unless the field names a
 // positive number.
 func (a *App) oracleQueryLimit() int {

@@ -456,17 +456,35 @@ func (a *App) transferFromToken() {
 	}
 }
 
-// refreshToken re-reads what a write just changed: the collection (whose rows
-// show total supply) and, when it is open, the Inspect readout. The write
-// cards sit beside the list, so leaving a stale supply next to a successful
-// mint read as if the mint had done nothing.
+// refreshToken re-reads everything the page shows: the collection (whose rows
+// show total supply), an open Inspect readout, a shown balance and a loaded
+// history. A write or the Refresh button must not leave stale numbers beside
+// a successful result.
 func (a *App) refreshToken() {
 	a.loadToken()
-	if a.token.info == nil {
-		return
+	id := strings.TrimSpace(a.token.tokenID)
+	if a.token.info != nil {
+		if info, err := a.services.TokenInfo(id); err == nil {
+			a.token.info = &info
+		}
 	}
-	if info, err := a.services.TokenInfo(strings.TrimSpace(a.token.tokenID)); err == nil {
-		a.token.info = &info
+	account := strings.TrimSpace(a.token.account)
+	if a.token.balance != "" {
+		if balance, err := a.services.TokenBalance(id, account); err == nil {
+			a.token.balance = balance
+		}
+	}
+	if len(a.token.history) > 0 {
+		limit := int(a.token.historyLimit)
+		if limit < 1 {
+			limit = 50
+		}
+		if limit > maxListLimit {
+			limit = maxListLimit
+		}
+		if rows, err := a.services.TokenHistory(id, account, limit, 0); err == nil {
+			a.token.history = rows
+		}
 	}
 }
 

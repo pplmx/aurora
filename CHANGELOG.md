@@ -55,6 +55,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Refresh reloads the readouts that are on screen**: Ctrl/Cmd+R (and the
+  Refresh button) reloaded the lists and counters but left an open Inspect
+  readout, a shown balance, a loaded token/NFT history, the oracle Query and
+  Latest cards and a voting tally at their previous values. Each page now
+  re-reads exactly what it displays, through the same helpers the writes use.
+  `TestPageRefreshReReadsOpenReadouts` counts every one of those reads.
 - **The desktop clears a signing key after it is used**: token mint, transfer,
   approve, transfer-from and burn, and NFT transfer and burn, left the private
   key in its input after a successful write, so a shared screen kept showing
