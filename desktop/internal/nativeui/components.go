@@ -203,6 +203,25 @@ func fieldHint(c *ui.Context, label, hintText string, value *string) {
 	})
 }
 
+// textArea builds a labelled multi-line input, for values that are naturally
+// longer than one line (JSON headers, a description).
+func textArea(c *ui.Context, label string, value *string) {
+	ui.Field(c, label, func() {
+		ui.TextArea(c, value).Height(64)
+	})
+}
+
+// textAreaHint is textArea with a line under it, for a value whose format the
+// label does not explain.
+func textAreaHint(c *ui.Context, label, hintText string, value *string) {
+	ui.Field(c, label, func() {
+		ui.Column(c).Gap(2).Children(func() {
+			ui.TextArea(c, value).Height(64)
+			hint(c, hintText)
+		})
+	})
+}
+
 // hint draws a muted line under a control, explaining a value the label
 // cannot.
 func hint(c *ui.Context, text string) {

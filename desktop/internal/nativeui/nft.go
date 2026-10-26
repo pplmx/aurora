@@ -109,7 +109,7 @@ func (a *App) nftMint(c *ui.Context) {
 
 func (a *App) nftMintBody(c *ui.Context) {
 	field(c, "Name", &a.nft.name)
-	field(c, "Description (optional)", &a.nft.description)
+	textArea(c, "Description (optional)", &a.nft.description)
 	field(c, "Image URL (optional)", &a.nft.imageURL)
 	field(c, "Token URI (optional)", &a.nft.tokenURI)
 	fieldHint(c, "Creator (base64 public key)", "The creator becomes the first owner.", &a.nft.creator)

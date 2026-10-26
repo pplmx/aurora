@@ -194,6 +194,9 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop uses text areas for its long free-text fields**: the oracle
+  Request Headers JSON and the NFT Description were single-line inputs; both
+  are `ui.TextArea` now, so a header object can be read while it is edited.
 - **The desktop numeric fields are real number inputs**: winner count, token decimals,
   oracle poll interval and the query/history page sizes are `ui.NumberInput` with
   the domain bounds and a step, instead of text parsed on submit; the interval
