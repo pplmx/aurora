@@ -55,6 +55,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A failed oracle preset read no longer hides its cause on the desktop**: the
+  template catalog error was dropped, leaving a stale or missing preset picker
+  with no explanation. The Add Source card now shows the stale warning above the
+  previous presets (or none) and stays usable; the test fails the read and
+  asserts the warning and the surviving form.
 - **A failed feed-health read is visible on the desktop Oracle page**: the health
   counters were only assigned on success and the error was dropped, so a
   transient read failure left old counters on screen with no sign they were

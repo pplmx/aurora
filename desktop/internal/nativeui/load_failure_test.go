@@ -136,3 +136,25 @@ func TestFailedHealthReadKeepsFeedRows(t *testing.T) {
 	require.True(t, tester.HasText("Showing the last successful load."))
 	require.True(t, tester.HasText("btc-feed"), "the last counters must stay visible")
 }
+
+// TestFailedPresetReadKeepsTheAddForm covers the oracle preset catalog: a failed
+// read was dropped, leaving a stale or absent picker with no explanation. The
+// warning sits above a form that stays usable.
+func TestFailedPresetReadKeepsTheAddForm(t *testing.T) {
+	fake := &fakeServices{templates: []TemplateRow{
+		{ID: "btc-price", Name: "Bitcoin Price", URL: "https://example.com/btc"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+	require.True(t, tester.HasText("Preset (optional)"))
+
+	fake.loadErrs.templates = errors.New("database is locked")
+	app.refresh()
+	tester.Frame()
+	require.True(t, tester.HasText("Failed to load presets"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+	require.True(t, tester.HasText("Preset (optional)"), "the form must remain usable")
+	require.True(t, tester.HasText("Add Source"), "the add action must survive the warning")
+}

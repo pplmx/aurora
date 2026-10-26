@@ -40,6 +40,9 @@ type oracleState struct {
 	latest    *DataRow
 
 	loadErr error
+	// templatesErr is the last failure to read the preset catalog; old presets
+	// stay usable with a warning.
+	templatesErr error
 
 	// selected is the source row chosen, -1 for none.
 	selected int
@@ -69,8 +72,11 @@ func (a *App) loadOracle() {
 		return
 	}
 	a.oracle.sources = sources
-	if tpl, err := a.services.OracleTemplates(); err == nil {
+	if tpl, err := a.services.OracleTemplates(); err != nil {
+		a.oracle.templatesErr = err
+	} else {
 		a.oracle.templates = tpl
+		a.oracle.templatesErr = nil
 	}
 	if h, err := a.services.OracleHealth(); err != nil {
 		a.oracle.healthErr = err
@@ -253,6 +259,11 @@ func (a *App) oracleAdd(c *ui.Context) {
 }
 
 func (a *App) oracleAddBody(c *ui.Context) {
+	if a.oracle.templatesErr != nil {
+		// The form stays usable without presets; the warning explains why the
+		// picker is stale or absent instead of silently dropping it.
+		loadWarning(c, "Failed to load presets", a.oracle.templatesErr, len(a.oracle.templates) > 0)
+	}
 	if len(a.oracle.templates) > 0 {
 		// The choice lives in the page's state: a local variable reset it to
 		// empty on the next frame, so the box never showed what was picked.
