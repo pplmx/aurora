@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 262,
+  "round": 263,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T07:50:45+00:00",
+  "updated_at": "2026-10-26T08:07:21+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 259,
+      "touched_round": 262,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20268,6 +20268,47 @@
       "commit": "e7afe1b",
       "title": "Unify desktop menu content",
       "description": "macOS menu now carries only app/File(Close)/Edit/Window roles; Aurora actions live in the sidebar Actions menu on all platforms; custom menu builder and locale tick helpers removed."
+    },
+    "ISS-446": {
+      "id": "ISS-446",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T08:07:13+00:00",
+      "updated_at": "2026-10-26T08:07:21+00:00",
+      "touched_round": 262,
+      "title": "The desktop pages still read as a wall of unrelated forms",
+      "description": "The dashboard lists modules but no task, every optional field competes with the essential ones, selecting a token leaves the owner public key to be pasted six times while old private keys remain, and a successful create can leave a search or filter hiding the new row. Operators reported the interaction as hard to follow.",
+      "severity": 0.6,
+      "confidence": 1.0
+    },
+    "TASK-401": {
+      "id": "TASK-401",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T08:07:13+00:00",
+      "updated_at": "2026-10-26T08:07:21+00:00",
+      "touched_round": 262,
+      "category": "core-feature",
+      "title": "Simplify the desktop first move and token workflow",
+      "description": "Add dashboard Quick start and task-shaped page purposes; hide advanced fields behind disclosures; prefill owner accounts and clear old secrets on token selection/create; reuse a generated owner key; highlight created records. Pin each path with view tests.",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 3,
+      "unlock_factor": 1
+    },
+    "CHG-460": {
+      "id": "CHG-460",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T08:07:21+00:00",
+      "updated_at": "2026-10-26T08:07:21+00:00",
+      "touched_round": 262,
+      "commit": "28d0a4f",
+      "title": "Simplify desktop first move and token workflow",
+      "description": "Dashboard Quick start; task-shaped purposes; advanced disclosures; owner prefill and secret clearing; generated-key reuse; create highlights its row."
     }
   },
   "edges": [
@@ -30813,6 +30854,30 @@
       "to": "TASK-400",
       "type": "implements",
       "created_at": "2026-10-26T07:50:45+00:00"
+    },
+    {
+      "from": "TASK-401",
+      "to": "ISS-446",
+      "type": "addresses",
+      "created_at": "2026-10-26T08:07:20+00:00"
+    },
+    {
+      "from": "ISS-446",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T08:07:21+00:00"
+    },
+    {
+      "from": "CHG-460",
+      "to": "ISS-446",
+      "type": "resolves",
+      "created_at": "2026-10-26T08:07:21+00:00"
+    },
+    {
+      "from": "CHG-460",
+      "to": "TASK-401",
+      "type": "implements",
+      "created_at": "2026-10-26T08:07:21+00:00"
     }
   ]
 }
