@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 288,
+  "round": 289,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T16:18:37+00:00",
+  "updated_at": "2026-10-26T16:31:46+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20758,7 +20758,7 @@
       "version": 1,
       "created_at": "2026-10-26T16:10:49+00:00",
       "updated_at": "2026-10-26T16:10:49+00:00",
-      "touched_round": 287,
+      "touched_round": 288,
       "category": "architecture",
       "title": "Refactor package boundaries and ledger vocabulary",
       "description": "Move the DB-backed ledger out of domain; remove app-to-infra error imports; split the desktop adapter; normalize ledger names. Remaining: shared composition root and desktop i18n separation.",
@@ -20862,6 +20862,18 @@
       "commit": "f1b751d",
       "title": "Enforce layer imports",
       "description": "AST repocheck for domain/app/infra directions; container exempt."
+    },
+    "CHG-489": {
+      "id": "CHG-489",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T16:31:46+00:00",
+      "updated_at": "2026-10-26T16:31:46+00:00",
+      "touched_round": 288,
+      "commit": "0bd1596",
+      "title": "Invert desktop adapter to domain ports",
+      "description": "nativeServices uses repository interfaces; NFT tx injected; ports test."
     }
   },
   "edges": [
@@ -31725,6 +31737,12 @@
       "to": "TASK-409",
       "type": "implements",
       "created_at": "2026-10-26T16:18:37+00:00"
+    },
+    {
+      "from": "CHG-489",
+      "to": "TASK-409",
+      "type": "implements",
+      "created_at": "2026-10-26T16:31:46+00:00"
     }
   ]
 }
