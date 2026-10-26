@@ -383,6 +383,10 @@ documented in their per-milestone ROADMAP files.
   desktop inject a fetcher, and a nil fetcher returns a clear error instead of
   panicking. The layer check now forbids every `internal/infra` import outside
   `app/container`.
+- **The view package separates page identity and status from widgets**:
+  `pages.go` owns the page enum/IDs/order, `status.go` owns the success/failure
+  line and error localization. `components.go` now holds only controls and
+  layout primitives.
 - **The view package separates its data contract from its state machine**:
   `nativeui.Services` moved to `services.go` and the row DTOs to `rows.go`;
   `app.go` keeps the App state, construction and navigation. The contract now
