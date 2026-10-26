@@ -17,10 +17,15 @@ import (
 type App struct {
 	services Services
 	page     page
-	// actions are the application-level callbacks the sidebar menu runs:
-	// backup, export/import, About and the language choice. They are optional
+	// actions are the application-level callbacks the File menu and Settings
+	// page run: file operations, language and build facts. They are optional
 	// so a view test can render without a shell.
 	actions Actions
+	// rememberKeys is an explicit, session-only choice. savedKeys maps a
+	// base64 public key to the matching private key; it is never written to
+	// disk and is cleared when the process ends or the user forgets it.
+	rememberKeys bool
+	savedKeys    map[string]string
 	// guides holds each page's "How this works" disclosure. They start closed
 	// so the page stays task-first, but the explanation is one click away.
 	guides guideState

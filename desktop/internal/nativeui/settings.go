@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -24,6 +25,15 @@ func (a *App) settingsView(c *ui.Context) {
 				a.languageButton(c, "简体中文", "zh-Hans")
 				a.languageButton(c, "繁體中文", "zh-Hant")
 			})
+		})
+
+		formCard(c, "Session keys", "Private keys can be kept in memory for this session only.", func() {
+			ui.Checkbox(c, &a.rememberKeys, tr("Remember private keys for this session"))
+			hint(c, "Nothing is written to disk; quitting Aurora clears them.")
+			readout(c, []readoutRow{{"Remembered keys", strconv.Itoa(a.rememberedKeyCount())}})
+			if a.rememberedKeyCount() > 0 && secondaryButton(c, "Forget session keys").Clicked() {
+				a.forgetSessionKeys()
+			}
 		})
 
 		formCard(c, "Data", "Aurora keeps the ledger in one local SQLite database.", func() {

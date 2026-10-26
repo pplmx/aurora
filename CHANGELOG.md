@@ -10,6 +10,11 @@ documented in their per-milestone ROADMAP files.
 ## [Unreleased]
 
 ### Added
+- **Optional session-only key memory**: Settings → Session keys can keep a
+  private key in process memory after a successful signature, so the next form
+  with the same public key offers "Use saved key". It is off by default, never
+  written to disk, and cleared by "Forget session keys" or when Aurora exits;
+  failed or unknown operations store nothing.
 
 - **The desktop can generate the owner/creator key it asks for**: the token and
   NFT forms required a base64 public key that nothing in the window produced,

@@ -529,7 +529,7 @@ func TestEveryPageRendersItsSectionsAsCards(t *testing.T) {
 		pageOracle:     {"Add Source", "Data Sources"},
 		pageNFT:        {"Mint NFT", "Inspect", "Transfer", "Burn", "History"},
 		pageBlockchain: {"Ledger"},
-		pageSettings:   {"Language", "Data", "Appearance", "About Aurora"},
+		pageSettings:   {"Language", "Session keys", "Data", "Appearance", "About Aurora"},
 	}
 	app := New(&fakeServices{})
 	tester := ui.NewTester(app.View, 1280, 4000)

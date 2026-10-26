@@ -58,9 +58,10 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   包括每个写操作用哪把私钥、密钥不会保存、投票从注册到计票的顺序、预言机从
   添加源到读取的路径。它回答“先做什么”，而不是再加一层表单。
 - **Settings 是应用配置的唯一页面**：Language（跟随系统 / English / 简体中文 /
-  繁體中文，显示当前语言）、Data（只读数据库路径与复制、打开数据目录、备份）、
-  Appearance（深色主题，字号/对比度/动效跟随系统）和 About Aurora（版本、构建
-  时间、数据库路径、关于对话框）。文件动作仍留在 File 菜单，配置不再混在菜单里。
+  繁體中文，显示当前语言）、Session keys（可选的内存私钥记忆与忘记）、Data
+  （只读数据库路径与复制、打开数据目录、备份）、Appearance（深色主题，字号/
+  对比度/动效跟随系统）和 About Aurora（版本、构建时间、数据库路径、关于对话
+  框）。文件动作仍留在 File 菜单，配置不再混在菜单里。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
   因此 Windows/GNOME 的文本大小设置会同时放大标题、正文、提示与表格文字；
   Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。系统开启
@@ -128,6 +129,10 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   选中候选人时显示其 Program 与票数；NFT Inspect 显示铸造区块，并把 Image URL
   与 Token URI 作为可复制的行；选中预言机数据源时显示可复制的 URL 与轮询间隔
   （`not polled` 表示不会自动抓取）。这些字段都存在记录里，此前只是没有入口。
+- **私钥记忆是可选的，而且只在本进程内存里**：Settings → Session keys 默认关闭；
+  打开后，成功的签名操作会把对应公钥/私钥留在内存，供同公钥的后续表单用
+  “Use saved key” 一键填入。退出 Aurora 或点 “Forget session keys” 即清空，
+  不写数据库、不写配置文件；未知/失败的操作不会保存密钥。
 - **选中或创建记录后，页面上下文随之移动**：代币的 owner 公钥会填进 Mint To、
   Transfer From、Approve/Allowance Owner、Burn From、Balance/History 账户，
   上一个代币的私钥、recipient 和 spender 清空；Create 生成的 owner key 可在
