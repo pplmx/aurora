@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 271,
+  "round": 272,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T10:12:36+00:00",
+  "updated_at": "2026-10-26T15:12:30+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 270,
+      "touched_round": 271,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20579,6 +20579,47 @@
       "commit": "e95ba74",
       "title": "Add Settings and rename Actions to File",
       "description": "Application section with Settings page; File menu holds file operations; Ctrl/Cmd+8; tests and docs updated."
+    },
+    "ISS-453": {
+      "id": "ISS-453",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T15:12:20+00:00",
+      "updated_at": "2026-10-26T15:12:30+00:00",
+      "touched_round": 271,
+      "title": "Repeated private key pasting remains the main desktop friction",
+      "description": "Generated token/NFT keys can be reused in their own forms, but a key pasted for an imported record must be pasted again for every operation. A persistent key store would change the product trust boundary.",
+      "severity": 0.55,
+      "confidence": 1.0
+    },
+    "TASK-408": {
+      "id": "TASK-408",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T15:12:20+00:00",
+      "updated_at": "2026-10-26T15:12:30+00:00",
+      "touched_round": 271,
+      "category": "core-feature",
+      "title": "Add opt-in session-only key memory",
+      "description": "Add a Settings toggle and forget action, remember successful signing keys in process memory only, offer Use saved key in token/NFT/voting forms with matching signer keys, and test opt-in/forget/use.",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "CHG-469": {
+      "id": "CHG-469",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T15:12:30+00:00",
+      "updated_at": "2026-10-26T15:12:30+00:00",
+      "touched_round": 271,
+      "commit": "891bad0",
+      "title": "Add opt-in session key memory",
+      "description": "Settings toggle, memory-only cache, Use saved key in token/NFT/voting forms, forget action."
     }
   },
   "edges": [
@@ -31304,6 +31345,30 @@
       "to": "TASK-407",
       "type": "implements",
       "created_at": "2026-10-26T10:12:36+00:00"
+    },
+    {
+      "from": "TASK-408",
+      "to": "ISS-453",
+      "type": "addresses",
+      "created_at": "2026-10-26T15:12:30+00:00"
+    },
+    {
+      "from": "ISS-453",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T15:12:30+00:00"
+    },
+    {
+      "from": "CHG-469",
+      "to": "ISS-453",
+      "type": "resolves",
+      "created_at": "2026-10-26T15:12:30+00:00"
+    },
+    {
+      "from": "CHG-469",
+      "to": "TASK-408",
+      "type": "implements",
+      "created_at": "2026-10-26T15:12:30+00:00"
     }
   ]
 }
