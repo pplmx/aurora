@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 251,
+  "round": 252,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T05:13:35+00:00",
+  "updated_at": "2026-10-26T05:16:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19801,6 +19801,29 @@
       "touched_round": 251,
       "commit": "515018d",
       "title": "Pin the shell import reload path"
+    },
+    "ISS-433": {
+      "id": "ISS-433",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T05:16:47+00:00",
+      "updated_at": "2026-10-26T05:16:47+00:00",
+      "touched_round": 252,
+      "title": "A failed desktop verification left the previous verdict on screen",
+      "severity": 0.3,
+      "description": "VerifyDraw errors set the field error but kept the previous draw's verdict panel, under a new id. Each attempt now clears the verdict first; the test makes a lookup fail and asserts the panel is gone."
+    },
+    "CHG-449": {
+      "id": "CHG-449",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T05:16:47+00:00",
+      "updated_at": "2026-10-26T05:16:47+00:00",
+      "touched_round": 252,
+      "commit": "567063c",
+      "title": "Clear the Verify card evidence per attempt"
     }
   },
   "edges": [
@@ -30088,6 +30111,12 @@
       "to": "ISS-432",
       "type": "resolves",
       "created_at": "2026-10-26T05:13:35+00:00"
+    },
+    {
+      "from": "CHG-449",
+      "to": "ISS-433",
+      "type": "resolves",
+      "created_at": "2026-10-26T05:16:47+00:00"
     }
   ]
 }
