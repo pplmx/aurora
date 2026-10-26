@@ -15,6 +15,10 @@ const (
 	// Night is the window background: near-black with a blue cast, dark
 	// enough that the surfaces above it separate without a border.
 	night = "#0b1620"
+	// SidebarSurface is the navigation column: a tone between the window
+	// background and a card, so the module list reads as chrome rather than
+	// as another panel of content.
+	sidebarSurface = "#0d1a24"
 	// Surface is a card: one step up from the background.
 	surface = "#131f2b"
 	// SurfaceHover and SurfacePressed are that step while the pointer is on

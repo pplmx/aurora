@@ -16,6 +16,7 @@ package nativeui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -124,15 +125,84 @@ func field(c *ui.Context, label string, value *string) {
 	})
 }
 
+// The page's three action styles. Every button comes from one of them, so the
+// same job looks the same in every card: primary is the one action a form
+// exists for, secondary is a read or a supporting write, and danger is
+// destructive (still behind its confirmation dialog). They are ButtonBase with
+// Aurora's own look rather than the toolkit's default: one height, radius and
+// weight across cards, and the hover/press feedback the reference MyGo apps
+// use, so a click is acknowledged before the write finishes.
+const buttonRadius float32 = 8
+
+func primaryButton(c *ui.Context, label string) ui.Element {
+	return styledButton(c, label, ui.Hex(aurora), ui.Hex(auroraHover), ui.Hex(auroraPressed), onAccent)
+}
+
+func secondaryButton(c *ui.Context, label string) ui.Element {
+	b := styledButton(c, label, ui.Hex(surface), ui.Hex(surfaceHover), ui.Hex(surfacePressed), ink)
+	b.BorderWidth(1).BorderColor(ui.Hex(border))
+	return b
+}
+
+func dangerButton(c *ui.Context, label string) ui.Element {
+	red := ui.Hex(auroraRed)
+	return styledButton(c, label, red,
+		red.Mix(ui.RGB(255, 255, 255), 0.14), red.Mix(ui.RGB(0, 0, 0), 0.16), night)
+}
+
+// quietButton is the small, low-emphasis action used inside a card: copying a
+// value, for instance, which should not compete with the card's main button.
+func quietButton(c *ui.Context, label string) ui.Element {
+	b := ui.ButtonBase(c).Height(26).PaddingX(10).Radius(6).
+		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(inkMuted))
+	fill := ui.Transparent
+	if b.Hovered() || b.Pressed() {
+		fill = ui.Hex(surfaceHover)
+	}
+	b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
+	b.Children(func() {
+		ui.Text(c, label).FontSize(12).SingleLine()
+	})
+	return b
+}
+
+func styledButton(c *ui.Context, label string, fill, hover, pressed ui.Color, textColor string) ui.Element {
+	b := ui.ButtonBase(c).Height(34).PaddingX(14).Radius(buttonRadius).
+		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(textColor))
+	state := fill
+	switch {
+	case b.Pressed():
+		state = pressed
+	case b.Hovered():
+		state = hover
+	}
+	b.Background(b.AnimateColor("fill", state, ui.Animation{Duration: 120 * time.Millisecond}))
+	pose := ui.Pose{}
+	if b.Pressed() {
+		pose.Scale = 0.97
+	}
+	b.AnimatePose(pose, ui.Snappy)
+	b.Children(func() {
+		ui.Text(c, label).FontSize(13).FontWeight(600).SingleLine()
+	})
+	return b
+}
+
 // fieldHint builds a labelled input with a hint under it, for inputs whose
 // accepted range is not obvious from the label.
-func fieldHint(c *ui.Context, label, hint string, value *string) {
+func fieldHint(c *ui.Context, label, hintText string, value *string) {
 	ui.Field(c, label, func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.TextInput(c, value)
-			ui.Text(c, hint).FontSize(11).TextColor(ui.Hex(inkMuted))
+			hint(c, hintText)
 		})
 	})
+}
+
+// hint draws a muted line under a control, explaining a value the label
+// cannot.
+func hint(c *ui.Context, text string) {
+	ui.Text(c, text).FontSize(11).TextColor(ui.Hex(inkMuted))
 }
 
 // shortID shortens an identifier for a table cell, keeping enough of it to
@@ -175,7 +245,7 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, label).FontSize(11).Width(72).TextColor(ui.Hex(inkMuted))
 		ui.Text(c, abbreviate(value)).FontSize(12).TextColor(ui.Hex(ink)).SingleLine()
-		if ui.Button(c, "Copy "+label).Clicked() {
+		if quietButton(c, "Copy "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
 			c.Services().WriteClipboard(value)
 			if onCopied != nil {
@@ -214,6 +284,17 @@ func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
 	return true
 }
 
+// pageGlyph draws a page's icon in a tinted tile. It is the window's recurring
+// mark for "which module is this": the same glyph sits in the sidebar row and
+// beside the page title, so the page and its navigation entry are recognisably
+// the same place.
+func pageGlyph(c *ui.Context, p page) {
+	ui.Row(c).Size(36, 36).Center().Radius(10).Background(ui.Hex(selection)).
+		BorderWidth(1).BorderColor(ui.Hex(border)).Children(func() {
+		ui.Icon(c, pageIcons[p]).Size(18, 18).TextColor(ui.Hex(aurora))
+	})
+}
+
 // twoColumns lays out two stacks side by side, each filling half the width.
 //
 // A ui.Grid sizes every child to its own track, so cards of different content
@@ -231,9 +312,13 @@ func twoColumns(c *ui.Context, left, right func()) {
 // longer does it with rules, and it is the unit the dashboard grid repeats.
 func card(c *ui.Context, fn func()) ui.Element {
 	// A card fills its column's width and is as tall as its content: growing
-	// it would stretch a three-field form down the page.
+	// it would stretch a three-field form down the page. The soft shadow and
+	// the hairline of light along the top edge lift it off the polar-night
+	// background; a border alone read as a table cell rather than a card.
 	return ui.Column(c).FillWidth().Padding(16).Gap(10).Radius(12).
 		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
+		Shadow(0, 12, 30, -6, ui.RGBA(0, 0, 0, 0.35)).
+		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.04)).
 		Children(fn)
 }
 

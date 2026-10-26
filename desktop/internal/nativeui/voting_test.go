@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
@@ -94,8 +95,8 @@ func TestNewCandidateAndSessionIDsCanBeCopied(t *testing.T) {
 	require.Equal(t, "c1", tester.Clipboard())
 
 	app.voting.sessionTitle = "Budget"
-	app.voting.sessionStart = "1000"
-	app.voting.sessionEnd = "2000"
+	app.voting.sessionStart = time.Unix(1000, 0)
+	app.voting.sessionEnd = time.Unix(2000, 0)
 	app.voting.sessionIDs = "c1"
 	app.createVotingSession()
 	tester.Frame()
@@ -103,4 +104,59 @@ func TestNewCandidateAndSessionIDsCanBeCopied(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Session ID"))
 	tester.Frame()
 	require.Equal(t, "s1", tester.Clipboard())
+}
+
+// sessionRecorder remembers the window and roster the form sent.
+type sessionRecorder struct {
+	*fakeServices
+	start, end int64
+	ids        []string
+}
+
+func (r *sessionRecorder) CreateSession(title, description string, ids []string, start, end int64) (SessionRow, error) {
+	r.start, r.end, r.ids = start, end, ids
+	return SessionRow{ID: "s1", Title: title, Status: "pending"}, nil
+}
+
+// TestSessionWindowIsEditedAsLocalTime pins the Create Session card's inputs.
+// It used to ask for two Unix timestamps typed by hand, so creating a session
+// from the window needed a clock and a converter outside the app. The card now
+// opens with now → +24h and edits one time.Time with the toolkit's date and
+// time controls; the service still receives Unix seconds.
+func TestSessionWindowIsEditedAsLocalTime(t *testing.T) {
+	rec := &sessionRecorder{fakeServices: &fakeServices{
+		candidates: []CandidateRow{{ID: "c1", Name: "Alice"}},
+	}}
+	app := New(rec)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.True(t, tester.HasText("Start"))
+	require.True(t, tester.HasText("End"))
+
+	// The form opens with a usable window instead of empty controls.
+	require.False(t, app.voting.sessionStart.IsZero())
+	require.True(t, app.voting.sessionEnd.After(app.voting.sessionStart))
+
+	start := time.Date(2026, 3, 1, 9, 30, 0, 0, time.Local)
+	end := start.Add(48 * time.Hour)
+	app.voting.sessionTitle = "Budget"
+	app.voting.sessionStart, app.voting.sessionEnd = start, end
+	app.createVotingSession()
+	require.Equal(t, start.Unix(), rec.start)
+	require.Equal(t, end.Unix(), rec.end)
+	require.Equal(t, []string{"c1"}, rec.ids, "an empty roster includes every candidate")
+
+	// The form is ready for the next session again, and the id is copyable.
+	require.False(t, app.voting.sessionStart.IsZero())
+	require.True(t, app.voting.sessionEnd.After(app.voting.sessionStart))
+	require.Equal(t, "s1", app.voting.sessionCopyID)
+
+	// An end before the start is refused before the service is called.
+	sentStart := rec.start
+	app.voting.sessionTitle = "Broken"
+	app.voting.sessionStart, app.voting.sessionEnd = end, start
+	app.createVotingSession()
+	require.Equal(t, sentStart, rec.start, "an invalid window must not reach the service")
+	require.Contains(t, app.voting.sessionResult, "after the start")
 }

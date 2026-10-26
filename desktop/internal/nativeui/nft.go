@@ -107,7 +107,7 @@ func (a *App) nftMintBody(c *ui.Context) {
 	field(c, "Token URI (optional)", &a.nft.tokenURI)
 	fieldHint(c, "Creator (base64 public key)", "The creator becomes the first owner.", &a.nft.creator)
 	ui.Row(c).Children(func() {
-		if ui.PrimaryButton(c, "Mint NFT").Clicked() {
+		if primaryButton(c, "Mint NFT").Clicked() {
 			a.mintNFT()
 		}
 	})
@@ -143,7 +143,7 @@ func (a *App) nftRead(c *ui.Context) {
 func (a *App) nftReadBody(c *ui.Context) {
 	field(c, "NFT ID", &a.nft.id)
 	ui.Row(c).Children(func() {
-		if ui.Button(c, "Get NFT").Clicked() {
+		if secondaryButton(c, "Get NFT").Clicked() {
 			n, err := a.services.GetNFT(strings.TrimSpace(a.nft.id))
 			if err != nil {
 				a.nft.status = errStatus(err)
@@ -166,10 +166,10 @@ func (a *App) nftReadBody(c *ui.Context) {
 	// owner, and Show All restores everything.
 	fieldHint(c, "Owner (base64 public key)", "Narrow the Collection card to one owner.", &a.nft.owner)
 	ui.Row(c).Gap(8).Children(func() {
-		if ui.Button(c, "Filter by Owner").Clicked() {
+		if secondaryButton(c, "Filter by Owner").Clicked() {
 			a.filterNFTs()
 		}
-		if ui.Button(c, "Show All").Clicked() {
+		if secondaryButton(c, "Show All").Clicked() {
 			a.showAllNFTs()
 		}
 	})
@@ -235,7 +235,7 @@ func (a *App) nftWrite(c *ui.Context) {
 		field(c, "To (base64 public key)", &a.nft.to)
 		field(c, "From Private Key", &a.nft.priv)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Transfer").Clicked() {
+			if primaryButton(c, "Transfer").Clicked() {
 				a.transferNFT()
 			}
 		})
@@ -246,10 +246,9 @@ func (a *App) nftWrite(c *ui.Context) {
 		field(c, "Owner (base64 public key)", &a.nft.burnOwner)
 		field(c, "Owner Private Key", &a.nft.burnPriv)
 		ui.Row(c).Children(func() {
-			// A destructive action carries the danger colour, and the
+			// A destructive action carries the danger style, and the
 			// confirmation still stands between it and the write.
-			burn := ui.Button(c, "Burn NFT…").Background(ui.Hex(auroraRed)).TextColor(ui.Hex(night))
-			if burn.Clicked() {
+			if dangerButton(c, "Burn NFT…").Clicked() {
 				a.nft.askBurn = true
 			}
 		})
@@ -258,7 +257,7 @@ func (a *App) nftWrite(c *ui.Context) {
 	formCard(c, "History", "Every mint, transfer and burn recorded for this NFT.", func() {
 		field(c, "NFT ID", &a.nft.historyID)
 		ui.Row(c).Children(func() {
-			if ui.Button(c, "Show History").Clicked() {
+			if secondaryButton(c, "Show History").Clicked() {
 				ops, err := a.services.NFTHistory(strings.TrimSpace(a.nft.historyID))
 				if err != nil {
 					a.nft.status = errStatus(err)

@@ -49,6 +49,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop session form edits local dates and times, not epoch seconds**:
+  creating a voting session from the window required typing two Unix
+  timestamps, which needed a clock and a converter outside the app. The card
+  now uses the toolkit's `DateInput`/`TimeInput` for start and end, opens with
+  now → +24h so it is submittable as it appears, rejects an end before the
+  start before calling the service, and still sends Unix seconds so the CLI
+  and REST surfaces see the same window.
 - **The desktop Voting page can reach the ids it asks for, and one-time
   values can leave the window**: the page loaded every candidate but never
   rendered one, so a candidate id appeared only once in the "Registered …"
@@ -149,6 +156,18 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop window has one design system instead of ad-hoc widgets**: the
+  sidebar now has a brand block, its own tone and a hairline against content,
+  and every module row carries a Lucide glyph (`icons.go`) that takes the row's
+  colour; the page header repeats that glyph beside the title and purpose.
+  Cards are lifted with a soft shadow and a one-pixel top highlight rather than
+  a border alone. Every action button comes from one of four styles —
+  `primaryButton`, `secondaryButton`, `dangerButton` (destructive, still behind
+  its dialog) and the small `quietButton` for copies — all `ui.ButtonBase` with
+  one height, radius and weight plus hover/press colour and scale feedback,
+  following GoRex and the MyGo NetEase client. Ctrl/Cmd+1…7 selects a page in
+  sidebar order. The live window was captured under Xvfb to check the new
+  chrome renders (sidebar and content tones differ; no panic in the log).
 - **The desktop window draws native Go, and the web UI is gone**: the app used
   to host the same HTML the REST gateway served, which made a Go project depend
   on a browser engine and 3.6k lines of HTML/CSS/JavaScript — and it produced a

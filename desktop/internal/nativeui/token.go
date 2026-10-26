@@ -149,7 +149,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 		fieldHint(c, "Decimals", "0 for a whole-unit token; 8 matches most asset conventions.", &a.token.decimals)
 		fieldHint(c, "Owner (base64 public key)", "Required: the owner signs every later mint, transfer and burn.", &a.token.owner)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Create Token").Clicked() {
+			if primaryButton(c, "Create Token").Clicked() {
 				a.createToken()
 			}
 		})
@@ -195,7 +195,7 @@ func (a *App) tokenRead(c *ui.Context) {
 func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Token ID", &a.token.tokenID)
 	ui.Row(c).Children(func() {
-		if ui.Button(c, "Get Token Info").Clicked() {
+		if secondaryButton(c, "Get Token Info").Clicked() {
 			t, err := a.services.TokenInfo(strings.TrimSpace(a.token.tokenID))
 			if err != nil {
 				a.token.status = errStatus(err)
@@ -217,7 +217,7 @@ func (a *App) tokenReadBody(c *ui.Context) {
 
 	field(c, "Account (base64 public key)", &a.token.account)
 	ui.Row(c).Children(func() {
-		if ui.Button(c, "Get Balance").Clicked() {
+		if secondaryButton(c, "Get Balance").Clicked() {
 			bal, err := a.services.TokenBalance(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.account))
 			if err != nil {
 				a.token.status = errStatus(err)
@@ -281,7 +281,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 		field(c, "Amount", &a.token.mintAmount)
 		field(c, "Owner Private Key", &a.token.mintPriv)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Mint").Clicked() {
+			if primaryButton(c, "Mint").Clicked() {
 				a.mintToken()
 			}
 		})
@@ -293,7 +293,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 		field(c, "Amount", &a.token.xAmount)
 		field(c, "From Private Key", &a.token.xPriv)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Transfer").Clicked() {
+			if primaryButton(c, "Transfer").Clicked() {
 				a.transferToken()
 			}
 		})
@@ -305,7 +305,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 		field(c, "Amount", &a.token.approveAmt)
 		field(c, "Owner Private Key", &a.token.approvePriv)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Approve").Clicked() {
+			if primaryButton(c, "Approve").Clicked() {
 				a.approveToken()
 			}
 		})
@@ -317,7 +317,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 		field(c, "Amount", &a.token.fromAmount)
 		field(c, "Spender Private Key", &a.token.fromPriv)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Transfer From").Clicked() {
+			if primaryButton(c, "Transfer From").Clicked() {
 				a.transferFromToken()
 			}
 		})
@@ -328,11 +328,9 @@ func (a *App) tokenWrites(c *ui.Context) {
 		field(c, "Amount", &a.token.burnAmount)
 		field(c, "Owner Private Key", &a.token.burnPriv)
 		ui.Row(c).Children(func() {
-			// A destructive action does not look like the others: the button
-			// carries the danger colour, and the confirmation still stands
-			// between it and the write.
-			burn := ui.Button(c, "Burn…").Background(ui.Hex(auroraRed)).TextColor(ui.Hex(night))
-			if burn.Clicked() {
+			// A destructive action carries the danger style, and the
+			// confirmation still stands between it and the write.
+			if dangerButton(c, "Burn…").Clicked() {
 				a.token.askBurn = true
 			}
 		})
@@ -342,7 +340,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 		field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
 		field(c, "Spender (base64 public key)", &a.token.allowanceTo)
 		ui.Row(c).Children(func() {
-			if ui.Button(c, "Get Allowance").Clicked() {
+			if secondaryButton(c, "Get Allowance").Clicked() {
 				a.loadAllowance()
 			}
 		})
@@ -424,7 +422,7 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.account)
 	field(c, "Limit", &a.token.historyLimit)
 	ui.Row(c).Children(func() {
-		if ui.Button(c, "Load History").Clicked() {
+		if secondaryButton(c, "Load History").Clicked() {
 			limit := 50
 			if s := strings.TrimSpace(a.token.historyLimit); s != "" {
 				if n, err := strconv.Atoi(s); err == nil && n > 0 {
