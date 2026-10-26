@@ -359,8 +359,12 @@ func (a *App) votingSessionList(c *ui.Context) {
 	if a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
 		// The row cannot show the roster (the window column already fills the
 		// width), but an operator about to start or end a session needs to see
-		// who is on the ballot.
-		readout(c, []readoutRow{{"Roster", a.sessionRosterNames(sessions[a.voting.sessionChoice].Candidates)}})
+		// who is on the ballot and what the session is for.
+		chosen := sessions[a.voting.sessionChoice]
+		readout(c, []readoutRow{
+			{"About", valueOr(chosen.Description)},
+			{"Roster", a.sessionRosterNames(chosen.Candidates)},
+		})
 	}
 }
 
@@ -438,6 +442,16 @@ func (a *App) votingCandidateList(c *ui.Context) {
 			a.addCandidateToRoster()
 		}
 	})
+	if a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates) {
+		// The table has no room for the program, which is the part of a
+		// candidate's registration the ballot shows; the selected row carries
+		// it below the list.
+		chosen := candidates[a.voting.candChoice]
+		readout(c, []readoutRow{
+			{"Program", valueOr(chosen.Program)},
+			{"Votes", strconv.Itoa(chosen.VoteCount)},
+		})
+	}
 }
 
 // filteredCandidates is the candidate list the table shows: the stored rows
@@ -446,7 +460,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 func (a *App) filteredCandidates() []CandidateRow {
 	rows := make([]CandidateRow, 0, len(a.voting.candidates))
 	for _, candidate := range a.voting.candidates {
-		if containsFold(a.voting.candSearch, candidate.ID, candidate.Name, candidate.Party) {
+		if containsFold(a.voting.candSearch, candidate.ID, candidate.Name, candidate.Party, candidate.Program) {
 			rows = append(rows, candidate)
 		}
 	}

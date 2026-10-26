@@ -55,6 +55,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Desktop detail cards show the fields the records actually carry**: the
+  session adapter dropped `Description`, a selected candidate never showed its
+  program, NFT Inspect hid the image URL, token URI and mint block, and a
+  selected oracle source never showed its endpoint or polling interval. Each
+  is now rendered from the stored record; the long URLs use the copy row, and
+  tests select a row and assert the text/clipboard.
 - **Voting card outcomes now say whether they succeeded**: the candidate,
   session, control and ballot results were plain strings drawn in the same
   muted colour for both outcomes, so a refused key or an invalid window looked

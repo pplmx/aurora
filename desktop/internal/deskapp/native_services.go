@@ -401,12 +401,20 @@ func (s *nativeServices) Sessions() ([]nativeui.SessionRow, error) {
 	}
 	rows := make([]nativeui.SessionRow, 0, len(resp))
 	for _, sess := range resp {
-		rows = append(rows, nativeui.SessionRow{
-			ID: sess.ID, Title: sess.Title, Status: sess.Status, Candidates: sess.Candidates,
-			StartTime: sess.StartTime, EndTime: sess.EndTime,
-		})
+		rows = append(rows, sessionRow(sess))
 	}
 	return rows, nil
+}
+
+// sessionRow maps a session for the desktop. Description is part of what the
+// Create Session form collected and what the API returns; dropping it left the
+// window unable to show why a session exists.
+func sessionRow(sess *votingapp.SessionResponse) nativeui.SessionRow {
+	return nativeui.SessionRow{
+		ID: sess.ID, Title: sess.Title, Description: sess.Description,
+		Status: sess.Status, Candidates: sess.Candidates,
+		StartTime: sess.StartTime, EndTime: sess.EndTime,
+	}
 }
 
 func (s *nativeServices) StartSession(id string) error {

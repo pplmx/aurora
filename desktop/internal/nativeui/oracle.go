@@ -182,6 +182,13 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		// instead of showing the previously chosen source.
 		a.refreshOracleReads()
 	}
+	if a.oracle.selected >= 0 && a.oracle.selected < len(srcs) {
+		// The row is too narrow for the endpoint and the polling cadence, the
+		// two facts that explain when and where the source fetches.
+		chosen := srcs[a.oracle.selected]
+		copyRow(c, "URL", chosen.URL, nil)
+		readout(c, []readoutRow{{"Every", sourceInterval(chosen.Interval)}})
+	}
 
 	// Per-source actions. A table row cannot host a button per cell without
 	// making the whole grid interactive, so the id is entered once — or loaded
@@ -482,6 +489,15 @@ func (a *App) refreshOracleReads() {
 		a.clearOracleLatestForAnotherSource(sourceID)
 		_ = a.loadOracleLatest(sourceID)
 	}
+}
+
+// sourceInterval renders a source's polling cadence. A non-positive interval
+// means the scheduler never polls it, which is different from a very long one.
+func sourceInterval(seconds int) string {
+	if seconds <= 0 {
+		return "not polled"
+	}
+	return strconv.Itoa(seconds) + "s"
 }
 
 // oracleQueryLimit is the Query card's limit: 20 unless the field names a

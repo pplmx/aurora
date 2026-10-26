@@ -200,11 +200,18 @@ func (a *App) nftReadBody(c *ui.Context) {
 		loadWarning(c, "Couldn't load NFT", a.nft.nftErr, a.nft.nft != nil)
 	}
 	if n := a.nft.nft; n != nil {
-		rows := []readoutRow{{"Name", n.Name}, {"Owner", n.Owner}, {"Creator", n.Creator}}
+		rows := []readoutRow{
+			{"Name", n.Name}, {"Owner", n.Owner}, {"Creator", n.Creator},
+			{"Block", strconv.FormatInt(n.BlockHeight, 10)},
+		}
 		if n.Description != "" {
 			rows = append(rows, readoutRow{"About", n.Description})
 		}
 		readout(c, rows)
+		// URLs are long enough that the readout would clip them; the copy row
+		// shows both ends and makes the stored value retrievable.
+		copyRow(c, "Image URL", n.ImageURL, nil)
+		copyRow(c, "Token URI", n.TokenURI, nil)
 	}
 
 	// The Collection card holds the whole collection; this narrows it to one

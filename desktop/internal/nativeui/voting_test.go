@@ -226,7 +226,8 @@ func TestCandidateCardBuildsACustomRoster(t *testing.T) {
 
 // TestSelectedSessionShowsItsRoster pins the preview under the session table:
 // the row cannot carry the roster, and an operator about to start or end a
-// session needs to see who is on the ballot without opening another page.
+// session needs to see who is on the ballot without opening another page. The
+// description that was typed into the Create Session form is shown with it.
 func TestSelectedSessionShowsItsRoster(t *testing.T) {
 	fake := &fakeServices{
 		candidates: []CandidateRow{
@@ -234,7 +235,7 @@ func TestSelectedSessionShowsItsRoster(t *testing.T) {
 			{ID: "c2", Name: "Bob"},
 		},
 		sessions: []SessionRow{{
-			ID: "s1", Title: "Budget", Status: "active",
+			ID: "s1", Title: "Budget", Description: "Approve the 2027 budget", Status: "active",
 			Candidates: []string{"c1", "c2"},
 		}},
 	}
@@ -244,9 +245,29 @@ func TestSelectedSessionShowsItsRoster(t *testing.T) {
 	tester.Frame()
 
 	require.False(t, tester.HasText("Alice, Bob"), "no roster before a row is chosen")
+	require.False(t, tester.HasText("Approve the 2027 budget"), "no description before a row is chosen")
 	require.NoError(t, tester.Click("s1"))
 	tester.Frame()
 	require.True(t, tester.HasText("Alice, Bob"), "the chosen session's roster must be shown")
+	require.True(t, tester.HasText("Approve the 2027 budget"), "the chosen session's description must be shown")
+}
+
+// TestSelectedCandidateShowsItsProgram pins the candidate detail below the
+// list: the table has no room for the program the ballot shows.
+func TestSelectedCandidateShowsItsProgram(t *testing.T) {
+	fake := &fakeServices{candidates: []CandidateRow{{
+		ID: "c1", Name: "Alice", Party: "Greens", Program: "Free transit", VoteCount: 37,
+	}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.False(t, tester.HasText("Free transit"), "no program before a candidate is chosen")
+	require.NoError(t, tester.Click("c1"))
+	tester.Frame()
+	require.True(t, tester.HasText("Free transit"), "the chosen candidate's program must be shown")
+	require.True(t, tester.HasText("37"), "the chosen candidate's votes must be shown")
 }
 
 // TestFailedTallyRefreshKeepsTheRowsAndSaysWhy covers a refresh of the tally
