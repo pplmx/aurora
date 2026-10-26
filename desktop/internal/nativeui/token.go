@@ -108,8 +108,7 @@ func (a *App) tokenView(c *ui.Context) {
 // earlier session is reachable without remembering its id.
 func (a *App) tokenList(c *ui.Context) {
 	formCard(c, "Tokens", "Every stored token. Choose one to make it the subject of the cards here.", func() {
-		if a.token.loadErr != nil {
-			ui.Text(c, "Failed to load tokens: "+a.token.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+		if a.token.loadErr != nil && !loadWarning(c, "Failed to load tokens", a.token.loadErr, len(a.token.tokens) > 0) {
 			return
 		}
 		if len(a.token.tokens) == 0 {

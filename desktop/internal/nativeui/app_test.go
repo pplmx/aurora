@@ -48,10 +48,29 @@ type fakeServices struct {
 
 	// blocks is what LedgerBlocks returns.
 	blocks []BlockRow
+
+	// loadErrs fail one read each, so a test can prove a page keeps the
+	// content of its last successful load when a refresh fails.
+	loadErrs fakeLoadErrors
+}
+
+// fakeLoadErrors is one failure hook per read a page performs.
+type fakeLoadErrors struct {
+	history    error
+	tokens     error
+	nfts       error
+	sources    error
+	candidates error
+	sessions   error
+	chain      error
+	stats      error
 }
 
 func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
 	f.historyN = limit
+	if f.loadErrs.history != nil {
+		return nil, f.loadErrs.history
+	}
 	return f.draws, nil
 }
 
@@ -72,11 +91,17 @@ func (f *fakeServices) VerifyDraw(id string) (VerifyResult, error) {
 }
 
 func (f *fakeServices) Dashboard() (DashboardStats, error) {
+	if f.loadErrs.stats != nil {
+		return DashboardStats{}, f.loadErrs.stats
+	}
 	return DashboardStats{Lotteries: 3, Votes: 9, Candidates: 2, Sessions: 1, Integrity: "verified", Oracle: 4}, nil
 }
 
 func (f *fakeServices) LedgerBlocks() ([]BlockRow, error) { return f.blocks, nil }
 func (f *fakeServices) LedgerStatus() (LedgerStatus, error) {
+	if f.loadErrs.chain != nil {
+		return LedgerStatus{}, f.loadErrs.chain
+	}
 	return LedgerStatus{Valid: true, Height: 5, Blocks: 6}, nil
 }
 
@@ -92,16 +117,31 @@ func (f *fakeServices) CreateSession(title, description string, ids []string, st
 }
 func (f *fakeServices) CastVote(sessionID, candidateID, voterPub, voterPriv string) error { return nil }
 func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error)              { return nil, nil }
-func (f *fakeServices) Candidates() ([]CandidateRow, error)                               { return f.candidates, nil }
-func (f *fakeServices) Sessions() ([]SessionRow, error)                                   { return f.sessions, nil }
-func (f *fakeServices) StartSession(id string) error                                      { return nil }
-func (f *fakeServices) EndSession(id string) error                                        { return nil }
+func (f *fakeServices) Candidates() ([]CandidateRow, error) {
+	if f.loadErrs.candidates != nil {
+		return nil, f.loadErrs.candidates
+	}
+	return f.candidates, nil
+}
+func (f *fakeServices) Sessions() ([]SessionRow, error) {
+	if f.loadErrs.sessions != nil {
+		return nil, f.loadErrs.sessions
+	}
+	return f.sessions, nil
+}
+func (f *fakeServices) StartSession(id string) error { return nil }
+func (f *fakeServices) EndSession(id string) error   { return nil }
 
 func (f *fakeServices) CreateToken(name, symbol, supply, owner string, decimals int) (TokenRow, error) {
 	return TokenRow{ID: "t1", Name: name, Symbol: symbol, TotalSupply: supply, Decimals: decimals, Owner: owner}, nil
 }
-func (f *fakeServices) TokenInfo(id string) (TokenRow, error)                           { return TokenRow{ID: id}, nil }
-func (f *fakeServices) ListTokens() ([]TokenRow, error)                                 { return f.tokenRows, nil }
+func (f *fakeServices) TokenInfo(id string) (TokenRow, error) { return TokenRow{ID: id}, nil }
+func (f *fakeServices) ListTokens() ([]TokenRow, error) {
+	if f.loadErrs.tokens != nil {
+		return nil, f.loadErrs.tokens
+	}
+	return f.tokenRows, nil
+}
 func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error)              { return "42", nil }
 func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error                { return nil }
 func (f *fakeServices) TransferToken(tokenID, from, to, amount, priv string) error      { return nil }
@@ -117,7 +157,12 @@ func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([
 	return nil, nil
 }
 
-func (f *fakeServices) OracleSources() ([]SourceRow, error)     { return f.sources, nil }
+func (f *fakeServices) OracleSources() ([]SourceRow, error) {
+	if f.loadErrs.sources != nil {
+		return nil, f.loadErrs.sources
+	}
+	return f.sources, nil
+}
 func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) { return f.templates, nil }
 func (f *fakeServices) AddOracleSource(in SourceInput) (SourceRow, error) {
 	return SourceRow{ID: "src"}, nil
@@ -132,9 +177,14 @@ func (f *fakeServices) OracleHealth() ([]HealthRow, error)                      
 func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator string) (NFTRow, error) {
 	return NFTRow{ID: "n1", Name: name, Owner: creator}, nil
 }
-func (f *fakeServices) GetNFT(id string) (NFTRow, error)            { return NFTRow{ID: id}, nil }
-func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error)     { return nil, nil }
-func (f *fakeServices) ListAllNFTs() ([]NFTRow, error)              { return f.nftRows, nil }
+func (f *fakeServices) GetNFT(id string) (NFTRow, error)        { return NFTRow{ID: id}, nil }
+func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) { return nil, nil }
+func (f *fakeServices) ListAllNFTs() ([]NFTRow, error) {
+	if f.loadErrs.nfts != nil {
+		return nil, f.loadErrs.nfts
+	}
+	return f.nftRows, nil
+}
 func (f *fakeServices) TransferNFT(id, from, to, priv string) error { return nil }
 func (f *fakeServices) BurnNFT(id, owner, priv string) error        { return nil }
 func (f *fakeServices) NFTHistory(id string) ([]NFTOpRow, error)    { return nil, nil }

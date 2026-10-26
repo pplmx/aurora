@@ -169,8 +169,7 @@ func (a *App) nftReadBody(c *ui.Context) {
 
 // nftListBody draws the collection table.
 func (a *App) nftListBody(c *ui.Context) {
-	if a.nft.loadErr != nil {
-		ui.Text(c, "Failed to load NFTs: "+a.nft.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+	if a.nft.loadErr != nil && !loadWarning(c, "Failed to load NFTs", a.nft.loadErr, len(a.nft.list) > 0) {
 		return
 	}
 	if len(a.nft.list) == 0 {

@@ -49,6 +49,17 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A failed desktop refresh no longer hides the content it already loaded**:
+  every loader keeps its previous rows when a read fails, but each view
+  returned on the error line alone, so a transient database failure blanked
+  the list the operator was reading. Voting was worse: it recorded the failure
+  and never drew it, and with no stored sessions it claimed "No sessions yet"
+  for a store it could not read. A failed refresh now reports the reason above
+  the last successful content and labels those rows as stale; with nothing
+  loaded yet it reports the failure instead of an empty-state note. The
+  dashboard's failed first load also stops leaving its spinner running forever,
+  because nothing would ever finish it. `load_failure_test.go` drives every
+  page through a successful load, a failing refresh and a recovery.
 - **Lottery verification no longer panics on a missing draw**: the resolution
   path assumed a repository either returns the record or `lottery.ErrNotFound`,
   but the `lottery.Repository` contract also permits a nil record with a nil

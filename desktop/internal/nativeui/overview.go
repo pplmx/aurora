@@ -48,8 +48,10 @@ func (a *App) loadDashboard() {
 }
 
 func (a *App) dashboardView(c *ui.Context) {
-	if a.dashboard.loadErr != nil {
-		ui.Text(c, "Couldn't load stats: "+a.dashboard.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+	// A failed first load used to leave the spinner running forever, because
+	// nothing else was ever going to ask for the counters.
+	if a.dashboard.loadErr != nil && !loadWarning(c, "Couldn't load stats", a.dashboard.loadErr, a.dashboard.loaded) {
+		return
 	}
 	if !a.dashboard.loaded {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
@@ -128,8 +130,7 @@ func (a *App) blockchainView(c *ui.Context) {
 }
 
 func (a *App) blockchainBody(c *ui.Context) {
-	if a.blockchain.loadErr != nil {
-		ui.Text(c, "Couldn't read the chain: "+a.blockchain.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+	if a.blockchain.loadErr != nil && !loadWarning(c, "Couldn't read the chain", a.blockchain.loadErr, a.blockchain.checked) {
 		return
 	}
 	if !a.blockchain.checked {

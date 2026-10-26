@@ -199,6 +199,12 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 }
 
 func (a *App) votingSessionList(c *ui.Context) {
+	// loadVoting keeps both lists when either read fails; without this the
+	// page said nothing at all about the failure, and with no stored sessions
+	// it claimed there were none.
+	if a.voting.loadErr != nil && !loadWarning(c, "Failed to load voting data", a.voting.loadErr, len(a.voting.sessions) > 0) {
+		return
+	}
 	if len(a.voting.sessions) == 0 {
 		emptyNote(c, "No sessions yet.")
 		return
