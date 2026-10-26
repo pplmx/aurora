@@ -172,6 +172,7 @@ func TestResultsShowTheirTotal(t *testing.T) {
 	app.ShowPage("Voting")
 	app.voting.tab = 2
 	app.voting.resultsSession = "s1"
+	app.voting.resultsLoadedID = "s1"
 	app.voting.results = []ResultRow{
 		{CandidateID: "c1", Name: "Alice", Votes: 7},
 		{CandidateID: "c2", Name: "Bob", Votes: 6},
@@ -366,4 +367,29 @@ func TestVotingCardOutcomesCarryTheirPolarity(t *testing.T) {
 	app.voting.sessionEnd = time.Unix(1000, 0)
 	app.createVotingSession()
 	require.True(t, app.voting.sessionResult.isErr)
+}
+
+// TestResultsStageLoadsTheChosenSession pins the tab's first move: a session
+// selected in Setup is already the Results subject, so opening Results should
+// show its tally instead of asking for another Show Results click.
+func TestResultsStageLoadsTheChosenSession(t *testing.T) {
+	fake := &fakeServices{
+		sessions: []SessionRow{{ID: "s1", Title: "Budget", Status: "ended"}},
+		resultsByID: map[string][]ResultRow{
+			"s1": {{CandidateID: "c1", Name: "Alice", Votes: 4}},
+		},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("s1"))
+	tester.Frame()
+	require.Equal(t, "s1", app.voting.resultsSession)
+	require.NoError(t, tester.Click("Results"))
+	tester.Frame()
+
+	require.True(t, tester.HasText("Alice"), "the selected session's tally must load with the tab")
+	require.Equal(t, 4, app.voting.results[0].Votes)
 }
