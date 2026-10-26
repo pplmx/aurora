@@ -8,6 +8,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestUseGeneratedCreatorKey pins the same shortcut for an asset minted with a
+// generated key: Transfer/Burn can fill their private-key field while the
+// creator is still the holder and this asset is the subject.
+func TestUseGeneratedCreatorKey(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.creator, app.nft.creatorPriv = "creator-pub", "creator-priv"
+	app.nft.creatorKeyNFTID = "n1"
+	app.nft.transferID, app.nft.from = "n1", "creator-pub"
+	tester.Frame()
+	require.True(t, tester.HasText("Use generated creator key"))
+
+	require.NoError(t, tester.Click("Use generated creator key"))
+	tester.Frame()
+	require.Equal(t, "creator-priv", app.nft.priv)
+
+	app.nft.from = "another-owner"
+	tester.Frame()
+	require.False(t, tester.HasText("Use generated creator key"),
+		"the creator key must not be offered after the asset changes hands")
+}
+
 // TestMintingAnNftSelectsItsRow pins the post-mint context: a successful mint
 // used to leave a filter or search hiding the new asset. The collection now
 // clears both, highlights the row and makes the new id the subject.
