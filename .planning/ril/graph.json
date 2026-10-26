@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 252,
+  "round": 253,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T05:16:47+00:00",
+  "updated_at": "2026-10-26T05:17:52+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19824,6 +19824,29 @@
       "touched_round": 252,
       "commit": "567063c",
       "title": "Clear the Verify card evidence per attempt"
+    },
+    "ISS-434": {
+      "id": "ISS-434",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T05:17:52+00:00",
+      "updated_at": "2026-10-26T05:17:52+00:00",
+      "touched_round": 253,
+      "title": "The desktop Oracle feed-health read swallowed its error",
+      "severity": 0.3,
+      "description": "Health rows were assigned only on success and the error discarded, so a transient failure showed old counters with no warning while every other oracle list reported failures. The card now warns above the retained rows."
+    },
+    "CHG-450": {
+      "id": "CHG-450",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T05:17:52+00:00",
+      "updated_at": "2026-10-26T05:17:52+00:00",
+      "touched_round": 253,
+      "commit": "d9cf130",
+      "title": "Surface feed-health read failures"
     }
   },
   "edges": [
@@ -30117,6 +30140,12 @@
       "to": "ISS-433",
       "type": "resolves",
       "created_at": "2026-10-26T05:16:47+00:00"
+    },
+    {
+      "from": "CHG-450",
+      "to": "ISS-434",
+      "type": "resolves",
+      "created_at": "2026-10-26T05:17:52+00:00"
     }
   ]
 }
