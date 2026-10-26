@@ -54,6 +54,14 @@ type fakeServices struct {
 	// loadErrs fail one read each, so a test can prove a page keeps the
 	// content of its last successful load when a refresh fails.
 	loadErrs fakeLoadErrors
+
+	// Counters for the reads a successful write is expected to repeat, so a
+	// test can prove the page refreshes what it shows after a write.
+	listTokensCalls     int
+	tokenInfoCalls      int
+	listAllNFTsCalls    int
+	nftHistoryCalls     int
+	sessionResultsCalls int
 }
 
 // fakeLoadErrors is one failure hook per read a page performs.
@@ -118,7 +126,10 @@ func (f *fakeServices) CreateSession(title, description string, ids []string, st
 	return SessionRow{ID: "s1", Title: title, Status: "pending"}, nil
 }
 func (f *fakeServices) CastVote(sessionID, candidateID, voterPub, voterPriv string) error { return nil }
-func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error)              { return nil, nil }
+func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error) {
+	f.sessionResultsCalls++
+	return nil, nil
+}
 func (f *fakeServices) Candidates() ([]CandidateRow, error) {
 	if f.loadErrs.candidates != nil {
 		return nil, f.loadErrs.candidates
@@ -137,8 +148,12 @@ func (f *fakeServices) EndSession(id string) error   { return nil }
 func (f *fakeServices) CreateToken(name, symbol, supply, owner string, decimals int) (TokenRow, error) {
 	return TokenRow{ID: "t1", Name: name, Symbol: symbol, TotalSupply: supply, Decimals: decimals, Owner: owner}, nil
 }
-func (f *fakeServices) TokenInfo(id string) (TokenRow, error) { return TokenRow{ID: id}, nil }
+func (f *fakeServices) TokenInfo(id string) (TokenRow, error) {
+	f.tokenInfoCalls++
+	return TokenRow{ID: id}, nil
+}
 func (f *fakeServices) ListTokens() ([]TokenRow, error) {
+	f.listTokensCalls++
 	if f.loadErrs.tokens != nil {
 		return nil, f.loadErrs.tokens
 	}
@@ -187,6 +202,7 @@ func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) {
 	return f.ownerNFTs, nil
 }
 func (f *fakeServices) ListAllNFTs() ([]NFTRow, error) {
+	f.listAllNFTsCalls++
 	if f.loadErrs.nfts != nil {
 		return nil, f.loadErrs.nfts
 	}
@@ -194,7 +210,10 @@ func (f *fakeServices) ListAllNFTs() ([]NFTRow, error) {
 }
 func (f *fakeServices) TransferNFT(id, from, to, priv string) error { return nil }
 func (f *fakeServices) BurnNFT(id, owner, priv string) error        { return nil }
-func (f *fakeServices) NFTHistory(id string) ([]NFTOpRow, error)    { return nil, nil }
+func (f *fakeServices) NFTHistory(id string) ([]NFTOpRow, error) {
+	f.nftHistoryCalls++
+	return nil, nil
+}
 
 // TestAppRendersEveryPage drives the real view through MyGo's Tester, which
 // builds frames without a window. It catches a panic in any page's layout and

@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -356,30 +357,60 @@ func (a *App) tokenWrites(c *ui.Context) {
 // else and cannot see from the form they used.
 
 func (a *App) mintToken() {
-	a.token.status = wrapErr(a.services.MintToken(
+	err := a.services.MintToken(
 		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.mintTo),
-		strings.TrimSpace(a.token.mintAmount), strings.TrimSpace(a.token.mintPriv)))
+		strings.TrimSpace(a.token.mintAmount), strings.TrimSpace(a.token.mintPriv))
+	a.token.status = wrapErr(err)
+	if err == nil {
+		a.refreshToken()
+	}
 }
 
 func (a *App) transferToken() {
-	a.token.status = wrapErr(a.services.TransferToken(
+	err := a.services.TransferToken(
 		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.xFrom),
 		strings.TrimSpace(a.token.xTo), strings.TrimSpace(a.token.xAmount),
-		strings.TrimSpace(a.token.xPriv)))
+		strings.TrimSpace(a.token.xPriv))
+	a.token.status = wrapErr(err)
+	if err == nil {
+		a.refreshToken()
+	}
 }
 
 func (a *App) approveToken() {
-	a.token.status = wrapErr(a.services.ApproveToken(
+	err := a.services.ApproveToken(
 		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.approveOwner),
 		strings.TrimSpace(a.token.approveTo), strings.TrimSpace(a.token.approveAmt),
-		strings.TrimSpace(a.token.approvePriv)))
+		strings.TrimSpace(a.token.approvePriv))
+	a.token.status = wrapErr(err)
+	if err == nil {
+		a.refreshToken()
+	}
 }
 
 func (a *App) transferFromToken() {
-	a.token.status = wrapErr(a.services.TransferFromToken(
+	err := a.services.TransferFromToken(
 		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.fromOwner),
 		strings.TrimSpace(a.token.fromTo), strings.TrimSpace(a.token.fromAmount),
-		strings.TrimSpace(a.token.fromPriv)))
+		strings.TrimSpace(a.token.fromPriv))
+	a.token.status = wrapErr(err)
+	if err == nil {
+		a.refreshToken()
+	}
+}
+
+// refreshToken re-reads what a write just changed: the collection (whose rows
+// show total supply) and, when it is open, the Inspect readout. The write
+// cards sit beside the list, so leaving a stale supply next to a successful
+// mint read as if the mint had done nothing.
+func (a *App) refreshToken() {
+	a.loadToken()
+	if a.token.info == nil {
+		return
+	}
+	if info, err := a.services.TokenInfo(strings.TrimSpace(a.token.tokenID)); err == nil {
+		a.token.info = &info
+	}
 }
 
 func (a *App) loadAllowance() {
@@ -401,14 +432,25 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 	if !a.token.askBurn {
 		return
 	}
-	switch ui.AlertDialog(c, &a.token.askBurn,
-		"Burn tokens?",
-		"Burning destroys the amount permanently. This cannot be undone.",
-		"Cancel", "Burn") {
+	// Name the amount and the account in the question: a bare "Burn tokens?"
+	// asked the operator to trust whichever fields the form held, and a wrong
+	// amount is irreversible.
+	detail := "Burning destroys the amount permanently. This cannot be undone."
+	amount := strings.TrimSpace(a.token.burnAmount)
+	from := strings.TrimSpace(a.token.burnFrom)
+	if amount != "" || from != "" {
+		detail = fmt.Sprintf(
+			"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.",
+			valueOr(amount), valueOr(from))
+	}
+	switch ui.AlertDialog(c, &a.token.askBurn, "Burn tokens?", detail, "Cancel", "Burn") {
 	case 1:
-		a.token.status = wrapErr(a.services.BurnToken(
-			strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.burnFrom),
-			strings.TrimSpace(a.token.burnAmount), strings.TrimSpace(a.token.burnPriv)))
+		err := a.services.BurnToken(
+			strings.TrimSpace(a.token.tokenID), from, amount, strings.TrimSpace(a.token.burnPriv))
+		a.token.status = wrapErr(err)
+		if err == nil {
+			a.refreshToken()
+		}
 	}
 }
 

@@ -163,10 +163,21 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 	if !a.oracle.askDelete {
 		return
 	}
-	switch ui.AlertDialog(c, &a.oracle.askDelete,
-		"Delete this source?",
-		"The source and its scheduling entry are removed. Readings already stored stay.",
-		"Cancel", "Delete") {
+	// Name the source being deleted, from the loaded list when it is there:
+	// the actions share one id field, and "Delete this source?" gave the
+	// operator nothing to check it against.
+	detail := "The source and its scheduling entry are removed. Readings already stored stay."
+	if id := strings.TrimSpace(a.oracle.fetchID); id != "" {
+		target := shortID(id)
+		for _, source := range a.oracle.sources {
+			if source.ID == id {
+				target = source.Name + " (" + shortID(id) + ")"
+				break
+			}
+		}
+		detail = "Delete " + target + "? Its scheduling entry is removed; readings already stored stay."
+	}
+	switch ui.AlertDialog(c, &a.oracle.askDelete, "Delete this source?", detail, "Cancel", "Delete") {
 	case 1:
 		a.oracle.status = wrapErr(a.services.DeleteOracleSource(strings.TrimSpace(a.oracle.fetchID)))
 		a.loadOracle()

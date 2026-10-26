@@ -248,6 +248,9 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 		if quietButton(c, "Copy "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
 			c.Services().WriteClipboard(value)
+			// The status line lives above the cards and may be scrolled out of
+			// sight; the toast confirms the copy where the pointer is.
+			c.Toast(label + " is on the clipboard")
 			if onCopied != nil {
 				onCopied()
 			}
@@ -282,6 +285,15 @@ func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
 	}
 	ui.Text(c, "Showing the last successful load.").FontSize(12).TextColor(ui.Hex(inkMuted))
 	return true
+}
+
+// valueOr renders an empty form value as an em dash, for prose that names what
+// the operator typed.
+func valueOr(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "—"
+	}
+	return strings.TrimSpace(value)
 }
 
 // pageGlyph draws a page's icon in a tinted tile. It is the window's recurring
