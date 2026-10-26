@@ -103,3 +103,43 @@ func TestDashboardListsTheNewestChainEntries(t *testing.T) {
 	require.True(t, tester.HasText("payload-4"), "the fifth newest entry must be listed")
 	require.False(t, tester.HasText("payload-5"), "the card must show only the newest five")
 }
+
+// TestSwitchingPagesStartsAtTheTop pins the scroll of a newly chosen page. The
+// page body is a Scroll at the same place in the tree on every page, so its
+// offset can leak from the page just left; a short page then opens halfway
+// down, with its title area and first cards above the viewport.
+func TestSwitchingPagesStartsAtTheTop(t *testing.T) {
+	tokens := make([]TokenRow, 30)
+	for i := range tokens {
+		tokens[i] = TokenRow{ID: "t" + strconv.Itoa(i), Name: "Token " + strconv.Itoa(i), Symbol: "T", TotalSupply: "1"}
+	}
+	app := New(&fakeServices{tokenRows: tokens})
+	tester := ui.NewTester(app.View, 1000, 600)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	before, ok := tester.Find("Tokens")
+	require.True(t, ok, "the collection heading must be visible before scrolling")
+	tester.Scroll(900, 500, 0, 900)
+	tester.Frame()
+	after, ok := tester.Find("Tokens")
+	require.True(t, ok)
+	require.Less(t, after.Y, before.Y, "the body must have scrolled before the page switch is meaningful")
+
+	// A fresh app that never scrolled gives the position of the top of the
+	// Lottery page; the switched-to page must match it.
+	fresh := New(&fakeServices{tokenRows: tokens})
+	freshTester := ui.NewTester(fresh.View, 1000, 600)
+	freshTester.Frame()
+	fresh.ShowPage("Lottery")
+	freshTester.Frame()
+	want, ok := freshTester.Find("Create Draw")
+	require.True(t, ok)
+
+	app.ShowPage("Lottery")
+	tester.Frame()
+	got, ok := tester.Find("Create Draw")
+	require.True(t, ok, "a page chosen after scrolling another must open at its top")
+	require.InDelta(t, float64(want.Y), float64(got.Y), 1,
+		"the new page must start at the scroll position of a fresh one")
+}
