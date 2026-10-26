@@ -92,8 +92,12 @@ desktop          ─┘                                              ^
 `native_token.go`、`native_oracle.go`、`native_nft.go`。单文件从 779 行降到
 80 行，领域映射的修改范围可定位。
 
-**下一步**：桌面与 REST 共用容器暴露的端口，`nativeServices` 只依赖
-`nativeui.Services` 所需的窄接口，构造函数不再接收具体仓储。
+构造参数和字段已改为 `lottery.Repository`、`voting.TransactableRepository`、
+`nft.TransactableRepository`、`oracle.Repository` 等领域端口；NFT 事务管理器
+由 container 注入。`ports_test.go` 禁止 `native_*.go` import infra/api。
+
+**下一步**：`menu.go` 仍直接用 `sqlite.LotteryRepository` 做导入/导出，应把该
+用例移入 app/container；REST 与桌面继续共用同一容器，而不是各自拼装。
 
 ### 5. 桌面 UI 文案曾放在核心 i18n
 
@@ -136,7 +140,7 @@ internal/
 - [x] 领域错误包，移除 `app` → `infra/sqlite` 的错误哨兵依赖。
 - [x] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
       `native_token.go` / `native_nft.go` / `native_oracle.go` /
-      `native_ledger.go` / `native_keys.go`。
+      `native_ledger.go` / `native_keys.go`，并改用领域仓储端口。
 - [x] 统一账本对外命名。
 - [x] 抽出 `app/container` 组合根；`api.Server` 已委托存储生命周期。
 - [x] 把 `desktopUIMessages` 移出核心 i18n。

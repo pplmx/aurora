@@ -136,8 +136,8 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	rt.stopScheduler = srv.StartOracleScheduler(ctx, config.OracleSchedulerCheckInterval())
 	rt.stopOutbox = srv.StartAuditOutboxDrainer(ctx)
 	rt.app = nativeui.New(newNativeServices(
-		svc.LotteryRepo, svc.VotingRepo, svc.NFTRepo, svc.TokenRepo,
-		svc.OracleRepo, svc.TokenService, svc.TxManager, svc.Chain,
+		svc.LotteryRepo, svc.VotingRepo, svc.NFTRepo,
+		svc.OracleRepo, svc.TokenService, svc.TxManager, svc.NFTTx, svc.Chain,
 		srv.OracleHealthStats,
 	))
 	return rt, nil

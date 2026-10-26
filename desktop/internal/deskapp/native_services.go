@@ -5,10 +5,11 @@ import (
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/domain/voting"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 // nativeServices adapts the application layer to the view layer's Services
@@ -19,18 +20,17 @@ import (
 // views never import a domain package. Each module keeps its methods in its
 // own native_*.go file.
 type nativeServices struct {
-	lotteryRepo *sqlite.LotteryRepository
-	votingRepo  *sqlite.VotingRepository
-	nftRepo     *sqlite.NFTRepository
-	tokenRepo   *sqlite.TokenRepository
-	oracleRepo  *sqlite.OracleRepository
+	lotteryRepo lottery.Repository
+	votingRepo  voting.TransactableRepository
+	nftRepo     nft.TransactableRepository
+	oracleRepo  oracle.Repository
 	chain       *blockchain.Chain
 
 	// tokenService carries the audit bus and replay protection the token use
 	// cases publish through, so a window mint is recorded exactly like a CLI
 	// or REST one.
 	tokenService token.Service
-	txManager    *sqlite.TxManager
+	txManager    voting.TransactionManager
 	votingSvc    voting.Service
 	nftTx        nft.TransactionManager
 	// health reads the oracle scheduler's per-source counters. It is a
@@ -43,13 +43,13 @@ type nativeServices struct {
 var _ nativeui.Services = (*nativeServices)(nil)
 
 func newNativeServices(
-	lotteryRepo *sqlite.LotteryRepository,
-	votingRepo *sqlite.VotingRepository,
-	nftRepo *sqlite.NFTRepository,
-	tokenRepo *sqlite.TokenRepository,
-	oracleRepo *sqlite.OracleRepository,
+	lotteryRepo lottery.Repository,
+	votingRepo voting.TransactableRepository,
+	nftRepo nft.TransactableRepository,
+	oracleRepo oracle.Repository,
 	tokenService token.Service,
-	txManager *sqlite.TxManager,
+	txManager voting.TransactionManager,
+	nftTx nft.TransactionManager,
 	chain *blockchain.Chain,
 	health func() []oracleapp.SourceStat,
 ) *nativeServices {
@@ -57,13 +57,12 @@ func newNativeServices(
 		lotteryRepo:  lotteryRepo,
 		votingRepo:   votingRepo,
 		nftRepo:      nftRepo,
-		tokenRepo:    tokenRepo,
 		oracleRepo:   oracleRepo,
 		chain:        chain,
 		tokenService: tokenService,
 		txManager:    txManager,
 		votingSvc:    voting.NewEd25519Service(),
-		nftTx:        sqlite.NewTxManager(nftRepo.GetDB()),
+		nftTx:        nftTx,
 		health:       health,
 	}
 }
