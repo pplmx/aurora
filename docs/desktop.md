@@ -198,30 +198,27 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   sidecar 和相邻日志同时固定为 `0600`，不能让同机其他普通账号遍历或读取。
   显式 `--data-dir` 指定的已有目录不改权限，以免破坏用户选择的共享或受管
   目录；新建的显式目录仍以 `0700` 创建。
-- **数据库备份同样只对当前用户开放**：File → Back Up Database 新建的备份
+- **数据库备份同样只对当前用户开放**：Actions → Back Up Database 新建的备份
   目录为 `0700`，SQLite 快照和 `metadata.json` 固定为 `0600`。如果用户明确
   选择一个已存在的备份目录，该目录自身的权限保持不变，但其中的新文件仍是
   owner-only；这样 Oracle Bearer 头不会随备份暴露给同机其他账号。Restore
   生成的隐藏 `.pre_restore` 撤销快照同样收紧为 `0700/0600`，恢复后写回的
   活动数据库也保持 `0600`。
-- **界面语言跟随系统**：MyGo 只翻译带 role 的菜单项（文件/编辑/显示/窗口/
-  帮助、退出、原生对话框的“好/取消”），Aurora 自己的菜单项、文件选择器标题、
-  结果/错误弹窗、启动失败弹窗和 `--help`/`--version` 都由 `internal/i18n`
-  提供（`desktop.*` 键，en/zh 两套）。启动时 `FollowAppLocale` 把翻译器对齐到
-  `App.Locale()`，并监听 `OnLocaleChanged` 在运行时切换语言后重建菜单；否则
-  同一条菜单栏会一半中文一半英文（实测 zh-CN 下 MyGo 的“文件”旁边是
-  “Export Lotteries...”）。
+- **界面语言跟随系统**：MyGo 翻译带 role 的平台菜单项（应用/编辑/窗口、
+  原生对话框的“好/取消”）；Aurora 自己的页面标题、按钮、字段、提示、
+  空状态、guide、弹窗和 `--help`/`--version` 都由 `internal/i18n` 提供。
+  窗口文案通过 `nativeui.tr` 读取，英文原文就是 key；中文表在
+  `internal/i18n/messages_ui_zh.go`，缺项时回退英文而不是显示 key。
+  服务层返回的错误保留原文，避免把后端诊断改写成无法对应日志的句子。
 - MyGo 的两套中文目录（`zh-Hans`、`zh-Hant`）都必须链接：只声明简体时
   zh-TW/zh-HK 匹配不到任何语言，MyGo 会退回英文，整个窗口变英文。
   `SetLanguages` 放在 `Start` 之前，因为启动失败会提前返回——否则失败弹窗
   只有一个英文 “OK”。`[i18n] locale` 配置（`$LANG` 未设置时的兜底）现在同样
   作用于窗口，与 CLI 一致。
-- Help → Language 可在运行时切换（跟随系统 / English / 简体中文 / 繁體中文）：
-  MyGo 会记住选择（macOS 写进系统设置，其他平台写用户数据目录），并翻译自己
-  的 role 菜单项；Aurora 的菜单项由 `OnLocaleChanged` 监听器重建。各语言项用
-  自身语言书写，当前项带单选勾；“跟随系统”对应 `SetLocale("")`。构建菜单时
-  不能读 `App.Locale()`（`Run` 之前它会阻塞在主线程队列上），所以勾选状态在
-  菜单装好之后由 `MarkLanguage` 设置。
+- Actions → Language 可在运行时切换（跟随系统 / English / 简体中文 / 繁體中文）：
+  MyGo 会记住选择（macOS 写进系统设置，其他平台写用户数据目录），并翻译
+  自己的平台菜单角色；`OnLocaleChanged` 同步 Aurora 的翻译器并重绘窗口，
+  页面文案与 Actions 标签随即换语言。各语言项用自身语言书写。
 
 ## 菜单与文件操作
 

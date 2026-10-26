@@ -88,9 +88,9 @@ func (a *App) lotteryCreate(c *ui.Context) {
 	formCard(c, "Create Draw", "Participants and seed determine the draw; the count is how many winners to pick.", func() {
 		field(c, "Participants (comma-separated)", &a.lottery.participants)
 		fieldError(c, a.lottery.participantsErr)
-		field(c, fmt.Sprintf("Seed (at least %d characters)", lottery.MinSeedLength), &a.lottery.seed)
+		field(c, fmt.Sprintf(tr("Seed (at least %d characters)"), lottery.MinSeedLength), &a.lottery.seed)
 		fieldError(c, a.lottery.seedErr)
-		ui.Field(c, "Count", func() {
+		ui.Field(c, tr("Count"), func() {
 			ui.Column(c).Gap(2).Children(func() {
 				ui.NumberInput(c, &a.lottery.count, 1, float64(lottery.MaxWinners), 1)
 				hint(c, "How many winners to draw; must not exceed the participant count.")
@@ -195,7 +195,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		return
 	}
 	rows := make([]DrawRow, 0, len(a.lottery.rows))
-	ui.SearchField(c, &a.lottery.search).Label("Search draws")
+	ui.SearchField(c, &a.lottery.search).Label(tr("Search draws"))
 	if a.lottery.search != a.lottery.appliedSearch {
 		a.lottery.appliedSearch = a.lottery.search
 		a.lottery.selected = -1
@@ -207,17 +207,17 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		}
 	}
 	if len(rows) == 0 {
-		emptyNote(c, "No draws match “"+strings.TrimSpace(a.lottery.search)+"”.")
+		emptyNote(c, fmt.Sprintf(tr("No draws match “%s”."), strings.TrimSpace(a.lottery.search)))
 		return
 	}
 	// Choosing a row fills the verifier with that draw's full id: the table
 	// shows a shortened id, so this is how a reader gets the real one.
 	a.lottery.table.Selected = &a.lottery.selected
 	table := ui.Table(c, &a.lottery.table, []ui.TableColumn{
-		{Title: "ID", Width: 150},
-		{Title: "Block", Width: 80, Align: ui.End},
-		{Title: "Participants", MinWidth: 140},
-		{Title: "Winners", MinWidth: 120},
+		{Title: tr("ID"), Width: 150},
+		{Title: tr("Block"), Width: 80, Align: ui.End},
+		{Title: tr("Participants"), MinWidth: 140},
+		{Title: tr("Winners"), MinWidth: 120},
 	}, len(rows), func(row, col int) {
 		r := rows[row]
 		switch col {

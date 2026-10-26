@@ -411,7 +411,7 @@ func TestSeedLabelFollowsTheDomainConstant(t *testing.T) {
 	app.ShowPage("Lottery")
 	tester.Frame()
 
-	want := fmt.Sprintf("Seed (at least %d characters)", lottery.MinSeedLength)
+	want := fmt.Sprintf(tr("Seed (at least %d characters)"), lottery.MinSeedLength)
 	require.True(t, tester.HasText(want),
 		"the create form must label the seed with the domain's minimum, want %q", want)
 }

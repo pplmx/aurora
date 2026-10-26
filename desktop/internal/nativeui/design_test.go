@@ -6,6 +6,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // TestEveryPageHasItsOwnIcon pins the sidebar's glyph set. A page added to
@@ -169,6 +171,34 @@ func TestSwitchingPagesStartsAtTheTop(t *testing.T) {
 	require.True(t, ok, "a page chosen after scrolling another must open at its top")
 	require.InDelta(t, float64(want.Y), float64(got.Y), 1,
 		"the new page must start at the scroll position of a fresh one")
+}
+
+// TestChineseUIRendersTheWorkbench keeps the desktop's labels in the language
+// switcher, not only its menus: page names, purposes, Quick start, metrics,
+// tabs and the guide must come from the desktop table.
+func TestChineseUIRendersTheWorkbench(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("zh")
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 1600)
+	tester.Frame()
+	for _, want := range []string{"仪表盘", "快速开始", "运行抽奖", "抽奖总数", "账本完整性"} {
+		require.Truef(t, tester.HasText(want), "the Chinese dashboard must show %q", want)
+	}
+
+	app.ShowPage("Token")
+	tester.Frame()
+	for _, want := range []string{"代币", "创建代币", "铸造", "转账", "查看", "历史"} {
+		require.Truef(t, tester.HasText(want), "the Chinese Token page must show %q", want)
+	}
+	require.True(t, tester.HasText("高级"), "the Advanced disclosure must be translated")
+
+	require.NoError(t, tester.Click("工作方式"))
+	tester.Frame()
+	require.True(t, tester.HasText("在左栏选择或创建一个代币。它的所有者公钥会自动填入账户字段。"))
 }
 
 // TestEveryContentPageHasAHowThisWorksGuide keeps the plain-language steps on

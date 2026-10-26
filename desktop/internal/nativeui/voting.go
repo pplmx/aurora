@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -131,7 +132,7 @@ func (a *App) votingView(c *ui.Context) {
 			"Open Ballot to start the session and cast signed ballots.",
 			"Open Results and select or enter the session to read the tally.",
 		)
-		ui.Tabs(c, &a.voting.tab, "Setup", "Ballot", "Results")
+		ui.Tabs(c, &a.voting.tab, tr("Setup"), tr("Ballot"), tr("Results"))
 		switch a.voting.tab {
 		case 0:
 			twoColumns(c, func() {
@@ -159,14 +160,14 @@ func (a *App) votingRegister(c *ui.Context) {
 			}
 		})
 		if a.voting.voterPriv != "" {
-			ui.Text(c, "New voter key pair").FontSize(textSize(c, 12)).Bold().TextColor(ui.Hex(ink))
+			ui.Text(c, tr("New voter key pair")).FontSize(textSize(c, 12)).Bold().TextColor(ui.Hex(ink))
 			copyRow(c, "Public key", a.voting.voterPub, func() {
 				a.voting.status = okStatus("Public key copied.")
 			})
 			copyRow(c, "Private key", a.voting.voterPriv, func() {
 				a.voting.status = okStatus("Private key copied. The store keeps only the public half; keep it safe.")
 			})
-			ui.Text(c, "The store keeps only the public half, so this is the only copy of the signing key.").
+			ui.Text(c, tr("The store keeps only the public half, so this is the only copy of the signing key.")).
 				FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
 		}
 	})
@@ -291,7 +292,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	// asking an operator to type epoch seconds made the card unusable without
 	// a clock and a converter outside the app. The two controls edit one
 	// time.Time, shown in local time; the service still receives Unix seconds.
-	ui.Field(c, "Start", func() {
+	ui.Field(c, tr("Start"), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
 				ui.DateInput(c, &a.voting.sessionStart)
@@ -300,7 +301,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 			hint(c, "Local time. Ballots are rejected before it.")
 		})
 	})
-	ui.Field(c, "End", func() {
+	ui.Field(c, tr("End"), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
 				ui.DateInput(c, &a.voting.sessionEnd)
@@ -334,7 +335,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		return
 	}
 	sessions := make([]SessionRow, 0, len(a.voting.sessions))
-	ui.SearchField(c, &a.voting.sessionSearch).Label("Search sessions")
+	ui.SearchField(c, &a.voting.sessionSearch).Label(tr("Search sessions"))
 	if a.voting.sessionSearch != a.voting.sessionApplied {
 		a.voting.sessionApplied = a.voting.sessionSearch
 		a.voting.sessionChoice = -1
@@ -345,17 +346,17 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 	}
 	if len(sessions) == 0 {
-		emptyNote(c, "No sessions match “"+strings.TrimSpace(a.voting.sessionSearch)+"”.")
+		emptyNote(c, fmt.Sprintf(tr("No sessions match “%s”."), strings.TrimSpace(a.voting.sessionSearch)))
 		return
 	}
 	a.voting.sessionTable.Selected = &a.voting.sessionChoice
 	table := ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
-		{Title: "ID", Width: 140},
+		{Title: tr("ID"), Width: 140},
 		// SingleLine on every cell: a wrapped cell is clipped by the row's
 		// fixed height, which cut "Budget 2026" in half.
-		{Title: "Title", MinWidth: 130},
-		{Title: "Status", Width: 100},
-		{Title: "Window", Width: 210},
+		{Title: tr("Title"), MinWidth: 130},
+		{Title: tr("Status"), Width: 100},
+		{Title: tr("Window"), Width: 210},
 	}, len(sessions), func(row, col int) {
 		s := sessions[row]
 		switch col {
@@ -440,20 +441,20 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		return
 	}
 	candidates := a.filteredCandidates()
-	ui.SearchField(c, &a.voting.candSearch).Label("Search candidates")
+	ui.SearchField(c, &a.voting.candSearch).Label(tr("Search candidates"))
 	if a.voting.candSearch != a.voting.candApplied {
 		a.voting.candApplied = a.voting.candSearch
 		a.voting.candChoice = -1
 	}
 	if len(candidates) == 0 {
-		emptyNote(c, "No candidates match “"+strings.TrimSpace(a.voting.candSearch)+"”.")
+		emptyNote(c, fmt.Sprintf(tr("No candidates match “%s”."), strings.TrimSpace(a.voting.candSearch)))
 		return
 	}
 	a.voting.candidateTable.Selected = &a.voting.candChoice
 	table := ui.Table(c, &a.voting.candidateTable, []ui.TableColumn{
-		{Title: "ID", Width: 150},
-		{Title: "Name", MinWidth: 120},
-		{Title: "Party", MinWidth: 100},
+		{Title: tr("ID"), Width: 150},
+		{Title: tr("Name"), MinWidth: 120},
+		{Title: tr("Party"), MinWidth: 100},
 	}, len(candidates), func(row, col int) {
 		cand := candidates[row]
 		switch col {
@@ -506,7 +507,7 @@ func (a *App) filteredCandidates() []CandidateRow {
 func (a *App) addCandidateToRoster() {
 	candidates := a.filteredCandidates()
 	if a.voting.candChoice < 0 || a.voting.candChoice >= len(candidates) {
-		a.voting.status = statusLine{text: "Choose a candidate first.", isErr: true}
+		a.voting.status = statusLine{text: tr("Choose a candidate first."), isErr: true}
 		return
 	}
 	candidate := candidates[a.voting.candChoice]
@@ -528,11 +529,11 @@ func (a *App) createVotingSession() {
 	start := a.voting.sessionStart.Unix()
 	end := a.voting.sessionEnd.Unix()
 	if a.voting.sessionStart.IsZero() || a.voting.sessionEnd.IsZero() {
-		a.voting.sessionResult = statusLine{text: "Choose both a start and an end time.", isErr: true}
+		a.voting.sessionResult = statusLine{text: tr("Choose both a start and an end time."), isErr: true}
 		return
 	}
 	if end <= start {
-		a.voting.sessionResult = statusLine{text: "End time must be after the start time.", isErr: true}
+		a.voting.sessionResult = statusLine{text: tr("End time must be after the start time."), isErr: true}
 		return
 	}
 	ids := splitParticipants(a.voting.sessionIDs)
@@ -542,7 +543,7 @@ func (a *App) createVotingSession() {
 		}
 	}
 	if len(ids) == 0 {
-		a.voting.sessionResult = statusLine{text: "Register at least one candidate before creating a session.", isErr: true}
+		a.voting.sessionResult = statusLine{text: tr("Register at least one candidate before creating a session."), isErr: true}
 		return
 	}
 	s, err := a.services.CreateSession(strings.TrimSpace(a.voting.sessionTitle), strings.TrimSpace(a.voting.sessionDesc), ids, start, end)
@@ -624,7 +625,7 @@ func (a *App) votingVote(c *ui.Context) {
 func (a *App) castVote() {
 	a.voting.voteResult = statusLine{}
 	if strings.TrimSpace(a.voting.voteSession) == "" || strings.TrimSpace(a.voting.voteCandidate) == "" {
-		a.voting.voteResult = statusLine{text: "Choose a session and a candidate.", isErr: true}
+		a.voting.voteResult = statusLine{text: tr("Choose a session and a candidate."), isErr: true}
 		return
 	}
 	err := a.services.CastVote(
@@ -724,8 +725,8 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	// rows alone make them add the column up.
 	readout(c, []readoutRow{{"Total votes", strconv.Itoa(total)}})
 	ui.Table(c, &a.voting.resultsTable, []ui.TableColumn{
-		{Title: "Candidate"},
-		{Title: "Votes", Width: 80, Align: ui.End},
+		{Title: tr("Candidate")},
+		{Title: tr("Votes"), Width: 80, Align: ui.End},
 	}, len(results), func(row, col int) {
 		r := results[row]
 		if col == 0 {

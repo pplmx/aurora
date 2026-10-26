@@ -158,7 +158,7 @@ func (a *App) tokenList(c *ui.Context) {
 			emptyNote(c, "No tokens yet. Create one below.")
 			return
 		}
-		ui.SearchField(c, &a.token.search).Label("Search tokens")
+		ui.SearchField(c, &a.token.search).Label(tr("Search tokens"))
 		if a.token.search != a.token.appliedSearch {
 			// The highlight indexes the filtered rows; after a new query the same
 			// index is a different token, so no row is chosen until the operator
@@ -173,15 +173,15 @@ func (a *App) tokenList(c *ui.Context) {
 			}
 		}
 		if len(rows) == 0 {
-			emptyNote(c, "No tokens match “"+strings.TrimSpace(a.token.search)+"”.")
+			emptyNote(c, fmt.Sprintf(tr("No tokens match “%s”."), strings.TrimSpace(a.token.search)))
 			return
 		}
 		a.token.list.Selected = &a.token.chosen
 		table := ui.Table(c, &a.token.list, []ui.TableColumn{
-			{Title: "ID", Width: 150},
-			{Title: "Name", MinWidth: 120},
-			{Title: "Symbol", Width: 90},
-			{Title: "Supply", Width: 130, Align: ui.End},
+			{Title: tr("ID"), Width: 150},
+			{Title: tr("Name"), MinWidth: 120},
+			{Title: tr("Symbol"), Width: 90},
+			{Title: tr("Supply"), Width: 130, Align: ui.End},
 		}, len(rows), func(row, col int) {
 			t := rows[row]
 			switch col {
@@ -214,8 +214,8 @@ func (a *App) tokenCreate(c *ui.Context) {
 		field(c, "Name", &a.token.name)
 		field(c, "Symbol", &a.token.symbol)
 		field(c, "Total Supply", &a.token.supply)
-		ui.Collapsible(c, "Advanced", &a.token.createAdvanced, func() {
-			ui.Field(c, "Decimals", func() {
+		ui.Collapsible(c, tr("Advanced"), &a.token.createAdvanced, func() {
+			ui.Field(c, tr("Decimals"), func() {
 				ui.Column(c).Gap(2).Children(func() {
 					ui.NumberInput(c, &a.token.decimals, 0, 127, 1)
 					hint(c, "0 for a whole-unit token; 8 matches most asset conventions.")
@@ -235,7 +235,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 			copyRow(c, "Owner private key", a.token.ownerPriv, func() {
 				a.token.status = okStatus("Owner private key copied.")
 			})
-			ui.Text(c, "This is the only copy of the owner key; the store keeps the public half.").
+			ui.Text(c, tr("This is the only copy of the owner key; the store keeps the public half.")).
 				FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
 		}
 		ui.Row(c).Children(func() {
@@ -267,7 +267,7 @@ func (a *App) createToken() {
 	a.token.status = statusLine{}
 	decimals := int(a.token.decimals)
 	if float64(decimals) != a.token.decimals || decimals < 0 || decimals > 127 {
-		a.token.status = statusLine{text: "Decimals must be a whole number between 0 and 127.", isErr: true}
+		a.token.status = statusLine{text: tr("Decimals must be a whole number between 0 and 127."), isErr: true}
 		return
 	}
 	t, err := a.services.CreateToken(
@@ -469,7 +469,7 @@ func readout(c *ui.Context, rows []readoutRow) {
 		Background(ui.Hex(night)).Children(func() {
 		for _, r := range rows {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.Text(c, r.label).FontSize(textSize(c, 11)).Width(72).TextColor(ui.Hex(inkMuted))
+				ui.Text(c, tr(r.label)).FontSize(textSize(c, 11)).Width(72).TextColor(ui.Hex(inkMuted))
 				ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).SingleLine()
 			})
 		}
@@ -513,24 +513,24 @@ func tokenSubject(c *ui.Context, id string) {
 			Background(ui.Hex(warningTint)).BorderWidth(1).BorderColor(ui.Hex(auroraAmber)).
 			Children(func() {
 				badge(c, "No token selected", auroraAmber, night)
-				ui.Text(c, "Create or inspect one first.").FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+				ui.Text(c, tr("Create or inspect one first.")).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
 			})
 		return
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
 		Background(ui.Hex(night)).Children(func() {
-		ui.Text(c, "Acting on").FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
 		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).SingleLine()
 		if quietButton(c, "Copy token ID").Clicked() {
 			c.Services().WriteClipboard(id)
-			c.Toast("Token ID is on the clipboard")
+			c.Toast(tr("Token ID is on the clipboard"))
 		}
 	})
 }
 
 func (a *App) tokenWrites(c *ui.Context) {
 	tokenSubject(c, a.token.tokenID)
-	ui.Tabs(c, &a.token.opTab, "Mint", "Transfer", "Approve", "Transfer From", "Burn", "Allowance")
+	ui.Tabs(c, &a.token.opTab, tr("Mint"), tr("Transfer"), tr("Approve"), tr("Transfer From"), tr("Burn"), tr("Allowance"))
 	switch a.token.opTab {
 	case 0:
 		formCard(c, "Mint", "Only the token owner can mint, and only for a mintable token.", func() {
@@ -746,7 +746,7 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 	// Name the amount and the account in the question: a bare "Burn tokens?"
 	// asked the operator to trust whichever fields the form held, and a wrong
 	// amount is irreversible.
-	detail := "Burning destroys the amount permanently. This cannot be undone."
+	detail := tr("Burning destroys the amount permanently. This cannot be undone.")
 	amount := strings.TrimSpace(a.token.burnAmount)
 	from := strings.TrimSpace(a.token.burnFrom)
 	if amount != "" || from != "" {
@@ -754,7 +754,7 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 			"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.",
 			valueOr(amount), valueOr(from))
 	}
-	switch ui.AlertDialog(c, &a.token.askBurn, "Burn tokens?", detail, "Cancel", "Burn") {
+	switch ui.AlertDialog(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Cancel"), tr("Burn")) {
 	case 1:
 		err := a.services.BurnToken(
 			strings.TrimSpace(a.token.tokenID), from, amount, strings.TrimSpace(a.token.burnPriv))
@@ -774,12 +774,12 @@ func (a *App) tokenHistory(c *ui.Context) {
 
 func (a *App) tokenHistoryBody(c *ui.Context) {
 	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.historyOwner)
-	ui.Collapsible(c, "Paging", &a.token.historyAdvanced, func() {
+	ui.Collapsible(c, tr("Paging"), &a.token.historyAdvanced, func() {
 		ui.Row(c).Gap(12).Children(func() {
-			ui.Field(c, "Limit", func() {
+			ui.Field(c, tr("Limit"), func() {
 				ui.NumberInput(c, &a.token.historyLimit, 1, maxListLimit, 1)
 			})
-			ui.Field(c, "Offset", func() {
+			ui.Field(c, tr("Offset"), func() {
 				ui.NumberInput(c, &a.token.historyOffset, 0, maxListLimit, 1)
 			})
 		})
@@ -807,10 +807,10 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 	}
 	hist := a.token.history
 	ui.Table(c, &a.token.historyTable, []ui.TableColumn{
-		{Title: "From", Width: 160},
-		{Title: "To", Width: 160},
-		{Title: "Amount", Width: 100, Align: ui.End},
-		{Title: "Nonce", Width: 80, Align: ui.End},
+		{Title: tr("From"), Width: 160},
+		{Title: tr("To"), Width: 160},
+		{Title: tr("Amount"), Width: 100, Align: ui.End},
+		{Title: tr("Nonce"), Width: 80, Align: ui.End},
 	}, len(hist), func(row, col int) {
 		h := hist[row]
 		switch col {

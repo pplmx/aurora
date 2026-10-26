@@ -320,6 +320,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The whole desktop follows the language switch, not only its menu**: page
+  titles and purposes, navigation, buttons, field labels, hints, empty states,
+  table headers, guides, dialogs and status lines go through `nativeui.tr`.
+  English literals are the keys, so a missing entry falls back to readable
+  English; Chinese translations live in
+  `internal/i18n/messages_ui_zh.go`. Service-layer error text stays verbatim.
 - **Every module page has a "How this works" guide**: the steps state the
   order of operations in plain language, including which private key each
   write needs and that keys are never stored. The guide starts collapsed so
