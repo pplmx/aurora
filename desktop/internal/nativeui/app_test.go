@@ -151,6 +151,10 @@ func (f *fakeServices) Sessions() ([]SessionRow, error) {
 func (f *fakeServices) StartSession(id string) error { return nil }
 func (f *fakeServices) EndSession(id string) error   { return nil }
 
+func (f *fakeServices) GenerateKeyPair() (string, string, error) {
+	return "pk-generated", "sk-generated", nil
+}
+
 func (f *fakeServices) CreateToken(name, symbol, supply, owner string, decimals int) (TokenRow, error) {
 	return TokenRow{ID: "t1", Name: name, Symbol: symbol, TotalSupply: supply, Decimals: decimals, Owner: owner}, nil
 }
