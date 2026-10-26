@@ -21,6 +21,8 @@ type lotteryState struct {
 
 	rows    []DrawRow
 	loadErr error
+	// search narrows the history by id, seed, participant or winner.
+	search string
 
 	// Field errors are per-input so the message appears under the control that
 	// caused it, the same placement the Web UI's inline error nodes had.
@@ -165,7 +167,18 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		emptyNote(c, "No draws recorded yet. Create one above.")
 		return
 	}
-	rows := a.lottery.rows
+	rows := make([]DrawRow, 0, len(a.lottery.rows))
+	ui.SearchField(c, &a.lottery.search).Label("Search draws")
+	for _, draw := range a.lottery.rows {
+		if containsFold(a.lottery.search, draw.ID, draw.Seed,
+			strings.Join(draw.Participants, " "), strings.Join(draw.Winners, " ")) {
+			rows = append(rows, draw)
+		}
+	}
+	if len(rows) == 0 {
+		emptyNote(c, "No draws match “"+strings.TrimSpace(a.lottery.search)+"”.")
+		return
+	}
 	// Choosing a row fills the verifier with that draw's full id: the table
 	// shows a shortened id, so this is how a reader gets the real one.
 	a.lottery.table.Selected = &a.lottery.selected

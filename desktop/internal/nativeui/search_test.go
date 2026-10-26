@@ -116,3 +116,55 @@ func TestVotingListsSearchAndSelectFromTheFilteredRows(t *testing.T) {
 	require.Equal(t, "c2", app.voting.sessionIDs,
 		"the filtered row must map to its own candidate, not the full list's index")
 }
+
+// TestLotteryHistorySearchAndSelection covers the draws list: id, seed,
+// participant and winner are searchable, and the chosen filtered row is the
+// draw whose id reaches the verifier.
+func TestLotteryHistorySearchAndSelection(t *testing.T) {
+	fake := &fakeServices{draws: []DrawRow{
+		{ID: "draw-alpha", Seed: "spring", Participants: []string{"Alice"}, Winners: []string{"Alice"}},
+		{ID: "draw-beta", Seed: "autumn", Participants: []string{"Bob"}, Winners: []string{"Bob"}},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	app.lottery.search = "autumn"
+	tester.Frame()
+	require.True(t, tester.HasText("draw-beta"))
+	require.False(t, tester.HasText("draw-alpha"), "a seed search must narrow the list")
+
+	require.NoError(t, tester.Click("draw-beta"))
+	tester.Frame()
+	require.Equal(t, "draw-beta", app.lottery.verifyID)
+
+	app.lottery.search = "nobody"
+	tester.Frame()
+	require.True(t, tester.HasText("No draws match “nobody”."))
+}
+
+// TestOracleSourceSearchAndSelection covers the source list the same way:
+// name, id, type and URL are searchable, and a filtered row loads its id into
+// the action fields.
+func TestOracleSourceSearchAndSelection(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{
+		{ID: "src-btc", Name: "btc-price", Type: "json", URL: "https://example.com/btc"},
+		{ID: "src-wx", Name: "weather", Type: "json", URL: "https://example.com/wx"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.oracle.search = "weather"
+	tester.Frame()
+	require.True(t, tester.HasText("weather"))
+	require.False(t, tester.HasText("btc-price"))
+
+	require.NoError(t, tester.Click("src-wx"))
+	tester.Frame()
+	require.Equal(t, "src-wx", app.oracle.fetchID)
+	require.Equal(t, "src-wx", app.oracle.queryID)
+	require.Equal(t, "src-wx", app.oracle.latestID)
+}

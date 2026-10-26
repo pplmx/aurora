@@ -201,9 +201,10 @@ documented in their per-milestone ROADMAP files.
   types, case-insensitively; the NFT search composes with the owner filter, a
   filtered row still fills the forms with its full id, and an empty result says
   "no match" rather than "nothing stored". The voting page's candidate and
-  session lists gained the same field (id/name/party and id/title/status), with
-  selection resolved against the filtered rows so a search can never send a
-  different candidate to the roster than the one on screen. The voting Results
+  session lists gained the same field (id/name/party and id/title/status), as did
+  the draw history (id/seed/participant/winner) and the oracle source list
+  (name/id/type/URL), with selection resolved against the filtered rows so a
+  search can never act on a different row than the one on screen. The voting Results
   card also prints the sum of the per-candidate counts, which is what a reader
   checks before trusting the rows.
 - **The desktop dashboard lists recent chain activity**: the landing page showed
