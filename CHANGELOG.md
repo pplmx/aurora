@@ -361,6 +361,9 @@ documented in their per-milestone ROADMAP files.
   `internal/ledger` holds the pure writer/transaction contracts and report
   types. The desktop adapter uses a narrow `ledgerChain` interface, so
   `native_*.go` no longer imports the implementation.
+- **Transaction management is one shared port**: token, NFT and voting domain
+  packages now alias `ledger.TransactionManager` instead of declaring three
+  identical interfaces. Existing mocks and constructors stay source-compatible.
 - **The ledger has a pure port package**: `internal/ledger` now owns
   `BlockWriter`, transaction writer interfaces and the transactional append
   helpers. Domain services, application use cases and handlers depend on that

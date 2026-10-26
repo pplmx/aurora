@@ -1,13 +1,14 @@
 package voting
 
-import "database/sql"
+import (
+	"database/sql"
 
-// TransactionManager abstracts the infra transaction runner so use cases can
-// group several repository writes (voter claim + vote row + tally increment)
-// into one atomic unit. Implementations commit on nil and roll back on error.
-type TransactionManager interface {
-	WithTransaction(fn func(tx *sql.Tx) error) error
-}
+	"github.com/pplmx/aurora/internal/ledger"
+)
+
+// TransactionManager is the shared transaction port. The alias keeps voting
+// use cases and mocks source-compatible after the port moved to ledger.
+type TransactionManager = ledger.TransactionManager
 
 // TransactableRepository is a Repository that can additionally scope its
 // operations to an open transaction. CastVoteUseCase drives all of its
