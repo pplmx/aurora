@@ -154,3 +154,48 @@ func TestNumericFormLimitsAreBounded(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, maxListLimit, fake.oracleDataLimit)
 }
+
+// TestPageRefreshReReadsOpenReadouts pins the Refresh action beyond the lists:
+// a readout that is on screen (token info/balance/history, NFT details/history,
+// oracle Query/Latest, voting tally) must follow the database, or Ctrl+R
+// refreshes the page around stale answers.
+func TestPageRefreshReReadsOpenReadouts(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+
+	app.ShowPage("Token")
+	app.token.tokenID = "t1"
+	app.token.account = "owner"
+	app.token.info = &TokenRow{ID: "t1"}
+	app.token.balance = "42"
+	app.token.history = []TransferRow{{Amount: "1"}}
+	beforeInfo, beforeBalance, beforeHistory := fake.tokenInfoCalls, fake.tokenBalanceCalls, fake.tokenHistoryCalls
+	app.refresh()
+	require.Equal(t, beforeInfo+1, fake.tokenInfoCalls, "an open Inspect readout must refresh")
+	require.Equal(t, beforeBalance+1, fake.tokenBalanceCalls, "a shown balance must refresh")
+	require.Equal(t, beforeHistory+1, fake.tokenHistoryCalls, "a loaded history must refresh")
+
+	app.ShowPage("NFT")
+	app.nft.nft = &NFTRow{ID: "n1"}
+	app.nft.historyID = "n1"
+	app.nft.history = []NFTOpRow{{Type: "mint"}}
+	beforeDetails, beforeHistory := fake.getNFTCalls, fake.nftHistoryCalls
+	app.refresh()
+	require.Equal(t, beforeDetails+1, fake.getNFTCalls, "an open NFT readout must refresh")
+	require.Equal(t, beforeHistory+1, fake.nftHistoryCalls, "a loaded NFT history must refresh")
+
+	app.ShowPage("Oracle")
+	app.oracle.data = []DataRow{{Value: "1"}}
+	app.oracle.latest = &DataRow{Value: "1"}
+	beforeData, beforeLatest := fake.oracleDataCalls, fake.oracleLatestCalls
+	app.refresh()
+	require.Equal(t, beforeData+1, fake.oracleDataCalls, "an open Query card must refresh")
+	require.Equal(t, beforeLatest+1, fake.oracleLatestCalls, "an open Latest card must refresh")
+
+	app.ShowPage("Voting")
+	app.voting.resultsSession = "s1"
+	app.voting.results = []ResultRow{{CandidateID: "c1", Votes: 1}}
+	beforeResults := fake.sessionResultsCalls
+	app.refresh()
+	require.Equal(t, beforeResults+1, fake.sessionResultsCalls, "an open tally must refresh")
+}

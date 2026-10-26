@@ -332,6 +332,25 @@ func (a *App) transferNFT() {
 	}
 }
 
+// refreshNFTPage re-reads the collection and the Inspect/history cards that are
+// already showing something, for the Refresh action. A write targets the id it
+// changed and goes through refreshNFT.
+func (a *App) refreshNFTPage() {
+	a.loadNFT()
+	if a.nft.nft != nil {
+		if updated, err := a.services.GetNFT(a.nft.nft.ID); err == nil {
+			a.nft.nft = &updated
+		} else {
+			a.nft.nft = nil
+		}
+	}
+	if id := strings.TrimSpace(a.nft.historyID); id != "" && len(a.nft.history) > 0 {
+		if ops, err := a.services.NFTHistory(id); err == nil {
+			a.nft.history = ops
+		}
+	}
+}
+
 // refreshNFT re-reads what a write just changed: the collection, plus the
 // Inspect readout and history when they are already showing id. A successful
 // transfer that left the old owner in the collection read as a failed write.

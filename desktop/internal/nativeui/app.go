@@ -328,12 +328,16 @@ func (a *App) refresh() {
 		a.loadLottery()
 	case pageVoting:
 		a.loadVoting()
+		if len(a.voting.results) > 0 {
+			_ = a.loadSessionResults(strings.TrimSpace(a.voting.resultsSession))
+		}
 	case pageToken:
-		a.loadToken()
+		a.refreshToken()
 	case pageOracle:
 		a.loadOracle()
+		a.refreshOracleReads()
 	case pageNFT:
-		a.loadNFT()
+		a.refreshNFTPage()
 	case pageBlockchain:
 		a.loadBlockchain()
 	}
