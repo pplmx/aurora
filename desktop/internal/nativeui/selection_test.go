@@ -102,3 +102,26 @@ func TestLotterySelectionClearsTheOldVerdict(t *testing.T) {
 	require.Equal(t, "draw-b", app.lottery.verifyID)
 	require.Nil(t, app.lottery.verifyResult, "the previous draw's verdict must not stay on screen")
 }
+
+// TestSessionSelectionMovesTheOpenTally extends the same rule to the voting
+// Results card: selecting another session must not leave the previous
+// session's tally under the new session id.
+func TestSessionSelectionMovesTheOpenTally(t *testing.T) {
+	fake := &fakeServices{sessions: []SessionRow{
+		{ID: "s1", Title: "Budget", Status: "active"},
+		{ID: "s2", Title: "Standup", Status: "active"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	app.voting.resultsSession = "s1"
+	app.voting.results = []ResultRow{{CandidateID: "c1", Votes: 1}}
+
+	require.NoError(t, tester.Click("s2"))
+	tester.Frame()
+
+	require.Equal(t, "s2", app.voting.resultsSession)
+	require.Equal(t, "s2", fake.lastSessionResultsID, "the open tally must follow the selection")
+}
