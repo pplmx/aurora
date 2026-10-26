@@ -53,6 +53,7 @@ type tokenState struct {
 	allowanceOwner string
 	allowanceTo    string
 	historyLimit   float64
+	historyOffset  float64
 
 	allowance string
 	history   []TransferRow
@@ -488,7 +489,7 @@ func (a *App) refreshToken() {
 		if limit > maxListLimit {
 			limit = maxListLimit
 		}
-		if rows, err := a.services.TokenHistory(id, strings.TrimSpace(a.token.historyOwner), limit, 0); err == nil {
+		if rows, err := a.services.TokenHistory(id, strings.TrimSpace(a.token.historyOwner), limit, int(a.token.historyOffset)); err == nil {
 			a.token.history = rows
 		}
 	}
@@ -544,8 +545,13 @@ func (a *App) tokenHistory(c *ui.Context) {
 
 func (a *App) tokenHistoryBody(c *ui.Context) {
 	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.historyOwner)
-	ui.Field(c, "Limit", func() {
-		ui.NumberInput(c, &a.token.historyLimit, 1, maxListLimit, 1)
+	ui.Row(c).Gap(12).Children(func() {
+		ui.Field(c, "Limit", func() {
+			ui.NumberInput(c, &a.token.historyLimit, 1, maxListLimit, 1)
+		})
+		ui.Field(c, "Offset", func() {
+			ui.NumberInput(c, &a.token.historyOffset, 0, maxListLimit, 1)
+		})
 	})
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Load History").Clicked() {
@@ -556,7 +562,7 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 			if limit > maxListLimit {
 				limit = maxListLimit
 			}
-			rows, err := a.services.TokenHistory(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.historyOwner), limit, 0)
+			rows, err := a.services.TokenHistory(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.historyOwner), limit, int(a.token.historyOffset))
 			if err != nil {
 				a.token.status = errStatus(err)
 				a.token.history = nil
