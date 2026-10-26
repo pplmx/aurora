@@ -385,7 +385,11 @@ documented in their per-milestone ROADMAP files.
   fallback if a host supplies one. Cmd/Ctrl+E/I/B are registered by the window;
   backup, export/import and recent exports live in a sidebar **File** menu, and
   language, data location, appearance and build facts live in a **Settings**
-  page under the sidebar's Application section (Ctrl/Cmd+, also opens it). macOS
+  page under the sidebar's Application section (Ctrl/Cmd+, also opens it).
+- **Live updates are opt-in**: Settings can refresh the open Dashboard and
+  Oracle health every 10 seconds; forms keep their text and Settings itself
+  never starts a background refresh.
+- macOS
   cannot remove its global
   bar, so it keeps only the platform roles (app menu, File→Close, Edit, Window);
   Aurora's own entries appear in the window on all three platforms, so the menu

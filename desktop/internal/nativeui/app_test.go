@@ -63,6 +63,8 @@ type fakeServices struct {
 	// Counters for the reads a successful write is expected to repeat, so a
 	// test can prove the page refreshes what it shows after a write.
 	listTokensCalls   int
+	dashboardCalls    int
+	oracleHealthCalls int
 	tokenInfoCalls    int
 	tokenBalanceCalls int
 	tokenHistoryCalls int
@@ -146,6 +148,7 @@ func (f *fakeServices) VerifyDraw(id string) (VerifyResult, error) {
 }
 
 func (f *fakeServices) Dashboard() (DashboardStats, error) {
+	f.dashboardCalls++
 	if f.loadErrs.stats != nil {
 		return DashboardStats{}, f.loadErrs.stats
 	}
@@ -291,6 +294,7 @@ func (f *fakeServices) OracleLatest(sourceID string) (DataRow, error) {
 	return DataRow{}, nil
 }
 func (f *fakeServices) OracleHealth() ([]HealthRow, error) {
+	f.oracleHealthCalls++
 	if f.loadErrs.health != nil {
 		return nil, f.loadErrs.health
 	}

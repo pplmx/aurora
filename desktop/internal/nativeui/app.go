@@ -26,6 +26,12 @@ type App struct {
 	// disk and is cleared when the process ends or the user forgets it.
 	rememberKeys bool
 	savedKeys    map[string]string
+	// liveUpdates is an explicit choice to refresh the dashboard and Oracle
+	// health while they are open. liveNext is when the next refresh is due;
+	// liveNow is injectable so a view test can move the clock.
+	liveUpdates bool
+	liveNext    time.Time
+	liveNow     func() time.Time
 	// guides holds each page's "How this works" disclosure. They start closed
 	// so the page stays task-first, but the explanation is one click away.
 	guides guideState
@@ -153,7 +159,7 @@ type VerifyResult struct {
 // dashboard and never switched pages showed "Loading…" forever, since nothing
 // else asked the services for the counters.
 func New(services Services) *App {
-	a := &App{services: services, page: pageDashboard}
+	a := &App{services: services, page: pageDashboard, liveNow: time.Now}
 	// The draw form opens ready to submit: one winner is the domain's own
 	// default, and an empty count field rejected the first Create click with a
 	// parse error for a value the operator never had a chance to see.
@@ -274,6 +280,39 @@ func (a *App) sidebar(c *ui.Context) {
 // data is a read of the database is refreshed the way any other window is,
 // without hunting for a button. Ctrl/Cmd+1..7 selects a page in sidebar order,
 // the desktop convention the reference apps follow.
+// liveRefreshInterval is deliberately slow: the dashboard and Oracle health
+// are snapshots, and a background scheduler does not need a busy screen. A
+// live choice is opt-in on Settings, so no page starts a timer on its own.
+const liveRefreshInterval = 10 * time.Second
+
+// liveRefresh schedules the next frame while live updates are on and runs the
+// page's reload when it is due. It is called at the end of a page's view, so a
+// reload invalidates the frame and the next one shows the new data. Forms keep
+// their text; callers choose reloads that only read lists and counters.
+func (a *App) liveRefresh(c *ui.Context, reload func()) {
+	if !a.liveUpdates || reload == nil {
+		return
+	}
+	now := time.Now()
+	if a.liveNow != nil {
+		now = a.liveNow()
+	}
+	if a.liveNext.IsZero() {
+		a.liveNext = now.Add(liveRefreshInterval)
+	}
+	if !now.Before(a.liveNext) {
+		a.liveNext = now.Add(liveRefreshInterval)
+		reload()
+		c.Invalidate()
+	}
+	c.After(a.liveNext.Sub(now))
+}
+
+func (a *App) setLiveUpdates(on bool) {
+	a.liveUpdates = on
+	a.liveNext = time.Time{}
+}
+
 func (a *App) header(c *ui.Context) {
 	a.actionShortcuts(c)
 	if c.Shortcut(platformRefreshModifier(), ui.KeyComma) {

@@ -132,6 +132,16 @@ func (a *App) oracleView(c *ui.Context) {
 			}
 		})
 	})
+	if !a.oracle.askDelete {
+		a.liveRefresh(c, a.refreshOracleLive)
+	}
+}
+
+// refreshOracleLive re-reads the scheduler's health and the lists the page
+// shows. It does not touch the add form or a read card the user has not opened.
+func (a *App) refreshOracleLive() {
+	a.loadOracle()
+	a.refreshOracleReads()
 }
 
 func (a *App) oracleSources(c *ui.Context) {
