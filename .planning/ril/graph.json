@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 261,
+  "round": 262,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T07:44:45+00:00",
+  "updated_at": "2026-10-26T07:50:45+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11416,7 +11416,7 @@
       "version": 2,
       "created_at": "2026-10-21T03:17:02+00:00",
       "updated_at": "2026-10-21T03:51:14+00:00",
-      "touched_round": 260,
+      "touched_round": 261,
       "name": "desktop/cmd/aurora-desktop",
       "path": "desktop/cmd/aurora-desktop",
       "description": "mygo desktop shell in the nested desktop/ module: embeds the Web UI (root package embed.go) and serves the internal/api router from an in-process aurora:// scheme handler that never opens a listener; File menu shares lottery export/import, backup, show-data-folder"
@@ -20227,6 +20227,47 @@
       "commit": "740083c",
       "title": "Remove the Linux/Windows application menu",
       "description": "Only macOS installs the native menu; the window owns Cmd/Ctrl+E/I/B and the sidebar Actions menu owns the file/help/language work."
+    },
+    "ISS-445": {
+      "id": "ISS-445",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:50:38+00:00",
+      "updated_at": "2026-10-26T07:50:45+00:00",
+      "touched_round": 261,
+      "title": "macOS still carried a second, platform-divergent copy of Aurora actions",
+      "description": "After Linux and Windows stopped installing a menu, macOS still built a full File/Go/View/Help menu with Aurora labels and language radio items while the same actions lived in the sidebar Actions menu. The menu contents therefore forked by platform even though the window is the same.",
+      "severity": 0.5,
+      "confidence": 1.0
+    },
+    "TASK-400": {
+      "id": "TASK-400",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:50:38+00:00",
+      "updated_at": "2026-10-26T07:50:45+00:00",
+      "touched_round": 261,
+      "category": "dx",
+      "title": "Keep only platform roles in the macOS menu and delete the custom menu builder",
+      "description": "Replace NewMenu with a platform-role menu (app, File/Close, Edit, Window), remove the Go/language/tick helpers and their tests, simplify the locale callback to a redraw, and add an Actions localization test.",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "CHG-459": {
+      "id": "CHG-459",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:50:45+00:00",
+      "updated_at": "2026-10-26T07:50:45+00:00",
+      "touched_round": 261,
+      "commit": "e7afe1b",
+      "title": "Unify desktop menu content",
+      "description": "macOS menu now carries only app/File(Close)/Edit/Window roles; Aurora actions live in the sidebar Actions menu on all platforms; custom menu builder and locale tick helpers removed."
     }
   },
   "edges": [
@@ -30748,6 +30789,30 @@
       "to": "TASK-399",
       "type": "implements",
       "created_at": "2026-10-26T07:44:45+00:00"
+    },
+    {
+      "from": "TASK-400",
+      "to": "ISS-445",
+      "type": "addresses",
+      "created_at": "2026-10-26T07:50:45+00:00"
+    },
+    {
+      "from": "ISS-445",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-26T07:50:45+00:00"
+    },
+    {
+      "from": "CHG-459",
+      "to": "ISS-445",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:50:45+00:00"
+    },
+    {
+      "from": "CHG-459",
+      "to": "TASK-400",
+      "type": "implements",
+      "created_at": "2026-10-26T07:50:45+00:00"
     }
   ]
 }
