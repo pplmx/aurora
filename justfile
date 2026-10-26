@@ -20,10 +20,12 @@ test:
 test-coverage:
     CGO_ENABLED=0 go test ./... -coverprofile=coverage.out
 
-# Code format and vet
+# Code format and vet. The desktop is a nested module with its own formatter
+# gate (`just desktop-check`); root gofmt/goimports must not walk into it, or
+# the two recipes disagree about formatting map literals.
 check:
-    gofmt -l -s -w .
-    goimports -l -w .
+    gofmt -l -s -w $(fd -e go -E desktop .)
+    goimports -l -w $(fd -e go -E desktop .)
     CGO_ENABLED=0 go vet ./...
 
 # Build-time version info derived once, shared by every build recipe. Injects
