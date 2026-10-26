@@ -71,3 +71,48 @@ func TestNFTSearchNarrowsTheCollection(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("No NFTs match “none”."))
 }
+
+// TestVotingListsSearchAndSelectFromTheFilteredRows covers the voting page's
+// two lists. Selection indexes the filtered slice, so a row chosen after a
+// search must be the row the operator sees - not the same index in the full
+// list.
+func TestVotingListsSearchAndSelectFromTheFilteredRows(t *testing.T) {
+	fake := &fakeServices{
+		candidates: []CandidateRow{
+			{ID: "c1", Name: "Alice", Party: "Greens"},
+			{ID: "c2", Name: "Bob", Party: "Blues"},
+		},
+		sessions: []SessionRow{
+			{ID: "s1", Title: "Budget", Status: "active"},
+			{ID: "s2", Title: "Standup", Status: "draft"},
+		},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.True(t, tester.HasText("Alice"))
+	require.True(t, tester.HasText("Budget"))
+
+	app.voting.candSearch = "blues"
+	tester.Frame()
+	require.True(t, tester.HasText("Bob"))
+	require.False(t, tester.HasText("Alice"), "the candidate search must narrow the table")
+
+	app.voting.sessionSearch = "standup"
+	tester.Frame()
+	require.True(t, tester.HasText("Standup"))
+	require.False(t, tester.HasText("Budget"), "the session search must narrow the table")
+
+	// Selecting the filtered rows fills the forms with those rows' ids.
+	require.NoError(t, tester.Click("s2"))
+	tester.Frame()
+	require.Equal(t, "s2", app.voting.controlID)
+
+	require.NoError(t, tester.Click("c2"))
+	tester.Frame()
+	require.NoError(t, tester.Click("Add to session roster"))
+	tester.Frame()
+	require.Equal(t, "c2", app.voting.sessionIDs,
+		"the filtered row must map to its own candidate, not the full list's index")
+}
