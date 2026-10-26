@@ -518,6 +518,13 @@ func (a *App) votingResultsBody(c *ui.Context) {
 		return
 	}
 	results := a.voting.results
+	total := 0
+	for _, r := range results {
+		total += r.Votes
+	}
+	// The total is what a reader checks first ("did every ballot count?"); the
+	// rows alone make them add the column up.
+	readout(c, []readoutRow{{"Total votes", strconv.Itoa(total)}})
 	ui.Table(c, &a.voting.resultsTable, []ui.TableColumn{
 		{Title: "Candidate"},
 		{Title: "Votes", Width: 80, Align: ui.End},

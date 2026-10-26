@@ -27,6 +27,9 @@ type nftState struct {
 	// silently replacing a filtered list with every NFT while the field still
 	// names an owner.
 	filterOwner string
+	// search narrows the shown collection by id or name, on top of the owner
+	// filter.
+	search string
 
 	// Each write form names its own NFT: one shared field meant typing an id
 	// in the Transfer card silently retargeted Inspect, Burn and History too.
@@ -203,7 +206,17 @@ func (a *App) nftListBody(c *ui.Context) {
 		emptyNote(c, "No NFTs yet. Mint one above.")
 		return
 	}
-	list := a.nft.list
+	ui.SearchField(c, &a.nft.search).Label("Search NFTs")
+	list := make([]NFTRow, 0, len(a.nft.list))
+	for _, n := range a.nft.list {
+		if containsFold(a.nft.search, n.ID, n.Name) {
+			list = append(list, n)
+		}
+	}
+	if len(list) == 0 {
+		emptyNote(c, "No NFTs match “"+strings.TrimSpace(a.nft.search)+"”.")
+		return
+	}
 	a.nft.listTable.Selected = &a.nft.selected
 	table := ui.Table(c, &a.nft.listTable, []ui.TableColumn{
 		{Title: "ID", Width: 150},

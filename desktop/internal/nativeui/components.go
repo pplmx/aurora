@@ -296,6 +296,21 @@ func valueOr(value string) string {
 	return strings.TrimSpace(value)
 }
 
+// containsFold reports whether any field contains query, ignoring case: the
+// filter behind a list's SearchField. An empty query matches everything.
+func containsFold(query string, fields ...string) bool {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if q == "" {
+		return true
+	}
+	for _, field := range fields {
+		if strings.Contains(strings.ToLower(field), q) {
+			return true
+		}
+	}
+	return false
+}
+
 // pageGlyph draws a page's icon in a tinted tile. It is the window's recurring
 // mark for "which module is this": the same glyph sits in the sidebar row and
 // beside the page title, so the page and its navigation entry are recognisably
