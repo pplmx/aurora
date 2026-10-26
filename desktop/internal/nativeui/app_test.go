@@ -96,6 +96,7 @@ type fakeServices struct {
 type fakeLoadErrors struct {
 	history    error
 	health     error
+	templates  error
 	tokens     error
 	nfts       error
 	sources    error
@@ -230,7 +231,12 @@ func (f *fakeServices) OracleSources() ([]SourceRow, error) {
 	}
 	return f.sources, nil
 }
-func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) { return f.templates, nil }
+func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) {
+	if f.loadErrs.templates != nil {
+		return nil, f.loadErrs.templates
+	}
+	return f.templates, nil
+}
 func (f *fakeServices) AddOracleSource(in SourceInput) (SourceRow, error) {
 	return SourceRow{ID: "src"}, nil
 }
