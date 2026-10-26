@@ -117,6 +117,21 @@ func renderStatus(c *ui.Context, s statusLine) {
 		})
 }
 
+// inlineStatus draws a card-local outcome. It is the compact sibling of
+// renderStatus: no panel and no badge, because the result belongs to one card,
+// but the colour still carries the outcome so a rejected write cannot read
+// like a successful one when both are a line of muted text.
+func inlineStatus(c *ui.Context, s statusLine) {
+	if s.empty() {
+		return
+	}
+	tone := auroraGreen
+	if s.isErr {
+		tone = auroraRed
+	}
+	ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(ui.Hex(tone))
+}
+
 // field builds a labelled input row. MyGo's Field draws the label above the
 // control it wraps, which is the same relationship the HTML <label for> had.
 func field(c *ui.Context, label string, value *string) {

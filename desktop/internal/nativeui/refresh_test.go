@@ -71,7 +71,8 @@ func TestCastVoteRefreshesAnOpenTally(t *testing.T) {
 	before := fake.sessionResultsCalls
 	app.castVote()
 
-	require.Equal(t, "Ballot recorded.", app.voting.voteResult)
+	require.Equal(t, "Ballot recorded.", app.voting.voteResult.text)
+	require.False(t, app.voting.voteResult.isErr)
 	require.Equal(t, before+1, fake.sessionResultsCalls,
 		"the open tally for this session must be re-read after a ballot")
 }

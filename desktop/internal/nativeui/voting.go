@@ -21,7 +21,7 @@ type votingState struct {
 	candName    string
 	candParty   string
 	candProgram string
-	candResult  string
+	candResult  statusLine
 	// candCopyID is the id of the candidate just registered, kept so the card
 	// can offer a Copy button. The candidate table shortens ids and its
 	// selection feeds the ballot, not the session roster field.
@@ -32,19 +32,19 @@ type votingState struct {
 	sessionStart  time.Time
 	sessionEnd    time.Time
 	sessionIDs    string
-	sessionResult string
+	sessionResult statusLine
 	// sessionCopyID is the id of the session just created, offered for copying
 	// the same way.
 	sessionCopyID string
 
 	controlID     string
-	controlResult string
+	controlResult statusLine
 
 	voteSession   string
 	voteCandidate string
 	voteVoterPub  string
 	votePriv      string
-	voteResult    string
+	voteResult    statusLine
 
 	resultsSession string
 	results        []ResultRow
@@ -172,9 +172,7 @@ func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 			a.registerCandidate()
 		}
 	})
-	if a.voting.candResult != "" {
-		ui.Text(c, a.voting.candResult).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
-	}
+	inlineStatus(c, a.voting.candResult)
 	if a.voting.candCopyID != "" {
 		copyRow(c, "Candidate ID", a.voting.candCopyID, func() {
 			a.voting.status = okStatus("Candidate ID copied.")
@@ -187,7 +185,7 @@ func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 // roster field needs the full one.
 func (a *App) registerCandidate() {
 	a.voting.candNameErr = ""
-	a.voting.candResult = ""
+	a.voting.candResult = statusLine{}
 	a.voting.candCopyID = ""
 	name := strings.TrimSpace(a.voting.candName)
 	if name == "" {
@@ -200,10 +198,10 @@ func (a *App) registerCandidate() {
 		strings.TrimSpace(a.voting.candProgram),
 	)
 	if err != nil {
-		a.voting.candResult = err.Error()
+		a.voting.candResult = errStatus(err)
 		return
 	}
-	a.voting.candResult = "Registered " + cand.Name
+	a.voting.candResult = okStatus("Registered %s", cand.Name)
 	a.voting.candCopyID = cand.ID
 	a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
 	a.loadVoting()
@@ -287,9 +285,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 			a.createVotingSession()
 		}
 	})
-	if a.voting.sessionResult != "" {
-		ui.Text(c, a.voting.sessionResult).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
-	}
+	inlineStatus(c, a.voting.sessionResult)
 	if a.voting.sessionCopyID != "" {
 		copyRow(c, "Session ID", a.voting.sessionCopyID, func() {
 			a.voting.status = okStatus("Session ID copied.")
@@ -481,16 +477,16 @@ func (a *App) addCandidateToRoster() {
 }
 
 func (a *App) createVotingSession() {
-	a.voting.sessionResult = ""
+	a.voting.sessionResult = statusLine{}
 	a.voting.sessionCopyID = ""
 	start := a.voting.sessionStart.Unix()
 	end := a.voting.sessionEnd.Unix()
 	if a.voting.sessionStart.IsZero() || a.voting.sessionEnd.IsZero() {
-		a.voting.sessionResult = "Choose both a start and an end time."
+		a.voting.sessionResult = statusLine{text: "Choose both a start and an end time.", isErr: true}
 		return
 	}
 	if end <= start {
-		a.voting.sessionResult = "End time must be after the start time."
+		a.voting.sessionResult = statusLine{text: "End time must be after the start time.", isErr: true}
 		return
 	}
 	ids := splitParticipants(a.voting.sessionIDs)
@@ -500,15 +496,15 @@ func (a *App) createVotingSession() {
 		}
 	}
 	if len(ids) == 0 {
-		a.voting.sessionResult = "Register at least one candidate before creating a session."
+		a.voting.sessionResult = statusLine{text: "Register at least one candidate before creating a session.", isErr: true}
 		return
 	}
 	s, err := a.services.CreateSession(strings.TrimSpace(a.voting.sessionTitle), strings.TrimSpace(a.voting.sessionDesc), ids, start, end)
 	if err != nil {
-		a.voting.sessionResult = err.Error()
+		a.voting.sessionResult = errStatus(err)
 		return
 	}
-	a.voting.sessionResult = "Created session " + s.Title
+	a.voting.sessionResult = okStatus("Created session %s", s.Title)
 	a.voting.sessionCopyID = s.ID
 	a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionIDs = "", "", ""
 	a.voting.sessionStart, a.voting.sessionEnd = defaultSessionWindow(time.Now())
@@ -529,24 +525,22 @@ func (a *App) votingVote(c *ui.Context) {
 		ui.Row(c).Gap(8).Children(func() {
 			if secondaryButton(c, "Start Session").Clicked() {
 				if err := a.services.StartSession(strings.TrimSpace(a.voting.controlID)); err != nil {
-					a.voting.controlResult = err.Error()
+					a.voting.controlResult = errStatus(err)
 				} else {
-					a.voting.controlResult = "Session started."
+					a.voting.controlResult = okStatus("Session started.")
 					a.loadVoting()
 				}
 			}
 			if secondaryButton(c, "End Session").Clicked() {
 				if err := a.services.EndSession(strings.TrimSpace(a.voting.controlID)); err != nil {
-					a.voting.controlResult = err.Error()
+					a.voting.controlResult = errStatus(err)
 				} else {
-					a.voting.controlResult = "Session ended."
+					a.voting.controlResult = okStatus("Session ended.")
 					a.loadVoting()
 				}
 			}
 		})
-		if a.voting.controlResult != "" {
-			ui.Text(c, a.voting.controlResult).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
-		}
+		inlineStatus(c, a.voting.controlResult)
 	})
 
 	formCard(c, "Cast Vote", "Sign a ballot for one candidate in one session.", func() {
@@ -559,16 +553,14 @@ func (a *App) votingVote(c *ui.Context) {
 				a.castVote()
 			}
 		})
-		if a.voting.voteResult != "" {
-			ui.Text(c, a.voting.voteResult).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
-		}
+		inlineStatus(c, a.voting.voteResult)
 	})
 }
 
 func (a *App) castVote() {
-	a.voting.voteResult = ""
+	a.voting.voteResult = statusLine{}
 	if strings.TrimSpace(a.voting.voteSession) == "" || strings.TrimSpace(a.voting.voteCandidate) == "" {
-		a.voting.voteResult = "Choose a session and a candidate."
+		a.voting.voteResult = statusLine{text: "Choose a session and a candidate.", isErr: true}
 		return
 	}
 	err := a.services.CastVote(
@@ -578,10 +570,10 @@ func (a *App) castVote() {
 		strings.TrimSpace(a.voting.votePriv),
 	)
 	if err != nil {
-		a.voting.voteResult = err.Error()
+		a.voting.voteResult = errStatus(err)
 		return
 	}
-	a.voting.voteResult = "Ballot recorded."
+	a.voting.voteResult = okStatus("Ballot recorded.")
 	a.voting.votePriv = ""
 	sessionID := strings.TrimSpace(a.voting.voteSession)
 	a.loadVoting()

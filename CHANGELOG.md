@@ -55,6 +55,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Voting card outcomes now say whether they succeeded**: the candidate,
+  session, control and ballot results were plain strings drawn in the same
+  muted colour for both outcomes, so a refused key or an invalid window looked
+  like "Ballot recorded." They are `statusLine`s now and use the success/error
+  colour, with tests asserting both the text and the polarity.
 - **A failed desktop read can no longer leave another subject's answer on
   screen**: Token Inspect/Balance/History, NFT Inspect/History and Oracle
   Query/Latest now remember the token, account, asset, source, limit or offset
