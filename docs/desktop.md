@@ -54,7 +54,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   空库时的引导行旁有 “Open Lottery”，一步进入第一次抽奖。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
   因此 Windows/GNOME 的文本大小设置会同时放大标题、正文、提示与表格文字；
-  Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。
+  Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。系统开启
+  “提高对比度”时，同一极夜配色使用更亮的描边、正文/次要文字与焦点环
+  （`auroraTheme(true)`），并保持深色身份。
 - **视觉是 Aurora 自己的**：`desktop/internal/nativeui/theme.go` 是唯一的调色板
   来源——极夜底色、一层抬起的卡片面、Aurora 蓝作为强调色，以及成功/失败/警告
   三个状态色。卡片用阴影加顶部一像素高光从底色上抬起，而不是只靠描边；导航列

@@ -174,7 +174,7 @@ func (a *App) Services() Services { return a.services }
 // design, and a light system theme used to paint white controls onto the dark
 // window.
 func (a *App) View(c *ui.Context) {
-	c.SetTheme(auroraTheme())
+	c.SetTheme(auroraTheme(c.Preferences().HighContrast))
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
 		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).Children(func() {

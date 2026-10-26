@@ -3,6 +3,7 @@ package nativeui
 import (
 	"errors"
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -388,7 +389,7 @@ func TestWindowOpensWithTheDashboardLoaded(t *testing.T) {
 // build before this set a dark window background and then let MyGo draw its
 // light theme on top, so every control was a white panel on a black page.
 func TestAuroraThemeIsDarkAndDistinct(t *testing.T) {
-	theme := auroraTheme()
+	theme := auroraTheme(false)
 	require.True(t, theme.Dark, "the window is dark by design, whatever the system appearance")
 	require.Equal(t, ui.Hex(night), theme.Background)
 	require.Equal(t, ui.Hex(surface), theme.Surface)
@@ -404,6 +405,47 @@ func TestAuroraThemeIsDarkAndDistinct(t *testing.T) {
 
 	// A status line's two colours must differ, or a failure reads as success.
 	require.NotEqual(t, ui.Hex(auroraRed), ui.Hex(auroraGreen))
+}
+
+// TestHighContrastThemeStrengthensContrast pins the variant the window uses
+// when the OS asks for increased contrast: the same dark identity, with the
+// hairlines and secondary text pushed away from the surfaces.
+func TestHighContrastThemeStrengthensContrast(t *testing.T) {
+	normal := auroraTheme(false)
+	high := auroraTheme(true)
+
+	require.True(t, high.Dark, "high contrast stays within the dark design")
+	for name, pair := range map[string][2]ui.Color{
+		"text":   {normal.Text, high.Text},
+		"muted":  {normal.TextMuted, high.TextMuted},
+		"border": {normal.Border, high.Border},
+		"focus":  {normal.Focus, high.Focus},
+	} {
+		require.Greaterf(t,
+			contrastRatio(pair[1], high.Background),
+			contrastRatio(pair[0], normal.Background),
+			"%s must have more contrast in the high-contrast theme", name)
+	}
+}
+
+// contrastRatio is the WCAG contrast ratio between two opaque colours.
+func contrastRatio(a, b ui.Color) float64 {
+	la, lb := relativeLuminance(a), relativeLuminance(b)
+	if la < lb {
+		la, lb = lb, la
+	}
+	return (la + 0.05) / (lb + 0.05)
+}
+
+func relativeLuminance(c ui.Color) float64 {
+	channel := func(v uint8) float64 {
+		s := float64(v) / 255
+		if s <= 0.04045 {
+			return s / 12.92
+		}
+		return math.Pow((s+0.055)/1.055, 2.4)
+	}
+	return 0.2126*channel(c.R) + 0.7152*channel(c.G) + 0.0722*channel(c.B)
 }
 
 // TestEveryPageRendersItsSectionsAsCards proves the layout did not drop a

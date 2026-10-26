@@ -213,6 +213,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop has a high-contrast variant of its palette**: when the OS asks
+  for increased contrast, the same polar-night design uses brighter hairlines,
+  primary/secondary text, focus ring and selection tint (`auroraTheme(true)`).
+  A WCAG contrast-ratio test compares every pair against the normal theme and
+  fails if the variant stops being stronger.
 - **The desktop follows the OS text size**: every explicit FontSize in the view
   layer now goes through `textSize`, which multiplies the system TextScale
   preference. MyGo's theme only scaled text without an explicit size, which in
