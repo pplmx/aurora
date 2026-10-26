@@ -181,6 +181,15 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop collections are searchable, and the tally states its total**:
+  the Tokens and NFTs lists load every stored row and had no way to narrow them,
+  so a long-lived store required scrolling for a name. Each list now has a
+  `ui.SearchField` filtering by id/name (and symbol for tokens) as the user
+  types, case-insensitively; the NFT search composes with the owner filter, a
+  filtered row still fills the forms with its full id, and an empty result says
+  "no match" rather than "nothing stored". The voting Results card also prints
+  the sum of the per-candidate counts, which is what a reader checks before
+  trusting the rows.
 - **The desktop dashboard lists recent chain activity**: the landing page showed
   six counters and a ledger verdict, which answer "how much is there" but not
   "what happened lately". A Recent activity card now lists the newest five

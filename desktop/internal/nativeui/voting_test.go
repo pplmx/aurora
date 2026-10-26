@@ -160,3 +160,21 @@ func TestSessionWindowIsEditedAsLocalTime(t *testing.T) {
 	require.Equal(t, sentStart, rec.start, "an invalid window must not reach the service")
 	require.Contains(t, app.voting.sessionResult, "after the start")
 }
+
+// TestResultsShowTheirTotal pins the line above the tally. Counting the rows'
+// votes by eye is work the view can do, and the total is what tells an
+// operator whether every ballot was counted.
+func TestResultsShowTheirTotal(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	app.voting.resultsSession = "s1"
+	app.voting.results = []ResultRow{
+		{CandidateID: "c1", Name: "Alice", Votes: 7},
+		{CandidateID: "c2", Name: "Bob", Votes: 6},
+	}
+	tester.Frame()
+
+	require.True(t, tester.HasText("Total votes"))
+	require.True(t, tester.HasText("13"), "the total must be the sum of the rows")
+}
