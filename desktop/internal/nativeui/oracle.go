@@ -35,6 +35,8 @@ type oracleState struct {
 
 	// selected is the source row chosen, -1 for none.
 	selected int
+	// search narrows the source list by name, id, type or URL.
+	search string
 
 	// askDelete drives the source-deletion confirmation: deleting a source is
 	// irreversible for its scheduling entry, so it gets the same gate as burn.
@@ -94,7 +96,17 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		emptyNote(c, "No sources yet. Add one with Add Source.")
 		return
 	}
-	srcs := a.oracle.sources
+	srcs := make([]SourceRow, 0, len(a.oracle.sources))
+	ui.SearchField(c, &a.oracle.search).Label("Search sources")
+	for _, source := range a.oracle.sources {
+		if containsFold(a.oracle.search, source.ID, source.Name, source.Type, source.URL) {
+			srcs = append(srcs, source)
+		}
+	}
+	if len(srcs) == 0 {
+		emptyNote(c, "No sources match “"+strings.TrimSpace(a.oracle.search)+"”.")
+		return
+	}
 	// The id is a timestamp plus a hash, too long for a column that also holds
 	// a name and a status, so the cell shows a prefix. Choosing the row loads
 	// the full id into the actions and the read cards below, which is how a
