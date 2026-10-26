@@ -158,6 +158,9 @@ func (a *App) tokenList(c *ui.Context) {
 		})
 		if table.Changed() && a.token.chosen >= 0 && a.token.chosen < len(rows) {
 			a.token.tokenID = rows[a.token.chosen].ID
+			// Whatever the Inspect, Balance or History cards show belongs to the
+			// previous token; re-read the open ones for the chosen token.
+			a.refreshToken()
 		}
 	})
 }
