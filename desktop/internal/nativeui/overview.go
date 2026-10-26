@@ -113,11 +113,15 @@ func (a *App) dashboardView(c *ui.Context) {
 	}
 	// A fresh install is all zeroes and a verified empty chain, which is
 	// correct but says nothing about what to do next. One line names the
-	// first move instead of leaving the operator to guess.
+	// first move and a button takes it, instead of leaving the operator to
+	// find the page in the sidebar.
 	if a.dashboard.Lotteries == 0 && a.dashboard.Votes == 0 && a.dashboard.Oracle == 0 {
-		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "Nothing recorded yet — start from Lottery to run a verifiable draw.").
 				FontSize(12).TextColor(ui.Hex(inkMuted))
+			if secondaryButton(c, "Open Lottery").Clicked() {
+				a.setPage(pageLottery)
+			}
 		})
 	}
 	for start := 0; start < len(metrics); start += 3 {

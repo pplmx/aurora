@@ -143,3 +143,23 @@ func TestSwitchingPagesStartsAtTheTop(t *testing.T) {
 	require.InDelta(t, float64(want.Y), float64(got.Y), 1,
 		"the new page must start at the scroll position of a fresh one")
 }
+
+// TestFreshDashboardCanOpenTheLottery pins the onboarding line's action: the
+// empty dashboard names Lottery as the first move, and the button takes it
+// instead of leaving the operator to hunt the sidebar.
+type emptyDashboard struct{ *fakeServices }
+
+func (emptyDashboard) Dashboard() (DashboardStats, error) {
+	return DashboardStats{Integrity: "verified"}, nil
+}
+
+func TestFreshDashboardCanOpenTheLottery(t *testing.T) {
+	app := New(emptyDashboard{fakeServices: &fakeServices{}})
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+	require.Equal(t, pageDashboard, app.page)
+
+	require.NoError(t, tester.Click("Open Lottery"))
+	tester.Frame()
+	require.Equal(t, pageLottery, app.page)
+}
