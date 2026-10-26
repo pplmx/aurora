@@ -11,7 +11,7 @@ import (
 	"github.com/pplmx/aurora/internal/api/handler"
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/config"
-	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"

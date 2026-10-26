@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pplmx/aurora/internal/domain/blockchain"
+	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/backup"
 	"github.com/spf13/cobra"

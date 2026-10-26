@@ -1,0 +1,148 @@
+# 架构与依赖规则
+
+这份文档描述 Aurora 当前的模块边界、已经执行的架构调整，以及后续拆分顺序。
+它是代码评审时的依赖契约，不是愿景清单：每一条“现状”都能在 `go list` 的
+import 边上验证。
+
+## 入口与分层
+
+三个入口共用同一套应用层：
+
+```text
+cmd/aurora (CLI) ─┐
+cmd/api (REST)  ─┼─> presentation (api / desktop nativeui) ─> app ─> domain
+desktop          ─┘                                              ^
+                                                                 │
+                                            infra (sqlite/http/...) 实现端口
+```
+
+规则：
+
+1. `domain` 只依赖标准库和同一层（含 `internal/blockchain` 的纯类型/端口）；
+   不读配置文件、不打开数据库、不写文件。
+2. `app` 只依赖 `domain` 的接口和纯工具；不得为了一个错误哨兵 import
+   `infra`。
+3. `infra` 实现 `domain` 声明的仓储/事务/网络端口，可以依赖 `domain`。
+4. `api` 和 `desktop` 是表示层；它们可以依赖 `app`，但不得互相依赖，也不得
+   成为数据库的第二个所有者。
+5. 组合根（打开 SQLite、构造仓储、启动后台循环、关闭句柄）只能有一个明确的
+   位置；表示层使用组合根给出的端口，而不是自己再拼一套。
+6. 依赖方向不得成环；`internal/repocheck` 和 `go list` 是最后的机械检查。
+
+## 当前依赖事实
+
+`go list` 显示的内部边（只列项目包）：
+
+| 包 | 依赖 | 说明 |
+|---|---|---|
+| `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层 | 纯领域模型、服务与仓储接口 |
+| `internal/blockchain` | `internal/logger`, `internal/utils` | 共享账本：区块、PoW、SQLite 持久化、进程级单例；已从 `domain/` 移出 |
+| `internal/app/*` | `domain`，部分 `infra` | 用例编排；`oracleapp`/`votingapp` 仍为错误哨兵 import `infra/sqlite` |
+| `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
+| `internal/api` | `app`, `domain`, `infra/sqlite`, `infra/events` | 既做 HTTP 表示层，又做数据库/仓储/调度器的组合根 |
+| `desktop/internal/deskapp` | `internal/api`, `infra/sqlite`, `app`, `domain` | 桌面组合适配器；直接使用 `api.Server.Services()` 暴露的具体类型 |
+| `desktop/internal/nativeui` | `internal/i18n` | 纯视图状态与 MyGo 控件，不直接打开数据库 |
+
+## 已识别的边界问题
+
+### 1. `internal/domain/blockchain` 把存储引导藏在领域层
+
+原目录同时包含区块/PoW 和 `sql.Open`、`viper`、SQLite 驱动、文件权限收紧、
+进程级单例。它让 `domain` 不再是纯领域，也让“不打开数据库就无法使用账本类型”
+成为事实。
+
+**已做**：目录迁移到 `internal/blockchain`，文档和 import 路径同步；它被明确
+标记为共享账本子系统，而不是领域实体包。
+
+**仍未做**：把 `init.go` 的单例/引导、每个方法的 SQL 拆到仓储接口和
+`infra/sqlite`。这是下一步，不应在本次目录重构里顺手改掉写入基底。
+
+### 2. 应用层为了错误哨兵依赖基础设施
+
+`oracleapp/usecase.go` 和 `votingapp/usecase.go` 用
+`errors.Is(err, sqlite.ErrNotFound)` / `sqlite.ErrAlreadyVoted` 把仓储结果映射成
+领域错误。应用层因此知道 SQLite 的存在。
+
+**目标**：把仓储通用的 not-found/already-voted 哨兵放进领域侧的共享小包
+（或各领域包），`infra/sqlite` 返回同一个哨兵（可用 alias 保持旧测试），应用层
+只 import 领域。这样替换存储实现时不会连带改用例。
+
+### 3. `api.Server` 是表示层 + 组合根 + 服务容器
+
+`internal/api/server.go` 打开数据库、构造全部仓储、事件总线、token 服务、
+oracle 调度器、六个 handler，并暴露 `Services()` 给桌面端。字段数量接近
+“上帝对象”，`internal/api` 因此无法只按 HTTP 边界测试。
+
+**目标**：抽出 `internal/app/container`（或 `internal/bootstrap`）持有数据库、
+仓储、用例与后台循环；`api.Server` 只接收容器并挂路由。`cmd/api` 和
+`desktop.Start` 各自调用同一个组合根。迁移要保留 `Server.Close` / `Services`
+语义，避免第二个 SQLite 写者。
+
+### 4. 桌面适配器重复组合并泄漏具体类型
+
+`desktop/internal/deskapp/native_services.go` 直接持有
+`*sqlite.LotteryRepository` 等具体类型，并在 `newNativeServices` 里再建
+`sqlite.NewTxManager`。这既是重复组合，也是表示层对 infra 的硬依赖。
+
+**目标**：桌面与 REST 共用容器暴露的端口；`nativeServices` 只依赖
+`nativeui.Services` 所需的窄接口。短期先把按领域的适配方法拆成独立文件，
+降低单文件耦合，再逐步把构造函数参数换成接口。
+
+### 5. 桌面 UI 文案放在核心 i18n
+
+`internal/i18n/messages_ui_zh.go` 的 `desktopUIMessages` 是桌面专用文案，
+却与 CLI 文案一起编译进核心模块。它没有造成循环依赖，但让核心模块携带桌面
+词汇。
+
+**目标**：桌面文案注册到桌面模块（或由 `deskapp` 在启动时合并），核心 i18n
+只保留 CLI/服务层文案。迁移时必须保留 en↔zh key 对等测试和未知 key 回退英文
+的契约。
+
+### 6. 命名不一致
+
+`BlockChain`、`InitBlockChain`、`GetBlockChain`、`AddLotteryRecord` 把实现
+细节（“这是 lottery 的链”）写进了共享账本 API；同一概念还有 `blockChain`
+局部变量。目录迁移后应统一为 `Chain`、`New`、`NewWithDB`、`Init`、`Get`、
+`AddRecord`，并用编译器/测试确认所有调用点。
+
+## 目标结构
+
+```text
+internal/
+├── blockchain/        # 共享账本：纯区块/PoW + 明确的持久化端口（最终）
+├── domain/            # 只放实体、领域服务、仓储端口、领域错误
+├── app/               # 用例；只依赖 domain
+├── app/container/     # 组合根：打开存储、构造仓储/用例、生命周期（计划）
+├── infra/             # SQLite/HTTP/事件/备份/迁移实现
+├── api/               # HTTP 路由、handler、中间件
+├── i18n/              # CLI/服务文案；桌面文案由桌面注册（计划）
+├── repocheck/         # 仓库级机械契约
+└── utils/             # 无业务语义的工具
+```
+
+## 执行顺序
+
+- [x] 建立依赖事实表，确定“domain 不碰 infra”的硬规则。
+- [x] `internal/domain/blockchain` → `internal/blockchain`，同步 import/文档。
+- [ ] 领域错误包，移除 `app` → `infra/sqlite` 的错误哨兵依赖。
+- [ ] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
+      `native_token.go` / `native_nft.go` / `native_oracle.go` /
+      `native_ledger.go`。
+- [ ] 统一账本对外命名。
+- [ ] 抽出组合根，让 `api.Server` 只做 HTTP；桌面复用同一容器。
+- [ ] 把 `desktopUIMessages` 移出核心 i18n。
+- [ ] 评估把账本 SQL 移到 `infra/sqlite`；这一步需要单独的迁移/回归计划。
+
+## 验证
+
+每一阶段至少运行：
+
+```bash
+just check && just test
+just desktop-check
+just desktop-race        # 触及桌面/并发路径时
+python3 .agents/skills/graph-engineering/scripts/ril.py check
+```
+
+`just check` 会重排 i18n 映射和 import，提交前必须复查 `git status`，只 stage
+本阶段改动的文件。
