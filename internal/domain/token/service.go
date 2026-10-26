@@ -37,9 +37,9 @@ type Service interface {
 	GetTransferHistory(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error)
 }
 
-type TransactionManager interface {
-	WithTransaction(fn func(tx *sql.Tx) error) error
-}
+// TransactionManager is the shared transaction port. The alias keeps existing
+// token callers and mocks source-compatible after the port moved to ledger.
+type TransactionManager = ledger.TransactionManager
 
 type Repository interface {
 	SaveToken(token *Token) error

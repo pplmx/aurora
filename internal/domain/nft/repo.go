@@ -1,14 +1,14 @@
 package nft
 
-import "database/sql"
+import (
+	"database/sql"
 
-// TransactionManager abstracts the infra transaction runner so domain code
-// can group multiple repository writes into a single atomic unit without
-// importing database/sql plumbing. Implementations commit on nil and roll
-// back on error.
-type TransactionManager interface {
-	WithTransaction(fn func(tx *sql.Tx) error) error
-}
+	"github.com/pplmx/aurora/internal/ledger"
+)
+
+// TransactionManager is the shared transaction port; the alias keeps existing
+// NFT callers and mocks source-compatible.
+type TransactionManager = ledger.TransactionManager
 
 type Repository interface {
 	SaveNFT(nft *NFT) error
