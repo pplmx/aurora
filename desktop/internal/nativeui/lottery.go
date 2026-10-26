@@ -159,8 +159,7 @@ func (a *App) lotteryHistory(c *ui.Context) {
 }
 
 func (a *App) lotteryHistoryBody(c *ui.Context) {
-	if a.lottery.loadErr != nil {
-		ui.Text(c, "Failed to load history: "+a.lottery.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+	if a.lottery.loadErr != nil && !loadWarning(c, "Failed to load history", a.lottery.loadErr, len(a.lottery.rows) > 0) {
 		return
 	}
 	if len(a.lottery.rows) == 0 {

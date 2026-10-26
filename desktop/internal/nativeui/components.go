@@ -162,6 +162,25 @@ func emptyNote(c *ui.Context, text string) {
 	ui.Text(c, text).FontSize(12).TextColor(ui.Hex(inkMuted))
 }
 
+// loadWarning reports a failed refresh above whatever the page already showed.
+//
+// Every loader keeps its previous rows when a read fails, but the views used to
+// return on the error line alone: a transient database failure blanked a list
+// the operator was reading (Voting did not even draw the error, so the failure
+// was invisible). It draws the reason and, when there is still content from the
+// last successful load, says so and returns true so the caller keeps drawing it.
+// With nothing to show it returns false: a page that never loaded must not fall
+// through to its "nothing here yet" note, which would claim the store is empty
+// when the truth is that it could not be read.
+func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
+	ui.Text(c, what+": "+err.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+	if !hasContent {
+		return false
+	}
+	ui.Text(c, "Showing the last successful load.").FontSize(12).TextColor(ui.Hex(inkMuted))
+	return true
+}
+
 // twoColumns lays out two stacks side by side, each filling half the width.
 //
 // A ui.Grid sizes every child to its own track, so cards of different content

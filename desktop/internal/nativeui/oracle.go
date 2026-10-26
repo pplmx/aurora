@@ -88,8 +88,7 @@ func (a *App) oracleSources(c *ui.Context) {
 }
 
 func (a *App) oracleSourcesBody(c *ui.Context) {
-	if a.oracle.loadErr != nil {
-		ui.Text(c, "Failed to load sources: "+a.oracle.loadErr.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+	if a.oracle.loadErr != nil && !loadWarning(c, "Failed to load sources", a.oracle.loadErr, len(a.oracle.sources) > 0) {
 		return
 	}
 	if len(a.oracle.sources) == 0 {
