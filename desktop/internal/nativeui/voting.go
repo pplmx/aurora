@@ -94,7 +94,6 @@ func (a *App) loadVoting() {
 // to reach the ballot was the wrong shape for that.
 func (a *App) votingView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
-		renderStatus(c, a.voting.status)
 		// loadVoting keeps both lists when either read fails, so the warning
 		// is drawn once for the page and both lists keep their last successful
 		// rows. It used to be invisible entirely: nothing rendered loadErr.
