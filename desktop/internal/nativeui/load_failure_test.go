@@ -113,3 +113,26 @@ func TestFailedFirstLoadIsNotAnEmptyState(t *testing.T) {
 	require.False(t, tester.HasText("No candidates registered yet."))
 	require.False(t, tester.HasText("Showing the last successful load."))
 }
+
+// TestFailedHealthReadKeepsFeedRows covers the one oracle list that swallowed
+// its error: health was only assigned on success, so a transient read failure
+// left yesterday's counters on screen with no sign they were old.
+func TestFailedHealthReadKeepsFeedRows(t *testing.T) {
+	fake := &fakeServices{
+		sources:    []SourceRow{{ID: "s1", Name: "btc"}},
+		healthRows: []HealthRow{{SourceID: "s1", Name: "btc-feed", Attempts: 3}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+	require.True(t, tester.HasText("btc-feed"))
+
+	fake.loadErrs.health = errors.New("database is locked")
+	app.refresh()
+	tester.Frame()
+	require.True(t, tester.HasText("Failed to load feed health"))
+	require.True(t, tester.HasText("database is locked"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+	require.True(t, tester.HasText("btc-feed"), "the last counters must stay visible")
+}

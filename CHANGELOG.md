@@ -55,6 +55,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A failed feed-health read is visible on the desktop Oracle page**: the health
+  counters were only assigned on success and the error was dropped, so a
+  transient read failure left old counters on screen with no sign they were
+  old (every other oracle list reported its failures). The card now draws the
+  standard stale warning above the last rows; the test fails the read and
+  asserts the warning, the reason and the retained row.
 - **A failed desktop verification clears the previous verdict**: the Verify card
   kept the last draw's "Verified" panel while the field named a new id and the
   new lookup failed, so old evidence looked current. A new attempt clears the

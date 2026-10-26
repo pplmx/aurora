@@ -56,6 +56,10 @@ type fakeServices struct {
 	// content of its last successful load when a refresh fails.
 	loadErrs fakeLoadErrors
 
+	// healthRows is what OracleHealth returns, so a refresh test can keep rows
+	// across a failed health read.
+	healthRows []HealthRow
+
 	// Counters for the reads a successful write is expected to repeat, so a
 	// test can prove the page refreshes what it shows after a write.
 	listTokensCalls   int
@@ -91,6 +95,7 @@ type fakeServices struct {
 // fakeLoadErrors is one failure hook per read a page performs.
 type fakeLoadErrors struct {
 	history    error
+	health     error
 	tokens     error
 	nfts       error
 	sources    error
@@ -243,7 +248,12 @@ func (f *fakeServices) OracleLatest(sourceID string) (DataRow, error) {
 	f.lastOracleLatestSource = sourceID
 	return DataRow{}, nil
 }
-func (f *fakeServices) OracleHealth() ([]HealthRow, error) { return nil, nil }
+func (f *fakeServices) OracleHealth() ([]HealthRow, error) {
+	if f.loadErrs.health != nil {
+		return nil, f.loadErrs.health
+	}
+	return f.healthRows, nil
+}
 
 func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator string) (NFTRow, error) {
 	return NFTRow{ID: "n1", Name: name, Owner: creator}, nil
