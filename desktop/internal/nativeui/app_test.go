@@ -110,6 +110,15 @@ type fakeLoadErrors struct {
 	sessions   error
 	chain      error
 	stats      error
+	// Per-readout failures: the list-level hooks above must not be the only
+	// way to exercise a failed detail read.
+	tokenInfo    error
+	tokenBalance error
+	tokenHistory error
+	nftDetails   error
+	nftHistory   error
+	oracleData   error
+	oracleLatest error
 }
 
 func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
@@ -203,6 +212,9 @@ func (f *fakeServices) CreateToken(name, symbol, supply, owner string, decimals 
 func (f *fakeServices) TokenInfo(id string) (TokenRow, error) {
 	f.tokenInfoCalls++
 	f.lastTokenInfoID = id
+	if f.loadErrs.tokenInfo != nil {
+		return TokenRow{}, f.loadErrs.tokenInfo
+	}
 	return TokenRow{ID: id}, nil
 }
 func (f *fakeServices) ListTokens() ([]TokenRow, error) {
@@ -216,6 +228,9 @@ func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error) {
 	f.tokenBalanceCalls++
 	f.lastBalanceToken = tokenID
 	f.lastBalanceOwner = owner
+	if f.loadErrs.tokenBalance != nil {
+		return "", f.loadErrs.tokenBalance
+	}
 	return "42", nil
 }
 func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error                { return nil }
@@ -234,6 +249,9 @@ func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([
 	f.lastHistoryToken = tokenID
 	f.lastHistoryOwner = owner
 	f.lastHistoryOffset = offset
+	if f.loadErrs.tokenHistory != nil {
+		return nil, f.loadErrs.tokenHistory
+	}
 	return nil, nil
 }
 
@@ -259,11 +277,17 @@ func (f *fakeServices) OracleData(sourceID string, limit int) ([]DataRow, error)
 	f.oracleDataCalls++
 	f.lastOracleDataSource = sourceID
 	f.oracleDataLimit = limit
+	if f.loadErrs.oracleData != nil {
+		return nil, f.loadErrs.oracleData
+	}
 	return nil, nil
 }
 func (f *fakeServices) OracleLatest(sourceID string) (DataRow, error) {
 	f.oracleLatestCalls++
 	f.lastOracleLatestSource = sourceID
+	if f.loadErrs.oracleLatest != nil {
+		return DataRow{}, f.loadErrs.oracleLatest
+	}
 	return DataRow{}, nil
 }
 func (f *fakeServices) OracleHealth() ([]HealthRow, error) {
@@ -279,6 +303,9 @@ func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator st
 func (f *fakeServices) GetNFT(id string) (NFTRow, error) {
 	f.getNFTCalls++
 	f.lastNFTID = id
+	if f.loadErrs.nftDetails != nil {
+		return NFTRow{}, f.loadErrs.nftDetails
+	}
 	return NFTRow{ID: id}, nil
 }
 func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) {
@@ -299,6 +326,9 @@ func (f *fakeServices) BurnNFT(id, owner, priv string) error        { return nil
 func (f *fakeServices) NFTHistory(id string) ([]NFTOpRow, error) {
 	f.nftHistoryCalls++
 	f.lastNFTHistoryID = id
+	if f.loadErrs.nftHistory != nil {
+		return nil, f.loadErrs.nftHistory
+	}
 	return nil, nil
 }
 

@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -37,8 +38,10 @@ func TestSuccessfulNFTActionRefreshesCollectionAndHistory(t *testing.T) {
 	app := New(fake)
 	app.nft.transferID = "n1"
 	app.nft.nft = &NFTRow{ID: "n1", Name: "Star", Owner: "owner-a"}
+	app.nft.nftLoadedID = "n1"
 	app.nft.historyID = "n1"
 	app.nft.history = []NFTOpRow{{Type: "mint"}}
+	app.nft.historyLoadedID = "n1"
 
 	collectionBefore, historyBefore := fake.listAllNFTsCalls, fake.nftHistoryCalls
 	app.nft.from = "owner-a"
@@ -177,9 +180,12 @@ func TestPageRefreshReReadsOpenReadouts(t *testing.T) {
 	require.Equal(t, beforeHistory+1, fake.tokenHistoryCalls, "a loaded history must refresh")
 
 	app.ShowPage("NFT")
+	app.nft.id = "n1"
 	app.nft.nft = &NFTRow{ID: "n1"}
+	app.nft.nftLoadedID = "n1"
 	app.nft.historyID = "n1"
 	app.nft.history = []NFTOpRow{{Type: "mint"}}
+	app.nft.historyLoadedID = "n1"
 	beforeDetails, beforeHistory := fake.getNFTCalls, fake.nftHistoryCalls
 	app.refresh()
 	require.Equal(t, beforeDetails+1, fake.getNFTCalls, "an open NFT readout must refresh")
@@ -252,4 +258,209 @@ func TestReloadRefreshesTheCurrentPage(t *testing.T) {
 
 	app.Reload()
 	require.Equal(t, before+1, fake.listTokensCalls, "Reload must re-read the current page")
+}
+
+// TestTokenReadoutFailureKeepsSameSubjectRows applies the stale-load policy to
+// the three Token readouts: a failed refresh of the same token/account/query
+// keeps the last successful answer and marks it stale instead of blanking it
+// or hiding the error.
+func TestTokenReadoutFailureKeepsSameSubjectRows(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	app.token.info = &TokenRow{ID: "t1", Name: "Gold", TotalSupply: "100"}
+	app.token.infoLoadedID = "t1"
+	app.token.balanceAccount = "owner"
+	app.token.balance = "42"
+	app.token.balanceLoadedToken, app.token.balanceLoadedOwner = "t1", "owner"
+	app.token.historyOwner = "owner"
+	app.token.history = []TransferRow{{From: "alice", To: "bob", Amount: "1", Nonce: 1}}
+	app.token.historyLoadedToken, app.token.historyLoadedOwner = "t1", "owner"
+	app.token.historyLoadedLimit, app.token.historyLoadedOffset = 50, 0
+	tester.Frame()
+
+	boom := errors.New("database is locked")
+	fake.loadErrs = fakeLoadErrors{tokenInfo: boom, tokenBalance: boom, tokenHistory: boom}
+	app.refresh()
+	tester.Frame()
+
+	require.Equal(t, "Gold", app.token.info.Name)
+	require.Equal(t, "42", app.token.balance)
+	require.Len(t, app.token.history, 1)
+	require.ErrorIs(t, app.token.infoErr, boom)
+	require.ErrorIs(t, app.token.balanceErr, boom)
+	require.ErrorIs(t, app.token.historyErr, boom)
+	for _, warning := range []string{
+		"Couldn't load token info", "Couldn't load balance", "Couldn't load history",
+	} {
+		require.Truef(t, tester.HasText(warning), "%s must be visible", warning)
+	}
+	require.True(t, tester.HasText("Showing the last successful load."))
+	require.False(t, tester.HasText("No transfers loaded yet."),
+		"a failed read must not claim there is no history")
+}
+
+// TestTokenSelectionDropsReadoutsWhenTheNewReadFails pins the key side: the
+// previous token's metadata, balance and history must be gone before the new
+// token is read, so a failure cannot leave them under the new id.
+func TestTokenSelectionDropsReadoutsWhenTheNewReadFails(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{
+		{ID: "t1", Name: "FirstToken", TotalSupply: "1"},
+		{ID: "t2", Name: "SecondToken", TotalSupply: "2"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.info = &TokenRow{ID: "t1", Name: "OldToken"}
+	app.token.infoLoadedID = "t1"
+	app.token.balanceAccount = "owner"
+	app.token.balance = "42"
+	app.token.balanceLoadedToken, app.token.balanceLoadedOwner = "t1", "owner"
+	app.token.history = []TransferRow{{From: "old-from", Amount: "1"}}
+	app.token.historyLoadedToken, app.token.historyLoadedOwner = "t1", "owner"
+	app.token.historyLoadedLimit, app.token.historyLoadedOffset = 50, 0
+	tester.Frame()
+
+	boom := errors.New("database is locked")
+	fake.loadErrs = fakeLoadErrors{tokenInfo: boom, tokenBalance: boom, tokenHistory: boom}
+	require.NoError(t, tester.Click("t2"))
+	tester.Frame()
+
+	require.Equal(t, "t2", app.token.tokenID)
+	require.Nil(t, app.token.info, "the old token's metadata must be gone")
+	require.Empty(t, app.token.balance, "the old token's balance must be gone")
+	require.Empty(t, app.token.history, "the old token's history must be gone")
+	require.True(t, tester.HasText("Couldn't load token info"))
+	require.True(t, tester.HasText("Couldn't load balance"))
+	require.True(t, tester.HasText("Couldn't load history"))
+	require.False(t, tester.HasText("OldToken"))
+	require.False(t, tester.HasText("No transfers loaded yet."))
+}
+
+// TestTokenHistoryQueryChangeInvalidatesRows pins the other half of the
+// history key: changing Limit or Offset makes the old rows answer a different
+// question, so a failed read must not leave them in place.
+func TestTokenHistoryQueryChangeInvalidatesRows(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	app.token.history = []TransferRow{{From: "old-page", Amount: "1"}}
+	app.token.historyLoadedToken, app.token.historyLoadedOwner = "t1", ""
+	app.token.historyLoadedLimit, app.token.historyLoadedOffset = 50, 0
+	tester.Frame()
+	require.True(t, tester.HasText("old-page"))
+
+	app.token.historyOffset = 50
+	fake.loadErrs.tokenHistory = errors.New("database is locked")
+	require.NoError(t, tester.Click("Load History"))
+	tester.Frame()
+
+	require.Empty(t, app.token.history, "rows from the previous offset must be dropped")
+	require.True(t, tester.HasText("Couldn't load history"))
+	require.False(t, tester.HasText("old-page"))
+	require.False(t, tester.HasText("No transfers loaded yet."))
+}
+
+// TestOracleReadoutFailureKeepsSameSourceRows applies the stale-load policy to
+// the Query and Latest cards: a failed refresh of the same source keeps the
+// last successful answer and marks it stale instead of blanking it or hiding
+// the error.
+func TestOracleReadoutFailureKeepsSameSourceRows(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.oracle.queryID = "s1"
+	app.oracle.data = []DataRow{{Value: "old-reading"}}
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", 20
+	app.oracle.latestID = "s1"
+	app.oracle.latest = &DataRow{Value: "old-latest"}
+	app.oracle.latestLoadedSource = "s1"
+	tester.Frame()
+
+	boom := errors.New("database is locked")
+	fake.loadErrs = fakeLoadErrors{oracleData: boom, oracleLatest: boom}
+	app.refresh()
+	tester.Frame()
+
+	require.Len(t, app.oracle.data, 1)
+	require.NotNil(t, app.oracle.latest)
+	require.ErrorIs(t, app.oracle.dataErr, boom)
+	require.ErrorIs(t, app.oracle.latestErr, boom)
+	require.True(t, tester.HasText("Couldn't load readings"))
+	require.True(t, tester.HasText("Couldn't load the latest value"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}
+
+// TestOracleSelectionDropsReadingsWhenTheNewReadFails pins the key side: the
+// previous source's Query and Latest values must be gone before the new source
+// is read, so a failure cannot show them under the new id.
+func TestOracleSelectionDropsReadingsWhenTheNewReadFails(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{
+		{ID: "s1", Name: "btc"},
+		{ID: "s2", Name: "eth"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.oracle.data = []DataRow{{Value: "old-reading"}}
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", 20
+	app.oracle.latest = &DataRow{Value: "old-latest"}
+	app.oracle.latestLoadedSource = "s1"
+	tester.Frame()
+	require.True(t, tester.HasText("old-reading"))
+
+	boom := errors.New("database is locked")
+	fake.loadErrs = fakeLoadErrors{oracleData: boom, oracleLatest: boom}
+	require.NoError(t, tester.Click("s2"))
+	tester.Frame()
+
+	require.Equal(t, "s2", app.oracle.queryID)
+	require.Equal(t, "s2", app.oracle.latestID)
+	require.Empty(t, app.oracle.data, "the old source's readings must be gone")
+	require.Nil(t, app.oracle.latest, "the old source's latest value must be gone")
+	require.True(t, tester.HasText("Couldn't load readings"))
+	require.True(t, tester.HasText("Couldn't load the latest value"))
+	require.False(t, tester.HasText("old-reading"))
+	require.False(t, tester.HasText("old-latest"))
+}
+
+// TestOracleQueryChangeInvalidatesRows pins the limit side of the Query key: a
+// different page size makes the old rows answer a different question, so a
+// failed read must not leave them in place.
+func TestOracleQueryChangeInvalidatesRows(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.oracle.queryID = "s1"
+	app.oracle.data = []DataRow{{Value: "old-page"}}
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", 20
+	tester.Frame()
+	require.True(t, tester.HasText("old-page"))
+
+	app.oracle.queryLim = 50
+	fake.loadErrs.oracleData = errors.New("database is locked")
+	require.NoError(t, tester.Click("Query"))
+	tester.Frame()
+
+	require.Empty(t, app.oracle.data, "rows from the previous limit must be dropped")
+	require.True(t, tester.HasText("Couldn't load readings"))
+	require.False(t, tester.HasText("old-page"))
 }

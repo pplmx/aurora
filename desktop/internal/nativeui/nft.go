@@ -44,6 +44,14 @@ type nftState struct {
 	nft     *NFTRow
 	list    []NFTRow
 	history []NFTOpRow
+	// The detail and history readouts are caches keyed by the NFT they
+	// describe. A selection or mint changes the id; without the key, a failed
+	// read left the previous asset's details under the new id. The error keeps
+	// a failed same-subject refresh visible.
+	nftErr          error
+	nftLoadedID     string
+	historyErr      error
+	historyLoadedID string
 
 	// Write forms.
 	from      string
@@ -179,16 +187,18 @@ func (a *App) nftReadBody(c *ui.Context) {
 	field(c, "NFT ID", &a.nft.id)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get NFT").Clicked() {
-			n, err := a.services.GetNFT(strings.TrimSpace(a.nft.id))
-			if err != nil {
+			id := strings.TrimSpace(a.nft.id)
+			a.clearNFTDetailsForAnotherSubject(id)
+			if err := a.loadNFTDetails(id); err != nil {
 				a.nft.status = errStatus(err)
-				a.nft.nft = nil
 			} else {
-				a.nft.nft = &n
 				a.nft.status = statusLine{}
 			}
 		}
 	})
+	if a.nft.nftErr != nil {
+		loadWarning(c, "Couldn't load NFT", a.nft.nftErr, a.nft.nft != nil)
+	}
 	if n := a.nft.nft; n != nil {
 		rows := []readoutRow{{"Name", n.Name}, {"Owner", n.Owner}, {"Creator", n.Creator}}
 		if n.Description != "" {
@@ -312,34 +322,84 @@ func (a *App) nftWrite(c *ui.Context) {
 		field(c, "NFT ID", &a.nft.historyID)
 		ui.Row(c).Children(func() {
 			if secondaryButton(c, "Show History").Clicked() {
-				ops, err := a.services.NFTHistory(strings.TrimSpace(a.nft.historyID))
-				if err != nil {
+				id := strings.TrimSpace(a.nft.historyID)
+				a.clearNFTHistoryForAnotherSubject(id)
+				if err := a.loadNFTHistory(id); err != nil {
 					a.nft.status = errStatus(err)
-					a.nft.history = nil
 				} else {
-					a.nft.history = ops
 					a.nft.status = statusLine{}
 				}
 			}
 		})
+		if a.nft.historyErr != nil &&
+			!loadWarning(c, "Couldn't load NFT history", a.nft.historyErr, len(a.nft.history) > 0) {
+			return
+		}
 		a.nftHistoryTable(c)
 	})
 }
 
-// selectNFT re-reads the Inspect card and history for the asset just chosen:
-// both would otherwise keep describing the previously selected NFT.
-func (a *App) selectNFT(id string) {
-	if a.nft.nft != nil {
-		if details, err := a.services.GetNFT(id); err == nil {
-			a.nft.nft = &details
-		} else {
-			a.nft.nft = nil
-		}
+// loadNFTDetails reads one asset into the Inspect card. A failure keeps the
+// rows only when they were loaded for the same id; the caller invalidates them
+// when the subject changes.
+func (a *App) loadNFTDetails(id string) error {
+	details, err := a.services.GetNFT(id)
+	if err != nil {
+		a.nft.nftErr = err
+		a.nft.nftLoadedID = id
+		return err
 	}
-	if len(a.nft.history) > 0 {
-		if ops, err := a.services.NFTHistory(id); err == nil {
-			a.nft.history = ops
-		}
+	a.nft.nft = &details
+	a.nft.nftLoadedID = id
+	a.nft.nftErr = nil
+	return nil
+}
+
+func (a *App) clearNFTDetailsForAnotherSubject(id string) {
+	if a.nft.nftLoadedID == id {
+		return
+	}
+	a.nft.nft = nil
+	a.nft.nftErr = nil
+	a.nft.nftLoadedID = ""
+}
+
+// loadNFTHistory reads one asset's operation log. The id is the whole key: a
+// failure keeps the rows only when they describe the same asset.
+func (a *App) loadNFTHistory(id string) error {
+	ops, err := a.services.NFTHistory(id)
+	if err != nil {
+		a.nft.historyErr = err
+		a.nft.historyLoadedID = id
+		return err
+	}
+	a.nft.history = ops
+	a.nft.historyLoadedID = id
+	a.nft.historyErr = nil
+	return nil
+}
+
+func (a *App) clearNFTHistoryForAnotherSubject(id string) {
+	if a.nft.historyLoadedID == id {
+		return
+	}
+	a.nft.history = nil
+	a.nft.historyErr = nil
+	a.nft.historyLoadedID = ""
+}
+
+// selectNFT re-reads the Inspect card and history for the asset just chosen:
+// both would otherwise keep describing the previously selected NFT. The
+// readouts are invalidated before the read, so a failure cannot leave the old
+// asset's rows under the new id.
+func (a *App) selectNFT(id string) {
+	if a.nft.nft != nil || a.nft.nftErr != nil {
+		a.clearNFTDetailsForAnotherSubject(id)
+		_ = a.loadNFTDetails(id)
+	}
+	if len(a.nft.history) > 0 || a.nft.historyErr != nil {
+		a.clearNFTHistoryForAnotherSubject(id)
+		_ = a.loadNFTHistory(id)
 	}
 }
 
@@ -360,17 +420,15 @@ func (a *App) transferNFT() {
 // changed and goes through refreshNFT.
 func (a *App) refreshNFTPage() {
 	a.loadNFT()
-	if a.nft.nft != nil {
-		if updated, err := a.services.GetNFT(a.nft.nft.ID); err == nil {
-			a.nft.nft = &updated
-		} else {
-			a.nft.nft = nil
-		}
+	if a.nft.nft != nil || a.nft.nftErr != nil {
+		id := strings.TrimSpace(a.nft.id)
+		a.clearNFTDetailsForAnotherSubject(id)
+		_ = a.loadNFTDetails(id)
 	}
-	if id := strings.TrimSpace(a.nft.historyID); id != "" && len(a.nft.history) > 0 {
-		if ops, err := a.services.NFTHistory(id); err == nil {
-			a.nft.history = ops
-		}
+	if len(a.nft.history) > 0 || a.nft.historyErr != nil {
+		id := strings.TrimSpace(a.nft.historyID)
+		a.clearNFTHistoryForAnotherSubject(id)
+		_ = a.loadNFTHistory(id)
 	}
 }
 
@@ -382,17 +440,11 @@ func (a *App) refreshNFT(id string) {
 	if id == "" {
 		return
 	}
-	if a.nft.nft != nil && a.nft.nft.ID == id {
-		if updated, err := a.services.GetNFT(id); err == nil {
-			a.nft.nft = &updated
-		} else {
-			a.nft.nft = nil
-		}
+	if (a.nft.nft != nil || a.nft.nftErr != nil) && a.nft.nftLoadedID == id {
+		_ = a.loadNFTDetails(id)
 	}
-	if a.nft.historyID == id && len(a.nft.history) > 0 {
-		if ops, err := a.services.NFTHistory(id); err == nil {
-			a.nft.history = ops
-		}
+	if (len(a.nft.history) > 0 || a.nft.historyErr != nil) && a.nft.historyLoadedID == id {
+		_ = a.loadNFTHistory(id)
 	}
 }
 
@@ -443,9 +495,18 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 		a.nft.status = wrapErr(err)
 		if err == nil {
 			a.nft.burnPriv = ""
-			// The same refresh clears the Inspect readout (the asset is gone)
-			// and re-reads the history, which now ends with the burn.
-			a.refreshNFT(id)
+			// The asset is gone, so reading it again is not a failure to
+			// report: clear the Inspect card directly and re-read the history,
+			// which now ends with the burn.
+			a.loadNFT()
+			if a.nft.nftLoadedID == id || (a.nft.nft != nil && a.nft.nft.ID == id) {
+				a.nft.nft = nil
+				a.nft.nftErr = nil
+				a.nft.nftLoadedID = ""
+			}
+			if a.nft.historyLoadedID == id {
+				_ = a.loadNFTHistory(id)
+			}
 		}
 	}
 }

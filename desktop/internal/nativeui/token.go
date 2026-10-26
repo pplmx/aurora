@@ -30,6 +30,23 @@ type tokenState struct {
 
 	info    *TokenRow
 	balance string
+	// Each readout is a cache keyed by the inputs that produced it. A
+	// selection or create changes tokenID, and a refresh can fail; without
+	// the key, rows fetched for the previous token stayed on screen under the
+	// new one. The error keeps a failed same-subject refresh visible instead
+	// of silently keeping stale rows.
+	infoErr      error
+	infoLoadedID string
+	balanceErr   error
+	// balanceLoadedToken/Owner identify the account the shown balance belongs
+	// to, so changing either input invalidates it before the read.
+	balanceLoadedToken  string
+	balanceLoadedOwner  string
+	historyErr          error
+	historyLoadedToken  string
+	historyLoadedOwner  string
+	historyLoadedLimit  int
+	historyLoadedOffset int
 
 	// Write forms.
 	mintTo         string
@@ -255,16 +272,18 @@ func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Token ID", &a.token.tokenID)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get Token Info").Clicked() {
-			t, err := a.services.TokenInfo(strings.TrimSpace(a.token.tokenID))
-			if err != nil {
+			id := strings.TrimSpace(a.token.tokenID)
+			a.clearTokenInfoForAnotherSubject(id)
+			if err := a.loadTokenInfo(id); err != nil {
 				a.token.status = errStatus(err)
-				a.token.info = nil
 			} else {
-				a.token.info = &t
 				a.token.status = statusLine{}
 			}
 		}
 	})
+	if a.token.infoErr != nil {
+		loadWarning(c, "Couldn't load token info", a.token.infoErr, a.token.info != nil)
+	}
 	if info := a.token.info; info != nil {
 		readout(c, []readoutRow{
 			{"Name", info.Name + " (" + info.Symbol + ")"},
@@ -277,19 +296,98 @@ func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Account (base64 public key)", &a.token.balanceAccount)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get Balance").Clicked() {
-			bal, err := a.services.TokenBalance(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.balanceAccount))
-			if err != nil {
+			id, owner := strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.balanceAccount)
+			a.clearTokenBalanceForAnotherRead(id, owner)
+			if err := a.loadTokenBalance(id, owner); err != nil {
 				a.token.status = errStatus(err)
-				a.token.balance = ""
 			} else {
-				a.token.balance = bal
 				a.token.status = statusLine{}
 			}
 		}
 	})
+	if a.token.balanceErr != nil {
+		loadWarning(c, "Couldn't load balance", a.token.balanceErr, a.token.balance != "")
+	}
 	if a.token.balance != "" {
 		readout(c, []readoutRow{{"Balance", a.token.balance}})
 	}
+}
+
+// loadTokenInfo reads a token's metadata into the Inspect card. A failure
+// keeps the rows only when they were loaded for the same token; the caller
+// invalidates them when the subject changes.
+func (a *App) loadTokenInfo(id string) error {
+	info, err := a.services.TokenInfo(id)
+	if err != nil {
+		a.token.infoErr = err
+		a.token.infoLoadedID = id
+		return err
+	}
+	a.token.info = &info
+	a.token.infoLoadedID = id
+	a.token.infoErr = nil
+	return nil
+}
+
+func (a *App) clearTokenInfoForAnotherSubject(id string) {
+	if a.token.infoLoadedID == id {
+		return
+	}
+	a.token.info = nil
+	a.token.infoErr = nil
+	a.token.infoLoadedID = ""
+}
+
+// loadTokenBalance reads one account's balance for one token. Both are part of
+// the key: changing either makes the shown number describe something else.
+func (a *App) loadTokenBalance(tokenID, owner string) error {
+	balance, err := a.services.TokenBalance(tokenID, owner)
+	if err != nil {
+		a.token.balanceErr = err
+		a.token.balanceLoadedToken, a.token.balanceLoadedOwner = tokenID, owner
+		return err
+	}
+	a.token.balance = balance
+	a.token.balanceLoadedToken, a.token.balanceLoadedOwner = tokenID, owner
+	a.token.balanceErr = nil
+	return nil
+}
+
+func (a *App) clearTokenBalanceForAnotherRead(tokenID, owner string) {
+	if a.token.balanceLoadedToken == tokenID && a.token.balanceLoadedOwner == owner {
+		return
+	}
+	a.token.balance = ""
+	a.token.balanceErr = nil
+	a.token.balanceLoadedToken, a.token.balanceLoadedOwner = "", ""
+}
+
+// loadTokenHistory reads one page of a token's transfers. The token, owner,
+// limit and offset are the key; a failure keeps the rows only when they were
+// produced by that same query.
+func (a *App) loadTokenHistory(tokenID, owner string, limit, offset int) error {
+	rows, err := a.services.TokenHistory(tokenID, owner, limit, offset)
+	if err != nil {
+		a.token.historyErr = err
+		a.token.historyLoadedToken, a.token.historyLoadedOwner = tokenID, owner
+		a.token.historyLoadedLimit, a.token.historyLoadedOffset = limit, offset
+		return err
+	}
+	a.token.history = rows
+	a.token.historyLoadedToken, a.token.historyLoadedOwner = tokenID, owner
+	a.token.historyLoadedLimit, a.token.historyLoadedOffset = limit, offset
+	a.token.historyErr = nil
+	return nil
+}
+
+func (a *App) clearTokenHistoryForAnotherRead(tokenID, owner string, limit, offset int) {
+	if a.token.historyLoadedToken == tokenID && a.token.historyLoadedOwner == owner &&
+		a.token.historyLoadedLimit == limit && a.token.historyLoadedOffset == offset {
+		return
+	}
+	a.token.history = nil
+	a.token.historyErr = nil
+	a.token.historyLoadedToken, a.token.historyLoadedOwner = "", ""
 }
 
 // readoutRow is one label/value pair in a readout.
@@ -471,28 +569,46 @@ func (a *App) transferFromToken() {
 func (a *App) refreshToken() {
 	a.loadToken()
 	id := strings.TrimSpace(a.token.tokenID)
-	if a.token.info != nil {
-		if info, err := a.services.TokenInfo(id); err == nil {
-			a.token.info = &info
-		}
+
+	// A readout is open if it holds rows or a failure from the last attempt.
+	// Re-read it for the current subject; invalidate it first when the subject
+	// or query changed, so a failed read cannot leave the previous answer on
+	// screen under the new input.
+	if a.token.info != nil || a.token.infoErr != nil {
+		a.clearTokenInfoForAnotherSubject(id)
+		_ = a.loadTokenInfo(id)
 	}
-	if a.token.balance != "" {
-		if balance, err := a.services.TokenBalance(id, strings.TrimSpace(a.token.balanceAccount)); err == nil {
-			a.token.balance = balance
-		}
+	if a.token.balance != "" || a.token.balanceErr != nil {
+		owner := strings.TrimSpace(a.token.balanceAccount)
+		a.clearTokenBalanceForAnotherRead(id, owner)
+		_ = a.loadTokenBalance(id, owner)
 	}
-	if len(a.token.history) > 0 {
-		limit := int(a.token.historyLimit)
-		if limit < 1 {
-			limit = 50
-		}
-		if limit > maxListLimit {
-			limit = maxListLimit
-		}
-		if rows, err := a.services.TokenHistory(id, strings.TrimSpace(a.token.historyOwner), limit, int(a.token.historyOffset)); err == nil {
-			a.token.history = rows
-		}
+	if len(a.token.history) > 0 || a.token.historyErr != nil {
+		limit, offset := a.tokenHistoryWindow()
+		owner := strings.TrimSpace(a.token.historyOwner)
+		a.clearTokenHistoryForAnotherRead(id, owner, limit, offset)
+		_ = a.loadTokenHistory(id, owner, limit, offset)
 	}
+}
+
+// tokenHistoryWindow is the page size and offset the History card sends: the
+// defaults the form shows, clamped to the REST surface's ceiling.
+func (a *App) tokenHistoryWindow() (limit, offset int) {
+	limit = int(a.token.historyLimit)
+	if limit < 1 {
+		limit = 50
+	}
+	if limit > maxListLimit {
+		limit = maxListLimit
+	}
+	offset = int(a.token.historyOffset)
+	if offset < 0 {
+		offset = 0
+	}
+	if offset > maxListLimit {
+		offset = maxListLimit
+	}
+	return limit, offset
 }
 
 func (a *App) loadAllowance() {
@@ -555,23 +671,21 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 	})
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Load History").Clicked() {
-			limit := int(a.token.historyLimit)
-			if limit < 1 {
-				limit = 50
-			}
-			if limit > maxListLimit {
-				limit = maxListLimit
-			}
-			rows, err := a.services.TokenHistory(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.historyOwner), limit, int(a.token.historyOffset))
-			if err != nil {
+			id := strings.TrimSpace(a.token.tokenID)
+			owner := strings.TrimSpace(a.token.historyOwner)
+			limit, offset := a.tokenHistoryWindow()
+			a.clearTokenHistoryForAnotherRead(id, owner, limit, offset)
+			if err := a.loadTokenHistory(id, owner, limit, offset); err != nil {
 				a.token.status = errStatus(err)
-				a.token.history = nil
 			} else {
-				a.token.history = rows
 				a.token.status = statusLine{}
 			}
 		}
 	})
+	if a.token.historyErr != nil &&
+		!loadWarning(c, "Couldn't load history", a.token.historyErr, len(a.token.history) > 0) {
+		return
+	}
 	if len(a.token.history) == 0 {
 		emptyNote(c, "No transfers loaded yet.")
 		return

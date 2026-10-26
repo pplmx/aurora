@@ -70,3 +70,71 @@ func TestNFTFilterIsTheListState(t *testing.T) {
 	require.True(t, tester.HasText("No NFTs for this owner. Show All restores the collection."))
 	require.False(t, tester.HasText("No NFTs yet. Mint one above."))
 }
+
+// TestNFTReadoutFailureKeepsSameSubjectRows applies the stale-load policy to
+// the Inspect and History cards: a failed refresh of the same asset keeps the
+// last successful rows, marks them stale, and never claims the history is
+// empty.
+func TestNFTReadoutFailureKeepsSameSubjectRows(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.id = "n1"
+	app.nft.nft = &NFTRow{ID: "n1", Name: "Star"}
+	app.nft.nftLoadedID = "n1"
+	app.nft.historyID = "n1"
+	app.nft.history = []NFTOpRow{{Type: "mint"}}
+	app.nft.historyLoadedID = "n1"
+	tester.Frame()
+
+	boom := errors.New("database is locked")
+	fake := app.services.(*fakeServices)
+	fake.loadErrs = fakeLoadErrors{nftDetails: boom, nftHistory: boom}
+	app.refresh()
+	tester.Frame()
+
+	require.Equal(t, "Star", app.nft.nft.Name)
+	require.Len(t, app.nft.history, 1)
+	require.ErrorIs(t, app.nft.nftErr, boom)
+	require.ErrorIs(t, app.nft.historyErr, boom)
+	require.True(t, tester.HasText("Couldn't load NFT"))
+	require.True(t, tester.HasText("Couldn't load NFT history"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+	require.False(t, tester.HasText("No history loaded yet."))
+}
+
+// TestNFTSelectionDropsReadoutsWhenTheNewReadFails pins the key side: choosing
+// another asset invalidates the previous details and history before reading,
+// so a failure cannot leave them under the new id.
+func TestNFTSelectionDropsReadoutsWhenTheNewReadFails(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{
+		{ID: "n1", Name: "FirstArt", Owner: "owner-a"},
+		{ID: "n2", Name: "SecondArt", Owner: "owner-b"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.nft = &NFTRow{ID: "n1", Name: "OldArt"}
+	app.nft.nftLoadedID = "n1"
+	app.nft.history = []NFTOpRow{{Type: "mint-from-old"}}
+	app.nft.historyLoadedID = "n1"
+	tester.Frame()
+	require.True(t, tester.HasText("OldArt"))
+
+	boom := errors.New("database is locked")
+	fake.loadErrs = fakeLoadErrors{nftDetails: boom, nftHistory: boom}
+	require.NoError(t, tester.Click("n2"))
+	tester.Frame()
+
+	require.Equal(t, "n2", app.nft.id)
+	require.Nil(t, app.nft.nft, "the old asset's details must be gone")
+	require.Empty(t, app.nft.history, "the old asset's history must be gone")
+	require.True(t, tester.HasText("Couldn't load NFT"))
+	require.True(t, tester.HasText("Couldn't load NFT history"))
+	require.False(t, tester.HasText("OldArt"))
+	require.False(t, tester.HasText("No history loaded yet."))
+}
