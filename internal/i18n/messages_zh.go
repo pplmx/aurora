@@ -103,7 +103,7 @@ var chineseMessages = map[string]string{
 	"nft.mint":     "铸造新 NFT",
 	"nft.transfer": "转移 NFT 所有权",
 	"nft.burn":     "销毁 NFT",
-	"nft.list":     "列出持有者的 NFT",
+	"nft.list":     "列出 NFT（全部，或按持有者）",
 	"nft.get":      "根据 ID 获取 NFT",
 	"nft.history":  "获取 NFT 操作历史",
 
