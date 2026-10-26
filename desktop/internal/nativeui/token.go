@@ -53,8 +53,10 @@ type tokenState struct {
 	// tokens is every stored token. It is what lets an operator pick one
 	// instead of already knowing its id, which nothing in the window showed.
 	tokens []TokenRow
-	// search narrows the list by id, name or symbol while the store grows.
-	search string
+	// search narrows the list by id, name or symbol while the store grows;
+	// appliedSearch is the query the current highlight belongs to.
+	search        string
+	appliedSearch string
 	// chosen is the row chosen in that list, -1 for none.
 	chosen int
 
@@ -115,6 +117,13 @@ func (a *App) tokenList(c *ui.Context) {
 			return
 		}
 		ui.SearchField(c, &a.token.search).Label("Search tokens")
+		if a.token.search != a.token.appliedSearch {
+			// The highlight indexes the filtered rows; after a new query the same
+			// index is a different token, so no row is chosen until the operator
+			// picks one from the list they are looking at.
+			a.token.appliedSearch = a.token.search
+			a.token.chosen = -1
+		}
 		rows := make([]TokenRow, 0, len(a.token.tokens))
 		for _, t := range a.token.tokens {
 			if containsFold(a.token.search, t.ID, t.Name, t.Symbol) {

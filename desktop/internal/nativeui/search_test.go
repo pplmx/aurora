@@ -168,3 +168,28 @@ func TestOracleSourceSearchAndSelection(t *testing.T) {
 	require.Equal(t, "src-wx", app.oracle.queryID)
 	require.Equal(t, "src-wx", app.oracle.latestID)
 }
+
+// TestSearchingClearsTheRowHighlight pins the selection after a query change.
+// The table's selection is an index into the filtered rows, so keeping an old
+// index after a new query would highlight a different token than the one the
+// forms still hold; the operator must pick from the list they are looking at.
+func TestSearchingClearsTheRowHighlight(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{
+		{ID: "t1", Name: "Gold", Symbol: "AU", TotalSupply: "10"},
+		{ID: "t2", Name: "Silver", Symbol: "AG", TotalSupply: "20"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Gold"))
+	tester.Frame()
+	require.Equal(t, 0, app.token.chosen, "clicking a row chooses it")
+
+	app.token.search = "silver"
+	tester.Frame()
+	require.Equal(t, "silver", app.token.search)
+	require.Equal(t, -1, app.token.chosen,
+		"a new query must clear the highlight that indexed the old rows")
+}

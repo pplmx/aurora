@@ -28,8 +28,9 @@ type nftState struct {
 	// names an owner.
 	filterOwner string
 	// search narrows the shown collection by id or name, on top of the owner
-	// filter.
-	search string
+	// filter; appliedSearch is the query the current highlight belongs to.
+	search        string
+	appliedSearch string
 
 	// Each write form names its own NFT: one shared field meant typing an id
 	// in the Transfer card silently retargeted Inspect, Burn and History too.
@@ -207,6 +208,10 @@ func (a *App) nftListBody(c *ui.Context) {
 		return
 	}
 	ui.SearchField(c, &a.nft.search).Label("Search NFTs")
+	if a.nft.search != a.nft.appliedSearch {
+		a.nft.appliedSearch = a.nft.search
+		a.nft.selected = -1
+	}
 	list := make([]NFTRow, 0, len(a.nft.list))
 	for _, n := range a.nft.list {
 		if containsFold(a.nft.search, n.ID, n.Name) {

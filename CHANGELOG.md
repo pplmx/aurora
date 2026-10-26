@@ -206,9 +206,10 @@ documented in their per-milestone ROADMAP files.
   session lists gained the same field (id/name/party and id/title/status), as did
   the draw history (id/seed/participant/winner) and the oracle source list
   (name/id/type/URL), with selection resolved against the filtered rows so a
-  search can never act on a different row than the one on screen. The voting Results
-  card also prints the sum of the per-candidate counts, which is what a reader
-  checks before trusting the rows.
+  search can never act on a different row than the one on screen, and a new
+  query clearing the old row highlight rather than letting one index describe
+  two different records. The voting Results card also prints the sum of the
+  per-candidate counts, which is what a reader checks before trusting the rows.
 - **The desktop dashboard lists recent chain activity**: the landing page showed
   six counters and a ledger verdict, which answer "how much is there" but not
   "what happened lately". A Recent activity card now lists the newest five

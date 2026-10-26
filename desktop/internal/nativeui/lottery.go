@@ -21,8 +21,10 @@ type lotteryState struct {
 
 	rows    []DrawRow
 	loadErr error
-	// search narrows the history by id, seed, participant or winner.
-	search string
+	// search narrows the history by id, seed, participant or winner;
+	// appliedSearch is the query the current highlight belongs to.
+	search        string
+	appliedSearch string
 
 	// Field errors are per-input so the message appears under the control that
 	// caused it, the same placement the Web UI's inline error nodes had.
@@ -169,6 +171,10 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 	}
 	rows := make([]DrawRow, 0, len(a.lottery.rows))
 	ui.SearchField(c, &a.lottery.search).Label("Search draws")
+	if a.lottery.search != a.lottery.appliedSearch {
+		a.lottery.appliedSearch = a.lottery.search
+		a.lottery.selected = -1
+	}
 	for _, draw := range a.lottery.rows {
 		if containsFold(a.lottery.search, draw.ID, draw.Seed,
 			strings.Join(draw.Participants, " "), strings.Join(draw.Winners, " ")) {
