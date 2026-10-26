@@ -170,7 +170,7 @@ desktop/        # MyGo 桌面壳（嵌套模块；cmd/aurora-desktop + internal/
 internal/
 ├── blockchain/ # 共享账本子系统：区块、PoW、持久化与单例引导
 ├── domain/     # 领域层：lottery / voting / nft / token / oracle / events
-├── app/        # 应用层：用例编排
+├── app/        # 应用层：用例编排与 container 组合根
 ├── infra/      # 基础设施：SQLite、HTTP 客户端、备份、迁移、事件
 ├── api/        # 路由、handler、中间件
 ├── i18n/       # 国际化

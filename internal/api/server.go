@@ -9,22 +9,22 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/api/handler"
+	"github.com/pplmx/aurora/internal/app/container"
 	"github.com/pplmx/aurora/internal/app/oracleapp"
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/config"
-	"github.com/pplmx/aurora/internal/domain/oracle"
-	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/metrics"
 )
 
 type Server struct {
-	db                   *sql.DB
-	metrics              *metrics.Registry
-	metricsOnce          sync.Once
-	oracleRepo           oracle.Repository
-	oracleSQLiteRepo     *sqlite.OracleRepository
+	// db is kept for the router and tests that build a Server without the
+	// full constructor; the container owns it in production.
+	db          *sql.DB
+	container   *container.Container
+	metrics     *metrics.Registry
+	metricsOnce sync.Once
+
 	oracleMu             sync.Mutex
 	oracleScheduler      *oracleapp.Scheduler
 	oracleSchedulerFetch *oracleapp.FetchDataUseCase
@@ -34,150 +34,32 @@ type Server struct {
 	tokenHandler         *handler.TokenHandler
 	oracleHandler        *handler.OracleHandler
 	blockchainHandler    *handler.BlockchainHandler
-	eventStore           *infraevents.SQLiteEventStore
-
-	// The wired repositories and services are kept so a non-HTTP presentation
-	// layer (the desktop window) can drive the same instances instead of
-	// opening a second set of handles.
-	lotteryRepo  *sqlite.LotteryRepository
-	votingRepo   *sqlite.VotingRepository
-	nftRepo      *sqlite.NFTRepository
-	tokenRepo    *sqlite.TokenRepository
-	tokenService token.Service
-	txManager    *sqlite.TxManager
-	chain        *blockchain.Chain
-
-	// closers releases every SQLite handle NewServer opened (repos, event
-	// store, replay protection) plus the shared blockchain DB. Tests use
-	// Close() before t.TempDir() cleanup so Windows can delete the temp dir;
-	// a long-lived server gets graceful handle release on shutdown.
-	closers []func() error
 }
 
-// addCloser appends a handle to be released by Close(). nil-able to keep the
-// error-path code terse.
-func (s *Server) addCloser(c interface{ Close() error }) {
-	s.closers = append(s.closers, c.Close)
-}
-
-// Close releases every SQLite handle the server opened. Idempotent-safe for
-// callers; safe to call once at shutdown.
+// Close releases the container (every SQLite handle and the shared ledger).
+// It is safe to call more than once; a server built without a container has
+// nothing to release here.
 func (s *Server) Close() error {
-	var firstErr error
-	for _, c := range s.closers {
-		if err := c(); err != nil && firstErr == nil {
-			firstErr = err
-		}
+	if s.container == nil {
+		return nil
 	}
-	if err := blockchain.Close(); err != nil && firstErr == nil {
-		firstErr = err
-	}
-	s.closers = nil
-	return firstErr
+	return s.container.Close()
 }
 
 func NewServer() (*Server, error) {
-	dbPath := blockchain.DBPath()
-	db, err := blockchain.InitDB()
+	c, err := container.Open()
 	if err != nil {
 		return nil, err
 	}
-
-	srv := &Server{db: db, metrics: metrics.NewRegistry()}
-	// NewServer is all-or-nothing: every handle opened after InitDB is owned
-	// by srv, so a later construction failure must run the same Close path.
-	complete := false
-	defer func() {
-		if !complete {
-			_ = srv.Close()
-		}
-	}()
-
-	lotteryRepo, err := sqlite.NewLotteryRepository(dbPath)
-	if err != nil {
-		return nil, err
-	}
-	srv.addCloser(lotteryRepo)
-
-	votingRepo, err := sqlite.NewVotingRepository(db)
-	if err != nil {
-		return nil, err
-	}
-
-	nftRepo, err := sqlite.NewNFTRepository(dbPath)
-	if err != nil {
-		return nil, err
-	}
-	srv.addCloser(nftRepo)
-
-	tokenRepo, err := sqlite.NewTokenRepository(dbPath)
-	if err != nil {
-		return nil, err
-	}
-	srv.addCloser(tokenRepo)
-
-	eventStore, err := infraevents.NewSQLiteEventStore(dbPath)
-	if err != nil {
-		return nil, err
-	}
-	srv.addCloser(eventStore)
-	srv.eventStore = eventStore
-
-	eventReader := sqlite.NewTokenEventReader(eventStore)
-
-	eventBus := infraevents.NewSyncEventBus()
-	// The CLI wiring (app/wire.go) subscribes the audit + stats handlers to
-	// the bus; the API server path never did, so every token audit event the
-	// service publishes (mint/transfer/approve/burn/transfer_from) was
-	// silently dropped and GET /api/v1/token/history always returned empty on
-	// the HTTP server. Wire the same handlers here so the production path
-	// persists audit events to the event store (v1.73, ISS-080).
-	//
-	// The audit handler is wired with the event store as its durable outbox
-	// (TASK-119, ISS-111): a transiently-failing delivery is parked in
-	// pending_events instead of being dropped, and StartAuditOutboxDrainer
-	// (started by cmd/api/main.go like the oracle scheduler) retries it. This
-	// heals the gap v1.82 only reported.
-	eventBus.SubscribeAll(infraevents.NewAuditHandlerWithOutbox(eventStore, eventStore).Handle)
-
-	replay, err := infraevents.NewSQLiteReplayProtection(dbPath)
-	if err != nil {
-		return nil, err
-	}
-	srv.addCloser(replay)
-
-	chain := blockchain.Get()
-	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
-	tokenService := token.NewService(tokenRepo, txManager, eventBus, eventReader, replay, chain)
-
-	oracleRepo, err := sqlite.NewOracleRepository(dbPath)
-	if err != nil {
-		return nil, err
-	}
-	srv.addCloser(oracleRepo)
-
-	srv.lotteryRepo = lotteryRepo
-	srv.votingRepo = votingRepo
-	srv.nftRepo = nftRepo
-	srv.tokenRepo = tokenRepo
-	srv.tokenService = tokenService
-	srv.txManager = txManager
-	srv.chain = chain
-
-	srv.lotteryHandler = handler.NewLotteryHandler(lotteryRepo, config.LotteryDefaultCount())
-	srv.votingHandler = handler.NewVotingHandler(votingRepo, sqlite.NewTxManager(db))
-	srv.votingHandler.SetChain(blockchain.Get())
-	srv.nftHandler = handler.NewNFTHandler(nftRepo, sqlite.NewTxManager(nftRepo.GetDB()))
-	srv.tokenHandler = handler.NewTokenHandler(tokenService)
-	srv.oracleRepo = oracleRepo
-	srv.oracleSQLiteRepo = oracleRepo
-	srv.oracleHandler = handler.NewOracleHandler(oracleRepo)
+	srv := &Server{db: c.DB, container: c, metrics: metrics.NewRegistry()}
+	srv.lotteryHandler = handler.NewLotteryHandler(c.LotteryRepo, config.LotteryDefaultCount())
+	srv.votingHandler = handler.NewVotingHandler(c.VotingRepo, sqlite.NewTxManager(c.DB))
+	srv.votingHandler.SetChain(c.Chain)
+	srv.nftHandler = handler.NewNFTHandler(c.NFTRepo, sqlite.NewTxManager(c.NFTRepo.GetDB()))
+	srv.tokenHandler = handler.NewTokenHandler(c.TokenService)
+	srv.oracleHandler = handler.NewOracleHandler(c.OracleRepo)
+	srv.oracleHandler.SetChain(c.Chain)
 	srv.blockchainHandler = handler.NewBlockchainHandler()
-	// Record API-fetched oracle data on-chain, consistent with the scheduler
-	// and the package's documented "record on-chain" intent. Without this,
-	// REST fetch results came back with BlockHeight 0.
-	srv.oracleHandler.SetChain(blockchain.Get())
-	complete = true
 	return srv, nil
 }
 
@@ -195,10 +77,10 @@ func NewServer() (*Server, error) {
 // hermetic; cmd/api/main.go starts it on boot. It is a no-op if the server has
 // no event store.
 func (s *Server) StartAuditOutboxDrainer(ctx context.Context) (stop func()) {
-	if s.eventStore == nil {
+	if s.container == nil || s.container.EventStore == nil {
 		return func() {}
 	}
-	drainer := infraevents.NewOutboxDrainer(s.eventStore, nil)
+	drainer := infraevents.NewOutboxDrainer(s.container.EventStore, nil)
 	drainCtx, cancel := context.WithCancel(ctx)
 	go drainer.Run(drainCtx)
 	return cancel
@@ -220,16 +102,16 @@ func (s *Server) OracleHealthStats() []oracleapp.SourceStat {
 }
 
 func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Duration) (stop func()) {
-	if s.oracleRepo == nil {
+	if s.container == nil || s.container.OracleRepo == nil {
 		return func() {}
 	}
-	fetch := oracleapp.NewFetchDataUseCase(s.oracleRepo)
+	fetch := oracleapp.NewFetchDataUseCase(s.container.OracleRepo)
 	// Record scheduler-fetched data on-chain, consistent with the REST handler
 	// and CLI paths (NewServer: srv.oracleHandler.SetChain(blockchain.
 	// Get())). Without SetChain the continuously running scheduler
 	// path silently skipped chain.AddRecord and stored block_height=0
 	// for every observation it persisted (TASK-097, ISS-090).
-	fetch.SetChain(blockchain.Get())
+	fetch.SetChain(s.container.Chain)
 	runner := func(ctx context.Context, sourceID string) error {
 		// ctx-aware fetch: an in-flight HTTP request is interrupted when the
 		// scheduler is shut down instead of blocking up to the client timeout
@@ -237,7 +119,7 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 		_, err := fetch.ExecuteContext(ctx, &oracleapp.FetchDataRequest{SourceID: sourceID})
 		return err
 	}
-	sched := oracleapp.NewScheduler(s.oracleRepo, runner, checkEvery, nil)
+	sched := oracleapp.NewScheduler(s.container.OracleRepo, runner, checkEvery, nil)
 	s.oracleMu.Lock()
 	s.oracleScheduler = sched
 	s.oracleSchedulerFetch = fetch
@@ -303,43 +185,9 @@ func (s *Server) Router() http.Handler {
 // Services exposes the assembled application services so a non-HTTP
 // presentation layer (the desktop app's native UI) can drive the same
 // repositories and services the REST handlers use, without re-implementing
-// NewServer's wiring or opening a second set of SQLite handles.
+// the container's wiring or opening a second set of SQLite handles.
 //
-// It is a read-only view: the caller must not close these handles — Server.Close
-// owns their lifetime.
-func (s *Server) Services() Services {
-	return Services{
-		DB:           s.db,
-		LotteryRepo:  s.lotteryRepo,
-		VotingRepo:   s.votingRepo,
-		NFTRepo:      s.nftRepo,
-		TokenRepo:    s.tokenRepo,
-		OracleRepo:   s.oracleSQLiteRepo,
-		TokenService: s.tokenService,
-		TxManager:    s.txManager,
-		Chain:        s.chain,
-		EventStore:   s.eventStore,
-	}
-}
-
-// Services exposes the wired repositories and services a non-HTTP presentation
-// layer drives. A native window calls the same application use cases the REST
-// handlers call, over the same handles, so a record created in the window is
-// the record the CLI prints and the gateway returns.
-//
-// The handles are owned by Server: a caller must not close them.
-type Services struct {
-	DB *sql.DB
-
-	LotteryRepo *sqlite.LotteryRepository
-	VotingRepo  *sqlite.VotingRepository
-	NFTRepo     *sqlite.NFTRepository
-	TokenRepo   *sqlite.TokenRepository
-	OracleRepo  *sqlite.OracleRepository
-
-	TokenService token.Service
-	TxManager    *sqlite.TxManager
-	Chain        *blockchain.Chain
-
-	EventStore *infraevents.SQLiteEventStore
+// It is a read-only view: the caller must not close these handles.
+func (s *Server) Services() *container.Container {
+	return s.container
 }

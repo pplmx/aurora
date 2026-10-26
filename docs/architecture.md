@@ -39,8 +39,8 @@ desktop          ─┘                                              ^
 | `internal/blockchain` | `internal/logger`, `internal/utils` | 共享账本：区块、PoW、SQLite 持久化、进程级单例；已从 `domain/` 移出 |
 | `internal/app/*` | `domain`，部分 `infra` | 用例编排；`oracleapp`/`votingapp` 仍为错误哨兵 import `infra/sqlite` |
 | `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
-| `internal/api` | `app`, `domain`, `infra/sqlite`, `infra/events` | 既做 HTTP 表示层，又做数据库/仓储/调度器的组合根 |
-| `desktop/internal/deskapp` | `internal/api`, `infra/sqlite`, `app`, `domain` | 桌面组合适配器；直接使用 `api.Server.Services()` 暴露的具体类型 |
+| `internal/api` | `app`, `app/container`, `domain`, `infra/sqlite`, `infra/events` | HTTP 表示层；数据库/仓储/用例由 `app/container` 组装 |
+| `desktop/internal/deskapp` | `internal/api`, `infra/sqlite`, `app`, `domain` | 桌面适配器；通过 `api.Server.Services()` 取到 `app/container` |
 | `desktop/internal/nativeui` | `internal/i18n` | 纯视图状态与 MyGo 控件，不直接打开数据库 |
 
 ## 已识别的边界问题
@@ -67,16 +67,19 @@ desktop          ─┘                                              ^
 和 `sqlite.ErrAlreadyVoted` 保留为 alias，分别指向 `repoerr.ErrNotFound` 与
 `voting.ErrAlreadyVoted`。`oracleapp`/`votingapp` 不再 import `infra/sqlite`。
 
-### 3. `api.Server` 是表示层 + 组合根 + 服务容器
+### 3. `api.Server` 曾同时是表示层、组合根和服务容器
 
-`internal/api/server.go` 打开数据库、构造全部仓储、事件总线、token 服务、
-oracle 调度器、六个 handler，并暴露 `Services()` 给桌面端。字段数量接近
-“上帝对象”，`internal/api` 因此无法只按 HTTP 边界测试。
+`internal/api/server.go` 原来打开数据库、构造全部仓储、事件总线、token 服务、
+六个 handler，并暴露 `Services()` 给桌面端，字段数量接近“上帝对象”。
 
-**目标**：抽出 `internal/app/container`（或 `internal/bootstrap`）持有数据库、
-仓储、用例与后台循环；`api.Server` 只接收容器并挂路由。`cmd/api` 和
-`desktop.Start` 各自调用同一个组合根。迁移要保留 `Server.Close` / `Services`
-语义，避免第二个 SQLite 写者。
+**已做**：新增 `internal/app/container`，由它打开/关闭 SQLite、构造仓储、事件
+总线、replay protection、token service 和账本单例；`api.Server` 只接收容器、
+构造 handler 和 oracle 调度器，`Close`/`Services` 委托给容器。容器是唯一的
+存储句柄所有者，桌面仍通过同一份实例驱动窗口。
+
+**下一步**：把 `api.Server` 中剩余的 handler/调度器组装也收进一个 HTTP
+模块的函数，让 `Server` 成为纯路由宿主；`Services()` 可进一步改成窄接口，
+避免桌面看到具体 SQLite 类型。
 
 ### 4. 桌面适配器重复组合并泄漏具体类型
 
@@ -119,7 +122,7 @@ internal/
 ├── blockchain/        # 共享账本：纯区块/PoW + 明确的持久化端口（最终）
 ├── domain/            # 只放实体、领域服务、仓储端口、领域错误
 ├── app/               # 用例；只依赖 domain
-├── app/container/     # 组合根：打开存储、构造仓储/用例、生命周期（计划）
+├── app/container/     # 组合根：打开存储、构造仓储/用例、生命周期
 ├── infra/             # SQLite/HTTP/事件/备份/迁移实现
 ├── api/               # HTTP 路由、handler、中间件
 ├── i18n/              # CLI/服务文案；桌面文案由桌面注册（计划）
@@ -136,7 +139,7 @@ internal/
       `native_token.go` / `native_nft.go` / `native_oracle.go` /
       `native_ledger.go` / `native_keys.go`。
 - [x] 统一账本对外命名。
-- [ ] 抽出组合根，让 `api.Server` 只做 HTTP；桌面复用同一容器。
+- [x] 抽出 `app/container` 组合根；`api.Server` 已委托存储生命周期。
 - [ ] 把 `desktopUIMessages` 移出核心 i18n。
 - [ ] 评估把账本 SQL 移到 `infra/sqlite`；这一步需要单独的迁移/回归计划。
 

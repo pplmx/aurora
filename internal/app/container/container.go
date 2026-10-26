@@ -1,0 +1,136 @@
+// Package container is the process-level composition root for Aurora's
+// application services. It owns the SQLite handles, repositories, ledger
+// singleton and event bus; presentation layers receive this container instead
+// of constructing storage themselves.
+package container
+
+import (
+	"database/sql"
+
+	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/domain/token"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
+	"github.com/pplmx/aurora/internal/infra/sqlite"
+)
+
+// Container holds the assembled application services. Its fields are
+// read-only to callers: Close owns their lifetime.
+type Container struct {
+	DB     *sql.DB
+	DBPath string
+
+	LotteryRepo *sqlite.LotteryRepository
+	VotingRepo  *sqlite.VotingRepository
+	NFTRepo     *sqlite.NFTRepository
+	TokenRepo   *sqlite.TokenRepository
+	OracleRepo  *sqlite.OracleRepository
+
+	TokenService token.Service
+	TxManager    *sqlite.TxManager
+	Chain        *blockchain.Chain
+
+	EventStore *infraevents.SQLiteEventStore
+
+	closers []func() error
+}
+
+func (c *Container) addCloser(v interface{ Close() error }) {
+	c.closers = append(c.closers, v.Close)
+}
+
+// Close releases every handle Open created. It matches the previous
+// api.Server.Close order and is safe to call more than once.
+func (c *Container) Close() error {
+	var firstErr error
+	for _, closeFn := range c.closers {
+		if err := closeFn(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	if err := blockchain.Close(); err != nil && firstErr == nil {
+		firstErr = err
+	}
+	c.closers = nil
+	return firstErr
+}
+
+// Open wires the storage-facing application layer. It is all-or-nothing: a
+// failure closes every handle opened so far, so callers never inherit a
+// half-constructed container or a leaked SQLite handle.
+func Open() (*Container, error) {
+	dbPath := blockchain.DBPath()
+	db, err := blockchain.InitDB()
+	if err != nil {
+		return nil, err
+	}
+	c := &Container{DB: db, DBPath: dbPath}
+	complete := false
+	defer func() {
+		if !complete {
+			_ = c.Close()
+		}
+	}()
+
+	lotteryRepo, err := sqlite.NewLotteryRepository(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	c.LotteryRepo = lotteryRepo
+	c.addCloser(lotteryRepo)
+
+	votingRepo, err := sqlite.NewVotingRepository(db)
+	if err != nil {
+		return nil, err
+	}
+	c.VotingRepo = votingRepo
+
+	nftRepo, err := sqlite.NewNFTRepository(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	c.NFTRepo = nftRepo
+	c.addCloser(nftRepo)
+
+	tokenRepo, err := sqlite.NewTokenRepository(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	c.TokenRepo = tokenRepo
+	c.addCloser(tokenRepo)
+
+	eventStore, err := infraevents.NewSQLiteEventStore(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	c.EventStore = eventStore
+	c.addCloser(eventStore)
+
+	eventReader := sqlite.NewTokenEventReader(eventStore)
+	eventBus := infraevents.NewSyncEventBus()
+	// Token audit events must be persisted on every production path. The
+	// outbox-backed handler parks transient delivery failures for the drainer
+	// started by cmd/api or the desktop runtime.
+	eventBus.SubscribeAll(infraevents.NewAuditHandlerWithOutbox(eventStore, eventStore).Handle)
+
+	replay, err := infraevents.NewSQLiteReplayProtection(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	c.addCloser(replay)
+
+	chain := blockchain.Get()
+	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
+	c.Chain = chain
+	c.TxManager = txManager
+	c.TokenService = token.NewService(tokenRepo, txManager, eventBus, eventReader, replay, chain)
+
+	oracleRepo, err := sqlite.NewOracleRepository(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	c.OracleRepo = oracleRepo
+	c.addCloser(oracleRepo)
+
+	complete = true
+	return c, nil
+}
