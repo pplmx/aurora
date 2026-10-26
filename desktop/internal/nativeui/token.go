@@ -234,9 +234,9 @@ func (a *App) createToken() {
 	}
 	a.token.status = okStatus("Created %s (%s) with supply %s. Owner: %s", t.Name, t.Symbol, t.TotalSupply, t.Owner)
 	a.token.tokenID = t.ID
-	// The list is the page's entry point, so a new token joins it at once and
-	// the row it lands on is the one chosen.
-	a.loadToken()
+	// The list is the page's entry point, so a new token joins it at once; the
+	// readouts that were open move to the new token with it.
+	a.refreshToken()
 	a.token.name, a.token.symbol, a.token.supply = "", "", ""
 }
 

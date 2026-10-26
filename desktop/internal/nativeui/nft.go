@@ -162,6 +162,7 @@ func (a *App) mintNFT() {
 	// The new asset becomes the subject of every other card: the operator just
 	// created it, so making them retype the id four times would be busywork.
 	a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
+	a.selectNFT(n.ID)
 	a.nft.name, a.nft.description, a.nft.imageURL, a.nft.tokenURI = "", "", "", ""
 }
 
