@@ -266,7 +266,7 @@ func (a *App) oracleAddBody(c *ui.Context) {
 	field(c, "Type (optional)", &a.oracle.addType)
 	field(c, "Method (optional, defaults to GET)", &a.oracle.addMethod)
 	field(c, "Path (optional JSON field)", &a.oracle.addPath)
-	fieldHint(c, "Request Headers (optional JSON object)",
+	textAreaHint(c, "Request Headers (optional JSON object)",
 		"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
 	ui.Field(c, "Interval (seconds)", func() {
 		ui.Column(c).Gap(2).Children(func() {
