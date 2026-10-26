@@ -49,6 +49,15 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Two `--help` screens no longer print raw translation keys**: the lottery
+  module's `Short` pointed at `lottery.tui.title`, which no catalog carries, so
+  `aurora --help` listed the module as `lottery.tui.title`; `migrate repair`
+  printed `migrate.repair_confirm` as its description in every language. The
+  lottery module now uses the `<module>.cmd` key the other modules use, and
+  repair reuses its existing `migrate.repair_long` text. A new repository check
+  (`internal/repocheck`) scans non-test sources for `GetText`/`T` calls with a
+  literal key and fails when either catalog lacks it — the defect class is
+  invisible at compile time and only shows up in a user's terminal.
 - **Lottery history is newest-first even within one second**: `GetAll` ordered
   by `timestamp DESC` alone, and timestamps have one-second resolution. Draws
   created in the same second tied, so SQLite returned them by insertion order
