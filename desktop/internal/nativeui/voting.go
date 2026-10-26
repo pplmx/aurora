@@ -343,6 +343,35 @@ func (a *App) votingSessionList(c *ui.Context) {
 		id := sessions[a.voting.sessionChoice].ID
 		a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
 	}
+	if a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
+		// The row cannot show the roster (the window column already fills the
+		// width), but an operator about to start or end a session needs to see
+		// who is on the ballot.
+		readout(c, []readoutRow{{"Roster", a.sessionRosterNames(sessions[a.voting.sessionChoice].Candidates)}})
+	}
+}
+
+// sessionRosterNames renders a session's candidate ids as names, falling back
+// to the shortened id when a candidate has been deleted.
+func (a *App) sessionRosterNames(ids []string) string {
+	if len(ids) == 0 {
+		return "—"
+	}
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		name := ""
+		for _, candidate := range a.voting.candidates {
+			if candidate.ID == id {
+				name = candidate.Name
+				break
+			}
+		}
+		if name == "" {
+			name = shortID(id)
+		}
+		names = append(names, name)
+	}
+	return strings.Join(names, ", ")
 }
 
 // votingCandidateListCard lists the registered candidates. Before it existed

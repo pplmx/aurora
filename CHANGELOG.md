@@ -194,6 +194,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **Choosing a desktop session shows who is on its ballot**: the row cannot
+  carry the roster, so the selected session now prints its candidate names
+  under the table (ids shortened when a candidate was deleted), which is what
+  the operator needs before starting or ending it.
 - **The desktop uses text areas for its long free-text fields**: the oracle
   Request Headers JSON and the NFT Description were single-line inputs; both
   are `ui.TextArea` now, so a header object can be read while it is edited.

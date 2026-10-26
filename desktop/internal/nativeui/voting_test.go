@@ -221,3 +221,28 @@ func TestCandidateCardBuildsACustomRoster(t *testing.T) {
 	app.createVotingSession()
 	require.Equal(t, []string{"c1", "c2"}, rec.ids, "the session must use the built roster")
 }
+
+// TestSelectedSessionShowsItsRoster pins the preview under the session table:
+// the row cannot carry the roster, and an operator about to start or end a
+// session needs to see who is on the ballot without opening another page.
+func TestSelectedSessionShowsItsRoster(t *testing.T) {
+	fake := &fakeServices{
+		candidates: []CandidateRow{
+			{ID: "c1", Name: "Alice"},
+			{ID: "c2", Name: "Bob"},
+		},
+		sessions: []SessionRow{{
+			ID: "s1", Title: "Budget", Status: "active",
+			Candidates: []string{"c1", "c2"},
+		}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.False(t, tester.HasText("Alice, Bob"), "no roster before a row is chosen")
+	require.NoError(t, tester.Click("s1"))
+	tester.Frame()
+	require.True(t, tester.HasText("Alice, Bob"), "the chosen session's roster must be shown")
+}
