@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 263,
+  "round": 264,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T08:07:21+00:00",
+  "updated_at": "2026-10-26T08:14:27+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 262,
+      "touched_round": 263,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20309,6 +20309,47 @@
       "commit": "28d0a4f",
       "title": "Simplify desktop first move and token workflow",
       "description": "Dashboard Quick start; task-shaped purposes; advanced disclosures; owner prefill and secret clearing; generated-key reuse; create highlights its row."
+    },
+    "ISS-447": {
+      "id": "ISS-447",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T08:14:18+00:00",
+      "updated_at": "2026-10-26T08:14:26+00:00",
+      "touched_round": 263,
+      "title": "Voting and Oracle still stack every stage in one scroll",
+      "description": "Even after the token/NFT tabs, Voting showed registration, session creation, controls, ballot and results in one grid, and Oracle showed sources, health, query and latest in one column. A first-time operator had no visible order and had to scroll past hidden work to find the active one.",
+      "severity": 0.55,
+      "confidence": 1.0
+    },
+    "TASK-402": {
+      "id": "TASK-402",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T08:14:18+00:00",
+      "updated_at": "2026-10-26T08:14:26+00:00",
+      "touched_round": 263,
+      "category": "core-feature",
+      "title": "Split Voting and Oracle into focused stages",
+      "description": "Give Voting Setup/Ballot/Results tabs and Oracle Sources/Health/Readings tabs, keep Add Source beside the Oracle stages, and update the tests that expect a readout to select its stage.",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "CHG-461": {
+      "id": "CHG-461",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T08:14:26+00:00",
+      "updated_at": "2026-10-26T08:14:26+00:00",
+      "touched_round": 263,
+      "commit": "c8b0786",
+      "title": "Split Voting and Oracle into stages",
+      "description": "Voting Setup/Ballot/Results tabs; Oracle Sources/Health/Readings tabs with Add Source always visible."
     }
   },
   "edges": [
@@ -30878,6 +30919,30 @@
       "to": "TASK-401",
       "type": "implements",
       "created_at": "2026-10-26T08:07:21+00:00"
+    },
+    {
+      "from": "TASK-402",
+      "to": "ISS-447",
+      "type": "addresses",
+      "created_at": "2026-10-26T08:14:26+00:00"
+    },
+    {
+      "from": "ISS-447",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T08:14:26+00:00"
+    },
+    {
+      "from": "CHG-461",
+      "to": "ISS-447",
+      "type": "resolves",
+      "created_at": "2026-10-26T08:14:26+00:00"
+    },
+    {
+      "from": "CHG-461",
+      "to": "TASK-402",
+      "type": "implements",
+      "created_at": "2026-10-26T08:14:26+00:00"
     }
   ]
 }
