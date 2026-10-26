@@ -81,7 +81,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   对写操作；投票：会期与候选人列表对选票与计票），表格保持整行宽度。窗口窄于
   1000px 时两列改为上下堆叠，900px 最小宽度下不再把每张卡压到 300px。代币的
   六种写操作与 NFT 的 Transfer/Burn/History 用 `ui.Tabs` 一次只展开一个表单，
-  避免为了 Burn 一路滚过五个折叠表单。代币精度、历史 Limit/Offset、NFT 的
+  投票页分成 Setup / Ballot / Results 三个阶段，预言机右栏分成
+  Sources / Health / Readings 三段；不再为了 Burn 滚过五个折叠表单，也不用
+  在四张卡片里找计票。代币精度、历史 Limit/Offset、NFT 的
   可选元数据、预言机的 Type/Method/Path/Headers/Interval 放在 **Advanced** /
   **Paging** / **Optional details** 折叠区里，首屏只留完成主任务需要的字段；
   选择预言机预设会自动展开 Advanced，方便核对预设填入的内容。每页只有一条

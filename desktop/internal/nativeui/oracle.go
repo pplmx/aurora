@@ -67,6 +67,11 @@ type oracleState struct {
 	// irreversible for its scheduling entry, so it gets the same gate as burn.
 	askDelete bool
 
+	// tab is the right-hand section: 0 sources (list/actions), 1 feed health,
+	// 2 readings (query/latest). Stacking all four made the page a long column
+	// where the read cards were usually below the fold.
+	tab int
+
 	status statusLine
 
 	sourceTable ui.ListState
@@ -104,13 +109,20 @@ func (a *App) loadOracle() {
 func (a *App) oracleView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
 		// The add form is the tallest card on the page, so it gets a column of
-		// its own; the short read cards fill the other one.
+		// its own; the right column shows one of sources, health or readings at
+		// a time instead of stacking all four sections.
 		twoColumns(c, func() {
 			a.oracleAdd(c)
 		}, func() {
-			a.oracleSources(c)
-			a.oracleHealth(c)
-			a.oracleRead(c)
+			ui.Tabs(c, &a.oracle.tab, "Sources", "Health", "Readings")
+			switch a.oracle.tab {
+			case 0:
+				a.oracleSources(c)
+			case 1:
+				a.oracleHealth(c)
+			default:
+				a.oracleRead(c)
+			}
 		})
 	})
 }

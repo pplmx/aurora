@@ -170,6 +170,7 @@ func TestResultsShowTheirTotal(t *testing.T) {
 	app := New(&fakeServices{})
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Voting")
+	app.voting.tab = 2
 	app.voting.resultsSession = "s1"
 	app.voting.results = []ResultRow{
 		{CandidateID: "c1", Name: "Alice", Votes: 7},
@@ -281,6 +282,7 @@ func TestFailedTallyRefreshKeepsTheRowsAndSaysWhy(t *testing.T) {
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Voting")
+	app.voting.tab = 2
 	tester.Frame()
 
 	app.voting.resultsSession = "s1"
@@ -320,6 +322,7 @@ func TestFailedTallyReadDropsAnotherSessionsRows(t *testing.T) {
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Voting")
+	app.voting.tab = 2
 	tester.Frame()
 
 	app.voting.resultsSession = "s1"
@@ -328,7 +331,13 @@ func TestFailedTallyReadDropsAnotherSessionsRows(t *testing.T) {
 	require.True(t, tester.HasText("Alice"))
 
 	fake.sessionResultsErr = errors.New("database is locked")
+	// The session table is on the Setup stage; choosing a row there still moves
+	// the tally reader, which is what the Results stage shows.
+	app.voting.tab = 0
+	tester.Frame()
 	require.NoError(t, tester.Click("s2"), "click the second session's id cell")
+	tester.Frame()
+	app.voting.tab = 2
 	tester.Frame()
 	require.Equal(t, "s2", app.voting.resultsSession)
 	require.Empty(t, app.voting.results, "session A's tally must not sit under session B")

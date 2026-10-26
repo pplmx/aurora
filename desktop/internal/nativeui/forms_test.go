@@ -160,6 +160,7 @@ func TestOracleLatestIsReachableWithoutData(t *testing.T) {
 	app := New(&fakeServices{})
 	tester := ui.NewTester(app.View, 1280, 2000)
 	app.ShowPage("Oracle")
+	app.oracle.tab = 2
 	tester.Frame()
 
 	require.True(t, tester.HasText("Query Data"))

@@ -149,6 +149,7 @@ func TestNumericFormLimitsAreBounded(t *testing.T) {
 	require.Equal(t, maxListLimit, fake.tokenHistoryLimit, "an oversized limit must be capped")
 
 	app.ShowPage("Oracle")
+	app.oracle.tab = 2
 	tester.Frame()
 	require.NoError(t, tester.Click("Query"))
 	tester.Frame()
@@ -382,6 +383,7 @@ func TestOracleReadoutFailureKeepsSameSourceRows(t *testing.T) {
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 5000)
 	app.ShowPage("Oracle")
+	app.oracle.tab = 2
 	tester.Frame()
 
 	app.oracle.queryID = "s1"
@@ -417,6 +419,7 @@ func TestOracleSelectionDropsReadingsWhenTheNewReadFails(t *testing.T) {
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 5000)
 	app.ShowPage("Oracle")
+	app.oracle.tab = 2
 	tester.Frame()
 
 	app.oracle.data = []DataRow{{Value: "old-reading"}}
@@ -428,7 +431,13 @@ func TestOracleSelectionDropsReadingsWhenTheNewReadFails(t *testing.T) {
 
 	boom := errors.New("database is locked")
 	fake.loadErrs = fakeLoadErrors{oracleData: boom, oracleLatest: boom}
+	// The source table is on the Sources stage; choosing a row there still
+	// moves the read cards, which the Readings stage shows.
+	app.oracle.tab = 0
+	tester.Frame()
 	require.NoError(t, tester.Click("s2"))
+	tester.Frame()
+	app.oracle.tab = 2
 	tester.Frame()
 
 	require.Equal(t, "s2", app.oracle.queryID)
@@ -449,6 +458,7 @@ func TestOracleQueryChangeInvalidatesRows(t *testing.T) {
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 5000)
 	app.ShowPage("Oracle")
+	app.oracle.tab = 2
 	tester.Frame()
 
 	app.oracle.queryID = "s1"
