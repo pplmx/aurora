@@ -138,7 +138,7 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	rt.app = nativeui.New(newNativeServices(
 		svc.LotteryRepo, svc.VotingRepo, svc.NFTRepo,
 		svc.OracleRepo, svc.TokenService, svc.TxManager, svc.NFTTx, svc.Chain,
-		srv.OracleHealthStats,
+		svc.OracleFetcher, srv.OracleHealthStats,
 	))
 	return rt, nil
 }

@@ -38,6 +38,9 @@ type nativeServices struct {
 	// server and keeps counting while the window is open; nil means this
 	// process has no scheduler (tests, or an embryo runtime).
 	health func() []oracleapp.SourceStat
+	// oracleFetcher is injected by the composition root; the adapter does not
+	// import infra/http.
+	oracleFetcher oracleapp.FetcherInterface
 }
 
 var _ nativeui.Services = (*nativeServices)(nil)
@@ -51,19 +54,21 @@ func newNativeServices(
 	txManager voting.TransactionManager,
 	nftTx nft.TransactionManager,
 	chain *blockchain.Chain,
+	oracleFetcher oracleapp.FetcherInterface,
 	health func() []oracleapp.SourceStat,
 ) *nativeServices {
 	return &nativeServices{
-		lotteryRepo:  lotteryRepo,
-		votingRepo:   votingRepo,
-		nftRepo:      nftRepo,
-		oracleRepo:   oracleRepo,
-		chain:        chain,
-		tokenService: tokenService,
-		txManager:    txManager,
-		votingSvc:    voting.NewEd25519Service(),
-		nftTx:        nftTx,
-		health:       health,
+		lotteryRepo:   lotteryRepo,
+		votingRepo:    votingRepo,
+		nftRepo:       nftRepo,
+		oracleRepo:    oracleRepo,
+		chain:         chain,
+		tokenService:  tokenService,
+		txManager:     txManager,
+		votingSvc:     voting.NewEd25519Service(),
+		nftTx:         nftTx,
+		oracleFetcher: oracleFetcher,
+		health:        health,
 	}
 }
 

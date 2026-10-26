@@ -351,6 +351,11 @@ documented in their per-milestone ROADMAP files.
   `WithLotteryRecordTransaction` became `AddRecord` / `WithRecordTransaction`.
   The old names implied a lottery-only writer and a type that was really the
   shared ledger.
+- **Application use cases no longer construct an HTTP client**: `oracleapp`'s
+  default `http.NewFetcher` moved to the composition root; the API, CLI and
+  desktop inject a fetcher, and a nil fetcher returns a clear error instead of
+  panicking. The layer check now forbids every `internal/infra` import outside
+  `app/container`.
 - **The desktop adapter now depends on domain ports, not SQLite types**:
   `nativeServices` fields/constructor use `lottery.Repository`,
   `voting.TransactableRepository`, `nft.TransactableRepository` and

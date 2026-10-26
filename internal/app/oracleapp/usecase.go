@@ -10,7 +10,6 @@ import (
 	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/repoerr"
-	"github.com/pplmx/aurora/internal/infra/http"
 )
 
 type FetcherInterface interface {
@@ -37,13 +36,6 @@ type transactionalOracleRepository interface {
 	WithTransaction(fn func(tx *sql.Tx) error) error
 }
 
-func NewFetchDataUseCase(repo oracle.Repository) *FetchDataUseCase {
-	return &FetchDataUseCase{
-		repo:    repo,
-		fetcher: http.NewFetcher(),
-	}
-}
-
 func NewFetchDataUseCaseWithDeps(repo oracle.Repository, fetcher FetcherInterface) *FetchDataUseCase {
 	return &FetchDataUseCase{
 		repo:    repo,
@@ -59,6 +51,9 @@ func (uc *FetchDataUseCase) SetChain(chain ChainInterface) {
 // supports it (the scheduler depends on cancellation), otherwise falls back
 // to the plain interface so test doubles keep compiling unchanged.
 func (uc *FetchDataUseCase) fetchData(ctx context.Context, source *oracle.DataSource) (*oracle.OracleData, error) {
+	if uc.fetcher == nil {
+		return nil, errors.New("oracle fetcher is not configured")
+	}
 	if cf, ok := uc.fetcher.(ctxFetcher); ok {
 		return cf.FetchDataContext(ctx, source)
 	}

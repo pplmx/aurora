@@ -371,7 +371,7 @@ func TestGetLatestDataUseCase_Empty(t *testing.T) {
 
 func TestFetchDataUseCase_SourceNotFound(t *testing.T) {
 	repo := &mockOracleRepo{}
-	uc := NewFetchDataUseCase(repo)
+	uc := NewFetchDataUseCaseWithDeps(repo, nil)
 
 	_, err := uc.Execute(&FetchDataRequest{SourceID: "nonexistent"})
 	if err == nil {
@@ -385,7 +385,7 @@ func TestFetchDataUseCase_DisabledSource(t *testing.T) {
 			{ID: "test-id", Name: "Test", Enabled: false},
 		},
 	}
-	uc := NewFetchDataUseCase(repo)
+	uc := NewFetchDataUseCaseWithDeps(repo, nil)
 
 	_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
 	if err == nil {
@@ -400,7 +400,7 @@ func TestFetchDataUseCase_RepoError(t *testing.T) {
 		},
 		sourceErr: errors.New("repo error"),
 	}
-	uc := NewFetchDataUseCase(repo)
+	uc := NewFetchDataUseCaseWithDeps(repo, nil)
 
 	_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
 	if err == nil {
@@ -666,4 +666,15 @@ func TestGetLatestDataUseCase_UnknownSource(t *testing.T) {
 
 	_, err := uc.Execute(&GetLatestDataRequest{SourceID: "does-not-exist"})
 	require.ErrorIs(t, err, oracle.ErrSourceNotFound)
+}
+
+// TestFetchDataWithoutFetcherFails keeps the port boundary safe: a caller that
+// forgets to inject a fetcher gets a diagnostic, not a nil dereference.
+func TestFetchDataWithoutFetcherFails(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{{ID: "test-id", Enabled: true}},
+	}
+	uc := NewFetchDataUseCaseWithDeps(repo, nil)
+	_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
+	require.ErrorContains(t, err, "fetcher is not configured")
 }
