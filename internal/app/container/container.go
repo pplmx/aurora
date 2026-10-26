@@ -8,6 +8,7 @@ import (
 	"database/sql"
 
 	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
@@ -27,6 +28,7 @@ type Container struct {
 
 	TokenService token.Service
 	TxManager    *sqlite.TxManager
+	NFTTx        nft.TransactionManager
 	Chain        *blockchain.Chain
 
 	EventStore *infraevents.SQLiteEventStore
@@ -90,6 +92,7 @@ func Open() (*Container, error) {
 	}
 	c.NFTRepo = nftRepo
 	c.addCloser(nftRepo)
+	c.NFTTx = sqlite.NewTxManager(nftRepo.GetDB())
 
 	tokenRepo, err := sqlite.NewTokenRepository(dbPath)
 	if err != nil {

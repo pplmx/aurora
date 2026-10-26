@@ -351,6 +351,11 @@ documented in their per-milestone ROADMAP files.
   `WithLotteryRecordTransaction` became `AddRecord` / `WithRecordTransaction`.
   The old names implied a lottery-only writer and a type that was really the
   shared ledger.
+- **The desktop adapter now depends on domain ports, not SQLite types**:
+  `nativeServices` fields/constructor use `lottery.Repository`,
+  `voting.TransactableRepository`, `nft.TransactableRepository` and
+  `oracle.Repository`; the container injects the NFT transaction manager.
+  `ports_test.go` keeps `native_*.go` from importing infra/api again.
 - **The desktop service adapter is split by module**: `native_services.go`
   keeps only the struct and constructor; lottery, ledger, voting, token, oracle,
   NFT and key-pair mappings live in their own files. The 779-line adapter is
