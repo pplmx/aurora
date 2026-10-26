@@ -3,6 +3,7 @@ package nativeui
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -10,6 +11,19 @@ import (
 
 	"github.com/pplmx/aurora/internal/i18n"
 )
+
+// TestShowPageAcceptsStableIDs pins the contract deep links use: ids do not
+// change when a title is translated, while the English titles stay accepted
+// for older callers.
+func TestShowPageAcceptsStableIDs(t *testing.T) {
+	app := New(&fakeServices{})
+	for p, id := range pageIDs {
+		app.ShowPage(strings.ToUpper(id))
+		require.Equal(t, p, app.page, "stable id %q must select its page", id)
+	}
+	app.ShowPage("token")
+	require.Equal(t, pageToken, app.page)
+}
 
 // TestEveryPageHasItsOwnIcon pins the sidebar's glyph set. A page added to
 // pageOrder without an icon would otherwise render a row that is only text,
