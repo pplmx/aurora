@@ -51,6 +51,11 @@ type votingState struct {
 
 	candidates []CandidateRow
 	sessions   []SessionRow
+	// candSearch and sessionSearch narrow those lists as they grow; both
+	// filters are case-insensitive and leave the selection pointing at the
+	// filtered row.
+	candSearch    string
+	sessionSearch string
 
 	voterNameErr string
 	candNameErr  string
@@ -288,7 +293,17 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 		return
 	}
-	sessions := a.voting.sessions
+	sessions := make([]SessionRow, 0, len(a.voting.sessions))
+	ui.SearchField(c, &a.voting.sessionSearch).Label("Search sessions")
+	for _, s := range a.voting.sessions {
+		if containsFold(a.voting.sessionSearch, s.ID, s.Title, s.Status) {
+			sessions = append(sessions, s)
+		}
+	}
+	if len(sessions) == 0 {
+		emptyNote(c, "No sessions match “"+strings.TrimSpace(a.voting.sessionSearch)+"”.")
+		return
+	}
 	a.voting.sessionTable.Selected = &a.voting.sessionChoice
 	table := ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
 		{Title: "ID", Width: 140},
@@ -339,7 +354,12 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		}
 		return
 	}
-	candidates := a.voting.candidates
+	candidates := a.filteredCandidates()
+	ui.SearchField(c, &a.voting.candSearch).Label("Search candidates")
+	if len(candidates) == 0 {
+		emptyNote(c, "No candidates match “"+strings.TrimSpace(a.voting.candSearch)+"”.")
+		return
+	}
 	a.voting.candidateTable.Selected = &a.voting.candChoice
 	table := ui.Table(c, &a.voting.candidateTable, []ui.TableColumn{
 		{Title: "ID", Width: 150},
@@ -366,16 +386,30 @@ func (a *App) votingCandidateList(c *ui.Context) {
 	})
 }
 
+// filteredCandidates is the candidate list the table shows: the stored rows
+// narrowed by the search field. Selection indexes this slice, so every reader
+// of candChoice must resolve through it rather than through the full list.
+func (a *App) filteredCandidates() []CandidateRow {
+	rows := make([]CandidateRow, 0, len(a.voting.candidates))
+	for _, candidate := range a.voting.candidates {
+		if containsFold(a.voting.candSearch, candidate.ID, candidate.Name, candidate.Party) {
+			rows = append(rows, candidate)
+		}
+	}
+	return rows
+}
+
 // addCandidateToRoster appends the chosen candidate to the session form's
 // roster field. The field takes comma-separated ids, so building a custom
 // roster used to mean copying UUIDs by hand; this is the button that makes the
 // form usable for anything but "every candidate".
 func (a *App) addCandidateToRoster() {
-	if a.voting.candChoice < 0 || a.voting.candChoice >= len(a.voting.candidates) {
+	candidates := a.filteredCandidates()
+	if a.voting.candChoice < 0 || a.voting.candChoice >= len(candidates) {
 		a.voting.status = statusLine{text: "Choose a candidate first.", isErr: true}
 		return
 	}
-	candidate := a.voting.candidates[a.voting.candChoice]
+	candidate := candidates[a.voting.candChoice]
 	ids := splitParticipants(a.voting.sessionIDs)
 	for _, id := range ids {
 		if id == candidate.ID {

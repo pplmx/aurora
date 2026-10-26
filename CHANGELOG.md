@@ -200,9 +200,12 @@ documented in their per-milestone ROADMAP files.
   `ui.SearchField` filtering by id/name (and symbol for tokens) as the user
   types, case-insensitively; the NFT search composes with the owner filter, a
   filtered row still fills the forms with its full id, and an empty result says
-  "no match" rather than "nothing stored". The voting Results card also prints
-  the sum of the per-candidate counts, which is what a reader checks before
-  trusting the rows.
+  "no match" rather than "nothing stored". The voting page's candidate and
+  session lists gained the same field (id/name/party and id/title/status), with
+  selection resolved against the filtered rows so a search can never send a
+  different candidate to the roster than the one on screen. The voting Results
+  card also prints the sum of the per-candidate counts, which is what a reader
+  checks before trusting the rows.
 - **The desktop dashboard lists recent chain activity**: the landing page showed
   six counters and a ledger verdict, which answer "how much is there" but not
   "what happened lately". A Recent activity card now lists the newest five
