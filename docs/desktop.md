@@ -245,6 +245,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 
 - **深链**：`aurora://lottery?id=<draw>` 由 `mygo.config.ts` 的 `urlSchemes`
   注册；Linux/Windows 每次启动还会调用 `App.RegisterURLScheme`（无需安装器）。
+  `aurora://` 与 `aurora://index` 明确指向仪表盘（从任何页面都会切回），不会因为
+  “页面为空”而被当成无效链接。
   链接落到对应页面并**自动滚动**到 Verify 面板、填入 id 并立即验票——真实
   窗口实测该请求返回 200，且此前面板在首屏之外（只加自动验票而不滚动，用户
   看不到结论）。已运行的实例通过 `App.OnSecondInstance` 接收后续链接，不会起

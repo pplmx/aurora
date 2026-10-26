@@ -63,7 +63,7 @@ func TestParseFlags(t *testing.T) {
 		{name: "positional rejected", args: []string{"extra"}, wantErr: "unexpected argument"},
 		{name: "positional rejected after version", args: []string{"--version", "extra"}, wantErr: "unexpected argument"},
 		{name: "deep link", args: []string{"aurora://lottery?id=abc"}, mode: ModeRun, opts: Flags{Intent: Intent{Page: "lottery", LotteryID: "abc", Raw: "aurora://lottery?id=abc"}}},
-		{name: "deep link to the dashboard", args: []string{"aurora://"}, mode: ModeRun, opts: Flags{Intent: Intent{Raw: "aurora://"}}},
+		{name: "deep link to the dashboard", args: []string{"aurora://"}, mode: ModeRun, opts: Flags{Intent: Intent{Page: "dashboard", Raw: "aurora://"}}},
 		{name: "deep link with flags", args: []string{"--data-dir", "/d", "aurora://token"}, mode: ModeRun, opts: Flags{DataDir: "/d", Intent: Intent{Page: "token", Raw: "aurora://token"}}},
 		{name: "deep link with trailing flags", args: []string{"aurora://token", "--data-dir", "/d"}, mode: ModeRun, opts: Flags{DataDir: "/d", Intent: Intent{Page: "token", Raw: "aurora://token"}}},
 		{name: "deep link with interspersed flags", args: []string{"aurora://token", "--data-dir=/d"}, mode: ModeRun, opts: Flags{DataDir: "/d", Intent: Intent{Page: "token", Raw: "aurora://token"}}},

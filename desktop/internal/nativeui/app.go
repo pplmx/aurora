@@ -347,6 +347,12 @@ func (a *App) refresh() {
 // empty name leaves the current page alone: a malformed link must not blank
 // the window.
 func (a *App) ShowPage(name string) {
+	// "index" is the old dashboard document; a link or a caller may still
+	// spell the destination that way.
+	if strings.EqualFold(name, "index") {
+		a.setPage(pageDashboard)
+		return
+	}
 	for p, title := range pageTitles {
 		if strings.EqualFold(title, name) {
 			a.setPage(p)

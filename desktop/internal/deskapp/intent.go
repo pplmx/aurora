@@ -33,8 +33,8 @@ type Intent struct {
 	// Raw is the launch argument this intent was parsed from, so the caller
 	// can tell MyGo which argument it has already honored.
 	Raw string
-	// Page is a page of the Web UI without its ".html": "lottery", "voting",
-	// "token", "oracle", "nft", "blockchain". Empty is the dashboard.
+	// Page is a page of the window: "lottery", "voting", "token", "oracle",
+	// "nft", "blockchain", or "dashboard". Empty is treated as the dashboard.
 	Page string
 	// LotteryID is the draw to open on the lottery page, when the link names
 	// one. It is a deep link's payload, not a lookup: an unknown id surfaces
@@ -161,8 +161,11 @@ func parseDeepLink(raw string) (Intent, bool) {
 	if !pages[name] {
 		return Intent{}, false
 	}
-	if name == "index" {
-		name = ""
+	if name == "" || name == "index" {
+		// The dashboard is a page too: a link that names it must navigate
+		// there from another page, not leave the window where it was. Empty
+		// and "index" are the same destination (the root and its document).
+		name = "dashboard"
 	}
 	return Intent{Page: name, LotteryID: u.Query().Get("id")}, true
 }
