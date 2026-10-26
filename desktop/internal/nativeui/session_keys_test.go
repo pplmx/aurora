@@ -93,3 +93,35 @@ func TestVoterRegistrationRemembersTheBallotKey(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "sk-Alice", key)
 }
+
+// TestTransferFromCanUseASavedSpenderKey covers the one operation whose signer
+// public key is not otherwise part of the form: the optional spender field is
+// only a lookup key, and a successful transfer remembers the pair.
+func TestTransferFromCanUseASavedSpenderKey(t *testing.T) {
+	app := New(&fakeServices{tokenRows: []TokenRow{{ID: "t1", Owner: "owner"}}})
+	app.rememberKeys = true
+	app.token.opTab = 3
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	app.token.fromOwner, app.token.fromTo, app.token.fromAmount = "owner", "bob", "5"
+	app.token.fromSpender, app.token.fromPriv = "spender-pk", "spender-sk"
+	app.transferFromToken()
+	require.Equal(t, "spender-sk", app.savedKeyValue(t, "spender-pk"))
+
+	app.token.fromPriv = ""
+	tester.Frame()
+	require.True(t, tester.HasText("Use saved key"))
+	require.NoError(t, tester.Click("Use saved key"))
+	tester.Frame()
+	require.Equal(t, "spender-sk", app.token.fromPriv)
+}
+
+func (a *App) savedKeyValue(t *testing.T, publicKey string) string {
+	t.Helper()
+	key, ok := a.savedKey(publicKey)
+	require.True(t, ok)
+	return key
+}
