@@ -35,8 +35,10 @@ type oracleState struct {
 
 	// selected is the source row chosen, -1 for none.
 	selected int
-	// search narrows the source list by name, id, type or URL.
-	search string
+	// search narrows the source list by name, id, type or URL; appliedSearch
+	// is the query the current highlight belongs to.
+	search        string
+	appliedSearch string
 
 	// askDelete drives the source-deletion confirmation: deleting a source is
 	// irreversible for its scheduling entry, so it gets the same gate as burn.
@@ -98,6 +100,10 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	}
 	srcs := make([]SourceRow, 0, len(a.oracle.sources))
 	ui.SearchField(c, &a.oracle.search).Label("Search sources")
+	if a.oracle.search != a.oracle.appliedSearch {
+		a.oracle.appliedSearch = a.oracle.search
+		a.oracle.selected = -1
+	}
 	for _, source := range a.oracle.sources {
 		if containsFold(a.oracle.search, source.ID, source.Name, source.Type, source.URL) {
 			srcs = append(srcs, source)

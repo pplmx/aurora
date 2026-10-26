@@ -56,6 +56,10 @@ type votingState struct {
 	// filtered row.
 	candSearch    string
 	sessionSearch string
+	// candApplied/sessionApplied are the queries the current highlights
+	// belong to.
+	candApplied    string
+	sessionApplied string
 
 	voterNameErr string
 	candNameErr  string
@@ -295,6 +299,10 @@ func (a *App) votingSessionList(c *ui.Context) {
 	}
 	sessions := make([]SessionRow, 0, len(a.voting.sessions))
 	ui.SearchField(c, &a.voting.sessionSearch).Label("Search sessions")
+	if a.voting.sessionSearch != a.voting.sessionApplied {
+		a.voting.sessionApplied = a.voting.sessionSearch
+		a.voting.sessionChoice = -1
+	}
 	for _, s := range a.voting.sessions {
 		if containsFold(a.voting.sessionSearch, s.ID, s.Title, s.Status) {
 			sessions = append(sessions, s)
@@ -356,6 +364,10 @@ func (a *App) votingCandidateList(c *ui.Context) {
 	}
 	candidates := a.filteredCandidates()
 	ui.SearchField(c, &a.voting.candSearch).Label("Search candidates")
+	if a.voting.candSearch != a.voting.candApplied {
+		a.voting.candApplied = a.voting.candSearch
+		a.voting.candChoice = -1
+	}
 	if len(candidates) == 0 {
 		emptyNote(c, "No candidates match “"+strings.TrimSpace(a.voting.candSearch)+"”.")
 		return
