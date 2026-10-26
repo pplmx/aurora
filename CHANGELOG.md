@@ -316,6 +316,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop no longer keeps a permanent menu bar above the app**: pages
+  are navigated from the sidebar and refreshed from the header, so the
+  File/Edit/Go/View/Window/Help bar was chrome the window did not need. Linux
+  and Windows now auto-hide it until Alt or F10; its shortcuts (Cmd/Ctrl+E/I/B
+  and the page numbers) keep working while it is hidden. macOS keeps its
+  application menu because the platform owns that bar.
 - **The desktop has a high-contrast variant of its palette**: when the OS asks
   for increased contrast, the same polar-night design uses brighter hairlines,
   primary/secondary text, focus ring and selection tint (`auroraTheme(true)`).

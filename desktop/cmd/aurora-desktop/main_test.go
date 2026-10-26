@@ -247,6 +247,8 @@ func TestMainWindowRecreationKeepsStateAndWiring(t *testing.T) {
 		assert.Equal(t, 900, got.MinWidth)
 		assert.Equal(t, 600, got.MinHeight)
 		assert.Equal(t, "#0c2228", got.BackgroundColor)
+		assert.True(t, got.AutoHideMenuBar,
+			"window %d must not keep a permanent File/Edit/View bar above the app", i+1)
 
 		assert.Equal(t, 1, hooks.iconCall, "window %d must get the app icon", i+1)
 		assert.NotEmpty(t, hooks.icon)

@@ -371,6 +371,13 @@ func mainWindowOptions(app *nativeui.App, opts deskapp.Flags) mygo.WindowOptions
 		MinHeight:       600,
 		BackgroundColor: "#0c2228",
 		StateKey:        "main",
+		// The window is its own navigation: pages live in the sidebar and
+		// Refresh in the header, so a permanently visible File/Edit/View bar
+		// only framed content that already has chrome. Hide it until Alt or
+		// F10 asks for it; its shortcuts (Cmd/Ctrl+E/I/B, page numbers) keep
+		// working while it is out of sight. macOS keeps its application menu
+		// because the platform owns that bar.
+		AutoHideMenuBar: true,
 	}
 }
 
