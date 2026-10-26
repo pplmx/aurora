@@ -181,6 +181,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop candidate list can build a session roster**: the Create Session
+  card takes comma-separated candidate ids, so any roster other than "every
+  candidate" meant copying UUIDs out of the shortened candidate table by hand.
+  Choosing a candidate and pressing "Add to session roster" appends it (once)
+  to the form's roster field, and the status line confirms which candidate was
+  added; `TestCandidateCardBuildsACustomRoster` drives the clicks and creates a
+  session from the built roster.
 - **The desktop collections are searchable, and the tally states its total**:
   the Tokens and NFTs lists load every stored row and had no way to narrow them,
   so a long-lived store required scrolling for a name. Each list now has a
