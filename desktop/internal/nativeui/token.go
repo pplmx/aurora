@@ -53,21 +53,24 @@ type tokenState struct {
 	historyLoadedOffset int
 
 	// Write forms.
-	mintTo         string
-	mintAmount     string
-	mintPriv       string
-	xFrom          string
-	xTo            string
-	xAmount        string
-	xPriv          string
-	approveOwner   string
-	approveTo      string
-	approveAmt     string
-	approvePriv    string
-	fromOwner      string
-	fromTo         string
-	fromAmount     string
-	fromPriv       string
+	mintTo       string
+	mintAmount   string
+	mintPriv     string
+	xFrom        string
+	xTo          string
+	xAmount      string
+	xPriv        string
+	approveOwner string
+	approveTo    string
+	approveAmt   string
+	approvePriv  string
+	fromOwner    string
+	fromTo       string
+	fromAmount   string
+	fromPriv     string
+	// fromSpender is optional: it is not sent to the service, but lets a
+	// remembered signer key be offered for Transfer From.
+	fromSpender    string
 	burnFrom       string
 	burnAmount     string
 	burnPriv       string
@@ -304,6 +307,7 @@ func (a *App) applyTokenSubject(owner string) {
 	a.token.mintPriv, a.token.xPriv, a.token.approvePriv = "", "", ""
 	a.token.fromPriv, a.token.burnPriv = "", ""
 	a.token.xTo, a.token.approveTo, a.token.fromTo, a.token.allowanceTo = "", "", "", ""
+	a.token.fromSpender = ""
 	a.token.allowance = ""
 	if owner == "" {
 		return
@@ -584,7 +588,9 @@ func (a *App) tokenWrites(c *ui.Context) {
 			field(c, "Owner (base64 public key)", &a.token.fromOwner)
 			field(c, "To (base64 public key)", &a.token.fromTo)
 			field(c, "Amount", &a.token.fromAmount)
+			fieldHint(c, "Spender public key (optional)", "Used only to find a key saved for this session.", &a.token.fromSpender)
 			field(c, "Spender Private Key", &a.token.fromPriv)
+			a.useSavedKeyButton(c, a.token.fromSpender, &a.token.fromPriv)
 			ui.Row(c).Children(func() {
 				if primaryButton(c, "Transfer From").Clicked() {
 					a.transferFromToken()
@@ -675,12 +681,14 @@ func (a *App) approveToken() {
 }
 
 func (a *App) transferFromToken() {
+	privateKey := strings.TrimSpace(a.token.fromPriv)
 	err := a.services.TransferFromToken(
 		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.fromOwner),
 		strings.TrimSpace(a.token.fromTo), strings.TrimSpace(a.token.fromAmount),
-		strings.TrimSpace(a.token.fromPriv))
+		privateKey)
 	a.token.status = wrapErr(err)
 	if err == nil {
+		a.rememberSuccessfulKey(a.token.fromSpender, privateKey)
 		a.token.fromPriv = ""
 		a.refreshToken()
 	}
