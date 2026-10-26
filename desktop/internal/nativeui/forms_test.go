@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -439,4 +440,19 @@ func TestOraclePresetResetsAndFillsItsInterval(t *testing.T) {
 	require.Empty(t, app.oracle.template, "adding the source must clear the preset choice")
 	require.Zero(t, app.oracle.addInterval)
 	require.Empty(t, app.oracle.addURL)
+}
+
+// TestFailedVerifyClearsThePreviousVerdict pins the Verify card's evidence: a
+// new lookup that fails must not leave the previous draw's "Verified" panel on
+// screen under the new id.
+func TestFailedVerifyClearsThePreviousVerdict(t *testing.T) {
+	fake := &fakeServices{verifyErr: errors.New("lottery not found")}
+	app := New(fake)
+	app.lottery.verifyResult = &VerifyResult{ID: "old-draw", Valid: true}
+	app.lottery.verifyID = "new-draw"
+
+	app.verifyLottery()
+
+	require.Nil(t, app.lottery.verifyResult, "a failed lookup must clear the old verdict")
+	require.Contains(t, app.lottery.verifyErr, "not found")
 }

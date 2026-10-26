@@ -249,6 +249,10 @@ func (a *App) lotteryVerify(c *ui.Context) {
 
 func (a *App) verifyLottery() {
 	a.lottery.verifyErr = ""
+	// A new attempt replaces the evidence: the previous verdict belongs to the
+	// id that was in the field before, and a failed lookup must not leave it
+	// looking current.
+	a.lottery.verifyResult = nil
 	id := strings.TrimSpace(a.lottery.verifyID)
 	if id == "" {
 		a.lottery.verifyErr = "Enter a lottery ID or block height."

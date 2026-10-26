@@ -55,6 +55,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A failed desktop verification clears the previous verdict**: the Verify card
+  kept the last draw's "Verified" panel while the field named a new id and the
+  new lookup failed, so old evidence looked current. A new attempt clears the
+  verdict before looking, leaving only the field error on failure; the test
+  makes the second lookup fail and asserts the verdict is gone.
 - **An import refreshes the page behind its result dialog**: importing a lottery
   export through the File menu, a drop or a forwarded second launch stored the
   rows but left the lottery history as it was, so dismissing "Imported N"
