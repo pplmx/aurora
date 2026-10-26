@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 273,
+  "round": 274,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T15:14:15+00:00",
+  "updated_at": "2026-10-26T15:16:53+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20289,7 +20289,7 @@
       "version": 2,
       "created_at": "2026-10-26T08:07:13+00:00",
       "updated_at": "2026-10-26T08:07:21+00:00",
-      "touched_round": 264,
+      "touched_round": 273,
       "category": "core-feature",
       "title": "Simplify the desktop first move and token workflow",
       "description": "Add dashboard Quick start and task-shaped page purposes; hide advanced fields behind disclosures; prefill owner accounts and clear old secrets on token selection/create; reuse a generated owner key; highlight created records. Pin each path with view tests.",
@@ -20632,6 +20632,18 @@
       "commit": "840eb2b",
       "title": "Clear session keys when memory is disabled",
       "description": "Unchecking the Settings policy forgets held keys; voter registration enters the ring when enabled."
+    },
+    "CHG-471": {
+      "id": "CHG-471",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T15:16:53+00:00",
+      "updated_at": "2026-10-26T15:16:53+00:00",
+      "touched_round": 273,
+      "commit": "e3616e0",
+      "title": "Load tally/readings with their stage",
+      "description": "Results loads the selected session; Readings queries the selected source and latest value; keys prevent per-frame repeats."
     }
   },
   "edges": [
@@ -31387,6 +31399,12 @@
       "to": "TASK-408",
       "type": "implements",
       "created_at": "2026-10-26T15:14:15+00:00"
+    },
+    {
+      "from": "CHG-471",
+      "to": "TASK-401",
+      "type": "implements",
+      "created_at": "2026-10-26T15:16:53+00:00"
     }
   ]
 }
