@@ -465,6 +465,25 @@ func (a *App) castVote() {
 	}
 	a.voting.voteResult = "Ballot recorded."
 	a.voting.votePriv = ""
+	sessionID := strings.TrimSpace(a.voting.voteSession)
+	a.loadVoting()
+	// A tally already on screen for this session must include the ballot that
+	// was just accepted; leaving the old numbers beside "Ballot recorded" read
+	// as a vote that did not count. A failed refresh keeps the old rows rather
+	// than replacing them with an error for a write that succeeded.
+	if sessionID != "" && sessionID == strings.TrimSpace(a.voting.resultsSession) && len(a.voting.results) > 0 {
+		_ = a.loadSessionResults(sessionID)
+	}
+}
+
+// loadSessionResults reads a session's tally into the Results card.
+func (a *App) loadSessionResults(sessionID string) error {
+	rows, err := a.services.SessionResults(sessionID)
+	if err != nil {
+		return err
+	}
+	a.voting.results = rows
+	return nil
 }
 
 // sessionWindow renders a session's acceptance window as a compact pair of
@@ -487,12 +506,10 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	field(c, "Session ID", &a.voting.resultsSession)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Show Results").Clicked() {
-			rows, err := a.services.SessionResults(strings.TrimSpace(a.voting.resultsSession))
-			if err != nil {
+			if err := a.loadSessionResults(strings.TrimSpace(a.voting.resultsSession)); err != nil {
 				a.voting.results = nil
 				a.voting.status = errStatus(err)
 			} else {
-				a.voting.results = rows
 				a.voting.status = statusLine{}
 			}
 		}

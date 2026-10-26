@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -274,9 +275,35 @@ func (a *App) nftWrite(c *ui.Context) {
 
 // transferNFT moves the asset named by the Transfer card.
 func (a *App) transferNFT() {
-	a.nft.status = wrapErr(a.services.TransferNFT(
+	err := a.services.TransferNFT(
 		strings.TrimSpace(a.nft.transferID), strings.TrimSpace(a.nft.from),
-		strings.TrimSpace(a.nft.to), strings.TrimSpace(a.nft.priv)))
+		strings.TrimSpace(a.nft.to), strings.TrimSpace(a.nft.priv))
+	a.nft.status = wrapErr(err)
+	if err == nil {
+		a.refreshNFT(strings.TrimSpace(a.nft.transferID))
+	}
+}
+
+// refreshNFT re-reads what a write just changed: the collection, plus the
+// Inspect readout and history when they are already showing id. A successful
+// transfer that left the old owner in the collection read as a failed write.
+func (a *App) refreshNFT(id string) {
+	a.loadNFT()
+	if id == "" {
+		return
+	}
+	if a.nft.nft != nil && a.nft.nft.ID == id {
+		if updated, err := a.services.GetNFT(id); err == nil {
+			a.nft.nft = &updated
+		} else {
+			a.nft.nft = nil
+		}
+	}
+	if a.nft.historyID == id && len(a.nft.history) > 0 {
+		if ops, err := a.services.NFTHistory(id); err == nil {
+			a.nft.history = ops
+		}
+	}
 }
 
 func (a *App) nftHistoryTable(c *ui.Context) {
@@ -309,13 +336,25 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 	if !a.nft.askBurn {
 		return
 	}
-	switch ui.AlertDialog(c, &a.nft.askBurn,
-		"Burn this NFT?",
-		"The asset is destroyed and cannot be recovered.",
-		"Cancel", "Burn") {
+	// Say which asset is about to be destroyed. A name is friendlier than a
+	// UUID, but only when the Inspect card loaded that same asset.
+	detail := "The asset is destroyed and cannot be recovered."
+	if id := strings.TrimSpace(a.nft.burnID); id != "" {
+		target := shortID(id)
+		if a.nft.nft != nil && a.nft.nft.ID == id && a.nft.nft.Name != "" {
+			target = a.nft.nft.Name + " (" + shortID(id) + ")"
+		}
+		detail = fmt.Sprintf("Burn %s? The asset is destroyed and cannot be recovered.", target)
+	}
+	switch ui.AlertDialog(c, &a.nft.askBurn, "Burn this NFT?", detail, "Cancel", "Burn") {
 	case 1:
-		a.nft.status = wrapErr(a.services.BurnNFT(
-			strings.TrimSpace(a.nft.burnID), strings.TrimSpace(a.nft.burnOwner),
-			strings.TrimSpace(a.nft.burnPriv)))
+		id := strings.TrimSpace(a.nft.burnID)
+		err := a.services.BurnNFT(id, strings.TrimSpace(a.nft.burnOwner), strings.TrimSpace(a.nft.burnPriv))
+		a.nft.status = wrapErr(err)
+		if err == nil {
+			// The same refresh clears the Inspect readout (the asset is gone)
+			// and re-reads the history, which now ends with the burn.
+			a.refreshNFT(id)
+		}
 	}
 }

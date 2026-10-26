@@ -49,6 +49,24 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Desktop pages re-read what a write changed**: a successful mint, transfer,
+  approve, burn or NFT write left the collection, the Inspect readout, the
+  loaded history and an open tally at their pre-write values, so "Done" sat
+  beside stale numbers and the write looked like it had done nothing. Each
+  success now refreshes exactly what the page is showing (a closed readout is
+  not fetched), and a failed refresh keeps the previous rows rather than
+  replacing a successful write with an error. `refresh_test.go` counts the
+  read calls through the fake services and fails when a refresh disappears.
+- **Desktop destructive confirmations name what they destroy, and copies are
+  confirmed in place**: the token burn dialog said only "Burn tokens?", the NFT
+  dialog "Burn this NFT?" and the oracle dialog "Delete this source?", leaving
+  the operator to trust whichever values the shared id/amount fields held
+  before an irreversible write. They now name the amount and account, the
+  asset (its name when Inspect loaded it, its shortened id otherwise) and the
+  source. Copy buttons also raise a `c.Toast` ("Private key is on the
+  clipboard") because the page's status line sits above the cards and is often
+  scrolled out of view; `confirmation_test.go` drives all four dialogs/toasts
+  through `ui.Tester`.
 - **The desktop session form edits local dates and times, not epoch seconds**:
   creating a voting session from the window required typing two Unix
   timestamps, which needed a clock and a converter outside the app. The card
