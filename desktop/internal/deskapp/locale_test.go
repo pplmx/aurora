@@ -69,32 +69,6 @@ func TestSyncLocale(t *testing.T) {
 	assert.Equal(t, "en", tr.GetLocale())
 }
 
-// TestMenuLabelsFollowTheLocale is the defect this work exists for: MyGo
-// translates the labels of the items that carry a role ("File" as
-// RoleFileMenu, "Quit", "Edit"), so a zh-CN session showed 文件/编辑/退出
-// beside Aurora's hardcoded "Export Lotteries..." and "Back Up Database...".
-// One menu, two languages.
-func TestMenuLabelsFollowTheLocale(t *testing.T) {
-	label := func(menu *mygo.Menu, id string) string {
-		item := menu.ItemByID(id)
-		require.NotNil(t, item, "the menu must have %q", id)
-		return item.Label
-	}
-
-	withLocale(t, "en", func() {
-		menu := NewMenu(About{}, nil, nil)
-		assert.Equal(t, "Export Lotteries...", label(menu, "export-lotteries"))
-		assert.Equal(t, "Import Lotteries...", label(menu, "import-lotteries"))
-	})
-
-	withLocale(t, "zh", func() {
-		menu := NewMenu(About{}, nil, nil)
-		assert.Equal(t, "导出抽奖记录…", label(menu, "export-lotteries"),
-			"the menu Aurora writes itself must not stay English in a zh session")
-		assert.Equal(t, "导入抽奖记录…", label(menu, "import-lotteries"))
-	})
-}
-
 // TestImportReportFollowsTheLocale extends the single-source contract to the
 // wording: the three import entry points already share importReport, so
 // localizing there localizes all of them at once.
@@ -191,49 +165,11 @@ func TestFlagErrorsFollowTheLocale(t *testing.T) {
 	})
 }
 
-// TestLanguageMenuSwitchesAndTicks covers the run-time switcher: MyGo
-// persists SetLocale and relabels its own roles, and FollowAppLocale rebuilds
-// Aurora's labels; the radio group has to show which language is in effect
-// after that rebuild, because a new menu starts with nothing ticked.
-func TestLanguageMenuSwitchesAndTicks(t *testing.T) {
-	original := appLocale
-	t.Cleanup(func() { appLocale = original })
-
-	appLocale = func() string { return "zh-Hans" }
-	menu := NewMenu(About{}, nil, nil)
-
-	// Each item says its language in itself, so it reads the same whatever
-	// language the app is in (MyGo's own convention for a language menu).
-	withLocale(t, "en", func() {
-		menu = NewMenu(About{}, nil, nil)
-	})
-	require.NotNil(t, menu.ItemByID(languageSimplifiedID))
-	require.NotNil(t, menu.ItemByID(languageTraditionalID))
-	assert.Equal(t, "简体中文", menu.ItemByID(languageSimplifiedID).Label)
-
-	MarkLanguage(menu)
-	assert.True(t, menu.ItemByID(languageSimplifiedID).IsChecked())
-	assert.False(t, menu.ItemByID(languageEnglishID).IsChecked())
-
-	appLocale = func() string { return "en" }
-	MarkLanguage(menu)
-	assert.True(t, menu.ItemByID(languageEnglishID).IsChecked())
-	assert.False(t, menu.ItemByID(languageSimplifiedID).IsChecked(),
-		"a radio group must not leave two languages ticked")
-
-	// A pseudo locale (en-XA, a translation test) matches no item.
-	appLocale = func() string { return "en-XA" }
-	MarkLanguage(menu)
-	for _, id := range []string{languageEnglishID, languageSimplifiedID, languageTraditionalID} {
-		assert.False(t, menu.ItemByID(id).IsChecked(), "%s must not be ticked for en-XA", id)
-	}
-}
-
-// TestLanguageSwitchRebuildsTheMenu is the wiring a live window would use:
-// MyGo hears SetLocale, FollowAppLocale's listener follows it, and the menu
-// callback rebuilds the bar. The translator and the menu must move together,
-// or the rebuilt menu is built in the old language.
-func TestLanguageSwitchRebuildsTheMenu(t *testing.T) {
+// TestLanguageSwitchNotifiesTheWindow is the wiring a live window uses: MyGo
+// hears SetLocale, FollowAppLocale's listener follows it, and the callback
+// redraws the window so the sidebar Actions labels are rebuilt in the new
+// language. The translator and the redraw must move together.
+func TestLanguageSwitchNotifiesTheWindow(t *testing.T) {
 	tr := i18n.GetTranslator()
 	before := tr.GetLocale()
 	t.Cleanup(func() { tr.SetLocale(before) })
@@ -252,7 +188,7 @@ func TestLanguageSwitchRebuildsTheMenu(t *testing.T) {
 	require.NotNil(t, heard)
 	heard(current)
 	assert.Equal(t, "zh", tr.GetLocale(), "the translator must follow MyGo")
-	assert.Equal(t, 1, rebuilds, "the menu must be rebuilt in the new language")
+	assert.Equal(t, 1, rebuilds, "the window must be redrawn in the new language")
 
 	// A second listener call for the same language is not another change:
 	// rebuilding on every event would make the menu flicker for nothing.

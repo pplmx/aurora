@@ -110,9 +110,9 @@ func syncLocale(tag string) bool {
 // language at run time.
 //
 // onChange runs after a change, and only then: MyGo relabels the items that
-// carry a role itself, but a label Aurora wrote is baked into the menu when
-// NewMenu builds it, so the caller rebuilds the menu. It must be called once
-// the app is ready (App.Locale needs the running backend).
+// carry a platform role itself, and the window's Actions menu reads the
+// translator on its next frame, so the caller redraws the window. It must be
+// called once the app is ready (App.Locale needs the running backend).
 func FollowAppLocale(onChange func()) {
 	followLocale(appLocale, mygo.App.OnLocaleChanged, onChange)
 }

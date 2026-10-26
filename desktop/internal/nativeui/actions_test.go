@@ -96,6 +96,29 @@ func TestActionShortcutsSurviveTheMissingMenu(t *testing.T) {
 	require.Equal(t, []string{"export", "import", "backup"}, calls)
 }
 
+// TestActionsMenuFollowsTheLanguage proves the one piece of Aurora text in
+// the window follows the translator. The native menu used to carry these
+// labels; now the sidebar does.
+func TestActionsMenuFollowsTheLanguage(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	app := New(&fakeServices{})
+	app.SetActions(Actions{BackUpDatabase: func() {}})
+	tester := ui.NewTester(app.View, 1280, 860)
+
+	tr.SetLocale("en")
+	tester.Frame()
+	require.True(t, tester.HasText("Actions"))
+
+	tr.SetLocale("zh")
+	tester.Frame()
+	require.True(t, tester.HasText("操作"))
+	require.NoError(t, tester.Click("操作"))
+	require.Contains(t, tester.Menu(), "备份数据库…")
+}
+
 // TestNoActionsMeansNoActionsButton keeps view tests and a window built before
 // the shell is ready free of a dead control at the bottom of the sidebar.
 func TestNoActionsMeansNoActionsButton(t *testing.T) {

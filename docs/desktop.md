@@ -211,9 +211,10 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   横栏。Linux/Windows 现在根本不安装应用菜单（`AutoHideMenuBar` 只作为宿主或
   工具包仍装了菜单时的兜底），Cmd/Ctrl+E/I/B 由窗口自己注册并继续生效。备份、
   导出、导入、打开数据目录、最近打开、关于和语言切换移到了侧栏底部的
-  **Actions** 菜单（`ui.MenuButton`），不需要记快捷键就能找到；macOS 的菜单栏
-  归系统所有，仍保留应用菜单及其原生快捷键。
-- **菜单**：File → Back Up Database… 调用与 CLI 相同的 `BackupService`
+  **Actions** 菜单（`ui.MenuButton`），不需要记快捷键就能找到。macOS 的菜单栏
+  归系统所有、无法移除，因此只保留平台角色（应用菜单、File→Close、Edit、
+  Window）；Aurora 自己的动作在三端都只在侧栏 Actions 里出现，菜单内容不再分叉。
+- **文件动作**：Actions → Back Up Database… 调用与 CLI 相同的 `BackupService`
   （WAL 完整快照 + 校验和）；Export/Import Lotteries 调用与
   `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、同一覆盖
   保护），导出目标经同目录临时文件原子替换，写入失败不会先清空上一份导出；
@@ -222,8 +223,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   会被拒绝，不会把数据库盖成 JSON。About 显示版本、构建时间与数据库
   路径。所有弹窗都带 `Parent`：文件选择器与结果框挂在发起操作的窗口上
   （macOS 上是 sheet，其他平台是子模态），而不是可以留在背后的游离窗口。
-- **Open Recent**：File → Open Recent 由 MyGo 维护（用户数据目录的
-  `recent-documents.json`，同时写入系统自己的最近文档列表）。菜单导入/导出、
+- **Open Recent**：Actions → Open Recent 由 MyGo 维护（用户数据目录的
+  `recent-documents.json`，同时写入系统自己的最近文档列表）。Actions 导入/导出、
   拖放与命令行导入成功后都会记录路径；选中一项仍走 `OnOpenFile` 的同一条导入
   路径，覆盖保护与重复记录保护照常生效。记录只在 `App.IsReady()` 之后进行——
   `App.AddRecentDocument` 会向主线程投递并等待，`Run` 之前调用会卡住启动；
