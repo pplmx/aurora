@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/pplmx/aurora/internal/app/nftapp"
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/i18n"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
 )

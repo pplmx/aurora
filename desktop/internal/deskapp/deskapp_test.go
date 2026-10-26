@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
-	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/logger"
 )
 

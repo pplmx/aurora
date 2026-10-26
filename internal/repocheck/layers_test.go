@@ -26,12 +26,12 @@ func TestLayerDependencies(t *testing.T) {
 	}{
 		{
 			dir:    "internal/domain",
-			forbid: []string{"internal/infra", "internal/app", "internal/api", "internal/blockchain"},
+			forbid: []string{"internal/infra", "internal/app", "internal/api"},
 			why:    "domain must not reach into application, transport, storage or the ledger implementation",
 		},
 		{
 			dir:    "internal/app",
-			forbid: []string{"internal/infra", "internal/blockchain"},
+			forbid: []string{"internal/infra"},
 			why:    "use cases must use domain/ledger ports, not storage, HTTP or the ledger implementation",
 		},
 		{

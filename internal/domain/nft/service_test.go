@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 )
 
 func TestNFTService_VerifyTransfer_Valid(t *testing.T) {

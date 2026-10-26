@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 )
 
 // BlockchainHandler exposes the chain's integrity verification over the REST

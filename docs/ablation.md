@@ -195,10 +195,11 @@ golangci-lint is lower than the targeted Go version (1.27.2)`。CI 固定使用
 - 让 Oracle `GetData` 对不存在的记录返回错误后，对应“空结果是 nil, nil”回归
   测试失败；恢复后通过。
 
-## 已知架构债务：`internal/blockchain` 承担了存储职责（2026-10-25）
+## 已知架构债务：`internal/infra/blockchain` 承担了存储职责（2026-10-25）
 
-`internal/blockchain` 既是共享的账本子系统（区块、哈希链、PoW），也是存储层；
-它已从 `internal/domain/` 移出，避免把数据库引导代码藏在领域目录里：
+`internal/infra/blockchain` 是共享账本的实现（区块、哈希链、PoW 与存储）；
+端口在 `internal/ledger`，实现已从 `internal/domain/` 移到 infra，避免把数据库
+引导代码藏在领域目录里：
 
 - `init.go` 直接 `sql.Open` 并维护进程级 `dbInstance` 单例；
 - 每个 `Chain` 方法自己读写 `blocks` 表，没有仓储接口；

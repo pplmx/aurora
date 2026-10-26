@@ -8,7 +8,7 @@ import (
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/app/tokenapp"
 	"github.com/pplmx/aurora/internal/app/votingapp"
-	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/stretchr/testify/require"
 )
 

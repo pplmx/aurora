@@ -16,7 +16,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/migrate"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"

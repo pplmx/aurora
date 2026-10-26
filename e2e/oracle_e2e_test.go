@@ -3,8 +3,8 @@ package test
 import (
 	"testing"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 )
 
 func TestOracleE2E_DataSourceCreation(t *testing.T) {

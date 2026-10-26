@@ -6,10 +6,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/stretchr/testify/assert"
 )
 

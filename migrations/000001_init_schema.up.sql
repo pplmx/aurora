@@ -9,7 +9,7 @@
 -- schema migrations.
 
 -- Blockchain blocks table.
--- Schema matches internal/blockchain/init.go's CREATE TABLE exactly
+-- Schema matches internal/infra/blockchain/init.go's CREATE TABLE exactly
 -- (height PRIMARY KEY, timestamp column, no synthetic id). The previous
 -- draft here (id AUTOINCREMENT + height UNIQUE + no timestamp) contradicted
 -- what Init actually creates and inserts, so a freshly migrated
