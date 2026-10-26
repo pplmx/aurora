@@ -45,6 +45,9 @@ type blockchainState struct {
 	rows    []BlockRow
 	table   ui.ListState
 	loadErr error
+	// blocksErr is the last failure to read the chain entries; the rows from
+	// the previous successful read stay with a stale note.
+	blocksErr error
 	// search narrows the chain by module, payload or height, and blockLimit
 	// bounds how many matching rows the table builds; the counters above it
 	// still describe the whole chain.
@@ -181,8 +184,11 @@ func (a *App) loadBlockchain() {
 	a.blockchain.height = res.Height
 	a.blockchain.blocks = res.Blocks
 	// The blocks themselves are what an auditor reads; the counters alone say
-	// how much chain there is, not what it recorded.
-	if rows, err := a.services.LedgerBlocks(0); err == nil {
+	// how much chain there is, not what it recorded. A failure here is its own
+	// warning: the counters and the verdict above it are still valid.
+	rows, blocksErr := a.services.LedgerBlocks(0)
+	a.blockchain.blocksErr = blocksErr
+	if blocksErr == nil {
 		a.blockchain.rows = rows
 	}
 }
@@ -224,6 +230,10 @@ func (a *App) blockchainBody(c *ui.Context) {
 // tens of thousands of entries, and building every row each frame is work the
 // reader did not ask for.
 func (a *App) blockchainBlocks(c *ui.Context) {
+	if a.blockchain.blocksErr != nil &&
+		!loadWarning(c, "Couldn't read chain blocks", a.blockchain.blocksErr, len(a.blockchain.rows) > 0) {
+		return
+	}
 	if len(a.blockchain.rows) == 0 {
 		emptyNote(c, "Nothing recorded on the chain yet.")
 		return
