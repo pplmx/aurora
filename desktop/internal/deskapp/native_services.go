@@ -1,6 +1,8 @@
 package deskapp
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -414,6 +416,17 @@ func (s *nativeServices) setSessionStatus(id, status string) error {
 	}
 	session.Status = status
 	return s.votingRepo.UpdateSession(session)
+}
+
+// GenerateKeyPair makes the Ed25519 key pair a token owner or NFT creator
+// needs. The CLI generates one when the flag is omitted; without this the
+// window could not create a token at all without an external key generator.
+func (s *nativeServices) GenerateKeyPair() (string, string, error) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return "", "", err
+	}
+	return base64.StdEncoding.EncodeToString(pub), base64.StdEncoding.EncodeToString(priv), nil
 }
 
 // --- Token ---------------------------------------------------------------

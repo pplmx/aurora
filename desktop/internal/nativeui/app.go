@@ -58,6 +58,11 @@ type Services interface {
 	StartSession(id string) error
 	EndSession(id string) error
 
+	// GenerateKeyPair makes an Ed25519 key pair (base64 public and private) for a
+	// form that needs an owner or creator key; the CLI generates one when the
+	// user omits it.
+	GenerateKeyPair() (publicKey, privateKey string, err error)
+
 	// Token surface.
 	CreateToken(name, symbol, supply, owner string, decimals int) (TokenRow, error)
 	TokenInfo(id string) (TokenRow, error)

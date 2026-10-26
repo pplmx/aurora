@@ -11,6 +11,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **The desktop can generate the owner/creator key it asks for**: the token and
+  NFT forms required a base64 public key that nothing in the window produced,
+  although `aurora token create` generates an owner pair when the flag is
+  omitted. Both forms now have "Generate key pair": the public half fills the
+  field, the private half is shown once with Copy and a Dismiss button, and the
+  key-generation service is the descriptor's own `GenerateKeyPair`.
 - **The desktop window has a visual design of its own**: `nativeui/theme.go` is
   the single palette — a polar-night background, one raised card surface,
   Aurora's accent and three status hues — applied on every frame instead of
