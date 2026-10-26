@@ -68,7 +68,6 @@ func (a *App) loadOracle() {
 
 func (a *App) oracleView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
-		renderStatus(c, a.oracle.status)
 		// The add form is the tallest card on the page, so it gets a column of
 		// its own; the short read cards fill the other one.
 		twoColumns(c, func() {

@@ -49,6 +49,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop outcome line no longer scrolls away**: each page drew its
+  `statusLine` as the first child of the scrolling body (and the Token page
+  drew it inside the left column), so an action near the bottom of a form could
+  report "Failed" above the viewport while the form looked unchanged — easy to
+  read as success. The line is now rendered once in the fixed chrome below the
+  page header, chosen by `pageStatus()`; `design_test.go` scrolls the body and
+  fails if the line moves.
 - **Desktop pages re-read what a write changed**: a successful mint, transfer,
   approve, burn or NFT write left the collection, the Inspect readout, the
   loaded history and an open tally at their pre-write values, so "Done" sat

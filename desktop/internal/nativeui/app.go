@@ -170,9 +170,32 @@ func (a *App) View(c *ui.Context) {
 		a.sidebarColumn(c)
 		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).Children(func() {
 			a.header(c)
+			// The outcome of the last action lives in the fixed part of the
+			// window, not at the top of the scrolling body: an action at the
+			// bottom of a form could report a failure above the viewport, and
+			// the operator would see the form unchanged and assume it worked.
+			renderStatus(c, a.pageStatus())
 			a.body(c)
 		})
 	})
+}
+
+// pageStatus is the transient outcome line of the current page.
+func (a *App) pageStatus() statusLine {
+	switch a.page {
+	case pageLottery:
+		return a.lottery.status
+	case pageVoting:
+		return a.voting.status
+	case pageToken:
+		return a.token.status
+	case pageOracle:
+		return a.oracle.status
+	case pageNFT:
+		return a.nft.status
+	default:
+		return statusLine{}
+	}
 }
 
 // sidebarColumn is the chrome around the module list: the app's name, then the

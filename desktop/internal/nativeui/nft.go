@@ -82,7 +82,6 @@ func (a *App) loadNFT() {
 
 func (a *App) nftView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
-		renderStatus(c, a.nft.status)
 		// The collection leads: what exists comes before adding to it, and the
 		// cards below act on the row it selects.
 		twoColumns(c, func() {

@@ -89,10 +89,6 @@ func (a *App) loadToken() {
 func (a *App) tokenView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
 		twoColumns(c, func() {
-			// One status line for the whole page: every action on it
-			// writes to a.token.status, so drawing it inside the Create
-			// card hid the outcome of mint, transfer, approve and burn.
-			renderStatus(c, a.token.status)
 			a.tokenList(c)
 			a.tokenCreate(c)
 			a.tokenRead(c)

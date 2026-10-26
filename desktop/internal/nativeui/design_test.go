@@ -52,3 +52,32 @@ func TestHeaderNamesThePageAndItsPurpose(t *testing.T) {
 		require.Truef(t, tester.HasText(pagePurpose[p]), "header must state the purpose of %q", pageTitles[p])
 	}
 }
+
+// TestStatusStaysInTheFixedChrome pins where an action's outcome is drawn.
+// The status line used to be the first child of each page's scrolling body, so
+// a failure from a form near the bottom could sit above the viewport: the
+// operator saw the form unchanged and assumed the write had worked.
+func TestStatusStaysInTheFixedChrome(t *testing.T) {
+	app := New(&fakeServices{tokenRows: []TokenRow{{ID: "t1", Name: "Gold", TotalSupply: "100"}}})
+	tester := ui.NewTester(app.View, 1000, 600)
+	app.ShowPage("Token")
+	app.token.status = okStatus("Saved.")
+	tester.Frame()
+
+	headingBefore, ok := tester.Find("Create Token")
+	require.True(t, ok, "the form heading must be on screen before scrolling")
+	statusBefore, ok := tester.Find("Saved.")
+	require.True(t, ok, "the status line must be on screen before scrolling")
+
+	tester.Scroll(700, 400, 0, 120)
+	tester.Frame()
+
+	headingAfter, ok := tester.Find("Create Token")
+	require.True(t, ok, "the body must still show the form heading")
+	require.Less(t, headingAfter.Y, headingBefore.Y, "the body must actually scroll")
+
+	statusAfter, ok := tester.Find("Saved.")
+	require.True(t, ok, "the status line must remain on screen while the body scrolls")
+	require.InDelta(t, float64(statusBefore.Y), float64(statusAfter.Y), 0.5,
+		"the status line is fixed chrome: only the body may move")
+}
