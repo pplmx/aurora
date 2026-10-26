@@ -160,8 +160,21 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 			a.loadOracle()
 		}
 		if secondaryButton(c, "Fetch now").Clicked() {
-			a.oracle.status = wrapErr(a.services.FetchOracleSource(strings.TrimSpace(a.oracle.fetchID)))
+			sourceID := strings.TrimSpace(a.oracle.fetchID)
+			err := a.services.FetchOracleSource(sourceID)
+			a.oracle.status = wrapErr(err)
 			a.loadOracle()
+			if err == nil {
+				// A reading just stored must appear in the read cards already
+				// showing that source; leaving the old value beside "Done"
+				// reads as a fetch that stored nothing.
+				if strings.TrimSpace(a.oracle.queryID) == sourceID && len(a.oracle.data) > 0 {
+					_ = a.loadOracleData(sourceID, a.oracleQueryLimit())
+				}
+				if strings.TrimSpace(a.oracle.latestID) == sourceID && a.oracle.latest != nil {
+					_ = a.loadOracleLatest(sourceID)
+				}
+			}
 		}
 		if dangerButton(c, "Delete").Clicked() {
 			a.oracle.askDelete = true
@@ -190,9 +203,27 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 	}
 	switch ui.AlertDialog(c, &a.oracle.askDelete, "Delete this source?", detail, "Cancel", "Delete") {
 	case 1:
-		a.oracle.status = wrapErr(a.services.DeleteOracleSource(strings.TrimSpace(a.oracle.fetchID)))
-		a.loadOracle()
+		a.deleteOracleSource()
 	}
+}
+
+// deleteOracleSource removes the source named by the action field. The cards
+// showing its readings are cleared when they belong to it: their rows are gone
+// from the source's point of view, and leaving them beside the deletion result
+// would suggest the readings still describe a live feed.
+func (a *App) deleteOracleSource() {
+	id := strings.TrimSpace(a.oracle.fetchID)
+	err := a.services.DeleteOracleSource(id)
+	a.oracle.status = wrapErr(err)
+	if err == nil {
+		if strings.TrimSpace(a.oracle.queryID) == id {
+			a.oracle.data = nil
+		}
+		if strings.TrimSpace(a.oracle.latestID) == id {
+			a.oracle.latest = nil
+		}
+	}
+	a.loadOracle()
 }
 
 func (a *App) oracleAdd(c *ui.Context) {
@@ -340,18 +371,11 @@ func (a *App) oracleReadBody(c *ui.Context) {
 	field(c, "Limit", &a.oracle.queryLim)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Query").Clicked() {
-			limit := 20
-			if s := strings.TrimSpace(a.oracle.queryLim); s != "" {
-				if n, err := strconv.Atoi(s); err == nil && n > 0 {
-					limit = n
-				}
-			}
-			rows, err := a.services.OracleData(strings.TrimSpace(a.oracle.queryID), limit)
-			if err != nil {
+			sourceID := strings.TrimSpace(a.oracle.queryID)
+			if err := a.loadOracleData(sourceID, a.oracleQueryLimit()); err != nil {
 				a.oracle.status = errStatus(err)
 				a.oracle.data = nil
 			} else {
-				a.oracle.data = rows
 				a.oracle.status = statusLine{}
 			}
 		}
@@ -372,6 +396,38 @@ func (a *App) oracleReadBody(c *ui.Context) {
 	}
 }
 
+// oracleQueryLimit is the Query card's limit: 20 unless the field names a
+// positive number.
+func (a *App) oracleQueryLimit() int {
+	limit := 20
+	if s := strings.TrimSpace(a.oracle.queryLim); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	return limit
+}
+
+// loadOracleData reads a source's recent values into the Query card.
+func (a *App) loadOracleData(sourceID string, limit int) error {
+	rows, err := a.services.OracleData(sourceID, limit)
+	if err != nil {
+		return err
+	}
+	a.oracle.data = rows
+	return nil
+}
+
+// loadOracleLatest reads a source's newest value into the Latest card.
+func (a *App) loadOracleLatest(sourceID string) error {
+	data, err := a.services.OracleLatest(sourceID)
+	if err != nil {
+		return err
+	}
+	a.oracle.latest = &data
+	return nil
+}
+
 // oracleLatest draws the single-value read. It is its own section rather than
 // the tail of Query Data: a query that returns nothing used to return early
 // and hide this form entirely, so the one control that answers "what is the
@@ -386,12 +442,10 @@ func (a *App) oracleLatestBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.latestID)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get Latest").Clicked() {
-			d, err := a.services.OracleLatest(strings.TrimSpace(a.oracle.latestID))
-			if err != nil {
+			if err := a.loadOracleLatest(strings.TrimSpace(a.oracle.latestID)); err != nil {
 				a.oracle.status = errStatus(err)
 				a.oracle.latest = nil
 			} else {
-				a.oracle.latest = &d
 				a.oracle.status = statusLine{}
 			}
 		}

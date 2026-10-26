@@ -62,6 +62,8 @@ type fakeServices struct {
 	listAllNFTsCalls    int
 	nftHistoryCalls     int
 	sessionResultsCalls int
+	oracleDataCalls     int
+	oracleLatestCalls   int
 }
 
 // fakeLoadErrors is one failure hook per read a page performs.
@@ -184,12 +186,18 @@ func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) { return f.templ
 func (f *fakeServices) AddOracleSource(in SourceInput) (SourceRow, error) {
 	return SourceRow{ID: "src"}, nil
 }
-func (f *fakeServices) DeleteOracleSource(id string) error                       { return nil }
-func (f *fakeServices) SetOracleSourceEnabled(id string, enabled bool) error     { return nil }
-func (f *fakeServices) FetchOracleSource(id string) error                        { return nil }
-func (f *fakeServices) OracleData(sourceID string, limit int) ([]DataRow, error) { return nil, nil }
-func (f *fakeServices) OracleLatest(sourceID string) (DataRow, error)            { return DataRow{}, nil }
-func (f *fakeServices) OracleHealth() ([]HealthRow, error)                       { return nil, nil }
+func (f *fakeServices) DeleteOracleSource(id string) error                   { return nil }
+func (f *fakeServices) SetOracleSourceEnabled(id string, enabled bool) error { return nil }
+func (f *fakeServices) FetchOracleSource(id string) error                    { return nil }
+func (f *fakeServices) OracleData(sourceID string, limit int) ([]DataRow, error) {
+	f.oracleDataCalls++
+	return nil, nil
+}
+func (f *fakeServices) OracleLatest(sourceID string) (DataRow, error) {
+	f.oracleLatestCalls++
+	return DataRow{}, nil
+}
+func (f *fakeServices) OracleHealth() ([]HealthRow, error) { return nil, nil }
 
 func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator string) (NFTRow, error) {
 	return NFTRow{ID: "n1", Name: name, Owner: creator}, nil
