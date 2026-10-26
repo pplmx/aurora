@@ -159,7 +159,8 @@ func TestSessionWindowIsEditedAsLocalTime(t *testing.T) {
 	app.voting.sessionStart, app.voting.sessionEnd = end, start
 	app.createVotingSession()
 	require.Equal(t, sentStart, rec.start, "an invalid window must not reach the service")
-	require.Contains(t, app.voting.sessionResult, "after the start")
+	require.Contains(t, app.voting.sessionResult.text, "after the start")
+	require.True(t, app.voting.sessionResult.isErr)
 }
 
 // TestResultsShowTheirTotal pins the line above the tally. Counting the rows'
@@ -312,4 +313,27 @@ func TestFailedTallyReadDropsAnotherSessionsRows(t *testing.T) {
 	require.Empty(t, app.voting.results, "session A's tally must not sit under session B")
 	require.True(t, tester.HasText("Failed to load results"))
 	require.False(t, tester.HasText("Alice"))
+}
+
+// TestVotingCardOutcomesCarryTheirPolarity pins the type behind the four
+// card-local results. They were plain strings drawn in the same muted colour,
+// so a refused ballot looked like "Ballot recorded."; the handler must now
+// mark the failure and the renderer uses that to choose the error colour.
+func TestVotingCardOutcomesCarryTheirPolarity(t *testing.T) {
+	app := New(&fakeServices{})
+
+	app.castVote()
+	require.True(t, app.voting.voteResult.isErr)
+	require.Contains(t, app.voting.voteResult.text, "Choose a session and a candidate")
+
+	app.voting.voteSession = "s1"
+	app.voting.voteCandidate = "c1"
+	app.castVote()
+	require.False(t, app.voting.voteResult.isErr)
+	require.Equal(t, "Ballot recorded.", app.voting.voteResult.text)
+
+	app.voting.sessionStart = time.Unix(2000, 0)
+	app.voting.sessionEnd = time.Unix(1000, 0)
+	app.createVotingSession()
+	require.True(t, app.voting.sessionResult.isErr)
 }
