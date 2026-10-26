@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 268,
+  "round": 269,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T09:26:09+00:00",
+  "updated_at": "2026-10-26T09:39:17+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 267,
+      "touched_round": 268,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20485,6 +20485,47 @@
       "commit": "acb710e",
       "title": "Add real-store workflow tests",
       "description": "Token create+mint+Refresh, voting register+session+ballot+tally, oracle add+Refresh against a real desktop runtime."
+    },
+    "ISS-451": {
+      "id": "ISS-451",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T09:39:04+00:00",
+      "updated_at": "2026-10-26T09:39:17+00:00",
+      "touched_round": 268,
+      "title": "Chinese UI still showed English domain validation errors",
+      "description": "After page localization, errStatus printed err.Error() verbatim. Common form failures such as token not found, insufficient balance, invalid signature or seed too short therefore appeared in English inside an otherwise Chinese window.",
+      "severity": 0.55,
+      "confidence": 1.0
+    },
+    "TASK-406": {
+      "id": "TASK-406",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T09:39:04+00:00",
+      "updated_at": "2026-10-26T09:39:17+00:00",
+      "touched_round": 268,
+      "category": "core-feature",
+      "title": "Translate known service errors without hiding diagnostics",
+      "description": "Translate exact service messages and the last segment of a wrapped sentinel while keeping the prefix; leave unknown/dynamic errors verbatim. Add domain error translations and tests.",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "CHG-466": {
+      "id": "CHG-466",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T09:39:17+00:00",
+      "updated_at": "2026-10-26T09:39:17+00:00",
+      "touched_round": 268,
+      "commit": "70ed3ee",
+      "title": "Localize known service errors",
+      "description": "errStatus translates exact messages and wrapped tails; unknown diagnostics stay original; Chinese domain error table added."
     }
   },
   "edges": [
@@ -31156,6 +31197,30 @@
       "to": "TASK-405",
       "type": "implements",
       "created_at": "2026-10-26T09:26:09+00:00"
+    },
+    {
+      "from": "TASK-406",
+      "to": "ISS-451",
+      "type": "addresses",
+      "created_at": "2026-10-26T09:39:16+00:00"
+    },
+    {
+      "from": "ISS-451",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T09:39:16+00:00"
+    },
+    {
+      "from": "CHG-466",
+      "to": "ISS-451",
+      "type": "resolves",
+      "created_at": "2026-10-26T09:39:17+00:00"
+    },
+    {
+      "from": "CHG-466",
+      "to": "TASK-406",
+      "type": "implements",
+      "created_at": "2026-10-26T09:39:17+00:00"
     }
   ]
 }
