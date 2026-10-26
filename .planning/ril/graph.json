@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 236,
+  "round": 237,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:31:47+00:00",
+  "updated_at": "2026-10-26T04:33:26+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19456,6 +19456,29 @@
       "touched_round": 236,
       "commit": "d288fa7",
       "title": "Re-read readouts when the selected row changes"
+    },
+    "ISS-418": {
+      "id": "ISS-418",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:33:02+00:00",
+      "updated_at": "2026-10-26T04:33:26+00:00",
+      "touched_round": 237,
+      "title": "Desktop session selection left the previous tally under the new id",
+      "severity": 0.35,
+      "description": "The Results card kept the tally of the previously chosen session while resultsSession already named the new one. Selection now reloads an open tally through loadSessionResults; the test records the session id asked for."
+    },
+    "CHG-434": {
+      "id": "CHG-434",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-26T04:33:02+00:00",
+      "updated_at": "2026-10-26T04:33:26+00:00",
+      "touched_round": 237,
+      "commit": "404313f",
+      "title": "Reload the open tally on session selection"
     }
   },
   "edges": [
@@ -29653,6 +29676,12 @@
       "to": "ISS-417",
       "type": "resolves",
       "created_at": "2026-10-26T04:31:47+00:00"
+    },
+    {
+      "from": "CHG-434",
+      "to": "ISS-418",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:33:26+00:00"
     }
   ]
 }
