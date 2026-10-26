@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 260,
+  "round": 261,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T07:38:39+00:00",
+  "updated_at": "2026-10-26T07:44:45+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11416,7 +11416,7 @@
       "version": 2,
       "created_at": "2026-10-21T03:17:02+00:00",
       "updated_at": "2026-10-21T03:51:14+00:00",
-      "touched_round": 258,
+      "touched_round": 260,
       "name": "desktop/cmd/aurora-desktop",
       "path": "desktop/cmd/aurora-desktop",
       "description": "mygo desktop shell in the nested desktop/ module: embeds the Web UI (root package embed.go) and serves the internal/api router from an in-process aurora:// scheme handler that never opens a listener; File menu shares lottery export/import, backup, show-data-folder"
@@ -20186,6 +20186,47 @@
       "commit": "26d3f9f",
       "title": "Redesign the desktop workbench",
       "description": "Sidebar Actions menu with recent documents, operation tabs for Token/NFT, responsive columns, copy rows for current ids, localized action labels."
+    },
+    "ISS-444": {
+      "id": "ISS-444",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:44:38+00:00",
+      "updated_at": "2026-10-26T07:44:45+00:00",
+      "touched_round": 260,
+      "title": "The auto-hidden native menu still appears on Alt and duplicates the sidebar Actions",
+      "description": "After the first redesign, Linux and Windows still installed the complete File/Edit/Go/View/Window/Help menu and only hid it. Alt still revealed a shell that the app no longer needs, and its actions duplicated the sidebar Actions menu.",
+      "severity": 0.4,
+      "confidence": 1.0
+    },
+    "TASK-399": {
+      "id": "TASK-399",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:44:38+00:00",
+      "updated_at": "2026-10-26T07:44:45+00:00",
+      "touched_round": 260,
+      "category": "dx",
+      "title": "Install no native menu on Linux and Windows",
+      "description": "Keep the macOS application menu; skip App.SetMenu elsewhere, register Cmd/Ctrl+E/I/B on the window, always redraw the Actions labels on a language change, and prove the shortcuts without a menu.",
+      "severity": 0.4,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "CHG-458": {
+      "id": "CHG-458",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:44:45+00:00",
+      "updated_at": "2026-10-26T07:44:45+00:00",
+      "touched_round": 260,
+      "commit": "740083c",
+      "title": "Remove the Linux/Windows application menu",
+      "description": "Only macOS installs the native menu; the window owns Cmd/Ctrl+E/I/B and the sidebar Actions menu owns the file/help/language work."
     }
   },
   "edges": [
@@ -30683,6 +30724,30 @@
       "to": "TASK-398",
       "type": "implements",
       "created_at": "2026-10-26T07:38:39+00:00"
+    },
+    {
+      "from": "TASK-399",
+      "to": "ISS-444",
+      "type": "addresses",
+      "created_at": "2026-10-26T07:44:45+00:00"
+    },
+    {
+      "from": "ISS-444",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-26T07:44:45+00:00"
+    },
+    {
+      "from": "CHG-458",
+      "to": "ISS-444",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:44:45+00:00"
+    },
+    {
+      "from": "CHG-458",
+      "to": "TASK-399",
+      "type": "implements",
+      "created_at": "2026-10-26T07:44:45+00:00"
     }
   ]
 }
