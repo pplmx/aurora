@@ -171,9 +171,32 @@ func TestSwitchingPagesStartsAtTheTop(t *testing.T) {
 		"the new page must start at the scroll position of a fresh one")
 }
 
-// TestFreshDashboardCanOpenTheLottery pins the onboarding line's action: the
-// empty dashboard names Lottery as the first move, and the button takes it
-// instead of leaving the operator to hunt the sidebar.
+// TestDashboardQuickStartNavigates pins every first-move button: the sidebar
+// lists modules, so the dashboard is where a task name leads to its page.
+func TestDashboardQuickStartNavigates(t *testing.T) {
+	for _, tc := range []struct {
+		label string
+		want  page
+	}{
+		{"Run a draw", pageLottery},
+		{"Create a token", pageToken},
+		{"Register a voter", pageVoting},
+		{"Add a data source", pageOracle},
+		{"Mint an NFT", pageNFT},
+	} {
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, 1280, 1000)
+		tester.Frame()
+		require.Equalf(t, pageDashboard, app.page, "%s must start from the dashboard", tc.label)
+		require.NoErrorf(t, tester.Click(tc.label), "click %q", tc.label)
+		tester.Frame()
+		require.Equalf(t, tc.want, app.page, "%q must open its page", tc.label)
+	}
+}
+
+// TestFreshDashboardCanOpenTheLottery pins the quick-start card's first move:
+// the empty dashboard names "Run a draw", and the button takes it instead of
+// leaving the operator to hunt the sidebar.
 type emptyDashboard struct{ *fakeServices }
 
 func (emptyDashboard) Dashboard() (DashboardStats, error) {
@@ -186,7 +209,7 @@ func TestFreshDashboardCanOpenTheLottery(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, pageDashboard, app.page)
 
-	require.NoError(t, tester.Click("Open Lottery"))
+	require.NoError(t, tester.Click("Run a draw"))
 	tester.Frame()
 	require.Equal(t, pageLottery, app.page)
 }

@@ -8,6 +8,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestMintingAnNftSelectsItsRow pins the post-mint context: a successful mint
+// used to leave a filter or search hiding the new asset. The collection now
+// clears both, highlights the row and makes the new id the subject.
+func TestMintingAnNftSelectsItsRow(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{{ID: "n1", Name: "New"}}}
+	app := New(fake)
+	app.ShowPage("NFT")
+
+	app.nft.filterOwner, app.nft.owner = "other-owner", "other-owner"
+	app.nft.search, app.nft.appliedSearch = "old-query", "old-query"
+	app.nft.name, app.nft.creator = "New", "creator-key"
+	app.mintNFT()
+
+	require.Empty(t, app.nft.filterOwner, "a mint must show the new asset")
+	require.Empty(t, app.nft.search, "a mint must clear a search that hides it")
+	require.Equal(t, "n1", app.nft.id)
+	require.Equal(t, 0, app.nft.selected, "the new asset must be the highlighted row")
+}
+
 // TestNFTFilterIsTheListState pins what the Collection card is showing. The
 // owner field used to be read only at the moment the Filter button was
 // clicked, so a Refresh (or re-entering the page) replaced the filtered rows

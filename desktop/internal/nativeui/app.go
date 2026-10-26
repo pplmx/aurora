@@ -296,13 +296,13 @@ func platformRefreshModifier() ui.Modifiers {
 // pagePurpose is the one line under a page title: what the module is for,
 // stated once in the chrome instead of repeated by every section.
 var pagePurpose = map[page]string{
-	pageDashboard:  "Live counters from every module",
-	pageLottery:    "Verifiable random draws, re-checkable from the stored proof",
-	pageVoting:     "Signed ballots, registered voters and session tallies",
-	pageToken:      "Mint, transfer, approve and burn fungible tokens",
-	pageOracle:     "HTTP data sources, their schedule and fetch health",
-	pageNFT:        "Mint, transfer and burn unique assets",
-	pageBlockchain: "The audit chain every module writes to",
+	pageDashboard:  "What the ledger holds, and what happened recently",
+	pageLottery:    "Run a draw, then re-check its proof",
+	pageVoting:     "Register voters, open a session, cast signed ballots",
+	pageToken:      "Create a token, then mint, send, approve or burn it",
+	pageOracle:     "Connect an HTTP feed and read what it returns",
+	pageNFT:        "Mint an asset, then transfer or burn it",
+	pageBlockchain: "Every record the modules wrote, newest first",
 }
 
 // body dispatches to the current page.

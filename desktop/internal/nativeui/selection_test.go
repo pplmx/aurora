@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
@@ -163,4 +164,138 @@ func TestCreateMovesOpenReadoutsToTheNewRecord(t *testing.T) {
 	app.lottery.participants, app.lottery.seed, app.lottery.count = "Alice,Bob", "seed", 1
 	app.createLottery()
 	require.Nil(t, app.lottery.verifyResult, "a new draw must not inherit the previous verdict")
+}
+
+// TestTokenSelectionPrefillsTheOwnerAndDropsOldSecrets pins the context switch:
+// a token's owner public key is known from the record, so the write forms start
+// with it instead of asking for the same key six times. The previous token's
+// private keys and recipients are cleared, so a subject change cannot leave a
+// secret or an address aimed at another token.
+func TestTokenSelectionPrefillsTheOwnerAndDropsOldSecrets(t *testing.T) {
+	const owner = "owner-public-key"
+	fake := &fakeServices{tokenRows: []TokenRow{{ID: "t1", Name: "Gold", Owner: owner}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.mintPriv, app.token.xPriv, app.token.approvePriv = "p1", "p2", "p3"
+	app.token.fromPriv, app.token.burnPriv = "p4", "p5"
+	app.token.xTo, app.token.approveTo, app.token.fromTo, app.token.allowanceTo = "old-1", "old-2", "old-3", "old-4"
+	require.NoError(t, tester.Click("t1"))
+	tester.Frame()
+
+	require.Equal(t, "t1", app.token.tokenID)
+	for name, got := range map[string]string{
+		"mint to":         app.token.mintTo,
+		"transfer from":   app.token.xFrom,
+		"approve owner":   app.token.approveOwner,
+		"transfer-from":   app.token.fromOwner,
+		"burn from":       app.token.burnFrom,
+		"allowance owner": app.token.allowanceOwner,
+		"balance account": app.token.balanceAccount,
+		"history owner":   app.token.historyOwner,
+	} {
+		require.Equalf(t, owner, got, "%s must start from the token owner", name)
+	}
+	require.Empty(t, app.token.mintPriv)
+	require.Empty(t, app.token.xPriv)
+	require.Empty(t, app.token.approvePriv)
+	require.Empty(t, app.token.fromPriv)
+	require.Empty(t, app.token.burnPriv)
+	require.Empty(t, app.token.xTo)
+	require.Empty(t, app.token.approveTo)
+	require.Empty(t, app.token.fromTo)
+	require.Empty(t, app.token.allowanceTo)
+}
+
+// TestCreatingATokenPrefillsTheOwnerAndSelectsTheRow keeps the create path as
+// clear as selection: the new token becomes the highlighted record and its
+// owner fills the accounts, so the next action does not begin with six pastes.
+func TestCreatingATokenPrefillsTheOwnerAndSelectsTheRow(t *testing.T) {
+	const owner = "owner-public-key"
+	fake := &fakeServices{tokenRows: []TokenRow{{ID: "t1", Name: "Gold", Owner: owner}}}
+	app := New(fake)
+	app.ShowPage("Token")
+
+	app.token.name, app.token.symbol, app.token.supply, app.token.owner = "Gold", "GLD", "100", owner
+	app.createToken()
+
+	require.Equal(t, "t1", app.token.tokenID)
+	require.Equal(t, "t1", app.token.ownerKeyTokenID)
+	require.Equal(t, 0, app.token.chosen, "the new token must be the highlighted row")
+	require.Equal(t, owner, app.token.mintTo)
+	require.Equal(t, owner, app.token.burnFrom)
+	require.Equal(t, owner, app.token.balanceAccount)
+}
+
+// TestVotingCreatesSelectTheirNewRecord pins the same rule for the voting
+// page: a new candidate or session becomes the highlighted row, the ballot
+// target, and (for a session) the controls/tally context.
+func TestVotingCreatesSelectTheirNewRecord(t *testing.T) {
+	fake := &fakeServices{
+		candidates: []CandidateRow{{ID: "c1", Name: "Alice"}},
+		sessions:   []SessionRow{{ID: "s1", Title: "Budget"}},
+	}
+	app := New(fake)
+	app.ShowPage("Voting")
+
+	app.voting.candSearch, app.voting.candApplied = "old", "old"
+	app.voting.candName = "Alice"
+	app.registerCandidate()
+	require.Equal(t, 0, app.voting.candChoice, "the new candidate must be highlighted")
+	require.Equal(t, "c1", app.voting.voteCandidate, "the ballot must aim at the new candidate")
+	require.Empty(t, app.voting.candSearch, "a search hiding the new candidate must be cleared")
+
+	app.voting.sessionSearch, app.voting.sessionApplied = "old", "old"
+	app.voting.sessionTitle = "Budget"
+	app.voting.sessionStart, app.voting.sessionEnd = time.Unix(1000, 0), time.Unix(2000, 0)
+	app.createVotingSession()
+	require.Equal(t, 0, app.voting.sessionChoice, "the new session must be highlighted")
+	require.Equal(t, "s1", app.voting.controlID)
+	require.Equal(t, "s1", app.voting.voteSession)
+	require.Equal(t, "s1", app.voting.resultsSession)
+	require.Empty(t, app.voting.sessionSearch)
+}
+
+// TestCreatingADrawSelectsItInTheHistory pins the lottery create path: the new
+// draw is highlighted and a search that would hide it is cleared.
+func TestCreatingADrawSelectsItInTheHistory(t *testing.T) {
+	fake := &fakeServices{draws: []DrawRow{{ID: "draw-1", Winners: []string{"Alice"}}}}
+	app := New(fake)
+	app.ShowPage("Lottery")
+
+	app.lottery.search, app.lottery.appliedSearch = "old", "old"
+	app.lottery.participants, app.lottery.seed, app.lottery.count = "Alice,Bob", "seed", 1
+	app.createLottery()
+
+	require.Equal(t, "draw-1", app.lottery.verifyID)
+	require.Equal(t, 0, app.lottery.selected, "the new draw must be the highlighted row")
+	require.Empty(t, app.lottery.search)
+}
+
+// TestUseGeneratedOwnerKey pins the shortcut for the key the Create card just
+// made: the operator should not have to copy it between two fields on the same
+// page. It appears only while that key's token is the subject.
+func TestUseGeneratedOwnerKey(t *testing.T) {
+	const owner = "owner-public-key"
+	app := New(&fakeServices{tokenRows: []TokenRow{{ID: "t1", Owner: owner}}})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	app.token.ownerPriv = "generated-private-key"
+	app.token.ownerKeyTokenID = "t1"
+	tester.Frame()
+	require.True(t, tester.HasText("Use generated owner key"))
+
+	require.NoError(t, tester.Click("Use generated owner key"))
+	tester.Frame()
+	require.Equal(t, "generated-private-key", app.token.mintPriv)
+
+	app.token.tokenID = "t2"
+	tester.Frame()
+	require.False(t, tester.HasText("Use generated owner key"),
+		"the generated key must not be offered for another token")
 }

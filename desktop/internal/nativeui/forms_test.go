@@ -234,6 +234,43 @@ func TestOraclePresetKeepsItsChoice(t *testing.T) {
 		"the choice must survive the next frame")
 }
 
+// TestAdvancedFieldsStartCollapsed pins the simplification: fields most first
+// uses do not need stay behind a labelled disclosure instead of competing with
+// the name/URL/owner they do need. Each still exists and opens on one click.
+func TestAdvancedFieldsStartCollapsed(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 5000)
+
+	app.ShowPage("Token")
+	tester.Frame()
+	require.False(t, tester.HasText("Decimals"), "token decimals start collapsed")
+	require.NoError(t, tester.Click("Advanced"))
+	tester.Frame()
+	require.True(t, tester.HasText("Decimals"))
+
+	require.False(t, tester.HasText("Limit"), "history paging starts collapsed")
+	require.NoError(t, tester.Click("Paging"))
+	tester.Frame()
+	require.True(t, tester.HasText("Limit"))
+	require.True(t, tester.HasText("Offset"))
+
+	app.ShowPage("NFT")
+	tester.Frame()
+	require.False(t, tester.HasText("Description (optional)"), "optional NFT metadata starts collapsed")
+	require.NoError(t, tester.Click("Optional details"))
+	tester.Frame()
+	require.True(t, tester.HasText("Description (optional)"))
+	require.True(t, tester.HasText("Image URL (optional)"))
+
+	app.ShowPage("Oracle")
+	tester.Frame()
+	require.False(t, tester.HasText("Request Headers (optional JSON object)"),
+		"oracle transport fields start collapsed")
+	require.NoError(t, tester.Click("Advanced"))
+	tester.Frame()
+	require.True(t, tester.HasText("Request Headers (optional JSON object)"))
+}
+
 // TestChoosingAPresetFillsEveryField pins the whole preset, not just its name.
 // Filling only the name left the URL empty, so Add Source refused a preset the
 // CLI adds without complaint — the two surfaces disagreed about what a preset

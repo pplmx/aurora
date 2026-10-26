@@ -205,6 +205,22 @@ func (a *App) registerCandidate() {
 	a.voting.candCopyID = cand.ID
 	a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
 	a.loadVoting()
+	// The new candidate is the context: highlight it, clear a search that
+	// would hide it, and aim the ballot at it. The operator can still change
+	// either choice before casting.
+	a.selectCandidateByID(cand.ID)
+	a.voting.voteCandidate = cand.ID
+}
+
+// selectCandidateByID highlights a candidate after registration.
+func (a *App) selectCandidateByID(id string) {
+	a.voting.candSearch, a.voting.candApplied = "", ""
+	for i, candidate := range a.voting.candidates {
+		if candidate.ID == id {
+			a.voting.candChoice = i
+			return
+		}
+	}
 }
 
 // registerVoter registers the named voter and carries the generated key pair
@@ -525,6 +541,24 @@ func (a *App) createVotingSession() {
 	a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionIDs = "", "", ""
 	a.voting.sessionStart, a.voting.sessionEnd = defaultSessionWindow(time.Now())
 	a.loadVoting()
+	// The new session becomes the context for controls, ballot and tally;
+	// highlight its row so a successful create has a visible result even
+	// before the copy button is used.
+	a.selectSessionByID(s.ID)
+	a.clearTallyForAnotherSession(s.ID)
+	a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = s.ID, s.ID, s.ID
+}
+
+// selectSessionByID highlights a session after creation. The search is
+// cleared first so the index is in the list the table actually shows.
+func (a *App) selectSessionByID(id string) {
+	a.voting.sessionSearch, a.voting.sessionApplied = "", ""
+	for i, session := range a.voting.sessions {
+		if session.ID == id {
+			a.voting.sessionChoice = i
+			return
+		}
+	}
 }
 
 // defaultSessionWindow is the window the Create Session card starts with: now

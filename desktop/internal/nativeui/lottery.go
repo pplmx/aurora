@@ -147,6 +147,20 @@ func (a *App) createLottery() {
 	a.lottery.seed = ""
 	a.lottery.count = 1
 	a.loadLottery()
+	a.selectLotteryByID(row.ID)
+}
+
+// selectLotteryByID highlights the new draw in the history table and clears a
+// search that would hide it, so a successful draw is visible in the list and
+// not only in the status sentence.
+func (a *App) selectLotteryByID(id string) {
+	a.lottery.search, a.lottery.appliedSearch = "", ""
+	for i, draw := range a.lottery.rows {
+		if draw.ID == id {
+			a.lottery.selected = i
+			return
+		}
+	}
 }
 
 // splitParticipants mirrors the Web UI's split(',').map(trim).filter(Boolean).
