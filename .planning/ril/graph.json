@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 242,
+  "round": 243,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:50:56+00:00",
+  "updated_at": "2026-10-26T04:54:53+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19594,6 +19594,29 @@
       "touched_round": 242,
       "commit": "36e9948",
       "title": "Add a high-contrast palette variant"
+    },
+    "ISS-424": {
+      "id": "ISS-424",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:54:53+00:00",
+      "updated_at": "2026-10-26T04:54:53+00:00",
+      "touched_round": 243,
+      "title": "Desktop balance and history shared one account field",
+      "severity": 0.3,
+      "description": "The two token read cards bound one string, so a history owner typed for History changed the account Balance would query while its readout described another account. They are separate inputs now, and each refresh reads its own; the test sends two accounts and checks both."
+    },
+    "CHG-440": {
+      "id": "CHG-440",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:54:53+00:00",
+      "updated_at": "2026-10-26T04:54:53+00:00",
+      "touched_round": 243,
+      "commit": "6bc8b01",
+      "title": "Split the balance and history account inputs"
     }
   },
   "edges": [
@@ -29827,6 +29850,12 @@
       "to": "ISS-423",
       "type": "resolves",
       "created_at": "2026-10-26T04:50:56+00:00"
+    },
+    {
+      "from": "CHG-440",
+      "to": "ISS-424",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:54:53+00:00"
     }
   ]
 }
