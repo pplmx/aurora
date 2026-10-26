@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 266,
+  "round": 267,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T08:28:07+00:00",
+  "updated_at": "2026-10-26T08:48:37+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 265,
+      "touched_round": 266,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20403,6 +20403,47 @@
       "commit": 8456041,
       "title": "Add page guides and fix page scroll",
       "description": "Every module page explains its order in a collapsed How this works panel; Dashboard/Blockchain use the tracked scroll; setPage resets it."
+    },
+    "ISS-449": {
+      "id": "ISS-449",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T08:48:29+00:00",
+      "updated_at": "2026-10-26T08:48:37+00:00",
+      "touched_round": 266,
+      "title": "Only the desktop menu followed the language switch",
+      "description": "The window lets the user choose English/Chinese, but page titles, labels, buttons, hints, empty states, table headers, guides, dialogs and statuses were English literals. Switching to Chinese left the whole workbench English while the platform roles changed.",
+      "severity": 0.7,
+      "confidence": 1.0
+    },
+    "TASK-404": {
+      "id": "TASK-404",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T08:48:29+00:00",
+      "updated_at": "2026-10-26T08:48:37+00:00",
+      "touched_round": 266,
+      "category": "core-feature",
+      "title": "Localize the whole desktop window",
+      "description": "Translate every nativeui label through a literal-keyed helper, add a desktop Chinese table, keep service errors verbatim, and test a Chinese dashboard/Token page. Merge the desktop table into the English and Chinese catalogs without changing CLI keys.",
+      "severity": 0.7,
+      "confidence": 1.0,
+      "effort": 3,
+      "unlock_factor": 1
+    },
+    "CHG-464": {
+      "id": "CHG-464",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T08:48:37+00:00",
+      "updated_at": "2026-10-26T08:48:37+00:00",
+      "touched_round": 266,
+      "commit": "bed521e",
+      "title": "Localize the whole desktop window",
+      "description": "nativeui.tr with English literal keys; desktopUIMessages Chinese table merged into i18n; Chinese workbench test."
     }
   },
   "edges": [
@@ -31026,6 +31067,30 @@
       "to": "TASK-403",
       "type": "implements",
       "created_at": "2026-10-26T08:28:06+00:00"
+    },
+    {
+      "from": "TASK-404",
+      "to": "ISS-449",
+      "type": "addresses",
+      "created_at": "2026-10-26T08:48:37+00:00"
+    },
+    {
+      "from": "ISS-449",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T08:48:37+00:00"
+    },
+    {
+      "from": "CHG-464",
+      "to": "ISS-449",
+      "type": "resolves",
+      "created_at": "2026-10-26T08:48:37+00:00"
+    },
+    {
+      "from": "CHG-464",
+      "to": "TASK-404",
+      "type": "implements",
+      "created_at": "2026-10-26T08:48:37+00:00"
     }
   ]
 }
