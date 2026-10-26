@@ -85,7 +85,7 @@ func (a *App) lotteryCreate(c *ui.Context) {
 		fieldHint(c, "Count", "How many winners to draw; must not exceed the participant count.", &a.lottery.count)
 		fieldError(c, a.lottery.countErr)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Create Draw").Clicked() {
+			if primaryButton(c, "Create Draw").Clicked() {
 				a.createLottery()
 			}
 		})
@@ -198,7 +198,7 @@ func (a *App) lotteryVerify(c *ui.Context) {
 		field(c, "Draw ID or block height", &a.lottery.verifyID)
 		fieldError(c, a.lottery.verifyErr)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Verify").Clicked() {
+			if primaryButton(c, "Verify").Clicked() {
 				a.verifyLottery()
 			}
 		})

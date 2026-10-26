@@ -3,6 +3,7 @@ package nativeui
 import (
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -144,6 +145,10 @@ func New(services Services) *App {
 	a.oracle.selected = -1
 	a.voting.sessionChoice = -1
 	a.voting.candChoice = -1
+	// The session form opens with a concrete window (now to a day later):
+	// empty date and time controls are a rejected first attempt the operator
+	// would have to fix before doing anything.
+	a.voting.sessionStart, a.voting.sessionEnd = defaultSessionWindow(time.Now())
 	a.refresh()
 	return a
 }
@@ -162,7 +167,7 @@ func (a *App) Services() Services { return a.services }
 func (a *App) View(c *ui.Context) {
 	c.SetTheme(auroraTheme())
 	ui.Row(c).Fill().Children(func() {
-		a.sidebar(c)
+		a.sidebarColumn(c)
 		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).Children(func() {
 			a.header(c)
 			a.body(c)
@@ -170,10 +175,30 @@ func (a *App) View(c *ui.Context) {
 	})
 }
 
+// sidebarColumn is the chrome around the module list: the app's name, then the
+// list itself on its own tone, separated from the content by a hairline. The
+// reference apps (GoRex, the NetEase client) frame navigation this way; a bare
+// list on the window background read as another column of content.
+func (a *App) sidebarColumn(c *ui.Context) {
+	ui.Column(c).Width(216).FillHeight().Background(ui.Hex(sidebarSurface)).
+		BorderWidth(0, 1, 0, 0).BorderColor(ui.Hex(border)).Children(func() {
+		a.brand(c)
+		a.sidebar(c)
+	})
+}
+
+// brand is the window's identity at the top of the sidebar.
+func (a *App) brand(c *ui.Context) {
+	ui.Column(c).FillWidth().Padding(18, 18, 10, 8).Gap(2).Children(func() {
+		ui.Text(c, "Aurora").FontSize(19).Bold().TextColor(ui.Hex(ink)).SingleLine()
+		ui.Text(c, "Verifiable ledger suite").FontSize(11).TextColor(ui.Hex(inkMuted)).SingleLine()
+	})
+}
+
 // sidebar draws the module list as a real sidebar: a chosen item that the
 // toolkit tracks, arrows and first-letter keys to move between modules, and
-// one focus stop for the whole list. It used to be seven buttons, where the
-// only sign of the current page was a "▸" prefix glued to the label.
+// one focus stop for the whole list. Every item carries its page glyph, so the
+// column is scannable without reading all seven labels.
 func (a *App) sidebar(c *ui.Context) {
 	selected := pageIDs[a.page]
 	ui.Sidebar(c, &selected, func() {
@@ -181,10 +206,10 @@ func (a *App) sidebar(c *ui.Context) {
 			for _, p := range pageOrder {
 				// The chosen item is already tinted by the toolkit; a marker
 				// beside it would say the same thing twice.
-				ui.SidebarItem(c, pageIDs[p], nil, pageTitles[p])
+				ui.SidebarItem(c, pageIDs[p], pageIcons[p], pageTitles[p])
 			}
 		})
-	}).Width(216).FillHeight()
+	}).FillWidth().FillHeight()
 	if p, ok := pageByID(selected); ok {
 		a.setPage(p)
 	}
@@ -194,18 +219,27 @@ func (a *App) sidebar(c *ui.Context) {
 //
 // Refresh carries the shortcut its platform uses for "reload": a page whose
 // data is a read of the database is refreshed the way any other window is,
-// without hunting for a button.
+// without hunting for a button. Ctrl/Cmd+1..7 selects a page in sidebar order,
+// the desktop convention the reference apps follow.
 func (a *App) header(c *ui.Context) {
+	for i, p := range pageOrder {
+		if c.Shortcut(platformRefreshModifier(), ui.Key(int(ui.Key1)+i)) {
+			a.setPage(p)
+		}
+	}
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
-		ui.Column(c).Grow(1).Gap(2).Children(func() {
-			ui.Text(c, pageTitles[a.page]).FontSize(26).Bold().TextColor(ui.Hex(ink))
-			ui.Text(c, pagePurpose[a.page]).FontSize(12).TextColor(ui.Hex(inkMuted))
+		ui.Row(c).Grow(1).Gap(12).AlignItems(ui.Center).Children(func() {
+			pageGlyph(c, a.page)
+			ui.Column(c).Gap(2).Children(func() {
+				ui.Text(c, pageTitles[a.page]).FontSize(26).Bold().TextColor(ui.Hex(ink))
+				ui.Text(c, pagePurpose[a.page]).FontSize(12).TextColor(ui.Hex(inkMuted))
+			})
 		})
 		// Ctrl on Linux and Windows, Cmd on macOS: the platform's own
 		// modifier for a reload. The shortcut is the window's, not the
 		// button's: an element's shortcut only fires while that element has
 		// the keyboard focus, and a reload has to work from anywhere.
-		if c.Shortcut(platformRefreshModifier(), ui.KeyR) || ui.Button(c, "Refresh").Clicked() {
+		if c.Shortcut(platformRefreshModifier(), ui.KeyR) || secondaryButton(c, "Refresh").Clicked() {
 			a.refresh()
 		}
 	})

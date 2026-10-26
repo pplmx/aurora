@@ -140,19 +140,19 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	// by choosing a row above — and the actions apply to it.
 	field(c, "Source ID for the actions below", &a.oracle.fetchID)
 	ui.Row(c).Gap(8).Children(func() {
-		if ui.Button(c, "Enable").Clicked() {
+		if secondaryButton(c, "Enable").Clicked() {
 			a.oracle.status = wrapErr(a.services.SetOracleSourceEnabled(strings.TrimSpace(a.oracle.fetchID), true))
 			a.loadOracle()
 		}
-		if ui.Button(c, "Disable").Clicked() {
+		if secondaryButton(c, "Disable").Clicked() {
 			a.oracle.status = wrapErr(a.services.SetOracleSourceEnabled(strings.TrimSpace(a.oracle.fetchID), false))
 			a.loadOracle()
 		}
-		if ui.Button(c, "Fetch now").Clicked() {
+		if secondaryButton(c, "Fetch now").Clicked() {
 			a.oracle.status = wrapErr(a.services.FetchOracleSource(strings.TrimSpace(a.oracle.fetchID)))
 			a.loadOracle()
 		}
-		if ui.Button(c, "Delete").Clicked() {
+		if dangerButton(c, "Delete").Clicked() {
 			a.oracle.askDelete = true
 		}
 	})
@@ -206,7 +206,7 @@ func (a *App) oracleAddBody(c *ui.Context) {
 		"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
 	fieldHint(c, "Interval (seconds)", "0 uses the default of 60.", &a.oracle.addInterval)
 	ui.Row(c).Children(func() {
-		if ui.PrimaryButton(c, "Add Source").Clicked() {
+		if primaryButton(c, "Add Source").Clicked() {
 			a.addOracleSource()
 		}
 	})
@@ -317,7 +317,7 @@ func (a *App) oracleReadBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.queryID)
 	field(c, "Limit", &a.oracle.queryLim)
 	ui.Row(c).Children(func() {
-		if ui.Button(c, "Query").Clicked() {
+		if secondaryButton(c, "Query").Clicked() {
 			limit := 20
 			if s := strings.TrimSpace(a.oracle.queryLim); s != "" {
 				if n, err := strconv.Atoi(s); err == nil && n > 0 {
@@ -363,7 +363,7 @@ func (a *App) oracleLatest(c *ui.Context) {
 func (a *App) oracleLatestBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.latestID)
 	ui.Row(c).Children(func() {
-		if ui.Button(c, "Get Latest").Clicked() {
+		if secondaryButton(c, "Get Latest").Clicked() {
 			d, err := a.services.OracleLatest(strings.TrimSpace(a.oracle.latestID))
 			if err != nil {
 				a.oracle.status = errStatus(err)

@@ -29,8 +29,8 @@ type votingState struct {
 
 	sessionTitle  string
 	sessionDesc   string
-	sessionStart  string
-	sessionEnd    string
+	sessionStart  time.Time
+	sessionEnd    time.Time
 	sessionIDs    string
 	sessionResult string
 	// sessionCopyID is the id of the session just created, offered for copying
@@ -122,7 +122,7 @@ func (a *App) votingRegister(c *ui.Context) {
 		field(c, "Voter Name", &a.voting.voterName)
 		fieldError(c, a.voting.voterNameErr)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Register Voter").Clicked() {
+			if primaryButton(c, "Register Voter").Clicked() {
 				a.registerVoter()
 			}
 		})
@@ -150,7 +150,7 @@ func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 	field(c, "Party (optional)", &a.voting.candParty)
 	field(c, "Program (optional)", &a.voting.candProgram)
 	ui.Row(c).Children(func() {
-		if ui.Button(c, "Register Candidate").Clicked() {
+		if secondaryButton(c, "Register Candidate").Clicked() {
 			a.registerCandidate()
 		}
 	})
@@ -241,11 +241,31 @@ func (a *App) votingSessionListCard(c *ui.Context) {
 func (a *App) votingCreateSessionBody(c *ui.Context) {
 	field(c, "Title", &a.voting.sessionTitle)
 	field(c, "Description (optional)", &a.voting.sessionDesc)
-	fieldHint(c, "Start (unix seconds)", "Ballots are rejected before this time.", &a.voting.sessionStart)
-	fieldHint(c, "End (unix seconds)", "Ballots are rejected after this time.", &a.voting.sessionEnd)
+	// The window is edited with the toolkit's own date and time controls:
+	// asking an operator to type epoch seconds made the card unusable without
+	// a clock and a converter outside the app. The two controls edit one
+	// time.Time, shown in local time; the service still receives Unix seconds.
+	ui.Field(c, "Start", func() {
+		ui.Column(c).Gap(2).Children(func() {
+			ui.Row(c).Gap(8).Children(func() {
+				ui.DateInput(c, &a.voting.sessionStart)
+				ui.TimeInput(c, &a.voting.sessionStart)
+			})
+			hint(c, "Local time. Ballots are rejected before it.")
+		})
+	})
+	ui.Field(c, "End", func() {
+		ui.Column(c).Gap(2).Children(func() {
+			ui.Row(c).Gap(8).Children(func() {
+				ui.DateInput(c, &a.voting.sessionEnd)
+				ui.TimeInput(c, &a.voting.sessionEnd)
+			})
+			hint(c, "Local time. Ballots are rejected after it.")
+		})
+	})
 	fieldHint(c, "Candidate IDs (comma-separated)", "Leave empty to include every registered candidate.", &a.voting.sessionIDs)
 	ui.Row(c).Children(func() {
-		if ui.PrimaryButton(c, "Create Session").Clicked() {
+		if primaryButton(c, "Create Session").Clicked() {
 			a.createVotingSession()
 		}
 	})
@@ -345,14 +365,10 @@ func (a *App) votingCandidateList(c *ui.Context) {
 func (a *App) createVotingSession() {
 	a.voting.sessionResult = ""
 	a.voting.sessionCopyID = ""
-	start, err := strconv.ParseInt(strings.TrimSpace(a.voting.sessionStart), 10, 64)
-	if err != nil {
-		a.voting.sessionResult = "Start time must be a unix timestamp in seconds."
-		return
-	}
-	end, err := strconv.ParseInt(strings.TrimSpace(a.voting.sessionEnd), 10, 64)
-	if err != nil {
-		a.voting.sessionResult = "End time must be a unix timestamp in seconds."
+	start := a.voting.sessionStart.Unix()
+	end := a.voting.sessionEnd.Unix()
+	if a.voting.sessionStart.IsZero() || a.voting.sessionEnd.IsZero() {
+		a.voting.sessionResult = "Choose both a start and an end time."
 		return
 	}
 	if end <= start {
@@ -376,15 +392,24 @@ func (a *App) createVotingSession() {
 	}
 	a.voting.sessionResult = "Created session " + s.Title
 	a.voting.sessionCopyID = s.ID
-	a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionStart, a.voting.sessionEnd, a.voting.sessionIDs = "", "", "", "", ""
+	a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionIDs = "", "", ""
+	a.voting.sessionStart, a.voting.sessionEnd = defaultSessionWindow(time.Now())
 	a.loadVoting()
+}
+
+// defaultSessionWindow is the window the Create Session card starts with: now
+// (to the minute) until a day later, so a session is creatable without
+// touching the date and time controls.
+func defaultSessionWindow(now time.Time) (start, end time.Time) {
+	start = now.Truncate(time.Minute)
+	return start, start.Add(24 * time.Hour)
 }
 
 func (a *App) votingVote(c *ui.Context) {
 	formCard(c, "Session Controls", "Start or end a session by id.", func() {
 		field(c, "Session ID", &a.voting.controlID)
 		ui.Row(c).Gap(8).Children(func() {
-			if ui.Button(c, "Start Session").Clicked() {
+			if secondaryButton(c, "Start Session").Clicked() {
 				if err := a.services.StartSession(strings.TrimSpace(a.voting.controlID)); err != nil {
 					a.voting.controlResult = err.Error()
 				} else {
@@ -392,7 +417,7 @@ func (a *App) votingVote(c *ui.Context) {
 					a.loadVoting()
 				}
 			}
-			if ui.Button(c, "End Session").Clicked() {
+			if secondaryButton(c, "End Session").Clicked() {
 				if err := a.services.EndSession(strings.TrimSpace(a.voting.controlID)); err != nil {
 					a.voting.controlResult = err.Error()
 				} else {
@@ -412,7 +437,7 @@ func (a *App) votingVote(c *ui.Context) {
 		field(c, "Voter Public Key", &a.voting.voteVoterPub)
 		field(c, "Voter Private Key", &a.voting.votePriv)
 		ui.Row(c).Children(func() {
-			if ui.PrimaryButton(c, "Cast Vote").Clicked() {
+			if primaryButton(c, "Cast Vote").Clicked() {
 				a.castVote()
 			}
 		})
@@ -461,7 +486,7 @@ func (a *App) votingResults(c *ui.Context) {
 func (a *App) votingResultsBody(c *ui.Context) {
 	field(c, "Session ID", &a.voting.resultsSession)
 	ui.Row(c).Children(func() {
-		if ui.Button(c, "Show Results").Clicked() {
+		if secondaryButton(c, "Show Results").Clicked() {
 			rows, err := a.services.SessionResults(strings.TrimSpace(a.voting.resultsSession))
 			if err != nil {
 				a.voting.results = nil
