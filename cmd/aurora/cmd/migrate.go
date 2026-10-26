@@ -203,7 +203,7 @@ var migrateRepairCmd = &cobra.Command{
 	Long:  i18n.GetText("migrate.repair_long"),
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := requireConfirm(cmd, "migrate.repair_action"); err != nil {
+		if err := requireConfirm(cmd, "cli.confirm.migrate_repair"); err != nil {
 			return err
 		}
 		m, err := newCLIMigrator()
@@ -234,5 +234,5 @@ func init() {
 	// Rolling back is destructive; require -y/--confirm first.
 	addConfirmFlag(migrateDownCmd, "cli.confirm.migrate_down")
 	// Repair changes the recorded schema state, so it takes the same gate.
-	addConfirmFlag(migrateRepairCmd, "migrate.repair_action")
+	addConfirmFlag(migrateRepairCmd, "cli.confirm.migrate_repair")
 }

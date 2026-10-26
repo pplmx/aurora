@@ -152,8 +152,8 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml)")
-	rootCmd.PersistentFlags().StringVar(&httpTimeout, "http-timeout", "", "HTTP request timeout (e.g., 30s, 1m)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", i18n.GetText("cli.config_flag"))
+	rootCmd.PersistentFlags().StringVar(&httpTimeout, "http-timeout", "", i18n.GetText("cli.http_timeout_flag"))
 }
 
 // initConfig reads in config file and ENV variables if set.

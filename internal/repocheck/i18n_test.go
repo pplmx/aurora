@@ -18,6 +18,9 @@ import (
 //
 // i18n.GetText/GetTextF are the package-level helpers; T/TFormat are the
 // desktop shell's wrappers over them (pkg.T(...) from outside the package).
+// requireConfirm/addConfirmFlag take (cmd, actionKey), and their action phrase
+// is itself a translated key rendered through cli.confirm.flag/required, so a
+// key missing there prints raw text at a destructive command's prompt.
 // A key built at run time is skipped: it cannot be checked statically.
 func translationKeyCall(call *ast.CallExpr) (string, bool) {
 	var name string
@@ -29,15 +32,20 @@ func translationKeyCall(call *ast.CallExpr) (string, bool) {
 	default:
 		return "", false
 	}
+
+	var arg int
 	switch name {
 	case "GetText", "GetTextF", "T", "TFormat":
+		arg = 0
+	case "requireConfirm", "addConfirmFlag":
+		arg = 1
 	default:
 		return "", false
 	}
-	if len(call.Args) == 0 {
+	if len(call.Args) <= arg {
 		return "", false
 	}
-	lit, ok := call.Args[0].(*ast.BasicLit)
+	lit, ok := call.Args[arg].(*ast.BasicLit)
 	if !ok || lit.Kind != token.STRING {
 		return "", false
 	}

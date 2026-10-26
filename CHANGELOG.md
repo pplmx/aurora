@@ -49,6 +49,17 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The CLI's global flags and the repair prompt are localized too**: a Chinese
+  `--help` translated every module flag but left `--config` and
+  `--http-timeout` in English (they were hardcoded in `root.go`), and
+  `migrate repair` reused its long description as the `--confirm` action
+  phrase, so the prompt read "此操作clears the dirty marker a failed migration
+  left (it does not undo or re-run that migration)". Both flags now come from
+  the catalogs, repair has the noun-phrase action key the other destructive
+  commands use, and the superseded `migrate.repair_action` entry is gone. The
+  translation-key check now also inspects the action keys passed to
+  `requireConfirm`/`addConfirmFlag`, which are rendered dynamically at a
+  destructive command's prompt.
 - **Two `--help` screens no longer print raw translation keys**: the lottery
   module's `Short` pointed at `lottery.tui.title`, which no catalog carries, so
   `aurora --help` listed the module as `lottery.tui.title`; `migrate repair`

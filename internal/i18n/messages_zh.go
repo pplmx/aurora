@@ -227,7 +227,6 @@ var chineseMessages = map[string]string{
 	"migrate.pending":          "待执行: %s",
 	"migrate.none":             "（无）",
 	"migrate.repair":           "清除失败迁移留下的脏标记（先确认表结构）",
-	"migrate.repair_action":    "清除失败迁移留下的脏标记（不会撤销或重跑该迁移）",
 	"migrate.repair_long":      "在确认表结构后清除失败迁移留下的脏标记。不会撤销或重跑失败的迁移。",
 	"migrate.repair_done":      "✅ 已在版本 %d 清除脏标记。确认表结构后执行 `migrate up` 或 `migrate down`。",
 	"migrate.repair_clean":     "💤 数据库没有脏标记，无需修复（版本 %d）",
@@ -316,13 +315,19 @@ var chineseMessages = map[string]string{
 
 	// 破坏性操作 --confirm 门（token burn / nft burn / oracle source
 	// delete / migrate down / lottery reset 共用，TASK-186，ISS-182）
-	"cli.confirm.flag":          "%s（需要 --confirm）",
-	"cli.confirm.required":      "⚠️ 此操作%s；请传入 --confirm 以继续",
-	"cli.confirm.token_burn":    "将永久销毁代币",
-	"cli.confirm.nft_burn":      "将永久销毁该 NFT",
-	"cli.confirm.oracle_del":    "将永久删除数据源",
-	"cli.confirm.migrate_down":  "将回滚最后一次迁移并删除表结构",
-	"cli.confirm.lottery_reset": "将删除所有彩票记录",
+	"cli.confirm.flag":           "%s（需要 --confirm）",
+	"cli.confirm.required":       "⚠️ 此操作%s；请传入 --confirm 以继续",
+	"cli.confirm.token_burn":     "将永久销毁代币",
+	"cli.confirm.nft_burn":       "将永久销毁该 NFT",
+	"cli.confirm.oracle_del":     "将永久删除数据源",
+	"cli.confirm.migrate_down":   "将回滚最后一次迁移并删除表结构",
+	"cli.confirm.migrate_repair": "将清除失败迁移留下的脏标记",
+	"cli.confirm.lottery_reset":  "将删除所有彩票记录",
+
+	// 所有命令都会显示的全局参数。此前写死为英文，中文 --help 里模块参数
+	// 已翻译而这两条仍是英文。
+	"cli.config_flag":       "配置文件（默认依次为 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml）",
+	"cli.http_timeout_flag": "HTTP 请求超时（例如 30s、1m）",
 
 	// Errors
 	"error.invalid_input": "输入无效",
