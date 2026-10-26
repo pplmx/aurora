@@ -76,11 +76,15 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 ```
 
 - **File 菜单**：Back Up Database…（WAL 完整快照 + 校验和）、Export/Import
-  Lotteries、Open Recent、Show Data Folder。导入/导出与 CLI 共用同一 app 层
-  实现，格式、覆盖保护与失败报告完全一致；导出目标若就是数据库本身（含符号
-  链接、硬链接与 `-wal`/`-shm`）会被拒绝。
-- **多语言**：菜单、对话框、`--help` 跟随系统语言，也可在 Help → Language
-  运行时切换（跟随系统 / English / 简体中文 / 繁體中文）。
+  Lotteries、Open Recent。导入/导出与 CLI 共用同一 app 层实现，格式、覆盖保护
+  与失败报告完全一致；导出目标若就是数据库本身（含符号链接、硬链接与
+  `-wal`/`-shm`）会被拒绝。
+- **Settings**：侧栏 Application 区（或 `Ctrl/Cmd+,`）打开，集中语言、会话密钥、
+  数据位置/备份、外观和版本信息；数据库路径可复制，File 菜单只放文件动作。
+- **多语言**：菜单、页面、对话框、`--help` 跟随系统语言，也可在
+  Settings → Language 运行时切换（跟随系统 / English / 简体中文 / 繁體中文）。
+- **会话密钥**：Settings 里可选开启内存密钥记忆（默认关闭），成功的签名操作
+  可在同公钥的后续表单用 “Use saved key”；不写磁盘，退出或点 Forget 即清空。
 - **系统集成**：`aurora://` 深链在 macOS 由 bundle 注册，Linux/Windows 每次
   启动注册；第二次启动不会起第二个数据库写者，而是把链接或导出文件交给已运行
   的窗口；导出文件也可直接拖到窗口导入。
