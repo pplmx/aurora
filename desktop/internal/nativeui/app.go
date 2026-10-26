@@ -296,7 +296,10 @@ func (a *App) header(c *ui.Context) {
 		// modifier for a reload. The shortcut is the window's, not the
 		// button's: an element's shortcut only fires while that element has
 		// the keyboard focus, and a reload has to work from anywhere.
-		if c.Shortcut(platformRefreshModifier(), ui.KeyR) || secondaryButton(c, "Refresh").Clicked() {
+		// Settings reads no database, so a Refresh button there would be a
+		// control with no effect; keep the action on data pages.
+		if a.page != pageSettings &&
+			(c.Shortcut(platformRefreshModifier(), ui.KeyR) || secondaryButton(c, "Refresh").Clicked()) {
 			a.refresh()
 		}
 	})
