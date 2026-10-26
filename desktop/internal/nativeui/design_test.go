@@ -230,6 +230,12 @@ func TestChineseUIRendersTheWorkbench(t *testing.T) {
 	require.NoError(t, tester.Click("工作方式"))
 	tester.Frame()
 	require.True(t, tester.HasText("在左栏选择或创建一个代币。它的所有者公钥会自动填入账户字段。"))
+
+	app.ShowPage("Settings")
+	tester.Frame()
+	for _, want := range []string{"设置", "语言", "数据", "外观", "关于 Aurora"} {
+		require.Truef(t, tester.HasText(want), "the Chinese Settings page must show %q", want)
+	}
 }
 
 // TestEveryContentPageHasAHowThisWorksGuide keeps the plain-language steps on

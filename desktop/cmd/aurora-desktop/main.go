@@ -250,8 +250,8 @@ func main() {
 	// launch steers it, so the shell needs it before any intent arrives.
 	shell.SetApp(rt.App())
 	// The menu bar is hidden by default now, so the application work that is
-	// not page work lives in the sidebar's Actions menu: same shell calls as
-	// the native File/Help items, with the live window as dialog parent.
+	// not page work lives in the sidebar's File menu and Settings page: same shell
+	// calls as the native File/Help items, with the live window as dialog parent.
 	rt.App().SetActions(nativeui.Actions{
 		BackUpDatabase:  shell.BackUpDatabase,
 		ExportLotteries: shell.ExportLotteries,
@@ -262,12 +262,15 @@ func main() {
 		OpenRecent:      shell.OpenRecent,
 		SetLanguage:     shell.SetLanguage,
 		Language:        shell.Language,
+		Version:         meta.Version,
+		BuildTime:       meta.BuildTime,
+		DBPath:          meta.DBPath,
 	})
 	// macOS owns a global menu bar; give it only the platform's roles (app,
 	// File/Close, Edit, Window) because Aurora's own actions live in the
-	// window's Actions menu on every platform. Linux and Windows install no
-	// application menu at all: the sidebar owns navigation and the Actions menu
-	// owns file/help/language work, so an empty bar would have nothing useful.
+	// window's File menu and Settings page on every platform. Linux and Windows
+	// install no application menu at all: the sidebar owns navigation and the
+	// window owns file/settings work, so an empty bar would have nothing useful.
 	if runtime.GOOS == "darwin" {
 		mygo.App.SetMenu(deskapp.NewPlatformMenu())
 	}
@@ -325,7 +328,7 @@ func main() {
 	mygo.App.WhenReady(func() {
 		deskapp.FollowAppLocale(func() {
 			// MyGo relabels the platform roles itself; the only Aurora text in
-			// the window is the sidebar Actions menu, which reads the
+			// the window is the sidebar File menu and Settings page, which read the
 			// translator on the next frame.
 			if win := shell.Window(); win != nil && !win.IsDestroyed() {
 				win.Invalidate()
@@ -393,8 +396,8 @@ func mainWindowOptions(app *nativeui.App, opts deskapp.Flags) mygo.WindowOptions
 		BackgroundColor: "#0c2228",
 		StateKey:        "main",
 		// Aurora installs no application menu on Linux and Windows: pages live
-		// in the sidebar and file/help/language work in the sidebar Actions
-		// menu. AutoHideMenuBar is the fallback for a menu a host or toolkit
+		// in the sidebar, file work in the File menu and configuration in
+		// Settings. AutoHideMenuBar is the fallback for a menu a host or toolkit
 		// installs anyway, so it cannot reappear as a permanent strip; macOS
 		// keeps its application menu because the platform owns that bar.
 		AutoHideMenuBar: true,

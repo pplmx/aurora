@@ -47,7 +47,7 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   Content-Security-Policy，也就没有"策略写错导致整个界面静默失效"这一类缺陷
   —— 之前正是 CSP 缺 `unsafe-eval` 让 Alpine 的所有指令失效，HTTP 界面任何
   表单都提交不了，而桌面端因为剥离 CSP 掩盖了它。
-- **七个页面**：仪表盘、抽奖、投票、代币、预言机、NFT、账本，全部通过
+- **七个模块 + Settings**：仪表盘、抽奖、投票、代币、预言机、NFT、账本，以及侧栏 Application 区的 Settings；模块全部通过
   `api.Services` 调用与 REST handler 相同的应用层用例。窗口里创建的记录，CLI
   立刻能读到；反过来也一样。仪表盘除了六个计数器，还列出最新 5 条链上记录
   （模块、高度、摘要）——计数器回答“有多少”，列表回答“最近发生了什么”。
@@ -57,6 +57,10 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 - **每页有 “How this works”**：默认折叠，点开是按顺序的 2–4 步操作说明，
   包括每个写操作用哪把私钥、密钥不会保存、投票从注册到计票的顺序、预言机从
   添加源到读取的路径。它回答“先做什么”，而不是再加一层表单。
+- **Settings 是应用配置的唯一页面**：Language（跟随系统 / English / 简体中文 /
+  繁體中文，显示当前语言）、Data（只读数据库路径与复制、打开数据目录、备份）、
+  Appearance（深色主题，字号/对比度/动效跟随系统）和 About Aurora（版本、构建
+  时间、数据库路径、关于对话框）。文件动作仍留在 File 菜单，配置不再混在菜单里。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
   因此 Windows/GNOME 的文本大小设置会同时放大标题、正文、提示与表格文字；
   Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。系统开启
@@ -73,8 +77,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   由控件自己高亮，方向键与首字母在模块间移动，整列只占一个 Tab 停靠点。页面 id
   与显示标题分开存放，将来标题本地化不会改变"选择"记的是哪一页。
 - **页头给页面一个身份**：同一枚图标放在染色方块里，旁边是 26pt 标题和一句话
-  用途，右侧是 Refresh。Ctrl/Cmd+1…7 按侧栏顺序直接切页；菜单栏的 Go 菜单
-  同样列出七个页面并标注相同的快捷键，不用记也能发现。
+  用途，右侧是 Refresh。Ctrl/Cmd+1…8 按侧栏顺序直接切页（Settings 是第 8 个），
+  不用记也能发现。
 - **动作按钮只有三档**：`primaryButton`（一个表单唯一的提交动作，Aurora 蓝）、
   `secondaryButton`（读取与辅助写入，带描边）、`dangerButton`（销毁/删除，红色，
   仍要经过确认框）；卡片内的复制等小动作走 `quietButton`。四者都是
@@ -158,9 +162,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   token/账户/资产/source（Query 还含 limit、History 含 offset）为键：换对象或
   改查询后读取失败会先清掉旧答案并在卡片里报错，只有同一输入的刷新失败才保留
   上一次成功结果并标注 stale。
-- **键盘可达**：Tab 依次进入各输入框，Ctrl+R / Cmd+R 刷新当前页，Ctrl/Cmd+1…7
-  按侧栏顺序切页（都注册在窗口上而不是按钮上——元素级快捷键只在它有焦点时
-  生效，实测）。
+- **键盘可达**：Tab 依次进入各输入框，Ctrl+R / Cmd+R 刷新当前页，Ctrl/Cmd+1…8
+  按侧栏顺序切页（Settings 是第 8 个；都注册在窗口上而不是按钮上——元素级
+  快捷键只在它有焦点时生效，实测）。
 - **不可逆操作先确认，并说清对象**：销毁代币/NFT、删除预言机数据源都会先弹出
   `ui.AlertDialog`，对应 CLI 的 `--confirm` 门槛；对话框里写明金额与账户、NFT
   名称/短 id、数据源名称/短 id，而不是只问“确定吗”——这些动作不可撤销，确认
@@ -183,8 +187,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   页面级消息。
 - **可无窗口测试**：`ui.Tester` 在内存里渲染帧并注入输入，
   `desktop/internal/nativeui/app_test.go` 用它在没有 X server 的情况下跑完七个
-  页面，并验证空参与者、过短种子、超额中奖数、空验证 ID 都在调用服务之前被
-  拒绝。
+  模块和 Settings，并验证空参与者、过短种子、超额中奖数、空验证 ID 都在调用
+  服务之前被拒绝。
 - **复用同一后端**：`api.NewServer` 原样启动，预言机定时调度器与审计 outbox
   补偿循环照常运行；`Runtime.Close` 在退出时释放 SQLite 句柄。
 - **数据落在用户目录**：默认 MyGo 的 `App.Path(PathUserData)`，即
@@ -198,7 +202,7 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   sidecar 和相邻日志同时固定为 `0600`，不能让同机其他普通账号遍历或读取。
   显式 `--data-dir` 指定的已有目录不改权限，以免破坏用户选择的共享或受管
   目录；新建的显式目录仍以 `0700` 创建。
-- **数据库备份同样只对当前用户开放**：Actions → Back Up Database 新建的备份
+- **数据库备份同样只对当前用户开放**：File 或 Settings → Back Up Database 新建的备份
   目录为 `0700`，SQLite 快照和 `metadata.json` 固定为 `0600`。如果用户明确
   选择一个已存在的备份目录，该目录自身的权限保持不变，但其中的新文件仍是
   owner-only；这样 Oracle Bearer 头不会随备份暴露给同机其他账号。Restore
@@ -216,22 +220,22 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   `SetLanguages` 放在 `Start` 之前，因为启动失败会提前返回——否则失败弹窗
   只有一个英文 “OK”。`[i18n] locale` 配置（`$LANG` 未设置时的兜底）现在同样
   作用于窗口，与 CLI 一致。
-- Actions → Language 可在运行时切换（跟随系统 / English / 简体中文 / 繁體中文）：
+- Settings → Language 可在运行时切换（跟随系统 / English / 简体中文 / 繁體中文）：
   MyGo 会记住选择（macOS 写进系统设置，其他平台写用户数据目录），并翻译
   自己的平台菜单角色；`OnLocaleChanged` 同步 Aurora 的翻译器并重绘窗口，
-  页面文案与 Actions 标签随即换语言。各语言项用自身语言书写。
+  页面文案与 File 菜单标签随即换语言。各语言项用自身语言书写。
 
-## 菜单与文件操作
+## 文件操作与 Settings
 
 - **Linux/Windows 不安装应用菜单栏**：页面导航在侧栏、刷新在页头，常驻的
   File/Edit/Go/View/Window/Help 只是重复已有入口，也把窗口上方压出一条突兀的
   横栏。Linux/Windows 现在根本不安装应用菜单（`AutoHideMenuBar` 只作为宿主或
   工具包仍装了菜单时的兜底），Cmd/Ctrl+E/I/B 由窗口自己注册并继续生效。备份、
-  导出、导入、打开数据目录、最近打开、关于和语言切换移到了侧栏底部的
-  **Actions** 菜单（`ui.MenuButton`），不需要记快捷键就能找到。macOS 的菜单栏
-  归系统所有、无法移除，因此只保留平台角色（应用菜单、File→Close、Edit、
-  Window）；Aurora 自己的动作在三端都只在侧栏 Actions 里出现，菜单内容不再分叉。
-- **文件动作**：Actions → Back Up Database… 调用与 CLI 相同的 `BackupService`
+  导出、导入和最近打开放在侧栏底部的 **File** 菜单（`ui.MenuButton`）；语言、
+  数据位置、外观和构建信息放在侧栏 Application 区的 **Settings** 页面。macOS 的
+  菜单栏归系统所有、无法移除，因此只保留平台角色（应用菜单、File→Close、Edit、
+  Window）；Aurora 自己的入口在三端都只在窗口内出现，菜单内容不再分叉。
+- **文件动作**：File → Back Up Database… 调用与 CLI 相同的 `BackupService`
   （WAL 完整快照 + 校验和）；Export/Import Lotteries 调用与
   `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、同一覆盖
   保护），导出目标经同目录临时文件原子替换，写入失败不会先清空上一份导出；
@@ -240,8 +244,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   会被拒绝，不会把数据库盖成 JSON。About 显示版本、构建时间与数据库
   路径。所有弹窗都带 `Parent`：文件选择器与结果框挂在发起操作的窗口上
   （macOS 上是 sheet，其他平台是子模态），而不是可以留在背后的游离窗口。
-- **Open Recent**：Actions → Open Recent 由 MyGo 维护（用户数据目录的
-  `recent-documents.json`，同时写入系统自己的最近文档列表）。Actions 导入/导出、
+- **Open Recent**：File → Open Recent 由 MyGo 维护（用户数据目录的
+  `recent-documents.json`，同时写入系统自己的最近文档列表）。File 导入/导出、
   拖放与命令行导入成功后都会记录路径；选中一项仍走 `OnOpenFile` 的同一条导入
   路径，覆盖保护与重复记录保护照常生效。记录只在 `App.IsReady()` 之后进行——
   `App.AddRecentDocument` 会向主线程投递并等待，`Run` 之前调用会卡住启动；

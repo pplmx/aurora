@@ -24,9 +24,10 @@ type About struct {
 
 // NewPlatformMenu builds the menu macOS owns: the application menu, a File
 // menu with Close, Edit for clipboard roles, and Window. It carries no Aurora
-// actions: backup, export/import, recent exports, About and Language live in
-// the window's Actions menu on every platform. The bar is therefore the
-// platform's own chrome, which MyGo relabels when the locale changes.
+// actions: backup, export/import and recent exports live in the window's File
+// menu, while language, data, appearance and build facts live in Settings. The
+// bar is therefore the platform's own chrome, which MyGo relabels when the
+// locale changes.
 func NewPlatformMenu() *mygo.Menu {
 	return mygo.NewMenu([]*mygo.MenuItem{
 		{Role: mygo.RoleAppMenu},

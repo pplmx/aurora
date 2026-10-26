@@ -451,9 +451,9 @@ func (s *Shell) reportImport(path string, result lotteryapp.ImportResult) {
 	s.report(importReportType(result), title, message, detail)
 }
 
-// The methods below are the application actions the in-window Actions menu
-// runs. They are the same calls the native menu items make, with the shell's
-// current window as the dialog parent, so the two entry points cannot drift.
+// The methods below are the application actions the File menu and Settings page
+// run. They use the shell's current window as the dialog parent, so every entry
+// point shares the same dialog behavior.
 
 func (s *Shell) BackUpDatabase() {
 	backUpDatabase(s.meta, s.Window())
@@ -478,7 +478,7 @@ func (s *Shell) ShowDataFolder() {
 }
 
 // RecentDocuments is the list MyGo keeps for File → Open Recent, now also
-// available to the in-window Actions menu.
+// available to the in-window File menu.
 func (s *Shell) RecentDocuments() []string {
 	if !appReady() {
 		return nil
@@ -502,7 +502,7 @@ func (s *Shell) SetLanguage(tag string) {
 	mygo.App.SetLocale(tag)
 }
 
-// Language reports the language in effect, for the Actions menu's check marks.
+// Language reports the language in effect, for Settings' current-language row.
 func (s *Shell) Language() string {
 	return appLocale()
 }

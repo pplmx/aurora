@@ -22,6 +22,11 @@ type Actions struct {
 	ImportLotteries func()
 	ShowDataFolder  func()
 	ShowAbout       func()
+	// Version, BuildTime and DBPath are shown on the Settings page; they are
+	// values rather than callbacks because they do not change at run time.
+	Version   string
+	BuildTime string
+	DBPath    string
 	// RecentDocuments lists the lottery exports the user opened or saved;
 	// OpenRecent loads one through the same import path as a drop.
 	RecentDocuments func() []string
@@ -39,17 +44,15 @@ func (a *App) SetActions(actions Actions) {
 	a.actions = actions
 }
 
-// sidebarActions draws the application menu at the bottom of the sidebar. It
-// replaces a permanent window menu bar: the pages already have their own
-// navigation, and the actions that are not page work (back up, export, import,
-// data folder, About, language) stay one click away instead of hiding behind
-// Alt.
+// sidebarActions draws the File menu at the bottom of the sidebar. It replaces
+// a permanent window menu bar: file operations stay one click away instead of
+// hiding behind Alt, while application configuration lives on Settings.
 func (a *App) sidebarActions(c *ui.Context) {
 	if a.actions.empty() {
 		return
 	}
 	ui.Column(c).FillWidth().Padding(12, 8, 16, 14).Children(func() {
-		label := i18n.GetText("desktop.menu.actions")
+		label := i18n.GetText("desktop.menu.file")
 		button := ui.MenuButton(c, label, a.actionsMenu).
 			FillWidth().Height(34).PaddingX(12).Radius(buttonRadius).
 			Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border))
@@ -89,8 +92,8 @@ func (a *App) actionsMenu(m *ui.Menu) {
 	menuAction(m, i18n.GetText("desktop.menu.backup"), a.actions.BackUpDatabase)
 	menuAction(m, i18n.GetText("desktop.menu.export"), a.actions.ExportLotteries)
 	menuAction(m, i18n.GetText("desktop.menu.import"), a.actions.ImportLotteries)
-	menuAction(m, i18n.GetText("desktop.menu.show_data_folder"), a.actions.ShowDataFolder)
 	if a.actions.RecentDocuments != nil && a.actions.OpenRecent != nil {
+		m.Separator()
 		m.Submenu(i18n.GetText("desktop.menu.open_recent"), func(sub *ui.Menu) {
 			docs := a.actions.RecentDocuments()
 			if len(docs) == 0 {
@@ -105,17 +108,6 @@ func (a *App) actionsMenu(m *ui.Menu) {
 			}
 		})
 	}
-	m.Separator()
-	menuAction(m, i18n.GetText("desktop.menu.about"), a.actions.ShowAbout)
-	if a.actions.SetLanguage != nil {
-		m.Submenu(i18n.GetText("desktop.menu.language"), func(sub *ui.Menu) {
-			languageAction(sub, i18n.GetText("desktop.menu.language_system"), "", a)
-			sub.Separator()
-			languageAction(sub, i18n.GetText("desktop.menu.language_en"), "en", a)
-			languageAction(sub, i18n.GetText("desktop.menu.language_zh"), "zh-Hans", a)
-			languageAction(sub, i18n.GetText("desktop.menu.language_zh_hant"), "zh-Hant", a)
-		})
-	}
 }
 
 // menuAction adds one enabled or disabled action item. Chosen reports the
@@ -128,17 +120,5 @@ func menuAction(m *ui.Menu, label string, fn func()) {
 	}
 	if item.Chosen() {
 		fn()
-	}
-}
-
-func languageAction(m *ui.Menu, label, tag string, app *App) {
-	item := m.Item(label)
-	// The system item has no resolved tag of its own; ticking it when an
-	// override is active would claim a choice the app cannot observe.
-	if tag != "" && app.actions.Language != nil {
-		item.Checked(app.actions.Language() == tag)
-	}
-	if item.Chosen() {
-		app.actions.SetLanguage(tag)
 	}
 }

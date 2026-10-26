@@ -372,12 +372,13 @@ documented in their per-milestone ROADMAP files.
   navigated from the sidebar and refreshed from the header, so the
   File/Edit/Go/View/Window/Help bar was chrome the window did not need. The app
   installs no application menu there at all; `AutoHideMenuBar` is only a
-  fallback if a host supplies one. Cmd/Ctrl+E/I/B are registered by the window,
-  and the shell's file/help/language work moved to a sidebar Actions menu,
-  including Open Recent, so it stays discoverable. macOS cannot remove its
-  global bar, so it keeps only the platform roles (app menu, File→Close, Edit,
-  Window); Aurora's own actions appear in the sidebar Actions menu on all three
-  platforms, so the menu contents no longer fork.
+  fallback if a host supplies one. Cmd/Ctrl+E/I/B are registered by the window;
+  backup, export/import and recent exports live in a sidebar **File** menu, and
+  language, data location, appearance and build facts live in a **Settings**
+  page under the sidebar's Application section. macOS cannot remove its global
+  bar, so it keeps only the platform roles (app menu, File→Close, Edit, Window);
+  Aurora's own entries appear in the window on all three platforms, so the menu
+  contents no longer fork.
 - **The desktop has a high-contrast variant of its palette**: when the OS asks
   for increased contrast, the same polar-night design uses brighter hairlines,
   primary/secondary text, focus ring and selection tint (`auroraTheme(true)`).
