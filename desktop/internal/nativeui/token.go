@@ -22,7 +22,11 @@ type tokenState struct {
 
 	// Read forms.
 	tokenID string
-	account string
+	// balanceAccount and historyOwner are separate inputs: sharing one field
+	// meant typing a history owner silently changed the account the Balance
+	// card would read, under a readout fetched for someone else.
+	balanceAccount string
+	historyOwner   string
 
 	info    *TokenRow
 	balance string
@@ -269,10 +273,10 @@ func (a *App) tokenReadBody(c *ui.Context) {
 		})
 	}
 
-	field(c, "Account (base64 public key)", &a.token.account)
+	field(c, "Account (base64 public key)", &a.token.balanceAccount)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get Balance").Clicked() {
-			bal, err := a.services.TokenBalance(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.account))
+			bal, err := a.services.TokenBalance(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.balanceAccount))
 			if err != nil {
 				a.token.status = errStatus(err)
 				a.token.balance = ""
@@ -471,9 +475,8 @@ func (a *App) refreshToken() {
 			a.token.info = &info
 		}
 	}
-	account := strings.TrimSpace(a.token.account)
 	if a.token.balance != "" {
-		if balance, err := a.services.TokenBalance(id, account); err == nil {
+		if balance, err := a.services.TokenBalance(id, strings.TrimSpace(a.token.balanceAccount)); err == nil {
 			a.token.balance = balance
 		}
 	}
@@ -485,7 +488,7 @@ func (a *App) refreshToken() {
 		if limit > maxListLimit {
 			limit = maxListLimit
 		}
-		if rows, err := a.services.TokenHistory(id, account, limit, 0); err == nil {
+		if rows, err := a.services.TokenHistory(id, strings.TrimSpace(a.token.historyOwner), limit, 0); err == nil {
 			a.token.history = rows
 		}
 	}
@@ -540,7 +543,7 @@ func (a *App) tokenHistory(c *ui.Context) {
 }
 
 func (a *App) tokenHistoryBody(c *ui.Context) {
-	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.account)
+	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.historyOwner)
 	ui.Field(c, "Limit", func() {
 		ui.NumberInput(c, &a.token.historyLimit, 1, maxListLimit, 1)
 	})
@@ -553,7 +556,7 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 			if limit > maxListLimit {
 				limit = maxListLimit
 			}
-			rows, err := a.services.TokenHistory(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.account), limit, 0)
+			rows, err := a.services.TokenHistory(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.historyOwner), limit, 0)
 			if err != nil {
 				a.token.status = errStatus(err)
 				a.token.history = nil

@@ -55,6 +55,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop balance and history cards no longer share one account field**:
+  typing an owner in History silently changed the account the Balance card would
+  read, while its readout still described the earlier account. The two inputs
+  are independent and each refresh path reads its own value;
+  `TestBalanceAndHistoryUseTheirOwnAccount` sends different accounts and checks
+  what each card asked for.
 - **The desktop oracle preset cannot get stuck on an emptied form**: adding a
   source cleared the fields but kept the preset selected, so the same preset
   could not be applied again (a combobox reports changes only when the choice

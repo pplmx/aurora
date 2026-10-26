@@ -165,7 +165,8 @@ func TestPageRefreshReReadsOpenReadouts(t *testing.T) {
 
 	app.ShowPage("Token")
 	app.token.tokenID = "t1"
-	app.token.account = "owner"
+	app.token.balanceAccount = "owner"
+	app.token.historyOwner = "owner"
 	app.token.info = &TokenRow{ID: "t1"}
 	app.token.balance = "42"
 	app.token.history = []TransferRow{{Amount: "1"}}
@@ -198,4 +199,24 @@ func TestPageRefreshReReadsOpenReadouts(t *testing.T) {
 	beforeResults := fake.sessionResultsCalls
 	app.refresh()
 	require.Equal(t, beforeResults+1, fake.sessionResultsCalls, "an open tally must refresh")
+}
+
+// TestBalanceAndHistoryUseTheirOwnAccount pins the two read inputs apart: they
+// used to share one field, so typing a history owner silently changed the
+// account the Balance card read, under a readout fetched for someone else.
+func TestBalanceAndHistoryUseTheirOwnAccount(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	app.token.balanceAccount = "alice"
+	app.token.historyOwner = "bob"
+
+	require.NoError(t, tester.Click("Get Balance"))
+	require.NoError(t, tester.Click("Load History"))
+	require.Equal(t, "alice", fake.lastBalanceOwner, "the Balance card reads its own account")
+	require.Equal(t, "bob", fake.lastHistoryOwner, "the History card reads its own owner")
 }
