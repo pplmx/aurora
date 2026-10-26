@@ -64,6 +64,9 @@ type nftState struct {
 
 	// askBurn gates the irreversible burn, as the CLI's --confirm does.
 	askBurn bool
+	// opTab is the operation shown in the write column. Stacking Transfer,
+	// Burn and History pushed the last two below the fold for no reason.
+	opTab int
 
 	status statusLine
 
@@ -199,6 +202,7 @@ func (a *App) nftReadBody(c *ui.Context) {
 	if a.nft.nftErr != nil {
 		loadWarning(c, "Couldn't load NFT", a.nft.nftErr, a.nft.nft != nil)
 	}
+	copyRow(c, "NFT ID", strings.TrimSpace(a.nft.id), nil)
 	if n := a.nft.nft; n != nil {
 		rows := []readoutRow{
 			{"Name", n.Name}, {"Owner", n.Owner}, {"Creator", n.Creator},
@@ -300,50 +304,56 @@ func (a *App) nftListBody(c *ui.Context) {
 }
 
 func (a *App) nftWrite(c *ui.Context) {
-	formCard(c, "Transfer", "Move an NFT to a new owner; the transfer is signed by the current one.", func() {
-		field(c, "NFT ID", &a.nft.transferID)
-		field(c, "From (base64 public key)", &a.nft.from)
-		field(c, "To (base64 public key)", &a.nft.to)
-		field(c, "From Private Key", &a.nft.priv)
-		ui.Row(c).Children(func() {
-			if primaryButton(c, "Transfer").Clicked() {
-				a.transferNFT()
-			}
-		})
-	})
-
-	formCard(c, "Burn", "Destroy an NFT permanently. This cannot be undone.", func() {
-		field(c, "NFT ID", &a.nft.burnID)
-		field(c, "Owner (base64 public key)", &a.nft.burnOwner)
-		field(c, "Owner Private Key", &a.nft.burnPriv)
-		ui.Row(c).Children(func() {
-			// A destructive action carries the danger style, and the
-			// confirmation still stands between it and the write.
-			if dangerButton(c, "Burn NFT…").Clicked() {
-				a.nft.askBurn = true
-			}
-		})
-	})
-
-	formCard(c, "History", "Every mint, transfer and burn recorded for this NFT.", func() {
-		field(c, "NFT ID", &a.nft.historyID)
-		ui.Row(c).Children(func() {
-			if secondaryButton(c, "Show History").Clicked() {
-				id := strings.TrimSpace(a.nft.historyID)
-				a.clearNFTHistoryForAnotherSubject(id)
-				if err := a.loadNFTHistory(id); err != nil {
-					a.nft.status = errStatus(err)
-				} else {
-					a.nft.status = statusLine{}
+	ui.Tabs(c, &a.nft.opTab, "Transfer", "Burn", "History")
+	switch a.nft.opTab {
+	case 0:
+		formCard(c, "Transfer", "Move an NFT to a new owner; the transfer is signed by the current one.", func() {
+			field(c, "NFT ID", &a.nft.transferID)
+			field(c, "From (base64 public key)", &a.nft.from)
+			field(c, "To (base64 public key)", &a.nft.to)
+			field(c, "From Private Key", &a.nft.priv)
+			ui.Row(c).Children(func() {
+				if primaryButton(c, "Transfer").Clicked() {
+					a.transferNFT()
 				}
-			}
+			})
 		})
-		if a.nft.historyErr != nil &&
-			!loadWarning(c, "Couldn't load NFT history", a.nft.historyErr, len(a.nft.history) > 0) {
-			return
-		}
-		a.nftHistoryTable(c)
-	})
+
+	case 1:
+		formCard(c, "Burn", "Destroy an NFT permanently. This cannot be undone.", func() {
+			field(c, "NFT ID", &a.nft.burnID)
+			field(c, "Owner (base64 public key)", &a.nft.burnOwner)
+			field(c, "Owner Private Key", &a.nft.burnPriv)
+			ui.Row(c).Children(func() {
+				// A destructive action carries the danger style, and the
+				// confirmation still stands between it and the write.
+				if dangerButton(c, "Burn NFT…").Clicked() {
+					a.nft.askBurn = true
+				}
+			})
+		})
+
+	case 2:
+		formCard(c, "History", "Every mint, transfer and burn recorded for this NFT.", func() {
+			field(c, "NFT ID", &a.nft.historyID)
+			ui.Row(c).Children(func() {
+				if secondaryButton(c, "Show History").Clicked() {
+					id := strings.TrimSpace(a.nft.historyID)
+					a.clearNFTHistoryForAnotherSubject(id)
+					if err := a.loadNFTHistory(id); err != nil {
+						a.nft.status = errStatus(err)
+					} else {
+						a.nft.status = statusLine{}
+					}
+				}
+			})
+			if a.nft.historyErr != nil &&
+				!loadWarning(c, "Couldn't load NFT history", a.nft.historyErr, len(a.nft.history) > 0) {
+				return
+			}
+			a.nftHistoryTable(c)
+		})
+	}
 }
 
 // loadNFTDetails reads one asset into the Inspect card. A failure keeps the

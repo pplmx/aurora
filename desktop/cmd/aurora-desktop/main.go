@@ -249,6 +249,20 @@ func main() {
 	// The window draws native widgets from this state; a link or a second
 	// launch steers it, so the shell needs it before any intent arrives.
 	shell.SetApp(rt.App())
+	// The menu bar is hidden by default now, so the application work that is
+	// not page work lives in the sidebar's Actions menu: same shell calls as
+	// the native File/Help items, with the live window as dialog parent.
+	rt.App().SetActions(nativeui.Actions{
+		BackUpDatabase:  shell.BackUpDatabase,
+		ExportLotteries: shell.ExportLotteries,
+		ImportLotteries: shell.ImportLotteries,
+		ShowDataFolder:  shell.ShowDataFolder,
+		ShowAbout:       shell.ShowAbout,
+		RecentDocuments: shell.RecentDocuments,
+		OpenRecent:      shell.OpenRecent,
+		SetLanguage:     shell.SetLanguage,
+		Language:        shell.Language,
+	})
 	// The menu's Go items switch pages, so it is built once the window's state
 	// exists. mygo.App.SetMenu before Run only stores the template; the
 	// callbacks run later.
@@ -308,6 +322,11 @@ func main() {
 		deskapp.FollowAppLocale(func() {
 			mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
 			deskapp.MarkLanguage(mygo.App.Menu())
+			// The sidebar's Actions menu reads Aurora's translator directly;
+			// redraw it so a language switch relabels it with the native menu.
+			if win := shell.Window(); win != nil && !win.IsDestroyed() {
+				win.Invalidate()
+			}
 		})
 		deskapp.MarkLanguage(mygo.App.Menu())
 		openMainWindow(shell, opts)

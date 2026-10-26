@@ -451,6 +451,62 @@ func (s *Shell) reportImport(path string, result lotteryapp.ImportResult) {
 	s.report(importReportType(result), title, message, detail)
 }
 
+// The methods below are the application actions the in-window Actions menu
+// runs. They are the same calls the native menu items make, with the shell's
+// current window as the dialog parent, so the two entry points cannot drift.
+
+func (s *Shell) BackUpDatabase() {
+	backUpDatabase(s.meta, s.Window())
+}
+
+func (s *Shell) ExportLotteries() {
+	exportLotteries(s.meta, s.Window())
+}
+
+func (s *Shell) ImportLotteries() {
+	var reload func()
+	if app := s.App(); app != nil {
+		reload = app.Reload
+	}
+	importLotteries(s.meta, s.Window(), reload)
+}
+
+func (s *Shell) ShowDataFolder() {
+	if s.meta.DBPath != "" {
+		mygo.Shell.ShowItemInFolder(s.meta.DBPath)
+	}
+}
+
+// RecentDocuments is the list MyGo keeps for File → Open Recent, now also
+// available to the in-window Actions menu.
+func (s *Shell) RecentDocuments() []string {
+	if !appReady() {
+		return nil
+	}
+	return mygo.App.RecentDocuments()
+}
+
+// OpenRecent imports a document from that list through the same path as a
+// dropped file, so an old export and a new one behave identically.
+func (s *Shell) OpenRecent(path string) {
+	s.OpenFile(path)
+}
+
+func (s *Shell) ShowAbout() {
+	showAbout(s.meta, s.Window())
+}
+
+// SetLanguage changes the app's language. MyGo reports the change through
+// OnLocaleChanged, which relabels the native menu and redraws the window.
+func (s *Shell) SetLanguage(tag string) {
+	mygo.App.SetLocale(tag)
+}
+
+// Language reports the language in effect, for the Actions menu's check marks.
+func (s *Shell) Language() string {
+	return appLocale()
+}
+
 // messageBox puts a message on screen. It is a variable rather than a direct
 // call so a test can observe the dialog a shell or menu action would show
 // without needing a live window.

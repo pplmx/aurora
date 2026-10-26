@@ -92,6 +92,7 @@ func TestOracleFetchRefreshesTheReadCardsItFeeds(t *testing.T) {
 	app.oracle.data = []DataRow{{Value: "old"}}
 	app.oracle.latestID = "s1"
 	app.oracle.latest = &DataRow{Value: "old"}
+	tester.Frame()
 
 	dataBefore, latestBefore := fake.oracleDataCalls, fake.oracleLatestCalls
 	require.NoError(t, tester.Click("Fetch now"))

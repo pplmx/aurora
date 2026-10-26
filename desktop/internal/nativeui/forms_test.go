@@ -92,18 +92,21 @@ func TestTokenFormsRenderTheirOwnerInputs(t *testing.T) {
 	app.ShowPage("Token")
 	tester.Frame()
 
-	texts := tester.Texts()
-	for _, want := range []string{
-		"Owner (base64 public key)", // Approve, Transfer From and Allowance
-		"Spender (base64 public key)",
+	for _, tc := range []struct {
+		tab  string
+		want []string
+	}{
+		{"Transfer", []string{"From (base64 public key)", "To (base64 public key)", "From Private Key"}},
+		{"Approve", []string{"Owner (base64 public key)", "Spender (base64 public key)", "Owner Private Key"}},
+		{"Transfer From", []string{"Owner (base64 public key)", "To (base64 public key)", "Spender Private Key"}},
+		{"Burn", []string{"From (base64 public key)", "Amount", "Owner Private Key"}},
+		{"Allowance", []string{"Owner (base64 public key)", "Spender (base64 public key)"}},
 	} {
-		count := 0
-		for _, got := range texts {
-			if got == want {
-				count++
-			}
+		require.NoErrorf(t, tester.Click(tc.tab), "select the %s operation", tc.tab)
+		tester.Frame()
+		for _, want := range tc.want {
+			require.Truef(t, tester.HasText(want), "the %s form must show %q", tc.tab, want)
 		}
-		require.Positive(t, count, "the Token page must show a %q input", want)
 	}
 }
 

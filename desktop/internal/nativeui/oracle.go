@@ -194,6 +194,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	// making the whole grid interactive, so the id is entered once — or loaded
 	// by choosing a row above — and the actions apply to it.
 	field(c, "Source ID for the actions below", &a.oracle.fetchID)
+	copyRow(c, "Source ID", strings.TrimSpace(a.oracle.fetchID), nil)
 	ui.Row(c).Gap(8).Children(func() {
 		if secondaryButton(c, "Enable").Clicked() {
 			a.oracle.status = wrapErr(a.services.SetOracleSourceEnabled(strings.TrimSpace(a.oracle.fetchID), true))

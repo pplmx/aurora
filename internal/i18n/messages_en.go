@@ -252,10 +252,13 @@ var englishMessages = map[string]string{
 	// has to come from here or a zh-CN session shows MyGo's Chinese roles
 	// next to English app items (ISS-291).
 	"desktop.menu.file":                     "File",
+	"desktop.menu.actions":                  "Actions",
 	"desktop.menu.export":                   "Export Lotteries...",
 	"desktop.menu.import":                   "Import Lotteries...",
 	"desktop.menu.backup":                   "Back Up Database...",
 	"desktop.menu.show_data_folder":         "Show Data Folder",
+	"desktop.menu.open_recent":              "Open Recent",
+	"desktop.menu.open_recent_empty":        "No recent exports",
 	"desktop.menu.go":                       "Go",
 	"desktop.menu.help":                     "Help",
 	"desktop.menu.about":                    "About Aurora",

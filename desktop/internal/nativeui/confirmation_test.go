@@ -20,6 +20,8 @@ func TestBurnDialogNamesWhatItDestroys(t *testing.T) {
 
 	app.token.burnFrom = "owner-pk"
 	app.token.burnAmount = "25"
+	require.NoError(t, tester.Click("Burn"), "select the Burn operation")
+	tester.Frame()
 	require.NoError(t, tester.Click("Burn…"))
 	tester.Frame()
 	require.True(t, tester.HasText("Burn 25 from owner-pk?"),
@@ -42,6 +44,8 @@ func TestNFTBurnDialogNamesTheAsset(t *testing.T) {
 
 	app.nft.burnID = id
 	app.nft.nft = &NFTRow{ID: id, Name: "Star"}
+	require.NoError(t, tester.Click("Burn"), "select the Burn operation")
+	tester.Frame()
 	require.NoError(t, tester.Click("Burn NFT…"))
 	tester.Frame()
 	require.True(t, tester.HasText("Burn Star"), "the NFT's name must be in the question")
@@ -62,6 +66,7 @@ func TestDeleteDialogNamesTheSource(t *testing.T) {
 	tester.Frame()
 
 	app.oracle.fetchID = "src-1"
+	tester.Frame()
 	require.NoError(t, tester.Click("Delete"))
 	tester.Frame()
 	require.True(t, tester.HasText("Delete btc-price (src-1)?"),
