@@ -54,6 +54,7 @@ func TestSettingsPageWithoutCallbacksStaysReadable(t *testing.T) {
 
 	require.True(t, tester.HasText("Language"))
 	require.True(t, tester.HasText("Data"))
+	require.False(t, tester.HasText("Refresh"), "Settings reads no database to refresh")
 	require.False(t, tester.HasText("English"), "no language buttons without a shell")
 	require.False(t, tester.HasText("Open About Dialog"))
 }
