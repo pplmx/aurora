@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -135,5 +136,35 @@ func TestFetcher_RedirectToUnresolvableHostBlocked(t *testing.T) {
 	}
 	if !errors.Is(err, ErrBlockedDestination) {
 		t.Fatalf("expected ErrBlockedDestination, got %v", err)
+	}
+}
+
+// TestBlockedIPRanges pins the address classes the dial guard refuses. The
+// NAT64 prefixes matter most: on an IPv6-only network [64:ff9b::7f00:1]
+// translates to 127.0.0.1 at the edge, so an IPv4-only block list would let a
+// redirect or a hostile literal reach loopback through the translator.
+func TestBlockedIPRanges(t *testing.T) {
+	blocked := []string{
+		"0.0.0.0", "10.1.2.3", "100.64.1.1", "127.0.0.1", "169.254.169.254",
+		"172.16.0.1", "192.168.1.1", "192.0.0.1", "198.18.0.1", "240.0.0.1",
+		"255.255.255.255",
+		"::", "::1", "fc00::1", "fe80::1", "ff02::1",
+		"64:ff9b::7f00:1", "64:ff9b:1::7f00:1", "2001:db8::1", "100::1",
+	}
+	for _, text := range blocked {
+		ip := net.ParseIP(text)
+		if ip == nil {
+			t.Fatalf("test address %q does not parse", text)
+		}
+		if !isBlockedIP(ip) {
+			t.Errorf("isBlockedIP(%s) = false, want blocked", text)
+		}
+	}
+
+	allowed := []string{"8.8.8.8", "1.1.1.1", "93.184.216.34", "2606:4700:4700::1111"}
+	for _, text := range allowed {
+		if isBlockedIP(net.ParseIP(text)) {
+			t.Errorf("isBlockedIP(%s) = true, want allowed", text)
+		}
 	}
 }
