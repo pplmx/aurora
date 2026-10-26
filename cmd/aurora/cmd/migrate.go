@@ -200,7 +200,7 @@ var migrateStatusCmd = &cobra.Command{
 var migrateRepairCmd = &cobra.Command{
 	Use:   "repair",
 	Short: i18n.GetText("migrate.repair"),
-	Long:  i18n.GetText("migrate.repair_confirm"),
+	Long:  i18n.GetText("migrate.repair_long"),
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := requireConfirm(cmd, "migrate.repair_action"); err != nil {

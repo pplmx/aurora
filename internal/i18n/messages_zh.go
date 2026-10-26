@@ -12,6 +12,7 @@ var chineseMessages = map[string]string{
 
 	// ===== LOTTERY =====
 	// Commands
+	"lottery.cmd":     "VRF 抽奖系统",
 	"lottery.long":    "基于 VRF 的透明抽奖：创建抽奖、验证结果、导入导出记录并查看统计",
 	"lottery.create":  "创建新抽奖",
 	"lottery.history": "查看历史记录",

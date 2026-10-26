@@ -12,6 +12,7 @@ var englishMessages = map[string]string{
 
 	// ===== LOTTERY =====
 	// Commands
+	"lottery.cmd":     "VRF Lottery System",
 	"lottery.long":    "VRF-based transparent lottery: create draws, verify results, export/import records and inspect stats",
 	"lottery.create":  "Create a new lottery",
 	"lottery.history": "Show lottery history",

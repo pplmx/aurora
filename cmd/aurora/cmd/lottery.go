@@ -16,7 +16,7 @@ import (
 
 var lotteryCmd = &cobra.Command{
 	Use:   "lottery",
-	Short: i18n.GetText("lottery.tui.title"),
+	Short: i18n.GetText("lottery.cmd"),
 	Long:  i18n.GetText("lottery.long"),
 }
 
