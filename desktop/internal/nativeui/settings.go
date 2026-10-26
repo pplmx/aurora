@@ -63,7 +63,7 @@ func (a *App) settingsView(c *ui.Context) {
 					}
 				}
 			}
-			hint(c, "Applies to Dashboard and Oracle health; forms keep their text.")
+			hint(c, "Applies to Dashboard and Oracle health; forms keep their text. Saved for the next launch.")
 		})
 
 		formCard(c, "Appearance", "Aurora is dark by design; the operating system still decides size and contrast.", func() {
