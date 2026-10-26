@@ -97,6 +97,7 @@ type fakeLoadErrors struct {
 	history    error
 	health     error
 	templates  error
+	blocks     error
 	tokens     error
 	nfts       error
 	sources    error
@@ -138,6 +139,9 @@ func (f *fakeServices) Dashboard() (DashboardStats, error) {
 }
 
 func (f *fakeServices) LedgerBlocks(limit int) ([]BlockRow, error) {
+	if f.loadErrs.blocks != nil {
+		return nil, f.loadErrs.blocks
+	}
 	if limit > 0 && len(f.blocks) > limit {
 		return f.blocks[:limit], nil
 	}

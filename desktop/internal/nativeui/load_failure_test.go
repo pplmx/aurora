@@ -158,3 +158,23 @@ func TestFailedPresetReadKeepsTheAddForm(t *testing.T) {
 	require.True(t, tester.HasText("Preset (optional)"), "the form must remain usable")
 	require.True(t, tester.HasText("Add Source"), "the add action must survive the warning")
 }
+
+// TestFailedBlockReadKeepsTheLedgerRows covers the chain block list: only its
+// counters reported failures, so a failed entry read could leave an empty table
+// saying "Nothing recorded on the chain yet." or silent old rows.
+func TestFailedBlockReadKeepsTheLedgerRows(t *testing.T) {
+	fake := &fakeServices{blocks: []BlockRow{{Height: 7, Module: "lottery", Summary: `{"winner":"A"}`}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	require.True(t, tester.HasText("lottery"))
+
+	fake.loadErrs.blocks = errors.New("database is locked")
+	app.refresh()
+	tester.Frame()
+	require.True(t, tester.HasText("Couldn't read chain blocks"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+	require.True(t, tester.HasText(`{"winner":"A"}`), "the last rows must stay visible")
+	require.False(t, tester.HasText("Nothing recorded on the chain yet."))
+}
