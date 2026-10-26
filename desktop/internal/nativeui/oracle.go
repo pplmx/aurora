@@ -33,6 +33,9 @@ type oracleState struct {
 	sources   []SourceRow
 	templates []TemplateRow
 	health    []HealthRow
+	// healthErr is the last failure to read the health counters; the rows from
+	// the previous successful read stay on screen with a stale note.
+	healthErr error
 	data      []DataRow
 	latest    *DataRow
 
@@ -69,8 +72,11 @@ func (a *App) loadOracle() {
 	if tpl, err := a.services.OracleTemplates(); err == nil {
 		a.oracle.templates = tpl
 	}
-	if h, err := a.services.OracleHealth(); err == nil {
+	if h, err := a.services.OracleHealth(); err != nil {
+		a.oracle.healthErr = err
+	} else {
 		a.oracle.health = h
+		a.oracle.healthErr = nil
 	}
 	a.oracle.loadErr = nil
 }
@@ -336,6 +342,10 @@ func (a *App) oracleHealth(c *ui.Context) {
 }
 
 func (a *App) oracleHealthBody(c *ui.Context) {
+	if a.oracle.healthErr != nil &&
+		!loadWarning(c, "Failed to load feed health", a.oracle.healthErr, len(a.oracle.health) > 0) {
+		return
+	}
 	if len(a.oracle.health) == 0 {
 		emptyNote(c, "(no feed activity yet)")
 		return
