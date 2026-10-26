@@ -101,17 +101,17 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 ## 预言机
 
-| 方法   | 路径                            | 说明                                        |
-| ------ | ------------------------------- | ------------------------------------------- |
-| GET    | `/api/v1/oracle/sources`        | 数据源列表                                  |
-| POST   | `/api/v1/oracle/sources`        | 新建数据源（URL/type/method/headers/path/interval） |
-| PATCH  | `/api/v1/oracle/sources/{id}`   | 启用/停用                                   |
-| DELETE | `/api/v1/oracle/sources/{id}`   | 删除，未知 id 404                           |
-| GET    | `/api/v1/oracle/templates`      | 内置模板                                    |
-| POST   | `/api/v1/oracle/fetch`          | 立即抓取一次；限流时返回 `429 RATE_LIMITED` |
-| GET    | `/api/v1/oracle/query`          | 历史数据；缺少 `source` 参数返回 400        |
-| GET    | `/api/v1/oracle/latest`         | 最新数据点                                  |
-| GET    | `/api/v1/oracle/health`         | 抓取健康统计                                |
+| 方法   | 路径                          | 说明                                                |
+| ------ | ----------------------------- | --------------------------------------------------- |
+| GET    | `/api/v1/oracle/sources`      | 数据源列表                                          |
+| POST   | `/api/v1/oracle/sources`      | 新建数据源（URL/type/method/headers/path/interval） |
+| PATCH  | `/api/v1/oracle/sources/{id}` | 启用/停用                                           |
+| DELETE | `/api/v1/oracle/sources/{id}` | 删除，未知 id 404                                   |
+| GET    | `/api/v1/oracle/templates`    | 内置模板                                            |
+| POST   | `/api/v1/oracle/fetch`        | 立即抓取一次；限流时返回 `429 RATE_LIMITED`         |
+| GET    | `/api/v1/oracle/query`        | 历史数据；缺少 `source` 参数返回 400                |
+| GET    | `/api/v1/oracle/latest`       | 最新数据点                                          |
+| GET    | `/api/v1/oracle/health`       | 抓取健康统计                                        |
 
 `POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
 `{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，
