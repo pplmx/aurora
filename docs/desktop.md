@@ -51,7 +51,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   `api.Services` 调用与 REST handler 相同的应用层用例。窗口里创建的记录，CLI
   立刻能读到；反过来也一样。仪表盘除了六个计数器，还列出最新 5 条链上记录
   （模块、高度、摘要）——计数器回答“有多少”，列表回答“最近发生了什么”。
-  空库时的引导行旁有 “Open Lottery”，一步进入第一次抽奖。
+  上方是 **Quick start**：Run a draw / Create a token / Register a voter /
+  Add a data source / Mint an NFT，直接进入对应页面；空库时另有一句话说明
+  第一次抽奖会创建第一条链上记录。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
   因此 Windows/GNOME 的文本大小设置会同时放大标题、正文、提示与表格文字；
   Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。系统开启
@@ -79,7 +81,11 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   对写操作；投票：会期与候选人列表对选票与计票），表格保持整行宽度。窗口窄于
   1000px 时两列改为上下堆叠，900px 最小宽度下不再把每张卡压到 300px。代币的
   六种写操作与 NFT 的 Transfer/Burn/History 用 `ui.Tabs` 一次只展开一个表单，
-  避免为了 Burn 一路滚过五个折叠表单。每页只有一条状态行，固定在页头下方、
+  避免为了 Burn 一路滚过五个折叠表单。代币精度、历史 Limit/Offset、NFT 的
+  可选元数据、预言机的 Type/Method/Path/Headers/Interval 放在 **Advanced** /
+  **Paging** / **Optional details** 折叠区里，首屏只留完成主任务需要的字段；
+  选择预言机预设会自动展开 Advanced，方便核对预设填入的内容。每页只有一条
+  状态行，固定在页头下方、
   不随内容滚动——表单底部的动作失败时也能立刻看到；成功/失败用文字加色块表达，
   不只靠颜色。卡片里的局部结果（候选人、会期、开始/结束、选票）不再用同一种
   灰色：失败标红、成功标绿，措辞和颜色同时表达结果。
@@ -113,6 +119,12 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   选中候选人时显示其 Program 与票数；NFT Inspect 显示铸造区块，并把 Image URL
   与 Token URI 作为可复制的行；选中预言机数据源时显示可复制的 URL 与轮询间隔
   （`not polled` 表示不会自动抓取）。这些字段都存在记录里，此前只是没有入口。
+- **选中或创建记录后，页面上下文随之移动**：代币的 owner 公钥会填进 Mint To、
+  Transfer From、Approve/Allowance Owner、Burn From、Balance/History 账户，
+  上一个代币的私钥、recipient 和 spender 清空；Create 生成的 owner key 可在
+  Mint/Approve/Burn（Transfer 在 From 就是 owner 时）用 “Use generated owner
+  key” 直接填入，不用在两个字段之间复制。新建 token/NFT/抽奖/候选人/会期会清掉
+  会遮住新记录的搜索/筛选并高亮新行，状态句子之外也能看到结果落在哪。
 - **读卡各用各的输入**：代币的 Balance 账户与 History 持有者曾是同一个字段，
   在 History 输入会悄悄改掉 Balance 要读的账户；现已拆成两个独立输入，刷新也
   分别按各自的值重读。History 同时有 Limit 与 Offset，长流水可翻页查看，并显示

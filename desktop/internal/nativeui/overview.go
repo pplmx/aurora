@@ -115,18 +115,10 @@ func (a *App) dashboardView(c *ui.Context) {
 		{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", ink, true},
 	}
 	// A fresh install is all zeroes and a verified empty chain, which is
-	// correct but says nothing about what to do next. One line names the
-	// first move and a button takes it, instead of leaving the operator to
-	// find the page in the sidebar.
-	if a.dashboard.Lotteries == 0 && a.dashboard.Votes == 0 && a.dashboard.Oracle == 0 {
-		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "Nothing recorded yet — start from Lottery to run a verifiable draw.").
-				FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
-			if secondaryButton(c, "Open Lottery").Clicked() {
-				a.setPage(pageLottery)
-			}
-		})
-	}
+	// correct but says nothing about what to do next. The quick-start card
+	// names a first move for each module; the same buttons stay useful once
+	// the ledger has data, so the page does not only guide a first launch.
+	a.dashboardQuickStart(c)
 	for start := 0; start < len(metrics); start += 3 {
 		start := start
 		row := metrics[start:min(start+3, len(metrics))]
@@ -136,6 +128,30 @@ func (a *App) dashboardView(c *ui.Context) {
 		})
 	}
 	a.dashboardRecent(c)
+}
+
+// dashboardQuickStart names the first move in each module. The sidebar lists
+// modules, not tasks; an operator opening a fresh window otherwise has to
+// guess which page starts a draw, a token or a feed.
+func (a *App) dashboardQuickStart(c *ui.Context) {
+	formCard(c, "Quick start", "One first move per module; use the sidebar for everything else.", func() {
+		if a.dashboard.Lotteries == 0 && a.dashboard.Votes == 0 && a.dashboard.Oracle == 0 {
+			emptyNote(c, "Nothing recorded yet — run a draw to create the first ledger entry.")
+		}
+		ui.Row(c).Wrap().Gap(8).Children(func() {
+			a.quickStartButton(c, "Run a draw", pageLottery)
+			a.quickStartButton(c, "Create a token", pageToken)
+			a.quickStartButton(c, "Register a voter", pageVoting)
+			a.quickStartButton(c, "Add a data source", pageOracle)
+			a.quickStartButton(c, "Mint an NFT", pageNFT)
+		})
+	})
+}
+
+func (a *App) quickStartButton(c *ui.Context, label string, target page) {
+	if secondaryButton(c, label).Clicked() {
+		a.setPage(target)
+	}
 }
 
 // dashboardRecent draws the newest chain entries. The counters say how much

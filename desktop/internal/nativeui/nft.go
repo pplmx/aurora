@@ -67,6 +67,9 @@ type nftState struct {
 	// opTab is the operation shown in the write column. Stacking Transfer,
 	// Burn and History pushed the last two below the fold for no reason.
 	opTab int
+	// mintAdvanced holds the optional metadata fields behind a disclosure:
+	// most mints only need a name and a creator.
+	mintAdvanced bool
 
 	status statusLine
 
@@ -120,9 +123,11 @@ func (a *App) nftMint(c *ui.Context) {
 
 func (a *App) nftMintBody(c *ui.Context) {
 	field(c, "Name", &a.nft.name)
-	textArea(c, "Description (optional)", &a.nft.description)
-	field(c, "Image URL (optional)", &a.nft.imageURL)
-	field(c, "Token URI (optional)", &a.nft.tokenURI)
+	ui.Collapsible(c, "Optional details", &a.nft.mintAdvanced, func() {
+		textArea(c, "Description (optional)", &a.nft.description)
+		field(c, "Image URL (optional)", &a.nft.imageURL)
+		field(c, "Token URI (optional)", &a.nft.tokenURI)
+	})
 	fieldHint(c, "Creator (base64 public key)", "The creator becomes the first owner.", &a.nft.creator)
 	ui.Row(c).Gap(8).Children(func() {
 		if secondaryButton(c, "Generate key pair").Clicked() {
@@ -169,12 +174,29 @@ func (a *App) mintNFT() {
 		return
 	}
 	a.nft.status = okStatus("Minted %s (%s) at block %d", n.Name, n.ID, n.BlockHeight)
+	// A just-minted asset is the page's subject. Clear a filter or search that
+	// would hide it, highlight its row, and move the ids and open readouts to
+	// it; leaving the collection on the previous owner's filter made a
+	// successful mint look like nothing happened.
+	a.nft.filterOwner, a.nft.owner = "", ""
+	a.nft.search, a.nft.appliedSearch = "", ""
 	a.loadNFT()
 	// The new asset becomes the subject of every other card: the operator just
 	// created it, so making them retype the id four times would be busywork.
 	a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
+	a.selectNFTRow(n.ID)
 	a.selectNFT(n.ID)
 	a.nft.name, a.nft.description, a.nft.imageURL, a.nft.tokenURI = "", "", "", ""
+}
+
+// selectNFTRow highlights a record in the collection after a mint.
+func (a *App) selectNFTRow(id string) {
+	for i, n := range a.nft.list {
+		if n.ID == id {
+			a.nft.selected = i
+			return
+		}
+	}
 }
 
 func (a *App) nftRead(c *ui.Context) {

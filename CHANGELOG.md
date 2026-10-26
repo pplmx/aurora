@@ -316,6 +316,24 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop guides the first move and hides fields most uses do not
+  need**: the dashboard now has a Quick start card ("Run a draw", "Create a
+  token", "Register a voter", "Add a data source", "Mint an NFT") and each
+  page title states a task instead of a module description. Token decimals,
+  history paging, NFT optional metadata and oracle transport headers sit
+  behind labelled disclosures; a preset opens the oracle disclosure so its
+  filled fields are reviewable.
+- **Selecting or creating a token fills the owner accounts and drops the
+  previous secrets**: the record already knows its owner public key, so Mint
+  To, Transfer From, Approve Owner, Burn From, balance and history owners start
+  from it instead of asking for the same base64 key six times. Private keys,
+  recipients and spenders from the previous token are cleared, and a token
+  created with a generated key offers "Use generated owner key" in the owner-
+  signed forms while that token is the subject.
+- **A successful create highlights its record**: token, NFT, lottery, candidate
+  and session creation clear a search/filter that would hide the new row,
+  select it, and move the page context to it. Before this, the status sentence
+  said "Created" while the list still showed an unrelated or empty selection.
 - **The desktop's dense pages became tabbed workbenches**: the Token page's
   six write forms and the NFT page's Transfer/Burn/History now show one
   operation at a time behind `ui.Tabs`, with the subject banner and the page's

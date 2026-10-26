@@ -23,6 +23,9 @@ type oracleState struct {
 	addHeaders  string
 	addInterval float64
 	template    string
+	// addAdvanced holds the transport fields most feeds do not set on the
+	// first try: type, method, JSON path, headers and polling interval.
+	addAdvanced bool
 
 	// Per-source actions.
 	fetchID  string
@@ -310,15 +313,17 @@ func (a *App) oracleAddBody(c *ui.Context) {
 	}
 	field(c, "Name", &a.oracle.addName)
 	field(c, "URL", &a.oracle.addURL)
-	field(c, "Type (optional)", &a.oracle.addType)
-	field(c, "Method (optional, defaults to GET)", &a.oracle.addMethod)
-	field(c, "Path (optional JSON field)", &a.oracle.addPath)
-	textAreaHint(c, "Request Headers (optional JSON object)",
-		"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
-	ui.Field(c, "Interval (seconds)", func() {
-		ui.Column(c).Gap(2).Children(func() {
-			ui.NumberInput(c, &a.oracle.addInterval, 0, maxOracleIntervalSeconds, 1)
-			hint(c, "0 uses the default of 60; at most 30 days.")
+	ui.Collapsible(c, "Advanced", &a.oracle.addAdvanced, func() {
+		field(c, "Type (optional)", &a.oracle.addType)
+		field(c, "Method (optional, defaults to GET)", &a.oracle.addMethod)
+		field(c, "Path (optional JSON field)", &a.oracle.addPath)
+		textAreaHint(c, "Request Headers (optional JSON object)",
+			"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
+		ui.Field(c, "Interval (seconds)", func() {
+			ui.Column(c).Gap(2).Children(func() {
+				ui.NumberInput(c, &a.oracle.addInterval, 0, maxOracleIntervalSeconds, 1)
+				hint(c, "0 uses the default of 60; at most 30 days.")
+			})
 		})
 	})
 	ui.Row(c).Children(func() {
@@ -343,6 +348,9 @@ func (a *App) applyTemplate(id string) {
 		a.oracle.addMethod = t.Method
 		a.oracle.addPath = t.Path
 		a.oracle.addInterval = float64(t.Interval)
+		// A preset fills fields the disclosure hides; open it so the operator
+		// can review the method, path and interval before Add Source.
+		a.oracle.addAdvanced = true
 		return
 	}
 }
