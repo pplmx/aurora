@@ -230,7 +230,6 @@ var englishMessages = map[string]string{
 	"migrate.pending":          "Pending: %s",
 	"migrate.none":             "(none)",
 	"migrate.repair":           "Clear the dirty marker a failed migration left, after checking the schema",
-	"migrate.repair_action":    "clears the dirty marker a failed migration left (it does not undo or re-run that migration)",
 	"migrate.repair_long":      "Clear the dirty marker a failed migration left, after checking the schema. This does not undo or re-run the failed migration.",
 	"migrate.repair_done":      "✅ Dirty marker cleared at version %d. Check the schema, then run `migrate up` or `migrate down`.",
 	"migrate.repair_clean":     "💤 Database is not dirty; nothing to repair (version %d)",
@@ -324,13 +323,19 @@ var englishMessages = map[string]string{
 	// ISS-182): one localized refusal + flag help for every command that
 	// permanently destroys value or data, instead of hardcoded English on
 	// four of the six.
-	"cli.confirm.flag":          "%s (requires --confirm)",
-	"cli.confirm.required":      "⚠️ this %s; pass --confirm to proceed",
-	"cli.confirm.token_burn":    "permanently destroys tokens",
-	"cli.confirm.nft_burn":      "permanently destroys the NFT",
-	"cli.confirm.oracle_del":    "permanently deletes the data source",
-	"cli.confirm.migrate_down":  "rolls back the last migration and drops schema",
-	"cli.confirm.lottery_reset": "will delete ALL lottery records",
+	"cli.confirm.flag":           "%s (requires --confirm)",
+	"cli.confirm.required":       "⚠️ this %s; pass --confirm to proceed",
+	"cli.confirm.token_burn":     "permanently destroys tokens",
+	"cli.confirm.nft_burn":       "permanently destroys the NFT",
+	"cli.confirm.oracle_del":     "permanently deletes the data source",
+	"cli.confirm.migrate_down":   "rolls back the last migration and drops schema",
+	"cli.confirm.migrate_repair": "clears the dirty marker a failed migration left",
+	"cli.confirm.lottery_reset":  "will delete ALL lottery records",
+
+	// Global flags every command shows. They were hardcoded English, so a
+	// Chinese --help screen mixed translated module flags with English ones.
+	"cli.config_flag":       "config file (default is 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml)",
+	"cli.http_timeout_flag": "HTTP request timeout (e.g., 30s, 1m)",
 
 	// Errors
 	"error.invalid_input": "Invalid input",
