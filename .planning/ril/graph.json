@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 250,
+  "round": 251,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T05:11:38+00:00",
+  "updated_at": "2026-10-26T05:13:35+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19778,6 +19778,29 @@
       "touched_round": 250,
       "commit": "4009c13",
       "title": "Reload the current page after an import"
+    },
+    "ISS-432": {
+      "id": "ISS-432",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T05:13:35+00:00",
+      "updated_at": "2026-10-26T05:13:35+00:00",
+      "touched_round": 251,
+      "title": "The import-to-reload wiring had no end-to-end test",
+      "severity": 0.2,
+      "description": "Only App.Reload itself was tested; the shell branch that decides to reload after a stored import was unobserved. A test now imports a genuine export into a fresh database, replaces the dialog, and asserts the reload hook fired and the row landed."
+    },
+    "CHG-448": {
+      "id": "CHG-448",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T05:13:35+00:00",
+      "updated_at": "2026-10-26T05:13:35+00:00",
+      "touched_round": 251,
+      "commit": "515018d",
+      "title": "Pin the shell import reload path"
     }
   },
   "edges": [
@@ -30059,6 +30082,12 @@
       "to": "ISS-431",
       "type": "resolves",
       "created_at": "2026-10-26T05:11:38+00:00"
+    },
+    {
+      "from": "CHG-448",
+      "to": "ISS-432",
+      "type": "resolves",
+      "created_at": "2026-10-26T05:13:35+00:00"
     }
   ]
 }
