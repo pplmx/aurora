@@ -55,6 +55,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A dashboard deep link now switches to the dashboard**: the parser spelled
+  `aurora://` and `aurora://index` as an empty page, and ShowIntent treats an
+  empty page as "leave the window alone", so the link did nothing when the
+  window was on another page. Both spellings resolve to `dashboard`, which
+  ShowPage selects (and still accepts `index` for callers using the old
+  document name).
 - **The desktop token history can page past its first window**: the card had a
   Limit but always sent offset 0, so a transfer stream longer than one page was
   unreachable from the window although the repository, CLI and REST all page.

@@ -21,14 +21,14 @@ func TestParseIntent_DeepLinks(t *testing.T) {
 	}{
 		{name: "page in the host", arg: "aurora://lottery", want: Intent{Page: "lottery", Raw: "aurora://lottery"}},
 		{name: "page and draw", arg: "aurora://lottery?id=abc123", want: Intent{Page: "lottery", LotteryID: "abc123", Raw: "aurora://lottery?id=abc123"}},
-		{name: "bare scheme is the dashboard", arg: "aurora://", want: Intent{Raw: "aurora://"}},
+		{name: "bare scheme is the dashboard", arg: "aurora://", want: Intent{Page: "dashboard", Raw: "aurora://"}},
 		{name: "window URL spelling", arg: "aurora://localhost/token.html", want: Intent{Page: "token", Raw: "aurora://localhost/token.html"}},
 		{
 			name: "window URL with a draw",
 			arg:  "aurora://localhost/lottery.html?id=deadbeef",
 			want: Intent{Page: "lottery", LotteryID: "deadbeef", Raw: "aurora://localhost/lottery.html?id=deadbeef"},
 		},
-		{name: "explicit dashboard", arg: "aurora://index", want: Intent{Raw: "aurora://index"}},
+		{name: "explicit dashboard", arg: "aurora://index", want: Intent{Page: "dashboard", Raw: "aurora://index"}},
 		{name: "scheme is case-insensitive", arg: "AURORA://Oracle", want: Intent{Page: "oracle", Raw: "AURORA://Oracle"}},
 		{name: "surrounding space is trimmed", arg: "  aurora://nft  ", want: Intent{Page: "nft", Raw: "aurora://nft"}},
 	}

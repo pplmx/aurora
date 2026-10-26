@@ -180,3 +180,19 @@ func TestTextScaleIsHonoured(t *testing.T) {
 	require.True(t, ok)
 	require.Greater(t, after.H, before.H*1.3, "1.5x text must render visibly larger")
 }
+
+// TestDashboardLinksNavigateFromAnotherPage pins the dashboard as a real
+// destination. The deep-link parser used to spell "aurora://" and
+// "aurora://index" as an empty page, which ShowIntent treats as "leave the
+// window alone" — so a dashboard link from another page did nothing.
+func TestDashboardLinksNavigateFromAnotherPage(t *testing.T) {
+	app := New(&fakeServices{})
+
+	app.ShowPage("Token")
+	app.ShowIntent("dashboard", "")
+	require.Equal(t, pageDashboard, app.page)
+
+	app.ShowPage("Token")
+	app.ShowPage("index")
+	require.Equal(t, pageDashboard, app.page, "the old index spelling names the dashboard")
+}
