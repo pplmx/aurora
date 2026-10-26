@@ -1,10 +1,10 @@
-package i18n
+package nativeui
 
-// desktopUIMessages translates the native desktop's English labels. The
-// English literal is the key (see nativeui.tr), so a missing entry falls back
-// to readable English instead of a lookup name. Keeping this table separate
-// from the CLI catalog makes the desktop's wording reviewable in one place.
-var desktopUIMessages = map[string]string{
+// desktopMessages translates the native desktop's English labels. The English
+// literal is the key (see tr), so a missing entry falls back to readable
+// English instead of a lookup name. The table lives beside the views, not in
+// the core CLI catalog, so the core module does not carry desktop vocabulary.
+var desktopMessages = map[string]string{
 	// Chrome and navigation.
 	"Dashboard":               "仪表盘",
 	"Lottery":                 "抽奖",

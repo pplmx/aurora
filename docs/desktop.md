@@ -223,7 +223,7 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   原生对话框的“好/取消”）；Aurora 自己的页面标题、按钮、字段、提示、
   空状态、guide、弹窗和 `--help`/`--version` 都由 `internal/i18n` 提供。
   窗口文案通过 `nativeui.tr` 读取，英文原文就是 key；中文表在
-  `internal/i18n/messages_ui_zh.go`，缺项时回退英文而不是显示 key。
+  `desktop/internal/nativeui/messages_zh.go`，缺项时回退英文而不是显示 key。
   常见服务层错误也按原文翻译，未知或动态拼接的诊断保留英文原文，日志
   始终是后端返回的原文。
 - MyGo 的两套中文目录（`zh-Hans`、`zh-Hant`）都必须链接：只声明简体时

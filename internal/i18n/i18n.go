@@ -65,34 +65,20 @@ func (tr *Translator) loadMessages() {
 	// loadMessages is only called from Init on a fresh Translator,
 	// before it is published to the package-level t. So no locking
 	// is needed here. If this ever changes, callers must hold tr.mu.
-	tr.messages["en"] = mergeMessages(englishMessages, identityMessages(desktopUIMessages))
-
-	tr.messages["zh"] = mergeMessages(chineseMessages, desktopUIMessages)
+	tr.messages["en"] = cloneMessages(englishMessages)
+	tr.messages["zh"] = cloneMessages(chineseMessages)
 
 	// Try to load from config
 	tr.loadFromConfig()
 }
 
-// mergeMessages copies base and lets extra override it, so the desktop's
-// labels can live in their own reviewable table without editing the CLI map.
-func mergeMessages(base, extra map[string]string) map[string]string {
-	merged := make(map[string]string, len(base)+len(extra))
-	for key, value := range base {
-		merged[key] = value
-	}
-	for key, value := range extra {
-		merged[key] = value
-	}
-	return merged
-}
-
-// identityMessages maps each desktop key to itself for the English catalog, so
-// the two locales have the same key set and a missing translation is visible
-// to the i18n consistency test rather than only at runtime.
-func identityMessages(m map[string]string) map[string]string {
-	out := make(map[string]string, len(m))
-	for key := range m {
-		out[key] = key
+// cloneMessages gives the translator its own map: LoadLocaleFile mutates the
+// selected locale, and writing through to the package-level catalog would leak
+// one process's overrides into every later Translator.
+func cloneMessages(src map[string]string) map[string]string {
+	out := make(map[string]string, len(src))
+	for key, value := range src {
+		out[key] = value
 	}
 	return out
 }
