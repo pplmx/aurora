@@ -331,6 +331,11 @@ documented in their per-milestone ROADMAP files.
   `domain` boundary. The package API and behavior are unchanged; a new
   `docs/architecture.md` records the dependency contract and the remaining
   refactor order.
+- **Desktop UI copy now lives beside the views**: the desktop catalog moved
+  from `internal/i18n` to `desktop/internal/nativeui/messages_zh.go`; the core
+  translator keeps CLI/service keys only, and `tr`/`Translate` falls back to it
+  for service errors and menu entries. `LoadLocaleFile` now writes to a cloned
+  map instead of a package-level catalog.
 - **The storage composition root is now explicit**: `internal/app/container`
   opens the database, repositories, event bus, replay protection, token service
   and ledger singleton, and owns their close order. `api.Server` delegates
@@ -357,7 +362,7 @@ documented in their per-milestone ROADMAP files.
   table headers, guides, dialogs and status lines go through `nativeui.tr`.
   English literals are the keys, so a missing entry falls back to readable
   English; Chinese translations live in
-  `internal/i18n/messages_ui_zh.go`. Known service errors are translated by
+  `desktop/internal/nativeui/messages_zh.go`. Known service errors are translated by
   their message (a wrapped "seed: seed too short" keeps its prefix); unknown
   or dynamic diagnostics stay verbatim, and the backend log is unchanged.
 - **Every module page has a "How this works" guide**: the steps state the

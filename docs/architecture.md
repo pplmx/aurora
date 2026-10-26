@@ -95,15 +95,14 @@ desktop          ─┘                                              ^
 **下一步**：桌面与 REST 共用容器暴露的端口，`nativeServices` 只依赖
 `nativeui.Services` 所需的窄接口，构造函数不再接收具体仓储。
 
-### 5. 桌面 UI 文案放在核心 i18n
+### 5. 桌面 UI 文案曾放在核心 i18n
 
 `internal/i18n/messages_ui_zh.go` 的 `desktopUIMessages` 是桌面专用文案，
-却与 CLI 文案一起编译进核心模块。它没有造成循环依赖，但让核心模块携带桌面
-词汇。
+却与 CLI 文案一起编译进核心模块。
 
-**目标**：桌面文案注册到桌面模块（或由 `deskapp` 在启动时合并），核心 i18n
-只保留 CLI/服务层文案。迁移时必须保留 en↔zh key 对等测试和未知 key 回退英文
-的契约。
+**已做**：表移到 `desktop/internal/nativeui/messages_zh.go`，`tr`/`Translate`
+在中文 locale 下优先查桌面表，未知 key 回退核心目录再回退英文。核心 i18n
+只保留 CLI/服务层文案，并用 `cloneMessages` 隔离 `LoadLocaleFile` 的写入。
 
 ### 6. 命名不一致
 
@@ -140,7 +139,7 @@ internal/
       `native_ledger.go` / `native_keys.go`。
 - [x] 统一账本对外命名。
 - [x] 抽出 `app/container` 组合根；`api.Server` 已委托存储生命周期。
-- [ ] 把 `desktopUIMessages` 移出核心 i18n。
+- [x] 把 `desktopUIMessages` 移出核心 i18n。
 - [ ] 评估把账本 SQL 移到 `infra/sqlite`；这一步需要单独的迁移/回归计划。
 
 ## 验证

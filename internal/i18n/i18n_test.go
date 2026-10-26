@@ -337,3 +337,14 @@ func TestCatalogsCoverTheSameKeys(t *testing.T) {
 	}
 	assert.NotEmpty(t, englishMessages)
 }
+
+// TestDesktopCopyStaysOutOfTheCoreCatalog keeps the layer boundary visible:
+// the native labels live in desktop/internal/nativeui/messages_zh.go, not in
+// the CLI/service tables.
+func TestDesktopCopyStaysOutOfTheCoreCatalog(t *testing.T) {
+	for _, key := range []string{"Dashboard", "Quick start", "Use saved key", "Live updates"} {
+		_, en := englishMessages[key]
+		_, zh := chineseMessages[key]
+		assert.Falsef(t, en || zh, "desktop key %q leaked into the core catalog", key)
+	}
+}
