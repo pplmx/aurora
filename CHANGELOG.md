@@ -55,6 +55,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop token history can page past its first window**: the card had a
+  Limit but always sent offset 0, so a transfer stream longer than one page was
+  unreachable from the window although the repository, CLI and REST all page.
+  It now has an Offset number input, included in the post-write/refresh reload,
+  and the test asserts the limit and offset the card sends.
 - **The desktop ledger shows each block's real height**: the adapter numbered
   the filtered payloads by their index, so the first recorded block displayed
   height 0 and every row was one too low (genesis has no payload and is not in

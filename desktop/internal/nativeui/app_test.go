@@ -71,6 +71,7 @@ type fakeServices struct {
 	lastHistoryToken       string
 	lastBalanceOwner       string
 	lastHistoryOwner       string
+	lastHistoryOffset      int
 	lastNFTID              string
 	lastNFTHistoryID       string
 	lastOracleDataSource   string
@@ -214,6 +215,7 @@ func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([
 	f.tokenHistoryCalls++
 	f.lastHistoryToken = tokenID
 	f.lastHistoryOwner = owner
+	f.lastHistoryOffset = offset
 	return nil, nil
 }
 

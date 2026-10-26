@@ -220,3 +220,23 @@ func TestBalanceAndHistoryUseTheirOwnAccount(t *testing.T) {
 	require.Equal(t, "alice", fake.lastBalanceOwner, "the Balance card reads its own account")
 	require.Equal(t, "bob", fake.lastHistoryOwner, "the History card reads its own owner")
 }
+
+// TestTokenHistoryPagesWithItsOffset pins the History card's offset control:
+// the repository and API page a long transfer stream, and without an offset the
+// window could only ever show the first page.
+func TestTokenHistoryPagesWithItsOffset(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	app.token.historyLimit = 10
+	app.token.historyOffset = 5
+
+	require.NoError(t, tester.Click("Load History"))
+	tester.Frame()
+	require.Equal(t, 10, fake.tokenHistoryLimit)
+	require.Equal(t, 5, fake.lastHistoryOffset, "the History card must page from its offset")
+}
