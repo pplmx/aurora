@@ -14,7 +14,7 @@ type tokenState struct {
 	name     string
 	symbol   string
 	supply   string
-	decimals string
+	decimals float64
 	owner    string
 
 	// Read forms.
@@ -45,7 +45,7 @@ type tokenState struct {
 	burnPriv       string
 	allowanceOwner string
 	allowanceTo    string
-	historyLimit   string
+	historyLimit   float64
 
 	allowance string
 	history   []TransferRow
@@ -164,7 +164,12 @@ func (a *App) tokenCreate(c *ui.Context) {
 		field(c, "Name", &a.token.name)
 		field(c, "Symbol", &a.token.symbol)
 		field(c, "Total Supply", &a.token.supply)
-		fieldHint(c, "Decimals", "0 for a whole-unit token; 8 matches most asset conventions.", &a.token.decimals)
+		ui.Field(c, "Decimals", func() {
+			ui.Column(c).Gap(2).Children(func() {
+				ui.NumberInput(c, &a.token.decimals, 0, 127, 1)
+				hint(c, "0 for a whole-unit token; 8 matches most asset conventions.")
+			})
+		})
 		fieldHint(c, "Owner (base64 public key)", "Required: the owner signs every later mint, transfer and burn.", &a.token.owner)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Create Token").Clicked() {
@@ -176,14 +181,10 @@ func (a *App) tokenCreate(c *ui.Context) {
 
 func (a *App) createToken() {
 	a.token.status = statusLine{}
-	decimals := 8
-	if s := strings.TrimSpace(a.token.decimals); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil || n < 0 || n > 127 {
-			a.token.status = statusLine{text: "Decimals must be a whole number between 0 and 127.", isErr: true}
-			return
-		}
-		decimals = n
+	decimals := int(a.token.decimals)
+	if float64(decimals) != a.token.decimals || decimals < 0 || decimals > 127 {
+		a.token.status = statusLine{text: "Decimals must be a whole number between 0 and 127.", isErr: true}
+		return
 	}
 	t, err := a.services.CreateToken(
 		strings.TrimSpace(a.token.name),
@@ -479,14 +480,17 @@ func (a *App) tokenHistory(c *ui.Context) {
 
 func (a *App) tokenHistoryBody(c *ui.Context) {
 	fieldHint(c, "Owner (base64 public key)", "Leave empty to page the token's whole transfer stream.", &a.token.account)
-	field(c, "Limit", &a.token.historyLimit)
+	ui.Field(c, "Limit", func() {
+		ui.NumberInput(c, &a.token.historyLimit, 1, maxListLimit, 1)
+	})
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Load History").Clicked() {
-			limit := 50
-			if s := strings.TrimSpace(a.token.historyLimit); s != "" {
-				if n, err := strconv.Atoi(s); err == nil && n > 0 {
-					limit = n
-				}
+			limit := int(a.token.historyLimit)
+			if limit < 1 {
+				limit = 50
+			}
+			if limit > maxListLimit {
+				limit = maxListLimit
 			}
 			rows, err := a.services.TokenHistory(strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.account), limit, 0)
 			if err != nil {

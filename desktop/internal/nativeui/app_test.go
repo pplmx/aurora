@@ -64,6 +64,10 @@ type fakeServices struct {
 	sessionResultsCalls int
 	oracleDataCalls     int
 	oracleLatestCalls   int
+
+	// The last list limits the forms sent.
+	tokenHistoryLimit int
+	oracleDataLimit   int
 }
 
 // fakeLoadErrors is one failure hook per read a page performs.
@@ -173,6 +177,7 @@ func (f *fakeServices) TokenAllowance(tokenID, owner, spender string) (string, e
 	return "10", nil
 }
 func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([]TransferRow, error) {
+	f.tokenHistoryLimit = limit
 	return nil, nil
 }
 
@@ -191,6 +196,7 @@ func (f *fakeServices) SetOracleSourceEnabled(id string, enabled bool) error { r
 func (f *fakeServices) FetchOracleSource(id string) error                    { return nil }
 func (f *fakeServices) OracleData(sourceID string, limit int) ([]DataRow, error) {
 	f.oracleDataCalls++
+	f.oracleDataLimit = limit
 	return nil, nil
 }
 func (f *fakeServices) OracleLatest(sourceID string) (DataRow, error) {
@@ -255,7 +261,7 @@ func TestLotteryValidationStopsBadInput(t *testing.T) {
 
 	app.lottery.participants = ""
 	app.lottery.seed = "abc"
-	app.lottery.count = "1"
+	app.lottery.count = 1
 	app.createLottery()
 	require.NotEmpty(t, app.lottery.participantsErr)
 	require.Nil(t, fake.created, "an empty participant list must not reach the service")
@@ -267,12 +273,12 @@ func TestLotteryValidationStopsBadInput(t *testing.T) {
 	require.Nil(t, fake.created)
 
 	app.lottery.seed = "abcdef"
-	app.lottery.count = "5"
+	app.lottery.count = 5
 	app.createLottery()
 	require.NotEmpty(t, app.lottery.countErr)
 	require.Nil(t, fake.created)
 
-	app.lottery.count = "2"
+	app.lottery.count = 2
 	app.createLottery()
 	require.Empty(t, app.lottery.countErr)
 	require.NotNil(t, fake.created)
@@ -406,7 +412,7 @@ func TestEveryPageRendersItsSectionsAsCards(t *testing.T) {
 func TestDrawFormOpensReady(t *testing.T) {
 	fake := &fakeServices{}
 	app := New(fake)
-	require.Equal(t, "1", app.lottery.count)
+	require.Equal(t, float64(1), app.lottery.count)
 
 	app.lottery.participants = "Alice,Bob"
 	app.lottery.seed = "seed-abc"

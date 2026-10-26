@@ -121,3 +121,34 @@ func TestDeletingASourceClearsItsReadings(t *testing.T) {
 	require.Empty(t, app.oracle.data)
 	require.Nil(t, app.oracle.latest)
 }
+
+// TestNumericFormLimitsAreBounded pins the number inputs that feed list
+// limits: the defaults match the page, and a value past the ceiling is capped
+// rather than sent to the repository.
+func TestNumericFormLimitsAreBounded(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 6000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Load History"))
+	tester.Frame()
+	require.Equal(t, 50, fake.tokenHistoryLimit, "the default page size is 50")
+
+	app.token.historyLimit = 5000
+	require.NoError(t, tester.Click("Load History"))
+	tester.Frame()
+	require.Equal(t, maxListLimit, fake.tokenHistoryLimit, "an oversized limit must be capped")
+
+	app.ShowPage("Oracle")
+	tester.Frame()
+	require.NoError(t, tester.Click("Query"))
+	tester.Frame()
+	require.Equal(t, 20, fake.oracleDataLimit, "the default query limit is 20")
+
+	app.oracle.queryLim = 5000
+	require.NoError(t, tester.Click("Query"))
+	tester.Frame()
+	require.Equal(t, maxListLimit, fake.oracleDataLimit)
+}

@@ -7,6 +7,11 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
+// maxOracleIntervalSeconds is the longest polling interval the form accepts,
+// matching the domain's 30-day ceiling: a larger value overflows the
+// scheduler's due-time arithmetic into "always due".
+const maxOracleIntervalSeconds = 30 * 24 * 60 * 60
+
 // oracleState is the Oracle page's state.
 type oracleState struct {
 	// Add-source form.
@@ -16,13 +21,13 @@ type oracleState struct {
 	addMethod   string
 	addPath     string
 	addHeaders  string
-	addInterval string
+	addInterval float64
 	template    string
 
 	// Per-source actions.
 	fetchID  string
 	queryID  string
-	queryLim string
+	queryLim float64
 	latestID string
 
 	sources   []SourceRow
@@ -263,7 +268,12 @@ func (a *App) oracleAddBody(c *ui.Context) {
 	field(c, "Path (optional JSON field)", &a.oracle.addPath)
 	fieldHint(c, "Request Headers (optional JSON object)",
 		"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
-	fieldHint(c, "Interval (seconds)", "0 uses the default of 60.", &a.oracle.addInterval)
+	ui.Field(c, "Interval (seconds)", func() {
+		ui.Column(c).Gap(2).Children(func() {
+			ui.NumberInput(c, &a.oracle.addInterval, 0, maxOracleIntervalSeconds, 1)
+			hint(c, "0 uses the default of 60; at most 30 days.")
+		})
+	})
 	ui.Row(c).Children(func() {
 		if primaryButton(c, "Add Source").Clicked() {
 			a.addOracleSource()
@@ -286,22 +296,14 @@ func (a *App) applyTemplate(id string) {
 		a.oracle.addMethod = t.Method
 		a.oracle.addPath = t.Path
 		if t.Interval > 0 {
-			a.oracle.addInterval = strconv.Itoa(t.Interval)
+			a.oracle.addInterval = float64(t.Interval)
 		}
 		return
 	}
 }
 
 func (a *App) addOracleSource() {
-	interval := 60
-	if s := strings.TrimSpace(a.oracle.addInterval); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil || n < 0 {
-			a.oracle.status = statusLine{text: "Interval must be zero or a positive number of seconds.", isErr: true}
-			return
-		}
-		interval = n
-	}
+	interval := int(a.oracle.addInterval)
 	src, err := a.services.AddOracleSource(SourceInput{
 		Name:     strings.TrimSpace(a.oracle.addName),
 		URL:      strings.TrimSpace(a.oracle.addURL),
@@ -318,7 +320,7 @@ func (a *App) addOracleSource() {
 	a.oracle.status = okStatus("Added %s (%s)", src.Name, src.ID)
 	a.oracle.addName, a.oracle.addURL, a.oracle.addType = "", "", ""
 	a.oracle.addMethod, a.oracle.addPath, a.oracle.addHeaders = "", "", ""
-	a.oracle.addInterval = ""
+	a.oracle.addInterval = 0
 	a.loadOracle()
 }
 
@@ -374,7 +376,9 @@ func (a *App) oracleRead(c *ui.Context) {
 
 func (a *App) oracleReadBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.queryID)
-	field(c, "Limit", &a.oracle.queryLim)
+	ui.Field(c, "Limit", func() {
+		ui.NumberInput(c, &a.oracle.queryLim, 1, maxListLimit, 1)
+	})
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Query").Clicked() {
 			sourceID := strings.TrimSpace(a.oracle.queryID)
@@ -405,11 +409,12 @@ func (a *App) oracleReadBody(c *ui.Context) {
 // oracleQueryLimit is the Query card's limit: 20 unless the field names a
 // positive number.
 func (a *App) oracleQueryLimit() int {
-	limit := 20
-	if s := strings.TrimSpace(a.oracle.queryLim); s != "" {
-		if n, err := strconv.Atoi(s); err == nil && n > 0 {
-			limit = n
-		}
+	limit := int(a.oracle.queryLim)
+	if limit < 1 {
+		return 20
+	}
+	if limit > maxListLimit {
+		return maxListLimit
 	}
 	return limit
 }

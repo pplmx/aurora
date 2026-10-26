@@ -134,6 +134,10 @@ func field(c *ui.Context, label string, value *string) {
 // use, so a click is acknowledged before the write finishes.
 const buttonRadius float32 = 8
 
+// maxListLimit is the largest page size a list form accepts; the REST surface
+// applies the same ceiling to its ?limit.
+const maxListLimit = 1000
+
 func primaryButton(c *ui.Context, label string) ui.Element {
 	return styledButton(c, label, ui.Hex(aurora), ui.Hex(auroraHover), ui.Hex(auroraPressed), onAccent)
 }

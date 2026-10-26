@@ -14,7 +14,7 @@ import (
 type lotteryState struct {
 	participants string
 	seed         string
-	count        string
+	count        float64
 
 	verifyID     string
 	verifyResult *VerifyResult
@@ -85,7 +85,12 @@ func (a *App) lotteryCreate(c *ui.Context) {
 		fieldError(c, a.lottery.participantsErr)
 		field(c, fmt.Sprintf("Seed (at least %d characters)", lottery.MinSeedLength), &a.lottery.seed)
 		fieldError(c, a.lottery.seedErr)
-		fieldHint(c, "Count", "How many winners to draw; must not exceed the participant count.", &a.lottery.count)
+		ui.Field(c, "Count", func() {
+			ui.Column(c).Gap(2).Children(func() {
+				ui.NumberInput(c, &a.lottery.count, 1, float64(lottery.MaxWinners), 1)
+				hint(c, "How many winners to draw; must not exceed the participant count.")
+			})
+		})
 		fieldError(c, a.lottery.countErr)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Create Draw").Clicked() {
@@ -106,7 +111,7 @@ func (a *App) createLottery() {
 
 	participants := splitParticipants(a.lottery.participants)
 	seed := strings.TrimSpace(a.lottery.seed)
-	count, countErr := strconv.Atoi(strings.TrimSpace(a.lottery.count))
+	count := int(a.lottery.count)
 
 	// The rules live in the domain validators, not here: a window that
 	// hardcoded "at least 3 characters" would silently disagree with the CLI
@@ -119,7 +124,7 @@ func (a *App) createLottery() {
 		a.lottery.seedErr = err.Error()
 		return
 	}
-	if countErr != nil {
+	if float64(count) != a.lottery.count {
 		a.lottery.countErr = "Winner count must be a whole number."
 		return
 	}
@@ -139,7 +144,7 @@ func (a *App) createLottery() {
 	a.lottery.verifyID = row.ID
 	a.lottery.participants = ""
 	a.lottery.seed = ""
-	a.lottery.count = "1"
+	a.lottery.count = 1
 	a.loadLottery()
 }
 
