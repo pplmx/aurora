@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 258,
+  "round": 259,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T07:17:23+00:00",
+  "updated_at": "2026-10-26T07:21:43+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -11416,7 +11416,7 @@
       "version": 2,
       "created_at": "2026-10-21T03:17:02+00:00",
       "updated_at": "2026-10-21T03:51:14+00:00",
-      "touched_round": 165,
+      "touched_round": 258,
       "name": "desktop/cmd/aurora-desktop",
       "path": "desktop/cmd/aurora-desktop",
       "description": "mygo desktop shell in the nested desktop/ module: embeds the Web UI (root package embed.go) and serves the internal/api router from an in-process aurora:// scheme handler that never opens a listener; File menu shares lottery export/import, backup, show-data-folder"
@@ -20104,6 +20104,47 @@
       "commit": "d9b6439",
       "title": "Surface stored detail fields in desktop cards",
       "description": "Session descriptions, candidate programs/votes, NFT mint block and URLs, and oracle endpoint/interval are now visible from the selected rows."
+    },
+    "ISS-442": {
+      "id": "ISS-442",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:21:36+00:00",
+      "updated_at": "2026-10-26T07:21:43+00:00",
+      "touched_round": 258,
+      "title": "The desktop keeps a full menu bar above an app that navigates in-window",
+      "description": "Every window shows File/Edit/Go/View/Window/Help even though pages are in the sidebar and Refresh is in the header. The bar consumes the top of an otherwise chrome-free native window and reads as a browser/kiosk shell rather than an application.",
+      "severity": 0.45,
+      "confidence": 1.0
+    },
+    "TASK-397": {
+      "id": "TASK-397",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:21:36+00:00",
+      "updated_at": "2026-10-26T07:21:43+00:00",
+      "touched_round": 258,
+      "category": "dx",
+      "title": "Hide the desktop menu bar until the platform asks for it",
+      "description": "Set WindowOptions.AutoHideMenuBar for Linux and Windows so the menu appears only on Alt/F10, keep its shortcuts working, retain the macOS application menu, and pin the window specification with a test.",
+      "severity": 0.45,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "CHG-456": {
+      "id": "CHG-456",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:21:43+00:00",
+      "updated_at": "2026-10-26T07:21:43+00:00",
+      "touched_round": 258,
+      "commit": "3f55414",
+      "title": "Auto-hide the desktop menu bar",
+      "description": "Linux/Windows windows set AutoHideMenuBar; the application menu and shortcuts remain available on demand, macOS keeps its platform menu."
     }
   },
   "edges": [
@@ -30553,6 +30594,30 @@
       "to": "TASK-395",
       "type": "implements",
       "created_at": "2026-10-26T07:17:22+00:00"
+    },
+    {
+      "from": "TASK-397",
+      "to": "ISS-442",
+      "type": "addresses",
+      "created_at": "2026-10-26T07:21:42+00:00"
+    },
+    {
+      "from": "ISS-442",
+      "to": "COMP-013",
+      "type": "located_in",
+      "created_at": "2026-10-26T07:21:43+00:00"
+    },
+    {
+      "from": "CHG-456",
+      "to": "ISS-442",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:21:43+00:00"
+    },
+    {
+      "from": "CHG-456",
+      "to": "TASK-397",
+      "type": "implements",
+      "created_at": "2026-10-26T07:21:43+00:00"
     }
   ]
 }
