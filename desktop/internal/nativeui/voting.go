@@ -327,7 +327,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 // Register Candidate: after the next action or a restart, nothing in the
 // window could produce the id a session roster or a ballot requires.
 func (a *App) votingCandidateListCard(c *ui.Context) {
-	formCard(c, "Candidates", "Every registered candidate. Choose one to load its id into the ballot.", func() {
+	formCard(c, "Candidates", "Every registered candidate. Choose one to load its id into the ballot, or add it to the new session's roster.", func() {
 		a.votingCandidateList(c)
 	})
 }
@@ -359,6 +359,33 @@ func (a *App) votingCandidateList(c *ui.Context) {
 	if table.Changed() && a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates) {
 		a.voting.voteCandidate = candidates[a.voting.candChoice].ID
 	}
+	ui.Row(c).Children(func() {
+		if secondaryButton(c, "Add to session roster").Clicked() {
+			a.addCandidateToRoster()
+		}
+	})
+}
+
+// addCandidateToRoster appends the chosen candidate to the session form's
+// roster field. The field takes comma-separated ids, so building a custom
+// roster used to mean copying UUIDs by hand; this is the button that makes the
+// form usable for anything but "every candidate".
+func (a *App) addCandidateToRoster() {
+	if a.voting.candChoice < 0 || a.voting.candChoice >= len(a.voting.candidates) {
+		a.voting.status = statusLine{text: "Choose a candidate first.", isErr: true}
+		return
+	}
+	candidate := a.voting.candidates[a.voting.candChoice]
+	ids := splitParticipants(a.voting.sessionIDs)
+	for _, id := range ids {
+		if id == candidate.ID {
+			a.voting.status = okStatus("%s is already in the session roster.", candidate.Name)
+			return
+		}
+	}
+	ids = append(ids, candidate.ID)
+	a.voting.sessionIDs = strings.Join(ids, ",")
+	a.voting.status = okStatus("Added %s to the session roster.", candidate.Name)
 }
 
 func (a *App) createVotingSession() {

@@ -178,3 +178,46 @@ func TestResultsShowTheirTotal(t *testing.T) {
 	require.True(t, tester.HasText("Total votes"))
 	require.True(t, tester.HasText("13"), "the total must be the sum of the rows")
 }
+
+// TestCandidateCardBuildsACustomRoster pins the roster button. The Create
+// Session field takes comma-separated ids, so a roster other than "every
+// candidate" used to require copying UUIDs out of a shortened table by hand.
+func TestCandidateCardBuildsACustomRoster(t *testing.T) {
+	rec := &sessionRecorder{fakeServices: &fakeServices{candidates: []CandidateRow{
+		{ID: "c1", Name: "Alice"},
+		{ID: "c2", Name: "Bob"},
+	}}}
+	app := New(rec)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("c1"))
+	tester.Frame()
+	require.Equal(t, "c1", app.voting.voteCandidate, "choosing a candidate fills the ballot")
+
+	require.NoError(t, tester.Click("Add to session roster"))
+	tester.Frame()
+	require.Equal(t, "c1", app.voting.sessionIDs)
+	require.Contains(t, app.voting.status.text, "Added Alice")
+
+	require.NoError(t, tester.Click("c2"))
+	tester.Frame()
+	require.NoError(t, tester.Click("Add to session roster"))
+	tester.Frame()
+	require.Equal(t, "c1,c2", app.voting.sessionIDs)
+
+	// Adding the same candidate twice must not duplicate the roster entry.
+	require.NoError(t, tester.Click("c1"))
+	tester.Frame()
+	require.NoError(t, tester.Click("Add to session roster"))
+	tester.Frame()
+	require.Equal(t, "c1,c2", app.voting.sessionIDs)
+	require.Contains(t, app.voting.status.text, "already in the session roster")
+
+	app.voting.sessionTitle = "Budget"
+	app.voting.sessionStart = time.Unix(1000, 0)
+	app.voting.sessionEnd = time.Unix(2000, 0)
+	app.createVotingSession()
+	require.Equal(t, []string{"c1", "c2"}, rec.ids, "the session must use the built roster")
+}
