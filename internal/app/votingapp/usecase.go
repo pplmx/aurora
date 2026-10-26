@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/pplmx/aurora/internal/domain/voting"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 type CastVoteUseCase struct {
@@ -94,8 +94,8 @@ func (uc *CastVoteUseCase) withVoteBlock(data string, fn func(repo voting.Reposi
 func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	session, err := uc.repo.GetSession(req.SessionID)
 	if err != nil {
-		if errors.Is(err, sqlite.ErrNotFound) {
-			// The SQLite repo signals a missing row with sqlite.ErrNotFound;
+		if errors.Is(err, repoerr.ErrNotFound) {
+			// The SQLite repo signals a missing row with repoerr.ErrNotFound;
 			// map it to the domain sentinel so the API returns 404 instead of
 			// leaking an unclassified 500 (TASK-111, ISS-103).
 			return nil, voting.ErrSessionNotFound
@@ -123,7 +123,7 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 
 	voter, err := uc.repo.GetVoter(req.VoterPublicKey)
 	if err != nil {
-		if errors.Is(err, sqlite.ErrNotFound) {
+		if errors.Is(err, repoerr.ErrNotFound) {
 			return nil, voting.ErrVoterNotRegistered
 		}
 		return nil, fmt.Errorf("failed to get voter: %w", err)
@@ -134,7 +134,7 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 
 	candidate, err := uc.repo.GetCandidate(req.CandidateID)
 	if err != nil {
-		if errors.Is(err, sqlite.ErrNotFound) {
+		if errors.Is(err, repoerr.ErrNotFound) {
 			return nil, voting.ErrCandidateNotFound
 		}
 		return nil, fmt.Errorf("failed to get candidate: %w", err)
@@ -220,10 +220,10 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		return nil
 	})
 	if err != nil {
-		if errors.Is(err, sqlite.ErrAlreadyVoted) {
+		if errors.Is(err, voting.ErrAlreadyVoted) {
 			return nil, voting.ErrAlreadyVoted
 		}
-		if errors.Is(err, sqlite.ErrNotFound) {
+		if errors.Is(err, repoerr.ErrNotFound) {
 			// A row vanished between the existence checks above and the
 			// transactional mutations: either the voter (TryMarkVoted) or
 			// the candidate (IncrementCandidateVoteCount) was deleted
@@ -376,7 +376,7 @@ func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionRespo
 	for _, id := range req.CandidateIDs {
 		c, err := uc.repo.GetCandidate(id)
 		if err != nil {
-			if errors.Is(err, sqlite.ErrNotFound) {
+			if errors.Is(err, repoerr.ErrNotFound) {
 				return nil, voting.ErrCandidateNotFound
 			}
 			return nil, fmt.Errorf("failed to get candidate: %w", err)
@@ -450,7 +450,7 @@ func NewGetSessionUseCase(repo voting.Repository) *GetSessionUseCase {
 func (uc *GetSessionUseCase) Execute(id string) (*voting.Session, error) {
 	session, err := uc.repo.GetSession(id)
 	if err != nil {
-		if errors.Is(err, sqlite.ErrNotFound) {
+		if errors.Is(err, repoerr.ErrNotFound) {
 			return nil, voting.ErrSessionNotFound
 		}
 		return nil, fmt.Errorf("failed to get session: %w", err)
@@ -488,7 +488,7 @@ func NewGetResultsUseCase(repo voting.Repository) *GetResultsUseCase {
 func (uc *GetResultsUseCase) Execute(sessionID string) (*ResultsResponse, error) {
 	session, err := uc.repo.GetSession(sessionID)
 	if err != nil {
-		if errors.Is(err, sqlite.ErrNotFound) {
+		if errors.Is(err, repoerr.ErrNotFound) {
 			return nil, voting.ErrSessionNotFound
 		}
 		return nil, fmt.Errorf("failed to get session: %w", err)
@@ -502,7 +502,7 @@ func (uc *GetResultsUseCase) Execute(sessionID string) (*ResultsResponse, error)
 	for _, cid := range session.Candidates {
 		c, err := uc.repo.GetCandidate(cid)
 		if err != nil {
-			if errors.Is(err, sqlite.ErrNotFound) {
+			if errors.Is(err, repoerr.ErrNotFound) {
 				// A candidate that has since been deleted still counts as 0
 				// (same as the c == nil branch for in-memory fakes below).
 				candidates = append(candidates, CandidateResult{ID: cid})
