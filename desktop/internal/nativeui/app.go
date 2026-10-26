@@ -276,6 +276,9 @@ func (a *App) sidebar(c *ui.Context) {
 // the desktop convention the reference apps follow.
 func (a *App) header(c *ui.Context) {
 	a.actionShortcuts(c)
+	if c.Shortcut(platformRefreshModifier(), ui.KeyComma) {
+		a.setPage(pageSettings)
+	}
 	for i, p := range pageOrder {
 		if c.Shortcut(platformRefreshModifier(), ui.Key(int(ui.Key1)+i)) {
 			a.setPage(p)

@@ -385,7 +385,8 @@ documented in their per-milestone ROADMAP files.
   fallback if a host supplies one. Cmd/Ctrl+E/I/B are registered by the window;
   backup, export/import and recent exports live in a sidebar **File** menu, and
   language, data location, appearance and build facts live in a **Settings**
-  page under the sidebar's Application section. macOS cannot remove its global
+  page under the sidebar's Application section (Ctrl/Cmd+, also opens it). macOS
+  cannot remove its global
   bar, so it keeps only the platform roles (app menu, File→Close, Edit, Window);
   Aurora's own entries appear in the window on all three platforms, so the menu
   contents no longer fork.

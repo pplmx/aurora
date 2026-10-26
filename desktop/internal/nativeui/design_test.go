@@ -343,3 +343,15 @@ func TestDashboardLinksNavigateFromAnotherPage(t *testing.T) {
 	app.ShowPage("index")
 	require.Equal(t, pageDashboard, app.page, "the old index spelling names the dashboard")
 }
+
+// TestSettingsShortcut pins Ctrl/Cmd+, (the desktop settings convention)
+// alongside the numbered sidebar shortcuts.
+func TestSettingsShortcut(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyComma)
+	tester.Frame()
+	require.Equal(t, pageSettings, app.page)
+}
