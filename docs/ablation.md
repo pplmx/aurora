@@ -81,9 +81,9 @@
 | --- | --- | --- | --- |
 | `infra/http` | `NewFetcherWithConfig` | 生产只用 `NewFetcher()`；与 `NewFetcherWithTimeout` 三份几乎相同的构造器 | 删除；调用方改用 `NewFetcher(WithRateLimit(...))` |
 | `infra/http` | `FetchDataWithValidation` | 无 ctx 的薄封装，生产只走 `FetchDataContext` | 删除；测试改调 Context 版本 |
-| `domain/blockchain` | `MineBlockWithContext` | 与 `ProofOfWork.Run` 完整重复，仅多一个 ctx 检查 | 把 ctx 折进 `Run(ctx)`，删除重复函数 |
-| `domain/blockchain` | `ValidateProof` | 与 `ProofOfWork.Validate` 同一比较 | 删除；测试改断 `pow.Validate()` |
-| `domain/blockchain` | `Serialize` / `Deserialize` | 块从 SQLite 按列重建，生产不读 gob | 删除这一对及其往返测试 |
+| `blockchain` | `MineBlockWithContext` | 与 `ProofOfWork.Run` 完整重复，仅多一个 ctx 检查 | 把 ctx 折进 `Run(ctx)`，删除重复函数 |
+| `blockchain` | `ValidateProof` | 与 `ProofOfWork.Validate` 同一比较 | 删除；测试改断 `pow.Validate()` |
+| `blockchain` | `Serialize` / `Deserialize` | 块从 SQLite 按列重建，生产不读 gob | 删除这一对及其往返测试 |
 | `domain/token` | `ValidateNonce` + `ErrNonceTooLow` + `NONCE_TOO_LOW` 映射 | nonce 由 `ClaimNextNonce` 原子分配，该错误从未被返回 | 删除整条链；409 映射随之移除 |
 | `domain/token` | `NewMintEventFromData` / `NewBurnEventFromData` | 生产用 `NewMintEvent`/`NewBurnEvent` 创建；无 mint/burn 事件回读器 | 删除（transfer 的 `FromData` 保留，历史回读在用） |
 | `domain/lottery` | `VRFOutputToBytes` | `SelectWinners` 自行处理输出，无调用者 | 删除 |
@@ -195,7 +195,7 @@ golangci-lint is lower than the targeted Go version (1.27.2)`。CI 固定使用
 - 让 Oracle `GetData` 对不存在的记录返回错误后，对应“空结果是 nil, nil”回归
   测试失败；恢复后通过。
 
-## 已知架构债务：`domain/blockchain` 承担了存储职责（2026-10-25）
+## 已知架构债务：`internal/blockchain` 承担了存储职责（2026-10-25）
 
 `internal/blockchain` 既是共享的账本子系统（区块、哈希链、PoW），也是存储层；
 它已从 `internal/domain/` 移出，避免把数据库引导代码藏在领域目录里：
@@ -209,7 +209,7 @@ blockchain 例外。这违反了 README 描述的分层，也让 blockchain 无�
 数据库的情况下使用（测试只能用 `ResetForTest` 绕开单例）。
 
 **为什么本轮不拆**：`Chain` 是六个模块的写入基底，`AddBlock`、
-`WithBlockTransaction`、`WithLotteryRecordTransaction` 被 token/NFT/lottery/
+`WithBlockTransaction`、`WithRecordTransaction` 被 token/NFT/lottery/
 oracle 的原子性路径直接调用；`DBPath`/`InitDB` 又被 CLI、API、桌面在每个进程
 入口调用。把它拆成 `domain` 接口 + `infra/sqlite` 实现涉及：
 
