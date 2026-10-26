@@ -365,6 +365,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 			{"About", valueOr(chosen.Description)},
 			{"Roster", a.sessionRosterNames(chosen.Candidates)},
 		})
+		copyRow(c, "Selected session ID", chosen.ID, nil)
 	}
 }
 
@@ -451,6 +452,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 			{"Program", valueOr(chosen.Program)},
 			{"Votes", strconv.Itoa(chosen.VoteCount)},
 		})
+		copyRow(c, "Selected candidate ID", chosen.ID, nil)
 	}
 }
 

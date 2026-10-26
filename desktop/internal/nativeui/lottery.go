@@ -224,6 +224,7 @@ func (a *App) lotteryVerify(c *ui.Context) {
 	formCard(c, "Verify a Draw", "Recompute the winners from the stored VRF proof for any draw.", func() {
 		field(c, "Draw ID or block height", &a.lottery.verifyID)
 		fieldError(c, a.lottery.verifyErr)
+		copyRow(c, "Draw ID", strings.TrimSpace(a.lottery.verifyID), nil)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Verify").Clicked() {
 				a.verifyLottery()

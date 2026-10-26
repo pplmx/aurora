@@ -17,6 +17,10 @@ import (
 type App struct {
 	services Services
 	page     page
+	// actions are the application-level callbacks the sidebar menu runs:
+	// backup, export/import, About and the language choice. They are optional
+	// so a view test can render without a shell.
+	actions Actions
 
 	lottery    lotteryState
 	voting     votingState
@@ -216,6 +220,8 @@ func (a *App) sidebarColumn(c *ui.Context) {
 		BorderWidth(0, 1, 0, 0).BorderColor(ui.Hex(border)).Children(func() {
 		a.brand(c)
 		a.sidebar(c)
+		ui.Spacer(c)
+		a.sidebarActions(c)
 	})
 }
 
@@ -241,7 +247,7 @@ func (a *App) sidebar(c *ui.Context) {
 				ui.SidebarItem(c, pageIDs[p], pageIcons[p], pageTitles[p])
 			}
 		})
-	}).FillWidth().FillHeight()
+	}).FillWidth()
 	if p, ok := pageByID(selected); ok {
 		a.setPage(p)
 	}

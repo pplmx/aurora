@@ -294,7 +294,7 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 		return
 	}
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(textSize(c, 11)).Width(72).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, label).FontSize(textSize(c, 11)).Width(copyLabelWidth(label)).TextColor(ui.Hex(inkMuted))
 		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).SingleLine()
 		if quietButton(c, "Copy "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
@@ -307,6 +307,21 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 			}
 		}
 	})
+}
+
+// copyLabelWidth keeps a copy row's label readable when it is longer than the
+// old fixed 72px (for example "Selected candidate ID" or "Owner private key").
+// The width is an estimate at the 11pt label size, clamped so the value still
+// has room beside it.
+func copyLabelWidth(label string) float32 {
+	width := float32(len(label)) * 6.4
+	if width < 72 {
+		return 72
+	}
+	if width > 140 {
+		return 140
+	}
+	return width
 }
 
 // abbreviate keeps both ends of a long value so the row shows what it holds
@@ -373,17 +388,34 @@ func pageGlyph(c *ui.Context, p page) {
 	})
 }
 
-// twoColumns lays out two stacks side by side, each filling half the width.
+// twoColumns lays out two stacks side by side, each filling half the width,
+// and stacks them in one column when the window is too narrow for two readable
+// cards. A fixed two-column layout at the 900px minimum left each card about
+// 300px wide, so labels, keys and table cells wrapped or clipped; the same
+// content reads in one column there.
 //
 // A ui.Grid sizes every child to its own track, so cards of different content
 // came out different widths — a three-field form was visibly narrower than the
 // one beside it. Rows of two equal columns keep the cards aligned.
 func twoColumns(c *ui.Context, left, right func()) {
+	width, _ := c.Size()
+	if width < twoColumnMinWidth {
+		ui.Column(c).FillWidth().Gap(16).Children(func() {
+			left()
+			right()
+		})
+		return
+	}
 	ui.Row(c).FillWidth().AlignItems(ui.Start).Gap(16).Children(func() {
 		ui.Column(c).Grow(1).Shrink(1).Gap(16).Children(left)
 		ui.Column(c).Grow(1).Shrink(1).Gap(16).Children(right)
 	})
 }
+
+// twoColumnMinWidth is the window width below which two cards would each be
+// too narrow for a label and a base64 key. The sidebar and page padding take
+// 264px, so the cards get about 360px each at the threshold.
+const twoColumnMinWidth float32 = 1000
 
 // card draws a raised panel: the surface every section's content sits on.
 // A card is what separates one concern from the next now that the sidebar no

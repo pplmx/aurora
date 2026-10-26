@@ -91,6 +91,10 @@ type tokenState struct {
 	// when the operator picks the destructive button, mirroring the CLI's
 	// --confirm gate.
 	askBurn bool
+	// opTab is the operation shown in the write column. Six full forms
+	// stacked in one column buried every later action below the fold; one
+	// form at a time keeps the subject and the chosen operation visible.
+	opTab int
 
 	status statusLine
 
@@ -428,83 +432,96 @@ func tokenSubject(c *ui.Context, id string) {
 		Background(ui.Hex(night)).Children(func() {
 		ui.Text(c, "Acting on").FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
 		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).SingleLine()
+		if quietButton(c, "Copy token ID").Clicked() {
+			c.Services().WriteClipboard(id)
+			c.Toast("Token ID is on the clipboard")
+		}
 	})
 }
 
 func (a *App) tokenWrites(c *ui.Context) {
 	tokenSubject(c, a.token.tokenID)
-	formCard(c, "Mint", "Only the token owner can mint, and only for a mintable token.", func() {
-		field(c, "To (base64 public key)", &a.token.mintTo)
-		field(c, "Amount", &a.token.mintAmount)
-		field(c, "Owner Private Key", &a.token.mintPriv)
-		ui.Row(c).Children(func() {
-			if primaryButton(c, "Mint").Clicked() {
-				a.mintToken()
-			}
+	ui.Tabs(c, &a.token.opTab, "Mint", "Transfer", "Approve", "Transfer From", "Burn", "Allowance")
+	switch a.token.opTab {
+	case 0:
+		formCard(c, "Mint", "Only the token owner can mint, and only for a mintable token.", func() {
+			field(c, "To (base64 public key)", &a.token.mintTo)
+			field(c, "Amount", &a.token.mintAmount)
+			field(c, "Owner Private Key", &a.token.mintPriv)
+			ui.Row(c).Children(func() {
+				if primaryButton(c, "Mint").Clicked() {
+					a.mintToken()
+				}
+			})
 		})
-	})
 
-	formCard(c, "Transfer", "Move tokens from one account to another.", func() {
-		field(c, "From (base64 public key)", &a.token.xFrom)
-		field(c, "To (base64 public key)", &a.token.xTo)
-		field(c, "Amount", &a.token.xAmount)
-		field(c, "From Private Key", &a.token.xPriv)
-		ui.Row(c).Children(func() {
-			if primaryButton(c, "Transfer").Clicked() {
-				a.transferToken()
-			}
+	case 1:
+		formCard(c, "Transfer", "Move tokens from one account to another.", func() {
+			field(c, "From (base64 public key)", &a.token.xFrom)
+			field(c, "To (base64 public key)", &a.token.xTo)
+			field(c, "Amount", &a.token.xAmount)
+			field(c, "From Private Key", &a.token.xPriv)
+			ui.Row(c).Children(func() {
+				if primaryButton(c, "Transfer").Clicked() {
+					a.transferToken()
+				}
+			})
 		})
-	})
 
-	formCard(c, "Approve", "Let a spender move up to an amount on the owner's behalf.", func() {
-		field(c, "Owner (base64 public key)", &a.token.approveOwner)
-		field(c, "Spender (base64 public key)", &a.token.approveTo)
-		field(c, "Amount", &a.token.approveAmt)
-		field(c, "Owner Private Key", &a.token.approvePriv)
-		ui.Row(c).Children(func() {
-			if primaryButton(c, "Approve").Clicked() {
-				a.approveToken()
-			}
+	case 2:
+		formCard(c, "Approve", "Let a spender move up to an amount on the owner's behalf.", func() {
+			field(c, "Owner (base64 public key)", &a.token.approveOwner)
+			field(c, "Spender (base64 public key)", &a.token.approveTo)
+			field(c, "Amount", &a.token.approveAmt)
+			field(c, "Owner Private Key", &a.token.approvePriv)
+			ui.Row(c).Children(func() {
+				if primaryButton(c, "Approve").Clicked() {
+					a.approveToken()
+				}
+			})
 		})
-	})
 
-	formCard(c, "Transfer From", "Spend an allowance the owner granted.", func() {
-		field(c, "Owner (base64 public key)", &a.token.fromOwner)
-		field(c, "To (base64 public key)", &a.token.fromTo)
-		field(c, "Amount", &a.token.fromAmount)
-		field(c, "Spender Private Key", &a.token.fromPriv)
-		ui.Row(c).Children(func() {
-			if primaryButton(c, "Transfer From").Clicked() {
-				a.transferFromToken()
-			}
+	case 3:
+		formCard(c, "Transfer From", "Spend an allowance the owner granted.", func() {
+			field(c, "Owner (base64 public key)", &a.token.fromOwner)
+			field(c, "To (base64 public key)", &a.token.fromTo)
+			field(c, "Amount", &a.token.fromAmount)
+			field(c, "Spender Private Key", &a.token.fromPriv)
+			ui.Row(c).Children(func() {
+				if primaryButton(c, "Transfer From").Clicked() {
+					a.transferFromToken()
+				}
+			})
 		})
-	})
 
-	formCard(c, "Burn", "Destroy tokens from an account. This cannot be undone.", func() {
-		field(c, "From (base64 public key)", &a.token.burnFrom)
-		field(c, "Amount", &a.token.burnAmount)
-		field(c, "Owner Private Key", &a.token.burnPriv)
-		ui.Row(c).Children(func() {
-			// A destructive action carries the danger style, and the
-			// confirmation still stands between it and the write.
-			if dangerButton(c, "Burn…").Clicked() {
-				a.token.askBurn = true
-			}
+	case 4:
+		formCard(c, "Burn", "Destroy tokens from an account. This cannot be undone.", func() {
+			field(c, "From (base64 public key)", &a.token.burnFrom)
+			field(c, "Amount", &a.token.burnAmount)
+			field(c, "Owner Private Key", &a.token.burnPriv)
+			ui.Row(c).Children(func() {
+				// A destructive action carries the danger style, and the
+				// confirmation still stands between it and the write.
+				if dangerButton(c, "Burn…").Clicked() {
+					a.token.askBurn = true
+				}
+			})
 		})
-	})
 
-	formCard(c, "Allowance", "Read how much a spender may still move.", func() {
-		field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
-		field(c, "Spender (base64 public key)", &a.token.allowanceTo)
-		ui.Row(c).Children(func() {
-			if secondaryButton(c, "Get Allowance").Clicked() {
-				a.loadAllowance()
+	case 5:
+		formCard(c, "Allowance", "Read how much a spender may still move.", func() {
+			field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
+			field(c, "Spender (base64 public key)", &a.token.allowanceTo)
+			ui.Row(c).Children(func() {
+				if secondaryButton(c, "Get Allowance").Clicked() {
+					a.loadAllowance()
+				}
+			})
+			if a.token.allowance != "" {
+				readout(c, []readoutRow{{"Allowance", a.token.allowance}})
 			}
 		})
-		if a.token.allowance != "" {
-			readout(c, []readoutRow{{"Allowance", a.token.allowance}})
-		}
-	})
+	}
 }
 
 // The write handlers below read only the inputs of the section that invoked

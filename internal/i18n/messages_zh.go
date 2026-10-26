@@ -248,10 +248,13 @@ var chineseMessages = map[string]string{
 	// 文案必须走这里，否则 zh-CN 会话里 MyGo 的中文 role 会与英文菜单项
 	// 混在一起（ISS-291）。
 	"desktop.menu.file":                     "文件",
+	"desktop.menu.actions":                  "操作",
 	"desktop.menu.export":                   "导出抽奖记录…",
 	"desktop.menu.import":                   "导入抽奖记录…",
 	"desktop.menu.backup":                   "备份数据库…",
 	"desktop.menu.show_data_folder":         "打开数据目录",
+	"desktop.menu.open_recent":              "最近打开",
+	"desktop.menu.open_recent_empty":        "没有最近的导出文件",
 	"desktop.menu.go":                       "前往",
 	"desktop.menu.help":                     "帮助",
 	"desktop.menu.about":                    "关于 Aurora",

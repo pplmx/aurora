@@ -316,11 +316,27 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop's dense pages became tabbed workbenches**: the Token page's
+  six write forms and the NFT page's Transfer/Burn/History now show one
+  operation at a time behind `ui.Tabs`, with the subject banner and the page's
+  status line still fixed in view. Scrolling a column of five hidden forms to
+  reach Burn was work the operator did not need to do.
+- **The desktop stacks its two columns on a narrow window**: below 1000px the
+  second column moves under the first, so the 900px minimum no longer squeezes
+  every card to about 300px. Tests pin the side-by-side layout at 1280 and the
+  stacked one at 900.
+- **Every id the window shows can be copied**: the active token, the inspected
+  NFT, the draw in the Verify field, the selected source, session and candidate
+  now carry copy rows; the tables truncate ids and native text is not
+  selectable, so previously the only full id was a field that could be read but
+  not copied.
 - **The desktop no longer keeps a permanent menu bar above the app**: pages
   are navigated from the sidebar and refreshed from the header, so the
   File/Edit/Go/View/Window/Help bar was chrome the window did not need. Linux
   and Windows now auto-hide it until Alt or F10; its shortcuts (Cmd/Ctrl+E/I/B
-  and the page numbers) keep working while it is hidden. macOS keeps its
+  and the page numbers) keep working while it is hidden. The shell's
+  file/help/language work moved to a sidebar Actions menu, including Open
+  Recent, so it stays discoverable without the bar. macOS keeps its
   application menu because the platform owns that bar.
 - **The desktop has a high-contrast variant of its palette**: when the OS asks
   for increased contrast, the same polar-night design uses brighter hairlines,

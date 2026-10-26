@@ -39,6 +39,33 @@ func TestNumberShortcutsSwitchPages(t *testing.T) {
 	}
 }
 
+// TestCardsStackWhenTheWindowIsNarrow pins the responsive layout: at 1280 the
+// Token page's two work columns sit side by side, while at the 900px minimum
+// the second column moves below the first instead of squeezing both into
+// unreadable widths.
+func TestCardsStackWhenTheWindowIsNarrow(t *testing.T) {
+	wideApp := New(&fakeServices{})
+	wide := ui.NewTester(wideApp.View, 1280, 3000)
+	wideApp.ShowPage("Token")
+	wide.Frame()
+	create, ok := wide.Find("Create Token")
+	require.True(t, ok)
+	mint, ok := wide.Find("Only the token owner can mint, and only for a mintable token.")
+	require.True(t, ok)
+	require.NotEqual(t, create.X, mint.X, "a wide window keeps the two columns side by side")
+
+	narrowApp := New(&fakeServices{})
+	narrow := ui.NewTester(narrowApp.View, 900, 5000)
+	narrowApp.ShowPage("Token")
+	narrow.Frame()
+	create, ok = narrow.Find("Create Token")
+	require.True(t, ok)
+	mint, ok = narrow.Find("Only the token owner can mint, and only for a mintable token.")
+	require.True(t, ok)
+	require.Equal(t, create.X, mint.X, "a narrow window puts both columns on the same left edge")
+	require.Greater(t, mint.Y, create.Y, "the second column must follow the first")
+}
+
 // TestHeaderNamesThePageAndItsPurpose keeps the chrome honest: the title and
 // the one-line purpose are part of the page's identity, and the glyph sits
 // beside them rather than replacing either.

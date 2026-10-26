@@ -87,6 +87,7 @@ func TestNFTReadoutFailureKeepsSameSubjectRows(t *testing.T) {
 	app.nft.historyID = "n1"
 	app.nft.history = []NFTOpRow{{Type: "mint"}}
 	app.nft.historyLoadedID = "n1"
+	app.nft.opTab = 2
 	tester.Frame()
 
 	boom := errors.New("database is locked")
@@ -122,6 +123,7 @@ func TestNFTSelectionDropsReadoutsWhenTheNewReadFails(t *testing.T) {
 	app.nft.nftLoadedID = "n1"
 	app.nft.history = []NFTOpRow{{Type: "mint-from-old"}}
 	app.nft.historyLoadedID = "n1"
+	app.nft.opTab = 2
 	tester.Frame()
 	require.True(t, tester.HasText("OldArt"))
 
