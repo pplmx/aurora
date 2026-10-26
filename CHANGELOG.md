@@ -55,6 +55,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **An import refreshes the page behind its result dialog**: importing a lottery
+  export through the File menu, a drop or a forwarded second launch stored the
+  rows but left the lottery history as it was, so dismissing "Imported N"
+  revealed the pre-import list. Each entry point now reloads the current page
+  (through `App.Reload`, which is the ordinary page refresh) and invalidates
+  the window when rows were stored.
 - **A link forwarded to a running window now repaints it**: `Shell.Navigate`
   changed the app state but never asked the native window for a frame, so a
   second launch with `aurora://voting` left the old page on screen until the

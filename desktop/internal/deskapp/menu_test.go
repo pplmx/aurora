@@ -15,7 +15,7 @@ import (
 // the Ctrl/Cmd+1..7 shortcuts existed but nothing in the window told anyone.
 func TestGoMenuOffersEveryPage(t *testing.T) {
 	var shown []string
-	menu := NewMenu(About{}, func(page string) { shown = append(shown, page) })
+	menu := NewMenu(About{}, func(page string) { shown = append(shown, page) }, nil)
 
 	var goItem *mygo.MenuItem
 	for _, item := range menu.Items() {
@@ -40,7 +40,7 @@ func TestGoMenuOffersEveryPage(t *testing.T) {
 // TestGoMenuNeedsAPageSwitcher keeps NewMenu usable before the window state
 // exists: without a callback the Go menu is simply absent, not a dead menu.
 func TestGoMenuNeedsAPageSwitcher(t *testing.T) {
-	menu := NewMenu(About{}, nil)
+	menu := NewMenu(About{}, nil, nil)
 	for _, item := range menu.Items() {
 		require.NotEqual(t, T("desktop.menu.go"), item.Label,
 			"a Go menu with no way to switch pages must not appear")

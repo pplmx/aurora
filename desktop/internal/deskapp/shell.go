@@ -192,6 +192,12 @@ func (s *Shell) OpenFile(path string) {
 		return
 	}
 	rememberDocument(path)
+	if result.Imported > 0 {
+		// The import changed the lottery store this window is showing; re-read
+		// the page before the dialog covers it, so dismissing the report does
+		// not reveal the history from before the import.
+		s.reloadWindow()
+	}
 	s.reportImport(path, result)
 }
 
@@ -408,6 +414,20 @@ func (s *Shell) ImportDropped(paths []string) {
 			continue
 		}
 		s.OpenFile(path)
+	}
+}
+
+// reloadWindow re-reads the current page and redraws the window after a change
+// made outside the view (an import), when there is a live window.
+func (s *Shell) reloadWindow() {
+	s.mu.Lock()
+	win, app := s.win, s.app
+	s.mu.Unlock()
+	if app != nil {
+		app.Reload()
+	}
+	if win != nil && !win.IsDestroyed() {
+		win.Invalidate()
 	}
 }
 

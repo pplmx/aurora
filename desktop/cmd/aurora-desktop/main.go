@@ -252,7 +252,7 @@ func main() {
 	// The menu's Go items switch pages, so it is built once the window's state
 	// exists. mygo.App.SetMenu before Run only stores the template; the
 	// callbacks run later.
-	mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage))
+	mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
 	if runtime.GOOS != "darwin" {
 		if err := mygo.App.RegisterURLScheme(deskapp.DeepLinkScheme); err != nil {
 			fmt.Fprintf(os.Stderr, "aurora-desktop: register %s://: %v\n", deskapp.DeepLinkScheme, err)
@@ -306,7 +306,7 @@ func main() {
 
 	mygo.App.WhenReady(func() {
 		deskapp.FollowAppLocale(func() {
-			mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage))
+			mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
 			deskapp.MarkLanguage(mygo.App.Menu())
 		})
 		deskapp.MarkLanguage(mygo.App.Menu())
