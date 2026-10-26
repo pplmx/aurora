@@ -55,6 +55,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Choosing an NFT fills the holder the write cards need**: Transfer's From and
+  Burn's Owner were left as typed while the row already knew the asset's
+  current owner, so a stale or empty key could be signed with. Selection fills
+  both from the chosen row; the selection test asserts the owner it sends.
 - **The desktop balance and history cards no longer share one account field**:
   typing an owner in History silently changed the account the Balance card would
   read, while its readout still described the earlier account. The two inputs

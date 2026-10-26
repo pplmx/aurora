@@ -40,8 +40,8 @@ func TestTokenSelectionRefreshesOpenReadouts(t *testing.T) {
 // detail and history cards.
 func TestNFTSelectionRefreshesOpenReadouts(t *testing.T) {
 	fake := &fakeServices{nftRows: []NFTRow{
-		{ID: "n1", Name: "First"},
-		{ID: "n2", Name: "Second"},
+		{ID: "n1", Name: "First", Owner: "owner-a"},
+		{ID: "n2", Name: "Second", Owner: "owner-b"},
 	}}
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 3000)
@@ -55,6 +55,8 @@ func TestNFTSelectionRefreshesOpenReadouts(t *testing.T) {
 	tester.Frame()
 
 	require.Equal(t, "n2", app.nft.id)
+	require.Equal(t, "owner-b", app.nft.from, "the chosen asset's holder fills Transfer")
+	require.Equal(t, "owner-b", app.nft.burnOwner, "the chosen asset's holder fills Burn")
 	require.Equal(t, "n2", fake.lastNFTID, "the Inspect card must follow the selection")
 	require.Equal(t, "n2", fake.lastNFTHistoryID, "a loaded history must follow the selection")
 }

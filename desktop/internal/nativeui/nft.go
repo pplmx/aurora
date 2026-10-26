@@ -274,6 +274,10 @@ func (a *App) nftListBody(c *ui.Context) {
 		// the full id reaches a form after the table shortened it.
 		n := list[a.nft.selected]
 		a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
+		// Move and Burn are signed by the holder, and the collection row knows
+		// who that is: prefill it rather than making the operator retype a key
+		// the table already holds.
+		a.nft.from, a.nft.burnOwner = n.Owner, n.Owner
 		a.selectNFT(n.ID)
 	}
 }
