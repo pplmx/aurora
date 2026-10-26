@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 264,
+  "round": 265,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T08:14:27+00:00",
+  "updated_at": "2026-10-26T08:16:18+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20289,7 +20289,7 @@
       "version": 2,
       "created_at": "2026-10-26T08:07:13+00:00",
       "updated_at": "2026-10-26T08:07:21+00:00",
-      "touched_round": 262,
+      "touched_round": 264,
       "category": "core-feature",
       "title": "Simplify the desktop first move and token workflow",
       "description": "Add dashboard Quick start and task-shaped page purposes; hide advanced fields behind disclosures; prefill owner accounts and clear old secrets on token selection/create; reuse a generated owner key; highlight created records. Pin each path with view tests.",
@@ -20350,6 +20350,18 @@
       "commit": "c8b0786",
       "title": "Split Voting and Oracle into stages",
       "description": "Voting Setup/Ballot/Results tabs; Oracle Sources/Health/Readings tabs with Add Source always visible."
+    },
+    "CHG-462": {
+      "id": "CHG-462",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T08:16:18+00:00",
+      "updated_at": "2026-10-26T08:16:18+00:00",
+      "touched_round": 264,
+      "commit": "85f4f0b",
+      "title": "Reuse generated NFT creator key",
+      "description": "Transfer/Burn can fill their private-key field from the Mint card while the creator still holds the subject asset."
     }
   },
   "edges": [
@@ -30943,6 +30955,12 @@
       "to": "TASK-402",
       "type": "implements",
       "created_at": "2026-10-26T08:14:26+00:00"
+    },
+    {
+      "from": "CHG-462",
+      "to": "TASK-401",
+      "type": "implements",
+      "created_at": "2026-10-26T08:16:18+00:00"
     }
   ]
 }
