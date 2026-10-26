@@ -130,7 +130,12 @@ func (f *fakeServices) Dashboard() (DashboardStats, error) {
 	return DashboardStats{Lotteries: 3, Votes: 9, Candidates: 2, Sessions: 1, Integrity: "verified", Oracle: 4}, nil
 }
 
-func (f *fakeServices) LedgerBlocks() ([]BlockRow, error) { return f.blocks, nil }
+func (f *fakeServices) LedgerBlocks(limit int) ([]BlockRow, error) {
+	if limit > 0 && len(f.blocks) > limit {
+		return f.blocks[:limit], nil
+	}
+	return f.blocks, nil
+}
 func (f *fakeServices) LedgerStatus() (LedgerStatus, error) {
 	if f.loadErrs.chain != nil {
 		return LedgerStatus{}, f.loadErrs.chain

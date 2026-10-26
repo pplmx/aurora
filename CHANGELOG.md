@@ -55,6 +55,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop ledger shows each block's real height**: the adapter numbered
+  the filtered payloads by their index, so the first recorded block displayed
+  height 0 and every row was one too low (genesis has no payload and is not in
+  the slice). `BlockChain.BlockEntries` now pairs each payload with its block's
+  own height and can stop after the newest N without materialising the chain;
+  the desktop dashboard uses that limit. `TestBlockEntriesCarryTheirHeights`
+  and `TestLedgerBlocksCarryBlockHeights` pin the numbers.
 - **GET /api/v1/token/list is bounded like the other listings**: it returned
   every stored token in one response, so a key-holding caller could force an
   unbounded body while the NFT, lottery and token-history lists all paged. It

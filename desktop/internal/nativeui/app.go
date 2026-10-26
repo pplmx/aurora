@@ -45,7 +45,7 @@ type Services interface {
 	// LedgerBlocks returns the payload of every recorded block, newest
 	// first, so the page can show what the chain holds rather than only how
 	// much of it there is.
-	LedgerBlocks() ([]BlockRow, error)
+	LedgerBlocks(limit int) ([]BlockRow, error)
 
 	// Voting surface.
 	RegisterVoter(name string) (VoterRow, error)

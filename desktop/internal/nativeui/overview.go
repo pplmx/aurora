@@ -66,7 +66,7 @@ func (a *App) loadDashboard() {
 
 	// The activity card is secondary: its failure is reported in the card and
 	// leaves the counters alone.
-	blocks, blocksErr := a.services.LedgerBlocks()
+	blocks, blocksErr := a.services.LedgerBlocks(dashboardRecentLimit)
 	a.dashboard.recentErr = blocksErr
 	if blocksErr == nil {
 		if len(blocks) > dashboardRecentLimit {
@@ -182,7 +182,7 @@ func (a *App) loadBlockchain() {
 	a.blockchain.blocks = res.Blocks
 	// The blocks themselves are what an auditor reads; the counters alone say
 	// how much chain there is, not what it recorded.
-	if rows, err := a.services.LedgerBlocks(); err == nil {
+	if rows, err := a.services.LedgerBlocks(0); err == nil {
 		a.blockchain.rows = rows
 	}
 }

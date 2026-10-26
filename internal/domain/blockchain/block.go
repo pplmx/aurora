@@ -377,6 +377,38 @@ func (c *BlockChain) BlockData() []string {
 	return records
 }
 
+// BlockEntry is one recorded payload with the height of the block holding it.
+type BlockEntry struct {
+	Height int64
+	Data   string
+}
+
+// BlockEntries returns the non-genesis payloads newest first, at most limit of
+// them (limit <= 0 returns every payload), each paired with its block's own
+// height. Callers that only show the latest few avoid materialising the whole
+// chain, and skipping a payload can never shift a height: the number comes
+// from the block, not from the payload's position in a filtered slice.
+func (c *BlockChain) BlockEntries(limit int) []BlockEntry {
+	if c == nil {
+		return nil
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	entries := make([]BlockEntry, 0, min(max(limit, 0), len(c.Blocks)))
+	for i := len(c.Blocks) - 1; i >= 0; i-- {
+		block := c.Blocks[i]
+		data := string(block.Data)
+		if data == "" || data == "Genesis" {
+			continue
+		}
+		entries = append(entries, BlockEntry{Height: block.Height, Data: data})
+		if limit > 0 && len(entries) == limit {
+			break
+		}
+	}
+	return entries
+}
+
 func (c *BlockChain) Len() int {
 	if c == nil {
 		return 0

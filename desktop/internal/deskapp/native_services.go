@@ -176,17 +176,21 @@ func (s *nativeServices) LedgerStatus() (nativeui.LedgerStatus, error) {
 // LedgerBlocks returns the recorded audit blocks, newest first. The payload is
 // each module's own JSON, so the module is read from its "module" or
 // "type" field and the summary is the payload shortened for a cell.
-func (s *nativeServices) LedgerBlocks() ([]nativeui.BlockRow, error) {
+// LedgerBlocks returns up to limit recorded audit blocks, newest first (limit
+// <= 0 for all), with the height each block actually has. The payload is each
+// module's own JSON, so the module is read from its "module" or "type" field
+// and the summary is the payload shortened for a cell.
+func (s *nativeServices) LedgerBlocks(limit int) ([]nativeui.BlockRow, error) {
 	if s.chain == nil {
 		return nil, fmt.Errorf("blockchain not initialised")
 	}
-	records := s.chain.BlockData()
-	rows := make([]nativeui.BlockRow, 0, len(records))
-	for i := len(records) - 1; i >= 0; i-- {
+	entries := s.chain.BlockEntries(limit)
+	rows := make([]nativeui.BlockRow, 0, len(entries))
+	for _, entry := range entries {
 		rows = append(rows, nativeui.BlockRow{
-			Height:  int64(i),
-			Module:  blockModuleFor(records[i]),
-			Summary: blockSummary(records[i]),
+			Height:  entry.Height,
+			Module:  blockModuleFor(entry.Data),
+			Summary: blockSummary(entry.Data),
 		})
 	}
 	return rows, nil
