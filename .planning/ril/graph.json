@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 290,
+  "round": 291,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T23:12:16+00:00",
+  "updated_at": "2026-10-26T23:17:27+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20758,7 +20758,7 @@
       "version": 1,
       "created_at": "2026-10-26T16:10:49+00:00",
       "updated_at": "2026-10-26T16:10:49+00:00",
-      "touched_round": 289,
+      "touched_round": 290,
       "category": "architecture",
       "title": "Refactor package boundaries and ledger vocabulary",
       "description": "Move the DB-backed ledger out of domain; remove app-to-infra error imports; split the desktop adapter; normalize ledger names. Remaining: shared composition root and desktop i18n separation.",
@@ -20886,6 +20886,18 @@
       "commit": "92df29a",
       "title": "Inject oracle HTTP fetcher",
       "description": "Oracleapp no longer imports infra/http; fetcher supplied by container/CLI/handler; nil safe."
+    },
+    "CHG-491": {
+      "id": "CHG-491",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T23:17:27+00:00",
+      "updated_at": "2026-10-26T23:17:27+00:00",
+      "touched_round": 290,
+      "commit": "c71331b",
+      "title": "Share lottery repo with desktop file actions",
+      "description": "Shell uses container repo; fallback only pre-runtime/tests."
     }
   },
   "edges": [
@@ -31761,6 +31773,12 @@
       "to": "TASK-409",
       "type": "implements",
       "created_at": "2026-10-26T23:12:16+00:00"
+    },
+    {
+      "from": "CHG-491",
+      "to": "TASK-409",
+      "type": "implements",
+      "created_at": "2026-10-26T23:17:27+00:00"
     }
   ]
 }
