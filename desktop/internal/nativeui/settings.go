@@ -28,7 +28,11 @@ func (a *App) settingsView(c *ui.Context) {
 		})
 
 		formCard(c, "Session keys", "Private keys can be kept in memory for this session only.", func() {
-			ui.Checkbox(c, &a.rememberKeys, tr("Remember private keys for this session"))
+			if ui.Checkbox(c, &a.rememberKeys, tr("Remember private keys for this session")).Changed() && !a.rememberKeys {
+				// Turning the policy off also clears what is already held: "off"
+				// must mean no private key is sitting in memory.
+				a.forgetSessionKeys()
+			}
 			hint(c, "Nothing is written to disk; quitting Aurora clears them.")
 			readout(c, []readoutRow{{"Remembered keys", strconv.Itoa(a.rememberedKeyCount())}})
 			if a.rememberedKeyCount() > 0 && secondaryButton(c, "Forget session keys").Clicked() {

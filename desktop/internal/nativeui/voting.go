@@ -266,6 +266,7 @@ func (a *App) registerVoter() {
 // sign straight away instead of copying a key that is no longer readable
 // anywhere.
 func (a *App) applyVoterRegistration(v VoterRow) {
+	a.rememberSuccessfulKey(v.PublicKey, v.PrivateKey)
 	a.voting.voterPub, a.voting.voterPriv = v.PublicKey, v.PrivateKey
 	a.voting.status = okStatus("Registered %s. The ballot fields are filled from the new key pair.", v.Name)
 	a.voting.voteVoterPub = v.PublicKey

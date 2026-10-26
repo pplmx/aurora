@@ -131,8 +131,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   （`not polled` 表示不会自动抓取）。这些字段都存在记录里，此前只是没有入口。
 - **私钥记忆是可选的，而且只在本进程内存里**：Settings → Session keys 默认关闭；
   打开后，成功的签名操作会把对应公钥/私钥留在内存，供同公钥的后续表单用
-  “Use saved key” 一键填入。退出 Aurora 或点 “Forget session keys” 即清空，
-  不写数据库、不写配置文件；未知/失败的操作不会保存密钥。
+  “Use saved key” 一键填入。关闭开关会立即清空已有密钥；退出 Aurora 或点
+  “Forget session keys” 也一样。不写数据库、不写配置文件；失败的操作不会保存密钥。
 - **选中或创建记录后，页面上下文随之移动**：代币的 owner 公钥会填进 Mint To、
   Transfer From、Approve/Allowance Owner、Burn From、Balance/History 账户，
   上一个代币的私钥、recipient 和 spender 清空；Create 生成的 owner key 可在

@@ -70,4 +70,26 @@ func TestSessionKeyCheckboxIsTheOptIn(t *testing.T) {
 	require.NoError(t, tester.Click("Remember private keys for this session"))
 	tester.Frame()
 	require.True(t, app.rememberKeys)
+
+	app.rememberSuccessfulKey("pk", "sk")
+	require.Equal(t, 1, app.rememberedKeyCount())
+	require.NoError(t, tester.Click("Remember private keys for this session"))
+	tester.Frame()
+	require.False(t, app.rememberKeys)
+	require.Zero(t, app.rememberedKeyCount(), "turning memory off must clear the keys")
+}
+
+// TestVoterRegistrationRemembersTheBallotKey covers the one-time key a voter
+// registration returns: with memory enabled it is available to later ballots
+// without another copy from the key pair card.
+func TestVoterRegistrationRemembersTheBallotKey(t *testing.T) {
+	app := New(&voterKeyRecorder{fakeServices: &fakeServices{}})
+	app.rememberKeys = true
+	app.voting.voterName = "Alice"
+
+	app.registerVoter()
+
+	key, ok := app.savedKey("pk-Alice")
+	require.True(t, ok)
+	require.Equal(t, "sk-Alice", key)
 }
