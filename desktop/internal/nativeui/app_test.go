@@ -57,16 +57,26 @@ type fakeServices struct {
 
 	// Counters for the reads a successful write is expected to repeat, so a
 	// test can prove the page refreshes what it shows after a write.
-	listTokensCalls     int
-	tokenInfoCalls      int
-	tokenBalanceCalls   int
-	tokenHistoryCalls   int
-	getNFTCalls         int
-	listAllNFTsCalls    int
-	nftHistoryCalls     int
-	sessionResultsCalls int
-	oracleDataCalls     int
-	oracleLatestCalls   int
+	listTokensCalls   int
+	tokenInfoCalls    int
+	tokenBalanceCalls int
+	tokenHistoryCalls int
+	getNFTCalls       int
+
+	// The last subject each read was asked for, so a selection can be proven
+	// to re-read its own record rather than the previous one.
+	lastTokenInfoID        string
+	lastBalanceToken       string
+	lastHistoryToken       string
+	lastNFTID              string
+	lastNFTHistoryID       string
+	lastOracleDataSource   string
+	lastOracleLatestSource string
+	listAllNFTsCalls       int
+	nftHistoryCalls        int
+	sessionResultsCalls    int
+	oracleDataCalls        int
+	oracleLatestCalls      int
 
 	// The last list limits the forms sent.
 	tokenHistoryLimit int
@@ -163,6 +173,7 @@ func (f *fakeServices) CreateToken(name, symbol, supply, owner string, decimals 
 }
 func (f *fakeServices) TokenInfo(id string) (TokenRow, error) {
 	f.tokenInfoCalls++
+	f.lastTokenInfoID = id
 	return TokenRow{ID: id}, nil
 }
 func (f *fakeServices) ListTokens() ([]TokenRow, error) {
@@ -174,6 +185,7 @@ func (f *fakeServices) ListTokens() ([]TokenRow, error) {
 }
 func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error) {
 	f.tokenBalanceCalls++
+	f.lastBalanceToken = tokenID
 	return "42", nil
 }
 func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error                { return nil }
@@ -189,6 +201,7 @@ func (f *fakeServices) TokenAllowance(tokenID, owner, spender string) (string, e
 func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([]TransferRow, error) {
 	f.tokenHistoryLimit = limit
 	f.tokenHistoryCalls++
+	f.lastHistoryToken = tokenID
 	return nil, nil
 }
 
@@ -207,11 +220,13 @@ func (f *fakeServices) SetOracleSourceEnabled(id string, enabled bool) error { r
 func (f *fakeServices) FetchOracleSource(id string) error                    { return nil }
 func (f *fakeServices) OracleData(sourceID string, limit int) ([]DataRow, error) {
 	f.oracleDataCalls++
+	f.lastOracleDataSource = sourceID
 	f.oracleDataLimit = limit
 	return nil, nil
 }
 func (f *fakeServices) OracleLatest(sourceID string) (DataRow, error) {
 	f.oracleLatestCalls++
+	f.lastOracleLatestSource = sourceID
 	return DataRow{}, nil
 }
 func (f *fakeServices) OracleHealth() ([]HealthRow, error) { return nil, nil }
@@ -221,6 +236,7 @@ func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator st
 }
 func (f *fakeServices) GetNFT(id string) (NFTRow, error) {
 	f.getNFTCalls++
+	f.lastNFTID = id
 	return NFTRow{ID: id}, nil
 }
 func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) {
@@ -240,6 +256,7 @@ func (f *fakeServices) TransferNFT(id, from, to, priv string) error { return nil
 func (f *fakeServices) BurnNFT(id, owner, priv string) error        { return nil }
 func (f *fakeServices) NFTHistory(id string) ([]NFTOpRow, error) {
 	f.nftHistoryCalls++
+	f.lastNFTHistoryID = id
 	return nil, nil
 }
 

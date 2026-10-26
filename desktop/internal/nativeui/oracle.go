@@ -155,6 +155,9 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	if table.Changed() && a.oracle.selected >= 0 && a.oracle.selected < len(srcs) {
 		id := srcs[a.oracle.selected].ID
 		a.oracle.fetchID, a.oracle.queryID, a.oracle.latestID = id, id, id
+		// The Query and Latest cards follow the selection when they are open,
+		// instead of showing the previously chosen source.
+		a.refreshOracleReads()
 	}
 
 	// Per-source actions. A table row cannot host a button per cell without

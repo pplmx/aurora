@@ -213,6 +213,9 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 	})
 	if table.Changed() && a.lottery.selected >= 0 && a.lottery.selected < len(rows) {
 		a.lottery.verifyID = rows[a.lottery.selected].ID
+		// The previous verdict belongs to the previously chosen draw; keep it
+		// from sitting beside a new id as if it described it.
+		a.lottery.verifyResult = nil
 	}
 }
 

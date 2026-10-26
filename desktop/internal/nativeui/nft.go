@@ -273,6 +273,7 @@ func (a *App) nftListBody(c *ui.Context) {
 		// the full id reaches a form after the table shortened it.
 		n := list[a.nft.selected]
 		a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
+		a.selectNFT(n.ID)
 	}
 }
 
@@ -318,6 +319,23 @@ func (a *App) nftWrite(c *ui.Context) {
 		})
 		a.nftHistoryTable(c)
 	})
+}
+
+// selectNFT re-reads the Inspect card and history for the asset just chosen:
+// both would otherwise keep describing the previously selected NFT.
+func (a *App) selectNFT(id string) {
+	if a.nft.nft != nil {
+		if details, err := a.services.GetNFT(id); err == nil {
+			a.nft.nft = &details
+		} else {
+			a.nft.nft = nil
+		}
+	}
+	if len(a.nft.history) > 0 {
+		if ops, err := a.services.NFTHistory(id); err == nil {
+			a.nft.history = ops
+		}
+	}
 }
 
 // transferNFT moves the asset named by the Transfer card.

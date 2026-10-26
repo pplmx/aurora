@@ -55,6 +55,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Choosing a desktop row now moves the readouts with it**: the Token Inspect,
+  balance and history cards, the NFT detail/history cards and the oracle
+  Query/Latest cards kept describing the previously selected record while the
+  id fields already named the new one; each now re-reads the chosen id, and a
+  draw selection clears the previous verdict instead of leaving it under a new
+  id. `selection_test.go` records the id every read was asked for.
 - **Refresh reloads the readouts that are on screen**: Ctrl/Cmd+R (and the
   Refresh button) reloaded the lists and counters but left an open Inspect
   readout, a shown balance, a loaded token/NFT history, the oracle Query and
