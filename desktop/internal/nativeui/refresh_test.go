@@ -240,3 +240,16 @@ func TestTokenHistoryPagesWithItsOffset(t *testing.T) {
 	require.Equal(t, 10, fake.tokenHistoryLimit)
 	require.Equal(t, 5, fake.lastHistoryOffset, "the History card must page from its offset")
 }
+
+// TestReloadRefreshesTheCurrentPage pins the entry point an import uses: a
+// change made outside the view (a menu/drag/forwarded import) re-reads the page
+// it affects instead of leaving the pre-import history on screen.
+func TestReloadRefreshesTheCurrentPage(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{{ID: "t1", Name: "Gold"}}}
+	app := New(fake)
+	app.ShowPage("Token")
+	before := fake.listTokensCalls
+
+	app.Reload()
+	require.Equal(t, before+1, fake.listTokensCalls, "Reload must re-read the current page")
+}

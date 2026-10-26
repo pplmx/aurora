@@ -343,6 +343,11 @@ func (a *App) refresh() {
 	}
 }
 
+// Reload re-reads the current page, for a change made outside the view (an
+// imported export, a forwarded launch). A caller that owns a window must also
+// invalidate it: changing this state does not schedule a frame on its own.
+func (a *App) Reload() { a.refresh() }
+
 // ShowPage switches the window to the page a deep link names. An unknown or
 // empty name leaves the current page alone: a malformed link must not blank
 // the window.

@@ -29,7 +29,7 @@ type About struct {
 // The labels are Aurora's own and are taken in the language the app shows, so
 // the menu has to be rebuilt (SetMenu again) when that language changes; the
 // items that carry a role are relabelled by MyGo itself. See FollowAppLocale.
-func NewMenu(meta About, showPage func(string)) *mygo.Menu {
+func NewMenu(meta About, showPage func(string), reload func()) *mygo.Menu {
 	items := []*mygo.MenuItem{
 		{Role: mygo.RoleAppMenu},
 		{Label: T("desktop.menu.file"), Submenu: []*mygo.MenuItem{
@@ -46,7 +46,7 @@ func NewMenu(meta About, showPage func(string)) *mygo.Menu {
 				Label:       T("desktop.menu.import"),
 				Accelerator: "CmdOrCtrl+I",
 				Click: func(_ *mygo.MenuItem, win *mygo.Window) {
-					importLotteries(meta, win)
+					importLotteries(meta, win, reload)
 				},
 			},
 			mygo.Separator(),
@@ -268,7 +268,7 @@ func exportLotteries(meta About, win *mygo.Window) {
 // importer the CLI uses: identical validation, identical overwrite guard
 // (TASK-069), identical partial-failure accounting. A partial import reports a
 // warning — the valid records ARE stored — matching the CLI's "⚠" message.
-func importLotteries(meta About, win *mygo.Window) {
+func importLotteries(meta About, win *mygo.Window, reload func()) {
 	paths, err := openDialog(mygo.OpenDialogOptions{
 		Parent:  parent(win),
 		Title:   T("desktop.dialog.import_title"),
@@ -290,6 +290,16 @@ func importLotteries(meta About, win *mygo.Window) {
 		return
 	}
 	rememberDocument(paths[0])
+	if result.Imported > 0 {
+		// The imported draws belong in the page behind the dialog; a menu click
+		// is outside the view's event loop, so reload and redraw explicitly.
+		if reload != nil {
+			reload()
+		}
+		if win != nil {
+			win.Invalidate()
+		}
+	}
 
 	title, message, detail := importReport(result, paths[0])
 	showMessage(parent(win), importReportType(result), title, message, detail)
