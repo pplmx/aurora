@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"errors"
 	"strconv"
 	"testing"
 
@@ -171,6 +172,22 @@ func TestSwitchingPagesStartsAtTheTop(t *testing.T) {
 	require.True(t, ok, "a page chosen after scrolling another must open at its top")
 	require.InDelta(t, float64(want.Y), float64(got.Y), 1,
 		"the new page must start at the scroll position of a fresh one")
+}
+
+// TestServiceErrorsUseTheDesktopLanguage covers the messages that come from
+// the domain rather than the view: known errors are translated, a wrapped
+// error keeps its prefix, and an unknown diagnostic stays verbatim so it still
+// matches the log.
+func TestServiceErrorsUseTheDesktopLanguage(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("zh")
+	require.Equal(t, "找不到代币", errStatus(errors.New("token not found")).text)
+	require.Equal(t, "seed: 种子过短", errStatus(errors.New("seed: seed too short")).text)
+	require.Equal(t, "database is locked", errStatus(errors.New("database is locked")).text)
+	require.True(t, errStatus(errors.New("token not found")).isErr)
 }
 
 // TestChineseUIRendersTheWorkbench keeps the desktop's labels in the language

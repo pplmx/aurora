@@ -209,7 +209,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   空状态、guide、弹窗和 `--help`/`--version` 都由 `internal/i18n` 提供。
   窗口文案通过 `nativeui.tr` 读取，英文原文就是 key；中文表在
   `internal/i18n/messages_ui_zh.go`，缺项时回退英文而不是显示 key。
-  服务层返回的错误保留原文，避免把后端诊断改写成无法对应日志的句子。
+  常见服务层错误也按原文翻译，未知或动态拼接的诊断保留英文原文，日志
+  始终是后端返回的原文。
 - MyGo 的两套中文目录（`zh-Hans`、`zh-Hant`）都必须链接：只声明简体时
   zh-TW/zh-HK 匹配不到任何语言，MyGo 会退回英文，整个窗口变英文。
   `SetLanguages` 放在 `Start` 之前，因为启动失败会提前返回——否则失败弹窗

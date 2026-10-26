@@ -92,7 +92,25 @@ func errStatus(err error) statusLine {
 	if err == nil {
 		return statusLine{}
 	}
-	return statusLine{text: err.Error(), isErr: true}
+	return statusLine{text: localizeServiceError(err), isErr: true}
+}
+
+// localizeServiceError translates a known service error message. Unknown or
+// dynamic messages stay verbatim, so a diagnostic still matches the log; for a
+// wrapped sentinel such as "seed: seed too short", the last segment is
+// translated while its context is kept.
+func localizeServiceError(err error) string {
+	message := err.Error()
+	if translated := tr(message); translated != message {
+		return translated
+	}
+	if i := strings.LastIndex(message, ": "); i >= 0 {
+		tail := message[i+2:]
+		if translated := tr(tail); translated != tail {
+			return message[:i+2] + translated
+		}
+	}
+	return message
 }
 
 // renderStatus draws a status line, if there is one.
