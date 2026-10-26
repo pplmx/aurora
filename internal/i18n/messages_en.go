@@ -103,7 +103,7 @@ var englishMessages = map[string]string{
 	"nft.mint":     "Mint a new NFT",
 	"nft.transfer": "Transfer NFT ownership",
 	"nft.burn":     "Burn an NFT",
-	"nft.list":     "List NFTs by owner",
+	"nft.list":     "List NFTs (all, or by owner)",
 	"nft.get":      "Get NFT by ID",
 	"nft.history":  "Get NFT operation history",
 

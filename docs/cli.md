@@ -50,7 +50,8 @@ aurora nft mint -n "MyNFT" -d "Description" -c "<creator-key>" \
   --image <url> -t <token-uri>          # image/token-uri 可选
 aurora nft transfer --nft <id> --from <owner> --to <address> -k "<private-key>"
 aurora nft get --nft <id>
-aurora nft list --owner <pubkey>
+aurora nft list                        # 全部 NFT
+aurora nft list --owner <pubkey>       # 只看某个持有者
 aurora nft history --nft <id>
 aurora nft burn --nft <id> --owner <owner> -k "<private-key>" --confirm
 ```
@@ -59,6 +60,7 @@ aurora nft burn --nft <id> --owner <owner> -k "<private-key>" --confirm
 
 ```bash
 aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000 [-d 8]  # 打印 owner 密钥对
+aurora token list
 aurora token info -t <token-id>
 aurora token mint -t <token-id> --to <address> --amount 100 -k "<private-key>"
 aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k "<key>"

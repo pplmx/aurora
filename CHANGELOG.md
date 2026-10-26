@@ -49,6 +49,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The CLI reference documents every command, and only real ones**:
+  `docs/cli.md` never mentioned `aurora token list` even though the command
+  existed, and its NFT section still presented `--owner` as required after
+  `nft list` learned to list the whole collection (the help text still said
+  "List NFTs by owner"). The reference now lists both spellings, and two
+  repository checks walk the command tree parsed from `cmd/aurora/cmd`: one
+  fails for a command with no documented line, the other for a documented
+  `aurora …` line that names no real subcommand.
 - **The CLI's global flags and the repair prompt are localized too**: a Chinese
   `--help` translated every module flag but left `--config` and
   `--http-timeout` in English (they were hardcoded in `root.go`), and
