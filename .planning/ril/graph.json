@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 287,
+  "round": 288,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T16:17:56+00:00",
+  "updated_at": "2026-10-26T16:18:37+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20758,7 +20758,7 @@
       "version": 1,
       "created_at": "2026-10-26T16:10:49+00:00",
       "updated_at": "2026-10-26T16:10:49+00:00",
-      "touched_round": 286,
+      "touched_round": 287,
       "category": "architecture",
       "title": "Refactor package boundaries and ledger vocabulary",
       "description": "Move the DB-backed ledger out of domain; remove app-to-infra error imports; split the desktop adapter; normalize ledger names. Remaining: shared composition root and desktop i18n separation.",
@@ -20850,6 +20850,18 @@
       "commit": "59960ce",
       "title": "Scope root formatters to the root module",
       "description": "Root gofmt/goimports exclude desktop; desktop gate owns nested module."
+    },
+    "CHG-488": {
+      "id": "CHG-488",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T16:18:37+00:00",
+      "updated_at": "2026-10-26T16:18:37+00:00",
+      "touched_round": 287,
+      "commit": "f1b751d",
+      "title": "Enforce layer imports",
+      "description": "AST repocheck for domain/app/infra directions; container exempt."
     }
   },
   "edges": [
@@ -31707,6 +31719,12 @@
       "to": "TASK-409",
       "type": "implements",
       "created_at": "2026-10-26T16:17:56+00:00"
+    },
+    {
+      "from": "CHG-488",
+      "to": "TASK-409",
+      "type": "implements",
+      "created_at": "2026-10-26T16:18:37+00:00"
     }
   ]
 }
