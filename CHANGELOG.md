@@ -559,6 +559,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Removed
 
+- **The RIL graph-engineering process and its stores**: removed
+  `.agents/skills/graph-engineering`, `.planning/ril/` and the older
+  `.planning/graph.json`, along with the contribution instructions that told
+  agents to maintain them. Existing Git history is not rewritten; this removes
+  the live tooling rather than pretending old commits never happened.
 - **The four Bubble Tea TUIs are gone**: `aurora {lottery,voting,nft,token,oracle} tui`
   no longer exists and `internal/ui/` was deleted. The ablation criterion was
   not reachability but necessity: every operation those TUIs exposed already had
