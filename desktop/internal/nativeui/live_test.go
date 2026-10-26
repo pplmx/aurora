@@ -44,6 +44,14 @@ func TestLiveUpdatesRefreshOracleHealth(t *testing.T) {
 	tester.Advance(liveRefreshInterval + time.Second)
 	require.Greater(t, fake.oracleHealthCalls, before)
 
+	// The same tick also re-reads a reading card the operator opened.
+	app.oracle.tab = 2
+	app.oracle.queryID = "source-1"
+	tester.Frame()
+	beforeData := fake.oracleDataCalls
+	tester.Advance(liveRefreshInterval + time.Second)
+	require.Greater(t, fake.oracleDataCalls, beforeData)
+
 	app.ShowPage("Settings")
 	tester.Frame()
 	before = fake.oracleHealthCalls
