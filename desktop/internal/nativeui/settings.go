@@ -88,7 +88,7 @@ func (a *App) settingsButton(c *ui.Context, label string, fn func()) {
 }
 
 // languageLabel renders the language in effect in its own language, matching
-// the Actions language choices.
+// the language choices on this page.
 func languageLabel(tag string) string {
 	switch strings.ToLower(strings.TrimSpace(tag)) {
 	case "en":
