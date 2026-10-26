@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 256,
+  "round": 257,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T07:09:26+00:00",
+  "updated_at": "2026-10-26T07:14:17+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 255,
+      "touched_round": 257,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20022,6 +20022,76 @@
       "commit": "adfb1fe",
       "title": "Key desktop readouts to their inputs",
       "description": "Token, NFT and oracle detail readouts track their subject/query, invalidate before a changed read, retain same-input rows with a stale warning on failure, and surface the reason in the card."
+    },
+    "ISS-440": {
+      "id": "ISS-440",
+      "type": "issue",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:10:35+00:00",
+      "updated_at": "2026-10-26T07:10:35+00:00",
+      "touched_round": 257,
+      "title": "Desktop detail cards hide fields the operator entered",
+      "description": "Session descriptions are dropped by the desktop SessionRow adapter although the DTO carries them; a selected candidate never shows its program; NFT Inspect omits Image URL and Token URI; an oracle source row never shows its URL or polling interval. The records are stored, but the window gives no way to read them back.",
+      "severity": 0.6,
+      "confidence": 1.0
+    },
+    "TASK-395": {
+      "id": "TASK-395",
+      "type": "task",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:10:35+00:00",
+      "updated_at": "2026-10-26T07:10:35+00:00",
+      "touched_round": 257,
+      "category": "core-feature",
+      "title": "Show the stored details each desktop card already has",
+      "description": "Carry SessionResponse.Description into SessionRow; show a selected session description beside its roster; show a selected candidate program; add Image URL, Token URI and block to NFT Inspect; add URL (copyable) and polling interval to a selected oracle source. Pin both the adapter mapping and the rendered view.",
+      "severity": 0.6,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "ISS-441": {
+      "id": "ISS-441",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T07:11:24+00:00",
+      "updated_at": "2026-10-26T07:14:10+00:00",
+      "touched_round": 256,
+      "title": "Voting card results render failures like successes",
+      "description": "candResult, sessionResult, controlResult and voteResult are plain strings drawn with the muted text colour for both outcomes. An invalid private key, a duplicate candidate or a bad session window reads exactly like \"Ballot recorded.\" in the same grey; the page status line that does distinguish outcomes is not used by these handlers.",
+      "severity": 0.55,
+      "confidence": 1.0
+    },
+    "TASK-396": {
+      "id": "TASK-396",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-26T07:11:24+00:00",
+      "updated_at": "2026-10-26T07:14:10+00:00",
+      "touched_round": 256,
+      "category": "correctness",
+      "title": "Make voting card outcomes visibly succeed or fail",
+      "description": "Store the four card-local results as statusLine, render them with the success/failure colour (words still carry the meaning), and update the tests that compared raw strings. Cover an invalid ballot and a bad session window.",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "CHG-454": {
+      "id": "CHG-454",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:14:09+00:00",
+      "updated_at": "2026-10-26T07:14:09+00:00",
+      "touched_round": 256,
+      "commit": "b51edc8",
+      "title": "Give voting card outcomes their polarity",
+      "description": "The four card-local voting results are statusLine values rendered through inlineStatus, so failures are red and successes green while the words still state the outcome."
     }
   },
   "edges": [
@@ -30423,6 +30493,42 @@
       "to": "TASK-394",
       "type": "implements",
       "created_at": "2026-10-26T07:09:26+00:00"
+    },
+    {
+      "from": "TASK-396",
+      "to": "ISS-441",
+      "type": "addresses",
+      "created_at": "2026-10-26T07:11:28+00:00"
+    },
+    {
+      "from": "ISS-441",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T07:11:28+00:00"
+    },
+    {
+      "from": "CHG-454",
+      "to": "ISS-441",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:14:09+00:00"
+    },
+    {
+      "from": "CHG-454",
+      "to": "TASK-396",
+      "type": "implements",
+      "created_at": "2026-10-26T07:14:10+00:00"
+    },
+    {
+      "from": "TASK-395",
+      "to": "ISS-440",
+      "type": "addresses",
+      "created_at": "2026-10-26T07:14:17+00:00"
+    },
+    {
+      "from": "ISS-440",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T07:14:17+00:00"
     }
   ]
 }
