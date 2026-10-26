@@ -128,7 +128,12 @@ func (a *App) loadToken() {
 // the right (mint, transfer, approve, transfer-from, burn, allowance). Ten
 // full-width forms stacked in one column buried every write below the fold.
 func (a *App) tokenView(c *ui.Context) {
-	ui.Scroll(c).Fill().Children(func() {
+	a.scrollPage(c, func() {
+		guide(c, &a.guides.token,
+			"Select a token in the left column, or create one. Its owner public key fills the account fields for you.",
+			"Choose an operation on the right: Mint, Transfer, Approve, Transfer From, Burn or Allowance.",
+			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
+		)
 		twoColumns(c, func() {
 			a.tokenList(c)
 			a.tokenCreate(c)

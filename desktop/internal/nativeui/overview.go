@@ -93,41 +93,43 @@ func (a *App) dashboardView(c *ui.Context) {
 		return
 	}
 
-	// A 3x2 grid of cards: six counters read as one block. The ledger verdict
-	// is the one value that can be bad news, so it takes the colour that says
-	// which it is — and its note still spells the outcome out in words.
-	integrityTone := auroraGreen
-	if a.dashboard.Integrity != "verified" {
-		integrityTone = auroraRed
-	}
-	metrics := []struct {
-		label   string
-		value   string
-		note    string
-		tone    string
-		numeric bool
-	}{
-		{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", ink, true},
-		{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", ink, true},
-		{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", ink, true},
-		{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", ink, true},
-		{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification", integrityTone, false},
-		{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", ink, true},
-	}
-	// A fresh install is all zeroes and a verified empty chain, which is
-	// correct but says nothing about what to do next. The quick-start card
-	// names a first move for each module; the same buttons stay useful once
-	// the ledger has data, so the page does not only guide a first launch.
-	a.dashboardQuickStart(c)
-	for start := 0; start < len(metrics); start += 3 {
-		start := start
-		row := metrics[start:min(start+3, len(metrics))]
-		metricRow(c, len(row), func(i int) {
-			m := row[i]
-			metricCard(c, m.label, m.value, m.note, m.tone, m.numeric)
-		})
-	}
-	a.dashboardRecent(c)
+	a.scrollPage(c, func() {
+		// A 3x2 grid of cards: six counters read as one block. The ledger verdict
+		// is the one value that can be bad news, so it takes the colour that says
+		// which it is — and its note still spells the outcome out in words.
+		integrityTone := auroraGreen
+		if a.dashboard.Integrity != "verified" {
+			integrityTone = auroraRed
+		}
+		metrics := []struct {
+			label   string
+			value   string
+			note    string
+			tone    string
+			numeric bool
+		}{
+			{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", ink, true},
+			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", ink, true},
+			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", ink, true},
+			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", ink, true},
+			{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification", integrityTone, false},
+			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", ink, true},
+		}
+		// A fresh install is all zeroes and a verified empty chain, which is
+		// correct but says nothing about what to do next. The quick-start card
+		// names a first move for each module; the same buttons stay useful once
+		// the ledger has data, so the page does not only guide a first launch.
+		a.dashboardQuickStart(c)
+		for start := 0; start < len(metrics); start += 3 {
+			start := start
+			row := metrics[start:min(start+3, len(metrics))]
+			metricRow(c, len(row), func(i int) {
+				m := row[i]
+				metricCard(c, m.label, m.value, m.note, m.tone, m.numeric)
+			})
+		}
+		a.dashboardRecent(c)
+	})
 }
 
 // dashboardQuickStart names the first move in each module. The sidebar lists
@@ -210,10 +212,16 @@ func (a *App) loadBlockchain() {
 }
 
 func (a *App) blockchainView(c *ui.Context) {
-	// The page header already says what the ledger is, so the card does not
-	// repeat it.
-	formCard(c, "Ledger", "", func() {
-		a.blockchainBody(c)
+	a.scrollPage(c, func() {
+		guide(c, &a.guides.blockchain,
+			"Every module appends its records to one hash chain; each block commits to the previous hash.",
+			"The badge verifies the chain. Search narrows by module, payload or height, and Show bounds how many rows are built.",
+		)
+		// The page header already says what the ledger is, so the card does not
+		// repeat it.
+		formCard(c, "Ledger", "", func() {
+			a.blockchainBody(c)
+		})
 	})
 }
 

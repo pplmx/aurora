@@ -107,7 +107,12 @@ func (a *App) loadOracle() {
 }
 
 func (a *App) oracleView(c *ui.Context) {
-	ui.Scroll(c).Fill().Children(func() {
+	a.scrollPage(c, func() {
+		guide(c, &a.guides.oracle,
+			"Add a source with a name and URL. Advanced holds the method, JSON path, headers and polling interval; a preset fills them for review.",
+			"Select a source in Sources to fetch it now, enable/disable it, or delete it.",
+			"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.",
+		)
 		// The add form is the tallest card on the page, so it gets a column of
 		// its own; the right column shows one of sources, health or readings at
 		// a time instead of stacking all four sections.

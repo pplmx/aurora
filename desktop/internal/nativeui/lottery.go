@@ -66,7 +66,12 @@ func (a *App) loadLottery() {
 
 // lotteryView renders the draw form, the history table and the verifier.
 func (a *App) lotteryView(c *ui.Context) {
-	ui.Scroll(c).Fill().Children(func() {
+	a.scrollPage(c, func() {
+		guide(c, &a.guides.lottery,
+			"Enter comma-separated participants and a seed of at least the shown length; Count is how many winners to draw.",
+			"Create the draw: the result and its VRF proof are recorded on the ledger.",
+			"Choose the new row in History and press Verify to recompute the winners from the stored proof.",
+		)
 		// The two forms sit side by side; the history table keeps the full
 		// width, because a half-width table wrapped participant lists onto a
 		// second line that the fixed row height then clipped.

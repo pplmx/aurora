@@ -171,6 +171,36 @@ func TestSwitchingPagesStartsAtTheTop(t *testing.T) {
 		"the new page must start at the scroll position of a fresh one")
 }
 
+// TestEveryContentPageHasAHowThisWorksGuide keeps the plain-language steps on
+// every module page: the guide is closed by default, but one click must show
+// the order of operations. Dashboard uses Quick start instead.
+func TestEveryContentPageHasAHowThisWorksGuide(t *testing.T) {
+	cases := []struct {
+		page string
+		step string
+	}{
+		{"Lottery", "Create the draw: the result and its VRF proof are recorded on the ledger."},
+		{"Voting", "Create a session with a roster and a start/end window."},
+		{"Token", "Select a token in the left column, or create one. Its owner public key fills the account fields for you."},
+		{"Oracle", "Select a source in Sources to fetch it now, enable/disable it, or delete it."},
+		{"NFT", "Transfer or Burn in the right column; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset."},
+		{"Blockchain", "The badge verifies the chain. Search narrows by module, payload or height, and Show bounds how many rows are built."},
+	}
+	for _, tc := range cases {
+		t.Run(tc.page, func(t *testing.T) {
+			app := New(&fakeServices{})
+			tester := ui.NewTester(app.View, 1280, 1200)
+			app.ShowPage(tc.page)
+			tester.Frame()
+			require.True(t, tester.HasText("How this works"))
+			require.False(t, tester.HasText(tc.step), "the steps start collapsed")
+			require.NoError(t, tester.Click("How this works"))
+			tester.Frame()
+			require.True(t, tester.HasText(tc.step), "the clicked guide must show its steps")
+		})
+	}
+}
+
 // TestDashboardQuickStartNavigates pins every first-move button: the sidebar
 // lists modules, so the dashboard is where a task name leads to its page.
 func TestDashboardQuickStartNavigates(t *testing.T) {
