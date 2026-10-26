@@ -126,7 +126,7 @@ func (a *App) nftMintBody(c *ui.Context) {
 			a.nft.status = okStatus("Creator private key copied.")
 		})
 		ui.Text(c, "This is the only copy of the creator key; the store keeps the public half.").
-			FontSize(11).TextColor(ui.Hex(auroraAmber))
+			FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
 	}
 	ui.Row(c).Children(func() {
 		if primaryButton(c, "Mint NFT").Clicked() {

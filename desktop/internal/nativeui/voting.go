@@ -135,7 +135,7 @@ func (a *App) votingRegister(c *ui.Context) {
 			}
 		})
 		if a.voting.voterPriv != "" {
-			ui.Text(c, "New voter key pair").FontSize(12).Bold().TextColor(ui.Hex(ink))
+			ui.Text(c, "New voter key pair").FontSize(textSize(c, 12)).Bold().TextColor(ui.Hex(ink))
 			copyRow(c, "Public key", a.voting.voterPub, func() {
 				a.voting.status = okStatus("Public key copied.")
 			})
@@ -143,7 +143,7 @@ func (a *App) votingRegister(c *ui.Context) {
 				a.voting.status = okStatus("Private key copied. The store keeps only the public half; keep it safe.")
 			})
 			ui.Text(c, "The store keeps only the public half, so this is the only copy of the signing key.").
-				FontSize(11).TextColor(ui.Hex(auroraAmber))
+				FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
 		}
 	})
 
@@ -163,7 +163,7 @@ func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 		}
 	})
 	if a.voting.candResult != "" {
-		ui.Text(c, a.voting.candResult).FontSize(12).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, a.voting.candResult).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 	}
 	if a.voting.candCopyID != "" {
 		copyRow(c, "Candidate ID", a.voting.candCopyID, func() {
@@ -278,7 +278,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 		}
 	})
 	if a.voting.sessionResult != "" {
-		ui.Text(c, a.voting.sessionResult).FontSize(12).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, a.voting.sessionResult).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 	}
 	if a.voting.sessionCopyID != "" {
 		copyRow(c, "Session ID", a.voting.sessionCopyID, func() {
@@ -332,7 +332,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		case 3:
 			// The window is why a ballot is refused, so it belongs in the
 			// list rather than only in the error a voter sees afterwards.
-			ui.Text(c, sessionWindow(s.StartTime, s.EndTime)).FontSize(12).SingleLine()
+			ui.Text(c, sessionWindow(s.StartTime, s.EndTime)).FontSize(textSize(c, 12)).SingleLine()
 		}
 	})
 	if table.Changed() && a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
@@ -533,7 +533,7 @@ func (a *App) votingVote(c *ui.Context) {
 			}
 		})
 		if a.voting.controlResult != "" {
-			ui.Text(c, a.voting.controlResult).FontSize(12).TextColor(ui.Hex(inkMuted))
+			ui.Text(c, a.voting.controlResult).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 		}
 	})
 
@@ -548,7 +548,7 @@ func (a *App) votingVote(c *ui.Context) {
 			}
 		})
 		if a.voting.voteResult != "" {
-			ui.Text(c, a.voting.voteResult).FontSize(12).TextColor(ui.Hex(inkMuted))
+			ui.Text(c, a.voting.voteResult).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 		}
 	})
 }

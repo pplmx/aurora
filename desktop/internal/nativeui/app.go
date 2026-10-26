@@ -222,8 +222,8 @@ func (a *App) sidebarColumn(c *ui.Context) {
 // brand is the window's identity at the top of the sidebar.
 func (a *App) brand(c *ui.Context) {
 	ui.Column(c).FillWidth().Padding(18, 18, 10, 8).Gap(2).Children(func() {
-		ui.Text(c, "Aurora").FontSize(19).Bold().TextColor(ui.Hex(ink)).SingleLine()
-		ui.Text(c, "Verifiable ledger suite").FontSize(11).TextColor(ui.Hex(inkMuted)).SingleLine()
+		ui.Text(c, "Aurora").FontSize(textSize(c, 19)).Bold().TextColor(ui.Hex(ink)).SingleLine()
+		ui.Text(c, "Verifiable ledger suite").FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
 	})
 }
 
@@ -263,8 +263,8 @@ func (a *App) header(c *ui.Context) {
 		ui.Row(c).Grow(1).Gap(12).AlignItems(ui.Center).Children(func() {
 			pageGlyph(c, a.page)
 			ui.Column(c).Gap(2).Children(func() {
-				ui.Text(c, pageTitles[a.page]).FontSize(26).Bold().TextColor(ui.Hex(ink))
-				ui.Text(c, pagePurpose[a.page]).FontSize(12).TextColor(ui.Hex(inkMuted))
+				ui.Text(c, pageTitles[a.page]).FontSize(textSize(c, 26)).Bold().TextColor(ui.Hex(ink))
+				ui.Text(c, pagePurpose[a.page]).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 			})
 		})
 		// Ctrl on Linux and Windows, Cmd on macOS: the platform's own

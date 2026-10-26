@@ -238,10 +238,10 @@ func (a *App) lotteryVerify(c *ui.Context) {
 				} else {
 					badge(c, "Failed", auroraRed, night)
 				}
-				ui.Text(c, r.ID).FontSize(12).TextColor(ui.Hex(inkMuted)).SingleLine()
+				ui.Text(c, r.ID).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted)).SingleLine()
 			})
 			for _, line := range r.Checks {
-				ui.Text(c, "• "+line).FontSize(12).TextColor(ui.Hex(inkMuted))
+				ui.Text(c, "• "+line).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 			}
 		}
 	})

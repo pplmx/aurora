@@ -163,3 +163,20 @@ func TestFreshDashboardCanOpenTheLottery(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, pageLottery, app.page)
 }
+
+// TestTextScaleIsHonoured pins the OS text-size setting. A theme's default
+// font follows it, but every explicit FontSize is absolute; before the
+// textSize helper the window ignored the setting for all of its own text.
+func TestTextScaleIsHonoured(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+	before, ok := tester.Find("Aurora")
+	require.True(t, ok)
+
+	tester.SetPreferences(ui.Preferences{TextScale: 1.5})
+	tester.Frame()
+	after, ok := tester.Find("Aurora")
+	require.True(t, ok)
+	require.Greater(t, after.H, before.H*1.3, "1.5x text must render visibly larger")
+}
