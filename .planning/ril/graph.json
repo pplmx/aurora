@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 239,
+  "round": 240,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:37:03+00:00",
+  "updated_at": "2026-10-26T04:42:10+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19525,6 +19525,29 @@
       "touched_round": 239,
       "commit": "80522ab",
       "title": "Move open readouts to the created record"
+    },
+    "ISS-421": {
+      "id": "ISS-421",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:42:10+00:00",
+      "updated_at": "2026-10-26T04:42:10+00:00",
+      "touched_round": 240,
+      "title": "The oracle dial guard could be routed around through a NAT64 prefix",
+      "severity": 0.55,
+      "description": "On an IPv6-only network [64:ff9b::7f00:1] translates to 127.0.0.1 at the network edge; the block list only knew IPv4 loopback and IPv6 ULA/link-local, so an IPv6 literal could reach loopback. Both NAT64 prefixes plus multicast, reserved, benchmark, documentation and discard-only ranges are refused; TestBlockedIPRanges pins them."
+    },
+    "CHG-437": {
+      "id": "CHG-437",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:42:10+00:00",
+      "updated_at": "2026-10-26T04:42:10+00:00",
+      "touched_round": 240,
+      "commit": "58bb68a",
+      "title": "Refuse NAT64 and reserved destinations in the dial guard"
     }
   },
   "edges": [
@@ -29740,6 +29763,12 @@
       "to": "ISS-420",
       "type": "resolves",
       "created_at": "2026-10-26T04:37:03+00:00"
+    },
+    {
+      "from": "CHG-437",
+      "to": "ISS-421",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:42:10+00:00"
     }
   ]
 }
