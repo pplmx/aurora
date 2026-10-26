@@ -181,6 +181,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop menu bar has a Go menu for the seven pages**: the window's
+  Ctrl/Cmd+1..7 shortcuts existed but nothing in the UI named them. A Go menu
+  lists the pages in sidebar order (`nativeui.PageTitles`) with the same
+  accelerators and calls the window's `ShowPage`; it is built after the app
+  state exists, so `NewMenu` takes the page switcher and omits the menu when it
+  is nil. `menu_test.go` pins the titles, accelerators and click target.
 - **The desktop candidate list can build a session roster**: the Create Session
   card takes comma-separated candidate ids, so any roster other than "every
   candidate" meant copying UUIDs out of the shortened candidate table by hand.

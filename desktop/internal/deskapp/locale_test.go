@@ -82,13 +82,13 @@ func TestMenuLabelsFollowTheLocale(t *testing.T) {
 	}
 
 	withLocale(t, "en", func() {
-		menu := NewMenu(About{})
+		menu := NewMenu(About{}, nil)
 		assert.Equal(t, "Export Lotteries...", label(menu, "export-lotteries"))
 		assert.Equal(t, "Import Lotteries...", label(menu, "import-lotteries"))
 	})
 
 	withLocale(t, "zh", func() {
-		menu := NewMenu(About{})
+		menu := NewMenu(About{}, nil)
 		assert.Equal(t, "导出抽奖记录…", label(menu, "export-lotteries"),
 			"the menu Aurora writes itself must not stay English in a zh session")
 		assert.Equal(t, "导入抽奖记录…", label(menu, "import-lotteries"))
@@ -200,12 +200,12 @@ func TestLanguageMenuSwitchesAndTicks(t *testing.T) {
 	t.Cleanup(func() { appLocale = original })
 
 	appLocale = func() string { return "zh-Hans" }
-	menu := NewMenu(About{})
+	menu := NewMenu(About{}, nil)
 
 	// Each item says its language in itself, so it reads the same whatever
 	// language the app is in (MyGo's own convention for a language menu).
 	withLocale(t, "en", func() {
-		menu = NewMenu(About{})
+		menu = NewMenu(About{}, nil)
 	})
 	require.NotNil(t, menu.ItemByID(languageSimplifiedID))
 	require.NotNil(t, menu.ItemByID(languageTraditionalID))

@@ -559,7 +559,7 @@ func TestShell_ImportDropped(t *testing.T) {
 }
 
 func TestAboutCarriesTheShellIdentity(t *testing.T) {
-	menu := NewMenu(About{Version: "v1", BuildTime: "t", DBPath: "/d"})
+	menu := NewMenu(About{Version: "v1", BuildTime: "t", DBPath: "/d"}, nil)
 	require.NotNil(t, menu)
 
 	// The window title and app name are what MyGo uses for App.Path and the

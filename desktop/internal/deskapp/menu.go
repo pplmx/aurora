@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo"
+	"github.com/pplmx/aurora/desktop/internal/nativeui"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/infra/backup"
@@ -28,8 +29,8 @@ type About struct {
 // The labels are Aurora's own and are taken in the language the app shows, so
 // the menu has to be rebuilt (SetMenu again) when that language changes; the
 // items that carry a role are relabelled by MyGo itself. See FollowAppLocale.
-func NewMenu(meta About) *mygo.Menu {
-	return mygo.NewMenu([]*mygo.MenuItem{
+func NewMenu(meta About, showPage func(string)) *mygo.Menu {
+	items := []*mygo.MenuItem{
 		{Role: mygo.RoleAppMenu},
 		{Label: T("desktop.menu.file"), Submenu: []*mygo.MenuItem{
 			{
@@ -65,6 +66,13 @@ func NewMenu(meta About) *mygo.Menu {
 			{Role: mygo.RoleQuit},
 		}},
 		{Role: mygo.RoleEditMenu},
+	}
+	// The pages are in the menu bar so the number shortcuts are discoverable;
+	// a shortcut nobody can find is half a feature.
+	if goItem := goMenu(showPage); goItem != nil {
+		items = append(items, goItem)
+	}
+	items = append(items, []*mygo.MenuItem{
 		{Role: mygo.RoleViewMenu},
 		{Role: mygo.RoleWindowMenu},
 		{Label: T("desktop.menu.help"), Submenu: []*mygo.MenuItem{
@@ -74,7 +82,31 @@ func NewMenu(meta About) *mygo.Menu {
 			mygo.Separator(),
 			{Label: T("desktop.menu.language"), Submenu: languageMenu()},
 		}},
-	})
+	}...)
+	return mygo.NewMenu(items)
+}
+
+// goMenu offers the window's pages from the menu bar with the same number
+// shortcuts the window registers. Menu accelerators also work while a text
+// field has the keyboard focus, which is where an operator is when switching
+// pages is most useful.
+func goMenu(showPage func(string)) *mygo.MenuItem {
+	if showPage == nil {
+		return nil
+	}
+	titles := nativeui.PageTitles()
+	items := make([]*mygo.MenuItem, 0, len(titles))
+	for i, title := range titles {
+		title := title
+		items = append(items, &mygo.MenuItem{
+			Label:       title,
+			Accelerator: fmt.Sprintf("CmdOrCtrl+%d", i+1),
+			Click: func(*mygo.MenuItem, *mygo.Window) {
+				showPage(title)
+			},
+		})
+	}
+	return &mygo.MenuItem{Label: T("desktop.menu.go"), Submenu: items}
 }
 
 // The language items' IDs, so the chosen one can be ticked without asking

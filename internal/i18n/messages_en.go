@@ -256,6 +256,7 @@ var englishMessages = map[string]string{
 	"desktop.menu.import":                   "Import Lotteries...",
 	"desktop.menu.backup":                   "Back Up Database...",
 	"desktop.menu.show_data_folder":         "Show Data Folder",
+	"desktop.menu.go":                       "Go",
 	"desktop.menu.help":                     "Help",
 	"desktop.menu.about":                    "About Aurora",
 	"desktop.menu.language":                 "Language",
