@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 245,
+  "round": 246,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:59:21+00:00",
+  "updated_at": "2026-10-26T05:01:44+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19663,6 +19663,29 @@
       "touched_round": 245,
       "commit": "7e4a729",
       "title": "Page and cap the token listing endpoint"
+    },
+    "ISS-427": {
+      "id": "ISS-427",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T05:01:44+00:00",
+      "updated_at": "2026-10-26T05:01:44+00:00",
+      "touched_round": 246,
+      "title": "The desktop ledger displayed every block one height too low",
+      "severity": 0.5,
+      "description": "Native services derived each row height from the payload index in BlockData, which skips genesis; block 1 showed height 0 and every row was off by one. BlockEntries now carries the block height and supports a newest-N limit used by the dashboard."
+    },
+    "CHG-443": {
+      "id": "CHG-443",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T05:01:44+00:00",
+      "updated_at": "2026-10-26T05:01:44+00:00",
+      "touched_round": 246,
+      "commit": "7ae5d52",
+      "title": "Carry real block heights into the desktop ledger"
     }
   },
   "edges": [
@@ -29914,6 +29937,12 @@
       "to": "ISS-426",
       "type": "resolves",
       "created_at": "2026-10-26T04:59:21+00:00"
+    },
+    {
+      "from": "CHG-443",
+      "to": "ISS-427",
+      "type": "resolves",
+      "created_at": "2026-10-26T05:01:44+00:00"
     }
   ]
 }
