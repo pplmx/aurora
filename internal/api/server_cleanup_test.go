@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	_ "modernc.org/sqlite"
 )
 

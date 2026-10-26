@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	infrahttp "github.com/pplmx/aurora/internal/infra/http"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"

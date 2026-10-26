@@ -173,11 +173,10 @@ cmd/aurora/     # CLI 入口
 cmd/api/        # REST API 服务入口
 desktop/        # MyGo 桌面壳（嵌套模块；cmd/aurora-desktop + internal/deskapp）
 internal/
-├── blockchain/ # 共享账本实现：区块、PoW、持久化与单例引导
 ├── ledger/     # 账本端口：BlockWriter、事务追加助手（无存储实现）
 ├── domain/     # 领域层：lottery / voting / nft / token / oracle / events
 ├── app/        # 应用层：用例编排（<module>app 包）与 container 组合根
-├── infra/      # 基础设施：SQLite、HTTP 客户端、备份、迁移、事件
+├── infra/      # 基础设施：SQLite、账本实现、HTTP 客户端、备份、迁移、事件
 ├── api/        # 路由、handler、中间件
 ├── i18n/       # 国际化
 ├── repocheck/  # 仓库级契约测试（格式、工具链、纯 Go 边界）
@@ -210,8 +209,7 @@ just stop       # docker compose down
 ```
 
 贡献约定见 [AGENTS.md](AGENTS.md)：直接在 `main` 开发、禁止
-`git commit --amend`、提交粒度以“一个自洽的逻辑单元”为单位、过程记录
-（`.planning/ril/graph.json`）批量提交。
+`git commit --amend`、提交粒度以“一个自洽的逻辑单元”为单位。
 
 Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST API
 （没有静态页面），因此 compose/k8s 清单没有端口映射——用

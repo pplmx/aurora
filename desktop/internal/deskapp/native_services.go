@@ -4,13 +4,23 @@ import (
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/ledger"
 )
+
+// ledgerChain is the narrow view the adapter needs from the ledger. Keeping it
+// here lets native_*.go avoid importing the SQLite-backed implementation.
+type ledgerChain interface {
+	AddBlock(data string) (int64, error)
+	AddRecord(data string) (int64, error)
+	VerifyIntegrity() *ledger.IntegrityReport
+	Len() int
+	BlockEntries(limit int) []ledger.BlockEntry
+}
 
 // nativeServices adapts the application layer to the view layer's Services
 // interface.
@@ -24,7 +34,7 @@ type nativeServices struct {
 	votingRepo  voting.TransactableRepository
 	nftRepo     nft.TransactableRepository
 	oracleRepo  oracle.Repository
-	chain       *blockchain.Chain
+	chain       ledgerChain
 
 	// tokenService carries the audit bus and replay protection the token use
 	// cases publish through, so a window mint is recorded exactly like a CLI
@@ -53,7 +63,7 @@ func newNativeServices(
 	tokenService token.Service,
 	txManager voting.TransactionManager,
 	nftTx nft.TransactionManager,
-	chain *blockchain.Chain,
+	chain ledgerChain,
 	oracleFetcher oracleapp.FetcherInterface,
 	health func() []oracleapp.SourceStat,
 ) *nativeServices {

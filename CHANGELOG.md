@@ -326,7 +326,8 @@ documented in their per-milestone ROADMAP files.
 ### Changed
 
 - **The ledger subsystem is no longer presented as a domain package**:
-  `internal/domain/blockchain` moved to `internal/blockchain`, where its SQLite
+  `internal/domain/blockchain` moved out of domain and now lives at
+  `internal/infra/blockchain`, where its SQLite
   bootstrap, singleton and file-permission work no longer blur the pure
   `domain` boundary. The package API and behavior are unchanged; a new
   `docs/architecture.md` records the dependency contract and the remaining
@@ -355,10 +356,16 @@ documented in their per-milestone ROADMAP files.
   the container's `lottery.Repository`, so File → Export/Import and a dropped
   export no longer open a second SQLite writer beside the app. A short-lived
   repository remains only as the pre-runtime/test fallback.
+- **The ledger implementation now lives under infrastructure**: the
+  SQLite-backed `blockchain` package moved to `internal/infra/blockchain`;
+  `internal/ledger` holds the pure writer/transaction contracts and report
+  types. The desktop adapter uses a narrow `ledgerChain` interface, so
+  `native_*.go` no longer imports the implementation.
 - **The ledger has a pure port package**: `internal/ledger` now owns
   `BlockWriter`, transaction writer interfaces and the transactional append
   helpers. Domain services, application use cases and handlers depend on that
-  port; only `app/container` imports the SQLite-backed `internal/blockchain`.
+  port; only `app/container` imports the SQLite-backed
+  `internal/infra/blockchain`.
   The layer test forbids the old direction.
 - **Application use cases no longer construct an HTTP client**: `oracleapp`'s
   default `http.NewFetcher` moved to the composition root; the API, CLI and

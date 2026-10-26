@@ -18,7 +18,7 @@ desktop          ─┘                                              ^
 
 规则：
 
-1. `domain` 只依赖标准库和同一层（含 `internal/blockchain` 的纯类型/端口）；
+1. `domain` 只依赖标准库、同一层和 `internal/ledger` 的纯端口；
    不读配置文件、不打开数据库、不写文件。
 2. `app` 只依赖 `domain` 的接口和纯工具；不得为了一个错误哨兵 import
    `infra`。
@@ -36,7 +36,7 @@ desktop          ─┘                                              ^
 | 包 | 依赖 | 说明 |
 |---|---|---|
 | `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层 | 纯领域模型、服务与仓储接口 |
-| `internal/blockchain` | `ledger`, `logger`, `utils` | 共享账本实现：区块、PoW、SQLite 持久化、进程级单例；已从 `domain/` 移出 |
+| `internal/infra/blockchain` | `ledger`, `logger`, `utils` | 共享账本实现：区块、PoW、SQLite 持久化、进程级单例 |
 | `internal/ledger` | 标准库 | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它 |
 | `internal/app/*` | `domain`, `ledger`（`container` 例外） | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化 |
 | `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
@@ -52,8 +52,8 @@ desktop          ─┘                                              ^
 进程级单例。它让 `domain` 不再是纯领域，也让“不打开数据库就无法使用账本类型”
 成为事实。
 
-**已做**：目录迁移到 `internal/blockchain`，文档和 import 路径同步；它被明确
-标记为共享账本子系统，而不是领域实体包。
+**已做**：目录先移出 `domain/`，再落到 `internal/infra/blockchain`；它被明确
+标记为共享账本实现，而不是领域实体包。
 
 **仍未做**：把 `init.go` 的单例/引导、每个方法的 SQL 拆到仓储接口和
 `infra/sqlite`。这是下一步，不应在本次目录重构里顺手改掉写入基底。
@@ -119,12 +119,13 @@ notebook 风格的 standalone 测试改用显式注入的仓储。
 
 token/NFT 领域服务和 lottery/oracle/voting 用例原来直接 import
 `internal/blockchain`，把 SQLite 账本实现和“只追加一条记录”的端口混在一起。
+现在实现位于 `internal/infra/blockchain`，端口位于 `internal/ledger`。
 
 **已做**：把 `BlockWriter`、`BlockTransactionWriter`、
 `LotteryRecordTransactionWriter`、`TransactionManager` 和
 `AppendWithRecord` / `AppendRecordWithHeight` 移到 `internal/ledger`；domain、
 app 和 handler 只依赖该端口，`container` 是唯一还 import 账本实现的装配点。
-`repocheck` 现在同时禁止 domain/app import `internal/blockchain`。
+`repocheck` 通过禁止 domain/app import `internal/infra` 同时封住这条路径。
 
 ### 7. 命名不一致
 
@@ -155,7 +156,7 @@ internal/
 ## 执行顺序
 
 - [x] 建立依赖事实表，确定“domain 不碰 infra”的硬规则。
-- [x] `internal/domain/blockchain` → `internal/blockchain`，同步 import/文档。
+- [x] `internal/domain/blockchain` → `internal/blockchain` → `internal/infra/blockchain`，同步 import/文档。
 - [x] 领域错误包，移除 `app` → `infra/sqlite` 的错误哨兵依赖。
 - [x] 把 oracle fetcher 从 `oracleapp` 默认构造改为注入。
 - [x] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
@@ -163,7 +164,7 @@ internal/
       `native_ledger.go` / `native_keys.go`，并改用领域仓储端口。
 - [x] 让 Shell 的 File 导入/导出复用 container 的 lottery 仓储。
 - [x] 统一账本对外命名。
-- [x] 抽出 `internal/ledger` 端口，domain/app 不再 import `internal/blockchain`。
+- [x] 抽出 `internal/ledger` 端口，domain/app 不再 import 账本实现。
 - [x] 抽出 `app/container` 组合根；`api.Server` 已委托存储生命周期。
 - [x] 把 `desktopUIMessages` 移出核心 i18n。
 - [ ] 评估把账本 SQL 移到 `infra/sqlite`；这一步需要单独的迁移/回归计划。
@@ -176,7 +177,6 @@ internal/
 just check && just test
 just desktop-check
 just desktop-race        # 触及桌面/并发路径时
-python3 .agents/skills/graph-engineering/scripts/ril.py check
 ```
 
 `just check` 会重排 i18n 映射和 import，提交前必须复查 `git status`，只 stage

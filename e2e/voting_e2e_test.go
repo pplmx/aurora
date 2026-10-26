@@ -3,8 +3,8 @@ package test
 import (
 	"testing"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 )
 
 func TestVotingE2E_CandidateRegistration(t *testing.T) {

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/stretchr/testify/require"
 )

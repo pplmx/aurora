@@ -378,11 +378,9 @@ func (c *Chain) BlockData() []string {
 	return records
 }
 
-// BlockEntry is one recorded payload with the height of the block holding it.
-type BlockEntry struct {
-	Height int64
-	Data   string
-}
+// BlockEntry is the pure ledger type; the alias keeps the chain's public API
+// stable for callers that still name blockchain.BlockEntry.
+type BlockEntry = ledger.BlockEntry
 
 // BlockEntries returns the non-genesis payloads newest first, at most limit of
 // them (limit <= 0 returns every payload), each paired with its block's own
@@ -419,13 +417,9 @@ func (c *Chain) Len() int {
 	return len(c.Blocks)
 }
 
-// IntegrityReport summarises an integrity verification of the chain.
-type IntegrityReport struct {
-	Valid             bool   `json:"valid"`
-	Length            int    `json:"length"`
-	FirstBrokenIndex  int    `json:"first_broken_index,omitempty"` // -1 when valid
-	FirstBrokenReason string `json:"first_broken_reason,omitempty"`
-}
+// IntegrityReport is the pure ledger type; the alias keeps VerifyIntegrity's
+// public return type stable.
+type IntegrityReport = ledger.IntegrityReport
 
 // VerifyIntegrity cryptographically verifies the whole chain: every block must
 // carry a non-empty hash, each block's PrevHash must link to the previous

@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	"github.com/pplmx/aurora/internal/app/tokenapp"
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/logger"

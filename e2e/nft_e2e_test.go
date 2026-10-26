@@ -7,8 +7,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/infra/blockchain"
 )
 
 type inMemoryNFTRepo struct {

@@ -115,7 +115,7 @@ func TestDesktopStorageStaysPureGo(t *testing.T) {
 
 	for _, file := range []string{
 		filepath.Join("internal", "infra", "sqlite", "lottery.go"),
-		filepath.Join("internal", "blockchain", "init.go"),
+		filepath.Join("internal", "infra", "blockchain", "init.go"),
 	} {
 		src, err := os.ReadFile(filepath.Join(root, file))
 		require.NoError(t, err)
