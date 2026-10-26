@@ -57,13 +57,15 @@ documented in their per-milestone ROADMAP files.
   page header, chosen by `pageStatus()`; `design_test.go` scrolls the body and
   fails if the line moves.
 - **Desktop pages re-read what a write changed**: a successful mint, transfer,
-  approve, burn or NFT write left the collection, the Inspect readout, the
-  loaded history and an open tally at their pre-write values, so "Done" sat
-  beside stale numbers and the write looked like it had done nothing. Each
-  success now refreshes exactly what the page is showing (a closed readout is
-  not fetched), and a failed refresh keeps the previous rows rather than
-  replacing a successful write with an error. `refresh_test.go` counts the
-  read calls through the fake services and fails when a refresh disappears.
+  approve, burn, NFT write or oracle fetch left the collection, the Inspect
+  readout, the loaded history, an open tally and the Query/Latest cards at their
+  pre-write values, so "Done" sat beside stale numbers and the write looked like
+  it had done nothing. Each success now refreshes exactly what the page is
+  showing (a closed readout is not fetched), deleting a source clears the cards
+  that were showing its readings, and a failed refresh keeps the previous rows
+  rather than replacing a successful write with an error. `refresh_test.go`
+  counts the read calls through the fake services and fails when a refresh
+  disappears.
 - **Desktop destructive confirmations name what they destroy, and copies are
   confirmed in place**: the token burn dialog said only "Burn tokens?", the NFT
   dialog "Burn this NFT?" and the oracle dialog "Delete this source?", leaving

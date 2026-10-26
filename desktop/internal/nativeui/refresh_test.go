@@ -3,6 +3,7 @@ package nativeui
 import (
 	"testing"
 
+	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,4 +69,55 @@ func TestCastVoteRefreshesAnOpenTally(t *testing.T) {
 	require.Equal(t, "Ballot recorded.", app.voting.voteResult)
 	require.Equal(t, before+1, fake.sessionResultsCalls,
 		"the open tally for this session must be re-read after a ballot")
+}
+
+// TestOracleFetchRefreshesTheReadCardsItFeeds pins the fetch path: a reading
+// just stored must appear in the Query and Latest cards when they are showing
+// that source, or "Done" sits beside the value from before the fetch.
+func TestOracleFetchRefreshesTheReadCardsItFeeds(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 3200)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.oracle.fetchID = "s1"
+	app.oracle.queryID = "s1"
+	app.oracle.data = []DataRow{{Value: "old"}}
+	app.oracle.latestID = "s1"
+	app.oracle.latest = &DataRow{Value: "old"}
+
+	dataBefore, latestBefore := fake.oracleDataCalls, fake.oracleLatestCalls
+	require.NoError(t, tester.Click("Fetch now"))
+	tester.Frame()
+
+	require.False(t, app.oracle.status.isErr)
+	require.Equal(t, dataBefore+1, fake.oracleDataCalls, "the open Query card must be re-read after a fetch")
+	require.Equal(t, latestBefore+1, fake.oracleLatestCalls, "the open Latest card must be re-read after a fetch")
+
+	// A card showing another source is left alone.
+	app.oracle.queryID = "other"
+	app.oracle.data = []DataRow{{Value: "old"}}
+	dataBefore = fake.oracleDataCalls
+	require.NoError(t, tester.Click("Fetch now"))
+	tester.Frame()
+	require.Equal(t, dataBefore, fake.oracleDataCalls, "a card for another source must not be re-read")
+}
+
+// TestDeletingASourceClearsItsReadings covers the other direction: the cards
+// that were showing the deleted source no longer describe a live feed.
+func TestDeletingASourceClearsItsReadings(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}}
+	app := New(fake)
+	app.oracle.fetchID = "s1"
+	app.oracle.queryID = "s1"
+	app.oracle.data = []DataRow{{Value: "old"}}
+	app.oracle.latestID = "s1"
+	app.oracle.latest = &DataRow{Value: "old"}
+
+	app.deleteOracleSource()
+
+	require.False(t, app.oracle.status.isErr)
+	require.Empty(t, app.oracle.data)
+	require.Nil(t, app.oracle.latest)
 }
