@@ -7,10 +7,12 @@ package container
 import (
 	"database/sql"
 
+	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
+	"github.com/pplmx/aurora/internal/infra/http"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
@@ -26,10 +28,11 @@ type Container struct {
 	TokenRepo   *sqlite.TokenRepository
 	OracleRepo  *sqlite.OracleRepository
 
-	TokenService token.Service
-	TxManager    *sqlite.TxManager
-	NFTTx        nft.TransactionManager
-	Chain        *blockchain.Chain
+	TokenService  token.Service
+	TxManager     *sqlite.TxManager
+	NFTTx         nft.TransactionManager
+	Chain         *blockchain.Chain
+	OracleFetcher oracleapp.FetcherInterface
 
 	EventStore *infraevents.SQLiteEventStore
 
@@ -133,6 +136,7 @@ func Open() (*Container, error) {
 	}
 	c.OracleRepo = oracleRepo
 	c.addCloser(oracleRepo)
+	c.OracleFetcher = http.NewFetcher()
 
 	complete = true
 	return c, nil

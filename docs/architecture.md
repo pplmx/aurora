@@ -37,7 +37,7 @@ desktop          ─┘                                              ^
 |---|---|---|
 | `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层 | 纯领域模型、服务与仓储接口 |
 | `internal/blockchain` | `internal/logger`, `internal/utils` | 共享账本：区块、PoW、SQLite 持久化、进程级单例；已从 `domain/` 移出 |
-| `internal/app/*` | `domain`，部分 `infra` | 用例编排；`oracleapp`/`votingapp` 仍为错误哨兵 import `infra/sqlite` |
+| `internal/app/*` | `domain`（`container` 例外） | 用例编排；错误哨兵与 HTTP fetcher 都已端口化 |
 | `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
 | `internal/api` | `app`, `app/container`, `domain`, `infra/sqlite`, `infra/events` | HTTP 表示层；数据库/仓储/用例由 `app/container` 组装 |
 | `desktop/internal/deskapp` | `internal/api`, `infra/sqlite`, `app`, `domain` | 桌面适配器；通过 `api.Server.Services()` 取到 `app/container` |
@@ -66,6 +66,8 @@ desktop          ─┘                                              ^
 **已做**：通用 not-found 哨兵移到 `internal/domain/repoerr`；`sqlite.ErrNotFound`
 和 `sqlite.ErrAlreadyVoted` 保留为 alias，分别指向 `repoerr.ErrNotFound` 与
 `voting.ErrAlreadyVoted`。`oracleapp`/`votingapp` 不再 import `infra/sqlite`。
+`oracleapp` 的默认 `http.NewFetcher` 也移出：fetcher 由 container/CLI/API 注入，
+应用层只认识 `FetcherInterface`。
 
 ### 3. `api.Server` 曾同时是表示层、组合根和服务容器
 
@@ -138,6 +140,7 @@ internal/
 - [x] 建立依赖事实表，确定“domain 不碰 infra”的硬规则。
 - [x] `internal/domain/blockchain` → `internal/blockchain`，同步 import/文档。
 - [x] 领域错误包，移除 `app` → `infra/sqlite` 的错误哨兵依赖。
+- [x] 把 oracle fetcher 从 `oracleapp` 默认构造改为注入。
 - [x] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
       `native_token.go` / `native_nft.go` / `native_oracle.go` /
       `native_ledger.go` / `native_keys.go`，并改用领域仓储端口。
@@ -159,4 +162,5 @@ python3 .agents/skills/graph-engineering/scripts/ril.py check
 
 `just check` 会重排 i18n 映射和 import，提交前必须复查 `git status`，只 stage
 本阶段改动的文件。`internal/repocheck/layers_test.go` 用 AST 解析生产 import，
-把 domain/app/infra 的禁止方向变成测试；新增跨层 import 会在 `just test` 失败。
+把 domain/app/infra 的禁止方向变成测试；`internal/app/container` 之外的应用
+包 import 任何 `infra` 都会在 `just test` 失败。

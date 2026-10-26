@@ -61,7 +61,7 @@ func (s *nativeServices) SetOracleSourceEnabled(id string, enabled bool) error {
 }
 
 func (s *nativeServices) FetchOracleSource(id string) error {
-	uc := oracleapp.NewFetchDataUseCase(s.oracleRepo)
+	uc := oracleapp.NewFetchDataUseCaseWithDeps(s.oracleRepo, s.oracleFetcher)
 	_, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: id})
 	return err
 }

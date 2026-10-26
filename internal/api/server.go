@@ -105,7 +105,7 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 	if s.container == nil || s.container.OracleRepo == nil {
 		return func() {}
 	}
-	fetch := oracleapp.NewFetchDataUseCase(s.container.OracleRepo)
+	fetch := oracleapp.NewFetchDataUseCaseWithDeps(s.container.OracleRepo, s.container.OracleFetcher)
 	// Record scheduler-fetched data on-chain, consistent with the REST handler
 	// and CLI paths (NewServer: srv.oracleHandler.SetChain(blockchain.
 	// Get())). Without SetChain the continuously running scheduler

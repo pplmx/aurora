@@ -6,6 +6,7 @@ import (
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/i18n"
+	infrahttp "github.com/pplmx/aurora/internal/infra/http"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/spf13/cobra"
 )
@@ -202,7 +203,7 @@ var fetchCmd = &cobra.Command{
 			return err
 		}
 
-		uc := oracleapp.NewFetchDataUseCase(repo)
+		uc := oracleapp.NewFetchDataUseCaseWithDeps(repo, infrahttp.NewFetcher())
 		// Record CLI-fetched data on-chain, matching the API/scheduler paths
 		// and the package intent; otherwise BlockHeight always printed 0.
 		uc.SetChain(blockchain.Get())

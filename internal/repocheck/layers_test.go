@@ -31,8 +31,8 @@ func TestLayerDependencies(t *testing.T) {
 		},
 		{
 			dir:    "internal/app",
-			forbid: []string{"internal/infra/sqlite"},
-			why:    "use cases must classify repository errors through domain ports",
+			forbid: []string{"internal/infra"},
+			why:    "use cases must use domain ports, not storage or HTTP implementations",
 		},
 		{
 			dir:    "internal/infra",
