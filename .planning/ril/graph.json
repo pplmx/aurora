@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 267,
+  "round": 268,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T08:48:37+00:00",
+  "updated_at": "2026-10-26T09:26:09+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 266,
+      "touched_round": 267,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20444,6 +20444,47 @@
       "commit": "bed521e",
       "title": "Localize the whole desktop window",
       "description": "nativeui.tr with English literal keys; desktopUIMessages Chinese table merged into i18n; Chinese workbench test."
+    },
+    "ISS-450": {
+      "id": "ISS-450",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T09:26:00+00:00",
+      "updated_at": "2026-10-26T09:26:09+00:00",
+      "touched_round": 267,
+      "title": "The redesigned desktop had no real-store workflow evidence",
+      "description": "View tests use fakes and the existing integration tests call single services. Nothing proved that a token create+mint, a voting session+ballot, or an oracle source added after the page opened reached the redesigned pages through Refresh.",
+      "severity": 0.45,
+      "confidence": 1.0
+    },
+    "TASK-405": {
+      "id": "TASK-405",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T09:26:00+00:00",
+      "updated_at": "2026-10-26T09:26:09+00:00",
+      "touched_round": 267,
+      "category": "test-quality",
+      "title": "Add real-store workflow tests for the redesigned pages",
+      "description": "Boot the desktop runtime on a temp database, run token, voting and oracle workflows through app.Services, press Refresh in the rendered view, and assert the records appear.",
+      "severity": 0.45,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "CHG-465": {
+      "id": "CHG-465",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T09:26:09+00:00",
+      "updated_at": "2026-10-26T09:26:09+00:00",
+      "touched_round": 267,
+      "commit": "acb710e",
+      "title": "Add real-store workflow tests",
+      "description": "Token create+mint+Refresh, voting register+session+ballot+tally, oracle add+Refresh against a real desktop runtime."
     }
   },
   "edges": [
@@ -31091,6 +31132,30 @@
       "to": "TASK-404",
       "type": "implements",
       "created_at": "2026-10-26T08:48:37+00:00"
+    },
+    {
+      "from": "TASK-405",
+      "to": "ISS-450",
+      "type": "addresses",
+      "created_at": "2026-10-26T09:26:08+00:00"
+    },
+    {
+      "from": "ISS-450",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T09:26:08+00:00"
+    },
+    {
+      "from": "CHG-465",
+      "to": "ISS-450",
+      "type": "resolves",
+      "created_at": "2026-10-26T09:26:09+00:00"
+    },
+    {
+      "from": "CHG-465",
+      "to": "TASK-405",
+      "type": "implements",
+      "created_at": "2026-10-26T09:26:09+00:00"
     }
   ]
 }
