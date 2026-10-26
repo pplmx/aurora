@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 284,
+  "round": 285,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T16:10:58+00:00",
+  "updated_at": "2026-10-26T16:13:13+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20758,7 +20758,7 @@
       "version": 1,
       "created_at": "2026-10-26T16:10:49+00:00",
       "updated_at": "2026-10-26T16:10:49+00:00",
-      "touched_round": 283,
+      "touched_round": 284,
       "category": "architecture",
       "title": "Refactor package boundaries and ledger vocabulary",
       "description": "Move the DB-backed ledger out of domain; remove app-to-infra error imports; split the desktop adapter; normalize ledger names. Remaining: shared composition root and desktop i18n separation.",
@@ -20814,6 +20814,18 @@
       "commit": "fd2662c",
       "title": "Normalize ledger API names",
       "description": "Chain/New/NewWithDB/Init/Get/AddRecord/WithRecordTransaction."
+    },
+    "CHG-485": {
+      "id": "CHG-485",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T16:13:13+00:00",
+      "updated_at": "2026-10-26T16:13:13+00:00",
+      "touched_round": 284,
+      "commit": "4a0c3d0",
+      "title": "Extract application container",
+      "description": "Storage wiring and close order moved to internal/app/container; API delegates."
     }
   },
   "edges": [
@@ -31653,6 +31665,12 @@
       "to": "TASK-409",
       "type": "implements",
       "created_at": "2026-10-26T16:10:58+00:00"
+    },
+    {
+      "from": "CHG-485",
+      "to": "TASK-409",
+      "type": "implements",
+      "created_at": "2026-10-26T16:13:13+00:00"
     }
   ]
 }
