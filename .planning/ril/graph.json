@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 232,
+  "round": 233,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:18:43+00:00",
+  "updated_at": "2026-10-26T04:22:58+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19364,6 +19364,29 @@
       "touched_round": 232,
       "commit": "7b9d3f8",
       "title": "Search and bound the ledger table"
+    },
+    "ISS-414": {
+      "id": "ISS-414",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:22:58+00:00",
+      "updated_at": "2026-10-26T04:22:58+00:00",
+      "touched_round": 233,
+      "title": "A desktop session row could not show who was on its ballot",
+      "severity": 0.25,
+      "description": "The Sessions table has no room for the candidate roster, so an operator about to start or end a session had to remember it from elsewhere. Choosing a session now prints its candidate names under the table, shortening ids for deleted candidates."
+    },
+    "CHG-430": {
+      "id": "CHG-430",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:22:58+00:00",
+      "updated_at": "2026-10-26T04:22:58+00:00",
+      "touched_round": 233,
+      "commit": "c8f4637",
+      "title": "Show the chosen session roster under the table"
     }
   },
   "edges": [
@@ -29537,6 +29560,12 @@
       "to": "ISS-413",
       "type": "resolves",
       "created_at": "2026-10-26T04:18:43+00:00"
+    },
+    {
+      "from": "CHG-430",
+      "to": "ISS-414",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:22:58+00:00"
     }
   ]
 }
