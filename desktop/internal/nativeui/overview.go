@@ -21,7 +21,19 @@ type dashboardState struct {
 	DashboardStats
 	loadErr error
 	loaded  bool
+
+	// recent is the newest handful of chain entries, shown under the counters
+	// so the landing page answers "what happened lately" as well as "how much
+	// is there". recentErr keeps the card's own failure separate from the
+	// counters: a chain read failing must not blank the dashboard.
+	recent      []BlockRow
+	recentErr   error
+	recentTable ui.ListState
 }
+
+// dashboardRecentLimit is how many chain entries the dashboard shows. The
+// Blockchain page has the full list; the overview only needs the latest few.
+const dashboardRecentLimit = 5
 
 // blockchainState holds the ledger verification result.
 type blockchainState struct {
@@ -45,6 +57,17 @@ func (a *App) loadDashboard() {
 	}
 	a.dashboard.DashboardStats = stats
 	a.dashboard.loaded = true
+
+	// The activity card is secondary: its failure is reported in the card and
+	// leaves the counters alone.
+	blocks, blocksErr := a.services.LedgerBlocks()
+	a.dashboard.recentErr = blocksErr
+	if blocksErr == nil {
+		if len(blocks) > dashboardRecentLimit {
+			blocks = blocks[:dashboardRecentLimit]
+		}
+		a.dashboard.recent = blocks
+	}
 }
 
 func (a *App) dashboardView(c *ui.Context) {
@@ -99,6 +122,39 @@ func (a *App) dashboardView(c *ui.Context) {
 			metricCard(c, m.label, m.value, m.note, m.tone, m.numeric)
 		})
 	}
+	a.dashboardRecent(c)
+}
+
+// dashboardRecent draws the newest chain entries. The counters say how much
+// the store holds; this card says what happened, which is what an operator
+// opening the window usually wants to know first.
+func (a *App) dashboardRecent(c *ui.Context) {
+	formCard(c, "Recent activity", "The newest entries written to the audit chain.", func() {
+		if a.dashboard.recentErr != nil &&
+			!loadWarning(c, "Couldn't read recent activity", a.dashboard.recentErr, len(a.dashboard.recent) > 0) {
+			return
+		}
+		if len(a.dashboard.recent) == 0 {
+			emptyNote(c, "Nothing on the chain yet.")
+			return
+		}
+		rows := a.dashboard.recent
+		ui.Table(c, &a.dashboard.recentTable, []ui.TableColumn{
+			{Title: "Block", Width: 80, Align: ui.End},
+			{Title: "Module", Width: 120},
+			{Title: "Summary", MinWidth: 200},
+		}, len(rows), func(row, col int) {
+			entry := rows[row]
+			switch col {
+			case 0:
+				ui.Text(c, strconv.FormatInt(entry.Height, 10))
+			case 1:
+				ui.Text(c, entry.Module).SingleLine()
+			case 2:
+				ui.Text(c, entry.Summary).FontSize(12).SingleLine()
+			}
+		})
+	})
 }
 
 func (a *App) loadBlockchain() {

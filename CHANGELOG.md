@@ -181,6 +181,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop dashboard lists recent chain activity**: the landing page showed
+  six counters and a ledger verdict, which answer "how much is there" but not
+  "what happened lately". A Recent activity card now lists the newest five
+  chain entries (block, module, payload summary) from the application layer's
+  `LedgerBlocks`, with its own failure line so a chain read error cannot blank
+  the counters. `design_test.go` proves only the newest five are listed.
 - **The desktop window has one design system instead of ad-hoc widgets**: the
   sidebar now has a brand block, its own tone and a hairline against content,
   and every module row carries a Lucide glyph (`icons.go`) that takes the row's
