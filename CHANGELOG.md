@@ -331,6 +331,11 @@ documented in their per-milestone ROADMAP files.
   `domain` boundary. The package API and behavior are unchanged; a new
   `docs/architecture.md` records the dependency contract and the remaining
   refactor order.
+- **The desktop service adapter is split by module**: `native_services.go`
+  keeps only the struct and constructor; lottery, ledger, voting, token, oracle,
+  NFT and key-pair mappings live in their own files. The 779-line adapter is
+  now an 80-line seam plus focused files, so a domain mapping change has one
+  obvious home.
 - **Application use cases no longer import SQLite for error classification**:
   the generic not-found sentinel now lives in `internal/domain/repoerr`, and
   SQLite keeps compatibility aliases for it and `voting.ErrAlreadyVoted`.

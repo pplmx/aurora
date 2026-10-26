@@ -84,9 +84,13 @@ oracle 调度器、六个 handler，并暴露 `Services()` 给桌面端。字段
 `*sqlite.LotteryRepository` 等具体类型，并在 `newNativeServices` 里再建
 `sqlite.NewTxManager`。这既是重复组合，也是表示层对 infra 的硬依赖。
 
-**目标**：桌面与 REST 共用容器暴露的端口；`nativeServices` 只依赖
-`nativeui.Services` 所需的窄接口。短期先把按领域的适配方法拆成独立文件，
-降低单文件耦合，再逐步把构造函数参数换成接口。
+**已做**：`native_services.go` 只保留结构体、构造和接口断言，按领域拆成
+`native_lottery.go`、`native_ledger.go`、`native_voting.go`、`native_keys.go`、
+`native_token.go`、`native_oracle.go`、`native_nft.go`。单文件从 779 行降到
+80 行，领域映射的修改范围可定位。
+
+**下一步**：桌面与 REST 共用容器暴露的端口，`nativeServices` 只依赖
+`nativeui.Services` 所需的窄接口，构造函数不再接收具体仓储。
 
 ### 5. 桌面 UI 文案放在核心 i18n
 
@@ -125,9 +129,9 @@ internal/
 - [x] 建立依赖事实表，确定“domain 不碰 infra”的硬规则。
 - [x] `internal/domain/blockchain` → `internal/blockchain`，同步 import/文档。
 - [x] 领域错误包，移除 `app` → `infra/sqlite` 的错误哨兵依赖。
-- [ ] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
+- [x] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
       `native_token.go` / `native_nft.go` / `native_oracle.go` /
-      `native_ledger.go`。
+      `native_ledger.go` / `native_keys.go`。
 - [ ] 统一账本对外命名。
 - [ ] 抽出组合根，让 `api.Server` 只做 HTTP；桌面复用同一容器。
 - [ ] 把 `desktopUIMessages` 移出核心 i18n。

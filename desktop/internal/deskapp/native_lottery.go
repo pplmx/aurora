@@ -1,0 +1,53 @@
+package deskapp
+
+import (
+	"github.com/pplmx/aurora/desktop/internal/nativeui"
+
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
+)
+
+// --- Lottery -------------------------------------------------------------
+
+func (s *nativeServices) LotteryHistory(limit int) ([]nativeui.DrawRow, error) {
+	records, err := s.lotteryRepo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 && len(records) > limit {
+		records = records[:limit]
+	}
+	rows := make([]nativeui.DrawRow, 0, len(records))
+	for _, r := range records {
+		rows = append(rows, nativeui.DrawRow{
+			ID: r.ID, BlockHeight: r.BlockHeight, Seed: r.Seed,
+			Participants: r.Participants, Winners: r.Winners, Timestamp: r.Timestamp,
+		})
+	}
+	return rows, nil
+}
+
+func (s *nativeServices) CreateDraw(participants []string, seed string, winners int) (nativeui.DrawRow, error) {
+	uc := lotteryapp.NewCreate(s.lotteryRepo, s.chain)
+	resp, err := uc.Execute(lotteryapp.CreateLotteryRequest{
+		Participants: joinCSV(participants), Seed: seed, WinnerCount: winners,
+	})
+	if err != nil {
+		return nativeui.DrawRow{}, err
+	}
+	return nativeui.DrawRow{
+		ID: resp.ID, BlockHeight: resp.BlockHeight, Seed: resp.Seed,
+		Participants: resp.Participants, Winners: resp.Winners, Timestamp: resp.Timestamp,
+	}, nil
+}
+
+func (s *nativeServices) VerifyDraw(id string) (nativeui.VerifyResult, error) {
+	report, err := lotteryapp.VerifyInput(s.lotteryRepo, id)
+	if err != nil {
+		return nativeui.VerifyResult{}, err
+	}
+	res := nativeui.VerifyResult{ID: report.Record.ID, Valid: report.IntegrityOK}
+	for _, c := range report.Checks {
+		res.Checks = append(res.Checks, c.Status+": "+c.Message)
+	}
+	return res, nil
+}
