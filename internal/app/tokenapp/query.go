@@ -154,6 +154,7 @@ func (uc *GetHistoryUseCase) Execute(req *HistoryRequest) (*HistoryResponse, err
 			From:        base64.StdEncoding.EncodeToString(e.From()),
 			To:          base64.StdEncoding.EncodeToString(e.To()),
 			Amount:      e.Amount().String(),
+			Nonce:       e.Nonce(),
 			Timestamp:   e.Timestamp().Unix(),
 			BlockHeight: e.BlockHeight(),
 		}

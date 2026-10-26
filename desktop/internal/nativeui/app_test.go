@@ -86,6 +86,11 @@ type fakeServices struct {
 	sessionResultsCalls    int
 	oracleDataCalls        int
 	oracleLatestCalls      int
+	// resultsByID is what SessionResults returns for a session; an entry may
+	// be absent (empty tally). sessionResultsErr fails every tally read, so a
+	// test can prove what stays on screen after a failed refresh.
+	resultsByID       map[string][]ResultRow
+	sessionResultsErr error
 
 	// The last list limits the forms sent.
 	tokenHistoryLimit int
@@ -168,7 +173,10 @@ func (f *fakeServices) CastVote(sessionID, candidateID, voterPub, voterPriv stri
 func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error) {
 	f.sessionResultsCalls++
 	f.lastSessionResultsID = sessionID
-	return nil, nil
+	if f.sessionResultsErr != nil {
+		return nil, f.sessionResultsErr
+	}
+	return f.resultsByID[sessionID], nil
 }
 func (f *fakeServices) Candidates() ([]CandidateRow, error) {
 	if f.loadErrs.candidates != nil {

@@ -66,12 +66,15 @@ func (a *App) loadOracle() {
 	if a.services == nil {
 		return
 	}
-	sources, err := a.services.OracleSources()
-	if err != nil {
+	// Each list has its own failure field and its own last successful rows.
+	// Reading sources no longer returns early: a source-list failure must not
+	// freeze the health counters or the preset picker as well.
+	if sources, err := a.services.OracleSources(); err != nil {
 		a.oracle.loadErr = err
-		return
+	} else {
+		a.oracle.sources = sources
+		a.oracle.loadErr = nil
 	}
-	a.oracle.sources = sources
 	if tpl, err := a.services.OracleTemplates(); err != nil {
 		a.oracle.templatesErr = err
 	} else {
@@ -84,7 +87,6 @@ func (a *App) loadOracle() {
 		a.oracle.health = h
 		a.oracle.healthErr = nil
 	}
-	a.oracle.loadErr = nil
 }
 
 func (a *App) oracleView(c *ui.Context) {
@@ -347,7 +349,7 @@ func (a *App) addOracleSource() {
 }
 
 func (a *App) oracleHealth(c *ui.Context) {
-	formCard(c, "Feed Health", "Attempt, success and failure counters per source, with the last error kept verbatim.", func() {
+	formCard(c, "Feed Health", "Background poll attempts, successes and failures per source, with the last error kept verbatim.", func() {
 		a.oracleHealthBody(c)
 	})
 }
@@ -362,6 +364,13 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		return
 	}
 	health := a.oracle.health
+	// The scheduler reports ids. The page already loaded the source list, so a
+	// name comes from there instead of a second read; an id the list no longer
+	// holds (deleted between reads) still identifies its row.
+	names := make(map[string]string, len(a.oracle.sources))
+	for _, source := range a.oracle.sources {
+		names[source.ID] = source.Name
+	}
 	ui.Table(c, &a.oracle.healthTable, []ui.TableColumn{
 		{Title: "Source"},
 		{Title: "Attempts", Width: 80, Align: ui.End},
@@ -373,6 +382,9 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		switch col {
 		case 0:
 			name := h.Name
+			if name == "" {
+				name = names[h.SourceID]
+			}
 			if name == "" {
 				name = h.SourceID
 			}

@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -245,4 +246,70 @@ func TestSelectedSessionShowsItsRoster(t *testing.T) {
 	require.NoError(t, tester.Click("s1"))
 	tester.Frame()
 	require.True(t, tester.HasText("Alice, Bob"), "the chosen session's roster must be shown")
+}
+
+// TestFailedTallyRefreshKeepsTheRowsAndSaysWhy covers a refresh of the tally
+// already on screen: a transient read failure must keep the last successful
+// rows (they still describe the same session) and mark them stale, while a
+// later successful read clears the warning.
+func TestFailedTallyRefreshKeepsTheRowsAndSaysWhy(t *testing.T) {
+	fake := &fakeServices{resultsByID: map[string][]ResultRow{
+		"s1": {{CandidateID: "c1", Name: "Alice", Votes: 3}},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	app.voting.resultsSession = "s1"
+	require.NoError(t, app.loadSessionResults("s1"))
+	tester.Frame()
+	require.True(t, tester.HasText("Alice"))
+
+	fake.sessionResultsErr = errors.New("database is locked")
+	app.refresh()
+	tester.Frame()
+	require.Len(t, app.voting.results, 1, "the last successful tally must stay")
+	require.True(t, tester.HasText("Failed to load results"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+	require.True(t, tester.HasText("Alice"))
+
+	fake.sessionResultsErr = nil
+	app.refresh()
+	tester.Frame()
+	require.NoError(t, app.voting.resultsErr)
+	require.False(t, tester.HasText("Failed to load results"))
+	require.True(t, tester.HasText("Alice"))
+}
+
+// TestFailedTallyReadDropsAnotherSessionsRows pins the subject rule: selecting
+// a different session clears the rows before reading, so a failure cannot
+// leave session A's numbers under session B's id with no warning.
+func TestFailedTallyReadDropsAnotherSessionsRows(t *testing.T) {
+	fake := &fakeServices{
+		sessions: []SessionRow{
+			{ID: "s1", Title: "Budget", Status: "ended"},
+			{ID: "s2", Title: "Charter", Status: "active"},
+		},
+		resultsByID: map[string][]ResultRow{
+			"s1": {{CandidateID: "c1", Name: "Alice", Votes: 3}},
+		},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	app.voting.resultsSession = "s1"
+	require.NoError(t, app.loadSessionResults("s1"))
+	tester.Frame()
+	require.True(t, tester.HasText("Alice"))
+
+	fake.sessionResultsErr = errors.New("database is locked")
+	require.NoError(t, tester.Click("s2"), "click the second session's id cell")
+	tester.Frame()
+	require.Equal(t, "s2", app.voting.resultsSession)
+	require.Empty(t, app.voting.results, "session A's tally must not sit under session B")
+	require.True(t, tester.HasText("Failed to load results"))
+	require.False(t, tester.HasText("Alice"))
 }
