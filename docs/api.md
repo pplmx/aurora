@@ -117,7 +117,10 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 `{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，
 请求头名称也必须是 token，值不能包含除 tab 外的控制字符。JSON、CR/LF 和长度
 都在写入前校验（`INVALID_SOURCE`）。`extractByPath` 允许合法的空字符串值，但
-对象/数组/null 叶子会失败而不是把 Go map 存成链上数据。
+对象/数组/null 叶子会失败而不是把 Go map 存成链上数据。抓取在 URL 校验、重定向与
+实际拨号三处拒绝内部地址：回环、RFC1918、link-local（含云元数据）、CGNAT、
+保留/基准网段、IPv6 组播，以及会把内嵌 IPv4 翻译进来的 NAT64 前缀
+（`64:ff9b::/96`、`64:ff9b:1::/48`）。
 
 ## 区块链
 

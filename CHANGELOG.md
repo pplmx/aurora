@@ -872,6 +872,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Security
 
+- **The oracle dial guard also refuses NAT64, multicast and reserved address
+  classes**: the SSRF block list covered loopback, RFC1918, link-local, CGNAT
+  and ULA, but on an IPv6-only network `[64:ff9b::7f00:1]` translates to
+  127.0.0.1 at the edge, so the IPv4 checks could be routed around. The
+  well-known and local-use NAT64 prefixes, IPv6 multicast, IPv4 IETF/benchmark/
+  reserved space and documentation ranges are refused now;
+  `TestBlockedIPRanges` pins each class.
 - **The served Web UI had no Content-Security-Policy**: the gateway embeds the
   API key as `window.AURORA_API_KEY` in every HTML document, and a knocked-in
   XSS payload could therefore load remote script or exfiltrate the key to an
