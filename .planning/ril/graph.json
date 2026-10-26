@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 279,
+  "round": 280,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T15:28:24+00:00",
+  "updated_at": "2026-10-26T15:30:29+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20559,7 +20559,7 @@
       "version": 2,
       "created_at": "2026-10-26T10:12:26+00:00",
       "updated_at": "2026-10-26T10:12:36+00:00",
-      "touched_round": 278,
+      "touched_round": 279,
       "category": "dx",
       "title": "Move application configuration to a Settings page and rename Actions to File",
       "description": "Add an Application sidebar section with Settings (language, data path/actions, appearance, build identity), keep only file operations in the File menu, add Ctrl/Cmd+8, and test both pages.",
@@ -20704,6 +20704,17 @@
       "commit": "a9a8510",
       "title": "Add opt-in live updates",
       "description": "Settings toggle refreshes open Dashboard/Oracle health every 10s; forms unaffected."
+    },
+    "CHG-477": {
+      "id": "CHG-477",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T15:30:29+00:00",
+      "updated_at": "2026-10-26T15:30:29+00:00",
+      "touched_round": 279,
+      "commit": "89f3f87",
+      "title": "Translate live updates description"
     }
   },
   "edges": [
@@ -31495,6 +31506,12 @@
       "to": "TASK-407",
       "type": "implements",
       "created_at": "2026-10-26T15:28:23+00:00"
+    },
+    {
+      "from": "CHG-477",
+      "to": "TASK-407",
+      "type": "implements",
+      "created_at": "2026-10-26T15:30:29+00:00"
     }
   ]
 }
