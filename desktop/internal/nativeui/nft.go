@@ -184,6 +184,7 @@ func (a *App) mintNFT() {
 		a.nft.status = errStatus(err)
 		return
 	}
+	a.rememberSuccessfulKey(n.Creator, a.nft.creatorPriv)
 	a.nft.status = okStatus("Minted %s (%s) at block %d", n.Name, n.ID, n.BlockHeight)
 	// A just-minted asset is the page's subject. Clear a filter or search that
 	// would hide it, highlight its row, and move the ids and open readouts to
@@ -347,6 +348,7 @@ func (a *App) nftWrite(c *ui.Context) {
 			field(c, "To (base64 public key)", &a.nft.to)
 			field(c, "From Private Key", &a.nft.priv)
 			a.useCreatorKeyButton(c, &a.nft.priv, a.nft.transferID, a.nft.from)
+			a.useSavedKeyButton(c, a.nft.from, &a.nft.priv)
 			ui.Row(c).Children(func() {
 				if primaryButton(c, "Transfer").Clicked() {
 					a.transferNFT()
@@ -360,6 +362,7 @@ func (a *App) nftWrite(c *ui.Context) {
 			field(c, "Owner (base64 public key)", &a.nft.burnOwner)
 			field(c, "Owner Private Key", &a.nft.burnPriv)
 			a.useCreatorKeyButton(c, &a.nft.burnPriv, a.nft.burnID, a.nft.burnOwner)
+			a.useSavedKeyButton(c, a.nft.burnOwner, &a.nft.burnPriv)
 			ui.Row(c).Children(func() {
 				// A destructive action carries the danger style, and the
 				// confirmation still stands between it and the write.
@@ -472,11 +475,13 @@ func (a *App) useCreatorKeyButton(c *ui.Context, target *string, nftID, holder s
 
 // transferNFT moves the asset named by the Transfer card.
 func (a *App) transferNFT() {
+	privateKey := strings.TrimSpace(a.nft.priv)
 	err := a.services.TransferNFT(
 		strings.TrimSpace(a.nft.transferID), strings.TrimSpace(a.nft.from),
-		strings.TrimSpace(a.nft.to), strings.TrimSpace(a.nft.priv))
+		strings.TrimSpace(a.nft.to), privateKey)
 	a.nft.status = wrapErr(err)
 	if err == nil {
+		a.rememberSuccessfulKey(a.nft.from, privateKey)
 		a.nft.priv = ""
 		a.refreshNFT(strings.TrimSpace(a.nft.transferID))
 	}
@@ -558,9 +563,11 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 	switch ui.AlertDialog(c, &a.nft.askBurn, tr("Burn this NFT?"), detail, tr("Cancel"), tr("Burn")) {
 	case 1:
 		id := strings.TrimSpace(a.nft.burnID)
-		err := a.services.BurnNFT(id, strings.TrimSpace(a.nft.burnOwner), strings.TrimSpace(a.nft.burnPriv))
+		privateKey := strings.TrimSpace(a.nft.burnPriv)
+		err := a.services.BurnNFT(id, strings.TrimSpace(a.nft.burnOwner), privateKey)
 		a.nft.status = wrapErr(err)
 		if err == nil {
+			a.rememberSuccessfulKey(a.nft.burnOwner, privateKey)
 			a.nft.burnPriv = ""
 			// The asset is gone, so reading it again is not a failure to
 			// report: clear the Inspect card directly and re-read the history,

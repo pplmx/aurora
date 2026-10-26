@@ -288,6 +288,7 @@ func (a *App) createToken() {
 	// readouts that were open move to the new token with it, and the account
 	// fields start from the owner instead of asking for the same public key
 	// six times.
+	a.rememberSuccessfulKey(t.Owner, a.token.ownerPriv)
 	a.applyTokenSubject(t.Owner)
 	a.refreshToken()
 	a.selectTokenByID(t.ID)
@@ -538,6 +539,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			field(c, "Amount", &a.token.mintAmount)
 			field(c, "Owner Private Key", &a.token.mintPriv)
 			a.useOwnerKeyButton(c, &a.token.mintPriv, true)
+			a.useSavedKeyButton(c, a.selectedTokenOwner(), &a.token.mintPriv)
 			ui.Row(c).Children(func() {
 				if primaryButton(c, "Mint").Clicked() {
 					a.mintToken()
@@ -553,6 +555,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			field(c, "From Private Key", &a.token.xPriv)
 			a.useOwnerKeyButton(c, &a.token.xPriv,
 				strings.TrimSpace(a.token.xFrom) == a.selectedTokenOwner())
+			a.useSavedKeyButton(c, a.token.xFrom, &a.token.xPriv)
 			ui.Row(c).Children(func() {
 				if primaryButton(c, "Transfer").Clicked() {
 					a.transferToken()
@@ -568,6 +571,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			field(c, "Owner Private Key", &a.token.approvePriv)
 			a.useOwnerKeyButton(c, &a.token.approvePriv,
 				strings.TrimSpace(a.token.approveOwner) == a.selectedTokenOwner())
+			a.useSavedKeyButton(c, a.token.approveOwner, &a.token.approvePriv)
 			ui.Row(c).Children(func() {
 				if primaryButton(c, "Approve").Clicked() {
 					a.approveToken()
@@ -595,6 +599,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			field(c, "Owner Private Key", &a.token.burnPriv)
 			a.useOwnerKeyButton(c, &a.token.burnPriv,
 				strings.TrimSpace(a.token.burnFrom) == a.selectedTokenOwner())
+			a.useSavedKeyButton(c, a.token.burnFrom, &a.token.burnPriv)
 			ui.Row(c).Children(func() {
 				// A destructive action carries the danger style, and the
 				// confirmation still stands between it and the write.
@@ -626,11 +631,13 @@ func (a *App) tokenWrites(c *ui.Context) {
 // else and cannot see from the form they used.
 
 func (a *App) mintToken() {
+	privateKey := strings.TrimSpace(a.token.mintPriv)
 	err := a.services.MintToken(
 		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.mintTo),
-		strings.TrimSpace(a.token.mintAmount), strings.TrimSpace(a.token.mintPriv))
+		strings.TrimSpace(a.token.mintAmount), privateKey)
 	a.token.status = wrapErr(err)
 	if err == nil {
+		a.rememberSuccessfulKey(a.selectedTokenOwner(), privateKey)
 		// A signing key that was used successfully is not kept on screen: the
 		// next write needs its own key, and a shared display should not retain
 		// the secret.
@@ -640,24 +647,28 @@ func (a *App) mintToken() {
 }
 
 func (a *App) transferToken() {
+	privateKey := strings.TrimSpace(a.token.xPriv)
 	err := a.services.TransferToken(
 		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.xFrom),
 		strings.TrimSpace(a.token.xTo), strings.TrimSpace(a.token.xAmount),
-		strings.TrimSpace(a.token.xPriv))
+		privateKey)
 	a.token.status = wrapErr(err)
 	if err == nil {
+		a.rememberSuccessfulKey(a.token.xFrom, privateKey)
 		a.token.xPriv = ""
 		a.refreshToken()
 	}
 }
 
 func (a *App) approveToken() {
+	privateKey := strings.TrimSpace(a.token.approvePriv)
 	err := a.services.ApproveToken(
 		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.approveOwner),
 		strings.TrimSpace(a.token.approveTo), strings.TrimSpace(a.token.approveAmt),
-		strings.TrimSpace(a.token.approvePriv))
+		privateKey)
 	a.token.status = wrapErr(err)
 	if err == nil {
+		a.rememberSuccessfulKey(a.token.approveOwner, privateKey)
 		a.token.approvePriv = ""
 		a.refreshToken()
 	}
@@ -756,10 +767,12 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 	}
 	switch ui.AlertDialog(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Cancel"), tr("Burn")) {
 	case 1:
+		privateKey := strings.TrimSpace(a.token.burnPriv)
 		err := a.services.BurnToken(
-			strings.TrimSpace(a.token.tokenID), from, amount, strings.TrimSpace(a.token.burnPriv))
+			strings.TrimSpace(a.token.tokenID), from, amount, privateKey)
 		a.token.status = wrapErr(err)
 		if err == nil {
+			a.rememberSuccessfulKey(a.token.burnFrom, privateKey)
 			a.token.burnPriv = ""
 			a.refreshToken()
 		}

@@ -613,6 +613,7 @@ func (a *App) votingVote(c *ui.Context) {
 		field(c, "Candidate ID", &a.voting.voteCandidate)
 		field(c, "Voter Public Key", &a.voting.voteVoterPub)
 		field(c, "Voter Private Key", &a.voting.votePriv)
+		a.useSavedKeyButton(c, a.voting.voteVoterPub, &a.voting.votePriv)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Cast Vote").Clicked() {
 				a.castVote()
@@ -628,16 +629,18 @@ func (a *App) castVote() {
 		a.voting.voteResult = statusLine{text: tr("Choose a session and a candidate."), isErr: true}
 		return
 	}
+	publicKey, privateKey := strings.TrimSpace(a.voting.voteVoterPub), strings.TrimSpace(a.voting.votePriv)
 	err := a.services.CastVote(
 		strings.TrimSpace(a.voting.voteSession),
 		strings.TrimSpace(a.voting.voteCandidate),
-		strings.TrimSpace(a.voting.voteVoterPub),
-		strings.TrimSpace(a.voting.votePriv),
+		publicKey,
+		privateKey,
 	)
 	if err != nil {
 		a.voting.voteResult = errStatus(err)
 		return
 	}
+	a.rememberSuccessfulKey(publicKey, privateKey)
 	a.voting.voteResult = okStatus("Ballot recorded.")
 	a.voting.votePriv = ""
 	sessionID := strings.TrimSpace(a.voting.voteSession)
