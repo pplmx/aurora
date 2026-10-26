@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 241,
+  "round": 242,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:48:49+00:00",
+  "updated_at": "2026-10-26T04:50:56+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19571,6 +19571,29 @@
       "touched_round": 241,
       "commit": "2e62494",
       "title": "Apply the system TextScale to every fixed font size"
+    },
+    "ISS-423": {
+      "id": "ISS-423",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:50:56+00:00",
+      "updated_at": "2026-10-26T04:50:56+00:00",
+      "touched_round": 242,
+      "title": "The desktop ignored the OS increase-contrast preference",
+      "severity": 0.35,
+      "description": "The window sets its own theme, so Preferences.HighContrast changed nothing. auroraTheme(true) now brightens hairlines, text, focus and selection, checked by a WCAG contrast-ratio test against the normal palette."
+    },
+    "CHG-439": {
+      "id": "CHG-439",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:50:56+00:00",
+      "updated_at": "2026-10-26T04:50:56+00:00",
+      "touched_round": 242,
+      "commit": "36e9948",
+      "title": "Add a high-contrast palette variant"
     }
   },
   "edges": [
@@ -29798,6 +29821,12 @@
       "to": "ISS-422",
       "type": "resolves",
       "created_at": "2026-10-26T04:48:49+00:00"
+    },
+    {
+      "from": "CHG-439",
+      "to": "ISS-423",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:50:56+00:00"
     }
   ]
 }
