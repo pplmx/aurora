@@ -98,8 +98,12 @@ desktop          ─┘                                              ^
 `nft.TransactableRepository`、`oracle.Repository` 等领域端口；NFT 事务管理器
 由 container 注入。`ports_test.go` 禁止 `native_*.go` import infra/api。
 
-**下一步**：`menu.go` 仍直接用 `sqlite.LotteryRepository` 做导入/导出，应把该
-用例移入 app/container；REST 与桌面继续共用同一容器，而不是各自拼装。
+**已做**：`Shell` 接收 container 的 `lottery.Repository`，File 菜单的导入/
+导出与拖放导入都走这份共享句柄；只有测试或 runtime 建立前的 shell 才回退到
+`openLotteryRepo`。生产路径不再为一次文件操作打开第二个 SQLite writer。
+
+**下一步**：删除 fallback 与 `sqlite.NewLotteryRepository` 的菜单依赖，让
+notebook 风格的 standalone 测试改用显式注入的仓储。
 
 ### 5. 桌面 UI 文案曾放在核心 i18n
 
@@ -144,6 +148,7 @@ internal/
 - [x] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
       `native_token.go` / `native_nft.go` / `native_oracle.go` /
       `native_ledger.go` / `native_keys.go`，并改用领域仓储端口。
+- [x] 让 Shell 的 File 导入/导出复用 container 的 lottery 仓储。
 - [x] 统一账本对外命名。
 - [x] 抽出 `app/container` 组合根；`api.Server` 已委托存储生命周期。
 - [x] 把 `desktopUIMessages` 移出核心 i18n。

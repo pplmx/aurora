@@ -10,6 +10,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/domain/lottery"
 )
 
 // Shell routes what the operating system asks the app to open onto the one
@@ -60,6 +61,10 @@ type Shell struct {
 	// app is the window's state. The shell sets its current page when a link
 	// or a second launch names one, and the window's Content closure reads it.
 	app *nativeui.App
+	// lotteryRepo is the shared repository owned by the application container.
+	// File import/export uses it instead of opening a second SQLite handle; a
+	// shell without one (tests, early startup) falls back to openLotteryRepo.
+	lotteryRepo lottery.Repository
 	// prefs are the desktop-only choices that survive a launch. Session keys
 	// are not here by design.
 	prefs     Preferences
@@ -79,6 +84,27 @@ func NewShell(meta About) *Shell {
 		showMessage(s.Window(), typ, title, message, detail)
 	}
 	return s
+}
+
+// SetLotteryRepository injects the container-owned lottery repository. File
+// import/export is a one-shot action, but reopening the database for it left a
+// second SQLite handle next to the app's writer for no benefit.
+func (s *Shell) SetLotteryRepository(repo lottery.Repository) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lotteryRepo = repo
+}
+
+// lotteryRepository returns the shared repository when one was injected, or a
+// short-lived fallback for tests and a shell built before the runtime.
+func (s *Shell) lotteryRepository() (lottery.Repository, func(), error) {
+	s.mu.Lock()
+	repo := s.lotteryRepo
+	s.mu.Unlock()
+	if repo != nil {
+		return repo, func() {}, nil
+	}
+	return openLotteryRepo(s.meta)
 }
 
 // SetApp gives the shell the window state a link can steer. It must be called
@@ -194,7 +220,7 @@ func (s *Shell) OpenFile(path string) {
 	// Reopen before importing: both the result and a failure are shown in a
 	// dialog, and on macOS the process may still be alive with no window.
 	s.EnsureWindow()
-	result, err := ImportLotteryFile(s.meta, path)
+	result, err := importLotteryFile(s.lotteryRepository, path)
 	if err != nil {
 		s.reportError(T("desktop.error.import_failed"), err)
 		return
@@ -465,7 +491,7 @@ func (s *Shell) BackUpDatabase() {
 }
 
 func (s *Shell) ExportLotteries() {
-	exportLotteries(s.meta, s.Window())
+	exportLotteriesWith(s.lotteryRepository, s.Window())
 }
 
 func (s *Shell) ImportLotteries() {
@@ -473,7 +499,7 @@ func (s *Shell) ImportLotteries() {
 	if app := s.App(); app != nil {
 		reload = app.Reload
 	}
-	importLotteries(s.meta, s.Window(), reload)
+	importLotteriesWith(s.lotteryRepository, s.Window(), reload)
 }
 
 func (s *Shell) ShowDataFolder() {

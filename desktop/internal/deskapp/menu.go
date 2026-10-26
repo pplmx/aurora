@@ -84,10 +84,23 @@ func parent(win *mygo.Window) *mygo.Window {
 	return win
 }
 
-// exportLotteries writes the portable document through the same app-layer
+// lotteryRepoProvider resolves the repository for a one-shot file action. The
+// shell normally supplies the container-owned repository; a shell without one
+// falls back to a short-lived handle.
+type lotteryRepoProvider func() (lottery.Repository, func(), error)
+
+// exportLotteries is the test/legacy entry point that opens the database named
+// by meta. Production uses Shell.ExportLotteries and the container repository.
+func exportLotteries(meta About, win *mygo.Window) {
+	exportLotteriesWith(func() (lottery.Repository, func(), error) {
+		return openLotteryRepo(meta)
+	}, win)
+}
+
+// exportLotteriesWith writes the portable document through the same app-layer
 // serializer the CLI uses, so a desktop export and `aurora lottery export`
 // produce byte-identical files for the same database.
-func exportLotteries(meta About, win *mygo.Window) {
+func exportLotteriesWith(repoProvider lotteryRepoProvider, win *mygo.Window) {
 	path, err := saveDialog(mygo.SaveDialogOptions{
 		Parent:      parent(win),
 		Title:       T("desktop.dialog.export_title"),
@@ -103,7 +116,7 @@ func exportLotteries(meta About, win *mygo.Window) {
 		return // canceled
 	}
 
-	repo, closeRepo, err := openLotteryRepo(meta)
+	repo, closeRepo, err := repoProvider()
 	if err != nil {
 		showError(parent(win), T("desktop.error.export_failed"), err)
 		return
@@ -126,6 +139,12 @@ func exportLotteries(meta About, win *mygo.Window) {
 // (TASK-069), identical partial-failure accounting. A partial import reports a
 // warning — the valid records ARE stored — matching the CLI's "⚠" message.
 func importLotteries(meta About, win *mygo.Window, reload func()) {
+	importLotteriesWith(func() (lottery.Repository, func(), error) {
+		return openLotteryRepo(meta)
+	}, win, reload)
+}
+
+func importLotteriesWith(repoProvider lotteryRepoProvider, win *mygo.Window, reload func()) {
 	paths, err := openDialog(mygo.OpenDialogOptions{
 		Parent:  parent(win),
 		Title:   T("desktop.dialog.import_title"),
@@ -141,7 +160,7 @@ func importLotteries(meta About, win *mygo.Window, reload func()) {
 
 	// The same call a dropped file and a command-line argument go through, so
 	// all three entry points report identically (see Shell.OpenFile).
-	result, err := ImportLotteryFile(meta, paths[0])
+	result, err := importLotteryFile(repoProvider, paths[0])
 	if err != nil {
 		showError(parent(win), T("desktop.error.import_failed"), err)
 		return
