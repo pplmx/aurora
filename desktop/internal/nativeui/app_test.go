@@ -524,9 +524,9 @@ func TestEveryPageRendersItsSectionsAsCards(t *testing.T) {
 	want := map[page][]string{
 		pageDashboard:  {"Dashboard", "Total Lotteries", "Ledger Integrity"},
 		pageLottery:    {"Create Draw", "Verify a Draw", "History"},
-		pageVoting:     {"Register Voter", "Register Candidate", "Create Session", "Cast Vote", "Results"},
+		pageVoting:     {"Register Voter", "Register Candidate", "Create Session"},
 		pageToken:      {"Create Token", "Inspect", "Mint", "Transfer", "Approve", "Burn", "Allowance", "History"},
-		pageOracle:     {"Add Source", "Data Sources", "Feed Health", "Query Data", "Latest Data"},
+		pageOracle:     {"Add Source", "Data Sources"},
 		pageNFT:        {"Mint NFT", "Inspect", "Transfer", "Burn", "History"},
 		pageBlockchain: {"Ledger"},
 	}
@@ -546,6 +546,26 @@ func TestEveryPageRendersItsSectionsAsCards(t *testing.T) {
 		for _, title := range titles {
 			require.True(t, tester.HasText(title),
 				"page %q must show the %q section", pageTitles[p], title)
+		}
+		if p == pageVoting {
+			// Setup is the default stage; Ballot and Results are one tab away.
+			require.NoError(t, tester.Click("Ballot"))
+			tester.Frame()
+			require.True(t, tester.HasText("Cast Vote"), "the Ballot stage must show Cast Vote")
+			require.NoError(t, tester.Click("Results"))
+			tester.Frame()
+			require.True(t, tester.HasText("Results"), "the Results stage must show the tally card")
+			app.voting.tab = 0
+		}
+		if p == pageOracle {
+			require.NoError(t, tester.Click("Health"))
+			tester.Frame()
+			require.True(t, tester.HasText("Feed Health"), "the Health stage must show Feed Health")
+			require.NoError(t, tester.Click("Readings"))
+			tester.Frame()
+			require.True(t, tester.HasText("Query Data"), "the Readings stage must show Query Data")
+			require.True(t, tester.HasText("Latest Data"))
+			app.oracle.tab = 0
 		}
 	}
 }

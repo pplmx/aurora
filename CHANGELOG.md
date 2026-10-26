@@ -336,9 +336,10 @@ documented in their per-milestone ROADMAP files.
   said "Created" while the list still showed an unrelated or empty selection.
 - **The desktop's dense pages became tabbed workbenches**: the Token page's
   six write forms and the NFT page's Transfer/Burn/History now show one
-  operation at a time behind `ui.Tabs`, with the subject banner and the page's
-  status line still fixed in view. Scrolling a column of five hidden forms to
-  reach Burn was work the operator did not need to do.
+  operation at a time; Voting is split into Setup (register/create), Ballot
+  (start/end, cast) and Results; Oracle's right column is Sources, Health and
+  Readings. Scrolling past five hidden forms to reach Burn, or down four cards
+  to find the tally, was work the operator did not need to do.
 - **The desktop stacks its two columns on a narrow window**: below 1000px the
   second column moves under the first, so the 900px minimum no longer squeezes
   every card to about 300px. Tests pin the side-by-side layout at 1280 and the

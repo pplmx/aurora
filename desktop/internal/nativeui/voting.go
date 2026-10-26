@@ -75,6 +75,11 @@ type votingState struct {
 	candNameErr  string
 	loadErr      error
 
+	// tab is the stage shown: 0 setup (register/create), 1 ballot (controls and
+	// cast), 2 results. The page used to stack all four areas at once, so a
+	// first-time operator had to find the order in the sidebar of cards.
+	tab int
+
 	status statusLine
 
 	sessionTable   ui.ListState
@@ -107,10 +112,10 @@ func (a *App) loadVoting() {
 	a.voting.loadErr = nil
 }
 
-// votingView pairs the setup work (who votes, who runs, in which window) with
-// the act of voting and reading the tally: two columns, because a session
-// operator moves between them constantly and scrolling past four stacked forms
-// to reach the ballot was the wrong shape for that.
+// votingView splits the page into the three stages an operator moves through:
+// setup (register voters/candidates, create a session), ballot (start/end a
+// session, cast a signed ballot), and results. The four areas used to be
+// stacked at once, so a first-time operator had no visible order.
 func (a *App) votingView(c *ui.Context) {
 	ui.Scroll(c).Fill().Children(func() {
 		// loadVoting keeps both lists when either read fails, so the warning
@@ -120,18 +125,21 @@ func (a *App) votingView(c *ui.Context) {
 			loadWarning(c, "Failed to load voting data", a.voting.loadErr,
 				len(a.voting.sessions) > 0 || len(a.voting.candidates) > 0)
 		}
-		// The session list leads: an operator reads what exists before
-		// registering more of it, and it was the one card pushed below the
-		// fold by three registration forms.
-		twoColumns(c, func() {
-			a.votingSessionListCard(c)
-			a.votingCandidateListCard(c)
-			a.votingRegister(c)
-		}, func() {
+		ui.Tabs(c, &a.voting.tab, "Setup", "Ballot", "Results")
+		switch a.voting.tab {
+		case 0:
+			twoColumns(c, func() {
+				a.votingSessionListCard(c)
+				a.votingCandidateListCard(c)
+			}, func() {
+				a.votingRegister(c)
+				a.votingSessions(c)
+			})
+		case 1:
 			a.votingVote(c)
-			a.votingSessions(c)
+		default:
 			a.votingResults(c)
-		})
+		}
 	})
 }
 

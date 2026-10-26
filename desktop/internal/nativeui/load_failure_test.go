@@ -125,6 +125,7 @@ func TestFailedHealthReadKeepsFeedRows(t *testing.T) {
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Oracle")
+	app.oracle.tab = 1
 	tester.Frame()
 	require.True(t, tester.HasText("btc-feed"))
 
@@ -150,10 +151,11 @@ func TestFeedHealthResolvesSourceNames(t *testing.T) {
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Oracle")
-	app.oracle.search = "no-source-matches-this"
+	// The health table is its own stage; the source list is not on screen, so
+	// the name can only come from the loaded source rows.
+	app.oracle.tab = 1
 	tester.Frame()
 
-	require.True(t, tester.HasText("No sources match"), "the source table must not supply the name")
 	require.True(t, tester.HasText("btc-feed"), "the health row must resolve the source name")
 	require.True(t, tester.HasText("timeout"))
 }
