@@ -330,14 +330,14 @@ documented in their per-milestone ROADMAP files.
   now carry copy rows; the tables truncate ids and native text is not
   selectable, so previously the only full id was a field that could be read but
   not copied.
-- **The desktop no longer keeps a permanent menu bar above the app**: pages
-  are navigated from the sidebar and refreshed from the header, so the
-  File/Edit/Go/View/Window/Help bar was chrome the window did not need. Linux
-  and Windows now auto-hide it until Alt or F10; its shortcuts (Cmd/Ctrl+E/I/B
-  and the page numbers) keep working while it is hidden. The shell's
-  file/help/language work moved to a sidebar Actions menu, including Open
-  Recent, so it stays discoverable without the bar. macOS keeps its
-  application menu because the platform owns that bar.
+- **The desktop no longer has a menu bar on Linux and Windows**: pages are
+  navigated from the sidebar and refreshed from the header, so the
+  File/Edit/Go/View/Window/Help bar was chrome the window did not need. The app
+  installs no application menu there at all; `AutoHideMenuBar` is only a
+  fallback if a host supplies one. Cmd/Ctrl+E/I/B are registered by the window,
+  and the shell's file/help/language work moved to a sidebar Actions menu,
+  including Open Recent, so it stays discoverable. macOS keeps its application
+  menu because the platform owns that bar.
 - **The desktop has a high-contrast variant of its palette**: when the OS asks
   for increased contrast, the same polar-night design uses brighter hairlines,
   primary/secondary text, focus ring and selection tint (`auroraTheme(true)`).

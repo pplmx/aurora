@@ -266,7 +266,14 @@ func main() {
 	// The menu's Go items switch pages, so it is built once the window's state
 	// exists. mygo.App.SetMenu before Run only stores the template; the
 	// callbacks run later.
-	mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
+	//
+	// Linux and Windows install no application menu at all: the sidebar owns
+	// navigation and the Actions menu owns file/help/language work, so an empty
+	// menu bar would be a strip with nothing useful in it. macOS keeps the menu
+	// because the platform shows it above every app.
+	if runtime.GOOS == "darwin" {
+		mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
+	}
 	if runtime.GOOS != "darwin" {
 		if err := mygo.App.RegisterURLScheme(deskapp.DeepLinkScheme); err != nil {
 			fmt.Fprintf(os.Stderr, "aurora-desktop: register %s://: %v\n", deskapp.DeepLinkScheme, err)
@@ -320,15 +327,19 @@ func main() {
 
 	mygo.App.WhenReady(func() {
 		deskapp.FollowAppLocale(func() {
-			mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
-			deskapp.MarkLanguage(mygo.App.Menu())
+			if runtime.GOOS == "darwin" {
+				mygo.App.SetMenu(deskapp.NewMenu(meta, shell.App().ShowPage, shell.App().Reload))
+				deskapp.MarkLanguage(mygo.App.Menu())
+			}
 			// The sidebar's Actions menu reads Aurora's translator directly;
-			// redraw it so a language switch relabels it with the native menu.
+			// redraw it so a language switch relabels it.
 			if win := shell.Window(); win != nil && !win.IsDestroyed() {
 				win.Invalidate()
 			}
 		})
-		deskapp.MarkLanguage(mygo.App.Menu())
+		if runtime.GOOS == "darwin" {
+			deskapp.MarkLanguage(mygo.App.Menu())
+		}
 		openMainWindow(shell, opts)
 		// The launch's own request is applied now that there is a window: a
 		// deep link selects its page (and verifies the draw it names), and an
@@ -390,12 +401,11 @@ func mainWindowOptions(app *nativeui.App, opts deskapp.Flags) mygo.WindowOptions
 		MinHeight:       600,
 		BackgroundColor: "#0c2228",
 		StateKey:        "main",
-		// The window is its own navigation: pages live in the sidebar and
-		// Refresh in the header, so a permanently visible File/Edit/View bar
-		// only framed content that already has chrome. Hide it until Alt or
-		// F10 asks for it; its shortcuts (Cmd/Ctrl+E/I/B, page numbers) keep
-		// working while it is out of sight. macOS keeps its application menu
-		// because the platform owns that bar.
+		// Aurora installs no application menu on Linux and Windows: pages live
+		// in the sidebar and file/help/language work in the sidebar Actions
+		// menu. AutoHideMenuBar is the fallback for a menu a host or toolkit
+		// installs anyway, so it cannot reappear as a permanent strip; macOS
+		// keeps its application menu because the platform owns that bar.
 		AutoHideMenuBar: true,
 	}
 }

@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -70,6 +71,29 @@ func TestSidebarActionsMenuDisablesWhatItCannotDo(t *testing.T) {
 	require.NoError(t, tester.Click(i18n.GetText("desktop.menu.actions")))
 	require.Error(t, tester.ChooseMenuItem(i18n.GetText("desktop.menu.export")))
 	require.False(t, called)
+}
+
+// TestActionShortcutsSurviveTheMissingMenu pins Cmd/Ctrl+E/I/B after the
+// native menu is gone on Linux and Windows: the window registers them itself.
+// macOS gets them from the application menu, so the test skips there.
+func TestActionShortcutsSurviveTheMissingMenu(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("macOS carries these shortcuts on the application menu")
+	}
+	app := New(&fakeServices{})
+	var calls []string
+	app.SetActions(Actions{
+		ExportLotteries: func() { calls = append(calls, "export") },
+		ImportLotteries: func() { calls = append(calls, "import") },
+		BackUpDatabase:  func() { calls = append(calls, "backup") },
+	})
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyE)
+	tester.Key(platformRefreshModifier(), ui.KeyI)
+	tester.Key(platformRefreshModifier(), ui.KeyB)
+	require.Equal(t, []string{"export", "import", "backup"}, calls)
 }
 
 // TestNoActionsMeansNoActionsButton keeps view tests and a window built before
