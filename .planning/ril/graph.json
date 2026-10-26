@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 235,
+  "round": 236,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:28:21+00:00",
+  "updated_at": "2026-10-26T04:31:47+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19433,6 +19433,29 @@
       "touched_round": 235,
       "commit": "8011be1",
       "title": "Open Lottery from the empty dashboard"
+    },
+    "ISS-417": {
+      "id": "ISS-417",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:31:32+00:00",
+      "updated_at": "2026-10-26T04:31:47+00:00",
+      "touched_round": 236,
+      "title": "Desktop row selection left the readouts on the previous record",
+      "severity": 0.45,
+      "description": "Choosing a token, NFT or oracle source filled the id fields but the Inspect/balance/history/Query/Latest cards still described the previous record, and a draw selection left the previous verdict under a new id. Selection now re-reads the open cards for the chosen id, and selection_test.go records each read subject."
+    },
+    "CHG-433": {
+      "id": "CHG-433",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-26T04:31:32+00:00",
+      "updated_at": "2026-10-26T04:31:47+00:00",
+      "touched_round": 236,
+      "commit": "d288fa7",
+      "title": "Re-read readouts when the selected row changes"
     }
   },
   "edges": [
@@ -29624,6 +29647,12 @@
       "to": "ISS-416",
       "type": "resolves",
       "created_at": "2026-10-26T04:28:21+00:00"
+    },
+    {
+      "from": "CHG-433",
+      "to": "ISS-417",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:31:47+00:00"
     }
   ]
 }
