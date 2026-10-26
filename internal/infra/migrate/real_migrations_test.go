@@ -56,6 +56,18 @@ func TestRealMigrations_Apply(t *testing.T) {
 	} {
 		assertTableExists(t, db, table)
 	}
+
+	// Migration 000007 replaces the timestamp-only lottery index with the
+	// composite recency index the repository now orders by.
+	var oldTimestampIndex, recencyIndex int
+	require.NoError(t, db.QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_lottery_timestamp'`,
+	).Scan(&oldTimestampIndex))
+	require.NoError(t, db.QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_lottery_recency'`,
+	).Scan(&recencyIndex))
+	assert.Zero(t, oldTimestampIndex, "the timestamp-only index is subsumed by idx_lottery_recency")
+	assert.Equal(t, 1, recencyIndex, "migration 000007 must create the recency index")
 }
 
 // TestRealMigrations_LotteryVRFKeyUpgrade proves migration 000004 adds the

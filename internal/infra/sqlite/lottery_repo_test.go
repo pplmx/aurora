@@ -318,6 +318,42 @@ func TestLotteryRepository_GetAll_OrdersByTimestampDesc(t *testing.T) {
 	assert.Equal(t, "A", got[2].ID, "oldest timestamp should be last")
 }
 
+// TestLotteryRepository_GetAll_SameSecondIsNewestHeightFirst pins the
+// tiebreaker. Draws made in the same second share a timestamp, and ordering by
+// timestamp alone returned them in insertion order: the index walk is by
+// rowid, so an older draw imported after a newer one came first and a page
+// window could repeat or skip a row between requests.
+func TestLotteryRepository_GetAll_SameSecondIsNewestHeightFirst(t *testing.T) {
+	repo, cleanup := setupLotteryTestDB(t)
+	defer cleanup()
+
+	ts := time.Now().Unix()
+	newer := sampleLotteryRecord("same-second-newer", 2)
+	newer.Timestamp = ts
+	older := sampleLotteryRecord("same-second-older", 1)
+	older.Timestamp = ts
+
+	// Save the newer draw first so insertion order (rowid) and chain order
+	// disagree — exactly what an import of older draws into a live database
+	// produces.
+	require.NoError(t, repo.Save(newer))
+	require.NoError(t, repo.Save(older))
+
+	got, err := repo.GetAll()
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, newer.ID, got[0].ID, "the later block height is the newer draw")
+	assert.Equal(t, older.ID, got[1].ID)
+
+	// A second read must return the same order, or offset paging over two
+	// requests could show one draw twice and never show another.
+	again, err := repo.GetAll()
+	require.NoError(t, err)
+	require.Len(t, again, 2)
+	assert.Equal(t, got[0].ID, again[0].ID)
+	assert.Equal(t, got[1].ID, again[1].ID)
+}
+
 // =================================================================
 // GetByBlockHeight
 // =================================================================

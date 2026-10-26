@@ -49,6 +49,18 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Lottery history is newest-first even within one second**: `GetAll` ordered
+  by `timestamp DESC` alone, and timestamps have one-second resolution. Draws
+  created in the same second tied, so SQLite returned them by insertion order
+  — an older draw imported after a newer one came first, and two paged requests
+  could repeat or skip a row. The order is now
+  `timestamp DESC, block_height DESC, id`: block height carries the chain
+  append order and the id makes it total. Migration `000007` adds the matching
+  `idx_lottery_recency` and drops the timestamp-only index (subsumed by the
+  composite leading column); the repository bootstrap creates the same index,
+  and the query-plan test fails if the sort reappears. The migration walk tests
+  now derive their version expectations from `migrations/`, so adding a
+  migration no longer turns unrelated command tests red.
 - **A failed desktop refresh no longer hides the content it already loaded**:
   every loader keeps its previous rows when a read fails, but each view
   returned on the error line alone, so a transient database failure blanked

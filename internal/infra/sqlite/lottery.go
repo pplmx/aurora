@@ -40,6 +40,16 @@ type LotteryRepository struct {
 	exec   lotteryExec
 }
 
+// lotteryNewestFirst is the one ordering every whole-table lottery read uses.
+//
+// Timestamps have one-second resolution, so two draws created in the same
+// second tie. SQLite then returns them in index/rowid (insertion) order, which
+// put the older draw first and made a page window able to repeat or skip a row
+// between two requests. block_height carries the chain append order and breaks
+// the tie newest-first; the id makes the order total when imported records
+// share both a timestamp and a height.
+const lotteryNewestFirst = `ORDER BY l.timestamp DESC, l.block_height DESC, l.id`
+
 func NewLotteryRepository(dbPath string) (*LotteryRepository, error) {
 	dir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -127,7 +137,12 @@ func (r *LotteryRepository) createTables() error {
 			FOREIGN KEY (record_id) REFERENCES lottery_records(id) ON DELETE CASCADE
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_lottery_block_height ON lottery_records(block_height)`,
-		`CREATE INDEX IF NOT EXISTS idx_lottery_timestamp ON lottery_records(timestamp)`,
+		// The composite recency index is the ordering GetAll uses and its
+		// leading timestamp column serves every timestamp-only lookup, so the
+		// single-column index is dropped rather than maintained twice
+		// (migration 000007 does the same).
+		`DROP INDEX IF EXISTS idx_lottery_timestamp`,
+		`CREATE INDEX IF NOT EXISTS idx_lottery_recency ON lottery_records(timestamp DESC, block_height DESC, id)`,
 	}
 
 	for _, query := range queries {
@@ -242,7 +257,7 @@ func (r *LotteryRepository) GetAll() ([]*lottery.LotteryRecord, error) {
 		       l.vrf_proof, l.vrf_output, COALESCE(k.public_key, ''), l.timestamp, l.verified
 		FROM lottery_records l
 		LEFT JOIN lottery_vrf_keys k ON k.record_id = l.id
-		ORDER BY l.timestamp DESC
+		` + lotteryNewestFirst + `
 	`)
 	if err != nil {
 		return nil, err
@@ -288,6 +303,7 @@ func (r *LotteryRepository) GetByBlockHeight(height int64) ([]*lottery.LotteryRe
 		FROM lottery_records l
 		LEFT JOIN lottery_vrf_keys k ON k.record_id = l.id
 		WHERE l.block_height = ?
+		`+lotteryNewestFirst+`
 	`, height)
 	if err != nil {
 		return nil, err
