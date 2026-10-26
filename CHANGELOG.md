@@ -65,7 +65,8 @@ documented in their per-milestone ROADMAP files.
   balance and history cards, the NFT detail/history cards and the oracle
   Query/Latest cards and an open voting tally kept describing the previously
   selected record while the id fields already named the new one; each now
-  re-reads the chosen id, and a draw selection clears the previous verdict
+  re-reads the chosen id; creating a token or NFT moves the open readouts to the
+  new record, and a draw selection or creation clears the previous verdict
   instead of leaving it under a new id. `selection_test.go` records the id every read was asked for.
 - **Refresh reloads the readouts that are on screen**: Ctrl/Cmd+R (and the
   Refresh button) reloaded the lists and counters but left an open Inspect

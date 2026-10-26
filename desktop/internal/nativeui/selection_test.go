@@ -125,3 +125,38 @@ func TestSessionSelectionMovesTheOpenTally(t *testing.T) {
 	require.Equal(t, "s2", app.voting.resultsSession)
 	require.Equal(t, "s2", fake.lastSessionResultsID, "the open tally must follow the selection")
 }
+
+// TestCreateMovesOpenReadoutsToTheNewRecord covers the create paths: a new
+// token, NFT or draw becomes the subject of the page, so any readout already
+// on screen must move with it instead of describing the previous record.
+func TestCreateMovesOpenReadoutsToTheNewRecord(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+
+	app.ShowPage("Token")
+	app.token.info = &TokenRow{ID: "old"}
+	app.token.account = "owner"
+	app.token.balance = "1"
+	app.token.history = []TransferRow{{Amount: "1"}}
+	app.token.name, app.token.symbol, app.token.supply, app.token.owner = "New", "N", "10", "pk"
+	app.createToken()
+	require.Equal(t, "t1", app.token.tokenID)
+	require.Equal(t, "t1", fake.lastTokenInfoID, "the Inspect card must move to the new token")
+	require.Equal(t, "t1", fake.lastBalanceToken, "a shown balance must move to the new token")
+	require.Equal(t, "t1", fake.lastHistoryToken, "a loaded history must move to the new token")
+
+	app.ShowPage("NFT")
+	app.nft.nft = &NFTRow{ID: "old"}
+	app.nft.history = []NFTOpRow{{Type: "mint"}}
+	app.nft.name, app.nft.creator = "New", "pk"
+	app.mintNFT()
+	require.Equal(t, "n1", app.nft.id)
+	require.Equal(t, "n1", fake.lastNFTID, "the Inspect card must move to the new asset")
+	require.Equal(t, "n1", fake.lastNFTHistoryID, "a loaded history must move to the new asset")
+
+	app.ShowPage("Lottery")
+	app.lottery.verifyResult = &VerifyResult{ID: "old", Valid: true}
+	app.lottery.participants, app.lottery.seed, app.lottery.count = "Alice,Bob", "seed", 1
+	app.createLottery()
+	require.Nil(t, app.lottery.verifyResult, "a new draw must not inherit the previous verdict")
+}

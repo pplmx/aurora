@@ -142,6 +142,7 @@ func (a *App) createLottery() {
 	// Advance the verifier to the fresh draw so the operator can re-check it
 	// without copying the id, matching the Web UI's behaviour.
 	a.lottery.verifyID = row.ID
+	a.lottery.verifyResult = nil
 	a.lottery.participants = ""
 	a.lottery.seed = ""
 	a.lottery.count = 1
