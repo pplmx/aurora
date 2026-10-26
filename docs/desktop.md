@@ -54,6 +54,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   上方是 **Quick start**：Run a draw / Create a token / Register a voter /
   Add a data source / Mint an NFT，直接进入对应页面；空库时另有一句话说明
   第一次抽奖会创建第一条链上记录。
+- **每页有 “How this works”**：默认折叠，点开是按顺序的 2–4 步操作说明，
+  包括每个写操作用哪把私钥、密钥不会保存、投票从注册到计票的顺序、预言机从
+  添加源到读取的路径。它回答“先做什么”，而不是再加一层表单。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
   因此 Windows/GNOME 的文本大小设置会同时放大标题、正文、提示与表格文字；
   Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。系统开启

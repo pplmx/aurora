@@ -21,6 +21,13 @@ type App struct {
 	// backup, export/import, About and the language choice. They are optional
 	// so a view test can render without a shell.
 	actions Actions
+	// guides holds each page's "How this works" disclosure. They start closed
+	// so the page stays task-first, but the explanation is one click away.
+	guides guideState
+	// scroll is the page body's position. Every page uses the same container,
+	// and setPage resets it so a new page starts at the top instead of
+	// inheriting the previous page's offset.
+	scroll ui.ScrollState
 
 	lottery    lotteryState
 	voting     votingState
@@ -305,6 +312,13 @@ var pagePurpose = map[page]string{
 	pageBlockchain: "Every record the modules wrote, newest first",
 }
 
+// scrollPage wraps a page body in the one tracked scroll container. Tracking
+// it lets setPage reset the offset explicitly instead of relying on the old
+// content happening to clamp it.
+func (a *App) scrollPage(c *ui.Context, fn func()) {
+	ui.Scroll(c).Fill().TrackScroll(&a.scroll).Children(fn)
+}
+
 // body dispatches to the current page.
 func (a *App) body(c *ui.Context) {
 	switch a.page {
@@ -384,6 +398,7 @@ func (a *App) setPage(p page) {
 		return
 	}
 	a.page = p
+	a.scroll.X, a.scroll.Y = 0, 0
 	a.refresh()
 }
 

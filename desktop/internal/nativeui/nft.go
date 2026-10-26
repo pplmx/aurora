@@ -106,7 +106,12 @@ func (a *App) loadNFT() {
 }
 
 func (a *App) nftView(c *ui.Context) {
-	ui.Scroll(c).Fill().Children(func() {
+	a.scrollPage(c, func() {
+		guide(c, &a.guides.nft,
+			"Mint an asset with a creator key, or select one in Collection. The creator is the first owner.",
+			"Transfer or Burn in the right column; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset.",
+			"History lists every mint, transfer and burn; Inspect shows the stored metadata and links.",
+		)
 		// The collection leads: what exists comes before adding to it, and the
 		// cards below act on the row it selects.
 		twoColumns(c, func() {

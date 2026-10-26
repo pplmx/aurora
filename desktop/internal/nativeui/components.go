@@ -132,6 +132,36 @@ func inlineStatus(c *ui.Context, s statusLine) {
 	ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(ui.Hex(tone))
 }
 
+// guideState remembers which page guides are open. They are per page so a
+// reader can leave one explanation open while moving between modules.
+type guideState struct {
+	lottery    bool
+	voting     bool
+	token      bool
+	oracle     bool
+	nft        bool
+	blockchain bool
+}
+
+// guide draws the page's "How this works" steps. The default is closed: the
+// page itself should still be scannable, and the explanation is for the moment
+// the operator asks "what is the order here?".
+func guide(c *ui.Context, open *bool, steps ...string) {
+	card(c, func() {
+		ui.Collapsible(c, "How this works", open, func() {
+			ui.Column(c).Gap(6).Children(func() {
+				for i, step := range steps {
+					ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
+						ui.Text(c, fmt.Sprintf("%d.", i+1)).FontSize(textSize(c, 12)).Bold().
+							Width(18).TextColor(ui.Hex(aurora))
+						ui.Text(c, step).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+					})
+				}
+			})
+		})
+	})
+}
+
 // field builds a labelled input row. MyGo's Field draws the label above the
 // control it wraps, which is the same relationship the HTML <label for> had.
 func field(c *ui.Context, label string, value *string) {

@@ -117,7 +117,7 @@ func (a *App) loadVoting() {
 // session, cast a signed ballot), and results. The four areas used to be
 // stacked at once, so a first-time operator had no visible order.
 func (a *App) votingView(c *ui.Context) {
-	ui.Scroll(c).Fill().Children(func() {
+	a.scrollPage(c, func() {
 		// loadVoting keeps both lists when either read fails, so the warning
 		// is drawn once for the page and both lists keep their last successful
 		// rows. It used to be invisible entirely: nothing rendered loadErr.
@@ -125,6 +125,12 @@ func (a *App) votingView(c *ui.Context) {
 			loadWarning(c, "Failed to load voting data", a.voting.loadErr,
 				len(a.voting.sessions) > 0 || len(a.voting.candidates) > 0)
 		}
+		guide(c, &a.guides.voting,
+			"Register voters and candidates in Setup. A voter registration returns the only copy of that voter's signing key.",
+			"Create a session with a roster and a start/end window.",
+			"Open Ballot to start the session and cast signed ballots.",
+			"Open Results and select or enter the session to read the tally.",
+		)
 		ui.Tabs(c, &a.voting.tab, "Setup", "Ballot", "Results")
 		switch a.voting.tab {
 		case 0:

@@ -55,6 +55,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Switching pages starts at the top**: the page body now tracks its scroll
+  position explicitly and `setPage` resets it. The previous container relied on
+  the old page's height clamping the offset; once the dashboard and a guide
+  card changed the heights, a new page could open a few dozen pixels down.
 - **Desktop detail cards show the fields the records actually carry**: the
   session adapter dropped `Description`, a selected candidate never showed its
   program, NFT Inspect hid the image URL, token URI and mint block, and a
@@ -316,6 +320,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **Every module page has a "How this works" guide**: the steps state the
+  order of operations in plain language, including which private key each
+  write needs and that keys are never stored. The guide starts collapsed so
+  the page stays task-first; it is one click away instead of leaving the
+  operator to infer the workflow from card headings.
 - **The desktop guides the first move and hides fields most uses do not
   need**: the dashboard now has a Quick start card ("Run a draw", "Create a
   token", "Register a voter", "Add a data source", "Mint an NFT") and each
