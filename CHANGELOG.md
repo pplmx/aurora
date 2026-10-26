@@ -227,8 +227,11 @@ documented in their per-milestone ROADMAP files.
   (name/id/type/URL), with selection resolved against the filtered rows so a
   search can never act on a different row than the one on screen, and a new
   query clearing the old row highlight rather than letting one index describe
-  two different records. The voting Results card also prints the sum of the
-  per-candidate counts, which is what a reader checks before trusting the rows.
+  two different records. The ledger page filters by module/payload/height and
+  bounds the table with a Show row limit (default 200, "Showing the newest N of
+  M" when cut), while its counters still describe the whole chain. The voting
+  Results card also prints the sum of the per-candidate counts, which is what a
+  reader checks before trusting the rows.
 - **The desktop dashboard lists recent chain activity**: the landing page showed
   six counters and a ledger verdict, which answer "how much is there" but not
   "what happened lately". A Recent activity card now lists the newest five

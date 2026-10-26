@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/egoist/mygo/ui"
@@ -44,6 +45,11 @@ type blockchainState struct {
 	rows    []BlockRow
 	table   ui.ListState
 	loadErr error
+	// search narrows the chain by module, payload or height, and blockLimit
+	// bounds how many matching rows the table builds; the counters above it
+	// still describe the whole chain.
+	search     string
+	blockLimit float64
 }
 
 func (a *App) loadDashboard() {
@@ -209,13 +215,41 @@ func (a *App) blockchainBody(c *ui.Context) {
 	a.blockchainBlocks(c)
 }
 
-// blockchainBlocks lists what the chain recorded, newest first.
+// blockchainBlocks lists what the chain recorded, newest first, narrowed by
+// the search field and bounded by the row limit: a long-lived ledger can hold
+// tens of thousands of entries, and building every row each frame is work the
+// reader did not ask for.
 func (a *App) blockchainBlocks(c *ui.Context) {
 	if len(a.blockchain.rows) == 0 {
 		emptyNote(c, "Nothing recorded on the chain yet.")
 		return
 	}
-	rows := a.blockchain.rows
+	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
+		ui.Row(c).Grow(1).Children(func() {
+			ui.SearchField(c, &a.blockchain.search).Label("Search blocks")
+		})
+		ui.Field(c, "Show", func() {
+			ui.NumberInput(c, &a.blockchain.blockLimit, 10, 10000, 10)
+		})
+	})
+	matching := make([]BlockRow, 0, len(a.blockchain.rows))
+	for _, block := range a.blockchain.rows {
+		if containsFold(a.blockchain.search, block.Module, block.Summary, strconv.FormatInt(block.Height, 10)) {
+			matching = append(matching, block)
+		}
+	}
+	if len(matching) == 0 {
+		emptyNote(c, "No blocks match “"+a.blockchain.search+"”.")
+		return
+	}
+	limit := int(a.blockchain.blockLimit)
+	if limit < 10 {
+		limit = 10
+	}
+	rows := matching
+	if len(rows) > limit {
+		rows = rows[:limit]
+	}
 	ui.Table(c, &a.blockchain.table, []ui.TableColumn{
 		{Title: "Height", Width: 90, Align: ui.End},
 		{Title: "Module", Width: 130},
@@ -231,4 +265,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 			ui.Text(c, b.Summary).FontSize(12).SingleLine()
 		}
 	})
+	if len(rows) < len(matching) {
+		hint(c, fmt.Sprintf("Showing the newest %d of %d matching entries; raise Show or search to narrow.", len(rows), len(matching)))
+	}
 }
