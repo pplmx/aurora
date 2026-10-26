@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -57,4 +58,52 @@ func TestSettingsPageWithoutCallbacksStaysReadable(t *testing.T) {
 	require.False(t, tester.HasText("Refresh"), "Settings reads no database to refresh")
 	require.False(t, tester.HasText("English"), "no language buttons without a shell")
 	require.False(t, tester.HasText("Open About Dialog"))
+}
+
+// TestSettingsStartsFromTheSavedLiveUpdatesChoice proves SetActions applies
+// the persisted value before the page is drawn, rather than defaulting off and
+// overwriting the file on the first click.
+func TestSettingsStartsFromTheSavedLiveUpdatesChoice(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(Actions{LiveUpdates: func() bool { return true }})
+	require.True(t, app.liveUpdates)
+}
+
+// TestSettingsSavesLiveUpdates pins the write path: the runtime choice and the
+// persisted one change together, and a success leaves no error banner.
+func TestSettingsSavesLiveUpdates(t *testing.T) {
+	app := New(&fakeServices{})
+	var saved bool
+	app.SetActions(Actions{
+		LiveUpdates:    func() bool { return false },
+		SetLiveUpdates: func(on bool) error { saved = on; return nil },
+	})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Every 10 seconds"))
+	tester.Frame()
+	require.True(t, saved)
+	require.True(t, app.liveUpdates)
+	require.False(t, app.settingsStatus.isErr)
+}
+
+// TestSettingsShowsAPreferenceWriteFailure keeps a failed save from looking
+// like a success that will silently reset on the next launch.
+func TestSettingsShowsAPreferenceWriteFailure(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		LiveUpdates:    func() bool { return false },
+		SetLiveUpdates: func(bool) error { return errors.New("disk full") },
+	})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Every 10 seconds"))
+	tester.Frame()
+	require.True(t, app.settingsStatus.isErr)
+	require.Contains(t, app.settingsStatus.text, "disk full")
+	require.True(t, tester.HasText("Couldn't save settings: disk full"))
 }

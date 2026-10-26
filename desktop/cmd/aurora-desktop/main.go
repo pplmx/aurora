@@ -262,6 +262,8 @@ func main() {
 		OpenRecent:      shell.OpenRecent,
 		SetLanguage:     shell.SetLanguage,
 		Language:        shell.Language,
+		LiveUpdates:     shell.LiveUpdates,
+		SetLiveUpdates:  shell.SetLiveUpdates,
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,
 		DBPath:          meta.DBPath,

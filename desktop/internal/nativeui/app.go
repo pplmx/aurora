@@ -40,6 +40,10 @@ type App struct {
 	// inheriting the previous page's offset.
 	scroll ui.ScrollState
 
+	// settingsStatus is the result of a Settings action that can fail (saving
+	// a preference); other pages' status lines stay with their forms.
+	settingsStatus statusLine
+
 	lottery    lotteryState
 	voting     votingState
 	token      tokenState

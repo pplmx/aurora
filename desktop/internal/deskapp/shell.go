@@ -60,12 +60,17 @@ type Shell struct {
 	// app is the window's state. The shell sets its current page when a link
 	// or a second launch names one, and the window's Content closure reads it.
 	app *nativeui.App
+	// prefs are the desktop-only choices that survive a launch. Session keys
+	// are not here by design.
+	prefs     Preferences
+	prefsPath string
 }
 
 // NewShell builds a shell for meta. The window is attached later, once MyGo
 // has created it.
 func NewShell(meta About) *Shell {
-	s := &Shell{meta: meta, expectEcho: map[string]int{}}
+	s := &Shell{meta: meta, expectEcho: map[string]int{}, prefsPath: preferencesPath(meta.DBPath)}
+	s.prefs = loadPreferences(s.prefsPath)
 	// The shell's own messages belong to the shell's window, so a dialog about
 	// a dropped file is a sheet on that window rather than a floating box.
 	// Before Attach (tests, an early failure) there is no window and the
@@ -505,6 +510,28 @@ func (s *Shell) SetLanguage(tag string) {
 // Language reports the language in effect, for Settings' current-language row.
 func (s *Shell) Language() string {
 	return appLocale()
+}
+
+// LiveUpdates reports the persisted live-update choice. It is read when the
+// window receives its Actions, so Settings opens on the saved value.
+func (s *Shell) LiveUpdates() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.prefs.LiveUpdates
+}
+
+// SetLiveUpdates persists the choice before reporting success: the window
+// applies it immediately, and a failed write must be visible in Settings.
+func (s *Shell) SetLiveUpdates(on bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	next := s.prefs
+	next.LiveUpdates = on
+	if err := savePreferences(s.prefsPath, next); err != nil {
+		return err
+	}
+	s.prefs = next
+	return nil
 }
 
 // messageBox puts a message on screen. It is a variable rather than a direct
