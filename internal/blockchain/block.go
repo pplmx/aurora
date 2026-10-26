@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pplmx/aurora/internal/ledger"
 	"github.com/pplmx/aurora/internal/logger"
 )
 
@@ -210,7 +211,7 @@ func (c *Chain) appendBlock(data string, stamp func(height int64) string) (int64
 // back into this chain.
 func (c *Chain) WithBlockTransaction(
 	data string,
-	txManager TransactionManager,
+	txManager ledger.TransactionManager,
 	fn func(tx *sql.Tx, height int64) error,
 ) error {
 	return c.withAppendTransaction(data, nil, txManager, fn)
@@ -220,7 +221,7 @@ func (c *Chain) WithBlockTransaction(
 // block_height stamping used by AddRecord.
 func (c *Chain) WithRecordTransaction(
 	data string,
-	txManager TransactionManager,
+	txManager ledger.TransactionManager,
 	fn func(tx *sql.Tx, height int64) error,
 ) error {
 	return c.withAppendTransaction(data, func(height int64) string {
@@ -235,7 +236,7 @@ func (c *Chain) WithRecordTransaction(
 func (c *Chain) withAppendTransaction(
 	data string,
 	stamp func(height int64) string,
-	txManager TransactionManager,
+	txManager ledger.TransactionManager,
 	fn func(tx *sql.Tx, height int64) error,
 ) error {
 	if c == nil {

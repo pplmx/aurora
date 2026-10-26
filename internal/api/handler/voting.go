@@ -5,15 +5,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/votingapp"
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 type VotingHandler struct {
 	repo      voting.TransactableRepository
 	txManager voting.TransactionManager
 	service   voting.Service
-	chain     blockchain.BlockWriter
+	chain     ledger.BlockWriter
 }
 
 // NewVotingHandler wires the voting use cases over a transaction-capable
@@ -30,7 +30,7 @@ func NewVotingHandler(repo voting.TransactableRepository, txManager voting.Trans
 // SetChain wires the blockchain writer so CastVote records accepted ballots
 // on-chain (documented "blockchain-based vote recording"). Optional and
 // nil-safe; the API server supplies it, handler tests leave it nil.
-func (h *VotingHandler) SetChain(chain blockchain.BlockWriter) {
+func (h *VotingHandler) SetChain(chain ledger.BlockWriter) {
 	h.chain = chain
 }
 

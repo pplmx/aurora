@@ -1,16 +1,16 @@
 package nftapp
 
 import (
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 type Mint struct {
 	service nft.Service
-	chain   blockchain.BlockWriter
+	chain   ledger.BlockWriter
 }
 
-func NewMint(service nft.Service, chain blockchain.BlockWriter) *Mint {
+func NewMint(service nft.Service, chain ledger.BlockWriter) *Mint {
 	return &Mint{service: service, chain: chain}
 }
 
@@ -40,10 +40,10 @@ func (u *Mint) Execute(req *MintNFTRequest) (*NFTResponse, error) {
 
 type TransferNFTUseCase struct {
 	service nft.Service
-	chain   blockchain.BlockWriter
+	chain   ledger.BlockWriter
 }
 
-func NewTransferNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *TransferNFTUseCase {
+func NewTransferNFTUseCase(service nft.Service, chain ledger.BlockWriter) *TransferNFTUseCase {
 	return &TransferNFTUseCase{service: service, chain: chain}
 }
 
@@ -76,10 +76,10 @@ func (u *TransferNFTUseCase) Execute(req *TransferNFTRequest) (*OperationRespons
 
 type BurnNFTUseCase struct {
 	service nft.Service
-	chain   blockchain.BlockWriter
+	chain   ledger.BlockWriter
 }
 
-func NewBurnNFTUseCase(service nft.Service, chain blockchain.BlockWriter) *BurnNFTUseCase {
+func NewBurnNFTUseCase(service nft.Service, chain ledger.BlockWriter) *BurnNFTUseCase {
 	return &BurnNFTUseCase{service: service, chain: chain}
 }
 

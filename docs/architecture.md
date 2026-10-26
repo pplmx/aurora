@@ -36,8 +36,9 @@ desktop          ─┘                                              ^
 | 包 | 依赖 | 说明 |
 |---|---|---|
 | `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层 | 纯领域模型、服务与仓储接口 |
-| `internal/blockchain` | `internal/logger`, `internal/utils` | 共享账本：区块、PoW、SQLite 持久化、进程级单例；已从 `domain/` 移出 |
-| `internal/app/*` | `domain`（`container` 例外） | 用例编排；错误哨兵与 HTTP fetcher 都已端口化 |
+| `internal/blockchain` | `ledger`, `logger`, `utils` | 共享账本实现：区块、PoW、SQLite 持久化、进程级单例；已从 `domain/` 移出 |
+| `internal/ledger` | 标准库 | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它 |
+| `internal/app/*` | `domain`, `ledger`（`container` 例外） | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化 |
 | `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
 | `internal/api` | `app`, `app/container`, `domain`, `infra/sqlite`, `infra/events` | HTTP 表示层；数据库/仓储/用例由 `app/container` 组装 |
 | `desktop/internal/deskapp` | `internal/api`, `infra/sqlite`, `app`, `domain` | 桌面适配器；通过 `api.Server.Services()` 取到 `app/container` |
@@ -114,7 +115,18 @@ notebook 风格的 standalone 测试改用显式注入的仓储。
 在中文 locale 下优先查桌面表，未知 key 回退核心目录再回退英文。核心 i18n
 只保留 CLI/服务层文案，并用 `cloneMessages` 隔离 `LoadLocaleFile` 的写入。
 
-### 6. 命名不一致
+### 6. 领域仍然知道账本实现
+
+token/NFT 领域服务和 lottery/oracle/voting 用例原来直接 import
+`internal/blockchain`，把 SQLite 账本实现和“只追加一条记录”的端口混在一起。
+
+**已做**：把 `BlockWriter`、`BlockTransactionWriter`、
+`LotteryRecordTransactionWriter`、`TransactionManager` 和
+`AppendWithRecord` / `AppendRecordWithHeight` 移到 `internal/ledger`；domain、
+app 和 handler 只依赖该端口，`container` 是唯一还 import 账本实现的装配点。
+`repocheck` 现在同时禁止 domain/app import `internal/blockchain`。
+
+### 7. 命名不一致
 
 原 API 的 `BlockChain`、`InitBlockChain`、`GetBlockChain`、`AddLotteryRecord`
 把实现细节（“这是 lottery 的链”）写进了共享账本 API；同一概念还有
@@ -128,7 +140,8 @@ notebook 风格的 standalone 测试改用显式注入的仓储。
 
 ```text
 internal/
-├── blockchain/        # 共享账本：纯区块/PoW + 明确的持久化端口（最终）
+├── blockchain/        # 共享账本实现：区块/PoW + 持久化 + 单例
+├── ledger/            # 账本端口：BlockWriter、事务追加助手
 ├── domain/            # 只放实体、领域服务、仓储端口、领域错误
 ├── app/               # 用例；只依赖 domain
 ├── app/container/     # 组合根：打开存储、构造仓储/用例、生命周期
@@ -150,6 +163,7 @@ internal/
       `native_ledger.go` / `native_keys.go`，并改用领域仓储端口。
 - [x] 让 Shell 的 File 导入/导出复用 container 的 lottery 仓储。
 - [x] 统一账本对外命名。
+- [x] 抽出 `internal/ledger` 端口，domain/app 不再 import `internal/blockchain`。
 - [x] 抽出 `app/container` 组合根；`api.Server` 已委托存储生命周期。
 - [x] 把 `desktopUIMessages` 移出核心 i18n。
 - [ ] 评估把账本 SQL 移到 `infra/sqlite`；这一步需要单独的迁移/回归计划。

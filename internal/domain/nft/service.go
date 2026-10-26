@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 type Service interface {
-	Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error)
-	Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (*Operation, error)
-	Burn(nftID string, owner, privateKey []byte, chain blockchain.BlockWriter) error
+	Mint(nft *NFT, chain ledger.BlockWriter) (*NFT, error)
+	Transfer(nftID string, from, to, privateKey []byte, chain ledger.BlockWriter) (*Operation, error)
+	Burn(nftID string, owner, privateKey []byte, chain ledger.BlockWriter) error
 	VerifyTransfer(op *Operation) (bool, error)
 	GetNFTByID(id string) (*NFT, error)
 	GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*NFT, error)
@@ -67,17 +67,17 @@ func (s *NFTService) txRepo(tx *sql.Tx) Repository {
 }
 
 // withBlockTransaction appends the audit block and applies fn in one
-// transaction, via the chain's own branching (see blockchain.AppendWithRecord).
+// transaction, via the chain's own branching (see ledger.AppendWithRecord).
 func (s *NFTService) withBlockTransaction(
-	chain blockchain.BlockWriter,
+	chain ledger.BlockWriter,
 	data string,
 	fn func(repo Repository, height int64) error,
 ) (int64, error) {
-	return blockchain.AppendWithRecord(chain, s.txManager, data,
+	return ledger.AppendWithRecord(chain, s.txManager, data,
 		func(tx *sql.Tx, height int64) error { return fn(s.txRepo(tx), height) })
 }
 
-func (s *NFTService) Mint(nft *NFT, chain blockchain.BlockWriter) (*NFT, error) {
+func (s *NFTService) Mint(nft *NFT, chain ledger.BlockWriter) (*NFT, error) {
 	if err := nft.Validate(); err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func verifyOwnerKey(pub, priv []byte) error {
 	return nil
 }
 
-func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (*Operation, error) {
+func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain ledger.BlockWriter) (*Operation, error) {
 	// Existence check only — we deliberately do NOT call
 	// nft.IsOwner(from) here. That would read nft.Owner outside
 	// any lock, racing with another goroutine's
@@ -197,7 +197,7 @@ func (s *NFTService) Transfer(nftID string, from, to, privateKey []byte, chain b
 	return op, nil
 }
 
-func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain blockchain.BlockWriter) error {
+func (s *NFTService) Burn(nftID string, owner, privateKey []byte, chain ledger.BlockWriter) error {
 	// Existence check only — same pattern as Transfer.
 	nft, err := s.repo.GetNFT(nftID)
 	if err != nil {

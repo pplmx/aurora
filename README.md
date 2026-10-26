@@ -173,7 +173,8 @@ cmd/aurora/     # CLI 入口
 cmd/api/        # REST API 服务入口
 desktop/        # MyGo 桌面壳（嵌套模块；cmd/aurora-desktop + internal/deskapp）
 internal/
-├── blockchain/ # 共享账本子系统：区块、PoW、持久化与单例引导
+├── blockchain/ # 共享账本实现：区块、PoW、持久化与单例引导
+├── ledger/     # 账本端口：BlockWriter、事务追加助手（无存储实现）
 ├── domain/     # 领域层：lottery / voting / nft / token / oracle / events
 ├── app/        # 应用层：用例编排（<module>app 包）与 container 组合根
 ├── infra/      # 基础设施：SQLite、HTTP 客户端、备份、迁移、事件

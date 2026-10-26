@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 type transactionalLotteryRepository interface {
@@ -38,9 +38,9 @@ func NewCreate(
 
 func (uc *Create) saveWithBlock(jsonData string, record *lottery.LotteryRecord) error {
 	txRepo, repoOK := uc.lotteryRepo.(transactionalLotteryRepository)
-	writer, chainOK := uc.blockRepo.(blockchain.LotteryRecordTransactionWriter)
+	writer, chainOK := uc.blockRepo.(ledger.LotteryRecordTransactionWriter)
 	if repoOK && chainOK {
-		_, err := blockchain.AppendRecordWithHeight(writer, txRepo, jsonData, func(tx *sql.Tx, height int64) error {
+		_, err := ledger.AppendRecordWithHeight(writer, txRepo, jsonData, func(tx *sql.Tx, height int64) error {
 			record.BlockHeight = height
 			if err := txRepo.WithTx(tx).Save(record); err != nil {
 				return fmt.Errorf("failed to save to repository: %w", err)
