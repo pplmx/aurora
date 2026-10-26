@@ -123,3 +123,32 @@ func TestCollectionListsUseTheirIndexes(t *testing.T) {
 		`SELECT id, title, description, start_time, end_time, status, candidates, created_at
 		 FROM voting_sessions ORDER BY created_at DESC`), "session list")
 }
+
+// TestLotteryHistoryUsesRecencyIndex covers the deterministic newest-first
+// order: timestamp DESC, block_height DESC, id. Ordering by timestamp alone
+// used the single-column index and could not break same-second ties; adding
+// the tiebreakers to that plan made SQLite sort in a temp B-tree (measured as
+// "USE TEMP B-TREE FOR LAST TERM OF ORDER BY"). The composite index keeps the
+// order a direct walk, and the repository bootstrap drops the now-redundant
+// single-column index.
+func TestLotteryHistoryUsesRecencyIndex(t *testing.T) {
+	repo, cleanup := setupLotteryTestDB(t)
+	defer cleanup()
+
+	details := queryPlanDetails(t, repo.GetDB(),
+		`SELECT l.id, l.block_height, l.seed, l.participants, l.winners, l.winner_addresses,
+		        l.vrf_proof, l.vrf_output, COALESCE(k.public_key, ''), l.timestamp, l.verified
+		 FROM lottery_records l
+		 LEFT JOIN lottery_vrf_keys k ON k.record_id = l.id
+		 `+lotteryNewestFirst+`
+		 LIMIT ? OFFSET ?`, 100, 0)
+	requireNoTempBTree(t, details, "lottery history")
+	require.Contains(t, strings.Join(details, " "), "idx_lottery_recency",
+		"lottery history should read the recency index, got: %v", details)
+
+	var oldIndex int
+	require.NoError(t, repo.GetDB().QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_lottery_timestamp'`,
+	).Scan(&oldIndex))
+	require.Zero(t, oldIndex, "the timestamp-only index is subsumed by idx_lottery_recency")
+}
