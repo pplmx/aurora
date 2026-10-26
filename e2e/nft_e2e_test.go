@@ -174,7 +174,7 @@ func (r *inMemoryNFTRepo) WithTx(_ *sql.Tx) nft.Repository {
 func TestNFTE2E(t *testing.T) {
 	repo := newInMemoryNFTRepo()
 	service := nft.NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 
 	_, creatorPriv, _ := ed25519.GenerateKey(rand.Reader)
 	creatorPub := creatorPriv.Public().(ed25519.PublicKey)
@@ -234,7 +234,7 @@ func TestNFTE2E(t *testing.T) {
 func TestNFTMultipleOwners(t *testing.T) {
 	repo := newInMemoryNFTRepo()
 	service := nft.NewServiceWithoutTx(repo)
-	chain := blockchain.InitBlockChain()
+	chain := blockchain.Init()
 
 	_, user1Priv, _ := ed25519.GenerateKey(rand.Reader)
 	user1Pub := user1Priv.Public().(ed25519.PublicKey)

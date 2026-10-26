@@ -27,7 +27,7 @@ func TestTokenTransferRollbackLeavesNoOnChainBlock(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = repo.Close() })
 
-	chain := blockchain.NewBlockChainWithDB(repo.GetDB())
+	chain := blockchain.NewWithDB(repo.GetDB())
 	replay, err := infraevents.NewSQLiteReplayProtection(dbPath)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = replay.Close() })
@@ -72,7 +72,7 @@ func TestNFTTransferRollbackLeavesNoOnChainBlock(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = repo.Close() })
 
-	chain := blockchain.NewBlockChainWithDB(repo.GetDB())
+	chain := blockchain.NewWithDB(repo.GetDB())
 	service := nft.NewService(repo, NewTxManager(repo.GetDB()))
 
 	ownerPublic, _, err := ed25519.GenerateKey(rand.Reader)

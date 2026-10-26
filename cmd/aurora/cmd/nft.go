@@ -54,8 +54,8 @@ func nftService() (nft.Service, error) {
 	return nft.NewService(repo, txManager), nil
 }
 
-func nftChain() *blockchain.BlockChain {
-	return blockchain.InitBlockChain()
+func nftChain() *blockchain.Chain {
+	return blockchain.Init()
 }
 
 var mintCmd = &cobra.Command{

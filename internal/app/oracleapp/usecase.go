@@ -138,7 +138,7 @@ func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchData
 			return fetchResponse(data), nil
 		}
 
-		height, err := chain.AddLotteryRecord(string(jsonData))
+		height, err := chain.AddRecord(string(jsonData))
 		if err != nil {
 			return nil, fmt.Errorf("failed to record on chain: %w", err)
 		}
@@ -163,7 +163,7 @@ func fetchResponse(data *oracle.OracleData) *FetchDataResponse {
 }
 
 type ChainInterface interface {
-	AddLotteryRecord(data string) (int64, error)
+	AddRecord(data string) (int64, error)
 }
 
 type AddSourceUseCase struct {

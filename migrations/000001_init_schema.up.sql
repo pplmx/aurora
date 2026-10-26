@@ -12,8 +12,8 @@
 -- Schema matches internal/blockchain/init.go's CREATE TABLE exactly
 -- (height PRIMARY KEY, timestamp column, no synthetic id). The previous
 -- draft here (id AUTOINCREMENT + height UNIQUE + no timestamp) contradicted
--- what InitBlockChain actually creates and inserts, so a freshly migrated
--- DB would have broken InitBlockChain's INSERT OR REPLACE. The migration has
+-- what Init actually creates and inserts, so a freshly migrated
+-- DB would have broken Init's INSERT OR REPLACE. The migration has
 -- never applied anywhere (see above), so rewriting it is safe.
 CREATE TABLE IF NOT EXISTS blocks (
     height INTEGER PRIMARY KEY,

@@ -14,7 +14,7 @@ import (
 // like the REST handler and CLI paths do. StartOracleScheduler previously
 // built its FetchDataUseCase without calling SetChain, so every
 // scheduler-persisted row was stored with block_height=0 (the app layer only
-// calls chain.AddLotteryRecord when a chain is wired). The scheduler's fetch
+// calls chain.AddRecord when a chain is wired). The scheduler's fetch
 // is stashed on the Server under the same mutex as the scheduler object; this
 // test asserts it carries the on-chain recorder. A future change that drops
 // the SetChain wiring — or the export seam that makes it observable — fails

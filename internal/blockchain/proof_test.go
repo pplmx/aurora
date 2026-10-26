@@ -110,7 +110,7 @@ func TestProofOfWorkRun_Deadline(t *testing.T) {
 }
 
 // TestProofOfWorkValidate pins the proof check the chain actually runs:
-// BlockChain.Verify calls pow.Validate(), and the standalone ValidateProof
+// Chain.Verify calls pow.Validate(), and the standalone ValidateProof
 // helper that duplicated its comparison was removed.
 func TestProofOfWorkValidate(t *testing.T) {
 	block := &Block{

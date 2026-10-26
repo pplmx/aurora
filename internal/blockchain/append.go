@@ -64,7 +64,7 @@ func AppendRecordWithHeight(
 	record func(tx *sql.Tx, height int64) error,
 ) (int64, error) {
 	var height int64
-	err := writer.WithLotteryRecordTransaction(data, txManager, func(tx *sql.Tx, blockHeight int64) error {
+	err := writer.WithRecordTransaction(data, txManager, func(tx *sql.Tx, blockHeight int64) error {
 		height = blockHeight
 		return record(tx, blockHeight)
 	})

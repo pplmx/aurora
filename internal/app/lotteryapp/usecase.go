@@ -18,7 +18,7 @@ type transactionalLotteryRepository interface {
 type Create struct {
 	lotteryRepo lottery.Repository
 	blockRepo   interface {
-		AddLotteryRecord(data string) (int64, error)
+		AddRecord(data string) (int64, error)
 	}
 	service lottery.Service
 }
@@ -26,7 +26,7 @@ type Create struct {
 func NewCreate(
 	lotteryRepo lottery.Repository,
 	blockRepo interface {
-		AddLotteryRecord(data string) (int64, error)
+		AddRecord(data string) (int64, error)
 	},
 ) *Create {
 	return &Create{
@@ -53,7 +53,7 @@ func (uc *Create) saveWithBlock(jsonData string, record *lottery.LotteryRecord) 
 		return nil
 	}
 
-	height, err := uc.blockRepo.AddLotteryRecord(jsonData)
+	height, err := uc.blockRepo.AddRecord(jsonData)
 	if err != nil {
 		return fmt.Errorf("failed to add to blockchain: %w", err)
 	}

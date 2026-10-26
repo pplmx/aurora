@@ -50,9 +50,9 @@ func readBlockAt(t *testing.T, db *sql.DB, height int64) *Block {
 // deterministic (prev-hash + data + nonce + difficulty only — timestamp is not
 // part of the PoW input), so any process's genesis matches, and the peer blocks
 // link correctly to the shared ledger's genesis.
-func peerChain(t *testing.T, n int, data string) *BlockChain {
+func peerChain(t *testing.T, n int, data string) *Chain {
 	t.Helper()
-	c := NewBlockChain()
+	c := New()
 	for i := 0; i < n; i++ {
 		if _, err := c.AddBlock(data); err != nil {
 			t.Fatalf("peer AddBlock: %v", err)
@@ -61,14 +61,14 @@ func peerChain(t *testing.T, n int, data string) *BlockChain {
 	return c
 }
 
-// TestBlockChain_SecondProcessAppend_NoSilentReplace is the regression test for
+// TestChain_SecondProcessAppend_NoSilentReplace is the regression test for
 // ISS-242 / TASK-244: two processes sharing one DB file must not silently lose
 // a committed block. Both boot into a genesis-only in-memory chain; the first
 // commits height 1; the second, whose in-memory chain is still genesis-only
 // (it booted before the first committed), must pick up the committed block via
 // syncFromDB and land on height 2 — its payload survives, the winner's is
 // untouched, and the shared ledger stays valid.
-func TestBlockChain_SecondProcessAppend_NoSilentReplace(t *testing.T) {
+func TestChain_SecondProcessAppend_NoSilentReplace(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 
@@ -77,9 +77,9 @@ func TestBlockChain_SecondProcessAppend_NoSilentReplace(t *testing.T) {
 
 	// Both processes boot against the shared empty ledger BEFORE either commits,
 	// so both in-memory chains are genesis-only (the ISS-242 precondition).
-	chainA := &BlockChain{Blocks: []*Block{Genesis()}}
+	chainA := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chainA, dbA)
-	chainB := &BlockChain{Blocks: []*Block{Genesis()}}
+	chainB := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chainB, dbB)
 
 	// Process A commits height 1.
@@ -98,23 +98,23 @@ func TestBlockChain_SecondProcessAppend_NoSilentReplace(t *testing.T) {
 	got2 := readBlockAt(t, dbA, 2)
 	require.Equal(t, "process-b", string(got2.Data), "second process's payload must be persisted too")
 
-	reloaded := &BlockChain{Blocks: []*Block{Genesis()}}
+	reloaded := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
 	require.Len(t, reloaded.Blocks, 3, "genesis + both committed blocks")
 	rep := reloaded.VerifyIntegrity()
 	require.True(t, rep.Valid, "shared ledger must verify after multi-process appends: %+v", rep)
 }
 
-// TestBlockChain_HeightConflict_PersistRejectsDuplicateHeight proves the
+// TestChain_HeightConflict_PersistRejectsDuplicateHeight proves the
 // persist hook refuses to overwrite a committed block: once a row exists at a
 // height, persisting a different block at that height must surface
 // ErrHeightConflict (never silently REPLACE the committed payload).
-func TestBlockChain_HeightConflict_PersistRejectsDuplicateHeight(t *testing.T) {
+func TestChain_HeightConflict_PersistRejectsDuplicateHeight(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 
 	db := openSecondHandle(t, dbPath)
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	// A peer process ("other process") wins height 1 first.
@@ -131,17 +131,17 @@ func TestBlockChain_HeightConflict_PersistRejectsDuplicateHeight(t *testing.T) {
 	require.Equal(t, "peer-payload", string(got.Data))
 }
 
-// TestBlockChain_HeightConflict_RetriesAtNextFreeHeight drives the full
+// TestChain_HeightConflict_RetriesAtNextFreeHeight drives the full
 // appendBlock retry loop: with a competing block already committed at height 1
 // while this process's stale view still believes height 1 is free, AddBlock
 // must detect the conflict, drop its losing candidate, re-sync from the DB and
 // land its payload on height 2 (winning and losing payloads both survive).
-func TestBlockChain_HeightConflict_RetriesAtNextFreeHeight(t *testing.T) {
+func TestChain_HeightConflict_RetriesAtNextFreeHeight(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 
 	db := openSecondHandle(t, dbPath)
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	// The peer committed height 1 while this process's in-memory chain still
@@ -171,17 +171,17 @@ func TestBlockChain_HeightConflict_RetriesAtNextFreeHeight(t *testing.T) {
 	require.Equal(t, "local-payload", string(got2.Data), "loser's payload must survive at the retried height")
 }
 
-// TestBlockChain_HeightConflict_RetriedRecord_ReStampsHeight verifies that a
+// TestChain_HeightConflict_RetriedRecord_ReStampsHeight verifies that a
 // lottery/oracle audit record relocated by the conflict-retry loop carries the
 // CORRECT final height in its stamped block_height field (the app-layer
 // consumers read that stamp from the immutable chain payload; a stale stamp
 // would corrupt record↔block correlation, ISS-097's original defect).
-func TestBlockChain_HeightConflict_RetriedRecord_ReStampsHeight(t *testing.T) {
+func TestChain_HeightConflict_RetriedRecord_ReStampsHeight(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 
 	db := openSecondHandle(t, dbPath)
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	// Peer commits height 1 first.
@@ -199,7 +199,7 @@ func TestBlockChain_HeightConflict_RetriedRecord_ReStampsHeight(t *testing.T) {
 	}
 
 	payload := `{"id":"abc","block_height":0,"seed":"s","winners":["Alice"]}`
-	h, err := chain.AddLotteryRecord(payload)
+	h, err := chain.AddRecord(payload)
 	require.NoError(t, err)
 	require.Equal(t, int64(2), h, "record must land at the retried height")
 
@@ -208,18 +208,18 @@ func TestBlockChain_HeightConflict_RetriedRecord_ReStampsHeight(t *testing.T) {
 		"retried audit record must be re-stamped with its final height, not the lost one")
 }
 
-// TestBlockChain_MultiProcessConcurrentAppends_BothSurvive races two
+// TestChain_MultiProcessConcurrentAppends_BothSurvive races two
 // independent chains over one DB file (each with its own sql handle, like two
 // processes). No matter which process wins or loses individual height races,
 // BOTH payloads must end up committed at distinct heights and the final shared
 // ledger must verify. Run with -race.
-func TestBlockChain_MultiProcessConcurrentAppends_BothSurvive(t *testing.T) {
+func TestChain_MultiProcessConcurrentAppends_BothSurvive(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 
-	chainA := &BlockChain{Blocks: []*Block{Genesis()}}
+	chainA := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chainA, openSecondHandle(t, dbPath))
-	chainB := &BlockChain{Blocks: []*Block{Genesis()}}
+	chainB := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chainB, openSecondHandle(t, dbPath))
 
 	var wg sync.WaitGroup
@@ -236,7 +236,7 @@ func TestBlockChain_MultiProcessConcurrentAppends_BothSurvive(t *testing.T) {
 	require.Equal(t, int64(1), lo, "heights 1 and 2 must be assigned to the two processes in some order")
 	require.Equal(t, int64(2), hi)
 
-	reloaded := &BlockChain{Blocks: []*Block{Genesis()}}
+	reloaded := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
 	require.Len(t, reloaded.Blocks, 3)
 
@@ -254,15 +254,15 @@ func TestBlockChain_MultiProcessConcurrentAppends_BothSurvive(t *testing.T) {
 	require.True(t, rep.Valid, "concurrent multi-process ledger must verify: %+v", rep)
 }
 
-// TestBlockChain_SyncFromDB_ReconcilesDivergedTail proves the boot-time sync
+// TestChain_SyncFromDB_ReconcilesDivergedTail proves the boot-time sync
 // path: a chain whose in-memory tail is shorter than the shared DB ledger picks
 // up the missing blocks on the next append instead of reusing the stale height.
-func TestBlockChain_SyncFromDB_ReconcilesDivergedTail(t *testing.T) {
+func TestChain_SyncFromDB_ReconcilesDivergedTail(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 
 	db := openSecondHandle(t, dbPath)
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	// Another process committed heights 1..3 while this process was idle.
@@ -280,7 +280,7 @@ func TestBlockChain_SyncFromDB_ReconcilesDivergedTail(t *testing.T) {
 	got := readBlockAt(t, db, 4)
 	require.Equal(t, "local-after-peers", string(got.Data))
 
-	reloaded := &BlockChain{Blocks: []*Block{Genesis()}}
+	reloaded := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
 	rep := reloaded.VerifyIntegrity()
 	require.True(t, rep.Valid, "reconciled ledger must verify: %+v", rep)
@@ -304,7 +304,7 @@ func mineNext(t *testing.T, prev *Block, data string) *Block {
 	return block
 }
 
-// TestBlockChain_SyncFromDB_PhantomTailRebuild is the regression test for the
+// TestChain_SyncFromDB_PhantomTailRebuild is the regression test for the
 // review HIGH finding on TASK-244: a NON-conflict persist failure (SQLITE_BUSY,
 // disk full) leaves the failed block in memory (best-effort fallback), so the
 // in-memory chain is one taller than the DB at the seam. If a peer then commits
@@ -313,12 +313,12 @@ func mineNext(t *testing.T, prev *Block, data string) *Block {
 // next append mined on top of a phantom PrevHash, producing a chain that only
 // broke at the next boot's VerifyIntegrity. The seam check must rebuild from
 // the authoritative ledger instead.
-func TestBlockChain_SyncFromDB_PhantomTailRebuild(t *testing.T) {
+func TestChain_SyncFromDB_PhantomTailRebuild(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 
 	db := openSecondHandle(t, dbPath)
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	// Process commits height 1 and 2 normally (the shared tail both processes
@@ -356,21 +356,21 @@ func TestBlockChain_SyncFromDB_PhantomTailRebuild(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(5), h)
 
-	reloaded := &BlockChain{Blocks: []*Block{Genesis()}}
+	reloaded := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
 	rep := reloaded.VerifyIntegrity()
 	require.True(t, rep.Valid, "rebuilt ledger must verify (previously: broken prev-hash at the phantom seam): %+v", rep)
 }
 
-// TestBlockChain_HeightConflict_RetryBounded ensures a pathological endless
+// TestChain_HeightConflict_RetryBounded ensures a pathological endless
 // conflict cannot hang AddBlock forever: the retry loop is capped, after which
 // ErrHeightConflict is returned rather than a livelock.
-func TestBlockChain_HeightConflict_RetryBounded(t *testing.T) {
+func TestChain_HeightConflict_RetryBounded(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "aurora.db")
 
 	db := openSecondHandle(t, dbPath)
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	// Commit the competing block at height 1 once, then leave syncFromDB as a

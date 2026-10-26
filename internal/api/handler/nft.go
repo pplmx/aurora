@@ -34,7 +34,7 @@ func NewNFTHandler(repo nft.TransactableRepository, txManager nft.TransactionMan
 	return &NFTHandler{
 		repo:    repo,
 		service: nft.NewService(repo, txManager),
-		chain:   blockchain.InitBlockChain(),
+		chain:   blockchain.Init(),
 	}
 }
 

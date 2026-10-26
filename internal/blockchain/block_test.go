@@ -13,7 +13,7 @@ import (
 
 // resetChainForTest wipes the singleton state and the on-disk DB so each
 // test starts clean. The package resets by removing ./data entirely, so we
-// chdir into a temp dir for every test that touches InitBlockChain/InitDB.
+// chdir into a temp dir for every test that touches Init/InitDB.
 func resetChainForTest(t *testing.T) {
 	t.Helper()
 	prevDir, err := os.Getwd()
@@ -38,15 +38,15 @@ func TestGenesis_ReturnsMinedBlock(t *testing.T) {
 	assert.NotZero(t, g.Timestamp, "Genesis timestamp should be set")
 }
 
-func TestNewBlockChain_ContainsGenesis(t *testing.T) {
-	c := NewBlockChain()
+func TestNewChain_ContainsGenesis(t *testing.T) {
+	c := New()
 	require.NotNil(t, c)
 	require.Len(t, c.Blocks, 1)
 	assert.Equal(t, []byte("Genesis"), c.Blocks[0].Data)
 }
 
-func TestBlockChain_AddBlock_ExtendsChain(t *testing.T) {
-	c := NewBlockChain()
+func TestChain_AddBlock_ExtendsChain(t *testing.T) {
+	c := New()
 	height, err := c.AddBlock("first transaction")
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), height, "first appended block has height 1")
@@ -59,8 +59,8 @@ func TestBlockChain_AddBlock_ExtendsChain(t *testing.T) {
 	assert.Len(t, c.Blocks[1].Hash, 32)
 }
 
-func TestBlockChain_AddBlock_MultipleAppends(t *testing.T) {
-	c := NewBlockChain()
+func TestChain_AddBlock_MultipleAppends(t *testing.T) {
+	c := New()
 	for i, data := range []string{"a", "b", "c"} {
 		h, err := c.AddBlock(data)
 		require.NoError(t, err)
@@ -73,21 +73,21 @@ func TestBlockChain_AddBlock_MultipleAppends(t *testing.T) {
 	}
 }
 
-func TestBlockChain_AddBlock_OnNilOrEmpty(t *testing.T) {
-	var nilChain *BlockChain
+func TestChain_AddBlock_OnNilOrEmpty(t *testing.T) {
+	var nilChain *Chain
 	h, err := nilChain.AddBlock("x")
 	assert.Error(t, err)
 	assert.Equal(t, int64(0), h)
 	assert.Contains(t, err.Error(), "not initialized")
 
-	empty := &BlockChain{}
+	empty := &Chain{}
 	_, err = empty.AddBlock("x")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not initialized")
 }
 
-func TestBlockChain_BlockData_SkipsGenesis(t *testing.T) {
-	c := NewBlockChain()
+func TestChain_BlockData_SkipsGenesis(t *testing.T) {
+	c := New()
 	_, _ = c.AddBlock("lottery-1")
 	_, _ = c.AddBlock("lottery-2")
 
@@ -95,25 +95,25 @@ func TestBlockChain_BlockData_SkipsGenesis(t *testing.T) {
 	assert.Equal(t, []string{"lottery-1", "lottery-2"}, records)
 }
 
-func TestBlockChain_BlockData_EmptyChain(t *testing.T) {
-	c := NewBlockChain()
+func TestChain_BlockData_EmptyChain(t *testing.T) {
+	c := New()
 	records := c.BlockData()
 	assert.Empty(t, records, "only Genesis present → no records")
 }
 
-func TestBlockChain_AddLotteryRecord_DelegatesToAddBlock(t *testing.T) {
-	c := NewBlockChain()
-	h, err := c.AddLotteryRecord("L-1")
+func TestChain_AddRecord_DelegatesToAddBlock(t *testing.T) {
+	c := New()
+	h, err := c.AddRecord("L-1")
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), h)
 	require.Len(t, c.Blocks, 2)
 	assert.Equal(t, []byte("L-1"), c.Blocks[1].Data)
 }
 
-func TestBlockChain_RecordsIncludeEmptyBlockData(t *testing.T) {
+func TestChain_RecordsIncludeEmptyBlockData(t *testing.T) {
 	// BlockData should include blocks whose Data is non-empty and
 	// is not the literal "Genesis" string — empty data should be skipped.
-	c := NewBlockChain()
+	c := New()
 	_, _ = c.AddBlock("")
 
 	records := c.BlockData()
@@ -125,22 +125,22 @@ func TestBlockChain_RecordsIncludeEmptyBlockData(t *testing.T) {
 	}
 }
 
-// TestBlockChain_Len proves the Len() helper returns the right
+// TestChain_Len proves the Len() helper returns the right
 // count in three states (nil chain, empty chain after reset,
 // populated chain) AND that concurrent calls during AppendBlock
 // never race with the read. This is a regression guard for the
 // fact that Len() is one of the readers of c.Blocks and must
 // hold c.mu.RLock for the access (Round 13's fix).
-func TestBlockChain_Len(t *testing.T) {
+func TestChain_Len(t *testing.T) {
 	t.Run("nil chain returns zero", func(t *testing.T) {
-		var c *BlockChain
+		var c *Chain
 		if got := c.Len(); got != 0 {
 			t.Errorf("nil chain Len() = %d, want 0", got)
 		}
 	})
 
 	t.Run("new chain has genesis", func(t *testing.T) {
-		c := NewBlockChain()
+		c := New()
 		// Genesis is the first block, so Len should be 1.
 		if got := c.Len(); got != 1 {
 			t.Errorf("fresh chain Len() = %d, want 1", got)
@@ -149,7 +149,7 @@ func TestBlockChain_Len(t *testing.T) {
 
 	t.Run("len grows with appends", func(t *testing.T) {
 		resetChainForTest(t)
-		c := NewBlockChain()
+		c := New()
 		for i := 0; i < 5; i++ {
 			if _, err := c.AddBlock("data"); err != nil {
 				t.Fatalf("AddBlock(%d) failed: %v", i, err)
@@ -161,14 +161,14 @@ func TestBlockChain_Len(t *testing.T) {
 	})
 }
 
-// TestBlockChain_ResetBlocks_ReseedsToGenesis locks the v1.58 fix: after
+// TestChain_ResetBlocks_ReseedsToGenesis locks the v1.58 fix: after
 // appends, ResetBlocks() must collapse the in-memory chain back to a single
 // genesis block so the next AddBlock restarts at height 1 (and links to
 // genesis), not the stale pre-reset height. This is what `lottery reset`
 // relies on after clearing the persisted tables (TASK-071, ISS-063).
-func TestBlockChain_ResetBlocks_ReseedsToGenesis(t *testing.T) {
+func TestChain_ResetBlocks_ReseedsToGenesis(t *testing.T) {
 	resetChainForTest(t)
-	c := NewBlockChain()
+	c := New()
 	for i := 0; i < 4; i++ {
 		if _, err := c.AddBlock("data"); err != nil {
 			t.Fatalf("AddBlock(%d) failed: %v", i, err)
@@ -196,13 +196,13 @@ func TestBlockChain_ResetBlocks_ReseedsToGenesis(t *testing.T) {
 	}
 }
 
-// TestBlockChain_Len_ConcurrentWithAppend guards the Round 13
+// TestChain_Len_ConcurrentWithAppend guards the Round 13
 // race fix: Len() must hold c.mu for its access to c.Blocks, so
 // running many concurrent Len() calls while another goroutine
 // AppendBlocks must not race. Run with `go test -race`.
-func TestBlockChain_Len_ConcurrentWithAppend(t *testing.T) {
+func TestChain_Len_ConcurrentWithAppend(t *testing.T) {
 	resetChainForTest(t)
-	c := NewBlockChain()
+	c := New()
 
 	const readers = 8
 	const appends = 32
@@ -237,7 +237,7 @@ func TestBlockChain_Len_ConcurrentWithAppend(t *testing.T) {
 }
 
 func TestVerifyIntegrity_ValidChain(t *testing.T) {
-	c := NewBlockChain()
+	c := New()
 	_, err := c.AddBlock("first")
 	require.NoError(t, err)
 	_, err = c.AddBlock("second")
@@ -250,7 +250,7 @@ func TestVerifyIntegrity_ValidChain(t *testing.T) {
 }
 
 func TestVerifyIntegrity_DetectsPrevHashBreak(t *testing.T) {
-	c := NewBlockChain()
+	c := New()
 	_, err := c.AddBlock("a")
 	require.NoError(t, err)
 	_, err = c.AddBlock("b")
@@ -267,7 +267,7 @@ func TestVerifyIntegrity_DetectsPrevHashBreak(t *testing.T) {
 }
 
 func TestVerifyIntegrity_DetectsTamperedHash(t *testing.T) {
-	c := NewBlockChain()
+	c := New()
 	_, err := c.AddBlock("a")
 	require.NoError(t, err)
 
@@ -285,7 +285,7 @@ func TestVerifyIntegrity_DetectsTamperedHash(t *testing.T) {
 // showed every block one too low — the desktop ledger read height 0 for the
 // first recorded block.
 func TestBlockEntriesCarryTheirHeights(t *testing.T) {
-	c := NewBlockChain()
+	c := New()
 	_, err := c.AddBlock("first")
 	require.NoError(t, err)
 	_, err = c.AddBlock("second")

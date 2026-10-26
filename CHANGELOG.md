@@ -331,6 +331,12 @@ documented in their per-milestone ROADMAP files.
   `domain` boundary. The package API and behavior are unchanged; a new
   `docs/architecture.md` records the dependency contract and the remaining
   refactor order.
+- **The ledger API now reads as one concept**: `BlockChain` became `Chain`;
+  `NewBlockChain`/`NewBlockChainWithDB`/`InitBlockChain`/`GetBlockChain`
+  became `New`/`NewWithDB`/`Init`/`Get`; and `AddLotteryRecord` /
+  `WithLotteryRecordTransaction` became `AddRecord` / `WithRecordTransaction`.
+  The old names implied a lottery-only writer and a type that was really the
+  shared ledger.
 - **The desktop service adapter is split by module**: `native_services.go`
   keeps only the struct and constructor; lottery, ledger, voting, token, oracle,
   NFT and key-pair mappings live in their own files. The 779-line adapter is

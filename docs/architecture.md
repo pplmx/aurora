@@ -104,10 +104,13 @@ oracle 调度器、六个 handler，并暴露 `Services()` 给桌面端。字段
 
 ### 6. 命名不一致
 
-`BlockChain`、`InitBlockChain`、`GetBlockChain`、`AddLotteryRecord` 把实现
-细节（“这是 lottery 的链”）写进了共享账本 API；同一概念还有 `blockChain`
-局部变量。目录迁移后应统一为 `Chain`、`New`、`NewWithDB`、`Init`、`Get`、
-`AddRecord`，并用编译器/测试确认所有调用点。
+原 API 的 `BlockChain`、`InitBlockChain`、`GetBlockChain`、`AddLotteryRecord`
+把实现细节（“这是 lottery 的链”）写进了共享账本 API；同一概念还有
+`blockChain` 局部变量。
+
+**已做**：统一为 `Chain`、`New`、`NewWithDB`、`Init`、`Get`、`AddRecord`、
+`WithRecordTransaction`；局部变量统一为 `chain`，测试名同步。编译器、全量
+测试和桌面模块确认了所有调用点。
 
 ## 目标结构
 
@@ -132,7 +135,7 @@ internal/
 - [x] 拆 `nativeServices` 为 `native_lottery.go` / `native_voting.go` /
       `native_token.go` / `native_nft.go` / `native_oracle.go` /
       `native_ledger.go` / `native_keys.go`。
-- [ ] 统一账本对外命名。
+- [x] 统一账本对外命名。
 - [ ] 抽出组合根，让 `api.Server` 只做 HTTP；桌面复用同一容器。
 - [ ] 把 `desktopUIMessages` 移出核心 i18n。
 - [ ] 评估把账本 SQL 移到 `infra/sqlite`；这一步需要单独的迁移/回归计划。

@@ -205,7 +205,7 @@ var fetchCmd = &cobra.Command{
 		uc := oracleapp.NewFetchDataUseCase(repo)
 		// Record CLI-fetched data on-chain, matching the API/scheduler paths
 		// and the package intent; otherwise BlockHeight always printed 0.
-		uc.SetChain(blockchain.GetBlockChain())
+		uc.SetChain(blockchain.Get())
 		resp, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
 		if err != nil {
 			return fmt.Errorf("failed to fetch data: %w", err)

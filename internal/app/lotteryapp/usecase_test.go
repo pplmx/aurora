@@ -41,12 +41,12 @@ func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryReco
 	return result, nil
 }
 
-type mockBlockChain struct {
+type mockChain struct {
 	blocks []string
 	height int64
 }
 
-func (m *mockBlockChain) AddLotteryRecord(data string) (int64, error) {
+func (m *mockChain) AddRecord(data string) (int64, error) {
 	m.height++
 	m.blocks = append(m.blocks, data)
 	return m.height, nil
@@ -54,9 +54,9 @@ func (m *mockBlockChain) AddLotteryRecord(data string) (int64, error) {
 
 func TestCreateLotteryUseCase_Execute(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
-	blockChain := &mockBlockChain{}
+	chain := &mockChain{}
 
-	uc := NewCreate(lotteryRepo, blockChain)
+	uc := NewCreate(lotteryRepo, chain)
 
 	req := CreateLotteryRequest{
 		Participants: "Alice,Bob,Charlie",
@@ -75,8 +75,8 @@ func TestCreateLotteryUseCase_Execute(t *testing.T) {
 		t.Errorf("Expected 2 winners, got %d", len(resp.Winners))
 	}
 
-	if blockChain.height != 1 {
-		t.Errorf("Expected 1 block added, got %d", blockChain.height)
+	if chain.height != 1 {
+		t.Errorf("Expected 1 block added, got %d", chain.height)
 	}
 
 	// v1.31: a freshly created draw must carry its VRF public key and be
@@ -95,11 +95,11 @@ func TestCreateLotteryUseCase_Execute(t *testing.T) {
 	// before verification ran, so the immutable chain record always said
 	// verified:false while the DB, REST and CLI said true — an auditor
 	// replaying the chain saw every draw as unverified.
-	if len(blockChain.blocks) != 1 {
-		t.Fatalf("Expected 1 on-chain block, got %d", len(blockChain.blocks))
+	if len(chain.blocks) != 1 {
+		t.Fatalf("Expected 1 on-chain block, got %d", len(chain.blocks))
 	}
 	var chainRecord lottery.LotteryRecord
-	if err := json.Unmarshal([]byte(blockChain.blocks[0]), &chainRecord); err != nil {
+	if err := json.Unmarshal([]byte(chain.blocks[0]), &chainRecord); err != nil {
 		t.Fatalf("on-chain JSON did not decode as a LotteryRecord: %v", err)
 	}
 	if !chainRecord.Verified {
@@ -129,8 +129,8 @@ func TestCreateLotteryUseCase_Execute(t *testing.T) {
 
 func TestVerifyLotteryUseCase_ValidDraw(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
-	blockChain := &mockBlockChain{}
-	if _, err := NewCreate(lotteryRepo, blockChain).Execute(CreateLotteryRequest{
+	chain := &mockChain{}
+	if _, err := NewCreate(lotteryRepo, chain).Execute(CreateLotteryRequest{
 		Participants: "Alice,Bob,Charlie",
 		Seed:         "verify-seed",
 		WinnerCount:  1,
@@ -147,8 +147,8 @@ func TestVerifyLotteryUseCase_ValidDraw(t *testing.T) {
 
 func TestVerifyLotteryUseCase_TamperedWinners(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
-	blockChain := &mockBlockChain{}
-	if _, err := NewCreate(lotteryRepo, blockChain).Execute(CreateLotteryRequest{
+	chain := &mockChain{}
+	if _, err := NewCreate(lotteryRepo, chain).Execute(CreateLotteryRequest{
 		Participants: "Alice,Bob,Charlie",
 		Seed:         "verify-seed-2",
 		WinnerCount:  1,
@@ -167,8 +167,8 @@ func TestVerifyLotteryUseCase_TamperedWinners(t *testing.T) {
 
 func TestVerifyLotteryUseCase_TamperedWinnerAddress(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
-	blockChain := &mockBlockChain{}
-	if _, err := NewCreate(lotteryRepo, blockChain).Execute(CreateLotteryRequest{
+	chain := &mockChain{}
+	if _, err := NewCreate(lotteryRepo, chain).Execute(CreateLotteryRequest{
 		Participants: "Alice,Bob,Charlie",
 		Seed:         "verify-address-seed",
 		WinnerCount:  1,
@@ -190,8 +190,8 @@ func TestVerifyLotteryUseCase_TamperedWinnerAddress(t *testing.T) {
 // slice is a corrupt/partial write and must fail verify).
 func TestVerifyLotteryUseCase_EmptyWinnersIsInvalid(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
-	blockChain := &mockBlockChain{}
-	if _, err := NewCreate(lotteryRepo, blockChain).Execute(CreateLotteryRequest{
+	chain := &mockChain{}
+	if _, err := NewCreate(lotteryRepo, chain).Execute(CreateLotteryRequest{
 		Participants: "Alice,Bob,Charlie",
 		Seed:         "verify-seed-3",
 		WinnerCount:  1,
@@ -224,9 +224,9 @@ func firstDifferent(participants []string, current string) string {
 
 func TestCreateLotteryUseCase_InvalidInput(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
-	blockChain := &mockBlockChain{}
+	chain := &mockChain{}
 
-	uc := NewCreate(lotteryRepo, blockChain)
+	uc := NewCreate(lotteryRepo, chain)
 
 	tests := []struct {
 		name    string
@@ -279,9 +279,9 @@ func TestCreateLotteryUseCase_InvalidInput(t *testing.T) {
 // of failing with WINNER_COUNT_NOT_POSITIVE, matching the CLI's omitted -c.
 func TestCreateLotteryUseCase_DefaultWinnerCount(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
-	blockChain := &mockBlockChain{}
+	chain := &mockChain{}
 
-	uc := NewCreate(lotteryRepo, blockChain)
+	uc := NewCreate(lotteryRepo, chain)
 
 	resp, err := uc.Execute(CreateLotteryRequest{
 		Participants: "Alice,Bob,Carol,Dave",

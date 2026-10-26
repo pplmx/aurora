@@ -7,15 +7,15 @@ import (
 	"testing"
 )
 
-// TestBlockChain_ConcurrentAddBlock_DataRace is a regression test that
-// proves the BlockChain singleton is unsafe for concurrent AddBlock.
+// TestChain_ConcurrentAddBlock_DataRace is a regression test that
+// proves the Chain singleton is unsafe for concurrent AddBlock.
 // Running with `go test -race` must surface the race.
-func TestBlockChain_ConcurrentAddBlock_DataRace(t *testing.T) {
+func TestChain_ConcurrentAddBlock_DataRace(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping race-detection stress test in short mode")
 	}
 	ResetForTest()
-	chain := InitBlockChain()
+	chain := Init()
 
 	const goroutines = 8
 	const addsPerGoroutine = 20
@@ -41,7 +41,7 @@ func TestBlockChain_ConcurrentAddBlock_DataRace(t *testing.T) {
 	}
 }
 
-// TestBlockChain_ConcurrentAddBlock_ChainIntegrity is a regression test for a
+// TestChain_ConcurrentAddBlock_ChainIntegrity is a regression test for a
 // semantic (not just data-race) bug: the old AddBlock read height/prevHash
 // under a read lock, mined outside the lock, then appended under a write lock.
 // That is a non-atomic read-modify-write, so concurrent callers reused the
@@ -49,8 +49,8 @@ func TestBlockChain_ConcurrentAddBlock_DataRace(t *testing.T) {
 // prev-hash chain — and, because height is the DB primary key, persistence
 // dropped a block per collision on restart. The length-only race test never
 // caught this, so this test asserts chain validity directly.
-func TestBlockChain_ConcurrentAddBlock_ChainIntegrity(t *testing.T) {
-	chain := NewBlockChain()
+func TestChain_ConcurrentAddBlock_ChainIntegrity(t *testing.T) {
+	chain := New()
 	const goroutines = 8
 	const addsPerGoroutine = 12
 

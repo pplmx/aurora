@@ -54,7 +54,7 @@
 | NFT        | `aurora nft ...`、`/api/v1/nft/*`、`web/nft.html`、桌面路由                                   | 保留                                     |
 | token      | `aurora token ...`、`/api/v1/token/*`、`web/token.html`、桌面路由                               | 保留                                     |
 | oracle     | `aurora oracle ...`、`/api/v1/oracle/*`、`web/oracle.html`、桌面路由、调度器                   | 保留；定时抓取、健康度与链上存证都有入口 |
-| blockchain | 各业务模块的 `AddLotteryRecord`/`AddBlock`、`/api/v1/blockchain/verify`、`web/blockchain.html` | 保留；不是独立产品页面，而是审计基底     |
+| blockchain | 各业务模块的 `AddRecord`/`AddBlock`、`/api/v1/blockchain/verify`、`web/blockchain.html` | 保留；不是独立产品页面，而是审计基底     |
 | events     | CLI/API/桌面端的同步发布、审计 handler、`pending_events` outbox                                | 保留；生产只使用 `SyncEventBus`          |
 | migrations | `aurora migrate`、启动配置与仓储自举 schema                                                    | 保留；迁移与自举共同服务新库/旧库        |
 | backup     | `aurora backup ...`、桌面 File 菜单                                                            | 保留；用户数据恢复路径                   |
@@ -201,14 +201,14 @@ golangci-lint is lower than the targeted Go version (1.27.2)`。CI 固定使用
 它已从 `internal/domain/` 移出，避免把数据库引导代码藏在领域目录里：
 
 - `init.go` 直接 `sql.Open` 并维护进程级 `dbInstance` 单例；
-- 每个 `BlockChain` 方法自己读写 `blocks` 表，没有仓储接口；
+- 每个 `Chain` 方法自己读写 `blocks` 表，没有仓储接口；
 - 它调用 `utils.RestrictSQLiteFiles` 收紧数据库文件权限。
 
 其余五个模块都遵守「domain 定义仓储接口、infra/sqlite 实现」，只有
 blockchain 例外。这违反了 README 描述的分层，也让 blockchain 无法在不打开
 数据库的情况下使用（测试只能用 `ResetForTest` 绕开单例）。
 
-**为什么本轮不拆**：`BlockChain` 是六个模块的写入基底，`AddBlock`、
+**为什么本轮不拆**：`Chain` 是六个模块的写入基底，`AddBlock`、
 `WithBlockTransaction`、`WithLotteryRecordTransaction` 被 token/NFT/lottery/
 oracle 的原子性路径直接调用；`DBPath`/`InitDB` 又被 CLI、API、桌面在每个进程
 入口调用。把它拆成 `domain` 接口 + `infra/sqlite` 实现涉及：

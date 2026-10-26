@@ -42,7 +42,7 @@ func TestCreateLotteryRollbackLeavesNoOnChainBlock(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = repo.Close() })
 
-	chain := blockchain.NewBlockChainWithDB(repo.GetDB())
+	chain := blockchain.NewWithDB(repo.GetDB())
 	failingRepo := &failingLotterySaveRepo{LotteryRepository: repo, db: repo.GetDB()}
 	uc := NewCreate(failingRepo, chain)
 

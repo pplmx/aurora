@@ -56,11 +56,11 @@ func businessRecordCount(t *testing.T, db *sql.DB) int {
 	return count
 }
 
-func TestBlockChain_WithBlockTransaction_CommitsBlockAndBusinessRow(t *testing.T) {
+func TestChain_WithBlockTransaction_CommitsBlockAndBusinessRow(t *testing.T) {
 	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
 	createBusinessTable(t, db)
 
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	var callbackHeight int64
@@ -80,11 +80,11 @@ func TestBlockChain_WithBlockTransaction_CommitsBlockAndBusinessRow(t *testing.T
 	require.True(t, chain.VerifyIntegrity().Valid)
 }
 
-func TestBlockChain_WithBlockTransaction_RollsBackBlockWithBusinessRow(t *testing.T) {
+func TestChain_WithBlockTransaction_RollsBackBlockWithBusinessRow(t *testing.T) {
 	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
 	createBusinessTable(t, db)
 
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	rollbackErr := errors.New("business mutation failed")
@@ -104,7 +104,7 @@ func TestBlockChain_WithBlockTransaction_RollsBackBlockWithBusinessRow(t *testin
 	require.Zero(t, blockCount, "rolled-back transaction must not leave a persisted block")
 }
 
-func TestBlockChain_WithBlockTransaction_NoOpFailureRollsBackPersistedBlock(t *testing.T) {
+func TestChain_WithBlockTransaction_NoOpFailureRollsBackPersistedBlock(t *testing.T) {
 	tests := []struct {
 		name         string
 		manager      func(error) TransactionManager
@@ -128,7 +128,7 @@ func TestBlockChain_WithBlockTransaction_NoOpFailureRollsBackPersistedBlock(t *t
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
-			chain := &BlockChain{Blocks: []*Block{Genesis()}}
+			chain := &Chain{Blocks: []*Block{Genesis()}}
 			bindChainToDB(chain, db)
 
 			transactionErr := errors.New("no-op transaction failed")
@@ -168,9 +168,9 @@ func TestBlockChain_WithBlockTransaction_NoOpFailureRollsBackPersistedBlock(t *t
 	}
 }
 
-func TestBlockChain_WithBlockTransaction_NoOpHeightConflictRetriesBeforeCallback(t *testing.T) {
+func TestChain_WithBlockTransaction_NoOpHeightConflictRetriesBeforeCallback(t *testing.T) {
 	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	peer := peerChain(t, 1, "peer-payload")
@@ -203,11 +203,11 @@ func TestBlockChain_WithBlockTransaction_NoOpHeightConflictRetriesBeforeCallback
 	require.True(t, chain.VerifyIntegrity().Valid)
 }
 
-func TestBlockChain_WithBlockTransaction_HeightConflictRetriesBeforeBusinessWrite(t *testing.T) {
+func TestChain_WithBlockTransaction_HeightConflictRetriesBeforeBusinessWrite(t *testing.T) {
 	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
 	createBusinessTable(t, db)
 
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	peer := peerChain(t, 1, "peer-payload")
@@ -236,11 +236,11 @@ func TestBlockChain_WithBlockTransaction_HeightConflictRetriesBeforeBusinessWrit
 	require.Equal(t, "local-payload", string(readBlockAt(t, db, 2).Data))
 }
 
-func TestBlockChain_WithBlockTransaction_HoldsChainLockThroughCommit(t *testing.T) {
+func TestChain_WithBlockTransaction_HoldsChainLockThroughCommit(t *testing.T) {
 	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
 	createBusinessTable(t, db)
 
-	chain := &BlockChain{Blocks: []*Block{Genesis()}}
+	chain := &Chain{Blocks: []*Block{Genesis()}}
 	bindChainToDB(chain, db)
 
 	callbackEntered := make(chan struct{})

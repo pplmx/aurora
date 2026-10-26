@@ -5,22 +5,22 @@ import (
 	"testing"
 )
 
-// TestAddLotteryRecord_StampsBlockHeight is the regression test for the
+// TestAddRecord_StampsBlockHeight is the regression test for the
 // on-chain audit defect (ISS-097): app-layer callers serialized their record
 // with block_height=0 (the height is only known after the append) and stamped
 // only their local DB copy, leaving the immutable chain payload claiming
-// height 0 forever. AddLotteryRecord must stamp the true height into the JSON
+// height 0 forever. AddRecord must stamp the true height into the JSON
 // before the block is mined.
-func TestAddLotteryRecord_StampsBlockHeight(t *testing.T) {
-	c := NewBlockChain()
+func TestAddRecord_StampsBlockHeight(t *testing.T) {
+	c := New()
 
 	payload := `{"id":"abc","block_height":0,"seed":"s","winners":["Alice"]}`
-	height, err := c.AddLotteryRecord(payload)
+	height, err := c.AddRecord(payload)
 	if err != nil {
-		t.Fatalf("AddLotteryRecord() error = %v", err)
+		t.Fatalf("AddRecord() error = %v", err)
 	}
 	if height != 1 {
-		t.Fatalf("AddLotteryRecord() height = %d, want 1", height)
+		t.Fatalf("AddRecord() height = %d, want 1", height)
 	}
 
 	var m map[string]any
@@ -32,12 +32,12 @@ func TestAddLotteryRecord_StampsBlockHeight(t *testing.T) {
 	}
 
 	// A second record on the same chain gets its own true height.
-	height2, err := c.AddLotteryRecord(`{"id":"def","block_height":0}`)
+	height2, err := c.AddRecord(`{"id":"def","block_height":0}`)
 	if err != nil {
-		t.Fatalf("AddLotteryRecord() #2 error = %v", err)
+		t.Fatalf("AddRecord() #2 error = %v", err)
 	}
 	if height2 != 2 {
-		t.Fatalf("AddLotteryRecord() #2 height = %d, want 2", height2)
+		t.Fatalf("AddRecord() #2 height = %d, want 2", height2)
 	}
 	var m2 map[string]any
 	if err := json.Unmarshal(c.Blocks[2].Data, &m2); err != nil {
@@ -48,17 +48,17 @@ func TestAddLotteryRecord_StampsBlockHeight(t *testing.T) {
 	}
 }
 
-// TestAddLotteryRecord_NonJSONStoredUnchanged ensures plain-text payloads
+// TestAddRecord_NonJSONStoredUnchanged ensures plain-text payloads
 // (tests, legacy callers) still append exactly as given — stamping only
 // applies to JSON records that carry a block_height field.
-func TestAddLotteryRecord_NonJSONStoredUnchanged(t *testing.T) {
-	c := NewBlockChain()
-	height, err := c.AddLotteryRecord("L-1")
+func TestAddRecord_NonJSONStoredUnchanged(t *testing.T) {
+	c := New()
+	height, err := c.AddRecord("L-1")
 	if err != nil {
-		t.Fatalf("AddLotteryRecord() error = %v", err)
+		t.Fatalf("AddRecord() error = %v", err)
 	}
 	if height != 1 {
-		t.Fatalf("AddLotteryRecord() height = %d, want 1", height)
+		t.Fatalf("AddRecord() height = %d, want 1", height)
 	}
 	if string(c.Blocks[1].Data) != "L-1" {
 		t.Fatalf("non-JSON payload was rewritten: %q", c.Blocks[1].Data)
