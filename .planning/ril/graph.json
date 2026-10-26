@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 276,
+  "round": 277,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T15:19:28+00:00",
+  "updated_at": "2026-10-26T15:22:18+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20600,7 +20600,7 @@
       "version": 2,
       "created_at": "2026-10-26T15:12:20+00:00",
       "updated_at": "2026-10-26T15:12:30+00:00",
-      "touched_round": 272,
+      "touched_round": 276,
       "category": "core-feature",
       "title": "Add opt-in session-only key memory",
       "description": "Add a Settings toggle and forget action, remember successful signing keys in process memory only, offer Use saved key in token/NFT/voting forms with matching signer keys, and test opt-in/forget/use.",
@@ -20668,6 +20668,18 @@
       "commit": "d365838",
       "title": "Hide Refresh on Settings",
       "description": "Settings has no data to reload; header Refresh and Ctrl+R are omitted there."
+    },
+    "CHG-474": {
+      "id": "CHG-474",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T15:22:17+00:00",
+      "updated_at": "2026-10-26T15:22:17+00:00",
+      "touched_round": 276,
+      "commit": "a154d5e",
+      "title": "Use saved key for Transfer From",
+      "description": "Optional spender public key for saved-key lookup; remember successful pair."
     }
   },
   "edges": [
@@ -31441,6 +31453,12 @@
       "to": "TASK-407",
       "type": "implements",
       "created_at": "2026-10-26T15:19:28+00:00"
+    },
+    {
+      "from": "CHG-474",
+      "to": "TASK-408",
+      "type": "implements",
+      "created_at": "2026-10-26T15:22:18+00:00"
     }
   ]
 }
