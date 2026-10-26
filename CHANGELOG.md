@@ -55,6 +55,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **GET /api/v1/token/list is bounded like the other listings**: it returned
+  every stored token in one response, so a key-holding caller could force an
+  unbounded body while the NFT, lottery and token-history lists all paged. It
+  now defaults to 20 rows, accepts `limit`/`offset`, caps the limit at 100 and
+  the offset at 10000, and the reference documents the endpoint (which it had
+  omitted). `TestTokenHandler_List_Paged` covers the page, the cap and the
+  beyond-the-end case.
 - **Choosing an NFT fills the holder the write cards need**: Transfer's From and
   Burn's Owner were left as typed while the row already knew the asset's
   current owner, so a stale or empty key could be signed with. Selection fills
