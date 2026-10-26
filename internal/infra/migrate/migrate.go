@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/pplmx/aurora/internal/utils"
@@ -72,7 +73,7 @@ func (m *Migrator) Up(steps int) (uint, error) {
 		return version, nil
 	}
 	if err != nil {
-		return 0, fmt.Errorf("migration up failed: %w", err)
+		return 0, fmt.Errorf("migration up failed: %w", explainBusy(err))
 	}
 	return version, nil
 }
@@ -83,9 +84,41 @@ func (m *Migrator) Down(steps int) (uint, error) {
 		return version, nil
 	}
 	if err != nil {
-		return 0, fmt.Errorf("migration down failed: %w", err)
+		return 0, fmt.Errorf("migration down failed: %w", explainBusy(err))
 	}
 	return version, nil
+}
+
+// explainBusy turns SQLite's bare lock error into something an operator can act
+// on. A migration holds the write lock from its first statement to commit, so a
+// concurrent CLI or API process still writing makes it wait up to the DSN's
+// busy timeout and then fail with "database is locked (5) (SQLITE_BUSY)" —
+// measured: an 8-second concurrent writer against the 5-second timeout fails
+// the migration after 5s, and the database is left untouched, so a retry
+// succeeds once the writer finishes.
+//
+// Every other error is returned unchanged.
+func explainBusy(err error) error {
+	if err == nil || !isBusy(err) {
+		return err
+	}
+	return fmt.Errorf(
+		"%w — another process is writing this database; stop it (or wait for it) and retry. The database was not modified",
+		err,
+	)
+}
+
+// isBusy reports whether err is SQLite's "database is locked" / SQLITE_BUSY.
+// The driver wraps the code in its message, so the text is what identifies it;
+// errors.Is has nothing to match on.
+func isBusy(err error) bool {
+	for e := err; e != nil; e = errors.Unwrap(e) {
+		msg := e.Error()
+		if strings.Contains(msg, "database is locked") || strings.Contains(msg, "SQLITE_BUSY") {
+			return true
+		}
+	}
+	return false
 }
 
 // Repair clears the dirty marker left by a failed migration, after the

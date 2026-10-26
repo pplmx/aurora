@@ -1,11 +1,16 @@
 package migrate
 
 import (
+	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/pplmx/aurora/internal/infra/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -625,4 +630,71 @@ func TestMigrator_RepairLetsAMigrationBeFixedAndRerun(t *testing.T) {
 		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'users'`,
 	).Scan(&tableCount))
 	assert.Equal(t, 1, tableCount, "the corrected migration must apply")
+}
+
+// TestMigrator_BusyErrorExplainsItself covers the message an operator sees when
+// a concurrent writer holds the database past the busy timeout. Measured before
+// this: an 8-second writer against the 5-second DSN timeout produced
+// "migration up failed: database is locked (5) (SQLITE_BUSY)" and nothing more —
+// no cause, no next step, and no word about whether the database was damaged.
+func TestMigrator_BusyErrorExplainsItself(t *testing.T) {
+	busy := errors.New("database is locked (5) (SQLITE_BUSY)")
+	explained := explainBusy(busy)
+	require.ErrorIs(t, explained, busy, "the original error must stay in the chain")
+	assert.Contains(t, explained.Error(), "another process is writing",
+		"the message must name the cause")
+	assert.Contains(t, explained.Error(), "not modified",
+		"the message must say the database is intact, so a retry is safe")
+
+	// A wrapped busy error is recognised too: the driver's text can sit
+	// behind another fmt.Errorf layer.
+	wrapped := fmt.Errorf("begin migration: %w", busy)
+	assert.Contains(t, explainBusy(wrapped).Error(), "another process is writing")
+
+	// Every other error passes through untouched.
+	other := errors.New("syntax error near THIS")
+	assert.Equal(t, other, explainBusy(other))
+	assert.NoError(t, explainBusy(nil))
+}
+
+// TestMigrator_LockWaitsThenFailsWithoutTouchingTheDatabase proves the whole
+// shape of a busy-timeout failure: the migrator waits for the writer, then
+// fails, and the database is left exactly as it was so a retry works.
+func TestMigrator_LockWaitsThenFailsWithoutTouchingTheDatabase(t *testing.T) {
+	dbPath, migPath, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// A second connection holds the write lock longer than the busy timeout.
+	holder, err := sql.Open("sqlite", sqlite.DSN(dbPath))
+	require.NoError(t, err)
+	defer func() { _ = holder.Close() }()
+	conn, err := holder.Conn(context.Background())
+	require.NoError(t, err)
+	defer func() { _ = conn.Close() }()
+	m, err := New(dbPath, migPath)
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+
+	_, err = conn.ExecContext(context.Background(), "BEGIN IMMEDIATE")
+	require.NoError(t, err)
+	_, err = conn.ExecContext(context.Background(), "CREATE TABLE held (id INTEGER PRIMARY KEY)")
+	require.NoError(t, err)
+
+	// The migrator's own DSN has a 5s busy timeout; release the lock right
+	// after the call so the test does not wait for it.
+	go func() {
+		time.Sleep(6 * time.Second)
+		_, _ = conn.ExecContext(context.Background(), "ROLLBACK")
+	}()
+
+	_, err = m.Up(0)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "another process is writing",
+		"the failure must explain itself, got: %v", err)
+
+	// The database is untouched: no migration table, no applied version.
+	status, statusErr := m.Status()
+	require.NoError(t, statusErr, "the database must still be readable")
+	assert.Equal(t, uint(0), status.Current)
+	assert.False(t, status.Dirty)
 }
