@@ -48,13 +48,51 @@ func (h *TokenHandler) Routes(r chi.Router) {
 // List returns every stored token (GET /list). A token's id is the handle every
 // other operation takes, so a caller that lost it — or never had it, having
 // created the token in another process — had no way to find it again.
+// defaultTokenListLimit and maxTokenListLimit bound the collection listing, as
+// the NFT and lottery listings are bounded: a key-holding caller must not be
+// able to force an unbounded response by asking for every token.
+const (
+	defaultTokenListLimit = 20
+	maxTokenListLimit     = 100
+	maxTokenListOffset    = 10000
+)
+
 func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
+	limit := defaultTokenListLimit
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if l, err := strconv.Atoi(v); err == nil && l > 0 {
+			limit = l
+			if limit > maxTokenListLimit {
+				limit = maxTokenListLimit
+			}
+		}
+	}
+	offset := 0
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if o, err := strconv.Atoi(v); err == nil && o >= 0 {
+			offset = o
+			if offset > maxTokenListOffset {
+				offset = maxTokenListOffset
+			}
+		}
+	}
+
 	uc := tokenapp.NewListTokensUseCase(h.service)
 	results, err := uc.Execute()
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
 	}
+	// The use case returns the whole collection (the CLI reads it that way);
+	// the REST surface pages it like GET /nft/list does.
+	if offset > len(results) {
+		offset = len(results)
+	}
+	end := offset + limit
+	if end > len(results) {
+		end = len(results)
+	}
+	results = results[offset:end]
 	// A nil slice would encode as null; every other list endpoint returns [].
 	if results == nil {
 		results = []*tokenapp.TokenInfoResponse{}

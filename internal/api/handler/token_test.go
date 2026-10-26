@@ -381,3 +381,45 @@ func TestTokenHandler_List_EmptyArray(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "[]\n", rr.Body.String(), "an empty list must encode as []")
 }
+
+// tokenListService returns a fixed collection for the listing tests.
+type tokenListService struct {
+	fakeTokenServiceFull
+	tokens []*token.Token
+}
+
+func (f tokenListService) ListTokens() ([]*token.Token, error) { return f.tokens, nil }
+
+// TestTokenHandler_List_Paged pins the collection listing's bounds. It used to
+// return every token in one response; like the NFT and lottery listings, it now
+// defaults to a page and caps ?limit so a key-holding caller cannot force an
+// unbounded response.
+func TestTokenHandler_List_Paged(t *testing.T) {
+	tokens := []*token.Token{
+		token.NewToken("t1", "One", "ONE", token.NewAmount(1), []byte{1}),
+		token.NewToken("t2", "Two", "TWO", token.NewAmount(2), []byte{2}),
+		token.NewToken("t3", "Three", "THREE", token.NewAmount(3), []byte{3}),
+	}
+	h := NewTokenHandler(tokenListService{tokens: tokens})
+
+	list := func(query string) []struct {
+		ID string `json:"id"`
+	} {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/token/list"+query, nil)
+		rr := httptest.NewRecorder()
+		h.List(rr, req)
+		require.Equal(t, http.StatusOK, rr.Code)
+		var page []struct {
+			ID string `json:"id"`
+		}
+		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &page))
+		return page
+	}
+
+	require.Len(t, list(""), 3, "the default page holds the three tokens")
+	page := list("?limit=1&offset=1")
+	require.Len(t, page, 1)
+	require.Equal(t, "t2", page[0].ID, "offset pages the newest-first list")
+	require.Len(t, list("?limit=5000"), 3, "an oversized limit is capped, not rejected")
+	require.Empty(t, list("?offset=99"))
+}
