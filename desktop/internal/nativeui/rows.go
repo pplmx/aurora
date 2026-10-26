@@ -36,12 +36,15 @@ type CandidateRow struct {
 
 // SessionRow is one voting session.
 type SessionRow struct {
-	ID         string
-	Title      string
-	Status     string
-	Candidates []string
-	StartTime  int64
-	EndTime    int64
+	ID    string
+	Title string
+	// Description is the optional text entered with the session; the table is
+	// too narrow to show it, but the selected-session readout does.
+	Description string
+	Status      string
+	Candidates  []string
+	StartTime   int64
+	EndTime     int64
 }
 
 // ResultRow is one candidate's tally in one session.

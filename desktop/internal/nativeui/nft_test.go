@@ -138,3 +138,35 @@ func TestNFTSelectionDropsReadoutsWhenTheNewReadFails(t *testing.T) {
 	require.False(t, tester.HasText("OldArt"))
 	require.False(t, tester.HasText("No history loaded yet."))
 }
+
+// TestNFTInspectShowsLinksAndBlock pins the fields the Mint form collects but
+// Inspect used to hide. The URLs are long, so the copy row shows both ends and
+// the button hands over the stored value.
+func TestNFTInspectShowsLinksAndBlock(t *testing.T) {
+	const (
+		imageURL = "https://images.example.com/star.png"
+		tokenURI = "ipfs://bafy-star-metadata"
+	)
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.id = "n1"
+	app.nft.nft = &NFTRow{
+		ID: "n1", Name: "Star", ImageURL: imageURL, TokenURI: tokenURI, BlockHeight: 42,
+	}
+	app.nft.nftLoadedID = "n1"
+	tester.Frame()
+
+	require.True(t, tester.HasText("Image URL"))
+	require.True(t, tester.HasText("Token URI"))
+	require.True(t, tester.HasText("42"), "the block that minted the asset must be shown")
+
+	require.NoError(t, tester.Click("Copy Image URL"))
+	tester.Frame()
+	require.Equal(t, imageURL, tester.Clipboard())
+	require.NoError(t, tester.Click("Copy Token URI"))
+	tester.Frame()
+	require.Equal(t, tokenURI, tester.Clipboard())
+}

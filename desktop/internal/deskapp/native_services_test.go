@@ -7,6 +7,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/app/tokenapp"
+	"github.com/pplmx/aurora/internal/app/votingapp"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/stretchr/testify/require"
 )
@@ -70,6 +71,23 @@ func TestTransferRowsCarryNonces(t *testing.T) {
 	require.Equal(t, "bob", row.To)
 	require.Equal(t, "12", row.Amount)
 	require.Equal(t, uint64(9), row.Nonce)
+}
+
+// TestSessionRowsCarryDescriptions pins the field the Create Session form
+// collects and the selected-session preview shows. The adapter dropped it, so
+// the text was stored but unreachable from the window.
+func TestSessionRowsCarryDescriptions(t *testing.T) {
+	row := sessionRow(&votingapp.SessionResponse{
+		ID: "s1", Title: "Budget", Description: "Approve 2027",
+		Status: "active", Candidates: []string{"c1"}, StartTime: 10, EndTime: 20,
+	})
+	require.Equal(t, "s1", row.ID)
+	require.Equal(t, "Budget", row.Title)
+	require.Equal(t, "Approve 2027", row.Description)
+	require.Equal(t, "active", row.Status)
+	require.Equal(t, []string{"c1"}, row.Candidates)
+	require.Equal(t, int64(10), row.StartTime)
+	require.Equal(t, int64(20), row.EndTime)
 }
 
 // TestLedgerBlocksCarryBlockHeights pins the heights the desktop ledger shows.

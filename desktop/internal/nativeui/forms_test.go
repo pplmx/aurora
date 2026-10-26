@@ -456,3 +456,27 @@ func TestFailedVerifyClearsThePreviousVerdict(t *testing.T) {
 	require.Nil(t, app.lottery.verifyResult, "a failed lookup must clear the old verdict")
 	require.Contains(t, app.lottery.verifyErr, "not found")
 }
+
+// TestSelectedSourceShowsItsEndpointAndInterval pins what a source row cannot
+// carry: the endpoint it polls and how often. The URL is copyable because the
+// readout shortens it.
+func TestSelectedSourceShowsItsEndpointAndInterval(t *testing.T) {
+	const endpoint = "https://api.example.com/v1/price"
+	fake := &fakeServices{sources: []SourceRow{{
+		ID: "s1", Name: "btc", URL: endpoint, Type: "price", Enabled: true, Interval: 60,
+	}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.False(t, tester.HasText("60s"), "no interval before a source is chosen")
+	require.NoError(t, tester.Click("s1"))
+	tester.Frame()
+	require.True(t, tester.HasText("60s"), "the source's polling interval must be shown")
+	require.True(t, tester.HasText("URL"))
+
+	require.NoError(t, tester.Click("Copy URL"))
+	tester.Frame()
+	require.Equal(t, endpoint, tester.Clipboard())
+}
