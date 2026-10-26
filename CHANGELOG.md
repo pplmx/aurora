@@ -361,6 +361,10 @@ documented in their per-milestone ROADMAP files.
   `internal/ledger` holds the pure writer/transaction contracts and report
   types. The desktop adapter uses a narrow `ledgerChain` interface, so
   `native_*.go` no longer imports the implementation.
+- **The token service is split by operation**: service.go now holds the
+  contracts, constructor, transaction helpers and request types; queries, mint,
+  transfer, approval and burn live in service_*.go files. The 811-line file is
+  now a 223-line core plus focused units.
 - **Transaction management is one shared port**: token, NFT and voting domain
   packages now alias `ledger.TransactionManager` instead of declaring three
   identical interfaces. Existing mocks and constructors stay source-compatible.
