@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 275,
+  "round": 276,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T15:18:24+00:00",
+  "updated_at": "2026-10-26T15:19:28+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20559,7 +20559,7 @@
       "version": 2,
       "created_at": "2026-10-26T10:12:26+00:00",
       "updated_at": "2026-10-26T10:12:36+00:00",
-      "touched_round": 274,
+      "touched_round": 275,
       "category": "dx",
       "title": "Move application configuration to a Settings page and rename Actions to File",
       "description": "Add an Application sidebar section with Settings (language, data path/actions, appearance, build identity), keep only file operations in the File menu, add Ctrl/Cmd+8, and test both pages.",
@@ -20656,6 +20656,18 @@
       "commit": "07106a6",
       "title": "Add Ctrl/Cmd+, for Settings",
       "description": "Window-level settings shortcut with a view test and docs."
+    },
+    "CHG-473": {
+      "id": "CHG-473",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T15:19:28+00:00",
+      "updated_at": "2026-10-26T15:19:28+00:00",
+      "touched_round": 275,
+      "commit": "d365838",
+      "title": "Hide Refresh on Settings",
+      "description": "Settings has no data to reload; header Refresh and Ctrl+R are omitted there."
     }
   },
   "edges": [
@@ -31423,6 +31435,12 @@
       "to": "TASK-407",
       "type": "implements",
       "created_at": "2026-10-26T15:18:23+00:00"
+    },
+    {
+      "from": "CHG-473",
+      "to": "TASK-407",
+      "type": "implements",
+      "created_at": "2026-10-26T15:19:28+00:00"
     }
   ]
 }
