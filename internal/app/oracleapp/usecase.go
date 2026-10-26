@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/repoerr"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 type FetcherInterface interface {
@@ -118,9 +118,9 @@ func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchData
 		}
 
 		txRepo, repoOK := uc.repo.(transactionalOracleRepository)
-		writer, chainOK := chain.(blockchain.LotteryRecordTransactionWriter)
+		writer, chainOK := chain.(ledger.LotteryRecordTransactionWriter)
 		if repoOK && chainOK {
-			_, err := blockchain.AppendRecordWithHeight(writer, txRepo, string(jsonData), func(tx *sql.Tx, height int64) error {
+			_, err := ledger.AppendRecordWithHeight(writer, txRepo, string(jsonData), func(tx *sql.Tx, height int64) error {
 				data.BlockHeight = height
 				if err := txRepo.WithTx(tx).SaveData(data); err != nil {
 					return fmt.Errorf("failed to save data: %w", err)

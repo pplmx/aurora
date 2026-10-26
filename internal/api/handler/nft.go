@@ -8,6 +8,7 @@ import (
 	"github.com/pplmx/aurora/internal/app/nftapp"
 	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 // defaultNFTListLimit is the default page size for GET /nft/list?owner=.
@@ -24,7 +25,7 @@ const maxNFTListOffset = 1000
 type NFTHandler struct {
 	repo    nft.Repository
 	service nft.Service
-	chain   blockchain.BlockWriter
+	chain   ledger.BlockWriter
 }
 
 // NewNFTHandler wires the NFT service over a transaction-capable repository.

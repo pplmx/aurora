@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/pplmx/aurora/internal/blockchain"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 // defaultHistoryLimit is the default maximum number of transfer events to return
@@ -123,10 +123,10 @@ type TokenService struct {
 	eventBus    EventBus
 	eventReader EventReader
 	replay      ReplayProtection
-	chain       blockchain.BlockWriter
+	chain       ledger.BlockWriter
 }
 
-func NewService(repo TransactableRepository, txManager TransactionManager, eventBus EventBus, eventReader EventReader, replay ReplayProtection, chain blockchain.BlockWriter) *TokenService {
+func NewService(repo TransactableRepository, txManager TransactionManager, eventBus EventBus, eventReader EventReader, replay ReplayProtection, chain ledger.BlockWriter) *TokenService {
 	return &TokenService{
 		repo:        repo,
 		txManager:   txManager,
@@ -143,7 +143,7 @@ func (noOpTxManager) WithTransaction(fn func(tx *sql.Tx) error) error {
 	return fn(nil)
 }
 
-func NewServiceWithoutTx(repo TransactableRepository, eventBus EventBus, eventReader EventReader, replay ReplayProtection, chain blockchain.BlockWriter) *TokenService {
+func NewServiceWithoutTx(repo TransactableRepository, eventBus EventBus, eventReader EventReader, replay ReplayProtection, chain ledger.BlockWriter) *TokenService {
 	return NewService(repo, noOpTxManager{}, eventBus, eventReader, replay, chain)
 }
 
@@ -163,9 +163,9 @@ func (s *TokenService) txRepo(tx *sql.Tx) Repository {
 // legacy best-effort order for in-memory/fake chains without transaction
 // support.
 // withBlockTransaction appends the audit block and applies fn in one
-// transaction, via the chain's own branching (see blockchain.AppendWithRecord).
+// transaction, via the chain's own branching (see ledger.AppendWithRecord).
 func (s *TokenService) withBlockTransaction(data string, fn func(repo Repository, height int64) error) (int64, error) {
-	return blockchain.AppendWithRecord(s.chain, s.txManager, data,
+	return ledger.AppendWithRecord(s.chain, s.txManager, data,
 		func(tx *sql.Tx, height int64) error { return fn(s.txRepo(tx), height) })
 }
 

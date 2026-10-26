@@ -355,6 +355,11 @@ documented in their per-milestone ROADMAP files.
   the container's `lottery.Repository`, so File → Export/Import and a dropped
   export no longer open a second SQLite writer beside the app. A short-lived
   repository remains only as the pre-runtime/test fallback.
+- **The ledger has a pure port package**: `internal/ledger` now owns
+  `BlockWriter`, transaction writer interfaces and the transactional append
+  helpers. Domain services, application use cases and handlers depend on that
+  port; only `app/container` imports the SQLite-backed `internal/blockchain`.
+  The layer test forbids the old direction.
 - **Application use cases no longer construct an HTTP client**: `oracleapp`'s
   default `http.NewFetcher` moved to the composition root; the API, CLI and
   desktop inject a fetcher, and a nil fetcher returns a clear error instead of

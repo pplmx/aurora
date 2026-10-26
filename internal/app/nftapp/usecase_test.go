@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/ledger"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,18 +28,18 @@ var (
 	testCreatorB64 = "Q0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0NDQ0M="
 )
 
-func (m *mockNFTService) Mint(n *nft.NFT, chain blockchain.BlockWriter) (*nft.NFT, error) {
+func (m *mockNFTService) Mint(n *nft.NFT, chain ledger.BlockWriter) (*nft.NFT, error) {
 	n.ID = "test-id"
 	n.Timestamp = time.Now().Unix()
 	m.nfts = append(m.nfts, n)
 	return n, nil
 }
 
-func (m *mockNFTService) Transfer(nftID string, from, to, privateKey []byte, chain blockchain.BlockWriter) (*nft.Operation, error) {
+func (m *mockNFTService) Transfer(nftID string, from, to, privateKey []byte, chain ledger.BlockWriter) (*nft.Operation, error) {
 	return &nft.Operation{ID: "op-id"}, nil
 }
 
-func (m *mockNFTService) Burn(nftID string, owner, privateKey []byte, chain blockchain.BlockWriter) error {
+func (m *mockNFTService) Burn(nftID string, owner, privateKey []byte, chain ledger.BlockWriter) error {
 	return nil
 }
 

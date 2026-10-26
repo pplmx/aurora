@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 type testDBTxManager struct {
@@ -107,19 +109,19 @@ func TestChain_WithBlockTransaction_RollsBackBlockWithBusinessRow(t *testing.T) 
 func TestChain_WithBlockTransaction_NoOpFailureRollsBackPersistedBlock(t *testing.T) {
 	tests := []struct {
 		name         string
-		manager      func(error) TransactionManager
+		manager      func(error) ledger.TransactionManager
 		failCallback bool
 	}{
 		{
 			name: "callback failure",
-			manager: func(error) TransactionManager {
+			manager: func(error) ledger.TransactionManager {
 				return testNilTxManager{}
 			},
 			failCallback: true,
 		},
 		{
 			name: "manager failure after callback",
-			manager: func(err error) TransactionManager {
+			manager: func(err error) ledger.TransactionManager {
 				return testNilTxManagerError{err: err}
 			},
 		},

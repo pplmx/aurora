@@ -9,16 +9,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pplmx/aurora/internal/blockchain"
 	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 type CastVoteUseCase struct {
 	repo      voting.TransactableRepository
 	service   voting.Service
 	txManager voting.TransactionManager
-	chain     blockchain.BlockWriter
+	chain     ledger.BlockWriter
 }
 
 // SetChain wires the blockchain writer used to record each accepted ballot
@@ -26,7 +26,7 @@ type CastVoteUseCase struct {
 // in-memory tests / fallback wiring). The voting package documents
 // "blockchain-based vote recording", so the API server and CLI supply the
 // chain.
-func (uc *CastVoteUseCase) SetChain(chain blockchain.BlockWriter) {
+func (uc *CastVoteUseCase) SetChain(chain ledger.BlockWriter) {
 	uc.chain = chain
 }
 
@@ -76,7 +76,7 @@ func (uc *CastVoteUseCase) withVoteBlock(data string, fn func(repo voting.Reposi
 		})
 	}
 
-	if writer, ok := uc.chain.(blockchain.BlockTransactionWriter); ok {
+	if writer, ok := uc.chain.(ledger.BlockTransactionWriter); ok {
 		return writer.WithBlockTransaction(data, uc.txManager, func(tx *sql.Tx, height int64) error {
 			return fn(uc.txRepo(tx), height)
 		})
