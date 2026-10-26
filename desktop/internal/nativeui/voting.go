@@ -48,6 +48,16 @@ type votingState struct {
 
 	resultsSession string
 	results        []ResultRow
+	// resultsLoadedID is the session the rows describe. resultsSession is the
+	// form field and can name another session between reads; keeping them
+	// apart is what lets a failed read report "stale" for the session it
+	// actually loaded, and never pin one session's tally to another's id.
+	resultsLoadedID string
+	// resultsErr is the last failure to read that tally. The rows from the
+	// previous successful read stay when they still describe the same session
+	// and are reported as stale; with no rows the card explains the failure
+	// instead of claiming no tally exists.
+	resultsErr error
 
 	candidates []CandidateRow
 	sessions   []SessionRow
@@ -342,9 +352,11 @@ func (a *App) votingSessionList(c *ui.Context) {
 		// follow.
 		id := sessions[a.voting.sessionChoice].ID
 		a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
-		if len(a.voting.results) > 0 {
+		if len(a.voting.results) > 0 || a.voting.resultsErr != nil {
 			// The tally on screen belongs to the previously chosen session; a
-			// selection must not leave it beside a new session id.
+			// selection must not leave it beside a new session id even when
+			// the fresh read fails. Same-session refreshes keep their rows.
+			a.clearTallyForAnotherSession(id)
 			_ = a.loadSessionResults(id)
 		}
 	}
@@ -582,14 +594,32 @@ func (a *App) castVote() {
 	}
 }
 
-// loadSessionResults reads a session's tally into the Results card.
+// loadSessionResults reads a session's tally into the Results card. A failed
+// read keeps the rows already on screen only when they describe the same
+// session; callers that change the subject clear them first.
 func (a *App) loadSessionResults(sessionID string) error {
 	rows, err := a.services.SessionResults(sessionID)
 	if err != nil {
+		a.voting.resultsErr = err
 		return err
 	}
 	a.voting.results = rows
+	a.voting.resultsLoadedID = sessionID
+	a.voting.resultsErr = nil
 	return nil
+}
+
+// clearTallyForAnotherSession drops the rows when they describe a different
+// session than the one about to be read, so a failed read cannot leave the
+// previous session's numbers under the new id. Refreshing the same session
+// keeps its rows and reports them as the last successful load.
+func (a *App) clearTallyForAnotherSession(sessionID string) {
+	if a.voting.resultsLoadedID == sessionID {
+		return
+	}
+	a.voting.results = nil
+	a.voting.resultsLoadedID = ""
+	a.voting.resultsErr = nil
 }
 
 // sessionWindow renders a session's acceptance window as a compact pair of
@@ -612,14 +642,19 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	field(c, "Session ID", &a.voting.resultsSession)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Show Results").Clicked() {
-			if err := a.loadSessionResults(strings.TrimSpace(a.voting.resultsSession)); err != nil {
-				a.voting.results = nil
+			id := strings.TrimSpace(a.voting.resultsSession)
+			a.clearTallyForAnotherSession(id)
+			if err := a.loadSessionResults(id); err != nil {
 				a.voting.status = errStatus(err)
 			} else {
 				a.voting.status = statusLine{}
 			}
 		}
 	})
+	if a.voting.resultsErr != nil &&
+		!loadWarning(c, "Failed to load results", a.voting.resultsErr, len(a.voting.results) > 0) {
+		return
+	}
 	if len(a.voting.results) == 0 {
 		emptyNote(c, "No tally loaded yet.")
 		return

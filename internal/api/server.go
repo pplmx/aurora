@@ -204,6 +204,21 @@ func (s *Server) StartAuditOutboxDrainer(ctx context.Context) (stop func()) {
 	return cancel
 }
 
+// OracleHealthStats returns the running scheduler's per-source fetch-health
+// counters, or nil before StartOracleScheduler has built it. The desktop
+// window reads the same counters the protected /api/v1/oracle/health endpoint
+// publishes, so a native page and the REST surface cannot disagree about
+// whether a feed is failing.
+func (s *Server) OracleHealthStats() []oracleapp.SourceStat {
+	s.oracleMu.Lock()
+	sched := s.oracleScheduler
+	s.oracleMu.Unlock()
+	if sched == nil {
+		return nil
+	}
+	return sched.Stats()
+}
+
 func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Duration) (stop func()) {
 	if s.oracleRepo == nil {
 		return func() {}

@@ -44,6 +44,11 @@ type nativeServices struct {
 	txManager    *sqlite.TxManager
 	votingSvc    voting.Service
 	nftTx        nft.TransactionManager
+	// health reads the oracle scheduler's per-source counters. It is a
+	// function rather than a snapshot because the scheduler is built after the
+	// server and keeps counting while the window is open; nil means this
+	// process has no scheduler (tests, or an embryo runtime).
+	health func() []oracleapp.SourceStat
 }
 
 var _ nativeui.Services = (*nativeServices)(nil)
@@ -57,6 +62,7 @@ func newNativeServices(
 	tokenService token.Service,
 	txManager *sqlite.TxManager,
 	chain *blockchain.BlockChain,
+	health func() []oracleapp.SourceStat,
 ) *nativeServices {
 	return &nativeServices{
 		lotteryRepo:  lotteryRepo,
@@ -69,6 +75,7 @@ func newNativeServices(
 		txManager:    txManager,
 		votingSvc:    voting.NewEd25519Service(),
 		nftTx:        sqlite.NewTxManager(nftRepo.GetDB()),
+		health:       health,
 	}
 }
 
@@ -544,9 +551,16 @@ func (s *nativeServices) TokenHistory(tokenID, owner string, limit, offset int) 
 	}
 	rows := make([]nativeui.TransferRow, 0, len(resp.Transfers))
 	for _, t := range resp.Transfers {
-		rows = append(rows, nativeui.TransferRow{From: t.From, To: t.To, Amount: t.Amount})
+		rows = append(rows, transferRow(t))
 	}
 	return rows, nil
+}
+
+// transferRow maps one history entry into the view row. Nonce is part of the
+// row the Token page renders; dropping it here made every transfer show
+// nonce 0 even after the use case started returning it.
+func transferRow(t tokenapp.TransferResponse) nativeui.TransferRow {
+	return nativeui.TransferRow{From: t.From, To: t.To, Amount: t.Amount, Nonce: t.Nonce}
 }
 
 // --- Oracle --------------------------------------------------------------
@@ -631,10 +645,29 @@ func (s *nativeServices) OracleLatest(sourceID string) (nativeui.DataRow, error)
 }
 
 func (s *nativeServices) OracleHealth() ([]nativeui.HealthRow, error) {
-	// Health is the scheduler's in-memory counter set, not a stored table; the
-	// window shows what the running scheduler has observed, same as the REST
-	// /oracle/health endpoint.
-	return nil, nil
+	if s.health == nil {
+		return nil, nil
+	}
+	stats := s.health()
+	rows := make([]nativeui.HealthRow, 0, len(stats))
+	for _, st := range stats {
+		rows = append(rows, healthRow(st))
+	}
+	return rows, nil
+}
+
+// healthRow maps one scheduler counter into the view's row type. Names are
+// resolved by the view from the source list it already holds, so this adapter
+// does not read the database a second time just to label a counter.
+func healthRow(st oracleapp.SourceStat) nativeui.HealthRow {
+	return nativeui.HealthRow{
+		SourceID:    st.SourceID,
+		Attempts:    int(st.Attempts),
+		Successes:   int(st.Successes),
+		Failures:    int(st.Failures),
+		LastError:   st.LastError,
+		LastSuccess: st.LastSuccessAt,
+	}
 }
 
 // --- NFT -----------------------------------------------------------------

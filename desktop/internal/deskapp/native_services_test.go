@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/app/oracleapp"
+	"github.com/pplmx/aurora/internal/app/tokenapp"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/stretchr/testify/require"
 )
@@ -30,6 +32,44 @@ func TestGenerateKeyPairIsAUsableEd25519Pair(t *testing.T) {
 	signature := ed25519.Sign(ed25519.PrivateKey(priv), message)
 	require.True(t, ed25519.Verify(ed25519.PublicKey(pub), message, signature),
 		"the public half must verify what the private half signs")
+}
+
+// TestHealthRowsCarrySchedulerCounters pins the adapter the Feed Health card
+// reads. It used to return (nil, nil) unconditionally, so the card could only
+// ever say "(no feed activity yet)" while the REST endpoint showed counters.
+func TestHealthRowsCarrySchedulerCounters(t *testing.T) {
+	row := healthRow(oracleapp.SourceStat{
+		SourceID: "s1", Attempts: 7, Successes: 5, Failures: 2,
+		LastSuccessAt: 1_700_000_000, LastError: "upstream 503",
+	})
+	require.Equal(t, "s1", row.SourceID)
+	require.Equal(t, 7, row.Attempts)
+	require.Equal(t, 5, row.Successes)
+	require.Equal(t, 2, row.Failures)
+	require.Equal(t, int64(1_700_000_000), row.LastSuccess)
+	require.Equal(t, "upstream 503", row.LastError)
+}
+
+// TestOracleHealthWithoutASchedulerIsEmpty keeps the adapter nil-safe: a test
+// or a runtime built before StartOracleScheduler must report no activity, not
+// panic on a nil provider.
+func TestOracleHealthWithoutASchedulerIsEmpty(t *testing.T) {
+	rows, err := (&nativeServices{}).OracleHealth()
+	require.NoError(t, err)
+	require.Empty(t, rows)
+}
+
+// TestTransferRowsCarryNonces pins the second half of the token history
+// mapping: the use case now returns a nonce, and the view row must keep it or
+// the desktop column still renders 0.
+func TestTransferRowsCarryNonces(t *testing.T) {
+	row := transferRow(tokenapp.TransferResponse{
+		From: "alice", To: "bob", Amount: "12", Nonce: 9,
+	})
+	require.Equal(t, "alice", row.From)
+	require.Equal(t, "bob", row.To)
+	require.Equal(t, "12", row.Amount)
+	require.Equal(t, uint64(9), row.Nonce)
 }
 
 // TestLedgerBlocksCarryBlockHeights pins the heights the desktop ledger shows.

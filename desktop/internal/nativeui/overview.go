@@ -112,7 +112,7 @@ func (a *App) dashboardView(c *ui.Context) {
 		{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", ink, true},
 		{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", ink, true},
 		{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification", integrityTone, false},
-		{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Current source health", ink, true},
+		{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", ink, true},
 	}
 	// A fresh install is all zeroes and a verified empty chain, which is
 	// correct but says nothing about what to do next. One line names the

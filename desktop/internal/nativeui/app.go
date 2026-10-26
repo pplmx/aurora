@@ -328,8 +328,10 @@ func (a *App) refresh() {
 		a.loadLottery()
 	case pageVoting:
 		a.loadVoting()
-		if len(a.voting.results) > 0 {
-			_ = a.loadSessionResults(strings.TrimSpace(a.voting.resultsSession))
+		if len(a.voting.results) > 0 || a.voting.resultsErr != nil {
+			id := strings.TrimSpace(a.voting.resultsSession)
+			a.clearTallyForAnotherSession(id)
+			_ = a.loadSessionResults(id)
 		}
 	case pageToken:
 		a.refreshToken()

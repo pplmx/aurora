@@ -44,11 +44,15 @@ type TransferRequest struct {
 }
 
 type TransferResponse struct {
-	ID          string `json:"id"`
-	TokenID     string `json:"token_id"`
-	From        string `json:"from"`
-	To          string `json:"to"`
-	Amount      string `json:"amount"`
+	ID      string `json:"id"`
+	TokenID string `json:"token_id"`
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Amount  string `json:"amount"`
+	// Nonce is the replay-protection sequence number the transfer was signed
+	// with. The desktop history table shows it, and without it every row read
+	// as nonce 0.
+	Nonce       uint64 `json:"nonce"`
 	Timestamp   int64  `json:"timestamp"`
 	BlockHeight int64  `json:"block_height"`
 }

@@ -1105,6 +1105,12 @@ func TestGetHistoryUseCase_Execute(t *testing.T) {
 		t.Errorf("expected block heights [10 21] to surface, got [%d %d]",
 			resp.Transfers[0].BlockHeight, resp.Transfers[1].BlockHeight)
 	}
+	// Replay nonces are part of the history the desktop table renders; a DTO
+	// without them made every row read as nonce 0.
+	if resp.Transfers[0].Nonce != 1 || resp.Transfers[1].Nonce != 2 {
+		t.Errorf("expected nonces [1 2] to surface, got [%d %d]",
+			resp.Transfers[0].Nonce, resp.Transfers[1].Nonce)
+	}
 }
 
 func TestGetHistoryUseCase_InvalidOwner(t *testing.T) {

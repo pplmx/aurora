@@ -137,6 +137,27 @@ func TestFailedHealthReadKeepsFeedRows(t *testing.T) {
 	require.True(t, tester.HasText("btc-feed"), "the last counters must stay visible")
 }
 
+// TestFeedHealthResolvesSourceNames pins the label the scheduler cannot send:
+// its counters carry a source id, while the table the operator reads should
+// say which feed is failing. The page resolves it from the source list it
+// already loaded; the filter here hides that list's row so the name can only
+// come from the health table.
+func TestFeedHealthResolvesSourceNames(t *testing.T) {
+	fake := &fakeServices{
+		sources:    []SourceRow{{ID: "s1", Name: "btc-feed"}},
+		healthRows: []HealthRow{{SourceID: "s1", Attempts: 3, Failures: 1, LastError: "timeout"}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Oracle")
+	app.oracle.search = "no-source-matches-this"
+	tester.Frame()
+
+	require.True(t, tester.HasText("No sources match"), "the source table must not supply the name")
+	require.True(t, tester.HasText("btc-feed"), "the health row must resolve the source name")
+	require.True(t, tester.HasText("timeout"))
+}
+
 // TestFailedPresetReadKeepsTheAddForm covers the oracle preset catalog: a failed
 // read was dropped, leaving a stale or absent picker with no explanation. The
 // warning sits above a form that stays usable.

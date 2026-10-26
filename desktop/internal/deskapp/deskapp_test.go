@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pplmx/aurora/desktop/internal/nativeui"
 	"github.com/pplmx/aurora/internal/domain/blockchain"
 	"github.com/pplmx/aurora/internal/logger"
 )
@@ -312,6 +313,47 @@ func TestRuntimeBootsNativeUIAndAPI(t *testing.T) {
 	rt.Router().ServeHTTP(root, httptest.NewRequest(http.MethodGet, "/", nil))
 	require.Equal(t, http.StatusNotFound, root.Code,
 		"the gateway serves no static UI; the desktop window draws it")
+}
+
+// TestFeedHealthReachesTheWindow is the integration proof for the Oracle
+// page's Feed Health card: the window's Services must read the scheduler the
+// startup path actually started, not a nil stand-in. The source points at an
+// unresolvable name, so the attempt is recorded without any external network
+// dependency; the fetch itself is allowed to fail.
+func TestFeedHealthReachesTheWindow(t *testing.T) {
+	resetState(t)
+	viperKey(t)
+	viper.Set("log.path", filepath.Join(t.TempDir(), "logs"))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	rt, err := Start(ctx, Options{DataDir: t.TempDir()})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, rt.Close()) })
+
+	app := rt.App()
+	require.NotNil(t, app)
+	_, err = app.Services().AddOracleSource(nativeui.SourceInput{
+		Name:     "flaky-feed",
+		URL:      "https://aurora-feed.invalid/price",
+		Interval: 1,
+	})
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		rows, err := app.Services().OracleHealth()
+		if err != nil {
+			return false
+		}
+		for _, row := range rows {
+			if row.SourceID != "" && row.Attempts > 0 {
+				return true
+			}
+		}
+		return false
+	}, 5*time.Second, 50*time.Millisecond,
+		"the desktop's OracleHealth must report the running scheduler's attempt")
 }
 
 // flushRecorder is a ResponseWriter that records flushes, so the test can tell

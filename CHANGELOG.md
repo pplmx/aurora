@@ -55,6 +55,24 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop Feed Health card reads the running scheduler**: the adapter
+  returned an empty list unconditionally, so the Oracle page always said
+  "(no feed activity yet)" while `GET /api/v1/oracle/health` had counters. The
+  startup path now exposes the scheduler's per-source stats to the window,
+  resolves each source name from the list the page already holds, and an
+  integration test adds a source and waits for the scheduler attempt to reach
+  `App.Services().OracleHealth()`.
+- **Desktop token history shows the replay nonce**: `TransferResponse` omitted
+  the nonce and the adapter would not have carried it anyway, so every row in
+  the Token page's Nonce column read 0. The use case now includes
+  `TransferEvent.Nonce`, the adapter maps it, and both halves are pinned by
+  tests.
+- **A failed tally read no longer shows another session's results**: selecting
+  a session, refreshing, or re-reading after a ballot ignored the error, which
+  left the previous session's rows beside the new id with no warning. The
+  Results card now tracks which session its rows describe, clears them when
+  the subject changes, keeps same-session rows and marks them stale on a
+  failed refresh, and reports the failure instead of "No tally loaded yet."
 - **A failed oracle preset read no longer hides its cause on the desktop**: the
   template catalog error was dropped, leaving a stale or missing preset picker
   with no explanation. The Add Source card now shows the stale warning above the

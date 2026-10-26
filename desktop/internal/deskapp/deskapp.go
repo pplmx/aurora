@@ -128,13 +128,18 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	rt := &Runtime{
 		server: srv,
 		dbPath: dbPath,
-		app: nativeui.New(newNativeServices(
-			svc.LotteryRepo, svc.VotingRepo, svc.NFTRepo, svc.TokenRepo,
-			svc.OracleRepo, svc.TokenService, svc.TxManager, svc.Chain,
-		)),
 	}
+	// Start the background work before the window state exists so a page that
+	// reads scheduler health (the Oracle page's Feed Health card) sees the same
+	// live counters the REST endpoint publishes, rather than a nil scheduler
+	// that would make the card permanently empty.
 	rt.stopScheduler = srv.StartOracleScheduler(ctx, config.OracleSchedulerCheckInterval())
 	rt.stopOutbox = srv.StartAuditOutboxDrainer(ctx)
+	rt.app = nativeui.New(newNativeServices(
+		svc.LotteryRepo, svc.VotingRepo, svc.NFTRepo, svc.TokenRepo,
+		svc.OracleRepo, svc.TokenService, svc.TxManager, svc.Chain,
+		srv.OracleHealthStats,
+	))
 	return rt, nil
 }
 
