@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 231,
+  "round": 232,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:14:11+00:00",
+  "updated_at": "2026-10-26T04:18:43+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19341,6 +19341,29 @@
       "touched_round": 231,
       "commit": "a4027e9",
       "title": "Explain SQLITE_BUSY as a retryable conflict"
+    },
+    "ISS-413": {
+      "id": "ISS-413",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:18:29+00:00",
+      "updated_at": "2026-10-26T04:18:43+00:00",
+      "touched_round": 232,
+      "title": "The desktop ledger built every chain entry each frame and could not be filtered",
+      "severity": 0.35,
+      "description": "A long-lived chain holds tens of thousands of entries; the Blockchain table built all of them each frame and had no search. It now filters by module/payload/height and bounds the rendered rows with a Show limit (default 200), stating how many of how many matching entries are shown; the counters above still describe the whole chain."
+    },
+    "CHG-429": {
+      "id": "CHG-429",
+      "type": "change",
+      "status": "active",
+      "version": 2,
+      "created_at": "2026-10-26T04:18:29+00:00",
+      "updated_at": "2026-10-26T04:18:43+00:00",
+      "touched_round": 232,
+      "commit": "7b9d3f8",
+      "title": "Search and bound the ledger table"
     }
   },
   "edges": [
@@ -29508,6 +29531,12 @@
       "to": "ISS-412",
       "type": "resolves",
       "created_at": "2026-10-26T04:14:11+00:00"
+    },
+    {
+      "from": "CHG-429",
+      "to": "ISS-413",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:18:43+00:00"
     }
   ]
 }
