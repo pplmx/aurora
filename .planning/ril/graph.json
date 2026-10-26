@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 233,
+  "round": 234,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:22:58+00:00",
+  "updated_at": "2026-10-26T04:27:06+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19387,6 +19387,29 @@
       "touched_round": 233,
       "commit": "c8f4637",
       "title": "Show the chosen session roster under the table"
+    },
+    "ISS-415": {
+      "id": "ISS-415",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:27:05+00:00",
+      "updated_at": "2026-10-26T04:27:06+00:00",
+      "touched_round": 234,
+      "title": "The desktop Refresh action left displayed readouts stale",
+      "severity": 0.4,
+      "description": "Ctrl/Cmd+R reloaded lists and counters only; an open Inspect readout, a shown balance, a loaded token/NFT history, the oracle Query/Latest cards and a voting tally kept their old values. Each page now re-reads exactly what it displays, and TestPageRefreshReReadsOpenReadouts counts the calls."
+    },
+    "CHG-431": {
+      "id": "CHG-431",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:27:05+00:00",
+      "updated_at": "2026-10-26T04:27:05+00:00",
+      "touched_round": 234,
+      "commit": "c4434c9",
+      "title": "Reload open readouts on Refresh"
     }
   },
   "edges": [
@@ -29566,6 +29589,12 @@
       "to": "ISS-414",
       "type": "resolves",
       "created_at": "2026-10-26T04:22:58+00:00"
+    },
+    {
+      "from": "CHG-431",
+      "to": "ISS-415",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:27:05+00:00"
     }
   ]
 }
