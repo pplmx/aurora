@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 244,
+  "round": 245,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:56:17+00:00",
+  "updated_at": "2026-10-26T04:59:21+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19640,6 +19640,29 @@
       "touched_round": 244,
       "commit": "49248a2",
       "title": "Prefill the NFT holder on selection"
+    },
+    "ISS-426": {
+      "id": "ISS-426",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:59:21+00:00",
+      "updated_at": "2026-10-26T04:59:21+00:00",
+      "touched_round": 245,
+      "title": "GET /api/v1/token/list returned the whole collection unbounded",
+      "severity": 0.4,
+      "description": "A key-holding caller could force an unbounded response while the NFT, lottery and token-history listings all paged. The endpoint now defaults to 20, accepts limit/offset, caps at 100/10000 and documents itself in docs/api.md; TestTokenHandler_List_Paged covers it."
+    },
+    "CHG-442": {
+      "id": "CHG-442",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:59:21+00:00",
+      "updated_at": "2026-10-26T04:59:21+00:00",
+      "touched_round": 245,
+      "commit": "7e4a729",
+      "title": "Page and cap the token listing endpoint"
     }
   },
   "edges": [
@@ -29885,6 +29908,12 @@
       "to": "ISS-425",
       "type": "resolves",
       "created_at": "2026-10-26T04:56:17+00:00"
+    },
+    {
+      "from": "CHG-442",
+      "to": "ISS-426",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:59:21+00:00"
     }
   ]
 }
