@@ -49,6 +49,13 @@ func (a *App) settingsView(c *ui.Context) {
 			hint(c, "No data leaves this machine; the desktop opens no network listener.")
 		})
 
+		formCard(c, "Live updates", "Keep the open page's facts current on a timer.", func() {
+			if ui.Checkbox(c, &a.liveUpdates, tr("Every 10 seconds")).Changed() {
+				a.setLiveUpdates(a.liveUpdates)
+			}
+			hint(c, "Applies to Dashboard and Oracle health; forms keep their text.")
+		})
+
 		formCard(c, "Appearance", "Aurora is dark by design; the operating system still decides size and contrast.", func() {
 			readout(c, []readoutRow{
 				{"Theme", "Dark"},

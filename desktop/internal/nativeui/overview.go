@@ -130,6 +130,7 @@ func (a *App) dashboardView(c *ui.Context) {
 		}
 		a.dashboardRecent(c)
 	})
+	a.liveRefresh(c, a.loadDashboard)
 }
 
 // dashboardQuickStart names the first move in each module. The sidebar lists
