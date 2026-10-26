@@ -213,6 +213,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop follows the OS text size**: every explicit FontSize in the view
+  layer now goes through `textSize`, which multiplies the system TextScale
+  preference. MyGo's theme only scaled text without an explicit size, which in
+  this window was almost none of it; Reduce Motion already worked because MyGo
+  sends animations straight to their target. `TestTextScaleIsHonoured` renders
+  at 1.5x and fails if the header does not grow.
 - **Choosing a desktop session shows who is on its ballot**: the row cannot
   carry the roster, so the selected session now prints its candidate names
   under the table (ids shortened when a candidate was deleted), which is what

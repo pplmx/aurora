@@ -85,7 +85,7 @@ func (a *App) dashboardView(c *ui.Context) {
 	if !a.dashboard.loaded {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Spinner(c)
-			ui.Text(c, "Loading counters…").FontSize(12).TextColor(ui.Hex(inkMuted))
+			ui.Text(c, "Loading counters…").FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 		})
 		return
 	}
@@ -118,7 +118,7 @@ func (a *App) dashboardView(c *ui.Context) {
 	if a.dashboard.Lotteries == 0 && a.dashboard.Votes == 0 && a.dashboard.Oracle == 0 {
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "Nothing recorded yet — start from Lottery to run a verifiable draw.").
-				FontSize(12).TextColor(ui.Hex(inkMuted))
+				FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 			if secondaryButton(c, "Open Lottery").Clicked() {
 				a.setPage(pageLottery)
 			}
@@ -161,7 +161,7 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			case 1:
 				ui.Text(c, entry.Module).SingleLine()
 			case 2:
-				ui.Text(c, entry.Summary).FontSize(12).SingleLine()
+				ui.Text(c, entry.Summary).FontSize(textSize(c, 12)).SingleLine()
 			}
 		})
 	})
@@ -266,7 +266,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		case 1:
 			ui.Text(c, b.Module).SingleLine()
 		case 2:
-			ui.Text(c, b.Summary).FontSize(12).SingleLine()
+			ui.Text(c, b.Summary).FontSize(textSize(c, 12)).SingleLine()
 		}
 	})
 	if len(rows) < len(matching) {

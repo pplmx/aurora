@@ -190,7 +190,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 				a.token.status = okStatus("Owner private key copied.")
 			})
 			ui.Text(c, "This is the only copy of the owner key; the store keeps the public half.").
-				FontSize(11).TextColor(ui.Hex(auroraAmber))
+				FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
 		}
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Create Token").Clicked() {
@@ -298,8 +298,8 @@ func readout(c *ui.Context, rows []readoutRow) {
 		Background(ui.Hex(night)).Children(func() {
 		for _, r := range rows {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.Text(c, r.label).FontSize(11).Width(72).TextColor(ui.Hex(inkMuted))
-				ui.Text(c, r.value).FontSize(12).TextColor(ui.Hex(ink)).SingleLine()
+				ui.Text(c, r.label).FontSize(textSize(c, 11)).Width(72).TextColor(ui.Hex(inkMuted))
+				ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).SingleLine()
 			})
 		}
 	})
@@ -317,14 +317,14 @@ func tokenSubject(c *ui.Context, id string) {
 			Background(ui.Hex(warningTint)).BorderWidth(1).BorderColor(ui.Hex(auroraAmber)).
 			Children(func() {
 				badge(c, "No token selected", auroraAmber, night)
-				ui.Text(c, "Create or inspect one first.").FontSize(12).TextColor(ui.Hex(ink))
+				ui.Text(c, "Create or inspect one first.").FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
 			})
 		return
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
 		Background(ui.Hex(night)).Children(func() {
-		ui.Text(c, "Acting on").FontSize(11).TextColor(ui.Hex(inkMuted))
-		ui.Text(c, id).FontSize(13).Bold().TextColor(ui.Hex(aurora)).SingleLine()
+		ui.Text(c, "Acting on").FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).SingleLine()
 	})
 }
 

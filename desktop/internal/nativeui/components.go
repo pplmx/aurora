@@ -113,7 +113,7 @@ func renderStatus(c *ui.Context, s statusLine) {
 		Background(ui.Hex(tint)).BorderWidth(1).BorderColor(ui.Hex(tone)).
 		Children(func() {
 			badge(c, label, tone, night)
-			ui.Text(c, s.text).FontSize(12).TextColor(ui.Hex(ink))
+			ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
 		})
 }
 
@@ -165,7 +165,7 @@ func quietButton(c *ui.Context, label string) ui.Element {
 	}
 	b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
 	b.Children(func() {
-		ui.Text(c, label).FontSize(12).SingleLine()
+		ui.Text(c, label).FontSize(textSize(c, 12)).SingleLine()
 	})
 	return b
 }
@@ -187,7 +187,7 @@ func styledButton(c *ui.Context, label string, fill, hover, pressed ui.Color, te
 	}
 	b.AnimatePose(pose, ui.Snappy)
 	b.Children(func() {
-		ui.Text(c, label).FontSize(13).FontWeight(600).SingleLine()
+		ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine()
 	})
 	return b
 }
@@ -222,10 +222,23 @@ func textAreaHint(c *ui.Context, label, hintText string, value *string) {
 	})
 }
 
+// textSize applies the desktop's text-scale preference to a fixed size.
+// Explicit FontSize values are absolute, so without this the window ignored the
+// OS text-size setting (the theme default only covered text with no explicit
+// size). ReduceMotion needs no equivalent: MyGo sends animations to their
+// target at once when it is on.
+func textSize(c *ui.Context, size float32) float32 {
+	scale := c.Preferences().TextScale
+	if scale <= 0 {
+		scale = 1
+	}
+	return size * scale
+}
+
 // hint draws a muted line under a control, explaining a value the label
 // cannot.
 func hint(c *ui.Context, text string) {
-	ui.Text(c, text).FontSize(11).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, text).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
 }
 
 // shortID shortens an identifier for a table cell, keeping enough of it to
@@ -252,7 +265,7 @@ func joinList(items []string) string {
 // emptyNote draws the "nothing here yet" line a table shows instead of an empty
 // body, distinct from a load failure.
 func emptyNote(c *ui.Context, text string) {
-	ui.Text(c, text).FontSize(12).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 }
 
 // copyRow draws a labelled value with a Copy button.
@@ -266,8 +279,8 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 		return
 	}
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(11).Width(72).TextColor(ui.Hex(inkMuted))
-		ui.Text(c, abbreviate(value)).FontSize(12).TextColor(ui.Hex(ink)).SingleLine()
+		ui.Text(c, label).FontSize(textSize(c, 11)).Width(72).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).SingleLine()
 		if quietButton(c, "Copy "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
 			c.Services().WriteClipboard(value)
@@ -302,11 +315,11 @@ func abbreviate(value string) string {
 // through to its "nothing here yet" note, which would claim the store is empty
 // when the truth is that it could not be read.
 func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
-	ui.Text(c, what+": "+err.Error()).FontSize(12).TextColor(ui.Hex(auroraRed))
+	ui.Text(c, what+": "+err.Error()).FontSize(textSize(c, 12)).TextColor(ui.Hex(auroraRed))
 	if !hasContent {
 		return false
 	}
-	ui.Text(c, "Showing the last successful load.").FontSize(12).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, "Showing the last successful load.").FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 	return true
 }
 
@@ -378,7 +391,7 @@ func card(c *ui.Context, fn func()) ui.Element {
 // reads as an error rather than a summary.
 func metricCard(c *ui.Context, label, value, note string, tone string, numeric bool) {
 	card(c, func() {
-		ui.Text(c, label).FontSize(11).TextColor(ui.Hex(inkMuted)).SingleLine()
+		ui.Text(c, label).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
 		// The value sits in a fixed-height slot so a word verdict and a
 		// one-digit number put their note on the same line across the row.
 		size := float32(20)
@@ -386,9 +399,9 @@ func metricCard(c *ui.Context, label, value, note string, tone string, numeric b
 			size = 30
 		}
 		ui.Column(c).Height(38).Justify(ui.Center).Children(func() {
-			ui.Text(c, value).FontSize(size).Bold().TextColor(ui.Hex(tone)).SingleLine()
+			ui.Text(c, value).FontSize(textSize(c, size)).Bold().TextColor(ui.Hex(tone)).SingleLine()
 		})
-		ui.Text(c, note).FontSize(11).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, note).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
 	})
 }
 
@@ -409,9 +422,9 @@ func metricRow(c *ui.Context, n int, fn func(i int)) {
 // the page header for the same attention.
 func sectionHeading(c *ui.Context, title, purpose string) {
 	ui.Column(c).Gap(2).Children(func() {
-		ui.Text(c, title).FontSize(16).Bold().TextColor(ui.Hex(ink))
+		ui.Text(c, title).FontSize(textSize(c, 16)).Bold().TextColor(ui.Hex(ink))
 		if purpose != "" {
-			ui.Text(c, purpose).FontSize(12).TextColor(ui.Hex(inkMuted))
+			ui.Text(c, purpose).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
 		}
 	})
 }
@@ -448,5 +461,5 @@ func fieldError(c *ui.Context, message string) {
 	if message == "" {
 		return
 	}
-	ui.Text(c, message).FontSize(11).TextColor(ui.Hex(auroraRed))
+	ui.Text(c, message).FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraRed))
 }
