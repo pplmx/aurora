@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 254,
+  "round": 255,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T05:19:13+00:00",
+  "updated_at": "2026-10-26T07:00:38+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19870,6 +19870,117 @@
       "touched_round": 254,
       "commit": "92682fa",
       "title": "Surface preset-load failures"
+    },
+    "COMP-022": {
+      "id": "COMP-022",
+      "type": "component",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T06:52:31+00:00",
+      "updated_at": "2026-10-26T06:52:31+00:00",
+      "touched_round": 254,
+      "name": "desktop/internal/nativeui",
+      "path": "desktop/internal/nativeui",
+      "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
+    },
+    "ISS-436": {
+      "id": "ISS-436",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T06:52:37+00:00",
+      "updated_at": "2026-10-26T07:00:33+00:00",
+      "touched_round": 254,
+      "title": "A failed tally read leaves the previous session results on screen",
+      "description": "voting.go ignores loadSessionResults errors when a session row is selected, on Refresh, and after a ballot. On a read failure the rows loaded for the previous session remain beside the newly selected session id, and no warning distinguishes them from a current tally.",
+      "severity": 0.65,
+      "confidence": 0.95
+    },
+    "ISS-437": {
+      "id": "ISS-437",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T06:52:42+00:00",
+      "updated_at": "2026-10-26T07:00:33+00:00",
+      "touched_round": 254,
+      "title": "Desktop token history always shows nonce 0",
+      "description": "tokenapp.TransferResponse has no Nonce field and nativeServices.TokenHistory never sets nativeui.TransferRow.Nonce, so the Token page Nonce column renders 0 for every transfer even though the domain event stores the replay nonce.",
+      "severity": 0.55,
+      "confidence": 1.0
+    },
+    "ISS-438": {
+      "id": "ISS-438",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T06:52:49+00:00",
+      "updated_at": "2026-10-26T07:00:33+00:00",
+      "touched_round": 254,
+      "title": "The desktop Feed Health card can never show data",
+      "description": "desktop/internal/deskapp/native_services.go OracleHealth returns (nil, nil), so the Oracle page always renders \"(no feed activity yet)\" even while the REST handler exposes scheduler counters. The scheduler already lives in api.Server; the desktop wiring never passes it to the view layer.",
+      "severity": 0.7,
+      "confidence": 1.0
+    },
+    "TASK-391": {
+      "id": "TASK-391",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-26T06:52:57+00:00",
+      "updated_at": "2026-10-26T07:00:38+00:00",
+      "touched_round": 254,
+      "category": "correctness",
+      "title": "Wire the desktop Feed Health card to the oracle scheduler",
+      "description": "Expose the running scheduler stats from api.Server, pass them into nativeServices, map SourceStat to HealthRow, resolve names from the loaded source list, and prove the card fills after a scheduler attempt. Keep OracleHealth nil-safe before the scheduler starts.",
+      "severity": 0.7,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "TASK-392": {
+      "id": "TASK-392",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-26T06:53:01+00:00",
+      "updated_at": "2026-10-26T07:00:38+00:00",
+      "touched_round": 254,
+      "category": "correctness",
+      "title": "Carry replay nonces through token history to the desktop table",
+      "description": "Add Nonce to tokenapp.TransferResponse, populate it from TransferEvent.Nonce, map it in nativeServices, and pin the REST/use-case and adapter mappings so the desktop Nonce column cannot render 0 again.",
+      "severity": 0.55,
+      "confidence": 1.0,
+      "effort": 1,
+      "unlock_factor": 1
+    },
+    "TASK-393": {
+      "id": "TASK-393",
+      "type": "task",
+      "status": "resolved",
+      "version": 4,
+      "created_at": "2026-10-26T06:53:06+00:00",
+      "updated_at": "2026-10-26T07:00:38+00:00",
+      "touched_round": 254,
+      "category": "correctness",
+      "title": "Make the voting tally report failed reads and never show another session results",
+      "description": "Track which session the loaded results describe, clear them when the target changes, record resultsErr, render a stale-load warning, and retry on Refresh. Cover same-session failure, cross-session failure, and recovery.",
+      "severity": 0.65,
+      "confidence": 0.95,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "CHG-452": {
+      "id": "CHG-452",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T07:00:33+00:00",
+      "updated_at": "2026-10-26T07:00:33+00:00",
+      "touched_round": 254,
+      "commit": "e406752",
+      "title": "Wire desktop readouts to their real data",
+      "description": "Desktop Feed Health reads api.Server scheduler stats; token history carries the replay nonce; the voting tally tracks its loaded session and reports failed reads."
     }
   },
   "edges": [
@@ -30175,6 +30286,78 @@
       "to": "ISS-435",
       "type": "resolves",
       "created_at": "2026-10-26T05:19:13+00:00"
+    },
+    {
+      "from": "TASK-391",
+      "to": "ISS-438",
+      "type": "addresses",
+      "created_at": "2026-10-26T06:53:10+00:00"
+    },
+    {
+      "from": "ISS-438",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T06:53:10+00:00"
+    },
+    {
+      "from": "TASK-392",
+      "to": "ISS-437",
+      "type": "addresses",
+      "created_at": "2026-10-26T06:53:10+00:00"
+    },
+    {
+      "from": "ISS-437",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T06:53:10+00:00"
+    },
+    {
+      "from": "TASK-393",
+      "to": "ISS-436",
+      "type": "addresses",
+      "created_at": "2026-10-26T06:53:10+00:00"
+    },
+    {
+      "from": "ISS-436",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T06:53:10+00:00"
+    },
+    {
+      "from": "CHG-452",
+      "to": "ISS-438",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:00:38+00:00"
+    },
+    {
+      "from": "CHG-452",
+      "to": "ISS-437",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:00:38+00:00"
+    },
+    {
+      "from": "CHG-452",
+      "to": "ISS-436",
+      "type": "resolves",
+      "created_at": "2026-10-26T07:00:38+00:00"
+    },
+    {
+      "from": "CHG-452",
+      "to": "TASK-391",
+      "type": "implements",
+      "created_at": "2026-10-26T07:00:38+00:00"
+    },
+    {
+      "from": "CHG-452",
+      "to": "TASK-392",
+      "type": "implements",
+      "created_at": "2026-10-26T07:00:38+00:00"
+    },
+    {
+      "from": "CHG-452",
+      "to": "TASK-393",
+      "type": "implements",
+      "created_at": "2026-10-26T07:00:38+00:00"
     }
   ]
 }
