@@ -183,6 +183,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop numeric fields are real number inputs**: winner count, token decimals,
+  oracle poll interval and the query/history page sizes are `ui.NumberInput` with
+  the domain bounds and a step, instead of text parsed on submit; the interval
+  ceiling is the domain's 30 days, and list sizes are capped at 1000 before they
+  reach the repository. A value can no longer be rejected for its spelling.
 - **The desktop menu bar has a Go menu for the seven pages**: the window's
   Ctrl/Cmd+1..7 shortcuts existed but nothing in the UI named them. A Go menu
   lists the pages in sidebar order (`nativeui.PageTitles`) with the same

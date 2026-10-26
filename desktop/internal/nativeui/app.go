@@ -136,7 +136,10 @@ func New(services Services) *App {
 	// The draw form opens ready to submit: one winner is the domain's own
 	// default, and an empty count field rejected the first Create click with a
 	// parse error for a value the operator never had a chance to see.
-	a.lottery.count = "1"
+	a.lottery.count = 1
+	a.token.decimals = 8
+	a.token.historyLimit = 50
+	a.oracle.queryLim = 20
 	// -1 is "no row chosen": 0 is a real row, so it cannot double as the
 	// unset value or the first click on row 0 would look like no change.
 	a.lottery.selected = -1

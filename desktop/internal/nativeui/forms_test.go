@@ -253,7 +253,7 @@ func TestChoosingAPresetFillsEveryField(t *testing.T) {
 		app.oracle.addURL, "the preset's URL must reach the form")
 	require.Equal(t, "GET", app.oracle.addMethod)
 	require.Equal(t, "bitcoin.usd", app.oracle.addPath)
-	require.Equal(t, "60", app.oracle.addInterval)
+	require.Equal(t, float64(60), app.oracle.addInterval)
 
 	// And the filled form is addable: no field the service needs is blank.
 	require.NotEmpty(t, app.oracle.addURL, "Add Source needs a URL")
