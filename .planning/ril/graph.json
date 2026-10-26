@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 253,
+  "round": 254,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T05:17:52+00:00",
+  "updated_at": "2026-10-26T05:19:13+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19847,6 +19847,29 @@
       "touched_round": 253,
       "commit": "d9cf130",
       "title": "Surface feed-health read failures"
+    },
+    "ISS-435": {
+      "id": "ISS-435",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T05:19:13+00:00",
+      "updated_at": "2026-10-26T05:19:13+00:00",
+      "touched_round": 254,
+      "title": "The desktop Oracle add form swallowed preset-load failures",
+      "severity": 0.25,
+      "description": "The template catalog error was discarded, so a failed read meant stale or absent presets with no message. The card now warns above the retained presets and keeps Add Source usable."
+    },
+    "CHG-451": {
+      "id": "CHG-451",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T05:19:13+00:00",
+      "updated_at": "2026-10-26T05:19:13+00:00",
+      "touched_round": 254,
+      "commit": "92682fa",
+      "title": "Surface preset-load failures"
     }
   },
   "edges": [
@@ -30146,6 +30169,12 @@
       "to": "ISS-434",
       "type": "resolves",
       "created_at": "2026-10-26T05:17:52+00:00"
+    },
+    {
+      "from": "CHG-451",
+      "to": "ISS-435",
+      "type": "resolves",
+      "created_at": "2026-10-26T05:19:13+00:00"
     }
   ]
 }
