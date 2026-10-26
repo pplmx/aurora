@@ -331,6 +331,11 @@ documented in their per-milestone ROADMAP files.
   `domain` boundary. The package API and behavior are unchanged; a new
   `docs/architecture.md` records the dependency contract and the remaining
   refactor order.
+- **The storage composition root is now explicit**: `internal/app/container`
+  opens the database, repositories, event bus, replay protection, token service
+  and ledger singleton, and owns their close order. `api.Server` delegates
+  `Services`/`Close` to it and only builds HTTP handlers and the oracle
+  scheduler; the desktop continues to receive the same container instance.
 - **The ledger API now reads as one concept**: `BlockChain` became `Chain`;
   `NewBlockChain`/`NewBlockChainWithDB`/`InitBlockChain`/`GetBlockChain`
   became `New`/`NewWithDB`/`Init`/`Get`; and `AddLotteryRecord` /
