@@ -49,6 +49,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop clears a signing key after it is used**: token mint, transfer,
+  approve, transfer-from and burn, and NFT transfer and burn, left the private
+  key in its input after a successful write, so a shared screen kept showing
+  the secret. Each success clears its field (a failure keeps it for the retry),
+  and the refresh tests assert the field is empty after the write.
 - **The desktop outcome line no longer scrolls away**: each page drew its
   `statusLine` as the first child of the scrolling body (and the Token page
   drew it inside the left column), so an action near the bottom of a form could

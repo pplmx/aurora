@@ -96,7 +96,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   所以注册卡片提供 Public/Private key 的 Copy 按钮；新建候选人/会期后同样给出
   可复制的完整 ID（候选人 id 是自定会期名单唯一需要的输入）。复制走
   `ui.Services().WriteClipboard`，在无窗口的 `ui.Tester` 里由 `Tester.Clipboard()`
-  断言。
+  断言。用过的签名私钥不留在界面上：代币 mint/transfer/approve/transfer-from/
+  burn 与 NFT transfer/burn 成功后会清空对应私钥输入（失败时保留以便重试），
+  避免共享屏幕上残留密钥。
 - **刷新失败不清空正在读的内容**：读数据库失败时，各页保留上一次成功加载的
   行，在卡片里报告原因并标注“Showing the last successful load.”；从未加载成功
   过则只报错误，不会落到“还没有记录”的空白提示（那等于把“读不到”说成“没有”），
