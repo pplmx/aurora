@@ -36,12 +36,20 @@ type Actions struct {
 	// check marks.
 	SetLanguage func(string)
 	Language    func() string
+	// LiveUpdates/SetLiveUpdates persist the Settings toggle. The getter is
+	// read when SetActions runs; the setter reports a failed write so the page
+	// can show it instead of silently resetting on the next launch.
+	LiveUpdates    func() bool
+	SetLiveUpdates func(bool) error
 }
 
 // SetActions gives the window its application-level callbacks. It is called
 // once, after Start built the App and the shell has a database path.
 func (a *App) SetActions(actions Actions) {
 	a.actions = actions
+	if actions.LiveUpdates != nil {
+		a.liveUpdates = actions.LiveUpdates()
+	}
 }
 
 // sidebarActions draws the File menu at the bottom of the sidebar. It replaces

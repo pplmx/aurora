@@ -13,6 +13,7 @@ import (
 // about the running app belongs.
 func (a *App) settingsView(c *ui.Context) {
 	a.scrollPage(c, func() {
+		renderStatus(c, a.settingsStatus)
 		formCard(c, "Language", "Applies to menus, pages, dialogs and guidance.", func() {
 			current := "—"
 			if a.actions.Language != nil {
@@ -51,7 +52,16 @@ func (a *App) settingsView(c *ui.Context) {
 
 		formCard(c, "Live updates", "Keep the open page's facts current on a timer.", func() {
 			if ui.Checkbox(c, &a.liveUpdates, tr("Every 10 seconds")).Changed() {
+				a.settingsStatus = statusLine{}
 				a.setLiveUpdates(a.liveUpdates)
+				if a.actions.SetLiveUpdates != nil {
+					if err := a.actions.SetLiveUpdates(a.liveUpdates); err != nil {
+						a.settingsStatus = statusLine{
+							text:  tr("Couldn't save settings") + ": " + localizeServiceError(err),
+							isErr: true,
+						}
+					}
+				}
 			}
 			hint(c, "Applies to Dashboard and Oracle health; forms keep their text.")
 		})

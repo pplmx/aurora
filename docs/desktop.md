@@ -60,7 +60,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 - **Settings 是应用配置的唯一页面**：Language（跟随系统 / English / 简体中文 /
   繁體中文，显示当前语言）、Session keys（可选的内存私钥记忆与忘记）、Data
   （只读数据库路径与复制、打开数据目录、备份）、Live updates（可选：每 10 秒
-  重读正在显示的 Dashboard 与 Oracle 健康度，表单文字不受影响）、Appearance
+  重读正在显示的 Dashboard 与 Oracle 健康度，表单文字不受影响；选择写入数据库
+  同目录的 `desktop-settings.json`，下次启动沿用）、Appearance
   （深色主题，字号/对比度/动效跟随系统）和 About Aurora（版本、构建时间、
   数据库路径、关于对话框）。文件动作仍留在 File 菜单，配置不再混在菜单里。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
