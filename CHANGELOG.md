@@ -336,6 +336,10 @@ documented in their per-milestone ROADMAP files.
   translator keeps CLI/service keys only, and `tr`/`Translate` falls back to it
   for service errors and menu entries. `LoadLocaleFile` now writes to a cloned
   map instead of a package-level catalog.
+- **The layer contract is executable**: `internal/repocheck/layers_test.go`
+  parses production imports and fails if domain reaches infra/app/api, a use
+  case imports `infra/sqlite`, or infra imports its callers. The architecture
+  document is now backed by a test instead of review memory.
 - **The storage composition root is now explicit**: `internal/app/container`
   opens the database, repositories, event bus, replay protection, token service
   and ledger singleton, and owns their close order. `api.Server` delegates

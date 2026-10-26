@@ -154,4 +154,5 @@ python3 .agents/skills/graph-engineering/scripts/ril.py check
 ```
 
 `just check` 会重排 i18n 映射和 import，提交前必须复查 `git status`，只 stage
-本阶段改动的文件。
+本阶段改动的文件。`internal/repocheck/layers_test.go` 用 AST 解析生产 import，
+把 domain/app/infra 的禁止方向变成测试；新增跨层 import 会在 `just test` 失败。
