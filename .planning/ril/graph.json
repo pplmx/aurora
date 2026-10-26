@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 272,
+  "round": 273,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T15:12:30+00:00",
+  "updated_at": "2026-10-26T15:14:15+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -20600,7 +20600,7 @@
       "version": 2,
       "created_at": "2026-10-26T15:12:20+00:00",
       "updated_at": "2026-10-26T15:12:30+00:00",
-      "touched_round": 271,
+      "touched_round": 272,
       "category": "core-feature",
       "title": "Add opt-in session-only key memory",
       "description": "Add a Settings toggle and forget action, remember successful signing keys in process memory only, offer Use saved key in token/NFT/voting forms with matching signer keys, and test opt-in/forget/use.",
@@ -20620,6 +20620,18 @@
       "commit": "891bad0",
       "title": "Add opt-in session key memory",
       "description": "Settings toggle, memory-only cache, Use saved key in token/NFT/voting forms, forget action."
+    },
+    "CHG-470": {
+      "id": "CHG-470",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T15:14:15+00:00",
+      "updated_at": "2026-10-26T15:14:15+00:00",
+      "touched_round": 272,
+      "commit": "840eb2b",
+      "title": "Clear session keys when memory is disabled",
+      "description": "Unchecking the Settings policy forgets held keys; voter registration enters the ring when enabled."
     }
   },
   "edges": [
@@ -31369,6 +31381,12 @@
       "to": "TASK-408",
       "type": "implements",
       "created_at": "2026-10-26T15:12:30+00:00"
+    },
+    {
+      "from": "CHG-470",
+      "to": "TASK-408",
+      "type": "implements",
+      "created_at": "2026-10-26T15:14:15+00:00"
     }
   ]
 }
