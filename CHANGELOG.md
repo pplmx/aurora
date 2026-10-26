@@ -325,7 +325,9 @@ documented in their per-milestone ROADMAP files.
   table headers, guides, dialogs and status lines go through `nativeui.tr`.
   English literals are the keys, so a missing entry falls back to readable
   English; Chinese translations live in
-  `internal/i18n/messages_ui_zh.go`. Service-layer error text stays verbatim.
+  `internal/i18n/messages_ui_zh.go`. Known service errors are translated by
+  their message (a wrapped "seed: seed too short" keeps its prefix); unknown
+  or dynamic diagnostics stay verbatim, and the backend log is unchanged.
 - **Every module page has a "How this works" guide**: the steps state the
   order of operations in plain language, including which private key each
   write needs and that keys are never stored. The guide starts collapsed so
