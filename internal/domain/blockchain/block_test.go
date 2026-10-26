@@ -279,3 +279,26 @@ func TestVerifyIntegrity_DetectsTamperedHash(t *testing.T) {
 	require.False(t, rep.Valid)
 	require.Equal(t, 1, rep.FirstBrokenIndex)
 }
+
+// TestBlockEntriesCarryTheirHeights pins the ledger's height source. Payloads
+// are filtered (genesis has none), so deriving a height from a payload's index
+// showed every block one too low — the desktop ledger read height 0 for the
+// first recorded block.
+func TestBlockEntriesCarryTheirHeights(t *testing.T) {
+	c := NewBlockChain()
+	_, err := c.AddBlock("first")
+	require.NoError(t, err)
+	_, err = c.AddBlock("second")
+	require.NoError(t, err)
+
+	entries := c.BlockEntries(0)
+	require.Len(t, entries, 2)
+	require.Equal(t, int64(2), entries[0].Height)
+	require.Equal(t, "second", entries[0].Data)
+	require.Equal(t, int64(1), entries[1].Height)
+	require.Equal(t, "first", entries[1].Data)
+
+	latest := c.BlockEntries(1)
+	require.Len(t, latest, 1)
+	require.Equal(t, int64(2), latest[0].Height)
+}
