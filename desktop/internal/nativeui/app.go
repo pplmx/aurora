@@ -260,6 +260,7 @@ func (a *App) sidebar(c *ui.Context) {
 // without hunting for a button. Ctrl/Cmd+1..7 selects a page in sidebar order,
 // the desktop convention the reference apps follow.
 func (a *App) header(c *ui.Context) {
+	a.actionShortcuts(c)
 	for i, p := range pageOrder {
 		if c.Shortcut(platformRefreshModifier(), ui.Key(int(ui.Key1)+i)) {
 			a.setPage(p)

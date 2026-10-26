@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"path/filepath"
+	"runtime"
 
 	"github.com/egoist/mygo/ui"
 
@@ -60,6 +61,28 @@ func (a Actions) empty() bool {
 	return a.BackUpDatabase == nil && a.ExportLotteries == nil && a.ImportLotteries == nil &&
 		a.ShowDataFolder == nil && a.ShowAbout == nil && a.RecentDocuments == nil &&
 		a.SetLanguage == nil
+}
+
+// actionShortcuts keeps the file shortcuts that used to come from the native
+// menu. Linux and Windows install no menu now, so the window registers
+// Cmd/Ctrl+E/I/B itself; macOS keeps them on the application menu.
+func (a *App) actionShortcuts(c *ui.Context) {
+	if runtime.GOOS == "darwin" {
+		return
+	}
+	mod := platformRefreshModifier()
+	for _, action := range []struct {
+		key ui.Key
+		fn  func()
+	}{
+		{ui.KeyE, a.actions.ExportLotteries},
+		{ui.KeyI, a.actions.ImportLotteries},
+		{ui.KeyB, a.actions.BackUpDatabase},
+	} {
+		if action.fn != nil && c.Shortcut(mod, action.key) {
+			action.fn()
+		}
+	}
 }
 
 func (a *App) actionsMenu(m *ui.Menu) {

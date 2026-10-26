@@ -206,13 +206,13 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 
 ## 菜单与文件操作
 
-- **Linux/Windows 默认不占一行菜单栏**：页面导航在侧栏、刷新在页头，常驻的
+- **Linux/Windows 不安装应用菜单栏**：页面导航在侧栏、刷新在页头，常驻的
   File/Edit/Go/View/Window/Help 只是重复已有入口，也把窗口上方压出一条突兀的
-  横栏。窗口现在用 `AutoHideMenuBar`：菜单栏默认隐藏，按 Alt 或 F10 才出现；
-  菜单里的快捷键（Cmd/Ctrl+E/I/B、Ctrl/Cmd+1…7）在隐藏时仍然生效。备份、导出、
-  导入、打开数据目录、最近打开、关于和语言切换移到了侧栏底部的 **Actions**
-  菜单（`ui.MenuButton`），不需要记快捷键或按 Alt 就能找到；macOS 的菜单栏归
-  系统所有，仍保留应用菜单。
+  横栏。Linux/Windows 现在根本不安装应用菜单（`AutoHideMenuBar` 只作为宿主或
+  工具包仍装了菜单时的兜底），Cmd/Ctrl+E/I/B 由窗口自己注册并继续生效。备份、
+  导出、导入、打开数据目录、最近打开、关于和语言切换移到了侧栏底部的
+  **Actions** 菜单（`ui.MenuButton`），不需要记快捷键就能找到；macOS 的菜单栏
+  归系统所有，仍保留应用菜单及其原生快捷键。
 - **菜单**：File → Back Up Database… 调用与 CLI 相同的 `BackupService`
   （WAL 完整快照 + 校验和）；Export/Import Lotteries 调用与
   `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、同一覆盖
