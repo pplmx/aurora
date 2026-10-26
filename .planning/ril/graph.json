@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 265,
+  "round": 266,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T08:16:18+00:00",
+  "updated_at": "2026-10-26T08:28:07+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 263,
+      "touched_round": 265,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20362,6 +20362,47 @@
       "commit": "85f4f0b",
       "title": "Reuse generated NFT creator key",
       "description": "Transfer/Burn can fill their private-key field from the Mint card while the creator still holds the subject asset."
+    },
+    "ISS-448": {
+      "id": "ISS-448",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T08:27:57+00:00",
+      "updated_at": "2026-10-26T08:28:06+00:00",
+      "touched_round": 265,
+      "title": "The desktop explains controls but not the order of operations",
+      "description": "Even after tabs and disclosures, a first-time operator had to infer the workflow from card headings: which key signs a token write, the voting order, how an oracle source becomes a reading. Separately, Dashboard and Blockchain were not inside the page scroll and could clip, and switching pages could leave a small scroll offset.",
+      "severity": 0.5,
+      "confidence": 1.0
+    },
+    "TASK-403": {
+      "id": "TASK-403",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T08:27:57+00:00",
+      "updated_at": "2026-10-26T08:28:06+00:00",
+      "touched_round": 265,
+      "category": "core-feature",
+      "title": "Explain each desktop workflow and fix the page scroll",
+      "description": "Add a collapsed How this works guide with 2-4 steps per module; wrap Dashboard and Blockchain in the tracked page scroll; reset the tracked offset in setPage; pin both with view tests.",
+      "severity": 0.5,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "CHG-463": {
+      "id": "CHG-463",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T08:28:06+00:00",
+      "updated_at": "2026-10-26T08:28:06+00:00",
+      "touched_round": 265,
+      "commit": 8456041,
+      "title": "Add page guides and fix page scroll",
+      "description": "Every module page explains its order in a collapsed How this works panel; Dashboard/Blockchain use the tracked scroll; setPage resets it."
     }
   },
   "edges": [
@@ -30961,6 +31002,30 @@
       "to": "TASK-401",
       "type": "implements",
       "created_at": "2026-10-26T08:16:18+00:00"
+    },
+    {
+      "from": "TASK-403",
+      "to": "ISS-448",
+      "type": "addresses",
+      "created_at": "2026-10-26T08:28:06+00:00"
+    },
+    {
+      "from": "ISS-448",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T08:28:06+00:00"
+    },
+    {
+      "from": "CHG-463",
+      "to": "ISS-448",
+      "type": "resolves",
+      "created_at": "2026-10-26T08:28:06+00:00"
+    },
+    {
+      "from": "CHG-463",
+      "to": "TASK-403",
+      "type": "implements",
+      "created_at": "2026-10-26T08:28:06+00:00"
     }
   ]
 }
