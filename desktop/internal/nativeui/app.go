@@ -145,6 +145,7 @@ func New(services Services) *App {
 	a.token.decimals = 8
 	a.token.historyLimit = 50
 	a.oracle.queryLim = 20
+	a.blockchain.blockLimit = 200
 	// -1 is "no row chosen": 0 is a real row, so it cannot double as the
 	// unset value or the first click on row 0 would look like no change.
 	a.lottery.selected = -1

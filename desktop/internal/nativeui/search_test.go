@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -192,4 +193,42 @@ func TestSearchingClearsTheRowHighlight(t *testing.T) {
 	require.Equal(t, "silver", app.token.search)
 	require.Equal(t, -1, app.token.chosen,
 		"a new query must clear the highlight that indexed the old rows")
+}
+
+// TestLedgerSearchAndRowLimit covers the chain page. The ledger keeps every
+// entry forever, so the table must be searchable and bounded instead of
+// building every row each frame; the counters above it still describe the
+// whole chain.
+func TestLedgerSearchAndRowLimit(t *testing.T) {
+	blocks := make([]BlockRow, 30)
+	for i := range blocks {
+		blocks[i] = BlockRow{
+			Height:  int64(len(blocks) - i),
+			Module:  "module-" + strconv.Itoa(i),
+			Summary: "payload-" + strconv.Itoa(i),
+		}
+	}
+	fake := &fakeServices{blocks: blocks}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	require.True(t, tester.HasText("payload-0"), "the newest block is listed")
+	require.True(t, tester.HasText("payload-29"), "all thirty fit at the default limit")
+
+	app.blockchain.blockLimit = 10
+	tester.Frame()
+	require.True(t, tester.HasText("payload-9"))
+	require.False(t, tester.HasText("payload-10"), "the limit must cut the table")
+	require.True(t, tester.HasText("Showing the newest 10 of 30 matching entries"))
+
+	app.blockchain.search = "payload-29"
+	tester.Frame()
+	require.True(t, tester.HasText("payload-29"), "the search must find the oldest entry too")
+	require.False(t, tester.HasText("payload-0"))
+	require.False(t, tester.HasText("Showing the newest"), "one match fits the limit")
+
+	app.blockchain.search = "nothing-like-this"
+	tester.Frame()
+	require.True(t, tester.HasText("No blocks match “nothing-like-this”."))
 }
