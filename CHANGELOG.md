@@ -387,8 +387,8 @@ documented in their per-milestone ROADMAP files.
   language, data location, appearance and build facts live in a **Settings**
   page under the sidebar's Application section (Ctrl/Cmd+, also opens it).
 - **Live updates are opt-in and persisted**: Settings can refresh the open
-  Dashboard and Oracle health every 10 seconds; forms keep their text and
-  Settings itself never starts a background refresh. The choice lives in
+  Dashboard, Oracle health and open readings every 10 seconds; forms keep
+  their text and Settings itself never starts a background refresh. The choice lives in
   `desktop-settings.json` beside the database and is loaded on the next launch;
   a failed write is shown in Settings instead of silently resetting.
 - macOS

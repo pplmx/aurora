@@ -534,13 +534,17 @@ func (a *App) loadOpenReadings() {
 // or limit changed, so a failed read cannot leave the previous answer under
 // the new input.
 func (a *App) refreshOracleReads() {
-	if len(a.oracle.data) > 0 || a.oracle.dataErr != nil {
+	// An empty successful read still means the card is open: a newly added
+	// source usually has no values yet, and Refresh/live updates must pick up
+	// the first row when the scheduler writes one. dataLoadedSource is the
+	// open marker, not the row count.
+	if a.oracle.dataLoadedSource != "" || len(a.oracle.data) > 0 || a.oracle.dataErr != nil {
 		sourceID := strings.TrimSpace(a.oracle.queryID)
 		limit := a.oracleQueryLimit()
 		a.clearOracleDataForAnotherRead(sourceID, limit)
 		_ = a.loadOracleData(sourceID, limit)
 	}
-	if a.oracle.latest != nil || a.oracle.latestErr != nil {
+	if a.oracle.latestLoadedSource != "" || a.oracle.latest != nil || a.oracle.latestErr != nil {
 		sourceID := strings.TrimSpace(a.oracle.latestID)
 		a.clearOracleLatestForAnotherSource(sourceID)
 		_ = a.loadOracleLatest(sourceID)

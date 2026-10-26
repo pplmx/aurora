@@ -493,7 +493,7 @@ var desktopUIMessages = map[string]string{
 	"Couldn't save settings":                                        "无法保存设置",
 	"Keep the open page's facts current on a timer.":                "定时更新已打开页面的数据。",
 	"Every 10 seconds":                                              "每 10 秒",
-	"Applies to Dashboard and Oracle health; forms keep their text. Saved for the next launch.": "适用于 Dashboard 和 Oracle 健康度；表单内容不受影响，选择会保存到下次启动。",
+	"Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.": "适用于 Dashboard、Oracle 健康度和已打开的读数；表单内容不受影响，选择会保存到下次启动。",
 	"Session keys": "会话密钥",
 	"Private keys can be kept in memory for this session only.": "私钥可以只保存在本次会话的内存中。",
 	"Remember private keys for this session":                    "在本次会话中记住私钥",

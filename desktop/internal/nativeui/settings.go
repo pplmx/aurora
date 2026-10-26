@@ -62,7 +62,7 @@ func (a *App) settingsView(c *ui.Context) {
 					}
 				}
 			}
-			hint(c, "Applies to Dashboard and Oracle health; forms keep their text. Saved for the next launch.")
+			hint(c, "Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.")
 			// The only Settings action that can fail is this save; keep its
 			// result beside the control instead of at the top of a scroll the
 			// operator has already moved past.
