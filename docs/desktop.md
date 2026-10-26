@@ -125,7 +125,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   Transfer From、Approve/Allowance Owner、Burn From、Balance/History 账户，
   上一个代币的私钥、recipient 和 spender 清空；Create 生成的 owner key 可在
   Mint/Approve/Burn（Transfer 在 From 就是 owner 时）用 “Use generated owner
-  key” 直接填入，不用在两个字段之间复制。新建 token/NFT/抽奖/候选人/会期会清掉
+  key” 直接填入，不用在两个字段之间复制；NFT 用生成的 creator key 铸造后，
+  Transfer/Burn 也会在 creator 仍是持有者时提供 “Use generated creator key”。
+  新建 token/NFT/抽奖/候选人/会期会清掉
   会遮住新记录的搜索/筛选并高亮新行，状态句子之外也能看到结果落在哪。
 - **读卡各用各的输入**：代币的 Balance 账户与 History 持有者曾是同一个字段，
   在 History 输入会悄悄改掉 Balance 要读的账户；现已拆成两个独立输入，刷新也

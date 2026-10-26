@@ -329,7 +329,9 @@ documented in their per-milestone ROADMAP files.
   from it instead of asking for the same base64 key six times. Private keys,
   recipients and spenders from the previous token are cleared, and a token
   created with a generated key offers "Use generated owner key" in the owner-
-  signed forms while that token is the subject.
+  signed forms while that token is the subject; an NFT minted with a generated
+  creator key offers the same shortcut in Transfer/Burn while the creator is
+  still its holder.
 - **A successful create highlights its record**: token, NFT, lottery, candidate
   and session creation clear a search/filter that would hide the new row,
   select it, and move the page context to it. Before this, the status sentence
