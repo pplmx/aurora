@@ -42,6 +42,8 @@ type fakeServices struct {
 
 	// nftRows is what ListAllNFTs returns.
 	nftRows []NFTRow
+	// ownerNFTs is what ListNFTs returns for an owner filter.
+	ownerNFTs []NFTRow
 
 	// sources is what OracleSources returns.
 	sources []SourceRow
@@ -177,8 +179,13 @@ func (f *fakeServices) OracleHealth() ([]HealthRow, error)                      
 func (f *fakeServices) MintNFT(name, description, imageURL, tokenURI, creator string) (NFTRow, error) {
 	return NFTRow{ID: "n1", Name: name, Owner: creator}, nil
 }
-func (f *fakeServices) GetNFT(id string) (NFTRow, error)        { return NFTRow{ID: id}, nil }
-func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) { return nil, nil }
+func (f *fakeServices) GetNFT(id string) (NFTRow, error) { return NFTRow{ID: id}, nil }
+func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) {
+	if f.loadErrs.nfts != nil {
+		return nil, f.loadErrs.nfts
+	}
+	return f.ownerNFTs, nil
+}
 func (f *fakeServices) ListAllNFTs() ([]NFTRow, error) {
 	if f.loadErrs.nfts != nil {
 		return nil, f.loadErrs.nfts

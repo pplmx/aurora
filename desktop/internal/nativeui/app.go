@@ -142,6 +142,8 @@ func New(services Services) *App {
 	a.token.chosen = -1
 	a.nft.selected = -1
 	a.oracle.selected = -1
+	a.voting.sessionChoice = -1
+	a.voting.candChoice = -1
 	a.refresh()
 	return a
 }

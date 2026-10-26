@@ -49,6 +49,20 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop Voting page can reach the ids it asks for, and one-time
+  values can leave the window**: the page loaded every candidate but never
+  rendered one, so a candidate id appeared only once in the "Registered …"
+  line and was unrecoverable after a restart; the session table shortened
+  UUIDs and had no row selection, so the controls, ballot and tally reader
+  could not be filled from the window either. A Candidates card now lists
+  ID/name/party and choosing a row loads its id into the ballot, choosing a
+  session row loads the full id into all three session forms, and the
+  registration cards offer Copy buttons for the new candidate/session ids.
+  Voter registration likewise keeps the generated key pair on the card with
+  Copy buttons: the store keeps only the public half and native text is not
+  selectable, so the one copy of the signing key previously could not be
+  kept. `voting_test.go` drives both tables and asserts the clipboard through
+  `ui.Tester.Clipboard()`.
 - **The CLI reference documents every command, and only real ones**:
   `docs/cli.md` never mentioned `aurora token list` even though the command
   existed, and its NFT section still presented `--owner` as required after

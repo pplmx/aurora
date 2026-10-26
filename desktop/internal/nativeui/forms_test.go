@@ -130,8 +130,9 @@ func TestRegisterVoterKeepsTheSigningKey(t *testing.T) {
 	require.Equal(t, "pk-Alice", app.voting.voteVoterPub)
 	require.Equal(t, "sk-Alice", app.voting.votePriv,
 		"the ballot form must receive the signing key the registration returned")
-	require.Contains(t, app.voting.status.text, "sk-Alice",
-		"the status line must show the key: it is the only copy")
+	require.Equal(t, "sk-Alice", app.voting.voterPriv,
+		"the page must keep the key pair for its copy buttons: it is the only copy")
+	require.Contains(t, app.voting.status.text, "Registered Alice")
 	require.Empty(t, app.voting.voterName, "a successful registration clears the form")
 }
 
