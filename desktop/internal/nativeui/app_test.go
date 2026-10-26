@@ -69,6 +69,8 @@ type fakeServices struct {
 	lastTokenInfoID        string
 	lastBalanceToken       string
 	lastHistoryToken       string
+	lastBalanceOwner       string
+	lastHistoryOwner       string
 	lastNFTID              string
 	lastNFTHistoryID       string
 	lastOracleDataSource   string
@@ -189,6 +191,7 @@ func (f *fakeServices) ListTokens() ([]TokenRow, error) {
 func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error) {
 	f.tokenBalanceCalls++
 	f.lastBalanceToken = tokenID
+	f.lastBalanceOwner = owner
 	return "42", nil
 }
 func (f *fakeServices) MintToken(tokenID, to, amount, priv string) error                { return nil }
@@ -205,6 +208,7 @@ func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([
 	f.tokenHistoryLimit = limit
 	f.tokenHistoryCalls++
 	f.lastHistoryToken = tokenID
+	f.lastHistoryOwner = owner
 	return nil, nil
 }
 

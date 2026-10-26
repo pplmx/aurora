@@ -22,7 +22,8 @@ func TestTokenSelectionRefreshesOpenReadouts(t *testing.T) {
 	tester.Frame()
 
 	app.token.info = &TokenRow{ID: "t1"}
-	app.token.account = "owner"
+	app.token.balanceAccount = "owner"
+	app.token.historyOwner = "owner"
 	app.token.balance = "42"
 	app.token.history = []TransferRow{{Amount: "1"}}
 
@@ -135,7 +136,8 @@ func TestCreateMovesOpenReadoutsToTheNewRecord(t *testing.T) {
 
 	app.ShowPage("Token")
 	app.token.info = &TokenRow{ID: "old"}
-	app.token.account = "owner"
+	app.token.balanceAccount = "owner"
+	app.token.historyOwner = "owner"
 	app.token.balance = "1"
 	app.token.history = []TransferRow{{Amount: "1"}}
 	app.token.name, app.token.symbol, app.token.supply, app.token.owner = "New", "N", "10", "pk"
