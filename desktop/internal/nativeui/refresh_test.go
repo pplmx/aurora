@@ -24,6 +24,7 @@ func TestSuccessfulTokenWriteRefreshesWhatThePageShows(t *testing.T) {
 	app.mintToken()
 
 	require.False(t, app.token.status.isErr)
+	require.Empty(t, app.token.mintPriv, "a used signing key must not stay on screen")
 	require.Equal(t, tokensBefore+1, fake.listTokensCalls, "the collection must be re-read after a mint")
 	require.Equal(t, infoBefore+1, fake.tokenInfoCalls, "an open Inspect readout must be re-read after a mint")
 }
@@ -46,6 +47,7 @@ func TestSuccessfulNFTActionRefreshesCollectionAndHistory(t *testing.T) {
 	app.transferNFT()
 
 	require.False(t, app.nft.status.isErr)
+	require.Empty(t, app.nft.priv, "a used signing key must not stay on screen")
 	require.Equal(t, collectionBefore+1, fake.listAllNFTsCalls, "the collection must be re-read after a transfer")
 	require.Equal(t, historyBefore+1, fake.nftHistoryCalls, "an open history must be re-read after a transfer")
 }

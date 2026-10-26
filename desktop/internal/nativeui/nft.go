@@ -297,6 +297,7 @@ func (a *App) transferNFT() {
 		strings.TrimSpace(a.nft.to), strings.TrimSpace(a.nft.priv))
 	a.nft.status = wrapErr(err)
 	if err == nil {
+		a.nft.priv = ""
 		a.refreshNFT(strings.TrimSpace(a.nft.transferID))
 	}
 }
@@ -369,6 +370,7 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 		err := a.services.BurnNFT(id, strings.TrimSpace(a.nft.burnOwner), strings.TrimSpace(a.nft.burnPriv))
 		a.nft.status = wrapErr(err)
 		if err == nil {
+			a.nft.burnPriv = ""
 			// The same refresh clears the Inspect readout (the asset is gone)
 			// and re-reads the history, which now ends with the burn.
 			a.refreshNFT(id)

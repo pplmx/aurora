@@ -380,6 +380,10 @@ func (a *App) mintToken() {
 		strings.TrimSpace(a.token.mintAmount), strings.TrimSpace(a.token.mintPriv))
 	a.token.status = wrapErr(err)
 	if err == nil {
+		// A signing key that was used successfully is not kept on screen: the
+		// next write needs its own key, and a shared display should not retain
+		// the secret.
+		a.token.mintPriv = ""
 		a.refreshToken()
 	}
 }
@@ -391,6 +395,7 @@ func (a *App) transferToken() {
 		strings.TrimSpace(a.token.xPriv))
 	a.token.status = wrapErr(err)
 	if err == nil {
+		a.token.xPriv = ""
 		a.refreshToken()
 	}
 }
@@ -402,6 +407,7 @@ func (a *App) approveToken() {
 		strings.TrimSpace(a.token.approvePriv))
 	a.token.status = wrapErr(err)
 	if err == nil {
+		a.token.approvePriv = ""
 		a.refreshToken()
 	}
 }
@@ -413,6 +419,7 @@ func (a *App) transferFromToken() {
 		strings.TrimSpace(a.token.fromPriv))
 	a.token.status = wrapErr(err)
 	if err == nil {
+		a.token.fromPriv = ""
 		a.refreshToken()
 	}
 }
@@ -467,6 +474,7 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 			strings.TrimSpace(a.token.tokenID), from, amount, strings.TrimSpace(a.token.burnPriv))
 		a.token.status = wrapErr(err)
 		if err == nil {
+			a.token.burnPriv = ""
 			a.refreshToken()
 		}
 	}
