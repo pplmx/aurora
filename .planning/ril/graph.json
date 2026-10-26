@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 240,
+  "round": 241,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T04:42:10+00:00",
+  "updated_at": "2026-10-26T04:48:49+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19548,6 +19548,29 @@
       "touched_round": 240,
       "commit": "58bb68a",
       "title": "Refuse NAT64 and reserved destinations in the dial guard"
+    },
+    "ISS-422": {
+      "id": "ISS-422",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T04:48:49+00:00",
+      "updated_at": "2026-10-26T04:48:49+00:00",
+      "touched_round": 241,
+      "title": "The desktop window ignored the OS text-size setting",
+      "severity": 0.4,
+      "description": "Every explicit FontSize was absolute; MyGo scales only the theme default, so the system TextScale reached almost none of Aurora's text. A textSize helper now multiplies it into all fixed sizes, and a 1.5x Tester frame pins the header growing."
+    },
+    "CHG-438": {
+      "id": "CHG-438",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T04:48:49+00:00",
+      "updated_at": "2026-10-26T04:48:49+00:00",
+      "touched_round": 241,
+      "commit": "2e62494",
+      "title": "Apply the system TextScale to every fixed font size"
     }
   },
   "edges": [
@@ -29769,6 +29792,12 @@
       "to": "ISS-421",
       "type": "resolves",
       "created_at": "2026-10-26T04:42:10+00:00"
+    },
+    {
+      "from": "CHG-438",
+      "to": "ISS-422",
+      "type": "resolves",
+      "created_at": "2026-10-26T04:48:49+00:00"
     }
   ]
 }
