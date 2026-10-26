@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 270,
+  "round": 271,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T09:41:06+00:00",
+  "updated_at": "2026-10-26T10:12:36+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19878,7 +19878,7 @@
       "version": 1,
       "created_at": "2026-10-26T06:52:31+00:00",
       "updated_at": "2026-10-26T06:52:31+00:00",
-      "touched_round": 268,
+      "touched_round": 270,
       "name": "desktop/internal/nativeui",
       "path": "desktop/internal/nativeui",
       "description": "MyGo native widget UI: seven page views, shared components, theme and page state for the desktop window"
@@ -20538,6 +20538,47 @@
       "commit": 4.811e+79,
       "title": "Match stable page ids in ShowPage",
       "description": "Page ids are checked before translated titles; tests cover every id."
+    },
+    "ISS-452": {
+      "id": "ISS-452",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T10:12:26+00:00",
+      "updated_at": "2026-10-26T10:12:36+00:00",
+      "touched_round": 270,
+      "title": "Application configuration is mixed into a generic Actions menu",
+      "description": "The sidebar bottom menu was labelled Actions/操作 and mixed file operations (backup/export/import/recent) with Language and About. The label is not conventional and the settings have no stable home or direct page.",
+      "severity": 0.45,
+      "confidence": 1.0
+    },
+    "TASK-407": {
+      "id": "TASK-407",
+      "type": "task",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T10:12:26+00:00",
+      "updated_at": "2026-10-26T10:12:36+00:00",
+      "touched_round": 270,
+      "category": "dx",
+      "title": "Move application configuration to a Settings page and rename Actions to File",
+      "description": "Add an Application sidebar section with Settings (language, data path/actions, appearance, build identity), keep only file operations in the File menu, add Ctrl/Cmd+8, and test both pages.",
+      "severity": 0.45,
+      "confidence": 1.0,
+      "effort": 2,
+      "unlock_factor": 1
+    },
+    "CHG-468": {
+      "id": "CHG-468",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T10:12:36+00:00",
+      "updated_at": "2026-10-26T10:12:36+00:00",
+      "touched_round": 270,
+      "commit": "e95ba74",
+      "title": "Add Settings and rename Actions to File",
+      "description": "Application section with Settings page; File menu holds file operations; Ctrl/Cmd+8; tests and docs updated."
     }
   },
   "edges": [
@@ -31239,6 +31280,30 @@
       "to": "TASK-404",
       "type": "implements",
       "created_at": "2026-10-26T09:41:06+00:00"
+    },
+    {
+      "from": "TASK-407",
+      "to": "ISS-452",
+      "type": "addresses",
+      "created_at": "2026-10-26T10:12:36+00:00"
+    },
+    {
+      "from": "ISS-452",
+      "to": "COMP-022",
+      "type": "located_in",
+      "created_at": "2026-10-26T10:12:36+00:00"
+    },
+    {
+      "from": "CHG-468",
+      "to": "ISS-452",
+      "type": "resolves",
+      "created_at": "2026-10-26T10:12:36+00:00"
+    },
+    {
+      "from": "CHG-468",
+      "to": "TASK-407",
+      "type": "implements",
+      "created_at": "2026-10-26T10:12:36+00:00"
     }
   ]
 }
