@@ -351,6 +351,10 @@ documented in their per-milestone ROADMAP files.
   `WithLotteryRecordTransaction` became `AddRecord` / `WithRecordTransaction`.
   The old names implied a lottery-only writer and a type that was really the
   shared ledger.
+- **Desktop file import/export shares the runtime repository**: `Shell` takes
+  the container's `lottery.Repository`, so File → Export/Import and a dropped
+  export no longer open a second SQLite writer beside the app. A short-lived
+  repository remains only as the pre-runtime/test fallback.
 - **Application use cases no longer construct an HTTP client**: `oracleapp`'s
   default `http.NewFetcher` moved to the composition root; the API, CLI and
   desktop inject a fetcher, and a nil fetcher returns a clear error instead of

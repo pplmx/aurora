@@ -20,6 +20,7 @@ import (
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
 	"github.com/pplmx/aurora/internal/api"
+	"github.com/pplmx/aurora/internal/app/container"
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/spf13/viper"
@@ -72,6 +73,10 @@ func (r *Runtime) Router() http.Handler { return r.server.Router() }
 
 // DBPath reports the SQLite file the app is using.
 func (r *Runtime) DBPath() string { return r.dbPath }
+
+// Services exposes the container the runtime assembled, so the shell can share
+// its repositories instead of opening a second handle for a one-shot action.
+func (r *Runtime) Services() *container.Container { return r.server.Services() }
 
 // Close stops the background loops and releases every SQLite handle.
 func (r *Runtime) Close() error {
