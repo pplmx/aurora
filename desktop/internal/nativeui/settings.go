@@ -13,7 +13,6 @@ import (
 // about the running app belongs.
 func (a *App) settingsView(c *ui.Context) {
 	a.scrollPage(c, func() {
-		renderStatus(c, a.settingsStatus)
 		formCard(c, "Language", "Applies to menus, pages, dialogs and guidance.", func() {
 			current := "—"
 			if a.actions.Language != nil {
@@ -64,6 +63,10 @@ func (a *App) settingsView(c *ui.Context) {
 				}
 			}
 			hint(c, "Applies to Dashboard and Oracle health; forms keep their text. Saved for the next launch.")
+			// The only Settings action that can fail is this save; keep its
+			// result beside the control instead of at the top of a scroll the
+			// operator has already moved past.
+			renderStatus(c, a.settingsStatus)
 		})
 
 		formCard(c, "Appearance", "Aurora is dark by design; the operating system still decides size and contrast.", func() {
