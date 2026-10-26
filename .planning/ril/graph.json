@@ -1,8 +1,8 @@
 {
   "ril_version": 1,
-  "round": 247,
+  "round": 248,
   "created_at": "2026-08-22T15:07:10+00:00",
-  "updated_at": "2026-10-26T05:02:41+00:00",
+  "updated_at": "2026-10-26T05:05:42+00:00",
   "nodes": {
     "COMP-cli": {
       "id": "COMP-cli",
@@ -19709,6 +19709,29 @@
       "touched_round": 247,
       "commit": "9115c82",
       "title": "Page the desktop token history by offset"
+    },
+    "ISS-429": {
+      "id": "ISS-429",
+      "type": "issue",
+      "status": "resolved",
+      "version": 2,
+      "created_at": "2026-10-26T05:05:42+00:00",
+      "updated_at": "2026-10-26T05:05:42+00:00",
+      "touched_round": 248,
+      "title": "A desktop dashboard deep link did nothing from another page",
+      "severity": 0.3,
+      "description": "aurora:// and aurora://index parsed to an empty Page, which ShowIntent treats as \"leave the window alone\"; the link only worked on cold start when the dashboard was already showing. Both spellings now resolve to dashboard, and ShowPage accepts the old index name."
+    },
+    "CHG-445": {
+      "id": "CHG-445",
+      "type": "change",
+      "status": "active",
+      "version": 1,
+      "created_at": "2026-10-26T05:05:42+00:00",
+      "updated_at": "2026-10-26T05:05:42+00:00",
+      "touched_round": 248,
+      "commit": "9489f7c",
+      "title": "Resolve dashboard deep links to the dashboard page"
     }
   },
   "edges": [
@@ -29972,6 +29995,12 @@
       "to": "ISS-428",
       "type": "resolves",
       "created_at": "2026-10-26T05:02:41+00:00"
+    },
+    {
+      "from": "CHG-445",
+      "to": "ISS-429",
+      "type": "resolves",
+      "created_at": "2026-10-26T05:05:42+00:00"
     }
   ]
 }
