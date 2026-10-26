@@ -248,11 +248,14 @@ func (a *App) sidebar(c *ui.Context) {
 	selected := pageIDs[a.page]
 	ui.Sidebar(c, &selected, func() {
 		ui.SidebarSection(c, tr("Modules"), nil, func() {
-			for _, p := range pageOrder {
+			for _, p := range moduleOrder {
 				// The chosen item is already tinted by the toolkit; a marker
 				// beside it would say the same thing twice.
 				ui.SidebarItem(c, pageIDs[p], pageIcons[p], tr(pageTitles[p]))
 			}
+		})
+		ui.SidebarSection(c, tr("Application"), nil, func() {
+			ui.SidebarItem(c, pageIDs[pageSettings], pageIcons[pageSettings], tr(pageTitles[pageSettings]))
 		})
 	}).FillWidth()
 	if p, ok := pageByID(selected); ok {
@@ -310,6 +313,7 @@ var pagePurpose = map[page]string{
 	pageOracle:     "Connect an HTTP feed and read what it returns",
 	pageNFT:        "Mint an asset, then transfer or burn it",
 	pageBlockchain: "Every record the modules wrote, newest first",
+	pageSettings:   "Language, data location, appearance and build information",
 }
 
 // scrollPage wraps a page body in the one tracked scroll container. Tracking
@@ -336,6 +340,8 @@ func (a *App) body(c *ui.Context) {
 		a.nftView(c)
 	case pageBlockchain:
 		a.blockchainView(c)
+	case pageSettings:
+		a.settingsView(c)
 	}
 }
 

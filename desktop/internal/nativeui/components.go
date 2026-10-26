@@ -32,6 +32,7 @@ const (
 	pageOracle
 	pageNFT
 	pageBlockchain
+	pageSettings
 )
 
 // pageIDs are the stable identifiers the sidebar chooses by. They are
@@ -45,6 +46,7 @@ var pageIDs = map[page]string{
 	pageOracle:     "oracle",
 	pageNFT:        "nft",
 	pageBlockchain: "blockchain",
+	pageSettings:   "settings",
 }
 
 // pageByID is the reverse lookup the sidebar needs when a click arrives.
@@ -65,12 +67,17 @@ var pageTitles = map[page]string{
 	pageOracle:     "Oracle",
 	pageNFT:        "NFT",
 	pageBlockchain: "Blockchain",
+	pageSettings:   "Settings",
 }
 
-// pageOrder is the sidebar order; it matches the module list the old Web UI
-// navigation exposed, so muscle memory carries over.
-var pageOrder = []page{
+// moduleOrder is the module section of the sidebar. pageOrder is the full
+// keyboard order: the seven modules, then Settings in the Application section.
+var moduleOrder = []page{
 	pageDashboard, pageLottery, pageVoting, pageToken, pageOracle, pageNFT, pageBlockchain,
+}
+
+var pageOrder = []page{
+	pageDashboard, pageLottery, pageVoting, pageToken, pageOracle, pageNFT, pageBlockchain, pageSettings,
 }
 
 // statusLine is the transient result a view shows under its form: either the
