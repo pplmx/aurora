@@ -34,6 +34,7 @@ func TestOpenWiresAndCloses(t *testing.T) {
 	require.NotNil(t, c.OracleRepo)
 	require.NotNil(t, c.TokenService)
 	require.NotNil(t, c.TxManager)
+	require.NotNil(t, c.VotingTx)
 	require.NotNil(t, c.NFTTx)
 	require.NotNil(t, c.Chain)
 	require.NotNil(t, c.EventStore)
