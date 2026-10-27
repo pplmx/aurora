@@ -150,6 +150,6 @@ func (s *Server) Router() http.Handler {
 // the container's wiring or opening a second set of SQLite handles.
 //
 // It is a read-only view: the caller must not close these handles.
-func (s *Server) Services() *container.Container {
+func (s *Server) Services() container.Services {
 	return s.container
 }
