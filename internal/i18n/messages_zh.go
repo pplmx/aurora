@@ -277,6 +277,7 @@ var chineseMessages = map[string]string{
 	"desktop.startup.message":             "Aurora 未能打开窗口。",
 	"desktop.error.export_failed":         "导出失败",
 	"desktop.error.import_failed":         "导入失败",
+	"desktop.error.backup_unavailable":    "备份服务尚未就绪",
 	"desktop.error.backup_failed":         "备份失败",
 	"desktop.error.backup_no_db":          "当前窗口没有数据库路径",
 	"desktop.error.open_link_title":       "Aurora 无法打开该链接",

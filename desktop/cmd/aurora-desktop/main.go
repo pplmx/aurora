@@ -249,6 +249,7 @@ func main() {
 	// File import/export is a one-shot action, but it should use the runtime's
 	// repository rather than open a second SQLite writer beside it.
 	shell.SetLotteryRepository(rt.Services().LotteryRepository())
+	shell.SetBackup(rt.Services().Backup)
 	// The window draws native widgets from this state; a link or a second
 	// launch steers it, so the shell needs it before any intent arrives.
 	shell.SetApp(rt.App())

@@ -1,6 +1,7 @@
 package deskapp
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -64,6 +65,9 @@ type Shell struct {
 	// lotteryRepo is the shared repository owned by the application container.
 	// File import/export uses it instead of opening a second SQLite handle.
 	lotteryRepo lottery.Repository
+	// backup is the container's backup use case; nil in a shell built before
+	// the runtime and reported by BackUpDatabase.
+	backup func(ctx context.Context, dest string) (string, error)
 	// prefs are the desktop-only choices that survive a launch. Session keys
 	// are not here by design.
 	prefs     Preferences
@@ -88,6 +92,12 @@ func NewShell(meta About) *Shell {
 // SetLotteryRepository injects the container-owned lottery repository. File
 // import/export is a one-shot action, but reopening the database for it left a
 // second SQLite handle next to the app's writer for no benefit.
+func (s *Shell) SetBackup(backup func(ctx context.Context, dest string) (string, error)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.backup = backup
+}
+
 func (s *Shell) SetLotteryRepository(repo lottery.Repository) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -487,7 +497,7 @@ func (s *Shell) reportImport(path string, result lotteryapp.ImportResult) {
 // point shares the same dialog behavior.
 
 func (s *Shell) BackUpDatabase() {
-	backUpDatabase(s.meta, s.Window())
+	backUpDatabase(s.backup, s.meta.DBPath, s.Window())
 }
 
 func (s *Shell) ExportLotteries() {
