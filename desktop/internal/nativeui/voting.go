@@ -162,7 +162,7 @@ func (a *App) votingRegister(c *ui.Context) {
 		field(c, "Voter Name", &a.voting.voterName)
 		fieldError(c, a.voting.voterNameErr)
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Register Voter").Clicked() {
+			if primaryButton(c, "Register Voter").Disabled(!allSet(a.voting.voterName)).Clicked() {
 				a.registerVoter()
 			}
 		})
@@ -325,7 +325,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	})
 	fieldHint(c, "Candidate IDs (comma-separated)", "Leave empty to include every registered candidate.", &a.voting.sessionIDs)
 	ui.Row(c).Children(func() {
-		if primaryButton(c, "Create Session").Clicked() {
+		if primaryButton(c, "Create Session").Disabled(!allSet(a.voting.sessionTitle) || (len(a.voting.candidates) == 0 && !allSet(a.voting.sessionIDs))).Clicked() {
 			a.createVotingSession()
 		}
 	})
@@ -633,7 +633,7 @@ func (a *App) votingVote(c *ui.Context) {
 		field(c, "Voter Private Key", &a.voting.votePriv)
 		a.useSavedKeyButton(c, a.voting.voteVoterPub, &a.voting.votePriv)
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Cast Vote").Clicked() {
+			if primaryButton(c, "Cast Vote").Disabled(!allSet(a.voting.voteSession, a.voting.voteCandidate, a.voting.voteVoterPub, a.voting.votePriv)).Clicked() {
 				a.castVote()
 			}
 		})

@@ -154,7 +154,7 @@ func (a *App) nftMintBody(c *ui.Context) {
 			FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
 	}
 	ui.Row(c).Children(func() {
-		if primaryButton(c, "Mint NFT").Clicked() {
+		if primaryButton(c, "Mint NFT").Disabled(!allSet(a.nft.name, a.nft.creator)).Clicked() {
 			a.mintNFT()
 		}
 	})
@@ -355,7 +355,7 @@ func (a *App) nftWrite(c *ui.Context) {
 			a.useCreatorKeyButton(c, &a.nft.priv, a.nft.transferID, a.nft.from)
 			a.useSavedKeyButton(c, a.nft.from, &a.nft.priv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Transfer").Clicked() {
+				if primaryButton(c, "Transfer").Disabled(!allSet(a.nft.transferID, a.nft.from, a.nft.to, a.nft.priv)).Clicked() {
 					a.transferNFT()
 				}
 			})

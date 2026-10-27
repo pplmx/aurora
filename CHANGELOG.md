@@ -376,6 +376,9 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **Desktop forms gate their primary actions**: Create/Mint/Transfer/Approve/Cast
+  buttons stay disabled until their required fields are present, and an
+  in-flight write disables the frame so edits cannot race its result.
 - **Desktop titles and outcome lines are explicit**: the native window title
   follows the visible page (and language), and the fixed status strip can be
   dismissed so a stale "Done" does not describe the next action.

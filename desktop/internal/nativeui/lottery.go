@@ -98,7 +98,7 @@ func (a *App) lotteryCreate(c *ui.Context) {
 		})
 		fieldError(c, a.lottery.countErr)
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Create Draw").Clicked() {
+			if primaryButton(c, "Create Draw").Disabled(!allSet(a.lottery.participants, a.lottery.seed)).Clicked() {
 				a.createLottery()
 			}
 		})
@@ -249,7 +249,7 @@ func (a *App) lotteryVerify(c *ui.Context) {
 		fieldError(c, a.lottery.verifyErr)
 		copyRow(c, "Draw ID", strings.TrimSpace(a.lottery.verifyID), nil)
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Verify").Clicked() {
+			if primaryButton(c, "Verify").Disabled(!allSet(a.lottery.verifyID)).Clicked() {
 				a.verifyLottery()
 			}
 		})

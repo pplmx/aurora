@@ -381,7 +381,7 @@ func (a *App) oracleAddBody(c *ui.Context) {
 		})
 	})
 	ui.Row(c).Children(func() {
-		if primaryButton(c, "Add Source").Clicked() {
+		if primaryButton(c, "Add Source").Disabled(!allSet(a.oracle.addName, a.oracle.addURL)).Clicked() {
 			a.addOracleSource()
 		}
 	})
