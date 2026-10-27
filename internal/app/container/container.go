@@ -57,9 +57,6 @@ func (c *Container) Close() error {
 			firstErr = err
 		}
 	}
-	if err := blockchain.Close(); err != nil && firstErr == nil {
-		firstErr = err
-	}
 	c.closers = nil
 	return firstErr
 }
@@ -69,11 +66,12 @@ func (c *Container) Close() error {
 // half-constructed container or a leaked SQLite handle.
 func Open() (*Container, error) {
 	dbPath := blockchain.DBPath()
-	db, err := blockchain.InitDB()
+	db, err := blockchain.OpenDB(dbPath)
 	if err != nil {
 		return nil, err
 	}
 	c := &Container{DB: db, DBPath: dbPath}
+	c.addCloser(db)
 	complete := false
 	defer func() {
 		if !complete {
@@ -130,7 +128,7 @@ func Open() (*Container, error) {
 	}
 	c.addCloser(replay)
 
-	chain := blockchain.Get()
+	chain := blockchain.NewWithDB(db)
 	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
 	c.Chain = chain
 	c.TxManager = txManager

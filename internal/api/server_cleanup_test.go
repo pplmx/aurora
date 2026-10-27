@@ -36,9 +36,13 @@ func TestNewServer_ClosesOpenedDatabasesWhenInitializationFails(t *testing.T) {
 	require.Nil(t, srv)
 	require.ErrorContains(t, err, "voter_pk")
 
-	db, err := blockchain.InitDB()
+	// A fresh handle must be able to open the file after NewServer's cleanup;
+	// on Linux the fd assertion below is the stronger proof that no handle
+	// leaked.
+	db, err := sql.Open("sqlite", dbPath)
 	require.NoError(t, err)
-	require.Error(t, db.Ping(), "NewServer must close the blockchain DB when later initialization fails")
+	require.NoError(t, db.Ping())
+	require.NoError(t, db.Close())
 
 	if runtime.GOOS == "linux" {
 		assertNoOpenSQLiteFiles(t, dbPath)

@@ -356,6 +356,10 @@ documented in their per-milestone ROADMAP files.
   the container's `lottery.Repository`, so File → Export/Import and a dropped
   export no longer open a second SQLite writer beside the app. An unwired shell
   reports "lottery repository is not ready"; the SQLite fallback is gone.
+- **The API/desktop ledger no longer uses a process singleton**: `container.Open`
+  calls `blockchain.OpenDB` and `NewWithDB` and owns the DB/Chain handles; only
+  the CLI keeps the `InitDB`/`Init` convenience singleton. This lets API tests
+  and desktop runtimes close their ledger without affecting another handle.
 - **The ledger implementation now lives under infrastructure**: the
   SQLite-backed `blockchain` package moved to `internal/infra/blockchain`;
   `internal/ledger` holds the pure writer/transaction contracts and report

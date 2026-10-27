@@ -58,39 +58,37 @@ func DBPath() string {
 // connection (it would never get closed).
 func InitDB() (*sql.DB, error) {
 	dbInitOnce.Do(func() {
-		path := resolvedDBPath()
-		dir := filepath.Dir(path)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			dbInitErr = err
-			return
-		}
-
-		// _txlock=immediate + _busy_timeout: this singleton DB backs voting
-		// writes through a TxManager over a real pool, so a deferred
-		// read-then-write transaction racing a concurrent writer hits the
-		// un-waitable SQLITE_BUSY_SNAPSHOT — serialize writers at BEGIN and
-		// wait up to 5s for the lock instead (v1.70, ISS-076; same values as
-		// internal/infra/sqlite/dsn.go).
-		db, err := sql.Open("sqlite", path+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
-		if err != nil {
-			dbInitErr = err
-			return
-		}
-
-		if err := db.Ping(); err != nil {
-			_ = db.Close()
-			dbInitErr = err
-			return
-		}
-		if err := utils.RestrictSQLiteFiles(path); err != nil {
-			_ = db.Close()
-			dbInitErr = err
-			return
-		}
-
-		dbInstance = db
+		dbInstance, dbInitErr = OpenDB(resolvedDBPath())
 	})
 	return dbInstance, dbInitErr
+}
+
+// OpenDB opens an independent handle to the ledger database. Unlike InitDB it
+// does not publish a process-wide singleton, so a composition root can own the
+// handle and close it without affecting a CLI or test that still uses InitDB.
+func OpenDB(path string) (*sql.DB, error) {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, err
+	}
+	// _txlock=immediate + _busy_timeout: the shared DB backs voting writes
+	// through a TxManager over a real pool, so a deferred read-then-write
+	// transaction racing a concurrent writer hits the un-waitable
+	// SQLITE_BUSY_SNAPSHOT — serialize writers at BEGIN and wait up to 5s for
+	// the lock instead (v1.70, ISS-076; same values as infra/sqlite/dsn.go).
+	db, err := sql.Open("sqlite", path+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Ping(); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	if err := utils.RestrictSQLiteFiles(path); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	return db, nil
 }
 
 func Init() *Chain {
