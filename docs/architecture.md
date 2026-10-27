@@ -41,7 +41,7 @@ desktop          ─┘                                              ^
 | `internal/app/*` | `domain`, `ledger`（`container` 例外） | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化 |
 | `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
 | `internal/api` | `app`, `app/container`, `domain`, `ledger` | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入 |
-| `desktop/internal/deskapp` | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 窄接口取依赖，不接触 SQLite 类型 |
+| `desktop/internal/deskapp` | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现 |
 | `desktop/internal/nativeui` | `internal/i18n` | 纯视图状态与 MyGo 控件，不直接打开数据库 |
 
 ## 已识别的边界问题
@@ -107,8 +107,8 @@ container、metrics、scheduler 和 handler 集，构造失败不再散落在 `N
 
 **已做**：`Shell` 接收 container 的 `lottery.Repository`，File 菜单的导入/
 导出与拖放导入都走这份共享句柄；fallback 已删除，未注入仓储的 shell 会报告
-`lottery repository is not ready`，而不是打开第二个 SQLite writer。`menu.go`
-只剩备份使用 infra/backup，不再 import sqlite。
+`lottery repository is not ready`。备份也改为 container 注入的 `Backup`
+方法；`deskapp` 生产代码不再 import `internal/infra`。
 
 ### 5. 桌面 UI 文案曾放在核心 i18n
 
@@ -167,6 +167,7 @@ internal/
       `native_token.go` / `native_nft.go` / `native_oracle.go` /
       `native_ledger.go` / `native_keys.go`，并改用领域仓储端口。
 - [x] 让 Shell 的 File 导入/导出复用 container 的 lottery 仓储。
+- [x] 把桌面备份改为 container 注入的端口。
 - [x] 统一账本对外命名。
 - [x] 抽出 `internal/ledger` 端口，domain/app 不再 import 账本实现。
 - [x] 抽出 `app/container` 组合根；`api.Server` 已委托存储生命周期。

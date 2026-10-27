@@ -140,7 +140,7 @@ func TestDialogsWithoutAWindowStandAlone(t *testing.T) {
 	}
 	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
 
-	backUpDatabase(About{DBPath: "/tmp/aurora.db"}, nil)
+	backUpDatabase(nil, "/tmp/aurora.db", nil)
 	require.Len(t, dialogs, 1)
 	assert.Nil(t, parentSeen, "no window means the picker is not parented")
 	assert.Nil(t, dialogs[0].Parent, "no window means a standalone dialog")
@@ -161,7 +161,7 @@ func TestBackupReportsAPickerFailure(t *testing.T) {
 	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
 
 	// A window with no database path must complain instead of doing nothing.
-	backUpDatabase(About{}, nil)
+	backUpDatabase(nil, "", nil)
 	require.Len(t, dialogs, 1)
 	assert.Equal(t, mygo.MessageError, dialogs[0].Type)
 	assert.Equal(t, "Backup failed", dialogs[0].Title)
@@ -170,14 +170,14 @@ func TestBackupReportsAPickerFailure(t *testing.T) {
 	openDialog = func(mygo.OpenDialogOptions) ([]string, error) {
 		return nil, errors.New("the portal is not running")
 	}
-	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")}, nil)
+	backUpDatabase(nil, filepath.Join(t.TempDir(), "aurora.db"), nil)
 	require.Len(t, dialogs, 2)
 	assert.Equal(t, mygo.MessageError, dialogs[1].Type)
 	assert.Contains(t, dialogs[1].Message, "portal", "the reason must reach the user")
 
 	// Cancel stays silent: no error, no path selected.
 	openDialog = func(mygo.OpenDialogOptions) ([]string, error) { return nil, nil }
-	backUpDatabase(About{DBPath: filepath.Join(t.TempDir(), "aurora.db")}, nil)
+	backUpDatabase(nil, filepath.Join(t.TempDir(), "aurora.db"), nil)
 	assert.Len(t, dialogs, 2, "cancel must not raise a dialog")
 }
 

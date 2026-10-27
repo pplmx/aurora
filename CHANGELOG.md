@@ -368,6 +368,9 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **Desktop backup uses the container port**: `Shell` takes a backup function
+  from `container.Services` instead of constructing `infra/backup` itself;
+  `deskapp` production code now has no `internal/infra` import.
 - **HTTP handlers no longer import infrastructure**: lottery/NFT handlers take
   ledger writers, the blockchain handler takes an integrity verifier, the
   oracle handler takes an injected fetcher, and the rate-limit error moved to

@@ -1,6 +1,8 @@
 package container
 
 import (
+	"context"
+
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/nft"
@@ -25,6 +27,7 @@ type Services interface {
 	NFTTransactions() nft.TransactionManager
 	Ledger() Chain
 	Fetcher() oracleapp.FetcherInterface
+	Backup(ctx context.Context, dest string) (string, error)
 }
 
 // Chain is the ledger view shared by the HTTP and desktop adapters.

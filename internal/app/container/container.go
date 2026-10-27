@@ -7,11 +7,13 @@ package container
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/infra/backup"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/http"
@@ -157,4 +159,18 @@ func (c *Container) StartOutboxDrainer(ctx context.Context) (stop func()) {
 	drainCtx, cancel := context.WithCancel(ctx)
 	go drainer.Run(drainCtx)
 	return cancel
+}
+
+// Backup creates the WAL-complete, checksummed snapshot the CLI writes. The
+// desktop calls it through the narrow Services port instead of importing the
+// backup implementation.
+func (c *Container) Backup(ctx context.Context, dest string) (string, error) {
+	if c == nil || c.DBPath == "" {
+		return "", errors.New("backup database path is empty")
+	}
+	res, err := backup.NewBackupService(map[string]string{"aurora": c.DBPath}).Create(ctx, dest)
+	if err != nil {
+		return "", err
+	}
+	return res.File, nil
 }

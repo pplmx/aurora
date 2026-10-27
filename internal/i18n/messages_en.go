@@ -282,6 +282,7 @@ var englishMessages = map[string]string{
 	"desktop.startup.message":             "Aurora did not open its window.",
 	"desktop.error.export_failed":         "Export failed",
 	"desktop.error.import_failed":         "Import failed",
+	"desktop.error.backup_unavailable":    "backup service is not ready",
 	"desktop.error.backup_failed":         "Backup failed",
 	"desktop.error.backup_no_db":          "this window has no database path",
 	"desktop.error.open_link_title":       "Aurora could not open that link",

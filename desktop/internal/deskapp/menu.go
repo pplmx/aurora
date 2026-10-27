@@ -9,7 +9,6 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
-	"github.com/pplmx/aurora/internal/infra/backup"
 )
 
 // About is what the About dialog and the backup action report.
@@ -171,8 +170,8 @@ func showError(win *mygo.Window, title string, err error) {
 
 // backUpDatabase snapshots the live SQLite database through the same
 // BackupService the CLI uses (WAL-complete, checksummed metadata).
-func backUpDatabase(meta About, win *mygo.Window) {
-	if meta.DBPath == "" {
+func backUpDatabase(backupFn func(context.Context, string) (string, error), dbPath string, win *mygo.Window) {
+	if dbPath == "" {
 		showError(parent(win), T("desktop.error.backup_failed"), errors.New(T("desktop.error.backup_no_db")))
 		return
 	}
@@ -192,16 +191,18 @@ func backUpDatabase(meta About, win *mygo.Window) {
 		return
 	}
 	dest := filepath.Join(dirs[0], "aurora-backup-"+BackupStamp(time.Now()))
-
-	svc := backup.NewBackupService(map[string]string{"aurora": meta.DBPath})
-	res, err := svc.Create(context.Background(), dest)
+	if backupFn == nil {
+		showError(parent(win), T("desktop.error.backup_failed"), errors.New(T("desktop.error.backup_unavailable")))
+		return
+	}
+	file, err := backupFn(context.Background(), dest)
 	if err != nil {
 		showMessage(parent(win), mygo.MessageError, T("desktop.error.backup_failed"),
 			T("desktop.dialog.backup_could_not"), err.Error())
 		return
 	}
 	showMessage(parent(win), mygo.MessageInfo, T("desktop.dialog.backup_done_title"),
-		T("desktop.dialog.backup_done_message"), res.File)
+		T("desktop.dialog.backup_done_message"), file)
 }
 
 // showAbout reports what this build is running against: the version, when it
