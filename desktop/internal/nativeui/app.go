@@ -114,7 +114,9 @@ func (a *App) View(c *ui.Context) {
 	a.invalidate = c.Invalidate
 	a.pollAsync(c)
 	c.SetTheme(auroraTheme(c.Preferences().HighContrast))
-	ui.Row(c).Fill().Children(func() {
+	// A write owns the window while it runs: disabling the frame stops form
+	// edits and a second submit that would be discarded when the result lands.
+	ui.Row(c).Fill().Disabled(a.busy != "").Children(func() {
 		a.sidebarColumn(c)
 		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).Children(func() {
 			a.header(c)

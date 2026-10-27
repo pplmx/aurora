@@ -242,7 +242,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 				FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
 		}
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Create Token").Clicked() {
+			if primaryButton(c, "Create Token").Disabled(!allSet(a.token.name, a.token.symbol, a.token.supply, a.token.owner)).Clicked() {
 				a.createToken()
 			}
 		})
@@ -546,7 +546,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			a.useOwnerKeyButton(c, &a.token.mintPriv, true)
 			a.useSavedKeyButton(c, a.selectedTokenOwner(), &a.token.mintPriv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Mint").Clicked() {
+				if primaryButton(c, "Mint").Disabled(!allSet(a.token.tokenID, a.token.mintTo, a.token.mintAmount, a.token.mintPriv)).Clicked() {
 					a.mintToken()
 				}
 			})
@@ -562,7 +562,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 				strings.TrimSpace(a.token.xFrom) == a.selectedTokenOwner())
 			a.useSavedKeyButton(c, a.token.xFrom, &a.token.xPriv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Transfer").Clicked() {
+				if primaryButton(c, "Transfer").Disabled(!allSet(a.token.tokenID, a.token.xFrom, a.token.xTo, a.token.xAmount, a.token.xPriv)).Clicked() {
 					a.transferToken()
 				}
 			})
@@ -578,7 +578,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 				strings.TrimSpace(a.token.approveOwner) == a.selectedTokenOwner())
 			a.useSavedKeyButton(c, a.token.approveOwner, &a.token.approvePriv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Approve").Clicked() {
+				if primaryButton(c, "Approve").Disabled(!allSet(a.token.tokenID, a.token.approveOwner, a.token.approveTo, a.token.approveAmt, a.token.approvePriv)).Clicked() {
 					a.approveToken()
 				}
 			})
@@ -593,7 +593,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			field(c, "Spender Private Key", &a.token.fromPriv)
 			a.useSavedKeyButton(c, a.token.fromSpender, &a.token.fromPriv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Transfer From").Clicked() {
+				if primaryButton(c, "Transfer From").Disabled(!allSet(a.token.tokenID, a.token.fromOwner, a.token.fromTo, a.token.fromAmount, a.token.fromPriv)).Clicked() {
 					a.transferFromToken()
 				}
 			})

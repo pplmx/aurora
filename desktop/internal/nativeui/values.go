@@ -128,3 +128,15 @@ func containsFold(query string, fields ...string) bool {
 	}
 	return false
 }
+
+// allSet reports whether every value has non-whitespace content. It is the
+// readiness test for a form's primary action: a button that cannot submit yet
+// is clearer than a click that returns a service error for an empty field.
+func allSet(values ...string) bool {
+	for _, value := range values {
+		if strings.TrimSpace(value) == "" {
+			return false
+		}
+	}
+	return true
+}

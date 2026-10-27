@@ -554,3 +554,38 @@ func TestStatusLineCanBeDismissed(t *testing.T) {
 	require.True(t, app.token.status.empty())
 	require.False(t, tester.HasText("done"))
 }
+
+// TestBusyWriteDisablesTheFrame prevents edits and a second action from racing
+// the in-flight write's result.
+func TestBusyWriteDisablesTheFrame(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetBackgroundWrites(true)
+	tester := ui.NewTester(app.View, 1280, 1600)
+	tester.Frame()
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	app.runWrite("Working…", func() func() {
+		close(started)
+		<-release
+		return func() {}
+	})
+	<-started
+	tester.Frame()
+	require.True(t, app.busy != "")
+	require.NoError(t, tester.Click("Total Lotteries"))
+	tester.Frame()
+	require.Equal(t, pageDashboard, app.page, "the dashboard must not navigate while a write owns the window")
+	close(release)
+	tester.Advance(60 * time.Millisecond)
+	tester.Frame()
+	require.Equal(t, "", app.busy)
+}
+
+// TestAllSetIsTheFormReadinessContract keeps the disabled-action helper
+// honest: whitespace is not a filled field.
+func TestAllSetIsTheFormReadinessContract(t *testing.T) {
+	require.False(t, allSet("", "x"))
+	require.False(t, allSet("  ", "x"))
+	require.True(t, allSet("x", "y"))
+}
