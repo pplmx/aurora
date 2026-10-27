@@ -678,3 +678,12 @@ func TestFetchDataWithoutFetcherFails(t *testing.T) {
 	_, err := uc.Execute(&FetchDataRequest{SourceID: "test-id"})
 	require.ErrorContains(t, err, "fetcher is not configured")
 }
+
+// TestFetchDataNilResultIsAnError keeps a fetcher that returns (nil, nil) from
+// panicking while the use case stamps BlockHeight or marshals the value.
+func TestFetchDataNilResultIsAnError(t *testing.T) {
+	repo := &mockOracleRepo{sources: []*oracle.DataSource{{ID: "a", Enabled: true}}}
+	uc := NewFetchDataUseCaseWithDeps(repo, &mockFetcher{})
+	_, err := uc.Execute(&FetchDataRequest{SourceID: "a"})
+	require.ErrorContains(t, err, "fetcher returned no data")
+}

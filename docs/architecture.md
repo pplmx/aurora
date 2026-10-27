@@ -84,8 +84,12 @@ desktop          ─┘                                              ^
 container、metrics、scheduler 和 handler 集，构造失败不再散落在 `NewServer`。
 路由在测试构造的无 handler Server 上仍可注册（nil 方法值只会在鉴权后失败）。
 
-**下一步**：把 oracle scheduler 的生命周期也从 `Server` 抽出；`Services()`
-可进一步改成桌面所需的窄接口，避免看到具体 SQLite 类型。
+**已做**：oracle scheduler/fetch 生命周期移到 `oracleapp.Runtime`；`Server`
+只启动它、把 stats 交给 handler，并从同一 runtime 读 health/metrics。调度器
+不再有自己的 mutex/字段组合。
+
+**下一步**：`Services()` 可进一步改成桌面所需的窄接口，避免看到具体
+SQLite 类型。
 
 ### 4. 桌面适配器重复组合并泄漏具体类型
 

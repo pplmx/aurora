@@ -365,6 +365,9 @@ documented in their per-milestone ROADMAP files.
   contracts, constructor, transaction helpers and request types; queries, mint,
   transfer, approval and burn live in service_*.go files. The 811-line file is
   now a 223-line core plus focused units.
+- **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
+  the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
+  server only starts it and hands the same stats provider to the handler.
 - **API handler assembly has its own seam**: `internal/api/handlers.go` builds
   the six handlers from a container; `Server` keeps lifecycle, metrics and the
   scheduler. Router tests may still construct a handler-less server without a

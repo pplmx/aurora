@@ -110,6 +110,9 @@ func (uc *FetchDataUseCase) executeWithChain(ctx context.Context, req *FetchData
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch data: %w", err)
 	}
+	if data == nil {
+		return nil, errors.New("fetcher returned no data")
+	}
 
 	if chain != nil {
 		jsonData, err := json.Marshal(data)
