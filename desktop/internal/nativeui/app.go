@@ -46,8 +46,10 @@ type App struct {
 	settingsStatus statusLine
 	// paletteOpen/paletteQuery drive the Ctrl/Cmd+K page switcher. It is a
 	// second, keyboard-first entry into the same setPage path as the sidebar.
-	paletteOpen  bool
-	paletteQuery string
+	paletteOpen    bool
+	paletteQuery   string
+	paletteApplied string
+	paletteChoice  int
 	// backgroundWrites is enabled by the real desktop. Tests keep the default
 	// synchronous path so a handler's returned state is deterministic; the app
 	// uses it to show a busy banner while a service call runs off the frame
@@ -131,24 +133,43 @@ func (a *App) View(c *ui.Context) {
 // already have shortcuts and dialogs, and duplicating them here would create a
 // second confirmation model.
 func (a *App) commandPalette(c *ui.Context) {
-	ui.Column(c).Width(520).Padding(18).Gap(10).Radius(14).
+	panel := ui.Column(c).Width(520).Padding(18).Gap(10).Radius(14).
 		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
 		ui.Text(c, tr("Jump to")).FontSize(textSize(c, 17)).Bold().TextColor(ui.Hex(ink))
 		submitted := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).Submitted()
+		if a.paletteQuery != a.paletteApplied {
+			a.paletteApplied = a.paletteQuery
+			a.paletteChoice = 0
+		}
 		matches := a.paletteMatches()
 		if len(matches) == 0 {
 			emptyNote(c, fmt.Sprintf(tr("No pages match “%s”."), strings.TrimSpace(a.paletteQuery)))
 			return
 		}
-		for _, p := range matches {
-			if paletteRow(c, p) || (submitted && p == matches[0]) {
+		if a.paletteChoice >= len(matches) {
+			a.paletteChoice = len(matches) - 1
+		}
+		if a.paletteChoice < 0 {
+			a.paletteChoice = 0
+		}
+		for i, p := range matches {
+			if paletteRow(c, p, i == a.paletteChoice) || (submitted && i == a.paletteChoice) {
 				a.paletteOpen = false
 				a.setPage(p)
 				return
 			}
 		}
 	})
+	// Arrow keys move the highlight; Enter is handled by SearchField above.
+	if panel.OverlayShortcut(0, ui.KeyDown) {
+		a.paletteChoice++
+		c.Invalidate()
+	}
+	if panel.OverlayShortcut(0, ui.KeyUp) {
+		a.paletteChoice--
+		c.Invalidate()
+	}
 }
 
 func (a *App) paletteMatches() []page {
@@ -161,11 +182,14 @@ func (a *App) paletteMatches() []page {
 	return matches
 }
 
-func paletteRow(c *ui.Context, p page) bool {
+func paletteRow(c *ui.Context, p page, selected bool) bool {
 	title := tr(pageTitles[p])
 	b := ui.ButtonBase(c).FillWidth().Height(48).PaddingX(10).Radius(8).
-		AlignItems(ui.Center).Label(title).TextColor(ui.Hex(ink))
+		AlignItems(ui.Center).Label(title).TextColor(ui.Hex(ink)).Selected(selected)
 	fill := ui.Transparent
+	if selected {
+		fill = ui.Hex(selection)
+	}
 	if b.Hovered() || b.Pressed() {
 		fill = ui.Hex(surfaceHover)
 	}
@@ -288,6 +312,8 @@ func (a *App) header(c *ui.Context) {
 	a.actionShortcuts(c)
 	if !a.paletteOpen && c.Shortcut(platformRefreshModifier(), ui.KeyK) {
 		a.paletteQuery = ""
+		a.paletteApplied = ""
+		a.paletteChoice = 0
 		a.paletteOpen = true
 	}
 	if c.Shortcut(platformRefreshModifier(), ui.KeyComma) {

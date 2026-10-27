@@ -519,3 +519,22 @@ func TestEmptyListsUseTheEmptyState(t *testing.T) {
 	require.True(t, tester.HasText("No tokens yet"))
 	require.True(t, tester.HasText("Create the first token above; the list, forms and history follow it."))
 }
+
+// TestCommandPaletteArrowSelection moves the highlight before Enter instead of
+// always taking the first page.
+func TestCommandPaletteArrowSelection(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+
+	tester.Key(0, ui.KeyDown)
+	tester.Frame()
+	tester.Key(0, ui.KeyDown)
+	tester.Frame()
+	require.Equal(t, 2, app.paletteChoice)
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t, pageVoting, app.page)
+}
