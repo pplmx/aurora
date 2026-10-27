@@ -2,5 +2,15 @@
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
         "config:recommended"
+    ],
+    "packageRules": [
+        {
+            "description": "MyGo moves quickly; surface its releases promptly for the desktop module.",
+            "matchManagers": ["gomod"],
+            "matchPackageNames": ["github.com/egoist/mygo"],
+            "schedule": ["at any time"],
+            "rangeStrategy": "pin",
+            "labels": ["dependencies", "desktop"]
+        }
     ]
 }
