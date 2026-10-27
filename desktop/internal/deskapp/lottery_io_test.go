@@ -138,7 +138,7 @@ func TestExportLotteriesReplacesTheDocumentAtomically(t *testing.T) {
 		Verified:        true,
 	}
 	require.NoError(t, repo.Save(&record))
-	require.NoError(t, repo.Close())
+	t.Cleanup(func() { _ = repo.Close() })
 
 	exportPath := filepath.Join(t.TempDir(), "aurora-lotteries.json")
 	require.NoError(t, os.WriteFile(exportPath, []byte(`["stale"]`), 0o600))
@@ -157,7 +157,9 @@ func TestExportLotteriesReplacesTheDocumentAtomically(t *testing.T) {
 	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
 	appReady = func() bool { return false }
 
-	exportLotteries(About{DBPath: dbPath}, nil)
+	exportLotteriesWith(func() (lottery.Repository, func(), error) {
+		return repo, func() {}, nil
+	}, nil)
 
 	data, err := os.ReadFile(exportPath)
 	require.NoError(t, err)
@@ -184,7 +186,7 @@ func TestExportLotteriesRefusesTheLiveDatabase(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "aurora.db")
 	repo, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
-	require.NoError(t, repo.Close())
+	t.Cleanup(func() { _ = repo.Close() })
 
 	before, err := os.ReadFile(dbPath)
 	require.NoError(t, err)
@@ -196,7 +198,9 @@ func TestExportLotteriesRefusesTheLiveDatabase(t *testing.T) {
 	var dialogs []mygo.MessageOptions
 	messageBox = func(opts mygo.MessageOptions) { dialogs = append(dialogs, opts) }
 
-	exportLotteries(About{DBPath: dbPath}, nil)
+	exportLotteriesWith(func() (lottery.Repository, func(), error) {
+		return repo, func() {}, nil
+	}, nil)
 
 	require.Len(t, dialogs, 1)
 	assert.Equal(t, mygo.MessageError, dialogs[0].Type)
@@ -230,13 +234,14 @@ func TestOpenFileReloadsAfterImport(t *testing.T) {
 	dstPath := filepath.Join(t.TempDir(), "dest.db")
 	dst, err := sqlite.NewLotteryRepository(dstPath)
 	require.NoError(t, err)
-	require.NoError(t, dst.Close())
+	t.Cleanup(func() { _ = dst.Close() })
 
 	originalBox := messageBox
 	messageBox = func(mygo.MessageOptions) {}
 	t.Cleanup(func() { messageBox = originalBox })
 
 	shell := NewShell(About{DBPath: dstPath})
+	shell.SetLotteryRepository(dst)
 	reloads := 0
 	shell.reload = func() { reloads++ }
 	shell.OpenFile(exportPath)

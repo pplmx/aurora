@@ -169,9 +169,10 @@ func TestShell_FileIsImportedOnceFromTheCommandLine(t *testing.T) {
 	// import path valid: the file always exists by the time a dialog is shown.
 	repo, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
-	require.NoError(t, repo.Close())
+	t.Cleanup(func() { _ = repo.Close() })
 
 	shell := NewShell(About{DBPath: dbPath})
+	shell.SetLotteryRepository(repo)
 	var reports []string
 	shell.report = func(_ mygo.MessageType, title, message, _ string) { reports = append(reports, title+" | "+message) }
 
@@ -222,9 +223,10 @@ func TestShell_HandleLaunchArgs(t *testing.T) {
 
 	repo, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
-	require.NoError(t, repo.Close())
+	t.Cleanup(func() { _ = repo.Close() })
 
 	shell := NewShell(About{DBPath: dbPath})
+	shell.SetLotteryRepository(repo)
 	var reports []string
 	shell.report = func(_ mygo.MessageType, title, message, _ string) { reports = append(reports, title+" | "+message) }
 	var navigated []Intent
@@ -275,9 +277,10 @@ func TestShell_HandleLaunchArgsResolvesTheLaunchersDirectory(t *testing.T) {
 
 	repo, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
-	require.NoError(t, repo.Close())
+	t.Cleanup(func() { _ = repo.Close() })
 
 	shell := NewShell(About{DBPath: dbPath})
+	shell.SetLotteryRepository(repo)
 	var reports []string
 	shell.report = func(_ mygo.MessageType, title, message, _ string) { reports = append(reports, title+" | "+message) }
 
@@ -429,9 +432,10 @@ func TestShell_RefusesAForeignDataDir(t *testing.T) {
 
 	repo, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
-	require.NoError(t, repo.Close())
+	t.Cleanup(func() { _ = repo.Close() })
 
 	shell := NewShell(About{DBPath: dbPath})
+	shell.SetLotteryRepository(repo)
 	var reports []string
 	shell.report = func(_ mygo.MessageType, title, message, _ string) {
 		reports = append(reports, title+" | "+message)
@@ -525,9 +529,10 @@ func TestShell_AcceptsSymlinkAliasesOfRunningPaths(t *testing.T) {
 	dbPath := filepath.Join(dataDir, "aurora.db")
 	repo, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
-	require.NoError(t, repo.Close())
+	t.Cleanup(func() { _ = repo.Close() })
 
 	shell := NewShell(About{DBPath: dbPath})
+	shell.SetLotteryRepository(repo)
 	var reports []string
 	shell.report = func(_ mygo.MessageType, title, message, _ string) {
 		reports = append(reports, title+" | "+message)
@@ -670,9 +675,10 @@ func TestShellOpenedFileRecreatesWindow(t *testing.T) {
 
 	repo, err := sqlite.NewLotteryRepository(dbPath)
 	require.NoError(t, err)
-	require.NoError(t, repo.Close())
+	t.Cleanup(func() { _ = repo.Close() })
 
 	shell := NewShell(About{DBPath: dbPath})
+	shell.SetLotteryRepository(repo)
 	factoryCalls := 0
 	shell.SetWindowFactory(func() *mygo.Window {
 		factoryCalls++
