@@ -36,7 +36,7 @@ desktop          ─┘                                              ^
 | 包 | 依赖 | 说明 |
 |---|---|---|
 | `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层 | 纯领域模型、服务与仓储接口 |
-| `internal/infra/blockchain` | `ledger`, `logger`, `utils` | 共享账本实现：区块、PoW、SQLite 持久化、进程级单例 |
+| `internal/infra/blockchain` | `ledger`, `logger`, `utils` | 共享账本实现：区块、PoW、SQLite 持久化；`OpenDB`/`NewWithDB` 支持显式实例 |
 | `internal/ledger` | 标准库 | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它 |
 | `internal/app/*` | `domain`, `ledger`（`container` 例外） | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化 |
 | `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
@@ -55,8 +55,10 @@ desktop          ─┘                                              ^
 **已做**：目录先移出 `domain/`，再落到 `internal/infra/blockchain`；它被明确
 标记为共享账本实现，而不是领域实体包。
 
-**仍未做**：把 `init.go` 的单例/引导、每个方法的 SQL 拆到仓储接口和
-`infra/sqlite`。这是下一步，不应在本次目录重构里顺手改掉写入基底。
+**已做**：`OpenDB` + `NewWithDB` 让 API/桌面组合根拥有独立的 DB/Chain 生命周期；
+container 不再调用 `InitDB`/`Get`/`Close` 的全局单例。CLI 仍使用 `InitDB`/`Init`
+作为进程级便捷入口（进程退出即释放），但表示层不再依赖它。账本 SQL 仍在
+`infra/blockchain`，这是实现细节，不再是上层耦合。
 
 ### 2. 应用层为了错误哨兵依赖基础设施
 
