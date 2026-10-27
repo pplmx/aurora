@@ -1,6 +1,7 @@
 package container
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -39,6 +40,10 @@ func TestOpenWiresAndCloses(t *testing.T) {
 	require.NotNil(t, c.Chain)
 	require.NotNil(t, c.EventStore)
 	require.NotNil(t, c.OracleFetcher)
+
+	backupFile, err := c.Backup(context.Background(), filepath.Join(dir, "snapshot"))
+	require.NoError(t, err)
+	require.DirExists(t, backupFile)
 
 	require.NoError(t, c.Close())
 	require.NoError(t, c.Close(), "Close must be idempotent for shutdown paths")
