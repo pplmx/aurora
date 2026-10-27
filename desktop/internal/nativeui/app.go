@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"runtime"
 	"strings"
 	"time"
@@ -43,6 +44,18 @@ type App struct {
 	// settingsStatus is the result of a Settings action that can fail (saving
 	// a preference); other pages' status lines stay with their forms.
 	settingsStatus statusLine
+	// paletteOpen/paletteQuery drive the Ctrl/Cmd+K page switcher. It is a
+	// second, keyboard-first entry into the same setPage path as the sidebar.
+	paletteOpen  bool
+	paletteQuery string
+	// backgroundWrites is enabled by the real desktop. Tests keep the default
+	// synchronous path so a handler's returned state is deterministic; the app
+	// uses it to show a busy banner while a service call runs off the frame
+	// thread.
+	backgroundWrites bool
+	asyncCh          chan func()
+	busy             string
+	invalidate       func()
 
 	lottery    lotteryState
 	voting     votingState
@@ -92,6 +105,8 @@ func (a *App) Services() Services { return a.services }
 // design, and a light system theme used to paint white controls onto the dark
 // window.
 func (a *App) View(c *ui.Context) {
+	a.invalidate = c.Invalidate
+	a.pollAsync(c)
 	c.SetTheme(auroraTheme(c.Preferences().HighContrast))
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
@@ -102,9 +117,69 @@ func (a *App) View(c *ui.Context) {
 			// bottom of a form could report a failure above the viewport, and
 			// the operator would see the form unchanged and assume it worked.
 			renderStatus(c, a.pageStatus())
+			a.busyBar(c)
 			a.body(c)
 		})
 	})
+	if a.paletteOpen {
+		ui.Modal(c, &a.paletteOpen, func() { a.commandPalette(c) })
+	}
+}
+
+// commandPalette lets a keyboard-first operator jump to a page without
+// leaving the current form. It deliberately contains pages only: file actions
+// already have shortcuts and dialogs, and duplicating them here would create a
+// second confirmation model.
+func (a *App) commandPalette(c *ui.Context) {
+	ui.Column(c).Width(520).Padding(18).Gap(10).Radius(14).
+		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
+		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
+		ui.Text(c, tr("Jump to")).FontSize(textSize(c, 17)).Bold().TextColor(ui.Hex(ink))
+		submitted := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).Submitted()
+		matches := a.paletteMatches()
+		if len(matches) == 0 {
+			emptyNote(c, fmt.Sprintf(tr("No pages match “%s”."), strings.TrimSpace(a.paletteQuery)))
+			return
+		}
+		for _, p := range matches {
+			if paletteRow(c, p) || (submitted && p == matches[0]) {
+				a.paletteOpen = false
+				a.setPage(p)
+				return
+			}
+		}
+	})
+}
+
+func (a *App) paletteMatches() []page {
+	matches := make([]page, 0, len(pageOrder))
+	for _, p := range pageOrder {
+		if containsFold(a.paletteQuery, pageTitles[p], pagePurpose[p], pageIDs[p]) {
+			matches = append(matches, p)
+		}
+	}
+	return matches
+}
+
+func paletteRow(c *ui.Context, p page) bool {
+	title := tr(pageTitles[p])
+	b := ui.ButtonBase(c).FillWidth().Height(48).PaddingX(10).Radius(8).
+		AlignItems(ui.Center).Label(title).TextColor(ui.Hex(ink))
+	fill := ui.Transparent
+	if b.Hovered() || b.Pressed() {
+		fill = ui.Hex(surfaceHover)
+	}
+	b.Background(fill)
+	b.Children(func() {
+		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
+			ui.Icon(c, pageIcons[p]).Size(18, 18).TextColor(ui.Hex(aurora))
+			ui.Column(c).Gap(1).Children(func() {
+				ui.Text(c, title).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(ink)).SingleLine()
+				ui.Text(c, tr(pagePurpose[p])).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
+			})
+		})
+	})
+	return b.Clicked()
 }
 
 // pageStatus is the transient outcome line of the current page.
@@ -130,7 +205,7 @@ func (a *App) pageStatus() statusLine {
 // reference apps (GoRex, the NetEase client) frame navigation this way; a bare
 // list on the window background read as another column of content.
 func (a *App) sidebarColumn(c *ui.Context) {
-	ui.Column(c).Width(216).FillHeight().Background(ui.Hex(sidebarSurface)).
+	ui.Column(c).Width(sidebarWidthFor(windowWidth(c))).FillHeight().Background(ui.Hex(sidebarSurface)).
 		BorderWidth(0, 1, 0, 0).BorderColor(ui.Hex(border)).Children(func() {
 		a.brand(c)
 		a.sidebar(c)
@@ -211,6 +286,10 @@ func (a *App) setLiveUpdates(on bool) {
 
 func (a *App) header(c *ui.Context) {
 	a.actionShortcuts(c)
+	if !a.paletteOpen && c.Shortcut(platformRefreshModifier(), ui.KeyK) {
+		a.paletteQuery = ""
+		a.paletteOpen = true
+	}
 	if c.Shortcut(platformRefreshModifier(), ui.KeyComma) {
 		a.setPage(pageSettings)
 	}
@@ -399,4 +478,77 @@ func shortcutChord(key string) string {
 		return "⌘" + key
 	}
 	return "Ctrl+" + key
+}
+
+// windowWidth returns the current window width, or zero before the first
+// layout (where the sidebar uses its comfortable width).
+func windowWidth(c *ui.Context) float32 {
+	w, _ := c.Size()
+	return w
+}
+
+// sidebarWidthFor keeps the navigation readable without taking a quarter of a
+// narrow window. The labels need about 160px including padding; 184px is the
+// compact step, 216px the regular one.
+func sidebarWidthFor(width float32) float32 {
+	if width > 0 && width < 1000 {
+		return 184
+	}
+	return 216
+}
+
+// SetBackgroundWrites enables the asynchronous write path used by the real
+// desktop. It is opt-in so view tests keep the synchronous contract.
+func (a *App) SetBackgroundWrites(on bool) { a.backgroundWrites = on }
+
+// runWrite runs a service write. In the desktop it leaves the frame thread
+// first, so the busy banner is painted and the window stays responsive; the
+// apply closure always runs on the frame thread. Tests keep the synchronous
+// path and observe the same state immediately.
+func (a *App) runWrite(label string, work func() func()) {
+	if !a.backgroundWrites {
+		work()()
+		return
+	}
+	if a.asyncCh != nil {
+		return // one write at a time; the banner names the running one
+	}
+	ch := make(chan func(), 1)
+	a.asyncCh = ch
+	a.busy = label
+	if a.invalidate != nil {
+		a.invalidate()
+	}
+	go func() {
+		ch <- work()
+	}()
+}
+
+// pollAsync applies a completed write and schedules the next poll while one
+// runs. It is called at the top of View, on the frame thread.
+func (a *App) pollAsync(c *ui.Context) {
+	if a.asyncCh == nil {
+		return
+	}
+	select {
+	case apply := <-a.asyncCh:
+		a.asyncCh = nil
+		a.busy = ""
+		apply()
+	default:
+		c.After(40 * time.Millisecond)
+	}
+}
+
+// busyBar is the fixed feedback for a write that has left the frame thread.
+// It sits beside the page status so it is visible from any scroll position.
+func (a *App) busyBar(c *ui.Context) {
+	if a.busy == "" {
+		return
+	}
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
+		Background(ui.Hex(surfaceHover)).BorderWidth(1).BorderColor(ui.Hex(border)).Children(func() {
+		ui.Spinner(c)
+		ui.Text(c, tr(a.busy)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+	})
 }

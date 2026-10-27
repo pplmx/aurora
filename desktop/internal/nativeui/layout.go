@@ -164,3 +164,18 @@ func formCard(c *ui.Context, title, purpose string, fn func()) {
 		ui.Column(c).Gap(8).Children(fn)
 	})
 }
+
+// emptyState is the visual for a store that is genuinely empty. It keeps the
+// page's identity (the same icon as the sidebar) instead of a lone muted line,
+// and separates the title from the explanation so a first-time reader knows
+// whether the store is empty or the read failed.
+func emptyState(c *ui.Context, p page, title, body string) {
+	ui.Column(c).FillWidth().Padding(24, 20).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Size(42, 42).Center().Radius(12).Background(ui.Hex(selection)).
+			BorderWidth(1).BorderColor(ui.Hex(border)).Children(func() {
+			ui.Icon(c, pageIcons[p]).Size(22, 22).TextColor(ui.Hex(aurora))
+		})
+		ui.Text(c, tr(title)).FontSize(textSize(c, 14)).Bold().TextColor(ui.Hex(ink)).TextAlign(ui.Center)
+		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted)).TextAlign(ui.Center)
+	})
+}

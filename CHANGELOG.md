@@ -372,6 +372,13 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **Desktop writes have a busy state**: the real window moves service writes off
+  the frame thread, paints a spinner/“working” banner in the fixed chrome, and
+  applies the result on the frame thread. Tests keep the synchronous path.
+- **Desktop has a command palette and richer empty states**: Ctrl/Cmd+K opens a
+  keyboard-first page switcher; Token/NFT/Oracle empty lists show the module
+  icon, title and next move. The sidebar narrows from 216px to 184px below
+  1000px.
 - **The dashboard counters reflow for the minimum window**: three cards per
   row on wide windows, two below 1100px, one below 760px, so the label/note
   pair does not wrap inside a 200px card.

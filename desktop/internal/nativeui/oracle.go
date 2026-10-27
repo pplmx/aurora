@@ -155,7 +155,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		return
 	}
 	if len(a.oracle.sources) == 0 {
-		emptyNote(c, "No sources yet. Add one with Add Source.")
+		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed on the left to start reading values.")
 		return
 	}
 	srcs := make([]SourceRow, 0, len(a.oracle.sources))
@@ -229,33 +229,13 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	copyRow(c, "Source ID", strings.TrimSpace(a.oracle.fetchID), nil)
 	ui.Row(c).Gap(8).Children(func() {
 		if secondaryButton(c, "Enable").Clicked() {
-			a.oracle.status = wrapErr(a.services.SetOracleSourceEnabled(strings.TrimSpace(a.oracle.fetchID), true))
-			a.loadOracle()
+			a.setOracleEnabled(true)
 		}
 		if secondaryButton(c, "Disable").Clicked() {
-			a.oracle.status = wrapErr(a.services.SetOracleSourceEnabled(strings.TrimSpace(a.oracle.fetchID), false))
-			a.loadOracle()
+			a.setOracleEnabled(false)
 		}
 		if secondaryButton(c, "Fetch now").Clicked() {
-			sourceID := strings.TrimSpace(a.oracle.fetchID)
-			err := a.services.FetchOracleSource(sourceID)
-			a.oracle.status = wrapErr(err)
-			a.loadOracle()
-			if err == nil {
-				// A reading just stored must appear in the read cards already
-				// showing that source; leaving the old value beside "Done"
-				// reads as a fetch that stored nothing.
-				if strings.TrimSpace(a.oracle.queryID) == sourceID &&
-					(len(a.oracle.data) > 0 || a.oracle.dataErr != nil) {
-					limit := a.oracleQueryLimit()
-					a.clearOracleDataForAnotherRead(sourceID, limit)
-					_ = a.loadOracleData(sourceID, limit)
-				}
-				if strings.TrimSpace(a.oracle.latestID) == sourceID &&
-					(a.oracle.latest != nil || a.oracle.latestErr != nil) {
-					_ = a.loadOracleLatest(sourceID)
-				}
-			}
+			a.fetchOracleSource()
 		}
 		if dangerButton(c, "Delete").Clicked() {
 			a.oracle.askDelete = true
@@ -294,21 +274,66 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 // would suggest the readings still describe a live feed.
 func (a *App) deleteOracleSource() {
 	id := strings.TrimSpace(a.oracle.fetchID)
-	err := a.services.DeleteOracleSource(id)
-	a.oracle.status = wrapErr(err)
-	if err == nil {
-		if strings.TrimSpace(a.oracle.queryID) == id {
-			a.oracle.data = nil
-			a.oracle.dataErr = nil
-			a.oracle.dataLoadedSource = ""
+	a.runWrite("Deleting source…", func() func() {
+		err := a.services.DeleteOracleSource(id)
+		return func() {
+			a.oracle.status = wrapErr(err)
+			if err == nil {
+				if strings.TrimSpace(a.oracle.queryID) == id {
+					a.oracle.data = nil
+					a.oracle.dataErr = nil
+					a.oracle.dataLoadedSource = ""
+				}
+				if strings.TrimSpace(a.oracle.latestID) == id {
+					a.oracle.latest = nil
+					a.oracle.latestErr = nil
+					a.oracle.latestLoadedSource = ""
+				}
+			}
+			a.loadOracle()
 		}
-		if strings.TrimSpace(a.oracle.latestID) == id {
-			a.oracle.latest = nil
-			a.oracle.latestErr = nil
-			a.oracle.latestLoadedSource = ""
-		}
+	})
+}
+
+func (a *App) setOracleEnabled(enabled bool) {
+	id := strings.TrimSpace(a.oracle.fetchID)
+	label := "Enabling source…"
+	if !enabled {
+		label = "Disabling source…"
 	}
-	a.loadOracle()
+	a.runWrite(label, func() func() {
+		err := a.services.SetOracleSourceEnabled(id, enabled)
+		return func() {
+			a.oracle.status = wrapErr(err)
+			a.loadOracle()
+		}
+	})
+}
+
+func (a *App) fetchOracleSource() {
+	sourceID := strings.TrimSpace(a.oracle.fetchID)
+	a.runWrite("Fetching source…", func() func() {
+		err := a.services.FetchOracleSource(sourceID)
+		return func() {
+			a.oracle.status = wrapErr(err)
+			a.loadOracle()
+			if err == nil {
+				// A reading just stored must appear in the read cards already
+				// showing that source; leaving the old value beside "Done"
+				// reads as a fetch that stored nothing.
+				if strings.TrimSpace(a.oracle.queryID) == sourceID &&
+					(len(a.oracle.data) > 0 || a.oracle.dataErr != nil) {
+					limit := a.oracleQueryLimit()
+					a.clearOracleDataForAnotherRead(sourceID, limit)
+					_ = a.loadOracleData(sourceID, limit)
+				}
+				if strings.TrimSpace(a.oracle.latestID) == sourceID &&
+					(a.oracle.latest != nil || a.oracle.latestErr != nil) {
+					_ = a.loadOracleLatest(sourceID)
+				}
+			}
+		}
+	})
 }
 
 func (a *App) oracleAdd(c *ui.Context) {
@@ -385,29 +410,33 @@ func (a *App) applyTemplate(id string) {
 }
 
 func (a *App) addOracleSource() {
-	interval := int(a.oracle.addInterval)
-	src, err := a.services.AddOracleSource(SourceInput{
+	input := SourceInput{
 		Name:     strings.TrimSpace(a.oracle.addName),
 		URL:      strings.TrimSpace(a.oracle.addURL),
 		Type:     strings.TrimSpace(a.oracle.addType),
 		Method:   strings.TrimSpace(a.oracle.addMethod),
 		Path:     strings.TrimSpace(a.oracle.addPath),
 		Headers:  strings.TrimSpace(a.oracle.addHeaders),
-		Interval: interval,
-	})
-	if err != nil {
-		a.oracle.status = errStatus(err)
-		return
+		Interval: int(a.oracle.addInterval),
 	}
-	a.oracle.status = okStatus("Added %s (%s)", src.Name, src.ID)
-	a.oracle.addName, a.oracle.addURL, a.oracle.addType = "", "", ""
-	a.oracle.addMethod, a.oracle.addPath, a.oracle.addHeaders = "", "", ""
-	a.oracle.addInterval = 0
-	// The preset choice is part of the form, not a permanent mode: leaving it
-	// selected would show a preset whose fields were just cleared, and picking
-	// it again would not report a change.
-	a.oracle.template = ""
-	a.loadOracle()
+	a.runWrite("Adding source…", func() func() {
+		src, err := a.services.AddOracleSource(input)
+		return func() {
+			if err != nil {
+				a.oracle.status = errStatus(err)
+				return
+			}
+			a.oracle.status = okStatus("Added %s (%s)", src.Name, src.ID)
+			a.oracle.addName, a.oracle.addURL, a.oracle.addType = "", "", ""
+			a.oracle.addMethod, a.oracle.addPath, a.oracle.addHeaders = "", "", ""
+			a.oracle.addInterval = 0
+			// The preset choice is part of the form, not a permanent mode: leaving
+			// it selected would show a preset whose fields were just cleared, and
+			// picking it again would not report a change.
+			a.oracle.template = ""
+			a.loadOracle()
+		}
+	})
 }
 
 func (a *App) oracleHealth(c *ui.Context) {

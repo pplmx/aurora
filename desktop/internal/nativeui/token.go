@@ -158,7 +158,7 @@ func (a *App) tokenList(c *ui.Context) {
 			return
 		}
 		if len(a.token.tokens) == 0 {
-			emptyNote(c, "No tokens yet. Create one below.")
+			emptyState(c, pageToken, "No tokens yet", "Create the first token above; the list, forms and history follow it.")
 			return
 		}
 		ui.SearchField(c, &a.token.search).Label(tr("Search tokens"))
@@ -273,29 +273,30 @@ func (a *App) createToken() {
 		a.token.status = statusLine{text: tr("Decimals must be a whole number between 0 and 127."), isErr: true}
 		return
 	}
-	t, err := a.services.CreateToken(
-		strings.TrimSpace(a.token.name),
-		strings.TrimSpace(a.token.symbol),
-		strings.TrimSpace(a.token.supply),
-		strings.TrimSpace(a.token.owner),
-		decimals,
-	)
-	if err != nil {
-		a.token.status = errStatus(err)
-		return
-	}
-	a.token.status = okStatus("Created %s (%s) with supply %s. Owner: %s", t.Name, t.Symbol, t.TotalSupply, t.Owner)
-	a.token.tokenID = t.ID
-	a.token.ownerKeyTokenID = t.ID
-	// The list is the page's entry point, so a new token joins it at once; the
-	// readouts that were open move to the new token with it, and the account
-	// fields start from the owner instead of asking for the same public key
-	// six times.
-	a.rememberSuccessfulKey(t.Owner, a.token.ownerPriv)
-	a.applyTokenSubject(t.Owner)
-	a.refreshToken()
-	a.selectTokenByID(t.ID)
-	a.token.name, a.token.symbol, a.token.supply = "", "", ""
+	name, symbol := strings.TrimSpace(a.token.name), strings.TrimSpace(a.token.symbol)
+	supply, owner := strings.TrimSpace(a.token.supply), strings.TrimSpace(a.token.owner)
+	ownerPriv := a.token.ownerPriv
+	a.runWrite("Creating token…", func() func() {
+		t, err := a.services.CreateToken(name, symbol, supply, owner, decimals)
+		return func() {
+			if err != nil {
+				a.token.status = errStatus(err)
+				return
+			}
+			a.token.status = okStatus("Created %s (%s) with supply %s. Owner: %s", t.Name, t.Symbol, t.TotalSupply, t.Owner)
+			a.token.tokenID = t.ID
+			a.token.ownerKeyTokenID = t.ID
+			// The list is the page's entry point, so a new token joins it at once;
+			// the readouts that were open move to the new token with it, and the
+			// account fields start from the owner instead of asking for the same
+			// public key six times.
+			a.rememberSuccessfulKey(t.Owner, ownerPriv)
+			a.applyTokenSubject(t.Owner)
+			a.refreshToken()
+			a.selectTokenByID(t.ID)
+			a.token.name, a.token.symbol, a.token.supply = "", "", ""
+		}
+	})
 }
 
 // applyTokenSubject points every owner-shaped field at the selected token's
@@ -638,60 +639,78 @@ func (a *App) tokenWrites(c *ui.Context) {
 
 func (a *App) mintToken() {
 	privateKey := strings.TrimSpace(a.token.mintPriv)
-	err := a.services.MintToken(
-		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.mintTo),
-		strings.TrimSpace(a.token.mintAmount), privateKey)
-	a.token.status = wrapErr(err)
-	if err == nil {
-		a.rememberSuccessfulKey(a.selectedTokenOwner(), privateKey)
-		// A signing key that was used successfully is not kept on screen: the
-		// next write needs its own key, and a shared display should not retain
-		// the secret.
-		a.token.mintPriv = ""
-		a.refreshToken()
-	}
+	tokenID, to := strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.mintTo)
+	amount := strings.TrimSpace(a.token.mintAmount)
+	owner := a.selectedTokenOwner()
+	a.runWrite("Minting…", func() func() {
+		err := a.services.MintToken(tokenID, to, amount, privateKey)
+		return func() {
+			a.token.status = wrapErr(err)
+			if err == nil {
+				a.rememberSuccessfulKey(owner, privateKey)
+				// A signing key that was used successfully is not kept on screen:
+				// the next write needs its own key, and a shared display should not
+				// retain the secret.
+				a.token.mintPriv = ""
+				a.refreshToken()
+			}
+		}
+	})
 }
 
 func (a *App) transferToken() {
 	privateKey := strings.TrimSpace(a.token.xPriv)
-	err := a.services.TransferToken(
-		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.xFrom),
-		strings.TrimSpace(a.token.xTo), strings.TrimSpace(a.token.xAmount),
-		privateKey)
-	a.token.status = wrapErr(err)
-	if err == nil {
-		a.rememberSuccessfulKey(a.token.xFrom, privateKey)
-		a.token.xPriv = ""
-		a.refreshToken()
-	}
+	tokenID := strings.TrimSpace(a.token.tokenID)
+	from, to := strings.TrimSpace(a.token.xFrom), strings.TrimSpace(a.token.xTo)
+	amount := strings.TrimSpace(a.token.xAmount)
+	a.runWrite("Transferring…", func() func() {
+		err := a.services.TransferToken(tokenID, from, to, amount, privateKey)
+		return func() {
+			a.token.status = wrapErr(err)
+			if err == nil {
+				a.rememberSuccessfulKey(from, privateKey)
+				a.token.xPriv = ""
+				a.refreshToken()
+			}
+		}
+	})
 }
 
 func (a *App) approveToken() {
 	privateKey := strings.TrimSpace(a.token.approvePriv)
-	err := a.services.ApproveToken(
-		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.approveOwner),
-		strings.TrimSpace(a.token.approveTo), strings.TrimSpace(a.token.approveAmt),
-		privateKey)
-	a.token.status = wrapErr(err)
-	if err == nil {
-		a.rememberSuccessfulKey(a.token.approveOwner, privateKey)
-		a.token.approvePriv = ""
-		a.refreshToken()
-	}
+	tokenID := strings.TrimSpace(a.token.tokenID)
+	owner, spender := strings.TrimSpace(a.token.approveOwner), strings.TrimSpace(a.token.approveTo)
+	amount := strings.TrimSpace(a.token.approveAmt)
+	a.runWrite("Approving…", func() func() {
+		err := a.services.ApproveToken(tokenID, owner, spender, amount, privateKey)
+		return func() {
+			a.token.status = wrapErr(err)
+			if err == nil {
+				a.rememberSuccessfulKey(owner, privateKey)
+				a.token.approvePriv = ""
+				a.refreshToken()
+			}
+		}
+	})
 }
 
 func (a *App) transferFromToken() {
 	privateKey := strings.TrimSpace(a.token.fromPriv)
-	err := a.services.TransferFromToken(
-		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.fromOwner),
-		strings.TrimSpace(a.token.fromTo), strings.TrimSpace(a.token.fromAmount),
-		privateKey)
-	a.token.status = wrapErr(err)
-	if err == nil {
-		a.rememberSuccessfulKey(a.token.fromSpender, privateKey)
-		a.token.fromPriv = ""
-		a.refreshToken()
-	}
+	tokenID := strings.TrimSpace(a.token.tokenID)
+	owner, to := strings.TrimSpace(a.token.fromOwner), strings.TrimSpace(a.token.fromTo)
+	amount := strings.TrimSpace(a.token.fromAmount)
+	spender := a.token.fromSpender
+	a.runWrite("Transferring…", func() func() {
+		err := a.services.TransferFromToken(tokenID, owner, to, amount, privateKey)
+		return func() {
+			a.token.status = wrapErr(err)
+			if err == nil {
+				a.rememberSuccessfulKey(spender, privateKey)
+				a.token.fromPriv = ""
+				a.refreshToken()
+			}
+		}
+	})
 }
 
 // refreshToken re-reads everything the page shows: the collection (whose rows
@@ -776,14 +795,19 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 	switch ui.AlertDialog(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Cancel"), tr("Burn")) {
 	case 1:
 		privateKey := strings.TrimSpace(a.token.burnPriv)
-		err := a.services.BurnToken(
-			strings.TrimSpace(a.token.tokenID), from, amount, privateKey)
-		a.token.status = wrapErr(err)
-		if err == nil {
-			a.rememberSuccessfulKey(a.token.burnFrom, privateKey)
-			a.token.burnPriv = ""
-			a.refreshToken()
-		}
+		tokenID := strings.TrimSpace(a.token.tokenID)
+		owner := a.token.burnFrom
+		a.runWrite("Burning…", func() func() {
+			err := a.services.BurnToken(tokenID, from, amount, privateKey)
+			return func() {
+				a.token.status = wrapErr(err)
+				if err == nil {
+					a.rememberSuccessfulKey(owner, privateKey)
+					a.token.burnPriv = ""
+					a.refreshToken()
+				}
+			}
+		})
 	}
 }
 

@@ -74,6 +74,7 @@ func (a *App) settingsView(c *ui.Context) {
 				{"Pages", shortcutChord("1…8")},
 				{"Reload", shortcutChord("R")},
 				{"Settings", shortcutChord(",")},
+				{"Command palette", shortcutChord("K")},
 			})
 		})
 
