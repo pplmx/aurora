@@ -272,6 +272,7 @@ func main() {
 		Language:        shell.Language,
 		LiveUpdates:     shell.LiveUpdates,
 		SetLiveUpdates:  shell.SetLiveUpdates,
+		SetPageTitle:    shell.SetPageTitle,
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,
 		DBPath:          meta.DBPath,
@@ -337,9 +338,10 @@ func main() {
 
 	mygo.App.WhenReady(func() {
 		deskapp.FollowAppLocale(func() {
-			// MyGo relabels the platform roles itself; the only Aurora text in
-			// the window is the sidebar File menu and Settings page, which read the
-			// translator on the next frame.
+			// MyGo relabels the platform roles itself; Aurora text in the
+			// window reads the translator on the next frame. The native title
+			// is outside that frame, so refresh it explicitly.
+			shell.SetPageTitle(rt.App().PageTitle())
 			if win := shell.Window(); win != nil && !win.IsDestroyed() {
 				win.Invalidate()
 			}
@@ -427,6 +429,9 @@ func wireMainWindow(shell *deskapp.Shell, win *mygo.Window, hooks mainWindowHook
 		fmt.Fprintf(os.Stderr, "aurora-desktop: set window icon: %v\n", err)
 	}
 	shell.Attach(win)
+	if app := shell.App(); app != nil {
+		shell.SetPageTitle(app.PageTitle())
+	}
 	// Dropping a lottery export on the window imports it, the same way opening
 	// one from the file manager does. Anything else is reported rather than
 	// silently ignored.

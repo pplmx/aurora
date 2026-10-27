@@ -538,3 +538,19 @@ func TestCommandPaletteArrowSelection(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, pageVoting, app.page)
 }
+
+// TestStatusLineCanBeDismissed keeps a stale success from describing the next
+// action; the fixed strip is dismissible without waiting for a page switch.
+func TestStatusLineCanBeDismissed(t *testing.T) {
+	app := New(&fakeServices{})
+	app.token.status = okStatus("done")
+	tester := ui.NewTester(app.View, 1280, 1200)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.True(t, tester.HasText("done"))
+	require.NoError(t, tester.Click("Dismiss"))
+	tester.Frame()
+	require.True(t, app.token.status.empty())
+	require.False(t, tester.HasText("done"))
+}

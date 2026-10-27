@@ -41,6 +41,9 @@ type Actions struct {
 	// can show it instead of silently resetting on the next launch.
 	LiveUpdates    func() bool
 	SetLiveUpdates func(bool) error
+	// SetPageTitle keeps the native window title in step with the visible
+	// page (and its language); optional for view tests.
+	SetPageTitle func(string)
 }
 
 // SetActions gives the window its application-level callbacks. It is called
@@ -49,6 +52,9 @@ func (a *App) SetActions(actions Actions) {
 	a.actions = actions
 	if actions.LiveUpdates != nil {
 		a.liveUpdates = actions.LiveUpdates()
+	}
+	if actions.SetPageTitle != nil {
+		actions.SetPageTitle(a.PageTitle())
 	}
 }
 

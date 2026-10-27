@@ -26,7 +26,7 @@ func TestTokenFormGeneratesAnOwnerKey(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, "sk-generated", tester.Clipboard())
 
-	require.NoError(t, tester.Click("Dismiss"))
+	require.NoError(t, tester.Click("Dismiss key"))
 	tester.Frame()
 	require.Empty(t, app.token.ownerPriv, "Dismiss must remove the private key from the window")
 }

@@ -95,6 +95,10 @@ func New(services Services) *App {
 	return a
 }
 
+// PageTitle is the visible page name in the current language, for the native
+// window title and a language-change refresh.
+func (a *App) PageTitle() string { return tr(pageTitles[a.page]) }
+
 // Services returns the application layer the window drives. It is how a test
 // (and any other in-process surface) reaches the same calls a view makes,
 // without a window or a click.
@@ -118,7 +122,7 @@ func (a *App) View(c *ui.Context) {
 			// window, not at the top of the scrolling body: an action at the
 			// bottom of a form could report a failure above the viewport, and
 			// the operator would see the form unchanged and assume it worked.
-			renderStatus(c, a.pageStatus())
+			renderStatus(c, a.pageStatus(), a.clearPageStatus)
 			a.busyBar(c)
 			a.body(c)
 		})
@@ -221,6 +225,24 @@ func (a *App) pageStatus() statusLine {
 		return a.nft.status
 	default:
 		return statusLine{}
+	}
+}
+
+// clearPageStatus dismisses the current page's outcome line. The line is
+// useful after a write, but a stale "Done" left on screen while the operator
+// prepares the next action reads as a claim about the new state.
+func (a *App) clearPageStatus() {
+	switch a.page {
+	case pageLottery:
+		a.lottery.status = statusLine{}
+	case pageVoting:
+		a.voting.status = statusLine{}
+	case pageToken:
+		a.token.status = statusLine{}
+	case pageOracle:
+		a.oracle.status = statusLine{}
+	case pageNFT:
+		a.nft.status = statusLine{}
 	}
 }
 
@@ -467,6 +489,9 @@ func (a *App) setPage(p page) {
 	}
 	a.page = p
 	a.scroll.X, a.scroll.Y = 0, 0
+	if a.actions.SetPageTitle != nil {
+		a.actions.SetPageTitle(a.PageTitle())
+	}
 	a.refresh()
 }
 
