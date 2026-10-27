@@ -419,3 +419,20 @@ func TestSettingsDocumentsTheWindowShortcuts(t *testing.T) {
 	require.True(t, tester.HasText(shortcutChord("R")))
 	require.True(t, tester.HasText(shortcutChord(",")))
 }
+
+// TestDashboardMetricGridUsesTwoColumnsAtMinimumWidth keeps the counters
+// readable at the 900px window minimum instead of squeezing three cards.
+func TestDashboardMetricGridUsesTwoColumnsAtMinimumWidth(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 900, 2200)
+	tester.Frame()
+
+	first, ok := tester.Find("Total Lotteries")
+	require.True(t, ok)
+	second, ok := tester.Find("Total Votes")
+	require.True(t, ok)
+	third, ok := tester.Find("Candidates")
+	require.True(t, ok)
+	require.InDelta(t, float64(first.Y), float64(second.Y), 1, "two cards share the first row")
+	require.Greater(t, third.Y, second.Y, "the third card wraps to the next row")
+}
