@@ -372,6 +372,9 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **The dashboard counters reflow for the minimum window**: three cards per
+  row on wide windows, two below 1100px, one below 760px, so the label/note
+  pair does not wrap inside a 200px card.
 - **The dashboard now leads with state and acts as shortcuts**: metric cards
   open their module, a recent-activity row opens the page that wrote it, and a
   non-empty dashboard shows counters/activity before the Quick start card (the

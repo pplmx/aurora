@@ -119,9 +119,20 @@ func (a *App) dashboardView(c *ui.Context) {
 			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", ink, true, pageOracle},
 		}
 		showMetrics := func() {
-			for start := 0; start < len(metrics); start += 3 {
+			// Six cards read as two rows of three on a wide window. At the
+			// minimum width they become two columns, so a label and its note
+			// keep their line instead of wrapping inside a 200px card.
+			width, _ := c.Size()
+			columns := 3
+			if width < 1100 {
+				columns = 2
+			}
+			if width < 760 {
+				columns = 1
+			}
+			for start := 0; start < len(metrics); start += columns {
 				start := start
-				row := metrics[start:min(start+3, len(metrics))]
+				row := metrics[start:min(start+columns, len(metrics))]
 				metricRow(c, len(row), func(i int) {
 					m := row[i]
 					if metricCard(c, m.label, m.value, m.note, m.tone, m.numeric, m.target) {
