@@ -22,10 +22,8 @@ type Server struct {
 	metrics     *metrics.Registry
 	metricsOnce sync.Once
 
-	oracleMu             sync.Mutex
-	oracleScheduler      *oracleapp.Scheduler
-	oracleSchedulerFetch *oracleapp.FetchDataUseCase
-	handlers             *handlers
+	oracleRuntime *oracleapp.Runtime
+	handlers      *handlers
 }
 
 // Close releases the container (every SQLite handle and the shared ledger).
@@ -43,7 +41,13 @@ func NewServer() (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	srv := &Server{db: c.DB, container: c, metrics: metrics.NewRegistry(), handlers: newHandlers(c)}
+	srv := &Server{
+		db:            c.DB,
+		container:     c,
+		metrics:       metrics.NewRegistry(),
+		handlers:      newHandlers(c),
+		oracleRuntime: oracleapp.NewRuntime(c.OracleRepo, c.OracleFetcher, c.Chain),
+	}
 	return srv, nil
 }
 
@@ -76,46 +80,23 @@ func (s *Server) StartAuditOutboxDrainer(ctx context.Context) (stop func()) {
 // publishes, so a native page and the REST surface cannot disagree about
 // whether a feed is failing.
 func (s *Server) OracleHealthStats() []oracleapp.SourceStat {
-	s.oracleMu.Lock()
-	sched := s.oracleScheduler
-	s.oracleMu.Unlock()
-	if sched == nil {
+	if s.oracleRuntime == nil {
 		return nil
 	}
-	return sched.Stats()
+	return s.oracleRuntime.Stats()
 }
 
 func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Duration) (stop func()) {
-	if s.container == nil || s.container.OracleRepo == nil {
+	if s.oracleRuntime == nil {
 		return func() {}
 	}
-	fetch := oracleapp.NewFetchDataUseCaseWithDeps(s.container.OracleRepo, s.container.OracleFetcher)
-	// Record scheduler-fetched data on-chain, consistent with the REST handler
-	// and CLI paths (NewServer: srv.oracleHandler.SetChain(blockchain.
-	// Get())). Without SetChain the continuously running scheduler
-	// path silently skipped chain.AddRecord and stored block_height=0
-	// for every observation it persisted (TASK-097, ISS-090).
-	fetch.SetChain(s.container.Chain)
-	runner := func(ctx context.Context, sourceID string) error {
-		// ctx-aware fetch: an in-flight HTTP request is interrupted when the
-		// scheduler is shut down instead of blocking up to the client timeout
-		// while srv.Close() tears the DB pool down under it (TASK-134).
-		_, err := fetch.ExecuteContext(ctx, &oracleapp.FetchDataRequest{SourceID: sourceID})
-		return err
-	}
-	sched := oracleapp.NewScheduler(s.container.OracleRepo, runner, checkEvery, nil)
-	s.oracleMu.Lock()
-	s.oracleScheduler = sched
-	s.oracleSchedulerFetch = fetch
-	s.oracleMu.Unlock()
+	stop = s.oracleRuntime.Start(ctx, checkEvery)
 	// Expose the scheduler's fetch-health stats to the protected
 	// GET /api/v1/oracle/health endpoint (v1.33), not just /metrics/oracle.
 	if s.handlers != nil {
-		s.handlers.oracle.SetStats(sched)
+		s.handlers.oracle.SetStats(s.oracleRuntime)
 	}
-	schedCtx, cancel := context.WithCancel(ctx)
-	go sched.Run(schedCtx)
-	return cancel
+	return stop
 }
 
 // OracleMetricsHandler returns an http.Handler exposing the oracle fetch
@@ -125,14 +106,11 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 func (s *Server) OracleMetricsHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-		s.oracleMu.Lock()
-		sch := s.oracleScheduler
-		s.oracleMu.Unlock()
-		if sch == nil {
+		if s.oracleRuntime == nil {
 			_, _ = io.WriteString(w, "")
 			return
 		}
-		_, _ = io.WriteString(w, sch.PrometheusText())
+		_, _ = io.WriteString(w, s.oracleRuntime.PrometheusText())
 	})
 }
 

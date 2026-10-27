@@ -34,9 +34,7 @@ func TestOracleSchedulerFetch_HasOnChainRecorder(t *testing.T) {
 	t.Cleanup(cancel)
 	_ = srv.StartOracleScheduler(ctx, time.Second)
 
-	srv.oracleMu.Lock()
-	fetch := srv.oracleSchedulerFetch
-	srv.oracleMu.Unlock()
+	fetch := srv.oracleRuntime.Fetch()
 
 	require.NotNil(t, fetch, "StartOracleScheduler must build a fetch use case")
 	require.NotNil(t, fetch.Chain(),
