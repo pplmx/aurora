@@ -10,6 +10,7 @@ import (
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/infra/http"
@@ -30,6 +31,7 @@ type Container struct {
 
 	TokenService  token.Service
 	TxManager     *sqlite.TxManager
+	VotingTx      voting.TransactionManager
 	NFTTx         nft.TransactionManager
 	Chain         *blockchain.Chain
 	OracleFetcher oracleapp.FetcherInterface
@@ -88,6 +90,7 @@ func Open() (*Container, error) {
 		return nil, err
 	}
 	c.VotingRepo = votingRepo
+	c.VotingTx = sqlite.NewTxManager(db)
 
 	nftRepo, err := sqlite.NewNFTRepository(dbPath)
 	if err != nil {

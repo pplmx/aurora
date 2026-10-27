@@ -4,7 +4,6 @@ import (
 	"github.com/pplmx/aurora/internal/api/handler"
 	"github.com/pplmx/aurora/internal/app/container"
 	"github.com/pplmx/aurora/internal/config"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 // handlers is the HTTP surface's handler set. Keeping construction here makes
@@ -20,14 +19,14 @@ type handlers struct {
 }
 
 func newHandlers(c *container.Container) *handlers {
-	voting := handler.NewVotingHandler(c.VotingRepo, sqlite.NewTxManager(c.DB))
+	voting := handler.NewVotingHandler(c.VotingRepo, c.VotingTx)
 	voting.SetChain(c.Chain)
 	oracle := handler.NewOracleHandler(c.OracleRepo)
 	oracle.SetChain(c.Chain)
 	return &handlers{
 		lottery:    handler.NewLotteryHandler(c.LotteryRepo, config.LotteryDefaultCount()),
 		voting:     voting,
-		nft:        handler.NewNFTHandler(c.NFTRepo, sqlite.NewTxManager(c.NFTRepo.GetDB())),
+		nft:        handler.NewNFTHandler(c.NFTRepo, c.NFTTx),
 		token:      handler.NewTokenHandler(c.TokenService),
 		oracle:     oracle,
 		blockchain: handler.NewBlockchainHandler(),
