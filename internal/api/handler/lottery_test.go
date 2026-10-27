@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -249,13 +248,13 @@ func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryReco
 }
 
 func TestNewLotteryHandler(t *testing.T) {
-	handler := NewLotteryHandler(&mockLotteryRepo{}, lottery.DefaultWinnerCount)
+	handler := NewLotteryHandler(&mockLotteryRepo{}, lottery.DefaultWinnerCount, testRecordWriter{})
 	assert.NotNil(t, handler)
 	assert.NotNil(t, handler.repo)
 }
 
 func TestLotteryHandler_Routes(t *testing.T) {
-	handler := NewLotteryHandler(&mockLotteryRepo{}, lottery.DefaultWinnerCount)
+	handler := NewLotteryHandler(&mockLotteryRepo{}, lottery.DefaultWinnerCount, testRecordWriter{})
 	r := chi.NewRouter()
 	handler.Routes(r)
 
@@ -342,10 +341,7 @@ func (m *nilLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, erro
 // in the resolution path; the missing-fields test above still expects a create
 // without participants/seed to error).
 func TestLotteryHandler_Create_UsesInjectedDefaultWinnerCount(t *testing.T) {
-	blockchain.ResetForTest()
-	defer blockchain.ResetForTest()
-
-	h := NewLotteryHandler(&mockLotteryRepo{}, 5) // configured defaultCount = 5
+	h := NewLotteryHandler(&mockLotteryRepo{}, 5, testRecordWriter{}) // configured defaultCount = 5
 
 	body, _ := json.Marshal(CreateLotteryRequest{
 		Participants: "Alice,Bob,Charlie,David,Eve",
@@ -365,3 +361,9 @@ func TestLotteryHandler_Create_UsesInjectedDefaultWinnerCount(t *testing.T) {
 	assert.Equal(t, 5, len(resp.Winners))
 	assert.Len(t, resp.WinnerAddresses, 5)
 }
+
+// testRecordWriter satisfies ledger.RecordWriter for handler-level tests; the
+// chain itself is covered by the ledger/infra tests.
+type testRecordWriter struct{}
+
+func (testRecordWriter) AddRecord(string) (int64, error) { return 1, nil }

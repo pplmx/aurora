@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/oracle"
-	httpfetcher "github.com/pplmx/aurora/internal/infra/http"
 )
 
 // defaultQueryLimit is the default limit for oracle data query API responses.
@@ -40,11 +39,15 @@ type oracleHealthStats interface {
 	Stats() []oracleapp.SourceStat
 }
 
+// NewOracleHandler builds a handler without a fetcher; Fetch on a source that
+// reaches the network then reports a configuration error. Production uses
+// NewOracleHandlerWithFetcher and the container's shared client.
 func NewOracleHandler(repo oracle.Repository) *OracleHandler {
-	return &OracleHandler{
-		repo:    repo,
-		fetcher: httpfetcher.NewFetcher(),
-	}
+	return &OracleHandler{repo: repo}
+}
+
+func NewOracleHandlerWithFetcher(repo oracle.Repository, fetcher oracleapp.FetcherInterface) *OracleHandler {
+	return &OracleHandler{repo: repo, fetcher: fetcher}
 }
 
 // SetChain wires the blockchain writer used to record fetched data on-chain.

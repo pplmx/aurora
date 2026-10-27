@@ -34,3 +34,10 @@ type LotteryRecordTransactionWriter interface {
 		fn func(tx *sql.Tx, height int64) error,
 	) error
 }
+
+// RecordWriter appends a height-stamped record and returns the block height.
+// It is the one-method port lottery/oracle use cases need; the SQLite-backed
+// Chain implements it without exposing its other state to the caller.
+type RecordWriter interface {
+	AddRecord(data string) (int64, error)
+}

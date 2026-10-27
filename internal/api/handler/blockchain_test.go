@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/ledger"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,18 +15,17 @@ import (
 // the chain's own integrity report as JSON, so a client can distinguish a
 // broken chain from a gateway error.
 func TestBlockchainVerifyRoute(t *testing.T) {
+	want := &ledger.IntegrityReport{Valid: true, Length: 2, FirstBrokenIndex: -1}
 	router := chi.NewRouter()
-	NewBlockchainHandler().Routes(router)
+	NewBlockchainHandler(fakeIntegrity{report: want}).Routes(router)
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/verify", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Header().Get("Content-Type"), "application/json")
 
-	var report blockchain.IntegrityReport
+	var report ledger.IntegrityReport
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &report))
-
-	want := blockchain.Get().VerifyIntegrity()
 	require.Equal(t, want.Valid, report.Valid)
 	require.Equal(t, want.Length, report.Length)
 
@@ -35,3 +34,7 @@ func TestBlockchainVerifyRoute(t *testing.T) {
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/verify", nil))
 	require.Equal(t, http.StatusMethodNotAllowed, rec.Code)
 }
+
+type fakeIntegrity struct{ report *ledger.IntegrityReport }
+
+func (f fakeIntegrity) VerifyIntegrity() *ledger.IntegrityReport { return f.report }
