@@ -69,6 +69,14 @@ func (a *App) settingsView(c *ui.Context) {
 			renderStatus(c, a.settingsStatus)
 		})
 
+		formCard(c, "Shortcuts", "Window-wide keys; they work from any page.", func() {
+			readout(c, []readoutRow{
+				{"Pages", shortcutChord("1…8")},
+				{"Reload", shortcutChord("R")},
+				{"Settings", shortcutChord(",")},
+			})
+		})
+
 		formCard(c, "Appearance", "Aurora is dark by design; the operating system still decides size and contrast.", func() {
 			readout(c, []readoutRow{
 				{"Theme", "Dark"},
