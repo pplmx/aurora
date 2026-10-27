@@ -39,6 +39,21 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
 正式 tag 发布仍由 `release.yml` 触发，并要求 macOS 与 Windows 的签名 secrets
 全部配置。
 
+## 依赖更新
+
+MyGo 仍然是快速演进的年轻项目，桌面模块固定使用当前最新版本（当前为
+`v0.7.1`）。改桌面代码前先运行 `just desktop-deps` 看是否有新版本；确认要升级时
+用 `just desktop-update-mygo`，然后跑完整门槛：
+
+```bash
+just desktop-check
+just desktop-race
+just check && just test
+```
+
+升级可能同时抬高 `desktop/go.mod` 的 `go` 指令（MyGo 0.7.1 要求 1.27.3），
+也会更新 `go.sum`；把 `desktop/go.mod` 和 `go.sum` 与代码改动一起提交。
+
 ## 架构
 
 - **界面是原生 Go，不是网页**：窗口用 MyGo 自己的控件绘制
