@@ -142,7 +142,7 @@ func (a *App) nftMintBody(c *ui.Context) {
 		if secondaryButton(c, "Generate key pair").Clicked() {
 			a.generateNFTCreator()
 		}
-		if a.nft.creatorPriv != "" && quietButton(c, "Dismiss").Clicked() {
+		if a.nft.creatorPriv != "" && quietButton(c, "Dismiss key").Clicked() {
 			a.nft.creatorPriv = ""
 		}
 	})

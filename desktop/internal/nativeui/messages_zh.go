@@ -218,6 +218,7 @@ var desktopMessages = map[string]string{
 	"Required: the owner signs every later mint, transfer and burn.": "必填：之后每次铸造、转账和销毁都由所有者签名。",
 	"Generate key pair":         "生成密钥对",
 	"Dismiss":                   "关闭",
+	"Dismiss key":               "关闭密钥",
 	"Owner private key":         "所有者私钥",
 	"Owner private key copied.": "所有者私钥已复制。",
 	"This is the only copy of the owner key; the store keeps the public half.": "这是所有者密钥的唯一副本；存储只保留公钥。",

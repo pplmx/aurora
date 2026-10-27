@@ -376,6 +376,9 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **Desktop titles and outcome lines are explicit**: the native window title
+  follows the visible page (and language), and the fixed status strip can be
+  dismissed so a stale "Done" does not describe the next action.
 - **Desktop writes have a busy state**: the real window moves service writes off
   the frame thread, paints a spinner/“working” banner in the fixed chrome, and
   applies the result on the frame thread. Tests keep the synchronous path.

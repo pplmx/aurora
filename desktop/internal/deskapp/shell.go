@@ -537,6 +537,14 @@ func (s *Shell) ShowAbout() {
 	showAbout(s.meta, s.Window())
 }
 
+// SetPageTitle names the visible page in the native window title. The app name
+// stays in front so task switchers can tell Aurora windows apart.
+func (s *Shell) SetPageTitle(title string) {
+	if win := s.Window(); win != nil && title != "" {
+		win.SetTitle(AppName + " — " + title)
+	}
+}
+
 // SetLanguage changes the app's language. MyGo reports the change through
 // OnLocaleChanged, which relabels the native menu and redraws the window.
 func (s *Shell) SetLanguage(tag string) {

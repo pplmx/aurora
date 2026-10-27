@@ -114,3 +114,14 @@ func TestNoActionsMeansNoActionsButton(t *testing.T) {
 
 	require.False(t, tester.HasText(i18n.GetText("desktop.menu.file")))
 }
+
+// TestPageTitleFollowsNavigation keeps the native window title useful in a
+// task switcher even when the app is launched from a terminal.
+func TestPageTitleFollowsNavigation(t *testing.T) {
+	app := New(&fakeServices{})
+	var titles []string
+	app.SetActions(Actions{SetPageTitle: func(title string) { titles = append(titles, title) }})
+	app.ShowPage("Token")
+	app.ShowPage("Oracle")
+	require.Equal(t, []string{"Dashboard", "Token", "Oracle"}, titles)
+}

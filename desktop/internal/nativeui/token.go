@@ -230,7 +230,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 			if secondaryButton(c, "Generate key pair").Clicked() {
 				a.generateTokenOwner()
 			}
-			if a.token.ownerPriv != "" && quietButton(c, "Dismiss").Clicked() {
+			if a.token.ownerPriv != "" && quietButton(c, "Dismiss key").Clicked() {
 				a.token.ownerPriv = ""
 			}
 		})

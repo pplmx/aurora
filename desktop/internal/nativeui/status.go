@@ -53,7 +53,7 @@ func localizeServiceError(err error) string {
 // tinted by the outcome: colour alone is not a signal for a reader with a
 // colour-vision difference, and a one-line sentence was easy to miss above a
 // page of cards.
-func renderStatus(c *ui.Context, s statusLine) {
+func renderStatus(c *ui.Context, s statusLine, dismiss func()) {
 	if s.empty() {
 		return
 	}
@@ -66,6 +66,12 @@ func renderStatus(c *ui.Context, s statusLine) {
 		Children(func() {
 			badge(c, label, tone, night)
 			ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+			if dismiss != nil {
+				ui.Spacer(c)
+				if quietButton(c, "Dismiss").Clicked() {
+					dismiss()
+				}
+			}
 		})
 }
 

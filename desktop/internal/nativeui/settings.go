@@ -66,7 +66,7 @@ func (a *App) settingsView(c *ui.Context) {
 			// The only Settings action that can fail is this save; keep its
 			// result beside the control instead of at the top of a scroll the
 			// operator has already moved past.
-			renderStatus(c, a.settingsStatus)
+			renderStatus(c, a.settingsStatus, func() { a.settingsStatus = statusLine{} })
 		})
 
 		formCard(c, "Shortcuts", "Window-wide keys; they work from any page.", func() {
