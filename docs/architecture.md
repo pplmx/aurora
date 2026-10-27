@@ -41,7 +41,7 @@ desktop          ─┘                                              ^
 | `internal/app/*` | `domain`, `ledger`（`container` 例外） | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化 |
 | `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
 | `internal/api` | `app`, `app/container`, `domain`, `infra/sqlite`, `infra/events` | HTTP 表示层；数据库/仓储/用例由 `app/container` 组装 |
-| `desktop/internal/deskapp` | `internal/api`, `infra/sqlite`, `app`, `domain` | 桌面适配器；通过 `api.Server.Services()` 取到 `app/container` |
+| `desktop/internal/deskapp` | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 窄接口取依赖，不接触 SQLite 类型 |
 | `desktop/internal/nativeui` | `internal/i18n` | 纯视图状态与 MyGo 控件，不直接打开数据库 |
 
 ## 已识别的边界问题
@@ -88,8 +88,7 @@ container、metrics、scheduler 和 handler 集，构造失败不再散落在 `N
 只启动它、把 stats 交给 handler，并从同一 runtime 读 health/metrics。调度器
 不再有自己的 mutex/字段组合。
 
-**下一步**：`Services()` 可进一步改成桌面所需的窄接口，避免看到具体
-SQLite 类型。
+**已做**：`api.Server.Services()` 返回 `container.Services`，只暴露领域仓储、token service、事务管理器、账本视图和 fetcher；不再把 `*sqlite.*`/DB 句柄交给桌面。
 
 ### 4. 桌面适配器重复组合并泄漏具体类型
 

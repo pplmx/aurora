@@ -76,7 +76,7 @@ func (r *Runtime) DBPath() string { return r.dbPath }
 
 // Services exposes the container the runtime assembled, so the shell can share
 // its repositories instead of opening a second handle for a one-shot action.
-func (r *Runtime) Services() *container.Container { return r.server.Services() }
+func (r *Runtime) Services() container.Services { return r.server.Services() }
 
 // Close stops the background loops and releases every SQLite handle.
 func (r *Runtime) Close() error {
@@ -141,9 +141,9 @@ func Start(ctx context.Context, opts Options) (*Runtime, error) {
 	rt.stopScheduler = srv.StartOracleScheduler(ctx, config.OracleSchedulerCheckInterval())
 	rt.stopOutbox = srv.StartAuditOutboxDrainer(ctx)
 	rt.app = nativeui.New(newNativeServices(
-		svc.LotteryRepo, svc.VotingRepo, svc.NFTRepo,
-		svc.OracleRepo, svc.TokenService, svc.TxManager, svc.NFTTx, svc.Chain,
-		svc.OracleFetcher, srv.OracleHealthStats,
+		svc.LotteryRepository(), svc.VotingRepository(), svc.NFTRepository(),
+		svc.OracleRepository(), svc.Token(), svc.TokenTransactions(), svc.NFTTransactions(), svc.Ledger(),
+		svc.Fetcher(), srv.OracleHealthStats,
 	))
 	return rt, nil
 }

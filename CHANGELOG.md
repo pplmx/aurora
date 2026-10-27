@@ -368,6 +368,10 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **Presentation layers see a narrow service port**: `container.Services`
+  exposes domain repositories, token service, transaction managers, a ledger
+  view and the oracle fetcher; `api.Server.Services()` no longer returns the
+  concrete container or any `*sqlite.*`/DB handle.
 - **Handler transaction managers come from the container**: the container now
   exposes `VotingTx` alongside `NFTTx`, so `api/handlers.go` no longer imports
   `infra/sqlite` or constructs transaction managers.
