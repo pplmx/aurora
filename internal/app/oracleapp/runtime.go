@@ -12,7 +12,7 @@ import (
 // The HTTP layer reads its health/metrics; the desktop shares the same instance
 // through api.Server, so both surfaces report the scheduler's real counters.
 type Runtime struct {
-	mu      syncMutex
+	mu      sync.Mutex
 	repo    oracle.Repository
 	fetcher FetcherInterface
 	chain   ChainInterface
@@ -21,10 +21,6 @@ type Runtime struct {
 	fetch     *FetchDataUseCase
 	cancel    context.CancelFunc
 }
-
-// syncMutex is a small alias that keeps the runtime's field list readable while
-// using the same locking semantics as sync.Mutex.
-type syncMutex = sync.Mutex
 
 func NewRuntime(repo oracle.Repository, fetcher FetcherInterface, chain ChainInterface) *Runtime {
 	return &Runtime{repo: repo, fetcher: fetcher, chain: chain}
