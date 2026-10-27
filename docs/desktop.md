@@ -51,9 +51,10 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   `api.Services` 调用与 REST handler 相同的应用层用例。窗口里创建的记录，CLI
   立刻能读到；反过来也一样。仪表盘除了六个计数器，还列出最新 5 条链上记录
   （模块、高度、摘要）——计数器回答“有多少”，列表回答“最近发生了什么”。
-  上方是 **Quick start**：Run a draw / Create a token / Register a voter /
-  Add a data source / Mint an NFT，直接进入对应页面；空库时另有一句话说明
-  第一次抽奖会创建第一条链上记录。
+  计数器卡片本身可点击进入所属模块，最近活动行也会打开写入它的页面。空库时
+  **Quick start** 放在最前（Run a draw / Create a token / Register a voter /
+  Add a data source / Mint an NFT）；已有数据时先显示计数器与最近活动，再显示
+  这张后续动作卡，避免每次回到首页都被引导区推下去。
 - **每页有 “How this works”**：默认折叠，点开是按顺序的 2–4 步操作说明，
   包括每个写操作用哪把私钥、密钥不会保存、投票从注册到计票的顺序、预言机从
   添加源到读取的路径。它回答“先做什么”，而不是再加一层表单。
@@ -61,9 +62,9 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   繁體中文，显示当前语言）、Session keys（可选的内存私钥记忆与忘记）、Data
   （只读数据库路径与复制、打开数据目录、备份）、Live updates（可选：每 10 秒
   重读正在显示的 Dashboard、Oracle 健康度和已打开的读数，表单文字不受影响；选择写入数据库
-  同目录的 `desktop-settings.json`，下次启动沿用）、Appearance
-  （深色主题，字号/对比度/动效跟随系统）和 About Aurora（版本、构建时间、
-  数据库路径、关于对话框）。文件动作仍留在 File 菜单，配置不再混在菜单里。
+  同目录的 `desktop-settings.json`，下次启动沿用）、Shortcuts（Ctrl/Cmd+1…8、
+  Ctrl/Cmd+R、Ctrl/Cmd+,）、Appearance（深色主题，字号/对比度/动效跟随系统）
+  和 About Aurora（版本、构建时间、数据库路径、关于对话框）。文件动作仍留在 File 菜单，配置不再混在菜单里。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
   因此 Windows/GNOME 的文本大小设置会同时放大标题、正文、提示与表格文字；
   Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。系统开启
@@ -80,7 +81,8 @@ secrets 时得到未签名开发包；配置好 secrets 后，可用 `-f` 显式
   由控件自己高亮，方向键与首字母在模块间移动，整列只占一个 Tab 停靠点。页面 id
   与显示标题分开存放，将来标题本地化不会改变"选择"记的是哪一页。
 - **页头给页面一个身份**：同一枚图标放在染色方块里，旁边是 26pt 标题和一句话
-  用途，右侧是 Refresh。Ctrl/Cmd+1…8 按侧栏顺序直接切页（Settings 是第 8 个），
+  用途；开启 Live updates 时，Dashboard/Oracle 页头显示 `Live · 10s`，右侧是
+  Refresh。Ctrl/Cmd+1…8 按侧栏顺序直接切页（Settings 是第 8 个），
   不用记也能发现。
 - **动作按钮只有三档**：`primaryButton`（一个表单唯一的提交动作，Aurora 蓝）、
   `secondaryButton`（读取与辅助写入，带描边）、`dangerButton`（销毁/删除，红色，

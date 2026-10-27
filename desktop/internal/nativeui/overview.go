@@ -3,6 +3,7 @@ package nativeui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -27,9 +28,10 @@ type dashboardState struct {
 	// so the landing page answers "what happened lately" as well as "how much
 	// is there". recentErr keeps the card's own failure separate from the
 	// counters: a chain read failing must not blank the dashboard.
-	recent      []BlockRow
-	recentErr   error
-	recentTable ui.ListState
+	recent       []BlockRow
+	recentErr    error
+	recentTable  ui.ListState
+	recentChoice int
 }
 
 // dashboardRecentLimit is how many chain entries the dashboard shows. The
@@ -107,28 +109,41 @@ func (a *App) dashboardView(c *ui.Context) {
 			note    string
 			tone    string
 			numeric bool
+			target  page
 		}{
-			{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", ink, true},
-			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", ink, true},
-			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", ink, true},
-			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", ink, true},
-			{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification", integrityTone, false},
-			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", ink, true},
+			{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", ink, true, pageLottery},
+			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", ink, true, pageVoting},
+			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", ink, true, pageVoting},
+			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", ink, true, pageVoting},
+			{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification", integrityTone, false, pageBlockchain},
+			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", ink, true, pageOracle},
 		}
-		// A fresh install is all zeroes and a verified empty chain, which is
-		// correct but says nothing about what to do next. The quick-start card
-		// names a first move for each module; the same buttons stay useful once
-		// the ledger has data, so the page does not only guide a first launch.
-		a.dashboardQuickStart(c)
-		for start := 0; start < len(metrics); start += 3 {
-			start := start
-			row := metrics[start:min(start+3, len(metrics))]
-			metricRow(c, len(row), func(i int) {
-				m := row[i]
-				metricCard(c, m.label, m.value, m.note, m.tone, m.numeric)
-			})
+		showMetrics := func() {
+			for start := 0; start < len(metrics); start += 3 {
+				start := start
+				row := metrics[start:min(start+3, len(metrics))]
+				metricRow(c, len(row), func(i int) {
+					m := row[i]
+					if metricCard(c, m.label, m.value, m.note, m.tone, m.numeric, m.target) {
+						a.setPage(m.target)
+					}
+				})
+			}
 		}
+		empty := a.dashboard.Lotteries == 0 && a.dashboard.Votes == 0 && a.dashboard.Oracle == 0
+		if empty {
+			// A fresh install has nothing to summarize yet. Start with the
+			// first move, then show the (zero) counters and the empty chain.
+			a.dashboardQuickStart(c)
+			showMetrics()
+			a.dashboardRecent(c)
+			return
+		}
+		// Returning users come here for the state, then for what changed;
+		// the action card is the last thing, not the first.
+		showMetrics()
 		a.dashboardRecent(c)
+		a.dashboardQuickStart(c)
 	})
 	a.liveRefresh(c, a.loadDashboard)
 }
@@ -171,7 +186,8 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			return
 		}
 		rows := a.dashboard.recent
-		ui.Table(c, &a.dashboard.recentTable, []ui.TableColumn{
+		a.dashboard.recentTable.Selected = &a.dashboard.recentChoice
+		table := ui.Table(c, &a.dashboard.recentTable, []ui.TableColumn{
 			{Title: tr("Block"), Width: 80, Align: ui.End},
 			{Title: tr("Module"), Width: 120},
 			{Title: tr("Summary"), MinWidth: 200},
@@ -186,6 +202,16 @@ func (a *App) dashboardRecent(c *ui.Context) {
 				ui.Text(c, entry.Summary).FontSize(textSize(c, 12)).SingleLine()
 			}
 		})
+		if table.Changed() && a.dashboard.recentChoice >= 0 && a.dashboard.recentChoice < len(rows) {
+			if target, ok := pageForBlockModule(rows[a.dashboard.recentChoice].Module); ok {
+				// The row names where the record came from; taking the reader
+				// there is more useful than leaving a highlight on the dashboard.
+				a.dashboard.recentChoice = -1
+				a.setPage(target)
+				return
+			}
+			a.dashboard.recentChoice = -1
+		}
 	})
 }
 
@@ -306,5 +332,24 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 	})
 	if len(rows) < len(matching) {
 		hint(c, fmt.Sprintf(tr("Showing the newest %d of %d matching entries; raise Show or search to narrow."), len(rows), len(matching)))
+	}
+}
+
+// pageForBlockModule maps an audit payload's module label to the page that
+// owns it. Unknown or synthetic blocks stay on the dashboard.
+func pageForBlockModule(module string) (page, bool) {
+	switch strings.ToLower(strings.TrimSpace(module)) {
+	case "lottery":
+		return pageLottery, true
+	case "voting":
+		return pageVoting, true
+	case "token":
+		return pageToken, true
+	case "nft":
+		return pageNFT, true
+	case "oracle":
+		return pageOracle, true
+	default:
+		return 0, false
 	}
 }

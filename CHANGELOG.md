@@ -372,6 +372,11 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **The dashboard now leads with state and acts as shortcuts**: metric cards
+  open their module, a recent-activity row opens the page that wrote it, and a
+  non-empty dashboard shows counters/activity before the Quick start card (the
+  empty dashboard keeps Quick start first). Live pages carry a `Live · 10s`
+  badge, and Settings documents the window shortcuts.
 - **Desktop backup uses the container port**: `Shell` takes a backup function
   from `container.Services` instead of constructing `infra/backup` itself;
   `deskapp` production code now has no `internal/infra` import.

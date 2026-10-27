@@ -355,3 +355,67 @@ func TestSettingsShortcut(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, pageSettings, app.page)
 }
+
+// TestDashboardPrioritisesStateOverActions keeps the returning dashboard's
+// hierarchy: counters and recent activity come before the quick-start card.
+func TestDashboardPrioritisesStateOverActions(t *testing.T) {
+	app := New(&fakeServices{blocks: []BlockRow{{Height: 1, Module: "lottery", Summary: "draw"}}})
+	tester := ui.NewTester(app.View, 1280, 2200)
+	tester.Frame()
+
+	metrics, ok := tester.Find("Total Lotteries")
+	require.True(t, ok)
+	quick, ok := tester.Find("Quick start")
+	require.True(t, ok)
+	require.Less(t, metrics.Y, quick.Y, "counters must precede the action card")
+}
+
+// TestDashboardMetricCardNavigates makes the overview cards real shortcuts.
+func TestDashboardMetricCardNavigates(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 1600)
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Total Lotteries"))
+	tester.Frame()
+	require.Equal(t, pageLottery, app.page)
+}
+
+// TestDashboardActivityOpensItsModule turns a recent-activity row into the
+// page that wrote it instead of leaving a dead highlight.
+func TestDashboardActivityOpensItsModule(t *testing.T) {
+	app := New(&fakeServices{blocks: []BlockRow{{Height: 1, Module: "voting", Summary: "ballot"}}})
+	tester := ui.NewTester(app.View, 1280, 2200)
+	tester.Frame()
+
+	require.NoError(t, tester.Click("voting"))
+	tester.Frame()
+	require.Equal(t, pageVoting, app.page)
+}
+
+// TestLiveIndicatorOnlyOnLivePages keeps the opt-in timer visible without
+// adding chrome to pages it does not refresh.
+func TestLiveIndicatorOnlyOnLivePages(t *testing.T) {
+	app := New(&fakeServices{})
+	app.setLiveUpdates(true)
+	tester := ui.NewTester(app.View, 1280, 1600)
+	app.ShowPage("Dashboard")
+	tester.Frame()
+	require.True(t, tester.HasText("Live · 10s"))
+
+	app.ShowPage("Token")
+	tester.Frame()
+	require.False(t, tester.HasText("Live · 10s"), "only Dashboard/Oracle are live")
+}
+
+// TestSettingsDocumentsTheWindowShortcuts makes the keyboard contract
+// discoverable where the other app configuration lives.
+func TestSettingsDocumentsTheWindowShortcuts(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Settings")
+	tester.Frame()
+	require.True(t, tester.HasText("Shortcuts"))
+	require.True(t, tester.HasText(shortcutChord("R")))
+	require.True(t, tester.HasText(shortcutChord(",")))
+}

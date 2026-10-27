@@ -76,8 +76,8 @@ func card(c *ui.Context, fn func()) ui.Element {
 // numeric value is the largest type on the page so the eye lands on it first;
 // a word verdict ("verified") is drawn smaller, because 30pt of lowercase
 // reads as an error rather than a summary.
-func metricCard(c *ui.Context, label, value, note string, tone string, numeric bool) {
-	card(c, func() {
+func metricCard(c *ui.Context, label, value, note string, tone string, numeric bool, target page) bool {
+	body := func() {
 		ui.Text(c, tr(label)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
 		// The value sits in a fixed-height slot so a word verdict and a
 		// one-digit number put their note on the same line across the row.
@@ -89,7 +89,30 @@ func metricCard(c *ui.Context, label, value, note string, tone string, numeric b
 			ui.Text(c, tr(value)).FontSize(textSize(c, size)).Bold().TextColor(ui.Hex(tone)).SingleLine()
 		})
 		ui.Text(c, tr(note)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
-	})
+	}
+	if target == pageDashboard {
+		card(c, body)
+		return false
+	}
+	return actionCard(c, label, body).Clicked()
+}
+
+// actionCard is a whole card that opens another page. It keeps the card's
+// surface, border and lift, but adds the button's hover/press state so the
+// dashboard counters read as shortcuts rather than decoration.
+func actionCard(c *ui.Context, label string, body func()) ui.Element {
+	b := ui.ButtonBase(c).FillWidth().Label(tr(label)).Padding(16).Radius(12).AlignItems(ui.Start).
+		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
+		Shadow(0, 12, 30, -6, ui.RGBA(0, 0, 0, 0.35)).
+		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.04))
+	if b.Hovered() {
+		b.Background(ui.Hex(surfaceHover))
+	}
+	if b.Pressed() {
+		b.Background(ui.Hex(surfacePressed))
+	}
+	b.Children(func() { ui.Column(c).FillWidth().Gap(10).Children(body) })
+	return b
 }
 
 // metricRow lays out cards in equal columns. A ui.Grid sizes its tracks from

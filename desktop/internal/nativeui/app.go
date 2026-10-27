@@ -71,6 +71,7 @@ func New(services Services) *App {
 	a.oracle.selected = -1
 	a.voting.sessionChoice = -1
 	a.voting.candChoice = -1
+	a.dashboard.recentChoice = -1
 	// The session form opens with a concrete window (now to a day later):
 	// empty date and time controls are a rejected first attempt the operator
 	// would have to fix before doing anything.
@@ -232,6 +233,9 @@ func (a *App) header(c *ui.Context) {
 		// the keyboard focus, and a reload has to work from anywhere.
 		// Settings reads no database, so a Refresh button there would be a
 		// control with no effect; keep the action on data pages.
+		if a.liveUpdates && (a.page == pageDashboard || a.page == pageOracle) {
+			badge(c, "Live · 10s", successTint, auroraGreen)
+		}
 		if a.page != pageSettings &&
 			(c.Shortcut(platformRefreshModifier(), ui.KeyR) || secondaryButton(c, "Refresh").Clicked()) {
 			a.refresh()
@@ -386,4 +390,13 @@ func (a *App) ShowLotteryDraw(id string) {
 	a.setPage(pageLottery)
 	a.lottery.verifyID = id
 	a.verifyLottery()
+}
+
+// shortcutChord renders a platform shortcut for the Settings reference. The
+// keys are the ones header/actionShortcuts register.
+func shortcutChord(key string) string {
+	if runtime.GOOS == "darwin" {
+		return "⌘" + key
+	}
+	return "Ctrl+" + key
 }
