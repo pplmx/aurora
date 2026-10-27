@@ -1,0 +1,160 @@
+package nativeui
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/egoist/mygo/ui"
+)
+
+// guideState remembers which page guides are open. They are per page so a
+// reader can leave one explanation open while moving between modules.
+type guideState struct {
+	lottery    bool
+	voting     bool
+	token      bool
+	oracle     bool
+	nft        bool
+	blockchain bool
+}
+
+// guide draws the page's "How this works" steps. The default is closed: the
+// page itself should still be scannable, and the explanation is for the moment
+// the operator asks "what is the order here?".
+func guide(c *ui.Context, open *bool, steps ...string) {
+	card(c, func() {
+		ui.Collapsible(c, tr("How this works"), open, func() {
+			ui.Column(c).Gap(6).Children(func() {
+				for i, step := range steps {
+					ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
+						ui.Text(c, fmt.Sprintf(tr("%d."), i+1)).FontSize(textSize(c, 12)).Bold().
+							Width(18).TextColor(ui.Hex(aurora))
+						ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+					})
+				}
+			})
+		})
+	})
+}
+
+// field builds a labelled input row. MyGo's Field draws the label above the
+// control it wraps, which is the same relationship the HTML <label for> had.
+func field(c *ui.Context, label string, value *string) {
+	ui.Field(c, tr(label), func() {
+		ui.TextInput(c, value)
+	})
+}
+
+// The page's three action styles. Every button comes from one of them, so the
+// same job looks the same in every card: primary is the one action a form
+// exists for, secondary is a read or a supporting write, and danger is
+// destructive (still behind its confirmation dialog). They are ButtonBase with
+// Aurora's own look rather than the toolkit's default: one height, radius and
+// weight across cards, and the hover/press feedback the reference MyGo apps
+// use, so a click is acknowledged before the write finishes.
+const buttonRadius float32 = 8
+
+// maxListLimit is the largest page size a list form accepts; the REST surface
+// applies the same ceiling to its ?limit.
+const maxListLimit = 1000
+
+func primaryButton(c *ui.Context, label string) ui.Element {
+	return styledButton(c, label, ui.Hex(aurora), ui.Hex(auroraHover), ui.Hex(auroraPressed), onAccent)
+}
+
+func secondaryButton(c *ui.Context, label string) ui.Element {
+	b := styledButton(c, label, ui.Hex(surface), ui.Hex(surfaceHover), ui.Hex(surfacePressed), ink)
+	b.BorderWidth(1).BorderColor(ui.Hex(border))
+	return b
+}
+
+func dangerButton(c *ui.Context, label string) ui.Element {
+	red := ui.Hex(auroraRed)
+	return styledButton(c, label, red,
+		red.Mix(ui.RGB(255, 255, 255), 0.14), red.Mix(ui.RGB(0, 0, 0), 0.16), night)
+}
+
+// quietButton is the small, low-emphasis action used inside a card: copying a
+// value, for instance, which should not compete with the card's main button.
+func quietButton(c *ui.Context, label string) ui.Element {
+	label = tr(label)
+	b := ui.ButtonBase(c).Height(26).PaddingX(10).Radius(6).
+		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(inkMuted))
+	fill := ui.Transparent
+	if b.Hovered() || b.Pressed() {
+		fill = ui.Hex(surfaceHover)
+	}
+	b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
+	b.Children(func() {
+		ui.Text(c, label).FontSize(textSize(c, 12)).SingleLine()
+	})
+	return b
+}
+
+func styledButton(c *ui.Context, label string, fill, hover, pressed ui.Color, textColor string) ui.Element {
+	label = tr(label)
+	b := ui.ButtonBase(c).Height(34).PaddingX(14).Radius(buttonRadius).
+		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(textColor))
+	state := fill
+	switch {
+	case b.Pressed():
+		state = pressed
+	case b.Hovered():
+		state = hover
+	}
+	b.Background(b.AnimateColor("fill", state, ui.Animation{Duration: 120 * time.Millisecond}))
+	pose := ui.Pose{}
+	if b.Pressed() {
+		pose.Scale = 0.97
+	}
+	b.AnimatePose(pose, ui.Snappy)
+	b.Children(func() {
+		ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine()
+	})
+	return b
+}
+
+// fieldHint builds a labelled input with a hint under it, for inputs whose
+// accepted range is not obvious from the label.
+func fieldHint(c *ui.Context, label, hintText string, value *string) {
+	ui.Field(c, tr(label), func() {
+		ui.Column(c).Gap(2).Children(func() {
+			ui.TextInput(c, value)
+			hint(c, hintText)
+		})
+	})
+}
+
+// textArea builds a labelled multi-line input, for values that are naturally
+// longer than one line (JSON headers, a description).
+func textArea(c *ui.Context, label string, value *string) {
+	ui.Field(c, tr(label), func() {
+		ui.TextArea(c, value).Height(64)
+	})
+}
+
+// textAreaHint is textArea with a line under it, for a value whose format the
+// label does not explain.
+func textAreaHint(c *ui.Context, label, hintText string, value *string) {
+	ui.Field(c, tr(label), func() {
+		ui.Column(c).Gap(2).Children(func() {
+			ui.TextArea(c, value).Height(64)
+			hint(c, hintText)
+		})
+	})
+}
+
+// hint draws a muted line under a control, explaining a value the label
+// cannot.
+func hint(c *ui.Context, text string) {
+	ui.Text(c, tr(text)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+}
+
+// fieldError draws a field's complaint directly under the control that caused
+// it, in the same red the status lines use.
+func fieldError(c *ui.Context, message string) {
+	if message == "" {
+		return
+	}
+	ui.Text(c, tr(message)).FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraRed))
+}

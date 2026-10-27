@@ -386,6 +386,9 @@ documented in their per-milestone ROADMAP files.
   desktop inject a fetcher, and a nil fetcher returns a clear error instead of
   panicking. The layer check now forbids every `internal/infra` import outside
   `app/container`.
+- **The view package's widget grab bag is split by responsibility**:
+  `components.go` became `controls.go`, `layout.go` and `values.go`, with the
+  package comment in `doc.go`. No behavior changed.
 - **The view package separates page identity and status from widgets**:
   `pages.go` owns the page enum/IDs/order, `status.go` owns the success/failure
   line and error localization. `components.go` now holds only controls and
