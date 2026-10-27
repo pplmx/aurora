@@ -25,7 +25,7 @@ import (
 // =================================================================
 
 func TestNFTHandler_Routes_RegistersAllEndpoints(t *testing.T) {
-	h := NewNFTHandler(nil, nil)
+	h := newTestNFTHandler(nil, nil)
 	r := chi.NewRouter()
 	h.Routes(r)
 
@@ -88,7 +88,7 @@ func TestNFTHandler_Get_FoundAndNotFound(t *testing.T) {
 	repo := nft.NewInmemRepo()
 	_ = repo.SaveNFT(&nft.NFT{ID: "nft-1", Name: "Aurora", Owner: []byte("alice")})
 
-	h := NewNFTHandler(repo, nil)
+	h := newTestNFTHandler(repo, nil)
 
 	// Found
 	rctx := chi.NewRouteContext()
@@ -113,7 +113,7 @@ func TestNFTHandler_Get_FoundAndNotFound(t *testing.T) {
 func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
 	repo := nft.NewInmemRepo()
 
-	h := NewNFTHandler(repo, nil)
+	h := newTestNFTHandler(repo, nil)
 
 	// Owner with no NFTs — owner must be base64-encoded 32-byte key per usecase
 	// contract (TASK-112 rejected wrong-length owners as client errors).
@@ -134,7 +134,7 @@ func TestNFTHandler_List_EmptyAndPopulated(t *testing.T) {
 }
 
 func TestNFTHandler_Mint_ServiceError(t *testing.T) {
-	h := NewNFTHandler(&failingNFTRepo{err: errors.New("save failed")}, nil)
+	h := newTestNFTHandler(&failingNFTRepo{err: errors.New("save failed")}, nil)
 	// Valid 32-byte creator so the decode passes and the repo error surfaces
 	// (invalid/empty keys are their own 400, TASK-095/ISS-089 + TASK-112).
 	body, _ := json.Marshal(map[string]string{
@@ -151,7 +151,7 @@ func TestNFTHandler_Mint_ServiceError(t *testing.T) {
 }
 
 func TestNFTHandler_Transfer_ServiceError(t *testing.T) {
-	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not found")}, nil)
+	h := newTestNFTHandler(&failingNFTRepo{err: errors.New("not found")}, nil)
 	// Valid-length keys so the decode passes and the repo error surfaces
 	// (invalid base64 is its own 400 for legacy reasons; wrong-length keys are
 	// too — TASK-095/ISS-089 + TASK-112).
@@ -170,7 +170,7 @@ func TestNFTHandler_Transfer_ServiceError(t *testing.T) {
 }
 
 func TestNFTHandler_Burn_ServiceError(t *testing.T) {
-	h := NewNFTHandler(&failingNFTRepo{err: errors.New("not owner")}, nil)
+	h := newTestNFTHandler(&failingNFTRepo{err: errors.New("not owner")}, nil)
 	pub32 := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x41}, 32))
 	priv64 := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x42}, 64))
 	body, _ := json.Marshal(map[string]string{

@@ -25,7 +25,7 @@ import (
 const defaultHTTPTimeout = 10 * time.Second
 
 var (
-	ErrRateLimited    = errors.New("rate limit exceeded")
+	ErrRateLimited    = oracle.ErrRateLimited
 	ErrInvalidTimeout = errors.New("timeout must be greater than 0")
 	ErrHTTPError      = errors.New("http error response")
 	ErrInvalidJSON    = errors.New("invalid JSON response")

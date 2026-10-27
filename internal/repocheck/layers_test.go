@@ -35,6 +35,11 @@ func TestLayerDependencies(t *testing.T) {
 			why:    "use cases must use domain/ledger ports, not storage, HTTP or the ledger implementation",
 		},
 		{
+			dir:    "internal/api",
+			forbid: []string{"internal/infra"},
+			why:    "transport handlers must use injected app/ledger ports",
+		},
+		{
 			dir:    "internal/infra",
 			forbid: []string{"internal/app", "internal/api"},
 			why:    "infrastructure must not depend on its callers",

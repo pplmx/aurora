@@ -21,14 +21,14 @@ type handlers struct {
 func newHandlers(c *container.Container) *handlers {
 	voting := handler.NewVotingHandler(c.VotingRepo, c.VotingTx)
 	voting.SetChain(c.Chain)
-	oracle := handler.NewOracleHandler(c.OracleRepo)
+	oracle := handler.NewOracleHandlerWithFetcher(c.OracleRepo, c.OracleFetcher)
 	oracle.SetChain(c.Chain)
 	return &handlers{
-		lottery:    handler.NewLotteryHandler(c.LotteryRepo, config.LotteryDefaultCount()),
+		lottery:    handler.NewLotteryHandler(c.LotteryRepo, config.LotteryDefaultCount(), c.Chain),
 		voting:     voting,
-		nft:        handler.NewNFTHandler(c.NFTRepo, c.NFTTx),
+		nft:        handler.NewNFTHandler(c.NFTRepo, c.NFTTx, c.Chain),
 		token:      handler.NewTokenHandler(c.TokenService),
 		oracle:     oracle,
-		blockchain: handler.NewBlockchainHandler(),
+		blockchain: handler.NewBlockchainHandler(c.Chain),
 	}
 }

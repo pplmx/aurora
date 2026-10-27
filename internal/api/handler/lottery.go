@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
-	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 // Lottery history pagination bounds. GET /lottery/history previously returned
@@ -25,6 +25,7 @@ const (
 type LotteryHandler struct {
 	repo               lottery.Repository
 	defaultWinnerCount int
+	chain              ledger.RecordWriter
 }
 
 // NewLotteryHandler wires the lottery REST surface. defaultWinnerCount is the
@@ -32,11 +33,11 @@ type LotteryHandler struct {
 // configured `lottery.defaultCount` defaults to 3); the server injects
 // config.LotteryDefaultCount() so REST and CLI agree on a non-3 configured
 // default instead of the API silently drawing 3 (TASK-247).
-func NewLotteryHandler(repo lottery.Repository, defaultWinnerCount int) *LotteryHandler {
+func NewLotteryHandler(repo lottery.Repository, defaultWinnerCount int, chain ledger.RecordWriter) *LotteryHandler {
 	if defaultWinnerCount <= 0 {
 		defaultWinnerCount = lottery.DefaultWinnerCount
 	}
-	return &LotteryHandler{repo: repo, defaultWinnerCount: defaultWinnerCount}
+	return &LotteryHandler{repo: repo, defaultWinnerCount: defaultWinnerCount, chain: chain}
 }
 
 type CreateLotteryRequest struct {
@@ -58,8 +59,7 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chain := blockchain.Init()
-	uc := lotteryapp.NewCreate(h.repo, chain)
+	uc := lotteryapp.NewCreate(h.repo, h.chain)
 
 	// Resolve the configured default winner count at the API boundary, exactly
 	// as the CLI's RunE resolves its `-c` absence to `lottery.defaultCount` —

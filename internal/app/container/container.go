@@ -5,6 +5,7 @@
 package container
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
@@ -143,4 +144,17 @@ func Open() (*Container, error) {
 
 	complete = true
 	return c, nil
+}
+
+// StartOutboxDrainer retries parked token-audit deliveries until ctx is
+// cancelled. It is a container lifecycle concern, like the SQLite handles it
+// uses, so the HTTP layer does not import the events implementation.
+func (c *Container) StartOutboxDrainer(ctx context.Context) (stop func()) {
+	if c == nil || c.EventStore == nil {
+		return func() {}
+	}
+	drainer := infraevents.NewOutboxDrainer(c.EventStore, nil)
+	drainCtx, cancel := context.WithCancel(ctx)
+	go drainer.Run(drainCtx)
+	return cancel
 }

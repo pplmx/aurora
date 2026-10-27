@@ -368,6 +368,11 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **HTTP handlers no longer import infrastructure**: lottery/NFT handlers take
+  ledger writers, the blockchain handler takes an integrity verifier, the
+  oracle handler takes an injected fetcher, and the rate-limit error moved to
+  `oracle.ErrRateLimited`. The outbox drainer moved to the container, so
+  `internal/api` production code has no `internal/infra` import.
 - **Presentation layers see a narrow service port**: `container.Services`
   exposes domain repositories, token service, transaction managers, a ledger
   view and the oracle fetcher; `api.Server.Services()` no longer returns the

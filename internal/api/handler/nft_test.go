@@ -18,7 +18,7 @@ import (
 )
 
 func TestNFTHandler_Mint_InvalidJSON(t *testing.T) {
-	handler := NewNFTHandler(nil, nil)
+	handler := newTestNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/mint", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -29,7 +29,7 @@ func TestNFTHandler_Mint_InvalidJSON(t *testing.T) {
 }
 
 func TestNFTHandler_Mint_EmptyRequest(t *testing.T) {
-	handler := NewNFTHandler(nil, nil)
+	handler := newTestNFTHandler(nil, nil)
 
 	reqBody := map[string]string{}
 	body, _ := json.Marshal(reqBody)
@@ -45,7 +45,7 @@ func TestNFTHandler_Mint_EmptyRequest(t *testing.T) {
 }
 
 func TestNFTHandler_Transfer_InvalidJSON(t *testing.T) {
-	handler := NewNFTHandler(nil, nil)
+	handler := newTestNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/transfer", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -56,13 +56,13 @@ func TestNFTHandler_Transfer_InvalidJSON(t *testing.T) {
 }
 
 func TestNFTHandler_Routes(t *testing.T) {
-	handler := NewNFTHandler(nil, nil)
+	handler := newTestNFTHandler(nil, nil)
 	assert.NotNil(t, handler)
 }
 
 func TestNFTHandler_History_ReturnsMintOperation(t *testing.T) {
 	repo := nft.NewInmemRepo()
-	handler := NewNFTHandler(repo, nil)
+	handler := newTestNFTHandler(repo, nil)
 
 	creator := make([]byte, 32)
 	for i := range creator {
@@ -105,7 +105,7 @@ func TestNFTHandler_History_ReturnsMintOperation(t *testing.T) {
 // GET /nft/{id}/history must keep returning that trail instead of 404ing.
 func TestNFTHandler_History_AfterBurn(t *testing.T) {
 	repo := nft.NewInmemRepo()
-	handler := NewNFTHandler(repo, nil)
+	handler := newTestNFTHandler(repo, nil)
 
 	owner, privateKey, err := ed25519.GenerateKey(nil)
 	require.NoError(t, err)
@@ -152,7 +152,7 @@ func TestNFTHandler_History_AfterBurn(t *testing.T) {
 }
 
 func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {
-	handler := NewNFTHandler(nil, nil)
+	handler := newTestNFTHandler(nil, nil)
 
 	reqBody := map[string]string{}
 	body, _ := json.Marshal(reqBody)
@@ -168,7 +168,7 @@ func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {
 
 func TestNFTHandler_RejectsZeroAddress(t *testing.T) {
 	repo := nft.NewInmemRepo()
-	handler := NewNFTHandler(repo, nil)
+	handler := newTestNFTHandler(repo, nil)
 	zero := base64.StdEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))
 
 	mintBody, err := json.Marshal(map[string]string{
@@ -217,7 +217,7 @@ func TestNFTHandler_RejectsZeroAddress(t *testing.T) {
 }
 
 func TestNFTHandler_Burn_InvalidJSON(t *testing.T) {
-	handler := NewNFTHandler(nil, nil)
+	handler := newTestNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/nft/burn", bytes.NewBufferString("invalid json"))
 	rr := httptest.NewRecorder()
@@ -233,7 +233,7 @@ func TestNFTHandler_Burn_InvalidJSON(t *testing.T) {
 // known.
 func TestNFTHandler_List_WithoutOwnerListsEverything(t *testing.T) {
 	repo := nft.NewInmemRepo()
-	handler := NewNFTHandler(repo, nil)
+	handler := newTestNFTHandler(repo, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list", nil)
 	rr := httptest.NewRecorder()
@@ -248,7 +248,7 @@ func TestNFTHandler_List_WithoutOwnerListsEverything(t *testing.T) {
 // ISS-093): GET /nft/list?owner= must honor ?limit/?offset (default 20, cap
 // 100) instead of returning an owner's entire collection unbounded.
 func TestNFTHandler_List_Paged(t *testing.T) {
-	handler := NewNFTHandler(nft.NewInmemRepo(), nil)
+	handler := newTestNFTHandler(nft.NewInmemRepo(), nil)
 
 	// A 32-byte owner: the list use case rejects wrong-length owners as client
 	// errors (TASK-112), and the in-memory matching is exact on the key bytes.
@@ -291,7 +291,7 @@ func TestNFTHandler_List_Paged(t *testing.T) {
 }
 
 func TestNFTHandler_List_InvalidOwner(t *testing.T) {
-	handler := NewNFTHandler(nil, nil)
+	handler := newTestNFTHandler(nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/nft/list?owner=!!!invalid-base64!!!", nil)
 	rr := httptest.NewRecorder()
@@ -305,3 +305,11 @@ func TestNFTHandler_List_InvalidOwner(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
 	assert.Equal(t, "INVALID_BASE64", resp.Code)
 }
+
+func newTestNFTHandler(repo nft.TransactableRepository, txManager nft.TransactionManager) *NFTHandler {
+	return NewNFTHandler(repo, txManager, testBlockWriter{})
+}
+
+type testBlockWriter struct{}
+
+func (testBlockWriter) AddBlock(string) (int64, error) { return 1, nil }

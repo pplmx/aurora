@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/nftapp"
 	"github.com/pplmx/aurora/internal/domain/nft"
-	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/ledger"
 )
 
@@ -31,11 +30,11 @@ type NFTHandler struct {
 // NewNFTHandler wires the NFT service over a transaction-capable repository.
 // txManager may be nil (handler tests); the service then falls back to
 // non-transactional writes via NewService's nil guard.
-func NewNFTHandler(repo nft.TransactableRepository, txManager nft.TransactionManager) *NFTHandler {
+func NewNFTHandler(repo nft.TransactableRepository, txManager nft.TransactionManager, chain ledger.BlockWriter) *NFTHandler {
 	return &NFTHandler{
 		repo:    repo,
 		service: nft.NewService(repo, txManager),
-		chain:   blockchain.Init(),
+		chain:   chain,
 	}
 }
 

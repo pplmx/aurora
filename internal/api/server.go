@@ -10,7 +10,6 @@ import (
 
 	"github.com/pplmx/aurora/internal/app/container"
 	"github.com/pplmx/aurora/internal/app/oracleapp"
-	infraevents "github.com/pplmx/aurora/internal/infra/events"
 	"github.com/pplmx/aurora/internal/metrics"
 )
 
@@ -65,13 +64,10 @@ func NewServer() (*Server, error) {
 // hermetic; cmd/api/main.go starts it on boot. It is a no-op if the server has
 // no event store.
 func (s *Server) StartAuditOutboxDrainer(ctx context.Context) (stop func()) {
-	if s.container == nil || s.container.EventStore == nil {
+	if s.container == nil {
 		return func() {}
 	}
-	drainer := infraevents.NewOutboxDrainer(s.container.EventStore, nil)
-	drainCtx, cancel := context.WithCancel(ctx)
-	go drainer.Run(drainCtx)
-	return cancel
+	return s.container.StartOutboxDrainer(ctx)
 }
 
 // OracleHealthStats returns the running scheduler's per-source fetch-health

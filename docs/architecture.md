@@ -40,7 +40,7 @@ desktop          ─┘                                              ^
 | `internal/ledger` | 标准库 | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它 |
 | `internal/app/*` | `domain`, `ledger`（`container` 例外） | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化 |
 | `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
-| `internal/api` | `app`, `app/container`, `domain`, `infra/sqlite`, `infra/events` | HTTP 表示层；数据库/仓储/用例由 `app/container` 组装 |
+| `internal/api` | `app`, `app/container`, `domain`, `ledger` | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入 |
 | `desktop/internal/deskapp` | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 窄接口取依赖，不接触 SQLite 类型 |
 | `desktop/internal/nativeui` | `internal/i18n` | 纯视图状态与 MyGo 控件，不直接打开数据库 |
 
@@ -185,5 +185,5 @@ just desktop-race        # 触及桌面/并发路径时
 
 `just check` 会重排 i18n 映射和 import，提交前必须复查 `git status`，只 stage
 本阶段改动的文件。`internal/repocheck/layers_test.go` 用 AST 解析生产 import，
-把 domain/app/infra 的禁止方向变成测试；`internal/app/container` 之外的应用
-包 import 任何 `infra` 都会在 `just test` 失败。
+把 domain/app/infra/api 的禁止方向变成测试；`internal/app/container` 之外
+import 任何 `infra` 都会在 `just test` 失败。

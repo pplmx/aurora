@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
@@ -377,5 +378,9 @@ func (e *OracleError) Error() string {
 var (
 	ErrInvalidSource  = &OracleError{Message: "invalid source"}
 	ErrSourceNotFound = &OracleError{Message: "source not found"}
+	// ErrRateLimited is returned when a source exceeds its outbound fetch
+	// budget. It lives at the domain boundary so transports and callers can
+	// classify the condition without importing the HTTP client.
+	ErrRateLimited    = errors.New("rate limit exceeded")
 	ErrSourceDisabled = &OracleError{Message: "source is disabled"}
 )
