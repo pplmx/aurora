@@ -246,6 +246,10 @@ func main() {
 	// app registers the scheme on every start, which is cheap and works
 	// without an installer.
 	shell := deskapp.NewShell(meta)
+	// Window writes leave the frame thread so the busy banner is painted and
+	// the window stays responsive during SQLite/file work. Tests keep the
+	// synchronous path for deterministic assertions.
+	rt.App().SetBackgroundWrites(true)
 	// File import/export is a one-shot action, but it should use the runtime's
 	// repository rather than open a second SQLite writer beside it.
 	shell.SetLotteryRepository(rt.Services().LotteryRepository())

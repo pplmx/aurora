@@ -214,24 +214,25 @@ func (a *App) registerCandidate() {
 		a.voting.candNameErr = "Candidate name is required."
 		return
 	}
-	cand, err := a.services.RegisterCandidate(
-		name,
-		strings.TrimSpace(a.voting.candParty),
-		strings.TrimSpace(a.voting.candProgram),
-	)
-	if err != nil {
-		a.voting.candResult = errStatus(err)
-		return
-	}
-	a.voting.candResult = okStatus("Registered %s", cand.Name)
-	a.voting.candCopyID = cand.ID
-	a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
-	a.loadVoting()
-	// The new candidate is the context: highlight it, clear a search that
-	// would hide it, and aim the ballot at it. The operator can still change
-	// either choice before casting.
-	a.selectCandidateByID(cand.ID)
-	a.voting.voteCandidate = cand.ID
+	party, program := strings.TrimSpace(a.voting.candParty), strings.TrimSpace(a.voting.candProgram)
+	a.runWrite("Registering candidate…", func() func() {
+		cand, err := a.services.RegisterCandidate(name, party, program)
+		return func() {
+			if err != nil {
+				a.voting.candResult = errStatus(err)
+				return
+			}
+			a.voting.candResult = okStatus("Registered %s", cand.Name)
+			a.voting.candCopyID = cand.ID
+			a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
+			a.loadVoting()
+			// The new candidate is the context: highlight it, clear a search that
+			// would hide it, and aim the ballot at it. The operator can still change
+			// either choice before casting.
+			a.selectCandidateByID(cand.ID)
+			a.voting.voteCandidate = cand.ID
+		}
+	})
 }
 
 // selectCandidateByID highlights a candidate after registration.
@@ -255,12 +256,16 @@ func (a *App) registerVoter() {
 		a.voting.voterNameErr = "Voter name is required."
 		return
 	}
-	v, err := a.services.RegisterVoter(name)
-	if err != nil {
-		a.voting.status = errStatus(err)
-		return
-	}
-	a.applyVoterRegistration(v)
+	a.runWrite("Registering voter…", func() func() {
+		v, err := a.services.RegisterVoter(name)
+		return func() {
+			if err != nil {
+				a.voting.status = errStatus(err)
+				return
+			}
+			a.applyVoterRegistration(v)
+		}
+	})
 }
 
 // applyVoterRegistration reports the new voter and fills the ballot form from
@@ -554,22 +559,27 @@ func (a *App) createVotingSession() {
 		a.voting.sessionResult = statusLine{text: tr("Register at least one candidate before creating a session."), isErr: true}
 		return
 	}
-	s, err := a.services.CreateSession(strings.TrimSpace(a.voting.sessionTitle), strings.TrimSpace(a.voting.sessionDesc), ids, start, end)
-	if err != nil {
-		a.voting.sessionResult = errStatus(err)
-		return
-	}
-	a.voting.sessionResult = okStatus("Created session %s", s.Title)
-	a.voting.sessionCopyID = s.ID
-	a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionIDs = "", "", ""
-	a.voting.sessionStart, a.voting.sessionEnd = defaultSessionWindow(time.Now())
-	a.loadVoting()
-	// The new session becomes the context for controls, ballot and tally;
-	// highlight its row so a successful create has a visible result even
-	// before the copy button is used.
-	a.selectSessionByID(s.ID)
-	a.clearTallyForAnotherSession(s.ID)
-	a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = s.ID, s.ID, s.ID
+	title, description := strings.TrimSpace(a.voting.sessionTitle), strings.TrimSpace(a.voting.sessionDesc)
+	a.runWrite("Creating session…", func() func() {
+		s, err := a.services.CreateSession(title, description, ids, start, end)
+		return func() {
+			if err != nil {
+				a.voting.sessionResult = errStatus(err)
+				return
+			}
+			a.voting.sessionResult = okStatus("Created session %s", s.Title)
+			a.voting.sessionCopyID = s.ID
+			a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionIDs = "", "", ""
+			a.voting.sessionStart, a.voting.sessionEnd = defaultSessionWindow(time.Now())
+			a.loadVoting()
+			// The new session becomes the context for controls, ballot and tally;
+			// highlight its row so a successful create has a visible result even
+			// before the copy button is used.
+			a.selectSessionByID(s.ID)
+			a.clearTallyForAnotherSession(s.ID)
+			a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = s.ID, s.ID, s.ID
+		}
+	})
 }
 
 // selectSessionByID highlights a session after creation. The search is
@@ -631,6 +641,21 @@ func (a *App) votingVote(c *ui.Context) {
 	})
 }
 
+func (a *App) setSessionControl(label string, fn func(string) error, success string) {
+	id := strings.TrimSpace(a.voting.controlID)
+	a.runWrite(label, func() func() {
+		err := fn(id)
+		return func() {
+			if err != nil {
+				a.voting.controlResult = errStatus(err)
+				return
+			}
+			a.voting.controlResult = okStatus(success)
+			a.loadVoting()
+		}
+	})
+}
+
 func (a *App) castVote() {
 	a.voting.voteResult = statusLine{}
 	if strings.TrimSpace(a.voting.voteSession) == "" || strings.TrimSpace(a.voting.voteCandidate) == "" {
@@ -638,28 +663,28 @@ func (a *App) castVote() {
 		return
 	}
 	publicKey, privateKey := strings.TrimSpace(a.voting.voteVoterPub), strings.TrimSpace(a.voting.votePriv)
-	err := a.services.CastVote(
-		strings.TrimSpace(a.voting.voteSession),
-		strings.TrimSpace(a.voting.voteCandidate),
-		publicKey,
-		privateKey,
-	)
-	if err != nil {
-		a.voting.voteResult = errStatus(err)
-		return
-	}
-	a.rememberSuccessfulKey(publicKey, privateKey)
-	a.voting.voteResult = okStatus("Ballot recorded.")
-	a.voting.votePriv = ""
-	sessionID := strings.TrimSpace(a.voting.voteSession)
-	a.loadVoting()
-	// A tally already on screen for this session must include the ballot that
-	// was just accepted; leaving the old numbers beside "Ballot recorded" read
-	// as a vote that did not count. A failed refresh keeps the old rows rather
-	// than replacing them with an error for a write that succeeded.
-	if sessionID != "" && sessionID == strings.TrimSpace(a.voting.resultsSession) && len(a.voting.results) > 0 {
-		_ = a.loadSessionResults(sessionID)
-	}
+	sessionID, candidateID := strings.TrimSpace(a.voting.voteSession), strings.TrimSpace(a.voting.voteCandidate)
+	a.runWrite("Casting vote…", func() func() {
+		err := a.services.CastVote(sessionID, candidateID, publicKey, privateKey)
+		return func() {
+			if err != nil {
+				a.voting.voteResult = errStatus(err)
+				return
+			}
+			a.rememberSuccessfulKey(publicKey, privateKey)
+			a.voting.voteResult = okStatus("Ballot recorded.")
+			a.voting.votePriv = ""
+			a.loadVoting()
+			// A tally already on screen for this session must include the ballot
+			// that was just accepted; leaving the old numbers beside "Ballot
+			// recorded" read as a vote that did not count. A failed refresh keeps
+			// the old rows rather than replacing them with an error for a write
+			// that succeeded.
+			if sessionID != "" && sessionID == strings.TrimSpace(a.voting.resultsSession) && len(a.voting.results) > 0 {
+				_ = a.loadSessionResults(sessionID)
+			}
+		}
+	})
 }
 
 // loadSessionResults reads a session's tally into the Results card. A failed

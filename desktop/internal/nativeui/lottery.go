@@ -138,21 +138,25 @@ func (a *App) createLottery() {
 		return
 	}
 
-	row, err := a.services.CreateDraw(participants, seed, count)
-	if err != nil {
-		a.lottery.status = errStatus(err)
-		return
-	}
-	a.lottery.status = okStatus("Draw %s recorded at block %d. Winners: %s", row.ID, row.BlockHeight, joinList(row.Winners))
-	// Advance the verifier to the fresh draw so the operator can re-check it
-	// without copying the id, matching the Web UI's behaviour.
-	a.lottery.verifyID = row.ID
-	a.lottery.verifyResult = nil
-	a.lottery.participants = ""
-	a.lottery.seed = ""
-	a.lottery.count = 1
-	a.loadLottery()
-	a.selectLotteryByID(row.ID)
+	a.runWrite("Running draw…", func() func() {
+		row, err := a.services.CreateDraw(participants, seed, count)
+		return func() {
+			if err != nil {
+				a.lottery.status = errStatus(err)
+				return
+			}
+			a.lottery.status = okStatus("Draw %s recorded at block %d. Winners: %s", row.ID, row.BlockHeight, joinList(row.Winners))
+			// Advance the verifier to the fresh draw so the operator can re-check
+			// it without copying the id, matching the Web UI's behaviour.
+			a.lottery.verifyID = row.ID
+			a.lottery.verifyResult = nil
+			a.lottery.participants = ""
+			a.lottery.seed = ""
+			a.lottery.count = 1
+			a.loadLottery()
+			a.selectLotteryByID(row.ID)
+		}
+	})
 }
 
 // selectLotteryByID highlights the new draw in the history table and clears a

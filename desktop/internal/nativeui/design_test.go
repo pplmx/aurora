@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
@@ -435,4 +436,86 @@ func TestDashboardMetricGridUsesTwoColumnsAtMinimumWidth(t *testing.T) {
 	require.True(t, ok)
 	require.InDelta(t, float64(first.Y), float64(second.Y), 1, "two cards share the first row")
 	require.Greater(t, third.Y, second.Y, "the third card wraps to the next row")
+}
+
+// TestCommandPaletteOpensAndNavigates pins the keyboard-first page switcher:
+// Ctrl/Cmd+K opens it, typing narrows the list, and Enter takes the first match.
+func TestCommandPaletteOpensAndNavigates(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	require.True(t, tester.HasText("Jump to"))
+	require.True(t, app.paletteOpen)
+
+	app.paletteQuery = "Token"
+	tester.Frame()
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t, pageToken, app.page)
+	require.False(t, app.paletteOpen)
+}
+
+// TestCommandPaletteClosesWithEscape keeps the modal dismissible without a
+// navigation side effect.
+func TestCommandPaletteClosesWithEscape(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	require.True(t, app.paletteOpen)
+
+	tester.Key(0, ui.KeyEscape)
+	tester.Frame()
+	require.False(t, app.paletteOpen)
+}
+
+// TestBackgroundWriteShowsBusyThenApplies covers the desktop write path: the
+// worker leaves the frame thread, the busy banner is painted, and its apply
+// closure updates the page once the worker returns.
+func TestBackgroundWriteShowsBusyThenApplies(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetBackgroundWrites(true)
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	app.runWrite("Minting…", func() func() {
+		close(started)
+		<-release
+		return func() { app.token.status = okStatus("done") }
+	})
+	<-started
+	tester.Frame()
+	require.True(t, tester.HasText("Minting…"), "the busy banner must be painted before the worker finishes")
+	require.True(t, app.asyncCh != nil)
+
+	close(release)
+	tester.Advance(60 * time.Millisecond)
+	tester.Frame()
+	require.False(t, tester.HasText("Minting…"))
+	require.Equal(t, "done", app.token.status.text)
+}
+
+// TestSidebarNarrowsWithTheWindow keeps the navigation from taking a quarter
+// of the minimum-width window.
+func TestSidebarNarrowsWithTheWindow(t *testing.T) {
+	require.Equal(t, float32(184), sidebarWidthFor(900))
+	require.Equal(t, float32(216), sidebarWidthFor(1200))
+}
+
+// TestEmptyListsUseTheEmptyState checks the richer first-run state still names
+// the missing object and the next move.
+func TestEmptyListsUseTheEmptyState(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+	require.True(t, tester.HasText("No tokens yet"))
+	require.True(t, tester.HasText("Create the first token above; the list, forms and history follow it."))
 }

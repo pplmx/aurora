@@ -176,30 +176,35 @@ func (a *App) generateNFTCreator() {
 
 // mintNFT mints the asset described by the Mint card's inputs.
 func (a *App) mintNFT() {
-	n, err := a.services.MintNFT(
-		strings.TrimSpace(a.nft.name), strings.TrimSpace(a.nft.description),
-		strings.TrimSpace(a.nft.imageURL), strings.TrimSpace(a.nft.tokenURI),
-		strings.TrimSpace(a.nft.creator))
-	if err != nil {
-		a.nft.status = errStatus(err)
-		return
-	}
-	a.rememberSuccessfulKey(n.Creator, a.nft.creatorPriv)
-	a.nft.status = okStatus("Minted %s (%s) at block %d", n.Name, n.ID, n.BlockHeight)
-	// A just-minted asset is the page's subject. Clear a filter or search that
-	// would hide it, highlight its row, and move the ids and open readouts to
-	// it; leaving the collection on the previous owner's filter made a
-	// successful mint look like nothing happened.
-	a.nft.filterOwner, a.nft.owner = "", ""
-	a.nft.search, a.nft.appliedSearch = "", ""
-	a.loadNFT()
-	// The new asset becomes the subject of every other card: the operator just
-	// created it, so making them retype the id four times would be busywork.
-	a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
-	a.nft.creatorKeyNFTID = n.ID
-	a.selectNFTRow(n.ID)
-	a.selectNFT(n.ID)
-	a.nft.name, a.nft.description, a.nft.imageURL, a.nft.tokenURI = "", "", "", ""
+	name, description := strings.TrimSpace(a.nft.name), strings.TrimSpace(a.nft.description)
+	imageURL, tokenURI := strings.TrimSpace(a.nft.imageURL), strings.TrimSpace(a.nft.tokenURI)
+	creator, creatorPriv := strings.TrimSpace(a.nft.creator), a.nft.creatorPriv
+	a.runWrite("Minting NFT…", func() func() {
+		n, err := a.services.MintNFT(name, description, imageURL, tokenURI, creator)
+		return func() {
+			if err != nil {
+				a.nft.status = errStatus(err)
+				return
+			}
+			a.rememberSuccessfulKey(n.Creator, creatorPriv)
+			a.nft.status = okStatus("Minted %s (%s) at block %d", n.Name, n.ID, n.BlockHeight)
+			// A just-minted asset is the page's subject. Clear a filter or search
+			// that would hide it, highlight its row, and move the ids and open
+			// readouts to it; leaving the collection on the previous owner's filter
+			// made a successful mint look like nothing happened.
+			a.nft.filterOwner, a.nft.owner = "", ""
+			a.nft.search, a.nft.appliedSearch = "", ""
+			a.loadNFT()
+			// The new asset becomes the subject of every other card: the operator
+			// just created it, so making them retype the id four times would be
+			// busywork.
+			a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
+			a.nft.creatorKeyNFTID = n.ID
+			a.selectNFTRow(n.ID)
+			a.selectNFT(n.ID)
+			a.nft.name, a.nft.description, a.nft.imageURL, a.nft.tokenURI = "", "", "", ""
+		}
+	})
 }
 
 // selectNFTRow highlights a record in the collection after a mint.
@@ -291,7 +296,7 @@ func (a *App) nftListBody(c *ui.Context) {
 			emptyNote(c, "No NFTs for this owner. Show All restores the collection.")
 			return
 		}
-		emptyNote(c, "No NFTs yet. Mint one above.")
+		emptyState(c, pageNFT, "No NFTs yet", "Mint an asset above to start the collection; it becomes the first holder’s token.")
 		return
 	}
 	ui.SearchField(c, &a.nft.search).Label(tr("Search NFTs"))
@@ -476,15 +481,19 @@ func (a *App) useCreatorKeyButton(c *ui.Context, target *string, nftID, holder s
 // transferNFT moves the asset named by the Transfer card.
 func (a *App) transferNFT() {
 	privateKey := strings.TrimSpace(a.nft.priv)
-	err := a.services.TransferNFT(
-		strings.TrimSpace(a.nft.transferID), strings.TrimSpace(a.nft.from),
-		strings.TrimSpace(a.nft.to), privateKey)
-	a.nft.status = wrapErr(err)
-	if err == nil {
-		a.rememberSuccessfulKey(a.nft.from, privateKey)
-		a.nft.priv = ""
-		a.refreshNFT(strings.TrimSpace(a.nft.transferID))
-	}
+	id := strings.TrimSpace(a.nft.transferID)
+	from, to := strings.TrimSpace(a.nft.from), strings.TrimSpace(a.nft.to)
+	a.runWrite("Transferring NFT…", func() func() {
+		err := a.services.TransferNFT(id, from, to, privateKey)
+		return func() {
+			a.nft.status = wrapErr(err)
+			if err == nil {
+				a.rememberSuccessfulKey(from, privateKey)
+				a.nft.priv = ""
+				a.refreshNFT(id)
+			}
+		}
+	})
 }
 
 // refreshNFTPage re-reads the collection and the Inspect/history cards that are
@@ -564,23 +573,28 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 	case 1:
 		id := strings.TrimSpace(a.nft.burnID)
 		privateKey := strings.TrimSpace(a.nft.burnPriv)
-		err := a.services.BurnNFT(id, strings.TrimSpace(a.nft.burnOwner), privateKey)
-		a.nft.status = wrapErr(err)
-		if err == nil {
-			a.rememberSuccessfulKey(a.nft.burnOwner, privateKey)
-			a.nft.burnPriv = ""
-			// The asset is gone, so reading it again is not a failure to
-			// report: clear the Inspect card directly and re-read the history,
-			// which now ends with the burn.
-			a.loadNFT()
-			if a.nft.nftLoadedID == id || (a.nft.nft != nil && a.nft.nft.ID == id) {
-				a.nft.nft = nil
-				a.nft.nftErr = nil
-				a.nft.nftLoadedID = ""
+		owner := a.nft.burnOwner
+		a.runWrite("Burning NFT…", func() func() {
+			err := a.services.BurnNFT(id, owner, privateKey)
+			return func() {
+				a.nft.status = wrapErr(err)
+				if err == nil {
+					a.rememberSuccessfulKey(owner, privateKey)
+					a.nft.burnPriv = ""
+					// The asset is gone, so reading it again is not a failure to
+					// report: clear the Inspect card directly and re-read the history,
+					// which now ends with the burn.
+					a.loadNFT()
+					if a.nft.nftLoadedID == id || (a.nft.nft != nil && a.nft.nft.ID == id) {
+						a.nft.nft = nil
+						a.nft.nftErr = nil
+						a.nft.nftLoadedID = ""
+					}
+					if a.nft.historyLoadedID == id {
+						_ = a.loadNFTHistory(id)
+					}
+				}
 			}
-			if a.nft.historyLoadedID == id {
-				_ = a.loadNFTHistory(id)
-			}
-		}
+		})
 	}
 }
