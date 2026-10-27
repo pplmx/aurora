@@ -62,8 +62,7 @@ type Shell struct {
 	// or a second launch names one, and the window's Content closure reads it.
 	app *nativeui.App
 	// lotteryRepo is the shared repository owned by the application container.
-	// File import/export uses it instead of opening a second SQLite handle; a
-	// shell without one (tests, early startup) falls back to openLotteryRepo.
+	// File import/export uses it instead of opening a second SQLite handle.
 	lotteryRepo lottery.Repository
 	// prefs are the desktop-only choices that survive a launch. Session keys
 	// are not here by design.
@@ -95,16 +94,17 @@ func (s *Shell) SetLotteryRepository(repo lottery.Repository) {
 	s.lotteryRepo = repo
 }
 
-// lotteryRepository returns the shared repository when one was injected, or a
-// short-lived fallback for tests and a shell built before the runtime.
+// lotteryRepository returns the container-owned repository. A shell built
+// before the runtime is wired reports the missing dependency instead of opening
+// a second SQLite writer.
 func (s *Shell) lotteryRepository() (lottery.Repository, func(), error) {
 	s.mu.Lock()
 	repo := s.lotteryRepo
 	s.mu.Unlock()
-	if repo != nil {
-		return repo, func() {}, nil
+	if repo == nil {
+		return nil, nil, errors.New(T("desktop.error.lottery_repo_unavailable"))
 	}
-	return openLotteryRepo(s.meta)
+	return repo, func() {}, nil
 }
 
 // SetApp gives the shell the window state a link can steer. It must be called

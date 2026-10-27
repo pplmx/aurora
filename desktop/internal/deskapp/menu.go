@@ -3,8 +3,6 @@ package deskapp
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -12,7 +10,6 @@ import (
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/infra/backup"
-	"github.com/pplmx/aurora/internal/infra/sqlite"
 )
 
 // About is what the About dialog and the backup action report.
@@ -85,17 +82,8 @@ func parent(win *mygo.Window) *mygo.Window {
 }
 
 // lotteryRepoProvider resolves the repository for a one-shot file action. The
-// shell normally supplies the container-owned repository; a shell without one
-// falls back to a short-lived handle.
+// shell supplies the container-owned repository.
 type lotteryRepoProvider func() (lottery.Repository, func(), error)
-
-// exportLotteries is the test/legacy entry point that opens the database named
-// by meta. Production uses Shell.ExportLotteries and the container repository.
-func exportLotteries(meta About, win *mygo.Window) {
-	exportLotteriesWith(func() (lottery.Repository, func(), error) {
-		return openLotteryRepo(meta)
-	}, win)
-}
 
 // exportLotteriesWith writes the portable document through the same app-layer
 // serializer the CLI uses, so a desktop export and `aurora lottery export`
@@ -138,12 +126,6 @@ func exportLotteriesWith(repoProvider lotteryRepoProvider, win *mygo.Window) {
 // importer the CLI uses: identical validation, identical overwrite guard
 // (TASK-069), identical partial-failure accounting. A partial import reports a
 // warning — the valid records ARE stored — matching the CLI's "⚠" message.
-func importLotteries(meta About, win *mygo.Window, reload func()) {
-	importLotteriesWith(func() (lottery.Repository, func(), error) {
-		return openLotteryRepo(meta)
-	}, win, reload)
-}
-
 func importLotteriesWith(repoProvider lotteryRepoProvider, win *mygo.Window, reload func()) {
 	paths, err := openDialog(mygo.OpenDialogOptions{
 		Parent:  parent(win),
@@ -179,24 +161,6 @@ func importLotteriesWith(repoProvider lotteryRepoProvider, win *mygo.Window, rel
 
 	title, message, detail := importReport(result, paths[0])
 	showMessage(parent(win), importReportType(result), title, message, detail)
-}
-
-// openLotteryRepo opens the same database the shell's gateway uses. The
-// repository is opened per action and closed immediately: a long-lived second
-// handle would hold a WAL reader open against the shell's own writer for no
-// benefit, and each action is a one-shot file operation.
-func openLotteryRepo(meta About) (lottery.Repository, func(), error) {
-	if meta.DBPath == "" {
-		return nil, nil, fmt.Errorf("%s", T("desktop.error.no_database_path"))
-	}
-	if _, err := os.Stat(meta.DBPath); err != nil {
-		return nil, nil, fmt.Errorf(T("desktop.error.database"), filepath.Base(meta.DBPath), err)
-	}
-	repo, err := sqlite.NewLotteryRepository(meta.DBPath)
-	if err != nil {
-		return nil, nil, err
-	}
-	return repo, func() { _ = repo.Close() }, nil
 }
 
 // showError reports a failure in a native dialog: the shell may be launched

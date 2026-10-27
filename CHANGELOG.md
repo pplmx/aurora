@@ -354,8 +354,8 @@ documented in their per-milestone ROADMAP files.
   shared ledger.
 - **Desktop file import/export shares the runtime repository**: `Shell` takes
   the container's `lottery.Repository`, so File → Export/Import and a dropped
-  export no longer open a second SQLite writer beside the app. A short-lived
-  repository remains only as the pre-runtime/test fallback.
+  export no longer open a second SQLite writer beside the app. An unwired shell
+  reports "lottery repository is not ready"; the SQLite fallback is gone.
 - **The ledger implementation now lives under infrastructure**: the
   SQLite-backed `blockchain` package moved to `internal/infra/blockchain`;
   `internal/ledger` holds the pure writer/transaction contracts and report

@@ -103,11 +103,9 @@ container、metrics、scheduler 和 handler 集，构造失败不再散落在 `N
 由 container 注入。`ports_test.go` 禁止 `native_*.go` import infra/api。
 
 **已做**：`Shell` 接收 container 的 `lottery.Repository`，File 菜单的导入/
-导出与拖放导入都走这份共享句柄；只有测试或 runtime 建立前的 shell 才回退到
-`openLotteryRepo`。生产路径不再为一次文件操作打开第二个 SQLite writer。
-
-**下一步**：删除 fallback 与 `sqlite.NewLotteryRepository` 的菜单依赖，让
-notebook 风格的 standalone 测试改用显式注入的仓储。
+导出与拖放导入都走这份共享句柄；fallback 已删除，未注入仓储的 shell 会报告
+`lottery repository is not ready`，而不是打开第二个 SQLite writer。`menu.go`
+只剩备份使用 infra/backup，不再 import sqlite。
 
 ### 5. 桌面 UI 文案曾放在核心 i18n
 

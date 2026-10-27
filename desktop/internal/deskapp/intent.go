@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
-	"github.com/pplmx/aurora/internal/domain/lottery"
 )
 
 // DeepLinkScheme is the scheme the operating system hands to the app: an
@@ -202,16 +201,10 @@ func IsDeepLink(arg string) bool {
 	return i > 0 && strings.EqualFold(arg[:i], DeepLinkScheme)
 }
 
-// ImportLotteryFile stores the draws of the export at path through the same
+// importLotteryFile stores the draws of the export at path through the same
 // app-layer importer the CLI and the File menu use, and reports what
 // happened. Opening a .json from the file manager and dropping one on the
 // window both land here.
-func ImportLotteryFile(meta About, path string) (lotteryapp.ImportResult, error) {
-	return importLotteryFile(func() (lottery.Repository, func(), error) {
-		return openLotteryRepo(meta)
-	}, path)
-}
-
 // importLotteryFile reads the document before touching storage; the provider
 // then supplies the shared repository or a short-lived fallback.
 func importLotteryFile(repoProvider lotteryRepoProvider, path string) (lotteryapp.ImportResult, error) {

@@ -7,7 +7,7 @@ import (
 
 // importReport builds what the user is told after an import. It is the single
 // source of that wording: File > Import, a dropped file and a command-line
-// argument all import through ImportLotteryFile and all report through here,
+// argument all import through importLotteryFile and all report through here,
 // so the three paths cannot drift into telling the user different stories
 // about the same file.
 //
