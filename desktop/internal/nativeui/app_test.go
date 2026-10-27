@@ -156,19 +156,31 @@ func (f *fakeServices) Dashboard() (DashboardStats, error) {
 }
 
 func (f *fakeServices) LedgerBlocks(limit int) ([]BlockRow, error) {
+	return f.LedgerBlocksPage(limit, 0)
+}
+
+func (f *fakeServices) LedgerBlocksPage(limit, offset int) ([]BlockRow, error) {
 	if f.loadErrs.blocks != nil {
 		return nil, f.loadErrs.blocks
 	}
-	if limit > 0 && len(f.blocks) > limit {
-		return f.blocks[:limit], nil
+	if offset > len(f.blocks) {
+		return nil, nil
 	}
-	return f.blocks, nil
+	rows := f.blocks[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 func (f *fakeServices) LedgerStatus() (LedgerStatus, error) {
 	if f.loadErrs.chain != nil {
 		return LedgerStatus{}, f.loadErrs.chain
 	}
-	return LedgerStatus{Valid: true, Height: 5, Blocks: 6}, nil
+	height := 5
+	if len(f.blocks) > 0 {
+		height = len(f.blocks)
+	}
+	return LedgerStatus{Valid: true, Height: height, Blocks: height + 1}, nil
 }
 
 func (f *fakeServices) RegisterVoter(name string) (VoterRow, error) {
@@ -312,6 +324,29 @@ func (f *fakeServices) GetNFT(id string) (NFTRow, error) {
 	}
 	return NFTRow{ID: id}, nil
 }
+func (f *fakeServices) ListNFTsPage(owner string, limit, offset int) ([]NFTRow, error) {
+	if f.loadErrs.nfts != nil {
+		return nil, f.loadErrs.nfts
+	}
+	rows := f.ownerNFTs
+	if owner == "" {
+		rows = f.nftRows
+	}
+	if offset > len(rows) {
+		return nil, nil
+	}
+	rows = rows[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
+}
+
+func (f *fakeServices) ListAllNFTsPage(limit, offset int) ([]NFTRow, error) {
+	f.listAllNFTsCalls++
+	return f.ListNFTsPage("", limit, offset)
+}
+
 func (f *fakeServices) ListNFTs(owner string) ([]NFTRow, error) {
 	if f.loadErrs.nfts != nil {
 		return nil, f.loadErrs.nfts

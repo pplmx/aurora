@@ -37,6 +37,7 @@ type Chain interface {
 	VerifyIntegrity() *ledger.IntegrityReport
 	Len() int
 	BlockEntries(limit int) []ledger.BlockEntry
+	BlockEntriesPage(limit, offset int) []ledger.BlockEntry
 }
 
 func (c *Container) LotteryRepository() lottery.Repository           { return c.LotteryRepo }

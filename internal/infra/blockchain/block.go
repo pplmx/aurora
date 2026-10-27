@@ -388,16 +388,36 @@ type BlockEntry = ledger.BlockEntry
 // chain, and skipping a payload can never shift a height: the number comes
 // from the block, not from the payload's position in a filtered slice.
 func (c *Chain) BlockEntries(limit int) []BlockEntry {
+	return c.BlockEntriesPage(limit, 0)
+}
+
+// BlockEntriesPage returns a page of non-genesis payloads newest first. offset
+// is in entries, not block heights: the page can skip a long ledger without
+// materialising every payload before the one it shows. limit <= 0 returns all
+// entries from offset.
+func (c *Chain) BlockEntriesPage(limit, offset int) []BlockEntry {
 	if c == nil {
 		return nil
 	}
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	entries := make([]BlockEntry, 0, min(max(limit, 0), len(c.Blocks)))
+	if offset < 0 {
+		offset = 0
+	}
+	capacity := len(c.Blocks)
+	if limit > 0 {
+		capacity = min(limit, capacity)
+	}
+	entries := make([]BlockEntry, 0, capacity)
+	seen := 0
 	for i := len(c.Blocks) - 1; i >= 0; i-- {
 		block := c.Blocks[i]
 		data := string(block.Data)
 		if data == "" || data == "Genesis" {
+			continue
+		}
+		if seen < offset {
+			seen++
 			continue
 		}
 		entries = append(entries, BlockEntry{Height: block.Height, Data: data})

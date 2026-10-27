@@ -302,3 +302,18 @@ func TestBlockEntriesCarryTheirHeights(t *testing.T) {
 	require.Len(t, latest, 1)
 	require.Equal(t, int64(2), latest[0].Height)
 }
+
+// TestBlockEntriesPageOffsetsInEntries keeps pagination from confusing a block
+// height with a position: offsets skip non-genesis entries, newest first.
+func TestBlockEntriesPageOffsetsInEntries(t *testing.T) {
+	chain := New()
+	for _, payload := range []string{"a", "b", "c"} {
+		_, err := chain.AddBlock(payload)
+		require.NoError(t, err)
+	}
+	page := chain.BlockEntriesPage(1, 1)
+	require.Len(t, page, 1)
+	require.Equal(t, "b", page[0].Data)
+	require.Equal(t, int64(2), page[0].Height)
+	require.Empty(t, chain.BlockEntriesPage(1, 9))
+}

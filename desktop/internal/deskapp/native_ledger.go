@@ -73,10 +73,17 @@ func (s *nativeServices) LedgerStatus() (nativeui.LedgerStatus, error) {
 // module's own JSON, so the module is read from its "module" or "type" field
 // and the summary is the payload shortened for a cell.
 func (s *nativeServices) LedgerBlocks(limit int) ([]nativeui.BlockRow, error) {
+	return s.LedgerBlocksPage(limit, 0)
+}
+
+// LedgerBlocksPage reads one page of audit entries; offset is in entries
+// (newest first), so a long ledger does not build every row to show the next
+// page.
+func (s *nativeServices) LedgerBlocksPage(limit, offset int) ([]nativeui.BlockRow, error) {
 	if s.chain == nil {
 		return nil, fmt.Errorf("blockchain not initialised")
 	}
-	entries := s.chain.BlockEntries(limit)
+	entries := s.chain.BlockEntriesPage(limit, offset)
 	rows := make([]nativeui.BlockRow, 0, len(entries))
 	for _, entry := range entries {
 		rows = append(rows, nativeui.BlockRow{

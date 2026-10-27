@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -215,4 +216,26 @@ func TestNFTInspectShowsLinksAndBlock(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Token URI"))
 	tester.Frame()
 	require.Equal(t, tokenURI, tester.Clipboard())
+}
+
+// TestNFTCollectionPages covers the collection's real limit/offset page:
+// only the newest hundred are loaded, and Next reaches the remainder.
+func TestNFTCollectionPages(t *testing.T) {
+	nfts := make([]NFTRow, 150)
+	for i := range nfts {
+		nfts[i] = NFTRow{ID: "n" + strconv.Itoa(i), Name: "Asset " + strconv.Itoa(i), Owner: "owner"}
+	}
+	app := New(&fakeServices{nftRows: nfts})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	require.Len(t, app.nft.list, 100)
+	require.Equal(t, 0, app.nft.offset)
+	require.True(t, tester.HasText("Entries 1–100"))
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 100, app.nft.offset)
+	require.Len(t, app.nft.list, 50)
+	require.True(t, tester.HasText("Entries 101–150"))
 }
