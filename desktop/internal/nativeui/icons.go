@@ -73,3 +73,29 @@ var pageIcons = map[page]*ui.SVG{
 	pageBlockchain: blockchainIcon,
 	pageSettings:   settingsIcon,
 }
+
+// Action glyphs for the command palette. They use the same Lucide stroke
+// language as the page icons.
+var (
+	refreshIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<path d="M21 12a9 9 0 0 0-15.5-6.36L3 8"/>` +
+		`<path d="M3 3v5h5"/>` +
+		`<path d="M3 12a9 9 0 0 0 15.5 6.36L21 16"/>` +
+		`<path d="M16 16h5v5"/>` +
+		`</svg>`))
+	backupIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<ellipse cx="12" cy="5" rx="9" ry="3"/>` +
+		`<path d="M3 5v14a9 3 0 0 0 18 0V5"/>` +
+		`<path d="M3 12a9 3 0 0 0 18 0"/>` +
+		`</svg>`))
+	exportIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>` +
+		`<path d="m17 8-5-5-5 5"/>` +
+		`<path d="M12 3v12"/>` +
+		`</svg>`))
+	importIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>` +
+		`<path d="m7 10 5 5 5-5"/>` +
+		`<path d="M12 15V3"/>` +
+		`</svg>`))
+)

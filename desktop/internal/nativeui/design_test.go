@@ -589,3 +589,33 @@ func TestAllSetIsTheFormReadinessContract(t *testing.T) {
 	require.False(t, allSet("  ", "x"))
 	require.True(t, allSet("x", "y"))
 }
+
+// TestCommandPaletteRunsAnAction covers the second kind of palette entry:
+// file actions use the same search/Enter path as pages.
+func TestCommandPaletteRunsAnAction(t *testing.T) {
+	app := New(&fakeServices{})
+	backedUp := false
+	app.SetActions(Actions{BackUpDatabase: func() { backedUp = true }})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+
+	app.paletteQuery = "Back up"
+	tester.Frame()
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.True(t, backedUp)
+	require.False(t, app.paletteOpen)
+}
+
+// TestSlowWriteShowsTimeoutNotice tells the operator that a long operation is
+// still alive instead of leaving an unchanged spinner with no reassurance.
+func TestSlowWriteShowsTimeoutNotice(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 1200)
+	app.busy = "Minting…"
+	app.busySince = time.Now().Add(-21 * time.Second)
+	tester.Frame()
+	require.True(t, tester.HasText("Still working…"))
+}

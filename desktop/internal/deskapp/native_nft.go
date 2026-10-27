@@ -39,8 +39,12 @@ func (s *nativeServices) GetNFT(id string) (nativeui.NFTRow, error) {
 }
 
 func (s *nativeServices) ListNFTs(owner string) ([]nativeui.NFTRow, error) {
+	return s.ListNFTsPage(owner, 0, 0)
+}
+
+func (s *nativeServices) ListNFTsPage(owner string, limit, offset int) ([]nativeui.NFTRow, error) {
 	uc := nftapp.NewListByOwner(nft.NewService(s.nftRepo, s.nftTx))
-	resp, err := uc.Execute(&nftapp.ListNFTsByOwnerRequest{Owner: owner})
+	resp, err := uc.Execute(&nftapp.ListNFTsByOwnerRequest{Owner: owner, Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +59,12 @@ func (s *nativeServices) ListNFTs(owner string) ([]nativeui.NFTRow, error) {
 }
 
 func (s *nativeServices) ListAllNFTs() ([]nativeui.NFTRow, error) {
+	return s.ListAllNFTsPage(0, 0)
+}
+
+func (s *nativeServices) ListAllNFTsPage(limit, offset int) ([]nativeui.NFTRow, error) {
 	uc := nftapp.NewListAll(nft.NewService(s.nftRepo, s.nftTx))
-	resp, err := uc.Execute(&nftapp.ListNFTsRequest{})
+	resp, err := uc.Execute(&nftapp.ListNFTsRequest{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}

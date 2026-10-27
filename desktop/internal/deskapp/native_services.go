@@ -20,6 +20,7 @@ type ledgerChain interface {
 	VerifyIntegrity() *ledger.IntegrityReport
 	Len() int
 	BlockEntries(limit int) []ledger.BlockEntry
+	BlockEntriesPage(limit, offset int) []ledger.BlockEntry
 }
 
 // nativeServices adapts the application layer to the view layer's Services

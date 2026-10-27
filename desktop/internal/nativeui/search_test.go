@@ -220,7 +220,7 @@ func TestLedgerSearchAndRowLimit(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("payload-9"))
 	require.False(t, tester.HasText("payload-10"), "the limit must cut the table")
-	require.True(t, tester.HasText("Showing the newest 10 of 30 matching entries"))
+	require.True(t, tester.HasText("Entries 1–10 of 30"))
 
 	app.blockchain.search = "payload-29"
 	tester.Frame()
@@ -231,4 +231,29 @@ func TestLedgerSearchAndRowLimit(t *testing.T) {
 	app.blockchain.search = "nothing-like-this"
 	tester.Frame()
 	require.True(t, tester.HasText("No blocks match “nothing-like-this”."))
+}
+
+// TestLedgerPagesMoveThroughOlderEntries covers the paging controls: the page
+// query is bounded, Next moves the offset, and Previous returns.
+func TestLedgerPagesMoveThroughOlderEntries(t *testing.T) {
+	blocks := make([]BlockRow, 12)
+	for i := range blocks {
+		blocks[i] = BlockRow{Height: int64(12 - i), Module: "lottery", Summary: "payload-" + strconv.Itoa(i)}
+	}
+	app := New(&fakeServices{blocks: blocks})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	app.blockchain.blockLimit = 10
+	tester.Frame()
+
+	require.Equal(t, 0, app.blockchain.blockOffset)
+	require.True(t, tester.HasText("Entries 1–10 of 12"))
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 10, app.blockchain.blockOffset)
+	require.True(t, tester.HasText("Entries 11–12 of 12"))
+	require.NoError(t, tester.Click("Previous"))
+	tester.Frame()
+	require.Equal(t, 0, app.blockchain.blockOffset)
 }

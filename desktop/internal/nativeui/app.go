@@ -57,6 +57,7 @@ type App struct {
 	backgroundWrites bool
 	asyncCh          chan func()
 	busy             string
+	busySince        time.Time
 	invalidate       func()
 
 	lottery    lotteryState
@@ -76,6 +77,7 @@ func New(services Services) *App {
 	a.lottery.count = 1
 	a.token.decimals = 8
 	a.token.historyLimit = 50
+	a.nft.limit = nftPageSize
 	a.oracle.queryLim = 20
 	a.blockchain.blockLimit = 200
 	// -1 is "no row chosen": 0 is a real row, so it cannot double as the
@@ -114,9 +116,7 @@ func (a *App) View(c *ui.Context) {
 	a.invalidate = c.Invalidate
 	a.pollAsync(c)
 	c.SetTheme(auroraTheme(c.Preferences().HighContrast))
-	// A write owns the window while it runs: disabling the frame stops form
-	// edits and a second submit that would be discarded when the result lands.
-	ui.Row(c).Fill().Disabled(a.busy != "").Children(func() {
+	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
 		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).Children(func() {
 			a.header(c)
@@ -126,7 +126,12 @@ func (a *App) View(c *ui.Context) {
 			// the operator would see the form unchanged and assume it worked.
 			renderStatus(c, a.pageStatus(), a.clearPageStatus)
 			a.busyBar(c)
-			a.body(c)
+			// A write owns the page body, not the navigation: the sidebar stays
+			// usable, while form edits and a second submit cannot race the
+			// result. The busy bar and page header stay live.
+			ui.Column(c).Fill().Grow(1).Disabled(a.busy != "").Children(func() {
+				a.body(c)
+			})
 		})
 	})
 	if a.paletteOpen {
@@ -134,10 +139,20 @@ func (a *App) View(c *ui.Context) {
 	}
 }
 
-// commandPalette lets a keyboard-first operator jump to a page without
-// leaving the current form. It deliberately contains pages only: file actions
-// already have shortcuts and dialogs, and duplicating them here would create a
-// second confirmation model.
+// paletteEntry is one row in the Ctrl/Cmd+K switcher: either a page or a
+// command. The action is nil for pages; navigation and side effects share the
+// same selection model so Enter never means two different things.
+type paletteEntry struct {
+	title  string
+	detail string
+	icon   *ui.SVG
+	page   page
+	action func()
+}
+
+// commandPalette lets a keyboard-first operator jump to a page or run a file
+// action without leaving the current form. Dialogs keep their own confirmation
+// model; the palette only invokes the same callbacks as the File menu.
 func (a *App) commandPalette(c *ui.Context) {
 	panel := ui.Column(c).Width(520).Padding(18).Gap(10).Radius(14).
 		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
@@ -159,10 +174,14 @@ func (a *App) commandPalette(c *ui.Context) {
 		if a.paletteChoice < 0 {
 			a.paletteChoice = 0
 		}
-		for i, p := range matches {
-			if paletteRow(c, p, i == a.paletteChoice) || (submitted && i == a.paletteChoice) {
+		for i, entry := range matches {
+			if paletteRow(c, entry, i == a.paletteChoice) || (submitted && i == a.paletteChoice) {
 				a.paletteOpen = false
-				a.setPage(p)
+				if entry.action != nil {
+					entry.action()
+				} else {
+					a.setPage(entry.page)
+				}
 				return
 			}
 		}
@@ -178,18 +197,48 @@ func (a *App) commandPalette(c *ui.Context) {
 	}
 }
 
-func (a *App) paletteMatches() []page {
-	matches := make([]page, 0, len(pageOrder))
+func (a *App) paletteMatches() []paletteEntry {
+	entries := make([]paletteEntry, 0, len(pageOrder)+4)
 	for _, p := range pageOrder {
-		if containsFold(a.paletteQuery, pageTitles[p], pagePurpose[p], pageIDs[p]) {
-			matches = append(matches, p)
+		entries = append(entries, paletteEntry{
+			title: pageTitles[p], detail: pagePurpose[p], icon: pageIcons[p], page: p,
+		})
+	}
+	if a.page != pageSettings {
+		entries = append(entries, paletteEntry{
+			title: "Refresh current page", detail: "Reload the data shown on this page",
+			icon: refreshIcon, action: a.refresh,
+		})
+	}
+	if a.actions.BackUpDatabase != nil {
+		entries = append(entries, paletteEntry{
+			title: "Back up database…", detail: "Create a WAL-complete snapshot",
+			icon: backupIcon, action: a.actions.BackUpDatabase,
+		})
+	}
+	if a.actions.ExportLotteries != nil {
+		entries = append(entries, paletteEntry{
+			title: "Export lotteries…", detail: "Write the portable lottery document",
+			icon: exportIcon, action: a.actions.ExportLotteries,
+		})
+	}
+	if a.actions.ImportLotteries != nil {
+		entries = append(entries, paletteEntry{
+			title: "Import lotteries…", detail: "Load a portable lottery document",
+			icon: importIcon, action: a.actions.ImportLotteries,
+		})
+	}
+	matches := entries[:0]
+	for _, entry := range entries {
+		if containsFold(a.paletteQuery, entry.title, entry.detail) {
+			matches = append(matches, entry)
 		}
 	}
 	return matches
 }
 
-func paletteRow(c *ui.Context, p page, selected bool) bool {
-	title := tr(pageTitles[p])
+func paletteRow(c *ui.Context, entry paletteEntry, selected bool) bool {
+	title := tr(entry.title)
 	b := ui.ButtonBase(c).FillWidth().Height(48).PaddingX(10).Radius(8).
 		AlignItems(ui.Center).Label(title).TextColor(ui.Hex(ink)).Selected(selected)
 	fill := ui.Transparent
@@ -202,10 +251,10 @@ func paletteRow(c *ui.Context, p page, selected bool) bool {
 	b.Background(fill)
 	b.Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, pageIcons[p]).Size(18, 18).TextColor(ui.Hex(aurora))
+			ui.Icon(c, entry.icon).Size(18, 18).TextColor(ui.Hex(aurora))
 			ui.Column(c).Gap(1).Children(func() {
 				ui.Text(c, title).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(ink)).SingleLine()
-				ui.Text(c, tr(pagePurpose[p])).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
+				ui.Text(c, tr(entry.detail)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
 			})
 		})
 	})
@@ -365,9 +414,12 @@ func (a *App) header(c *ui.Context) {
 		if a.liveUpdates && (a.page == pageDashboard || a.page == pageOracle) {
 			badge(c, "Live · 10s", successTint, auroraGreen)
 		}
-		if a.page != pageSettings &&
-			(c.Shortcut(platformRefreshModifier(), ui.KeyR) || secondaryButton(c, "Refresh").Clicked()) {
-			a.refresh()
+		if a.page != pageSettings {
+			refresh := secondaryButton(c, "Refresh").Disabled(a.busy != "")
+			if a.busy == "" &&
+				(c.Shortcut(platformRefreshModifier(), ui.KeyR) || refresh.Clicked()) {
+				a.refresh()
+			}
 		}
 	})
 	ui.Divider(c)
@@ -569,6 +621,7 @@ func (a *App) runWrite(label string, work func() func()) {
 	ch := make(chan func(), 1)
 	a.asyncCh = ch
 	a.busy = label
+	a.busySince = time.Now()
 	if a.invalidate != nil {
 		a.invalidate()
 	}
@@ -587,6 +640,7 @@ func (a *App) pollAsync(c *ui.Context) {
 	case apply := <-a.asyncCh:
 		a.asyncCh = nil
 		a.busy = ""
+		a.busySince = time.Time{}
 		apply()
 	default:
 		c.After(40 * time.Millisecond)
@@ -599,9 +653,13 @@ func (a *App) busyBar(c *ui.Context) {
 	if a.busy == "" {
 		return
 	}
+	text := tr(a.busy)
+	if !a.busySince.IsZero() && time.Since(a.busySince) > 20*time.Second {
+		text = tr("Still working…") + " " + tr("This can take a while; the operation will finish on its own.")
+	}
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
 		Background(ui.Hex(surfaceHover)).BorderWidth(1).BorderColor(ui.Hex(border)).Children(func() {
 		ui.Spinner(c)
-		ui.Text(c, tr(a.busy)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+		ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
 	})
 }

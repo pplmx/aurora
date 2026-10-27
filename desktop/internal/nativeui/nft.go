@@ -81,7 +81,13 @@ type nftState struct {
 	historyTable ui.ListState
 	// selected is the collection row chosen, -1 for none.
 	selected int
+	// limit/offset page the collection. A long-lived NFT store should not be
+	// materialised in full just to show its newest hundred assets.
+	limit  float64
+	offset int
 }
+
+const nftPageSize = 100
 
 func (a *App) loadNFT() {
 	if a.services == nil {
@@ -94,14 +100,28 @@ func (a *App) loadNFT() {
 		rows []NFTRow
 		err  error
 	)
+	limit := int(a.nft.limit)
+	if limit < 10 {
+		limit = nftPageSize
+	}
+	if limit > maxListLimit {
+		limit = maxListLimit
+	}
+	if a.nft.offset < 0 {
+		a.nft.offset = 0
+	}
 	if a.nft.filterOwner != "" {
-		rows, err = a.services.ListNFTs(a.nft.filterOwner)
+		rows, err = a.services.ListNFTsPage(a.nft.filterOwner, limit, a.nft.offset)
 	} else {
-		rows, err = a.services.ListAllNFTs()
+		rows, err = a.services.ListAllNFTsPage(limit, a.nft.offset)
 	}
 	a.nft.loadErr = err
 	if err == nil {
 		a.nft.list = rows
+		if len(rows) == 0 && a.nft.offset > 0 {
+			a.nft.offset = 0
+			a.loadNFT()
+		}
 	}
 }
 
@@ -194,6 +214,7 @@ func (a *App) mintNFT() {
 			// made a successful mint look like nothing happened.
 			a.nft.filterOwner, a.nft.owner = "", ""
 			a.nft.search, a.nft.appliedSearch = "", ""
+			a.nft.offset = 0
 			a.loadNFT()
 			// The new asset becomes the subject of every other card: the operator
 			// just created it, so making them retype the id four times would be
@@ -276,6 +297,7 @@ func (a *App) nftReadBody(c *ui.Context) {
 // instead of blanking the collection.
 func (a *App) filterNFTs() {
 	a.nft.filterOwner = strings.TrimSpace(a.nft.owner)
+	a.nft.offset = 0
 	a.loadNFT()
 }
 
@@ -283,6 +305,7 @@ func (a *App) filterNFTs() {
 func (a *App) showAllNFTs() {
 	a.nft.owner = ""
 	a.nft.filterOwner = ""
+	a.nft.offset = 0
 	a.loadNFT()
 }
 
@@ -313,6 +336,32 @@ func (a *App) nftListBody(c *ui.Context) {
 	if len(list) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No NFTs match “%s”."), strings.TrimSpace(a.nft.search)))
 		return
+	}
+	limit := int(a.nft.limit)
+	if limit < 10 {
+		limit = nftPageSize
+	}
+	if limit > maxListLimit {
+		limit = maxListLimit
+	}
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
+		if secondaryButton(c, "Previous").Disabled(a.nft.offset == 0).Clicked() {
+			a.nft.offset = max(0, a.nft.offset-limit)
+			a.loadNFT()
+			return
+		}
+		ui.Spacer(c)
+		ui.Text(c, fmt.Sprintf(tr("Entries %d–%d"), a.nft.offset+1, a.nft.offset+len(list))).
+			FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+		ui.Spacer(c)
+		if secondaryButton(c, "Next").Disabled(len(a.nft.list) < limit).Clicked() {
+			a.nft.offset += limit
+			a.loadNFT()
+			return
+		}
+	})
+	if a.nft.search != "" {
+		hint(c, "Search narrows the current page; use Previous/Next for older assets.")
 	}
 	a.nft.listTable.Selected = &a.nft.selected
 	table := ui.Table(c, &a.nft.listTable, []ui.TableColumn{

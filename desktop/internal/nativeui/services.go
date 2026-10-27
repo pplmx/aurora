@@ -19,6 +19,7 @@ type Services interface {
 	// first, so the page can show what the chain holds rather than only how
 	// much of it there is.
 	LedgerBlocks(limit int) ([]BlockRow, error)
+	LedgerBlocksPage(limit, offset int) ([]BlockRow, error)
 
 	// Voting surface.
 	RegisterVoter(name string) (VoterRow, error)
@@ -65,9 +66,11 @@ type Services interface {
 	MintNFT(name, description, imageURL, tokenURI, creator string) (NFTRow, error)
 	GetNFT(id string) (NFTRow, error)
 	ListNFTs(owner string) ([]NFTRow, error)
+	ListNFTsPage(owner string, limit, offset int) ([]NFTRow, error)
 	// ListAllNFTs returns every NFT, newest first. Without it the page could
 	// only reach an asset whose owner key the operator already had.
 	ListAllNFTs() ([]NFTRow, error)
+	ListAllNFTsPage(limit, offset int) ([]NFTRow, error)
 	TransferNFT(id, from, to, priv string) error
 	BurnNFT(id, owner, priv string) error
 	NFTHistory(id string) ([]NFTOpRow, error)

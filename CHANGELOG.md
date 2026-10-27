@@ -376,6 +376,10 @@ documented in their per-milestone ROADMAP files.
 - **The oracle scheduler has an application runtime**: `oracleapp.Runtime` owns
   the fetch use case, scheduler, cancellation and stats/metrics view. The HTTP
   server only starts it and hands the same stats provider to the handler.
+- **Desktop commands and long lists have real scope**: the Ctrl/Cmd+K palette now
+  runs Refresh, Back up, Export and Import as well as pages. The ledger and NFT
+  collection page through limit/offset (Previous/Next); a write disables only
+  the page body, and a slow write shows a timeout reassurance.
 - **Desktop forms gate their primary actions**: Create/Mint/Transfer/Approve/Cast
   buttons stay disabled until their required fields are present, and an
   in-flight write disables the frame so edits cannot race its result.
