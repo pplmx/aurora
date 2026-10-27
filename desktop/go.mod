@@ -2,10 +2,10 @@ module github.com/pplmx/aurora/desktop
 
 // The desktop shell is a nested module so MyGo's toolchain and packaging
 // stay out of the core build graph.
-go 1.27.2
+go 1.27.3
 
 require (
-	github.com/egoist/mygo v0.6.3
+	github.com/egoist/mygo v0.7.1
 	github.com/pplmx/aurora v0.0.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1

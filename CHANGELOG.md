@@ -325,6 +325,9 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop is on MyGo v0.7.1**: the nested module upgraded from v0.6.3 and
+  its Go directive to 1.27.3, and `just desktop-deps` / `just desktop-update-mygo`
+  make the fast-moving dependency deliberate to check and refresh.
 - **The ledger subsystem is no longer presented as a domain package**:
   `internal/domain/blockchain` moved out of domain and now lives at
   `internal/infra/blockchain`, where its SQLite

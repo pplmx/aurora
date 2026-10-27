@@ -67,6 +67,15 @@ api:
 desktop:
     cd desktop && CGO_ENABLED=0 go build -trimpath -ldflags="{{desktop-ldflags}}" -o ../aurora-desktop ./cmd/aurora-desktop
 
+# Check for a newer MyGo release before desktop work (the module tracks it closely).
+desktop-deps:
+    cd desktop && go list -m -u github.com/egoist/mygo
+
+# Update MyGo to the latest release, then let Go reconcile the nested module.
+desktop-update-mygo:
+    cd desktop && go get github.com/egoist/mygo@latest
+    cd desktop && go mod tidy
+
 # Run the desktop shell (build first, then window)
 desktop-run: desktop
     ./aurora-desktop
