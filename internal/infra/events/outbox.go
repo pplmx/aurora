@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/pplmx/aurora/internal/background"
 	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/logger"
 )
@@ -56,11 +57,24 @@ func NewOutboxDrainer(store PendingStore, now func() time.Time) *OutboxDrainer {
 	return &OutboxDrainer{store: store, now: now}
 }
 
+// Start runs the drainer in the background. The returned stop function waits
+// for an in-flight drain pass to finish before returning.
+func (d *OutboxDrainer) Start(ctx context.Context) (stop func()) {
+	return background.Start(ctx, d.Run)
+}
+
 // Run drains pending events on a fixed cadence until ctx is cancelled. The
-// cadence (1s) paces the retry loop; the per-event exponential backoff in
-// BackoffPending is what actually stretches a stuck event's retry gap, so a
-// fast tick is not a fast retry for a failing destination.
+// first pass runs immediately so pending work from a previous process is not
+// delayed by the ticker. The cadence (1s) paces the retry loop; the per-event
+// exponential backoff in BackoffPending is what actually stretches a stuck
+// event's retry gap, so a fast tick is not a fast retry for a failing
+// destination.
 func (d *OutboxDrainer) Run(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
+	d.drainOnceAndLog()
+
 	t := time.NewTicker(time.Second)
 	defer t.Stop()
 	for {
@@ -68,10 +82,14 @@ func (d *OutboxDrainer) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			if _, err := d.DrainOnce(); err != nil {
-				logger.Warn().Err(err).Msg("audit outbox drain pass failed")
-			}
+			d.drainOnceAndLog()
 		}
+	}
+}
+
+func (d *OutboxDrainer) drainOnceAndLog() {
+	if _, err := d.DrainOnce(); err != nil {
+		logger.Warn().Err(err).Msg("audit outbox drain pass failed")
 	}
 }
 

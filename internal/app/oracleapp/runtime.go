@@ -19,23 +19,25 @@ type Runtime struct {
 
 	scheduler *Scheduler
 	fetch     *FetchDataUseCase
-	cancel    context.CancelFunc
+	stop      func()
 }
 
 func NewRuntime(repo oracle.Repository, fetcher FetcherInterface, chain ChainInterface) *Runtime {
 	return &Runtime{repo: repo, fetcher: fetcher, chain: chain}
 }
 
-// Start builds and runs the scheduler. It replaces a previous run, so a caller
-// that restarts the scheduler does not leak the old goroutine.
+// Start builds and runs the scheduler. It stops and waits for a previous run
+// before replacing it, so a restart cannot overlap two passes over the same
+// repositories.
 func (r *Runtime) Start(ctx context.Context, checkEvery time.Duration) (stop func()) {
 	r.mu.Lock()
-	if r.cancel != nil {
-		r.cancel()
-		r.cancel = nil
+	defer r.mu.Unlock()
+
+	if r.stop != nil {
+		r.stop()
+		r.stop = nil
 	}
 	if r.repo == nil {
-		r.mu.Unlock()
 		return func() {}
 	}
 	fetch := NewFetchDataUseCaseWithDeps(r.repo, r.fetcher)
@@ -45,14 +47,12 @@ func (r *Runtime) Start(ctx context.Context, checkEvery time.Duration) (stop fun
 		return err
 	}
 	sched := NewScheduler(r.repo, runner, checkEvery, nil)
-	schedCtx, cancel := context.WithCancel(ctx)
+	stop = sched.Start(ctx)
 	r.scheduler = sched
 	r.fetch = fetch
-	r.cancel = cancel
-	r.mu.Unlock()
+	r.stop = stop
 
-	go sched.Run(schedCtx)
-	return cancel
+	return stop
 }
 
 // Fetch exposes the scheduler's use case for wiring tests; nil before Start.

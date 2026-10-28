@@ -147,16 +147,16 @@ func Open() (*Container, error) {
 }
 
 // StartOutboxDrainer retries parked token-audit deliveries until ctx is
-// cancelled. It is a container lifecycle concern, like the SQLite handles it
-// uses, so the HTTP layer does not import the events implementation.
+// cancelled. The returned stop function waits for an in-flight pass before
+// returning, so Close cannot race a drain against a closed database. It is a
+// container lifecycle concern, like the SQLite handles it uses, so the HTTP
+// layer does not import the events implementation.
 func (c *Container) StartOutboxDrainer(ctx context.Context) (stop func()) {
 	if c == nil || c.EventStore == nil {
 		return func() {}
 	}
 	drainer := infraevents.NewOutboxDrainer(c.EventStore, nil)
-	drainCtx, cancel := context.WithCancel(ctx)
-	go drainer.Run(drainCtx)
-	return cancel
+	return drainer.Start(ctx)
 }
 
 // Backup creates the WAL-complete, checksummed snapshot the CLI writes. The

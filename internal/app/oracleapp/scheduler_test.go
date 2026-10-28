@@ -160,6 +160,41 @@ func TestScheduler_Run_StoppedContextShutsDownImmediately(t *testing.T) {
 	}
 }
 
+func TestScheduler_StartStopWaitsForInFlightSource(t *testing.T) {
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "a", Enabled: true, Interval: 60},
+	}}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	s := NewScheduler(repo, func(context.Context, string) error {
+		close(started)
+		<-release
+		return nil
+	}, time.Hour, time.Now)
+
+	stop := s.Start(context.Background())
+	<-started
+
+	stopped := make(chan struct{})
+	go func() {
+		stop()
+		close(stopped)
+	}()
+
+	select {
+	case <-stopped:
+		t.Fatal("stop returned while a source fetch was still using the repository")
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case <-stopped:
+	case <-time.After(time.Second):
+		t.Fatal("stop did not return after the scheduler pass exited")
+	}
+}
+
 func TestScheduler_PassRetriesFailed(t *testing.T) {
 	now := time.Unix(1000, 0)
 	repo := &fakeSourceRepo{sources: []*oracle.DataSource{

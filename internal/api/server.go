@@ -52,17 +52,18 @@ func NewServer() (*Server, error) {
 
 // StartOracleScheduler starts a background goroutine that periodically fetches
 // enabled oracle sources on their configured Interval, and returns a stop
-// function that cancels it. checkEvery is the poll cadence (>= 1s; <=0 defaults
-// to 1s). It is a no-op if the server has no oracle repository. The scheduler
-// is deliberately not started by NewServer so tests stay hermetic; cmd/api/main
-// starts it on boot.
+// function that cancels it and waits for an in-flight pass to exit. checkEvery
+// is the poll cadence (>= 1s; <=0 defaults to 1s). It is a no-op if the server
+// has no oracle repository. The scheduler is deliberately not started by
+// NewServer so tests stay hermetic; cmd/api/main starts it on boot.
 // StartAuditOutboxDrainer starts the background retry loop that delivers audit
 // events parked in pending_events (TASK-119, ISS-111). The audit handler wired
 // in NewServer parks a transiently-failed delivery in the outbox instead of
 // dropping it; this drainer retries each parked event until it lands. Like the
 // oracle scheduler it is deliberately not started by NewServer so tests stay
-// hermetic; cmd/api/main.go starts it on boot. It is a no-op if the server has
-// no event store.
+// hermetic; cmd/api/main.go starts it on boot. The returned stop function waits
+// for an in-flight drain pass to exit. It is a no-op if the server has no event
+// store.
 func (s *Server) StartAuditOutboxDrainer(ctx context.Context) (stop func()) {
 	if s.container == nil {
 		return func() {}

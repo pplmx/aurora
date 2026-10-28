@@ -256,3 +256,56 @@ func TestOutboxDrainer_RunStopsImmediatelyOnACancelledContext(t *testing.T) {
 		t.Fatal("Run must return at once when its context is already cancelled")
 	}
 }
+
+type blockingPendingStore struct {
+	started chan struct{}
+	release chan struct{}
+}
+
+func (s *blockingPendingStore) SaveIdempotent(events.Event) error {
+	return nil
+}
+
+func (s *blockingPendingStore) ListDuePending(time.Time, int) ([]PendingEvent, error) {
+	close(s.started)
+	<-s.release
+	return nil, nil
+}
+
+func (s *blockingPendingStore) DropPending(string) error {
+	return nil
+}
+
+func (s *blockingPendingStore) BackoffPending(string, int, time.Time) error {
+	return nil
+}
+
+func TestOutboxDrainer_StartWaitsForInFlightPass(t *testing.T) {
+	store := &blockingPendingStore{
+		started: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	drainer := NewOutboxDrainer(store, nil)
+	stop := drainer.Start(context.Background())
+	<-store.started
+
+	stopped := make(chan struct{})
+	go func() {
+		stop()
+		close(stopped)
+	}()
+
+	select {
+	case <-stopped:
+		t.Fatal("stop returned while DrainOnce still held the store")
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	close(store.release)
+	select {
+	case <-stopped:
+	case <-time.After(time.Second):
+		t.Fatal("stop did not return after DrainOnce exited")
+	}
+	stop()
+}

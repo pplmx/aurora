@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pplmx/aurora/internal/background"
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/logger"
 )
@@ -94,6 +95,13 @@ func NewScheduler(repo sourceRepo, execute func(ctx context.Context, sourceID st
 		failStreak:  make(map[string]int),
 		nextAttempt: make(map[string]time.Time),
 	}
+}
+
+// Start runs the scheduler in the background. The returned stop function
+// cancels it and waits for any in-flight pass to leave the repositories before
+// returning.
+func (s *Scheduler) Start(ctx context.Context) (stop func()) {
+	return background.Start(ctx, s.Run)
 }
 
 // Run blocks, polling the repository until ctx is cancelled. It performs an
