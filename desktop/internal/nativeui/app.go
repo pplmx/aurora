@@ -66,11 +66,13 @@ type App struct {
 	// synchronous path so a handler's returned state is deterministic; the app
 	// uses it to show a busy banner while a service call runs off the frame
 	// thread.
-	backgroundWrites bool
-	asyncCh          chan func()
-	busy             string
-	busySince        time.Time
-	invalidate       func()
+	backgroundWrites  bool
+	asyncCh           chan func()
+	busy              string
+	busySince         time.Time
+	busyAnnouncement  string
+	busySlowAnnounced bool
+	invalidate        func()
 
 	lottery    lotteryState
 	voting     votingState
@@ -761,6 +763,8 @@ func (a *App) runWrite(label string, work func() func()) {
 	a.asyncCh = ch
 	a.busy = label
 	a.busySince = time.Now()
+	a.busyAnnouncement = tr(label)
+	a.busySlowAnnounced = false
 	if a.invalidate != nil {
 		a.invalidate()
 	}
@@ -795,10 +799,18 @@ func (a *App) busyBar(c *ui.Context) {
 	text := tr(a.busy)
 	if !a.busySince.IsZero() && time.Since(a.busySince) > 20*time.Second {
 		text = tr("Still working…") + " " + tr("This can take a while; the operation will finish on its own.")
+		if !a.busySlowAnnounced {
+			a.busyAnnouncement, a.busySlowAnnounced = text, true
+		}
 	}
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
+	bar := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
 		Background(c.Theme().SurfaceHover).BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
 		ui.Spinner(c)
 		ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
 	})
+	bar.Role(ui.RoleStatus).Label(text)
+	if a.busyAnnouncement != "" {
+		c.Announce(a.busyAnnouncement)
+		a.busyAnnouncement = ""
+	}
 }
