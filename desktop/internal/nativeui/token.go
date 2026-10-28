@@ -620,7 +620,8 @@ func tokenSubject(c *ui.Context, id string) {
 		Background(ui.Hex(night)).Children(func() {
 		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).
 			SingleLine().Shrink(0)
-		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).SingleLine()
+		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).
+			SingleLine().Ellipsis("…").Tooltip(id)
 		if quietButton(c, "Copy token ID").Clicked() {
 			c.Services().WriteClipboard(id)
 			c.Toast(tr("Token ID is on the clipboard"))
@@ -1029,7 +1030,7 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 		case 2:
 			tableText(c, h.Amount)
 		case 3:
-			ui.Text(c, strconv.FormatUint(h.Nonce, 10))
+			tableText(c, strconv.FormatUint(h.Nonce, 10))
 		}
 	})
 }

@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Numeric tables and detail panels stop clipping**: ledger heights, blocks,
+  counters and vote totals now scale with text size, and every numeric cell,
+  including nonces, exposes its full value on hover. Readouts for owner keys,
+  descriptions, oracle values and other long details, plus abbreviated copy
+  rows, similarly reveal the complete stored value instead of ending at the
+  card edge.
 - **Table values survive larger text and narrower columns**: desktop tables
   now mark clipped cells with an ellipsis and expose the full stored value on
   hover, including source names, payloads, keys and long error text. Session

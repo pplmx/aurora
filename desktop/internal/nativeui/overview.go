@@ -221,14 +221,14 @@ func (a *App) dashboardRecent(c *ui.Context) {
 		rows := a.dashboard.recent
 		a.dashboard.recentTable.Selected = &a.dashboard.recentChoice
 		table := ui.Table(c, &a.dashboard.recentTable, []ui.TableColumn{
-			{Title: tr("Block"), Width: 80, Align: ui.End},
+			{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 			{Title: tr("Module"), Width: 120},
 			{Title: tr("Summary"), MinWidth: 200},
 		}, len(rows), func(row, col int) {
 			entry := rows[row]
 			switch col {
 			case 0:
-				ui.Text(c, strconv.FormatInt(entry.Height, 10))
+				tableText(c, strconv.FormatInt(entry.Height, 10))
 			case 1:
 				tableText(c, entry.Module)
 			case 2:
@@ -393,14 +393,14 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		}
 	})
 	ui.Table(c, &a.blockchain.table, []ui.TableColumn{
-		{Title: tr("Height"), Width: 90, Align: ui.End},
+		{Title: tr("Height"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 		{Title: tr("Module"), Width: 130},
 		{Title: tr("Payload"), MinWidth: 200},
 	}, len(a.blockchain.rows), func(row, col int) {
 		b := a.blockchain.rows[row]
 		switch col {
 		case 0:
-			ui.Text(c, strconv.FormatInt(b.Height, 10))
+			tableText(c, strconv.FormatInt(b.Height, 10))
 		case 1:
 			tableText(c, b.Module)
 		case 2:

@@ -258,7 +258,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 	a.lottery.table.Selected = &a.lottery.selected
 	table := ui.Table(c, &a.lottery.table, []ui.TableColumn{
 		{Title: tr("ID"), Width: 150},
-		{Title: tr("Block"), Width: 80, Align: ui.End},
+		{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 		{Title: tr("Participants"), MinWidth: 140},
 		{Title: tr("Winners"), MinWidth: 120},
 	}, len(rows), func(row, col int) {
@@ -267,7 +267,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		case 0:
 			tableTextFull(c, shortID(r.ID), r.ID)
 		case 1:
-			ui.Text(c, strconv.FormatInt(r.BlockHeight, 10))
+			tableText(c, strconv.FormatInt(r.BlockHeight, 10))
 		case 2:
 			tableText(c, joinList(r.Participants))
 		case 3:

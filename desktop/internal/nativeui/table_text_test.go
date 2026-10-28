@@ -41,6 +41,33 @@ func TestLongTableValueKeepsItsFullTooltip(t *testing.T) {
 		"hovering the clipped cell must show its full value in a tooltip")
 }
 
+// TestLongLedgerHeightStaysReadable covers the numeric tables outside the
+// token and NFT collections. A ledger height is an int64; at 1.5x text the old
+// fixed 90px column cut it to a prefix, and plain text offered no way to see the
+// recorded block.
+func TestLongLedgerHeightStaysReadable(t *testing.T) {
+	const height = "9223372036854775807"
+	app := New(&fakeServices{blocks: []BlockRow{{
+		Height: 9223372036854775807, Module: "oracle",
+		Summary: `{"source":"btc","price":12345}`,
+	}}})
+	tester := ui.NewTester(app.View, 900, 2000)
+	tester.SetPreferences(ui.Preferences{TextScale: 1.5})
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	rect, ok := tester.Find(height)
+	require.True(t, ok)
+	require.GreaterOrEqual(t, rect.W, float32(170),
+		"the height column must grow with text size instead of cutting the value")
+	tester.Move(rect.X+rect.W/2, rect.Y+rect.H/2)
+	tester.Advance(700 * time.Millisecond)
+	tester.Frame()
+
+	require.Equal(t, 2, countText(tester.Texts(), height),
+		"a numeric cell that still clips must expose its full value on hover")
+}
+
 func countText(texts []string, want string) int {
 	n := 0
 	for _, text := range texts {
