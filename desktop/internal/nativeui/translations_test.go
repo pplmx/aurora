@@ -20,11 +20,12 @@ import (
 var translatedCallArgs = map[string][]int{
 	"tr":                   {0},
 	"field":                {0},
+	"fieldWithError":       {0},
+	"validatedField":       {0},
 	"fieldHint":            {0, 1},
 	"textArea":             {0},
 	"textAreaHint":         {0, 1},
 	"hint":                 {0},
-	"fieldError":           {0},
 	"emptyNote":            {0},
 	"copyRow":              {0},
 	"primaryButton":        {0},

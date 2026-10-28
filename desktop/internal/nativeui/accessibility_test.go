@@ -219,6 +219,23 @@ func TestFormCardsNameTheirSections(t *testing.T) {
 		"formCard must name its card group after the section title")
 }
 
+// TestValidatedFieldsAttachErrorsToTheirControls keeps an error from becoming
+// an unrelated red line below a field. MyGo's Field.Error marks the control
+// invalid and puts the message in its accessible description.
+func TestValidatedFieldsAttachErrorsToTheirControls(t *testing.T) {
+	value := ""
+	tester := ui.NewTester(func(c *ui.Context) {
+		validatedField(c, "Voter Name", &value, "Voter name is required.")
+	}, 480, 180)
+	tester.Frame()
+	require.True(t, tester.HasText(tr("Voter name is required.")))
+
+	controls, err := os.ReadFile("controls.go")
+	require.NoError(t, err)
+	require.True(t, strings.Contains(string(controls), "f.Error(localizeServiceErrorMessage(message))"),
+		"validated fields must pass their error through Field.Error")
+}
+
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.
 // The toolkit exposes RoleHeading and Level to screen readers; retaining the
 // exact call here protects the shared heading path.

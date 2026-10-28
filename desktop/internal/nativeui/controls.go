@@ -41,7 +41,24 @@ func guide(c *ui.Context, open *bool, steps ...string) {
 // field builds a labelled input row. MyGo's Field draws the label above the
 // control it wraps, which is the same relationship the HTML <label for> had.
 func field(c *ui.Context, label string, value *string) {
-	ui.Field(c, tr(label), func() {
+	fieldWithError(c, label, "", func() {
+		ui.TextInput(c, value)
+	})
+}
+
+// fieldWithError keeps an error inside the field that caused it. MyGo marks
+// the control invalid and exposes the message as its accessible description,
+// so a screen reader does not have to infer which red line belongs where.
+func fieldWithError(c *ui.Context, label, message string, fn func()) {
+	f := ui.Field(c, tr(label), fn)
+	if message != "" {
+		f.Error(localizeServiceErrorMessage(message))
+	}
+}
+
+// validatedField is the common text-input form of fieldWithError.
+func validatedField(c *ui.Context, label string, value *string, message string) {
+	fieldWithError(c, label, message, func() {
 		ui.TextInput(c, value)
 	})
 }
@@ -216,13 +233,4 @@ func listPager(c *ui.Context, offset, count int, hasMore bool) (previous, next b
 		next = secondaryButton(c, "Next").Disabled(!hasMore).Clicked()
 	})
 	return previous, next
-}
-
-// fieldError draws a field's complaint directly under the control that caused
-// it, in the same red the status lines use.
-func fieldError(c *ui.Context, message string) {
-	if message == "" {
-		return
-	}
-	ui.Text(c, localizeServiceErrorMessage(message)).FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraRed))
 }

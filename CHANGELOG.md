@@ -25,7 +25,10 @@ documented in their per-milestone ROADMAP files.
   activity, Draw history, Voting results, Feed Health and the other collections
   announce what they contain rather than only "table". Form cards expose named
   groups as well, keeping repeated fields such as Session ID or Owner attached
-  to the Cast Vote, Transfer or other action they belong to.
+  to the Cast Vote, Transfer or other action they belong to. Validation errors
+  now live inside the field that caused them, so the control is marked invalid
+  and its error is exposed as the control's description instead of a detached
+  red line.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;
