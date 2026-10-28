@@ -903,6 +903,33 @@ func TestFetcher_CustomUserAgent(t *testing.T) {
 	}
 }
 
+func TestFetcher_FetchData_CustomHostHeader(t *testing.T) {
+	skipIfLoopbackBlocked(t)
+	var capturedHost string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedHost = r.Host
+		_, _ = w.Write([]byte(`{"value": "test"}`))
+	}))
+	defer server.Close()
+
+	fetcher := newLoopbackFetcher()
+	source := &oracle.DataSource{
+		ID:      "host-header-test",
+		URL:     server.URL,
+		Method:  "GET",
+		Headers: `{"Host":"feed.vendor.example"}`,
+		Enabled: true,
+	}
+	_, err := fetcher.FetchData(source)
+	if err != nil {
+		t.Fatalf("FetchData failed: %v", err)
+	}
+
+	if capturedHost != "feed.vendor.example" {
+		t.Fatalf("upstream received Host %q, want the configured override", capturedHost)
+	}
+}
+
 func TestSecurityTransportPreservesSourceHeaderOverrides(t *testing.T) {
 	var captured *http.Request
 	transport := &securityTransport{

@@ -124,6 +124,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle source headers now follow net/http's request model**: a configured
+  `Host` was stored in the ordinary header map, which `net/http` ignores when
+  the request URL already has a host. It now populates `Request.Host`, survives
+  same-origin redirects (including absolute locations), and is cleared with
+  other source headers on cross-origin redirects. Transport-derived
+  `Content-Length`, `Transfer-Encoding` and `Trailer` fields, plus header names
+  that differ only by case, are rejected at source creation instead of being
+  silently ignored or applied in nondeterministic map order.
 - **Oracle source headers can select the upstream representation**: the
   transport overwrote a configured `User-Agent` and `Accept` with Aurora's
   defaults, so feeds that route `application/vnd.*` representations or require

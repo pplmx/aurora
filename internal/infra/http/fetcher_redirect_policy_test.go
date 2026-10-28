@@ -111,6 +111,7 @@ func TestCheckRedirectAllowed_StopsClientLoop(t *testing.T) {
 
 type redirectedRequest struct {
 	header http.Header
+	host   string
 }
 
 type headerRedirectTransport struct {
@@ -121,6 +122,7 @@ type headerRedirectTransport struct {
 func (t *headerRedirectTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.requests = append(t.requests, redirectedRequest{
 		header: req.Header.Clone(),
+		host:   req.Host,
 	})
 	status := http.StatusOK
 	header := make(http.Header)
@@ -141,8 +143,9 @@ func TestCheckRedirectAllowed_ScopesCustomHeadersToOrigin(t *testing.T) {
 		name       string
 		location   string
 		wantAPIKey string
+		wantHost   string
 	}{
-		{name: "same origin keeps headers", location: "http://8.8.8.8/next", wantAPIKey: "secret"},
+		{name: "same origin keeps headers", location: "http://8.8.8.8/next", wantAPIKey: "secret", wantHost: "feed.vendor.example"},
 		{name: "cross origin drops headers", location: "http://1.1.1.1/next"},
 	}
 
@@ -158,6 +161,7 @@ func TestCheckRedirectAllowed_ScopesCustomHeadersToOrigin(t *testing.T) {
 				t.Fatal(err)
 			}
 			req.Header.Set("X-API-Key", "secret")
+			req.Host = "feed.vendor.example"
 
 			resp, err := client.Do(req)
 			if err != nil {
@@ -170,6 +174,9 @@ func TestCheckRedirectAllowed_ScopesCustomHeadersToOrigin(t *testing.T) {
 			}
 			if got := transport.requests[1].header.Get("X-API-Key"); got != tc.wantAPIKey {
 				t.Fatalf("redirected X-API-Key = %q, want %q", got, tc.wantAPIKey)
+			}
+			if got := transport.requests[1].host; got != tc.wantHost {
+				t.Fatalf("redirected Host = %q, want %q", got, tc.wantHost)
 			}
 		})
 	}

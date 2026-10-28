@@ -31,6 +31,24 @@ func TestApplySourceHeaders(t *testing.T) {
 	}
 }
 
+func TestApplySourceHeaders_HostOverridesRequestHost(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "https://example.com/data", nil)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+
+	if err := applySourceHeaders(req, `{"Host":"feed.vendor.example"}`); err != nil {
+		t.Fatalf("applySourceHeaders failed: %v", err)
+	}
+
+	if got := req.Host; got != "feed.vendor.example" {
+		t.Fatalf("Request.Host = %q, want the configured Host header", got)
+	}
+	if got := req.Header.Get("Host"); got != "" {
+		t.Fatalf("Header Host = %q, want the override on Request.Host only", got)
+	}
+}
+
 func TestApplySourceHeaders_Empty(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "https://example.com/data", nil)
 	if err := applySourceHeaders(req, ""); err != nil {
@@ -84,6 +102,8 @@ func TestApplySourceHeaders_RejectsInvalidHTTPFields(t *testing.T) {
 		{"name with colon", `{"X-Bad:Name":"value"}`},
 		{"value with NUL", "{\"X-Test\":\"bad\\u0000value\"}"},
 		{"value with DEL", "{\"X-Test\":\"bad\\u007fvalue\"}"},
+		{"invalid Host", `{"Host":"bad host"}`},
+		{"transport-managed Content-Length", `{"Content-Length":"10"}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			req, _ := http.NewRequest(http.MethodGet, "https://example.com/data", nil)

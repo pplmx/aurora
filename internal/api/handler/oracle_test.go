@@ -286,6 +286,9 @@ func TestOracleHandler_CreateSource_RejectsInvalidHTTPConfig(t *testing.T) {
 		{name: "method", method: "BAD METHOD"},
 		{name: "header name", header: map[string]string{"Bad Header": "value"}},
 		{name: "header value", header: map[string]string{"X-Test": "bad\x00value"}},
+		{name: "invalid Host", header: map[string]string{"Host": "bad host"}},
+		{name: "transport-managed header", header: map[string]string{"Content-Length": "10"}},
+		{name: "case-insensitive duplicate", header: map[string]string{"User-Agent": "Aurora/1", "user-agent": "Aurora/2"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := oracle.NewInmemRepo()
