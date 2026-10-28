@@ -38,6 +38,7 @@ func TestSuccessfulNFTActionRefreshesCollectionAndHistory(t *testing.T) {
 	fake := &fakeServices{nftRows: []NFTRow{{ID: "n1", Name: "Star", Owner: "owner-a"}}}
 	app := New(fake)
 	app.nft.transferID = "n1"
+	app.nft.burnID = "n1"
 	app.nft.nft = &NFTRow{ID: "n1", Name: "Star", Owner: "owner-a"}
 	app.nft.nftLoadedID = "n1"
 	app.nft.historyID = "n1"

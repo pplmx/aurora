@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **NFT write cards keep their own subjects**: Transfer and Burn now remember
+  which NFT each holder field was filled for. Typing or selecting an id in one
+  card clears only that card's previous key and recipient, Inspect moves the
+  matching cards to the owner it resolves, and a successful Transfer no longer
+  retargets a Burn aimed at another asset. Inspect metadata and history also
+  render only while their id inputs still match the loaded record.
 - **A desktop write moves the context to the record it changed**: adding an
   Oracle source now targets that source in the action and reading cards,
   minting or transferring an NFT moves the holder fields with the asset and

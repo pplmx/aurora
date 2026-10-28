@@ -52,6 +52,9 @@ type fakeServices struct {
 
 	// nftRows is what ListAllNFTs returns.
 	nftRows []NFTRow
+	// nftByID supplies full metadata when Inspect names an asset outside the
+	// current collection page.
+	nftByID map[string]NFTRow
 	// ownerNFTs is what ListNFTs returns for an owner filter.
 	ownerNFTs []NFTRow
 	// nftHistoryRows is the operation trail returned for an NFT.
@@ -483,6 +486,9 @@ func (f *fakeServices) GetNFT(id string) (NFTRow, error) {
 	f.lastNFTID = id
 	if f.loadErrs.nftDetails != nil {
 		return NFTRow{}, f.loadErrs.nftDetails
+	}
+	if n, ok := f.nftByID[id]; ok {
+		return n, nil
 	}
 	return NFTRow{ID: id}, nil
 }
