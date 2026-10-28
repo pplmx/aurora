@@ -132,6 +132,10 @@ func (m *mockOracleRepo) ListSources(limit, offset int) ([]*oracle.DataSource, e
 	return rows, m.sourceErr
 }
 
+func (m *mockOracleRepo) CountSources() (int, error) {
+	return len(m.sources), m.sourceErr
+}
+
 func (m *mockOracleRepo) UpdateSource(s *oracle.DataSource) error {
 	if m.updateSourceErr != nil {
 		return m.updateSourceErr

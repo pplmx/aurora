@@ -255,6 +255,12 @@ func (r *LotteryRepository) GetAll() ([]*lottery.LotteryRecord, error) {
 	return r.List(0, 0)
 }
 
+func (r *LotteryRepository) Count() (int, error) {
+	var count int
+	err := r.q().QueryRow(`SELECT COUNT(*) FROM lottery_records`).Scan(&count)
+	return count, err
+}
+
 func (r *LotteryRepository) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
 	if limit <= 0 {
 		limit = -1

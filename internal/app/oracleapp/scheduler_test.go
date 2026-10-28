@@ -26,6 +26,10 @@ func (f *fakeSourceRepo) ListSources(limit, offset int) ([]*oracle.DataSource, e
 	return f.sources, f.listErr
 }
 
+func (f *fakeSourceRepo) CountSources() (int, error) {
+	return len(f.sources), f.listErr
+}
+
 func (f *fakeSourceRepo) GetLatestData(sourceID string) (*oracle.OracleData, error) {
 	return f.data[sourceID], nil
 }

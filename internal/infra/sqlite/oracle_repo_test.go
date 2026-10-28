@@ -161,6 +161,22 @@ func TestOracleRepository_ListSourcesPages(t *testing.T) {
 	require.Empty(t, past, "an offset past the end is an empty page")
 }
 
+func TestOracleRepository_CountSources(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	count, err := repo.CountSources()
+	require.NoError(t, err)
+	require.Zero(t, count)
+
+	require.NoError(t, repo.SaveSource(&oracle.DataSource{ID: "source1", Name: "One", URL: "http://example.com/1"}))
+	require.NoError(t, repo.SaveSource(&oracle.DataSource{ID: "source2", Name: "Two", URL: "http://example.com/2"}))
+
+	count, err = repo.CountSources()
+	require.NoError(t, err)
+	require.Equal(t, 2, count)
+}
+
 func TestOracleRepository_SaveData(t *testing.T) {
 	repo, cleanup := setupOracleTestDB(t)
 	defer cleanup()

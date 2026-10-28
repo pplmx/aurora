@@ -31,6 +31,10 @@ func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return m.records, nil
 }
 
+func (m *mockLotteryRepo) Count() (int, error) {
+	return len(m.records), nil
+}
+
 func (m *mockLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
 	if offset >= len(m.records) {
 		return nil, nil

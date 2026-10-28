@@ -15,34 +15,28 @@ import (
 func (s *nativeServices) Dashboard() (nativeui.DashboardStats, error) {
 	stats := nativeui.DashboardStats{}
 
-	records, err := s.lotteryRepo.GetAll()
+	// The dashboard refreshes while the window is open. Exact SQL aggregates
+	// avoid decoding every draw, candidate, session and feed into Go rows just
+	// to take their lengths.
+	lotteries, err := s.lotteryRepo.Count()
 	if err != nil {
 		return stats, err
 	}
-	stats.Lotteries = len(records)
+	stats.Lotteries = lotteries
 
-	cands, err := s.votingRepo.ListCandidates(0, 0)
+	votingCounts, err := s.votingRepo.Counts()
 	if err != nil {
 		return stats, err
 	}
-	stats.Candidates = len(cands)
-	votes := 0
-	for _, c := range cands {
-		votes += c.VoteCount
-	}
-	stats.Votes = votes
+	stats.Candidates = votingCounts.Candidates
+	stats.Votes = votingCounts.Votes
+	stats.Sessions = votingCounts.Sessions
 
-	sessions, err := s.votingRepo.ListSessions(0, 0)
+	oracleSources, err := s.oracleRepo.CountSources()
 	if err != nil {
 		return stats, err
 	}
-	stats.Sessions = len(sessions)
-
-	sources, err := s.oracleRepo.ListSources(0, 0)
-	if err != nil {
-		return stats, err
-	}
-	stats.Oracle = len(sources)
+	stats.Oracle = oracleSources
 
 	if s.chain != nil && s.chain.VerifyIntegrity().Valid {
 		stats.Integrity = "verified"

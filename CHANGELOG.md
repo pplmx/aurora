@@ -11,6 +11,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **Dashboard counters are aggregate reads**: the desktop's landing page now
+  asks SQLite for exact lottery, candidate, vote, session and Oracle-source
+  totals instead of decoding every stored collection on each live refresh.
+  The visible counters are unchanged, but a large store no longer turns a
+  background dashboard refresh into an unbounded materialisation of all rows.
+
 - **Voter lists page from storage**: SQLite now returns voters newest-first
   with `LIMIT`/`OFFSET` and a `public_key` tie-breaker for same-second
   registrations. `aurora voting voter list` exposes `--limit`/`--offset`, keeps

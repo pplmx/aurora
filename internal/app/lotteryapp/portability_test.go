@@ -22,6 +22,8 @@ func (emptyLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
 
 func (emptyLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) { return nil, nil }
 
+func (emptyLotteryRepo) Count() (int, error) { return 0, nil }
+
 func (emptyLotteryRepo) List(int, int) ([]*lottery.LotteryRecord, error) { return nil, nil }
 
 func (emptyLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {

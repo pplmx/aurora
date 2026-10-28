@@ -7,6 +7,8 @@ type Repository interface {
 	// from offset, preserving whole-history reads for export and
 	// verification.
 	List(limit, offset int) ([]*LotteryRecord, error)
+	// Count returns the exact number of stored draws without loading them.
+	Count() (int, error)
 	GetAll() ([]*LotteryRecord, error)
 	GetByBlockHeight(height int64) ([]*LotteryRecord, error)
 }

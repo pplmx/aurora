@@ -478,6 +478,7 @@ func (f fakeVotingRepo) UnmarkVoted(string) error          { return nil }
 func (f fakeVotingRepo) ListVoters(limit, offset int) ([]*voting.Voter, error) {
 	return nil, nil
 }
+func (f fakeVotingRepo) Counts() (voting.Counts, error)        { return voting.Counts{}, nil }
 func (f fakeVotingRepo) SaveCandidate(*voting.Candidate) error { return nil }
 func (f fakeVotingRepo) GetCandidate(string) (*voting.Candidate, error) {
 	return nil, nil
