@@ -488,6 +488,42 @@ func TestOraclePresetResetsAndFillsItsInterval(t *testing.T) {
 	require.Empty(t, app.oracle.addURL)
 }
 
+// TestAddingSourceMakesItTheActionTarget keeps a newly added feed from being
+// highlighted but unusable: the shared action field and both read cards must
+// move to it, and any readings still open for the previous source must be
+// invalidated before the new read.
+func TestAddingSourceMakesItTheActionTarget(t *testing.T) {
+	boom := errors.New("database is locked")
+	fake := &fakeServices{sources: []SourceRow{{ID: "old", Name: "Old source"}}}
+	fake.addSource = func(SourceInput) (SourceRow, error) {
+		fake.loadErrs.oracleData = boom
+		fake.loadErrs.oracleLatest = boom
+		return SourceRow{ID: "new", Name: "New source", Type: "json"}, nil
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	app.oracle.fetchID, app.oracle.queryID, app.oracle.latestID = "old", "old", "old"
+	app.oracle.data = []DataRow{{Value: "old-reading"}}
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "old", 20
+	app.oracle.latest = &DataRow{Value: "old-latest"}
+	app.oracle.latestLoadedSource = "old"
+	app.oracle.addName, app.oracle.addURL = "New source", "https://example.com/new"
+
+	app.addOracleSource()
+	tester.Frame()
+
+	require.Equal(t, "new", app.oracle.fetchID, "the new source must receive the actions")
+	require.Equal(t, "new", app.oracle.queryID, "Query must follow the new source")
+	require.Equal(t, "new", app.oracle.latestID, "Latest must follow the new source")
+	require.Empty(t, app.oracle.data, "the previous source's readings must be dropped")
+	require.Nil(t, app.oracle.latest, "the previous source's latest value must be dropped")
+	require.Equal(t, "new", fake.lastOracleDataSource)
+	require.Equal(t, "new", fake.lastOracleLatestSource)
+}
+
 // TestFailedVerifyClearsThePreviousVerdict pins the Verify card's evidence: a
 // new lookup that fails must not leave the previous draw's "Verified" panel on
 // screen under the new id.
