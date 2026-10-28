@@ -202,7 +202,39 @@ func checkRedirectAllowed(req *http.Request, via []*http.Request) error {
 	if blocked {
 		return fmt.Errorf("%w: %q", ErrBlockedDestination, req.URL.Host)
 	}
+	// net/http strips Authorization and Cookie on a cross-origin redirect, but
+	// not arbitrary credentials such as the X-API-Key header documented for
+	// oracle sources. The transport re-adds its safe defaults (User-Agent,
+	// Accept and request ID), so start each cross-origin hop with no inherited
+	// headers rather than forwarding an upstream secret to another origin.
+	if len(via) > 0 && via[0] != nil && !sameURLOrigin(via[0].URL, req.URL) {
+		req.Header = make(http.Header)
+	}
 	return nil
+}
+
+func sameURLOrigin(a, b *url.URL) bool {
+	if a == nil || b == nil || !strings.EqualFold(a.Scheme, b.Scheme) {
+		return false
+	}
+	if !strings.EqualFold(a.Hostname(), b.Hostname()) {
+		return false
+	}
+	return effectiveURLPort(a) == effectiveURLPort(b)
+}
+
+func effectiveURLPort(u *url.URL) string {
+	if port := u.Port(); port != "" {
+		return port
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "http":
+		return "80"
+	case "https":
+		return "443"
+	default:
+		return ""
+	}
 }
 
 type RateLimiter struct {
