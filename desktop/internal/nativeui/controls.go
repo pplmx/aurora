@@ -51,9 +51,7 @@ func field(c *ui.Context, label string, value *string) {
 // so a screen reader does not have to infer which red line belongs where.
 func fieldWithError(c *ui.Context, label, message string, fn func()) {
 	f := ui.Field(c, tr(label), fn)
-	if message != "" {
-		f.Error(localizeServiceErrorMessage(message))
-	}
+	attachFieldError(c, f, label, message)
 }
 
 // validatedField is the common text-input form of fieldWithError. Editing the
@@ -67,9 +65,26 @@ func validatedField(c *ui.Context, label string, value, message *string) {
 	if input.Changed() {
 		*message = ""
 	}
-	if *message != "" {
-		f.Error(localizeServiceErrorMessage(*message))
+	attachFieldError(c, f, label, *message)
+}
+
+// attachFieldError marks the field invalid and announces the message once.
+// Field.Error exposes the text to assistive technology only when its control
+// is revisited, while focus may still be on the submit button that started the
+// validation.
+func attachFieldError(c *ui.Context, field ui.Element, label, message string) {
+	last := ui.Local(field, "field-error-announcement", func() string { return "" })
+	if message == "" {
+		*last = ""
+		return
 	}
+	localized := localizeServiceErrorMessage(message)
+	field.Error(localized)
+	if *last == localized {
+		return
+	}
+	*last = localized
+	c.Announce(fmt.Sprintf("%s: %s: %s", tr("Failed"), tr(label), localized))
 }
 
 // The page's three action styles. Every button comes from one of them, so the

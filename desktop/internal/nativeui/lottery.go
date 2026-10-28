@@ -122,9 +122,7 @@ func (a *App) lotteryCreate(c *ui.Context) {
 		if countInput.Changed() {
 			a.lottery.countErr = ""
 		}
-		if a.lottery.countErr != "" {
-			count.Error(localizeServiceErrorMessage(a.lottery.countErr))
-		}
+		attachFieldError(c, count, "Count", a.lottery.countErr)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Create Draw").Disabled(!allSet(a.lottery.participants, a.lottery.seed)).Clicked() {
 				a.createLottery()
