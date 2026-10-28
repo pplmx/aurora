@@ -96,7 +96,11 @@ func (r *VotingRepository) createTables() error {
 		// before the caller sees it (measured).
 		`CREATE INDEX IF NOT EXISTS idx_sessions_created ON voting_sessions(created_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_page ON voting_sessions(created_at DESC, id)`,
-		`CREATE INDEX IF NOT EXISTS idx_voters_registered ON voters(registered_at)`,
+		// The voter list pages newest first. Keeping public_key in the index
+		// gives same-second registrations a stable, unique tie-breaker and
+		// replaces the single-column index that could not page deterministically.
+		`DROP INDEX IF EXISTS idx_voters_registered`,
+		`CREATE INDEX IF NOT EXISTS idx_voters_page ON voters(registered_at DESC, public_key)`,
 	}
 
 	for _, query := range queries {
@@ -347,9 +351,17 @@ func (r *VotingRepository) TryMarkVoted(publicKey, voteHash string) error {
 // voter. Historically the best-effort rollback when SaveVote failed after
 // TryMarkVoted succeeded; CastVote now runs in a real transaction, so this
 // primitive is retained for administrative / corrective flows only.
-func (r *VotingRepository) ListVoters() ([]*voting.Voter, error) {
+func (r *VotingRepository) ListVoters(limit, offset int) ([]*voting.Voter, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	rows, err := r.q().Query(
-		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters ORDER BY registered_at DESC`,
+		`SELECT public_key, name, has_voted, vote_hash, registered_at
+		 FROM voters ORDER BY registered_at DESC, public_key LIMIT ? OFFSET ?`,
+		limit, offset,
 	)
 	if err != nil {
 		return nil, err

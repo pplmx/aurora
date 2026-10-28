@@ -83,6 +83,7 @@ var englishMessages = map[string]string{
 	"voting.voter_registered":   "Voter registered successfully!",
 	"voting.candidates":         "Candidates",
 	"voting.voters":             "Voters",
+	"voting.page_total":         "Voters on this page",
 	"voting.sessions":           "Voting Sessions",
 	"voting.none":               "(none)",
 	"voting.voted":              "voted",

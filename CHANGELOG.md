@@ -11,6 +11,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **Voter lists page from storage**: SQLite now returns voters newest-first
+  with `LIMIT`/`OFFSET` and a `public_key` tie-breaker for same-second
+  registrations. `aurora voting voter list` exposes `--limit`/`--offset`, keeps
+  zero as the full-list form, and reports an empty later page without claiming
+  the entire voter store is empty.
+
 - **Lottery history pages in storage instead of after the read**: SQLite now
   applies the deterministic newest-first `LIMIT`/`OFFSET` used by
   `GET /api/v1/lottery/history`; the REST handler no longer materialises every

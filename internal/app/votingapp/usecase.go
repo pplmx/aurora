@@ -276,6 +276,33 @@ func (uc *RegisterVoterUseCase) Execute(req RegisterVoterRequest) (*VoterRespons
 	}, nil
 }
 
+type ListVotersUseCase struct {
+	repo voting.Repository
+}
+
+func NewListVotersUseCase(repo voting.Repository) *ListVotersUseCase {
+	return &ListVotersUseCase{repo: repo}
+}
+
+func (uc *ListVotersUseCase) Execute(req *ListVotersRequest) ([]*VoterSummaryResponse, error) {
+	if req == nil {
+		req = &ListVotersRequest{}
+	}
+	voters, err := uc.repo.ListVoters(req.Limit, req.Offset)
+	if err != nil {
+		return nil, err
+	}
+	responses := make([]*VoterSummaryResponse, len(voters))
+	for i, voter := range voters {
+		responses[i] = &VoterSummaryResponse{
+			Name:      voter.Name,
+			PublicKey: voter.PublicKey,
+			HasVoted:  voter.HasVoted,
+		}
+	}
+	return responses, nil
+}
+
 type RegisterCandidateUseCase struct {
 	repo voting.Repository
 }

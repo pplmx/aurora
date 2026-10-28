@@ -83,6 +83,7 @@ var chineseMessages = map[string]string{
 	"voting.voter_registered":   "投票人注册成功！",
 	"voting.candidates":         "候选人",
 	"voting.voters":             "投票人",
+	"voting.page_total":         "本页投票人数",
 	"voting.sessions":           "投票会话",
 	"voting.none":               "（无）",
 	"voting.voted":              "已投票",

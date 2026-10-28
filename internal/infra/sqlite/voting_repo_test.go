@@ -493,7 +493,7 @@ func TestVotingRepository_ListVoters(t *testing.T) {
 	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-2", Name: "Voter 2", RegisteredAt: 200}))
 	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-3", Name: "Voter 3", RegisteredAt: 150}))
 
-	voters, err := repo.ListVoters()
+	voters, err := repo.ListVoters(0, 0)
 	require.NoError(t, err)
 	require.Len(t, voters, 3)
 	require.Equal(t, "Voter 2", voters[0].Name, "should be sorted by registered_at DESC")
@@ -505,9 +505,38 @@ func TestVotingRepository_ListVoters_Empty(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
-	voters, err := repo.ListVoters()
+	voters, err := repo.ListVoters(0, 0)
 	require.NoError(t, err)
 	require.Empty(t, voters)
+}
+
+func TestVotingRepository_ListVotersPages(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	// Same-second registrations must keep a stable order across requests.
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-a", Name: "A", RegisteredAt: 200}))
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-c", Name: "C", RegisteredAt: 200}))
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "pk-b", Name: "B", RegisteredAt: 100}))
+	// Exercise the SQL tie-breaker itself, not an incidental index order.
+	_, err := repo.db.Exec(`DROP INDEX idx_voters_page`)
+	require.NoError(t, err)
+	_, err = repo.db.Exec(`CREATE INDEX idx_voters_registered_legacy ON voters(registered_at)`)
+	require.NoError(t, err)
+
+	first, err := repo.ListVoters(1, 0)
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+	require.Equal(t, "pk-a", first[0].PublicKey, "same-second rows use public_key as the tie-breaker")
+
+	page, err := repo.ListVoters(1, 1)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "pk-c", page[0].PublicKey)
+
+	past, err := repo.ListVoters(10, 99)
+	require.NoError(t, err)
+	require.Empty(t, past)
 }
 
 func TestVotingRepository_ListSessions(t *testing.T) {

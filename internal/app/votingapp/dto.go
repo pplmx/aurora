@@ -11,6 +11,11 @@ type RegisterVoterRequest struct {
 	Name string
 }
 
+type ListVotersRequest struct {
+	Limit  int
+	Offset int
+}
+
 type RegisterCandidateRequest struct {
 	Name    string
 	Party   string
@@ -45,6 +50,12 @@ type VoterResponse struct {
 	Name       string `json:"name"`
 	PublicKey  string `json:"public_key"`
 	PrivateKey string `json:"private_key"`
+}
+
+type VoterSummaryResponse struct {
+	Name      string `json:"name"`
+	PublicKey string `json:"public_key"`
+	HasVoted  bool   `json:"has_voted"`
 }
 
 type CandidateResponse struct {

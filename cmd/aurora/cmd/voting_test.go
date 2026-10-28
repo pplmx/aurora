@@ -84,6 +84,31 @@ func TestVotingVoterRegister_List(t *testing.T) {
 	})
 }
 
+func TestVotingVoterList_Pages(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+		for _, name := range []string{"Alice", "Bob", "Carol"} {
+			_, err := runCmd(t, "voting", "voter", "register", "--name", name)
+			require.NoError(t, err)
+		}
+
+		out, err := runCmd(t, "voting", "voter", "list", "--limit", "1", "--offset", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Voters on this page: 1 (offset 1)")
+		assert.Equal(t, 1, strings.Count(out, "   - "), "only the requested page should print")
+
+		out, err = runCmd(t, "voting", "voter", "list", "--limit", "1", "--offset", "99")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Voters on this page: 0 (offset 99)")
+		assert.NotContains(t, out, "(none)", "an empty later page must not claim the store is empty")
+
+		_, err = runCmd(t, "voting", "voter", "list", "--limit", "-1")
+		require.Error(t, err)
+		_, err = runCmd(t, "voting", "voter", "list", "--offset", "-1")
+		require.Error(t, err)
+	})
+}
+
 func TestVotingVoterRegister_MissingName(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		runMigrations(t)

@@ -35,6 +35,8 @@ type mockVotingRepo struct {
 
 	lastListCandidatesLimit  int
 	lastListCandidatesOffset int
+	lastListVotersLimit      int
+	lastListVotersOffset     int
 	lastListSessionsLimit    int
 	lastListSessionsOffset   int
 
@@ -277,8 +279,19 @@ func (m *mockVotingRepo) GetSession(id string) (*voting.Session, error) {
 	return nil, nil
 }
 
-func (m *mockVotingRepo) ListVoters() ([]*voting.Voter, error) {
-	return m.voters, nil
+func (m *mockVotingRepo) ListVoters(limit, offset int) ([]*voting.Voter, error) {
+	m.lastListVotersLimit, m.lastListVotersOffset = limit, offset
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(m.voters) {
+		return nil, nil
+	}
+	voters := m.voters[offset:]
+	if limit > 0 && len(voters) > limit {
+		voters = voters[:limit]
+	}
+	return voters, nil
 }
 
 func (m *mockVotingRepo) UpdateVoter(v *voting.Voter) error {
@@ -523,6 +536,27 @@ func TestGetCandidatesUseCasePages(t *testing.T) {
 	require.Equal(t, "c2", resp[0].ID)
 	require.Equal(t, 1, repo.lastListCandidatesLimit)
 	require.Equal(t, 1, repo.lastListCandidatesOffset)
+}
+
+func TestListVotersUseCasePages(t *testing.T) {
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "Alice", PublicKey: "v1", HasVoted: true},
+			{Name: "Bob", PublicKey: "v2"},
+			{Name: "Carol", PublicKey: "v3"},
+		},
+	}
+
+	resp, err := NewListVotersUseCase(repo).Execute(&ListVotersRequest{
+		Limit: 1, Offset: 1,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp, 1)
+	require.Equal(t, "Bob", resp[0].Name)
+	require.Equal(t, "v2", resp[0].PublicKey)
+	require.False(t, resp[0].HasVoted)
+	require.Equal(t, 1, repo.lastListVotersLimit)
+	require.Equal(t, 1, repo.lastListVotersOffset)
 }
 
 func TestListSessionsUseCase(t *testing.T) {
