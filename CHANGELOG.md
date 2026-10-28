@@ -136,6 +136,12 @@ documented in their per-milestone ROADMAP files.
   matching cards to the owner it resolves, and a successful Transfer no longer
   retargets a Burn aimed at another asset. Inspect metadata and history also
   render only while their id inputs still match the loaded record.
+- **A failed ledger query no longer repeats on every repaint**: changing the
+  Blockchain search or Show value triggered a read from the view, but a failure
+  left the requested and loaded keys different, so each frame issued the same
+  failing query again. The page now records the attempted query, and its
+  Previous/Next offset commits only after the rows arrive; a failed page move
+  keeps the label over the rows it actually loaded.
 - **Successful empty readouts remain open**: Token and NFT histories, an empty
   voting tally and an empty Oracle Query now remember the successful read even
   when it returned no rows. Refresh, selecting another subject, casting the

@@ -100,6 +100,7 @@ type fakeServices struct {
 	lastSourceLimit     int
 	lastSourceOffset    int
 	dashboardCalls      int
+	blockListCalls      int
 	oracleHealthCalls   int
 	tokenInfoCalls      int
 	tokenBalanceCalls   int
@@ -213,6 +214,7 @@ func (f *fakeServices) LedgerBlocks(limit int) ([]BlockRow, error) {
 }
 
 func (f *fakeServices) LedgerBlocksPage(limit, offset int) ([]BlockRow, error) {
+	f.blockListCalls++
 	if f.loadErrs.blocks != nil {
 		return nil, f.loadErrs.blocks
 	}

@@ -204,3 +204,28 @@ func TestFailedBlockReadKeepsTheLedgerRows(t *testing.T) {
 	require.True(t, tester.HasText(`{"winner":"A"}`), "the last rows must stay visible")
 	require.False(t, tester.HasText("Nothing recorded on the chain yet."))
 }
+
+// TestFailedLedgerQueryDoesNotRetryEveryFrame keeps an automatic search reload
+// from hammering the database after it fails. The rendered search still names
+// the failed query, but the attempted-query key stops a repaint from issuing
+// the same read again; Refresh remains the explicit retry.
+func TestFailedLedgerQueryDoesNotRetryEveryFrame(t *testing.T) {
+	fake := &fakeServices{blocks: []BlockRow{{Height: 7, Module: "lottery", Summary: "old-row"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	before := fake.blockListCalls
+	fake.loadErrs.blocks = errors.New("database is locked")
+	app.blockchain.search = "new-query"
+	tester.Frame()
+	afterAttempt := fake.blockListCalls
+	require.Equal(t, before+1, afterAttempt, "the changed search must trigger one read")
+
+	tester.Frame()
+	tester.Frame()
+	require.Equal(t, afterAttempt, fake.blockListCalls,
+		"repainting the failed query must not issue it again")
+	require.True(t, tester.HasText("Couldn't read chain blocks"))
+}

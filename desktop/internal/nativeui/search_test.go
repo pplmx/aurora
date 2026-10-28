@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"errors"
 	"strconv"
 	"testing"
 
@@ -271,4 +272,33 @@ func TestLedgerPagesMoveThroughOlderEntries(t *testing.T) {
 	require.NoError(t, tester.Click("Previous"))
 	tester.Frame()
 	require.Equal(t, 0, app.blockchain.blockOffset)
+}
+
+// TestFailedLedgerPageMoveKeepsCurrentPage mirrors the other paged lists: Next
+// commits its offset only after the new rows arrive. A failed move used to
+// advance the pager while the table still held the previous page.
+func TestFailedLedgerPageMoveKeepsCurrentPage(t *testing.T) {
+	blocks := make([]BlockRow, 150)
+	for i := range blocks {
+		blocks[i] = BlockRow{Height: int64(len(blocks) - i), Module: "lottery", Summary: "row-" + strconv.Itoa(i)}
+	}
+	fake := &fakeServices{blocks: blocks}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	app.blockchain.blockLimit = 100
+	tester.Frame()
+	require.Equal(t, 0, app.blockchain.blockOffset)
+	require.True(t, tester.HasText("Entries 1–100 of 150"))
+
+	fake.loadErrs.blocks = errors.New("database is locked")
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+
+	require.Equal(t, 0, app.blockchain.blockOffset,
+		"a failed Next must leave the offset with the rows it actually loaded")
+	require.True(t, tester.HasText("Entries 1–100 of 150"))
+	require.True(t, tester.HasText("Couldn't read chain blocks"))
 }
