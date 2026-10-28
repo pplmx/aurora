@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **SQLite `file:` fragments no longer disable hardened URI parameters**:
+  appending `_foreign_keys`, `_txlock`, or a native `mode` after an existing
+  `#fragment` made the driver consume the fragment as part of the final value,
+  while SQLite ignored everything after it. Database DSN construction now
+  drops the semantically ignored fragment before adding parameters, so
+  encoded `#` characters remain part of the filename and native read-only mode
+  is enforced.
 - **Backups resolve disk-backed SQLite `file:` URIs before touching output**:
   `backup create` used to look for a literal path beginning with `file:` and
   fail on a valid URI-backed database, while `backup restore` planned its

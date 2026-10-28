@@ -12,8 +12,11 @@ import (
 // the first '?', so paths containing that character must be sent as an escaped
 // SQLite file URI instead.
 //
-// Explicit ":memory:" and "file:" DSNs are already URI-style inputs and are
-// preserved. Callers that pass "file:" own its escaping and existing query.
+// Explicit ":memory:" and "file:" DSNs are already URI-style inputs and their
+// existing query is preserved. Callers that pass "file:" own its escaping.
+// A URI fragment is dropped when parameters are added: SQLite ignores it, but
+// the modernc driver folds it into the final query value and would reject the
+// hardened parameters.
 func SQLiteDSN(dbPath, query string) string {
 	if query == "" {
 		return dbPath
@@ -22,6 +25,9 @@ func SQLiteDSN(dbPath, query string) string {
 		return dbPath + "?" + query
 	}
 	if strings.HasPrefix(dbPath, "file:") {
+		if index := strings.IndexByte(dbPath, '#'); index >= 0 {
+			dbPath = dbPath[:index]
+		}
 		separator := "?"
 		if strings.Contains(dbPath, "?") {
 			separator = "&"
