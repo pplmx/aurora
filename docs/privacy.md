@@ -11,10 +11,12 @@ database backups are written wherever the user chooses. These files remain on
 the user's machine unless the user explicitly copies or shares them. On
 Unix-like systems the default application data directory is created (or
 tightened) with mode `0700` so other local accounts cannot traverse the
-database or logs; the SQLite files, WAL/SHM sidecars, log file, and desktop
-preferences are also kept at mode `0600`. An explicit `--data-dir` keeps the permissions of an
-existing operator-managed directory; a newly created explicit directory is
-still owner-only. A new database backup set is created as an owner-only
+database or logs; the SQLite database, its WAL/SHM/rollback-journal sidecars,
+log file, and desktop preferences are also kept at mode `0600`. A database
+symlink is resolved before hardening its sidecars. An explicit `--data-dir`
+keeps the permissions of an existing operator-managed directory; a newly
+created explicit directory is still owner-only. A new database backup set is
+created as an owner-only
 `0700` directory whose database and metadata files are `0600`; an existing
 backup directory keeps its own permissions while new files in it remain
 owner-only. Restore keeps its hidden undo-snapshot directory at `0700`, its

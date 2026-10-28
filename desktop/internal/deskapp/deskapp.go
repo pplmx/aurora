@@ -23,6 +23,7 @@ import (
 	"github.com/pplmx/aurora/internal/app/container"
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/logger"
+	"github.com/pplmx/aurora/internal/utils"
 	"github.com/spf13/viper"
 )
 
@@ -197,25 +198,25 @@ func prepareDataDir(dir string, defaultDir func() (string, error)) (string, erro
 // 0700 mode is the primary boundary, but these files can contain Oracle
 // bearer headers and request details; keeping the files themselves at 0600
 // also protects them if that directory is later copied or its mode is changed.
-// SQLite manages the WAL and shared-memory sidecars alongside the database.
+// SQLite manages the WAL, shared-memory, and rollback-journal sidecars
+// alongside the database.
 func keepApplicationFilesPrivate(dbPath, logPath string) error {
 	if runtime.GOOS == "windows" {
 		// AppData inherits a per-user ACL; Unix permission bits do not apply.
 		return nil
 	}
 
-	paths := []string{dbPath, dbPath + "-wal", dbPath + "-shm"}
-	if logPath != "" {
-		paths = append(paths, filepath.Join(logPath, "aurora.log"))
+	if err := utils.RestrictSQLiteFiles(dbPath); err != nil {
+		return err
 	}
-	for _, path := range paths {
-		if err := os.Chmod(path, 0o600); err != nil {
+
+	if logPath != "" {
+		logFile := filepath.Join(logPath, "aurora.log")
+		if err := os.Chmod(logFile, 0o600); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
-				// SQLite need not have created a sidecar yet, and an explicit
-				// console log path has no file to protect.
-				continue
+				return nil
 			}
-			return fmt.Errorf("restrict %s to owner: %w", path, err)
+			return fmt.Errorf("restrict %s to owner: %w", logFile, err)
 		}
 	}
 	return nil

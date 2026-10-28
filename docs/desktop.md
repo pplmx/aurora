@@ -276,8 +276,9 @@ just check && just test
   与 `Aurora/` 两个目录（实测）。
 - **应用状态只对当前用户开放**：Unix-like 系统上自动选择的桌面数据目录会以
   `0700` 创建，对旧版本留下的宽松目录也会在打开 SQLite 和日志前收紧。
-  Oracle source 的自定义请求头可能包含 Bearer token，因此数据库、WAL/SHM
-  sidecar 和相邻日志同时固定为 `0600`，不能让同机其他普通账号遍历或读取。
+  Oracle source 的自定义请求头可能包含 Bearer token，因此数据库、
+  WAL/SHM/rollback-journal sidecar 和相邻日志同时固定为 `0600`，不能让同机
+  其他普通账号遍历或读取。
   显式 `--data-dir` 指定的已有目录不改权限，以免破坏用户选择的共享或受管
   目录；新建的显式目录仍以 `0700` 创建。
 - **数据库备份同样只对当前用户开放**：File 或 Settings → Back Up Database 新建的备份
