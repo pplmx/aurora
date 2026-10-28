@@ -16,6 +16,7 @@ func TestSuccessfulTokenWriteRefreshesWhatThePageShows(t *testing.T) {
 	fake := &fakeServices{tokenRows: []TokenRow{{ID: "t1", Name: "Gold", TotalSupply: "100"}}}
 	app := New(fake)
 	app.token.tokenID = "t1"
+	app.token.subjectID = "t1"
 	app.token.info = &TokenRow{ID: "t1", Name: "Gold", TotalSupply: "100"}
 
 	tokensBefore, infoBefore := fake.listTokensCalls, fake.tokenInfoCalls
@@ -226,6 +227,7 @@ func TestBalanceAndHistoryUseTheirOwnAccount(t *testing.T) {
 	tester.Frame()
 
 	app.token.tokenID = "t1"
+	tester.Frame()
 	app.token.balanceAccount = "alice"
 	app.token.historyOwner = "bob"
 
@@ -280,6 +282,7 @@ func TestTokenReadoutFailureKeepsSameSubjectRows(t *testing.T) {
 	tester.Frame()
 
 	app.token.tokenID = "t1"
+	app.token.subjectID = "t1"
 	app.token.info = &TokenRow{ID: "t1", Name: "Gold", TotalSupply: "100"}
 	app.token.infoLoadedID = "t1"
 	app.token.balanceAccount = "owner"
@@ -310,6 +313,38 @@ func TestTokenReadoutFailureKeepsSameSubjectRows(t *testing.T) {
 	require.True(t, tester.HasText("Showing the last successful load."))
 	require.False(t, tester.HasText("No transfers loaded yet."),
 		"a failed read must not claim there is no history")
+}
+
+// TestTokenAllowanceTracksInputsAndRefreshes applies the readout key to the
+// last Token card: a changed owner or spender must hide the previous answer,
+// and refresh/write reloads must re-read an allowance that is already open.
+func TestTokenAllowanceTracksInputsAndRefreshes(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{{ID: "t1", Owner: "owner"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	tester.Frame()
+	app.token.opTab = 5
+	app.token.allowanceOwner, app.token.allowanceTo = "alice", "bob"
+	app.loadAllowance()
+	tester.Frame()
+	require.True(t, tester.HasText("10"))
+	require.Equal(t, "bob", fake.lastAllowanceSpender)
+
+	app.token.allowanceTo = "carol"
+	tester.Frame()
+	require.False(t, tester.HasText("10"), "another spender must hide the previous allowance")
+
+	before := fake.tokenAllowanceCalls
+	app.refreshToken()
+	require.Equal(t, before+1, fake.tokenAllowanceCalls,
+		"refresh must re-read an allowance readout that is open")
+	require.Equal(t, "carol", fake.lastAllowanceSpender)
+	tester.Frame()
+	require.True(t, tester.HasText("10"))
 }
 
 // TestTokenSelectionDropsReadoutsWhenTheNewReadFails pins the key side: the

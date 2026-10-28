@@ -215,6 +215,101 @@ func TestTokenSelectionPrefillsTheOwnerAndDropsOldSecrets(t *testing.T) {
 	require.Empty(t, app.token.allowanceTo)
 }
 
+// TestManualTokenIDChangeMovesTheOwnerContext covers the remaining way to
+// choose a token: typing its id into Inspect. The write forms share that id,
+// so leaving the previous owner, secrets or recipients there could sign for
+// the wrong subject even though the Acting on banner named the new one.
+func TestManualTokenIDChangeMovesTheOwnerContext(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{
+		{ID: "t1", Name: "First", Owner: "owner-1"},
+		{ID: "t2", Name: "Second", Owner: "owner-2"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	tester.Frame()
+	require.Equal(t, "owner-1", app.token.mintTo)
+
+	app.token.mintPriv, app.token.xPriv, app.token.approvePriv = "p1", "p2", "p3"
+	app.token.xTo, app.token.approveTo = "old-to", "old-spender"
+	app.token.tokenID = "t2"
+	tester.Frame()
+
+	require.Equal(t, "t2", app.token.subjectID)
+	for name, got := range map[string]string{
+		"mint to":         app.token.mintTo,
+		"transfer from":   app.token.xFrom,
+		"approve owner":   app.token.approveOwner,
+		"transfer-from":   app.token.fromOwner,
+		"burn from":       app.token.burnFrom,
+		"allowance owner": app.token.allowanceOwner,
+		"balance account": app.token.balanceAccount,
+		"history owner":   app.token.historyOwner,
+	} {
+		require.Equalf(t, "owner-2", got, "%s must follow the typed token id", name)
+	}
+	require.Empty(t, app.token.mintPriv)
+	require.Empty(t, app.token.xPriv)
+	require.Empty(t, app.token.approvePriv)
+	require.Empty(t, app.token.xTo)
+	require.Empty(t, app.token.approveTo)
+
+	// An id whose owner is not in the visible page still must not inherit the
+	// previous token's account-shaped values.
+	app.token.tokenID = "outside-page"
+	tester.Frame()
+	require.Empty(t, app.token.mintTo)
+	require.Empty(t, app.token.xFrom)
+	require.Empty(t, app.token.approveOwner)
+	require.Empty(t, app.token.balanceAccount)
+	require.Empty(t, app.token.historyOwner)
+}
+
+// TestTokenReadoutsTrackTheirCurrentInputs keeps an answer from describing a
+// previous token, account or history query while the fields already name a new
+// one. The load keys were already recorded; they now also gate rendering.
+func TestTokenReadoutsTrackTheirCurrentInputs(t *testing.T) {
+	fake := &fakeServices{tokenRows: []TokenRow{
+		{ID: "t1", Name: "First", Owner: "owner-1"},
+		{ID: "t2", Name: "Second", Owner: "owner-2"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "t1"
+	tester.Frame()
+	app.token.info = &TokenRow{ID: "t1", Name: "OldToken", TotalSupply: "100"}
+	app.token.infoLoadedID = "t1"
+	app.token.balanceAccount, app.token.balance = "account-a", "42"
+	app.token.balanceLoadedToken, app.token.balanceLoadedOwner = "t1", "account-a"
+	app.token.historyOwner = "history-owner"
+	app.token.history = []TransferRow{{From: "old-from", To: "old-to", Amount: "1"}}
+	app.token.historyLoadedToken, app.token.historyLoadedOwner = "t1", "history-owner"
+	app.token.historyLoadedLimit, app.token.historyLoadedOffset = 50, 0
+	tester.Frame()
+	require.True(t, tester.HasText("OldToken"))
+	require.True(t, tester.HasText("42"))
+	require.True(t, tester.HasText("old-from"))
+
+	app.token.balanceAccount = "account-b"
+	tester.Frame()
+	require.False(t, tester.HasText("42"), "another account must hide the old balance")
+	require.True(t, tester.HasText("OldToken"), "the token metadata still matches")
+
+	app.token.historyOffset = 50
+	tester.Frame()
+	require.False(t, tester.HasText("old-from"), "another history page must hide the old rows")
+
+	app.token.tokenID = "t2"
+	tester.Frame()
+	require.False(t, tester.HasText("OldToken"), "another token must hide the old metadata")
+}
+
 // TestCreatingATokenPrefillsTheOwnerAndSelectsTheRow keeps the create path as
 // clear as selection: the new token becomes the highlighted record and its
 // owner fills the accounts, so the next action does not begin with six pastes.

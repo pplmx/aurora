@@ -122,6 +122,7 @@ func TestTransferFromCanUseASavedSpenderKey(t *testing.T) {
 	tester.Frame()
 
 	app.token.tokenID = "t1"
+	tester.Frame()
 	app.token.fromOwner, app.token.fromTo, app.token.fromAmount = "owner", "bob", "5"
 	app.token.fromSpender, app.token.fromPriv = pk, sk
 	app.transferFromToken()
