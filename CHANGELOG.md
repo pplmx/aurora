@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Backup promotions flush the containing directory before returning**:
+  syncing the copied database and metadata files made their bytes durable, but
+  the subsequent renames were not durable themselves. A power loss after
+  `backup create` or `backup restore` reported success could resurrect the old
+  directory entry while the previous file contents were gone. Successful and
+  rolled-back promotions now fsync the destination directory; a directory
+  flush failure makes the operation fail and rolls the visible set back.
 - **An interrupted backup create recovers its previous verified set**: the
   two-phase create retained old snapshots in a hidden rollback directory, but
   only an in-process error could use it. A SIGKILL or power loss between the
