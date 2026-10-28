@@ -163,6 +163,18 @@ documented in their per-milestone ROADMAP files.
   detect that rollback directory, keep the set when its metadata hashes match,
   or restore the previous verified files when they do not; stale rollback
   copies are removed only after the visible set verifies again.
+- **Backup crash recovery follows the archive, not the caller**: a valid
+  archive belonging to another installation could be mistaken for an
+  interrupted create, replacing its metadata or snapshots with a stale
+  rollback set. Recovery now checks the visible files and unique names against
+  their own metadata, restores the exact database names recorded in the
+  rollback directory, and clears a partial first archive so the next Create
+  can retry.
+- **Backup recovery rejects unsafe configured names before cleanup**:
+  first-create recovery joined configured database names with the output path
+  before Create's normal validation ran, so a `../` name could remove a file
+  outside the archive. Recovery now validates every configured name before it
+  restores or removes any path.
 - **Backup metadata is durable before it becomes the commit record**:
   `backup create` wrote `metadata.json` through a temporary file and renamed
   it without syncing the new contents. A crash immediately after the rename
