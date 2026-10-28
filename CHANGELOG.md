@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Token history pages stay full when an audit row is unreadable**: the
+  SQLite reader applied `LIMIT`/`OFFSET` before decoding each transfer, then
+  skipped corrupt JSON or amounts. One bad row could shorten a page and shift
+  every later offset, so clients that stop on a short page silently lost
+  readable history. Owner-filtered and token-wide reads now page over decoded
+  transfers, scan past unreadable rows, and make `offset` count the rows a
+  client actually receives.
 - **Database restores sync copied bytes before replacing a live store**:
   `backup restore` and its rollback path copied a snapshot into a temporary
   file and renamed it after `Close` without flushing the file. A crash or

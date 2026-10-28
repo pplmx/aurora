@@ -334,15 +334,11 @@ func TestTokenEventReader_Close(t *testing.T) {
 	require.NoError(t, reader.Close())
 }
 
-// TestGetTransferEventsByOwner_ShortPageIsNotTheEnd pins the contract that the
-// post-scan re-check can shrink a page: a stored event whose amount will not
-// parse is skipped after the SQL query, so a page of 3 can hold 2 rows while a
-// third matching row still exists.
-//
-// A client that treats `len(page) < limit` as "no more data" therefore loses
-// the remainder. This test states the actual behaviour so nobody adds such a
-// loop without meeting the contract first.
-func TestGetTransferEventsByOwner_ShortPageIsNotTheEnd(t *testing.T) {
+// TestGetTransferEventsByOwner_MalformedEventDoesNotShortenPage proves that a
+// corrupt audit row is skipped before constructing the requested page. Clients
+// can treat a short page as the end, and offset counts readable transfers
+// rather than raw rows.
+func TestGetTransferEventsByOwner_MalformedEventDoesNotShortenPage(t *testing.T) {
 	tmpFile, err := os.CreateTemp("", "token_short_page_*.db")
 	require.NoError(t, err)
 	_ = tmpFile.Close()
@@ -354,8 +350,9 @@ func TestGetTransferEventsByOwner_ShortPageIsNotTheEnd(t *testing.T) {
 
 	owner := token.PublicKey([]byte("owner"))
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
-	// Three transfers for the owner; the middle one's amount is unreadable.
-	for i, amount := range []string{"10", "not-a-number", "30"} {
+	// Four transfers for the owner; one unreadable amount must not consume a
+	// visible slot or shift the next page's offset.
+	for i, amount := range []string{"10", "not-a-number", "30", "40"} {
 		payload := fmt.Sprintf(
 			`{"from":%q,"to":"x","amount":%q,"nonce":%d,"sig":"","block_height":1}`,
 			ownerB64, amount, i+1)
@@ -366,10 +363,25 @@ func TestGetTransferEventsByOwner_ShortPageIsNotTheEnd(t *testing.T) {
 	reader := NewTokenEventReader(store)
 	page, err := reader.GetTransferEventsByOwner("TK", owner, 3, 0)
 	require.NoError(t, err)
-	require.Len(t, page, 2, "the unreadable event is skipped, shrinking the page")
+	require.Len(t, page, 3, "the unreadable event must not shrink a page with readable rows behind it")
+	require.Equal(t, []string{"10", "30", "40"}, []string{
+		page[0].Amount().String(),
+		page[1].Amount().String(),
+		page[2].Amount().String(),
+	})
 
-	// And a subsequent page proves more data exists behind the short one.
-	next, err := reader.GetTransferEventsByOwner("TK", owner, 3, 2)
+	next, err := reader.GetTransferEventsByOwner("TK", owner, 2, 1)
 	require.NoError(t, err)
-	require.Len(t, next, 1, "the row the short page did not fill is still reachable by offset")
+	require.Len(t, next, 2)
+	require.Equal(t, "30", next[0].Amount().String())
+	require.Equal(t, "40", next[1].Amount().String())
+
+	end, err := reader.GetTransferEventsByOwner("TK", owner, 3, 3)
+	require.NoError(t, err)
+	require.Empty(t, end)
+
+	tokenPage, err := reader.GetTransferEventsByToken("TK", 3, 0)
+	require.NoError(t, err)
+	require.Len(t, tokenPage, 3, "the token-wide history uses the same readable-row paging")
+	require.Equal(t, "40", tokenPage[2].Amount().String())
 }

@@ -3,6 +3,7 @@ package sqlite
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 
 	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -30,38 +31,98 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 	// RECEIVED show up next to the ones it sent instead of a one-sided history
 	// (ISS-162); the post-scan re-check below keeps the memory path honest.
 	//
-	// That re-check can shrink a page: a stored event whose JSON does not
-	// decode, or whose amount is unreadable, is skipped after the query, so a
-	// page of 3 can come back with 2 rows while a third matching row exists.
-	// Measured with one malformed transfer among three.
-	//
-	// CONTRACT: a short page does not mean the end of the data. A client paging
-	// through this MUST advance by the offset it asked for and stop on an empty
-	// page; treating `len(page) < limit` as the last page silently skips the
-	// remainder. The CLI and the REST handler both read one page per request,
-	// so neither trips over it today.
+	// Decoding can still skip a corrupt audit row (bad JSON or amount). Scan
+	// past those rows until the requested page is full or the stream ends, and
+	// keep offset in terms of readable transfers so a short page reliably means
+	// there is no readable row behind it.
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
 
-	events, err := r.store.GetByAggregateAndTypePayloadEither(string(tokenID), "token.transfer", "$.from", ownerB64, "$.to", ownerB64, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodeTransferEvents(tokenID, events, func(payload transferPayload) bool {
-		return payload.From == ownerB64 || payload.To == ownerB64
-	}), nil
+	return pageTransferEvents(
+		limit,
+		offset,
+		func(pageLimit, pageOffset int) ([]events.Event, error) {
+			return r.store.GetByAggregateAndTypePayloadEither(
+				string(tokenID),
+				"token.transfer",
+				"$.from",
+				ownerB64,
+				"$.to",
+				ownerB64,
+				pageLimit,
+				pageOffset,
+			)
+		},
+		func(stored []events.Event) []*token.TransferEvent {
+			return decodeTransferEvents(tokenID, stored, func(payload transferPayload) bool {
+				return payload.From == ownerB64 || payload.To == ownerB64
+			})
+		},
+	)
 }
 
 // GetTransferEventsByToken pages over every transfer in a token's audit
-// stream. The query restricts both aggregate and event type before applying
-// LIMIT/OFFSET, so interleaved mint, approve and burn events cannot consume a
-// history page.
+// stream. Every scan restricts both aggregate and event type, so interleaved
+// mint, approve and burn events cannot consume a history page.
 func (r *TokenEventReader) GetTransferEventsByToken(tokenID token.TokenID, limit, offset int) ([]*token.TransferEvent, error) {
-	stored, err := r.store.GetByAggregateAndType(string(tokenID), "token.transfer", limit, offset)
-	if err != nil {
-		return nil, err
+	return pageTransferEvents(
+		limit,
+		offset,
+		func(pageLimit, pageOffset int) ([]events.Event, error) {
+			return r.store.GetByAggregateAndType(string(tokenID), "token.transfer", pageLimit, pageOffset)
+		},
+		func(stored []events.Event) []*token.TransferEvent {
+			return decodeTransferEvents(tokenID, stored, nil)
+		},
+	)
+}
+
+const transferEventScanBatch = 100
+
+// pageTransferEvents applies limit/offset over decoded transfers rather than
+// raw audit rows. The event reader has to decode JSON and amounts to build the
+// domain objects, and those rows may be corrupt. If SQL applied the offset
+// first, one corrupt row would both shorten a full page and shift the next
+// page, making a short page an unreliable end marker.
+func pageTransferEvents(
+	limit, offset int,
+	fetch func(limit, offset int) ([]events.Event, error),
+	decode func([]events.Event) []*token.TransferEvent,
+) ([]*token.TransferEvent, error) {
+	if offset < 0 {
+		offset = 0
 	}
-	return decodeTransferEvents(tokenID, stored, nil), nil
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset > int(^uint(0)>>1)-limit {
+		return nil, fmt.Errorf("transfer history page too large")
+	}
+
+	wanted := offset + limit
+	batch := max(wanted, transferEventScanBatch)
+	result := make([]*token.TransferEvent, 0, wanted)
+	rawOffset := 0
+
+	for {
+		stored, err := fetch(batch, rawOffset)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, decode(stored)...)
+		rawOffset += len(stored)
+		if len(result) >= wanted || len(stored) < batch {
+			break
+		}
+	}
+
+	if offset >= len(result) {
+		return nil, nil
+	}
+	end := wanted
+	if end > len(result) {
+		end = len(result)
+	}
+	return result[offset:end], nil
 }
 
 type transferPayload struct {
