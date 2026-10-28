@@ -123,7 +123,8 @@ aurora oracle latest -i <source-id>
 `--method` 必须是 HTTP token；`--headers` 接受 JSON 对象，名称必须是 token，
 值不能包含除 tab 外的控制字符。非法 JSON、CR/LF 或超过长度上限会在写入前
 拒绝。`interval` 上限 30 天；越界会在写入前拒绝（更大的值会让调度器溢出成
-“永远到期”的抓取风暴）。
+“永远到期”的抓取风暴）。刷新间隔从一次成功抓取结束时开始计算；失败抓取从
+失败结束时按 1s、2s、4s……指数退避，最长 5 分钟，慢请求不会吞掉退避窗口。
 
 `oracle source list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于
 0 时只读取该页并打印本页数量与偏移；`--offset` 默认 0。调度器不受该选项影响，

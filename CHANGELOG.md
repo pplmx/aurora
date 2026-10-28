@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle retry and refresh clocks start when a fetch finishes**: both the
+  next successful refresh interval and failed-fetch backoff were measured from
+  the attempt's start time. A slow timeout could consume the entire backoff, so
+  a persistently failing source retried almost continuously, and a slow
+  success could become due early. Completion timestamps now drive
+  `last_fetch`, `last_success_at`, and the next retry window.
 - **Oracle sources reject unusable URL authorities at creation**: a URL with
   a port but no hostname, an empty port after `:`, or a port outside
   `1..65535` was previously persisted and failed only on the later fetch.

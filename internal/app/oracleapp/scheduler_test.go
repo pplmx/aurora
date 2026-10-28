@@ -223,6 +223,62 @@ func TestScheduler_PassRetriesFailed(t *testing.T) {
 		t.Fatalf("expected failed fetch to be retried after backoff, got %d attempts", attempts)
 	}
 }
+
+func TestScheduler_BackoffStartsAfterSlowFailure(t *testing.T) {
+	now := time.Unix(1000, 0)
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "slow", Enabled: true, Interval: 60},
+	}}
+	attempts := 0
+	s := NewScheduler(repo, func(_ context.Context, _ string) error {
+		attempts++
+		now = now.Add(10 * time.Second)
+		return errors.New("upstream timeout")
+	}, time.Second, func() time.Time { return now })
+
+	s.pass(context.Background())
+	if attempts != 1 {
+		t.Fatalf("expected the first attempt, got %d", attempts)
+	}
+
+	// The attempt began at 1000 and failed at 1010. Its one-second backoff must
+	// start at the failure time, not disappear while the request was running.
+	s.pass(context.Background())
+	if attempts != 1 {
+		t.Fatalf("slow failed fetch retried before its backoff elapsed: got %d attempts", attempts)
+	}
+}
+
+func TestScheduler_IntervalStartsAfterSlowSuccess(t *testing.T) {
+	now := time.Unix(1000, 0)
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
+		{ID: "slow", Enabled: true, Interval: 60},
+	}}
+	attempts := 0
+	s := NewScheduler(repo, func(_ context.Context, _ string) error {
+		attempts++
+		now = now.Add(10 * time.Second)
+		return nil
+	}, time.Second, func() time.Time { return now })
+
+	s.pass(context.Background())
+	if attempts != 1 {
+		t.Fatalf("expected the first attempt, got %d", attempts)
+	}
+	stats := s.Stats()
+	if len(stats) != 1 || stats[0].LastSuccessAt != now.Unix() {
+		t.Fatalf("last success must use fetch completion time %d, got %+v", now.Unix(), stats)
+	}
+
+	// Completion was at 1010. At 1065 the source is 55 seconds old, so it is
+	// not due yet even though the attempt started more than 60 seconds ago.
+	now = time.Unix(1065, 0)
+	s.pass(context.Background())
+	if attempts != 1 {
+		t.Fatalf("slow successful fetch became due before a full interval after completion: got %d attempts", attempts)
+	}
+}
+
 func TestScheduler_SeedsLastFetchFromRepo(t *testing.T) {
 	now := time.Unix(2000, 0)
 	// Source "fresh" has data recorded at 1990 (10s ago, interval 60s) -> not
