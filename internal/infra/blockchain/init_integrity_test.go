@@ -3,6 +3,7 @@ package blockchain
 import (
 	"database/sql"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -243,5 +244,24 @@ func TestInitWithError_RejectsCorruptLedger(t *testing.T) {
 
 	require.Error(t, err)
 	require.ErrorIs(t, err, ErrLedgerCorruption)
+	require.Nil(t, chain)
+}
+
+// TestInitWithError_ReportsUnopenableDatabase closes the other silent-fallback
+// path: a database that cannot be opened must not look like a successful
+// process-wide chain whose writes only exist until exit.
+func TestInitWithError_ReportsUnopenableDatabase(t *testing.T) {
+	resetChainForTest(t)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	blocker := filepath.Join(dir, "not-a-directory")
+	require.NoError(t, os.WriteFile(blocker, []byte("occupied"), 0o600))
+	viper.Set("db.path", filepath.Join(blocker, "aurora.db"))
+
+	chain, err := InitWithError()
+
+	require.Error(t, err)
 	require.Nil(t, chain)
 }

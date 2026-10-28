@@ -97,22 +97,23 @@ func OpenDB(path string) (*sql.DB, error) {
 	return db, nil
 }
 
-// InitWithError initializes the process-wide chain and reports a persisted
-// ledger that could not be loaded or verified. A nil error with a database-open
-// failure still follows the package's documented in-memory fallback; a
-// non-nil error means the blocks table exists but cannot be trusted, so write
-// paths must stop rather than append on top of a partial view.
+// InitWithError initializes the process-wide chain and reports any database
+// failure, unreadable row, or integrity violation. Returning a chain after an
+// open failure would label writes as durable while they existed only in memory.
 func InitWithError() (*Chain, error) {
 	once.Do(func() {
 		chain := &Chain{Blocks: []*Block{Genesis()}}
 
-		if db, err := InitDB(); err != nil {
-			logger.Warn().Err(err).Msg("Failed to initialize database; blockchain will operate in non-persistent mode")
-		} else {
-			initErr = bindChainToDB(chain, db)
+		db, err := InitDB()
+		if err != nil {
+			initErr = fmt.Errorf("open blockchain database: %w", err)
+			return
 		}
+		initErr = bindChainToDB(chain, db)
 
-		instance = chain
+		if initErr == nil {
+			instance = chain
+		}
 	})
 
 	if initErr != nil {
