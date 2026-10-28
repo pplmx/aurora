@@ -208,8 +208,8 @@ just check && just test
   “Use saved key” 一键填入；Transfer From 需要先填可选的 “Spender public key” 才能
   查找对应保存项（该字段不参与服务调用）。关闭开关或点 “Forget session keys” 前会先确认，
   初始焦点在 Cancel，避免误按 Enter 清除；确认后关闭开关会清空并停用记忆，单独忘记则只清空
-  当前密钥；取消后焦点回到对应开关或按钮。退出 Aurora 也会清空。不写数据库、不写配置文件；
-  失败的操作不会保存密钥。
+  当前密钥；取消后焦点回到对应开关或按钮，确认后若“忘记”按钮消失则回到仍存在的会话密钥
+  开关。退出 Aurora 也会清空。不写数据库、不写配置文件；失败的操作不会保存密钥。
 - **选中或创建记录后，页面上下文随之移动**：代币的 owner 公钥会填进 Mint To、
   Transfer From、Approve/Allowance Owner、Burn From、Balance/History 账户，
   上一个代币的私钥、recipient 和 spender 清空；Create 生成的 owner key 可在
@@ -284,8 +284,9 @@ just check && just test
   共享的 `destructiveConfirm` 警告框，对应 CLI 的 `--confirm` 门槛；对话框里
   写明金额与账户、NFT 名称/短 id、数据源名称/短 id，而不是只问“确定吗”。
   初始焦点落在 Cancel，误按 Enter 只会取消，按一次 Tab 才能到达红色的危险
-  动作；取消（包括 Escape）后焦点回到打开对话框的按钮——这些操作不可撤销，
-  确认前必须能核对目标，也不能被顺手确认或让键盘用户失去位置。
+  动作；取消（包括 Escape）后焦点回到打开对话框的按钮，确认后也回到触发控件——后台
+  写入期间焦点请求会等待页面重新启用。这些操作不可撤销，确认前必须能核对目标，也不能
+  被顺手确认或让键盘用户失去位置。
 - **选中行时同页读数跟随**：选中另一个代币/ NFT /数据源时，已打开的详情、余额、
   历史、Query/Latest、已打开的计票都会改为读取新选中的对象；选中 NFT 时还会把
   当前持有者填进 Transfer 的 From 与 Burn 的 Owner；新建代币/NFT 时

@@ -397,11 +397,10 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 		}
 		detail = fmt.Sprintf(tr("Delete %s? Its scheduling entry is removed; readings already stored stay."), target)
 	}
-	switch destructiveConfirm(c, &a.oracle.askDelete, tr("Delete this source?"), detail, tr("Delete")) {
+	switch destructiveConfirm(c, &a.oracle.askDelete, tr("Delete this source?"), detail, tr("Delete"),
+		a.oracle.deleteTrigger, a.oracle.deleteTrigger) {
 	case destructiveConfirmed:
 		a.deleteOracleSource()
-	case destructiveCancelled:
-		restoreDestructiveFocus(c, a.oracle.deleteTrigger)
 	}
 }
 

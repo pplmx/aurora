@@ -1006,7 +1006,8 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 			"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.",
 			valueOr(amount), valueOr(from))
 	}
-	switch destructiveConfirm(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Burn")) {
+	switch destructiveConfirm(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Burn"),
+		a.token.burnTrigger, a.token.burnTrigger) {
 	case destructiveConfirmed:
 		privateKey := strings.TrimSpace(a.token.burnPriv)
 		tokenID := strings.TrimSpace(a.token.tokenID)
@@ -1022,8 +1023,6 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 				}
 			}
 		})
-	case destructiveCancelled:
-		restoreDestructiveFocus(c, a.token.burnTrigger)
 	}
 }
 

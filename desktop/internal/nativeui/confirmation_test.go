@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
@@ -58,6 +59,18 @@ func TestNFTBurnDialogNamesTheAsset(t *testing.T) {
 	tester.Frame()
 	require.False(t, app.nft.askBurn)
 	require.True(t, tester.Focused("Burn NFT…"), "Cancel must return focus to the Burn tab action")
+
+	app.nft.askBurn = true
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Cancel")))
+	tester.Key(0, ui.KeyTab)
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Burn")))
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.False(t, app.nft.askBurn)
+	require.True(t, tester.Focused("Burn NFT…"),
+		"Confirming must return focus to the Burn tab action once the dialog closes")
 }
 
 // TestDeleteDialogNamesTheSource pins the oracle confirmation: the actions
@@ -80,6 +93,18 @@ func TestDeleteDialogNamesTheSource(t *testing.T) {
 	tester.Frame()
 	require.False(t, app.oracle.askDelete)
 	require.True(t, tester.Focused("Delete"), "Cancel must return focus to the source action")
+
+	app.oracle.askDelete = true
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Cancel")))
+	tester.Key(0, ui.KeyTab)
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Delete")))
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.False(t, app.oracle.askDelete)
+	require.True(t, tester.Focused("Delete"),
+		"Confirming must return focus to the source action once the dialog closes")
 }
 
 // TestDeleteDialogResolvesASourceOutsideTheCurrentPage covers the id a CLI or
@@ -186,6 +211,60 @@ func TestDestructiveDialogDefaultsToCancel(t *testing.T) {
 	tester.Frame()
 	require.False(t, app.token.askBurn)
 	require.Equal(t, 1, fake.burnTokenCalls)
+	require.True(t, tester.Focused("Burn…"),
+		"Confirming must restore focus to the action that opened the dialog")
+}
+
+// TestBackgroundBurnReturnsFocusAfterCompletion covers the real desktop path:
+// the page body is disabled while the write runs, so the focus request waits on
+// the trigger and lands only after the operation has re-enabled the page.
+func TestBackgroundBurnReturnsFocusAfterCompletion(t *testing.T) {
+	release := make(chan struct{})
+	t.Cleanup(func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+	})
+	fake := &gatedTokenBurn{fakeServices: &fakeServices{}, release: release}
+	app := New(fake)
+	app.SetBackgroundWrites(true)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Token")
+	app.token.opTab = 4
+	app.token.tokenID = "token-1"
+	app.token.burnFrom = "owner-pk"
+	app.token.burnAmount = "25"
+	app.token.askBurn = true
+	tester.Frame()
+
+	tester.Key(0, ui.KeyTab)
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Burn")))
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t, "Burning…", app.busy, "the background write must remain visible")
+
+	close(release)
+	require.Eventually(t, func() bool {
+		tester.Frame()
+		return app.busy == ""
+	}, time.Second, 10*time.Millisecond)
+	require.Equal(t, 1, fake.burnTokenCalls)
+	require.True(t, tester.Focused("Burn…"),
+		"completion must land the pending focus request on the original trigger")
+}
+
+type gatedTokenBurn struct {
+	*fakeServices
+	release <-chan struct{}
+}
+
+func (s *gatedTokenBurn) BurnToken(string, string, string, string) error {
+	<-s.release
+	s.burnTokenCalls++
+	return nil
 }
 
 // TestLongNFTNameKeepsBurnActionsInView makes the destructive-action gate fit

@@ -66,14 +66,16 @@ documented in their per-milestone ROADMAP files.
 - **Destructive desktop dialogs default to Cancel**: burning tokens or an NFT
   and deleting an Oracle source now share a red alert whose initial focus is
   Cancel, so Enter dismisses instead of performing an irreversible write. One
-  Tab still reaches the named destructive action, and cancelling returns focus
-  to the control that opened the dialog.
+  Tab still reaches the named destructive action. Both cancelling and
+  confirming return focus to the initiating control; a background write holds
+  that request until it has re-enabled the page.
 
 - **Session-key clearing asks first**: turning off session key memory or
   choosing Forget session keys no longer discards in-memory private keys on a
   single click. The shared confirmation starts on Cancel and explains that
-  keys not saved elsewhere cannot be recovered; Cancel returns focus to the
-  checkbox or button that asked.
+  keys not saved elsewhere cannot be recovered. Cancel returns to the button
+  that asked, while confirmation returns to the remaining opt-in even when the
+  Forget button disappears.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;

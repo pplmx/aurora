@@ -84,6 +84,8 @@ func TestForgetSessionKeysClearsWhatFormsCanReuse(t *testing.T) {
 	_, ok := app.savedKey(pk)
 	require.False(t, ok)
 	require.True(t, app.rememberKeys, "forgetting the current keys leaves the opt-in enabled")
+	require.True(t, tester.Focused("Remember private keys for this session"),
+		"the disappearing Forget action must hand focus to the remaining opt-in")
 }
 
 // TestSessionKeyCheckboxIsTheOptIn pins the visible control behind the memory
@@ -124,6 +126,8 @@ func TestSessionKeyCheckboxIsTheOptIn(t *testing.T) {
 	tester.Frame()
 	require.False(t, app.rememberKeys)
 	require.Zero(t, app.rememberedKeyCount(), "turning memory off must clear the keys")
+	require.True(t, tester.Focused("Remember private keys for this session"),
+		"Confirming the policy change must return focus to the checkbox that opened the dialog")
 }
 
 // TestTurningOffEmptySessionKeyMemoryDoesNotPrompt keeps the confirmation
