@@ -28,8 +28,9 @@ func guide(c *ui.Context, open *bool, steps ...string) {
 				for i, step := range steps {
 					ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
 						ui.Text(c, fmt.Sprintf(tr("%d."), i+1)).FontSize(textSize(c, 12)).Bold().
-							Width(18).TextColor(ui.Hex(aurora))
-						ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+							Width(textSize(c, 18)).Shrink(0).TextColor(ui.Hex(aurora))
+						ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted)).
+							Grow(1).Shrink(1).MinWidth(0)
 					})
 				}
 			})
