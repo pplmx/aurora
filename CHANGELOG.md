@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Trailing backup-directory separators keep restores safe and repeatable**:
+  shell completion commonly supplies `backups/daily/`, which made the hidden
+  `.pre_restore` undo copy land inside the archive instead of beside it. That
+  could fail against a read-only archive or contaminate a directory that had
+  just passed verification. Restore now normalizes the archive path before
+  deriving its sibling safety directory.
 - **Symlinked SQLite databases keep every sidecar owner-only**: permission
   hardening followed the database symlink for the main file but looked for
   `-wal`/`-shm`/`-journal` beside the link, while SQLite creates them beside
