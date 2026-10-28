@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Desktop file URLs preserve Windows UNC hosts and reject remote POSIX
+  paths**: a launcher-provided `file://server/share/draws.json` used to lose
+  the server segment and resolve against the local path, while Windows UNC
+  exports were not importable through their file URL. The desktop intent
+  parser now maps UNC authority names to `\\server\share\...` on Windows and
+  refuses non-local authorities everywhere else.
 - **Windows UNC database paths no longer become invalid SQLite URI authorities**:
   the hardened DSN builder now emits the empty-authority four-slash form
   (`file:////server/share/aurora.db`) for UNC paths and keeps drive-qualified
