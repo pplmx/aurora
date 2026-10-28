@@ -541,7 +541,7 @@ func (a *App) nftWrite(c *ui.Context) {
 				}
 			})
 			id := strings.TrimSpace(a.nft.historyID)
-			matches := a.nft.historyLoadedID == id
+			matches := id != "" && a.nft.historyLoadedID == id
 			if a.nft.historyErr != nil && matches &&
 				!loadWarning(c, "Couldn't load NFT history", a.nft.historyErr, len(a.nft.history) > 0) {
 				return
@@ -723,7 +723,7 @@ func (a *App) refreshNFT(id string) {
 
 func (a *App) nftHistoryTable(c *ui.Context) {
 	if len(a.nft.history) == 0 {
-		emptyNote(c, "No history loaded yet.")
+		emptyNote(c, "No operations recorded for this NFT.")
 		return
 	}
 	if previous, next := listPager(c, a.nft.historyOffset, len(a.nft.history), a.nft.historyHasMore); previous || next {

@@ -143,6 +143,9 @@ documented in their per-milestone ROADMAP files.
   built-in preset now clears the Add Source form's request headers. The presets
   define no headers, so a private Authorization value from a previous form
   could otherwise be stored against the newly chosen public endpoint.
+- **Empty reads say what was empty**: a successfully loaded token history, NFT
+  history or session tally now reports "no transfers", "no operations" or "no
+  votes" for that subject instead of claiming nothing had been loaded.
 - **A desktop write moves the context to the record it changed**: adding an
   Oracle source now targets that source in the action and reading cards,
   minting or transferring an NFT moves the holder fields with the asset and
