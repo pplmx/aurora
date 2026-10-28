@@ -66,6 +66,22 @@ func TestSidebarScrollsAtLargeText(t *testing.T) {
 	require.Equal(t, pageSettings, app.page)
 }
 
+// TestSidebarFileActionScalesWithLargeText keeps the pinned File control from
+// squeezing its scaled label into fixed chrome. It shares the action button's
+// 34px base height, so at 2x it must grow just as the card actions do.
+func TestSidebarFileActionScalesWithLargeText(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(Actions{BackUpDatabase: func() {}})
+	tester := ui.NewTester(app.View, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	file, ok := tester.Find(i18n.GetText("desktop.menu.file"))
+	require.True(t, ok)
+	require.GreaterOrEqual(t, file.H, float32(68),
+		"the pinned File action must scale its full 34px height at 2x")
+}
+
 // TestSidebarRevealsKeyboardPageChoiceAtLargeText covers keyboard navigation:
 // changing the page must reveal the newly selected row instead of changing an
 // item that is still below the visible scroll area.

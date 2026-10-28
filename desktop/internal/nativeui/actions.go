@@ -68,7 +68,8 @@ func (a *App) sidebarActions(c *ui.Context) {
 	ui.Column(c).FillWidth().Padding(12, 8, 16, 14).Children(func() {
 		label := i18n.GetText("desktop.menu.file")
 		button := ui.MenuButton(c, label, a.actionsMenu).
-			FillWidth().Height(34).PaddingX(12).Radius(buttonRadius).
+			FillWidth().Height(max(34, textSize(c, 34))).
+			PaddingX(max(12, textSize(c, 12))).Radius(buttonRadius).
 			Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border))
 		button.Label(label)
 	})
