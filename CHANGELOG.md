@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Scaled sidebar labels keep their full names**: at 1.5x and 2x text the
+  English brand subtitle and module names were clipped inside the fixed-width
+  navigation column. The sidebar now measures the localized brand, section and
+  module text and grows only enough to show it, capped at 38% of the window;
+  each row also exposes its full name as a tooltip when a longer translation
+  reaches that cap.
 - **Large text no longer overlaps or strands navigation**: the dashboard metric
   value slot now grows with its scaled type instead of letting a 2x number
   paint over the note below it. The sidebar takes the height left between the

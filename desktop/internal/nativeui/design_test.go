@@ -716,7 +716,7 @@ func TestCommandPaletteArrowSelection(t *testing.T) {
 // commands used to extend below the viewport with no scroll, so moving the
 // selection to a lower command changed an invisible row.
 func TestCommandPaletteKeepsLongListReachableAtMinimumHeight(t *testing.T) {
-	for _, scale := range []float32{1, 1.5} {
+	for _, scale := range []float32{1, 1.5, 2} {
 		t.Run(fmt.Sprintf("scale-%g", scale), func(t *testing.T) {
 			app := New(&fakeServices{})
 			imported := false
