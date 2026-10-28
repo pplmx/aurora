@@ -82,6 +82,20 @@ func namedTable(c *ui.Context, name string, state *ui.ListState, columns []ui.Ta
 	return ui.Table(c, state, columns, n, cell).Label(tr(name))
 }
 
+// announceSearchResults tells a screen reader what its new query selected.
+// The list repaint alone is visual; the query's editor keeps its own value, so
+// without this the operator cannot tell one match from no matches.
+func announceSearchResults(c *ui.Context, changed bool, count int) {
+	if !changed {
+		return
+	}
+	if count == 1 {
+		c.Announce(tr("1 result."))
+		return
+	}
+	c.Announce(fmt.Sprintf(tr("%d results."), count))
+}
+
 func primaryButton(c *ui.Context, label string) ui.Element {
 	return styledButton(c, label, ui.Hex(aurora), ui.Hex(auroraHover), ui.Hex(auroraPressed), ui.Hex(onAccent))
 }

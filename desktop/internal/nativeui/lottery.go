@@ -223,7 +223,8 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 	rows := make([]DrawRow, 0, len(a.lottery.rows))
 	ui.SearchField(c, &a.lottery.search).Label(tr("Search draws")).
 		Description(tr("Search narrows the current page; use Previous/Next for older draws."))
-	if a.lottery.search != a.lottery.appliedSearch {
+	queryChanged := a.lottery.search != a.lottery.appliedSearch
+	if queryChanged {
 		a.lottery.appliedSearch = a.lottery.search
 		a.lottery.selected = -1
 	}
@@ -248,6 +249,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 			rows = append(rows, draw)
 		}
 	}
+	announceSearchResults(c, queryChanged, len(rows))
 	if len(rows) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No draws match “%s”."), strings.TrimSpace(a.lottery.search)))
 		return

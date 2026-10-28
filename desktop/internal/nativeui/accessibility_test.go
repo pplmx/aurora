@@ -290,6 +290,29 @@ func TestVisibleHintsDescribeTheirControls(t *testing.T) {
 	}
 }
 
+// TestSearchFieldsAnnounceResultCounts covers the shared search interaction:
+// a filtered repaint is visual, so every advertised search field must also
+// report how many rows the new query left.
+func TestSearchFieldsAnnounceResultCounts(t *testing.T) {
+	entries, err := os.ReadDir(".")
+	require.NoError(t, err)
+	searches, announcements := 0, 0
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") ||
+			strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		source, err := os.ReadFile(name)
+		require.NoError(t, err)
+		searches += strings.Count(string(source), "ui.SearchField(")
+		announcements += strings.Count(string(source), "announceSearchResults(c,")
+	}
+	require.GreaterOrEqual(t, searches, 9)
+	require.Equal(t, searches, announcements,
+		"every SearchField must announce its result count")
+}
+
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.
 // The toolkit exposes RoleHeading and Level to screen readers; retaining the
 // exact call here protects the shared heading path.

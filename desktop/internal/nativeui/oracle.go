@@ -221,7 +221,8 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	}
 	ui.SearchField(c, &a.oracle.search).Label(tr("Search sources")).
 		Description(tr("Search narrows the current page; use Previous/Next for older sources."))
-	if a.oracle.search != a.oracle.appliedSearch {
+	queryChanged := a.oracle.search != a.oracle.appliedSearch
+	if queryChanged {
 		a.oracle.appliedSearch = a.oracle.search
 		a.oracle.selected = -1
 	}
@@ -241,6 +242,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		hint(c, "Search narrows the current page; use Previous/Next for older sources.")
 	}
 	srcs := a.filteredSources()
+	announceSearchResults(c, queryChanged, len(srcs))
 	if len(srcs) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No sources match “%s”."), strings.TrimSpace(a.oracle.search)))
 		return

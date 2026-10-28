@@ -581,7 +581,8 @@ func (a *App) votingVoterList(c *ui.Context) {
 	}
 	ui.SearchField(c, &a.voting.voterSearch).Label(tr("Search voters")).
 		Description(tr("Search narrows the current page; use Previous/Next for older voters."))
-	if a.voting.voterSearch != a.voting.voterApplied {
+	queryChanged := a.voting.voterSearch != a.voting.voterApplied
+	if queryChanged {
 		a.voting.voterApplied = a.voting.voterSearch
 		a.voting.voterChoice = -1
 	}
@@ -601,6 +602,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 		hint(c, "Search narrows the current page; use Previous/Next for older voters.")
 	}
 	voters := a.filteredVoters()
+	announceSearchResults(c, queryChanged, len(voters))
 	if len(voters) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No voters match “%s”."), strings.TrimSpace(a.voting.voterSearch)))
 		return
@@ -755,7 +757,8 @@ func (a *App) votingSessionList(c *ui.Context) {
 	}
 	ui.SearchField(c, &a.voting.sessionSearch).Label(tr("Search sessions")).
 		Description(tr("Search narrows the current page; use Previous/Next for older sessions."))
-	if a.voting.sessionSearch != a.voting.sessionApplied {
+	queryChanged := a.voting.sessionSearch != a.voting.sessionApplied
+	if queryChanged {
 		a.voting.sessionApplied = a.voting.sessionSearch
 		a.voting.sessionChoice = -1
 		a.clearSessionRoster()
@@ -777,6 +780,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		hint(c, "Search narrows the current page; use Previous/Next for older sessions.")
 	}
 	sessions := a.filteredSessions()
+	announceSearchResults(c, queryChanged, len(sessions))
 	if len(sessions) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No sessions match “%s”."), strings.TrimSpace(a.voting.sessionSearch)))
 		return
@@ -942,7 +946,8 @@ func (a *App) votingCandidateList(c *ui.Context) {
 	}
 	ui.SearchField(c, &a.voting.candSearch).Label(tr("Search candidates")).
 		Description(tr("Search narrows the current page; use Previous/Next for older candidates."))
-	if a.voting.candSearch != a.voting.candApplied {
+	queryChanged := a.voting.candSearch != a.voting.candApplied
+	if queryChanged {
 		a.voting.candApplied = a.voting.candSearch
 		a.voting.candChoice = -1
 	}
@@ -962,6 +967,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		hint(c, "Search narrows the current page; use Previous/Next for older candidates.")
 	}
 	candidates := a.filteredCandidates()
+	announceSearchResults(c, queryChanged, len(candidates))
 	if len(candidates) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No candidates match “%s”."), strings.TrimSpace(a.voting.candSearch)))
 		return

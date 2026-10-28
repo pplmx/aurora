@@ -205,7 +205,8 @@ func (a *App) tokenList(c *ui.Context) {
 		}
 		ui.SearchField(c, &a.token.search).Label(tr("Search tokens")).
 			Description(tr("Search narrows the current page; use Previous/Next for older tokens."))
-		if a.token.search != a.token.appliedSearch {
+		queryChanged := a.token.search != a.token.appliedSearch
+		if queryChanged {
 			// The highlight indexes the filtered rows; after a new query the same
 			// index is a different token, so no row is chosen until the operator
 			// picks one from the list they are looking at.
@@ -233,6 +234,7 @@ func (a *App) tokenList(c *ui.Context) {
 				rows = append(rows, t)
 			}
 		}
+		announceSearchResults(c, queryChanged, len(rows))
 		if len(rows) == 0 {
 			emptyNote(c, fmt.Sprintf(tr("No tokens match “%s”."), strings.TrimSpace(a.token.search)))
 			return

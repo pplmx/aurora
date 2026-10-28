@@ -424,6 +424,8 @@ var desktopMessages = map[string]string{
 	"Follow System":                     "跟随系统",
 	"Display language":                  "显示语言",
 	"Use the language selected by the operating system.": "使用操作系统选择的语言。",
+	"1 result.":         "1 条结果。",
+	"%d results.":       "%d 条结果。",
 	"Data":              "数据",
 	"Database path":     "数据库路径",
 	"Show Data Folder":  "打开数据目录",
