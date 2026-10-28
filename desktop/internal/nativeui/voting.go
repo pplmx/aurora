@@ -616,14 +616,14 @@ func (a *App) votingVoterList(c *ui.Context) {
 		switch col {
 		case 0:
 			if voter.HasVoted {
-				ui.Text(c, tr("Yes")).TextColor(ui.Hex(auroraGreen)).SingleLine()
+				tableText(c, tr("Yes")).TextColor(ui.Hex(auroraGreen))
 			} else {
-				ui.Text(c, tr("No")).TextColor(ui.Hex(inkMuted)).SingleLine()
+				tableText(c, tr("No")).TextColor(ui.Hex(inkMuted))
 			}
 		case 1:
-			ui.Text(c, voter.Name).SingleLine()
+			tableText(c, voter.Name)
 		case 2:
-			ui.Text(c, shortID(voter.PublicKey)).SingleLine()
+			tableTextFull(c, shortID(voter.PublicKey), voter.PublicKey)
 		}
 	})
 	hint(c, "A prior ballot does not block a later session; each session accepts one ballot per voter.")
@@ -741,20 +741,29 @@ func (a *App) votingSessionList(c *ui.Context) {
 		// fixed height, which cut "Budget 2026" in half.
 		{Title: tr("Title"), MinWidth: 130},
 		{Title: tr("Status"), Width: 100},
-		{Title: tr("Window"), Width: 210},
+		// The two timestamps are stacked inside this column. Each line is a
+		// full local date and time that stays within the column at 1.5x text,
+		// instead of one long range whose end was clipped.
+		{Title: tr("Window"), MinWidth: tableColumnWidth(c, 150)},
 	}, len(sessions), func(row, col int) {
 		s := sessions[row]
 		switch col {
 		case 0:
-			ui.Text(c, shortID(s.ID)).SingleLine()
+			tableTextFull(c, shortID(s.ID), s.ID)
 		case 1:
-			ui.Text(c, s.Title).SingleLine()
+			tableText(c, s.Title)
 		case 2:
-			ui.Text(c, tr(s.Status))
+			tableText(c, tr(s.Status))
 		case 3:
 			// The window is why a ballot is refused, so it belongs in the
 			// list rather than only in the error a voter sees afterwards.
-			ui.Text(c, sessionWindow(s.StartTime, s.EndTime)).FontSize(textSize(c, 12)).SingleLine()
+			startLine, endLine := sessionWindowLines(s.StartTime, s.EndTime)
+			ui.Column(c).Gap(1).Children(func() {
+				tableText(c, startLine).FontSize(textSize(c, 12))
+				if endLine != "" {
+					tableText(c, endLine).FontSize(textSize(c, 12))
+				}
+			})
 		}
 	})
 	if table.Changed() && a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
@@ -783,7 +792,9 @@ func (a *App) votingSessionList(c *ui.Context) {
 				a.voting.rosterSessionID == chosen.ID)
 		}
 		readout(c, []readoutRow{
+			{"Title", chosen.Title},
 			{"About", valueOr(chosen.Description)},
+			{"Window", sessionWindow(chosen.StartTime, chosen.EndTime)},
 			{"Roster", a.sessionRosterNames(chosen.ID, chosen.Candidates)},
 		})
 		copyRow(c, "Selected session ID", chosen.ID, nil)
@@ -879,11 +890,11 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		cand := candidates[row]
 		switch col {
 		case 0:
-			ui.Text(c, shortID(cand.ID)).SingleLine()
+			tableTextFull(c, shortID(cand.ID), cand.ID)
 		case 1:
-			ui.Text(c, cand.Name).SingleLine()
+			tableText(c, cand.Name)
 		case 2:
-			ui.Text(c, cand.Party).SingleLine()
+			tableText(c, cand.Party)
 		}
 	})
 	if table.Changed() && a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates) {
@@ -1131,11 +1142,21 @@ func (a *App) clearTallyForAnotherSession(sessionID string) {
 // sessionWindow renders a session's acceptance window as a compact pair of
 // local times.
 func sessionWindow(start, end int64) string {
+	startLine, endLine := sessionWindowLines(start, end)
+	if endLine == "" {
+		return startLine
+	}
+	return startLine + " " + endLine
+}
+
+// sessionWindowLines splits the exact local start and end times so a table
+// column can stack them without truncating either timestamp.
+func sessionWindowLines(start, end int64) (string, string) {
 	if start == 0 && end == 0 {
-		return "—"
+		return "—", ""
 	}
 	const layout = "2006-01-02 15:04"
-	return time.Unix(start, 0).Format(layout) + " → " + time.Unix(end, 0).Format(layout)
+	return time.Unix(start, 0).Format(layout), "→ " + time.Unix(end, 0).Format(layout)
 }
 
 func (a *App) votingResults(c *ui.Context) {
@@ -1185,7 +1206,7 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	}, len(results), func(row, col int) {
 		r := results[row]
 		if col == 0 {
-			ui.Text(c, r.Name).SingleLine()
+			tableText(c, r.Name)
 		} else {
 			ui.Text(c, strconv.Itoa(r.Votes))
 		}

@@ -230,9 +230,9 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			case 0:
 				ui.Text(c, strconv.FormatInt(entry.Height, 10))
 			case 1:
-				ui.Text(c, entry.Module).SingleLine()
+				tableText(c, entry.Module)
 			case 2:
-				ui.Text(c, entry.Summary).FontSize(textSize(c, 12)).SingleLine()
+				tableText(c, entry.Summary).FontSize(textSize(c, 12))
 			}
 		})
 		if table.Changed() && a.dashboard.recentChoice >= 0 && a.dashboard.recentChoice < len(rows) {
@@ -402,9 +402,9 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		case 0:
 			ui.Text(c, strconv.FormatInt(b.Height, 10))
 		case 1:
-			ui.Text(c, b.Module).SingleLine()
+			tableText(c, b.Module)
 		case 2:
-			ui.Text(c, b.Summary).FontSize(textSize(c, 12)).SingleLine()
+			tableText(c, b.Summary).FontSize(textSize(c, 12))
 		}
 	})
 }

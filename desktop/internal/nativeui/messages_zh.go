@@ -226,6 +226,7 @@ var desktopMessages = map[string]string{
 	"Search tokens":         "搜索代币",
 	"Symbol":                "符号",
 	"Supply":                "供应量",
+	"Selected supply":       "已选供应量",
 	"No tokens match “%s”.": "没有匹配“%s”的代币。",
 	"Previous":              "上一页",
 	"Next":                  "下一页",

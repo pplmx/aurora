@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Table values survive larger text and narrower columns**: desktop tables
+  now mark clipped cells with an ellipsis and expose the full stored value on
+  hover, including source names, payloads, keys and long error text. Session
+  windows stack exact start/end timestamps, and the Supply and Block columns
+  reserve enough width for the largest valid `int64` value as text scaling
+  grows. Selecting a token also shows its exact supply below the collection.
 - **Page switches preserve the destination layout**: the desktop's shared
   scroll container now carries a page identity instead of being reused by tree
   position. Opening NFT after Oracle previously reconciled the two distinct

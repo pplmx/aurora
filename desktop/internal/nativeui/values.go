@@ -18,6 +18,20 @@ func shortID(id string) string {
 	return id[:keep] + "…"
 }
 
+// tableText draws variable table content on one line. Ellipsis marks a value
+// the current column cuts, and the same value is attached as its tooltip and
+// accessible description, so narrowing the window or enlarging text does not
+// make the stored value silently disappear.
+func tableText(c *ui.Context, value string) ui.Element {
+	return ui.Text(c, value).SingleLine().Ellipsis("…").Tooltip(value)
+}
+
+// tableTextFull is tableText when the cell intentionally shows a short form,
+// such as an id whose full value is useful on hover.
+func tableTextFull(c *ui.Context, shown, full string) ui.Element {
+	return ui.Text(c, shown).SingleLine().Ellipsis("…").Tooltip(full)
+}
+
 // joinList renders a []string for a table cell. The Web UI used
 // participants.join(', '); a nil slice reads as an em dash so an empty cell is
 // visibly empty rather than blank.

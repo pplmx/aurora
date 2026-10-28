@@ -467,16 +467,19 @@ func (a *App) nftListBody(c *ui.Context) {
 	table := ui.Table(c, &a.nft.listTable, []ui.TableColumn{
 		{Title: tr("ID"), Width: 150},
 		{Title: tr("Name"), MinWidth: 110},
-		{Title: tr("Block"), Width: 80, Align: ui.End},
+		// A ledger height is an int64 and can reach nineteen digits. Give
+		// the numeric column room that grows with the text size instead of
+		// clipping the value that proves when the asset was recorded.
+		{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 	}, len(list), func(row, col int) {
 		n := list[row]
 		switch col {
 		case 0:
-			ui.Text(c, shortID(n.ID)).SingleLine()
+			tableTextFull(c, shortID(n.ID), n.ID)
 		case 1:
-			ui.Text(c, n.Name).SingleLine()
+			tableText(c, n.Name)
 		case 2:
-			ui.Text(c, strconv.FormatInt(n.BlockHeight, 10))
+			tableText(c, strconv.FormatInt(n.BlockHeight, 10))
 		}
 	})
 	if table.Changed() && a.nft.selected >= 0 && a.nft.selected < len(list) {
@@ -741,16 +744,16 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 		{Title: tr("Type"), Width: 100},
 		{Title: tr("From"), Width: 160},
 		{Title: tr("To"), Width: 160},
-		{Title: tr("Block"), Width: 80, Align: ui.End},
+		{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 	}, len(ops), func(row, col int) {
 		op := ops[row]
 		switch col {
 		case 0:
-			ui.Text(c, tr(op.Type))
+			tableText(c, tr(op.Type))
 		case 1:
-			ui.Text(c, op.From).SingleLine()
+			tableText(c, op.From)
 		case 2:
-			ui.Text(c, op.To).SingleLine()
+			tableText(c, op.To)
 		case 3:
 			ui.Text(c, strconv.FormatInt(op.BlockHeight, 10))
 		}

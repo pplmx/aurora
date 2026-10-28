@@ -57,3 +57,31 @@ func TestPageSwitchPreservesDestinationLayout(t *testing.T) {
 	require.True(t, bytes.Equal(want.Pix, got.Pix),
 		"Oracle -> NFT must render exactly like opening NFT directly")
 }
+
+// TestPageSwitchDropsTheOldPagesTextFocus pins that a window-wide page
+// shortcut ends text entry in the page being left. Without the destination's
+// own layout identity, the new page could inherit the old input's focus and
+// send subsequent typing into a hidden or unrelated field.
+func TestPageSwitchDropsTheOldPagesTextFocus(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 900, 2200)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Token ID"))
+	tester.Frame()
+	tester.Type("token-before-switch")
+	require.Equal(t, "token-before-switch", app.token.tokenID)
+
+	// Ctrl/Cmd+5 selects Oracle, the fifth page in the window-wide order.
+	tester.Key(platformRefreshModifier(), ui.Key5)
+	tester.Frame()
+	require.Equal(t, pageOracle, app.page)
+	active, _ := tester.TextInputActive()
+	require.False(t, active, "the Token input must not keep text focus on Oracle")
+
+	tester.Type("must-not-land")
+	require.Empty(t, app.oracle.addName)
+	require.Empty(t, app.oracle.fetchID)
+	require.Empty(t, app.oracle.queryID)
+}
