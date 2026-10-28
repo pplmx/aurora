@@ -15,16 +15,20 @@ func (a *App) settingsView(c *ui.Context) {
 	a.scrollPage(c, func() {
 		formCard(c, "Language", "Applies to menus, pages, dialogs and guidance.", func() {
 			current := "—"
+			language := ""
 			if a.actions.Language != nil {
-				current = languageLabel(a.actions.Language())
+				language = a.actions.Language()
+				current = languageLabel(language)
 			}
 			readout(c, []readoutRow{{"Current", current}})
-			ui.Row(c).Wrap().Gap(8).Children(func() {
-				a.languageButton(c, "Follow System", "")
-				a.languageButton(c, "English", "en")
-				a.languageButton(c, "简体中文", "zh-Hans")
-				a.languageButton(c, "繁體中文", "zh-Hant")
-			})
+			if a.actions.SetLanguage != nil {
+				languageChooser(c, languageChoice(language), a.actions.SetLanguage)
+				follow := secondaryButton(c, "Follow System").
+					Description(tr("Use the language selected by the operating system."))
+				if follow.Clicked() {
+					a.actions.SetLanguage("")
+				}
+			}
 		})
 
 		formCard(c, "Session keys", "Private keys can be kept in memory for this session only.", func() {
@@ -99,12 +103,28 @@ func (a *App) settingsView(c *ui.Context) {
 	})
 }
 
-func (a *App) languageButton(c *ui.Context, label, tag string) {
-	if a.actions.SetLanguage == nil {
+// languageChooser exposes the installed languages as one keyboard-operable
+// radio group. Follow System stays a separate action because it changes the
+// selection policy, not which installed language is currently shown.
+func languageChooser(c *ui.Context, current string, set func(string)) {
+	if set == nil {
 		return
 	}
-	if secondaryButton(c, label).Clicked() {
-		a.actions.SetLanguage(tag)
+	choice := current
+	ui.RadioGroup(c, func() {
+		for _, option := range []struct {
+			label string
+			tag   string
+		}{
+			{"English", "en"},
+			{"简体中文", "zh-Hans"},
+			{"繁體中文", "zh-Hant"},
+		} {
+			ui.Radio(c, &choice, option.tag, option.label)
+		}
+	}).Row().Wrap().Gap(16).Label(tr("Display language"))
+	if choice != current {
+		set(choice)
 	}
 }
 
@@ -120,17 +140,36 @@ func (a *App) settingsButton(c *ui.Context, label string, fn func()) {
 // languageLabel renders the language in effect in its own language, matching
 // the language choices on this page.
 func languageLabel(tag string) string {
-	switch strings.ToLower(strings.TrimSpace(tag)) {
+	switch languageChoice(tag) {
 	case "en":
 		return "English"
-	case "zh-hans":
+	case "zh-Hans":
 		return "简体中文"
-	case "zh-hant":
+	case "zh-Hant":
 		return "繁體中文"
 	case "":
-		return "—"
+		if strings.TrimSpace(tag) == "" {
+			return "—"
+		}
+		return tag
 	default:
 		return tag
+	}
+}
+
+func languageChoice(tag string) string {
+	tag = strings.ToLower(strings.TrimSpace(tag))
+	switch {
+	case strings.HasPrefix(tag, "en"):
+		return "en"
+	case strings.HasPrefix(tag, "zh-hant"),
+		strings.HasPrefix(tag, "zh-tw"),
+		strings.HasPrefix(tag, "zh-hk"):
+		return "zh-Hant"
+	case strings.HasPrefix(tag, "zh"):
+		return "zh-Hans"
+	default:
+		return ""
 	}
 }
 
