@@ -82,7 +82,7 @@ func OpenDB(path string) (*sql.DB, error) {
 	// transaction racing a concurrent writer hits the un-waitable
 	// SQLITE_BUSY_SNAPSHOT — serialize writers at BEGIN and wait up to 5s for
 	// the lock instead (v1.70, ISS-076; same values as infra/sqlite/dsn.go).
-	db, err := sql.Open("sqlite", path+"?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000")
+	db, err := sql.Open("sqlite", utils.SQLiteDSN(path, "_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000"))
 	if err != nil {
 		return nil, err
 	}

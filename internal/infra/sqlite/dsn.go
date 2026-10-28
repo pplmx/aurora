@@ -1,6 +1,6 @@
 package sqlite
 
-import "fmt"
+import "github.com/pplmx/aurora/internal/utils"
 
 // writeDSNSuffix hardens every repository's SQLite DSN for workload run over
 // the service's real connection pool (production wiring sets no
@@ -25,9 +25,11 @@ import "fmt"
 // concurrently with a CLI/API process holding the write lock (TASK-170,
 // ISS-165): an un-hardened `sql.Open("sqlite", path)` defaults the busy
 // timeout to 0, failing instantly instead of waiting up to 5s.
-const WriteDSNSuffix = "?_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000"
+const writeDSNQuery = "_foreign_keys=ON&_txlock=immediate&_busy_timeout=5000"
+
+const WriteDSNSuffix = "?" + writeDSNQuery
 
 // DSN returns dbPath plus the hardened write suffix for repository DSNs.
 func DSN(dbPath string) string {
-	return fmt.Sprintf("%s%s", dbPath, WriteDSNSuffix)
+	return utils.SQLiteDSN(dbPath, writeDSNQuery)
 }

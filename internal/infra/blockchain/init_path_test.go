@@ -3,6 +3,7 @@ package blockchain
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -81,4 +82,27 @@ func TestDBPath_DoesNotHideOpenErrorsAsAnEmptyPath(t *testing.T) {
 
 	_, err := OpenDB(got)
 	require.Error(t, err, "the underlying open must surface the filesystem failure")
+}
+
+// TestOpenDB_PreservesSpecialPathCharacters keeps the ledger on the exact file
+// named by configuration. Concatenating the driver parameters directly turned
+// a '?' in the filename into the DSN separator and opened a different database.
+func TestOpenDB_PreservesSpecialPathCharacters(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("'?' is not a valid Windows filename character")
+	}
+
+	dbPath := filepath.Join(t.TempDir(), "ledger?copy.db")
+	db, err := OpenDB(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+
+	var seq int
+	var name, filename string
+	require.NoError(t, db.QueryRow("PRAGMA database_list").Scan(&seq, &name, &filename))
+	require.Equal(t, dbPath, filename)
+
+	var foreignKeys int
+	require.NoError(t, db.QueryRow("PRAGMA foreign_keys").Scan(&foreignKeys))
+	require.Equal(t, 1, foreignKeys)
 }
