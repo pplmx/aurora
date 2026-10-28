@@ -74,12 +74,12 @@ func TestSyncLocale(t *testing.T) {
 // localizing there localizes all of them at once.
 func TestImportReportFollowsTheLocale(t *testing.T) {
 	withLocale(t, "zh", func() {
-		title, message, detail := importReport(lotteryapp.ImportResult{Total: 2, Imported: 2}, "/tmp/draws.json")
+		title, message, _ := importReport(lotteryapp.ImportResult{Total: 2, Imported: 2}, "/tmp/draws.json")
 		assert.Equal(t, "抽奖记录已导入", title)
 		assert.Equal(t, "已导入 2 条抽奖记录。", message)
 
 		partial := lotteryapp.ImportResult{Total: 3, Imported: 2, Rejected: []int{1}}
-		title, message, detail = importReport(partial, "/tmp/draws.json")
+		title, message, detail := importReport(partial, "/tmp/draws.json")
 		assert.Equal(t, "部分导入失败", title)
 		assert.Equal(t, "已导入 2 / 3 条抽奖记录（失败 1 条）。", message)
 		for _, want := range []string{"[1]", "/tmp/draws.json"} {

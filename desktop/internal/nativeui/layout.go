@@ -145,16 +145,6 @@ func badge(c *ui.Context, text, background, foreground string) {
 	ui.Badge(c, tr(text)).Background(ui.Hex(background)).TextColor(ui.Hex(foreground))
 }
 
-// verdictBadge draws a good/bad pill: green for a verdict that holds, red for
-// one that does not.
-func verdictBadge(c *ui.Context, text string, ok bool) {
-	if ok {
-		badge(c, text, auroraGreen, night)
-		return
-	}
-	badge(c, text, auroraRed, night)
-}
-
 // formCard draws a section as a card: its heading, its fields, and whatever
 // the section reports. Cards are what give the scrolling page structure, so a
 // long form reads as a list of jobs rather than one wall of inputs.
