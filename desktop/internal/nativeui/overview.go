@@ -149,8 +149,7 @@ func (a *App) dashboardView(c *ui.Context) {
 				})
 			}
 		}
-		empty := a.dashboard.Lotteries == 0 && a.dashboard.Votes == 0 && a.dashboard.Oracle == 0
-		if empty {
+		if a.dashboardIsEmpty() {
 			// A fresh install has nothing to summarize yet. Start with the
 			// first move, then show the (zero) counters and the empty chain.
 			a.dashboardQuickStart(c)
@@ -167,12 +166,25 @@ func (a *App) dashboardView(c *ui.Context) {
 	a.liveRefresh(c, a.loadDashboard)
 }
 
+// dashboardIsEmpty distinguishes a fresh store from a partial one. Every
+// visible counter participates, and a non-empty audit chain also counts even
+// when the changed module (token, NFT) has no dashboard card.
+func (a *App) dashboardIsEmpty() bool {
+	d := a.dashboard
+	return d.Lotteries == 0 &&
+		d.Votes == 0 &&
+		d.Candidates == 0 &&
+		d.Sessions == 0 &&
+		d.Oracle == 0 &&
+		len(d.recent) == 0
+}
+
 // dashboardQuickStart names the first move in each module. The sidebar lists
 // modules, not tasks; an operator opening a fresh window otherwise has to
 // guess which page starts a draw, a token or a feed.
 func (a *App) dashboardQuickStart(c *ui.Context) {
 	formCard(c, "Quick start", "One first move per module; use the sidebar for everything else.", func() {
-		if a.dashboard.Lotteries == 0 && a.dashboard.Votes == 0 && a.dashboard.Oracle == 0 {
+		if a.dashboardIsEmpty() {
 			emptyNote(c, "Nothing recorded yet — run a draw to create the first ledger entry.")
 		}
 		ui.Row(c).Wrap().Gap(8).Children(func() {
