@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Voting tallies keep the complete candidate beside the count**: the
+  two-column results table left Votes readable at 2x but reduced a long
+  candidate name to a single-line prefix. Results now become stacked records
+  above the same 1.75x threshold, so the full identity and exact tally stay
+  together under the total-vote readout.
 - **Dashboard activity and the blockchain audit stay readable at large text**:
   at 2x the three-column tables left only a narrow strip for the audit payload,
   so the stored event was reduced to a prefix. Recent dashboard entries and

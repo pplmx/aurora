@@ -750,6 +750,45 @@ func TestBlockchainUsesRecordsAtLargeText(t *testing.T) {
 	require.True(t, tester.HasText("oracle"), "the source module must remain visible")
 }
 
+// TestVotingResultsUseRecordsAtLargeText keeps a long candidate name intact
+// beside its tally at 2x. The two-column table made Votes readable but reduced
+// the candidate to a single-line prefix, leaving the count unattached to a
+// full identity.
+func TestVotingResultsUseRecordsAtLargeText(t *testing.T) {
+	const (
+		sessionID = "session-0123456789abcdef"
+		name      = "A coalition candidate whose complete ballot name must remain readable"
+	)
+	app := New(&fakeServices{})
+	app.ShowPage("Voting")
+	app.voting.tab = 2
+	app.voting.resultsSession = sessionID
+	app.voting.results = []ResultRow{{CandidateID: "candidate-1", Name: name, Votes: 123}}
+	app.voting.resultsLoadedID = sessionID
+
+	var nameWidth, nameHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		nameWidth, nameHeight = c.MeasureText(0, ui.Span{
+			Text: name, Size: textSize(c, 13),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(name)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	nameRect, ok := tester.Find(name)
+	require.True(t, ok)
+	require.True(t, nameRect.W >= nameWidth || nameRect.H >= 1.5*nameHeight,
+		"the complete candidate name must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		nameRect, nameWidth, nameHeight)
+	require.True(t, tester.HasText("123"), "the tally must remain beside the candidate")
+}
+
 // TestVotingCollectionsUseRecordsAtLargeText applies the collection rule to
 // the three Setup lists. At 2x the voter table pushed the public key off the
 // card, candidate names and party labels were clipped, and the session table's
