@@ -86,8 +86,8 @@ type oracleState struct {
 	sourceTable ui.ListState
 	healthTable ui.ListState
 	dataTable   ui.ListState
-	// deleteTrigger receives focus again when the destructive confirmation is
-	// cancelled, keeping keyboard navigation on the source action row.
+	// deleteTrigger receives focus when the destructive confirmation closes,
+	// keeping keyboard navigation on the source action row.
 	deleteTrigger ui.Handle
 }
 

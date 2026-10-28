@@ -56,7 +56,9 @@ documented in their per-milestone ROADMAP files.
   number page shortcuts do the same when they replace the focused page control.
   A page status or busy strip now appears above a keyed body host, so the
   control whose action produced the message keeps keyboard focus instead of
-  losing it to the rebuilt sibling tree.
+  losing it to the rebuilt sibling tree. Dismissing a status moves focus to
+  Navigation, and dismissing a one-time generated key card returns to its
+  Generate action.
 
 - **Desktop shortcuts describe their real scope**: Settings now marks Reload as
   a data-page action instead of claiming every shortcut works on every page.

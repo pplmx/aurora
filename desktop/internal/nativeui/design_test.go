@@ -789,10 +789,20 @@ func TestStatusLineCanBeDismissed(t *testing.T) {
 	tester.Frame()
 
 	require.True(t, tester.HasText("done"))
-	require.NoError(t, tester.Click("Dismiss"))
+	for range 30 {
+		if tester.Focused(tr("Dismiss")) {
+			break
+		}
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+	}
+	require.True(t, tester.Focused(tr("Dismiss")), "the dismiss action must be keyboard reachable")
+	tester.Key(0, ui.KeyEnter)
 	tester.Frame()
 	require.True(t, app.token.status.empty())
 	require.False(t, tester.HasText("done"))
+	require.True(t, tester.Focused("Navigation"),
+		"the disappearing dismiss action must leave focus on the sidebar")
 }
 
 // TestBusyWriteDisablesTheFrame prevents edits and a second action from racing

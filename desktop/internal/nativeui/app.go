@@ -156,7 +156,9 @@ func (a *App) View(c *ui.Context) {
 			// window, not at the top of the scrolling body: an action at the
 			// bottom of a form could report a failure above the viewport, and
 			// the operator would see the form unchanged and assume it worked.
-			renderStatus(c, a.page, a.pageStatus(), a.clearPageStatus)
+			if renderStatus(c, a.page, a.pageStatus(), a.clearPageStatus) {
+				a.navigationControl.Focus(c)
+			}
 			a.busyBar(c)
 			// A write owns the page body, not the navigation: the sidebar stays
 			// usable, while form edits and a second submit cannot race the
