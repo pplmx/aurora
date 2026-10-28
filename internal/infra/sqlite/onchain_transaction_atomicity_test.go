@@ -93,7 +93,7 @@ func TestNFTTransferRollbackLeavesNoOnChainBlock(t *testing.T) {
 	require.Len(t, chain.Blocks, 2, "failed transfer must not remain in the in-memory chain")
 	require.Equal(t, 1, countOnChainBlocks(t, repo.GetDB()), "failed transfer must not persist a second block")
 
-	operations, err := repo.GetOperations(minted.ID)
+	operations, err := repo.GetOperations(minted.ID, 0, 0)
 	require.NoError(t, err)
 	require.Len(t, operations, 1, "the rolled-back transfer operation must not survive")
 	require.Equal(t, "mint", operations[0].Type)

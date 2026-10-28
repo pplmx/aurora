@@ -11,6 +11,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **NFT operation history is paged instead of silently capped**: SQLite,
+  `GET /api/v1/nft/{id}/history`, `aurora nft history`, and the desktop History
+  card now share a newest-first `limit`/`offset` contract. The old fixed
+  1000-row truncation could not reach older audit records, and a burned NFT's
+  empty later page was indistinguishable from an unknown id; both cases are
+  now explicit. Desktop paging keeps the last good page when a move fails and
+  probes one row past each page for an exact end state.
+
 - **Oracle sources use the same bounded collection contract**: SQLite,
   `GET /api/v1/oracle/sources`, `aurora oracle source list`, and the desktop
   Sources card now pass `limit`/`offset` instead of materialising every feed.

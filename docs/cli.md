@@ -59,8 +59,12 @@ aurora nft get --nft <id>
 aurora nft list                        # 全部 NFT
 aurora nft list --owner <pubkey>       # 只看某个持有者
 aurora nft history --nft <id>
+aurora nft history --nft <id> --limit 100 --offset 0
 aurora nft burn --nft <id> --owner <owner> -k "<private-key>" --confirm
 ```
+
+`nft history` 的 `--limit` 默认 0（列出 offset 之后的全部操作），大于 0 时只读
+该页并打印本页数量与偏移；`--offset` 默认 0。已销毁 NFT 的审计链仍可翻页读取。
 
 ## 代币（FT）
 

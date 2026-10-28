@@ -17,7 +17,8 @@ import (
 )
 
 type mockNFTService struct {
-	nfts []*nft.NFT
+	nfts       []*nft.NFT
+	operations map[string][]*nft.Operation
 }
 
 // Real-length key fixtures: the app layer now rejects wrong-length keys
@@ -92,8 +93,19 @@ func (m *mockNFTService) GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*
 	return all, nil
 }
 
-func (m *mockNFTService) GetOperations(nftID string) ([]*nft.Operation, error) {
-	return nil, nil
+func (m *mockNFTService) GetOperations(nftID string, limit, offset int) ([]*nft.Operation, error) {
+	operations := m.operations[nftID]
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(operations) {
+		return nil, nil
+	}
+	operations = operations[offset:]
+	if limit > 0 && len(operations) > limit {
+		operations = operations[:limit]
+	}
+	return operations, nil
 }
 
 type mockBlockWriter struct {
@@ -374,7 +386,7 @@ func TestGetNFTOperationsUseCase_Execute(t *testing.T) {
 
 	uc := NewGetNFTOperationsUseCase(service)
 
-	resp, err := uc.Execute("nft-1")
+	resp, err := uc.Execute(&GetNFTOperationsRequest{NFTID: "nft-1"})
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -391,8 +403,28 @@ func TestGetNFTOperationsUseCase_UnknownNFT(t *testing.T) {
 	service := &mockNFTService{}
 	uc := NewGetNFTOperationsUseCase(service)
 
-	_, err := uc.Execute("does-not-exist")
+	_, err := uc.Execute(&GetNFTOperationsRequest{NFTID: "does-not-exist", Offset: 10})
 	require.ErrorIs(t, err, nft.ErrNFTNotFound)
+}
+
+func TestGetNFTOperationsUseCase_Pages(t *testing.T) {
+	service := &mockNFTService{
+		nfts: []*nft.NFT{{ID: "nft-1"}},
+		operations: map[string][]*nft.Operation{
+			"nft-1": {
+				{ID: "op-1", NFTID: "nft-1", Type: "mint"},
+				{ID: "op-2", NFTID: "nft-1", Type: "transfer"},
+				{ID: "op-3", NFTID: "nft-1", Type: "burn"},
+			},
+		},
+	}
+
+	resp, err := NewGetNFTOperationsUseCase(service).Execute(&GetNFTOperationsRequest{
+		NFTID: "nft-1", Limit: 1, Offset: 1,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp, 1)
+	require.Equal(t, "op-2", resp[0].ID)
 }
 
 // TestGetNFTOperationsUseCase_BurnedNFTKeepsAuditTrail locks ISS-359: burn
@@ -414,10 +446,18 @@ func TestGetNFTOperationsUseCase_BurnedNFTKeepsAuditTrail(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, svc.Burn(minted.ID, owner, privateKey, chain))
 
-	resp, err := NewGetNFTOperationsUseCase(svc).Execute(minted.ID)
+	resp, err := NewGetNFTOperationsUseCase(svc).Execute(&GetNFTOperationsRequest{NFTID: minted.ID})
 	require.NoError(t, err)
 	require.Len(t, resp, 2)
 	require.ElementsMatch(t, []string{"mint", "burn"}, []string{resp[0].Type, resp[1].Type})
+
+	// The NFT row is gone, but an empty later page must still be a valid page
+	// of the retained audit trail rather than a 404.
+	page, err := NewGetNFTOperationsUseCase(svc).Execute(&GetNFTOperationsRequest{
+		NFTID: minted.ID, Limit: 10, Offset: 10,
+	})
+	require.NoError(t, err)
+	require.Empty(t, page)
 }
 
 // TestMintNFTUseCase_RejectsShortCreatorKey is the regression test for the

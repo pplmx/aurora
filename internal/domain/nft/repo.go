@@ -49,7 +49,10 @@ type Repository interface {
 
 	DeleteNFT(id string) error
 	SaveOperation(op *Operation) error
-	GetOperations(nftID string) ([]*Operation, error)
+	// GetOperations returns one operation-history page newest first.
+	// limit <= 0 returns the remainder from offset. Ties keep insertion order
+	// so a mint and a later operation in the same second do not swap pages.
+	GetOperations(nftID string, limit, offset int) ([]*Operation, error)
 }
 
 // TransactableRepository is a Repository that can additionally scope its

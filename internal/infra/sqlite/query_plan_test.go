@@ -56,6 +56,9 @@ func TestOracleHistoryUsesOrderedIndex(t *testing.T) {
 		"oracle history should read the composite ordered index, got: %v", details)
 }
 
+// TestNFTOperationHistoryUsesOrderedIndex covers the paged audit trail. rowid
+// is the implicit final key of the composite index, so same-second operations
+// stay in insertion order without adding a temporary sort.
 func TestNFTOperationHistoryUsesOrderedIndex(t *testing.T) {
 	tmpDir := t.TempDir()
 	repo, err := NewNFTRepository(filepath.Join(tmpDir, "nft_plan.db"))
@@ -64,8 +67,9 @@ func TestNFTOperationHistoryUsesOrderedIndex(t *testing.T) {
 
 	details := queryPlanDetails(t, repo.GetDB(),
 		`SELECT id, nft_id, type, from_addr, to_addr, signature, block_height, timestamp
-		 FROM nft_operations WHERE nft_id = ? ORDER BY timestamp DESC LIMIT ?`,
-		"nft-1", maxNFTHistoryOps)
+		 FROM nft_operations WHERE nft_id = ?
+		 ORDER BY timestamp DESC, rowid ASC LIMIT ? OFFSET ?`,
+		"nft-1", 100, 0)
 	requireNoTempBTree(t, details, "nft operation history")
 	require.Contains(t, strings.Join(details, " "), "idx_nft_ops_nft_ts",
 		"nft operation history should read the composite ordered index, got: %v", details)

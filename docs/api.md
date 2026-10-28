@@ -75,14 +75,18 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 ## NFT
 
-| 方法 | 路径                       | 说明                              |
-| ---- | -------------------------- | --------------------------------- |
-| POST | `/api/v1/nft/mint`         | 铸造（可选 `image`、`token_uri`） |
-| POST | `/api/v1/nft/transfer`     | 转让（签名）                      |
-| POST | `/api/v1/nft/burn`         | 销毁（签名）                      |
-| GET  | `/api/v1/nft/{id}`         | 单个 NFT，未知 id 404             |
-| GET  | `/api/v1/nft/{id}/history` | 操作历史，未知 id 404             |
-| GET  | `/api/v1/nft/list`         | 按 owner 分页列表                 |
+| 方法 | 路径                       | 说明                                                  |
+| ---- | -------------------------- | ----------------------------------------------------- |
+| POST | `/api/v1/nft/mint`         | 铸造（可选 `image`、`token_uri`）                     |
+| POST | `/api/v1/nft/transfer`     | 转让（签名）                                          |
+| POST | `/api/v1/nft/burn`         | 销毁（签名）                                          |
+| GET  | `/api/v1/nft/{id}`         | 单个 NFT，未知 id 404                                 |
+| GET  | `/api/v1/nft/{id}/history` | 操作历史，默认 50，支持 `limit`/`offset`；未知 id 404 |
+| GET  | `/api/v1/nft/list`         | 按 owner 分页列表                                     |
+
+NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset` 上限 10000。
+已销毁 NFT 的审计记录仍保留；读取超出末页会返回 `200 []`，而不是把空页误判为
+未知 id。
 
 ## 代币
 
