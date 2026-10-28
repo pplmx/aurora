@@ -56,6 +56,55 @@ func TestWriteFileAtomic_KeepsTheOldExportWhenPromotionFails(t *testing.T) {
 	assert.Len(t, entries, 1, "a failed export must remove its temporary sibling")
 }
 
+// TestWriteFileAtomic_SyncsParentDirectoryAfterPromotion proves the rename is
+// not reported as durable while it may still be lost with the directory entry.
+func TestWriteFileAtomic_SyncsParentDirectoryAfterPromotion(t *testing.T) {
+	original := syncDirectory
+	t.Cleanup(func() { syncDirectory = original })
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "export.json")
+	synced := ""
+	syncDirectory = func(got string) error {
+		synced = got
+		data, err := os.ReadFile(path)
+		require.NoError(t, err)
+		assert.Equal(t, `["new"]`, string(data),
+			"the directory must be flushed only after the complete file is visible")
+		return nil
+	}
+
+	require.NoError(t, WriteFileAtomic(path, []byte(`["new"]`), 0o644))
+	assert.Equal(t, dir, synced)
+}
+
+// TestWriteFileAtomic_ReportsDirectorySyncFailure is the fault-injection
+// regression for returning success when only the file, not its rename, is
+// durable. The complete new document remains visible, but callers receive the
+// durability error instead of reporting a successful export.
+func TestWriteFileAtomic_ReportsDirectorySyncFailure(t *testing.T) {
+	original := syncDirectory
+	t.Cleanup(func() { syncDirectory = original })
+	syncErr := errors.New("injected directory sync failure")
+	syncDirectory = func(string) error { return syncErr }
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "export.json")
+	require.NoError(t, os.WriteFile(path, []byte(`["old"]`), 0o644))
+
+	err := WriteFileAtomic(path, []byte(`["new"]`), 0o644)
+	require.ErrorIs(t, err, syncErr)
+
+	data, readErr := os.ReadFile(path)
+	require.NoError(t, readErr)
+	assert.Equal(t, `["new"]`, string(data),
+		"a post-rename sync failure must not leave a truncated export")
+
+	entries, readDirErr := os.ReadDir(dir)
+	require.NoError(t, readDirErr)
+	assert.Len(t, entries, 1, "no temporary sibling may survive the failure")
+}
+
 func TestWriteFileAtomic_WritesThroughASymlink(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("creating symlinks requires extra privileges on Windows")

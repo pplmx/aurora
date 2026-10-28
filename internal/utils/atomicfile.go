@@ -8,11 +8,31 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 )
 
 // renameFile is a variable so tests can inject a failed promotion and prove
 // the previous document survives it.
 var renameFile = os.Rename
+
+// syncDirectory makes the rename durable. Windows cannot fsync a directory
+// handle through os.File, so its rename durability remains delegated to the
+// platform; every Unix release flushes the containing directory.
+var syncDirectory = func(path string) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	syncErr := dir.Sync()
+	closeErr := dir.Close()
+	if syncErr != nil {
+		return syncErr
+	}
+	return closeErr
+}
 
 // WriteFileAtomic writes data to path through a temporary sibling and an
 // atomic rename. Unlike os.WriteFile, a failed write or rename never leaves a
@@ -73,6 +93,9 @@ func WriteFileAtomic(path string, data []byte, perm fs.FileMode) error {
 	if err := renameFile(tmpName, path); err != nil {
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("replace %s: %w", path, err)
+	}
+	if err := syncDirectory(filepath.Dir(path)); err != nil {
+		return fmt.Errorf("sync directory for %s: %w", path, err)
 	}
 	return nil
 }
