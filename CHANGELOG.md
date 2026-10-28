@@ -23,7 +23,9 @@ documented in their per-milestone ROADMAP files.
   hours and similar regions instead of announcing generic unlabelled groups.
   Every data grid also passes through one named-table helper, so Recent
   activity, Draw history, Voting results, Feed Health and the other collections
-  announce what they contain rather than only "table".
+  announce what they contain rather than only "table". Form cards expose named
+  groups as well, keeping repeated fields such as Session ID or Owner attached
+  to the Cast Vote, Transfer or other action they belong to.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;

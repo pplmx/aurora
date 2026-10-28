@@ -245,10 +245,11 @@ func badge(c *ui.Context, text string, background, foreground ui.Color) ui.Eleme
 // the section reports. Cards are what give the scrolling page structure, so a
 // long form reads as a list of jobs rather than one wall of inputs.
 func formCard(c *ui.Context, title, purpose string, fn func()) {
-	card(c, func() {
+	panel := card(c, func() {
 		sectionHeading(c, title, purpose)
 		ui.Column(c).Gap(8).Children(fn)
 	})
+	panel.Label(tr(title))
 }
 
 // emptyState is the visual for a store that is genuinely empty. It keeps the
