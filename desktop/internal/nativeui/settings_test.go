@@ -6,6 +6,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // TestSettingsPageCarriesTheApplicationConfiguration covers the page that
@@ -58,6 +60,46 @@ func TestSettingsPageWithoutCallbacksStaysReadable(t *testing.T) {
 	require.False(t, tester.HasText("Refresh"), "Settings reads no database to refresh")
 	require.False(t, tester.HasText("English"), "no language buttons without a shell")
 	require.False(t, tester.HasText("Open About Dialog"))
+}
+
+// TestSettingsReportsDesktopAccessibilityState replaces the old static
+// "Follows system" values with what the desktop actually asked for. The
+// percentage and state labels must update live when the OS preference changes.
+func TestSettingsReportsDesktopAccessibilityState(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	translator.SetLocale("zh")
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Settings")
+	tester.SetPreferences(ui.Preferences{TextScale: 1.5, HighContrast: true, ReduceMotion: true})
+	tester.Frame()
+
+	for _, want := range []string{"150%", "已增强", "已减弱"} {
+		require.Truef(t, tester.HasText(want), "Settings must report %q", want)
+	}
+
+	tester.SetPreferences(ui.Preferences{TextScale: 1.25})
+	tester.Frame()
+	for _, want := range []string{"125%", "标准", "已启用"} {
+		require.Truef(t, tester.HasText(want), "Settings must update to report %q", want)
+	}
+}
+
+func TestTextScaleLabel(t *testing.T) {
+	for _, tc := range []struct {
+		scale float32
+		want  string
+	}{
+		{0, "100%"},
+		{1, "100%"},
+		{1.25, "125%"},
+		{2, "200%"},
+	} {
+		require.Equal(t, tc.want, textScaleLabel(tc.scale))
+	}
 }
 
 // TestSettingsStartsFromTheSavedLiveUpdatesChoice proves SetActions applies

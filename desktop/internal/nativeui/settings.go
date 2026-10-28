@@ -78,12 +78,13 @@ func (a *App) settingsView(c *ui.Context) {
 			})
 		})
 
-		formCard(c, "Appearance", "Aurora is dark by design; the operating system still decides size and contrast.", func() {
+		formCard(c, "Appearance", "Aurora is dark by design; text size, contrast and motion follow the operating system.", func() {
+			preferences := c.Preferences()
 			readout(c, []readoutRow{
 				{"Theme", tr("Dark")},
-				{"Text size", tr("Follows system")},
-				{"Contrast", tr("Follows system")},
-				{"Motion", tr("Follows system")},
+				{"Text size", textScaleLabel(preferences.TextScale)},
+				{"Contrast", preferenceStateLabel(preferences.HighContrast, "Enhanced", "Standard")},
+				{"Motion", preferenceStateLabel(preferences.ReduceMotion, "Reduced", "Enabled")},
 			})
 		})
 
@@ -131,4 +132,18 @@ func languageLabel(tag string) string {
 	default:
 		return tag
 	}
+}
+
+func textScaleLabel(scale float32) string {
+	if scale <= 0 {
+		scale = 1
+	}
+	return strconv.FormatFloat(float64(scale*100), 'f', 0, 32) + "%"
+}
+
+func preferenceStateLabel(active bool, activeLabel, inactiveLabel string) string {
+	if active {
+		return tr(activeLabel)
+	}
+	return tr(inactiveLabel)
 }

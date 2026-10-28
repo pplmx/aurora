@@ -86,6 +86,11 @@ documented in their per-milestone ROADMAP files.
   omitted. Both forms now have "Generate key pair": the public half fills the
   field, the private half is shown once with Copy and a Dismiss button, and the
   key-generation service is the descriptor's own `GenerateKeyPair`.
+- **Settings reports the desktop's actual accessibility state**: the
+  Appearance card now shows the effective text percentage, contrast mode and
+  motion mode instead of labelling every row "Follows system". The values
+  update as the operating system changes, and both English and Chinese use
+  explicit states such as `Standard`/`Enhanced` and `Enabled`/`Reduced`.
 - **The desktop window has a visual design of its own**: `nativeui/theme.go` is
   the single palette — a polar-night background, one raised card surface,
   Aurora's accent and three status hues — applied on every frame instead of
