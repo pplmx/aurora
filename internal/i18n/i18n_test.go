@@ -3,6 +3,7 @@ package i18n
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -147,6 +148,26 @@ func TestGetTextF(t *testing.T) {
 	if result == "" {
 		t.Error("GetTextF should not return empty string")
 	}
+}
+
+// TestAlreadyRunningCopyDescribesTheDataDirectory keeps the second-launch
+// dialog honest: this launch names the requested --data-dir, and the running
+// window can only keep its current database. The old copy claimed the window
+// kept a "Web UI", which Aurora has not shipped since the native rewrite.
+func TestAlreadyRunningCopyDescribesTheDataDirectory(t *testing.T) {
+	tr := Init("en")
+	en := tr.TFormat("desktop.error.already_running_message", "--data-dir /tmp/other")
+	assert.Contains(t, en, "asked for --data-dir /tmp/other")
+	assert.Contains(t, en, "different data directory")
+	assert.Contains(t, en, "quit Aurora first")
+	assert.NotContains(t, strings.ToLower(en), "web")
+
+	tr.SetLocale("zh")
+	zh := tr.TFormat("desktop.error.already_running_message", "--data-dir /tmp/other")
+	assert.Contains(t, zh, "本次启动指定了 --data-dir /tmp/other")
+	assert.Contains(t, zh, "另一个数据目录")
+	assert.Contains(t, zh, "请先退出 Aurora")
+	assert.NotContains(t, strings.ToLower(zh), "web")
 }
 
 func TestDetectAndInit(t *testing.T) {

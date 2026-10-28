@@ -187,6 +187,14 @@ func TestRootCommandTree(t *testing.T) {
 	assert.Subset(t, names, []string{"create", "history", "verify", "export", "import", "stats"})
 }
 
+// TestRootHelpDescribesCurrentSurfaces keeps the first help screen from
+// advertising the Web UI deleted when the desktop moved to native widgets.
+// Aurora now ships a native desktop window and a JSON-only REST API.
+func TestRootHelpDescribesCurrentSurfaces(t *testing.T) {
+	assert.Contains(t, rootCmd.Long, "native desktop window and REST API")
+	assert.NotContains(t, strings.ToLower(rootCmd.Long), "web")
+}
+
 // TestFlagOnlyCommandsRejectStrayArgs is the ISS-179 regression at the
 // structure level: every subcommand under token/nft/oracle/voting previously
 // used Cobra's default ArbitraryArgs, silently ACCEPTING AND IGNORING stray

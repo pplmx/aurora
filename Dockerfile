@@ -54,4 +54,4 @@ COPY --from=builder /app/out/aurora /aurora
 ENTRYPOINT ["/aurora"]
 
 # No EXPOSE: the image ships only the CLI and has no listener, and the
-# Web UI is a separate non-containerised cmd/api binary (DEC-009, ISS-192).
+# REST API is a separate non-containerised cmd/api binary (DEC-009, ISS-192).
