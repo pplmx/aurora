@@ -39,6 +39,12 @@ const (
 	MaxSourceURLLength    = 2000
 )
 
+var transportManagedSourceHeaders = map[string]struct{}{
+	"content-length":    {},
+	"trailer":           {},
+	"transfer-encoding": {},
+}
+
 // allowedSourceSchemes is the set of URL schemes an oracle source
 // may use. We block file:// (would let a hostile source read the
 // host filesystem), javascript: (XSS-shaped payloads, not that the
@@ -178,6 +184,7 @@ func ParseSourceHeaders(headersJSON string) (map[string]string, error) {
 	if headers == nil {
 		return nil, fmt.Errorf("%w: headers must be a JSON object", ErrInvalidSource)
 	}
+	seen := make(map[string]string, len(headers))
 	for name, value := range headers {
 		if strings.ContainsAny(name, "\r\n") {
 			return nil, fmt.Errorf("%w: header %q contains a newline", ErrInvalidSource, name)
@@ -191,8 +198,41 @@ func ParseSourceHeaders(headersJSON string) (map[string]string, error) {
 		if !isValidHTTPHeaderValue(value) {
 			return nil, fmt.Errorf("%w: header %q contains an invalid control character", ErrInvalidSource, name)
 		}
+		lowerName := strings.ToLower(name)
+		if previous, ok := seen[lowerName]; ok {
+			return nil, fmt.Errorf("%w: headers %q and %q differ only by case", ErrInvalidSource, previous, name)
+		}
+		seen[lowerName] = name
+		if _, managed := transportManagedSourceHeaders[lowerName]; managed {
+			return nil, fmt.Errorf("%w: header %q is managed by the HTTP transport", ErrInvalidSource, name)
+		}
+		if lowerName == "host" && !isValidSourceHostHeader(value) {
+			return nil, fmt.Errorf("%w: header %q has an invalid host value", ErrInvalidSource, name)
+		}
 	}
 	return headers, nil
+}
+
+// isValidSourceHostHeader validates the Host override before persistence. Host
+// is special to net/http: it lives on Request.Host rather than Request.Header,
+// and the transport validates the wire value more strictly than a generic
+// header field.
+func isValidSourceHostHeader(value string) bool {
+	if value == "" || strings.TrimSpace(value) != value {
+		return false
+	}
+	u, err := url.Parse("//" + value)
+	if err != nil || u.User != nil || u.Host != value || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+		return false
+	}
+	if u.Hostname() == "" {
+		return false
+	}
+	if port := u.Port(); port != "" {
+		n, err := strconv.Atoi(port)
+		return err == nil && n >= 1 && n <= 65535
+	}
+	return !strings.HasSuffix(u.Host, ":")
 }
 
 // isHTTPToken reports whether value is a non-empty RFC 7230 token, matching

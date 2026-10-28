@@ -122,7 +122,9 @@ aurora oracle latest -i <source-id>
 
 `--method` 必须是 HTTP token；`--headers` 接受 JSON 对象，名称必须是 token，
 值不能包含除 tab 外的控制字符。非法 JSON、CR/LF 或超过长度上限会在写入前
-拒绝。`interval` 上限 30 天；越界会在写入前拒绝（更大的值会让调度器溢出成
+拒绝。`Host` 会覆盖实际请求的虚拟主机并在同源重定向中保留，跨源重定向则清除；
+`Content-Length`、`Transfer-Encoding`、`Trailer` 以及仅大小写不同的重复头名
+也会在写入前拒绝。`interval` 上限 30 天；越界会在写入前拒绝（更大的值会让调度器溢出成
 “永远到期”的抓取风暴）。刷新间隔从一次成功抓取结束时开始计算；失败抓取从
 失败结束时按 1s、2s、4s……指数退避，最长 5 分钟，慢请求不会吞掉退避窗口。
 

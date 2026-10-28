@@ -110,14 +110,49 @@ func TestDataSource_Headers(t *testing.T) {
 }
 
 func TestParseSourceHeaders(t *testing.T) {
-	headers, err := ParseSourceHeaders(`{"Authorization":"Bearer token123","X-API-Key":"feed-key"}`)
+	headers, err := ParseSourceHeaders(`{"Authorization":"Bearer token123","X-API-Key":"feed-key","Host":"feed.vendor.example"}`)
 	require.NoError(t, err)
 	require.Equal(t, "Bearer token123", headers["Authorization"])
 	require.Equal(t, "feed-key", headers["X-API-Key"])
+	require.Equal(t, "feed.vendor.example", headers["Host"])
 
 	headers, err = ParseSourceHeaders(" ")
 	require.NoError(t, err)
 	require.Nil(t, headers)
+}
+
+func TestParseSourceHeaders_RejectsInvalidHost(t *testing.T) {
+	for _, value := range []string{
+		"",
+		"feed vendor",
+		"feed.vendor.example/path",
+		"user@feed.vendor.example",
+		"feed.vendor.example:0",
+		"feed.vendor.example:65536",
+	} {
+		t.Run(value, func(t *testing.T) {
+			_, err := ParseSourceHeaders(`{"Host":"` + value + `"}`)
+			require.ErrorIs(t, err, ErrInvalidSource)
+		})
+	}
+}
+
+func TestParseSourceHeaders_RejectsTransportManagedHeaders(t *testing.T) {
+	for _, name := range []string{
+		"Content-Length",
+		"Transfer-Encoding",
+		"Trailer",
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := ParseSourceHeaders(`{"` + name + `":"value"}`)
+			require.ErrorIs(t, err, ErrInvalidSource)
+		})
+	}
+}
+
+func TestParseSourceHeaders_RejectsCaseInsensitiveDuplicates(t *testing.T) {
+	_, err := ParseSourceHeaders(`{"User-Agent":"Aurora/1","user-agent":"Aurora/2"}`)
+	require.ErrorIs(t, err, ErrInvalidSource)
 }
 
 func TestAddSource_RejectsInvalidSourceHeaders(t *testing.T) {
@@ -129,6 +164,9 @@ func TestAddSource_RejectsInvalidSourceHeaders(t *testing.T) {
 		{"null object", "null"},
 		{"value CRLF", `{"X-Test":"value\r\nInjected: true"}`},
 		{"name CRLF", `{"X-Bad\r\nX-Injected":"value"}`},
+		{"invalid Host", `{"Host":"feed vendor"}`},
+		{"transport-managed Content-Length", `{"Content-Length":"10"}`},
+		{"transport-managed Trailer", `{"Trailer":"X-Checksum"}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := NewInmemRepo()

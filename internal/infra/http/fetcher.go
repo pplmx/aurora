@@ -174,9 +174,15 @@ func checkRedirectAllowed(req *http.Request, via []*http.Request) error {
 	// not arbitrary credentials such as the X-API-Key header documented for
 	// oracle sources. The transport re-adds its safe defaults (User-Agent,
 	// Accept and request ID), so start each cross-origin hop with no inherited
-	// headers rather than forwarding an upstream secret to another origin.
+	// headers or Host override rather than forwarding an upstream secret or
+	// virtual-host identity to another origin.
 	if len(via) > 0 && via[0] != nil && !sameURLOrigin(via[0].URL, req.URL) {
 		req.Header = make(http.Header)
+		req.Host = ""
+	} else if len(via) > 0 && via[0] != nil {
+		// net/http preserves a custom Host only for relative redirects. Reapply
+		// the source override for absolute same-origin redirects as well.
+		req.Host = via[0].Host
 	}
 	return nil
 }
@@ -673,6 +679,10 @@ func applySourceHeaders(req *http.Request, headersJSON string) error {
 		return err
 	}
 	for name, value := range headers {
+		if strings.EqualFold(name, "Host") {
+			req.Host = value
+			continue
+		}
 		req.Header.Set(name, value)
 	}
 	return nil
