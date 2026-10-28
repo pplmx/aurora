@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
@@ -60,6 +62,21 @@ func TestKnownErrorContextLocalizesWithoutHidingTechnicalDetail(t *testing.T) {
 			want: "随机种子无效：随机种子过短",
 		},
 		{
+			name: "lottery record seed field",
+			err:  fmt.Errorf("seed: %w", lottery.ErrSeedTooShort),
+			want: "随机种子无效：随机种子过短",
+		},
+		{
+			name: "lottery record participants field",
+			err:  fmt.Errorf("participants: %w", lottery.ErrNoParticipants),
+			want: "参与者名单无效：至少需要一名参与者",
+		},
+		{
+			name: "lottery record winners field",
+			err:  fmt.Errorf("winners: %w", lottery.ErrWinnerCountNotPositive),
+			want: "中奖人数无效：中奖人数必须大于零",
+		},
+		{
 			name: "generic app context",
 			err:  fmt.Errorf("failed to get token: %w", token.ErrTokenNotFound),
 			want: "代币未找到",
@@ -79,6 +96,120 @@ func TestKnownErrorContextLocalizesWithoutHidingTechnicalDetail(t *testing.T) {
 			assert.Equal(t, tt.want, localizedErrorText(tt.err))
 		})
 	}
+}
+
+func TestVerifyCheckMessagesLocalizeChinese(t *testing.T) {
+	setTestLocale(t, "zh")
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "invalid vrf output",
+			in:   "VRF output is not valid hex",
+			want: "VRF 输出不是有效的十六进制",
+		},
+		{
+			name: "invalid vrf proof",
+			in:   "VRF proof is not valid hex",
+			want: "VRF 证明不是有效的十六进制",
+		},
+		{
+			name: "record id mismatch",
+			in:   "record ID does not match the seed and VRF output",
+			want: "记录 ID 与种子和 VRF 输出不匹配",
+		},
+		{
+			name: "no winners",
+			in:   "record has no winners (corrupt or partial write)",
+			want: "记录没有中奖者（记录损坏或写入不完整）",
+		},
+		{
+			name: "winner set mismatch",
+			in:   "stored winners do not match the VRF output (expected [Alice Bob], stored [Carol])",
+			want: "存储的中奖者与 VRF 输出不匹配（预期：[Alice Bob]，实际：[Carol]）",
+		},
+		{
+			name: "address count mismatch",
+			in:   "winner/address length mismatch (2 winners, 1 addresses)",
+			want: "中奖者与地址数量不匹配（中奖者 2 个，地址 1 个）",
+		},
+		{
+			name: "address mismatch",
+			in:   `winner address 0 does not match winner "Alice" (expected 0xaaa, stored 0xbbb)`,
+			want: `第 0 个中奖者地址与中奖者 "Alice" 不匹配（预期 0xaaa，实际 0xbbb）`,
+		},
+		{
+			name: "malformed public key",
+			in:   "stored VRF public key is malformed",
+			want: "存储的 VRF 公钥格式无效",
+		},
+		{
+			name: "proof verification failure",
+			in:   "VRF proof does not verify against the stored public key",
+			want: "VRF 证明无法用存储的公钥验证",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, i18n.LocalizeVerifyCheckMessage(tt.in))
+		})
+	}
+}
+
+func TestLotteryVerifyCorruptionLocalizesDisplayedChecks(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "zh")
+
+		_, err := runCmd(t, "lottery", "create",
+			"--participants", "Alice,Bob", "--seed", "corrupt-zh", "--count", "1")
+		require.NoError(t, err)
+		corruptLotteryRecord(t)
+
+		out, err := runCmd(t, "lottery", "verify", "1")
+		require.Error(t, err)
+		assert.Contains(t, out, "验证失败：VRF 输出不是有效的十六进制")
+		assert.NotContains(t, out, "VRF output is not valid hex")
+		assert.Contains(t, formatCLIError(err), "抽奖记录完整性校验失败")
+	})
+}
+
+func TestLotteryImportDocumentErrorsLocalizeChinese(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "zh")
+
+		for _, tt := range []struct {
+			name     string
+			document string
+			want     string
+		}{
+			{
+				name:     "malformed json",
+				document: "{not json",
+				want:     "解析导入文件失败",
+			},
+			{
+				name:     "null document",
+				document: "null",
+				want:     "应为抽奖记录 JSON 数组，但收到 null",
+			},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				path := filepath.Join(t.TempDir(), "draws.json")
+				require.NoError(t, os.WriteFile(path, []byte(tt.document), 0o644))
+
+				_, err := runCmd(t, "lottery", "import", path)
+				require.Error(t, err)
+				out := formatCLIError(err)
+				assert.Contains(t, out, "导入抽奖记录失败：抽奖导入文件无效")
+				assert.Contains(t, out, tt.want)
+				assert.NotContains(t, out, "parse document")
+			})
+		}
+	})
 }
 
 func TestCLIErrorWrapperPreservesCauseAndFollowsLocale(t *testing.T) {

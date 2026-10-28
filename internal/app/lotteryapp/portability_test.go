@@ -49,9 +49,20 @@ func TestImportRecords_RejectsNull(t *testing.T) {
 
 	result, err := ImportRecords(repo, []byte("null"))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "null")
+	require.ErrorIs(t, err, ErrInvalidImportDocument)
+	assert.Equal(t, "parse document: expected a JSON array of lottery records, got null", err.Error())
 	assert.Empty(t, repo.records, "a null document must store nothing")
 	assert.Zero(t, result.Imported)
+}
+
+func TestImportRecords_RejectsMalformedJSONWithTypedError(t *testing.T) {
+	repo := &mockLotteryRepo{}
+
+	_, err := ImportRecords(repo, []byte(`{not json`))
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrInvalidImportDocument)
+	assert.Contains(t, err.Error(), "parse document")
+	assert.Empty(t, repo.records)
 }
 
 func genuinePortableRecord(t *testing.T) lottery.LotteryRecord {

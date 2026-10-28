@@ -15,6 +15,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/ledger"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,32 @@ import (
 type dashboardLotteryCounter struct {
 	lottery.Repository
 	count int
+}
+
+type verifyLotteryRepo struct {
+	lottery.Repository
+	record *lottery.LotteryRecord
+}
+
+func (r verifyLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
+	return r.record, nil
+}
+
+func TestVerifyDrawLocalizesStoredEvidence(t *testing.T) {
+	record := genuineDesktopLotteryRecord(t, "desktop-localized-verification")
+	record.VRFOutput = "not-hex"
+	services := &nativeServices{lotteryRepo: verifyLotteryRepo{record: &record}}
+
+	translator := i18n.GetTranslator()
+	previous := translator.GetLocale()
+	translator.SetLocale("zh")
+	t.Cleanup(func() { translator.SetLocale(previous) })
+
+	result, err := services.VerifyDraw(record.ID)
+	require.NoError(t, err)
+	require.False(t, result.Valid)
+	require.Contains(t, result.Checks, "失败: VRF 输出不是有效的十六进制",
+		"stored verification failures must follow the desktop language")
 }
 
 func (r dashboardLotteryCounter) Count() (int, error) { return r.count, nil }

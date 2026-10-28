@@ -102,6 +102,15 @@ func localizeKnownErrorText(err error, entry cliErrorTranslation) (string, bool)
 		}
 		return localized, true
 	}
+	var detailer interface {
+		LocalizationDetail() string
+	}
+	if errors.As(err, &detailer) {
+		detail := strings.TrimSpace(detailer.LocalizationDetail())
+		if detail != "" {
+			return translated + "：" + localizeKnownErrorDetail(detail), true
+		}
+	}
 	return translated, true
 }
 
@@ -118,9 +127,15 @@ func localizeKnownErrorContext(prefix string) string {
 		return "私钥编码无效"
 	case "invalid seed":
 		return "随机种子无效"
+	case "seed":
+		return "随机种子无效"
 	case "invalid participants":
 		return "参与者名单无效"
+	case "participants":
+		return "参与者名单无效"
 	case "invalid winner count":
+		return "中奖人数无效"
+	case "winners":
 		return "中奖人数无效"
 	case "invalid total supply":
 		return "供应量无效"
@@ -168,6 +183,8 @@ func localizeKnownErrorDetail(detail string) string {
 		return "请求头 JSON 无效"
 	case "headers must be a JSON object":
 		return "请求头必须是 JSON 对象"
+	case "expected a JSON array of lottery records, got null":
+		return "应为抽奖记录 JSON 数组，但收到 null"
 	case "name too long":
 		return "名称过长"
 	case "type too long":
@@ -184,6 +201,9 @@ func localizeKnownErrorDetail(detail string) string {
 		return "刷新间隔无效"
 	case "invalid HTTP method":
 		return "HTTP 方法无效"
+	}
+	if rest, ok := strings.CutPrefix(detail, "parse document: "); ok {
+		return "解析导入文件失败：" + localizeKnownErrorDetail(rest)
 	}
 	for _, pattern := range knownErrorDetailPatterns {
 		if match := pattern.re.FindStringSubmatch(detail); match != nil {
@@ -387,6 +407,7 @@ var cliErrorTranslations = []cliErrorTranslation{
 	{lottery.ErrTooManyWinners, "error.too_many_winners"},
 	{lottery.ErrWinnersExceedParticipants, "error.winners_exceed_participants"},
 	{lotteryapp.ErrVerificationFailed, "error.integrity_failed"},
+	{lotteryapp.ErrInvalidImportDocument, "error.invalid_import_document"},
 
 	{repoerr.ErrNotFound, "error.record_not_found"},
 	{blockchain.ErrLedgerCorruption, "error.ledger_corruption"},

@@ -166,6 +166,13 @@ documented in their per-milestone ROADMAP files.
   details such as `invalid headers json` are localized too. Unsupported
   locales now fall back to English instead of accidentally using Chinese Cobra
   strings.
+- **Lottery verification evidence and malformed imports stay in the selected
+  language**: Chinese `lottery verify` and the desktop verifier now translate
+  every finding, including winner/address mismatches, instead of printing
+  English check lines under a Chinese failure heading. A malformed or `null`
+  import is classified as an invalid portable document, so `lottery import`
+  reports the localized document failure while retaining the parser detail
+  needed to fix the file.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   `aurora-api --help` calls itself the JSON-only REST API server. The

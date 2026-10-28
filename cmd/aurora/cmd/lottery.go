@@ -185,7 +185,8 @@ var verifyCmd = &cobra.Command{
 		// never follow a plain parse, which was a false positive.
 		for _, check := range report.Checks {
 			if check.Status == lotteryapp.VerifyFail {
-				fmt.Printf("\n❌ %s\n", i18n.GetTextF("lottery.verify_failed", check.Message))
+				fmt.Printf("\n❌ %s\n",
+					i18n.GetTextF("lottery.verify_failed", i18n.LocalizeVerifyCheckMessage(check.Message)))
 			}
 		}
 		if report.IntegrityOK {
