@@ -1320,15 +1320,28 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	// The total is what a reader checks first ("did every ballot count?"); the
 	// rows alone make them add the column up.
 	readout(c, []readoutRow{{"Total votes", strconv.Itoa(total)}})
-	ui.Table(c, &a.voting.resultsTable, []ui.TableColumn{
-		{Title: tr("Candidate")},
-		{Title: tr("Votes"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
-	}, len(results), func(row, col int) {
-		r := results[row]
-		if col == 0 {
-			tableText(c, r.Name)
-		} else {
-			tableText(c, strconv.Itoa(r.Votes))
-		}
-	})
+	if stackedRecords(c) {
+		ui.Column(c).FillWidth().Gap(10).Children(func() {
+			for _, result := range results {
+				result := result
+				recordPanel(c, func() {
+					ui.Text(c, valueOr(result.Name)).FontSize(textSize(c, 13)).Bold().
+						TextColor(ui.Hex(ink))
+					recordMetric(c, "Votes", strconv.Itoa(result.Votes), ink)
+				})
+			}
+		})
+	} else {
+		ui.Table(c, &a.voting.resultsTable, []ui.TableColumn{
+			{Title: tr("Candidate")},
+			{Title: tr("Votes"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
+		}, len(results), func(row, col int) {
+			r := results[row]
+			if col == 0 {
+				tableText(c, r.Name)
+			} else {
+				tableText(c, strconv.Itoa(r.Votes))
+			}
+		})
+	}
 }
