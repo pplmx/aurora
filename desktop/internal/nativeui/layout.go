@@ -20,6 +20,14 @@ func textScale(c *ui.Context) float32 {
 	return 1
 }
 
+// tableColumnWidth scales a column's text-driven minimum with the desktop's
+// text-size preference. Table Width and MinWidth are layout values in DIPs,
+// while FontSize is already scaled by textSize; without this, larger text had
+// less room for the same number of glyphs and long table values were clipped.
+func tableColumnWidth(c *ui.Context, width float32) float32 {
+	return width * textScale(c)
+}
+
 // pageGlyph draws a page's icon in a tinted tile. It is the window's recurring
 // mark for "which module is this": the same glyph sits in the sidebar row and
 // beside the page title, so the page and its navigation entry are recognisably

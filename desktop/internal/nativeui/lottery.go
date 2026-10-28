@@ -265,13 +265,13 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		r := rows[row]
 		switch col {
 		case 0:
-			ui.Text(c, shortID(r.ID)).SingleLine()
+			tableTextFull(c, shortID(r.ID), r.ID)
 		case 1:
 			ui.Text(c, strconv.FormatInt(r.BlockHeight, 10))
 		case 2:
-			ui.Text(c, joinList(r.Participants)).SingleLine()
+			tableText(c, joinList(r.Participants))
 		case 3:
-			ui.Text(c, joinList(r.Winners)).SingleLine()
+			tableText(c, joinList(r.Winners))
 		}
 	})
 	if table.Changed() && a.lottery.selected >= 0 && a.lottery.selected < len(rows) {

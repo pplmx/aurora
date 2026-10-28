@@ -241,18 +241,22 @@ func (a *App) tokenList(c *ui.Context) {
 			{Title: tr("ID"), Width: 150},
 			{Title: tr("Name"), MinWidth: 120},
 			{Title: tr("Symbol"), Width: 90},
-			{Title: tr("Supply"), Width: 130, Align: ui.End},
+			// Supply is an int64 amount: the largest value is nineteen
+			// digits. The minimum leaves room for that at enlarged text
+			// sizes; the cell's tooltip keeps any value retrievable if the
+			// user narrows the column further.
+			{Title: tr("Supply"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 		}, len(rows), func(row, col int) {
 			t := rows[row]
 			switch col {
 			case 0:
-				ui.Text(c, shortID(t.ID)).SingleLine()
+				tableTextFull(c, shortID(t.ID), t.ID)
 			case 1:
-				ui.Text(c, t.Name).SingleLine()
+				tableText(c, t.Name)
 			case 2:
-				ui.Text(c, t.Symbol)
+				tableText(c, t.Symbol)
 			case 3:
-				ui.Text(c, t.TotalSupply)
+				tableText(c, t.TotalSupply)
 			}
 		})
 		if table.Changed() && a.token.chosen >= 0 && a.token.chosen < len(rows) {
@@ -266,6 +270,12 @@ func (a *App) tokenList(c *ui.Context) {
 			// Whatever the Inspect, Balance or History cards show belongs to the
 			// previous token; re-read the open ones for the chosen token.
 			a.refreshToken()
+		}
+		if a.token.chosen >= 0 && a.token.chosen < len(rows) {
+			// The Supply column is a preview: its width cannot promise room
+			// for every amount and text-scale combination. The selected
+			// record's exact value stays visible below the table.
+			readout(c, []readoutRow{{"Selected supply", rows[a.token.chosen].TotalSupply}})
 		}
 	})
 }
@@ -1007,17 +1017,17 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 	ui.Table(c, &a.token.historyTable, []ui.TableColumn{
 		{Title: tr("From"), Width: 160},
 		{Title: tr("To"), Width: 160},
-		{Title: tr("Amount"), Width: 100, Align: ui.End},
+		{Title: tr("Amount"), MinWidth: tableColumnWidth(c, 100), Align: ui.End},
 		{Title: tr("Nonce"), Width: 80, Align: ui.End},
 	}, len(hist), func(row, col int) {
 		h := hist[row]
 		switch col {
 		case 0:
-			ui.Text(c, h.From).SingleLine()
+			tableText(c, h.From)
 		case 1:
-			ui.Text(c, h.To).SingleLine()
+			tableText(c, h.To)
 		case 2:
-			ui.Text(c, h.Amount)
+			tableText(c, h.Amount)
 		case 3:
 			ui.Text(c, strconv.FormatUint(h.Nonce, 10))
 		}

@@ -232,8 +232,12 @@ func TestSessionListShowsTheBallotWindow(t *testing.T) {
 	tester.Frame()
 
 	require.True(t, tester.HasText("Window"), "the column must be labelled")
-	require.True(t, tester.HasText(sessionWindow(start.Unix(), end.Unix())),
-		"the session's acceptance window must be on screen")
+	startLine, endLine := sessionWindowLines(start.Unix(), end.Unix())
+	require.Contains(t, tester.Texts(), startLine,
+		"the session's start must be its own on-screen line")
+	require.Contains(t, tester.Texts(), endLine,
+		"the session's end must be its own on-screen line")
+	require.NotEqual(t, startLine, endLine, "the stacked window must keep both timestamps distinct")
 }
 
 // TestOraclePresetKeepsItsChoice pins that the preset box holds what the
@@ -403,6 +407,10 @@ func TestTokenListFillsTheSubject(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, "AUR", app.token.tokenID,
 		"choosing a token must make it the subject of the write cards")
+	require.True(t, tester.HasText("Selected supply"),
+		"the exact supply must stay readable when the table column shortens it")
+	require.Equal(t, 2, countText(tester.Texts(), "1000"),
+		"the selected supply must add a second, exact copy below the table")
 }
 
 // TestNFTCollectionLoadsOnOpen pins the page's entry point: the whole

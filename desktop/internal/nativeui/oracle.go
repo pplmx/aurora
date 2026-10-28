@@ -259,22 +259,22 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		s := srcs[row]
 		switch col {
 		case 0:
-			ui.Text(c, s.Name).SingleLine()
+			tableText(c, s.Name)
 		case 1:
-			ui.Text(c, s.Type)
+			tableText(c, s.Type)
 		case 2:
-			ui.Text(c, shortID(s.ID)).SingleLine()
+			tableTextFull(c, shortID(s.ID), s.ID)
 		case 3:
 			if s.Enabled {
-				ui.Text(c, tr("enabled"))
+				tableText(c, tr("enabled"))
 			} else {
-				ui.Text(c, tr("disabled"))
+				tableText(c, tr("disabled"))
 			}
 		case 4:
 			if s.HasHeaders {
-				ui.Text(c, tr("configured"))
+				tableText(c, tr("configured"))
 			} else {
-				ui.Text(c, tr("—"))
+				tableText(c, tr("—"))
 			}
 		}
 	})
@@ -608,7 +608,7 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 			if name == "" {
 				name = h.SourceID
 			}
-			ui.Text(c, name)
+			tableText(c, name)
 		case 1:
 			ui.Text(c, strconv.Itoa(h.Attempts))
 		case 2:
@@ -617,9 +617,9 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 			ui.Text(c, strconv.Itoa(h.Failures))
 		case 4:
 			if h.LastError == "" {
-				ui.Text(c, tr("—"))
+				tableText(c, tr("—"))
 			} else {
-				ui.Text(c, h.LastError)
+				tableText(c, h.LastError)
 			}
 		}
 	})
@@ -661,7 +661,7 @@ func (a *App) oracleReadBody(c *ui.Context) {
 		}, len(data), func(row, col int) {
 			d := data[row]
 			if col == 0 {
-				ui.Text(c, d.Value)
+				tableText(c, d.Value)
 			} else {
 				ui.Text(c, strconv.FormatInt(d.BlockHeight, 10))
 			}
