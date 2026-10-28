@@ -168,9 +168,9 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
 - `token burn`、`nft burn`、`oracle source delete`、`migrate down`、
   `migrate repair`、`backup restore`、`lottery reset` 需要 `-y/--confirm`；
   `lottery reset` 额外接受 `--yes`。缺少确认会以非零退出码拒绝，便于脚本判断。
-- 失败只打印一行 `❌ Error: ...`（同时写结构化日志）后 `exit 1`；
-  token 操作已提交但审计事件发布失败时打印 `⚠ ... DID commit. Do NOT retry`
-  的专用警告，退出码同样非零。
+- 失败只打印一行错误前缀（英文界面为 `❌ Error: ...`，中文界面为
+  `❌ 错误：...`，同时写结构化日志）后 `exit 1`；token 操作已提交但审计事件
+  发布失败时打印“已提交、请勿重试”的专用警告，退出码同样非零。
 - `[log] level/path` 在命令执行前加载，默认写入 `./logs/aurora.log`；Unix-like
   系统上目录为 `0700`、文件为 `0600`。日志文件不可用时，结构化回退日志写入
   `stderr`，`stdout` 只保留命令结果。
@@ -178,7 +178,8 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
   只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
 - 所有输出遵循语言环境变量 `LC_ALL` → `LANGUAGE` → `LC_MESSAGES` → `LANG`
   的优先级；全未设置时才使用 `[i18n] locale`。`aurora <cmd> --help` 同样
-  本地化；`[i18n] locale` 可使用 `en`/`zh` 或对应的 BCP 47 标签（如
+  本地化，命令结果中的字段名、分页偏移、状态、操作类型和错误前缀也会跟随
+  当前语言；`[i18n] locale` 可使用 `en`/`zh` 或对应的 BCP 47 标签（如
   `zh-CN`、`zh-Hans`）。
 
 ## 交互式界面

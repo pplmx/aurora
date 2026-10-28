@@ -73,8 +73,8 @@ var sourceAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("oracle.source_added")+"\n", resp.Name)
-		printField("ID", resp.ID)
-		printField("URL", resp.URL)
+		printLocalizedField("common.id", resp.ID)
+		printLocalizedField("common.url", resp.URL)
 		return nil
 	},
 }
@@ -106,24 +106,31 @@ var sourceListCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n📡 Data Sources: %d (offset %d)\n", len(resp.Sources), offset)
+			fmt.Printf("\n📡 %s: %s\n",
+				i18n.GetText("oracle.sources_heading"),
+				i18n.GetTextF("common.page_with_offset", len(resp.Sources), offset))
 		} else {
-			fmt.Println("\n📡 Data Sources:")
+			fmt.Printf("\n📡 %s:\n", i18n.GetText("oracle.sources_heading"))
 		}
 		if len(resp.Sources) == 0 {
-			fmt.Println("   (none)")
+			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, ds := range resp.Sources {
-			status := "✅ enabled"
+			status := "✅ " + i18n.GetText("common.enabled")
 			if !ds.Enabled {
-				status = "⏳ disabled"
+				status = "⏳ " + i18n.GetText("common.disabled")
 			}
 			fmt.Printf("   - %s [%s] %s\n", ds.Name, ds.Type, status)
-			printField("  ID", ds.ID)
-			printField("  URL", ds.URL)
-			fmt.Printf("     Method: %s  Path: %s  Interval: %ds\n", ds.Method, ds.Path, ds.Interval)
+			printField("  "+i18n.GetText("common.id"), ds.ID)
+			printField("  "+i18n.GetText("common.url"), ds.URL)
+			fmt.Printf("     %s: %s  %s: %s  %s: %ds\n",
+				i18n.GetText("common.method"), ds.Method,
+				i18n.GetText("common.path"), ds.Path,
+				i18n.GetText("common.interval"), ds.Interval)
 			if ds.Headers != "" {
-				fmt.Println("     Headers: configured")
+				fmt.Printf("     %s: %s\n",
+					i18n.GetText("common.headers"),
+					i18n.GetText("common.configured"))
 			}
 		}
 		return nil
@@ -232,9 +239,9 @@ var fetchCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("oracle.fetched"))
-		printField("Value", resp.Value)
-		fmt.Printf("   Timestamp: %d\n", resp.Timestamp)
-		fmt.Printf("   Block Height: %d\n", resp.BlockHeight)
+		printLocalizedField("common.value", resp.Value)
+		fmt.Printf("   %s: %d\n", i18n.GetText("common.timestamp"), resp.Timestamp)
+		fmt.Printf("   %s: %d\n", i18n.GetText("common.block_height"), resp.BlockHeight)
 		return nil
 	},
 }
@@ -262,12 +269,12 @@ var dataCmd = &cobra.Command{
 			return fmt.Errorf("failed to get oracle data: %w", err)
 		}
 
-		fmt.Println("\n📊 Oracle Data:")
+		fmt.Printf("\n📊 %s:\n", i18n.GetText("oracle.data_heading"))
 		if len(resp.Data) == 0 {
-			fmt.Println("   (none)")
+			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, d := range resp.Data {
-			fmt.Printf("   [%d] %s - Block #%d\n", d.Timestamp, d.Value, d.BlockHeight)
+			fmt.Printf("   %s\n", i18n.GetTextF("oracle.data_entry", d.Timestamp, d.Value, d.BlockHeight))
 		}
 		return nil
 	},
@@ -299,10 +306,10 @@ var latestCmd = &cobra.Command{
 			return nil
 		}
 
-		fmt.Println("\n📈 Latest Data:")
-		printField("Value", resp.Data.Value)
-		fmt.Printf("   Timestamp: %d\n", resp.Data.Timestamp)
-		fmt.Printf("   Block Height: %d\n", resp.Data.BlockHeight)
+		fmt.Printf("\n📈 %s:\n", i18n.GetText("oracle.latest_heading"))
+		printLocalizedField("common.value", resp.Data.Value)
+		fmt.Printf("   %s: %d\n", i18n.GetText("common.timestamp"), resp.Data.Timestamp)
+		fmt.Printf("   %s: %d\n", i18n.GetText("common.block_height"), resp.Data.BlockHeight)
 		return nil
 	},
 }
@@ -319,7 +326,7 @@ var templateListCmd = &cobra.Command{
 	Short: i18n.GetText("oracle.template.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		templates := oracleapp.ListTemplates()
-		fmt.Println("\n📋 Available Templates:")
+		fmt.Printf("\n📋 %s:\n", i18n.GetText("oracle.templates_heading"))
 		for _, t := range templates {
 			fmt.Printf("   - %s\n", t.ID)
 		}
@@ -359,7 +366,7 @@ var templateAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("oracle.template_added")+"\n", resp.Name)
-		printField("ID", resp.ID)
+		printLocalizedField("common.id", resp.ID)
 		return nil
 	},
 }

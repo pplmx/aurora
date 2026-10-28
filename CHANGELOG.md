@@ -146,6 +146,12 @@ documented in their per-milestone ROADMAP files.
   `zh_CN.UTF-8` now canonicalize to the message tables Aurora actually ships,
   instead of silently falling back to English. The startup line that reports
   which config file was loaded follows the same language.
+- **CLI command results now follow the selected locale**: token balances,
+  allowances, supply and transfer history; voting key cards, vote ids and
+  session states; NFT details, list/history headings and operation names;
+  Oracle source/data/template labels; lottery verification evidence and import
+  diagnostics; and the final error/audit warning all resolve their labels at
+  print time. English output keeps the existing wording and field order.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   the second-launch desktop dialog identifies the requested `--data-dir`

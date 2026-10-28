@@ -234,8 +234,8 @@ var tokenCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf(i18n.GetText("token.created"), tk.ID(), tk.Name(), tk.Symbol())
-		printField("Owner Public Key", b64Encode(pub))
-		fmt.Printf("   Owner Private Key: %s (SAVE THIS!)\n", b64Encode(priv))
+		printLocalizedField("token.owner_public_key", b64Encode(pub))
+		fmt.Printf("   %s\n", i18n.GetTextF("token.owner_private_key_saved", b64Encode(priv)))
 		return nil
 	},
 }
@@ -271,9 +271,9 @@ var tokenMintCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.minted"))
-		printField("ID", resp.ID)
-		printField("To", truncateBase64(resp.To))
-		printField("Amount", resp.Amount)
+		printLocalizedField("common.id", resp.ID)
+		printLocalizedField("common.to", truncateBase64(resp.To))
+		printLocalizedField("common.amount", resp.Amount)
 		return nil
 	},
 }
@@ -311,10 +311,10 @@ var tokenTransferCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.transferred"))
-		printField("ID", resp.ID)
-		printField("From", truncateBase64(resp.From))
-		printField("To", truncateBase64(resp.To))
-		printField("Amount", resp.Amount)
+		printLocalizedField("common.id", resp.ID)
+		printLocalizedField("common.from", truncateBase64(resp.From))
+		printLocalizedField("common.to", truncateBase64(resp.To))
+		printLocalizedField("common.amount", resp.Amount)
 		return nil
 	},
 }
@@ -352,10 +352,10 @@ var tokenApproveCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.approved"))
-		printField("ID", resp.ID)
-		printField("Owner", truncateBase64(resp.Owner))
-		printField("Spender", truncateBase64(resp.Spender))
-		printField("Amount", resp.Amount)
+		printLocalizedField("common.id", resp.ID)
+		printLocalizedField("common.owner", truncateBase64(resp.Owner))
+		printLocalizedField("common.spender", truncateBase64(resp.Spender))
+		printLocalizedField("common.amount", resp.Amount)
 		return nil
 	},
 }
@@ -395,11 +395,11 @@ var tokenTransferFromCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.transferred"))
-		printField("ID", resp.ID)
-		printField("Owner", truncateBase64(resp.From))
-		printField("To", truncateBase64(resp.To))
-		printField("Spender", truncateBase64(req.Spender))
-		printField("Amount", resp.Amount)
+		printLocalizedField("common.id", resp.ID)
+		printLocalizedField("common.owner", truncateBase64(resp.From))
+		printLocalizedField("common.to", truncateBase64(resp.To))
+		printLocalizedField("common.spender", truncateBase64(req.Spender))
+		printLocalizedField("common.amount", resp.Amount)
 		return nil
 	},
 }
@@ -440,9 +440,9 @@ var tokenBurnCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.burned"))
-		printField("ID", resp.ID)
-		printField("From", truncateBase64(resp.From))
-		printField("Amount", resp.Amount)
+		printLocalizedField("common.id", resp.ID)
+		printLocalizedField("common.from", truncateBase64(resp.From))
+		printLocalizedField("common.amount", resp.Amount)
 		return nil
 	},
 }
@@ -473,10 +473,10 @@ var tokenBalanceCmd = &cobra.Command{
 			return fmt.Errorf("failed to get balance: %w", err)
 		}
 
-		fmt.Printf("\n💰 Balance:\n")
-		printField("Token", resp.TokenID)
-		printField("Owner", truncateBase64(resp.Owner))
-		printField("Balance", resp.Amount)
+		fmt.Printf("\n💰 %s:\n", i18n.GetText("token.balance_heading"))
+		printLocalizedField("common.token", resp.TokenID)
+		printLocalizedField("common.owner", truncateBase64(resp.Owner))
+		printLocalizedField("common.balance", resp.Amount)
 		return nil
 	},
 }
@@ -509,11 +509,11 @@ var tokenAllowanceCmd = &cobra.Command{
 			return fmt.Errorf("failed to get allowance: %w", err)
 		}
 
-		fmt.Printf("\n🔑 Allowance:\n")
-		printField("Token", resp.TokenID)
-		printField("Owner", truncateBase64(resp.Owner))
-		printField("Spender", truncateBase64(resp.Spender))
-		printField("Allowance", resp.Amount)
+		fmt.Printf("\n🔑 %s:\n", i18n.GetText("token.allowance_heading"))
+		printLocalizedField("common.token", resp.TokenID)
+		printLocalizedField("common.owner", truncateBase64(resp.Owner))
+		printLocalizedField("common.spender", truncateBase64(resp.Spender))
+		printLocalizedField("common.allowance", resp.Amount)
 		return nil
 	},
 }
@@ -560,13 +560,18 @@ var tokenHistoryCmd = &cobra.Command{
 			return fmt.Errorf("failed to get history: %w", err)
 		}
 
-		fmt.Printf("\n📜 Transfer History: %d\n", len(resp.Transfers))
+		fmt.Printf("\n📜 %s: %d\n", i18n.GetText("token.history_heading"), len(resp.Transfers))
 		if len(resp.Transfers) == 0 {
 			fmt.Println("   " + i18n.GetText("token.no_history"))
 		}
 		for _, t := range resp.Transfers {
-			fmt.Printf("   - From: %s -> To: %s | Amount: %s | Height: %d\n",
-				truncateBase64(t.From), truncateBase64(t.To), t.Amount, t.BlockHeight)
+			fmt.Printf("   - %s\n", i18n.GetTextF(
+				"token.history_entry",
+				truncateBase64(t.From),
+				truncateBase64(t.To),
+				t.Amount,
+				t.BlockHeight,
+			))
 		}
 		return nil
 	},
@@ -602,18 +607,20 @@ var tokenListCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n🪙 %s: %d (offset %d)\n\n", i18n.GetText("token.list_page"), len(tokens), offset)
+			fmt.Printf("\n🪙 %s: %s\n\n",
+				i18n.GetText("token.list_page"),
+				i18n.GetTextF("common.page_with_offset", len(tokens), offset))
 		} else {
 			fmt.Printf("\n🪙 %s: %d\n\n", i18n.GetText("token.total"), len(tokens))
 		}
 		for _, tk := range tokens {
 			fmt.Println("---")
-			printField("ID", string(tk.ID()))
-			printField("Name", tk.Name())
-			printField("Symbol", tk.Symbol())
-			printField("Total Supply", tk.TotalSupply().String())
-			fmt.Printf("   Decimals: %d\n", tk.Decimals())
-			printField("Owner", b64Encode(tk.Owner()))
+			printLocalizedField("common.id", string(tk.ID()))
+			printLocalizedField("common.name", tk.Name())
+			printLocalizedField("common.symbol", tk.Symbol())
+			printLocalizedField("common.total_supply", tk.TotalSupply().String())
+			fmt.Printf("   %s: %d\n", i18n.GetText("common.decimals"), tk.Decimals())
+			printLocalizedField("common.owner", b64Encode(tk.Owner()))
 		}
 		return nil
 	},
@@ -640,17 +647,24 @@ var tokenInfoCmd = &cobra.Command{
 			return fmt.Errorf("%s", i18n.GetText("token.not_found"))
 		}
 
-		fmt.Printf("\n🪙 Token Info:\n")
-		printField("ID", string(tk.ID()))
-		printField("Name", tk.Name())
-		printField("Symbol", tk.Symbol())
-		printField("Total Supply", tk.TotalSupply().String())
-		fmt.Printf("   Decimals: %d\n", tk.Decimals())
-		printField("Owner", b64Encode(tk.Owner()))
-		fmt.Printf("   Mintable: %v\n", tk.IsMintable())
-		fmt.Printf("   Burnable: %v\n", tk.IsBurnable())
+		fmt.Printf("\n🪙 %s:\n", i18n.GetText("token.info_heading"))
+		printLocalizedField("common.id", string(tk.ID()))
+		printLocalizedField("common.name", tk.Name())
+		printLocalizedField("common.symbol", tk.Symbol())
+		printLocalizedField("common.total_supply", tk.TotalSupply().String())
+		fmt.Printf("   %s: %d\n", i18n.GetText("common.decimals"), tk.Decimals())
+		printLocalizedField("common.owner", b64Encode(tk.Owner()))
+		fmt.Printf("   %s: %s\n", i18n.GetText("token.mintable"), localizedBool(tk.IsMintable()))
+		fmt.Printf("   %s: %s\n", i18n.GetText("token.burnable"), localizedBool(tk.IsBurnable()))
 		return nil
 	},
+}
+
+func localizedBool(value bool) string {
+	if value {
+		return i18n.GetText("common.true")
+	}
+	return i18n.GetText("common.false")
 }
 
 func b64Encode(data []byte) string {

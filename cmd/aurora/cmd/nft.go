@@ -95,10 +95,10 @@ var mintCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.minted"))
-		printField("ID", result.ID)
-		printField("Name", result.Name)
-		printField("Owner", result.Owner)
-		fmt.Printf("   Block Height: #%d\n", result.BlockHeight)
+		printLocalizedField("common.id", result.ID)
+		printLocalizedField("common.name", result.Name)
+		printLocalizedField("common.owner", result.Owner)
+		fmt.Printf("   %s: #%d\n", i18n.GetText("common.block_height"), result.BlockHeight)
 		return nil
 	},
 }
@@ -136,10 +136,10 @@ var transferCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.transferred"))
-		printField("Operation ID", result.ID)
-		printField("From", truncateBase64(result.From))
-		printField("To", truncateBase64(result.To))
-		fmt.Printf("   Block Height: #%d\n", result.BlockHeight)
+		printLocalizedField("nft.operation_id", result.ID)
+		printLocalizedField("common.from", truncateBase64(result.From))
+		printLocalizedField("common.to", truncateBase64(result.To))
+		fmt.Printf("   %s: #%d\n", i18n.GetText("common.block_height"), result.BlockHeight)
 		return nil
 	},
 }
@@ -201,15 +201,15 @@ var getCmd = &cobra.Command{
 			return fmt.Errorf("failed to get NFT: %w", err)
 		}
 
-		fmt.Println("\n🎨 NFT Details:")
-		printField("ID", result.ID)
-		printField("Name", result.Name)
-		printField("Description", result.Description)
-		printField("Image URL", result.ImageURL)
-		printField("Token URI", result.TokenURI)
-		printField("Creator", result.Creator)
-		printField("Owner", result.Owner)
-		fmt.Printf("   Block Height: #%d\n", result.BlockHeight)
+		fmt.Printf("\n🎨 %s:\n", i18n.GetText("nft.details_heading"))
+		printLocalizedField("common.id", result.ID)
+		printLocalizedField("common.name", result.Name)
+		printLocalizedField("nft.description_label", result.Description)
+		printLocalizedField("nft.image_url", result.ImageURL)
+		printLocalizedField("nft.token_uri", result.TokenURI)
+		printLocalizedField("nft.creator_label", result.Creator)
+		printLocalizedField("common.owner", result.Owner)
+		fmt.Printf("   %s: #%d\n", i18n.GetText("common.block_height"), result.BlockHeight)
 		return nil
 	},
 }
@@ -241,13 +241,13 @@ var listCmd = &cobra.Command{
 			return fmt.Errorf("failed to list NFTs: %w", err)
 		}
 
-		label := "NFTs owned"
+		label := i18n.GetText("nft.list_owned")
 		if owner == "" {
-			label = "NFTs"
+			label = i18n.GetText("nft.list_all")
 		}
 		fmt.Printf("\n🎨 %s: %d\n", label, len(results))
 		if len(results) == 0 {
-			fmt.Println("   (none)")
+			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, n := range results {
 			fmt.Printf("   - %s (%s)\n", n.ID, n.Name)
@@ -285,18 +285,32 @@ var nftHistoryCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n📜 Operations: %d (offset %d)\n", len(results), offset)
+			fmt.Printf("\n📜 %s: %s\n",
+				i18n.GetText("nft.operations_heading"),
+				i18n.GetTextF("common.page_with_offset", len(results), offset))
 		} else {
-			fmt.Printf("\n📜 Operations: %d\n", len(results))
+			fmt.Printf("\n📜 %s: %d\n", i18n.GetText("nft.operations_heading"), len(results))
 		}
 		if len(results) == 0 {
-			fmt.Println("   (none)")
+			fmt.Println("   " + i18n.GetText("common.none"))
 		}
 		for _, op := range results {
-			fmt.Printf("   - %s @ Block #%d\n", op.Type, op.BlockHeight)
+			fmt.Printf("   - %s\n", i18n.GetTextF(
+				"nft.operation_line",
+				localizedNFTOperationType(op.Type),
+				op.BlockHeight,
+			))
 		}
 		return nil
 	},
+}
+
+func localizedNFTOperationType(opType string) string {
+	key := "nft.operation." + opType
+	if translated := i18n.GetText(key); translated != key {
+		return translated
+	}
+	return opType
 }
 
 func init() {

@@ -72,7 +72,7 @@ var createCmd = &cobra.Command{
 			// Guard against mismatched slice lengths (could happen with
 			// imported data, older DB schemas, or partial writes).
 			// Without this check the CLI panics with index-out-of-range.
-			addr := "(no address)"
+			addr := i18n.GetText("lottery.no_address")
 			if i < len(resp.WinnerAddresses) {
 				addr = resp.WinnerAddresses[i]
 			}
@@ -117,7 +117,9 @@ var historyCmd = &cobra.Command{
 
 		if len(records) == 0 {
 			if limit > 0 || offset > 0 {
-				fmt.Printf("\n📜 %s: 0 (offset %d)\n", i18n.GetText("lottery.page_total"), offset)
+				fmt.Printf("\n📜 %s: %s\n",
+					i18n.GetText("lottery.page_total"),
+					i18n.GetTextF("common.page_with_offset", 0, offset))
 				return nil
 			}
 			fmt.Println(i18n.GetText("lottery.no_records"))
@@ -125,7 +127,9 @@ var historyCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n📜 %s: %d (offset %d)\n\n", i18n.GetText("lottery.page_total"), len(records), offset)
+			fmt.Printf("\n📜 %s: %s\n\n",
+				i18n.GetText("lottery.page_total"),
+				i18n.GetTextF("common.page_with_offset", len(records), offset))
 		} else {
 			fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.total"), len(records))
 		}
@@ -134,7 +138,7 @@ var historyCmd = &cobra.Command{
 			if err != nil {
 				continue
 			}
-			fmt.Printf("--- Lottery #%d ---\n", i+1)
+			fmt.Printf("%s\n", i18n.GetTextF("lottery.history_item", i+1))
 			fmt.Println(jsonData[:min(200, len(jsonData))])
 			fmt.Println()
 		}
@@ -169,10 +173,10 @@ var verifyCmd = &cobra.Command{
 
 		// Display verification info
 		fmt.Println("\n📋 " + i18n.GetText("lottery.lottery_id") + ": " + record.ID)
-		fmt.Printf("🔢 Block Height: #%d\n", record.BlockHeight)
-		fmt.Printf("🌱 Seed: %s\n", record.Seed)
-		fmt.Printf("👥 Participants: %d\n", len(record.Participants))
-		fmt.Printf("🎉 Winners: %d\n", len(record.Winners))
+		fmt.Printf("🔢 %s: #%d\n", i18n.GetText("common.block_height"), record.BlockHeight)
+		fmt.Printf("🌱 %s: %s\n", i18n.GetText("lottery.seed_label"), record.Seed)
+		fmt.Printf("👥 %s: %d\n", i18n.GetText("lottery.participants_label"), len(record.Participants))
+		fmt.Printf("🎉 %s: %d\n", i18n.GetText("lottery.winners"), len(record.Winners))
 
 		// Draws created before v1.31 have no persisted public key, so the
 		// verdict falls back to a deterministic winner match; later draws also
@@ -181,33 +185,33 @@ var verifyCmd = &cobra.Command{
 		// never follow a plain parse, which was a false positive.
 		for _, check := range report.Checks {
 			if check.Status == lotteryapp.VerifyFail {
-				fmt.Println("\n❌ Verification FAILED: " + check.Message)
+				fmt.Printf("\n❌ %s\n", i18n.GetTextF("lottery.verify_failed", check.Message))
 			}
 		}
 		if report.IntegrityOK {
 			if report.ProofVerified {
 				fmt.Println("\n✅ " + i18n.GetText("lottery.verified"))
 			} else {
-				fmt.Println("\n✅ " + i18n.GetText("lottery.verified") + " (deterministic winner match; pre-v1.31 draw has no stored key)")
+				fmt.Println("\n✅ " + i18n.GetText("lottery.verified_deterministic"))
 			}
 		}
 
-		fmt.Println("\n🏆 Winners:")
+		fmt.Printf("\n🏆 %s:\n", i18n.GetText("lottery.winners"))
 		for i, w := range record.Winners {
 			// Same guard as in createCmd: defend against mismatched slice
 			// lengths in imported/corrupted records.
-			addr := "(no address)"
+			addr := i18n.GetText("lottery.no_address")
 			if i < len(record.WinnerAddresses) {
 				addr = record.WinnerAddresses[i]
 			}
 			fmt.Printf("   %d. %s (%s)\n", i+1, w, addr)
 		}
-		fmt.Printf("\n🔐 VRF Output: %s...\n", record.VRFOutput[:min(16, len(record.VRFOutput))])
-		fmt.Printf("📜 VRF Proof: %s...\n", record.VRFProof[:min(16, len(record.VRFProof))])
+		fmt.Printf("\n🔐 %s: %s...\n", i18n.GetText("lottery.vrf_output"), record.VRFOutput[:min(16, len(record.VRFOutput))])
+		fmt.Printf("📜 %s: %s...\n", i18n.GetText("lottery.vrf_proof"), record.VRFProof[:min(16, len(record.VRFProof))])
 		if record.VRFPublicKey != "" {
-			fmt.Printf("🔑 VRF Public Key: %s...\n", record.VRFPublicKey[:min(16, len(record.VRFPublicKey))])
+			fmt.Printf("🔑 %s: %s...\n", i18n.GetText("lottery.vrf_public_key"), record.VRFPublicKey[:min(16, len(record.VRFPublicKey))])
 		}
-		fmt.Printf("⏰ Timestamp: %d\n", record.Timestamp)
+		fmt.Printf("⏰ %s: %d\n", i18n.GetText("common.timestamp"), record.Timestamp)
 
 		if !report.IntegrityOK {
 			// Surface the failure to the caller (e.g. shell scripts that
@@ -282,8 +286,8 @@ var importCmd = &cobra.Command{
 		// failure via $?, instead of silently treating it as success.
 		fmt.Printf("⚠️  %s\n",
 			i18n.GetTextF("lottery.import_partial", result.Imported, result.Total, len(result.Rejected)))
-		fmt.Printf("   Failed record indices (0-based): %v\n", result.Rejected)
-		return fmt.Errorf("import partially failed: %d of %d records rejected", len(result.Rejected), result.Total)
+		fmt.Printf("   %s\n", i18n.GetTextF("lottery.failed_indices", result.Rejected))
+		return fmt.Errorf(i18n.GetText("lottery.import_partial_error"), len(result.Rejected), result.Total)
 	},
 }
 
