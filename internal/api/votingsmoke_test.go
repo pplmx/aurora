@@ -218,6 +218,24 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 	rr = post("/vote", voteBody)
 	assert.Equal(t, http.StatusConflict, rr.Code, "same voter must not vote twice in one session")
 
+	// A preserved historical duplicate audit row must not count as a second
+	// ballot. The claim table identifies the canonical (earliest) vote.
+	_, err = srv.db.Exec(`
+		INSERT INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
+		VALUES ('legacy-duplicate', ?, ?, 'old-sig', 'old-msg', ?, 1);
+		INSERT INTO vote_sessions (vote_id, session_id)
+		VALUES ('legacy-duplicate', ?);
+	`, voter.PublicKey, candidate.ID, now, session.ID)
+	require.NoError(t, err)
+	rr = get("/results/" + session.ID)
+	require.Equal(t, http.StatusOK, rr.Code, "first-session results body: %s", rr.Body.String())
+	var firstResults struct {
+		TotalVotes int `json:"total_votes"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &firstResults))
+	assert.Equal(t, 1, firstResults.TotalVotes,
+		"a preserved duplicate audit row must not double-count the election")
+
 	// 9. Session lifecycle over the real API (v1.10): register a second voter,
 	// end the session, confirm a NEW vote is rejected while "ended", then start
 	// the session and confirm the locked-out voter can now vote.

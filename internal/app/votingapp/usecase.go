@@ -514,8 +514,8 @@ func containsString(list []string, target string) bool {
 
 // GetResultsUseCase returns the per-candidate tally for a session from its
 // declared candidate roster, plus the total vote count (v1.23 Voting Results
-// API). Votes are counted from vote rows scoped to this session, not from the
-// candidate's global lifetime vote_count: a candidate reused in another
+// API). Votes are counted from the session's claim-winning ballots, not from
+// the candidate's global lifetime vote_count: a candidate reused in another
 // election must not carry those votes into this result (ISS-299).
 type GetResultsUseCase struct {
 	repo voting.Repository

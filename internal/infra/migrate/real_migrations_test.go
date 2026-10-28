@@ -312,6 +312,13 @@ func TestRealMigrations_BackfillsSessionVoteClaims(t *testing.T) {
 	).Scan(&hasVoted))
 	assert.Equal(t, 3, votes, "migration must preserve every historical ballot")
 	assert.Equal(t, 1, hasVoted, "the lifetime voter flag must reflect the backfilled claims")
+
+	repo, err := sqlite.NewVotingRepository(db)
+	require.NoError(t, err)
+	n, err := repo.CountVotesBySession("s1", "cand")
+	require.NoError(t, err)
+	assert.Equal(t, 1, n,
+		"the canonical claim must keep a duplicate historical ballot out of the tally")
 }
 
 func assertTableExists(t *testing.T, db *sql.DB, table string) {

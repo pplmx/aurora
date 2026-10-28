@@ -348,12 +348,14 @@ func TestVotingRepository_BootstrapsVoteSessions(t *testing.T) {
 		INSERT INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
 		VALUES
 			('legacy', 'voter', 'cand', 'sig', 'msg', 1, 1),
-			('mapped', 'voter', 'cand', 'sig', 'msg', 2, 2);
+			('mapped', 'voter', 'cand', 'sig', 'msg', 2, 2),
+			('duplicate', 'voter', 'cand', 'sig', 'msg', 3, 3);
 		CREATE TABLE vote_sessions (
 			vote_id TEXT PRIMARY KEY,
 			session_id TEXT NOT NULL
 		);
-		INSERT INTO vote_sessions (vote_id, session_id) VALUES ('mapped', 's-existing');
+		INSERT INTO vote_sessions (vote_id, session_id)
+		VALUES ('mapped', 's-existing'), ('duplicate', 's-existing');
 		CREATE TABLE voters (
 			public_key TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
@@ -393,13 +395,17 @@ func TestVotingRepository_BootstrapsVoteSessions(t *testing.T) {
 	).Scan(&claimVoteID))
 	require.Equal(t, "mapped", claimVoteID,
 		"self-bootstrap must backfill claims from existing session mappings")
+	n, err := repo.CountVotesBySession("s-existing", "cand")
+	require.NoError(t, err)
+	require.Equal(t, 1, n,
+		"a duplicate historical ballot must not add a second vote to the tally")
 	legacyVoter, err := repo.GetVoter("voter")
 	require.NoError(t, err)
 	require.True(t, legacyVoter.HasVoted)
 
 	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "v2", Name: "Voter", RegisteredAt: 1}))
 	require.NoError(t, repo.SaveVote(voting.NewSessionVote("v2", "cand", "s1", "sig", "msg")))
-	n, err := repo.CountVotesBySession("s1", "cand")
+	n, err = repo.CountVotesBySession("s1", "cand")
 	require.NoError(t, err)
 	require.Equal(t, 1, n)
 }

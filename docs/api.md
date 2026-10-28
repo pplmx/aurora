@@ -90,7 +90,9 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 的请求都会以 `SESSION_NOT_STARTED` / `SESSION_ENDED` 拒绝。
 
 每个会期对同一选民只接收一票；同一次投票的 claim、选票记录和候选人计数在同一个
-SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一会期。
+SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一会期。计票只统计每个
+`(session_id, voter_pk)` claim 对应的那一张选票；迁移保留的历史重复审计记录不会
+重复计入结果。
 
 选民列表只返回姓名、公钥和 `has_voted`，不返回注册时一次性生成的私钥；
 `has_voted` 表示该选民是否曾经投过票，不表示当前会期是否已经投过。客户端如果
