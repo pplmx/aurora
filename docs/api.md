@@ -26,6 +26,9 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 - **限流**：默认关闭；`[api.rateLimit]` 可开启，按客户端固定窗口计数，只有
   `trustedProxies` 中的来源才采信 `X-Forwarded-For`（否则无法绕过）。
 - **CORS**：默认只允许同源，`[api.cors] allowedOrigins` 加入白名单。
+- **禁止缓存**：所有响应带 `Cache-Control: no-store`。API 使用 `X-API-Key`
+  而不是 `Authorization`，因此不能依赖 HTTP 缓存对鉴权请求的默认保护；创建
+  响应与预言机配置还可能包含一次性私钥或上游请求头。
 
 ## 健康与指标
 
