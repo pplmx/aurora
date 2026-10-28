@@ -30,6 +30,9 @@ documented in their per-milestone ROADMAP files.
   and its error is exposed as the control's description instead of a detached
   red line. Help text below search boxes, number ranges, session times and
   checkboxes remains visible while also describing the control it explains.
+  Settings presents the installed languages as a named radio group with the
+  current choice selected, so arrows move between languages and the separate
+  Follow System action says that it uses the operating system's choice.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;

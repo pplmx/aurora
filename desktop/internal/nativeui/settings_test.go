@@ -34,16 +34,53 @@ func TestSettingsPageCarriesTheApplicationConfiguration(t *testing.T) {
 	for _, want := range []string{"Settings", "Language", "Data", "Appearance", "About Aurora", "v1.2.3", "简体中文"} {
 		require.Truef(t, tester.HasText(want), "the Settings page must show %q", want)
 	}
+	_, ok := tester.Find(tr("Display language"))
+	require.True(t, ok, "the language choices must form a named radio group")
 
 	require.NoError(t, tester.Click("English"))
+	require.NoError(t, tester.Click("Follow System"))
 	require.NoError(t, tester.Click("Show Data Folder"))
 	require.NoError(t, tester.Click("Back Up Database…"))
 	require.NoError(t, tester.Click("Open About Dialog"))
-	require.Equal(t, []string{"language:en", "folder", "backup", "about"}, calls)
+	require.Equal(t, []string{"language:en", "language:", "folder", "backup", "about"}, calls)
 
 	require.NoError(t, tester.Click("Copy Database path"))
 	tester.Frame()
 	require.Equal(t, "/tmp/aurora/aurora.db", tester.Clipboard())
+}
+
+func TestLanguageChooserIsKeyboardOperable(t *testing.T) {
+	var selected []string
+	tester := ui.NewTester(func(c *ui.Context) {
+		languageChooser(c, "zh-Hans", func(tag string) {
+			selected = append(selected, tag)
+		})
+	}, 640, 160)
+	tester.Frame()
+
+	tester.Key(0, ui.KeyTab)
+	require.True(t, tester.Focused("简体中文"), "Tab must land on the current language")
+	tester.Key(0, ui.KeyRight)
+	tester.Frame()
+	require.Equal(t, []string{"zh-Hant"}, selected)
+	require.True(t, tester.Focused("繁體中文"))
+}
+
+func TestLanguageChoiceNormalizesSupportedTags(t *testing.T) {
+	for _, tc := range []struct {
+		tag  string
+		want string
+	}{
+		{"", ""},
+		{"en-GB", "en"},
+		{"ja", ""},
+		{"zh-Hans", "zh-Hans"},
+		{"zh-Hans-CN", "zh-Hans"},
+		{"zh-TW", "zh-Hant"},
+		{" zh-hant-TW ", "zh-Hant"},
+	} {
+		require.Equal(t, tc.want, languageChoice(tc.tag), tc.tag)
+	}
 }
 
 // TestSettingsPageWithoutCallbacksStaysReadable keeps a window built before
