@@ -34,10 +34,12 @@ type Counts struct {
 }
 
 type Repository interface {
-	// SaveVote persists a ballot. When SessionID is non-empty, it also claims
-	// (session_id, voter_pk) in the same transaction and returns
-	// ErrAlreadyVoted if that voter already has a ballot in the session. The
-	// voters.has_voted flag remains a lifetime "has ever voted" attribute.
+	// SaveVote appends an immutable ballot. A vote ID is write-once: reusing an
+	// existing ID must fail rather than replace the candidate, signature or
+	// message. When SessionID is non-empty, it also claims (session_id,
+	// voter_pk) in the same transaction and returns ErrAlreadyVoted if that
+	// voter already has a ballot in the session. The voters.has_voted flag
+	// remains a lifetime "has ever voted" attribute.
 	SaveVote(vote *Vote) error
 	GetVotesByCandidate(candidateID string) ([]*Vote, error)
 	GetVotesByVoter(voterPK string) ([]*Vote, error)

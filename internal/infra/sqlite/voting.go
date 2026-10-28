@@ -173,7 +173,7 @@ func (r *VotingRepository) SaveVote(vote *voting.Vote) error {
 
 func (r *VotingRepository) saveVote(vote *voting.Vote) error {
 	_, err := r.q().Exec(
-		`INSERT OR REPLACE INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
+		`INSERT INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		vote.ID, vote.VoterPublicKey, vote.CandidateID, vote.Signature, vote.Message, vote.Timestamp, vote.BlockHeight,
 	)
@@ -188,7 +188,7 @@ func (r *VotingRepository) saveVote(vote *voting.Vote) error {
 		_, err = r.q().Exec(`DELETE FROM vote_sessions WHERE vote_id = ?`, vote.ID)
 	} else {
 		_, err = r.q().Exec(
-			`INSERT OR REPLACE INTO vote_sessions (vote_id, session_id) VALUES (?, ?)`,
+			`INSERT INTO vote_sessions (vote_id, session_id) VALUES (?, ?)`,
 			vote.ID, vote.SessionID,
 		)
 	}
@@ -205,7 +205,7 @@ func (r *VotingRepository) claimSessionBallot(vote *voting.Vote) error {
 	res, err := r.q().Exec(
 		`INSERT INTO session_vote_claims (session_id, voter_pk, vote_id, claimed_at)
 		 VALUES (?, ?, ?, ?)
-		 ON CONFLICT DO NOTHING`,
+		 ON CONFLICT(session_id, voter_pk) DO NOTHING`,
 		vote.SessionID, vote.VoterPublicKey, vote.ID, vote.Timestamp,
 	)
 	if err != nil {
@@ -216,21 +216,6 @@ func (r *VotingRepository) claimSessionBallot(vote *voting.Vote) error {
 		return fmt.Errorf("claim session ballot rows: %w", err)
 	}
 	if affected == 0 {
-		var claimedVoteID string
-		err := r.q().QueryRow(
-			`SELECT vote_id FROM session_vote_claims
-			 WHERE session_id = ? AND voter_pk = ?`,
-			vote.SessionID, vote.VoterPublicKey,
-		).Scan(&claimedVoteID)
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("claim session ballot: vote id %s is already used", vote.ID)
-		}
-		if err != nil {
-			return fmt.Errorf("read session ballot claim: %w", err)
-		}
-		if claimedVoteID == vote.ID {
-			return nil
-		}
 		return ErrAlreadyVoted
 	}
 
