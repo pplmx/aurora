@@ -4,7 +4,9 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"errors"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/app/tokenapp"
@@ -341,4 +343,30 @@ func TestLedgerSearchPagesGloballyFromTheChain(t *testing.T) {
 	}
 	require.Equal(t, int64(9), page.Rows[0].Height)
 	require.Equal(t, int64(5), page.Rows[2].Height)
+}
+
+// TestLedgerSearchReadsBeyondTheDisplayedSummary keeps the guide's "payload"
+// promise true for long records: the table clips at 96 characters, but search
+// still sees the complete flattened payload.
+func TestLedgerSearchReadsBeyondTheDisplayedSummary(t *testing.T) {
+	const marker = "tail-marker"
+	payload := `{"module":"lottery","participants":["A"],"note":"` +
+		strings.Repeat("x", 120) + marker + `"}`
+	chain := blockchain.New()
+	_, err := chain.AddBlock(payload)
+	require.NoError(t, err)
+	services := &nativeServices{chain: chain}
+
+	page, err := services.LedgerBlocksPage("TAIL-MARKER", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, page.Total)
+	require.Len(t, page.Rows, 1)
+	require.NotContains(t, page.Rows[0].Summary, marker,
+		"the marker is beyond the visible summary and must exercise full-text search")
+}
+
+func TestLedgerSummaryDoesNotSplitUTF8(t *testing.T) {
+	summary := blockSummary(strings.Repeat("a", 95) + "界尾")
+	require.True(t, utf8.ValidString(summary))
+	require.Equal(t, 97, utf8.RuneCountInString(summary), "96 characters plus the ellipsis")
 }

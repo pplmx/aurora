@@ -89,10 +89,10 @@ func (s *nativeServices) LedgerBlocksPage(search string, limit, offset int) (nat
 
 	query := strings.ToLower(search)
 	entries, total := s.chain.BlockEntriesPageMatching(limit, offset, func(entry ledger.BlockEntry) bool {
-		row := ledgerBlockRow(entry)
-		return strings.Contains(strings.ToLower(row.Module), query) ||
-			strings.Contains(strings.ToLower(row.Summary), query) ||
-			strings.Contains(strconv.FormatInt(row.Height, 10), query)
+		module, text := blockFields(entry.Data)
+		return strings.Contains(strings.ToLower(module), query) ||
+			strings.Contains(strings.ToLower(text), query) ||
+			strings.Contains(strconv.FormatInt(entry.Height, 10), query)
 	})
 	return nativeui.LedgerBlockPage{Rows: ledgerBlockRows(entries), Total: total}, nil
 }
@@ -106,10 +106,11 @@ func ledgerBlockRows(entries []ledger.BlockEntry) []nativeui.BlockRow {
 }
 
 func ledgerBlockRow(entry ledger.BlockEntry) nativeui.BlockRow {
+	module, text := blockFields(entry.Data)
 	return nativeui.BlockRow{
 		Height:  entry.Height,
-		Module:  blockModuleFor(entry.Data),
-		Summary: blockSummary(entry.Data),
+		Module:  module,
+		Summary: clipBlockText(text),
 	}
 }
 
@@ -142,29 +143,48 @@ func blockModule(payload string) string {
 // blockModuleFor names the module of any payload shape, including the ones
 // that are not JSON. It is what the ledger's Module column shows.
 func blockModuleFor(payload string) string {
+	module, _ := blockFields(payload)
+	return module
+}
+
+// blockFields derives the rendered module and the full flattened search text
+// in one pass. The table clips the text, but search must still reach a payload
+// whose distinctive value lies beyond the visible prefix.
+func blockFields(payload string) (module, text string) {
+	text = blockText(payload)
 	if name := blockModule(payload); name != "—" {
-		return name
+		return name, text
 	}
 	switch {
-	case strings.HasPrefix(blockSummary(payload), "token "):
-		return "token"
-	case strings.HasPrefix(blockSummary(payload), "nft "):
-		return "nft"
+	case strings.HasPrefix(text, "token "):
+		return "token", text
+	case strings.HasPrefix(text, "nft "):
+		return "nft", text
 	}
-	return "—"
+	return "—", text
 }
 
 // blockSummary renders a payload for a table cell: JSON is compacted, and the
 // pipe-delimited token/NFT payload is decoded field by field so its binary key
 // bytes read as base64 rather than as unprintable bytes.
 func blockSummary(payload string) string {
-	const keep = 96
+	_, text := blockFields(payload)
+	return clipBlockText(text)
+}
+
+func blockText(payload string) string {
 	text := decodePipePayload(payload)
-	flat := strings.Join(strings.Fields(text), " ")
-	if len(flat) <= keep {
-		return flat
+	return strings.Join(strings.Fields(text), " ")
+}
+
+// clipBlockText shortens display text without splitting a UTF-8 code point.
+func clipBlockText(text string) string {
+	const keep = 96
+	runes := []rune(text)
+	if len(runes) <= keep {
+		return text
 	}
-	return flat[:keep] + "…"
+	return string(runes[:keep]) + "…"
 }
 
 // decodePipePayload turns a `verb|field|field` audit payload into readable
