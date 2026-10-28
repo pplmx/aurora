@@ -133,6 +133,10 @@ documented in their per-milestone ROADMAP files.
   34px height and 12px inset after large text widened the navigation column.
   It now grows with the system scale like the card actions and remains fully
   inside the fixed footer at 2x.
+- **Multiline fields keep room for several lines at large text**: the NFT
+  description and Oracle request-header editors stayed near 80px high while
+  their line height doubled, leaving roughly one usable line. Text areas now
+  scale with the system text size and continue to show the same working area.
 - **Quiet actions keep their full label at large text**: compact Copy and
   Dismiss controls stayed 26px tall while their scaled 12pt label measured
   33px at 2x, clipping the text inside the hit target. Quiet buttons now grow
