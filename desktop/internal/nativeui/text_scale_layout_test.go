@@ -203,3 +203,62 @@ func TestTokenWriteTabsWrapAtLargeText(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, 4, app.token.opTab, "the wrapped Burn tab must remain operable")
 }
+
+// TestLotteryHistoryStacksAtLargeText keeps every draw fact readable without
+// sideways scrolling. At 2x the four-column table put Winners at x=901 in the
+// 900px window, and the row itself had no visible action for loading its full
+// id into Verify.
+func TestLotteryHistoryStacksAtLargeText(t *testing.T) {
+	drawID := "draw-0123456789abcdef"
+	app := New(&fakeServices{draws: []DrawRow{{
+		ID: drawID, BlockHeight: 42,
+		Participants: []string{"A", "B", "C"}, Winners: []string{"A"},
+	}}})
+	app.ShowPage("Lottery")
+	tester := ui.NewTester(app.View, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	for _, label := range []string{"Participants", "Winners"} {
+		rect, ok := tester.Find(label)
+		require.Truef(t, ok, "%q field must be shown", label)
+		require.LessOrEqualf(t, rect.X+rect.W, float32(900),
+			"%q must stay inside the window", label)
+	}
+	action, ok := tester.Find("Use this draw for Verify")
+	require.True(t, ok)
+	app.scroll.Y = action.Y - 300
+	tester.Frame()
+	require.NoError(t, tester.Click("Use this draw for Verify"))
+	tester.Frame()
+	require.Equal(t, drawID, app.lottery.verifyID,
+		"the stacked record must still load the full id into Verify")
+}
+
+// TestOracleHealthStacksAtLargeText replaces the five-column health table when
+// enlarged type no longer fits it. At 2x the Last error header began at x=931,
+// outside the 900px window, so the most actionable symptom was inaccessible.
+func TestOracleHealthStacksAtLargeText(t *testing.T) {
+	app := New(&fakeServices{
+		sources: []SourceRow{{
+			ID: "source-0123456789abcdef", Name: "BTC feed",
+		}},
+		healthRows: []HealthRow{{
+			SourceID: "source-0123456789abcdef", Name: "BTC feed",
+			Attempts: 10, Successes: 9, Failures: 1,
+			LastError: "temporary upstream error",
+		}},
+	})
+	app.ShowPage("Oracle")
+	app.oracle.tab = 1
+	tester := ui.NewTester(app.View, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	for _, text := range []string{"Last error", "temporary upstream error"} {
+		rect, ok := tester.Find(text)
+		require.Truef(t, ok, "%q must be shown", text)
+		require.LessOrEqualf(t, rect.X+rect.W, float32(900),
+			"%q must stay inside the window", text)
+	}
+}

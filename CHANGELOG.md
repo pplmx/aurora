@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Wide histories keep every field at 2x text**: Lottery's Winners column
+  began at x=901 and Oracle Health's Last error column at x=931 in the 900px
+  minimum window. Above 1.75x text both tables now become compact record
+  cards, preserving block counts, participants, winners, health counters, full
+  errors and the Verify handoff without sideways scrolling.
 - **Section tabs wrap instead of hiding later choices**: Token's five write
   tabs crossed the right edge at 2x text in the minimum window, leaving the
   Burn form without a visible entry point. Tab rows now keep MyGo's click and
