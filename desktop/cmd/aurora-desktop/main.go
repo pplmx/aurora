@@ -485,7 +485,7 @@ func failStartup(err error) {
 }
 
 // startupFailureDialog is what a failed start tells the user. The reason is in
-// Detail so it is readable in full (a web root path can be long) and the
+// Detail so it is readable in full (a data-directory path can be long) and the
 // message states the consequence, because Linux shows the body without the
 // title.
 func startupFailureDialog(err error) mygo.MessageOptions {

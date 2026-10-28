@@ -73,10 +73,11 @@ func Load() (*Config, error) {
 	// (v1.69). Defaults to empty: every client keys on its socket peer, so
 	// spoofed forwarded headers can never rotate past the budget.
 	viper.SetDefault("api.rateLimit.trustedProxies", []string{})
-	// Cross-origin allow-list for API/Web UI responses. Defaults to empty:
-	// the gateway only needs same-origin access for its own Web UI, and the
-	// API key is embedded in served HTML — a wide/wildcard allow-list would
-	// let any page the operator visits read the key (v1.64, TASK-077).
+	// Cross-origin allow-list for browser API clients. Defaults to empty, so
+	// no Access-Control-Allow-Origin header is emitted. Add only origins that
+	// must read authenticated responses cross-origin; a broad list increases
+	// which browser scripts can read those responses when they can supply the
+	// API key (v1.64, TASK-077).
 	viper.SetDefault("api.cors.allowedOrigins", []string{})
 	// Oracle scheduler poll cadence (v1.21). The scheduler's own per-source
 	// interval still gates when each feed is due; this is how often it checks.
@@ -112,9 +113,8 @@ func Load() (*Config, error) {
 	// "API.KEY", not "AURORA_API_KEY". Without this binding, cfg.API.Key was
 	// always empty: production started with ErrMissingAPIKey even when the
 	// operator set AURORA_API_KEY, and dev mode generated a fresh random key
-	// on every boot (printing it to stdout and silently invalidating the key
-	// already embedded in served web pages). Bind the documented variable now
-	// so both paths receive the operator's key (v1.73, ISS-079).
+	// on every boot instead of honoring the operator's key. Bind the documented
+	// variable now so both paths receive it (v1.73, ISS-079).
 	viper.AutomaticEnv()
 	_ = viper.BindEnv("api.key", "AURORA_API_KEY")
 	// The listen host/port had no env channel either: after the round-150 flag
@@ -238,11 +238,10 @@ func LotteryDefaultCount() int {
 	return viper.GetInt("lottery.defaultCount")
 }
 
-// AllowedCORSOrigins returns the origins allowed to read API/Web UI
-// responses cross-origin (default: empty — same-origin only). The Web UI is
-// served by the gateway itself, so it needs no CORS header; a wildcard or
-// broad allow-list would expose the API key that is embedded in served HTML
-// to any page the operator visits (v1.64, TASK-077).
+// AllowedCORSOrigins returns the origins allowed to read API responses
+// cross-origin (default: empty, so no CORS grant is emitted). Add only exact
+// browser origins that need the API; a broad allow-list lets more scripts read
+// authenticated responses when they can supply the key (v1.64, TASK-077).
 func AllowedCORSOrigins() []string {
 	return viper.GetStringSlice("api.cors.allowedOrigins")
 }

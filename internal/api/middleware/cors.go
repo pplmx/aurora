@@ -9,17 +9,15 @@ const (
 	corsAllowedHeaders = "Content-Type, X-API-Key, X-Request-ID"
 )
 
-// CORS restricts cross-origin reads of API and Web UI responses to an explicit
-// allow-list of origins. It NEVER emits a wildcard "Access-Control-Allow-
-// Origin": the gateway embeds the API key into every served HTML page (see
-// api.injectAPIKey), so a wildcard would let any page the operator visits read
-// window.AURORA_API_KEY and then drive every /api/v1 mutation (mint/transfer/
-// burn, lottery/voting state, oracle sources) with the operator's authority.
+// CORS restricts cross-origin browser reads of API responses to an explicit
+// allow-list of origins. It NEVER emits a wildcard Access-Control-Allow-Origin:
+// every listed origin is echoed exactly, so an unconfigured deployment grants
+// no browser-readable cross-origin response by default.
 //
-// The Web UI is served by the gateway itself, so same-origin requests — which
-// browsers can read without any CORS header — continue to work with an empty
-// allow-list (the secure default). Operators who intentionally serve the UI or
-// API from another origin add that origin to api.cors.allowedOrigins.
+// Same-origin requests can read responses without CORS headers, so the empty
+// default does not affect a browser app served from the API's own origin.
+// Operators who intentionally host a browser client elsewhere add that exact
+// origin to api.cors.allowedOrigins.
 func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
