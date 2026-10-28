@@ -58,7 +58,8 @@ documented in their per-milestone ROADMAP files.
   control whose action produced the message keeps keyboard focus instead of
   losing it to the rebuilt sibling tree. Dismissing a status moves focus to
   Navigation, and dismissing a one-time generated key card returns to its
-  Generate action.
+  Generate action. Generating that key moves focus straight to Copy so the
+  secret is one Enter away while it is still on screen.
 
 - **Desktop shortcuts describe their real scope**: Settings now marks Reload as
   a data-page action instead of claiming every shortcut works on every page.

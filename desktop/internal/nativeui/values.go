@@ -48,23 +48,26 @@ func emptyNote(c *ui.Context, text string) {
 	ui.Text(c, tr(text)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 }
 
-// copyRow draws a labelled value with a Copy button.
+// copyRow draws a labelled value with a Copy button and returns that button
+// when a caller needs to move focus to it.
 //
 // Native text is not selectable, and some values exist nowhere else once the
 // frame is gone — a voter registration returns the only copy of its signing
 // key. Without the button the operator would have to retype an 88-character
 // base64 key, or lose it.
-func copyRow(c *ui.Context, label, value string, onCopied func()) {
+func copyRow(c *ui.Context, label, value string, onCopied func()) ui.Element {
 	if value == "" {
-		return
+		return ui.Element{}
 	}
+	var copyButton ui.Element
 	label = tr(label)
 	ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
 			TextColor(c.Theme().TextMuted).SingleLine()
 		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 			Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(value)
-		if quietButton(c, tr("Copy")+" "+label).Clicked() {
+		copyButton = quietButton(c, tr("Copy")+" "+label)
+		if copyButton.Clicked() {
 			// The whole value is copied, not the shortened cell.
 			c.Services().WriteClipboard(value)
 			// The status line lives above the cards and may be scrolled out of
@@ -75,6 +78,7 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 			}
 		}
 	})
+	return copyButton
 }
 
 // readoutRow is one label/value pair in a readout.

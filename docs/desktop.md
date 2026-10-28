@@ -235,8 +235,9 @@ just check && just test
   burn 与 NFT transfer/burn 成功后会清空对应私钥输入（失败时保留以便重试），
   避免共享屏幕上残留密钥。代币 Create 与 NFT Mint 的 Owner/Creator 字段旁还有
   “Generate key pair”：等价于 CLI 省略参数时的自动生成，公钥填入字段，私钥只
-  显示一次并可复制或 Dismiss；Dismiss 移除这张一次性卡片后焦点回到 Generate，
-  键盘用户不会因为当前按钮消失而掉到窗口根部。
+  显示一次并可复制或 Dismiss；生成成功后焦点直接落到 Copy，私钥还在屏幕上时
+  按一次 Enter 就能保存；Dismiss 移除这张一次性卡片后焦点回到 Generate，键盘
+  用户不会因为当前按钮消失而掉到窗口根部。
 - **刷新失败不清空正在读的内容**：读数据库失败时，各页保留上一次成功加载的
   行，在卡片里报告原因并标注“Showing the last successful load.”；从未加载成功
   过则只报错误，不会落到“还没有记录”的空白提示（那等于把“读不到”说成“没有”），

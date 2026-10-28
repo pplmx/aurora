@@ -137,6 +137,7 @@ type tokenState struct {
 	// generateControl takes it back when the one-time key card is dismissed.
 	burnTrigger     ui.Handle
 	generateControl ui.Handle
+	ownerKeyCopy    ui.Handle
 }
 
 const tokenPageSize = 100
@@ -333,6 +334,7 @@ func (a *App) chooseToken(rows []TokenRow, index int) {
 }
 
 func (a *App) tokenCreate(c *ui.Context) {
+	generated := false
 	formCard(c, "Create Token", "Define supply and attach the owner key that will authorize future writes.", func() {
 		field(c, "Name", &a.token.name)
 		field(c, "Symbol", &a.token.symbol)
@@ -353,7 +355,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 		fieldHint(c, "Owner (base64 public key)", "Required: the owner signs every later mint, transfer and burn.", &a.token.owner)
 		ui.Row(c).Gap(8).Children(func() {
 			if secondaryButton(c, "Generate key pair").Bind(&a.token.generateControl).Clicked() {
-				a.generateTokenOwner()
+				generated = a.generateTokenOwner()
 			}
 			if a.token.ownerPriv != "" && quietButton(c, "Dismiss key").Clicked() {
 				a.token.ownerPriv = ""
@@ -363,9 +365,12 @@ func (a *App) tokenCreate(c *ui.Context) {
 		if a.token.ownerPriv != "" {
 			copyRow(c, "Owner private key", a.token.ownerPriv, func() {
 				a.token.status = okStatus("Owner private key copied.")
-			})
+			}).Bind(&a.token.ownerKeyCopy)
 			ui.Text(c, tr("This is the only copy of the owner key; the store keeps the public half.")).
 				FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
+		}
+		if generated {
+			a.token.ownerKeyCopy.Focus(c)
 		}
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Create Token").Disabled(!allSet(a.token.name, a.token.symbol, a.token.supply, a.token.owner)).Clicked() {
@@ -379,17 +384,18 @@ func (a *App) tokenCreate(c *ui.Context) {
 // offers the private half for copying. Without it the window could not create
 // a token without a key generator outside the app, while the CLI generates one
 // when the flag is omitted.
-func (a *App) generateTokenOwner() {
+func (a *App) generateTokenOwner() bool {
 	pub, priv, err := a.services.GenerateKeyPair()
 	if err != nil {
 		a.token.status = errStatus(err)
-		return
+		return false
 	}
 	a.token.owner, a.token.ownerPriv = pub, priv
 	// A newly generated pair belongs to no token yet; do not let the write
 	// forms reuse it against the last token created with another key.
 	a.token.ownerKeyTokenID = ""
 	a.token.status = okStatus("Generated an owner key pair. Copy the private key now; it is not stored.")
+	return true
 }
 
 func (a *App) createToken() {
