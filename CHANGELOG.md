@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Draft voting sessions cannot accept ballots**: a session created inside its
+  start/end window accepted votes without the explicit start transition, making
+  the "start session" step optional. Vote admission now checks the lifecycle
+  state in the domain layer as well as the window: only `active` sessions
+  accept ballots, while draft, ended and unknown states fail closed.
 - **The Oracle SSRF block list has one source of truth**: the domain URL
   validator and the HTTP fetch/dial guard each carried their own list of
   blocked address ranges, and the domain copy had drifted. Source creation

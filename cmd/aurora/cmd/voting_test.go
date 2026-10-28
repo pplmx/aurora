@@ -27,6 +27,9 @@ func votingFixture(t *testing.T) (candID, sessionID, voterPub, voterPriv string)
 	sessionID = extractField(t, sout, "ID:")
 	require.NotEmpty(t, sessionID)
 
+	_, err = runCmd(t, "voting", "session", "start", "--session", sessionID)
+	require.NoError(t, err, "session start")
+
 	vout, err := runCmd(t, "voting", "voter", "register", "--name", "Bob")
 	require.NoError(t, err, "voter register")
 	voterPub = extractKey(t, vout, "Public Key")

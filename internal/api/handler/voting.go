@@ -241,8 +241,7 @@ func (h *VotingHandler) GetResults(w http.ResponseWriter, r *http.Request) {
 // updateSessionStatus applies a status transition to an existing session,
 // mirroring the CLI's `session start` / `session end`. This closes the
 // CLI↔API parity gap: the REST API previously had no way to drive the session
-// lifecycle, even though the voting flow now rejects votes on "ended"
-// sessions (see CastVote).
+// lifecycle because CastVote admits ballots only while a session is active.
 func (h *VotingHandler) updateSessionStatus(w http.ResponseWriter, r *http.Request, status string) {
 	id := chi.URLParam(r, "id")
 
@@ -264,9 +263,9 @@ func (h *VotingHandler) updateSessionStatus(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *VotingHandler) StartSession(w http.ResponseWriter, r *http.Request) {
-	h.updateSessionStatus(w, r, "active")
+	h.updateSessionStatus(w, r, voting.SessionStatusActive)
 }
 
 func (h *VotingHandler) EndSession(w http.ResponseWriter, r *http.Request) {
-	h.updateSessionStatus(w, r, "ended")
+	h.updateSessionStatus(w, r, voting.SessionStatusEnded)
 }

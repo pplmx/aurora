@@ -7,6 +7,7 @@ import (
 
 	"github.com/pplmx/aurora/internal/app/votingapp"
 	"github.com/pplmx/aurora/internal/domain/repoerr"
+	"github.com/pplmx/aurora/internal/domain/voting"
 )
 
 // --- Voting --------------------------------------------------------------
@@ -144,11 +145,11 @@ func sessionRow(sess *votingapp.SessionResponse) nativeui.SessionRow {
 }
 
 func (s *nativeServices) StartSession(id string) error {
-	return s.setSessionStatus(id, "active")
+	return s.setSessionStatus(id, voting.SessionStatusActive)
 }
 
 func (s *nativeServices) EndSession(id string) error {
-	return s.setSessionStatus(id, "ended")
+	return s.setSessionStatus(id, voting.SessionStatusEnded)
 }
 
 // setSessionStatus mirrors the REST handler's two steps: read the session so a

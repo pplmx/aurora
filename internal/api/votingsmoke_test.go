@@ -151,6 +151,7 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &session))
 	require.NotEmpty(t, session.ID)
 	assert.Contains(t, session.Cands, candidate.ID)
+	assert.Equal(t, "draft", session.Status)
 
 	// 4. List sessions returns the new session.
 	rr = get("/sessions")
@@ -168,11 +169,20 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 	}
 	assert.True(t, found, "newly created session must appear in list")
 
-	// 5. Cast a signed vote.
+	// 5. A draft session must reject ballots even inside its time window.
 	voteBody := `{"voter_public_key":"` + voter.PublicKey +
 		`","candidate_id":"` + candidate.ID +
 		`","private_key":"` + voter.PrivateKey +
 		`","session_id":"` + session.ID + `"}`
+	rr = post("/vote", voteBody)
+	require.Equal(t, http.StatusBadRequest, rr.Code, "draft vote body: %s", rr.Body.String())
+	require.Contains(t, rr.Body.String(), "SESSION_NOT_STARTED")
+
+	// Starting the session is what opens the ballot window.
+	rr = post("/session/"+session.ID+"/start", "")
+	require.Equal(t, http.StatusOK, rr.Code, "start session body: %s", rr.Body.String())
+
+	// 6. Cast a signed vote.
 	rr = post("/vote", voteBody)
 	require.Equal(t, http.StatusOK, rr.Code, "cast vote body: %s", rr.Body.String())
 	var vote struct {
@@ -190,7 +200,7 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 		}
 	}
 
-	// 6. Tally reflects the vote via the candidates endpoint.
+	// 7. Tally reflects the vote via the candidates endpoint.
 	rr = get("/candidates")
 	require.Equal(t, http.StatusOK, rr.Code)
 	var cands []struct {
@@ -204,11 +214,11 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 		}
 	}
 
-	// 7. Double-voting the same voter must be rejected (already-voted).
+	// 8. Double-voting the same voter must be rejected (already-voted).
 	rr = post("/vote", voteBody)
 	assert.NotEqual(t, http.StatusOK, rr.Code, "same voter must not vote twice")
 
-	// 8. Session lifecycle over the real API (v1.10): register a second voter,
+	// 9. Session lifecycle over the real API (v1.10): register a second voter,
 	// end the session, confirm a NEW vote is rejected while "ended", then start
 	// the session and confirm the locked-out voter can now vote.
 	rr = post("/register/voter", `{"name":"Carol"}`)

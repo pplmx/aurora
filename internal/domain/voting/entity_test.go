@@ -1,7 +1,9 @@
 package voting
 
 import (
+	"errors"
 	"testing"
+	"time"
 )
 
 func TestNewVote(t *testing.T) {
@@ -70,5 +72,71 @@ func TestNewSession(t *testing.T) {
 	}
 	if len(session.Candidates) != 1 {
 		t.Errorf("Candidates length = %v, want 1", len(session.Candidates))
+	}
+}
+
+func TestSessionCanAcceptVotes(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	tests := []struct {
+		name    string
+		status  string
+		start   int64
+		end     int64
+		wantErr error
+	}{
+		{
+			name:    "draft inside window",
+			status:  SessionStatusDraft,
+			start:   now.Unix() - 60,
+			end:     now.Unix() + 60,
+			wantErr: ErrSessionNotStarted,
+		},
+		{
+			name:   "active inside window",
+			status: SessionStatusActive,
+			start:  now.Unix() - 60,
+			end:    now.Unix() + 60,
+		},
+		{
+			name:    "active before start",
+			status:  SessionStatusActive,
+			start:   now.Unix() + 1,
+			end:     now.Unix() + 60,
+			wantErr: ErrSessionNotStarted,
+		},
+		{
+			name:    "active after end",
+			status:  SessionStatusActive,
+			start:   now.Unix() - 60,
+			end:     now.Unix() - 1,
+			wantErr: ErrSessionEnded,
+		},
+		{
+			name:    "ended inside window",
+			status:  SessionStatusEnded,
+			start:   now.Unix() - 60,
+			end:     now.Unix() + 60,
+			wantErr: ErrSessionEnded,
+		},
+		{
+			name:    "unknown status fails closed",
+			status:  "paused",
+			start:   now.Unix() - 60,
+			end:     now.Unix() + 60,
+			wantErr: ErrSessionNotStarted,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			session := &Session{
+				Status:    tt.status,
+				StartTime: tt.start,
+				EndTime:   tt.end,
+			}
+			if err := session.CanAcceptVotes(now); !errors.Is(err, tt.wantErr) {
+				t.Fatalf("CanAcceptVotes() error = %v, want %v", err, tt.wantErr)
+			}
+		})
 	}
 }

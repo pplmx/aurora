@@ -51,6 +51,10 @@ aurora voting results -s <session-id>
 aurora voting session end -s <session-id>
 ```
 
+新建会期的状态是 `draft`，必须在时间窗内执行 `voting session start` 后才会
+接收选票；`voting session end`、未知状态或时间窗之外都会拒绝投票，因此会期
+生命周期不是可选的展示信息。
+
 `voting candidate list`、`voting voter list` 与 `voting session list` 的
 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0 时只从存储层读取该页
 并打印本页数量与偏移；`--offset` 默认 0。三个命令都拒绝负数分页参数。

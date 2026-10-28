@@ -391,7 +391,7 @@ func TestCastVoteUseCase_Execute(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -573,7 +573,7 @@ func TestListVotersUseCasePages(t *testing.T) {
 func TestListSessionsUseCase(t *testing.T) {
 	repo := &mockVotingRepo{
 		sessions: []*voting.Session{
-			{ID: "s1", Title: "Board Vote", Status: "active", Candidates: []string{"c1"}},
+			{ID: "s1", Title: "Board Vote", Status: voting.SessionStatusActive, Candidates: []string{"c1"}},
 			{ID: "s2", Title: "Referendum", Status: "closed", Candidates: []string{"c2"}},
 		},
 	}
@@ -726,7 +726,7 @@ func TestCastVoteUseCase_SessionNotStarted(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now + 3600, EndTime: now + 7200},
+			{ID: "session1", StartTime: now + 3600, EndTime: now + 7200, Status: voting.SessionStatusActive},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -758,7 +758,7 @@ func TestCastVoteUseCase_SessionEnded(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 7200, EndTime: now - 3600},
+			{ID: "session1", StartTime: now - 7200, EndTime: now - 3600, Status: voting.SessionStatusActive},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -793,7 +793,7 @@ func TestCastVoteUseCase_SessionEndedWithinTimeWindow(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 60, EndTime: now + 3600, Status: "ended"},
+			{ID: "session1", StartTime: now - 60, EndTime: now + 3600, Status: voting.SessionStatusEnded},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -813,6 +813,44 @@ func TestCastVoteUseCase_SessionEndedWithinTimeWindow(t *testing.T) {
 	if err.Error() != "voting session has ended" {
 		t.Errorf("Expected 'voting session has ended', got '%v'", err)
 	}
+}
+
+func TestCastVoteUseCase_DraftSessionWithinTimeWindowRejected(t *testing.T) {
+	now := time.Now().Unix()
+	repo := &mockVotingRepo{
+		voters: []*voting.Voter{
+			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
+		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 0},
+		},
+		sessions: []*voting.Session{
+			{
+				ID:         "session1",
+				StartTime:  now - 60,
+				EndTime:    now + 3600,
+				Status:     voting.SessionStatusDraft,
+				Candidates: []string{"candidate1"},
+			},
+		},
+	}
+	uc := NewCastVoteUseCaseWithoutTx(repo, &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="})
+
+	_, err := uc.Execute(CastVoteRequest{
+		VoterPublicKey: "dm90ZXIx",
+		CandidateID:    "candidate1",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
+		SessionID:      "session1",
+	})
+	require.ErrorIs(t, err, voting.ErrSessionNotStarted)
+
+	voter, voterErr := repo.GetVoter("dm90ZXIx")
+	require.NoError(t, voterErr)
+	require.False(t, voter.HasVoted, "a draft-session ballot must not claim the voter")
+	require.Empty(t, repo.votes, "a draft-session ballot must not be stored")
+	candidate, candidateErr := repo.GetCandidate("candidate1")
+	require.NoError(t, candidateErr)
+	require.Zero(t, candidate.VoteCount, "a draft-session ballot must not change the tally")
 }
 
 func TestCastVoteUseCase_SessionNotFound(t *testing.T) {
@@ -847,7 +885,7 @@ func TestCastVoteUseCase_GetSessionRepoError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -877,7 +915,7 @@ func TestCastVoteUseCase_GetVoterRepoError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -907,7 +945,7 @@ func TestCastVoteUseCase_GetCandidateRepoError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -936,7 +974,7 @@ func TestCastVoteUseCase_SignVoteError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{err: errors.New("signing failed")}
@@ -966,7 +1004,7 @@ func TestCastVoteUseCase_TryMarkVotedGenericError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1001,7 +1039,7 @@ func TestCastVoteUseCase_SaveVoteError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1052,7 +1090,7 @@ func TestCastVoteUseCase_IncrementCandidateVoteCountError(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 3},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1097,7 +1135,7 @@ func TestCastVoteUseCase_IncrementCandidateVoteCountAppliesTally(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 7},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1127,7 +1165,7 @@ func TestCastVoteUseCase_TryMarkVotedNotFound(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1165,7 +1203,7 @@ func TestCastVoteUseCase_CandidateNotInSession(t *testing.T) {
 			{ID: "candidate2", Name: "Bob", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1251,7 +1289,7 @@ func TestCastVoteUseCase_AlreadyVoted_NoStateChange(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 1},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1284,7 +1322,7 @@ func TestCastVoteUseCase_TxManagerFailure(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1323,7 +1361,7 @@ func TestCastVoteUseCase_RealEd25519_AcceptCorrectKey(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: "active", Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	uc := NewCastVoteUseCaseWithoutTx(repo, voting.NewEd25519Service())
@@ -1360,7 +1398,7 @@ func TestCastVoteUseCase_RealEd25519_RejectForgedKey(t *testing.T) {
 			{ID: "candidate1", Name: "Alice", VoteCount: 0},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: "active", Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	uc := NewCastVoteUseCaseWithoutTx(repo, voting.NewEd25519Service())
@@ -1398,7 +1436,7 @@ func TestCastVoteUseCase_RecordsOnChain(t *testing.T) {
 			{ID: "candidate1", Name: "Alice"},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
@@ -1565,7 +1603,7 @@ func TestCastVoteUseCase_WrongLengthPrivateKey(t *testing.T) {
 			{ID: "candidate1", Name: "Alice"},
 		},
 		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Candidates: []string{"candidate1"}},
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
 	}
 	service := &mockVotingService{}
