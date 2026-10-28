@@ -45,6 +45,10 @@ type fakeServices struct {
 
 	// tokenRows is what ListTokens returns.
 	tokenRows []TokenRow
+	// tokenInfoRows supplies full metadata for an id that may be outside the
+	// current list page. Ids without an entry still return the minimal row that
+	// most selection tests need.
+	tokenInfoRows map[string]TokenRow
 
 	// nftRows is what ListAllNFTs returns.
 	nftRows []NFTRow
@@ -328,6 +332,9 @@ func (f *fakeServices) TokenInfo(id string) (TokenRow, error) {
 	f.lastTokenInfoID = id
 	if f.loadErrs.tokenInfo != nil {
 		return TokenRow{}, f.loadErrs.tokenInfo
+	}
+	if info, ok := f.tokenInfoRows[id]; ok {
+		return info, nil
 	}
 	return TokenRow{ID: id}, nil
 }

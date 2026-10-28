@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -298,4 +299,71 @@ func TestUseGeneratedOwnerKey(t *testing.T) {
 	tester.Frame()
 	require.False(t, tester.HasText("Use generated owner key"),
 		"the generated key must not be offered for another token")
+}
+
+// TestInspectingAnOlderTokenRestoresOwnerContext covers a token outside the
+// current list page: Inspect can resolve its metadata, but the write forms and
+// saved-key shortcut still need the owner returned by that read.
+func TestInspectingAnOlderTokenRestoresOwnerContext(t *testing.T) {
+	owner, privateKey := testKeyPair(t, 7)
+	fake := &fakeServices{
+		tokenRows: []TokenRow{{ID: "newer", Name: "Newer", Owner: "newer-owner"}},
+		tokenInfoRows: map[string]TokenRow{
+			"archived": {ID: "archived", Name: "Archived", Owner: owner},
+		},
+	}
+	app := New(fake)
+	app.rememberKeys = true
+	app.rememberSuccessfulKey(owner, privateKey)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "archived"
+	require.NoError(t, tester.Click("Get Token Info"))
+	tester.Frame()
+
+	require.Equal(t, owner, app.selectedTokenOwner(),
+		"TokenInfo must supply the owner when the row is outside the visible page")
+	require.Equal(t, owner, app.token.mintTo,
+		"resolving an older token must fill the owner-shaped account fields")
+	require.True(t, tester.HasText("Use saved key"),
+		"the owner resolved by Inspect must enable the saved-key shortcut")
+	require.NoError(t, tester.Click("Use saved key"))
+	tester.Frame()
+	require.Equal(t, privateKey, app.token.mintPriv)
+
+	require.NoError(t, app.loadTokenInfo("archived"))
+	require.Equal(t, privateKey, app.token.mintPriv,
+		"refreshing the same subject must not erase a key already entered")
+	require.Equal(t, owner, app.token.mintTo,
+		"refreshing the same subject must keep the applied owner context")
+}
+
+// TestTokenOwnerContextSurvivesPaging keeps the subject stable while the
+// operator browses a later collection page: paging changes the visible rows,
+// not which token the write forms act on.
+func TestTokenOwnerContextSurvivesPaging(t *testing.T) {
+	tokens := make([]TokenRow, tokenPageSize+1)
+	for i := range tokens {
+		tokens[i] = TokenRow{
+			ID: "t" + strconv.Itoa(i), Name: "Token " + strconv.Itoa(i),
+			Owner: "owner-" + strconv.Itoa(i),
+		}
+	}
+	fake := &fakeServices{tokenRows: tokens}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Token 0"))
+	tester.Frame()
+	require.Equal(t, "owner-0", app.selectedTokenOwner())
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, "t0", app.token.tokenID)
+	require.Equal(t, "owner-0", app.selectedTokenOwner(),
+		"paging must not erase the owner of the token still under action")
 }
