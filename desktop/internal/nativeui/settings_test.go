@@ -185,4 +185,18 @@ func TestSettingsShowsAPreferenceWriteFailure(t *testing.T) {
 	require.True(t, app.settingsStatus.isErr)
 	require.Contains(t, app.settingsStatus.text, "disk full")
 	require.True(t, tester.HasText("Couldn't save settings: disk full"))
+
+	for range 40 {
+		if tester.Focused(tr("Dismiss")) {
+			break
+		}
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+	}
+	require.True(t, tester.Focused(tr("Dismiss")))
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.True(t, app.settingsStatus.empty())
+	require.True(t, tester.Focused("Navigation"),
+		"dismissing the Settings error must not strand the keyboard")
 }

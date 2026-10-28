@@ -91,9 +91,10 @@ type nftState struct {
 
 	listTable    ui.ListState
 	historyTable ui.ListState
-	// burnTrigger receives focus again when the destructive confirmation is
-	// cancelled, keeping keyboard navigation on the action that opened it.
-	burnTrigger ui.Handle
+	// burnTrigger receives focus when the destructive confirmation closes, and
+	// generateControl takes it back when the one-time key card is dismissed.
+	burnTrigger     ui.Handle
+	generateControl ui.Handle
 	// selected is the collection row chosen, -1 for none.
 	selected int
 	// limit/offset page the collection. A long-lived NFT store should not be
@@ -190,11 +191,12 @@ func (a *App) nftMintBody(c *ui.Context) {
 	})
 	fieldHint(c, "Creator (base64 public key)", "The creator becomes the first owner.", &a.nft.creator)
 	ui.Row(c).Gap(8).Children(func() {
-		if secondaryButton(c, "Generate key pair").Clicked() {
+		if secondaryButton(c, "Generate key pair").Bind(&a.nft.generateControl).Clicked() {
 			a.generateNFTCreator()
 		}
 		if a.nft.creatorPriv != "" && quietButton(c, "Dismiss key").Clicked() {
 			a.nft.creatorPriv = ""
+			a.nft.generateControl.Focus(c)
 		}
 	})
 	if a.nft.creatorPriv != "" {

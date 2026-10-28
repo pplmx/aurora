@@ -93,7 +93,9 @@ func (a *App) settingsView(c *ui.Context) {
 			// The only Settings action that can fail is this save; keep its
 			// result beside the control instead of at the top of a scroll the
 			// operator has already moved past.
-			renderStatus(c, pageSettings, a.settingsStatus, func() { a.settingsStatus = statusLine{} })
+			if renderStatus(c, pageSettings, a.settingsStatus, func() { a.settingsStatus = statusLine{} }) {
+				a.navigationControl.Focus(c)
+			}
 		})
 
 		formCard(c, "Shortcuts", "Navigation and window commands; Reload applies to pages that read stored data.", func() {

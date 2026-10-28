@@ -91,16 +91,18 @@ func localizeServiceErrorMessage(message string) string {
 	return message
 }
 
-// renderStatus draws a status line, if there is one.
+// renderStatus draws a status line, if there is one, and reports whether the
+// caller should take over focus after its Dismiss action removes the line.
 //
 // The line carries a word ("Failed"/"Done") as well as the colour, on a panel
 // tinted by the outcome: colour alone is not a signal for a reader with a
 // colour-vision difference, and a one-line sentence was easy to miss above a
 // page of cards.
-func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) {
+func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) bool {
 	if s.empty() {
-		return
+		return false
 	}
+	dismissed := false
 	label, tone, tint := "Done", ui.Hex(auroraGreen), ui.Hex(successTint)
 	if s.isErr {
 		label, tone, tint = "Failed", ui.Hex(auroraRed), ui.Hex(errorTint)
@@ -117,9 +119,11 @@ func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) {
 			ui.Spacer(c)
 			if quietButton(c, "Dismiss").Clicked() {
 				dismiss()
+				dismissed = true
 			}
 		}
 	})
+	return dismissed
 }
 
 // inlineStatus draws a card-local outcome. It is the compact sibling of

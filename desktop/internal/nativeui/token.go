@@ -133,9 +133,10 @@ type tokenState struct {
 
 	historyTable ui.ListState
 	list         ui.ListState
-	// burnTrigger receives focus again when the destructive confirmation is
-	// cancelled, keeping keyboard navigation on the action that opened it.
-	burnTrigger ui.Handle
+	// burnTrigger receives focus when the destructive confirmation closes, and
+	// generateControl takes it back when the one-time key card is dismissed.
+	burnTrigger     ui.Handle
+	generateControl ui.Handle
 }
 
 const tokenPageSize = 100
@@ -351,11 +352,12 @@ func (a *App) tokenCreate(c *ui.Context) {
 		})
 		fieldHint(c, "Owner (base64 public key)", "Required: the owner signs every later mint, transfer and burn.", &a.token.owner)
 		ui.Row(c).Gap(8).Children(func() {
-			if secondaryButton(c, "Generate key pair").Clicked() {
+			if secondaryButton(c, "Generate key pair").Bind(&a.token.generateControl).Clicked() {
 				a.generateTokenOwner()
 			}
 			if a.token.ownerPriv != "" && quietButton(c, "Dismiss key").Clicked() {
 				a.token.ownerPriv = ""
+				a.token.generateControl.Focus(c)
 			}
 		})
 		if a.token.ownerPriv != "" {
