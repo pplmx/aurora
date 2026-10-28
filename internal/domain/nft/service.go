@@ -23,7 +23,7 @@ type Service interface {
 	GetNFTsByOwner(ownerPub []byte, limit, offset int) ([]*NFT, error)
 	// ListNFTs returns every NFT, newest first.
 	ListNFTs(limit, offset int) ([]*NFT, error)
-	GetOperations(nftID string) ([]*Operation, error)
+	GetOperations(nftID string, limit, offset int) ([]*Operation, error)
 }
 
 type NFTService struct {
@@ -272,6 +272,6 @@ func (s *NFTService) ListNFTs(limit, offset int) ([]*NFT, error) {
 	return s.repo.ListNFTs(limit, offset)
 }
 
-func (s *NFTService) GetOperations(nftID string) ([]*Operation, error) {
-	return s.repo.GetOperations(nftID)
+func (s *NFTService) GetOperations(nftID string, limit, offset int) ([]*Operation, error) {
+	return s.repo.GetOperations(nftID, limit, offset)
 }

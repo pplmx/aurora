@@ -45,6 +45,8 @@ type fakeServices struct {
 	nftRows []NFTRow
 	// ownerNFTs is what ListNFTs returns for an owner filter.
 	ownerNFTs []NFTRow
+	// nftHistoryRows is the operation trail returned for an NFT.
+	nftHistoryRows []NFTOpRow
 
 	// sources is what OracleSources returns.
 	sources []SourceRow
@@ -94,6 +96,8 @@ type fakeServices struct {
 	lastHistoryOffset      int
 	lastNFTID              string
 	lastNFTHistoryID       string
+	lastNFTHistoryLimit    int
+	lastNFTHistoryOffset   int
 	lastOracleDataSource   string
 	lastOracleLatestSource string
 	lastSessionResultsID   string
@@ -430,13 +434,25 @@ func (f *fakeServices) ListAllNFTs() ([]NFTRow, error) {
 }
 func (f *fakeServices) TransferNFT(id, from, to, priv string) error { return nil }
 func (f *fakeServices) BurnNFT(id, owner, priv string) error        { return nil }
-func (f *fakeServices) NFTHistory(id string) ([]NFTOpRow, error) {
+func (f *fakeServices) NFTHistory(id string, limit, offset int) ([]NFTOpRow, error) {
 	f.nftHistoryCalls++
 	f.lastNFTHistoryID = id
+	f.lastNFTHistoryLimit = limit
+	f.lastNFTHistoryOffset = offset
 	if f.loadErrs.nftHistory != nil {
 		return nil, f.loadErrs.nftHistory
 	}
-	return nil, nil
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(f.nftHistoryRows) {
+		return nil, nil
+	}
+	rows := f.nftHistoryRows[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 
 // TestAppRendersEveryPage drives the real view through MyGo's Tester, which

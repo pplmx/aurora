@@ -398,3 +398,114 @@ func TestAddingSourceShowsTheNewRowOnPageZero(t *testing.T) {
 	require.Empty(t, app.oracle.appliedSearch)
 	require.True(t, tester.HasText("New source"))
 }
+
+func TestNFTHistoryPages(t *testing.T) {
+	history := make([]NFTOpRow, 150)
+	for i := range history {
+		history[i] = NFTOpRow{
+			Type: "transfer", From: "from-" + strconv.Itoa(i),
+			To: "to-" + strconv.Itoa(i), BlockHeight: int64(i + 1),
+		}
+	}
+	fake := &fakeServices{
+		nftHistoryRows: history,
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.nft.historyID = "n1"
+	app.nft.opTab = 2
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Show History"))
+	tester.Frame()
+	require.Len(t, app.nft.history, nftHistoryPageSize)
+	require.Equal(t, 0, app.nft.historyOffset)
+	require.Equal(t, nftHistoryPageSize+1, fake.lastNFTHistoryLimit,
+		"one extra row distinguishes a full page from the last page")
+	require.Equal(t, "n1", fake.lastNFTHistoryID)
+	require.True(t, tester.HasText("Entries 1–100"))
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, nftHistoryPageSize, app.nft.historyOffset)
+	require.Len(t, app.nft.history, 50)
+	require.False(t, app.nft.historyHasMore)
+	require.True(t, tester.HasText("Entries 101–150"))
+}
+
+func TestNFTHistoryStopsAtAnExactPageBoundary(t *testing.T) {
+	history := make([]NFTOpRow, nftHistoryPageSize)
+	for i := range history {
+		history[i] = NFTOpRow{Type: "transfer", BlockHeight: int64(i + 1)}
+	}
+	fake := &fakeServices{
+		nftHistoryRows: history,
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.nft.historyID = "n1"
+	app.nft.opTab = 2
+	app.ShowPage("NFT")
+	tester.Frame()
+	require.NoError(t, tester.Click("Show History"))
+	tester.Frame()
+	calls := fake.nftHistoryCalls
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Zero(t, app.nft.historyOffset)
+	require.Equal(t, calls, fake.nftHistoryCalls, "a disabled Next must not reload an empty page")
+}
+
+func TestShowingAnotherNFTHistoryStartsAtPageZero(t *testing.T) {
+	history := make([]NFTOpRow, 150)
+	for i := range history {
+		history[i] = NFTOpRow{Type: "transfer", BlockHeight: int64(i + 1)}
+	}
+	fake := &fakeServices{nftHistoryRows: history}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.nft.historyID = "n1"
+	app.nft.opTab = 2
+	app.ShowPage("NFT")
+	tester.Frame()
+	require.NoError(t, tester.Click("Show History"))
+	tester.Frame()
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, nftHistoryPageSize, app.nft.historyOffset)
+
+	app.nft.historyID = "n2"
+	tester.Frame()
+	require.NoError(t, tester.Click("Show History"))
+	tester.Frame()
+	require.Zero(t, app.nft.historyOffset, "a new subject must not inherit the old page offset")
+	require.Equal(t, "n2", app.nft.historyLoadedID)
+}
+
+func TestFailedNFTHistoryPageMoveKeepsCurrentPage(t *testing.T) {
+	history := make([]NFTOpRow, 150)
+	for i := range history {
+		history[i] = NFTOpRow{Type: "transfer", BlockHeight: int64(i + 1)}
+	}
+	fake := &fakeServices{
+		nftHistoryRows: history,
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.nft.historyID = "n1"
+	app.nft.opTab = 2
+	app.ShowPage("NFT")
+	tester.Frame()
+	require.NoError(t, tester.Click("Show History"))
+	tester.Frame()
+	fake.loadErrs.nftHistory = errors.New("read failed")
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Zero(t, app.nft.historyOffset)
+	require.Len(t, app.nft.history, nftHistoryPageSize)
+	require.True(t, tester.HasText("Couldn't load NFT history: read failed"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}

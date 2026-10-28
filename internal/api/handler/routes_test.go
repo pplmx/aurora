@@ -561,6 +561,6 @@ func (f *failingNFTRepo) GetNFTsByOwner(_ []byte, _ int, _ int) ([]*nft.NFT, err
 func (f *failingNFTRepo) SaveOperation(*nft.Operation) error {
 	return f.err
 }
-func (f *failingNFTRepo) GetOperations(string) ([]*nft.Operation, error) {
+func (f *failingNFTRepo) GetOperations(string, int, int) ([]*nft.Operation, error) {
 	return nil, f.err
 }

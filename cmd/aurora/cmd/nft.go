@@ -255,14 +255,28 @@ var nftHistoryCmd = &cobra.Command{
 		}
 
 		nftID, _ := cmd.Flags().GetString("nft")
+		limit, _ := cmd.Flags().GetInt("limit")
+		offset, _ := cmd.Flags().GetInt("offset")
+		if limit < 0 {
+			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+		}
+		if offset < 0 {
+			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+		}
 
 		historyUC := nftapp.NewGetNFTOperationsUseCase(service)
-		results, err := historyUC.Execute(nftID)
+		results, err := historyUC.Execute(&nftapp.GetNFTOperationsRequest{
+			NFTID: nftID, Limit: limit, Offset: offset,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to get history: %w", err)
 		}
 
-		fmt.Printf("\n📜 Operations: %d\n", len(results))
+		if limit > 0 {
+			fmt.Printf("\n📜 Operations: %d (offset %d)\n", len(results), offset)
+		} else {
+			fmt.Printf("\n📜 Operations: %d\n", len(results))
+		}
 		if len(results) == 0 {
 			fmt.Println("   (none)")
 		}
@@ -323,6 +337,8 @@ func init() {
 	listCmd.Flags().StringP("owner", "o", "", i18n.GetText("nft.owner"))
 
 	nftHistoryCmd.Flags().StringP("nft", "i", "", i18n.GetText("nft.nft_id"))
+	nftHistoryCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	nftHistoryCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	_ = nftHistoryCmd.MarkFlagRequired("nft")
 }
 

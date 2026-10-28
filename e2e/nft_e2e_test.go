@@ -160,8 +160,16 @@ func (r *inMemoryNFTRepo) SaveOperation(op *nft.Operation) error {
 	return nil
 }
 
-func (r *inMemoryNFTRepo) GetOperations(nftID string) ([]*nft.Operation, error) {
-	return r.operations[nftID], nil
+func (r *inMemoryNFTRepo) GetOperations(nftID string, limit, offset int) ([]*nft.Operation, error) {
+	operations := r.operations[nftID]
+	if offset >= len(operations) {
+		return nil, nil
+	}
+	operations = operations[offset:]
+	if limit > 0 && len(operations) > limit {
+		operations = operations[:limit]
+	}
+	return operations, nil
 }
 
 // WithTx satisfies nft.TransactableRepository. E2E tests run
@@ -213,7 +221,7 @@ func TestNFTE2E(t *testing.T) {
 		t.Error("Owner should be updated")
 	}
 
-	ops, _ := service.GetOperations(minted.ID)
+	ops, _ := service.GetOperations(minted.ID, 0, 0)
 	if len(ops) != 2 {
 		t.Errorf("len(ops) = %v, want 2 (mint + transfer)", len(ops))
 	}

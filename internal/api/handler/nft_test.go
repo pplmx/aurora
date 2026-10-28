@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -100,6 +101,49 @@ func TestNFTHandler_History_ReturnsMintOperation(t *testing.T) {
 	require.Contains(t, rr.Body.String(), `"type":"mint"`)
 }
 
+func TestNFTHandler_History_Pages(t *testing.T) {
+	repo := nft.NewInmemRepo()
+	require.NoError(t, repo.SaveNFT(&nft.NFT{ID: "nft-1", Name: "Paged"}))
+	for i, timestamp := range []int64{100, 200, 300} {
+		require.NoError(t, repo.SaveOperation(&nft.Operation{
+			ID: "op-" + strconv.Itoa(i), NFTID: "nft-1", Type: "transfer",
+			Timestamp: timestamp,
+		}))
+	}
+	handler := newTestNFTHandler(repo, nil)
+
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/nft/nft-1/history?limit=1&offset=1", nil)
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "nft-1")
+	req = req.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, rctx))
+	rr := httptest.NewRecorder()
+
+	handler.History(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	var ops []struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &ops))
+	require.Len(t, ops, 1)
+	assert.Equal(t, "op-1", ops[0].ID)
+}
+
+func TestNFTHistoryPageClampsAndDefaults(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/nft/nft-1/history?limit=999&offset=999999", nil)
+	limit, offset := nftHistoryPage(req)
+	assert.Equal(t, maxNFTHistoryLimit, limit)
+	assert.Equal(t, maxNFTHistoryOffset, offset)
+
+	req = httptest.NewRequest(http.MethodGet,
+		"/api/v1/nft/nft-1/history?limit=nope&offset=-1", nil)
+	limit, offset = nftHistoryPage(req)
+	assert.Equal(t, defaultNFTHistoryLimit, limit)
+	assert.Zero(t, offset)
+}
+
 // TestNFTHandler_History_AfterBurn locks ISS-359 on the REST surface: burn
 // intentionally removes the NFT while retaining its operation trail, so
 // GET /nft/{id}/history must keep returning that trail instead of 404ing.
@@ -149,6 +193,17 @@ func TestNFTHandler_History_AfterBurn(t *testing.T) {
 	require.Equal(t, http.StatusOK, historyRR.Code)
 	require.Contains(t, historyRR.Body.String(), `"type":"mint"`)
 	require.Contains(t, historyRR.Body.String(), `"type":"burn"`)
+
+	pastReq := httptest.NewRequest(http.MethodGet,
+		"/api/v1/nft/"+minted.ID+"/history?limit=1&offset=99", nil)
+	routeCtx = chi.NewRouteContext()
+	routeCtx.URLParams.Add("id", minted.ID)
+	pastReq = pastReq.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, routeCtx))
+	pastRR := httptest.NewRecorder()
+	handler.History(pastRR, pastReq)
+	require.Equal(t, http.StatusOK, pastRR.Code,
+		"an empty page after a burned NFT's retained history is still a valid history")
+	require.JSONEq(t, "[]", pastRR.Body.String())
 }
 
 func TestNFTHandler_Mint_ResponseContentType(t *testing.T) {

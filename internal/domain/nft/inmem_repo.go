@@ -209,8 +209,23 @@ func (r *inmemRepo) SaveOperation(op *Operation) error {
 	return nil
 }
 
-func (r *inmemRepo) GetOperations(nftID string) ([]*Operation, error) {
+func (r *inmemRepo) GetOperations(nftID string, limit, offset int) ([]*Operation, error) {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return r.operations[nftID], nil
+	operations := append([]*Operation(nil), r.operations[nftID]...)
+	r.mu.RUnlock()
+
+	sort.SliceStable(operations, func(i, j int) bool {
+		return operations[i].Timestamp > operations[j].Timestamp
+	})
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(operations) {
+		return nil, nil
+	}
+	operations = operations[offset:]
+	if limit > 0 && len(operations) > limit {
+		operations = operations[:limit]
+	}
+	return operations, nil
 }

@@ -21,6 +21,12 @@ const maxNFTListLimit = 100
 // one request. Mirrors the token-history caps.
 const maxNFTListOffset = 1000
 
+const (
+	defaultNFTHistoryLimit = 50
+	maxNFTHistoryLimit     = 100
+	maxNFTHistoryOffset    = 10000
+)
+
 type NFTHandler struct {
 	repo    nft.Repository
 	service nft.Service
@@ -202,13 +208,34 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 // browser — closing that parity gap.
 func (h *NFTHandler) History(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	limit, offset := nftHistoryPage(r)
 
 	uc := nftapp.NewGetNFTOperationsUseCase(h.service)
-	result, err := uc.Execute(id)
+	result, err := uc.Execute(&nftapp.GetNFTOperationsRequest{
+		NFTID: id, Limit: limit, Offset: offset,
+	})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, result)
+}
+
+// nftHistoryPage uses the same forgiving, capped rules as the other collection
+// reads: malformed or non-positive limits take the default, and offsets clamp
+// instead of allowing an arbitrarily deep storage scan.
+func nftHistoryPage(r *http.Request) (limit, offset int) {
+	limit = defaultNFTHistoryLimit
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			limit = min(parsed, maxNFTHistoryLimit)
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
+			offset = min(parsed, maxNFTHistoryOffset)
+		}
+	}
+	return limit, offset
 }

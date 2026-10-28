@@ -188,25 +188,46 @@ func NewGetNFTOperationsUseCase(service nft.Service) *GetNFTOperationsUseCase {
 	return &GetNFTOperationsUseCase{service: service}
 }
 
-func (u *GetNFTOperationsUseCase) Execute(nftID string) ([]*OperationResponse, error) {
+type GetNFTOperationsRequest struct {
+	NFTID  string
+	Limit  int
+	Offset int
+}
+
+func (u *GetNFTOperationsUseCase) Execute(req *GetNFTOperationsRequest) ([]*OperationResponse, error) {
+	if req == nil {
+		req = &GetNFTOperationsRequest{}
+	}
 	// Burn deletes the NFT row but deliberately keeps nft_operations as its
 	// permanent audit trail. Read the trail first so a burned NFT remains
 	// inspectable through `nft history` and GET /nft/{id}/history.
-	results, err := u.service.GetOperations(nftID)
+	results, err := u.service.GetOperations(req.NFTID, req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}
 
 	// A history for a truly nonexistent NFT must still 404, not return an
 	// empty 200 [] list (ISS-130). An existing NFT with no operations keeps
-	// returning 200 [].
+	// returning 200 []. A page past the end of a burned NFT's retained trail
+	// is also an empty page, not a missing asset, so inspect the first page
+	// before classifying an empty later page as 404.
 	if len(results) == 0 {
-		nftByID, err := u.service.GetNFTByID(nftID)
+		nftByID, err := u.service.GetNFTByID(req.NFTID)
 		if err != nil {
 			return nil, err
 		}
 		if nftByID == nil {
-			return nil, nft.ErrNFTNotFound
+			hasHistory := false
+			if req.Offset > 0 {
+				first, err := u.service.GetOperations(req.NFTID, 1, 0)
+				if err != nil {
+					return nil, err
+				}
+				hasHistory = len(first) > 0
+			}
+			if !hasHistory {
+				return nil, nft.ErrNFTNotFound
+			}
 		}
 	}
 

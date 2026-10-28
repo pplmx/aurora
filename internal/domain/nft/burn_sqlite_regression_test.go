@@ -47,7 +47,7 @@ func TestNFTService_Burn_RetainsAuditTrailOverSQLite(t *testing.T) {
 		t.Fatalf("Mint: %v", err)
 	}
 
-	ops, err := svc.GetOperations(minted.ID)
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations before burn: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestNFTService_Burn_RetainsAuditTrailOverSQLite(t *testing.T) {
 		t.Fatalf("expected NFT to be gone after burn, got %#v", fetched)
 	}
 
-	ops, err = svc.GetOperations(minted.ID)
+	ops, err = svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations after burn: %v", err)
 	}

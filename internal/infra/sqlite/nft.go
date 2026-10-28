@@ -12,11 +12,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// maxNFTHistoryOps bounds the operations GetOperations returns so an unbounded
-// reads can't be forced through GET /nft/{id}/history / `nft history`
-// (TASK-271, ISS-267).
-const maxNFTHistoryOps = 1000
-
 // nftExec abstracts *sql.DB and *sql.Tx so NFTRepository can run either
 // against the pool or inside an explicit transaction.
 type nftExec interface {
@@ -495,17 +490,22 @@ func (r *NFTRepository) SaveOperation(op *nft.Operation) error {
 	return err
 }
 
-func (r *NFTRepository) GetOperations(nftID string) ([]*nft.Operation, error) {
-	// Bound the returned operations so a key-holding caller cannot force an
-	// unbounded DB scan/response through GET /nft/{id}/history or `nft history`.
-	// The rest of the REST surface (token history, NFT list, oracle query) caps
-	// ?limit at parse time; this endpoint had no knob, so a fixed cap here
-	// closes the same unbounded-read gap (TASK-271, ISS-267). 1000 is beyond
-	// any realistic per-NFT transfer/burn trail.
+func (r *NFTRepository) GetOperations(nftID string, limit, offset int) ([]*nft.Operation, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	// rowid preserves insertion order for operations recorded in the same
+	// second. The composite (nft_id, timestamp DESC) index carries rowid as
+	// its implicit tie-break, so the page remains an ordered index walk rather
+	// than a full sort before LIMIT.
 	rows, err := r.q().Query(`
 		SELECT id, nft_id, type, from_addr, to_addr, signature, block_height, timestamp
-		FROM nft_operations WHERE nft_id = ? ORDER BY timestamp DESC LIMIT ?
-	`, nftID, maxNFTHistoryOps)
+		FROM nft_operations WHERE nft_id = ?
+		ORDER BY timestamp DESC, rowid ASC LIMIT ? OFFSET ?
+	`, nftID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -146,7 +146,7 @@ func TestNFTService_Transfer(t *testing.T) {
 		t.Errorf("expected owner to be recipient, got %v", transferred.Owner)
 	}
 
-	ops, err := svc.GetOperations(minted.ID)
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations failed: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestNFTService_Transfer_RejectsZeroRecipient(t *testing.T) {
 	if !bytes.Equal(stored.Owner, creatorPub) {
 		t.Fatal("rejected transfer must leave the original owner unchanged")
 	}
-	ops, err := svc.GetOperations(minted.ID)
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations failed: %v", err)
 	}
@@ -345,7 +345,7 @@ func TestNFTService_Burn(t *testing.T) {
 		t.Errorf("expected NFT to be deleted, got %v", burned)
 	}
 
-	ops, err := svc.GetOperations(minted.ID)
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations failed: %v", err)
 	}
@@ -407,7 +407,7 @@ func TestNFTService_Burn_VerifyOperationSignature(t *testing.T) {
 		t.Fatalf("Burn failed: %v", err)
 	}
 
-	ops, _ := svc.GetOperations(minted.ID)
+	ops, _ := svc.GetOperations(minted.ID, 0, 0)
 	burnOp := ops[1]
 	if burnOp.NFTID != minted.ID {
 		t.Errorf("expected NFTID %s, got %s", minted.ID, burnOp.NFTID)
@@ -499,7 +499,7 @@ func TestNFTService_Transfer_Atomicity(t *testing.T) {
 
 	// Rollback assertion 1: the transfer operation saved before the failure
 	// must NOT survive — only the mint operation remains.
-	ops, err := svc.GetOperations(minted.ID)
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations: %v", err)
 	}
@@ -548,7 +548,7 @@ func TestNFTService_Mint_Atomicity(t *testing.T) {
 	if current, _ := svc.GetNFTByID(nft.ID); current != nil {
 		t.Errorf("NFT row survived a failed mint (orphaned row without audit operation): %+v", current)
 	}
-	ops, _ := svc.GetOperations(nft.ID)
+	ops, _ := svc.GetOperations(nft.ID, 0, 0)
 	if len(ops) != 0 {
 		t.Errorf("expected 0 operations after rolled-back mint, got %d", len(ops))
 	}
@@ -573,7 +573,7 @@ func TestNFTService_Burn_Atomicity(t *testing.T) {
 	}
 
 	// The burn operation saved before the failure must have been rolled back.
-	ops, err := svc.GetOperations(minted.ID)
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations: %v", err)
 	}
@@ -635,7 +635,7 @@ func TestNFTService_Transfer_VerifyOperationSaved(t *testing.T) {
 		t.Fatalf("Transfer failed: %v", err)
 	}
 
-	ops, _ := svc.GetOperations(minted.ID)
+	ops, _ := svc.GetOperations(minted.ID, 0, 0)
 	if len(ops) != 2 {
 		t.Fatalf("expected 2 operations, got %d", len(ops))
 	}
@@ -723,7 +723,7 @@ func TestNFTService_MultipleTransfers(t *testing.T) {
 		t.Errorf("expected owner3, got different owner")
 	}
 
-	ops, _ := svc.GetOperations(minted.ID)
+	ops, _ := svc.GetOperations(minted.ID, 0, 0)
 	if len(ops) != 3 {
 		t.Errorf("expected 3 operations, got %d", len(ops))
 	}
@@ -862,8 +862,8 @@ func (r *FailingRepo) SaveOperation(op *Operation) error {
 	return r.inmemRepo.SaveOperation(op)
 }
 
-func (r *FailingRepo) GetOperations(nftID string) ([]*Operation, error) {
-	return r.inmemRepo.GetOperations(nftID)
+func (r *FailingRepo) GetOperations(nftID string, limit, offset int) ([]*Operation, error) {
+	return r.inmemRepo.GetOperations(nftID, limit, offset)
 }
 
 // TestNFTService_Transfer_ConcurrentOnlyOneWinner is a regression
@@ -968,7 +968,7 @@ func TestNFTService_Transfer_ConcurrentOnlyOneWinner(t *testing.T) {
 			final.Owner, recipients[winnerIdx])
 	}
 
-	ops, err := svc.GetOperations(minted.ID)
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations: %v", err)
 	}
@@ -1060,7 +1060,7 @@ func TestNFTService_Burn_ConcurrentOnlyOneWinner(t *testing.T) {
 	// single-goroutine), so rejected attempts may additionally leave
 	// their operation records; the assertion checks the minimum
 	// guarantee that holds in both modes.
-	ops, err := svc.GetOperations(minted.ID)
+	ops, err := svc.GetOperations(minted.ID, 0, 0)
 	if err != nil {
 		t.Fatalf("GetOperations: %v", err)
 	}

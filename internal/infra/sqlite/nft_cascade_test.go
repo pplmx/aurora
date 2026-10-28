@@ -63,7 +63,7 @@ func TestEnsureNoCascadeFKRebuildsAnOldDatabase(t *testing.T) {
 	assert.Zero(t, fkCount, "nft_operations must carry no foreign key after the rebuild")
 
 	// ...and every audit row survived the copy.
-	ops, err := repo.GetOperations("n1")
+	ops, err := repo.GetOperations("n1", 0, 0)
 	require.NoError(t, err)
 	require.Len(t, ops, 2, "the rebuild must not lose audit history")
 	ids := []string{ops[0].ID, ops[1].ID}
@@ -82,7 +82,7 @@ func TestEnsureNoCascadeFKRebuildsAnOldDatabase(t *testing.T) {
 
 	// The point of the whole rebuild: burning the NFT keeps its trail.
 	require.NoError(t, repo.DeleteNFT("n1"))
-	ops, err = repo.GetOperations("n1")
+	ops, err = repo.GetOperations("n1", 0, 0)
 	require.NoError(t, err)
 	assert.Len(t, ops, 2, "burning must not cascade-delete the audit trail")
 }
@@ -107,7 +107,7 @@ func TestEnsureNoCascadeFKIsIdempotent(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = second.Close() })
 
-	ops, err := second.GetOperations("n1")
+	ops, err := second.GetOperations("n1", 0, 0)
 	require.NoError(t, err)
 	require.Len(t, ops, 1, "a no-op rebuild must keep the rows")
 	assert.Equal(t, "op1", ops[0].ID)

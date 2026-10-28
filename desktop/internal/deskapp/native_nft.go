@@ -89,9 +89,11 @@ func (s *nativeServices) BurnNFT(id, owner, priv string) error {
 	return uc.Execute(&nftapp.BurnNFTRequest{NFTID: id, Owner: owner, PrivateKey: priv})
 }
 
-func (s *nativeServices) NFTHistory(id string) ([]nativeui.NFTOpRow, error) {
+func (s *nativeServices) NFTHistory(id string, limit, offset int) ([]nativeui.NFTOpRow, error) {
 	uc := nftapp.NewGetNFTOperationsUseCase(nft.NewService(s.nftRepo, s.nftTx))
-	resp, err := uc.Execute(id)
+	resp, err := uc.Execute(&nftapp.GetNFTOperationsRequest{
+		NFTID: id, Limit: limit, Offset: offset,
+	})
 	if err != nil {
 		return nil, err
 	}

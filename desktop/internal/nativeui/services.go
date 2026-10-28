@@ -77,5 +77,5 @@ type Services interface {
 	ListAllNFTsPage(limit, offset int) ([]NFTRow, error)
 	TransferNFT(id, from, to, priv string) error
 	BurnNFT(id, owner, priv string) error
-	NFTHistory(id string) ([]NFTOpRow, error)
+	NFTHistory(id string, limit, offset int) ([]NFTOpRow, error)
 }

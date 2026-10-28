@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -290,7 +291,7 @@ func TestNFTRepository_GetOperations(t *testing.T) {
 		t.Fatalf("Failed to save op3: %v", err)
 	}
 
-	ops, err := repo.GetOperations("nft-1")
+	ops, err := repo.GetOperations("nft-1", 0, 0)
 	if err != nil {
 		t.Fatalf("Failed to get operations: %v", err)
 	}
@@ -298,6 +299,27 @@ func TestNFTRepository_GetOperations(t *testing.T) {
 	if len(ops) != 2 {
 		t.Errorf("Expected 2 operations, got %d", len(ops))
 	}
+}
+
+func TestNFTRepository_GetOperationsPages(t *testing.T) {
+	repo, cleanup := setupNFTTestDB(t)
+	defer cleanup()
+
+	for i, timestamp := range []int64{100, 200, 300} {
+		require.NoError(t, repo.SaveOperation(&nft.Operation{
+			ID: "op-" + strconv.Itoa(i), NFTID: "nft-1", Type: "transfer",
+			Timestamp: timestamp,
+		}))
+	}
+
+	page, err := repo.GetOperations("nft-1", 1, 1)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "op-1", page[0].ID, "the second row in newest-first order")
+
+	past, err := repo.GetOperations("nft-1", 10, 99)
+	require.NoError(t, err)
+	require.Empty(t, past)
 }
 
 // TestNFTRepository_GetOperations_ServiceCreatedOpsDoNotCollapse locks
@@ -322,7 +344,7 @@ func TestNFTRepository_GetOperations_ServiceCreatedOpsDoNotCollapse(t *testing.T
 	require.NoError(t, repo.SaveOperation(op1))
 	require.NoError(t, repo.SaveOperation(op2))
 
-	ops, err := repo.GetOperations("nft-1")
+	ops, err := repo.GetOperations("nft-1", 0, 0)
 	require.NoError(t, err)
 	require.Len(t, ops, 2, "mint + transfer ops for one NFT must both survive the INSERT OR REPLACE")
 }
@@ -673,7 +695,7 @@ func TestNFTRepository_WithTx_CommitAndVisibility(t *testing.T) {
 		}
 		require.NotNil(t, got, "tx-scoped read must see uncommitted NFT row")
 
-		ops, err := txRepo.GetOperations("nft-tx")
+		ops, err := txRepo.GetOperations("nft-tx", 0, 0)
 		if err != nil {
 			return err
 		}
@@ -686,7 +708,7 @@ func TestNFTRepository_WithTx_CommitAndVisibility(t *testing.T) {
 	got, err := repo.GetNFT("nft-tx")
 	require.NoError(t, err)
 	require.NotNil(t, got)
-	ops, err := repo.GetOperations("nft-tx")
+	ops, err := repo.GetOperations("nft-tx", 0, 0)
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 }
@@ -720,7 +742,7 @@ func TestNFTRepository_WithTx_RollbackLeavesNoPartialState(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, got, "NFT row must be rolled back")
 
-	ops, err := repo.GetOperations("nft-rb")
+	ops, err := repo.GetOperations("nft-rb", 0, 0)
 	require.NoError(t, err)
 	require.Empty(t, ops, "operation must be rolled back")
 }

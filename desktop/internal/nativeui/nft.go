@@ -56,6 +56,11 @@ type nftState struct {
 	nftLoadedID     string
 	historyErr      error
 	historyLoadedID string
+	// historyOffset pages the operation trail independently of the NFT
+	// collection. hasMore uses one lookahead row so an exact final page does
+	// not leave a dead Next control.
+	historyOffset  int
+	historyHasMore bool
 
 	// Write forms.
 	from      string
@@ -89,6 +94,7 @@ type nftState struct {
 }
 
 const nftPageSize = 100
+const nftHistoryPageSize = 100
 
 func (a *App) loadNFT() {
 	a.loadNFTPage(a.nft.offset)
@@ -443,7 +449,7 @@ func (a *App) nftWrite(c *ui.Context) {
 				if secondaryButton(c, "Show History").Clicked() {
 					id := strings.TrimSpace(a.nft.historyID)
 					a.clearNFTHistoryForAnotherSubject(id)
-					if err := a.loadNFTHistory(id); err != nil {
+					if err := a.loadNFTHistoryPage(id, 0); err != nil {
 						a.nft.status = errStatus(err)
 					} else {
 						a.nft.status = statusLine{}
@@ -487,11 +493,33 @@ func (a *App) clearNFTDetailsForAnotherSubject(id string) {
 // loadNFTHistory reads one asset's operation log. The id is the whole key: a
 // failure keeps the rows only when they describe the same asset.
 func (a *App) loadNFTHistory(id string) error {
-	ops, err := a.services.NFTHistory(id)
+	offset := a.nft.historyOffset
+	if a.nft.historyLoadedID != id {
+		offset = 0
+	}
+	return a.loadNFTHistoryPage(id, offset)
+}
+
+// loadNFTHistoryPage commits the subject, offset and rows only after a
+// successful read. A failed refresh or pager move therefore leaves the visible
+// trail and its position on the page they actually describe.
+func (a *App) loadNFTHistoryPage(id string, offset int) error {
+	if offset < 0 {
+		offset = 0
+	}
+	ops, err := a.services.NFTHistory(id, nftHistoryPageSize+1, offset)
 	if err != nil {
 		a.nft.historyErr = err
 		a.nft.historyLoadedID = id
 		return err
+	}
+	if len(ops) == 0 && offset > 0 {
+		return a.loadNFTHistoryPage(id, 0)
+	}
+	a.nft.historyOffset = offset
+	a.nft.historyHasMore = len(ops) > nftHistoryPageSize
+	if a.nft.historyHasMore {
+		ops = ops[:nftHistoryPageSize]
 	}
 	a.nft.history = ops
 	a.nft.historyLoadedID = id
@@ -506,6 +534,8 @@ func (a *App) clearNFTHistoryForAnotherSubject(id string) {
 	a.nft.history = nil
 	a.nft.historyErr = nil
 	a.nft.historyLoadedID = ""
+	a.nft.historyOffset = 0
+	a.nft.historyHasMore = false
 }
 
 // selectNFT re-reads the Inspect card and history for the asset just chosen:
@@ -591,6 +621,16 @@ func (a *App) refreshNFT(id string) {
 func (a *App) nftHistoryTable(c *ui.Context) {
 	if len(a.nft.history) == 0 {
 		emptyNote(c, "No history loaded yet.")
+		return
+	}
+	if previous, next := listPager(c, a.nft.historyOffset, len(a.nft.history), a.nft.historyHasMore); previous || next {
+		target := a.nft.historyOffset
+		if previous {
+			target = max(0, target-nftHistoryPageSize)
+		} else {
+			target += nftHistoryPageSize
+		}
+		_ = a.loadNFTHistoryPage(a.nft.historyLoadedID, target)
 		return
 	}
 	ops := a.nft.history
