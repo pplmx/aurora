@@ -216,7 +216,7 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 
 	// 8. Double-voting the same voter must be rejected (already-voted).
 	rr = post("/vote", voteBody)
-	assert.NotEqual(t, http.StatusOK, rr.Code, "same voter must not vote twice")
+	assert.Equal(t, http.StatusConflict, rr.Code, "same voter must not vote twice in one session")
 
 	// 9. Session lifecycle over the real API (v1.10): register a second voter,
 	// end the session, confirm a NEW vote is rejected while "ended", then start
@@ -260,6 +260,36 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 
 	rr = post("/vote", vote2Body)
 	require.Equal(t, http.StatusOK, rr.Code, "vote after restart body: %s", rr.Body.String())
+
+	// 10. A new session is a new election: the voter who already voted in the
+	// first session is eligible there, while the per-session claim still
+	// prevents a second ballot in that session.
+	rr = post("/session", `{"title":"Election 2027","description":"Next","candidate_ids":["`+
+		candidate.ID+`"],"start_time":`+itoa(now-60)+`,"end_time":`+itoa(now+3600)+`}`)
+	require.Equal(t, http.StatusOK, rr.Code, "create second session body: %s", rr.Body.String())
+	var session2 struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &session2))
+	require.NotEmpty(t, session2.ID)
+	rr = post("/session/"+session2.ID+"/start", "")
+	require.Equal(t, http.StatusOK, rr.Code, "start second session body: %s", rr.Body.String())
+
+	secondSessionVoteBody := `{"voter_public_key":"` + voter.PublicKey +
+		`","candidate_id":"` + candidate.ID +
+		`","private_key":"` + voter.PrivateKey +
+		`","session_id":"` + session2.ID + `"}`
+	rr = post("/vote", secondSessionVoteBody)
+	require.Equal(t, http.StatusOK, rr.Code,
+		"a prior session must not lock this voter out: %s", rr.Body.String())
+
+	rr = get("/results/" + session2.ID)
+	require.Equal(t, http.StatusOK, rr.Code, "second-session results body: %s", rr.Body.String())
+	var results struct {
+		TotalVotes int `json:"total_votes"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &results))
+	assert.Equal(t, 1, results.TotalVotes)
 }
 
 func itoa(n int64) string {

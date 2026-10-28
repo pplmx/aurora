@@ -10,16 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestVotingRepository_TryMarkVoted_ConcurrentNoDoubleVote proves the
-// repo enforces single-vote-per-voter under concurrent CastVote calls.
-//
-// The TOCTOU window in the previous CastVoteUseCase implementation
-// (read has_voted, decide, then UPDATE has_voted=true) let two
-// concurrent requests both succeed, allowing the same voter to vote
-// twice. The fix is a conditional UPDATE in TryMarkVoted that uses
-// SQLite's per-connection write serialization so exactly one caller
-// sees RowsAffected()==1.
-func TestVotingRepository_TryMarkVoted_ConcurrentNoDoubleVote(t *testing.T) {
+// TestVotingRepository_SaveVote_ConcurrentNoDoubleVote proves the
+// (session_id, voter_pk) claim enforces one ballot per voter in a session
+// under concurrent saves.
+func TestVotingRepository_SaveVote_ConcurrentNoDoubleVote(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
@@ -47,7 +41,9 @@ func TestVotingRepository_TryMarkVoted_ConcurrentNoDoubleVote(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := repo.TryMarkVoted("test-pk", "vote-hash")
+			err := repo.SaveVote(voting.NewSessionVote(
+				"test-pk", "candidate-1", "session-1", "signature", "message",
+			))
 			switch err {
 			case nil:
 				atomic.AddInt32(&successCount, 1)
@@ -67,17 +63,34 @@ func TestVotingRepository_TryMarkVoted_ConcurrentNoDoubleVote(t *testing.T) {
 	got, err := repo.GetVoter("test-pk")
 	require.NoError(t, err)
 	assert.True(t, got.HasVoted, "voter must be marked as voted")
+
+	var claims, votes int
+	require.NoError(t, repo.db.QueryRow(
+		`SELECT COUNT(*) FROM session_vote_claims
+		 WHERE session_id = 'session-1' AND voter_pk = 'test-pk'`,
+	).Scan(&claims))
+	require.NoError(t, repo.db.QueryRow(
+		`SELECT COUNT(*) FROM votes WHERE voter_pk = 'test-pk'`,
+	).Scan(&votes))
+	assert.Equal(t, 1, claims)
+	assert.Equal(t, 1, votes, "losing claims must roll back their vote rows")
 }
 
-func TestVotingRepository_TryMarkVoted_NotFound(t *testing.T) {
+func TestVotingRepository_SaveVote_SessionClaimNotFound(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
-	err := repo.TryMarkVoted("nonexistent", "vote-hash")
+	err := repo.SaveVote(voting.NewSessionVote(
+		"nonexistent", "candidate-1", "session-1", "signature", "message",
+	))
 	assert.ErrorIs(t, err, ErrNotFound)
+
+	var votes int
+	require.NoError(t, repo.db.QueryRow(`SELECT COUNT(*) FROM votes`).Scan(&votes))
+	assert.Zero(t, votes, "a missing voter must roll back the vote row")
 }
 
-func TestVotingRepository_TryMarkVoted_Sequential(t *testing.T) {
+func TestVotingRepository_SaveVote_ClaimIsScopedToSession(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
@@ -89,14 +102,28 @@ func TestVotingRepository_TryMarkVoted_Sequential(t *testing.T) {
 	}
 	require.NoError(t, repo.SaveVoter(voter))
 
-	require.NoError(t, repo.TryMarkVoted("test-pk-2", "first-hash"))
-	err := repo.TryMarkVoted("test-pk-2", "second-hash")
+	require.NoError(t, repo.SaveVote(voting.NewSessionVote(
+		"test-pk-2", "candidate-1", "session-1", "first-signature", "first-message",
+	)))
+	err := repo.SaveVote(voting.NewSessionVote(
+		"test-pk-2", "candidate-1", "session-1", "second-signature", "second-message",
+	))
 	assert.ErrorIs(t, err, ErrAlreadyVoted)
 
 	got, err := repo.GetVoter("test-pk-2")
 	require.NoError(t, err)
 	assert.True(t, got.HasVoted)
-	assert.Equal(t, "first-hash", got.VoteHash, "first hash wins; second attempt must not overwrite")
+	assert.Equal(t, "first-message", got.VoteHash, "the lifetime reference keeps the first ballot")
+
+	require.NoError(t, repo.SaveVote(voting.NewSessionVote(
+		"test-pk-2", "candidate-1", "session-2", "third-signature", "third-message",
+	)), "the same voter must be eligible in another session")
+
+	var claims int
+	require.NoError(t, repo.db.QueryRow(
+		`SELECT COUNT(*) FROM session_vote_claims WHERE voter_pk = 'test-pk-2'`,
+	).Scan(&claims))
+	assert.Equal(t, 2, claims)
 }
 
 // TestVotingRepository_SaveVoter_PreservesHasVotedOnConflict is a
@@ -106,7 +133,7 @@ func TestVotingRepository_TryMarkVoted_Sequential(t *testing.T) {
 // public_key conflict, DELETED the existing row and reinserted
 // with the caller's fields. A caller passing has_voted=false on
 // an existing public_key would silently wipe the recorded vote
-// and undo the atomic guarantee from TryMarkVoted.
+// and undo the atomic guarantee from SaveVote's session claim.
 //
 // Post-fix behaviour: SaveVoter uses ON CONFLICT DO UPDATE that
 // only touches `name` and `registered_at`. has_voted and
@@ -124,8 +151,10 @@ func TestVotingRepository_SaveVoter_PreservesHasVotedOnConflict(t *testing.T) {
 	}
 	require.NoError(t, repo.SaveVoter(original))
 
-	// Mark the voter as having cast a vote (Round 14 atomic primitive).
-	require.NoError(t, repo.TryMarkVoted(pk, "vote-hash-abc"))
+	// Mark the voter as having cast a ballot through the session claim.
+	require.NoError(t, repo.SaveVote(voting.NewSessionVote(
+		pk, "candidate-1", "session-1", "signature", "vote-hash-abc",
+	)))
 
 	// Now a caller tries to "re-register" the same public_key
 	// with has_voted=false and a different name. Pre-fix this
@@ -170,7 +199,7 @@ func TestVotingRepository_IncrementCandidateVoteCount_ConcurrentNoLostUpdate(t *
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
-	// Same single-connection note as the TryMarkVoted test above.
+	// Same single-connection note as the SaveVote claim test above.
 	repo.db.SetMaxOpenConns(1)
 
 	candidate := &voting.Candidate{

@@ -15,7 +15,7 @@ var (
 	// a caller could name any registered candidate (even one in a different
 	// election) and inflate that candidate's tally.
 	ErrCandidateNotInSession = errors.New("candidate is not part of this session")
-	ErrAlreadyVoted          = errors.New("voter has already voted")
+	ErrAlreadyVoted          = errors.New("voter has already voted in this session")
 	// ErrInvalidSignature guards ballot authenticity: the private key presented
 	// must correspond to the registered voter's public key. Without this, a
 	// caller who knows a voter's public key could forge that voter's ballot

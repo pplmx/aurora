@@ -39,7 +39,7 @@ aurora voting candidate add -n "Name" -p "Party" -m "Program"
 aurora voting candidate list
 aurora voting candidate list --limit 100 --offset 0
 aurora voting voter register -n "Name"    # 打印密钥对
-aurora voting voter list                  # 含已投票状态
+aurora voting voter list                  # 含是否曾经投过票
 aurora voting voter list --limit 100 --offset 0
 aurora voting session create -t "Title" -d "Desc" -c <cand-id> [-c <cand2>] \
   --start-time <t> --end-time <t>
@@ -53,7 +53,8 @@ aurora voting session end -s <session-id>
 
 新建会期的状态是 `draft`，必须在时间窗内执行 `voting session start` 后才会
 接收选票；`voting session end`、未知状态或时间窗之外都会拒绝投票，因此会期
-生命周期不是可选的展示信息。
+生命周期不是可选的展示信息。每个会期每位选民只能投一票，但同一选民仍可在
+后续会期投票；`voter list` 的状态是历史标记，不是当前会期资格。
 
 `voting candidate list`、`voting voter list` 与 `voting session list` 的
 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0 时只从存储层读取该页

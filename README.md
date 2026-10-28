@@ -138,7 +138,8 @@ AURORA_API_KEY="replace-with-at-least-32-random-characters" ./aurora-api
 
 - **VRF 透明抽奖**：Edwards25519 VRF 抽签，结果上链存证，任何人可复验；支持
   CLI、REST API 与桌面端。
-- **透明投票**：Ed25519 签名投票、候选人/选民注册、会期生命周期与实时计票。
+- **透明投票**：Ed25519 签名投票、候选人/选民注册、会期生命周期与实时计票；
+  每个会期每位选民只能投一票。
 - **数据预言机**：通用 HTTP 数据源（method/path/interval）、内置模板、定时
   抓取、链上存证与抓取健康统计。
 - **NFT**：铸造、转让、销毁、查询与操作历史，Ed25519 签名授权。

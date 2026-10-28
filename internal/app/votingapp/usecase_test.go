@@ -28,7 +28,6 @@ type mockVotingRepo struct {
 	errSaveVoter                   error
 	errGetVoter                    error
 	errSaveVote                    error
-	errTryMarkVoted                error
 	errSaveSession                 error
 	errGetSession                  error
 	errCountVotesBySession         error
@@ -216,6 +215,27 @@ func (m *mockVotingRepo) SaveVote(v *voting.Vote) error {
 	if m.errSaveVote != nil {
 		return m.errSaveVote
 	}
+	if v.SessionID != "" {
+		var voter *voting.Voter
+		for _, candidate := range m.voters {
+			if candidate.PublicKey == v.VoterPublicKey {
+				voter = candidate
+				break
+			}
+		}
+		if voter == nil {
+			return sqlite.ErrNotFound
+		}
+		for _, existing := range m.votes {
+			if existing.SessionID == v.SessionID && existing.VoterPublicKey == v.VoterPublicKey {
+				return sqlite.ErrAlreadyVoted
+			}
+		}
+		if !voter.HasVoted {
+			voter.HasVoted = true
+			voter.VoteHash = v.Message
+		}
+	}
 	m.votes = append(m.votes, v)
 	return nil
 }
@@ -239,27 +259,6 @@ func (m *mockVotingRepo) CountVotesBySession(sessionID, candidateID string) (int
 
 func (m *mockVotingRepo) GetVotesByVoter(voterPK string) ([]*voting.Vote, error) {
 	return nil, nil
-}
-
-// TryMarkVoted mirrors the real SQLite repo semantics: the first
-// caller succeeds, subsequent callers get an "already voted" error.
-// The fake's lock-free duplicate-detection is fine for unit tests
-// because tests don't run it from multiple goroutines.
-func (m *mockVotingRepo) TryMarkVoted(publicKey, voteHash string) error {
-	if m.errTryMarkVoted != nil {
-		return m.errTryMarkVoted
-	}
-	for _, v := range m.voters {
-		if v.PublicKey == publicKey {
-			if v.HasVoted {
-				return sqlite.ErrAlreadyVoted
-			}
-			v.HasVoted = true
-			v.VoteHash = voteHash
-			return nil
-		}
-	}
-	return sqlite.ErrNotFound
 }
 
 func (m *mockVotingRepo) SaveSession(s *voting.Session) error {
@@ -439,24 +438,33 @@ func TestCastVoteUseCase_VoterNotFound(t *testing.T) {
 }
 
 func TestCastVoteUseCase_AlreadyVoted(t *testing.T) {
+	now := time.Now().Unix()
 	repo := &mockVotingRepo{
 		voters: []*voting.Voter{
 			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: true},
 		},
+		candidates: []*voting.Candidate{
+			{ID: "candidate1", Name: "Alice", VoteCount: 1},
+		},
+		sessions: []*voting.Session{
+			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
+		},
+		votes: []*voting.Vote{
+			{ID: "previous", VoterPublicKey: "dm90ZXIx", CandidateID: "candidate1", SessionID: "session1"},
+		},
 	}
-	service := &mockVotingService{}
+	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
 	uc := NewCastVoteUseCaseWithoutTx(repo, service)
 
 	req := CastVoteRequest{
 		VoterPublicKey: "dm90ZXIx",
 		CandidateID:    "candidate1",
-		PrivateKey:     "dGVzdA==",
+		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
+		SessionID:      "session1",
 	}
 
 	_, err := uc.Execute(req)
-	if err == nil {
-		t.Fatal("Expected error for already voted")
-	}
+	require.ErrorIs(t, err, voting.ErrAlreadyVoted)
 }
 
 func TestCastVoteUseCase_CandidateNotFound(t *testing.T) {
@@ -1074,36 +1082,6 @@ func TestCastVoteUseCase_SignVoteError(t *testing.T) {
 	}
 }
 
-func TestCastVoteUseCase_TryMarkVotedGenericError(t *testing.T) {
-	now := time.Now().Unix()
-	repo := &mockVotingRepo{
-		errTryMarkVoted: errors.New("transaction failed"),
-		voters: []*voting.Voter{
-			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
-		},
-		candidates: []*voting.Candidate{
-			{ID: "candidate1", Name: "Alice", VoteCount: 0},
-		},
-		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
-		},
-	}
-	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
-	uc := NewCastVoteUseCaseWithoutTx(repo, service)
-
-	req := CastVoteRequest{
-		VoterPublicKey: "dm90ZXIx",
-		CandidateID:    "candidate1",
-		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
-		SessionID:      "session1",
-	}
-
-	_, err := uc.Execute(req)
-	if err == nil {
-		t.Fatal("Expected error for generic TryMarkVoted failure")
-	}
-}
-
 // TestCastVoteUseCase_SaveVoteError verifies that a SaveVote failure
 // mid-transaction rolls back the voter claim: no vote row survives, the
 // voter is NOT left marked as voted, and the tally is untouched. The
@@ -1236,38 +1214,6 @@ func TestCastVoteUseCase_IncrementCandidateVoteCountAppliesTally(t *testing.T) {
 	}
 }
 
-func TestCastVoteUseCase_TryMarkVotedNotFound(t *testing.T) {
-	now := time.Now().Unix()
-	repo := &mockVotingRepo{
-		voters: []*voting.Voter{
-			{Name: "voter1", PublicKey: "dm90ZXIx", HasVoted: false},
-		},
-		candidates: []*voting.Candidate{
-			{ID: "candidate1", Name: "Alice", VoteCount: 0},
-		},
-		sessions: []*voting.Session{
-			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
-		},
-	}
-	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
-	uc := NewCastVoteUseCaseWithoutTx(repo, service)
-
-	req := CastVoteRequest{
-		VoterPublicKey: "dm90ZXJx",
-		CandidateID:    "candidate1",
-		PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
-		SessionID:      "session1",
-	}
-
-	_, err := uc.Execute(req)
-	if err == nil {
-		t.Fatal("Expected error for voter not found in TryMarkVoted")
-	}
-	if err.Error() != "voter not registered" {
-		t.Errorf("Expected 'voter not registered', got '%v'", err)
-	}
-}
-
 // TestCastVoteUseCase_CandidateNotInSession guards ballot integrity: a vote
 // for a registered candidate that is NOT part of this session's roster must be
 // rejected (otherwise a caller could inflate a candidate's tally across
@@ -1356,7 +1302,7 @@ func TestRegisterVoterUseCase_SaveError(t *testing.T) {
 }
 
 // TestCastVoteUseCase_AlreadyVoted_NoStateChange verifies the ErrAlreadyVoted
-// sentinel from TryMarkVoted surfaces as voting.ErrAlreadyVoted through the
+// sentinel from the session claim surfaces through the
 // transactional path (the whole transaction aborts; no vote row, no tally
 // change) — strengthening the older TestCastVoteUseCase_AlreadyVoted, which
 // only asserts that some error is returned.
@@ -1372,6 +1318,9 @@ func TestCastVoteUseCase_AlreadyVoted_NoStateChange(t *testing.T) {
 		sessions: []*voting.Session{
 			{ID: "session1", StartTime: now - 3600, EndTime: now + 3600, Status: voting.SessionStatusActive, Candidates: []string{"candidate1"}},
 		},
+		votes: []*voting.Vote{
+			{ID: "previous", VoterPublicKey: "dm90ZXIx", CandidateID: "candidate1", SessionID: "session1"},
+		},
 	}
 	service := &mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="}
 	uc := NewCastVoteUseCase(repo, service, newMockTxManagerWithRepo(repo))
@@ -1384,7 +1333,7 @@ func TestCastVoteUseCase_AlreadyVoted_NoStateChange(t *testing.T) {
 	})
 	require.ErrorIs(t, err, voting.ErrAlreadyVoted)
 
-	require.Empty(t, repo.votes, "no vote row may be saved for a double vote")
+	require.Len(t, repo.votes, 1, "no second vote row may be saved")
 	cand, _ := repo.GetCandidate("candidate1")
 	require.Equal(t, 1, cand.VoteCount, "tally must be untouched for a double vote")
 	voter, _ := repo.GetVoter("dm90ZXIx")

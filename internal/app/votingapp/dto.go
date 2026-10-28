@@ -55,7 +55,7 @@ type VoterResponse struct {
 type VoterSummaryResponse struct {
 	Name      string `json:"name"`
 	PublicKey string `json:"public_key"`
-	HasVoted  bool   `json:"has_voted"`
+	HasVoted  bool   `json:"has_voted"` // lifetime history, not current-session eligibility
 }
 
 type CandidateResponse struct {

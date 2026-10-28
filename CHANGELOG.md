@@ -124,6 +124,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Voter eligibility is scoped to the voting session**: `voters.has_voted` was
+  the only duplicate-ballot guard, so a voter who used their key once could
+  never participate in a later election even though results and candidate
+  rosters were already session-scoped. Session ballots now atomically claim
+  `(session_id, voter_pk)` alongside the vote and tally; the profile flag is
+  explicitly historical. Migration `000008` backfills claims from existing
+  ballots, and both migration and self-bootstrap paths preserve duplicate
+  historical audit rows while the earliest becomes the claim owner.
 - **Draft voting sessions cannot accept ballots**: a session created inside its
   start/end window accepted votes without the explicit start transition, making
   the "start session" step optional. Vote admission now checks the lifecycle

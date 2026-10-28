@@ -143,6 +143,7 @@ func TestMigrateUp_FreshDB(t *testing.T) {
 		assert.True(t, indexExists(t, "idx_nft_ops_nft_ts"), "migration 000005 should add the ordered NFT index")
 		assert.True(t, indexExists(t, "idx_lottery_recency"), "migration 000007 should add the recency index")
 		assert.False(t, indexExists(t, "idx_lottery_timestamp"), "migration 000007 should drop the timestamp-only index")
+		assert.True(t, tableExists(t, "session_vote_claims"), "migration 000008 should add session vote claims")
 	})
 }
 
@@ -180,6 +181,8 @@ func TestMigrateUp_WithSteps(t *testing.T) {
 			case 7:
 				assert.True(t, indexExists(t, "idx_lottery_recency"), "step 7 applies 000007")
 				assert.False(t, indexExists(t, "idx_lottery_timestamp"), "step 7 drops the timestamp-only index")
+			case 8:
+				assert.True(t, tableExists(t, "session_vote_claims"), "step 8 applies 000008")
 			}
 		}
 	})
@@ -248,6 +251,8 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 			assert.Equal(t, previous, appliedSchemaVersion(t))
 
 			switch version {
+			case 8:
+				assert.False(t, tableExists(t, "session_vote_claims"), "rolling back 000008 must drop its claim table")
 			case 7:
 				assert.False(t, indexExists(t, "idx_lottery_recency"), "rolling back 000007 must drop the recency index")
 				assert.True(t, indexExists(t, "idx_lottery_timestamp"), "rolling back 000007 must restore the timestamp index")
