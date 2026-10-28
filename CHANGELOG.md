@@ -142,6 +142,14 @@ documented in their per-milestone ROADMAP files.
   snapshot no longer opens it for writing. A directory that permits replacing
   an archive now works even when the previous database and metadata were
   hardened to mode `0400`.
+- **Restore promotes only bytes covered by its verification**: Restore
+  re-read metadata and copied archive files after Verify, so replacing the
+  archive in between could promote different bytes successfully. Restore now
+  carries the verified metadata forward, records a SHA-256 for every verified
+  database (including legacy archives), hashes the bytes actually copied into
+  staging, and aborts before promotion on a mismatch. Every database is also
+  reopened during verification so self-consistent metadata cannot bless
+  arbitrary non-SQLite bytes.
 - **Backup verification applies Restore's database-set contract**: Verify
   checked only the files listed inside metadata, so an archive for a different
   installation — or one listing the same database twice — could report success

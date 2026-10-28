@@ -261,6 +261,38 @@ func TestBackupService_Verify_DetectsDBContentCorruption(t *testing.T) {
 	require.Contains(t, err.Error(), "checksum mismatch")
 }
 
+// TestBackupService_Verify_RejectsChecksumConsistentNonDatabase proves a
+// self-consistent archive still has to contain readable SQLite databases.
+// Otherwise crafted metadata can bless arbitrary bytes and Restore will
+// promote them over live data.
+func TestBackupService_Verify_RejectsChecksumConsistentNonDatabase(t *testing.T) {
+	dir := t.TempDir()
+	backupDir := filepath.Join(dir, "backup")
+	require.NoError(t, os.MkdirAll(backupDir, 0o700))
+	payload := []byte("not a sqlite database")
+	require.NoError(t, os.WriteFile(filepath.Join(backupDir, "main.db"), payload, 0o600))
+
+	metadata := BackupMetadata{
+		Version:           "1.2",
+		Timestamp:         time.Now().UTC().Format(time.RFC3339),
+		Databases:         []string{"main"},
+		SchemaVersion:     1,
+		DatabaseChecksums: map[string]string{"main": sha256hex(payload)},
+	}
+	checksumData, err := json.Marshal(metadata)
+	require.NoError(t, err)
+	metadata.Checksum = fmt.Sprintf("%x", sha256.Sum256(checksumData))
+	metaData, err := json.MarshalIndent(metadata, "", "  ")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(backupDir, "metadata.json"), metaData, 0o600))
+
+	svc := NewBackupService(map[string]string{
+		"main": filepath.Join(dir, "live", "main.db"),
+	})
+	err = svc.Verify(context.Background(), backupDir)
+	require.ErrorContains(t, err, "invalid database")
+}
+
 // makeValidBackup writes a real SQLite DB and a checksum-consistent
 // metadata.json into dir so the backup passes Verify. Restore now verifies the
 // backup before touching live databases (v1.20), so restore tests must use

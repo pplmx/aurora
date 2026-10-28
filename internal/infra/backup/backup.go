@@ -915,18 +915,25 @@ func (s *BackupService) validateArchiveDatabaseSet(archiveNames []string) error 
 }
 
 func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
-	if err := s.recoverInterruptedCreate(ctx, backupPath); err != nil {
-		return fmt.Errorf("recover interrupted backup create: %w", err)
-	}
-	return s.verify(ctx, backupPath)
+	_, err := s.verifiedArchiveMetadata(ctx, backupPath)
+	return err
 }
 
-func (s *BackupService) verify(ctx context.Context, backupPath string) error {
+// verifiedArchiveMetadata returns the exact metadata used for a successful
+// Verify so Restore can bind its copy to the already-observed database hashes
+// instead of re-reading mutable archive metadata.
+func (s *BackupService) verifiedArchiveMetadata(ctx context.Context, backupPath string) (*BackupMetadata, error) {
+	if err := s.recoverInterruptedCreate(ctx, backupPath); err != nil {
+		return nil, fmt.Errorf("recover interrupted backup create: %w", err)
+	}
 	metadata, err := verifyArchiveContents(backupPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return s.validateArchiveDatabaseSet(metadata.Databases)
+	if err := s.validateArchiveDatabaseSet(metadata.Databases); err != nil {
+		return nil, err
+	}
+	return metadata, nil
 }
 
 // verifyArchiveContents checks whether a backup is internally complete. It
@@ -971,6 +978,9 @@ func verifyArchiveContents(backupPath string) (*BackupMetadata, error) {
 	if err := validateUniqueArchiveDatabaseNames(metadata.Databases); err != nil {
 		return nil, err
 	}
+	if metadata.DatabaseChecksums == nil {
+		metadata.DatabaseChecksums = make(map[string]string, len(metadata.Databases))
+	}
 
 	for _, name := range metadata.Databases {
 		dbPath := filepath.Join(backupPath, name+".db")
@@ -982,39 +992,47 @@ func verifyArchiveContents(backupPath string) (*BackupMetadata, error) {
 			return nil, fmt.Errorf("database file %q is not a regular file", dbPath)
 		}
 
-		// Content integrity (v1.55): when the backup recorded a per-database
-		// checksum, verify the file's actual bytes match. This catches a
-		// truncated or bit-corrupted .db that still opens with >=1 table — the
-		// gap the metadata-only checksum left open. Backups without the field
-		// (created by older versions) fall through to the table-presence check
-		// below so existing archives remain verifiable.
-		if want, ok := metadata.DatabaseChecksums[name]; ok && want != "" {
-			got, err := fileSHA256(dbPath)
-			if err != nil {
-				return nil, fmt.Errorf("checksum %s: %w", name, err)
-			}
-			if got != want {
-				return nil, fmt.Errorf("database %s checksum mismatch: backup may be corrupted", name)
-			}
-		} else {
-			db, err := sql.Open("sqlite", sqlite.DSN(dbPath))
-			if err != nil {
-				return nil, fmt.Errorf("cannot open %s: %w", name, err)
-			}
-
-			var count int
-			err = db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").Scan(&count)
-			if err != nil || count == 0 {
-				_ = db.Close()
-				return nil, fmt.Errorf("invalid database: %s", name)
-			}
-			if err := db.Close(); err != nil {
-				return nil, fmt.Errorf("close %s: %w", name, err)
-			}
+		got, err := verifyDatabaseFile(dbPath, name, metadata.DatabaseChecksums[name])
+		if err != nil {
+			return nil, err
 		}
+		// Keep an observed hash even for legacy metadata without per-database
+		// checksums. Restore compares the bytes it copied against this value.
+		metadata.DatabaseChecksums[name] = got
 	}
 
 	return &metadata, nil
+}
+
+// verifyDatabaseFile enforces the stored content hash when one exists, always
+// checks that the file is a readable SQLite database, and returns the observed
+// hash so Restore can detect a file changing after verification. Legacy
+// backups without a stored hash still retain the table-presence contract.
+func verifyDatabaseFile(path, name, wantChecksum string) (string, error) {
+	got, err := fileSHA256(path)
+	if err != nil {
+		return "", fmt.Errorf("checksum %s: %w", name, err)
+	}
+	if wantChecksum != "" {
+		if got != wantChecksum {
+			return "", fmt.Errorf("database %s checksum mismatch: backup may be corrupted", name)
+		}
+	}
+
+	db, err := sql.Open("sqlite", sqlite.DSN(path))
+	if err != nil {
+		return "", fmt.Errorf("cannot open %s: %w", name, err)
+	}
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").Scan(&count)
+	if err != nil || count == 0 {
+		_ = db.Close()
+		return "", fmt.Errorf("invalid database: %s", name)
+	}
+	if err := db.Close(); err != nil {
+		return "", fmt.Errorf("close %s: %w", name, err)
+	}
+	return got, nil
 }
 
 func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
@@ -1023,39 +1041,12 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 	// was copied over a good DB, with recovery possible only through the
 	// hidden .pre_restore staging dir. Verifying first means a bad backup is
 	// rejected before any live file is touched.
-	if err := s.Verify(ctx, backupPath); err != nil {
+	metadata, err := s.verifiedArchiveMetadata(ctx, backupPath)
+	if err != nil {
 		return fmt.Errorf("refusing to restore: %w", err)
 	}
 
-	metaPath := filepath.Join(backupPath, "metadata.json")
-	metaInfo, err := os.Lstat(metaPath)
-	if err != nil {
-		return fmt.Errorf("read metadata: %w", err)
-	}
-	if !metaInfo.Mode().IsRegular() {
-		return fmt.Errorf("read metadata: %q is not a regular file", metaPath)
-	}
-	metaData, err := os.ReadFile(metaPath)
-	if err != nil {
-		return fmt.Errorf("read metadata: %w", err)
-	}
-
-	var metadata BackupMetadata
-	if err := json.Unmarshal(metaData, &metadata); err != nil {
-		return fmt.Errorf("parse metadata: %w", err)
-	}
-
-	// Defense in depth: Verify already rejects hostile names, but Restore
-	// re-reads the archive metadata independently — validate again so a
-	// future caller that skips Verify cannot reach filepath.Join with a
-	// traversal name (TASK-135, ISS-126).
-	for _, name := range metadata.Databases {
-		if err := validateDatabaseName(name); err != nil {
-			return fmt.Errorf("invalid database name in backup metadata: %w", err)
-		}
-	}
-
-	operations, err := s.planRestore(backupPath, metadata.Databases)
+	operations, err := s.planRestore(backupPath, metadata)
 	if err != nil {
 		return err
 	}
@@ -1094,14 +1085,17 @@ type restoreOperation struct {
 	prePath    string
 	tmpPath    string
 	hadDest    bool
+	// expectedChecksum comes from the verified in-memory metadata. It is never
+	// re-read from the archive, so a metadata swap cannot bless changed bytes.
+	expectedChecksum string
 }
 
 // planRestore validates every database before any live file is read or
 // replaced. The archive and the running configuration must describe the same
 // set: silently restoring a subset would leave a multi-store installation with
 // mixed generations even though Restore returned success.
-func (s *BackupService) planRestore(backupDir string, archiveNames []string) ([]restoreOperation, error) {
-	if err := s.validateArchiveDatabaseSet(archiveNames); err != nil {
+func (s *BackupService) planRestore(backupDir string, metadata *BackupMetadata) ([]restoreOperation, error) {
+	if err := s.validateArchiveDatabaseSet(metadata.Databases); err != nil {
 		return nil, err
 	}
 
@@ -1124,10 +1118,11 @@ func (s *BackupService) planRestore(backupDir string, archiveNames []string) ([]
 		}
 
 		op := restoreOperation{
-			name:       name,
-			backupPath: backupDBPath,
-			destPath:   destPath,
-			tmpPath:    destPath + ".tmp",
+			name:             name,
+			backupPath:       backupDBPath,
+			destPath:         destPath,
+			tmpPath:          destPath + ".tmp",
+			expectedChecksum: metadata.DatabaseChecksums[name],
 		}
 		destInfo, err := os.Stat(destPath)
 		switch {
@@ -1173,8 +1168,16 @@ func prepareRestore(operations []restoreOperation, preRestoreDir string) error {
 				return fmt.Errorf("sync pre-restore %s: %w", op.name, err)
 			}
 		}
-		if err := copyFileAtomic(op.backupPath, op.tmpPath); err != nil {
+		gotChecksum, err := copyFileAtomicWithHash(op.backupPath, op.tmpPath)
+		if err != nil {
 			return fmt.Errorf("prepare restored %s: %w", op.name, err)
+		}
+		if op.expectedChecksum == "" || gotChecksum != op.expectedChecksum {
+			_ = os.Remove(op.tmpPath)
+			return fmt.Errorf(
+				"prepare restored %s: checksum mismatch after verification: archive changed during restore",
+				op.name,
+			)
 		}
 	}
 	if err := syncDirFn(preRestoreDir); err != nil {
@@ -1184,44 +1187,53 @@ func prepareRestore(operations []restoreOperation, preRestoreDir string) error {
 }
 
 func copyFileAtomic(srcPath, dstPath string) error {
+	_, err := copyFileAtomicWithHash(srcPath, dstPath)
+	return err
+}
+
+// copyFileAtomicWithHash returns the SHA-256 of the bytes actually written.
+// Restore compares it with the hash observed during verification so a source
+// swap between those steps cannot bless different database contents.
+func copyFileAtomicWithHash(srcPath, dstPath string) (string, error) {
 	src, err := os.Open(srcPath)
 	if err != nil {
-		return fmt.Errorf("open source: %w", err)
+		return "", fmt.Errorf("open source: %w", err)
 	}
 	if err := os.Remove(dstPath); err != nil && !os.IsNotExist(err) {
 		_ = src.Close()
-		return fmt.Errorf("remove stale temp: %w", err)
+		return "", fmt.Errorf("remove stale temp: %w", err)
 	}
 	dst, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		_ = src.Close()
-		return fmt.Errorf("create temp: %w", err)
+		return "", fmt.Errorf("create temp: %w", err)
 	}
-	if _, err := io.Copy(dst, src); err != nil {
+	hash := sha256.New()
+	if _, err := io.Copy(io.MultiWriter(dst, hash), src); err != nil {
 		_ = src.Close()
 		_ = dst.Close()
 		_ = os.Remove(dstPath)
-		return fmt.Errorf("copy: %w", err)
+		return "", fmt.Errorf("copy: %w", err)
 	}
 	if err := src.Close(); err != nil {
 		_ = dst.Close()
 		_ = os.Remove(dstPath)
-		return fmt.Errorf("close source: %w", err)
+		return "", fmt.Errorf("close source: %w", err)
 	}
 	if err := syncFileFn(dst); err != nil {
 		_ = dst.Close()
 		_ = os.Remove(dstPath)
-		return fmt.Errorf("sync temp: %w", err)
+		return "", fmt.Errorf("sync temp: %w", err)
 	}
 	if err := dst.Close(); err != nil {
 		_ = os.Remove(dstPath)
-		return fmt.Errorf("close temp: %w", err)
+		return "", fmt.Errorf("close temp: %w", err)
 	}
 	if err := restrictBackupFile(dstPath); err != nil {
 		_ = os.Remove(dstPath)
-		return fmt.Errorf("restrict temp: %w", err)
+		return "", fmt.Errorf("restrict temp: %w", err)
 	}
-	return nil
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
 func syncFileAtPath(path string) error {
