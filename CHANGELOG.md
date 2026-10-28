@@ -28,7 +28,8 @@ documented in their per-milestone ROADMAP files.
   to the Cast Vote, Transfer or other action they belong to. Validation errors
   now live inside the field that caused them, so the control is marked invalid
   and its error is exposed as the control's description instead of a detached
-  red line.
+  red line. Help text below search boxes, number ranges, session times and
+  checkboxes remains visible while also describing the control it explains.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;

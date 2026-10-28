@@ -203,7 +203,8 @@ func (a *App) tokenList(c *ui.Context) {
 			emptyState(c, pageToken, "No tokens yet", "Create the first token above; the list, forms and history follow it.")
 			return
 		}
-		ui.SearchField(c, &a.token.search).Label(tr("Search tokens"))
+		ui.SearchField(c, &a.token.search).Label(tr("Search tokens")).
+			Description(tr("Search narrows the current page; use Previous/Next for older tokens."))
 		if a.token.search != a.token.appliedSearch {
 			// The highlight indexes the filtered rows; after a new query the same
 			// index is a different token, so no row is chosen until the operator
@@ -332,7 +333,8 @@ func (a *App) tokenCreate(c *ui.Context) {
 		ui.Collapsible(c, tr("Advanced"), &a.token.createAdvanced, func() {
 			ui.Field(c, tr("Decimals"), func() {
 				ui.Column(c).Gap(2).Children(func() {
-					ui.NumberInput(c, &a.token.decimals, 0, 127, 1)
+					ui.NumberInput(c, &a.token.decimals, 0, 127, 1).
+						Description(tr("0 for a whole-unit token; 8 matches most asset conventions."))
 					hint(c, "0 for a whole-unit token; 8 matches most asset conventions.")
 				})
 			})

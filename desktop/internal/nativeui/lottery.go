@@ -113,7 +113,8 @@ func (a *App) lotteryCreate(c *ui.Context) {
 		validatedField(c, fmt.Sprintf(tr("Seed (at least %d characters)"), lottery.MinSeedLength), &a.lottery.seed, a.lottery.seedErr)
 		fieldWithError(c, "Count", a.lottery.countErr, func() {
 			ui.Column(c).Gap(2).Children(func() {
-				ui.NumberInput(c, &a.lottery.count, 1, float64(lottery.MaxWinners), 1)
+				ui.NumberInput(c, &a.lottery.count, 1, float64(lottery.MaxWinners), 1).
+					Description(tr("How many winners to draw; must not exceed the participant count."))
 				hint(c, "How many winners to draw; must not exceed the participant count.")
 			})
 		})
@@ -220,7 +221,8 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		return
 	}
 	rows := make([]DrawRow, 0, len(a.lottery.rows))
-	ui.SearchField(c, &a.lottery.search).Label(tr("Search draws"))
+	ui.SearchField(c, &a.lottery.search).Label(tr("Search draws")).
+		Description(tr("Search narrows the current page; use Previous/Next for older draws."))
 	if a.lottery.search != a.lottery.appliedSearch {
 		a.lottery.appliedSearch = a.lottery.search
 		a.lottery.selected = -1
