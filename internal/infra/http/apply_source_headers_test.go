@@ -49,6 +49,23 @@ func TestApplySourceHeaders_HostOverridesRequestHost(t *testing.T) {
 	}
 }
 
+func TestApplySourceHeaders_PreservesExplicitEmptyValues(t *testing.T) {
+	req, err := http.NewRequest(http.MethodGet, "https://example.com/data", nil)
+	if err != nil {
+		t.Fatalf("NewRequest failed: %v", err)
+	}
+
+	if err := applySourceHeaders(req, `{"User-Agent":"","Accept":""}`); err != nil {
+		t.Fatalf("applySourceHeaders failed: %v", err)
+	}
+	for _, name := range []string{"User-Agent", "Accept"} {
+		values, ok := req.Header[name]
+		if !ok || len(values) != 1 || values[0] != "" {
+			t.Fatalf("%s = %#v (present=%v), want one explicit empty value", name, values, ok)
+		}
+	}
+}
+
 func TestApplySourceHeaders_Empty(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "https://example.com/data", nil)
 	if err := applySourceHeaders(req, ""); err != nil {
