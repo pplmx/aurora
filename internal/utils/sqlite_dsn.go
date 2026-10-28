@@ -16,7 +16,9 @@ import (
 // existing query is preserved. Callers that pass "file:" own its escaping.
 // A URI fragment is dropped when parameters are added: SQLite ignores it, but
 // the modernc driver folds it into the final query value and would reject the
-// hardened parameters.
+// hardened parameters. On Windows, UNC paths need one extra slash before the
+// path component so SQLite does not mistake the server name for a URI
+// authority (the supported authority is empty or exactly "localhost").
 func SQLiteDSN(dbPath, query string) string {
 	if query == "" {
 		return dbPath
@@ -35,17 +37,44 @@ func SQLiteDSN(dbPath, query string) string {
 		return dbPath + separator + query
 	}
 
-	path := filepath.ToSlash(dbPath)
-	if runtime.GOOS != "windows" && filepath.IsAbs(dbPath) && strings.HasPrefix(path, "//") {
+	return sqliteFileURIForOS(dbPath, runtime.GOOS) + "?" + query
+}
+
+// sqliteFileURIForOS converts a filesystem path into a SQLite file URI. It takes
+// GOOS explicitly so the Windows-only UNC and drive-letter branches can be
+// tested on every development platform.
+func sqliteFileURIForOS(path, goos string) string {
+	normalized := path
+	if goos == "windows" {
+		normalized = strings.ReplaceAll(normalized, `\`, "/")
+	} else {
+		normalized = filepath.ToSlash(normalized)
+	}
+
+	if goos == "windows" {
+		if strings.HasPrefix(normalized, "//") {
+			// "file:" plus an empty authority needs four slashes before a
+			// UNC path: file:////server/share/db. Three slashes would make
+			// SQLite treat the first path segment as a single-root path.
+			return "file://" + (&url.URL{Path: normalized}).EscapedPath()
+		}
+		if isWindowsDrivePath(normalized) {
+			// A drive-qualified path needs the slash before C: in a file URI.
+			normalized = "/" + normalized
+		}
+	} else if filepath.IsAbs(path) && strings.HasPrefix(normalized, "//") {
 		// In a SQLite file URI, a second leading slash starts an authority.
 		// POSIX treats repeated leading slashes as the same root, so collapse
 		// them instead of producing file://host-style names.
-		path = "/" + strings.TrimLeft(path, "/")
+		normalized = "/" + strings.TrimLeft(normalized, "/")
 	}
-	if runtime.GOOS == "windows" && filepath.IsAbs(dbPath) && !strings.HasPrefix(path, "//") {
-		// A Windows drive path needs the slash before C: in a file URI.
-		path = "/" + path
-	}
-	escaped := (&url.URL{Path: path}).EscapedPath()
-	return "file:" + escaped + "?" + query
+
+	return "file:" + (&url.URL{Path: normalized}).EscapedPath()
+}
+
+func isWindowsDrivePath(path string) bool {
+	return len(path) >= 3 &&
+		isASCIILetter(path[0]) &&
+		path[1] == ':' &&
+		(path[2] == '/' || path[2] == '\\')
 }
