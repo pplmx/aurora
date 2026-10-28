@@ -346,7 +346,8 @@ func (a *App) clearPageStatus() {
 // reference apps (GoRex, the NetEase client) frame navigation this way; a bare
 // list on the window background read as another column of content.
 func (a *App) sidebarColumn(c *ui.Context) {
-	ui.Column(c).Width(sidebarWidthFor(windowWidth(c))).FillHeight().Background(ui.Hex(sidebarSurface)).
+	width := windowWidth(c)
+	ui.Column(c).Width(sidebarWidth(c, width)).FillHeight().Background(ui.Hex(sidebarSurface)).
 		BorderWidth(0, 1, 0, 0).BorderColor(ui.Hex(border)).Children(func() {
 		a.brand(c)
 		a.sidebar(c)
@@ -358,7 +359,9 @@ func (a *App) sidebarColumn(c *ui.Context) {
 func (a *App) brand(c *ui.Context) {
 	ui.Column(c).FillWidth().Padding(18, 18, 10, 8).Gap(2).Children(func() {
 		ui.Text(c, tr("Aurora")).FontSize(textSize(c, 19)).Bold().TextColor(ui.Hex(ink)).SingleLine()
-		ui.Text(c, tr("Verifiable ledger suite")).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
+		subtitle := tr("Verifiable ledger suite")
+		ui.Text(c, subtitle).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).
+			SingleLine().Tooltip(subtitle)
 	})
 }
 
@@ -374,14 +377,16 @@ func (a *App) sidebar(c *ui.Context) {
 			for _, p := range moduleOrder {
 				// The chosen item is already tinted by the toolkit; a marker
 				// beside it would say the same thing twice.
-				item := ui.SidebarItem(c, pageIDs[p], pageIcons[p], tr(pageTitles[p]))
+				label := tr(pageTitles[p])
+				item := ui.SidebarItem(c, pageIDs[p], pageIcons[p], label).Tooltip(label)
 				if reveal && p == a.page {
 					item.ScrollIntoView()
 				}
 			}
 		})
 		ui.SidebarSection(c, tr("Application"), nil, func() {
-			item := ui.SidebarItem(c, pageIDs[pageSettings], pageIcons[pageSettings], tr(pageTitles[pageSettings]))
+			label := tr(pageTitles[pageSettings])
+			item := ui.SidebarItem(c, pageIDs[pageSettings], pageIcons[pageSettings], label).Tooltip(label)
 			if reveal && a.page == pageSettings {
 				item.ScrollIntoView()
 			}
@@ -657,9 +662,70 @@ func windowWidth(c *ui.Context) float32 {
 // compact step, 216px the regular one.
 func sidebarWidthFor(width float32) float32 {
 	if width > 0 && width < 1000 {
-		return 184
+		return sidebarCompactWidth
 	}
-	return 216
+	return sidebarRegularWidth
+}
+
+const (
+	sidebarCompactWidth  float32 = 184
+	sidebarRegularWidth  float32 = 216
+	sidebarMaxFraction   float32 = 0.38
+	sidebarMeasureSlack  float32 = 2
+	sidebarItemChrome    float32 = 60
+	sidebarSectionChrome float32 = 36
+	sidebarBrandChrome   float32 = 36
+)
+
+// sidebarWidth keeps the fixed navigation width at normal text size, then
+// makes room for the actual translated labels as the system text setting
+// grows. Doubling the type inside an unscaled 184px column cut every English
+// module name to a prefix. The window fraction caps the growth so body content
+// still has useful space in a narrow window; row tooltips remain the fallback
+// for a translation longer than that cap.
+func sidebarWidth(c *ui.Context, window float32) float32 {
+	base := sidebarWidthFor(window)
+	if textScale(c) <= 1 {
+		return base
+	}
+	required := max(base, sidebarContentWidth(c))
+	if window > 0 {
+		limit := window * sidebarMaxFraction
+		if limit < base {
+			limit = base
+		}
+		required = min(required, limit)
+	}
+	return required
+}
+
+// sidebarContentWidth measures the widest text the fixed chrome must show:
+// a module row, a section heading or either brand line. The constants are the
+// horizontal padding, icon and gaps MyGo's Sidebar and this brand block add
+// around the text.
+func sidebarContentWidth(c *ui.Context) float32 {
+	measure := func(text string, size float32, weight int) float32 {
+		width, _ := c.MeasureText(0, ui.Span{Text: text, Size: size, Weight: weight})
+		return width
+	}
+	font := c.Theme().FontSize
+	item := float32(0)
+	for _, p := range pageOrder {
+		item = max(item, measure(tr(pageTitles[p]), font, 400))
+	}
+	section := max(
+		measure(tr("Modules"), font-1, 600),
+		measure(tr("Application"), font-1, 600),
+	)
+	brand := max(
+		measure(tr("Aurora"), textSize(c, 19), 700),
+		measure(tr("Verifiable ledger suite"), textSize(c, 11), 400),
+	)
+	return max(
+		item+sidebarItemChrome,
+		section+sidebarSectionChrome,
+		brand+sidebarBrandChrome,
+	) + sidebarMeasureSlack
 }
 
 // SetBackgroundWrites enables the asynchronous write path used by the real

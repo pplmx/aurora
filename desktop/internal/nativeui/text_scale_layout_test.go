@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -84,4 +85,39 @@ func TestSidebarRevealsKeyboardPageChoiceAtLargeText(t *testing.T) {
 	require.GreaterOrEqual(t, settings.Y, float32(0))
 	require.LessOrEqual(t, settings.Y+settings.H, float32(600),
 		"the selected module must be revealed in the sidebar")
+}
+
+// TestSidebarGivesLargeEnglishLabelsEnoughRoom keeps the scaled navigation
+// from growing its type inside a fixed-width column. At 1.5x and 2x the brand
+// subtitle and module names used to be cut to prefixes even though the window
+// had room to widen the sidebar.
+func TestSidebarGivesLargeEnglishLabelsEnoughRoom(t *testing.T) {
+	for _, scale := range []float32{1.5, 2} {
+		t.Run(fmt.Sprintf("scale-%g", scale), func(t *testing.T) {
+			app := New(&fakeServices{})
+			var brandWidth, moduleWidth float32
+			tester := ui.NewTester(func(c *ui.Context) {
+				app.View(c)
+				brandWidth, _ = c.MeasureText(0, ui.Span{
+					Text: "Verifiable ledger suite",
+					Size: textSize(c, 11),
+				})
+				moduleWidth, _ = c.MeasureText(0, ui.Span{
+					Text: "Blockchain",
+					Size: c.Theme().FontSize,
+				})
+			}, 900, 600)
+			tester.SetPreferences(ui.Preferences{TextScale: scale})
+			tester.Frame()
+
+			brand, ok := tester.Find("Verifiable ledger suite")
+			require.True(t, ok)
+			module, ok := tester.Find("Blockchain")
+			require.True(t, ok)
+			require.GreaterOrEqual(t, brand.W, brandWidth,
+				"the brand subtitle needs its measured width at %.1fx", scale)
+			require.GreaterOrEqual(t, module.W, moduleWidth,
+				"the longest module label needs its measured width at %.1fx", scale)
+		})
+	}
 }
