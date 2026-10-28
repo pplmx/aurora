@@ -23,12 +23,15 @@ type Server struct {
 
 	oracleRuntime *oracleapp.Runtime
 	handlers      *handlers
+	workers       workerGroup
 }
 
-// Close releases the container (every SQLite handle and the shared ledger).
-// It is safe to call more than once; a server built without a container has
-// nothing to release here.
+// Close stops every background worker started through this Server, waits for
+// them to leave their repositories, and then releases the container (every
+// SQLite handle and the shared ledger). It is safe to call more than once; a
+// server built without a container still owns its workers.
 func (s *Server) Close() error {
+	s.workers.close()
 	if s.container == nil {
 		return nil
 	}
@@ -68,7 +71,7 @@ func (s *Server) StartAuditOutboxDrainer(ctx context.Context) (stop func()) {
 	if s.container == nil {
 		return func() {}
 	}
-	return s.container.StartOutboxDrainer(ctx)
+	return s.workers.add(s.container.StartOutboxDrainer(ctx))
 }
 
 // OracleHealthStats returns the running scheduler's per-source fetch-health
@@ -87,7 +90,7 @@ func (s *Server) StartOracleScheduler(ctx context.Context, checkEvery time.Durat
 	if s.oracleRuntime == nil {
 		return func() {}
 	}
-	stop = s.oracleRuntime.Start(ctx, checkEvery)
+	stop = s.workers.add(s.oracleRuntime.Start(ctx, checkEvery))
 	// Expose the scheduler's fetch-health stats to the protected
 	// GET /api/v1/oracle/health endpoint (v1.33), not just /metrics/oracle.
 	if s.handlers != nil {
