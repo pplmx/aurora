@@ -8,7 +8,8 @@ path = "./logs/"
 
 [db]
 # SQLite is the only supported backend. path is the database file location;
-# disk-backed file: URIs (including percent-escaped paths) are accepted.
+# disk-backed file: URIs (including percent-escaped paths) are accepted. URI
+# fragments are ignored by SQLite; encode a literal # in the filename as %23.
 # Memory databases are for tests only and cannot be backed up.
 path = "./data/aurora.db"
 
