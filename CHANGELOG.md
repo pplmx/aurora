@@ -131,6 +131,11 @@ documented in their per-milestone ROADMAP files.
   returns the exact match total, and lets Previous/Next walk every matching
   entry. Unfiltered paging keeps its bounded read, and surrounding whitespace no
   longer repeats the same successful query on every repaint.
+- **Ledger payload search reaches past the visible cell**: the table still
+  clips a long entry to 96 characters, but search now examines the complete
+  decoded payload, so a value in a long JSON note or after two full token keys
+  remains findable. Clipping also counts characters instead of bytes, so a
+  Chinese or emoji payload can no longer end in an invalid UTF-8 fragment.
 - **Token reads reject malformed public keys**: a base64 owner or spender that
   decoded to the wrong length used to read back as a zero balance, zero
   allowance or empty history for a real token. Balance, allowance and
