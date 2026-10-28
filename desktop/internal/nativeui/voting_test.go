@@ -280,6 +280,72 @@ func TestSelectedSessionShowsItsRoster(t *testing.T) {
 	require.True(t, tester.HasText("Approve the 2027 budget"), "the chosen session's description must be shown")
 }
 
+func TestSelectedSessionRosterResolvesCandidatesBeyondTheVisiblePage(t *testing.T) {
+	page := make([]CandidateRow, votingPageSize)
+	for i := range page {
+		page[i] = CandidateRow{ID: "page-" + strconv.Itoa(i), Name: "Page candidate " + strconv.Itoa(i)}
+	}
+	fake := &fakeServices{
+		candidates: page,
+		candidateNames: map[string]string{
+			"cand-101": "Alice",
+			"cand-102": "Bob",
+		},
+		sessions: []SessionRow{{
+			ID: "s1", Title: "Budget", Status: "active",
+			Candidates: []string{"cand-101", "cand-102"},
+		}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 8000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("s1"))
+	tester.Frame()
+	require.True(t, tester.HasText("Alice, Bob"),
+		"a session roster must resolve names even when both candidates are on an older page")
+	require.Equal(t, []string{"cand-101", "cand-102"}, fake.lastRosterIDs)
+	reads := fake.candidateNameCalls
+	tester.Frame()
+	require.Equal(t, reads, fake.candidateNameCalls,
+		"rendering another frame must not repeat the roster lookup")
+}
+
+func TestFailedSessionRosterReadKeepsOnlyThatSessionsNames(t *testing.T) {
+	fake := &fakeServices{
+		candidateNames: map[string]string{"c1": "Alice", "c2": "Bob"},
+		sessions: []SessionRow{
+			{ID: "s1", Title: "Budget", Status: "active", Candidates: []string{"c1"}},
+			{ID: "s2", Title: "Standup", Status: "draft", Candidates: []string{"c2"}},
+		},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("s1"))
+	tester.Frame()
+	require.True(t, tester.HasText("Alice"))
+
+	boom := errors.New("database is locked")
+	fake.loadErrs.sessionRoster = boom
+	app.refresh()
+	tester.Frame()
+	require.True(t, tester.HasText("Couldn't load session roster: database is locked"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+	require.True(t, tester.HasText("Alice"), "the same session keeps its last good roster names")
+
+	require.NoError(t, tester.Click("s2"))
+	tester.Frame()
+	require.True(t, tester.HasText("Couldn't load session roster: database is locked"))
+	require.False(t, tester.HasText("Showing the last successful load."),
+		"a different session must not inherit the previous session's stale label")
+	require.False(t, tester.HasText("Alice"), "one session's names must not follow another session")
+	require.True(t, tester.HasText("c2"), "a missing name falls back to the stored id")
+}
+
 // TestSelectedCandidateShowsItsProgram pins the candidate detail below the
 // list: the table has no room for the program the ballot shows.
 func TestSelectedCandidateShowsItsProgram(t *testing.T) {
