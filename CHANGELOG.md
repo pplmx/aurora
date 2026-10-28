@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Primary and secondary actions keep their breathing room at large text**:
+  the shared Create/Refresh/Delete button style kept a 34px height and 14px
+  horizontal inset while its 13pt label grew to 33px at 2x. All three action
+  variants now scale the whole control with text size instead of fitting a
+  scaled label into fixed chrome.
 - **Quiet actions keep their full label at large text**: compact Copy and
   Dismiss controls stayed 26px tall while their scaled 12pt label measured
   33px at 2x, clipping the text inside the hit target. Quiet buttons now grow

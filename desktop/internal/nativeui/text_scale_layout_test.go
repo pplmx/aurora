@@ -282,3 +282,26 @@ func TestQuietButtonsGrowWithLargeText(t *testing.T) {
 	require.GreaterOrEqual(t, button.H, textHeight,
 		"the quiet button must be at least as tall as its scaled label")
 }
+
+// TestActionButtonsScaleWithLargeText keeps the three button styles from
+// packing a 33px label into a 34px box at 2x. The base control is 34px tall,
+// so scaling the whole action preserves its normal breathing room instead of
+// only preventing a one-pixel clip.
+func TestActionButtonsScaleWithLargeText(t *testing.T) {
+	tester := ui.NewTester(func(c *ui.Context) {
+		ui.Column(c).Gap(8).Children(func() {
+			primaryButton(c, "Create")
+			secondaryButton(c, "Refresh")
+			dangerButton(c, "Delete")
+		})
+	}, 320, 260)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	for _, label := range []string{"Create", "Refresh", "Delete"} {
+		button, ok := tester.Find(label)
+		require.Truef(t, ok, "%q button must be built", label)
+		require.GreaterOrEqualf(t, button.H, float32(68),
+			"%q must scale its full 34px height at 2x", label)
+	}
+}
