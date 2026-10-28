@@ -160,7 +160,12 @@ documented in their per-milestone ROADMAP files.
   retain `errors.Is`/`errors.As`; unrecognized filesystem, network and database
   details remain verbatim rather than being replaced by a vague generic error,
   including when a known domain cause carries a technical detail such as
-  `disk full`.
+  `disk full`. Application-layer wrappers around known causes are translated
+  when they add meaning (`invalid creator encoding`) and omitted when they only
+  repeat the command context (`failed to get token`); Aurora's own validator
+  details such as `invalid headers json` are localized too. Unsupported
+  locales now fall back to English instead of accidentally using Chinese Cobra
+  strings.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   `aurora-api --help` calls itself the JSON-only REST API server. The

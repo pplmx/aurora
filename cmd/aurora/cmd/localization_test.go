@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/domain/nft"
+	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/i18n"
@@ -34,8 +37,48 @@ func TestCLIErrorLocalizesChinese(t *testing.T) {
 	out := formatCLIError(auditErr)
 	assert.Contains(t, out, "操作已提交")
 	assert.Contains(t, out, "请勿重试")
-	assert.Contains(t, out, "failed to transfer")
 	assert.Contains(t, out, "disk full")
+	assert.NotContains(t, out, "failed to transfer")
+}
+
+func TestKnownErrorContextLocalizesWithoutHidingTechnicalDetail(t *testing.T) {
+	setTestLocale(t, "zh")
+
+	for _, tt := range []struct {
+		name string
+		err  error
+		want string
+	}{
+		{
+			name: "field encoding",
+			err:  fmt.Errorf("invalid creator encoding: %w", nft.ErrInvalidBase64),
+			want: "字段“创建者”的编码无效：Base64 编码无效",
+		},
+		{
+			name: "lottery seed",
+			err:  fmt.Errorf("invalid seed: %w", lottery.ErrSeedTooShort),
+			want: "随机种子无效：随机种子过短",
+		},
+		{
+			name: "generic app context",
+			err:  fmt.Errorf("failed to get token: %w", token.ErrTokenNotFound),
+			want: "代币未找到",
+		},
+		{
+			name: "oracle semantic detail",
+			err:  fmt.Errorf("%w: invalid headers json", oracle.ErrInvalidSource),
+			want: "数据源无效：请求头 JSON 无效",
+		},
+		{
+			name: "technical detail",
+			err:  fmt.Errorf("%w: disk full", token.ErrAuditPublishFailed),
+			want: "操作已提交，但审计事件无法记录：disk full",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, localizedErrorText(tt.err))
+		})
+	}
 }
 
 func TestCLIErrorWrapperPreservesCauseAndFollowsLocale(t *testing.T) {
@@ -82,6 +125,7 @@ func TestCLIErrorPathsLocalizeChinese(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, formatCLIError(err), "注册数据源失败：数据源无效")
 		assert.NotContains(t, formatCLIError(err), "invalid source")
+		assert.NotContains(t, formatCLIError(err), "invalid headers json")
 
 		_, err = runCmd(t, "oracle", "source", "delete",
 			"--id", "missing", "--confirm")
@@ -91,6 +135,17 @@ func TestCLIErrorPathsLocalizeChinese(t *testing.T) {
 		_, err = runCmd(t, "nft", "get", "--nft", "missing")
 		require.Error(t, err)
 		assert.Contains(t, formatCLIError(err), "获取 NFT 失败：NFT 未找到")
+
+		_, err = runCmd(t, "nft", "mint", "--name", "broken", "--creator", "!!!")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "铸造 NFT 失败：字段“创建者”的编码无效")
+		assert.NotContains(t, formatCLIError(err), "invalid creator encoding")
+
+		_, err = runCmd(t, "lottery", "create",
+			"--participants", "Alice", "--seed", "x", "--count", "1")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "创建抽奖失败：随机种子无效")
+		assert.NotContains(t, formatCLIError(err), "invalid seed")
 
 		_, err = runCmd(t, "lottery", "verify", "missing")
 		require.Error(t, err)
@@ -188,6 +243,14 @@ func TestCobraErrorsLocalizeChinese(t *testing.T) {
 			assert.NotContains(t, got, "Did you mean")
 		})
 	}
+}
+
+func TestUnsupportedLocaleFallsBackToEnglishErrors(t *testing.T) {
+	setTestLocale(t, "fr")
+
+	out := formatCLIError(errors.New("unknown flag: --bogus"))
+	assert.Contains(t, out, "❌ Error: unknown flag: --bogus")
+	assert.NotContains(t, out, "未知参数")
 }
 
 func TestUnknownHelpTopicLocalizesChinese(t *testing.T) {
