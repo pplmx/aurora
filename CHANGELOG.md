@@ -172,7 +172,9 @@ documented in their per-milestone ROADMAP files.
   English check lines under a Chinese failure heading. A malformed or `null`
   import is classified as an invalid portable document, so `lottery import`
   reports the localized document failure while retaining the parser detail
-  needed to fix the file.
+  needed to fix the file. File > Import, a dropped export and a path opened by
+  the desktop shell now show that same localized failure in the native dialog
+  instead of bypassing the desktop's error translator.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   `aurora-api --help` calls itself the JSON-only REST API server. The

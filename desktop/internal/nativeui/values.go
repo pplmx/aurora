@@ -153,7 +153,7 @@ func conciseText(value string, limit int) string {
 // through to its "nothing here yet" note, which would claim the store is empty
 // when the truth is that it could not be read.
 func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
-	ui.Text(c, tr(what)+": "+err.Error()).FontSize(textSize(c, 12)).TextColor(ui.Hex(auroraRed))
+	ui.Text(c, tr(what)+": "+localizeServiceError(err)).FontSize(textSize(c, 12)).TextColor(ui.Hex(auroraRed))
 	if !hasContent {
 		return false
 	}

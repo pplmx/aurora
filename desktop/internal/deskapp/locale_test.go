@@ -155,6 +155,12 @@ func TestShowErrorUsesTheLocalizedReason(t *testing.T) {
 		showError(nil, T("desktop.error.backup_failed"), errors.New("boom"))
 		assert.Equal(t, "备份失败", got.Title)
 		assert.Equal(t, "boom", got.Message)
+
+		showError(nil, T("desktop.error.import_failed"),
+			errors.New("parse document: invalid character 'n' looking for beginning of object key string"))
+		assert.Equal(t, "导入失败", got.Title)
+		assert.Contains(t, got.Message, "抽奖导入文件无效：解析导入文件失败")
+		assert.NotContains(t, got.Message, "parse document")
 	})
 }
 

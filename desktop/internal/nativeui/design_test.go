@@ -224,6 +224,16 @@ func TestServiceErrorsUseTheDesktopLanguage(t *testing.T) {
 	require.Equal(t, "seed: 种子过短", errStatus(errors.New("seed: seed too short")).text)
 	require.Equal(t, "database is locked", errStatus(errors.New("database is locked")).text)
 	require.True(t, errStatus(errors.New("token not found")).isErr)
+	require.Equal(t,
+		"抽奖导入文件无效：解析导入文件失败：invalid character 'n' looking for beginning of object key string",
+		LocalizeError(errors.New("parse document: invalid character 'n' looking for beginning of object key string")))
+	require.Equal(t,
+		"抽奖导入文件无效：解析导入文件失败：应为抽奖记录 JSON 数组，但收到 null",
+		LocalizeError(errors.New("parse document: expected a JSON array of lottery records, got null")))
+
+	tr.SetLocale("en")
+	const english = "parse document: invalid character 'n' looking for beginning of object key string"
+	require.Equal(t, english, LocalizeError(errors.New(english)))
 }
 
 // TestChineseUIRendersTheWorkbench keeps the desktop's labels in the language

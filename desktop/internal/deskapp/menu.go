@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo"
+	"github.com/pplmx/aurora/desktop/internal/nativeui"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 )
@@ -165,7 +166,7 @@ func importLotteriesWith(repoProvider lotteryRepoProvider, win *mygo.Window, rel
 // showError reports a failure in a native dialog: the shell may be launched
 // from a file manager, where stderr goes nowhere.
 func showError(win *mygo.Window, title string, err error) {
-	showMessage(parent(win), mygo.MessageError, title, err.Error(), "")
+	showMessage(parent(win), mygo.MessageError, title, nativeui.LocalizeError(err), "")
 }
 
 // backUpDatabase snapshots the live SQLite database through the same

@@ -29,14 +29,33 @@ func errStatus(err error) statusLine {
 	return statusLine{text: localizeServiceError(err), isErr: true}
 }
 
+// LocalizeError translates the same service errors for desktop dialogs that
+// live outside a view, such as File > Import and files opened by the shell.
+// Unknown diagnostics stay verbatim.
+func LocalizeError(err error) string {
+	return localizeServiceError(err)
+}
+
 // localizeServiceError translates a known service error message. Unknown or
 // dynamic messages stay verbatim, so a diagnostic still matches the log; for a
 // wrapped sentinel such as "seed: seed too short", the last segment is
 // translated while its context is kept.
 func localizeServiceError(err error) string {
-	message := err.Error()
+	if err == nil {
+		return ""
+	}
+	return localizeServiceErrorMessage(err.Error())
+}
+
+func localizeServiceErrorMessage(message string) string {
 	if translated := tr(message); translated != message {
 		return translated
+	}
+	if detail, ok := strings.CutPrefix(message, "parse document: "); ok {
+		document := tr("invalid lottery import document")
+		if document != "invalid lottery import document" {
+			return document + "：" + tr("parse document") + "：" + detail
+		}
 	}
 	if i := strings.LastIndex(message, ": "); i >= 0 {
 		tail := message[i+2:]
