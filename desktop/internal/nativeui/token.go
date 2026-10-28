@@ -631,7 +631,7 @@ func tokenSubject(c *ui.Context, id string) {
 
 func (a *App) tokenWrites(c *ui.Context) {
 	tokenSubject(c, a.token.tokenID)
-	ui.Tabs(c, &a.token.opTab, tr("Mint"), tr("Transfer"), tr("Approve"), tr("Transfer From"), tr("Burn"))
+	tabs(c, &a.token.opTab, tr("Mint"), tr("Transfer"), tr("Approve"), tr("Transfer From"), tr("Burn"))
 	switch a.token.opTab {
 	case 0:
 		formCard(c, "Mint", "Only the token owner can mint, and only for a mintable token.", func() {

@@ -175,3 +175,31 @@ func TestCopyRowKeepsValueVisibleAtLargeText(t *testing.T) {
 	require.LessOrEqual(t, copyAction.X+copyAction.W, float32(900),
 		"the copy action must stay inside the window")
 }
+
+// TestTokenWriteTabsWrapAtLargeText covers the five write tabs at the minimum
+// window width. At 2x the built-in single-line tab row placed Burn beyond the
+// right edge, so the destructive form had no visible entry point.
+func TestTokenWriteTabsWrapAtLargeText(t *testing.T) {
+	app := New(&fakeServices{})
+	app.ShowPage("Token")
+	tester := ui.NewTester(app.View, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	rects := make(map[string]ui.Rect)
+	for _, label := range []string{"Mint", "Transfer", "Approve", "Transfer From", "Burn"} {
+		rect, ok := tester.Find(label)
+		require.Truef(t, ok, "%q tab must be built", label)
+		require.LessOrEqualf(t, rect.X+rect.W, float32(900),
+			"%q tab must stay inside the window", label)
+		rects[label] = rect
+	}
+	require.Greater(t, rects["Burn"].Y, rects["Mint"].Y,
+		"the tab row must wrap instead of pushing Burn off screen")
+
+	app.scroll.Y = rects["Burn"].Y - 300
+	tester.Frame()
+	require.NoError(t, tester.Click("Burn"))
+	tester.Frame()
+	require.Equal(t, 4, app.token.opTab, "the wrapped Burn tab must remain operable")
+}

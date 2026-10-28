@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Section tabs wrap instead of hiding later choices**: Token's five write
+  tabs crossed the right edge at 2x text in the minimum window, leaving the
+  Burn form without a visible entry point. Tab rows now keep MyGo's click and
+  keyboard behavior but wrap onto additional lines when their labels do not
+  fit.
 - **One-time key previews survive large text**: in generated-key and other
   copy rows, the fixed label and full copy action consumed the whole line at
   2x text, collapsing the value itself to zero width. The value now keeps

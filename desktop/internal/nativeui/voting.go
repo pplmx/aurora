@@ -356,7 +356,7 @@ func (a *App) votingView(c *ui.Context) {
 			"Open Ballot to start the session and cast signed ballots.",
 			"Open Results and select or enter the session to read the tally.",
 		)
-		ui.Tabs(c, &a.voting.tab, tr("Setup"), tr("Ballot"), tr("Results"))
+		tabs(c, &a.voting.tab, tr("Setup"), tr("Ballot"), tr("Results"))
 		switch a.voting.tab {
 		case 0:
 			twoColumns(c, func() {
