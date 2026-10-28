@@ -50,10 +50,11 @@ type votingState struct {
 
 	resultsSession string
 	results        []ResultRow
-	// resultsLoadedID is the session the rows describe. resultsSession is the
-	// form field and can name another session between reads; keeping them
-	// apart is what lets a failed read report "stale" for the session it
-	// actually loaded, and never pin one session's tally to another's id.
+	// resultsLoadedID is the session the readout describes, including a failed
+	// empty read. resultsSession is the form field and can name another session
+	// between reads; keeping them apart is what lets a failed read report
+	// "stale" for the session it actually loaded, and never pin one session's
+	// tally to another's id.
 	resultsLoadedID string
 	// resultsErr is the last failure to read that tally. The rows from the
 	// previous successful read stay when they still describe the same session
@@ -1059,12 +1060,15 @@ func (a *App) castVote() {
 }
 
 // loadSessionResults reads a session's tally into the Results card. A failed
-// read keeps the rows already on screen only when they describe the same
-// session; callers that change the subject clear them first.
+// read records the attempted session just like a successful empty read, so the
+// automatic tab load does not retry a failing query on every frame; callers
+// that change the subject clear the old rows first. The explicit Show Results
+// and Refresh actions remain the retry path.
 func (a *App) loadSessionResults(sessionID string) error {
 	rows, err := a.services.SessionResults(sessionID)
 	if err != nil {
 		a.voting.resultsErr = err
+		a.voting.resultsLoadedID = sessionID
 		return err
 	}
 	a.voting.results = rows
