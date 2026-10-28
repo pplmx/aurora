@@ -4,6 +4,7 @@ import (
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // --- Lottery -------------------------------------------------------------
@@ -44,7 +45,8 @@ func (s *nativeServices) VerifyDraw(id string) (nativeui.VerifyResult, error) {
 	}
 	res := nativeui.VerifyResult{ID: report.Record.ID, Valid: report.IntegrityOK}
 	for _, c := range report.Checks {
-		res.Checks = append(res.Checks, c.Status+": "+c.Message)
+		res.Checks = append(res.Checks,
+			i18n.LocalizeVerifyStatus(c.Status)+": "+i18n.LocalizeVerifyCheckMessage(c.Message))
 	}
 	return res, nil
 }

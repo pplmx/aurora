@@ -11,6 +11,33 @@ import (
 	"github.com/pplmx/aurora/internal/utils"
 )
 
+// ErrInvalidImportDocument marks a file that is not a valid portable lottery
+// export. Keeping it separate from per-record rejections lets callers explain
+// that nothing was read before any record could be considered.
+var ErrInvalidImportDocument = errors.New("invalid lottery import document")
+
+// ImportDocumentError keeps the parser wording from json.Unmarshal intact
+// while still exposing ErrInvalidImportDocument to errors.Is. The explicit
+// detail also lets presentation layers localize the stable context without
+// parsing a formatted error string.
+type ImportDocumentError struct {
+	detail string
+}
+
+func (e *ImportDocumentError) Error() string {
+	return e.LocalizationDetail()
+}
+
+func (e *ImportDocumentError) Unwrap() error {
+	return ErrInvalidImportDocument
+}
+
+// LocalizationDetail returns the stable, non-localized detail for a
+// presentation layer to translate alongside the sentinel.
+func (e *ImportDocumentError) LocalizationDetail() string {
+	return "parse document: " + e.detail
+}
+
 // ExportRecords serializes every stored draw as the portable JSON document
 // `aurora lottery export` writes and `aurora lottery import` reads, and
 // returns how many draws the document carries (for the caller's message).
@@ -141,13 +168,15 @@ type ImportResult struct {
 func ImportRecords(repo lottery.Repository, document []byte) (ImportResult, error) {
 	var records []lottery.LotteryRecord
 	if err := json.Unmarshal(document, &records); err != nil {
-		return ImportResult{}, fmt.Errorf("parse document: %w", err)
+		return ImportResult{}, &ImportDocumentError{detail: err.Error()}
 	}
 	// json.Unmarshal accepts a literal null into a slice and leaves it nil.
 	// Treating that as an empty document reported a successful import of 0
 	// records for a file that is not the portable array format at all.
 	if records == nil {
-		return ImportResult{}, fmt.Errorf("parse document: expected a JSON array of lottery records, got null")
+		return ImportResult{}, &ImportDocumentError{
+			detail: "expected a JSON array of lottery records, got null",
+		}
 	}
 	result := ImportResult{Total: len(records)}
 	for i, record := range records {
