@@ -31,6 +31,11 @@ type tokenState struct {
 	// the visible page so paging does not erase the subject's owner context.
 	resolvedOwner   string
 	resolvedOwnerID string
+	// subjectID is the token id whose owner context has been applied to the
+	// write forms. A manual edit to Token ID can bypass the row-selection path;
+	// comparing this value on each frame keeps the old owner, secrets and
+	// recipients from remaining under the new subject.
+	subjectID string
 	// balanceAccount and historyOwner are separate inputs: sharing one field
 	// meant typing a history owner silently changed the account the Balance
 	// card would read, under a readout fetched for someone else.
@@ -85,7 +90,13 @@ type tokenState struct {
 	historyOffset  float64
 
 	allowance string
-	history   []TransferRow
+	// allowanceErr and the loaded key make an allowance readout follow the
+	// token/owner/spender currently shown, like the other Token reads.
+	allowanceErr         error
+	allowanceLoadedToken string
+	allowanceLoadedOwner string
+	allowanceLoadedTo    string
+	history              []TransferRow
 
 	// tokens is the current page of stored tokens. It lets an operator pick
 	// one instead of already knowing its id, while the pager reaches older
@@ -159,6 +170,7 @@ func (a *App) loadTokenPage(offset int) bool {
 // the right (mint, transfer, approve, transfer-from, burn, allowance). Ten
 // full-width forms stacked in one column buried every write below the fold.
 func (a *App) tokenView(c *ui.Context) {
+	a.syncTokenSubject()
 	a.scrollPage(c, func() {
 		guide(c, &a.guides.token,
 			"Select a token in the left column, or create one. Its owner public key fills the account fields for you.",
@@ -353,8 +365,14 @@ func (a *App) applyTokenSubject(owner string) {
 	a.token.mintPriv, a.token.xPriv, a.token.approvePriv = "", "", ""
 	a.token.fromPriv, a.token.burnPriv = "", ""
 	a.token.xTo, a.token.approveTo, a.token.fromTo, a.token.allowanceTo = "", "", "", ""
+	a.token.mintTo, a.token.xFrom, a.token.approveOwner = "", "", ""
+	a.token.fromOwner, a.token.burnFrom, a.token.allowanceOwner = "", "", ""
+	a.token.balanceAccount, a.token.historyOwner = "", ""
 	a.token.fromSpender = ""
 	a.token.allowance = ""
+	a.token.allowanceErr = nil
+	a.token.allowanceLoadedToken, a.token.allowanceLoadedOwner, a.token.allowanceLoadedTo = "", "", ""
+	a.token.subjectID = strings.TrimSpace(a.token.tokenID)
 	if owner == "" {
 		return
 	}
@@ -366,6 +384,18 @@ func (a *App) applyTokenSubject(owner string) {
 	a.token.allowanceOwner = owner
 	a.token.balanceAccount = owner
 	a.token.historyOwner = owner
+}
+
+// syncTokenSubject reacts to a Token ID typed directly into the Inspect field.
+// Row selection, creation and a successful Inspect already move the owner
+// context explicitly; this covers the remaining entry path before any write
+// form can be submitted with the previous token's account values.
+func (a *App) syncTokenSubject() {
+	id := strings.TrimSpace(a.token.tokenID)
+	if a.token.subjectID == id {
+		return
+	}
+	a.applyTokenSubject(a.selectedTokenOwner())
 }
 
 func (a *App) rememberTokenSubjectOwner(id, owner string) {
@@ -395,6 +425,7 @@ func (a *App) tokenRead(c *ui.Context) {
 
 func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Token ID", &a.token.tokenID)
+	tokenID := strings.TrimSpace(a.token.tokenID)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get Token Info").Clicked() {
 			id := strings.TrimSpace(a.token.tokenID)
@@ -406,10 +437,10 @@ func (a *App) tokenReadBody(c *ui.Context) {
 			}
 		}
 	})
-	if a.token.infoErr != nil {
+	if a.token.infoErr != nil && a.token.infoLoadedID == tokenID {
 		loadWarning(c, "Couldn't load token info", a.token.infoErr, a.token.info != nil)
 	}
-	if info := a.token.info; info != nil {
+	if info := a.token.info; info != nil && a.token.infoLoadedID == tokenID {
 		readout(c, []readoutRow{
 			{"Name", info.Name + " (" + info.Symbol + ")"},
 			{"Supply", info.TotalSupply},
@@ -419,6 +450,7 @@ func (a *App) tokenReadBody(c *ui.Context) {
 	}
 
 	field(c, "Account (base64 public key)", &a.token.balanceAccount)
+	account := strings.TrimSpace(a.token.balanceAccount)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get Balance").Clicked() {
 			id, owner := strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.balanceAccount)
@@ -430,10 +462,11 @@ func (a *App) tokenReadBody(c *ui.Context) {
 			}
 		}
 	})
-	if a.token.balanceErr != nil {
+	balanceMatches := a.token.balanceLoadedToken == tokenID && a.token.balanceLoadedOwner == account
+	if a.token.balanceErr != nil && balanceMatches {
 		loadWarning(c, "Couldn't load balance", a.token.balanceErr, a.token.balance != "")
 	}
-	if a.token.balance != "" {
+	if a.token.balance != "" && balanceMatches {
 		readout(c, []readoutRow{{"Balance", a.token.balance}})
 	}
 }
@@ -691,7 +724,16 @@ func (a *App) tokenWrites(c *ui.Context) {
 					a.loadAllowance()
 				}
 			})
-			if a.token.allowance != "" {
+			matches := a.token.allowanceMatches(
+				strings.TrimSpace(a.token.tokenID),
+				strings.TrimSpace(a.token.allowanceOwner),
+				strings.TrimSpace(a.token.allowanceTo),
+			)
+			if a.token.allowanceErr != nil && matches &&
+				!loadWarning(c, "Couldn't load allowance", a.token.allowanceErr, a.token.allowance != "") {
+				return
+			}
+			if a.token.allowance != "" && matches {
 				readout(c, []readoutRow{{"Allowance", a.token.allowance}})
 			}
 		})
@@ -813,6 +855,12 @@ func (a *App) refreshTokenAt(offset int) {
 		a.clearTokenHistoryForAnotherRead(id, owner, limit, offset)
 		_ = a.loadTokenHistory(id, owner, limit, offset)
 	}
+	if a.token.allowanceLoadedToken != "" || a.token.allowanceErr != nil {
+		owner := strings.TrimSpace(a.token.allowanceOwner)
+		spender := strings.TrimSpace(a.token.allowanceTo)
+		a.clearAllowanceForAnotherRead(id, owner, spender)
+		_ = a.loadTokenAllowance(id, owner, spender)
+	}
 }
 
 // tokenHistoryWindow is the page size and offset the History card sends: the
@@ -836,15 +884,46 @@ func (a *App) tokenHistoryWindow() (limit, offset int) {
 }
 
 func (a *App) loadAllowance() {
-	amt, err := a.services.TokenAllowance(
-		strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.allowanceOwner),
-		strings.TrimSpace(a.token.allowanceTo))
-	if err != nil {
+	tokenID := strings.TrimSpace(a.token.tokenID)
+	owner := strings.TrimSpace(a.token.allowanceOwner)
+	spender := strings.TrimSpace(a.token.allowanceTo)
+	a.clearAllowanceForAnotherRead(tokenID, owner, spender)
+	if err := a.loadTokenAllowance(tokenID, owner, spender); err != nil {
 		a.token.status = errStatus(err)
 		return
 	}
-	a.token.allowance = amt
 	a.token.status = statusLine{}
+}
+
+func (a *App) loadTokenAllowance(tokenID, owner, spender string) error {
+	amount, err := a.services.TokenAllowance(tokenID, owner, spender)
+	a.token.allowanceLoadedToken = tokenID
+	a.token.allowanceLoadedOwner = owner
+	a.token.allowanceLoadedTo = spender
+	if err != nil {
+		a.token.allowanceErr = err
+		return err
+	}
+	a.token.allowance = amount
+	a.token.allowanceErr = nil
+	return nil
+}
+
+func (a *App) clearAllowanceForAnotherRead(tokenID, owner, spender string) {
+	if a.token.allowanceMatches(tokenID, owner, spender) {
+		return
+	}
+	a.token.allowance = ""
+	a.token.allowanceErr = nil
+	a.token.allowanceLoadedToken = ""
+	a.token.allowanceLoadedOwner = ""
+	a.token.allowanceLoadedTo = ""
+}
+
+func (s tokenState) allowanceMatches(tokenID, owner, spender string) bool {
+	return s.allowanceLoadedToken == tokenID &&
+		s.allowanceLoadedOwner == owner &&
+		s.allowanceLoadedTo == spender
 }
 
 // renderBurnDialog shows the confirmation while a burn is pending. MyGo draws
@@ -915,11 +994,16 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 			}
 		}
 	})
-	if a.token.historyErr != nil &&
+	id := strings.TrimSpace(a.token.tokenID)
+	owner := strings.TrimSpace(a.token.historyOwner)
+	limit, offset := a.tokenHistoryWindow()
+	matches := a.token.historyLoadedToken == id && a.token.historyLoadedOwner == owner &&
+		a.token.historyLoadedLimit == limit && a.token.historyLoadedOffset == offset
+	if a.token.historyErr != nil && matches &&
 		!loadWarning(c, "Couldn't load history", a.token.historyErr, len(a.token.history) > 0) {
 		return
 	}
-	if len(a.token.history) == 0 {
+	if !matches || len(a.token.history) == 0 {
 		emptyNote(c, "No transfers loaded yet.")
 		return
 	}

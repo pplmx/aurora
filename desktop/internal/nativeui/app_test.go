@@ -101,14 +101,18 @@ type fakeServices struct {
 	tokenInfoCalls      int
 	tokenBalanceCalls   int
 	tokenHistoryCalls   int
+	tokenAllowanceCalls int
 	getNFTCalls         int
 
 	// The last subject each read was asked for, so a selection can be proven
 	// to re-read its own record rather than the previous one.
 	lastTokenInfoID        string
 	lastBalanceToken       string
+	lastAllowanceToken     string
 	lastHistoryToken       string
 	lastBalanceOwner       string
+	lastAllowanceOwner     string
+	lastAllowanceSpender   string
 	lastHistoryOwner       string
 	lastHistoryOffset      int
 	lastNFTID              string
@@ -383,6 +387,10 @@ func (f *fakeServices) TransferFromToken(tokenID, owner, to, amount, spenderPriv
 }
 func (f *fakeServices) BurnToken(tokenID, from, amount, priv string) error { return nil }
 func (f *fakeServices) TokenAllowance(tokenID, owner, spender string) (string, error) {
+	f.tokenAllowanceCalls++
+	f.lastAllowanceToken = tokenID
+	f.lastAllowanceOwner = owner
+	f.lastAllowanceSpender = spender
 	return "10", nil
 }
 func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([]TransferRow, error) {

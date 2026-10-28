@@ -143,6 +143,12 @@ documented in their per-milestone ROADMAP files.
   the new value until Verify was pressed again. Both now render only while the
   field still contains the exact query that produced them; selecting or
   creating a draw clears the old attempt.
+- **The Token page follows a manually typed token id**: direct edits to Token
+  ID now clear the previous owner, private keys and recipients before filling
+  the owner fields from the matching listed or resolved record. Inspect,
+  Balance, History and Allowance answers and their warnings render only for
+  the token/account/query currently shown, and Refresh re-reads an open
+  Allowance card like the other reads.
 - **A failed automatic tally read is no longer retried on every frame**: opening
   Results with a session whose result query fails used to leave the attempted
   id blank, so each repaint hammered the same database read. A failure now
