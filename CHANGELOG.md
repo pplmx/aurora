@@ -124,6 +124,17 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Rate-limit retries advertise the actual reset time**: a rejected request
+  previously received the configured window as `Retry-After`, even when most
+  of that window had elapsed, and sub-second or fractional windows were
+  truncated (`500ms` became `0`, inviting an immediate retry). The response now
+  reports the remaining bucket lifetime rounded up to whole seconds, with a
+  minimum of one second.
+- **Oversized trailing JSON is reported as 413**: `decodeJSON` classified the
+  body cap only during the first decode. A complete JSON value followed by
+  enough whitespace to cross `MaxBytesReader` during the strict trailing-data
+  check therefore returned 400 `INVALID_REQUEST`. Both decode attempts now
+  share the same classification and return 413 `BODY_TOO_LARGE`.
 - **SQLite database paths keep characters that look like DSN syntax**: every
   repository, event store, replay protector, migration and explicit ledger
   handle appended `?options` to the configured filename directly. A path such

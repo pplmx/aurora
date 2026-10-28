@@ -94,6 +94,44 @@ func TestRateLimit_MiddlewareReturns429(t *testing.T) {
 	assert.Equal(t, "60", third.Header().Get("Retry-After"))
 }
 
+// TestRateLimit_RetryAfterTracksRemainingWindow verifies that Retry-After is
+// an integer number of seconds, rounded up, until this client's bucket resets.
+// Advertising the full window was wrong for a partially elapsed window, and
+// truncating a sub-second or fractional window could send "0", which invites
+// an immediate retry while the bucket is still closed.
+func TestRateLimit_RetryAfterTracksRemainingWindow(t *testing.T) {
+	cases := []struct {
+		name    string
+		window  time.Duration
+		advance time.Duration
+		want    string
+	}{
+		{name: "subsecond rounds to one", window: 500 * time.Millisecond, want: "1"},
+		{name: "fractional rounds up", window: 1500 * time.Millisecond, want: "2"},
+		{name: "partially elapsed window", window: 90 * time.Second, advance: 88200 * time.Millisecond, want: "2"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			now := time.Unix(5000, 0)
+			limiter := NewFixedWindowLimiter(1, tc.window, func() time.Time { return now })
+			handler := rateLimitChain(limiter, nil)
+			send := func() *httptest.ResponseRecorder {
+				req := httptest.NewRequest(http.MethodGet, "/x", nil)
+				rr := httptest.NewRecorder()
+				handler.ServeHTTP(rr, req)
+				return rr
+			}
+
+			require.Equal(t, http.StatusOK, send().Code)
+			now = now.Add(tc.advance)
+			denied := send()
+			assert.Equal(t, http.StatusTooManyRequests, denied.Code)
+			assert.Equal(t, tc.want, denied.Header().Get("Retry-After"))
+		})
+	}
+}
+
 // TestRateLimit_RejectsSpoofedForwardedHeaderRotation is the ISS-073
 // regression: with no trusted proxy configured, the budget is keyed on the
 // true socket peer, so an attacker rotating X-Forwarded-For / X-Real-IP /

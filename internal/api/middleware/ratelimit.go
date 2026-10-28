@@ -62,9 +62,17 @@ func NewFixedWindowLimiter(limit int, window time.Duration, now func() time.Time
 // Allow reports whether a request for key is within the rate budget. It is
 // safe for concurrent use.
 func (l *FixedWindowLimiter) Allow(key string) bool {
-	now := l.now()
+	allowed, _ := l.allow(key)
+	return allowed
+}
+
+// allow returns the decision and, when rejected, how long remains before the
+// current window resets. Keeping this calculation under the same lock as the
+// decision avoids a second clock read racing the bucket transition.
+func (l *FixedWindowLimiter) allow(key string) (bool, time.Duration) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	now := l.now()
 
 	// Evict timers whose window fully elapsed so the buckets map stays bounded
 	// by the number of keys active within a window instead of growing forever
@@ -76,13 +84,13 @@ func (l *FixedWindowLimiter) Allow(key string) bool {
 	b := l.buckets[key]
 	if b == nil || now.Sub(b.start) >= l.window {
 		l.buckets[key] = &windowBucket{count: 1, start: now}
-		return true
+		return true, 0
 	}
 	if b.count >= l.limit {
-		return false
+		return false, b.start.Add(l.window).Sub(now)
 	}
 	b.count++
-	return true
+	return true, 0
 }
 
 // sweepExpired deletes buckets whose window has fully elapsed. Called only
@@ -201,12 +209,14 @@ func RateLimit(limiter *FixedWindowLimiter, trustedProxies []string) func(http.H
 	trusted := parseTrustedProxies(trustedProxies)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !limiter.Allow(clientRateKey(r, trusted)) {
+			allowed, retryAfter := limiter.allow(clientRateKey(r, trusted))
+			if !allowed {
 				w.Header().Set("Content-Type", "application/json")
 				// A hardcoded 60 lied about when the client may retry whenever
-				// the configured window was not 1m; advertise the real window
-				// the limiter was built with (TASK-200, ISS-196).
-				w.Header().Set("Retry-After", strconv.Itoa(int(limiter.window.Seconds())))
+				// the configured window was not 1m; advertise the actual time
+				// left in this client's bucket, rounded up because the header
+				// only accepts whole seconds (TASK-200, ISS-196).
+				w.Header().Set("Retry-After", retryAfterSeconds(retryAfter))
 				w.WriteHeader(http.StatusTooManyRequests)
 				_ = json.NewEncoder(w).Encode(map[string]string{
 					"error": "rate limit exceeded",
@@ -217,4 +227,18 @@ func RateLimit(limiter *FixedWindowLimiter, trustedProxies []string) func(http.H
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func retryAfterSeconds(wait time.Duration) string {
+	if wait <= 0 {
+		return "1"
+	}
+	seconds := int64(wait / time.Second)
+	if wait%time.Second != 0 {
+		seconds++
+	}
+	if seconds < 1 {
+		seconds = 1
+	}
+	return strconv.FormatInt(seconds, 10)
 }
