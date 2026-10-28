@@ -749,7 +749,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		case 1:
 			ui.Text(c, s.Title).SingleLine()
 		case 2:
-			ui.Text(c, s.Status)
+			ui.Text(c, tr(s.Status))
 		case 3:
 			// The window is why a ballot is refused, so it belongs in the
 			// list rather than only in the error a voter sees afterwards.

@@ -142,6 +142,11 @@ documented in their per-milestone ROADMAP files.
   failing query again. The page now records the attempted query, and its
   Previous/Next offset commits only after the rows arrive; a failed page move
   keeps the label over the rows it actually loaded.
+- **Stored lifecycle labels follow the desktop language**: voting-session
+  states (`draft`, `active`, `ended`, `closed`) and NFT history operations
+  (`mint`, `transfer`, `burn`) were domain values drawn verbatim, so Chinese
+  tables still showed lowercase English. Those values now use the same
+  translation table as the labels around them.
 - **Successful empty readouts remain open**: Token and NFT histories, an empty
   voting tally and an empty Oracle Query now remember the successful read even
   when it returned no rows. Refresh, selecting another subject, casting the

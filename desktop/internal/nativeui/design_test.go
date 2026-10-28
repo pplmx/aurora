@@ -266,6 +266,46 @@ func TestChineseUIRendersBusyAndLedgerPagerCopy(t *testing.T) {
 	require.True(t, tester.HasText("仍在处理… 这可能需要一些时间；操作会自行完成。"))
 }
 
+// TestChineseUIRendersStoredLifecycleLabels keeps values that come from the
+// domain, rather than from a label in the view, inside the language switch:
+// session states and NFT operation types used to remain lowercase English in
+// an otherwise translated table.
+func TestChineseUIRendersStoredLifecycleLabels(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	translator.SetLocale("zh")
+	fake := &fakeServices{sessions: []SessionRow{
+		{ID: "s1", Title: "Draft", Status: "draft"},
+		{ID: "s2", Title: "Live", Status: "active"},
+		{ID: "s3", Title: "Finished", Status: "ended"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	for _, want := range []string{"草稿", "进行中", "已结束"} {
+		require.Truef(t, tester.HasText(want), "the session table must show %q", want)
+	}
+	require.False(t, tester.HasText("active"), "a stored status must not remain English")
+
+	app.ShowPage("NFT")
+	app.nft.opTab = 2
+	app.nft.historyID = "n1"
+	app.nft.historyLoadedID = "n1"
+	app.nft.history = []NFTOpRow{
+		{Type: "mint", To: "alice"},
+		{Type: "transfer", From: "alice", To: "bob"},
+		{Type: "burn", From: "bob"},
+	}
+	tester.Frame()
+	for _, want := range []string{"铸造", "转让", "销毁"} {
+		require.Truef(t, tester.HasText(want), "the NFT history must show %q", want)
+	}
+	require.False(t, tester.HasText("transfer"), "a stored operation type must not remain English")
+}
+
 // TestEveryContentPageHasAHowThisWorksGuide keeps the plain-language steps on
 // every module page: the guide is closed by default, but one click must show
 // the order of operations. Dashboard uses Quick start instead.
