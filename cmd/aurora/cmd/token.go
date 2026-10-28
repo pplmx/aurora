@@ -53,7 +53,13 @@ func newTokenService() (*token.TokenService, func(), error) {
 		return nil, nil, fmt.Errorf("failed to create replay protection: %w", err)
 	}
 
-	chain := blockchain.Init()
+	chain, err := blockchain.InitWithError()
+	if err != nil {
+		_ = replay.Close()
+		_ = eventStore.Close()
+		_ = repo.Close()
+		return nil, nil, fmt.Errorf("failed to initialize blockchain: %w", err)
+	}
 
 	txManager := sqlite.NewTxManager(repo.GetDB())
 	service := token.NewService(repo, txManager, eventBus, eventReader, replay, chain)

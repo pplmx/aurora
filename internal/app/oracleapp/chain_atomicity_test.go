@@ -51,7 +51,8 @@ func TestFetchOracleDataRollbackLeavesNoOnChainBlock(t *testing.T) {
 	}
 	require.NoError(t, repo.SaveSource(source))
 
-	chain := blockchain.NewWithDB(repo.GetDB())
+	chain, err := blockchain.NewWithDB(repo.GetDB())
+	require.NoError(t, err)
 	failingRepo := &failingOracleSaveRepo{OracleRepository: repo, db: repo.GetDB()}
 	uc := NewFetchDataUseCaseWithDeps(failingRepo, &mockFetcher{
 		data: &oracle.OracleData{

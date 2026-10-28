@@ -22,6 +22,7 @@ var (
 	dbInitOnce sync.Once
 	dbInitErr  error
 	once       sync.Once
+	initErr    error
 )
 
 const defaultDBPath = "./data/aurora.db"
@@ -88,20 +89,39 @@ func OpenDB(path string) (*sql.DB, error) {
 	return db, nil
 }
 
-func Init() *Chain {
+// InitWithError initializes the process-wide chain and reports a persisted
+// ledger that could not be loaded or verified. A nil error with a database-open
+// failure still follows the package's documented in-memory fallback; a
+// non-nil error means the blocks table exists but cannot be trusted, so write
+// paths must stop rather than append on top of a partial view.
+func InitWithError() (*Chain, error) {
 	once.Do(func() {
 		chain := &Chain{Blocks: []*Block{Genesis()}}
 
 		if db, err := InitDB(); err != nil {
 			logger.Warn().Err(err).Msg("Failed to initialize database; blockchain will operate in non-persistent mode")
 		} else {
-			bindChainToDB(chain, db)
+			initErr = bindChainToDB(chain, db)
 		}
 
 		instance = chain
 	})
 
-	return instance
+	if initErr != nil {
+		return nil, initErr
+	}
+	return instance, nil
+}
+
+// Init preserves the historical process-wide constructor for callers that
+// cannot return an error. New production write paths use InitWithError so
+// ledger corruption is surfaced instead of degrading to a partial chain.
+func Init() *Chain {
+	chain, err := InitWithError()
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to load a trustworthy blockchain")
+	}
+	return chain
 }
 
 // bindChainToDB wires a chain to a blocks table in the given DB: creates the
@@ -110,11 +130,10 @@ func Init() *Chain {
 // resync hooks. It is shared by Init (via the process singleton) and
 // the multi-process collision tests, which build two independent chains over
 // one DB file to exercise TASK-244 / ISS-242.
-func bindChainToDB(chain *Chain, db *sql.DB) {
-	// If the table itself cannot be created, the chain runs in-memory only: the
-	// persist/syncFromDB hooks are left nil so appends don't churn failing DB
-	// round-trips after a boot that already logged the failure (the package's
-	// documented "operate in non-persistent mode" fallback, TASK-244 review LOW).
+func bindChainToDB(chain *Chain, db *sql.DB) error {
+	// No persistence or sync hook is installed unless the whole reload and
+	// integrity check succeeds. This keeps a partially readable or invalid
+	// ledger from accepting writes through a false-success path.
 	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS blocks (
 			height INTEGER PRIMARY KEY,
@@ -126,8 +145,7 @@ func bindChainToDB(chain *Chain, db *sql.DB) {
 			created_at INTEGER NOT NULL
 		)
 	`); err != nil {
-		logger.Error().Err(err).Msg("Failed to create blocks table; blockchain will operate in non-persistent mode")
-		return
+		return fmt.Errorf("create blocks table: %w", err)
 	}
 
 	// persisted tracks whether ANY block row exists in the blocks table
@@ -139,10 +157,26 @@ func bindChainToDB(chain *Chain, db *sql.DB) {
 	// otherwise healthy restart (TASK-238, ISS-236).
 	persisted, err := loadBlocksFromDB(chain, db)
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to query blocks from database")
+		return fmt.Errorf("load persisted blocks: %w", err)
 	}
 
-	seedGenesisIfEmpty(db, chain, persisted)
+	if !persisted {
+		if err := seedGenesisIfEmpty(db, chain); err != nil {
+			return fmt.Errorf("seed genesis block: %w", err)
+		}
+	}
+
+	// The reload is the only point where production sees the persisted chain
+	// before accepting writes. Verify heights, links, and proofs now rather
+	// than starting a service on a chain that can only fail later during an
+	// append or an on-demand integrity query.
+	if report := chain.VerifyIntegrity(); !report.Valid {
+		return fmt.Errorf(
+			"persisted blockchain is invalid at index %d: %s",
+			report.FirstBrokenIndex,
+			report.FirstBrokenReason,
+		)
+	}
 
 	// Wire persistence: every block appended by AddBlock is written to the
 	// blocks table so heights remain monotonic across restarts. The previous
@@ -175,21 +209,24 @@ func bindChainToDB(chain *Chain, db *sql.DB) {
 	chain.syncFromDB = func() error {
 		return appendBlocksFromDB(chain, db)
 	}
+
+	return nil
 }
 
 func Get() *Chain {
-	if instance == nil {
-		return Init()
+	chain, err := InitWithError()
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to load a trustworthy blockchain")
 	}
-	return instance
+	return chain
 }
 
 // loadBlocksFromDB reads every row of the blocks table into the chain's
 // in-memory Blocks slice. It returns (true, nil) when at least one row existed
 // (the genesis row counts), mirroring the pre-TASK-238 semantics that drove
-// genesis seeding; a nil error means the table was queried successfully
-// (possibly empty). The height-0 genesis row is skipped because genesis is
-// always seeded in memory; skipping it avoids doubling it on reload.
+// genesis seeding; a nil error means every row was decoded successfully. The
+// height-0 genesis row is skipped because genesis is always seeded in memory;
+// skipping it avoids doubling it on reload.
 func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 	persisted := false
 	rows, err := db.Query("SELECT height, hash, previous_hash, data, nonce, timestamp FROM blocks ORDER BY height")
@@ -198,19 +235,27 @@ func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 	}
 	defer func() { _ = rows.Close() }()
 
+	// Buffer the reload so a corrupt row cannot leave the caller with a chain
+	// that silently omits it while the row remains in SQLite.
+	var loaded []*Block
+	rowNumber := 0
 	for rows.Next() {
 		persisted = true
+		rowNumber++
 		block, err := scanBlockRow(rows)
 		if err != nil {
-			logger.Warn().Err(err).Msg("Failed to scan block row, skipping")
-			continue
+			return persisted, fmt.Errorf("scan block row %d: %w", rowNumber, err)
 		}
 		if block.Height == 0 {
 			continue
 		}
-		chain.Blocks = append(chain.Blocks, block)
+		loaded = append(loaded, block)
 	}
-	return persisted, rows.Err()
+	if err := rows.Err(); err != nil {
+		return persisted, err
+	}
+	chain.Blocks = append(chain.Blocks, loaded...)
+	return persisted, nil
 }
 
 // appendBlocksFromDB folds blocks a concurrent process committed to the shared
@@ -392,27 +437,22 @@ func removeBlock(db *sql.DB, block *Block) error {
 	return nil
 }
 
-// seedGenesisIfEmpty writes the in-memory genesis block (Blocks[0]) to the
-// blocks table ONLY when no block row exists yet. It is keyed on `persisted`
-// (did the reload above read any row, including the height-0 genesis row?)
-// rather than chain length: after a reload the h0 row was skipped into memory,
-// so the chain is "genesis-only" again — the old `len(Blocks) <= 1` guard
-// stayed true and re-inserted height 0 on every boot, tripping the PRIMARY KEY
-// and logging a false "Failed to insert genesis block" (TASK-238, ISS-236).
-func seedGenesisIfEmpty(db *sql.DB, chain *Chain, persisted bool) {
-	if persisted {
-		return
-	}
+// seedGenesisIfEmpty writes the in-memory genesis block (Blocks[0]) to an
+// empty blocks table. bindChainToDB calls it only when the reload observed no
+// rows, including the height-0 genesis row. The old `len(Blocks) <= 1` guard
+// stayed true after a reload and re-inserted height 0 on every boot, tripping
+// the PRIMARY KEY and logging a false error (TASK-238, ISS-236).
+func seedGenesisIfEmpty(db *sql.DB, chain *Chain) error {
 	stmt, err := db.Prepare("INSERT INTO blocks (height, hash, previous_hash, data, nonce, timestamp, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
 	if err != nil {
-		logger.Error().Err(err).Msg("Failed to prepare block insert statement")
-		return
+		return fmt.Errorf("prepare genesis insert: %w", err)
 	}
 	defer func() { _ = stmt.Close() }()
 	block := chain.Blocks[0]
 	if _, err := stmt.Exec(block.Height, string(block.Hash), string(block.PrevHash), string(block.Data), block.Nonce, block.Timestamp, block.Timestamp); err != nil {
-		logger.Error().Err(err).Msg("Failed to insert genesis block")
+		return fmt.Errorf("insert genesis block: %w", err)
 	}
+	return nil
 }
 
 func ResetForTest() {
@@ -424,6 +464,7 @@ func ResetForTest() {
 	dbInitErr = nil
 	instance = nil
 	once = sync.Once{}
+	initErr = nil
 	_ = os.RemoveAll("./data")
 }
 

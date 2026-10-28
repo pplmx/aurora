@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/nft"
@@ -128,7 +129,10 @@ func Open() (*Container, error) {
 	}
 	c.addCloser(replay)
 
-	chain := blockchain.NewWithDB(db)
+	chain, err := blockchain.NewWithDB(db)
+	if err != nil {
+		return nil, fmt.Errorf("initialize blockchain: %w", err)
+	}
 	txManager := sqlite.NewTxManager(tokenRepo.GetDB())
 	c.Chain = chain
 	c.TxManager = txManager

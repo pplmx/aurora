@@ -63,7 +63,7 @@ func TestChain_WithBlockTransaction_CommitsBlockAndBusinessRow(t *testing.T) {
 	createBusinessTable(t, db)
 
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	var callbackHeight int64
 	err := chain.WithBlockTransaction("mint|T1|alice", testDBTxManager{db: db}, func(tx *sql.Tx, height int64) error {
@@ -87,7 +87,7 @@ func TestChain_WithRecordTransaction_StampsHeightAndCommitsBusinessRow(t *testin
 	createBusinessTable(t, db)
 
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	payload := `{"id":"draw-1","block_height":0,"seed":"s"}`
 	var callbackHeight int64
@@ -115,7 +115,7 @@ func TestChain_WithRecordTransaction_RollsBackStampAndBusinessRow(t *testing.T) 
 	createBusinessTable(t, db)
 
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	rollbackErr := errors.New("business mutation failed")
 	err := chain.WithRecordTransaction(`{"id":"draw-1","block_height":0}`, testDBTxManager{db: db}, func(tx *sql.Tx, height int64) error {
@@ -139,7 +139,7 @@ func TestChain_WithBlockTransaction_RollsBackBlockWithBusinessRow(t *testing.T) 
 	createBusinessTable(t, db)
 
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	rollbackErr := errors.New("business mutation failed")
 	err := chain.WithBlockTransaction("transfer|lost-race", testDBTxManager{db: db}, func(tx *sql.Tx, height int64) error {
@@ -183,7 +183,7 @@ func TestChain_WithBlockTransaction_NoOpFailureRollsBackPersistedBlock(t *testin
 		t.Run(tt.name, func(t *testing.T) {
 			db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
 			chain := &Chain{Blocks: []*Block{Genesis()}}
-			bindChainToDB(chain, db)
+			require.NoError(t, bindChainToDB(chain, db))
 
 			transactionErr := errors.New("no-op transaction failed")
 			var failedHeight int64
@@ -225,7 +225,7 @@ func TestChain_WithBlockTransaction_NoOpFailureRollsBackPersistedBlock(t *testin
 func TestChain_WithBlockTransaction_NoOpHeightConflictRetriesBeforeCallback(t *testing.T) {
 	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	peer := peerChain(t, 1, "peer-payload")
 	insertBlockRaw(t, db, peer.Blocks[1])
@@ -262,7 +262,7 @@ func TestChain_WithBlockTransaction_HeightConflictRetriesBeforeBusinessWrite(t *
 	createBusinessTable(t, db)
 
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	peer := peerChain(t, 1, "peer-payload")
 	insertBlockRaw(t, db, peer.Blocks[1])
@@ -295,7 +295,7 @@ func TestChain_WithBlockTransaction_HoldsChainLockThroughCommit(t *testing.T) {
 	createBusinessTable(t, db)
 
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	callbackEntered := make(chan struct{})
 	releaseCallback := make(chan struct{})

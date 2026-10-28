@@ -280,6 +280,21 @@ func TestVerifyIntegrity_DetectsTamperedHash(t *testing.T) {
 	require.Equal(t, 1, rep.FirstBrokenIndex)
 }
 
+func TestVerifyIntegrity_DetectsHeightDiscontinuity(t *testing.T) {
+	c := New()
+	_, err := c.AddBlock("a")
+	require.NoError(t, err)
+
+	c.mu.Lock()
+	c.Blocks[1].Height = 2
+	c.mu.Unlock()
+
+	rep := c.VerifyIntegrity()
+	require.False(t, rep.Valid)
+	require.Equal(t, 1, rep.FirstBrokenIndex)
+	require.Equal(t, "height discontinuity", rep.FirstBrokenReason)
+}
+
 // TestBlockEntriesCarryTheirHeights pins the ledger's height source. Payloads
 // are filtered (genesis has none), so deriving a height from a payload's index
 // showed every block one too low — the desktop ledger read height 0 for the
