@@ -46,7 +46,8 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 	}
 	label = tr(label)
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(textSize(c, 11)).Width(copyLabelWidth(label)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
+			TextColor(ui.Hex(inkMuted)).SingleLine()
 		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).SingleLine()
 		if quietButton(c, tr("Copy")+" "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
@@ -61,17 +62,38 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 	})
 }
 
-// copyLabelWidth keeps a copy row's label readable when it is longer than the
-// old fixed 72px (for example "Selected candidate ID" or "Owner private key").
-// The width is an estimate at the 11pt label size, clamped so the value still
-// has room beside it.
-func copyLabelWidth(label string) float32 {
-	width := float32(len(label)) * 6.4
-	if width < 72 {
-		return 72
+// readoutRow is one label/value pair in a readout.
+type readoutRow struct{ label, value string }
+
+// readout draws the result of a read as label/value rows on a recessed panel,
+// so an answer is visibly an answer rather than another line of prose that
+// looks like the hint above it.
+func readout(c *ui.Context, rows []readoutRow) {
+	ui.Column(c).FillWidth().Padding(10).Gap(4).Radius(8).
+		Background(ui.Hex(night)).Children(func() {
+		for _, r := range rows {
+			label := tr(r.label)
+			ui.Row(c).FillWidth().Gap(8).Children(func() {
+				ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
+					TextColor(ui.Hex(inkMuted)).SingleLine()
+				ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).
+					Grow(1).Shrink(1).MinWidth(0).SingleLine()
+			})
+		}
+	})
+}
+
+// labelColumnWidth keeps a label readable when it is longer than the old fixed
+// 72px, without letting it consume the value column. The estimate follows the
+// 11pt label size and the user's text-size preference.
+func labelColumnWidth(c *ui.Context, label string) float32 {
+	scale := textSize(c, 11) / 11
+	width := float32(len(label)) * 7.5 * scale
+	if width < 72*scale {
+		return 72 * scale
 	}
-	if width > 140 {
-		return 140
+	if width > 160*scale {
+		return 160 * scale
 	}
 	return width
 }
