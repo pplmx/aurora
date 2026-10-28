@@ -504,6 +504,7 @@ func TestAddSource_URLValidation(t *testing.T) {
 		{"http", "http://api.example.com/data", false, ""},
 		{"https", "https://api.example.com/data", false, ""},
 		{"https with port", "https://api.example.com:8443/data", false, ""},
+		{"https with maximum port", "https://api.example.com:65535/data", false, ""},
 		{"uppercase scheme", "HTTPS://api.example.com/data", false, ""},
 
 		{"file scheme", "file:///etc/passwd", true, "blocks local filesystem read"},
@@ -512,6 +513,10 @@ func TestAddSource_URLValidation(t *testing.T) {
 		{"ftp scheme", "ftp://example.com/data", true, "blocks non-HTTP schemes"},
 		{"empty url", "", true, "blocks empty URL"},
 		{"no scheme", "example.com/data", true, "blocks scheme-less URL"},
+		{"port-only host", "http://:8080/data", true, "blocks a URL with no hostname"},
+		{"zero port", "http://api.example.com:0/data", true, "blocks the reserved port zero"},
+		{"empty port", "http://api.example.com:/data", true, "blocks an ambiguous empty port"},
+		{"out-of-range port", "http://api.example.com:65536/data", true, "blocks a port outside the TCP range"},
 
 		// SSRF: IP-literal hosts in blocked space are rejected deterministically
 		// (no DNS resolvability involved).
@@ -524,6 +529,7 @@ func TestAddSource_URLValidation(t *testing.T) {
 		{"ipv4-translated literal", "http://[::ffff:0:0:0]/data", true, "blocks IPv4-translated space"},
 		{"ipv6 unique-local literal", "http://[fc00::1]/data", true, "blocks IPv6 unique-local"},
 		{"ipv6 link-local literal", "http://[fe80::1]/data", true, "blocks IPv6 link-local"},
+		{"zoned ipv6 link-local literal", "http://[fe80::1%25eth0]/data", true, "blocks a zoned IPv6 link-local"},
 		{"ipv6 site-local literal", "http://[fec0::1]/data", true, "blocks deprecated IPv6 site-local"},
 		{"ipv6 IETF protocol assignment", "http://[2001:10::1]/data", true, "blocks ORCHID and other IETF protocol assignments"},
 		{"benchmark literal", "http://198.18.0.1/data", true, "blocks benchmarking range"},

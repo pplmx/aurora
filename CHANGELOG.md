@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle sources reject unusable URL authorities at creation**: a URL with
+  a port but no hostname, an empty port after `:`, or a port outside
+  `1..65535` was previously persisted and failed only on the later fetch.
+  Source validation now checks the parsed hostname and numeric port before
+  saving, applying the same contract at add and fetch time across REST, CLI
+  and desktop.
 - **Oracle URL validation closes the remaining IPv6 private-space gaps**:
   deprecated IPv6 site-local (`fec0::/10`), IPv4-compatible (`::/96`) and
   IPv4-translated (`::ffff:0:0:0/96`) addresses, plus the IETF IPv6 protocol

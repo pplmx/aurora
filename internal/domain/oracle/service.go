@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -110,14 +111,23 @@ func validateSourceURL(raw string) error {
 	if _, ok := allowedSourceSchemes[scheme]; !ok {
 		return fmt.Errorf("disallowed scheme %q (only http/https allowed)", u.Scheme)
 	}
-	if u.Host == "" {
+	host := u.Hostname()
+	if host == "" {
 		return fmt.Errorf("missing host")
+	}
+	if port := u.Port(); port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return fmt.Errorf("invalid port %q", port)
+		}
+	} else if strings.HasSuffix(u.Host, ":") {
+		return fmt.Errorf("missing port after colon")
 	}
 	// SSRF: reject any host that is, or resolves to, a private/loopback
 	// address. Without this, a source literally pointing at
 	// 169.254.169.254 (cloud metadata) or 127.0.0.1 would pass the
 	// scheme-only check and the fetcher would dial it directly.
-	blocked, err := hostBlocked(u.Host)
+	blocked, err := hostBlocked(host)
 	if err != nil {
 		return fmt.Errorf("verify host: %w", err)
 	}
