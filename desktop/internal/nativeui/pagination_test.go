@@ -509,3 +509,95 @@ func TestFailedNFTHistoryPageMoveKeepsCurrentPage(t *testing.T) {
 	require.True(t, tester.HasText("Couldn't load NFT history: read failed"))
 	require.True(t, tester.HasText("Showing the last successful load."))
 }
+
+func TestLotteryHistoryPages(t *testing.T) {
+	draws := make([]DrawRow, 150)
+	for i := range draws {
+		draws[i] = DrawRow{
+			ID: "draw-" + strconv.Itoa(i), BlockHeight: int64(i + 1),
+			Participants: []string{"Alice", "Bob"}, Winners: []string{"Alice"},
+		}
+	}
+	fake := &fakeServices{draws: draws}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	require.Len(t, app.lottery.rows, lotteryHistoryLimit)
+	require.Zero(t, app.lottery.offset)
+	require.Equal(t, lotteryHistoryLimit+1, fake.historyN,
+		"one extra row distinguishes a full page from the final page")
+	require.True(t, tester.HasText("Entries 1–100"))
+
+	app.lottery.selected = 0
+	tester.Frame()
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, lotteryHistoryLimit, app.lottery.offset)
+	require.Equal(t, -1, app.lottery.selected, "a new page must not reuse the old row index")
+	require.Len(t, app.lottery.rows, 50)
+	require.False(t, app.lottery.hasMore)
+	require.True(t, tester.HasText("Entries 101–150"))
+}
+
+func TestLotteryPagerStopsAtAnExactPageBoundary(t *testing.T) {
+	draws := make([]DrawRow, lotteryHistoryLimit)
+	for i := range draws {
+		draws[i] = DrawRow{ID: "draw-" + strconv.Itoa(i), BlockHeight: int64(i + 1)}
+	}
+	fake := &fakeServices{draws: draws}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+	calls := fake.historyCalls
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Zero(t, app.lottery.offset)
+	require.Equal(t, calls, fake.historyCalls, "a disabled Next must not reload")
+}
+
+func TestFailedLotteryPageMoveKeepsCurrentPage(t *testing.T) {
+	draws := make([]DrawRow, 150)
+	for i := range draws {
+		draws[i] = DrawRow{ID: "draw-" + strconv.Itoa(i), BlockHeight: int64(i + 1)}
+	}
+	fake := &fakeServices{draws: draws}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+	fake.loadErrs.history = errors.New("read failed")
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Zero(t, app.lottery.offset)
+	require.Len(t, app.lottery.rows, lotteryHistoryLimit)
+	require.True(t, tester.HasText("Failed to load history: read failed"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}
+
+func TestCreatingDrawReturnsHistoryToFirstPage(t *testing.T) {
+	draws := make([]DrawRow, 150)
+	for i := range draws {
+		draws[i] = DrawRow{ID: "draw-" + strconv.Itoa(i), BlockHeight: int64(i + 1)}
+	}
+	fake := &fakeServices{draws: draws}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, lotteryHistoryLimit, app.lottery.offset)
+
+	app.lottery.participants = "Alice,Bob"
+	app.lottery.seed = "new-draw-seed"
+	app.lottery.count = 1
+	app.createLottery()
+	tester.Frame()
+	require.Zero(t, app.lottery.offset, "the new draw is on page zero")
+	require.Zero(t, fake.historyOffset)
+}

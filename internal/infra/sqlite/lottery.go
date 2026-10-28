@@ -40,7 +40,7 @@ type LotteryRepository struct {
 	exec   lotteryExec
 }
 
-// lotteryNewestFirst is the one ordering every whole-table lottery read uses.
+// lotteryNewestFirst is the one ordering every newest-first lottery read uses.
 //
 // Timestamps have one-second resolution, so two draws created in the same
 // second tie. SQLite then returns them in index/rowid (insertion) order, which
@@ -252,13 +252,24 @@ func (r *LotteryRepository) GetByID(id string) (*lottery.LotteryRecord, error) {
 }
 
 func (r *LotteryRepository) GetAll() ([]*lottery.LotteryRecord, error) {
+	return r.List(0, 0)
+}
+
+func (r *LotteryRepository) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	rows, err := r.q().Query(`
 		SELECT l.id, l.block_height, l.seed, l.participants, l.winners, l.winner_addresses,
 		       l.vrf_proof, l.vrf_output, COALESCE(k.public_key, ''), l.timestamp, l.verified
 		FROM lottery_records l
 		LEFT JOIN lottery_vrf_keys k ON k.record_id = l.id
-		` + lotteryNewestFirst + `
-	`)
+		`+lotteryNewestFirst+`
+		LIMIT ? OFFSET ?
+	`, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -8,13 +8,10 @@ import (
 
 // --- Lottery -------------------------------------------------------------
 
-func (s *nativeServices) LotteryHistory(limit int) ([]nativeui.DrawRow, error) {
-	records, err := s.lotteryRepo.GetAll()
+func (s *nativeServices) LotteryHistory(limit, offset int) ([]nativeui.DrawRow, error) {
+	records, err := s.lotteryRepo.List(limit, offset)
 	if err != nil {
 		return nil, err
-	}
-	if limit > 0 && len(records) > limit {
-		records = records[:limit]
 	}
 	rows := make([]nativeui.DrawRow, 0, len(records))
 	for _, r := range records {

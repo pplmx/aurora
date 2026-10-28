@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -316,6 +317,30 @@ func TestLotteryRepository_GetAll_OrdersByTimestampDesc(t *testing.T) {
 	assert.Equal(t, "B", got[0].ID, "newest timestamp should be first")
 	assert.Equal(t, "C", got[1].ID)
 	assert.Equal(t, "A", got[2].ID, "oldest timestamp should be last")
+}
+
+func TestLotteryRepository_ListPages(t *testing.T) {
+	repo, cleanup := setupLotteryTestDB(t)
+	defer cleanup()
+
+	for i, timestamp := range []int64{100, 200, 300} {
+		record := sampleLotteryRecord(fmt.Sprintf("page-%d", i), int64(i+1))
+		record.Timestamp = timestamp
+		require.NoError(t, repo.Save(record))
+	}
+
+	page, err := repo.List(1, 1)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "page-1", page[0].ID, "the second row in newest-first order")
+
+	remainder, err := repo.List(0, 1)
+	require.NoError(t, err)
+	require.Len(t, remainder, 2, "limit zero keeps the full remainder from offset")
+
+	past, err := repo.List(10, 99)
+	require.NoError(t, err)
+	require.Empty(t, past)
 }
 
 // TestLotteryRepository_GetAll_SameSecondIsNewestHeightFirst pins the

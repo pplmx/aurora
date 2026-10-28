@@ -22,7 +22,9 @@ type fakeServices struct {
 		seed         string
 		winners      int
 	}
-	historyN int
+	historyN      int
+	historyOffset int
+	historyCalls  int
 
 	voters     int
 	candidates []CandidateRow
@@ -141,12 +143,21 @@ type fakeLoadErrors struct {
 	oracleLatest error
 }
 
-func (f *fakeServices) LotteryHistory(limit int) ([]DrawRow, error) {
+func (f *fakeServices) LotteryHistory(limit, offset int) ([]DrawRow, error) {
+	f.historyCalls++
 	f.historyN = limit
+	f.historyOffset = offset
 	if f.loadErrs.history != nil {
 		return nil, f.loadErrs.history
 	}
-	return f.draws, nil
+	if offset >= len(f.draws) {
+		return nil, nil
+	}
+	rows := f.draws[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 
 func (f *fakeServices) CreateDraw(participants []string, seed string, winners int) (DrawRow, error) {
@@ -771,7 +782,9 @@ func TestHistoryTableShowsEveryStoredDraw(t *testing.T) {
 	require.True(t, tester.HasText("aaaa1111"))
 	require.True(t, tester.HasText("bbbb2222"))
 	require.True(t, tester.HasText("Carol"), "a winner must be shown in its row")
-	require.Equal(t, lotteryHistoryLimit, fake.historyN, "the page asks for one page of draws")
+	require.Equal(t, lotteryHistoryLimit+1, fake.historyN,
+		"one lookahead row distinguishes a full page from the final page")
+	require.Zero(t, fake.historyOffset)
 }
 
 // TestRefreshShortcutReloadsThePage pins the keyboard path to a refresh. The
@@ -789,6 +802,6 @@ func TestRefreshShortcutReloadsThePage(t *testing.T) {
 
 	tester.Key(platformRefreshModifier(), ui.KeyR)
 	tester.Frame()
-	require.Equal(t, lotteryHistoryLimit, fake.historyN,
+	require.Equal(t, lotteryHistoryLimit+1, fake.historyN,
 		"the reload shortcut must ask the page for its data again")
 }

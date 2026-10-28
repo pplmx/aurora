@@ -31,6 +31,17 @@ func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return m.records, nil
 }
 
+func (m *mockLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
+	if offset >= len(m.records) {
+		return nil, nil
+	}
+	records := m.records[offset:]
+	if limit > 0 && len(records) > limit {
+		records = records[:limit]
+	}
+	return records, nil
+}
+
 func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
 	var result []*lottery.LotteryRecord
 	for _, r := range m.records {
