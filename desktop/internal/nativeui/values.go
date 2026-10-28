@@ -62,7 +62,8 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
 			TextColor(ui.Hex(inkMuted)).SingleLine()
-		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).SingleLine()
+		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).
+			SingleLine().Ellipsis("…").Tooltip(value)
 		if quietButton(c, tr("Copy")+" "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
 			c.Services().WriteClipboard(value)
@@ -89,9 +90,9 @@ func readout(c *ui.Context, rows []readoutRow) {
 			label := tr(r.label)
 			ui.Row(c).FillWidth().Gap(8).Children(func() {
 				ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
-					TextColor(ui.Hex(inkMuted)).SingleLine()
+					TextColor(ui.Hex(inkMuted)).SingleLine().Ellipsis("…").Tooltip(label)
 				ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).
-					Grow(1).Shrink(1).MinWidth(0).SingleLine()
+					Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(r.value)
 			})
 		}
 	})

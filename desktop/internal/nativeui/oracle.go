@@ -593,9 +593,9 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 	}
 	ui.Table(c, &a.oracle.healthTable, []ui.TableColumn{
 		{Title: tr("Source")},
-		{Title: tr("Attempts"), Width: 80, Align: ui.End},
-		{Title: tr("Successes"), Width: 80, Align: ui.End},
-		{Title: tr("Failures"), Width: 80, Align: ui.End},
+		{Title: tr("Attempts"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
+		{Title: tr("Successes"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
+		{Title: tr("Failures"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
 		{Title: tr("Last error")},
 	}, len(health), func(row, col int) {
 		h := health[row]
@@ -610,11 +610,11 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 			}
 			tableText(c, name)
 		case 1:
-			ui.Text(c, strconv.Itoa(h.Attempts))
+			tableText(c, strconv.Itoa(h.Attempts))
 		case 2:
-			ui.Text(c, strconv.Itoa(h.Successes))
+			tableText(c, strconv.Itoa(h.Successes))
 		case 3:
-			ui.Text(c, strconv.Itoa(h.Failures))
+			tableText(c, strconv.Itoa(h.Failures))
 		case 4:
 			if h.LastError == "" {
 				tableText(c, tr("—"))
@@ -657,13 +657,13 @@ func (a *App) oracleReadBody(c *ui.Context) {
 		data := a.oracle.data
 		ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
 			{Title: tr("Value")},
-			{Title: tr("Block"), Width: 80, Align: ui.End},
+			{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 		}, len(data), func(row, col int) {
 			d := data[row]
 			if col == 0 {
 				tableText(c, d.Value)
 			} else {
-				ui.Text(c, strconv.FormatInt(d.BlockHeight, 10))
+				tableText(c, strconv.FormatInt(d.BlockHeight, 10))
 			}
 		})
 	}

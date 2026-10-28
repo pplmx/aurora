@@ -1202,13 +1202,13 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	readout(c, []readoutRow{{"Total votes", strconv.Itoa(total)}})
 	ui.Table(c, &a.voting.resultsTable, []ui.TableColumn{
 		{Title: tr("Candidate")},
-		{Title: tr("Votes"), Width: 80, Align: ui.End},
+		{Title: tr("Votes"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
 	}, len(results), func(row, col int) {
 		r := results[row]
 		if col == 0 {
 			tableText(c, r.Name)
 		} else {
-			ui.Text(c, strconv.Itoa(r.Votes))
+			tableText(c, strconv.Itoa(r.Votes))
 		}
 	})
 }

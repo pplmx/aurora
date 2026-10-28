@@ -755,7 +755,7 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 		case 2:
 			tableText(c, op.To)
 		case 3:
-			ui.Text(c, strconv.FormatInt(op.BlockHeight, 10))
+			tableText(c, strconv.FormatInt(op.BlockHeight, 10))
 		}
 	})
 }
