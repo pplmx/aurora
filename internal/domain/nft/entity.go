@@ -37,7 +37,7 @@ type Operation struct {
 // Length bounds for NFT free-text fields. Mint previously persisted these
 // without bound while the token surface capped name/symbol; the caps here
 // mirror the token validator and are enforced at the shared domain edge so
-// REST/CLI/web all inherit them (TASK-271, ISS-267).
+// REST, CLI and the desktop all inherit them (TASK-271, ISS-267).
 const (
 	MaxNFTNameLength        = 200
 	MaxNFTDescriptionLength = 2000

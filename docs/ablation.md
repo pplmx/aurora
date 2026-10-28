@@ -12,7 +12,7 @@
    运行时需要 cgo；这不是生产依赖，也不应被当成默认沙箱门禁。若要求连
    race 检测也不能使用 cgo，只能删除该门禁，而不是继续“纯 Go 重构”。
 3. **五个业务模块都不是死代码。** lottery、voting、NFT、token、oracle 都能
-   从 CLI/API/Web/桌面端或其中多个入口到达；blockchain 是这些模块的审计
+   从 CLI/API/桌面端或其中多个入口到达；blockchain 是这些模块的审计
    存证基底。没有证据支持整体删除。
 4. **本轮只删除生产不可达的表面。** 异步/组合事件总线、重复的内存 Oracle
    仓储，以及若干没有调用者的领域/仓储查询接口被消融；同步事件总线、审计
@@ -32,7 +32,7 @@
 | 格式化与 vet  | `just check`                         | `CGO_ENABLED=0`      | `gofmt`/`goimports`/`go vet`               |
 | CLI 当前平台  | `just build-current`                 | `CGO_ENABLED=0`      | 纯 Go 二进制                               |
 | CLI 发布矩阵  | `just build`、`build.yml`            | `CGO_ENABLED=0`      | linux/darwin/windows 交叉构建              |
-| API + Web     | `just api`                           | `CGO_ENABLED=0`      | 独立 `aurora-api`                          |
+| REST API      | `just api`                           | `CGO_ENABLED=0`      | 独立 `aurora-api`                          |
 | Docker        | `Dockerfile`                         | `CGO_ENABLED=0`      | distroless/static 运行时                   |
 | 桌面构建/检查 | `just desktop`、`just desktop-check` | `CGO_ENABLED=0`      | 嵌套 `desktop/` 模块                       |
 | 桌面打包      | `just desktop-package`               | `CGO_ENABLED=0`      | `go tool mygo build`                       |
@@ -40,24 +40,24 @@
 | 核心 race     | CI 的 `go test -race`                | `CGO_ENABLED=1`      | **仅测试工具需要 cgo**                     |
 | 桌面 race     | `just desktop-race`                  | `CGO_ENABLED=1`      | 显式 opt-in，不进入默认沙箱门禁            |
 
-纯 Go 契约由根模块的 `toolchain_contract_test.go` 和
+纯 Go 契约由根模块的 `internal/repocheck/toolchain_test.go` 和
 `desktop/internal/deskapp/ci_test.go` 锁定：若 SQLite 驱动退回
 `github.com/mattn/go-sqlite3`、Docker/justfile 退回 cgo，或桌面打包改用 cgo，
 测试会失败。
 
 ## 模块可达性
 
-| 模块       | 生产入口                                                                                       | 结论                                     |
-| ---------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| lottery    | `aurora lottery ...`、`/api/v1/lottery/*`、`web/lottery.html`、桌面路由 | 保留；VRF 证明与审计记录是核心功能       |
-| voting     | `aurora voting ...`、`/api/v1/voting/*`、`web/voting.html`、桌面路由                           | 保留                                     |
-| NFT        | `aurora nft ...`、`/api/v1/nft/*`、`web/nft.html`、桌面路由                                   | 保留                                     |
-| token      | `aurora token ...`、`/api/v1/token/*`、`web/token.html`、桌面路由                               | 保留                                     |
-| oracle     | `aurora oracle ...`、`/api/v1/oracle/*`、`web/oracle.html`、桌面路由、调度器                   | 保留；定时抓取、健康度与链上存证都有入口 |
-| blockchain | 各业务模块的 `AddRecord`/`AddBlock`、`/api/v1/blockchain/verify`、`web/blockchain.html` | 保留；不是独立产品页面，而是审计基底     |
-| events     | CLI/API/桌面端的同步发布、审计 handler、`pending_events` outbox                                | 保留；生产只使用 `SyncEventBus`          |
-| migrations | `aurora migrate`、启动配置与仓储自举 schema                                                    | 保留；迁移与自举共同服务新库/旧库        |
-| backup     | `aurora backup ...`、桌面 File 菜单                                                            | 保留；用户数据恢复路径                   |
+| 模块       | 生产入口                                                                   | 结论                                     |
+| ---------- | -------------------------------------------------------------------------- | ---------------------------------------- |
+| lottery    | `aurora lottery ...`、`/api/v1/lottery/*`、桌面路由                        | 保留；VRF 证明与审计记录是核心功能       |
+| voting     | `aurora voting ...`、`/api/v1/voting/*`、桌面路由                          | 保留                                     |
+| NFT        | `aurora nft ...`、`/api/v1/nft/*`、桌面路由                                | 保留                                     |
+| token      | `aurora token ...`、`/api/v1/token/*`、桌面路由                            | 保留                                     |
+| oracle     | `aurora oracle ...`、`/api/v1/oracle/*`、桌面路由、调度器                  | 保留；定时抓取、健康度与链上存证都有入口 |
+| blockchain | 各业务模块的 `AddRecord`/`AddBlock`、`/api/v1/blockchain/verify`、桌面路由 | 保留；不是独立产品页面，而是审计基底     |
+| events     | CLI/API/桌面端的同步发布、审计 handler、`pending_events` outbox            | 保留；生产只使用 `SyncEventBus`          |
+| migrations | `aurora migrate`、启动配置与仓储自举 schema                                | 保留；迁移与自举共同服务新库/旧库        |
+| backup     | `aurora backup ...`、桌面 File 菜单                                        | 保留；用户数据恢复路径                   |
 
 ## 全局消融：按「真实调用者」重判（2026-10-24）
 
@@ -70,26 +70,26 @@
 1. 对每个包的导出函数与方法，统计 `internal/`、`cmd/`、`desktop/`、`e2e/`
    中排除 `_test.go` 后的引用数；`refs<=1`（只有定义本身）进入候选。
 2. 候选逐个确认调用点，区分三类：
-   - **死 API**：生产零调用，测试只在自测它 → 删除。
-   - **重复实现**：同一算法有两条路径，生产只走一条 → 合并到保留的那条。
-   - **测试基础设施**：生产不用，但真实回归测试用它断言行为 → 保留。
+    - **死 API**：生产零调用，测试只在自测它 → 删除。
+    - **重复实现**：同一算法有两条路径，生产只走一条 → 合并到保留的那条。
+    - **测试基础设施**：生产不用，但真实回归测试用它断言行为 → 保留。
 3. 删除后跑 `just check` 与 `just test`，并对保留/删除有争议的项做故障注入。
 
 ### 删除的死 API 与重复实现
 
-| 位置 | 符号 | 证据 | 处理 |
-| --- | --- | --- | --- |
-| `infra/http` | `NewFetcherWithConfig` | 生产只用 `NewFetcher()`；与 `NewFetcherWithTimeout` 三份几乎相同的构造器 | 删除；调用方改用 `NewFetcher(WithRateLimit(...))` |
-| `infra/http` | `FetchDataWithValidation` | 无 ctx 的薄封装，生产只走 `FetchDataContext` | 删除；测试改调 Context 版本 |
-| `blockchain` | `MineBlockWithContext` | 与 `ProofOfWork.Run` 完整重复，仅多一个 ctx 检查 | 把 ctx 折进 `Run(ctx)`，删除重复函数 |
-| `blockchain` | `ValidateProof` | 与 `ProofOfWork.Validate` 同一比较 | 删除；测试改断 `pow.Validate()` |
-| `blockchain` | `Serialize` / `Deserialize` | 块从 SQLite 按列重建，生产不读 gob | 删除这一对及其往返测试 |
-| `domain/token` | `ValidateNonce` + `ErrNonceTooLow` + `NONCE_TOO_LOW` 映射 | nonce 由 `ClaimNextNonce` 原子分配，该错误从未被返回 | 删除整条链；409 映射随之移除 |
-| `domain/token` | `NewMintEventFromData` / `NewBurnEventFromData` | 生产用 `NewMintEvent`/`NewBurnEvent` 创建；无 mint/burn 事件回读器 | 删除（transfer 的 `FromData` 保留，历史回读在用） |
-| `domain/lottery` | `VRFOutputToBytes` | `SelectWinners` 自行处理输出，无调用者 | 删除 |
-| `domain/lottery` | `GetWinners` | 纯 getter，`Winners` 字段本就导出 | 删除及其自测 |
-| `domain/token` | `ApproveEvent.SetExpiresAt` | 无调用者 | 删除 |
-| `infra/events` | `StatsHandler`（含 `GetCount`/`GetAllCounts`） | `server.go` 订阅了 `Handle`，但计数结果无人读取 | 删除 handler 与订阅；订阅/退订语义改由审计 handler 与计数闭包断言 |
+| 位置             | 符号                                                      | 证据                                                                     | 处理                                                              |
+| ---------------- | --------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `infra/http`     | `NewFetcherWithConfig`                                    | 生产只用 `NewFetcher()`；与 `NewFetcherWithTimeout` 三份几乎相同的构造器 | 删除；调用方改用 `NewFetcher(WithRateLimit(...))`                 |
+| `infra/http`     | `FetchDataWithValidation`                                 | 无 ctx 的薄封装，生产只走 `FetchDataContext`                             | 删除；测试改调 Context 版本                                       |
+| `blockchain`     | `MineBlockWithContext`                                    | 与 `ProofOfWork.Run` 完整重复，仅多一个 ctx 检查                         | 把 ctx 折进 `Run(ctx)`，删除重复函数                              |
+| `blockchain`     | `ValidateProof`                                           | 与 `ProofOfWork.Validate` 同一比较                                       | 删除；测试改断 `pow.Validate()`                                   |
+| `blockchain`     | `Serialize` / `Deserialize`                               | 块从 SQLite 按列重建，生产不读 gob                                       | 删除这一对及其往返测试                                            |
+| `domain/token`   | `ValidateNonce` + `ErrNonceTooLow` + `NONCE_TOO_LOW` 映射 | nonce 由 `ClaimNextNonce` 原子分配，该错误从未被返回                     | 删除整条链；409 映射随之移除                                      |
+| `domain/token`   | `NewMintEventFromData` / `NewBurnEventFromData`           | 生产用 `NewMintEvent`/`NewBurnEvent` 创建；无 mint/burn 事件回读器       | 删除（transfer 的 `FromData` 保留，历史回读在用）                 |
+| `domain/lottery` | `VRFOutputToBytes`                                        | `SelectWinners` 自行处理输出，无调用者                                   | 删除                                                              |
+| `domain/lottery` | `GetWinners`                                              | 纯 getter，`Winners` 字段本就导出                                        | 删除及其自测                                                      |
+| `domain/token`   | `ApproveEvent.SetExpiresAt`                               | 无调用者                                                                 | 删除                                                              |
+| `infra/events`   | `StatsHandler`（含 `GetCount`/`GetAllCounts`）            | `server.go` 订阅了 `Handle`，但计数结果无人读取                          | 删除 handler 与订阅；订阅/退订语义改由审计 handler 与计数闭包断言 |
 
 ### 有意保留（看似死代码，实际有真实用途）
 
@@ -106,7 +106,7 @@
 ### 结论
 
 六个业务模块全部保留：lottery、voting、NFT、token、oracle 各自有 CLI、REST、
-Web 与桌面路由中的多个真实调用点，blockchain 是它们的审计基底。本轮删掉的是
+桌面路由中的多个真实调用点，blockchain 是它们的审计基底。本轮删掉的是
 模块**内部**的重复实现与死 API，不改变任何用户可见行为；`just test` 的 34 个
 包在删除前后都是绿的。
 
@@ -123,7 +123,7 @@ Web 与桌面路由中的多个真实调用点，blockchain 是它们的审计�
   `domain/oracle.InmemRepo` 作为唯一的内存测试实现。
 - token 的 `GetMintEventsByToken`、`GetBurnEventsByToken`、
   `GetApprovalsByOwner`、`Token.AddToSupply`：无生产调用者。
-- NFT 的 `GetNFTsByCreator`：CLI/API/Web 均只按 owner 查询。
+- NFT 的 `GetNFTsByCreator`：CLI/API/桌面端均只按 owner 查询。
 - `Migrator.DB`：没有调用者；迁移器只暴露 `Version`/`Status`/`Up`/`Down`。
 - 上述接口的测试替身、mock 和重复断言同步删除，避免测试继续维护死 API。
 
@@ -146,12 +146,12 @@ Web 与桌面路由中的多个真实调用点，blockchain 是它们的审计�
 四个 Bubble Tea TUI 已整体删除。判据不是"能否到达"，而是"是否是同一能力的
 必要表示层"：
 
-| 判据 | 结论 |
-| --- | --- |
-| 覆盖范围 | lottery/voting/NFT/token/oracle 的每个操作在 Web 页面与 CLI 中都有入口 |
+| 判据     | 结论                                                                                                          |
+| -------- | ------------------------------------------------------------------------------------------------------------- |
+| 覆盖范围 | lottery/voting/NFT/token/oracle 的每个操作在 CLI 与桌面端都有入口                                             |
 | 独有能力 | 无。lottery/oracle TUI 只是读写同一个 SQLite；NFT/token TUI 是内存沙盒，退出即丢，与 CLI 的持久化语义**相反** |
-| 维护成本 | `internal/ui/` 约 4k 行生产代码 + 对应测试，另有 234 行 TUI 专用 i18n 键 |
-| 用户影响 | 无图形环境下的交互式入口消失；这些场景本就用 CLI，且 TUI 的沙盒语义会误导用户 |
+| 维护成本 | `internal/ui/` 约 4k 行生产代码 + 对应测试，另有 234 行 TUI 专用 i18n 键                                      |
+| 用户影响 | 无图形环境下的交互式入口消失；这些场景本就用 CLI，且 TUI 的沙盒语义会误导用户                                 |
 
 删除内容：`internal/ui/{components,lottery,nft,oracle,token}`、四个
 `<module> tui` 子命令、`charm.land/{bubbles,bubbletea,lipgloss}` 依赖、

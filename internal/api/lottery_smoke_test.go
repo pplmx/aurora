@@ -16,7 +16,7 @@ import (
 // TestLotterySmoke_CreateThenVerifyOverHTTP boots the real server wiring
 // (NewServer + router + SQLite via a temp DB) and drives the v1.31 audit flow
 // end-to-end over HTTP: create a lottery (comma-separated participants +
-// winner_count, the contract the web page sends) then verify it via
+// winner_count) then verify it via
 // GET /api/v1/lottery/{id}/verify, which must report valid.
 func TestLotterySmoke_CreateThenVerifyOverHTTP(t *testing.T) {
 	resetForAPITest(t)

@@ -64,19 +64,16 @@ go test ./internal/domain/lottery/ -coverprofile=coverage.out
 go tool cover -html=coverage.out
 ```
 
-## TUI 测试
+## 桌面端测试
 
-TUI 使用 Bubble Tea，需要交互式终端测试：
+抽奖窗口位于嵌套的 `desktop/` 模块，和 CLI、REST 共用同一套 app 层。界面测试
+不需要浏览器或图形会话：
 
 ```bash
-# 启动 TUI
-./aurora lottery tui
+just desktop-check
 
-# 操作说明
-# 1 - 创建抽奖
-# 2 - 查看历史
-# 3 - 退出
-# ESC - 返回上一级
+# 只运行抽奖窗口相关断言
+cd desktop && CGO_ENABLED=0 go test -count=1 ./internal/nativeui -run Lottery
 ```
 
 ## 测试原则

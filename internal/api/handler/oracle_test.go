@@ -40,8 +40,8 @@ func TestOracleHandler_Sources_SnakeCaseJSONContract(t *testing.T) {
 	handler.Sources(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	// Regression: the web page reads data.sources and s.name etc. (snake_case),
-	// but the oracle DTOs previously lacked json tags and emitted PascalCase.
+	// Regression: clients read data.sources and s.name etc. (snake_case), but
+	// the oracle DTOs previously lacked json tags and emitted PascalCase.
 	assert.Contains(t, rr.Body.String(), `"sources"`)
 	assert.Contains(t, rr.Body.String(), `"name":"Feed"`)
 	assert.NotContains(t, rr.Body.String(), `"Sources"`)

@@ -5,8 +5,8 @@ import "sort"
 // DataSource is a built-in source preset (oracle template). It mirrors the
 // fields of AddSourceRequest plus the template ID, and carries json tags so
 // the catalog can be served over REST (v1.49). The catalog previously lived
-// only in the CLI; moving it here makes the CLI and REST/web share one source
-// of truth.
+// only in the CLI; moving it here makes the CLI, REST and the desktop share
+// one source of truth.
 type DataSource struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`

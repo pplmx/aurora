@@ -141,7 +141,7 @@ func resolveAddr(opts *serverOptions, cfg *config.Config) string {
 // full localization.
 func printUsage(w io.Writer) {
 	fmt.Fprintf(w, "%s\n", i18n.GetText("app.name"))
-	fmt.Fprintln(w, "  REST API and Web server")
+	fmt.Fprintln(w, "  REST API server (JSON only)")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "Usage:")
 	fmt.Fprintln(w, "  aurora-api [flags]")

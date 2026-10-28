@@ -24,8 +24,8 @@ func (u *Mint) Execute(req *MintNFTRequest) (*NFTResponse, error) {
 	n.Owner = creator
 	n.Creator = creator
 	// Validate via the shared domain entity (not just a non-empty name check)
-	// so the name/description/image_url/token_uri length bounds REST/CLI/web
-	// all inherit are enforced here too (TASK-271, ISS-267).
+	// so the name/description/image_url/token_uri length bounds REST, CLI and
+	// the desktop all inherit are enforced here too (TASK-271, ISS-267).
 	if err := n.Validate(); err != nil {
 		return nil, err
 	}

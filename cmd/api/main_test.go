@@ -158,16 +158,21 @@ func TestPrintVersion_ReportsRealBuild(t *testing.T) {
 	}
 }
 
-// TestPrintUsage_ListsFlags verifies the usage text advertises exactly the
-// flags parseFlags understands, so help can never recommend an unsupported
-// surface.
-func TestPrintUsage_ListsFlags(t *testing.T) {
+// TestPrintUsage_DescribesCurrentSurface verifies the usage text advertises
+// exactly the flags parseFlags understands and does not resurrect the Web UI
+// that was removed when the desktop moved to native widgets.
+func TestPrintUsage_DescribesCurrentSurface(t *testing.T) {
 	var buf bytes.Buffer
 	printUsage(&buf)
 	out := buf.String()
-	for _, want := range []string{"Usage:", "--help", "--version", "--host", "--port", "["} {
+	for _, want := range []string{
+		"REST API server", "Usage:", "--help", "--version", "--host", "--port", "[",
+	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("printUsage output missing %q:\n%s", want, out)
 		}
+	}
+	if strings.Contains(strings.ToLower(out), "web") {
+		t.Errorf("printUsage advertises the deleted Web UI:\n%s", out)
 	}
 }

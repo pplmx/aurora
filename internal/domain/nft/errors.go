@@ -27,7 +27,7 @@ var (
 	// non-empty check — a key-holding caller could grow rows and list/detail
 	// responses without bound, unlike the token surface's caps (TASK-271,
 	// ISS-267). These are enforced in NFT.Validate() at the shared domain edge
-	// so REST/CLI/web all inherit them.
+	// so REST, CLI and the desktop all inherit them.
 	ErrNameTooLong        = errors.New("NFT name is too long")
 	ErrDescriptionTooLong = errors.New("NFT description is too long")
 	ErrImageURLTooLong    = errors.New("NFT image URL is too long")
