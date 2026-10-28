@@ -31,8 +31,10 @@ documented in their per-milestone ROADMAP files.
   red line. Session-window and token-decimal validation use the same field
   errors, and invalid decimals open the Advanced section that contains the
   control. Editing a field clears its previous validation immediately instead
-  of leaving a corrected value marked invalid until the next submit. Help text
-  below search boxes, number ranges, session times,
+  of leaving a corrected value marked invalid until the next submit, while a
+  newly appeared error is announced once with its field name even if focus
+  remains on the submit button. Help text below search boxes, number ranges,
+  session times,
   checkboxes and data actions remains visible while also describing the control
   it explains.
   Settings presents the installed languages as a named radio group with the

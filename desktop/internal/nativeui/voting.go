@@ -726,10 +726,9 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	if startDate.Changed() || startTime.Changed() {
 		a.voting.sessionStartErr = ""
 	}
+	attachFieldError(c, start, "Start", a.voting.sessionStartErr)
 	if a.voting.sessionStartErr != "" {
-		message := localizeServiceErrorMessage(a.voting.sessionStartErr)
-		start.Error(message)
-		startTime.Error(message)
+		startTime.Error(localizeServiceErrorMessage(a.voting.sessionStartErr))
 	}
 	var endDate, endTime ui.Element
 	end := ui.Field(c, tr("End"), func() {
@@ -746,10 +745,9 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	if endDate.Changed() || endTime.Changed() {
 		a.voting.sessionEndErr = ""
 	}
+	attachFieldError(c, end, "End", a.voting.sessionEndErr)
 	if a.voting.sessionEndErr != "" {
-		message := localizeServiceErrorMessage(a.voting.sessionEndErr)
-		end.Error(message)
-		endTime.Error(message)
+		endTime.Error(localizeServiceErrorMessage(a.voting.sessionEndErr))
 	}
 	fieldHint(c, "Candidate IDs (comma-separated)", "Leave empty to include every registered candidate.", &a.voting.sessionIDs)
 	ui.Row(c).Children(func() {

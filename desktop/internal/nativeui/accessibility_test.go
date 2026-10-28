@@ -331,8 +331,10 @@ func TestValidatedFieldsAttachErrorsToTheirControls(t *testing.T) {
 
 	controls, err := os.ReadFile("controls.go")
 	require.NoError(t, err)
-	require.True(t, strings.Contains(string(controls), "f.Error(localizeServiceErrorMessage(message))"),
-		"validated fields must pass their error through Field.Error")
+	require.True(t, strings.Contains(string(controls), "attachFieldError(c, f, label, message)"),
+		"validated fields must pass their error through the shared field-error path")
+	require.True(t, strings.Contains(string(controls), "c.Announce(fmt.Sprintf(\"%s: %s: %s\", tr(\"Failed\"), tr(label), localized))"),
+		"a new validation error must be announced even while focus remains on Submit")
 }
 
 // TestValidatedFieldClearsErrorWhenEdited prevents a corrected field from
@@ -353,6 +355,33 @@ func TestValidatedFieldClearsErrorWhenEdited(t *testing.T) {
 	require.Empty(t, message, "editing the control must clear its old validation")
 	require.False(t, tester.HasText(tr("Voter name is required.")),
 		"the stale error must leave the visual field with the input")
+}
+
+// TestFieldErrorIsAnnouncedOnce covers the part an accessible description
+// cannot: focus stays on the submit button, so the new error needs a live
+// announcement. Rebuilding the same error must stay quiet.
+func TestFieldErrorIsAnnouncedOnce(t *testing.T) {
+	value := ""
+	message := "Candidate name is required."
+	tester := ui.NewTester(func(c *ui.Context) {
+		validatedField(c, "Candidate Name", &value, &message)
+	}, 480, 180)
+	tester.Frame()
+
+	want := tr("Failed") + ": " + tr("Candidate Name") + ": " + tr("Candidate name is required.")
+	require.Equal(t, []string{want}, tester.Announcements())
+	tester.Frame()
+	require.Empty(t, tester.Announcements(), "an unchanged error must not repeat")
+
+	require.NoError(t, tester.Click("Candidate Name"))
+	tester.Type("Alice")
+	tester.Frame()
+	require.Empty(t, tester.Announcements(), "clearing an error is not a failure to announce")
+
+	message = "Candidate name is required."
+	tester.Frame()
+	require.Equal(t, []string{want}, tester.Announcements(),
+		"the same error must be announced when it appears again")
 }
 
 // TestVisibleHintsDescribeTheirControls keeps help text in the accessibility

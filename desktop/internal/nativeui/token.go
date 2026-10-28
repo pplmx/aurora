@@ -344,9 +344,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 					hint(c, "0 for a whole-unit token; 8 matches most asset conventions.")
 				})
 			})
-			if a.token.decimalsErr != "" {
-				decimals.Error(localizeServiceErrorMessage(a.token.decimalsErr))
-			}
+			attachFieldError(c, decimals, "Decimals", a.token.decimalsErr)
 		})
 		fieldHint(c, "Owner (base64 public key)", "Required: the owner signs every later mint, transfer and burn.", &a.token.owner)
 		ui.Row(c).Gap(8).Children(func() {
