@@ -278,6 +278,7 @@ func TestVisibleHintsDescribeTheirControls(t *testing.T) {
 		"settings.go": {
 			`Description(tr("Nothing is written to disk; quitting Aurora clears them."))`,
 			`Description(tr("Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch."))`,
+			`button.Description(tr(description))`,
 		},
 	}
 	for name, fragments := range checks {

@@ -22,12 +22,14 @@ func (a *App) settingsView(c *ui.Context) {
 			}
 			readout(c, []readoutRow{{"Current", current}})
 			if a.actions.SetLanguage != nil {
-				languageChooser(c, languageChoice(language), a.actions.SetLanguage)
-				follow := secondaryButton(c, "Follow System").
-					Description(tr("Use the language selected by the operating system."))
-				if follow.Clicked() {
-					a.actions.SetLanguage("")
-				}
+				ui.Row(c).Wrap().Gap(12).AlignItems(ui.Center).Children(func() {
+					languageChooser(c, languageChoice(language), a.actions.SetLanguage)
+					follow := secondaryButton(c, "Follow System").
+						Description(tr("Use the language selected by the operating system."))
+					if follow.Clicked() {
+						a.actions.SetLanguage("")
+					}
+				})
 			}
 		})
 
@@ -48,8 +50,9 @@ func (a *App) settingsView(c *ui.Context) {
 		formCard(c, "Data", "Aurora keeps the ledger in one local SQLite database.", func() {
 			copyRow(c, "Database path", a.actions.DBPath, nil)
 			ui.Row(c).Wrap().Gap(8).Children(func() {
-				a.settingsButton(c, "Show Data Folder", a.actions.ShowDataFolder)
-				a.settingsButton(c, "Back Up Database…", a.actions.BackUpDatabase)
+				const privacy = "No data leaves this machine; the desktop opens no network listener."
+				a.settingsButton(c, "Show Data Folder", privacy, a.actions.ShowDataFolder)
+				a.settingsButton(c, "Back Up Database…", privacy, a.actions.BackUpDatabase)
 			})
 			hint(c, "No data leaves this machine; the desktop opens no network listener.")
 		})
@@ -98,7 +101,7 @@ func (a *App) settingsView(c *ui.Context) {
 				{"Build time", valueOr(a.actions.BuildTime)},
 				{"Database", valueOr(a.actions.DBPath)},
 			})
-			a.settingsButton(c, "Open About Dialog", a.actions.ShowAbout)
+			a.settingsButton(c, "Open About Dialog", "", a.actions.ShowAbout)
 		})
 	})
 }
@@ -128,11 +131,15 @@ func languageChooser(c *ui.Context, current string, set func(string)) {
 	}
 }
 
-func (a *App) settingsButton(c *ui.Context, label string, fn func()) {
+func (a *App) settingsButton(c *ui.Context, label, description string, fn func()) {
 	if fn == nil {
 		return
 	}
-	if secondaryButton(c, label).Clicked() {
+	button := secondaryButton(c, label)
+	if description != "" {
+		button.Description(tr(description))
+	}
+	if button.Clicked() {
 		fn()
 	}
 }
