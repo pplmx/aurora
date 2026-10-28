@@ -21,6 +21,9 @@ documented in their per-milestone ROADMAP files.
   separate date and time inputs in the session form now carry explicit names,
   so assistive technology distinguishes Navigation, Token actions, Start time
   hours and similar regions instead of announcing generic unlabelled groups.
+  Every data grid also passes through one named-table helper, so Recent
+  activity, Draw history, Voting results, Feed Health and the other collections
+  announce what they contain rather than only "table".
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;

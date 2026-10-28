@@ -224,7 +224,7 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			a.dashboardRecentRecords(c, rows)
 		} else {
 			a.dashboard.recentTable.Selected = &a.dashboard.recentChoice
-			table := ui.Table(c, &a.dashboard.recentTable, []ui.TableColumn{
+			table := namedTable(c, "Recent activity", &a.dashboard.recentTable, []ui.TableColumn{
 				{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 				{Title: tr("Module"), Width: 120},
 				{Title: tr("Summary"), MinWidth: 200},
@@ -449,7 +449,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 			}
 		})
 	} else {
-		ui.Table(c, &a.blockchain.table, []ui.TableColumn{
+		namedTable(c, "Blockchain ledger", &a.blockchain.table, []ui.TableColumn{
 			{Title: tr("Height"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 			{Title: tr("Module"), Width: 130},
 			{Title: tr("Payload"), MinWidth: 200},

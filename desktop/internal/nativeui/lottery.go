@@ -260,7 +260,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 	// Choosing a row fills the verifier with that draw's full id: the table
 	// shows a shortened id, so this is how a reader gets the real one.
 	a.lottery.table.Selected = &a.lottery.selected
-	table := ui.Table(c, &a.lottery.table, []ui.TableColumn{
+	table := namedTable(c, "Draw history", &a.lottery.table, []ui.TableColumn{
 		{Title: tr("ID"), Width: 150},
 		{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 		{Title: tr("Participants"), MinWidth: 140},

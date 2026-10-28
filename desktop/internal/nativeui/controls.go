@@ -59,6 +59,12 @@ const buttonRadius float32 = 8
 // applies the same ceiling to its ?limit.
 const maxListLimit = 1000
 
+// namedTable gives every data grid an accessible name. The table role alone
+// says what kind of collection is present, not which collection it is.
+func namedTable(c *ui.Context, name string, state *ui.ListState, columns []ui.TableColumn, n int, cell func(row, col int)) ui.Element {
+	return ui.Table(c, state, columns, n, cell).Label(tr(name))
+}
+
 func primaryButton(c *ui.Context, label string) ui.Element {
 	return styledButton(c, label, ui.Hex(aurora), ui.Hex(auroraHover), ui.Hex(auroraPressed), ui.Hex(onAccent))
 }

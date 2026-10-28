@@ -610,7 +610,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 		a.votingVoterRecords(c, voters)
 	} else {
 		a.voting.voterTable.Selected = &a.voting.voterChoice
-		table := ui.Table(c, &a.voting.voterTable, []ui.TableColumn{
+		table := namedTable(c, "Voters", &a.voting.voterTable, []ui.TableColumn{
 			{Title: tr("Ever voted"), Width: 112},
 			{Title: tr("Name"), MinWidth: 120},
 			{Title: tr("Public key"), MinWidth: 180},
@@ -781,7 +781,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		a.votingSessionRecords(c, sessions)
 	} else {
 		a.voting.sessionTable.Selected = &a.voting.sessionChoice
-		table := ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
+		table := namedTable(c, "Sessions", &a.voting.sessionTable, []ui.TableColumn{
 			{Title: tr("ID"), Width: 140},
 			// SingleLine on every cell: a wrapped cell is clipped by the row's
 			// fixed height, which cut "Budget 2026" in half.
@@ -965,7 +965,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		a.votingCandidateRecords(c, candidates)
 	} else {
 		a.voting.candidateTable.Selected = &a.voting.candChoice
-		table := ui.Table(c, &a.voting.candidateTable, []ui.TableColumn{
+		table := namedTable(c, "Candidates", &a.voting.candidateTable, []ui.TableColumn{
 			{Title: tr("ID"), Width: 150},
 			{Title: tr("Name"), MinWidth: 120},
 			{Title: tr("Party"), MinWidth: 100},
@@ -1332,7 +1332,7 @@ func (a *App) votingResultsBody(c *ui.Context) {
 			}
 		})
 	} else {
-		ui.Table(c, &a.voting.resultsTable, []ui.TableColumn{
+		namedTable(c, "Voting results", &a.voting.resultsTable, []ui.TableColumn{
 			{Title: tr("Candidate")},
 			{Title: tr("Votes"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
 		}, len(results), func(row, col int) {

@@ -252,7 +252,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		a.oracleSourceRecords(c, srcs)
 	} else {
 		a.oracle.sourceTable.Selected = &a.oracle.selected
-		table := ui.Table(c, &a.oracle.sourceTable, []ui.TableColumn{
+		table := namedTable(c, "Data Sources", &a.oracle.sourceTable, []ui.TableColumn{
 			{Title: tr("Name"), MinWidth: 110},
 			{Title: tr("Type"), Width: 100},
 			{Title: tr("ID"), Width: 150},
@@ -644,7 +644,7 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		a.oracleHealthRecords(c, health, names)
 		return
 	}
-	ui.Table(c, &a.oracle.healthTable, []ui.TableColumn{
+	namedTable(c, "Feed Health", &a.oracle.healthTable, []ui.TableColumn{
 		{Title: tr("Source")},
 		{Title: tr("Attempts"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
 		{Title: tr("Successes"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
@@ -744,7 +744,7 @@ func (a *App) oracleReadBody(c *ui.Context) {
 		if stackedRecords(c) {
 			a.oracleReadRecords(c, data)
 		} else {
-			ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
+			namedTable(c, "Oracle readings", &a.oracle.dataTable, []ui.TableColumn{
 				{Title: tr("Value")},
 				{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
 			}, len(data), func(row, col int) {
