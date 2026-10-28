@@ -105,6 +105,16 @@ type snapshot struct {
 	hadDest      bool
 }
 
+const (
+	createRollbackPrefix  = ".create-rollback-"
+	createRollbackPattern = createRollbackPrefix + "*"
+)
+
+type createRollbackCandidate struct {
+	path    string
+	modTime time.Time
+}
+
 // removeTemps cleans up the not-yet-promoted snapshot temps of an aborted
 // Create so a failed re-run never leaves half-written .tmp files behind
 // (each temp is named <name>.db.tmp and would be removed at the top of the
@@ -175,7 +185,7 @@ func stageCreateRollback(output string, snaps []snapshot) (createRollback, error
 	if err := removeStaleCreateMetadataTemp(output); err != nil {
 		return createRollback{}, err
 	}
-	dir, err := os.MkdirTemp(output, ".create-rollback-*")
+	dir, err := os.MkdirTemp(output, createRollbackPattern)
 	if err != nil {
 		return createRollback{}, fmt.Errorf("create rollback dir: %w", err)
 	}
@@ -260,9 +270,168 @@ func rollbackCreate(snaps []snapshot, promoted []int, rb createRollback) error {
 	return errors.Join(rollbackErrors...)
 }
 
+// recoverInterruptedCreate repairs the narrow crash window in Create where a
+// new database snapshot has replaced the visible one but metadata.json still
+// describes the previous set. Normal errors run Create's deferred rollback;
+// only SIGKILL/power loss can leave this state behind. The hidden rollback
+// directory already holds the previous verified files, so Verify (and the next
+// Create) can finish the rollback without requiring a manual .pre_restore
+// operation.
+func (s *BackupService) recoverInterruptedCreate(ctx context.Context, output string) error {
+	candidates, err := findCreateRollbackDirs(output)
+	if err != nil {
+		return err
+	}
+	if len(candidates) == 0 {
+		return nil
+	}
+
+	// A complete set means the crash happened after the metadata rename. The
+	// new snapshot is committed and only the rollback directory is stale.
+	if err := s.verify(ctx, output); err == nil {
+		return removeCreateRollbackDirs(candidates)
+	}
+
+	latest := candidates[0]
+	if err := s.restoreCreateRollback(output, latest.path); err != nil {
+		return fmt.Errorf("restore previous set from %q: %w", latest.path, err)
+	}
+	if err := s.verify(ctx, output); err != nil {
+		return fmt.Errorf("verify recovered set from %q: %w", latest.path, err)
+	}
+	return removeCreateRollbackDirs(candidates)
+}
+
+func findCreateRollbackDirs(output string) ([]createRollbackCandidate, error) {
+	entries, err := os.ReadDir(output)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("list backup output: %w", err)
+	}
+
+	candidates := make([]createRollbackCandidate, 0, 1)
+	for _, entry := range entries {
+		if !strings.HasPrefix(entry.Name(), createRollbackPrefix) {
+			continue
+		}
+		path := filepath.Join(output, entry.Name())
+		info, err := os.Lstat(path)
+		if err != nil {
+			return nil, fmt.Errorf("inspect create rollback %q: %w", path, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return nil, fmt.Errorf("create rollback path %q is not a directory", path)
+		}
+		candidates = append(candidates, createRollbackCandidate{path: path, modTime: info.ModTime()})
+	}
+	slices.SortFunc(candidates, func(a, b createRollbackCandidate) int {
+		if order := b.modTime.Compare(a.modTime); order != 0 {
+			return order
+		}
+		return strings.Compare(a.path, b.path)
+	})
+	return candidates, nil
+}
+
+func (s *BackupService) restoreCreateRollback(output, rollbackDir string) error {
+	names := make([]string, 0, len(s.dbPaths))
+	for name := range s.dbPaths {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+
+	for _, name := range names {
+		src := filepath.Join(rollbackDir, name+".db")
+		dst := filepath.Join(output, name+".db")
+		restored, err := restoreRollbackFile(src, dst)
+		if err != nil {
+			return fmt.Errorf("restore %s: %w", name, err)
+		}
+		if !restored {
+			if err := removeRollbackDestination(dst); err != nil {
+				return fmt.Errorf("remove new %s snapshot: %w", name, err)
+			}
+		}
+	}
+
+	metaPath := filepath.Join(output, "metadata.json")
+	restored, err := restoreRollbackFile(filepath.Join(rollbackDir, "metadata.json"), metaPath)
+	if err != nil {
+		return fmt.Errorf("restore metadata: %w", err)
+	}
+	if !restored {
+		if err := removeRollbackDestination(metaPath); err != nil {
+			return fmt.Errorf("remove new metadata: %w", err)
+		}
+	}
+	return nil
+}
+
+func restoreRollbackFile(src, dst string) (bool, error) {
+	info, err := os.Lstat(src)
+	switch {
+	case os.IsNotExist(err):
+		return false, nil
+	case err != nil:
+		return false, err
+	case !info.Mode().IsRegular():
+		return false, fmt.Errorf("rollback artifact %q is not a regular file", src)
+	}
+
+	tmpPath := dst + ".restore.tmp"
+	if err := copyFileAtomic(src, tmpPath); err != nil {
+		return false, err
+	}
+	if err := os.Rename(tmpPath, dst); err != nil {
+		_ = os.Remove(tmpPath)
+		return false, err
+	}
+	return true, nil
+}
+
+func removeRollbackDestination(path string) error {
+	info, err := os.Lstat(path)
+	switch {
+	case os.IsNotExist(err):
+		return nil
+	case err != nil:
+		return err
+	case info.IsDir():
+		return fmt.Errorf("%q is a directory", path)
+	default:
+		return os.Remove(path)
+	}
+}
+
+func removeCreateRollbackDirs(candidates []createRollbackCandidate) error {
+	var removeErrors []error
+	for _, candidate := range candidates {
+		info, err := os.Lstat(candidate.path)
+		switch {
+		case os.IsNotExist(err):
+			continue
+		case err != nil:
+			removeErrors = append(removeErrors, fmt.Errorf("inspect %q: %w", candidate.path, err))
+			continue
+		case info.Mode()&os.ModeSymlink != 0 || !info.IsDir():
+			removeErrors = append(removeErrors, fmt.Errorf("rollback path %q is not a directory", candidate.path))
+			continue
+		}
+		if err := os.RemoveAll(candidate.path); err != nil {
+			removeErrors = append(removeErrors, fmt.Errorf("remove %q: %w", candidate.path, err))
+		}
+	}
+	return errors.Join(removeErrors...)
+}
+
 func (s *BackupService) Create(ctx context.Context, output string) (result *BackupResult, err error) {
 	if err := os.MkdirAll(output, 0o700); err != nil {
 		return nil, fmt.Errorf("create output dir: %w", err)
+	}
+	if err := s.recoverInterruptedCreate(ctx, output); err != nil {
+		return nil, fmt.Errorf("recover interrupted backup create: %w", err)
 	}
 
 	schemaVersion := s.getSchemaVersion()
@@ -580,6 +749,13 @@ func validateDatabaseName(name string) error {
 }
 
 func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
+	if err := s.recoverInterruptedCreate(ctx, backupPath); err != nil {
+		return fmt.Errorf("recover interrupted backup create: %w", err)
+	}
+	return s.verify(ctx, backupPath)
+}
+
+func (s *BackupService) verify(ctx context.Context, backupPath string) error {
 	metaPath := filepath.Join(backupPath, "metadata.json")
 	metaInfo, err := os.Lstat(metaPath)
 	if err != nil {

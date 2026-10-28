@@ -124,6 +124,15 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **An interrupted backup create recovers its previous verified set**: the
+  two-phase create retained old snapshots in a hidden rollback directory, but
+  only an in-process error could use it. A SIGKILL or power loss between the
+  database rename and the metadata commit left new database bytes under old
+  metadata, so `backup verify` reported checksum corruption indefinitely and
+  the next create could not repair it. Verify, Restore and the next Create now
+  detect that rollback directory, keep the set when its metadata hashes match,
+  or restore the previous verified files when they do not; stale rollback
+  copies are removed only after the visible set verifies again.
 - **Backup metadata is durable before it becomes the commit record**:
   `backup create` wrote `metadata.json` through a temporary file and renamed
   it without syncing the new contents. A crash immediately after the rename
