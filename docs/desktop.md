@@ -78,10 +78,11 @@ just check && just test
   繁體中文，显示当前语言）、Session keys（可选的内存私钥记忆与忘记）、Data
   （只读数据库路径与复制、打开数据目录、备份）、Live updates（可选：每 10 秒
   重读正在显示的 Dashboard、Oracle 健康度和已打开的读数，表单文字不受影响；选择写入数据库
-  同目录的 `desktop-settings.json`，下次启动沿用）、Shortcuts（Ctrl/Cmd+1…8、
-  Ctrl/Cmd+R、Ctrl/Cmd+,）、Appearance（深色主题，字号/对比度/动效跟随系统）
-  和 About Aurora（版本、构建时间、数据库路径、关于对话框）。Shortcuts 卡同时
-  列出 Ctrl/Cmd+1…8、Ctrl/Cmd+R、Ctrl/Cmd+, 与 Ctrl/Cmd+K。文件动作仍留在 File 菜单，配置不再混在菜单里。
+  同目录的 `desktop-settings.json`，下次启动沿用）、Shortcuts（Ctrl/Cmd+1…8
+  切页、Ctrl/Cmd+R 刷新数据页、Ctrl/Cmd+, 打开 Settings、Ctrl/Cmd+K 命令
+  面板）、Appearance（深色主题，字号/对比度/动效跟随系统）和 About Aurora
+  （版本、构建时间、数据库路径、关于对话框）。文件动作仍留在 File 菜单，
+  配置不再混在菜单里。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
   `auroraThemeFor` 同时放大自定义主题的默认字号，让 MyGo 绘制的输入框、标签页
   与确认弹窗也跟随；因此 Windows/GNOME 的文本大小设置会覆盖整窗文字。
@@ -243,9 +244,10 @@ just check && just test
   改查询后读取失败会先清掉旧答案并在卡片里报错，只有同一输入的刷新失败才保留
   上一次成功结果并标注 stale。
 - **键盘与读屏可达**：Tab 依次进入各输入框和卡片动作，Ctrl+R / Cmd+R 刷新
-  当前页，Ctrl/Cmd+1…8 按侧栏顺序切页（Settings 是第 8 个），Ctrl/Cmd+,
-  直接打开 Settings（桌面设置惯例；都注册在窗口上而不是按钮上——元素级快捷键
-  只在它有焦点时生效，实测）。页标题与卡片标题带 1/2/3 级 heading 语义，
+  当前数据页（Settings 不读取存储数据，因此不提供该动作），Ctrl/Cmd+1…8
+  按侧栏顺序切页（Settings 是第 8 个），Ctrl/Cmd+, 直接打开 Settings（桌面
+  设置惯例；都注册在窗口上而不是按钮上——元素级快捷键只在它有焦点时生效，
+  实测）。页标题与卡片标题带 1/2/3 级 heading 语义，
   切页会朗读新页名；成功/失败条是 status 区域，并把“完成/失败”与结果各朗读
   一次，不再只靠颜色和视觉变化。Ctrl/Cmd+K 打开命令面板后焦点立即落在搜索框，
   方向键和 Enter 全程不需要鼠标；搜索框把当前高亮行作为 active descendant，

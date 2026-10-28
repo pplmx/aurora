@@ -423,7 +423,7 @@ func (a *App) sidebar(c *ui.Context) {
 //
 // Refresh carries the shortcut its platform uses for "reload": a page whose
 // data is a read of the database is refreshed the way any other window is,
-// without hunting for a button. Ctrl/Cmd+1..7 selects a page in sidebar order,
+// without hunting for a button. Ctrl/Cmd+1..8 selects a page in sidebar order,
 // the desktop convention the reference apps follow.
 // liveRefreshInterval is deliberately slow: the dashboard and Oracle health
 // are snapshots, and a background scheduler does not need a busy screen. A

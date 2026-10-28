@@ -52,6 +52,11 @@ documented in their per-milestone ROADMAP files.
   arrow-selected row as its active descendant, and each row's effect is part of
   its accessible description.
 
+- **Desktop shortcuts describe their real scope**: Settings now marks Reload as
+  a data-page action instead of claiming every shortcut works on every page.
+  The page-switch reference and header comment also match the eight selectable
+  pages, including Settings at Ctrl/Cmd+8.
+
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;
   choosing one fills the ballot public-key field and offers the full key for
