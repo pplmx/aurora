@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Committed ballots are immutable**: `SaveVote` used `INSERT OR REPLACE`
+  for the vote row and its session mapping, so reusing a vote ID could
+  silently rewrite the candidate, signature or message while the existing
+  claim still pointed at that ID. Both writes are now append-only; only the
+  exact `(session_id, voter_pk)` claim conflict is ignored and mapped to
+  `ALREADY_VOTED`.
 - **Voter eligibility is scoped to the voting session**: `voters.has_voted` was
   the only duplicate-ballot guard, so a voter who used their key once could
   never participate in a later election even though results and candidate

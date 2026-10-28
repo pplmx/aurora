@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/voting"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -256,6 +257,44 @@ func TestVotingRepository_SaveVote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to save vote: %v", err)
 	}
+}
+
+// TestVotingRepository_SaveVote_DoesNotRewriteCommittedBallot pins the audit
+// invariant: a vote id identifies one immutable ballot. Reusing it must not
+// replace the candidate, signature or message behind an existing claim.
+func TestVotingRepository_SaveVote_DoesNotRewriteCommittedBallot(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	require.NoError(t, repo.SaveVoter(&voting.Voter{
+		PublicKey: "voter-pk", Name: "Alice", RegisteredAt: 1,
+	}))
+	original := voting.NewSessionVote(
+		"voter-pk", "candidate-1", "session-1", "original-signature", "original-message",
+	)
+	require.NoError(t, repo.SaveVote(original))
+
+	rewrite := *original
+	rewrite.CandidateID = "candidate-2"
+	rewrite.Signature = "rewritten-signature"
+	rewrite.Message = "rewritten-message"
+	err := repo.SaveVote(&rewrite)
+	require.Error(t, err, "an existing ballot id must not be replaced")
+
+	originalVotes, err := repo.GetVotesByCandidate("candidate-1")
+	require.NoError(t, err)
+	require.Len(t, originalVotes, 1)
+	assert.Equal(t, "original-signature", originalVotes[0].Signature)
+	assert.Equal(t, "original-message", originalVotes[0].Message)
+	assert.Equal(t, "session-1", originalVotes[0].SessionID)
+
+	rewrittenVotes, err := repo.GetVotesByCandidate("candidate-2")
+	require.NoError(t, err)
+	require.Empty(t, rewrittenVotes)
+
+	count, err := repo.CountVotesBySession("session-1", "candidate-1")
+	require.NoError(t, err)
+	assert.Equal(t, 1, count, "the original claim must still own the ballot")
 }
 
 func TestVotingRepository_GetVotesByCandidate(t *testing.T) {
