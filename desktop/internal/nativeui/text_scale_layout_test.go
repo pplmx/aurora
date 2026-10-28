@@ -152,3 +152,26 @@ func TestOracleSourceActionsWrapAtLargeText(t *testing.T) {
 	require.Greater(t, deleteAction.Y, enable.Y,
 		"the action row must wrap instead of clipping its destructive action")
 }
+
+// TestCopyRowKeepsValueVisibleAtLargeText covers one-time secrets such as the
+// generated token owner key. At 2x the fixed label and full-width copy action
+// left the value with no width at all, so the row offered a copy button but
+// showed no trace of what it would copy.
+func TestCopyRowKeepsValueVisibleAtLargeText(t *testing.T) {
+	app := New(&fakeServices{})
+	app.token.ownerPriv = "secret"
+	app.ShowPage("Token")
+	app.scroll.Y = 900
+	tester := ui.NewTester(app.View, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	value, ok := tester.Find("secret")
+	require.True(t, ok)
+	require.Greater(t, value.W, float32(0),
+		"the value must keep visible width beside its label and copy action")
+	copyAction, ok := tester.Find("Copy Owner private key")
+	require.True(t, ok)
+	require.LessOrEqual(t, copyAction.X+copyAction.W, float32(900),
+		"the copy action must stay inside the window")
+}
