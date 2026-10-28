@@ -82,8 +82,9 @@ type tokenState struct {
 	allowance string
 	history   []TransferRow
 
-	// tokens is every stored token. It is what lets an operator pick one
-	// instead of already knowing its id, which nothing in the window showed.
+	// tokens is the current page of stored tokens. It lets an operator pick
+	// one instead of already knowing its id, while the pager reaches older
+	// records without materialising the collection.
 	tokens []TokenRow
 	// search narrows the list by id, name or symbol while the store grows;
 	// appliedSearch is the query the current highlight belongs to.
@@ -91,6 +92,10 @@ type tokenState struct {
 	appliedSearch string
 	// chosen is the row chosen in that list, -1 for none.
 	chosen int
+	// offset pages the collection. hasMore comes from requesting one row past
+	// the page, so the last page never leaves a dead Next button behind.
+	offset  int
+	hasMore bool
 
 	loadErr error
 
@@ -113,17 +118,39 @@ type tokenState struct {
 	list         ui.ListState
 }
 
+const tokenPageSize = 100
+
 func (a *App) loadToken() {
+	a.loadTokenPage(a.token.offset)
+}
+
+// loadTokenPage commits the new page offset only after the read succeeds. A
+// failed Next/Previous therefore leaves the last good rows labelled with the
+// page they actually came from instead of moving the pager under them.
+func (a *App) loadTokenPage(offset int) bool {
 	if a.services == nil {
-		return
+		return false
 	}
 	// The list is the page's entry point: without it a token created in an
 	// earlier session could not be reached at all.
-	tokens, err := a.services.ListTokens()
-	a.token.loadErr = err
-	if err == nil {
-		a.token.tokens = tokens
+	if offset < 0 {
+		offset = 0
 	}
+	tokens, err := a.services.ListTokens(tokenPageSize+1, offset)
+	a.token.loadErr = err
+	if err != nil {
+		return false
+	}
+	if len(tokens) == 0 && offset > 0 {
+		return a.loadTokenPage(0)
+	}
+	a.token.offset = offset
+	a.token.hasMore = len(tokens) > tokenPageSize
+	if a.token.hasMore {
+		tokens = tokens[:tokenPageSize]
+	}
+	a.token.tokens = tokens
+	return true
 }
 
 // tokenView lays the page out in two columns: the token you are working with
@@ -153,7 +180,7 @@ func (a *App) tokenView(c *ui.Context) {
 // choice fills the id every other card acts on, so a token created in an
 // earlier session is reachable without remembering its id.
 func (a *App) tokenList(c *ui.Context) {
-	formCard(c, "Tokens", "Every stored token. Choose one to make it the subject of the cards here.", func() {
+	formCard(c, "Tokens", "Browse stored tokens newest first and choose one as the subject of the cards here.", func() {
 		if a.token.loadErr != nil && !loadWarning(c, "Failed to load tokens", a.token.loadErr, len(a.token.tokens) > 0) {
 			return
 		}
@@ -168,6 +195,21 @@ func (a *App) tokenList(c *ui.Context) {
 			// picks one from the list they are looking at.
 			a.token.appliedSearch = a.token.search
 			a.token.chosen = -1
+		}
+		if previous, next := listPager(c, a.token.offset, len(a.token.tokens), a.token.hasMore); previous || next {
+			target := a.token.offset
+			if previous {
+				target = max(0, target-tokenPageSize)
+			} else {
+				target += tokenPageSize
+			}
+			if a.loadTokenPage(target) {
+				a.token.chosen = -1
+			}
+			return
+		}
+		if a.token.search != "" {
+			hint(c, "Search narrows the current page; use Previous/Next for older tokens.")
 		}
 		rows := make([]TokenRow, 0, len(a.token.tokens))
 		for _, t := range a.token.tokens {
@@ -292,7 +334,7 @@ func (a *App) createToken() {
 			// public key six times.
 			a.rememberSuccessfulKey(t.Owner, ownerPriv)
 			a.applyTokenSubject(t.Owner)
-			a.refreshToken()
+			a.refreshTokenAt(0)
 			a.selectTokenByID(t.ID)
 			a.token.name, a.token.symbol, a.token.supply = "", "", ""
 		}
@@ -328,6 +370,7 @@ func (a *App) applyTokenSubject(owner string) {
 // still holds if a store returns another order.
 func (a *App) selectTokenByID(id string) {
 	a.token.search, a.token.appliedSearch = "", ""
+	a.token.chosen = -1
 	for i, token := range a.token.tokens {
 		if token.ID == id {
 			a.token.chosen = i
@@ -718,7 +761,14 @@ func (a *App) transferFromToken() {
 // history. A write or the Refresh button must not leave stale numbers beside
 // a successful result.
 func (a *App) refreshToken() {
-	a.loadToken()
+	a.refreshTokenAt(a.token.offset)
+}
+
+// refreshTokenAt re-reads the collection at offset and everything else the
+// page shows. A create uses offset zero without moving the pager ahead of a
+// failed list read.
+func (a *App) refreshTokenAt(offset int) {
+	a.loadTokenPage(offset)
 	id := strings.TrimSpace(a.token.tokenID)
 
 	// A readout is open if it holds rows or a failure from the last attempt.

@@ -71,18 +71,18 @@ func TestNFTOperationHistoryUsesOrderedIndex(t *testing.T) {
 		"nft operation history should read the composite ordered index, got: %v", details)
 }
 
-// TestTokenListingUsesOrderedIndex covers the collection listing added for
-// `token list`, GET /api/v1/token/list and the desktop Tokens card. It reads
-// every token newest first, and without the composite index SQLite
-// materialises and sorts the whole table before the LIMIT can apply —
-// measured as "USE TEMP B-TREE FOR ORDER BY" before the index existed.
+// TestTokenListingUsesOrderedIndex covers the paged collection listing used by
+// `token list`, GET /api/v1/token/list and the desktop Tokens card. Without the
+// composite index SQLite materialises and sorts the whole table before the
+// LIMIT can apply — measured as "USE TEMP B-TREE FOR ORDER BY" before the
+// index existed.
 func TestTokenListingUsesOrderedIndex(t *testing.T) {
 	repo, cleanup := setupTokenTestDB(t)
 	defer cleanup()
 
 	details := queryPlanDetails(t, repo.GetDB(),
 		`SELECT id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at
-		 FROM tokens ORDER BY created_at DESC, id LIMIT ?`, 100)
+		 FROM tokens ORDER BY created_at DESC, id LIMIT ? OFFSET ?`, 100, 0)
 	requireNoTempBTree(t, details, "token listing")
 	require.Contains(t, strings.Join(details, " "), "idx_tokens_created",
 		"the token listing should read the ordered index, got: %v", details)

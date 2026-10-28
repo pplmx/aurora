@@ -13,8 +13,10 @@ const defaultHistoryLimit = 50
 type Service interface {
 	CreateToken(req *CreateTokenRequest) (*Token, error)
 	GetTokenInfo(tokenID TokenID) (*Token, error)
-	// ListTokens returns every stored token, newest first.
-	ListTokens() ([]*Token, error)
+	// ListTokens returns stored tokens newest first. limit <= 0 returns the
+	// remainder from offset, which keeps CLI callers able to request the whole
+	// collection while API/desktop callers ask for bounded pages.
+	ListTokens(limit, offset int) ([]*Token, error)
 
 	Mint(req *MintRequest) (*MintEvent, error)
 
@@ -39,11 +41,10 @@ type TransactionManager = ledger.TransactionManager
 type Repository interface {
 	SaveToken(token *Token) error
 	GetToken(id TokenID) (*Token, error)
-	// ListTokens returns every stored token, newest first. Without it a
-	// token's id — the only handle every other operation takes — is lost as
-	// soon as the process that created it exits: the CLI prints it once and
-	// no surface can list what exists.
-	ListTokens() ([]*Token, error)
+	// ListTokens returns stored tokens newest first, using LIMIT/OFFSET in
+	// storage so a large collection is never materialised just to show one
+	// page. limit <= 0 returns the remainder from offset.
+	ListTokens(limit, offset int) ([]*Token, error)
 
 	SaveApproval(approval *Approval) error
 	GetApproval(tokenID TokenID, owner, spender PublicKey) (*Approval, error)

@@ -385,10 +385,25 @@ func TestTokenHandler_List_EmptyArray(t *testing.T) {
 // tokenListService returns a fixed collection for the listing tests.
 type tokenListService struct {
 	fakeTokenServiceFull
-	tokens []*token.Token
+	tokens     []*token.Token
+	lastLimit  int
+	lastOffset int
 }
 
-func (f tokenListService) ListTokens() ([]*token.Token, error) { return f.tokens, nil }
+func (f *tokenListService) ListTokens(limit, offset int) ([]*token.Token, error) {
+	f.lastLimit, f.lastOffset = limit, offset
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(f.tokens) {
+		return nil, nil
+	}
+	page := f.tokens[offset:]
+	if limit > 0 && len(page) > limit {
+		page = page[:limit]
+	}
+	return page, nil
+}
 
 // TestTokenHandler_List_Paged pins the collection listing's bounds. It used to
 // return every token in one response; like the NFT and lottery listings, it now
@@ -400,7 +415,8 @@ func TestTokenHandler_List_Paged(t *testing.T) {
 		token.NewToken("t2", "Two", "TWO", token.NewAmount(2), []byte{2}),
 		token.NewToken("t3", "Three", "THREE", token.NewAmount(3), []byte{3}),
 	}
-	h := NewTokenHandler(tokenListService{tokens: tokens})
+	service := &tokenListService{tokens: tokens}
+	h := NewTokenHandler(service)
 
 	list := func(query string) []struct {
 		ID string `json:"id"`
@@ -420,6 +436,9 @@ func TestTokenHandler_List_Paged(t *testing.T) {
 	page := list("?limit=1&offset=1")
 	require.Len(t, page, 1)
 	require.Equal(t, "t2", page[0].ID, "offset pages the newest-first list")
+	require.Equal(t, 1, service.lastLimit, "the handler must pass the page size into the use case")
+	require.Equal(t, 1, service.lastOffset, "the handler must pass the offset into storage")
 	require.Len(t, list("?limit=5000"), 3, "an oversized limit is capped, not rejected")
+	require.Equal(t, maxTokenListLimit, service.lastLimit, "the handler must cap the page size before storage")
 	require.Empty(t, list("?offset=99"))
 }

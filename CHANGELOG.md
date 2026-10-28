@@ -10,6 +10,16 @@ documented in their per-milestone ROADMAP files.
 ## [Unreleased]
 
 ### Added
+
+- **The token collection is paged from storage to every screen**: the desktop
+  Tokens card now reads 100 records at a time with Previous/Next and an exact
+  end state, `aurora token list` accepts `--limit`/`--offset` (zero still means
+  every token), and `GET /api/v1/token/list` passes its bounded page through
+  the use case and SQLite `LIMIT/OFFSET` instead of loading the whole table and
+  slicing it in memory. The desktop clears its row highlight when the page
+  changes, so an index from the old page cannot appear to select a different
+  token on the new one.
+
 - **Optional session-only key memory**: Settings → Session keys can keep a
   private key in process memory after a successful signature, so the next form
   with the same public key offers "Use saved key". It is off by default, never
@@ -59,6 +69,13 @@ documented in their per-milestone ROADMAP files.
   but does not replace Authenticode or Apple Developer ID signatures.
 
 ### Fixed
+
+- **Desktop collection pagers stop at an exact page boundary**: Token and NFT
+  collections fetch one row beyond the visible page, so a collection whose size
+  is exactly 100 no longer offers a Next button that opens an empty page and
+  bounces back to the beginning. Searching for a row that is not on the current
+  page also leaves the pager available instead of hiding the only way to
+  continue.
 
 - **Switching pages starts at the top**: the page body now tracks its scroll
   position explicitly and `setPage` resets it. The previous container relied on

@@ -112,11 +112,11 @@ func (r *TokenRepository) createTables() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_accounts_token_owner ON accounts(token_id, owner)`,
 		`CREATE INDEX IF NOT EXISTS idx_allowances_owner ON allowances(token_id, owner, spender)`,
-		// The collection listing reads every token newest first. Without this
-		// composite index SQLite materialises and sorts the whole table before
-		// the LIMIT can apply (measured: "USE TEMP B-TREE FOR ORDER BY").
-		// Migration 000006 creates the same index, so a fresh database and a
-		// migrated one agree.
+		// The collection listing reads one token page newest first. Without
+		// this composite index SQLite materialises and sorts the whole table
+		// before LIMIT/OFFSET can apply (measured: "USE TEMP B-TREE FOR ORDER
+		// BY"). Migration 000006 creates the same index, so a fresh database
+		// and a migrated one agree.
 		`CREATE INDEX IF NOT EXISTS idx_tokens_created ON tokens(created_at DESC, id)`,
 	}
 
@@ -196,13 +196,21 @@ func (r *TokenRepository) GetToken(id token.TokenID) (*token.Token, error) {
 	), nil
 }
 
-// ListTokens returns every token, newest first. The scan mirrors GetToken so a
-// listed token carries the same attributes a fetched one does.
-func (r *TokenRepository) ListTokens() ([]*token.Token, error) {
+// ListTokens returns one page of tokens, newest first. The scan mirrors
+// GetToken so a listed token carries the same attributes a fetched one does.
+// limit <= 0 means "all rows from offset", matching the NFT repository.
+func (r *TokenRepository) ListTokens(limit, offset int) ([]*token.Token, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	rows, err := r.q().Query(`
 		SELECT id, name, symbol, total_supply, decimals, owner, is_mintable, is_burnable, created_at
 		FROM tokens ORDER BY created_at DESC, id
-	`)
+		LIMIT ? OFFSET ?
+	`, limit, offset)
 	if err != nil {
 		return nil, err
 	}

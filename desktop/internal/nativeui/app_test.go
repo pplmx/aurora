@@ -62,13 +62,15 @@ type fakeServices struct {
 
 	// Counters for the reads a successful write is expected to repeat, so a
 	// test can prove the page refreshes what it shows after a write.
-	listTokensCalls   int
-	dashboardCalls    int
-	oracleHealthCalls int
-	tokenInfoCalls    int
-	tokenBalanceCalls int
-	tokenHistoryCalls int
-	getNFTCalls       int
+	listTokensCalls     int
+	lastTokenListLimit  int
+	lastTokenListOffset int
+	dashboardCalls      int
+	oracleHealthCalls   int
+	tokenInfoCalls      int
+	tokenBalanceCalls   int
+	tokenHistoryCalls   int
+	getNFTCalls         int
 
 	// The last subject each read was asked for, so a selection can be proven
 	// to re-read its own record rather than the previous one.
@@ -232,12 +234,24 @@ func (f *fakeServices) TokenInfo(id string) (TokenRow, error) {
 	}
 	return TokenRow{ID: id}, nil
 }
-func (f *fakeServices) ListTokens() ([]TokenRow, error) {
+func (f *fakeServices) ListTokens(limit, offset int) ([]TokenRow, error) {
 	f.listTokensCalls++
+	f.lastTokenListLimit = limit
+	f.lastTokenListOffset = offset
 	if f.loadErrs.tokens != nil {
 		return nil, f.loadErrs.tokens
 	}
-	return f.tokenRows, nil
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(f.tokenRows) {
+		return nil, nil
+	}
+	rows := f.tokenRows[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 func (f *fakeServices) TokenBalance(tokenID, owner string) (string, error) {
 	f.tokenBalanceCalls++

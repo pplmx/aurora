@@ -35,9 +35,9 @@ func (s *nativeServices) TokenInfo(id string) (nativeui.TokenRow, error) {
 	}, nil
 }
 
-func (s *nativeServices) ListTokens() ([]nativeui.TokenRow, error) {
+func (s *nativeServices) ListTokens(limit, offset int) ([]nativeui.TokenRow, error) {
 	uc := tokenapp.NewListTokensUseCase(s.tokenService)
-	resp, err := uc.Execute()
+	resp, err := uc.Execute(&tokenapp.ListTokensRequest{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}

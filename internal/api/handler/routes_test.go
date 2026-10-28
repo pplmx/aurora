@@ -418,7 +418,9 @@ func (f fakeTokenServiceFull) CreateToken(req *token.CreateTokenRequest) (*token
 func (f fakeTokenServiceFull) GetTokenInfo(id token.TokenID) (*token.Token, error) {
 	return nil, nil
 }
-func (f fakeTokenServiceFull) ListTokens() ([]*token.Token, error) { return nil, nil }
+func (f fakeTokenServiceFull) ListTokens(limit, offset int) ([]*token.Token, error) {
+	return nil, nil
+}
 func (f fakeTokenServiceFull) Mint(req *token.MintRequest) (*token.MintEvent, error) {
 	return nil, nil
 }

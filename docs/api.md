@@ -83,19 +83,19 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 ## 代币
 
-| 方法 | 路径                          | 说明                                           |
-| ---- | ----------------------------- | ---------------------------------------------- |
-| POST | `/api/v1/token/create`        | 创建代币，`decimals` 0..127                    |
-| POST | `/api/v1/token/mint`          | 增发                                           |
-| POST | `/api/v1/token/transfer`      | 转账                                           |
-| POST | `/api/v1/token/approve`       | 授权                                           |
-| POST | `/api/v1/token/burn`          | 销毁                                           |
-| POST | `/api/v1/token/transfer_from` | 使用授权转账                                   |
-| GET  | `/api/v1/token/balance`       | 余额（`token_id`、`owner`）                    |
-| GET  | `/api/v1/token/allowance`     | 授权额度（`token_id`、`owner`、`spender`）     |
-| GET  | `/api/v1/token/history`       | 流水，默认页大小 50，支持 `limit`/`offset`     |
-| GET  | `/api/v1/token/info`          | 代币元数据                                     |
-| GET  | `/api/v1/token/list`          | 代币列表，默认页大小 20，支持 `limit`/`offset` |
+| 方法 | 路径                          | 说明                                                 |
+| ---- | ----------------------------- | ---------------------------------------------------- |
+| POST | `/api/v1/token/create`        | 创建代币，`decimals` 0..127                          |
+| POST | `/api/v1/token/mint`          | 增发                                                 |
+| POST | `/api/v1/token/transfer`      | 转账                                                 |
+| POST | `/api/v1/token/approve`       | 授权                                                 |
+| POST | `/api/v1/token/burn`          | 销毁                                                 |
+| POST | `/api/v1/token/transfer_from` | 使用授权转账                                         |
+| GET  | `/api/v1/token/balance`       | 余额（`token_id`、`owner`）                          |
+| GET  | `/api/v1/token/allowance`     | 授权额度（`token_id`、`owner`、`spender`）           |
+| GET  | `/api/v1/token/history`       | 流水，默认页大小 50，支持 `limit`/`offset`           |
+| GET  | `/api/v1/token/info`          | 代币元数据                                           |
+| GET  | `/api/v1/token/list`          | 代币列表，存储层分页；默认 20，支持 `limit`/`offset` |
 
 未知 `token_id` 的读接口返回 `404 TOKEN_NOT_FOUND`，与 `info` 一致——不会用
 `200 {"amount":"0"}` 或 `200 []` 把“代币不存在”伪装成“没有活动”。

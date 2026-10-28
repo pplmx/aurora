@@ -179,6 +179,9 @@ func init() {
 
 	tokenInfoCmd.Flags().StringP("token", "t", "", i18n.GetText("token.token_id"))
 	_ = tokenInfoCmd.MarkFlagRequired("token")
+
+	tokenListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	tokenListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 }
 
 var tokenCreateCmd = &cobra.Command{
@@ -574,7 +577,16 @@ var tokenListCmd = &cobra.Command{
 		}
 		defer cleanup()
 
-		tokens, err := service.ListTokens()
+		limit, _ := cmd.Flags().GetInt("limit")
+		offset, _ := cmd.Flags().GetInt("offset")
+		if limit < 0 {
+			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+		}
+		if offset < 0 {
+			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+		}
+
+		tokens, err := service.ListTokens(limit, offset)
 		if err != nil {
 			return fmt.Errorf("failed to list tokens: %w", err)
 		}
@@ -583,7 +595,11 @@ var tokenListCmd = &cobra.Command{
 			return nil
 		}
 
-		fmt.Printf("\n🪙 %s: %d\n\n", i18n.GetText("token.total"), len(tokens))
+		if limit > 0 {
+			fmt.Printf("\n🪙 %s: %d (offset %d)\n\n", i18n.GetText("token.list_page"), len(tokens), offset)
+		} else {
+			fmt.Printf("\n🪙 %s: %d\n\n", i18n.GetText("token.total"), len(tokens))
+		}
 		for _, tk := range tokens {
 			fmt.Println("---")
 			printField("ID", string(tk.ID()))
