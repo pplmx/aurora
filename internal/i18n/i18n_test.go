@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -134,6 +134,58 @@ func TestDetectLocale(t *testing.T) {
 	}
 }
 
+func clearLocaleEnv(t *testing.T) {
+	t.Helper()
+	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE"} {
+		t.Setenv(key, "")
+	}
+}
+
+// TestDetectLocale_UsesPOSIXPrecedence covers a shell that exports LANG=C but
+// selects Chinese for messages through LC_ALL or LC_MESSAGES. Reading only
+// LANG silently showed an English CLI and desktop help in that environment.
+func TestDetectLocale_UsesPOSIXPrecedence(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		lcAll    string
+		messages string
+		lang     string
+		language string
+		want     string
+	}{
+		{name: "LC_ALL wins", lcAll: "zh_CN.UTF-8", messages: "en_US.UTF-8", lang: "en_US.UTF-8", want: "zh"},
+		{name: "LC_MESSAGES before LANG", messages: "zh_TW.UTF-8", lang: "en_US.UTF-8", want: "zh"},
+		{name: "LANGUAGE preference", language: "fr_FR:zh_CN", lang: "en_US.UTF-8", want: "zh"},
+		{name: "LANGUAGE first supported", language: "en_US:zh_CN", lang: "zh_CN.UTF-8", want: "en"},
+		{name: "LANG fallback", lang: "zh_CN.UTF-8", want: "zh"},
+		{name: "C locale forces English", lcAll: "C", lang: "zh_CN.UTF-8", want: "en"},
+		{name: "locale tags are case-insensitive", lang: "ZH_TW.UTF-8", want: "zh"},
+		{name: "nothing configured", want: "en"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			clearLocaleEnv(t)
+			t.Setenv("LC_ALL", tt.lcAll)
+			t.Setenv("LC_MESSAGES", tt.messages)
+			t.Setenv("LANG", tt.lang)
+			t.Setenv("LANGUAGE", tt.language)
+
+			assert.Equal(t, tt.want, DetectLocale())
+		})
+	}
+}
+
+func TestEnvironmentLocaleReportsWhetherItWasConfigured(t *testing.T) {
+	clearLocaleEnv(t)
+	locale, configured := EnvironmentLocale()
+	assert.False(t, configured)
+	assert.Empty(t, locale)
+
+	t.Setenv("LC_MESSAGES", "fr_FR.UTF-8")
+	locale, configured = EnvironmentLocale()
+	assert.True(t, configured)
+	assert.Equal(t, "en", locale, "an unsupported environment locale falls back to English")
+}
+
 func TestGetText(t *testing.T) {
 	result := GetText("app.name")
 
@@ -176,6 +228,23 @@ func TestDetectAndInit(t *testing.T) {
 	if tr == nil {
 		t.Fatal("DetectAndInit returned nil")
 	}
+}
+
+func TestDetectAndInitUsesConfigOnlyWithoutLocaleEnvironment(tt *testing.T) {
+	clearLocaleEnv(tt)
+	previous := GetTranslator()
+	tt.Cleanup(func() {
+		tInitMu.Lock()
+		t = previous
+		tInitMu.Unlock()
+		viper.Reset()
+	})
+
+	viper.Set("i18n.locale", "zh")
+	assert.Equal(tt, "zh", DetectAndInit().GetLocale(), "the config is the fallback")
+
+	tt.Setenv("LC_MESSAGES", "en_US.UTF-8")
+	assert.Equal(tt, "en", DetectAndInit().GetLocale(), "the environment must beat the config")
 }
 
 // TestTranslator_Concurrent_NoRace stresses the Translator's read/write
@@ -263,6 +332,7 @@ func TestTranslator_T_FallbackToEnglish(t *testing.T) {
 // TestDetectLocale_ChineseEnv covers the zh branch of DetectLocale (LANG
 // starting with "zh").
 func TestDetectLocale_ChineseEnv(t *testing.T) {
+	clearLocaleEnv(t)
 	t.Setenv("LANG", "zh_CN.UTF-8")
 	require.Equal(t, "zh", DetectLocale())
 }
@@ -293,16 +363,10 @@ func TestLoadLocaleFile_MissingFile(t *testing.T) {
 // translator created on first GetText must adopt the environment locale, not
 // lock to "en". Cobra command help texts are resolved once at package init
 // (before main calls DetectAndInit), so locking the default to "en" froze
-// every --help screen to English regardless of LANG.
+// every --help screen to English regardless of the locale environment.
 func TestLazyDefaultFollowsLocale(tt *testing.T) {
-	prevLang, hadLang := os.LookupEnv("LANG")
-	tt.Cleanup(func() {
-		if hadLang {
-			_ = os.Setenv("LANG", prevLang)
-		} else {
-			_ = os.Unsetenv("LANG")
-		}
-	})
+	clearLocaleEnv(tt)
+	tt.Setenv("LANG", "zh_CN.UTF-8")
 
 	// Reset the package translator so the next GetTranslator call re-creates
 	// the lazy default with the (simulated) environment. The test parameter
@@ -311,7 +375,6 @@ func TestLazyDefaultFollowsLocale(tt *testing.T) {
 	t = nil
 	tInitMu.Unlock()
 
-	require.NoError(tt, os.Setenv("LANG", "zh_CN.UTF-8"))
 	got := GetTranslator().GetLocale()
 	require.Equal(tt, "zh", got, "lazy default must follow LANG=zh for package-init help texts")
 }

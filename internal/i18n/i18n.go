@@ -54,7 +54,8 @@ func GetTranslator() *Translator {
 		// "en". Cobra command help texts (Short/Long/flag usage) are resolved
 		// once at package init via GetText, before main() has a chance to call
 		// DetectAndInit — locking the default to "en" here froze every --help
-		// screen to English regardless of LANG (TASK-128, ISS-123).
+		// screen to English regardless of the locale environment
+		// (TASK-128, ISS-123).
 		t = Init(DetectLocale())
 		tInitMu.Lock()
 	}
@@ -137,10 +138,43 @@ func (tr *Translator) AvailableLocales() []string {
 	return locales
 }
 
+// EnvironmentLocale returns the locale selected by the process environment
+// and whether any locale variable was set. LC_ALL wins, then LANGUAGE, then
+// LC_MESSAGES, then LANG. LANGUAGE is a colon-separated preference list; the
+// first tag Aurora ships wins. Unsupported locales fall back to English.
+func EnvironmentLocale() (string, bool) {
+	if value := strings.TrimSpace(os.Getenv("LC_ALL")); value != "" {
+		return localeFromTags(value), true
+	}
+	if value := strings.TrimSpace(os.Getenv("LANGUAGE")); value != "" {
+		return localeFromTags(value), true
+	}
+	if value := strings.TrimSpace(os.Getenv("LC_MESSAGES")); value != "" {
+		return localeFromTags(value), true
+	}
+	if value := strings.TrimSpace(os.Getenv("LANG")); value != "" {
+		return localeFromTags(value), true
+	}
+	return "", false
+}
+
+func localeFromTags(value string) string {
+	for _, tag := range strings.Split(value, ":") {
+		normalized := strings.ToLower(strings.TrimSpace(tag))
+		switch {
+		case strings.HasPrefix(normalized, "zh"):
+			return "zh"
+		case strings.HasPrefix(normalized, "en"), normalized == "c", strings.HasPrefix(normalized, "c."),
+			normalized == "posix", strings.HasPrefix(normalized, "posix."):
+			return "en"
+		}
+	}
+	return "en"
+}
+
 func DetectLocale() string {
-	lang := os.Getenv("LANG")
-	if strings.HasPrefix(lang, "zh") {
-		return "zh"
+	if locale, ok := EnvironmentLocale(); ok {
+		return locale
 	}
 	return "en"
 }
@@ -154,18 +188,21 @@ func GetTextF(key string, args ...interface{}) string {
 }
 
 func DetectAndInit() *Translator {
-	locale := DetectLocale()
-	// $LANG is the authoritative source (TASK-128/ISS-123 locked the lazy
-	// default to it); a configured [i18n] locale is the fallback for
-	// environments that declare no LANG, so the config knob is no longer inert
-	// (TASK-200, ISS-196). viper's defaults are installed during the CLI's
-	// initConfig (after main), so on the CLI this only matters when the
+	locale, configured := EnvironmentLocale()
+	// The locale environment is authoritative (TASK-128/ISS-123 locked the
+	// lazy default to it); a configured [i18n] locale is the fallback for
+	// environments that declare no locale, so the config knob is no longer
+	// inert (TASK-200, ISS-196). viper's defaults are installed during the
+	// CLI's initConfig (after main), so on the CLI this only matters when the
 	// config file is loaded first (tests / programmatic use) — the knob never
-	// overrides an explicit $LANG.
-	if os.Getenv("LANG") == "" {
+	// overrides an explicit locale environment.
+	if !configured {
 		if cfg := viper.GetString("i18n.locale"); cfg != "" {
 			locale = cfg
 		}
+	}
+	if locale == "" {
+		locale = "en"
 	}
 	return Init(locale)
 }

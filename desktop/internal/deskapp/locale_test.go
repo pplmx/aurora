@@ -118,8 +118,8 @@ func TestUsageFollowsTheLocale(t *testing.T) {
 }
 
 // TestApplyConfiguredLocale pins the one path where the config file decides:
-// with no LANG the CLI already follows [i18n] locale, and the window must
-// agree instead of showing the system default.
+// with no locale environment the CLI follows [i18n] locale, and the window
+// must agree instead of showing the system default.
 func TestApplyConfiguredLocale(t *testing.T) {
 	tr := i18n.GetTranslator()
 	before := tr.GetLocale()
@@ -128,15 +128,17 @@ func TestApplyConfiguredLocale(t *testing.T) {
 		viper.Reset()
 	})
 
-	t.Setenv("LANG", "")
+	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE"} {
+		t.Setenv(key, "")
+	}
 	viper.Set("i18n.locale", "zh")
 	ApplyConfiguredLocale()
 	assert.Equal(t, "zh", tr.GetLocale())
 
-	// $LANG is authoritative (DetectAndInit's contract), so a configured
-	// locale must not override it.
+	// The locale environment is authoritative (DetectAndInit's contract), so a
+	// configured locale must not override any of its variables.
 	tr.SetLocale("en")
-	t.Setenv("LANG", "en_US.UTF-8")
+	t.Setenv("LC_MESSAGES", "en_US.UTF-8")
 	ApplyConfiguredLocale()
 	assert.Equal(t, "en", tr.GetLocale())
 }
