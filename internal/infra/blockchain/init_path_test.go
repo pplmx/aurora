@@ -29,9 +29,6 @@ func TestDBPath_HonorsConfiguredDbPath(t *testing.T) {
 
 	got := DBPath()
 	require.Equal(t, custom, got)
-	info, err := os.Stat(filepath.Dir(custom))
-	require.NoError(t, err)
-	require.True(t, info.IsDir(), "DBPath must create the configured path's parent dir")
 
 	// InitDB must open the SAME configured file (checked via
 	// PRAGMA database_list), so the voting singleton and the repositories
@@ -48,7 +45,8 @@ func TestDBPath_HonorsConfiguredDbPath(t *testing.T) {
 }
 
 // TestDBPath_FallsBackToDefaultWithoutConfig locks that with no configured
-// db.path the resolver still returns the default and creates ./data.
+// db.path the resolver still returns the default; opening the database owns
+// directory creation.
 func TestDBPath_FallsBackToDefaultWithoutConfig(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
@@ -60,5 +58,27 @@ func TestDBPath_FallsBackToDefaultWithoutConfig(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chdir(prevDir) })
 
 	assert.Equal(t, defaultDBPath, DBPath())
-	assert.DirExists(t, filepath.Dir(defaultDBPath))
+}
+
+// TestDBPath_DoesNotHideOpenErrorsAsAnEmptyPath is the regression for a silent
+// data-loss path: when the configured parent could not be created, DBPath used
+// to return "". Repository constructors treat "" as a request for a temporary
+// SQLite database, so a command could report success while writing to storage
+// that vanished when the process exited. The resolver must preserve the
+// configured name and leave the real filesystem error to the open/constructor.
+func TestDBPath_DoesNotHideOpenErrorsAsAnEmptyPath(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	blocker := filepath.Join(dir, "not-a-directory")
+	require.NoError(t, os.WriteFile(blocker, []byte("occupied"), 0o600))
+	dbPath := filepath.Join(blocker, "aurora.db")
+	viper.Set("db.path", dbPath)
+
+	got := DBPath()
+	require.Equal(t, dbPath, got, "a directory failure must not turn the database path into the temporary-DB sentinel")
+
+	_, err := OpenDB(got)
+	require.Error(t, err, "the underlying open must surface the filesystem failure")
 }

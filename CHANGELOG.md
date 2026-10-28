@@ -124,6 +124,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **An unusable database directory is no longer mistaken for temporary
+  storage**: the shared path resolver used to create the configured parent
+  directory and return `""` when that failed. SQLite treats an empty filename
+  as a temporary database, so the CLI and API could report successful writes
+  that vanished at exit. Path resolution is now side-effect free and preserves
+  the configured name; repository/open errors surface to the caller, and token
+  writes reuse one resolved path for the repository, event store and replay
+  protection.
 - **Background workers finish before their stores close**: stopping the API or
   desktop runtime used to cancel the Oracle scheduler and audit-outbox drainer
   without waiting for an in-flight pass, then immediately close SQLite. Their

@@ -77,9 +77,6 @@ nft, token) and operational commands (migrate, backup, version).`,
 			// ./data/aurora.db — the migrate-vs-stores split-brain (TASK-102,
 			// ISS-094).
 			dbPath := blockchain.DBPath()
-			if dbPath == "" {
-				return fmt.Errorf("failed to resolve database path: data directory unavailable")
-			}
 			migPath := viper.GetString("migrate.path")
 
 			if err := migrate.RunMigrationsIfEnabled(dbPath, migrate.MigrateConfig{

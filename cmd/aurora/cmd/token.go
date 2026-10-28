@@ -18,12 +18,13 @@ import (
 )
 
 func newTokenService() (*token.TokenService, func(), error) {
-	repo, err := sqlite.NewTokenRepository(blockchain.DBPath())
+	dbPath := blockchain.DBPath()
+	repo, err := sqlite.NewTokenRepository(dbPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create repo: %w", err)
 	}
 
-	eventStore, err := infraevents.NewSQLiteEventStore(blockchain.DBPath())
+	eventStore, err := infraevents.NewSQLiteEventStore(dbPath)
 	if err != nil {
 		_ = repo.Close()
 		return nil, nil, fmt.Errorf("failed to create event store: %w", err)
@@ -45,7 +46,7 @@ func newTokenService() (*token.TokenService, func(), error) {
 	eventBus := infraevents.NewSyncEventBus()
 	eventBus.SubscribeAll(infraevents.NewAuditHandlerWithOutbox(eventStore, eventStore).Handle)
 
-	replay, err := infraevents.NewSQLiteReplayProtection(blockchain.DBPath())
+	replay, err := infraevents.NewSQLiteReplayProtection(dbPath)
 	if err != nil {
 		_ = eventStore.Close()
 		_ = repo.Close()

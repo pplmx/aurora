@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -51,4 +52,24 @@ func TestOpenWiresAndCloses(t *testing.T) {
 
 	require.NoError(t, c.Close())
 	require.NoError(t, c.Close(), "Close must be idempotent for shutdown paths")
+}
+
+// TestOpenRejectsUnusableDatabasePath keeps the composition root from falling
+// back to a temporary SQLite database when its configured parent is not a
+// directory. Such a fallback used to let the API and desktop accept writes that
+// disappeared when the process exited.
+func TestOpenRejectsUnusableDatabasePath(t *testing.T) {
+	blockchain.ResetForTest()
+	t.Cleanup(blockchain.ResetForTest)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	blocker := filepath.Join(dir, "not-a-directory")
+	require.NoError(t, os.WriteFile(blocker, []byte("occupied"), 0o600))
+	viper.Set("db.path", filepath.Join(blocker, "aurora.db"))
+
+	c, err := Open()
+	require.Error(t, err)
+	require.Nil(t, c)
 }

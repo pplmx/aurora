@@ -34,12 +34,6 @@ func migrationSteps(args []string, def int) (int, error) {
 // ./migrations).
 func newCLIMigrator() (*migrate.Migrator, error) {
 	dbPath := blockchain.DBPath()
-	if dbPath == "" {
-		// DBPath returns "" only when the ./data directory cannot be
-		// created — passing "" to migrate.New would silently create a
-		// junk file literally named "?_foreign_keys=ON" in the cwd.
-		return nil, fmt.Errorf("failed to resolve database path: data directory unavailable")
-	}
 
 	migPath := viper.GetString("migrate.path")
 	if migPath == "" {
