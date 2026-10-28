@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -26,7 +27,15 @@ func RestrictSQLiteFiles(dbPath string) error {
 		return nil
 	}
 
-	for i, path := range []string{dbPath, dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"} {
+	// SQLite resolves a database symlink before naming its WAL/SHM/journal
+	// sidecars. Chmod through the link would secure the main file but leave
+	// the real sidecars at the process umask.
+	resolvedPath, err := filepath.EvalSymlinks(dbPath)
+	if err != nil {
+		return fmt.Errorf("resolve %s: %w", dbPath, err)
+	}
+
+	for i, path := range []string{resolvedPath, resolvedPath + "-wal", resolvedPath + "-shm", resolvedPath + "-journal"} {
 		if err := os.Chmod(path, 0o600); err != nil {
 			if i > 0 && errors.Is(err, fs.ErrNotExist) {
 				continue
