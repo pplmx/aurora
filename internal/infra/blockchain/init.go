@@ -39,14 +39,11 @@ func resolvedDBPath() string {
 	return defaultDBPath
 }
 
-func DBPath() string {
-	path := resolvedDBPath()
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return ""
-	}
-	return path
-}
+// DBPath returns the configured database path without touching the filesystem.
+// Opening the database (or constructing a repository) owns directory creation
+// and must surface its error; returning an empty path here would make SQLite
+// silently open a temporary database and report writes that vanish at exit.
+func DBPath() string { return resolvedDBPath() }
 
 // InitDB returns the process-wide singleton *sql.DB, opening it on
 // the first call. Concurrent callers all observe the same pointer

@@ -12,13 +12,9 @@ import (
 
 // newCLIBackup builds a backup service over the same SQLite file the rest of
 // the CLI uses (blockchain.DBPath(), i.e. ./data/aurora.db relative to the
-// cwd). Like newCLIMigrator, a resolved empty path is a hard error rather
-// than a silent no-op.
+// cwd). Opening and reading the source owns filesystem-error reporting.
 func newCLIBackup() (*backup.BackupService, error) {
 	dbPath := blockchain.DBPath()
-	if dbPath == "" {
-		return nil, fmt.Errorf("failed to resolve database path: data directory unavailable")
-	}
 	return backup.NewBackupService(map[string]string{"aurora": dbPath}), nil
 }
 

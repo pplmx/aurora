@@ -3,9 +3,12 @@ package cmd
 import (
 	"bytes"
 	"encoding/base64"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -300,10 +303,22 @@ func TestTokenList_Pages(t *testing.T) {
 	})
 }
 
-// NOTE: newTokenService's first-step error branch (sqlite.NewTokenRepository
-// failure) is not unit-tested. Forcing it would require a hostile filesystem
-// state (./data as a non-directory), but blockchain.DBPath() swallows that by
-// returning "" and NewTokenRepository("") falls back to a temp SQLite DB — so
-// the branch is not reachable without contrived setup, matching the project's
-// "error branches not worth contriving" precedent (backup package). The full
-// constructor happy path IS covered by every token subcommand test above.
+// TestNewTokenService_RejectsUnusableDatabasePath locks the first constructor
+// failure directly. Before DBPath became a pure resolver, it returned "" after
+// failing to create this parent directory; every token store then opened a
+// separate temporary SQLite database and the command could claim success.
+func TestNewTokenService_RejectsUnusableDatabasePath(t *testing.T) {
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	blocker := filepath.Join(dir, "not-a-directory")
+	require.NoError(t, os.WriteFile(blocker, []byte("occupied"), 0o600))
+	viper.Set("db.path", filepath.Join(blocker, "aurora.db"))
+
+	service, cleanup, err := newTokenService()
+	require.Error(t, err)
+	require.ErrorContains(t, err, "failed to create repo")
+	assert.Nil(t, service)
+	assert.Nil(t, cleanup)
+}
