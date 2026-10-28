@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle redirects no longer forward custom credentials cross-origin**:
+  `net/http` strips `Authorization` and `Cookie` when a redirect changes
+  origin, but it does not recognise custom credentials such as the documented
+  `X-API-Key` source header. A compromised feed could redirect to another
+  origin and receive that secret. Cross-origin hops now start with an empty
+  header set; the transport re-adds only its own User-Agent, Accept, request
+  ID and Content-Type defaults.
 - **Oracle fetches enforce the standard redirect-hop limit**: installing the
   custom SSRF-aware `CheckRedirect` callback also replaced `net/http`'s
   default ten-hop cap. A hostile feed could therefore keep redirecting until

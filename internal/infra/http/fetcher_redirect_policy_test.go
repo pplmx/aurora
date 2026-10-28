@@ -101,3 +101,93 @@ func TestCheckRedirectAllowed_StopsClientLoop(t *testing.T) {
 		t.Fatalf("redirect loop made %d requests, want %d", transport.calls, maxRedirects)
 	}
 }
+
+type redirectedRequest struct {
+	header http.Header
+}
+
+type headerRedirectTransport struct {
+	location string
+	requests []redirectedRequest
+}
+
+func (t *headerRedirectTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.requests = append(t.requests, redirectedRequest{
+		header: req.Header.Clone(),
+	})
+	status := http.StatusOK
+	header := make(http.Header)
+	if req.URL.Path == "/start" {
+		status = http.StatusFound
+		header.Set("Location", t.location)
+	}
+	return &http.Response{
+		StatusCode: status,
+		Header:     header,
+		Body:       io.NopCloser(strings.NewReader("")),
+		Request:    req,
+	}, nil
+}
+
+func TestCheckRedirectAllowed_ScopesCustomHeadersToOrigin(t *testing.T) {
+	cases := []struct {
+		name       string
+		location   string
+		wantAPIKey string
+	}{
+		{name: "same origin keeps headers", location: "http://8.8.8.8/next", wantAPIKey: "secret"},
+		{name: "cross origin drops headers", location: "http://1.1.1.1/next"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			transport := &headerRedirectTransport{location: tc.location}
+			client := &http.Client{
+				Transport:     transport,
+				CheckRedirect: checkRedirectAllowed,
+			}
+			req, err := http.NewRequest(http.MethodGet, "http://8.8.8.8/start", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("X-API-Key", "secret")
+
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("redirect request: %v", err)
+			}
+			_ = resp.Body.Close()
+
+			if len(transport.requests) != 2 {
+				t.Fatalf("made %d requests, want 2", len(transport.requests))
+			}
+			if got := transport.requests[1].header.Get("X-API-Key"); got != tc.wantAPIKey {
+				t.Fatalf("redirected X-API-Key = %q, want %q", got, tc.wantAPIKey)
+			}
+		})
+	}
+}
+
+func TestSameURLOrigin(t *testing.T) {
+	cases := []struct {
+		name string
+		a    string
+		b    string
+		want bool
+	}{
+		{name: "same host and scheme", a: "https://example.com/a", b: "https://example.com/b", want: true},
+		{name: "implicit default port", a: "https://example.com/a", b: "https://example.com:443/b", want: true},
+		{name: "different scheme", a: "https://example.com/a", b: "http://example.com/b", want: false},
+		{name: "different host", a: "https://example.com/a", b: "https://sub.example.com/b", want: false},
+		{name: "different port", a: "https://example.com/a", b: "https://example.com:8443/b", want: false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			a, _ := url.Parse(tc.a)
+			b, _ := url.Parse(tc.b)
+			if got := sameURLOrigin(a, b); got != tc.want {
+				t.Fatalf("sameURLOrigin(%q, %q) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+		})
+	}
+}
