@@ -138,6 +138,11 @@ documented in their per-milestone ROADMAP files.
   dialog named only the loaded page's rows. It now looks the id up through the
   shared service, so an older source is identified by name and id before its
   schedule entry is removed.
+- **Lottery verification evidence follows the verifier input**: editing the
+  draw id after a check left the previous verdict, or its lookup error, under
+  the new value until Verify was pressed again. Both now render only while the
+  field still contains the exact query that produced them; selecting or
+  creating a draw clears the old attempt.
 - **A failed automatic tally read is no longer retried on every frame**: opening
   Results with a session whose result query fails used to leave the attempted
   id blank, so each repaint hammered the same database read. A failure now

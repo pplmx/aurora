@@ -18,6 +18,10 @@ type lotteryState struct {
 
 	verifyID     string
 	verifyResult *VerifyResult
+	// verifyInput is the exact verifier input behind verifyResult/verifyErr.
+	// The field can be edited or repopulated from History, and a verdict or
+	// lookup error from another id must not remain displayed under it.
+	verifyInput string
 
 	rows    []DrawRow
 	loadErr error
@@ -168,7 +172,7 @@ func (a *App) createLottery() {
 			// Advance the verifier to the fresh draw so the operator can re-check
 			// it without copying the id, matching the Web UI's behaviour.
 			a.lottery.verifyID = row.ID
-			a.lottery.verifyResult = nil
+			a.clearLotteryVerdict()
 			a.lottery.participants = ""
 			a.lottery.seed = ""
 			a.lottery.count = 1
@@ -274,21 +278,24 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		a.lottery.verifyID = rows[a.lottery.selected].ID
 		// The previous verdict belongs to the previously chosen draw; keep it
 		// from sitting beside a new id as if it described it.
-		a.lottery.verifyResult = nil
+		a.clearLotteryVerdict()
 	}
 }
 
 func (a *App) lotteryVerify(c *ui.Context) {
 	formCard(c, "Verify a Draw", "Recompute the winners from the stored VRF proof for any draw.", func() {
 		field(c, "Draw ID or block height", &a.lottery.verifyID)
-		fieldError(c, a.lottery.verifyErr)
+		current := strings.TrimSpace(a.lottery.verifyID)
+		if a.lottery.verifyInput == current {
+			fieldError(c, a.lottery.verifyErr)
+		}
 		copyRow(c, "Draw ID", strings.TrimSpace(a.lottery.verifyID), nil)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Verify").Disabled(!allSet(a.lottery.verifyID)).Clicked() {
 				a.verifyLottery()
 			}
 		})
-		if r := a.lottery.verifyResult; r != nil {
+		if r := a.lottery.verifyResult; r != nil && a.lottery.verifyInput == current {
 			// The verdict is a word first and a colour second: the tick or
 			// cross is decoration for a reader who can see it.
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
@@ -307,12 +314,12 @@ func (a *App) lotteryVerify(c *ui.Context) {
 }
 
 func (a *App) verifyLottery() {
-	a.lottery.verifyErr = ""
 	// A new attempt replaces the evidence: the previous verdict belongs to the
 	// id that was in the field before, and a failed lookup must not leave it
 	// looking current.
-	a.lottery.verifyResult = nil
+	a.clearLotteryVerdict()
 	id := strings.TrimSpace(a.lottery.verifyID)
+	a.lottery.verifyInput = id
 	if id == "" {
 		a.lottery.verifyErr = "Enter a lottery ID or block height."
 		return
@@ -323,4 +330,13 @@ func (a *App) verifyLottery() {
 		return
 	}
 	a.lottery.verifyResult = &res
+}
+
+// clearLotteryVerdict drops both halves of the last verification attempt. A
+// new input or selected draw must not inherit another subject's verdict or
+// error.
+func (a *App) clearLotteryVerdict() {
+	a.lottery.verifyErr = ""
+	a.lottery.verifyResult = nil
+	a.lottery.verifyInput = ""
 }
