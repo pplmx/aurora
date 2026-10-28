@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bufio"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -43,16 +44,11 @@ func TestRecovery_PanicBeforeWrite_Sends500(t *testing.T) {
 	assert.Contains(t, body, "INTERNAL_ERROR")
 }
 
-// TestRecovery_PanicAfterWrite_NoCorruption is the regression for
-// the bug fixed in this round. If the handler has already called
-// WriteHeader or Write before panicking, the recovery middleware
-// MUST NOT send a 500 JSON body — that would corrupt the
-// partially-written response and confuse the client (e.g. SSE
-// clients would see a malformed event stream).
-//
-// We verify by asserting that the response body contains ONLY
-// what the handler wrote, not the recovery body.
-func TestRecovery_PanicAfterWrite_NoCorruption(t *testing.T) {
+// TestRecovery_PanicAfterWrite_AbortsResponse verifies that recovery neither
+// appends a 500 body to an already-written response nor returns normally. A
+// normal return would let net/http finish a chunked response as if the handler
+// had completed, making a truncated payload look valid to the client.
+func TestRecovery_PanicAfterWrite_AbortsResponse(t *testing.T) {
 	const expectedBody = "streaming in progress"
 	handler := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -63,7 +59,9 @@ func TestRecovery_PanicAfterWrite_NoCorruption(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/test", nil)
-	handler.ServeHTTP(rr, req)
+	assert.PanicsWithValue(t, http.ErrAbortHandler, func() {
+		handler.ServeHTTP(rr, req)
+	})
 
 	assert.Equal(t, http.StatusOK, rr.Code,
 		"recovery must not change the status code the handler already set")
@@ -71,11 +69,10 @@ func TestRecovery_PanicAfterWrite_NoCorruption(t *testing.T) {
 		"recovery must not append a JSON 500 body to an already-written response")
 }
 
-// TestRecovery_PanicAfterFlush_NoCorruption covers the case where Flush commits
-// the response headers before the handler explicitly writes a header or body.
-// Recovery must treat that flush as the start of the response; otherwise it
-// appends an error envelope to a response the client already sees as 200.
-func TestRecovery_PanicAfterFlush_NoCorruption(t *testing.T) {
+// TestRecovery_PanicAfterFlush_AbortsResponse covers the case where Flush
+// commits the response headers before the handler explicitly writes a header
+// or body. Recovery must treat that flush as the start of the response.
+func TestRecovery_PanicAfterFlush_AbortsResponse(t *testing.T) {
 	handler := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.(http.Flusher).Flush()
@@ -84,14 +81,16 @@ func TestRecovery_PanicAfterFlush_NoCorruption(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/stream", nil)
-	handler.ServeHTTP(rr, req)
+	assert.PanicsWithValue(t, http.ErrAbortHandler, func() {
+		handler.ServeHTTP(rr, req)
+	})
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Empty(t, rr.Body.String(),
 		"recovery must not append a JSON 500 body after Flush committed the response")
 }
 
-func TestRecovery_PanicAfterHijack_NoHTTPWrite(t *testing.T) {
+func TestRecovery_PanicAfterHijack_AbortsResponse(t *testing.T) {
 	handler := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, _, err := w.(http.Hijacker).Hijack(); err != nil {
 			t.Fatalf("Hijack failed: %v", err)
@@ -102,10 +101,54 @@ func TestRecovery_PanicAfterHijack_NoHTTPWrite(t *testing.T) {
 	rr := httptest.NewRecorder()
 	tracked := &hijackTrackingWriter{ResponseWriter: rr}
 	req := httptest.NewRequest("GET", "/upgrade", nil)
-	handler.ServeHTTP(tracked, req)
+	assert.PanicsWithValue(t, http.ErrAbortHandler, func() {
+		handler.ServeHTTP(tracked, req)
+	})
 
 	assert.Zero(t, tracked.headerWrites,
 		"recovery must not write HTTP headers after the connection was hijacked")
+}
+
+func TestRecovery_ExplicitAbortDoesNotBecome500(t *testing.T) {
+	handler := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic(http.ErrAbortHandler)
+	}))
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/abort", nil)
+	assert.PanicsWithValue(t, http.ErrAbortHandler, func() {
+		handler.ServeHTTP(rr, req)
+	})
+	assert.Empty(t, rr.Body.String())
+}
+
+func TestRecovery_PartialChunkedResponseDoesNotLookComplete(t *testing.T) {
+	const expectedBody = "partial"
+	ln, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Skipf("loopback listeners are unavailable in this sandbox: %v", err)
+	}
+	server := httptest.NewUnstartedServer(Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		_, _ = io.WriteString(w, expectedBody)
+		w.(http.Flusher).Flush()
+		panic("oops after a flushed chunk")
+	})))
+	server.Listener = ln
+	server.Start()
+	defer server.Close()
+
+	resp, err := server.Client().Get(server.URL)
+	assert.NoError(t, err)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	body, readErr := io.ReadAll(resp.Body)
+	assert.Equal(t, expectedBody, string(body))
+	assert.Error(t, readErr,
+		"a truncated chunked response must end with a transport error, not a clean EOF")
 }
 
 // TestRecovery_PreservesFlusher ensures the writeTracker wrapper

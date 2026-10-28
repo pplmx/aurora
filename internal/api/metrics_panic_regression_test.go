@@ -74,7 +74,9 @@ func TestMetrics_RecordsCommittedFlushAs200(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/flush-then-panic", nil)
 	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
+	require.PanicsWithValue(t, http.ErrAbortHandler, func() {
+		r.ServeHTTP(rr, req)
+	})
 
 	require.Equal(t, http.StatusOK, rr.Code)
 	require.Empty(t, rr.Body.String())

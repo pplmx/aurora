@@ -18,8 +18,8 @@ import (
 // see a malformed message.
 //
 // Recovery uses this to decide whether it can safely write a 500
-// response. If the handler already wrote, we just log and let the
-// connection end.
+// response. If the handler already wrote, it aborts the connection
+// instead of making a truncated response look complete.
 type writeTracker struct {
 	http.ResponseWriter
 	wroteHeader bool
@@ -76,27 +76,33 @@ func Recovery(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		tracker := &writeTracker{ResponseWriter: w}
 		defer func() {
-			if err := recover(); err != nil {
-				logger.Error().Interface("error", err).Msg("panic recovered")
-				if tracker.alreadyWritten() {
-					// The handler already sent headers or a body
-					// before panicking. We can't send a clean 500
-					// response now — the response is on the wire
-					// (potentially partially). Just let the
-					// connection close; the client will see an
-					// incomplete response and can retry.
-					logger.Warn().Msg("handler had already written; skipping recovery body to avoid corrupting response")
-					return
-				}
-				tracker.Header().Set("Content-Type", "application/json")
-				tracker.WriteHeader(http.StatusInternalServerError)
-				_ = json.NewEncoder(tracker).Encode(map[string]string{
-					// lowercase to match handler-generated 500s (helpers.go)
-					// so clients see one consistent message shape.
-					"error": "internal server error",
-					"code":  "INTERNAL_ERROR",
-				})
+			err := recover()
+			if err == nil {
+				return
 			}
+			// ErrAbortHandler is net/http's explicit contract for aborting a
+			// response without logging a stack trace. Preserve it instead of
+			// turning it into a 500 or swallowing it.
+			if err == http.ErrAbortHandler {
+				panic(http.ErrAbortHandler)
+			}
+
+			logger.Error().Interface("error", err).Msg("panic recovered")
+			if tracker.alreadyWritten() {
+				// Returning normally here would let net/http finish a chunked
+				// response as if the handler had succeeded. Abort the
+				// connection so the client observes an incomplete response.
+				logger.Warn().Msg("handler had already written; aborting response to avoid corrupting it")
+				panic(http.ErrAbortHandler)
+			}
+			tracker.Header().Set("Content-Type", "application/json")
+			tracker.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(tracker).Encode(map[string]string{
+				// lowercase to match handler-generated 500s (helpers.go)
+				// so clients see one consistent message shape.
+				"error": "internal server error",
+				"code":  "INTERNAL_ERROR",
+			})
 		}()
 		next.ServeHTTP(tracker, r)
 	}
