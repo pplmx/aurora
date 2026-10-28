@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/utils"
@@ -51,8 +49,7 @@ type LotteryRepository struct {
 const lotteryNewestFirst = `ORDER BY l.timestamp DESC, l.block_height DESC, l.id`
 
 func NewLotteryRepository(dbPath string) (*LotteryRepository, error) {
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := utils.EnsureSQLiteDirectory(dbPath); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 

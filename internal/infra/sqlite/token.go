@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -44,8 +42,7 @@ func (r *TokenRepository) WithTx(tx *sql.Tx) token.Repository {
 }
 
 func NewTokenRepository(dbPath string) (*TokenRepository, error) {
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := utils.EnsureSQLiteDirectory(dbPath); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 

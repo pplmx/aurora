@@ -65,11 +65,18 @@ func refuseLiveDatabaseDestination(dbPath, dest string) error {
 	if dbPath == "" {
 		return nil
 	}
-	livePaths := append([]string{dbPath}, utils.SQLiteSidecarPaths(dbPath)...)
+	path, ephemeral, err := utils.SQLiteFilePath(dbPath)
+	if err != nil {
+		return fmt.Errorf("resolve live database path: %w", err)
+	}
+	if ephemeral {
+		return nil
+	}
+	livePaths := append([]string{path}, utils.SQLiteSidecarPaths(path)...)
 	// SQLite names sidecars beside the symlink target, not the symlink path.
 	// Include the resolved database and its sidecars so exporting to the real
 	// WAL, SHM, or rollback journal cannot bypass the guard.
-	if resolved, err := filepath.EvalSymlinks(dbPath); err == nil {
+	if resolved, err := filepath.EvalSymlinks(path); err == nil {
 		livePaths = append(livePaths, resolved)
 		livePaths = append(livePaths, utils.SQLiteSidecarPaths(resolved)...)
 	}
