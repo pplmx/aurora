@@ -188,6 +188,10 @@ func stageRollbackFile(src, dst string) (bool, error) {
 	}
 
 	if err := os.Link(src, dst); err == nil {
+		if err := syncFileAtPath(dst); err != nil {
+			_ = os.Remove(dst)
+			return false, fmt.Errorf("sync linked rollback file: %w", err)
+		}
 		return true, nil
 	}
 	if err := copyFileAtomic(src, dst); err != nil {
@@ -245,6 +249,12 @@ func stageCreateRollback(output string, snaps []snapshot) (createRollback, error
 			return fail(fmt.Errorf("stage previous metadata: %w", err))
 		}
 		rb.previousMetadata = previousPath
+	}
+	if err := syncDirFn(dir); err != nil {
+		return fail(fmt.Errorf("sync create rollback directory: %w", err))
+	}
+	if err := syncDirFn(output); err != nil {
+		return fail(fmt.Errorf("sync create rollback directory entry: %w", err))
 	}
 	return rb, nil
 }
@@ -459,7 +469,7 @@ func removeCreateRollbackDirs(candidates []createRollbackCandidate) error {
 }
 
 func (s *BackupService) Create(ctx context.Context, output string) (result *BackupResult, err error) {
-	if err := os.MkdirAll(output, 0o700); err != nil {
+	if err := mkdirAllDurable(output, 0o700); err != nil {
 		return nil, fmt.Errorf("create output dir: %w", err)
 	}
 	if err := s.recoverInterruptedCreate(ctx, output); err != nil {
@@ -553,6 +563,10 @@ func (s *BackupService) Create(ctx context.Context, output string) (result *Back
 		if err := restrictBackupFile(tmpPath); err != nil {
 			s.removeTemps(snapshots)
 			return nil, fmt.Errorf("restrict snapshot %s: %w", name, err)
+		}
+		if err := syncFileAtPath(tmpPath); err != nil {
+			s.removeTemps(snapshots)
+			return nil, fmt.Errorf("sync snapshot %s: %w", name, err)
 		}
 	}
 
@@ -698,6 +712,49 @@ func restrictBackupDir(path string) error {
 		return nil
 	}
 	return os.Chmod(path, 0o700)
+}
+
+// mkdirAllDurable creates path and flushes each new directory entry in its
+// parent. Syncing only the leaf directory persists its contents, not the leaf
+// itself: a desktop backup creates a new timestamp directory, so a power loss
+// could otherwise remove the entire successfully reported backup.
+func mkdirAllDurable(path string, perm os.FileMode) error {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("resolve directory path: %w", err)
+	}
+	absolute = filepath.Clean(absolute)
+
+	var missing []string
+	for current := absolute; ; {
+		info, statErr := os.Stat(current)
+		if statErr == nil {
+			if !info.IsDir() {
+				return fmt.Errorf("%q is not a directory", current)
+			}
+			break
+		}
+		if !os.IsNotExist(statErr) {
+			return fmt.Errorf("inspect directory %q: %w", current, statErr)
+		}
+		missing = append(missing, current)
+		parent := filepath.Dir(current)
+		if parent == current {
+			break
+		}
+		current = parent
+	}
+
+	if err := os.MkdirAll(absolute, perm); err != nil {
+		return err
+	}
+	for i := len(missing) - 1; i >= 0; i-- {
+		parent := filepath.Dir(missing[i])
+		if err := syncDirFn(parent); err != nil {
+			return fmt.Errorf("sync parent directory for %q: %w", missing[i], err)
+		}
+	}
+	return nil
 }
 
 // getSchemaVersion returns the highest schema_migrations.version found
@@ -915,7 +972,7 @@ func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
 	}
 
 	preRestoreDir := backupPath + ".pre_restore"
-	if err := os.MkdirAll(preRestoreDir, 0o700); err != nil {
+	if err := mkdirAllDurable(preRestoreDir, 0o700); err != nil {
 		return fmt.Errorf("create pre-restore dir: %w", err)
 	}
 	if err := restrictBackupDir(preRestoreDir); err != nil {
@@ -1039,10 +1096,17 @@ func prepareRestore(operations []restoreOperation, preRestoreDir string) error {
 				_ = os.Remove(op.prePath)
 				return fmt.Errorf("restrict pre-restore %s: %w", op.name, err)
 			}
+			if err := syncFileAtPath(op.prePath); err != nil {
+				_ = os.Remove(op.prePath)
+				return fmt.Errorf("sync pre-restore %s: %w", op.name, err)
+			}
 		}
 		if err := copyFileAtomic(op.backupPath, op.tmpPath); err != nil {
 			return fmt.Errorf("prepare restored %s: %w", op.name, err)
 		}
+	}
+	if err := syncDirFn(preRestoreDir); err != nil {
+		return fmt.Errorf("sync pre-restore directory: %w", err)
 	}
 	return nil
 }
