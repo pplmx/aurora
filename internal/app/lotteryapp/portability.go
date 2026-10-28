@@ -60,12 +60,19 @@ func WriteRecordsToFile(repo lottery.Repository, path string) (count int, err er
 // refuseLiveDatabaseDestination rejects a destination that would replace the
 // database being exported. os.SameFile catches a symlink or hard-link alias;
 // the cleaned path comparison also covers a sidecar that does not exist yet
-// but whose exact name would land on the live database's WAL or SHM file.
+// but whose exact name would land on a live SQLite sidecar.
 func refuseLiveDatabaseDestination(dbPath, dest string) error {
 	if dbPath == "" {
 		return nil
 	}
 	livePaths := append([]string{dbPath}, utils.SQLiteSidecarPaths(dbPath)...)
+	// SQLite names sidecars beside the symlink target, not the symlink path.
+	// Include the resolved database and its sidecars so exporting to the real
+	// WAL, SHM, or rollback journal cannot bypass the guard.
+	if resolved, err := filepath.EvalSymlinks(dbPath); err == nil {
+		livePaths = append(livePaths, resolved)
+		livePaths = append(livePaths, utils.SQLiteSidecarPaths(resolved)...)
+	}
 	for _, live := range livePaths {
 		if sameExistingFile(live, dest) || sameCleanPath(live, dest) {
 			return fmt.Errorf("refusing to export over the live database file %q", live)
