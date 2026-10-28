@@ -124,6 +124,15 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Ledger corruption discovered after startup now fails closed**: the
+  append-time database sync rebuilt the in-memory chain from rows without
+  verifying them, then logged any sync error and continued appending. A block
+  tampered while the process was running could therefore become the parent of
+  a successful new write even though the next restart would reject the ledger.
+  Sync now builds and verifies a complete candidate before replacing memory,
+  returns `ErrLedgerCorruption` before either direct or transactional appends,
+  and leaves the last known-good chain untouched. Ordinary transient read
+  failures keep the existing in-memory fallback.
 - **Corrupt persisted blocks no longer start a partial chain**: the boot
   reload logged and skipped any block row the SQLite driver could not decode,
   then exposed the remaining rows as a usable chain. A missing height made

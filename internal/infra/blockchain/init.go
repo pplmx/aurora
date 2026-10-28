@@ -26,6 +26,12 @@ var (
 	initErr    error
 )
 
+// ErrLedgerCorruption marks a persisted ledger that cannot be decoded or no
+// longer forms the verified chain loaded at startup. A transient SQLite read
+// failure may still fall back to the in-memory chain, but corruption must stop
+// an append: writing on top of it would make a bad ledger look usable again.
+var ErrLedgerCorruption = errors.New("blockchain: persisted ledger is corrupt")
+
 const defaultDBPath = "./data/aurora.db"
 
 // resolvedDBPath returns the effective SQLite database location: the
@@ -173,7 +179,8 @@ func bindChainToDB(chain *Chain, db *sql.DB) error {
 	// append or an on-demand integrity query.
 	if report := chain.VerifyIntegrity(); !report.Valid {
 		return fmt.Errorf(
-			"persisted blockchain is invalid at index %d: %s",
+			"%w: persisted blockchain is invalid at index %d: %s",
+			ErrLedgerCorruption,
 			report.FirstBrokenIndex,
 			report.FirstBrokenReason,
 		)
@@ -246,14 +253,14 @@ func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 		rowNumber++
 		block, err := scanBlockRow(rows)
 		if err != nil {
-			return persisted, fmt.Errorf("scan block row %d: %w", rowNumber, err)
+			return persisted, fmt.Errorf("%w: scan block row %d: %w", ErrLedgerCorruption, rowNumber, err)
 		}
 		if block.Height == 0 {
 			if len(chain.Blocks) == 0 {
-				return persisted, errors.New("in-memory chain has no genesis block")
+				return persisted, fmt.Errorf("%w: in-memory chain has no genesis block", ErrLedgerCorruption)
 			}
 			if err := validatePersistedGenesis(chain.Blocks[0], block); err != nil {
-				return persisted, err
+				return persisted, fmt.Errorf("%w: %w", ErrLedgerCorruption, err)
 			}
 			genesisSeen = true
 			continue
@@ -264,7 +271,7 @@ func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 		return persisted, err
 	}
 	if persisted && !genesisSeen {
-		return persisted, errors.New("persisted ledger has no genesis block at height 0")
+		return persisted, fmt.Errorf("%w: persisted ledger has no genesis block at height 0", ErrLedgerCorruption)
 	}
 	chain.Blocks = append(chain.Blocks, loaded...)
 	return persisted, nil
@@ -361,7 +368,7 @@ func appendBlocksFromDB(chain *Chain, db *sql.DB) error {
 	for rows.Next() {
 		block, err := scanBlockRow(rows)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: scan appended block: %w", ErrLedgerCorruption, err)
 		}
 		if block.Height == 0 {
 			continue
@@ -371,7 +378,25 @@ func appendBlocksFromDB(chain *Chain, db *sql.DB) error {
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	chain.Blocks = append(chain.Blocks, fresh...)
+	if len(fresh) == 0 {
+		return nil
+	}
+
+	// Verify the whole candidate before publishing any of it. A row can scan
+	// successfully yet have a height gap, broken link, or invalid proof; adding
+	// it first and checking later would expose a partial chain to nextBlock.
+	candidate := &Chain{Blocks: make([]*Block, 0, len(chain.Blocks)+len(fresh))}
+	candidate.Blocks = append(candidate.Blocks, chain.Blocks...)
+	candidate.Blocks = append(candidate.Blocks, fresh...)
+	if report := candidate.VerifyIntegrity(); !report.Valid {
+		return fmt.Errorf(
+			"%w: appended blocks failed verification at index %d: %s",
+			ErrLedgerCorruption,
+			report.FirstBrokenIndex,
+			report.FirstBrokenReason,
+		)
+	}
+	chain.Blocks = candidate.Blocks
 	return nil
 }
 
@@ -381,16 +406,29 @@ func appendBlocksFromDB(chain *Chain, db *sql.DB) error {
 // committed, so the shared ledger does not know them. Used by appendBlocksFromDB
 // when the in-memory tail diverges from the DB seam (TASK-244 review, ISS-242).
 func rebuildChainFromDB(chain *Chain, db *sql.DB) error {
-	// Keep genesis as the anchor (a bound chain always has one); a nil/empty
-	// chain (constructed bare, e.g. in tests) is re-seeded rather than panicked
-	// on.
+	// Build and verify a complete replacement before touching the live chain.
+	// The old implementation truncated first, so a corrupt or unreadable row
+	// left the caller with a partial ledger that appendBlock then treated as
+	// best-effort-readable state.
+	candidate := &Chain{}
 	if len(chain.Blocks) > 0 {
-		chain.Blocks = chain.Blocks[:1]
+		candidate.Blocks = []*Block{chain.Blocks[0]}
 	} else {
-		chain.Blocks = []*Block{Genesis()}
+		candidate.Blocks = []*Block{Genesis()}
 	}
-	_, err := loadBlocksFromDB(chain, db)
-	return err
+	if _, err := loadBlocksFromDB(candidate, db); err != nil {
+		return err
+	}
+	if report := candidate.VerifyIntegrity(); !report.Valid {
+		return fmt.Errorf(
+			"%w: rebuilt ledger failed verification at index %d: %s",
+			ErrLedgerCorruption,
+			report.FirstBrokenIndex,
+			report.FirstBrokenReason,
+		)
+	}
+	chain.Blocks = candidate.Blocks
+	return nil
 }
 
 // scanBlockRow reads one blocks-table row (skip the created_at column) into a
