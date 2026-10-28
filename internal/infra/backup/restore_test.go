@@ -695,6 +695,7 @@ func TestRestore_PostPromotionFailureRollsBackLiveDB(t *testing.T) {
 	svc := NewBackupService(map[string]string{"blockchain": dstDB})
 	svc.removeSidecarFn = func(path string) error {
 		if strings.HasSuffix(path, "-wal") {
+			require.NoError(t, os.WriteFile(dstDB+"-journal", []byte("stale rollback journal"), 0o600))
 			return errors.New("injected stale-WAL cleanup failure")
 		}
 		return os.Remove(path)
@@ -706,6 +707,7 @@ func TestRestore_PostPromotionFailureRollsBackLiveDB(t *testing.T) {
 	if got := readKV(t, dstDB, "answer"); got != "original" {
 		t.Fatalf("failed Restore left archive data live: kv[answer]=%q, want original", got)
 	}
+	require.NoFileExists(t, dstDB+"-journal", "rollback must not leave a stale pre-restore journal")
 }
 
 // TestRestore_PreflightsEveryDatabaseBeforePromotion makes sure one later

@@ -130,6 +130,11 @@ documented in their per-milestone ROADMAP files.
   Leading slashes now collapse to the URI root while special-character
   escaping, relative paths, `:memory:`, and explicit `file:` DSNs keep their
   existing behavior.
+- **Database restores also remove a stale rollback journal**: promotion
+  cleared the old `-wal`/`-shm` sidecars but could leave the previous
+  generation's `-journal` beside the newly restored database. Restore and its
+  failure rollback now share one sidecar set covering all three files, so
+  SQLite cannot replay stale rollback pages against the archive.
 - **Oracle source headers now follow net/http's request model**: a configured
   `Host` was stored in the ordinary header map, which `net/http` ignores when
   the request URL already has a host. It now populates `Request.Host`, survives

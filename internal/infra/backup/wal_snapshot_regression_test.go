@@ -115,3 +115,36 @@ func TestBackupService_Restore_RemovesStaleWAL(t *testing.T) {
 	require.NoError(t, got.QueryRow("SELECT v FROM t WHERE id = 1").Scan(&v))
 	require.Equal(t, "restored", v, "the restored archive is the content served after restore")
 }
+
+// TestBackupService_Restore_RemovesStaleRollbackJournal covers the
+// rollback-journal counterpart to the stale-WAL guard. A journal left beside
+// the destination describes the old database generation; after the archive is
+// promoted, SQLite must not be allowed to replay those pages against it.
+func TestBackupService_Restore_RemovesStaleRollbackJournal(t *testing.T) {
+	dir := t.TempDir()
+	livePath := filepath.Join(dir, "data", "live.db")
+	backupDir := filepath.Join(dir, "backup")
+	newDB(t, livePath,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'LIVE')",
+	)
+	newDB(t, filepath.Join(backupDir, "live.db"),
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'ARCHIVE')",
+	)
+	writeMeta(t, backupDir, "live")
+
+	svc := NewBackupService(map[string]string{"live": livePath})
+	journalCreated := false
+	svc.removeSidecarFn = func(path string) error {
+		if !journalCreated {
+			require.NoError(t, os.WriteFile(livePath+"-journal", []byte("stale rollback journal"), 0o600))
+			journalCreated = true
+		}
+		return os.Remove(path)
+	}
+
+	require.NoError(t, svc.Restore(context.Background(), backupDir))
+	require.NoFileExists(t, livePath+"-journal")
+	require.Equal(t, "ARCHIVE", readKV(t, livePath, "answer"))
+}
