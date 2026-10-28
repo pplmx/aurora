@@ -1,6 +1,9 @@
 package nativeui
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -103,12 +106,57 @@ func recordPanel(c *ui.Context, fn func()) {
 		Background(ui.Hex(night)).BorderWidth(1).BorderColor(ui.Hex(border)).Children(fn)
 }
 
+// selectableRecordPanel is the interactive form of recordPanel. It keeps the
+// same recessed surface, adds the keyboard behavior of a button, and uses the
+// selection tint plus accent border so a chosen record remains identifiable
+// without relying on colour alone: the record's facts and the selected readout
+// below the collection both change with it.
+func selectableRecordPanel(c *ui.Context, selected bool, label string, fn func()) ui.Element {
+	panel := ui.ButtonBase(c).FillWidth().Padding(12).Radius(10).
+		AlignItems(ui.Start).Label(label)
+	panel.BorderWidth(1)
+
+	fill, outline := night, border
+	if selected {
+		fill, outline = selection, aurora
+	} else if panel.Pressed() {
+		fill = surfacePressed
+	} else if panel.Hovered() {
+		fill = surfaceHover
+	}
+	panel.BorderColor(ui.Hex(outline))
+	panel.Background(panel.AnimateColor("record-fill", ui.Hex(fill),
+		ui.Animation{Duration: 100 * time.Millisecond}))
+	panel.Children(func() {
+		ui.Column(c).FillWidth().Gap(6).Children(fn)
+	})
+	return panel
+}
+
+// recordChoiceLabel tells assistive technology which record a panel selects,
+// and changes once the panel is chosen so the state is not left to colour.
+func recordChoiceLabel(name string, selected bool) string {
+	if selected {
+		return fmt.Sprintf(tr("Selected %s"), name)
+	}
+	return fmt.Sprintf(tr("Select %s"), name)
+}
+
 // recordField stacks a label over a value that may wrap. Unlike a table cell,
 // it does not need an ellipsis to keep the next column visible.
 func recordField(c *ui.Context, label, value string) {
 	ui.Column(c).FillWidth().Gap(2).Children(func() {
 		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(ui.Hex(inkMuted))
 		ui.Text(c, value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+	})
+}
+
+// recordMetric draws one compact fact inside a selectable record. It is the
+// shared shape behind health counters, token symbols and exact supplies.
+func recordMetric(c *ui.Context, label, value, tone string) {
+	ui.Column(c).Gap(1).Children(func() {
+		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, value).FontSize(textSize(c, 15)).Bold().TextColor(ui.Hex(tone))
 	})
 }
 

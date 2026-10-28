@@ -463,36 +463,73 @@ func (a *App) nftListBody(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No NFTs match “%s”."), strings.TrimSpace(a.nft.search)))
 		return
 	}
-	a.nft.listTable.Selected = &a.nft.selected
-	table := ui.Table(c, &a.nft.listTable, []ui.TableColumn{
-		{Title: tr("ID"), Width: 150},
-		{Title: tr("Name"), MinWidth: 110},
-		// A ledger height is an int64 and can reach nineteen digits. Give
-		// the numeric column room that grows with the text size instead of
-		// clipping the value that proves when the asset was recorded.
-		{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-	}, len(list), func(row, col int) {
-		n := list[row]
-		switch col {
-		case 0:
-			tableTextFull(c, shortID(n.ID), n.ID)
-		case 1:
-			tableText(c, n.Name)
-		case 2:
-			tableText(c, strconv.FormatInt(n.BlockHeight, 10))
+	if stackedRecords(c) {
+		a.nftListRecords(c, list)
+	} else {
+		a.nft.listTable.Selected = &a.nft.selected
+		table := ui.Table(c, &a.nft.listTable, []ui.TableColumn{
+			{Title: tr("ID"), Width: 150},
+			{Title: tr("Name"), MinWidth: 110},
+			// A ledger height is an int64 and can reach nineteen digits. Give
+			// the numeric column room that grows with the text size instead of
+			// clipping the value that proves when the asset was recorded.
+			{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
+		}, len(list), func(row, col int) {
+			n := list[row]
+			switch col {
+			case 0:
+				tableTextFull(c, shortID(n.ID), n.ID)
+			case 1:
+				tableText(c, n.Name)
+			case 2:
+				tableText(c, strconv.FormatInt(n.BlockHeight, 10))
+			}
+		})
+		if table.Changed() {
+			a.chooseNFT(list, a.nft.selected)
+		}
+	}
+}
+
+// nftListRecords keeps every collection fact readable when the three-column
+// table no longer fits enlarged text. The complete id is visible before the
+// selection copies it into four forms, and the whole panel is keyboard- and
+// pointer-operable as one choice.
+func (a *App) nftListRecords(c *ui.Context, list []NFTRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for i, nft := range list {
+			i, nft := i, nft
+			displayName := nft.Name
+			if strings.TrimSpace(displayName) == "" {
+				displayName = shortID(nft.ID)
+			}
+			selected := i == a.nft.selected
+			record := selectableRecordPanel(c, selected,
+				recordChoiceLabel(displayName, selected), func() {
+					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
+						TextColor(ui.Hex(ink))
+					recordMetric(c, "Block", strconv.FormatInt(nft.BlockHeight, 10), ink)
+					recordField(c, "ID", nft.ID)
+				})
+			if record.Clicked() {
+				a.chooseNFT(list, i)
+			}
 		}
 	})
-	if table.Changed() && a.nft.selected >= 0 && a.nft.selected < len(list) {
-		// Choosing a row fills every card's id with that asset, which is how
-		// the full id reaches a form after the table shortened it.
-		n := list[a.nft.selected]
-		a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
-		// Move and Burn are signed by the holder, and the collection row knows
-		// who that is: prefill it rather than making the operator retype a key
-		// the table already holds.
-		a.applyNFTSubject(n.Owner)
-		a.selectNFT(n.ID)
+}
+
+// chooseNFT is the one path that makes a collection row the subject of every
+// asset card. Move and Burn also take the holder from the same row, so the
+// operator never retypes a key the collection already knows.
+func (a *App) chooseNFT(list []NFTRow, index int) {
+	if index < 0 || index >= len(list) {
+		return
 	}
+	a.nft.selected = index
+	nft := list[index]
+	a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = nft.ID, nft.ID, nft.ID, nft.ID
+	a.applyNFTSubject(nft.Owner)
+	a.selectNFT(nft.ID)
 }
 
 func (a *App) nftWrite(c *ui.Context) {

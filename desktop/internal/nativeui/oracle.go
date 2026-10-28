@@ -648,10 +648,7 @@ func (a *App) oracleHealthRecords(c *ui.Context, health []HealthRow, names map[s
 }
 
 func healthMetric(c *ui.Context, label string, value int, tone string) {
-	ui.Column(c).Gap(1).Children(func() {
-		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(ui.Hex(inkMuted))
-		ui.Text(c, strconv.Itoa(value)).FontSize(textSize(c, 15)).Bold().TextColor(ui.Hex(tone))
-	})
+	recordMetric(c, label, strconv.Itoa(value), tone)
 }
 
 func oracleHealthName(h HealthRow, names map[string]string) string {

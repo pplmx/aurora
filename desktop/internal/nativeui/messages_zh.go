@@ -314,6 +314,8 @@ var desktopMessages = map[string]string{
 	"Search sources": "搜索数据源",
 	"Search narrows the current page; use Previous/Next for older sources.": "搜索只缩小当前页；用上一页/下一页查看更早的数据源。",
 	"Search NFTs":                     "搜索 NFT",
+	"Select %s":                       "选择 %s",
+	"Selected %s":                     "已选择 %s",
 	"No sources match “%s”.":          "没有匹配“%s”的数据源。",
 	"Source ID for the actions below": "下方操作使用的数据源 ID",
 	"Source ID":                       "数据源 ID",
