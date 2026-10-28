@@ -40,6 +40,11 @@ type App struct {
 	// and setPage resets it so a new page starts at the top instead of
 	// inheriting the previous page's offset.
 	scroll ui.ScrollState
+	// sidebarScroll keeps the module list reachable when enlarged text makes it
+	// taller than the window. sidebarReveal brings a newly chosen row into view
+	// once, without preventing the operator from scrolling it away afterwards.
+	sidebarScroll ui.ScrollState
+	sidebarReveal bool
 
 	// settingsStatus is the result of a Settings action that can fail (saving
 	// a preference); other pages' status lines stay with their forms.
@@ -345,7 +350,6 @@ func (a *App) sidebarColumn(c *ui.Context) {
 		BorderWidth(0, 1, 0, 0).BorderColor(ui.Hex(border)).Children(func() {
 		a.brand(c)
 		a.sidebar(c)
-		ui.Spacer(c)
 		a.sidebarActions(c)
 	})
 }
@@ -364,18 +368,26 @@ func (a *App) brand(c *ui.Context) {
 // column is scannable without reading all seven labels.
 func (a *App) sidebar(c *ui.Context) {
 	selected := pageIDs[a.page]
+	reveal := a.sidebarReveal
 	ui.Sidebar(c, &selected, func() {
 		ui.SidebarSection(c, tr("Modules"), nil, func() {
 			for _, p := range moduleOrder {
 				// The chosen item is already tinted by the toolkit; a marker
 				// beside it would say the same thing twice.
-				ui.SidebarItem(c, pageIDs[p], pageIcons[p], tr(pageTitles[p]))
+				item := ui.SidebarItem(c, pageIDs[p], pageIcons[p], tr(pageTitles[p]))
+				if reveal && p == a.page {
+					item.ScrollIntoView()
+				}
 			}
 		})
 		ui.SidebarSection(c, tr("Application"), nil, func() {
-			ui.SidebarItem(c, pageIDs[pageSettings], pageIcons[pageSettings], tr(pageTitles[pageSettings]))
+			item := ui.SidebarItem(c, pageIDs[pageSettings], pageIcons[pageSettings], tr(pageTitles[pageSettings]))
+			if reveal && a.page == pageSettings {
+				item.ScrollIntoView()
+			}
 		})
-	}).FillWidth()
+	}).FillWidth().Grow(1).Shrink(1).TrackScroll(&a.sidebarScroll)
+	a.sidebarReveal = false
 	if p, ok := pageByID(selected); ok {
 		a.setPage(p)
 	}
@@ -590,6 +602,7 @@ func (a *App) setPage(p page) {
 	}
 	a.page = p
 	a.scroll.X, a.scroll.Y = 0, 0
+	a.sidebarReveal = true
 	if a.actions.SetPageTitle != nil {
 		a.actions.SetPageTitle(a.PageTitle())
 	}

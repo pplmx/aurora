@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Large text no longer overlaps or strands navigation**: the dashboard metric
+  value slot now grows with its scaled type instead of letting a 2x number
+  paint over the note below it. The sidebar takes the height left between the
+  brand and the pinned File action, scrolls its module list internally when
+  needed, and reveals the newly selected page whether it was chosen by pointer
+  or keyboard.
 - **Overlays remain usable in short windows and at large text sizes**: the
   command palette now scrolls within the minimum-height window and reveals the
   keyboard-selected row instead of highlighting commands below the viewport.
