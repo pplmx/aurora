@@ -34,16 +34,34 @@ func (a *App) settingsView(c *ui.Context) {
 		})
 
 		formCard(c, "Session keys", "Private keys can be kept in memory for this session only.", func() {
-			if ui.Checkbox(c, &a.rememberKeys, tr("Remember private keys for this session")).
-				Description(tr("Nothing is written to disk; quitting Aurora clears them.")).Changed() && !a.rememberKeys {
-				// Turning the policy off also clears what is already held: "off"
-				// must mean no private key is sitting in memory.
-				a.forgetSessionKeys()
+			remember := a.rememberKeys
+			checkbox := ui.Checkbox(c, &remember, tr("Remember private keys for this session")).
+				Description(tr("Nothing is written to disk; quitting Aurora clears them."))
+			if checkbox.Changed() {
+				switch {
+				case remember:
+					a.rememberKeys = true
+				case a.rememberedKeyCount() > 0:
+					// Turning the policy off also clears what is already held:
+					// "off" must mean no private key is sitting in memory. Ask
+					// before discarding keys that may exist only in this process.
+					a.confirmForgetKeys = true
+					a.disableKeyMemoryOnForget = true
+				default:
+					a.rememberKeys = false
+				}
 			}
 			hint(c, "Nothing is written to disk; quitting Aurora clears them.")
 			readout(c, []readoutRow{{"Remembered keys", strconv.Itoa(a.rememberedKeyCount())}})
-			if a.rememberedKeyCount() > 0 && secondaryButton(c, "Forget session keys").Clicked() {
-				a.forgetSessionKeys()
+			if a.rememberedKeyCount() > 0 {
+				ui.Row(c).Children(func() {
+					forget := dangerButton(c, "Forget session keys").
+						Description(tr("Remove every private key kept in memory for this session."))
+					if forget.Clicked() {
+						a.confirmForgetKeys = true
+						a.disableKeyMemoryOnForget = false
+					}
+				})
 			}
 		})
 
@@ -104,6 +122,34 @@ func (a *App) settingsView(c *ui.Context) {
 			a.settingsButton(c, "Open About Dialog", "", a.actions.ShowAbout)
 		})
 	})
+	a.renderForgetKeysDialog(c)
+}
+
+// renderForgetKeysDialog asks before discarding keys that may not exist
+// anywhere else. The shared dialog starts on Cancel, so Enter cannot erase
+// them; one Tab reaches the red Forget action.
+func (a *App) renderForgetKeysDialog(c *ui.Context) {
+	if !a.confirmForgetKeys {
+		return
+	}
+	disableMemory := a.disableKeyMemoryOnForget
+	title := tr("Forget all session keys?")
+	if disableMemory {
+		title = tr("Turn off session key memory?")
+	}
+	confirmed := destructiveConfirm(c, &a.confirmForgetKeys, title,
+		tr("All private keys kept only in this session will be removed. If they are not saved elsewhere, they cannot be recovered."),
+		tr("Forget keys"))
+	if !a.confirmForgetKeys {
+		a.disableKeyMemoryOnForget = false
+	}
+	if !confirmed {
+		return
+	}
+	a.forgetSessionKeys()
+	if disableMemory {
+		a.rememberKeys = false
+	}
 }
 
 // languageChooser exposes the installed languages as one keyboard-operable

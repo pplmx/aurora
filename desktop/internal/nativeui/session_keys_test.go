@@ -52,8 +52,8 @@ func TestSessionKeyMemoryIsOptInAndFillsTheForm(t *testing.T) {
 }
 
 // TestForgetSessionKeysClearsWhatFormsCanReuse keeps the Settings action
-// honest: forgetting removes the in-memory entries and the form stops offering
-// the shortcut in the next frame.
+// honest: the destructive trigger opens a safe confirmation, and only the
+// deliberate red action removes the in-memory entries.
 func TestForgetSessionKeysClearsWhatFormsCanReuse(t *testing.T) {
 	pk, sk := testKeyPair(t, 2)
 	app := New(&fakeServices{})
@@ -66,13 +66,22 @@ func TestForgetSessionKeysClearsWhatFormsCanReuse(t *testing.T) {
 	tester.Frame()
 	require.NoError(t, tester.Click("Forget session keys"))
 	tester.Frame()
+	require.Equal(t, 1, app.rememberedKeyCount(), "opening the dialog must not erase keys")
+	require.True(t, tester.HasText("Forget all session keys?"))
+	require.True(t, tester.Focused(tr("Cancel")), "the safe action must receive initial focus")
+
+	require.NoError(t, tester.Click("Forget keys"))
+	tester.Frame()
 	require.Zero(t, app.rememberedKeyCount())
 	_, ok := app.savedKey(pk)
 	require.False(t, ok)
+	require.True(t, app.rememberKeys, "forgetting the current keys leaves the opt-in enabled")
 }
 
 // TestSessionKeyCheckboxIsTheOptIn pins the visible control behind the memory
-// boundary.
+// boundary. Turning it off is a two-step action when it would discard keys:
+// Cancel preserves both the policy and the keys, while the red action applies
+// both changes.
 func TestSessionKeyCheckboxIsTheOptIn(t *testing.T) {
 	pk, sk := testKeyPair(t, 3)
 	app := New(&fakeServices{})
@@ -89,8 +98,39 @@ func TestSessionKeyCheckboxIsTheOptIn(t *testing.T) {
 	require.Equal(t, 1, app.rememberedKeyCount())
 	require.NoError(t, tester.Click("Remember private keys for this session"))
 	tester.Frame()
+	require.True(t, app.rememberKeys, "the prompt must not turn memory off before confirmation")
+	require.Equal(t, 1, app.rememberedKeyCount(), "the prompt must preserve the keys")
+	require.True(t, tester.HasText("Turn off session key memory?"))
+	require.True(t, tester.Focused(tr("Cancel")))
+
+	require.NoError(t, tester.Click("Cancel"))
+	tester.Frame()
+	require.True(t, app.rememberKeys)
+	require.Equal(t, 1, app.rememberedKeyCount(), "Cancel must preserve the keys")
+
+	require.NoError(t, tester.Click("Remember private keys for this session"))
+	tester.Frame()
+	require.NoError(t, tester.Click("Forget keys"))
+	tester.Frame()
 	require.False(t, app.rememberKeys)
 	require.Zero(t, app.rememberedKeyCount(), "turning memory off must clear the keys")
+}
+
+// TestTurningOffEmptySessionKeyMemoryDoesNotPrompt keeps the confirmation
+// proportional: with nothing to lose, disabling the opt-in stays one click.
+func TestTurningOffEmptySessionKeyMemoryDoesNotPrompt(t *testing.T) {
+	app := New(&fakeServices{})
+	app.rememberKeys = true
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Remember private keys for this session"))
+	tester.Frame()
+	require.False(t, app.rememberKeys)
+	require.False(t, app.confirmForgetKeys)
+	require.False(t, tester.HasText("Turn off session key memory?"))
+	require.Zero(t, app.rememberedKeyCount())
 }
 
 // TestVoterRegistrationRemembersTheBallotKey covers the one-time key a voter

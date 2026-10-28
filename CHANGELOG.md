@@ -62,6 +62,11 @@ documented in their per-milestone ROADMAP files.
   Cancel, so Enter dismisses instead of performing an irreversible write. One
   Tab still reaches the named destructive action for keyboard users.
 
+- **Session-key clearing asks first**: turning off session key memory or
+  choosing Forget session keys no longer discards in-memory private keys on a
+  single click. The shared confirmation starts on Cancel and explains that
+  keys not saved elsewhere cannot be recovered.
+
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;
   choosing one fills the ballot public-key field and offers the full key for
