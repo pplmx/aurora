@@ -45,6 +45,16 @@ var transportManagedSourceHeaders = map[string]struct{}{
 	"transfer-encoding": {},
 }
 
+var hopByHopSourceHeaders = map[string]struct{}{
+	"connection":          {},
+	"keep-alive":          {},
+	"proxy-authenticate":  {},
+	"proxy-authorization": {},
+	"proxy-connection":    {},
+	"te":                  {},
+	"upgrade":             {},
+}
+
 // allowedSourceSchemes is the set of URL schemes an oracle source
 // may use. We block file:// (would let a hostile source read the
 // host filesystem), javascript: (XSS-shaped payloads, not that the
@@ -205,6 +215,9 @@ func ParseSourceHeaders(headersJSON string) (map[string]string, error) {
 		seen[lowerName] = name
 		if _, managed := transportManagedSourceHeaders[lowerName]; managed {
 			return nil, fmt.Errorf("%w: header %q is managed by the HTTP transport", ErrInvalidSource, name)
+		}
+		if _, hopByHop := hopByHopSourceHeaders[lowerName]; hopByHop {
+			return nil, fmt.Errorf("%w: header %q is hop-by-hop", ErrInvalidSource, name)
 		}
 		if lowerName == "host" && !isValidSourceHostHeader(value) {
 			return nil, fmt.Errorf("%w: header %q has an invalid host value", ErrInvalidSource, name)
