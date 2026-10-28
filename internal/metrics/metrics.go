@@ -48,6 +48,11 @@ var knownAPIModules = map[string]struct{}{
 	"token": {}, "nft": {}, "voting": {}, "lottery": {}, "oracle": {}, "blockchain": {},
 }
 
+// maxMetricModuleLength bounds hashing for the untrusted path segment that is
+// considered as a module label. Anything longer can only fall into "other", so
+// there is no reason to scan or hash an attacker-sized segment.
+const maxMetricModuleLength = 64
+
 // classifyModule buckets a request path into a small set of high-level labels
 // for the per-module metrics. API routes live under /api/v1/<module> (token,
 // nft, voting, lottery, oracle, blockchain); health and metrics endpoints are
@@ -57,14 +62,18 @@ var knownAPIModules = map[string]struct{}{
 func classifyModule(path string) string {
 	switch {
 	case strings.HasPrefix(path, "/api/v1/"):
-		parts := strings.Split(strings.Trim(path, "/"), "/")
-		if len(parts) >= 3 && parts[2] != "" {
-			if _, ok := knownAPIModules[parts[2]]; ok {
-				return parts[2]
-			}
+		rest := path[len("/api/v1/"):]
+		module, _, _ := strings.Cut(rest, "/")
+		if module == "" {
+			return "api"
+		}
+		if len(module) > maxMetricModuleLength {
 			return "other"
 		}
-		return "api"
+		if _, ok := knownAPIModules[module]; ok {
+			return module
+		}
+		return "other"
 	case path == "/" || strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/readyz"):
 		return "health"
 	case strings.HasPrefix(path, "/metrics"):

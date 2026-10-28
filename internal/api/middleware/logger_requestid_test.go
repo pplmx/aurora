@@ -106,3 +106,30 @@ func TestLogger_DoesNotAmplifyOversizedClientRequestID(t *testing.T) {
 		t.Fatalf("access log grew to %d bytes from one request", len(logs))
 	}
 }
+
+func TestLogger_DoesNotAmplifyOversizedPath(t *testing.T) {
+	old := logger.Log
+	defer func() { logger.Log = old }()
+
+	var buf bytes.Buffer
+	logger.Log = zerolog.New(&buf).With().Timestamp().Logger()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.URL.Path = "/" + strings.Repeat("p", 64<<10)
+
+	RequestID(Logger(handler)).ServeHTTP(httptest.NewRecorder(), req)
+
+	logs := buf.String()
+	if strings.Contains(logs, strings.Repeat("p", 2048)) {
+		t.Fatal("the access log echoed an oversized URL path")
+	}
+	if !strings.Contains(logs, `"path":"`) {
+		t.Fatalf("the access log did not include a bounded path:\n%s", logs)
+	}
+	if len(logs) > 2048 {
+		t.Fatalf("access log grew to %d bytes from one request", len(logs))
+	}
+}

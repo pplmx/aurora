@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var classifiedModule string
+
 func TestRegistry_ObserveAndExpose(t *testing.T) {
 	reg := NewRegistry()
 	reg.Observe(http.StatusOK, 5*time.Millisecond, "token")
@@ -155,6 +157,17 @@ func TestClassifyModule(t *testing.T) {
 			t.Errorf("classifyModule(%q) = %q, want %q", c.path, got, c.want)
 		}
 	}
+}
+
+func TestClassifyModule_LongUnknownSegmentStaysBounded(t *testing.T) {
+	longPath := "/api/v1/" + strings.Repeat("x", 1<<20)
+
+	require.Equal(t, "other", classifyModule(longPath))
+	allocs := testing.AllocsPerRun(100, func() {
+		classifiedModule = classifyModule(longPath)
+	})
+	require.Zero(t, allocs,
+		"metric classification must not materialize a slice for an attacker-sized path")
 }
 
 // TestRegistry_UnknownModuleLabelsStayBounded is the ISS-081 regression at the
