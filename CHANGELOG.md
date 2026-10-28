@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle source headers can select the upstream representation**: the
+  transport overwrote a configured `User-Agent` and `Accept` with Aurora's
+  defaults, so feeds that route `application/vnd.*` representations or require
+  an allowlisted client identity received the wrong request. Defaults now apply
+  only when the source has not supplied its own value; `X-Request-ID` remains
+  generated per hop for correlation.
 - **Oracle fetch errors no longer echo credential-bearing URLs**: HTTP status
   errors included the complete source URL, and `net/http` transport errors
   retained its path, query and userinfo. Those strings reached scheduler logs

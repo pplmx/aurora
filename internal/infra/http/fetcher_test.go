@@ -903,6 +903,43 @@ func TestFetcher_CustomUserAgent(t *testing.T) {
 	}
 }
 
+func TestSecurityTransportPreservesSourceHeaderOverrides(t *testing.T) {
+	var captured *http.Request
+	transport := &securityTransport{
+		transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			captured = req.Clone(req.Context())
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader("{}")),
+				Request:    req,
+			}, nil
+		}),
+		userAgent: "Aurora/default",
+	}
+	req, err := http.NewRequest(http.MethodGet, "https://example.com/feed", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("User-Agent", "FeedClient/2.0")
+	req.Header.Set("Accept", "application/vnd.aurora.feed+json")
+
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip failed: %v", err)
+	}
+	_ = resp.Body.Close()
+	if captured == nil {
+		t.Fatal("request never reached the inner transport")
+	}
+	if got := captured.Header.Get("User-Agent"); got != "FeedClient/2.0" {
+		t.Fatalf("User-Agent = %q, want the source override", got)
+	}
+	if got := captured.Header.Get("Accept"); got != "application/vnd.aurora.feed+json" {
+		t.Fatalf("Accept = %q, want the source override", got)
+	}
+}
+
 func TestFetcherWithTimeout_Success(t *testing.T) {
 	fetcher, err := newLoopbackFetcherWithTimeout(10, time.Minute, 5*time.Second)
 	if err != nil {
