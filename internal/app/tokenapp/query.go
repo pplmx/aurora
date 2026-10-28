@@ -97,9 +97,16 @@ func (uc *GetAllowanceUseCase) Execute(req *AllowanceRequest) (*AllowanceRespons
 	}, nil
 }
 
-// ListTokensUseCase returns every stored token. It exists because a token's id
-// is the handle every other operation takes, and nothing could list what
-// exists: the create output was the only place it appeared.
+// ListTokensRequest pages the token collection. Limit <= 0 means "the
+// remainder from Offset", preserving the CLI's unpaged form.
+type ListTokensRequest struct {
+	Limit  int
+	Offset int
+}
+
+// ListTokensUseCase returns stored tokens. It exists because a token's id is
+// the handle every other operation takes, and nothing could list what exists:
+// the create output was the only place it appeared.
 type ListTokensUseCase struct {
 	service token.Service
 }
@@ -108,8 +115,11 @@ func NewListTokensUseCase(service token.Service) *ListTokensUseCase {
 	return &ListTokensUseCase{service: service}
 }
 
-func (uc *ListTokensUseCase) Execute() ([]*TokenInfoResponse, error) {
-	tokens, err := uc.service.ListTokens()
+func (uc *ListTokensUseCase) Execute(req *ListTokensRequest) ([]*TokenInfoResponse, error) {
+	if req == nil {
+		req = &ListTokensRequest{}
+	}
+	tokens, err := uc.service.ListTokens(req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}

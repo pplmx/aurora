@@ -61,6 +61,7 @@ aurora nft burn --nft <id> --owner <owner> -k "<private-key>" --confirm
 ```bash
 aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000 [-d 8]  # 打印 owner 密钥对
 aurora token list
+aurora token list --limit 100 --offset 0
 aurora token info -t <token-id>
 aurora token mint -t <token-id> --to <address> --amount 100 -k "<private-key>"
 aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k "<key>"
@@ -74,6 +75,8 @@ aurora token burn -t <token-id> --from <addr> --amount 10 -k "<key>" --confirm
 ```
 
 `-d/--decimals` 默认 8，取值 0..127；显式传 `0` 会被尊重。
+`token list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0 时只
+读取该页并打印本页数量与偏移；`--offset` 默认 0。
 
 ## 预言机
 

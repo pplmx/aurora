@@ -63,9 +63,9 @@ func (s *TokenService) GetTokenInfo(tokenID TokenID) (*Token, error) {
 	return s.repo.GetToken(tokenID)
 }
 
-// ListTokens returns every stored token, newest first.
-func (s *TokenService) ListTokens() ([]*Token, error) {
-	return s.repo.ListTokens()
+// ListTokens returns stored tokens newest first, bounded by limit/offset.
+func (s *TokenService) ListTokens(limit, offset int) ([]*Token, error) {
+	return s.repo.ListTokens(limit, offset)
 }
 
 // requireToken returns ErrTokenNotFound unless a token with tokenID exists,

@@ -40,8 +40,9 @@ type Services interface {
 	// Token surface.
 	CreateToken(name, symbol, supply, owner string, decimals int) (TokenRow, error)
 	TokenInfo(id string) (TokenRow, error)
-	// ListTokens returns every stored token, newest first.
-	ListTokens() ([]TokenRow, error)
+	// ListTokens returns stored tokens newest first. limit <= 0 returns every
+	// token from offset.
+	ListTokens(limit, offset int) ([]TokenRow, error)
 	TokenBalance(tokenID, owner string) (string, error)
 	MintToken(tokenID, to, amount, priv string) error
 	TransferToken(tokenID, from, to, amount, priv string) error

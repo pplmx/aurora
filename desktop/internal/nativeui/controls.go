@@ -150,6 +150,21 @@ func hint(c *ui.Context, text string) {
 	ui.Text(c, tr(text)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
 }
 
+// listPager draws the Previous/Entries/Next strip shared by paged
+// collections. hasMore comes from fetching one row beyond the page, so an
+// exact multiple of the page size does not enable a dead Next button.
+func listPager(c *ui.Context, offset, count int, hasMore bool) (previous, next bool) {
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
+		previous = secondaryButton(c, "Previous").Disabled(offset == 0).Clicked()
+		ui.Spacer(c)
+		ui.Text(c, fmt.Sprintf(tr("Entries %d–%d"), offset+1, offset+count)).
+			FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+		ui.Spacer(c)
+		next = secondaryButton(c, "Next").Disabled(!hasMore).Clicked()
+	})
+	return previous, next
+}
+
 // fieldError draws a field's complaint directly under the control that caused
 // it, in the same red the status lines use.
 func fieldError(c *ui.Context, message string) {

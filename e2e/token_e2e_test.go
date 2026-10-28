@@ -52,12 +52,22 @@ func (r *inMemoryTokenRepo) GetToken(id token.TokenID) (*token.Token, error) {
 	return r.tokens[id], nil
 }
 
-func (r *inMemoryTokenRepo) ListTokens() ([]*token.Token, error) {
+func (r *inMemoryTokenRepo) ListTokens(limit, offset int) ([]*token.Token, error) {
 	out := make([]*token.Token, 0, len(r.tokens))
 	for _, t := range r.tokens {
 		out = append(out, t)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID() < out[j].ID() })
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(out) {
+		return nil, nil
+	}
+	out = out[offset:]
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
+	}
 	return out, nil
 }
 

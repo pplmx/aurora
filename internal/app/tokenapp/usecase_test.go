@@ -4,6 +4,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"math/big"
+	"sort"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/token"
@@ -54,6 +55,19 @@ func TestGetTokenInfoUseCase_NotFound(t *testing.T) {
 	require.ErrorIs(t, err, token.ErrTokenNotFound)
 }
 
+func TestListTokensUseCasePages(t *testing.T) {
+	m := newMockTokenService()
+	owner := make([]byte, 32)
+	for i, id := range []token.TokenID{"AAA", "BBB", "CCC"} {
+		m.tokens[id] = token.NewToken(id, string(id), string(id), token.NewAmount(int64(i+1)), owner)
+	}
+
+	page, err := NewListTokensUseCase(m).Execute(&ListTokensRequest{Limit: 1, Offset: 1})
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "BBB", page[0].ID)
+}
+
 func (m *mockTokenService) CreateToken(req *token.CreateTokenRequest) (*token.Token, error) {
 	decimals := int8(8)
 	if req.Decimals != nil {
@@ -70,10 +84,21 @@ func (m *mockTokenService) GetTokenInfo(tokenID token.TokenID) (*token.Token, er
 	return m.tokens[tokenID], nil
 }
 
-func (m *mockTokenService) ListTokens() ([]*token.Token, error) {
+func (m *mockTokenService) ListTokens(limit, offset int) ([]*token.Token, error) {
 	out := make([]*token.Token, 0, len(m.tokens))
 	for _, t := range m.tokens {
 		out = append(out, t)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID() < out[j].ID() })
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(out) {
+		return nil, nil
+	}
+	out = out[offset:]
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
 	}
 	return out, nil
 }

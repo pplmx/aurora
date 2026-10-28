@@ -437,7 +437,7 @@ func TestWindowListsWhatTheStoreHolds(t *testing.T) {
 	require.NotNil(t, app)
 
 	// Nothing stored yet: both lists are empty, not an error.
-	tokens, err := app.Services().ListTokens()
+	tokens, err := app.Services().ListTokens(0, 0)
 	require.NoError(t, err)
 	require.Empty(t, tokens)
 	nfts, err := app.Services().ListAllNFTs()
@@ -454,7 +454,7 @@ func TestWindowListsWhatTheStoreHolds(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, minted.ID)
 
-	tokens, err = app.Services().ListTokens()
+	tokens, err = app.Services().ListTokens(0, 0)
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 	require.Equal(t, created.ID, tokens[0].ID)

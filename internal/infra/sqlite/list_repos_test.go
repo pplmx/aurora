@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ func TestTokenRepository_ListTokens(t *testing.T) {
 
 	// An empty store lists nothing, and does so without an error: the desktop
 	// page draws an empty state from this.
-	empty, err := repo.ListTokens()
+	empty, err := repo.ListTokens(0, 0)
 	require.NoError(t, err)
 	assert.Empty(t, empty)
 
@@ -30,7 +31,7 @@ func TestTokenRepository_ListTokens(t *testing.T) {
 	require.NoError(t, repo.SaveToken(first))
 	require.NoError(t, repo.SaveToken(second))
 
-	listed, err := repo.ListTokens()
+	listed, err := repo.ListTokens(0, 0)
 	require.NoError(t, err)
 	require.Len(t, listed, 2, "both tokens must be listed")
 
@@ -52,6 +53,30 @@ func TestTokenRepository_ListTokens(t *testing.T) {
 	assert.Equal(t, fetched.IsMintable(), byID["AAA"].IsMintable())
 	assert.Equal(t, fetched.CreatedAt().Unix(), byID["AAA"].CreatedAt().Unix(),
 		"a listed token must keep its creation time, not the time it was read")
+}
+
+func TestTokenRepository_ListTokensPages(t *testing.T) {
+	repo, cleanup := setupTokenTestDB(t)
+	defer cleanup()
+
+	base := time.Unix(1_700_000_000, 0)
+	for i, id := range []string{"AAA", "BBB", "CCC"} {
+		owner := token.PublicKey([]byte("owner"))
+		tk := token.NewTokenFromRecord(
+			token.TokenID(id), id, id, token.NewAmount(int64(i+1)), owner,
+			8, true, true, base.Add(time.Duration(i)*time.Second),
+		)
+		require.NoError(t, repo.SaveToken(tk))
+	}
+
+	page, err := repo.ListTokens(1, 1)
+	require.NoError(t, err)
+	require.Len(t, page, 1, "a limit of one must return one row")
+	assert.Equal(t, "BBB", string(page[0].ID()), "the second row, newest first")
+
+	past, err := repo.ListTokens(10, 99)
+	require.NoError(t, err)
+	assert.Empty(t, past, "an offset past the end is an empty page, not an error")
 }
 
 func TestNFTRepository_ListNFTs(t *testing.T) {

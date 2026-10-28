@@ -142,6 +142,8 @@ var englishMessages = map[string]string{
 	"token.history.cmd":       "Query transfer history",
 	"token.info.cmd":          "Query token info",
 	"token.list.cmd":          "List every token",
+	"token.list_limit":        "Maximum tokens to list (0 lists all)",
+	"token.list_page":         "Tokens on this page",
 	"token.no_tokens":         "No tokens yet",
 
 	// Flags

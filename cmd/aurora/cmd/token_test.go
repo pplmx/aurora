@@ -266,6 +266,24 @@ func TestTokenInfo_NotFound(t *testing.T) {
 	})
 }
 
+func TestTokenList_Pages(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		for _, symbol := range []string{"AAA", "BBB", "CCC"} {
+			tokenFixture(t, "Token "+symbol, symbol, "100")
+		}
+
+		out, err := runCmd(t, "token", "list", "--limit", "1", "--offset", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Tokens on this page: 1 (offset 1)")
+		assert.Equal(t, 1, strings.Count(out, "---"), "only the requested page should print")
+
+		_, err = runCmd(t, "token", "list", "--limit", "-1")
+		require.Error(t, err)
+		_, err = runCmd(t, "token", "list", "--offset", "-1")
+		require.Error(t, err)
+	})
+}
+
 // NOTE: newTokenService's first-step error branch (sqlite.NewTokenRepository
 // failure) is not unit-tested. Forcing it would require a hostile filesystem
 // state (./data as a non-directory), but blockchain.DBPath() swallows that by
