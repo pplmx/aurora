@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Height-stamped ledger appends fail closed when unwired**: the shared
+  transaction bridge used by lottery draws and Oracle observations now rejects
+  a missing writer, transaction manager or callback before dereferencing it.
+  The SQLite path also has direct commit and rollback regressions proving that
+  the on-chain JSON and business row receive the same height or disappear
+  together.
 - **Blockchain search stays bounded and can page every match**: searching the
   desktop ledger used to call `LedgerBlocksPage(0, 0)` and materialise the
   whole chain before filtering and truncating it in the view. Search now runs

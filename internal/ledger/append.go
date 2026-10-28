@@ -28,6 +28,9 @@ func AppendWithRecord(
 	if chain == nil {
 		return 0, fmt.Errorf("blockchain not initialized")
 	}
+	if err := validateAppendDependencies(txManager, record); err != nil {
+		return 0, err
+	}
 
 	if writer, ok := chain.(BlockTransactionWriter); ok {
 		var height int64
@@ -63,10 +66,30 @@ func AppendRecordWithHeight(
 	data string,
 	record func(tx *sql.Tx, height int64) error,
 ) (int64, error) {
+	if writer == nil {
+		return 0, fmt.Errorf("blockchain not initialized")
+	}
+	if err := validateAppendDependencies(txManager, record); err != nil {
+		return 0, err
+	}
+
 	var height int64
 	err := writer.WithRecordTransaction(data, txManager, func(tx *sql.Tx, blockHeight int64) error {
 		height = blockHeight
 		return record(tx, blockHeight)
 	})
 	return height, err
+}
+
+func validateAppendDependencies(
+	txManager TransactionManager,
+	record func(tx *sql.Tx, height int64) error,
+) error {
+	if txManager == nil {
+		return fmt.Errorf("blockchain transaction manager not configured")
+	}
+	if record == nil {
+		return fmt.Errorf("blockchain transaction callback not configured")
+	}
+	return nil
 }
