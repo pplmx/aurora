@@ -78,9 +78,9 @@ func TestChain_SecondProcessAppend_NoSilentReplace(t *testing.T) {
 	// Both processes boot against the shared empty ledger BEFORE either commits,
 	// so both in-memory chains are genesis-only (the ISS-242 precondition).
 	chainA := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chainA, dbA)
+	require.NoError(t, bindChainToDB(chainA, dbA))
 	chainB := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chainB, dbB)
+	require.NoError(t, bindChainToDB(chainB, dbB))
 
 	// Process A commits height 1.
 	hA, err := chainA.AddBlock("process-a")
@@ -99,7 +99,7 @@ func TestChain_SecondProcessAppend_NoSilentReplace(t *testing.T) {
 	require.Equal(t, "process-b", string(got2.Data), "second process's payload must be persisted too")
 
 	reloaded := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
+	require.NoError(t, bindChainToDB(reloaded, openSecondHandle(t, dbPath)))
 	require.Len(t, reloaded.Blocks, 3, "genesis + both committed blocks")
 	rep := reloaded.VerifyIntegrity()
 	require.True(t, rep.Valid, "shared ledger must verify after multi-process appends: %+v", rep)
@@ -115,7 +115,7 @@ func TestChain_HeightConflict_PersistRejectsDuplicateHeight(t *testing.T) {
 
 	db := openSecondHandle(t, dbPath)
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	// A peer process ("other process") wins height 1 first.
 	peer := peerChain(t, 1, "peer-payload")
@@ -142,7 +142,7 @@ func TestChain_HeightConflict_RetriesAtNextFreeHeight(t *testing.T) {
 
 	db := openSecondHandle(t, dbPath)
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	// The peer committed height 1 while this process's in-memory chain still
 	// holds only genesis. With syncFromDB disabled for the first call, the
@@ -182,7 +182,7 @@ func TestChain_HeightConflict_RetriedRecord_ReStampsHeight(t *testing.T) {
 
 	db := openSecondHandle(t, dbPath)
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	// Peer commits height 1 first.
 	peer := peerChain(t, 1, "peer-payload")
@@ -218,9 +218,9 @@ func TestChain_MultiProcessConcurrentAppends_BothSurvive(t *testing.T) {
 	dbPath := filepath.Join(dir, "aurora.db")
 
 	chainA := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chainA, openSecondHandle(t, dbPath))
+	require.NoError(t, bindChainToDB(chainA, openSecondHandle(t, dbPath)))
 	chainB := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chainB, openSecondHandle(t, dbPath))
+	require.NoError(t, bindChainToDB(chainB, openSecondHandle(t, dbPath)))
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -237,7 +237,7 @@ func TestChain_MultiProcessConcurrentAppends_BothSurvive(t *testing.T) {
 	require.Equal(t, int64(2), hi)
 
 	reloaded := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
+	require.NoError(t, bindChainToDB(reloaded, openSecondHandle(t, dbPath)))
 	require.Len(t, reloaded.Blocks, 3)
 
 	// The two payloads must both be committed at DISTINCT heights — but which
@@ -263,7 +263,7 @@ func TestChain_SyncFromDB_ReconcilesDivergedTail(t *testing.T) {
 
 	db := openSecondHandle(t, dbPath)
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	// Another process committed heights 1..3 while this process was idle.
 	peer := peerChain(t, 3, "peer-block")
@@ -281,7 +281,7 @@ func TestChain_SyncFromDB_ReconcilesDivergedTail(t *testing.T) {
 	require.Equal(t, "local-after-peers", string(got.Data))
 
 	reloaded := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
+	require.NoError(t, bindChainToDB(reloaded, openSecondHandle(t, dbPath)))
 	rep := reloaded.VerifyIntegrity()
 	require.True(t, rep.Valid, "reconciled ledger must verify: %+v", rep)
 }
@@ -319,7 +319,7 @@ func TestChain_SyncFromDB_PhantomTailRebuild(t *testing.T) {
 
 	db := openSecondHandle(t, dbPath)
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	// Process commits height 1 and 2 normally (the shared tail both processes
 	// know).
@@ -357,7 +357,7 @@ func TestChain_SyncFromDB_PhantomTailRebuild(t *testing.T) {
 	require.Equal(t, int64(5), h)
 
 	reloaded := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(reloaded, openSecondHandle(t, dbPath))
+	require.NoError(t, bindChainToDB(reloaded, openSecondHandle(t, dbPath)))
 	rep := reloaded.VerifyIntegrity()
 	require.True(t, rep.Valid, "rebuilt ledger must verify (previously: broken prev-hash at the phantom seam): %+v", rep)
 }
@@ -371,7 +371,7 @@ func TestChain_HeightConflict_RetryBounded(t *testing.T) {
 
 	db := openSecondHandle(t, dbPath)
 	chain := &Chain{Blocks: []*Block{Genesis()}}
-	bindChainToDB(chain, db)
+	require.NoError(t, bindChainToDB(chain, db))
 
 	// Commit the competing block at height 1 once, then leave syncFromDB as a
 	// no-op so every retry attempt collides at height 1 (the process never

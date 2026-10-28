@@ -483,10 +483,11 @@ func (c *Chain) Len() int {
 // public return type stable.
 type IntegrityReport = ledger.IntegrityReport
 
-// VerifyIntegrity cryptographically verifies the whole chain: every block must
-// carry a non-empty hash, each block's PrevHash must link to the previous
-// block's hash, and each block's stored hash must be a valid proof-of-work over
-// its fields. It returns a report with the first broken index (-1 if valid).
+// VerifyIntegrity cryptographically verifies the whole chain: heights must be
+// contiguous from genesis, every block must carry a non-empty hash, each
+// block's PrevHash must link to the previous block's hash, and each block's
+// stored hash must be a valid proof-of-work over its fields. It returns a
+// report with the first broken index (-1 if valid).
 //
 // This is the tamper-evidence surface behind the "blockchain-based" guarantees
 // of the module (v1.25): operators can prove the ledger is internally consistent.
@@ -499,6 +500,12 @@ func (c *Chain) VerifyIntegrity() *IntegrityReport {
 	blocks := c.Blocks
 	n := len(blocks)
 	for i, b := range blocks {
+		if b == nil {
+			return &IntegrityReport{Valid: false, Length: n, FirstBrokenIndex: i, FirstBrokenReason: "nil block"}
+		}
+		if b.Height != int64(i) {
+			return &IntegrityReport{Valid: false, Length: n, FirstBrokenIndex: i, FirstBrokenReason: "height discontinuity"}
+		}
 		if len(b.Hash) == 0 {
 			return &IntegrityReport{Valid: false, Length: n, FirstBrokenIndex: i, FirstBrokenReason: "empty hash"}
 		}
@@ -531,13 +538,16 @@ func New() *Chain {
 	return &Chain{Blocks: []*Block{Genesis()}}
 }
 
-// NewWithDB builds an independent persistent chain over db. It uses
-// the same schema and conflict handling as the process singleton, without
-// claiming the global instance. Callers that pair the chain with a domain
-// repository must pass the same SQLite database so transactional block
-// appends and business rows share one commit.
-func NewWithDB(db *sql.DB) *Chain {
+// NewWithDB builds an independent persistent chain over db. It uses the same
+// schema, reload verification and conflict handling as the process singleton,
+// without claiming the global instance. It returns an error rather than a
+// partial chain when persisted blocks cannot be decoded or verified. Callers
+// that pair the chain with a domain repository must pass the same SQLite
+// database so transactional block appends and business rows share one commit.
+func NewWithDB(db *sql.DB) (*Chain, error) {
 	chain := New()
-	bindChainToDB(chain, db)
-	return chain
+	if err := bindChainToDB(chain, db); err != nil {
+		return nil, err
+	}
+	return chain, nil
 }

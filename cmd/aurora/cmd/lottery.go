@@ -46,7 +46,10 @@ var createCmd = &cobra.Command{
 		}
 		defer func() { _ = lotteryRepo.Close() }()
 
-		chain := blockchain.Init()
+		chain, err := blockchain.InitWithError()
+		if err != nil {
+			return fmt.Errorf("failed to initialize blockchain: %w", err)
+		}
 
 		uc := lotteryapp.NewCreate(lotteryRepo, chain)
 
@@ -382,7 +385,11 @@ var resetCmd = &cobra.Command{
 		// keep building on the stale pre-reset blocks: the new draw would get
 		// a block height continuing from the old count and a PrevHash pointing
 		// at a block the reset deleted (TASK-071, ISS-063).
-		blockchain.Get().ResetBlocks()
+		chain, err := blockchain.InitWithError()
+		if err != nil {
+			return fmt.Errorf("failed to initialize blockchain after reset: %w", err)
+		}
+		chain.ResetBlocks()
 
 		logger.Info().Msg("Database reset successfully")
 		fmt.Println("✅ " + i18n.GetText("lottery.reset_done"))

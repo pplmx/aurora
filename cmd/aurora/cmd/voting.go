@@ -269,7 +269,10 @@ var voteCmd = &cobra.Command{
 		}
 
 		service := getVotingService()
-		blockchain.Init()
+		chain, err := blockchain.InitWithError()
+		if err != nil {
+			return fmt.Errorf("failed to initialize blockchain: %w", err)
+		}
 
 		req := votingapp.CastVoteRequest{
 			VoterPublicKey: voterPK,
@@ -278,7 +281,7 @@ var voteCmd = &cobra.Command{
 			SessionID:      sessionID,
 		}
 		uc := votingapp.NewCastVoteUseCase(repo, service, txManager)
-		uc.SetChain(blockchain.Get())
+		uc.SetChain(chain)
 		record, err := uc.Execute(req)
 		if err != nil {
 			return fmt.Errorf("failed to cast vote: %w", err)

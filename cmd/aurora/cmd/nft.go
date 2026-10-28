@@ -54,8 +54,8 @@ func nftService() (nft.Service, error) {
 	return nft.NewService(repo, txManager), nil
 }
 
-func nftChain() *blockchain.Chain {
-	return blockchain.Init()
+func nftChain() (*blockchain.Chain, error) {
+	return blockchain.InitWithError()
 }
 
 var mintCmd = &cobra.Command{
@@ -76,7 +76,11 @@ var mintCmd = &cobra.Command{
 		tokenURI, _ := cmd.Flags().GetString("token-uri")
 		creator, _ := cmd.Flags().GetString("creator")
 
-		mintUC := nftapp.NewMint(service, nftChain())
+		chain, err := nftChain()
+		if err != nil {
+			return fmt.Errorf("failed to initialize blockchain: %w", err)
+		}
+		mintUC := nftapp.NewMint(service, chain)
 		req := &nftapp.MintNFTRequest{
 			Name:        name,
 			Description: description,
@@ -114,7 +118,11 @@ var transferCmd = &cobra.Command{
 		to, _ := cmd.Flags().GetString("to")
 		privateKey, _ := cmd.Flags().GetString("private-key")
 
-		transferUC := nftapp.NewTransferNFTUseCase(service, nftChain())
+		chain, err := nftChain()
+		if err != nil {
+			return fmt.Errorf("failed to initialize blockchain: %w", err)
+		}
+		transferUC := nftapp.NewTransferNFTUseCase(service, chain)
 		req := &nftapp.TransferNFTRequest{
 			NFTID:      nftID,
 			From:       from,
@@ -155,7 +163,11 @@ var burnCmd = &cobra.Command{
 		owner, _ := cmd.Flags().GetString("owner")
 		privateKey, _ := cmd.Flags().GetString("private-key")
 
-		burnUC := nftapp.NewBurnNFTUseCase(service, nftChain())
+		chain, err := nftChain()
+		if err != nil {
+			return fmt.Errorf("failed to initialize blockchain: %w", err)
+		}
+		burnUC := nftapp.NewBurnNFTUseCase(service, chain)
 		req := &nftapp.BurnNFTRequest{
 			NFTID:      nftID,
 			Owner:      owner,

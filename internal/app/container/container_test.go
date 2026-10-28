@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
@@ -72,4 +73,42 @@ func TestOpenRejectsUnusableDatabasePath(t *testing.T) {
 	c, err := Open()
 	require.Error(t, err)
 	require.Nil(t, c)
+}
+
+// TestOpenRejectsCorruptLedger keeps the composition root from serving a
+// partially decoded blockchain. The old boot path logged and skipped an
+// unscannable row, so the API could start with a chain that no longer matched
+// the rows still present in SQLite.
+func TestOpenRejectsCorruptLedger(t *testing.T) {
+	blockchain.ResetForTest()
+	t.Cleanup(blockchain.ResetForTest)
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "aurora.db")
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec(`
+		CREATE TABLE blocks (
+			height INTEGER PRIMARY KEY,
+			hash TEXT NOT NULL,
+			previous_hash TEXT NOT NULL,
+			data TEXT NOT NULL,
+			nonce INTEGER NOT NULL,
+			timestamp INTEGER NOT NULL,
+			created_at INTEGER NOT NULL
+		);
+		INSERT INTO blocks VALUES (0, 'genesis', '', 'Genesis', X'626164', 1, 1);
+	`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+	viper.Set("db.path", dbPath)
+
+	c, err := Open()
+
+	require.Error(t, err)
+	require.Nil(t, c)
+	require.ErrorContains(t, err, "initialize blockchain")
+	require.ErrorContains(t, err, "scan block row 1")
 }
