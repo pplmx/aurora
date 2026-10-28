@@ -522,6 +522,35 @@ func TestResultsStageLoadsTheChosenSession(t *testing.T) {
 	require.Equal(t, 4, app.voting.results[0].Votes)
 }
 
+// TestFailedAutomaticTallyReadDoesNotHammerTheDatabase keeps the results tab's
+// auto-load from becoming a render loop. A failed read has no rows to key on,
+// so the attempted session must still be remembered; otherwise every frame
+// retries the same locked database and the failure consumes the UI thread.
+func TestFailedAutomaticTallyReadDoesNotHammerTheDatabase(t *testing.T) {
+	fake := &fakeServices{sessionResultsErr: errors.New("database is locked")}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	app.voting.tab = 2
+	app.voting.resultsSession = "s1"
+
+	tester.Frame()
+	require.ErrorIs(t, app.voting.resultsErr, fake.sessionResultsErr)
+	require.Equal(t, 1, fake.sessionResultsCalls, "opening Results should read once")
+
+	tester.Frame()
+	tester.Frame()
+	require.Equal(t, 1, fake.sessionResultsCalls,
+		"a failed automatic read must not repeat on every rendered frame")
+	require.True(t, tester.HasText("Failed to load results"))
+
+	fake.sessionResultsErr = nil
+	require.NoError(t, tester.Click("Show Results"))
+	tester.Frame()
+	require.Equal(t, 2, fake.sessionResultsCalls, "the explicit retry must still reach the service")
+	require.NoError(t, app.voting.resultsErr)
+}
+
 // TestVoterListLoadsThePublicKeyIntoTheBallot restores the voter view after a
 // restart. The registration key card disappears with the next action, so a
 // registered voter otherwise had no visible public key to put in the ballot

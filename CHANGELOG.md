@@ -124,6 +124,20 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A desktop write moves the context to the record it changed**: adding an
+  Oracle source now targets that source in the action and reading cards,
+  minting or transferring an NFT moves the holder fields with the asset and
+  clears the previous secret/recipient, and a selected token keeps its owner
+  available even when the token row is outside the current paged list.
+- **Voting session controls use the same guarded write path as every other
+  mutation**: Start/End Session now run in the background with the busy banner
+  and temporary form lock, instead of blocking the frame and leaving no sign
+  that a write was in progress.
+- **A failed automatic tally read is no longer retried on every frame**: opening
+  Results with a session whose result query fails used to leave the attempted
+  id blank, so each repaint hammered the same database read. A failure now
+  records the attempted session, keeps the error visible, and retries only
+  through Show Results, Refresh, or a new subject.
 - **The Chinese desktop no longer leaks two operational labels in English**:
   the banner shown after a write runs for 20 seconds and the ledger's
   “Entries X–Y of Z” count now use the desktop translation table like the rest
