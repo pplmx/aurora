@@ -129,6 +129,10 @@ documented in their per-milestone ROADMAP files.
   horizontal inset while its 13pt label grew to 33px at 2x. All three action
   variants now scale the whole control with text size instead of fitting a
   scaled label into fixed chrome.
+- **The pinned File menu scales with the sidebar**: the File control kept a
+  34px height and 12px inset after large text widened the navigation column.
+  It now grows with the system scale like the card actions and remains fully
+  inside the fixed footer at 2x.
 - **Quiet actions keep their full label at large text**: compact Copy and
   Dismiss controls stayed 26px tall while their scaled 12pt label measured
   33px at 2x, clipping the text inside the hit target. Quiet buttons now grow
