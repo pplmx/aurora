@@ -539,6 +539,52 @@ func TestFailedVerifyClearsThePreviousVerdict(t *testing.T) {
 	require.Contains(t, app.lottery.verifyErr, "not found")
 }
 
+// TestLotteryVerdictHidesWhenTheVerifyInputChanges keeps a successful result
+// tied to the exact field value that produced it. Native inputs update the
+// state before the next frame; without this check the previous draw's verdict
+// remained under a newly typed id until Verify was pressed again.
+func TestLotteryVerdictHidesWhenTheVerifyInputChanges(t *testing.T) {
+	app := New(&fakeServices{verifyResult: VerifyResult{ID: "draw-a", Valid: true}})
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	app.lottery.verifyID = "draw-a"
+	app.verifyLottery()
+	tester.Frame()
+	require.True(t, tester.HasText("Verified"))
+
+	app.lottery.verifyID = "draw-b"
+	tester.Frame()
+	require.False(t, tester.HasText("Verified"),
+		"draw-a's verdict must disappear while the field names draw-b")
+	require.NotNil(t, app.lottery.verifyResult, "the result is hidden, not discarded")
+
+	app.lottery.verifyID = "draw-a"
+	tester.Frame()
+	require.True(t, tester.HasText("Verified"),
+		"returning to the verified input may show the result that describes it")
+}
+
+// TestLotteryVerifyErrorHidesWhenTheInputChanges applies the same subject rule
+// to a failed lookup, whose inline error used to outlive the id that caused it.
+func TestLotteryVerifyErrorHidesWhenTheInputChanges(t *testing.T) {
+	app := New(&fakeServices{verifyErr: errors.New("lottery not found")})
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	app.lottery.verifyID = "missing-draw"
+	app.verifyLottery()
+	tester.Frame()
+	require.True(t, tester.HasText("lottery not found"))
+
+	app.lottery.verifyID = "another-draw"
+	tester.Frame()
+	require.False(t, tester.HasText("lottery not found"),
+		"the lookup error must disappear while the field names another draw")
+}
+
 // TestSelectedSourceShowsItsEndpointAndInterval pins what a source row cannot
 // carry: the endpoint it polls and how often. The URL is copyable because the
 // readout shortens it.
