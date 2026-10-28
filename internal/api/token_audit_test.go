@@ -94,6 +94,22 @@ func TestTokenAudit_TransferAppearsInHistoryOverHTTP(t *testing.T) {
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
 	require.Len(t, resp, 1, "the token-wide stream must include the transfer")
 	require.Equal(t, recipientPub, resp[0].To)
+
+	// A base64 value with the wrong decoded length is not an empty account.
+	// The read paths must reject it consistently instead of returning a zero
+	// balance, zero allowance or empty history for a real token.
+	shortOwner := url.QueryEscape("YWxpY2U=") // "alice": five bytes
+	for name, path := range map[string]string{
+		"balance":   "/api/v1/token/balance?token_id=AUD&owner=" + shortOwner,
+		"allowance": "/api/v1/token/allowance?token_id=AUD&owner=" + shortOwner + "&spender=" + url.QueryEscape(recipientPub),
+		"history":   "/api/v1/token/history?token_id=AUD&owner=" + shortOwner,
+	} {
+		t.Run(name, func(t *testing.T) {
+			rr := request(http.MethodGet, path, "")
+			require.Equal(t, http.StatusBadRequest, rr.Code, "%s body: %s", name, rr.Body.String())
+			require.Contains(t, rr.Body.String(), "INVALID_PUBLIC_KEY_LENGTH")
+		})
+	}
 }
 
 // TestTokenCreate_DecimalsOverHTTP locks the v1.79 fix that the optional

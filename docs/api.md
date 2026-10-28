@@ -115,6 +115,9 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 
 未知 `token_id` 的读接口返回 `404 TOKEN_NOT_FOUND`，与 `info` 一致——不会用
 `200 {"amount":"0"}` 或 `200 []` 把“代币不存在”伪装成“没有活动”。
+余额、授权和历史中的非空 `owner`/`spender` 必须解码为 32 字节 Ed25519 公钥；
+长度错误返回 `400 INVALID_PUBLIC_KEY_LENGTH`，不会被当作空账户读取。
+`token/history` 省略 `owner` 时读取整个代币的转账流水。
 
 ## 预言机
 

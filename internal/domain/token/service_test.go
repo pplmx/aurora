@@ -436,6 +436,83 @@ func TestReadPaths_UnknownToken(t *testing.T) {
 	})
 }
 
+// TestReadPaths_RejectMalformedPublicKeys closes the read-side counterpart to
+// the write validation: a base64 value that decodes to the wrong key length
+// used to read back as a zero balance, zero allowance or empty history for a
+// real token. That made a malformed account look like a valid empty account.
+func TestReadPaths_RejectMalformedPublicKeys(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := newTestService(repo, eventStore)
+
+	owner, spender := pubKey(1), pubKey(2)
+	_, err := service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+	if err != nil {
+		t.Fatalf("CreateToken failed: %v", err)
+	}
+
+	short := PublicKey([]byte("short"))
+	tests := []struct {
+		name string
+		call func() error
+		want error
+	}{
+		{
+			name: "balance owner",
+			call: func() error {
+				_, err := service.GetBalance("TEST", short)
+				return err
+			},
+			want: ErrInvalidPublicKeyLength,
+		},
+		{
+			name: "allowance owner",
+			call: func() error {
+				_, err := service.GetAllowance("TEST", short, spender)
+				return err
+			},
+			want: ErrInvalidPublicKeyLength,
+		},
+		{
+			name: "allowance spender",
+			call: func() error {
+				_, err := service.GetAllowance("TEST", owner, short)
+				return err
+			},
+			want: ErrInvalidPublicKeyLength,
+		},
+		{
+			name: "history owner",
+			call: func() error {
+				_, err := service.GetTransferHistory("TEST", short, 10, 0)
+				return err
+			},
+			want: ErrInvalidPublicKeyLength,
+		},
+		{
+			name: "empty balance owner",
+			call: func() error {
+				_, err := service.GetBalance("TEST", nil)
+				return err
+			},
+			want: ErrPublicKeyRequired,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.call(); !errors.Is(err, tt.want) {
+				t.Fatalf("expected %v, got %v", tt.want, err)
+			}
+		})
+	}
+}
+
 func TestMint_InvalidToken(t *testing.T) {
 	repo := NewMockRepository()
 	eventStore := NewMockEventStore()

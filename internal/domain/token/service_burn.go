@@ -71,6 +71,11 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 }
 
 func (s *TokenService) GetTransferHistory(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error) {
+	if len(owner) > 0 {
+		if err := ValidatePublicKey(owner); err != nil {
+			return nil, err
+		}
+	}
 	if err := s.requireToken(tokenID); err != nil {
 		return nil, err
 	}

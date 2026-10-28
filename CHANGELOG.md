@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Token reads reject malformed public keys**: a base64 owner or spender that
+  decoded to the wrong length used to read back as a zero balance, zero
+  allowance or empty history for a real token. Balance, allowance and
+  owner-filtered history now return `INVALID_PUBLIC_KEY_LENGTH` (and an empty
+  required key returns `PUBLIC_KEY_REQUIRED`), while an omitted history owner
+  still selects the whole token stream.
 - **Token history can read the whole token, not only one owner**: the desktop
   History card promised that an empty Owner field would page the token's entire
   transfer stream, but the request reached an owner-scoped reader as a
