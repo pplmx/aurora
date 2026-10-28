@@ -44,6 +44,7 @@ var translatedCallArgs = map[string][]int{
 	"guide":                {2, 3, 4, 5, 6},
 	"loadWarning":          {0},
 	"preferenceStateLabel": {1, 2},
+	"listPager":            {1},
 }
 
 // These literals intentionally stay identical in every language: a brand,

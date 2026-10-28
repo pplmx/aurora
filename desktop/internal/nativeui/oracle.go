@@ -226,7 +226,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		a.oracle.appliedSearch = a.oracle.search
 		a.oracle.selected = -1
 	}
-	if previous, next := listPager(c, a.oracle.offset, len(a.oracle.sources), a.oracle.hasMore); previous || next {
+	if previous, next := listPager(c, "Sources", a.oracle.offset, len(a.oracle.sources), a.oracle.hasMore); previous || next {
 		target := a.oracle.offset
 		if previous {
 			target = max(0, target-oraclePageSize)

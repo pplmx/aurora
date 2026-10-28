@@ -233,7 +233,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		a.lottery.appliedSearch = a.lottery.search
 		a.lottery.selected = -1
 	}
-	if previous, next := listPager(c, a.lottery.offset, len(a.lottery.rows), a.lottery.hasMore); previous || next {
+	if previous, next := listPager(c, "Draw history", a.lottery.offset, len(a.lottery.rows), a.lottery.hasMore); previous || next {
 		target := a.lottery.offset
 		if previous {
 			target = max(0, target-lotteryHistoryLimit)

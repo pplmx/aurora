@@ -588,7 +588,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 		a.voting.voterApplied = a.voting.voterSearch
 		a.voting.voterChoice = -1
 	}
-	if previous, next := listPager(c, a.voting.voterOffset, len(a.voting.voters), a.voting.voterHasMore); previous || next {
+	if previous, next := listPager(c, "Voters", a.voting.voterOffset, len(a.voting.voters), a.voting.voterHasMore); previous || next {
 		target := a.voting.voterOffset
 		if previous {
 			target = max(0, target-votingPageSize)
@@ -781,7 +781,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		a.voting.sessionChoice = -1
 		a.clearSessionRoster()
 	}
-	if previous, next := listPager(c, a.voting.sessionOffset, len(a.voting.sessions), a.voting.sessionHasMore); previous || next {
+	if previous, next := listPager(c, "Sessions", a.voting.sessionOffset, len(a.voting.sessions), a.voting.sessionHasMore); previous || next {
 		target := a.voting.sessionOffset
 		if previous {
 			target = max(0, target-votingPageSize)
@@ -969,7 +969,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		a.voting.candApplied = a.voting.candSearch
 		a.voting.candChoice = -1
 	}
-	if previous, next := listPager(c, a.voting.candOffset, len(a.voting.candidates), a.voting.candHasMore); previous || next {
+	if previous, next := listPager(c, "Candidates", a.voting.candOffset, len(a.voting.candidates), a.voting.candHasMore); previous || next {
 		target := a.voting.candOffset
 		if previous {
 			target = max(0, target-votingPageSize)
