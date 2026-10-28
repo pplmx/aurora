@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -481,6 +482,40 @@ func TestCommandPaletteOpensAndNavigates(t *testing.T) {
 	tester.Key(0, ui.KeyEnter)
 	tester.Frame()
 	require.Equal(t, pageToken, app.page)
+	require.False(t, app.paletteOpen)
+}
+
+// TestChineseCommandPaletteSearchesWhatItDisplays keeps the keyboard switcher
+// usable in a translated window. The entries were drawn in Chinese but matched
+// against their English source strings, so typing a visible Chinese title found
+// nothing.
+func TestChineseCommandPaletteSearchesWhatItDisplays(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	translator.SetLocale("zh")
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		BackUpDatabase:  func() {},
+		ExportLotteries: func() {},
+		ImportLotteries: func() {},
+	})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+
+	require.True(t, tester.HasText("刷新当前页面"))
+	require.True(t, tester.HasText("备份数据库…"))
+
+	app.paletteQuery = "设置"
+	tester.Frame()
+	require.False(t, tester.HasText(fmt.Sprintf(tr("No pages match “%s”."), "设置")),
+		"a visible Chinese page title must match the palette query")
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t, pageSettings, app.page)
 	require.False(t, app.paletteOpen)
 }
 
