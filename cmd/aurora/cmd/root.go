@@ -72,7 +72,7 @@ var rootCmd = &cobra.Command{
 				AutoMigrate: true,
 				MigPath:     migPath,
 			}); err != nil {
-				return fmt.Errorf("migration failed: %w", err)
+				return wrapCLIError("cli.error.migration_failed", err)
 			}
 		}
 
@@ -101,7 +101,7 @@ func addConfirmFlag(cmd *cobra.Command, actionKey string) {
 func requireConfirm(cmd *cobra.Command, actionKey string) error {
 	ok, _ := cmd.Flags().GetBool("confirm")
 	if !ok {
-		return fmt.Errorf(i18n.GetText("cli.confirm.required"), i18n.GetText(actionKey))
+		return newCLIError("cli.confirm.required", i18n.GetText(actionKey))
 	}
 	return nil
 }
@@ -114,9 +114,9 @@ func requireConfirm(cmd *cobra.Command, actionKey string) error {
 // scripts; the message is explicit that the operation did commit).
 func formatCLIError(err error) string {
 	if errors.Is(err, token.ErrAuditPublishFailed) {
-		return i18n.GetTextF("cli.error.audit_committed", err)
+		return i18n.GetTextF("cli.error.audit_committed", localizedErrorText(err))
 	}
-	return i18n.GetTextF("cli.error.prefix", err)
+	return i18n.GetTextF("cli.error.prefix", localizedErrorText(err))
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -171,7 +171,7 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		var notFound viper.ConfigFileNotFoundError
 		if cfgFile != "" || !errors.As(err, &notFound) {
-			configErr = fmt.Errorf("failed to read config: %w", err)
+			configErr = wrapCLIError("cli.error.read_config", err)
 		}
 		return
 	}

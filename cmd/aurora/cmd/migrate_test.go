@@ -357,6 +357,18 @@ func TestMigrate_MissingMigrationDir(t *testing.T) {
 	})
 }
 
+func TestMigrateRepair_InitFailureKeepsSpecificContext(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		viper.Set("migrate.path", filepath.Join(t.TempDir(), "no-such-dir"))
+
+		_, err := runCmd(t, "migrate", "repair", "--confirm")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "migrator init failed")
+		assert.Contains(t, err.Error(), "migration source")
+		assert.NotContains(t, err.Error(), "failed to repair migration state")
+	})
+}
+
 func TestMigrateDown_RequiresConfirm(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setMigrationsPathForTest(t)

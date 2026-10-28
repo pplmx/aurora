@@ -21,13 +21,13 @@ func newTokenService() (*token.TokenService, func(), error) {
 	dbPath := blockchain.DBPath()
 	repo, err := sqlite.NewTokenRepository(dbPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create repo: %w", err)
+		return nil, nil, wrapCLIError("token.error.create_repo", err)
 	}
 
 	eventStore, err := infraevents.NewSQLiteEventStore(dbPath)
 	if err != nil {
 		_ = repo.Close()
-		return nil, nil, fmt.Errorf("failed to create event store: %w", err)
+		return nil, nil, wrapCLIError("token.error.create_event_store", err)
 	}
 
 	eventReader := sqlite.NewTokenEventReader(eventStore)
@@ -50,7 +50,7 @@ func newTokenService() (*token.TokenService, func(), error) {
 	if err != nil {
 		_ = eventStore.Close()
 		_ = repo.Close()
-		return nil, nil, fmt.Errorf("failed to create replay protection: %w", err)
+		return nil, nil, wrapCLIError("token.error.create_replay_protection", err)
 	}
 
 	chain, err := blockchain.InitWithError()
@@ -58,7 +58,7 @@ func newTokenService() (*token.TokenService, func(), error) {
 		_ = replay.Close()
 		_ = eventStore.Close()
 		_ = repo.Close()
-		return nil, nil, fmt.Errorf("failed to initialize blockchain: %w", err)
+		return nil, nil, wrapCLIError("token.error.init_blockchain", err)
 	}
 
 	txManager := sqlite.NewTxManager(repo.GetDB())
@@ -214,12 +214,12 @@ var tokenCreateCmd = &cobra.Command{
 
 		totalSupply, err := token.NewAmountFromString(supply)
 		if err != nil {
-			return fmt.Errorf("invalid supply: %w", err)
+			return wrapCLIError("token.error.invalid_supply", err)
 		}
 
 		pub, priv, err := ed25519.GenerateKey(nil)
 		if err != nil {
-			return fmt.Errorf("failed to generate key: %w", err)
+			return wrapCLIError("token.error.generate_key", err)
 		}
 
 		tk, err := service.CreateToken(&token.CreateTokenRequest{
@@ -230,7 +230,7 @@ var tokenCreateCmd = &cobra.Command{
 			Decimals:    &decimals,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to create token: %w", err)
+			return wrapCLIError("token.error.create", err)
 		}
 
 		fmt.Printf(i18n.GetText("token.created"), tk.ID(), tk.Name(), tk.Symbol())
@@ -267,7 +267,7 @@ var tokenMintCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to mint: %w", err)
+			return wrapCLIError("token.error.mint", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.minted"))
@@ -307,7 +307,7 @@ var tokenTransferCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to transfer: %w", err)
+			return wrapCLIError("token.error.transfer", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.transferred"))
@@ -348,7 +348,7 @@ var tokenApproveCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to approve: %w", err)
+			return wrapCLIError("token.error.approve", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.approved"))
@@ -391,7 +391,7 @@ var tokenTransferFromCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to transfer from: %w", err)
+			return wrapCLIError("token.error.transfer_from", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.transferred"))
@@ -436,7 +436,7 @@ var tokenBurnCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to burn: %w", err)
+			return wrapCLIError("token.error.burn", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.burned"))
@@ -470,7 +470,7 @@ var tokenBalanceCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to get balance: %w", err)
+			return wrapCLIError("token.error.get_balance", err)
 		}
 
 		fmt.Printf("\n💰 %s:\n", i18n.GetText("token.balance_heading"))
@@ -506,7 +506,7 @@ var tokenAllowanceCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to get allowance: %w", err)
+			return wrapCLIError("token.error.get_allowance", err)
 		}
 
 		fmt.Printf("\n🔑 %s:\n", i18n.GetText("token.allowance_heading"))
@@ -557,7 +557,7 @@ var tokenHistoryCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to get history: %w", err)
+			return wrapCLIError("token.error.get_history", err)
 		}
 
 		fmt.Printf("\n📜 %s: %d\n", i18n.GetText("token.history_heading"), len(resp.Transfers))
@@ -591,15 +591,15 @@ var tokenListCmd = &cobra.Command{
 		limit, _ := cmd.Flags().GetInt("limit")
 		offset, _ := cmd.Flags().GetInt("offset")
 		if limit < 0 {
-			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+			return newCLIError("cli.error.invalid_limit", limit)
 		}
 		if offset < 0 {
-			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+			return newCLIError("cli.error.invalid_offset", offset)
 		}
 
 		tokens, err := service.ListTokens(limit, offset)
 		if err != nil {
-			return fmt.Errorf("failed to list tokens: %w", err)
+			return wrapCLIError("token.error.list", err)
 		}
 		if len(tokens) == 0 {
 			fmt.Println(i18n.GetText("token.no_tokens"))
@@ -641,10 +641,10 @@ var tokenInfoCmd = &cobra.Command{
 
 		tk, err := service.GetTokenInfo(token.TokenID(tokenID))
 		if err != nil {
-			return fmt.Errorf("failed to get token info: %w", err)
+			return wrapCLIError("token.error.get_info", err)
 		}
 		if tk == nil {
-			return fmt.Errorf("%s", i18n.GetText("token.not_found"))
+			return newCLIError("token.not_found")
 		}
 
 		fmt.Printf("\n🪙 %s:\n", i18n.GetText("token.info_heading"))
@@ -679,10 +679,10 @@ func b64Encode(data []byte) string {
 func parseTokenDecimals(s string) (int8, error) {
 	d, err := strconv.Atoi(s)
 	if err != nil {
-		return 0, fmt.Errorf("invalid --decimals %q: must be an integer", s)
+		return 0, newCLIError("token.error.invalid_decimals_integer", s)
 	}
 	if d < 0 || d > math.MaxInt8 {
-		return 0, fmt.Errorf("invalid --decimals %d: must be between 0 and %d", d, math.MaxInt8)
+		return 0, newCLIError("token.error.invalid_decimals_range", d, math.MaxInt8)
 	}
 	return int8(d), nil
 }

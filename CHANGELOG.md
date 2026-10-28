@@ -152,6 +152,13 @@ documented in their per-milestone ROADMAP files.
   Oracle source/data/template labels; lottery verification evidence and import
   diagnostics; and the final error/audit warning all resolve their labels at
   print time. English output keeps the existing wording and field order.
+- **CLI failures localize the full error path**: command context and known
+  domain causes now render in the active language instead of producing lines
+  such as `❌ 错误：failed to get token info: token not found`. The same pass
+  translates Cobra's required/unknown flag errors, positional-argument counts,
+  unknown commands with suggestions, and unknown help topics. Wrapped errors
+  retain `errors.Is`/`errors.As`; unrecognized filesystem, network and database
+  details remain verbatim rather than being replaced by a vague generic error.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   the second-launch desktop dialog identifies the requested `--data-dir`

@@ -21,7 +21,7 @@ import (
 func newOracleRepo() (*sqlite.OracleRepository, func(), error) {
 	repo, err := sqlite.NewOracleRepository(blockchain.DBPath())
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open oracle repository: %w", err)
+		return nil, nil, wrapCLIError("oracle.error.open_repo", err)
 	}
 	return repo, func() { _ = repo.Close() }, nil
 }
@@ -69,7 +69,7 @@ var sourceAddCmd = &cobra.Command{
 			Interval: interval,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to register data source: %w", err)
+			return wrapCLIError("oracle.error.register_source", err)
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("oracle.source_added")+"\n", resp.Name)
@@ -93,16 +93,16 @@ var sourceListCmd = &cobra.Command{
 		limit, _ := cmd.Flags().GetInt("limit")
 		offset, _ := cmd.Flags().GetInt("offset")
 		if limit < 0 {
-			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+			return newCLIError("cli.error.invalid_limit", limit)
 		}
 		if offset < 0 {
-			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+			return newCLIError("cli.error.invalid_offset", offset)
 		}
 
 		uc := oracleapp.NewListSourcesUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.ListSourcesRequest{Limit: limit, Offset: offset})
 		if err != nil {
-			return fmt.Errorf("failed to list data sources: %w", err)
+			return wrapCLIError("oracle.error.list_sources", err)
 		}
 
 		if limit > 0 {
@@ -156,7 +156,7 @@ var sourceDeleteCmd = &cobra.Command{
 
 		uc := oracleapp.NewDeleteSourceUseCase(repo)
 		if err := uc.Execute(id); err != nil {
-			return fmt.Errorf("failed to delete data source: %w", err)
+			return wrapCLIError("oracle.error.delete_source", err)
 		}
 		fmt.Println("✅ " + i18n.GetText("oracle.source_deleted"))
 		return nil
@@ -178,7 +178,7 @@ var sourceEnableCmd = &cobra.Command{
 
 		uc := oracleapp.NewEnableSourceUseCase(repo)
 		if err := uc.Execute(id); err != nil {
-			return fmt.Errorf("failed to enable data source: %w", err)
+			return wrapCLIError("oracle.error.enable_source", err)
 		}
 		fmt.Println("✅ " + i18n.GetText("oracle.source_enabled"))
 		return nil
@@ -200,7 +200,7 @@ var sourceDisableCmd = &cobra.Command{
 
 		uc := oracleapp.NewDisableSourceUseCase(repo)
 		if err := uc.Execute(id); err != nil {
-			return fmt.Errorf("failed to disable data source: %w", err)
+			return wrapCLIError("oracle.error.disable_source", err)
 		}
 		fmt.Println("✅ " + i18n.GetText("oracle.source_disabled"))
 		return nil
@@ -230,12 +230,12 @@ var fetchCmd = &cobra.Command{
 		// and the package intent; otherwise BlockHeight always printed 0.
 		chain, err := blockchain.InitWithError()
 		if err != nil {
-			return fmt.Errorf("failed to initialize blockchain: %w", err)
+			return wrapCLIError("oracle.error.init_blockchain", err)
 		}
 		uc.SetChain(chain)
 		resp, err := uc.Execute(&oracleapp.FetchDataRequest{SourceID: sourceID})
 		if err != nil {
-			return fmt.Errorf("failed to fetch data: %w", err)
+			return wrapCLIError("oracle.error.fetch", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("oracle.fetched"))
@@ -266,7 +266,7 @@ var dataCmd = &cobra.Command{
 		uc := oracleapp.NewGetDataUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.GetDataRequest{SourceID: sourceID, Limit: limit})
 		if err != nil {
-			return fmt.Errorf("failed to get oracle data: %w", err)
+			return wrapCLIError("oracle.error.get_data", err)
 		}
 
 		fmt.Printf("\n📊 %s:\n", i18n.GetText("oracle.data_heading"))
@@ -299,7 +299,7 @@ var latestCmd = &cobra.Command{
 		uc := oracleapp.NewGetLatestDataUseCase(repo)
 		resp, err := uc.Execute(&oracleapp.GetLatestDataRequest{SourceID: sourceID})
 		if err != nil {
-			return fmt.Errorf("failed to get latest data: %w", err)
+			return wrapCLIError("oracle.error.get_latest", err)
 		}
 		if resp.Data == nil {
 			fmt.Println(i18n.GetText("oracle.no_data"))
@@ -349,7 +349,7 @@ var templateAddCmd = &cobra.Command{
 
 		template, ok := oracleapp.GetTemplate(templateName)
 		if !ok {
-			return fmt.Errorf("template not found: %s", templateName)
+			return newCLIError("oracle.error.template_missing", templateName)
 		}
 
 		uc := oracleapp.NewAddSourceUseCase(repo)
@@ -362,7 +362,7 @@ var templateAddCmd = &cobra.Command{
 			Interval: template.Interval,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to add template: %w", err)
+			return wrapCLIError("oracle.error.add_template", err)
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("oracle.template_added")+"\n", resp.Name)
@@ -450,7 +450,7 @@ func resolveOracleSourceID(cmd *cobra.Command) (string, error) {
 	if src, _ := cmd.Flags().GetString("source"); src != "" {
 		return src, nil
 	}
-	return "", fmt.Errorf("a source is required: pass --id <source-id> (or --source)")
+	return "", newCLIError("oracle.error.source_required")
 }
 
 // maxCLIQueryLimit mirrors the REST API handler cap (maxQueryLimit=100) so the

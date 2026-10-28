@@ -67,7 +67,7 @@ var mintCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
 		if err != nil {
-			return fmt.Errorf("failed to initialize NFT service: %w", err)
+			return wrapCLIError("nft.error.init_service", err)
 		}
 
 		name, _ := cmd.Flags().GetString("name")
@@ -78,7 +78,7 @@ var mintCmd = &cobra.Command{
 
 		chain, err := nftChain()
 		if err != nil {
-			return fmt.Errorf("failed to initialize blockchain: %w", err)
+			return wrapCLIError("nft.error.init_blockchain", err)
 		}
 		mintUC := nftapp.NewMint(service, chain)
 		req := &nftapp.MintNFTRequest{
@@ -91,7 +91,7 @@ var mintCmd = &cobra.Command{
 
 		result, err := mintUC.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to mint NFT: %w", err)
+			return wrapCLIError("nft.error.mint", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.minted"))
@@ -110,7 +110,7 @@ var transferCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
 		if err != nil {
-			return fmt.Errorf("failed to initialize NFT service: %w", err)
+			return wrapCLIError("nft.error.init_service", err)
 		}
 
 		nftID, _ := cmd.Flags().GetString("nft")
@@ -120,7 +120,7 @@ var transferCmd = &cobra.Command{
 
 		chain, err := nftChain()
 		if err != nil {
-			return fmt.Errorf("failed to initialize blockchain: %w", err)
+			return wrapCLIError("nft.error.init_blockchain", err)
 		}
 		transferUC := nftapp.NewTransferNFTUseCase(service, chain)
 		req := &nftapp.TransferNFTRequest{
@@ -132,7 +132,7 @@ var transferCmd = &cobra.Command{
 
 		result, err := transferUC.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to transfer NFT: %w", err)
+			return wrapCLIError("nft.error.transfer", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.transferred"))
@@ -156,7 +156,7 @@ var burnCmd = &cobra.Command{
 		}
 		service, err := nftService()
 		if err != nil {
-			return fmt.Errorf("failed to initialize NFT service: %w", err)
+			return wrapCLIError("nft.error.init_service", err)
 		}
 
 		nftID, _ := cmd.Flags().GetString("nft")
@@ -165,7 +165,7 @@ var burnCmd = &cobra.Command{
 
 		chain, err := nftChain()
 		if err != nil {
-			return fmt.Errorf("failed to initialize blockchain: %w", err)
+			return wrapCLIError("nft.error.init_blockchain", err)
 		}
 		burnUC := nftapp.NewBurnNFTUseCase(service, chain)
 		req := &nftapp.BurnNFTRequest{
@@ -175,7 +175,7 @@ var burnCmd = &cobra.Command{
 		}
 
 		if err := burnUC.Execute(req); err != nil {
-			return fmt.Errorf("failed to burn NFT: %w", err)
+			return wrapCLIError("nft.error.burn", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.burned"))
@@ -190,7 +190,7 @@ var getCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
 		if err != nil {
-			return fmt.Errorf("failed to initialize NFT service: %w", err)
+			return wrapCLIError("nft.error.init_service", err)
 		}
 
 		nftID, _ := cmd.Flags().GetString("nft")
@@ -198,7 +198,7 @@ var getCmd = &cobra.Command{
 		getUC := nftapp.NewGet(service)
 		result, err := getUC.Execute(nftID)
 		if err != nil {
-			return fmt.Errorf("failed to get NFT: %w", err)
+			return wrapCLIError("nft.error.get", err)
 		}
 
 		fmt.Printf("\n🎨 %s:\n", i18n.GetText("nft.details_heading"))
@@ -221,7 +221,7 @@ var listCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
 		if err != nil {
-			return fmt.Errorf("failed to initialize NFT service: %w", err)
+			return wrapCLIError("nft.error.init_service", err)
 		}
 
 		owner, _ := cmd.Flags().GetString("owner")
@@ -238,7 +238,7 @@ var listCmd = &cobra.Command{
 				&nftapp.ListNFTsByOwnerRequest{Owner: owner})
 		}
 		if err != nil {
-			return fmt.Errorf("failed to list NFTs: %w", err)
+			return wrapCLIError("nft.error.list", err)
 		}
 
 		label := i18n.GetText("nft.list_owned")
@@ -263,17 +263,17 @@ var nftHistoryCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service, err := nftService()
 		if err != nil {
-			return fmt.Errorf("failed to initialize NFT service: %w", err)
+			return wrapCLIError("nft.error.init_service", err)
 		}
 
 		nftID, _ := cmd.Flags().GetString("nft")
 		limit, _ := cmd.Flags().GetInt("limit")
 		offset, _ := cmd.Flags().GetInt("offset")
 		if limit < 0 {
-			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+			return newCLIError("cli.error.invalid_limit", limit)
 		}
 		if offset < 0 {
-			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+			return newCLIError("cli.error.invalid_offset", offset)
 		}
 
 		historyUC := nftapp.NewGetNFTOperationsUseCase(service)
@@ -281,7 +281,7 @@ var nftHistoryCmd = &cobra.Command{
 			NFTID: nftID, Limit: limit, Offset: offset,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to get history: %w", err)
+			return wrapCLIError("nft.error.history", err)
 		}
 
 		if limit > 0 {

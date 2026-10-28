@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/pplmx/aurora/internal/app/lotteryapp"
 	"github.com/pplmx/aurora/internal/domain/token"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,6 +34,171 @@ func TestCLIErrorLocalizesChinese(t *testing.T) {
 	out := formatCLIError(auditErr)
 	assert.Contains(t, out, "操作已提交")
 	assert.Contains(t, out, "请勿重试")
+}
+
+func TestCLIErrorWrapperPreservesCauseAndFollowsLocale(t *testing.T) {
+	err := wrapCLIErrorf("voting.error.count_votes", voting.ErrAlreadyVoted, "candidate-1")
+	require.ErrorIs(t, err, voting.ErrAlreadyVoted)
+
+	t.Run("English", func(t *testing.T) {
+		setTestLocale(t, "en")
+		assert.Equal(
+			t,
+			"failed to count votes for candidate candidate-1: voter has already voted in this session",
+			err.Error(),
+		)
+	})
+
+	t.Run("Chinese", func(t *testing.T) {
+		setTestLocale(t, "zh")
+		assert.Equal(
+			t,
+			"统计候选人 candidate-1 的票数失败：投票人已在本次会话中投票",
+			err.Error(),
+		)
+		assert.NotContains(t, err.Error(), "failed to count votes")
+	})
+}
+
+func TestCLIErrorPathsLocalizeChinese(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "zh")
+
+		_, err := runCmd(t, "token", "info", "--token", "missing")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "❌ 错误：获取代币信息失败：代币未找到")
+		assert.NotContains(t, formatCLIError(err), "token not found")
+
+		_, err = runCmd(t, "token", "list", "--limit=-1")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "--limit -1 无效：必须大于或等于零")
+
+		_, err = runCmd(t, "oracle", "source", "add",
+			"--name", "broken",
+			"--url", "https://api.example.com/price",
+			"--headers", "{")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "注册数据源失败：数据源无效")
+		assert.NotContains(t, formatCLIError(err), "invalid source")
+
+		_, err = runCmd(t, "oracle", "source", "delete",
+			"--id", "missing", "--confirm")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "删除数据源失败：数据源未找到")
+
+		_, err = runCmd(t, "nft", "get", "--nft", "missing")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "获取 NFT 失败：NFT 未找到")
+
+		_, err = runCmd(t, "lottery", "verify", "missing")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "❌ 错误：抽奖记录未找到")
+		assert.NotContains(t, formatCLIError(err), "lottery not found")
+
+		integrity := formatCLIError(lotteryapp.ErrVerificationFailed)
+		assert.Contains(t, integrity, "抽奖记录完整性校验失败")
+		assert.NotContains(t, integrity, "integrity check")
+
+		_, err = runCmd(t, "migrate", "up", "0")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), `迁移步数 "0" 无效：必须是正整数`)
+
+		_, err = runCmd(t, "backup", "restore", "missing")
+		require.Error(t, err)
+		assert.Contains(t, formatCLIError(err), "恢复将覆盖实时数据库")
+
+		technical := wrapCLIError("backup.error.create", errors.New("permission denied"))
+		assert.Contains(t, formatCLIError(technical), "创建备份失败：permission denied")
+	})
+}
+
+func TestCobraErrorsLocalizeChinese(t *testing.T) {
+	setTestLocale(t, "zh")
+
+	for _, tt := range []struct {
+		name  string
+		input string
+		want  []string
+	}{
+		{
+			name:  "required flags",
+			input: `required flag(s) "name", "symbol" not set`,
+			want:  []string{"缺少必填参数", `"name", "symbol"`},
+		},
+		{
+			name:  "unknown flag",
+			input: "unknown flag: --bogus",
+			want:  []string{"未知参数", "--bogus"},
+		},
+		{
+			name:  "unknown shorthand",
+			input: "unknown shorthand flag: 'x' in -x",
+			want:  []string{"未知短参数", "'x'", "-x"},
+		},
+		{
+			name:  "missing flag value",
+			input: "flag needs an argument: --limit",
+			want:  []string{"--limit", "缺少值"},
+		},
+		{
+			name:  "invalid integer",
+			input: `invalid argument "nope" for "-l, --limit" flag: strconv.ParseInt: parsing "nope": invalid syntax`,
+			want:  []string{"-l, --limit", `"nope"`, "不是有效整数"},
+		},
+		{
+			name:  "out of range integer",
+			input: `invalid argument "999" for "--limit" flag: strconv.ParseInt: parsing "999": value out of range`,
+			want:  []string{"--limit", "超出整数范围"},
+		},
+		{
+			name:  "unknown command with suggestion",
+			input: "unknown command \"lottry\" for \"aurora\"\n\nDid you mean this?\n\tlottery\n",
+			want:  []string{`未知命令："lottry"`, `命令路径："aurora"`, "你是不是想输入", "lottery"},
+		},
+		{
+			name:  "exact args",
+			input: "accepts 1 arg(s), received 0",
+			want:  []string{"需要 1 个参数", "实际收到 0 个"},
+		},
+		{
+			name:  "at most args",
+			input: "accepts at most 1 arg(s), received 2",
+			want:  []string{"最多接受 1 个参数", "实际收到 2 个"},
+		},
+		{
+			name:  "between args",
+			input: "accepts between 1 and 2 arg(s), received 0",
+			want:  []string{"需要 1 到 2 个参数", "实际收到 0 个"},
+		},
+		{
+			name:  "at least args",
+			input: "requires at least 1 arg(s), only received 0",
+			want:  []string{"至少需要 1 个参数", "实际只收到 0 个"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatCLIError(errors.New(tt.input))
+			for _, want := range tt.want {
+				assert.Contains(t, got, want)
+			}
+			assert.NotContains(t, got, "required flag")
+			assert.NotContains(t, got, "unknown flag")
+			assert.NotContains(t, got, "Did you mean")
+		})
+	}
+}
+
+func TestUnknownHelpTopicLocalizesChinese(t *testing.T) {
+	setTestLocale(t, "zh")
+
+	captureErr := captureStderr(t)
+	out, err := runCmd(t, "help", "missing")
+	errOut := captureErr()
+
+	require.NoError(t, err)
+	assert.Contains(t, errOut, "未知帮助主题 [`missing`]")
+	assert.NotContains(t, errOut, "Unknown help topic")
+	assert.Contains(t, out, "用法：")
 }
 
 func TestTokenResultsLocalizeChinese(t *testing.T) {
