@@ -137,6 +137,11 @@ func blockModule(payload string) string {
 	if _, ok := fields["participants"]; ok {
 		return "lottery"
 	}
+	// Oracle observations are JSON too, but identify their source rather than
+	// naming a module.
+	if _, ok := fields["source_id"]; ok {
+		return "oracle"
+	}
 	return "—"
 }
 
@@ -160,6 +165,8 @@ func blockFields(payload string) (module, text string) {
 		return "token", text
 	case strings.HasPrefix(text, "nft "):
 		return "nft", text
+	case strings.HasPrefix(text, "voting "):
+		return "voting", text
 	}
 	return "—", text
 }
@@ -199,10 +206,12 @@ func decodePipePayload(payload string) string {
 		return payload
 	}
 	switch parts[0] {
-	case "mint", "transfer", "transfer_from", "approve", "burn":
+	case "mint", "transfer", "transfer_from", "transferfrom", "approve", "burn":
 		return "token " + strings.Join(readableFields(parts[1:]), " ")
 	case "mint_nft", "transfer_nft", "burn_nft":
 		return "nft " + strings.Join(readableFields(parts[1:]), " ")
+	case "vote":
+		return "voting " + strings.Join(readableFields(parts[1:]), " ")
 	}
 	// An NFT's own mint payload has no verb: `<id>|<name>|<owner key>`, the
 	// id being a UUID rather than a token symbol.

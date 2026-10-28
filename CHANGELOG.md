@@ -136,6 +136,11 @@ documented in their per-milestone ROADMAP files.
   decoded payload, so a value in a long JSON note or after two full token keys
   remains findable. Clipping also counts characters instead of bytes, so a
   Chinese or emoji payload can no longer end in an invalid UTF-8 fragment.
+- **The ledger names every module's recorded payload**: vote blocks, Oracle
+  observations and token `transferfrom` blocks used to appear under an em dash
+  even though the other payload shapes were recognised. They now render as
+  `voting`, `oracle` and `token`, which also makes their rows searchable by
+  module and lets Recent activity route them to the owning page.
 - **Token reads reject malformed public keys**: a base64 owner or spender that
   decoded to the wrong length used to read back as a zero balance, zero
   allowance or empty history for a real token. Balance, allowance and

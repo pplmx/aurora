@@ -476,6 +476,13 @@ func TestLedgerPayloadsReadAsText(t *testing.T) {
 	assert.Contains(t, summary, "AUR")
 	assert.NotContains(t, summary, "\x00", "raw bytes must not reach the table")
 	assert.Contains(t, summary, "AAECYmluYXJ5", "binary fields are shown as base64")
+	assert.Contains(t, blockSummary("transferfrom|AUR|alice|bob"), "token",
+		"the transfer-from verb is written without an underscore")
+
+	// A vote payload has the same pipe shape but belongs to the voting page.
+	vote := blockSummary("vote|dGVzdC1rZXk=|candidate-1|session-1")
+	assert.Contains(t, vote, "voting")
+	assert.Contains(t, vote, "candidate-1")
 
 	// An unknown shape is left alone rather than mangled.
 	assert.Equal(t, "AUR|transfer", blockSummary("AUR|transfer"))
@@ -497,6 +504,9 @@ func TestLedgerReadsAnNFTMintPayload(t *testing.T) {
 func TestLedgerModuleNamesEveryPayloadShape(t *testing.T) {
 	assert.Equal(t, "lottery", blockModuleFor(`{"participants":["A"]}`))
 	assert.Equal(t, "token", blockModuleFor("mint|AUR|\x00\x01"))
+	assert.Equal(t, "token", blockModuleFor("transferfrom|AUR|alice|bob"))
 	assert.Equal(t, "nft", blockModuleFor("5c43a418-ca80-46ba-af63-cc7893d1a5e3|Art|\xae"))
+	assert.Equal(t, "voting", blockModuleFor("vote|dGVzdC1rZXk=|candidate-1|session-1"))
+	assert.Equal(t, "oracle", blockModuleFor(`{"id":"o1","source_id":"s1","value":"42"}`))
 	assert.Equal(t, "—", blockModuleFor("something else entirely"))
 }
