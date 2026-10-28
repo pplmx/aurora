@@ -81,7 +81,7 @@ func TestCORS_RegularRequestWithoutOrigin(t *testing.T) {
 	assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"))
 	assert.Contains(t, rr.Header().Get("Access-Control-Allow-Methods"), "GET")
 	assert.Contains(t, rr.Header().Get("Access-Control-Allow-Methods"), "POST")
-	assert.Equal(t, "Content-Type, X-API-Key", rr.Header().Get("Access-Control-Allow-Headers"))
+	assert.Equal(t, "Content-Type, X-API-Key, X-Request-ID", rr.Header().Get("Access-Control-Allow-Headers"))
 }
 
 func TestCORS_DisallowedOrigin_GetsNoACAO(t *testing.T) {
@@ -120,6 +120,7 @@ func TestCORS_AllowedOrigin_Echoed(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "https://operator.ui", rr.Header().Get("Access-Control-Allow-Origin"))
+	assert.Contains(t, rr.Header().Get("Access-Control-Expose-Headers"), RequestIDHeader)
 }
 
 func TestCORS_PreflightRequest(t *testing.T) {
