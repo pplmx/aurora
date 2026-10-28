@@ -135,7 +135,7 @@ func tabs(c *ui.Context, selected *int, labels ...string) {
 
 func styledButton(c *ui.Context, label string, fill, hover, pressed ui.Color, textColor string) ui.Element {
 	label = tr(label)
-	b := ui.ButtonBase(c).Height(34).PaddingX(14).Radius(buttonRadius).
+	b := ui.ButtonBase(c).Height(max(34, textSize(c, 34))).PaddingX(max(14, textSize(c, 14))).Radius(buttonRadius).
 		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(textColor))
 	state := fill
 	switch {
