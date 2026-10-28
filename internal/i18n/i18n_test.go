@@ -18,6 +18,34 @@ func TestTranslator_Init(t *testing.T) {
 	require.Equal(t, "en", tr.locale)
 }
 
+func TestTranslator_NormalizesSupportedLocaleTags(t *testing.T) {
+	for _, tt := range []struct {
+		tag  string
+		want string
+	}{
+		{tag: "en_US.UTF-8", want: "en"},
+		{tag: "en-GB", want: "en"},
+		{tag: "zh_CN.UTF-8", want: "zh"},
+		{tag: "zh.UTF-8", want: "zh"},
+		{tag: "zh-CN", want: "zh"},
+		{tag: "zh-Hans", want: "zh"},
+		{tag: "zh-Hant-TW", want: "zh"},
+	} {
+		t.Run(tt.tag, func(t *testing.T) {
+			tr := Init(tt.tag)
+			assert.Equal(t, tt.want, tr.GetLocale())
+		})
+	}
+}
+
+func TestTranslator_SetLocaleNormalizesSupportedLocaleTags(t *testing.T) {
+	tr := Init("en")
+	tr.SetLocale("zh-Hant-TW")
+
+	assert.Equal(t, "zh", tr.GetLocale())
+	assert.Equal(t, "版本", tr.T("app.version"))
+}
+
 func TestTranslator_T(t *testing.T) {
 	tr := Init("en")
 
@@ -191,7 +219,7 @@ func TestDetectLocaleReadsDefaultConfigBeforeCobraLoadsIt(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	withWorkingDir(t, t.TempDir())
 	require.NoError(t, os.MkdirAll("config", 0o755))
-	require.NoError(t, os.WriteFile("config/aurora.toml", []byte("[i18n]\nlocale = \"zh\"\n"), 0o600))
+	require.NoError(t, os.WriteFile("config/aurora.toml", []byte("[i18n]\nlocale = \"zh-Hans\"\n"), 0o600))
 
 	previousArgs := os.Args
 	os.Args = []string{"aurora"}
@@ -204,7 +232,7 @@ func TestDetectLocaleReadsExplicitConfigFlag(t *testing.T) {
 	clearLocaleEnv(t)
 	t.Setenv("HOME", t.TempDir())
 	configPath := filepath.Join(t.TempDir(), "custom.toml")
-	require.NoError(t, os.WriteFile(configPath, []byte("[i18n]\nlocale = \"zh\"\n"), 0o600))
+	require.NoError(t, os.WriteFile(configPath, []byte("[i18n]\nlocale = \"zh-CN\"\n"), 0o600))
 
 	for _, tc := range []struct {
 		name string

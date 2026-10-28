@@ -20,20 +20,20 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// captureStdout redirects os.Stdout to a pipe and returns a function that,
-// once called, restores the original stdout and returns everything written
-// to the pipe while captured. The cobra commands in this package print via
-// fmt.Println/fmt.Printf (package-level os.Stdout), not cmd.OutOrStdout,
-// so tests must redirect the process stdout to observe their output.
-func captureStdout(t *testing.T) func() string {
+// captureOutput redirects one process output stream to a pipe and returns a
+// function that restores the stream and returns everything written while it
+// was captured. The cobra commands in this package print via fmt.Println/
+// fmt.Printf (package-level os.Stdout), not cmd.OutOrStdout, so tests must
+// redirect the process stream to observe their output.
+func captureOutput(t *testing.T, stream **os.File) func() string {
 	t.Helper()
 
-	orig := os.Stdout
+	orig := *stream
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("os.Pipe: %v", err)
 	}
-	os.Stdout = w
+	*stream = w
 
 	done := make(chan string, 1)
 	go func() {
@@ -45,9 +45,19 @@ func captureStdout(t *testing.T) func() string {
 	return func() string {
 		t.Helper()
 		_ = w.Close()
-		os.Stdout = orig
+		*stream = orig
 		return <-done
 	}
+}
+
+func captureStdout(t *testing.T) func() string {
+	t.Helper()
+	return captureOutput(t, &os.Stdout)
+}
+
+func captureStderr(t *testing.T) func() string {
+	t.Helper()
+	return captureOutput(t, &os.Stderr)
 }
 
 // resetCliForTest resets package-level state that could leak between

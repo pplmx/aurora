@@ -178,7 +178,8 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
   只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
 - 所有输出遵循语言环境变量 `LC_ALL` → `LANGUAGE` → `LC_MESSAGES` → `LANG`
   的优先级；全未设置时才使用 `[i18n] locale`。`aurora <cmd> --help` 同样
-  本地化。
+  本地化；`[i18n] locale` 可使用 `en`/`zh` 或对应的 BCP 47 标签（如
+  `zh-CN`、`zh-Hans`）。
 
 ## 交互式界面
 

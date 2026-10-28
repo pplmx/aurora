@@ -105,7 +105,7 @@ func TestInitConfig_FallbackPath(t *testing.T) {
 func TestCliConfigLocaleAppliesWithoutLocaleEnvironment(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		configPath := filepath.Join(t.TempDir(), "aurora.toml")
-		require.NoError(t, os.WriteFile(configPath, []byte("[i18n]\nlocale = \"zh\"\n"), 0o600))
+		require.NoError(t, os.WriteFile(configPath, []byte("[i18n]\nlocale = \"zh-Hans\"\n"), 0o600))
 
 		for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE"} {
 			t.Setenv(key, "")
@@ -120,12 +120,16 @@ func TestCliConfigLocaleAppliesWithoutLocaleEnvironment(t *testing.T) {
 		resetFlags(rootCmd)
 		rootCmd.SetArgs([]string{"--config", configPath, "version"})
 		capture := captureStdout(t)
+		captureErr := captureStderr(t)
 		err := rootCmd.Execute()
 		out := capture()
+		errOut := captureErr()
 
 		require.NoError(t, err)
 		assert.Contains(t, out, "版本:")
 		assert.NotContains(t, out, "Version:")
+		assert.Contains(t, errOut, "使用配置文件：")
+		assert.NotContains(t, errOut, "Using config file:")
 	})
 }
 
