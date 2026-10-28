@@ -47,6 +47,12 @@ type votingState struct {
 	voteVoterPub  string
 	votePriv      string
 	voteResult    statusLine
+	// voteSubjectPub/voteSubjectKnown track the voter whose signing context the
+	// ballot form holds. A public key typed directly into the field bypasses
+	// the voter row and registration paths, so the previous voter's private
+	// key and verdict must be dropped when the visible identity changes.
+	voteSubjectPub   string
+	voteSubjectKnown bool
 
 	resultsSession string
 	results        []ResultRow
@@ -335,6 +341,7 @@ func (a *App) clearSessionRoster() {
 // session, cast a signed ballot), and results. The four areas used to be
 // stacked at once, so a first-time operator had no visible order.
 func (a *App) votingView(c *ui.Context) {
+	a.syncVoteSubject()
 	a.scrollPage(c, func() {
 		// loadVoting keeps both lists when either read fails, so the warning
 		// is drawn once for the page and both lists keep their last successful
@@ -500,7 +507,7 @@ func (a *App) applyVoterRegistration(v VoterRow) {
 	a.rememberSuccessfulKey(v.PublicKey, v.PrivateKey)
 	a.voting.voterPub, a.voting.voterPriv = v.PublicKey, v.PrivateKey
 	a.voting.status = okStatus("Registered %s. The ballot fields are filled from the new key pair.", v.Name)
-	a.voting.voteVoterPub = v.PublicKey
+	a.applyVoteVoter(v.PublicKey)
 	a.voting.votePriv = v.PrivateKey
 	a.voting.voterName = ""
 	a.voting.voterSearch, a.voting.voterApplied = "", ""
@@ -518,6 +525,38 @@ func (a *App) selectVoterByPublicKey(publicKey string) {
 			return
 		}
 	}
+}
+
+// applyVoteVoter moves the ballot identity and clears signing state that
+// belonged to the previous voter. The private key is set separately by the
+// registration path because that is the one response allowed to supply it.
+func (a *App) applyVoteVoter(publicKey string) {
+	publicKey = strings.TrimSpace(publicKey)
+	if a.voting.voteVoterPub != publicKey {
+		a.voting.votePriv = ""
+		a.voting.voteResult = statusLine{}
+	}
+	a.voting.voteVoterPub = publicKey
+	a.voting.voteSubjectPub = publicKey
+	a.voting.voteSubjectKnown = true
+}
+
+// syncVoteSubject reacts to the public-key field being edited by hand. The
+// first frame adopts state restored before the page was opened; after that,
+// changing the visible voter invalidates the old private key and verdict.
+func (a *App) syncVoteSubject() {
+	current := strings.TrimSpace(a.voting.voteVoterPub)
+	if !a.voting.voteSubjectKnown {
+		a.voting.voteSubjectPub = current
+		a.voting.voteSubjectKnown = true
+		return
+	}
+	if current == a.voting.voteSubjectPub {
+		return
+	}
+	a.voting.votePriv = ""
+	a.voting.voteResult = statusLine{}
+	a.voting.voteSubjectPub = current
 }
 
 func (a *App) votingSessions(c *ui.Context) {
@@ -589,11 +628,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 	})
 	if table.Changed() && a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
 		publicKey := voters[a.voting.voterChoice].PublicKey
-		if a.voting.voteVoterPub != publicKey {
-			a.voting.votePriv = ""
-			a.voting.voteResult = statusLine{}
-		}
-		a.voting.voteVoterPub = publicKey
+		a.applyVoteVoter(publicKey)
 	}
 	if a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
 		chosen := voters[a.voting.voterChoice]
