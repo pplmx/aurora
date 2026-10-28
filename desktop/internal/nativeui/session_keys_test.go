@@ -70,6 +70,14 @@ func TestForgetSessionKeysClearsWhatFormsCanReuse(t *testing.T) {
 	require.True(t, tester.HasText("Forget all session keys?"))
 	require.True(t, tester.Focused(tr("Cancel")), "the safe action must receive initial focus")
 
+	require.NoError(t, tester.Click("Cancel"))
+	tester.Frame()
+	require.Equal(t, 1, app.rememberedKeyCount())
+	require.True(t, tester.Focused("Forget session keys"),
+		"Cancel must return focus to the button that opened the dialog")
+
+	require.NoError(t, tester.Click("Forget session keys"))
+	tester.Frame()
 	require.NoError(t, tester.Click("Forget keys"))
 	tester.Frame()
 	require.Zero(t, app.rememberedKeyCount())
@@ -107,6 +115,8 @@ func TestSessionKeyCheckboxIsTheOptIn(t *testing.T) {
 	tester.Frame()
 	require.True(t, app.rememberKeys)
 	require.Equal(t, 1, app.rememberedKeyCount(), "Cancel must preserve the keys")
+	require.True(t, tester.Focused("Remember private keys for this session"),
+		"Cancel must return focus to the checkbox that opened the dialog")
 
 	require.NoError(t, tester.Click("Remember private keys for this session"))
 	tester.Frame()
