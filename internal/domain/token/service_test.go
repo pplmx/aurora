@@ -1171,6 +1171,51 @@ func TestGetTransferHistory(t *testing.T) {
 	}
 }
 
+// TestGetTransferHistory_EmptyOwnerReadsWholeTokenStream pins the optional
+// owner contract used by the desktop, CLI and REST surfaces. Before this path,
+// an empty owner reached the owner-scoped reader as a zero-byte key and
+// returned an empty history even though the token had transfers.
+func TestGetTransferHistory_EmptyOwnerReadsWholeTokenStream(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	service := NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), blockchain.New())
+
+	owner := pubKey(1)
+	privateKey := privKey(1)
+	_, err := service.CreateToken(&CreateTokenRequest{
+		Name:        "Test Token",
+		Symbol:      "TEST",
+		TotalSupply: NewAmount(1000),
+		Owner:       owner,
+	})
+	if err != nil {
+		t.Fatalf("CreateToken failed: %v", err)
+	}
+
+	recipient := pubKey(2)
+	_, err = service.Transfer(&TransferRequest{
+		TokenID:    "TEST",
+		From:       owner,
+		To:         recipient,
+		Amount:     NewAmount(10),
+		PrivateKey: privateKey,
+	})
+	if err != nil {
+		t.Fatalf("Transfer failed: %v", err)
+	}
+
+	history, err := service.GetTransferHistory("TEST", nil, 10, 0)
+	if err != nil {
+		t.Fatalf("GetTransferHistory failed: %v", err)
+	}
+	if len(history) != 1 {
+		t.Fatalf("expected 1 transfer, got %d", len(history))
+	}
+	if !bytes.Equal(history[0].From(), owner) || !bytes.Equal(history[0].To(), recipient) {
+		t.Fatalf("unexpected transfer endpoints: %x -> %x", history[0].From(), history[0].To())
+	}
+}
+
 type mockRepository struct {
 	tokens    map[TokenID]*Token
 	balances  map[string]*Amount
@@ -1476,17 +1521,31 @@ func (m *mockEventStore) GetTransferEventsByOwner(tokenID TokenID, owner PublicK
 			result = append(result, e)
 		}
 	}
+	return pageTransferEvents(result, limit, offset), nil
+}
+
+func (m *mockEventStore) GetTransferEventsByToken(tokenID TokenID, limit, offset int) ([]*TransferEvent, error) {
+	var result []*TransferEvent
+	for _, e := range m.transferEvents {
+		if e.TokenID() == tokenID {
+			result = append(result, e)
+		}
+	}
+	return pageTransferEvents(result, limit, offset), nil
+}
+
+func pageTransferEvents(events []*TransferEvent, limit, offset int) []*TransferEvent {
 	if limit <= 0 {
 		limit = 50
 	}
-	if offset >= len(result) {
-		return []*TransferEvent{}, nil
+	if offset >= len(events) {
+		return []*TransferEvent{}
 	}
 	end := offset + limit
-	if end > len(result) {
-		end = len(result)
+	if end > len(events) {
+		end = len(events)
 	}
-	return result[offset:end], nil
+	return events[offset:end]
 }
 
 type mockEventBus struct {

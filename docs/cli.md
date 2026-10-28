@@ -82,7 +82,7 @@ aurora token info -t <token-id>
 aurora token mint -t <token-id> --to <address> --amount 100 -k "<private-key>"
 aurora token transfer -t <token-id> --from <addr> --to <address> --amount 50 -k "<key>"
 aurora token balance -t <token-id> --owner <address>
-aurora token history -t <token-id> --owner <address> --limit 50 --offset 0
+aurora token history -t <token-id> [--owner <address>] --limit 50 --offset 0
 aurora token approve -t <token-id> --owner <addr> --spender <addr> --amount 100 -k "<key>"
 aurora token allowance -t <token-id> --owner <addr> --spender <addr>
 aurora token transfer-from -t <token-id> -o <owner> --to <addr> -a <amount> \
@@ -93,6 +93,8 @@ aurora token burn -t <token-id> --from <addr> --amount 10 -k "<key>" --confirm
 `-d/--decimals` 默认 8，取值 0..127；显式传 `0` 会被尊重。
 `token list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0 时只
 读取该页并打印本页数量与偏移；`--offset` 默认 0。
+`token history` 省略 `--owner` 时分页读取整个代币的转账流水；提供该参数时只
+返回该账户发出或收到的转账。
 
 ## 预言机
 

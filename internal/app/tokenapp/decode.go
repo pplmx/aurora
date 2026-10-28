@@ -13,9 +13,8 @@ import (
 // HTTP 400 INVALID_BASE64. Before this helper the raw stdlib decode error was
 // wrapped in an unclassified fmt.Errorf and surfaced as 500 INTERNAL_ERROR,
 // polluting server metrics and hiding the actionable message (TASK-095,
-// ISS-089). (An empty value is not an error here: it decodes to zero bytes and
-// flows on to the existing ErrPublicKeyRequired / ErrOwnerRequired checks,
-// which are already classified as 400.)
+// ISS-089). Callers that allow an omitted key must handle the empty string
+// before calling this helper.
 func decodeKey(field, s string) ([]byte, error) {
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {

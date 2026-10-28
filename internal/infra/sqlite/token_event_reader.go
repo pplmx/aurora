@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/domain/token"
 	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )
@@ -46,22 +47,45 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 		return nil, err
 	}
 
+	return decodeTransferEvents(tokenID, events, func(payload transferPayload) bool {
+		return payload.From == ownerB64 || payload.To == ownerB64
+	}), nil
+}
+
+// GetTransferEventsByToken pages over every transfer in a token's audit
+// stream. The query restricts both aggregate and event type before applying
+// LIMIT/OFFSET, so interleaved mint, approve and burn events cannot consume a
+// history page.
+func (r *TokenEventReader) GetTransferEventsByToken(tokenID token.TokenID, limit, offset int) ([]*token.TransferEvent, error) {
+	stored, err := r.store.GetByAggregateAndType(string(tokenID), "token.transfer", limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	return decodeTransferEvents(tokenID, stored, nil), nil
+}
+
+type transferPayload struct {
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Amount      string `json:"amount"`
+	Nonce       uint64 `json:"nonce"`
+	Sig         string `json:"sig"`
+	BlockHeight int64  `json:"block_height"`
+}
+
+// decodeTransferEvents maps stored audit payloads into domain events. An
+// optional keep predicate applies the owner-side post-scan check that protects
+// the memory path even if the SQL predicate and payload disagree.
+func decodeTransferEvents(tokenID token.TokenID, stored []events.Event, keep func(transferPayload) bool) []*token.TransferEvent {
 	var result []*token.TransferEvent
 
-	for _, e := range events {
-		var payload struct {
-			From        string `json:"from"`
-			To          string `json:"to"`
-			Amount      string `json:"amount"`
-			Nonce       uint64 `json:"nonce"`
-			Sig         string `json:"sig"`
-			BlockHeight int64  `json:"block_height"`
-		}
+	for _, e := range stored {
+		var payload transferPayload
 		if err := json.Unmarshal(e.Payload(), &payload); err != nil {
 			continue
 		}
 
-		if payload.From != ownerB64 && payload.To != ownerB64 {
+		if keep != nil && !keep(payload) {
 			continue
 		}
 
@@ -78,7 +102,7 @@ func (r *TokenEventReader) GetTransferEventsByOwner(tokenID token.TokenID, owner
 		result = append(result, evt)
 	}
 
-	return result, nil
+	return result
 }
 
 func (r *TokenEventReader) Close() error {

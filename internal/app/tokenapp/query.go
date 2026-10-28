@@ -146,9 +146,13 @@ func NewGetHistoryUseCase(service token.Service) *GetHistoryUseCase {
 }
 
 func (uc *GetHistoryUseCase) Execute(req *HistoryRequest) (*HistoryResponse, error) {
-	owner, err := decodeKey("owner", req.Owner)
-	if err != nil {
-		return nil, err
+	var owner token.PublicKey
+	if req.Owner != "" {
+		decoded, err := decodeKey("owner", req.Owner)
+		if err != nil {
+			return nil, err
+		}
+		owner = decoded
 	}
 
 	events, err := uc.service.GetTransferHistory(token.TokenID(req.TokenID), owner, req.Limit, req.Offset)

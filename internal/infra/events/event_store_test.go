@@ -258,6 +258,37 @@ func TestSQLiteEventStore_GetByAggregate(t *testing.T) {
 	})
 }
 
+func TestSQLiteEventStore_GetByAggregateAndTypePagesOnlyMatches(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	const agg = "TOK-1"
+	for i := 0; i < 3; i++ {
+		require.NoError(t, store.Save(events.NewBaseEvent(
+			"token.transfer", agg, []byte(fmt.Sprintf(`{"step":%d}`, i)))))
+		require.NoError(t, store.Save(events.NewBaseEvent(
+			"token.mint", agg, []byte(fmt.Sprintf(`{"step":%d}`, i)))))
+	}
+	require.NoError(t, store.Save(events.NewBaseEvent("token.transfer", "TOK-2", []byte(`{}`))))
+
+	first, err := store.GetByAggregateAndType(agg, "token.transfer", 1, 0)
+	require.NoError(t, err)
+	require.Len(t, first, 1)
+
+	second, err := store.GetByAggregateAndType(agg, "token.transfer", 1, 1)
+	require.NoError(t, err)
+	require.Len(t, second, 1)
+	assert.NotEqual(t, first[0].ID(), second[0].ID())
+
+	all, err := store.GetByAggregateAndType(agg, "token.transfer", 50, 0)
+	require.NoError(t, err)
+	require.Len(t, all, 3, "mint events must not consume a transfer page")
+	for _, event := range all {
+		assert.Equal(t, "token.transfer", event.EventType())
+		assert.Equal(t, agg, event.AggregateID())
+	}
+}
+
 // TestSQLiteEventStore_GetByAggregate_ZeroLimitMeansAll locks that a 0/negative
 // limit to GetByAggregate means "no limit" (SQLite -1), matching the NFT list
 // repo's TASK-101 convention. It previously meant "default 50", so a token

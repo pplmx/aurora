@@ -85,6 +85,15 @@ func TestTokenAudit_TransferAppearsInHistoryOverHTTP(t *testing.T) {
 	require.Equal(t, ownerPub, resp[0].From)
 	require.Equal(t, recipientPub, resp[0].To)
 	require.Positive(t, resp[0].BlockHeight)
+
+	// Omitting owner selects the token-wide stream. Before the optional-owner
+	// path this request was rejected as "owner is required", despite the
+	// desktop form promising that an empty value pages the whole stream.
+	rr = request(http.MethodGet, "/api/v1/token/history?token_id=AUD&limit=20", "")
+	require.Equal(t, http.StatusOK, rr.Code, "token-wide history body: %s", rr.Body.String())
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	require.Len(t, resp, 1, "the token-wide stream must include the transfer")
+	require.Equal(t, recipientPub, resp[0].To)
 }
 
 // TestTokenCreate_DecimalsOverHTTP locks the v1.79 fix that the optional

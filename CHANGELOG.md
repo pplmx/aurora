@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Token history can read the whole token, not only one owner**: the desktop
+  History card promised that an empty Owner field would page the token's entire
+  transfer stream, but the request reached an owner-scoped reader as a
+  zero-byte key and returned an empty result. Token-wide reads now apply
+  `LIMIT`/`OFFSET` to `token.transfer` events only, and the same optional-owner
+  contract is available from `GET /api/v1/token/history` and
+  `aurora token history`.
 - **The command palette searches and renders its translated labels**: a Chinese
   window drew translated page names and purposes but filtered the list against
   the English source strings, so typing a name visible on screen ("设置") found

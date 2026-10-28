@@ -175,7 +175,6 @@ func init() {
 	tokenHistoryCmd.Flags().IntP("limit", "l", 50, i18n.GetText("token.limit"))
 	tokenHistoryCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	_ = tokenHistoryCmd.MarkFlagRequired("token")
-	_ = tokenHistoryCmd.MarkFlagRequired("owner")
 
 	tokenInfoCmd.Flags().StringP("token", "t", "", i18n.GetText("token.token_id"))
 	_ = tokenInfoCmd.MarkFlagRequired("token")

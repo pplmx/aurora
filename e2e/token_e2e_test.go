@@ -197,14 +197,24 @@ func newInMemoryEventStore() *inMemoryEventStore {
 	}
 }
 
-func (e *inMemoryEventStore) GetTransferEventsByToken(tokenID token.TokenID) ([]*token.TransferEvent, error) {
+func (e *inMemoryEventStore) GetTransferEventsByToken(tokenID token.TokenID, limit, offset int) ([]*token.TransferEvent, error) {
 	var result []*token.TransferEvent
 	for _, event := range e.transferEvents {
 		if event.TokenID() == tokenID {
 			result = append(result, event)
 		}
 	}
-	return result, nil
+	if offset >= len(result) {
+		return []*token.TransferEvent{}, nil
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+	end := offset + limit
+	if end > len(result) {
+		end = len(result)
+	}
+	return result[offset:end], nil
 }
 
 func (e *inMemoryEventStore) GetTransferEventsByOwner(tokenID token.TokenID, owner token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {

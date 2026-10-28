@@ -234,11 +234,15 @@ func TestTokenHandler_ResponseContentType(t *testing.T) {
 // passed to GetTransferHistory so the handler's cap is observable.
 type recordingHistoryService struct {
 	fakeTokenServiceFull
+	gotToken  token.TokenID
+	gotOwner  token.PublicKey
 	gotLimit  int
 	gotOffset int
 }
 
-func (r *recordingHistoryService) GetTransferHistory(_ token.TokenID, _ token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
+func (r *recordingHistoryService) GetTransferHistory(tokenID token.TokenID, owner token.PublicKey, limit, offset int) ([]*token.TransferEvent, error) {
+	r.gotToken = tokenID
+	r.gotOwner = owner
 	r.gotLimit = limit
 	r.gotOffset = offset
 	return nil, nil
@@ -293,21 +297,20 @@ func TestTokenHandler_History_CapsUnboundedOffset(t *testing.T) {
 	assert.Equal(t, maxHistoryOffset, svc.gotOffset, "unbounded ?offset must be capped")
 }
 
-// TestTokenHandler_History_MissingParamsAreBadRequest pins the contract that
-// History validates its query params like its sibling endpoints: a missing/
-// empty token_id or owner must be a 400 INVALID_REQUEST, never a silent
-// 200 [] that a client typo could read as "no activity" (ISS-163).
-func TestTokenHandler_History_MissingParamsAreBadRequest(t *testing.T) {
+// TestTokenHandler_History_MissingTokenIsBadRequest pins the contract that
+// History validates its subject like its sibling endpoints: a missing/empty
+// token_id must be a 400 INVALID_REQUEST, never a silent 200 [] that a client
+// typo could read as "no activity" (ISS-163).
+func TestTokenHandler_History_MissingTokenIsBadRequest(t *testing.T) {
 	svc := &recordingHistoryService{}
 	handler := NewTokenHandler(svc)
 
 	for name, query := range map[string]string{
-		"missing both":  "",
-		"missing token": "owner=YWxpY2U=",
-		"missing owner": "token_id=t1",
-		"empty token":   "token_id=&owner=YWxpY2U=",
-		"empty owner":   "token_id=t1&owner=",
-		"empty both":    "token_id=&owner=",
+		"missing both":     "",
+		"missing token":    "owner=YWxpY2U=",
+		"empty token":      "token_id=&owner=YWxpY2U=",
+		"empty both":       "token_id=&owner=",
+		"empty token only": "token_id=",
 	} {
 		t.Run(name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/token/history?"+query, nil)
@@ -317,6 +320,20 @@ func TestTokenHandler_History_MissingParamsAreBadRequest(t *testing.T) {
 			assert.Contains(t, rr.Body.String(), "INVALID_REQUEST", "case %q", name)
 		})
 	}
+}
+
+func TestTokenHandler_History_OmittedOwnerRequestsWholeTokenStream(t *testing.T) {
+	svc := &recordingHistoryService{}
+	handler := NewTokenHandler(svc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/history?token_id=t1", nil)
+	rr := httptest.NewRecorder()
+
+	handler.History(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	assert.Equal(t, token.TokenID("t1"), svc.gotToken)
+	assert.Empty(t, svc.gotOwner, "an omitted owner must select the token-wide stream")
 }
 
 func TestTokenHandler_Approve_Success(t *testing.T) {
