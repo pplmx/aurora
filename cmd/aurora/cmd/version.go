@@ -28,7 +28,7 @@ var (
 // to the link-time variables above instead of hardcoded placeholders.
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show version information",
+	Short: i18n.GetText("version.short"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		out := cmd.OutOrStdout()
 		fmt.Fprintln(out, i18n.GetText("app.name"))

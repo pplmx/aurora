@@ -311,6 +311,7 @@ func forceLazyTranslatorForTest() (*Translator, func()) {
 func TestGetTranslator_LazyInit(t *testing.T) {
 	// The lazy default follows LANG by design (TASK-128/ISS-123), so this
 	// test pins the environment it asserts instead of inheriting one.
+	clearLocaleEnv(t)
 	t.Setenv("LANG", "en_US.UTF-8")
 
 	tr, restore := forceLazyTranslatorForTest()
