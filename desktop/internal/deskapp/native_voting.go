@@ -1,9 +1,12 @@
 package deskapp
 
 import (
+	"errors"
+
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
 
 	"github.com/pplmx/aurora/internal/app/votingapp"
+	"github.com/pplmx/aurora/internal/domain/repoerr"
 )
 
 // --- Voting --------------------------------------------------------------
@@ -90,6 +93,30 @@ func (s *nativeServices) Voters(limit, offset int) ([]nativeui.VoterRow, error) 
 		})
 	}
 	return rows, nil
+}
+
+func (s *nativeServices) CandidateNames(ids []string) (map[string]string, error) {
+	names := make(map[string]string, len(ids))
+	seen := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		candidate, err := s.votingRepo.GetCandidate(id)
+		if errors.Is(err, repoerr.ErrNotFound) {
+			// A deleted candidate remains in an old session's audit roster.
+			// The view falls back to the shortened id.
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if candidate != nil {
+			names[id] = candidate.Name
+		}
+	}
+	return names, nil
 }
 
 func (s *nativeServices) Sessions(limit, offset int) ([]nativeui.SessionRow, error) {

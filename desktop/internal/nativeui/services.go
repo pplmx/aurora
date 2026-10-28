@@ -32,6 +32,10 @@ type Services interface {
 	// needs every candidate for an empty session roster.
 	Voters(limit, offset int) ([]VoterRow, error)
 	Candidates(limit, offset int) ([]CandidateRow, error)
+	// CandidateNames resolves the names needed by a selected session's roster.
+	// A session stores ids only, and its roster may include candidates outside
+	// the currently visible page.
+	CandidateNames(ids []string) (map[string]string, error)
 	Sessions(limit, offset int) ([]SessionRow, error)
 	StartSession(id string) error
 	EndSession(id string) error

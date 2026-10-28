@@ -29,7 +29,9 @@ type fakeServices struct {
 	voters     int
 	voterRows  []VoterRow
 	candidates []CandidateRow
-	sessions   []SessionRow
+	// candidateNames supplies roster names beyond the current candidate page.
+	candidateNames map[string]string
+	sessions       []SessionRow
 
 	verifyResult VerifyResult
 	verifyErr    error
@@ -79,6 +81,8 @@ type fakeServices struct {
 	candidateListCalls  int
 	lastCandidateLimit  int
 	lastCandidateOffset int
+	candidateNameCalls  int
+	lastRosterIDs       []string
 	sessionListCalls    int
 	lastSessionLimit    int
 	lastSessionOffset   int
@@ -125,18 +129,19 @@ type fakeServices struct {
 
 // fakeLoadErrors is one failure hook per read a page performs.
 type fakeLoadErrors struct {
-	history    error
-	health     error
-	templates  error
-	blocks     error
-	tokens     error
-	nfts       error
-	sources    error
-	voters     error
-	candidates error
-	sessions   error
-	chain      error
-	stats      error
+	history       error
+	health        error
+	templates     error
+	blocks        error
+	tokens        error
+	nfts          error
+	sources       error
+	voters        error
+	candidates    error
+	sessionRoster error
+	sessions      error
+	chain         error
+	stats         error
 	// Per-readout failures: the list-level hooks above must not be the only
 	// way to exercise a failed detail read.
 	tokenInfo    error
@@ -273,6 +278,21 @@ func (f *fakeServices) Candidates(limit, offset int) ([]CandidateRow, error) {
 		rows = rows[:limit]
 	}
 	return rows, nil
+}
+func (f *fakeServices) CandidateNames(ids []string) (map[string]string, error) {
+	f.candidateNameCalls++
+	f.lastRosterIDs = append([]string(nil), ids...)
+	if f.loadErrs.sessionRoster != nil {
+		return nil, f.loadErrs.sessionRoster
+	}
+	names := make(map[string]string, len(ids))
+	for _, candidate := range f.candidates {
+		names[candidate.ID] = candidate.Name
+	}
+	for id, name := range f.candidateNames {
+		names[id] = name
+	}
+	return names, nil
 }
 func (f *fakeServices) Sessions(limit, offset int) ([]SessionRow, error) {
 	f.sessionListCalls++

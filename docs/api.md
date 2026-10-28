@@ -78,7 +78,7 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 会期对象带 `start_time` / `end_time`（unix 秒），即选票被接受的时间窗：窗口之外
 的投票会被拒绝，调用方据此可以在提交前解释原因。
-候选人列表和会期列表都在存储层分页，`limit` 上限 100，`offset` 上限 10000；
+候选人、选民与会期列表都在存储层分页，`limit` 上限 100，`offset` 上限 10000；
 缺失或非法参数使用默认页，超出上限的 `limit`/`offset` 会被截断，不会被解释成
 无界读取。
 

@@ -85,6 +85,12 @@ type votingState struct {
 	voterApplied   string
 	candApplied    string
 	sessionApplied string
+	// rosterSessionID identifies the successful name lookup behind
+	// rosterNames. A session stores only candidate ids, and its roster can
+	// reach beyond the visible candidate page.
+	rosterSessionID string
+	rosterNames     map[string]string
+	rosterErr       error
 
 	voterNameErr string
 	candNameErr  string
@@ -125,6 +131,7 @@ func (a *App) loadVoting() {
 	a.restoreVoterChoice(voterKey)
 	a.restoreCandidateChoice(candID)
 	a.restoreSessionChoice(sessionID)
+	a.loadSelectedSessionRoster()
 }
 
 func (a *App) loadVoterPage(offset int) bool {
@@ -273,6 +280,53 @@ func (a *App) restoreSessionChoice(id string) {
 			return
 		}
 	}
+}
+
+func (a *App) selectedSession() (SessionRow, bool) {
+	rows := a.filteredSessions()
+	if a.voting.sessionChoice < 0 || a.voting.sessionChoice >= len(rows) {
+		return SessionRow{}, false
+	}
+	return rows[a.voting.sessionChoice], true
+}
+
+// loadSelectedSessionRoster resolves the names that a selected session's
+// stored candidate ids refer to. Candidate lists are paged, so looking only at
+// the visible rows turned older roster entries into opaque shortened ids.
+func (a *App) loadSelectedSessionRoster() {
+	session, ok := a.selectedSession()
+	if !ok {
+		a.clearSessionRoster()
+		return
+	}
+	a.loadSessionRoster(session.ID, session.Candidates)
+}
+
+func (a *App) loadSessionRoster(sessionID string, ids []string) {
+	if a.services == nil {
+		return
+	}
+	if a.voting.rosterSessionID != sessionID {
+		// Never leave the previous session's names under a new roster when the
+		// fresh read fails.
+		a.voting.rosterSessionID = ""
+		a.voting.rosterNames = nil
+		a.voting.rosterErr = nil
+	}
+	names, err := a.services.CandidateNames(ids)
+	if err != nil {
+		a.voting.rosterErr = err
+		return
+	}
+	a.voting.rosterSessionID = sessionID
+	a.voting.rosterNames = names
+	a.voting.rosterErr = nil
+}
+
+func (a *App) clearSessionRoster() {
+	a.voting.rosterSessionID = ""
+	a.voting.rosterNames = nil
+	a.voting.rosterErr = nil
 }
 
 // votingView splits the page into the three stages an operator moves through:
@@ -620,6 +674,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 	if a.voting.sessionSearch != a.voting.sessionApplied {
 		a.voting.sessionApplied = a.voting.sessionSearch
 		a.voting.sessionChoice = -1
+		a.clearSessionRoster()
 	}
 	if previous, next := listPager(c, a.voting.sessionOffset, len(a.voting.sessions), a.voting.sessionHasMore); previous || next {
 		target := a.voting.sessionOffset
@@ -630,6 +685,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 		if a.loadSessionPage(target) {
 			a.voting.sessionChoice = -1
+			a.clearSessionRoster()
 		}
 		return
 	}
@@ -678,15 +734,20 @@ func (a *App) votingSessionList(c *ui.Context) {
 			a.clearTallyForAnotherSession(id)
 			_ = a.loadSessionResults(id)
 		}
+		a.loadSelectedSessionRoster()
 	}
 	if a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
 		// The row cannot show the roster (the window column already fills the
 		// width), but an operator about to start or end a session needs to see
 		// who is on the ballot and what the session is for.
 		chosen := sessions[a.voting.sessionChoice]
+		if a.voting.rosterErr != nil {
+			_ = loadWarning(c, "Couldn't load session roster", a.voting.rosterErr,
+				a.voting.rosterSessionID == chosen.ID)
+		}
 		readout(c, []readoutRow{
 			{"About", valueOr(chosen.Description)},
-			{"Roster", a.sessionRosterNames(chosen.Candidates)},
+			{"Roster", a.sessionRosterNames(chosen.ID, chosen.Candidates)},
 		})
 		copyRow(c, "Selected session ID", chosen.ID, nil)
 	}
@@ -704,17 +765,22 @@ func (a *App) filteredSessions() []SessionRow {
 
 // sessionRosterNames renders a session's candidate ids as names, falling back
 // to the shortened id when a candidate has been deleted.
-func (a *App) sessionRosterNames(ids []string) string {
+func (a *App) sessionRosterNames(sessionID string, ids []string) string {
 	if len(ids) == 0 {
 		return "—"
 	}
 	names := make([]string, 0, len(ids))
 	for _, id := range ids {
 		name := ""
-		for _, candidate := range a.voting.candidates {
-			if candidate.ID == id {
-				name = candidate.Name
-				break
+		if a.voting.rosterSessionID == sessionID {
+			name = a.voting.rosterNames[id]
+		}
+		if name == "" {
+			for _, candidate := range a.voting.candidates {
+				if candidate.ID == id {
+					name = candidate.Name
+					break
+				}
 			}
 		}
 		if name == "" {
@@ -899,9 +965,11 @@ func (a *App) createVotingSession() {
 // cleared first so the index is in the list the table actually shows.
 func (a *App) selectSessionByID(id string) {
 	a.voting.sessionSearch, a.voting.sessionApplied = "", ""
+	a.clearSessionRoster()
 	for i, session := range a.filteredSessions() {
 		if session.ID == id {
 			a.voting.sessionChoice = i
+			a.loadSelectedSessionRoster()
 			return
 		}
 	}

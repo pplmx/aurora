@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Session rosters resolve candidate names beyond the visible page**: the
+  desktop candidate list pages at 100 rows, but a selected session's audit
+  roster previously looked up names only in that page and fell back to opaque
+  ids for every older candidate. The roster now resolves its own ids on demand,
+  de-duplicates them, and keeps names from the same session across a failed
+  refresh; switching sessions clears the previous roster before the new read.
+
 - **Desktop collection pagers stop at an exact page boundary**: Token and NFT
   collections fetch one row beyond the visible page, so a collection whose size
   is exactly 100 no longer offers a Next button that opens an empty page and

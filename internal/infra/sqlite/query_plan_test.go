@@ -106,10 +106,10 @@ func TestNFTListingNeedsNoTempBTree(t *testing.T) {
 }
 
 // TestCollectionListsUseTheirIndexes covers the collection reads the operator
-// sees as lists. Voters are a newest-first full read, while Oracle sources and
-// voting candidates/sessions page with a deterministic id tie-breaker. Without
-// the matching indexes every row is materialised and sorted before LIMIT can
-// apply (measured: "SCAN ... USE TEMP B-TREE FOR ORDER BY").
+// sees as lists. Oracle sources and voting voters/candidates/sessions all page
+// with a deterministic tie-breaker. Without the matching indexes every row is
+// materialised and sorted before LIMIT can apply (measured: "SCAN ... USE TEMP
+// B-TREE FOR ORDER BY").
 func TestCollectionListsUseTheirIndexes(t *testing.T) {
 	oracleRepo, oracleCleanup := setupOracleTestDB(t)
 	defer oracleCleanup()

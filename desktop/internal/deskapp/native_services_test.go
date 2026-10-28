@@ -3,6 +3,7 @@ package deskapp
 import (
 	"crypto/ed25519"
 	"encoding/base64"
+	"errors"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
@@ -10,6 +11,7 @@ import (
 	"github.com/pplmx/aurora/internal/app/votingapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/stretchr/testify/require"
@@ -85,6 +87,57 @@ func TestVoterListRowsOmitTheRegistrationPrivateKey(t *testing.T) {
 	require.Equal(t, "Alice", rows[0].Name)
 	require.True(t, rows[0].HasVoted)
 	require.Empty(t, rows[0].PrivateKey, "list reads must not carry a registration secret")
+}
+
+type candidateNamesRepo struct {
+	voting.TransactableRepository
+	candidates map[string]*voting.Candidate
+	lookupErr  map[string]error
+	lookups    []string
+}
+
+func (r *candidateNamesRepo) GetCandidate(id string) (*voting.Candidate, error) {
+	r.lookups = append(r.lookups, id)
+	if err := r.lookupErr[id]; err != nil {
+		return nil, err
+	}
+	if candidate, ok := r.candidates[id]; ok {
+		return candidate, nil
+	}
+	return nil, repoerr.ErrNotFound
+}
+
+func TestCandidateNamesResolveSessionRosterOutsideTheCurrentPage(t *testing.T) {
+	repo := &candidateNamesRepo{
+		candidates: map[string]*voting.Candidate{
+			"cand-101": {ID: "cand-101", Name: "Alice"},
+			"cand-102": {ID: "cand-102", Name: "Bob"},
+		},
+		lookupErr: map[string]error{"cand-deleted": repoerr.ErrNotFound},
+	}
+	services := &nativeServices{votingRepo: repo}
+
+	names, err := services.CandidateNames([]string{
+		"cand-101", "cand-deleted", "cand-102", "cand-101", "cand-deleted",
+	})
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{
+		"cand-101": "Alice",
+		"cand-102": "Bob",
+	}, names)
+	require.Equal(t, []string{"cand-101", "cand-deleted", "cand-102"}, repo.lookups,
+		"the adapter should de-duplicate a roster without hiding a deleted candidate")
+}
+
+func TestCandidateNamesReturnARealStorageFailure(t *testing.T) {
+	boom := errors.New("database is locked")
+	services := &nativeServices{votingRepo: &candidateNamesRepo{
+		lookupErr: map[string]error{"cand-101": boom},
+	}}
+
+	names, err := services.CandidateNames([]string{"cand-101"})
+	require.ErrorIs(t, err, boom)
+	require.Nil(t, names, "a partial roster must not be presented as a successful read")
 }
 
 func TestDashboardUsesAggregateCountsWithoutMaterialisingCollections(t *testing.T) {

@@ -2,8 +2,8 @@
 -- Version: 000006
 --
 -- `token list`, GET /api/v1/token/list and the desktop Tokens card read the
--- whole collection newest first. Measured with EXPLAIN QUERY PLAN against a
--- database the repository itself created:
+-- collection newest first, one bounded page at a time. Measured with EXPLAIN
+-- QUERY PLAN against a database the repository itself created:
 --
 --   SELECT ... FROM tokens ORDER BY created_at DESC, id
 --     -> SCAN tokens, USE TEMP B-TREE FOR ORDER BY
