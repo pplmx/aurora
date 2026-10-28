@@ -467,7 +467,7 @@ func (a *App) nftListBody(c *ui.Context) {
 		a.nftListRecords(c, list)
 	} else {
 		a.nft.listTable.Selected = &a.nft.selected
-		table := ui.Table(c, &a.nft.listTable, []ui.TableColumn{
+		table := namedTable(c, "NFT collection", &a.nft.listTable, []ui.TableColumn{
 			{Title: tr("ID"), Width: 150},
 			{Title: tr("Name"), MinWidth: 110},
 			// A ledger height is an int64 and can reach nineteen digits. Give
@@ -780,7 +780,7 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 	if stackedRecords(c) {
 		nftHistoryRecords(c, ops)
 	} else {
-		ui.Table(c, &a.nft.historyTable, []ui.TableColumn{
+		namedTable(c, "NFT operation history", &a.nft.historyTable, []ui.TableColumn{
 			{Title: tr("Type"), Width: 100},
 			{Title: tr("From"), Width: 160},
 			{Title: tr("To"), Width: 160},

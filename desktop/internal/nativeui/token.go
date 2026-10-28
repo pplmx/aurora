@@ -240,7 +240,7 @@ func (a *App) tokenList(c *ui.Context) {
 			a.tokenListRecords(c, rows)
 		} else {
 			a.token.list.Selected = &a.token.chosen
-			table := ui.Table(c, &a.token.list, []ui.TableColumn{
+			table := namedTable(c, "Token collection", &a.token.list, []ui.TableColumn{
 				{Title: tr("ID"), Width: 150},
 				{Title: tr("Name"), MinWidth: 120},
 				{Title: tr("Symbol"), Width: 90},
@@ -1062,7 +1062,7 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 	if stackedRecords(c) {
 		tokenHistoryRecords(c, hist)
 	} else {
-		ui.Table(c, &a.token.historyTable, []ui.TableColumn{
+		namedTable(c, "Token transfer history", &a.token.historyTable, []ui.TableColumn{
 			{Title: tr("From"), Width: 160},
 			{Title: tr("To"), Width: 160},
 			{Title: tr("Amount"), MinWidth: tableColumnWidth(c, 100), Align: ui.End},

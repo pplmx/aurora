@@ -3,6 +3,7 @@ package nativeui
 import (
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -169,6 +170,43 @@ func TestSessionTimeControlsNameTheirPurpose(t *testing.T) {
 		_, ok := tester.Find(tr(label))
 		require.Truef(t, ok, "the session form must expose %q", label)
 	}
+}
+
+// TestDataTablesHaveAccessibleNames checks the shared table path and its
+// callsites. MyGo gives the table role an empty name by default, so every grid
+// must pass through namedTable instead of calling ui.Table directly.
+func TestDataTablesHaveAccessibleNames(t *testing.T) {
+	state := &ui.ListState{}
+	tester := ui.NewTester(func(c *ui.Context) {
+		namedTable(c, "Draw history", state, []ui.TableColumn{{Title: tr("ID")}}, 0, func(row, col int) {})
+	}, 480, 200)
+	tester.Frame()
+	_, ok := tester.Find(tr("Draw history"))
+	require.True(t, ok, "a named table must expose its accessible name")
+
+	entries, err := os.ReadDir(".")
+	require.NoError(t, err)
+	tableCalls := 0
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") ||
+			strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		source, err := os.ReadFile(name)
+		require.NoError(t, err)
+		calls := strings.Count(string(source), "ui.Table(")
+		tableCalls += calls
+		if name != "controls.go" {
+			require.Zerof(t, calls,
+				"%s calls ui.Table directly; use namedTable so the grid has an accessible name", name)
+		}
+	}
+	require.Equal(t, 1, tableCalls, "ui.Table must only be called inside the namedTable helper")
+
+	controls, err := os.ReadFile("controls.go")
+	require.NoError(t, err)
+	require.Contains(t, string(controls), "ui.Table(c, state, columns, n, cell).Label(tr(name))")
 }
 
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.

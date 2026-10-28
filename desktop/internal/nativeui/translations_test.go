@@ -33,6 +33,7 @@ var translatedCallArgs = map[string][]int{
 	"quietButton":          {0},
 	"errorStatus":          {0},
 	"tabs":                 {1},
+	"namedTable":           {1},
 	"sectionHeading":       {0, 1},
 	"formCard":             {0, 1},
 	"emptyState":           {2, 3},
