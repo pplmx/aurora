@@ -999,14 +999,18 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 	id := strings.TrimSpace(a.token.tokenID)
 	owner := strings.TrimSpace(a.token.historyOwner)
 	limit, offset := a.tokenHistoryWindow()
-	matches := a.token.historyLoadedToken == id && a.token.historyLoadedOwner == owner &&
+	matches := id != "" && a.token.historyLoadedToken == id && a.token.historyLoadedOwner == owner &&
 		a.token.historyLoadedLimit == limit && a.token.historyLoadedOffset == offset
 	if a.token.historyErr != nil && matches &&
 		!loadWarning(c, "Couldn't load history", a.token.historyErr, len(a.token.history) > 0) {
 		return
 	}
-	if !matches || len(a.token.history) == 0 {
+	if !matches {
 		emptyNote(c, "No transfers loaded yet.")
+		return
+	}
+	if len(a.token.history) == 0 {
+		emptyNote(c, "No transfers found for this query.")
 		return
 	}
 	hist := a.token.history

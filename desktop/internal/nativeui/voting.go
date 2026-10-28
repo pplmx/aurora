@@ -1156,12 +1156,18 @@ func (a *App) votingResultsBody(c *ui.Context) {
 			}
 		}
 	})
-	if a.voting.resultsErr != nil &&
+	id := strings.TrimSpace(a.voting.resultsSession)
+	matches := id != "" && a.voting.resultsLoadedID == id
+	if a.voting.resultsErr != nil && matches &&
 		!loadWarning(c, "Failed to load results", a.voting.resultsErr, len(a.voting.results) > 0) {
 		return
 	}
-	if len(a.voting.results) == 0 {
+	if !matches {
 		emptyNote(c, "No tally loaded yet.")
+		return
+	}
+	if len(a.voting.results) == 0 {
+		emptyNote(c, "No votes recorded for this session.")
 		return
 	}
 	results := a.voting.results
