@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Request metrics record the status clients actually received**: once a
+  handler wrote a body, flushed a streaming response, or wrote its first header,
+  `net/http` ignored any later status change, but the metrics wrapper still
+  recorded the new code. A successful stream followed by an attempted error
+  header could therefore appear as a failure in `/metrics`. The wrapper now
+  locks the first committed status, matching the wire response.
 - **A partial desktop store no longer claims to be empty**: the landing page's
   empty state only inspected lotteries, votes and Oracle sources. A store with
   registered candidates or sessions, or with token/NFT activity in its audit

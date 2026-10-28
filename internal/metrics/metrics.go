@@ -87,12 +87,24 @@ func classifyModule(path string) string {
 // when the handler never calls WriteHeader.
 type statusWriter struct {
 	http.ResponseWriter
-	status int
+	status      int
+	wroteHeader bool
 }
 
 func (s *statusWriter) WriteHeader(code int) {
+	if s.wroteHeader {
+		return
+	}
+	s.wroteHeader = true
 	s.status = code
 	s.ResponseWriter.WriteHeader(code)
+}
+
+func (s *statusWriter) Write(body []byte) (int, error) {
+	if !s.wroteHeader {
+		s.wroteHeader = true
+	}
+	return s.ResponseWriter.Write(body)
 }
 
 // Unwrap lets http.ResponseController reach the underlying writer, so handlers
@@ -108,6 +120,10 @@ func (s *statusWriter) Unwrap() http.ResponseWriter { return s.ResponseWriter }
 // http.Flusher assertion or silently fail to flush via http.ResponseController.
 func (s *statusWriter) Flush() {
 	if f, ok := s.ResponseWriter.(http.Flusher); ok {
+		// Flush commits the implicit 200 even when the handler never called
+		// WriteHeader. Later status writes are ignored by net/http and must
+		// not replace what the client actually received in the metrics.
+		s.wroteHeader = true
 		f.Flush()
 	}
 }

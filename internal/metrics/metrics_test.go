@@ -74,6 +74,60 @@ func TestMiddleware_RecordsStatus(t *testing.T) {
 	}
 }
 
+// TestMiddleware_RecordsFirstCommittedStatus keeps metrics aligned with the
+// status the client actually received. net/http ignores later WriteHeader
+// calls once a response is committed, including an implicit 200 from Write or
+// Flush; the metrics wrapper previously let a later call overwrite its status.
+func TestMiddleware_RecordsFirstCommittedStatus(t *testing.T) {
+	cases := []struct {
+		name   string
+		write  func(http.ResponseWriter)
+		status int
+	}{
+		{
+			name: "duplicate header",
+			write: func(w http.ResponseWriter) {
+				w.WriteHeader(http.StatusNoContent)
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			status: http.StatusNoContent,
+		},
+		{
+			name: "body before header",
+			write: func(w http.ResponseWriter) {
+				_, _ = w.Write([]byte("ok"))
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			status: http.StatusOK,
+		},
+		{
+			name: "flush before header",
+			write: func(w http.ResponseWriter) {
+				w.(http.Flusher).Flush()
+				w.WriteHeader(http.StatusInternalServerError)
+			},
+			status: http.StatusOK,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			reg := NewRegistry()
+			handler := Middleware(reg)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				tc.write(w)
+			}))
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/", nil))
+
+			require.Equal(t, tc.status, rr.Code, "the recorder must model the wire status")
+			require.Equal(t, uint64(1), reg.status[tc.status],
+				"metrics must record the first committed status")
+			require.NotContains(t, reg.status, http.StatusInternalServerError,
+				"a status ignored by net/http must not appear in metrics")
+		})
+	}
+}
+
 // TestMiddleware_StreamingInterfaces is a regression test for the metrics
 // middleware not exposing the optional ResponseWriter interfaces. The metrics
 // wrapper is the innermost middleware around every handler, so a handler that
