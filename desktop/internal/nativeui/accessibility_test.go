@@ -131,6 +131,36 @@ func TestStatusOutcomeIsAnnouncedOnce(t *testing.T) {
 	require.Equal(t, []string{"Failed: " + app.token.status.text}, tester.Announcements())
 }
 
+// TestStatusAppearanceKeepsPageFocus keeps a result from stealing the keyboard
+// from the control that produced it. The status strip is inserted above the
+// page body, so an unkeyed body looked like a different subtree to MyGo and
+// focus fell back to the window root.
+func TestStatusAppearanceKeepsPageFocus(t *testing.T) {
+	app := New(&fakeServices{})
+	app.token.owner = "owner-pk"
+	app.token.ownerPriv = "owner-sk"
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage(pageIDs[pageToken])
+	tester.Frame()
+
+	copyLabel := tr("Copy Owner private key")
+	for range 80 {
+		if tester.Focused(copyLabel) {
+			break
+		}
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+	}
+	require.True(t, tester.Focused(copyLabel), "the Copy action must be keyboard reachable")
+	require.True(t, app.token.status.empty())
+
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.False(t, app.token.status.empty(), "Copy must create the status strip")
+	require.True(t, tester.Focused(copyLabel),
+		"inserting the status strip must not remove focus from the page body")
+}
+
 // TestLoadFailuresAreStatusRegions keeps a failed refresh from being only a
 // red line painted above retained rows. The warning and whether those rows are
 // stale form one status message, announced once per distinct failure.

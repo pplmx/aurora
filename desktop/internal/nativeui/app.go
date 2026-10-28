@@ -161,7 +161,11 @@ func (a *App) View(c *ui.Context) {
 			// A write owns the page body, not the navigation: the sidebar stays
 			// usable, while form edits and a second submit cannot race the
 			// result. The busy bar and page header stay live.
-			ui.Column(c).Fill().Grow(1).Disabled(a.busy != "").Children(func() {
+			// The status and busy strips are conditional siblings above this
+			// host. Without a stable identity, inserting one shifts the body
+			// in the sibling list and MyGo drops focus from the control whose
+			// action produced the message.
+			ui.Column(c).Key("page-body").Fill().Grow(1).Disabled(a.busy != "").Children(func() {
 				a.body(c)
 			})
 		})
