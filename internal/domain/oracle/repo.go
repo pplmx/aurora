@@ -1,5 +1,7 @@
 package oracle
 
+import "sort"
+
 type Repository interface {
 	SaveData(data *OracleData) error
 	GetDataBySource(sourceID string, limit int) ([]*OracleData, error)
@@ -7,7 +9,10 @@ type Repository interface {
 
 	SaveSource(source *DataSource) error
 	GetSource(id string) (*DataSource, error)
-	ListSources() ([]*DataSource, error)
+	// ListSources returns one page newest first. limit <= 0 returns the
+	// remainder from offset; the scheduler uses that form because it must poll
+	// every enabled source.
+	ListSources(limit, offset int) ([]*DataSource, error)
 	UpdateSource(source *DataSource) error
 	DeleteSource(id string) error
 
@@ -78,10 +83,26 @@ func (r *InmemRepo) GetSource(id string) (*DataSource, error) {
 	return r.sources[id], nil
 }
 
-func (r *InmemRepo) ListSources() ([]*DataSource, error) {
+func (r *InmemRepo) ListSources(limit, offset int) ([]*DataSource, error) {
 	result := make([]*DataSource, 0, len(r.sources))
 	for _, s := range r.sources {
 		result = append(result, s)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].CreatedAt == result[j].CreatedAt {
+			return result[i].ID < result[j].ID
+		}
+		return result[i].CreatedAt > result[j].CreatedAt
+	})
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(result) {
+		return nil, nil
+	}
+	result = result[offset:]
+	if limit > 0 && len(result) > limit {
+		result = result[:limit]
 	}
 	return result, nil
 }

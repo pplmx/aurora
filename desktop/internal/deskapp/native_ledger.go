@@ -38,7 +38,7 @@ func (s *nativeServices) Dashboard() (nativeui.DashboardStats, error) {
 	}
 	stats.Sessions = len(sessions)
 
-	sources, err := s.oracleRepo.ListSources()
+	sources, err := s.oracleRepo.ListSources(0, 0)
 	if err != nil {
 		return stats, err
 	}

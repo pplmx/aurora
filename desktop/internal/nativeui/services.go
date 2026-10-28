@@ -56,7 +56,7 @@ type Services interface {
 	TokenHistory(tokenID, owner string, limit, offset int) ([]TransferRow, error)
 
 	// Oracle surface.
-	OracleSources() ([]SourceRow, error)
+	OracleSources(limit, offset int) ([]SourceRow, error)
 	OracleTemplates() ([]TemplateRow, error)
 	AddOracleSource(in SourceInput) (SourceRow, error)
 	DeleteOracleSource(id string) error

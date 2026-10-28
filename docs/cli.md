@@ -88,6 +88,7 @@ aurora token burn -t <token-id> --from <addr> --amount 10 -k "<key>" --confirm
 
 ```bash
 aurora oracle source list
+aurora oracle source list --limit 100 --offset 0
 aurora oracle source add -n "btc" -u "https://api.example.com/price" \
   -t json -m GET -p "data.price" -i 60        # -t/-m/-p/-i 可选
 aurora oracle source add -n "private" -u "https://api.example.com/private" \
@@ -106,6 +107,10 @@ aurora oracle latest -i <source-id>
 值不能包含除 tab 外的控制字符。非法 JSON、CR/LF 或超过长度上限会在写入前
 拒绝。`interval` 上限 30 天；越界会在写入前拒绝（更大的值会让调度器溢出成
 “永远到期”的抓取风暴）。
+
+`oracle source list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于
+0 时只读取该页并打印本页数量与偏移；`--offset` 默认 0。调度器不受该选项影响，
+仍会枚举全部数据源。
 
 ## 运维命令
 

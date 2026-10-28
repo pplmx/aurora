@@ -138,7 +138,7 @@ func TestAddSource_RejectsInvalidSourceHeaders(t *testing.T) {
 				Headers: tc.headers,
 			})
 			require.ErrorIs(t, err, ErrInvalidSource)
-			sources, listErr := repo.ListSources()
+			sources, listErr := repo.ListSources(0, 0)
 			require.NoError(t, listErr)
 			require.Empty(t, sources)
 		})
@@ -167,7 +167,7 @@ func TestAddSource_RejectsInvalidHTTPRequestConfig(t *testing.T) {
 				Headers: tc.header,
 			})
 			require.ErrorIs(t, err, ErrInvalidSource)
-			sources, listErr := repo.ListSources()
+			sources, listErr := repo.ListSources(0, 0)
 			require.NoError(t, listErr)
 			require.Empty(t, sources)
 		})
@@ -183,7 +183,7 @@ func TestAddSource_AcceptsHTTPExtensionMethodAndTokenHeader(t *testing.T) {
 		Headers: `{"X-Vendor_Key":"value","X-Test":"a\tb"}`,
 	})
 	require.NoError(t, err)
-	sources, listErr := repo.ListSources()
+	sources, listErr := repo.ListSources(0, 0)
 	require.NoError(t, listErr)
 	require.Len(t, sources, 1)
 }
@@ -252,7 +252,7 @@ func TestAddSource(t *testing.T) {
 		t.Fatalf("AddSource failed: %v", err)
 	}
 
-	sources, _ := repo.ListSources()
+	sources, _ := repo.ListSources(0, 0)
 	if len(sources) != 1 {
 		t.Errorf("expected 1 source, got %d", len(sources))
 	}
@@ -612,7 +612,7 @@ func TestAddSource_ProducesUniqueIDs(t *testing.T) {
 		}
 	}
 
-	sources, err := repo.ListSources()
+	sources, err := repo.ListSources(0, 0)
 	if err != nil {
 		t.Fatalf("ListSources failed: %v", err)
 	}

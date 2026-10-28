@@ -37,6 +37,10 @@ type oracleState struct {
 	sources   []SourceRow
 	templates []TemplateRow
 	health    []HealthRow
+	// offset pages the source collection. hasMore comes from one lookahead
+	// row so a full final page does not leave a dead Next control.
+	offset  int
+	hasMore bool
 	// healthErr is the last failure to read the health counters; the rows from
 	// the previous successful read stay on screen with a stale note.
 	healthErr error
@@ -80,19 +84,25 @@ type oracleState struct {
 	dataTable   ui.ListState
 }
 
+const oraclePageSize = 100
+
 func (a *App) loadOracle() {
 	if a.services == nil {
 		return
 	}
+	selectedID := a.selectedSourceID()
+	a.loadOracleSourcePage(a.oracle.offset)
+	a.restoreSourceChoice(selectedID)
+	a.loadOracleAuxiliary()
+}
+
+// loadOracleAuxiliary refreshes the two lists whose failures are independent
+// of the source page. Keeping them separate lets a successful source add retry
+// page zero without losing the current page when that read fails.
+func (a *App) loadOracleAuxiliary() {
 	// Each list has its own failure field and its own last successful rows.
-	// Reading sources no longer returns early: a source-list failure must not
-	// freeze the health counters or the preset picker as well.
-	if sources, err := a.services.OracleSources(); err != nil {
-		a.oracle.loadErr = err
-	} else {
-		a.oracle.sources = sources
-		a.oracle.loadErr = nil
-	}
+	// A source-list failure must not freeze the health counters or the preset
+	// picker as well.
 	if tpl, err := a.services.OracleTemplates(); err != nil {
 		a.oracle.templatesErr = err
 	} else {
@@ -104,6 +114,53 @@ func (a *App) loadOracle() {
 	} else {
 		a.oracle.health = h
 		a.oracle.healthErr = nil
+	}
+}
+
+// loadOracleSourcePage commits offset only after the read succeeds, so a
+// failed pager move leaves the rows and highlight on their actual page.
+func (a *App) loadOracleSourcePage(offset int) bool {
+	if a.services == nil {
+		return false
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	rows, err := a.services.OracleSources(oraclePageSize+1, offset)
+	a.oracle.loadErr = err
+	if err != nil {
+		return false
+	}
+	if len(rows) == 0 && offset > 0 {
+		return a.loadOracleSourcePage(0)
+	}
+	a.oracle.offset = offset
+	a.oracle.hasMore = len(rows) > oraclePageSize
+	if a.oracle.hasMore {
+		rows = rows[:oraclePageSize]
+	}
+	a.oracle.sources = rows
+	return true
+}
+
+func (a *App) selectedSourceID() string {
+	rows := a.filteredSources()
+	if a.oracle.selected < 0 || a.oracle.selected >= len(rows) {
+		return ""
+	}
+	return rows[a.oracle.selected].ID
+}
+
+func (a *App) restoreSourceChoice(id string) {
+	a.oracle.selected = -1
+	if id == "" {
+		return
+	}
+	for i, source := range a.filteredSources() {
+		if source.ID == id {
+			a.oracle.selected = i
+			return
+		}
 	}
 }
 
@@ -158,17 +215,27 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed on the left to start reading values.")
 		return
 	}
-	srcs := make([]SourceRow, 0, len(a.oracle.sources))
 	ui.SearchField(c, &a.oracle.search).Label(tr("Search sources"))
 	if a.oracle.search != a.oracle.appliedSearch {
 		a.oracle.appliedSearch = a.oracle.search
 		a.oracle.selected = -1
 	}
-	for _, source := range a.oracle.sources {
-		if containsFold(a.oracle.search, source.ID, source.Name, source.Type, source.URL) {
-			srcs = append(srcs, source)
+	if previous, next := listPager(c, a.oracle.offset, len(a.oracle.sources), a.oracle.hasMore); previous || next {
+		target := a.oracle.offset
+		if previous {
+			target = max(0, target-oraclePageSize)
+		} else {
+			target += oraclePageSize
 		}
+		if a.loadOracleSourcePage(target) {
+			a.oracle.selected = -1
+		}
+		return
 	}
+	if a.oracle.search != "" {
+		hint(c, "Search narrows the current page; use Previous/Next for older sources.")
+	}
+	srcs := a.filteredSources()
 	if len(srcs) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No sources match “%s”."), strings.TrimSpace(a.oracle.search)))
 		return
@@ -242,6 +309,16 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		}
 	})
 	a.renderDeleteDialog(c)
+}
+
+func (a *App) filteredSources() []SourceRow {
+	rows := make([]SourceRow, 0, len(a.oracle.sources))
+	for _, source := range a.oracle.sources {
+		if containsFold(a.oracle.search, source.ID, source.Name, source.Type, source.URL) {
+			rows = append(rows, source)
+		}
+	}
+	return rows
 }
 
 func (a *App) renderDeleteDialog(c *ui.Context) {
@@ -434,9 +511,26 @@ func (a *App) addOracleSource() {
 			// it selected would show a preset whose fields were just cleared, and
 			// picking it again would not report a change.
 			a.oracle.template = ""
-			a.loadOracle()
+			// A new source is newest-first, so try page zero. The loader commits
+			// the offset only after a successful read; if it fails, the old page,
+			// search and highlight remain the rows they actually describe.
+			if a.loadOracleSourcePage(0) {
+				a.oracle.selected = -1
+				a.selectSourceByID(src.ID)
+			}
+			a.loadOracleAuxiliary()
 		}
 	})
+}
+
+func (a *App) selectSourceByID(id string) {
+	a.oracle.search, a.oracle.appliedSearch = "", ""
+	for i, source := range a.filteredSources() {
+		if source.ID == id {
+			a.oracle.selected = i
+			return
+		}
+	}
 }
 
 func (a *App) oracleHealth(c *ui.Context) {
@@ -455,9 +549,9 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		return
 	}
 	health := a.oracle.health
-	// The scheduler reports ids. The page already loaded the source list, so a
-	// name comes from there instead of a second read; an id the list no longer
-	// holds (deleted between reads) still identifies its row.
+	// New scheduler rows carry the source name. The current page remains a
+	// fallback for older stat providers and for rows loaded before a source was
+	// renamed; an id neither source knows still identifies its row.
 	names := make(map[string]string, len(a.oracle.sources))
 	for _, source := range a.oracle.sources {
 		names[source.ID] = source.Name

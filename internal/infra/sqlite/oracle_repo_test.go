@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/pplmx/aurora/internal/domain/oracle"
@@ -129,7 +130,7 @@ func TestOracleRepository_ListSources(t *testing.T) {
 		t.Fatalf("Failed to save source3: %v", err)
 	}
 
-	sources, err := repo.ListSources()
+	sources, err := repo.ListSources(0, 0)
 	if err != nil {
 		t.Fatalf("Failed to list sources: %v", err)
 	}
@@ -137,6 +138,27 @@ func TestOracleRepository_ListSources(t *testing.T) {
 	if len(sources) != 3 {
 		t.Errorf("Expected 3 sources, got %d", len(sources))
 	}
+}
+
+func TestOracleRepository_ListSourcesPages(t *testing.T) {
+	repo, cleanup := setupOracleTestDB(t)
+	defer cleanup()
+
+	for i, name := range []string{"First", "Second", "Third"} {
+		require.NoError(t, repo.SaveSource(&oracle.DataSource{
+			ID: "source" + strconv.Itoa(i), Name: name,
+			URL: "http://example.com/" + name, CreatedAt: int64(100 + i*10),
+		}))
+	}
+
+	page, err := repo.ListSources(1, 1)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "Second", page[0].Name, "the second row in newest-first order")
+
+	past, err := repo.ListSources(10, 99)
+	require.NoError(t, err)
+	require.Empty(t, past, "an offset past the end is an empty page")
 }
 
 func TestOracleRepository_SaveData(t *testing.T) {

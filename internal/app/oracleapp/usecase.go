@@ -231,7 +231,10 @@ func NewListSourcesUseCase(repo oracle.Repository) *ListSourcesUseCase {
 }
 
 func (uc *ListSourcesUseCase) Execute(req *ListSourcesRequest) (*ListSourcesResponse, error) {
-	sources, err := uc.repo.ListSources()
+	if req == nil {
+		req = &ListSourcesRequest{}
+	}
+	sources, err := uc.repo.ListSources(req.Limit, req.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sources: %w", err)
 	}

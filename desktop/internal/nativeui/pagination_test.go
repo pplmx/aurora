@@ -257,3 +257,144 @@ func TestFailedSessionPageMoveKeepsCurrentPage(t *testing.T) {
 	require.True(t, tester.HasText("Failed to load voting data: read failed"))
 	require.True(t, tester.HasText("Showing the last successful load."))
 }
+
+// TestOracleSourceCollectionPages applies the storage-backed pager to Oracle
+// sources. A long-running deployment can accumulate feeds just as it
+// accumulates tokens and sessions, and source names/ids are the handles every
+// fetch and reading card needs.
+func TestOracleSourceCollectionPages(t *testing.T) {
+	sources := make([]SourceRow, 150)
+	for i := range sources {
+		sources[i] = SourceRow{
+			ID: "s" + strconv.Itoa(i), Name: "Source " + strconv.Itoa(i),
+			URL: "https://example.com/" + strconv.Itoa(i), Type: "json",
+		}
+	}
+	fake := &fakeServices{sources: sources}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.Len(t, app.oracle.sources, oraclePageSize)
+	require.Equal(t, 0, app.oracle.offset)
+	require.Equal(t, oraclePageSize+1, fake.lastSourceLimit,
+		"one extra row distinguishes a full page from the last page")
+	require.True(t, tester.HasText("Entries 1–100"))
+
+	app.oracle.selected = 0
+	tester.Frame()
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, oraclePageSize, app.oracle.offset)
+	require.Equal(t, -1, app.oracle.selected, "a new page must not reuse the old row index")
+	require.Len(t, app.oracle.sources, 50)
+	require.False(t, app.oracle.hasMore)
+	require.True(t, tester.HasText("Entries 101–150"))
+}
+
+func TestOracleSourcePagerStopsAtAnExactPageBoundary(t *testing.T) {
+	sources := make([]SourceRow, oraclePageSize)
+	for i := range sources {
+		sources[i] = SourceRow{ID: "s" + strconv.Itoa(i), Name: "Source", Type: "json"}
+	}
+	fake := &fakeServices{sources: sources}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+	calls := fake.sourceListCalls
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 0, app.oracle.offset)
+	require.Equal(t, calls, fake.sourceListCalls, "a disabled Next must not reload an empty page")
+}
+
+func TestFailedSourcePageMoveKeepsCurrentPage(t *testing.T) {
+	sources := make([]SourceRow, 150)
+	for i := range sources {
+		sources[i] = SourceRow{ID: "s" + strconv.Itoa(i), Name: "Source", Type: "json"}
+	}
+	fake := &fakeServices{sources: sources}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+	app.oracle.selected = 0
+	fake.loadErrs.sources = errors.New("read failed")
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 0, app.oracle.offset)
+	require.Len(t, app.oracle.sources, oraclePageSize)
+	require.Equal(t, 0, app.oracle.selected, "the old page's highlight must stay with its rows")
+	require.True(t, tester.HasText("Failed to load sources: read failed"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}
+
+func TestAddingSourcePreservesPageWhenReloadFails(t *testing.T) {
+	sources := make([]SourceRow, 150)
+	for i := range sources {
+		sources[i] = SourceRow{ID: "s" + strconv.Itoa(i), Name: "Source", Type: "json"}
+	}
+	fake := &fakeServices{sources: sources}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	app.oracle.selected = 0
+	fake.addSource = func(SourceInput) (SourceRow, error) {
+		fake.loadErrs.sources = errors.New("read failed")
+		return SourceRow{ID: "new", Name: "New source"}, nil
+	}
+	app.oracle.addName, app.oracle.addURL = "New source", "https://example.com/new"
+
+	app.addOracleSource()
+	tester.Frame()
+
+	require.Equal(t, oraclePageSize, app.oracle.offset,
+		"a failed refresh must not move the pager away from the rows on screen")
+	require.Equal(t, 0, app.oracle.selected,
+		"a failed refresh must leave the highlight on its current row")
+	require.Len(t, app.oracle.sources, 50)
+	require.Equal(t, "s100", app.oracle.sources[0].ID)
+	require.True(t, tester.HasText("Failed to load sources: read failed"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}
+
+func TestAddingSourceShowsTheNewRowOnPageZero(t *testing.T) {
+	sources := make([]SourceRow, 150)
+	for i := range sources {
+		sources[i] = SourceRow{ID: "s" + strconv.Itoa(i), Name: "Source", Type: "json"}
+	}
+	fake := &fakeServices{sources: sources}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, oraclePageSize, app.oracle.offset)
+	app.oracle.search, app.oracle.appliedSearch = "old", "old"
+	fake.addSource = func(SourceInput) (SourceRow, error) {
+		row := SourceRow{ID: "new", Name: "New source", Type: "json"}
+		fake.sources = append([]SourceRow{row}, fake.sources...)
+		return row, nil
+	}
+	app.oracle.addName, app.oracle.addURL = "New source", "https://example.com/new"
+
+	app.addOracleSource()
+	tester.Frame()
+
+	require.Zero(t, app.oracle.offset)
+	require.Equal(t, 0, app.oracle.selected)
+	require.Equal(t, "new", app.oracle.sources[0].ID)
+	require.Empty(t, app.oracle.search)
+	require.Empty(t, app.oracle.appliedSearch)
+	require.True(t, tester.HasText("New source"))
+}

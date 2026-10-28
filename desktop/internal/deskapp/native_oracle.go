@@ -10,8 +10,8 @@ import (
 
 // --- Oracle --------------------------------------------------------------
 
-func (s *nativeServices) OracleSources() ([]nativeui.SourceRow, error) {
-	sources, err := s.oracleRepo.ListSources()
+func (s *nativeServices) OracleSources(limit, offset int) ([]nativeui.SourceRow, error) {
+	sources, err := s.oracleRepo.ListSources(limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -101,12 +101,13 @@ func (s *nativeServices) OracleHealth() ([]nativeui.HealthRow, error) {
 	return rows, nil
 }
 
-// healthRow maps one scheduler counter into the view's row type. Names are
-// resolved by the view from the source list it already holds, so this adapter
-// does not read the database a second time just to label a counter.
+// healthRow maps one scheduler counter into the view's row type. The scheduler
+// records the source name alongside the counter, so a health row remains
+// readable even when that source is outside the desktop's current page.
 func healthRow(st oracleapp.SourceStat) nativeui.HealthRow {
 	return nativeui.HealthRow{
 		SourceID:    st.SourceID,
+		Name:        st.Name,
 		Attempts:    int(st.Attempts),
 		Successes:   int(st.Successes),
 		Failures:    int(st.Failures),

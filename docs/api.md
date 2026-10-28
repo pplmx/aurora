@@ -107,7 +107,7 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 | 方法   | 路径                          | 说明                                                |
 | ------ | ----------------------------- | --------------------------------------------------- |
-| GET    | `/api/v1/oracle/sources`      | 数据源列表                                          |
+| GET    | `/api/v1/oracle/sources`      | 数据源列表，默认 20，支持 `limit`/`offset`          |
 | POST   | `/api/v1/oracle/sources`      | 新建数据源（URL/type/method/headers/path/interval） |
 | PATCH  | `/api/v1/oracle/sources/{id}` | 启用/停用                                           |
 | DELETE | `/api/v1/oracle/sources/{id}` | 删除，未知 id 404                                   |
@@ -116,6 +116,10 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 | GET    | `/api/v1/oracle/query`        | 历史数据；缺少 `source` 参数返回 400                |
 | GET    | `/api/v1/oracle/latest`       | 最新数据点                                          |
 | GET    | `/api/v1/oracle/health`       | 抓取健康统计                                        |
+
+`/oracle/sources` 在存储层按最新优先分页，`limit` 上限 100，`offset` 上限
+10000；调度器仍在内部读取全部数据源，因为它必须检查每一个启用项。
+`/oracle/health` 的每项同时带 `source_name`，健康表无需再按当前源码页反查名称。
 
 `POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
 `{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，

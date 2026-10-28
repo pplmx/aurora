@@ -114,9 +114,11 @@ func (r *OracleRepository) initTables() error {
 		// EXPLAIN QUERY PLAN). The composite index serves both the filter and
 		// the order, so the LIMIT becomes a real early stop (v1.100).
 		`CREATE INDEX IF NOT EXISTS idx_oracle_data_source_ts ON oracle_data(source_id, timestamp DESC)`,
-		// ListSources reads every source newest first; without the index
-		// SQLite scans and sorts the table in a temp B-tree (measured).
+		// ListSources pages newest first. The compound index adds a
+		// deterministic id tie-breaker; without an ordered index SQLite scans
+		// and sorts the table in a temp B-tree (measured).
 		`CREATE INDEX IF NOT EXISTS idx_oracle_sources_created ON data_sources(created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_oracle_sources_page ON data_sources(created_at DESC, id)`,
 	}
 
 	for _, query := range queries {
@@ -220,9 +222,17 @@ func (r *OracleRepository) GetSource(id string) (*oracle.DataSource, error) {
 	return ds, err
 }
 
-func (r *OracleRepository) ListSources() ([]*oracle.DataSource, error) {
+func (r *OracleRepository) ListSources(limit, offset int) ([]*oracle.DataSource, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	rows, err := r.q().Query(
-		`SELECT id, name, url, type, method, headers, path, interval, enabled, created_at FROM data_sources ORDER BY created_at DESC`,
+		`SELECT id, name, url, type, method, headers, path, interval, enabled, created_at
+		 FROM data_sources ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
+		limit, offset,
 	)
 	if err != nil {
 		return nil, err

@@ -108,6 +108,26 @@ func TestOracleSourceEnable_Disable(t *testing.T) {
 	assert.Contains(t, out, "enabled")
 }
 
+func TestOracleSourceList_Pages(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		for _, name := range []string{"alpha", "beta", "gamma"} {
+			_, err := runCmd(t, "oracle", "source", "add",
+				"--name", name, "--url", "https://api.example.com/"+name)
+			require.NoError(t, err)
+		}
+
+		out, err := runCmd(t, "oracle", "source", "list", "--limit", "1", "--offset", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Data Sources: 1 (offset 1)")
+		assert.Equal(t, 1, strings.Count(out, "   - "), "only the requested page should print")
+
+		_, err = runCmd(t, "oracle", "source", "list", "--limit", "-1")
+		require.Error(t, err)
+		_, err = runCmd(t, "oracle", "source", "list", "--offset", "-1")
+		require.Error(t, err)
+	})
+}
+
 func TestOracleSourceAdd_ValidationErrors(t *testing.T) {
 	resetCliForTest()
 
@@ -155,7 +175,7 @@ func TestOracleSourceAdd_RejectsInvalidHeaders(t *testing.T) {
 		repo, cleanup, err := newOracleRepo()
 		require.NoError(t, err)
 		defer cleanup()
-		sources, err := repo.ListSources()
+		sources, err := repo.ListSources(0, 0)
 		require.NoError(t, err)
 		assert.Empty(t, sources)
 	})
@@ -184,7 +204,7 @@ func TestOracleSourceAdd_RejectsInvalidHTTPConfig(t *testing.T) {
 				repo, cleanup, err := newOracleRepo()
 				require.NoError(t, err)
 				defer cleanup()
-				sources, err := repo.ListSources()
+				sources, err := repo.ListSources(0, 0)
 				require.NoError(t, err)
 				assert.Empty(t, sources)
 			})
