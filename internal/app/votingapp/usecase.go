@@ -175,13 +175,12 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		return nil, voting.ErrInvalidSignature
 	}
 
-	// The three ballot mutations — claim the voter, save the vote row,
-	// increment the tally — run in ONE transaction. The pre-transaction flow
-	// claimed the voter first and, on a later failure, ran a best-effort
-	// UnmarkVoted/DeleteVote compensation whose own errors were silently
-	// swallowed; a failed compensation permanently locked the voter out or
-	// left an orphan vote row (violating the votes<->voters invariant). With
-	// a real transaction no partial ballot state can ever commit.
+	// The ballot checks and mutations run in ONE transaction. The
+	// pre-transaction flow claimed the voter first and, on a later failure, ran
+	// a best-effort UnmarkVoted/DeleteVote compensation whose own errors were
+	// silently swallowed; a failed compensation permanently locked the voter
+	// out or left an orphan vote row (violating the votes<->voters invariant).
+	// With a real transaction no partial ballot state can ever commit.
 	//
 	// TryMarkVoted remains the concurrency primitive: its conditional UPDATE
 	// guarantees exactly one concurrent caller for the same voter wins; the
@@ -194,6 +193,27 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	data := fmt.Sprintf("vote|%s|%s|%s", req.VoterPublicKey, req.CandidateID, req.SessionID)
 	err = uc.withVoteBlock(data, func(repo voting.Repository, height int64) error {
 		blockHeight = height
+
+		// Re-read inside the transaction: an operator can end the session or
+		// change its roster after the preflight check above. BEGIN IMMEDIATE
+		// serializes this check with status updates, so a ballot cannot commit
+		// against a session that was already ended in the write order.
+		current, err := repo.GetSession(req.SessionID)
+		if err != nil {
+			if errors.Is(err, repoerr.ErrNotFound) {
+				return voting.ErrSessionNotFound
+			}
+			return fmt.Errorf("failed to recheck session: %w", err)
+		}
+		if current == nil {
+			return voting.ErrSessionNotFound
+		}
+		if err := current.CanAcceptVotes(time.Now()); err != nil {
+			return err
+		}
+		if !containsString(current.Candidates, req.CandidateID) {
+			return voting.ErrCandidateNotInSession
+		}
 
 		if err := repo.TryMarkVoted(req.VoterPublicKey, voteHash); err != nil {
 			return err
