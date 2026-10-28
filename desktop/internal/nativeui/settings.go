@@ -55,10 +55,8 @@ func (a *App) settingsView(c *ui.Context) {
 				a.setLiveUpdates(a.liveUpdates)
 				if a.actions.SetLiveUpdates != nil {
 					if err := a.actions.SetLiveUpdates(a.liveUpdates); err != nil {
-						a.settingsStatus = statusLine{
-							text:  tr("Couldn't save settings") + ": " + localizeServiceError(err),
-							isErr: true,
-						}
+						a.settingsStatus = errorStatusText(
+							tr("Couldn't save settings") + ": " + localizeServiceError(err))
 					}
 				}
 			}
@@ -66,7 +64,7 @@ func (a *App) settingsView(c *ui.Context) {
 			// The only Settings action that can fail is this save; keep its
 			// result beside the control instead of at the top of a scroll the
 			// operator has already moved past.
-			renderStatus(c, a.settingsStatus, func() { a.settingsStatus = statusLine{} })
+			renderStatus(c, pageSettings, a.settingsStatus, func() { a.settingsStatus = statusLine{} })
 		})
 
 		formCard(c, "Shortcuts", "Window-wide keys; they work from any page.", func() {

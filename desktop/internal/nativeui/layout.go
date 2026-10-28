@@ -83,6 +83,14 @@ func stackedRecords(c *ui.Context) bool {
 	return textScale(c) >= stackedRecordMinScale
 }
 
+// heading draws a title with the rank assistive technology needs to navigate
+// the page by sections. Bold text alone only communicates that hierarchy to
+// sighted users.
+func heading(c *ui.Context, text string, size float32, level int) ui.Element {
+	return ui.Text(c, text).FontSize(textSize(c, size)).Bold().TextColor(c.Theme().Text).
+		Role(ui.RoleHeading).Level(level)
+}
+
 // card draws a raised panel: the surface every section's content sits on.
 // A card is what separates one concern from the next now that the sidebar no
 // longer does it with rules, and it is the unit the dashboard grid repeats.
@@ -220,7 +228,7 @@ func metricRow(c *ui.Context, n int, fn func(i int)) {
 // the page header for the same attention.
 func sectionHeading(c *ui.Context, title, purpose string) {
 	ui.Column(c).Gap(2).Children(func() {
-		ui.Text(c, tr(title)).FontSize(textSize(c, 16)).Bold().TextColor(c.Theme().Text)
+		heading(c, tr(title), 16, 2)
 		if purpose != "" {
 			ui.Text(c, tr(purpose)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		}
@@ -229,8 +237,8 @@ func sectionHeading(c *ui.Context, title, purpose string) {
 
 // badge draws a small pill of text. It must sit in a row: a badge drawn
 // straight into a card's column takes the whole width and reads as a banner.
-func badge(c *ui.Context, text string, background, foreground ui.Color) {
-	ui.Badge(c, tr(text)).Background(background).TextColor(foreground)
+func badge(c *ui.Context, text string, background, foreground ui.Color) ui.Element {
+	return ui.Badge(c, tr(text)).Background(background).TextColor(foreground)
 }
 
 // formCard draws a section as a card: its heading, its fields, and whatever
@@ -253,7 +261,7 @@ func emptyState(c *ui.Context, p page, title, body string) {
 			BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
 			ui.Icon(c, pageIcons[p]).Size(22, 22).TextColor(ui.Hex(aurora))
 		})
-		ui.Text(c, tr(title)).FontSize(textSize(c, 14)).Bold().TextColor(c.Theme().Text).TextAlign(ui.Center)
+		heading(c, tr(title), 14, 3).TextAlign(ui.Center)
 		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).TextAlign(ui.Center)
 	})
 }

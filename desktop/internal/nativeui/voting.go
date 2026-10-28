@@ -1058,7 +1058,7 @@ func (a *App) filteredCandidates() []CandidateRow {
 func (a *App) addCandidateToRoster() {
 	candidates := a.filteredCandidates()
 	if a.voting.candChoice < 0 || a.voting.candChoice >= len(candidates) {
-		a.voting.status = statusLine{text: tr("Choose a candidate first."), isErr: true}
+		a.voting.status = errorStatus("Choose a candidate first.")
 		return
 	}
 	candidate := candidates[a.voting.candChoice]
@@ -1080,11 +1080,11 @@ func (a *App) createVotingSession() {
 	start := a.voting.sessionStart.Unix()
 	end := a.voting.sessionEnd.Unix()
 	if a.voting.sessionStart.IsZero() || a.voting.sessionEnd.IsZero() {
-		a.voting.sessionResult = statusLine{text: tr("Choose both a start and an end time."), isErr: true}
+		a.voting.sessionResult = errorStatus("Choose both a start and an end time.")
 		return
 	}
 	if end <= start {
-		a.voting.sessionResult = statusLine{text: tr("End time must be after the start time."), isErr: true}
+		a.voting.sessionResult = errorStatus("End time must be after the start time.")
 		return
 	}
 	ids := splitParticipants(a.voting.sessionIDs)
@@ -1102,7 +1102,7 @@ func (a *App) createVotingSession() {
 		}
 	}
 	if len(ids) == 0 {
-		a.voting.sessionResult = statusLine{text: tr("Register at least one candidate before creating a session."), isErr: true}
+		a.voting.sessionResult = errorStatus("Register at least one candidate before creating a session.")
 		return
 	}
 	title, description := strings.TrimSpace(a.voting.sessionTitle), strings.TrimSpace(a.voting.sessionDesc)
@@ -1198,7 +1198,7 @@ func (a *App) setSessionControl(label string, fn func(string) error, success str
 func (a *App) castVote() {
 	a.voting.voteResult = statusLine{}
 	if strings.TrimSpace(a.voting.voteSession) == "" || strings.TrimSpace(a.voting.voteCandidate) == "" {
-		a.voting.voteResult = statusLine{text: tr("Choose a session and a candidate."), isErr: true}
+		a.voting.voteResult = errorStatus("Choose a session and a candidate.")
 		return
 	}
 	publicKey, privateKey := strings.TrimSpace(a.voting.voteVoterPub), strings.TrimSpace(a.voting.votePriv)

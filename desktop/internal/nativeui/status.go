@@ -3,6 +3,7 @@ package nativeui
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -12,21 +13,45 @@ import (
 // through ok()/fail() so the two cases render differently and an error can
 // never look like a success.
 type statusLine struct {
-	text  string
-	isErr bool
+	text     string
+	isErr    bool
+	revision uint64
 }
 
 func (s statusLine) empty() bool { return s.text == "" }
 
+var statusRevision atomic.Uint64
+
+func nextStatusRevision() uint64 { return statusRevision.Add(1) }
+
 func okStatus(format string, args ...any) statusLine {
-	return statusLine{text: fmt.Sprintf(tr(format), args...)}
+	return statusLine{
+		text:     fmt.Sprintf(tr(format), args...),
+		revision: nextStatusRevision(),
+	}
 }
 
 func errStatus(err error) statusLine {
 	if err == nil {
 		return statusLine{}
 	}
-	return statusLine{text: localizeServiceError(err), isErr: true}
+	return statusLine{
+		text:     localizeServiceError(err),
+		isErr:    true,
+		revision: nextStatusRevision(),
+	}
+}
+
+func errorStatus(format string, args ...any) statusLine {
+	return errorStatusText(fmt.Sprintf(tr(format), args...))
+}
+
+func errorStatusText(text string) statusLine {
+	return statusLine{
+		text:     text,
+		isErr:    true,
+		revision: nextStatusRevision(),
+	}
 }
 
 // LocalizeError translates the same service errors for desktop dialogs that
@@ -72,7 +97,7 @@ func localizeServiceErrorMessage(message string) string {
 // tinted by the outcome: colour alone is not a signal for a reader with a
 // colour-vision difference, and a one-line sentence was easy to miss above a
 // page of cards.
-func renderStatus(c *ui.Context, s statusLine, dismiss func()) {
+func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) {
 	if s.empty() {
 		return
 	}
@@ -80,18 +105,21 @@ func renderStatus(c *ui.Context, s statusLine, dismiss func()) {
 	if s.isErr {
 		label, tone, tint = "Failed", ui.Hex(auroraRed), ui.Hex(errorTint)
 	}
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
+	spoken := statusAnnouncementText(s)
+	row := ui.Row(c).Key(scope).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
 		Background(tint).BorderWidth(1).BorderColor(tone).
-		Children(func() {
-			badge(c, label, tone, c.Theme().Background)
-			ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
-			if dismiss != nil {
-				ui.Spacer(c)
-				if quietButton(c, "Dismiss").Clicked() {
-					dismiss()
-				}
+		Role(ui.RoleStatus).Label(spoken)
+	announceStatusChange(c, row, s, spoken)
+	row.Children(func() {
+		badge(c, label, tone, c.Theme().Background).Role(ui.RoleNone)
+		ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).Role(ui.RoleNone)
+		if dismiss != nil {
+			ui.Spacer(c)
+			if quietButton(c, "Dismiss").Clicked() {
+				dismiss()
 			}
-		})
+		}
+	})
 }
 
 // inlineStatus draws a card-local outcome. It is the compact sibling of
@@ -106,5 +134,41 @@ func inlineStatus(c *ui.Context, s statusLine) {
 	if s.isErr {
 		tone = ui.Hex(auroraRed)
 	}
-	ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(tone)
+	spoken := statusAnnouncementText(s)
+	status := ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(tone).
+		Role(ui.RoleStatus).Label(spoken)
+	announceStatusChange(c, status, s, spoken)
+}
+
+// statusAnnouncementText includes the outcome word because a screen reader
+// cannot infer success or failure from the red and green tints.
+func statusAnnouncementText(s statusLine) string {
+	if s.isErr {
+		return tr("Failed") + ": " + s.text
+	}
+	return tr("Done") + ": " + s.text
+}
+
+type announcedStatus struct {
+	text     string
+	isErr    bool
+	revision uint64
+}
+
+// announceStatusChange reports a new outcome once for the element that shows
+// it. Frames are rebuilt for unrelated input, so announcing the visible line
+// on every frame would repeat the same result until it was dismissed.
+func announceStatusChange(c *ui.Context, owner ui.Element, s statusLine, spoken string) {
+	last := ui.Local(owner, "status-announcement", func() announcedStatus {
+		return announcedStatus{}
+	})
+	changed := s.text != last.text || s.isErr != last.isErr
+	if s.revision != 0 && s.revision != last.revision {
+		changed = true
+	}
+	if !changed {
+		return
+	}
+	last.text, last.isErr, last.revision = s.text, s.isErr, s.revision
+	c.Announce(spoken)
 }
