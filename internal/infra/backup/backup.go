@@ -32,6 +32,12 @@ type BackupService struct {
 	removeSidecarFn func(string) error
 }
 
+// syncFileFn is injectable so tests can prove that copied database bytes are
+// durable before Restore or its rollback renames the temp over a live file.
+var syncFileFn = func(f *os.File) error {
+	return f.Sync()
+}
+
 type BackupResult struct {
 	File          string
 	Size          int64
@@ -851,6 +857,11 @@ func copyFileAtomic(srcPath, dstPath string) error {
 		_ = dst.Close()
 		_ = os.Remove(dstPath)
 		return fmt.Errorf("close source: %w", err)
+	}
+	if err := syncFileFn(dst); err != nil {
+		_ = dst.Close()
+		_ = os.Remove(dstPath)
+		return fmt.Errorf("sync temp: %w", err)
 	}
 	if err := dst.Close(); err != nil {
 		_ = os.Remove(dstPath)

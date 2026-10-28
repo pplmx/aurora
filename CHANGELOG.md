@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Database restores sync copied bytes before replacing a live store**:
+  `backup restore` and its rollback path copied a snapshot into a temporary
+  file and renamed it after `Close` without flushing the file. A crash or
+  power loss immediately after promotion could therefore leave the live path
+  holding a truncated or empty database even though the restore reported
+  success. The temporary copy is now fsynced before promotion, and a sync
+  failure removes it without touching the destination.
 - **A non-graceful API failure still drains its workers before storage
   closes**: `aurora-api` handles a listener error by calling `Server.Close`
   directly because `logger.Fatal` skips deferred stops. The server now owns
