@@ -9,6 +9,21 @@ var englishMessages = map[string]string{
 	"app.version":    "Version",
 	"app.go_version": "Go Version",
 	"app.build_time": "Build Time",
+	"version.short":  "Show version information",
+
+	// Root help
+	"cli.root.long": `Aurora is a blockchain-based digital systems suite: VRF lottery,
+signed voting, data oracle, NFT and fungible-token ledgers.
+
+Features:
+  - VRF random number generation
+  - Ed25519-signed voting and NFT transfers
+  - Blockchain storage with integrity verification
+  - CLI, native desktop window and REST API
+  - Database migrations and backups
+
+Use "aurora <module> --help" for module commands (lottery, voting, oracle,
+nft, token) and operational commands (migrate, backup, version).`,
 
 	// ===== LOTTERY =====
 	// Commands
@@ -336,6 +351,25 @@ var englishMessages = map[string]string{
 	// Chinese --help screen mixed translated module flags with English ones.
 	"cli.config_flag":       "config file (default is 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml)",
 	"cli.http_timeout_flag": "HTTP request timeout (e.g., 30s, 1m)",
+
+	// Cobra's generated help frame. The command declarations are localized,
+	// but Cobra's default usage renderer hardcodes these headings and the
+	// built-in help/completion command descriptions.
+	"cli.help.usage":                  "Usage:",
+	"cli.help.aliases":                "Aliases:",
+	"cli.help.examples":               "Examples:",
+	"cli.help.available_commands":     "Available Commands:",
+	"cli.help.additional_commands":    "Additional Commands:",
+	"cli.help.flags":                  "Flags:",
+	"cli.help.global_flags":           "Global Flags:",
+	"cli.help.additional_help_topics": "Additional help topics:",
+	"cli.help.more_info":              `Use "%s [command] --help" for more information about a command.`,
+	"cli.help.help_flag":              "help for %s",
+	"cli.help.command":                "Help about any command",
+	"cli.help.command_long":           "Help provides help for any command in the application.\nSimply type %s help [path to command] for full details.",
+	"cli.help.completion":             "Generate the autocompletion script for the specified shell",
+	"cli.help.completion_long":        "Generate the autocompletion script for %s for the specified shell.\nSee each sub-command's help for details on how to use the generated script.",
+	"cli.help.completion_shell":       "Generate the autocompletion script for %s",
 
 	// Errors
 	"error.invalid_input": "Invalid input",

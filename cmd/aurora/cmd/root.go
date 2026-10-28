@@ -22,18 +22,7 @@ var configErr error
 var rootCmd = &cobra.Command{
 	Use:   "aurora",
 	Short: i18n.GetText("app.name"),
-	Long: `Aurora is a blockchain-based digital systems suite: VRF lottery,
-signed voting, data oracle, NFT and fungible-token ledgers.
-
-Features:
-  - VRF random number generation
-  - Ed25519-signed voting and NFT transfers
-  - Blockchain storage with integrity verification
-  - CLI, native desktop window and REST API
-  - Database migrations and backups
-
-Use "aurora <module> --help" for module commands (lottery, voting, oracle,
-nft, token) and operational commands (migrate, backup, version).`,
+	Long:  i18n.GetText("cli.root.long"),
 	Example: `  aurora lottery create -p "Alice,Bob,Charlie" -s "my-seed" -c 2
   aurora nft mint -n "MyNFT" -c "creator-key"
   aurora token create -n "MyToken" -s "MTK" --supply 1000000

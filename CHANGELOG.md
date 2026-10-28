@@ -130,6 +130,11 @@ documented in their per-milestone ROADMAP files.
   English help and dialogs. Aurora now resolves `LC_ALL` → `LANGUAGE` →
   `LC_MESSAGES` → `LANG`, selects the first supported tag in a `LANGUAGE`
   list, and uses `[i18n] locale` only when none of those variables is set.
+- **Cobra-generated CLI help is localized too**: Chinese `--help` output no
+  longer mixes translated command descriptions with English `Usage:`,
+  `Available Commands:`, `Flags:` or `Global Flags:` headings, and the
+  built-in `help`/`completion` descriptions and root banner now translate as
+  well.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   the second-launch desktop dialog identifies the requested `--data-dir`

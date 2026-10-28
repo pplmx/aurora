@@ -9,6 +9,21 @@ var chineseMessages = map[string]string{
 	"app.version":    "版本",
 	"app.go_version": "Go 版本",
 	"app.build_time": "构建时间",
+	"version.short":  "显示版本信息",
+
+	// 根命令帮助
+	"cli.root.long": `Aurora 是基于区块链的数字系统套件：VRF 抽奖、
+签名投票、数据预言机、NFT 和同质化代币账本。
+
+功能：
+  - VRF 随机数生成
+  - Ed25519 签名投票与 NFT 转移
+  - 可校验完整性的区块链存储
+  - CLI、原生桌面窗口和 REST API
+  - 数据库迁移与备份
+
+使用 "aurora <module> --help" 查看模块命令（lottery、voting、oracle、
+nft、token）和运维命令（migrate、backup、version）。`,
 
 	// ===== LOTTERY =====
 	// Commands
@@ -327,6 +342,24 @@ var chineseMessages = map[string]string{
 	// 已翻译而这两条仍是英文。
 	"cli.config_flag":       "配置文件（默认依次为 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml）",
 	"cli.http_timeout_flag": "HTTP 请求超时（例如 30s、1m）",
+
+	// Cobra 生成的帮助框架。命令声明已经本地化，但 Cobra 默认的 usage
+	// 模板把标题、内置 help/completion 命令说明写死为英文。
+	"cli.help.usage":                  "用法：",
+	"cli.help.aliases":                "别名：",
+	"cli.help.examples":               "示例：",
+	"cli.help.available_commands":     "可用命令：",
+	"cli.help.additional_commands":    "附加命令：",
+	"cli.help.flags":                  "参数：",
+	"cli.help.global_flags":           "全局参数：",
+	"cli.help.additional_help_topics": "其他帮助主题：",
+	"cli.help.more_info":              `运行 "%s [command] --help" 查看命令的详细帮助。`,
+	"cli.help.help_flag":              "显示 %s 的帮助",
+	"cli.help.command":                "显示任意命令的帮助",
+	"cli.help.command_long":           "显示应用中任意命令的帮助。\n输入 %s help [命令路径] 查看完整说明。",
+	"cli.help.completion":             "生成指定 shell 的自动补全脚本",
+	"cli.help.completion_long":        "生成 %s 在指定 shell 中的自动补全脚本。\n查看各子命令的帮助了解如何使用生成的脚本。",
+	"cli.help.completion_shell":       "生成 %s 的自动补全脚本",
 
 	// Errors
 	"error.invalid_input": "输入无效",
