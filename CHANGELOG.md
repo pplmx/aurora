@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Lottery exports protect sidecars behind a database symlink**: a
+  `DBPath()` that pointed at the live database through a symlink was checked
+  only at the link location, while SQLite places WAL, shared-memory, and
+  rollback-journal files beside the target. Exporting to the real sidecar
+  could therefore replace live transaction state with JSON. The guard now
+  includes both the configured path and every resolved target sidecar.
 - **The desktop protects SQLite rollback journals at startup**: application
   data hardening covered the database, WAL, shared-memory file and log, but
   still constructed its own partial sidecar list. It now delegates to the

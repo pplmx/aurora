@@ -181,6 +181,35 @@ func TestWriteRecordsToFile_RefusesASymlinkAlias(t *testing.T) {
 	assert.Contains(t, err.Error(), "live database")
 }
 
+func TestWriteRecordsToFile_RefusesSidecarsOfSymlinkedDatabase(t *testing.T) {
+	root := t.TempDir()
+	realDir := filepath.Join(root, "real")
+	linkDir := filepath.Join(root, "link")
+	require.NoError(t, os.MkdirAll(realDir, 0o755))
+	require.NoError(t, os.MkdirAll(linkDir, 0o755))
+
+	dbPath := filepath.Join(realDir, "aurora.db")
+	require.NoError(t, os.WriteFile(dbPath, []byte("not really sqlite"), 0o600))
+	linkPath := filepath.Join(linkDir, "aurora.db")
+	if err := os.Symlink(dbPath, linkPath); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	repo := pathLotteryRepo{path: linkPath}
+	for _, suffix := range []string{"-wal", "-shm", "-journal"} {
+		dest := dbPath + suffix
+		require.NoError(t, os.WriteFile(dest, []byte("live sidecar"), 0o600))
+
+		_, err := WriteRecordsToFile(repo, dest)
+		require.Error(t, err, "exporting over the real sidecar %s must be refused", suffix)
+		assert.Contains(t, err.Error(), "live database")
+
+		data, readErr := os.ReadFile(dest)
+		require.NoError(t, readErr)
+		assert.Equal(t, "live sidecar", string(data))
+	}
+}
+
 func TestWriteRecordsToFile_WritesAnEmptyArray(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "empty.json")
 	count, err := WriteRecordsToFile(emptyLotteryRepo{}, path)
