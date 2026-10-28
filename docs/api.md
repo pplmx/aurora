@@ -6,7 +6,7 @@
 
 ```bash
 just api                                          # 构建 ./aurora-api（注入 git 版本）
-AURORA_API_KEY="your-strong-key" ./aurora-api     # 默认 0.0.0.0:8080
+AURORA_API_KEY="replace-with-at-least-32-random-characters" ./aurora-api
 ./aurora-api --host 127.0.0.1 --port 9090
 AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 ```
@@ -18,7 +18,9 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 ## 鉴权与中间件
 
 - **`X-API-Key`**：密钥来自 `AURORA_API_KEY` 或 `api.key`。开发模式下未设置会
-  生成随机密钥并打印在启动日志；生产环境拒绝弱密钥（`ErrInsecureAPIKey`）。
+  生成随机密钥并打印在启动日志；生产环境要求至少 32 个不含空白的可见 ASCII
+  字符，并拒绝已知弱密钥（`ErrInsecureAPIKey`），可用 `openssl rand -hex 32`
+  生成。
   `/healthz`、`/readyz`、`/health`、`/metrics`、`/metrics/oracle` 不需要 key。
 - **没有 Web 界面**：网关不提供静态文件，也不注入任何脚本；`/` 与任何未注册路径
   都返回 404。界面只有桌面端的原生窗口。

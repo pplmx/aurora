@@ -287,6 +287,9 @@ func TestLoad_ProductionRejectsInsecureKeys(t *testing.T) {
 		{"changeme", "changeme"},
 		{"secret", "secret"},
 		{"api-key", "api-key"},
+		{"too-short", strings.Repeat("x", 31)},
+		{"trailing-newline", strings.Repeat("x", 31) + "\n"},
+		{"non-ascii", strings.Repeat("x", 31) + "é"},
 		{"empty", ""},
 	}
 

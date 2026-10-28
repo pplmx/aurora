@@ -124,6 +124,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Production rejects short API keys**: the documented weak-key guard only
+  compared against a handful of literal placeholders, so production accepted
+  a one-character `AURORA_API_KEY`. Production keys must now be at least 32
+  visible ASCII characters without whitespace, so a newline accidentally
+  captured from a secret file cannot produce a server that rejects every
+  request; development mode still permits short fixed keys for local-only
+  workflows. The quick-start examples now use a placeholder that passes the
+  production check.
 - **CORS preflight advertises the PATCH endpoint**: the API exposes
   `PATCH /api/v1/oracle/sources/{id}` for enable/disable, but
   `Access-Control-Allow-Methods` omitted `PATCH`. An operator-configured
