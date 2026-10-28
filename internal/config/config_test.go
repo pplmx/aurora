@@ -215,6 +215,33 @@ port = 9123
 	assert.Equal(t, 9081, cfg.Server.Port, "env port must beat the config file")
 }
 
+// TestLoad_RejectsInvalidServerPort keeps a bad environment or config value
+// from reaching resolveAddr. Port zero previously produced an ephemeral bind,
+// and values above 65535 failed only after the database, scheduler and outbox
+// had already started.
+func TestLoad_RejectsInvalidServerPort(t *testing.T) {
+	cases := []struct {
+		name string
+		port int
+	}{
+		{name: "zero", port: 0},
+		{name: "negative", port: -1},
+		{name: "above range", port: 65536},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			resetViper()
+			t.Cleanup(viper.Reset)
+			setDevEnv(t)
+			viper.Set("server.port", tc.port)
+
+			_, err := Load()
+			require.ErrorIs(t, err, ErrInvalidServerPort)
+		})
+	}
+}
+
 func TestLoad_OverridesViaViperSet(t *testing.T) {
 	resetViper()
 	setDevEnv(t)

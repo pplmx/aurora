@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	ErrMissingAPIKey  = errors.New("AURORA_API_KEY environment variable is required in production")
-	ErrInsecureAPIKey = errors.New("insecure API key detected; please set a secure AURORA_API_KEY")
+	ErrMissingAPIKey     = errors.New("AURORA_API_KEY environment variable is required in production")
+	ErrInsecureAPIKey    = errors.New("insecure API key detected; please set a secure AURORA_API_KEY")
+	ErrInvalidServerPort = errors.New("invalid server.port")
 )
 
 var insecureKeys = map[string]bool{
@@ -127,6 +128,9 @@ func Load() (*Config, error) {
 	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
+	}
+	if cfg.Server.Port < 1 || cfg.Server.Port > 65535 {
+		return nil, fmt.Errorf("%w: %d must be between 1 and 65535", ErrInvalidServerPort, cfg.Server.Port)
 	}
 
 	resolvedKey, err := resolveAPIKey(cfg.API.Key)

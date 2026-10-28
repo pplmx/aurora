@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Invalid server ports fail before startup work begins**: `server.port` from
+  TOML or `AURORA_SERVER_PORT` was unmarshaled without a range check. A zero
+  port silently requested an ephemeral listener while the logs still printed
+  `:0`, and an out-of-range port failed only after the database, Oracle
+  scheduler and audit outbox had started. Configuration loading now rejects
+  anything outside `1..65535`, matching the existing command-line flag check.
 - **Request metrics record the status clients actually received**: once a
   handler wrote a body, flushed a streaming response, or wrote its first header,
   `net/http` ignored any later status change, but the metrics wrapper still
