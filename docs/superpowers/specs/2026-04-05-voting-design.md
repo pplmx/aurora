@@ -73,7 +73,7 @@ type Candidate struct {
 type Voter struct {
     PublicKey   string    `json:"public_key"`   // Ed25519 公钥 (Base64)
     Name        string    `json:"name"`         // 投票人名称（可选）
-    HasVoted    bool      `json:"has_voted"`    // 是否已投票
+    HasVoted    bool      `json:"has_voted"`    // 是否曾经投过票（会期资格见 claim）
     VoteHash    string    `json:"vote_hash"`    // 投票内容哈希
     RegisteredAt int64    `json:"registered_at"` // 注册时间
 }
@@ -150,10 +150,10 @@ func RegisterVoter() (publicKey, privateKey []byte, err error) {
 ### 3. 投票
 
 ```go
-func CastVote(voterPK []byte, candidateID string, privateKey []byte) (*VoteRecord, error) {
+func CastVote(voterPK []byte, sessionID, candidateID string, privateKey []byte) (*VoteRecord, error) {
     // 验证投票人
     voter := getVoter(base64.StdEncoding.EncodeToString(voterPK))
-    if voter.HasVoted {
+    if claimExists(sessionID, voter.PublicKey) {
         return nil, ErrAlreadyVoted
     }
 
@@ -184,7 +184,8 @@ func CastVote(voterPK []byte, candidateID string, privateKey []byte) (*VoteRecor
     height := chain.AddBlock(record.ToJSON())
     record.BlockHeight = height
 
-    // 更新投票人状态
+    // 记录本会期唯一 claim，并保留“曾经投过票”的历史标记
+    claimSessionBallot(sessionID, voter.PublicKey, record.ID)
     voter.HasVoted = true
     voter.VoteHash = sha256.Sum256([]byte(message))
     updateVoter(voter)
@@ -446,7 +447,9 @@ type Storage interface {
 
 ## 安全性考虑
 
-1. **一人一票**：通过 Ed25519 公钥唯一标识，hasVoted 标记防止重复
+1. **每个会期一人一票**：通过 Ed25519 公钥唯一标识，并由
+   `(session_id, voter_pk)` claim 防止同一会期重复投票；hasVoted 只保留
+   “曾经投票”的历史标记
 2. **签名验证**：每票必验，防止篡改
 3. **区块链存证**：投票记录上链，不可篡改
 4. **隐私保护**：只存储公钥和签名，不存储投票人身份信息

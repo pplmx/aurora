@@ -60,7 +60,7 @@ type LedgerBlockPage struct {
 type VoterRow struct {
 	PublicKey string
 	Name      string
-	HasVoted  bool
+	HasVoted  bool // lifetime history; ballot eligibility is per session
 	// PrivateKey is the ballot-signing key the registration generated. It is
 	// returned once, by RegisterVoter only: the stored voter keeps just the
 	// public half, so a window that dropped it left the operator with a voter

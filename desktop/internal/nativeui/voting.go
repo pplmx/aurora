@@ -569,7 +569,7 @@ func (a *App) votingSessions(c *ui.Context) {
 // after registration the only visible public key was the one-time key card,
 // so a restart hid every voter that could still cast a ballot.
 func (a *App) votingVoterListCard(c *ui.Context) {
-	formCard(c, "Voters", "Registered signing keys and whether each voter has already claimed a ballot.", func() {
+	formCard(c, "Voters", "Registered signing keys and whether each voter has ever cast a ballot.", func() {
 		a.votingVoterList(c)
 	})
 }
@@ -616,9 +616,9 @@ func (a *App) votingVoterList(c *ui.Context) {
 		switch col {
 		case 0:
 			if voter.HasVoted {
-				ui.Text(c, tr("Voted"))
+				ui.Text(c, tr("Voted before"))
 			} else {
-				ui.Text(c, tr("Not voted"))
+				ui.Text(c, tr("No ballot yet"))
 			}
 		case 1:
 			ui.Text(c, voter.Name).SingleLine()
@@ -626,17 +626,18 @@ func (a *App) votingVoterList(c *ui.Context) {
 			ui.Text(c, shortID(voter.PublicKey)).SingleLine()
 		}
 	})
+	hint(c, "A prior ballot does not block a later session; each session accepts one ballot per voter.")
 	if table.Changed() && a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
 		publicKey := voters[a.voting.voterChoice].PublicKey
 		a.applyVoteVoter(publicKey)
 	}
 	if a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
 		chosen := voters[a.voting.voterChoice]
-		status := tr("Not voted")
+		status := tr("No ballot yet")
 		if chosen.HasVoted {
-			status = tr("Voted")
+			status = tr("Voted before")
 		}
-		readout(c, []readoutRow{{"Ballot status", status}})
+		readout(c, []readoutRow{{"Ever voted", status}})
 		copyRow(c, "Selected voter public key", chosen.PublicKey, nil)
 	}
 }

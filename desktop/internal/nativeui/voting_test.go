@@ -565,7 +565,7 @@ func TestVoterListLoadsThePublicKeyIntoTheBallot(t *testing.T) {
 	tester.Frame()
 
 	require.True(t, tester.HasText("Alice"))
-	require.True(t, tester.HasText("Voted"))
+	require.True(t, tester.HasText("Voted before"))
 	require.NoError(t, tester.Click(shortID(publicKey)))
 	tester.Frame()
 

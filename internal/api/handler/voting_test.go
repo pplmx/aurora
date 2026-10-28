@@ -67,7 +67,6 @@ func (m *mockVotingRepo) GetVoter(pk string) (*voting.Voter, error) {
 	return m.voters[pk], nil
 }
 func (m *mockVotingRepo) UpdateVoter(*voting.Voter) error { return nil }
-func (m *mockVotingRepo) TryMarkVoted(_, _ string) error  { return nil }
 func (m *mockVotingRepo) ListVoters(limit, offset int) ([]*voting.Voter, error) {
 	m.lastVoterLimit = limit
 	m.lastVoterOffset = offset

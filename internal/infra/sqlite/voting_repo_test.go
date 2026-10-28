@@ -262,6 +262,9 @@ func TestVotingRepository_GetVotesByCandidate(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
+	for _, pk := range []string{"voter1", "voter2", "voter3"} {
+		require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: pk, Name: pk, RegisteredAt: 1}))
+	}
 	vote1 := voting.NewSessionVote("voter1", "cand-1", "s1", "sig1", "msg1")
 	vote2 := voting.NewSessionVote("voter2", "cand-1", "s1", "sig2", "msg2")
 	vote3 := voting.NewSessionVote("voter3", "cand-2", "s1", "sig3", "msg3")
@@ -299,6 +302,9 @@ func TestVotingRepository_CountVotesBySession(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
+	for _, pk := range []string{"v1", "v2", "v3", "v4"} {
+		require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: pk, Name: pk, RegisteredAt: 1}))
+	}
 	for _, v := range []*voting.Vote{
 		voting.NewSessionVote("v1", "cand-1", "s1", "sig", "msg"),
 		voting.NewSessionVote("v2", "cand-1", "s1", "sig", "msg"),
@@ -340,7 +346,23 @@ func TestVotingRepository_BootstrapsVoteSessions(t *testing.T) {
 			block_height INTEGER NOT NULL
 		);
 		INSERT INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
-		VALUES ('legacy', 'voter', 'cand', 'sig', 'msg', 1, 1);
+		VALUES
+			('legacy', 'voter', 'cand', 'sig', 'msg', 1, 1),
+			('mapped', 'voter', 'cand', 'sig', 'msg', 2, 2);
+		CREATE TABLE vote_sessions (
+			vote_id TEXT PRIMARY KEY,
+			session_id TEXT NOT NULL
+		);
+		INSERT INTO vote_sessions (vote_id, session_id) VALUES ('mapped', 's-existing');
+		CREATE TABLE voters (
+			public_key TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			has_voted INTEGER NOT NULL DEFAULT 0,
+			vote_hash TEXT,
+			registered_at INTEGER NOT NULL
+		);
+		INSERT INTO voters (public_key, name, has_voted, vote_hash, registered_at)
+		VALUES ('voter', 'Legacy voter', 0, NULL, 1);
 	`)
 	require.NoError(t, err)
 
@@ -364,6 +386,18 @@ func TestVotingRepository_BootstrapsVoteSessions(t *testing.T) {
 	).Scan(&legacySession))
 	require.Equal(t, "", legacySession, "legacy votes cannot be attributed to a session")
 
+	var claimVoteID string
+	require.NoError(t, db.QueryRow(
+		`SELECT vote_id FROM session_vote_claims
+		 WHERE session_id = 's-existing' AND voter_pk = 'voter'`,
+	).Scan(&claimVoteID))
+	require.Equal(t, "mapped", claimVoteID,
+		"self-bootstrap must backfill claims from existing session mappings")
+	legacyVoter, err := repo.GetVoter("voter")
+	require.NoError(t, err)
+	require.True(t, legacyVoter.HasVoted)
+
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: "v2", Name: "Voter", RegisteredAt: 1}))
 	require.NoError(t, repo.SaveVote(voting.NewSessionVote("v2", "cand", "s1", "sig", "msg")))
 	n, err := repo.CountVotesBySession("s1", "cand")
 	require.NoError(t, err)
@@ -629,10 +663,7 @@ func TestVotingRepository_WithTx_CommitAndVisibility(t *testing.T) {
 	err := txMgr.WithTransaction(func(tx *sql.Tx) error {
 		txRepo := repo.WithTx(tx)
 
-		if err := txRepo.TryMarkVoted("pk-tx", "hash-tx"); err != nil {
-			return err
-		}
-		vote := voting.NewVote("pk-tx", "cand-tx", "sig", "msg")
+		vote := voting.NewSessionVote("pk-tx", "cand-tx", "session-tx", "sig", "msg")
 		if err := txRepo.SaveVote(vote); err != nil {
 			return err
 		}
@@ -686,10 +717,7 @@ func TestVotingRepository_WithTx_RollbackLeavesNoPartialState(t *testing.T) {
 	err := txMgr.WithTransaction(func(tx *sql.Tx) error {
 		txRepo := repo.WithTx(tx)
 
-		if err := txRepo.TryMarkVoted("pk-rb", "hash-rb"); err != nil {
-			return err
-		}
-		vote := voting.NewVote("pk-rb", "cand-rb", "sig", "msg")
+		vote := voting.NewSessionVote("pk-rb", "cand-rb", "session-rb", "sig", "msg")
 		if err := txRepo.SaveVote(vote); err != nil {
 			return err
 		}

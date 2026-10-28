@@ -182,11 +182,10 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 	// out or left an orphan vote row (violating the votes<->voters invariant).
 	// With a real transaction no partial ballot state can ever commit.
 	//
-	// TryMarkVoted remains the concurrency primitive: its conditional UPDATE
-	// guarantees exactly one concurrent caller for the same voter wins; the
-	// losers get ErrAlreadyVoted and their whole transaction aborts with no
-	// side effects.
-	voteHash := base64.StdEncoding.EncodeToString([]byte(message))
+	// SaveVote inserts the (session_id, voter_pk) claim and the ballot in the
+	// same transaction. The claim's primary key guarantees exactly one
+	// concurrent caller for the same voter and session wins; the losers get
+	// ErrAlreadyVoted and their whole transaction aborts with no side effects.
 	var voteID string
 	var blockHeight int64
 
@@ -215,10 +214,6 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 			return voting.ErrCandidateNotInSession
 		}
 
-		if err := repo.TryMarkVoted(req.VoterPublicKey, voteHash); err != nil {
-			return err
-		}
-
 		vote := voting.NewSessionVote(req.VoterPublicKey, req.CandidateID, req.SessionID, signature, message)
 		vote.BlockHeight = height
 		if err := repo.SaveVote(vote); err != nil {
@@ -237,8 +232,8 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 		}
 		if errors.Is(err, repoerr.ErrNotFound) {
 			// A row vanished between the existence checks above and the
-			// transactional mutations: either the voter (TryMarkVoted) or
-			// the candidate (IncrementCandidateVoteCount) was deleted
+			// transactional mutations: either the voter (the session claim
+			// update) or the candidate (IncrementCandidateVoteCount) was deleted
 			// concurrently. Re-check the voter to map to the right public
 			// error.
 			if v, vErr := uc.repo.GetVoter(req.VoterPublicKey); vErr == nil && v == nil {

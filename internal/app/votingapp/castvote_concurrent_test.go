@@ -164,8 +164,8 @@ func TestCastVoteUseCase_ConcurrentDistinctVoters(t *testing.T) {
 
 // TestCastVoteUseCase_ConcurrentSameVoterOnlyOneWins proves that concurrent
 // ballots from the SAME voter result in exactly one accepted vote, through
-// the real transactional path (TryMarkVoted's conditional UPDATE inside the
-// transaction; all losers abort with ErrAlreadyVoted and no side effects).
+// the real transactional path (the (session_id, voter_pk) claim inside
+// SaveVote; all losers abort with ErrAlreadyVoted and no side effects).
 func TestCastVoteUseCase_ConcurrentSameVoterOnlyOneWins(t *testing.T) {
 	repo, txMgr, cleanup := setupCastVoteTestDB(t)
 	defer cleanup()
@@ -226,6 +226,67 @@ func TestCastVoteUseCase_ConcurrentSameVoterOnlyOneWins(t *testing.T) {
 	rows, err := repo.GetVotesByVoter(pk)
 	require.NoError(t, err)
 	assert.Len(t, rows, 1, "exactly one vote row for the racing voter")
+}
+
+// TestCastVoteUseCase_ConcurrentSameVoterDifferentSessionsBothWin proves the
+// claim key is session-scoped even under concurrency: a voter may have one
+// in-flight ballot in each of two elections, and both tally increments commit.
+func TestCastVoteUseCase_ConcurrentSameVoterDifferentSessionsBothWin(t *testing.T) {
+	repo, txMgr, cleanup := setupCastVoteTestDB(t)
+	defer cleanup()
+
+	service := voting.NewEd25519Service()
+	candidate := voting.NewCandidate("Carol", "Party C", "Platform")
+	require.NoError(t, repo.SaveCandidate(candidate))
+
+	now := time.Now().Unix()
+	sessions := make([]*voting.Session, 2)
+	for i := range sessions {
+		sessions[i] = voting.NewSession(
+			fmt.Sprintf("Election %d", i+1), "", []string{candidate.ID},
+			now-3600, now+3600,
+		)
+		sessions[i].Status = voting.SessionStatusActive
+		require.NoError(t, repo.SaveSession(sessions[i]))
+	}
+
+	pub, priv, err := ed25519.GenerateKey(nil)
+	require.NoError(t, err)
+	pk := base64.StdEncoding.EncodeToString(pub)
+	privB64 := base64.StdEncoding.EncodeToString(priv)
+	require.NoError(t, repo.SaveVoter(&voting.Voter{PublicKey: pk, Name: "split voter", RegisteredAt: now}))
+
+	var wg sync.WaitGroup
+	errs := make([]error, len(sessions))
+	start := make(chan struct{})
+	for i, session := range sessions {
+		wg.Add(1)
+		go func(idx int, sessionID string) {
+			defer wg.Done()
+			<-start
+			_, errs[idx] = NewCastVoteUseCase(repo, service, txMgr).Execute(CastVoteRequest{
+				VoterPublicKey: pk,
+				CandidateID:    candidate.ID,
+				PrivateKey:     privB64,
+				SessionID:      sessionID,
+			})
+		}(i, session.ID)
+	}
+	close(start)
+	wg.Wait()
+
+	require.NoError(t, errs[0])
+	require.NoError(t, errs[1])
+
+	got, err := repo.GetCandidate(candidate.ID)
+	require.NoError(t, err)
+	assert.Equal(t, 2, got.VoteCount)
+
+	for _, session := range sessions {
+		count, err := repo.CountVotesBySession(session.ID, candidate.ID)
+		require.NoError(t, err)
+		assert.Equal(t, 1, count)
+	}
 }
 
 func mustPubFromPriv(t *testing.T, privB64 string) ed25519.PublicKey {

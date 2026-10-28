@@ -49,7 +49,8 @@ func NewSessionVote(voterPublicKey, candidateID, sessionID, signature, message s
 	return vote
 }
 
-// Voter represents a voter in the voting system.
+// Voter represents a voter in the voting system. HasVoted is a lifetime
+// history flag; ballot admission is scoped to a single session.
 type Voter struct {
 	PublicKey    string
 	Name         string

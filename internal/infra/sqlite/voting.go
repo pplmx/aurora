@@ -101,6 +101,31 @@ func (r *VotingRepository) createTables() error {
 		// replaces the single-column index that could not page deterministically.
 		`DROP INDEX IF EXISTS idx_voters_registered`,
 		`CREATE INDEX IF NOT EXISTS idx_voters_page ON voters(registered_at DESC, public_key)`,
+		`CREATE TABLE IF NOT EXISTS session_vote_claims (
+			session_id TEXT NOT NULL,
+			voter_pk TEXT NOT NULL,
+			vote_id TEXT NOT NULL UNIQUE,
+			claimed_at INTEGER NOT NULL,
+			PRIMARY KEY (session_id, voter_pk)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_session_vote_claims_voter
+			ON session_vote_claims(voter_pk)`,
+		// Older binaries can leave session ballots in a self-bootstrapped
+		// database before migration 000008 runs. Backfill here so both schema
+		// paths enforce the same per-session rule.
+		`INSERT OR IGNORE INTO session_vote_claims
+			(session_id, voter_pk, vote_id, claimed_at)
+		 SELECT vs.session_id, v.voter_pk, v.id, v.timestamp
+		 FROM votes v
+		 JOIN vote_sessions vs ON vs.vote_id = v.id
+		 ORDER BY v.timestamp, v.id`,
+		`UPDATE voters
+		 SET has_voted = 1
+		 WHERE has_voted = 0
+		   AND EXISTS (
+		       SELECT 1 FROM session_vote_claims c
+		       WHERE c.voter_pk = voters.public_key
+		   )`,
 	}
 
 	for _, query := range queries {
@@ -167,7 +192,69 @@ func (r *VotingRepository) saveVote(vote *voting.Vote) error {
 			vote.ID, vote.SessionID,
 		)
 	}
-	return err
+	if err != nil || vote.SessionID == "" {
+		return err
+	}
+	return r.claimSessionBallot(vote)
+}
+
+// claimSessionBallot is the atomic duplicate-ballot guard for session votes.
+// SaveVote always runs in a transaction (its own or CastVote's), so a duplicate
+// claim rolls back the vote, session mapping and tally together.
+func (r *VotingRepository) claimSessionBallot(vote *voting.Vote) error {
+	res, err := r.q().Exec(
+		`INSERT INTO session_vote_claims (session_id, voter_pk, vote_id, claimed_at)
+		 VALUES (?, ?, ?, ?)
+		 ON CONFLICT DO NOTHING`,
+		vote.SessionID, vote.VoterPublicKey, vote.ID, vote.Timestamp,
+	)
+	if err != nil {
+		return fmt.Errorf("claim session ballot: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("claim session ballot rows: %w", err)
+	}
+	if affected == 0 {
+		var claimedVoteID string
+		err := r.q().QueryRow(
+			`SELECT vote_id FROM session_vote_claims
+			 WHERE session_id = ? AND voter_pk = ?`,
+			vote.SessionID, vote.VoterPublicKey,
+		).Scan(&claimedVoteID)
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("claim session ballot: vote id %s is already used", vote.ID)
+		}
+		if err != nil {
+			return fmt.Errorf("read session ballot claim: %w", err)
+		}
+		if claimedVoteID == vote.ID {
+			return nil
+		}
+		return ErrAlreadyVoted
+	}
+
+	res, err = r.q().Exec(
+		`UPDATE voters
+		 SET has_voted = 1,
+		     vote_hash = CASE
+		         WHEN has_voted = 0 OR vote_hash IS NULL OR vote_hash = '' THEN ?
+		         ELSE vote_hash
+		     END
+		 WHERE public_key = ?`,
+		vote.Message, vote.VoterPublicKey,
+	)
+	if err != nil {
+		return fmt.Errorf("mark voter lifetime ballot: %w", err)
+	}
+	affected, err = res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("mark voter lifetime ballot rows: %w", err)
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // DeleteVote removes a vote by id. CastVote no longer needs it for rollback
@@ -254,14 +341,12 @@ func (r *VotingRepository) GetVotesByVoter(voterPK string) ([]*voting.Vote, erro
 //   - On a conflict (existing public_key): update only `name` and
 //     `registered_at`. We deliberately do NOT touch `has_voted` or
 //     `vote_hash` — those are the integrity-bearing columns, and
-//     the only writer to them is TryMarkVoted (a conditional
-//     UPDATE that atomically transitions 0→1).
+//     the only writer is the session claim in SaveVote.
 //
 // Why this matters: the previous INSERT OR REPLACE silently wiped
 // has_voted and vote_hash on every conflict. That meant any caller
 // passing an existing public_key with has_voted=false could undo a
-// recorded vote, defeating the Round 14 TryMarkVoted atomic
-// guarantee and re-enabling double voting via the re-registration
+// recorded vote and re-enable ballot claims via the re-registration
 // path. Today the only caller is RegisterVoterUseCase, which
 // generates a fresh key per registration so the bug isn't
 // reachable through normal use — but it's a footgun for any
@@ -284,7 +369,8 @@ func (r *VotingRepository) SaveVoter(voter *voting.Voter) error {
 
 func (r *VotingRepository) GetVoter(pk string) (*voting.Voter, error) {
 	row := r.q().QueryRow(
-		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters WHERE public_key = ?`,
+		`SELECT public_key, name, has_voted, COALESCE(vote_hash, ''), registered_at
+		 FROM voters WHERE public_key = ?`,
 		pk,
 	)
 	v := &voting.Voter{}
@@ -309,48 +395,6 @@ func (r *VotingRepository) UpdateVoter(voter *voting.Voter) error {
 	return err
 }
 
-// TryMarkVoted atomically flips has_voted from 0 to 1 for the given
-// voter, returning ErrAlreadyVoted if the voter is already marked.
-//
-// This is the atomic primitive that closes the TOCTOU window in
-// CastVoteUseCase: the previous flow read has_voted, decided whether to
-// proceed, and then wrote back has_voted=true. Two concurrent requests
-// could both pass the read, both sign+save their vote, and both
-// UPDATE — silently allowing double voting.
-//
-// The conditional UPDATE here uses SQLite's per-connection write
-// serialization so exactly one caller sees RowsAffected()==1 and the
-// rest see RowsAffected()==0 (mapped to ErrAlreadyVoted). voteHash is
-// set in the same UPDATE so the audit trail is consistent.
-func (r *VotingRepository) TryMarkVoted(publicKey, voteHash string) error {
-	res, err := r.q().Exec(
-		`UPDATE voters SET has_voted = 1, vote_hash = ? WHERE public_key = ? AND has_voted = 0`,
-		voteHash, publicKey,
-	)
-	if err != nil {
-		return fmt.Errorf("try mark voted: %w", err)
-	}
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("try mark voted rows: %w", err)
-	}
-	if affected == 0 {
-		// Either the voter doesn't exist or has_voted is already 1.
-		// Distinguish so the caller can return the right HTTP code.
-		v, getErr := r.GetVoter(publicKey)
-		if getErr != nil {
-			return getErr // ErrNotFound if missing
-		}
-		_ = v
-		return ErrAlreadyVoted
-	}
-	return nil
-}
-
-// UnmarkVoted resets has_voted to 0 and clears vote_hash for the given
-// voter. Historically the best-effort rollback when SaveVote failed after
-// TryMarkVoted succeeded; CastVote now runs in a real transaction, so this
-// primitive is retained for administrative / corrective flows only.
 func (r *VotingRepository) ListVoters(limit, offset int) ([]*voting.Voter, error) {
 	if limit <= 0 {
 		limit = -1
@@ -359,7 +403,7 @@ func (r *VotingRepository) ListVoters(limit, offset int) ([]*voting.Voter, error
 		offset = 0
 	}
 	rows, err := r.q().Query(
-		`SELECT public_key, name, has_voted, vote_hash, registered_at
+		`SELECT public_key, name, has_voted, COALESCE(vote_hash, ''), registered_at
 		 FROM voters ORDER BY registered_at DESC, public_key LIMIT ? OFFSET ?`,
 		limit, offset,
 	)

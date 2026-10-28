@@ -49,7 +49,8 @@ func TestRealMigrations_Apply(t *testing.T) {
 
 	for _, table := range []string{
 		"blocks", "lottery_records", "lottery_vrf_keys",
-		"votes", "vote_sessions", "voters", "candidates", "voting_sessions",
+		"votes", "vote_sessions", "session_vote_claims",
+		"voters", "candidates", "voting_sessions",
 		"nfts", "nft_operations",
 		"tokens", "accounts", "allowances",
 		"data_sources", "oracle_data",
@@ -204,6 +205,9 @@ func TestRealMigrations_PreservesBootstrappedVoteSessions(t *testing.T) {
 	repo, err := sqlite.NewVotingRepository(db)
 	require.NoError(t, err)
 
+	require.NoError(t, repo.SaveVoter(&voting.Voter{
+		PublicKey: "voter", Name: "Voter", RegisteredAt: 1,
+	}))
 	require.NoError(t, repo.SaveVote(&voting.Vote{
 		ID:             "bootstrapped",
 		VoterPublicKey: "voter",
@@ -231,6 +235,83 @@ func TestRealMigrations_PreservesBootstrappedVoteSessions(t *testing.T) {
 		`SELECT session_id FROM vote_sessions WHERE vote_id = 'bootstrapped'`,
 	).Scan(&sessionID))
 	require.Equal(t, "s1", sessionID, "migration must preserve the repository's session mapping")
+
+	var claimVoteID string
+	require.NoError(t, db.QueryRow(
+		`SELECT vote_id FROM session_vote_claims
+		 WHERE session_id = 's1' AND voter_pk = 'voter'`,
+	).Scan(&claimVoteID))
+	require.Equal(t, "bootstrapped", claimVoteID,
+		"migration must preserve the claim written by the bootstrapped repository")
+}
+
+// TestRealMigrations_BackfillsSessionVoteClaims proves the upgrade converts
+// existing session ballots into per-session claims without deleting any audit
+// rows. If an old database already contains two ballots from one voter in the
+// same session, the earliest ballot owns the claim and all vote rows remain.
+func TestRealMigrations_BackfillsSessionVoteClaims(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+
+	m, err := New(dbPath, realMigrationsDir())
+	require.NoError(t, err)
+	_, err = m.Up(7)
+	require.NoError(t, err)
+	require.NoError(t, m.Close())
+
+	db, err := sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	_, err = db.Exec(`
+		INSERT INTO voters (public_key, name, has_voted, vote_hash, registered_at)
+		VALUES ('voter', 'Alice', 0, NULL, 1);
+
+		INSERT INTO votes (id, voter_pk, candidate_id, signature, message, timestamp, block_height)
+		VALUES
+			('first', 'voter', 'cand', 'sig-1', 'msg-1', 1, 1),
+			('second', 'voter', 'cand', 'sig-2', 'msg-2', 2, 2),
+			('duplicate', 'voter', 'cand', 'sig-3', 'msg-3', 3, 3);
+
+		INSERT INTO vote_sessions (vote_id, session_id)
+		VALUES ('first', 's1'), ('second', 's2'), ('duplicate', 's1');
+	`)
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	m, err = New(dbPath, realMigrationsDir())
+	require.NoError(t, err)
+	defer func() { _ = m.Close() }()
+	_, err = m.Up(0)
+	require.NoError(t, err, "migration 000008 must upgrade existing session ballots")
+
+	db, err = sql.Open("sqlite", dbPath)
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	rows, err := db.Query(`
+		SELECT session_id, vote_id
+		FROM session_vote_claims
+		WHERE voter_pk = 'voter'
+		ORDER BY session_id
+	`)
+	require.NoError(t, err)
+	defer func() { _ = rows.Close() }()
+
+	var claims [][2]string
+	for rows.Next() {
+		var sessionID, voteID string
+		require.NoError(t, rows.Scan(&sessionID, &voteID))
+		claims = append(claims, [2]string{sessionID, voteID})
+	}
+	require.NoError(t, rows.Err())
+	require.Equal(t, [][2]string{{"s1", "first"}, {"s2", "second"}}, claims,
+		"the earliest ballot wins a duplicate historical claim")
+
+	var votes, hasVoted int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM votes`).Scan(&votes))
+	require.NoError(t, db.QueryRow(
+		`SELECT has_voted FROM voters WHERE public_key = 'voter'`,
+	).Scan(&hasVoted))
+	assert.Equal(t, 3, votes, "migration must preserve every historical ballot")
+	assert.Equal(t, 1, hasVoted, "the lifetime voter flag must reflect the backfilled claims")
 }
 
 func assertTableExists(t *testing.T, db *sql.DB, table string) {

@@ -34,6 +34,10 @@ type Counts struct {
 }
 
 type Repository interface {
+	// SaveVote persists a ballot. When SessionID is non-empty, it also claims
+	// (session_id, voter_pk) in the same transaction and returns
+	// ErrAlreadyVoted if that voter already has a ballot in the session. The
+	// voters.has_voted flag remains a lifetime "has ever voted" attribute.
 	SaveVote(vote *Vote) error
 	GetVotesByCandidate(candidateID string) ([]*Vote, error)
 	GetVotesByVoter(voterPK string) ([]*Vote, error)
@@ -46,12 +50,6 @@ type Repository interface {
 	SaveVoter(voter *Voter) error
 	GetVoter(pk string) (*Voter, error)
 	UpdateVoter(voter *Voter) error
-	// TryMarkVoted atomically claims a voter for voting. Implementations
-	// MUST be concurrency-safe (e.g. via conditional UPDATE) so that
-	// exactly one concurrent caller succeeds; the rest must receive a
-	// sentinel error. This is the primitive that closes the TOCTOU
-	// double-vote window in CastVoteUseCase.
-	TryMarkVoted(publicKey, voteHash string) error
 	// ListVoters returns one newest-first page. limit <= 0 returns the
 	// remainder from offset, preserving the CLI's full-list form.
 	ListVoters(limit, offset int) ([]*Voter, error)

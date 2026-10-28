@@ -33,9 +33,6 @@ func TestCastVoteRollbackLeavesNoOnChainBlock(t *testing.T) {
 	voter := voting.NewVoter("Alice")
 	voter.PublicKey = publicKeyText
 	require.NoError(t, repo.SaveVoter(voter))
-	voter.HasVoted = true
-	voter.VoteHash = "previous-vote"
-	require.NoError(t, repo.UpdateVoter(voter))
 
 	candidate := voting.NewCandidate("Bob", "Independent", "platform")
 	require.NoError(t, repo.SaveCandidate(candidate))
@@ -44,6 +41,10 @@ func TestCastVoteRollbackLeavesNoOnChainBlock(t *testing.T) {
 	session := voting.NewSession("Election", "test", []string{candidate.ID}, now-60, now+60)
 	session.Status = voting.SessionStatusActive
 	require.NoError(t, repo.SaveSession(session))
+
+	require.NoError(t, repo.SaveVote(voting.NewSessionVote(
+		publicKeyText, candidate.ID, session.ID, "previous-signature", "previous-message",
+	)))
 
 	uc := NewCastVoteUseCase(repo, voting.NewEd25519Service(), sqlite.NewTxManager(db))
 	uc.SetChain(chain)
@@ -63,7 +64,7 @@ func TestCastVoteRollbackLeavesNoOnChainBlock(t *testing.T) {
 
 	votes, err := repo.GetVotesByCandidate(candidate.ID)
 	require.NoError(t, err)
-	require.Empty(t, votes)
+	require.Len(t, votes, 1, "the losing ballot must not add another vote row")
 	storedCandidate, err := repo.GetCandidate(candidate.ID)
 	require.NoError(t, err)
 	require.Zero(t, storedCandidate.VoteCount)

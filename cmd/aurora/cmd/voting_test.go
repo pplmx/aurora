@@ -83,7 +83,7 @@ func TestVotingVoterRegister_List(t *testing.T) {
 		out, err = runCmd(t, "voting", "voter", "list")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Carol")
-		assert.Contains(t, out, "not voted")
+		assert.Contains(t, out, "no ballots yet")
 	})
 }
 
@@ -148,6 +148,37 @@ func TestVotingVote_AlreadyVoted(t *testing.T) {
 			"--private-key", voterPriv, "--session", sessionID)
 		require.Error(t, err)
 		assert.Contains(t, strings.ToLower(err.Error()), "already voted")
+	})
+}
+
+func TestVotingVote_OneBallotPerSession(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		candID, session1, voterPub, voterPriv := votingFixture(t)
+
+		_, err := runCmd(t, "voting", "vote",
+			"--voter", voterPub, "--candidate", candID,
+			"--private-key", voterPriv, "--session", session1)
+		require.NoError(t, err)
+
+		out, err := runCmd(t, "voting", "session", "create",
+			"--title", "Election 2027", "--candidates", candID,
+			"--start-time", "1700000000", "--end-time", "9999999999")
+		require.NoError(t, err)
+		session2 := extractField(t, out, "ID:")
+		require.NotEmpty(t, session2)
+		_, err = runCmd(t, "voting", "session", "start", "--session", session2)
+		require.NoError(t, err)
+
+		out, err = runCmd(t, "voting", "vote",
+			"--voter", voterPub, "--candidate", candID,
+			"--private-key", voterPriv, "--session", session2)
+		require.NoError(t, err, "a prior session must not lock this voter out")
+		assert.Contains(t, out, "Vote cast successfully!")
+
+		out, err = runCmd(t, "voting", "results", "--session", session2)
+		require.NoError(t, err)
+		assert.Contains(t, out, "Alice")
+		assert.Contains(t, out, "1 votes")
 	})
 }
 
