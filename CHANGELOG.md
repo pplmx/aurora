@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A partial desktop store no longer claims to be empty**: the landing page's
+  empty state only inspected lotteries, votes and Oracle sources. A store with
+  registered candidates or sessions, or with token/NFT activity in its audit
+  chain, could therefore show "Nothing recorded yet" and hide the quick-start
+  guidance that belongs to a truly fresh install. The page and its quick-start
+  note now share one check over every visible counter and recent ledger entry.
 - **Production rejects short API keys**: the documented weak-key guard only
   compared against a handful of literal placeholders, so production accepted
   a one-character `AURORA_API_KEY`. Production keys must now be at least 32

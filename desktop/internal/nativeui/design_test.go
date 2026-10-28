@@ -368,6 +368,15 @@ func (emptyDashboard) Dashboard() (DashboardStats, error) {
 	return DashboardStats{Integrity: "verified"}, nil
 }
 
+type candidateOnlyDashboard struct{ *fakeServices }
+
+func (candidateOnlyDashboard) Dashboard() (DashboardStats, error) {
+	return DashboardStats{
+		Candidates: 1,
+		Integrity:  "verified",
+	}, nil
+}
+
 func TestFreshDashboardCanOpenTheLottery(t *testing.T) {
 	app := New(emptyDashboard{fakeServices: &fakeServices{}})
 	tester := ui.NewTester(app.View, 1280, 860)
@@ -377,6 +386,33 @@ func TestFreshDashboardCanOpenTheLottery(t *testing.T) {
 	require.NoError(t, tester.Click("Run a draw"))
 	tester.Frame()
 	require.Equal(t, pageLottery, app.page)
+}
+
+// TestDashboardDoesNotCallCandidateOnlyStoreEmpty guards the empty-state
+// decision: it originally looked only at lotteries, votes and oracle sources,
+// so a store with a registered candidate but no ballots claimed that nothing
+// had been recorded yet.
+func TestDashboardDoesNotCallCandidateOnlyStoreEmpty(t *testing.T) {
+	app := New(candidateOnlyDashboard{fakeServices: &fakeServices{}})
+	tester := ui.NewTester(app.View, 1280, 1200)
+	tester.Frame()
+
+	require.True(t, tester.HasText("Candidates"))
+	require.False(t, tester.HasText("Nothing recorded yet — run a draw to create the first ledger entry."))
+}
+
+// TestDashboardDoesNotCallBlockOnlyStoreEmpty covers modules without a
+// dashboard counter, such as a token or NFT operation: a non-empty audit chain
+// is still evidence that the store is in use.
+func TestDashboardDoesNotCallBlockOnlyStoreEmpty(t *testing.T) {
+	app := New(emptyDashboard{fakeServices: &fakeServices{
+		blocks: []BlockRow{{Height: 1, Module: "token", Summary: "created"}},
+	}})
+	tester := ui.NewTester(app.View, 1280, 1200)
+	tester.Frame()
+
+	require.True(t, tester.HasText("created"))
+	require.False(t, tester.HasText("Nothing recorded yet — run a draw to create the first ledger entry."))
 }
 
 // TestTextScaleIsHonoured pins the OS text-size setting. A theme's default
