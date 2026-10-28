@@ -1,9 +1,6 @@
 package http
 
-import (
-	"net/http"
-	"time"
-)
+import "time"
 
 // newLoopbackFetcher keeps the production redirect policy and header wrapper
 // while removing only the dial-time private-address guard. Tests that exercise
@@ -27,8 +24,14 @@ func newLoopbackFetcherWithTimeout(limit int, window, timeout time.Duration) (*F
 
 func allowTestLoopback(fetcher *Fetcher) *Fetcher {
 	if security, ok := fetcher.client.Transport.(*securityTransport); ok {
-		security.transport = http.DefaultTransport
-		security.dialer = nil
+		// Keep the production clone (and therefore its isolated connection
+		// pool), but remove only the destination guard for local test servers.
+		// Replacing the wrapped transport with http.DefaultTransport made
+		// every test fetcher share global sockets and prevented lifecycle tests
+		// from proving that this fetcher owned and released its own pool.
+		if security.dialer != nil {
+			security.dialer.ControlContext = nil
+		}
 	}
 	return fetcher
 }

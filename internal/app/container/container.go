@@ -52,6 +52,18 @@ func (c *Container) addCloser(v interface{ Close() error }) {
 	c.closers = append(c.closers, v.Close)
 }
 
+type closeableOracleFetcher interface {
+	oracleapp.FetcherInterface
+	Close() error
+}
+
+// ownOracleFetcher keeps the public fetcher port narrow while ensuring the
+// concrete owner is always registered for shutdown with the container.
+func (c *Container) ownOracleFetcher(fetcher closeableOracleFetcher) {
+	c.OracleFetcher = fetcher
+	c.addCloser(fetcher)
+}
+
 // Close releases every handle Open created. It matches the previous
 // api.Server.Close order and is safe to call concurrently: the first caller
 // owns the close sequence, while later callers wait for it and receive the
@@ -153,7 +165,7 @@ func Open() (*Container, error) {
 	}
 	c.OracleRepo = oracleRepo
 	c.addCloser(oracleRepo)
-	c.OracleFetcher = http.NewFetcher()
+	c.ownOracleFetcher(http.NewFetcher())
 
 	complete = true
 	return c, nil
