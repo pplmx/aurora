@@ -78,7 +78,7 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 - **File 菜单**：Back Up Database…（WAL 完整快照 + 校验和）、Export/Import
   Lotteries、Open Recent。导入/导出与 CLI 共用同一 app 层实现，格式、覆盖保护
   与失败报告完全一致；导出目标若就是数据库本身（含符号链接、硬链接与
-  `-wal`/`-shm`）会被拒绝。
+  `-wal`/`-shm`/`-journal`）会被拒绝。
 - **Settings**：侧栏 Application 区（或 `Ctrl/Cmd+,`）打开，集中语言、会话密钥、
   数据位置/备份、实时更新、外观和版本信息；数据库路径可复制，实时更新选择
   会保存到数据库同目录，File 菜单只放文件动作。

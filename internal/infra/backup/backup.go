@@ -18,6 +18,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/pplmx/aurora/internal/infra/sqlite"
+	"github.com/pplmx/aurora/internal/utils"
 )
 
 type BackupService struct {
@@ -1290,15 +1291,14 @@ func (s *BackupService) removeSidecars(destPath, name string) error {
 	if remove == nil {
 		remove = os.Remove
 	}
-	for _, suffix := range sqliteSidecarSuffixes {
-		if err := remove(destPath + suffix); err != nil && !os.IsNotExist(err) {
+	for _, sidecar := range utils.SQLiteSidecarPaths(destPath) {
+		if err := remove(sidecar); err != nil && !os.IsNotExist(err) {
+			suffix := strings.TrimPrefix(sidecar, destPath)
 			return fmt.Errorf("remove stale %s for %s: %w", suffix, name, err)
 		}
 	}
 	return nil
 }
-
-var sqliteSidecarSuffixes = []string{"-wal", "-shm", "-journal"}
 
 func rollbackRestore(operations []restoreOperation, promoted []int) error {
 	var rollbackErrors []error
@@ -1319,8 +1319,9 @@ func rollbackRestore(operations []restoreOperation, promoted []int) error {
 			continue
 		}
 
-		for _, suffix := range sqliteSidecarSuffixes {
-			if err := os.Remove(op.destPath + suffix); err != nil && !os.IsNotExist(err) {
+		for _, sidecar := range utils.SQLiteSidecarPaths(op.destPath) {
+			if err := os.Remove(sidecar); err != nil && !os.IsNotExist(err) {
+				suffix := strings.TrimPrefix(sidecar, op.destPath)
 				rollbackErrors = append(rollbackErrors, fmt.Errorf("remove rolled-back %s%s: %w", op.name, suffix, err))
 			}
 		}
