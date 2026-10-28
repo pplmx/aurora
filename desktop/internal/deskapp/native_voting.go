@@ -73,6 +73,25 @@ func (s *nativeServices) Candidates(limit, offset int) ([]nativeui.CandidateRow,
 	return rows, nil
 }
 
+func (s *nativeServices) Voters(limit, offset int) ([]nativeui.VoterRow, error) {
+	uc := votingapp.NewListVotersUseCase(s.votingRepo)
+	resp, err := uc.Execute(&votingapp.ListVotersRequest{Limit: limit, Offset: offset})
+	if err != nil {
+		return nil, err
+	}
+	rows := make([]nativeui.VoterRow, 0, len(resp))
+	for _, voter := range resp {
+		// The summary DTO intentionally has no private key: registration is the
+		// only moment that key exists.
+		rows = append(rows, nativeui.VoterRow{
+			PublicKey: voter.PublicKey,
+			Name:      voter.Name,
+			HasVoted:  voter.HasVoted,
+		})
+	}
+	return rows, nil
+}
+
 func (s *nativeServices) Sessions(limit, offset int) ([]nativeui.SessionRow, error) {
 	uc := votingapp.NewListSessionsUseCase(s.votingRepo)
 	resp, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})

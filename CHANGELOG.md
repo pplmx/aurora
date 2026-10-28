@@ -11,6 +11,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **Registered voters stay visible after the one-time key card**: the desktop
+  Voting page now lists stored voters with search, paging and ballot status;
+  choosing one fills the ballot public-key field and offers the full key for
+  copying. `GET /api/v1/voting/voters` exposes the same newest-first
+  `limit`/`offset` summary. Both surfaces deliberately omit the registration
+  private key, which exists only in the registration response.
+
 - **Dashboard counters are aggregate reads**: the desktop's landing page now
   asks SQLite for exact lottery, candidate, vote, session and Oracle-source
   totals instead of decoding every stored collection on each live refresh.

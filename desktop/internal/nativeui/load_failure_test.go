@@ -23,6 +23,7 @@ func allPagesLoaded(fake *fakeServices) []loadedContent {
 		Participants: []string{"Alice", "Bob"}, Winners: []string{"Alice"},
 	}}
 	fake.candidates = []CandidateRow{{ID: "cand-1", Name: "Alice"}}
+	fake.voterRows = []VoterRow{{PublicKey: "pk-voter-1", Name: "Voter Alice"}}
 	fake.sessions = []SessionRow{{ID: "sess-1", Title: "Budget 2026", Status: "active"}}
 	fake.tokenRows = []TokenRow{{ID: "token-1", Name: "GoldToken", Symbol: "GLD", TotalSupply: "1000"}}
 	fake.nftRows = []NFTRow{{ID: "nft-1", Name: "StarNFT"}}
@@ -60,7 +61,7 @@ func TestFailedRefreshKeepsTheLastLoadedContent(t *testing.T) {
 
 	fake.loadErrs = fakeLoadErrors{
 		history: boom, tokens: boom, nfts: boom, sources: boom,
-		candidates: boom, sessions: boom, chain: boom, stats: boom,
+		voters: boom, candidates: boom, sessions: boom, chain: boom, stats: boom,
 	}
 	for _, c := range cases {
 		app.ShowPage(c.page)
@@ -89,6 +90,7 @@ func TestFailedFirstLoadIsNotAnEmptyState(t *testing.T) {
 	boom := errors.New("database is locked")
 	fake := &fakeServices{}
 	fake.loadErrs.history = boom
+	fake.loadErrs.voters = boom
 	fake.loadErrs.candidates = boom
 	fake.loadErrs.sessions = boom
 	fake.loadErrs.stats = boom
@@ -109,6 +111,7 @@ func TestFailedFirstLoadIsNotAnEmptyState(t *testing.T) {
 	app.ShowPage("Voting")
 	tester.Frame()
 	require.True(t, tester.HasText("Failed to load voting data"))
+	require.False(t, tester.HasText("No voters registered yet."))
 	require.False(t, tester.HasText("No sessions yet."))
 	require.False(t, tester.HasText("No candidates registered yet."))
 	require.False(t, tester.HasText("Showing the last successful load."))

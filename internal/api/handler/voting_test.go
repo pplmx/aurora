@@ -30,6 +30,8 @@ type mockVotingRepo struct {
 	lastCandidateOffset int
 	lastSessionLimit    int
 	lastSessionOffset   int
+	lastVoterLimit      int
+	lastVoterOffset     int
 }
 
 func newMockVotingRepo() *mockVotingRepo {
@@ -64,9 +66,18 @@ func (m *mockVotingRepo) SaveVoter(voter *voting.Voter) error {
 func (m *mockVotingRepo) GetVoter(pk string) (*voting.Voter, error) {
 	return m.voters[pk], nil
 }
-func (m *mockVotingRepo) UpdateVoter(*voting.Voter) error              { return nil }
-func (m *mockVotingRepo) TryMarkVoted(_, _ string) error               { return nil }
-func (m *mockVotingRepo) ListVoters(int, int) ([]*voting.Voter, error) { return nil, nil }
+func (m *mockVotingRepo) UpdateVoter(*voting.Voter) error { return nil }
+func (m *mockVotingRepo) TryMarkVoted(_, _ string) error  { return nil }
+func (m *mockVotingRepo) ListVoters(limit, offset int) ([]*voting.Voter, error) {
+	m.lastVoterLimit = limit
+	m.lastVoterOffset = offset
+	voters := make([]*voting.Voter, 0, len(m.voters))
+	for _, voter := range m.voters {
+		voters = append(voters, voter)
+	}
+	sort.Slice(voters, func(i, j int) bool { return voters[i].PublicKey < voters[j].PublicKey })
+	return pageVotingTestRows(voters, limit, offset), nil
+}
 
 func (m *mockVotingRepo) SaveCandidate(candidate *voting.Candidate) error {
 	if m.saveCandErr != nil {
@@ -211,6 +222,34 @@ func TestVotingHandler_ListDefaultsToFirstPage(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, defaultVotingListLimit, repo.lastCandidateLimit)
 	assert.Equal(t, 0, repo.lastCandidateOffset)
+}
+
+func TestVotingHandler_ListVotersPagesWithoutPrivateKeys(t *testing.T) {
+	repo := newMockVotingRepo()
+	repo.voters["pk-a"] = &voting.Voter{PublicKey: "pk-a", Name: "Alice"}
+	repo.voters["pk-b"] = &voting.Voter{PublicKey: "pk-b", Name: "Bob", HasVoted: true}
+	h := NewVotingHandler(repo, nil)
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/voting/voters?limit=1&offset=1", nil)
+	rr := httptest.NewRecorder()
+
+	h.ListVoters(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.Equal(t, 1, repo.lastVoterLimit)
+	require.Equal(t, 1, repo.lastVoterOffset)
+	var voters []struct {
+		Name      string `json:"name"`
+		PublicKey string `json:"public_key"`
+		HasVoted  bool   `json:"has_voted"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &voters))
+	require.Len(t, voters, 1)
+	require.Equal(t, "Bob", voters[0].Name)
+	require.Equal(t, "pk-b", voters[0].PublicKey)
+	require.True(t, voters[0].HasVoted)
+	require.NotContains(t, rr.Body.String(), "private_key",
+		"a list read must not expose the one-time registration private key")
 }
 
 func TestVotingHandler_RegisterVoter_InvalidJSON(t *testing.T) {

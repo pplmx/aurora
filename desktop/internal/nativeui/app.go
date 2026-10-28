@@ -88,6 +88,7 @@ func New(services Services) *App {
 	a.oracle.selected = -1
 	a.voting.sessionChoice = -1
 	a.voting.candChoice = -1
+	a.voting.voterChoice = -1
 	a.dashboard.recentChoice = -1
 	// The session form opens with a concrete window (now to a day later):
 	// empty date and time controls are a rejected first attempt the operator

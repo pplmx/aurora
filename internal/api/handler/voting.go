@@ -50,6 +50,7 @@ func (h *VotingHandler) Routes(r chi.Router) {
 	r.Post("/vote", h.Vote)
 	r.Get("/candidates", h.ListCandidates)
 	r.Get("/sessions", h.ListSessions)
+	r.Get("/voters", h.ListVoters)
 	r.Get("/session/{id}", h.GetSession)
 	r.Get("/results/{id}", h.GetResults)
 }
@@ -175,9 +176,22 @@ func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-// votingPage parses the candidate/session list page with the same forgiving,
-// capped rules as the other collection endpoints: malformed or non-positive
-// limits use the default, and offsets clamp instead of overflowing storage.
+func (h *VotingHandler) ListVoters(w http.ResponseWriter, r *http.Request) {
+	limit, offset := votingPage(r)
+	uc := votingapp.NewListVotersUseCase(h.repo)
+	result, err := uc.Execute(&votingapp.ListVotersRequest{Limit: limit, Offset: offset})
+	if err != nil {
+		writeUseCaseError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// votingPage parses the candidate/session/voter list page with the same
+// forgiving, capped rules as the other collection endpoints: malformed or
+// non-positive limits use the default, and offsets clamp instead of
+// overflowing storage.
 func votingPage(r *http.Request) (limit, offset int) {
 	limit = defaultVotingListLimit
 	if v := r.URL.Query().Get("limit"); v != "" {

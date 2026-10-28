@@ -27,9 +27,10 @@ type Services interface {
 	CreateSession(title, description string, candidateIDs []string, start, end int64) (SessionRow, error)
 	CastVote(sessionID, candidateID, voterPub, voterPriv string) error
 	SessionResults(sessionID string) ([]ResultRow, error)
-	// Candidates and Sessions return newest-first pages. limit <= 0 returns
+	// Voters, Candidates and Sessions return newest-first pages. limit <= 0 returns
 	// the remainder from offset, which the desktop only uses when a write
 	// needs every candidate for an empty session roster.
+	Voters(limit, offset int) ([]VoterRow, error)
 	Candidates(limit, offset int) ([]CandidateRow, error)
 	Sessions(limit, offset int) ([]SessionRow, error)
 	StartSession(id string) error
