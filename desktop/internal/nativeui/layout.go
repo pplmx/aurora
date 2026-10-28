@@ -10,11 +10,14 @@ import (
 // size). ReduceMotion needs no equivalent: MyGo sends animations to their
 // target at once when it is on.
 func textSize(c *ui.Context, size float32) float32 {
-	scale := c.Preferences().TextScale
-	if scale <= 0 {
-		scale = 1
+	return size * textScale(c)
+}
+
+func textScale(c *ui.Context) float32 {
+	if scale := c.Preferences().TextScale; scale > 0 {
+		return scale
 	}
-	return size * scale
+	return 1
 }
 
 // pageGlyph draws a page's icon in a tinted tile. It is the window's recurring
@@ -39,7 +42,7 @@ func pageGlyph(c *ui.Context, p page) {
 // one beside it. Rows of two equal columns keep the cards aligned.
 func twoColumns(c *ui.Context, left, right func()) {
 	width, _ := c.Size()
-	if width < twoColumnMinWidth {
+	if width < twoColumnMinWidth*textScale(c) {
 		ui.Column(c).FillWidth().Gap(16).Children(func() {
 			left()
 			right()
@@ -53,9 +56,11 @@ func twoColumns(c *ui.Context, left, right func()) {
 }
 
 // twoColumnMinWidth is the window width below which two cards would each be
-// too narrow for a label and a base64 key. The sidebar and page padding take
-// 264px, so the cards get about 360px each at the threshold.
-const twoColumnMinWidth float32 = 1000
+// too narrow for their controls. At the default text size the sidebar and page
+// padding leave about 480px per card at the 1240px threshold. The live
+// threshold scales with the user's text size because tabs and labels grow with
+// it while the window does not.
+const twoColumnMinWidth float32 = 1240
 
 // card draws a raised panel: the surface every section's content sits on.
 // A card is what separates one concern from the next now that the sidebar no

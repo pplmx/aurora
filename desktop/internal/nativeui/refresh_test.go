@@ -386,7 +386,6 @@ func TestTokenAllowanceTracksInputsAndRefreshes(t *testing.T) {
 
 	app.token.tokenID = "t1"
 	tester.Frame()
-	app.token.opTab = 5
 	app.token.allowanceOwner, app.token.allowanceTo = "alice", "bob"
 	app.loadAllowance()
 	tester.Frame()

@@ -119,7 +119,7 @@ type tokenState struct {
 	// when the operator picks the destructive button, mirroring the CLI's
 	// --confirm gate.
 	askBurn bool
-	// opTab is the operation shown in the write column. Six full forms
+	// opTab is the operation shown in the write column. Five full forms
 	// stacked in one column buried every later action below the fold; one
 	// form at a time keeps the subject and the chosen operation visible.
 	opTab int
@@ -166,21 +166,23 @@ func (a *App) loadTokenPage(offset int) bool {
 }
 
 // tokenView lays the page out in two columns: the token you are working with
-// on the left (create, inspect, history), and the operations that change it on
-// the right (mint, transfer, approve, transfer-from, burn, allowance). Ten
-// full-width forms stacked in one column buried every write below the fold.
+// on the left (list, create, inspect, allowance, history), and the operations
+// that change it on the right (mint, transfer, approve, transfer-from, burn).
+// Separating reads from writes keeps the five write tabs inside their column
+// and every later form below the fold reachable through one stable row.
 func (a *App) tokenView(c *ui.Context) {
 	a.syncTokenSubject()
 	a.scrollPage(c, func() {
 		guide(c, &a.guides.token,
 			"Select a token in the left column, or create one. Its owner public key fills the account fields for you.",
-			"Choose an operation on the right: Mint, Transfer, Approve, Transfer From, Burn or Allowance.",
+			"Choose a write on the right: Mint, Transfer, Approve, Transfer From or Burn. Read a spender's remaining allowance from the left card.",
 			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
 		)
 		twoColumns(c, func() {
 			a.tokenList(c)
 			a.tokenCreate(c)
 			a.tokenRead(c)
+			a.tokenAllowance(c)
 			a.tokenHistory(c)
 		}, func() {
 			a.tokenWrites(c)
@@ -606,7 +608,8 @@ func tokenSubject(c *ui.Context, id string) {
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
 		Background(ui.Hex(night)).Children(func() {
-		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).
+			SingleLine().Shrink(0)
 		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).SingleLine()
 		if quietButton(c, "Copy token ID").Clicked() {
 			c.Services().WriteClipboard(id)
@@ -617,7 +620,7 @@ func tokenSubject(c *ui.Context, id string) {
 
 func (a *App) tokenWrites(c *ui.Context) {
 	tokenSubject(c, a.token.tokenID)
-	ui.Tabs(c, &a.token.opTab, tr("Mint"), tr("Transfer"), tr("Approve"), tr("Transfer From"), tr("Burn"), tr("Allowance"))
+	ui.Tabs(c, &a.token.opTab, tr("Mint"), tr("Transfer"), tr("Approve"), tr("Transfer From"), tr("Burn"))
 	switch a.token.opTab {
 	case 0:
 		formCard(c, "Mint", "Only the token owner can mint, and only for a mintable token.", func() {
@@ -697,29 +700,34 @@ func (a *App) tokenWrites(c *ui.Context) {
 			})
 		})
 
-	case 5:
-		formCard(c, "Allowance", "Read how much a spender may still move.", func() {
-			field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
-			field(c, "Spender (base64 public key)", &a.token.allowanceTo)
-			ui.Row(c).Children(func() {
-				if secondaryButton(c, "Get Allowance").Clicked() {
-					a.loadAllowance()
-				}
-			})
-			matches := a.token.allowanceMatches(
-				strings.TrimSpace(a.token.tokenID),
-				strings.TrimSpace(a.token.allowanceOwner),
-				strings.TrimSpace(a.token.allowanceTo),
-			)
-			if a.token.allowanceErr != nil && matches &&
-				!loadWarning(c, "Couldn't load allowance", a.token.allowanceErr, a.token.allowance != "") {
-				return
-			}
-			if a.token.allowance != "" && matches {
-				readout(c, []readoutRow{{"Allowance", a.token.allowance}})
+	}
+}
+
+// tokenAllowance is deliberately outside the write tabs: it asks a read-only
+// question, and keeping it on the left leaves the five mutating operations
+// readable without overflowing their column.
+func (a *App) tokenAllowance(c *ui.Context) {
+	formCard(c, "Allowance", "Read how much a spender may still move.", func() {
+		field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
+		field(c, "Spender (base64 public key)", &a.token.allowanceTo)
+		ui.Row(c).Children(func() {
+			if secondaryButton(c, "Get Allowance").Clicked() {
+				a.loadAllowance()
 			}
 		})
-	}
+		matches := a.token.allowanceMatches(
+			strings.TrimSpace(a.token.tokenID),
+			strings.TrimSpace(a.token.allowanceOwner),
+			strings.TrimSpace(a.token.allowanceTo),
+		)
+		if a.token.allowanceErr != nil && matches &&
+			!loadWarning(c, "Couldn't load allowance", a.token.allowanceErr, a.token.allowance != "") {
+			return
+		}
+		if a.token.allowance != "" && matches {
+			readout(c, []readoutRow{{"Allowance", a.token.allowance}})
+		}
+	})
 }
 
 // The write handlers below read only the inputs of the section that invoked

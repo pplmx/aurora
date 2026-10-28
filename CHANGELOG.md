@@ -124,6 +124,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Token operations keep their column**: the desktop Token page moved the
+  read-only Allowance query from the sixth write tab to the left work column.
+  The right column now contains the five mutating operations, so `Burn` remains
+  inside the card at the default window width.
+- **Two-column pages stack before their controls compress**: desktop pages now
+  switch to one column below 1240px instead of waiting until 1000px, and the
+  threshold scales with the user's text-size preference. Narrow windows no
+  longer clip tab labels or squeeze base64 fields between two cards.
 - **Readout labels stay intact**: desktop copy and readout rows now size their
   label column from the text and the user's text-size preference, keep labels
   on one line, and constrain long values to the panel. Settings entries such as

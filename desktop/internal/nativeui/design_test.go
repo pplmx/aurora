@@ -59,9 +59,9 @@ func TestNumberShortcutsSwitchPages(t *testing.T) {
 }
 
 // TestCardsStackWhenTheWindowIsNarrow pins the responsive layout: at 1280 the
-// Token page's two work columns sit side by side, while at the 900px minimum
-// the second column moves below the first instead of squeezing both into
-// unreadable widths.
+// Token page's two work columns sit side by side, while windows below 1240 put
+// the second column below the first instead of squeezing controls past the
+// card edge.
 func TestCardsStackWhenTheWindowIsNarrow(t *testing.T) {
 	wideApp := New(&fakeServices{})
 	wide := ui.NewTester(wideApp.View, 1280, 3000)
@@ -73,16 +73,36 @@ func TestCardsStackWhenTheWindowIsNarrow(t *testing.T) {
 	require.True(t, ok)
 	require.NotEqual(t, create.X, mint.X, "a wide window keeps the two columns side by side")
 
-	narrowApp := New(&fakeServices{})
-	narrow := ui.NewTester(narrowApp.View, 900, 5000)
-	narrowApp.ShowPage("Token")
-	narrow.Frame()
-	create, ok = narrow.Find("Create Token")
+	for _, width := range []int{900, 1239} {
+		narrowApp := New(&fakeServices{})
+		narrow := ui.NewTester(narrowApp.View, width, 5000)
+		narrowApp.ShowPage("Token")
+		narrow.Frame()
+		create, ok := narrow.Find("Create Token")
+		require.True(t, ok)
+		mint, ok := narrow.Find("Only the token owner can mint, and only for a mintable token.")
+		require.True(t, ok)
+		require.Equalf(t, create.X, mint.X, "a %dpx window puts both columns on the same left edge", width)
+		require.Greaterf(t, mint.Y, create.Y, "the second column must follow the first at %dpx", width)
+	}
+}
+
+// TestTextScaleStacksCardsBeforeTheirControlsCompress ties the responsive
+// threshold to the same text-size preference as the labels. At 1.5x text a
+// default-width window is no longer wide enough for two columns.
+func TestTextScaleStacksCardsBeforeTheirControlsCompress(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	tester.SetPreferences(ui.Preferences{TextScale: 1.5})
+	app.ShowPage("Token")
+	tester.Frame()
+
+	create, ok := tester.Find("Create Token")
 	require.True(t, ok)
-	mint, ok = narrow.Find("Only the token owner can mint, and only for a mintable token.")
+	mint, ok := tester.Find("Only the token owner can mint, and only for a mintable token.")
 	require.True(t, ok)
-	require.Equal(t, create.X, mint.X, "a narrow window puts both columns on the same left edge")
-	require.Greater(t, mint.Y, create.Y, "the second column must follow the first")
+	require.Equal(t, create.X, mint.X, "1.5x text needs the stacked layout at the default width")
+	require.Greater(t, mint.Y, create.Y, "the write column must follow the read column")
 }
 
 // TestHeaderNamesThePageAndItsPurpose keeps the chrome honest: the title and

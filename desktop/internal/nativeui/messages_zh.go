@@ -346,7 +346,7 @@ var desktopMessages = map[string]string{
 	"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.": "从 %s 销毁 %s？代币会被永久销毁且无法恢复。",
 	"Burn tokens?": "销毁代币？",
 	"Select a token in the left column, or create one. Its owner public key fills the account fields for you.":                                                                                                       "在左栏选择或创建一个代币。它的所有者公钥会自动填入账户字段。",
-	"Choose an operation on the right: Mint, Transfer, Approve, Transfer From, Burn or Allowance.":                                                                                                                   "在右侧选择操作：Mint、Transfer、Approve、Transfer From、Burn 或 Allowance。",
+	"Choose a write on the right: Mint, Transfer, Approve, Transfer From or Burn. Read a spender's remaining allowance from the left card.":                                                                          "在右侧选择写操作：Mint、Transfer、Approve、Transfer From 或 Burn。可在左侧卡片读取支出方剩余额度。",
 	"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.": "Mint/Approve/Burn 用所有者私钥签名；Transfer 用发送方私钥；Transfer From 用 spender 私钥。密钥不会保存，Use generated owner key 只对由该密钥创建的代币有效。",
 
 	// NFT.
