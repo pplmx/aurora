@@ -8,10 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/netip"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/pplmx/aurora/internal/netguard"
 )
 
 // MaxSourceIntervalSeconds bounds a fetch-scheduling interval. The scheduler
@@ -48,40 +49,8 @@ var allowedSourceSchemes = map[string]struct{}{
 	"https": {},
 }
 
-// blockedCIDRs are the address ranges a source URL's host must never resolve
-// to: loopback, RFC1918 private, link-local (incl. cloud metadata
-// 169.254.169.254), CGNAT, IPv6 loopback/link-local/unique-local, and the
-// unspecified address. A source pointing at one of these would let the
-// fetcher reach internal/private services hosting the data — the SSRF
-// primitive. This mirrors the redirect guard in internal/infra/http; the
-// domain-level check additionally covers the INITIAL request, which the
-// fetcher's redirect policy alone does not.
-var blockedCIDRs = []netip.Prefix{
-	netip.MustParsePrefix("0.0.0.0/8"),
-	netip.MustParsePrefix("10.0.0.0/8"),
-	netip.MustParsePrefix("100.64.0.0/10"),
-	netip.MustParsePrefix("127.0.0.0/8"),
-	netip.MustParsePrefix("169.254.0.0/16"),
-	netip.MustParsePrefix("172.16.0.0/12"),
-	netip.MustParsePrefix("192.168.0.0/16"),
-	netip.MustParsePrefix("::/128"),
-	netip.MustParsePrefix("::1/128"),
-	netip.MustParsePrefix("fc00::/7"),
-	netip.MustParsePrefix("fe80::/10"),
-}
-
 func isBlockedIP(ip net.IP) bool {
-	addr, ok := netip.AddrFromSlice(ip)
-	if !ok {
-		return true // unparseable address — refuse rather than guess
-	}
-	addr = addr.Unmap()
-	for _, p := range blockedCIDRs {
-		if p.Contains(addr) {
-			return true
-		}
-	}
-	return false
+	return netguard.IsBlockedIP(ip)
 }
 
 // hostBlocked reports whether a URL host (optionally host:port) resolves to

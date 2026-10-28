@@ -522,6 +522,10 @@ func TestAddSource_URLValidation(t *testing.T) {
 		{"ipv6 loopback literal", "http://[::1]/data", true, "blocks IPv6 loopback"},
 		{"ipv6 unique-local literal", "http://[fc00::1]/data", true, "blocks IPv6 unique-local"},
 		{"ipv6 link-local literal", "http://[fe80::1]/data", true, "blocks IPv6 link-local"},
+		{"benchmark literal", "http://198.18.0.1/data", true, "blocks benchmarking range"},
+		{"reserved literal", "http://240.0.0.1/data", true, "blocks reserved class E"},
+		{"ipv6 multicast literal", "http://[ff02::1]/data", true, "blocks IPv6 multicast"},
+		{"NAT64 loopback literal", "http://[64:ff9b::7f00:1]/data", true, "blocks translated loopback"},
 		{"public ipv4 literal", "http://8.8.8.8/data", false, "allows public literal"},
 	}
 
