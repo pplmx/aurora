@@ -85,6 +85,10 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 | GET  | `/api/v1/voting/session/{id}`       | 单个会期                                   |
 | GET  | `/api/v1/voting/results/{id}`       | 计票结果                                   |
 
+创建会期返回 `draft`；只有先调用 `/session/{id}/start` 把状态切到 `active`
+且当前时间位于会期窗口内时，`/vote` 才会接收选票。`ended`、未知状态或窗口外
+的请求都会以 `SESSION_NOT_STARTED` / `SESSION_ENDED` 拒绝。
+
 选民列表只返回姓名、公钥和是否已投票，不返回注册时一次性生成的私钥；客户端如果
 需要替选民签名，必须使用注册响应里当时保存的私钥。
 

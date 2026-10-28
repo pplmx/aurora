@@ -8,6 +8,14 @@ import (
 	"github.com/google/uuid"
 )
 
+// Voting session lifecycle states. Only an explicitly active session may
+// accept ballots; draft and unknown states fail closed.
+const (
+	SessionStatusDraft  = "draft"
+	SessionStatusActive = "active"
+	SessionStatusEnded  = "ended"
+)
+
 // Vote represents a single vote in the voting system.
 type Vote struct {
 	ID             string
@@ -99,8 +107,30 @@ func NewSession(title, description string, candidateIDs []string, startTime, end
 		Description: description,
 		StartTime:   startTime,
 		EndTime:     endTime,
-		Status:      "draft",
+		Status:      SessionStatusDraft,
 		Candidates:  candidateIDs,
 		CreatedAt:   time.Now().Unix(),
 	}
+}
+
+// CanAcceptVotes enforces both the lifecycle state and the configured ballot
+// window. Time alone is not enough: a newly created session is a draft, and an
+// operator can end one before its nominal end time.
+func (s *Session) CanAcceptVotes(now time.Time) error {
+	if s == nil {
+		return ErrSessionNotFound
+	}
+	if s.Status == SessionStatusEnded {
+		return ErrSessionEnded
+	}
+	if now.Unix() < s.StartTime {
+		return ErrSessionNotStarted
+	}
+	if now.Unix() > s.EndTime {
+		return ErrSessionEnded
+	}
+	if s.Status != SessionStatusActive {
+		return ErrSessionNotStarted
+	}
+	return nil
 }

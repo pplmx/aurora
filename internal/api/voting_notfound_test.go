@@ -94,6 +94,8 @@ func TestVotingAPI_MissingResourcesAre4xx(t *testing.T) {
 			ID string `json:"id"`
 		}
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &s))
+		rr = do(http.MethodPost, "/api/v1/voting/session/"+s.ID+"/start", "")
+		require.Equal(t, http.StatusOK, rr.Code, "start session: %s", rr.Body.String())
 		return s.ID
 	}
 

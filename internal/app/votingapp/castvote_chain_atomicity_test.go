@@ -42,6 +42,7 @@ func TestCastVoteRollbackLeavesNoOnChainBlock(t *testing.T) {
 
 	now := time.Now().Unix()
 	session := voting.NewSession("Election", "test", []string{candidate.ID}, now-60, now+60)
+	session.Status = voting.SessionStatusActive
 	require.NoError(t, repo.SaveSession(session))
 
 	uc := NewCastVoteUseCase(repo, voting.NewEd25519Service(), sqlite.NewTxManager(db))

@@ -399,7 +399,7 @@ var sessionStartCmd = &cobra.Command{
 			return fmt.Errorf("%s", i18n.GetText("voting.session_not_found"))
 		}
 
-		session.Status = "active"
+		session.Status = voting.SessionStatusActive
 		if err := repo.UpdateSession(session); err != nil {
 			return fmt.Errorf("failed to start session: %w", err)
 		}
@@ -429,7 +429,7 @@ var sessionEndCmd = &cobra.Command{
 			return fmt.Errorf("%s", i18n.GetText("voting.session_not_found"))
 		}
 
-		session.Status = "ended"
+		session.Status = voting.SessionStatusEnded
 		if err := repo.UpdateSession(session); err != nil {
 			return fmt.Errorf("failed to end session: %w", err)
 		}

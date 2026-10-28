@@ -101,6 +101,7 @@ func TestCastVoteUseCase_ConcurrentDistinctVoters(t *testing.T) {
 
 	now := time.Now().Unix()
 	session := voting.NewSession("Concurrent Election", "", []string{candidate.ID}, now-3600, now+3600)
+	session.Status = voting.SessionStatusActive
 	require.NoError(t, repo.SaveSession(session))
 
 	const voters = 12
@@ -176,6 +177,7 @@ func TestCastVoteUseCase_ConcurrentSameVoterOnlyOneWins(t *testing.T) {
 
 	now := time.Now().Unix()
 	session := voting.NewSession("Race Election", "", []string{candidate.ID}, now-3600, now+3600)
+	session.Status = voting.SessionStatusActive
 	require.NoError(t, repo.SaveSession(session))
 
 	pub, priv, err := ed25519.GenerateKey(nil)
