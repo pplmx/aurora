@@ -159,10 +159,8 @@ func (c *Chain) appendBlock(data string, stamp func(height int64) string) (int64
 		// appended blocks this process has not seen yet. Failure degrades to
 		// the stale in-memory height (best-effort, matching the non-persistent
 		// fallback); the persist conflict check below is the safety net.
-		if c.syncFromDB != nil {
-			if err := c.syncFromDB(); err != nil {
-				logger.Warn().Err(err).Msg("Failed to sync chain from database; using in-memory height")
-			}
+		if err := c.syncBeforeAppend(); err != nil {
+			return 0, err
 		}
 
 		block, err := c.nextBlock(data, stamp)
@@ -253,10 +251,8 @@ func (c *Chain) withAppendTransaction(
 	defer c.mu.Unlock()
 
 	for range maxHeightRetries {
-		if c.syncFromDB != nil {
-			if err := c.syncFromDB(); err != nil {
-				logger.Warn().Err(err).Msg("Failed to sync chain from database; using in-memory height")
-			}
+		if err := c.syncBeforeAppend(); err != nil {
+			return err
 		}
 
 		block, err := c.nextBlock(data, stamp)
@@ -313,6 +309,24 @@ func (c *Chain) withAppendTransaction(
 	}
 
 	return ErrHeightConflict
+}
+
+// syncBeforeAppend reconciles with the shared database before reserving a
+// height. Ordinary read failures retain the historical best-effort fallback,
+// but persisted-ledger corruption is fatal: appending on top of it would
+// report success while leaving a ledger that cannot pass the next reload.
+// The caller must hold the chain write lock.
+func (c *Chain) syncBeforeAppend() error {
+	if c.syncFromDB == nil {
+		return nil
+	}
+	if err := c.syncFromDB(); err != nil {
+		if errors.Is(err, ErrLedgerCorruption) {
+			return fmt.Errorf("refuse append with corrupt persisted ledger: %w", err)
+		}
+		logger.Warn().Err(err).Msg("Failed to sync chain from database; using in-memory height")
+	}
+	return nil
 }
 
 // nextBlock reserves and mines the next chain block. The caller must hold the
