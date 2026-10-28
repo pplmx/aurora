@@ -205,13 +205,7 @@ func writeBadRequest(w http.ResponseWriter, message string) {
 func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(v); err != nil {
-		var mbe *http.MaxBytesError
-		if errors.As(err, &mbe) {
-			writeError(w, "request body too large", "BODY_TOO_LARGE", http.StatusRequestEntityTooLarge)
-			return false
-		}
-		writeBadRequest(w, "invalid request")
-		return false
+		return writeJSONDecodeError(w, err)
 	}
 	// Reject anything after the first JSON value. Decode reads exactly one
 	// value and silently ignores trailing data, so a body like
@@ -220,8 +214,21 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 	// cleanly after the value; a successful second decode (there was a second
 	// value) or any other error (garbage) is malformed.
 	if err := dec.Decode(&struct{}{}); err != io.EOF {
-		writeBadRequest(w, "invalid request")
-		return false
+		return writeJSONDecodeError(w, err)
 	}
 	return true
+}
+
+// writeJSONDecodeError distinguishes the body cap from malformed JSON for
+// every decode attempt. The trailing-data check can be the first read to cross
+// MaxBytesReader, so classifying only the initial decode would return 400 for
+// an oversized body that happened to start with a complete JSON value.
+func writeJSONDecodeError(w http.ResponseWriter, err error) bool {
+	var mbe *http.MaxBytesError
+	if errors.As(err, &mbe) {
+		writeError(w, "request body too large", "BODY_TOO_LARGE", http.StatusRequestEntityTooLarge)
+		return false
+	}
+	writeBadRequest(w, "invalid request")
+	return false
 }

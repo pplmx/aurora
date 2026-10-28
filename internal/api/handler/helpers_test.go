@@ -290,3 +290,24 @@ func TestDecodeJSON_RejectsTrailingGarbage(t *testing.T) {
 		})
 	}
 }
+
+// TestDecodeJSON_TrailingWhitespacePastLimit verifies that the body cap is
+// reported consistently when it is crossed while checking for trailing data.
+// The first decode fits under the limit and succeeds; the second decode reads
+// the remaining whitespace and only then observes MaxBytesError. This path
+// must still produce 413 rather than masquerading as malformed JSON.
+func TestDecodeJSON_TrailingWhitespacePastLimit(t *testing.T) {
+	const limit = 64
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"a":1}`+strings.Repeat(" ", limit*2)))
+	req.Body = http.MaxBytesReader(rr, req.Body, limit)
+
+	var got struct {
+		A int `json:"a"`
+	}
+	ok := decodeJSON(rr, req, &got)
+
+	assert.False(t, ok)
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+	assert.Contains(t, rr.Body.String(), "BODY_TOO_LARGE")
+}
