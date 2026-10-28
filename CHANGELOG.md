@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Large-text record titles keep their complete identity**: Lottery history
+  still rendered a shortened draw id inside its “full” record, and Oracle feed
+  health forced the source name through a single-line ellipsis. Both titles now
+  use the full stored identity and wrap within the record instead of depending
+  on a tooltip or a later selection.
 - **Guide step numbers survive enlarged text**: the numbered marker beside
   each “How this works” instruction kept an 18px slot while its glyphs scaled to
   2x, so the number was clipped even with the guide opened. The slot and

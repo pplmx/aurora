@@ -293,8 +293,8 @@ func (a *App) lotteryHistoryRecords(c *ui.Context, rows []DrawRow) {
 		for _, draw := range rows {
 			draw := draw
 			recordPanel(c, func() {
-				ui.Text(c, shortID(draw.ID)).FontSize(textSize(c, 13)).Bold().
-					TextColor(ui.Hex(aurora)).SingleLine().Ellipsis("…").Tooltip(draw.ID)
+				ui.Text(c, draw.ID).FontSize(textSize(c, 13)).Bold().
+					TextColor(ui.Hex(aurora))
 				recordField(c, "Block", strconv.FormatInt(draw.BlockHeight, 10))
 				recordField(c, "Participants", joinList(draw.Participants))
 				recordField(c, "Winners", joinList(draw.Winners))

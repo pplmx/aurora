@@ -357,26 +357,37 @@ func TestTokenWriteTabsWrapAtLargeText(t *testing.T) {
 // 900px window, and the row itself had no visible action for loading its full
 // id into Verify.
 func TestLotteryHistoryStacksAtLargeText(t *testing.T) {
-	drawID := "draw-0123456789abcdef"
+	drawID := "draw-0123456789abcdef-0123456789abcdef-0123456789abcdef"
 	app := New(&fakeServices{draws: []DrawRow{{
 		ID: drawID, BlockHeight: 42,
 		Participants: []string{"A", "B", "C"}, Winners: []string{"A"},
 	}}})
 	app.ShowPage("Lottery")
-	tester := ui.NewTester(app.View, 900, 600)
+	var idWidth, idHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		idWidth, idHeight = c.MeasureText(0, ui.Span{
+			Text: drawID, Size: textSize(c, 13),
+		})
+	}, 900, 600)
 	tester.SetPreferences(ui.Preferences{TextScale: 2})
 	tester.Frame()
 
+	action, ok := tester.Find("Use this draw for Verify")
+	require.True(t, ok)
+	app.scroll.Y = action.Y - 300
+	tester.Frame()
+	idRect, ok := tester.Find(drawID)
+	require.True(t, ok, "the record must show the complete draw id")
+	require.True(t, idRect.W >= idWidth || idRect.H >= 1.5*idHeight,
+		"the complete draw id must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		idRect, idWidth, idHeight)
 	for _, label := range []string{"Participants", "Winners"} {
 		rect, ok := tester.Find(label)
 		require.Truef(t, ok, "%q field must be shown", label)
 		require.LessOrEqualf(t, rect.X+rect.W, float32(900),
 			"%q must stay inside the window", label)
 	}
-	action, ok := tester.Find("Use this draw for Verify")
-	require.True(t, ok)
-	app.scroll.Y = action.Y - 300
-	tester.Frame()
 	require.NoError(t, tester.Click("Use this draw for Verify"))
 	tester.Frame()
 	require.Equal(t, drawID, app.lottery.verifyID,
@@ -387,22 +398,38 @@ func TestLotteryHistoryStacksAtLargeText(t *testing.T) {
 // enlarged type no longer fits it. At 2x the Last error header began at x=931,
 // outside the 900px window, so the most actionable symptom was inaccessible.
 func TestOracleHealthStacksAtLargeText(t *testing.T) {
+	const sourceName = "A weather source whose complete display name must remain readable in feed health"
 	app := New(&fakeServices{
 		sources: []SourceRow{{
-			ID: "source-0123456789abcdef", Name: "BTC feed",
+			ID: "source-0123456789abcdef", Name: sourceName,
 		}},
 		healthRows: []HealthRow{{
-			SourceID: "source-0123456789abcdef", Name: "BTC feed",
+			SourceID: "source-0123456789abcdef", Name: sourceName,
 			Attempts: 10, Successes: 9, Failures: 1,
 			LastError: "temporary upstream error",
 		}},
 	})
 	app.ShowPage("Oracle")
 	app.oracle.tab = 1
-	tester := ui.NewTester(app.View, 900, 600)
+	var nameWidth, nameHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		nameWidth, nameHeight = c.MeasureText(0, ui.Span{
+			Text: sourceName, Size: textSize(c, 13),
+		})
+	}, 900, 600)
 	tester.SetPreferences(ui.Preferences{TextScale: 2})
 	tester.Frame()
 
+	first, ok := tester.Find(sourceName)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+	nameRect, ok := tester.Find(sourceName)
+	require.True(t, ok)
+	require.True(t, nameRect.W >= nameWidth || nameRect.H >= 1.5*nameHeight,
+		"the full source name must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		nameRect, nameWidth, nameHeight)
 	for _, text := range []string{"Last error", "temporary upstream error"} {
 		rect, ok := tester.Find(text)
 		require.Truef(t, ok, "%q must be shown", text)
