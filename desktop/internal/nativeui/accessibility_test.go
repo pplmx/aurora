@@ -481,10 +481,12 @@ func TestPagerMoveAnnouncesTheNewRange(t *testing.T) {
 	app.ShowPage("Token")
 	tester.Frame()
 	tester.Announcements() // the page transition
+	require.True(t, tester.HasText(tr("Token collection pager, Entries 1–100")))
 
 	require.NoError(t, tester.Click("Next"))
 	tester.Frame()
 	require.Equal(t, []string{tr("Entries 101–101")}, tester.Announcements())
+	require.True(t, tester.HasText(tr("Token collection pager, Entries 101–101")))
 	tester.Frame()
 	require.Empty(t, tester.Announcements(), "repainting the new page must stay silent")
 
@@ -498,6 +500,32 @@ func TestPagerMoveAnnouncesTheNewRange(t *testing.T) {
 	require.Zero(t, app.token.offset, "a failed pager move must keep the loaded page")
 	require.NotContains(t, tester.Announcements(), tr("Entries 101–101"),
 		"the pager must not claim a page that failed to load")
+}
+
+// TestVotingPagersNameTheirCollections distinguishes the three pagers that
+// share the Voting setup page. Without the collection name, every group and
+// both buttons sound identical while tabbing or navigating by controls.
+func TestVotingPagersNameTheirCollections(t *testing.T) {
+	fake := &fakeServices{
+		voterRows:  []VoterRow{{PublicKey: "pk-voter", Name: "Alice"}},
+		candidates: []CandidateRow{{ID: "cand-1", Name: "Alice"}},
+		sessions: []SessionRow{{
+			ID: "session-1", Title: "Budget", Status: "draft",
+			StartTime: time.Now().Unix(), EndTime: time.Now().Add(time.Hour).Unix(),
+		}},
+	}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 7000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	for _, label := range []string{
+		"Voters pager, Entries 1–1",
+		"Candidates pager, Entries 1–1",
+		"Sessions pager, Entries 1–1",
+	} {
+		require.Truef(t, tester.HasText(tr(label)), "missing accessible pager label %q", label)
+	}
 }
 
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.

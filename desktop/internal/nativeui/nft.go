@@ -440,7 +440,7 @@ func (a *App) nftListBody(c *ui.Context) {
 	if limit > maxListLimit {
 		limit = maxListLimit
 	}
-	if previous, next := listPager(c, a.nft.offset, len(a.nft.list), a.nft.hasMore); previous || next {
+	if previous, next := listPager(c, "NFT collection", a.nft.offset, len(a.nft.list), a.nft.hasMore); previous || next {
 		target := a.nft.offset
 		if previous {
 			target = max(0, target-limit)
@@ -769,7 +769,7 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 		emptyNote(c, "No operations recorded for this NFT.")
 		return
 	}
-	if previous, next := listPager(c, a.nft.historyOffset, len(a.nft.history), a.nft.historyHasMore); previous || next {
+	if previous, next := listPager(c, "NFT operation history", a.nft.historyOffset, len(a.nft.history), a.nft.historyHasMore); previous || next {
 		target := a.nft.historyOffset
 		if previous {
 			target = max(0, target-nftHistoryPageSize)

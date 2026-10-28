@@ -261,9 +261,11 @@ func hint(c *ui.Context, text string) {
 // listPager draws the Previous/Entries/Next strip shared by paged
 // collections. hasMore comes from fetching one row beyond the page, so an
 // exact multiple of the page size does not enable a dead Next button.
-func listPager(c *ui.Context, offset, count int, hasMore bool) (previous, next bool) {
+func listPager(c *ui.Context, name string, offset, count int, hasMore bool) (previous, next bool) {
 	rangeLabel := fmt.Sprintf(tr("Entries %d–%d"), offset+1, offset+count)
-	pager := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Label(rangeLabel)
+	pagerLabel := fmt.Sprintf(tr("%s pager, %s"), tr(name), rangeLabel)
+	pager := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).
+		Role(ui.RoleGroup).Label(pagerLabel)
 	// A pager move replaces the rows while focus stays on its button. Announce
 	// the range once the offset has changed, but not on the first frame, a
 	// repaint, or a failed move that kept the old page.
@@ -273,13 +275,15 @@ func listPager(c *ui.Context, offset, count int, hasMore bool) (previous, next b
 		c.Announce(rangeLabel)
 	}
 	pager.Children(func() {
-		previous = secondaryButton(c, "Previous").Description(tr("Show the previous page.")).
+		previous = secondaryButton(c, "Previous").
+			Description(fmt.Sprintf(tr("Show the previous %s page."), tr(name))).
 			Disabled(offset == 0).Clicked()
 		ui.Spacer(c)
 		ui.Text(c, rangeLabel).
 			FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
 		ui.Spacer(c)
-		next = secondaryButton(c, "Next").Description(tr("Show the next page.")).
+		next = secondaryButton(c, "Next").
+			Description(fmt.Sprintf(tr("Show the next %s page."), tr(name))).
 			Disabled(!hasMore).Clicked()
 	})
 	return previous, next

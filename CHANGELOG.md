@@ -41,14 +41,15 @@ documented in their per-milestone ROADMAP files.
   current choice selected, so arrows move between languages and the separate
   Follow System action says that it uses the operating system's choice. Every
   search field announces the number of rows its new query leaves, including
-  zero and clearing the query. Collection pagers name their visible range and
-  announce the new range after a successful Next or Previous move, while a
-  failed move leaves the old offset and stays quiet. Failed database reads now
-  expose the error and the stale-data note as one status message announced
-  once, while background writes announce when they start and again if they
-  still need attention after 20 seconds. In the command palette, the focused
-  search field now exposes the arrow-selected row as its active descendant, and
-  each row's effect is part of its accessible description.
+  zero and clearing the query. Collection pagers name their collection and
+  visible range; their Previous/Next descriptions say which collection moves,
+  and the new range is announced after a successful move. A failed move leaves
+  the old offset and stays quiet. Failed database reads now expose the error and
+  the stale-data note as one status message announced once, while background
+  writes announce when they start and again if they still need attention after
+  20 seconds. In the command palette, the focused search field now exposes the
+  arrow-selected row as its active descendant, and each row's effect is part of
+  its accessible description.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;

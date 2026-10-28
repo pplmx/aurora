@@ -214,7 +214,7 @@ func (a *App) tokenList(c *ui.Context) {
 			a.token.appliedSearch = a.token.search
 			a.token.chosen = -1
 		}
-		if previous, next := listPager(c, a.token.offset, len(a.token.tokens), a.token.hasMore); previous || next {
+		if previous, next := listPager(c, "Token collection", a.token.offset, len(a.token.tokens), a.token.hasMore); previous || next {
 			target := a.token.offset
 			if previous {
 				target = max(0, target-tokenPageSize)
