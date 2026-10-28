@@ -107,6 +107,25 @@ func TestMiddleware_StreamingInterfaces(t *testing.T) {
 		t.Fatalf("expected 1 recorded request, got %d", reg.total)
 	}
 }
+
+func TestMiddleware_RecordsAbortedResponse(t *testing.T) {
+	reg := NewRegistry()
+	handler := Middleware(reg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPartialContent)
+		panic(http.ErrAbortHandler)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/token/history", nil)
+	require.PanicsWithValue(t, http.ErrAbortHandler, func() {
+		handler.ServeHTTP(httptest.NewRecorder(), req)
+	})
+
+	require.Equal(t, uint64(1), reg.total,
+		"an aborted response must still be counted")
+	require.Equal(t, uint64(1), reg.status[http.StatusPartialContent],
+		"metrics must record the status committed before the abort")
+}
+
 func TestClassifyModule(t *testing.T) {
 	cases := []struct{ path, want string }{
 		// Real registered route roots keep their own label.

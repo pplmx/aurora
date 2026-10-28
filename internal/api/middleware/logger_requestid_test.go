@@ -43,3 +43,40 @@ func TestLogger_IncludesRequestID(t *testing.T) {
 		t.Errorf("expected method field:\n%s", logs)
 	}
 }
+
+func TestLogger_LogsAbortedRequest(t *testing.T) {
+	old := logger.Log
+	defer func() { logger.Log = old }()
+
+	var buf bytes.Buffer
+	logger.Log = zerolog.New(&buf).With().Timestamp().Logger()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPartialContent)
+		panic(http.ErrAbortHandler)
+	})
+
+	reqID := "req-aborted"
+	req := httptest.NewRequest(http.MethodGet, "/aborted", nil)
+	req.Header.Set("X-Request-ID", reqID)
+
+	var recovered any
+	func() {
+		defer func() { recovered = recover() }()
+		middleware.RequestID(Logger(handler)).ServeHTTP(httptest.NewRecorder(), req)
+	}()
+	if recovered != http.ErrAbortHandler {
+		t.Fatalf("recovered panic = %v, want http.ErrAbortHandler", recovered)
+	}
+
+	logs := buf.String()
+	if !strings.Contains(logs, `"request_id":"`+reqID+`"`) {
+		t.Errorf("aborted request log did not include request_id=%q:\n%s", reqID, logs)
+	}
+	if !strings.Contains(logs, `"path":"/aborted"`) {
+		t.Errorf("aborted request log did not include the request path:\n%s", logs)
+	}
+	if !strings.Contains(logs, `"status":206`) {
+		t.Errorf("aborted request log did not include the committed status:\n%s", logs)
+	}
+}

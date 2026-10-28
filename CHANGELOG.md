@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Panics after a partial write now abort the response**: catching the panic
+  and returning normally let `net/http` finish a chunked response as if the
+  handler had succeeded, so clients could accept truncated data. Recovery now
+  re-raises the standard `http.ErrAbortHandler` after logging, while request
+  metrics and access logs use deferred recording so the failed request remains
+  observable. Handlers that deliberately raise `ErrAbortHandler` pass through
+  unchanged instead of becoming a misleading `500`.
 - **Recovery respects responses committed by streaming handlers**: an
   explicit `Flush` sends the successful response headers even before a handler
   writes a body. The recovery wrapper did not record that state, so a later

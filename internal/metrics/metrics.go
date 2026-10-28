@@ -25,8 +25,14 @@ func Middleware(reg *Registry) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			ww := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+			defer func() {
+				// Observe aborted responses too. Recovery deliberately re-panics
+				// with ErrAbortHandler after headers are committed; without a
+				// deferred observation that request would disappear from the
+				// metrics even though the client received part of it.
+				reg.Observe(ww.status, time.Since(start), classifyModule(r.URL.Path))
+			}()
 			next.ServeHTTP(ww, r)
-			reg.Observe(ww.status, time.Since(start), classifyModule(r.URL.Path))
 		})
 	}
 }
