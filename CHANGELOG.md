@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **CORS preflight advertises the PATCH endpoint**: the API exposes
+  `PATCH /api/v1/oracle/sources/{id}` for enable/disable, but
+  `Access-Control-Allow-Methods` omitted `PATCH`. An operator-configured
+  cross-origin client could pass the origin check and still have the browser
+  block every enable/disable request. The shared CORS method policy now
+  includes `PATCH`, with a preflight regression test for the oracle route.
 - **Unauthenticated request headers are capped before routing**: `net/http`
   defaults to accepting headers up to 1 MiB, and parsing happens before any
   Aurora middleware, logging, rate limit, or authentication. The API server
