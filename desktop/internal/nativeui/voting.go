@@ -988,20 +988,10 @@ func (a *App) votingVote(c *ui.Context) {
 		field(c, "Session ID", &a.voting.controlID)
 		ui.Row(c).Gap(8).Children(func() {
 			if secondaryButton(c, "Start Session").Clicked() {
-				if err := a.services.StartSession(strings.TrimSpace(a.voting.controlID)); err != nil {
-					a.voting.controlResult = errStatus(err)
-				} else {
-					a.voting.controlResult = okStatus("Session started.")
-					a.loadVoting()
-				}
+				a.setSessionControl("Starting session…", a.services.StartSession, "Session started.")
 			}
 			if secondaryButton(c, "End Session").Clicked() {
-				if err := a.services.EndSession(strings.TrimSpace(a.voting.controlID)); err != nil {
-					a.voting.controlResult = errStatus(err)
-				} else {
-					a.voting.controlResult = okStatus("Session ended.")
-					a.loadVoting()
-				}
+				a.setSessionControl("Ending session…", a.services.EndSession, "Session ended.")
 			}
 		})
 		inlineStatus(c, a.voting.controlResult)
