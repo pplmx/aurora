@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -75,6 +76,41 @@ func TestDeleteDialogNamesTheSource(t *testing.T) {
 	require.NoError(t, tester.Click("Cancel"))
 	tester.Frame()
 	require.False(t, app.oracle.askDelete)
+}
+
+// TestDeleteDialogResolvesASourceOutsideTheCurrentPage covers the id a CLI or
+// an earlier session leaves in the action field. The source page is bounded,
+// so a page-only label lookup showed an opaque id for older storage.
+func TestDeleteDialogResolvesASourceOutsideTheCurrentPage(t *testing.T) {
+	sources := make([]SourceRow, oraclePageSize+1)
+	for i := range sources {
+		sources[i] = SourceRow{ID: "src-" + strconv.Itoa(i), Name: "Source " + strconv.Itoa(i)}
+	}
+	app := New(&fakeServices{sources: sources})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	target := sources[len(sources)-1]
+	require.False(t, containsSourceID(app.oracle.sources, target.ID),
+		"the target must start outside the visible source page")
+	app.oracle.fetchID = target.ID
+	tester.Frame()
+	require.NoError(t, tester.Click("Delete"))
+	tester.Frame()
+	require.True(t, tester.HasText("Delete "+target.Name+" ("+shortID(target.ID)+")?"),
+		"the confirmation must resolve the name beyond the visible page")
+
+	require.NoError(t, tester.Click("Cancel"))
+}
+
+func containsSourceID(sources []SourceRow, id string) bool {
+	for _, source := range sources {
+		if source.ID == id {
+			return true
+		}
+	}
+	return false
 }
 
 // TestCopyConfirmsWithAToast pins where a copy is acknowledged. The status

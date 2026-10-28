@@ -133,6 +133,11 @@ documented in their per-milestone ROADMAP files.
   mutation**: Start/End Session now run in the background with the busy banner
   and temporary form lock, instead of blocking the frame and leaving no sign
   that a write was in progress.
+- **Delete-source confirmation resolves sources outside the visible page**: the
+  Oracle action field accepts an id from the CLI or an earlier session, but the
+  dialog named only the loaded page's rows. It now looks the id up through the
+  shared service, so an older source is identified by name and id before its
+  schedule entry is removed.
 - **A failed automatic tally read is no longer retried on every frame**: opening
   Results with a session whose result query fails used to leave the attempted
   id blank, so each repaint hammered the same database read. A failure now

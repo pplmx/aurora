@@ -93,6 +93,7 @@ type fakeServices struct {
 	startSessionCalls   int
 	endSessionCalls     int
 	sourceListCalls     int
+	oracleSourceCalls   int
 	lastSourceLimit     int
 	lastSourceOffset    int
 	dashboardCalls      int
@@ -415,6 +416,17 @@ func (f *fakeServices) OracleSources(limit, offset int) ([]SourceRow, error) {
 	}
 	return rows, nil
 }
+
+func (f *fakeServices) OracleSource(id string) (SourceRow, error) {
+	f.oracleSourceCalls++
+	for _, source := range f.sources {
+		if source.ID == id {
+			return source, nil
+		}
+	}
+	return SourceRow{}, errors.New("source not found")
+}
+
 func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) {
 	if f.loadErrs.templates != nil {
 		return nil, f.loadErrs.templates

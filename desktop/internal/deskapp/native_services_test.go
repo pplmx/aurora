@@ -210,6 +210,27 @@ func TestOracleHealthWithoutASchedulerIsEmpty(t *testing.T) {
 	require.Empty(t, rows)
 }
 
+func TestOracleSourceLookupCarriesTheActionRow(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	require.NoError(t, repo.SaveSource(&oracle.DataSource{
+		ID: "old-source", Name: "Historic feed", URL: "https://example.com/price",
+		Type: "json", Enabled: false, Interval: 60, Headers: `{"Authorization":"Bearer x"}`,
+	}))
+	services := &nativeServices{oracleRepo: repo}
+
+	row, err := services.OracleSource("old-source")
+	require.NoError(t, err)
+	require.Equal(t, "old-source", row.ID)
+	require.Equal(t, "Historic feed", row.Name)
+	require.Equal(t, "https://example.com/price", row.URL)
+	require.False(t, row.Enabled)
+	require.Equal(t, 60, row.Interval)
+	require.True(t, row.HasHeaders)
+
+	_, err = services.OracleSource("missing")
+	require.ErrorIs(t, err, oracle.ErrSourceNotFound)
+}
+
 // TestTransferRowsCarryNonces pins the second half of the token history
 // mapping: the use case now returns a nonce, and the view row must keep it or
 // the desktop column still renders 0.
