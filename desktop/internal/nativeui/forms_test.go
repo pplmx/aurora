@@ -306,6 +306,24 @@ func TestChoosingAPresetFillsEveryField(t *testing.T) {
 	require.NotEmpty(t, app.oracle.addURL, "Add Source needs a URL")
 }
 
+// TestChoosingAPresetClearsPrivateHeaders keeps one source's credentials from
+// travelling into another source. Presets have no headers, so the previous
+// form value must be cleared rather than silently attached to the new URL.
+func TestChoosingAPresetClearsPrivateHeaders(t *testing.T) {
+	fake := &fakeServices{templates: []TemplateRow{{
+		ID: "public", Name: "Public feed", URL: "https://example.com/public",
+		Method: "GET", Interval: 60,
+	}}}
+	app := New(fake)
+	app.ShowPage("Oracle")
+	app.oracle.addHeaders = `{"Authorization":"Bearer private-token"}`
+
+	app.applyTemplate("public")
+
+	require.Empty(t, app.oracle.addHeaders,
+		"a preset without headers must not inherit another source's credentials")
+}
+
 // TestShortIDKeepsACopyablePrefix pins the table-cell shortening: long ids keep
 // enough of themselves to recognise and paste, and are marked when cut.
 func TestShortIDKeepsACopyablePrefix(t *testing.T) {

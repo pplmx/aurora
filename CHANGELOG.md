@@ -139,6 +139,10 @@ documented in their per-milestone ROADMAP files.
   now tracks the public key its private key and result belong to. A direct edit
   to Voter Public Key drops the previous voter's secret and "Ballot recorded"
   sentence, just as choosing a different voter row already did.
+- **Oracle presets do not inherit another source's credentials**: choosing a
+  built-in preset now clears the Add Source form's request headers. The presets
+  define no headers, so a private Authorization value from a previous form
+  could otherwise be stored against the newly chosen public endpoint.
 - **A desktop write moves the context to the record it changed**: adding an
   Oracle source now targets that source in the action and reading cards,
   minting or transferring an NFT moves the holder fields with the asset and
