@@ -565,7 +565,6 @@ func TestVoterListLoadsThePublicKeyIntoTheBallot(t *testing.T) {
 	tester.Frame()
 
 	require.True(t, tester.HasText("Alice"))
-	require.True(t, tester.HasText("Voted before"))
 	require.NoError(t, tester.Click(shortID(publicKey)))
 	tester.Frame()
 
@@ -573,6 +572,26 @@ func TestVoterListLoadsThePublicKeyIntoTheBallot(t *testing.T) {
 		"choosing a voter must fill the ballot public-key field")
 	require.Empty(t, app.voting.votePriv, "another voter's private key must not carry over")
 	require.True(t, tester.HasText("Selected voter public key"))
+}
+
+// TestVoterListUsesCompactHistoryLabels keeps both history states readable in
+// the table's fixed-height rows. The previous multi-word labels wrapped and
+// the next row was drawn over the clipped second line.
+func TestVoterListUsesCompactHistoryLabels(t *testing.T) {
+	app := New(&fakeServices{voterRows: []VoterRow{
+		{PublicKey: "pk-voter-1", Name: "Alice", HasVoted: true},
+		{PublicKey: "pk-voter-2", Name: "Ben"},
+	}})
+	tester := ui.NewTester(app.View, 900, 2200)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	texts := tester.Texts()
+	require.Contains(t, texts, "Ever voted")
+	require.Contains(t, texts, "Yes")
+	require.Contains(t, texts, "No")
+	require.NotContains(t, texts, "Voted before")
+	require.NotContains(t, texts, "No ballot yet")
 }
 
 // TestManualVoterKeyChangeClearsThePrivateKey covers the remaining ballot entry
