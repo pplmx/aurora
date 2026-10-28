@@ -129,6 +129,11 @@ documented in their per-milestone ROADMAP files.
   the "start session" step optional. Vote admission now checks the lifecycle
   state in the domain layer as well as the window: only `active` sessions
   accept ballots, while draft, ended and unknown states fail closed.
+- **Session state is rechecked inside the ballot transaction**: ending a
+  session or changing its candidate roster after the preflight read could no
+  longer race an in-flight ballot into a committed vote. The transaction
+  re-reads the session after acquiring SQLite's write lock, so the status,
+  time window and roster are serialized with the vote, voter claim and tally.
 - **The Oracle SSRF block list has one source of truth**: the domain URL
   validator and the HTTP fetch/dial guard each carried their own list of
   blocked address ranges, and the domain copy had drifted. Source creation

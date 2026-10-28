@@ -40,6 +40,9 @@ type mockVotingRepo struct {
 	lastListSessionsLimit    int
 	lastListSessionsOffset   int
 
+	getSessionCalls int
+	onGetSession    func(call int, session *voting.Session)
+
 	// snapshot supports the mock TransactionManager: beginTx captures voter
 	// flags + the votes slice so rollbackTx can restore them.
 	snapshot *mockVotingTxSnapshot
@@ -273,6 +276,10 @@ func (m *mockVotingRepo) GetSession(id string) (*voting.Session, error) {
 	}
 	for _, s := range m.sessions {
 		if s.ID == id {
+			m.getSessionCalls++
+			if m.onGetSession != nil {
+				m.onGetSession(m.getSessionCalls, s)
+			}
 			return s, nil
 		}
 	}
@@ -851,6 +858,80 @@ func TestCastVoteUseCase_DraftSessionWithinTimeWindowRejected(t *testing.T) {
 	candidate, candidateErr := repo.GetCandidate("candidate1")
 	require.NoError(t, candidateErr)
 	require.Zero(t, candidate.VoteCount, "a draft-session ballot must not change the tally")
+}
+
+func TestCastVoteUseCase_RevalidatesSessionInsideTransaction(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*voting.Session)
+		want   error
+	}{
+		{
+			name: "session ended after preflight",
+			mutate: func(session *voting.Session) {
+				session.Status = voting.SessionStatusEnded
+			},
+			want: voting.ErrSessionEnded,
+		},
+		{
+			name: "candidate removed after preflight",
+			mutate: func(session *voting.Session) {
+				session.Candidates = []string{"candidate2"}
+			},
+			want: voting.ErrCandidateNotInSession,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			now := time.Now().Unix()
+			session := &voting.Session{
+				ID:         "session1",
+				StartTime:  now - 60,
+				EndTime:    now + 3600,
+				Status:     voting.SessionStatusActive,
+				Candidates: []string{"candidate1"},
+			}
+			repo := &mockVotingRepo{
+				voters: []*voting.Voter{
+					{Name: "voter1", PublicKey: "dm90ZXIx"},
+				},
+				candidates: []*voting.Candidate{
+					{ID: "candidate1", Name: "Alice"},
+					{ID: "candidate2", Name: "Bob"},
+				},
+				sessions: []*voting.Session{session},
+				onGetSession: func(call int, got *voting.Session) {
+					if call == 2 {
+						tt.mutate(got)
+					}
+				},
+			}
+			uc := NewCastVoteUseCase(
+				repo,
+				&mockVotingService{signature: "dGVzdC1zaWduYXR1cmU="},
+				newMockTxManagerWithRepo(repo),
+			)
+
+			_, err := uc.Execute(CastVoteRequest{
+				VoterPublicKey: "dm90ZXIx",
+				CandidateID:    "candidate1",
+				PrivateKey:     "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ==",
+				SessionID:      "session1",
+			})
+			require.ErrorIs(t, err, tt.want)
+			require.Equal(t, 2, repo.getSessionCalls,
+				"the session must be read once before signing and once inside the transaction")
+
+			voter, voterErr := repo.GetVoter("dm90ZXIx")
+			require.NoError(t, voterErr)
+			require.False(t, voter.HasVoted, "a rejected ballot must not claim the voter")
+			require.Empty(t, repo.votes, "a rejected ballot must not be stored")
+			candidate, candidateErr := repo.GetCandidate("candidate1")
+			require.NoError(t, candidateErr)
+			require.Zero(t, candidate.VoteCount, "a rejected ballot must not change the tally")
+		})
+	}
 }
 
 func TestCastVoteUseCase_SessionNotFound(t *testing.T) {
