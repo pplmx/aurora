@@ -321,3 +321,23 @@ func TestActionButtonsScaleWithLargeText(t *testing.T) {
 			"%q must scale its full 34px height at 2x", label)
 	}
 }
+
+// TestTextAreasScaleWithLargeText keeps multiline fields showing several lines
+// after the system enlarges their type. The fixed 64px box held barely one
+// scaled line at 2x, so editing JSON headers or a long description meant
+// scrolling through a viewport the height of the caret.
+func TestTextAreasScaleWithLargeText(t *testing.T) {
+	var area ui.Handle
+	var ctx *ui.Context
+	value := "{}"
+	tester := ui.NewTester(func(c *ui.Context) {
+		ctx = c
+		textAreaControl(c, &value).Ref(&area)
+	}, 420, 360)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	bounds := area.Bounds(ctx)
+	require.GreaterOrEqual(t, bounds.H, float32(128),
+		"a multiline field must scale its full 64px height at 2x")
+}

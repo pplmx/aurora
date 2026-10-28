@@ -171,7 +171,7 @@ func fieldHint(c *ui.Context, label, hintText string, value *string) {
 // longer than one line (JSON headers, a description).
 func textArea(c *ui.Context, label string, value *string) {
 	ui.Field(c, tr(label), func() {
-		ui.TextArea(c, value).Height(64)
+		textAreaControl(c, value)
 	})
 }
 
@@ -180,10 +180,14 @@ func textArea(c *ui.Context, label string, value *string) {
 func textAreaHint(c *ui.Context, label, hintText string, value *string) {
 	ui.Field(c, tr(label), func() {
 		ui.Column(c).Gap(2).Children(func() {
-			ui.TextArea(c, value).Height(64)
+			textAreaControl(c, value)
 			hint(c, hintText)
 		})
 	})
+}
+
+func textAreaControl(c *ui.Context, value *string) ui.Element {
+	return ui.TextArea(c, value).Height(max(64, textSize(c, 64)))
 }
 
 // hint draws a muted line under a control, explaining a value the label
