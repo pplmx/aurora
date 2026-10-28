@@ -138,6 +138,10 @@ documented in their per-milestone ROADMAP files.
   timestamp directory without syncing that directory into its parent, so a
   power loss could remove the entire backup. Create and Restore now flush each
   staged file and every new directory level before replacing visible data.
+- **Read-only backup files remain replaceable**: flushing a hard-linked old
+  snapshot no longer opens it for writing. A directory that permits replacing
+  an archive now works even when the previous database and metadata were
+  hardened to mode `0400`.
 - **Backup verification applies Restore's database-set contract**: Verify
   checked only the files listed inside metadata, so an archive for a different
   installation — or one listing the same database twice — could report success

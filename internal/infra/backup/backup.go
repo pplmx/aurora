@@ -1174,7 +1174,15 @@ func copyFileAtomic(srcPath, dstPath string) error {
 }
 
 func syncFileAtPath(path string) error {
-	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	// Unix lets fsync operate on a read-only descriptor. Opening the file for
+	// writing would reject a hardened 0400 backup even though the containing
+	// directory permits replacing its entry. Windows' FlushFileBuffers needs a
+	// write handle, so retain O_RDWR there.
+	flags := os.O_RDONLY
+	if runtime.GOOS == "windows" {
+		flags = os.O_RDWR
+	}
+	f, err := os.OpenFile(path, flags, 0)
 	if err != nil {
 		return err
 	}
