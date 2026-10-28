@@ -186,6 +186,54 @@ func TestEnvironmentLocaleReportsWhetherItWasConfigured(t *testing.T) {
 	assert.Equal(t, "en", locale, "an unsupported environment locale falls back to English")
 }
 
+func TestDetectLocaleReadsDefaultConfigBeforeCobraLoadsIt(t *testing.T) {
+	clearLocaleEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	withWorkingDir(t, t.TempDir())
+	require.NoError(t, os.MkdirAll("config", 0o755))
+	require.NoError(t, os.WriteFile("config/aurora.toml", []byte("[i18n]\nlocale = \"zh\"\n"), 0o600))
+
+	previousArgs := os.Args
+	os.Args = []string{"aurora"}
+	t.Cleanup(func() { os.Args = previousArgs })
+
+	assert.Equal(t, "zh", DetectLocale())
+}
+
+func TestDetectLocaleReadsExplicitConfigFlag(t *testing.T) {
+	clearLocaleEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	configPath := filepath.Join(t.TempDir(), "custom.toml")
+	require.NoError(t, os.WriteFile(configPath, []byte("[i18n]\nlocale = \"zh\"\n"), 0o600))
+
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{name: "separate value", args: []string{"aurora", "--config", configPath, "lottery", "--help"}},
+		{name: "equals value", args: []string{"aurora", "--config=" + configPath, "lottery", "--help"}},
+		{name: "last flag wins", args: []string{"aurora", "--config", "/missing.toml", "--config=" + configPath}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			previousArgs := os.Args
+			os.Args = tc.args
+			t.Cleanup(func() { os.Args = previousArgs })
+
+			assert.Equal(t, "zh", DetectLocale())
+		})
+	}
+}
+
+func withWorkingDir(t *testing.T, dir string) {
+	t.Helper()
+	previous, err := os.Getwd()
+	require.NoError(t, err)
+	require.NoError(t, os.Chdir(dir))
+	t.Cleanup(func() {
+		require.NoError(t, os.Chdir(previous))
+	})
+}
+
 func TestGetText(t *testing.T) {
 	result := GetText("app.name")
 

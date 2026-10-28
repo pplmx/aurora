@@ -135,6 +135,12 @@ documented in their per-milestone ROADMAP files.
   `Available Commands:`, `Flags:` or `Global Flags:` headings, and the
   built-in `help`/`completion` descriptions and root banner now translate as
   well.
+- **CLI help honors the configured locale**: command metadata is initialized
+  before Cobra loads the config file, so startup locale detection now reads
+  the documented default config paths (and an explicit `--config` argument)
+  before command declarations. A configured `locale = "zh"` now translates
+  root help, subcommand summaries, flag descriptions and the built-in help
+  commands even when no locale environment variable is set.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   the second-launch desktop dialog identifies the requested `--data-dir`
