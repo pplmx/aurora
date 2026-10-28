@@ -580,6 +580,97 @@ func TestNFTCollectionUsesRecordsAtLargeText(t *testing.T) {
 	require.True(t, ok, "the chosen record must announce its selected state")
 }
 
+// TestTokenHistoryUsesRecordsAtLargeText keeps both sides of a transfer and
+// its exact amount readable at 2x. The four fixed-width columns reduced public
+// keys to short prefixes and pushed the amount and nonce together, even though
+// a transfer history is read as one event rather than four unrelated cells.
+func TestTokenHistoryUsesRecordsAtLargeText(t *testing.T) {
+	const (
+		tokenID = "token-0123456789abcdef"
+		from    = "RnJvbS1hY2NvdW50LXdpdGgtYS1sb25nLWJhc2U2NC1wdWJsaWMta2V5"
+		to      = "VG8tYWNjb3VudC13aXRoLWEtbG9uZy1iYXNlNjQtcHVibGljLWtleQ=="
+		amount  = "9223372036854775807"
+	)
+	app := New(&fakeServices{})
+	app.ShowPage("Token")
+	app.token.tokenID = tokenID
+	app.token.history = []TransferRow{{
+		From: from, To: to, Amount: amount, Nonce: 18446744073709551615,
+	}}
+	app.token.historyLoadedToken, app.token.historyLoadedOwner = tokenID, ""
+	app.token.historyLoadedLimit = 50
+	app.token.historyLoadedOffset = 0
+
+	var fromWidth, fromHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		fromWidth, fromHeight = c.MeasureText(0, ui.Span{
+			Text: from, Size: textSize(c, 12),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(from)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	fromRect, ok := tester.Find(from)
+	require.True(t, ok)
+	require.True(t, fromRect.W >= fromWidth || fromRect.H >= 1.5*fromHeight,
+		"the complete sender key must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		fromRect, fromWidth, fromHeight)
+	require.True(t, tester.HasText(to), "the complete recipient key must remain visible")
+	require.True(t, tester.HasText(amount), "the exact amount must remain visible")
+	require.True(t, tester.HasText("18446744073709551615"), "the nonce must remain visible")
+}
+
+// TestNFTHistoryUsesRecordsAtLargeText applies the same rule to the operation
+// trail. Type, both account keys and the block height used to compete for a
+// width that could not hold them at 2x; one record now keeps the operation and
+// provenance together without truncating the parties.
+func TestNFTHistoryUsesRecordsAtLargeText(t *testing.T) {
+	const (
+		nftID = "nft-0123456789abcdef"
+		from  = "QWxpY2UtYWNjb3VudC13aXRoLWEtbG9uZy1iYXNlNjQtcHVibGljLWtleQ=="
+		to    = "Qm9iLWFjY291bnQtd2l0aC1hLWxvbmctYmFzZTY0LXB1YmxpYy1rZXk="
+		block = int64(9223372036854775807)
+	)
+	app := New(&fakeServices{})
+	app.ShowPage("NFT")
+	app.nft.opTab = 2
+	app.nft.historyID = nftID
+	app.nft.history = []NFTOpRow{{
+		Type: "transfer", From: from, To: to, BlockHeight: block,
+	}}
+	app.nft.historyLoadedID = nftID
+
+	var fromWidth, fromHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		fromWidth, fromHeight = c.MeasureText(0, ui.Span{
+			Text: from, Size: textSize(c, 12),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(from)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	fromRect, ok := tester.Find(from)
+	require.True(t, ok)
+	require.True(t, fromRect.W >= fromWidth || fromRect.H >= 1.5*fromHeight,
+		"the complete previous owner key must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		fromRect, fromWidth, fromHeight)
+	require.True(t, tester.HasText(to), "the complete next owner key must remain visible")
+	require.True(t, tester.HasText("transfer"), "the operation type must remain visible")
+	require.True(t, tester.HasText("9223372036854775807"), "the exact block height must remain visible")
+}
+
 // TestVotingCollectionsUseRecordsAtLargeText applies the collection rule to
 // the three Setup lists. At 2x the voter table pushed the public key off the
 // card, candidate names and party labels were clipped, and the session table's

@@ -777,22 +777,45 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 		return
 	}
 	ops := a.nft.history
-	ui.Table(c, &a.nft.historyTable, []ui.TableColumn{
-		{Title: tr("Type"), Width: 100},
-		{Title: tr("From"), Width: 160},
-		{Title: tr("To"), Width: 160},
-		{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-	}, len(ops), func(row, col int) {
-		op := ops[row]
-		switch col {
-		case 0:
-			tableText(c, tr(op.Type))
-		case 1:
-			tableText(c, op.From)
-		case 2:
-			tableText(c, op.To)
-		case 3:
-			tableText(c, strconv.FormatInt(op.BlockHeight, 10))
+	if stackedRecords(c) {
+		nftHistoryRecords(c, ops)
+	} else {
+		ui.Table(c, &a.nft.historyTable, []ui.TableColumn{
+			{Title: tr("Type"), Width: 100},
+			{Title: tr("From"), Width: 160},
+			{Title: tr("To"), Width: 160},
+			{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
+		}, len(ops), func(row, col int) {
+			op := ops[row]
+			switch col {
+			case 0:
+				tableText(c, tr(op.Type))
+			case 1:
+				tableText(c, op.From)
+			case 2:
+				tableText(c, op.To)
+			case 3:
+				tableText(c, strconv.FormatInt(op.BlockHeight, 10))
+			}
+		})
+	}
+}
+
+// nftHistoryRecords keeps the operation, exact block and both account keys
+// together when the four-column trail no longer fits enlarged text.
+func nftHistoryRecords(c *ui.Context, operations []NFTOpRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for _, operation := range operations {
+			operation := operation
+			recordPanel(c, func() {
+				ui.Row(c).FillWidth().Wrap().Gap(18).AlignItems(ui.Center).Children(func() {
+					ui.Text(c, tr(operation.Type)).FontSize(textSize(c, 13)).Bold().
+						TextColor(ui.Hex(ink))
+					recordMetric(c, "Block", strconv.FormatInt(operation.BlockHeight, 10), ink)
+				})
+				recordField(c, "From", valueOr(operation.From))
+				recordField(c, "To", valueOr(operation.To))
+			})
 		}
 	})
 }

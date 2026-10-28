@@ -1059,22 +1059,45 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 		return
 	}
 	hist := a.token.history
-	ui.Table(c, &a.token.historyTable, []ui.TableColumn{
-		{Title: tr("From"), Width: 160},
-		{Title: tr("To"), Width: 160},
-		{Title: tr("Amount"), MinWidth: tableColumnWidth(c, 100), Align: ui.End},
-		{Title: tr("Nonce"), Width: 80, Align: ui.End},
-	}, len(hist), func(row, col int) {
-		h := hist[row]
-		switch col {
-		case 0:
-			tableText(c, h.From)
-		case 1:
-			tableText(c, h.To)
-		case 2:
-			tableText(c, h.Amount)
-		case 3:
-			tableText(c, strconv.FormatUint(h.Nonce, 10))
+	if stackedRecords(c) {
+		tokenHistoryRecords(c, hist)
+	} else {
+		ui.Table(c, &a.token.historyTable, []ui.TableColumn{
+			{Title: tr("From"), Width: 160},
+			{Title: tr("To"), Width: 160},
+			{Title: tr("Amount"), MinWidth: tableColumnWidth(c, 100), Align: ui.End},
+			{Title: tr("Nonce"), Width: 80, Align: ui.End},
+		}, len(hist), func(row, col int) {
+			h := hist[row]
+			switch col {
+			case 0:
+				tableText(c, h.From)
+			case 1:
+				tableText(c, h.To)
+			case 2:
+				tableText(c, h.Amount)
+			case 3:
+				tableText(c, strconv.FormatUint(h.Nonce, 10))
+			}
+		})
+	}
+}
+
+// tokenHistoryRecords keeps each transfer's parties, amount and nonce together
+// at enlarged text. The fixed account columns otherwise reduced public keys to
+// prefixes while the exact amount and nonce competed for the remaining width.
+func tokenHistoryRecords(c *ui.Context, history []TransferRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for _, transfer := range history {
+			transfer := transfer
+			recordPanel(c, func() {
+				ui.Row(c).Wrap().Gap(18).Children(func() {
+					recordMetric(c, "Amount", valueOr(transfer.Amount), ink)
+					recordMetric(c, "Nonce", strconv.FormatUint(transfer.Nonce, 10), ink)
+				})
+				recordField(c, "From", valueOr(transfer.From))
+				recordField(c, "To", valueOr(transfer.To))
+			})
 		}
 	})
 }
