@@ -48,6 +48,42 @@ func TestVotingTablesLoadFullIDsIntoTheForms(t *testing.T) {
 	require.Equal(t, candID, app.voting.voteCandidate, "the ballot must receive the candidate")
 }
 
+// TestSessionControlsUseTheBackgroundWritePath keeps Start/End consistent with
+// every other write: the window shows which operation is running and remains
+// responsive while the service call is in flight.
+func TestSessionControlsUseTheBackgroundWritePath(t *testing.T) {
+	fake := &slowSessionControls{fakeServices: &fakeServices{}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.SetBackgroundWrites(true)
+	app.ShowPage("Voting")
+	app.voting.tab = 1
+	app.voting.controlID = "s1"
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Start Session"))
+	require.Equal(t, "Starting session…", app.busy,
+		"the running control operation must be visible before it finishes")
+
+	require.Eventually(t, func() bool {
+		tester.Frame()
+		return app.busy == "" && app.voting.controlResult.text == "Session started."
+	}, time.Second, 10*time.Millisecond)
+	require.Equal(t, 1, fake.startSessionCalls)
+}
+
+// slowSessionControls leaves enough work in flight for the test to observe the
+// busy state and its matching apply callback.
+type slowSessionControls struct {
+	*fakeServices
+}
+
+func (s *slowSessionControls) StartSession(string) error {
+	s.startSessionCalls++
+	time.Sleep(100 * time.Millisecond)
+	return nil
+}
+
 // TestVoterKeyPairLeavesTheWindow proves the one-time key handover is usable.
 // Native text cannot be selected, and the store never returns the private half,
 // so without a Copy button the operator could neither keep nor transfer the

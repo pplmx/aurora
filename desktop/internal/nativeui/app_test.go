@@ -90,6 +90,8 @@ type fakeServices struct {
 	sessionListCalls    int
 	lastSessionLimit    int
 	lastSessionOffset   int
+	startSessionCalls   int
+	endSessionCalls     int
 	sourceListCalls     int
 	lastSourceLimit     int
 	lastSourceOffset    int
@@ -317,8 +319,14 @@ func (f *fakeServices) Sessions(limit, offset int) ([]SessionRow, error) {
 	}
 	return rows, nil
 }
-func (f *fakeServices) StartSession(id string) error { return nil }
-func (f *fakeServices) EndSession(id string) error   { return nil }
+func (f *fakeServices) StartSession(id string) error {
+	f.startSessionCalls++
+	return nil
+}
+func (f *fakeServices) EndSession(id string) error {
+	f.endSessionCalls++
+	return nil
+}
 
 func (f *fakeServices) GenerateKeyPair() (string, string, error) {
 	return "pk-generated", "sk-generated", nil
