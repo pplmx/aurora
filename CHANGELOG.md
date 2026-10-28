@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Blockchain initialization no longer hides database failures**: when the
+  configured SQLite database could not be opened or its directory could not be
+  created, `InitWithError` logged a warning and returned a genesis-only
+  in-memory chain with no error. Commands could therefore report a successful
+  ledger write that disappeared at exit. Initialization now returns the open
+  failure and publishes no singleton chain.
 - **Height stamping no longer rounds audit-ledger numbers**: adding
   `block_height` decoded the whole JSON record through `map[string]any`, which
   turned every integer into a `float64`; values above 2^53 could change on
