@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Symlinked SQLite databases keep every sidecar owner-only**: permission
+  hardening followed the database symlink for the main file but looked for
+  `-wal`/`-shm`/`-journal` beside the link, while SQLite creates them beside
+  the resolved target. The store now resolves the database path before
+  restricting all four files, closing the world-readable sidecar window for
+  symlinked data directories.
 - **SQLite accepts database paths with repeated leading slashes**: a POSIX
   path such as `//srv/aurora.db` was emitted as `file://srv/aurora.db?...`, so
   SQLite treated `srv` as a URI authority and refused to open the database.
