@@ -175,6 +175,13 @@ documented in their per-milestone ROADMAP files.
   needed to fix the file. File > Import, a dropped export and a path opened by
   the desktop shell now show that same localized failure in the native dialog
   instead of bypassing the desktop's error translator.
+- **Chinese desktop guidance no longer mixes in English UI chrome**: Lottery,
+  Voting, Token, Oracle, NFT, Blockchain and Settings copy now names visible
+  controls in Chinese (`中奖人数`, `历史`, `被授权方`, `显示全部`, `准备`,
+  `数据源`, `健康`, `读数`, `显示条数`, `仪表盘`) while retaining protocol
+  names such as NFT, VRF, HTTP, JSON, URL and base64. Appearance values
+  (`Dark`, `Follows system`) also pass through the language switch instead of
+  staying English inside a Chinese window.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   `aurora-api --help` calls itself the JSON-only REST API server. The
