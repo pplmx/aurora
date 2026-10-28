@@ -89,6 +89,9 @@ func (s *TokenService) requireToken(tokenID TokenID) error {
 }
 
 func (s *TokenService) GetBalance(tokenID TokenID, owner PublicKey) (*Amount, error) {
+	if err := ValidatePublicKey(owner); err != nil {
+		return nil, err
+	}
 	if err := s.requireToken(tokenID); err != nil {
 		return nil, err
 	}
@@ -96,6 +99,12 @@ func (s *TokenService) GetBalance(tokenID TokenID, owner PublicKey) (*Amount, er
 }
 
 func (s *TokenService) GetAllowance(tokenID TokenID, owner, spender PublicKey) (*Amount, error) {
+	if err := ValidatePublicKey(owner); err != nil {
+		return nil, err
+	}
+	if err := ValidatePublicKey(spender); err != nil {
+		return nil, err
+	}
 	if err := s.requireToken(tokenID); err != nil {
 		return nil, err
 	}

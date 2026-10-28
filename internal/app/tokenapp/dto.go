@@ -135,9 +135,10 @@ type AllowanceResponse struct {
 
 type HistoryRequest struct {
 	TokenID string
-	Owner   string
-	Limit   int
-	Offset  int
+	// Owner is optional. Empty selects the token-wide transfer stream.
+	Owner  string
+	Limit  int
+	Offset int
 }
 
 type HistoryResponse struct {

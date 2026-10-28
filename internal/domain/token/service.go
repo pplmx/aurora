@@ -31,6 +31,8 @@ type Service interface {
 
 	GetBalance(tokenID TokenID, owner PublicKey) (*Amount, error)
 	GetAllowance(tokenID TokenID, owner, spender PublicKey) (*Amount, error)
+	// GetTransferHistory returns one page of transfer events. An empty owner
+	// selects the token-wide stream; a non-empty owner must be a 32-byte key.
 	GetTransferHistory(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error)
 }
 
