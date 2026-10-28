@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Database restores preserve a symlinked `db.path`**: restore planned its
+  temporary file, promotion rename and sidecar cleanup against the configured
+  symlink, so a successful restore replaced the link itself while SQLite kept
+  using WAL/SHM/journal files beside the untouched target. Restore now follows
+  the final link (including a not-yet-created target), atomically replaces the
+  real database and clears the sidecars at that same location.
 - **Desktop file URLs preserve Windows UNC hosts and reject remote POSIX
   paths**: a launcher-provided `file://server/share/draws.json` used to lose
   the server segment and resolve against the local path, while Windows UNC
