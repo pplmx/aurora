@@ -39,6 +39,10 @@ func (m *mockEventStore) GetByAggregate(aggID string, limit, offset int) ([]even
 	return m.events[offset:end], nil
 }
 
+func (m *mockEventStore) GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error) {
+	return m.get(aggID, eventType, "", "", limit, offset)
+}
+
 // GetByAggregateAndTypePayload mirrors the SQLite store's payload-predicate
 // paging (TASK-093, ISS-086): pages over events matching aggregate + type AND
 // whose json "from" field equals value.
@@ -158,6 +162,34 @@ func TestTokenEventReader_GetTransferEventsByOwner(t *testing.T) {
 	require.Equal(t, "TOK", string(results[0].TokenID()))
 	require.Equal(t, "100", results[0].Amount().String())
 	require.Equal(t, "50", results[1].Amount().String(), "received-transfer side must be included")
+}
+
+// TestTokenEventReader_GetTransferEventsByToken locks the token-wide stream:
+// paging counts transfers only, across every sender and recipient, instead of
+// treating a missing owner as a zero-byte account and returning no rows.
+func TestTokenEventReader_GetTransferEventsByToken(t *testing.T) {
+	alice := base64.StdEncoding.EncodeToString([]byte("alice"))
+	bob := base64.StdEncoding.EncodeToString([]byte("bob"))
+	carol := base64.StdEncoding.EncodeToString([]byte("carol"))
+
+	store := &mockEventStore{events: []events.Event{
+		makeTransferEvent("e1", "TOK", alice, bob, "10", 1, "s1"),
+		makeMintEvent("TOK", alice, "1000"),
+		makeTransferEvent("e2", "TOK", bob, carol, "20", 2, "s2"),
+		makeTransferEvent("e3", "TOK", carol, alice, "30", 3, "s3"),
+		makeTransferEvent("e4", "OTHER", alice, bob, "40", 1, "s4"),
+	}}
+	reader := NewTokenEventReader(store)
+
+	page, err := reader.GetTransferEventsByToken("TOK", 2, 1)
+	require.NoError(t, err)
+	require.Len(t, page, 2, "mint and other-token events must not consume the page")
+	require.Equal(t, "20", page[0].Amount().String())
+	require.Equal(t, "30", page[1].Amount().String())
+
+	all, err := reader.GetTransferEventsByToken("TOK", 50, 0)
+	require.NoError(t, err)
+	require.Len(t, all, 3)
 }
 
 // TestTokenEventReader_PreservesStoredTimestamp guards the round-trip

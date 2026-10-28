@@ -966,7 +966,7 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 }
 
 func (a *App) tokenHistory(c *ui.Context) {
-	formCard(c, "History", "Transfers this account sent or received.", func() {
+	formCard(c, "History", "Transfers for this token; enter an owner to narrow the stream to one account.", func() {
 		a.tokenHistoryBody(c)
 	})
 }

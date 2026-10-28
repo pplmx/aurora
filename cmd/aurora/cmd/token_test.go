@@ -248,6 +248,22 @@ func TestTokenHistory_HappyPath(t *testing.T) {
 	})
 }
 
+func TestTokenHistory_WithoutOwnerCoversWholeTokenStream(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		tokenID, pub, priv := tokenFixture(t, "AllHistCoin", "AHS", "1000")
+		recipient := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x6a}, 32))
+		_, err := runCmd(t, "token", "transfer",
+			"--token", tokenID, "--from", pub, "--to", recipient,
+			"--amount", "25", "--private-key", priv)
+		require.NoError(t, err)
+
+		out, err := runCmd(t, "token", "history", "--token", tokenID, "--limit", "10")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Transfer History: 1")
+		assert.Contains(t, out, "Amount: 25")
+	})
+}
+
 func TestTokenInfo_Found(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		tokenID, _, _ := tokenFixture(t, "InfoCoin", "INF", "777")

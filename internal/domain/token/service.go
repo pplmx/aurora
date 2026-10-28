@@ -111,6 +111,7 @@ type TransactableRepository interface {
 
 type EventReader interface {
 	GetTransferEventsByOwner(tokenID TokenID, owner PublicKey, limit, offset int) ([]*TransferEvent, error)
+	GetTransferEventsByToken(tokenID TokenID, limit, offset int) ([]*TransferEvent, error)
 }
 
 type TokenService struct {

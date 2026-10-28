@@ -77,7 +77,15 @@ func (s *TokenService) GetTransferHistory(tokenID TokenID, owner PublicKey, limi
 	if limit <= 0 {
 		limit = defaultHistoryLimit
 	}
-	events, err := s.eventReader.GetTransferEventsByOwner(tokenID, owner, limit, offset)
+	var (
+		events []*TransferEvent
+		err    error
+	)
+	if len(owner) == 0 {
+		events, err = s.eventReader.GetTransferEventsByToken(tokenID, limit, offset)
+	} else {
+		events, err = s.eventReader.GetTransferEventsByOwner(tokenID, owner, limit, offset)
+	}
 	if err != nil {
 		return nil, err
 	}

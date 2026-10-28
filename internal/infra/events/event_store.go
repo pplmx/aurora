@@ -15,6 +15,10 @@ type EventRepository interface {
 	GetByType(eventType string, limit int) ([]events.Event, error)
 	GetByModule(module string, limit int) ([]events.Event, error)
 	GetByAggregate(aggID string, limit, offset int) ([]events.Event, error)
+	// GetByAggregateAndType pages over one aggregate's events of a single type.
+	// Token-wide transfer history uses it so LIMIT/OFFSET count transfers only,
+	// rather than paging every mint, approval and burn event before filtering.
+	GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error)
 	// GetByAggregateAndTypePayload pages over the aggregate's events of one
 	// type AND whose payload field at payloadPath equals value, applying
 	// LIMIT/OFFSET over those matching rows only. This is the owner-scoped
@@ -284,6 +288,29 @@ func (e *SQLiteEventStore) GetByAggregate(aggID string, limit, offset int) ([]ev
 		ORDER BY timestamp ASC, id ASC
 		LIMIT ? OFFSET ?
 	`, aggID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	return scanEvents(rows)
+}
+
+// GetByAggregateAndType applies LIMIT/OFFSET after restricting an aggregate to
+// one event type, so interleaved mint/approval/burn records cannot consume a
+// transfer page.
+func (e *SQLiteEventStore) GetByAggregateAndType(aggID, eventType string, limit, offset int) ([]events.Event, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	rows, err := e.db.Query(`
+		SELECT id, event_type, module, agg_id, payload, timestamp
+		FROM events
+		WHERE agg_id = ? AND event_type = ?
+		ORDER BY timestamp ASC, id ASC
+		LIMIT ? OFFSET ?
+	`, aggID, eventType, limit, offset)
 	if err != nil {
 		return nil, err
 	}
