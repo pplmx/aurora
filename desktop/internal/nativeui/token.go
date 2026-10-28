@@ -125,10 +125,6 @@ type tokenState struct {
 
 const tokenPageSize = 100
 
-func (a *App) loadToken() {
-	a.loadTokenPage(a.token.offset)
-}
-
 // loadTokenPage commits the new page offset only after the read succeeds. A
 // failed Next/Previous therefore leaves the last good rows labelled with the
 // page they actually came from instead of moving the pager under them.

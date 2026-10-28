@@ -35,7 +35,6 @@ var translatedCallArgs = map[string][]int{
 	"actionCard":      {0},
 	"metricCard":      {0, 1, 2},
 	"badge":           {0},
-	"verdictBadge":    {0},
 	"guide":           {2, 3, 4, 5, 6},
 	"loadWarning":     {0},
 }

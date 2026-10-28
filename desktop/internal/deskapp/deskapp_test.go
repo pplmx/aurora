@@ -356,20 +356,6 @@ func TestFeedHealthReachesTheWindow(t *testing.T) {
 		"the desktop's OracleHealth must report the running scheduler's attempt")
 }
 
-// flushRecorder is a ResponseWriter that records flushes, so the test can tell
-// a forwarded Flush from a dropped one.
-type flushRecorder struct {
-	header  http.Header
-	flushed bool
-}
-
-func (r *flushRecorder) Header() http.Header { return r.header }
-func (r *flushRecorder) Write(p []byte) (int, error) {
-	return len(p), nil
-}
-func (r *flushRecorder) WriteHeader(int) {}
-func (r *flushRecorder) Flush()          { r.flushed = true }
-
 // viperKey pins the API key the tests authenticate with, so a handler test
 // does not depend on the developer's environment.
 func viperKey(t *testing.T) {
@@ -445,12 +431,12 @@ func TestWindowListsWhatTheStoreHolds(t *testing.T) {
 	require.Empty(t, nfts)
 
 	// Create one of each through the window's services, then list them.
-	owner := testKeyPair(t)
-	created, err := app.Services().CreateToken("Aurora Coin", "AUR", "1000", owner.public, 8)
+	owner := testPublicKey(t)
+	created, err := app.Services().CreateToken("Aurora Coin", "AUR", "1000", owner, 8)
 	require.NoError(t, err)
 	require.NotEmpty(t, created.ID)
 
-	minted, err := app.Services().MintNFT("First Art", "", "", "", owner.public)
+	minted, err := app.Services().MintNFT("First Art", "", "", "", owner)
 	require.NoError(t, err)
 	require.NotEmpty(t, minted.ID)
 
@@ -466,15 +452,13 @@ func TestWindowListsWhatTheStoreHolds(t *testing.T) {
 	require.Equal(t, minted.ID, nfts[0].ID)
 }
 
-// testKeyPair is a fresh Ed25519 identity as the base64 strings the services
+// testPublicKey is a fresh Ed25519 identity as the base64 string the services
 // take.
-type keyPair struct{ public, private string }
-
-func testKeyPair(t *testing.T) keyPair {
+func testPublicKey(t *testing.T) string {
 	t.Helper()
 	pub, _, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
-	return keyPair{public: base64.StdEncoding.EncodeToString(pub)}
+	return base64.StdEncoding.EncodeToString(pub)
 }
 
 // TestLedgerPayloadsReadAsText pins what the ledger table shows for each
