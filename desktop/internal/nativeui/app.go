@@ -231,7 +231,11 @@ func (a *App) paletteMatches() []paletteEntry {
 	}
 	matches := entries[:0]
 	for _, entry := range entries {
-		if containsFold(a.paletteQuery, entry.title, entry.detail) {
+		// Search what the palette shows, not only the English source strings.
+		// A Chinese window renders translated titles and purposes, so a query
+		// copied from the screen must match the same text.
+		if containsFold(a.paletteQuery,
+			entry.title, tr(entry.title), entry.detail, tr(entry.detail)) {
 			matches = append(matches, entry)
 		}
 	}

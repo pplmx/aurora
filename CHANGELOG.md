@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The command palette searches and renders its translated labels**: a Chinese
+  window drew translated page names and purposes but filtered the list against
+  the English source strings, so typing a name visible on screen ("设置") found
+  nothing. Search now matches both source and display text, and the palette's
+  refresh/backup/export/import commands have Chinese titles and descriptions
+  instead of falling back to English.
 - **NFT write cards keep their own subjects**: Transfer and Burn now remember
   which NFT each holder field was filled for. Typing or selecting an id in one
   card clears only that card's previous key and recipient, Inspect moves the
