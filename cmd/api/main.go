@@ -165,19 +165,19 @@ func printVersion(w io.Writer) {
 	fmt.Fprintf(w, "%s: %s\n", i18n.GetText("app.go_version"), runtime.Version())
 }
 
-// HTTP server timeouts (v1.60). net/http defaults leave ReadHeaderTimeout,
+// HTTP server resource limits. net/http defaults leave ReadHeaderTimeout,
 // ReadTimeout, WriteTimeout and IdleTimeout at zero, meaning a connection that
 // trickles headers or a body (slowloris / slow-body DoS) can hold a handler
 // (and its goroutine) open indefinitely, and idle keep-alive connections are
-// never reaped. Keeping them bounded bounds the resources any single client
-// can consume; most API operations are fast, so even conservative values are
-// not a throughput constraint. ReadHeaderTimeout also independently guards
-// against slow-header attacks even before a body is read.
+// never reaped. The default 1 MiB header limit is also far above what this API
+// needs; because headers are parsed before routing or authentication, a
+// smaller bound limits the memory one unauthenticated connection can force.
 const (
 	readHeaderTimeout = 10 * time.Second
 	readTimeout       = 30 * time.Second
 	writeTimeout      = 30 * time.Second
 	idleTimeout       = 60 * time.Second
+	maxHeaderBytes    = 64 << 10
 )
 
 // newServer creates the HTTP server for the API. Extracted as a pure
@@ -192,6 +192,7 @@ func newServer(addr string, handler http.Handler) *http.Server {
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,
 		IdleTimeout:       idleTimeout,
+		MaxHeaderBytes:    maxHeaderBytes,
 	}
 }
 

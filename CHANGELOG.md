@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Unauthenticated request headers are capped before routing**: `net/http`
+  defaults to accepting headers up to 1 MiB, and parsing happens before any
+  Aurora middleware, logging, rate limit, or authentication. The API server
+  now caps the complete header block, including the request line, at 64 KiB
+  and returns `431` when a client exceeds it. Normal API headers are only a
+  few hundred bytes, so this adds no practical client constraint while
+  reducing the memory an anonymous connection can force.
 - **Access logs and request metrics bound unauthenticated request-field cost**:
   after request IDs were capped, the request line itself could still approach
   the server's 1 MiB header limit. The access logger copied the full method and

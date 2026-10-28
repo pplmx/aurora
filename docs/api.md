@@ -23,6 +23,8 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 - **没有 Web 界面**：网关不提供静态文件，也不注入任何脚本；`/` 与任何未注册路径
   都返回 404。界面只有桌面端的原生窗口。
 - **请求体上限**：4 MiB，超出返回 `413`，在鉴权之前生效。
+- **请求头上限**：64 KiB（包含请求行），超出由 HTTP 服务在路由和鉴权前返回
+  `431`；正常 API 调用不需要接近该上限。
 - **限流**：默认关闭；`[api.rateLimit]` 可开启，按客户端固定窗口计数，只有
   `trustedProxies` 中的来源才采信 `X-Forwarded-For`（否则无法绕过）。
 - **CORS**：默认只允许同源，`[api.cors] allowedOrigins` 加入白名单。
