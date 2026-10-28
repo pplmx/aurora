@@ -342,6 +342,7 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	// 已翻译而这两条仍是英文。
 	"cli.config_flag":       "配置文件（默认依次为 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml）",
 	"cli.http_timeout_flag": "HTTP 请求超时（例如 30s、1m）",
+	"cli.using_config_file": "使用配置文件：%s",
 
 	// Cobra 生成的帮助框架。命令声明已经本地化，但 Cobra 默认的 usage
 	// 模板把标题、内置 help/completion 命令说明写死为英文。

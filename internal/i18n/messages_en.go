@@ -351,6 +351,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	// Chinese --help screen mixed translated module flags with English ones.
 	"cli.config_flag":       "config file (default is 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml)",
 	"cli.http_timeout_flag": "HTTP request timeout (e.g., 30s, 1m)",
+	"cli.using_config_file": "Using config file: %s",
 
 	// Cobra's generated help frame. The command declarations are localized,
 	// but Cobra's default usage renderer hardcodes these headings and the

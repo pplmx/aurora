@@ -141,6 +141,11 @@ documented in their per-milestone ROADMAP files.
   before command declarations. A configured `locale = "zh"` now translates
   root help, subcommand summaries, flag descriptions and the built-in help
   commands even when no locale environment variable is set.
+- **Configured locale tags and the config-file notice are localized**: values
+  such as `zh-CN`, `zh-Hans`, `zh-Hant-TW`, `en-GB` and environment-style
+  `zh_CN.UTF-8` now canonicalize to the message tables Aurora actually ships,
+  instead of silently falling back to English. The startup line that reports
+  which config file was loaded follows the same language.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   the second-launch desktop dialog identifies the requested `--data-dir`

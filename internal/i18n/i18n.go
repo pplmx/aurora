@@ -35,7 +35,7 @@ var (
 
 func Init(locale string) *Translator {
 	tr := &Translator{
-		locale:   locale,
+		locale:   canonicalLocale(locale),
 		messages: make(map[string]map[string]string),
 	}
 	tr.loadMessages()
@@ -94,6 +94,7 @@ func (tr *Translator) loadFromConfig() {
 	if tr.locale == "" {
 		tr.locale = viper.GetString("i18n.locale")
 	}
+	tr.locale = canonicalLocale(tr.locale)
 	if tr.locale == "" {
 		tr.locale = "en"
 	}
@@ -118,7 +119,7 @@ func (tr *Translator) TFormat(key string, args ...interface{}) string {
 
 func (tr *Translator) SetLocale(locale string) {
 	tr.mu.Lock()
-	tr.locale = locale
+	tr.locale = canonicalLocale(locale)
 	tr.mu.Unlock()
 }
 
@@ -160,16 +161,40 @@ func EnvironmentLocale() (string, bool) {
 
 func localeFromTags(value string) string {
 	for _, tag := range strings.Split(value, ":") {
-		normalized := strings.ToLower(strings.TrimSpace(tag))
-		switch {
-		case strings.HasPrefix(normalized, "zh"):
-			return "zh"
-		case strings.HasPrefix(normalized, "en"), normalized == "c", strings.HasPrefix(normalized, "c."),
-			normalized == "posix", strings.HasPrefix(normalized, "posix."):
-			return "en"
+		if locale, ok := localeForTag(tag); ok {
+			return locale
 		}
 	}
 	return "en"
+}
+
+// localeForTag maps the locale tags Aurora ships onto its two message tables.
+// Locale tags can arrive from the environment (en_US.UTF-8, zh-CN) or from
+// [i18n] locale (where BCP 47 tags are a natural spelling).
+func localeForTag(tag string) (string, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(tag))
+	switch {
+	case normalized == "zh" || strings.HasPrefix(normalized, "zh-"), strings.HasPrefix(normalized, "zh_"),
+		strings.HasPrefix(normalized, "zh."):
+		return "zh", true
+	case normalized == "en" || strings.HasPrefix(normalized, "en-"), strings.HasPrefix(normalized, "en_"),
+		strings.HasPrefix(normalized, "en."):
+		return "en", true
+	case normalized == "c" || strings.HasPrefix(normalized, "c."),
+		normalized == "posix" || strings.HasPrefix(normalized, "posix."):
+		return "en", true
+	default:
+		return "", false
+	}
+}
+
+// canonicalLocale keeps an unknown locale available for explicit locale-file
+// loading/tests while using the same table for every supported spelling.
+func canonicalLocale(locale string) string {
+	if canonical, ok := localeForTag(locale); ok {
+		return canonical
+	}
+	return strings.TrimSpace(locale)
 }
 
 func DetectLocale() string {
@@ -181,7 +206,7 @@ func DetectLocale() string {
 	// [i18n] locale also reaches --help and flag descriptions, not just
 	// command output produced after Cobra has loaded the file.
 	if locale := configFileLocale(); locale != "" {
-		return locale
+		return canonicalLocale(locale)
 	}
 	return "en"
 }

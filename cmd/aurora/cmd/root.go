@@ -177,12 +177,12 @@ func initConfig() {
 		}
 		return
 	}
-	fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	// main detects the process locale before Cobra parses flags or reads the
 	// config. Reinitialize after ReadInConfig so a configured [i18n] locale
 	// reaches command output, while an explicit locale environment still wins
 	// inside DetectAndInit.
 	i18n.DetectAndInit()
+	fmt.Fprintln(os.Stderr, i18n.GetTextF("cli.using_config_file", viper.ConfigFileUsed()))
 }
 
 func setDefaultConfig() {
