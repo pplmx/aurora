@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/netip"
 	"net/url"
 	"strings"
 	"sync"
@@ -19,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/netguard"
 	"github.com/spf13/viper"
 )
 
@@ -51,55 +51,8 @@ var (
 // to keep the process memory-safe even under sustained attack.
 const maxResponseBytes = 10 * 1024 * 1024
 
-// blockedCIDRs are the address ranges the fetcher refuses to reach, whether
-// from an initial request, a redirect, or the concrete address resolved at
-// dial time: loopback, RFC1918 private, link-local (including cloud metadata
-// 169.254.169.254), CGNAT, IPv6 loopback/link-local/unique-local, and the
-// unspecified address. These are the classic SSRF primitives for probing or
-// reading internal services.
-var blockedCIDRs = []netip.Prefix{
-	netip.MustParsePrefix("0.0.0.0/8"),
-	netip.MustParsePrefix("10.0.0.0/8"),
-	netip.MustParsePrefix("100.64.0.0/10"),
-	netip.MustParsePrefix("127.0.0.0/8"),
-	netip.MustParsePrefix("169.254.0.0/16"),
-	netip.MustParsePrefix("172.16.0.0/12"),
-	netip.MustParsePrefix("192.168.0.0/16"),
-	// IETF protocol assignments, benchmarking and the reserved class E: no
-	// public service lives there, and a host that resolves into them is
-	// probing rather than fetching data.
-	netip.MustParsePrefix("192.0.0.0/24"),
-	netip.MustParsePrefix("198.18.0.0/15"),
-	netip.MustParsePrefix("240.0.0.0/4"),
-	netip.MustParsePrefix("::/128"),
-	netip.MustParsePrefix("::1/128"),
-	netip.MustParsePrefix("fc00::/7"),
-	netip.MustParsePrefix("fe80::/10"),
-	// Multicast has no business being dialed for a price feed.
-	netip.MustParsePrefix("ff00::/8"),
-	// NAT64 prefixes translate an embedded IPv4 address at the network edge:
-	// [64:ff9b::7f00:1] becomes 127.0.0.1 on an IPv6-only network, which
-	// would route around the IPv4 checks in this list. Both the well-known
-	// prefix and the local-use one are refused.
-	netip.MustParsePrefix("64:ff9b::/96"),
-	netip.MustParsePrefix("64:ff9b:1::/48"),
-	// Documentation and discard-only space.
-	netip.MustParsePrefix("2001:db8::/32"),
-	netip.MustParsePrefix("100::/64"),
-}
-
 func isBlockedIP(ip net.IP) bool {
-	addr, ok := netip.AddrFromSlice(ip)
-	if !ok {
-		return true // unparseable address — refuse rather than guess
-	}
-	addr = addr.Unmap()
-	for _, p := range blockedCIDRs {
-		if p.Contains(addr) {
-			return true
-		}
-	}
-	return false
+	return netguard.IsBlockedIP(ip)
 }
 
 // isBlockedHost reports whether host (optionally host:port) is an IP literal

@@ -124,6 +124,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The Oracle SSRF block list has one source of truth**: the domain URL
+  validator and the HTTP fetch/dial guard each carried their own list of
+  blocked address ranges, and the domain copy had drifted. Source creation
+  still accepted benchmarking, reserved, multicast, documentation and NAT64
+  addresses that the direct dialer already refused, leaving those decisions
+  to a later fetch (or to an operator-configured proxy). Both layers now share
+  `internal/netguard`, so add-time, redirect-time and dial-time checks enforce
+  the same ranges.
 - **Proxy client-IP parsing has a fixed work bound**: behind a trusted proxy,
   `X-Forwarded-For` is commonly appended to rather than replaced, so a client
   could still supply a header near the 64 KiB server limit. The middleware
