@@ -237,16 +237,68 @@ func TestLedgerSearchAndRowLimit(t *testing.T) {
 	require.True(t, tester.HasText("payload-9"))
 	require.False(t, tester.HasText("payload-10"), "the limit must cut the table")
 	require.True(t, tester.HasText("Entries 1–10 of 30"))
+	require.Equal(t, 10, fake.lastBlockLimit, "an unfiltered page stays bounded")
 
-	app.blockchain.search = "payload-29"
+	app.blockchain.search = "  payload-29  "
 	tester.Frame()
 	require.True(t, tester.HasText("payload-29"), "the search must find the oldest entry too")
 	require.False(t, tester.HasText("payload-0"))
-	require.False(t, tester.HasText("Showing the newest"), "one match fits the limit")
+	require.Equal(t, "payload-29", fake.lastBlockSearch)
+	require.Equal(t, 10, fake.lastBlockLimit, "search must request only one bounded page")
+	require.Equal(t, 0, fake.lastBlockOffset)
+	require.Equal(t, 1, app.blockchain.blockTotal)
+	calls := fake.blockListCalls
+	tester.Frame()
+	require.Equal(t, calls, fake.blockListCalls, "surrounding spaces must not repeat the same query")
 
 	app.blockchain.search = "nothing-like-this"
 	tester.Frame()
 	require.True(t, tester.HasText("No blocks match “nothing-like-this”."))
+}
+
+// TestLedgerSearchPagesEveryMatchWithoutLoadingWholeChain keeps search global
+// while bounding both the rows returned and the page walk. The old view asked
+// for every block on each search and sliced the matches itself.
+func TestLedgerSearchPagesEveryMatchWithoutLoadingWholeChain(t *testing.T) {
+	blocks := make([]BlockRow, 40)
+	for i := range blocks {
+		summary := "other-" + strconv.Itoa(i)
+		if i%2 == 0 {
+			summary = "needle-" + strconv.Itoa(i)
+		}
+		blocks[i] = BlockRow{
+			Height:  int64(len(blocks) - i),
+			Module:  "lottery",
+			Summary: summary,
+		}
+	}
+	fake := &fakeServices{blocks: blocks}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	app.blockchain.blockLimit = 10
+	tester.Frame()
+
+	app.blockchain.search = "needle"
+	tester.Frame()
+	require.Equal(t, 10, fake.lastBlockLimit, "search must not ask for the whole chain")
+	require.Equal(t, 0, fake.lastBlockOffset)
+	require.Equal(t, 20, app.blockchain.blockTotal)
+	require.True(t, tester.HasText("needle-0"))
+	require.True(t, tester.HasText("needle-18"))
+	require.False(t, tester.HasText("needle-20"))
+	require.True(t, tester.HasText("Entries 1–10 of 20"))
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, "needle", fake.lastBlockSearch)
+	require.Equal(t, 10, fake.lastBlockLimit)
+	require.Equal(t, 10, fake.lastBlockOffset)
+	require.True(t, tester.HasText("needle-20"))
+	require.True(t, tester.HasText("needle-38"))
+	require.False(t, tester.HasText("needle-18"))
+	require.True(t, tester.HasText("Entries 11–20 of 20"))
 }
 
 // TestLedgerPagesMoveThroughOlderEntries covers the paging controls: the page

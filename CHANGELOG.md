@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Blockchain search stays bounded and can page every match**: searching the
+  desktop ledger used to call `LedgerBlocksPage(0, 0)` and materialise the
+  whole chain before filtering and truncating it in the view. Search now runs
+  over the full chain in the desktop adapter, retains only the requested page,
+  returns the exact match total, and lets Previous/Next walk every matching
+  entry. Unfiltered paging keeps its bounded read, and surrounding whitespace no
+  longer repeats the same successful query on every repaint.
 - **Token reads reject malformed public keys**: a base64 owner or spender that
   decoded to the wrong length used to read back as a zero balance, zero
   allowance or empty history for a real token. Balance, allowance and

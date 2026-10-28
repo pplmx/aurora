@@ -101,6 +101,9 @@ type fakeServices struct {
 	lastSourceOffset    int
 	dashboardCalls      int
 	blockListCalls      int
+	lastBlockSearch     string
+	lastBlockLimit      int
+	lastBlockOffset     int
 	oracleHealthCalls   int
 	tokenInfoCalls      int
 	tokenBalanceCalls   int
@@ -210,22 +213,32 @@ func (f *fakeServices) Dashboard() (DashboardStats, error) {
 }
 
 func (f *fakeServices) LedgerBlocks(limit int) ([]BlockRow, error) {
-	return f.LedgerBlocksPage(limit, 0)
+	page, err := f.LedgerBlocksPage("", limit, 0)
+	return page.Rows, err
 }
 
-func (f *fakeServices) LedgerBlocksPage(limit, offset int) ([]BlockRow, error) {
+func (f *fakeServices) LedgerBlocksPage(search string, limit, offset int) (LedgerBlockPage, error) {
 	f.blockListCalls++
+	f.lastBlockSearch = search
+	f.lastBlockLimit = limit
+	f.lastBlockOffset = offset
 	if f.loadErrs.blocks != nil {
-		return nil, f.loadErrs.blocks
+		return LedgerBlockPage{}, f.loadErrs.blocks
 	}
-	if offset > len(f.blocks) {
-		return nil, nil
+	matching := make([]BlockRow, 0, len(f.blocks))
+	for _, block := range f.blocks {
+		if containsFold(search, block.Module, block.Summary, fmt.Sprintf("%d", block.Height)) {
+			matching = append(matching, block)
+		}
 	}
-	rows := f.blocks[offset:]
+	if offset > len(matching) {
+		return LedgerBlockPage{Total: len(matching)}, nil
+	}
+	rows := matching[offset:]
 	if limit > 0 && len(rows) > limit {
 		rows = rows[:limit]
 	}
-	return rows, nil
+	return LedgerBlockPage{Rows: rows, Total: len(matching)}, nil
 }
 func (f *fakeServices) LedgerStatus() (LedgerStatus, error) {
 	if f.loadErrs.chain != nil {

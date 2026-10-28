@@ -56,6 +56,7 @@ type blockchainState struct {
 	search      string
 	blockLimit  float64
 	blockOffset int
+	blockTotal  int
 	// queriedSearch/queriedLimit identify the block query the last attempt
 	// used. They change before the read so a failed automatic query is not
 	// retried on every repaint; blockOffset changes only after a successful
@@ -262,21 +263,13 @@ func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool
 	// The blocks themselves are what an auditor reads; the counters alone say
 	// how much chain there is, not what it recorded. A failure here is its own
 	// warning: the counters and the verdict above it are still valid.
-	var rows []BlockRow
-	var blocksErr error
-	if search != "" {
-		// Search is still global: load the matching window from the whole
-		// chain while the query is active. Pagination applies to the unfiltered
-		// view, where the reader is walking the ledger.
-		rows, blocksErr = a.services.LedgerBlocksPage(0, 0)
-	} else {
-		rows, blocksErr = a.services.LedgerBlocksPage(limit, offset)
-	}
+	page, blocksErr := a.services.LedgerBlocksPage(search, limit, offset)
 	a.blockchain.blocksErr = blocksErr
 	if blocksErr != nil {
 		return false
 	}
-	a.blockchain.rows = rows
+	a.blockchain.rows = page.Rows
+	a.blockchain.blockTotal = page.Total
 	a.blockchain.blockOffset = offset
 	return true
 }
@@ -296,7 +289,7 @@ func (a *App) blockchainView(c *ui.Context) {
 	a.scrollPage(c, func() {
 		guide(c, &a.guides.blockchain,
 			"Every module appends its records to one hash chain; each block commits to the previous hash.",
-			"The badge verifies the chain. Search narrows by module, payload or height, and Show bounds how many rows are built.",
+			"The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size.",
 		)
 		// The page header already says what the ledger is, so the card does not
 		// repeat it.
@@ -330,30 +323,20 @@ func (a *App) blockchainBody(c *ui.Context) {
 	a.blockchainBlocks(c)
 }
 
-// blockchainBlocks lists what the chain recorded, newest first. The page is
-// fetched with a limit/offset instead of materializing the whole ledger; the
-// search field narrows the page already loaded, and Previous/Next move through
-// older entries without rebuilding the chain.
+// blockchainBlocks lists what the chain recorded, newest first. The adapter
+// searches the whole chain but returns only one bounded page and its exact
+// total, so Previous/Next work the same for filtered and unfiltered views.
 func (a *App) blockchainBlocks(c *ui.Context) {
 	limit := blockchainBlockLimit(a.blockchain.blockLimit)
-	if a.blockchain.search != a.blockchain.queriedSearch ||
-		(a.blockchain.search == "" && limit != a.blockchain.queriedLimit) {
+	query := strings.TrimSpace(a.blockchain.search)
+	if query != a.blockchain.queriedSearch || limit != a.blockchain.queriedLimit {
 		// A changed search or page size starts at the newest rows. The helper
 		// records the attempt even on failure, so a database error cannot turn
 		// every repaint into another read.
-		a.loadBlockchainAt(a.blockchain.search, a.blockchain.blockLimit, 0)
+		a.loadBlockchainAt(query, a.blockchain.blockLimit, 0)
 	}
 	if a.blockchain.blocksErr != nil &&
 		!loadWarning(c, "Couldn't read chain blocks", a.blockchain.blocksErr, len(a.blockchain.rows) > 0) {
-		return
-	}
-	if len(a.blockchain.rows) == 0 {
-		if a.blockchain.blockOffset > 0 {
-			a.blockchain.blockOffset = 0
-			a.loadBlockchain()
-			return
-		}
-		emptyNote(c, "Nothing recorded on the chain yet.")
 		return
 	}
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
@@ -364,47 +347,43 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 			ui.NumberInput(c, &a.blockchain.blockLimit, 10, 10000, 10)
 		})
 	})
-	matching := make([]BlockRow, 0, len(a.blockchain.rows))
-	for _, block := range a.blockchain.rows {
-		if containsFold(a.blockchain.search, block.Module, block.Summary, strconv.FormatInt(block.Height, 10)) {
-			matching = append(matching, block)
+	if a.blockchain.blockTotal == 0 {
+		if query != "" {
+			emptyNote(c, fmt.Sprintf(tr("No blocks match “%s”."), query))
+		} else {
+			emptyNote(c, "Nothing recorded on the chain yet.")
 		}
-	}
-	if len(matching) == 0 {
-		emptyNote(c, fmt.Sprintf(tr("No blocks match “%s”."), a.blockchain.search))
 		return
 	}
-	rows := matching
-	if a.blockchain.search != "" && len(rows) > limit {
-		rows = rows[:limit]
+	if len(a.blockchain.rows) == 0 {
+		// The selected page no longer exists, for example after the chain was
+		// reset elsewhere. Return to the first page that does.
+		a.blockchain.blockOffset = 0
+		a.loadBlockchainAt(query, a.blockchain.blockLimit, 0)
+		return
 	}
-	if a.blockchain.search == "" {
-		total := a.blockchain.height
-		if total < 0 {
-			total = 0
+	total := a.blockchain.blockTotal
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
+		if secondaryButton(c, "Previous").Disabled(a.blockchain.blockOffset == 0).Clicked() {
+			a.loadBlockchainAt(query, a.blockchain.blockLimit,
+				max(0, a.blockchain.blockOffset-limit))
+			return
 		}
-		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
-			if secondaryButton(c, "Previous").Disabled(a.blockchain.blockOffset == 0).Clicked() {
-				a.loadBlockchainAt("", a.blockchain.blockLimit,
-					max(0, a.blockchain.blockOffset-limit))
-				return
-			}
-			ui.Spacer(c)
-			ui.Text(c, fmt.Sprintf(tr("Entries %d–%d of %d"), a.blockchain.blockOffset+1, a.blockchain.blockOffset+len(a.blockchain.rows), total)).
-				FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
-			ui.Spacer(c)
-			if secondaryButton(c, "Next").Disabled(a.blockchain.blockOffset+len(a.blockchain.rows) >= total).Clicked() {
-				a.loadBlockchainAt("", a.blockchain.blockLimit,
-					a.blockchain.blockOffset+limit)
-			}
-		})
-	}
+		ui.Spacer(c)
+		ui.Text(c, fmt.Sprintf(tr("Entries %d–%d of %d"), a.blockchain.blockOffset+1, a.blockchain.blockOffset+len(a.blockchain.rows), total)).
+			FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+		ui.Spacer(c)
+		if secondaryButton(c, "Next").Disabled(a.blockchain.blockOffset+len(a.blockchain.rows) >= total).Clicked() {
+			a.loadBlockchainAt(query, a.blockchain.blockLimit,
+				a.blockchain.blockOffset+limit)
+		}
+	})
 	ui.Table(c, &a.blockchain.table, []ui.TableColumn{
 		{Title: tr("Height"), Width: 90, Align: ui.End},
 		{Title: tr("Module"), Width: 130},
 		{Title: tr("Payload"), MinWidth: 200},
-	}, len(rows), func(row, col int) {
-		b := rows[row]
+	}, len(a.blockchain.rows), func(row, col int) {
+		b := a.blockchain.rows[row]
 		switch col {
 		case 0:
 			ui.Text(c, strconv.FormatInt(b.Height, 10))
@@ -414,9 +393,6 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 			ui.Text(c, b.Summary).FontSize(textSize(c, 12)).SingleLine()
 		}
 	})
-	if a.blockchain.search != "" && len(matching) > limit {
-		hint(c, fmt.Sprintf(tr("Showing the newest %d of %d matching entries; raise Show or search to narrow."), limit, len(matching)))
-	}
 }
 
 // pageForBlockModule maps an audit payload's module label to the page that

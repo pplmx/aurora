@@ -38,6 +38,7 @@ type Chain interface {
 	Len() int
 	BlockEntries(limit int) []ledger.BlockEntry
 	BlockEntriesPage(limit, offset int) []ledger.BlockEntry
+	BlockEntriesPageMatching(limit, offset int, match func(ledger.BlockEntry) bool) ([]ledger.BlockEntry, int)
 }
 
 func (c *Container) LotteryRepository() lottery.Repository           { return c.LotteryRepo }

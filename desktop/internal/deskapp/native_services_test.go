@@ -14,6 +14,7 @@ import (
 	"github.com/pplmx/aurora/internal/domain/repoerr"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/ledger"
 	"github.com/stretchr/testify/require"
 )
 
@@ -284,4 +285,60 @@ func TestLedgerBlocksCarryBlockHeights(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, latest, 1)
 	require.Equal(t, int64(2), latest[0].Height)
+}
+
+type ledgerReadSpy struct {
+	*blockchain.Chain
+	pageLimit     int
+	pageOffset    int
+	matchingLimit int
+	matchOffset   int
+	unbounded     bool
+}
+
+func (s *ledgerReadSpy) BlockEntriesPage(limit, offset int) []ledger.BlockEntry {
+	s.pageLimit, s.pageOffset = limit, offset
+	if limit <= 0 {
+		s.unbounded = true
+	}
+	return s.Chain.BlockEntriesPage(limit, offset)
+}
+
+func (s *ledgerReadSpy) BlockEntriesPageMatching(limit, offset int, match func(ledger.BlockEntry) bool) ([]ledger.BlockEntry, int) {
+	s.matchingLimit, s.matchOffset = limit, offset
+	if limit <= 0 {
+		s.unbounded = true
+	}
+	return s.Chain.BlockEntriesPageMatching(limit, offset, match)
+}
+
+// TestLedgerSearchPagesGloballyFromTheChain pins the adapter's search
+// contract: module matching uses the rendered module (including the derived
+// "token" label), paging happens before rows reach the view, and the viewer
+// never asks the chain for an unbounded block list.
+func TestLedgerSearchPagesGloballyFromTheChain(t *testing.T) {
+	chain := blockchain.New()
+	for i := 0; i < 12; i++ {
+		payload := `{"module":"lottery","participants":["A"]}`
+		if i%2 == 0 {
+			payload = "transfer|alice|bob|" + string(rune('A'+i))
+		}
+		_, err := chain.AddBlock(payload)
+		require.NoError(t, err)
+	}
+	spy := &ledgerReadSpy{Chain: chain}
+	services := &nativeServices{chain: spy}
+
+	page, err := services.LedgerBlocksPage("token", 3, 1)
+	require.NoError(t, err)
+	require.Equal(t, 6, page.Total, "all token blocks count, including those outside the page")
+	require.Len(t, page.Rows, 3)
+	require.Equal(t, 3, spy.matchingLimit)
+	require.Equal(t, 1, spy.matchOffset)
+	require.False(t, spy.unbounded, "search must retain only the requested page")
+	for _, row := range page.Rows {
+		require.Equal(t, "token", row.Module)
+	}
+	require.Equal(t, int64(9), page.Rows[0].Height)
+	require.Equal(t, int64(5), page.Rows[2].Height)
 }

@@ -96,7 +96,6 @@ var desktopMessages = map[string]string{
 	"Hash chain verified":                            "哈希链已验证",
 	"Hash chain is broken":                           "哈希链已损坏",
 	"No blocks match “%s”.":                          "没有匹配“%s”的区块。",
-	"Showing the newest %d of %d matching entries; raise Show or search to narrow.": "显示匹配项中最新的 %d 条，共 %d 条；提高 Show 或缩小搜索范围。",
 
 	// Lottery.
 	"Create Draw": "创建抽奖",
@@ -435,7 +434,7 @@ var desktopMessages = map[string]string{
 	"Open Results and select or enter the session to read the tally.":                                                                                              "打开 Results，选择或输入会期以读取计票。",
 	"Register voters and candidates in Setup. A voter registration returns the only copy of that voter's signing key.":                                             "在 Setup 中注册选民和候选人。选民注册只返回一次签名私钥。",
 	"Every module appends its records to one hash chain; each block commits to the previous hash.":                                                                 "每个模块都把记录追加到同一条哈希链；每个区块都提交前一个区块的哈希。",
-	"The badge verifies the chain. Search narrows by module, payload or height, and Show bounds how many rows are built.":                                          "徽标用于验证账本。搜索按模块、载荷或高度筛选，Show 限制构建的行数。",
+	"The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size.":                                      "徽标用于验证账本。搜索会匹配整条链的模块、载荷或高度；Show 设置每页行数。",
 	"Mint an asset with a creator key, or select one in Collection. The creator is the first owner.":                                                               "用创建者密钥铸造资产，或在 Collection 中选择一个。创建者是第一个持有者。",
 	"Transfer or Burn in the right column; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset.": "在右栏转让或销毁；由当前持有者的私钥签名。只要创建者仍持有资产，就可以复用生成的创建者密钥。",
 	"History lists every mint, transfer and burn; Inspect shows the stored metadata and links.":                                                                    "History 列出每次铸造、转让和销毁；Inspect 显示存储的元数据和链接。",

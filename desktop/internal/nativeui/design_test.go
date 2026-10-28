@@ -319,7 +319,7 @@ func TestEveryContentPageHasAHowThisWorksGuide(t *testing.T) {
 		{"Token", "Select a token in the left column, or create one. Its owner public key fills the account fields for you."},
 		{"Oracle", "Select a source in Sources to fetch it now, enable/disable it, or delete it."},
 		{"NFT", "Transfer or Burn in the right column; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset."},
-		{"Blockchain", "The badge verifies the chain. Search narrows by module, payload or height, and Show bounds how many rows are built."},
+		{"Blockchain", "The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size."},
 	}
 	for _, tc := range cases {
 		t.Run(tc.page, func(t *testing.T) {
