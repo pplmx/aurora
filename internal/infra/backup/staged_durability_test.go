@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -108,6 +109,32 @@ func TestCreateSyncsNewOutputParentDirectories(t *testing.T) {
 		"the first new directory entry must be persisted in its existing parent")
 	require.Contains(t, synced, filepath.Clean(parent),
 		"the timestamp directory entry must be persisted in the new backup parent")
+}
+
+// TestCreateReplacesReadOnlyExistingBackup keeps the durability check from
+// turning a read-only archive into an update failure when its directory is
+// writable. Existing backups are commonly hardened with mode 0400.
+func TestCreateReplacesReadOnlyExistingBackup(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not use Unix read-only mode bits")
+	}
+
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "src", "blockchain.db")
+	makeTestDB(t, dbPath)
+	out := filepath.Join(dir, "out")
+	svc := NewBackupService(map[string]string{"blockchain": dbPath})
+	_, err := svc.Create(context.Background(), out)
+	require.NoError(t, err)
+
+	for _, name := range []string{"blockchain.db", "metadata.json"} {
+		require.NoError(t, os.Chmod(filepath.Join(out, name), 0o400))
+	}
+	insertTestRow(t, dbPath, 2)
+
+	_, err = svc.Create(context.Background(), out)
+	require.NoError(t, err, "a writable directory must be able to replace read-only backup files")
+	require.NoError(t, svc.Verify(context.Background(), out))
 }
 
 // TestRestoreSyncsPreRestoreSnapshotBeforePromotion proves the manual recovery
