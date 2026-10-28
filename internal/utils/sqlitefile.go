@@ -10,6 +10,14 @@ import (
 	"strings"
 )
 
+// SQLiteSidecarPaths returns every file SQLite can create beside dbPath.
+// Callers that protect or remove one generation of database state must handle
+// the complete set; omitting the rollback journal leaves the previous
+// generation's pages available for replay.
+func SQLiteSidecarPaths(dbPath string) []string {
+	return []string{dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"}
+}
+
 // RestrictSQLiteFiles keeps the live SQLite database and its WAL/SHM/journal
 // sidecars owner-only. SQLite creates files with the process umask (commonly
 // 0644 even inside a 0755 data directory), while the Oracle table can contain
@@ -35,7 +43,8 @@ func RestrictSQLiteFiles(dbPath string) error {
 		return fmt.Errorf("resolve %s: %w", dbPath, err)
 	}
 
-	for i, path := range []string{resolvedPath, resolvedPath + "-wal", resolvedPath + "-shm", resolvedPath + "-journal"} {
+	paths := append([]string{resolvedPath}, SQLiteSidecarPaths(resolvedPath)...)
+	for i, path := range paths {
 		if err := os.Chmod(path, 0o600); err != nil {
 			if i > 0 && errors.Is(err, fs.ErrNotExist) {
 				continue

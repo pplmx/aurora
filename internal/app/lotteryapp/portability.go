@@ -65,7 +65,8 @@ func refuseLiveDatabaseDestination(dbPath, dest string) error {
 	if dbPath == "" {
 		return nil
 	}
-	for _, live := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
+	livePaths := append([]string{dbPath}, utils.SQLiteSidecarPaths(dbPath)...)
+	for _, live := range livePaths {
 		if sameExistingFile(live, dest) || sameCleanPath(live, dest) {
 			return fmt.Errorf("refusing to export over the live database file %q", live)
 		}

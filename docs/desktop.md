@@ -318,8 +318,9 @@ just check && just test
   `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、同一覆盖
   保护），导出目标经同目录临时文件原子替换，写入失败不会先清空上一份导出；
   空库导出也是合法的 JSON 数组 `[]`，`null` 不会被导入成功。导出目标若就是
-  正在使用的 `aurora.db`（含符号链接/硬链接别名或 `-wal`/`-shm` 边车文件）
-  会被拒绝，不会把数据库盖成 JSON。About 显示版本、构建时间与数据库
+  正在使用的 `aurora.db`（含符号链接/硬链接别名或
+  `-wal`/`-shm`/`-journal` 边车文件）会被拒绝，不会把数据库盖成 JSON。
+  About 显示版本、构建时间与数据库
   路径。所有弹窗都带 `Parent`：文件选择器与结果框挂在发起操作的窗口上
   （macOS 上是 sheet，其他平台是子模态），而不是可以留在背后的游离窗口。
 - **Open Recent**：File → Open Recent 由 MyGo 维护（用户数据目录的

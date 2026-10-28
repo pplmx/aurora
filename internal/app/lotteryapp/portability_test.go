@@ -158,7 +158,7 @@ func TestWriteRecordsToFile_RefusesTheLiveDatabase(t *testing.T) {
 	require.NoError(t, os.WriteFile(dbPath, []byte("not really sqlite"), 0o644))
 	repo := pathLotteryRepo{path: dbPath}
 
-	for _, dest := range []string{dbPath, dbPath + "-wal", dbPath + "-shm"} {
+	for _, dest := range []string{dbPath, dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"} {
 		_, err := WriteRecordsToFile(repo, dest)
 		require.Error(t, err, "exporting to %s must be refused", dest)
 		assert.Contains(t, err.Error(), "live database")

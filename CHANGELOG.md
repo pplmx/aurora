@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Lottery exports refuse the live rollback journal too**: the shared CLI and
+  desktop export guard covered the database and its WAL/SHM files, but a
+  destination named `aurora.db-journal` could still replace a hot rollback
+  journal with JSON. All SQLite safety boundaries now draw their sidecar list
+  from one helper, so permission hardening, restore cleanup, and export
+  protection cover the same three sidecars.
 - **Trailing backup-directory separators keep restores safe and repeatable**:
   shell completion commonly supplies `backups/daily/`, which made the hidden
   `.pre_restore` undo copy land inside the archive instead of beside it. That
