@@ -574,6 +574,92 @@ func TestVerifyAndRestore_RejectSymlinkedMetadata(t *testing.T) {
 	}
 }
 
+// TestRestore_PreservesDatabaseSymlinkAndCleansTargetSidecars proves restore
+// treats a configured database symlink as an alias for its target, not as the
+// file to replace. SQLite creates WAL/SHM/journal files beside the resolved
+// target, so promotion and cleanup must use that same real path.
+func TestRestore_PreservesDatabaseSymlinkAndCleansTargetSidecars(t *testing.T) {
+	tmp := t.TempDir()
+	realDB := filepath.Join(tmp, "real", "aurora.db")
+	linkPath := filepath.Join(tmp, "config", "aurora.db")
+	backupDir := filepath.Join(tmp, "backup")
+	require.NoError(t, os.MkdirAll(filepath.Dir(linkPath), 0o755))
+
+	newDB(t, realDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'BACKED_UP')",
+	)
+	if err := os.Symlink(filepath.Join("..", "real", "aurora.db"), linkPath); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	svc := NewBackupService(map[string]string{"blockchain": linkPath})
+	_, err := svc.Create(context.Background(), backupDir)
+	require.NoError(t, err)
+
+	db, err := sql.Open("sqlite", realDB)
+	require.NoError(t, err)
+	_, err = db.Exec("UPDATE kv SET v = 'LIVE' WHERE k = 'answer'")
+	require.NoError(t, err)
+	require.NoError(t, db.Close())
+
+	// Sidecars are created at the last instant before promotion. Before the
+	// fix, cleanup looked beside the link and left these real files in place.
+	sidecarsCreated := false
+	svc.removeSidecarFn = func(path string) error {
+		if !sidecarsCreated {
+			sidecarsCreated = true
+			for _, sidecar := range []string{"-wal", "-shm", "-journal"} {
+				require.NoError(t, os.WriteFile(realDB+sidecar, []byte("stale"), 0o600))
+			}
+		}
+		return os.Remove(path)
+	}
+
+	require.NoError(t, svc.Restore(context.Background(), backupDir))
+
+	for _, sidecar := range []string{"-wal", "-shm", "-journal"} {
+		require.NoFileExists(t, realDB+sidecar,
+			"restore must remove stale sidecars beside the resolved target")
+	}
+	linkInfo, err := os.Lstat(linkPath)
+	require.NoError(t, err)
+	require.NotZero(t, linkInfo.Mode()&os.ModeSymlink,
+		"restore replaced the configured database symlink")
+	require.Equal(t, "BACKED_UP", readKV(t, realDB, "answer"),
+		"restore must replace the symlink target, not the link")
+}
+
+// TestRestore_CreatesTargetOfDanglingDatabaseSymlink covers first-time restore
+// through the path form SQLite can create: a database symlink whose target does
+// not exist yet. Restore must create that target and leave the configured link
+// in place.
+func TestRestore_CreatesTargetOfDanglingDatabaseSymlink(t *testing.T) {
+	tmp := t.TempDir()
+	realDB := filepath.Join(tmp, "real", "aurora.db")
+	linkPath := filepath.Join(tmp, "config", "aurora.db")
+	backupDir := filepath.Join(tmp, "backup")
+	require.NoError(t, os.MkdirAll(filepath.Dir(realDB), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Dir(linkPath), 0o755))
+	if err := os.Symlink(filepath.Join("..", "real", "aurora.db"), linkPath); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	newDB(t, filepath.Join(backupDir, "blockchain.db"),
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'BACKED_UP')",
+	)
+	writeMeta(t, backupDir, "blockchain")
+
+	svc := NewBackupService(map[string]string{"blockchain": linkPath})
+	require.NoError(t, svc.Restore(context.Background(), backupDir))
+
+	linkInfo, err := os.Lstat(linkPath)
+	require.NoError(t, err)
+	require.NotZero(t, linkInfo.Mode()&os.ModeSymlink)
+	require.Equal(t, "BACKED_UP", readKV(t, realDB, "answer"))
+}
+
 // TestRestore_PreRestoreSnapshot_IsWALComplete locks the WAL-complete half of
 // TASK-116 / ISS-108: the pre-restore safety copy must be an online VACUUM INTO
 // snapshot, not a raw .db file copy. Under WAL mode the main .db can lag
