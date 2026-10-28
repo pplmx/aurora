@@ -370,3 +370,27 @@ func TestLedgerSummaryDoesNotSplitUTF8(t *testing.T) {
 	require.True(t, utf8.ValidString(summary))
 	require.Equal(t, 97, utf8.RuneCountInString(summary), "96 characters plus the ellipsis")
 }
+
+func TestLedgerSearchFindsVotingAndOracleModules(t *testing.T) {
+	chain := blockchain.New()
+	for _, payload := range []string{
+		"vote|dGVzdC1rZXk=|candidate-1|session-1",
+		`{"id":"o1","source_id":"s1","value":"42","timestamp":1,"block_height":2}`,
+	} {
+		_, err := chain.AddBlock(payload)
+		require.NoError(t, err)
+	}
+	services := &nativeServices{chain: chain}
+
+	votes, err := services.LedgerBlocksPage("voting", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, votes.Total)
+	require.Len(t, votes.Rows, 1)
+	require.Equal(t, "voting", votes.Rows[0].Module)
+
+	feeds, err := services.LedgerBlocksPage("oracle", 10, 0)
+	require.NoError(t, err)
+	require.Equal(t, 1, feeds.Total)
+	require.Len(t, feeds.Rows, 1)
+	require.Equal(t, "oracle", feeds.Rows[0].Module)
+}
