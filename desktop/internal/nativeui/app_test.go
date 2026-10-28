@@ -109,6 +109,7 @@ type fakeServices struct {
 	tokenBalanceCalls   int
 	tokenHistoryCalls   int
 	tokenAllowanceCalls int
+	burnTokenCalls      int
 	getNFTCalls         int
 
 	// The last subject each read was asked for, so a selection can be proven
@@ -403,7 +404,10 @@ func (f *fakeServices) ApproveToken(tokenID, owner, spender, amount, priv string
 func (f *fakeServices) TransferFromToken(tokenID, owner, to, amount, spenderPriv string) error {
 	return nil
 }
-func (f *fakeServices) BurnToken(tokenID, from, amount, priv string) error { return nil }
+func (f *fakeServices) BurnToken(tokenID, from, amount, priv string) error {
+	f.burnTokenCalls++
+	return nil
+}
 func (f *fakeServices) TokenAllowance(tokenID, owner, spender string) (string, error) {
 	f.tokenAllowanceCalls++
 	f.lastAllowanceToken = tokenID

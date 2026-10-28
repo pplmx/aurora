@@ -837,8 +837,7 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 		}
 		detail = fmt.Sprintf(tr("Burn %s? The asset is destroyed and cannot be recovered."), target)
 	}
-	switch ui.AlertDialog(c, &a.nft.askBurn, tr("Burn this NFT?"), detail, tr("Cancel"), tr("Burn")) {
-	case 1:
+	if destructiveConfirm(c, &a.nft.askBurn, tr("Burn this NFT?"), detail, tr("Burn")) {
 		id := strings.TrimSpace(a.nft.burnID)
 		privateKey := strings.TrimSpace(a.nft.burnPriv)
 		owner := a.nft.burnOwner

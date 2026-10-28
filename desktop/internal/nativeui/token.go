@@ -984,9 +984,9 @@ func (s tokenState) allowanceMatches(tokenID, owner, spender string) bool {
 		s.allowanceLoadedTo == spender
 }
 
-// renderBurnDialog shows the confirmation while a burn is pending. MyGo draws
-// it over the window; the burn runs only when the operator picks "Burn", the
-// same gate the CLI's --confirm flag is.
+// renderBurnDialog shows the confirmation while a burn is pending. The burn
+// runs only when the operator deliberately picks "Burn", the same gate the
+// CLI's --confirm flag is; Enter alone cancels.
 func (a *App) renderBurnDialog(c *ui.Context) {
 	if !a.token.askBurn {
 		return
@@ -1002,8 +1002,7 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 			"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.",
 			valueOr(amount), valueOr(from))
 	}
-	switch ui.AlertDialog(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Cancel"), tr("Burn")) {
-	case 1:
+	if destructiveConfirm(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Burn")) {
 		privateKey := strings.TrimSpace(a.token.burnPriv)
 		tokenID := strings.TrimSpace(a.token.tokenID)
 		owner := a.token.burnFrom

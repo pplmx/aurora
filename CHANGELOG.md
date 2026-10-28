@@ -57,6 +57,11 @@ documented in their per-milestone ROADMAP files.
   The page-switch reference and header comment also match the eight selectable
   pages, including Settings at Ctrl/Cmd+8.
 
+- **Destructive desktop dialogs default to Cancel**: burning tokens or an NFT
+  and deleting an Oracle source now share a red alert whose initial focus is
+  Cancel, so Enter dismisses instead of performing an irreversible write. One
+  Tab still reaches the named destructive action for keyboard users.
+
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;
   choosing one fills the ballot public-key field and offers the full key for

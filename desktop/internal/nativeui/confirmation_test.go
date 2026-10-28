@@ -138,6 +138,49 @@ func TestConfirmationDialogHonoursTextScale(t *testing.T) {
 		"the confirmation controls must grow with the desktop text scale")
 }
 
+// TestDestructiveDialogDefaultsToCancel protects an irreversible action from a
+// stray Enter. MyGo's AlertDialog focuses its last button, which made Burn the
+// default; the shared confirmation now starts on Cancel and reaches Burn after
+// one Tab.
+func TestDestructiveDialogDefaultsToCancel(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.tokenID = "token-1"
+	app.token.burnFrom = "owner-pk"
+	app.token.burnAmount = "25"
+	app.token.askBurn = true
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Cancel")), "the safe choice must receive initial focus")
+
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.False(t, app.token.askBurn)
+	require.Zero(t, fake.burnTokenCalls, "Enter on the safe default must not burn")
+
+	app.token.askBurn = true
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Cancel")))
+	tester.Key(0, ui.KeyEscape)
+	tester.Frame()
+	require.False(t, app.token.askBurn)
+	require.Zero(t, fake.burnTokenCalls, "Escape must dismiss without burning")
+
+	app.token.askBurn = true
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Cancel")))
+	tester.Key(0, ui.KeyTab)
+	tester.Frame()
+	require.True(t, tester.Focused(tr("Burn")), "the destructive action must stay keyboard reachable")
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.False(t, app.token.askBurn)
+	require.Equal(t, 1, fake.burnTokenCalls)
+}
+
 // TestLongNFTNameKeepsBurnActionsInView makes the destructive-action gate fit
 // the shortest supported window even with the maximum NFT name and a large
 // desktop text scale. The full stored name is not needed to identify the asset:
@@ -158,7 +201,7 @@ func TestLongNFTNameKeepsBurnActionsInView(t *testing.T) {
 	require.Greater(t, cancel.W, float32(0))
 	require.LessOrEqual(t, cancel.Y+cancel.H, float32(600),
 		"the dialog's buttons must remain inside the minimum-height window")
-	require.True(t, tester.Focused(tr("Burn")), "the default action must remain focusable")
+	require.True(t, tester.Focused(tr("Cancel")), "the safe action must receive initial focus")
 	require.NoError(t, tester.Click(tr("Cancel")))
 	tester.Frame()
 	require.False(t, app.nft.askBurn)
