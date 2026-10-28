@@ -22,9 +22,9 @@ func TestParseIntent_DeepLinks(t *testing.T) {
 		{name: "page in the host", arg: "aurora://lottery", want: Intent{Page: "lottery", Raw: "aurora://lottery"}},
 		{name: "page and draw", arg: "aurora://lottery?id=abc123", want: Intent{Page: "lottery", LotteryID: "abc123", Raw: "aurora://lottery?id=abc123"}},
 		{name: "bare scheme is the dashboard", arg: "aurora://", want: Intent{Page: "dashboard", Raw: "aurora://"}},
-		{name: "window URL spelling", arg: "aurora://localhost/token.html", want: Intent{Page: "token", Raw: "aurora://localhost/token.html"}},
+		{name: "legacy localhost URL spelling", arg: "aurora://localhost/token.html", want: Intent{Page: "token", Raw: "aurora://localhost/token.html"}},
 		{
-			name: "window URL with a draw",
+			name: "legacy localhost URL with a draw",
 			arg:  "aurora://localhost/lottery.html?id=deadbeef",
 			want: Intent{Page: "lottery", LotteryID: "deadbeef", Raw: "aurora://localhost/lottery.html?id=deadbeef"},
 		},
@@ -42,8 +42,7 @@ func TestParseIntent_DeepLinks(t *testing.T) {
 }
 
 // TestParseIntent_RejectsUnknownTargets pins the boundary: a link may only
-// name a page the embedded UI actually serves, or the window would render the
-// gateway's 404 inside the app.
+// name a destination the native window actually has.
 func TestParseIntent_RejectsUnknownTargets(t *testing.T) {
 	for _, arg := range []string{
 		"",
@@ -76,13 +75,6 @@ func TestParseIntent_LotteryExportFile(t *testing.T) {
 	require.NoError(t, os.WriteFile(other, []byte("x"), 0o644))
 	_, ok = ParseIntent(other)
 	assert.False(t, ok)
-}
-
-func TestIntentURL(t *testing.T) {
-	assert.Equal(t, "aurora://localhost/", Intent{}.URL())
-	assert.Equal(t, "aurora://localhost/voting.html", Intent{Page: "voting"}.URL())
-	assert.Equal(t, "aurora://localhost/lottery.html?id=a%2Bb", Intent{Page: "lottery", LotteryID: "a+b"}.URL(),
-		"the draw id must be query-escaped, not pasted in")
 }
 
 // TestShell_IgnoresRepeatedDelivery is the cold-start contract: MyGo delivers
@@ -462,7 +454,6 @@ func TestForwardedPaths(t *testing.T) {
 		name    string
 		args    []string
 		dataDir string
-		webRoot string
 	}{
 		{name: "none", args: []string{"aurora://voting"}},
 		{name: "before the link", args: []string{"--data-dir", "/d", "aurora://voting"}, dataDir: "/d"},
@@ -633,10 +624,11 @@ func TestAboutCarriesTheShellIdentity(t *testing.T) {
 	assert.Equal(t, "Aurora", AppName)
 }
 
-func TestURLAndDeepLinkShareTheScheme(t *testing.T) {
-	assert.Equal(t, "aurora", string(Scheme))
-	assert.Equal(t, Scheme, DeepLinkScheme)
-	assert.True(t, IsDeepLink(URL()), "the window URL must count as a deep link for OnOpenURL")
+func TestDeepLinkSchemeIsStable(t *testing.T) {
+	assert.Equal(t, "aurora", DeepLinkScheme)
+	assert.True(t, IsDeepLink("aurora://lottery"), "canonical links must be recognized")
+	assert.True(t, IsDeepLink("AURORA://localhost/voting.html"), "legacy window URLs must remain supported")
+	assert.False(t, IsDeepLink("https://example.com/lottery"))
 }
 
 // TestShellAttachIsSafeWithoutAWindow keeps the shell usable from tests and

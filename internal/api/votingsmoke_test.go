@@ -30,13 +30,12 @@ func realMigrationsDirSmoke() (string, error) {
 
 // TestVotingSmoke_FullFlowOverHTTP boots the REAL server wiring (NewServer +
 // router + SQLite via a temp DB) and drives the complete voting domain over
-// the HTTP API, mirroring exactly what web/voting.html does:
+// the HTTP API through the same workflow an API client uses:
 //
 //	register voter -> register candidate -> create session -> list sessions
 //	-> cast signed vote -> tally reflects the vote.
 //
-// This is the v1.8 "boot the real API + Web UI and drive voting end-to-end"
-// item. It guards the API contract the browser page depends on against
+// It guards the API contract clients depend on against
 // regressions that unit tests with mock repos cannot catch (real SQLite, real
 // Ed25519 signing, real tx manager).
 func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {

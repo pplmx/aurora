@@ -75,8 +75,7 @@ func TestCORS_RegularRequestWithoutOrigin(t *testing.T) {
 	wrapped.ServeHTTP(rr, req)
 
 	// No Origin header (curl, SDKs, same-origin navigation) means CORS does
-	// not apply and — critically — no wildcard is ever emitted (the Web UI
-	// embeds the API key in its HTML, so "*" would leak it to any page).
+	// not apply, and no wildcard is ever emitted.
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Empty(t, rr.Header().Get("Access-Control-Allow-Origin"))
 	assert.Contains(t, rr.Header().Get("Access-Control-Allow-Methods"), "GET")

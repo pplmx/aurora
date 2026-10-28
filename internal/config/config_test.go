@@ -348,7 +348,7 @@ func TestLoad_ProductionRejectsInsecureKeys(t *testing.T) {
 // with ErrMissingAPIKey even when the operator had set it (the CLI's
 // AutomaticEnv in root.go does not help cmd/api). It must now resolve from
 // the env var in both modes, and in dev mode must not silently mint a fresh
-// random key that invalidates already-served web pages.
+// random key instead of honoring the configured environment.
 func TestLoad_APIKey_BindsAURORA_APIKeyEnv(t *testing.T) {
 	t.Run("production", func(t *testing.T) {
 		resetViper()

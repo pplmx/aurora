@@ -81,9 +81,9 @@ desktop-run: desktop
     ./aurora-desktop
 
 # Test the desktop module. `just test` only covers the core module, so the
-# shell's own tests (embedded UI, app-scheme write path, export/import) need
-# their own entry point: a broken window layer must not pass CI silently just
-# because its module is nested.
+# shell's own tests (native widget rendering, launch intents, export/import)
+# need their own entry point: a broken window layer must not pass CI silently
+# just because its module is nested.
 desktop-test:
     cd desktop && CGO_ENABLED=0 go test -count=1 ./...
 

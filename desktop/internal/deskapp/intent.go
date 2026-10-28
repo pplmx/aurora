@@ -16,14 +16,13 @@ import (
 // (urlSchemes) so an installed bundle registers it, and registered at run
 // time with App.RegisterURLScheme on platforms without an installer.
 //
-// It deliberately matches the window's own scheme (Scheme): one name for
-// "Aurora", and MyGo keeps the two apart - Scheme is the webview transport
-// the app serves, DeepLinkScheme is an operating-system registration whose
-// URLs arrive as launch arguments.
-const DeepLinkScheme = Scheme
+// Links created by older releases may use the full
+// aurora://localhost/page.html spelling; ParseIntent continues to accept that
+// form even though the native window has no address bar.
+const DeepLinkScheme = "aurora"
 
-// Intent is what a launch argument asks the shell to show: a page of the Web
-// UI, optionally focused on one draw, or a lottery export to import.
+// Intent is what a launch argument asks the shell to show: a page of the
+// native window, optionally focused on one draw, or a lottery export to import.
 //
 // MyGo delivers the same arguments through App.OnOpenURL / App.OnOpenFile,
 // so an Intent is expected twice when the app starts: once from our own
@@ -45,9 +44,8 @@ type Intent struct {
 	File string
 }
 
-// pages are the Web UI documents a deep link may name. Keeping the list here
-// means a link cannot navigate the window at a path the embedded UI does not
-// serve (which would render the gateway's 404 page inside the app).
+// pages are the window destinations a deep link may name. Keeping the list
+// here means a link cannot navigate the native app to a page it does not have.
 var pages = map[string]bool{
 	"":           true,
 	"index":      true,
@@ -169,9 +167,8 @@ func parseDeepLink(raw string) (Intent, bool) {
 		return Intent{}, false
 	}
 	// aurora://lottery?id=x names the page in the host (the Windows and Linux
-	// launchers preserve it that way); aurora://localhost/lottery.html?id=x
-	// is the same link written as the window's own URL, which people copy
-	// out of the address bar. Accept both spellings.
+	// launchers preserve it that way). aurora://localhost/lottery.html?id=x is
+	// the old window-URL spelling and remains valid for existing links.
 	name := u.Host
 	path := strings.TrimSuffix(strings.Trim(u.Path, "/"), ".html")
 	switch {
@@ -203,18 +200,6 @@ func isLotteryDocument(path string) bool {
 	}
 	info, err := os.Stat(path)
 	return err == nil && info.Mode().IsRegular()
-}
-
-// URL is the page to load in the window for this intent.
-func (in Intent) URL() string {
-	if in.Page == "" {
-		return URL()
-	}
-	raw := Scheme + "://localhost/" + in.Page + ".html"
-	if in.LotteryID != "" {
-		raw += "?" + url.Values{"id": {in.LotteryID}}.Encode()
-	}
-	return raw
 }
 
 // IsDeepLink reports whether arg is an aurora:// link, so a caller can tell

@@ -256,8 +256,8 @@ func TestReleasePackagesEveryDesktopPlatform(t *testing.T) {
 
 	// Every matrix leg used to stop at "the files exist". A package can pass
 	// that and still die before its window appears (a missing WebKitGTK
-	// runtime, a broken embedded UI), so the Linux legs - the only ones a
-	// GitHub runner can give a display - must start the real artifact.
+	// runtime, broken native UI initialization), so the Linux legs - the only
+	// ones a GitHub runner can give a display - must start the real artifact.
 	for _, step := range []string{
 		"libwebkit2gtk-4.1-0 libgtk-3-0 xvfb",
 		"name: Smoke-test the packaged app",

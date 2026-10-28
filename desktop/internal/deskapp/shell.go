@@ -259,9 +259,9 @@ func (s *Shell) OpenFile(path string) {
 // without arguments asks for.
 //
 // A launch that asks for a different --data-dir is refused
-// rather than half-applied: this process cannot move its database or swap its
-// UI, and importing an export into the running instance's database when the
-// user named another one would write to the wrong place without saying so.
+// rather than half-applied: this process cannot switch its database, and
+// importing an export into the running instance's database when the user named
+// another one would write to the wrong place without saying so.
 // Flags that match what is already running are a no-op, like any other flag.
 //
 // workDir is the directory the launching process ran in. A relative export
@@ -342,7 +342,7 @@ func (s *Shell) pathConflict(args []string, workDir string) string {
 // samePath reports whether two spellings name the same filesystem object.
 // Cleaning catches trailing separators and redundant components. When both
 // paths exist, os.SameFile also catches a symlinked directory alias: that is
-// still the database and UI the running instance uses, not a different one.
+// still the database the running instance uses, not a different one.
 // A missing path falls back to the lexical comparison so it remains a
 // conflict instead of matching some other nonexistent spelling by accident.
 func samePath(a, b string) bool {

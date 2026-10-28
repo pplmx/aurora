@@ -1,10 +1,9 @@
-// Package deskapp hosts Aurora in a MyGo desktop window.
+// Package deskapp hosts Aurora in a native MyGo desktop window.
 //
-// The window does not talk to a listening HTTP server: the app's own router is
-// served over the "aurora" URL scheme, so the page and the REST API share one
-// origin. That keeps the API key off the network entirely — the same
-// injectAPIKey gateway embeds it into the served HTML, and every fetch stays
-// inside the process.
+// The window renders native widgets and calls application services directly;
+// it does not start a listener or serve HTML. An in-process api.Server supplies
+// the same services and background loops as cmd/api, keeping both presentation
+// layers on one composition root.
 package deskapp
 
 import (
@@ -26,10 +25,6 @@ import (
 	"github.com/pplmx/aurora/internal/utils"
 	"github.com/spf13/viper"
 )
-
-// Scheme is the custom URL scheme the window loads the UI from. MyGo resolves
-// aurora://localhost/... through the handler registered with Protocol.Handle.
-const Scheme = "aurora"
 
 // AppName is the name the app shows and the identity MyGo derives its
 // per-user directory and single-instance lock from, so it must match `name`
@@ -237,9 +232,6 @@ func platformUserDataDir() (string, error) {
 	}
 	return filepath.Join(base, "aurora"), nil
 }
-
-// URL is the page the main window loads.
-func URL() string { return Scheme + "://localhost/" }
 
 // BackupStamp is the directory-name suffix for a menu-triggered backup.
 func BackupStamp(now time.Time) string {

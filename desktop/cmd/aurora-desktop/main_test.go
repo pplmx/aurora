@@ -150,7 +150,7 @@ func TestStartupFailureDialogCarriesTheReason(t *testing.T) {
 	t.Cleanup(func() { tr.SetLocale(before) })
 	tr.SetLocale("en")
 
-	cause := errors.New(`web root "/tmp/typo" does not contain index.html`)
+	cause := errors.New(`create data directory "/tmp/typo": permission denied`)
 	opts := startupFailureDialog(cause)
 
 	require.Equal(t, mygo.MessageError, opts.Type, "a failed start is an error, not a notice")
