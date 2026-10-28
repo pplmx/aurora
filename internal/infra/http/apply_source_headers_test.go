@@ -104,6 +104,7 @@ func TestApplySourceHeaders_RejectsInvalidHTTPFields(t *testing.T) {
 		{"value with DEL", "{\"X-Test\":\"bad\\u007fvalue\"}"},
 		{"invalid Host", `{"Host":"bad host"}`},
 		{"transport-managed Content-Length", `{"Content-Length":"10"}`},
+		{"proxy credential", `{"Proxy-Authorization":"Basic secret"}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			req, _ := http.NewRequest(http.MethodGet, "https://example.com/data", nil)

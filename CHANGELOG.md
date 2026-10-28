@@ -131,7 +131,11 @@ documented in their per-milestone ROADMAP files.
   other source headers on cross-origin redirects. Transport-derived
   `Content-Length`, `Transfer-Encoding` and `Trailer` fields, plus header names
   that differ only by case, are rejected at source creation instead of being
-  silently ignored or applied in nondeterministic map order.
+  silently ignored or applied in nondeterministic map order. Proxy credentials
+  and hop-by-hop fields are rejected too: `Proxy-Authorization` otherwise goes
+  to the origin on a direct fetch and is not sent with the HTTPS proxy CONNECT,
+  while fields such as `Connection`, `Keep-Alive`, `TE` and `Upgrade` belong to
+  the transport connection rather than an individual feed.
 - **Oracle source headers can select the upstream representation**: the
   transport overwrote a configured `User-Agent` and `Accept` with Aurora's
   defaults, so feeds that route `application/vnd.*` representations or require

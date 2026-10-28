@@ -150,6 +150,23 @@ func TestParseSourceHeaders_RejectsTransportManagedHeaders(t *testing.T) {
 	}
 }
 
+func TestParseSourceHeaders_RejectsHopByHopHeaders(t *testing.T) {
+	for _, name := range []string{
+		"Connection",
+		"Keep-Alive",
+		"Proxy-Authenticate",
+		"Proxy-Authorization",
+		"Proxy-Connection",
+		"TE",
+		"Upgrade",
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := ParseSourceHeaders(`{"` + name + `":"value"}`)
+			require.ErrorIs(t, err, ErrInvalidSource)
+		})
+	}
+}
+
 func TestParseSourceHeaders_RejectsCaseInsensitiveDuplicates(t *testing.T) {
 	_, err := ParseSourceHeaders(`{"User-Agent":"Aurora/1","user-agent":"Aurora/2"}`)
 	require.ErrorIs(t, err, ErrInvalidSource)
@@ -167,6 +184,7 @@ func TestAddSource_RejectsInvalidSourceHeaders(t *testing.T) {
 		{"invalid Host", `{"Host":"feed vendor"}`},
 		{"transport-managed Content-Length", `{"Content-Length":"10"}`},
 		{"transport-managed Trailer", `{"Trailer":"X-Checksum"}`},
+		{"proxy credential", `{"Proxy-Authorization":"Basic secret"}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := NewInmemRepo()

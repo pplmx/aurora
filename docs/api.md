@@ -165,9 +165,11 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 都在写入前校验（`INVALID_SOURCE`）。`Host` 会覆盖实际请求的虚拟主机并在同源
 重定向中保留，跨源重定向则清除；`Content-Length`、`Transfer-Encoding` 和
 `Trailer` 由 HTTP 传输层派生，写入这些头会返回 `INVALID_SOURCE`。仅大小写不同
-的重复头名同样会被拒绝，避免同一配置按 map 遍历顺序产生不同请求。URL 必须带
-非空 hostname，端口写出来时
-必须在 `1..65535` 且不能是只有冒号的空值。`extractByPath` 允许合法的空字符串
+的重复头名同样会被拒绝，避免同一配置按 map 遍历顺序产生不同请求。
+`Proxy-Authorization`、`Proxy-Authenticate`、`Connection`、`Keep-Alive`、`TE`、
+`Upgrade` 等代理或逐跳头也不属于单个数据源，写入会返回 `INVALID_SOURCE`；
+代理凭据应放在 `HTTP_PROXY`/`HTTPS_PROXY` 的 URL 中。URL 必须带非空 hostname，
+端口写出来时必须在 `1..65535` 且不能是只有冒号的空值。`extractByPath` 允许合法的空字符串
 值，但对象/数组/null 叶子会失败而不是把 Go map 存成链上数据。抓取在 URL 校验、
 重定向与实际拨号三处拒绝内部地址：回环、RFC1918、link-local（含云元数据）、CGNAT、
 保留/基准网段、IPv4/IPv6 组播、TEST-NET 文档网段（`192.0.2.0/24`、
