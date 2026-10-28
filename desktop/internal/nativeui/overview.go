@@ -53,11 +53,15 @@ type blockchainState struct {
 	// search narrows the chain by module, payload or height, and blockLimit
 	// bounds how many matching rows the table builds; the counters above it
 	// still describe the whole chain.
-	search       string
-	blockLimit   float64
-	blockOffset  int
-	loadedLimit  int
-	loadedSearch string
+	search      string
+	blockLimit  float64
+	blockOffset int
+	// queriedSearch/queriedLimit identify the block query the last attempt
+	// used. They change before the read so a failed automatic query is not
+	// retried on every repaint; blockOffset changes only after a successful
+	// read, so a failed pager move leaves the label on the rows it shows.
+	queriedSearch string
+	queriedLimit  int
 }
 
 func (a *App) loadDashboard() {
@@ -230,13 +234,26 @@ func (a *App) dashboardRecent(c *ui.Context) {
 }
 
 func (a *App) loadBlockchain() {
+	a.loadBlockchainAt(a.blockchain.search, a.blockchain.blockLimit, a.blockchain.blockOffset)
+}
+
+// loadBlockchainAt loads one block query and commits its pager state only
+// after the rows succeed. The status read remains a separate step so a broken
+// chain warning is never replaced by an empty table.
+func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool {
 	if a.services == nil {
-		return
+		return false
 	}
+	search = strings.TrimSpace(search)
+	limit := blockchainBlockLimit(rawLimit)
+	if offset < 0 {
+		offset = 0
+	}
+	a.blockchain.queriedSearch, a.blockchain.queriedLimit = search, limit
 	res, err := a.services.LedgerStatus()
 	a.blockchain.loadErr = err
 	if err != nil {
-		return
+		return false
 	}
 	a.blockchain.valid = res.Valid
 	a.blockchain.checked = true
@@ -245,17 +262,6 @@ func (a *App) loadBlockchain() {
 	// The blocks themselves are what an auditor reads; the counters alone say
 	// how much chain there is, not what it recorded. A failure here is its own
 	// warning: the counters and the verdict above it are still valid.
-	search := strings.TrimSpace(a.blockchain.search)
-	limit := int(a.blockchain.blockLimit)
-	if limit < 10 {
-		limit = 10
-	}
-	if limit > 10000 {
-		limit = 10000
-	}
-	if a.blockchain.blockOffset < 0 {
-		a.blockchain.blockOffset = 0
-	}
 	var rows []BlockRow
 	var blocksErr error
 	if search != "" {
@@ -264,14 +270,26 @@ func (a *App) loadBlockchain() {
 		// view, where the reader is walking the ledger.
 		rows, blocksErr = a.services.LedgerBlocksPage(0, 0)
 	} else {
-		rows, blocksErr = a.services.LedgerBlocksPage(limit, a.blockchain.blockOffset)
+		rows, blocksErr = a.services.LedgerBlocksPage(limit, offset)
 	}
 	a.blockchain.blocksErr = blocksErr
-	if blocksErr == nil {
-		a.blockchain.rows = rows
-		a.blockchain.loadedLimit = limit
-		a.blockchain.loadedSearch = search
+	if blocksErr != nil {
+		return false
 	}
+	a.blockchain.rows = rows
+	a.blockchain.blockOffset = offset
+	return true
+}
+
+func blockchainBlockLimit(raw float64) int {
+	limit := int(raw)
+	if limit < 10 {
+		return 10
+	}
+	if limit > 10000 {
+		return 10000
+	}
+	return limit
 }
 
 func (a *App) blockchainView(c *ui.Context) {
@@ -317,9 +335,13 @@ func (a *App) blockchainBody(c *ui.Context) {
 // search field narrows the page already loaded, and Previous/Next move through
 // older entries without rebuilding the chain.
 func (a *App) blockchainBlocks(c *ui.Context) {
-	if a.blockchain.search != a.blockchain.loadedSearch {
-		a.blockchain.blockOffset = 0
-		a.loadBlockchain()
+	limit := blockchainBlockLimit(a.blockchain.blockLimit)
+	if a.blockchain.search != a.blockchain.queriedSearch ||
+		(a.blockchain.search == "" && limit != a.blockchain.queriedLimit) {
+		// A changed search or page size starts at the newest rows. The helper
+		// records the attempt even on failure, so a database error cannot turn
+		// every repaint into another read.
+		a.loadBlockchainAt(a.blockchain.search, a.blockchain.blockLimit, 0)
 	}
 	if a.blockchain.blocksErr != nil &&
 		!loadWarning(c, "Couldn't read chain blocks", a.blockchain.blocksErr, len(a.blockchain.rows) > 0) {
@@ -342,17 +364,6 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 			ui.NumberInput(c, &a.blockchain.blockLimit, 10, 10000, 10)
 		})
 	})
-	limit := int(a.blockchain.blockLimit)
-	if limit < 10 {
-		limit = 10
-	}
-	if limit > 10000 {
-		limit = 10000
-	}
-	if a.blockchain.search == "" && limit != a.blockchain.loadedLimit {
-		a.blockchain.blockOffset = 0
-		a.loadBlockchain()
-	}
 	matching := make([]BlockRow, 0, len(a.blockchain.rows))
 	for _, block := range a.blockchain.rows {
 		if containsFold(a.blockchain.search, block.Module, block.Summary, strconv.FormatInt(block.Height, 10)) {
@@ -374,8 +385,8 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		}
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
 			if secondaryButton(c, "Previous").Disabled(a.blockchain.blockOffset == 0).Clicked() {
-				a.blockchain.blockOffset = max(0, a.blockchain.blockOffset-limit)
-				a.loadBlockchain()
+				a.loadBlockchainAt("", a.blockchain.blockLimit,
+					max(0, a.blockchain.blockOffset-limit))
 				return
 			}
 			ui.Spacer(c)
@@ -383,8 +394,8 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 				FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
 			ui.Spacer(c)
 			if secondaryButton(c, "Next").Disabled(a.blockchain.blockOffset+len(a.blockchain.rows) >= total).Clicked() {
-				a.blockchain.blockOffset += limit
-				a.loadBlockchain()
+				a.loadBlockchainAt("", a.blockchain.blockLimit,
+					a.blockchain.blockOffset+limit)
 			}
 		})
 	}
