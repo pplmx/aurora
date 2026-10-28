@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Voting setup collections stay readable at large text**: at 2x text the
+  voter table pushed the public-key column beyond the card, candidate names and
+  parties were clipped, and the four-column session list could no longer show
+  the id, title, status and acceptance window together. All three Setup lists
+  now become selectable records above the same 1.75x threshold, preserving the
+  complete public key or id and keeping the existing ballot, roster and results
+  handoffs on the whole record.
 - **Token and NFT collections stay identifiable at large text**: the token and
   NFT tables kept fixed id, name and symbol widths while their labels doubled
   at 2x text. In the minimum window the Supply header collapsed to 16px, a

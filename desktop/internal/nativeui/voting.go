@@ -606,31 +606,34 @@ func (a *App) votingVoterList(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No voters match “%s”."), strings.TrimSpace(a.voting.voterSearch)))
 		return
 	}
-	a.voting.voterTable.Selected = &a.voting.voterChoice
-	table := ui.Table(c, &a.voting.voterTable, []ui.TableColumn{
-		{Title: tr("Ever voted"), Width: 112},
-		{Title: tr("Name"), MinWidth: 120},
-		{Title: tr("Public key"), MinWidth: 180},
-	}, len(voters), func(row, col int) {
-		voter := voters[row]
-		switch col {
-		case 0:
-			if voter.HasVoted {
-				tableText(c, tr("Yes")).TextColor(ui.Hex(auroraGreen))
-			} else {
-				tableText(c, tr("No")).TextColor(ui.Hex(inkMuted))
+	if stackedRecords(c) {
+		a.votingVoterRecords(c, voters)
+	} else {
+		a.voting.voterTable.Selected = &a.voting.voterChoice
+		table := ui.Table(c, &a.voting.voterTable, []ui.TableColumn{
+			{Title: tr("Ever voted"), Width: 112},
+			{Title: tr("Name"), MinWidth: 120},
+			{Title: tr("Public key"), MinWidth: 180},
+		}, len(voters), func(row, col int) {
+			voter := voters[row]
+			switch col {
+			case 0:
+				if voter.HasVoted {
+					tableText(c, tr("Yes")).TextColor(ui.Hex(auroraGreen))
+				} else {
+					tableText(c, tr("No")).TextColor(ui.Hex(inkMuted))
+				}
+			case 1:
+				tableText(c, voter.Name)
+			case 2:
+				tableTextFull(c, shortID(voter.PublicKey), voter.PublicKey)
 			}
-		case 1:
-			tableText(c, voter.Name)
-		case 2:
-			tableTextFull(c, shortID(voter.PublicKey), voter.PublicKey)
+		})
+		if table.Changed() {
+			a.chooseVoter(voters, a.voting.voterChoice)
 		}
-	})
-	hint(c, "A prior ballot does not block a later session; each session accepts one ballot per voter.")
-	if table.Changed() && a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
-		publicKey := voters[a.voting.voterChoice].PublicKey
-		a.applyVoteVoter(publicKey)
 	}
+	hint(c, "A prior ballot does not block a later session; each session accepts one ballot per voter.")
 	if a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
 		chosen := voters[a.voting.voterChoice]
 		status := tr("No")
@@ -640,6 +643,46 @@ func (a *App) votingVoterList(c *ui.Context) {
 		readout(c, []readoutRow{{"Ever voted", status}})
 		copyRow(c, "Selected voter public key", chosen.PublicKey, nil)
 	}
+}
+
+// votingVoterRecords keeps the voter's name, ballot history and complete key
+// together at enlarged text. The table's fixed first column and unscaled key
+// minimum otherwise pushed the identifying key outside the card.
+func (a *App) votingVoterRecords(c *ui.Context, voters []VoterRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for i, voter := range voters {
+			i, voter := i, voter
+			displayName := voter.Name
+			if strings.TrimSpace(displayName) == "" {
+				displayName = shortID(voter.PublicKey)
+			}
+			selected := i == a.voting.voterChoice
+			record := selectableRecordPanel(c, selected,
+				recordChoiceLabel(displayName, selected), func() {
+					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
+						TextColor(ui.Hex(ink))
+					status, tone := tr("No"), inkMuted
+					if voter.HasVoted {
+						status, tone = tr("Yes"), auroraGreen
+					}
+					recordMetric(c, "Ever voted", status, tone)
+					recordField(c, "Public key", voter.PublicKey)
+				})
+			if record.Clicked() {
+				a.chooseVoter(voters, i)
+			}
+		}
+	})
+}
+
+// chooseVoter is shared by the table and large-text records so either selection
+// loads the same complete public key into the ballot.
+func (a *App) chooseVoter(voters []VoterRow, index int) {
+	if index < 0 || index >= len(voters) {
+		return
+	}
+	a.voting.voterChoice = index
+	a.applyVoteVoter(voters[index].PublicKey)
 }
 
 func (a *App) filteredVoters() []VoterRow {
@@ -734,53 +777,44 @@ func (a *App) votingSessionList(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No sessions match “%s”."), strings.TrimSpace(a.voting.sessionSearch)))
 		return
 	}
-	a.voting.sessionTable.Selected = &a.voting.sessionChoice
-	table := ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
-		{Title: tr("ID"), Width: 140},
-		// SingleLine on every cell: a wrapped cell is clipped by the row's
-		// fixed height, which cut "Budget 2026" in half.
-		{Title: tr("Title"), MinWidth: 130},
-		{Title: tr("Status"), Width: 100},
-		// The two timestamps are stacked inside this column. Each line is a
-		// full local date and time that stays within the column at 1.5x text,
-		// instead of one long range whose end was clipped.
-		{Title: tr("Window"), MinWidth: tableColumnWidth(c, 150)},
-	}, len(sessions), func(row, col int) {
-		s := sessions[row]
-		switch col {
-		case 0:
-			tableTextFull(c, shortID(s.ID), s.ID)
-		case 1:
-			tableText(c, s.Title)
-		case 2:
-			tableText(c, tr(s.Status))
-		case 3:
-			// The window is why a ballot is refused, so it belongs in the
-			// list rather than only in the error a voter sees afterwards.
-			startLine, endLine := sessionWindowLines(s.StartTime, s.EndTime)
-			ui.Column(c).Gap(1).Children(func() {
-				tableText(c, startLine).FontSize(textSize(c, 12))
-				if endLine != "" {
-					tableText(c, endLine).FontSize(textSize(c, 12))
-				}
-			})
+	if stackedRecords(c) {
+		a.votingSessionRecords(c, sessions)
+	} else {
+		a.voting.sessionTable.Selected = &a.voting.sessionChoice
+		table := ui.Table(c, &a.voting.sessionTable, []ui.TableColumn{
+			{Title: tr("ID"), Width: 140},
+			// SingleLine on every cell: a wrapped cell is clipped by the row's
+			// fixed height, which cut "Budget 2026" in half.
+			{Title: tr("Title"), MinWidth: 130},
+			{Title: tr("Status"), Width: 100},
+			// The two timestamps are stacked inside this column. Each line is a
+			// full local date and time that stays within the column at 1.5x text,
+			// instead of one long range whose end was clipped.
+			{Title: tr("Window"), MinWidth: tableColumnWidth(c, 150)},
+		}, len(sessions), func(row, col int) {
+			s := sessions[row]
+			switch col {
+			case 0:
+				tableTextFull(c, shortID(s.ID), s.ID)
+			case 1:
+				tableText(c, s.Title)
+			case 2:
+				tableText(c, tr(s.Status))
+			case 3:
+				// The window is why a ballot is refused, so it belongs in the
+				// list rather than only in the error a voter sees afterwards.
+				startLine, endLine := sessionWindowLines(s.StartTime, s.EndTime)
+				ui.Column(c).Gap(1).Children(func() {
+					tableText(c, startLine).FontSize(textSize(c, 12))
+					if endLine != "" {
+						tableText(c, endLine).FontSize(textSize(c, 12))
+					}
+				})
+			}
+		})
+		if table.Changed() {
+			a.chooseSession(sessions, a.voting.sessionChoice)
 		}
-	})
-	if table.Changed() && a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
-		// The row shows a shortened UUID and every form needs the real one:
-		// choosing the row loads it into the controls, the ballot and the
-		// tally reader at once, the same contract the other pages' tables
-		// follow.
-		id := sessions[a.voting.sessionChoice].ID
-		a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
-		if len(a.voting.results) > 0 || a.voting.resultsLoadedID != "" || a.voting.resultsErr != nil {
-			// The tally on screen belongs to the previously chosen session; a
-			// selection must not leave it beside a new session id even when
-			// the fresh read fails. Same-session refreshes keep their rows.
-			a.clearTallyForAnotherSession(id)
-			_ = a.loadSessionResults(id)
-		}
-		a.loadSelectedSessionRoster()
 	}
 	if a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
 		// The row cannot show the roster (the window column already fills the
@@ -799,6 +833,52 @@ func (a *App) votingSessionList(c *ui.Context) {
 		})
 		copyRow(c, "Selected session ID", chosen.ID, nil)
 	}
+}
+
+// votingSessionRecords keeps the complete id, title, status and acceptance
+// window together when the four-column table no longer fits enlarged text.
+func (a *App) votingSessionRecords(c *ui.Context, sessions []SessionRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for i, session := range sessions {
+			i, session := i, session
+			displayName := session.Title
+			if strings.TrimSpace(displayName) == "" {
+				displayName = shortID(session.ID)
+			}
+			selected := i == a.voting.sessionChoice
+			record := selectableRecordPanel(c, selected,
+				recordChoiceLabel(displayName, selected), func() {
+					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
+						TextColor(ui.Hex(ink))
+					recordMetric(c, "Status", valueOr(tr(session.Status)), ink)
+					recordField(c, "Window", sessionWindow(session.StartTime, session.EndTime))
+					recordField(c, "ID", session.ID)
+				})
+			if record.Clicked() {
+				a.chooseSession(sessions, i)
+			}
+		}
+	})
+}
+
+// chooseSession is shared by the table and record presentations. A shortened
+// row id becomes the full id for controls, ballot and tally at once, and any
+// already-open result is invalidated before it can describe another session.
+func (a *App) chooseSession(sessions []SessionRow, index int) {
+	if index < 0 || index >= len(sessions) {
+		return
+	}
+	a.voting.sessionChoice = index
+	id := sessions[index].ID
+	a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
+	if len(a.voting.results) > 0 || a.voting.resultsLoadedID != "" || a.voting.resultsErr != nil {
+		// The tally on screen belongs to the previously chosen session; a
+		// selection must not leave it beside a new session id even when the
+		// fresh read fails. Same-session refreshes keep their rows.
+		a.clearTallyForAnotherSession(id)
+		_ = a.loadSessionResults(id)
+	}
+	a.loadSelectedSessionRoster()
 }
 
 func (a *App) filteredSessions() []SessionRow {
@@ -881,24 +961,28 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No candidates match “%s”."), strings.TrimSpace(a.voting.candSearch)))
 		return
 	}
-	a.voting.candidateTable.Selected = &a.voting.candChoice
-	table := ui.Table(c, &a.voting.candidateTable, []ui.TableColumn{
-		{Title: tr("ID"), Width: 150},
-		{Title: tr("Name"), MinWidth: 120},
-		{Title: tr("Party"), MinWidth: 100},
-	}, len(candidates), func(row, col int) {
-		cand := candidates[row]
-		switch col {
-		case 0:
-			tableTextFull(c, shortID(cand.ID), cand.ID)
-		case 1:
-			tableText(c, cand.Name)
-		case 2:
-			tableText(c, cand.Party)
+	if stackedRecords(c) {
+		a.votingCandidateRecords(c, candidates)
+	} else {
+		a.voting.candidateTable.Selected = &a.voting.candChoice
+		table := ui.Table(c, &a.voting.candidateTable, []ui.TableColumn{
+			{Title: tr("ID"), Width: 150},
+			{Title: tr("Name"), MinWidth: 120},
+			{Title: tr("Party"), MinWidth: 100},
+		}, len(candidates), func(row, col int) {
+			cand := candidates[row]
+			switch col {
+			case 0:
+				tableTextFull(c, shortID(cand.ID), cand.ID)
+			case 1:
+				tableText(c, cand.Name)
+			case 2:
+				tableText(c, cand.Party)
+			}
+		})
+		if table.Changed() {
+			a.chooseCandidate(candidates, a.voting.candChoice)
 		}
-	})
-	if table.Changed() && a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates) {
-		a.voting.voteCandidate = candidates[a.voting.candChoice].ID
 	}
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Add to session roster").Clicked() {
@@ -916,6 +1000,42 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		})
 		copyRow(c, "Selected candidate ID", chosen.ID, nil)
 	}
+}
+
+// votingCandidateRecords keeps the complete id, name and party visible when
+// the three-column candidate table can no longer fit enlarged text. Selecting
+// a record has the same ballot and roster behavior as selecting a table row.
+func (a *App) votingCandidateRecords(c *ui.Context, candidates []CandidateRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for i, candidate := range candidates {
+			i, candidate := i, candidate
+			displayName := candidate.Name
+			if strings.TrimSpace(displayName) == "" {
+				displayName = shortID(candidate.ID)
+			}
+			selected := i == a.voting.candChoice
+			record := selectableRecordPanel(c, selected,
+				recordChoiceLabel(displayName, selected), func() {
+					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
+						TextColor(ui.Hex(ink))
+					recordField(c, "Party", valueOr(candidate.Party))
+					recordField(c, "ID", candidate.ID)
+				})
+			if record.Clicked() {
+				a.chooseCandidate(candidates, i)
+			}
+		}
+	})
+}
+
+// chooseCandidate is the one selection path for filling the ballot with a
+// candidate id, whether the choice came from a table or a record.
+func (a *App) chooseCandidate(candidates []CandidateRow, index int) {
+	if index < 0 || index >= len(candidates) {
+		return
+	}
+	a.voting.candChoice = index
+	a.voting.voteCandidate = candidates[index].ID
 }
 
 // filteredCandidates is the candidate list the table shows: the stored rows

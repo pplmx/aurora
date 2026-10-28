@@ -447,3 +447,100 @@ func TestNFTCollectionUsesRecordsAtLargeText(t *testing.T) {
 	_, ok = tester.Find(fmt.Sprintf(tr("Selected %s"), name))
 	require.True(t, ok, "the chosen record must announce its selected state")
 }
+
+// TestVotingCollectionsUseRecordsAtLargeText applies the collection rule to
+// the three Setup lists. At 2x the voter table pushed the public key off the
+// card, candidate names and party labels were clipped, and the session table's
+// four columns could not identify a row before the operator loaded it into the
+// ballot and results cards.
+func TestVotingCollectionsUseRecordsAtLargeText(t *testing.T) {
+	const (
+		publicKey   = "VGVzdCBwdWJsaWMga2V5IHRoYXQgaXMgbG9uZyBlbm91Z2ggdG8gbmVlZCBtdWx0aXBsZSBsaW5lcw=="
+		candidateID = "candidate-0123456789abcdef"
+		sessionID   = "session-0123456789abcdef"
+	)
+	tests := []struct {
+		name     string
+		itemName string
+		fullID   string
+		services *fakeServices
+		check    func(*testing.T, *App)
+	}{
+		{
+			name:     "voter",
+			itemName: "A registered voter whose full display name must remain readable",
+			fullID:   publicKey,
+			services: &fakeServices{voterRows: []VoterRow{{
+				PublicKey: publicKey, Name: "A registered voter whose full display name must remain readable",
+			}}},
+			check: func(t *testing.T, app *App) {
+				require.Equal(t, publicKey, app.voting.voteVoterPub)
+				require.Equal(t, 0, app.voting.voterChoice)
+			},
+		},
+		{
+			name:     "candidate",
+			itemName: "A candidate whose full display name must remain readable",
+			fullID:   candidateID,
+			services: &fakeServices{candidates: []CandidateRow{{
+				ID: candidateID, Name: "A candidate whose full display name must remain readable",
+				Party: "Independent",
+			}}},
+			check: func(t *testing.T, app *App) {
+				require.Equal(t, candidateID, app.voting.voteCandidate)
+				require.Equal(t, 0, app.voting.candChoice)
+			},
+		},
+		{
+			name:     "session",
+			itemName: "A governance session whose full title must remain readable",
+			fullID:   sessionID,
+			services: &fakeServices{sessions: []SessionRow{{
+				ID: sessionID, Title: "A governance session whose full title must remain readable",
+				Status: "active", StartTime: 1_800_000_000, EndTime: 1_800_086_400,
+			}}},
+			check: func(t *testing.T, app *App) {
+				require.Equal(t, sessionID, app.voting.controlID)
+				require.Equal(t, sessionID, app.voting.voteSession)
+				require.Equal(t, sessionID, app.voting.resultsSession)
+				require.Equal(t, 0, app.voting.sessionChoice)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := New(tt.services)
+			app.ShowPage("Voting")
+
+			var nameWidth, nameHeight float32
+			tester := ui.NewTester(func(c *ui.Context) {
+				app.View(c)
+				nameWidth, nameHeight = c.MeasureText(0, ui.Span{
+					Text: tt.itemName, Size: textSize(c, 13),
+				})
+			}, 900, 600)
+			tester.SetPreferences(ui.Preferences{TextScale: 2})
+			tester.Frame()
+
+			first, ok := tester.Find(tt.itemName)
+			require.True(t, ok)
+			app.scroll.Y = max(0, first.Y-250)
+			tester.Frame()
+
+			itemRect, ok := tester.Find(tt.itemName)
+			require.True(t, ok)
+			require.True(t, itemRect.W >= nameWidth || itemRect.H >= 1.5*nameHeight,
+				"the full %s name must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+				tt.name, itemRect, nameWidth, nameHeight)
+			require.True(t, tester.HasText(tt.fullID),
+				"the %s record must show the full id before selection", tt.name)
+
+			require.NoError(t, tester.Click(tt.itemName))
+			tester.Frame()
+			tt.check(t, app)
+			_, ok = tester.Find(fmt.Sprintf(tr("Selected %s"), tt.itemName))
+			require.True(t, ok, "the chosen record must announce its selected state")
+		})
+	}
+}
