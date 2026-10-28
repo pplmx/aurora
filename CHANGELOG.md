@@ -131,7 +131,9 @@ documented in their per-milestone ROADMAP files.
   `(session_id, voter_pk)` alongside the vote and tally; the profile flag is
   explicitly historical. Migration `000008` backfills claims from existing
   ballots, and both migration and self-bootstrap paths preserve duplicate
-  historical audit rows while the earliest becomes the claim owner.
+  historical audit rows while the earliest becomes the claim owner. Session
+  tallies count only those claim-winning ballots, so preserved duplicate audit
+  rows cannot double-count an election result.
 - **Draft voting sessions cannot accept ballots**: a session created inside its
   start/end window accepted votes without the explicit start transition, making
   the "start session" step optional. Vote admission now checks the lifecycle

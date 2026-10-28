@@ -41,10 +41,10 @@ type Repository interface {
 	SaveVote(vote *Vote) error
 	GetVotesByCandidate(candidateID string) ([]*Vote, error)
 	GetVotesByVoter(voterPK string) ([]*Vote, error)
-	// CountVotesBySession returns the number of votes for one candidate in one
-	// session. Results must be session-scoped: a candidate can appear in
-	// multiple elections, and candidates.vote_count is its global lifetime
-	// tally (ISS-299).
+	// CountVotesBySession returns the number of claim-winning ballots for one
+	// candidate in one session. Results must be session-scoped: a candidate
+	// can appear in multiple elections, and candidates.vote_count is its
+	// global lifetime tally (ISS-299).
 	CountVotesBySession(sessionID, candidateID string) (int, error)
 
 	SaveVoter(voter *Voter) error

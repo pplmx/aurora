@@ -286,16 +286,18 @@ func (r *VotingRepository) GetVotesByCandidate(candidateID string) ([]*voting.Vo
 	return votes, rows.Err()
 }
 
-// CountVotesBySession counts the vote rows for one candidate in one session.
-// This is the source of truth for the results API: candidates.vote_count is
-// a global lifetime tally and must not leak across sessions (ISS-299).
+// CountVotesBySession counts the claim-winning ballots for one candidate in
+// one session. This is the source of truth for the results API:
+// candidates.vote_count is a global lifetime tally and must not leak across
+// sessions (ISS-299). Historical duplicate vote rows remain in the audit trail
+// but only their earliest claim owner is eligible for the tally.
 func (r *VotingRepository) CountVotesBySession(sessionID, candidateID string) (int, error) {
 	var count int
 	err := r.q().QueryRow(
 		`SELECT COUNT(*)
-		 FROM votes v
-		 JOIN vote_sessions vs ON vs.vote_id = v.id
-		 WHERE vs.session_id = ? AND v.candidate_id = ?`,
+		 FROM session_vote_claims c
+		 JOIN votes v ON v.id = c.vote_id
+		 WHERE c.session_id = ? AND v.candidate_id = ?`,
 		sessionID, candidateID,
 	).Scan(&count)
 	if err != nil {
