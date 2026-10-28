@@ -56,11 +56,20 @@ func fieldWithError(c *ui.Context, label, message string, fn func()) {
 	}
 }
 
-// validatedField is the common text-input form of fieldWithError.
-func validatedField(c *ui.Context, label string, value *string, message string) {
-	fieldWithError(c, label, message, func() {
-		ui.TextInput(c, value)
+// validatedField is the common text-input form of fieldWithError. Editing the
+// input clears the validation result immediately, so a corrected value does
+// not keep a stale red border until the operator submits the form again.
+func validatedField(c *ui.Context, label string, value, message *string) {
+	var input ui.Element
+	f := ui.Field(c, tr(label), func() {
+		input = ui.TextInput(c, value)
 	})
+	if input.Changed() {
+		*message = ""
+	}
+	if *message != "" {
+		f.Error(localizeServiceErrorMessage(*message))
+	}
 }
 
 // The page's three action styles. Every button comes from one of them, so the
