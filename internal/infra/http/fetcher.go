@@ -457,7 +457,7 @@ func (t *securityTransport) RoundTrip(req *http.Request) (*http.Response, error)
 func (f *Fetcher) Get(url string) ([]byte, error) {
 	resp, err := f.client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch data: %w", err)
+		return nil, fmt.Errorf("failed to fetch data: %w", sanitizeFetchError(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -501,7 +501,7 @@ func (f *Fetcher) FetchDataWithValidationContext(ctx context.Context, source *or
 
 	req, err := http.NewRequestWithContext(ctx, method, source.URL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", sanitizeFetchError(err))
 	}
 
 	// Apply the source's configured request headers. Without this the
@@ -514,12 +514,12 @@ func (f *Fetcher) FetchDataWithValidationContext(ctx context.Context, source *or
 
 	resp, err := f.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch data: %w", err)
+		return nil, fmt.Errorf("failed to fetch data: %w", sanitizeFetchError(err))
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("%w: status %d for URL %s", ErrHTTPError, resp.StatusCode, source.URL)
+		return nil, fmt.Errorf("%w: status %d", ErrHTTPError, resp.StatusCode)
 	}
 
 	body, err := readBounded(resp.Body, maxResponseBytes)
@@ -557,6 +557,24 @@ func (f *Fetcher) FetchDataWithValidationContext(ctx context.Context, source *or
 		RawResponse: string(body),
 		Timestamp:   time.Now().Unix(),
 	}, nil
+}
+
+// sanitizeFetchError removes URL-bearing net/http wrappers before an error is
+// logged or exposed through Oracle feed health. Source URLs can contain
+// credentials in userinfo, path segments, or query parameters; url.Error keeps
+// the complete URL unless the password is explicitly redacted. Preserve the
+// underlying cause so sentinel checks such as ErrBlockedDestination keep
+// working without leaking the destination string.
+func sanitizeFetchError(err error) error {
+	var urlErr *url.Error
+	if !errors.As(err, &urlErr) {
+		return err
+	}
+	cause := urlErr.Err
+	if cause == nil {
+		cause = errors.New("request failed")
+	}
+	return fmt.Errorf("request failed: %w", sanitizeFetchError(cause))
 }
 
 // extractByPath resolves a dotted path in a JSON object to its scalar leaf. It

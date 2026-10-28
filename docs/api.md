@@ -176,6 +176,10 @@ translated 区段，以及 IETF IPv6 协议分配块（`2001::/23`，含 Teredo�
 IPv6 误判为无法解析。跨源重定向不会继承数据源配置的请求头，避免 `X-API-Key`
 等自定义凭据泄漏给第三方主机。
 
+抓取失败时只返回 HTTP 状态或底层网络原因，不回显完整数据源 URL；userinfo、
+path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 与调度器
+日志不把它们作为诊断上下文。用 `source_id` 关联具体数据源。
+
 ## 区块链
 
 | 方法 | 路径                          | 说明                     |
