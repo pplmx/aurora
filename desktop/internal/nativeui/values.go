@@ -88,11 +88,14 @@ func readout(c *ui.Context, rows []readoutRow) {
 		Background(ui.Hex(night)).Children(func() {
 		for _, r := range rows {
 			label := tr(r.label)
-			ui.Row(c).FillWidth().Gap(8).Children(func() {
+			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
 				ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
 					TextColor(ui.Hex(inkMuted)).SingleLine().Ellipsis("…").Tooltip(label)
-				ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).
-					Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(r.value)
+				value := ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).
+					Grow(1).Shrink(1).MinWidth(0)
+				if !stackedRecords(c) {
+					value.SingleLine().Ellipsis("…").Tooltip(r.value)
+				}
 			})
 		}
 	})

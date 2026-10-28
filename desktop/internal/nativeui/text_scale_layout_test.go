@@ -169,6 +169,138 @@ func TestOracleSourceActionsWrapAtLargeText(t *testing.T) {
 		"the action row must wrap instead of clipping its destructive action")
 }
 
+// TestOracleSourcesUseRecordsAtLargeText replaces the five-column source table
+// when enlarged text no longer fits it. At 2x the fixed type, id, status and
+// headers columns pushed values outside the card, while the shortened id left
+// an operator unable to identify the source before loading it into the actions.
+func TestOracleSourcesUseRecordsAtLargeText(t *testing.T) {
+	const (
+		sourceID = "20261025233845.347259429-29ee362515b7c1fc06313345ef6be416"
+		name     = "A weather feed whose full display name must remain readable"
+	)
+	fake := &fakeServices{sources: []SourceRow{{
+		ID: sourceID, Name: name, URL: "https://example.com/weather",
+		Type: "http-json", Enabled: true, Interval: 60, HasHeaders: true,
+	}}}
+	app := New(fake)
+	app.ShowPage("Oracle")
+
+	var nameWidth, nameHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		nameWidth, nameHeight = c.MeasureText(0, ui.Span{
+			Text: name, Size: textSize(c, 13),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(name)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	nameRect, ok := tester.Find(name)
+	require.True(t, ok)
+	require.True(t, nameRect.W >= nameWidth || nameRect.H >= 1.5*nameHeight,
+		"the full source name must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		nameRect, nameWidth, nameHeight)
+	require.True(t, tester.HasText(sourceID),
+		"the source record must show the complete id before selection")
+	require.True(t, tester.HasText("http-json"))
+	require.True(t, tester.HasText("configured"), "the header state must remain visible")
+
+	app.oracle.data = []DataRow{{Value: "18"}}
+	app.oracle.latest = &DataRow{Value: "18"}
+	require.NoError(t, tester.Click(name))
+	tester.Frame()
+	require.Equal(t, sourceID, app.oracle.fetchID)
+	require.Equal(t, sourceID, app.oracle.queryID)
+	require.Equal(t, sourceID, app.oracle.latestID)
+	require.Equal(t, sourceID, fake.lastOracleDataSource)
+	require.Equal(t, sourceID, fake.lastOracleLatestSource)
+	_, ok = tester.Find(fmt.Sprintf(tr("Selected %s"), name))
+	require.True(t, ok, "the chosen source must announce its selected state")
+}
+
+// TestOracleReadingsUseRecordsAtLargeText keeps a stored value readable after
+// the system enlarges its type. The value column is deliberately variable
+// width, while the table cell is single-line; at 2x a nested JSON reading or
+// long text is reduced to a prefix even though the card has room to stack it
+// beneath its block.
+func TestOracleReadingsUseRecordsAtLargeText(t *testing.T) {
+	const (
+		sourceID = "source-0123456789abcdef"
+		value    = `{"temperature":21.5,"humidity":46,"station":"north","observed_at":"2026-10-28T08:15:00+08:00"}`
+	)
+	app := New(&fakeServices{})
+	app.ShowPage("Oracle")
+	app.oracle.tab = 2
+	app.oracle.queryID = sourceID
+	app.oracle.data = []DataRow{{Value: value, BlockHeight: 42}}
+	app.oracle.dataLoadedSource = sourceID
+	app.oracle.dataLoadedLimit = app.oracleQueryLimit()
+
+	var valueWidth, valueHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		valueWidth, valueHeight = c.MeasureText(0, ui.Span{
+			Text: value, Size: textSize(c, 12),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(value)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	valueRect, ok := tester.Find(value)
+	require.True(t, ok)
+	require.True(t, valueRect.W >= valueWidth || valueRect.H >= 1.5*valueHeight,
+		"the complete reading must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		valueRect, valueWidth, valueHeight)
+	require.True(t, tester.HasText("42"), "the block height must remain beside the value")
+}
+
+// TestOracleLatestValueWrapsAtLargeText covers the single-value readout next
+// to Query Data. It is not a table, but its value shared the same one-line
+// treatment, so the latest nested JSON at 2x was cut to a prefix as well.
+func TestOracleLatestValueWrapsAtLargeText(t *testing.T) {
+	const (
+		sourceID = "source-0123456789abcdef"
+		value    = `{"temperature":21.5,"humidity":46,"station":"north","observed_at":"2026-10-28T08:15:00+08:00"}`
+	)
+	app := New(&fakeServices{})
+	app.ShowPage("Oracle")
+	app.oracle.tab = 2
+	app.oracle.latestID = sourceID
+	app.oracle.latest = &DataRow{Value: value, BlockHeight: 42}
+	app.oracle.latestLoadedSource = sourceID
+
+	var valueWidth, valueHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		valueWidth, valueHeight = c.MeasureText(0, ui.Span{
+			Text: value, Size: textSize(c, 12),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(value)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	valueRect, ok := tester.Find(value)
+	require.True(t, ok)
+	require.True(t, valueRect.W >= valueWidth || valueRect.H >= 1.5*valueHeight,
+		"the latest value must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		valueRect, valueWidth, valueHeight)
+}
+
 // TestCopyRowKeepsValueVisibleAtLargeText covers one-time secrets such as the
 // generated token owner key. At 2x the fixed label and full-width copy action
 // left the value with no width at all, so the row offered a copy button but
