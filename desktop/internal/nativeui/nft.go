@@ -746,7 +746,7 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 		op := ops[row]
 		switch col {
 		case 0:
-			ui.Text(c, op.Type)
+			ui.Text(c, tr(op.Type))
 		case 1:
 			ui.Text(c, op.From).SingleLine()
 		case 2:
