@@ -262,3 +262,23 @@ func TestOracleHealthStacksAtLargeText(t *testing.T) {
 			"%q must stay inside the window", text)
 	}
 }
+
+// TestQuietButtonsGrowWithLargeText covers copy, dismiss and other low-chrome
+// actions. They kept a 26px height while their 12pt label measured 33px high
+// at 2x, so the text was vertically clipped inside the hit target.
+func TestQuietButtonsGrowWithLargeText(t *testing.T) {
+	var textHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		quietButton(c, "Dismiss key")
+		_, textHeight = c.MeasureText(0, ui.Span{
+			Text: "Dismiss key", Size: textSize(c, 12),
+		})
+	}, 320, 120)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	button, ok := tester.Find("Dismiss key")
+	require.True(t, ok)
+	require.GreaterOrEqual(t, button.H, textHeight,
+		"the quiet button must be at least as tall as its scaled label")
+}

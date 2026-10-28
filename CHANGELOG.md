@@ -124,6 +124,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Quiet actions keep their full label at large text**: compact Copy and
+  Dismiss controls stayed 26px tall while their scaled 12pt label measured
+  33px at 2x, clipping the text inside the hit target. Quiet buttons now grow
+  with text scale and scale their horizontal padding too.
 - **Wide histories keep every field at 2x text**: Lottery's Winners column
   began at x=901 and Oracle Health's Last error column at x=931 in the 900px
   minimum window. Above 1.75x text both tables now become compact record
