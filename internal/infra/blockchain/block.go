@@ -428,6 +428,48 @@ func (c *Chain) BlockEntriesPage(limit, offset int) []BlockEntry {
 	return entries
 }
 
+// BlockEntriesPageMatching returns the matching entries in one newest-first
+// page and the total number of matches. It still scans the whole chain to make
+// the total exact, but only the requested page is retained; callers searching
+// a long ledger no longer need to materialise every row before slicing it.
+// A nil match keeps every non-genesis entry.
+func (c *Chain) BlockEntriesPageMatching(limit, offset int, match func(BlockEntry) bool) ([]BlockEntry, int) {
+	if c == nil {
+		return nil, 0
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if offset < 0 {
+		offset = 0
+	}
+	capacity := len(c.Blocks)
+	if limit > 0 {
+		capacity = min(limit, capacity)
+	}
+	entries := make([]BlockEntry, 0, capacity)
+	matched := 0
+	for i := len(c.Blocks) - 1; i >= 0; i-- {
+		block := c.Blocks[i]
+		data := string(block.Data)
+		if data == "" || data == "Genesis" {
+			continue
+		}
+		entry := BlockEntry{Height: block.Height, Data: data}
+		if match != nil && !match(entry) {
+			continue
+		}
+		matched++
+		if matched <= offset {
+			continue
+		}
+		if limit > 0 && len(entries) >= limit {
+			continue
+		}
+		entries = append(entries, entry)
+	}
+	return entries, matched
+}
+
 func (c *Chain) Len() int {
 	if c == nil {
 		return 0

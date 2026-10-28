@@ -4,10 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
+	"github.com/pplmx/aurora/internal/ledger"
 )
 
 // --- Dashboard / ledger --------------------------------------------------
@@ -59,34 +61,56 @@ func (s *nativeServices) LedgerStatus() (nativeui.LedgerStatus, error) {
 	}, nil
 }
 
-// LedgerBlocks returns the recorded audit blocks, newest first. The payload is
-// each module's own JSON, so the module is read from its "module" or
-// "type" field and the summary is the payload shortened for a cell.
 // LedgerBlocks returns up to limit recorded audit blocks, newest first (limit
 // <= 0 for all), with the height each block actually has. The payload is each
 // module's own JSON, so the module is read from its "module" or "type" field
 // and the summary is the payload shortened for a cell.
 func (s *nativeServices) LedgerBlocks(limit int) ([]nativeui.BlockRow, error) {
-	return s.LedgerBlocksPage(limit, 0)
+	page, err := s.LedgerBlocksPage("", limit, 0)
+	return page.Rows, err
 }
 
-// LedgerBlocksPage reads one page of audit entries; offset is in entries
-// (newest first), so a long ledger does not build every row to show the next
-// page.
-func (s *nativeServices) LedgerBlocksPage(limit, offset int) ([]nativeui.BlockRow, error) {
+// LedgerBlocksPage reads one newest-first page of audit entries and counts all
+// entries matching the same query. A non-empty search is evaluated against the
+// whole chain while only the requested page is retained.
+func (s *nativeServices) LedgerBlocksPage(search string, limit, offset int) (nativeui.LedgerBlockPage, error) {
 	if s.chain == nil {
-		return nil, fmt.Errorf("blockchain not initialised")
+		return nativeui.LedgerBlockPage{}, fmt.Errorf("blockchain not initialised")
 	}
-	entries := s.chain.BlockEntriesPage(limit, offset)
+	search = strings.TrimSpace(search)
+	if search == "" {
+		entries := s.chain.BlockEntriesPage(limit, offset)
+		total := s.chain.Len() - 1
+		if total < 0 {
+			total = 0
+		}
+		return nativeui.LedgerBlockPage{Rows: ledgerBlockRows(entries), Total: total}, nil
+	}
+
+	query := strings.ToLower(search)
+	entries, total := s.chain.BlockEntriesPageMatching(limit, offset, func(entry ledger.BlockEntry) bool {
+		row := ledgerBlockRow(entry)
+		return strings.Contains(strings.ToLower(row.Module), query) ||
+			strings.Contains(strings.ToLower(row.Summary), query) ||
+			strings.Contains(strconv.FormatInt(row.Height, 10), query)
+	})
+	return nativeui.LedgerBlockPage{Rows: ledgerBlockRows(entries), Total: total}, nil
+}
+
+func ledgerBlockRows(entries []ledger.BlockEntry) []nativeui.BlockRow {
 	rows := make([]nativeui.BlockRow, 0, len(entries))
 	for _, entry := range entries {
-		rows = append(rows, nativeui.BlockRow{
-			Height:  entry.Height,
-			Module:  blockModuleFor(entry.Data),
-			Summary: blockSummary(entry.Data),
-		})
+		rows = append(rows, ledgerBlockRow(entry))
 	}
-	return rows, nil
+	return rows
+}
+
+func ledgerBlockRow(entry ledger.BlockEntry) nativeui.BlockRow {
+	return nativeui.BlockRow{
+		Height:  entry.Height,
+		Module:  blockModuleFor(entry.Data),
+		Summary: blockSummary(entry.Data),
+	}
 }
 
 // blockModule names the module a recorded payload belongs to.

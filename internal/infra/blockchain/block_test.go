@@ -317,3 +317,31 @@ func TestBlockEntriesPageOffsetsInEntries(t *testing.T) {
 	require.Equal(t, int64(2), page[0].Height)
 	require.Empty(t, chain.BlockEntriesPage(1, 9))
 }
+
+// TestBlockEntriesPageMatchingPagesAndCountsAllMatches keeps a filtered page
+// bounded while still returning the exact total needed by the pager. The scan
+// must continue past the requested page so later matches affect that total.
+func TestBlockEntriesPageMatchingPagesAndCountsAllMatches(t *testing.T) {
+	chain := New()
+	for _, payload := range []string{
+		"needle-a", "other", "needle-b", "other", "needle-c", "needle-d",
+	} {
+		_, err := chain.AddBlock(payload)
+		require.NoError(t, err)
+	}
+
+	matchesNeedle := func(entry BlockEntry) bool {
+		return strings.HasPrefix(entry.Data, "needle-")
+	}
+	page, total := chain.BlockEntriesPageMatching(2, 1, matchesNeedle)
+	require.Equal(t, 4, total, "the total must count matches beyond the page")
+	require.Len(t, page, 2)
+	require.Equal(t, "needle-c", page[0].Data, "matches stay newest first")
+	require.Equal(t, int64(5), page[0].Height)
+	require.Equal(t, "needle-b", page[1].Data)
+	require.Equal(t, int64(3), page[1].Height)
+
+	all, total := chain.BlockEntriesPageMatching(0, 0, nil)
+	require.Equal(t, 6, total)
+	require.Len(t, all, 6)
+}

@@ -19,7 +19,9 @@ type Services interface {
 	// first, so the page can show what the chain holds rather than only how
 	// much of it there is.
 	LedgerBlocks(limit int) ([]BlockRow, error)
-	LedgerBlocksPage(limit, offset int) ([]BlockRow, error)
+	// LedgerBlocksPage returns one globally filtered page and the exact total
+	// number of matches, so paging does not need to materialise the whole chain.
+	LedgerBlocksPage(search string, limit, offset int) (LedgerBlockPage, error)
 
 	// Voting surface.
 	RegisterVoter(name string) (VoterRow, error)

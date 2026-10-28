@@ -49,6 +49,13 @@ type LedgerStatus struct {
 	Blocks int
 }
 
+// LedgerBlockPage is one newest-first page of the audit chain plus the total
+// number of entries matching the same query.
+type LedgerBlockPage struct {
+	Rows  []BlockRow
+	Total int
+}
+
 // VoterRow is one registered voter.
 type VoterRow struct {
 	PublicKey string
