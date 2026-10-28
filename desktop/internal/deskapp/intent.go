@@ -118,8 +118,26 @@ func ParseIntentIn(arg, workDir string) (Intent, bool) {
 // fileURLPath converts a file:// URL to the path it names, for the launchers
 // that pass files that way instead of as arguments.
 func fileURLPath(arg string) (string, bool) {
+	return fileURLPathForOS(arg, runtime.GOOS)
+}
+
+// fileURLPathForOS takes GOOS explicitly so Windows file URLs can be tested on
+// every development platform. A non-local authority is a UNC host on Windows
+// and is not a local path on any other platform.
+func fileURLPathForOS(arg, goos string) (string, bool) {
 	u, err := url.Parse(arg)
 	if err != nil || !strings.EqualFold(u.Scheme, "file") {
+		return "", false
+	}
+	if u.User != nil || u.Port() != "" {
+		return "", false
+	}
+	host := u.Hostname()
+	if host != "" && !strings.EqualFold(host, "localhost") && goos != "windows" {
+		return "", false
+	}
+	if goos == "windows" && strings.Contains(host, ":") {
+		// A bracketed IPv6 authority is not a valid UNC host name.
 		return "", false
 	}
 	// file:draws.json and file:./draws.json have no path segment at all:
@@ -132,12 +150,17 @@ func fileURLPath(arg string) (string, bool) {
 	if path == "" {
 		return "", false
 	}
-	path = filepath.FromSlash(path)
-	if runtime.GOOS == "windows" {
-		// file:///C:/x arrives as /C:/x.
-		path = strings.TrimPrefix(path, string(filepath.Separator))
+	if goos == "windows" {
+		path = strings.ReplaceAll(path, "/", `\`)
+		if host != "" && !strings.EqualFold(host, "localhost") {
+			// file://server/share/x names a UNC path, not /share/x.
+			return `\\` + host + `\` + strings.TrimPrefix(path, `\`), true
+		}
+		// file:///C:/x arrives as \C:\x after the slash conversion.
+		path = strings.TrimPrefix(path, `\`)
+		return path, true
 	}
-	return path, true
+	return filepath.FromSlash(path), true
 }
 
 func parseDeepLink(raw string) (Intent, bool) {

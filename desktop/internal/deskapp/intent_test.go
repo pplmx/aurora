@@ -389,6 +389,70 @@ func TestParseIntentIn_ResolvesRelativeFileURLsAgainstTheLauncher(t *testing.T) 
 	assert.Equal(t, Intent{File: want, Raw: "file:./draws.json"}, in)
 }
 
+func TestFileURLPathPlatformPaths(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  string
+		goos string
+		want string
+		ok   bool
+	}{
+		{
+			name: "POSIX absolute file URL",
+			arg:  "file:///tmp/draws.json",
+			goos: "linux",
+			want: "/tmp/draws.json",
+			ok:   true,
+		},
+		{
+			name: "POSIX localhost file URL",
+			arg:  "file://localhost/tmp/draws.json",
+			goos: "linux",
+			want: "/tmp/draws.json",
+			ok:   true,
+		},
+		{
+			name: "POSIX remote authority is not local",
+			arg:  "file://server/share/draws.json",
+			goos: "linux",
+		},
+		{
+			name: "Windows drive file URL",
+			arg:  "file:///C:/Users/aurora/draws.json",
+			goos: "windows",
+			want: `C:\Users\aurora\draws.json`,
+			ok:   true,
+		},
+		{
+			name: "Windows localhost drive file URL",
+			arg:  "file://localhost/C:/Users/aurora/draws.json",
+			goos: "windows",
+			want: `C:\Users\aurora\draws.json`,
+			ok:   true,
+		},
+		{
+			name: "Windows UNC file URL",
+			arg:  "file://server/share/draws.json",
+			goos: "windows",
+			want: `\\server\share\draws.json`,
+			ok:   true,
+		},
+		{
+			name: "Windows IPv6 authority is not UNC",
+			arg:  "file://[::1]/share/draws.json",
+			goos: "windows",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := fileURLPathForOS(tt.arg, tt.goos)
+			assert.Equal(t, tt.ok, ok)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // TestForwardedPaths covers the flags a second launch can carry. They are
 // scanned by hand because flag.Parse stops at the first positional argument,
 // so `aurora://voting --data-dir X` must find the directory the same way
