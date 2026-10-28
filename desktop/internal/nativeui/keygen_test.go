@@ -48,17 +48,18 @@ func TestNFTFormGeneratesACreatorKey(t *testing.T) {
 	require.Equal(t, "sk-generated", tester.Clipboard())
 }
 
-// TestDismissingGeneratedKeyRestoresFocus covers both key cards: the focused
-// Dismiss control removes itself with the private half, so focus must return to
-// the Generate action that remains rather than falling to the window root.
+// TestDismissingGeneratedKeyRestoresFocus covers the key card's keyboard path
+// for both token owners and NFT creators: generation lands on Copy, and the
+// focused Dismiss control returns to Generate when it removes the card.
 func TestDismissingGeneratedKeyRestoresFocus(t *testing.T) {
 	for _, tc := range []struct {
-		name    string
-		page    page
-		private func(*App) string
+		name      string
+		page      page
+		private   func(*App) string
+		copyLabel string
 	}{
-		{"token owner", pageToken, func(app *App) string { return app.token.ownerPriv }},
-		{"NFT creator", pageNFT, func(app *App) string { return app.nft.creatorPriv }},
+		{"token owner", pageToken, func(app *App) string { return app.token.ownerPriv }, "Copy Owner private key"},
+		{"NFT creator", pageNFT, func(app *App) string { return app.nft.creatorPriv }, "Copy Creator private key"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			app := New(&fakeServices{})
@@ -77,10 +78,10 @@ func TestDismissingGeneratedKeyRestoresFocus(t *testing.T) {
 			tester.Key(0, ui.KeyEnter)
 			tester.Frame()
 			require.Equal(t, "sk-generated", tc.private(app))
-			require.True(t, tester.Focused(tr("Generate key pair")),
-				"inserting the key card must keep focus on Generate")
+			require.True(t, tester.Focused(tr(tc.copyLabel)),
+				"a generated one-time key must put focus on Copy")
 
-			tester.Key(0, ui.KeyTab)
+			tester.Key(ui.Shift, ui.KeyTab)
 			tester.Frame()
 			require.True(t, tester.Focused(tr("Dismiss key")))
 			tester.Key(0, ui.KeyEnter)

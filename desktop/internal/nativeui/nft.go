@@ -95,6 +95,7 @@ type nftState struct {
 	// generateControl takes it back when the one-time key card is dismissed.
 	burnTrigger     ui.Handle
 	generateControl ui.Handle
+	creatorKeyCopy  ui.Handle
 	// selected is the collection row chosen, -1 for none.
 	selected int
 	// limit/offset page the collection. A long-lived NFT store should not be
@@ -183,6 +184,7 @@ func (a *App) nftMint(c *ui.Context) {
 }
 
 func (a *App) nftMintBody(c *ui.Context) {
+	generated := false
 	field(c, "Name", &a.nft.name)
 	ui.Collapsible(c, tr("Optional details"), &a.nft.mintAdvanced, func() {
 		textArea(c, "Description (optional)", &a.nft.description)
@@ -192,7 +194,7 @@ func (a *App) nftMintBody(c *ui.Context) {
 	fieldHint(c, "Creator (base64 public key)", "The creator becomes the first owner.", &a.nft.creator)
 	ui.Row(c).Gap(8).Children(func() {
 		if secondaryButton(c, "Generate key pair").Bind(&a.nft.generateControl).Clicked() {
-			a.generateNFTCreator()
+			generated = a.generateNFTCreator()
 		}
 		if a.nft.creatorPriv != "" && quietButton(c, "Dismiss key").Clicked() {
 			a.nft.creatorPriv = ""
@@ -202,9 +204,12 @@ func (a *App) nftMintBody(c *ui.Context) {
 	if a.nft.creatorPriv != "" {
 		copyRow(c, "Creator private key", a.nft.creatorPriv, func() {
 			a.nft.status = okStatus("Creator private key copied.")
-		})
+		}).Bind(&a.nft.creatorKeyCopy)
 		ui.Text(c, tr("This is the only copy of the creator key; the store keeps the public half.")).
 			FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
+	}
+	if generated {
+		a.nft.creatorKeyCopy.Focus(c)
 	}
 	ui.Row(c).Children(func() {
 		if primaryButton(c, "Mint NFT").Disabled(!allSet(a.nft.name, a.nft.creator)).Clicked() {
@@ -215,16 +220,17 @@ func (a *App) nftMintBody(c *ui.Context) {
 
 // generateNFTCreator fills the Creator field from a fresh Ed25519 key pair and
 // offers the private half for copying, the same handover as a token owner.
-func (a *App) generateNFTCreator() {
+func (a *App) generateNFTCreator() bool {
 	pub, priv, err := a.services.GenerateKeyPair()
 	if err != nil {
 		a.nft.status = errStatus(err)
-		return
+		return false
 	}
 	a.nft.creator, a.nft.creatorPriv = pub, priv
 	// A new pair belongs to no asset yet.
 	a.nft.creatorKeyNFTID = ""
 	a.nft.status = okStatus("Generated a creator key pair. Copy the private key now; it is not stored.")
+	return true
 }
 
 // mintNFT mints the asset described by the Mint card's inputs.
