@@ -8,8 +8,9 @@ import (
 	"github.com/pplmx/aurora/internal/logger"
 )
 
-// Access-log fields are bounded because Logger runs before authentication,
-// while net/http accepts request lines within its roughly 1 MiB header limit.
+// Access-log fields are bounded because Logger runs before authentication;
+// even a modest HTTP header limit is still much larger than useful method and
+// path values.
 const (
 	maxLoggedMethodLength = 32
 	maxLoggedPathLength   = 1024
