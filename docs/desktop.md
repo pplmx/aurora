@@ -299,8 +299,9 @@ just check && just test
 - MyGo 的两套中文目录（`zh-Hans`、`zh-Hant`）都必须链接：只声明简体时
   zh-TW/zh-HK 匹配不到任何语言，MyGo 会退回英文，整个窗口变英文。
   `SetLanguages` 放在 `Start` 之前，因为启动失败会提前返回——否则失败弹窗
-  只有一个英文 “OK”。`[i18n] locale` 配置（`$LANG` 未设置时的兜底）现在同样
-  作用于窗口，与 CLI 一致。
+  只有一个英文 “OK”。语言环境变量（`LC_ALL` → `LANGUAGE` → `LC_MESSAGES`
+  → `LANG`）全未设置时，`[i18n] locale` 作为兜底同样作用于窗口，与 CLI
+  一致。
 - Settings → Language 可在运行时切换（跟随系统 / English / 简体中文 / 繁體中文）：
   MyGo 会记住选择（macOS 写进系统设置，其他平台写用户数据目录），并翻译
   自己的平台菜单角色；`OnLocaleChanged` 同步 Aurora 的翻译器并重绘窗口，

@@ -176,7 +176,9 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
   `stderr`，`stdout` 只保留命令结果。
 - 显式 `--config` 缺失或配置文件语法错误会直接中止，不会静默回退到默认数据库；
   只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
-- 所有输出遵循 `[i18n] locale` 或 `$LANG`；`aurora <cmd> --help` 同样本地化。
+- 所有输出遵循语言环境变量 `LC_ALL` → `LANGUAGE` → `LC_MESSAGES` → `LANG`
+  的优先级；全未设置时才使用 `[i18n] locale`。`aurora <cmd> --help` 同样
+  本地化。
 
 ## 交互式界面
 

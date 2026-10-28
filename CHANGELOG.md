@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **CLI and desktop honor the standard locale environment**: locale detection
+  previously read only `LANG`, so a shell with `LANG=C` and
+  `LC_ALL=zh_CN.UTF-8` (or a `LANGUAGE=zh_CN:en` preference) still showed
+  English help and dialogs. Aurora now resolves `LC_ALL` → `LANGUAGE` →
+  `LC_MESSAGES` → `LANG`, selects the first supported tag in a `LANGUAGE`
+  list, and uses `[i18n] locale` only when none of those variables is set.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   the second-launch desktop dialog identifies the requested `--data-dir`

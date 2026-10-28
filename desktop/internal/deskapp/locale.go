@@ -1,7 +1,6 @@
 package deskapp
 
 import (
-	"os"
 	"strings"
 
 	"github.com/egoist/mygo"
@@ -48,7 +47,7 @@ func auroraLocale(tag string) string {
 // InitLocale initializes the translator for the desktop process, the way
 // cmd/aurora's main does. Without it the first T() call builds the lazy
 // default from the environment and the configured [i18n] locale never
-// applies to a window opened by a launcher that exports no LANG.
+// applies to a window opened by a launcher that exports no locale.
 func InitLocale() { i18n.DetectAndInit() }
 
 // mygoTag maps one of Aurora's locales onto a language MyGo can show. MyGo
@@ -69,18 +68,18 @@ func mygoTag(locale string) string {
 }
 
 // ApplyConfiguredLocale makes MyGo show the language [i18n] locale asks for
-// when the environment does not say (see DetectAndInit: $LANG wins, the
-// config is the fallback). Without this the desktop window followed the
-// system while the CLI of the same build followed the config, so
+// when the environment does not say (see DetectAndInit: the locale environment
+// wins, the config is the fallback). Without this the desktop window followed
+// the system while the CLI of the same build followed the config, so
 // `[i18n] locale = "zh"` translated `aurora lottery --help` and left the
 // window English.
 //
-// It must run after config.Load and before Run. It is a no-op when LANG is
-// set (MyGo already follows the same preference), and MYGO_LOCALE still wins
-// for the run because MyGo ignores a choice made before it is ready while
-// that variable is set.
+// It must run after config.Load and before Run. It is a no-op when LC_ALL,
+// LANGUAGE, LC_MESSAGES or LANG selects a locale (MyGo already follows the
+// same preference), and MYGO_LOCALE still wins for the run because MyGo
+// ignores a choice made before it is ready while that variable is set.
 func ApplyConfiguredLocale() {
-	if os.Getenv("LANG") != "" {
+	if _, configured := i18n.EnvironmentLocale(); configured {
 		return
 	}
 	if cfg := strings.TrimSpace(viper.GetString("i18n.locale")); cfg != "" {
