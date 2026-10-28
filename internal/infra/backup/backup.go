@@ -319,15 +319,19 @@ func (s *BackupService) recoverInterruptedCreate(ctx context.Context, output str
 
 	// A complete set means the crash happened after the metadata rename. The
 	// new snapshot is committed and only the rollback directory is stale.
-	if err := s.verify(ctx, output); err == nil {
+	if _, err := verifyArchiveContents(output); err == nil {
 		return removeCreateRollbackDirs(candidates)
 	}
 
 	latest := candidates[0]
-	if err := s.restoreCreateRollback(output, latest.path); err != nil {
+	hadCommittedSet, err := s.restoreCreateRollback(output, latest.path)
+	if err != nil {
 		return fmt.Errorf("restore previous set from %q: %w", latest.path, err)
 	}
-	if err := s.verify(ctx, output); err != nil {
+	if !hadCommittedSet {
+		return removeCreateRollbackDirs(candidates)
+	}
+	if _, err := verifyArchiveContents(output); err != nil {
 		return fmt.Errorf("verify recovered set from %q: %w", latest.path, err)
 	}
 	return removeCreateRollbackDirs(candidates)
@@ -366,10 +370,35 @@ func findCreateRollbackDirs(output string) ([]createRollbackCandidate, error) {
 	return candidates, nil
 }
 
-func (s *BackupService) restoreCreateRollback(output, rollbackDir string) error {
-	names := make([]string, 0, len(s.dbPaths))
-	for name := range s.dbPaths {
-		names = append(names, name)
+func (s *BackupService) restoreCreateRollback(output, rollbackDir string) (bool, error) {
+	var names []string
+	hadCommittedSet := true
+	rollbackMetaPath := filepath.Join(rollbackDir, "metadata.json")
+	metaInfo, err := os.Lstat(rollbackMetaPath)
+	switch {
+	case err == nil:
+		if !metaInfo.Mode().IsRegular() {
+			return false, fmt.Errorf("rollback metadata path %q is not a regular file", rollbackMetaPath)
+		}
+		metadata, err := verifyArchiveContents(rollbackDir)
+		if err != nil {
+			return false, fmt.Errorf("verify rollback set: %w", err)
+		}
+		names = metadata.Databases
+	case os.IsNotExist(err):
+		// A crash during the first Create has no previous complete set. There
+		// is no rollback metadata to name the promoted files, so clean up the
+		// names from the process that initiated recovery.
+		hadCommittedSet = false
+		names = make([]string, 0, len(s.dbPaths))
+		for name := range s.dbPaths {
+			if err := validateDatabaseName(name); err != nil {
+				return false, fmt.Errorf("invalid configured database name: %w", err)
+			}
+			names = append(names, name)
+		}
+	case err != nil:
+		return false, fmt.Errorf("inspect rollback metadata: %w", err)
 	}
 	slices.Sort(names)
 
@@ -378,26 +407,26 @@ func (s *BackupService) restoreCreateRollback(output, rollbackDir string) error 
 		dst := filepath.Join(output, name+".db")
 		restored, err := restoreRollbackFile(src, dst)
 		if err != nil {
-			return fmt.Errorf("restore %s: %w", name, err)
+			return false, fmt.Errorf("restore %s: %w", name, err)
 		}
 		if !restored {
 			if err := removeRollbackDestination(dst); err != nil {
-				return fmt.Errorf("remove new %s snapshot: %w", name, err)
+				return false, fmt.Errorf("remove new %s snapshot: %w", name, err)
 			}
 		}
 	}
 
 	metaPath := filepath.Join(output, "metadata.json")
-	restored, err := restoreRollbackFile(filepath.Join(rollbackDir, "metadata.json"), metaPath)
+	restored, err := restoreRollbackFile(rollbackMetaPath, metaPath)
 	if err != nil {
-		return fmt.Errorf("restore metadata: %w", err)
+		return false, fmt.Errorf("restore metadata: %w", err)
 	}
 	if !restored {
 		if err := removeRollbackDestination(metaPath); err != nil {
-			return fmt.Errorf("remove new metadata: %w", err)
+			return false, fmt.Errorf("remove new metadata: %w", err)
 		}
 	}
-	return nil
+	return hadCommittedSet, nil
 }
 
 func restoreRollbackFile(src, dst string) (bool, error) {
@@ -840,11 +869,7 @@ func validateDatabaseName(name string) error {
 	return nil
 }
 
-// validateArchiveDatabaseSet keeps Verify and Restore on one definition of a
-// usable archive. A checksum-consistent metadata file can still be unusable:
-// duplicate names are ambiguous, and a configured installation can only
-// restore the exact set of databases it owns.
-func (s *BackupService) validateArchiveDatabaseSet(archiveNames []string) error {
+func validateUniqueArchiveDatabaseNames(archiveNames []string) error {
 	seen := make(map[string]struct{}, len(archiveNames))
 	for _, name := range archiveNames {
 		if _, duplicate := seen[name]; duplicate {
@@ -852,7 +877,21 @@ func (s *BackupService) validateArchiveDatabaseSet(archiveNames []string) error 
 		}
 		seen[name] = struct{}{}
 	}
+	return nil
+}
 
+// validateArchiveDatabaseSet keeps Verify and Restore on one definition of a
+// usable archive. A checksum-consistent metadata file can still be unusable:
+// duplicate names are ambiguous, and a configured installation can only
+// restore the exact set of databases it owns.
+func (s *BackupService) validateArchiveDatabaseSet(archiveNames []string) error {
+	if err := validateUniqueArchiveDatabaseNames(archiveNames); err != nil {
+		return err
+	}
+	seen := make(map[string]struct{}, len(archiveNames))
+	for _, name := range archiveNames {
+		seen[name] = struct{}{}
+	}
 	if len(s.dbPaths) == 0 {
 		return nil
 	}
@@ -883,52 +922,64 @@ func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 }
 
 func (s *BackupService) verify(ctx context.Context, backupPath string) error {
+	metadata, err := verifyArchiveContents(backupPath)
+	if err != nil {
+		return err
+	}
+	return s.validateArchiveDatabaseSet(metadata.Databases)
+}
+
+// verifyArchiveContents checks whether a backup is internally complete. It
+// deliberately excludes the installation-specific database-set check so crash
+// recovery can distinguish an interrupted promotion from a valid archive that
+// simply belongs to a different configuration.
+func verifyArchiveContents(backupPath string) (*BackupMetadata, error) {
 	metaPath := filepath.Join(backupPath, "metadata.json")
 	metaInfo, err := os.Lstat(metaPath)
 	if err != nil {
-		return fmt.Errorf("metadata not found: %w", err)
+		return nil, fmt.Errorf("metadata not found: %w", err)
 	}
 	if !metaInfo.Mode().IsRegular() {
-		return fmt.Errorf("metadata path %q is not a regular file", metaPath)
+		return nil, fmt.Errorf("metadata path %q is not a regular file", metaPath)
 	}
 	metaData, err := os.ReadFile(metaPath)
 	if err != nil {
-		return fmt.Errorf("metadata not found: %w", err)
+		return nil, fmt.Errorf("metadata not found: %w", err)
 	}
 
 	var metadata BackupMetadata
 	if err := json.Unmarshal(metaData, &metadata); err != nil {
-		return fmt.Errorf("invalid metadata: %w", err)
+		return nil, fmt.Errorf("invalid metadata: %w", err)
 	}
 
 	storedChecksum := metadata.Checksum
 	metadata.Checksum = ""
 	recomputed, err := json.Marshal(metadata)
 	if err != nil {
-		return fmt.Errorf("marshal metadata for verification: %w", err)
+		return nil, fmt.Errorf("marshal metadata for verification: %w", err)
 	}
 	computed := fmt.Sprintf("%x", sha256.Sum256(recomputed))
 	if storedChecksum != computed {
-		return fmt.Errorf("checksum mismatch: backup may be corrupted")
+		return nil, fmt.Errorf("checksum mismatch: backup may be corrupted")
 	}
 
 	for _, name := range metadata.Databases {
 		if err := validateDatabaseName(name); err != nil {
-			return fmt.Errorf("invalid database name in backup metadata: %w", err)
+			return nil, fmt.Errorf("invalid database name in backup metadata: %w", err)
 		}
 	}
-	if err := s.validateArchiveDatabaseSet(metadata.Databases); err != nil {
-		return err
+	if err := validateUniqueArchiveDatabaseNames(metadata.Databases); err != nil {
+		return nil, err
 	}
 
 	for _, name := range metadata.Databases {
 		dbPath := filepath.Join(backupPath, name+".db")
 		dbInfo, err := os.Lstat(dbPath)
 		if err != nil {
-			return fmt.Errorf("missing database file: %s", name)
+			return nil, fmt.Errorf("missing database file: %s", name)
 		}
 		if !dbInfo.Mode().IsRegular() {
-			return fmt.Errorf("database file %q is not a regular file", dbPath)
+			return nil, fmt.Errorf("database file %q is not a regular file", dbPath)
 		}
 
 		// Content integrity (v1.55): when the backup recorded a per-database
@@ -940,30 +991,30 @@ func (s *BackupService) verify(ctx context.Context, backupPath string) error {
 		if want, ok := metadata.DatabaseChecksums[name]; ok && want != "" {
 			got, err := fileSHA256(dbPath)
 			if err != nil {
-				return fmt.Errorf("checksum %s: %w", name, err)
+				return nil, fmt.Errorf("checksum %s: %w", name, err)
 			}
 			if got != want {
-				return fmt.Errorf("database %s checksum mismatch: backup may be corrupted", name)
+				return nil, fmt.Errorf("database %s checksum mismatch: backup may be corrupted", name)
 			}
 		} else {
 			db, err := sql.Open("sqlite", sqlite.DSN(dbPath))
 			if err != nil {
-				return fmt.Errorf("cannot open %s: %w", name, err)
+				return nil, fmt.Errorf("cannot open %s: %w", name, err)
 			}
 
 			var count int
 			err = db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").Scan(&count)
 			if err != nil || count == 0 {
 				_ = db.Close()
-				return fmt.Errorf("invalid database: %s", name)
+				return nil, fmt.Errorf("invalid database: %s", name)
 			}
 			if err := db.Close(); err != nil {
-				return fmt.Errorf("close %s: %w", name, err)
+				return nil, fmt.Errorf("close %s: %w", name, err)
 			}
 		}
 	}
 
-	return nil
+	return &metadata, nil
 }
 
 func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
