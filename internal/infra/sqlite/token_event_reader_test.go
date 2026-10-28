@@ -350,6 +350,8 @@ func TestGetTransferEventsByOwner_MalformedEventDoesNotShortenPage(t *testing.T)
 
 	owner := token.PublicKey([]byte("owner"))
 	ownerB64 := base64.StdEncoding.EncodeToString(owner)
+	require.NoError(t, store.Save(events.NewStoredEvent(
+		"ev-corrupt", time.Unix(999, 0), "token.transfer", "TK", []byte(`{"from":`))))
 	// Four transfers for the owner; one unreadable amount must not consume a
 	// visible slot or shift the next page's offset.
 	for i, amount := range []string{"10", "not-a-number", "30", "40"} {

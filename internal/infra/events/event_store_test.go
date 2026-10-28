@@ -433,3 +433,33 @@ func TestSQLiteEventStore_GetByAggregateAndTypePayloadEither(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, page, 1, "limit must count only the owner's matched transfers")
 }
+
+// TestSQLiteEventStore_PayloadFiltersSkipMalformedJSON guards the reader's
+// skip-corrupt-audit-row contract. The token history reader can decode around
+// malformed payloads, but only if the SQL JSON predicate does not abort the
+// whole query first.
+func TestSQLiteEventStore_PayloadFiltersSkipMalformedJSON(t *testing.T) {
+	store, cleanup := setupEventStore(t)
+	defer cleanup()
+
+	const agg = "TOK-malformed"
+	alice := base64.StdEncoding.EncodeToString([]byte("alice"))
+	bob := base64.StdEncoding.EncodeToString([]byte("bob"))
+	validPayload, err := json.Marshal(map[string]string{"from": alice, "to": bob, "amount": "1"})
+	require.NoError(t, err)
+
+	require.NoError(t, store.Save(events.NewBaseEvent(
+		"token.transfer", agg, []byte(`{"from":`))))
+	require.NoError(t, store.Save(events.NewBaseEvent(
+		"token.transfer", agg, validPayload)))
+
+	single, err := store.GetByAggregateAndTypePayload(
+		agg, "token.transfer", "$.from", alice, 10, 0)
+	require.NoError(t, err, "a malformed sibling payload must not abort the page")
+	require.Len(t, single, 1)
+
+	either, err := store.GetByAggregateAndTypePayloadEither(
+		agg, "token.transfer", "$.from", alice, "$.to", alice, 10, 0)
+	require.NoError(t, err, "a malformed sibling payload must not abort the page")
+	require.Len(t, either, 1)
+}
