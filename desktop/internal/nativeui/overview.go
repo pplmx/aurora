@@ -168,10 +168,12 @@ func (a *App) dashboardView(c *ui.Context) {
 
 // dashboardIsEmpty distinguishes a fresh store from a partial one. Every
 // visible counter participates, and a non-empty audit chain also counts even
-// when the changed module (token, NFT) has no dashboard card.
+// when the changed module (token, NFT) has no dashboard card. If that secondary
+// read failed, emptiness is unknown rather than proven.
 func (a *App) dashboardIsEmpty() bool {
 	d := a.dashboard
-	return d.Lotteries == 0 &&
+	return d.recentErr == nil &&
+		d.Lotteries == 0 &&
 		d.Votes == 0 &&
 		d.Candidates == 0 &&
 		d.Sessions == 0 &&

@@ -130,6 +130,7 @@ documented in their per-milestone ROADMAP files.
   chain, could therefore show "Nothing recorded yet" and hide the quick-start
   guidance that belongs to a truly fresh install. The page and its quick-start
   note now share one check over every visible counter and recent ledger entry.
+  A failed ledger read is treated as unknown rather than empty.
 - **Production rejects short API keys**: the documented weak-key guard only
   compared against a handful of literal placeholders, so production accepted
   a one-character `AURORA_API_KEY`. Production keys must now be at least 32

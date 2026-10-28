@@ -415,6 +415,21 @@ func TestDashboardDoesNotCallBlockOnlyStoreEmpty(t *testing.T) {
 	require.False(t, tester.HasText("Nothing recorded yet — run a draw to create the first ledger entry."))
 }
 
+// TestDashboardDoesNotCallUnknownChainEmpty covers the other side of the chain
+// check: when the recent-activity read fails, zero module counters cannot prove
+// the audit chain is empty, so the page must show the warning without claiming
+// this is a fresh install.
+func TestDashboardDoesNotCallUnknownChainEmpty(t *testing.T) {
+	services := &fakeServices{}
+	services.loadErrs.blocks = errors.New("ledger unavailable")
+	app := New(emptyDashboard{fakeServices: services})
+	tester := ui.NewTester(app.View, 1280, 1200)
+	tester.Frame()
+
+	require.True(t, tester.HasText("Couldn't read recent activity"))
+	require.False(t, tester.HasText("Nothing recorded yet — run a draw to create the first ledger entry."))
+}
+
 // TestTextScaleIsHonoured pins the OS text-size setting. A theme's default
 // font follows it, but every explicit FontSize is absolute; before the
 // textSize helper the window ignored the setting for all of its own text.
