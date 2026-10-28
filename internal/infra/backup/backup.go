@@ -840,6 +840,41 @@ func validateDatabaseName(name string) error {
 	return nil
 }
 
+// validateArchiveDatabaseSet keeps Verify and Restore on one definition of a
+// usable archive. A checksum-consistent metadata file can still be unusable:
+// duplicate names are ambiguous, and a configured installation can only
+// restore the exact set of databases it owns.
+func (s *BackupService) validateArchiveDatabaseSet(archiveNames []string) error {
+	seen := make(map[string]struct{}, len(archiveNames))
+	for _, name := range archiveNames {
+		if _, duplicate := seen[name]; duplicate {
+			return fmt.Errorf("backup metadata lists database %q more than once", name)
+		}
+		seen[name] = struct{}{}
+	}
+
+	if len(s.dbPaths) == 0 {
+		return nil
+	}
+	if len(archiveNames) != len(s.dbPaths) {
+		return fmt.Errorf(
+			"backup contains %d databases but %d are configured",
+			len(archiveNames), len(s.dbPaths),
+		)
+	}
+	for name := range seen {
+		if _, configured := s.dbPaths[name]; !configured {
+			return fmt.Errorf("backup database %q is not configured", name)
+		}
+	}
+	for name := range s.dbPaths {
+		if _, present := seen[name]; !present {
+			return fmt.Errorf("configured database %q is missing from backup metadata", name)
+		}
+	}
+	return nil
+}
+
 func (s *BackupService) Verify(ctx context.Context, backupPath string) error {
 	if err := s.recoverInterruptedCreate(ctx, backupPath); err != nil {
 		return fmt.Errorf("recover interrupted backup create: %w", err)
@@ -881,6 +916,9 @@ func (s *BackupService) verify(ctx context.Context, backupPath string) error {
 		if err := validateDatabaseName(name); err != nil {
 			return fmt.Errorf("invalid database name in backup metadata: %w", err)
 		}
+	}
+	if err := s.validateArchiveDatabaseSet(metadata.Databases); err != nil {
+		return err
 	}
 
 	for _, name := range metadata.Databases {
@@ -1012,29 +1050,12 @@ type restoreOperation struct {
 // set: silently restoring a subset would leave a multi-store installation with
 // mixed generations even though Restore returned success.
 func (s *BackupService) planRestore(backupDir string, archiveNames []string) ([]restoreOperation, error) {
-	if len(archiveNames) != len(s.dbPaths) {
-		return nil, fmt.Errorf(
-			"backup contains %d databases but %d are configured",
-			len(archiveNames), len(s.dbPaths),
-		)
-	}
-
-	seen := make(map[string]struct{}, len(archiveNames))
-	for _, name := range archiveNames {
-		if _, duplicate := seen[name]; duplicate {
-			return nil, fmt.Errorf("backup metadata lists database %q more than once", name)
-		}
-		if _, configured := s.dbPaths[name]; !configured {
-			return nil, fmt.Errorf("backup database %q is not configured", name)
-		}
-		seen[name] = struct{}{}
+	if err := s.validateArchiveDatabaseSet(archiveNames); err != nil {
+		return nil, err
 	}
 
 	names := make([]string, 0, len(s.dbPaths))
 	for name := range s.dbPaths {
-		if _, present := seen[name]; !present {
-			return nil, fmt.Errorf("configured database %q is missing from backup metadata", name)
-		}
 		names = append(names, name)
 	}
 	slices.Sort(names)

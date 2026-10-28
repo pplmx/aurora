@@ -138,6 +138,11 @@ documented in their per-milestone ROADMAP files.
   timestamp directory without syncing that directory into its parent, so a
   power loss could remove the entire backup. Create and Restore now flush each
   staged file and every new directory level before replacing visible data.
+- **Backup verification applies Restore's database-set contract**: Verify
+  checked only the files listed inside metadata, so an archive for a different
+  installation — or one listing the same database twice — could report success
+  and then be rejected by Restore. Both paths now require a unique, exact match
+  with the configured database names before an archive is called usable.
 - **Backup promotions flush the containing directory before returning**:
   syncing the copied database and metadata files made their bytes durable, but
   the subsequent renames were not durable themselves. A power loss after
