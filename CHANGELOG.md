@@ -124,6 +124,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Voter history stays legible**: the desktop voter table now shows `Yes` /
+  `No` under an `Ever voted` column and keeps each status cell to one line.
+  The previous multi-word status wrapped inside the fixed-height row, clipping
+  the next voter behind the explanatory note.
 - **Committed ballots are immutable**: `SaveVote` used `INSERT OR REPLACE`
   for the vote row and its session mapping, so reusing a vote ID could
   silently rewrite the candidate, signature or message while the existing

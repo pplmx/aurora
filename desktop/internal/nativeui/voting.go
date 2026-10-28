@@ -608,7 +608,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 	}
 	a.voting.voterTable.Selected = &a.voting.voterChoice
 	table := ui.Table(c, &a.voting.voterTable, []ui.TableColumn{
-		{Title: tr("Status"), Width: 100},
+		{Title: tr("Ever voted"), Width: 112},
 		{Title: tr("Name"), MinWidth: 120},
 		{Title: tr("Public key"), MinWidth: 180},
 	}, len(voters), func(row, col int) {
@@ -616,9 +616,9 @@ func (a *App) votingVoterList(c *ui.Context) {
 		switch col {
 		case 0:
 			if voter.HasVoted {
-				ui.Text(c, tr("Voted before"))
+				ui.Text(c, tr("Yes")).TextColor(ui.Hex(auroraGreen)).SingleLine()
 			} else {
-				ui.Text(c, tr("No ballot yet"))
+				ui.Text(c, tr("No")).TextColor(ui.Hex(inkMuted)).SingleLine()
 			}
 		case 1:
 			ui.Text(c, voter.Name).SingleLine()
@@ -633,9 +633,9 @@ func (a *App) votingVoterList(c *ui.Context) {
 	}
 	if a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
 		chosen := voters[a.voting.voterChoice]
-		status := tr("No ballot yet")
+		status := tr("No")
 		if chosen.HasVoted {
-			status = tr("Voted before")
+			status = tr("Yes")
 		}
 		readout(c, []readoutRow{{"Ever voted", status}})
 		copyRow(c, "Selected voter public key", chosen.PublicKey, nil)
