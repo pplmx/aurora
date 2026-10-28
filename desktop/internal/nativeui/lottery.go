@@ -109,17 +109,14 @@ func (a *App) lotteryView(c *ui.Context) {
 
 func (a *App) lotteryCreate(c *ui.Context) {
 	formCard(c, "Create Draw", "Participants and seed determine the draw; the count is how many winners to pick.", func() {
-		field(c, "Participants (comma-separated)", &a.lottery.participants)
-		fieldError(c, a.lottery.participantsErr)
-		field(c, fmt.Sprintf(tr("Seed (at least %d characters)"), lottery.MinSeedLength), &a.lottery.seed)
-		fieldError(c, a.lottery.seedErr)
-		ui.Field(c, tr("Count"), func() {
+		validatedField(c, "Participants (comma-separated)", &a.lottery.participants, a.lottery.participantsErr)
+		validatedField(c, fmt.Sprintf(tr("Seed (at least %d characters)"), lottery.MinSeedLength), &a.lottery.seed, a.lottery.seedErr)
+		fieldWithError(c, "Count", a.lottery.countErr, func() {
 			ui.Column(c).Gap(2).Children(func() {
 				ui.NumberInput(c, &a.lottery.count, 1, float64(lottery.MaxWinners), 1)
 				hint(c, "How many winners to draw; must not exceed the participant count.")
 			})
 		})
-		fieldError(c, a.lottery.countErr)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Create Draw").Disabled(!allSet(a.lottery.participants, a.lottery.seed)).Clicked() {
 				a.createLottery()
@@ -311,11 +308,12 @@ func (a *App) lotteryHistoryRecords(c *ui.Context, rows []DrawRow) {
 
 func (a *App) lotteryVerify(c *ui.Context) {
 	formCard(c, "Verify a Draw", "Recompute the winners from the stored VRF proof for any draw.", func() {
-		field(c, "Draw ID or block height", &a.lottery.verifyID)
 		current := strings.TrimSpace(a.lottery.verifyID)
+		message := ""
 		if a.lottery.verifyInput == current {
-			fieldError(c, a.lottery.verifyErr)
+			message = a.lottery.verifyErr
 		}
+		validatedField(c, "Draw ID or block height", &a.lottery.verifyID, message)
 		copyRow(c, "Draw ID", strings.TrimSpace(a.lottery.verifyID), nil)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Verify").Disabled(!allSet(a.lottery.verifyID)).Clicked() {

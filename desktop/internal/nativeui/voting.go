@@ -384,8 +384,7 @@ func (a *App) votingView(c *ui.Context) {
 
 func (a *App) votingRegister(c *ui.Context) {
 	formCard(c, "Register Voter", "Returns the key pair the voter signs ballots with; keep the private half.", func() {
-		field(c, "Voter Name", &a.voting.voterName)
-		fieldError(c, a.voting.voterNameErr)
+		validatedField(c, "Voter Name", &a.voting.voterName, a.voting.voterNameErr)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Register Voter").Disabled(!allSet(a.voting.voterName)).Clicked() {
 				a.registerVoter()
@@ -410,8 +409,7 @@ func (a *App) votingRegister(c *ui.Context) {
 }
 
 func (a *App) votingRegisterCandidateBody(c *ui.Context) {
-	field(c, "Candidate Name", &a.voting.candName)
-	fieldError(c, a.voting.candNameErr)
+	validatedField(c, "Candidate Name", &a.voting.candName, a.voting.candNameErr)
 	field(c, "Party (optional)", &a.voting.candParty)
 	field(c, "Program (optional)", &a.voting.candProgram)
 	ui.Row(c).Children(func() {
