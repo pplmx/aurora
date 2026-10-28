@@ -451,12 +451,15 @@ func (t *securityTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	// endpoint is normal for an operator-configured proxy, while a direct
 	// dial must still pass the destination guard.
 	req = req.WithContext(context.WithValue(req.Context(), proxyDialContextKey{}, &proxyDialState{}))
-	if req.Header.Get("User-Agent") == "" {
+	if _, configured := req.Header["User-Agent"]; !configured {
 		req.Header.Set("User-Agent", t.userAgent)
 	}
-	if req.Header.Get("Accept") == "" {
+	if _, configured := req.Header["Accept"]; !configured {
 		req.Header.Set("Accept", "application/json, text/plain, */*")
 	}
+	// Content-Type deliberately keeps its empty-means-absent fallback. Explicit
+	// presence must remain distinguishable for User-Agent, where an empty value
+	// tells Go not to send that header.
 	if req.Header.Get("Content-Type") == "" && (req.Method == http.MethodPost || req.Method == http.MethodPut || req.Method == http.MethodPatch) {
 		req.Header.Set("Content-Type", "application/json")
 	}

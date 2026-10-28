@@ -140,8 +140,10 @@ documented in their per-milestone ROADMAP files.
   transport overwrote a configured `User-Agent` and `Accept` with Aurora's
   defaults, so feeds that route `application/vnd.*` representations or require
   an allowlisted client identity received the wrong request. Defaults now apply
-  only when the source has not supplied its own value; `X-Request-ID` remains
-  generated per hop for correlation.
+  only when the source has not supplied its own value, an explicitly empty
+  `User-Agent` still suppresses that header, and a configured media
+  `Content-Type` is preserved. `X-Request-ID` remains generated per hop for
+  correlation.
 - **Oracle fetch errors no longer echo credential-bearing URLs**: HTTP status
   errors included the complete source URL, and `net/http` transport errors
   retained its path, query and userinfo. Those strings reached scheduler logs

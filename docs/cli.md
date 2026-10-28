@@ -130,6 +130,10 @@ aurora oracle latest -i <source-id>
 刷新间隔从一次成功抓取结束时开始计算；失败抓取从失败结束时按 1s、2s、4s……
 指数退避，最长 5 分钟，慢请求不会吞掉退避窗口。
 
+`User-Agent` 的显式空值表示不发送该头；只有省略时才会使用 Aurora 的默认标识。
+`Accept` 只要配置了就保留（包括空值）；`Content-Type` 为空时仍补
+`application/json`。
+
 `oracle source list` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于
 0 时只读取该页并打印本页数量与偏移；`--offset` 默认 0。调度器不受该选项影响，
 仍会枚举全部数据源。

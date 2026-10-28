@@ -944,12 +944,13 @@ func TestSecurityTransportPreservesSourceHeaderOverrides(t *testing.T) {
 		}),
 		userAgent: "Aurora/default",
 	}
-	req, err := http.NewRequest(http.MethodGet, "https://example.com/feed", nil)
+	req, err := http.NewRequest(http.MethodPost, "https://example.com/feed", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	req.Header.Set("User-Agent", "FeedClient/2.0")
 	req.Header.Set("Accept", "application/vnd.aurora.feed+json")
+	req.Header.Set("Content-Type", "application/vnd.aurora.request+json")
 
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
@@ -964,6 +965,49 @@ func TestSecurityTransportPreservesSourceHeaderOverrides(t *testing.T) {
 	}
 	if got := captured.Header.Get("Accept"); got != "application/vnd.aurora.feed+json" {
 		t.Fatalf("Accept = %q, want the source override", got)
+	}
+	if got := captured.Header.Get("Content-Type"); got != "application/vnd.aurora.request+json" {
+		t.Fatalf("Content-Type = %q, want the source override", got)
+	}
+}
+
+func TestSecurityTransportPreservesExplicitEmptyHeaders(t *testing.T) {
+	var captured *http.Request
+	transport := &securityTransport{
+		transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			captured = req.Clone(req.Context())
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader("{}")),
+				Request:    req,
+			}, nil
+		}),
+		userAgent: "Aurora/default",
+	}
+	req, err := http.NewRequest(http.MethodGet, "https://example.com/feed", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("User-Agent", "")
+	req.Header.Set("Accept", "")
+
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("RoundTrip failed: %v", err)
+	}
+	_ = resp.Body.Close()
+	if captured == nil {
+		t.Fatal("request never reached the inner transport")
+	}
+	for _, name := range []string{"User-Agent", "Accept"} {
+		values, ok := captured.Header[name]
+		if !ok {
+			t.Fatalf("%s was removed instead of preserving the explicit empty value", name)
+		}
+		if len(values) != 1 || values[0] != "" {
+			t.Fatalf("%s = %#v, want one explicit empty value", name, values)
+		}
 	}
 }
 

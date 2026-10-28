@@ -182,9 +182,10 @@ translated 区段，以及 IETF IPv6 协议分配块（`2001::/23`，含 Teredo�
 IPv6 误判为无法解析。跨源重定向不会继承数据源配置的请求头，避免 `X-API-Key`
 等自定义凭据泄漏给第三方主机。
 
-数据源配置的 `User-Agent` 与 `Accept` 会覆盖 Aurora 默认值，其他自定义头原样
-发送；`Content-Type` 只在 POST/PUT/PATCH 且未显式配置时补
-`application/json`，`X-Request-ID` 则由客户端为每一跳重新生成。
+数据源配置的 `User-Agent` 与 `Accept` 按“是否出现”覆盖 Aurora 默认值：显式空
+`User-Agent` 表示不发送该头，空 `Accept` 也会保留；其他自定义头原样发送。
+`Content-Type` 只在 POST/PUT/PATCH 且为空时补 `application/json`，
+`X-Request-ID` 则由客户端为每一跳重新生成。
 
 抓取失败时只返回 HTTP 状态或底层网络原因，不回显完整数据源 URL；userinfo、
 path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 与调度器
