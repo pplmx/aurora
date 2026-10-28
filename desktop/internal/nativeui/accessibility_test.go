@@ -57,6 +57,28 @@ func TestCommandPaletteTakesTypingImmediately(t *testing.T) {
 	require.False(t, app.paletteOpen)
 }
 
+// TestCommandPaletteEscapeReturnsFocusToNavigation keeps the keyboard from
+// falling into the window root when the search field that owned it disappears.
+// Escape leaves the current page untouched and lands on the sidebar's single
+// focus stop, from which Tab can continue through the window.
+func TestCommandPaletteEscapeReturnsFocusToNavigation(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	require.True(t, tester.Focused("Search pages"))
+
+	tester.Key(0, ui.KeyEscape)
+	tester.Frame()
+	require.False(t, app.paletteOpen)
+	require.Equal(t, pageSettings, app.page)
+	require.True(t, tester.Focused("Navigation"),
+		"closing the palette must hand focus to the sidebar")
+}
+
 // TestCommandPaletteExposesTheActiveRow keeps the keyboard highlight from
 // being visual-only. The search field owns typing, while its active descendant
 // names the row the arrows are on and that row's description states the action.

@@ -70,6 +70,10 @@ type App struct {
 	paletteChoice  int
 	paletteScroll  ui.ScrollState
 	paletteReveal  bool
+	// navigationControl is the sidebar's one keyboard stop. Closing the
+	// command palette moves focus here when its search field disappears, so a
+	// keyboard user is never left at the window root.
+	navigationControl ui.Handle
 	// backgroundWrites is enabled by the real desktop. Tests keep the default
 	// synchronous path so a handler's returned state is deterministic; the app
 	// uses it to show a busy banner while a service call runs off the frame
@@ -138,6 +142,7 @@ func (a *App) Services() Services { return a.services }
 func (a *App) View(c *ui.Context) {
 	a.invalidate = c.Invalidate
 	a.pollAsync(c)
+	paletteWasOpen := a.paletteOpen
 	if a.pageAnnouncement != "" {
 		c.Announce(a.pageAnnouncement)
 		a.pageAnnouncement = ""
@@ -164,6 +169,9 @@ func (a *App) View(c *ui.Context) {
 	if a.paletteOpen {
 		dialog := ui.Modal(c, &a.paletteOpen, func() { a.commandPalette(c) })
 		dialog.Label(tr("Jump to"))
+	}
+	if paletteWasOpen && !a.paletteOpen {
+		a.navigationControl.Focus(c)
 	}
 }
 
@@ -401,7 +409,7 @@ func (a *App) brand(c *ui.Context) {
 func (a *App) sidebar(c *ui.Context) {
 	selected := pageIDs[a.page]
 	reveal := a.sidebarReveal
-	ui.Sidebar(c, &selected, func() {
+	navigation := ui.Sidebar(c, &selected, func() {
 		ui.SidebarSection(c, tr("Modules"), nil, func() {
 			for _, p := range moduleOrder {
 				// The chosen item is already tinted by the toolkit; a marker
@@ -421,6 +429,7 @@ func (a *App) sidebar(c *ui.Context) {
 			}
 		})
 	}).Label(tr("Navigation")).FillWidth().Grow(1).Shrink(1).TrackScroll(&a.sidebarScroll)
+	navigation.Bind(&a.navigationControl)
 	a.sidebarReveal = false
 	if p, ok := pageByID(selected); ok {
 		a.setPage(p)
