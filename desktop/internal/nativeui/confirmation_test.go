@@ -32,6 +32,7 @@ func TestBurnDialogNamesWhatItDestroys(t *testing.T) {
 	require.NoError(t, tester.Click("Cancel"))
 	tester.Frame()
 	require.False(t, app.token.askBurn, "Cancel must close the dialog")
+	require.True(t, tester.Focused("Burn…"), "Cancel must return focus to the action that opened it")
 }
 
 // TestNFTBurnDialogNamesTheAsset covers the same contract for an asset: its
@@ -56,6 +57,7 @@ func TestNFTBurnDialogNamesTheAsset(t *testing.T) {
 	require.NoError(t, tester.Click("Cancel"))
 	tester.Frame()
 	require.False(t, app.nft.askBurn)
+	require.True(t, tester.Focused("Burn NFT…"), "Cancel must return focus to the Burn tab action")
 }
 
 // TestDeleteDialogNamesTheSource pins the oracle confirmation: the actions
@@ -77,6 +79,7 @@ func TestDeleteDialogNamesTheSource(t *testing.T) {
 	require.NoError(t, tester.Click("Cancel"))
 	tester.Frame()
 	require.False(t, app.oracle.askDelete)
+	require.True(t, tester.Focused("Delete"), "Cancel must return focus to the source action")
 }
 
 // TestDeleteDialogResolvesASourceOutsideTheCurrentPage covers the id a CLI or
@@ -149,6 +152,8 @@ func TestDestructiveDialogDefaultsToCancel(t *testing.T) {
 	app.ShowPage("Token")
 	tester.Frame()
 
+	app.token.opTab = 4
+	tester.Frame()
 	app.token.tokenID = "token-1"
 	app.token.burnFrom = "owner-pk"
 	app.token.burnAmount = "25"
@@ -160,6 +165,7 @@ func TestDestructiveDialogDefaultsToCancel(t *testing.T) {
 	tester.Frame()
 	require.False(t, app.token.askBurn)
 	require.Zero(t, fake.burnTokenCalls, "Enter on the safe default must not burn")
+	require.True(t, tester.Focused("Burn…"), "Enter on Cancel must restore focus to the trigger")
 
 	app.token.askBurn = true
 	tester.Frame()
@@ -168,6 +174,7 @@ func TestDestructiveDialogDefaultsToCancel(t *testing.T) {
 	tester.Frame()
 	require.False(t, app.token.askBurn)
 	require.Zero(t, fake.burnTokenCalls, "Escape must dismiss without burning")
+	require.True(t, tester.Focused("Burn…"), "Escape must restore focus to the trigger")
 
 	app.token.askBurn = true
 	tester.Frame()

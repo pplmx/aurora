@@ -91,6 +91,9 @@ type nftState struct {
 
 	listTable    ui.ListState
 	historyTable ui.ListState
+	// burnTrigger receives focus again when the destructive confirmation is
+	// cancelled, keeping keyboard navigation on the action that opened it.
+	burnTrigger ui.Handle
 	// selected is the collection row chosen, -1 for none.
 	selected int
 	// limit/offset page the collection. A long-lived NFT store should not be
@@ -563,7 +566,8 @@ func (a *App) nftWrite(c *ui.Context) {
 			ui.Row(c).Children(func() {
 				// A destructive action carries the danger style, and the
 				// confirmation still stands between it and the write.
-				if dangerButton(c, "Burn NFT…").Clicked() {
+				burn := dangerButton(c, "Burn NFT…").Bind(&a.nft.burnTrigger)
+				if burn.Clicked() {
 					a.nft.askBurn = true
 				}
 			})
@@ -837,7 +841,8 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 		}
 		detail = fmt.Sprintf(tr("Burn %s? The asset is destroyed and cannot be recovered."), target)
 	}
-	if destructiveConfirm(c, &a.nft.askBurn, tr("Burn this NFT?"), detail, tr("Burn")) {
+	switch destructiveConfirm(c, &a.nft.askBurn, tr("Burn this NFT?"), detail, tr("Burn")) {
+	case destructiveConfirmed:
 		id := strings.TrimSpace(a.nft.burnID)
 		privateKey := strings.TrimSpace(a.nft.burnPriv)
 		owner := a.nft.burnOwner
@@ -863,5 +868,7 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 				}
 			}
 		})
+	case destructiveCancelled:
+		restoreDestructiveFocus(c, a.nft.burnTrigger)
 	}
 }

@@ -60,6 +60,8 @@ type App struct {
 	// what is already held.
 	confirmForgetKeys        bool
 	disableKeyMemoryOnForget bool
+	rememberKeysControl      ui.Handle
+	forgetKeysButton         ui.Handle
 	// paletteOpen/paletteQuery drive the Ctrl/Cmd+K page switcher. It is a
 	// second, keyboard-first entry into the same setPage path as the sidebar.
 	paletteOpen    bool

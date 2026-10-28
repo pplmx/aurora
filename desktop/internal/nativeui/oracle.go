@@ -86,6 +86,9 @@ type oracleState struct {
 	sourceTable ui.ListState
 	healthTable ui.ListState
 	dataTable   ui.ListState
+	// deleteTrigger receives focus again when the destructive confirmation is
+	// cancelled, keeping keyboard navigation on the source action row.
+	deleteTrigger ui.Handle
 }
 
 const oraclePageSize = 100
@@ -311,7 +314,8 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		if secondaryButton(c, "Fetch now").Clicked() {
 			a.fetchOracleSource()
 		}
-		if dangerButton(c, "Delete").Clicked() {
+		deleteSource := dangerButton(c, "Delete").Bind(&a.oracle.deleteTrigger)
+		if deleteSource.Clicked() {
 			a.oracle.deleteName = a.resolveOracleSourceName(strings.TrimSpace(a.oracle.fetchID))
 			a.oracle.askDelete = true
 		}
@@ -393,8 +397,11 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 		}
 		detail = fmt.Sprintf(tr("Delete %s? Its scheduling entry is removed; readings already stored stay."), target)
 	}
-	if destructiveConfirm(c, &a.oracle.askDelete, tr("Delete this source?"), detail, tr("Delete")) {
+	switch destructiveConfirm(c, &a.oracle.askDelete, tr("Delete this source?"), detail, tr("Delete")) {
+	case destructiveConfirmed:
 		a.deleteOracleSource()
+	case destructiveCancelled:
+		restoreDestructiveFocus(c, a.oracle.deleteTrigger)
 	}
 }
 

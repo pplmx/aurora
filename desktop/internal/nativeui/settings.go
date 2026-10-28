@@ -36,7 +36,8 @@ func (a *App) settingsView(c *ui.Context) {
 		formCard(c, "Session keys", "Private keys can be kept in memory for this session only.", func() {
 			remember := a.rememberKeys
 			checkbox := ui.Checkbox(c, &remember, tr("Remember private keys for this session")).
-				Description(tr("Nothing is written to disk; quitting Aurora clears them."))
+				Description(tr("Nothing is written to disk; quitting Aurora clears them.")).
+				Bind(&a.rememberKeysControl)
 			if checkbox.Changed() {
 				switch {
 				case remember:
@@ -56,7 +57,8 @@ func (a *App) settingsView(c *ui.Context) {
 			if a.rememberedKeyCount() > 0 {
 				ui.Row(c).Children(func() {
 					forget := dangerButton(c, "Forget session keys").
-						Description(tr("Remove every private key kept in memory for this session."))
+						Description(tr("Remove every private key kept in memory for this session.")).
+						Bind(&a.forgetKeysButton)
 					if forget.Clicked() {
 						a.confirmForgetKeys = true
 						a.disableKeyMemoryOnForget = false
@@ -137,13 +139,21 @@ func (a *App) renderForgetKeysDialog(c *ui.Context) {
 	if disableMemory {
 		title = tr("Turn off session key memory?")
 	}
-	confirmed := destructiveConfirm(c, &a.confirmForgetKeys, title,
+	result := destructiveConfirm(c, &a.confirmForgetKeys, title,
 		tr("All private keys kept only in this session will be removed. If they are not saved elsewhere, they cannot be recovered."),
 		tr("Forget keys"))
 	if !a.confirmForgetKeys {
 		a.disableKeyMemoryOnForget = false
 	}
-	if !confirmed {
+	if result == destructiveCancelled {
+		if disableMemory {
+			restoreDestructiveFocus(c, a.rememberKeysControl)
+		} else {
+			restoreDestructiveFocus(c, a.forgetKeysButton)
+		}
+		return
+	}
+	if result != destructiveConfirmed {
 		return
 	}
 	a.forgetSessionKeys()
