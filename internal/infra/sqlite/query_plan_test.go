@@ -122,9 +122,17 @@ func TestCollectionListsUseTheirIndexes(t *testing.T) {
 
 	votingRepo, votingCleanup := setupVotingTestDB(t)
 	defer votingCleanup()
-	requireNoTempBTree(t, queryPlanDetails(t, votingRepo.db,
-		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters ORDER BY registered_at DESC`),
-		"voter list")
+	voterPlan := queryPlanDetails(t, votingRepo.db,
+		`SELECT public_key, name, has_voted, vote_hash, registered_at
+		 FROM voters ORDER BY registered_at DESC, public_key LIMIT ? OFFSET ?`, 100, 0)
+	requireNoTempBTree(t, voterPlan, "voter list")
+	require.Contains(t, strings.Join(voterPlan, " "), "idx_voters_page",
+		"the voter page should read its ordered index")
+	var oldVoterIndex int
+	require.NoError(t, votingRepo.db.QueryRow(
+		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_voters_registered'`,
+	).Scan(&oldVoterIndex))
+	require.Zero(t, oldVoterIndex, "the single-column voter index is subsumed by idx_voters_page")
 	candidatePlan := queryPlanDetails(t, votingRepo.db,
 		`SELECT id, name, party, program, description, image_url, vote_count, created_at
 		 FROM candidates ORDER BY created_at DESC, id LIMIT ? OFFSET ?`, 100, 0)

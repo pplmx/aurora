@@ -64,9 +64,9 @@ func (m *mockVotingRepo) SaveVoter(voter *voting.Voter) error {
 func (m *mockVotingRepo) GetVoter(pk string) (*voting.Voter, error) {
 	return m.voters[pk], nil
 }
-func (m *mockVotingRepo) UpdateVoter(*voting.Voter) error      { return nil }
-func (m *mockVotingRepo) TryMarkVoted(_, _ string) error       { return nil }
-func (m *mockVotingRepo) ListVoters() ([]*voting.Voter, error) { return nil, nil }
+func (m *mockVotingRepo) UpdateVoter(*voting.Voter) error              { return nil }
+func (m *mockVotingRepo) TryMarkVoted(_, _ string) error               { return nil }
+func (m *mockVotingRepo) ListVoters(int, int) ([]*voting.Voter, error) { return nil, nil }
 
 func (m *mockVotingRepo) SaveCandidate(candidate *voting.Candidate) error {
 	if m.saveCandErr != nil {

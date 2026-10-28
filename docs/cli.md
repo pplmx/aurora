@@ -40,6 +40,7 @@ aurora voting candidate list
 aurora voting candidate list --limit 100 --offset 0
 aurora voting voter register -n "Name"    # 打印密钥对
 aurora voting voter list                  # 含已投票状态
+aurora voting voter list --limit 100 --offset 0
 aurora voting session create -t "Title" -d "Desc" -c <cand-id> [-c <cand2>] \
   --start-time <t> --end-time <t>
 aurora voting session list
@@ -50,9 +51,9 @@ aurora voting results -s <session-id>
 aurora voting session end -s <session-id>
 ```
 
-`voting candidate list` 与 `voting session list` 的 `--limit` 默认 0（列出
-offset 之后的全部记录），大于 0 时只读取该页并打印本页数量与偏移；
-`--offset` 默认 0。两个命令都拒绝负数分页参数。
+`voting candidate list`、`voting voter list` 与 `voting session list` 的
+`--limit` 默认 0（列出 offset 之后的全部记录），大于 0 时只从存储层读取该页
+并打印本页数量与偏移；`--offset` 默认 0。三个命令都拒绝负数分页参数。
 
 ## NFT（Ed25519 签名）
 

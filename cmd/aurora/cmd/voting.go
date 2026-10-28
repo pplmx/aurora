@@ -205,13 +205,31 @@ var voterListCmd = &cobra.Command{
 			return fmt.Errorf("failed to get repository: %w", err)
 		}
 
-		list, err := repo.ListVoters()
+		limit, _ := cmd.Flags().GetInt("limit")
+		offset, _ := cmd.Flags().GetInt("offset")
+		if limit < 0 {
+			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+		}
+		if offset < 0 {
+			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+		}
+
+		list, err := votingapp.NewListVotersUseCase(repo).Execute(&votingapp.ListVotersRequest{
+			Limit: limit, Offset: offset,
+		})
 		if err != nil {
 			return fmt.Errorf("failed to list voters: %w", err)
 		}
 
-		fmt.Println("\n👥 " + i18n.GetText("voting.voters") + ":")
+		if limit > 0 || offset > 0 {
+			fmt.Printf("\n👥 %s: %d (offset %d)\n", i18n.GetText("voting.page_total"), len(list), offset)
+		} else {
+			fmt.Println("\n👥 " + i18n.GetText("voting.voters") + ":")
+		}
 		if len(list) == 0 {
+			if limit > 0 || offset > 0 {
+				return nil
+			}
 			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
 		for _, v := range list {
@@ -500,6 +518,8 @@ func init() {
 
 	voterRegisterCmd.Flags().StringP("name", "n", "", i18n.GetText("voting.name"))
 	_ = voterRegisterCmd.MarkFlagRequired("name")
+	voterListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	voterListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 
 	voteCmd.Flags().StringP("voter", "v", "", i18n.GetText("voting.public_key"))
 	voteCmd.Flags().StringP("candidate", "c", "", i18n.GetText("voting.candidate_id"))

@@ -43,7 +43,9 @@ type Repository interface {
 	// sentinel error. This is the primitive that closes the TOCTOU
 	// double-vote window in CastVoteUseCase.
 	TryMarkVoted(publicKey, voteHash string) error
-	ListVoters() ([]*Voter, error)
+	// ListVoters returns one newest-first page. limit <= 0 returns the
+	// remainder from offset, preserving the CLI's full-list form.
+	ListVoters(limit, offset int) ([]*Voter, error)
 
 	SaveCandidate(candidate *Candidate) error
 	GetCandidate(id string) (*Candidate, error)
