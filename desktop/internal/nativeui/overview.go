@@ -390,7 +390,8 @@ func (a *App) blockchainBody(c *ui.Context) {
 func (a *App) blockchainBlocks(c *ui.Context) {
 	limit := blockchainBlockLimit(a.blockchain.blockLimit)
 	query := strings.TrimSpace(a.blockchain.search)
-	if query != a.blockchain.queriedSearch || limit != a.blockchain.queriedLimit {
+	queryChanged := query != a.blockchain.queriedSearch
+	if queryChanged || limit != a.blockchain.queriedLimit {
 		// A changed search or page size starts at the newest rows. The helper
 		// records the attempt even on failure, so a database error cannot turn
 		// every repaint into another read.
@@ -400,6 +401,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		!loadWarning(c, "Couldn't read chain blocks", a.blockchain.blocksErr, len(a.blockchain.rows) > 0) {
 		return
 	}
+	announceSearchResults(c, queryChanged, a.blockchain.blockTotal)
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 		ui.Row(c).Grow(1).Children(func() {
 			ui.SearchField(c, &a.blockchain.search).Label(tr("Search blocks"))

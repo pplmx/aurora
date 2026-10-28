@@ -428,7 +428,8 @@ func (a *App) nftListBody(c *ui.Context) {
 	}
 	ui.SearchField(c, &a.nft.search).Label(tr("Search NFTs")).
 		Description(tr("Search narrows the current page; use Previous/Next for older assets."))
-	if a.nft.search != a.nft.appliedSearch {
+	queryChanged := a.nft.search != a.nft.appliedSearch
+	if queryChanged {
 		a.nft.appliedSearch = a.nft.search
 		a.nft.selected = -1
 	}
@@ -460,6 +461,7 @@ func (a *App) nftListBody(c *ui.Context) {
 			list = append(list, n)
 		}
 	}
+	announceSearchResults(c, queryChanged, len(list))
 	if len(list) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No NFTs match “%s”."), strings.TrimSpace(a.nft.search)))
 		return

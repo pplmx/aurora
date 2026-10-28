@@ -179,12 +179,14 @@ func (a *App) commandPalette(c *ui.Context) {
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
 		heading(c, tr("Jump to"), 17, 2)
 		submitted := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).AutoFocus().Submitted()
-		if a.paletteQuery != a.paletteApplied {
+		queryChanged := a.paletteQuery != a.paletteApplied
+		if queryChanged {
 			a.paletteApplied = a.paletteQuery
 			a.paletteChoice = 0
 			a.paletteScroll.Y = 0
 		}
 		matches := a.paletteMatches()
+		announceSearchResults(c, queryChanged, len(matches))
 		if len(matches) == 0 {
 			emptyNote(c, fmt.Sprintf(tr("No pages match “%s”."), strings.TrimSpace(a.paletteQuery)))
 			return

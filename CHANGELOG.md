@@ -32,7 +32,9 @@ documented in their per-milestone ROADMAP files.
   checkboxes remains visible while also describing the control it explains.
   Settings presents the installed languages as a named radio group with the
   current choice selected, so arrows move between languages and the separate
-  Follow System action says that it uses the operating system's choice.
+  Follow System action says that it uses the operating system's choice. Every
+  search field announces the number of rows its new query leaves, including
+  zero and clearing the query.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;

@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -23,23 +24,28 @@ func TestTokenSearchNarrowsTheList(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("Gold"))
 	require.True(t, tester.HasText("Silver"))
+	tester.Announcements() // the initial page title
 
 	app.token.search = "silver"
 	tester.Frame()
 	require.True(t, tester.HasText("Silver"), "a name match must stay listed")
 	require.False(t, tester.HasText("Gold"), "a non-match must leave the list")
+	require.Equal(t, []string{"1 result."}, tester.Announcements())
 
 	app.token.search = "AG"
 	tester.Frame()
 	require.True(t, tester.HasText("Silver"), "a symbol match must stay listed")
+	require.Equal(t, []string{"1 result."}, tester.Announcements())
 
 	app.token.search = "nothing-like-this"
 	tester.Frame()
 	require.True(t, tester.HasText("No tokens match “nothing-like-this”."))
+	require.Equal(t, []string{fmt.Sprintf(tr("%d results."), 0)}, tester.Announcements())
 
 	// Choosing a row from the filtered list selects that token.
 	app.token.search = "Gold"
 	tester.Frame()
+	tester.Announcements()
 	require.NoError(t, tester.Click("Gold"))
 	tester.Frame()
 	require.Equal(t, "t1", app.token.tokenID)
@@ -48,6 +54,7 @@ func TestTokenSearchNarrowsTheList(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("Gold"))
 	require.True(t, tester.HasText("Silver"))
+	require.Equal(t, []string{fmt.Sprintf(tr("%d results."), 2)}, tester.Announcements())
 }
 
 // TestNFTSearchNarrowsTheCollection covers the same field on the collection,
