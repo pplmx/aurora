@@ -124,7 +124,7 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 ## REST API
 
 ```bash
-AURORA_API_KEY="your-strong-key" ./aurora-api   # 默认 0.0.0.0:8080
+AURORA_API_KEY="replace-with-at-least-32-random-characters" ./aurora-api
 ./aurora-api --host 127.0.0.1 --port 9090        # 或 AURORA_SERVER_HOST/PORT
 ```
 

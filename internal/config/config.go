@@ -26,6 +26,8 @@ var insecureKeys = map[string]bool{
 	"":                       true,
 }
 
+const minProductionAPIKeyLength = 32
+
 type Config struct {
 	Server ServerConfig `mapstructure:"server"`
 	Log    LogConfig    `mapstructure:"log"`
@@ -277,6 +279,14 @@ func resolveAPIKey(key string) (string, error) {
 	if isProduction {
 		if key == "" {
 			return "", ErrMissingAPIKey
+		}
+		if len(key) < minProductionAPIKeyLength {
+			return "", fmt.Errorf("%w: must be at least %d characters", ErrInsecureAPIKey, minProductionAPIKeyLength)
+		}
+		for i := 0; i < len(key); i++ {
+			if key[i] < '!' || key[i] > '~' {
+				return "", fmt.Errorf("%w: must contain only visible ASCII characters without spaces", ErrInsecureAPIKey)
+			}
 		}
 		if insecureKeys[key] {
 			return "", ErrInsecureAPIKey
