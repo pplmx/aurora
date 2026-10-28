@@ -728,7 +728,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		// follow.
 		id := sessions[a.voting.sessionChoice].ID
 		a.voting.controlID, a.voting.voteSession, a.voting.resultsSession = id, id, id
-		if len(a.voting.results) > 0 || a.voting.resultsErr != nil {
+		if len(a.voting.results) > 0 || a.voting.resultsLoadedID != "" || a.voting.resultsErr != nil {
 			// The tally on screen belongs to the previously chosen session; a
 			// selection must not leave it beside a new session id even when
 			// the fresh read fails. Same-session refreshes keep their rows.
@@ -1052,7 +1052,9 @@ func (a *App) castVote() {
 			// recorded" read as a vote that did not count. A failed refresh keeps
 			// the old rows rather than replacing them with an error for a write
 			// that succeeded.
-			if sessionID != "" && sessionID == strings.TrimSpace(a.voting.resultsSession) && len(a.voting.results) > 0 {
+			if sessionID != "" && sessionID == strings.TrimSpace(a.voting.resultsSession) &&
+				(a.voting.resultsLoadedID == sessionID || len(a.voting.results) > 0 || a.voting.resultsErr != nil) {
+				a.clearTallyForAnotherSession(sessionID)
 				_ = a.loadSessionResults(sessionID)
 			}
 		}

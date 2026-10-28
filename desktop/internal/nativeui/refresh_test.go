@@ -217,6 +217,64 @@ func TestPageRefreshReReadsOpenReadouts(t *testing.T) {
 	require.Equal(t, beforeResults+1, fake.sessionResultsCalls, "an open tally must refresh")
 }
 
+// TestRefreshReReadsSuccessfulEmptyReadouts keeps the load key, rather than
+// the row count, as the proof that a card is open. A successful query that
+// returned no rows is still an answer; Ctrl+R must ask again so the first row
+// recorded later appears without pressing the card's own load button.
+func TestRefreshReReadsSuccessfulEmptyReadouts(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+
+	app.ShowPage("Token")
+	app.token.tokenID = "t1"
+	app.token.historyLoadedToken = "t1"
+	app.token.historyLoadedLimit, app.token.historyLoadedOffset = 50, 0
+	tokenBefore := fake.tokenHistoryCalls
+	app.refresh()
+	require.Equal(t, tokenBefore+1, fake.tokenHistoryCalls,
+		"an open token history with no rows must refresh")
+
+	app.ShowPage("NFT")
+	app.nft.historyID = "n1"
+	app.nft.historyLoadedID = "n1"
+	nftBefore := fake.nftHistoryCalls
+	app.refresh()
+	require.Equal(t, nftBefore+1, fake.nftHistoryCalls,
+		"an open NFT history with no rows must refresh")
+
+	app.ShowPage("Voting")
+	app.voting.resultsSession = "s1"
+	app.voting.resultsLoadedID = "s1"
+	voteBefore := fake.sessionResultsCalls
+	app.refresh()
+	require.Equal(t, voteBefore+1, fake.sessionResultsCalls,
+		"an open empty tally must refresh")
+}
+
+// TestWritesRefreshSuccessfulEmptyReadouts covers the write paths that can
+// produce the first row after an empty read. A ballot must make an open zero
+// tally readable, and Fetch now must make an open empty Query show the value
+// it stored.
+func TestWritesRefreshSuccessfulEmptyReadouts(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+
+	app.voting.voteSession, app.voting.voteCandidate = "s1", "c1"
+	app.voting.voteVoterPub, app.voting.votePriv = "voter", "key"
+	app.voting.resultsSession, app.voting.resultsLoadedID = "s1", "s1"
+	voteBefore := fake.sessionResultsCalls
+	app.castVote()
+	require.Equal(t, voteBefore+1, fake.sessionResultsCalls,
+		"an accepted ballot must refresh the open empty tally")
+
+	app.oracle.fetchID, app.oracle.queryID = "s1", "s1"
+	app.oracle.dataLoadedSource, app.oracle.dataLoadedLimit = "s1", 20
+	queryBefore := fake.oracleDataCalls
+	app.fetchOracleSource()
+	require.Equal(t, queryBefore+1, fake.oracleDataCalls,
+		"a fetch must refresh the open empty Query card")
+}
+
 // TestBalanceAndHistoryUseTheirOwnAccount pins the two read inputs apart: they
 // used to share one field, so typing a history owner silently changed the
 // account the Balance card read, under a readout fetched for someone else.

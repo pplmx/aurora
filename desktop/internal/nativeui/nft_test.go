@@ -214,6 +214,30 @@ func TestNFTTransferMovesOnlyItsOwnWriteCard(t *testing.T) {
 	require.Empty(t, app.nft.burnPriv, "Burn's key belonged to the previous owner")
 }
 
+// TestNFTSelectionMovesAnEmptyOpenHistory covers the selection entry point.
+// An empty successful history remains open, so choosing another asset must
+// read that asset's trail instead of leaving both assets labelled unloaded.
+func TestNFTSelectionMovesAnEmptyOpenHistory(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{
+		{ID: "n1", Name: "First", Owner: "owner-1"},
+		{ID: "n2", Name: "Second", Owner: "owner-2"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.historyID = "n1"
+	app.nft.historyLoadedID = "n1"
+	before := fake.nftHistoryCalls
+	require.NoError(t, tester.Click("n2"))
+	tester.Frame()
+
+	require.Equal(t, before+1, fake.nftHistoryCalls,
+		"choosing another asset must re-read its open empty history")
+	require.Equal(t, "n2", fake.lastNFTHistoryID)
+}
+
 // TestNFTInspectResolvesManualWriteContext lets an id outside the visible
 // collection acquire the holder its Transfer/Burn cards need. A successful
 // Inspect is the authority when neither the row nor a previous read knew the
