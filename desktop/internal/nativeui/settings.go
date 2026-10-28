@@ -102,6 +102,9 @@ func (a *App) settingsView(c *ui.Context) {
 			readout(c, []readoutRow{
 				{"Pages", shortcutChord("1…8")},
 				{"Reload (data pages)", shortcutChord("R")},
+				{"Back up database", shortcutChord("B")},
+				{"Export lotteries", shortcutChord("E")},
+				{"Import lotteries", shortcutChord("I")},
 				{"Settings", shortcutChord(",")},
 				{"Command palette", shortcutChord("K")},
 			})

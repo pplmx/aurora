@@ -198,6 +198,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **macOS keeps the desktop file shortcuts**: the native menu was reduced to
+  platform roles, but Cmd+E/I/B still relied on it even though Aurora no longer
+  installed those items there. The window now registers export, import and
+  backup on every platform, Settings lists them, and background writes still
+  pause all three.
 - **Desktop file work pauses while a write owns the database**: the sidebar
   File menu, Ctrl/Cmd+E/I/B shortcuts, Refresh and command-palette file
   commands are unavailable while a background write is in flight, while page

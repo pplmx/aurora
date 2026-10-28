@@ -1,7 +1,8 @@
 package nativeui
 
 import (
-	"runtime"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -61,12 +62,9 @@ func TestSidebarActionsMenuDisablesWhatItCannotDo(t *testing.T) {
 }
 
 // TestActionShortcutsSurviveTheMissingMenu pins Cmd/Ctrl+E/I/B after the
-// native menu is gone on Linux and Windows: the window registers them itself.
-// macOS gets them from the application menu, so the test skips there.
+// native menu was reduced to platform roles: the window registers them on
+// every OS, including macOS where no Aurora File items remain.
 func TestActionShortcutsSurviveTheMissingMenu(t *testing.T) {
-	if runtime.GOOS == "darwin" {
-		t.Skip("macOS carries these shortcuts on the application menu")
-	}
 	app := New(&fakeServices{})
 	var calls []string
 	app.SetActions(Actions{
@@ -81,6 +79,16 @@ func TestActionShortcutsSurviveTheMissingMenu(t *testing.T) {
 	tester.Key(platformRefreshModifier(), ui.KeyI)
 	tester.Key(platformRefreshModifier(), ui.KeyB)
 	require.Equal(t, []string{"export", "import", "backup"}, calls)
+}
+
+// TestFileShortcutsDoNotDelegateToTheNativeMenu prevents the macOS exception
+// from creeping back. Its platform File menu now owns only Close, so a runtime
+// GOOS branch would silently remove all three Aurora shortcuts there.
+func TestFileShortcutsDoNotDelegateToTheNativeMenu(t *testing.T) {
+	source, err := os.ReadFile("actions.go")
+	require.NoError(t, err)
+	require.False(t, strings.Contains(string(source), "runtime.GOOS"),
+		"file shortcuts must be window-owned on every platform")
 }
 
 // TestFileActionsPauseWhileAWriteOwnsTheDatabase keeps the File menu, its
@@ -102,12 +110,10 @@ func TestFileActionsPauseWhileAWriteOwnsTheDatabase(t *testing.T) {
 	require.NoError(t, tester.Click(fileLabel))
 	require.Empty(t, tester.Menu(), "a write must disable the File menu")
 
-	if runtime.GOOS != "darwin" {
-		tester.Key(platformRefreshModifier(), ui.KeyE)
-		tester.Key(platformRefreshModifier(), ui.KeyI)
-		tester.Key(platformRefreshModifier(), ui.KeyB)
-		require.Empty(t, calls, "file shortcuts must not bypass the busy gate")
-	}
+	tester.Key(platformRefreshModifier(), ui.KeyE)
+	tester.Key(platformRefreshModifier(), ui.KeyI)
+	tester.Key(platformRefreshModifier(), ui.KeyB)
+	require.Empty(t, calls, "file shortcuts must not bypass the busy gate")
 
 	tester.Key(platformRefreshModifier(), ui.KeyK)
 	tester.Frame()
