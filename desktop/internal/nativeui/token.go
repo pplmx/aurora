@@ -236,40 +236,35 @@ func (a *App) tokenList(c *ui.Context) {
 			emptyNote(c, fmt.Sprintf(tr("No tokens match “%s”."), strings.TrimSpace(a.token.search)))
 			return
 		}
-		a.token.list.Selected = &a.token.chosen
-		table := ui.Table(c, &a.token.list, []ui.TableColumn{
-			{Title: tr("ID"), Width: 150},
-			{Title: tr("Name"), MinWidth: 120},
-			{Title: tr("Symbol"), Width: 90},
-			// Supply is an int64 amount: the largest value is nineteen
-			// digits. The minimum leaves room for that at enlarged text
-			// sizes; the cell's tooltip keeps any value retrievable if the
-			// user narrows the column further.
-			{Title: tr("Supply"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-		}, len(rows), func(row, col int) {
-			t := rows[row]
-			switch col {
-			case 0:
-				tableTextFull(c, shortID(t.ID), t.ID)
-			case 1:
-				tableText(c, t.Name)
-			case 2:
-				tableText(c, t.Symbol)
-			case 3:
-				tableText(c, t.TotalSupply)
+		if stackedRecords(c) {
+			a.tokenListRecords(c, rows)
+		} else {
+			a.token.list.Selected = &a.token.chosen
+			table := ui.Table(c, &a.token.list, []ui.TableColumn{
+				{Title: tr("ID"), Width: 150},
+				{Title: tr("Name"), MinWidth: 120},
+				{Title: tr("Symbol"), Width: 90},
+				// Supply is an int64 amount: the largest value is nineteen
+				// digits. The minimum leaves room for that at enlarged text
+				// sizes; the cell's tooltip keeps any value retrievable if the
+				// user narrows the column further.
+				{Title: tr("Supply"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
+			}, len(rows), func(row, col int) {
+				t := rows[row]
+				switch col {
+				case 0:
+					tableTextFull(c, shortID(t.ID), t.ID)
+				case 1:
+					tableText(c, t.Name)
+				case 2:
+					tableText(c, t.Symbol)
+				case 3:
+					tableText(c, t.TotalSupply)
+				}
+			})
+			if table.Changed() {
+				a.chooseToken(rows, a.token.chosen)
 			}
-		})
-		if table.Changed() && a.token.chosen >= 0 && a.token.chosen < len(rows) {
-			chosen := rows[a.token.chosen]
-			a.token.tokenID = chosen.ID
-			// The owner's public key is known from the record; fill the
-			// accounts the write forms ask for and drop the previous token's
-			// secrets and recipients.
-			a.rememberTokenSubjectOwner(chosen.ID, chosen.Owner)
-			a.applyTokenSubject(chosen.Owner)
-			// Whatever the Inspect, Balance or History cards show belongs to the
-			// previous token; re-read the open ones for the chosen token.
-			a.refreshToken()
 		}
 		if a.token.chosen >= 0 && a.token.chosen < len(rows) {
 			// The Supply column is a preview: its width cannot promise room
@@ -278,6 +273,55 @@ func (a *App) tokenList(c *ui.Context) {
 			readout(c, []readoutRow{{"Selected supply", rows[a.token.chosen].TotalSupply}})
 		}
 	})
+}
+
+// tokenListRecords preserves every collection fact when the four-column table
+// no longer fits enlarged text. Each record keeps the full id and exact supply
+// visible, and the whole panel is the selection target, so no field depends on
+// a horizontal scroll to identify the token it will make active.
+func (a *App) tokenListRecords(c *ui.Context, rows []TokenRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for i, token := range rows {
+			i, token := i, token
+			displayName := token.Name
+			if strings.TrimSpace(displayName) == "" {
+				displayName = shortID(token.ID)
+			}
+			selected := i == a.token.chosen
+			record := selectableRecordPanel(c, selected,
+				recordChoiceLabel(displayName, selected), func() {
+					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
+						TextColor(ui.Hex(ink))
+					ui.Row(c).FillWidth().Wrap().Gap(18).Children(func() {
+						recordMetric(c, "Symbol", valueOr(token.Symbol), ink)
+						recordMetric(c, "Supply", valueOr(token.TotalSupply), ink)
+					})
+					recordField(c, "ID", token.ID)
+				})
+			if record.Clicked() {
+				a.chooseToken(rows, i)
+			}
+		}
+	})
+}
+
+// chooseToken is the one selection path shared by the table and the compact
+// records. It makes the full row the subject of every other card and re-reads
+// whatever detail the previous token left open.
+func (a *App) chooseToken(rows []TokenRow, index int) {
+	if index < 0 || index >= len(rows) {
+		return
+	}
+	a.token.chosen = index
+	chosen := rows[index]
+	a.token.tokenID = chosen.ID
+	// The owner's public key is known from the record; fill the accounts the
+	// write forms ask for and drop the previous token's secrets and recipients.
+	a.rememberTokenSubjectOwner(chosen.ID, chosen.Owner)
+	a.applyTokenSubject(chosen.Owner)
+	// Whatever the Inspect, Balance or History cards show belongs to the
+	// previous token; re-read the open ones for the chosen token.
+	a.refreshToken()
 }
 
 func (a *App) tokenCreate(c *ui.Context) {

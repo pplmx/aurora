@@ -341,3 +341,109 @@ func TestTextAreasScaleWithLargeText(t *testing.T) {
 	require.GreaterOrEqual(t, bounds.H, float32(128),
 		"a multiline field must scale its full 64px height at 2x")
 }
+
+// TestTokenCollectionUsesRecordsAtLargeText replaces the four-column token
+// table when enlarged text no longer fits it. At 2x in the minimum window the
+// Supply header was clipped to 16px, a long token name to 100px, and even the
+// shortened id lost characters, so the collection could not identify its own
+// rows without horizontal scrolling.
+func TestTokenCollectionUsesRecordsAtLargeText(t *testing.T) {
+	const (
+		tokenID = "token-0123456789abcdef"
+		name    = "A treasury token whose full name must remain readable"
+		supply  = "9223372036854775807"
+	)
+	app := New(&fakeServices{tokenRows: []TokenRow{{
+		ID: tokenID, Name: name, Symbol: "TREASURY", TotalSupply: supply,
+	}}})
+	app.ShowPage("Token")
+
+	var nameWidth, nameHeight, supplyLabelWidth float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		nameWidth, nameHeight = c.MeasureText(0, ui.Span{
+			Text: name, Size: textSize(c, 13),
+		})
+		supplyLabelWidth, _ = c.MeasureText(0, ui.Span{
+			Text: "Supply", Size: textSize(c, 10),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(name)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	nameRect, ok := tester.Find(name)
+	require.True(t, ok)
+	require.True(t, nameRect.W >= nameWidth || nameRect.H >= 1.5*nameHeight,
+		"the full token name must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		nameRect, nameWidth, nameHeight)
+
+	supplyLabel, ok := tester.Find("Supply")
+	require.True(t, ok)
+	require.GreaterOrEqual(t, supplyLabel.W, supplyLabelWidth,
+		"the Supply label must keep its full width in a record")
+	require.True(t, tester.HasText(tokenID),
+		"the record must show the full token id, not only the table's abbreviation")
+
+	require.NoError(t, tester.Click(name))
+	tester.Frame()
+	require.Equal(t, tokenID, app.token.tokenID,
+		"clicking the record must make the full token id the page's subject")
+	require.Equal(t, 0, app.token.chosen)
+	_, ok = tester.Find(fmt.Sprintf(tr("Selected %s"), name))
+	require.True(t, ok, "the chosen record must announce its selected state")
+	require.True(t, tester.HasText("Selected supply"))
+}
+
+// TestNFTCollectionUsesRecordsAtLargeText applies the same large-text rule to
+// the asset collection. Its name cell was clipped to a short prefix while the
+// id column showed only a fragment, so the row could not identify the asset
+// before the operator made it the subject of four write cards.
+func TestNFTCollectionUsesRecordsAtLargeText(t *testing.T) {
+	const (
+		nftID = "nft-0123456789abcdef"
+		name  = "A generative artwork whose full name remains readable"
+	)
+	app := New(&fakeServices{nftRows: []NFTRow{{
+		ID: nftID, Name: name, BlockHeight: 42,
+	}}})
+	app.ShowPage("NFT")
+
+	var nameWidth, nameHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		nameWidth, nameHeight = c.MeasureText(0, ui.Span{
+			Text: name, Size: textSize(c, 13),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(name)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	nameRect, ok := tester.Find(name)
+	require.True(t, ok)
+	require.True(t, nameRect.W >= nameWidth || nameRect.H >= 1.5*nameHeight,
+		"the full NFT name must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		nameRect, nameWidth, nameHeight)
+	require.True(t, tester.HasText(nftID),
+		"the record must show the full NFT id before it becomes the subject")
+
+	require.NoError(t, tester.Click(name))
+	tester.Frame()
+	for _, id := range []string{
+		app.nft.id, app.nft.transferID, app.nft.burnID, app.nft.historyID,
+	} {
+		require.Equal(t, nftID, id)
+	}
+	require.Equal(t, 0, app.nft.selected)
+	_, ok = tester.Find(fmt.Sprintf(tr("Selected %s"), name))
+	require.True(t, ok, "the chosen record must announce its selected state")
+}

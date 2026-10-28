@@ -124,6 +124,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Token and NFT collections stay identifiable at large text**: the token and
+  NFT tables kept fixed id, name and symbol widths while their labels doubled
+  at 2x text. In the minimum window the Supply header collapsed to 16px, a
+  token name to 100px and an NFT name to 90px, and both ids were shortened
+  before the operator could choose a row. At the same 1.75x threshold as the
+  wide histories, both collections now become selectable records with the full
+  name, exact supply or block height, and complete id visible; the whole record
+  remains the control that loads the asset into every other card.
 - **The Oracle SSRF policy now enforces every non-public class it claims**:
   the shared block list still accepted IPv4 multicast and the TEST-NET
   documentation ranges, and 6to4/benchmark IPv6 addresses could route around
