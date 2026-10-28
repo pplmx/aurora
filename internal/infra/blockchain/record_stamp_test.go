@@ -91,3 +91,37 @@ func TestStampRecordHeight(t *testing.T) {
 		t.Fatal("stampRecordHeight() should error on non-JSON input")
 	}
 }
+
+// TestStampRecordHeight_PreservesIntegerPrecision keeps unrelated JSON values
+// byte-for-byte meaningful while only replacing block_height. Decoding into
+// map[string]any turns every number into float64, so a nonce or timestamp above
+// 2^53 would silently change on its way into the immutable ledger.
+func TestStampRecordHeight_PreservesIntegerPrecision(t *testing.T) {
+	in := `{"id":"abc","block_height":0,"nonce":9007199254740993,"timestamp":9223372036854775807}`
+	out, err := stampRecordHeight(in, 7)
+	if err != nil {
+		t.Fatalf("stampRecordHeight() error = %v", err)
+	}
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(out), &fields); err != nil {
+		t.Fatalf("stamped payload is not valid JSON: %v", err)
+	}
+	if got := string(fields["nonce"]); got != "9007199254740993" {
+		t.Fatalf("nonce = %s, want exact int64 token 9007199254740993", got)
+	}
+	if got := string(fields["timestamp"]); got != "9223372036854775807" {
+		t.Fatalf("timestamp = %s, want exact int64 token 9223372036854775807", got)
+	}
+}
+
+// TestStampRecordHeight_RejectsNonObjectJSON covers valid JSON that cannot
+// carry block_height. Unmarshalling null into a map leaves it nil, and the old
+// assignment then panicked instead of treating the payload as unstampable.
+func TestStampRecordHeight_RejectsNonObjectJSON(t *testing.T) {
+	for _, in := range []string{"null", "[]", `"value"`, "42"} {
+		if _, err := stampRecordHeight(in, 7); err == nil {
+			t.Errorf("stampRecordHeight(%s) unexpectedly succeeded", in)
+		}
+	}
+}

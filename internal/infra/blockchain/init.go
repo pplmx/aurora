@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/pplmx/aurora/internal/logger"
@@ -557,16 +558,20 @@ func (c *Chain) AddRecord(data string) (int64, error) {
 
 // stampRecordHeight rewrites the block_height field of a JSON audit record to
 // the given height. Non-JSON payloads (e.g. tests passing bare strings) error
-// and are stored unchanged. Re-marshalling via a map drops the original key
-// order but preserves every value; the chain payload is opaque text so
-// ordering is irrelevant.
+// and are stored unchanged. RawMessage keeps every unrelated value exact while
+// replacing only block_height; decoding through map[string]any would round
+// integers above 2^53. Re-marshalling drops the original key order, which is
+// immaterial for an opaque chain payload.
 func stampRecordHeight(data string, height int64) (string, error) {
-	var m map[string]any
-	if err := json.Unmarshal([]byte(data), &m); err != nil {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(data), &fields); err != nil {
 		return "", err
 	}
-	m["block_height"] = height
-	b, err := json.Marshal(m)
+	if fields == nil {
+		return "", errors.New("record must be a JSON object")
+	}
+	fields["block_height"] = json.RawMessage(strconv.FormatInt(height, 10))
+	b, err := json.Marshal(fields)
 	if err != nil {
 		return "", err
 	}

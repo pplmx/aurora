@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Height stamping no longer rounds audit-ledger numbers**: adding
+  `block_height` decoded the whole JSON record through `map[string]any`, which
+  turned every integer into a `float64`; values above 2^53 could change on
+  their way into the immutable chain, and the valid JSON value `null` caused a
+  nil-map panic. Stamping now edits only the `block_height` entry through
+  `json.RawMessage`, preserving every unrelated number exactly and rejecting
+  non-object JSON without panicking.
 - **Ledger corruption discovered after startup now fails closed**: the
   append-time database sync rebuilt the in-memory chain from rows without
   verifying them, then logged any sync error and continued appending. A block
