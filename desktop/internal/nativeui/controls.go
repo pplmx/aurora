@@ -78,7 +78,7 @@ func dangerButton(c *ui.Context, label string) ui.Element {
 // value, for instance, which should not compete with the card's main button.
 func quietButton(c *ui.Context, label string) ui.Element {
 	label = tr(label)
-	b := ui.ButtonBase(c).Height(26).PaddingX(10).Radius(6).
+	b := ui.ButtonBase(c).Height(max(26, textSize(c, 26))).PaddingX(textSize(c, 10)).Radius(6).
 		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(inkMuted))
 	fill := ui.Transparent
 	if b.Hovered() || b.Pressed() {
