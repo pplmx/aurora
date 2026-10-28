@@ -56,6 +56,30 @@ func TestCommandPaletteTakesTypingImmediately(t *testing.T) {
 	require.False(t, app.paletteOpen)
 }
 
+// TestCommandPaletteExposesTheActiveRow keeps the keyboard highlight from
+// being visual-only. The search field owns typing, while its active descendant
+// names the row the arrows are on and that row's description states the action.
+func TestCommandPaletteExposesTheActiveRow(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+
+	_, ok := tester.Find(tr("Pages and commands"))
+	require.True(t, ok, "the result list must have an accessible name")
+	tester.Key(0, ui.KeyDown)
+	tester.Frame()
+	require.Equal(t, 1, app.paletteChoice)
+
+	source, err := os.ReadFile("app.go")
+	require.NoError(t, err)
+	require.True(t, strings.Contains(string(source), "search.ActiveDescendant(row)"),
+		"the focused search field must point at the highlighted command")
+	require.True(t, strings.Contains(string(source), "Description(tr(entry.detail))"),
+		"each command must describe what selecting it does")
+}
+
 // TestStatusOutcomeIsAnnouncedOnce covers feedback that appears away from the
 // focused control. Every new outcome carries a successful/failed word, but a
 // screen reader needs the change announced rather than silently painted.

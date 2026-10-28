@@ -180,7 +180,8 @@ func (a *App) commandPalette(c *ui.Context) {
 		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
 		heading(c, tr("Jump to"), 17, 2)
-		submitted := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).AutoFocus().Submitted()
+		search := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).AutoFocus()
+		submitted := search.Submitted()
 		queryChanged := a.paletteQuery != a.paletteApplied
 		if queryChanged {
 			a.paletteApplied = a.paletteQuery
@@ -203,12 +204,17 @@ func (a *App) commandPalette(c *ui.Context) {
 		a.paletteReveal = false
 		list := ui.Scroll(c).FillWidth().Gap(10).
 			MaxHeight(paletteListHeight(c, len(matches))).
-			TrackScroll(&a.paletteScroll)
+			TrackScroll(&a.paletteScroll).Label(tr("Pages and commands"))
 		list.Children(func() {
 			for i, entry := range matches {
 				row, clicked := paletteRow(c, entry, i == a.paletteChoice)
-				if i == a.paletteChoice && reveal {
-					row.ScrollIntoView()
+				if i == a.paletteChoice {
+					// Keep the input focused for typing while assistive
+					// technology follows the row the arrows selected.
+					search.ActiveDescendant(row)
+					if reveal {
+						row.ScrollIntoView()
+					}
 				}
 				if clicked || (submitted && i == a.paletteChoice) {
 					a.paletteOpen = false
@@ -282,7 +288,8 @@ func (a *App) paletteMatches() []paletteEntry {
 func paletteRow(c *ui.Context, entry paletteEntry, selected bool) (ui.Element, bool) {
 	title := tr(entry.title)
 	b := ui.ButtonBase(c).FillWidth().Height(paletteRowHeight(c)).PaddingX(10 * textScale(c)).Radius(8).
-		AlignItems(ui.Center).Label(title).TextColor(c.Theme().Text).Selected(selected)
+		AlignItems(ui.Center).Label(title).Description(tr(entry.detail)).
+		TextColor(c.Theme().Text).Selected(selected)
 	fill := ui.Transparent
 	if selected {
 		fill = c.Theme().Selection
