@@ -59,11 +59,11 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 		return
 	}
 	label = tr(label)
-	ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
 			TextColor(ui.Hex(inkMuted)).SingleLine()
 		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).
-			SingleLine().Ellipsis("…").Tooltip(value)
+			Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(value)
 		if quietButton(c, tr("Copy")+" "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
 			c.Services().WriteClipboard(value)

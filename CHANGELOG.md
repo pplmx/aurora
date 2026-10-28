@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **One-time key previews survive large text**: in generated-key and other
+  copy rows, the fixed label and full copy action consumed the whole line at
+  2x text, collapsing the value itself to zero width. The value now keeps
+  readable space and the copy action wraps below it when necessary, so an
+  operator can see the secret before copying it.
 - **Oracle actions wrap before they reach the window edge**: Enable, Disable,
   Fetch now and Delete shared one unwrapped row. At 2x text in the minimum
   window the destructive Delete button was pushed past the right edge. The
