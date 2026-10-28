@@ -7,7 +7,9 @@ level = "info"
 path = "./logs/"
 
 [db]
-# SQLite is the only supported backend; path is the database file location.
+# SQLite is the only supported backend. path is the database file location;
+# disk-backed file: URIs (including percent-escaped paths) are accepted.
+# Memory databases are for tests only and cannot be backed up.
 path = "./data/aurora.db"
 
 [migrate]

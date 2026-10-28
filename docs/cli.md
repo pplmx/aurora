@@ -159,6 +159,9 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
 
 备份目录不能被指定为数据库自身所在目录（会把 live DB 覆盖成快照）；
 `backup create` 先写同目录临时文件再原子改名，失败不会破坏上一份可用备份。
+`db.path` 若使用磁盘型 SQLite `file:` URI，备份与恢复会先解码到真实文件路径；
+`:memory:` 或 `mode=memory` 数据库没有可备份的磁盘状态，会在创建输出目录前
+直接报错。
 
 ## 确认门与错误输出
 

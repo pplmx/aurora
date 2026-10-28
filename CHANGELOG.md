@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Backups resolve disk-backed SQLite `file:` URIs before touching output**:
+  `backup create` used to look for a literal path beginning with `file:` and
+  fail on a valid URI-backed database, while `backup restore` planned its
+  writes against that same non-path. Backup services now normalize every
+  configured location before schema reads, source checks, restore planning, or
+  archive validation; schema metadata remains correct, and memory-backed
+  configurations are rejected before an output directory is created.
 - **Disk-backed SQLite `file:` URIs receive the same owner-only boundary**:
   permission hardening previously skipped every `file:` DSN, leaving a
   percent-encoded or absolute disk database and its WAL, shared-memory, and
