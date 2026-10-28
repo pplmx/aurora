@@ -337,7 +337,7 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 	if id := strings.TrimSpace(a.oracle.fetchID); id != "" {
 		target := shortID(id)
 		if name := strings.TrimSpace(a.oracle.deleteName); name != "" {
-			target = name + " (" + shortID(id) + ")"
+			target = conciseText(name, 32) + " (" + shortID(id) + ")"
 		}
 		detail = fmt.Sprintf(tr("Delete %s? Its scheduling entry is removed; readings already stored stay."), target)
 	}

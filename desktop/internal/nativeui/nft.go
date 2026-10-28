@@ -770,7 +770,7 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 	if id := strings.TrimSpace(a.nft.burnID); id != "" {
 		target := shortID(id)
 		if a.nft.nft != nil && a.nft.nft.ID == id && a.nft.nft.Name != "" {
-			target = a.nft.nft.Name + " (" + shortID(id) + ")"
+			target = conciseText(a.nft.nft.Name, 32) + " (" + shortID(id) + ")"
 		}
 		detail = fmt.Sprintf(tr("Burn %s? The asset is destroyed and cannot be recovered."), target)
 	}

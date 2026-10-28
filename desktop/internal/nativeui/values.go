@@ -123,6 +123,22 @@ func abbreviate(value string) string {
 	return value[:head] + "…" + value[len(value)-tail:]
 }
 
+// conciseText bounds a user-supplied name in prose prompts. Dialog messages
+// have a fixed width and no scroll, so a maximum-length NFT name at a large
+// text scale could push the irreversible action's buttons below the window.
+// The prompt still carries the unique shortened id beside this readable prefix.
+func conciseText(value string, limit int) string {
+	value = strings.TrimSpace(value)
+	if limit <= 0 {
+		return value
+	}
+	chars := []rune(value)
+	if len(chars) <= limit {
+		return value
+	}
+	return string(chars[:limit]) + "…"
+}
+
 // loadWarning reports a failed refresh above whatever the page already showed.
 //
 // Every loader keeps its previous rows when a read fails, but the views used to

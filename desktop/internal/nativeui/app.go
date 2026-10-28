@@ -50,6 +50,8 @@ type App struct {
 	paletteQuery   string
 	paletteApplied string
 	paletteChoice  int
+	paletteScroll  ui.ScrollState
+	paletteReveal  bool
 	// backgroundWrites is enabled by the real desktop. Tests keep the default
 	// synchronous path so a handler's returned state is deterministic; the app
 	// uses it to show a busy banner while a service call runs off the frame
@@ -116,7 +118,7 @@ func (a *App) Services() Services { return a.services }
 func (a *App) View(c *ui.Context) {
 	a.invalidate = c.Invalidate
 	a.pollAsync(c)
-	c.SetTheme(auroraTheme(c.Preferences().HighContrast))
+	c.SetTheme(auroraThemeFor(c.Preferences()))
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
 		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).Children(func() {
@@ -155,7 +157,9 @@ type paletteEntry struct {
 // action without leaving the current form. Dialogs keep their own confirmation
 // model; the palette only invokes the same callbacks as the File menu.
 func (a *App) commandPalette(c *ui.Context) {
-	panel := ui.Column(c).Width(520).Padding(18).Gap(10).Radius(14).
+	width, height := c.Size()
+	panelWidth := min(520*textScale(c), width-100)
+	panel := ui.Column(c).Width(panelWidth).MaxHeight(height-40).Padding(18).Gap(10).Radius(14).
 		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
 		ui.Text(c, tr("Jump to")).FontSize(textSize(c, 17)).Bold().TextColor(ui.Hex(ink))
@@ -163,6 +167,7 @@ func (a *App) commandPalette(c *ui.Context) {
 		if a.paletteQuery != a.paletteApplied {
 			a.paletteApplied = a.paletteQuery
 			a.paletteChoice = 0
+			a.paletteScroll.Y = 0
 		}
 		matches := a.paletteMatches()
 		if len(matches) == 0 {
@@ -175,25 +180,38 @@ func (a *App) commandPalette(c *ui.Context) {
 		if a.paletteChoice < 0 {
 			a.paletteChoice = 0
 		}
-		for i, entry := range matches {
-			if paletteRow(c, entry, i == a.paletteChoice) || (submitted && i == a.paletteChoice) {
-				a.paletteOpen = false
-				if entry.action != nil {
-					entry.action()
-				} else {
-					a.setPage(entry.page)
+		reveal := a.paletteReveal
+		a.paletteReveal = false
+		list := ui.Scroll(c).FillWidth().Gap(10).
+			MaxHeight(paletteListHeight(c, len(matches))).
+			TrackScroll(&a.paletteScroll)
+		list.Children(func() {
+			for i, entry := range matches {
+				row, clicked := paletteRow(c, entry, i == a.paletteChoice)
+				if i == a.paletteChoice && reveal {
+					row.ScrollIntoView()
 				}
-				return
+				if clicked || (submitted && i == a.paletteChoice) {
+					a.paletteOpen = false
+					if entry.action != nil {
+						entry.action()
+					} else {
+						a.setPage(entry.page)
+					}
+					return
+				}
 			}
-		}
+		})
 	})
 	// Arrow keys move the highlight; Enter is handled by SearchField above.
 	if panel.OverlayShortcut(0, ui.KeyDown) {
 		a.paletteChoice++
+		a.paletteReveal = true
 		c.Invalidate()
 	}
 	if panel.OverlayShortcut(0, ui.KeyUp) {
 		a.paletteChoice--
+		a.paletteReveal = true
 		c.Invalidate()
 	}
 }
@@ -242,9 +260,9 @@ func (a *App) paletteMatches() []paletteEntry {
 	return matches
 }
 
-func paletteRow(c *ui.Context, entry paletteEntry, selected bool) bool {
+func paletteRow(c *ui.Context, entry paletteEntry, selected bool) (ui.Element, bool) {
 	title := tr(entry.title)
-	b := ui.ButtonBase(c).FillWidth().Height(48).PaddingX(10).Radius(8).
+	b := ui.ButtonBase(c).FillWidth().Height(paletteRowHeight(c)).PaddingX(10 * textScale(c)).Radius(8).
 		AlignItems(ui.Center).Label(title).TextColor(ui.Hex(ink)).Selected(selected)
 	fill := ui.Transparent
 	if selected {
@@ -256,14 +274,30 @@ func paletteRow(c *ui.Context, entry paletteEntry, selected bool) bool {
 	b.Background(fill)
 	b.Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, entry.icon).Size(18, 18).TextColor(ui.Hex(aurora))
+			size := 18 * textScale(c)
+			ui.Icon(c, entry.icon).Size(size, size).TextColor(ui.Hex(aurora))
 			ui.Column(c).Gap(1).Children(func() {
 				ui.Text(c, title).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(ink)).SingleLine()
 				ui.Text(c, tr(entry.detail)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
 			})
 		})
 	})
-	return b.Clicked()
+	return b, b.Clicked()
+}
+
+func paletteRowHeight(c *ui.Context) float32 {
+	return 48 * textScale(c)
+}
+
+func paletteListHeight(c *ui.Context, rows int) float32 {
+	if rows <= 0 {
+		return 0
+	}
+	_, height := c.Size()
+	rowHeight := paletteRowHeight(c)
+	contentHeight := float32(rows)*rowHeight + float32(rows-1)*10
+	availableHeight := max(rowHeight, height-190)
+	return min(contentHeight, availableHeight)
 }
 
 // pageStatus is the transient outcome line of the current page.
@@ -392,6 +426,8 @@ func (a *App) header(c *ui.Context) {
 		a.paletteQuery = ""
 		a.paletteApplied = ""
 		a.paletteChoice = 0
+		a.paletteScroll.Y = 0
+		a.paletteReveal = false
 		a.paletteOpen = true
 	}
 	if c.Shortcut(platformRefreshModifier(), ui.KeyComma) {

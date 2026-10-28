@@ -711,6 +711,53 @@ func TestCommandPaletteArrowSelection(t *testing.T) {
 	require.Equal(t, pageVoting, app.page)
 }
 
+// TestCommandPaletteKeepsLongListReachableAtMinimumHeight covers the
+// keyboard-first switcher in the shortest supported window. Its page and file
+// commands used to extend below the viewport with no scroll, so moving the
+// selection to a lower command changed an invisible row.
+func TestCommandPaletteKeepsLongListReachableAtMinimumHeight(t *testing.T) {
+	for _, scale := range []float32{1, 1.5} {
+		t.Run(fmt.Sprintf("scale-%g", scale), func(t *testing.T) {
+			app := New(&fakeServices{})
+			imported := false
+			app.SetActions(Actions{
+				BackUpDatabase:  func() {},
+				ExportLotteries: func() {},
+				ImportLotteries: func() { imported = true },
+			})
+			tester := ui.NewTester(app.View, 900, 600)
+			if scale != 1 {
+				tester.SetPreferences(ui.Preferences{TextScale: scale})
+			}
+			tester.Frame()
+			tester.Key(platformRefreshModifier(), ui.KeyK)
+			tester.Frame()
+
+			matches := app.paletteMatches()
+			require.Greater(t, len(matches), 10)
+			last := tr(matches[len(matches)-1].title)
+			require.Equal(t, tr("Import lotteries…"), last)
+
+			for range matches[1:] {
+				tester.Key(0, ui.KeyDown)
+				tester.Frame()
+			}
+			rect, ok := tester.Find(last)
+			require.True(t, ok, "the selected command must stay in the built list")
+			require.Greater(t, rect.W, float32(0))
+			require.Greater(t, rect.H, float32(0))
+			require.GreaterOrEqual(t, rect.Y, float32(0))
+			require.LessOrEqual(t, rect.Y+rect.H, float32(600),
+				"the selected command must be revealed inside the window")
+
+			tester.Key(0, ui.KeyEnter)
+			tester.Frame()
+			require.True(t, imported, "the visible selection must still run its command")
+			require.False(t, app.paletteOpen)
+		})
+	}
+}
+
 // TestStatusLineCanBeDismissed keeps a stale success from describing the next
 // action; the fixed strip is dismissible without waiting for a page switch.
 func TestStatusLineCanBeDismissed(t *testing.T) {
