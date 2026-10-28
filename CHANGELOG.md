@@ -52,7 +52,8 @@ documented in their per-milestone ROADMAP files.
   arrow-selected row as its active descendant, and each row's effect is part of
   its accessible description. Closing the palette with Escape or by choosing
   an entry hands keyboard focus to the named Navigation sidebar instead of
-  letting the disposed search field leave the window without focus.
+  letting the disposed search field leave the window without focus. Ctrl/Cmd+
+  number page shortcuts do the same when they replace the focused page control.
 
 - **Desktop shortcuts describe their real scope**: Settings now marks Reload as
   a data-page action instead of claiming every shortcut works on every page.

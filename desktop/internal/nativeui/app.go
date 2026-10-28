@@ -486,11 +486,11 @@ func (a *App) header(c *ui.Context) {
 		a.paletteOpen = true
 	}
 	if c.Shortcut(platformRefreshModifier(), ui.KeyComma) {
-		a.setPage(pageSettings)
+		a.navigateByKeyboard(c, pageSettings)
 	}
 	for i, p := range pageOrder {
 		if c.Shortcut(platformRefreshModifier(), ui.Key(int(ui.Key1)+i)) {
-			a.setPage(p)
+			a.navigateByKeyboard(c, p)
 		}
 	}
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
@@ -519,6 +519,18 @@ func (a *App) header(c *ui.Context) {
 		}
 	})
 	ui.Divider(c)
+}
+
+// navigateByKeyboard changes the page from a window-wide shortcut and gives
+// the new context a real focus target. The old page's focused control is
+// disposed by the switch, so leaving focus at the window root would make the
+// next Tab start from an unpredictable place.
+func (a *App) navigateByKeyboard(c *ui.Context, p page) {
+	if a.page == p {
+		return
+	}
+	a.setPage(p)
+	a.navigationControl.Focus(c)
 }
 
 // platformRefreshModifier is the modifier a desktop uses for "reload".

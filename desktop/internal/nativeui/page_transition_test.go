@@ -77,6 +77,8 @@ func TestPageSwitchDropsTheOldPagesTextFocus(t *testing.T) {
 	tester.Key(platformRefreshModifier(), ui.Key5)
 	tester.Frame()
 	require.Equal(t, pageOracle, app.page)
+	require.True(t, tester.Focused("Navigation"),
+		"the keyboard shortcut must land on the navigation rather than the window root")
 	active, _ := tester.TextInputActive()
 	require.False(t, active, "the Token input must not keep text focus on Oracle")
 
