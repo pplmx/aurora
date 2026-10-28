@@ -455,6 +455,12 @@ var pagePurpose = map[page]string{
 // it lets setPage reset the offset explicitly instead of relying on the old
 // content happening to clamp it.
 func (a *App) scrollPage(c *ui.Context, fn func()) {
+	// Each page has its own content tree and scroll state. Give the scroll
+	// widget a page identity so MyGo does not reconcile one page's controls
+	// into the next page's tree when the two have different shapes. Without
+	// this, Oracle -> NFT reused an incompatible layout and clipped the Mint
+	// button at the bottom of its card.
+	c.Key(a.page)
 	ui.Scroll(c).Fill().TrackScroll(&a.scroll).Children(fn)
 }
 

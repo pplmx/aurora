@@ -124,6 +124,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Page switches preserve the destination layout**: the desktop's shared
+  scroll container now carries a page identity instead of being reused by tree
+  position. Opening NFT after Oracle previously reconciled the two distinct
+  layouts and clipped the Mint button at 1.5x text.
 - **Token operations keep their column**: the desktop Token page moved the
   read-only Allowance query from the sixth write tab to the left work column.
   The right column now contains the five mutating operations, so `Burn` remains
