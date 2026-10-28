@@ -181,7 +181,7 @@ func (a *App) oracleView(c *ui.Context) {
 		twoColumns(c, func() {
 			a.oracleAdd(c)
 		}, func() {
-			tabs(c, &a.oracle.tab, tr("Sources"), tr("Health"), tr("Readings"))
+			tabs(c, &a.oracle.tab, "Oracle sections", tr("Sources"), tr("Health"), tr("Readings"))
 			switch a.oracle.tab {
 			case 0:
 				a.oracleSources(c)

@@ -108,7 +108,7 @@ func TestActionCardIsKeyboardOperable(t *testing.T) {
 func TestTabsAreKeyboardOperable(t *testing.T) {
 	selected := 0
 	tester := ui.NewTester(func(c *ui.Context) {
-		tabs(c, &selected, "Mint", "Transfer", "Approve")
+		tabs(c, &selected, "Token actions", "Mint", "Transfer", "Approve")
 	}, 500, 100)
 	tester.Frame()
 
@@ -126,6 +126,49 @@ func TestTabsAreKeyboardOperable(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, 0, selected, "Right on the last tab wraps to the first")
 	require.True(t, tester.Focused(tr("Mint")))
+}
+
+// TestNavigationAndTabListsExposeNames gives each tree and tab list a name.
+// Without them assistive technology announces an unnamed navigation tree or
+// tab list, forcing the operator to infer the region from its first item.
+func TestNavigationAndTabListsExposeNames(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 1800)
+	tester.Frame()
+	_, ok := tester.Find(tr("Navigation"))
+	require.True(t, ok, "the sidebar tree must be named Navigation")
+
+	for _, tc := range []struct {
+		page page
+		name string
+	}{
+		{pageVoting, "Voting sections"},
+		{pageToken, "Token actions"},
+		{pageOracle, "Oracle sections"},
+		{pageNFT, "NFT actions"},
+	} {
+		app.ShowPage(pageIDs[tc.page])
+		tester.Frame()
+		_, ok := tester.Find(tr(tc.name))
+		require.Truef(t, ok, "%s must name its tab list %q", pageTitles[tc.page], tc.name)
+	}
+}
+
+// TestSessionTimeControlsNameTheirPurpose distinguishes the date button and
+// each time segment. MyGo names a TimeInput's spin buttons after its Label and
+// "hours"/"minutes"; without the Label both start and end controls announce
+// only those generic segment words.
+func TestSessionTimeControlsNameTheirPurpose(t *testing.T) {
+	app := New(&fakeServices{})
+	app.ShowPage(pageIDs[pageVoting])
+	tester := ui.NewTester(app.View, 1280, 1800)
+	tester.SetLocale("en")
+	tester.Frame()
+
+	for _, label := range []string{"Start date", "Start time", "End date", "End time"} {
+		_, ok := tester.Find(tr(label))
+		require.Truef(t, ok, "the session form must expose %q", label)
+	}
 }
 
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.

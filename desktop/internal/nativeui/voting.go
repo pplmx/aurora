@@ -356,7 +356,7 @@ func (a *App) votingView(c *ui.Context) {
 			"Open Ballot to start the session and cast signed ballots.",
 			"Open Results and select or enter the session to read the tally.",
 		)
-		tabs(c, &a.voting.tab, tr("Setup"), tr("Ballot"), tr("Results"))
+		tabs(c, &a.voting.tab, "Voting sections", tr("Setup"), tr("Ballot"), tr("Results"))
 		switch a.voting.tab {
 		case 0:
 			twoColumns(c, func() {
@@ -711,8 +711,8 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	ui.Field(c, tr("Start"), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.DateInput(c, &a.voting.sessionStart)
-				ui.TimeInput(c, &a.voting.sessionStart)
+				ui.DateInput(c, &a.voting.sessionStart).Label(tr("Start date"))
+				ui.TimeInput(c, &a.voting.sessionStart).Label(tr("Start time"))
 			})
 			hint(c, "Local time. Ballots are rejected before it.")
 		})
@@ -720,8 +720,8 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	ui.Field(c, tr("End"), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.DateInput(c, &a.voting.sessionEnd)
-				ui.TimeInput(c, &a.voting.sessionEnd)
+				ui.DateInput(c, &a.voting.sessionEnd).Label(tr("End date"))
+				ui.TimeInput(c, &a.voting.sessionEnd).Label(tr("End time"))
 			})
 			hint(c, "Local time. Ballots are rejected after it.")
 		})
