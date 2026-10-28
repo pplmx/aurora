@@ -30,6 +30,12 @@ func SQLiteDSN(dbPath, query string) string {
 	}
 
 	path := filepath.ToSlash(dbPath)
+	if runtime.GOOS != "windows" && filepath.IsAbs(dbPath) && strings.HasPrefix(path, "//") {
+		// In a SQLite file URI, a second leading slash starts an authority.
+		// POSIX treats repeated leading slashes as the same root, so collapse
+		// them instead of producing file://host-style names.
+		path = "/" + strings.TrimLeft(path, "/")
+	}
 	if runtime.GOOS == "windows" && filepath.IsAbs(dbPath) && !strings.HasPrefix(path, "//") {
 		// A Windows drive path needs the slash before C: in a file URI.
 		path = "/" + path

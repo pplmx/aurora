@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **SQLite accepts database paths with repeated leading slashes**: a POSIX
+  path such as `//srv/aurora.db` was emitted as `file://srv/aurora.db?...`, so
+  SQLite treated `srv` as a URI authority and refused to open the database.
+  Leading slashes now collapse to the URI root while special-character
+  escaping, relative paths, `:memory:`, and explicit `file:` DSNs keep their
+  existing behavior.
 - **Oracle source headers now follow net/http's request model**: a configured
   `Host` was stored in the ordinary header map, which `net/http` ignores when
   the request URL already has a host. It now populates `Request.Host`, survives
