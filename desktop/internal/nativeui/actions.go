@@ -2,7 +2,6 @@ package nativeui
 
 import (
 	"path/filepath"
-	"runtime"
 
 	"github.com/egoist/mygo/ui"
 
@@ -83,10 +82,10 @@ func (a Actions) empty() bool {
 }
 
 // actionShortcuts keeps the file shortcuts that used to come from the native
-// menu. Linux and Windows install no menu now, so the window registers
-// Cmd/Ctrl+E/I/B itself; macOS keeps them on the application menu.
+// menu. The native bar now carries platform roles only on every OS, so the
+// window registers Cmd/Ctrl+E/I/B itself instead of leaving macOS without them.
 func (a *App) actionShortcuts(c *ui.Context) {
-	if runtime.GOOS == "darwin" || a.busy != "" {
+	if a.busy != "" {
 		return
 	}
 	mod := platformRefreshModifier()

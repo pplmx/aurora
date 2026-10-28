@@ -359,7 +359,9 @@ just check && just test
   导出、导入和最近打开放在侧栏底部的 **File** 菜单（`ui.MenuButton`）；语言、
   数据位置、外观和构建信息放在侧栏 Application 区的 **Settings** 页面。macOS 的
   菜单栏归系统所有、无法移除，因此只保留平台角色（应用菜单、File→Close、Edit、
-  Window）；Aurora 自己的入口在三端都只在窗口内出现，菜单内容不再分叉。
+  Window）；Aurora 自己的入口在三端都只在窗口内出现，Cmd+E/I/B 也由同一个窗口
+  处理器接收，菜单内容与快捷键都不再分叉。Settings 的 Shortcuts 卡列出这三条
+  文件快捷键，用户不必先打开 File 菜单才能发现。
 - **文件动作**：File → Back Up Database… 调用与 CLI 相同的 `BackupService`
   （WAL 完整快照 + 校验和）；Export/Import Lotteries 调用与
   `aurora lottery export|import` 相同的 app 层函数（同一序列化格式、同一覆盖
