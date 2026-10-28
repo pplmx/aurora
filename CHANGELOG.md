@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The Chinese desktop no longer leaks two operational labels in English**:
+  the banner shown after a write runs for 20 seconds and the ledger's
+  “Entries X–Y of Z” count now use the desktop translation table like the rest
+  of the window.
+
 - **Session rosters resolve candidate names beyond the visible page**: the
   desktop candidate list pages at 100 rows, but a selected session's audit
   roster previously looked up names only in that page and fell back to opaque

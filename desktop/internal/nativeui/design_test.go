@@ -239,6 +239,32 @@ func TestChineseUIRendersTheWorkbench(t *testing.T) {
 	}
 }
 
+// TestChineseUIRendersBusyAndLedgerPagerCopy covers two labels that bypassed
+// the desktop table: the long-running write banner and the ledger's "of N"
+// pager count used to fall back to English in an otherwise Chinese window.
+func TestChineseUIRendersBusyAndLedgerPagerCopy(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+
+	tr.SetLocale("zh")
+	blocks := make([]BlockRow, 12)
+	for i := range blocks {
+		blocks[i] = BlockRow{Height: int64(len(blocks) - i), Module: "lottery"}
+	}
+	app := New(&fakeServices{blocks: blocks})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	app.blockchain.blockLimit = 10
+	tester.Frame()
+	require.True(t, tester.HasText("第 1–10 条，共 12 条"))
+
+	app.busy = "Casting vote…"
+	app.busySince = time.Now().Add(-21 * time.Second)
+	tester.Frame()
+	require.True(t, tester.HasText("仍在处理… 这可能需要一些时间；操作会自行完成。"))
+}
+
 // TestEveryContentPageHasAHowThisWorksGuide keeps the plain-language steps on
 // every module page: the guide is closed by default, but one click must show
 // the order of operations. Dashboard uses Quick start instead.
