@@ -38,7 +38,9 @@ documented in their per-milestone ROADMAP files.
   zero and clearing the query. Failed database reads now expose the error and
   the stale-data note as one status message announced once, while background
   writes announce when they start and again if they still need attention after
-  20 seconds.
+  20 seconds. In the command palette, the focused search field now exposes the
+  arrow-selected row as its active descendant, and each row's effect is part of
+  its accessible description.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;

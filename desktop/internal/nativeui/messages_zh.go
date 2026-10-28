@@ -30,6 +30,7 @@ var desktopMessages = map[string]string{
 	"Done":                   "完成",
 	"Done.":                  "完成。",
 	"Failed":                 "失败",
+	"Pages and commands":     "页面与命令",
 	"Verified":               "已验证",
 	"Cancel":                 "取消",
 	"Delete":                 "删除",
