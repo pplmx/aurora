@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Guide step numbers survive enlarged text**: the numbered marker beside
+  each “How this works” instruction kept an 18px slot while its glyphs scaled to
+  2x, so the number was clipped even with the guide opened. The slot and
+  non-shrinking width now follow the text scale, while the instruction takes
+  the remaining width and wraps beneath the number.
 - **Voting tallies keep the complete candidate beside the count**: the
   two-column results table left Votes readable at 2x but reduced a long
   candidate name to a single-line prefix. Results now become stacked records

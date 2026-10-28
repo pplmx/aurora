@@ -454,6 +454,36 @@ func TestActionButtonsScaleWithLargeText(t *testing.T) {
 	}
 }
 
+// TestGuideStepNumbersScaleWithLargeText keeps the numbered marker beside each
+// instruction from clipping when the guide text grows. The number's slot was
+// fixed while its glyphs followed the system scale.
+func TestGuideStepNumbersScaleWithLargeText(t *testing.T) {
+	app := New(&fakeServices{})
+	app.ShowPage("Lottery")
+	var numberWidth float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		numberWidth, _ = c.MeasureText(0, ui.Span{
+			Text: "1.", Size: textSize(c, 12),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2, ReduceMotion: true})
+	tester.Frame()
+	require.NoError(t, tester.Click("How this works"))
+	tester.Frame()
+
+	first, ok := tester.Find("1.")
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-200)
+	tester.Frame()
+
+	number, ok := tester.Find("1.")
+	require.True(t, ok)
+	require.GreaterOrEqual(t, number.W, numberWidth,
+		"the step number must keep its full measured width at 2x: rect=%+v measured=%g",
+		number, numberWidth)
+}
+
 // TestTextAreasScaleWithLargeText keeps multiline fields showing several lines
 // after the system enlarges their type. The fixed 64px box held barely one
 // scaled line at 2x, so editing JSON headers or a long description meant
