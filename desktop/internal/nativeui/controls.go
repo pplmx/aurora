@@ -29,7 +29,7 @@ func guide(c *ui.Context, open *bool, steps ...string) {
 					ui.Row(c).Gap(8).AlignItems(ui.Start).Children(func() {
 						ui.Text(c, fmt.Sprintf(tr("%d."), i+1)).FontSize(textSize(c, 12)).Bold().
 							Width(textSize(c, 18)).Shrink(0).TextColor(ui.Hex(aurora))
-						ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted)).
+						ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
 							Grow(1).Shrink(1).MinWidth(0)
 					})
 				}
@@ -60,19 +60,19 @@ const buttonRadius float32 = 8
 const maxListLimit = 1000
 
 func primaryButton(c *ui.Context, label string) ui.Element {
-	return styledButton(c, label, ui.Hex(aurora), ui.Hex(auroraHover), ui.Hex(auroraPressed), onAccent)
+	return styledButton(c, label, ui.Hex(aurora), ui.Hex(auroraHover), ui.Hex(auroraPressed), ui.Hex(onAccent))
 }
 
 func secondaryButton(c *ui.Context, label string) ui.Element {
-	b := styledButton(c, label, ui.Hex(surface), ui.Hex(surfaceHover), ui.Hex(surfacePressed), ink)
-	b.BorderWidth(1).BorderColor(ui.Hex(border))
+	b := styledButton(c, label, c.Theme().Surface, c.Theme().SurfaceHover, c.Theme().SurfacePressed, c.Theme().Text)
+	b.BorderWidth(1).BorderColor(c.Theme().Border)
 	return b
 }
 
 func dangerButton(c *ui.Context, label string) ui.Element {
 	red := ui.Hex(auroraRed)
 	return styledButton(c, label, red,
-		red.Mix(ui.RGB(255, 255, 255), 0.14), red.Mix(ui.RGB(0, 0, 0), 0.16), night)
+		red.Mix(ui.RGB(255, 255, 255), 0.14), red.Mix(ui.RGB(0, 0, 0), 0.16), c.Theme().Background)
 }
 
 // quietButton is the small, low-emphasis action used inside a card: copying a
@@ -80,10 +80,10 @@ func dangerButton(c *ui.Context, label string) ui.Element {
 func quietButton(c *ui.Context, label string) ui.Element {
 	label = tr(label)
 	b := ui.ButtonBase(c).Height(max(26, textSize(c, 26))).PaddingX(textSize(c, 10)).Radius(6).
-		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(inkMuted))
+		AlignItems(ui.Center).Label(label).TextColor(c.Theme().TextMuted)
 	fill := ui.Transparent
 	if b.Hovered() || b.Pressed() {
-		fill = ui.Hex(surfaceHover)
+		fill = c.Theme().SurfaceHover
 	}
 	b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
 	b.Children(func() {
@@ -102,11 +102,11 @@ func tabs(c *ui.Context, selected *int, labels ...string) {
 			on := i == *selected
 			tab := parts.Tab(i).Padding(textSize(c, 8), textSize(c, 12)).Radius(6).FocusRing(false)
 			if on {
-				tab.TextColor(ui.Hex(ink))
+				tab.TextColor(c.Theme().Text)
 			} else {
-				tab.TextColor(ui.Hex(inkMuted))
+				tab.TextColor(c.Theme().TextMuted)
 				if tab.Hovered() {
-					tab.TextColor(ui.Hex(ink))
+					tab.TextColor(c.Theme().Text)
 				}
 			}
 			tab.DrawOver(func(p *ui.Painter, r ui.Rect) {
@@ -134,10 +134,10 @@ func tabs(c *ui.Context, selected *int, labels ...string) {
 	})
 }
 
-func styledButton(c *ui.Context, label string, fill, hover, pressed ui.Color, textColor string) ui.Element {
+func styledButton(c *ui.Context, label string, fill, hover, pressed, textColor ui.Color) ui.Element {
 	label = tr(label)
 	b := ui.ButtonBase(c).Height(max(34, textSize(c, 34))).PaddingX(max(14, textSize(c, 14))).Radius(buttonRadius).
-		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(textColor))
+		AlignItems(ui.Center).Label(label).TextColor(textColor)
 	state := fill
 	switch {
 	case b.Pressed():
@@ -194,7 +194,7 @@ func textAreaControl(c *ui.Context, value *string) ui.Element {
 // hint draws a muted line under a control, explaining a value the label
 // cannot.
 func hint(c *ui.Context, text string) {
-	ui.Text(c, tr(text)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, tr(text)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
 }
 
 // listPager draws the Previous/Entries/Next strip shared by paged
@@ -205,7 +205,7 @@ func listPager(c *ui.Context, offset, count int, hasMore bool) (previous, next b
 		previous = secondaryButton(c, "Previous").Disabled(offset == 0).Clicked()
 		ui.Spacer(c)
 		ui.Text(c, fmt.Sprintf(tr("Entries %d–%d"), offset+1, offset+count)).
-			FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+			FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
 		ui.Spacer(c)
 		next = secondaryButton(c, "Next").Disabled(!hasMore).Clicked()
 	})

@@ -45,7 +45,7 @@ func joinList(items []string) string {
 // emptyNote draws the "nothing here yet" line a table shows instead of an empty
 // body, distinct from a load failure.
 func emptyNote(c *ui.Context, text string) {
-	ui.Text(c, tr(text)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, tr(text)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 }
 
 // copyRow draws a labelled value with a Copy button.
@@ -61,8 +61,8 @@ func copyRow(c *ui.Context, label, value string, onCopied func()) {
 	label = tr(label)
 	ui.Row(c).FillWidth().Wrap().Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
-			TextColor(ui.Hex(inkMuted)).SingleLine()
-		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).
+			TextColor(c.Theme().TextMuted).SingleLine()
+		ui.Text(c, abbreviate(value)).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 			Grow(1).Shrink(1).MinWidth(0).SingleLine().Ellipsis("…").Tooltip(value)
 		if quietButton(c, tr("Copy")+" "+label).Clicked() {
 			// The whole value is copied, not the shortened cell.
@@ -85,13 +85,13 @@ type readoutRow struct{ label, value string }
 // looks like the hint above it.
 func readout(c *ui.Context, rows []readoutRow) {
 	ui.Column(c).FillWidth().Padding(10).Gap(4).Radius(8).
-		Background(ui.Hex(night)).Children(func() {
+		Background(c.Theme().Background).Children(func() {
 		for _, r := range rows {
 			label := tr(r.label)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
 				ui.Text(c, label).FontSize(textSize(c, 11)).Width(labelColumnWidth(c, label)).
-					TextColor(ui.Hex(inkMuted)).SingleLine().Ellipsis("…").Tooltip(label)
-				value := ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink)).
+					TextColor(c.Theme().TextMuted).SingleLine().Ellipsis("…").Tooltip(label)
+				value := ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 					Grow(1).Shrink(1).MinWidth(0)
 				if !stackedRecords(c) {
 					value.SingleLine().Ellipsis("…").Tooltip(r.value)
@@ -157,7 +157,7 @@ func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
 	if !hasContent {
 		return false
 	}
-	ui.Text(c, tr("Showing the last successful load.")).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+	ui.Text(c, tr("Showing the last successful load.")).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 	return true
 }
 

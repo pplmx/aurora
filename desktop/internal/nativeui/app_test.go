@@ -729,6 +729,18 @@ func TestHighContrastThemeStrengthensContrast(t *testing.T) {
 			contrastRatio(pair[0], normal.Background),
 			"%s must have more contrast in the high-contrast theme", name)
 	}
+
+	// More contrast than the normal theme is not enough if the result is still
+	// unreadable. Match WCAG AA: 4.5:1 for text and 3:1 for non-text borders
+	// and focus rings, against both the window and the card surface.
+	for _, background := range []ui.Color{high.Background, high.Surface} {
+		require.GreaterOrEqual(t, contrastRatio(high.Text, background), 4.5)
+		require.GreaterOrEqual(t, contrastRatio(high.TextMuted, background), 4.5)
+		require.GreaterOrEqual(t, contrastRatio(high.Border, background), 3.0)
+		require.GreaterOrEqual(t, contrastRatio(high.Focus, background), 3.0)
+	}
+	require.GreaterOrEqual(t, contrastRatio(high.Text, high.Selection), 4.5,
+		"selected rows must keep readable text")
 }
 
 // contrastRatio is the WCAG contrast ratio between two opaque colours.

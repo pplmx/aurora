@@ -327,14 +327,14 @@ func (a *App) lotteryVerify(c *ui.Context) {
 			// cross is decoration for a reader who can see it.
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				if r.Valid {
-					badge(c, "Verified", auroraGreen, night)
+					badge(c, "Verified", ui.Hex(auroraGreen), c.Theme().Background)
 				} else {
-					badge(c, "Failed", auroraRed, night)
+					badge(c, "Failed", ui.Hex(auroraRed), c.Theme().Background)
 				}
-				ui.Text(c, r.ID).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted)).SingleLine()
+				ui.Text(c, r.ID).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).SingleLine()
 			})
 			for _, line := range r.Checks {
-				ui.Text(c, "• "+line).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+				ui.Text(c, "• "+line).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 			}
 		}
 	})

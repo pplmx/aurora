@@ -291,10 +291,10 @@ func (a *App) tokenListRecords(c *ui.Context, rows []TokenRow) {
 			record := selectableRecordPanel(c, selected,
 				recordChoiceLabel(displayName, selected), func() {
 					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(ui.Hex(ink))
+						TextColor(c.Theme().Text)
 					ui.Row(c).FillWidth().Wrap().Gap(18).Children(func() {
-						recordMetric(c, "Symbol", valueOr(token.Symbol), ink)
-						recordMetric(c, "Supply", valueOr(token.TotalSupply), ink)
+						recordMetric(c, "Symbol", valueOr(token.Symbol), c.Theme().Text)
+						recordMetric(c, "Supply", valueOr(token.TotalSupply), c.Theme().Text)
 					})
 					recordField(c, "ID", token.ID)
 				})
@@ -655,14 +655,14 @@ func tokenSubject(c *ui.Context, id string) {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
 			Background(ui.Hex(warningTint)).BorderWidth(1).BorderColor(ui.Hex(auroraAmber)).
 			Children(func() {
-				badge(c, "No token selected", auroraAmber, night)
-				ui.Text(c, tr("Create or inspect one first.")).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+				badge(c, "No token selected", ui.Hex(auroraAmber), c.Theme().Background)
+				ui.Text(c, tr("Create or inspect one first.")).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
 			})
 		return
 	}
 	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
-		Background(ui.Hex(night)).Children(func() {
-		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).
+		Background(c.Theme().Background).Children(func() {
+		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).
 			SingleLine().Shrink(0)
 		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).
 			SingleLine().Ellipsis("…").Tooltip(id)
@@ -1092,8 +1092,8 @@ func tokenHistoryRecords(c *ui.Context, history []TransferRow) {
 			transfer := transfer
 			recordPanel(c, func() {
 				ui.Row(c).Wrap().Gap(18).Children(func() {
-					recordMetric(c, "Amount", valueOr(transfer.Amount), ink)
-					recordMetric(c, "Nonce", strconv.FormatUint(transfer.Nonce, 10), ink)
+					recordMetric(c, "Amount", valueOr(transfer.Amount), c.Theme().Text)
+					recordMetric(c, "Nonce", strconv.FormatUint(transfer.Nonce, 10), c.Theme().Text)
 				})
 				recordField(c, "From", valueOr(transfer.From))
 				recordField(c, "To", valueOr(transfer.To))

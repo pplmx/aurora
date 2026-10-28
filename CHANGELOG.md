@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop high-contrast setting now reaches the whole window**: the
+  palette had a stronger border, text, muted-text, focus and selection set,
+  but most custom-drawn cards, tables and controls still read the base colour
+  constants directly. Those renderers now resolve every preference-sensitive
+  colour from `c.Theme()`, and a source contract prevents the base palette
+  from bypassing the toolkit theme again.
 - **Lottery exports protect sidecars behind a database symlink**: a
   `DBPath()` that pointed at the live database through a symlink was checked
   only at the link location, while SQLite places WAL, shared-memory, and
