@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle fetches enforce the standard redirect-hop limit**: installing the
+  custom SSRF-aware `CheckRedirect` callback also replaced `net/http`'s
+  default ten-hop cap. A hostile feed could therefore keep redirecting until
+  the HTTP timeout expired. The policy now rejects the tenth follow-up with
+  `ErrTooManyRedirects`, and a transport-level regression pins the request
+  count.
 - **API responses stay out of shared caches**: authentication uses `X-API-Key`
   rather than `Authorization`, so caches do not apply their usual protection
   for authenticated requests. Successful responses can include one-time voter
