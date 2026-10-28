@@ -82,6 +82,58 @@ func TestChain_WithBlockTransaction_CommitsBlockAndBusinessRow(t *testing.T) {
 	require.True(t, chain.VerifyIntegrity().Valid)
 }
 
+func TestChain_WithRecordTransaction_StampsHeightAndCommitsBusinessRow(t *testing.T) {
+	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
+	createBusinessTable(t, db)
+
+	chain := &Chain{Blocks: []*Block{Genesis()}}
+	bindChainToDB(chain, db)
+
+	payload := `{"id":"draw-1","block_height":0,"seed":"s"}`
+	var callbackHeight int64
+	err := chain.WithRecordTransaction(payload, testDBTxManager{db: db}, func(tx *sql.Tx, height int64) error {
+		callbackHeight = height
+		require.Len(t, chain.Blocks, 1, "the uncommitted block must not be visible in memory")
+		_, insertErr := tx.Exec(`INSERT INTO business_records (id, block_height) VALUES (?, ?)`, "record-1", height)
+		return insertErr
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), callbackHeight)
+
+	require.Len(t, chain.Blocks, 2)
+	require.Equal(t, int64(1), chain.Blocks[1].Height)
+	require.Equal(t, 1, businessRecordCount(t, db))
+	require.True(t, chain.VerifyIntegrity().Valid)
+
+	stored := readBlockAt(t, db, 1)
+	require.JSONEq(t, `{"id":"draw-1","block_height":1,"seed":"s"}`, string(stored.Data))
+	require.Equal(t, stored.Data, chain.Blocks[1].Data)
+}
+
+func TestChain_WithRecordTransaction_RollsBackStampAndBusinessRow(t *testing.T) {
+	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
+	createBusinessTable(t, db)
+
+	chain := &Chain{Blocks: []*Block{Genesis()}}
+	bindChainToDB(chain, db)
+
+	rollbackErr := errors.New("business mutation failed")
+	err := chain.WithRecordTransaction(`{"id":"draw-1","block_height":0}`, testDBTxManager{db: db}, func(tx *sql.Tx, height int64) error {
+		if _, insertErr := tx.Exec(`INSERT INTO business_records (id, block_height) VALUES (?, ?)`, "record-1", height); insertErr != nil {
+			return insertErr
+		}
+		return rollbackErr
+	})
+	require.ErrorIs(t, err, rollbackErr)
+
+	require.Len(t, chain.Blocks, 1, "rolled-back transaction must not leave an in-memory block")
+	require.Equal(t, 0, businessRecordCount(t, db))
+
+	var blockCount int
+	require.NoError(t, db.QueryRow(`SELECT COUNT(*) FROM blocks WHERE height > 0`).Scan(&blockCount))
+	require.Zero(t, blockCount, "rolled-back transaction must not leave a persisted block")
+}
+
 func TestChain_WithBlockTransaction_RollsBackBlockWithBusinessRow(t *testing.T) {
 	db := openSecondHandle(t, filepath.Join(t.TempDir(), "aurora.db"))
 	createBusinessTable(t, db)
