@@ -404,7 +404,8 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 	announceSearchResults(c, queryChanged, a.blockchain.blockTotal)
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 		ui.Row(c).Grow(1).Children(func() {
-			ui.SearchField(c, &a.blockchain.search).Label(tr("Search blocks"))
+			ui.SearchField(c, &a.blockchain.search).Label(tr("Search blocks")).
+				Description(tr("Search matches module, payload or height across the whole chain."))
 		})
 		ui.Field(c, tr("Show"), func() {
 			ui.NumberInput(c, &a.blockchain.blockLimit, 10, 10000, 10)
@@ -426,21 +427,18 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		return
 	}
 	total := a.blockchain.blockTotal
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).Children(func() {
-		if secondaryButton(c, "Previous").Disabled(a.blockchain.blockOffset == 0).Clicked() {
+	rangeLabel := fmt.Sprintf(tr("Entries %d–%d of %d"),
+		a.blockchain.blockOffset+1, a.blockchain.blockOffset+len(a.blockchain.rows), total)
+	if previous, next := pagerControls(c, "Blockchain ledger", a.blockchain.blockOffset, rangeLabel,
+		a.blockchain.blockOffset == 0, a.blockchain.blockOffset+len(a.blockchain.rows) >= total); previous || next {
+		if previous {
 			a.loadBlockchainAt(query, a.blockchain.blockLimit,
 				max(0, a.blockchain.blockOffset-limit))
-			return
-		}
-		ui.Spacer(c)
-		ui.Text(c, fmt.Sprintf(tr("Entries %d–%d of %d"), a.blockchain.blockOffset+1, a.blockchain.blockOffset+len(a.blockchain.rows), total)).
-			FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
-		ui.Spacer(c)
-		if secondaryButton(c, "Next").Disabled(a.blockchain.blockOffset+len(a.blockchain.rows) >= total).Clicked() {
+		} else {
 			a.loadBlockchainAt(query, a.blockchain.blockLimit,
 				a.blockchain.blockOffset+limit)
 		}
-	})
+	}
 	if stackedRecords(c) {
 		ui.Column(c).FillWidth().Gap(10).Children(func() {
 			for _, entry := range a.blockchain.rows {

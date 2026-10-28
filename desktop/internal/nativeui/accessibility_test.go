@@ -528,6 +528,47 @@ func TestVotingPagersNameTheirCollections(t *testing.T) {
 	}
 }
 
+// TestLedgerPagerAnnouncesTheNewRange applies the shared pager behavior to the
+// Blockchain page. Its pager has an exact total, so it proves the shared strip
+// also announces ranges such as "11–20 of 150" rather than only "11–20".
+func TestLedgerPagerAnnouncesTheNewRange(t *testing.T) {
+	blocks := make([]BlockRow, 150)
+	for i := range blocks {
+		blocks[i] = BlockRow{
+			Height: int64(len(blocks) - i), Module: "lottery",
+			Summary: "row-" + strconv.Itoa(i),
+		}
+	}
+	fake := &fakeServices{blocks: blocks}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	app.blockchain.blockLimit = 100
+	tester.Frame()
+	tester.Announcements()
+	require.True(t, tester.HasText(tr("Blockchain ledger pager, Entries 1–100 of 150")))
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, []string{tr("Entries 101–150 of 150")}, tester.Announcements())
+	require.True(t, tester.HasText(tr("Blockchain ledger pager, Entries 101–150 of 150")))
+	tester.Frame()
+	require.Empty(t, tester.Announcements(), "repainting the ledger page must stay silent")
+
+	require.NoError(t, tester.Click("Previous"))
+	tester.Frame()
+	require.Equal(t, []string{tr("Entries 1–100 of 150")}, tester.Announcements())
+
+	fake.loadErrs.blocks = errors.New("database is locked")
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Zero(t, app.blockchain.blockOffset,
+		"a failed ledger move must keep the page its rows came from")
+	require.NotContains(t, tester.Announcements(), tr("Entries 101–150 of 150"),
+		"the ledger pager must not claim a failed page")
+}
+
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.
 // The toolkit exposes RoleHeading and Level to screen readers; retaining the
 // exact call here protects the shared heading path.

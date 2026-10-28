@@ -263,6 +263,13 @@ func hint(c *ui.Context, text string) {
 // exact multiple of the page size does not enable a dead Next button.
 func listPager(c *ui.Context, name string, offset, count int, hasMore bool) (previous, next bool) {
 	rangeLabel := fmt.Sprintf(tr("Entries %d–%d"), offset+1, offset+count)
+	return pagerControls(c, name, offset, rangeLabel, offset == 0, !hasMore)
+}
+
+// pagerControls draws one named Previous/range/Next group. Most collections
+// only know whether another row exists, while the ledger also knows its exact
+// total, so the range text and disabled states are supplied by the caller.
+func pagerControls(c *ui.Context, name string, offset int, rangeLabel string, previousDisabled, nextDisabled bool) (previous, next bool) {
 	pagerLabel := fmt.Sprintf(tr("%s pager, %s"), tr(name), rangeLabel)
 	pager := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(12).
 		Role(ui.RoleGroup).Label(pagerLabel)
@@ -277,14 +284,14 @@ func listPager(c *ui.Context, name string, offset, count int, hasMore bool) (pre
 	pager.Children(func() {
 		previous = secondaryButton(c, "Previous").
 			Description(fmt.Sprintf(tr("Show the previous %s page."), tr(name))).
-			Disabled(offset == 0).Clicked()
+			Disabled(previousDisabled).Clicked()
 		ui.Spacer(c)
 		ui.Text(c, rangeLabel).
 			FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
 		ui.Spacer(c)
 		next = secondaryButton(c, "Next").
 			Description(fmt.Sprintf(tr("Show the next %s page."), tr(name))).
-			Disabled(!hasMore).Clicked()
+			Disabled(nextDisabled).Clicked()
 	})
 	return previous, next
 }
