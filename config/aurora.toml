@@ -20,7 +20,8 @@ path = "./migrations"
 [lottery]
 # defaultCount is the winner count used when `lottery create` is run without
 # -c/--count. The seed is never auto-generated: it is always supplied by the
-# caller (CLI -s/--seed, API, web form), so no defaultSeedPrefix exists.
+# caller (CLI -s/--seed, REST request, or desktop form), so no
+# defaultSeedPrefix exists.
 defaultCount = 3
 
 [i18n]
@@ -61,6 +62,6 @@ window = "1m"
 # Oracle sources are NOT configured from this file: the binary never reads an
 # [[oracle.sources]] table here, so editing one would silently have no effect.
 # Sources live in the SQLite database and are managed at runtime via
-#   aurora oracle source add ...   (or the REST API / `aurora oracle tui`).
+#   aurora oracle source add ...   (or the REST API / desktop Oracle page).
 # The only live oracle settings are [oracle.scheduler] (check cadence, optional);
 # per-source interval is set on each source at add time.

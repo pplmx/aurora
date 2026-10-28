@@ -7,7 +7,8 @@ import "strings"
 // columns while the token surface capped name/symbol (validator.go) — a
 // key-holding caller could grow rows and list/detail responses without
 // bound. These caps mirror the token validator and are enforced at the
-// shared domain edge so REST/CLI/web all inherit them (TASK-271, ISS-267).
+// shared domain edge so REST, CLI and the desktop all inherit them
+// (TASK-271, ISS-267).
 const (
 	MaxVoterNameLength        = 100
 	MaxCandidateNameLength    = 100

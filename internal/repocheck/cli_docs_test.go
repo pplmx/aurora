@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -157,41 +158,93 @@ func TestCLIDocsMentionEveryCommand(t *testing.T) {
 }
 
 // TestCLIDocsPathsMatchTheCommandTree is the reverse direction: it walks the
-// words after `aurora` in every documented command line and rejects a word
-// that is not a known subcommand at that depth. Flags, placeholders and
-// example values end the walk, so `aurora migrate up 2`, a `<id>` placeholder
-// and a `./backups/...` path stay valid. This is how a renamed command leaves
-// a dead instruction behind.
+// words after `aurora` in every command line in the current user-facing docs
+// and rejects a word that is not a known subcommand at that depth. Flags,
+// placeholders and example values end the walk, so `aurora migrate up 2`, a
+// `<id>` placeholder and a `./backups/...` path stay valid. This is how a
+// renamed or removed command leaves a dead instruction behind. Historical
+// design records under docs/superpowers are intentionally excluded.
 func TestCLIDocsPathsMatchTheCommandTree(t *testing.T) {
 	root := repoRoot(t)
-	docs := readRepoFile(t, "docs", "cli.md")
 	known := map[string]bool{}
 	for _, path := range cliCommandPaths(t, filepath.Join(root, "cmd", "aurora", "cmd")) {
 		known["aurora "+path] = true
 	}
-
-	for _, line := range strings.Split(docs, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "aurora ") {
-			continue
-		}
-		current := "aurora"
-		for _, word := range strings.Fields(strings.TrimPrefix(trimmed, "aurora ")) {
-			if isExampleValue(word) {
-				break
-			}
-			candidate := current + " " + word
-			if !known[candidate] {
-				// A bare file argument (`draws.json`) is not a subcommand;
-				// no command name contains a dot or slash.
-				if strings.ContainsAny(word, "./") {
-					break
-				}
-				t.Fatalf("docs/cli.md documents %q, but %q is not a command", trimmed, candidate)
-			}
-			current = candidate
+	hasChildren := map[string]bool{}
+	for path := range known {
+		words := strings.Fields(path)
+		for i := 1; i < len(words); i++ {
+			hasChildren[strings.Join(words[:i], " ")] = true
 		}
 	}
+
+	for _, docPath := range currentCLIDocs(t, root) {
+		docs, err := os.ReadFile(docPath)
+		require.NoError(t, err)
+		rel, err := filepath.Rel(root, docPath)
+		require.NoError(t, err)
+		for lineNumber, line := range strings.Split(string(docs), "\n") {
+			trimmed := strings.TrimSpace(line)
+			trimmed = strings.TrimPrefix(trimmed, "$ ")
+			trimmed = strings.TrimPrefix(trimmed, "./")
+			if !strings.HasPrefix(trimmed, "aurora ") {
+				continue
+			}
+			current := "aurora"
+			for _, word := range strings.Fields(strings.TrimPrefix(trimmed, "aurora ")) {
+				if isExampleValue(word) {
+					break
+				}
+				candidate := current + " " + word
+				if !known[candidate] {
+					// A bare file argument (`draws.json`) is not a subcommand;
+					// no command name contains a dot or slash.
+					if strings.ContainsAny(word, "./") {
+						break
+					}
+					// A leaf command may take a positional example value that
+					// has no punctuation (for example a raw lottery id). A
+					// command that still has children cannot: `tui` after
+					// `aurora lottery` is a removed subcommand, not an
+					// argument.
+					if !hasChildren[current] {
+						break
+					}
+					t.Fatalf("%s:%d documents %q, but %q is not a command",
+						filepath.ToSlash(rel), lineNumber+1, trimmed, candidate)
+				}
+				current = candidate
+			}
+		}
+	}
+}
+
+// currentCLIDocs returns the Markdown files users consult for the current
+// commands. Historical design records under docs/superpowers describe deleted
+// surfaces and must not be treated as live instructions.
+func currentCLIDocs(t *testing.T, root string) []string {
+	t.Helper()
+	paths := []string{
+		filepath.Join(root, "README.md"),
+		filepath.Join(root, "AGENTS.md"),
+	}
+	err := filepath.WalkDir(filepath.Join(root, "docs"), func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if entry.Name() == "superpowers" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.HasSuffix(entry.Name(), ".md") {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	require.NoError(t, err)
+	return paths
 }
 
 // isExampleValue reports whether word is an argument or flag rather than a

@@ -366,7 +366,7 @@ func (h *TokenHandler) Info(w http.ResponseWriter, r *http.Request) {
 // with their own private key and the owner's allowance is drawn down toward
 // the recipient. The domain/app layer implemented this, but it was exposed
 // nowhere (v1.38), so an approved allowance could not actually be spent
-// through any CLI/REST/web surface.
+// through any CLI, REST or desktop surface.
 func (h *TokenHandler) TransferFrom(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		TokenID    string `json:"token_id"`

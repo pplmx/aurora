@@ -54,7 +54,7 @@ build: check test
 build-current:
     CGO_ENABLED=0 go build -trimpath -ldflags="{{ldflags}}" -o aurora ./cmd/aurora
 
-# Build the standalone REST API + Web server binary (cmd/api). Injects the
+# Build the standalone REST API binary (cmd/api). Injects the
 # same git-derived version/build-time refs into cmd/api's own Version/BuildTime
 # vars so `aurora-api --version` reports the real source ref, mirroring the
 # CLI's ldflags above (TASK-267, ISS-263).

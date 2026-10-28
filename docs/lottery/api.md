@@ -91,22 +91,6 @@ aurora lottery db-info
 aurora lottery reset --yes
 ```
 
-### TUI 界面
-
-```bash
-aurora lottery tui
-```
-
-操作说明:
-
-- 1 - 创建抽奖
-- 2 - 查看历史
-- 3 - 退出
-- ↑↓ - 导航
-- 回车 - 确认
-- ESC - 返回
-- ? - 帮助
-
 ## 配置文件
 
 位置: `config/aurora.toml`

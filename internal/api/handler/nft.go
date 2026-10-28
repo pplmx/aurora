@@ -203,9 +203,8 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // History returns the mint/transfer/burn operation trail for one NFT
-// (v1.35). The CLI exposed this as `nft history` but the REST API and the
-// NFT web page had no way to see an NFT's ownership/audit history in the
-// browser — closing that parity gap.
+// (v1.35). The CLI already exposed this as `nft history`; this closes the
+// REST parity gap for callers that need the same ownership and audit trail.
 func (h *NFTHandler) History(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	limit, offset := nftHistoryPage(r)

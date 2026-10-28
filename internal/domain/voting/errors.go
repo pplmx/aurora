@@ -50,7 +50,7 @@ var (
 	// capped name/symbol — a key-holding caller could grow rows and list/detail
 	// responses without bound. The caps mirror the token validator
 	// (MaxTokenNameLength) and are enforced at the shared domain edge so
-	// REST/CLI/web all inherit them (TASK-271, ISS-267).
+	// REST, CLI and the desktop all inherit them (TASK-271, ISS-267).
 	ErrVoterNameTooLong          = errors.New("voter name is too long")
 	ErrCandidateNameTooLong      = errors.New("candidate name is too long")
 	ErrCandidatePartyTooLong     = errors.New("candidate party is too long")
