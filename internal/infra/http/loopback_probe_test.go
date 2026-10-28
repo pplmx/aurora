@@ -37,9 +37,10 @@ func loopbackReachable() bool {
 	if err != nil {
 		return false
 	}
-	_ = ln.Close()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {}))
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {}))
+	server.Listener = ln
+	server.Start()
 	defer server.Close()
 
 	client := &http.Client{Timeout: 2 * time.Second}

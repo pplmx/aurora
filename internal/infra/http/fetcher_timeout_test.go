@@ -25,6 +25,7 @@ import (
 // returned on its own".
 func slowServer(t *testing.T) (*httptest.Server, <-chan struct{}) {
 	t.Helper()
+	skipIfLoopbackBlocked(t)
 	released := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {
@@ -104,6 +105,7 @@ func TestFetchDataContext_CancellationInterruptsAnInFlightRequest(t *testing.T) 
 // caller does not open a connection at all — a shutdown that cancels the
 // scheduler must not start new work on its way out.
 func TestFetchDataContext_AlreadyCancelledMakesNoRequest(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	var reached bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reached = true
@@ -125,6 +127,7 @@ func TestFetchDataContext_AlreadyCancelledMakesNoRequest(t *testing.T) {
 // not: headers arrive at once, then the body trickles. The response deadline
 // covers the whole exchange, so this must still fail rather than hang.
 func TestFetchData_TimesOutOnASlowBody(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -149,6 +152,7 @@ func TestFetchData_TimesOutOnASlowBody(t *testing.T) {
 // never establishes is bounded too: a source pointing at a blackholed address
 // must fail rather than hold the scheduler.
 func TestFetchDataContext_ConnectsToAnUnreachableHost(t *testing.T) {
+	skipIfLoopbackBlocked(t)
 	// A listener that accepts the TCP connection and never speaks HTTP is the
 	// closest local stand-in for a blackhole.
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
