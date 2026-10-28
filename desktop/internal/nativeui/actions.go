@@ -70,7 +70,8 @@ func (a *App) sidebarActions(c *ui.Context) {
 		button := ui.MenuButton(c, label, a.actionsMenu).
 			FillWidth().Height(max(34, textSize(c, 34))).
 			PaddingX(max(12, textSize(c, 12))).Radius(buttonRadius).
-			Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border)
+			Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
+			Disabled(a.busy != "")
 		button.Label(label)
 	})
 }
@@ -85,7 +86,7 @@ func (a Actions) empty() bool {
 // menu. Linux and Windows install no menu now, so the window registers
 // Cmd/Ctrl+E/I/B itself; macOS keeps them on the application menu.
 func (a *App) actionShortcuts(c *ui.Context) {
-	if runtime.GOOS == "darwin" {
+	if runtime.GOOS == "darwin" || a.busy != "" {
 		return
 	}
 	mod := platformRefreshModifier()

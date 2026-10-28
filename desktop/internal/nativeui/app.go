@@ -270,29 +270,33 @@ func (a *App) paletteMatches() []paletteEntry {
 			title: pageTitles[p], detail: pagePurpose[p], icon: pageIcons[p], page: p,
 		})
 	}
-	if a.page != pageSettings {
-		entries = append(entries, paletteEntry{
-			title: "Refresh current page", detail: "Reload the data shown on this page",
-			icon: refreshIcon, action: a.refresh,
-		})
-	}
-	if a.actions.BackUpDatabase != nil {
-		entries = append(entries, paletteEntry{
-			title: "Back up database…", detail: "Create a WAL-complete snapshot",
-			icon: backupIcon, action: a.actions.BackUpDatabase,
-		})
-	}
-	if a.actions.ExportLotteries != nil {
-		entries = append(entries, paletteEntry{
-			title: "Export lotteries…", detail: "Write the portable lottery document",
-			icon: exportIcon, action: a.actions.ExportLotteries,
-		})
-	}
-	if a.actions.ImportLotteries != nil {
-		entries = append(entries, paletteEntry{
-			title: "Import lotteries…", detail: "Load a portable lottery document",
-			icon: importIcon, action: a.actions.ImportLotteries,
-		})
+	// Navigation stays live while a background write owns the database, but
+	// reload and file commands must not start a second repository operation.
+	if a.busy == "" {
+		if a.page != pageSettings {
+			entries = append(entries, paletteEntry{
+				title: "Refresh current page", detail: "Reload the data shown on this page",
+				icon: refreshIcon, action: a.refresh,
+			})
+		}
+		if a.actions.BackUpDatabase != nil {
+			entries = append(entries, paletteEntry{
+				title: "Back up database…", detail: "Create a WAL-complete snapshot",
+				icon: backupIcon, action: a.actions.BackUpDatabase,
+			})
+		}
+		if a.actions.ExportLotteries != nil {
+			entries = append(entries, paletteEntry{
+				title: "Export lotteries…", detail: "Write the portable lottery document",
+				icon: exportIcon, action: a.actions.ExportLotteries,
+			})
+		}
+		if a.actions.ImportLotteries != nil {
+			entries = append(entries, paletteEntry{
+				title: "Import lotteries…", detail: "Load a portable lottery document",
+				icon: importIcon, action: a.actions.ImportLotteries,
+			})
+		}
 	}
 	matches := entries[:0]
 	for _, entry := range entries {
