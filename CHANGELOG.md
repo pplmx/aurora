@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Overlays remain usable in short windows and at large text sizes**: the
+  command palette now scrolls within the minimum-height window and reveals the
+  keyboard-selected row instead of highlighting commands below the viewport.
+  The custom theme also scales MyGo's default font for alerts, inputs and tabs,
+  while destructive confirmations bound long NFT/source names to a readable
+  prefix plus the shortened unique ID so their actions stay on screen.
 - **Numeric tables and detail panels stop clipping**: ledger heights, blocks,
   counters and vote totals now scale with text size, and every numeric cell,
   including nonces, exposes its full value on hover. Readouts for owner keys,

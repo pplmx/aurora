@@ -83,7 +83,8 @@ just check && just test
   和 About Aurora（版本、构建时间、数据库路径、关于对话框）。Shortcuts 卡同时
   列出 Ctrl/Cmd+1…8、Ctrl/Cmd+R、Ctrl/Cmd+, 与 Ctrl/Cmd+K。文件动作仍留在 File 菜单，配置不再混在菜单里。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
-  因此 Windows/GNOME 的文本大小设置会同时放大标题、正文、提示与表格文字；
+  `auroraThemeFor` 同时放大自定义主题的默认字号，让 MyGo 绘制的输入框、标签页
+  与确认弹窗也跟随；因此 Windows/GNOME 的文本大小设置会覆盖整窗文字。
   Reduce Motion 无需额外处理——MyGo 会把动画直接送到目标值。系统开启
   “提高对比度”时，同一极夜配色使用更亮的描边、正文/次要文字与焦点环
   （`auroraTheme(true)`），并保持深色身份。
@@ -101,8 +102,9 @@ just check && just test
 - **页头给页面一个身份**：同一枚图标放在染色方块里，旁边是 26pt 标题和一句话
   用途；原生窗口标题跟随当前页面（如 `Aurora — Token`）；开启 Live updates 时，Dashboard/Oracle 页头显示 `Live · 10s`，右侧是
   Refresh。Ctrl/Cmd+1…8 按侧栏顺序直接切页（Settings 是第 8 个），
-  Ctrl/Cmd+K 打开命令面板（输入筛选，方向键移动，Enter 执行，Escape 关闭）：
-  页面跳转之外，还可刷新当前页、备份数据库、导出/导入抽奖文档；不用记也能发现。
+  Ctrl/Cmd+K 打开命令面板（输入筛选，方向键移动，Enter 执行，Escape 关闭）；
+  最小窗口下命令列表在面板内滚动，键盘选中项自动进入视野。页面跳转之外，还可
+  刷新当前页、备份数据库、导出/导入抽奖文档；不用记也能发现。
 - **写操作不再冻结窗口**：桌面默认让服务写入离开帧线程，页头固定位置显示
   spinner + “正在…”横幅；完成后再在主线程应用结果、刷新页面。写入期间只禁用
   页面内容，侧栏仍可导航；超过 20 秒会提示“仍在处理，操作会自行完成”。测试仍走

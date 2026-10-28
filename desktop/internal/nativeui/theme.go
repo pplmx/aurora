@@ -100,3 +100,15 @@ func auroraTheme(highContrast bool) *ui.Theme {
 	t.Spacing = 4
 	return t
 }
+
+// auroraThemeFor applies the desktop preferences a custom theme does not
+// inherit from MyGo's default theme. App text sets its explicit sizes through
+// textSize; this scaled default covers controls drawn by the toolkit, such as
+// alerts, inputs and tabs.
+func auroraThemeFor(prefs ui.Preferences) *ui.Theme {
+	t := auroraTheme(prefs.HighContrast)
+	if prefs.TextScale > 0 {
+		t.FontSize *= prefs.TextScale
+	}
+	return t
+}
