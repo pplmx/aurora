@@ -124,6 +124,10 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Readout labels stay intact**: desktop copy and readout rows now size their
+  label column from the text and the user's text-size preference, keep labels
+  on one line, and constrain long values to the panel. Settings entries such as
+  "Remembered keys" and "Command palette" no longer split across two lines.
 - **Voter history stays legible**: the desktop voter table now shows `Yes` /
   `No` under an `Ever voted` column and keeps each status cell to one line.
   The previous multi-word status wrapped inside the fixed-height row, clipping
