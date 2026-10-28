@@ -216,7 +216,7 @@ func TestVotingRepository_ListCandidates(t *testing.T) {
 		t.Fatalf("Failed to save cand2: %v", err)
 	}
 
-	candidates, err := repo.ListCandidates()
+	candidates, err := repo.ListCandidates(0, 0)
 	if err != nil {
 		t.Fatalf("Failed to list candidates: %v", err)
 	}
@@ -224,6 +224,26 @@ func TestVotingRepository_ListCandidates(t *testing.T) {
 	if len(candidates) != 2 {
 		t.Errorf("Expected 2 candidates, got %d", len(candidates))
 	}
+}
+
+func TestVotingRepository_ListCandidatesPages(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	for i, name := range []string{"Alice", "Bob", "Carol"} {
+		candidate := voting.NewCandidate(name, "Party", "Program")
+		candidate.CreatedAt = int64(100 + i*10)
+		require.NoError(t, repo.SaveCandidate(candidate))
+	}
+
+	page, err := repo.ListCandidates(1, 1)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "Bob", page[0].Name, "the second row in newest-first order")
+
+	past, err := repo.ListCandidates(10, 99)
+	require.NoError(t, err)
+	require.Empty(t, past, "an offset past the end is an empty page")
 }
 
 func TestVotingRepository_SaveVote(t *testing.T) {
@@ -506,7 +526,7 @@ func TestVotingRepository_ListSessions(t *testing.T) {
 	s3.CreatedAt = 150
 	require.NoError(t, repo.SaveSession(s3))
 
-	sessions, err := repo.ListSessions()
+	sessions, err := repo.ListSessions(0, 0)
 	require.NoError(t, err)
 	require.Len(t, sessions, 3)
 	require.Equal(t, "Session 2", sessions[0].Title, "should be sorted by created_at DESC")
@@ -514,11 +534,31 @@ func TestVotingRepository_ListSessions(t *testing.T) {
 	require.Equal(t, "Session 1", sessions[2].Title)
 }
 
+func TestVotingRepository_ListSessionsPages(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	for i, title := range []string{"First", "Second", "Third"} {
+		session := voting.NewSession(title, "Desc", []string{"c1"}, 1000, 2000)
+		session.CreatedAt = int64(100 + i*10)
+		require.NoError(t, repo.SaveSession(session))
+	}
+
+	page, err := repo.ListSessions(1, 1)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "Second", page[0].Title, "the second row in newest-first order")
+
+	past, err := repo.ListSessions(10, 99)
+	require.NoError(t, err)
+	require.Empty(t, past, "an offset past the end is an empty page")
+}
+
 func TestVotingRepository_ListSessions_Empty(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
 
-	sessions, err := repo.ListSessions()
+	sessions, err := repo.ListSessions(0, 0)
 	require.NoError(t, err)
 	require.Empty(t, sessions)
 }

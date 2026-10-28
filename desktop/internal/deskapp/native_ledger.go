@@ -21,7 +21,7 @@ func (s *nativeServices) Dashboard() (nativeui.DashboardStats, error) {
 	}
 	stats.Lotteries = len(records)
 
-	cands, err := s.votingRepo.ListCandidates()
+	cands, err := s.votingRepo.ListCandidates(0, 0)
 	if err != nil {
 		return stats, err
 	}
@@ -32,7 +32,7 @@ func (s *nativeServices) Dashboard() (nativeui.DashboardStats, error) {
 	}
 	stats.Votes = votes
 
-	sessions, err := s.votingRepo.ListSessions()
+	sessions, err := s.votingRepo.ListSessions(0, 0)
 	if err != nil {
 		return stats, err
 	}

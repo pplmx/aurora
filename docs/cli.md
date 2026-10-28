@@ -32,16 +32,22 @@ VRF 输出/证明不是合法 hex、中奖者与输出不符、或证明对不�
 ```bash
 aurora voting candidate add -n "Name" -p "Party" -m "Program"
 aurora voting candidate list
+aurora voting candidate list --limit 100 --offset 0
 aurora voting voter register -n "Name"    # 打印密钥对
 aurora voting voter list                  # 含已投票状态
 aurora voting session create -t "Title" -d "Desc" -c <cand-id> [-c <cand2>] \
   --start-time <t> --end-time <t>
 aurora voting session list
+aurora voting session list --limit 100 --offset 0
 aurora voting session start -s <session-id>
 aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv-key>
 aurora voting results -s <session-id>
 aurora voting session end -s <session-id>
 ```
+
+`voting candidate list` 与 `voting session list` 的 `--limit` 默认 0（列出
+offset 之后的全部记录），大于 0 时只读取该页并打印本页数量与偏移；
+`--offset` 默认 0。两个命令都拒绝负数分页参数。
 
 ## NFT（Ed25519 签名）
 

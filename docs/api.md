@@ -54,21 +54,24 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 ## 投票
 
-| 方法 | 路径                                | 说明                     |
-| ---- | ----------------------------------- | ------------------------ |
-| POST | `/api/v1/voting/register/voter`     | 注册选民                 |
-| POST | `/api/v1/voting/register/candidate` | 注册候选人               |
-| POST | `/api/v1/voting/session`            | 创建会期                 |
-| POST | `/api/v1/voting/session/{id}/start` | 开始会期                 |
-| POST | `/api/v1/voting/session/{id}/end`   | 结束会期                 |
-| POST | `/api/v1/voting/vote`               | 投票（Ed25519 签名）     |
-| GET  | `/api/v1/voting/candidates`         | 候选人列表               |
-| GET  | `/api/v1/voting/sessions`           | 会期列表                 |
-| GET  | `/api/v1/voting/session/{id}`       | 单个会期                 |
-| GET  | `/api/v1/voting/results/{id}`       | 计票结果                 |
+| 方法 | 路径                                | 说明                                       |
+| ---- | ----------------------------------- | ------------------------------------------ |
+| POST | `/api/v1/voting/register/voter`     | 注册选民                                   |
+| POST | `/api/v1/voting/register/candidate` | 注册候选人                                 |
+| POST | `/api/v1/voting/session`            | 创建会期                                   |
+| POST | `/api/v1/voting/session/{id}/start` | 开始会期                                   |
+| POST | `/api/v1/voting/session/{id}/end`   | 结束会期                                   |
+| POST | `/api/v1/voting/vote`               | 投票（Ed25519 签名）                       |
+| GET  | `/api/v1/voting/candidates`         | 候选人列表，默认 20，支持 `limit`/`offset` |
+| GET  | `/api/v1/voting/sessions`           | 会期列表，默认 20，支持 `limit`/`offset`   |
+| GET  | `/api/v1/voting/session/{id}`       | 单个会期                                   |
+| GET  | `/api/v1/voting/results/{id}`       | 计票结果                                   |
 
 会期对象带 `start_time` / `end_time`（unix 秒），即选票被接受的时间窗：窗口之外
 的投票会被拒绝，调用方据此可以在提交前解释原因。
+候选人列表和会期列表都在存储层分页，`limit` 上限 100，`offset` 上限 10000；
+缺失或非法参数使用默认页，超出上限的 `limit`/`offset` 会被截断，不会被解释成
+无界读取。
 
 ## NFT
 

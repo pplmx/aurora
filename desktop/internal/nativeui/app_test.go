@@ -65,6 +65,12 @@ type fakeServices struct {
 	listTokensCalls     int
 	lastTokenListLimit  int
 	lastTokenListOffset int
+	candidateListCalls  int
+	lastCandidateLimit  int
+	lastCandidateOffset int
+	sessionListCalls    int
+	lastSessionLimit    int
+	lastSessionOffset   int
 	dashboardCalls      int
 	oracleHealthCalls   int
 	tokenInfoCalls      int
@@ -204,17 +210,43 @@ func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error) {
 	}
 	return f.resultsByID[sessionID], nil
 }
-func (f *fakeServices) Candidates() ([]CandidateRow, error) {
+func (f *fakeServices) Candidates(limit, offset int) ([]CandidateRow, error) {
+	f.candidateListCalls++
+	f.lastCandidateLimit = limit
+	f.lastCandidateOffset = offset
 	if f.loadErrs.candidates != nil {
 		return nil, f.loadErrs.candidates
 	}
-	return f.candidates, nil
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(f.candidates) {
+		return nil, nil
+	}
+	rows := f.candidates[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
-func (f *fakeServices) Sessions() ([]SessionRow, error) {
+func (f *fakeServices) Sessions(limit, offset int) ([]SessionRow, error) {
+	f.sessionListCalls++
+	f.lastSessionLimit = limit
+	f.lastSessionOffset = offset
 	if f.loadErrs.sessions != nil {
 		return nil, f.loadErrs.sessions
 	}
-	return f.sessions, nil
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(f.sessions) {
+		return nil, nil
+	}
+	rows := f.sessions[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 func (f *fakeServices) StartSession(id string) error { return nil }
 func (f *fakeServices) EndSession(id string) error   { return nil }

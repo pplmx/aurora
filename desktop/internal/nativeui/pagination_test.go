@@ -132,3 +132,128 @@ func TestFailedNFTPageMoveKeepsCurrentPage(t *testing.T) {
 	require.True(t, tester.HasText("Failed to load NFTs: read failed"))
 	require.True(t, tester.HasText("Showing the last successful load."))
 }
+
+// TestVotingCandidateCollectionPages applies the same storage-backed pager to
+// the candidate list. Registration can outpace the screen too, and a session
+// roster needs every older candidate just as much as a token form needs an
+// older id.
+func TestVotingCandidateCollectionPages(t *testing.T) {
+	candidates := make([]CandidateRow, 150)
+	for i := range candidates {
+		candidates[i] = CandidateRow{
+			ID: "c" + strconv.Itoa(i), Name: "Candidate " + strconv.Itoa(i),
+		}
+	}
+	fake := &fakeServices{candidates: candidates}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.Len(t, app.voting.candidates, votingPageSize)
+	require.Equal(t, 0, app.voting.candOffset)
+	require.Equal(t, votingPageSize+1, fake.lastCandidateLimit,
+		"one extra row distinguishes a full page from the last page")
+	require.True(t, tester.HasText("Entries 1–100"))
+
+	app.voting.candChoice = 0
+	tester.Frame()
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, votingPageSize, app.voting.candOffset)
+	require.Equal(t, -1, app.voting.candChoice, "a new page must not reuse the old row index")
+	require.Len(t, app.voting.candidates, 50)
+	require.False(t, app.voting.candHasMore)
+	require.True(t, tester.HasText("Entries 101–150"))
+}
+
+func TestVotingCandidatePagerStopsAtAnExactPageBoundary(t *testing.T) {
+	candidates := make([]CandidateRow, votingPageSize)
+	for i := range candidates {
+		candidates[i] = CandidateRow{ID: "c" + strconv.Itoa(i), Name: "Candidate"}
+	}
+	fake := &fakeServices{candidates: candidates}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	calls := fake.candidateListCalls
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 0, app.voting.candOffset)
+	require.Equal(t, calls, fake.candidateListCalls, "a disabled Next must not reload an empty page")
+}
+
+func TestFailedCandidatePageMoveKeepsCurrentPage(t *testing.T) {
+	candidates := make([]CandidateRow, 150)
+	for i := range candidates {
+		candidates[i] = CandidateRow{ID: "c" + strconv.Itoa(i), Name: "Candidate"}
+	}
+	fake := &fakeServices{candidates: candidates}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	app.voting.candChoice = 0
+	fake.loadErrs.candidates = errors.New("read failed")
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 0, app.voting.candOffset)
+	require.Len(t, app.voting.candidates, votingPageSize)
+	require.Equal(t, 0, app.voting.candChoice, "the old page's highlight must stay with its rows")
+	require.True(t, tester.HasText("Failed to load voting data: read failed"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}
+
+func TestVotingSessionCollectionPages(t *testing.T) {
+	sessions := make([]SessionRow, 150)
+	for i := range sessions {
+		sessions[i] = SessionRow{
+			ID: "s" + strconv.Itoa(i), Title: "Session " + strconv.Itoa(i),
+			Status: "draft",
+		}
+	}
+	fake := &fakeServices{sessions: sessions}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.Len(t, app.voting.sessions, votingPageSize)
+	require.Equal(t, 0, app.voting.sessionOffset)
+	require.Equal(t, votingPageSize+1, fake.lastSessionLimit)
+
+	app.voting.sessionChoice = 0
+	tester.Frame()
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, votingPageSize, app.voting.sessionOffset)
+	require.Equal(t, -1, app.voting.sessionChoice, "a new page must not reuse the old row index")
+	require.Len(t, app.voting.sessions, 50)
+	require.False(t, app.voting.sessionHasMore)
+	require.True(t, tester.HasText("Entries 101–150"))
+}
+
+func TestFailedSessionPageMoveKeepsCurrentPage(t *testing.T) {
+	sessions := make([]SessionRow, 150)
+	for i := range sessions {
+		sessions[i] = SessionRow{ID: "s" + strconv.Itoa(i), Title: "Session", Status: "draft"}
+	}
+	fake := &fakeServices{sessions: sessions}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	app.voting.sessionChoice = 0
+	fake.loadErrs.sessions = errors.New("read failed")
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 0, app.voting.sessionOffset)
+	require.Len(t, app.voting.sessions, votingPageSize)
+	require.Equal(t, 0, app.voting.sessionChoice, "the old page's highlight must stay with its rows")
+	require.True(t, tester.HasText("Failed to load voting data: read failed"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}

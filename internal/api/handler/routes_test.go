@@ -485,13 +485,23 @@ func (f fakeVotingRepo) GetCandidate(string) (*voting.Candidate, error) {
 func (f fakeVotingRepo) UpdateCandidate(*voting.Candidate) error  { return nil }
 func (f fakeVotingRepo) IncrementCandidateVoteCount(string) error { return nil }
 func (f fakeVotingRepo) DeleteCandidate(string) error             { return nil }
-func (f fakeVotingRepo) ListCandidates() ([]*voting.Candidate, error) {
+func (f fakeVotingRepo) ListCandidates(limit, offset int) ([]*voting.Candidate, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
 	out := make([]*voting.Candidate, 0, len(f.candidates))
 	for _, c := range f.candidates {
 		out = append(out, &voting.Candidate{ID: c})
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(out) {
+		return nil, nil
+	}
+	out = out[offset:]
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
 	}
 	return out, nil
 }
@@ -503,7 +513,7 @@ func (f fakeVotingRepo) GetSession(string) (*voting.Session, error) {
 	return f.getSession, f.err
 }
 func (f fakeVotingRepo) UpdateSession(*voting.Session) error { return nil }
-func (f fakeVotingRepo) ListSessions() ([]*voting.Session, error) {
+func (f fakeVotingRepo) ListSessions(limit, offset int) ([]*voting.Session, error) {
 	return nil, nil
 }
 func (f fakeVotingRepo) SaveVote(*voting.Vote) error { return nil }

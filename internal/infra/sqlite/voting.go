@@ -78,6 +78,7 @@ func (r *VotingRepository) createTables() error {
 			created_at INTEGER NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_candidates_created ON candidates(created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_candidates_page ON candidates(created_at DESC, id)`,
 		`CREATE TABLE IF NOT EXISTS voting_sessions (
 			id TEXT PRIMARY KEY,
 			title TEXT NOT NULL,
@@ -89,11 +90,12 @@ func (r *VotingRepository) createTables() error {
 			created_at INTEGER NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_status ON voting_sessions(status)`,
-		// ListSessions and ListVoters read the whole collection newest first.
-		// Without these, SQLite scans and sorts every row in a temp B-tree
-		// before the caller sees it (measured). idx_candidates_created above
-		// already covers the candidate list the same way.
+		// The list reads page newest first. The compound indexes also provide a
+		// deterministic id tie-breaker for rows created in the same second.
+		// Without an index SQLite scans and sorts every row in a temp B-tree
+		// before the caller sees it (measured).
 		`CREATE INDEX IF NOT EXISTS idx_sessions_created ON voting_sessions(created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_sessions_page ON voting_sessions(created_at DESC, id)`,
 		`CREATE INDEX IF NOT EXISTS idx_voters_registered ON voters(registered_at)`,
 	}
 
@@ -418,9 +420,17 @@ func (r *VotingRepository) IncrementCandidateVoteCount(candidateID string) error
 	return nil
 }
 
-func (r *VotingRepository) ListCandidates() ([]*voting.Candidate, error) {
+func (r *VotingRepository) ListCandidates(limit, offset int) ([]*voting.Candidate, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	rows, err := r.q().Query(
-		`SELECT id, name, party, program, description, image_url, vote_count, created_at FROM candidates ORDER BY created_at DESC`,
+		`SELECT id, name, party, program, description, image_url, vote_count, created_at
+		 FROM candidates ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
+		limit, offset,
 	)
 	if err != nil {
 		return nil, err
@@ -481,9 +491,17 @@ func (r *VotingRepository) UpdateSession(session *voting.Session) error {
 	return err
 }
 
-func (r *VotingRepository) ListSessions() ([]*voting.Session, error) {
+func (r *VotingRepository) ListSessions(limit, offset int) ([]*voting.Session, error) {
+	if limit <= 0 {
+		limit = -1
+	}
+	if offset < 0 {
+		offset = 0
+	}
 	rows, err := r.q().Query(
-		`SELECT id, title, description, start_time, end_time, status, candidates, created_at FROM voting_sessions ORDER BY created_at DESC`,
+		`SELECT id, title, description, start_time, end_time, status, candidates, created_at
+		 FROM voting_sessions ORDER BY created_at DESC, id LIMIT ? OFFSET ?`,
+		limit, offset,
 	)
 	if err != nil {
 		return nil, err
