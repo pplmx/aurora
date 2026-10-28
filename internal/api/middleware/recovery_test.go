@@ -1,12 +1,28 @@
 package middleware
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type hijackTrackingWriter struct {
+	http.ResponseWriter
+	headerWrites int
+}
+
+func (w *hijackTrackingWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return nil, nil, nil
+}
+
+func (w *hijackTrackingWriter) WriteHeader(code int) {
+	w.headerWrites++
+	w.ResponseWriter.WriteHeader(code)
+}
 
 // TestRecovery_PanicBeforeWrite_Sends500 covers the happy path:
 // handler panics before touching the response, so the recovery
@@ -53,6 +69,43 @@ func TestRecovery_PanicAfterWrite_NoCorruption(t *testing.T) {
 		"recovery must not change the status code the handler already set")
 	assert.Equal(t, expectedBody, rr.Body.String(),
 		"recovery must not append a JSON 500 body to an already-written response")
+}
+
+// TestRecovery_PanicAfterFlush_NoCorruption covers the case where Flush commits
+// the response headers before the handler explicitly writes a header or body.
+// Recovery must treat that flush as the start of the response; otherwise it
+// appends an error envelope to a response the client already sees as 200.
+func TestRecovery_PanicAfterFlush_NoCorruption(t *testing.T) {
+	handler := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.(http.Flusher).Flush()
+		panic("oops after flush")
+	}))
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/stream", nil)
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Empty(t, rr.Body.String(),
+		"recovery must not append a JSON 500 body after Flush committed the response")
+}
+
+func TestRecovery_PanicAfterHijack_NoHTTPWrite(t *testing.T) {
+	handler := Recovery(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, _, err := w.(http.Hijacker).Hijack(); err != nil {
+			t.Fatalf("Hijack failed: %v", err)
+		}
+		panic("oops after hijack")
+	}))
+
+	rr := httptest.NewRecorder()
+	tracked := &hijackTrackingWriter{ResponseWriter: rr}
+	req := httptest.NewRequest("GET", "/upgrade", nil)
+	handler.ServeHTTP(tracked, req)
+
+	assert.Zero(t, tracked.headerWrites,
+		"recovery must not write HTTP headers after the connection was hijacked")
 }
 
 // TestRecovery_PreservesFlusher ensures the writeTracker wrapper
