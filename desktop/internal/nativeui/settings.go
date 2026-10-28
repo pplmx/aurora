@@ -76,10 +76,10 @@ func (a *App) settingsView(c *ui.Context) {
 			renderStatus(c, pageSettings, a.settingsStatus, func() { a.settingsStatus = statusLine{} })
 		})
 
-		formCard(c, "Shortcuts", "Window-wide keys; they work from any page.", func() {
+		formCard(c, "Shortcuts", "Navigation and window commands; Reload applies to pages that read stored data.", func() {
 			readout(c, []readoutRow{
 				{"Pages", shortcutChord("1…8")},
-				{"Reload", shortcutChord("R")},
+				{"Reload (data pages)", shortcutChord("R")},
 				{"Settings", shortcutChord(",")},
 				{"Command palette", shortcutChord("K")},
 			})
