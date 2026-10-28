@@ -24,6 +24,7 @@ type writeTracker struct {
 	http.ResponseWriter
 	wroteHeader bool
 	wroteBody   bool
+	hijacked    bool
 }
 
 func (w *writeTracker) WriteHeader(code int) {
@@ -46,6 +47,9 @@ func (w *writeTracker) Write(b []byte) (int, error) {
 // (e.g. SSE) keep working through the wrapper.
 func (w *writeTracker) Flush() {
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		// Flush commits the response headers even when the handler has not
+		// called WriteHeader or Write explicitly.
+		w.wroteHeader = true
 		f.Flush()
 	}
 }
@@ -53,7 +57,11 @@ func (w *writeTracker) Flush() {
 // Hijack supports websocket-style upgrades through the wrapper.
 func (w *writeTracker) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if h, ok := w.ResponseWriter.(http.Hijacker); ok {
-		return h.Hijack()
+		conn, rw, err := h.Hijack()
+		if err == nil {
+			w.hijacked = true
+		}
+		return conn, rw, err
 	}
 	return nil, nil, errors.New("hijacker not supported")
 }
@@ -61,7 +69,7 @@ func (w *writeTracker) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 // alreadyWritten reports whether the wrapped handler has sent
 // anything to the client.
 func (w *writeTracker) alreadyWritten() bool {
-	return w.wroteHeader || w.wroteBody
+	return w.wroteHeader || w.wroteBody || w.hijacked
 }
 
 func Recovery(next http.Handler) http.Handler {

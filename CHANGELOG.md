@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Recovery respects responses committed by streaming handlers**: an
+  explicit `Flush` sends the successful response headers even before a handler
+  writes a body. The recovery wrapper did not record that state, so a later
+  panic appended an `INTERNAL_ERROR` envelope to a response clients had already
+  received as `200`, and request metrics reported `500` instead of the actual
+  status. Successful hijacks are now tracked the same way, preventing recovery
+  from attempting HTTP writes on an upgraded connection.
 - **Container shutdown is safe under concurrent `Close` calls**: repeated
   closes were only ordered, not synchronized. The unexpected-listener and
   signal-shutdown paths could therefore both close the same SQLite handles,
