@@ -267,7 +267,8 @@ func TestChineseUIRendersTheWorkbench(t *testing.T) {
 	tester.Frame()
 	for _, want := range []string{
 		"设置", "语言", "数据", "外观", "关于 Aurora",
-		"主题", "深色", "字号", "对比度", "动效", "跟随系统",
+		"主题", "深色", "字号", "对比度", "动效",
+		"100%", "标准", "已启用",
 	} {
 		require.Truef(t, tester.HasText(want), "the Chinese Settings page must show %q", want)
 	}
