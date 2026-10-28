@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -120,4 +121,34 @@ func TestSidebarGivesLargeEnglishLabelsEnoughRoom(t *testing.T) {
 				"the longest module label needs its measured width at %.1fx", scale)
 		})
 	}
+}
+
+// TestOracleSourceActionsWrapAtLargeText keeps the four per-source actions
+// inside their card. At 2x in the minimum window, the unwrapped row pushed the
+// destructive Delete button past the right edge, leaving only part of it on
+// screen.
+func TestOracleSourceActionsWrapAtLargeText(t *testing.T) {
+	app := New(&fakeServices{sources: []SourceRow{{
+		ID: "source-1", Name: "BTC feed", URL: "https://example.com/price",
+		Type: "http", Enabled: true, Interval: 60,
+	}}})
+	tester := ui.NewTester(app.View, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	app.ShowPage("Oracle")
+	tester.Frame()
+	app.scroll.Y = math.MaxFloat32
+	tester.Frame()
+
+	enable, ok := tester.Find("Enable")
+	require.True(t, ok)
+	for _, label := range []string{"Enable", "Disable", "Fetch now", "Delete"} {
+		rect, ok := tester.Find(label)
+		require.Truef(t, ok, "%q action must be built", label)
+		require.GreaterOrEqualf(t, rect.X, float32(0), "%q action starts in the window", label)
+		require.LessOrEqualf(t, rect.X+rect.W, float32(900), "%q action stays in the window", label)
+	}
+	deleteAction, ok := tester.Find("Delete")
+	require.True(t, ok)
+	require.Greater(t, deleteAction.Y, enable.Y,
+		"the action row must wrap instead of clipping its destructive action")
 }

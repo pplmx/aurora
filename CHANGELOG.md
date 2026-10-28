@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle actions wrap before they reach the window edge**: Enable, Disable,
+  Fetch now and Delete shared one unwrapped row. At 2x text in the minimum
+  window the destructive Delete button was pushed past the right edge. The
+  action group now wraps onto a second line, keeping every verb and its full
+  hit target visible.
 - **Scaled sidebar labels keep their full names**: at 1.5x and 2x text the
   English brand subtitle and module names were clipped inside the fixed-width
   navigation column. The sidebar now measures the localized brand, section and
