@@ -245,12 +245,21 @@ func TestRouter_SetsSecurityHeaders(t *testing.T) {
 	srv := &Server{db: openInMemorySQLite(t)}
 	router := newRouter(srv)
 
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/healthz", nil))
-	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, "nosniff", rr.Header().Get("X-Content-Type-Options"))
-	assert.Equal(t, "DENY", rr.Header().Get("X-Frame-Options"))
-	assert.Equal(t, "no-referrer", rr.Header().Get("Referrer-Policy"))
+	for _, tc := range []struct {
+		path       string
+		wantStatus int
+	}{
+		{path: "/healthz", wantStatus: http.StatusOK},
+		{path: "/api/v1/oracle/sources", wantStatus: http.StatusUnauthorized},
+	} {
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, tc.path, nil))
+		assert.Equal(t, tc.wantStatus, rr.Code, tc.path)
+		assert.Equal(t, "nosniff", rr.Header().Get("X-Content-Type-Options"), tc.path)
+		assert.Equal(t, "DENY", rr.Header().Get("X-Frame-Options"), tc.path)
+		assert.Equal(t, "no-referrer", rr.Header().Get("Referrer-Policy"), tc.path)
+		assert.Equal(t, "no-store", rr.Header().Get("Cache-Control"), tc.path)
+	}
 }
 
 // =================================================================
