@@ -3,6 +3,7 @@ package nativeui
 import (
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -460,6 +461,43 @@ func TestSearchFieldsAnnounceResultCounts(t *testing.T) {
 	require.GreaterOrEqual(t, searches, 9)
 	require.Equal(t, searches, announcements,
 		"every SearchField must announce its result count")
+}
+
+// TestPagerMoveAnnouncesTheNewRange covers the other collection change that
+// leaves focus on the initiating button: Next or Previous replaces every row,
+// so the visible range must be spoken once when the successful page lands.
+func TestPagerMoveAnnouncesTheNewRange(t *testing.T) {
+	const pageSize = 100
+	tokens := make([]TokenRow, pageSize+1)
+	for i := range tokens {
+		tokens[i] = TokenRow{
+			ID: "token-" + strconv.Itoa(i), Name: "Token " + strconv.Itoa(i),
+			Symbol: "TKN", TotalSupply: "1", Owner: "owner-pk",
+		}
+	}
+	fake := &fakeServices{tokenRows: tokens}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 2200)
+	app.ShowPage("Token")
+	tester.Frame()
+	tester.Announcements() // the page transition
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, []string{tr("Entries 101–101")}, tester.Announcements())
+	tester.Frame()
+	require.Empty(t, tester.Announcements(), "repainting the new page must stay silent")
+
+	require.NoError(t, tester.Click("Previous"))
+	tester.Frame()
+	require.Equal(t, []string{tr("Entries 1–100")}, tester.Announcements())
+
+	fake.loadErrs.tokens = errors.New("database is locked")
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Zero(t, app.token.offset, "a failed pager move must keep the loaded page")
+	require.NotContains(t, tester.Announcements(), tr("Entries 101–101"),
+		"the pager must not claim a page that failed to load")
 }
 
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.
