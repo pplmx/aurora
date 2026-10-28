@@ -196,8 +196,29 @@ func TestSessionWindowIsEditedAsLocalTime(t *testing.T) {
 	app.voting.sessionStart, app.voting.sessionEnd = end, start
 	app.createVotingSession()
 	require.Equal(t, sentStart, rec.start, "an invalid window must not reach the service")
-	require.Contains(t, app.voting.sessionResult.text, "after the start")
-	require.True(t, app.voting.sessionResult.isErr)
+	require.Contains(t, app.voting.sessionEndErr, "after the start")
+	require.True(t, app.voting.sessionResult.empty())
+	tester.Frame()
+	require.True(t, tester.HasText("End time must be after the start time."),
+		"the error must stay attached to the End field")
+
+	app.voting.sessionStart = time.Time{}
+	app.voting.sessionEnd = time.Unix(1000, 0)
+	app.createVotingSession()
+	require.NotEmpty(t, app.voting.sessionStartErr)
+	require.Empty(t, app.voting.sessionEndErr)
+	tester.Frame()
+	require.True(t, tester.HasText("Choose a start time."),
+		"a missing start must be explained at the Start field")
+
+	app.voting.sessionStart = time.Unix(1000, 0)
+	app.voting.sessionEnd = time.Time{}
+	app.createVotingSession()
+	require.Empty(t, app.voting.sessionStartErr)
+	require.NotEmpty(t, app.voting.sessionEndErr)
+	tester.Frame()
+	require.True(t, tester.HasText("Choose an end time."),
+		"a missing end must be explained at the End field")
 }
 
 // TestEmptySessionRosterIncludesCandidatesBeyondTheVisiblePage keeps the
@@ -494,7 +515,8 @@ func TestVotingCardOutcomesCarryTheirPolarity(t *testing.T) {
 	app.voting.sessionStart = time.Unix(2000, 0)
 	app.voting.sessionEnd = time.Unix(1000, 0)
 	app.createVotingSession()
-	require.True(t, app.voting.sessionResult.isErr)
+	require.NotEmpty(t, app.voting.sessionEndErr)
+	require.True(t, app.voting.sessionResult.empty())
 }
 
 // TestResultsStageLoadsTheChosenSession pins the tab's first move: a session

@@ -134,6 +134,30 @@ func TestTokenAllowanceIsOutsideTheWriteTabs(t *testing.T) {
 	require.True(t, tester.HasText("Get Allowance"))
 }
 
+// TestTokenDecimalsErrorStaysWithItsField opens the advanced section and marks
+// the number input, rather than hiding the only explanation inside a collapsed
+// section or leaving it in the page-level status strip.
+func TestTokenDecimalsErrorStaysWithItsField(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 3200)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	app.token.name = "Gold"
+	app.token.symbol = "GLD"
+	app.token.supply = "1000"
+	app.token.owner = "owner-pk"
+	app.token.decimals = 128
+	app.createToken()
+	require.NotEmpty(t, app.token.decimalsErr)
+	require.True(t, app.token.createAdvanced, "the invalid field must become visible")
+	require.Empty(t, app.token.tokenID, "the invalid value must not reach the service")
+	require.True(t, app.token.status.empty())
+
+	tester.Frame()
+	require.True(t, tester.HasText("Decimals must be a whole number between 0 and 127."))
+}
+
 // voterKeyRecorder returns a registration that carries a private key, the way
 // the real service does.
 type voterKeyRecorder struct {

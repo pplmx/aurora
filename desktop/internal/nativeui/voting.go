@@ -29,12 +29,14 @@ type votingState struct {
 	// selection feeds the ballot, not the session roster field.
 	candCopyID string
 
-	sessionTitle  string
-	sessionDesc   string
-	sessionStart  time.Time
-	sessionEnd    time.Time
-	sessionIDs    string
-	sessionResult statusLine
+	sessionTitle    string
+	sessionDesc     string
+	sessionStart    time.Time
+	sessionEnd      time.Time
+	sessionIDs      string
+	sessionStartErr string
+	sessionEndErr   string
+	sessionResult   statusLine
 	// sessionCopyID is the id of the session just created, offered for copying
 	// the same way.
 	sessionCopyID string
@@ -709,28 +711,46 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	// asking an operator to type epoch seconds made the card unusable without
 	// a clock and a converter outside the app. The two controls edit one
 	// time.Time, shown in local time; the service still receives Unix seconds.
-	ui.Field(c, tr("Start"), func() {
+	var startDate, startTime ui.Element
+	start := ui.Field(c, tr("Start"), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.DateInput(c, &a.voting.sessionStart).Label(tr("Start date")).
+				startDate = ui.DateInput(c, &a.voting.sessionStart).Label(tr("Start date")).
 					Description(tr("Local time. Ballots are rejected before it."))
-				ui.TimeInput(c, &a.voting.sessionStart).Label(tr("Start time")).
+				startTime = ui.TimeInput(c, &a.voting.sessionStart).Label(tr("Start time")).
 					Description(tr("Local time. Ballots are rejected before it."))
 			})
 			hint(c, "Local time. Ballots are rejected before it.")
 		})
 	})
-	ui.Field(c, tr("End"), func() {
+	if startDate.Changed() || startTime.Changed() {
+		a.voting.sessionStartErr = ""
+	}
+	if a.voting.sessionStartErr != "" {
+		message := localizeServiceErrorMessage(a.voting.sessionStartErr)
+		start.Error(message)
+		startTime.Error(message)
+	}
+	var endDate, endTime ui.Element
+	end := ui.Field(c, tr("End"), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.DateInput(c, &a.voting.sessionEnd).Label(tr("End date")).
+				endDate = ui.DateInput(c, &a.voting.sessionEnd).Label(tr("End date")).
 					Description(tr("Local time. Ballots are rejected after it."))
-				ui.TimeInput(c, &a.voting.sessionEnd).Label(tr("End time")).
+				endTime = ui.TimeInput(c, &a.voting.sessionEnd).Label(tr("End time")).
 					Description(tr("Local time. Ballots are rejected after it."))
 			})
 			hint(c, "Local time. Ballots are rejected after it.")
 		})
 	})
+	if endDate.Changed() || endTime.Changed() {
+		a.voting.sessionEndErr = ""
+	}
+	if a.voting.sessionEndErr != "" {
+		message := localizeServiceErrorMessage(a.voting.sessionEndErr)
+		end.Error(message)
+		endTime.Error(message)
+	}
 	fieldHint(c, "Candidate IDs (comma-separated)", "Leave empty to include every registered candidate.", &a.voting.sessionIDs)
 	ui.Row(c).Children(func() {
 		if primaryButton(c, "Create Session").Disabled(!allSet(a.voting.sessionTitle)).Clicked() {
@@ -1087,15 +1107,21 @@ func (a *App) addCandidateToRoster() {
 
 func (a *App) createVotingSession() {
 	a.voting.sessionResult = statusLine{}
+	a.voting.sessionStartErr, a.voting.sessionEndErr = "", ""
 	a.voting.sessionCopyID = ""
 	start := a.voting.sessionStart.Unix()
 	end := a.voting.sessionEnd.Unix()
-	if a.voting.sessionStart.IsZero() || a.voting.sessionEnd.IsZero() {
-		a.voting.sessionResult = errorStatus("Choose both a start and an end time.")
+	if a.voting.sessionStart.IsZero() {
+		a.voting.sessionStartErr = "Choose a start time."
+	}
+	if a.voting.sessionEnd.IsZero() {
+		a.voting.sessionEndErr = "Choose an end time."
+	}
+	if a.voting.sessionStartErr != "" || a.voting.sessionEndErr != "" {
 		return
 	}
 	if end <= start {
-		a.voting.sessionResult = errorStatus("End time must be after the start time.")
+		a.voting.sessionEndErr = "End time must be after the start time."
 		return
 	}
 	ids := splitParticipants(a.voting.sessionIDs)

@@ -201,6 +201,8 @@ var desktopMessages = map[string]string{
 	"Leave empty to include every registered candidate.":         "留空表示包含所有已注册候选人。",
 	"Created session %s":                                         "已创建会期 %s",
 	"Choose both a start and an end time.":                       "请同时选择开始和结束时间。",
+	"Choose a start time.":                                       "请选择开始时间。",
+	"Choose an end time.":                                        "请选择结束时间。",
 	"End time must be after the start time.":                     "结束时间必须晚于开始时间。",
 	"Register at least one candidate before creating a session.": "创建会期前至少注册一位候选人。",
 	"Session Controls":                                           "会期控制",
