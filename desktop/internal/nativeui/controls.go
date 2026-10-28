@@ -91,6 +91,48 @@ func quietButton(c *ui.Context, label string) ui.Element {
 	return b
 }
 
+// tabs draws a keyboard-operable tab row that wraps instead of pushing later
+// tabs past the window edge. MyGo's stock Tabs is deliberately non-shrinking;
+// the five Token write tabs already crossed the right edge at 2x text.
+func tabs(c *ui.Context, selected *int, labels ...string) {
+	parts := ui.TabsBase(c, selected, len(labels))
+	parts.List.FillWidth().Wrap().Gap(4).Children(func() {
+		for i, label := range labels {
+			on := i == *selected
+			tab := parts.Tab(i).Padding(textSize(c, 8), textSize(c, 12)).Radius(6).FocusRing(false)
+			if on {
+				tab.TextColor(ui.Hex(ink))
+			} else {
+				tab.TextColor(ui.Hex(inkMuted))
+				if tab.Hovered() {
+					tab.TextColor(ui.Hex(ink))
+				}
+			}
+			tab.DrawOver(func(p *ui.Painter, r ui.Rect) {
+				if on {
+					inset := textSize(c, 6)
+					height := textSize(c, 2)
+					p.Fill(ui.Rect{
+						X: r.X + inset,
+						Y: r.Y + r.H - height,
+						W: r.W - 2*inset,
+						H: height,
+					}, ui.Hex(aurora), height/2)
+				}
+				if tab.FocusVisible() {
+					p.FocusRing(r, [4]float32{6, 6, 6, 6})
+				}
+			})
+			tab.Children(func() {
+				text := ui.Text(c, label).FontSize(textSize(c, 13)).SingleLine()
+				if on {
+					text.FontWeight(600)
+				}
+			})
+		}
+	})
+}
+
 func styledButton(c *ui.Context, label string, fill, hover, pressed ui.Color, textColor string) ui.Element {
 	label = tr(label)
 	b := ui.ButtonBase(c).Height(34).PaddingX(14).Radius(buttonRadius).
