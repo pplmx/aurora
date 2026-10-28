@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Windows UNC database paths no longer become invalid SQLite URI authorities**:
+  the hardened DSN builder now emits the empty-authority four-slash form
+  (`file:////server/share/aurora.db`) for UNC paths and keeps drive-qualified
+  paths in `file:/C:/...` form. SQLite otherwise treats the first server
+  segment as an unsupported authority and rejects the database before opening
+  it.
 - **SQLite `file:` fragments no longer disable hardened URI parameters**:
   appending `_foreign_keys`, `_txlock`, or a native `mode` after an existing
   `#fragment` made the driver consume the fragment as part of the final value,

@@ -43,3 +43,45 @@ func TestSQLiteDSNDropsFileURIFragmentBeforeAddingParameters(t *testing.T) {
 		})
 	}
 }
+
+func TestSQLiteFileURIWindowsPaths(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{
+			name: "UNC path",
+			path: `\\server\share\aurora.db`,
+			want: "file:////server/share/aurora.db",
+		},
+		{
+			name: "UNC path escapes filename characters",
+			path: `\\server\share\state #1.db`,
+			want: "file:////server/share/state%20%231.db",
+		},
+		{
+			name: "drive path",
+			path: `C:\data\aurora.db`,
+			want: "file:/C:/data/aurora.db",
+		},
+		{
+			name: "drive path with forward slashes",
+			path: "C:/data/aurora.db",
+			want: "file:/C:/data/aurora.db",
+		},
+		{
+			name: "relative path",
+			path: `data\aurora.db`,
+			want: "file:data/aurora.db",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sqliteFileURIForOS(tt.path, "windows"); got != tt.want {
+				t.Fatalf("sqliteFileURIForOS(%q, windows) = %q, want %q", tt.path, got, tt.want)
+			}
+		})
+	}
+}
