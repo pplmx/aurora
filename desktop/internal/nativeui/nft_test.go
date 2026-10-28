@@ -38,12 +38,17 @@ func TestUseGeneratedCreatorKey(t *testing.T) {
 // used to leave a filter or search hiding the new asset. The collection now
 // clears both, highlights the row and makes the new id the subject.
 func TestMintingAnNftSelectsItsRow(t *testing.T) {
-	fake := &fakeServices{nftRows: []NFTRow{{ID: "n1", Name: "New"}}}
+	fake := &fakeServices{nftRows: []NFTRow{{
+		ID: "n1", Name: "New", Owner: "creator-key", Creator: "creator-key",
+	}}}
 	app := New(fake)
 	app.ShowPage("NFT")
 
 	app.nft.filterOwner, app.nft.owner = "other-owner", "other-owner"
 	app.nft.search, app.nft.appliedSearch = "old-query", "old-query"
+	app.nft.from, app.nft.burnOwner = "old-owner", "old-owner"
+	app.nft.to = "old-recipient"
+	app.nft.priv, app.nft.burnPriv = "old-transfer-key", "old-burn-key"
 	app.nft.name, app.nft.creator = "New", "creator-key"
 	app.mintNFT()
 
@@ -51,6 +56,11 @@ func TestMintingAnNftSelectsItsRow(t *testing.T) {
 	require.Empty(t, app.nft.search, "a mint must clear a search that hides it")
 	require.Equal(t, "n1", app.nft.id)
 	require.Equal(t, 0, app.nft.selected, "the new asset must be the highlighted row")
+	require.Equal(t, "creator-key", app.nft.from, "the creator is the new asset's current holder")
+	require.Equal(t, "creator-key", app.nft.burnOwner, "Burn must start from the same holder")
+	require.Empty(t, app.nft.to, "the previous asset's recipient must not survive")
+	require.Empty(t, app.nft.priv, "the previous asset's transfer key must not survive")
+	require.Empty(t, app.nft.burnPriv, "the previous asset's burn key must not survive")
 }
 
 // TestNFTFilterIsTheListState pins what the Collection card is showing. The

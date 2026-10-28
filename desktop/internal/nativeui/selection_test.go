@@ -52,6 +52,8 @@ func TestNFTSelectionRefreshesOpenReadouts(t *testing.T) {
 
 	app.nft.nft = &NFTRow{ID: "n1"}
 	app.nft.history = []NFTOpRow{{Type: "mint"}}
+	app.nft.priv, app.nft.burnPriv = "old-transfer-key", "old-burn-key"
+	app.nft.to = "old-recipient"
 
 	require.NoError(t, tester.Click("n2"))
 	tester.Frame()
@@ -59,6 +61,9 @@ func TestNFTSelectionRefreshesOpenReadouts(t *testing.T) {
 	require.Equal(t, "n2", app.nft.id)
 	require.Equal(t, "owner-b", app.nft.from, "the chosen asset's holder fills Transfer")
 	require.Equal(t, "owner-b", app.nft.burnOwner, "the chosen asset's holder fills Burn")
+	require.Empty(t, app.nft.priv, "the previous asset's transfer key must not survive")
+	require.Empty(t, app.nft.burnPriv, "the previous asset's burn key must not survive")
+	require.Empty(t, app.nft.to, "the previous asset's recipient must not survive")
 	require.Equal(t, "n2", fake.lastNFTID, "the Inspect card must follow the selection")
 	require.Equal(t, "n2", fake.lastNFTHistoryID, "a loaded history must follow the selection")
 }
