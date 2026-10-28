@@ -219,33 +219,79 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			return
 		}
 		rows := a.dashboard.recent
-		a.dashboard.recentTable.Selected = &a.dashboard.recentChoice
-		table := ui.Table(c, &a.dashboard.recentTable, []ui.TableColumn{
-			{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-			{Title: tr("Module"), Width: 120},
-			{Title: tr("Summary"), MinWidth: 200},
-		}, len(rows), func(row, col int) {
-			entry := rows[row]
-			switch col {
-			case 0:
-				tableText(c, strconv.FormatInt(entry.Height, 10))
-			case 1:
-				tableText(c, entry.Module)
-			case 2:
-				tableText(c, entry.Summary).FontSize(textSize(c, 12))
+		if stackedRecords(c) {
+			a.dashboardRecentRecords(c, rows)
+		} else {
+			a.dashboard.recentTable.Selected = &a.dashboard.recentChoice
+			table := ui.Table(c, &a.dashboard.recentTable, []ui.TableColumn{
+				{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
+				{Title: tr("Module"), Width: 120},
+				{Title: tr("Summary"), MinWidth: 200},
+			}, len(rows), func(row, col int) {
+				entry := rows[row]
+				switch col {
+				case 0:
+					tableText(c, strconv.FormatInt(entry.Height, 10))
+				case 1:
+					tableText(c, entry.Module)
+				case 2:
+					tableText(c, entry.Summary).FontSize(textSize(c, 12))
+				}
+			})
+			if table.Changed() {
+				a.chooseRecentBlock(rows, a.dashboard.recentChoice)
 			}
-		})
-		if table.Changed() && a.dashboard.recentChoice >= 0 && a.dashboard.recentChoice < len(rows) {
-			if target, ok := pageForBlockModule(rows[a.dashboard.recentChoice].Module); ok {
-				// The row names where the record came from; taking the reader
-				// there is more useful than leaving a highlight on the dashboard.
-				a.dashboard.recentChoice = -1
-				a.setPage(target)
-				return
-			}
-			a.dashboard.recentChoice = -1
 		}
 	})
+}
+
+// dashboardRecentRecords keeps the full audit payload visible and makes the
+// whole event the navigation target when enlarged text no longer fits the
+// three-column summary table.
+func (a *App) dashboardRecentRecords(c *ui.Context, rows []BlockRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for i, entry := range rows {
+			i, entry := i, entry
+			displayName := fmt.Sprintf("%s #%d", valueOr(entry.Module), entry.Height)
+			selected := i == a.dashboard.recentChoice
+			record := selectableRecordPanel(c, selected,
+				recordChoiceLabel(displayName, selected), func() {
+					blockRecordBody(c, entry)
+				})
+			if record.Clicked() {
+				a.chooseRecentBlock(rows, i)
+			}
+		}
+	})
+}
+
+// chooseRecentBlock is shared by the table and large-text records. A known
+// module opens its workbench; an unknown one still consumes the selection
+// instead of leaving a stale highlight behind.
+func (a *App) chooseRecentBlock(rows []BlockRow, index int) {
+	if index < 0 || index >= len(rows) {
+		return
+	}
+	a.dashboard.recentChoice = index
+	if target, ok := pageForBlockModule(rows[index].Module); ok {
+		// The row names where the record came from; taking the reader there is
+		// more useful than leaving a highlight on the dashboard.
+		a.dashboard.recentChoice = -1
+		a.setPage(target)
+		return
+	}
+	a.dashboard.recentChoice = -1
+}
+
+// blockRecordBody is the shared ledger-event record used by both the
+// dashboard's selectable activity list and the Blockchain audit page.
+func blockRecordBody(c *ui.Context, entry BlockRow) {
+	ui.Row(c).FillWidth().Wrap().Gap(18).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, valueOr(entry.Module)).FontSize(textSize(c, 13)).Bold().
+			TextColor(ui.Hex(ink))
+		recordMetric(c, "Block", strconv.FormatInt(entry.Height, 10), ink)
+	})
+	recordField(c, "Summary", valueOr(entry.Summary))
 }
 
 func (a *App) loadBlockchain() {
@@ -392,21 +438,32 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 				a.blockchain.blockOffset+limit)
 		}
 	})
-	ui.Table(c, &a.blockchain.table, []ui.TableColumn{
-		{Title: tr("Height"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-		{Title: tr("Module"), Width: 130},
-		{Title: tr("Payload"), MinWidth: 200},
-	}, len(a.blockchain.rows), func(row, col int) {
-		b := a.blockchain.rows[row]
-		switch col {
-		case 0:
-			tableText(c, strconv.FormatInt(b.Height, 10))
-		case 1:
-			tableText(c, b.Module)
-		case 2:
-			tableText(c, b.Summary).FontSize(textSize(c, 12))
-		}
-	})
+	if stackedRecords(c) {
+		ui.Column(c).FillWidth().Gap(10).Children(func() {
+			for _, entry := range a.blockchain.rows {
+				entry := entry
+				recordPanel(c, func() {
+					blockRecordBody(c, entry)
+				})
+			}
+		})
+	} else {
+		ui.Table(c, &a.blockchain.table, []ui.TableColumn{
+			{Title: tr("Height"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
+			{Title: tr("Module"), Width: 130},
+			{Title: tr("Payload"), MinWidth: 200},
+		}, len(a.blockchain.rows), func(row, col int) {
+			b := a.blockchain.rows[row]
+			switch col {
+			case 0:
+				tableText(c, strconv.FormatInt(b.Height, 10))
+			case 1:
+				tableText(c, b.Module)
+			case 2:
+				tableText(c, b.Summary).FontSize(textSize(c, 12))
+			}
+		})
+	}
 }
 
 // pageForBlockModule maps an audit payload's module label to the page that

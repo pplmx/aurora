@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Dashboard activity and the blockchain audit stay readable at large text**:
+  at 2x the three-column tables left only a narrow strip for the audit payload,
+  so the stored event was reduced to a prefix. Recent dashboard entries and
+  Blockchain rows now become records with the complete summary beside the exact
+  block and module; the dashboard record remains the control that opens its
+  module.
 - **Token and NFT histories keep every transfer party at large text**: the
   fixed account columns reduced base64 public keys to short prefixes at 2x,
   while the token amount/nonce and NFT block columns competed for the remaining

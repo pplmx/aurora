@@ -671,6 +671,85 @@ func TestNFTHistoryUsesRecordsAtLargeText(t *testing.T) {
 	require.True(t, tester.HasText("9223372036854775807"), "the exact block height must remain visible")
 }
 
+// TestDashboardRecentUsesRecordsAtLargeText keeps the latest audit event
+// readable at 2x. The three-column table reduced its payload to a prefix, and
+// the row's navigation target was the only way to learn what the event said.
+func TestDashboardRecentUsesRecordsAtLargeText(t *testing.T) {
+	const (
+		summary = `{"module":"token","description":"A long token event whose complete audit payload must remain readable"}`
+		block   = int64(9223372036854775807)
+	)
+	app := New(&fakeServices{blocks: []BlockRow{{
+		Height: block, Module: "token", Summary: summary,
+	}}})
+
+	var summaryWidth, summaryHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		summaryWidth, summaryHeight = c.MeasureText(0, ui.Span{
+			Text: summary, Size: textSize(c, 12),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(summary)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	summaryRect, ok := tester.Find(summary)
+	require.True(t, ok)
+	require.True(t, summaryRect.W >= summaryWidth || summaryRect.H >= 1.5*summaryHeight,
+		"the full recent payload must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		summaryRect, summaryWidth, summaryHeight)
+	require.True(t, tester.HasText("9223372036854775807"), "the exact block height must remain visible")
+	require.True(t, tester.HasText("token"), "the source module must remain visible")
+
+	require.NoError(t, tester.Click(summary))
+	tester.Frame()
+	require.Equal(t, pageToken, app.page,
+		"choosing the complete recent record must still open its module")
+}
+
+// TestBlockchainUsesRecordsAtLargeText keeps each ledger payload inside the
+// audit page at 2x. The height and module columns left the one-line payload
+// cell with a narrow strip, so an auditor saw only the first part of the event
+// that the chain is meant to preserve.
+func TestBlockchainUsesRecordsAtLargeText(t *testing.T) {
+	const (
+		summary = `{"module":"oracle","source":"btc","price":12345,"observed_at":"2026-10-28T08:15:00+08:00"}`
+		block   = int64(9223372036854775807)
+	)
+	app := New(&fakeServices{blocks: []BlockRow{{
+		Height: block, Module: "oracle", Summary: summary,
+	}}})
+	app.ShowPage("Blockchain")
+
+	var summaryWidth, summaryHeight float32
+	tester := ui.NewTester(func(c *ui.Context) {
+		app.View(c)
+		summaryWidth, summaryHeight = c.MeasureText(0, ui.Span{
+			Text: summary, Size: textSize(c, 12),
+		})
+	}, 900, 600)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find(summary)
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-250)
+	tester.Frame()
+
+	summaryRect, ok := tester.Find(summary)
+	require.True(t, ok)
+	require.True(t, summaryRect.W >= summaryWidth || summaryRect.H >= 1.5*summaryHeight,
+		"the complete ledger payload must wrap instead of being clipped: rect=%+v measured=(%g,%g)",
+		summaryRect, summaryWidth, summaryHeight)
+	require.True(t, tester.HasText("9223372036854775807"), "the exact height must remain visible")
+	require.True(t, tester.HasText("oracle"), "the source module must remain visible")
+}
+
 // TestVotingCollectionsUseRecordsAtLargeText applies the collection rule to
 // the three Setup lists. At 2x the voter table pushed the public key off the
 // card, candidate names and party labels were clipped, and the session table's
