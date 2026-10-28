@@ -13,9 +13,10 @@ func TestIsBlockedIP(t *testing.T) {
 		"172.16.0.1", "192.168.1.1", "192.0.0.1", "198.18.0.1", "240.0.0.1",
 		"192.0.2.1", "192.88.99.1", "198.51.100.1", "203.0.113.1", "224.0.0.1", "239.255.255.250",
 		"255.255.255.255",
-		"::", "::1", "fc00::1", "fe80::1", "ff02::1",
+		"::", "::1", "::127.0.0.1", "::ffff:0:0:0", "fc00::1", "fe80::1", "fec0::1", "ff02::1",
+		"2001::1", "2001:2::1", "2001:10::1", "2001:20::1", "2001:30::1",
 		"64:ff9b::7f00:1", "64:ff9b:1::7f00:1", "2001:db8::1", "100::1",
-		"2001:2::1", "2002:7f00:1::", "3fff::1",
+		"2002:7f00:1::", "3fff::1",
 	}
 	for _, text := range blocked {
 		ip := net.ParseIP(text)
@@ -23,7 +24,10 @@ func TestIsBlockedIP(t *testing.T) {
 		require.Truef(t, IsBlockedIP(ip), "IsBlockedIP(%s) = false, want blocked", text)
 	}
 
-	allowed := []string{"8.8.8.8", "1.1.1.1", "93.184.216.34", "2606:4700:4700::1111"}
+	allowed := []string{
+		"8.8.8.8", "1.1.1.1", "93.184.216.34",
+		"::ffff:8.8.8.8", "2606:4700:4700::1111",
+	}
 	for _, text := range allowed {
 		require.Falsef(t, IsBlockedIP(net.ParseIP(text)), "IsBlockedIP(%s) = true, want allowed", text)
 	}

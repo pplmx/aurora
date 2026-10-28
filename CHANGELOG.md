@@ -124,6 +124,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle URL validation closes the remaining IPv6 private-space gaps**:
+  deprecated IPv6 site-local (`fec0::/10`), IPv4-compatible (`::/96`) and
+  IPv4-translated (`::ffff:0:0:0/96`) addresses, plus the IETF IPv6 protocol
+  assignment block (`2001::/23`, including Teredo and ORCHID), previously
+  passed add-time validation even though they are not public HTTP feed
+  destinations. The shared policy now rejects them at source creation,
+  redirect and dial time while continuing to allow IPv4-mapped public
+  addresses.
 - **Large-text record titles keep their complete identity**: Lottery history
   still rendered a shortened draw id inside its “full” record, and Oracle feed
   health forced the source name through a single-line ellipsis. Both titles now

@@ -32,10 +32,19 @@ var blockedPrefixes = []netip.Prefix{
 	// the MCAST-TEST-NET allocation as well as local-scope groups.
 	netip.MustParsePrefix("224.0.0.0/4"),
 	netip.MustParsePrefix("240.0.0.0/4"),
+	// The low IPv6 range contains the unspecified/loopback addresses,
+	// deprecated IPv4-compatible addresses, and the IPv4-translated block.
+	// None is a routable public HTTP destination; the compatible/translated
+	// forms could otherwise look like an IPv6 escape around the IPv4 policy.
+	netip.MustParsePrefix("::/96"),
 	netip.MustParsePrefix("::/128"),
 	netip.MustParsePrefix("::1/128"),
+	netip.MustParsePrefix("::ffff:0:0:0/96"),
 	netip.MustParsePrefix("fc00::/7"),
 	netip.MustParsePrefix("fe80::/10"),
+	// Deprecated IPv6 site-local space remains routable on legacy networks and
+	// has the same internal-service risk as RFC1918.
+	netip.MustParsePrefix("fec0::/10"),
 	netip.MustParsePrefix("ff00::/8"),
 	// NAT64 can translate an embedded IPv4 address at the network edge:
 	// [64:ff9b::7f00:1] becomes 127.0.0.1 on an IPv6-only network, which
@@ -46,7 +55,11 @@ var blockedPrefixes = []netip.Prefix{
 	// 6to4 embeds an arbitrary IPv4 destination in its address, offering
 	// another route around an IPv4-only guard.
 	netip.MustParsePrefix("2002::/16"),
-	netip.MustParsePrefix("2001:2::/48"),
+	// IETF protocol assignments cover Teredo, benchmarking, ORCHID, anycast
+	// control services and other non-web allocations. None is a legitimate
+	// public data-feed destination, so refuse the whole assignment as a single
+	// fail-closed policy boundary rather than maintaining a fragile allowlist.
+	netip.MustParsePrefix("2001::/23"),
 	netip.MustParsePrefix("2001:db8::/32"),
 	netip.MustParsePrefix("3fff::/20"),
 	netip.MustParsePrefix("100::/64"),
