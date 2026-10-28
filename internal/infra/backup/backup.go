@@ -432,6 +432,9 @@ func (s *BackupService) Create(ctx context.Context, output string) (result *Back
 	if err := restrictBackupFile(rollback.metaTmpPath); err != nil {
 		return nil, fmt.Errorf("restrict metadata: %w", err)
 	}
+	if err := syncFileAtPath(rollback.metaTmpPath); err != nil {
+		return nil, fmt.Errorf("sync metadata: %w", err)
+	}
 	if err := os.Rename(rollback.metaTmpPath, rollback.metaPath); err != nil {
 		return nil, fmt.Errorf("promote metadata: %w", err)
 	}
@@ -872,6 +875,18 @@ func copyFileAtomic(srcPath, dstPath string) error {
 		return fmt.Errorf("restrict temp: %w", err)
 	}
 	return nil
+}
+
+func syncFileAtPath(path string) error {
+	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		return err
+	}
+	if err := syncFileFn(f); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 func (s *BackupService) promoteRestore(ctx context.Context, operations []restoreOperation) ([]int, error) {

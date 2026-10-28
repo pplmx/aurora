@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Backup metadata is durable before it becomes the commit record**:
+  `backup create` wrote `metadata.json` through a temporary file and renamed
+  it without syncing the new contents. A crash immediately after the rename
+  could leave the promoted database snapshots beside an empty or truncated
+  metadata file, making the new backup unverifiable and replacing the previous
+  commit record. The metadata temp is now fsynced and closed before promotion;
+  a sync failure rolls the database set back to its previous verified state.
 - **Token history pages stay full when an audit row is unreadable**: the
   SQLite reader applied `LIMIT`/`OFFSET` before decoding each transfer, then
   skipped corrupt JSON or amounts. One bad row could shorten a page and shift
