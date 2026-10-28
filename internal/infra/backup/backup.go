@@ -1036,6 +1036,11 @@ func verifyDatabaseFile(path, name, wantChecksum string) (string, error) {
 }
 
 func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
+	// A shell-completed directory path often ends in a separator. Normalize it
+	// before deriving the sibling .pre_restore directory so the safety copy
+	// never moves inside the archive being restored.
+	backupPath = filepath.Clean(backupPath)
+
 	// Safety guard (v1.20): never clobber the live databases with a backup
 	// that fails integrity verification. Previously a corrupt/truncated backup
 	// was copied over a good DB, with recovery possible only through the

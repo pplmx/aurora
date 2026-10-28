@@ -216,6 +216,32 @@ func TestRestore_NoExistingDest(t *testing.T) {
 	}
 }
 
+// TestRestore_TrailingSeparatorKeepsSafetyCopyOutsideArchive pins the archive
+// boundary: shell path completion commonly supplies a trailing separator, but
+// the pre-restore rollback copy must remain a sibling instead of being created
+// inside the directory whose contents were just verified.
+func TestRestore_TrailingSeparatorKeepsSafetyCopyOutsideArchive(t *testing.T) {
+	tmp := t.TempDir()
+	dstDB := filepath.Join(tmp, "dst", "blockchain.db")
+	backupDir := filepath.Join(tmp, "backup")
+	newDB(t, dstDB,
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'LIVE')",
+	)
+	newDB(t, filepath.Join(backupDir, "blockchain.db"),
+		"CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+		"INSERT INTO kv (k, v) VALUES ('answer', 'ARCHIVE')",
+	)
+	writeMeta(t, backupDir, "blockchain")
+
+	svc := NewBackupService(map[string]string{"blockchain": dstDB})
+	require.NoError(t, svc.Restore(context.Background(), backupDir+string(os.PathSeparator)))
+
+	require.DirExists(t, backupDir+".pre_restore")
+	require.NoDirExists(t, filepath.Join(backupDir, ".pre_restore"))
+	require.Equal(t, "ARCHIVE", readKV(t, dstDB, "answer"))
+}
+
 // TestRestore_MissingBackupDB covers the error path when the backup
 // directory is missing the DB file listed in metadata.
 func TestRestore_MissingBackupDB(t *testing.T) {
