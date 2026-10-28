@@ -34,6 +34,8 @@ func TestCLIErrorLocalizesChinese(t *testing.T) {
 	out := formatCLIError(auditErr)
 	assert.Contains(t, out, "操作已提交")
 	assert.Contains(t, out, "请勿重试")
+	assert.Contains(t, out, "failed to transfer")
+	assert.Contains(t, out, "disk full")
 }
 
 func TestCLIErrorWrapperPreservesCauseAndFollowsLocale(t *testing.T) {

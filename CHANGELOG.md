@@ -158,7 +158,9 @@ documented in their per-milestone ROADMAP files.
   translates Cobra's required/unknown flag errors, positional-argument counts,
   unknown commands with suggestions, and unknown help topics. Wrapped errors
   retain `errors.Is`/`errors.As`; unrecognized filesystem, network and database
-  details remain verbatim rather than being replaced by a vague generic error.
+  details remain verbatim rather than being replaced by a vague generic error,
+  including when a known domain cause carries a technical detail such as
+  `disk full`.
 - **Current interface copy no longer advertises the deleted Web UI**:
   `aurora --help` now lists the CLI, native desktop window and REST API, and
   the second-launch desktop dialog identifies the requested `--data-dir`

@@ -67,12 +67,32 @@ func localizedErrorText(err error) string {
 			return translated
 		}
 		for _, entry := range cliErrorTranslations {
-			if i18n.HasText(entry.key) && errors.Is(err, entry.err) {
-				return i18n.GetText(entry.key)
+			if translated, ok := localizeKnownErrorText(err, entry); ok {
+				return translated
 			}
 		}
 	}
 	return err.Error()
+}
+
+// localizeKnownErrorText translates a domain sentinel without throwing away
+// the context or cause a wrapper added around it. Domain services commonly
+// use fmt.Errorf("%w: %v", ...) for the audit failure, so replacing the whole
+// error would hide details such as "disk full" from the operator.
+func localizeKnownErrorText(err error, entry cliErrorTranslation) (string, bool) {
+	if !i18n.HasText(entry.key) || !errors.Is(err, entry.err) {
+		return "", false
+	}
+	translated := i18n.GetText(entry.key)
+	original := err.Error()
+	sentinel := entry.err.Error()
+	if original == sentinel {
+		return translated, true
+	}
+	if strings.Contains(original, sentinel) {
+		return strings.ReplaceAll(original, sentinel, translated), true
+	}
+	return translated, true
 }
 
 var (
