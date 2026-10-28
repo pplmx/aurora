@@ -4,6 +4,11 @@ import (
 	"net/http"
 )
 
+const (
+	corsAllowedMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+	corsAllowedHeaders = "Content-Type, X-API-Key, X-Request-ID"
+)
+
 // CORS restricts cross-origin reads of API and Web UI responses to an explicit
 // allow-list of origins. It NEVER emits a wildcard "Access-Control-Allow-
 // Origin": the gateway embeds the API key into every served HTML page (see
@@ -28,8 +33,8 @@ func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 				}
 			}
 
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-API-Key, X-Request-ID")
+			w.Header().Set("Access-Control-Allow-Methods", corsAllowedMethods)
+			w.Header().Set("Access-Control-Allow-Headers", corsAllowedHeaders)
 			w.Header().Set("Access-Control-Expose-Headers", RequestIDHeader)
 
 			if r.Method == http.MethodOptions {

@@ -27,7 +27,8 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
   `431`；正常 API 调用不需要接近该上限。
 - **限流**：默认关闭；`[api.rateLimit]` 可开启，按客户端固定窗口计数，只有
   `trustedProxies` 中的来源才采信 `X-Forwarded-For`（否则无法绕过）。
-- **CORS**：默认只允许同源，`[api.cors] allowedOrigins` 加入白名单。
+- **CORS**：默认只允许同源，`[api.cors] allowedOrigins` 加入白名单；预检允许
+  `GET`、`POST`、`PUT`、`PATCH`、`DELETE` 与 `OPTIONS`。
 - **请求关联**：每个响应都带 `X-Request-ID`。调用方提供的 ID 只接受最长
   128 字符的可见 ASCII，否则服务端会生成一个，避免未鉴权请求把超长 ID
   放大进访问日志；访问日志中的 HTTP 方法和路径也会分别截断到 32/1024

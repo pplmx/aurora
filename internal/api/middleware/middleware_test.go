@@ -138,6 +138,32 @@ func TestCORS_PreflightRequest(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, rr.Code)
 }
 
+func TestCORS_PreflightAllowsPatch(t *testing.T) {
+	called := false
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	})
+
+	const origin = "https://operator.ui"
+	wrapped := CORS([]string{origin})(handler)
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/v1/oracle/sources/source-1", nil)
+	req.Header.Set("Origin", origin)
+	req.Header.Set("Access-Control-Request-Method", http.MethodPatch)
+	req.Header.Set("Access-Control-Request-Headers", "Content-Type, X-API-Key")
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNoContent, rr.Code)
+	assert.Equal(t, origin, rr.Header().Get("Access-Control-Allow-Origin"))
+	assert.Contains(t, rr.Header().Get("Access-Control-Allow-Methods"), http.MethodPatch,
+		"the browser must be allowed to preflight the oracle source PATCH endpoint")
+	assert.Equal(t, "Content-Type, X-API-Key, X-Request-ID", rr.Header().Get("Access-Control-Allow-Headers"))
+	assert.False(t, called, "preflight must not reach the route handler")
+}
+
 func TestLogger_Requests(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
