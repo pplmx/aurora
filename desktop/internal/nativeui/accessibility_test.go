@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
@@ -81,6 +82,79 @@ func TestStatusOutcomeIsAnnouncedOnce(t *testing.T) {
 	app.token.status = errStatus(errors.New("token not found"))
 	tester.Frame()
 	require.Equal(t, []string{"Failed: " + app.token.status.text}, tester.Announcements())
+}
+
+// TestLoadFailuresAreStatusRegions keeps a failed refresh from being only a
+// red line painted above retained rows. The warning and whether those rows are
+// stale form one status message, announced once per distinct failure.
+func TestLoadFailuresAreStatusRegions(t *testing.T) {
+	fake := &fakeServices{draws: []DrawRow{{
+		ID: "draw-1", BlockHeight: 1, Seed: "seed",
+		Participants: []string{"Alice"}, Winners: []string{"Alice"},
+	}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 1800)
+	app.ShowPage("Lottery")
+	tester.Frame()
+	tester.Announcements()
+
+	announcement := tr("Failed to load history") + ": database is locked " +
+		tr("Showing the last successful load.")
+	fake.loadErrs.history = errors.New("database is locked")
+	app.refresh()
+	tester.Frame()
+	require.Equal(t, []string{announcement}, tester.Announcements())
+
+	tester.Frame()
+	require.Empty(t, tester.Announcements(), "an unrelated repaint must not repeat a load failure")
+
+	fake.loadErrs.history = nil
+	app.refresh()
+	tester.Frame()
+	require.Empty(t, tester.Announcements())
+
+	fake.loadErrs.history = errors.New("database is locked")
+	app.refresh()
+	tester.Frame()
+	require.Equal(t, []string{announcement}, tester.Announcements(),
+		"a later failure after a good load must be announced again")
+}
+
+// TestBackgroundWorkIsStatusAndAnnouncedOnce gives the busy banner the same
+// treatment as an action result: assistive technology hears that work started,
+// then the one-time warning when it has run unusually long.
+func TestBackgroundWorkIsStatusAndAnnouncedOnce(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetBackgroundWrites(true)
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Token")
+	tester.Frame()
+	tester.Announcements()
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	app.runWrite("Minting…", func() func() {
+		close(started)
+		<-release
+		return func() {}
+	})
+	<-started
+	tester.Frame()
+	require.Equal(t, []string{tr("Minting…")}, tester.Announcements())
+	tester.Frame()
+	require.Empty(t, tester.Announcements(), "the running banner must be announced only once")
+
+	app.busySince = time.Now().Add(-21 * time.Second)
+	tester.Frame()
+	slow := tr("Still working…") + " " +
+		tr("This can take a while; the operation will finish on its own.")
+	require.Equal(t, []string{slow}, tester.Announcements())
+	tester.Frame()
+	require.Empty(t, tester.Announcements(), "the long-running warning must also be announced once")
+
+	close(release)
+	tester.Advance(60 * time.Millisecond)
+	tester.Frame()
 }
 
 // TestActionCardIsKeyboardOperable pins the whole-card dashboard shortcut to

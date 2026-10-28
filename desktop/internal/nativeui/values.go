@@ -153,12 +153,25 @@ func conciseText(value string, limit int) string {
 // through to its "nothing here yet" note, which would claim the store is empty
 // when the truth is that it could not be read.
 func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
-	ui.Text(c, tr(what)+": "+localizeServiceError(err)).FontSize(textSize(c, 12)).TextColor(ui.Hex(auroraRed))
-	if !hasContent {
-		return false
+	message := tr(what) + ": " + localizeServiceError(err)
+	stale := ""
+	if hasContent {
+		stale = tr("Showing the last successful load.")
 	}
-	ui.Text(c, tr("Showing the last successful load.")).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
-	return true
+	spoken := message
+	if stale != "" {
+		spoken += " " + stale
+	}
+	warning := ui.Column(c).Key(what).FillWidth().Gap(2).Role(ui.RoleStatus).Label(spoken)
+	announceStatusChange(c, warning,
+		statusLine{text: message + "\x00" + stale, isErr: true}, spoken)
+	warning.Children(func() {
+		ui.Text(c, message).FontSize(textSize(c, 12)).TextColor(ui.Hex(auroraRed))
+		if stale != "" {
+			ui.Text(c, stale).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
+		}
+	})
+	return hasContent
 }
 
 // valueOr renders an empty form value as an em dash, for prose that names what

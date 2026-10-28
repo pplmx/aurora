@@ -35,7 +35,10 @@ documented in their per-milestone ROADMAP files.
   current choice selected, so arrows move between languages and the separate
   Follow System action says that it uses the operating system's choice. Every
   search field announces the number of rows its new query leaves, including
-  zero and clearing the query.
+  zero and clearing the query. Failed database reads now expose the error and
+  the stale-data note as one status message announced once, while background
+  writes announce when they start and again if they still need attention after
+  20 seconds.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;
