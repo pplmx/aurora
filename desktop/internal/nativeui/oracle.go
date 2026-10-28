@@ -680,7 +680,7 @@ func (a *App) oracleHealthRecords(c *ui.Context, health []HealthRow, names map[s
 			name := oracleHealthName(h, names)
 			recordPanel(c, func() {
 				ui.Text(c, name).FontSize(textSize(c, 13)).Bold().
-					TextColor(ui.Hex(ink)).SingleLine().Ellipsis("…").Tooltip(name)
+					TextColor(ui.Hex(ink))
 				ui.Row(c).Wrap().Gap(18).Children(func() {
 					healthMetric(c, "Attempts", h.Attempts, ink)
 					healthMetric(c, "Successes", h.Successes, auroraGreen)
