@@ -14,7 +14,13 @@ const (
 // safe choice. MyGo's AlertDialog focuses its last button, so using it for
 // Burn or Delete made a stray Enter perform the irreversible write. The red
 // action remains keyboard reachable after one Tab.
-func destructiveConfirm(c *ui.Context, open *bool, title, detail, confirmLabel string) destructiveResult {
+//
+// Both outcomes move focus back into the page: cancel returns to the trigger,
+// while confirm returns to confirmFocus because that control may disappear or
+// become disabled while the destructive write runs.
+func destructiveConfirm(c *ui.Context, open *bool, title, detail, confirmLabel string,
+	cancelFocus, confirmFocus ui.Handle,
+) destructiveResult {
 	if !*open {
 		return destructivePending
 	}
@@ -36,8 +42,10 @@ func destructiveConfirm(c *ui.Context, open *bool, title, detail, confirmLabel s
 		Role(ui.RoleAlertDialog).Label(title).Description(detail)
 	switch {
 	case confirmed:
+		restoreDestructiveFocus(c, confirmFocus)
 		return destructiveConfirmed
 	case !*open:
+		restoreDestructiveFocus(c, cancelFocus)
 		return destructiveCancelled
 	default:
 		return destructivePending

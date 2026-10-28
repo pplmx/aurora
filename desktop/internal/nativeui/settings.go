@@ -139,19 +139,15 @@ func (a *App) renderForgetKeysDialog(c *ui.Context) {
 	if disableMemory {
 		title = tr("Turn off session key memory?")
 	}
+	cancelFocus := a.forgetKeysButton
+	if disableMemory {
+		cancelFocus = a.rememberKeysControl
+	}
 	result := destructiveConfirm(c, &a.confirmForgetKeys, title,
 		tr("All private keys kept only in this session will be removed. If they are not saved elsewhere, they cannot be recovered."),
-		tr("Forget keys"))
+		tr("Forget keys"), cancelFocus, a.rememberKeysControl)
 	if !a.confirmForgetKeys {
 		a.disableKeyMemoryOnForget = false
-	}
-	if result == destructiveCancelled {
-		if disableMemory {
-			restoreDestructiveFocus(c, a.rememberKeysControl)
-		} else {
-			restoreDestructiveFocus(c, a.forgetKeysButton)
-		}
-		return
 	}
 	if result != destructiveConfirmed {
 		return
