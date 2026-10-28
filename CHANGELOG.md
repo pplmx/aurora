@@ -28,7 +28,9 @@ documented in their per-milestone ROADMAP files.
   to the Cast Vote, Transfer or other action they belong to. Validation errors
   now live inside the field that caused them, so the control is marked invalid
   and its error is exposed as the control's description instead of a detached
-  red line. Help text below search boxes, number ranges, session times,
+  red line. Session-window and token-decimal validation use the same field
+  errors, and invalid decimals open the Advanced section that contains the
+  control. Help text below search boxes, number ranges, session times,
   checkboxes and data actions remains visible while also describing the control
   it explains.
   Settings presents the installed languages as a named radio group with the
