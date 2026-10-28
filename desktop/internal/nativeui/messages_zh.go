@@ -255,6 +255,7 @@ var desktopMessages = map[string]string{
 	"Entries %d–%d of %d":        "第 %d–%d 条，共 %d 条",
 	"Search narrows the current page; use Previous/Next for older tokens.": "搜索只缩小当前页；用上一页/下一页查看更早的代币。",
 	"Search narrows the current page; use Previous/Next for older assets.": "搜索只缩小当前页；用上一页/下一页查看更早的资产。",
+	"Search matches module, payload or height across the whole chain.":     "搜索会匹配整条链的模块、载荷或高度。",
 	"Still working…": "仍在处理…",
 	"This can take a while; the operation will finish on its own.": "这可能需要一些时间；操作会自行完成。",
 	"Create Token": "创建代币",
