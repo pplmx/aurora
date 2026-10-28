@@ -318,8 +318,11 @@ func NewGetCandidatesUseCase(repo voting.Repository) *GetCandidatesUseCase {
 	return &GetCandidatesUseCase{repo: repo}
 }
 
-func (uc *GetCandidatesUseCase) Execute() ([]*CandidateResponse, error) {
-	candidates, err := uc.repo.ListCandidates()
+func (uc *GetCandidatesUseCase) Execute(req *ListCandidatesRequest) ([]*CandidateResponse, error) {
+	if req == nil {
+		req = &ListCandidatesRequest{}
+	}
+	candidates, err := uc.repo.ListCandidates(req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -401,9 +404,9 @@ func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionRespo
 	}, nil
 }
 
-// ListSessionsUseCase returns every session in the repository, exposing the
-// sessions surface that CreateSession writes into but which previously had no
-// read path (the API could only fetch a single session by id).
+// ListSessionsUseCase returns a page of sessions, exposing the sessions
+// surface that CreateSession writes into but which previously had no read path
+// (the API could only fetch a single session by id).
 type ListSessionsUseCase struct {
 	repo voting.Repository
 }
@@ -412,8 +415,11 @@ func NewListSessionsUseCase(repo voting.Repository) *ListSessionsUseCase {
 	return &ListSessionsUseCase{repo: repo}
 }
 
-func (uc *ListSessionsUseCase) Execute() ([]*SessionResponse, error) {
-	sessions, err := uc.repo.ListSessions()
+func (uc *ListSessionsUseCase) Execute(req *ListSessionsRequest) ([]*SessionResponse, error) {
+	if req == nil {
+		req = &ListSessionsRequest{}
+	}
+	sessions, err := uc.repo.ListSessions(req.Limit, req.Offset)
 	if err != nil {
 		return nil, err
 	}

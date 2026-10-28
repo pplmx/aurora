@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 	"time"
 
@@ -161,6 +162,31 @@ func TestSessionWindowIsEditedAsLocalTime(t *testing.T) {
 	require.Equal(t, sentStart, rec.start, "an invalid window must not reach the service")
 	require.Contains(t, app.voting.sessionResult.text, "after the start")
 	require.True(t, app.voting.sessionResult.isErr)
+}
+
+// TestEmptySessionRosterIncludesCandidatesBeyondTheVisiblePage keeps the
+// collection pager from changing the form's contract: an empty roster still
+// means every registered candidate, not just the newest hundred on screen.
+func TestEmptySessionRosterIncludesCandidatesBeyondTheVisiblePage(t *testing.T) {
+	all := make([]CandidateRow, votingPageSize+25)
+	for i := range all {
+		all[i] = CandidateRow{ID: "c" + strconv.Itoa(i), Name: "Candidate"}
+	}
+	rec := &sessionRecorder{fakeServices: &fakeServices{candidates: all}}
+	app := New(rec)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	require.Len(t, app.voting.candidates, votingPageSize)
+
+	app.voting.sessionTitle = "All candidates"
+	app.voting.sessionStart = time.Unix(1000, 0)
+	app.voting.sessionEnd = time.Unix(2000, 0)
+	app.createVotingSession()
+
+	require.Len(t, rec.ids, len(all), "the session must include candidates outside the visible page")
+	require.Equal(t, all[0].ID, rec.ids[0])
+	require.Equal(t, all[len(all)-1].ID, rec.ids[len(rec.ids)-1])
 }
 
 // TestResultsShowTheirTotal pins the line above the tally. Counting the rows'

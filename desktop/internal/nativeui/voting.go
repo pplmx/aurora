@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -62,9 +63,16 @@ type votingState struct {
 
 	candidates []CandidateRow
 	sessions   []SessionRow
+	// offsets page the two collections. Each loader requests one extra row so
+	// Next is disabled on the exact final page instead of opening an empty one.
+	candOffset     int
+	candHasMore    bool
+	sessionOffset  int
+	sessionHasMore bool
+	candLoadErr    error
+	sessionLoadErr error
 	// candSearch and sessionSearch narrow those lists as they grow; both
-	// filters are case-insensitive and leave the selection pointing at the
-	// filtered row.
+	// filters are case-insensitive and operate on the current page.
 	candSearch    string
 	sessionSearch string
 	// candApplied/sessionApplied are the queries the current highlights
@@ -94,23 +102,120 @@ type votingState struct {
 	candChoice    int
 }
 
+const votingPageSize = 100
+
 func (a *App) loadVoting() {
 	if a.services == nil {
 		return
 	}
-	cands, err := a.services.Candidates()
+	candID := a.selectedCandidateID()
+	sessionID := a.selectedSessionID()
+	a.loadCandidatePage(a.voting.candOffset)
+	a.loadSessionPage(a.voting.sessionOffset)
+	a.restoreCandidateChoice(candID)
+	a.restoreSessionChoice(sessionID)
+}
+
+// loadCandidatePage commits a page offset only after its read succeeds. A
+// failed pager move therefore leaves the rows, offset and highlight on the page
+// they actually describe.
+func (a *App) loadCandidatePage(offset int) bool {
+	if a.services == nil {
+		return false
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	rows, err := a.services.Candidates(votingPageSize+1, offset)
+	a.voting.candLoadErr = err
+	a.syncVotingLoadErr()
 	if err != nil {
-		a.voting.loadErr = err
+		return false
+	}
+	if len(rows) == 0 && offset > 0 {
+		return a.loadCandidatePage(0)
+	}
+	a.voting.candOffset = offset
+	a.voting.candHasMore = len(rows) > votingPageSize
+	if a.voting.candHasMore {
+		rows = rows[:votingPageSize]
+	}
+	a.voting.candidates = rows
+	return true
+}
+
+func (a *App) loadSessionPage(offset int) bool {
+	if a.services == nil {
+		return false
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	rows, err := a.services.Sessions(votingPageSize+1, offset)
+	a.voting.sessionLoadErr = err
+	a.syncVotingLoadErr()
+	if err != nil {
+		return false
+	}
+	if len(rows) == 0 && offset > 0 {
+		return a.loadSessionPage(0)
+	}
+	a.voting.sessionOffset = offset
+	a.voting.sessionHasMore = len(rows) > votingPageSize
+	if a.voting.sessionHasMore {
+		rows = rows[:votingPageSize]
+	}
+	a.voting.sessions = rows
+	return true
+}
+
+func (a *App) syncVotingLoadErr() {
+	a.voting.loadErr = errors.Join(a.voting.candLoadErr, a.voting.sessionLoadErr)
+}
+
+// selectedCandidateID resolves the current highlight through the filtered
+// slice the table actually uses. The loaders restore the id rather than the
+// index so a refresh cannot make the old row number select a different person.
+func (a *App) selectedCandidateID() string {
+	rows := a.filteredCandidates()
+	if a.voting.candChoice < 0 || a.voting.candChoice >= len(rows) {
+		return ""
+	}
+	return rows[a.voting.candChoice].ID
+}
+
+func (a *App) restoreCandidateChoice(id string) {
+	a.voting.candChoice = -1
+	if id == "" {
 		return
 	}
-	sessions, err := a.services.Sessions()
-	if err != nil {
-		a.voting.loadErr = err
+	for i, candidate := range a.filteredCandidates() {
+		if candidate.ID == id {
+			a.voting.candChoice = i
+			return
+		}
+	}
+}
+
+func (a *App) selectedSessionID() string {
+	rows := a.filteredSessions()
+	if a.voting.sessionChoice < 0 || a.voting.sessionChoice >= len(rows) {
+		return ""
+	}
+	return rows[a.voting.sessionChoice].ID
+}
+
+func (a *App) restoreSessionChoice(id string) {
+	a.voting.sessionChoice = -1
+	if id == "" {
 		return
 	}
-	a.voting.candidates = cands
-	a.voting.sessions = sessions
-	a.voting.loadErr = nil
+	for i, session := range a.filteredSessions() {
+		if session.ID == id {
+			a.voting.sessionChoice = i
+			return
+		}
+	}
 }
 
 // votingView splits the page into the three stages an operator moves through:
@@ -225,7 +330,8 @@ func (a *App) registerCandidate() {
 			a.voting.candResult = okStatus("Registered %s", cand.Name)
 			a.voting.candCopyID = cand.ID
 			a.voting.candName, a.voting.candParty, a.voting.candProgram = "", "", ""
-			a.loadVoting()
+			a.voting.candChoice = -1
+			a.loadCandidatePage(0)
 			// The new candidate is the context: highlight it, clear a search that
 			// would hide it, and aim the ballot at it. The operator can still change
 			// either choice before casting.
@@ -238,7 +344,7 @@ func (a *App) registerCandidate() {
 // selectCandidateByID highlights a candidate after registration.
 func (a *App) selectCandidateByID(id string) {
 	a.voting.candSearch, a.voting.candApplied = "", ""
-	for i, candidate := range a.voting.candidates {
+	for i, candidate := range a.filteredCandidates() {
 		if candidate.ID == id {
 			a.voting.candChoice = i
 			return
@@ -325,7 +431,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	})
 	fieldHint(c, "Candidate IDs (comma-separated)", "Leave empty to include every registered candidate.", &a.voting.sessionIDs)
 	ui.Row(c).Children(func() {
-		if primaryButton(c, "Create Session").Disabled(!allSet(a.voting.sessionTitle) || (len(a.voting.candidates) == 0 && !allSet(a.voting.sessionIDs))).Clicked() {
+		if primaryButton(c, "Create Session").Disabled(!allSet(a.voting.sessionTitle)).Clicked() {
 			a.createVotingSession()
 		}
 	})
@@ -347,17 +453,27 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 		return
 	}
-	sessions := make([]SessionRow, 0, len(a.voting.sessions))
 	ui.SearchField(c, &a.voting.sessionSearch).Label(tr("Search sessions"))
 	if a.voting.sessionSearch != a.voting.sessionApplied {
 		a.voting.sessionApplied = a.voting.sessionSearch
 		a.voting.sessionChoice = -1
 	}
-	for _, s := range a.voting.sessions {
-		if containsFold(a.voting.sessionSearch, s.ID, s.Title, s.Status) {
-			sessions = append(sessions, s)
+	if previous, next := listPager(c, a.voting.sessionOffset, len(a.voting.sessions), a.voting.sessionHasMore); previous || next {
+		target := a.voting.sessionOffset
+		if previous {
+			target = max(0, target-votingPageSize)
+		} else {
+			target += votingPageSize
 		}
+		if a.loadSessionPage(target) {
+			a.voting.sessionChoice = -1
+		}
+		return
 	}
+	if a.voting.sessionSearch != "" {
+		hint(c, "Search narrows the current page; use Previous/Next for older sessions.")
+	}
+	sessions := a.filteredSessions()
 	if len(sessions) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No sessions match “%s”."), strings.TrimSpace(a.voting.sessionSearch)))
 		return
@@ -413,6 +529,16 @@ func (a *App) votingSessionList(c *ui.Context) {
 	}
 }
 
+func (a *App) filteredSessions() []SessionRow {
+	rows := make([]SessionRow, 0, len(a.voting.sessions))
+	for _, session := range a.voting.sessions {
+		if containsFold(a.voting.sessionSearch, session.ID, session.Title, session.Status) {
+			rows = append(rows, session)
+		}
+	}
+	return rows
+}
+
 // sessionRosterNames renders a session's candidate ids as names, falling back
 // to the shortened id when a candidate has been deleted.
 func (a *App) sessionRosterNames(ids []string) string {
@@ -453,12 +579,27 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		}
 		return
 	}
-	candidates := a.filteredCandidates()
 	ui.SearchField(c, &a.voting.candSearch).Label(tr("Search candidates"))
 	if a.voting.candSearch != a.voting.candApplied {
 		a.voting.candApplied = a.voting.candSearch
 		a.voting.candChoice = -1
 	}
+	if previous, next := listPager(c, a.voting.candOffset, len(a.voting.candidates), a.voting.candHasMore); previous || next {
+		target := a.voting.candOffset
+		if previous {
+			target = max(0, target-votingPageSize)
+		} else {
+			target += votingPageSize
+		}
+		if a.loadCandidatePage(target) {
+			a.voting.candChoice = -1
+		}
+		return
+	}
+	if a.voting.candSearch != "" {
+		hint(c, "Search narrows the current page; use Previous/Next for older candidates.")
+	}
+	candidates := a.filteredCandidates()
 	if len(candidates) == 0 {
 		emptyNote(c, fmt.Sprintf(tr("No candidates match “%s”."), strings.TrimSpace(a.voting.candSearch)))
 		return
@@ -551,7 +692,15 @@ func (a *App) createVotingSession() {
 	}
 	ids := splitParticipants(a.voting.sessionIDs)
 	if len(ids) == 0 {
-		for _, c := range a.voting.candidates {
+		// The visible list is one page, but an empty roster means every
+		// registered candidate. Read the complete id set only for this write;
+		// the collection itself remains paged.
+		all, err := a.services.Candidates(0, 0)
+		if err != nil {
+			a.voting.sessionResult = errStatus(err)
+			return
+		}
+		for _, c := range all {
 			ids = append(ids, c.ID)
 		}
 	}
@@ -571,7 +720,8 @@ func (a *App) createVotingSession() {
 			a.voting.sessionCopyID = s.ID
 			a.voting.sessionTitle, a.voting.sessionDesc, a.voting.sessionIDs = "", "", ""
 			a.voting.sessionStart, a.voting.sessionEnd = defaultSessionWindow(time.Now())
-			a.loadVoting()
+			a.voting.sessionChoice = -1
+			a.loadSessionPage(0)
 			// The new session becomes the context for controls, ballot and tally;
 			// highlight its row so a successful create has a visible result even
 			// before the copy button is used.
@@ -586,7 +736,7 @@ func (a *App) createVotingSession() {
 // cleared first so the index is in the list the table actually shows.
 func (a *App) selectSessionByID(id string) {
 	a.voting.sessionSearch, a.voting.sessionApplied = "", ""
-	for i, session := range a.voting.sessions {
+	for i, session := range a.filteredSessions() {
 		if session.ID == id {
 			a.voting.sessionChoice = i
 			return

@@ -25,6 +25,16 @@ type CreateSessionRequest struct {
 	EndTime      int64
 }
 
+type ListCandidatesRequest struct {
+	Limit  int
+	Offset int
+}
+
+type ListSessionsRequest struct {
+	Limit  int
+	Offset int
+}
+
 type VoteResponse struct {
 	ID          string `json:"id"`
 	BlockHeight int64  `json:"block_height"`

@@ -2,11 +2,18 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/votingapp"
 	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/ledger"
+)
+
+const (
+	defaultVotingListLimit = 20
+	maxVotingListLimit     = 100
+	maxVotingListOffset    = 10000
 )
 
 type VotingHandler struct {
@@ -145,8 +152,9 @@ func (h *VotingHandler) Vote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
+	limit, offset := votingPage(r)
 	uc := votingapp.NewGetCandidatesUseCase(h.repo)
-	result, err := uc.Execute()
+	result, err := uc.Execute(&votingapp.ListCandidatesRequest{Limit: limit, Offset: offset})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
@@ -156,14 +164,33 @@ func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
+	limit, offset := votingPage(r)
 	uc := votingapp.NewListSessionsUseCase(h.repo)
-	result, err := uc.Execute()
+	result, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, result)
+}
+
+// votingPage parses the candidate/session list page with the same forgiving,
+// capped rules as the other collection endpoints: malformed or non-positive
+// limits use the default, and offsets clamp instead of overflowing storage.
+func votingPage(r *http.Request) (limit, offset int) {
+	limit = defaultVotingListLimit
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			limit = min(parsed, maxVotingListLimit)
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
+			offset = min(parsed, maxVotingListOffset)
+		}
+	}
+	return limit, offset
 }
 
 func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {

@@ -54,10 +54,14 @@ type Repository interface {
 	// increment is a silently under-counted election. Must return the
 	// repository's not-found sentinel if the candidate no longer exists.
 	IncrementCandidateVoteCount(candidateID string) error
-	ListCandidates() ([]*Candidate, error)
+	// ListCandidates returns one page newest first. limit <= 0 returns the
+	// remainder from offset, preserving the CLI's unbounded form.
+	ListCandidates(limit, offset int) ([]*Candidate, error)
 
 	SaveSession(session *Session) error
 	GetSession(id string) (*Session, error)
 	UpdateSession(session *Session) error
-	ListSessions() ([]*Session, error)
+	// ListSessions returns one page newest first. limit <= 0 returns the
+	// remainder from offset, preserving the CLI's unbounded form.
+	ListSessions(limit, offset int) ([]*Session, error)
 }

@@ -11,6 +11,16 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **Voting collections are paged from storage to every surface**: candidate and
+  session lists now use SQLite `LIMIT/OFFSET` with a stable newest-first order,
+  `GET /api/v1/voting/{candidates,sessions}` accepts capped `limit`/`offset`
+  query parameters, and `aurora voting candidate|session list` exposes the same
+  controls while keeping zero as "the remainder from offset". The desktop
+  Setup cards read 100 rows at a time with exact-end Previous/Next paging,
+  keep the last good page and highlight when a move fails, and still expand an
+  empty session roster to every registered candidate rather than only the
+  visible page.
+
 - **The token collection is paged from storage to every screen**: the desktop
   Tokens card now reads 100 records at a time with Previous/Next and an exact
   end state, `aurora token list` accepts `--limit`/`--offset` (zero still means

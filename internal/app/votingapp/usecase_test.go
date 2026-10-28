@@ -33,6 +33,11 @@ type mockVotingRepo struct {
 	errGetSession                  error
 	errCountVotesBySession         error
 
+	lastListCandidatesLimit  int
+	lastListCandidatesOffset int
+	lastListSessionsLimit    int
+	lastListSessionsOffset   int
+
 	// snapshot supports the mock TransactionManager: beginTx captures voter
 	// flags + the votes slice so rollbackTx can restore them.
 	snapshot *mockVotingTxSnapshot
@@ -150,11 +155,23 @@ func (m *mockVotingRepo) GetCandidate(id string) (*voting.Candidate, error) {
 	return nil, nil
 }
 
-func (m *mockVotingRepo) ListCandidates() ([]*voting.Candidate, error) {
+func (m *mockVotingRepo) ListCandidates(limit, offset int) ([]*voting.Candidate, error) {
+	m.lastListCandidatesLimit = limit
+	m.lastListCandidatesOffset = offset
 	if m.errListCandidates != nil {
 		return nil, m.errListCandidates
 	}
-	return m.candidates, nil
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(m.candidates) {
+		return nil, nil
+	}
+	rows := m.candidates[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 
 func (m *mockVotingRepo) IncrementCandidateVoteCount(id string) error {
@@ -268,8 +285,20 @@ func (m *mockVotingRepo) UpdateVoter(v *voting.Voter) error {
 	return nil
 }
 
-func (m *mockVotingRepo) ListSessions() ([]*voting.Session, error) {
-	return m.sessions, nil
+func (m *mockVotingRepo) ListSessions(limit, offset int) ([]*voting.Session, error) {
+	m.lastListSessionsLimit = limit
+	m.lastListSessionsOffset = offset
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(m.sessions) {
+		return nil, nil
+	}
+	rows := m.sessions[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 
 func (m *mockVotingRepo) UpdateSession(s *voting.Session) error {
@@ -453,7 +482,7 @@ func TestGetCandidatesUseCase(t *testing.T) {
 	}
 	uc := NewGetCandidatesUseCase(repo)
 
-	resp, err := uc.Execute()
+	resp, err := uc.Execute(&ListCandidatesRequest{})
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -467,7 +496,7 @@ func TestGetCandidatesUseCase_Empty(t *testing.T) {
 	repo := &mockVotingRepo{}
 	uc := NewGetCandidatesUseCase(repo)
 
-	resp, err := uc.Execute()
+	resp, err := uc.Execute(&ListCandidatesRequest{})
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -475,6 +504,25 @@ func TestGetCandidatesUseCase_Empty(t *testing.T) {
 	if len(resp) != 0 {
 		t.Errorf("Expected 0 candidates, got %d", len(resp))
 	}
+}
+
+func TestGetCandidatesUseCasePages(t *testing.T) {
+	repo := &mockVotingRepo{
+		candidates: []*voting.Candidate{
+			{ID: "c1", Name: "Alice"},
+			{ID: "c2", Name: "Bob"},
+			{ID: "c3", Name: "Carol"},
+		},
+	}
+
+	resp, err := NewGetCandidatesUseCase(repo).Execute(&ListCandidatesRequest{
+		Limit: 1, Offset: 1,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp, 1)
+	require.Equal(t, "c2", resp[0].ID)
+	require.Equal(t, 1, repo.lastListCandidatesLimit)
+	require.Equal(t, 1, repo.lastListCandidatesOffset)
 }
 
 func TestListSessionsUseCase(t *testing.T) {
@@ -486,7 +534,7 @@ func TestListSessionsUseCase(t *testing.T) {
 	}
 	uc := NewListSessionsUseCase(repo)
 
-	resp, err := uc.Execute()
+	resp, err := uc.Execute(&ListSessionsRequest{})
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -506,7 +554,7 @@ func TestListSessionsUseCase_Empty(t *testing.T) {
 	repo := &mockVotingRepo{}
 	uc := NewListSessionsUseCase(repo)
 
-	resp, err := uc.Execute()
+	resp, err := uc.Execute(&ListSessionsRequest{})
 	if err != nil {
 		t.Fatalf("Execute failed: %v", err)
 	}
@@ -514,6 +562,25 @@ func TestListSessionsUseCase_Empty(t *testing.T) {
 	if len(resp) != 0 {
 		t.Errorf("Expected 0 sessions, got %d", len(resp))
 	}
+}
+
+func TestListSessionsUseCasePages(t *testing.T) {
+	repo := &mockVotingRepo{
+		sessions: []*voting.Session{
+			{ID: "s1", Title: "First"},
+			{ID: "s2", Title: "Second"},
+			{ID: "s3", Title: "Third"},
+		},
+	}
+
+	resp, err := NewListSessionsUseCase(repo).Execute(&ListSessionsRequest{
+		Limit: 1, Offset: 1,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp, 1)
+	require.Equal(t, "s2", resp[0].ID)
+	require.Equal(t, 1, repo.lastListSessionsLimit)
+	require.Equal(t, 1, repo.lastListSessionsOffset)
 }
 
 func TestCreateSessionUseCase(t *testing.T) {
@@ -1088,7 +1155,7 @@ func TestGetCandidatesUseCase_ListError(t *testing.T) {
 	repo := &mockVotingRepo{errListCandidates: errors.New("db read failed")}
 	uc := NewGetCandidatesUseCase(repo)
 
-	_, err := uc.Execute()
+	_, err := uc.Execute(&ListCandidatesRequest{})
 	if err == nil {
 		t.Fatal("Expected error for ListCandidates failure")
 	}

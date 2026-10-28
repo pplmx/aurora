@@ -130,13 +130,26 @@ var candidateListCmd = &cobra.Command{
 			return fmt.Errorf("failed to get repository: %w", err)
 		}
 
+		limit, _ := cmd.Flags().GetInt("limit")
+		offset, _ := cmd.Flags().GetInt("offset")
+		if limit < 0 {
+			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+		}
+		if offset < 0 {
+			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+		}
+
 		uc := votingapp.NewGetCandidatesUseCase(repo)
-		list, err := uc.Execute()
+		list, err := uc.Execute(&votingapp.ListCandidatesRequest{Limit: limit, Offset: offset})
 		if err != nil {
 			return fmt.Errorf("failed to list candidates: %w", err)
 		}
 
-		fmt.Println("\n📋 " + i18n.GetText("voting.candidates") + ":")
+		if limit > 0 {
+			fmt.Printf("\n📋 %s: %d (offset %d)\n", i18n.GetText("voting.candidates"), len(list), offset)
+		} else {
+			fmt.Println("\n📋 " + i18n.GetText("voting.candidates") + ":")
+		}
 		if len(list) == 0 {
 			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
@@ -314,12 +327,26 @@ var sessionListCmd = &cobra.Command{
 			return fmt.Errorf("failed to get repository: %w", err)
 		}
 
-		list, err := repo.ListSessions()
+		limit, _ := cmd.Flags().GetInt("limit")
+		offset, _ := cmd.Flags().GetInt("offset")
+		if limit < 0 {
+			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+		}
+		if offset < 0 {
+			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+		}
+
+		uc := votingapp.NewListSessionsUseCase(repo)
+		list, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})
 		if err != nil {
 			return fmt.Errorf("failed to list sessions: %w", err)
 		}
 
-		fmt.Println("\n🗳️ " + i18n.GetText("voting.sessions") + ":")
+		if limit > 0 {
+			fmt.Printf("\n🗳️ %s: %d (offset %d)\n", i18n.GetText("voting.sessions"), len(list), offset)
+		} else {
+			fmt.Println("\n🗳️ " + i18n.GetText("voting.sessions") + ":")
+		}
 		if len(list) == 0 {
 			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
@@ -468,6 +495,8 @@ func init() {
 	candidateAddCmd.Flags().StringP("program", "m", "", i18n.GetText("voting.program"))
 	_ = candidateAddCmd.MarkFlagRequired("name")
 	_ = candidateAddCmd.MarkFlagRequired("party")
+	candidateListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	candidateListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 
 	voterRegisterCmd.Flags().StringP("name", "n", "", i18n.GetText("voting.name"))
 	_ = voterRegisterCmd.MarkFlagRequired("name")
@@ -487,6 +516,8 @@ func init() {
 	sessionCreateCmd.Flags().StringP("title", "t", "", i18n.GetText("voting.title"))
 	sessionCreateCmd.Flags().StringP("description", "d", "", i18n.GetText("voting.description"))
 	sessionCreateCmd.Flags().StringSliceP("candidates", "c", nil, i18n.GetText("voting.candidate_id"))
+	sessionListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	sessionListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 	sessionCreateCmd.Flags().Int64P("start-time", "", 0, i18n.GetText("voting.session_start_time"))
 	sessionCreateCmd.Flags().Int64P("end-time", "", 0, i18n.GetText("voting.session_end_time"))
 	_ = sessionCreateCmd.MarkFlagRequired("title")

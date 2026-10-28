@@ -60,9 +60,9 @@ func (s *nativeServices) SessionResults(sessionID string) ([]nativeui.ResultRow,
 	return rows, nil
 }
 
-func (s *nativeServices) Candidates() ([]nativeui.CandidateRow, error) {
+func (s *nativeServices) Candidates(limit, offset int) ([]nativeui.CandidateRow, error) {
 	uc := votingapp.NewGetCandidatesUseCase(s.votingRepo)
-	resp, err := uc.Execute()
+	resp, err := uc.Execute(&votingapp.ListCandidatesRequest{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +73,9 @@ func (s *nativeServices) Candidates() ([]nativeui.CandidateRow, error) {
 	return rows, nil
 }
 
-func (s *nativeServices) Sessions() ([]nativeui.SessionRow, error) {
+func (s *nativeServices) Sessions(limit, offset int) ([]nativeui.SessionRow, error) {
 	uc := votingapp.NewListSessionsUseCase(s.votingRepo)
-	resp, err := uc.Execute()
+	resp, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})
 	if err != nil {
 		return nil, err
 	}

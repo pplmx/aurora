@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -24,6 +25,11 @@ type mockVotingRepo struct {
 	saveCandErr    error
 	saveSessionErr error
 	getSessionErr  error
+
+	lastCandidateLimit  int
+	lastCandidateOffset int
+	lastSessionLimit    int
+	lastSessionOffset   int
 }
 
 func newMockVotingRepo() *mockVotingRepo {
@@ -73,12 +79,15 @@ func (m *mockVotingRepo) GetCandidate(id string) (*voting.Candidate, error) {
 	return m.candidates[id], nil
 }
 func (m *mockVotingRepo) IncrementCandidateVoteCount(string) error { return nil }
-func (m *mockVotingRepo) ListCandidates() ([]*voting.Candidate, error) {
+func (m *mockVotingRepo) ListCandidates(limit, offset int) ([]*voting.Candidate, error) {
+	m.lastCandidateLimit = limit
+	m.lastCandidateOffset = offset
 	candidates := make([]*voting.Candidate, 0, len(m.candidates))
 	for _, c := range m.candidates {
 		candidates = append(candidates, c)
 	}
-	return candidates, nil
+	sort.Slice(candidates, func(i, j int) bool { return candidates[i].ID < candidates[j].ID })
+	return pageVotingTestRows(candidates, limit, offset), nil
 }
 
 func (m *mockVotingRepo) SaveSession(session *voting.Session) error {
@@ -95,12 +104,29 @@ func (m *mockVotingRepo) GetSession(id string) (*voting.Session, error) {
 	return m.sessions[id], nil
 }
 func (m *mockVotingRepo) UpdateSession(*voting.Session) error { return nil }
-func (m *mockVotingRepo) ListSessions() ([]*voting.Session, error) {
+func (m *mockVotingRepo) ListSessions(limit, offset int) ([]*voting.Session, error) {
+	m.lastSessionLimit = limit
+	m.lastSessionOffset = offset
 	sessions := make([]*voting.Session, 0, len(m.sessions))
 	for _, s := range m.sessions {
 		sessions = append(sessions, s)
 	}
-	return sessions, nil
+	sort.Slice(sessions, func(i, j int) bool { return sessions[i].ID < sessions[j].ID })
+	return pageVotingTestRows(sessions, limit, offset), nil
+}
+
+func pageVotingTestRows[T any](rows []T, limit, offset int) []T {
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(rows) {
+		return nil
+	}
+	rows = rows[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows
 }
 
 func TestVotingHandler_ListSessions(t *testing.T) {
@@ -128,6 +154,52 @@ func TestVotingHandler_ListSessions_Empty(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.JSONEq(t, "[]", rr.Body.String())
+}
+
+func TestVotingHandler_ListSessionsPagesFromQuery(t *testing.T) {
+	repo := newMockVotingRepo()
+	repo.sessions["s1"] = &voting.Session{ID: "s1", Title: "Board Vote"}
+	repo.sessions["s2"] = &voting.Session{ID: "s2", Title: "Referendum"}
+
+	h := NewVotingHandler(repo, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/voting/sessions?limit=1&offset=1", nil)
+	rr := httptest.NewRecorder()
+
+	h.ListSessions(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, 1, repo.lastSessionLimit)
+	assert.Equal(t, 1, repo.lastSessionOffset)
+	assert.Contains(t, rr.Body.String(), "Referendum")
+	assert.NotContains(t, rr.Body.String(), "Board Vote")
+}
+
+func TestVotingHandler_ListCandidatesClampsPage(t *testing.T) {
+	repo := newMockVotingRepo()
+	h := NewVotingHandler(repo, nil)
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/voting/candidates?limit=999&offset=999999", nil)
+	rr := httptest.NewRecorder()
+
+	h.ListCandidates(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, maxVotingListLimit, repo.lastCandidateLimit)
+	assert.Equal(t, maxVotingListOffset, repo.lastCandidateOffset)
+}
+
+func TestVotingHandler_ListDefaultsToFirstPage(t *testing.T) {
+	repo := newMockVotingRepo()
+	h := NewVotingHandler(repo, nil)
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/voting/candidates?limit=nope&offset=-1", nil)
+	rr := httptest.NewRecorder()
+
+	h.ListCandidates(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, defaultVotingListLimit, repo.lastCandidateLimit)
+	assert.Equal(t, 0, repo.lastCandidateOffset)
 }
 
 func TestVotingHandler_RegisterVoter_InvalidJSON(t *testing.T) {

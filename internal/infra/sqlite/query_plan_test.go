@@ -101,12 +101,11 @@ func TestNFTListingNeedsNoTempBTree(t *testing.T) {
 	requireNoTempBTree(t, details, "nft listing")
 }
 
-// TestCollectionListsUseTheirIndexes covers the three whole-collection reads
-// the operator sees as lists: oracle sources, voters and voting sessions. Each
-// orders newest first over the entire table, so without an index every row is
-// materialised and sorted before the caller sees anything (measured: "SCAN ...
-// USE TEMP B-TREE FOR ORDER BY"). idx_candidates_created already covered the
-// candidate list the same way.
+// TestCollectionListsUseTheirIndexes covers the collection reads the operator
+// sees as lists. Oracle sources and voters are newest-first full reads, while
+// the voting candidate/session lists page with a deterministic id tie-breaker.
+// Without the matching indexes every row is materialised and sorted before
+// LIMIT can apply (measured: "SCAN ... USE TEMP B-TREE FOR ORDER BY").
 func TestCollectionListsUseTheirIndexes(t *testing.T) {
 	oracleRepo, oracleCleanup := setupOracleTestDB(t)
 	defer oracleCleanup()
@@ -119,9 +118,19 @@ func TestCollectionListsUseTheirIndexes(t *testing.T) {
 	requireNoTempBTree(t, queryPlanDetails(t, votingRepo.db,
 		`SELECT public_key, name, has_voted, vote_hash, registered_at FROM voters ORDER BY registered_at DESC`),
 		"voter list")
-	requireNoTempBTree(t, queryPlanDetails(t, votingRepo.db,
+	candidatePlan := queryPlanDetails(t, votingRepo.db,
+		`SELECT id, name, party, program, description, image_url, vote_count, created_at
+		 FROM candidates ORDER BY created_at DESC, id LIMIT ? OFFSET ?`, 100, 0)
+	requireNoTempBTree(t, candidatePlan, "candidate list")
+	require.Contains(t, strings.Join(candidatePlan, " "), "idx_candidates_page",
+		"the candidate page should read its ordered index")
+
+	sessionPlan := queryPlanDetails(t, votingRepo.db,
 		`SELECT id, title, description, start_time, end_time, status, candidates, created_at
-		 FROM voting_sessions ORDER BY created_at DESC`), "session list")
+		 FROM voting_sessions ORDER BY created_at DESC, id LIMIT ? OFFSET ?`, 100, 0)
+	requireNoTempBTree(t, sessionPlan, "session list")
+	require.Contains(t, strings.Join(sessionPlan, " "), "idx_sessions_page",
+		"the session page should read its ordered index")
 }
 
 // TestLotteryHistoryUsesRecencyIndex covers the deterministic newest-first
