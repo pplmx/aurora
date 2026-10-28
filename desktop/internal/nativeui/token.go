@@ -26,6 +26,11 @@ type tokenState struct {
 
 	// Read forms.
 	tokenID string
+	// resolvedOwner is the owner already confirmed for resolvedOwnerID by a
+	// list selection, token creation or TokenInfo read. Kept separately from
+	// the visible page so paging does not erase the subject's owner context.
+	resolvedOwner   string
+	resolvedOwnerID string
 	// balanceAccount and historyOwner are separate inputs: sharing one field
 	// meant typing a history owner silently changed the account the Balance
 	// card would read, under a readout fetched for someone else.
@@ -246,6 +251,7 @@ func (a *App) tokenList(c *ui.Context) {
 			// The owner's public key is known from the record; fill the
 			// accounts the write forms ask for and drop the previous token's
 			// secrets and recipients.
+			a.rememberTokenSubjectOwner(chosen.ID, chosen.Owner)
 			a.applyTokenSubject(chosen.Owner)
 			// Whatever the Inspect, Balance or History cards show belongs to the
 			// previous token; re-read the open ones for the chosen token.
@@ -333,6 +339,7 @@ func (a *App) createToken() {
 			// account fields start from the owner instead of asking for the same
 			// public key six times.
 			a.rememberSuccessfulKey(t.Owner, ownerPriv)
+			a.rememberTokenSubjectOwner(t.ID, t.Owner)
 			a.applyTokenSubject(t.Owner)
 			a.refreshTokenAt(0)
 			a.selectTokenByID(t.ID)
@@ -363,6 +370,11 @@ func (a *App) applyTokenSubject(owner string) {
 	a.token.allowanceOwner = owner
 	a.token.balanceAccount = owner
 	a.token.historyOwner = owner
+}
+
+func (a *App) rememberTokenSubjectOwner(id, owner string) {
+	a.token.resolvedOwnerID = strings.TrimSpace(id)
+	a.token.resolvedOwner = strings.TrimSpace(owner)
 }
 
 // selectTokenByID highlights a record in the collection after a create. The
@@ -434,6 +446,7 @@ func (a *App) tokenReadBody(c *ui.Context) {
 // keeps the rows only when they were loaded for the same token; the caller
 // invalidates them when the subject changes.
 func (a *App) loadTokenInfo(id string) error {
+	subjectChanged := a.token.resolvedOwnerID != id
 	info, err := a.services.TokenInfo(id)
 	if err != nil {
 		a.token.infoErr = err
@@ -443,6 +456,14 @@ func (a *App) loadTokenInfo(id string) error {
 	a.token.info = &info
 	a.token.infoLoadedID = id
 	a.token.infoErr = nil
+	a.rememberTokenSubjectOwner(id, info.Owner)
+	if subjectChanged {
+		// Inspect is another entry point for choosing the token every write
+		// acts on. Resolving an id outside the visible page must fill the same
+		// owner fields as choosing its row, while a refresh of the same subject
+		// must not erase values already entered in the forms.
+		a.applyTokenSubject(info.Owner)
+	}
 	return nil
 }
 
@@ -542,6 +563,12 @@ func (a *App) useOwnerKeyButton(c *ui.Context, target *string, allow bool) {
 // selectedTokenOwner is the owner of the token the page is acting on, or "".
 func (a *App) selectedTokenOwner() string {
 	id := strings.TrimSpace(a.token.tokenID)
+	if id != "" && a.token.resolvedOwnerID == id {
+		return a.token.resolvedOwner
+	}
+	if id != "" && a.token.info != nil && a.token.infoLoadedID == id {
+		return a.token.info.Owner
+	}
 	for _, token := range a.token.tokens {
 		if token.ID == id {
 			return token.Owner
