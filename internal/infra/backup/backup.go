@@ -38,6 +38,24 @@ var syncFileFn = func(f *os.File) error {
 	return f.Sync()
 }
 
+// syncDirFn makes a rename or unlink durable. Windows cannot fsync a directory
+// handle through os.File, so its rename durability remains delegated to the
+// platform; every Unix release flushes the containing directory.
+var syncDirFn = func(path string) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	if err := dir.Sync(); err != nil {
+		_ = dir.Close()
+		return err
+	}
+	return dir.Close()
+}
+
 type BackupResult struct {
 	File          string
 	Size          int64
@@ -262,6 +280,9 @@ func rollbackCreate(snaps []snapshot, promoted []int, rb createRollback) error {
 	if metadataErr != nil {
 		rollbackErrors = append(rollbackErrors, fmt.Errorf("restore previous metadata: %w", metadataErr))
 	}
+	if err := syncDirFn(filepath.Dir(rb.metaPath)); err != nil {
+		rollbackErrors = append(rollbackErrors, fmt.Errorf("sync restored backup set: %w", err))
+	}
 
 	_ = os.Remove(rb.metaTmpPath)
 	for _, snap := range snaps {
@@ -388,6 +409,9 @@ func restoreRollbackFile(src, dst string) (bool, error) {
 		_ = os.Remove(tmpPath)
 		return false, err
 	}
+	if err := syncDirFn(filepath.Dir(dst)); err != nil {
+		return true, fmt.Errorf("sync restored file: %w", err)
+	}
 	return true, nil
 }
 
@@ -407,6 +431,7 @@ func removeRollbackDestination(path string) error {
 
 func removeCreateRollbackDirs(candidates []createRollbackCandidate) error {
 	var removeErrors []error
+	outputDirs := make(map[string]struct{}, 1)
 	for _, candidate := range candidates {
 		info, err := os.Lstat(candidate.path)
 		switch {
@@ -421,6 +446,13 @@ func removeCreateRollbackDirs(candidates []createRollbackCandidate) error {
 		}
 		if err := os.RemoveAll(candidate.path); err != nil {
 			removeErrors = append(removeErrors, fmt.Errorf("remove %q: %w", candidate.path, err))
+			continue
+		}
+		outputDirs[filepath.Dir(candidate.path)] = struct{}{}
+	}
+	for dir := range outputDirs {
+		if err := syncDirFn(dir); err != nil {
+			removeErrors = append(removeErrors, fmt.Errorf("sync %q: %w", dir, err))
 		}
 	}
 	return errors.Join(removeErrors...)
@@ -606,6 +638,9 @@ func (s *BackupService) Create(ctx context.Context, output string) (result *Back
 	}
 	if err := os.Rename(rollback.metaTmpPath, rollback.metaPath); err != nil {
 		return nil, fmt.Errorf("promote metadata: %w", err)
+	}
+	if err := syncDirFn(output); err != nil {
+		return nil, fmt.Errorf("sync output directory: %w", err)
 	}
 
 	totalSize := int64(0)
@@ -1082,6 +1117,9 @@ func (s *BackupService) promoteRestore(ctx context.Context, operations []restore
 		if err := s.removeSidecars(op.destPath, op.name); err != nil {
 			return promoted, err
 		}
+		if err := syncDirFn(filepath.Dir(op.destPath)); err != nil {
+			return promoted, fmt.Errorf("sync restored %s: %w", op.name, err)
+		}
 	}
 	return promoted, nil
 }
@@ -1122,6 +1160,9 @@ func rollbackRestore(operations []restoreOperation, promoted []int) error {
 			if err := os.Remove(op.destPath + ext); err != nil && !os.IsNotExist(err) {
 				rollbackErrors = append(rollbackErrors, fmt.Errorf("remove rolled-back %s%s: %w", op.name, ext, err))
 			}
+		}
+		if err := syncDirFn(filepath.Dir(op.destPath)); err != nil {
+			rollbackErrors = append(rollbackErrors, fmt.Errorf("sync rolled-back %s: %w", op.name, err))
 		}
 	}
 	return errors.Join(rollbackErrors...)
