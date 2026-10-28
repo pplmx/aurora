@@ -38,7 +38,7 @@ var backupCreateCmd = &cobra.Command{
 		}
 		res, err := svc.Create(context.Background(), args[0])
 		if err != nil {
-			return err
+			return wrapCLIError("backup.error.create", err)
 		}
 		fmt.Println(i18n.GetTextF("backup.create_done", res.File, res.Size, res.SchemaVersion))
 		return nil
@@ -55,7 +55,7 @@ var backupVerifyCmd = &cobra.Command{
 			return err
 		}
 		if err := svc.Verify(context.Background(), args[0]); err != nil {
-			return err
+			return wrapCLIError("backup.error.verify", err)
 		}
 		fmt.Println(i18n.GetText("backup.verify_ok"))
 		return nil
@@ -69,14 +69,14 @@ var backupRestoreCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		confirm, _ := cmd.Flags().GetBool("confirm")
 		if !confirm {
-			return fmt.Errorf("%s", i18n.GetText("backup.confirm_required"))
+			return newCLIError("backup.confirm_required")
 		}
 		svc, err := newCLIBackup()
 		if err != nil {
 			return err
 		}
 		if err := svc.Restore(context.Background(), args[0]); err != nil {
-			return err
+			return wrapCLIError("backup.error.restore", err)
 		}
 		fmt.Println(i18n.GetTextF("backup.restore_done", args[0]))
 		return nil

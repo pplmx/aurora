@@ -99,7 +99,7 @@ var candidateAddCmd = &cobra.Command{
 
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		req := votingapp.RegisterCandidateRequest{
@@ -110,7 +110,7 @@ var candidateAddCmd = &cobra.Command{
 		uc := votingapp.NewRegisterCandidateUseCase(repo)
 		cand, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to register candidate: %w", err)
+			return wrapCLIError("voting.error.register_candidate", err)
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.candidate_added")+"\n", cand.Name)
@@ -127,22 +127,22 @@ var candidateListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		limit, _ := cmd.Flags().GetInt("limit")
 		offset, _ := cmd.Flags().GetInt("offset")
 		if limit < 0 {
-			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+			return newCLIError("cli.error.invalid_limit", limit)
 		}
 		if offset < 0 {
-			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+			return newCLIError("cli.error.invalid_offset", offset)
 		}
 
 		uc := votingapp.NewGetCandidatesUseCase(repo)
 		list, err := uc.Execute(&votingapp.ListCandidatesRequest{Limit: limit, Offset: offset})
 		if err != nil {
-			return fmt.Errorf("failed to list candidates: %w", err)
+			return wrapCLIError("voting.error.list_candidates", err)
 		}
 
 		if limit > 0 {
@@ -178,7 +178,7 @@ var voterRegisterCmd = &cobra.Command{
 
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		req := votingapp.RegisterVoterRequest{
@@ -187,7 +187,7 @@ var voterRegisterCmd = &cobra.Command{
 		uc := votingapp.NewRegisterVoterUseCase(repo)
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to register voter: %w", err)
+			return wrapCLIError("voting.error.register_voter", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.voter_registered"))
@@ -204,23 +204,23 @@ var voterListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		limit, _ := cmd.Flags().GetInt("limit")
 		offset, _ := cmd.Flags().GetInt("offset")
 		if limit < 0 {
-			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+			return newCLIError("cli.error.invalid_limit", limit)
 		}
 		if offset < 0 {
-			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+			return newCLIError("cli.error.invalid_offset", offset)
 		}
 
 		list, err := votingapp.NewListVotersUseCase(repo).Execute(&votingapp.ListVotersRequest{
 			Limit: limit, Offset: offset,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to list voters: %w", err)
+			return wrapCLIError("voting.error.list_voters", err)
 		}
 
 		if limit > 0 || offset > 0 {
@@ -264,18 +264,18 @@ var voteCmd = &cobra.Command{
 
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		txManager, err := getVotingTxManager()
 		if err != nil {
-			return fmt.Errorf("failed to get transaction manager: %w", err)
+			return wrapCLIError("voting.error.get_tx_manager", err)
 		}
 
 		service := getVotingService()
 		chain, err := blockchain.InitWithError()
 		if err != nil {
-			return fmt.Errorf("failed to initialize blockchain: %w", err)
+			return wrapCLIError("voting.error.init_blockchain", err)
 		}
 
 		req := votingapp.CastVoteRequest{
@@ -288,7 +288,7 @@ var voteCmd = &cobra.Command{
 		uc.SetChain(chain)
 		record, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to cast vote: %w", err)
+			return wrapCLIError("voting.error.cast_vote", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.vote_cast"))
@@ -316,7 +316,7 @@ var sessionCreateCmd = &cobra.Command{
 
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		startTime, _ := cmd.Flags().GetInt64("start-time")
@@ -332,7 +332,7 @@ var sessionCreateCmd = &cobra.Command{
 		uc := votingapp.NewCreateSessionUseCase(repo)
 		session, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to create session: %w", err)
+			return wrapCLIError("voting.error.create_session", err)
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.session_created")+"\n", session.Title)
@@ -349,22 +349,22 @@ var sessionListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		limit, _ := cmd.Flags().GetInt("limit")
 		offset, _ := cmd.Flags().GetInt("offset")
 		if limit < 0 {
-			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+			return newCLIError("cli.error.invalid_limit", limit)
 		}
 		if offset < 0 {
-			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+			return newCLIError("cli.error.invalid_offset", offset)
 		}
 
 		uc := votingapp.NewListSessionsUseCase(repo)
 		list, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})
 		if err != nil {
-			return fmt.Errorf("failed to list sessions: %w", err)
+			return wrapCLIError("voting.error.list_sessions", err)
 		}
 
 		if limit > 0 {
@@ -394,20 +394,20 @@ var sessionStartCmd = &cobra.Command{
 
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		session, err := repo.GetSession(sessionID)
 		if err != nil {
-			return fmt.Errorf("failed to get session: %w", err)
+			return wrapCLIError("voting.error.get_session", err)
 		}
 		if session == nil {
-			return fmt.Errorf("%s", i18n.GetText("voting.session_not_found"))
+			return newCLIError("voting.session_not_found")
 		}
 
 		session.Status = voting.SessionStatusActive
 		if err := repo.UpdateSession(session); err != nil {
-			return fmt.Errorf("failed to start session: %w", err)
+			return wrapCLIError("voting.error.start_session", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.session_started"))
@@ -424,20 +424,20 @@ var sessionEndCmd = &cobra.Command{
 
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		session, err := repo.GetSession(sessionID)
 		if err != nil {
-			return fmt.Errorf("failed to get session: %w", err)
+			return wrapCLIError("voting.error.get_session", err)
 		}
 		if session == nil {
-			return fmt.Errorf("%s", i18n.GetText("voting.session_not_found"))
+			return newCLIError("voting.session_not_found")
 		}
 
 		session.Status = voting.SessionStatusEnded
 		if err := repo.UpdateSession(session); err != nil {
-			return fmt.Errorf("failed to end session: %w", err)
+			return wrapCLIError("voting.error.end_session", err)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.session_ended"))
@@ -454,15 +454,15 @@ var resultsCmd = &cobra.Command{
 
 		repo, err := getVotingRepo()
 		if err != nil {
-			return fmt.Errorf("failed to get repository: %w", err)
+			return wrapCLIError("voting.error.get_repo", err)
 		}
 
 		session, err := repo.GetSession(sessionID)
 		if err != nil {
-			return fmt.Errorf("failed to get session: %w", err)
+			return wrapCLIError("voting.error.get_session", err)
 		}
 		if session == nil {
-			return fmt.Errorf("%s", i18n.GetText("voting.session_not_found"))
+			return newCLIError("voting.session_not_found")
 		}
 
 		results := make(map[string]int)
@@ -475,12 +475,12 @@ var resultsCmd = &cobra.Command{
 				continue
 			}
 			if err != nil {
-				return fmt.Errorf("failed to load candidate %s for results: %w", cid, err)
+				return wrapCLIErrorf("voting.error.load_candidate", err, cid)
 			}
 			if cand != nil {
 				count, err := repo.CountVotesBySession(session.ID, cid)
 				if err != nil {
-					return fmt.Errorf("failed to count votes for candidate %s: %w", cid, err)
+					return wrapCLIErrorf("voting.error.count_votes", err, cid)
 				}
 				results[fmt.Sprintf("%s (%s)", cand.Name, cand.Party)] = count
 			} else {

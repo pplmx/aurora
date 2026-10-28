@@ -113,6 +113,16 @@ func (tr *Translator) T(key string) string {
 	return key
 }
 
+// Has reports whether the active locale defines key. Unlike T it does not
+// fall back to English, so callers can distinguish a translated value from a
+// key that merely exists in the source catalog.
+func (tr *Translator) Has(key string) bool {
+	tr.mu.RLock()
+	defer tr.mu.RUnlock()
+	_, ok := tr.messages[tr.locale][key]
+	return ok
+}
+
 func (tr *Translator) TFormat(key string, args ...interface{}) string {
 	return fmt.Sprintf(tr.T(key), args...)
 }
@@ -217,6 +227,10 @@ func GetText(key string) string {
 
 func GetTextF(key string, args ...interface{}) string {
 	return GetTranslator().TFormat(key, args...)
+}
+
+func HasText(key string) bool {
+	return GetTranslator().Has(key)
 }
 
 func DetectAndInit() *Translator {

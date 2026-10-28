@@ -106,6 +106,15 @@ func TestTranslator_T_MissingKey(t *testing.T) {
 	}
 }
 
+func TestTranslator_HasDoesNotFallBackToEnglish(t *testing.T) {
+	tr := Init("en")
+	assert.True(t, tr.Has("app.version"))
+
+	tr.SetLocale("fr")
+	assert.False(t, tr.Has("app.version"))
+	assert.Equal(t, "Version", tr.T("app.version"), "T keeps the English fallback")
+}
+
 func TestTranslator_TFormat(t *testing.T) {
 	tr := Init("en")
 

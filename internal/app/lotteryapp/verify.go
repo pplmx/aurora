@@ -95,7 +95,7 @@ func resolveRecord(repo lottery.Repository, input string) (*lottery.LotteryRecor
 				return r, nil
 			}
 		}
-		return nil, fmt.Errorf("lottery not found: %s", input)
+		return nil, &notFoundError{input: input}
 	}
 
 	all, gerr := repo.GetAll()
@@ -110,7 +110,22 @@ func resolveRecord(repo lottery.Repository, input string) (*lottery.LotteryRecor
 			return r, nil
 		}
 	}
-	return nil, fmt.Errorf("lottery not found: %s", input)
+	return nil, &notFoundError{input: input}
+}
+
+// notFoundError preserves the long-standing CLI wording while still exposing
+// lottery.ErrNotFound to errors.Is. That lets transport layers localize the
+// cause without losing the user's original lookup value elsewhere.
+type notFoundError struct {
+	input string
+}
+
+func (e *notFoundError) Error() string {
+	return fmt.Sprintf("lottery not found: %s", e.input)
+}
+
+func (e *notFoundError) Unwrap() error {
+	return lottery.ErrNotFound
 }
 
 // VerifyRecord checks a stored draw's integrity.

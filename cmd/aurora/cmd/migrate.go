@@ -23,7 +23,7 @@ func migrationSteps(args []string, def int) (int, error) {
 	}
 	n, err := strconv.Atoi(args[0])
 	if err != nil || n < 1 {
-		return 0, fmt.Errorf("invalid migration count %q: must be a positive integer", args[0])
+		return 0, newCLIError("migrate.error.invalid_count", args[0])
 	}
 	return n, nil
 }
@@ -41,7 +41,7 @@ func newCLIMigrator() (*migrate.Migrator, error) {
 	}
 	m, err := migrate.New(dbPath, migPath)
 	if err != nil {
-		return nil, fmt.Errorf("migrator init failed: %w", err)
+		return nil, wrapCLIError("migrate.error.init_failed", err)
 	}
 	return m, nil
 }
@@ -86,7 +86,7 @@ var migrateUpCmd = &cobra.Command{
 
 		before, err := m.Version()
 		if err != nil {
-			return err
+			return wrapCLIError("migrate.error.version", err)
 		}
 
 		// Cap an explicit N to the number of genuinely pending migrations, so
@@ -95,7 +95,7 @@ var migrateUpCmd = &cobra.Command{
 		if steps > 0 {
 			st, err := m.Status()
 			if err != nil {
-				return err
+				return wrapCLIError("migrate.error.status", err)
 			}
 			if len(st.PendingVersions) < steps {
 				steps = len(st.PendingVersions)
@@ -108,7 +108,7 @@ var migrateUpCmd = &cobra.Command{
 
 		version, err := m.Up(steps)
 		if err != nil {
-			return err
+			return wrapCLIError("migrate.error.up", err)
 		}
 
 		if version == before && before > 0 {
@@ -142,7 +142,7 @@ var migrateDownCmd = &cobra.Command{
 
 		before, err := m.Version()
 		if err != nil {
-			return err
+			return wrapCLIError("migrate.error.version", err)
 		}
 
 		// Cap N to the applied count so "down 5" on a version-2 DB rolls back
@@ -158,7 +158,7 @@ var migrateDownCmd = &cobra.Command{
 
 		version, err := m.Down(steps)
 		if err != nil {
-			return err
+			return wrapCLIError("migrate.error.down", err)
 		}
 
 		fmt.Println(i18n.GetTextF("migrate.down_done", version))
@@ -179,7 +179,7 @@ var migrateStatusCmd = &cobra.Command{
 
 		st, err := m.Status()
 		if err != nil {
-			return err
+			return wrapCLIError("migrate.error.status", err)
 		}
 
 		fmt.Println("\n" + i18n.GetText("migrate.status_header"))
@@ -212,7 +212,7 @@ var migrateRepairCmd = &cobra.Command{
 			return nil
 		}
 		if err != nil {
-			return err
+			return wrapCLIError("migrate.error.repair", err)
 		}
 		fmt.Println(i18n.GetTextF("migrate.repair_done", version))
 		return nil

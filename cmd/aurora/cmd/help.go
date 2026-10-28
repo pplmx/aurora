@@ -12,6 +12,51 @@ import (
 func init() {
 	rootCmd.SetUsageFunc(localizedUsage)
 	rootCmd.SetHelpFunc(localizedHelp)
+	rootCmd.SetHelpCommand(newLocalizedHelpCommand())
+}
+
+// newLocalizedHelpCommand mirrors Cobra's built-in help command, whose
+// unknown-topic line is hardcoded English. The completion callback and
+// successful-topic behavior stay identical to Cobra's implementation.
+func newLocalizedHelpCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "help [command]",
+		Short: i18n.GetText("cli.help.command"),
+		Long:  i18n.GetTextF("cli.help.command_long", rootCmd.DisplayName()),
+		ValidArgsFunction: func(c *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
+			cmd, _, err := c.Root().Find(args)
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveNoFileComp
+			}
+			if cmd == nil {
+				cmd = c.Root()
+			}
+			var completions []cobra.Completion
+			for _, subCmd := range cmd.Commands() {
+				if subCmd.IsAvailableCommand() {
+					if strings.HasPrefix(subCmd.Name(), toComplete) {
+						completions = append(completions, cobra.CompletionWithDesc(subCmd.Name(), subCmd.Short))
+					}
+				}
+			}
+			return completions, cobra.ShellCompDirectiveNoFileComp
+		},
+		Run: func(c *cobra.Command, args []string) {
+			cmd, _, err := c.Root().Find(args)
+			if cmd == nil || err != nil {
+				c.Print(i18n.GetTextF("cli.help.unknown_topic", args))
+				if usageErr := c.Root().Usage(); usageErr != nil {
+					c.PrintErrln(usageErr)
+				}
+				return
+			}
+			cmd.InitDefaultHelpFlag()
+			cmd.InitDefaultVersionFlag()
+			if helpErr := cmd.Help(); helpErr != nil {
+				c.PrintErrln(helpErr)
+			}
+		},
+	}
 }
 
 // localizedUsage mirrors Cobra's defaultUsageFunc so the framework-generated

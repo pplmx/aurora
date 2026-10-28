@@ -42,13 +42,13 @@ var createCmd = &cobra.Command{
 
 		lotteryRepo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
-			return fmt.Errorf("failed to create lottery repository: %w", err)
+			return wrapCLIError("lottery.error.create_repo", err)
 		}
 		defer func() { _ = lotteryRepo.Close() }()
 
 		chain, err := blockchain.InitWithError()
 		if err != nil {
-			return fmt.Errorf("failed to initialize blockchain: %w", err)
+			return wrapCLIError("lottery.error.init_blockchain", err)
 		}
 
 		uc := lotteryapp.NewCreate(lotteryRepo, chain)
@@ -61,7 +61,7 @@ var createCmd = &cobra.Command{
 
 		resp, err := uc.Execute(req)
 		if err != nil {
-			return fmt.Errorf("failed to create lottery: %w", err)
+			return wrapCLIError("lottery.error.create", err)
 		}
 
 		fmt.Println("\n✅ " + i18n.GetText("lottery.success"))
@@ -97,22 +97,22 @@ var historyCmd = &cobra.Command{
 		// parsing block data.
 		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
-			return fmt.Errorf("failed to open lottery repository: %w", err)
+			return wrapCLIError("lottery.error.open_repo", err)
 		}
 		defer func() { _ = repo.Close() }()
 
 		limit, _ := cmd.Flags().GetInt("limit")
 		offset, _ := cmd.Flags().GetInt("offset")
 		if limit < 0 {
-			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+			return newCLIError("cli.error.invalid_limit", limit)
 		}
 		if offset < 0 {
-			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+			return newCLIError("cli.error.invalid_offset", offset)
 		}
 
 		records, err := repo.List(limit, offset)
 		if err != nil {
-			return fmt.Errorf("failed to read history: %w", err)
+			return wrapCLIError("lottery.error.read_history", err)
 		}
 
 		if len(records) == 0 {
@@ -158,7 +158,7 @@ var verifyCmd = &cobra.Command{
 		// restarts) rather than the blockchain's raw blocks.
 		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
-			return fmt.Errorf("failed to open lottery repository: %w", err)
+			return wrapCLIError("lottery.error.open_repo", err)
 		}
 		defer func() { _ = repo.Close() }()
 
@@ -233,13 +233,13 @@ var exportCmd = &cobra.Command{
 		// chain — see historyCmd for the full rationale.
 		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
-			return fmt.Errorf("failed to open lottery repository: %w", err)
+			return wrapCLIError("lottery.error.open_repo", err)
 		}
 		defer func() { _ = repo.Close() }()
 
 		count, err := lotteryapp.WriteRecordsToFile(repo, filename)
 		if err != nil {
-			return fmt.Errorf("failed to write file: %w", err)
+			return wrapCLIError("lottery.error.write_file", err)
 		}
 
 		fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.exported", count, filename))
@@ -256,7 +256,7 @@ var importCmd = &cobra.Command{
 
 		data, err := os.ReadFile(filename)
 		if err != nil {
-			return fmt.Errorf("failed to read file: %w", err)
+			return wrapCLIError("lottery.error.read_file", err)
 		}
 
 		// Persist via the SQLite repository so the structured draw record
@@ -264,7 +264,7 @@ var importCmd = &cobra.Command{
 		// blockchain is a separate append-only audit log.
 		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
-			return fmt.Errorf("failed to open lottery repository: %w", err)
+			return wrapCLIError("lottery.error.open_repo", err)
 		}
 		defer func() { _ = repo.Close() }()
 
@@ -274,7 +274,7 @@ var importCmd = &cobra.Command{
 		// overwrite guard, partial-failure accounting).
 		result, err := lotteryapp.ImportRecords(repo, data)
 		if err != nil {
-			return fmt.Errorf("failed to import records: %w", err)
+			return wrapCLIError("lottery.error.import_records", err)
 		}
 
 		if len(result.Rejected) == 0 {
@@ -287,7 +287,7 @@ var importCmd = &cobra.Command{
 		fmt.Printf("⚠️  %s\n",
 			i18n.GetTextF("lottery.import_partial", result.Imported, result.Total, len(result.Rejected)))
 		fmt.Printf("   %s\n", i18n.GetTextF("lottery.failed_indices", result.Rejected))
-		return fmt.Errorf(i18n.GetText("lottery.import_partial_error"), len(result.Rejected), result.Total)
+		return newCLIError("lottery.import_partial_error", len(result.Rejected), result.Total)
 	},
 }
 
@@ -302,13 +302,13 @@ var statsCmd = &cobra.Command{
 		// made stats disagree with history (TASK-070, ISS-062).
 		repo, err := sqlite.NewLotteryRepository(blockchain.DBPath())
 		if err != nil {
-			return fmt.Errorf("failed to open lottery repository: %w", err)
+			return wrapCLIError("lottery.error.open_repo", err)
 		}
 		defer func() { _ = repo.Close() }()
 
 		records, err := repo.GetAll()
 		if err != nil {
-			return fmt.Errorf("failed to read history: %w", err)
+			return wrapCLIError("lottery.error.read_history", err)
 		}
 
 		fmt.Println("\n📊 " + i18n.GetText("lottery.statistics"))
@@ -347,12 +347,15 @@ var resetCmd = &cobra.Command{
 			// --yes (legacy) and --confirm both count (TASK-152, ISS-140). The
 			// refusal shares the localized cli.confirm.required template with
 			// the other five destructive commands (TASK-186, ISS-182).
-			return fmt.Errorf(i18n.GetText("cli.confirm.required"), i18n.GetText("cli.confirm.lottery_reset"))
+			return newCLIError(
+				"cli.confirm.required",
+				i18n.GetText("cli.confirm.lottery_reset"),
+			)
 		}
 
 		db, err := blockchain.InitDB()
 		if err != nil {
-			return fmt.Errorf("failed to init db: %w", err)
+			return wrapCLIError("lottery.error.init_db", err)
 		}
 		// Deliberately no db.Close(): InitDB returns the process-wide
 		// singleton under a sync.Once, and closing it without resetting the
@@ -379,7 +382,7 @@ var resetCmd = &cobra.Command{
 			"DELETE FROM lottery_records",
 		} {
 			if _, err := db.Exec(stmt); err != nil && !isNoSuchTable(err) {
-				return fmt.Errorf("failed to reset: %w", err)
+				return wrapCLIError("lottery.error.reset", err)
 			}
 		}
 
@@ -391,7 +394,7 @@ var resetCmd = &cobra.Command{
 		// at a block the reset deleted (TASK-071, ISS-063).
 		chain, err := blockchain.InitWithError()
 		if err != nil {
-			return fmt.Errorf("failed to initialize blockchain after reset: %w", err)
+			return wrapCLIError("lottery.error.init_blockchain_after_reset", err)
 		}
 		chain.ResetBlocks()
 
@@ -414,7 +417,7 @@ var dbInfoCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := blockchain.InitDB()
 		if err != nil {
-			return fmt.Errorf("failed to init db: %w", err)
+			return wrapCLIError("lottery.error.init_db", err)
 		}
 		// No db.Close() here either — same singleton-ownership reasoning as
 		// the reset command above (TASK-262, ISS-258).
@@ -430,7 +433,7 @@ var dbInfoCmd = &cobra.Command{
 			// mirroring lottery reset's tolerance).
 			count = 0
 		default:
-			return fmt.Errorf("failed to count blocks: %w", err)
+			return wrapCLIError("lottery.error.count_blocks", err)
 		}
 
 		fmt.Println("\n📁 " + i18n.GetText("lottery.db_info_title"))
