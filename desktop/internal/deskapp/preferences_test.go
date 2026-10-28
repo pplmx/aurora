@@ -32,6 +32,23 @@ func TestLoadPreferencesIgnoresMalformedFile(t *testing.T) {
 	require.False(t, loadPreferences(path).LiveUpdates)
 }
 
+func TestSavePreferencesHardensExistingMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows protects the per-user AppData tree with ACLs, not Unix mode bits")
+	}
+
+	path := filepath.Join(t.TempDir(), preferencesName)
+	require.NoError(t, os.WriteFile(path, []byte("{}"), 0o644))
+	require.NoError(t, os.Chmod(path, 0o644))
+
+	require.NoError(t, savePreferences(path, Preferences{LiveUpdates: true}))
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	require.Equal(t, os.FileMode(0o600), info.Mode().Perm(),
+		"saving preferences must repair a permissive mode left by an older release")
+}
+
 func TestShellPersistsLiveUpdates(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "aurora.db")
 	shell := NewShell(About{DBPath: dbPath})

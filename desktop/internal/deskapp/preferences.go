@@ -3,8 +3,10 @@ package deskapp
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/pplmx/aurora/internal/utils"
 )
@@ -55,5 +57,14 @@ func savePreferences(path string, p Preferences) error {
 		return err
 	}
 	data = append(data, '\n')
-	return utils.WriteFileAtomic(path, data, 0o600)
+	if err := utils.WriteFileAtomic(path, data, 0o600); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	if err := os.Chmod(path, 0o600); err != nil {
+		return fmt.Errorf("restrict desktop settings: %w", err)
+	}
+	return nil
 }

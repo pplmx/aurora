@@ -241,6 +241,7 @@ func TestKeepApplicationFilesPrivateIncludesRollbackJournal(t *testing.T) {
 		dbPath + "-shm",
 		dbPath + "-journal",
 		filepath.Join(logPath, "aurora.log"),
+		filepath.Join(filepath.Dir(dbPath), preferencesName),
 	}
 	for _, path := range paths {
 		require.NoError(t, os.WriteFile(path, []byte("sensitive"), 0o644))
