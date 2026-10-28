@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Atomic file writes flush their directory entry before reporting success**:
+  lottery exports and desktop preferences synced the temporary file, then
+  replaced the destination without syncing the containing directory. A power
+  loss immediately after a successful save could therefore lose the rename
+  even though the new file contents were durable. Atomic writes now fsync the
+  parent directory after promotion and return a durability error if that flush
+  fails.
 - **Backup promotions flush the containing directory before returning**:
   syncing the copied database and metadata files made their bytes durable, but
   the subsequent renames were not durable themselves. A power loss after
