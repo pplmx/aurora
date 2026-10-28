@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Malformed transfer audit rows no longer abort owner history**: the SQLite
+  owner-scoped transfer page called `json_extract` on every matching payload,
+  so one malformed JSON row made the whole history fail with
+  `SQL logic error: malformed JSON` and hid every readable transfer. The query
+  now validates JSON before extracting `from`/`to`, so corrupt rows are skipped
+  while readable pages and offsets keep their existing semantics.
 - **Atomic file writes flush their directory entry before reporting success**:
   lottery exports and desktop preferences synced the temporary file, then
   replaced the destination without syncing the containing directory. A power

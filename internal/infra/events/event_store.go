@@ -332,11 +332,17 @@ func (e *SQLiteEventStore) GetByAggregateAndTypePayload(aggID, eventType, payloa
 		limit = 50
 	}
 
+	// CASE makes evaluation order explicit: one malformed audit payload must
+	// not make json_extract abort a page that also contains readable events.
 	rows, err := e.db.Query(`
 		SELECT id, event_type, module, agg_id, payload, timestamp
 		FROM events
 		WHERE agg_id = ? AND event_type = ?
-		  AND json_extract(CAST(payload AS TEXT), ?) = ?
+		  AND CASE
+		        WHEN json_valid(CAST(payload AS TEXT)) THEN
+		          json_extract(CAST(payload AS TEXT), ?) = ?
+		        ELSE 0
+		      END
 		ORDER BY timestamp ASC, id ASC
 		LIMIT ? OFFSET ?
 	`, aggID, eventType, payloadPath, value, limit, offset)
@@ -363,8 +369,12 @@ func (e *SQLiteEventStore) GetByAggregateAndTypePayloadEither(aggID, eventType, 
 		SELECT id, event_type, module, agg_id, payload, timestamp
 		FROM events
 		WHERE agg_id = ? AND event_type = ?
-		  AND (json_extract(CAST(payload AS TEXT), ?) = ?
-		       OR json_extract(CAST(payload AS TEXT), ?) = ?)
+		  AND CASE
+		        WHEN json_valid(CAST(payload AS TEXT)) THEN
+		          json_extract(CAST(payload AS TEXT), ?) = ?
+		          OR json_extract(CAST(payload AS TEXT), ?) = ?
+		        ELSE 0
+		      END
 		ORDER BY timestamp ASC, id ASC
 		LIMIT ? OFFSET ?
 	`, aggID, eventType, path1, value1, path2, value2, limit, offset)
