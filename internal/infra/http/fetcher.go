@@ -55,14 +55,29 @@ func isBlockedIP(ip net.IP) bool {
 	return netguard.IsBlockedIP(ip)
 }
 
+func hostWithoutPort(host string) string {
+	host = strings.TrimSpace(host)
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		return h
+	}
+	return host
+}
+
+func parseIPLiteralHost(host string) net.IP {
+	host = hostWithoutPort(host)
+	if ip := net.ParseIP(host); ip != nil {
+		return ip
+	}
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		return net.ParseIP(host[1 : len(host)-1])
+	}
+	return nil
+}
+
 // isBlockedHost reports whether host (optionally host:port) is an IP literal
 // inside a blocked range.
 func isBlockedHost(host string) bool {
-	host = strings.TrimSpace(host)
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = h
-	}
-	ip := net.ParseIP(host)
+	ip := parseIPLiteralHost(host)
 	if ip == nil {
 		return false
 	}
@@ -113,12 +128,12 @@ func checkDialDestination(ctx context.Context, _, address string, _ syscall.RawC
 // Resolution is bounded by a short timeout so a poisoned/stuck resolver cannot
 // hang the fetch indefinitely.
 func redirectHostBlocked(host string) (bool, error) {
-	host = strings.TrimSpace(host)
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = h
-	}
-	if ip := net.ParseIP(host); ip != nil {
+	host = hostWithoutPort(host)
+	if ip := parseIPLiteralHost(host); ip != nil {
 		return isBlockedIP(ip), nil
+	}
+	if strings.ContainsAny(host, "[]") {
+		return false, fmt.Errorf("invalid bracketed host %q", host)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The Oracle SSRF policy now enforces every non-public class it claims**:
+  the shared block list still accepted IPv4 multicast and the TEST-NET
+  documentation ranges, and 6to4/benchmark IPv6 addresses could route around
+  the IPv4 checks. Redirect validation also failed to recognize a bracketed
+  IPv6 literal without an explicit port, rejecting public IPv6 feeds while
+  relying on a resolver error for blocked ones. The shared policy now covers
+  those ranges, and one host parser handles bracketed literals consistently.
 - **Primary and secondary actions keep their breathing room at large text**:
   the shared Create/Refresh/Delete button style kept a 34px height and 14px
   horizontal inset while its 13pt label grew to 33px at 2x. All three action
