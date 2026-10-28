@@ -246,14 +246,16 @@ func TestRouter_SetsSecurityHeaders(t *testing.T) {
 	router := newRouter(srv)
 
 	for _, tc := range []struct {
+		method     string
 		path       string
 		wantStatus int
 	}{
-		{path: "/healthz", wantStatus: http.StatusOK},
-		{path: "/api/v1/oracle/sources", wantStatus: http.StatusUnauthorized},
+		{method: http.MethodGet, path: "/healthz", wantStatus: http.StatusOK},
+		{method: http.MethodGet, path: "/api/v1/oracle/sources", wantStatus: http.StatusUnauthorized},
+		{method: http.MethodOptions, path: "/api/v1/oracle/sources", wantStatus: http.StatusNoContent},
 	} {
 		rr := httptest.NewRecorder()
-		router.ServeHTTP(rr, httptest.NewRequest(http.MethodGet, tc.path, nil))
+		router.ServeHTTP(rr, httptest.NewRequest(tc.method, tc.path, nil))
 		assert.Equal(t, tc.wantStatus, rr.Code, tc.path)
 		assert.Equal(t, "nosniff", rr.Header().Get("X-Content-Type-Options"), tc.path)
 		assert.Equal(t, "DENY", rr.Header().Get("X-Frame-Options"), tc.path)

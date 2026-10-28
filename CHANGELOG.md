@@ -128,7 +128,8 @@ documented in their per-milestone ROADMAP files.
   rather than `Authorization`, so caches do not apply their usual protection
   for authenticated requests. Successful responses can include one-time voter
   private keys or oracle request headers, but they carried no cache directive.
-  Every response now includes `Cache-Control: no-store`.
+  Every response, including CORS preflight, now includes
+  `Cache-Control: no-store`.
 - **Rate-limit retries advertise the actual reset time**: a rejected request
   previously received the configured window as `Retry-After`, even when most
   of that window had elapsed, and sub-second or fractional windows were
