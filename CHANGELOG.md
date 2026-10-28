@@ -131,6 +131,13 @@ documented in their per-milestone ROADMAP files.
   even though the new file contents were durable. Atomic writes now fsync the
   parent directory after promotion and return a durability error if that flush
   fails.
+- **Backup safety copies are durable before promotion**: newly vacuumed
+  database snapshots, the hidden create-rollback set, and the pre-restore
+  safety snapshot were closed and renamed without explicitly flushing their
+  bytes and directory entries. A successful desktop backup also created a new
+  timestamp directory without syncing that directory into its parent, so a
+  power loss could remove the entire backup. Create and Restore now flush each
+  staged file and every new directory level before replacing visible data.
 - **Backup promotions flush the containing directory before returning**:
   syncing the copied database and metadata files made their bytes durable, but
   the subsequent renames were not durable themselves. A power loss after
