@@ -47,6 +47,41 @@ func TestOracleHandler_Sources_SnakeCaseJSONContract(t *testing.T) {
 	assert.NotContains(t, rr.Body.String(), `"Sources"`)
 }
 
+func TestOracleHandler_SourcesPagesFromQuery(t *testing.T) {
+	repo := oracle.NewInmemRepo()
+	for i, name := range []string{"First", "Second"} {
+		id := "s" + strconv.Itoa(i+1)
+		require.NoError(t, repo.SaveSource(&oracle.DataSource{
+			ID: id, Name: name, URL: "http://example.com/" + name,
+			CreatedAt: int64(100 + i*10),
+		}))
+	}
+	handler := NewOracleHandler(repo)
+
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/oracle/sources?limit=1&offset=1", nil)
+	rr := httptest.NewRecorder()
+	handler.Sources(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), "First")
+	assert.NotContains(t, rr.Body.String(), "Second")
+}
+
+func TestOracleSourcePageClampsAndDefaults(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/oracle/sources?limit=999&offset=999999", nil)
+	limit, offset := oracleSourcePage(req)
+	assert.Equal(t, maxOracleSourceLimit, limit)
+	assert.Equal(t, maxOracleSourceOffset, offset)
+
+	req = httptest.NewRequest(http.MethodGet,
+		"/api/v1/oracle/sources?limit=nope&offset=-1", nil)
+	limit, offset = oracleSourcePage(req)
+	assert.Equal(t, defaultOracleSourceLimit, limit)
+	assert.Zero(t, offset)
+}
+
 func TestOracleHandler_Query_SnakeCaseJSONContract(t *testing.T) {
 	repo := oracle.NewInmemRepo()
 	_ = repo.SaveSource(&oracle.DataSource{ID: "s1", URL: "http://example.com", Enabled: true})
@@ -237,7 +272,7 @@ func TestOracleHandler_CreateSource_RejectsUnsafeHeaders(t *testing.T) {
 
 	require.Equal(t, http.StatusBadRequest, rr.Code, rr.Body.String())
 	assert.Contains(t, rr.Body.String(), `"code":"INVALID_SOURCE"`)
-	sources, err := repo.ListSources()
+	sources, err := repo.ListSources(0, 0)
 	require.NoError(t, err)
 	assert.Empty(t, sources)
 }
@@ -268,7 +303,7 @@ func TestOracleHandler_CreateSource_RejectsInvalidHTTPConfig(t *testing.T) {
 
 			require.Equal(t, http.StatusBadRequest, rr.Code, rr.Body.String())
 			assert.Contains(t, rr.Body.String(), `"code":"INVALID_SOURCE"`)
-			sources, err := repo.ListSources()
+			sources, err := repo.ListSources(0, 0)
 			require.NoError(t, err)
 			assert.Empty(t, sources)
 		})
@@ -367,7 +402,7 @@ func (f *fakeOracleStats) Stats() []oracleapp.SourceStat { return f.stats }
 func TestOracleHandler_Health_WithStats(t *testing.T) {
 	handler := NewOracleHandler(oracle.NewInmemRepo())
 	handler.SetStats(&fakeOracleStats{stats: []oracleapp.SourceStat{
-		{SourceID: "s1", Attempts: 3, Successes: 2, Failures: 1},
+		{SourceID: "s1", Name: "btc-price", Attempts: 3, Successes: 2, Failures: 1},
 	}})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/oracle/health", nil)
@@ -380,6 +415,7 @@ func TestOracleHandler_Health_WithStats(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
 	assert.Len(t, got, 1)
 	assert.Equal(t, "s1", got[0].SourceID)
+	assert.Equal(t, "btc-price", got[0].Name)
 	assert.Equal(t, uint64(3), got[0].Attempts)
 	assert.Equal(t, uint64(1), got[0].Failures)
 }

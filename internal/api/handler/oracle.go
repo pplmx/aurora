@@ -19,6 +19,12 @@ const defaultQueryLimit = 10
 // force an arbitrarily large DB scan by passing e.g. ?limit=999999999.
 const maxQueryLimit = 100
 
+const (
+	defaultOracleSourceLimit = 20
+	maxOracleSourceLimit     = 100
+	maxOracleSourceOffset    = 10000
+)
+
 type OracleHandler struct {
 	repo  oracle.Repository
 	chain oracleapp.ChainInterface
@@ -78,14 +84,30 @@ func (h *OracleHandler) Routes(r chi.Router) {
 }
 
 func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
+	limit, offset := oracleSourcePage(r)
 	uc := oracleapp.NewListSourcesUseCase(h.repo)
-	result, err := uc.Execute(&oracleapp.ListSourcesRequest{})
+	result, err := uc.Execute(&oracleapp.ListSourcesRequest{Limit: limit, Offset: offset})
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, result)
+}
+
+func oracleSourcePage(r *http.Request) (limit, offset int) {
+	limit = defaultOracleSourceLimit
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			limit = min(parsed, maxOracleSourceLimit)
+		}
+	}
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
+			offset = min(parsed, maxOracleSourceOffset)
+		}
+	}
+	return limit, offset
 }
 
 // Templates lists the built-in oracle source presets (v1.49). Previously the

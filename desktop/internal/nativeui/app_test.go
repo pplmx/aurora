@@ -48,6 +48,9 @@ type fakeServices struct {
 
 	// sources is what OracleSources returns.
 	sources []SourceRow
+	// addSource overrides the add result for tests that need the new row to
+	// enter the next source page or fail that refresh.
+	addSource func(SourceInput) (SourceRow, error)
 
 	// blocks is what LedgerBlocks returns.
 	blocks []BlockRow
@@ -71,6 +74,9 @@ type fakeServices struct {
 	sessionListCalls    int
 	lastSessionLimit    int
 	lastSessionOffset   int
+	sourceListCalls     int
+	lastSourceLimit     int
+	lastSourceOffset    int
 	dashboardCalls      int
 	oracleHealthCalls   int
 	tokenInfoCalls      int
@@ -316,11 +322,24 @@ func (f *fakeServices) TokenHistory(tokenID, owner string, limit, offset int) ([
 	return nil, nil
 }
 
-func (f *fakeServices) OracleSources() ([]SourceRow, error) {
+func (f *fakeServices) OracleSources(limit, offset int) ([]SourceRow, error) {
+	f.sourceListCalls++
+	f.lastSourceLimit = limit
+	f.lastSourceOffset = offset
 	if f.loadErrs.sources != nil {
 		return nil, f.loadErrs.sources
 	}
-	return f.sources, nil
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(f.sources) {
+		return nil, nil
+	}
+	rows := f.sources[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) {
 	if f.loadErrs.templates != nil {
@@ -329,6 +348,9 @@ func (f *fakeServices) OracleTemplates() ([]TemplateRow, error) {
 	return f.templates, nil
 }
 func (f *fakeServices) AddOracleSource(in SourceInput) (SourceRow, error) {
+	if f.addSource != nil {
+		return f.addSource(in)
+	}
 	return SourceRow{ID: "src"}, nil
 }
 func (f *fakeServices) DeleteOracleSource(id string) error                   { return nil }

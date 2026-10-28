@@ -11,6 +11,15 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **Oracle sources use the same bounded collection contract**: SQLite,
+  `GET /api/v1/oracle/sources`, `aurora oracle source list`, and the desktop
+  Sources card now pass `limit`/`offset` instead of materialising every feed.
+  The scheduler deliberately requests the unbounded form because it must check
+  every enabled source. The desktop adds exact-end paging and keeps the last
+  good rows/highlight when a source page read fails. Scheduler health counters
+  now carry each source's name, so the Feed Health table stays readable for
+  sources outside the page currently shown.
+
 - **Voting collections are paged from storage to every surface**: candidate and
   session lists now use SQLite `LIMIT/OFFSET` with a stable newest-first order,
   `GET /api/v1/voting/{candidates,sessions}` accepts capped `limit`/`offset`

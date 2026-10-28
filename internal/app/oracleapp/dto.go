@@ -43,7 +43,10 @@ type DataResponse struct {
 	BlockHeight int64  `json:"block_height"`
 }
 
-type ListSourcesRequest struct{}
+type ListSourcesRequest struct {
+	Limit  int
+	Offset int
+}
 
 type ListSourcesResponse struct {
 	Sources []*SourceResponse `json:"sources"`

@@ -40,10 +40,11 @@ func TestGenerateKeyPairIsAUsableEd25519Pair(t *testing.T) {
 // ever say "(no feed activity yet)" while the REST endpoint showed counters.
 func TestHealthRowsCarrySchedulerCounters(t *testing.T) {
 	row := healthRow(oracleapp.SourceStat{
-		SourceID: "s1", Attempts: 7, Successes: 5, Failures: 2,
+		SourceID: "s1", Name: "btc-price", Attempts: 7, Successes: 5, Failures: 2,
 		LastSuccessAt: 1_700_000_000, LastError: "upstream 503",
 	})
 	require.Equal(t, "s1", row.SourceID)
+	require.Equal(t, "btc-price", row.Name)
 	require.Equal(t, 7, row.Attempts)
 	require.Equal(t, 5, row.Successes)
 	require.Equal(t, 2, row.Failures)

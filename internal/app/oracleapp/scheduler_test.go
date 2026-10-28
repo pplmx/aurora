@@ -15,9 +15,16 @@ type fakeSourceRepo struct {
 	sources []*oracle.DataSource
 	data    map[string]*oracle.OracleData
 	listErr error
+	// lastLimit/offset prove the scheduler asks for the complete set rather
+	// than accidentally inheriting a UI page size.
+	lastLimit  int
+	lastOffset int
 }
 
-func (f *fakeSourceRepo) ListSources() ([]*oracle.DataSource, error) { return f.sources, f.listErr }
+func (f *fakeSourceRepo) ListSources(limit, offset int) ([]*oracle.DataSource, error) {
+	f.lastLimit, f.lastOffset = limit, offset
+	return f.sources, f.listErr
+}
 
 func (f *fakeSourceRepo) GetLatestData(sourceID string) (*oracle.OracleData, error) {
 	return f.data[sourceID], nil
@@ -55,6 +62,18 @@ func TestScheduler_PassFetchesDueSourcesOnly(t *testing.T) {
 	s.pass(context.Background())
 	if len(fetched) != before+1 || fetched[len(fetched)-1] != "a" {
 		t.Fatalf("after 61s expected only a refetched, fetched=%v", fetched[before:])
+	}
+}
+
+func TestSchedulerListsEverySource(t *testing.T) {
+	repo := &fakeSourceRepo{sources: []*oracle.DataSource{{ID: "a"}}}
+	s := NewScheduler(repo, func(context.Context, string) error { return nil }, time.Second, time.Now)
+
+	s.seed()
+
+	if repo.lastLimit != 0 || repo.lastOffset != 0 {
+		t.Fatalf("scheduler list page = (%d,%d), want the unbounded form (0,0)",
+			repo.lastLimit, repo.lastOffset)
 	}
 }
 
@@ -230,8 +249,8 @@ func TestScheduler_RetriesSeedAfterTransientListError(t *testing.T) {
 func TestScheduler_StatsTracksSuccessAndFailure(t *testing.T) {
 	now := time.Unix(1000, 0)
 	repo := &fakeSourceRepo{sources: []*oracle.DataSource{
-		{ID: "ok", Enabled: true, Interval: 60},
-		{ID: "bad", Enabled: true, Interval: 60},
+		{ID: "ok", Name: "Healthy feed", Enabled: true, Interval: 60},
+		{ID: "bad", Name: "Broken feed", Enabled: true, Interval: 60},
 	}}
 	s := NewScheduler(repo, func(_ context.Context, id string) error {
 		if id == "bad" {
@@ -247,11 +266,11 @@ func TestScheduler_StatsTracksSuccessAndFailure(t *testing.T) {
 	}
 
 	ok, hasOK := stats["ok"]
-	if !hasOK || ok.Attempts != 1 || ok.Successes != 1 || ok.Failures != 0 || ok.LastSuccessAt != now.Unix() {
+	if !hasOK || ok.Name != "Healthy feed" || ok.Attempts != 1 || ok.Successes != 1 || ok.Failures != 0 || ok.LastSuccessAt != now.Unix() {
 		t.Fatalf("unexpected ok stat: %+v", ok)
 	}
 	bad, hasBad := stats["bad"]
-	if !hasBad || bad.Attempts != 1 || bad.Successes != 0 || bad.Failures != 1 || bad.LastError != "boom" {
+	if !hasBad || bad.Name != "Broken feed" || bad.Attempts != 1 || bad.Successes != 0 || bad.Failures != 1 || bad.LastError != "boom" {
 		t.Fatalf("unexpected bad stat: %+v", bad)
 	}
 

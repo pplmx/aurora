@@ -18,7 +18,7 @@ import (
 // restart. Any Repository implementation (SQLite, in-memory) or a fake in
 // tests satisfies it.
 type sourceRepo interface {
-	ListSources() ([]*oracle.DataSource, error)
+	ListSources(limit, offset int) ([]*oracle.DataSource, error)
 	GetLatestData(sourceID string) (*oracle.OracleData, error)
 }
 
@@ -64,6 +64,7 @@ type Scheduler struct {
 // Failures remains available for historical accounting.
 type SourceStat struct {
 	SourceID      string `json:"source_id"`
+	Name          string `json:"source_name,omitempty"`
 	Attempts      uint64 `json:"attempts"`
 	Successes     uint64 `json:"successes"`
 	Failures      uint64 `json:"failures"`
@@ -116,7 +117,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 // elapsed. A failed fetch is not marked as done, so the next pass retries it.
 func (s *Scheduler) pass(ctx context.Context) {
 	s.seed()
-	sources, err := s.repo.ListSources()
+	sources, err := s.repo.ListSources(0, 0)
 	if err != nil {
 		logger.Warn().Err(err).Msg("oracle scheduler: failed to list sources")
 		return
@@ -163,7 +164,7 @@ func (s *Scheduler) pass(ctx context.Context) {
 		}
 
 		s.mu.Lock()
-		st := s.stat(src.ID)
+		st := s.stat(src.ID, src.Name)
 		st.Attempts++
 		s.mu.Unlock()
 
@@ -200,7 +201,7 @@ func (s *Scheduler) seed() {
 		return
 	}
 
-	sources, err := s.repo.ListSources()
+	sources, err := s.repo.ListSources(0, 0)
 	if err != nil {
 		logger.Warn().Err(err).Msg("oracle scheduler: failed to list sources on seed")
 		return
@@ -255,14 +256,15 @@ func (s *Scheduler) reconcile(live []*oracle.DataSource) {
 	}
 }
 
-// stat returns the SourceStat for id, creating it if absent. Caller must hold
-// the mutex.
-func (s *Scheduler) stat(id string) *SourceStat {
+// stat returns the SourceStat for id, creating it if absent and keeping the
+// operator-facing name current. Caller must hold the mutex.
+func (s *Scheduler) stat(id, name string) *SourceStat {
 	st, ok := s.stats[id]
 	if !ok {
 		st = &SourceStat{SourceID: id}
 		s.stats[id] = st
 	}
+	st.Name = name
 	return st
 }
 

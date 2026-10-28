@@ -17,6 +17,8 @@ type mockOracleRepo struct {
 	saveDataCalled      bool
 	updateSourceErr     error
 	setSourceEnabledErr error
+	lastSourceLimit     int
+	lastSourceOffset    int
 }
 
 type mockFetcher struct {
@@ -114,8 +116,20 @@ func (m *mockOracleRepo) GetSource(id string) (*oracle.DataSource, error) {
 	return nil, m.sourceErr
 }
 
-func (m *mockOracleRepo) ListSources() ([]*oracle.DataSource, error) {
-	return m.sources, m.sourceErr
+func (m *mockOracleRepo) ListSources(limit, offset int) ([]*oracle.DataSource, error) {
+	m.lastSourceLimit = limit
+	m.lastSourceOffset = offset
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(m.sources) {
+		return nil, m.sourceErr
+	}
+	rows := m.sources[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, m.sourceErr
 }
 
 func (m *mockOracleRepo) UpdateSource(s *oracle.DataSource) error {
@@ -259,6 +273,25 @@ func TestListSourcesUseCase_Empty(t *testing.T) {
 	if len(resp.Sources) != 0 {
 		t.Errorf("Expected 0 sources, got %d", len(resp.Sources))
 	}
+}
+
+func TestListSourcesUseCasePages(t *testing.T) {
+	repo := &mockOracleRepo{
+		sources: []*oracle.DataSource{
+			{ID: "s1", Name: "First"},
+			{ID: "s2", Name: "Second"},
+			{ID: "s3", Name: "Third"},
+		},
+	}
+
+	resp, err := NewListSourcesUseCase(repo).Execute(&ListSourcesRequest{
+		Limit: 1, Offset: 1,
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Sources, 1)
+	require.Equal(t, "s2", resp.Sources[0].ID)
+	require.Equal(t, 1, repo.lastSourceLimit)
+	require.Equal(t, 1, repo.lastSourceOffset)
 }
 
 func TestDeleteSourceUseCase(t *testing.T) {

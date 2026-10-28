@@ -102,16 +102,19 @@ func TestNFTListingNeedsNoTempBTree(t *testing.T) {
 }
 
 // TestCollectionListsUseTheirIndexes covers the collection reads the operator
-// sees as lists. Oracle sources and voters are newest-first full reads, while
-// the voting candidate/session lists page with a deterministic id tie-breaker.
-// Without the matching indexes every row is materialised and sorted before
-// LIMIT can apply (measured: "SCAN ... USE TEMP B-TREE FOR ORDER BY").
+// sees as lists. Voters are a newest-first full read, while Oracle sources and
+// voting candidates/sessions page with a deterministic id tie-breaker. Without
+// the matching indexes every row is materialised and sorted before LIMIT can
+// apply (measured: "SCAN ... USE TEMP B-TREE FOR ORDER BY").
 func TestCollectionListsUseTheirIndexes(t *testing.T) {
 	oracleRepo, oracleCleanup := setupOracleTestDB(t)
 	defer oracleCleanup()
-	requireNoTempBTree(t, queryPlanDetails(t, oracleRepo.GetDB(),
+	oraclePlan := queryPlanDetails(t, oracleRepo.GetDB(),
 		`SELECT id, name, url, type, method, headers, path, interval, enabled, created_at
-		 FROM data_sources ORDER BY created_at DESC`), "oracle source list")
+		 FROM data_sources ORDER BY created_at DESC, id LIMIT ? OFFSET ?`, 100, 0)
+	requireNoTempBTree(t, oraclePlan, "oracle source list")
+	require.Contains(t, strings.Join(oraclePlan, " "), "idx_oracle_sources_page",
+		"the oracle source page should read its ordered index")
 
 	votingRepo, votingCleanup := setupVotingTestDB(t)
 	defer votingCleanup()

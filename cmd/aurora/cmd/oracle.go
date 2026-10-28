@@ -90,13 +90,26 @@ var sourceListCmd = &cobra.Command{
 		}
 		defer cleanup()
 
+		limit, _ := cmd.Flags().GetInt("limit")
+		offset, _ := cmd.Flags().GetInt("offset")
+		if limit < 0 {
+			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+		}
+		if offset < 0 {
+			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+		}
+
 		uc := oracleapp.NewListSourcesUseCase(repo)
-		resp, err := uc.Execute(&oracleapp.ListSourcesRequest{})
+		resp, err := uc.Execute(&oracleapp.ListSourcesRequest{Limit: limit, Offset: offset})
 		if err != nil {
 			return fmt.Errorf("failed to list data sources: %w", err)
 		}
 
-		fmt.Println("\n📡 Data Sources:")
+		if limit > 0 {
+			fmt.Printf("\n📡 Data Sources: %d (offset %d)\n", len(resp.Sources), offset)
+		} else {
+			fmt.Println("\n📡 Data Sources:")
+		}
 		if len(resp.Sources) == 0 {
 			fmt.Println("   (none)")
 		}
@@ -379,6 +392,8 @@ func init() {
 	sourceAddCmd.Flags().IntP("interval", "i", 60, i18n.GetText("oracle.source_interval"))
 	_ = sourceAddCmd.MarkFlagRequired("name")
 	_ = sourceAddCmd.MarkFlagRequired("url")
+	sourceListCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	sourceListCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 
 	sourceDeleteCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
 	addConfirmFlag(sourceDeleteCmd, "cli.confirm.oracle_del")
