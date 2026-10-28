@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A non-graceful API failure still drains its workers before storage
+  closes**: `aurora-api` handles a listener error by calling `Server.Close`
+  directly because `logger.Fatal` skips deferred stops. The server now owns
+  the scheduler and outbox stop functions, stops them in reverse start order,
+  and waits for in-flight repository work before closing SQLite. Concurrent
+  and repeated `Close` calls wait for the same shutdown, and a worker registered
+  after closure is stopped immediately.
 - **An unusable database directory is no longer mistaken for temporary
   storage**: the shared path resolver used to create the configured parent
   directory and return `""` when that failed. SQLite treats an empty filename
