@@ -114,8 +114,8 @@ var candidateAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.candidate_added")+"\n", cand.Name)
-		printField("ID", cand.ID)
-		printField("Party", cand.Party)
+		printLocalizedField("common.id", cand.ID)
+		printLocalizedField("voting.party_label", cand.Party)
 		return nil
 	},
 }
@@ -146,7 +146,9 @@ var candidateListCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n📋 %s: %d (offset %d)\n", i18n.GetText("voting.candidates"), len(list), offset)
+			fmt.Printf("\n📋 %s: %s\n",
+				i18n.GetText("voting.candidates"),
+				i18n.GetTextF("common.page_with_offset", len(list), offset))
 		} else {
 			fmt.Println("\n📋 " + i18n.GetText("voting.candidates") + ":")
 		}
@@ -189,8 +191,8 @@ var voterRegisterCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.voter_registered"))
-		fmt.Printf("\n📣 Public Key (share this for verification):\n   %s\n", resp.PublicKey)
-		fmt.Printf("\n🔐 Private Key (SAVE THIS SECURELY!):\n   %s\n", resp.PrivateKey)
+		fmt.Printf("\n📣 %s\n   %s\n", i18n.GetText("voting.public_key_share"), resp.PublicKey)
+		fmt.Printf("\n🔐 %s\n   %s\n", i18n.GetText("voting.private_key_save"), resp.PrivateKey)
 		return nil
 	},
 }
@@ -222,7 +224,9 @@ var voterListCmd = &cobra.Command{
 		}
 
 		if limit > 0 || offset > 0 {
-			fmt.Printf("\n👥 %s: %d (offset %d)\n", i18n.GetText("voting.page_total"), len(list), offset)
+			fmt.Printf("\n👥 %s: %s\n",
+				i18n.GetText("voting.page_total"),
+				i18n.GetTextF("common.page_with_offset", len(list), offset))
 		} else {
 			fmt.Println("\n👥 " + i18n.GetText("voting.voters") + ":")
 		}
@@ -239,9 +243,9 @@ var voterListCmd = &cobra.Command{
 			}
 			fmt.Printf("   - %s [%s]\n", v.Name, status)
 			if len(v.PublicKey) > 16 {
-				fmt.Printf("     Public Key: %s...\n", v.PublicKey[:16])
+				fmt.Printf("     %s: %s...\n", i18n.GetText("voting.public_key_label"), v.PublicKey[:16])
 			} else {
-				printField("  Public Key", v.PublicKey)
+				printField("  "+i18n.GetText("voting.public_key_label"), v.PublicKey)
 			}
 		}
 		return nil
@@ -288,8 +292,8 @@ var voteCmd = &cobra.Command{
 		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.vote_cast"))
-		fmt.Printf("   Vote ID:     %s\n", record.ID)
-		fmt.Printf("   Block Height: %d\n", record.BlockHeight)
+		fmt.Printf("   %s:     %s\n", i18n.GetText("voting.vote_id"), record.ID)
+		fmt.Printf("   %s: %d\n", i18n.GetText("common.block_height"), record.BlockHeight)
 		return nil
 	},
 }
@@ -332,8 +336,8 @@ var sessionCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.session_created")+"\n", session.Title)
-		printField("ID", session.ID)
-		printField("Status", session.Status)
+		printLocalizedField("common.id", session.ID)
+		printLocalizedField("common.status", localizedVotingStatus(session.Status))
 		return nil
 	},
 }
@@ -364,7 +368,9 @@ var sessionListCmd = &cobra.Command{
 		}
 
 		if limit > 0 {
-			fmt.Printf("\n🗳️ %s: %d (offset %d)\n", i18n.GetText("voting.sessions"), len(list), offset)
+			fmt.Printf("\n🗳️ %s: %s\n",
+				i18n.GetText("voting.sessions"),
+				i18n.GetTextF("common.page_with_offset", len(list), offset))
 		} else {
 			fmt.Println("\n🗳️ " + i18n.GetText("voting.sessions") + ":")
 		}
@@ -372,8 +378,8 @@ var sessionListCmd = &cobra.Command{
 			fmt.Println("   " + i18n.GetText("voting.none"))
 		}
 		for _, s := range list {
-			fmt.Printf("   - %s [%s]\n", s.Title, s.Status)
-			printField("  ID", s.ID)
+			fmt.Printf("   - %s [%s]\n", s.Title, localizedVotingStatus(s.Status))
+			printField("  "+i18n.GetText("common.id"), s.ID)
 		}
 		return nil
 	},
@@ -488,6 +494,14 @@ var resultsCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func localizedVotingStatus(status string) string {
+	key := "voting.status." + status
+	if translated := i18n.GetText(key); translated != key {
+		return translated
+	}
+	return status
 }
 
 func init() {

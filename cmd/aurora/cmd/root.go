@@ -114,11 +114,9 @@ func requireConfirm(cmd *cobra.Command, actionKey string) error {
 // scripts; the message is explicit that the operation did commit).
 func formatCLIError(err error) string {
 	if errors.Is(err, token.ErrAuditPublishFailed) {
-		return fmt.Sprintf(
-			"⚠ %v\n  The operation DID commit. Do NOT retry it — inspect the event store.\n", err,
-		)
+		return i18n.GetTextF("cli.error.audit_committed", err)
 	}
-	return fmt.Sprintf("❌ Error: %v\n", err)
+	return i18n.GetTextF("cli.error.prefix", err)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -202,4 +200,10 @@ func setDefaultConfig() {
 // of the CLI's output contract, so it lives in one place.
 func printField(label, value string) {
 	fmt.Printf("   %s: %s\n", label, value)
+}
+
+// printLocalizedField resolves result labels at print time so command output
+// follows the active locale even if it changed after command registration.
+func printLocalizedField(key, value string) {
+	printField(i18n.GetText(key), value)
 }
