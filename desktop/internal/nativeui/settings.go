@@ -80,10 +80,10 @@ func (a *App) settingsView(c *ui.Context) {
 
 		formCard(c, "Appearance", "Aurora is dark by design; the operating system still decides size and contrast.", func() {
 			readout(c, []readoutRow{
-				{"Theme", "Dark"},
-				{"Text size", "Follows system"},
-				{"Contrast", "Follows system"},
-				{"Motion", "Follows system"},
+				{"Theme", tr("Dark")},
+				{"Text size", tr("Follows system")},
+				{"Contrast", tr("Follows system")},
+				{"Motion", tr("Follows system")},
 			})
 		})
 

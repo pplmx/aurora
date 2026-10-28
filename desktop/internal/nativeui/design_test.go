@@ -265,9 +265,14 @@ func TestChineseUIRendersTheWorkbench(t *testing.T) {
 
 	app.ShowPage("Settings")
 	tester.Frame()
-	for _, want := range []string{"设置", "语言", "数据", "外观", "关于 Aurora"} {
+	for _, want := range []string{
+		"设置", "语言", "数据", "外观", "关于 Aurora",
+		"主题", "深色", "字号", "对比度", "动效", "跟随系统",
+	} {
 		require.Truef(t, tester.HasText(want), "the Chinese Settings page must show %q", want)
 	}
+	require.False(t, tester.HasText("Dark"), "the theme value must not remain English")
+	require.False(t, tester.HasText("Follows system"), "appearance values must follow the language switch")
 }
 
 // TestChineseUIRendersBusyAndLedgerPagerCopy covers two labels that bypassed

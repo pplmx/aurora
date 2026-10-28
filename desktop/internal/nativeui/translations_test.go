@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // translatedCallArgs lists the helpers that translate literal string
@@ -92,4 +94,91 @@ func TestDesktopTranslationCoversStaticCallLabels(t *testing.T) {
 	}
 	require.GreaterOrEqual(t, checked, 180,
 		"the translation audit must inspect the expected rendered-label surface")
+}
+
+// TestChineseTranslationsKeepChromeVocabularyInChinese catches the half-
+// translated state the visual audit found: a Chinese window still said
+// Count, History, Spender, Show All or Setup inside otherwise translated
+// guidance, while protocol names such as NFT, VRF and JSON correctly stay.
+func TestChineseTranslationsKeepChromeVocabularyInChinese(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	translator.SetLocale("zh")
+	cases := []struct {
+		source    string
+		want      string
+		forbidden []string
+	}{
+		{
+			"Participants and seed determine the draw; the count is how many winners to pick.",
+			"中奖人数",
+			[]string{"Count"},
+		},
+		{
+			"Choose the new row in History and press Verify to recompute the winners from the stored proof.",
+			"“历史”",
+			[]string{"History", "Verify"},
+		},
+		{
+			"Let a spender move up to an amount on the owner's behalf.",
+			"被授权方",
+			[]string{"spender", "Spender"},
+		},
+		{
+			"Spender (base64 public key)",
+			"被授权方（base64 公钥）",
+			[]string{"Spender"},
+		},
+		{
+			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
+			"铸造、授权和销毁",
+			[]string{"Mint", "Transfer", "Approve", "Burn", "Use generated owner key"},
+		},
+		{
+			"No NFTs for this owner. Show All restores the collection.",
+			"“显示全部”",
+			[]string{"Show All"},
+		},
+		{
+			"Token URI",
+			"代币 URI",
+			[]string{"Token"},
+		},
+		{
+			"Select a source in Sources to fetch it now, enable/disable it, or delete it.",
+			"“数据源”",
+			[]string{"Sources"},
+		},
+		{
+			"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.",
+			"“健康”",
+			[]string{"Health", "Readings"},
+		},
+		{
+			"Register voters and candidates in Setup. A voter registration returns the only copy of that voter's signing key.",
+			"“准备”",
+			[]string{"Setup"},
+		},
+		{
+			"The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size.",
+			"“显示条数”",
+			[]string{"Show"},
+		},
+		{
+			"Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.",
+			"仪表盘",
+			[]string{"Dashboard", "Oracle"},
+		},
+	}
+
+	for _, tc := range cases {
+		translated := Translate(tc.source)
+		require.Contains(t, translated, tc.want)
+		for _, forbidden := range tc.forbidden {
+			require.NotContainsf(t, translated, forbidden,
+				"%q still contains untranslated UI chrome %q", translated, forbidden)
+		}
+	}
 }
