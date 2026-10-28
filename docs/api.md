@@ -52,6 +52,11 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
   http://localhost:8080/api/v1/lottery/create
 ```
 
+`GET /lottery/history` 默认返回最新 50 条；`limit` 上限 100，`offset` 上限
+10000。分页在 SQLite 查询中完成，并按
+`timestamp DESC, block_height DESC, id` 使用复合索引，因此同一秒创建或导入的
+记录也有稳定顺序，不会在两次翻页之间重复或漏行。
+
 ## 投票
 
 | 方法 | 路径                                | 说明                                       |

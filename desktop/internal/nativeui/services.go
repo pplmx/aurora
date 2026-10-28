@@ -4,8 +4,8 @@ package nativeui
 // concrete implementation lives in desktop/internal/deskapp, so this package
 // does not import a domain, handler or storage implementation.
 type Services interface {
-	// LotteryHistory returns the stored draws, newest first.
-	LotteryHistory(limit int) ([]DrawRow, error)
+	// LotteryHistory returns one newest-first page of stored draws.
+	LotteryHistory(limit, offset int) ([]DrawRow, error)
 	// CreateDraw runs a VRF draw and stores it.
 	CreateDraw(participants []string, seed string, winners int) (DrawRow, error)
 	// VerifyDraw re-checks a stored draw against its VRF proof.

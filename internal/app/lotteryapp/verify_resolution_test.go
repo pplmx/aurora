@@ -37,6 +37,17 @@ func (r *scriptedRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return r.all, r.allErr
 }
 
+func (r *scriptedRepo) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
+	if offset >= len(r.all) {
+		return nil, r.allErr
+	}
+	records := r.all[offset:]
+	if limit > 0 && len(records) > limit {
+		records = records[:limit]
+	}
+	return records, r.allErr
+}
+
 func (r *scriptedRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
 	r.getByHeightCall++
 	return r.byHeight, r.heightErr

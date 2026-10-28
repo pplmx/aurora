@@ -85,6 +85,34 @@ func TestLotteryHistory_AfterCreate(t *testing.T) {
 	})
 }
 
+func TestLotteryHistory_Pages(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		for _, seed := range []string{"page-seed-one", "page-seed-two", "page-seed-three"} {
+			_, err := runCmd(t, "lottery", "create",
+				"--participants", "Alice,Bob", "--seed", seed, "--count", "1")
+			require.NoError(t, err)
+		}
+
+		out, err := runCmd(t, "lottery", "history", "--limit", "1", "--offset", "1")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Lotteries on this page: 1 (offset 1)")
+		assert.Contains(t, out, "page-seed-two")
+		assert.NotContains(t, out, "page-seed-three")
+		assert.NotContains(t, out, "page-seed-one")
+
+		out, err = runCmd(t, "lottery", "history", "--limit", "1", "--offset", "99")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Lotteries on this page: 0 (offset 99)")
+		assert.NotContains(t, out, "No lottery records found",
+			"an empty later page must not claim the whole store is empty")
+
+		_, err = runCmd(t, "lottery", "history", "--limit", "-1")
+		require.Error(t, err)
+		_, err = runCmd(t, "lottery", "history", "--offset", "-1")
+		require.Error(t, err)
+	})
+}
+
 func TestLotteryVerify_ByHeight_Found(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		_, err := runCmd(t, "lottery", "create",

@@ -38,6 +38,7 @@ var chineseMessages = map[string]string{
 	"lottery.vrf_proof":      "VRF 证明",
 	"lottery.no_records":     "暂无抽奖记录",
 	"lottery.total":          "总抽奖数",
+	"lottery.page_total":     "本页抽奖数",
 	"lottery.verified":       "抽奖记录已验证！",
 	"lottery.exported":       "已导出 %d 条抽奖记录到 %s",
 	"lottery.imported":       "已导入 %d 条抽奖记录",

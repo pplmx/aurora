@@ -14,6 +14,7 @@ aurora version                    # 版本、构建时间、Go 工具链
 ```bash
 aurora lottery create -p "A,B,C,D" -s "seed" -c 3   # -c 默认取 lottery.defaultCount
 aurora lottery history
+aurora lottery history --limit 100 --offset 0
 aurora lottery stats                 # 统计信息
 aurora lottery verify <id或区块高度>  # 复验 VRF 证明与中奖者
 aurora lottery verify <id 或 seed 子串> # 也支持子串匹配
@@ -22,6 +23,10 @@ aurora lottery import draws.json     # 重复记录会被拒绝并逐条报告
 aurora lottery db-info               # 数据库路径与大小
 aurora lottery reset --confirm       # 清空抽奖记录（也接受 --yes）
 ```
+
+`lottery history` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0
+时只从存储层读取该页并打印本页数量与偏移；`--offset` 默认 0。两个参数都拒绝
+负数。
 
 `verify` 的解析顺序：精确 ID → 整数区块高度 → ID/seed 子串。记录没有中奖者、
 VRF 输出/证明不是合法 hex、中奖者与输出不符、或证明对不上存储公钥时，退出码

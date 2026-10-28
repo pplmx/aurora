@@ -407,7 +407,7 @@ func TestWindowDrivesRealServices(t *testing.T) {
 
 	// The record the window created is the one the store holds, with its
 	// evidence intact.
-	history, err := app.Services().LotteryHistory(10)
+	history, err := app.Services().LotteryHistory(10, 0)
 	require.NoError(t, err)
 	require.Len(t, history, 1)
 	require.Equal(t, created.ID, history[0].ID)

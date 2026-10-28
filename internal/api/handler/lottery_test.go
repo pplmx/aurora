@@ -194,12 +194,34 @@ func TestLotteryHandler_HistoryPagination(t *testing.T) {
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
 		require.Len(t, got, n, "limit above maxLotteryHistoryLimit = 100 must clamp, then to the available 60 rows")
 	})
+
+	fake := handler.repo.(*fakeManyLotteryRepo)
+	require.Positive(t, fake.listCalls, "history must page in storage instead of reading every row")
+	require.Equal(t, maxLotteryHistoryLimit, fake.lastLimit)
+	require.Equal(t, 0, fake.lastOffset)
+}
+
+func TestLotteryHistoryPageClampsAndDefaults(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/lottery/history?limit=999&offset=999999", nil)
+	limit, offset := lotteryHistoryPage(req)
+	assert.Equal(t, maxLotteryHistoryLimit, limit)
+	assert.Equal(t, maxLotteryHistoryOffset, offset)
+
+	req = httptest.NewRequest(http.MethodGet,
+		"/api/v1/lottery/history?limit=nope&offset=-1", nil)
+	limit, offset = lotteryHistoryPage(req)
+	assert.Equal(t, defaultLotteryHistoryLimit, limit)
+	assert.Zero(t, offset)
 }
 
 // fakeManyLotteryRepo returns a fixed in-order list so pagination math can be
 // asserted.
 type fakeManyLotteryRepo struct {
-	records []*lottery.LotteryRecord
+	records    []*lottery.LotteryRecord
+	listCalls  int
+	lastLimit  int
+	lastOffset int
 }
 
 func (m *fakeManyLotteryRepo) Save(*lottery.LotteryRecord) error { return nil }
@@ -209,8 +231,24 @@ func (m *fakeManyLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
 func (m *fakeManyLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return m.records, nil
 }
+func (m *fakeManyLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
+	m.listCalls++
+	m.lastLimit, m.lastOffset = limit, offset
+	return pageLotteryRecords(m.records, limit, offset), nil
+}
 func (m *fakeManyLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
 	return nil, nil
+}
+
+func pageLotteryRecords(records []*lottery.LotteryRecord, limit, offset int) []*lottery.LotteryRecord {
+	if offset >= len(records) {
+		return nil
+	}
+	records = records[offset:]
+	if limit > 0 && len(records) > limit {
+		records = records[:limit]
+	}
+	return records
 }
 
 type mockLotteryRepo struct{}
@@ -220,6 +258,9 @@ func (m *mockLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
 	return nil, lottery.ErrNotFound
 }
 func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
+	return []*lottery.LotteryRecord{}, nil
+}
+func (m *mockLotteryRepo) List(int, int) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
 
@@ -236,6 +277,12 @@ func (m *stubLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 		return []*lottery.LotteryRecord{}, nil
 	}
 	return []*lottery.LotteryRecord{m.record}, nil
+}
+func (m *stubLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
+	if m.record == nil {
+		return nil, nil
+	}
+	return pageLotteryRecords([]*lottery.LotteryRecord{m.record}, limit, offset), nil
 }
 func (m *stubLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
 	if m.record == nil {
@@ -301,6 +348,9 @@ func (m *mockLotteryRepoWithData) GetByID(id string) (*lottery.LotteryRecord, er
 func (m *mockLotteryRepoWithData) GetAll() ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
+func (m *mockLotteryRepoWithData) List(int, int) ([]*lottery.LotteryRecord, error) {
+	return []*lottery.LotteryRecord{}, nil
+}
 func (m *mockLotteryRepoWithData) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
@@ -327,6 +377,9 @@ func (m *nilLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
 }
 func (m *nilLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return nil, nil // simulates the SQLite no-rows case
+}
+func (m *nilLotteryRepo) List(int, int) ([]*lottery.LotteryRecord, error) {
+	return nil, nil
 }
 func (m *nilLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
 	return nil, lottery.ErrNotFound

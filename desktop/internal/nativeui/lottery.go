@@ -21,6 +21,10 @@ type lotteryState struct {
 
 	rows    []DrawRow
 	loadErr error
+	// offset/hasMore page the stored history. The loader asks for one row
+	// beyond the page so an exact final page disables Next.
+	offset  int
+	hasMore bool
 	// search narrows the history by id, seed, participant or winner;
 	// appliedSearch is the query the current highlight belongs to.
 	search        string
@@ -45,23 +49,38 @@ type lotteryState struct {
 	selected int
 }
 
-// lotteryHistoryLimit is how many draws the history table asks for. It is one
-// page of the store, newest first, which is what an operator scrolling a list
-// reads; the CLI's own history command pages the same way.
+// lotteryHistoryLimit is the number of rows in one history page.
 const lotteryHistoryLimit = 100
 
-// loadLottery fetches the stored draws.
+// loadLottery refreshes the current page.
 func (a *App) loadLottery() {
+	a.loadLotteryPage(a.lottery.offset)
+}
+
+// loadLotteryPage commits a page only after its read succeeds, so a failed
+// refresh or pager move leaves the rows and offset describing the same data.
+func (a *App) loadLotteryPage(offset int) bool {
 	if a.services == nil {
-		return
+		return false
 	}
-	rows, err := a.services.LotteryHistory(lotteryHistoryLimit)
+	if offset < 0 {
+		offset = 0
+	}
+	rows, err := a.services.LotteryHistory(lotteryHistoryLimit+1, offset)
 	a.lottery.loadErr = err
-	if err == nil {
-		a.lottery.rows = rows
+	if err != nil {
+		return false
 	}
-	// On failure the previous rows stay: a transient read error must not blank
-	// a list the operator was reading.
+	if len(rows) == 0 && offset > 0 {
+		return a.loadLotteryPage(0)
+	}
+	a.lottery.offset = offset
+	a.lottery.hasMore = len(rows) > lotteryHistoryLimit
+	if a.lottery.hasMore {
+		rows = rows[:lotteryHistoryLimit]
+	}
+	a.lottery.rows = rows
+	return true
 }
 
 // lotteryView renders the draw form, the history table and the verifier.
@@ -153,8 +172,9 @@ func (a *App) createLottery() {
 			a.lottery.participants = ""
 			a.lottery.seed = ""
 			a.lottery.count = 1
-			a.loadLottery()
-			a.selectLotteryByID(row.ID)
+			if a.loadLotteryPage(0) {
+				a.selectLotteryByID(row.ID)
+			}
 		}
 	})
 }
@@ -203,6 +223,21 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 	if a.lottery.search != a.lottery.appliedSearch {
 		a.lottery.appliedSearch = a.lottery.search
 		a.lottery.selected = -1
+	}
+	if previous, next := listPager(c, a.lottery.offset, len(a.lottery.rows), a.lottery.hasMore); previous || next {
+		target := a.lottery.offset
+		if previous {
+			target = max(0, target-lotteryHistoryLimit)
+		} else {
+			target += lotteryHistoryLimit
+		}
+		if a.loadLotteryPage(target) {
+			a.lottery.selected = -1
+		}
+		return
+	}
+	if a.lottery.search != "" {
+		hint(c, "Search narrows the current page; use Previous/Next for older draws.")
 	}
 	for _, draw := range a.lottery.rows {
 		if containsFold(a.lottery.search, draw.ID, draw.Seed,

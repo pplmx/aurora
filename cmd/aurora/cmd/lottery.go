@@ -98,17 +98,34 @@ var historyCmd = &cobra.Command{
 		}
 		defer func() { _ = repo.Close() }()
 
-		records, err := repo.GetAll()
+		limit, _ := cmd.Flags().GetInt("limit")
+		offset, _ := cmd.Flags().GetInt("offset")
+		if limit < 0 {
+			return fmt.Errorf("invalid --limit %d: must be zero or greater", limit)
+		}
+		if offset < 0 {
+			return fmt.Errorf("invalid --offset %d: must be zero or greater", offset)
+		}
+
+		records, err := repo.List(limit, offset)
 		if err != nil {
 			return fmt.Errorf("failed to read history: %w", err)
 		}
 
 		if len(records) == 0 {
+			if limit > 0 || offset > 0 {
+				fmt.Printf("\n📜 %s: 0 (offset %d)\n", i18n.GetText("lottery.page_total"), offset)
+				return nil
+			}
 			fmt.Println(i18n.GetText("lottery.no_records"))
 			return nil
 		}
 
-		fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.total"), len(records))
+		if limit > 0 {
+			fmt.Printf("\n📜 %s: %d (offset %d)\n\n", i18n.GetText("lottery.page_total"), len(records), offset)
+		} else {
+			fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.total"), len(records))
+		}
 		for i, record := range records {
 			jsonData, err := record.ToJSON()
 			if err != nil {
@@ -430,6 +447,8 @@ func init() {
 	// resolved in RunE so a configured lottery.defaultCount is honored after
 	// initConfig loads (a viper read at init() time is always 0 — TASK-108).
 	createCmd.Flags().IntP("count", "c", 3, i18n.GetText("lottery.count"))
+	historyCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
+	historyCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 
 	resetCmd.Flags().BoolP("yes", "y", false, i18n.GetText("lottery.yes"))
 	// --confirm without a shorthand: the -y shorthand is already taken by

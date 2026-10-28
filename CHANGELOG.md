@@ -11,6 +11,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **Lottery history pages in storage instead of after the read**: SQLite now
+  applies the deterministic newest-first `LIMIT`/`OFFSET` used by
+  `GET /api/v1/lottery/history`; the REST handler no longer materialises every
+  stored draw before slicing it. `aurora lottery history` gained matching
+  `--limit`/`--offset` flags, while its zero limit keeps the full-history form.
+  The desktop History card pages 100 draws at a time, disables Next at an exact
+  page boundary, and retains the last successful page when a move fails.
+
 - **NFT operation history is paged instead of silently capped**: SQLite,
   `GET /api/v1/nft/{id}/history`, `aurora nft history`, and the desktop History
   card now share a newest-first `limit`/`offset` contract. The old fixed

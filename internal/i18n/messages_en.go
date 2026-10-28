@@ -38,6 +38,7 @@ var englishMessages = map[string]string{
 	"lottery.vrf_proof":      "VRF Proof",
 	"lottery.no_records":     "No lottery records found",
 	"lottery.total":          "Total lotteries",
+	"lottery.page_total":     "Lotteries on this page",
 	"lottery.verified":       "Lottery Record Verified!",
 	"lottery.exported":       "Exported %d lottery records to %s",
 	"lottery.imported":       "Imported %d lottery records",
