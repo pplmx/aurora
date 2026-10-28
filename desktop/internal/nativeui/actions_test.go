@@ -83,6 +83,42 @@ func TestActionShortcutsSurviveTheMissingMenu(t *testing.T) {
 	require.Equal(t, []string{"export", "import", "backup"}, calls)
 }
 
+// TestFileActionsPauseWhileAWriteOwnsTheDatabase keeps the File menu, its
+// shortcuts and the command palette from starting a repository operation while
+// the page's background write is still in flight. Navigation stays available.
+func TestFileActionsPauseWhileAWriteOwnsTheDatabase(t *testing.T) {
+	app := New(&fakeServices{})
+	var calls []string
+	app.SetActions(Actions{
+		BackUpDatabase:  func() { calls = append(calls, "backup") },
+		ExportLotteries: func() { calls = append(calls, "export") },
+		ImportLotteries: func() { calls = append(calls, "import") },
+	})
+	app.busy = "Minting…"
+	tester := ui.NewTester(app.View, 1280, 860)
+	tester.Frame()
+
+	fileLabel := i18n.GetText("desktop.menu.file")
+	require.NoError(t, tester.Click(fileLabel))
+	require.Empty(t, tester.Menu(), "a write must disable the File menu")
+
+	if runtime.GOOS != "darwin" {
+		tester.Key(platformRefreshModifier(), ui.KeyE)
+		tester.Key(platformRefreshModifier(), ui.KeyI)
+		tester.Key(platformRefreshModifier(), ui.KeyB)
+		require.Empty(t, calls, "file shortcuts must not bypass the busy gate")
+	}
+
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	require.True(t, app.paletteOpen)
+	require.Len(t, app.paletteMatches(), len(pageOrder),
+		"the palette must keep navigation but omit unavailable commands")
+	require.False(t, tester.HasText("Refresh current page"))
+	require.False(t, tester.HasText("Back up database…"))
+	require.Empty(t, calls)
+}
+
 // TestFileMenuFollowsTheLanguage proves the sidebar's File label follows the
 // translator. The native menu used to carry this label; now the sidebar does.
 func TestFileMenuFollowsTheLanguage(t *testing.T) {
