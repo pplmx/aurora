@@ -70,6 +70,16 @@ func twoColumns(c *ui.Context, left, right func()) {
 // it while the window does not.
 const twoColumnMinWidth float32 = 1240
 
+// stackedRecordMinScale is where multi-column tables become record cards.
+// At 2x the Lottery history and Oracle health tables each had columns beyond
+// the minimum window; below this point they still fit and remain scannable as
+// tables.
+const stackedRecordMinScale float32 = 1.75
+
+func stackedRecords(c *ui.Context) bool {
+	return textScale(c) >= stackedRecordMinScale
+}
+
 // card draws a raised panel: the surface every section's content sits on.
 // A card is what separates one concern from the next now that the sidebar no
 // longer does it with rules, and it is the unit the dashboard grid repeats.
@@ -83,6 +93,23 @@ func card(c *ui.Context, fn func()) ui.Element {
 		Shadow(0, 12, 30, -6, ui.RGBA(0, 0, 0, 0.35)).
 		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.04)).
 		Children(fn)
+}
+
+// recordPanel is the compact surface used when a wide table becomes a list of
+// records. It is recessed into a card so each record reads as one object, not
+// as another form section.
+func recordPanel(c *ui.Context, fn func()) {
+	ui.Column(c).FillWidth().Padding(12).Gap(8).Radius(10).
+		Background(ui.Hex(night)).BorderWidth(1).BorderColor(ui.Hex(border)).Children(fn)
+}
+
+// recordField stacks a label over a value that may wrap. Unlike a table cell,
+// it does not need an ellipsis to keep the next column visible.
+func recordField(c *ui.Context, label, value string) {
+	ui.Column(c).FillWidth().Gap(2).Children(func() {
+		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+	})
 }
 
 // metricCard draws one counter: a label, the value, and what it counts. A

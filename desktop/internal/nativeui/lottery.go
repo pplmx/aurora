@@ -253,6 +253,10 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No draws match “%s”."), strings.TrimSpace(a.lottery.search)))
 		return
 	}
+	if stackedRecords(c) {
+		a.lotteryHistoryRecords(c, rows)
+		return
+	}
 	// Choosing a row fills the verifier with that draw's full id: the table
 	// shows a shortened id, so this is how a reader gets the real one.
 	a.lottery.table.Selected = &a.lottery.selected
@@ -280,6 +284,29 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		// from sitting beside a new id as if it described it.
 		a.clearLotteryVerdict()
 	}
+}
+
+// lotteryHistoryRecords keeps every draw fact and the Verify handoff visible
+// when large text makes the four-column history table wider than the window.
+func (a *App) lotteryHistoryRecords(c *ui.Context, rows []DrawRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for _, draw := range rows {
+			draw := draw
+			recordPanel(c, func() {
+				ui.Text(c, shortID(draw.ID)).FontSize(textSize(c, 13)).Bold().
+					TextColor(ui.Hex(aurora)).SingleLine().Ellipsis("…").Tooltip(draw.ID)
+				recordField(c, "Block", strconv.FormatInt(draw.BlockHeight, 10))
+				recordField(c, "Participants", joinList(draw.Participants))
+				recordField(c, "Winners", joinList(draw.Winners))
+				ui.Row(c).Children(func() {
+					if secondaryButton(c, "Use this draw for Verify").Clicked() {
+						a.lottery.verifyID = draw.ID
+						a.clearLotteryVerdict()
+					}
+				})
+			})
+		}
+	})
 }
 
 func (a *App) lotteryVerify(c *ui.Context) {

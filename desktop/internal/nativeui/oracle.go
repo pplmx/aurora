@@ -591,6 +591,10 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 	for _, source := range a.oracle.sources {
 		names[source.ID] = source.Name
 	}
+	if stackedRecords(c) {
+		a.oracleHealthRecords(c, health, names)
+		return
+	}
 	ui.Table(c, &a.oracle.healthTable, []ui.TableColumn{
 		{Title: tr("Source")},
 		{Title: tr("Attempts"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
@@ -601,14 +605,7 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		h := health[row]
 		switch col {
 		case 0:
-			name := h.Name
-			if name == "" {
-				name = names[h.SourceID]
-			}
-			if name == "" {
-				name = h.SourceID
-			}
-			tableText(c, name)
+			tableText(c, oracleHealthName(h, names))
 		case 1:
 			tableText(c, strconv.Itoa(h.Attempts))
 		case 2:
@@ -623,6 +620,49 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 			}
 		}
 	})
+}
+
+// oracleHealthRecords preserves every counter and the complete last error when
+// the five-column health table no longer fits at enlarged text.
+func (a *App) oracleHealthRecords(c *ui.Context, health []HealthRow, names map[string]string) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for _, h := range health {
+			h := h
+			name := oracleHealthName(h, names)
+			recordPanel(c, func() {
+				ui.Text(c, name).FontSize(textSize(c, 13)).Bold().
+					TextColor(ui.Hex(ink)).SingleLine().Ellipsis("…").Tooltip(name)
+				ui.Row(c).Wrap().Gap(18).Children(func() {
+					healthMetric(c, "Attempts", h.Attempts, ink)
+					healthMetric(c, "Successes", h.Successes, auroraGreen)
+					tone := inkMuted
+					if h.Failures > 0 {
+						tone = auroraRed
+					}
+					healthMetric(c, "Failures", h.Failures, tone)
+				})
+				recordField(c, "Last error", valueOr(h.LastError))
+			})
+		}
+	})
+}
+
+func healthMetric(c *ui.Context, label string, value int, tone string) {
+	ui.Column(c).Gap(1).Children(func() {
+		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, strconv.Itoa(value)).FontSize(textSize(c, 15)).Bold().TextColor(ui.Hex(tone))
+	})
+}
+
+func oracleHealthName(h HealthRow, names map[string]string) string {
+	name := h.Name
+	if name == "" {
+		name = names[h.SourceID]
+	}
+	if name == "" {
+		name = h.SourceID
+	}
+	return name
 }
 
 func (a *App) oracleRead(c *ui.Context) {
