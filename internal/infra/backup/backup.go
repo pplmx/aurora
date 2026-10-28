@@ -1268,8 +1268,8 @@ func (s *BackupService) promoteRestore(ctx context.Context, operations []restore
 		}
 		promoted = append(promoted, i)
 
-		// A stale WAL/SHM from the pre-restore DB would be replayed against
-		// the new archive on next open (v1.75, ISS-082).
+		// A stale WAL/SHM or rollback journal from the pre-restore DB could be
+		// replayed against the new archive on next open (v1.75, ISS-082).
 		if err := s.removeSidecars(op.destPath, op.name); err != nil {
 			return promoted, err
 		}
@@ -1285,13 +1285,15 @@ func (s *BackupService) removeSidecars(destPath, name string) error {
 	if remove == nil {
 		remove = os.Remove
 	}
-	for _, ext := range []string{"-wal", "-shm"} {
-		if err := remove(destPath + ext); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("remove stale %s for %s: %w", ext, name, err)
+	for _, suffix := range sqliteSidecarSuffixes {
+		if err := remove(destPath + suffix); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("remove stale %s for %s: %w", suffix, name, err)
 		}
 	}
 	return nil
 }
+
+var sqliteSidecarSuffixes = []string{"-wal", "-shm", "-journal"}
 
 func rollbackRestore(operations []restoreOperation, promoted []int) error {
 	var rollbackErrors []error
@@ -1312,9 +1314,9 @@ func rollbackRestore(operations []restoreOperation, promoted []int) error {
 			continue
 		}
 
-		for _, ext := range []string{"-wal", "-shm"} {
-			if err := os.Remove(op.destPath + ext); err != nil && !os.IsNotExist(err) {
-				rollbackErrors = append(rollbackErrors, fmt.Errorf("remove rolled-back %s%s: %w", op.name, ext, err))
+		for _, suffix := range sqliteSidecarSuffixes {
+			if err := os.Remove(op.destPath + suffix); err != nil && !os.IsNotExist(err) {
+				rollbackErrors = append(rollbackErrors, fmt.Errorf("remove rolled-back %s%s: %w", op.name, suffix, err))
 			}
 		}
 		if err := syncDirFn(filepath.Dir(op.destPath)); err != nil {
