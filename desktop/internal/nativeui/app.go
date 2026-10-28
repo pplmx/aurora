@@ -54,6 +54,12 @@ type App struct {
 	// settingsStatus is the result of a Settings action that can fail (saving
 	// a preference); other pages' status lines stay with their forms.
 	settingsStatus statusLine
+	// confirmForgetKeys gates the one irreversible Settings action. When it
+	// came from turning the policy off, confirmation must disable the policy as
+	// well as clear the remembered keys; the explicit Forget button only clears
+	// what is already held.
+	confirmForgetKeys        bool
+	disableKeyMemoryOnForget bool
 	// paletteOpen/paletteQuery drive the Ctrl/Cmd+K page switcher. It is a
 	// second, keyboard-first entry into the same setPage path as the sidebar.
 	paletteOpen    bool
