@@ -54,6 +54,9 @@ documented in their per-milestone ROADMAP files.
   an entry hands keyboard focus to the named Navigation sidebar instead of
   letting the disposed search field leave the window without focus. Ctrl/Cmd+
   number page shortcuts do the same when they replace the focused page control.
+  A page status or busy strip now appears above a keyed body host, so the
+  control whose action produced the message keeps keyboard focus instead of
+  losing it to the rebuilt sibling tree.
 
 - **Desktop shortcuts describe their real scope**: Settings now marks Reload as
   a data-page action instead of claiming every shortcut works on every page.
