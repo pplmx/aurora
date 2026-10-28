@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Proxy client-IP parsing has a fixed work bound**: behind a trusted proxy,
+  `X-Forwarded-For` is commonly appended to rather than replaced, so a client
+  could still supply a header near the 64 KiB server limit. The middleware
+  split that entire value into an allocation before authentication and walked
+  every hop. It now parses right-to-left without materialising the full slice,
+  and treats chains longer than 32 hops as unattributable rather than trusting
+  the leftmost caller-supplied address.
 - **Invalid server ports fail before startup work begins**: `server.port` from
   TOML or `AURORA_SERVER_PORT` was unmarshaled without a range check. A zero
   port silently requested an ephemeral listener while the logs still printed
