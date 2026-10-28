@@ -8,11 +8,12 @@ import (
 	"github.com/pplmx/aurora/internal/logger"
 )
 
-// maxLoggedPathLength bounds the request path copied into the access log.
-// Logger runs before authentication, while net/http accepts request lines
-// within its roughly 1 MiB header limit; logging the full path would let one
-// unauthenticated request amplify into a near-1 MiB log entry.
-const maxLoggedPathLength = 1024
+// Access-log fields are bounded because Logger runs before authentication,
+// while net/http accepts request lines within its roughly 1 MiB header limit.
+const (
+	maxLoggedMethodLength = 32
+	maxLoggedPathLength   = 1024
+)
 
 func Logger(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +28,7 @@ func Logger(next http.Handler) http.Handler {
 			// aborts a partially written response.
 			logger.Info().
 				Str("request_id", middleware.GetReqID(r.Context())).
-				Str("method", r.Method).
+				Str("method", boundedLogValue(r.Method, maxLoggedMethodLength)).
 				Str("path", boundedLogValue(r.URL.Path, maxLoggedPathLength)).
 				Int("status", ww.Status()).
 				Dur("latency", time.Since(start)).

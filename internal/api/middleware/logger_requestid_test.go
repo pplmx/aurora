@@ -133,3 +133,33 @@ func TestLogger_DoesNotAmplifyOversizedPath(t *testing.T) {
 		t.Fatalf("access log grew to %d bytes from one request", len(logs))
 	}
 }
+
+func TestLogger_DoesNotAmplifyOversizedMethod(t *testing.T) {
+	old := logger.Log
+	defer func() { logger.Log = old }()
+
+	var buf bytes.Buffer
+	logger.Log = zerolog.New(&buf).With().Timestamp().Logger()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Method = strings.Repeat("M", 64<<10)
+
+	RequestID(Logger(handler)).ServeHTTP(httptest.NewRecorder(), req)
+
+	logs := buf.String()
+	if strings.Contains(logs, strings.Repeat("M", 2048)) {
+		t.Fatal("the access log echoed an oversized HTTP method")
+	}
+	if !strings.Contains(logs, `"method":"`) {
+		t.Fatalf("the access log did not include a bounded method:\n%s", logs)
+	}
+	if !strings.Contains(logs, `"method":"`+strings.Repeat("M", maxLoggedMethodLength)+`..."`) {
+		t.Fatalf("the access log did not truncate the method at %d bytes:\n%s", maxLoggedMethodLength, logs)
+	}
+	if len(logs) > 2048 {
+		t.Fatalf("access log grew to %d bytes from one request", len(logs))
+	}
+}
