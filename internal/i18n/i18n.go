@@ -176,6 +176,13 @@ func DetectLocale() string {
 	if locale, ok := EnvironmentLocale(); ok {
 		return locale
 	}
+	// Command declarations call GetText during package initialization, before
+	// Cobra runs initConfig. Read the same startup config here so a configured
+	// [i18n] locale also reaches --help and flag descriptions, not just
+	// command output produced after Cobra has loaded the file.
+	if locale := configFileLocale(); locale != "" {
+		return locale
+	}
 	return "en"
 }
 
@@ -199,12 +206,59 @@ func DetectAndInit() *Translator {
 	if !configured {
 		if cfg := viper.GetString("i18n.locale"); cfg != "" {
 			locale = cfg
+		} else {
+			// The lazy translator and command metadata use the same config
+			// fallback during package initialization. Keep the post-init
+			// translator in agreement with them, including when Cobra has
+			// not loaded the config yet (for example, --help).
+			locale = DetectLocale()
 		}
 	}
 	if locale == "" {
 		locale = "en"
 	}
 	return Init(locale)
+}
+
+// configFileLocale performs the small, read-only config lookup needed before
+// Cobra owns the full config lifecycle. An explicit --config path wins; with
+// no flag, the documented $HOME/aurora.toml and ./config/aurora.toml search
+// paths are checked in that order. Parse failures are intentionally ignored
+// here: command execution will report the actionable config error later,
+// while --help can still render in a safe fallback language.
+func configFileLocale() string {
+	v := viper.New()
+	v.SetConfigType("toml")
+	if path := configFileArg(os.Args[1:]); path != "" {
+		v.SetConfigFile(path)
+	} else {
+		v.SetConfigName("aurora")
+		if home, err := os.UserHomeDir(); err == nil && home != "" {
+			v.AddConfigPath(home)
+		}
+		v.AddConfigPath("./config")
+	}
+	if err := v.ReadInConfig(); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(v.GetString("i18n.locale"))
+}
+
+func configFileArg(args []string) string {
+	path := ""
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--":
+			return path
+		case arg == "--config" && i+1 < len(args):
+			path = args[i+1]
+			i++
+		case strings.HasPrefix(arg, "--config="):
+			path = strings.TrimPrefix(arg, "--config=")
+		}
+	}
+	return path
 }
 
 func LoadLocaleFile(path string) error {

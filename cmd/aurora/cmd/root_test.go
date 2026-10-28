@@ -102,6 +102,33 @@ func TestInitConfig_FallbackPath(t *testing.T) {
 	assert.NoError(t, configErr, "a config absent from the optional search paths must use defaults")
 }
 
+func TestCliConfigLocaleAppliesWithoutLocaleEnvironment(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		configPath := filepath.Join(t.TempDir(), "aurora.toml")
+		require.NoError(t, os.WriteFile(configPath, []byte("[i18n]\nlocale = \"zh\"\n"), 0o600))
+
+		for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE"} {
+			t.Setenv(key, "")
+		}
+		viper.Reset()
+		cfgFile = ""
+		t.Cleanup(func() {
+			i18n.Init("en")
+			logger.Close()
+		})
+
+		resetFlags(rootCmd)
+		rootCmd.SetArgs([]string{"--config", configPath, "version"})
+		capture := captureStdout(t)
+		err := rootCmd.Execute()
+		out := capture()
+
+		require.NoError(t, err)
+		assert.Contains(t, out, "版本:")
+		assert.NotContains(t, out, "Version:")
+	})
+}
+
 // TestRootCommandInitializesFileLoggingFromConfig exercises the real Cobra
 // lifecycle with an alternate config file. main used to initialize the logger
 // before Cobra loaded [log], so the empty level disabled output and the
