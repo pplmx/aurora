@@ -162,9 +162,10 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 `POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
 `{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，
 请求头名称也必须是 token，值不能包含除 tab 外的控制字符。JSON、CR/LF 和长度
-都在写入前校验（`INVALID_SOURCE`）。`extractByPath` 允许合法的空字符串值，但
-对象/数组/null 叶子会失败而不是把 Go map 存成链上数据。抓取在 URL 校验、重定向与
-实际拨号三处拒绝内部地址：回环、RFC1918、link-local（含云元数据）、CGNAT、
+都在写入前校验（`INVALID_SOURCE`）。URL 必须带非空 hostname，端口写出来时
+必须在 `1..65535` 且不能是只有冒号的空值。`extractByPath` 允许合法的空字符串
+值，但对象/数组/null 叶子会失败而不是把 Go map 存成链上数据。抓取在 URL 校验、
+重定向与实际拨号三处拒绝内部地址：回环、RFC1918、link-local（含云元数据）、CGNAT、
 保留/基准网段、IPv4/IPv6 组播、TEST-NET 文档网段（`192.0.2.0/24`、
 `198.51.100.0/24`、`203.0.113.0/24`、`3fff::/20`），以及会把内嵌 IPv4
 翻译进来的 NAT64/6to4 前缀（`64:ff9b::/96`、`64:ff9b:1::/48`、
