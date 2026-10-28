@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **SQLite database paths keep characters that look like DSN syntax**: every
+  repository, event store, replay protector, migration and explicit ledger
+  handle appended `?options` to the configured filename directly. A path such
+  as `ledger?copy.db` was therefore truncated to `ledger`, and the rest of the
+  real name became connection parameters. All production DSNs now share one
+  file-URI encoder that preserves `?`, `#`, `%` and spaces while retaining the
+  existing hardened options and `:memory:` support.
 - **Blockchain initialization no longer hides database failures**: when the
   configured SQLite database could not be opened or its directory could not be
   created, `InitWithError` logged a warning and returned a genesis-only
