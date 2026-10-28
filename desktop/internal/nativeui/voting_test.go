@@ -52,7 +52,15 @@ func TestVotingTablesLoadFullIDsIntoTheForms(t *testing.T) {
 // every other write: the window shows which operation is running and remains
 // responsive while the service call is in flight.
 func TestSessionControlsUseTheBackgroundWritePath(t *testing.T) {
-	fake := &slowSessionControls{fakeServices: &fakeServices{}}
+	release := make(chan struct{})
+	t.Cleanup(func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+	})
+	fake := &gatedSessionControls{fakeServices: &fakeServices{}, release: release}
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.SetBackgroundWrites(true)
@@ -65,6 +73,7 @@ func TestSessionControlsUseTheBackgroundWritePath(t *testing.T) {
 	require.Equal(t, "Starting session…", app.busy,
 		"the running control operation must be visible before it finishes")
 
+	close(release)
 	require.Eventually(t, func() bool {
 		tester.Frame()
 		return app.busy == "" && app.voting.controlResult.text == "Session started."
@@ -72,15 +81,17 @@ func TestSessionControlsUseTheBackgroundWritePath(t *testing.T) {
 	require.Equal(t, 1, fake.startSessionCalls)
 }
 
-// slowSessionControls leaves enough work in flight for the test to observe the
-// busy state and its matching apply callback.
-type slowSessionControls struct {
+// gatedSessionControls holds the write open until the test has observed the
+// busy state. A short sleep raced the 20-frame click settle under -race and
+// could complete before the assertion even though the production path worked.
+type gatedSessionControls struct {
 	*fakeServices
+	release <-chan struct{}
 }
 
-func (s *slowSessionControls) StartSession(string) error {
+func (s *gatedSessionControls) StartSession(string) error {
 	s.startSessionCalls++
-	time.Sleep(100 * time.Millisecond)
+	<-s.release
 	return nil
 }
 
