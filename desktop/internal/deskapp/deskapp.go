@@ -210,13 +210,16 @@ func keepApplicationFilesPrivate(dbPath, logPath string) error {
 		return err
 	}
 
+	privateFiles := []string{preferencesPath(dbPath)}
 	if logPath != "" {
-		logFile := filepath.Join(logPath, "aurora.log")
-		if err := os.Chmod(logFile, 0o600); err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			return fmt.Errorf("restrict %s to owner: %w", logFile, err)
+		privateFiles = append([]string{filepath.Join(logPath, "aurora.log")}, privateFiles...)
+	}
+	for _, path := range privateFiles {
+		if path == "" {
+			continue
+		}
+		if err := os.Chmod(path, 0o600); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("restrict %s to owner: %w", path, err)
 		}
 	}
 	return nil

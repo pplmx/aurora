@@ -136,6 +136,11 @@ documented in their per-milestone ROADMAP files.
   from its real parent directory, including relative `..` targets, and
   atomically create or replace the target while preserving the link just like
   a normal write would.
+- **Desktop preferences repair a permissive mode**: an existing
+  `desktop-settings.json` created or edited with mode `0644` kept that mode
+  because atomic replacement preserves established permissions, and startup
+  hardening did not include the file. Both startup and the next save now force
+  `0600` on Unix, matching the documented privacy boundary.
 - **Desktop file URLs preserve Windows UNC hosts and reject remote POSIX
   paths**: a launcher-provided `file://server/share/draws.json` used to lose
   the server segment and resolve against the local path, while Windows UNC
