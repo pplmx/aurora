@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Token and NFT histories keep every transfer party at large text**: the
+  fixed account columns reduced base64 public keys to short prefixes at 2x,
+  while the token amount/nonce and NFT block columns competed for the remaining
+  width. Above the shared 1.75x threshold both histories now render one event
+  per record, with full From/To keys and the exact amount, nonce or block height
+  together.
 - **Oracle sources and readings stay complete at large text**: the five-column
   source table pushed type, id, status and header state outside the card at 2x,
   while the shortened id made the row hard to identify before loading it into
