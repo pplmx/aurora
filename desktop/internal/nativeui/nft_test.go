@@ -21,6 +21,7 @@ func TestUseGeneratedCreatorKey(t *testing.T) {
 	app.nft.creator, app.nft.creatorPriv = "creator-pub", "creator-priv"
 	app.nft.creatorKeyNFTID = "n1"
 	app.nft.transferID, app.nft.from = "n1", "creator-pub"
+	app.nft.transferSubjectID = "n1"
 	tester.Frame()
 	require.True(t, tester.HasText("Use generated creator key"))
 
@@ -109,6 +110,15 @@ func TestNFTFilterIsTheListState(t *testing.T) {
 	require.True(t, tester.HasText("database is locked"))
 	require.True(t, tester.HasText("Second Art"))
 
+	// A different filter is a different question: retaining owner-b's rows
+	// under owner-c would falsely imply they answered the new read.
+	app.nft.owner = "owner-c"
+	app.filterNFTs()
+	tester.Frame()
+	require.Empty(t, app.nft.list, "a failed read for a new filter must not keep another filter's rows")
+	require.False(t, tester.HasText("Second Art"))
+	require.True(t, tester.HasText("database is locked"))
+
 	// Show All clears both the input and the applied filter.
 	fake.loadErrs.nfts = nil
 	app.showAllNFTs()
@@ -124,6 +134,139 @@ func TestNFTFilterIsTheListState(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("No NFTs for this owner. Show All restores the collection."))
 	require.False(t, tester.HasText("No NFTs yet. Mint one above."))
+}
+
+// TestManualNFTIDsMoveOnlyTheirHolderContext covers typed ids in the two write
+// cards. They intentionally have separate ids, so changing Transfer must not
+// retarget Burn, but neither may retain the previous asset's holder or secret.
+func TestManualNFTIDsMoveOnlyTheirHolderContext(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{
+		{ID: "n1", Name: "First", Owner: "owner-1"},
+		{ID: "n2", Name: "Second", Owner: "owner-2"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.transferID, app.nft.burnID = "n1", "n1"
+	tester.Frame()
+	require.Equal(t, "owner-1", app.nft.from)
+	require.Equal(t, "owner-1", app.nft.burnOwner)
+
+	app.nft.priv, app.nft.to, app.nft.burnPriv = "transfer-key", "old-recipient", "burn-key"
+	app.nft.transferID = "n2"
+	tester.Frame()
+	require.Equal(t, "owner-2", app.nft.from)
+	require.Empty(t, app.nft.priv)
+	require.Empty(t, app.nft.to)
+	require.Equal(t, "owner-1", app.nft.burnOwner, "Transfer's id must not retarget Burn")
+	require.Equal(t, "burn-key", app.nft.burnPriv, "the other card's key must remain untouched")
+
+	app.nft.burnID = "n2"
+	tester.Frame()
+	require.Equal(t, "owner-2", app.nft.burnOwner)
+	require.Empty(t, app.nft.burnPriv)
+
+	app.nft.transferID = "outside-page"
+	tester.Frame()
+	require.Empty(t, app.nft.from, "an unknown asset must not inherit another holder")
+	require.Empty(t, app.nft.priv)
+	require.Empty(t, app.nft.to)
+	require.Equal(t, "owner-2", app.nft.burnOwner)
+}
+
+// TestNFTTransferMovesOnlyItsOwnWriteCard keeps a successful Transfer from
+// clearing or retargeting a Burn form aimed at a different asset. When both
+// cards do name the transferred asset, both must follow its new holder and
+// drop the key that belonged to the previous owner.
+func TestNFTTransferMovesOnlyItsOwnWriteCard(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{
+		{ID: "n1", Name: "First", Owner: "owner-1"},
+		{ID: "n2", Name: "Second", Owner: "owner-2"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.transferID, app.nft.burnID = "n1", "n2"
+	tester.Frame()
+	app.nft.to, app.nft.priv, app.nft.burnPriv = "owner-new", "transfer-key", "burn-key"
+	app.transferNFT()
+	tester.Frame()
+
+	require.Equal(t, "owner-new", app.nft.from)
+	require.Empty(t, app.nft.priv)
+	require.Empty(t, app.nft.to)
+	require.Equal(t, "owner-2", app.nft.burnOwner, "a Transfer must not retarget Burn")
+	require.Equal(t, "burn-key", app.nft.burnPriv, "a Transfer must not clear Burn's key")
+
+	app.nft.burnID = "n1"
+	tester.Frame()
+	require.Equal(t, "owner-1", app.nft.burnOwner, "the list still holds pre-transfer data")
+	app.nft.to, app.nft.priv, app.nft.burnPriv = "owner-newer", "transfer-key-2", "same-asset-burn-key"
+	app.transferNFT()
+	tester.Frame()
+
+	require.Equal(t, "owner-newer", app.nft.from)
+	require.Equal(t, "owner-newer", app.nft.burnOwner, "Burn must follow a transfer of its own asset")
+	require.Empty(t, app.nft.burnPriv, "Burn's key belonged to the previous owner")
+}
+
+// TestNFTInspectResolvesManualWriteContext lets an id outside the visible
+// collection acquire the holder its Transfer/Burn cards need. A successful
+// Inspect is the authority when neither the row nor a previous read knew the
+// asset.
+func TestNFTInspectResolvesManualWriteContext(t *testing.T) {
+	fake := &fakeServices{nftByID: map[string]NFTRow{
+		"archived": {ID: "archived", Name: "Archive", Owner: "archived-owner"},
+	}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.transferID, app.nft.burnID = "archived", "archived"
+	tester.Frame()
+	require.Empty(t, app.nft.from)
+
+	app.nft.id = "archived"
+	require.NoError(t, tester.Click("Get NFT"))
+	tester.Frame()
+	require.Equal(t, "archived-owner", app.nft.from)
+	require.Equal(t, "archived-owner", app.nft.burnOwner)
+	require.Equal(t, "archived", app.nft.transferOwnerID)
+	require.Equal(t, "archived", app.nft.burnOwnerID)
+}
+
+// TestNFTReadoutsTrackTheirCurrentInputs keeps Inspect metadata and History
+// rows from describing an asset after the visible id has moved to another one.
+func TestNFTReadoutsTrackTheirCurrentInputs(t *testing.T) {
+	fake := &fakeServices{nftRows: []NFTRow{{ID: "n1"}, {ID: "n2"}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("NFT")
+	tester.Frame()
+
+	app.nft.id = "n1"
+	app.nft.nft = &NFTRow{ID: "n1", Name: "Old asset", Owner: "old-owner"}
+	app.nft.nftLoadedID = "n1"
+	app.nft.historyID = "n1"
+	app.nft.history = []NFTOpRow{{Type: "mint", From: "old-from"}}
+	app.nft.historyLoadedID = "n1"
+	app.nft.opTab = 2
+	tester.Frame()
+	require.True(t, tester.HasText("Old asset"))
+	require.True(t, tester.HasText("old-from"))
+
+	app.nft.id = "n2"
+	tester.Frame()
+	require.False(t, tester.HasText("Old asset"), "another asset must hide the old metadata")
+
+	app.nft.historyID = "n2"
+	tester.Frame()
+	require.False(t, tester.HasText("old-from"), "another asset must hide the old history")
 }
 
 // TestNFTReadoutFailureKeepsSameSubjectRows applies the stale-load policy to
@@ -174,8 +317,10 @@ func TestNFTSelectionDropsReadoutsWhenTheNewReadFails(t *testing.T) {
 	app.ShowPage("NFT")
 	tester.Frame()
 
+	app.nft.id = "n1"
 	app.nft.nft = &NFTRow{ID: "n1", Name: "OldArt"}
 	app.nft.nftLoadedID = "n1"
+	app.nft.historyID = "n1"
 	app.nft.history = []NFTOpRow{{Type: "mint-from-old"}}
 	app.nft.historyLoadedID = "n1"
 	app.nft.opTab = 2

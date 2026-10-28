@@ -68,6 +68,13 @@ type nftState struct {
 	priv      string
 	burnOwner string
 	burnPriv  string
+	// The two write cards have independent ids, so each tracks the subject
+	// whose holder context it has applied. Manual id edits must clear the old
+	// holder and signing key without touching the other card.
+	transferSubjectID string
+	transferOwnerID   string
+	burnSubjectID     string
+	burnOwnerID       string
 
 	loadErr error
 
@@ -146,6 +153,7 @@ func (a *App) loadNFTPage(offset int) bool {
 }
 
 func (a *App) nftView(c *ui.Context) {
+	a.syncNFTSubjects()
 	a.scrollPage(c, func() {
 		guide(c, &a.guides.nft,
 			"Mint an asset with a creator key, or select one in Collection. The creator is the first owner.",
@@ -264,9 +272,60 @@ func (a *App) selectNFTRow(id string) {
 // change so a newly chosen or minted asset cannot be signed or sent with values
 // left over from another one.
 func (a *App) applyNFTSubject(owner string) {
-	a.nft.priv, a.nft.burnPriv = "", ""
-	a.nft.to = ""
-	a.nft.from, a.nft.burnOwner = owner, owner
+	a.applyNFTTransferSubject(owner)
+	a.applyNFTBurnSubject(owner)
+}
+
+func (a *App) applyNFTTransferSubject(owner string) {
+	id := strings.TrimSpace(a.nft.transferID)
+	a.nft.priv, a.nft.to = "", ""
+	a.nft.from = owner
+	a.nft.transferSubjectID = id
+	if owner == "" {
+		a.nft.transferOwnerID = ""
+		return
+	}
+	a.nft.transferOwnerID = id
+}
+
+func (a *App) applyNFTBurnSubject(owner string) {
+	id := strings.TrimSpace(a.nft.burnID)
+	a.nft.burnPriv = ""
+	a.nft.burnOwner = owner
+	a.nft.burnSubjectID = id
+	if owner == "" {
+		a.nft.burnOwnerID = ""
+		return
+	}
+	a.nft.burnOwnerID = id
+}
+
+// syncNFTSubjects reacts to ids typed directly into Transfer or Burn. The
+// collection row and Inspect readout are the available local owner sources;
+// an id neither one knows still clears the old holder rather than leaving it
+// attached to the new asset.
+func (a *App) syncNFTSubjects() {
+	if id := strings.TrimSpace(a.nft.transferID); a.nft.transferSubjectID != id {
+		a.applyNFTTransferSubject(a.nftOwnerForID(id))
+	}
+	if id := strings.TrimSpace(a.nft.burnID); a.nft.burnSubjectID != id {
+		a.applyNFTBurnSubject(a.nftOwnerForID(id))
+	}
+}
+
+func (a *App) nftOwnerForID(id string) string {
+	if id == "" {
+		return ""
+	}
+	if a.nft.nft != nil && a.nft.nftLoadedID == id {
+		return a.nft.nft.Owner
+	}
+	for _, n := range a.nft.list {
+		if n.ID == id {
+			return n.Owner
+		}
+	}
+	return ""
 }
 
 func (a *App) nftRead(c *ui.Context) {
@@ -280,22 +339,23 @@ func (a *App) nftRead(c *ui.Context) {
 
 func (a *App) nftReadBody(c *ui.Context) {
 	field(c, "NFT ID", &a.nft.id)
+	id := strings.TrimSpace(a.nft.id)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Get NFT").Clicked() {
-			id := strings.TrimSpace(a.nft.id)
-			a.clearNFTDetailsForAnotherSubject(id)
-			if err := a.loadNFTDetails(id); err != nil {
+			target := strings.TrimSpace(a.nft.id)
+			a.clearNFTDetailsForAnotherSubject(target)
+			if err := a.loadNFTDetails(target); err != nil {
 				a.nft.status = errStatus(err)
 			} else {
 				a.nft.status = statusLine{}
 			}
 		}
 	})
-	if a.nft.nftErr != nil {
+	if a.nft.nftErr != nil && a.nft.nftLoadedID == id {
 		loadWarning(c, "Couldn't load NFT", a.nft.nftErr, a.nft.nft != nil)
 	}
 	copyRow(c, "NFT ID", strings.TrimSpace(a.nft.id), nil)
-	if n := a.nft.nft; n != nil {
+	if n := a.nft.nft; n != nil && a.nft.nftLoadedID == id {
 		rows := []readoutRow{
 			{"Name", n.Name}, {"Owner", n.Owner}, {"Creator", n.Creator},
 			{"Block", strconv.FormatInt(n.BlockHeight, 10)},
@@ -327,7 +387,14 @@ func (a *App) nftReadBody(c *ui.Context) {
 // the filter survives refreshes and a failed read keeps the rows already shown
 // instead of blanking the collection.
 func (a *App) filterNFTs() {
-	a.nft.filterOwner = strings.TrimSpace(a.nft.owner)
+	next := strings.TrimSpace(a.nft.owner)
+	if next != a.nft.filterOwner {
+		a.nft.list = nil
+		a.nft.loadErr = nil
+		a.nft.offset = 0
+		a.nft.hasMore = false
+	}
+	a.nft.filterOwner = next
 	a.nft.selected = -1
 	a.loadNFTPage(0)
 }
@@ -335,6 +402,12 @@ func (a *App) filterNFTs() {
 // showAllNFTs clears the filter and reloads the whole collection.
 func (a *App) showAllNFTs() {
 	a.nft.owner = ""
+	if a.nft.filterOwner != "" {
+		a.nft.list = nil
+		a.nft.loadErr = nil
+		a.nft.offset = 0
+		a.nft.hasMore = false
+	}
 	a.nft.filterOwner = ""
 	a.nft.selected = -1
 	a.loadNFTPage(0)
@@ -458,17 +531,23 @@ func (a *App) nftWrite(c *ui.Context) {
 			field(c, "NFT ID", &a.nft.historyID)
 			ui.Row(c).Children(func() {
 				if secondaryButton(c, "Show History").Clicked() {
-					id := strings.TrimSpace(a.nft.historyID)
-					a.clearNFTHistoryForAnotherSubject(id)
-					if err := a.loadNFTHistoryPage(id, 0); err != nil {
+					target := strings.TrimSpace(a.nft.historyID)
+					a.clearNFTHistoryForAnotherSubject(target)
+					if err := a.loadNFTHistoryPage(target, 0); err != nil {
 						a.nft.status = errStatus(err)
 					} else {
 						a.nft.status = statusLine{}
 					}
 				}
 			})
-			if a.nft.historyErr != nil &&
+			id := strings.TrimSpace(a.nft.historyID)
+			matches := a.nft.historyLoadedID == id
+			if a.nft.historyErr != nil && matches &&
 				!loadWarning(c, "Couldn't load NFT history", a.nft.historyErr, len(a.nft.history) > 0) {
+				return
+			}
+			if !matches {
+				emptyNote(c, "No history loaded yet.")
 				return
 			}
 			a.nftHistoryTable(c)
@@ -489,6 +568,12 @@ func (a *App) loadNFTDetails(id string) error {
 	a.nft.nft = &details
 	a.nft.nftLoadedID = id
 	a.nft.nftErr = nil
+	if strings.TrimSpace(a.nft.transferID) == id && a.nft.transferOwnerID != id {
+		a.applyNFTTransferSubject(details.Owner)
+	}
+	if strings.TrimSpace(a.nft.burnID) == id && a.nft.burnOwnerID != id {
+		a.applyNFTBurnSubject(details.Owner)
+	}
 	return nil
 }
 
@@ -590,8 +675,12 @@ func (a *App) transferNFT() {
 			if err == nil {
 				a.rememberSuccessfulKey(from, privateKey)
 				// The recipient is the asset's holder now. Move both holder-shaped
-				// forms there so the next action starts from the real owner.
-				a.applyNFTSubject(to)
+				// forms only when they target this asset; Transfer and Burn have
+				// independent ids, so a write to one must not retarget the other.
+				a.applyNFTTransferSubject(to)
+				if strings.TrimSpace(a.nft.burnID) == id {
+					a.applyNFTBurnSubject(to)
+				}
 				a.refreshNFT(id)
 			}
 		}
