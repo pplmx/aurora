@@ -158,12 +158,12 @@ func (s *Scheduler) pass(ctx context.Context) {
 			continue
 		}
 		interval := time.Duration(src.Interval) * time.Second
-		now := s.now()
+		dueAt := s.now()
 
 		s.mu.Lock()
 		last, ok := s.lastFetch[src.ID]
-		due := !ok || now.Sub(last) >= interval
-		if due && now.Before(s.nextAttempt[src.ID]) {
+		due := !ok || dueAt.Sub(last) >= interval
+		if due && dueAt.Before(s.nextAttempt[src.ID]) {
 			due = false
 		}
 		s.mu.Unlock()
@@ -177,21 +177,23 @@ func (s *Scheduler) pass(ctx context.Context) {
 		s.mu.Unlock()
 
 		if err := s.execute(ctx, src.ID); err != nil {
+			failedAt := s.now()
 			s.mu.Lock()
 			st.Failures++
 			st.LastError = err.Error()
 			s.failStreak[src.ID]++
-			s.nextAttempt[src.ID] = now.Add(backoff(s.failStreak[src.ID]))
+			s.nextAttempt[src.ID] = failedAt.Add(backoff(s.failStreak[src.ID]))
 			s.mu.Unlock()
 			logger.Warn().Err(err).Str("source_id", src.ID).Msg("oracle scheduler: fetch failed")
 			continue
 		}
 
+		completedAt := s.now()
 		s.mu.Lock()
 		st.Successes++
-		st.LastSuccessAt = now.Unix()
+		st.LastSuccessAt = completedAt.Unix()
 		st.LastError = ""
-		s.lastFetch[src.ID] = now
+		s.lastFetch[src.ID] = completedAt
 		delete(s.failStreak, src.ID)
 		delete(s.nextAttempt, src.ID)
 		s.mu.Unlock()
