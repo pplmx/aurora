@@ -100,6 +100,32 @@ func TestImportRecords_RejectsNullDocument(t *testing.T) {
 	assert.Empty(t, records)
 }
 
+func TestMalformedImportDialogUsesTheDesktopLanguage(t *testing.T) {
+	withLocale(t, "zh", func() {
+		dbPath := filepath.Join(t.TempDir(), "malformed.db")
+		repo, err := sqlite.NewLotteryRepository(dbPath)
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = repo.Close() })
+
+		path := filepath.Join(t.TempDir(), "draws.json")
+		require.NoError(t, os.WriteFile(path, []byte(`{not json`), 0o644))
+
+		shell := NewShell(About{DBPath: dbPath})
+		shell.SetLotteryRepository(repo)
+		var got mygo.MessageOptions
+		shell.report = func(typ mygo.MessageType, title, message, detail string) {
+			got = mygo.MessageOptions{Type: typ, Title: title, Message: message, Detail: detail}
+		}
+
+		shell.OpenFile(path)
+
+		assert.Equal(t, mygo.MessageError, got.Type)
+		assert.Equal(t, "导入失败", got.Title)
+		assert.Contains(t, got.Message, "抽奖导入文件无效：解析导入文件失败")
+		assert.NotContains(t, got.Message, "parse document")
+	})
+}
+
 // TestImportRecords_PartialFailureMatchesCLIContract covers the mixed file a
 // user is most likely to produce: one valid draw and one that fails
 // validation. The valid one lands and the invalid one is reported by index.

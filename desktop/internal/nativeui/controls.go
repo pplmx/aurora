@@ -218,5 +218,5 @@ func fieldError(c *ui.Context, message string) {
 	if message == "" {
 		return
 	}
-	ui.Text(c, tr(message)).FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraRed))
+	ui.Text(c, localizeServiceErrorMessage(message)).FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraRed))
 }

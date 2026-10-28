@@ -479,7 +479,7 @@ func (s *Shell) reloadWindow() {
 }
 
 func (s *Shell) reportError(title string, err error) {
-	s.report(mygo.MessageError, title, err.Error(), "")
+	s.report(mygo.MessageError, title, nativeui.LocalizeError(err), "")
 }
 
 // reportImport shows the same accounting the File > Import action shows, so a
