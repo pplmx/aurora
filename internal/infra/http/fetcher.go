@@ -445,8 +445,12 @@ func (t *securityTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	// endpoint is normal for an operator-configured proxy, while a direct
 	// dial must still pass the destination guard.
 	req = req.WithContext(context.WithValue(req.Context(), proxyDialContextKey{}, &proxyDialState{}))
-	req.Header.Set("User-Agent", t.userAgent)
-	req.Header.Set("Accept", "application/json, text/plain, */*")
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", t.userAgent)
+	}
+	if req.Header.Get("Accept") == "" {
+		req.Header.Set("Accept", "application/json, text/plain, */*")
+	}
 	if req.Header.Get("Content-Type") == "" && (req.Method == http.MethodPost || req.Method == http.MethodPut || req.Method == http.MethodPatch) {
 		req.Header.Set("Content-Type", "application/json")
 	}
