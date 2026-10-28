@@ -505,6 +505,10 @@ func (a *App) applyTemplate(id string) {
 		a.oracle.addMethod = t.Method
 		a.oracle.addPath = t.Path
 		a.oracle.addInterval = float64(t.Interval)
+		// Built-in presets carry no request headers. Keeping a private source's
+		// Authorization value here would silently attach that secret to the
+		// public endpoint the operator just chose.
+		a.oracle.addHeaders = ""
 		// A preset fills fields the disclosure hides; open it so the operator
 		// can review the method, path and interval before Add Source.
 		a.oracle.addAdvanced = true
