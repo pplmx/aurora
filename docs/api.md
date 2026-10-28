@@ -28,7 +28,8 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 - **CORS**：默认只允许同源，`[api.cors] allowedOrigins` 加入白名单。
 - **请求关联**：每个响应都带 `X-Request-ID`。调用方提供的 ID 只接受最长
   128 字符的可见 ASCII，否则服务端会生成一个，避免未鉴权请求把超长 ID
-  放大进访问日志；CORS 白名单同时允许发送和读取该头。
+  放大进访问日志；访问日志中的请求路径也会截断到 1024 字节，CORS 白名单
+  同时允许发送和读取该头。
 - **禁止缓存**：所有响应带 `Cache-Control: no-store`。API 使用 `X-API-Key`
   而不是 `Authorization`，因此不能依赖 HTTP 缓存对鉴权请求的默认保护；创建
   响应与预言机配置还可能包含一次性私钥或上游请求头。

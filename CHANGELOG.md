@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Access logs and request metrics bound unauthenticated path cost**: after
+  request IDs were capped, the request line itself could still approach the
+  server's 1 MiB header limit. The access logger copied that full path and
+  module metrics split it into segments before authentication. Logged paths
+  are now capped at 1024 bytes, and module classification reads only the first
+  bounded segment without allocating a slice for the rest of the URL.
 - **Client request IDs are bounded and response-visible**: chi accepted any
   inbound `X-Request-ID` value and the access logger recorded it before
   authentication, so one header approaching the server's 1 MiB header limit
