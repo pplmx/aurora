@@ -28,7 +28,8 @@ func (a *App) settingsView(c *ui.Context) {
 		})
 
 		formCard(c, "Session keys", "Private keys can be kept in memory for this session only.", func() {
-			if ui.Checkbox(c, &a.rememberKeys, tr("Remember private keys for this session")).Changed() && !a.rememberKeys {
+			if ui.Checkbox(c, &a.rememberKeys, tr("Remember private keys for this session")).
+				Description(tr("Nothing is written to disk; quitting Aurora clears them.")).Changed() && !a.rememberKeys {
 				// Turning the policy off also clears what is already held: "off"
 				// must mean no private key is sitting in memory.
 				a.forgetSessionKeys()
@@ -50,7 +51,8 @@ func (a *App) settingsView(c *ui.Context) {
 		})
 
 		formCard(c, "Live updates", "Keep the open page's facts current on a timer.", func() {
-			if ui.Checkbox(c, &a.liveUpdates, tr("Every 10 seconds")).Changed() {
+			if ui.Checkbox(c, &a.liveUpdates, tr("Every 10 seconds")).
+				Description(tr("Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.")).Changed() {
 				a.settingsStatus = statusLine{}
 				a.setLiveUpdates(a.liveUpdates)
 				if a.actions.SetLiveUpdates != nil {

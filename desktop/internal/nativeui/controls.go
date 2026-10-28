@@ -185,7 +185,7 @@ func styledButton(c *ui.Context, label string, fill, hover, pressed, textColor u
 func fieldHint(c *ui.Context, label, hintText string, value *string) {
 	ui.Field(c, tr(label), func() {
 		ui.Column(c).Gap(2).Children(func() {
-			ui.TextInput(c, value)
+			ui.TextInput(c, value).Description(tr(hintText))
 			hint(c, hintText)
 		})
 	})
@@ -204,7 +204,7 @@ func textArea(c *ui.Context, label string, value *string) {
 func textAreaHint(c *ui.Context, label, hintText string, value *string) {
 	ui.Field(c, tr(label), func() {
 		ui.Column(c).Gap(2).Children(func() {
-			textAreaControl(c, value)
+			textAreaControl(c, value).Description(tr(hintText))
 			hint(c, hintText)
 		})
 	})

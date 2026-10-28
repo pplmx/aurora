@@ -219,7 +219,8 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed on the left to start reading values.")
 		return
 	}
-	ui.SearchField(c, &a.oracle.search).Label(tr("Search sources"))
+	ui.SearchField(c, &a.oracle.search).Label(tr("Search sources")).
+		Description(tr("Search narrows the current page; use Previous/Next for older sources."))
 	if a.oracle.search != a.oracle.appliedSearch {
 		a.oracle.appliedSearch = a.oracle.search
 		a.oracle.selected = -1
@@ -527,7 +528,8 @@ func (a *App) oracleAddBody(c *ui.Context) {
 			"Values are stored as request headers and shown as “configured”.", &a.oracle.addHeaders)
 		ui.Field(c, tr("Interval (seconds)"), func() {
 			ui.Column(c).Gap(2).Children(func() {
-				ui.NumberInput(c, &a.oracle.addInterval, 0, maxOracleIntervalSeconds, 1)
+				ui.NumberInput(c, &a.oracle.addInterval, 0, maxOracleIntervalSeconds, 1).
+					Description(tr("0 uses the default of 60; at most 30 days."))
 				hint(c, "0 uses the default of 60; at most 30 days.")
 			})
 		})

@@ -236,6 +236,60 @@ func TestValidatedFieldsAttachErrorsToTheirControls(t *testing.T) {
 		"validated fields must pass their error through Field.Error")
 }
 
+// TestVisibleHintsDescribeTheirControls keeps help text in the accessibility
+// tree after it moves below the control. The line must remain visible and also
+// describe the specific input, grid or toggle it explains.
+func TestVisibleHintsDescribeTheirControls(t *testing.T) {
+	value, longValue := "", ""
+	tester := ui.NewTester(func(c *ui.Context) {
+		fieldHint(c, "Owner", "Owner hint.", &value)
+		textAreaHint(c, "Headers", "Headers hint.", &longValue)
+	}, 480, 260)
+	tester.Frame()
+	require.True(t, tester.HasText(tr("Owner hint.")))
+	require.True(t, tester.HasText(tr("Headers hint.")))
+
+	checks := map[string][]string{
+		"controls.go": {
+			"ui.TextInput(c, value).Description(tr(hintText))",
+			"textAreaControl(c, value).Description(tr(hintText))",
+		},
+		"voting.go": {
+			`Description(tr("Local time. Ballots are rejected before it."))`,
+			`Description(tr("Local time. Ballots are rejected after it."))`,
+			`Description(tr("Search narrows the current page; use Previous/Next for older voters."))`,
+			`Description(tr("A prior ballot does not block a later session; each session accepts one ballot per voter."))`,
+		},
+		"lottery.go": {
+			`Description(tr("How many winners to draw; must not exceed the participant count."))`,
+			`Description(tr("Search narrows the current page; use Previous/Next for older draws."))`,
+		},
+		"token.go": {
+			`Description(tr("Search narrows the current page; use Previous/Next for older tokens."))`,
+			`Description(tr("0 for a whole-unit token; 8 matches most asset conventions."))`,
+		},
+		"oracle.go": {
+			`Description(tr("Search narrows the current page; use Previous/Next for older sources."))`,
+			`Description(tr("0 uses the default of 60; at most 30 days."))`,
+		},
+		"nft.go": {
+			`Description(tr("Search narrows the current page; use Previous/Next for older assets."))`,
+		},
+		"settings.go": {
+			`Description(tr("Nothing is written to disk; quitting Aurora clears them."))`,
+			`Description(tr("Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch."))`,
+		},
+	}
+	for name, fragments := range checks {
+		source, err := os.ReadFile(name)
+		require.NoError(t, err)
+		for _, fragment := range fragments {
+			require.Containsf(t, string(source), fragment,
+				"%s must expose its visible hint as a control description", name)
+		}
+	}
+}
+
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.
 // The toolkit exposes RoleHeading and Level to screen readers; retaining the
 // exact call here protects the shared heading path.

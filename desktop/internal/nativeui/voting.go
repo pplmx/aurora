@@ -579,7 +579,8 @@ func (a *App) votingVoterList(c *ui.Context) {
 		}
 		return
 	}
-	ui.SearchField(c, &a.voting.voterSearch).Label(tr("Search voters"))
+	ui.SearchField(c, &a.voting.voterSearch).Label(tr("Search voters")).
+		Description(tr("Search narrows the current page; use Previous/Next for older voters."))
 	if a.voting.voterSearch != a.voting.voterApplied {
 		a.voting.voterApplied = a.voting.voterSearch
 		a.voting.voterChoice = -1
@@ -626,7 +627,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 			case 2:
 				tableTextFull(c, shortID(voter.PublicKey), voter.PublicKey)
 			}
-		})
+		}).Description(tr("A prior ballot does not block a later session; each session accepts one ballot per voter."))
 		if table.Changed() {
 			a.chooseVoter(voters, a.voting.voterChoice)
 		}
@@ -709,8 +710,10 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	ui.Field(c, tr("Start"), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.DateInput(c, &a.voting.sessionStart).Label(tr("Start date"))
-				ui.TimeInput(c, &a.voting.sessionStart).Label(tr("Start time"))
+				ui.DateInput(c, &a.voting.sessionStart).Label(tr("Start date")).
+					Description(tr("Local time. Ballots are rejected before it."))
+				ui.TimeInput(c, &a.voting.sessionStart).Label(tr("Start time")).
+					Description(tr("Local time. Ballots are rejected before it."))
 			})
 			hint(c, "Local time. Ballots are rejected before it.")
 		})
@@ -718,8 +721,10 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	ui.Field(c, tr("End"), func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.DateInput(c, &a.voting.sessionEnd).Label(tr("End date"))
-				ui.TimeInput(c, &a.voting.sessionEnd).Label(tr("End time"))
+				ui.DateInput(c, &a.voting.sessionEnd).Label(tr("End date")).
+					Description(tr("Local time. Ballots are rejected after it."))
+				ui.TimeInput(c, &a.voting.sessionEnd).Label(tr("End time")).
+					Description(tr("Local time. Ballots are rejected after it."))
 			})
 			hint(c, "Local time. Ballots are rejected after it.")
 		})
@@ -748,7 +753,8 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 		return
 	}
-	ui.SearchField(c, &a.voting.sessionSearch).Label(tr("Search sessions"))
+	ui.SearchField(c, &a.voting.sessionSearch).Label(tr("Search sessions")).
+		Description(tr("Search narrows the current page; use Previous/Next for older sessions."))
 	if a.voting.sessionSearch != a.voting.sessionApplied {
 		a.voting.sessionApplied = a.voting.sessionSearch
 		a.voting.sessionChoice = -1
@@ -934,7 +940,8 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		}
 		return
 	}
-	ui.SearchField(c, &a.voting.candSearch).Label(tr("Search candidates"))
+	ui.SearchField(c, &a.voting.candSearch).Label(tr("Search candidates")).
+		Description(tr("Search narrows the current page; use Previous/Next for older candidates."))
 	if a.voting.candSearch != a.voting.candApplied {
 		a.voting.candApplied = a.voting.candSearch
 		a.voting.candChoice = -1
