@@ -261,6 +261,7 @@ func TestRouter_SetsSecurityHeaders(t *testing.T) {
 		assert.Equal(t, "DENY", rr.Header().Get("X-Frame-Options"), tc.path)
 		assert.Equal(t, "no-referrer", rr.Header().Get("Referrer-Policy"), tc.path)
 		assert.Equal(t, "no-store", rr.Header().Get("Cache-Control"), tc.path)
+		assert.NotEmpty(t, rr.Header().Get("X-Request-ID"), tc.path)
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/pplmx/aurora/internal/logger"
 	"github.com/rs/zerolog"
 )
@@ -32,7 +31,7 @@ func TestLogger_IncludesRequestID(t *testing.T) {
 
 	// Chain chi's RequestID (as the router does) so the ID lands in ctx before
 	// Logger runs.
-	chain := middleware.RequestID(Logger(handler))
+	chain := RequestID(Logger(handler))
 	chain.ServeHTTP(httptest.NewRecorder(), req)
 
 	logs := buf.String()
@@ -63,7 +62,7 @@ func TestLogger_LogsAbortedRequest(t *testing.T) {
 	var recovered any
 	func() {
 		defer func() { recovered = recover() }()
-		middleware.RequestID(Logger(handler)).ServeHTTP(httptest.NewRecorder(), req)
+		RequestID(Logger(handler)).ServeHTTP(httptest.NewRecorder(), req)
 	}()
 	if recovered != http.ErrAbortHandler {
 		t.Fatalf("recovered panic = %v, want http.ErrAbortHandler", recovered)
@@ -78,5 +77,32 @@ func TestLogger_LogsAbortedRequest(t *testing.T) {
 	}
 	if !strings.Contains(logs, `"status":206`) {
 		t.Errorf("aborted request log did not include the committed status:\n%s", logs)
+	}
+}
+
+func TestLogger_DoesNotAmplifyOversizedClientRequestID(t *testing.T) {
+	old := logger.Log
+	defer func() { logger.Log = old }()
+
+	var buf bytes.Buffer
+	logger.Log = zerolog.New(&buf).With().Timestamp().Logger()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set(RequestIDHeader, strings.Repeat("x", 64<<10))
+
+	RequestID(Logger(handler)).ServeHTTP(httptest.NewRecorder(), req)
+
+	logs := buf.String()
+	if strings.Contains(logs, strings.Repeat("x", 1024)) {
+		t.Fatal("the access log echoed an oversized client request ID")
+	}
+	if !strings.Contains(logs, `"request_id":"`) {
+		t.Fatalf("the access log did not use a sanitized request ID:\n%s", logs)
+	}
+	if len(logs) > 2048 {
+		t.Fatalf("access log grew to %d bytes from one request", len(logs))
 	}
 }

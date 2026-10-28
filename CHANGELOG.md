@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Client request IDs are bounded and response-visible**: chi accepted any
+  inbound `X-Request-ID` value and the access logger recorded it before
+  authentication, so one header approaching the server's 1 MiB header limit
+  could amplify into a near-1 MiB log line. Request IDs now accept at most 128
+  visible ASCII characters, replace anything else with a random ID, propagate
+  the sanitized value downstream, and echo it in the response. CORS allows and
+  exposes the same correlation header to configured origins.
 - **Panics after a partial write now abort the response**: catching the panic
   and returning normally let `net/http` finish a chunked response as if the
   handler had succeeded, so clients could accept truncated data. Recovery now

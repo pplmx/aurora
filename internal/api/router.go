@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	apimw "github.com/pplmx/aurora/internal/api/middleware"
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/metrics"
@@ -35,7 +34,7 @@ func newRouter(s *Server) http.Handler {
 	reg := s.MetricsRegistry()
 	r.Use(metrics.Middleware(reg))
 
-	r.Use(middleware.RequestID)
+	r.Use(apimw.RequestID)
 	// PeerIP MUST precede ClientIP: it snapshots the true socket peer into the
 	// request context before ClientIP rewrites r.RemoteAddr from the forwarded
 	// chain. Both layers read the same allow-list, so a forwarded address is
