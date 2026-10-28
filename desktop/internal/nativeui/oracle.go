@@ -71,6 +71,10 @@ type oracleState struct {
 	// askDelete drives the source-deletion confirmation: deleting a source is
 	// irreversible for its scheduling entry, so it gets the same gate as burn.
 	askDelete bool
+	// deleteName is resolved when the dialog opens. The action field accepts
+	// ids from the CLI or a copied page, so the target may be outside the
+	// currently loaded source page.
+	deleteName string
 
 	// tab is the right-hand section: 0 sources (list/actions), 1 feed health,
 	// 2 readings (query/latest). Stacking all four made the page a long column
@@ -305,6 +309,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 			a.fetchOracleSource()
 		}
 		if dangerButton(c, "Delete").Clicked() {
+			a.oracle.deleteName = a.resolveOracleSourceName(strings.TrimSpace(a.oracle.fetchID))
 			a.oracle.askDelete = true
 		}
 	})
@@ -325,17 +330,14 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 	if !a.oracle.askDelete {
 		return
 	}
-	// Name the source being deleted, from the loaded list when it is there:
-	// the actions share one id field, and "Delete this source?" gave the
-	// operator nothing to check it against.
+	// Name the source being deleted. The action field can name a source outside
+	// the paged list, so the label is resolved when the dialog opens rather
+	// than only by scanning the visible rows.
 	detail := tr("The source and its scheduling entry are removed. Readings already stored stay.")
 	if id := strings.TrimSpace(a.oracle.fetchID); id != "" {
 		target := shortID(id)
-		for _, source := range a.oracle.sources {
-			if source.ID == id {
-				target = source.Name + " (" + shortID(id) + ")"
-				break
-			}
+		if name := strings.TrimSpace(a.oracle.deleteName); name != "" {
+			target = name + " (" + shortID(id) + ")"
 		}
 		detail = fmt.Sprintf(tr("Delete %s? Its scheduling entry is removed; readings already stored stay."), target)
 	}
@@ -343,6 +345,30 @@ func (a *App) renderDeleteDialog(c *ui.Context) {
 	case 1:
 		a.deleteOracleSource()
 	}
+}
+
+// resolveOracleSourceName finds the operator-facing name for the confirmation.
+// The source collection is paged, while the action field also accepts ids from
+// the CLI or a previous copy, so a page-only lookup reduced older sources to a
+// short opaque id. A failed lookup leaves that id fallback intact rather than
+// blocking the destructive action.
+func (a *App) resolveOracleSourceName(id string) string {
+	if id == "" {
+		return ""
+	}
+	for _, source := range a.oracle.sources {
+		if source.ID == id {
+			return source.Name
+		}
+	}
+	if a.services == nil {
+		return ""
+	}
+	source, err := a.services.OracleSource(id)
+	if err != nil {
+		return ""
+	}
+	return source.Name
 }
 
 // deleteOracleSource removes the source named by the action field. The cards

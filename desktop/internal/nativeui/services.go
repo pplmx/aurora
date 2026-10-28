@@ -62,6 +62,9 @@ type Services interface {
 
 	// Oracle surface.
 	OracleSources(limit, offset int) ([]SourceRow, error)
+	// OracleSource resolves one source by id, including sources outside the
+	// currently visible collection page.
+	OracleSource(id string) (SourceRow, error)
 	OracleTemplates() ([]TemplateRow, error)
 	AddOracleSource(in SourceInput) (SourceRow, error)
 	DeleteOracleSource(id string) error

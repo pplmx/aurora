@@ -6,6 +6,7 @@ import (
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
+	"github.com/pplmx/aurora/internal/domain/oracle"
 )
 
 // --- Oracle --------------------------------------------------------------
@@ -17,12 +18,27 @@ func (s *nativeServices) OracleSources(limit, offset int) ([]nativeui.SourceRow,
 	}
 	rows := make([]nativeui.SourceRow, 0, len(sources))
 	for _, src := range sources {
-		rows = append(rows, nativeui.SourceRow{
-			ID: src.ID, Name: src.Name, URL: src.URL, Type: src.Type,
-			Enabled: src.Enabled, Interval: src.Interval, HasHeaders: src.Headers != "",
-		})
+		rows = append(rows, oracleSourceRow(src))
 	}
 	return rows, nil
+}
+
+func (s *nativeServices) OracleSource(id string) (nativeui.SourceRow, error) {
+	src, err := s.oracleRepo.GetSource(id)
+	if err != nil {
+		return nativeui.SourceRow{}, err
+	}
+	if src == nil {
+		return nativeui.SourceRow{}, oracle.ErrSourceNotFound
+	}
+	return oracleSourceRow(src), nil
+}
+
+func oracleSourceRow(src *oracle.DataSource) nativeui.SourceRow {
+	return nativeui.SourceRow{
+		ID: src.ID, Name: src.Name, URL: src.URL, Type: src.Type,
+		Enabled: src.Enabled, Interval: src.Interval, HasHeaders: src.Headers != "",
+	}
 }
 
 func (s *nativeServices) OracleTemplates() ([]nativeui.TemplateRow, error) {
