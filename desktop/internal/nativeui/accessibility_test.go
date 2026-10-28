@@ -209,6 +209,16 @@ func TestDataTablesHaveAccessibleNames(t *testing.T) {
 	require.Contains(t, string(controls), "ui.Table(c, state, columns, n, cell).Label(tr(name))")
 }
 
+// TestFormCardsNameTheirSections keeps repeated field labels in context. The
+// ballot and session controls both have a Session ID field, while every token
+// write card has an owner field; the containing group names the task.
+func TestFormCardsNameTheirSections(t *testing.T) {
+	layout, err := os.ReadFile("layout.go")
+	require.NoError(t, err)
+	require.True(t, strings.Contains(string(layout), "panel.Label(tr(title))"),
+		"formCard must name its card group after the section title")
+}
+
 // TestHeadingsCarrySemanticRanks keeps titles from being only visually bold.
 // The toolkit exposes RoleHeading and Level to screen readers; retaining the
 // exact call here protects the shared heading path.
