@@ -252,6 +252,12 @@ func (r *OracleRepository) ListSources(limit, offset int) ([]*oracle.DataSource,
 	return sources, rows.Err()
 }
 
+func (r *OracleRepository) CountSources() (int, error) {
+	var count int
+	err := r.q().QueryRow(`SELECT COUNT(*) FROM data_sources`).Scan(&count)
+	return count, err
+}
+
 func (r *OracleRepository) UpdateSource(ds *oracle.DataSource) error {
 	enabled := 0
 	if ds.Enabled {

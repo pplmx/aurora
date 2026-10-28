@@ -115,6 +115,17 @@ func (m *mockVotingRepo) ListSessions(limit, offset int) ([]*voting.Session, err
 	return pageVotingTestRows(sessions, limit, offset), nil
 }
 
+func (m *mockVotingRepo) Counts() (voting.Counts, error) {
+	counts := voting.Counts{
+		Candidates: len(m.candidates),
+		Sessions:   len(m.sessions),
+	}
+	for _, candidate := range m.candidates {
+		counts.Votes += candidate.VoteCount
+	}
+	return counts, nil
+}
+
 func pageVotingTestRows[T any](rows []T, limit, offset int) []T {
 	if offset < 0 {
 		offset = 0

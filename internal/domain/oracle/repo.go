@@ -13,6 +13,9 @@ type Repository interface {
 	// remainder from offset; the scheduler uses that form because it must poll
 	// every enabled source.
 	ListSources(limit, offset int) ([]*DataSource, error)
+	// CountSources returns the exact number of stored feeds without loading
+	// their rows.
+	CountSources() (int, error)
 	UpdateSource(source *DataSource) error
 	DeleteSource(id string) error
 
@@ -105,6 +108,10 @@ func (r *InmemRepo) ListSources(limit, offset int) ([]*DataSource, error) {
 		result = result[:limit]
 	}
 	return result, nil
+}
+
+func (r *InmemRepo) CountSources() (int, error) {
+	return len(r.sources), nil
 }
 
 func (r *InmemRepo) UpdateSource(source *DataSource) error {

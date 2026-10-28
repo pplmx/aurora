@@ -24,6 +24,15 @@ type TransactableRepository interface {
 	WithTx(tx *sql.Tx) Repository
 }
 
+// Counts is the dashboard's exact stored voting totals. Votes is the sum of
+// the candidates' lifetime tallies, matching the number the desktop has always
+// shown.
+type Counts struct {
+	Candidates int
+	Votes      int
+	Sessions   int
+}
+
 type Repository interface {
 	SaveVote(vote *Vote) error
 	GetVotesByCandidate(candidateID string) ([]*Vote, error)
@@ -66,4 +75,7 @@ type Repository interface {
 	// ListSessions returns one page newest first. limit <= 0 returns the
 	// remainder from offset, preserving the CLI's unbounded form.
 	ListSessions(limit, offset int) ([]*Session, error)
+	// Counts returns exact stored totals without materialising candidates or
+	// sessions.
+	Counts() (Counts, error)
 }

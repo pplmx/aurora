@@ -231,6 +231,9 @@ func (m *fakeManyLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
 func (m *fakeManyLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return m.records, nil
 }
+func (m *fakeManyLotteryRepo) Count() (int, error) {
+	return len(m.records), nil
+}
 func (m *fakeManyLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
 	m.listCalls++
 	m.lastLimit, m.lastOffset = limit, offset
@@ -260,6 +263,7 @@ func (m *mockLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
 func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
+func (m *mockLotteryRepo) Count() (int, error) { return 0, nil }
 func (m *mockLotteryRepo) List(int, int) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
@@ -277,6 +281,12 @@ func (m *stubLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 		return []*lottery.LotteryRecord{}, nil
 	}
 	return []*lottery.LotteryRecord{m.record}, nil
+}
+func (m *stubLotteryRepo) Count() (int, error) {
+	if m.record == nil {
+		return 0, nil
+	}
+	return 1, nil
 }
 func (m *stubLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
 	if m.record == nil {
@@ -348,6 +358,7 @@ func (m *mockLotteryRepoWithData) GetByID(id string) (*lottery.LotteryRecord, er
 func (m *mockLotteryRepoWithData) GetAll() ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
+func (m *mockLotteryRepoWithData) Count() (int, error) { return 0, nil }
 func (m *mockLotteryRepoWithData) List(int, int) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
@@ -378,6 +389,7 @@ func (m *nilLotteryRepo) GetByID(string) (*lottery.LotteryRecord, error) {
 func (m *nilLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return nil, nil // simulates the SQLite no-rows case
 }
+func (m *nilLotteryRepo) Count() (int, error) { return 0, nil }
 func (m *nilLotteryRepo) List(int, int) ([]*lottery.LotteryRecord, error) {
 	return nil, nil
 }

@@ -534,3 +534,14 @@ func (r *VotingRepository) ListSessions(limit, offset int) ([]*voting.Session, e
 	}
 	return sessions, rows.Err()
 }
+
+func (r *VotingRepository) Counts() (voting.Counts, error) {
+	var counts voting.Counts
+	err := r.q().QueryRow(`
+		SELECT
+			(SELECT COUNT(*) FROM candidates),
+			(SELECT COALESCE(SUM(vote_count), 0) FROM candidates),
+			(SELECT COUNT(*) FROM voting_sessions)
+	`).Scan(&counts.Candidates, &counts.Votes, &counts.Sessions)
+	return counts, err
+}

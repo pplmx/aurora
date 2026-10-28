@@ -8,9 +8,74 @@ import (
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/app/tokenapp"
 	"github.com/pplmx/aurora/internal/app/votingapp"
+	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/stretchr/testify/require"
 )
+
+type dashboardLotteryCounter struct {
+	lottery.Repository
+	count int
+}
+
+func (r dashboardLotteryCounter) Count() (int, error) { return r.count, nil }
+
+func (r dashboardLotteryCounter) GetAll() ([]*lottery.LotteryRecord, error) {
+	panic("dashboard must not materialise lottery history")
+}
+
+func (r dashboardLotteryCounter) List(int, int) ([]*lottery.LotteryRecord, error) {
+	panic("dashboard must not materialise lottery history")
+}
+
+type dashboardVotingCounter struct {
+	voting.TransactableRepository
+	counts voting.Counts
+}
+
+func (r dashboardVotingCounter) Counts() (voting.Counts, error) { return r.counts, nil }
+
+func (r dashboardVotingCounter) ListCandidates(int, int) ([]*voting.Candidate, error) {
+	panic("dashboard must not materialise candidates")
+}
+
+func (r dashboardVotingCounter) ListSessions(int, int) ([]*voting.Session, error) {
+	panic("dashboard must not materialise sessions")
+}
+
+type dashboardOracleCounter struct {
+	oracle.Repository
+	count int
+}
+
+func (r dashboardOracleCounter) CountSources() (int, error) { return r.count, nil }
+
+func (r dashboardOracleCounter) ListSources(int, int) ([]*oracle.DataSource, error) {
+	panic("dashboard must not materialise Oracle sources")
+}
+
+func TestDashboardUsesAggregateCountsWithoutMaterialisingCollections(t *testing.T) {
+	services := &nativeServices{
+		lotteryRepo: dashboardLotteryCounter{count: 4},
+		votingRepo: dashboardVotingCounter{counts: voting.Counts{
+			Candidates: 3,
+			Votes:      17,
+			Sessions:   2,
+		}},
+		oracleRepo: dashboardOracleCounter{count: 5},
+	}
+
+	stats, err := services.Dashboard()
+	require.NoError(t, err)
+	require.Equal(t, 4, stats.Lotteries)
+	require.Equal(t, 3, stats.Candidates)
+	require.Equal(t, 17, stats.Votes)
+	require.Equal(t, 2, stats.Sessions)
+	require.Equal(t, 5, stats.Oracle)
+	require.Equal(t, "broken", stats.Integrity, "a nil chain is not a verified ledger")
+}
 
 // TestGenerateKeyPairIsAUsableEd25519Pair checks the one service the desktop
 // added for its forms: the two halves must be the right size and belong

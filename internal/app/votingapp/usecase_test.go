@@ -314,6 +314,17 @@ func (m *mockVotingRepo) ListSessions(limit, offset int) ([]*voting.Session, err
 	return rows, nil
 }
 
+func (m *mockVotingRepo) Counts() (voting.Counts, error) {
+	counts := voting.Counts{
+		Candidates: len(m.candidates),
+		Sessions:   len(m.sessions),
+	}
+	for _, candidate := range m.candidates {
+		counts.Votes += candidate.VoteCount
+	}
+	return counts, nil
+}
+
 func (m *mockVotingRepo) UpdateSession(s *voting.Session) error {
 	return nil
 }

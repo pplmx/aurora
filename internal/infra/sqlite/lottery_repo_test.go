@@ -343,6 +343,23 @@ func TestLotteryRepository_ListPages(t *testing.T) {
 	require.Empty(t, past)
 }
 
+func TestLotteryRepository_Count(t *testing.T) {
+	repo, cleanup := setupLotteryTestDB(t)
+	defer cleanup()
+
+	count, err := repo.Count()
+	require.NoError(t, err)
+	require.Zero(t, count)
+
+	for i := 0; i < 3; i++ {
+		require.NoError(t, repo.Save(sampleLotteryRecord(fmt.Sprintf("count-%d", i), int64(i))))
+	}
+
+	count, err = repo.Count()
+	require.NoError(t, err)
+	require.Equal(t, 3, count)
+}
+
 // TestLotteryRepository_GetAll_SameSecondIsNewestHeightFirst pins the
 // tiebreaker. Draws made in the same second share a timestamp, and ordering by
 // timestamp alone returned them in insertion order: the index walk is by

@@ -539,6 +539,25 @@ func TestVotingRepository_ListVotersPages(t *testing.T) {
 	require.Empty(t, past)
 }
 
+func TestVotingRepository_Counts(t *testing.T) {
+	repo, cleanup := setupVotingTestDB(t)
+	defer cleanup()
+
+	counts, err := repo.Counts()
+	require.NoError(t, err)
+	require.Equal(t, voting.Counts{}, counts, "empty tables must report zero, not a NULL sum")
+
+	require.NoError(t, repo.SaveCandidate(&voting.Candidate{ID: "c1", Name: "C1", VoteCount: 7, CreatedAt: 1}))
+	require.NoError(t, repo.SaveCandidate(&voting.Candidate{ID: "c2", Name: "C2", VoteCount: 5, CreatedAt: 2}))
+	require.NoError(t, repo.SaveCandidate(&voting.Candidate{ID: "c3", Name: "C3", VoteCount: 0, CreatedAt: 3}))
+	require.NoError(t, repo.SaveSession(&voting.Session{ID: "s1", Title: "S1", CreatedAt: 1}))
+	require.NoError(t, repo.SaveSession(&voting.Session{ID: "s2", Title: "S2", CreatedAt: 2}))
+
+	counts, err = repo.Counts()
+	require.NoError(t, err)
+	require.Equal(t, voting.Counts{Candidates: 3, Votes: 12, Sessions: 2}, counts)
+}
+
 func TestVotingRepository_ListSessions(t *testing.T) {
 	repo, cleanup := setupVotingTestDB(t)
 	defer cleanup()
