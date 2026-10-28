@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle sources and readings stay complete at large text**: the five-column
+  source table pushed type, id, status and header state outside the card at 2x,
+  while the shortened id made the row hard to identify before loading it into
+  the actions. Sources now become selectable records with the full id, and the
+  whole record still fills every action and refreshes open readings. Query
+  results become records with a wrapping value, and the Latest Data readout
+  also wraps instead of reducing nested JSON or long observations to a prefix.
 - **Voting setup collections stay readable at large text**: at 2x text the
   voter table pushed the public-key column beyond the card, candidate names and
   parties were clipped, and the four-column session list could no longer show

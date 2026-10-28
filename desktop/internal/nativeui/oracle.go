@@ -248,42 +248,42 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	// a name and a status, so the cell shows a prefix. Choosing the row loads
 	// the full id into the actions and the read cards below, which is how a
 	// source reaches them without retyping an id nobody has in full.
-	a.oracle.sourceTable.Selected = &a.oracle.selected
-	table := ui.Table(c, &a.oracle.sourceTable, []ui.TableColumn{
-		{Title: tr("Name"), MinWidth: 110},
-		{Title: tr("Type"), Width: 100},
-		{Title: tr("ID"), Width: 150},
-		{Title: tr("Status"), Width: 100},
-		{Title: tr("Headers"), Width: 100},
-	}, len(srcs), func(row, col int) {
-		s := srcs[row]
-		switch col {
-		case 0:
-			tableText(c, s.Name)
-		case 1:
-			tableText(c, s.Type)
-		case 2:
-			tableTextFull(c, shortID(s.ID), s.ID)
-		case 3:
-			if s.Enabled {
-				tableText(c, tr("enabled"))
-			} else {
-				tableText(c, tr("disabled"))
+	if stackedRecords(c) {
+		a.oracleSourceRecords(c, srcs)
+	} else {
+		a.oracle.sourceTable.Selected = &a.oracle.selected
+		table := ui.Table(c, &a.oracle.sourceTable, []ui.TableColumn{
+			{Title: tr("Name"), MinWidth: 110},
+			{Title: tr("Type"), Width: 100},
+			{Title: tr("ID"), Width: 150},
+			{Title: tr("Status"), Width: 100},
+			{Title: tr("Headers"), Width: 100},
+		}, len(srcs), func(row, col int) {
+			s := srcs[row]
+			switch col {
+			case 0:
+				tableText(c, s.Name)
+			case 1:
+				tableText(c, s.Type)
+			case 2:
+				tableTextFull(c, shortID(s.ID), s.ID)
+			case 3:
+				if s.Enabled {
+					tableText(c, tr("enabled"))
+				} else {
+					tableText(c, tr("disabled"))
+				}
+			case 4:
+				if s.HasHeaders {
+					tableText(c, tr("configured"))
+				} else {
+					tableText(c, tr("—"))
+				}
 			}
-		case 4:
-			if s.HasHeaders {
-				tableText(c, tr("configured"))
-			} else {
-				tableText(c, tr("—"))
-			}
+		})
+		if table.Changed() {
+			a.chooseOracleSource(srcs, a.oracle.selected)
 		}
-	})
-	if table.Changed() && a.oracle.selected >= 0 && a.oracle.selected < len(srcs) {
-		id := srcs[a.oracle.selected].ID
-		a.oracle.fetchID, a.oracle.queryID, a.oracle.latestID = id, id, id
-		// The Query and Latest cards follow the selection when they are open,
-		// instead of showing the previously chosen source.
-		a.refreshOracleReads()
 	}
 	if a.oracle.selected >= 0 && a.oracle.selected < len(srcs) {
 		// The row is too narrow for the endpoint and the polling cadence, the
@@ -314,6 +314,55 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		}
 	})
 	a.renderDeleteDialog(c)
+}
+
+// oracleSourceRecords preserves the complete source id and all four status
+// columns when enlarged text no longer fits the five-column table.
+func (a *App) oracleSourceRecords(c *ui.Context, sources []SourceRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for i, source := range sources {
+			i, source := i, source
+			displayName := source.Name
+			if strings.TrimSpace(displayName) == "" {
+				displayName = shortID(source.ID)
+			}
+			status, tone := tr("disabled"), inkMuted
+			if source.Enabled {
+				status, tone = tr("enabled"), auroraGreen
+			}
+			headers := tr("—")
+			if source.HasHeaders {
+				headers = tr("configured")
+			}
+			selected := i == a.oracle.selected
+			record := selectableRecordPanel(c, selected,
+				recordChoiceLabel(displayName, selected), func() {
+					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
+						TextColor(ui.Hex(ink))
+					ui.Row(c).Wrap().Gap(18).Children(func() {
+						recordMetric(c, "Type", valueOr(source.Type), ink)
+						recordMetric(c, "Status", status, tone)
+						recordMetric(c, "Headers", headers, ink)
+					})
+					recordField(c, "ID", source.ID)
+				})
+			if record.Clicked() {
+				a.chooseOracleSource(sources, i)
+			}
+		}
+	})
+}
+
+// chooseOracleSource is shared by the table and records. It loads the exact id
+// into every action and refreshes the read cards already open for a source.
+func (a *App) chooseOracleSource(sources []SourceRow, index int) {
+	if index < 0 || index >= len(sources) {
+		return
+	}
+	a.oracle.selected = index
+	id := sources[index].ID
+	a.oracle.fetchID, a.oracle.queryID, a.oracle.latestID = id, id, id
+	a.refreshOracleReads()
 }
 
 func (a *App) filteredSources() []SourceRow {
@@ -692,18 +741,37 @@ func (a *App) oracleReadBody(c *ui.Context) {
 	}
 	if len(a.oracle.data) > 0 {
 		data := a.oracle.data
-		ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
-			{Title: tr("Value")},
-			{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-		}, len(data), func(row, col int) {
-			d := data[row]
-			if col == 0 {
-				tableText(c, d.Value)
-			} else {
-				tableText(c, strconv.FormatInt(d.BlockHeight, 10))
-			}
-		})
+		if stackedRecords(c) {
+			a.oracleReadRecords(c, data)
+		} else {
+			ui.Table(c, &a.oracle.dataTable, []ui.TableColumn{
+				{Title: tr("Value")},
+				{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
+			}, len(data), func(row, col int) {
+				d := data[row]
+				if col == 0 {
+					tableText(c, d.Value)
+				} else {
+					tableText(c, strconv.FormatInt(d.BlockHeight, 10))
+				}
+			})
+		}
 	}
+}
+
+// oracleReadRecords gives stored values the full card width at enlarged text.
+// The table's one-line cell reduced nested JSON and long observations to a
+// prefix, even though the block and value read naturally as a stacked record.
+func (a *App) oracleReadRecords(c *ui.Context, data []DataRow) {
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for _, reading := range data {
+			reading := reading
+			recordPanel(c, func() {
+				recordMetric(c, "Block", strconv.FormatInt(reading.BlockHeight, 10), ink)
+				recordField(c, "Value", reading.Value)
+			})
+		}
+	})
 }
 
 // loadOpenReadings fills the Readings stage for the source already selected in
