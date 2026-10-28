@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+// maxForwardedForHops bounds work on a caller-controlled proxy chain. Even
+// behind a trusted proxy the header is often appended to rather than replaced,
+// so it is still untrusted input. A longer chain is treated as malformed
+// instead of falling back to an attacker-selected address.
+const maxForwardedForHops = 32
+
 // ClientIP rewrites r.RemoteAddr to the client address when — and only when —
 // the direct TCP peer is one of the operator's trusted proxies. It replaces
 // chi's middleware.RealIP, which was deprecated for trusting
@@ -55,9 +61,13 @@ func forwardedClientIP(r *http.Request, trusted []trustedProxy) string {
 
 	// X-Forwarded-For is the standard chain: client, proxy1, proxy2, ...
 	if chain := r.Header.Get("X-Forwarded-For"); chain != "" {
-		hops := strings.Split(chain, ",")
-		for i := len(hops) - 1; i >= 0; i-- {
-			ip := net.ParseIP(strings.TrimSpace(hops[i]))
+		end := len(chain)
+		for hop := 1; ; hop++ {
+			if hop > maxForwardedForHops {
+				return ""
+			}
+			start := strings.LastIndexByte(chain[:end], ',') + 1
+			ip := net.ParseIP(strings.TrimSpace(chain[start:end]))
 			if ip == nil {
 				// A malformed hop means the rest of the chain cannot be
 				// attributed; fall back to the peer rather than guess.
@@ -66,6 +76,10 @@ func forwardedClientIP(r *http.Request, trusted []trustedProxy) string {
 			if !isTrusted(ip, trusted) {
 				return ip.String()
 			}
+			if start == 0 {
+				break
+			}
+			end = start - 1
 		}
 		// Every hop is a trusted proxy (e.g. a single-proxy deployment whose
 		// header carries only the proxy): no client address to report.

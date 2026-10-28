@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -105,4 +106,29 @@ func TestClientIP_TrustsIPv6Proxy(t *testing.T) {
 	got := observeRemoteAddr([]string{"::1/128"}, "[::1]:9999",
 		map[string]string{"X-Forwarded-For": "2001:db8::7"})
 	require.Equal(t, "[2001:db8::7]:9999", got)
+}
+
+// TestClientIP_BoundsForwardedChain keeps a trusted proxy's append-only header
+// from making request middleware walk an attacker-sized chain. A client plus
+// 31 trusted hops fits the limit; one more hop is malformed and falls back to
+// the socket peer instead of reporting the leftmost caller-supplied address.
+func TestClientIP_BoundsForwardedChain(t *testing.T) {
+	trusted := []string{"203.0.113.0/24"}
+	chain := func(proxyHops int) string {
+		hops := make([]string, 0, proxyHops+1)
+		hops = append(hops, "198.51.100.7")
+		for i := 0; i < proxyHops; i++ {
+			hops = append(hops, "203.0.113.11")
+		}
+		return strings.Join(hops, ", ")
+	}
+
+	require.Equal(t, "198.51.100.7:9999",
+		observeRemoteAddr(trusted, "203.0.113.10:9999", map[string]string{
+			"X-Forwarded-For": chain(maxForwardedForHops - 1),
+		}))
+	require.Equal(t, "203.0.113.10:9999",
+		observeRemoteAddr(trusted, "203.0.113.10:9999", map[string]string{
+			"X-Forwarded-For": chain(maxForwardedForHops),
+		}))
 }
