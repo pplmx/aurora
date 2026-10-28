@@ -399,6 +399,7 @@ func TestAddingSourcePreservesPageWhenReloadFails(t *testing.T) {
 	require.NoError(t, tester.Click("Next"))
 	tester.Frame()
 	app.oracle.selected = 0
+	app.oracle.fetchID, app.oracle.queryID, app.oracle.latestID = "s100", "s100", "s100"
 	fake.addSource = func(SourceInput) (SourceRow, error) {
 		fake.loadErrs.sources = errors.New("read failed")
 		return SourceRow{ID: "new", Name: "New source"}, nil
@@ -412,6 +413,10 @@ func TestAddingSourcePreservesPageWhenReloadFails(t *testing.T) {
 		"a failed refresh must not move the pager away from the rows on screen")
 	require.Equal(t, 0, app.oracle.selected,
 		"a failed refresh must leave the highlight on its current row")
+	require.Equal(t, "s100", app.oracle.fetchID,
+		"a failed refresh must leave the actions on the source the page still shows")
+	require.Equal(t, "s100", app.oracle.queryID)
+	require.Equal(t, "s100", app.oracle.latestID)
 	require.Len(t, app.oracle.sources, 50)
 	require.Equal(t, "s100", app.oracle.sources[0].ID)
 	require.True(t, tester.HasText("Failed to load sources: read failed"))

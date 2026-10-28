@@ -515,8 +515,13 @@ func (a *App) addOracleSource() {
 			// the offset only after a successful read; if it fails, the old page,
 			// search and highlight remain the rows they actually describe.
 			if a.loadOracleSourcePage(0) {
+				// The new feed becomes the subject of the actions and read cards,
+				// just as a chosen row does. Otherwise the list highlights it while
+				// Fetch, Query and Latest still target the previous source.
+				a.oracle.fetchID, a.oracle.queryID, a.oracle.latestID = src.ID, src.ID, src.ID
 				a.oracle.selected = -1
 				a.selectSourceByID(src.ID)
+				a.refreshOracleReads()
 			}
 			a.loadOracleAuxiliary()
 		}
