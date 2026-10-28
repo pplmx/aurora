@@ -92,6 +92,9 @@ func TestTokenFormsRenderTheirOwnerInputs(t *testing.T) {
 	app.ShowPage("Token")
 	tester.Frame()
 
+	for _, want := range []string{"To (base64 public key)", "Amount", "Owner Private Key"} {
+		require.Truef(t, tester.HasText(want), "the default Mint form must show %q", want)
+	}
 	for _, tc := range []struct {
 		tab  string
 		want []string
@@ -100,7 +103,6 @@ func TestTokenFormsRenderTheirOwnerInputs(t *testing.T) {
 		{"Approve", []string{"Owner (base64 public key)", "Spender (base64 public key)", "Owner Private Key"}},
 		{"Transfer From", []string{"Owner (base64 public key)", "To (base64 public key)", "Spender Private Key"}},
 		{"Burn", []string{"From (base64 public key)", "Amount", "Owner Private Key"}},
-		{"Allowance", []string{"Owner (base64 public key)", "Spender (base64 public key)"}},
 	} {
 		require.NoErrorf(t, tester.Click(tc.tab), "select the %s operation", tc.tab)
 		tester.Frame()
@@ -108,6 +110,28 @@ func TestTokenFormsRenderTheirOwnerInputs(t *testing.T) {
 			require.Truef(t, tester.HasText(want), "the %s form must show %q", tc.tab, want)
 		}
 	}
+	for _, want := range []string{"Allowance", "Get Allowance"} {
+		require.Truef(t, tester.HasText(want),
+			"the read-only allowance card must stay visible outside the write tabs")
+	}
+}
+
+// TestTokenAllowanceIsOutsideTheWriteTabs keeps the read-only allowance query
+// in the left column. Putting it sixth in the write tab row pushed "Allowance"
+// past the right edge of its card at the normal desktop width.
+func TestTokenAllowanceIsOutsideTheWriteTabs(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 2200)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	burn, ok := tester.Find("Burn")
+	require.True(t, ok)
+	allowance, ok := tester.Find("Allowance")
+	require.True(t, ok)
+	require.Less(t, allowance.X, burn.X, "Allowance belongs in the read column")
+	require.Greater(t, allowance.Y, burn.Y, "Allowance must not share the write-tab row")
+	require.True(t, tester.HasText("Get Allowance"))
 }
 
 // voterKeyRecorder returns a registration that carries a private key, the way
