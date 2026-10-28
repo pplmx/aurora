@@ -129,10 +129,11 @@ documented in their per-milestone ROADMAP files.
   then exposed the remaining rows as a usable chain. A missing height made
   later appends collide with the still-present row and could leave integrity
   checks blind when the corrupt row was the tail. Reloads are now atomic,
-  binding verifies contiguous heights, links and proof-of-work before
-  installing write hooks, and the API/desktop container plus every CLI write
-  path surface the load failure instead of accepting writes against a partial
-  ledger. `VerifyIntegrity` now rejects height discontinuities as well.
+  binding verifies a matching persisted genesis, contiguous heights, links and
+  proof-of-work before installing write hooks, and the API/desktop container
+  plus every CLI write path surface the load failure instead of accepting
+  writes against a partial ledger. `VerifyIntegrity` now rejects height
+  discontinuities as well.
 - **Malformed transfer audit rows no longer abort owner history**: the SQLite
   owner-scoped transfer page called `json_extract` on every matching payload,
   so one malformed JSON row made the whole history fail with

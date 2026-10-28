@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -225,8 +226,8 @@ func Get() *Chain {
 // in-memory Blocks slice. It returns (true, nil) when at least one row existed
 // (the genesis row counts), mirroring the pre-TASK-238 semantics that drove
 // genesis seeding; a nil error means every row was decoded successfully. The
-// height-0 genesis row is skipped because genesis is always seeded in memory;
-// skipping it avoids doubling it on reload.
+// height-0 row is validated against the in-memory genesis and then skipped
+// rather than appended twice.
 func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 	persisted := false
 	rows, err := db.Query("SELECT height, hash, previous_hash, data, nonce, timestamp FROM blocks ORDER BY height")
@@ -239,6 +240,7 @@ func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 	// that silently omits it while the row remains in SQLite.
 	var loaded []*Block
 	rowNumber := 0
+	genesisSeen := false
 	for rows.Next() {
 		persisted = true
 		rowNumber++
@@ -247,6 +249,13 @@ func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 			return persisted, fmt.Errorf("scan block row %d: %w", rowNumber, err)
 		}
 		if block.Height == 0 {
+			if len(chain.Blocks) == 0 {
+				return persisted, errors.New("in-memory chain has no genesis block")
+			}
+			if err := validatePersistedGenesis(chain.Blocks[0], block); err != nil {
+				return persisted, err
+			}
+			genesisSeen = true
 			continue
 		}
 		loaded = append(loaded, block)
@@ -254,8 +263,26 @@ func loadBlocksFromDB(chain *Chain, db *sql.DB) (bool, error) {
 	if err := rows.Err(); err != nil {
 		return persisted, err
 	}
+	if persisted && !genesisSeen {
+		return persisted, errors.New("persisted ledger has no genesis block at height 0")
+	}
 	chain.Blocks = append(chain.Blocks, loaded...)
 	return persisted, nil
+}
+
+func validatePersistedGenesis(expected, persisted *Block) error {
+	switch {
+	case !bytes.Equal(expected.Hash, persisted.Hash):
+		return errors.New("persisted genesis hash does not match")
+	case !bytes.Equal(expected.PrevHash, persisted.PrevHash):
+		return errors.New("persisted genesis previous hash does not match")
+	case !bytes.Equal(expected.Data, persisted.Data):
+		return errors.New("persisted genesis data does not match")
+	case expected.Nonce != persisted.Nonce:
+		return errors.New("persisted genesis nonce does not match")
+	default:
+		return nil
+	}
 }
 
 // appendBlocksFromDB folds blocks a concurrent process committed to the shared
