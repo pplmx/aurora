@@ -382,7 +382,7 @@ func (a *App) createToken() {
 	a.token.status = statusLine{}
 	decimals := int(a.token.decimals)
 	if float64(decimals) != a.token.decimals || decimals < 0 || decimals > 127 {
-		a.token.status = statusLine{text: tr("Decimals must be a whole number between 0 and 127."), isErr: true}
+		a.token.status = errorStatus("Decimals must be a whole number between 0 and 127.")
 		return
 	}
 	name, symbol := strings.TrimSpace(a.token.name), strings.TrimSpace(a.token.symbol)

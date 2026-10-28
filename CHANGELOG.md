@@ -11,6 +11,14 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **Desktop navigation and feedback are legible to screen readers**: every
+  page and card title now carries a semantic heading rank, switching pages
+  announces the new title, and success/failure strips are status regions whose
+  outcome is spoken once rather than silently repainted. The command palette
+  now labels its dialog and focuses its search field immediately, while new
+  windowless tests cover its typing path plus keyboard activation of whole-card
+  shortcuts and wrapping tabs.
+
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;
   choosing one fills the ballot public-key field and offers the full key for

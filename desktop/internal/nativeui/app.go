@@ -45,6 +45,11 @@ type App struct {
 	// once, without preventing the operator from scrolling it away afterwards.
 	sidebarScroll ui.ScrollState
 	sidebarReveal bool
+	// pageAnnouncement is the title waiting for the next frame to tell a
+	// screen reader. setPage runs from pointer and keyboard handlers, where the
+	// new page is not built yet; announcing it in View keeps navigation and
+	// content in the same frame.
+	pageAnnouncement string
 
 	// settingsStatus is the result of a Settings action that can fail (saving
 	// a preference); other pages' status lines stay with their forms.
@@ -123,6 +128,10 @@ func (a *App) Services() Services { return a.services }
 func (a *App) View(c *ui.Context) {
 	a.invalidate = c.Invalidate
 	a.pollAsync(c)
+	if a.pageAnnouncement != "" {
+		c.Announce(a.pageAnnouncement)
+		a.pageAnnouncement = ""
+	}
 	c.SetTheme(auroraThemeFor(c.Preferences()))
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
@@ -132,7 +141,7 @@ func (a *App) View(c *ui.Context) {
 			// window, not at the top of the scrolling body: an action at the
 			// bottom of a form could report a failure above the viewport, and
 			// the operator would see the form unchanged and assume it worked.
-			renderStatus(c, a.pageStatus(), a.clearPageStatus)
+			renderStatus(c, a.page, a.pageStatus(), a.clearPageStatus)
 			a.busyBar(c)
 			// A write owns the page body, not the navigation: the sidebar stays
 			// usable, while form edits and a second submit cannot race the
@@ -143,7 +152,8 @@ func (a *App) View(c *ui.Context) {
 		})
 	})
 	if a.paletteOpen {
-		ui.Modal(c, &a.paletteOpen, func() { a.commandPalette(c) })
+		dialog := ui.Modal(c, &a.paletteOpen, func() { a.commandPalette(c) })
+		dialog.Label(tr("Jump to"))
 	}
 }
 
@@ -167,8 +177,8 @@ func (a *App) commandPalette(c *ui.Context) {
 	panel := ui.Column(c).Width(panelWidth).MaxHeight(height-40).Padding(18).Gap(10).Radius(14).
 		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
-		ui.Text(c, tr("Jump to")).FontSize(textSize(c, 17)).Bold().TextColor(c.Theme().Text)
-		submitted := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).Submitted()
+		heading(c, tr("Jump to"), 17, 2)
+		submitted := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).AutoFocus().Submitted()
 		if a.paletteQuery != a.paletteApplied {
 			a.paletteApplied = a.paletteQuery
 			a.paletteChoice = 0
@@ -459,7 +469,7 @@ func (a *App) header(c *ui.Context) {
 		ui.Row(c).Grow(1).Gap(12).AlignItems(ui.Center).Children(func() {
 			pageGlyph(c, a.page)
 			ui.Column(c).Gap(2).Children(func() {
-				ui.Text(c, tr(pageTitles[a.page])).FontSize(textSize(c, 26)).Bold().TextColor(c.Theme().Text)
+				heading(c, tr(pageTitles[a.page]), 26, 1)
 				ui.Text(c, tr(pagePurpose[a.page])).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 			})
 		})
@@ -608,6 +618,7 @@ func (a *App) setPage(p page) {
 	a.page = p
 	a.scroll.X, a.scroll.Y = 0, 0
 	a.sidebarReveal = true
+	a.pageAnnouncement = a.PageTitle()
 	if a.actions.SetPageTitle != nil {
 		a.actions.SetPageTitle(a.PageTitle())
 	}
