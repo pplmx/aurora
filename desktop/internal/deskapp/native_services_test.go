@@ -56,6 +56,37 @@ func (r dashboardOracleCounter) ListSources(int, int) ([]*oracle.DataSource, err
 	panic("dashboard must not materialise Oracle sources")
 }
 
+type voterSummaryRepo struct {
+	voting.TransactableRepository
+	rows       []*voting.Voter
+	lastLimit  int
+	lastOffset int
+}
+
+func (r *voterSummaryRepo) ListVoters(limit, offset int) ([]*voting.Voter, error) {
+	r.lastLimit, r.lastOffset = limit, offset
+	return r.rows, nil
+}
+
+func TestVoterListRowsOmitTheRegistrationPrivateKey(t *testing.T) {
+	repo := &voterSummaryRepo{rows: []*voting.Voter{{
+		PublicKey: "pk-alice",
+		Name:      "Alice",
+		HasVoted:  true,
+	}}}
+	services := &nativeServices{votingRepo: repo}
+
+	rows, err := services.Voters(25, 50)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, 25, repo.lastLimit)
+	require.Equal(t, 50, repo.lastOffset)
+	require.Equal(t, "pk-alice", rows[0].PublicKey)
+	require.Equal(t, "Alice", rows[0].Name)
+	require.True(t, rows[0].HasVoted)
+	require.Empty(t, rows[0].PrivateKey, "list reads must not carry a registration secret")
+}
+
 func TestDashboardUsesAggregateCountsWithoutMaterialisingCollections(t *testing.T) {
 	services := &nativeServices{
 		lotteryRepo: dashboardLotteryCounter{count: 4},

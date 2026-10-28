@@ -79,6 +79,10 @@ func TestNFTSearchNarrowsTheCollection(t *testing.T) {
 // list.
 func TestVotingListsSearchAndSelectFromTheFilteredRows(t *testing.T) {
 	fake := &fakeServices{
+		voterRows: []VoterRow{
+			{PublicKey: "pk-vera", Name: "Vera", HasVoted: false},
+			{PublicKey: "pk-walt", Name: "Walt", HasVoted: true},
+		},
 		candidates: []CandidateRow{
 			{ID: "c1", Name: "Alice", Party: "Greens"},
 			{ID: "c2", Name: "Bob", Party: "Blues"},
@@ -94,6 +98,12 @@ func TestVotingListsSearchAndSelectFromTheFilteredRows(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("Alice"))
 	require.True(t, tester.HasText("Budget"))
+	require.True(t, tester.HasText("Vera"))
+
+	app.voting.voterSearch = "walt"
+	tester.Frame()
+	require.True(t, tester.HasText("Walt"))
+	require.False(t, tester.HasText("Vera"), "the voter search must narrow the table")
 
 	app.voting.candSearch = "blues"
 	tester.Frame()
@@ -116,6 +126,11 @@ func TestVotingListsSearchAndSelectFromTheFilteredRows(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, "c2", app.voting.sessionIDs,
 		"the filtered row must map to its own candidate, not the full list's index")
+
+	require.NoError(t, tester.Click("pk-walt"))
+	tester.Frame()
+	require.Equal(t, "pk-walt", app.voting.voteVoterPub,
+		"the filtered voter row must fill the ballot with its own public key")
 }
 
 // TestLotteryHistorySearchAndSelection covers the draws list: id, seed,

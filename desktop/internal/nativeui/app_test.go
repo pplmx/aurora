@@ -27,6 +27,7 @@ type fakeServices struct {
 	historyCalls  int
 
 	voters     int
+	voterRows  []VoterRow
 	candidates []CandidateRow
 	sessions   []SessionRow
 
@@ -72,6 +73,9 @@ type fakeServices struct {
 	listTokensCalls     int
 	lastTokenListLimit  int
 	lastTokenListOffset int
+	voterListCalls      int
+	lastVoterLimit      int
+	lastVoterOffset     int
 	candidateListCalls  int
 	lastCandidateLimit  int
 	lastCandidateOffset int
@@ -128,6 +132,7 @@ type fakeLoadErrors struct {
 	tokens     error
 	nfts       error
 	sources    error
+	voters     error
 	candidates error
 	sessions   error
 	chain      error
@@ -230,6 +235,25 @@ func (f *fakeServices) SessionResults(sessionID string) ([]ResultRow, error) {
 		return nil, f.sessionResultsErr
 	}
 	return f.resultsByID[sessionID], nil
+}
+func (f *fakeServices) Voters(limit, offset int) ([]VoterRow, error) {
+	f.voterListCalls++
+	f.lastVoterLimit = limit
+	f.lastVoterOffset = offset
+	if f.loadErrs.voters != nil {
+		return nil, f.loadErrs.voters
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(f.voterRows) {
+		return nil, nil
+	}
+	rows := f.voterRows[offset:]
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows, nil
 }
 func (f *fakeServices) Candidates(limit, offset int) ([]CandidateRow, error) {
 	f.candidateListCalls++

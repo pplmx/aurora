@@ -101,6 +101,32 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 	require.NotEmpty(t, voter.PublicKey)
 	require.NotEmpty(t, voter.PrivateKey)
 
+	// The voter list is a safe summary: it can find a registered key and shows
+	// whether it has voted, but never returns the registration private key.
+	rr = get("/voters")
+	require.Equal(t, http.StatusOK, rr.Code, "list voters body: %s", rr.Body.String())
+	require.NotContains(t, rr.Body.String(), "private_key")
+	var voterList []struct {
+		Name      string `json:"name"`
+		PublicKey string `json:"public_key"`
+		HasVoted  bool   `json:"has_voted"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &voterList))
+	var listedVoter *struct {
+		Name      string `json:"name"`
+		PublicKey string `json:"public_key"`
+		HasVoted  bool   `json:"has_voted"`
+	}
+	for i := range voterList {
+		if voterList[i].PublicKey == voter.PublicKey {
+			listedVoter = &voterList[i]
+			break
+		}
+	}
+	require.NotNil(t, listedVoter, "the registered voter must appear in the list")
+	assert.Equal(t, "Alice", listedVoter.Name)
+	assert.False(t, listedVoter.HasVoted)
+
 	// 2. Register a candidate.
 	rr = post("/register/candidate", `{"name":"Bob","party":"Party A","program":"Platform"}`)
 	require.Equal(t, http.StatusOK, rr.Code, "register candidate body: %s", rr.Body.String())
@@ -154,6 +180,15 @@ func TestVotingSmoke_FullFlowOverHTTP(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &vote))
 	assert.NotEmpty(t, vote.ID)
+
+	rr = get("/voters")
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &voterList))
+	for _, listed := range voterList {
+		if listed.PublicKey == voter.PublicKey {
+			assert.True(t, listed.HasVoted, "the list must reflect the claimed ballot")
+		}
+	}
 
 	// 6. Tally reflects the vote via the candidates endpoint.
 	rr = get("/candidates")

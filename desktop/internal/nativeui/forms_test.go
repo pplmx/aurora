@@ -117,7 +117,9 @@ type voterKeyRecorder struct {
 }
 
 func (r *voterKeyRecorder) RegisterVoter(name string) (VoterRow, error) {
-	return VoterRow{PublicKey: "pk-" + name, Name: name, PrivateKey: "sk-" + name}, nil
+	voter := VoterRow{PublicKey: "pk-" + name, Name: name, PrivateKey: "sk-" + name}
+	r.voterRows = append([]VoterRow{voter}, r.voterRows...)
+	return voter, nil
 }
 
 // TestRegisterVoterKeepsTheSigningKey covers the one-time key handover. The
@@ -127,6 +129,7 @@ func (r *voterKeyRecorder) RegisterVoter(name string) (VoterRow, error) {
 func TestRegisterVoterKeepsTheSigningKey(t *testing.T) {
 	app := New(&voterKeyRecorder{fakeServices: &fakeServices{}})
 	app.voting.voterName = "  Alice  "
+	app.voting.voterSearch, app.voting.voterApplied = "old", "old"
 
 	app.registerVoter()
 
@@ -138,6 +141,8 @@ func TestRegisterVoterKeepsTheSigningKey(t *testing.T) {
 		"the page must keep the key pair for its copy buttons: it is the only copy")
 	require.Contains(t, app.voting.status.text, "Registered Alice")
 	require.Empty(t, app.voting.voterName, "a successful registration clears the form")
+	require.Equal(t, 0, app.voting.voterChoice, "the new voter must be highlighted")
+	require.Empty(t, app.voting.voterSearch, "a search hiding the new voter must be cleared")
 }
 
 // TestRegisterVoterRejectsAnEmptyName keeps the guard in front of the service,

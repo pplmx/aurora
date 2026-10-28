@@ -419,3 +419,27 @@ func TestResultsStageLoadsTheChosenSession(t *testing.T) {
 	require.True(t, tester.HasText("Alice"), "the selected session's tally must load with the tab")
 	require.Equal(t, 4, app.voting.results[0].Votes)
 }
+
+// TestVoterListLoadsThePublicKeyIntoTheBallot restores the voter view after a
+// restart. The registration key card disappears with the next action, so a
+// registered voter otherwise had no visible public key to put in the ballot
+// form even though the store still had one.
+func TestVoterListLoadsThePublicKeyIntoTheBallot(t *testing.T) {
+	const publicKey = "pk-voter-1111111111111111111111111111111111111111"
+	app := New(&fakeServices{voterRows: []VoterRow{{
+		PublicKey: publicKey, Name: "Alice", HasVoted: true,
+	}}})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Alice"))
+	require.True(t, tester.HasText("Voted"))
+	require.NoError(t, tester.Click(shortID(publicKey)))
+	tester.Frame()
+
+	require.Equal(t, publicKey, app.voting.voteVoterPub,
+		"choosing a voter must fill the ballot public-key field")
+	require.Empty(t, app.voting.votePriv, "another voter's private key must not carry over")
+	require.True(t, tester.HasText("Selected voter public key"))
+}

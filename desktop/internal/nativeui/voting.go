@@ -63,20 +63,26 @@ type votingState struct {
 
 	candidates []CandidateRow
 	sessions   []SessionRow
-	// offsets page the two collections. Each loader requests one extra row so
+	voters     []VoterRow
+	// offsets page the three collections. Each loader requests one extra row so
 	// Next is disabled on the exact final page instead of opening an empty one.
+	voterOffset    int
+	voterHasMore   bool
 	candOffset     int
 	candHasMore    bool
 	sessionOffset  int
 	sessionHasMore bool
+	voterLoadErr   error
 	candLoadErr    error
 	sessionLoadErr error
-	// candSearch and sessionSearch narrow those lists as they grow; both
-	// filters are case-insensitive and operate on the current page.
+	// voterSearch, candSearch and sessionSearch narrow those lists as they grow;
+	// all filters are case-insensitive and operate on the current page.
+	voterSearch   string
 	candSearch    string
 	sessionSearch string
-	// candApplied/sessionApplied are the queries the current highlights
+	// voterApplied/candApplied/sessionApplied are the queries the highlights
 	// belong to.
+	voterApplied   string
 	candApplied    string
 	sessionApplied string
 
@@ -93,13 +99,15 @@ type votingState struct {
 
 	sessionTable   ui.ListState
 	candidateTable ui.ListState
+	voterTable     ui.ListState
 	resultsTable   ui.ListState
 
-	// sessionChoice/candChoice are the rows chosen in those tables, -1 for
-	// none. The tables shorten UUIDs to fit, so choosing a row is the only way
-	// the full id reaches the forms.
+	// sessionChoice/candChoice/voterChoice are the rows chosen in those tables,
+	// -1 for none. The tables shorten ids to fit, so choosing a row is the only
+	// way the full value reaches the forms.
 	sessionChoice int
 	candChoice    int
+	voterChoice   int
 }
 
 const votingPageSize = 100
@@ -110,10 +118,38 @@ func (a *App) loadVoting() {
 	}
 	candID := a.selectedCandidateID()
 	sessionID := a.selectedSessionID()
+	voterKey := a.selectedVoterPublicKey()
+	a.loadVoterPage(a.voting.voterOffset)
 	a.loadCandidatePage(a.voting.candOffset)
 	a.loadSessionPage(a.voting.sessionOffset)
+	a.restoreVoterChoice(voterKey)
 	a.restoreCandidateChoice(candID)
 	a.restoreSessionChoice(sessionID)
+}
+
+func (a *App) loadVoterPage(offset int) bool {
+	if a.services == nil {
+		return false
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	rows, err := a.services.Voters(votingPageSize+1, offset)
+	a.voting.voterLoadErr = err
+	a.syncVotingLoadErr()
+	if err != nil {
+		return false
+	}
+	if len(rows) == 0 && offset > 0 {
+		return a.loadVoterPage(0)
+	}
+	a.voting.voterOffset = offset
+	a.voting.voterHasMore = len(rows) > votingPageSize
+	if a.voting.voterHasMore {
+		rows = rows[:votingPageSize]
+	}
+	a.voting.voters = rows
+	return true
 }
 
 // loadCandidatePage commits a page offset only after its read succeeds. A
@@ -170,7 +206,28 @@ func (a *App) loadSessionPage(offset int) bool {
 }
 
 func (a *App) syncVotingLoadErr() {
-	a.voting.loadErr = errors.Join(a.voting.candLoadErr, a.voting.sessionLoadErr)
+	a.voting.loadErr = errors.Join(a.voting.voterLoadErr, a.voting.candLoadErr, a.voting.sessionLoadErr)
+}
+
+func (a *App) selectedVoterPublicKey() string {
+	rows := a.filteredVoters()
+	if a.voting.voterChoice < 0 || a.voting.voterChoice >= len(rows) {
+		return ""
+	}
+	return rows[a.voting.voterChoice].PublicKey
+}
+
+func (a *App) restoreVoterChoice(publicKey string) {
+	a.voting.voterChoice = -1
+	if publicKey == "" {
+		return
+	}
+	for i, voter := range a.filteredVoters() {
+		if voter.PublicKey == publicKey {
+			a.voting.voterChoice = i
+			return
+		}
+	}
 }
 
 // selectedCandidateID resolves the current highlight through the filtered
@@ -229,7 +286,7 @@ func (a *App) votingView(c *ui.Context) {
 		// rows. It used to be invisible entirely: nothing rendered loadErr.
 		if a.voting.loadErr != nil {
 			loadWarning(c, "Failed to load voting data", a.voting.loadErr,
-				len(a.voting.sessions) > 0 || len(a.voting.candidates) > 0)
+				len(a.voting.voters) > 0 || len(a.voting.sessions) > 0 || len(a.voting.candidates) > 0)
 		}
 		guide(c, &a.guides.voting,
 			"Register voters and candidates in Setup. A voter registration returns the only copy of that voter's signing key.",
@@ -241,8 +298,9 @@ func (a *App) votingView(c *ui.Context) {
 		switch a.voting.tab {
 		case 0:
 			twoColumns(c, func() {
-				a.votingSessionListCard(c)
+				a.votingVoterListCard(c)
 				a.votingCandidateListCard(c)
+				a.votingSessionListCard(c)
 			}, func() {
 				a.votingRegister(c)
 				a.votingSessions(c)
@@ -390,12 +448,117 @@ func (a *App) applyVoterRegistration(v VoterRow) {
 	a.voting.voteVoterPub = v.PublicKey
 	a.voting.votePriv = v.PrivateKey
 	a.voting.voterName = ""
+	a.voting.voterSearch, a.voting.voterApplied = "", ""
+	a.voting.voterChoice = -1
+	if a.loadVoterPage(0) {
+		a.selectVoterByPublicKey(v.PublicKey)
+	}
+}
+
+func (a *App) selectVoterByPublicKey(publicKey string) {
+	a.voting.voterSearch, a.voting.voterApplied = "", ""
+	for i, voter := range a.filteredVoters() {
+		if voter.PublicKey == publicKey {
+			a.voting.voterChoice = i
+			return
+		}
+	}
 }
 
 func (a *App) votingSessions(c *ui.Context) {
 	formCard(c, "Create Session", "Choose the roster and the window during which ballots are accepted.", func() {
 		a.votingCreateSessionBody(c)
 	})
+}
+
+// votingVoterListCard restores the registered-voter view the desktop lacked:
+// after registration the only visible public key was the one-time key card,
+// so a restart hid every voter that could still cast a ballot.
+func (a *App) votingVoterListCard(c *ui.Context) {
+	formCard(c, "Voters", "Registered signing keys and whether each voter has already claimed a ballot.", func() {
+		a.votingVoterList(c)
+	})
+}
+
+func (a *App) votingVoterList(c *ui.Context) {
+	if len(a.voting.voters) == 0 {
+		if a.voting.loadErr == nil {
+			emptyNote(c, "No voters registered yet.")
+		}
+		return
+	}
+	ui.SearchField(c, &a.voting.voterSearch).Label(tr("Search voters"))
+	if a.voting.voterSearch != a.voting.voterApplied {
+		a.voting.voterApplied = a.voting.voterSearch
+		a.voting.voterChoice = -1
+	}
+	if previous, next := listPager(c, a.voting.voterOffset, len(a.voting.voters), a.voting.voterHasMore); previous || next {
+		target := a.voting.voterOffset
+		if previous {
+			target = max(0, target-votingPageSize)
+		} else {
+			target += votingPageSize
+		}
+		if a.loadVoterPage(target) {
+			a.voting.voterChoice = -1
+		}
+		return
+	}
+	if a.voting.voterSearch != "" {
+		hint(c, "Search narrows the current page; use Previous/Next for older voters.")
+	}
+	voters := a.filteredVoters()
+	if len(voters) == 0 {
+		emptyNote(c, fmt.Sprintf(tr("No voters match “%s”."), strings.TrimSpace(a.voting.voterSearch)))
+		return
+	}
+	a.voting.voterTable.Selected = &a.voting.voterChoice
+	table := ui.Table(c, &a.voting.voterTable, []ui.TableColumn{
+		{Title: tr("Status"), Width: 100},
+		{Title: tr("Name"), MinWidth: 120},
+		{Title: tr("Public key"), MinWidth: 180},
+	}, len(voters), func(row, col int) {
+		voter := voters[row]
+		switch col {
+		case 0:
+			if voter.HasVoted {
+				ui.Text(c, tr("Voted"))
+			} else {
+				ui.Text(c, tr("Not voted"))
+			}
+		case 1:
+			ui.Text(c, voter.Name).SingleLine()
+		case 2:
+			ui.Text(c, shortID(voter.PublicKey)).SingleLine()
+		}
+	})
+	if table.Changed() && a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
+		publicKey := voters[a.voting.voterChoice].PublicKey
+		if a.voting.voteVoterPub != publicKey {
+			a.voting.votePriv = ""
+			a.voting.voteResult = statusLine{}
+		}
+		a.voting.voteVoterPub = publicKey
+	}
+	if a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
+		chosen := voters[a.voting.voterChoice]
+		status := tr("Not voted")
+		if chosen.HasVoted {
+			status = tr("Voted")
+		}
+		readout(c, []readoutRow{{"Ballot status", status}})
+		copyRow(c, "Selected voter public key", chosen.PublicKey, nil)
+	}
+}
+
+func (a *App) filteredVoters() []VoterRow {
+	rows := make([]VoterRow, 0, len(a.voting.voters))
+	for _, voter := range a.voting.voters {
+		if containsFold(a.voting.voterSearch, voter.Name, voter.PublicKey) {
+			rows = append(rows, voter)
+		}
+	}
+	return rows
 }
 
 func (a *App) votingSessionListCard(c *ui.Context) {

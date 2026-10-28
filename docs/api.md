@@ -69,8 +69,12 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 | POST | `/api/v1/voting/vote`               | 投票（Ed25519 签名）                       |
 | GET  | `/api/v1/voting/candidates`         | 候选人列表，默认 20，支持 `limit`/`offset` |
 | GET  | `/api/v1/voting/sessions`           | 会期列表，默认 20，支持 `limit`/`offset`   |
+| GET  | `/api/v1/voting/voters`             | 选民列表，默认 20，支持 `limit`/`offset`   |
 | GET  | `/api/v1/voting/session/{id}`       | 单个会期                                   |
 | GET  | `/api/v1/voting/results/{id}`       | 计票结果                                   |
+
+选民列表只返回姓名、公钥和是否已投票，不返回注册时一次性生成的私钥；客户端如果
+需要替选民签名，必须使用注册响应里当时保存的私钥。
 
 会期对象带 `start_time` / `end_time`（unix 秒），即选票被接受的时间窗：窗口之外
 的投票会被拒绝，调用方据此可以在提交前解释原因。

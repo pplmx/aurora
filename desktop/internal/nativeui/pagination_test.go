@@ -167,6 +167,58 @@ func TestVotingCandidateCollectionPages(t *testing.T) {
 	require.True(t, tester.HasText("Entries 101–150"))
 }
 
+func TestVotingVoterCollectionPages(t *testing.T) {
+	voters := make([]VoterRow, 150)
+	for i := range voters {
+		voters[i] = VoterRow{
+			PublicKey: "pk-" + strconv.Itoa(i), Name: "Voter " + strconv.Itoa(i),
+		}
+	}
+	fake := &fakeServices{voterRows: voters}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 6000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.Len(t, app.voting.voters, votingPageSize)
+	require.Equal(t, 0, app.voting.voterOffset)
+	require.Equal(t, votingPageSize+1, fake.lastVoterLimit,
+		"one extra row distinguishes a full page from the last page")
+	require.True(t, tester.HasText("Entries 1–100"))
+
+	app.voting.voterChoice = 0
+	tester.Frame()
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, votingPageSize, app.voting.voterOffset)
+	require.Equal(t, -1, app.voting.voterChoice, "a new page must not reuse the old row index")
+	require.Len(t, app.voting.voters, 50)
+	require.False(t, app.voting.voterHasMore)
+	require.True(t, tester.HasText("Entries 101–150"))
+}
+
+func TestFailedVoterPageMoveKeepsCurrentPage(t *testing.T) {
+	voters := make([]VoterRow, 150)
+	for i := range voters {
+		voters[i] = VoterRow{PublicKey: "pk-" + strconv.Itoa(i), Name: "Voter"}
+	}
+	fake := &fakeServices{voterRows: voters}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 6000)
+	app.ShowPage("Voting")
+	tester.Frame()
+	app.voting.voterChoice = 0
+	fake.loadErrs.voters = errors.New("read failed")
+
+	require.NoError(t, tester.Click("Next"))
+	tester.Frame()
+	require.Equal(t, 0, app.voting.voterOffset)
+	require.Len(t, app.voting.voters, votingPageSize)
+	require.Equal(t, 0, app.voting.voterChoice, "the old page's highlight must stay with its rows")
+	require.True(t, tester.HasText("Failed to load voting data: read failed"))
+	require.True(t, tester.HasText("Showing the last successful load."))
+}
+
 func TestVotingCandidatePagerStopsAtAnExactPageBoundary(t *testing.T) {
 	candidates := make([]CandidateRow, votingPageSize)
 	for i := range candidates {
