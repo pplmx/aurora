@@ -22,7 +22,8 @@ import (
 )
 
 type BackupService struct {
-	dbPaths map[string]string
+	dbPaths   map[string]string
+	configErr error
 	// renameFn is injectable so tests can exercise a failure after one DB
 	// snapshot has been promoted but before the complete set is in place.
 	renameFn func(string, string) error
@@ -106,12 +107,43 @@ func sqlLiteral(s string) string {
 }
 
 func NewBackupService(dbPaths map[string]string) *BackupService {
+	resolvedPaths, configErr := resolveBackupPaths(dbPaths)
 	return &BackupService{
-		dbPaths:         dbPaths,
+		dbPaths:         resolvedPaths,
+		configErr:       configErr,
 		renameFn:        os.Rename,
 		writeFileFn:     os.WriteFile,
 		removeSidecarFn: os.Remove,
 	}
+}
+
+// resolveBackupPaths converts every configured SQLite location to the local
+// file it names before any backup or restore filesystem operation. Keeping the
+// raw file: URI here would make os.Stat look for a literal "file:" directory
+// and would let a memory database appear as a missing source file.
+func resolveBackupPaths(dbPaths map[string]string) (map[string]string, error) {
+	resolved := make(map[string]string, len(dbPaths))
+	var configErrors []error
+	for name, location := range dbPaths {
+		path, ephemeral, err := utils.SQLiteFilePath(location)
+		switch {
+		case err != nil:
+			// Preserve the database name for archive-set validation even
+			// when its configured location is malformed.
+			resolved[name] = location
+			configErrors = append(configErrors, fmt.Errorf("database %q: %w", name, err))
+		case ephemeral:
+			resolved[name] = location
+			configErrors = append(configErrors, fmt.Errorf(
+				"database %q is not disk-backed: %q",
+				name,
+				location,
+			))
+		default:
+			resolved[name] = path
+		}
+	}
+	return resolved, errors.Join(configErrors...)
 }
 
 // snapshot tracks one DB's temp sibling inside a Create run so an aborted run
@@ -499,6 +531,9 @@ func removeCreateRollbackDirs(candidates []createRollbackCandidate) error {
 }
 
 func (s *BackupService) Create(ctx context.Context, output string) (result *BackupResult, err error) {
+	if s.configErr != nil {
+		return nil, fmt.Errorf("invalid backup database configuration: %w", s.configErr)
+	}
 	if err := mkdirAllDurable(output, 0o700); err != nil {
 		return nil, fmt.Errorf("create output dir: %w", err)
 	}
@@ -1037,6 +1072,9 @@ func verifyDatabaseFile(path, name, wantChecksum string) (string, error) {
 }
 
 func (s *BackupService) Restore(ctx context.Context, backupPath string) error {
+	if s.configErr != nil {
+		return fmt.Errorf("invalid backup database configuration: %w", s.configErr)
+	}
 	// A shell-completed directory path often ends in a separator. Normalize it
 	// before deriving the sibling .pre_restore directory so the safety copy
 	// never moves inside the archive being restored.
