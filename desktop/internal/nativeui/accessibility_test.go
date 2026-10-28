@@ -322,8 +322,9 @@ func TestFormCardsNameTheirSections(t *testing.T) {
 // invalid and puts the message in its accessible description.
 func TestValidatedFieldsAttachErrorsToTheirControls(t *testing.T) {
 	value := ""
+	message := "Voter name is required."
 	tester := ui.NewTester(func(c *ui.Context) {
-		validatedField(c, "Voter Name", &value, "Voter name is required.")
+		validatedField(c, "Voter Name", &value, &message)
 	}, 480, 180)
 	tester.Frame()
 	require.True(t, tester.HasText(tr("Voter name is required.")))
@@ -332,6 +333,26 @@ func TestValidatedFieldsAttachErrorsToTheirControls(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, strings.Contains(string(controls), "f.Error(localizeServiceErrorMessage(message))"),
 		"validated fields must pass their error through Field.Error")
+}
+
+// TestValidatedFieldClearsErrorWhenEdited prevents a corrected field from
+// keeping the previous attempt's invalid state until the next submit.
+func TestValidatedFieldClearsErrorWhenEdited(t *testing.T) {
+	value := ""
+	message := "Voter name is required."
+	tester := ui.NewTester(func(c *ui.Context) {
+		validatedField(c, "Voter Name", &value, &message)
+	}, 480, 180)
+	tester.Frame()
+	require.True(t, tester.HasText(tr("Voter name is required.")))
+
+	require.NoError(t, tester.Click("Voter Name"))
+	tester.Type("Alice")
+	tester.Frame()
+	require.Equal(t, "Alice", value)
+	require.Empty(t, message, "editing the control must clear its old validation")
+	require.False(t, tester.HasText(tr("Voter name is required.")),
+		"the stale error must leave the visual field with the input")
 }
 
 // TestVisibleHintsDescribeTheirControls keeps help text in the accessibility

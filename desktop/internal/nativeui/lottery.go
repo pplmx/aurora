@@ -109,15 +109,22 @@ func (a *App) lotteryView(c *ui.Context) {
 
 func (a *App) lotteryCreate(c *ui.Context) {
 	formCard(c, "Create Draw", "Participants and seed determine the draw; the count is how many winners to pick.", func() {
-		validatedField(c, "Participants (comma-separated)", &a.lottery.participants, a.lottery.participantsErr)
-		validatedField(c, fmt.Sprintf(tr("Seed (at least %d characters)"), lottery.MinSeedLength), &a.lottery.seed, a.lottery.seedErr)
-		fieldWithError(c, "Count", a.lottery.countErr, func() {
+		validatedField(c, "Participants (comma-separated)", &a.lottery.participants, &a.lottery.participantsErr)
+		validatedField(c, fmt.Sprintf(tr("Seed (at least %d characters)"), lottery.MinSeedLength), &a.lottery.seed, &a.lottery.seedErr)
+		var countInput ui.Element
+		count := ui.Field(c, tr("Count"), func() {
 			ui.Column(c).Gap(2).Children(func() {
-				ui.NumberInput(c, &a.lottery.count, 1, float64(lottery.MaxWinners), 1).
+				countInput = ui.NumberInput(c, &a.lottery.count, 1, float64(lottery.MaxWinners), 1).
 					Description(tr("How many winners to draw; must not exceed the participant count."))
 				hint(c, "How many winners to draw; must not exceed the participant count.")
 			})
 		})
+		if countInput.Changed() {
+			a.lottery.countErr = ""
+		}
+		if a.lottery.countErr != "" {
+			count.Error(localizeServiceErrorMessage(a.lottery.countErr))
+		}
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Create Draw").Disabled(!allSet(a.lottery.participants, a.lottery.seed)).Clicked() {
 				a.createLottery()
@@ -317,7 +324,9 @@ func (a *App) lotteryVerify(c *ui.Context) {
 		if a.lottery.verifyInput == current {
 			message = a.lottery.verifyErr
 		}
-		validatedField(c, "Draw ID or block height", &a.lottery.verifyID, message)
+		fieldWithError(c, "Draw ID or block height", message, func() {
+			ui.TextInput(c, &a.lottery.verifyID)
+		})
 		copyRow(c, "Draw ID", strings.TrimSpace(a.lottery.verifyID), nil)
 		ui.Row(c).Children(func() {
 			if primaryButton(c, "Verify").Disabled(!allSet(a.lottery.verifyID)).Clicked() {
