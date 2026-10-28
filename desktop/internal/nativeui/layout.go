@@ -98,7 +98,7 @@ func metricCard(c *ui.Context, label, value, note string, tone string, numeric b
 		if numeric {
 			size = 30
 		}
-		ui.Column(c).Height(38).Justify(ui.Center).Children(func() {
+		ui.Column(c).Height(textSize(c, 38)).Justify(ui.Center).Children(func() {
 			ui.Text(c, tr(value)).FontSize(textSize(c, size)).Bold().TextColor(ui.Hex(tone)).SingleLine()
 		})
 		ui.Text(c, tr(note)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
