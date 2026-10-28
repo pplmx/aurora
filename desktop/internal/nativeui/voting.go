@@ -392,7 +392,7 @@ func (a *App) votingRegister(c *ui.Context) {
 			}
 		})
 		if a.voting.voterPriv != "" {
-			ui.Text(c, tr("New voter key pair")).FontSize(textSize(c, 12)).Bold().TextColor(ui.Hex(ink))
+			ui.Text(c, tr("New voter key pair")).FontSize(textSize(c, 12)).Bold().TextColor(c.Theme().Text)
 			copyRow(c, "Public key", a.voting.voterPub, func() {
 				a.voting.status = okStatus("Public key copied.")
 			})
@@ -621,7 +621,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 				if voter.HasVoted {
 					tableText(c, tr("Yes")).TextColor(ui.Hex(auroraGreen))
 				} else {
-					tableText(c, tr("No")).TextColor(ui.Hex(inkMuted))
+					tableText(c, tr("No")).TextColor(c.Theme().TextMuted)
 				}
 			case 1:
 				tableText(c, voter.Name)
@@ -660,10 +660,10 @@ func (a *App) votingVoterRecords(c *ui.Context, voters []VoterRow) {
 			record := selectableRecordPanel(c, selected,
 				recordChoiceLabel(displayName, selected), func() {
 					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(ui.Hex(ink))
-					status, tone := tr("No"), inkMuted
+						TextColor(c.Theme().Text)
+					status, tone := tr("No"), c.Theme().TextMuted
 					if voter.HasVoted {
-						status, tone = tr("Yes"), auroraGreen
+						status, tone = tr("Yes"), ui.Hex(auroraGreen)
 					}
 					recordMetric(c, "Ever voted", status, tone)
 					recordField(c, "Public key", voter.PublicKey)
@@ -849,8 +849,8 @@ func (a *App) votingSessionRecords(c *ui.Context, sessions []SessionRow) {
 			record := selectableRecordPanel(c, selected,
 				recordChoiceLabel(displayName, selected), func() {
 					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(ui.Hex(ink))
-					recordMetric(c, "Status", valueOr(tr(session.Status)), ink)
+						TextColor(c.Theme().Text)
+					recordMetric(c, "Status", valueOr(tr(session.Status)), c.Theme().Text)
 					recordField(c, "Window", sessionWindow(session.StartTime, session.EndTime))
 					recordField(c, "ID", session.ID)
 				})
@@ -1017,7 +1017,7 @@ func (a *App) votingCandidateRecords(c *ui.Context, candidates []CandidateRow) {
 			record := selectableRecordPanel(c, selected,
 				recordChoiceLabel(displayName, selected), func() {
 					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(ui.Hex(ink))
+						TextColor(c.Theme().Text)
 					recordField(c, "Party", valueOr(candidate.Party))
 					recordField(c, "ID", candidate.ID)
 				})
@@ -1326,8 +1326,8 @@ func (a *App) votingResultsBody(c *ui.Context) {
 				result := result
 				recordPanel(c, func() {
 					ui.Text(c, valueOr(result.Name)).FontSize(textSize(c, 13)).Bold().
-						TextColor(ui.Hex(ink))
-					recordMetric(c, "Votes", strconv.Itoa(result.Votes), ink)
+						TextColor(c.Theme().Text)
+					recordMetric(c, "Votes", strconv.Itoa(result.Votes), c.Theme().Text)
 				})
 			}
 		})

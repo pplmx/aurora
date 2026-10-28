@@ -98,7 +98,7 @@ func (a *App) dashboardView(c *ui.Context) {
 	if !a.dashboard.loaded {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Spinner(c)
-			ui.Text(c, tr("Loading counters…")).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+			ui.Text(c, tr("Loading counters…")).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		})
 		return
 	}
@@ -107,24 +107,25 @@ func (a *App) dashboardView(c *ui.Context) {
 		// A 3x2 grid of cards: six counters read as one block. The ledger verdict
 		// is the one value that can be bad news, so it takes the colour that says
 		// which it is — and its note still spells the outcome out in words.
-		integrityTone := auroraGreen
+		integrityTone := ui.Hex(auroraGreen)
 		if a.dashboard.Integrity != "verified" {
-			integrityTone = auroraRed
+			integrityTone = ui.Hex(auroraRed)
 		}
+		textTone := c.Theme().Text
 		metrics := []struct {
 			label   string
 			value   string
 			note    string
-			tone    string
+			tone    ui.Color
 			numeric bool
 			target  page
 		}{
-			{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", ink, true, pageLottery},
-			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", ink, true, pageVoting},
-			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", ink, true, pageVoting},
-			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", ink, true, pageVoting},
+			{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", textTone, true, pageLottery},
+			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", textTone, true, pageVoting},
+			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", textTone, true, pageVoting},
+			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", textTone, true, pageVoting},
 			{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification", integrityTone, false, pageBlockchain},
-			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", ink, true, pageOracle},
+			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", textTone, true, pageOracle},
 		}
 		showMetrics := func() {
 			// Six cards read as two rows of three on a wide window. At the
@@ -288,8 +289,8 @@ func (a *App) chooseRecentBlock(rows []BlockRow, index int) {
 func blockRecordBody(c *ui.Context, entry BlockRow) {
 	ui.Row(c).FillWidth().Wrap().Gap(18).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, valueOr(entry.Module)).FontSize(textSize(c, 13)).Bold().
-			TextColor(ui.Hex(ink))
-		recordMetric(c, "Block", strconv.FormatInt(entry.Height, 10), ink)
+			TextColor(c.Theme().Text)
+		recordMetric(c, "Block", strconv.FormatInt(entry.Height, 10), c.Theme().Text)
 	})
 	recordField(c, "Summary", valueOr(entry.Summary))
 }
@@ -375,9 +376,9 @@ func (a *App) blockchainBody(c *ui.Context) {
 	// whole width and read as a banner rather than a verdict.
 	ui.Row(c).Children(func() {
 		if a.blockchain.valid {
-			badge(c, "Hash chain verified", auroraGreen, night)
+			badge(c, "Hash chain verified", ui.Hex(auroraGreen), c.Theme().Background)
 		} else {
-			badge(c, "Hash chain is broken", auroraRed, night)
+			badge(c, "Hash chain is broken", ui.Hex(auroraRed), c.Theme().Background)
 		}
 	})
 	a.blockchainBlocks(c)
@@ -431,7 +432,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		}
 		ui.Spacer(c)
 		ui.Text(c, fmt.Sprintf(tr("Entries %d–%d of %d"), a.blockchain.blockOffset+1, a.blockchain.blockOffset+len(a.blockchain.rows), total)).
-			FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+			FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
 		ui.Spacer(c)
 		if secondaryButton(c, "Next").Disabled(a.blockchain.blockOffset+len(a.blockchain.rows) >= total).Clicked() {
 			a.loadBlockchainAt(query, a.blockchain.blockLimit,

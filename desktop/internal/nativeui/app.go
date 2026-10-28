@@ -165,9 +165,9 @@ func (a *App) commandPalette(c *ui.Context) {
 	width, height := c.Size()
 	panelWidth := min(520*textScale(c), width-100)
 	panel := ui.Column(c).Width(panelWidth).MaxHeight(height-40).Padding(18).Gap(10).Radius(14).
-		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
+		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
-		ui.Text(c, tr("Jump to")).FontSize(textSize(c, 17)).Bold().TextColor(ui.Hex(ink))
+		ui.Text(c, tr("Jump to")).FontSize(textSize(c, 17)).Bold().TextColor(c.Theme().Text)
 		submitted := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).Submitted()
 		if a.paletteQuery != a.paletteApplied {
 			a.paletteApplied = a.paletteQuery
@@ -268,13 +268,13 @@ func (a *App) paletteMatches() []paletteEntry {
 func paletteRow(c *ui.Context, entry paletteEntry, selected bool) (ui.Element, bool) {
 	title := tr(entry.title)
 	b := ui.ButtonBase(c).FillWidth().Height(paletteRowHeight(c)).PaddingX(10 * textScale(c)).Radius(8).
-		AlignItems(ui.Center).Label(title).TextColor(ui.Hex(ink)).Selected(selected)
+		AlignItems(ui.Center).Label(title).TextColor(c.Theme().Text).Selected(selected)
 	fill := ui.Transparent
 	if selected {
-		fill = ui.Hex(selection)
+		fill = c.Theme().Selection
 	}
 	if b.Hovered() || b.Pressed() {
-		fill = ui.Hex(surfaceHover)
+		fill = c.Theme().SurfaceHover
 	}
 	b.Background(fill)
 	b.Children(func() {
@@ -282,8 +282,8 @@ func paletteRow(c *ui.Context, entry paletteEntry, selected bool) (ui.Element, b
 			size := 18 * textScale(c)
 			ui.Icon(c, entry.icon).Size(size, size).TextColor(ui.Hex(aurora))
 			ui.Column(c).Gap(1).Children(func() {
-				ui.Text(c, title).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(ink)).SingleLine()
-				ui.Text(c, tr(entry.detail)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
+				ui.Text(c, title).FontSize(textSize(c, 13)).Bold().TextColor(c.Theme().Text).SingleLine()
+				ui.Text(c, tr(entry.detail)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).SingleLine()
 			})
 		})
 	})
@@ -348,7 +348,7 @@ func (a *App) clearPageStatus() {
 func (a *App) sidebarColumn(c *ui.Context) {
 	width := windowWidth(c)
 	ui.Column(c).Width(sidebarWidth(c, width)).FillHeight().Background(ui.Hex(sidebarSurface)).
-		BorderWidth(0, 1, 0, 0).BorderColor(ui.Hex(border)).Children(func() {
+		BorderWidth(0, 1, 0, 0).BorderColor(c.Theme().Border).Children(func() {
 		a.brand(c)
 		a.sidebar(c)
 		a.sidebarActions(c)
@@ -358,9 +358,9 @@ func (a *App) sidebarColumn(c *ui.Context) {
 // brand is the window's identity at the top of the sidebar.
 func (a *App) brand(c *ui.Context) {
 	ui.Column(c).FillWidth().Padding(18, 18, 10, 8).Gap(2).Children(func() {
-		ui.Text(c, tr("Aurora")).FontSize(textSize(c, 19)).Bold().TextColor(ui.Hex(ink)).SingleLine()
+		ui.Text(c, tr("Aurora")).FontSize(textSize(c, 19)).Bold().TextColor(c.Theme().Text).SingleLine()
 		subtitle := tr("Verifiable ledger suite")
-		ui.Text(c, subtitle).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).
+		ui.Text(c, subtitle).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).
 			SingleLine().Tooltip(subtitle)
 	})
 }
@@ -459,8 +459,8 @@ func (a *App) header(c *ui.Context) {
 		ui.Row(c).Grow(1).Gap(12).AlignItems(ui.Center).Children(func() {
 			pageGlyph(c, a.page)
 			ui.Column(c).Gap(2).Children(func() {
-				ui.Text(c, tr(pageTitles[a.page])).FontSize(textSize(c, 26)).Bold().TextColor(ui.Hex(ink))
-				ui.Text(c, tr(pagePurpose[a.page])).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+				ui.Text(c, tr(pageTitles[a.page])).FontSize(textSize(c, 26)).Bold().TextColor(c.Theme().Text)
+				ui.Text(c, tr(pagePurpose[a.page])).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 			})
 		})
 		// Ctrl on Linux and Windows, Cmd on macOS: the platform's own
@@ -470,7 +470,7 @@ func (a *App) header(c *ui.Context) {
 		// Settings reads no database, so a Refresh button there would be a
 		// control with no effect; keep the action on data pages.
 		if a.liveUpdates && (a.page == pageDashboard || a.page == pageOracle) {
-			badge(c, "Live · 10s", successTint, auroraGreen)
+			badge(c, "Live · 10s", ui.Hex(successTint), ui.Hex(auroraGreen))
 		}
 		if a.page != pageSettings {
 			refresh := secondaryButton(c, "Refresh").Disabled(a.busy != "")
@@ -784,8 +784,8 @@ func (a *App) busyBar(c *ui.Context) {
 		text = tr("Still working…") + " " + tr("This can take a while; the operation will finish on its own.")
 	}
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
-		Background(ui.Hex(surfaceHover)).BorderWidth(1).BorderColor(ui.Hex(border)).Children(func() {
+		Background(c.Theme().SurfaceHover).BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
 		ui.Spinner(c)
-		ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+		ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
 	})
 }

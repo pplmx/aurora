@@ -57,15 +57,15 @@ func renderStatus(c *ui.Context, s statusLine, dismiss func()) {
 	if s.empty() {
 		return
 	}
-	label, tone, tint := "Done", auroraGreen, successTint
+	label, tone, tint := "Done", ui.Hex(auroraGreen), ui.Hex(successTint)
 	if s.isErr {
-		label, tone, tint = "Failed", auroraRed, errorTint
+		label, tone, tint = "Failed", ui.Hex(auroraRed), ui.Hex(errorTint)
 	}
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
-		Background(ui.Hex(tint)).BorderWidth(1).BorderColor(ui.Hex(tone)).
+		Background(tint).BorderWidth(1).BorderColor(tone).
 		Children(func() {
-			badge(c, label, tone, night)
-			ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+			badge(c, label, tone, c.Theme().Background)
+			ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
 			if dismiss != nil {
 				ui.Spacer(c)
 				if quietButton(c, "Dismiss").Clicked() {
@@ -83,9 +83,9 @@ func inlineStatus(c *ui.Context, s statusLine) {
 	if s.empty() {
 		return
 	}
-	tone := auroraGreen
+	tone := ui.Hex(auroraGreen)
 	if s.isErr {
-		tone = auroraRed
+		tone = ui.Hex(auroraRed)
 	}
-	ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(ui.Hex(tone))
+	ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(tone)
 }

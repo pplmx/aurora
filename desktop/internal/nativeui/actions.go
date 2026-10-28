@@ -70,7 +70,7 @@ func (a *App) sidebarActions(c *ui.Context) {
 		button := ui.MenuButton(c, label, a.actionsMenu).
 			FillWidth().Height(max(34, textSize(c, 34))).
 			PaddingX(max(12, textSize(c, 12))).Radius(buttonRadius).
-			Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border))
+			Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border)
 		button.Label(label)
 	})
 }

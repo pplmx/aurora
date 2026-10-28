@@ -36,8 +36,8 @@ func tableColumnWidth(c *ui.Context, width float32) float32 {
 // beside the page title, so the page and its navigation entry are recognisably
 // the same place.
 func pageGlyph(c *ui.Context, p page) {
-	ui.Row(c).Size(36, 36).Center().Radius(10).Background(ui.Hex(selection)).
-		BorderWidth(1).BorderColor(ui.Hex(border)).Children(func() {
+	ui.Row(c).Size(36, 36).Center().Radius(10).Background(c.Theme().Selection).
+		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
 		ui.Icon(c, pageIcons[p]).Size(18, 18).TextColor(ui.Hex(aurora))
 	})
 }
@@ -92,7 +92,7 @@ func card(c *ui.Context, fn func()) ui.Element {
 	// the hairline of light along the top edge lift it off the polar-night
 	// background; a border alone read as a table cell rather than a card.
 	return ui.Column(c).FillWidth().Padding(16).Gap(10).Radius(12).
-		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
+		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
 		Shadow(0, 12, 30, -6, ui.RGBA(0, 0, 0, 0.35)).
 		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.04)).
 		Children(fn)
@@ -103,7 +103,7 @@ func card(c *ui.Context, fn func()) ui.Element {
 // as another form section.
 func recordPanel(c *ui.Context, fn func()) {
 	ui.Column(c).FillWidth().Padding(12).Gap(8).Radius(10).
-		Background(ui.Hex(night)).BorderWidth(1).BorderColor(ui.Hex(border)).Children(fn)
+		Background(c.Theme().Background).BorderWidth(1).BorderColor(c.Theme().Border).Children(fn)
 }
 
 // selectableRecordPanel is the interactive form of recordPanel. It keeps the
@@ -116,16 +116,16 @@ func selectableRecordPanel(c *ui.Context, selected bool, label string, fn func()
 		AlignItems(ui.Start).Label(label)
 	panel.BorderWidth(1)
 
-	fill, outline := night, border
+	fill, outline := c.Theme().Background, c.Theme().Border
 	if selected {
-		fill, outline = selection, aurora
+		fill, outline = c.Theme().Selection, ui.Hex(aurora)
 	} else if panel.Pressed() {
-		fill = surfacePressed
+		fill = c.Theme().SurfacePressed
 	} else if panel.Hovered() {
-		fill = surfaceHover
+		fill = c.Theme().SurfaceHover
 	}
-	panel.BorderColor(ui.Hex(outline))
-	panel.Background(panel.AnimateColor("record-fill", ui.Hex(fill),
+	panel.BorderColor(outline)
+	panel.Background(panel.AnimateColor("record-fill", fill,
 		ui.Animation{Duration: 100 * time.Millisecond}))
 	panel.Children(func() {
 		ui.Column(c).FillWidth().Gap(6).Children(fn)
@@ -146,17 +146,17 @@ func recordChoiceLabel(name string, selected bool) string {
 // it does not need an ellipsis to keep the next column visible.
 func recordField(c *ui.Context, label, value string) {
 	ui.Column(c).FillWidth().Gap(2).Children(func() {
-		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(ui.Hex(inkMuted))
-		ui.Text(c, value).FontSize(textSize(c, 12)).TextColor(ui.Hex(ink))
+		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(c.Theme().TextMuted)
+		ui.Text(c, value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
 	})
 }
 
 // recordMetric draws one compact fact inside a selectable record. It is the
 // shared shape behind health counters, token symbols and exact supplies.
-func recordMetric(c *ui.Context, label, value, tone string) {
+func recordMetric(c *ui.Context, label, value string, tone ui.Color) {
 	ui.Column(c).Gap(1).Children(func() {
-		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(ui.Hex(inkMuted))
-		ui.Text(c, value).FontSize(textSize(c, 15)).Bold().TextColor(ui.Hex(tone))
+		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(c.Theme().TextMuted)
+		ui.Text(c, value).FontSize(textSize(c, 15)).Bold().TextColor(tone)
 	})
 }
 
@@ -164,9 +164,9 @@ func recordMetric(c *ui.Context, label, value, tone string) {
 // numeric value is the largest type on the page so the eye lands on it first;
 // a word verdict ("verified") is drawn smaller, because 30pt of lowercase
 // reads as an error rather than a summary.
-func metricCard(c *ui.Context, label, value, note string, tone string, numeric bool, target page) bool {
+func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric bool, target page) bool {
 	body := func() {
-		ui.Text(c, tr(label)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted)).SingleLine()
+		ui.Text(c, tr(label)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).SingleLine()
 		// The value sits in a fixed-height slot so a word verdict and a
 		// one-digit number put their note on the same line across the row.
 		size := float32(20)
@@ -174,9 +174,9 @@ func metricCard(c *ui.Context, label, value, note string, tone string, numeric b
 			size = 30
 		}
 		ui.Column(c).Height(textSize(c, 38)).Justify(ui.Center).Children(func() {
-			ui.Text(c, tr(value)).FontSize(textSize(c, size)).Bold().TextColor(ui.Hex(tone)).SingleLine()
+			ui.Text(c, tr(value)).FontSize(textSize(c, size)).Bold().TextColor(tone).SingleLine()
 		})
-		ui.Text(c, tr(note)).FontSize(textSize(c, 11)).TextColor(ui.Hex(inkMuted))
+		ui.Text(c, tr(note)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
 	}
 	if target == pageDashboard {
 		card(c, body)
@@ -190,14 +190,14 @@ func metricCard(c *ui.Context, label, value, note string, tone string, numeric b
 // dashboard counters read as shortcuts rather than decoration.
 func actionCard(c *ui.Context, label string, body func()) ui.Element {
 	b := ui.ButtonBase(c).FillWidth().Label(tr(label)).Padding(16).Radius(12).AlignItems(ui.Start).
-		Background(ui.Hex(surface)).BorderWidth(1).BorderColor(ui.Hex(border)).
+		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
 		Shadow(0, 12, 30, -6, ui.RGBA(0, 0, 0, 0.35)).
 		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.04))
 	if b.Hovered() {
-		b.Background(ui.Hex(surfaceHover))
+		b.Background(c.Theme().SurfaceHover)
 	}
 	if b.Pressed() {
-		b.Background(ui.Hex(surfacePressed))
+		b.Background(c.Theme().SurfacePressed)
 	}
 	b.Children(func() { ui.Column(c).FillWidth().Gap(10).Children(body) })
 	return b
@@ -220,17 +220,17 @@ func metricRow(c *ui.Context, n int, fn func(i int)) {
 // the page header for the same attention.
 func sectionHeading(c *ui.Context, title, purpose string) {
 	ui.Column(c).Gap(2).Children(func() {
-		ui.Text(c, tr(title)).FontSize(textSize(c, 16)).Bold().TextColor(ui.Hex(ink))
+		ui.Text(c, tr(title)).FontSize(textSize(c, 16)).Bold().TextColor(c.Theme().Text)
 		if purpose != "" {
-			ui.Text(c, tr(purpose)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted))
+			ui.Text(c, tr(purpose)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		}
 	})
 }
 
 // badge draws a small pill of text. It must sit in a row: a badge drawn
 // straight into a card's column takes the whole width and reads as a banner.
-func badge(c *ui.Context, text, background, foreground string) {
-	ui.Badge(c, tr(text)).Background(ui.Hex(background)).TextColor(ui.Hex(foreground))
+func badge(c *ui.Context, text string, background, foreground ui.Color) {
+	ui.Badge(c, tr(text)).Background(background).TextColor(foreground)
 }
 
 // formCard draws a section as a card: its heading, its fields, and whatever
@@ -249,11 +249,11 @@ func formCard(c *ui.Context, title, purpose string, fn func()) {
 // whether the store is empty or the read failed.
 func emptyState(c *ui.Context, p page, title, body string) {
 	ui.Column(c).FillWidth().Padding(24, 20).Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Row(c).Size(42, 42).Center().Radius(12).Background(ui.Hex(selection)).
-			BorderWidth(1).BorderColor(ui.Hex(border)).Children(func() {
+		ui.Row(c).Size(42, 42).Center().Radius(12).Background(c.Theme().Selection).
+			BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
 			ui.Icon(c, pageIcons[p]).Size(22, 22).TextColor(ui.Hex(aurora))
 		})
-		ui.Text(c, tr(title)).FontSize(textSize(c, 14)).Bold().TextColor(ui.Hex(ink)).TextAlign(ui.Center)
-		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(ui.Hex(inkMuted)).TextAlign(ui.Center)
+		ui.Text(c, tr(title)).FontSize(textSize(c, 14)).Bold().TextColor(c.Theme().Text).TextAlign(ui.Center)
+		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).TextAlign(ui.Center)
 	})
 }

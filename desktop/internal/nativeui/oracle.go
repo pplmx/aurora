@@ -326,9 +326,9 @@ func (a *App) oracleSourceRecords(c *ui.Context, sources []SourceRow) {
 			if strings.TrimSpace(displayName) == "" {
 				displayName = shortID(source.ID)
 			}
-			status, tone := tr("disabled"), inkMuted
+			status, tone := tr("disabled"), c.Theme().TextMuted
 			if source.Enabled {
-				status, tone = tr("enabled"), auroraGreen
+				status, tone = tr("enabled"), ui.Hex(auroraGreen)
 			}
 			headers := tr("—")
 			if source.HasHeaders {
@@ -338,11 +338,11 @@ func (a *App) oracleSourceRecords(c *ui.Context, sources []SourceRow) {
 			record := selectableRecordPanel(c, selected,
 				recordChoiceLabel(displayName, selected), func() {
 					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(ui.Hex(ink))
+						TextColor(c.Theme().Text)
 					ui.Row(c).Wrap().Gap(18).Children(func() {
-						recordMetric(c, "Type", valueOr(source.Type), ink)
+						recordMetric(c, "Type", valueOr(source.Type), c.Theme().Text)
 						recordMetric(c, "Status", status, tone)
-						recordMetric(c, "Headers", headers, ink)
+						recordMetric(c, "Headers", headers, c.Theme().Text)
 					})
 					recordField(c, "ID", source.ID)
 				})
@@ -680,13 +680,13 @@ func (a *App) oracleHealthRecords(c *ui.Context, health []HealthRow, names map[s
 			name := oracleHealthName(h, names)
 			recordPanel(c, func() {
 				ui.Text(c, name).FontSize(textSize(c, 13)).Bold().
-					TextColor(ui.Hex(ink))
+					TextColor(c.Theme().Text)
 				ui.Row(c).Wrap().Gap(18).Children(func() {
-					healthMetric(c, "Attempts", h.Attempts, ink)
-					healthMetric(c, "Successes", h.Successes, auroraGreen)
-					tone := inkMuted
+					healthMetric(c, "Attempts", h.Attempts, c.Theme().Text)
+					healthMetric(c, "Successes", h.Successes, ui.Hex(auroraGreen))
+					tone := c.Theme().TextMuted
 					if h.Failures > 0 {
-						tone = auroraRed
+						tone = ui.Hex(auroraRed)
 					}
 					healthMetric(c, "Failures", h.Failures, tone)
 				})
@@ -696,7 +696,7 @@ func (a *App) oracleHealthRecords(c *ui.Context, health []HealthRow, names map[s
 	})
 }
 
-func healthMetric(c *ui.Context, label string, value int, tone string) {
+func healthMetric(c *ui.Context, label string, value int, tone ui.Color) {
 	recordMetric(c, label, strconv.Itoa(value), tone)
 }
 
@@ -767,7 +767,7 @@ func (a *App) oracleReadRecords(c *ui.Context, data []DataRow) {
 		for _, reading := range data {
 			reading := reading
 			recordPanel(c, func() {
-				recordMetric(c, "Block", strconv.FormatInt(reading.BlockHeight, 10), ink)
+				recordMetric(c, "Block", strconv.FormatInt(reading.BlockHeight, 10), c.Theme().Text)
 				recordField(c, "Value", reading.Value)
 			})
 		}

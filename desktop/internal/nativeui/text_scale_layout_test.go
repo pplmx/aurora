@@ -18,7 +18,7 @@ import (
 func TestMetricCardKeepsValueAndNoteApartAtLargeText(t *testing.T) {
 	tester := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Width(360).Padding(24).Children(func() {
-			metricCard(c, "Records", "123", "Exact stored rows", ink, true, pageDashboard)
+			metricCard(c, "Records", "123", "Exact stored rows", c.Theme().Text, true, pageDashboard)
 		})
 	}, 420, 300)
 	tester.SetPreferences(ui.Preferences{TextScale: 2})

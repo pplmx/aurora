@@ -507,8 +507,8 @@ func (a *App) nftListRecords(c *ui.Context, list []NFTRow) {
 			record := selectableRecordPanel(c, selected,
 				recordChoiceLabel(displayName, selected), func() {
 					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(ui.Hex(ink))
-					recordMetric(c, "Block", strconv.FormatInt(nft.BlockHeight, 10), ink)
+						TextColor(c.Theme().Text)
+					recordMetric(c, "Block", strconv.FormatInt(nft.BlockHeight, 10), c.Theme().Text)
 					recordField(c, "ID", nft.ID)
 				})
 			if record.Clicked() {
@@ -810,8 +810,8 @@ func nftHistoryRecords(c *ui.Context, operations []NFTOpRow) {
 			recordPanel(c, func() {
 				ui.Row(c).FillWidth().Wrap().Gap(18).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, tr(operation.Type)).FontSize(textSize(c, 13)).Bold().
-						TextColor(ui.Hex(ink))
-					recordMetric(c, "Block", strconv.FormatInt(operation.BlockHeight, 10), ink)
+						TextColor(c.Theme().Text)
+					recordMetric(c, "Block", strconv.FormatInt(operation.BlockHeight, 10), c.Theme().Text)
 				})
 				recordField(c, "From", valueOr(operation.From))
 				recordField(c, "To", valueOr(operation.To))
