@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle fetch errors no longer echo credential-bearing URLs**: HTTP status
+  errors included the complete source URL, and `net/http` transport errors
+  retained its path, query and userinfo. Those strings reached scheduler logs
+  and `/oracle/health.last_error`. Errors now keep the actionable status or
+  underlying cause while dropping URL-bearing wrappers; the source id still
+  identifies the feed.
 - **Oracle retry and refresh clocks start when a fetch finishes**: both the
   next successful refresh interval and failed-fetch backoff were measured from
   the attempt's start time. A slow timeout could consume the entire backoff, so

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -547,6 +548,73 @@ func TestFetcher_FetchData_NetworkError(t *testing.T) {
 	_, err := fetcher.FetchData(source)
 	if err == nil {
 		t.Fatal("Expected error for network failure")
+	}
+}
+
+func TestFetcher_FetchData_ErrorsDoNotLeakURLSecrets(t *testing.T) {
+	const (
+		secretURL  = "https://feed-user:feed-pass@example.com/SUPER-SECRET-PATH?token=SUPER-SECRET-QUERY"
+		secretUser = "feed-user"
+		secretPass = "feed-pass"
+		secretPath = "SUPER-SECRET-PATH"
+		secretTerm = "SUPER-SECRET-QUERY"
+	)
+
+	tests := []struct {
+		name      string
+		transport http.RoundTripper
+		wantErr   error
+	}{
+		{
+			name: "HTTP status",
+			transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusInternalServerError,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader("")),
+					Request:    req,
+				}, nil
+			}),
+			wantErr: ErrHTTPError,
+		},
+		{
+			name: "transport url error",
+			transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				return nil, &url.Error{
+					Op:  req.Method,
+					URL: req.URL.String(),
+					Err: errors.New("upstream unavailable"),
+				}
+			}),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			fetcher := &Fetcher{
+				client:      &http.Client{Transport: tc.transport},
+				rateLimiter: NewRateLimiter(100, time.Minute),
+			}
+			source := &oracle.DataSource{
+				ID:      "secret-source",
+				URL:     secretURL,
+				Method:  http.MethodGet,
+				Enabled: true,
+			}
+
+			_, err := fetcher.FetchData(source)
+			if err == nil {
+				t.Fatal("FetchData succeeded, want an error")
+			}
+			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
+				t.Fatalf("FetchData error = %v, want %v", err, tc.wantErr)
+			}
+			for _, secret := range []string{secretUser, secretPass, secretPath, secretTerm} {
+				if strings.Contains(err.Error(), secret) {
+					t.Fatalf("fetch error leaked URL component %q: %v", secret, err)
+				}
+			}
+		})
 	}
 }
 
