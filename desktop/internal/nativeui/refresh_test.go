@@ -47,10 +47,15 @@ func TestSuccessfulNFTActionRefreshesCollectionAndHistory(t *testing.T) {
 	app.nft.from = "owner-a"
 	app.nft.to = "owner-b"
 	app.nft.priv = "priv"
+	app.nft.burnPriv = "old-burn-key"
 	app.transferNFT()
 
 	require.False(t, app.nft.status.isErr)
 	require.Empty(t, app.nft.priv, "a used signing key must not stay on screen")
+	require.Empty(t, app.nft.burnPriv, "a key for the previous holder must not stay on screen")
+	require.Equal(t, "owner-b", app.nft.from, "Transfer must move to the new holder")
+	require.Equal(t, "owner-b", app.nft.burnOwner, "Burn must move to the new holder")
+	require.Empty(t, app.nft.to, "the completed recipient must be cleared")
 	require.Equal(t, collectionBefore+1, fake.listAllNFTsCalls, "the collection must be re-read after a transfer")
 	require.Equal(t, historyBefore+1, fake.nftHistoryCalls, "an open history must be re-read after a transfer")
 }

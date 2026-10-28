@@ -240,6 +240,7 @@ func (a *App) mintNFT() {
 			// busywork.
 			a.nft.id, a.nft.transferID, a.nft.burnID, a.nft.historyID = n.ID, n.ID, n.ID, n.ID
 			a.nft.creatorKeyNFTID = n.ID
+			a.applyNFTSubject(n.Owner)
 			a.selectNFTRow(n.ID)
 			a.selectNFT(n.ID)
 			a.nft.name, a.nft.description, a.nft.imageURL, a.nft.tokenURI = "", "", "", ""
@@ -256,6 +257,16 @@ func (a *App) selectNFTRow(id string) {
 			return
 		}
 	}
+}
+
+// applyNFTSubject moves the holder-shaped inputs to the asset the write cards
+// act on. Private keys and the previous recipient are cleared on every subject
+// change so a newly chosen or minted asset cannot be signed or sent with values
+// left over from another one.
+func (a *App) applyNFTSubject(owner string) {
+	a.nft.priv, a.nft.burnPriv = "", ""
+	a.nft.to = ""
+	a.nft.from, a.nft.burnOwner = owner, owner
 }
 
 func (a *App) nftRead(c *ui.Context) {
@@ -403,7 +414,7 @@ func (a *App) nftListBody(c *ui.Context) {
 		// Move and Burn are signed by the holder, and the collection row knows
 		// who that is: prefill it rather than making the operator retype a key
 		// the table already holds.
-		a.nft.from, a.nft.burnOwner = n.Owner, n.Owner
+		a.applyNFTSubject(n.Owner)
 		a.selectNFT(n.ID)
 	}
 }
@@ -578,7 +589,9 @@ func (a *App) transferNFT() {
 			a.nft.status = wrapErr(err)
 			if err == nil {
 				a.rememberSuccessfulKey(from, privateKey)
-				a.nft.priv = ""
+				// The recipient is the asset's holder now. Move both holder-shaped
+				// forms there so the next action starts from the real owner.
+				a.applyNFTSubject(to)
 				a.refreshNFT(id)
 			}
 		}
