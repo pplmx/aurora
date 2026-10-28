@@ -130,6 +130,11 @@ documented in their per-milestone ROADMAP files.
   matching cards to the owner it resolves, and a successful Transfer no longer
   retargets a Burn aimed at another asset. Inspect metadata and history also
   render only while their id inputs still match the loaded record.
+- **Successful empty readouts remain open**: Token and NFT histories, an empty
+  voting tally and an empty Oracle Query now remember the successful read even
+  when it returned no rows. Refresh, selecting another subject, casting the
+  first ballot or fetching the first value re-reads those cards instead of
+  leaving "No … loaded yet" beside a result that actually loaded.
 - **A desktop write moves the context to the record it changed**: adding an
   Oracle source now targets that source in the action and reading cards,
   minting or transferring an NFT moves the holder fields with the asset and

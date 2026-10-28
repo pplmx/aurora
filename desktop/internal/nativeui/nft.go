@@ -639,11 +639,11 @@ func (a *App) clearNFTHistoryForAnotherSubject(id string) {
 // readouts are invalidated before the read, so a failure cannot leave the old
 // asset's rows under the new id.
 func (a *App) selectNFT(id string) {
-	if a.nft.nft != nil || a.nft.nftErr != nil {
+	if a.nft.nft != nil || a.nft.nftLoadedID != "" || a.nft.nftErr != nil {
 		a.clearNFTDetailsForAnotherSubject(id)
 		_ = a.loadNFTDetails(id)
 	}
-	if len(a.nft.history) > 0 || a.nft.historyErr != nil {
+	if len(a.nft.history) > 0 || a.nft.historyLoadedID != "" || a.nft.historyErr != nil {
 		a.clearNFTHistoryForAnotherSubject(id)
 		_ = a.loadNFTHistory(id)
 	}
@@ -692,12 +692,12 @@ func (a *App) transferNFT() {
 // changed and goes through refreshNFT.
 func (a *App) refreshNFTPage() {
 	a.loadNFT()
-	if a.nft.nft != nil || a.nft.nftErr != nil {
+	if a.nft.nft != nil || a.nft.nftLoadedID != "" || a.nft.nftErr != nil {
 		id := strings.TrimSpace(a.nft.id)
 		a.clearNFTDetailsForAnotherSubject(id)
 		_ = a.loadNFTDetails(id)
 	}
-	if len(a.nft.history) > 0 || a.nft.historyErr != nil {
+	if len(a.nft.history) > 0 || a.nft.historyLoadedID != "" || a.nft.historyErr != nil {
 		id := strings.TrimSpace(a.nft.historyID)
 		a.clearNFTHistoryForAnotherSubject(id)
 		_ = a.loadNFTHistory(id)
@@ -712,10 +712,11 @@ func (a *App) refreshNFT(id string) {
 	if id == "" {
 		return
 	}
-	if (a.nft.nft != nil || a.nft.nftErr != nil) && a.nft.nftLoadedID == id {
+	if (a.nft.nft != nil || a.nft.nftLoadedID != "" || a.nft.nftErr != nil) && a.nft.nftLoadedID == id {
 		_ = a.loadNFTDetails(id)
 	}
-	if (len(a.nft.history) > 0 || a.nft.historyErr != nil) && a.nft.historyLoadedID == id {
+	if (len(a.nft.history) > 0 || a.nft.historyLoadedID != "" ||
+		a.nft.historyErr != nil) && a.nft.historyLoadedID == id {
 		_ = a.loadNFTHistory(id)
 	}
 }

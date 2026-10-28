@@ -425,7 +425,7 @@ func (a *App) fetchOracleSource() {
 				// showing that source; leaving the old value beside "Done"
 				// reads as a fetch that stored nothing.
 				if strings.TrimSpace(a.oracle.queryID) == sourceID &&
-					(len(a.oracle.data) > 0 || a.oracle.dataErr != nil) {
+					(a.oracle.dataLoadedSource == sourceID || len(a.oracle.data) > 0 || a.oracle.dataErr != nil) {
 					limit := a.oracleQueryLimit()
 					a.clearOracleDataForAnotherRead(sourceID, limit)
 					_ = a.loadOracleData(sourceID, limit)

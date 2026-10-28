@@ -486,7 +486,7 @@ func (a *App) refresh() {
 		a.loadLottery()
 	case pageVoting:
 		a.loadVoting()
-		if len(a.voting.results) > 0 || a.voting.resultsErr != nil {
+		if len(a.voting.results) > 0 || a.voting.resultsLoadedID != "" || a.voting.resultsErr != nil {
 			id := strings.TrimSpace(a.voting.resultsSession)
 			a.clearTallyForAnotherSession(id)
 			_ = a.loadSessionResults(id)

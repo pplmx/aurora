@@ -840,16 +840,18 @@ func (a *App) refreshTokenAt(offset int) {
 	// Re-read it for the current subject; invalidate it first when the subject
 	// or query changed, so a failed read cannot leave the previous answer on
 	// screen under the new input.
-	if a.token.info != nil || a.token.infoErr != nil {
+	if a.token.info != nil || a.token.infoLoadedID != "" || a.token.infoErr != nil {
 		a.clearTokenInfoForAnotherSubject(id)
 		_ = a.loadTokenInfo(id)
 	}
-	if a.token.balance != "" || a.token.balanceErr != nil {
+	if a.token.balance != "" || a.token.balanceLoadedToken != "" ||
+		a.token.balanceLoadedOwner != "" || a.token.balanceErr != nil {
 		owner := strings.TrimSpace(a.token.balanceAccount)
 		a.clearTokenBalanceForAnotherRead(id, owner)
 		_ = a.loadTokenBalance(id, owner)
 	}
-	if len(a.token.history) > 0 || a.token.historyErr != nil {
+	if len(a.token.history) > 0 || a.token.historyLoadedToken != "" ||
+		a.token.historyLoadedOwner != "" || a.token.historyErr != nil {
 		limit, offset := a.tokenHistoryWindow()
 		owner := strings.TrimSpace(a.token.historyOwner)
 		a.clearTokenHistoryForAnotherRead(id, owner, limit, offset)
