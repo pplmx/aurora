@@ -574,3 +574,27 @@ func TestVoterListLoadsThePublicKeyIntoTheBallot(t *testing.T) {
 	require.Empty(t, app.voting.votePriv, "another voter's private key must not carry over")
 	require.True(t, tester.HasText("Selected voter public key"))
 }
+
+// TestManualVoterKeyChangeClearsThePrivateKey covers the remaining ballot entry
+// path: a public key typed directly into the field must not leave the previous
+// voter's private key and "Ballot recorded" sentence attached to it.
+func TestManualVoterKeyChangeClearsThePrivateKey(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Voting")
+	app.voting.tab = 1
+	tester.Frame()
+
+	app.voting.voteVoterPub = "voter-a"
+	tester.Frame()
+	app.voting.votePriv = "key-a"
+	app.voting.voteResult = okStatus("Ballot recorded.")
+	tester.Frame()
+
+	app.voting.voteVoterPub = "voter-b"
+	tester.Frame()
+
+	require.Empty(t, app.voting.votePriv, "another voter's private key must not survive")
+	require.Empty(t, app.voting.voteResult.text, "the previous voter's verdict must not survive")
+	require.False(t, tester.HasText("Ballot recorded."))
+}

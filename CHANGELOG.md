@@ -135,6 +135,10 @@ documented in their per-milestone ROADMAP files.
   when it returned no rows. Refresh, selecting another subject, casting the
   first ballot or fetching the first value re-reads those cards instead of
   leaving "No … loaded yet" beside a result that actually loaded.
+- **Typing another voter key clears the old ballot secret**: the Cast Vote card
+  now tracks the public key its private key and result belong to. A direct edit
+  to Voter Public Key drops the previous voter's secret and "Ballot recorded"
+  sentence, just as choosing a different voter row already did.
 - **A desktop write moves the context to the record it changed**: adding an
   Oracle source now targets that source in the action and reading cards,
   minting or transferring an NFT moves the holder fields with the asset and
