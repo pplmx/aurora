@@ -48,8 +48,11 @@ func newRouter(s *Server) http.Handler {
 	r.Use(apimw.ClientIP(config.RateLimitTrustedProxies()))
 	r.Use(apimw.Logger)
 	r.Use(apimw.Recovery)
-	r.Use(apimw.CORS(config.AllowedCORSOrigins()))
 	r.Use(apimw.SecurityHeaders)
+	// SecurityHeaders must stay outer to CORS: preflight requests return from
+	// CORS without reaching inner middleware, but still need the same
+	// no-store and browser-hardening policy as every other response.
+	r.Use(apimw.CORS(config.AllowedCORSOrigins()))
 
 	r.Get("/healthz", LivenessHandler)
 	r.Get("/readyz", ReadinessHandler(s.db))
