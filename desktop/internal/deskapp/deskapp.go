@@ -78,7 +78,8 @@ func (r *Runtime) DBPath() string { return r.dbPath }
 // its repositories instead of opening a second handle for a one-shot action.
 func (r *Runtime) Services() container.Services { return r.server.Services() }
 
-// Close stops the background loops and releases every SQLite handle.
+// Close stops the background loops, waits for in-flight work to exit, and then
+// releases every SQLite handle.
 func (r *Runtime) Close() error {
 	if r.stopScheduler != nil {
 		r.stopScheduler()

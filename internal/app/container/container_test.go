@@ -45,6 +45,10 @@ func TestOpenWiresAndCloses(t *testing.T) {
 	require.NoError(t, err)
 	require.DirExists(t, backupFile)
 
+	stopOutbox := c.StartOutboxDrainer(context.Background())
+	stopOutbox()
+	stopOutbox()
+
 	require.NoError(t, c.Close())
 	require.NoError(t, c.Close(), "Close must be idempotent for shutdown paths")
 }

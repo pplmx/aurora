@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Background workers finish before their stores close**: stopping the API or
+  desktop runtime used to cancel the Oracle scheduler and audit-outbox drainer
+  without waiting for an in-flight pass, then immediately close SQLite. Their
+  stop functions now cancel and join the worker, repeated stops are safe, and
+  restarting the scheduler waits for the previous pass to exit. The outbox also
+  attempts pending audit deliveries immediately at startup instead of waiting
+  for the first one-second tick.
 - **Height-stamped ledger appends fail closed when unwired**: the shared
   transaction bridge used by lottery draws and Oracle observations now rejects
   a missing writer, transaction manager or callback before dereferencing it.
