@@ -613,6 +613,8 @@ func TestCommandPaletteOpensAndNavigates(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, pageToken, app.page)
 	require.False(t, app.paletteOpen)
+	require.True(t, tester.Focused("Navigation"),
+		"the disposed palette search must hand focus to the sidebar")
 }
 
 // TestChineseCommandPaletteSearchesWhatItDisplays keeps the keyboard switcher
