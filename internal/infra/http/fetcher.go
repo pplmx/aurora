@@ -22,7 +22,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-const defaultHTTPTimeout = 10 * time.Second
+const (
+	defaultHTTPTimeout = 10 * time.Second
+	maxRedirects       = 10
+)
 
 var (
 	ErrRateLimited    = oracle.ErrRateLimited
@@ -40,6 +43,7 @@ var (
 	// Blocks a hostile source from probing 127.0.0.1, 169.254.169.254,
 	// RFC1918 space, etc., even when DNS changes between validation and dial.
 	ErrBlockedDestination = errors.New("blocked destination")
+	ErrTooManyRedirects   = errors.New("too many redirects")
 )
 
 // maxResponseBytes caps the size of any oracle-source response we read.
@@ -181,8 +185,12 @@ func redirectHostBlocked(host string) (bool, error) {
 // checkRedirectAllowed is the http.Client redirect policy: it refuses
 // redirects to non-HTTP(S) schemes and to addresses in blockedCIDRs (checked
 // by literal IP or by resolving the target hostname), while returning nil
-// (default behaviour: follow, cap at 10 hops) for everything else.
+// for everything else. Because a non-nil CheckRedirect replaces net/http's
+// default callback, this policy also enforces the standard ten-hop cap itself.
 func checkRedirectAllowed(req *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return fmt.Errorf("%w: stopped after %d redirects", ErrTooManyRedirects, maxRedirects)
+	}
 	scheme := strings.ToLower(req.URL.Scheme)
 	if scheme != "http" && scheme != "https" {
 		return fmt.Errorf("%w: scheme %q", ErrBlockedDestination, req.URL.Scheme)

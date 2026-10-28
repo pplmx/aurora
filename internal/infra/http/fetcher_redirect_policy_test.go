@@ -2,8 +2,10 @@ package http
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -50,5 +52,52 @@ func TestCheckRedirectAllowed(t *testing.T) {
 				t.Fatalf("want nil error for allowed redirect, got %v", err)
 			}
 		})
+	}
+}
+
+// TestCheckRedirectAllowed_CapsChain ensures the custom redirect policy also
+// enforces the standard ten-hop limit. net/http applies its default cap only
+// when CheckRedirect is nil, so installing a custom policy removed the bound
+// unless the callback enforces it itself.
+func TestCheckRedirectAllowed_CapsChain(t *testing.T) {
+	req := redirectReq("http://8.8.8.8/x")
+	if err := checkRedirectAllowed(req, make([]*http.Request, maxRedirects)); !errors.Is(err, ErrTooManyRedirects) {
+		t.Fatalf("redirect policy at ten hops = %v, want ErrTooManyRedirects", err)
+	}
+	if err := checkRedirectAllowed(req, make([]*http.Request, maxRedirects-1)); err != nil {
+		t.Fatalf("redirect policy below the hop cap = %v, want nil", err)
+	}
+}
+
+type redirectLoopTransport struct {
+	calls int
+}
+
+func (t *redirectLoopTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.calls++
+	return &http.Response{
+		StatusCode: http.StatusFound,
+		Header:     http.Header{"Location": []string{req.URL.String()}},
+		Body:       io.NopCloser(strings.NewReader("")),
+		Request:    req,
+	}, nil
+}
+
+func TestCheckRedirectAllowed_StopsClientLoop(t *testing.T) {
+	transport := &redirectLoopTransport{}
+	client := &http.Client{
+		Transport:     transport,
+		CheckRedirect: checkRedirectAllowed,
+	}
+	req, err := http.NewRequest(http.MethodGet, "http://8.8.8.8/loop", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := client.Do(req); !errors.Is(err, ErrTooManyRedirects) {
+		t.Fatalf("redirect loop error = %v, want ErrTooManyRedirects", err)
+	}
+	if transport.calls != maxRedirects {
+		t.Fatalf("redirect loop made %d requests, want %d", transport.calls, maxRedirects)
 	}
 }
