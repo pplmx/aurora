@@ -4,8 +4,8 @@ version: '3.8'
 #
 # The image ships only the CLI binary (cmd/aurora) — it has no HTTP listener,
 # so there are no port mappings here (the old 6666/8888 maps pointed at
-# nothing; ISS-192). The Web UI is a separate binary (cmd/api) that is not part
-# of this image — build and run it directly, see README.
+# nothing; ISS-192). The REST API is a separate binary (cmd/api) that is not
+# part of this image — build and run it directly, see README.
 #
 # The container runs a CLI command and exits, so this is a one-shot service,
 # not a daemon (restart: "no" — a restart: unless-stopped on an exiting

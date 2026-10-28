@@ -11,7 +11,7 @@
 #     --image=pplmx/aurora:latest -- /aurora lottery history
 #   kubectl logs job/aurora-lottery-history
 #
-# The Web UI is a separate binary (cmd/api), not part of this image — see
+# The REST API is a separate binary (cmd/api), not part of this image — see
 # README.
 apiVersion: v1
 kind: ConfigMap

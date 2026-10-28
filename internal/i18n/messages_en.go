@@ -292,8 +292,8 @@ var englishMessages = map[string]string{
 	"desktop.error.open_link_title":       "Aurora could not open that link",
 	"desktop.error.open_link_message":     "%s is not an aurora:// link to a page",
 	"desktop.error.already_running_title": "This Aurora is already running",
-	"desktop.error.already_running_message": "Aurora is already running with a different %s. " +
-		"This window keeps the data directory and Web UI it started with; " +
+	"desktop.error.already_running_message": "This launch asked for %s, but Aurora is already " +
+		"running with a different data directory. The running window cannot switch databases; " +
 		"quit Aurora first to launch with another one.",
 	"desktop.error.unsupported_file_title":   "Unsupported file",
 	"desktop.error.unsupported_file_message": "%s is not an Aurora lottery export (.json); nothing was imported",

@@ -29,7 +29,7 @@ Features:
   - VRF random number generation
   - Ed25519-signed voting and NFT transfers
   - Blockchain storage with integrity verification
-  - CLI, desktop and web interfaces
+  - CLI, native desktop window and REST API
   - Database migrations and backups
 
 Use "aurora <module> --help" for module commands (lottery, voting, oracle,

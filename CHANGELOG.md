@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Current interface copy no longer advertises the deleted Web UI**:
+  `aurora --help` now lists the CLI, native desktop window and REST API, and
+  the second-launch desktop dialog identifies the requested `--data-dir`
+  against the running database instead of mentioning a web page. The container
+  manifests now describe `cmd/api` as the JSON API it actually is; both
+  translations of the dialog and the root help line are pinned by tests.
 - **Oracle fetchers release their idle HTTP connections**: the SSRF-guarding
   transport wrapper hid the standard `CloseIdleConnections` hook, so closing
   the client was a silent no-op. API, desktop and CLI shutdown paths now close

@@ -287,9 +287,8 @@ var chineseMessages = map[string]string{
 	"desktop.error.open_link_title":       "Aurora 无法打开该链接",
 	"desktop.error.open_link_message":     "%s 不是指向页面的 aurora:// 链接",
 	"desktop.error.already_running_title": "Aurora 已在运行",
-	"desktop.error.already_running_message": "另一个 %s 的 Aurora 已在运行。" +
-		"当前窗口继续使用它启动时的数据目录与 Web 界面；" +
-		"如需换用其他路径，请先退出 Aurora。",
+	"desktop.error.already_running_message": "本次启动指定了 %s，但 Aurora 已在运行并使用" +
+		"另一个数据目录。当前窗口无法切换数据库；如需换用该路径，请先退出 Aurora。",
 	"desktop.error.unsupported_file_title":   "不支持的文件",
 	"desktop.error.unsupported_file_message": "%s 不是 Aurora 的抽奖导出文件（.json）；未导入任何内容",
 	"desktop.help.tagline":                   "区块链工具箱桌面壳",
