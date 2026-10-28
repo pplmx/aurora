@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/pplmx/aurora/internal/infra/sqlite"
@@ -26,8 +24,7 @@ type MigrationStatus struct {
 }
 
 func New(dbPath, migPath string) (*Migrator, error) {
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := utils.EnsureSQLiteDirectory(dbPath); err != nil {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
 

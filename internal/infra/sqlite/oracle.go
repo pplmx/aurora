@@ -3,8 +3,6 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,8 +23,7 @@ type OracleRepository struct {
 }
 
 func NewOracleRepository(path string) (*OracleRepository, error) {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := utils.EnsureSQLiteDirectory(path); err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
 	}
 

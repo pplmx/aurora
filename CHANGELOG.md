@@ -124,6 +124,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Disk-backed SQLite `file:` URIs receive the same owner-only boundary**:
+  permission hardening previously skipped every `file:` DSN, leaving a
+  percent-encoded or absolute disk database and its WAL, shared-memory, and
+  rollback-journal files at the process umask. Database locations now resolve
+  URI paths (including `localhost` and `mode=memory`) before directory
+  creation, permission tightening, and lottery-export alias checks. Memory and
+  empty-name temporary databases remain untouched.
 - **The desktop high-contrast setting now reaches the whole window**: the
   palette had a stronger border, text, muted-text, focus and selection set,
   but most custom-drawn cards, tables and controls still read the base colour

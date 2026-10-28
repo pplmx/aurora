@@ -2,6 +2,7 @@ package lotteryapp
 
 import (
 	"encoding/json"
+	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -167,6 +168,28 @@ func TestWriteRecordsToFile_RefusesTheLiveDatabase(t *testing.T) {
 	data, err := os.ReadFile(dbPath)
 	require.NoError(t, err)
 	assert.Equal(t, "not really sqlite", string(data), "a refused export must leave the database alone")
+}
+
+func TestWriteRecordsToFile_RefusesDiskFileURI(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "state with spaces", "aurora.db")
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{dbPath, dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"} {
+		require.NoError(t, os.WriteFile(path, []byte("live state"), 0o600))
+	}
+	dsn := "file:" + url.PathEscape(filepath.ToSlash(dbPath))
+	repo := pathLotteryRepo{path: dsn}
+
+	for _, dest := range []string{dbPath, dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"} {
+		_, err := WriteRecordsToFile(repo, dest)
+		require.Error(t, err, "exporting to %s through a file URI must be refused", dest)
+		assert.Contains(t, err.Error(), "live database")
+
+		data, readErr := os.ReadFile(dest)
+		require.NoError(t, readErr)
+		assert.Equal(t, "live state", string(data), "a refused export must leave the live file alone")
+	}
 }
 
 func TestWriteRecordsToFile_RefusesASymlinkAlias(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -73,8 +72,7 @@ func InitDB() (*sql.DB, error) {
 // does not publish a process-wide singleton, so a composition root can own the
 // handle and close it without affecting a CLI or test that still uses InitDB.
 func OpenDB(path string) (*sql.DB, error) {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := utils.EnsureSQLiteDirectory(path); err != nil {
 		return nil, err
 	}
 	// _txlock=immediate + _busy_timeout: the shared DB backs voting writes

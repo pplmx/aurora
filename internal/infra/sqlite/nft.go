@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/utils"
@@ -49,8 +47,7 @@ func (r *NFTRepository) GetDB() *sql.DB {
 }
 
 func NewNFTRepository(dbPath string) (*NFTRepository, error) {
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := utils.EnsureSQLiteDirectory(dbPath); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
