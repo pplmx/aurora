@@ -127,6 +127,52 @@ func TestWriteFileAtomic_WritesThroughASymlink(t *testing.T) {
 	assert.Equal(t, `["new"]`, string(data))
 }
 
+func TestWriteFileAtomic_CreatesTargetOfDanglingSymlink(t *testing.T) {
+	dir := t.TempDir()
+	targetDir := filepath.Join(dir, "real")
+	target := filepath.Join(targetDir, "new.json")
+	link := filepath.Join(dir, "latest.json")
+	require.NoError(t, os.MkdirAll(targetDir, 0o755))
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	require.NoError(t, WriteFileAtomic(link, []byte(`["new"]`), 0o644))
+
+	info, err := os.Lstat(link)
+	require.NoError(t, err)
+	assert.NotZero(t, info.Mode()&os.ModeSymlink, "the symlink itself must survive")
+	data, err := os.ReadFile(target)
+	require.NoError(t, err)
+	assert.Equal(t, `["new"]`, string(data))
+}
+
+func TestWriteFileAtomic_ResolvesRelativeTargetFromRealParent(t *testing.T) {
+	root := t.TempDir()
+	realParent := filepath.Join(root, "real", "current", "v2")
+	realTarget := filepath.Join(root, "real", "current", "sibling", "new.json")
+	logicalParent := filepath.Join(root, "logical")
+	require.NoError(t, os.MkdirAll(realParent, 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Dir(realTarget), 0o755))
+	if err := os.Symlink(realParent, logicalParent); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	realLink := filepath.Join(realParent, "latest.json")
+	if err := os.Symlink(filepath.Join("..", "sibling", "new.json"), realLink); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	logicalLink := filepath.Join(logicalParent, "latest.json")
+	require.NoError(t, WriteFileAtomic(logicalLink, []byte(`["new"]`), 0o644))
+
+	info, err := os.Lstat(realLink)
+	require.NoError(t, err)
+	assert.NotZero(t, info.Mode()&os.ModeSymlink, "the symlink itself must survive")
+	data, err := os.ReadFile(realTarget)
+	require.NoError(t, err)
+	assert.Equal(t, `["new"]`, string(data))
+}
+
 func TestWriteFileAtomic_RefusesADirectory(t *testing.T) {
 	dir := t.TempDir()
 	require.Error(t, WriteFileAtomic(dir, []byte("x"), 0o644))

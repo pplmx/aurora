@@ -40,15 +40,14 @@ var syncDirectory = func(path string) error {
 // complete new one or left untouched.
 //
 // An existing file keeps its permission bits. A symlink at path is resolved
-// first, so its target is updated instead of the link being replaced.
+// first, including a dangling link, so its target is updated instead of the
+// link being replaced.
 func WriteFileAtomic(path string, data []byte, perm fs.FileMode) error {
-	if info, err := os.Lstat(path); err == nil && info.Mode()&fs.ModeSymlink != 0 {
-		resolved, err := filepath.EvalSymlinks(path)
-		if err != nil {
-			return fmt.Errorf("resolve symlink %s: %w", path, err)
-		}
-		path = resolved
+	resolved, err := ResolveFinalSymlink(path)
+	if err != nil {
+		return fmt.Errorf("resolve symlink %s: %w", path, err)
 	}
+	path = resolved
 
 	mode := perm
 	existing := false

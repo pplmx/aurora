@@ -1134,36 +1134,6 @@ type restoreOperation struct {
 	expectedChecksum string
 }
 
-// resolveRestoreDestination follows a configured database's final symlink(s)
-// without requiring the target to exist. SQLite opens through a dangling
-// database symlink and creates the target on first use, so restore must replace
-// that target rather than atomically renaming over the link itself.
-func resolveRestoreDestination(path string) (string, error) {
-	const maxSymlinkDepth = 255
-	configuredPath := path
-	for range maxSymlinkDepth {
-		info, err := os.Lstat(path)
-		switch {
-		case os.IsNotExist(err):
-			return path, nil
-		case err != nil:
-			return "", fmt.Errorf("inspect restore destination %q: %w", path, err)
-		case info.Mode()&os.ModeSymlink == 0:
-			return path, nil
-		}
-
-		target, err := os.Readlink(path)
-		if err != nil {
-			return "", fmt.Errorf("read restore destination symlink %q: %w", path, err)
-		}
-		if !filepath.IsAbs(target) {
-			target = filepath.Join(filepath.Dir(path), target)
-		}
-		path = filepath.Clean(target)
-	}
-	return "", fmt.Errorf("resolve restore destination %q: too many levels of symbolic links", configuredPath)
-}
-
 // planRestore validates every database before any live file is read or
 // replaced. The archive and the running configuration must describe the same
 // set: silently restoring a subset would leave a multi-store installation with
@@ -1181,9 +1151,9 @@ func (s *BackupService) planRestore(backupDir string, metadata *BackupMetadata) 
 
 	operations := make([]restoreOperation, 0, len(names))
 	for _, name := range names {
-		destPath, err := resolveRestoreDestination(s.dbPaths[name])
+		destPath, err := utils.ResolveFinalSymlink(s.dbPaths[name])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("resolve restore destination %s: %w", name, err)
 		}
 		backupDBPath := filepath.Join(backupDir, name+".db")
 		backupInfo, err := os.Lstat(backupDBPath)

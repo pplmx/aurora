@@ -130,6 +130,12 @@ documented in their per-milestone ROADMAP files.
   using WAL/SHM/journal files beside the untouched target. Restore now follows
   the final link (including a not-yet-created target), atomically replaces the
   real database and clears the sidecars at that same location.
+- **Atomic writes create the target of a dangling symlink**: lottery exports
+  and desktop preference saves used to fail when the destination was a valid
+  symlink whose target did not exist yet. They now follow the final link chain
+  from its real parent directory, including relative `..` targets, and
+  atomically create or replace the target while preserving the link just like
+  a normal write would.
 - **Desktop file URLs preserve Windows UNC hosts and reject remote POSIX
   paths**: a launcher-provided `file://server/share/draws.json` used to lose
   the server segment and resolve against the local path, while Windows UNC
