@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Container shutdown is safe under concurrent `Close` calls**: repeated
+  closes were only ordered, not synchronized. The unexpected-listener and
+  signal-shutdown paths could therefore both close the same SQLite handles,
+  race on the closer slice, and invoke cleanup more than once. `Close` now uses
+  a single guarded operation, waits all callers for the same result, and is
+  nil-safe.
 - **Oracle redirects no longer forward custom credentials cross-origin**:
   `net/http` strips `Authorization` and `Cookie` when a redirect changes
   origin, but it does not recognise custom credentials such as the documented

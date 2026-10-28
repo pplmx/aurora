@@ -3,9 +3,13 @@ package container
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -111,4 +115,47 @@ func TestOpenRejectsCorruptLedger(t *testing.T) {
 	require.Nil(t, c)
 	require.ErrorContains(t, err, "initialize blockchain")
 	require.ErrorContains(t, err, "scan block row 1")
+}
+
+func TestCloseConcurrentRunsClosersOnce(t *testing.T) {
+	const callers = 32
+	wantErr := errors.New("close failed")
+	var closerCalls atomic.Int32
+	var closeEntered sync.Once
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	c := &Container{
+		closers: []func() error{func() error {
+			closerCalls.Add(1)
+			closeEntered.Do(func() { close(entered) })
+			<-release
+			return wantErr
+		}},
+	}
+
+	start := make(chan struct{})
+	results := make(chan error, callers)
+	var ready sync.WaitGroup
+	ready.Add(callers)
+	for range callers {
+		go func() {
+			ready.Done()
+			<-start
+			results <- c.Close()
+		}()
+	}
+	ready.Wait()
+	close(start)
+
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Error("Close never entered the closer")
+	}
+	close(release)
+
+	for range callers {
+		require.ErrorIs(t, <-results, wantErr)
+	}
+	require.Equal(t, int32(1), closerCalls.Load(), "concurrent Close calls must share one close operation")
 }

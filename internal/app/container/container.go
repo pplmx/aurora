@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/nft"
@@ -42,7 +43,9 @@ type Container struct {
 
 	EventStore *infraevents.SQLiteEventStore
 
-	closers []func() error
+	closers   []func() error
+	closeOnce sync.Once
+	closeErr  error
 }
 
 func (c *Container) addCloser(v interface{ Close() error }) {
@@ -50,16 +53,22 @@ func (c *Container) addCloser(v interface{ Close() error }) {
 }
 
 // Close releases every handle Open created. It matches the previous
-// api.Server.Close order and is safe to call more than once.
+// api.Server.Close order and is safe to call concurrently: the first caller
+// owns the close sequence, while later callers wait for it and receive the
+// same result.
 func (c *Container) Close() error {
-	var firstErr error
-	for _, closeFn := range c.closers {
-		if err := closeFn(); err != nil && firstErr == nil {
-			firstErr = err
-		}
+	if c == nil {
+		return nil
 	}
-	c.closers = nil
-	return firstErr
+	c.closeOnce.Do(func() {
+		for _, closeFn := range c.closers {
+			if err := closeFn(); err != nil && c.closeErr == nil {
+				c.closeErr = err
+			}
+		}
+		c.closers = nil
+	})
+	return c.closeErr
 }
 
 // Open wires the storage-facing application layer. It is all-or-nothing: a
