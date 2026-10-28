@@ -533,7 +533,7 @@ func (a *App) chooseNFT(list []NFTRow, index int) {
 }
 
 func (a *App) nftWrite(c *ui.Context) {
-	tabs(c, &a.nft.opTab, tr("Transfer"), tr("Burn"), tr("History"))
+	tabs(c, &a.nft.opTab, "NFT actions", tr("Transfer"), tr("Burn"), tr("History"))
 	switch a.nft.opTab {
 	case 0:
 		formCard(c, "Transfer", "Move an NFT to a new owner; the transfer is signed by the current one.", func() {

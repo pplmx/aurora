@@ -401,7 +401,7 @@ func (a *App) sidebar(c *ui.Context) {
 				item.ScrollIntoView()
 			}
 		})
-	}).FillWidth().Grow(1).Shrink(1).TrackScroll(&a.sidebarScroll)
+	}).Label(tr("Navigation")).FillWidth().Grow(1).Shrink(1).TrackScroll(&a.sidebarScroll)
 	a.sidebarReveal = false
 	if p, ok := pageByID(selected); ok {
 		a.setPage(p)

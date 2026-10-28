@@ -95,9 +95,9 @@ func quietButton(c *ui.Context, label string) ui.Element {
 // tabs draws a keyboard-operable tab row that wraps instead of pushing later
 // tabs past the window edge. MyGo's stock Tabs is deliberately non-shrinking;
 // the five Token write tabs already crossed the right edge at 2x text.
-func tabs(c *ui.Context, selected *int, labels ...string) {
+func tabs(c *ui.Context, selected *int, name string, labels ...string) {
 	parts := ui.TabsBase(c, selected, len(labels))
-	parts.List.FillWidth().Wrap().Gap(4).Children(func() {
+	parts.List.Label(tr(name)).FillWidth().Wrap().Gap(4).Children(func() {
 		for i, label := range labels {
 			on := i == *selected
 			tab := parts.Tab(i).Padding(textSize(c, 8), textSize(c, 12)).Radius(6).FocusRing(false)

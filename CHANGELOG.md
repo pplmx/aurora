@@ -17,7 +17,10 @@ documented in their per-milestone ROADMAP files.
   outcome is spoken once rather than silently repainted. The command palette
   now labels its dialog and focuses its search field immediately, while new
   windowless tests cover its typing path plus keyboard activation of whole-card
-  shortcuts and wrapping tabs.
+  shortcuts and wrapping tabs. The sidebar tree, each page's tab list, and the
+  separate date and time inputs in the session form now carry explicit names,
+  so assistive technology distinguishes Navigation, Token actions, Start time
+  hours and similar regions instead of announcing generic unlabelled groups.
 
 - **Registered voters stay visible after the one-time key card**: the desktop
   Voting page now lists stored voters with search, paging and ballot status;
