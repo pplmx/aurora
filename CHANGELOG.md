@@ -124,6 +124,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle fetchers release their idle HTTP connections**: the SSRF-guarding
+  transport wrapper hid the standard `CloseIdleConnections` hook, so closing
+  the client was a silent no-op. API, desktop and CLI shutdown paths now close
+  the fetcher they own, preventing keep-alive sockets from outliving the
+  process services that created them.
 - **Database restores preserve a symlinked `db.path`**: restore planned its
   temporary file, promotion rename and sidecar cleanup against the configured
   symlink, so a successful restore replaced the link itself while SQLite kept

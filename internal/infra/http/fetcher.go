@@ -232,6 +232,17 @@ type Fetcher struct {
 
 const defaultUserAgent = "Aurora/1.0"
 
+// Close releases idle keep-alive connections owned by this fetcher. It does
+// not interrupt an in-flight request; shutdown paths cancel those through
+// FetchDataContext before closing the owning container.
+func (f *Fetcher) Close() error {
+	if f == nil || f.client == nil {
+		return nil
+	}
+	f.client.CloseIdleConnections()
+	return nil
+}
+
 func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
 	return &RateLimiter{
 		requests: make(map[string][]time.Time),
@@ -389,6 +400,19 @@ type securityTransport struct {
 	transport http.RoundTripper
 	userAgent string
 	dialer    *net.Dialer
+}
+
+// CloseIdleConnections forwards the http.Client shutdown hook to the wrapped
+// transport. Without this method, Client.CloseIdleConnections treats the
+// security wrapper as unsupported and silently leaves every keep-alive socket
+// open.
+func (t *securityTransport) CloseIdleConnections() {
+	if t == nil || t.transport == nil {
+		return
+	}
+	if closer, ok := t.transport.(interface{ CloseIdleConnections() }); ok {
+		closer.CloseIdleConnections()
+	}
 }
 
 func newSecurityTransport(userAgent string) *securityTransport {

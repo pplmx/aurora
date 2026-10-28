@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pplmx/aurora/internal/domain/oracle"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 )
 
@@ -158,4 +159,31 @@ func TestCloseConcurrentRunsClosersOnce(t *testing.T) {
 		require.ErrorIs(t, <-results, wantErr)
 	}
 	require.Equal(t, int32(1), closerCalls.Load(), "concurrent Close calls must share one close operation")
+}
+
+type trackingOracleFetcher struct {
+	closeCalls atomic.Int32
+}
+
+func (*trackingOracleFetcher) FetchData(*oracle.DataSource) (*oracle.OracleData, error) {
+	return nil, errors.New("not used")
+}
+
+func (f *trackingOracleFetcher) Close() error {
+	f.closeCalls.Add(1)
+	return nil
+}
+
+func TestContainerOwnsOracleFetcher(t *testing.T) {
+	c := &Container{}
+	fetcher := &trackingOracleFetcher{}
+
+	c.ownOracleFetcher(fetcher)
+	require.Same(t, fetcher, c.OracleFetcher)
+	require.Equal(t, int32(0), fetcher.closeCalls.Load())
+
+	require.NoError(t, c.Close())
+	require.NoError(t, c.Close())
+	require.Equal(t, int32(1), fetcher.closeCalls.Load(),
+		"the container must own the fetcher lifecycle exactly once")
 }
