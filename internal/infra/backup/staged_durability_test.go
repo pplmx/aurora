@@ -167,6 +167,53 @@ func TestRestoreSyncsPreRestoreSnapshotBeforePromotion(t *testing.T) {
 	requireTestCount(t, livePath, 2, 1, "the live database must remain un-promoted")
 }
 
+// TestRestoreRejectsArchiveMutationAfterVerification proves Restore binds the
+// bytes it promotes to the metadata it verified. The pre-restore snapshot sync
+// is a deterministic point after Verify and before the archive is copied.
+func TestRestoreRejectsArchiveMutationAfterVerification(t *testing.T) {
+	dir := t.TempDir()
+	livePath := filepath.Join(dir, "live", "aurora.db")
+	makeTestDB(t, livePath)
+	backupPath := filepath.Join(dir, "backup")
+	svc := NewBackupService(map[string]string{"aurora": livePath})
+	_, err := svc.Create(context.Background(), backupPath)
+	require.NoError(t, err)
+	insertTestRow(t, livePath, 2)
+
+	prePath := filepath.Join(backupPath+".pre_restore", "aurora.db")
+	backupDB := filepath.Join(backupPath, "aurora.db")
+	backupMeta := filepath.Join(backupPath, "metadata.json")
+	replacementMetaDir := filepath.Join(dir, "replacement-meta")
+	require.NoError(t, os.MkdirAll(replacementMetaDir, 0o700))
+	writeMeta(t, replacementMetaDir, "aurora")
+	replacementMeta := filepath.Join(replacementMetaDir, "metadata.json")
+	originalSyncFile := syncFileFn
+	t.Cleanup(func() { syncFileFn = originalSyncFile })
+	var mutationErr error
+	mutated := false
+	syncFileFn = func(f *os.File) error {
+		if !mutated && filepath.Clean(f.Name()) == filepath.Clean(prePath) {
+			mutated = true
+			mutationErr = os.WriteFile(backupDB, []byte("replaced after verification"), 0o600)
+			if mutationErr == nil {
+				mutationErr = os.Remove(backupMeta)
+			}
+			if mutationErr == nil {
+				mutationErr = os.Rename(replacementMeta, backupMeta)
+			}
+		}
+		return originalSyncFile(f)
+	}
+
+	err = svc.Restore(context.Background(), backupPath)
+	require.NoError(t, mutationErr)
+	require.True(t, mutated, "the test must mutate the archive between Verify and copy")
+	require.ErrorContains(t, err, "checksum mismatch")
+
+	syncFileFn = originalSyncFile
+	requireTestCount(t, livePath, 2, 1, "unverified archive bytes must not replace the live database")
+}
+
 // TestRestoreSyncsPreRestoreDirectoryBeforePromotion proves the hidden safety
 // copy's directory entries are durable before the archive replaces live data.
 func TestRestoreSyncsPreRestoreDirectoryBeforePromotion(t *testing.T) {
