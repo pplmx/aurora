@@ -124,6 +124,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **The desktop protects SQLite rollback journals at startup**: application
+  data hardening covered the database, WAL, shared-memory file and log, but
+  still constructed its own partial sidecar list. It now delegates to the
+  shared SQLite boundary, so an `aurora.db-journal` left by a rollback is also
+  tightened to `0600` and sidecars of a symlinked database are found at their
+  real location.
 - **Lottery exports refuse the live rollback journal too**: the shared CLI and
   desktop export guard covered the database and its WAL/SHM files, but a
   destination named `aurora.db-journal` could still replace a hot rollback

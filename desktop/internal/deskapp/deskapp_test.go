@@ -226,6 +226,37 @@ func TestStartKeepsApplicationFilesPrivate(t *testing.T) {
 	}
 }
 
+func TestKeepApplicationFilesPrivateIncludesRollbackJournal(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows protects the per-user AppData tree with ACLs, not Unix mode bits")
+	}
+
+	dbPath := filepath.Join(t.TempDir(), "aurora.db")
+	logPath := filepath.Join(filepath.Dir(dbPath), "logs")
+	require.NoError(t, os.Mkdir(logPath, 0o700))
+
+	paths := []string{
+		dbPath,
+		dbPath + "-wal",
+		dbPath + "-shm",
+		dbPath + "-journal",
+		filepath.Join(logPath, "aurora.log"),
+	}
+	for _, path := range paths {
+		require.NoError(t, os.WriteFile(path, []byte("sensitive"), 0o644))
+		require.NoError(t, os.Chmod(path, 0o644))
+	}
+
+	require.NoError(t, keepApplicationFilesPrivate(dbPath, logPath))
+
+	for _, path := range paths {
+		info, err := os.Stat(path)
+		require.NoError(t, err)
+		assert.Equal(t, os.FileMode(0o600), info.Mode().Perm(),
+			"%s can contain credentials or request details", path)
+	}
+}
+
 func TestBackupStamp(t *testing.T) {
 	got := BackupStamp(time.Date(2026, 10, 21, 13, 4, 5, 0, time.UTC))
 	require.Equal(t, "20261021-130405", got)
