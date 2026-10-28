@@ -15,6 +15,7 @@ func TestIsBlockedHost(t *testing.T) {
 	}{
 		{"127.0.0.1", true},
 		{"127.0.0.1:8080", true},
+		{"[::1]", true},
 		{"[::1]:8080", true},
 		{"169.254.169.254", true},
 		{"10.0.0.5", true},
@@ -22,7 +23,11 @@ func TestIsBlockedHost(t *testing.T) {
 		{"192.168.1.1", true},
 		{"100.64.0.1", true},
 		{"0.0.0.0", true},
+		{"203.0.113.1", true},
+		{"224.0.0.1", true},
+		{"[2002:7f00:1::]", true},
 		{"8.8.8.8", false},
+		{"[2606:4700:4700::1111]", false},
 		{"93.184.216.34", false},
 		{"", false},
 	}
@@ -52,6 +57,10 @@ func TestRedirectHostBlocked(t *testing.T) {
 
 	if got, err := redirectHostBlocked("8.8.8.8"); err != nil || got {
 		t.Fatalf("redirectHostBlocked(8.8.8.8) = (%v, %v), want (false, nil)", got, err)
+	}
+
+	if got, err := redirectHostBlocked("[2606:4700:4700::1111]"); err != nil || got {
+		t.Fatalf("redirectHostBlocked(public IPv6) = (%v, %v), want (false, nil)", got, err)
 	}
 
 	// A host that cannot be resolved must be treated as blocked, never followed.

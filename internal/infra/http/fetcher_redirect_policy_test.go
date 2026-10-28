@@ -35,8 +35,12 @@ func TestCheckRedirectAllowed(t *testing.T) {
 		{"RFC1918 private IP", "http://10.0.0.5/x", true},
 		{"cloud metadata IP", "http://169.254.169.254/latest", true},
 		{"link-local IPv6", "http://[fe80::1]/x", true},
+		{"IPv4 multicast", "http://224.0.0.1/x", true},
+		{"documentation IP", "http://203.0.113.1/x", true},
+		{"6to4 loopback", "http://[2002:7f00:1::]/x", true},
 		{"localhost hostname (DNS)", "http://localhost:9/secret", true},
 		{"public IP allowed", "http://8.8.8.8/x", false},
+		{"public IPv6 allowed", "http://[2606:4700:4700::1111]/x", false},
 	}
 
 	for _, tt := range tests {
