@@ -1011,10 +1011,22 @@ func (a *App) busyBar(c *ui.Context) {
 			a.busyAnnouncement, a.busySlowAnnounced = text, true
 		}
 	}
-	bar := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
-		Background(c.Theme().SurfaceHover).BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
+	bar := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space3).
+		Padding(space2+2, space3+2).Radius(radiusSmall).
+		BorderWidth(0, 0, 0, 2).BorderColor(ui.Hex(aurora).Alpha(0.7)).Children(func() {
 		ui.Spinner(c)
-		ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
+		ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
+			Grow(1).Shrink(1).MinWidth(0)
+	})
+	// The strip shares the status line's shape: a wash that fades to the right
+	// and a lit left edge, so "working" and "finished" read as the same kind of
+	// message in the same place instead of two different banners.
+	bar.Draw(func(p *ui.Painter, r ui.Rect) {
+		tint := ui.Hex(aurora).Alpha(0.10)
+		p.FillGradient(r, ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
+			{Color: tint, At: 0},
+			{Color: tint.Alpha(0.25), At: 0.9},
+		}}, radiusSmall)
 	})
 	bar.Role(ui.RoleStatus).Label(text)
 	if a.busyAnnouncement != "" {

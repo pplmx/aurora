@@ -98,6 +98,11 @@ func localizeServiceErrorMessage(message string) string {
 // tinted by the outcome: colour alone is not a signal for a reader with a
 // colour-vision difference, and a one-line sentence was easy to miss above a
 // page of cards.
+//
+// It is drawn as a full-width strip with a lit left edge rather than a rounded
+// badge over a solid border: the strip sits directly under the header band, so
+// a heavy outline there fought the band's own hairline. The word, the tint and
+// the edge say the same thing in three ways.
 func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) bool {
 	if s.empty() {
 		return false
@@ -108,15 +113,24 @@ func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) bool 
 		label, tone, tint = "Failed", ui.Hex(auroraRed), ui.Hex(errorTint)
 	}
 	spoken := statusAnnouncementText(s)
-	row := ui.Row(c).Key(scope).FillWidth().AlignItems(ui.Center).Gap(10).Padding(10).Radius(8).
-		Background(tint).BorderWidth(1).BorderColor(tone).
+	row := ui.Row(c).Key(scope).FillWidth().AlignItems(ui.Center).Gap(space3).
+		Padding(space2+2, space3+2).Radius(radiusSmall).
+		BorderWidth(0, 0, 0, 2).BorderColor(tone).
 		Role(ui.RoleStatus).Label(spoken)
+	row.Draw(func(p *ui.Painter, r ui.Rect) {
+		p.FillGradient(r, ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
+			{Color: tint, At: 0},
+			{Color: tint.Alpha(0.35), At: 0.9},
+		}}, radiusSmall)
+	})
 	announceStatusChange(c, row, s, spoken)
 	row.Children(func() {
-		badge(c, label, tone, c.Theme().Background).Role(ui.RoleNone)
-		ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).Role(ui.RoleNone)
+		statusDot(c, tone, 7)
+		ui.Text(c, tr(label)).FontSize(textSize(c, 11.5)).FontWeight(700).
+			TextColor(tone).SingleLine().Shrink(0).Role(ui.RoleNone)
+		ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
+			Grow(1).Shrink(1).MinWidth(0).Role(ui.RoleNone)
 		if dismiss != nil {
-			ui.Spacer(c)
 			if quietButton(c, "Dismiss").Clicked() {
 				dismiss()
 				dismissed = true
