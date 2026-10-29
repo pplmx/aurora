@@ -656,33 +656,37 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 	a.oracleHealthRecords(c, health, names)
 }
 
-// oracleHealthRecords preserves every counter and the complete last error when
-// the five-column health table no longer fits at enlarged text.
+// oracleHealthRecords draws the scheduler's per-source counters as records.
+// Health lives in the half-width workbench column, where five columns could not
+// keep "Attempts", "Successes", "Failures" and a verbatim error legible even at
+// normal text.
 func (a *App) oracleHealthRecords(c *ui.Context, health []HealthRow, names map[string]string) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for _, h := range health {
-			h := h
-			name := oracleHealthName(h, names)
-			recordPanel(c, func() {
-				ui.Text(c, name).FontSize(textSize(c, 13)).Bold().
-					TextColor(c.Theme().Text)
-				ui.Row(c).Wrap().Gap(18).Children(func() {
-					healthMetric(c, "Attempts", h.Attempts, c.Theme().Text)
-					healthMetric(c, "Successes", h.Successes, ui.Hex(auroraGreen))
-					tone := c.Theme().TextMuted
-					if h.Failures > 0 {
-						tone = ui.Hex(auroraRed)
-					}
-					healthMetric(c, "Failures", h.Failures, tone)
-				})
-				recordField(c, "Last error", valueOr(h.LastError))
-			})
-		}
-	})
+	collectionList(c, "Feed Health",
+		collectionRecords(health, func(h HealthRow) collectionRecord {
+			return healthCollectionRecord(h, names)
+		}), -1, nil)
 }
 
-func healthMetric(c *ui.Context, label string, value int, tone ui.Color) {
-	recordMetric(c, label, strconv.Itoa(value), tone)
+// healthCollectionRecord projects one source's scheduler counters onto a
+// record. Failures take the error hue only when there are some: a zero painted
+// red would read as a problem that is not there.
+func healthCollectionRecord(h HealthRow, names map[string]string) collectionRecord {
+	failureTone := ui.Color{}
+	if h.Failures > 0 {
+		failureTone = ui.Hex(auroraRed)
+	}
+	record := collectionRecord{
+		title: oracleHealthName(h, names),
+		facts: []collectionFact{
+			{label: "Attempts", value: strconv.Itoa(h.Attempts)},
+			{label: "Successes", value: strconv.Itoa(h.Successes), tone: ui.Hex(auroraGreen)},
+			{label: "Failures", value: strconv.Itoa(h.Failures), tone: failureTone},
+		},
+	}
+	if err := strings.TrimSpace(h.LastError); err != "" {
+		record.fields = append(record.fields, collectionField{label: "Last error", value: err})
+	}
+	return record
 }
 
 func oracleHealthName(h HealthRow, names map[string]string) string {

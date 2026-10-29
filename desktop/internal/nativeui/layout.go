@@ -1,7 +1,6 @@
 package nativeui
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -140,33 +139,6 @@ func selectableRecordPanel(c *ui.Context, selected bool, label string, fn func()
 		ui.Column(c).FillWidth().Gap(space1 + 1).Children(fn)
 	})
 	return panel
-}
-
-// recordChoiceLabel tells assistive technology which record a panel selects,
-// and changes once the panel is chosen so the state is not left to colour.
-func recordChoiceLabel(name string, selected bool) string {
-	if selected {
-		return fmt.Sprintf(tr("Selected %s"), name)
-	}
-	return fmt.Sprintf(tr("Select %s"), name)
-}
-
-// recordField stacks a label over a value that may wrap. Unlike a table cell,
-// it does not need an ellipsis to keep the next column visible.
-func recordField(c *ui.Context, label, value string) {
-	ui.Column(c).FillWidth().Gap(2).Children(func() {
-		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(c.Theme().TextMuted)
-		ui.Text(c, value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
-	})
-}
-
-// recordMetric draws one compact fact inside a selectable record. It is the
-// shared shape behind health counters, token symbols and exact supplies.
-func recordMetric(c *ui.Context, label, value string, tone ui.Color) {
-	ui.Column(c).Gap(1).Children(func() {
-		ui.Text(c, tr(label)).FontSize(textSize(c, 10)).TextColor(c.Theme().TextMuted)
-		ui.Text(c, value).FontSize(textSize(c, 15)).Bold().TextColor(tone)
-	})
 }
 
 // metricCard draws one counter: a label, the value, and what it counts. A

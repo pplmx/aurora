@@ -1275,16 +1275,15 @@ func (a *App) votingResultsBody(c *ui.Context) {
 		// A bar cannot wrap a long name at enlarged text, so the tally falls
 		// back to plain records: the same numbers, with the comparison made by
 		// reading them instead of by the bar lengths.
-		ui.Column(c).FillWidth().Gap(10).Children(func() {
-			for _, result := range results {
-				result := result
-				recordPanel(c, func() {
-					ui.Text(c, valueOr(result.Name)).FontSize(textSize(c, 13)).Bold().
-						TextColor(c.Theme().Text)
-					recordMetric(c, "Votes", strconv.Itoa(result.Votes), c.Theme().Text)
-				})
-			}
-		})
+		collectionList(c, "Voting results",
+			collectionRecords(results, func(result ResultRow) collectionRecord {
+				return collectionRecord{
+					title: valueOr(result.Name),
+					facts: []collectionFact{
+						{label: "Votes", value: strconv.Itoa(result.Votes), tone: ui.Hex(votingAccent)},
+					},
+				}
+			}), -1, nil)
 	}
 }
 

@@ -42,13 +42,15 @@ func TestTokenSearchNarrowsTheList(t *testing.T) {
 	require.True(t, tester.HasText("No tokens match “nothing-like-this”."))
 	require.Equal(t, []string{fmt.Sprintf(tr("%d results."), 0)}, tester.Announcements())
 
-	// Choosing a row from the filtered list selects that token.
+	// Choosing a row from the filtered list selects that token, and the choice
+	// is spoken because it refills the page's forms.
 	app.token.search = "Gold"
 	tester.Frame()
 	tester.Announcements()
 	require.NoError(t, tester.Click("Gold"))
 	tester.Frame()
 	require.Equal(t, "t1", app.token.tokenID)
+	require.Equal(t, []string{tr("Selected Gold")}, tester.Announcements())
 
 	app.token.search = ""
 	tester.Frame()
