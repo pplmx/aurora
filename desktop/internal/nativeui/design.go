@@ -186,7 +186,7 @@ func hoverRaise(c *ui.Context, b ui.Element, hovered bool) ui.Element {
 // documents a chord where the action is, so the shortcut is discoverable
 // without opening Settings.
 func shortcutCap(c *ui.Context, chord string) ui.Element {
-	cap := ui.Row(c).Padding(2, 5).Radius(4).Background(c.Theme().Surface).
+	cap := ui.Row(c).Padding(2, space1+1).Radius(radiusSmall - 4).Background(c.Theme().Surface).
 		BorderWidth(1).BorderColor(c.Theme().Border).Shrink(0)
 	cap.Children(func() {
 		ui.Text(c, chord).FontSize(textSize(c, 9.5)).FontWeight(600).
