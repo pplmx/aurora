@@ -683,6 +683,51 @@ func TestSelectedSourceShowsItsEndpointAndInterval(t *testing.T) {
 	require.Equal(t, endpoint, tester.Clipboard())
 }
 
+// TestOracleSourceActionsRequireASourceID keeps an empty action field from
+// sending an empty id to Enable/Disable/Fetch or opening a Delete dialog with
+// no target. Once a source is chosen, the same controls become usable.
+func TestOracleSourceActionsRequireASourceID(t *testing.T) {
+	fake := &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc", Enabled: true}}}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	require.True(t, tester.HasText("Choose a source above or enter its ID first."),
+		"the action field must say why the buttons are disabled")
+	for _, label := range []string{"Enable", "Disable", "Fetch now", "Delete"} {
+		require.NoError(t, tester.Click(label))
+		tester.Frame()
+		require.Zero(t, fake.oracleEnableCalls, "%s must not run without an id", label)
+		require.Zero(t, fake.oracleFetchCalls, "%s must not run without an id", label)
+		require.Zero(t, fake.oracleDeleteCalls, "%s must not run without an id", label)
+		require.False(t, app.oracle.askDelete, "Delete must not open an empty confirmation")
+	}
+
+	app.oracle.fetchID = "s1"
+	tester.Frame()
+	require.NoError(t, tester.Click("Enable"))
+	tester.Frame()
+	require.Equal(t, 1, fake.oracleEnableCalls)
+	require.True(t, fake.lastSourceEnabled)
+	require.Equal(t, "s1", fake.lastOracleActionID)
+
+	require.NoError(t, tester.Click("Disable"))
+	tester.Frame()
+	require.Equal(t, 2, fake.oracleEnableCalls)
+	require.False(t, fake.lastSourceEnabled)
+
+	require.NoError(t, tester.Click("Fetch now"))
+	tester.Frame()
+	require.Equal(t, 1, fake.oracleFetchCalls)
+	require.Equal(t, "s1", fake.lastOracleActionID)
+
+	require.NoError(t, tester.Click("Delete"))
+	tester.Frame()
+	require.True(t, app.oracle.askDelete)
+	require.Zero(t, fake.oracleDeleteCalls, "Delete must still wait for confirmation")
+}
+
 // TestReadingsStageLoadsTheChosenSource pins the Oracle equivalent: selecting
 // a source and opening Readings queries that source without another click.
 func TestReadingsStageLoadsTheChosenSource(t *testing.T) {

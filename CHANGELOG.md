@@ -198,6 +198,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Oracle source actions require a source**: Enable, Disable, Fetch now and
+  Delete were clickable before a source was chosen, so the window could send
+  an empty id or open a Delete dialog with no target. The four controls now
+  share the action field's readiness state, include a visible hint, and the
+  handlers defensively refuse an empty id.
 - **macOS keeps the desktop file shortcuts**: the native menu was reduced to
   platform roles, but Cmd+E/I/B still relied on it even though Aurora no longer
   installed those items there. The window now registers export, import and
