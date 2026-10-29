@@ -209,7 +209,11 @@ func (a *App) commandPalette(c *ui.Context) {
 	panelWidth := min(520*textScale(c), width-100)
 	panel := ui.Column(c).Width(panelWidth).MaxHeight(height-40).Padding(18).Gap(10).Radius(14).
 		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
-		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
+		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5))
+	// A lit top edge ties the palette to the accent that opened it, and marks
+	// it as the one floating surface above the page rather than another card.
+	accentHairline(c, panel, ui.Hex(aurora))
+	panel.Children(func() {
 		heading(c, tr("Jump to"), 17, 2)
 		search := searchField(c, &a.paletteQuery, "Search pages").AutoFocus()
 		submitted := search.Submitted()
@@ -261,9 +265,21 @@ func (a *App) commandPalette(c *ui.Context) {
 		// The palette is the one surface a reader opens without a pointer;
 		// printing its three keys here means the arrow/Enter/Escape model is
 		// learned where it is used instead of only in the Settings reference.
+		// Each chord gets a key cap so the three read as keys rather than as a
+		// sentence of arrows.
 		ui.Row(c).FillWidth().Height(1).Background(c.Theme().Border)
-		ui.Text(c, tr("↑↓ move · Enter open · Esc close")).FontSize(textSize(c, 10)).
-			TextColor(c.Theme().TextMuted).SingleLine()
+		ui.Row(c).FillWidth().Wrap().AlignItems(ui.Center).Gap(space2).Children(func() {
+			for i, hint := range []struct{ key, label string }{
+				{"↑↓", "move"}, {"Enter", "open"}, {"Esc", "close"},
+			} {
+				if i > 0 {
+					ui.Text(c, "·").FontSize(textSize(c, 10)).TextColor(c.Theme().TextMuted).Shrink(0)
+				}
+				shortcutCap(c, hint.key)
+				ui.Text(c, tr(hint.label)).FontSize(textSize(c, 10)).
+					TextColor(c.Theme().TextMuted).SingleLine().Shrink(0)
+			}
+		})
 	})
 	// Arrow keys move the highlight; Enter is handled by SearchField above.
 	if panel.OverlayShortcut(0, ui.KeyDown) {
