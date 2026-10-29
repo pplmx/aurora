@@ -146,6 +146,7 @@ func TestNumericFormLimitsAreBounded(t *testing.T) {
 	app.ShowPage("Token")
 	tester.Frame()
 
+	app.token.tokenID = "t1"
 	require.NoError(t, tester.Click("Load History"))
 	tester.Frame()
 	require.Equal(t, 50, fake.tokenHistoryLimit, "the default page size is 50")
@@ -157,6 +158,7 @@ func TestNumericFormLimitsAreBounded(t *testing.T) {
 
 	app.ShowPage("Oracle")
 	app.oracle.tab = 2
+	app.oracle.queryID = "s1"
 	tester.Frame()
 	require.NoError(t, tester.Click("Query"))
 	tester.Frame()

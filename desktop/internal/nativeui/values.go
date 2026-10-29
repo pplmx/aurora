@@ -213,3 +213,15 @@ func allSet(values ...string) bool {
 	}
 	return true
 }
+
+// rejectIncomplete keeps a direct handler call from bypassing the disabled
+// action that normally guards the same form. The inline readiness checks in
+// views handle the normal pointer and keyboard paths; this is the defensive
+// path for a stale frame or an in-process caller.
+func rejectIncomplete(status *statusLine, message string, values ...string) bool {
+	if allSet(values...) {
+		return false
+	}
+	*status = errorStatus(message)
+	return true
+}

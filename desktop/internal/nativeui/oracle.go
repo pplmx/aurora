@@ -595,6 +595,9 @@ func (a *App) addOracleSource() {
 		Headers:  strings.TrimSpace(a.oracle.addHeaders),
 		Interval: int(a.oracle.addInterval),
 	}
+	if rejectIncomplete(&a.oracle.status, "Source name and URL are required.", input.Name, input.URL) {
+		return
+	}
 	a.runWrite("Adding source…", func() func() {
 		src, err := a.services.AddOracleSource(input)
 		return func() {
@@ -744,15 +747,8 @@ func (a *App) oracleReadBody(c *ui.Context) {
 		ui.NumberInput(c, &a.oracle.queryLim, 1, maxListLimit, 1)
 	})
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Query").Clicked() {
-			sourceID := strings.TrimSpace(a.oracle.queryID)
-			limit := a.oracleQueryLimit()
-			a.clearOracleDataForAnotherRead(sourceID, limit)
-			if err := a.loadOracleData(sourceID, limit); err != nil {
-				a.oracle.status = errStatus(err)
-			} else {
-				a.oracle.status = statusLine{}
-			}
+		if secondaryButton(c, "Query").Disabled(!allSet(a.oracle.queryID)).Clicked() {
+			a.readOracleData()
 		}
 	})
 	if a.oracle.dataErr != nil &&
@@ -776,6 +772,20 @@ func (a *App) oracleReadBody(c *ui.Context) {
 				}
 			})
 		}
+	}
+}
+
+func (a *App) readOracleData() {
+	sourceID := strings.TrimSpace(a.oracle.queryID)
+	if rejectIncomplete(&a.oracle.status, "Source ID is required for this read.", sourceID) {
+		return
+	}
+	limit := a.oracleQueryLimit()
+	a.clearOracleDataForAnotherRead(sourceID, limit)
+	if err := a.loadOracleData(sourceID, limit); err != nil {
+		a.oracle.status = errStatus(err)
+	} else {
+		a.oracle.status = statusLine{}
 	}
 }
 
@@ -918,14 +928,8 @@ func (a *App) oracleLatest(c *ui.Context) {
 func (a *App) oracleLatestBody(c *ui.Context) {
 	field(c, "Source ID", &a.oracle.latestID)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Get Latest").Clicked() {
-			sourceID := strings.TrimSpace(a.oracle.latestID)
-			a.clearOracleLatestForAnotherSource(sourceID)
-			if err := a.loadOracleLatest(sourceID); err != nil {
-				a.oracle.status = errStatus(err)
-			} else {
-				a.oracle.status = statusLine{}
-			}
+		if secondaryButton(c, "Get Latest").Disabled(!allSet(a.oracle.latestID)).Clicked() {
+			a.readOracleLatest()
 		}
 	})
 	if a.oracle.latestErr != nil &&
@@ -934,5 +938,18 @@ func (a *App) oracleLatestBody(c *ui.Context) {
 	}
 	if l := a.oracle.latest; l != nil {
 		readout(c, []readoutRow{{"Value", l.Value}, {"Block", strconv.FormatInt(l.BlockHeight, 10)}})
+	}
+}
+
+func (a *App) readOracleLatest() {
+	sourceID := strings.TrimSpace(a.oracle.latestID)
+	if rejectIncomplete(&a.oracle.status, "Source ID is required for this read.", sourceID) {
+		return
+	}
+	a.clearOracleLatestForAnotherSource(sourceID)
+	if err := a.loadOracleLatest(sourceID); err != nil {
+		a.oracle.status = errStatus(err)
+	} else {
+		a.oracle.status = statusLine{}
 	}
 }

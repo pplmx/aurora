@@ -2,6 +2,7 @@ package nativeui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -151,6 +152,33 @@ func quietButton(c *ui.Context, label string) ui.Element {
 		ui.Text(c, label).FontSize(textSize(c, 12)).SingleLine()
 	})
 	return b
+}
+
+// actionSubject names the record the current action card acts on. Token's
+// write column established this pattern; sharing it keeps a page from making
+// the operator infer a subject from a form field that may have changed.
+func actionSubject(c *ui.Context, id, emptyBadge, emptyHint, copyLabel, copyToast string) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
+			Background(ui.Hex(warningTint)).BorderWidth(1).BorderColor(ui.Hex(auroraAmber)).
+			Children(func() {
+				badge(c, emptyBadge, ui.Hex(auroraAmber), c.Theme().Background)
+				ui.Text(c, tr(emptyHint)).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
+			})
+		return
+	}
+	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
+		Background(c.Theme().Background).Children(func() {
+		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).
+			SingleLine().Shrink(0)
+		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).
+			SingleLine().Ellipsis("…").Tooltip(id)
+		if quietButton(c, copyLabel).Clicked() {
+			c.Services().WriteClipboard(id)
+			c.Toast(tr(copyToast))
+		}
+	})
 }
 
 // tabs draws a keyboard-operable tab row that wraps instead of pushing later

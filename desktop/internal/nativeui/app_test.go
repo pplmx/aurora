@@ -79,43 +79,45 @@ type fakeServices struct {
 
 	// Counters for the reads a successful write is expected to repeat, so a
 	// test can prove the page refreshes what it shows after a write.
-	listTokensCalls     int
-	lastTokenListLimit  int
-	lastTokenListOffset int
-	voterListCalls      int
-	lastVoterLimit      int
-	lastVoterOffset     int
-	candidateListCalls  int
-	lastCandidateLimit  int
-	lastCandidateOffset int
-	candidateNameCalls  int
-	lastRosterIDs       []string
-	sessionListCalls    int
-	lastSessionLimit    int
-	lastSessionOffset   int
-	startSessionCalls   int
-	endSessionCalls     int
-	sourceListCalls     int
-	oracleSourceCalls   int
-	oracleEnableCalls   int
-	oracleFetchCalls    int
-	oracleDeleteCalls   int
-	lastSourceLimit     int
-	lastSourceOffset    int
-	lastSourceEnabled   bool
-	lastOracleActionID  string
-	dashboardCalls      int
-	blockListCalls      int
-	lastBlockSearch     string
-	lastBlockLimit      int
-	lastBlockOffset     int
-	oracleHealthCalls   int
-	tokenInfoCalls      int
-	tokenBalanceCalls   int
-	tokenHistoryCalls   int
-	tokenAllowanceCalls int
-	burnTokenCalls      int
-	getNFTCalls         int
+	listTokensCalls        int
+	lastTokenListLimit     int
+	lastTokenListOffset    int
+	voterListCalls         int
+	candidateRegisterCalls int
+	lastVoterLimit         int
+	lastVoterOffset        int
+	candidateListCalls     int
+	lastCandidateLimit     int
+	lastCandidateOffset    int
+	candidateNameCalls     int
+	lastRosterIDs          []string
+	sessionListCalls       int
+	lastSessionLimit       int
+	lastSessionOffset      int
+	startSessionCalls      int
+	endSessionCalls        int
+	sourceListCalls        int
+	oracleSourceCalls      int
+	oracleEnableCalls      int
+	oracleFetchCalls       int
+	oracleDeleteCalls      int
+	lastSourceLimit        int
+	lastSourceOffset       int
+	lastSourceEnabled      bool
+	lastOracleActionID     string
+	dashboardCalls         int
+	blockListCalls         int
+	lastBlockSearch        string
+	lastBlockLimit         int
+	lastBlockOffset        int
+	oracleHealthCalls      int
+	tokenInfoCalls         int
+	tokenBalanceCalls      int
+	tokenHistoryCalls      int
+	tokenAllowanceCalls    int
+	burnTokenCalls         int
+	burnNFTCalls           int
+	getNFTCalls            int
 
 	// The last subject each read was asked for, so a selection can be proven
 	// to re-read its own record rather than the previous one.
@@ -262,6 +264,7 @@ func (f *fakeServices) RegisterVoter(name string) (VoterRow, error) {
 	return VoterRow{PublicKey: "pk-" + name, Name: name}, nil
 }
 func (f *fakeServices) RegisterCandidate(name, party, program string) (CandidateRow, error) {
+	f.candidateRegisterCalls++
 	return CandidateRow{ID: "c1", Name: name, Party: party, Program: program}, nil
 }
 func (f *fakeServices) CreateSession(title, description string, ids []string, start, end int64) (SessionRow, error) {
@@ -566,7 +569,10 @@ func (f *fakeServices) ListAllNFTs() ([]NFTRow, error) {
 	return f.nftRows, nil
 }
 func (f *fakeServices) TransferNFT(id, from, to, priv string) error { return nil }
-func (f *fakeServices) BurnNFT(id, owner, priv string) error        { return nil }
+func (f *fakeServices) BurnNFT(id, owner, priv string) error {
+	f.burnNFTCalls++
+	return nil
+}
 func (f *fakeServices) NFTHistory(id string, limit, offset int) ([]NFTOpRow, error) {
 	f.nftHistoryCalls++
 	f.lastNFTHistoryID = id
