@@ -528,7 +528,8 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		if query != "" {
 			emptyNote(c, fmt.Sprintf(tr("No blocks match “%s”."), query))
 		} else {
-			emptyNote(c, "Nothing recorded on the chain yet.")
+			emptyPanel(c, pageIcons[pageBlockchain], pageAccent(pageBlockchain),
+				"Nothing recorded on the chain yet.")
 		}
 		return
 	}

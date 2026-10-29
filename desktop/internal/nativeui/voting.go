@@ -115,7 +115,6 @@ type votingState struct {
 	sessionTable   ui.ListState
 	candidateTable ui.ListState
 	voterTable     ui.ListState
-	resultsTable   ui.ListState
 
 	// sessionChoice/candChoice/voterChoice are the rows chosen in those tables,
 	// -1 for none. The tables shorten ids to fit, so choosing a row is the only
@@ -576,7 +575,8 @@ func (a *App) votingVoterListCard(c *ui.Context) {
 func (a *App) votingVoterList(c *ui.Context) {
 	if len(a.voting.voters) == 0 {
 		if a.voting.loadErr == nil {
-			emptyNote(c, "No voters registered yet.")
+			emptyStateIcon(c, usersIcon, ui.Hex(votingAccent), "No voters registered yet.",
+				"Register a voter on the right to issue the signing key the first ballot needs.")
 		}
 		return
 	}
@@ -768,7 +768,8 @@ func (a *App) votingSessionList(c *ui.Context) {
 		// is nothing to keep, and "No sessions yet" would claim the store is
 		// empty when it could not be read.
 		if a.voting.loadErr == nil {
-			emptyNote(c, "No sessions yet.")
+			emptyStateIcon(c, calendarIcon, ui.Hex(votingAccent), "No sessions yet.",
+				"Create one on the right with a roster and the window during which ballots count.")
 		}
 		return
 	}
@@ -957,7 +958,8 @@ func (a *App) votingCandidateListCard(c *ui.Context) {
 func (a *App) votingCandidateList(c *ui.Context) {
 	if len(a.voting.candidates) == 0 {
 		if a.voting.loadErr == nil {
-			emptyNote(c, "No candidates registered yet.")
+			emptyStateIcon(c, userCheckIcon, ui.Hex(votingAccent), "No candidates registered yet.",
+				"Register one on the right; a ballot names the candidate id it selects.")
 		}
 		return
 	}
@@ -1191,24 +1193,19 @@ func defaultSessionWindow(now time.Time) (start, end time.Time) {
 }
 
 func (a *App) votingVote(c *ui.Context) {
-	formCard(c, "Session Controls", "Start or end a session by id.", func() {
-		fieldHint(c, "Session ID",
-			"Choose a session above or enter its ID first.", &a.voting.controlID)
-		sessionReady := strings.TrimSpace(a.voting.controlID) != ""
-		ui.Row(c).Gap(8).Children(func() {
-			if secondaryButton(c, "Start Session").Disabled(!sessionReady).Clicked() {
-				a.setSessionControl("Starting session…", a.services.StartSession, "Session started.")
-			}
-			if secondaryButton(c, "End Session").Disabled(!sessionReady).Clicked() {
-				a.setSessionControl("Ending session…", a.services.EndSession, "Session ended.")
-			}
-		})
-		inlineStatus(c, a.voting.controlResult)
+	// Cast Vote is the task and takes the leading column; the two session
+	// lifecycle actions sit beside it rather than pushing the ballot form
+	// below the fold on a default window.
+	twoColumns(c, func() {
+		a.votingCastVoteCard(c)
+	}, func() {
+		a.votingSessionControlsCard(c)
 	})
+}
 
+func (a *App) votingCastVoteCard(c *ui.Context) {
 	formCard(c, "Cast Vote", "Sign a ballot for one candidate in one session.", func() {
-		field(c, "Session ID", &a.voting.voteSession)
-		field(c, "Candidate ID", &a.voting.voteCandidate)
+		fieldPair(c, "Session ID", &a.voting.voteSession, "Candidate ID", &a.voting.voteCandidate)
 		field(c, "Voter Public Key", &a.voting.voteVoterPub)
 		field(c, "Voter Private Key", &a.voting.votePriv)
 		a.useSavedKeyButton(c, a.voting.voteVoterPub, &a.voting.votePriv)
@@ -1218,6 +1215,23 @@ func (a *App) votingVote(c *ui.Context) {
 			}
 		})
 		inlineStatus(c, a.voting.voteResult)
+	})
+}
+
+func (a *App) votingSessionControlsCard(c *ui.Context) {
+	formCard(c, "Session Controls", "Start or end a session by id.", func() {
+		fieldHint(c, "Session ID",
+			"Choose a session above or enter its ID first.", &a.voting.controlID)
+		sessionReady := strings.TrimSpace(a.voting.controlID) != ""
+		ui.Row(c).Wrap().Gap(8).Children(func() {
+			if secondaryButton(c, "Start Session").Disabled(!sessionReady).Clicked() {
+				a.setSessionControl("Starting session…", a.services.StartSession, "Session started.")
+			}
+			if secondaryButton(c, "End Session").Disabled(!sessionReady).Clicked() {
+				a.setSessionControl("Ending session…", a.services.EndSession, "Session ended.")
+			}
+		})
+		inlineStatus(c, a.voting.controlResult)
 	})
 }
 
@@ -1327,18 +1341,34 @@ func sessionWindowLines(start, end int64) (string, string) {
 }
 
 func (a *App) votingResults(c *ui.Context) {
+	// The query and the tally are separate cards side by side: the session
+	// field is one line of work, and the report it produces reads better at
+	// half the window than as a full-width table under an empty field.
+	twoColumns(c, func() {
+		a.votingResultsQuery(c)
+	}, func() {
+		a.votingResultsTally(c)
+	})
+}
+
+func (a *App) votingResultsQuery(c *ui.Context) {
 	formCard(c, "Results", "Live tally per candidate for a session.", func() {
+		field(c, "Session ID", &a.voting.resultsSession)
+		ui.Row(c).Wrap().Gap(8).Children(func() {
+			if secondaryButton(c, "Show Results").Disabled(!allSet(a.voting.resultsSession)).Clicked() {
+				a.readSessionResults()
+			}
+		})
+	})
+}
+
+func (a *App) votingResultsTally(c *ui.Context) {
+	formCard(c, "Tally", "Votes per candidate in the loaded session.", func() {
 		a.votingResultsBody(c)
 	})
 }
 
 func (a *App) votingResultsBody(c *ui.Context) {
-	field(c, "Session ID", &a.voting.resultsSession)
-	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Show Results").Disabled(!allSet(a.voting.resultsSession)).Clicked() {
-			a.readSessionResults()
-		}
-	})
 	id := strings.TrimSpace(a.voting.resultsSession)
 	matches := id != "" && a.voting.resultsLoadedID == id
 	if a.voting.resultsErr != nil && matches &&
@@ -1346,11 +1376,11 @@ func (a *App) votingResultsBody(c *ui.Context) {
 		return
 	}
 	if !matches {
-		emptyNote(c, "No tally loaded yet.")
+		emptyPanel(c, pageIcons[pageVoting], pageAccent(pageVoting), "No tally loaded yet.")
 		return
 	}
 	if len(a.voting.results) == 0 {
-		emptyNote(c, "No votes recorded for this session.")
+		emptyPanel(c, pageIcons[pageVoting], pageAccent(pageVoting), "No votes recorded for this session.")
 		return
 	}
 	results := a.voting.results
@@ -1373,18 +1403,49 @@ func (a *App) votingResultsBody(c *ui.Context) {
 			}
 		})
 	} else {
-		namedTable(c, "Voting results", &a.voting.resultsTable, []ui.TableColumn{
-			{Title: tr("Candidate")},
-			{Title: tr("Votes"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
-		}, len(results), func(row, col int) {
-			r := results[row]
-			if col == 0 {
-				tableText(c, r.Name)
-			} else {
-				tableText(c, strconv.Itoa(r.Votes))
-			}
-		})
+		a.votingResultBars(c, results)
 	}
+}
+
+// votingResultBars draws the tally as one row per candidate: the name and its
+// exact count, over a bar scaled to the leader. The count stays exact, so the
+// visual is a second reading of the same numbers rather than a replacement for
+// them; the list role and each row's label keep the ordering and both facts
+// available to a screen reader. At enlarged text, records take over because a
+// bar cannot wrap a long name.
+func (a *App) votingResultBars(c *ui.Context, results []ResultRow) {
+	leader := 1
+	for _, result := range results {
+		leader = max(leader, result.Votes)
+	}
+	list := ui.Column(c).FillWidth().Gap(space3).Role(ui.RoleList).
+		Label(tr("Voting results"))
+	list.Children(func() {
+		for _, result := range results {
+			result := result
+			share := float32(result.Votes) / float32(leader) * 100
+			ui.Column(c).FillWidth().Gap(space1).Role(ui.RoleListItem).
+				Label(fmt.Sprintf(tr("%s: %d votes"), valueOr(result.Name), result.Votes)).
+				Children(func() {
+					ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Children(func() {
+						ui.Text(c, valueOr(result.Name)).FontSize(textSize(c, 12.5)).
+							TextColor(c.Theme().Text).Grow(1).Shrink(1).MinWidth(0).
+							SingleLine().Ellipsis("…").Tooltip(result.Name)
+						ui.Text(c, strconv.Itoa(result.Votes)).FontSize(textSize(c, 12.5)).
+							FontWeight(700).FontFeatures("tnum").TextColor(ui.Hex(votingAccent))
+					})
+					track := ui.Row(c).FillWidth().Height(6).Radius(3).
+						Background(c.Theme().Background)
+					track.Children(func() {
+						if share <= 0 {
+							return
+						}
+						ui.Row(c).WidthPercent(share).Height(6).Radius(3).
+							Gradient(ui.Hex(votingAccent), ui.Hex(aurora), 90)
+					})
+				})
+		}
+	})
 }
 
 func (a *App) readSessionResults() {

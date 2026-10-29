@@ -167,7 +167,16 @@ just check && just test
   Sources 里选中的数据源切到 Readings 会直接查询该源与最新值。显式 Query / Get Latest /
   Show Results 仍是失败后的重试入口；同一对象/上限不会每帧重复查询。
 - **空态有身份**：Token/NFT/Oracle 的空列表使用模块图标 + 标题 + 下一步说明，
-  而不是只有一行灰字；搜索无匹配仍保留轻量提示，避免把“筛选为空”说成“库为空”。
+  而不是只有一行灰字；投票的 Voters/Candidates/Sessions 用各自的人员、候选人、
+  日历图标，抽奖历史、账本和抓取健康用紧凑的图标面板。搜索无匹配仍保留轻量
+  提示，避免把“筛选为空”说成“库为空”。
+- **计票是可视的，也仍是精确的**：Results 右栏把每个候选人的票数画成按领先者
+  缩放的横条，名字和精确票数同时在行上；条形只做比较，不是数字的替代。列表
+  角色和每行“候选人：N 票”的可访问标签保留给屏幕阅读器；系统字号放大到记录
+  布局时，完整的候选人姓名仍可换行显示。
+- **抓取健康用记录而不是五列表格**：Health 位于半宽工作栏，五个列头在正常字号
+  下就会省略、最近错误最先消失，所以所有窗口都使用记录布局：来源名、尝试/
+  成功/失败计数和完整错误原文。
 - **长列表分页**：账本页按 limit/offset 读取链上条目，Previous/Next 浏览更旧的
   记录；搜索仍在完整链上工作。Token、NFT、投票候选人/选民/会期、Oracle 数据源
   同样按 100 条从存储层分页，搜索缩小当前页；这些列表额外探测下一条，因此
@@ -178,7 +187,8 @@ just check && just test
 - **页面是卡片**：每页把工作拆成卡片，成对的工作并排（代币：列表/创建/
   Allowance/历史对写操作与 Inspect；NFT：Collection/Mint 对
   Transfer/Burn/History 与 Inspect；投票：选民、候选人与会期列表对选票与
-  计票），表格保持整行宽度。窗口
+  计票；投票的 Ballot 是 Cast Vote 对 Session Controls，Results 是会话查询对
+  计票卡），表格保持整行宽度。窗口
   窄于 1240px 时两列改为上下堆叠；系统字号放大时阈值按同一比例提高，不再让控件
   挤出卡片。代币的 Allowance 只读查询留在左栏，Inspect 与五种写操作（Mint、
   Transfer、Approve、Transfer From、Burn）同栏；NFT 的 Transfer/Burn/History

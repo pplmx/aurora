@@ -84,7 +84,6 @@ type oracleState struct {
 	status statusLine
 
 	sourceTable ui.ListState
-	healthTable ui.ListState
 	dataTable   ui.ListState
 	// deleteTrigger receives focus when the destructive confirmation closes,
 	// keeping keyboard navigation on the source action row.
@@ -652,7 +651,7 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		return
 	}
 	if len(a.oracle.health) == 0 {
-		emptyNote(c, "(no feed activity yet)")
+		emptyPanel(c, pageIcons[pageOracle], pageAccent(pageOracle), "(no feed activity yet)")
 		return
 	}
 	health := a.oracle.health
@@ -663,35 +662,12 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 	for _, source := range a.oracle.sources {
 		names[source.ID] = source.Name
 	}
-	if stackedRecords(c) {
-		a.oracleHealthRecords(c, health, names)
-		return
-	}
-	namedTable(c, "Feed Health", &a.oracle.healthTable, []ui.TableColumn{
-		{Title: tr("Source")},
-		{Title: tr("Attempts"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
-		{Title: tr("Successes"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
-		{Title: tr("Failures"), MinWidth: tableColumnWidth(c, 90), Align: ui.End},
-		{Title: tr("Last error")},
-	}, len(health), func(row, col int) {
-		h := health[row]
-		switch col {
-		case 0:
-			tableText(c, oracleHealthName(h, names))
-		case 1:
-			tableText(c, strconv.Itoa(h.Attempts))
-		case 2:
-			tableText(c, strconv.Itoa(h.Successes))
-		case 3:
-			tableText(c, strconv.Itoa(h.Failures))
-		case 4:
-			if h.LastError == "" {
-				tableText(c, tr("—"))
-			} else {
-				tableText(c, h.LastError)
-			}
-		}
-	})
+	// Health lives in the half-width workbench column. Five columns cannot
+	// keep "Attempts", "Successes", "Failures" and a verbatim error legible
+	// there even at 1x — the headers ellipsised and the last error disappeared
+	// first — so every window uses the record layout the enlarged-text path
+	// already had.
+	a.oracleHealthRecords(c, health, names)
 }
 
 // oracleHealthRecords preserves every counter and the complete last error when
