@@ -1289,7 +1289,9 @@ documented in their per-milestone ROADMAP files.
   first move instead of explaining an empty chain, ledger module cells carry
   their module's hue, the command palette prints its arrow/Enter/Escape keys,
   and every page's filter is built by one helper so its accessible label stays
-  translated.
+  translated. Token and NFT moved Inspect under the write tabs, so both
+  columns of their workbench end at roughly the same height instead of leaving
+  most of the action column empty.
 - **The desktop is on MyGo v0.7.1**: the nested module upgraded from v0.6.3 and
   its Go directive to 1.27.3, and `just desktop-deps` / `just desktop-update-mygo`
   make the fast-moving dependency deliberate to check and refresh. Renovate

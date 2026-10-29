@@ -187,11 +187,14 @@ func (a *App) tokenView(c *ui.Context) {
 		twoColumns(c, func() {
 			a.tokenList(c)
 			a.tokenCreate(c)
-			a.tokenRead(c)
 			a.tokenAllowance(c)
 			a.tokenHistory(c)
 		}, func() {
 			a.tokenWrites(c)
+			// Inspect sits under the write tabs: both act on the token the
+			// subject strip names, and the collection column already carries
+			// the list, create and history cards.
+			a.tokenRead(c)
 		})
 		a.renderBurnDialog(c)
 	})
