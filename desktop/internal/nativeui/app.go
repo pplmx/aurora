@@ -207,7 +207,7 @@ type paletteEntry struct {
 func (a *App) commandPalette(c *ui.Context) {
 	width, height := c.Size()
 	panelWidth := min(520*textScale(c), width-100)
-	panel := ui.Column(c).Width(panelWidth).MaxHeight(height-40).Padding(18).Gap(10).Radius(14).
+	panel := ui.Column(c).Width(panelWidth).MaxHeight(height-40).Padding(space4+2).Gap(space2+2).Radius(radiusPanel).
 		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5))
 	// A lit top edge ties the palette to the accent that opened it, and marks
@@ -344,7 +344,7 @@ func (a *App) paletteMatches() []paletteEntry {
 
 func paletteRow(c *ui.Context, entry paletteEntry, selected bool) (ui.Element, bool) {
 	title := tr(entry.title)
-	b := ui.ButtonBase(c).FillWidth().Height(paletteRowHeight(c)).PaddingX(10 * textScale(c)).Radius(8).
+	b := ui.ButtonBase(c).FillWidth().Height(paletteRowHeight(c)).PaddingX(space2 + 2).Radius(radiusSmall).
 		AlignItems(ui.Center).Label(title).Description(tr(entry.detail)).
 		TextColor(c.Theme().Text).Selected(selected)
 	fill := ui.Transparent
@@ -441,7 +441,7 @@ func (a *App) sidebarColumn(c *ui.Context) {
 func (a *App) brand(c *ui.Context) {
 	ui.Column(c).FillWidth().Padding(space5, space5, space3, space1).Gap(space1).Children(func() {
 		ui.Row(c).Gap(space3).AlignItems(ui.Center).Children(func() {
-			mark := ui.Row(c).Size(34, 34).Center().Radius(10).
+			mark := ui.Row(c).Size(iconTileSmall+4, iconTileSmall+4).Center().Radius(radiusSmall+2).
 				Gradient(ui.Hex(aurora), ui.Hex(votingAccent), 135).
 				Shadow(0, 10, 24, -8, ui.Hex(aurora).Alpha(0.55)).
 				InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.28))
