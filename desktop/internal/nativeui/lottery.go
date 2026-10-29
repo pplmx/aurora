@@ -222,7 +222,8 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		return
 	}
 	if len(a.lottery.rows) == 0 {
-		emptyNote(c, "No draws recorded yet. Create one above.")
+		emptyPanel(c, pageIcons[pageLottery], pageAccent(pageLottery),
+			"No draws recorded yet. Create one above.")
 		return
 	}
 	rows := make([]DrawRow, 0, len(a.lottery.rows))

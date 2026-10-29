@@ -145,3 +145,26 @@ func TestFieldPairKeepsTwoControlsOnOneLine(t *testing.T) {
 	require.InDelta(t, float64(left.Y), float64(right.Y), 1, "paired labels share a line")
 	require.Greater(t, right.X, left.X, "the second control follows the first")
 }
+
+// TestTallyBarsKeepExactVotesAccessible holds the two readings together: the
+// bar is a comparison, and each row's accessible label carries the exact
+// candidate and count so the picture is never the only source of the numbers.
+func TestTallyBarsKeepExactVotesAccessible(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 1200)
+	app.ShowPage("Voting")
+	app.voting.tab = 2
+	app.voting.resultsSession = "session-1"
+	app.voting.resultsLoadedID = "session-1"
+	app.voting.results = []ResultRow{
+		{CandidateID: "c1", Name: "Alice", Votes: 7},
+		{CandidateID: "c2", Name: "Bob", Votes: 6},
+	}
+	tester.Frame()
+
+	for _, label := range []string{"Alice: 7 votes", "Bob: 6 votes"} {
+		_, ok := tester.Find(label)
+		require.Truef(t, ok, "the tally row must expose %q, not only a bar", label)
+	}
+	require.True(t, tester.HasText("Total votes"))
+}

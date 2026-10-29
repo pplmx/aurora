@@ -1292,6 +1292,16 @@ documented in their per-milestone ROADMAP files.
   translated. Token and NFT moved Inspect under the write tabs, so both
   columns of their workbench end at roughly the same height instead of leaving
   most of the action column empty.
+- **Voting works as a two-column workbench on every stage**: Ballot puts Cast
+  Vote beside Session Controls, and Results puts the session query beside a
+  tally card that draws each candidate's votes as a leader-scaled bar while
+  keeping the exact count and an accessible "candidate: N votes" label. The
+  record layout still takes over at enlarged text.
+- **Feed Health uses records at every width**: its five columns never fit the
+  half-width workbench, so headers ellipsised and the last error disappeared
+  first; the record layout keeps the source name, all three counters and the
+  verbatim error. The Settings shortcut list now renders each chord as a key
+  cap, and the Voting lists and empty ledger states carry their own marks.
 - **The desktop is on MyGo v0.7.1**: the nested module upgraded from v0.6.3 and
   its Go directive to 1.27.3, and `just desktop-deps` / `just desktop-update-mygo`
   make the fast-moving dependency deliberate to check and refresh. Renovate

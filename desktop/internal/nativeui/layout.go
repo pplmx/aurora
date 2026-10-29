@@ -278,8 +278,29 @@ func formCard(c *ui.Context, title, purpose string, fn func()) {
 // and separates the title from the explanation so a first-time reader knows
 // whether the store is empty or the read failed.
 func emptyState(c *ui.Context, p page, title, body string) {
+	emptyStateIcon(c, pageIcons[p], pageAccent(p), title, body)
+}
+
+// emptyPanel is the compact empty state for a collection that is already
+// inside a named card: the module's mark and one sentence, without repeating a
+// title the card above already gives. It replaces a lone grey line where the
+// list would be, so an empty store reads as a state rather than as a failed
+// load.
+func emptyPanel(c *ui.Context, icon *ui.SVG, tone ui.Color, text string) {
+	ui.Column(c).FillWidth().Padding(space6, space5).Gap(space2).
+		AlignItems(ui.Center).Children(func() {
+		iconTile(c, icon, tone, iconTileMedium)
+		ui.Text(c, tr(text)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
+			TextAlign(ui.Center).MaxWidth(textSize(c, 420))
+	})
+}
+
+// emptyStateIcon is emptyState with the mark chosen by the caller: a list of
+// voters, candidates or sessions shares the Voting page's hue but not its
+// glyph, so three empty cards on one page do not repeat the same picture.
+func emptyStateIcon(c *ui.Context, icon *ui.SVG, tone ui.Color, title, body string) {
 	ui.Column(c).FillWidth().Padding(space7, space6).Gap(space2).AlignItems(ui.Center).Children(func() {
-		iconTile(c, pageIcons[p], pageAccent(p), iconTileLarge)
+		iconTile(c, icon, tone, iconTileLarge)
 		heading(c, tr(title), 14.5, 3).TextAlign(ui.Center)
 		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
 			TextAlign(ui.Center).MaxWidth(420)

@@ -78,14 +78,29 @@ func (a *App) settingsDataCard(c *ui.Context) {
 // learn them.
 func (a *App) settingsShortcutsCard(c *ui.Context) {
 	formCard(c, "Shortcuts", "Navigation and window commands; Reload applies to pages that read stored data.", func() {
-		readout(c, []readoutRow{
-			{"Pages", shortcutChord("1…8")},
-			{"Reload (data pages)", shortcutChord("R")},
-			{"Back up database", shortcutChord("B")},
-			{"Export lotteries", shortcutChord("E")},
-			{"Import lotteries", shortcutChord("I")},
-			{"Settings", shortcutChord(",")},
-			{"Command palette", shortcutChord("K")},
+		ui.Column(c).FillWidth().Gap(space1).Children(func() {
+			for i, shortcut := range []struct {
+				label string
+				chord string
+			}{
+				{"Pages", shortcutChord("1…8")},
+				{"Reload (data pages)", shortcutChord("R")},
+				{"Back up database", shortcutChord("B")},
+				{"Export lotteries", shortcutChord("E")},
+				{"Import lotteries", shortcutChord("I")},
+				{"Settings", shortcutChord(",")},
+				{"Command palette", shortcutChord("K")},
+			} {
+				if i > 0 {
+					ui.Row(c).FillWidth().Height(1).Background(c.Theme().Border)
+				}
+				ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).
+					Padding(space1+1, 1).Children(func() {
+					ui.Text(c, tr(shortcut.label)).FontSize(textSize(c, 12)).
+						TextColor(c.Theme().TextMuted).Grow(1).Shrink(1).MinWidth(0).SingleLine()
+					shortcutCap(c, shortcut.chord)
+				})
+			}
 		})
 	})
 }
