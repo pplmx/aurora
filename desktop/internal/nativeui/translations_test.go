@@ -36,6 +36,7 @@ var translatedCallArgs = map[string][]int{
 	"tabs":                 {1},
 	"namedTable":           {1},
 	"sectionHeading":       {0, 1},
+	"sectionRule":          {0},
 	"formCard":             {0, 1},
 	"emptyState":           {2, 3},
 	"actionCard":           {0},

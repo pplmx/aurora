@@ -31,6 +31,14 @@ const (
 	iconTileSmall  float32 = 30
 	iconTileMedium float32 = 38
 	iconTileLarge  float32 = 48
+
+	// pageGap is the space between the cards of one page body. Without it the
+	// cards abut and their rounded corners merge into one slab: the page read
+	// as a single panel with seams rather than as a list of jobs.
+	pageGap float32 = 18
+	// cardGap is the space between the cards of one column, slightly tighter
+	// than pageGap so a column still reads as one group of related cards.
+	cardGap float32 = 14
 )
 
 // panelFill is the card's background: a vertical wash from one step above the
@@ -180,4 +188,39 @@ func shortcutCap(c *ui.Context, chord string) ui.Element {
 			TextColor(c.Theme().TextMuted).SingleLine()
 	})
 	return cap
+}
+
+// sectionRule opens a band of content with its name and a rule that fades out
+// to the right. The rule replaces a full-width border: it groups what follows
+// without drawing a line across the whole page, which read as a table edge
+// above the counters.
+func sectionRule(c *ui.Context, label string) {
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space3).Padding(space3, 0, space1, 0).Children(func() {
+		eyebrow(c, label)
+		line := ui.Row(c).Height(1).Grow(1)
+		line.Draw(func(p *ui.Painter, r ui.Rect) {
+			tone := c.Theme().Border
+			p.FillGradient(r, ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
+				{Color: tone, At: 0},
+				{Color: tone.Alpha(0), At: 1},
+			}}, 0)
+		})
+	})
+}
+
+// cardAccent lights the top edge of a card with a module's hue. It is the
+// quietest possible statement of "this card belongs to that module": two
+// pixels of light along the rim, gone before the title, so six counters in one
+// grid still scan as one family instead of six coloured blocks.
+func cardAccent(e ui.Element, tone ui.Color) ui.Element {
+	e.Draw(func(p *ui.Painter, r ui.Rect) {
+		inset := radiusPanel + space2
+		p.FillGradient(ui.Rect{X: r.X + inset, Y: r.Y, W: r.W - 2*inset, H: 2},
+			ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
+				{Color: tone.Alpha(0), At: 0},
+				{Color: tone.Alpha(0.55), At: 0.5},
+				{Color: tone.Alpha(0), At: 1},
+			}}, 1)
+	})
+	return e
 }

@@ -9,6 +9,29 @@ documented in their per-milestone ROADMAP files.
 
 ## [Unreleased]
 
+### Changed
+
+- **Desktop chrome reads as a surface, not one long column**: the page header is
+  now a fixed band tinted with the open module's own hue and closed by a
+  hairline, with the scrolling body in its own padded column beneath it, so the
+  title stays put while a form scrolls. Cards finally keep their own corners:
+  the page body and both work columns leave a gap between cards instead of
+  letting one card's radius meet the next one's.
+- **"How this works" collapsed is one quiet line**: it used to be a bordered
+  panel with a tile, as heavy as the page's first real card and 68px tall on
+  every module page. Collapsed it is a single line of guidance behind an accent
+  bar; opening it still lists the ordered steps.
+- **Data grids sit in their own frame**: every table is painted with a recessed
+  surface and a hairline border on its own element, so header rule and last row
+  stay inside one object instead of floating on the card's gradient. The
+  dashboard's section separator fades out to the right rather than running
+  across the page like a table edge, and each counter card carries a hairline of
+  its module's hue along the top rim.
+- **New chrome regression tests** pin the page rhythm, the fixed header band,
+  the collapsed guide's single line, the framed table, the fading section rule
+  and the table header's row height, so a later layout change cannot quietly
+  undo them.
+
 ### Added
 
 - **Desktop navigation and feedback are legible to screen readers**: every
