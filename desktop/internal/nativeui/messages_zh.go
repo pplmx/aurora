@@ -132,6 +132,7 @@ var desktopMessages = map[string]string{
 	"Draw ID or block height": "抽奖 ID 或区块高度",
 	"Draw ID":                 "抽奖 ID",
 	"Verify":                  "验证",
+	"Use latest draw":         "使用最近一次抽奖",
 	"History":                 "历史",
 	"Draw history":            "抽奖历史",
 	"Every recorded draw, newest first. Choose a row to load its id into Verify.": "所有已记录的抽奖，最新在前。选择一行可把完整 ID 填入验证框。",

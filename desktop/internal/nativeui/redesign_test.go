@@ -201,3 +201,21 @@ func TestOracleActionsStayAvailableOnEveryStage(t *testing.T) {
 	require.True(t, tester.HasText("Delete btc (s1)?"),
 		"the page-level confirmation must render over a non-Sources stage")
 }
+
+// TestVerifyCardOffersTheLatestDraw covers the shortcut beside Verify: the
+// History page already holds the draw just recorded, so re-checking it must not
+// require copying its id out of the table.
+func TestVerifyCardOffersTheLatestDraw(t *testing.T) {
+	app := New(&fakeServices{
+		draws:        []DrawRow{{ID: "draw-7", BlockHeight: 7}, {ID: "draw-6", BlockHeight: 6}},
+		verifyResult: VerifyResult{ID: "draw-7", Valid: true},
+	})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Use latest draw"))
+	tester.Frame()
+	require.Equal(t, "draw-7", app.lottery.verifyID)
+	require.NotNil(t, app.lottery.verifyResult, "the latest draw must be verified immediately")
+}

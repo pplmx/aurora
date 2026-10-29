@@ -327,9 +327,18 @@ func (a *App) lotteryVerify(c *ui.Context) {
 			ui.TextInput(c, &a.lottery.verifyID)
 		})
 		copyRow(c, "Draw ID", strings.TrimSpace(a.lottery.verifyID), nil)
-		ui.Row(c).Children(func() {
+		ui.Row(c).Wrap().Gap(8).Children(func() {
 			if primaryButton(c, "Verify").Disabled(!allSet(a.lottery.verifyID)).Clicked() {
 				a.verifyLottery()
+			}
+			// The newest recorded draw is one click away: the History table
+			// already holds it, and asking an operator to copy its id to
+			// re-check the draw they just ran was busywork.
+			if len(a.lottery.rows) > 0 {
+				if secondaryButton(c, "Use latest draw").Clicked() {
+					a.lottery.verifyID = a.lottery.rows[0].ID
+					a.verifyLottery()
+				}
 			}
 		})
 		if r := a.lottery.verifyResult; r != nil && a.lottery.verifyInput == current {
