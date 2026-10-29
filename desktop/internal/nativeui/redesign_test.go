@@ -20,8 +20,13 @@ func TestPaletteButtonOpensTheSwitcher(t *testing.T) {
 	require.NoError(t, tester.Click("Jump to"))
 	tester.Frame()
 	require.True(t, app.paletteOpen, "clicking the control must open the palette")
-	require.True(t, tester.HasText(tr("↑↓ move · Enter open · Esc close")),
-		"the palette must document its keys where they are used")
+	// The keys are printed as caps with their action beside them, so the
+	// arrow/Enter/Escape model is learned where it is used.
+	for _, hint := range []string{"↑↓", "Enter", "Esc"} {
+		require.Truef(t, tester.HasText(hint),
+			"the palette must print the %q key where it is used", hint)
+	}
+	require.True(t, tester.HasText(tr("move")), "the palette must name what the arrows do")
 
 	tester.Key(0, ui.KeyEscape)
 	tester.Frame()
