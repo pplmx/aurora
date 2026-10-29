@@ -198,6 +198,21 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **Candidate registration and both Burn actions follow form readiness**:
+  Register Candidate, Burn, and Burn NFT could open a submit or confirmation
+  path with required fields empty. Their actions now stay disabled until every
+  required value is present, and the handlers still reject incomplete input
+  defensively.
+- **Every desktop write handler now defends its own readiness**: Token
+  create/mint/transfer/approve/transfer-from, NFT mint/transfer, source
+  creation, session creation, and ballot casting can no longer reach the
+  service through a stale frame with a required field empty. The handlers
+  return a localized explanation even though their buttons are already
+  disabled.
+- **Voting session controls require a session**: Start and End were clickable
+  with an empty Session ID, sending a write the service could only reject. The
+  two buttons now follow the field's readiness, the field explains why they
+  are disabled, and the handler refuses an empty id defensively.
 - **Oracle source actions require a source**: Enable, Disable, Fetch now and
   Delete were clickable before a source was chosen, so the window could send
   an empty id or open a Delete dialog with no target. The four controls now

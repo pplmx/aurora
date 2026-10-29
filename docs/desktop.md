@@ -137,7 +137,10 @@ just check && just test
 - **主操作在必填项齐备前禁用**：Create/Mint/Transfer/Approve/Cast 等按钮在
   空字段或缺签名密钥时不可点击，少一次“提交后读错误”的往返；必填字段仍以标签
   和 hint 说明。Oracle 的 Enable/Disable/Fetch now/Delete 同样要求先选择数据源
-  或填写 Source ID，未就绪时显示原因且不会打开空目标的删除确认。
+  或填写 Source ID，未就绪时显示原因且不会打开空目标的删除确认；Voting 的
+  Start/End Session 也要求先选择会期或填写 Session ID；Register Candidate
+  要求姓名，代币与 NFT 的 Burn 要求目标、持有者和签名私钥全部就绪。所有
+  写操作 handler 还会独立复核这些字段，避免陈旧帧或进程内调用绕过按钮门。
 - **动作按钮只有三档**：`primaryButton`（一个表单唯一的提交动作，Aurora 蓝）、
   `secondaryButton`（读取与辅助写入，带描边）、`dangerButton`（销毁/删除，红色，
   仍要经过确认框）；卡片内的复制等小动作走 `quietButton`。四者都是

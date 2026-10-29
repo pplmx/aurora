@@ -415,7 +415,7 @@ func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 	field(c, "Party (optional)", &a.voting.candParty)
 	field(c, "Program (optional)", &a.voting.candProgram)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Register Candidate").Clicked() {
+		if secondaryButton(c, "Register Candidate").Disabled(!allSet(a.voting.candName)).Clicked() {
 			a.registerCandidate()
 		}
 	})
@@ -1013,8 +1013,9 @@ func (a *App) votingCandidateList(c *ui.Context) {
 			a.chooseCandidate(candidates, a.voting.candChoice)
 		}
 	}
+	rosterReady := a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Add to session roster").Clicked() {
+		if secondaryButton(c, "Add to session roster").Disabled(!rosterReady).Clicked() {
 			a.addCandidateToRoster()
 		}
 	})
@@ -1122,6 +1123,10 @@ func (a *App) createVotingSession() {
 		a.voting.sessionEndErr = "End time must be after the start time."
 		return
 	}
+	title := strings.TrimSpace(a.voting.sessionTitle)
+	if rejectIncomplete(&a.voting.sessionResult, "Session title is required.", title) {
+		return
+	}
 	ids := splitParticipants(a.voting.sessionIDs)
 	if len(ids) == 0 {
 		// The visible list is one page, but an empty roster means every
@@ -1140,7 +1145,7 @@ func (a *App) createVotingSession() {
 		a.voting.sessionResult = errorStatus("Register at least one candidate before creating a session.")
 		return
 	}
-	title, description := strings.TrimSpace(a.voting.sessionTitle), strings.TrimSpace(a.voting.sessionDesc)
+	description := strings.TrimSpace(a.voting.sessionDesc)
 	a.runWrite("Creating session…", func() func() {
 		s, err := a.services.CreateSession(title, description, ids, start, end)
 		return func() {
@@ -1188,12 +1193,14 @@ func defaultSessionWindow(now time.Time) (start, end time.Time) {
 
 func (a *App) votingVote(c *ui.Context) {
 	formCard(c, "Session Controls", "Start or end a session by id.", func() {
-		field(c, "Session ID", &a.voting.controlID)
+		fieldHint(c, "Session ID",
+			"Choose a session above or enter its ID first.", &a.voting.controlID)
+		sessionReady := strings.TrimSpace(a.voting.controlID) != ""
 		ui.Row(c).Gap(8).Children(func() {
-			if secondaryButton(c, "Start Session").Clicked() {
+			if secondaryButton(c, "Start Session").Disabled(!sessionReady).Clicked() {
 				a.setSessionControl("Starting session…", a.services.StartSession, "Session started.")
 			}
-			if secondaryButton(c, "End Session").Clicked() {
+			if secondaryButton(c, "End Session").Disabled(!sessionReady).Clicked() {
 				a.setSessionControl("Ending session…", a.services.EndSession, "Session ended.")
 			}
 		})
@@ -1217,6 +1224,9 @@ func (a *App) votingVote(c *ui.Context) {
 
 func (a *App) setSessionControl(label string, fn func(string) error, success string) {
 	id := strings.TrimSpace(a.voting.controlID)
+	if id == "" {
+		return
+	}
 	a.runWrite(label, func() func() {
 		err := fn(id)
 		return func() {
@@ -1238,6 +1248,9 @@ func (a *App) castVote() {
 	}
 	publicKey, privateKey := strings.TrimSpace(a.voting.voteVoterPub), strings.TrimSpace(a.voting.votePriv)
 	sessionID, candidateID := strings.TrimSpace(a.voting.voteSession), strings.TrimSpace(a.voting.voteCandidate)
+	if rejectIncomplete(&a.voting.voteResult, "Voter public key and private key are required.", publicKey, privateKey) {
+		return
+	}
 	a.runWrite("Casting vote…", func() func() {
 		err := a.services.CastVote(sessionID, candidateID, publicKey, privateKey)
 		return func() {
@@ -1323,14 +1336,8 @@ func (a *App) votingResults(c *ui.Context) {
 func (a *App) votingResultsBody(c *ui.Context) {
 	field(c, "Session ID", &a.voting.resultsSession)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Show Results").Clicked() {
-			id := strings.TrimSpace(a.voting.resultsSession)
-			a.clearTallyForAnotherSession(id)
-			if err := a.loadSessionResults(id); err != nil {
-				a.voting.status = errStatus(err)
-			} else {
-				a.voting.status = statusLine{}
-			}
+		if secondaryButton(c, "Show Results").Disabled(!allSet(a.voting.resultsSession)).Clicked() {
+			a.readSessionResults()
 		}
 	})
 	id := strings.TrimSpace(a.voting.resultsSession)
@@ -1378,5 +1385,18 @@ func (a *App) votingResultsBody(c *ui.Context) {
 				tableText(c, strconv.Itoa(r.Votes))
 			}
 		})
+	}
+}
+
+func (a *App) readSessionResults() {
+	id := strings.TrimSpace(a.voting.resultsSession)
+	if rejectIncomplete(&a.voting.status, "Session ID is required for this read.", id) {
+		return
+	}
+	a.clearTallyForAnotherSession(id)
+	if err := a.loadSessionResults(id); err != nil {
+		a.voting.status = errStatus(err)
+	} else {
+		a.voting.status = statusLine{}
 	}
 }

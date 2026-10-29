@@ -409,6 +409,9 @@ func (a *App) createToken() {
 	}
 	name, symbol := strings.TrimSpace(a.token.name), strings.TrimSpace(a.token.symbol)
 	supply, owner := strings.TrimSpace(a.token.supply), strings.TrimSpace(a.token.owner)
+	if rejectIncomplete(&a.token.status, "Token name, symbol, supply, and owner are required.", name, symbol, supply, owner) {
+		return
+	}
 	ownerPriv := a.token.ownerPriv
 	a.runWrite("Creating token…", func() func() {
 		t, err := a.services.CreateToken(name, symbol, supply, owner, decimals)
@@ -505,14 +508,8 @@ func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Token ID", &a.token.tokenID)
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Get Token Info").Clicked() {
-			id := strings.TrimSpace(a.token.tokenID)
-			a.clearTokenInfoForAnotherSubject(id)
-			if err := a.loadTokenInfo(id); err != nil {
-				a.token.status = errStatus(err)
-			} else {
-				a.token.status = statusLine{}
-			}
+		if secondaryButton(c, "Get Token Info").Disabled(!allSet(a.token.tokenID)).Clicked() {
+			a.readTokenInfo()
 		}
 	})
 	if a.token.infoErr != nil && a.token.infoLoadedID == tokenID {
@@ -530,14 +527,8 @@ func (a *App) tokenReadBody(c *ui.Context) {
 	field(c, "Account (base64 public key)", &a.token.balanceAccount)
 	account := strings.TrimSpace(a.token.balanceAccount)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Get Balance").Clicked() {
-			id, owner := strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.balanceAccount)
-			a.clearTokenBalanceForAnotherRead(id, owner)
-			if err := a.loadTokenBalance(id, owner); err != nil {
-				a.token.status = errStatus(err)
-			} else {
-				a.token.status = statusLine{}
-			}
+		if secondaryButton(c, "Get Balance").Disabled(!allSet(a.token.tokenID, a.token.balanceAccount)).Clicked() {
+			a.readTokenBalance()
 		}
 	})
 	balanceMatches := a.token.balanceLoadedToken == tokenID && a.token.balanceLoadedOwner == account
@@ -546,6 +537,36 @@ func (a *App) tokenReadBody(c *ui.Context) {
 	}
 	if a.token.balance != "" && balanceMatches {
 		readout(c, []readoutRow{{"Balance", a.token.balance}})
+	}
+}
+
+// readTokenInfo runs the Inspect card's explicit read. The button is disabled
+// until its input is present; this guard keeps a stale frame or a direct
+// caller from sending an empty id to the service.
+func (a *App) readTokenInfo() {
+	id := strings.TrimSpace(a.token.tokenID)
+	if rejectIncomplete(&a.token.status, "Token ID is required for this read.", id) {
+		return
+	}
+	a.clearTokenInfoForAnotherSubject(id)
+	if err := a.loadTokenInfo(id); err != nil {
+		a.token.status = errStatus(err)
+	} else {
+		a.token.status = statusLine{}
+	}
+}
+
+func (a *App) readTokenBalance() {
+	id := strings.TrimSpace(a.token.tokenID)
+	owner := strings.TrimSpace(a.token.balanceAccount)
+	if rejectIncomplete(&a.token.status, "Token ID and account are required for this read.", id, owner) {
+		return
+	}
+	a.clearTokenBalanceForAnotherRead(id, owner)
+	if err := a.loadTokenBalance(id, owner); err != nil {
+		a.token.status = errStatus(err)
+	} else {
+		a.token.status = statusLine{}
 	}
 }
 
@@ -673,26 +694,8 @@ func (a *App) selectedTokenOwner() string {
 // sign of which token a Mint would hit — the one thing an operator must be
 // sure of before a write.
 func tokenSubject(c *ui.Context, id string) {
-	if id == "" {
-		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
-			Background(ui.Hex(warningTint)).BorderWidth(1).BorderColor(ui.Hex(auroraAmber)).
-			Children(func() {
-				badge(c, "No token selected", ui.Hex(auroraAmber), c.Theme().Background)
-				ui.Text(c, tr("Create or inspect one first.")).FontSize(textSize(c, 12)).TextColor(c.Theme().Text)
-			})
-		return
-	}
-	ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Padding(10).Radius(8).
-		Background(c.Theme().Background).Children(func() {
-		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).
-			SingleLine().Shrink(0)
-		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).
-			SingleLine().Ellipsis("…").Tooltip(id)
-		if quietButton(c, "Copy token ID").Clicked() {
-			c.Services().WriteClipboard(id)
-			c.Toast(tr("Token ID is on the clipboard"))
-		}
-	})
+	actionSubject(c, id, "No token selected", "Create or inspect one first.",
+		"Copy token ID", "Token ID is on the clipboard")
 }
 
 func (a *App) tokenWrites(c *ui.Context) {
@@ -768,10 +771,11 @@ func (a *App) tokenWrites(c *ui.Context) {
 			a.useOwnerKeyButton(c, &a.token.burnPriv,
 				strings.TrimSpace(a.token.burnFrom) == a.selectedTokenOwner())
 			a.useSavedKeyButton(c, a.token.burnFrom, &a.token.burnPriv)
+			burnReady := allSet(a.token.tokenID, a.token.burnFrom, a.token.burnAmount, a.token.burnPriv)
 			ui.Row(c).Children(func() {
 				// A destructive action carries the danger style, and the
 				// confirmation still stands between it and the write.
-				burn := dangerButton(c, "Burn…").Bind(&a.token.burnTrigger)
+				burn := dangerButton(c, "Burn…").Disabled(!burnReady).Bind(&a.token.burnTrigger)
 				if burn.Clicked() {
 					a.token.askBurn = true
 				}
@@ -789,7 +793,7 @@ func (a *App) tokenAllowance(c *ui.Context) {
 		field(c, "Owner (base64 public key)", &a.token.allowanceOwner)
 		field(c, "Spender (base64 public key)", &a.token.allowanceTo)
 		ui.Row(c).Children(func() {
-			if secondaryButton(c, "Get Allowance").Clicked() {
+			if secondaryButton(c, "Get Allowance").Disabled(!allSet(a.token.tokenID, a.token.allowanceOwner, a.token.allowanceTo)).Clicked() {
 				a.loadAllowance()
 			}
 		})
@@ -817,6 +821,9 @@ func (a *App) mintToken() {
 	privateKey := strings.TrimSpace(a.token.mintPriv)
 	tokenID, to := strings.TrimSpace(a.token.tokenID), strings.TrimSpace(a.token.mintTo)
 	amount := strings.TrimSpace(a.token.mintAmount)
+	if rejectIncomplete(&a.token.status, "Token ID, recipient, amount, and private key are required.", tokenID, to, amount, privateKey) {
+		return
+	}
 	owner := a.selectedTokenOwner()
 	a.runWrite("Minting…", func() func() {
 		err := a.services.MintToken(tokenID, to, amount, privateKey)
@@ -839,6 +846,9 @@ func (a *App) transferToken() {
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	from, to := strings.TrimSpace(a.token.xFrom), strings.TrimSpace(a.token.xTo)
 	amount := strings.TrimSpace(a.token.xAmount)
+	if rejectIncomplete(&a.token.status, "Token ID, sender, recipient, amount, and private key are required.", tokenID, from, to, amount, privateKey) {
+		return
+	}
 	a.runWrite("Transferring…", func() func() {
 		err := a.services.TransferToken(tokenID, from, to, amount, privateKey)
 		return func() {
@@ -857,6 +867,9 @@ func (a *App) approveToken() {
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	owner, spender := strings.TrimSpace(a.token.approveOwner), strings.TrimSpace(a.token.approveTo)
 	amount := strings.TrimSpace(a.token.approveAmt)
+	if rejectIncomplete(&a.token.status, "Token ID, owner, spender, amount, and private key are required.", tokenID, owner, spender, amount, privateKey) {
+		return
+	}
 	a.runWrite("Approving…", func() func() {
 		err := a.services.ApproveToken(tokenID, owner, spender, amount, privateKey)
 		return func() {
@@ -875,6 +888,9 @@ func (a *App) transferFromToken() {
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	owner, to := strings.TrimSpace(a.token.fromOwner), strings.TrimSpace(a.token.fromTo)
 	amount := strings.TrimSpace(a.token.fromAmount)
+	if rejectIncomplete(&a.token.status, "Token ID, owner, recipient, amount, and spender private key are required.", tokenID, owner, to, amount, privateKey) {
+		return
+	}
 	spender := a.token.fromSpender
 	a.runWrite("Transferring…", func() func() {
 		err := a.services.TransferFromToken(tokenID, owner, to, amount, privateKey)
@@ -957,6 +973,9 @@ func (a *App) loadAllowance() {
 	tokenID := strings.TrimSpace(a.token.tokenID)
 	owner := strings.TrimSpace(a.token.allowanceOwner)
 	spender := strings.TrimSpace(a.token.allowanceTo)
+	if rejectIncomplete(&a.token.status, "Token ID, owner, and spender are required for this read.", tokenID, owner, spender) {
+		return
+	}
 	a.clearAllowanceForAnotherRead(tokenID, owner, spender)
 	if err := a.loadTokenAllowance(tokenID, owner, spender); err != nil {
 		a.token.status = errStatus(err)
@@ -1008,20 +1027,23 @@ func (a *App) renderBurnDialog(c *ui.Context) {
 	// amount is irreversible.
 	detail := tr("Burning destroys the amount permanently. This cannot be undone.")
 	amount := strings.TrimSpace(a.token.burnAmount)
-	from := strings.TrimSpace(a.token.burnFrom)
-	if amount != "" || from != "" {
+	owner := strings.TrimSpace(a.token.burnFrom)
+	if amount != "" || owner != "" {
 		detail = fmt.Sprintf(
 			"Burn %s from %s? The tokens are destroyed permanently and cannot be recovered.",
-			valueOr(amount), valueOr(from))
+			valueOr(amount), valueOr(owner))
 	}
 	switch destructiveConfirm(c, &a.token.askBurn, tr("Burn tokens?"), detail, tr("Burn"),
 		a.token.burnTrigger, a.token.burnTrigger) {
 	case destructiveConfirmed:
-		privateKey := strings.TrimSpace(a.token.burnPriv)
 		tokenID := strings.TrimSpace(a.token.tokenID)
-		owner := a.token.burnFrom
+		privateKey := strings.TrimSpace(a.token.burnPriv)
+		if !allSet(tokenID, owner, amount, privateKey) {
+			a.token.status = errorStatus("Token ID, source account, amount, and private key are required.")
+			return
+		}
 		a.runWrite("Burning…", func() func() {
-			err := a.services.BurnToken(tokenID, from, amount, privateKey)
+			err := a.services.BurnToken(tokenID, owner, amount, privateKey)
 			return func() {
 				a.token.status = wrapErr(err)
 				if err == nil {
@@ -1053,16 +1075,8 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 		})
 	})
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Load History").Clicked() {
-			id := strings.TrimSpace(a.token.tokenID)
-			owner := strings.TrimSpace(a.token.historyOwner)
-			limit, offset := a.tokenHistoryWindow()
-			a.clearTokenHistoryForAnotherRead(id, owner, limit, offset)
-			if err := a.loadTokenHistory(id, owner, limit, offset); err != nil {
-				a.token.status = errStatus(err)
-			} else {
-				a.token.status = statusLine{}
-			}
+		if secondaryButton(c, "Load History").Disabled(!allSet(a.token.tokenID)).Clicked() {
+			a.readTokenHistory()
 		}
 	})
 	id := strings.TrimSpace(a.token.tokenID)
@@ -1104,6 +1118,21 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 				tableText(c, strconv.FormatUint(h.Nonce, 10))
 			}
 		})
+	}
+}
+
+func (a *App) readTokenHistory() {
+	id := strings.TrimSpace(a.token.tokenID)
+	if rejectIncomplete(&a.token.status, "Token ID is required for this read.", id) {
+		return
+	}
+	owner := strings.TrimSpace(a.token.historyOwner)
+	limit, offset := a.tokenHistoryWindow()
+	a.clearTokenHistoryForAnotherRead(id, owner, limit, offset)
+	if err := a.loadTokenHistory(id, owner, limit, offset); err != nil {
+		a.token.status = errStatus(err)
+	} else {
+		a.token.status = statusLine{}
 	}
 }
 

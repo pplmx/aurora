@@ -21,8 +21,11 @@ func TestBurnDialogNamesWhatItDestroys(t *testing.T) {
 	app.ShowPage("Token")
 	tester.Frame()
 
+	app.token.tokenID = "token-1"
+	app.applyTokenSubject("owner-pk")
 	app.token.burnFrom = "owner-pk"
 	app.token.burnAmount = "25"
+	app.token.burnPriv = "owner-sk"
 	require.NoError(t, tester.Click("Burn"), "select the Burn operation")
 	tester.Frame()
 	require.NoError(t, tester.Click("Burn…"))
@@ -48,6 +51,9 @@ func TestNFTBurnDialogNamesTheAsset(t *testing.T) {
 
 	app.nft.burnID = id
 	app.nft.nft = &NFTRow{ID: id, Name: "Star"}
+	app.applyNFTBurnSubject("owner-pk")
+	app.nft.burnOwner = "owner-pk"
+	app.nft.burnPriv = "owner-sk"
 	require.NoError(t, tester.Click("Burn"), "select the Burn operation")
 	tester.Frame()
 	require.NoError(t, tester.Click("Burn NFT…"))
@@ -180,8 +186,10 @@ func TestDestructiveDialogDefaultsToCancel(t *testing.T) {
 	app.token.opTab = 4
 	tester.Frame()
 	app.token.tokenID = "token-1"
+	app.applyTokenSubject("owner-pk")
 	app.token.burnFrom = "owner-pk"
 	app.token.burnAmount = "25"
+	app.token.burnPriv = "owner-sk"
 	app.token.askBurn = true
 	tester.Frame()
 	require.True(t, tester.Focused(tr("Cancel")), "the safe choice must receive initial focus")
@@ -215,6 +223,111 @@ func TestDestructiveDialogDefaultsToCancel(t *testing.T) {
 		"Confirming must restore focus to the action that opened the dialog")
 }
 
+// TestBurnTriggersRequireCompleteFields keeps an incomplete Burn tab from
+// opening its irreversible confirmation. The same trigger opens normally once
+// the target, owner and signing key are present.
+func TestBurnTriggersRequireCompleteFields(t *testing.T) {
+	t.Run("token", func(t *testing.T) {
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, 1280, 4000)
+		app.ShowPage("Token")
+		app.token.opTab = 4
+		tester.Frame()
+
+		require.NoError(t, tester.Click("Burn…"))
+		tester.Frame()
+		require.False(t, app.token.askBurn)
+
+		app.token.tokenID = "token-1"
+		app.applyTokenSubject("owner-pk")
+		app.token.burnFrom = "owner-pk"
+		app.token.burnAmount = "25"
+		app.token.burnPriv = "owner-sk"
+		tester.Frame()
+		require.NoError(t, tester.Click("Burn…"))
+		tester.Frame()
+		require.True(t, app.token.askBurn)
+	})
+
+	t.Run("NFT", func(t *testing.T) {
+		app := New(&fakeServices{})
+		tester := ui.NewTester(app.View, 1280, 4000)
+		app.ShowPage("NFT")
+		app.nft.opTab = 1
+		tester.Frame()
+
+		require.NoError(t, tester.Click("Burn NFT…"))
+		tester.Frame()
+		require.False(t, app.nft.askBurn)
+
+		app.nft.burnID = "nft-1"
+		app.applyNFTBurnSubject("owner-pk")
+		app.nft.burnOwner = "owner-pk"
+		app.nft.burnPriv = "owner-sk"
+		tester.Frame()
+		require.NoError(t, tester.Click("Burn NFT…"))
+		tester.Frame()
+		require.True(t, app.nft.askBurn)
+	})
+}
+
+// TestBurnConfirmationRefusesIncompleteFields keeps a confirmation that was
+// opened programmatically, or whose fields changed before confirmation, from
+// reaching the service. The triggers are disabled, and the confirmed branch
+// still validates its own inputs.
+func TestBurnConfirmationRefusesIncompleteFields(t *testing.T) {
+	t.Run("token", func(t *testing.T) {
+		fake := &fakeServices{}
+		app := New(fake)
+		tester := ui.NewTester(app.View, 1280, 4000)
+		app.ShowPage("Token")
+		app.token.opTab = 4
+		app.token.tokenID = "token-1"
+		app.applyTokenSubject("owner-pk")
+		app.token.burnFrom = "owner-pk"
+		app.token.burnAmount = "25"
+		app.token.askBurn = true
+		tester.Frame()
+
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+		require.True(t, tester.Focused(tr("Burn")))
+		tester.Key(0, ui.KeyEnter)
+		tester.Frame()
+
+		require.Zero(t, fake.burnTokenCalls)
+		require.True(t, app.token.status.isErr)
+		require.Contains(t, app.token.status.text, "private key")
+		tester.Frame()
+		require.True(t, tester.HasText("Token ID, source account, amount, and private key are required."))
+	})
+
+	t.Run("NFT", func(t *testing.T) {
+		fake := &fakeServices{}
+		app := New(fake)
+		tester := ui.NewTester(app.View, 1280, 4000)
+		app.ShowPage("NFT")
+		app.nft.opTab = 1
+		app.nft.burnID = "nft-1"
+		app.applyNFTBurnSubject("owner-pk")
+		app.nft.burnOwner = "owner-pk"
+		app.nft.askBurn = true
+		tester.Frame()
+
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+		require.True(t, tester.Focused(tr("Burn")))
+		tester.Key(0, ui.KeyEnter)
+		tester.Frame()
+
+		require.Zero(t, fake.burnNFTCalls)
+		require.True(t, app.nft.status.isErr)
+		require.Contains(t, app.nft.status.text, "private key")
+		tester.Frame()
+		require.True(t, tester.HasText("NFT ID, owner, and private key are required."))
+	})
+}
+
 // TestBackgroundBurnReturnsFocusAfterCompletion covers the real desktop path:
 // the page body is disabled while the write runs, so the focus request waits on
 // the trigger and lands only after the operation has re-enabled the page.
@@ -234,8 +347,10 @@ func TestBackgroundBurnReturnsFocusAfterCompletion(t *testing.T) {
 	app.ShowPage("Token")
 	app.token.opTab = 4
 	app.token.tokenID = "token-1"
+	app.applyTokenSubject("owner-pk")
 	app.token.burnFrom = "owner-pk"
 	app.token.burnAmount = "25"
+	app.token.burnPriv = "owner-sk"
 	app.token.askBurn = true
 	tester.Frame()
 

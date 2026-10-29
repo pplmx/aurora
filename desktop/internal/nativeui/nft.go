@@ -238,6 +238,9 @@ func (a *App) mintNFT() {
 	name, description := strings.TrimSpace(a.nft.name), strings.TrimSpace(a.nft.description)
 	imageURL, tokenURI := strings.TrimSpace(a.nft.imageURL), strings.TrimSpace(a.nft.tokenURI)
 	creator, creatorPriv := strings.TrimSpace(a.nft.creator), a.nft.creatorPriv
+	if rejectIncomplete(&a.nft.status, "NFT name and creator are required.", name, creator) {
+		return
+	}
 	a.runWrite("Minting NFT…", func() func() {
 		n, err := a.services.MintNFT(name, description, imageURL, tokenURI, creator)
 		return func() {
@@ -352,14 +355,8 @@ func (a *App) nftReadBody(c *ui.Context) {
 	field(c, "NFT ID", &a.nft.id)
 	id := strings.TrimSpace(a.nft.id)
 	ui.Row(c).Children(func() {
-		if secondaryButton(c, "Get NFT").Clicked() {
-			target := strings.TrimSpace(a.nft.id)
-			a.clearNFTDetailsForAnotherSubject(target)
-			if err := a.loadNFTDetails(target); err != nil {
-				a.nft.status = errStatus(err)
-			} else {
-				a.nft.status = statusLine{}
-			}
+		if secondaryButton(c, "Get NFT").Disabled(!allSet(a.nft.id)).Clicked() {
+			a.readNFTDetails()
 		}
 	})
 	if a.nft.nftErr != nil && a.nft.nftLoadedID == id {
@@ -385,7 +382,7 @@ func (a *App) nftReadBody(c *ui.Context) {
 	// owner, and Show All restores everything.
 	fieldHint(c, "Owner (base64 public key)", "Narrow the Collection card to one owner.", &a.nft.owner)
 	ui.Row(c).Gap(8).Children(func() {
-		if secondaryButton(c, "Filter by Owner").Clicked() {
+		if secondaryButton(c, "Filter by Owner").Disabled(!allSet(a.nft.owner)).Clicked() {
 			a.filterNFTs()
 		}
 		if secondaryButton(c, "Show All").Clicked() {
@@ -394,11 +391,27 @@ func (a *App) nftReadBody(c *ui.Context) {
 	})
 }
 
+func (a *App) readNFTDetails() {
+	id := strings.TrimSpace(a.nft.id)
+	if rejectIncomplete(&a.nft.status, "NFT ID is required for this read.", id) {
+		return
+	}
+	a.clearNFTDetailsForAnotherSubject(id)
+	if err := a.loadNFTDetails(id); err != nil {
+		a.nft.status = errStatus(err)
+	} else {
+		a.nft.status = statusLine{}
+	}
+}
+
 // filterNFTs applies the owner named in the field. It goes through loadNFT so
 // the filter survives refreshes and a failed read keeps the rows already shown
 // instead of blanking the collection.
 func (a *App) filterNFTs() {
 	next := strings.TrimSpace(a.nft.owner)
+	if rejectIncomplete(&a.nft.status, "Owner is required to filter the collection.", next) {
+		return
+	}
 	if next != a.nft.filterOwner {
 		a.nft.list = nil
 		a.nft.loadErr = nil
@@ -571,10 +584,11 @@ func (a *App) nftWrite(c *ui.Context) {
 			field(c, "Owner Private Key", &a.nft.burnPriv)
 			a.useCreatorKeyButton(c, &a.nft.burnPriv, a.nft.burnID, a.nft.burnOwner)
 			a.useSavedKeyButton(c, a.nft.burnOwner, &a.nft.burnPriv)
+			burnReady := allSet(a.nft.burnID, a.nft.burnOwner, a.nft.burnPriv)
 			ui.Row(c).Children(func() {
 				// A destructive action carries the danger style, and the
 				// confirmation still stands between it and the write.
-				burn := dangerButton(c, "Burn NFT…").Bind(&a.nft.burnTrigger)
+				burn := dangerButton(c, "Burn NFT…").Disabled(!burnReady).Bind(&a.nft.burnTrigger)
 				if burn.Clicked() {
 					a.nft.askBurn = true
 				}
@@ -585,14 +599,8 @@ func (a *App) nftWrite(c *ui.Context) {
 		formCard(c, "History", "Every mint, transfer and burn recorded for this NFT.", func() {
 			field(c, "NFT ID", &a.nft.historyID)
 			ui.Row(c).Children(func() {
-				if secondaryButton(c, "Show History").Clicked() {
-					target := strings.TrimSpace(a.nft.historyID)
-					a.clearNFTHistoryForAnotherSubject(target)
-					if err := a.loadNFTHistoryPage(target, 0); err != nil {
-						a.nft.status = errStatus(err)
-					} else {
-						a.nft.status = statusLine{}
-					}
+				if secondaryButton(c, "Show History").Disabled(!allSet(a.nft.historyID)).Clicked() {
+					a.readNFTHistory()
 				}
 			})
 			id := strings.TrimSpace(a.nft.historyID)
@@ -607,6 +615,19 @@ func (a *App) nftWrite(c *ui.Context) {
 			}
 			a.nftHistoryTable(c)
 		})
+	}
+}
+
+func (a *App) readNFTHistory() {
+	id := strings.TrimSpace(a.nft.historyID)
+	if rejectIncomplete(&a.nft.status, "NFT ID is required for this read.", id) {
+		return
+	}
+	a.clearNFTHistoryForAnotherSubject(id)
+	if err := a.loadNFTHistoryPage(id, 0); err != nil {
+		a.nft.status = errStatus(err)
+	} else {
+		a.nft.status = statusLine{}
 	}
 }
 
@@ -723,6 +744,9 @@ func (a *App) transferNFT() {
 	privateKey := strings.TrimSpace(a.nft.priv)
 	id := strings.TrimSpace(a.nft.transferID)
 	from, to := strings.TrimSpace(a.nft.from), strings.TrimSpace(a.nft.to)
+	if rejectIncomplete(&a.nft.status, "NFT ID, sender, recipient, and private key are required.", id, from, to, privateKey) {
+		return
+	}
 	a.runWrite("Transferring NFT…", func() func() {
 		err := a.services.TransferNFT(id, from, to, privateKey)
 		return func() {
@@ -854,7 +878,11 @@ func (a *App) renderNFTBurnDialog(c *ui.Context) {
 	case destructiveConfirmed:
 		id := strings.TrimSpace(a.nft.burnID)
 		privateKey := strings.TrimSpace(a.nft.burnPriv)
-		owner := a.nft.burnOwner
+		owner := strings.TrimSpace(a.nft.burnOwner)
+		if !allSet(id, owner, privateKey) {
+			a.nft.status = errorStatus("NFT ID, owner, and private key are required.")
+			return
+		}
 		a.runWrite("Burning NFT…", func() func() {
 			err := a.services.BurnNFT(id, owner, privateKey)
 			return func() {

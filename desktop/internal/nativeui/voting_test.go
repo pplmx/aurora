@@ -81,6 +81,70 @@ func TestSessionControlsUseTheBackgroundWritePath(t *testing.T) {
 	require.Equal(t, 1, fake.startSessionCalls)
 }
 
+// TestSessionControlsRequireASession keeps Start/End from writing with an
+// empty id. Both buttons become usable as soon as the control field names a
+// session, and the hint explains the disabled state before that.
+func TestSessionControlsRequireASession(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	app.voting.tab = 1
+	tester.Frame()
+
+	require.True(t, tester.HasText("Choose a session above or enter its ID first."))
+	require.NoError(t, tester.Click("Start Session"))
+	require.NoError(t, tester.Click("End Session"))
+	tester.Frame()
+	require.Zero(t, fake.startSessionCalls)
+	require.Zero(t, fake.endSessionCalls)
+
+	app.voting.controlID = "s1"
+	tester.Frame()
+	require.NoError(t, tester.Click("Start Session"))
+	tester.Frame()
+	require.NoError(t, tester.Click("End Session"))
+	tester.Frame()
+	require.Equal(t, 1, fake.startSessionCalls)
+	require.Equal(t, 1, fake.endSessionCalls)
+}
+
+// TestRegisterCandidateRequiresAName keeps the write button disabled until
+// the field that names the new candidate is present.
+func TestRegisterCandidateRequiresAName(t *testing.T) {
+	fake := &fakeServices{}
+	app := New(fake)
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Candidate Name"))
+	tester.Frame()
+	for range 3 {
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+	}
+	require.False(t, tester.Focused("Register Candidate"),
+		"an empty candidate name must keep the action out of the tab order")
+	app.registerCandidate()
+	tester.Frame()
+	require.Zero(t, fake.candidateRegisterCalls)
+	require.True(t, tester.HasText("Candidate name is required."),
+		"the handler must keep rejecting an empty name defensively")
+
+	require.NoError(t, tester.Click("Candidate Name"))
+	tester.Type("Alice")
+	tester.Frame()
+	for range 3 {
+		tester.Key(0, ui.KeyTab)
+		tester.Frame()
+	}
+	require.True(t, tester.Focused("Register Candidate"))
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t, 1, fake.candidateRegisterCalls)
+}
+
 // gatedSessionControls holds the write open until the test has observed the
 // busy state. A short sleep raced the 20-frame click settle under -race and
 // could complete before the assertion even though the production path worked.
@@ -519,6 +583,11 @@ func TestVotingCardOutcomesCarryTheirPolarity(t *testing.T) {
 
 	app.voting.voteSession = "s1"
 	app.voting.voteCandidate = "c1"
+	app.castVote()
+	require.True(t, app.voting.voteResult.isErr)
+	require.Contains(t, app.voting.voteResult.text, "Voter public key and private key are required")
+
+	app.voting.voteVoterPub, app.voting.votePriv = "pk", "sk"
 	app.castVote()
 	require.False(t, app.voting.voteResult.isErr)
 	require.Equal(t, "Ballot recorded.", app.voting.voteResult.text)
