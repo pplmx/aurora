@@ -200,3 +200,51 @@ func TestLedgerRecordNamesItsModuleInTheWindowsLanguage(t *testing.T) {
 	require.True(t, tester.HasText(tr(pageTitles[pageToken])),
 		"the token record must name its module in the window's language")
 }
+
+// TestCollectionToolbarIsTwoCompactLines pins the strip a paged collection
+// leads with. It used to be four stacked bands — the field, a muted sentence
+// repeating what the field does, a full-width pager, then the rows — which
+// spent about 247px on a one-row collection before the first record was read.
+func TestCollectionToolbarIsTwoCompactLines(t *testing.T) {
+	app := New(&fakeServices{
+		tokenRows: []TokenRow{{ID: "token-1", Name: "Gold", Symbol: "GLD", TotalSupply: "1000"}},
+	})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Token")
+	tester.Frame()
+
+	search, ok := tester.Find("Search tokens")
+	require.True(t, ok)
+	previous, ok := tester.Find("Previous")
+	require.True(t, ok)
+	require.Greater(t, previous.Y, search.Y+search.H-1,
+		"the pager sits below the field, never crushing it")
+	require.Lessf(t, previous.Y-(search.Y+search.H), space3+space2,
+		"the pager follows the field directly instead of after a separate band")
+
+	// The rows begin right after the pager; the only thing between them is the
+	// grid's own header row, not another band of controls.
+	rows, ok := tester.Find("token-1")
+	require.True(t, ok)
+	require.Lessf(t, float64(rows.Y-(previous.Y+previous.H)), 56.0,
+		"the collection's rows start immediately after the pager")
+}
+
+// TestCollectionToolbarKeepsTheFieldFullWidth keeps the query field as wide as
+// its card: paging controls belong under it, and a field narrowed to make room
+// for them read as a search box that had been squeezed.
+func TestCollectionToolbarKeepsTheFieldFullWidth(t *testing.T) {
+	cardWidth := float32(420)
+	tester := ui.NewTester(func(c *ui.Context) {
+		ui.Column(c).Width(cardWidth).Padding(16).Children(func() {
+			var query string
+			collectionToolbar(c, &query, "Search candidates", "", "Candidates", 0, 1, false)
+		})
+	}, 480, 400)
+	tester.Frame()
+
+	search, ok := tester.Find("Search candidates")
+	require.True(t, ok)
+	require.GreaterOrEqual(t, search.W, cardWidth-2*16-1,
+		"the field must span the card's content width")
+}

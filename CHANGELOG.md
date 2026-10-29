@@ -11,6 +11,19 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **A paged collection leads with one toolbar instead of four stacked bands**:
+  every collection card used to stack the search field, a muted sentence saying
+  the search only narrows the current page, a full-width Previous/range/Next
+  strip, and then the rows — 247px before a one-row collection could be read.
+  The query now spans the card and the pager sits right-aligned directly under
+  it, so the two read as one control group; the sentence became the search
+  field's accessible description, and the pager buttons lost their resting
+  outline and height so they stop competing with the card's real actions. The
+  strip is one shared helper (`collectionToolbar`), and collections without a
+  search field — NFT operation history, Oracle readings — use `collectionPager`
+  so a page never mixes two pager heights. The pager itself stays, even on a
+  single page: its range is the only statement that a collection has exactly
+  these N rows.
 - **The ledger reads as records instead of a payload dump**: the Blockchain page
   and the dashboard's Recent activity card now render every chain entry as
   "module · action · object" with its readable facts — a draw's winners,

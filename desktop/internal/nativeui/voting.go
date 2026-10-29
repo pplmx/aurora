@@ -580,14 +580,15 @@ func (a *App) votingVoterList(c *ui.Context) {
 		}
 		return
 	}
-	searchField(c, &a.voting.voterSearch, "Search voters").
-		Description(tr("Search narrows the current page; use Previous/Next for older voters."))
 	queryChanged := a.voting.voterSearch != a.voting.voterApplied
 	if queryChanged {
 		a.voting.voterApplied = a.voting.voterSearch
 		a.voting.voterChoice = -1
 	}
-	if previous, next := listPager(c, "Voters", a.voting.voterOffset, len(a.voting.voters), a.voting.voterHasMore); previous || next {
+	previous, next := collectionToolbar(c, &a.voting.voterSearch, "Search voters",
+		"Search narrows the current page; use Previous/Next for older voters.",
+		"Voters", a.voting.voterOffset, len(a.voting.voters), a.voting.voterHasMore)
+	if previous || next {
 		target := a.voting.voterOffset
 		if previous {
 			target = max(0, target-votingPageSize)
@@ -598,9 +599,6 @@ func (a *App) votingVoterList(c *ui.Context) {
 			a.voting.voterChoice = -1
 		}
 		return
-	}
-	if a.voting.voterSearch != "" {
-		hint(c, "Search narrows the current page; use Previous/Next for older voters.")
 	}
 	voters := a.filteredVoters()
 	announceSearchResults(c, queryChanged, len(voters))
@@ -773,15 +771,16 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 		return
 	}
-	searchField(c, &a.voting.sessionSearch, "Search sessions").
-		Description(tr("Search narrows the current page; use Previous/Next for older sessions."))
 	queryChanged := a.voting.sessionSearch != a.voting.sessionApplied
 	if queryChanged {
 		a.voting.sessionApplied = a.voting.sessionSearch
 		a.voting.sessionChoice = -1
 		a.clearSessionRoster()
 	}
-	if previous, next := listPager(c, "Sessions", a.voting.sessionOffset, len(a.voting.sessions), a.voting.sessionHasMore); previous || next {
+	previous, next := collectionToolbar(c, &a.voting.sessionSearch, "Search sessions",
+		"Search narrows the current page; use Previous/Next for older sessions.",
+		"Sessions", a.voting.sessionOffset, len(a.voting.sessions), a.voting.sessionHasMore)
+	if previous || next {
 		target := a.voting.sessionOffset
 		if previous {
 			target = max(0, target-votingPageSize)
@@ -793,9 +792,6 @@ func (a *App) votingSessionList(c *ui.Context) {
 			a.clearSessionRoster()
 		}
 		return
-	}
-	if a.voting.sessionSearch != "" {
-		hint(c, "Search narrows the current page; use Previous/Next for older sessions.")
 	}
 	sessions := a.filteredSessions()
 	announceSearchResults(c, queryChanged, len(sessions))
@@ -963,14 +959,15 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		}
 		return
 	}
-	searchField(c, &a.voting.candSearch, "Search candidates").
-		Description(tr("Search narrows the current page; use Previous/Next for older candidates."))
 	queryChanged := a.voting.candSearch != a.voting.candApplied
 	if queryChanged {
 		a.voting.candApplied = a.voting.candSearch
 		a.voting.candChoice = -1
 	}
-	if previous, next := listPager(c, "Candidates", a.voting.candOffset, len(a.voting.candidates), a.voting.candHasMore); previous || next {
+	previous, next := collectionToolbar(c, &a.voting.candSearch, "Search candidates",
+		"Search narrows the current page; use Previous/Next for older candidates.",
+		"Candidates", a.voting.candOffset, len(a.voting.candidates), a.voting.candHasMore)
+	if previous || next {
 		target := a.voting.candOffset
 		if previous {
 			target = max(0, target-votingPageSize)
@@ -981,9 +978,6 @@ func (a *App) votingCandidateList(c *ui.Context) {
 			a.voting.candChoice = -1
 		}
 		return
-	}
-	if a.voting.candSearch != "" {
-		hint(c, "Search narrows the current page; use Previous/Next for older candidates.")
 	}
 	candidates := a.filteredCandidates()
 	announceSearchResults(c, queryChanged, len(candidates))

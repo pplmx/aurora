@@ -226,14 +226,15 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed on the left to start reading values.")
 		return
 	}
-	searchField(c, &a.oracle.search, "Search sources").
-		Description(tr("Search narrows the current page; use Previous/Next for older sources."))
 	queryChanged := a.oracle.search != a.oracle.appliedSearch
 	if queryChanged {
 		a.oracle.appliedSearch = a.oracle.search
 		a.oracle.selected = -1
 	}
-	if previous, next := listPager(c, "Sources", a.oracle.offset, len(a.oracle.sources), a.oracle.hasMore); previous || next {
+	previous, next := collectionToolbar(c, &a.oracle.search, "Search sources",
+		"Search narrows the current page; use Previous/Next for older sources.",
+		"Sources", a.oracle.offset, len(a.oracle.sources), a.oracle.hasMore)
+	if previous || next {
 		target := a.oracle.offset
 		if previous {
 			target = max(0, target-oraclePageSize)
@@ -244,9 +245,6 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 			a.oracle.selected = -1
 		}
 		return
-	}
-	if a.oracle.search != "" {
-		hint(c, "Search narrows the current page; use Previous/Next for older sources.")
 	}
 	srcs := a.filteredSources()
 	announceSearchResults(c, queryChanged, len(srcs))
