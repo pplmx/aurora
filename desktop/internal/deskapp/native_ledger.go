@@ -1,12 +1,9 @@
 package deskapp
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
 	"github.com/pplmx/aurora/internal/ledger"
@@ -93,12 +90,11 @@ func (s *nativeServices) LedgerBlocksPage(search string, limit, offset int) (nat
 		return nativeui.LedgerBlockPage{Rows: ledgerBlockRows(entries), Total: total}, nil
 	}
 
-	query := strings.ToLower(search)
+	// The search runs against the decoded record, not only the raw payload:
+	// an operator looking for "transfer" or a winner's name should find the
+	// entry even though the chain spells it as a verb or a JSON array.
 	entries, total := s.chain.BlockEntriesPageMatching(limit, offset, func(entry ledger.BlockEntry) bool {
-		module, text := blockFields(entry.Data)
-		return strings.Contains(strings.ToLower(module), query) ||
-			strings.Contains(strings.ToLower(text), query) ||
-			strings.Contains(strconv.FormatInt(entry.Height, 10), query)
+		return recordSearchMatches(ledgerBlockRow(entry), search)
 	})
 	return nativeui.LedgerBlockPage{Rows: ledgerBlockRows(entries), Total: total}, nil
 }
@@ -112,12 +108,7 @@ func ledgerBlockRows(entries []ledger.BlockEntry) []nativeui.BlockRow {
 }
 
 func ledgerBlockRow(entry ledger.BlockEntry) nativeui.BlockRow {
-	module, text := blockFields(entry.Data)
-	return nativeui.BlockRow{
-		Height:  entry.Height,
-		Module:  module,
-		Summary: clipBlockText(text),
-	}
+	return decodeBlockRecord(entry.Height, entry.Timestamp, entry.Data)
 }
 
 // blockModule names the module a recorded payload belongs to.
@@ -198,75 +189,4 @@ func clipBlockText(text string) string {
 		return text
 	}
 	return string(runes[:keep]) + "…"
-}
-
-// decodePipePayload turns a `verb|field|field` audit payload into readable
-// text. Fields that are not printable are shown as base64; anything that does
-// not look like that shape is returned unchanged.
-func decodePipePayload(payload string) string {
-	if !strings.Contains(payload, "|") {
-		return payload
-	}
-	parts := strings.Split(payload, "|")
-	if len(parts) < 2 {
-		return payload
-	}
-	switch parts[0] {
-	case "mint", "transfer", "transfer_from", "transferfrom", "approve", "burn":
-		return "token " + strings.Join(readableFields(parts[1:]), " ")
-	case "mint_nft", "transfer_nft", "burn_nft":
-		return "nft " + strings.Join(readableFields(parts[1:]), " ")
-	case "vote":
-		return "voting " + strings.Join(readableFields(parts[1:]), " ")
-	}
-	// An NFT's own mint payload has no verb: `<id>|<name>|<owner key>`, the
-	// id being a UUID rather than a token symbol.
-	if len(parts) >= 3 && isUUID(parts[0]) {
-		return "nft " + strings.Join(readableFields(parts), " ")
-	}
-	return payload
-}
-
-// readableFields renders each pipe field as text, or as base64 when it carries
-// bytes a terminal cannot show.
-func readableFields(fields []string) []string {
-	out := make([]string, 0, len(fields))
-	for _, f := range fields {
-		if utf8.ValidString(f) && isPrintable(f) {
-			out = append(out, f)
-			continue
-		}
-		out = append(out, base64.StdEncoding.EncodeToString([]byte(f)))
-	}
-	return out
-}
-
-// isUUID reports whether s is a canonical 8-4-4-4-12 UUID.
-func isUUID(s string) bool {
-	if len(s) != 36 {
-		return false
-	}
-	for i, r := range s {
-		switch i {
-		case 8, 13, 18, 23:
-			if r != '-' {
-				return false
-			}
-		default:
-			if !strings.ContainsRune("0123456789abcdefABCDEF", r) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-// isPrintable reports whether every rune in s has a visible form.
-func isPrintable(s string) bool {
-	for _, r := range s {
-		if r < 0x20 || r == 0x7f {
-			return false
-		}
-	}
-	return true
 }

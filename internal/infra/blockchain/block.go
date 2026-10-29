@@ -434,7 +434,7 @@ func (c *Chain) BlockEntriesPage(limit, offset int) []BlockEntry {
 			seen++
 			continue
 		}
-		entries = append(entries, BlockEntry{Height: block.Height, Data: data})
+		entries = append(entries, BlockEntry{Height: block.Height, Timestamp: block.Timestamp, Data: data})
 		if limit > 0 && len(entries) == limit {
 			break
 		}
@@ -468,7 +468,7 @@ func (c *Chain) BlockEntriesPageMatching(limit, offset int, match func(BlockEntr
 		if data == "" || data == "Genesis" {
 			continue
 		}
-		entry := BlockEntry{Height: block.Height, Data: data}
+		entry := BlockEntry{Height: block.Height, Timestamp: block.Timestamp, Data: data}
 		if match != nil && !match(entry) {
 			continue
 		}

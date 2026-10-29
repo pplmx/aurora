@@ -537,14 +537,19 @@ func TestDashboardMetricCardNavigates(t *testing.T) {
 	require.Equal(t, pageLottery, app.page)
 }
 
-// TestDashboardActivityOpensItsModule turns a recent-activity row into the
-// page that wrote it instead of leaving a dead highlight.
+// TestDashboardActivityOpensItsModule turns a recent-activity record into the
+// page that wrote it instead of leaving a dead row. The record is one button,
+// so the click lands on its rendered sentence rather than on a link beneath.
 func TestDashboardActivityOpensItsModule(t *testing.T) {
-	app := New(&fakeServices{blocks: []BlockRow{{Height: 1, Module: "voting", Summary: "ballot"}}})
+	app := New(&fakeServices{blocks: []BlockRow{{
+		Height: 1, Module: "voting", Action: "Ballot", Subject: "cand-1",
+		Facts: []BlockFact{{Label: "Candidate", Value: "cand-1"}},
+	}}})
 	tester := ui.NewTester(app.View, 1280, 2200)
 	tester.Frame()
 
-	require.NoError(t, tester.Click("voting"))
+	require.True(t, tester.HasText("cand-1"), "the record must name what it recorded")
+	require.NoError(t, tester.Click("cand-1"))
 	tester.Frame()
 	require.Equal(t, pageVoting, app.page)
 }

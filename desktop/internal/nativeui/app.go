@@ -112,10 +112,10 @@ func New(services Services) *App {
 	a.token.chosen = -1
 	a.nft.selected = -1
 	a.oracle.selected = -1
+	a.blockchain.expanded = -1
 	a.voting.sessionChoice = -1
 	a.voting.candChoice = -1
 	a.voting.voterChoice = -1
-	a.dashboard.recentChoice = -1
 	// The session form opens with a concrete window (now to a day later):
 	// empty date and time controls are a rejected first attempt the operator
 	// would have to fix before doing anything.

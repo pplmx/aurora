@@ -15,14 +15,40 @@ type DrawRow struct {
 	Timestamp    int64
 }
 
-// BlockRow is one audit block as the ledger page shows it.
+// BlockRow is one audit block as the ledger page shows it. It is the ledger's
+// record: the module that wrote it, what it did, the object it names, the
+// facts worth reading, and the exact payload underneath for an auditor who
+// needs the bytes rather than the sentence.
+//
+// Summary is kept beside these fields because a page that wants one line still
+// needs a compact form, while the ledger page reads Action, Subject and Facts.
 type BlockRow struct {
 	// Height is the block's position in the chain.
 	Height int64
+	// Timestamp is the block's own creation time, in Unix seconds. It is 0
+	// for an entry read without one.
+	Timestamp int64
 	// Module names the subsystem that recorded it, taken from the payload.
 	Module string
-	// Summary is the payload, shortened for a table cell.
+	// Action is the decoded verb: Draw, Mint, Transfer, Ballot, Observation.
+	Action string
+	// Subject is the object the action names: the winners of a draw, the
+	// token of a mint, the candidate of a ballot, the value of an observation.
+	Subject string
+	// Facts are the labelled values worth reading beside the subject. Labels
+	// are English keys the view translates, like every other visible label.
+	Facts []BlockFact
+	// Summary is the payload, shortened for a compact row.
 	Summary string
+	// Payload is the exact recorded text, unmodified. The ledger page shows it
+	// on request so the decoded sentence never becomes the only copy.
+	Payload string
+}
+
+// BlockFact is one labelled value read out of a recorded payload.
+type BlockFact struct {
+	Label string
+	Value string
 }
 
 // VerifyResult is the outcome of re-checking a draw.

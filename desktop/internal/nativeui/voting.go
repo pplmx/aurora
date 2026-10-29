@@ -1336,8 +1336,8 @@ func sessionWindowLines(start, end int64) (string, string) {
 	if start == 0 && end == 0 {
 		return "—", ""
 	}
-	const layout = "2006-01-02 15:04"
-	return time.Unix(start, 0).Format(layout), "→ " + time.Unix(end, 0).Format(layout)
+	return time.Unix(start, 0).Format(localTimeLayout),
+		"→ " + time.Unix(end, 0).Format(localTimeLayout)
 }
 
 func (a *App) votingResults(c *ui.Context) {
