@@ -182,6 +182,7 @@ func (a *App) oracleView(c *ui.Context) {
 		// a time instead of stacking all four sections.
 		twoColumns(c, func() {
 			a.oracleAdd(c)
+			a.oracleSourceActions(c)
 		}, func() {
 			tabs(c, &a.oracle.tab, "Oracle sections", tr("Sources"), tr("Health"), tr("Readings"))
 			switch a.oracle.tab {
@@ -194,6 +195,10 @@ func (a *App) oracleView(c *ui.Context) {
 				a.oracleRead(c)
 			}
 		})
+		// The action card lives in the left column and is visible on every
+		// stage, so its confirmation must be mounted once for the page rather
+		// than from the Sources tab body.
+		a.renderDeleteDialog(c)
 	})
 	if !a.oracle.askDelete {
 		a.liveRefresh(c, a.refreshOracleLive)
@@ -290,38 +295,62 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 			a.chooseOracleSource(srcs, a.oracle.selected)
 		}
 	}
-	if a.oracle.selected >= 0 && a.oracle.selected < len(srcs) {
-		// The row is too narrow for the endpoint and the polling cadence, the
-		// two facts that explain when and where the source fetches.
-		chosen := srcs[a.oracle.selected]
-		copyRow(c, "URL", chosen.URL, nil)
-		readout(c, []readoutRow{{"Every", sourceInterval(chosen.Interval)}})
-	}
+}
 
-	// Per-source actions. A table row cannot host a button per cell without
-	// making the whole grid interactive, so the id is entered once — or loaded
-	// by choosing a row above — and the actions apply to it.
-	fieldHint(c, "Source ID for the actions below",
-		"Choose a source above or enter its ID first.", &a.oracle.fetchID)
-	copyRow(c, "Source ID", strings.TrimSpace(a.oracle.fetchID), nil)
-	sourceReady := strings.TrimSpace(a.oracle.fetchID) != ""
-	ui.Row(c).Wrap().Gap(8).Children(func() {
-		if secondaryButton(c, "Enable").Disabled(!sourceReady).Clicked() {
-			a.setOracleEnabled(true)
+// oracleSourceActions is the per-source workbench: the selected feed's
+// endpoint and cadence, the id every action applies to, and the four controls.
+// It lives under Add Source rather than under the table so the page's action
+// column stays useful on the Health and Readings stages, and the table column
+// is left to the collection.
+func (a *App) oracleSourceActions(c *ui.Context) {
+	formCard(c, "Source Actions", "Enable, disable, fetch or delete a feed; choose one in Sources.", func() {
+		if rows := a.filteredSources(); a.oracle.selected >= 0 && a.oracle.selected < len(rows) {
+			// The row is too narrow for the endpoint and the polling cadence,
+			// the two facts that explain when and where the source fetches.
+			chosen := rows[a.oracle.selected]
+			copyRow(c, "URL", chosen.URL, nil)
+			readout(c, []readoutRow{{"Every", sourceInterval(chosen.Interval)}})
 		}
-		if secondaryButton(c, "Disable").Disabled(!sourceReady).Clicked() {
-			a.setOracleEnabled(false)
+		fieldHint(c, "Source ID for the actions below",
+			"Choose a source in Sources or enter its ID first.", &a.oracle.fetchID)
+		copyRow(c, "Source ID", strings.TrimSpace(a.oracle.fetchID), nil)
+		sourceReady := strings.TrimSpace(a.oracle.fetchID) != ""
+		// A 2x2 grid rather than a wrapping row: the four labels have very
+		// different widths, and at the workbench column's width the wrap left
+		// Delete alone on a line that looked like a layout accident.
+		actionPair := func(left, right func()) {
+			ui.Row(c).FillWidth().Gap(8).Children(func() {
+				ui.Column(c).Grow(1).Shrink(1).Children(left)
+				ui.Column(c).Grow(1).Shrink(1).Children(right)
+			})
 		}
-		if secondaryButton(c, "Fetch now").Disabled(!sourceReady).Clicked() {
-			a.fetchOracleSource()
-		}
-		deleteSource := dangerButton(c, "Delete").Disabled(!sourceReady).Bind(&a.oracle.deleteTrigger)
-		if deleteSource.Clicked() {
-			a.oracle.deleteName = a.resolveOracleSourceName(strings.TrimSpace(a.oracle.fetchID))
-			a.oracle.askDelete = true
-		}
+		actionPair(
+			func() {
+				if secondaryButton(c, "Enable").FillWidth().Disabled(!sourceReady).Clicked() {
+					a.setOracleEnabled(true)
+				}
+			},
+			func() {
+				if secondaryButton(c, "Disable").FillWidth().Disabled(!sourceReady).Clicked() {
+					a.setOracleEnabled(false)
+				}
+			},
+		)
+		actionPair(
+			func() {
+				if secondaryButton(c, "Fetch now").FillWidth().Disabled(!sourceReady).Clicked() {
+					a.fetchOracleSource()
+				}
+			},
+			func() {
+				deleteSource := dangerButton(c, "Delete").FillWidth().Disabled(!sourceReady).Bind(&a.oracle.deleteTrigger)
+				if deleteSource.Clicked() {
+					a.oracle.deleteName = a.resolveOracleSourceName(strings.TrimSpace(a.oracle.fetchID))
+					a.oracle.askDelete = true
+				}
+			},
+		)
 	})
-	a.renderDeleteDialog(c)
 }
 
 // oracleSourceRecords preserves the complete source id and all four status

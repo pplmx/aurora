@@ -143,7 +143,7 @@ func TestSidebarGivesLargeEnglishLabelsEnoughRoom(t *testing.T) {
 // inside their card. At 2x in the minimum window, the unwrapped row pushed the
 // destructive Delete button past the right edge, leaving only part of it on
 // screen.
-func TestOracleSourceActionsWrapAtLargeText(t *testing.T) {
+func TestOracleSourceActionsStayInsideTheWindowAtLargeText(t *testing.T) {
 	app := New(&fakeServices{sources: []SourceRow{{
 		ID: "source-1", Name: "BTC feed", URL: "https://example.com/price",
 		Type: "http", Enabled: true, Interval: 60,
@@ -165,8 +165,14 @@ func TestOracleSourceActionsWrapAtLargeText(t *testing.T) {
 	}
 	deleteAction, ok := tester.Find("Delete")
 	require.True(t, ok)
-	require.Greater(t, deleteAction.Y, enable.Y,
-		"the action row must wrap instead of clipping its destructive action")
+	// The actions now live in the left workbench column, which stacks to full
+	// width at this size, so the row may fit on one line. What must never
+	// return is the destructive action leaving the window: compare against
+	// the row's own left edge rather than requiring a wrap that is no longer
+	// needed at full width.
+	require.GreaterOrEqual(t, deleteAction.X, enable.X-1,
+		"the destructive action must follow the row, not precede it")
+	require.LessOrEqual(t, deleteAction.X+deleteAction.W, float32(900))
 }
 
 // TestOracleSourcesUseRecordsAtLargeText replaces the five-column source table
