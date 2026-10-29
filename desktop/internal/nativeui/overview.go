@@ -33,10 +33,8 @@ type dashboardState struct {
 	// so the landing page answers "what happened lately" as well as "how much
 	// is there". recentErr keeps the card's own failure separate from the
 	// counters: a chain read failing must not blank the dashboard.
-	recent       []BlockRow
-	recentErr    error
-	recentTable  ui.ListState
-	recentChoice int
+	recent    []BlockRow
+	recentErr error
 }
 
 // dashboardRecentLimit is how many chain entries the dashboard shows. The
@@ -50,7 +48,6 @@ type blockchainState struct {
 	height  int
 	blocks  int
 	rows    []BlockRow
-	table   ui.ListState
 	loadErr error
 	// blocksErr is the last failure to read the chain entries; the rows from
 	// the previous successful read stay with a stale note.
@@ -68,6 +65,9 @@ type blockchainState struct {
 	// read, so a failed pager move leaves the label on the rows it shows.
 	queriedSearch string
 	queriedLimit  int
+	// expanded is the index of the record whose exact payload is open, or -1
+	// when every record shows its decoded sentence only.
+	expanded int
 }
 
 func (a *App) loadDashboard() {
@@ -332,81 +332,24 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			})
 			return
 		}
-		rows := a.dashboard.recent
-		if stackedRecords(c) {
-			a.dashboardRecentRecords(c, rows)
-		} else {
-			a.dashboard.recentTable.Selected = &a.dashboard.recentChoice
-			table := namedTable(c, "Recent activity", &a.dashboard.recentTable, []ui.TableColumn{
-				{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-				{Title: tr("Module"), Width: 120},
-				{Title: tr("Summary"), MinWidth: 200},
-			}, len(rows), func(row, col int) {
-				entry := rows[row]
-				switch col {
-				case 0:
-					tableText(c, strconv.FormatInt(entry.Height, 10))
-				case 1:
-					tableText(c, entry.Module).TextColor(blockModuleTone(c, entry.Module))
-				case 2:
-					tableText(c, entry.Summary).FontSize(textSize(c, 12))
+		// The activity card draws the same records as the Blockchain page, in
+		// the same language and with the same module hues. Two renderings of
+		// the audit chain would be two different accounts of what happened.
+		// The whole record is the navigation target: it names where the entry
+		// came from, and taking the reader there is more useful than leaving a
+		// highlight behind.
+		ui.Column(c).FillWidth().Gap(8).Children(func() {
+			for _, entry := range a.dashboard.recent {
+				entry := entry
+				if _, clicked := selectableBlockRecord(c, entry); clicked {
+					if target, ok := pageForBlockModule(entry.Module); ok {
+						a.setPage(target)
+					}
 				}
-			})
-			if table.Changed() {
-				a.chooseRecentBlock(rows, a.dashboard.recentChoice)
 			}
-		}
+		})
 	})
 	panel.Label(title)
-}
-
-// dashboardRecentRecords keeps the full audit payload visible and makes the
-// whole event the navigation target when enlarged text no longer fits the
-// three-column summary table.
-func (a *App) dashboardRecentRecords(c *ui.Context, rows []BlockRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for i, entry := range rows {
-			i, entry := i, entry
-			displayName := fmt.Sprintf("%s #%d", valueOr(entry.Module), entry.Height)
-			selected := i == a.dashboard.recentChoice
-			record := selectableRecordPanel(c, selected,
-				recordChoiceLabel(displayName, selected), func() {
-					blockRecordBody(c, entry)
-				})
-			if record.Clicked() {
-				a.chooseRecentBlock(rows, i)
-			}
-		}
-	})
-}
-
-// chooseRecentBlock is shared by the table and large-text records. A known
-// module opens its workbench; an unknown one still consumes the selection
-// instead of leaving a stale highlight behind.
-func (a *App) chooseRecentBlock(rows []BlockRow, index int) {
-	if index < 0 || index >= len(rows) {
-		return
-	}
-	a.dashboard.recentChoice = index
-	if target, ok := pageForBlockModule(rows[index].Module); ok {
-		// The row names where the record came from; taking the reader there is
-		// more useful than leaving a highlight on the dashboard.
-		a.dashboard.recentChoice = -1
-		a.setPage(target)
-		return
-	}
-	a.dashboard.recentChoice = -1
-}
-
-// blockRecordBody is the shared ledger-event record used by both the
-// dashboard's selectable activity list and the Blockchain audit page.
-func blockRecordBody(c *ui.Context, entry BlockRow) {
-	ui.Row(c).FillWidth().Wrap().Gap(18).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, valueOr(entry.Module)).FontSize(textSize(c, 13)).Bold().
-			TextColor(c.Theme().Text)
-		recordMetric(c, "Block", strconv.FormatInt(entry.Height, 10), c.Theme().Text)
-	})
-	recordField(c, "Summary", valueOr(entry.Summary))
 }
 
 func (a *App) loadBlockchain() {
@@ -554,43 +497,34 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 				a.blockchain.blockOffset+limit)
 		}
 	}
-	if stackedRecords(c) {
-		ui.Column(c).FillWidth().Gap(10).Children(func() {
-			for _, entry := range a.blockchain.rows {
-				entry := entry
-				recordPanel(c, func() {
-					blockRecordBody(c, entry)
-				})
-			}
-		})
-	} else {
-		namedTable(c, "Blockchain ledger", &a.blockchain.table, []ui.TableColumn{
-			{Title: tr("Height"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-			{Title: tr("Module"), Width: 130},
-			{Title: tr("Payload"), MinWidth: 200},
-		}, len(a.blockchain.rows), func(row, col int) {
-			b := a.blockchain.rows[row]
-			switch col {
-			case 0:
-				tableText(c, strconv.FormatInt(b.Height, 10))
-			case 1:
-				tableText(c, b.Module).TextColor(blockModuleTone(c, b.Module))
-			case 2:
-				tableText(c, b.Summary).FontSize(textSize(c, 12))
-			}
-		})
-	}
+	// The ledger is a stream of records, not a grid of payload cells: each
+	// entry reads as "module · action · object" with its facts and its exact
+	// payload one click away. This replaced a three-column table whose
+	// payload cell was the raw JSON or pipe-delimited key bytes, which made
+	// the page an unreadable dump of the very thing it was meant to explain.
+	//
+	// A record already wraps its facts and its payload, so the same layout
+	// serves the large-text preference instead of switching to a second
+	// rendering of the same data.
+	ui.Column(c).FillWidth().Gap(10).Children(func() {
+		for i, entry := range a.blockchain.rows {
+			i, entry := i, entry
+			blockRecord(c, entry, a.blockchain.expanded == i, func() {
+				a.toggleBlockPayload(i)
+			})
+		}
+	})
 }
 
-// blockModuleTone gives each module its identity colour in a ledger table, so
-// a reader scanning a height-ordered list can tell the writers apart before
-// reading the column. An unknown module keeps the muted text colour; colour is
-// never the only signal because the module name stays beside it.
-func blockModuleTone(c *ui.Context, module string) ui.Color {
-	if target, ok := pageForBlockModule(module); ok {
-		return pageAccent(target)
+// toggleBlockPayload opens or closes one record's exact payload. Only one is
+// open at a time: the page is a scroll of sentences, and a reader comparing
+// two payloads can toggle between them faster than by scrolling past both.
+func (a *App) toggleBlockPayload(index int) {
+	if a.blockchain.expanded == index {
+		a.blockchain.expanded = -1
+		return
 	}
-	return c.Theme().TextMuted
+	a.blockchain.expanded = index
 }
 
 // pageForBlockModule maps an audit payload's module label to the page that

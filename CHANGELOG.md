@@ -11,6 +11,26 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The ledger reads as records instead of a payload dump**: the Blockchain page
+  and the dashboard's Recent activity card now render every chain entry as
+  "module · action · object" with its readable facts — a draw's winners,
+  participant count and seed; a token write's token and accounts; a ballot's
+  candidate, voter and session; an observation's value and source; an NFT's name
+  and owner — plus the block's own timestamp and height. The raw JSON or
+  `verb|field|field` payload stays one click away behind a Payload control, so
+  the decoded sentence never becomes the only copy of what the chain holds. Each
+  payload shape is decoded in `desktop/internal/deskapp/native_records.go`; the
+  ledger's search matches the decoded text as well as the stored bytes and the
+  height, so a winner's name or the word "transfer" finds its entry. Both
+  surfaces draw the same record card, so the overview and the audit page tell one
+  story about the same chain, and the module pill shows the module's own page
+  name in the window's language rather than the chain's lowercase identifier.
+- **`BlockEntry` carries its block's timestamp**: token and NFT payloads have no
+  time of their own, so the block's creation time is the only "when" every
+  recorded entry shares. The ledger previously could date a draw but not a mint.
+- **NFT transfer and burn records decode as NFT writes**: they are stored as
+  `<operation-uuid>|transfer` / `<operation-uuid>|burn`, which the old decoder
+  did not recognise and printed as a bare UUID followed by a word.
 - **Desktop chrome reads as a surface, not one long column**: the page header is
   now a fixed band tinted with the open module's own hue and closed by a
   hairline, with the scrolling body in its own padded column beneath it, so the

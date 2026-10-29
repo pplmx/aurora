@@ -160,3 +160,43 @@ func absInt(n int) int {
 	}
 	return n
 }
+
+// TestLedgerRecordsShareOneColumn pins the ledger's record stream: each entry
+// is a full-width record in one column, newest first, with the next record
+// below it. The page used to be a three-column table whose middle cell was the
+// raw payload; a record's sentence and facts need the full width, and a grid
+// would squeeze the facts into the payload column again.
+func TestLedgerRecordsShareOneColumn(t *testing.T) {
+	records := ledgerRecords()
+	app := New(&fakeServices{blocks: records})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	// Each record is a full-width card, so the next one begins below the
+	// previous one rather than beside it: the table this replaced put the three
+	// pieces of an entry in three columns.
+	newest, ok := tester.Find(blockRecordLabel(records[0]))
+	require.True(t, ok)
+	older, ok := tester.Find(blockRecordLabel(records[1]))
+	require.True(t, ok)
+	require.Equal(t, newest.X, older.X, "records stack on one left edge")
+	require.Equal(t, newest.W, older.W, "records share the card width")
+	require.Greater(t, older.Y, newest.Y, "the newest record comes first")
+}
+
+// TestLedgerRecordNamesItsModuleInTheWindowsLanguage pins the record's
+// provenance mark: the chain stores a lowercase identifier ("lottery"), while
+// the pill shows the module's own page name in the current language, so a
+// Chinese window says 抽奖 rather than "lottery" beside 抽奖 in the sidebar.
+func TestLedgerRecordNamesItsModuleInTheWindowsLanguage(t *testing.T) {
+	app := New(&fakeServices{blocks: ledgerRecords()})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	require.True(t, tester.HasText(tr(pageTitles[pageLottery])),
+		"the lottery record must name its module in the window's language")
+	require.True(t, tester.HasText(tr(pageTitles[pageToken])),
+		"the token record must name its module in the window's language")
+}

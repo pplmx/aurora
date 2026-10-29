@@ -41,6 +41,11 @@ const (
 	cardGap float32 = 14
 )
 
+// localTimeLayout is the one spelling of a local timestamp in the window. A
+// session's acceptance window and a recorded ledger entry both use it, so the
+// time a module stored and the time the chain recorded read identically.
+const localTimeLayout = "2006-01-02 15:04"
+
 // panelFill is the card's background: a vertical wash from one step above the
 // surface to the surface itself. It is mixed from the theme rather than fixed,
 // so the high-contrast preference changes the card with the rest of the

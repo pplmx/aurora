@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -316,6 +317,30 @@ func TestBlockEntriesCarryTheirHeights(t *testing.T) {
 	latest := c.BlockEntries(1)
 	require.Len(t, latest, 1)
 	require.Equal(t, int64(2), latest[0].Height)
+}
+
+// TestBlockEntriesCarryTheirTimestamps pins the clock the ledger records show.
+// Token and NFT payloads carry no timestamp of their own, so the block's
+// creation time is the only "when" every entry shares; without it the desktop
+// could date a draw but not a mint.
+func TestBlockEntriesCarryTheirTimestamps(t *testing.T) {
+	c := New()
+	before := time.Now().Unix()
+	_, err := c.AddBlock("first")
+	require.NoError(t, err)
+	after := time.Now().Unix()
+
+	entries := c.BlockEntries(0)
+	require.Len(t, entries, 1)
+	require.NotZero(t, entries[0].Timestamp, "a recorded entry must carry the block's time")
+	require.GreaterOrEqual(t, entries[0].Timestamp, before)
+	require.LessOrEqual(t, entries[0].Timestamp, after)
+
+	// The filtered reader must carry it too: it is the path the desktop's
+	// search uses.
+	page, _ := c.BlockEntriesPageMatching(0, 0, nil)
+	require.Len(t, page, 1)
+	require.Equal(t, entries[0].Timestamp, page[0].Timestamp)
 }
 
 // TestBlockEntriesPageOffsetsInEntries keeps pagination from confusing a block
