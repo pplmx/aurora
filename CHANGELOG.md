@@ -31,6 +31,15 @@ documented in their per-milestone ROADMAP files.
   the collapsed guide's single line, the framed table, the fading section rule
   and the table header's row height, so a later layout change cannot quietly
   undo them.
+- **Status, busy and destructive prompts share one visual language**: the
+  outcome strip is now a full-width message with a lit left edge whose tint
+  fades to the right, instead of a rounded badge inside a heavy outline that
+  fought the header band. The running-operation strip uses the same shape in
+  the accent, so "working" and "finished" read as the same kind of message in
+  the same place. Burn, Delete and Forget now open with a warning mark in the
+  danger hue and a hairline above their decision row, so an irreversible
+  question is recognisable before its title is read; focus and accessible name
+  are unchanged.
 
 ### Added
 

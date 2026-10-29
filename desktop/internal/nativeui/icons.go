@@ -77,11 +77,6 @@ var pageIcons = map[page]*ui.SVG{
 // Action glyphs for the command palette. They use the same Lucide stroke
 // language as the page icons.
 var (
-	infoIcon = ui.MustParseSVG([]byte(svgOpen +
-		`<circle cx="12" cy="12" r="10"/>` +
-		`<path d="M12 16v-4"/>` +
-		`<path d="M12 8h.01"/>` +
-		`</svg>`))
 	searchIcon = ui.MustParseSVG([]byte(svgOpen +
 		`<circle cx="11" cy="11" r="8"/>` +
 		`<path d="m21 21-4.3-4.3"/>` +
@@ -136,5 +131,13 @@ var (
 		`<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>` +
 		`<path d="m7 10 5 5 5-5"/>` +
 		`<path d="M12 15V3"/>` +
+		`</svg>`))
+	// warningIcon marks a confirmation whose action cannot be undone, and a
+	// load that kept stale rows. The triangle with an exclamation is the
+	// shape readers already know from every desktop alert.
+	warningIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>` +
+		`<path d="M12 9v4"/>` +
+		`<path d="M12 17h.01"/>` +
 		`</svg>`))
 )
