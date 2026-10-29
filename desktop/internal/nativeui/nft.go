@@ -168,10 +168,12 @@ func (a *App) nftView(c *ui.Context) {
 		// The collection leads: what exists comes before adding to it, and the
 		// cards below act on the row it selects.
 		twoColumns(c, func() {
-			a.nftRead(c)
+			a.nftCollection(c)
 			a.nftMint(c)
 		}, func() {
 			a.nftWrite(c)
+			// Inspect belongs with the actions that use the id it resolves.
+			a.nftInspect(c)
 		})
 		a.renderNFTBurnDialog(c)
 	})
@@ -342,10 +344,16 @@ func (a *App) nftOwnerForID(id string) string {
 	return ""
 }
 
-func (a *App) nftRead(c *ui.Context) {
+func (a *App) nftCollection(c *ui.Context) {
 	formCard(c, "Collection", "Every stored asset, newest first. Choose a row to load its id into the cards below.", func() {
 		a.nftListBody(c)
 	})
+}
+
+// nftInspect is the id lookup and owner filter. It sits in the workbench
+// column so the id it resolves is beside the transfer and burn forms that
+// consume it.
+func (a *App) nftInspect(c *ui.Context) {
 	formCard(c, "Inspect", "Look up one NFT by id, or narrow the collection to one owner.", func() {
 		a.nftReadBody(c)
 	})
