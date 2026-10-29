@@ -458,8 +458,6 @@ func (a *App) nftListBody(c *ui.Context) {
 		emptyState(c, pageNFT, "No NFTs yet", "Mint an asset above to start the collection; it becomes the first holder’s token.")
 		return
 	}
-	searchField(c, &a.nft.search, "Search NFTs").
-		Description(tr("Search narrows the current page; use Previous/Next for older assets."))
 	queryChanged := a.nft.search != a.nft.appliedSearch
 	if queryChanged {
 		a.nft.appliedSearch = a.nft.search
@@ -472,7 +470,10 @@ func (a *App) nftListBody(c *ui.Context) {
 	if limit > maxListLimit {
 		limit = maxListLimit
 	}
-	if previous, next := listPager(c, "NFT collection", a.nft.offset, len(a.nft.list), a.nft.hasMore); previous || next {
+	previous, next := collectionToolbar(c, &a.nft.search, "Search NFTs",
+		"Search narrows the current page; use Previous/Next for older assets.",
+		"NFT collection", a.nft.offset, len(a.nft.list), a.nft.hasMore)
+	if previous || next {
 		target := a.nft.offset
 		if previous {
 			target = max(0, target-limit)
@@ -483,9 +484,6 @@ func (a *App) nftListBody(c *ui.Context) {
 			a.nft.selected = -1
 		}
 		return
-	}
-	if a.nft.search != "" {
-		hint(c, "Search narrows the current page; use Previous/Next for older assets.")
 	}
 	list := make([]NFTRow, 0, len(a.nft.list))
 	for _, n := range a.nft.list {
@@ -813,7 +811,7 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 		emptyNote(c, "No operations recorded for this NFT.")
 		return
 	}
-	if previous, next := listPager(c, "NFT operation history", a.nft.historyOffset, len(a.nft.history), a.nft.historyHasMore); previous || next {
+	if previous, next := collectionPager(c, "NFT operation history", a.nft.historyOffset, len(a.nft.history), a.nft.historyHasMore); previous || next {
 		target := a.nft.historyOffset
 		if previous {
 			target = max(0, target-nftHistoryPageSize)

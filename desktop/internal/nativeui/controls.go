@@ -414,12 +414,99 @@ func hint(c *ui.Context, text string) {
 	ui.Text(c, tr(text)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
 }
 
-// listPager draws the Previous/Entries/Next strip shared by paged
-// collections. hasMore comes from fetching one row beyond the page, so an
-// exact multiple of the page size does not enable a dead Next button.
-func listPager(c *ui.Context, name string, offset, count int, hasMore bool) (previous, next bool) {
+// collectionToolbar is the one strip every paged collection leads with.
+//
+// Before it, a card stacked four separate bands: the search field, a muted
+// sentence repeating that search only narrowed the page, a Previous/range/Next
+// pager, and then the rows. Measured on the Token page, a one-row collection
+// spent 247px on that stack before a single record was read, mostly on the
+// repeated sentence and the gap between bands.
+//
+// The strip puts the three working controls on one line — query, range,
+// paging — so the only thing between the card's title and its content is the
+// row an operator actually uses. The sentence about paging is kept as the
+// search field's accessible description instead of a second visible line; it
+// is help, not a fact somebody needs to read on every frame.
+//
+// It reports the same previous/next a caller acts on, so a collection keeps
+// its paging handler unchanged.
+func collectionToolbar(c *ui.Context, query *string, searchLabel, hintText, name string,
+	offset, count int, hasMore bool,
+) (previous, next bool) {
+	search := searchField(c, query, searchLabel)
+	if hintText != "" {
+		// The paging sentence is help, not a fact: it describes what the field
+		// does without taking a second visible line on every frame.
+		search.Description(tr(hintText))
+	}
+	// The strip is two lines: the query, then the range with its two buttons.
+	//
+	// Trying to fit both on one line does not survive the toolkit's sizing: a
+	// row is measured from its children's content, and a search field's content
+	// is a text editor with a generous minimum width, so the pager was pushed
+	// onto its own line at every window size no matter how the field was grown,
+	// shrunk or capped. Two deliberate lines replace four stacked bands — the
+	// field, the repeated sentence, and a full-width pager — and the field is
+	// never crushed to make them share a row.
+	// The field and its pager are one control group: the pager is right-aligned
+	// directly under the field, in the same column, so the two read as a single
+	// block rather than as two sections of the card.
+	//
+	// The pager stays even on a single page. Its range is how an operator
+	// learns that a collection has exactly these N rows rather than more behind
+	// a failed read, and its accessible name is the collection's own label;
+	// both are content a hidden strip would take away.
+	ui.Column(c).FillWidth().Gap(space1 / 2).Children(func() {
+		search.FillWidth()
+		ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
+			ui.Spacer(c)
+			previous, next = pagerInline(c, name, offset, count, hasMore)
+		})
+	})
+	return previous, next
+}
+
+// collectionPager is the pager strip for a collection that has no search field
+// of its own: an operation history or a reading list is bounded by its own
+// controls, so it only needs the range and the two buttons. It uses the same
+// compact shape the toolbar gives a paged, searchable collection, so a page
+// does not mix two pager heights.
+func collectionPager(c *ui.Context, name string, offset, count int, hasMore bool) (previous, next bool) {
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
+		ui.Spacer(c)
+		previous, next = pagerInline(c, name, offset, count, hasMore)
+	})
+	return previous, next
+}
+
+// pagerInline is pagerControls without its own full-width band: the range and
+// the two buttons sit beside the search field, and the accessible group name
+// and announcement are unchanged.
+func pagerInline(c *ui.Context, name string, offset, count int, hasMore bool) (previous, next bool) {
 	rangeLabel := fmt.Sprintf(tr("Entries %d–%d"), offset+1, offset+count)
-	return pagerControls(c, name, offset, rangeLabel, offset == 0, !hasMore)
+	pagerLabel := fmt.Sprintf(tr("%s pager, %s"), tr(name), rangeLabel)
+	pager := ui.Row(c).AlignItems(ui.Center).Gap(space2).
+		Role(ui.RoleGroup).Label(pagerLabel).Shrink(0)
+	// A pager move replaces the rows while focus stays on its button. Announce
+	// the range once the offset has changed, but not on the first frame, a
+	// repaint, or a failed move that kept the old page.
+	announcedOffset := ui.Local(pager, "announced-offset", func() int { return offset })
+	if *announcedOffset != offset {
+		*announcedOffset = offset
+		c.Announce(rangeLabel)
+	}
+	pager.Children(func() {
+		previous = pagerButton(c, "Previous").
+			Description(fmt.Sprintf(tr("Show the previous %s page."), tr(name))).
+			Disabled(offset == 0).Clicked()
+		ui.Text(c, rangeLabel).FontSize(textSize(c, 11)).
+			TextColor(c.Theme().TextMuted).Shrink(0)
+		next = pagerButton(c, "Next").
+			Description(fmt.Sprintf(tr("Show the next %s page."), tr(name))).
+			Disabled(!hasMore).Clicked()
+		_ = pagerLabel
+	})
+	return previous, next
 }
 
 // pagerControls draws one named Previous/range/Next group. Most collections
@@ -457,20 +544,22 @@ func pagerControls(c *ui.Context, name string, offset int, rangeLabel string, pr
 // the operator is reading, and two full-height buttons outweighed it.
 func pagerButton(c *ui.Context, label string) ui.Element {
 	label = tr(label)
-	b := ui.ButtonBase(c).Height(max(28, textSize(c, 28))).PaddingX(max(space3, textSize(c, 12))).
-		Radius(radiusSmall).AlignItems(ui.Center).Label(label).TextColor(c.Theme().TextMuted)
-	fill, outline := ui.Transparent, c.Theme().Border
+	b := ui.ButtonBase(c).Height(max(24, textSize(c, 24))).PaddingX(max(space2+2, textSize(c, 10))).
+		Radius(radiusSmall - 2).AlignItems(ui.Center).Label(label).TextColor(c.Theme().TextMuted)
+	// No outline at rest: the buttons sit inside the collection's control
+	// group, and a bordered pair there competed with the card's real actions.
+	fill, outline := ui.Transparent, ui.Transparent
 	switch {
 	case b.Pressed():
 		fill = c.Theme().SurfacePressed
 	case b.Hovered():
-		fill = c.Theme().Surface
+		fill = c.Theme().SurfaceHover
 		outline = ui.Hex(aurora).Alpha(0.45)
 	}
 	b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
 	b.BorderWidth(1).BorderColor(outline)
 	b.Children(func() {
-		ui.Text(c, label).FontSize(textSize(c, 11.5)).FontWeight(500).SingleLine()
+		ui.Text(c, label).FontSize(textSize(c, 11)).FontWeight(500).SingleLine()
 	})
 	return b
 }

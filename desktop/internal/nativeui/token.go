@@ -212,8 +212,6 @@ func (a *App) tokenList(c *ui.Context) {
 			emptyState(c, pageToken, "No tokens yet", "Create the first token above; the list, forms and history follow it.")
 			return
 		}
-		searchField(c, &a.token.search, "Search tokens").
-			Description(tr("Search narrows the current page; use Previous/Next for older tokens."))
 		queryChanged := a.token.search != a.token.appliedSearch
 		if queryChanged {
 			// The highlight indexes the filtered rows; after a new query the same
@@ -222,7 +220,10 @@ func (a *App) tokenList(c *ui.Context) {
 			a.token.appliedSearch = a.token.search
 			a.token.chosen = -1
 		}
-		if previous, next := listPager(c, "Token collection", a.token.offset, len(a.token.tokens), a.token.hasMore); previous || next {
+		previous, next := collectionToolbar(c, &a.token.search, "Search tokens",
+			"Search narrows the current page; use Previous/Next for older tokens.",
+			"Token collection", a.token.offset, len(a.token.tokens), a.token.hasMore)
+		if previous || next {
 			target := a.token.offset
 			if previous {
 				target = max(0, target-tokenPageSize)
@@ -233,9 +234,6 @@ func (a *App) tokenList(c *ui.Context) {
 				a.token.chosen = -1
 			}
 			return
-		}
-		if a.token.search != "" {
-			hint(c, "Search narrows the current page; use Previous/Next for older tokens.")
 		}
 		rows := make([]TokenRow, 0, len(a.token.tokens))
 		for _, t := range a.token.tokens {

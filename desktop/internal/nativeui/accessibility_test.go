@@ -458,24 +458,18 @@ func TestVisibleHintsDescribeTheirControls(t *testing.T) {
 		"voting.go": {
 			`Description(tr("Local time. Ballots are rejected before it."))`,
 			`Description(tr("Local time. Ballots are rejected after it."))`,
-			`Description(tr("Search narrows the current page; use Previous/Next for older voters."))`,
 			`Description(tr("A prior ballot does not block a later session; each session accepts one ballot per voter."))`,
 		},
 		"lottery.go": {
 			`Description(tr("How many winners to draw; must not exceed the participant count."))`,
-			`Description(tr("Search narrows the current page; use Previous/Next for older draws."))`,
 		},
 		"token.go": {
-			`Description(tr("Search narrows the current page; use Previous/Next for older tokens."))`,
 			`Description(tr("0 for a whole-unit token; 8 matches most asset conventions."))`,
 		},
 		"oracle.go": {
-			`Description(tr("Search narrows the current page; use Previous/Next for older sources."))`,
 			`Description(tr("0 uses the default of 60; at most 30 days."))`,
 		},
-		"nft.go": {
-			`Description(tr("Search narrows the current page; use Previous/Next for older assets."))`,
-		},
+		"nft.go": {},
 		"settings.go": {
 			`Description(tr("Nothing is written to disk; quitting Aurora clears them."))`,
 			`Description(tr("Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch."))`,
@@ -507,11 +501,17 @@ func TestSearchFieldsAnnounceResultCounts(t *testing.T) {
 		}
 		source, err := os.ReadFile(name)
 		require.NoError(t, err)
-		// The search control is built by searchField, which localizes its
-		// placeholder; the audit counts its callers so a new page still has to
-		// announce what its query selected.
-		searches += strings.Count(string(source), "searchField(c,")
-		announcements += strings.Count(string(source), "announceSearchResults(c,")
+		// A page either builds its search field directly or leads with the
+		// shared collection toolbar, which builds one for it. Both spellings
+		// are views that must announce what their query selected.
+		body := string(source)
+		// controls.go defines both helpers; its own calls are not page-level
+		// searches, so a page file is the one that counts.
+		if name != "controls.go" {
+			searches += strings.Count(body, "searchField(c,")
+			searches += strings.Count(body, "collectionToolbar(c,")
+			announcements += strings.Count(body, "announceSearchResults(c,")
+		}
 	}
 	require.GreaterOrEqual(t, searches, 9)
 	require.Equal(t, searches, announcements,

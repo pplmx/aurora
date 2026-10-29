@@ -227,14 +227,15 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		return
 	}
 	rows := make([]DrawRow, 0, len(a.lottery.rows))
-	searchField(c, &a.lottery.search, "Search draws").
-		Description(tr("Search narrows the current page; use Previous/Next for older draws."))
 	queryChanged := a.lottery.search != a.lottery.appliedSearch
 	if queryChanged {
 		a.lottery.appliedSearch = a.lottery.search
 		a.lottery.selected = -1
 	}
-	if previous, next := listPager(c, "Draw history", a.lottery.offset, len(a.lottery.rows), a.lottery.hasMore); previous || next {
+	previous, next := collectionToolbar(c, &a.lottery.search, "Search draws",
+		"Search narrows the current page; use Previous/Next for older draws.",
+		"Draw history", a.lottery.offset, len(a.lottery.rows), a.lottery.hasMore)
+	if previous || next {
 		target := a.lottery.offset
 		if previous {
 			target = max(0, target-lotteryHistoryLimit)
@@ -245,9 +246,6 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 			a.lottery.selected = -1
 		}
 		return
-	}
-	if a.lottery.search != "" {
-		hint(c, "Search narrows the current page; use Previous/Next for older draws.")
 	}
 	for _, draw := range a.lottery.rows {
 		if containsFold(a.lottery.search, draw.ID, draw.Seed,
