@@ -77,6 +77,28 @@ var pageIcons = map[page]*ui.SVG{
 // Action glyphs for the command palette. They use the same Lucide stroke
 // language as the page icons.
 var (
+	infoIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<circle cx="12" cy="12" r="10"/>` +
+		`<path d="M12 16v-4"/>` +
+		`<path d="M12 8h.01"/>` +
+		`</svg>`))
+	searchIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<circle cx="11" cy="11" r="8"/>` +
+		`<path d="m21 21-4.3-4.3"/>` +
+		`</svg>`))
+	sparkIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<path d="M9.94 4.06a.5.5 0 0 1 .95 0l1.3 4.02a2 2 0 0 0 1.27 1.27l4.02 1.3a.5.5 0 0 1 0 .95l-4.02 1.3a2 2 0 0 0-1.27 1.27l-1.3 4.02a.5.5 0 0 1-.95 0l-1.3-4.02a2 2 0 0 0-1.27-1.27l-4.02-1.3a.5.5 0 0 1 0-.95l4.02-1.3a2 2 0 0 0 1.27-1.27z"/>` +
+		`<path d="M19 3v4"/>` +
+		`<path d="M21 5h-4"/>` +
+		`</svg>`))
+	shieldCheckIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>` +
+		`<path d="m9 12 2 2 4-4"/>` +
+		`</svg>`))
+	arrowRightIcon = ui.MustParseSVG([]byte(svgOpen +
+		`<path d="M5 12h14"/>` +
+		`<path d="m12 5 7 7-7 7"/>` +
+		`</svg>`))
 	refreshIcon = ui.MustParseSVG([]byte(svgOpen +
 		`<path d="M21 12a9 9 0 0 0-15.5-6.36L3 8"/>` +
 		`<path d="M3 3v5h5"/>` +

@@ -13,123 +13,172 @@ import (
 // about the running app belongs.
 func (a *App) settingsView(c *ui.Context) {
 	a.scrollPage(c, func() {
-		formCard(c, "Language", "Applies to menus, pages, dialogs and guidance.", func() {
-			current := "—"
-			language := ""
-			if a.actions.Language != nil {
-				language = a.actions.Language()
-				current = languageLabel(language)
-			}
-			readout(c, []readoutRow{{"Current", current}})
-			if a.actions.SetLanguage != nil {
-				ui.Row(c).Wrap().Gap(12).AlignItems(ui.Center).Children(func() {
-					languageChooser(c, languageChoice(language), a.actions.SetLanguage)
-					follow := secondaryButton(c, "Follow System").
-						Description(tr("Use the language selected by the operating system."))
-					if follow.Clicked() {
-						a.actions.SetLanguage("")
-					}
-				})
-			}
-		})
-
-		formCard(c, "Session keys", "Private keys can be kept in memory for this session only.", func() {
-			remember := a.rememberKeys
-			checkbox := ui.Checkbox(c, &remember, tr("Remember private keys for this session")).
-				Description(tr("Nothing is written to disk; quitting Aurora clears them.")).
-				Bind(&a.rememberKeysControl)
-			if checkbox.Changed() {
-				switch {
-				case remember:
-					a.rememberKeys = true
-				case a.rememberedKeyCount() > 0:
-					// Turning the policy off also clears what is already held:
-					// "off" must mean no private key is sitting in memory. Ask
-					// before discarding keys that may exist only in this process.
-					a.confirmForgetKeys = true
-					a.disableKeyMemoryOnForget = true
-				default:
-					a.rememberKeys = false
-				}
-			}
-			hint(c, "Nothing is written to disk; quitting Aurora clears them.")
-			readout(c, []readoutRow{{"Remembered keys", strconv.Itoa(a.rememberedKeyCount())}})
-			if a.rememberedKeyCount() > 0 {
-				ui.Row(c).Children(func() {
-					forget := dangerButton(c, "Forget session keys").
-						Description(tr("Remove every private key kept in memory for this session.")).
-						Bind(&a.forgetKeysButton)
-					if forget.Clicked() {
-						a.confirmForgetKeys = true
-						a.disableKeyMemoryOnForget = false
-					}
-				})
-			}
-		})
-
-		formCard(c, "Data", "Aurora keeps the ledger in one local SQLite database.", func() {
-			copyRow(c, "Database path", a.actions.DBPath, nil)
-			ui.Row(c).Wrap().Gap(8).Children(func() {
-				const privacy = "No data leaves this machine; the desktop opens no network listener."
-				a.settingsButton(c, "Show Data Folder", privacy, a.actions.ShowDataFolder)
-				a.settingsButton(c, "Back Up Database…", privacy, a.actions.BackUpDatabase)
-			})
-			hint(c, "No data leaves this machine; the desktop opens no network listener.")
-		})
-
-		formCard(c, "Live updates", "Keep the open page's facts current on a timer.", func() {
-			if ui.Checkbox(c, &a.liveUpdates, tr("Every 10 seconds")).
-				Description(tr("Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.")).Changed() {
-				a.settingsStatus = statusLine{}
-				a.setLiveUpdates(a.liveUpdates)
-				if a.actions.SetLiveUpdates != nil {
-					if err := a.actions.SetLiveUpdates(a.liveUpdates); err != nil {
-						a.settingsStatus = errorStatusText(
-							tr("Couldn't save settings") + ": " + localizeServiceError(err))
-					}
-				}
-			}
-			hint(c, "Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.")
-			// The only Settings action that can fail is this save; keep its
-			// result beside the control instead of at the top of a scroll the
-			// operator has already moved past.
-			if renderStatus(c, pageSettings, a.settingsStatus, func() { a.settingsStatus = statusLine{} }) {
-				a.navigationControl.Focus(c)
-			}
-		})
-
-		formCard(c, "Shortcuts", "Navigation and window commands; Reload applies to pages that read stored data.", func() {
-			readout(c, []readoutRow{
-				{"Pages", shortcutChord("1…8")},
-				{"Reload (data pages)", shortcutChord("R")},
-				{"Back up database", shortcutChord("B")},
-				{"Export lotteries", shortcutChord("E")},
-				{"Import lotteries", shortcutChord("I")},
-				{"Settings", shortcutChord(",")},
-				{"Command palette", shortcutChord("K")},
-			})
-		})
-
-		formCard(c, "Appearance", "Aurora is dark by design; text size, contrast and motion follow the operating system.", func() {
-			preferences := c.Preferences()
-			readout(c, []readoutRow{
-				{"Theme", tr("Dark")},
-				{"Text size", textScaleLabel(preferences.TextScale)},
-				{"Contrast", preferenceStateLabel(preferences.HighContrast, "Enhanced", "Standard")},
-				{"Motion", preferenceStateLabel(preferences.ReduceMotion, "Reduced", "Enabled")},
-			})
-		})
-
-		formCard(c, "About Aurora", "", func() {
-			readout(c, []readoutRow{
-				{"Version", valueOr(a.actions.Version)},
-				{"Build time", valueOr(a.actions.BuildTime)},
-				{"Database", valueOr(a.actions.DBPath)},
-			})
-			a.settingsButton(c, "Open About Dialog", "", a.actions.ShowAbout)
-		})
+		// Two columns on a normal window: a preferences page is a set of short
+		// independent cards, and one full-width column left most of the window
+		// empty while the page scrolled for no reason. The split stacks below
+		// the same width threshold every other two-column page uses.
+		twoColumns(c,
+			func() {
+				a.settingsLanguageCard(c)
+				a.settingsDataCard(c)
+				a.settingsShortcutsCard(c)
+				a.settingsAboutCard(c)
+			},
+			func() {
+				a.settingsSessionKeysCard(c)
+				a.settingsLiveUpdatesCard(c)
+				a.settingsAppearanceCard(c)
+			},
+		)
 	})
 	a.renderForgetKeysDialog(c)
+}
+
+// settingsLanguageCard is the display language: the language in effect, the
+// installed choices, and the separate policy of following the system.
+func (a *App) settingsLanguageCard(c *ui.Context) {
+	formCard(c, "Language", "Applies to menus, pages, dialogs and guidance.", func() {
+		current := "—"
+		language := ""
+		if a.actions.Language != nil {
+			language = a.actions.Language()
+			current = languageLabel(language)
+		}
+		readout(c, []readoutRow{{"Current", current}})
+		if a.actions.SetLanguage != nil {
+			ui.Row(c).Wrap().Gap(12).AlignItems(ui.Center).Children(func() {
+				languageChooser(c, languageChoice(language), a.actions.SetLanguage)
+				follow := secondaryButton(c, "Follow System").
+					Description(tr("Use the language selected by the operating system."))
+				if follow.Clicked() {
+					a.actions.SetLanguage("")
+				}
+			})
+		}
+	})
+}
+
+// settingsDataCard names where the ledger lives and the two file operations a
+// reader can reach from here, so the privacy statement sits beside the path it
+// describes.
+func (a *App) settingsDataCard(c *ui.Context) {
+	formCard(c, "Data", "Aurora keeps the ledger in one local SQLite database.", func() {
+		copyRow(c, "Database path", a.actions.DBPath, nil)
+		ui.Row(c).Wrap().Gap(8).Children(func() {
+			const privacy = "No data leaves this machine; the desktop opens no network listener."
+			a.settingsButton(c, "Show Data Folder", privacy, a.actions.ShowDataFolder)
+			a.settingsButton(c, "Back Up Database…", privacy, a.actions.BackUpDatabase)
+		})
+		hint(c, "No data leaves this machine; the desktop opens no network listener.")
+	})
+}
+
+// settingsShortcutsCard is the window's reference for the chords the header
+// and sidebar register. Keys are listed once, on the page a reader visits to
+// learn them.
+func (a *App) settingsShortcutsCard(c *ui.Context) {
+	formCard(c, "Shortcuts", "Navigation and window commands; Reload applies to pages that read stored data.", func() {
+		readout(c, []readoutRow{
+			{"Pages", shortcutChord("1…8")},
+			{"Reload (data pages)", shortcutChord("R")},
+			{"Back up database", shortcutChord("B")},
+			{"Export lotteries", shortcutChord("E")},
+			{"Import lotteries", shortcutChord("I")},
+			{"Settings", shortcutChord(",")},
+			{"Command palette", shortcutChord("K")},
+		})
+	})
+}
+
+// settingsSessionKeysCard controls the session-only key memory. Turning the
+// policy off asks first when keys are still held, because those keys may exist
+// nowhere else.
+func (a *App) settingsSessionKeysCard(c *ui.Context) {
+	formCard(c, "Session keys", "Private keys can be kept in memory for this session only.", func() {
+		remember := a.rememberKeys
+		checkbox := ui.Checkbox(c, &remember, tr("Remember private keys for this session")).
+			Description(tr("Nothing is written to disk; quitting Aurora clears them.")).
+			Bind(&a.rememberKeysControl)
+		if checkbox.Changed() {
+			switch {
+			case remember:
+				a.rememberKeys = true
+			case a.rememberedKeyCount() > 0:
+				// Turning the policy off also clears what is already held:
+				// "off" must mean no private key is sitting in memory. Ask
+				// before discarding keys that may exist only in this process.
+				a.confirmForgetKeys = true
+				a.disableKeyMemoryOnForget = true
+			default:
+				a.rememberKeys = false
+			}
+		}
+		hint(c, "Nothing is written to disk; quitting Aurora clears them.")
+		readout(c, []readoutRow{{"Remembered keys", strconv.Itoa(a.rememberedKeyCount())}})
+		if a.rememberedKeyCount() > 0 {
+			ui.Row(c).Children(func() {
+				forget := dangerButton(c, "Forget session keys").
+					Description(tr("Remove every private key kept in memory for this session.")).
+					Bind(&a.forgetKeysButton)
+				if forget.Clicked() {
+					a.confirmForgetKeys = true
+					a.disableKeyMemoryOnForget = false
+				}
+			})
+		}
+	})
+}
+
+// settingsLiveUpdatesCard is the opt-in timer. Its failure line belongs in the
+// card, beside the control that caused it.
+func (a *App) settingsLiveUpdatesCard(c *ui.Context) {
+	formCard(c, "Live updates", "Keep the open page's facts current on a timer.", func() {
+		if ui.Checkbox(c, &a.liveUpdates, tr("Every 10 seconds")).
+			Description(tr("Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.")).Changed() {
+			a.settingsStatus = statusLine{}
+			a.setLiveUpdates(a.liveUpdates)
+			if a.actions.SetLiveUpdates != nil {
+				if err := a.actions.SetLiveUpdates(a.liveUpdates); err != nil {
+					a.settingsStatus = errorStatusText(
+						tr("Couldn't save settings") + ": " + localizeServiceError(err))
+				}
+			}
+		}
+		hint(c, "Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.")
+		// The only Settings action that can fail is this save; keep its
+		// result beside the control instead of at the top of a scroll the
+		// operator has already moved past.
+		if renderStatus(c, pageSettings, a.settingsStatus, func() { a.settingsStatus = statusLine{} }) {
+			a.navigationControl.Focus(c)
+		}
+	})
+}
+
+// settingsAppearanceCard reports the desktop preferences the window actually
+// receives, rather than claiming a fixed theme.
+func (a *App) settingsAppearanceCard(c *ui.Context) {
+	formCard(c, "Appearance", "Aurora is dark by design; text size, contrast and motion follow the operating system.", func() {
+		preferences := c.Preferences()
+		readout(c, []readoutRow{
+			{"Theme", tr("Dark")},
+			{"Text size", textScaleLabel(preferences.TextScale)},
+			{"Contrast", preferenceStateLabel(preferences.HighContrast, "Enhanced", "Standard")},
+			{"Motion", preferenceStateLabel(preferences.ReduceMotion, "Reduced", "Enabled")},
+		})
+	})
+}
+
+// settingsAboutCard is the build identity and the one dialog that has no other
+// home on this page.
+func (a *App) settingsAboutCard(c *ui.Context) {
+	formCard(c, "About Aurora", "", func() {
+		readout(c, []readoutRow{
+			{"Version", valueOr(a.actions.Version)},
+			{"Build time", valueOr(a.actions.BuildTime)},
+			{"Database", valueOr(a.actions.DBPath)},
+		})
+		a.settingsButton(c, "Open About Dialog", "", a.actions.ShowAbout)
+	})
 }
 
 // renderForgetKeysDialog asks before discarding keys that may not exist

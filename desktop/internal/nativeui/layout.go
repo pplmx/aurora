@@ -34,12 +34,10 @@ func tableColumnWidth(c *ui.Context, width float32) float32 {
 // pageGlyph draws a page's icon in a tinted tile. It is the window's recurring
 // mark for "which module is this": the same glyph sits in the sidebar row and
 // beside the page title, so the page and its navigation entry are recognisably
-// the same place.
-func pageGlyph(c *ui.Context, p page) {
-	ui.Row(c).Size(36, 36).Center().Radius(10).Background(c.Theme().Selection).
-		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
-		ui.Icon(c, pageIcons[p]).Size(18, 18).TextColor(ui.Hex(aurora))
-	})
+// the same place. Each module has its own hue, which the dashboard's counters
+// and the page tile repeat.
+func pageGlyph(c *ui.Context, p page) ui.Element {
+	return iconTile(c, pageIcons[p], pageAccent(p), iconTileMedium)
 }
 
 // twoColumns lays out two stacks side by side, each filling half the width,
@@ -99,10 +97,11 @@ func card(c *ui.Context, fn func()) ui.Element {
 	// it would stretch a three-field form down the page. The soft shadow and
 	// the hairline of light along the top edge lift it off the polar-night
 	// background; a border alone read as a table cell rather than a card.
-	return ui.Column(c).FillWidth().Padding(16).Gap(10).Radius(12).
-		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
-		Shadow(0, 12, 30, -6, ui.RGBA(0, 0, 0, 0.35)).
-		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.04)).
+	return ui.Column(c).FillWidth().Padding(space5, space4+space1).Gap(space3).
+		Radius(radiusPanel).LinearGradient(panelFill(c)).
+		BorderWidth(1).BorderColor(c.Theme().Border).
+		Shadow(0, 22, 48, -20, ui.RGBA(0, 0, 0, 0.55)).
+		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.045)).
 		Children(fn)
 }
 
@@ -110,8 +109,9 @@ func card(c *ui.Context, fn func()) ui.Element {
 // records. It is recessed into a card so each record reads as one object, not
 // as another form section.
 func recordPanel(c *ui.Context, fn func()) {
-	ui.Column(c).FillWidth().Padding(12).Gap(8).Radius(10).
-		Background(c.Theme().Background).BorderWidth(1).BorderColor(c.Theme().Border).Children(fn)
+	ui.Column(c).FillWidth().Padding(space3).Gap(space2).Radius(radiusSmall).
+		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.35)).
+		BorderWidth(1).BorderColor(c.Theme().Border).Children(fn)
 }
 
 // selectableRecordPanel is the interactive form of recordPanel. It keeps the
@@ -171,20 +171,25 @@ func recordMetric(c *ui.Context, label, value string, tone ui.Color) {
 // metricCard draws one counter: a label, the value, and what it counts. A
 // numeric value is the largest type on the page so the eye lands on it first;
 // a word verdict ("verified") is drawn smaller, because 30pt of lowercase
-// reads as an error rather than a summary.
+// reads as an error rather than a summary. The module's glyph sits in the
+// corner so the four counters that open the same page are still told apart.
 func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric bool, target page) bool {
 	body := func() {
-		ui.Text(c, tr(label)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).SingleLine()
+		ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Children(func() {
+			eyebrow(c, label).Grow(1).Shrink(1).MinWidth(0)
+			iconTile(c, pageIcons[target], pageAccent(target), iconTileSmall)
+		})
 		// The value sits in a fixed-height slot so a word verdict and a
 		// one-digit number put their note on the same line across the row.
 		size := float32(20)
 		if numeric {
-			size = 30
+			size = statValueSize
 		}
-		ui.Column(c).Height(textSize(c, 38)).Justify(ui.Center).Children(func() {
-			ui.Text(c, tr(value)).FontSize(textSize(c, size)).Bold().TextColor(tone).SingleLine()
+		ui.Column(c).Height(textSize(c, 40)).Justify(ui.Center).Children(func() {
+			ui.Text(c, tr(value)).FontSize(textSize(c, size)).FontWeight(700).TextColor(tone).
+				FontFeatures("tnum").SingleLine()
 		})
-		ui.Text(c, tr(note)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted)
+		ui.Text(c, tr(note)).FontSize(textSize(c, 11.5)).TextColor(c.Theme().TextMuted)
 	}
 	if target == pageDashboard {
 		card(c, body)
@@ -197,17 +202,29 @@ func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric
 // surface, border and lift, but adds the button's hover/press state so the
 // dashboard counters read as shortcuts rather than decoration.
 func actionCard(c *ui.Context, label string, body func()) ui.Element {
-	b := ui.ButtonBase(c).FillWidth().Label(tr(label)).Padding(16).Radius(12).AlignItems(ui.Start).
-		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
-		Shadow(0, 12, 30, -6, ui.RGBA(0, 0, 0, 0.35)).
-		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.04))
-	if b.Hovered() {
-		b.Background(c.Theme().SurfaceHover)
+	b := ui.ButtonBase(c).FillWidth().Label(tr(label)).
+		Padding(space5, space4+space1).Radius(radiusPanel).AlignItems(ui.Start).
+		LinearGradient(panelFill(c)).
+		BorderWidth(1).BorderColor(c.Theme().Border).
+		Shadow(0, 22, 48, -20, ui.RGBA(0, 0, 0, 0.55)).
+		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.045))
+	switch {
+	case b.Pressed():
+		b.LinearGradient(ui.LinearGradient{
+			Angle: 165,
+			From:  c.Theme().SurfacePressed,
+			To:    c.Theme().Surface,
+		})
+	case b.Hovered():
+		b.LinearGradient(ui.LinearGradient{
+			Angle: 150,
+			From:  c.Theme().SurfaceHover,
+			To:    c.Theme().Surface,
+		})
+		b.BorderColor(ui.Hex(aurora).Alpha(0.45))
 	}
-	if b.Pressed() {
-		b.Background(c.Theme().SurfacePressed)
-	}
-	b.Children(func() { ui.Column(c).FillWidth().Gap(10).Children(body) })
+	pressLift(c, b, b.Hovered())
+	b.Children(func() { ui.Column(c).FillWidth().Gap(space3).Children(body) })
 	return b
 }
 
@@ -227,8 +244,12 @@ func metricRow(c *ui.Context, n int, fn func(i int)) {
 // every page uses above its forms. It replaced a 22pt title that competed with
 // the page header for the same attention.
 func sectionHeading(c *ui.Context, title, purpose string) {
-	ui.Column(c).Gap(2).Children(func() {
-		heading(c, tr(title), 16, 2)
+	ui.Column(c).Gap(space1).Children(func() {
+		ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
+			ui.Row(c).Width(3).Height(textSize(c, 15)).Radius(1.5).
+				Background(ui.Hex(aurora)).Shrink(0)
+			heading(c, tr(title), sectionSize, 2)
+		})
 		if purpose != "" {
 			ui.Text(c, tr(purpose)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		}
@@ -257,12 +278,10 @@ func formCard(c *ui.Context, title, purpose string, fn func()) {
 // and separates the title from the explanation so a first-time reader knows
 // whether the store is empty or the read failed.
 func emptyState(c *ui.Context, p page, title, body string) {
-	ui.Column(c).FillWidth().Padding(24, 20).Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Row(c).Size(42, 42).Center().Radius(12).Background(c.Theme().Selection).
-			BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
-			ui.Icon(c, pageIcons[p]).Size(22, 22).TextColor(ui.Hex(aurora))
-		})
-		heading(c, tr(title), 14, 3).TextAlign(ui.Center)
-		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).TextAlign(ui.Center)
+	ui.Column(c).FillWidth().Padding(space7, space6).Gap(space2).AlignItems(ui.Center).Children(func() {
+		iconTile(c, pageIcons[p], pageAccent(p), iconTileLarge)
+		heading(c, tr(title), 14.5, 3).TextAlign(ui.Center)
+		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
+			TextAlign(ui.Center).MaxWidth(420)
 	})
 }

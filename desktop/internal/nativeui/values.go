@@ -88,8 +88,9 @@ type readoutRow struct{ label, value string }
 // so an answer is visibly an answer rather than another line of prose that
 // looks like the hint above it.
 func readout(c *ui.Context, rows []readoutRow) {
-	ui.Column(c).FillWidth().Padding(10).Gap(4).Radius(8).
-		Background(c.Theme().Background).Children(func() {
+	ui.Column(c).FillWidth().Padding(space3).Gap(space1).Radius(radiusSmall).
+		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.5)).
+		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
 		for _, r := range rows {
 			label := tr(r.label)
 			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {

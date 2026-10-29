@@ -412,8 +412,7 @@ func (a *App) votingRegister(c *ui.Context) {
 
 func (a *App) votingRegisterCandidateBody(c *ui.Context) {
 	validatedField(c, "Candidate Name", &a.voting.candName, &a.voting.candNameErr)
-	field(c, "Party (optional)", &a.voting.candParty)
-	field(c, "Program (optional)", &a.voting.candProgram)
+	fieldPair(c, "Party (optional)", &a.voting.candParty, "Program (optional)", &a.voting.candProgram)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Register Candidate").Disabled(!allSet(a.voting.candName)).Clicked() {
 			a.registerCandidate()
