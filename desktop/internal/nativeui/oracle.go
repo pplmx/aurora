@@ -302,19 +302,21 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	// Per-source actions. A table row cannot host a button per cell without
 	// making the whole grid interactive, so the id is entered once — or loaded
 	// by choosing a row above — and the actions apply to it.
-	field(c, "Source ID for the actions below", &a.oracle.fetchID)
+	fieldHint(c, "Source ID for the actions below",
+		"Choose a source above or enter its ID first.", &a.oracle.fetchID)
 	copyRow(c, "Source ID", strings.TrimSpace(a.oracle.fetchID), nil)
+	sourceReady := strings.TrimSpace(a.oracle.fetchID) != ""
 	ui.Row(c).Wrap().Gap(8).Children(func() {
-		if secondaryButton(c, "Enable").Clicked() {
+		if secondaryButton(c, "Enable").Disabled(!sourceReady).Clicked() {
 			a.setOracleEnabled(true)
 		}
-		if secondaryButton(c, "Disable").Clicked() {
+		if secondaryButton(c, "Disable").Disabled(!sourceReady).Clicked() {
 			a.setOracleEnabled(false)
 		}
-		if secondaryButton(c, "Fetch now").Clicked() {
+		if secondaryButton(c, "Fetch now").Disabled(!sourceReady).Clicked() {
 			a.fetchOracleSource()
 		}
-		deleteSource := dangerButton(c, "Delete").Bind(&a.oracle.deleteTrigger)
+		deleteSource := dangerButton(c, "Delete").Disabled(!sourceReady).Bind(&a.oracle.deleteTrigger)
 		if deleteSource.Clicked() {
 			a.oracle.deleteName = a.resolveOracleSourceName(strings.TrimSpace(a.oracle.fetchID))
 			a.oracle.askDelete = true
@@ -434,6 +436,9 @@ func (a *App) resolveOracleSourceName(id string) string {
 // would suggest the readings still describe a live feed.
 func (a *App) deleteOracleSource() {
 	id := strings.TrimSpace(a.oracle.fetchID)
+	if id == "" {
+		return
+	}
 	a.runWrite("Deleting source…", func() func() {
 		err := a.services.DeleteOracleSource(id)
 		return func() {
@@ -457,6 +462,9 @@ func (a *App) deleteOracleSource() {
 
 func (a *App) setOracleEnabled(enabled bool) {
 	id := strings.TrimSpace(a.oracle.fetchID)
+	if id == "" {
+		return
+	}
 	label := "Enabling source…"
 	if !enabled {
 		label = "Disabling source…"
@@ -472,6 +480,9 @@ func (a *App) setOracleEnabled(enabled bool) {
 
 func (a *App) fetchOracleSource() {
 	sourceID := strings.TrimSpace(a.oracle.fetchID)
+	if sourceID == "" {
+		return
+	}
 	a.runWrite("Fetching source…", func() func() {
 		err := a.services.FetchOracleSource(sourceID)
 		return func() {

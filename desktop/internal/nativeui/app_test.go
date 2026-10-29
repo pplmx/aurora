@@ -97,8 +97,13 @@ type fakeServices struct {
 	endSessionCalls     int
 	sourceListCalls     int
 	oracleSourceCalls   int
+	oracleEnableCalls   int
+	oracleFetchCalls    int
+	oracleDeleteCalls   int
 	lastSourceLimit     int
 	lastSourceOffset    int
+	lastSourceEnabled   bool
+	lastOracleActionID  string
 	dashboardCalls      int
 	blockListCalls      int
 	lastBlockSearch     string
@@ -469,9 +474,22 @@ func (f *fakeServices) AddOracleSource(in SourceInput) (SourceRow, error) {
 	}
 	return SourceRow{ID: "src"}, nil
 }
-func (f *fakeServices) DeleteOracleSource(id string) error                   { return nil }
-func (f *fakeServices) SetOracleSourceEnabled(id string, enabled bool) error { return nil }
-func (f *fakeServices) FetchOracleSource(id string) error                    { return nil }
+func (f *fakeServices) DeleteOracleSource(id string) error {
+	f.oracleDeleteCalls++
+	f.lastOracleActionID = id
+	return nil
+}
+func (f *fakeServices) SetOracleSourceEnabled(id string, enabled bool) error {
+	f.oracleEnableCalls++
+	f.lastOracleActionID = id
+	f.lastSourceEnabled = enabled
+	return nil
+}
+func (f *fakeServices) FetchOracleSource(id string) error {
+	f.oracleFetchCalls++
+	f.lastOracleActionID = id
+	return nil
+}
 func (f *fakeServices) OracleData(sourceID string, limit int) ([]DataRow, error) {
 	f.oracleDataCalls++
 	f.lastOracleDataSource = sourceID
