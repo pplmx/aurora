@@ -116,7 +116,11 @@ func (a *App) dashboardView(c *ui.Context) {
 		// "what changed"; the shortcuts come last for a store that already has
 		// content. A fresh store reverses the priority: its first move is the
 		// only useful thing on the page.
-		textTone := c.Theme().Text
+		// Each counter's number takes the hue of the module it opens: the
+		// glyph beside it already carries that hue, and the value is what the
+		// eye lands on first. The notes stay in body ink, so the reading order
+		// is still "how many" then "of what".
+		tone := func(p page) ui.Color { return pageAccent(p) }
 		metrics := []struct {
 			label   string
 			value   string
@@ -125,12 +129,12 @@ func (a *App) dashboardView(c *ui.Context) {
 			numeric bool
 			target  page
 		}{
-			{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", textTone, true, pageLottery},
-			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", textTone, true, pageVoting},
-			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", textTone, true, pageVoting},
-			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", textTone, true, pageVoting},
-			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", textTone, true, pageOracle},
-			{"Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain", textTone, true, pageBlockchain},
+			{"Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded", tone(pageLottery), true, pageLottery},
+			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", tone(pageVoting), true, pageVoting},
+			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", tone(pageVoting), true, pageVoting},
+			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", tone(pageVoting), true, pageVoting},
+			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", tone(pageOracle), true, pageOracle},
+			{"Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain", tone(pageBlockchain), true, pageBlockchain},
 		}
 		showMetrics := func() {
 			// Three counters per row on a wide window; two at the minimum

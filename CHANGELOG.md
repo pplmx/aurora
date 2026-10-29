@@ -40,6 +40,16 @@ documented in their per-milestone ROADMAP files.
   danger hue and a hairline above their decision row, so an irreversible
   question is recognisable before its title is read; focus and accessible name
   are unchanged.
+- **Tabs are one underline bar**: Token burns, NFT actions, Oracle sections and
+  the Voting stages used to be pills inside a bordered, recessed box, with the
+  current segment carrying a wash, a border and an underline at once. The row is
+  now a single hairline with the active label in the accent over its own
+  underline, so "current" is said once and the row stops drawing a second frame
+  inside the card. Keyboard behaviour is unchanged.
+- **The subject strip and the counters show what they belong to**: the "Acting
+  on" strip puts the record's id on the accent and turns amber when no record is
+  chosen, and each dashboard counter's number takes the hue of the module it
+  opens instead of body ink, matching the glyph beside it.
 
 ### Added
 

@@ -225,12 +225,17 @@ func quietButton(c *ui.Context, label string) ui.Element {
 // actionSubject names the record the current action card acts on. Token's
 // write column established this pattern; sharing it keeps a page from making
 // the operator infer a subject from a form field that may have changed.
+//
+// With a subject, the strip leads with the record's own id in the accent and
+// keeps the quiet "Acting on" label before it, so the eye lands on what the
+// next click will touch. Without one it turns amber and says what to do first:
+// the two states must be distinguishable without reading a word of the hint.
 func actionSubject(c *ui.Context, id, emptyBadge, emptyHint, copyLabel, copyToast string) {
 	id = strings.TrimSpace(id)
 	if id == "" {
 		ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space2, space3).
 			Radius(radiusSmall).Background(ui.Hex(warningTint)).
-			BorderWidth(1).BorderColor(ui.Hex(auroraAmber).Alpha(0.45)).Children(func() {
+			BorderWidth(0, 0, 0, 2).BorderColor(ui.Hex(auroraAmber)).Children(func() {
 			statusDot(c, ui.Hex(auroraAmber), 6)
 			ui.Text(c, tr(emptyBadge)).FontSize(textSize(c, 11)).FontWeight(600).
 				TextColor(ui.Hex(auroraAmber)).SingleLine().Shrink(0)
@@ -241,7 +246,7 @@ func actionSubject(c *ui.Context, id, emptyBadge, emptyHint, copyLabel, copyToas
 	}
 	ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space2, space3).
 		Radius(radiusSmall).Background(c.Theme().Background.Mix(c.Theme().Surface, 0.45)).
-		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
+		BorderWidth(0, 0, 0, 2).BorderColor(ui.Hex(aurora).Alpha(0.75)).Children(func() {
 		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).
 			SingleLine().Shrink(0)
 		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).
@@ -256,43 +261,48 @@ func actionSubject(c *ui.Context, id, emptyBadge, emptyHint, copyLabel, copyToas
 // tabs draws a keyboard-operable tab row that wraps instead of pushing later
 // tabs past the window edge. MyGo's stock Tabs is deliberately non-shrinking;
 // the five Token write tabs already crossed the right edge at 2x text.
+//
+// The row is an underline bar, not a row of pills inside a bordered box: the
+// box drew a second frame inside the card, and the active segment carried both
+// a tint and an underline, which said "current" twice in two different shapes.
+// One accent underline under an accent label is enough, and it matches the
+// section headings' own lit marks.
 func tabs(c *ui.Context, selected *int, name string, labels ...string) {
 	parts := ui.TabsBase(c, selected, len(labels))
-	parts.List.Label(tr(name)).FillWidth().Wrap().Gap(2).Padding(4).Radius(radiusSmall + 2).
-		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.35)).
-		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
+	parts.List.Label(tr(name)).FillWidth().Wrap().Gap(2).Padding(0, 0, 0, 0).
+		BorderWidth(0, 0, 1, 0).BorderColor(c.Theme().Border).Children(func() {
 		for i, label := range labels {
 			on := i == *selected
-			tab := parts.Tab(i).Padding(textSize(c, 7), textSize(c, 14)).Radius(radiusSmall).FocusRing(false)
+			tab := parts.Tab(i).Padding(textSize(c, 8), textSize(c, 12)).Radius(0).FocusRing(false)
+			// The active segment carries no fill at all: the accent label and
+			// the underline below it are the mark, and a wash behind them left
+			// a square block sitting on a separate rule. Only the pointer gets
+			// a hover tint, so the row reads as text on the page's own surface.
 			fill := ui.Transparent
 			switch {
 			case on:
-				tab.TextColor(c.Theme().Text)
-				fill = c.Theme().Selection
-				tab.BorderWidth(1).BorderColor(ui.Hex(aurora).Alpha(0.35))
+				tab.TextColor(ui.Hex(aurora))
 			case tab.Hovered():
 				tab.TextColor(c.Theme().Text)
-				fill = c.Theme().SurfaceHover
+				fill = c.Theme().SurfaceHover.Alpha(0.6)
 			default:
 				tab.TextColor(c.Theme().TextMuted)
 			}
 			tab.Background(tab.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
 			tab.DrawOver(func(p *ui.Painter, r ui.Rect) {
 				if on {
-					// The active segment carries a 2px accent underline inside
-					// its pill: the tint identifies the segment, the line gives
-					// it the same "current tab" cue as the rest of the window.
-					inset := textSize(c, 6)
+					// The underline sits on the row's own hairline, so the
+					// active segment reads as joined to the content below it.
 					height := textSize(c, 2)
 					p.Fill(ui.Rect{
-						X: r.X + inset,
-						Y: r.Y + r.H - height - 1,
-						W: r.W - 2*inset,
+						X: r.X + textSize(c, 4),
+						Y: r.Y + r.H - height,
+						W: max(0, r.W-2*textSize(c, 4)),
 						H: height,
 					}, ui.Hex(aurora), height/2)
 				}
 				if tab.FocusVisible() {
-					p.FocusRing(r, [4]float32{radiusSmall, radiusSmall, radiusSmall, radiusSmall})
+					p.FocusRing(r, [4]float32{radiusSmall, radiusSmall, 0, 0})
 				}
 			})
 			tab.Children(func() {
