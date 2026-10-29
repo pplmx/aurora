@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -16,6 +17,10 @@ type DashboardStats struct {
 	Sessions   int
 	Integrity  string
 	Oracle     int
+	// Blocks is the number of entries on the audit chain, including the
+	// genesis block. It duplicates no module counter: token and NFT writes are
+	// visible only here and on the Blockchain page.
+	Blocks int
 }
 
 // dashboardState holds the overview counters plus the load outcome.
@@ -104,13 +109,13 @@ func (a *App) dashboardView(c *ui.Context) {
 	}
 
 	a.scrollPage(c, func() {
-		// A 3x2 grid of cards: six counters read as one block. The ledger verdict
-		// is the one value that can be bad news, so it takes the colour that says
-		// which it is — and its note still spells the outcome out in words.
-		integrityTone := ui.Hex(auroraGreen)
-		if a.dashboard.Integrity != "verified" {
-			integrityTone = ui.Hex(auroraRed)
-		}
+		// The verdict leads the page: it is the one fact that can be bad news,
+		// and it decides whether anything else on the dashboard is trustworthy.
+		a.dashboardHero(c)
+		// The counters below answer "how much"; the activity card answers
+		// "what changed"; the shortcuts come last for a store that already has
+		// content. A fresh store reverses the priority: its first move is the
+		// only useful thing on the page.
 		textTone := c.Theme().Text
 		metrics := []struct {
 			label   string
@@ -124,19 +129,26 @@ func (a *App) dashboardView(c *ui.Context) {
 			{"Total Votes", strconv.Itoa(a.dashboard.Votes), "Signed ballots cast", textTone, true, pageVoting},
 			{"Candidates", strconv.Itoa(a.dashboard.Candidates), "Registered contenders", textTone, true, pageVoting},
 			{"Voting Sessions", strconv.Itoa(a.dashboard.Sessions), "Governance windows", textTone, true, pageVoting},
-			{"Ledger Integrity", a.dashboard.Integrity, "Hash-chain verification", integrityTone, false, pageBlockchain},
 			{"Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds", textTone, true, pageOracle},
+			{"Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain", textTone, true, pageBlockchain},
 		}
 		showMetrics := func() {
-			// Six cards read as two rows of three on a wide window. At the
-			// minimum width they become two columns, so a label and its note
-			// keep their line instead of wrapping inside a 200px card.
+			// Three counters per row on a wide window; two at the minimum
+			// width so a label and its note keep their line instead of
+			// wrapping inside a 200px card.
+			ui.Row(c).FillWidth().Gap(space3).AlignItems(ui.Center).Children(func() {
+				eyebrow(c, "At a glance")
+				ui.Row(c).Height(1).Grow(1).Background(c.Theme().Border)
+			})
 			width, _ := c.Size()
+			// The breakpoints scale with the text preference: at 2x a card
+			// that held one label and a note at 1x needs the width of two.
+			scale := textScale(c)
 			columns := 3
-			if width < 1100 {
+			if width < 1100*scale {
 				columns = 2
 			}
-			if width < 760 {
+			if width < 760*scale {
 				columns = 1
 			}
 			for start := 0; start < len(metrics); start += columns {
@@ -167,6 +179,50 @@ func (a *App) dashboardView(c *ui.Context) {
 	a.liveRefresh(c, a.loadDashboard)
 }
 
+// dashboardHero is the page's verdict panel: the chain's integrity, spelled
+// out in a word, with the explanation that makes the word mean something and
+// the one route to the full audit page. It replaces a sixth counter card: the
+// one value an operator must not miss deserves more than a third of a row.
+func (a *App) dashboardHero(c *ui.Context) {
+	verified := a.dashboard.Integrity == "verified"
+	tone := ui.Hex(auroraGreen)
+	description := "Every module appends its records to one hash chain; each block commits to the previous hash."
+	if !verified {
+		tone = ui.Hex(auroraRed)
+		description = "The stored chain did not verify. Inspect the ledger before trusting the counters below."
+	}
+	panel := ui.Column(c).FillWidth().Padding(space6, space5).Gap(space4).
+		Radius(radiusLarge).LinearGradient(panelGradient(c, tone, 0.1)).
+		BorderWidth(1).BorderColor(tone.Alpha(0.28)).
+		Shadow(0, 28, 60, -28, ui.RGBA(0, 0, 0, 0.6)).
+		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.05))
+	accentHairline(c, panel, tone)
+	panel.Children(func() {
+		ui.Row(c).FillWidth().Gap(space4).AlignItems(ui.Center).Children(func() {
+			iconTile(c, shieldCheckIcon, tone, iconTileLarge)
+			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(space1).Children(func() {
+				eyebrow(c, "Ledger Integrity")
+				ui.Row(c).Gap(space3).AlignItems(ui.Center).Children(func() {
+					ui.Text(c, tr(a.dashboard.Integrity)).FontSize(textSize(c, 26)).FontWeight(700).
+						TextColor(tone).SingleLine()
+					ui.Row(c).Padding(2, space2).Radius(999).Background(tone.Alpha(0.12)).
+						BorderWidth(1).BorderColor(tone.Alpha(0.3)).Children(func() {
+						ui.Text(c, tr("Hash chain")).FontSize(textSize(c, 10)).FontWeight(600).
+							TextColor(tone).SingleLine()
+					})
+				})
+				ui.Text(c, tr(description)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
+			})
+			ui.Column(c).AlignItems(ui.End).Children(func() {
+				inspect := secondaryButton(c, "Inspect ledger")
+				if inspect.Clicked() {
+					a.setPage(pageBlockchain)
+				}
+			})
+		})
+	})
+}
+
 // dashboardIsEmpty distinguishes a fresh store from a partial one. Every
 // visible counter participates, and a non-empty audit chain also counts even
 // when the changed module (token, NFT) has no dashboard card. If that secondary
@@ -190,18 +246,49 @@ func (a *App) dashboardQuickStart(c *ui.Context) {
 		if a.dashboardIsEmpty() {
 			emptyNote(c, "Nothing recorded yet — run a draw to create the first ledger entry.")
 		}
-		ui.Row(c).Wrap().Gap(8).Children(func() {
-			a.quickStartButton(c, "Run a draw", pageLottery)
-			a.quickStartButton(c, "Create a token", pageToken)
-			a.quickStartButton(c, "Register a voter", pageVoting)
-			a.quickStartButton(c, "Add a data source", pageOracle)
-			a.quickStartButton(c, "Mint an NFT", pageNFT)
+		ui.Row(c).Wrap().Gap(space2).Children(func() {
+			a.quickAction(c, "Run a draw", pageLottery)
+			a.quickAction(c, "Create a token", pageToken)
+			a.quickAction(c, "Register a voter", pageVoting)
+			a.quickAction(c, "Add a data source", pageOracle)
+			a.quickAction(c, "Mint an NFT", pageNFT)
 		})
 	})
 }
 
-func (a *App) quickStartButton(c *ui.Context, label string, target page) {
-	if secondaryButton(c, label).Clicked() {
+// quickAction is one first move drawn as a small tile: the module's glyph,
+// the task, and the module it opens. Five buttons of equal weight read as a
+// toolbar; five tiles with their module marks read as destinations.
+func (a *App) quickAction(c *ui.Context, label string, target page) {
+	tone := pageAccent(target)
+	b := ui.ButtonBase(c).Width(textSize(c, 184)).Padding(space3).Gap(space2).
+		Radius(radiusSmall + 2).AlignItems(ui.Start).Label(tr(label))
+	fill, outline := c.Theme().Background.Mix(c.Theme().Surface, 0.35), c.Theme().Border
+	switch {
+	case b.Pressed():
+		fill = c.Theme().SurfacePressed
+		outline = tone.Alpha(0.45)
+	case b.Hovered():
+		fill = c.Theme().SurfaceHover
+		outline = tone.Alpha(0.45)
+	}
+	b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
+	b.BorderWidth(1).BorderColor(outline)
+	pressLift(c, b, b.Hovered())
+	b.Children(func() {
+		ui.Column(c).FillWidth().Gap(space2).Children(func() {
+			ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
+				iconTile(c, pageIcons[target], tone, iconTileSmall)
+				ui.Spacer(c)
+				ui.Icon(c, arrowRightIcon).Size(13, 13).TextColor(c.Theme().TextMuted)
+			})
+			ui.Text(c, tr(label)).FontSize(textSize(c, 12.5)).FontWeight(600).
+				TextColor(c.Theme().Text).SingleLine()
+			ui.Text(c, tr(pageTitles[target])).FontSize(textSize(c, 10.5)).
+				TextColor(c.Theme().TextMuted).SingleLine()
+		})
+	})
+	if b.Clicked() {
 		a.setPage(target)
 	}
 }
@@ -210,7 +297,21 @@ func (a *App) quickStartButton(c *ui.Context, label string, target page) {
 // the store holds; this card says what happened, which is what an operator
 // opening the window usually wants to know first.
 func (a *App) dashboardRecent(c *ui.Context) {
-	formCard(c, "Recent activity", "The newest entries written to the audit chain.", func() {
+	title := tr("Recent activity")
+	panel := card(c, func() {
+		ui.Row(c).FillWidth().Gap(space3).AlignItems(ui.Start).Children(func() {
+			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
+				sectionHeading(c, "Recent activity", "The newest entries written to the audit chain.")
+			})
+			ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
+				if n := len(a.dashboard.recent); n > 0 {
+					badge(c, fmt.Sprintf("%d", n), c.Theme().Selection, c.Theme().Text)
+				}
+				if quietButton(c, "View all").Clicked() {
+					a.setPage(pageBlockchain)
+				}
+			})
+		})
 		if a.dashboard.recentErr != nil &&
 			!loadWarning(c, "Couldn't read recent activity", a.dashboard.recentErr, len(a.dashboard.recent) > 0) {
 			return
@@ -234,7 +335,7 @@ func (a *App) dashboardRecent(c *ui.Context) {
 				case 0:
 					tableText(c, strconv.FormatInt(entry.Height, 10))
 				case 1:
-					tableText(c, entry.Module)
+					tableText(c, entry.Module).TextColor(blockModuleTone(c, entry.Module))
 				case 2:
 					tableText(c, entry.Summary).FontSize(textSize(c, 12))
 				}
@@ -244,6 +345,7 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			}
 		}
 	})
+	panel.Label(title)
 }
 
 // dashboardRecentRecords keeps the full audit payload visible and makes the
@@ -368,17 +470,17 @@ func (a *App) blockchainBody(c *ui.Context) {
 		emptyNote(c, "Press Refresh to verify the chain.")
 		return
 	}
-	readout(c, []readoutRow{
-		{"Blocks", strconv.Itoa(a.blockchain.blocks)},
-		{"Height", strconv.Itoa(a.blockchain.height)},
-	})
-	// The badge is inline: drawn straight into the card it took the card's
-	// whole width and read as a banner rather than a verdict.
-	ui.Row(c).Children(func() {
+	// The facts and the verdict share one line: a full-width readout for two
+	// short numbers left a band of empty panel above the controls that use
+	// them. The tiles stay beside the verdict so the health of the chain is
+	// read in the same glance as its size.
+	ui.Row(c).FillWidth().Wrap().Gap(space2).AlignItems(ui.Center).Children(func() {
+		statChip(c, "Blocks", strconv.Itoa(a.blockchain.blocks))
+		statChip(c, "Height", strconv.Itoa(a.blockchain.height))
 		if a.blockchain.valid {
-			badge(c, "Hash chain verified", ui.Hex(auroraGreen), c.Theme().Background)
+			verdictPill(c, true, "Hash chain verified")
 		} else {
-			badge(c, "Hash chain is broken", ui.Hex(auroraRed), c.Theme().Background)
+			verdictPill(c, false, "Hash chain is broken")
 		}
 	})
 	a.blockchainBlocks(c)
@@ -459,12 +561,23 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 			case 0:
 				tableText(c, strconv.FormatInt(b.Height, 10))
 			case 1:
-				tableText(c, b.Module)
+				tableText(c, b.Module).TextColor(blockModuleTone(c, b.Module))
 			case 2:
 				tableText(c, b.Summary).FontSize(textSize(c, 12))
 			}
 		})
 	}
+}
+
+// blockModuleTone gives each module its identity colour in a ledger table, so
+// a reader scanning a height-ordered list can tell the writers apart before
+// reading the column. An unknown module keeps the muted text colour; colour is
+// never the only signal because the module name stays beside it.
+func blockModuleTone(c *ui.Context, module string) ui.Color {
+	if target, ok := pageForBlockModule(module); ok {
+		return pageAccent(target)
+	}
+	return c.Theme().TextMuted
 }
 
 // pageForBlockModule maps an audit payload's module label to the page that

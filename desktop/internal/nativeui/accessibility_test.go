@@ -631,5 +631,5 @@ func TestHeadingsCarrySemanticRanks(t *testing.T) {
 
 	app, err := os.ReadFile("app.go")
 	require.NoError(t, err)
-	require.Contains(t, string(app), "heading(c, tr(pageTitles[a.page]), 26, 1)")
+	require.Contains(t, string(app), "heading(c, tr(pageTitles[a.page]), pageTitleSize, 1)")
 }

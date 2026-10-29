@@ -1267,6 +1267,24 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop window has a new visual system**: the palette moved to a deeper
+  layered night tone with a per-module accent (lottery amber, voting violet,
+  token emerald, oracle sky, NFT pink, blockchain indigo), and the shared
+  spacing, radius, type and surface helpers now live in `design.go` instead of
+  being repeated per view. Cards use a subtle gradient, softer elevation and a
+  top hairline; primary actions are a lit gradient, secondary actions a glass
+  outline, and the destructive action stays solid red behind its dialog.
+- **The shell exposes navigation instead of hiding it**: the sidebar gained a
+  gradient brand mark, a "Jump to" control that opens the same Ctrl/Cmd+K
+  command palette, and a local-ledger/version footer when the shell supplies a
+  version. The page header now uses the module tile, a 28pt title and a refresh
+  control that prints its chord.
+- **The dashboard leads with the ledger verdict**: integrity is a full-width
+  hero panel with icon, word and route to the audit page, followed by six
+  module counters (including the chain's block count) and the existing
+  activity and quick-start cards. Settings is a two-column page, and the
+  Blockchain summary uses stat chips plus a verdict pill instead of a
+  full-width readout for two numbers.
 - **The desktop is on MyGo v0.7.1**: the nested module upgraded from v0.6.3 and
   its Go directive to 1.27.3, and `just desktop-deps` / `just desktop-update-mygo`
   make the fast-moving dependency deliberate to check and refresh. Renovate

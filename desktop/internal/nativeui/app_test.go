@@ -217,7 +217,7 @@ func (f *fakeServices) Dashboard() (DashboardStats, error) {
 	if f.loadErrs.stats != nil {
 		return DashboardStats{}, f.loadErrs.stats
 	}
-	return DashboardStats{Lotteries: 3, Votes: 9, Candidates: 2, Sessions: 1, Integrity: "verified", Oracle: 4}, nil
+	return DashboardStats{Lotteries: 3, Votes: 9, Candidates: 2, Sessions: 1, Integrity: "verified", Oracle: 4, Blocks: 7}, nil
 }
 
 func (f *fakeServices) LedgerBlocks(limit int) ([]BlockRow, error) {

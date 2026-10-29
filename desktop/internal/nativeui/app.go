@@ -150,7 +150,8 @@ func (a *App) View(c *ui.Context) {
 	c.SetTheme(auroraThemeFor(c.Preferences()))
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
-		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).Children(func() {
+		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).
+			LinearGradient(workspaceFill(c)).Children(func() {
 			a.header(c)
 			// The outcome of the last action lives in the fixed part of the
 			// window, not at the top of the scrolling body: an action at the
@@ -394,21 +395,67 @@ func (a *App) clearPageStatus() {
 // list on the window background read as another column of content.
 func (a *App) sidebarColumn(c *ui.Context) {
 	width := windowWidth(c)
-	ui.Column(c).Width(sidebarWidth(c, width)).FillHeight().Background(ui.Hex(sidebarSurface)).
+	ui.Column(c).Width(sidebarWidth(c, width)).FillHeight().LinearGradient(sidebarFill(c)).
 		BorderWidth(0, 1, 0, 0).BorderColor(c.Theme().Border).Children(func() {
 		a.brand(c)
+		a.paletteButton(c)
 		a.sidebar(c)
 		a.sidebarActions(c)
 	})
 }
 
-// brand is the window's identity at the top of the sidebar.
+// brand is the window's identity at the top of the sidebar: a lit mark, the
+// wordmark, and the one line that says what the product is. The mark is drawn
+// from the two module hues rather than an image so it stays crisp at every
+// scale and follows the window's own palette.
 func (a *App) brand(c *ui.Context) {
-	ui.Column(c).FillWidth().Padding(18, 18, 10, 8).Gap(2).Children(func() {
-		ui.Text(c, tr("Aurora")).FontSize(textSize(c, 19)).Bold().TextColor(c.Theme().Text).SingleLine()
+	ui.Column(c).FillWidth().Padding(space5, space5, space3, space1).Gap(space1).Children(func() {
+		ui.Row(c).Gap(space3).AlignItems(ui.Center).Children(func() {
+			mark := ui.Row(c).Size(34, 34).Center().Radius(10).
+				Gradient(ui.Hex(aurora), ui.Hex(votingAccent), 135).
+				Shadow(0, 10, 24, -8, ui.Hex(aurora).Alpha(0.55)).
+				InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.28))
+			mark.Children(func() {
+				ui.Icon(c, sparkIcon).Size(18, 18).TextColor(ui.Hex(onAccent))
+			})
+			ui.Text(c, tr("Aurora")).FontSize(textSize(c, 20)).FontWeight(700).
+				LetterSpacing(-0.2).TextColor(c.Theme().Text).SingleLine()
+		})
 		subtitle := tr("Verifiable ledger suite")
 		ui.Text(c, subtitle).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).
 			SingleLine().Tooltip(subtitle)
+	})
+}
+
+// paletteButton makes the keyboard palette visible to a pointer user. The
+// shortcut is printed on the control so Ctrl/Cmd+K is learned where the action
+// lives, instead of only in the Settings reference.
+func (a *App) paletteButton(c *ui.Context) {
+	label := tr("Jump to")
+	ui.Column(c).FillWidth().Padding(space3, space5, space1, 0).Children(func() {
+		b := ui.ButtonBase(c).FillWidth().Height(max(34, textSize(c, 34))).
+			PaddingX(space3).Radius(radiusSmall + 2).AlignItems(ui.Center).Label(label)
+		fill, outline := c.Theme().Background, c.Theme().Border
+		switch {
+		case b.Pressed():
+			fill = c.Theme().SurfacePressed
+		case b.Hovered():
+			fill = c.Theme().Surface
+			outline = ui.Hex(aurora).Alpha(0.4)
+		}
+		b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
+		b.BorderWidth(1).BorderColor(outline)
+		b.Children(func() {
+			ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, searchIcon).Size(14, 14).TextColor(c.Theme().TextMuted)
+				ui.Text(c, label).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
+					Grow(1).Shrink(1).MinWidth(0).SingleLine()
+				shortcutCap(c, shortcutChord("K"))
+			})
+		})
+		if b.Clicked() {
+			a.openPalette()
+		}
 	})
 }
 
@@ -488,12 +535,7 @@ func (a *App) setLiveUpdates(on bool) {
 func (a *App) header(c *ui.Context) {
 	a.actionShortcuts(c)
 	if !a.paletteOpen && c.Shortcut(platformRefreshModifier(), ui.KeyK) {
-		a.paletteQuery = ""
-		a.paletteApplied = ""
-		a.paletteChoice = 0
-		a.paletteScroll.Y = 0
-		a.paletteReveal = false
-		a.paletteOpen = true
+		a.openPalette()
 	}
 	if c.Shortcut(platformRefreshModifier(), ui.KeyComma) {
 		a.navigateByKeyboard(c, pageSettings)
@@ -503,13 +545,11 @@ func (a *App) header(c *ui.Context) {
 			a.navigateByKeyboard(c, p)
 		}
 	}
-	ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
-		ui.Row(c).Grow(1).Gap(12).AlignItems(ui.Center).Children(func() {
-			pageGlyph(c, a.page)
-			ui.Column(c).Gap(2).Children(func() {
-				heading(c, tr(pageTitles[a.page]), 26, 1)
-				ui.Text(c, tr(pagePurpose[a.page])).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
-			})
+	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space4).Children(func() {
+		pageGlyph(c, a.page)
+		ui.Column(c).Grow(1).Gap(2).Children(func() {
+			heading(c, tr(pageTitles[a.page]), pageTitleSize, 1).LetterSpacing(-0.3)
+			ui.Text(c, tr(pagePurpose[a.page])).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		})
 		// Ctrl on Linux and Windows, Cmd on macOS: the platform's own
 		// modifier for a reload. The shortcut is the window's, not the
@@ -518,17 +558,69 @@ func (a *App) header(c *ui.Context) {
 		// Settings reads no database, so a Refresh button there would be a
 		// control with no effect; keep the action on data pages.
 		if a.liveUpdates && (a.page == pageDashboard || a.page == pageOracle) {
-			badge(c, "Live · 10s", ui.Hex(successTint), ui.Hex(auroraGreen))
+			liveBadge(c)
 		}
 		if a.page != pageSettings {
-			refresh := secondaryButton(c, "Refresh").Disabled(a.busy != "")
+			refresh := refreshButton(c).Disabled(a.busy != "")
 			if a.busy == "" &&
 				(c.Shortcut(platformRefreshModifier(), ui.KeyR) || refresh.Clicked()) {
 				a.refresh()
 			}
 		}
 	})
-	ui.Divider(c)
+}
+
+// openPalette resets the switcher and shows it. Both the keyboard chord and
+// the sidebar button come through here so a remembered query never reopens a
+// dialog the operator did not type.
+func (a *App) openPalette() {
+	a.paletteQuery = ""
+	a.paletteApplied = ""
+	a.paletteChoice = 0
+	a.paletteScroll.Y = 0
+	a.paletteReveal = false
+	a.paletteOpen = true
+}
+
+// liveBadge marks a page whose timer refreshes it in the background. The dot
+// and the word carry the same state; the dot alone would be colour-only.
+func liveBadge(c *ui.Context) {
+	ui.Row(c).Gap(space2).AlignItems(ui.Center).Padding(space1, space2+2).Radius(999).
+		Background(ui.Hex(successTint)).BorderWidth(1).BorderColor(ui.Hex(auroraGreen).Alpha(0.35)).
+		Children(func() {
+			statusDot(c, ui.Hex(auroraGreen), 6)
+			ui.Text(c, tr("Live · 10s")).FontSize(textSize(c, 11)).FontWeight(500).
+				TextColor(ui.Hex(auroraGreen)).SingleLine()
+		})
+}
+
+// refreshButton is the header's one shared action, drawn as a quiet glass
+// control with its chord: the label says what it does, the chord says how to
+// do it without the pointer.
+func refreshButton(c *ui.Context) ui.Element {
+	label := tr("Refresh")
+	b := ui.ButtonBase(c).Height(max(buttonHeight, textSize(c, buttonHeight))).
+		PaddingX(max(space3, textSize(c, 12))).Radius(radiusSmall + 2).
+		AlignItems(ui.Center).Label(label)
+	from, to := c.Theme().Surface, c.Theme().Surface.Mix(c.Theme().Background, 0.2)
+	outline := c.Theme().Border
+	switch {
+	case b.Pressed():
+		from, to = c.Theme().SurfacePressed, c.Theme().SurfaceHover
+	case b.Hovered():
+		from, to = c.Theme().SurfaceHover, c.Theme().Surface
+		outline = ui.Hex(aurora).Alpha(0.55)
+	}
+	b.Gradient(from, to, 180)
+	b.BorderWidth(1).BorderColor(outline)
+	b.Children(func() {
+		ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
+			ui.Icon(c, refreshIcon).Size(14, 14).TextColor(c.Theme().TextMuted)
+			ui.Text(c, label).FontSize(textSize(c, 12)).FontWeight(600).SingleLine().TextColor(c.Theme().Text)
+			shortcutCap(c, shortcutChord("R"))
+		})
+	})
+	return b
 }
 
 // navigateByKeyboard changes the page from a window-wide shortcut and gives

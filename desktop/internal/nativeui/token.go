@@ -337,8 +337,7 @@ func (a *App) tokenCreate(c *ui.Context) {
 	generated := false
 	formCard(c, "Create Token", "Define supply and attach the owner key that will authorize future writes.", func() {
 		field(c, "Name", &a.token.name)
-		field(c, "Symbol", &a.token.symbol)
-		field(c, "Total Supply", &a.token.supply)
+		fieldPair(c, "Symbol", &a.token.symbol, "Total Supply", &a.token.supply)
 		ui.Collapsible(c, tr("Advanced"), &a.token.createAdvanced, func() {
 			decimals := ui.Field(c, tr("Decimals"), func() {
 				ui.Column(c).Gap(2).Children(func() {

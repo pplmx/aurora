@@ -45,6 +45,12 @@ func (s *nativeServices) Dashboard() (nativeui.DashboardStats, error) {
 	} else {
 		stats.Integrity = "broken"
 	}
+	if s.chain != nil {
+		// Len includes the genesis block, which is why the audit page shows the
+		// same number as its block count: the dashboard counts chain entries,
+		// not records the modules wrote.
+		stats.Blocks = s.chain.Len()
+	}
 	return stats, nil
 }
 

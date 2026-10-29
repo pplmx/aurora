@@ -114,19 +114,35 @@ just check && just test
   不只是 MyGo 提供的输入框与标签页。
 - **视觉是 Aurora 自己的**：`desktop/internal/nativeui/theme.go` 是唯一的调色板
   来源——极夜底色、一层抬起的卡片面、Aurora 蓝作为强调色，以及成功/失败/警告
-  三个状态色。卡片用阴影加顶部一像素高光从底色上抬起，而不是只靠描边；导航列
-  用单独一档更深的底色，右侧一条发丝线与内容分开。视图每帧设置该主题，不跟随
-  系统外观：Aurora 是深色设计，之前窗口设了深色背景却让 MyGo 画浅色主题，控件
-  成了黑底上的白块（实测）。
+  三个状态色；`design.go` 再提供间距、圆角、字号与三种卡片/按钮表面。卡片用
+  渐变、阴影和顶部一像素高光从底色上抬起，而不是只靠描边；导航列用单独一档更
+  深的底色，右侧一条发丝线与内容分开，内容区顶部有一层几乎看不见的极光洗色。
+  视图每帧设置该主题，不跟随系统外观：Aurora 是深色设计，之前窗口设了深色背景
+  却让 MyGo 画浅色主题，控件成了黑底上的白块（实测）。
+- **每个模块有自己的标记色**：Dashboard 青、Lottery 琥珀、Voting 紫、Token 绿、
+  Oracle 蓝、NFT 粉、Blockchain 靛。同一颜色出现在页头图标方块、Dashboard 计数
+  卡、快捷动作块和列表空态上；成功/失败/警告三种状态色保持保留语义，模块色只
+  表示身份，不表示结果。高对比度模式仍只改变文字、描边和焦点环，不改变模块色。
+- **Dashboard 先给结论**：Ledger Integrity 是整宽 hero 面板，用图标、色块和
+  文字一起说明哈希链是否通过校验，右侧直接进入账本页；下面六张计数卡（抽奖、
+  选票、候选人、会期、数据源、账本区块）带模块图标与 tabular 数字。Recent
+  activity 与 Quick start 仍是“状态优先、动作最后”，空库时 Quick start 提前。
+- **侧栏有品牌与入口**：顶部是渐变品牌标记、Aurora 字标与定位语；下面是一个
+  带 `Ctrl/Cmd+K` 键帽的 Jump to 控件，让命令面板不再只对键盘用户可见。底部
+  File 菜单旁显示本地账本状态点与版本号（有版本注入时）。
+- **设置页是双栏**：语言、数据路径、快捷键与关于在左栏，会话密钥、实时更新与
+  外观在右栏；窗口窄于两栏阈值时按同一规则上下堆叠。账本页的区块数、高度和
+  校验结论改为同一条统计胶囊，不再用整宽 readout 放两个短数字。
 - **侧栏是 `ui.Sidebar`**：默认字号下窄于 1000px 时宽度从 216px 收到 184px，
   给内容区留出空间；系统字号放大后会按实际翻译文字适度扩宽（最多占窗口
   38%）；顶部是应用名与一句话定位，下面每个模块都带自己的
   Lucide 图标（`icons.go`，stroke 走 `currentColor`，选中时随强调色），当前页
   由控件自己高亮，方向键与首字母在模块间移动，整列只占一个 Tab 停靠点。页面 id
   与显示标题分开存放，将来标题本地化不会改变"选择"记的是哪一页。
-- **页头给页面一个身份**：同一枚图标放在染色方块里，旁边是 26pt 标题和一句话
-  用途；原生窗口标题跟随当前页面（如 `Aurora — Token`）；开启 Live updates 时，Dashboard/Oracle 页头显示 `Live · 10s`，右侧是
-  Refresh。Ctrl/Cmd+1…8 按侧栏顺序直接切页（Settings 是第 8 个），
+- **页头给页面一个身份**：同一枚图标放在模块色方块里，旁边是 28pt
+  （`pageTitleSize`）标题和一句话用途；原生窗口标题跟随当前页面（如
+  `Aurora — Token`）；开启 Live updates 时，Dashboard/Oracle 页头显示
+  `Live · 10s` 状态胶囊，右侧是带 `Ctrl/Cmd+R` 键帽的 Refresh。Ctrl/Cmd+1…8 按侧栏顺序直接切页（Settings 是第 8 个），
   Ctrl/Cmd+K 打开命令面板（输入筛选，方向键移动，Enter 执行，Escape 关闭）；
   最小窗口下命令列表在面板内滚动，键盘选中项自动进入视野。页面跳转之外，还可
   刷新当前页、备份数据库、导出/导入抽奖文档；不用记也能发现。
@@ -141,11 +157,12 @@ just check && just test
   Start/End Session 也要求先选择会期或填写 Session ID；Register Candidate
   要求姓名，代币与 NFT 的 Burn 要求目标、持有者和签名私钥全部就绪。所有
   写操作 handler 还会独立复核这些字段，避免陈旧帧或进程内调用绕过按钮门。
-- **动作按钮只有三档**：`primaryButton`（一个表单唯一的提交动作，Aurora 蓝）、
-  `secondaryButton`（读取与辅助写入，带描边）、`dangerButton`（销毁/删除，红色，
-  仍要经过确认框）；卡片内的复制等小动作走 `quietButton`。四者都是
-  `ui.ButtonBase` 加统一高度、圆角、字重，并有 hover/press 颜色与轻微缩放反馈
-  —— 参考 GoRex 与 MyGo 网易云客户端的做法，点击在写入完成前就有回应。
+- **动作按钮只有三档**：`primaryButton`（一个表单唯一的提交动作，Aurora 蓝
+  渐变、下方光晕与深色标签）、`secondaryButton`（读取与辅助写入，玻璃表面加
+  描边，hover 时描边转强调色）、`dangerButton`（销毁/删除，实心红，仍要经过
+  确认框）；卡片内的复制等小动作走 `quietButton`。四者都是 `ui.ButtonBase` 加
+  统一高度、圆角、字重，并有 hover/press 颜色与轻微缩放反馈——参考 GoRex 与
+  MyGo 网易云客户端的做法，点击在写入完成前就有回应。
 - **Results/Readings 打开即读已选对象**：在 Setup 里选中的会期切到 Results 会直接加载计票；
   Sources 里选中的数据源切到 Readings 会直接查询该源与最新值。显式 Query / Get Latest /
   Show Results 仍是失败后的重试入口；同一对象/上限不会每帧重复查询。

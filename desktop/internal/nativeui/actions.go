@@ -64,14 +64,23 @@ func (a *App) sidebarActions(c *ui.Context) {
 	if a.actions.empty() {
 		return
 	}
-	ui.Column(c).FillWidth().Padding(12, 8, 16, 14).Children(func() {
+	ui.Column(c).FillWidth().Padding(space3, space5, space4, space2).Gap(space2).Children(func() {
 		label := i18n.GetText("desktop.menu.file")
 		button := ui.MenuButton(c, label, a.actionsMenu).
 			FillWidth().Height(max(34, textSize(c, 34))).
-			PaddingX(max(12, textSize(c, 12))).Radius(buttonRadius).
+			PaddingX(max(12, textSize(c, 12))).Radius(radiusSmall + 2).
 			Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
 			Disabled(a.busy != "")
 		button.Label(label)
+		if a.actions.Version != "" {
+			ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space1, 2).Children(func() {
+				statusDot(c, ui.Hex(auroraGreen), 5)
+				ui.Text(c, tr("Local ledger")).FontSize(textSize(c, 10)).
+					TextColor(c.Theme().TextMuted).Grow(1).Shrink(1).MinWidth(0).SingleLine()
+				ui.Text(c, "v"+a.actions.Version).FontSize(textSize(c, 10)).
+					TextColor(c.Theme().TextMuted).SingleLine()
+			})
+		}
 	})
 }
 
