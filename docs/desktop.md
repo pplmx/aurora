@@ -193,8 +193,9 @@ just check && just test
   挤出卡片。代币的 Allowance 只读查询留在左栏，Inspect 与五种写操作（Mint、
   Transfer、Approve、Transfer From、Burn）同栏；NFT 的 Transfer/Burn/History
   用 `ui.Tabs` 一次只展开一个表单，
-  投票页分成 Setup / Ballot / Results 三个阶段，预言机右栏分成
-  Sources / Health / Readings 三段；不再为了 Burn 滚过五个折叠表单，也不用
+  投票页分成 Setup / Ballot / Results 三个阶段；预言机左栏是 Add Source 与
+  Source Actions（所选数据源的 URL、轮询间隔与四项操作，三个阶段都可见），
+  右栏分成 Sources / Health / Readings 三段；不再为了 Burn 滚过五个折叠表单，也不用
   在四张卡片里找计票。代币精度、历史 Limit/Offset、NFT 的
   可选元数据、预言机的 Type/Method/Path/Headers/Interval 放在 **Advanced** /
   **Paging** / **Optional details** 折叠区里，首屏只留完成主任务需要的字段；

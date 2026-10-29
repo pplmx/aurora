@@ -693,7 +693,7 @@ func TestOracleSourceActionsRequireASourceID(t *testing.T) {
 	app.ShowPage("Oracle")
 	tester.Frame()
 
-	require.True(t, tester.HasText("Choose a source above or enter its ID first."),
+	require.True(t, tester.HasText("Choose a source in Sources or enter its ID first."),
 		"the action field must say why the buttons are disabled")
 	for _, label := range []string{"Enable", "Disable", "Fetch now", "Delete"} {
 		require.NoError(t, tester.Click(label))

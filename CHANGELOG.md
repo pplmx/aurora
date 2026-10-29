@@ -1302,6 +1302,11 @@ documented in their per-milestone ROADMAP files.
   first; the record layout keeps the source name, all three counters and the
   verbatim error. The Settings shortcut list now renders each chord as a key
   cap, and the Voting lists and empty ledger states carry their own marks.
+- **Oracle source actions live in the workbench column**: Source Actions sits
+  under Add Source with the selected endpoint, cadence and a 2x2 grid of
+  Enable/Disable/Fetch/Delete, so it stays usable while reading Health or
+  Readings. Its delete confirmation is mounted once for the page instead of
+  only from the Sources tab.
 - **The desktop is on MyGo v0.7.1**: the nested module upgraded from v0.6.3 and
   its Go directive to 1.27.3, and `just desktop-deps` / `just desktop-update-mygo`
   make the fast-moving dependency deliberate to check and refresh. Renovate

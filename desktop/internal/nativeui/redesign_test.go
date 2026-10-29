@@ -168,3 +168,36 @@ func TestTallyBarsKeepExactVotesAccessible(t *testing.T) {
 	}
 	require.True(t, tester.HasText("Total votes"))
 }
+
+// TestOracleActionsStayAvailableOnEveryStage pins the moved workbench: the
+// source actions and the selected feed's details live in the left column, so
+// an operator reading Health or Readings can still enable, fetch or delete the
+// feed without switching back to Sources. The delete confirmation is mounted
+// once for the page, so it must also appear over either stage.
+func TestOracleActionsStayAvailableOnEveryStage(t *testing.T) {
+	app := New(&fakeServices{sources: []SourceRow{{
+		ID: "s1", Name: "btc", URL: "https://example.com", Type: "http", Enabled: true, Interval: 60,
+	}}})
+	tester := ui.NewTester(app.View, 1280, 900)
+	app.ShowPage("Oracle")
+	tester.Frame()
+	require.True(t, tester.HasText("Source Actions"))
+
+	app.oracle.tab = 1
+	tester.Frame()
+	require.True(t, tester.HasText("Source Actions"), "Health must keep the actions visible")
+	require.NoError(t, tester.Click("Enable"))
+	tester.Frame()
+
+	app.oracle.tab = 2
+	tester.Frame()
+	require.True(t, tester.HasText("Source Actions"), "Readings must keep the actions visible")
+
+	app.oracle.fetchID = "s1"
+	app.oracle.tab = 1
+	tester.Frame()
+	require.NoError(t, tester.Click("Delete"))
+	tester.Frame()
+	require.True(t, tester.HasText("Delete btc (s1)?"),
+		"the page-level confirmation must render over a non-Sources stage")
+}
