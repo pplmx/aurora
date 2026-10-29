@@ -323,41 +323,39 @@ func TestSessionTimeControlsNameTheirPurpose(t *testing.T) {
 	}
 }
 
-// TestDataTablesHaveAccessibleNames checks the shared table path and its
-// callsites. MyGo gives the table role an empty name by default, so every grid
-// must pass through namedTable instead of calling ui.Table directly.
-func TestDataTablesHaveAccessibleNames(t *testing.T) {
-	state := &ui.ListState{}
+// TestCollectionsHaveAccessibleNames checks the shared collection path and its
+// callsites. MyGo gives a list role an empty name by default, so every
+// collection must pass through collectionList instead of drawing an anonymous
+// group of records.
+func TestCollectionsHaveAccessibleNames(t *testing.T) {
 	tester := ui.NewTester(func(c *ui.Context) {
-		namedTable(c, "Draw history", state, []ui.TableColumn{{Title: tr("ID")}}, 0, func(row, col int) {})
-	}, 480, 200)
+		collectionList(c, "Draw history", []collectionRecord{
+			{title: "draw-1", facts: []collectionFact{{label: "Block", value: "7"}}},
+		}, -1, nil)
+	}, 480, 240)
 	tester.Frame()
 	_, ok := tester.Find(tr("Draw history"))
-	require.True(t, ok, "a named table must expose its accessible name")
+	require.True(t, ok, "a collection must expose its accessible name")
+	require.True(t, tester.HasText("draw-1"), "the collection must draw its record")
 
 	entries, err := os.ReadDir(".")
 	require.NoError(t, err)
-	tableCalls := 0
 	for _, entry := range entries {
 		name := entry.Name()
 		if entry.IsDir() || !strings.HasSuffix(name, ".go") ||
-			strings.HasSuffix(name, "_test.go") {
+			strings.HasSuffix(name, "_test.go") || name == "collection.go" {
 			continue
 		}
 		source, err := os.ReadFile(name)
 		require.NoError(t, err)
-		calls := strings.Count(string(source), "ui.Table(")
-		tableCalls += calls
-		if name != "controls.go" {
-			require.Zerof(t, calls,
-				"%s calls ui.Table directly; use namedTable so the grid has an accessible name", name)
-		}
+		require.Zerof(t, strings.Count(string(source), "ui.Table("),
+			"%s builds a table; collections are records drawn by collectionList", name)
 	}
-	require.Equal(t, 1, tableCalls, "ui.Table must only be called inside the namedTable helper")
 
-	controls, err := os.ReadFile("controls.go")
+	controls, err := os.ReadFile("collection.go")
 	require.NoError(t, err)
-	require.Contains(t, string(controls), "ui.Table(c, state, columns, n, cell).Label(tr(name))")
+	require.Contains(t, string(controls), `Role(ui.RoleList).Label(tr(name))`,
+		"collectionList must name the list it draws")
 }
 
 // TestFormCardsNameTheirSections keeps repeated field labels in context. The
@@ -458,7 +456,6 @@ func TestVisibleHintsDescribeTheirControls(t *testing.T) {
 		"voting.go": {
 			`Description(tr("Local time. Ballots are rejected before it."))`,
 			`Description(tr("Local time. Ballots are rejected after it."))`,
-			`Description(tr("A prior ballot does not block a later session; each session accepts one ballot per voter."))`,
 		},
 		"lottery.go": {
 			`Description(tr("How many winners to draw; must not exceed the participant count."))`,

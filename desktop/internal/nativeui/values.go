@@ -18,22 +18,8 @@ func shortID(id string) string {
 	return id[:keep] + "…"
 }
 
-// tableText draws variable table content on one line. Ellipsis marks a value
-// the current column cuts, and the same value is attached as its tooltip and
-// accessible description, so narrowing the window or enlarging text does not
-// make the stored value silently disappear.
-func tableText(c *ui.Context, value string) ui.Element {
-	return ui.Text(c, value).SingleLine().Ellipsis("…").Tooltip(value)
-}
-
-// tableTextFull is tableText when the cell intentionally shows a short form,
-// such as an id whose full value is useful on hover.
-func tableTextFull(c *ui.Context, shown, full string) ui.Element {
-	return ui.Text(c, shown).SingleLine().Ellipsis("…").Tooltip(full)
-}
-
-// joinList renders a []string for a table cell. The Web UI used
-// participants.join(', '); a nil slice reads as an em dash so an empty cell is
+// joinList renders a []string for a record fact. The Web UI used
+// participants.join(', '); a nil slice reads as an em dash so an empty value is
 // visibly empty rather than blank.
 func joinList(items []string) string {
 	if len(items) == 0 {
@@ -98,7 +84,7 @@ func readout(c *ui.Context, rows []readoutRow) {
 					TextColor(c.Theme().TextMuted).SingleLine().Ellipsis("…").Tooltip(label)
 				value := ui.Text(c, r.value).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 					Grow(1).Shrink(1).MinWidth(0)
-				if !stackedRecords(c) {
+				if wideLayout(c) {
 					value.SingleLine().Ellipsis("…").Tooltip(r.value)
 				}
 			})

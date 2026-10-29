@@ -34,7 +34,6 @@ var translatedCallArgs = map[string][]int{
 	"quietButton":          {0},
 	"errorStatus":          {0},
 	"tabs":                 {1},
-	"namedTable":           {1},
 	"sectionHeading":       {0, 1},
 	"sectionRule":          {0},
 	"formCard":             {0, 1},
@@ -47,6 +46,7 @@ var translatedCallArgs = map[string][]int{
 	"preferenceStateLabel": {1, 2},
 	"pagerControls":        {1},
 	"collectionToolbar":    {2, 3},
+	"collectionList":       {1},
 	"collectionPager":      {1},
 }
 

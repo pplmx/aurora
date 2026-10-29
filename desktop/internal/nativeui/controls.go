@@ -128,25 +128,6 @@ func searchField(c *ui.Context, value *string, label string) ui.Element {
 	return ui.SearchField(c, value).Label(tr(label))
 }
 
-// namedTable gives every data grid an accessible name. The table role alone
-// says what kind of collection is present, not which collection it is.
-//
-// The grid sits in a recessed frame drawn under its own content: a table on a
-// card's surface has no edge of its own, so its header rule and its last row
-// floated in the card's padding. The frame is painted by the table element
-// (not a wrapping Column) so callers keep reaching the table's own Changed,
-// selection and focus state.
-func namedTable(c *ui.Context, name string, state *ui.ListState, columns []ui.TableColumn, n int, cell func(row, col int)) ui.Element {
-	return ui.Table(c, state, columns, n, cell).Label(tr(name)).
-		Draw(func(p *ui.Painter, r ui.Rect) {
-			// The frame is the grid's own box: its header and body cells
-			// already keep the theme's padding from the edge, so the border
-			// traces the same width as the controls above it.
-			p.Fill(r, c.Theme().Background.Mix(c.Theme().Surface, 0.45), radiusSmall+2)
-			p.Stroke(r, c.Theme().Border, radiusSmall+2, 1)
-		})
-}
-
 // announceSearchResults tells a screen reader what its new query selected.
 // The list repaint alone is visual; the query's editor keeps its own value, so
 // without this the operator cannot tell one match from no matches.

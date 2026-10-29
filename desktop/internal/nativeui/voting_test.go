@@ -37,13 +37,17 @@ func TestVotingTablesLoadFullIDsIntoTheForms(t *testing.T) {
 	require.True(t, tester.HasText("Budget 2026"), "the session list must render")
 	require.True(t, tester.HasText("Alice"), "the candidate list must render")
 
-	require.NoError(t, tester.Click(shortID(sessionID)), "click the session's id cell")
+	// A record is chosen by its title; the full id stays on the record as a
+	// field, so the choice still hands the forms the complete UUID.
+	require.True(t, tester.HasText(sessionID), "the session record must show its full id")
+	require.NoError(t, tester.Click("Budget 2026"), "choose the session record")
 	tester.Frame()
 	require.Equal(t, sessionID, app.voting.controlID, "session controls must receive the session")
 	require.Equal(t, sessionID, app.voting.voteSession, "the ballot must receive the session")
 	require.Equal(t, sessionID, app.voting.resultsSession, "the tally reader must receive the session")
 
-	require.NoError(t, tester.Click(shortID(candID)), "click the candidate's id cell")
+	require.True(t, tester.HasText(candID), "the candidate record must show its full id")
+	require.NoError(t, tester.Click("Alice"), "choose the candidate record")
 	tester.Frame()
 	require.Equal(t, candID, app.voting.voteCandidate, "the ballot must receive the candidate")
 }
@@ -406,7 +410,7 @@ func TestSelectedSessionShowsItsRoster(t *testing.T) {
 
 	require.False(t, tester.HasText("Alice, Bob"), "no roster before a row is chosen")
 	require.False(t, tester.HasText("Approve the 2027 budget"), "no description before a row is chosen")
-	require.NoError(t, tester.Click("s1"))
+	require.NoError(t, tester.Click("Budget"), "choose the session record")
 	tester.Frame()
 	require.True(t, tester.HasText("Alice, Bob"), "the chosen session's roster must be shown")
 	require.True(t, tester.HasText("Approve the 2027 budget"), "the chosen session's description must be shown")
@@ -429,11 +433,17 @@ func TestSelectedSessionRosterResolvesCandidatesBeyondTheVisiblePage(t *testing.
 		}},
 	}
 	app := New(fake)
-	tester := ui.NewTester(app.View, 1280, 8000)
+	tester := ui.NewTester(app.View, 1280, 2000)
 	app.ShowPage("Voting")
 	tester.Frame()
 
-	require.NoError(t, tester.Click("s1"))
+	// The session list sits below a full page of candidates, so scroll it into
+	// view before choosing it.
+	session, ok := tester.Find("Budget")
+	require.True(t, ok)
+	app.scroll.Y = max(0, session.Y-300)
+	tester.Frame()
+	require.NoError(t, tester.Click("Budget"), "choose the session record")
 	tester.Frame()
 	require.True(t, tester.HasText("Alice, Bob"),
 		"a session roster must resolve names even when both candidates are on an older page")
@@ -478,9 +488,11 @@ func TestFailedSessionRosterReadKeepsOnlyThatSessionsNames(t *testing.T) {
 	require.True(t, tester.HasText("c2"), "a missing name falls back to the stored id")
 }
 
-// TestSelectedCandidateShowsItsProgram pins the candidate detail below the
-// list: the table has no room for the program the ballot shows.
-func TestSelectedCandidateShowsItsProgram(t *testing.T) {
+// TestCandidateRecordShowsItsProgram keeps the program and the tally on the
+// candidate's own record. The old table had no room for either, so they only
+// appeared in a readout after the row was chosen — a fact about the candidate
+// that the operator had to select the candidate to discover.
+func TestCandidateRecordShowsItsProgram(t *testing.T) {
 	fake := &fakeServices{candidates: []CandidateRow{{
 		ID: "c1", Name: "Alice", Party: "Greens", Program: "Free transit", VoteCount: 37,
 	}}}
@@ -489,11 +501,11 @@ func TestSelectedCandidateShowsItsProgram(t *testing.T) {
 	app.ShowPage("Voting")
 	tester.Frame()
 
-	require.False(t, tester.HasText("Free transit"), "no program before a candidate is chosen")
-	require.NoError(t, tester.Click("c1"))
+	require.True(t, tester.HasText("Free transit"), "the record must show the program")
+	require.True(t, tester.HasText("37"), "the record must show the tally")
+	require.NoError(t, tester.Click("Alice"))
 	tester.Frame()
-	require.True(t, tester.HasText("Free transit"), "the chosen candidate's program must be shown")
-	require.True(t, tester.HasText("37"), "the chosen candidate's votes must be shown")
+	require.Equal(t, "c1", app.voting.voteCandidate, "choosing the record must aim the ballot")
 }
 
 // TestFailedTallyRefreshKeepsTheRowsAndSaysWhy covers a refresh of the tally
@@ -667,7 +679,9 @@ func TestVoterListLoadsThePublicKeyIntoTheBallot(t *testing.T) {
 	tester.Frame()
 
 	require.True(t, tester.HasText("Alice"))
-	require.NoError(t, tester.Click(shortID(publicKey)))
+	// A voter record is chosen by name; its full key stays on the record.
+	require.True(t, tester.HasText(publicKey), "the record must show the full key")
+	require.NoError(t, tester.Click("Alice"))
 	tester.Frame()
 
 	require.Equal(t, publicKey, app.voting.voteVoterPub,
