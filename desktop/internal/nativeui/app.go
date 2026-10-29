@@ -150,26 +150,34 @@ func (a *App) View(c *ui.Context) {
 	c.SetTheme(auroraThemeFor(c.Preferences()))
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
-		ui.Column(c).Fill().Grow(1).Padding(24).Gap(18).
-			LinearGradient(workspaceFill(c)).Children(func() {
-			a.header(c)
-			// The outcome of the last action lives in the fixed part of the
-			// window, not at the top of the scrolling body: an action at the
-			// bottom of a form could report a failure above the viewport, and
-			// the operator would see the form unchanged and assume it worked.
-			if renderStatus(c, a.page, a.pageStatus(), a.clearPageStatus) {
-				a.navigationControl.Focus(c)
-			}
-			a.busyBar(c)
-			// A write owns the page body, not the navigation: the sidebar stays
-			// usable, while form edits and a second submit cannot race the
-			// result. The busy bar and page header stay live.
-			// The status and busy strips are conditional siblings above this
-			// host. Without a stable identity, inserting one shifts the body
-			// in the sibling list and MyGo drops focus from the control whose
-			// action produced the message.
-			ui.Column(c).Key("page-body").Fill().Grow(1).Disabled(a.busy != "").Children(func() {
-				a.body(c)
+		workspace := ui.Column(c).Fill().Grow(1).LinearGradient(workspaceFill(c))
+		workspace.Children(func() {
+			// The header is a band, not a line of text: it carries the module's
+			// own light and closes with a hairline, so the fixed chrome and the
+			// scrolling body read as two surfaces instead of one long column.
+			a.headerBand(c, func() {
+				a.header(c)
+			})
+			ui.Column(c).Fill().Grow(1).Padding(space6).Gap(pageGap).Children(func() {
+				// The outcome of the last action lives in the fixed part of the
+				// window, not at the top of the scrolling body: an action at
+				// the bottom of a form could report a failure above the
+				// viewport, and the operator would see the form unchanged and
+				// assume it worked.
+				if renderStatus(c, a.page, a.pageStatus(), a.clearPageStatus) {
+					a.navigationControl.Focus(c)
+				}
+				a.busyBar(c)
+				// A write owns the page body, not the navigation: the sidebar
+				// stays usable, while form edits and a second submit cannot
+				// race the result. The busy bar and page header stay live.
+				// The status and busy strips are conditional siblings above
+				// this host. Without a stable identity, inserting one shifts
+				// the body in the sibling list and MyGo drops focus from the
+				// control whose action produced the message.
+				ui.Column(c).Key("page-body").Fill().Grow(1).Disabled(a.busy != "").Children(func() {
+					a.body(c)
+				})
 			})
 		})
 	})
@@ -472,13 +480,17 @@ func (a *App) paletteButton(c *ui.Context) {
 func (a *App) sidebar(c *ui.Context) {
 	selected := pageIDs[a.page]
 	reveal := a.sidebarReveal
-	navigation := ui.Sidebar(c, &selected, func() {
+	var navigation ui.Element
+	navigation = ui.Sidebar(c, &selected, func() {
 		ui.SidebarSection(c, tr("Modules"), nil, func() {
 			for _, p := range moduleOrder {
 				// The chosen item is already tinted by the toolkit; a marker
 				// beside it would say the same thing twice.
 				label := tr(pageTitles[p])
 				item := ui.SidebarItem(c, pageIDs[p], pageIcons[p], label).Tooltip(label)
+				if p == a.page {
+					markSidebarChoice(c, item, &navigation)
+				}
 				if reveal && p == a.page {
 					item.ScrollIntoView()
 				}
@@ -487,6 +499,9 @@ func (a *App) sidebar(c *ui.Context) {
 		ui.SidebarSection(c, tr("Application"), nil, func() {
 			label := tr(pageTitles[pageSettings])
 			item := ui.SidebarItem(c, pageIDs[pageSettings], pageIcons[pageSettings], label).Tooltip(label)
+			if a.page == pageSettings {
+				markSidebarChoice(c, item, &navigation)
+			}
 			if reveal && a.page == pageSettings {
 				item.ScrollIntoView()
 			}
@@ -497,6 +512,51 @@ func (a *App) sidebar(c *ui.Context) {
 	if p, ok := pageByID(selected); ok {
 		a.setPage(p)
 	}
+}
+
+// markSidebarChoice draws the chosen item's left accent. MyGo's sidebar fills
+// the row with the accent when the list has keyboard focus and with a raised
+// surface when it does not; the bar gives both states the same "this is the
+// current page" mark and keeps the row recognisable when the fill is subtle.
+func markSidebarChoice(c *ui.Context, item ui.Element, navigation *ui.Element) {
+	item.DrawOver(func(p *ui.Painter, r ui.Rect) {
+		tone := ui.Hex(aurora)
+		if navigation.Focused() {
+			// The focused row is filled with the accent, so the bar uses the
+			// dark ink that reads on top of it.
+			tone = c.Theme().AccentText
+		}
+		p.Fill(ui.Rect{X: r.X + 1, Y: r.Y + r.H*0.27, W: 3, H: r.H * 0.46}, tone, 1.5)
+	})
+}
+
+// headerBand is the fixed chrome above the scrolling body: the page's name,
+// its purpose and the one shared action, on a strip tinted with the module's
+// own hue and closed by a hairline.
+//
+// The band is what makes the module's identity reach the page at all. Before
+// it, the header was the same line of text on every page, with only the small
+// tile to say which module was open; the tint is a few percent of the hue, so
+// it changes the temperature of the strip without touching the contrast
+// ratios text and borders depend on.
+func (a *App) headerBand(c *ui.Context, fn func()) {
+	tone := pageAccent(a.page)
+	band := ui.Column(c).FillWidth().Padding(space5, space6, space5, space6)
+	band.Draw(func(p *ui.Painter, r ui.Rect) {
+		clear := tone.Alpha(0)
+		p.FillGradient(r, ui.LinearGradient{
+			Angle: 115,
+			Stops: []ui.GradientStop{
+				{Color: tone.Alpha(0.13), At: 0},
+				{Color: tone.Alpha(0.045), At: 0.45},
+				{Color: clear, At: 1},
+			},
+		}, 0)
+	})
+	band.DrawOver(func(p *ui.Painter, r ui.Rect) {
+		p.Fill(ui.Rect{X: r.X, Y: r.Y + r.H - 1, W: r.W, H: 1}, c.Theme().Border, 0)
+	})
+	band.Children(fn)
 }
 
 // header names the page and gives the one action every page shares.
@@ -671,8 +731,12 @@ func (a *App) scrollPage(c *ui.Context, fn func()) {
 	// into the next page's tree when the two have different shapes. Without
 	// this, Oracle -> NFT reused an incompatible layout and clipped the Mint
 	// button at the bottom of its card.
+	//
+	// The gap is part of the page's rhythm: a card's rounded corner needs the
+	// background between it and its neighbour, or two cards read as one slab
+	// with a seam.
 	c.Key(a.page)
-	ui.Scroll(c).Fill().TrackScroll(&a.scroll).Children(fn)
+	ui.Scroll(c).Fill().Gap(pageGap).TrackScroll(&a.scroll).Children(fn)
 }
 
 // body dispatches to the current page.

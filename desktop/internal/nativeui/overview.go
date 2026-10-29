@@ -136,10 +136,7 @@ func (a *App) dashboardView(c *ui.Context) {
 			// Three counters per row on a wide window; two at the minimum
 			// width so a label and its note keep their line instead of
 			// wrapping inside a 200px card.
-			ui.Row(c).FillWidth().Gap(space3).AlignItems(ui.Center).Children(func() {
-				eyebrow(c, "At a glance")
-				ui.Row(c).Height(1).Grow(1).Background(c.Theme().Border)
-			})
+			sectionRule(c, "At a glance")
 			width, _ := c.Size()
 			// The breakpoints scale with the text preference: at 2x a card
 			// that held one label and a note at 1x needs the width of two.

@@ -22,23 +22,25 @@ type guideState struct {
 // guide draws the page's "How this works" steps. The default is closed: the
 // page itself should still be scannable, and the explanation is for the moment
 // the operator asks "what is the order here?".
+//
+// Closed, it is one quiet line rather than a boxed panel: a bordered card with
+// a 26px tile and a single sentence weighed as much as the page's first real
+// card, and pushed that card down by 68px on every page. The accent bar at its
+// left keeps it recognisable as guidance when the text is all a reader has.
 func guide(c *ui.Context, open *bool, steps ...string) {
-	ui.Row(c).FillWidth().Padding(space3, space2).Gap(space2).AlignItems(ui.Start).
-		Radius(radiusSmall).Background(c.Theme().Background.Mix(c.Theme().Surface, 0.4)).
-		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
-		iconTile(c, infoIcon, ui.Hex(aurora), 26)
-		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
-			ui.Collapsible(c, tr("How this works"), open, func() {
-				ui.Column(c).Gap(6).Padding(0, space2, 0, 0).Children(func() {
-					for i, step := range steps {
-						ui.Row(c).Gap(space2).AlignItems(ui.Start).Children(func() {
-							ui.Text(c, fmt.Sprintf(tr("%d."), i+1)).FontSize(textSize(c, 11.5)).FontWeight(600).
-								Width(textSize(c, 18)).Shrink(0).TextColor(ui.Hex(aurora))
-							ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
-								Grow(1).Shrink(1).MinWidth(0)
-						})
-					}
-				})
+	ui.Column(c).FillWidth().Padding(space2, space3).Gap(space1).Radius(radiusSmall).
+		Background(c.Theme().Surface.Alpha(0.55)).
+		BorderWidth(0, 0, 0, 2).BorderColor(ui.Hex(aurora).Alpha(0.55)).Children(func() {
+		ui.Collapsible(c, tr("How this works"), open, func() {
+			ui.Column(c).Gap(6).Padding(0, space2, space1, 0).Children(func() {
+				for i, step := range steps {
+					ui.Row(c).Gap(space2).AlignItems(ui.Start).Children(func() {
+						ui.Text(c, fmt.Sprintf(tr("%d."), i+1)).FontSize(textSize(c, 11.5)).FontWeight(600).
+							Width(textSize(c, 18)).Shrink(0).TextColor(ui.Hex(aurora))
+						ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
+							Grow(1).Shrink(1).MinWidth(0)
+					})
+				}
 			})
 		})
 	})
@@ -128,8 +130,21 @@ func searchField(c *ui.Context, value *string, label string) ui.Element {
 
 // namedTable gives every data grid an accessible name. The table role alone
 // says what kind of collection is present, not which collection it is.
+//
+// The grid sits in a recessed frame drawn under its own content: a table on a
+// card's surface has no edge of its own, so its header rule and its last row
+// floated in the card's padding. The frame is painted by the table element
+// (not a wrapping Column) so callers keep reaching the table's own Changed,
+// selection and focus state.
 func namedTable(c *ui.Context, name string, state *ui.ListState, columns []ui.TableColumn, n int, cell func(row, col int)) ui.Element {
-	return ui.Table(c, state, columns, n, cell).Label(tr(name))
+	return ui.Table(c, state, columns, n, cell).Label(tr(name)).
+		Draw(func(p *ui.Painter, r ui.Rect) {
+			// The frame is the grid's own box: its header and body cells
+			// already keep the theme's padding from the edge, so the border
+			// traces the same width as the controls above it.
+			p.Fill(r, c.Theme().Background.Mix(c.Theme().Surface, 0.45), radiusSmall+2)
+			p.Stroke(r, c.Theme().Border, radiusSmall+2, 1)
+		})
 }
 
 // announceSearchResults tells a screen reader what its new query selected.

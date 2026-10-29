@@ -52,15 +52,15 @@ func pageGlyph(c *ui.Context, p page) ui.Element {
 func twoColumns(c *ui.Context, left, right func()) {
 	width, _ := c.Size()
 	if width < twoColumnMinWidth*textScale(c) {
-		ui.Column(c).FillWidth().Gap(16).Children(func() {
+		ui.Column(c).FillWidth().Gap(cardGap).Children(func() {
 			left()
 			right()
 		})
 		return
 	}
-	ui.Row(c).FillWidth().AlignItems(ui.Start).Gap(16).Children(func() {
-		ui.Column(c).Grow(1).Shrink(1).Gap(16).Children(left)
-		ui.Column(c).Grow(1).Shrink(1).Gap(16).Children(right)
+	ui.Row(c).FillWidth().AlignItems(ui.Start).Gap(pageGap).Children(func() {
+		ui.Column(c).Grow(1).Shrink(1).Gap(cardGap).Children(left)
+		ui.Column(c).Grow(1).Shrink(1).Gap(cardGap).Children(right)
 	})
 }
 
@@ -172,7 +172,8 @@ func recordMetric(c *ui.Context, label, value string, tone ui.Color) {
 // numeric value is the largest type on the page so the eye lands on it first;
 // a word verdict ("verified") is drawn smaller, because 30pt of lowercase
 // reads as an error rather than a summary. The module's glyph sits in the
-// corner so the four counters that open the same page are still told apart.
+// corner so the four counters that open the same page are still told apart,
+// and a hairline of the module's hue runs along the card's top edge.
 func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric bool, target page) bool {
 	body := func() {
 		ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Children(func() {
@@ -195,7 +196,7 @@ func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric
 		card(c, body)
 		return false
 	}
-	return actionCard(c, label, body).Clicked()
+	return cardAccent(actionCard(c, label, body), pageAccent(target)).Clicked()
 }
 
 // actionCard is a whole card that opens another page. It keeps the card's
