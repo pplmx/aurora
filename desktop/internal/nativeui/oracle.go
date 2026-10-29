@@ -222,7 +222,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		emptyState(c, pageOracle, "No sources yet", "Add an HTTP feed on the left to start reading values.")
 		return
 	}
-	ui.SearchField(c, &a.oracle.search).Label(tr("Search sources")).
+	searchField(c, &a.oracle.search, "Search sources").
 		Description(tr("Search narrows the current page; use Previous/Next for older sources."))
 	queryChanged := a.oracle.search != a.oracle.appliedSearch
 	if queryChanged {

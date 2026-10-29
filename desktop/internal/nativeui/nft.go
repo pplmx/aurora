@@ -450,7 +450,7 @@ func (a *App) nftListBody(c *ui.Context) {
 		emptyState(c, pageNFT, "No NFTs yet", "Mint an asset above to start the collection; it becomes the first holder’s token.")
 		return
 	}
-	ui.SearchField(c, &a.nft.search).Label(tr("Search NFTs")).
+	searchField(c, &a.nft.search, "Search NFTs").
 		Description(tr("Search narrows the current page; use Previous/Next for older assets."))
 	queryChanged := a.nft.search != a.nft.appliedSearch
 	if queryChanged {

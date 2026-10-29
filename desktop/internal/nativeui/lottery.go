@@ -226,7 +226,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		return
 	}
 	rows := make([]DrawRow, 0, len(a.lottery.rows))
-	ui.SearchField(c, &a.lottery.search).Label(tr("Search draws")).
+	searchField(c, &a.lottery.search, "Search draws").
 		Description(tr("Search narrows the current page; use Previous/Next for older draws."))
 	queryChanged := a.lottery.search != a.lottery.appliedSearch
 	if queryChanged {

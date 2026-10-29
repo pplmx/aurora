@@ -209,7 +209,7 @@ func (a *App) tokenList(c *ui.Context) {
 			emptyState(c, pageToken, "No tokens yet", "Create the first token above; the list, forms and history follow it.")
 			return
 		}
-		ui.SearchField(c, &a.token.search).Label(tr("Search tokens")).
+		searchField(c, &a.token.search, "Search tokens").
 			Description(tr("Search narrows the current page; use Previous/Next for older tokens."))
 		queryChanged := a.token.search != a.token.appliedSearch
 		if queryChanged {

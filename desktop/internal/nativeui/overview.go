@@ -187,9 +187,12 @@ func (a *App) dashboardHero(c *ui.Context) {
 	verified := a.dashboard.Integrity == "verified"
 	tone := ui.Hex(auroraGreen)
 	description := "Every module appends its records to one hash chain; each block commits to the previous hash."
-	if !verified {
+	switch {
+	case !verified:
 		tone = ui.Hex(auroraRed)
 		description = "The stored chain did not verify. Inspect the ledger before trusting the counters below."
+	case a.dashboardIsEmpty():
+		description = "The ledger is ready. Start with a quick action below; the first record opens block 1."
 	}
 	panel := ui.Column(c).FillWidth().Padding(space6, space5).Gap(space4).
 		Radius(radiusLarge).LinearGradient(panelGradient(c, tone, 0.1)).
@@ -274,7 +277,7 @@ func (a *App) quickAction(c *ui.Context, label string, target page) {
 	}
 	b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
 	b.BorderWidth(1).BorderColor(outline)
-	pressLift(c, b, b.Hovered())
+	hoverRaise(c, b, b.Hovered())
 	b.Children(func() {
 		ui.Column(c).FillWidth().Gap(space2).Children(func() {
 			ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
@@ -317,7 +320,15 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			return
 		}
 		if len(a.dashboard.recent) == 0 {
-			emptyNote(c, "Nothing on the chain yet.")
+			// A fresh chain is a real state, not a table that failed to load:
+			// the mark and the sentence say so in the same language as the
+			// list's empty states instead of a lone grey line.
+			ui.Column(c).FillWidth().Padding(space6, space5).Gap(space2).
+				AlignItems(ui.Center).Children(func() {
+				iconTile(c, pageIcons[pageBlockchain], pageAccent(pageBlockchain), iconTileMedium)
+				ui.Text(c, tr("Nothing on the chain yet.")).FontSize(textSize(c, 12)).
+					TextColor(c.Theme().TextMuted).TextAlign(ui.Center)
+			})
 			return
 		}
 		rows := a.dashboard.recent
@@ -506,7 +517,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 	announceSearchResults(c, queryChanged, a.blockchain.blockTotal)
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 		ui.Row(c).Grow(1).Children(func() {
-			ui.SearchField(c, &a.blockchain.search).Label(tr("Search blocks")).
+			searchField(c, &a.blockchain.search, "Search blocks").
 				Description(tr("Search matches module, payload or height across the whole chain."))
 		})
 		ui.Field(c, tr("Show"), func() {

@@ -153,14 +153,17 @@ func verdictPill(c *ui.Context, ok bool, label string) ui.Element {
 		})
 }
 
-// pressLift is the hover motion shared by the dashboard's cards: they rise a
-// couple of points and warm their border instead of changing colour abruptly.
-// MyGo turns the motion into an instant state change when the desktop asks for
-// reduced motion, so the feedback survives that preference.
-func pressLift(c *ui.Context, b ui.Element, hovered bool) ui.Element {
+// hoverRaise is the hover motion shared by the dashboard's cards: they grow a
+// fraction and warm their border instead of changing colour abruptly. The
+// motion is a scale rather than an upward shift because a shifted element moves
+// out from under a pointer resting on its last pixel, which flickers the hover
+// state; scaling only ever grows the target. MyGo turns the motion into an
+// instant state change when the desktop asks for reduced motion, so the
+// feedback survives that preference.
+func hoverRaise(c *ui.Context, b ui.Element, hovered bool) ui.Element {
 	pose := ui.Pose{}
 	if hovered {
-		pose = ui.Pose{Y: -2}
+		pose = ui.Pose{Scale: 1.006}
 	}
 	b.AnimatePose(pose, ui.Animation{Duration: 120 * time.Millisecond})
 	return b
