@@ -1,6 +1,8 @@
 package nativeui
 
 import (
+	"fmt"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -71,19 +73,38 @@ func collectionList(c *ui.Context, name string, rows []collectionRecord, selecte
 		for i, row := range rows {
 			i, row := i, row
 			if onChoose == nil {
-				recordPanel(c, func() { collectionRecordBody(c, row) })
+				ui.Column(c).FillWidth().Role(ui.RoleListItem).Children(func() {
+					recordPanel(c, func() { collectionRecordBody(c, row) })
+				})
 				continue
 			}
 			isSelected := i == selected
 			record := selectableRecordPanel(c, isSelected,
-				recordChoiceLabel(collectionRecordName(row), isSelected), func() {
+				collectionChoiceLabel(row, isSelected), func() {
 					collectionRecordBody(c, row)
 				})
 			if record.Clicked() {
+				// Choosing a record fills the page's forms and cards with its
+				// values, which a screen reader does not otherwise notice: the
+				// button keeps focus and only its own label changes. Say which
+				// record became the page's subject.
+				c.Announce(fmt.Sprintf(tr("Selected %s"), collectionRecordName(row)))
 				onChoose(i)
 			}
 		}
 	})
+}
+
+// collectionChoiceLabel is what assistive technology hears for a selectable
+// record. It states the action and the record's facts rather than repeating the
+// title the record draws itself, so choosing a row does not read as "Selected
+// Gold, Gold".
+func collectionChoiceLabel(row collectionRecord, selected bool) string {
+	name := collectionRecordName(row)
+	if selected {
+		return fmt.Sprintf(tr("Selected %s"), name)
+	}
+	return fmt.Sprintf(tr("Select %s"), name)
 }
 
 // collectionRecordBody draws the inside of one record: its title, the short
