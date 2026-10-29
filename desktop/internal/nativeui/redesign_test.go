@@ -20,6 +20,8 @@ func TestPaletteButtonOpensTheSwitcher(t *testing.T) {
 	require.NoError(t, tester.Click("Jump to"))
 	tester.Frame()
 	require.True(t, app.paletteOpen, "clicking the control must open the palette")
+	require.True(t, tester.HasText(tr("↑↓ move · Enter open · Esc close")),
+		"the palette must document its keys where they are used")
 
 	tester.Key(0, ui.KeyEscape)
 	tester.Frame()
@@ -109,6 +111,19 @@ func TestStatChipsKeepFactsBesideTheirCollection(t *testing.T) {
 	search, ok := tester.Find("Search blocks")
 	require.True(t, ok)
 	require.Less(t, verdict.Y, search.Y, "the summary must precede the controls")
+}
+
+// TestFreshDashboardExplainsTheEmptyChain covers the first-run wording: a
+// verified genesis chain is ready for work, not a summary of nothing, so the
+// hero names the next move instead of repeating the hash-chain explanation.
+func TestFreshDashboardExplainsTheEmptyChain(t *testing.T) {
+	app := New(emptyDashboard{fakeServices: &fakeServices{}})
+	tester := ui.NewTester(app.View, 1280, 1000)
+	tester.Frame()
+
+	require.True(t, tester.HasText("The ledger is ready. Start with a quick action below; the first record opens block 1."))
+	require.True(t, tester.HasText("Nothing on the chain yet."))
+	require.True(t, tester.HasText("Run a draw"))
 }
 
 // TestFieldPairKeepsTwoControlsOnOneLine holds the new two-up form row: the

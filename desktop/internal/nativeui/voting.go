@@ -580,7 +580,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 		}
 		return
 	}
-	ui.SearchField(c, &a.voting.voterSearch).Label(tr("Search voters")).
+	searchField(c, &a.voting.voterSearch, "Search voters").
 		Description(tr("Search narrows the current page; use Previous/Next for older voters."))
 	queryChanged := a.voting.voterSearch != a.voting.voterApplied
 	if queryChanged {
@@ -772,7 +772,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		}
 		return
 	}
-	ui.SearchField(c, &a.voting.sessionSearch).Label(tr("Search sessions")).
+	searchField(c, &a.voting.sessionSearch, "Search sessions").
 		Description(tr("Search narrows the current page; use Previous/Next for older sessions."))
 	queryChanged := a.voting.sessionSearch != a.voting.sessionApplied
 	if queryChanged {
@@ -961,7 +961,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		}
 		return
 	}
-	ui.SearchField(c, &a.voting.candSearch).Label(tr("Search candidates")).
+	searchField(c, &a.voting.candSearch, "Search candidates").
 		Description(tr("Search narrows the current page; use Previous/Next for older candidates."))
 	queryChanged := a.voting.candSearch != a.voting.candApplied
 	if queryChanged {

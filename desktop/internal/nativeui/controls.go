@@ -118,6 +118,14 @@ func attachFieldError(c *ui.Context, field ui.Element, label, message string) {
 // applies the same ceiling to its ?limit.
 const maxListLimit = 1000
 
+// searchField is the one place a page builds its filter control. Every page
+// gets the same magnified input, and the accessible label names the collection
+// it narrows. The placeholder itself belongs to MyGo (whose catalog ships
+// English only), so the label is the translated name a reader hears.
+func searchField(c *ui.Context, value *string, label string) ui.Element {
+	return ui.SearchField(c, value).Label(tr(label))
+}
+
 // namedTable gives every data grid an accessible name. The table role alone
 // says what kind of collection is present, not which collection it is.
 func namedTable(c *ui.Context, name string, state *ui.ListState, columns []ui.TableColumn, n int, cell func(row, col int)) ui.Element {

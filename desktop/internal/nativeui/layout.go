@@ -223,7 +223,7 @@ func actionCard(c *ui.Context, label string, body func()) ui.Element {
 		})
 		b.BorderColor(ui.Hex(aurora).Alpha(0.45))
 	}
-	pressLift(c, b, b.Hovered())
+	hoverRaise(c, b, b.Hovered())
 	b.Children(func() { ui.Column(c).FillWidth().Gap(space3).Children(body) })
 	return b
 }

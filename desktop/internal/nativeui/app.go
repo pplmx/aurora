@@ -203,7 +203,7 @@ func (a *App) commandPalette(c *ui.Context) {
 		Background(c.Theme().Surface).BorderWidth(1).BorderColor(c.Theme().Border).
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
 		heading(c, tr("Jump to"), 17, 2)
-		search := ui.SearchField(c, &a.paletteQuery).Label(tr("Search pages")).AutoFocus()
+		search := searchField(c, &a.paletteQuery, "Search pages").AutoFocus()
 		submitted := search.Submitted()
 		queryChanged := a.paletteQuery != a.paletteApplied
 		if queryChanged {
@@ -250,6 +250,12 @@ func (a *App) commandPalette(c *ui.Context) {
 				}
 			}
 		})
+		// The palette is the one surface a reader opens without a pointer;
+		// printing its three keys here means the arrow/Enter/Escape model is
+		// learned where it is used instead of only in the Settings reference.
+		ui.Row(c).FillWidth().Height(1).Background(c.Theme().Border)
+		ui.Text(c, tr("↑↓ move · Enter open · Esc close")).FontSize(textSize(c, 10)).
+			TextColor(c.Theme().TextMuted).SingleLine()
 	})
 	// Arrow keys move the highlight; Enter is handled by SearchField above.
 	if panel.OverlayShortcut(0, ui.KeyDown) {

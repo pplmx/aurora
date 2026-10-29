@@ -507,7 +507,10 @@ func TestSearchFieldsAnnounceResultCounts(t *testing.T) {
 		}
 		source, err := os.ReadFile(name)
 		require.NoError(t, err)
-		searches += strings.Count(string(source), "ui.SearchField(")
+		// The search control is built by searchField, which localizes its
+		// placeholder; the audit counts its callers so a new page still has to
+		// announce what its query selected.
+		searches += strings.Count(string(source), "searchField(c,")
 		announcements += strings.Count(string(source), "announceSearchResults(c,")
 	}
 	require.GreaterOrEqual(t, searches, 9)
