@@ -22,12 +22,12 @@ func (a *App) settingsView(c *ui.Context) {
 				a.settingsLanguageCard(c)
 				a.settingsDataCard(c)
 				a.settingsShortcutsCard(c)
-				a.settingsAboutCard(c)
 			},
 			func() {
 				a.settingsSessionKeysCard(c)
 				a.settingsLiveUpdatesCard(c)
 				a.settingsAppearanceCard(c)
+				a.settingsAboutCard(c)
 			},
 		)
 	})
