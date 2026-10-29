@@ -537,11 +537,12 @@ func TestTextAreasScaleWithLargeText(t *testing.T) {
 		"a multiline field must scale its full 64px height at 2x")
 }
 
-// TestTokenCollectionUsesRecordsAtLargeText replaces the four-column token
-// table when enlarged text no longer fits it. At 2x in the minimum window the
+// TestTokenCollectionUsesRecordsAtLargeText keeps a token's name, exact supply
+// and full id readable at 2x in the minimum window. The collection used to be a
+// four-column table at normal text and a record list at large text; there the
 // Supply header was clipped to 16px, a long token name to 100px, and even the
-// shortened id lost characters, so the collection could not identify its own
-// rows without horizontal scrolling.
+// shortened id lost characters. The collection is now one list of records at
+// every text size, so this pins that the large-text reading still holds.
 func TestTokenCollectionUsesRecordsAtLargeText(t *testing.T) {
 	const (
 		tokenID = "token-0123456789abcdef"
@@ -591,7 +592,6 @@ func TestTokenCollectionUsesRecordsAtLargeText(t *testing.T) {
 	require.Equal(t, 0, app.token.chosen)
 	_, ok = tester.Find(fmt.Sprintf(tr("Selected %s"), name))
 	require.True(t, ok, "the chosen record must announce its selected state")
-	require.True(t, tester.HasText("Selected supply"))
 }
 
 // TestNFTCollectionUsesRecordsAtLargeText applies the same large-text rule to

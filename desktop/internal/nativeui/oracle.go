@@ -83,8 +83,6 @@ type oracleState struct {
 
 	status statusLine
 
-	sourceTable ui.ListState
-	dataTable   ui.ListState
 	// deleteTrigger receives focus when the destructive confirmation closes,
 	// keeping keyboard navigation on the source action row.
 	deleteTrigger ui.Handle
@@ -252,46 +250,44 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No sources match “%s”."), strings.TrimSpace(a.oracle.search)))
 		return
 	}
-	// The id is a timestamp plus a hash, too long for a column that also holds
-	// a name and a status, so the cell shows a prefix. Choosing the row loads
-	// the full id into the actions and the read cards below, which is how a
+	// A source's id is a timestamp plus a hash, so the record keeps it as a
+	// field while the row itself is chosen by name. Choosing the record loads
+	// the exact id into every action and read card below, which is how a
 	// source reaches them without retyping an id nobody has in full.
-	if stackedRecords(c) {
-		a.oracleSourceRecords(c, srcs)
-	} else {
-		a.oracle.sourceTable.Selected = &a.oracle.selected
-		table := namedTable(c, "Data Sources", &a.oracle.sourceTable, []ui.TableColumn{
-			{Title: tr("Name"), MinWidth: 110},
-			{Title: tr("Type"), Width: 100},
-			{Title: tr("ID"), Width: 150},
-			{Title: tr("Status"), Width: 100},
-			{Title: tr("Headers"), Width: 100},
-		}, len(srcs), func(row, col int) {
-			s := srcs[row]
-			switch col {
-			case 0:
-				tableText(c, s.Name)
-			case 1:
-				tableText(c, s.Type)
-			case 2:
-				tableTextFull(c, shortID(s.ID), s.ID)
-			case 3:
-				if s.Enabled {
-					tableText(c, tr("enabled"))
-				} else {
-					tableText(c, tr("disabled"))
-				}
-			case 4:
-				if s.HasHeaders {
-					tableText(c, tr("configured"))
-				} else {
-					tableText(c, tr("—"))
-				}
-			}
-		})
-		if table.Changed() {
-			a.chooseOracleSource(srcs, a.oracle.selected)
-		}
+	collectionList(c, "Data Sources",
+		collectionRecords(srcs, sourceCollectionRecord),
+		a.oracle.selected, func(i int) { a.chooseOracleSource(srcs, i) })
+}
+
+// sourceCollectionRecord projects a registered feed onto a record. Enabled is a
+// fact with a verdict hue because it is the state an operator scans for; the
+// transport and header presence are facts, and the id is the field the
+// actions copy.
+func sourceCollectionRecord(source SourceRow) collectionRecord {
+	name := strings.TrimSpace(source.Name)
+	if name == "" {
+		name = shortID(source.ID)
+	}
+	// A disabled feed keeps body ink; only "enabled" takes the verdict hue, so
+	// the colour marks the state an operator is looking for rather than
+	// painting every row.
+	status := tr("disabled")
+	var tone ui.Color
+	if source.Enabled {
+		status, tone = tr("enabled"), ui.Hex(auroraGreen)
+	}
+	headers := tr("—")
+	if source.HasHeaders {
+		headers = tr("configured")
+	}
+	return collectionRecord{
+		title: name,
+		facts: []collectionFact{
+			{label: "Type", value: valueOr(source.Type)},
+			{label: "Status", value: status, tone: tone},
+			{label: "Headers", value: headers},
+		},
+		fields: []collectionField{{label: "ID", value: source.ID}},
 	}
 }
 
@@ -348,43 +344,6 @@ func (a *App) oracleSourceActions(c *ui.Context) {
 				}
 			},
 		)
-	})
-}
-
-// oracleSourceRecords preserves the complete source id and all four status
-// columns when enlarged text no longer fits the five-column table.
-func (a *App) oracleSourceRecords(c *ui.Context, sources []SourceRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for i, source := range sources {
-			i, source := i, source
-			displayName := source.Name
-			if strings.TrimSpace(displayName) == "" {
-				displayName = shortID(source.ID)
-			}
-			status, tone := tr("disabled"), c.Theme().TextMuted
-			if source.Enabled {
-				status, tone = tr("enabled"), ui.Hex(auroraGreen)
-			}
-			headers := tr("—")
-			if source.HasHeaders {
-				headers = tr("configured")
-			}
-			selected := i == a.oracle.selected
-			record := selectableRecordPanel(c, selected,
-				recordChoiceLabel(displayName, selected), func() {
-					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(c.Theme().Text)
-					ui.Row(c).Wrap().Gap(18).Children(func() {
-						recordMetric(c, "Type", valueOr(source.Type), c.Theme().Text)
-						recordMetric(c, "Status", status, tone)
-						recordMetric(c, "Headers", headers, c.Theme().Text)
-					})
-					recordField(c, "ID", source.ID)
-				})
-			if record.Clicked() {
-				a.chooseOracleSource(sources, i)
-			}
-		}
 	})
 }
 
@@ -759,22 +718,21 @@ func (a *App) oracleReadBody(c *ui.Context) {
 		return
 	}
 	if len(a.oracle.data) > 0 {
-		data := a.oracle.data
-		if stackedRecords(c) {
-			a.oracleReadRecords(c, data)
-		} else {
-			namedTable(c, "Oracle readings", &a.oracle.dataTable, []ui.TableColumn{
-				{Title: tr("Value")},
-				{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-			}, len(data), func(row, col int) {
-				d := data[row]
-				if col == 0 {
-					tableText(c, d.Value)
-				} else {
-					tableText(c, strconv.FormatInt(d.BlockHeight, 10))
-				}
-			})
-		}
+		collectionList(c, "Oracle readings",
+			collectionRecords(a.oracle.data, readingCollectionRecord), -1, nil)
+	}
+}
+
+// readingCollectionRecord projects one stored observation onto a record. The
+// value is the title because it is what the card is read for; the block that
+// recorded it is the fact that proves when.
+func readingCollectionRecord(reading DataRow) collectionRecord {
+	return collectionRecord{
+		title: valueOr(reading.Value),
+		facts: []collectionFact{
+			{label: "Block", value: strconv.FormatInt(reading.BlockHeight, 10)},
+		},
+		fields: []collectionField{{label: "Value", value: reading.Value}},
 	}
 }
 
@@ -790,21 +748,6 @@ func (a *App) readOracleData() {
 	} else {
 		a.oracle.status = statusLine{}
 	}
-}
-
-// oracleReadRecords gives stored values the full card width at enlarged text.
-// The table's one-line cell reduced nested JSON and long observations to a
-// prefix, even though the block and value read naturally as a stacked record.
-func (a *App) oracleReadRecords(c *ui.Context, data []DataRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for _, reading := range data {
-			reading := reading
-			recordPanel(c, func() {
-				recordMetric(c, "Block", strconv.FormatInt(reading.BlockHeight, 10), c.Theme().Text)
-				recordField(c, "Value", reading.Value)
-			})
-		}
-	})
 }
 
 // loadOpenReadings fills the Readings stage for the source already selected in

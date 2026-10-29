@@ -43,13 +43,8 @@ type lotteryState struct {
 
 	status statusLine
 
-	// table holds the history table's scroll position and column layout, which
-	// MyGo persists across frames by identity.
-	table ui.ListState
-
-	// selected is the history row the operator chose. The id column shows a
-	// shortened id (the full one does not fit beside the roster), so choosing
-	// a row is how the full id reaches the verifier.
+	// selected is the history record the operator chose. Choosing a record is
+	// how the full id reaches the verifier without retyping it.
 	selected int
 }
 
@@ -258,60 +253,45 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No draws match “%s”."), strings.TrimSpace(a.lottery.search)))
 		return
 	}
-	if stackedRecords(c) {
-		a.lotteryHistoryRecords(c, rows)
-		return
-	}
-	// Choosing a row fills the verifier with that draw's full id: the table
-	// shows a shortened id, so this is how a reader gets the real one.
-	a.lottery.table.Selected = &a.lottery.selected
-	table := namedTable(c, "Draw history", &a.lottery.table, []ui.TableColumn{
-		{Title: tr("ID"), Width: 150},
-		{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-		{Title: tr("Participants"), MinWidth: 140},
-		{Title: tr("Winners"), MinWidth: 120},
-	}, len(rows), func(row, col int) {
-		r := rows[row]
-		switch col {
-		case 0:
-			tableTextFull(c, shortID(r.ID), r.ID)
-		case 1:
-			tableText(c, strconv.FormatInt(r.BlockHeight, 10))
-		case 2:
-			tableText(c, joinList(r.Participants))
-		case 3:
-			tableText(c, joinList(r.Winners))
-		}
-	})
-	if table.Changed() && a.lottery.selected >= 0 && a.lottery.selected < len(rows) {
-		a.lottery.verifyID = rows[a.lottery.selected].ID
-		// The previous verdict belongs to the previously chosen draw; keep it
-		// from sitting beside a new id as if it described it.
-		a.clearLotteryVerdict()
-	}
+	// Each draw is a record with its own Verify handoff: choosing the row loads
+	// its full id into the verifier, and the button does the same without the
+	// detour through the form.
+	collectionList(c, "Draw history",
+		collectionRecords(rows, func(draw DrawRow) collectionRecord {
+			return lotteryHistoryRecord(draw, func() {
+				a.lottery.verifyID = draw.ID
+				a.lottery.selected = -1
+				a.clearLotteryVerdict()
+			})
+		}),
+		a.lottery.selected, func(i int) {
+			a.lottery.selected = i
+			a.lottery.verifyID = rows[i].ID
+			// The previous verdict belongs to the previously chosen draw; keep
+			// it from sitting beside a new id as if it described it.
+			a.clearLotteryVerdict()
+		})
 }
 
-// lotteryHistoryRecords keeps every draw fact and the Verify handoff visible
-// when large text makes the four-column history table wider than the window.
-func (a *App) lotteryHistoryRecords(c *ui.Context, rows []DrawRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for _, draw := range rows {
-			draw := draw
-			recordPanel(c, func() {
-				ui.Text(c, draw.ID).FontSize(textSize(c, 13)).Bold().
-					TextColor(ui.Hex(aurora))
-				recordField(c, "Block", strconv.FormatInt(draw.BlockHeight, 10))
-				recordField(c, "Participants", joinList(draw.Participants))
-				recordField(c, "Winners", joinList(draw.Winners))
-				ui.Row(c).Children(func() {
-					if secondaryButton(c, "Use this draw for Verify").Clicked() {
-						a.lottery.verifyID = draw.ID
-						a.clearLotteryVerdict()
-					}
-				})
-			})
-		}
-	})
+// lotteryHistoryRecord projects a stored draw onto a record. The id is the
+// title because it is what the verifier takes, and the winners are the fact
+// an operator scans for.
+func lotteryHistoryRecord(draw DrawRow, use func()) collectionRecord {
+	return collectionRecord{
+		title: draw.ID,
+		facts: []collectionFact{
+			{label: "Block", value: strconv.FormatInt(draw.BlockHeight, 10)},
+			{label: "Winners", value: joinList(draw.Winners)},
+		},
+		fields: []collectionField{
+			{label: "Participants", value: joinList(draw.Participants)},
+		},
+		action: func(c *ui.Context) {
+			if secondaryButton(c, "Use this draw for Verify").Clicked() {
+				use()
+			}
+		},
+	}
 }
 
 func (a *App) lotteryVerify(c *ui.Context) {

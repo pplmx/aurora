@@ -23,14 +23,6 @@ func textScale(c *ui.Context) float32 {
 	return 1
 }
 
-// tableColumnWidth scales a column's text-driven minimum with the desktop's
-// text-size preference. Table Width and MinWidth are layout values in DIPs,
-// while FontSize is already scaled by textSize; without this, larger text had
-// less room for the same number of glyphs and long table values were clipped.
-func tableColumnWidth(c *ui.Context, width float32) float32 {
-	return width * textScale(c)
-}
-
 // pageGlyph draws a page's icon in a tinted tile. It is the window's recurring
 // mark for "which module is this": the same glyph sits in the sidebar row and
 // beside the page title, so the page and its navigation entry are recognisably
@@ -71,14 +63,19 @@ func twoColumns(c *ui.Context, left, right func()) {
 // it while the window does not.
 const twoColumnMinWidth float32 = 1240
 
-// stackedRecordMinScale is where multi-column tables become record cards.
-// At 2x the Lottery history and Oracle health tables each had columns beyond
-// the minimum window; below this point they still fit and remain scannable as
-// tables.
-const stackedRecordMinScale float32 = 1.75
+// wideLayoutMinScale is where a side-by-side presentation gives way to a
+// stacked one. The collections themselves no longer switch renderings — they
+// are records at every text size (see collectionList) — but two surfaces still
+// depend on a wide arrangement: a readout's value is drawn on one line only
+// while it fits beside its label, and the tally's comparison bars need room
+// for a name and a count on the same row.
+const wideLayoutMinScale float32 = 1.75
 
-func stackedRecords(c *ui.Context) bool {
-	return textScale(c) >= stackedRecordMinScale
+// wideLayout reports whether the current text size still leaves room for a
+// side-by-side arrangement. It is the one breakpoint those two surfaces share,
+// so they change shape at the same moment rather than each picking its own.
+func wideLayout(c *ui.Context) bool {
+	return textScale(c) < wideLayoutMinScale
 }
 
 // heading draws a title with the rank assistive technology needs to navigate
@@ -120,8 +117,12 @@ func recordPanel(c *ui.Context, fn func()) {
 // without relying on colour alone: the record's facts and the selected readout
 // below the collection both change with it.
 func selectableRecordPanel(c *ui.Context, selected bool, label string, fn func()) ui.Element {
-	panel := ui.ButtonBase(c).FillWidth().Padding(12).Radius(10).
-		AlignItems(ui.Start).Label(label)
+	// The record's own padding stays at layout scale rather than growing with
+	// the text setting: at 2x a scaled padding left a one-line title floating
+	// in a card with more empty space than content. The text inside it still
+	// scales through textSize.
+	panel := ui.ButtonBase(c).FillWidth().Padding(space2, space2+2).
+		Radius(radiusSmall + 2).AlignItems(ui.Start).Label(label)
 	panel.BorderWidth(1)
 
 	fill, outline := c.Theme().Background, c.Theme().Border
@@ -136,7 +137,7 @@ func selectableRecordPanel(c *ui.Context, selected bool, label string, fn func()
 	panel.Background(panel.AnimateColor("record-fill", fill,
 		ui.Animation{Duration: 100 * time.Millisecond}))
 	panel.Children(func() {
-		ui.Column(c).FillWidth().Gap(6).Children(fn)
+		ui.Column(c).FillWidth().Gap(space1 + 1).Children(fn)
 	})
 	return panel
 }

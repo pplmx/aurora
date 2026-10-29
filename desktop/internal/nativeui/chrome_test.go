@@ -132,10 +132,11 @@ func TestSectionRuleFadesOut(t *testing.T) {
 		"the rule must be visible beside its label and gone at the far edge")
 }
 
-// TestTableHeaderKeepsItsRowHeight pins the accidental 68px header: the table
-// frame was drawn past the grid's own box, which grew the header row and left
-// the body's first row floating in the middle of the frame.
-func TestTableHeaderKeepsItsRowHeight(t *testing.T) {
+// TestRecordFactsSitBesideTheirTitle pins the record's internal rhythm: the
+// short facts line up with the title, and the labelled fields stack under it.
+// The table this replaced had a header row whose frame was once drawn past the
+// grid's own box, which left the first row floating in the middle of it.
+func TestRecordFactsSitBesideTheirTitle(t *testing.T) {
 	app := New(&fakeServices{draws: []DrawRow{
 		{ID: "draw-1", BlockHeight: 7, Participants: []string{"A"}, Winners: []string{"A"}},
 	}})
@@ -143,14 +144,16 @@ func TestTableHeaderKeepsItsRowHeight(t *testing.T) {
 	app.ShowPage("Lottery")
 	tester.Frame()
 
-	header, ok := tester.Find("Participants")
+	title, ok := tester.Find("draw-1")
 	require.True(t, ok)
-	row, ok := tester.Find("draw-1")
+	fact, ok := tester.Find("Winners")
 	require.True(t, ok)
-	require.Less(t, header.Y+header.H, row.Y,
-		"the header must end above the first row")
-	require.LessOrEqual(t, row.Y-(header.Y+header.H), space6+2,
-		"the rule between header and rows must not leave a band of empty frame")
+	require.InDeltaf(t, title.Y, fact.Y, 24,
+		"the short facts share the title's line")
+	field, ok := tester.Find("Participants")
+	require.True(t, ok)
+	require.Greater(t, field.Y, title.Y,
+		"the labelled fields stack under the title")
 }
 
 // absInt is the absolute value of n, for pixel comparisons.
@@ -222,12 +225,14 @@ func TestCollectionToolbarIsTwoCompactLines(t *testing.T) {
 	require.Lessf(t, previous.Y-(search.Y+search.H), space3+space2,
 		"the pager follows the field directly instead of after a separate band")
 
-	// The rows begin right after the pager; the only thing between them is the
-	// grid's own header row, not another band of controls.
-	rows, ok := tester.Find("token-1")
+	// The first record's title is the next thing after the pager. The gap
+	// between them is the record card's own padding and the list's spacing, not
+	// a third band of controls; the old layout also drew a muted sentence and a
+	// table header row here.
+	rows, ok := tester.Find("Gold")
 	require.True(t, ok)
-	require.Lessf(t, float64(rows.Y-(previous.Y+previous.H)), 56.0,
-		"the collection's rows start immediately after the pager")
+	require.Lessf(t, float64(rows.Y-(previous.Y+previous.H)), 90.0,
+		"the collection's records start immediately after the pager")
 }
 
 // TestCollectionToolbarKeepsTheFieldFullWidth keeps the query field as wide as

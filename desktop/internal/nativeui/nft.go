@@ -89,8 +89,6 @@ type nftState struct {
 
 	status statusLine
 
-	listTable    ui.ListState
-	historyTable ui.ListState
 	// burnTrigger receives focus when the destructive confirmation closes, and
 	// generateControl takes it back when the one-time key card is dismissed.
 	burnTrigger     ui.Handle
@@ -496,59 +494,26 @@ func (a *App) nftListBody(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No NFTs match “%s”."), strings.TrimSpace(a.nft.search)))
 		return
 	}
-	if stackedRecords(c) {
-		a.nftListRecords(c, list)
-	} else {
-		a.nft.listTable.Selected = &a.nft.selected
-		table := namedTable(c, "NFT collection", &a.nft.listTable, []ui.TableColumn{
-			{Title: tr("ID"), Width: 150},
-			{Title: tr("Name"), MinWidth: 110},
-			// A ledger height is an int64 and can reach nineteen digits. Give
-			// the numeric column room that grows with the text size instead of
-			// clipping the value that proves when the asset was recorded.
-			{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-		}, len(list), func(row, col int) {
-			n := list[row]
-			switch col {
-			case 0:
-				tableTextFull(c, shortID(n.ID), n.ID)
-			case 1:
-				tableText(c, n.Name)
-			case 2:
-				tableText(c, strconv.FormatInt(n.BlockHeight, 10))
-			}
-		})
-		if table.Changed() {
-			a.chooseNFT(list, a.nft.selected)
-		}
-	}
+	collectionList(c, "NFT collection",
+		collectionRecords(list, nftCollectionRecord),
+		a.nft.selected, func(i int) { a.chooseNFT(list, i) })
 }
 
-// nftListRecords keeps every collection fact readable when the three-column
-// table no longer fits enlarged text. The complete id is visible before the
-// selection copies it into four forms, and the whole panel is keyboard- and
-// pointer-operable as one choice.
-func (a *App) nftListRecords(c *ui.Context, list []NFTRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for i, nft := range list {
-			i, nft := i, nft
-			displayName := nft.Name
-			if strings.TrimSpace(displayName) == "" {
-				displayName = shortID(nft.ID)
-			}
-			selected := i == a.nft.selected
-			record := selectableRecordPanel(c, selected,
-				recordChoiceLabel(displayName, selected), func() {
-					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(c.Theme().Text)
-					recordMetric(c, "Block", strconv.FormatInt(nft.BlockHeight, 10), c.Theme().Text)
-					recordField(c, "ID", nft.ID)
-				})
-			if record.Clicked() {
-				a.chooseNFT(list, i)
-			}
-		}
-	})
+// nftCollectionRecord projects a stored asset onto a record. The block is a
+// fact beside the name: it is the proof of when the asset was recorded, and
+// the id stays a field because it is what the write cards copy.
+func nftCollectionRecord(n NFTRow) collectionRecord {
+	name := strings.TrimSpace(n.Name)
+	if name == "" {
+		name = shortID(n.ID)
+	}
+	return collectionRecord{
+		title: name,
+		facts: []collectionFact{
+			{label: "Block", value: strconv.FormatInt(n.BlockHeight, 10)},
+		},
+		fields: []collectionField{{label: "ID", value: n.ID}},
+	}
 }
 
 // chooseNFT is the one path that makes a collection row the subject of every
@@ -821,48 +786,24 @@ func (a *App) nftHistoryTable(c *ui.Context) {
 		_ = a.loadNFTHistoryPage(a.nft.historyLoadedID, target)
 		return
 	}
-	ops := a.nft.history
-	if stackedRecords(c) {
-		nftHistoryRecords(c, ops)
-	} else {
-		namedTable(c, "NFT operation history", &a.nft.historyTable, []ui.TableColumn{
-			{Title: tr("Type"), Width: 100},
-			{Title: tr("From"), Width: 160},
-			{Title: tr("To"), Width: 160},
-			{Title: tr("Block"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-		}, len(ops), func(row, col int) {
-			op := ops[row]
-			switch col {
-			case 0:
-				tableText(c, tr(op.Type))
-			case 1:
-				tableText(c, op.From)
-			case 2:
-				tableText(c, op.To)
-			case 3:
-				tableText(c, strconv.FormatInt(op.BlockHeight, 10))
-			}
-		})
-	}
+	collectionList(c, "NFT operation history",
+		collectionRecords(a.nft.history, nftOperationRecord), -1, nil)
 }
 
-// nftHistoryRecords keeps the operation, exact block and both account keys
-// together when the four-column trail no longer fits enlarged text.
-func nftHistoryRecords(c *ui.Context, operations []NFTOpRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for _, operation := range operations {
-			operation := operation
-			recordPanel(c, func() {
-				ui.Row(c).FillWidth().Wrap().Gap(18).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, tr(operation.Type)).FontSize(textSize(c, 13)).Bold().
-						TextColor(c.Theme().Text)
-					recordMetric(c, "Block", strconv.FormatInt(operation.BlockHeight, 10), c.Theme().Text)
-				})
-				recordField(c, "From", valueOr(operation.From))
-				recordField(c, "To", valueOr(operation.To))
-			})
-		}
-	})
+// nftOperationRecord projects one recorded operation onto a record. The type
+// is the title because this trail is read as "what happened, when"; both
+// account keys are fields so neither is ever cut to a prefix.
+func nftOperationRecord(operation NFTOpRow) collectionRecord {
+	return collectionRecord{
+		title: tr(operation.Type),
+		facts: []collectionFact{
+			{label: "Block", value: strconv.FormatInt(operation.BlockHeight, 10)},
+		},
+		fields: []collectionField{
+			{label: "From", value: valueOr(operation.From)},
+			{label: "To", value: valueOr(operation.To)},
+		},
+	}
 }
 
 func (a *App) renderNFTBurnDialog(c *ui.Context) {

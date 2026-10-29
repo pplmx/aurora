@@ -255,13 +255,13 @@ func TestSessionListShowsTheBallotWindow(t *testing.T) {
 	app.ShowPage("Voting")
 	tester.Frame()
 
-	require.True(t, tester.HasText("Window"), "the column must be labelled")
+	require.True(t, tester.HasText("Window"), "the window must be labelled")
 	startLine, endLine := sessionWindowLines(start.Unix(), end.Unix())
-	require.Contains(t, tester.Texts(), startLine,
-		"the session's start must be its own on-screen line")
-	require.Contains(t, tester.Texts(), endLine,
-		"the session's end must be its own on-screen line")
-	require.NotEqual(t, startLine, endLine, "the stacked window must keep both timestamps distinct")
+	require.True(t, tester.HasText(startLine),
+		"the session's start must be on screen")
+	require.True(t, tester.HasText(strings.TrimPrefix(endLine, "→ ")),
+		"the session's end must be on screen")
+	require.NotEqual(t, startLine, endLine, "the window must keep both timestamps distinct")
 }
 
 // TestOraclePresetKeepsItsChoice pins that the preset box holds what the
@@ -389,9 +389,10 @@ func TestShortIDKeepsACopyablePrefix(t *testing.T) {
 		"the shortened id must be a prefix of the real one")
 }
 
-// TestChoosingAHistoryRowFillsTheVerifier pins the path from a shortened id in
-// the table to the full one the verifier needs: a row click loads the draw's
-// real id, which is the only place the table's ellipsis does not cut.
+// TestChoosingAHistoryRowFillsTheVerifier pins the path from a draw record to
+// the full id the verifier needs: choosing the record or its own Verify button
+// loads the draw's real id, which is the only place the summary's ellipsis
+// does not cut.
 func TestChoosingAHistoryRowFillsTheVerifier(t *testing.T) {
 	const full = "54c95915ba8b8f3e"
 	fake := &fakeServices{draws: []DrawRow{{ID: full, BlockHeight: 2, Winners: []string{"Dan"}}}}
@@ -400,13 +401,12 @@ func TestChoosingAHistoryRowFillsTheVerifier(t *testing.T) {
 	app.ShowPage("Lottery")
 	tester.Frame()
 
-	require.Equal(t, "54c95915ba8b…", shortID(full), "the table shows a shortened id")
 	require.Empty(t, app.lottery.verifyID)
 
-	require.NoError(t, tester.Click(shortID(full)), "click the row's id cell")
+	require.NoError(t, tester.Click(full), "choose the draw record")
 	tester.Frame()
 	require.Equal(t, full, app.lottery.verifyID,
-		"choosing the row must load the full id into the verifier")
+		"choosing the record must load the full id into the verifier")
 }
 
 // TestTokenListFillsTheSubject pins the page's entry point: the stored tokens
@@ -431,10 +431,13 @@ func TestTokenListFillsTheSubject(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, "AUR", app.token.tokenID,
 		"choosing a token must make it the subject of the write cards")
-	require.True(t, tester.HasText("Selected supply"),
-		"the exact supply must stay readable when the table column shortens it")
-	require.Equal(t, 2, countText(tester.Texts(), "1000"),
-		"the selected supply must add a second, exact copy below the table")
+	// The collection is a list of records, not a table with a resizable supply
+	// column, so the exact supply is drawn on the token's own record and needs
+	// no second copy underneath it.
+	require.Equal(t, 1, countText(tester.Texts(), "1000"),
+		"the exact supply must read on the token's record")
+	require.GreaterOrEqual(t, countText(tester.Texts(), "AUR"), 2,
+		"the chosen token's id reads on its record and in the subject strip")
 }
 
 // TestNFTCollectionLoadsOnOpen pins the page's entry point: the whole
@@ -466,7 +469,8 @@ func TestChoosingAnNFTRowFillsEveryCard(t *testing.T) {
 	app.ShowPage("NFT")
 	tester.Frame()
 
-	require.NoError(t, tester.Click(shortID(full)), "click the row's id cell")
+	require.True(t, tester.HasText(full), "the record must show the full asset id")
+	require.NoError(t, tester.Click("First Art"), "choose the asset record")
 	tester.Frame()
 	require.Equal(t, full, app.nft.id, "Inspect must receive the asset")
 	require.Equal(t, full, app.nft.transferID, "Transfer must receive the asset")
@@ -474,11 +478,10 @@ func TestChoosingAnNFTRowFillsEveryCard(t *testing.T) {
 	require.Equal(t, full, app.nft.historyID, "History must receive the asset")
 }
 
-// TestTableRowsKeepTheirHeight pins the rule the clipped rows taught: a table
-// row is as high as its tallest cell, and a wrapped cell is cut off at that
-// height. With every free-text cell on one line, a row showing a long value is
-// exactly as high as a row showing a short one.
-func TestTableRowsKeepTheirHeight(t *testing.T) {
+// TestRecordsKeepTheirHeight pins the rhythm that replaced the table's
+// clipped rows: a record is as high as its own content, and a long participant
+// list wraps inside it rather than being cut off at a row height.
+func TestRecordsKeepTheirHeight(t *testing.T) {
 	long := "A very long participant list that would certainly wrap onto a second line if it were allowed to"
 	row := func(participants []string) float32 {
 		fake := &fakeServices{draws: []DrawRow{{
@@ -500,8 +503,8 @@ func TestTableRowsKeepTheirHeight(t *testing.T) {
 }
 
 // TestChoosingAnOracleRowFillsTheActions pins that a source's id reaches the
-// action buttons and the read cards. The table shows a shortened id, so
-// choosing the row is the only way to aim an action at it.
+// action buttons and the read cards. A source record is chosen by name, and
+// its full id stays on the record as a field.
 func TestChoosingAnOracleRowFillsTheActions(t *testing.T) {
 	const full = "20261025233845.347259429-29ee362515b7c1fc06313345ef6be416"
 	fake := &fakeServices{}
@@ -511,7 +514,8 @@ func TestChoosingAnOracleRowFillsTheActions(t *testing.T) {
 	app.ShowPage("Oracle")
 	tester.Frame()
 
-	require.NoError(t, tester.Click(shortID(full)), "click the row's id cell")
+	require.True(t, tester.HasText(full), "the record must show the full source id")
+	require.NoError(t, tester.Click("btc"), "choose the source record")
 	tester.Frame()
 	require.Equal(t, full, app.oracle.fetchID, "the actions must receive the source")
 	require.Equal(t, full, app.oracle.queryID, "the query card must receive it")

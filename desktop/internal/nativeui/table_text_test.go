@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestLongTableValueKeepsItsFullTooltip pins the disclosure added for columns
-// that cannot show every stored value at once. The visible cell may be cut by
-// a narrow column or enlarged text, but resting on it must still reveal the
-// exact value instead of leaving an ambiguous prefix.
-func TestLongTableValueKeepsItsFullTooltip(t *testing.T) {
+// TestLongCollectionValueKeepsItsFullText pins the disclosure on a record.
+// A record wraps its own content, so neither the largest valid int64 amount
+// nor a long token name is cut at enlarged text; the value also stays
+// retrievable by hovering it, so a narrow card never hides what it holds.
+func TestLongCollectionValueKeepsItsFullText(t *testing.T) {
 	const supply = "9223372036854775807"
 	const name = "Aurora Governance Reserve for Long-Term Protocol Maintenance"
 	app := New(&fakeServices{tokenRows: []TokenRow{{
@@ -24,21 +24,21 @@ func TestLongTableValueKeepsItsFullTooltip(t *testing.T) {
 	app.ShowPage("Token")
 	tester.Frame()
 
-	// The numeric column grows with text size so the largest valid int64
-	// amount is not silently cut at 1.5x.
+	// Both values are drawn in full: a record is as wide as its card and wraps
+	// instead of truncating at a column edge.
 	supplyRect, ok := tester.Find(supply)
 	require.True(t, ok)
 	require.GreaterOrEqual(t, supplyRect.W, float32(170))
+	require.True(t, tester.HasText(name), "the record must draw the full name")
 
-	require.Equal(t, 1, countText(tester.Texts(), name), "the cell starts with one copy")
 	rect, ok := tester.Find(name)
 	require.True(t, ok)
 	tester.Move(rect.X+rect.W/2, rect.Y+rect.H/2)
 	tester.Advance(700 * time.Millisecond)
 	tester.Frame()
 
-	require.Equal(t, 2, countText(tester.Texts(), name),
-		"hovering the clipped cell must show its full value in a tooltip")
+	require.GreaterOrEqual(t, countText(tester.Texts(), name), 2,
+		"hovering the value must also show it in a tooltip")
 }
 
 // TestLongLedgerHeightStaysReadable covers the numeric values outside the

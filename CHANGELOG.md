@@ -11,6 +11,29 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **Every collection is one list of records, not a table plus a fallback**: the
+  nine collections that carried both a `ui.Table` rendering and a hand-written
+  record loop at 1.75x text now share one renderer. The table was giving the
+  window three shallow columns and a selection highlight — no collection set
+  `Sortable`, `Width`/`MaxWidth` ordering or `RowHeader`, and `ListState`'s
+  sorting and cell selection were never touched — while the two renderings could
+  disagree about which facts a row has: the table showed a shortened id where the
+  record showed the full one, and a field added to one was not necessarily added
+  to the other. `collectionList` projects each row into title, facts, fields and
+  an optional action, so a record reads the same at every text size and there is
+  one place to add a fact. Titles and long field values wrap rather than
+  ellipsising, which is what the large-text fallback existed to protect. Facts
+  with no value are dropped instead of drawing an empty label.
+- **Some facts moved onto the record**: a candidate's program and tally, and a
+  token's exact supply, used to appear only in a readout after the row was
+  chosen — a fact about a row that the operator had to select the row to
+  discover. They are drawn on the record now, and the readouts that repeated
+  them are gone.
+- **`namedTable`, `tableText`, `tableTextFull`, `tableColumnWidth` and the
+  per-collection `ListState` fields are removed**, along with the ten record-loop
+  functions the shared list replaced. `stackedRecords` became `wideLayout`, since
+  the only surfaces that still change shape with text size are a readout's value
+  and the tally's comparison bars.
 - **A paged collection leads with one toolbar instead of four stacked bands**:
   every collection card used to stack the search field, a muted sentence saying
   the search only narrows the current page, a full-width Previous/range/Next

@@ -112,10 +112,6 @@ type votingState struct {
 
 	status statusLine
 
-	sessionTable   ui.ListState
-	candidateTable ui.ListState
-	voterTable     ui.ListState
-
 	// sessionChoice/candChoice/voterChoice are the rows chosen in those tables,
 	// -1 for none. The tables shorten ids to fit, so choosing a row is the only
 	// way the full value reaches the forms.
@@ -606,73 +602,32 @@ func (a *App) votingVoterList(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No voters match “%s”."), strings.TrimSpace(a.voting.voterSearch)))
 		return
 	}
-	if stackedRecords(c) {
-		a.votingVoterRecords(c, voters)
-	} else {
-		a.voting.voterTable.Selected = &a.voting.voterChoice
-		table := namedTable(c, "Voters", &a.voting.voterTable, []ui.TableColumn{
-			{Title: tr("Ever voted"), Width: 112},
-			{Title: tr("Name"), MinWidth: 120},
-			{Title: tr("Public key"), MinWidth: 180},
-		}, len(voters), func(row, col int) {
-			voter := voters[row]
-			switch col {
-			case 0:
-				if voter.HasVoted {
-					tableText(c, tr("Yes")).TextColor(ui.Hex(auroraGreen))
-				} else {
-					tableText(c, tr("No")).TextColor(c.Theme().TextMuted)
-				}
-			case 1:
-				tableText(c, voter.Name)
-			case 2:
-				tableTextFull(c, shortID(voter.PublicKey), voter.PublicKey)
-			}
-		}).Description(tr("A prior ballot does not block a later session; each session accepts one ballot per voter."))
-		if table.Changed() {
-			a.chooseVoter(voters, a.voting.voterChoice)
-		}
-	}
+	collectionList(c, "Voters",
+		collectionRecords(voters, voterCollectionRecord),
+		a.voting.voterChoice, func(i int) { a.chooseVoter(voters, i) })
 	hint(c, "A prior ballot does not block a later session; each session accepts one ballot per voter.")
 	if a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
-		chosen := voters[a.voting.voterChoice]
-		status := tr("No")
-		if chosen.HasVoted {
-			status = tr("Yes")
-		}
-		readout(c, []readoutRow{{"Ever voted", status}})
-		copyRow(c, "Selected voter public key", chosen.PublicKey, nil)
+		copyRow(c, "Selected voter public key", voters[a.voting.voterChoice].PublicKey, nil)
 	}
 }
 
-// votingVoterRecords keeps the voter's name, ballot history and complete key
-// together at enlarged text. The table's fixed first column and unscaled key
-// minimum otherwise pushed the identifying key outside the card.
-func (a *App) votingVoterRecords(c *ui.Context, voters []VoterRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for i, voter := range voters {
-			i, voter := i, voter
-			displayName := voter.Name
-			if strings.TrimSpace(displayName) == "" {
-				displayName = shortID(voter.PublicKey)
-			}
-			selected := i == a.voting.voterChoice
-			record := selectableRecordPanel(c, selected,
-				recordChoiceLabel(displayName, selected), func() {
-					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(c.Theme().Text)
-					status, tone := tr("No"), c.Theme().TextMuted
-					if voter.HasVoted {
-						status, tone = tr("Yes"), ui.Hex(auroraGreen)
-					}
-					recordMetric(c, "Ever voted", status, tone)
-					recordField(c, "Public key", voter.PublicKey)
-				})
-			if record.Clicked() {
-				a.chooseVoter(voters, i)
-			}
-		}
-	})
+// voterCollectionRecord projects a registered voter onto a record. "Ever
+// voted" is a fact with a verdict hue because it is the one state an operator
+// scans the list for; the public key is the field the choice copies.
+func voterCollectionRecord(voter VoterRow) collectionRecord {
+	name := strings.TrimSpace(voter.Name)
+	if name == "" {
+		name = shortID(voter.PublicKey)
+	}
+	status, tone := tr("No"), ui.Color{}
+	if voter.HasVoted {
+		status, tone = tr("Yes"), ui.Hex(auroraGreen)
+	}
+	return collectionRecord{
+		title:  name,
+		facts:  []collectionFact{{label: "Ever voted", value: status, tone: tone}},
+		fields: []collectionField{{label: "Public key", value: voter.PublicKey}},
+	}
 }
 
 // chooseVoter is shared by the table and large-text records so either selection
@@ -799,45 +754,9 @@ func (a *App) votingSessionList(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No sessions match “%s”."), strings.TrimSpace(a.voting.sessionSearch)))
 		return
 	}
-	if stackedRecords(c) {
-		a.votingSessionRecords(c, sessions)
-	} else {
-		a.voting.sessionTable.Selected = &a.voting.sessionChoice
-		table := namedTable(c, "Sessions", &a.voting.sessionTable, []ui.TableColumn{
-			{Title: tr("ID"), Width: 140},
-			// SingleLine on every cell: a wrapped cell is clipped by the row's
-			// fixed height, which cut "Budget 2026" in half.
-			{Title: tr("Title"), MinWidth: 130},
-			{Title: tr("Status"), Width: 100},
-			// The two timestamps are stacked inside this column. Each line is a
-			// full local date and time that stays within the column at 1.5x text,
-			// instead of one long range whose end was clipped.
-			{Title: tr("Window"), MinWidth: tableColumnWidth(c, 150)},
-		}, len(sessions), func(row, col int) {
-			s := sessions[row]
-			switch col {
-			case 0:
-				tableTextFull(c, shortID(s.ID), s.ID)
-			case 1:
-				tableText(c, s.Title)
-			case 2:
-				tableText(c, tr(s.Status))
-			case 3:
-				// The window is why a ballot is refused, so it belongs in the
-				// list rather than only in the error a voter sees afterwards.
-				startLine, endLine := sessionWindowLines(s.StartTime, s.EndTime)
-				ui.Column(c).Gap(1).Children(func() {
-					tableText(c, startLine).FontSize(textSize(c, 12))
-					if endLine != "" {
-						tableText(c, endLine).FontSize(textSize(c, 12))
-					}
-				})
-			}
-		})
-		if table.Changed() {
-			a.chooseSession(sessions, a.voting.sessionChoice)
-		}
-	}
+	collectionList(c, "Sessions",
+		collectionRecords(sessions, sessionCollectionRecord),
+		a.voting.sessionChoice, func(i int) { a.chooseSession(sessions, i) })
 	if a.voting.sessionChoice >= 0 && a.voting.sessionChoice < len(sessions) {
 		// The row cannot show the roster (the window column already fills the
 		// width), but an operator about to start or end a session needs to see
@@ -857,30 +776,24 @@ func (a *App) votingSessionList(c *ui.Context) {
 	}
 }
 
-// votingSessionRecords keeps the complete id, title, status and acceptance
-// window together when the four-column table no longer fits enlarged text.
-func (a *App) votingSessionRecords(c *ui.Context, sessions []SessionRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for i, session := range sessions {
-			i, session := i, session
-			displayName := session.Title
-			if strings.TrimSpace(displayName) == "" {
-				displayName = shortID(session.ID)
-			}
-			selected := i == a.voting.sessionChoice
-			record := selectableRecordPanel(c, selected,
-				recordChoiceLabel(displayName, selected), func() {
-					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(c.Theme().Text)
-					recordMetric(c, "Status", valueOr(tr(session.Status)), c.Theme().Text)
-					recordField(c, "Window", sessionWindow(session.StartTime, session.EndTime))
-					recordField(c, "ID", session.ID)
-				})
-			if record.Clicked() {
-				a.chooseSession(sessions, i)
-			}
-		}
-	})
+// sessionCollectionRecord projects a governance session onto a record. The
+// window is a field because it is the reason a ballot is refused, and it
+// belongs in the list rather than only in the error a voter sees afterwards.
+func sessionCollectionRecord(session SessionRow) collectionRecord {
+	title := strings.TrimSpace(session.Title)
+	if title == "" {
+		title = shortID(session.ID)
+	}
+	return collectionRecord{
+		title: title,
+		facts: []collectionFact{
+			{label: "Status", value: valueOr(tr(session.Status))},
+		},
+		fields: []collectionField{
+			{label: "Window", value: sessionWindow(session.StartTime, session.EndTime)},
+			{label: "ID", value: session.ID},
+		},
+	}
 }
 
 // chooseSession is shared by the table and record presentations. A shortened
@@ -985,72 +898,43 @@ func (a *App) votingCandidateList(c *ui.Context) {
 		emptyNote(c, fmt.Sprintf(tr("No candidates match “%s”."), strings.TrimSpace(a.voting.candSearch)))
 		return
 	}
-	if stackedRecords(c) {
-		a.votingCandidateRecords(c, candidates)
-	} else {
-		a.voting.candidateTable.Selected = &a.voting.candChoice
-		table := namedTable(c, "Candidates", &a.voting.candidateTable, []ui.TableColumn{
-			{Title: tr("ID"), Width: 150},
-			{Title: tr("Name"), MinWidth: 120},
-			{Title: tr("Party"), MinWidth: 100},
-		}, len(candidates), func(row, col int) {
-			cand := candidates[row]
-			switch col {
-			case 0:
-				tableTextFull(c, shortID(cand.ID), cand.ID)
-			case 1:
-				tableText(c, cand.Name)
-			case 2:
-				tableText(c, cand.Party)
-			}
-		})
-		if table.Changed() {
-			a.chooseCandidate(candidates, a.voting.candChoice)
-		}
-	}
+	collectionList(c, "Candidates",
+		collectionRecords(candidates, candidateCollectionRecord),
+		a.voting.candChoice, func(i int) { a.chooseCandidate(candidates, i) })
 	rosterReady := a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates)
 	ui.Row(c).Children(func() {
 		if secondaryButton(c, "Add to session roster").Disabled(!rosterReady).Clicked() {
 			a.addCandidateToRoster()
 		}
 	})
-	if a.voting.candChoice >= 0 && a.voting.candChoice < len(candidates) {
-		// The table has no room for the program, which is the part of a
-		// candidate's registration the ballot shows; the selected row carries
-		// it below the list.
-		chosen := candidates[a.voting.candChoice]
-		readout(c, []readoutRow{
-			{"Program", valueOr(chosen.Program)},
-			{"Votes", strconv.Itoa(chosen.VoteCount)},
-		})
-		copyRow(c, "Selected candidate ID", chosen.ID, nil)
+	if rosterReady {
+		copyRow(c, "Selected candidate ID", candidates[a.voting.candChoice].ID, nil)
 	}
 }
 
-// votingCandidateRecords keeps the complete id, name and party visible when
-// the three-column candidate table can no longer fit enlarged text. Selecting
-// a record has the same ballot and roster behavior as selecting a table row.
-func (a *App) votingCandidateRecords(c *ui.Context, candidates []CandidateRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for i, candidate := range candidates {
-			i, candidate := i, candidate
-			displayName := candidate.Name
-			if strings.TrimSpace(displayName) == "" {
-				displayName = shortID(candidate.ID)
-			}
-			selected := i == a.voting.candChoice
-			record := selectableRecordPanel(c, selected,
-				recordChoiceLabel(displayName, selected), func() {
-					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(c.Theme().Text)
-					recordField(c, "Party", valueOr(candidate.Party))
-					recordField(c, "ID", candidate.ID)
-				})
-			if record.Clicked() {
-				a.chooseCandidate(candidates, i)
-			}
-		}
-	})
+// candidateCollectionRecord projects a registered candidate onto a record. The
+// program is a field because it is the part of a registration the ballot shows,
+// and votes are a fact because they are the number the list is read for.
+func candidateCollectionRecord(candidate CandidateRow) collectionRecord {
+	name := strings.TrimSpace(candidate.Name)
+	if name == "" {
+		name = shortID(candidate.ID)
+	}
+	record := collectionRecord{
+		title: name,
+		facts: []collectionFact{
+			{label: "Party", value: valueOr(candidate.Party)},
+		},
+		fields: []collectionField{{label: "ID", value: candidate.ID}},
+	}
+	if candidate.VoteCount > 0 {
+		record.facts = append(record.facts,
+			collectionFact{label: "Votes", value: strconv.Itoa(candidate.VoteCount)})
+	}
+	if program := strings.TrimSpace(candidate.Program); program != "" {
+		record.fields = append([]collectionField{{label: "Program", value: program}}, record.fields...)
+	}
+	return record
 }
 
 // chooseCandidate is the one selection path for filling the ballot with a
@@ -1385,7 +1269,12 @@ func (a *App) votingResultsBody(c *ui.Context) {
 	// The total is what a reader checks first ("did every ballot count?"); the
 	// rows alone make them add the column up.
 	readout(c, []readoutRow{{"Total votes", strconv.Itoa(total)}})
-	if stackedRecords(c) {
+	if wideLayout(c) {
+		a.votingResultBars(c, results)
+	} else {
+		// A bar cannot wrap a long name at enlarged text, so the tally falls
+		// back to plain records: the same numbers, with the comparison made by
+		// reading them instead of by the bar lengths.
 		ui.Column(c).FillWidth().Gap(10).Children(func() {
 			for _, result := range results {
 				result := result
@@ -1396,8 +1285,6 @@ func (a *App) votingResultsBody(c *ui.Context) {
 				})
 			}
 		})
-	} else {
-		a.votingResultBars(c, results)
 	}
 }
 

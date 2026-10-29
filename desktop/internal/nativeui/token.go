@@ -131,8 +131,6 @@ type tokenState struct {
 
 	status statusLine
 
-	historyTable ui.ListState
-	list         ui.ListState
 	// burnTrigger receives focus when the destructive confirmation closes, and
 	// generateControl takes it back when the one-time key card is dismissed.
 	burnTrigger     ui.Handle
@@ -246,73 +244,29 @@ func (a *App) tokenList(c *ui.Context) {
 			emptyNote(c, fmt.Sprintf(tr("No tokens match “%s”."), strings.TrimSpace(a.token.search)))
 			return
 		}
-		if stackedRecords(c) {
-			a.tokenListRecords(c, rows)
-		} else {
-			a.token.list.Selected = &a.token.chosen
-			table := namedTable(c, "Token collection", &a.token.list, []ui.TableColumn{
-				{Title: tr("ID"), Width: 150},
-				{Title: tr("Name"), MinWidth: 120},
-				{Title: tr("Symbol"), Width: 90},
-				// Supply is an int64 amount: the largest value is nineteen
-				// digits. The minimum leaves room for that at enlarged text
-				// sizes; the cell's tooltip keeps any value retrievable if the
-				// user narrows the column further.
-				{Title: tr("Supply"), MinWidth: tableColumnWidth(c, 140), Align: ui.End},
-			}, len(rows), func(row, col int) {
-				t := rows[row]
-				switch col {
-				case 0:
-					tableTextFull(c, shortID(t.ID), t.ID)
-				case 1:
-					tableText(c, t.Name)
-				case 2:
-					tableText(c, t.Symbol)
-				case 3:
-					tableText(c, t.TotalSupply)
-				}
-			})
-			if table.Changed() {
-				a.chooseToken(rows, a.token.chosen)
-			}
-		}
-		if a.token.chosen >= 0 && a.token.chosen < len(rows) {
-			// The Supply column is a preview: its width cannot promise room
-			// for every amount and text-scale combination. The selected
-			// record's exact value stays visible below the table.
-			readout(c, []readoutRow{{"Selected supply", rows[a.token.chosen].TotalSupply}})
-		}
+		collectionList(c, "Token collection",
+			collectionRecords(rows, tokenCollectionRecord),
+			a.token.chosen, func(i int) { a.chooseToken(rows, i) })
 	})
 }
 
-// tokenListRecords preserves every collection fact when the four-column table
-// no longer fits enlarged text. Each record keeps the full id and exact supply
-// visible, and the whole panel is the selection target, so no field depends on
-// a horizontal scroll to identify the token it will make active.
-func (a *App) tokenListRecords(c *ui.Context, rows []TokenRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for i, token := range rows {
-			i, token := i, token
-			displayName := token.Name
-			if strings.TrimSpace(displayName) == "" {
-				displayName = shortID(token.ID)
-			}
-			selected := i == a.token.chosen
-			record := selectableRecordPanel(c, selected,
-				recordChoiceLabel(displayName, selected), func() {
-					ui.Text(c, displayName).FontSize(textSize(c, 13)).Bold().
-						TextColor(c.Theme().Text)
-					ui.Row(c).FillWidth().Wrap().Gap(18).Children(func() {
-						recordMetric(c, "Symbol", valueOr(token.Symbol), c.Theme().Text)
-						recordMetric(c, "Supply", valueOr(token.TotalSupply), c.Theme().Text)
-					})
-					recordField(c, "ID", token.ID)
-				})
-			if record.Clicked() {
-				a.chooseToken(rows, i)
-			}
-		}
-	})
+// tokenCollectionRecord projects a stored token onto the collection record
+// the list draws. The supply is a fact beside the name rather than a column at
+// the end: it is the number an operator compares, and it should not depend on
+// how much room the name happens to leave.
+func tokenCollectionRecord(token TokenRow) collectionRecord {
+	name := strings.TrimSpace(token.Name)
+	if name == "" {
+		name = shortID(token.ID)
+	}
+	return collectionRecord{
+		title: name,
+		facts: []collectionFact{
+			{label: "Symbol", value: valueOr(token.Symbol)},
+			{label: "Supply", value: valueOr(token.TotalSupply)},
+		},
+		fields: []collectionField{{label: "ID", value: token.ID}},
+	}
 }
 
 // chooseToken is the one selection path shared by the table and the compact
@@ -1096,28 +1050,25 @@ func (a *App) tokenHistoryBody(c *ui.Context) {
 		emptyNote(c, "No transfers found for this query.")
 		return
 	}
-	hist := a.token.history
-	if stackedRecords(c) {
-		tokenHistoryRecords(c, hist)
-	} else {
-		namedTable(c, "Token transfer history", &a.token.historyTable, []ui.TableColumn{
-			{Title: tr("From"), Width: 160},
-			{Title: tr("To"), Width: 160},
-			{Title: tr("Amount"), MinWidth: tableColumnWidth(c, 100), Align: ui.End},
-			{Title: tr("Nonce"), Width: 80, Align: ui.End},
-		}, len(hist), func(row, col int) {
-			h := hist[row]
-			switch col {
-			case 0:
-				tableText(c, h.From)
-			case 1:
-				tableText(c, h.To)
-			case 2:
-				tableText(c, h.Amount)
-			case 3:
-				tableText(c, strconv.FormatUint(h.Nonce, 10))
-			}
-		})
+	collectionList(c, "Token transfer history",
+		collectionRecords(a.token.history, transferCollectionRecord), -1, nil)
+}
+
+// transferCollectionRecord projects one recorded transfer onto a record. The
+// amount is the title because it is what a reader scans the stream for; both
+// accounts are fields so neither is cut to a prefix, and the nonce stays
+// visible because it is what makes the transfer unique.
+func transferCollectionRecord(transfer TransferRow) collectionRecord {
+	return collectionRecord{
+		title: valueOr(transfer.Amount),
+		facts: []collectionFact{
+			{label: "Amount", value: valueOr(transfer.Amount)},
+			{label: "Nonce", value: strconv.FormatUint(transfer.Nonce, 10)},
+		},
+		fields: []collectionField{
+			{label: "From", value: valueOr(transfer.From)},
+			{label: "To", value: valueOr(transfer.To)},
+		},
 	}
 }
 
@@ -1134,25 +1085,6 @@ func (a *App) readTokenHistory() {
 	} else {
 		a.token.status = statusLine{}
 	}
-}
-
-// tokenHistoryRecords keeps each transfer's parties, amount and nonce together
-// at enlarged text. The fixed account columns otherwise reduced public keys to
-// prefixes while the exact amount and nonce competed for the remaining width.
-func tokenHistoryRecords(c *ui.Context, history []TransferRow) {
-	ui.Column(c).FillWidth().Gap(10).Children(func() {
-		for _, transfer := range history {
-			transfer := transfer
-			recordPanel(c, func() {
-				ui.Row(c).Wrap().Gap(18).Children(func() {
-					recordMetric(c, "Amount", valueOr(transfer.Amount), c.Theme().Text)
-					recordMetric(c, "Nonce", strconv.FormatUint(transfer.Nonce, 10), c.Theme().Text)
-				})
-				recordField(c, "From", valueOr(transfer.From))
-				recordField(c, "To", valueOr(transfer.To))
-			})
-		}
-	})
 }
 
 // wrapErr turns a service call's error into the page's status line, and a nil
