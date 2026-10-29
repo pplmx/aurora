@@ -231,6 +231,8 @@ just check && just test
   UUID；选中会期后，表下直接列出该会期的候选人姓名。当前 token、Inspect 的
   NFT、Verify 的抽奖、选中的数据源/会期/候选人也都有一行 Copy，完整 id 能离开
   窗口（原生文本不可选中，表格又只显示截断值）。
+- **最近一次抽奖一键验证**：Verify 卡在 History 非空时提供“Use latest draw”，
+  直接把最新一条的 ID 填入并立即验票，不必先切到历史表复制。
 - **选中行的详情不丢字段**：选中会话时，表下列出会期的 Description 与候选人名单；
   选中候选人时显示其 Program 与票数；NFT Inspect 显示铸造区块，并把 Image URL
   与 Token URI 作为可复制的行；选中预言机数据源时显示可复制的 URL 与轮询间隔
