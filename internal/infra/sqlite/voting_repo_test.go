@@ -332,6 +332,16 @@ func TestVotingRepository_GetVotesByCandidate(t *testing.T) {
 	if votes[0].SessionID != "s1" || votes[1].SessionID != "s1" {
 		t.Errorf("session_id must round-trip, got %q and %q", votes[0].SessionID, votes[1].SessionID)
 	}
+	// Ballots cast in the same second must still come back in a defined order:
+	// the id breaks the timestamp tie, so two reads agree instead of shuffling.
+	again, err := repo.GetVotesByCandidate("cand-1")
+	if err != nil {
+		t.Fatalf("Failed to get votes again: %v", err)
+	}
+	if len(again) != len(votes) || again[0].ID != votes[0].ID || again[1].ID != votes[1].ID {
+		t.Errorf("a repeated read must return the same order, got %q,%q then %q,%q",
+			votes[0].ID, votes[1].ID, again[0].ID, again[1].ID)
+	}
 }
 
 // TestVotingRepository_CountVotesBySession pins the ISS-299 source of truth:
