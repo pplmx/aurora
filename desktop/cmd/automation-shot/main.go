@@ -80,6 +80,7 @@ func main() {
 	out := flag.String("out", "", "PNG file to write")
 	expect := flag.String("expect", "", "texts that must appear in the window's accessibility tree, comma-separated")
 	press := flag.String("press", "", "element keys or labels to press in order, comma-separated")
+	scrollTo := flag.String("scroll-to", "", "texts whose element is scrolled into view before capturing, comma-separated")
 	window := flag.Int("window", 0, "index of the window to capture")
 	timeout := flag.Duration("timeout", 15*time.Second, "how long to wait for the window")
 	flag.Parse()
@@ -88,13 +89,13 @@ func main() {
 		fmt.Fprintln(os.Stderr, "automation-shot: -socket and -out are required")
 		os.Exit(2)
 	}
-	if err := run(*socket, *out, *expect, *press, *window, *timeout); err != nil {
+	if err := run(*socket, *out, *expect, *press, *scrollTo, *window, *timeout); err != nil {
 		fmt.Fprintln(os.Stderr, "automation-shot:", err)
 		os.Exit(1)
 	}
 }
 
-func run(socket, out, expect, press string, index int, timeout time.Duration) error {
+func run(socket, out, expect, press, scrollTo string, index int, timeout time.Duration) error {
 	conn, err := dial(socket, timeout)
 	if err != nil {
 		return err
@@ -146,6 +147,20 @@ func run(socket, out, expect, press string, index int, timeout time.Duration) er
 		}
 		if latest, err := client.waitForWindows(index, timeout); err == nil {
 			fmt.Printf("window title now %q\n", latest[index].Title)
+		}
+	}
+
+	for _, want := range strings.Split(scrollTo, ",") {
+		want = strings.TrimSpace(want)
+		if want == "" {
+			continue
+		}
+		if err := client.scrollIntoView(win.ID, want); err != nil {
+			return err
+		}
+		fmt.Printf("scrolled to %q\n", want)
+		if err := settle(); err != nil {
+			return err
 		}
 	}
 
@@ -316,3 +331,25 @@ func (p *protocol) waitForWindows(index int, timeout time.Duration) ([]windowInf
 
 // Error lets callers print the plugin's code beside its message.
 func (e *protocolError) Error() string { return e.Code + ": " + e.Message }
+
+// scrollIntoView brings the first node showing text into the viewport. Stage
+// captures in a stacked (narrow) window otherwise photograph the top of the
+// page while the stage body sits below the left column.
+func (p *protocol) scrollIntoView(window int, text string) error {
+	var tree struct {
+		Nodes []treeNode `json:"nodes"`
+	}
+	if err := p.call("tree", map[string]any{"window": window}, &tree); err != nil {
+		return err
+	}
+	lower := strings.ToLower(text)
+	for _, node := range tree.Nodes {
+		label := strings.ToLower(node.Label)
+		value := strings.ToLower(node.Value)
+		if !strings.Contains(label, lower) && !strings.Contains(value, lower) {
+			continue
+		}
+		return p.call("act", map[string]any{"window": window, "id": node.ID, "action": "scrollIntoView"}, nil)
+	}
+	return fmt.Errorf("no element showing %q", text)
+}
