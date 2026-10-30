@@ -871,6 +871,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Oracle readings from the same second keep their order**: `/oracle/data`
+  ordered by timestamp alone and `/oracle/latest` did the same, so two polls in
+  one second could come back in either order and "latest" could differ from the
+  list's head. Both queries now break the tie on insertion order, and the
+  reference states the ordering rule for every paged collection.
 - **The lottery history search is literal**: `q` was compiled straight into a
   LIKE pattern, so a seed containing `%` matched everything and `_` matched any
   single character; both are escaped now, matching the audit trail's
