@@ -136,7 +136,7 @@ func (a *App) oracleSourceActions(c *ui.Context) {
 				}
 			},
 			func() {
-				deleteSource := dangerButton(c, "Delete").FillWidth().Disabled(!sourceReady).Bind(&a.oracle.deleteTrigger)
+				deleteSource := dangerButton(c, "Delete", sourceReady).FillWidth().Bind(&a.oracle.deleteTrigger)
 				if deleteSource.Clicked() {
 					a.oracle.deleteName = a.resolveOracleSourceName(strings.TrimSpace(a.oracle.fetchID))
 					a.oracle.askDelete = true
