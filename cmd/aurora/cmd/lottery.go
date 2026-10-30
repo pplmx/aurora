@@ -261,6 +261,14 @@ var exportCmd = &cobra.Command{
 			return wrapCLIError("lottery.error.write_file", err)
 		}
 
+		if jsonRequested(cmd) {
+			// The file is the result; the document says where it landed and how
+			// many draws it holds, so a script does not parse the message.
+			return printJSON(struct {
+				Path     string `json:"path"`
+				Exported int    `json:"exported"`
+			}{Path: filename, Exported: count})
+		}
 		fmt.Printf("✅ %s\n", i18n.GetTextF("lottery.exported", count, filename))
 		return nil
 	},
@@ -499,6 +507,7 @@ func init() {
 	lotteryCmd.AddCommand(verifyCmd)
 	addJSONFlag(verifyCmd)
 	lotteryCmd.AddCommand(exportCmd)
+	addJSONFlag(exportCmd)
 	lotteryCmd.AddCommand(importCmd)
 	addJSONFlag(importCmd)
 	lotteryCmd.AddCommand(statsCmd)

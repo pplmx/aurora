@@ -334,6 +334,20 @@ func TestLotteryExport_Import(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Exported 1 lottery records")
 
+		// A second export through --json: the document names the file and the
+		// count, and the file exists.
+		jsonPath := filepath.Join(t.TempDir(), "export-json.json")
+		out, err = runCmd(t, "lottery", "export", jsonPath, "--json")
+		require.NoError(t, err)
+		var exported struct {
+			Path     string `json:"path"`
+			Exported int    `json:"exported"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &exported), "got %q", out)
+		assert.Equal(t, jsonPath, exported.Path)
+		assert.Equal(t, 1, exported.Exported)
+		assert.FileExists(t, jsonPath)
+
 		data, err := os.ReadFile(exportPath)
 		require.NoError(t, err)
 		var records []lottery.LotteryRecord
