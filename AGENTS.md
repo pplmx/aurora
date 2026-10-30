@@ -28,7 +28,8 @@
 
 - 真实窗口截图按需加环境变量：有数据 `AURORA_E2E_SEED=1`、浅色
   `AURORA_E2E_THEME=light`、窄窗 `AURORA_E2E_SIZE=900x600`。
-- 覆盖率底线：核心模块 Domain 与 App 都在 80% 以上；数字只在 README 维护。
+- 覆盖率底线：核心模块 Domain 与 App 都在 80% 以上，`just coverage-floor` 会逐个包
+  校验（组合根 `internal/app/container` 属于装配，不在其列）；数字只在 README 维护。
 - 不删测试、不跳测试、不降低断言或阈值换绿灯；修不好就回滚并说明原因。
 
 ## 代码约定

@@ -48,6 +48,13 @@ jobs:
       - name: Test (pure Go)
         run: CGO_ENABLED=0 go test -count=1 ./...
 
+      # AGENTS.md promises 80% for the domain and app layers; without this step
+      # the promise is prose. The composition root is excluded (it is wiring).
+      - name: Coverage floor (domain and app)
+        run: |
+          CGO_ENABLED=0 go test -coverprofile=coverage-floor.out ./internal/domain/... ./internal/app/...
+          CGO_ENABLED=0 go run ./tools/coverfloor -profile coverage-floor.out -floor 80
+
       - name: Test (race)
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
