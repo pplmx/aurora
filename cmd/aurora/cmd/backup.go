@@ -90,11 +90,25 @@ var backupRestoreCmd = &cobra.Command{
 		if err := svc.Restore(context.Background(), args[0]); err != nil {
 			return wrapCLIError("backup.error.restore", err)
 		}
+		// The safety archive is part of the result, not just a hint: a script
+		// that restores needs to know the undo directory exists.
+		undo := filepath.Clean(args[0]) + ".pre_restore"
+		if jsonRequested(cmd) {
+			out := struct {
+				Path   string `json:"path"`
+				Status string `json:"status"`
+				Undo   string `json:"undo,omitempty"`
+			}{Path: args[0], Status: "restored"}
+			if _, err := os.Stat(filepath.Join(undo, "metadata.json")); err == nil {
+				out.Undo = undo
+			}
+			return printJSON(out)
+		}
+
 		fmt.Println(i18n.GetTextF("backup.restore_done", args[0]))
 		// The safety copy is a complete archive, so an undo is one command
 		// instead of copying database files by hand; print it only when this
 		// restore had a previous database to keep.
-		undo := filepath.Clean(args[0]) + ".pre_restore"
 		if _, err := os.Stat(filepath.Join(undo, "metadata.json")); err == nil {
 			fmt.Println(i18n.GetTextF("backup.restore_undo", undo, undo))
 		}
@@ -112,4 +126,5 @@ func init() {
 	backupCmd.AddCommand(backupVerifyCmd)
 	addJSONFlag(backupVerifyCmd)
 	backupCmd.AddCommand(backupRestoreCmd)
+	addJSONFlag(backupRestoreCmd)
 }

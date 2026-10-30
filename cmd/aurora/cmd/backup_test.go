@@ -74,6 +74,30 @@ func TestBackupCreateVerify_RoundTrip(t *testing.T) {
 	})
 }
 
+// TestBackupRestore_JSON: a restore reports where it read the archive, the
+// verdict, and the undo directory it kept for the previous database.
+func TestBackupRestore_JSON(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		runMigrations(t)
+		backupDir := filepath.Join(t.TempDir(), "bk-restore")
+		_, err := runCmd(t, "backup", "create", backupDir)
+		require.NoError(t, err)
+
+		out, err := runCmd(t, "backup", "restore", backupDir, "--confirm", "--json")
+		require.NoError(t, err)
+		var restored struct {
+			Path   string `json:"path"`
+			Status string `json:"status"`
+			Undo   string `json:"undo"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &restored), "got %q", out)
+		assert.Equal(t, backupDir, restored.Path)
+		assert.Equal(t, "restored", restored.Status)
+		assert.NotEmpty(t, restored.Undo, "the previous database is kept as an undo archive")
+		assert.DirExists(t, restored.Undo)
+	})
+}
+
 func TestBackupRestore_RequiresConfirm(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		runMigrations(t)
