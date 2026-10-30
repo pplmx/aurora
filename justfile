@@ -23,6 +23,9 @@ test:
 race:
     CGO_ENABLED=1 go test -race -count=1 ./...
 
+# Run every local gate: format, vet, tests, lint and coverage floors
+verify: check test lint coverage-floor desktop-check desktop-coverage-floor
+
 # Enforce the documented coverage floor on the module domain and app packages
 # (the composition root under internal/app/container is wiring, not a module).
 
