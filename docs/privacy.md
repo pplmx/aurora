@@ -4,10 +4,11 @@ Aurora is a local-first desktop and command-line application. It does not
 include analytics, telemetry, advertising identifiers, or a background usage
 reporting service.
 
-The desktop application stores its SQLite database, logs,
-recent-document metadata, and a small `desktop-settings.json` (the
-live-updates choice) under the user's local data directory. Exports and
-database backups are written wherever the user chooses. These files remain on
+The desktop application stores its SQLite database, logs, recent-document
+metadata, the window geometry the UI toolkit remembers, and a small
+`desktop-settings.json` (the live-updates and appearance choices) under the
+user's local data directory. Exports and database backups are written wherever
+the user chooses. These files remain on
 the user's machine unless the user explicitly copies or shares them. On
 Unix-like systems the default application data directory is created (or
 tightened) with mode `0700` so other local accounts cannot traverse the
