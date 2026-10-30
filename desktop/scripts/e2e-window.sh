@@ -14,6 +14,8 @@
 # Environment:
 #   AURORA_E2E_OUT      output directory (default dist/e2e)
 #   AURORA_E2E_DISPLAY  X display to use; an Xvfb is started when DISPLAY is unset
+#   AURORA_E2E_SEED=1   fill a fresh database through the CLI first, so the
+#                       captures show records instead of the first-run pages
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -27,6 +29,7 @@ home_dir="$out/home"
 mkdir -p "$out" "$home_dir"
 rm -rf "$data_dir" "$socket"
 
+seed=${AURORA_E2E_SEED:-0}
 pages=("$@")
 if [ ${#pages[@]} -eq 0 ]; then
   pages=(dashboard lottery voting token oracle nft blockchain settings)
@@ -38,6 +41,10 @@ echo "building aurora-desktop (e2e) and automation-shot"
   CGO_ENABLED=0 go build -tags e2e -trimpath -o "$app" ./cmd/aurora-desktop
   CGO_ENABLED=0 go build -trimpath -o "$shot" ./cmd/automation-shot
 )
+if [ "$seed" = "1" ]; then
+  echo "building the CLI for seeding"
+  (cd "$root" && CGO_ENABLED=0 go build -trimpath -o "$out/aurora" ./cmd/aurora)
+fi
 
 cleanup() {
   if [ -n "${app_pid:-}" ]; then
@@ -88,6 +95,41 @@ pageTitle() {
     *) return 1 ;;
   esac
 }
+
+
+# seedDatabase fills the window's database through the CLI, the same app layer
+# the window reads. A fixed, non-zero Ed25519 public key keeps the mint
+# deterministic; only the candidate id is read back, to name the session roster.
+seedDatabase() {
+  local cli="$out/aurora" config="$out/seed.toml" candidate now
+  cat >"$config" <<EOF
+[db]
+path = "$data_dir/aurora.db"
+
+[log]
+level = "error"
+path = "$out/seed-logs/"
+EOF
+  run() { "$cli" --config "$config" "$@" >/dev/null; }
+  local creator="AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA="
+  run lottery create -p "Alice,Bob,Carol,Dev" -s "aurora-e2e-seed" -c 2
+  run token create -n Gold -s GLD -t 1000000
+  run oracle source add -n btc -u "https://api.example.com/price"
+  run nft mint -n Star -d "First asset" -c "$creator"
+  candidate=$("$cli" --config "$config" voting candidate add -n Alice -p Greens 2>/dev/null |
+    sed -n 's/.*ID: *//p' | head -n1)
+  if [ -n "$candidate" ]; then
+    now=$(date +%s)
+    run voting session create -t "Budget 2026" -c "$candidate" \
+      --start-time "$now" --end-time "$((now + 86400))"
+  fi
+  run voting voter register -n Ada
+  echo "seeded $data_dir/aurora.db"
+}
+
+if [ "$seed" = "1" ]; then
+  seedDatabase
+fi
 
 # One window for the whole run: launching per page reopened the database and
 # could not reach Settings, which is not a deep-link destination.
