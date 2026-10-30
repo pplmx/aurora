@@ -637,7 +637,8 @@ The milestone notes under `.planning/` are history, not current instructions.
   commands (`lottery create`, `nft mint`, `voting candidate add`,
   `voting session create`), the token writes (`mint`, `transfer`, `approve`,
   `transfer-from`, `burn`), `nft transfer`/`burn`, `voting vote` and the session
-  start/end transitions, `lottery import` (with `total`/`imported`/`rejected`),
+  start/end transitions, `lottery export` and `import` (`path`/`exported` and
+  `total`/`imported`/`rejected`),
   `migrate status|up|down|repair`, `backup create`/`verify`/`restore`, the two
   `oracle template` commands, `version`, `lottery stats`,
   `lottery db-info` and the two

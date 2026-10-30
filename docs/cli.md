@@ -21,7 +21,7 @@ aurora version                    # 版本、构建时间、Go 工具链
 | 代币写：`token mint`/`transfer`/`approve`/`transfer-from`/`burn`                                                                                    | 含 `id`、`block_height`、时间戳                                |
 | 投票写：`voting vote`、`voting session start`/`end`                                                                                                 | 投票/会期文档（后者与列表同形）                                |
 | NFT 写：`nft transfer` / `nft burn`                                                                                                                 | 操作记录 / `{"status":"burned"}`                               |
-| `lottery import`                                                                                                                                    | `{"total","imported","rejected"}`                              |
+| `lottery export` / `import`                                                                                                                         | `{"path","exported"}` / `{"total","imported","rejected"}`      |
 | 迁移：`migrate status`/`up`/`down`/`repair`                                                                                                         | `{"current","dirty","applied","pending"}`                      |
 | 备份：`backup create`/`verify`/`restore`                                                                                                            | `{"dir",…}` / `{"path","status"}` / `{"path","status","undo"}` |
 | 模板：`oracle template list`/`add`                                                                                                                  | 模板数组 / 新数据源文档                                        |
