@@ -118,6 +118,7 @@ var traditionalMessages = map[string]string{
 	"desktop.error.export_failed":               "導出失敗",
 	"desktop.error.extra_arg":                   "意外參數 %q（一次只能打開一個鏈接或文件）",
 	"desktop.error.import_failed":               "導入失敗",
+	"desktop.error.import_too_large":            "導入文件超過 %s，請選擇 Aurora 導出的文件。",
 	"desktop.error.lottery_repo_unavailable":    "彩票倉儲尚未就緒",
 	"desktop.error.no_database_path":            "沒有數據庫路徑",
 	"desktop.error.no_webview":                  "沒有可用的系統 WebView；請安裝 WebKitGTK（Debian/Ubuntu 上是 libwebkit2gtk-4.1-0）以顯示界面",
