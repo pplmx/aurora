@@ -88,6 +88,31 @@ func TestLotteryHistory_AfterCreate(t *testing.T) {
 	})
 }
 
+func TestLotteryHistory_Search(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		for _, seed := range []string{"search-alpha", "search-beta"} {
+			_, err := runCmd(t, "lottery", "create",
+				"--participants", "Alice,Bob", "--seed", seed, "--count", "1")
+			require.NoError(t, err)
+		}
+
+		out, err := runCmd(t, "lottery", "history", "--search", "beta")
+		require.NoError(t, err)
+		assert.Contains(t, out, "search-beta")
+		assert.NotContains(t, out, "search-alpha")
+
+		out, err = runCmd(t, "lottery", "history", "-s", "ALICE")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Total lotteries: 2", "the roster matches case-insensitively")
+
+		out, err = runCmd(t, "lottery", "history", "-s", "nothing")
+		require.NoError(t, err)
+		assert.Contains(t, out, `No draw matches "nothing"`)
+		assert.NotContains(t, out, "No lottery records found",
+			"a filtered miss is not an empty store")
+	})
+}
+
 func TestLotteryHistory_Pages(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		for _, seed := range []string{"page-seed-one", "page-seed-two", "page-seed-three"} {

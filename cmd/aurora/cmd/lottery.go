@@ -110,8 +110,17 @@ var historyCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		search, _ := cmd.Flags().GetString("search")
+		search = strings.TrimSpace(search)
 
-		records, err := repo.List(limit, offset)
+		// The filter runs in storage: a page-local search would only find the
+		// draws that happened to land on the requested page.
+		var records []*lottery.LotteryRecord
+		if search != "" {
+			records, err = repo.ListMatching(search, limit, offset)
+		} else {
+			records, err = repo.List(limit, offset)
+		}
 		if err != nil {
 			return wrapCLIError("lottery.error.read_history", err)
 		}
@@ -127,6 +136,10 @@ var historyCmd = &cobra.Command{
 				fmt.Printf("\n📜 %s: %s\n",
 					i18n.GetText("lottery.page_total"),
 					i18n.GetTextF("common.page_with_offset", 0, offset))
+				return nil
+			}
+			if search != "" {
+				fmt.Printf("   "+i18n.GetText("lottery.history_no_match")+"\n", search)
 				return nil
 			}
 			fmt.Println(i18n.GetText("lottery.no_records"))
@@ -524,6 +537,7 @@ func init() {
 	createCmd.Flags().IntP("count", "c", 3, i18n.GetText("lottery.count"))
 	historyCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
 	historyCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
+	historyCmd.Flags().StringP("search", "s", "", i18n.GetText("lottery.history_search"))
 
 	// The reset takes the same -y/--confirm gate as every other destructive
 	// command, instead of a private spelling with a second alias.

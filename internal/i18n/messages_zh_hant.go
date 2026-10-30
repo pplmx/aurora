@@ -287,6 +287,8 @@ var traditionalMessages = map[string]string{
 	"lottery.failed_indices":                    "失敗記錄下標（從 0 開始）：%v",
 	"lottery.history":                           "查看歷史記錄",
 	"lottery.history_item":                      "--- 抽獎 #%d ---",
+	"lottery.history_no_match":                  "沒有抽獎記錄匹配 %q。",
+	"lottery.history_search":                    "按 id、seed、參與者或中獎者過濾",
 	"lottery.import":                            "從 JSON 導入抽獎記錄",
 	"lottery.import_partial":                    "已導入 %d / %d 條抽獎記錄（失敗: %d）",
 	"lottery.import_partial_error":              "部分導入失敗：%d / %d 條記錄被拒絕",

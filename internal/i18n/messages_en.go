@@ -46,16 +46,18 @@ nft, token) and operational commands (migrate, backup, version).`,
 
 	// ===== LOTTERY =====
 	// Commands
-	"lottery.cmd":     "VRF Lottery System",
-	"lottery.long":    "VRF-based transparent lottery: create draws, verify results, export/import records and inspect stats",
-	"lottery.create":  "Create a new lottery",
-	"lottery.history": "Show lottery history",
-	"lottery.verify":  "Verify a lottery result",
-	"lottery.export":  "Export lottery history to JSON",
-	"lottery.import":  "Import lottery records from JSON",
-	"lottery.stats":   "Show lottery statistics",
-	"lottery.reset":   "Reset the database",
-	"lottery.db_info": "Show database information",
+	"lottery.cmd":              "VRF Lottery System",
+	"lottery.long":             "VRF-based transparent lottery: create draws, verify results, export/import records and inspect stats",
+	"lottery.create":           "Create a new lottery",
+	"lottery.history":          "Show lottery history",
+	"lottery.history_search":   "Filter by id, seed, participant or winner",
+	"lottery.history_no_match": "No draw matches %q.",
+	"lottery.verify":           "Verify a lottery result",
+	"lottery.export":           "Export lottery history to JSON",
+	"lottery.import":           "Import lottery records from JSON",
+	"lottery.stats":            "Show lottery statistics",
+	"lottery.reset":            "Reset the database",
+	"lottery.db_info":          "Show database information",
 
 	// Flags
 	"lottery.participants": "Participant names (comma-separated)",
