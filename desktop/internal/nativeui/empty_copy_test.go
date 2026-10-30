@@ -42,7 +42,7 @@ func TestEmptyReadoutCopyDistinguishesLoadedFromNotLoaded(t *testing.T) {
 	})
 
 	t.Run("voting tally", func(t *testing.T) {
-		app := New(&fakeServices{})
+		app := New(&fakeServices{sessions: []SessionRow{{ID: "s0", Title: "Budget", Status: "active"}}})
 		tester := ui.NewTester(app.View, 1280, 5000)
 		app.ShowPage("Voting")
 		app.voting.tab = 2

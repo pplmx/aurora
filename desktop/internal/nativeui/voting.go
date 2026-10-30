@@ -1106,6 +1106,14 @@ func defaultSessionWindow(now time.Time) (start, end time.Time) {
 }
 
 func (a *App) votingVote(c *ui.Context) {
+	// A ballot is keyed by a session id. With no session in the store the two
+	// cards would ask for an id that cannot exist yet, so the tab names the
+	// first move and links back instead.
+	if a.votingHasNoSession(strings.TrimSpace(a.voting.voteSession), strings.TrimSpace(a.voting.controlID)) {
+		a.votingNoSessionCard(c,
+			"A ballot names a session; create one in Setup and its id fills this form.")
+		return
+	}
 	// Cast Vote is the task and takes the leading column; the two session
 	// lifecycle actions sit beside it rather than pushing the ballot form
 	// below the fold on a default window.
@@ -1113,6 +1121,43 @@ func (a *App) votingVote(c *ui.Context) {
 		a.votingCastVoteCard(c)
 	}, func() {
 		a.votingSessionControlsCard(c)
+	})
+}
+
+// votingHasNoSession reports whether a stage keyed by a session id has nothing
+// to work with: the store returned no sessions and the operator has not typed
+// an id into any of the stage's own fields. A typed id keeps the stage open,
+// because the session may live outside the page the list loaded.
+func (a *App) votingHasNoSession(entered ...string) bool {
+	if len(a.voting.sessions) > 0 {
+		return false
+	}
+	for _, id := range entered {
+		if id != "" {
+			return false
+		}
+	}
+	return true
+}
+
+// votingNoSessionCard is the first step the Ballot and Results tabs share when
+// the store has no session yet: name what is missing and offer the stage that
+// creates one.
+func (a *App) votingNoSessionCard(c *ui.Context, body string) {
+	card(c, func() {
+		// The action sits on the sentence's line, right-aligned, so the card
+		// reads as one call to the stage that creates a session. A narrow
+		// window wraps the button under the text instead of compressing it.
+		ui.Row(c).FillWidth().Wrap().Gap(space3).AlignItems(ui.Center).Children(func() {
+			iconTile(c, pageIcons[pageVoting], pageAccent(c, pageVoting), iconTileMedium)
+			ui.Column(c).Grow(1).Shrink(1).MinWidth(textSize(c, 220)).Gap(space1).Children(func() {
+				heading(c, tr("No sessions yet."), sectionSize, 2)
+				ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
+			})
+			if secondaryButton(c, "Open Setup").Clicked() {
+				a.voting.tab = 0
+			}
+		})
 	})
 }
 
@@ -1254,6 +1299,13 @@ func sessionWindowLines(start, end int64) (string, string) {
 }
 
 func (a *App) votingResults(c *ui.Context) {
+	// A tally belongs to a session; with none stored, the query field would ask
+	// for an id that cannot exist yet and the tally card would stay empty.
+	if a.votingHasNoSession(strings.TrimSpace(a.voting.resultsSession)) {
+		a.votingNoSessionCard(c,
+			"A tally belongs to a session; create one in Setup, then read its results here.")
+		return
+	}
 	// The query and the tally are separate cards side by side: the session
 	// field is one line of work, and the report it produces reads better at
 	// half the window than as a full-width table under an empty field.
