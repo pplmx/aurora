@@ -2,10 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/PROJECT.md`
-(release `Version` is injected at build time via `-ldflags -X cmd.Version=`). The
-entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
-documented in their per-milestone ROADMAP files.
+Sections are labelled with the git tag they were cut from (0.0.1-alpha.0 in 2024
+through v1.99 on 2026-10-21). Binaries report the tag at build time
+(`-ldflags -X …Version=$(git describe …)`), so a build without those flags prints
+the source default 0.0.1; `[Unreleased]` collects the work since the last tag.
+The milestone notes under `.planning/` are history, not current instructions.
 
 ## [Unreleased]
 
