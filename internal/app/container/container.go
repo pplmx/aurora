@@ -195,5 +195,5 @@ func (c *Container) Backup(ctx context.Context, dest string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return res.File, nil
+	return res.Dir, nil
 }

@@ -17,10 +17,10 @@ type Migrator struct {
 }
 
 type MigrationStatus struct {
-	Current         uint
-	Dirty           bool
-	Applied         []uint
-	PendingVersions []uint
+	Current         uint   `json:"current"`
+	Dirty           bool   `json:"dirty"`
+	Applied         []uint `json:"applied"`
+	PendingVersions []uint `json:"pending"`
 }
 
 func New(dbPath, migPath string) (*Migrator, error) {

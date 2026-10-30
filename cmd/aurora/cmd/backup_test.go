@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
@@ -44,6 +45,32 @@ func TestBackupCreateVerify_RoundTrip(t *testing.T) {
 		out, err = runCmd(t, "backup", "verify", backupDir)
 		require.NoError(t, err)
 		assert.Contains(t, out, "Backup verified")
+
+		// The same pair through --json: the create document names the file it
+		// wrote and the verify document carries the target and the verdict.
+		jsonDir := filepath.Join(t.TempDir(), "bk1-json")
+		out, err = runCmd(t, "backup", "create", jsonDir, "--json")
+		require.NoError(t, err)
+		var created struct {
+			Dir           string `json:"dir"`
+			Size          int64  `json:"size"`
+			SchemaVersion uint   `json:"schema_version"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &created), "got %q", out)
+		assert.DirExists(t, created.Dir)
+		assert.Equal(t, jsonDir, created.Dir)
+		assert.Positive(t, created.Size)
+		assert.NotZero(t, created.SchemaVersion)
+
+		out, err = runCmd(t, "backup", "verify", jsonDir, "--json")
+		require.NoError(t, err)
+		var verified struct {
+			Path   string `json:"path"`
+			Status string `json:"status"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &verified), "got %q", out)
+		assert.Equal(t, jsonDir, verified.Path)
+		assert.Equal(t, "verified", verified.Status)
 	})
 }
 

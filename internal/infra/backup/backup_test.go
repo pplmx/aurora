@@ -41,8 +41,8 @@ func TestBackupService_Create(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	if result.File != "/tmp/test_backup_out" {
-		t.Errorf("Expected file /tmp/test_backup_out, got %s", result.File)
+	if result.Dir != "/tmp/test_backup_out" {
+		t.Errorf("Expected directory /tmp/test_backup_out, got %s", result.Dir)
 	}
 
 	if result.Size == 0 {

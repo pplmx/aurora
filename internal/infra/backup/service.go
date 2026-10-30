@@ -54,10 +54,12 @@ var syncDirFn = func(path string) error {
 }
 
 type BackupResult struct {
-	File          string
-	Size          int64
-	Checksum      string
-	SchemaVersion uint
+	// Dir is the output directory the backup was written into (the per-file
+	// names are fixed: aurora.db, metadata.json), not a single file.
+	Dir           string `json:"dir"`
+	Size          int64  `json:"size"`
+	Checksum      string `json:"checksum"`
+	SchemaVersion uint   `json:"schema_version"`
 }
 
 type BackupMetadata struct {
