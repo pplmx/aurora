@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -119,6 +120,21 @@ func TestTokenMint_HappyPath(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "minted")
 		assert.Contains(t, out, "Amount: 500")
+
+		out, err = runCmd(t, "token", "mint",
+			"--token", tokenID, "--to", pub, "--amount", "600", "--private-key", priv, "--json")
+		require.NoError(t, err)
+		var minted struct {
+			ID      string `json:"id"`
+			TokenID string `json:"token_id"`
+			To      string `json:"to"`
+			Amount  string `json:"amount"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &minted), "got %q", out)
+		assert.NotEmpty(t, minted.ID)
+		assert.Equal(t, tokenID, minted.TokenID)
+		assert.Equal(t, pub, minted.To)
+		assert.Equal(t, "600", minted.Amount)
 	})
 }
 
@@ -153,6 +169,20 @@ func TestTokenTransfer_HappyPath(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "transferred")
 		assert.Contains(t, out, "Amount: 10")
+
+		out, err = runCmd(t, "token", "transfer",
+			"--token", tokenID, "--from", pub, "--to", pub,
+			"--amount", "11", "--private-key", priv, "--json")
+		require.NoError(t, err)
+		var transferred struct {
+			ID     string `json:"id"`
+			From   string `json:"from"`
+			Amount string `json:"amount"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &transferred), "got %q", out)
+		assert.NotEmpty(t, transferred.ID)
+		assert.Equal(t, pub, transferred.From)
+		assert.Equal(t, "11", transferred.Amount)
 	})
 }
 
@@ -166,6 +196,33 @@ func TestTokenTransfer_InvalidAmount(t *testing.T) {
 	})
 }
 
+// TestTokenTransferFrom_JSON covers the spender path: an approval followed by a
+// transfer-from returns the same document shape the REST endpoint does.
+func TestTokenTransferFrom_JSON(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		tokenID, pub, priv := tokenFixture(t, "AllowCoin", "ALW", "1000")
+		_, err := runCmd(t, "token", "approve",
+			"--token", tokenID, "--owner", pub, "--spender", pub,
+			"--amount", "100", "--private-key", priv)
+		require.NoError(t, err)
+
+		out, err := runCmd(t, "token", "transfer-from",
+			"--token", tokenID, "--owner", pub, "--spender", pub, "--to", pub,
+			"--amount", "10", "--private-key", priv, "--json")
+		require.NoError(t, err)
+		var spent struct {
+			ID     string `json:"id"`
+			From   string `json:"from"`
+			To     string `json:"to"`
+			Amount string `json:"amount"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &spent), "got %q", out)
+		assert.NotEmpty(t, spent.ID)
+		assert.Equal(t, pub, spent.From)
+		assert.Equal(t, "10", spent.Amount)
+	})
+}
+
 func TestTokenApprove_HappyPath(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		tokenID, pub, priv := tokenFixture(t, "ApproveCoin", "AP", "1000")
@@ -175,6 +232,22 @@ func TestTokenApprove_HappyPath(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "approved")
 		assert.Contains(t, out, "Amount: 100")
+
+		out, err = runCmd(t, "token", "approve",
+			"--token", tokenID, "--owner", pub, "--spender", pub,
+			"--amount", "120", "--private-key", priv, "--json")
+		require.NoError(t, err)
+		var approved struct {
+			ID      string `json:"id"`
+			Owner   string `json:"owner"`
+			Spender string `json:"spender"`
+			Amount  string `json:"amount"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &approved), "got %q", out)
+		assert.NotEmpty(t, approved.ID)
+		assert.Equal(t, pub, approved.Owner)
+		assert.Equal(t, pub, approved.Spender)
+		assert.Equal(t, "120", approved.Amount)
 	})
 }
 
@@ -185,6 +258,20 @@ func TestTokenBurn_HappyPath(t *testing.T) {
 			"--token", tokenID, "--from", pub, "--amount", "100", "--private-key", priv, "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "burned")
+
+		out, err = runCmd(t, "token", "burn",
+			"--token", tokenID, "--from", pub, "--amount", "50", "--private-key", priv,
+			"--confirm", "--json")
+		require.NoError(t, err)
+		var burned struct {
+			ID     string `json:"id"`
+			From   string `json:"from"`
+			Amount string `json:"amount"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &burned), "got %q", out)
+		assert.NotEmpty(t, burned.ID)
+		assert.Equal(t, pub, burned.From)
+		assert.Equal(t, "50", burned.Amount)
 	})
 }
 

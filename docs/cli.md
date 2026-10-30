@@ -17,7 +17,9 @@ aurora version                    # 版本、构建时间、Go 工具链
 `oracle data`/`latest`、`voting results`）与 `version` 以及
 `lottery stats` 与 `lottery db-info` 也支持 `--json`；创建类命令
 （`lottery create`、`nft mint`、`voting candidate add`、`voting session create`）
-同样支持，输出即 REST 的创建结果，脚本可直接取 `id`。会打印私钥的命令
+同样支持，输出即 REST 的创建结果，脚本可直接取 `id`；代币写操作（`token mint`、
+`token transfer`、`token approve`、`token transfer-from`、`token burn`）也是同一种
+文档，含 `id`、`block_height` 与时间戳。会打印私钥的命令
 （`token create`、`voter register`）没有 JSON 模式，避免把密钥写进管道。
 分别输出对应 REST 文档（例如 `stats` 为 `total`/`db_path`/`latest_block`，
 无记录时省略后者；`db-info` 为 `path`/`size_bytes`/`blocks`）。

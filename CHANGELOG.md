@@ -610,7 +610,8 @@ The milestone notes under `.planning/` are history, not current instructions.
   single-record reads (`lottery verify`, `token info`/`balance`/`allowance`/`history`,
   `nft get`/`history`, `oracle data`/`latest`, `voting results`), the creation
   commands (`lottery create`, `nft mint`, `voting candidate add`,
-  `voting session create`), `version`, `lottery stats`, `lottery db-info` and
+  `voting session create`), the token writes (`mint`, `transfer`, `approve`,
+  `transfer-from`, `burn`), `version`, `lottery stats`, `lottery db-info` and
   the two blockchain commands take `--json` and print the same fields the REST API
   returns, with `[]` for an empty collection and no banner before the document,
   so a script can pipe the CLI into `jq` instead of parsing tables. Commands that

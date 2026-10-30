@@ -37,6 +37,9 @@ var tokenMintCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("token.error.mint", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
+		}
 
 		fmt.Println("✅ " + i18n.GetText("token.minted"))
 		printLocalizedField("common.id", resp.ID)
@@ -76,6 +79,9 @@ var tokenTransferCmd = &cobra.Command{
 		resp, err := uc.Execute(req)
 		if err != nil {
 			return wrapCLIError("token.error.transfer", err)
+		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.transferred"))
@@ -117,6 +123,9 @@ var tokenApproveCmd = &cobra.Command{
 		resp, err := uc.Execute(req)
 		if err != nil {
 			return wrapCLIError("token.error.approve", err)
+		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.approved"))
@@ -160,6 +169,9 @@ var tokenTransferFromCmd = &cobra.Command{
 		resp, err := uc.Execute(req)
 		if err != nil {
 			return wrapCLIError("token.error.transfer_from", err)
+		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.transferred"))
@@ -205,6 +217,9 @@ var tokenBurnCmd = &cobra.Command{
 		resp, err := uc.Execute(req)
 		if err != nil {
 			return wrapCLIError("token.error.burn", err)
+		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
 		}
 
 		fmt.Println("✅ " + i18n.GetText("token.burned"))
