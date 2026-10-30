@@ -736,6 +736,29 @@ func TestCommandPaletteArrowSelection(t *testing.T) {
 	require.Equal(t, pageVoting, app.page)
 }
 
+// TestCommandPaletteRanksTitlePrefixesFirst pins the match order: a page whose
+// title starts with the query must outrank one that only contains the letter.
+// Without the ranking, typing "t" and pressing Enter opened Lottery because it
+// comes first on the sidebar.
+func TestCommandPaletteRanksTitlePrefixesFirst(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.Frame()
+	tester.Key(platformRefreshModifier(), ui.KeyK)
+	tester.Frame()
+	tester.Type("t")
+	tester.Frame()
+
+	matches := app.paletteMatches()
+	require.NotEmpty(t, matches)
+	require.Equal(t, pageToken, matches[0].page,
+		"a title prefix must outrank a later sidebar page that contains the letter")
+
+	tester.Key(0, ui.KeyEnter)
+	tester.Frame()
+	require.Equal(t, pageToken, app.page)
+}
+
 // TestCommandPaletteKeepsLongListReachableAtMinimumHeight covers the
 // keyboard-first switcher in the shortest supported window. Its page and file
 // commands used to extend below the viewport with no scroll, so moving the
