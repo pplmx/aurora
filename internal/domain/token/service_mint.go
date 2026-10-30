@@ -1,6 +1,7 @@
 package token
 
 import (
+	"encoding/base64"
 	"fmt"
 )
 
@@ -30,7 +31,7 @@ func (s *TokenService) Mint(req *MintRequest) (*MintEvent, error) {
 
 	event := NewMintEvent(req.TokenID, req.To, req.Amount)
 
-	data := fmt.Sprintf("mint|%s|%s", req.TokenID, req.To)
+	data := fmt.Sprintf("mint|%s|%s", req.TokenID, base64.StdEncoding.EncodeToString(req.To))
 	_, err = s.withBlockTransaction(data, func(r Repository, height int64) error {
 		event.SetBlockHeight(height)
 
