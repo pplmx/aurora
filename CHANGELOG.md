@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The window's draw search runs in storage**: typing in Draw history used to
+  filter the loaded page, so a draw older than the first hundred read as "no
+  draws match". A new term now reloads from the newest match through the same
+  repository read the API and CLI use, with the pager paging inside the matches;
+  creating a draw clears a hiding search before the reload so the new row is
+  highlighted on the unfiltered page.
 - **The version document is locale-independent**: `aurora version --json`
   printed the translated application name, so a script keying on `name` broke
   when the locale switched; the document now carries the stable `Aurora` while

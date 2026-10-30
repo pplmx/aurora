@@ -168,6 +168,7 @@ var desktopMessages = map[string]string{
 	"Draw history":            "抽奖历史",
 	"Every recorded draw, newest first. Choose a row to load its id into Verify.": "所有已记录的抽奖，最新在前。选择一行可把完整 ID 填入验证框。",
 	"Search draws": "搜索抽奖",
+	"Search matches id, seed, participant or winner across the whole store.": "在整个库中按 id、seed、参与者或中奖者匹配。",
 	"ID":           "ID",
 	"Participants": "参与者",
 	"Winners":      "中奖者",

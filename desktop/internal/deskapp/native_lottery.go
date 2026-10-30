@@ -1,16 +1,26 @@
 package deskapp
 
 import (
+	"strings"
+
 	"github.com/pplmx/aurora/desktop/internal/nativeui"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // --- Lottery -------------------------------------------------------------
 
-func (s *nativeServices) LotteryHistory(limit, offset int) ([]nativeui.DrawRow, error) {
-	records, err := s.lotteryRepo.List(limit, offset)
+func (s *nativeServices) LotteryHistory(term string, limit, offset int) ([]nativeui.DrawRow, error) {
+	term = strings.TrimSpace(term)
+	var records []*lottery.LotteryRecord
+	var err error
+	if term != "" {
+		records, err = s.lotteryRepo.ListMatching(term, limit, offset)
+	} else {
+		records, err = s.lotteryRepo.List(limit, offset)
+	}
 	if err != nil {
 		return nil, err
 	}

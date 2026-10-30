@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -181,17 +182,30 @@ type fakeLoadErrors struct {
 	oracleLatest error
 }
 
-func (f *fakeServices) LotteryHistory(limit, offset int) ([]DrawRow, error) {
+func (f *fakeServices) LotteryHistory(term string, limit, offset int) ([]DrawRow, error) {
 	f.historyCalls++
 	f.historyN = limit
 	f.historyOffset = offset
 	if f.loadErrs.history != nil {
 		return nil, f.loadErrs.history
 	}
-	if offset >= len(f.draws) {
+	draws := f.draws
+	if term = strings.TrimSpace(term); term != "" {
+		// Mirror the storage contract: the term filters id, seed, participants
+		// and winners before the page is taken.
+		matched := make([]DrawRow, 0, len(draws))
+		for _, draw := range draws {
+			if containsFold(term, draw.ID, draw.Seed,
+				strings.Join(draw.Participants, " "), strings.Join(draw.Winners, " ")) {
+				matched = append(matched, draw)
+			}
+		}
+		draws = matched
+	}
+	if offset >= len(draws) {
 		return nil, nil
 	}
-	rows := f.draws[offset:]
+	rows := draws[offset:]
 	if limit > 0 && len(rows) > limit {
 		rows = rows[:limit]
 	}
