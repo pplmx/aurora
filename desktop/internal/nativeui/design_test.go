@@ -259,6 +259,34 @@ func TestServiceErrorsUseTheDesktopLanguage(t *testing.T) {
 	require.Equal(t, english, LocalizeError(errors.New(english)))
 }
 
+// TestChinesePagesShowNoEnglishChrome guards the translation table where it
+// actually renders: a label that forgets tr(), or a toolkit string the view
+// could override, shows as English in a Chinese window. MyGo's number-stepper
+// labels ("Increase"/"Decrease") are its own and stay English, so they are
+// deliberately not in this list.
+func TestChinesePagesShowNoEnglishChrome(t *testing.T) {
+	tr := i18n.GetTranslator()
+	before := tr.GetLocale()
+	t.Cleanup(func() { tr.SetLocale(before) })
+	tr.SetLocale("zh")
+
+	english := []string{
+		"Refresh", "Search", "Show", "Next", "Previous",
+		"Cancel", "Delete", "Copy", "Save", "Clear", "Loading",
+	}
+	app := New(workbenchFakes())
+	tester := ui.NewTester(app.View, 1280, 4000)
+	tester.Frame()
+	for _, p := range pageOrder {
+		app.ShowPage(pageTitles[p])
+		tester.Frame()
+		for _, word := range english {
+			require.Falsef(t, tester.HasText(word),
+				"%s still shows English %q in a Chinese window", pageTitles[p], word)
+		}
+	}
+}
+
 // TestChineseUIRendersTheWorkbench keeps the desktop's labels in the language
 // switcher, not only its menus: page names, purposes, Quick start, metrics,
 // tabs and the guide must come from the desktop table.
