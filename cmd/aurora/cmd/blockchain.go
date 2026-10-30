@@ -8,6 +8,7 @@ import (
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/ledger"
+	"github.com/pplmx/aurora/internal/records"
 	"github.com/spf13/cobra"
 )
 
@@ -122,7 +123,7 @@ var blockchainBlocksCmd = &cobra.Command{
 		fmt.Println("────────────────────────────")
 		for _, entry := range entries {
 			stamp := time.Unix(entry.Timestamp, 0).Format(blockTimeLayout)
-			fmt.Printf("  #%-4d %s  %s\n", entry.Height, stamp, entry.Data)
+			fmt.Printf("  #%-4d %s  %s\n", entry.Height, stamp, blockLine(entry.Data))
 		}
 		return nil
 	},
@@ -137,6 +138,34 @@ func init() {
 	blockchainBlocksCmd.Flags().StringP("search", "s", "", i18n.GetText("blockchain.blocks_search"))
 	addJSONFlag(blockchainVerifyCmd)
 	addJSONFlag(blockchainBlocksCmd)
+}
+
+// blockLine renders one audit payload for the table with the vocabulary the
+// window's ledger page uses (module · action · subject, then its facts) instead
+// of the stored JSON or pipe line. A payload that matches no known shape prints
+// as-is, and `--json` always carries the exact bytes: the decoded sentence is a
+// reading aid, never the only copy.
+func blockLine(payload string) string {
+	record, ok := records.Parse(payload)
+	if !ok {
+		return payload
+	}
+	var line strings.Builder
+	line.WriteString(record.Module)
+	if record.Action != "" {
+		line.WriteString(" · " + record.Action)
+	}
+	if record.Subject != "" {
+		line.WriteString(" · " + record.Subject)
+	}
+	if len(record.Facts) > 0 {
+		parts := make([]string, 0, len(record.Facts))
+		for _, fact := range record.Facts {
+			parts = append(parts, fact.Label+": "+fact.Value)
+		}
+		line.WriteString("   (" + strings.Join(parts, "; ") + ")")
+	}
+	return line.String()
 }
 
 // printBlocksJSON writes the audit page in the same shape the REST endpoint

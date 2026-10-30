@@ -12,6 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The CLI's audit list reads like the ledger page**: `blockchain blocks`
+  printed each stored payload raw — JSON blobs and pipe-delimited key bytes. The
+  table now renders the same module · action · facts sentence the window shows,
+  from the shared decoder, and leaves an unrecognised payload untouched;
+  `--json` still carries the exact `payload`.
 - **Token history has one shape on every surface**: `token history --json`
   printed `{"transfers": […]}` while the REST endpoint answered a top-level
   array, and the use case wrapped the page in a one-field struct so each

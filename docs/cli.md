@@ -205,6 +205,10 @@ aurora blockchain blocks -l 50 -p 100
 aurora blockchain blocks -s transfer   # 按记录文本过滤（不区分大小写）
 ```
 
+`blockchain blocks` 的表格把每条载荷渲染成与桌面账本页相同的记录：`模块 · 动作 ·
+对象`，后面跟可读事实（如中奖者、参与者数、seed）；无法识别的载荷原样打印。
+可读句子只是阅读帮助，`--json` 始终带着 `payload` 原文，审计时以它为准。
+
 迁移命令（`migrate status|up|down|repair`）都支持 `--json`，输出同一个状态文档
 `{"current","dirty","applied","pending"}`——包括「已经是最新」「已到底部」
 「本就干净」这些空操作路径；`backup create` 输出
