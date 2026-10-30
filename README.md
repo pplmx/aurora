@@ -209,8 +209,7 @@ just start      # docker compose up -d
 just stop       # docker compose down
 ```
 
-贡献约定见 [AGENTS.md](AGENTS.md)：直接在 `main` 开发、禁止
-`git commit --amend`、提交粒度以“一个自洽的逻辑单元”为单位。
+贡献约定（门槛、分层约束、提交粒度）见 [AGENTS.md](AGENTS.md)。
 
 Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST API
 （没有静态页面），因此 compose/k8s 清单没有端口映射——用

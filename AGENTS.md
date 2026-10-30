@@ -1,246 +1,50 @@
-# Aurora
+# Aurora — 仓库约定
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/pplmx/aurora?style=flat-square)](https://goreportcard.com/report/github.com/pplmx/aurora)
-[![Tests](https://github.com/pplmx/aurora/actions/workflows/ci.yml/badge.svg)](https://github.com/pplmx/aurora/actions)
-[![Release](https://img.shields.io/github/v/release/pplmx/aurora)](https://github.com/pplmx/aurora/releases)
+产品介绍、安装方式、功能清单与完整的 `just` 清单在 [README.md](README.md)。本文件
+只记录在这个仓库改代码时要遵守的约束；同一份说明写两遍会各自过期，产品正文不再
+复制到这里。
 
-基于区块链的数字系统套件：VRF 透明抽奖、Ed25519 签名投票、数据预言机、NFT 与
-FT 代币。核心用 Go 实现，按 DDD 分层；同一份后端同时提供**桌面应用**、CLI
-和 REST API。
+## 入口与正文
 
-## 三个入口
+- 任务入口：[justfile](justfile)，没有 Makefile。
+- 设计正文：桌面 [docs/desktop.md](docs/desktop.md)、CLI [docs/cli.md](docs/cli.md)、
+  REST [docs/api.md](docs/api.md)、分层契约
+  [docs/architecture.md](docs/architecture.md)。
+- 配置查找顺序：`--config` → `$HOME/aurora.toml` → `./config/aurora.toml`，各节
+  语义见 [config/aurora.toml](config/aurora.toml)。
+- 历史记录不是现行指令：`docs/superpowers/`（早期设计）与 `.planning/`
+  （里程碑）保留原样；以代码和上面的正文为准。
 
-| 入口     | 二进制           | 适合谁                                       |
-| -------- | ---------------- | -------------------------------------------- |
-| 桌面应用 | `aurora-desktop` | **主要使用方式**：双击即用，无需终端或浏览器 |
-| CLI      | `aurora`         | 脚本、批量任务、服务器与无图形环境           |
-| REST API | `aurora-api`     | 集成方与需要监听的部署；只提供 JSON 接口     |
+## 门槛
 
-桌面端用 MyGo 原生控件绘制界面，API 提供同一套应用层能力；两者共用同一份
-SQLite 数据库，因此窗口里创建的记录 CLI 立刻能读到。设计细节见
-[docs/desktop.md](docs/desktop.md)。
+改到哪一层就跑哪一层的门槛，跑过才算完成：
 
-## 安装
+| 改动     | 命令                                                   |
+| -------- | ------------------------------------------------------ |
+| 根模块   | `just check` + `just test`                             |
+| 桌面模块 | `just desktop-check`；行为测试再跑 `just desktop-test` |
+| lint     | `just lint`（errcheck 关闭）                           |
+| 界面     | `just desktop-shot`                                    |
 
-从 [Releases](https://github.com/pplmx/aurora/releases) 下载：
+- 真实窗口截图按需加环境变量：有数据 `AURORA_E2E_SEED=1`、浅色
+  `AURORA_E2E_THEME=light`、窄窗 `AURORA_E2E_SIZE=900x600`。
+- 覆盖率底线：核心模块 Domain 与 App 都在 80% 以上；数字只在 README 维护。
+- 不删测试、不跳测试、不降低断言或阈值换绿灯；修不好就回滚并说明原因。
 
-- **桌面端**：Linux `.deb` / `.tar.gz`+`install.sh`（amd64、arm64）、macOS
-  `.dmg`（arm64、amd64）、Windows `Aurora.exe` / `*Setup*.exe`。
-- **CLI**：`aurora-<os>-<arch>`，纯 Go 构建，发布时附 `checksums.txt`。
-- 发布流程会校验版本号与构建时间，不发布 `0.0.1` / `Build Time: unknown`
-  的产物。
-- **构建来源证明**：发布前会为 `checksums.txt` 中的最终资产生成 GitHub
-  artifact attestation。下载后可用
-  `gh attestation verify <artifact> --repo pplmx/aurora` 检查文件是否由本仓库
-  的发布工作流构建；它补充校验和，但不能替代 macOS/Windows 的操作系统级签名。
-- **签名与隐私**：Windows 包正在申请 SignPath Foundation 的免费开源签名；
-  macOS 包仍需要维护者持有的 Apple Developer Program 身份。发布门槛、角色与
-  验收方式见[代码签名策略](docs/code-signing-policy.md)，本机数据与网络边界见
-  [隐私说明](docs/privacy.md)。
+## 代码约定
 
-从源码构建：
+- 分层方向：`domain` 不导入其他层；`app` 编排用例；`infra` 实现外部依赖；
+  `api` 与 `desktop` 是两个表示层，共用 `app` 层，不各自实现业务规则。
+- 默认 `CGO_ENABLED=0`；不引入 C 依赖。
+- 桌面是 MyGo 原生控件（`desktop/internal/nativeui`），没有 HTML/JavaScript；
+  窗口文案走 `tr()`，中文表在 `desktop/internal/nativeui/messages_zh.go`，缺项
+  回退英文。
+- 破坏性命令一律要求 `-y/--confirm`，不保留旧别名。
+- 文档与命令、路由、`just` 配方的一致性由 `internal/repocheck` 与
+  `internal/api/docs_test.go` 锁定；改这些表面时同步改测试。
 
-```bash
-CGO_ENABLED=0 go build -o aurora ./cmd/aurora      # CLI（Go 1.27+）
-CGO_ENABLED=0 go build -o aurora-api ./cmd/api     # REST API
-just desktop                             # 桌面壳（Go 1.27+、WebKitGTK/WebView2）
-```
+## 提交
 
-`just` 是唯一的任务入口（没有 Makefile）：
-
-```bash
-just test            # 核心模块全部测试
-just build           # check + test + 全平台 CLI
-just api             # ./aurora-api，注入 git 版本与构建时间
-just desktop         # ./aurora-desktop（本地开发构建）
-just desktop-run     # 构建并打开窗口
-just desktop-test    # 桌面模块测试（根目录 just test 不进嵌套模块）
-just desktop-check   # gofmt + build + vet + 纯 Go 测试（无需 C 工具链）
-just desktop-race    # 可选 race 检测（显式启用 cgo）
-just desktop-package # mygo build：.deb / tar.gz / desktop entry
-just lint            # golangci-lint
-just dev             # Docker 开发镜像
-```
-
-## 桌面端（推荐）
-
-安装后直接打开 Aurora：首次运行在用户数据目录创建 `aurora.db`，日志写在同目录
-`logs/`；数据、备份和导出都能从 File 菜单完成。
-
-```bash
-aurora-desktop                                  # 打开窗口
-aurora-desktop --version                        # 版本与构建时间
-aurora-desktop --data-dir /path/to/data         # 换数据库位置
-aurora-desktop 'aurora://lottery?id=<draw>'     # 深链：直接验该期开奖
-aurora-desktop aurora-lotteries.json            # 导入一份导出文件
-```
-
-- **File 菜单**：Back Up Database…（WAL 完整快照 + 校验和）、Export/Import
-  Lotteries、Open Recent、Show Data Folder。导入/导出与 CLI 共用同一 app 层
-  实现，格式、覆盖保护与失败报告完全一致；导出目标若就是数据库本身（含符号
-  链接、硬链接与 `-wal`/`-shm`/`-journal`）会被拒绝。
-- **多语言**：菜单、对话框、`--help` 跟随系统语言，也可在 Help → Language
-  运行时切换（跟随系统 / English / 简体中文 / 繁體中文）。
-- **系统集成**：`aurora://` 深链在 macOS 由 bundle 注册，Linux/Windows 每次
-  启动注册；第二次启动不会起第二个数据库写者，而是把链接或导出文件交给已运行
-  的窗口；导出文件也可直接拖到窗口导入。
-- **界面是原生 Go**：窗口用 MyGo 自己的控件绘制（`desktop/internal/nativeui`），
-  不是网页。没有 HTML、没有 JavaScript、没有 CSP，界面和业务代码一样受类型检查，
-  也能在没有窗口的情况下测试。
-- **失败可见**：打包后的应用没有终端，启动失败（数据目录不可用、缺少图形运行时）
-  会弹出原生对话框说明原因。
-
-完整架构、窗口生命周期、打包与签名流程见 [docs/desktop.md](docs/desktop.md)。
-
-## CLI 快速开始
-
-桌面端就是上面同一套功能的图形入口；下面的命令用于脚本、自动化和无图形
-环境。
-
-```bash
-./aurora lottery create -p "A,B,C,D" -s "seed" -c 3   # VRF 抽奖
-./aurora lottery verify <id或高度>                    # 验证开奖与 VRF 证明
-./aurora voting candidate add -n "Name" -p "Party" -m "Program"
-./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv>
-./aurora oracle source add -n "btc" -u "https://api.example.com/price" -p "data.price"
-./aurora oracle source add -n "private" -u <url> --headers '{"Authorization":"Bearer ..."}'
-./aurora nft mint -n "My NFT" -c "<creator-pub>" -t <token-uri>
-./aurora token create -n "MyToken" -s "SYMBOL" --supply 1000000
-```
-
-全部子命令、参数与运维命令（`backup`、`migrate`、`version`）见
-[docs/cli.md](docs/cli.md)，或 `aurora <module> --help`。
-
-> **破坏性操作确认门：** `token burn`、`nft burn`、`oracle source delete`、
-> `migrate down`、`backup restore`、`lottery reset` 都需要 `-y/--confirm`
-> （`lottery reset` 也接受旧写法 `--yes`）。缺少确认标志会以非零退出码拒绝
-> 执行，脚本可据此判断。
-
-## REST API
-
-```bash
-AURORA_API_KEY="replace-with-at-least-32-random-characters" ./aurora-api
-./aurora-api --host 127.0.0.1 --port 9090        # 或 AURORA_SERVER_HOST/PORT
-```
-
-监听地址优先级：**flag > 环境变量 > 配置文件 > 默认**。服务同时运行预言机调度器
-与审计 outbox 补偿循环，SIGINT/SIGTERM 优雅停机；`/metrics`、`/metrics/oracle`
-暴露请求与抓取健康统计。网关只提供 `/api/v1`、健康检查与指标接口，没有静态页面：
-界面只有桌面端的原生窗口。鉴权用 `X-API-Key`，请求体上限 4 MiB，支持按客户端
-限流与 CORS 白名单。详见 [docs/api.md](docs/api.md)。
-
-## 功能模块
-
-- **VRF 透明抽奖**：Edwards25519 VRF 抽签，结果上链存证，任何人可复验；支持
-  CLI、REST API 与桌面端。
-- **透明投票**：Ed25519 签名投票、候选人/选民注册、会期生命周期与实时计票。
-- **数据预言机**：通用 HTTP 数据源（method/path/interval）、内置模板、定时
-  抓取、链上存证与抓取健康统计。
-- **NFT**：铸造、转让、销毁、查询与操作历史，Ed25519 签名授权。
-- **FT 代币**：ERC-20 风格 Mint/Transfer/Burn/Approve，余额与授权管理、分页
-  历史。
-
-## 配置
-
-TOML，查找顺序：CLI `--config` → `$HOME/aurora.toml` → `./config/aurora.toml`。
-完整示例与每一节的语义见 [config/aurora.toml](config/aurora.toml)。
-
-```toml
-[server]
-host = "0.0.0.0"
-port = 8080
-
-[db]
-path = "./data/aurora.db"     # SQLite 是唯一后端
-
-[log]
-level = "info"
-path = "./logs/"
-
-[lottery]
-defaultCount = 3              # 未传 -c 时的获奖人数；种子始终由调用方提供
-```
-
-## 项目结构
-
-```text
-cmd/aurora/     # CLI 入口
-cmd/api/        # REST API 服务入口
-desktop/        # MyGo 桌面壳（嵌套模块；cmd/aurora-desktop + internal/deskapp）
-internal/
-├── ledger/     # 账本端口：BlockWriter、事务追加助手（无存储实现）
-├── domain/     # 领域层：lottery / voting / nft / token / oracle / events
-├── app/        # 应用层：用例编排与 container 组合根
-├── infra/      # 基础设施：SQLite、账本实现、HTTP 客户端、备份、迁移、事件
-├── api/        # 路由、handler、中间件
-├── i18n/       # 国际化
-└── utils/      # 工具（含原子写文件）
-e2e/            # E2E 测试
-```
-
-DDD 分层：`domain` 持有实体、领域服务与仓储接口；`app` 编排用例；`infra` 实现
-外部依赖；`api`（REST）与 `desktop`（原生 Go 窗口）是两种表示层，共用 `app`。
-
-## 技术栈
-
-Go 1.27+、Cobra、Viper、Zerolog、SQLite
-（modernc.org/sqlite，纯 Go）、filippo.io/edwards25519、MyGo。
-
-## 开发
-
-```bash
-just check      # gofmt + goimports + go vet
-just test       # go test ./...
-just lint       # golangci-lint（errcheck 关闭）
-just desktop-check
-just desktop-race # 可选：race detector 需要 cgo
-go test ./... -cover
-
-just dev        # 构建并启动 CLI 工具箱容器
-just start      # docker compose up -d
-just stop       # docker compose down
-```
-
-贡献约定见 [AGENTS.md](AGENTS.md)：直接在 `main` 开发、禁止
-`git commit --amend`、提交粒度以“一个自洽的逻辑单元”为单位。
-
-Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST API
-（没有静态页面），因此 compose/k8s 清单没有端口映射——用
-`docker compose run --rm aurora <命令>` 执行一次性任务。
-
-## 测试覆盖率
-
-`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-10-26）：
-
-| 模块    | Domain | App   |
-| ------- | ------ | ----- |
-| Lottery | 91.7%  | 86.5% |
-| Voting  | 93.6%  | 82.6% |
-| NFT     | 82.1%  | 82.0% |
-| Token   | 90.9%  | 86.6% |
-| Oracle  | 85.5%  | 88.9% |
-| SQLite  | -      | 80.6% |
-
-所有模块都在 80% 门槛之上。SQLite 剩余缺口集中在仓储构造函数的错误分支
-（目录不可建、建表失败、权限收紧失败）；正常路径与事务委托都有直接测试。
-抽奖的解析顺序（精确 ID → 区块高度 → 子串）由 `verify_resolution_test.go`
-直接锁定；`nft_cascade_test.go` 用一个旧 schema 数据库验证审计表重建不丢行。
-
-## 文档
-
-- [docs/desktop.md](docs/desktop.md)：桌面端架构、菜单、深链、打包与签名
-- [docs/cli.md](docs/cli.md)：完整 CLI 与运维命令参考
-- [docs/api.md](docs/api.md)：REST API、鉴权、限流、可观测性
-- [docs/ablation.md](docs/ablation.md)：纯 Go 构建边界与模块消融结论
-- [docs/lottery/](docs/lottery/)：抽奖模块的 API、测试与使用说明
-- [CHANGELOG.md](CHANGELOG.md)：逐版本变更
-- [SECURITY.md](SECURITY.md)：漏洞报告流程
-
-## 贡献
-
-欢迎提交 Issue 和 PR！提交前请跑 `just check && just test`（改动桌面端时再加
-`just desktop-check`；需要 race 检测时另跑 `just desktop-race`）。
-
-## 许可证
-
-MIT
+- 直接在 `main` 开发；一次提交只放一个自洽的逻辑单元，代码与它的测试同提交。
+- 禁止 `git commit --amend`（hook 自动改过且未推送时除外）。
+- 不推送：`git push` 由维护者决定。
