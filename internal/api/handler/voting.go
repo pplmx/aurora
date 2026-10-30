@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/votingapp"
@@ -193,18 +192,7 @@ func (h *VotingHandler) ListVoters(w http.ResponseWriter, r *http.Request) {
 // non-positive limits use the default, and offsets clamp instead of
 // overflowing storage.
 func votingPage(r *http.Request) (limit, offset int) {
-	limit = defaultVotingListLimit
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
-			limit = min(parsed, maxVotingListLimit)
-		}
-	}
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
-			offset = min(parsed, maxVotingListOffset)
-		}
-	}
-	return limit, offset
+	return pageParams(r, defaultVotingListLimit, maxVotingListLimit, maxVotingListOffset)
 }
 
 func (h *VotingHandler) GetSession(w http.ResponseWriter, r *http.Request) {

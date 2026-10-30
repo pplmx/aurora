@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/nftapp"
@@ -151,24 +150,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 	// had with no limit or caps, letting a key-holding caller force an
 	// unbounded response (TASK-101, ISS-093). Parse and clamp limit/offset
 	// exactly like the token-history handler.
-	limit := defaultNFTListLimit
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if l, err := strconv.Atoi(v); err == nil && l > 0 {
-			limit = l
-			if limit > maxNFTListLimit {
-				limit = maxNFTListLimit
-			}
-		}
-	}
-	offset := 0
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if o, err := strconv.Atoi(v); err == nil && o >= 0 {
-			offset = o
-			if offset > maxNFTListOffset {
-				offset = maxNFTListOffset
-			}
-		}
-	}
+	limit, offset := pageParams(r, defaultNFTListLimit, maxNFTListLimit, maxNFTListOffset)
 
 	// Without an owner the call lists the whole collection: an owner key is
 	// exactly what a caller who did not mint the asset does not have, and
@@ -225,16 +207,5 @@ func (h *NFTHandler) History(w http.ResponseWriter, r *http.Request) {
 // reads: malformed or non-positive limits take the default, and offsets clamp
 // instead of allowing an arbitrarily deep storage scan.
 func nftHistoryPage(r *http.Request) (limit, offset int) {
-	limit = defaultNFTHistoryLimit
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
-			limit = min(parsed, maxNFTHistoryLimit)
-		}
-	}
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
-			offset = min(parsed, maxNFTHistoryOffset)
-		}
-	}
-	return limit, offset
+	return pageParams(r, defaultNFTHistoryLimit, maxNFTHistoryLimit, maxNFTHistoryOffset)
 }
