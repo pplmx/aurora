@@ -63,8 +63,9 @@ func TestSettingsCardsUseTwoColumns(t *testing.T) {
 }
 
 // TestDashboardHeroLeadsWithIntegrity pins the reading order: the verdict is
-// the first fact on the page, the counters follow it, and the action shortcuts
-// stay last for a store that already has content.
+// the first fact on the page, the module composition follows it, the timeline
+// explains what changed, and the action shortcuts stay last for a store that
+// already has content.
 func TestDashboardHeroLeadsWithIntegrity(t *testing.T) {
 	app := New(&fakeServices{blocks: []BlockRow{{Height: 1, Module: "lottery", Summary: "draw"}}})
 	tester := ui.NewTester(app.View, 1280, 1800)
@@ -72,19 +73,22 @@ func TestDashboardHeroLeadsWithIntegrity(t *testing.T) {
 
 	verdict, ok := tester.Find("Ledger Integrity")
 	require.True(t, ok)
-	counters, ok := tester.Find("Total Lotteries")
+	composition, ok := tester.Find("What the ledger is made of")
+	require.True(t, ok)
+	recent, ok := tester.Find("Recent activity")
 	require.True(t, ok)
 	quick, ok := tester.Find("Quick start")
 	require.True(t, ok)
-	require.Less(t, verdict.Y, counters.Y, "the verdict must lead the counters")
-	require.Less(t, counters.Y, quick.Y, "the shortcuts stay below the state")
+	require.Less(t, verdict.Y, composition.Y, "the verdict must lead the composition")
+	require.Less(t, composition.Y, recent.Y, "the composition must lead the timeline")
+	require.Less(t, recent.Y, quick.Y, "the shortcuts stay below the state")
 	require.True(t, tester.HasText("verified"))
-	require.True(t, tester.HasText("Inspect ledger"))
+	require.True(t, tester.HasText("Open ledger"), "the verdict keeps one route to the full ledger")
+	require.False(t, tester.HasText("Inspect ledger"), "the hero must not keep a second ledger route")
 }
 
-// TestDashboardCountsChainBlocks covers the sixth counter: token and NFT
-// writes have no module counter of their own, so the chain's entry count is
-// the only summary that includes them.
+// TestDashboardCountsChainBlocks keeps the chain total visible even though
+// token and NFT writes have no module counter of their own.
 func TestDashboardCountsChainBlocks(t *testing.T) {
 	app := New(&fakeServices{})
 	tester := ui.NewTester(app.View, 1280, 1600)
@@ -93,6 +97,147 @@ func TestDashboardCountsChainBlocks(t *testing.T) {
 	require.True(t, tester.HasText("Ledger Blocks"))
 	require.True(t, tester.HasText("Entries on the audit chain"))
 	require.True(t, tester.HasText("7"), "the count must come from the services")
+}
+
+// TestDashboardCompositionIsMoreThanACounterGrid pins the new information
+// architecture. The page leads with one integrity panel, then shows the
+// modules as unequal parts of one ledger, then a timeline. Six equal metric
+// cards made every fact compete with every other fact.
+func TestDashboardCompositionIsMoreThanACounterGrid(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 2400)
+	tester.Frame()
+
+	for _, want := range []string{
+		"Ledger composition",
+		"What the ledger is made of",
+		"Module records first; the audit chain carries all of them.",
+		"Voting detail",
+		"Total Votes",
+		"Candidates",
+		"Voting Sessions",
+	} {
+		require.Truef(t, tester.HasText(want), "the dashboard composition must show %q", want)
+	}
+	require.False(t, tester.HasText("At a glance"), "the equal-card section is gone")
+}
+
+// TestDashboardTimelineShowsSequence pins the event stream: every recent
+// record gets a module-coloured point on one spine, and the record itself
+// remains the navigation target.
+func TestDashboardTimelineShowsSequence(t *testing.T) {
+	app := New(&fakeServices{blocks: captureBlocks()})
+	tester := ui.NewTester(app.View, 1280, 2400)
+	tester.Frame()
+
+	first, ok := tester.Find("Alice, Carol")
+	require.True(t, ok)
+	second, ok := tester.Find("GLD")
+	require.True(t, ok)
+	require.Greater(t, second.Y, first.Y, "the timeline must run newest to oldest")
+
+	require.NoError(t, tester.Click("Alice, Carol"))
+	tester.Frame()
+	require.Equal(t, pageLottery, app.page)
+}
+
+// TestDashboardCompositionStacksAtMinimumWidth keeps the module rail usable at
+// the 900px minimum instead of pushing its fourth card off the window.
+func TestDashboardCompositionStacksAtMinimumWidth(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 900, 2600)
+	tester.Frame()
+
+	lottery, ok := tester.Find("Total Lotteries")
+	require.True(t, ok)
+	voting, ok := tester.Find("3 measures")
+	require.True(t, ok)
+	oracle, ok := tester.Find("Registered data feeds")
+	require.True(t, ok)
+	ledger, ok := tester.Find("Entries on the audit chain")
+	require.True(t, ok)
+	require.Greater(t, voting.Y, lottery.Y, "the narrow rail stacks in module order")
+	require.Greater(t, oracle.Y, voting.Y, "the oracle follows voting")
+	require.Greater(t, ledger.Y, oracle.Y, "the audit chain stays last")
+	require.LessOrEqual(t, oracle.X+oracle.W, float32(900),
+		"every module tile must stay inside the window")
+}
+
+// TestDashboardSharesUseTheVotingTotal keeps voting's three scales in the
+// denominator. Before, voting always reached the largest rail while a smaller
+// ledger showed a shorter one, even though both sums were stored totals.
+func TestDashboardSharesUseTheVotingTotal(t *testing.T) {
+	stats := DashboardStats{
+		Lotteries:  2,
+		Votes:      9,
+		Candidates: 2,
+		Sessions:   1,
+		Oracle:     3,
+		Blocks:     5,
+	}
+	require.Equal(t, float32(100), dashboardShare(pageVoting, stats))
+	require.Less(t, dashboardShare(pageBlockchain, stats), float32(100),
+		"the ledger rail must not tie voting when voting is the larger stored total")
+	require.Less(t, dashboardShare(pageOracle, stats), dashboardShare(pageBlockchain, stats))
+
+	ledgerHeavy := DashboardStats{Lotteries: 1, Oracle: 1, Blocks: 100}
+	require.Equal(t, float32(10), dashboardShare(pageVoting, ledgerHeavy),
+		"an empty voting rail must stay at its visible floor")
+	require.Equal(t, float32(100), dashboardShare(pageBlockchain, ledgerHeavy))
+}
+
+// TestDashboardTimelineSpineMatchesEveryRecord keeps the vertical rule tied to
+// the row it marks. A fixed 52px segment ran through one-line rows and left
+// gaps below wrapped records, so the sequence stopped reading as one spine.
+func TestDashboardTimelineRowsContinueAtLargeText(t *testing.T) {
+	app := New(&fakeServices{blocks: []BlockRow{
+		{
+			Height: 2, Module: "oracle", Action: "Observation", Subject: "68421.50",
+			Facts: []BlockFact{
+				{Label: "Value", Value: "68421.50"},
+				{Label: "Source", Value: "source-1"},
+				{Label: "Observed", Value: "2026-10-30T09:15:00+08:00"},
+			},
+		},
+		{Height: 1, Module: "lottery", Action: "Draw", Subject: "Alice"},
+	}})
+	tester := ui.NewTester(app.View, 900, 700)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	first, ok := tester.Find("68421.50")
+	require.True(t, ok)
+	app.scroll.Y = max(0, first.Y-260)
+	tester.Frame()
+	first, ok = tester.Find("68421.50")
+	require.True(t, ok)
+	second, ok := tester.Find("Alice")
+	require.True(t, ok)
+	require.Greater(t, second.Y, first.Y+first.H,
+		"the next record must follow the wrapped row")
+}
+
+// TestDashboardHeroKeepsVerdictWholeAtLargeText catches the regression where
+// the action squeezed the verdict row until "verified" and its badge clipped.
+func TestDashboardHeroKeepsVerdictWholeAtLargeText(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 900)
+	tester.SetPreferences(ui.Preferences{TextScale: 2})
+	tester.Frame()
+
+	for _, want := range []string{"verified", "Hash chain", "Open ledger"} {
+		require.Truef(t, tester.HasText(want), "the hero must keep %q readable", want)
+	}
+	verdict, ok := tester.Find("verified")
+	require.True(t, ok)
+	badge, ok := tester.Find("Hash chain")
+	require.True(t, ok)
+	action, ok := tester.Find("Open ledger")
+	require.True(t, ok)
+	require.LessOrEqual(t, verdict.X+verdict.W, float32(1280))
+	require.LessOrEqual(t, badge.X+badge.W, float32(1280))
+	require.Greater(t, action.Y, verdict.Y+verdict.H,
+		"the ledger route moves below the verdict when text is enlarged")
 }
 
 // TestStatChipsKeepFactsBesideTheirCollection pins the ledger page's compact

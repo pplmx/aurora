@@ -65,34 +65,6 @@ func blockRecord(c *ui.Context, entry BlockRow, expanded bool, onToggle func()) 
 	return panel
 }
 
-// selectableBlockRecord draws the same record as one button that reports a
-// click. The dashboard uses it so the whole entry is the route to the module
-// that wrote it: a reader who sees "token · Mint · GLD" expects to arrive at
-// tokens, not to hunt for a link beneath it.
-func selectableBlockRecord(c *ui.Context, entry BlockRow) (ui.Element, bool) {
-	b := ui.ButtonBase(c).FillWidth().Padding(space3+2, space4).Gap(space2 + 2).
-		Radius(radiusSmall + 2).AlignItems(ui.Start).Label(blockRecordLabel(entry))
-	tone := recordModuleTone(c, entry.Module)
-	fill, outline := c.Theme().Background.Mix(c.Theme().Surface, 0.35), c.Theme().Border
-	switch {
-	case b.Pressed():
-		fill = c.Theme().SurfacePressed
-		outline = tone.Alpha(0.45)
-	case b.Hovered():
-		fill = c.Theme().SurfaceHover
-		outline = tone.Alpha(0.45)
-	}
-	b.Background(b.AnimateColor("record-fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
-	b.BorderWidth(1).BorderColor(outline)
-	b.Children(func() {
-		ui.Column(c).FillWidth().Gap(space2 + 2).Children(func() {
-			recordSentence(c, entry, false, nil)
-			recordFacts(c, entry)
-		})
-	})
-	return b, b.Clicked()
-}
-
 // recordSurface is the recessed card a record sits on. It is one step below
 // the page's own cards: a record is an entry inside the ledger card, not a
 // section of the page.

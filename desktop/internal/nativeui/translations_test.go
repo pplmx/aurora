@@ -38,8 +38,6 @@ var translatedCallArgs = map[string][]int{
 	"sectionRule":          {0},
 	"formCard":             {0, 1},
 	"emptyState":           {2, 3},
-	"actionCard":           {0},
-	"metricCard":           {0, 1, 2},
 	"badge":                {0},
 	"guide":                {2, 3, 4, 5, 6},
 	"loadWarning":          {0},
