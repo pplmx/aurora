@@ -11,6 +11,18 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **Guide and empty-state copy names the card, not the column**: the two-column
+  workbench stacks below 1240px, and any text scale that crosses the threshold,
+  so "left column" and "on the right" pointed nowhere on narrow or large-text
+  windows. The steps now name the card ("Register Voter", "Add Source",
+  "Allowance"), and two empty states that said "above" point at the create form
+  that actually sits below the list.
+- **Readouts tell an empty result from a missing first step**: NFT History, the
+  voting tally and feed health each said "nothing loaded" while their id field
+  was simply empty. They now name the missing step (choose the asset, session or
+  feed, or paste its id) and keep the "not loaded" and "nothing recorded" lines
+  for a real empty read; an empty Oracle Health with no feeds asks for a source
+  instead of waiting for a poll.
 - **An empty module opens on its first record instead of a dead-end page**:
   Token, Oracle and NFT show their create form beside a numbered path to what
   opens after the first write, and Voting's Setup stage leads with its two
@@ -701,6 +713,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Fixed
 
+- **A failed feed fetch is named once**: the Oracle fetcher wrapped transport
+  errors with "failed to fetch data" and the fetch use case wrapped the result
+  again, so Feed Health read "failed to fetch data: failed to fetch data:
+  request failed: ...". The use case now owns the operation phrase while the
+  fetcher reports only why the request failed.
 - **Candidate registration and both Burn actions follow form readiness**:
   Register Candidate, Burn, and Burn NFT could open a submit or confirmation
   path with required fields empty. Their actions now stay disabled until every
