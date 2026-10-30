@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"crypto/ed25519"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -102,7 +103,7 @@ func TestNFTList_Populated(t *testing.T) {
 func TestNFTTransfer_HappyPath(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		pub, priv := nftKeypair(t)
-		to, _ := nftKeypair(t)
+		to, toPriv := nftKeypair(t)
 
 		out, err := runCmd(t, "nft", "mint",
 			"--name", "Item", "--creator", pub)
@@ -115,6 +116,25 @@ func TestNFTTransfer_HappyPath(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, tout, "NFT transferred successfully!")
 		assert.Contains(t, tout, "To:")
+
+		// The owner transfers it back through --json: the operation document
+		// carries the id, both sides and the block height.
+		tout, err = runCmd(t, "nft", "transfer",
+			"--nft", id, "--from", to, "--to", pub, "--private-key", toPriv, "--json")
+		require.NoError(t, err)
+		var op struct {
+			ID          string `json:"id"`
+			NFTID       string `json:"nft_id"`
+			From        string `json:"from"`
+			To          string `json:"to"`
+			BlockHeight int64  `json:"block_height"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(tout), &op), "got %q", tout)
+		assert.NotEmpty(t, op.ID)
+		assert.Equal(t, id, op.NFTID)
+		assert.Equal(t, to, op.From)
+		assert.Equal(t, pub, op.To)
+		assert.Greater(t, op.BlockHeight, int64(0))
 	})
 }
 
@@ -150,6 +170,22 @@ func TestNFTBurn_HappyPath(t *testing.T) {
 			"--nft", id, "--owner", pub, "--private-key", priv, "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, bout, "NFT burned successfully!")
+
+		// A second asset burns through --json; the document matches the REST
+		// endpoint's {"status":"burned"}.
+		out, err = runCmd(t, "nft", "mint", "--name", "BurnJSON", "--creator", pub)
+		require.NoError(t, err)
+		second := extractField(t, out, "ID:")
+		require.NotEmpty(t, second)
+
+		out, err = runCmd(t, "nft", "burn",
+			"--nft", second, "--owner", pub, "--private-key", priv, "--confirm", "--json")
+		require.NoError(t, err)
+		var burned struct {
+			Status string `json:"status"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &burned), "got %q", out)
+		assert.Equal(t, "burned", burned.Status)
 	})
 }
 
