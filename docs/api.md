@@ -319,6 +319,21 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 | GET  | `/api/v1/token/info`          | 代币元数据（`token_id`）                                                        |
 | GET  | `/api/v1/token/list`          | 代币列表，存储层分页；默认 20，支持 `limit`/`offset`                            |
 
+写接口的请求体字段（金额是十进制字符串，公钥/私钥是 base64；签名由服务端用
+请求里的私钥完成，客户端不必自己签名）：
+
+| 端点                  | 字段                                                                  |
+| --------------------- | --------------------------------------------------------------------- |
+| `token/create`        | `name`、`symbol`、`total_supply`、`owner`、`decimals`（0..127，可选） |
+| `token/mint`          | `token_id`、`to`、`amount`、`private_key`                             |
+| `token/transfer`      | `token_id`、`from`、`to`、`amount`、`private_key`                     |
+| `token/approve`       | `token_id`、`owner`、`spender`、`amount`、`private_key`               |
+| `token/transfer_from` | `token_id`、`owner`、`to`、`amount`、`spender`、`spender_key`         |
+| `token/burn`          | `token_id`、`from`、`amount`、`private_key`                           |
+
+创建只登记 `owner` 公钥、不要求签名；之后的每次写都必须由该公钥对应的私钥
+（或 `spender_key`）签名，私钥与登记公钥不匹配时返回 `401 INVALID_SIGNATURE`。
+
 未知 `token_id` 的读接口返回 `404 TOKEN_NOT_FOUND`，与 `info` 一致——不会用
 `200 {"amount":"0"}` 或 `200 []` 把“代币不存在”伪装成“没有活动”。
 余额、授权和历史中的非空 `owner`/`spender` 必须解码为 32 字节 Ed25519 公钥；
