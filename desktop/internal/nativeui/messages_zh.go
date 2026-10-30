@@ -117,7 +117,8 @@ var desktopMessages = map[string]string{
 	"Summary":                   "摘要",
 	"Height":                    "高度",
 	"Payload":                   "载荷",
-	"Copy payload":              "复制载荷",
+	"Open Payload to read the exact recorded bytes, then Copy payload to put them on the clipboard.": "展开「载荷」查看链上原文，再用「复制载荷」把它放到剪贴板。",
+	"Copy payload": "复制载荷",
 	// The ledger's record language. A record reads as module · action ·
 	// object, so its verbs and fact labels are visible copy like any other.
 	"block %d":                           "区块 %d",
