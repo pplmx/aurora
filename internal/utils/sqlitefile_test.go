@@ -7,6 +7,9 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSQLiteFilePath(t *testing.T) {
@@ -241,4 +244,20 @@ func sqliteFileURI(t *testing.T, path string) string {
 		uriPath = "/" + uriPath
 	}
 	return (&url.URL{Scheme: "file", Path: uriPath}).String()
+}
+
+// TestSQLiteDiskUsageCountsSidecars pins the definition both `aurora lottery
+// db-info` and the desktop's Settings readout use: the database plus the files
+// SQLite keeps beside it. A missing file contributes nothing.
+func TestSQLiteDiskUsageCountsSidecars(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "aurora.db")
+	require.NoError(t, os.WriteFile(dbPath, make([]byte, 120), 0o600))
+	require.NoError(t, os.WriteFile(dbPath+"-wal", make([]byte, 30), 0o600))
+
+	assert.Equal(t, int64(150), SQLiteDiskUsage(dbPath))
+	assert.Equal(t, int64(0), SQLiteDiskUsage(filepath.Join(dir, "never-written.db")))
+
+	require.NoError(t, os.Remove(dbPath+"-wal"))
+	assert.Equal(t, int64(120), SQLiteDiskUsage(dbPath))
 }
