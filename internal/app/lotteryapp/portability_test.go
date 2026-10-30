@@ -254,3 +254,31 @@ func TestWriteRecordsToFile_WritesAnEmptyArray(t *testing.T) {
 	require.NoError(t, err)
 	assert.JSONEq(t, "[]", string(data))
 }
+
+// TestReadImportFileBoundsTheDocument: an oversized file is refused before the
+// parser sees it, through a sentinel a presentation layer can name instead of
+// echoing a byte count.
+func TestReadImportFileBoundsTheDocument(t *testing.T) {
+	dir := t.TempDir()
+
+	small := filepath.Join(dir, "draws.json")
+	require.NoError(t, os.WriteFile(small, []byte(`{"draws":[]}`), 0o644))
+	data, err := ReadImportFile(small)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"draws":[]}`, string(data))
+
+	// A sparse file past the limit: the reader stops at MaxImportFileSize+1
+	// bytes, so the test does not need to write 64 MiB of real content.
+	big := filepath.Join(dir, "big.json")
+	f, err := os.Create(big)
+	require.NoError(t, err)
+	require.NoError(t, f.Truncate(MaxImportFileSize+1))
+	require.NoError(t, f.Close())
+
+	_, err = ReadImportFile(big)
+	require.ErrorIs(t, err, ErrImportFileTooLarge)
+
+	_, err = ReadImportFile(filepath.Join(dir, "missing.json"))
+	require.Error(t, err)
+	require.NotErrorIs(t, err, ErrImportFileTooLarge)
+}

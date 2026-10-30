@@ -11,6 +11,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **An oversized import file is refused before it is read**: the CLI and the
+  desktop read the dropped/selected JSON whole, so a wrong file (a video, a
+  multi-gigabyte dump) grew the process by its size before the parser rejected
+  it. Both now go through one reader capped at 64 MiB, and the CLI reference
+  states the limit.
 - **Metrics carry an `aurora_` namespace**: the exporter emitted bare
   `http_requests_total` and `oracle_fetch_*`, which collide with other
   exporters on a shared scrape; every metric is now `aurora_…`, the

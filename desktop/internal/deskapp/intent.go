@@ -213,7 +213,7 @@ func IsDeepLink(arg string) bool {
 // importLotteryFile reads the document before touching storage; the provider
 // then supplies the shared repository or a short-lived fallback.
 func importLotteryFile(repoProvider lotteryRepoProvider, path string) (lotteryapp.ImportResult, error) {
-	document, err := os.ReadFile(path)
+	document, err := lotteryapp.ReadImportFile(path)
 	if err != nil {
 		return lotteryapp.ImportResult{}, err
 	}
