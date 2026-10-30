@@ -16,7 +16,6 @@ var englishMessages = map[string]string{
 	"blockchain.blocks_limit":      "Maximum blocks to list (0 lists all)",
 	"blockchain.blocks_offset":     "Offset in entries",
 	"blockchain.blocks_search":     "Filter by recorded text (case-insensitive)",
-	"blockchain.json":              "Print JSON instead of a table",
 	"blockchain.blocks_no_match":   "No record matches %q.",
 	"blockchain.blocks_empty_page": "No entries on this page; the ledger has %d in total.",
 	"blockchain.length":            "Blocks",
@@ -368,6 +367,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 
 	// ===== COMMON =====
 	"common.id":               "ID",
+	"common.json":             "Print JSON instead of a table",
 	"common.name":             "Name",
 	"common.owner":            "Owner",
 	"common.from":             "From",

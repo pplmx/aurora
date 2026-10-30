@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -36,7 +35,7 @@ var blockchainVerifyCmd = &cobra.Command{
 			return wrapCLIError("blockchain.error.init", err)
 		}
 		report := chain.VerifyIntegrity()
-		if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
+		if jsonRequested(cmd) {
 			return printJSON(report)
 		}
 
@@ -94,7 +93,7 @@ var blockchainBlocksCmd = &cobra.Command{
 				return strings.Contains(strings.ToLower(entry.Data), needle)
 			})
 		}
-		if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
+		if jsonRequested(cmd) {
 			return printBlocksJSON(entries, total, limit, offset)
 		}
 
@@ -128,9 +127,8 @@ func init() {
 	blockchainBlocksCmd.Flags().IntP("limit", "l", 20, i18n.GetText("blockchain.blocks_limit"))
 	blockchainBlocksCmd.Flags().IntP("offset", "p", 0, i18n.GetText("blockchain.blocks_offset"))
 	blockchainBlocksCmd.Flags().StringP("search", "s", "", i18n.GetText("blockchain.blocks_search"))
-	for _, cmd := range []*cobra.Command{blockchainVerifyCmd, blockchainBlocksCmd} {
-		cmd.Flags().Bool("json", false, i18n.GetText("blockchain.json"))
-	}
+	addJSONFlag(blockchainVerifyCmd)
+	addJSONFlag(blockchainBlocksCmd)
 }
 
 // printBlocksJSON writes the audit page in the same shape the REST endpoint
@@ -153,15 +151,4 @@ func printBlocksJSON(entries []ledger.BlockEntry, total, limit, offset int) erro
 		})
 	}
 	return printJSON(page)
-}
-
-// printJSON emits one indented document on stdout and nothing else, so a caller
-// can pipe the command into jq without stripping a banner.
-func printJSON(value any) error {
-	out, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return wrapCLIError("blockchain.error.json", err)
-	}
-	fmt.Println(string(out))
-	return nil
 }

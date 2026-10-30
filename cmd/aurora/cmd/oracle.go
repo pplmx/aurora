@@ -100,6 +100,12 @@ var sourceListCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("oracle.error.list_sources", err)
 		}
+		if jsonRequested(cmd) {
+			if resp.Sources == nil {
+				resp.Sources = []*oracleapp.SourceResponse{}
+			}
+			return printJSON(resp.Sources)
+		}
 
 		if limit > 0 {
 			fmt.Printf("\n📡 %s: %s\n",
@@ -373,6 +379,7 @@ func init() {
 	oracleCmd.AddCommand(sourceCmd)
 	sourceCmd.AddCommand(sourceAddCmd)
 	sourceCmd.AddCommand(sourceListCmd)
+	addJSONFlag(sourceListCmd)
 	sourceCmd.AddCommand(sourceDeleteCmd)
 	sourceCmd.AddCommand(sourceEnableCmd)
 	sourceCmd.AddCommand(sourceDisableCmd)

@@ -99,6 +99,7 @@ func init() {
 	tokenCmd.AddCommand(tokenHistoryCmd)
 	tokenCmd.AddCommand(tokenInfoCmd)
 	tokenCmd.AddCommand(tokenListCmd)
+	addJSONFlag(tokenListCmd)
 
 	tokenCreateCmd.Flags().StringP("name", "n", "", i18n.GetText("token.name"))
 	tokenCreateCmd.Flags().StringP("symbol", "s", "", i18n.GetText("token.symbol"))
@@ -259,6 +260,20 @@ var tokenListCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("token.error.list", err)
 		}
+		if jsonRequested(cmd) {
+			out := make([]tokenJSON, 0, len(tokens))
+			for _, tk := range tokens {
+				out = append(out, tokenJSON{
+					ID:          string(tk.ID()),
+					Name:        tk.Name(),
+					Symbol:      tk.Symbol(),
+					TotalSupply: tk.TotalSupply().String(),
+					Decimals:    tk.Decimals(),
+					Owner:       b64Encode(tk.Owner()),
+				})
+			}
+			return printJSON(out)
+		}
 		if len(tokens) == 0 {
 			fmt.Println(i18n.GetText("token.no_tokens"))
 			return nil
@@ -343,4 +358,15 @@ func parseTokenDecimals(s string) (int8, error) {
 		return 0, newCLIError("token.error.invalid_decimals_range", d, math.MaxInt8)
 	}
 	return int8(d), nil
+}
+
+// tokenJSON mirrors the REST token list so a script parses one shape whether it
+// called the CLI or the API.
+type tokenJSON struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Symbol      string `json:"symbol"`
+	TotalSupply string `json:"total_supply"`
+	Decimals    int8   `json:"decimals"`
+	Owner       string `json:"owner"`
 }
