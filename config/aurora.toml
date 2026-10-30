@@ -1,10 +1,18 @@
 [server]
+# Listen address for aurora-api. Precedence: flags (-H/--host, -p/--port), then
+# AURORA_SERVER_HOST / AURORA_SERVER_PORT, then this file.
 host = "0.0.0.0"
 port = 8080
 
 [log]
 level = "info"
 path = "./logs/"
+
+# [api] configures the REST server's own settings. The key is required in
+# production: aurora-api reads AURORA_API_KEY first, then this section's key.
+# Keep real keys in the environment or an untracked copy of this file.
+[api]
+# key = "change-me"
 
 [db]
 # SQLite is the only supported backend. path is the database file location;
