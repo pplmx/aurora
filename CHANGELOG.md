@@ -598,8 +598,10 @@ The milestone notes under `.planning/` are history, not current instructions.
   healthy?" — needed `db-info` + `blockchain verify` + `migrate status` three
   times over. One command now checks config, database, migrations, ledger
   integrity and the audit outbox in a fixed order, with `--json` for scripts and
-  an exit code that fails only on real problems (pending migrations and a
-  backlogged outbox are warnings).
+  an exit code that fails only on real problems. A backlogged outbox warns; a
+  dirty migration fails; pending migrations are informational, because a
+  CLI-created database always reports schema 0 (the repositories create their
+  tables lazily and the API migrates on boot).
 - **The CLI's read commands print JSON**: every list (`lottery history`,
   `token list`, `nft list`, the three voting lists, `oracle source list`), the
   single-record reads (`lottery verify`, `token info`/`balance`/`allowance`/`history`,

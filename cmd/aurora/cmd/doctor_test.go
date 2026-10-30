@@ -3,14 +3,18 @@ package cmd
 import (
 	"database/sql"
 	"encoding/json"
+	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pplmx/aurora/internal/domain/events"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
+	infraevents "github.com/pplmx/aurora/internal/infra/events"
 )
 
 // TestDoctorReportsAHealthyInstallation: the table names every check and the
@@ -19,6 +23,16 @@ import (
 func TestDoctorReportsAHealthyInstallation(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setTestLocale(t, "en")
+
+		// Point the schema check at the repository's migrations, the way an
+		// installed binary sits next to its migrations directory. The temp
+		// working directory makes the configured relative path useless, so
+		// resolve it from this file's location.
+		_, file, _, ok := runtime.Caller(0)
+		require.True(t, ok)
+		before := viper.GetString("migrate.path")
+		viper.Set("migrate.path", filepath.Join(filepath.Dir(file), "..", "..", "..", "migrations"))
+		t.Cleanup(func() { viper.Set("migrate.path", before) })
 
 		out, err := runCmd(t, "doctor")
 		require.NoError(t, err)
@@ -45,6 +59,45 @@ func TestDoctorReportsAHealthyInstallation(t *testing.T) {
 		assert.Equal(t, "ledger", report.Checks[3].Name)
 		assert.Equal(t, "outbox", report.Checks[4].Name)
 		assert.NotEmpty(t, report.Checks[1].Detail)
+		assert.Equal(t, "ok", report.Checks[2].Status,
+			"pending migrations are informational; detail: %s", report.Checks[2].Detail)
+	})
+}
+
+// TestDoctorWarnsOnPendingOutbox: an audit event waiting for the drainer needs
+// attention but does not fail the command — the event is not lost.
+func TestDoctorWarnsOnPendingOutbox(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		dbPath := blockchain.DBPath()
+		require.NoError(t, os.MkdirAll(filepath.Dir(dbPath), 0o700))
+		store, err := infraevents.NewSQLiteEventStore(dbPath)
+		require.NoError(t, err)
+		require.NoError(t, store.EnqueuePending(
+			events.NewBaseEvent("test.audit", "agg-1", []byte(`{"k":1}`))))
+		require.NoError(t, store.Close())
+
+		out, err := runCmd(t, "doctor")
+		require.NoError(t, err)
+		assert.Contains(t, out, "▲ Audit outbox")
+
+		out, err = runCmd(t, "doctor", "--json")
+		require.NoError(t, err)
+		var report struct {
+			Checks []struct {
+				Name   string `json:"name"`
+				Status string `json:"status"`
+			} `json:"checks"`
+			OK bool `json:"ok"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &report), "got %q", out)
+		assert.True(t, report.OK)
+		for _, check := range report.Checks {
+			if check.Name == "outbox" {
+				assert.Equal(t, "warn", check.Status)
+			}
+		}
 	})
 }
 

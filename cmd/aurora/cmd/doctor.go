@@ -121,11 +121,12 @@ func doctorMigrationsCheck() doctorCheck {
 		return doctorCheck{Name: "migrations", Status: doctorFail,
 			Detail: i18n.GetTextF("doctor.detail.migrations_dirty", status.Current)}
 	}
-	detail := i18n.GetTextF("doctor.detail.migrations", status.Current, len(status.PendingVersions))
-	if len(status.PendingVersions) > 0 {
-		return doctorCheck{Name: "migrations", Status: doctorWarn, Detail: detail}
-	}
-	return doctorCheck{Name: "migrations", Status: doctorOK, Detail: detail}
+	// Pending migrations are the normal state of a CLI-created database (the
+	// repositories create their tables lazily and the API applies migrations on
+	// boot), so the count is reported but does not warn: warning on it would cry
+	// wolf on every CLI-only installation.
+	return doctorCheck{Name: "migrations", Status: doctorOK,
+		Detail: i18n.GetTextF("doctor.detail.migrations", status.Current, len(status.PendingVersions))}
 }
 
 // doctorLedgerCheck re-runs the same integrity verification the blockchain
