@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
+	"github.com/pplmx/aurora/internal/ledger"
 	"github.com/spf13/cobra"
 )
 
@@ -65,19 +67,41 @@ var blockchainBlocksCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		search, err := cmd.Flags().GetString("search")
+		if err != nil {
+			return err
+		}
 		chain, err := blockchain.InitWithError()
 		if err != nil {
 			return wrapCLIError("blockchain.error.init", err)
 		}
 
-		entries := chain.BlockEntriesPage(limit, offset)
-		total := chain.Len() - 1
-		if total < 0 {
-			total = 0
+		search = strings.TrimSpace(search)
+		var entries []ledger.BlockEntry
+		total := 0
+		if search == "" {
+			entries = chain.BlockEntriesPage(limit, offset)
+			if total = chain.Len() - 1; total < 0 {
+				total = 0
+			}
+		} else {
+			needle := strings.ToLower(search)
+			entries, total = chain.BlockEntriesPageMatching(limit, offset, func(entry ledger.BlockEntry) bool {
+				return strings.Contains(strings.ToLower(entry.Data), needle)
+			})
 		}
 		fmt.Printf("\n🧱 %s: %d\n", i18n.GetText("blockchain.blocks_title"), total)
 		if len(entries) == 0 {
-			fmt.Println("   " + i18n.GetText("blockchain.blocks_empty"))
+			// A filtered miss and an offset past the end are different problems
+			// from an empty ledger; naming the first write would mislead.
+			switch {
+			case total > 0:
+				fmt.Printf("   "+i18n.GetText("blockchain.blocks_empty_page")+"\n", total)
+			case search != "":
+				fmt.Printf("   "+i18n.GetText("blockchain.blocks_no_match")+"\n", search)
+			default:
+				fmt.Println("   " + i18n.GetText("blockchain.blocks_empty"))
+			}
 			return nil
 		}
 		fmt.Println("────────────────────────────")
@@ -95,4 +119,5 @@ func init() {
 	blockchainCmd.AddCommand(blockchainBlocksCmd)
 	blockchainBlocksCmd.Flags().IntP("limit", "l", 20, i18n.GetText("blockchain.blocks_limit"))
 	blockchainBlocksCmd.Flags().IntP("offset", "p", 0, i18n.GetText("blockchain.blocks_offset"))
+	blockchainBlocksCmd.Flags().StringP("search", "s", "", i18n.GetText("blockchain.blocks_search"))
 }

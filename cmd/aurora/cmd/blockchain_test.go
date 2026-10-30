@@ -77,5 +77,23 @@ func TestBlockchainBlocksListsRecordedPayloads(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Audit records: 1")
 		assert.Contains(t, out, `"seed":"demo-seed"`)
+
+		// The filter matches the recorded text regardless of case, and a miss
+		// says so instead of claiming the ledger is empty.
+		out, err = runCmd(t, "blockchain", "blocks", "-s", "DEMO-SEED")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Audit records: 1")
+		assert.Contains(t, out, `"seed":"demo-seed"`)
+
+		out, err = runCmd(t, "blockchain", "blocks", "-s", "no-such-record")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Audit records: 0")
+		assert.Contains(t, out, `No record matches "no-such-record"`)
+
+		// An offset past the last entry is a paging problem, not an empty ledger.
+		out, err = runCmd(t, "blockchain", "blocks", "-p", "5")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Audit records: 1")
+		assert.Contains(t, out, "No entries on this page")
 	})
 }
