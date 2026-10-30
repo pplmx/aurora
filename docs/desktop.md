@@ -674,6 +674,8 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   `nft:Burn`、`nft:History`，并断言这些阶段专有的控件；空库时投票的两个阶段
   改为断言各自首次运行的说明。`AURORA_E2E_THEME=light`
   会先在设置里切到浅色外观，再把截图写到 `dist/e2e/light/`。
+  `AURORA_E2E_SIZE=900x600` 通过预写 `window-state.json` 让窗口以该尺寸打开，
+  用来验收窄窗的堆叠布局；输出目录按变体命名（如 `900-600`、`light-900-600`）。
   离屏 `ui.Tester` 覆盖渲染与行为，打包 job 的 Xvfb 冒烟只证明进程能起，
   这条路径补的是“真实后端画出来的就是测试期望的样子”。需要显示器；Linux
   无显示器时脚本会起一个关掉 GLX 的 Xvfb（带 NVIDIA EGL 的容器里 Xvfb 会

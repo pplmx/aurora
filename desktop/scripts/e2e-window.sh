@@ -18,6 +18,8 @@
 #                       captures show records instead of the first-run pages
 #   AURORA_E2E_THEME    dark (default) or light; light switches the window from
 #                       Settings first and writes under <out>/light
+#   AURORA_E2E_SIZE     window size as WIDTHxHEIGHT (for example 900x600), so
+#                       the narrow stacked layout is captured for real
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -36,14 +38,42 @@ mkdir -p "$out" "$home_dir"
 
 seed=${AURORA_E2E_SEED:-0}
 theme=${AURORA_E2E_THEME:-dark}
-shots=$out
+size=${AURORA_E2E_SIZE:-}
+variant=""
 if [ "$theme" = "light" ]; then
-  # The light run owns this directory, so a page dropped from the run cannot
-  # leave a stale capture behind.
-  shots="$out/light"
+  variant=light
+fi
+if [ -n "$size" ]; then
+  case "$size" in
+    [0-9]*x[0-9]*) ;;
+    *)
+      echo "AURORA_E2E_SIZE must look like 900x600, got: $size" >&2
+      exit 1
+      ;;
+  esac
+  variant=${variant:+$variant-}$(printf '%s' "$size" | tr 'x' '-')
+fi
+shots=$out
+if [ -n "$variant" ]; then
+  # A variant owns its directory, so a page dropped from the run cannot leave a
+  # stale capture behind.
+  shots="$out/$variant"
   rm -rf "$shots"
 fi
 mkdir -p "$shots"
+
+if [ -n "$size" ]; then
+  # MyGo restores the window from window-state.json on PathUserData; writing it
+  # before launch is how the run opens at a size other than the default.
+  width=${size%x*}
+  height=${size#*x}
+  mkdir -p "$home_dir/.config/Aurora"
+  cat >"$home_dir/.config/Aurora/window-state.json" <<EOF
+{
+  "main": {"x": 0, "y": 0, "width": $width, "height": $height}
+}
+EOF
+fi
 
 pages=("$@")
 if [ ${#pages[@]} -eq 0 ]; then
