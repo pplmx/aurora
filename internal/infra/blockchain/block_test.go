@@ -345,6 +345,21 @@ func TestBlockEntriesCarryTheirTimestamps(t *testing.T) {
 
 // TestBlockEntriesPageOffsetsInEntries keeps pagination from confusing a block
 // height with a position: offsets skip non-genesis entries, newest first.
+// TestHeadIdentifiesTheNewestBlock: the head is the chain's identity in a
+// support thread (height plus hash), and a new block moves it.
+func TestHeadIdentifiesTheNewestBlock(t *testing.T) {
+	chain := New()
+	height, hash := chain.Head()
+	require.Equal(t, int64(0), height, "genesis is the first head")
+	require.Len(t, hash, 32, "the head carries the full digest")
+
+	_, err := chain.AddBlock("head-record")
+	require.NoError(t, err)
+	newHeight, newHash := chain.Head()
+	require.Equal(t, int64(1), newHeight)
+	require.NotEqual(t, hash, newHash, "a new block changes the head hash")
+}
+
 func TestBlockEntriesPageOffsetsInEntries(t *testing.T) {
 	chain := New()
 	for _, payload := range []string{"a", "b", "c"} {
