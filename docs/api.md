@@ -236,6 +236,17 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 且当前时间位于会期窗口内时，`/vote` 才会接收选票。`ended`、未知状态或窗口外
 的请求都会以 `SESSION_NOT_STARTED` / `SESSION_ENDED` 拒绝。
 
+投票写接口的请求体字段：
+
+| 端点                        | 字段                                                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `voting/register/voter`     | `name`（非空，≤100 字符）                                                                                                              |
+| `voting/register/candidate` | `name`（非空，≤100）、`party`（可选，≤100）、`program`（可选，≤1000）                                                                  |
+| `voting/session`            | `title`（非空，≤200）、`description`（可选，≤1000）、`candidate_ids`（非空且不重复）、`start_time`/`end_time`（unix 秒，后者必须更晚） |
+
+会期的**请求字段是 `candidate_ids`**（候选人 id 数组），响应里对应字段叫
+`candidates`；两者不是同一个名字，按响应结构回填请求会拿到空名单。
+
 `GET /voting/session/{id}` 与 `POST /voting/session`、`POST /session/{id}/start`、
 `/end` 返回与 `/voting/sessions` 完全相同的字段（snake_case），可以用同一个结构
 解析：
