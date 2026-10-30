@@ -159,6 +159,17 @@ type Registry struct {
 	sum          float64
 	lastLatency  float64
 	gauges       []gauge
+	constants    []constantGauge
+}
+
+// constantGauge is a fixed value with labels, the shape build information uses
+// (`aurora_build_info{version="…",go="…"} 1`): the labels identify the
+// instance, the value is always 1.
+type constantGauge struct {
+	name   string
+	help   string
+	labels map[string]string
+	value  float64
 }
 
 // gauge is one value sampled when the metrics are rendered, e.g. a queue depth.
@@ -176,6 +187,21 @@ func (r *Registry) RegisterGauge(name, help string, read func() (float64, bool))
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.gauges = append(r.gauges, gauge{name: name, help: help, read: read})
+}
+
+// RegisterConstantGauge adds a fixed value carrying labels, the Prometheus
+// convention for build information. Labels render in sorted order so a scrape
+// is byte-stable.
+func (r *Registry) RegisterConstantGauge(name, help string, labels map[string]string, value float64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.constants = append(r.constants, constantGauge{name: name, help: help, labels: labels, value: value})
+}
+
+// escapeLabelValue quotes a label value for the text exposition format.
+func escapeLabelValue(value string) string {
+	replacer := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`)
+	return `"` + replacer.Replace(value) + `"`
 }
 
 func NewRegistry() *Registry {
@@ -226,6 +252,7 @@ func (r *Registry) Handler() http.Handler {
 func (r *Registry) Expose() string {
 	r.mu.RLock()
 	gauges := append([]gauge(nil), r.gauges...)
+	constants := append([]constantGauge(nil), r.constants...)
 	var b strings.Builder
 	fmt.Fprintln(&b, "# HELP aurora_http_requests_total Total HTTP requests handled.")
 	fmt.Fprintln(&b, "# TYPE aurora_http_requests_total counter")
@@ -288,6 +315,22 @@ func (r *Registry) Expose() string {
 		fmt.Fprintf(&b, "# HELP %s %s\n", g.name, g.help)
 		fmt.Fprintf(&b, "# TYPE %s gauge\n", g.name)
 		fmt.Fprintf(&b, "%s %s\n", g.name, strconv.FormatFloat(value, 'f', -1, 64))
+	}
+
+	for _, c := range constants {
+		fmt.Fprintf(&b, "# HELP %s %s\n", c.name, c.help)
+		fmt.Fprintf(&b, "# TYPE %s gauge\n", c.name)
+		keys := make([]string, 0, len(c.labels))
+		for k := range c.labels {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		parts := make([]string, 0, len(keys))
+		for _, k := range keys {
+			parts = append(parts, k+"="+escapeLabelValue(c.labels[k]))
+		}
+		fmt.Fprintf(&b, "%s{%s} %s\n", c.name, strings.Join(parts, ","),
+			strconv.FormatFloat(c.value, 'f', -1, 64))
 	}
 	return b.String()
 }

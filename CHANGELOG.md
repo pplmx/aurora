@@ -623,7 +623,9 @@ The milestone notes under `.planning/` are history, not current instructions.
   `aurora_outbox_pending_events`, the gauge an operator watches when a delivery
   keeps failing while the ledger records (the same count `aurora doctor`
   prints), and `aurora_ledger_blocks`, the ledger height over time. A read
-  failure omits the line for that scrape instead of reporting a stale zero.
+  failure omits the line for that scrape instead of reporting a stale zero. The
+  scrape also carries `aurora_build_info{go,version[,build_time]}`, so a
+  dashboard can tell which build an instance runs.
 - **The lottery history endpoint filters in storage**: `GET /lottery/history?q=`
   matches id, seed, participants and winners case-insensitively, with paging
   inside the match set, mirroring the audit trail's `q`. Filtering a loaded page

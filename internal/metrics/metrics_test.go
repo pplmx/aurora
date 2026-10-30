@@ -377,3 +377,13 @@ func TestRegistryGauges(t *testing.T) {
 	assert.Contains(t, out, "\naurora_outbox_pending_events 3\n")
 	assert.NotContains(t, out, "aurora_unavailable_gauge")
 }
+
+// TestConstantGaugeEscapesLabels pins the text-format escaping: a version string
+// carrying a quote must not break the exposition.
+func TestConstantGaugeEscapesLabels(t *testing.T) {
+	reg := NewRegistry()
+	reg.RegisterConstantGauge("aurora_build_info", "Build identity.",
+		map[string]string{"version": `1.0 "quoted"`, "go": "go1.27"}, 1)
+	out := reg.Expose()
+	assert.Contains(t, out, `aurora_build_info{go="go1.27",version="1.0 \"quoted\""} 1`)
+}
