@@ -42,6 +42,29 @@ func TestEmptyModulesOpenWithTheFirstRecordPage(t *testing.T) {
 	}
 }
 
+// TestFirstRecordPageGivesWayToTheWorkbenchAfterCreate proves the transition,
+// not just the gate: the form on the first-record page lands on the full
+// workbench for the record it just wrote.
+func TestFirstRecordPageGivesWayToTheWorkbenchAfterCreate(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Token")
+	tester.Frame()
+	require.True(t, tester.HasText("First record"))
+
+	app.token.name, app.token.symbol = "Gold", "GLD"
+	app.token.supply, app.token.owner = "1000", "owner-pk"
+	tester.Frame()
+	// The card title and its submit button share the label, so drive the action
+	// the button invokes rather than guessing which node a text click hits.
+	app.createToken()
+	tester.Frame()
+
+	require.False(t, tester.HasText("First record"))
+	require.True(t, tester.HasText("Mint"), "the write tabs follow the first token")
+	require.True(t, tester.HasText("Acting on"))
+}
+
 // TestFirstRecordPageYieldsToWorkInProgress keeps the shortcut from hiding the
 // full workbench: a typed subject, an applied filter or a failed read all mean
 // the operator is not at the first-write state.
