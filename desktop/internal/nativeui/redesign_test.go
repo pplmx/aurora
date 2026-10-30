@@ -368,6 +368,12 @@ func TestVerifyCardOffersTheLatestDraw(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, "draw-7", app.lottery.verifyID)
 	require.NotNil(t, app.lottery.verifyResult, "the latest draw must be verified immediately")
+
+	// The verdict is copyable: a ticket quotes the same words the window shows.
+	require.NoError(t, tester.Click("Copy Verdict"))
+	tester.Frame()
+	require.Equal(t, "Draw ID draw-7: Verified", tester.Clipboard())
+	require.True(t, tester.HasText("Verdict is on the clipboard"))
 }
 
 // TestOracleStageLeadsInAStackedWindow covers the one page whose first column

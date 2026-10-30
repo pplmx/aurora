@@ -29,6 +29,8 @@ var desktopMessages = map[string]string{
 	"Actions":                          "操作",
 	"Copy":                             "复制",
 	"Diagnostics":                      "诊断信息",
+	"Verdict":                          "结论",
+	"Verdict is on the clipboard":      "结论已复制到剪贴板",
 	"Diagnostics are on the clipboard": "诊断信息已复制到剪贴板",
 	"Done":                             "完成",
 	"Done.":                            "完成。",

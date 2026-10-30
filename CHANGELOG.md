@@ -598,6 +598,9 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The desktop copies a draw's verdict**: the Verify card keeps its findings on
+  screen, but a support reply needs text; one action copies `Draw ID …: verified`
+  plus every check line, in the language the window is showing.
 - **Settings copies its diagnostics**: the About card's rows (version, build
   time, database path and size) go to the clipboard as the same text with one
   action, so a support reply quotes the window instead of a typed paraphrase.

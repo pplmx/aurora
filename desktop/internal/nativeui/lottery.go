@@ -333,8 +333,30 @@ func (a *App) lotteryVerify(c *ui.Context) {
 			for _, line := range r.Checks {
 				ui.Text(c, "• "+line).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 			}
+			// A support reply pastes the verdict; selecting rendered text out of
+			// a native window is not always possible.
+			if quietButton(c, tr("Copy")+" "+tr("Verdict")).Clicked() {
+				c.Services().WriteClipboard(lotteryVerdictText(r))
+				c.Toast(tr("Verdict is on the clipboard"))
+			}
 		}
 	})
+}
+
+// lotteryVerdictText renders one draw's verdict and findings as the text an
+// operator pastes into a ticket, in the language the window is showing.
+func lotteryVerdictText(r *VerifyResult) string {
+	verdict := tr("Verified")
+	if !r.Valid {
+		verdict = tr("Failed")
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s %s: %s", tr("Draw ID"), r.ID, verdict)
+	for _, line := range r.Checks {
+		b.WriteString("\n• ")
+		b.WriteString(line)
+	}
+	return b.String()
 }
 
 func (a *App) verifyLottery() {
