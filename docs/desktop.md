@@ -14,7 +14,7 @@ just desktop          # 构建 ./aurora-desktop（需 Go 1.27+ 与 WebKitGTK / W
 ./aurora-desktop 'aurora://lottery?id=<draw>'      # 深链：直接验该期开奖
 ./aurora-desktop aurora-lotteries.json             # 导入一份导出文件
 just desktop-test                                  # 桌面模块测试（just test 只覆盖核心模块）
-just desktop-check                                 # gofmt + build + vet + 纯 Go 测试
+just desktop-check                                 # gofmt + build + vet + lint + 纯 Go 测试
 just desktop-race                                  # 可选 race detector（显式启用 cgo）
 just desktop-package                               # 产出 .deb / tar.gz / desktop entry
 ```

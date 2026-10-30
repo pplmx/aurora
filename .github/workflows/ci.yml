@@ -113,6 +113,15 @@ jobs:
         run: CGO_ENABLED=0 go vet ./...
         working-directory: desktop
 
+      # The root lint job only sees the root module: golangci-lint run ./
+      # never descends into desktop/. Linting here keeps the nested module at
+      # the same bar as the rest of the repository.
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          working-directory: desktop
+          args: --timeout=5m -D errcheck
+
       # `just desktop-check` runs the same cgo-free gates locally.
       - name: Test (pure Go)
         run: CGO_ENABLED=0 go test -count=1 ./...
