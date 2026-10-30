@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -280,6 +281,19 @@ func main() {
 		BuildTime:       meta.BuildTime,
 		DBPath:          meta.DBPath,
 		DatabaseSize:    func() string { return deskapp.DatabaseSizeText(meta.DBPath) },
+		LedgerFacts: func() (int, string, bool, bool) {
+			chain := rt.Services().Ledger()
+			if chain == nil {
+				return 0, "", false, false
+			}
+			report := chain.VerifyIntegrity()
+			_, hash := chain.Head()
+			head := hex.EncodeToString(hash)
+			if len(head) > 12 {
+				head = head[:12]
+			}
+			return chain.Len(), head, report.Valid, true
+		},
 	})
 	// Keep the listener for the whole process, not only for WhenReady: a
 	// deferred unregister inside that callback would make the next OS

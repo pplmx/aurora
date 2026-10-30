@@ -603,7 +603,9 @@ The milestone notes under `.planning/` are history, not current instructions.
   plus every check line, in the language the window is showing.
 - **Settings copies its diagnostics**: the About card's rows (version, build
   time, database path and size) go to the clipboard as the same text with one
-  action, so a support reply quotes the window instead of a typed paraphrase.
+  action, plus one ledger line (block count, short head hash and whether the
+  chain verified), so a support reply quotes the window instead of a typed
+  paraphrase.
 - **`aurora doctor`**: the first support question — "is this installation
   healthy?" — needed `db-info` + `blockchain verify` + `migrate status` three
   times over. One command now checks config, database, migrations, ledger
