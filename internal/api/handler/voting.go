@@ -160,7 +160,7 @@ func (h *VotingHandler) ListCandidates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, result)
+	writeList(w, result)
 }
 
 func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
@@ -172,7 +172,7 @@ func (h *VotingHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, result)
+	writeList(w, result)
 }
 
 func (h *VotingHandler) ListVoters(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +184,7 @@ func (h *VotingHandler) ListVoters(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, result)
+	writeList(w, result)
 }
 
 // votingPage parses the candidate/session/voter list page with the same

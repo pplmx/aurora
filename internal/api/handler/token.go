@@ -292,7 +292,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	// {"transfers":[...]} envelope made the token history page render empty
 	// forever. The use case still speaks HistoryResponse internally (TASK-093,
 	// ISS-086).
-	writeJSON(w, http.StatusOK, result.Transfers)
+	writeList(w, result.Transfers)
 }
 
 // Info returns a token's metadata (name/symbol/total supply/decimals/owner) by
