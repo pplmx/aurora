@@ -130,10 +130,11 @@ func TestFileActionsPauseWhileAWriteOwnsTheDatabase(t *testing.T) {
 func TestPaletteCopiesDiagnostics(t *testing.T) {
 	app := New(&fakeServices{})
 	app.SetActions(Actions{
-		Version:     "v1.2.3",
-		BuildTime:   "2026-10-26T09:00:00Z",
-		DBPath:      "/tmp/aurora/aurora.db",
-		LedgerFacts: func() (int, string, bool, bool) { return 5, "009c4a0820ab", true, true },
+		Version:       "v1.2.3",
+		BuildTime:     "2026-10-26T09:00:00Z",
+		DBPath:        "/tmp/aurora/aurora.db",
+		LedgerFacts:   func() (int, string, bool, bool) { return 5, "009c4a0820ab", true, true },
+		OutboxPending: func() (int, bool) { return 2, true },
 	})
 	tester := ui.NewTester(app.View, 1280, 900)
 	tester.Frame()
@@ -149,7 +150,7 @@ func TestPaletteCopiesDiagnostics(t *testing.T) {
 	tester.Key(0, ui.KeyEnter)
 	tester.Frame()
 	require.Equal(t,
-		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nLedger: 5 blocks, head 009c4a0820ab — chain valid",
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nLedger: 5 blocks, head 009c4a0820ab — chain valid\nAudit outbox: 2 pending events",
 		tester.Clipboard())
 	require.False(t, app.paletteOpen)
 }

@@ -34,6 +34,9 @@ type Actions struct {
 	// for the diagnostics copy. It is asked once per copy, not per frame:
 	// verifying the chain walks every block's proof of work.
 	LedgerFacts func() (blocks int, head string, valid bool, ok bool)
+	// OutboxPending reports the audit events parked in the outbox, the number
+	// `aurora doctor` prints; the diagnostics copy quotes it the same way.
+	OutboxPending func() (pending int, ok bool)
 	// RecentDocuments lists the lottery exports the user opened or saved;
 	// OpenRecent loads one through the same import path as a drop.
 	RecentDocuments func() []string
