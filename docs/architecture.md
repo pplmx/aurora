@@ -33,16 +33,16 @@ desktop          ─┘                                              ^
 
 `go list` 显示的内部边（只列项目包）：
 
-| 包 | 依赖 | 说明 |
-|---|---|---|
-| `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层 | 纯领域模型、服务与仓储接口 |
-| `internal/infra/blockchain` | `ledger`, `logger`, `utils` | 共享账本实现：区块、PoW、SQLite 持久化；`OpenDB`/`NewWithDB` 支持显式实例 |
-| `internal/ledger` | 标准库 | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它 |
-| `internal/app/*` | `domain`, `ledger`（`container` 例外） | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化 |
-| `internal/infra/sqlite` | 全部领域包 | 仓储实现 |
-| `internal/api` | `app`, `app/container`, `domain`, `ledger` | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入 |
-| `desktop/internal/deskapp` | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现 |
-| `desktop/internal/nativeui` | `internal/i18n` | 纯视图状态与 MyGo 控件，不直接打开数据库 |
+| 包                                                         | 依赖                                             | 说明                                                                      |
+| ---------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------- |
+| `internal/domain/{lottery,nft,token,voting,oracle,events}` | 仅标准库与同层                                   | 纯领域模型、服务与仓储接口                                                |
+| `internal/infra/blockchain`                                | `ledger`, `logger`, `utils`                      | 共享账本实现：区块、PoW、SQLite 持久化；`OpenDB`/`NewWithDB` 支持显式实例 |
+| `internal/ledger`                                          | 标准库                                           | 纯账本端口：`BlockWriter`、事务追加助手；domain 与应用层只依赖它          |
+| `internal/app/*`                                           | `domain`, `ledger`（`container` 例外）           | 用例编排；错误哨兵、HTTP fetcher、账本实现均已端口化                      |
+| `internal/infra/sqlite`                                    | 全部领域包                                       | 仓储实现                                                                  |
+| `internal/api`                                             | `app`, `app/container`, `domain`, `ledger`       | HTTP 表示层；数据库、账本、HTTP 与 outbox 实现由 `app/container` 注入     |
+| `desktop/internal/deskapp`                                 | `internal/api`, `app/container`, `app`, `domain` | 桌面适配器；通过 `container.Services` 取依赖，不接触 SQLite/backup 实现   |
+| `desktop/internal/nativeui`                                | `internal/i18n`                                  | 纯视图状态与 MyGo 控件，不直接打开数据库                                  |
 
 ## 已识别的边界问题
 
@@ -121,6 +121,10 @@ container、metrics、scheduler 和 handler 集，构造失败不再散落在 `N
 在中文 locale 下优先查桌面表，未知 key 回退核心目录再回退英文。核心 i18n
 只保留 CLI/服务层文案，并用 `cloneMessages` 隔离 `LoadLocaleFile` 的写入。
 
+**已做**：中文现在有简体与繁体两张表。核心与桌面各自维护 `messages_zh.go`，
+繁体表 `messages_zh_hant.go` 由 `tools/genzhhant` 从简体表生成（OpenCC s2t
+词表 + 现代字形覆盖），`zh-Hant`/`zh-TW`/`zh-HK` 选择它；改词句只改简体表。
+
 ### 6. 领域仍然知道账本实现
 
 token/NFT 领域服务和 lottery/oracle/voting 用例原来直接 import
@@ -146,17 +150,27 @@ app 和 handler 只依赖该端口，`container` 是唯一还 import 账本实�
 ## 目标结构
 
 ```text
+cmd/
+├── aurora/            # CLI 入口
+└── api/               # REST 入口
 internal/
-├── blockchain/        # 共享账本实现：区块/PoW + 持久化 + 单例
+├── domain/            # 实体、领域服务、仓储端口、领域错误（不依赖其它层）
 ├── ledger/            # 账本端口：BlockWriter、事务追加助手
-├── domain/            # 只放实体、领域服务、仓储端口、领域错误
-├── app/               # 用例；只依赖 domain
-├── app/container/     # 组合根：打开存储、构造仓储/用例、生命周期
-├── infra/             # SQLite/HTTP/事件/备份/迁移实现
+├── app/               # 用例；只依赖 domain 与 ledger 端口
+│   └── container/     # 组合根：打开存储、构造仓储/用例、生命周期
+├── infra/             # 端口实现：sqlite、blockchain（共享账本）、http、
+│                      # events、backup、migrate
 ├── api/               # HTTP 路由、handler、中间件
-├── i18n/              # CLI/服务文案；桌面文案由桌面注册（计划）
+├── i18n/              # CLI/服务文案：英文、简体、繁体（繁体由 tools/genzhhant 生成）
+├── config/            # 配置加载、默认值与校验
+├── logger/            # zerolog 装配（级别、文件、权限）
+├── metrics/           # 请求指标注册表与 Prometheus 文本
+├── netguard/          # 出站地址校验（SSRF 守卫）
+├── background/        # 后台循环辅助
 ├── repocheck/         # 仓库级机械契约
 └── utils/             # 无业务语义的工具
+tools/                 # 仓库工具：genzhhant（繁体表）、coverfloor（覆盖率底线）
+desktop/               # 嵌套 Go 模块：MyGo 原生窗口（deskapp 适配层 + nativeui 视图）
 ```
 
 ## 执行顺序
