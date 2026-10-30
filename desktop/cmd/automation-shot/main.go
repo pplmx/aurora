@@ -81,6 +81,7 @@ func main() {
 	expect := flag.String("expect", "", "texts that must appear in the window's accessibility tree, comma-separated")
 	press := flag.String("press", "", "element keys or labels to press in order, comma-separated")
 	scrollTo := flag.String("scroll-to", "", "texts whose element is scrolled into view before capturing, comma-separated")
+	checkLabels := flag.Bool("check-labels", true, "fail when an interactive node has no accessible name")
 	window := flag.Int("window", 0, "index of the window to capture")
 	timeout := flag.Duration("timeout", 15*time.Second, "how long to wait for the window")
 	flag.Parse()
@@ -89,13 +90,13 @@ func main() {
 		fmt.Fprintln(os.Stderr, "automation-shot: -socket and -out are required")
 		os.Exit(2)
 	}
-	if err := run(*socket, *out, *expect, *press, *scrollTo, *window, *timeout); err != nil {
+	if err := run(*socket, *out, *expect, *press, *scrollTo, *checkLabels, *window, *timeout); err != nil {
 		fmt.Fprintln(os.Stderr, "automation-shot:", err)
 		os.Exit(1)
 	}
 }
 
-func run(socket, out, expect, press, scrollTo string, index int, timeout time.Duration) error {
+func run(socket, out, expect, press, scrollTo string, checkLabels bool, index int, timeout time.Duration) error {
 	conn, err := dial(socket, timeout)
 	if err != nil {
 		return err
@@ -160,6 +161,12 @@ func run(socket, out, expect, press, scrollTo string, index int, timeout time.Du
 		}
 		fmt.Printf("scrolled to %q\n", want)
 		if err := settle(); err != nil {
+			return err
+		}
+	}
+
+	if checkLabels {
+		if err := client.requireLabels(win.ID); err != nil {
 			return err
 		}
 	}
@@ -352,4 +359,48 @@ func (p *protocol) scrollIntoView(window int, text string) error {
 		return p.call("act", map[string]any{"window": window, "id": node.ID, "action": "scrollIntoView"}, nil)
 	}
 	return fmt.Errorf("no element showing %q", text)
+}
+
+// interactiveRoles are the nodes a screen reader announces as controls. A
+// nameless one is a failure no screenshot can show.
+var interactiveRoles = map[string]bool{
+	"button": true, "textField": true, "tab": true, "treeItem": true,
+	"checkBox": true, "radio": true, "comboBox": true, "popUpButton": true,
+	"menuButton": true, "stepper": true,
+}
+
+// unlabeledInteractive names the interactive nodes without a label or
+// description; either counts as an accessible name.
+func unlabeledInteractive(nodes []treeNode) []string {
+	missing := make([]string, 0, len(nodes))
+	for _, node := range nodes {
+		if !interactiveRoles[node.Role] {
+			continue
+		}
+		if strings.TrimSpace(node.Label) != "" || strings.TrimSpace(node.Description) != "" {
+			continue
+		}
+		missing = append(missing, fmt.Sprintf("%s %q", node.Role, node.Value))
+	}
+	return missing
+}
+
+// requireLabels fails the capture when the window shows a control a screen
+// reader would announce without a name.
+func (p *protocol) requireLabels(window int) error {
+	var tree struct {
+		Nodes []treeNode `json:"nodes"`
+	}
+	if err := p.call("tree", map[string]any{"window": window}, &tree); err != nil {
+		return err
+	}
+	missing := unlabeledInteractive(tree.Nodes)
+	if len(missing) == 0 {
+		return nil
+	}
+	shown := missing
+	if len(shown) > 5 {
+		shown = append(append([]string{}, shown[:5]...), fmt.Sprintf("and %d more", len(missing)-5))
+	}
+	return fmt.Errorf("controls without an accessible name: %s", strings.Join(shown, ", "))
 }

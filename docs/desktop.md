@@ -691,7 +691,10 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   `AURORA_E2E_SIZE=900x600` 通过预写 `window-state.json` 让窗口以该尺寸打开，
   用来验收窄窗的堆叠布局；输出目录按变体命名（如 `900-600`、`light-900-600`）。
   窄窗下阶段内容位于左栏之后，脚本会把该阶段的标记控件滚进视野再截图，否则只会
-  拍到页面顶部。
+  拍到页面顶部。每次截图还会检查无障碍名称：按钮、输入框、tab、列表行、复选框等
+  交互节点必须带 label 或 description，否则该次截图失败（`automation-shot:
+  controls without an accessible name: button ""`），所以截图跑通也证明这些控件
+  对屏幕阅读器不是无名控件。
   离屏 `ui.Tester` 覆盖渲染与行为，打包 job 的 Xvfb 冒烟只证明进程能起，
   这条路径补的是“真实后端画出来的就是测试期望的样子”。需要显示器；Linux
   无显示器时脚本会起一个关掉 GLX 的 Xvfb（带 NVIDIA EGL 的容器里 Xvfb 会
