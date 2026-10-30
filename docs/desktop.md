@@ -502,8 +502,8 @@ just check && just test
 
 - **深链**：`aurora://lottery?id=<draw>` 由 `mygo.config.ts` 的 `urlSchemes`
   注册；Linux/Windows 每次启动还会调用 `App.RegisterURLScheme`（无需安装器）。
-  `aurora://` 与 `aurora://index` 明确指向仪表盘（从任何页面都会切回），不会因为
-  “页面为空”而被当成无效链接。
+  `aurora://` 与 `aurora://dashboard` 明确指向仪表盘（从任何页面都会切回），不会
+  因为“页面为空”而被当成无效链接。
   第二次启动把链接交给已运行实例后，窗口会立刻重绘到目标页（`Navigate` 在
   `ShowIntent` 后调用 `Window.Invalidate`）；此前状态已切换但屏幕停在旧页，直到
   下一次输入才更新（实测：修复前第二实例打开 `aurora://voting` 截图与 token 页

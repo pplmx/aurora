@@ -820,12 +820,6 @@ func (a *App) Reload() { a.refresh() }
 // empty name leaves the current page alone: a malformed link must not blank
 // the window.
 func (a *App) ShowPage(name string) {
-	// "index" is the old dashboard document; a link or a caller may still
-	// spell the destination that way.
-	if strings.EqualFold(name, "index") {
-		a.setPage(pageDashboard)
-		return
-	}
 	for p, id := range pageIDs {
 		// The ids are the stable contract (sidebar choices, deep links); the
 		// titles are shown text and may be translated.
