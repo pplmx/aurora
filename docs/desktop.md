@@ -662,6 +662,8 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   并断言无障碍树里出现该页标题。插件只在 `e2e` build tag 下被
   `cmd/aurora-desktop/automation_e2e.go` 引入，发布构建不含监听器；客户端是
   `desktop/cmd/automation-shot`，只走标准库和插件的新行分隔 JSON 协议。
+  它先按元素的稳定 key 点击（侧栏页名），没有 key 时再按无障碍标签点击
+  （页内 tab），所以同一套命令也能翻到 Ballot、Results 这类阶段。
   离屏 `ui.Tester` 覆盖渲染与行为，打包 job 的 Xvfb 冒烟只证明进程能起，
   这条路径补的是“真实后端画出来的就是测试期望的样子”。需要显示器；Linux
   无显示器时脚本会起一个关掉 GLX 的 Xvfb（带 NVIDIA EGL 的容器里 Xvfb 会
