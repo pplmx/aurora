@@ -65,8 +65,8 @@ func TestBlockchainVerifyFailsOnTamperedData(t *testing.T) {
 }
 
 // TestBlockchainBlocksListsRecordedPayloads: the empty ledger names the missing
-// first write, and a recorded draw appears with its exact payload so a script
-// can grep the audit trail.
+// first write, and a recorded draw appears as the decoded record the window's
+// ledger page also shows (`--json` keeps the exact payload for a script).
 func TestBlockchainBlocksListsRecordedPayloads(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setTestLocale(t, "en")
@@ -82,14 +82,15 @@ func TestBlockchainBlocksListsRecordedPayloads(t *testing.T) {
 		out, err = runCmd(t, "blockchain", "blocks")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Audit records: 1")
-		assert.Contains(t, out, `"seed":"demo-seed"`)
+		assert.Contains(t, out, "lottery · Draw")
+		assert.Contains(t, out, "Seed: demo-seed")
 
 		// The filter matches the recorded text regardless of case, and a miss
 		// says so instead of claiming the ledger is empty.
 		out, err = runCmd(t, "blockchain", "blocks", "-s", "DEMO-SEED")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Audit records: 1")
-		assert.Contains(t, out, `"seed":"demo-seed"`)
+		assert.Contains(t, out, "Seed: demo-seed")
 
 		out, err = runCmd(t, "blockchain", "blocks", "-s", "no-such-record")
 		require.NoError(t, err)
