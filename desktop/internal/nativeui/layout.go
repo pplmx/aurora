@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -222,4 +223,61 @@ func emptyStateIcon(c *ui.Context, icon *ui.SVG, tone ui.Color, title, body stri
 		ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
 			TextAlign(ui.Center).MaxWidth(420)
 	})
+}
+
+// firstRecordOnly is the gate shared by the modules whose page opens on a
+// create form. It is true only after a successful read returned no rows and
+// nothing else on the page has been touched. A load failure keeps the full
+// page so its warning and any retained rows stay visible; a filter, a typed id
+// or an open read belongs to a collection that already exists.
+func firstRecordOnly(loadErr error, rows int, entered bool) bool {
+	return loadErr == nil && rows == 0 && !entered
+}
+
+// firstRunPath is the companion to a module's create form when the store has
+// no records yet. It names the state, then shows the capabilities that open
+// after the first write. Dependent action cards stay off the page until that
+// happens: a row of disabled controls does not teach a first-time operator
+// what to do, and it makes the one useful form compete for attention.
+func firstRunPath(c *ui.Context, p page, title, body string, steps ...string) {
+	tone := pageAccent(c, p)
+	panel := card(c, func() {
+		ui.Row(c).FillWidth().Gap(space3).AlignItems(ui.Start).Children(func() {
+			iconTile(c, pageIcons[p], tone, iconTileMedium)
+			ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(space1).Children(func() {
+				eyebrow(c, "First record")
+				heading(c, tr(title), sectionSize, 2)
+				ui.Text(c, tr(body)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
+			})
+		})
+		ui.Column(c).FillWidth().Gap(space2).Children(func() {
+			eyebrow(c, "What opens next")
+			ui.Column(c).FillWidth().Gap(0).Role(ui.RoleList).Label(tr("What opens next")).Children(func() {
+				for i, step := range steps {
+					i, step := i, step
+					last := i == len(steps)-1
+					row := ui.Row(c).FillWidth().Padding(space2, 0).Gap(space3).AlignItems(ui.Start)
+					row.Draw(func(painter *ui.Painter, r ui.Rect) {
+						if last {
+							return
+						}
+						painter.Fill(ui.Rect{X: r.X + 10.5, Y: r.Y + 22, W: 1, H: max(0, r.H-22)},
+							c.Theme().Border, 0)
+					})
+					row.Role(ui.RoleListItem).Children(func() {
+						mark := ui.Row(c).Size(22, 22).Center().Radius(999).
+							Background(tone.Alpha(0.13)).BorderWidth(1).BorderColor(tone.Alpha(0.34)).
+							Shrink(0)
+						mark.Children(func() {
+							ui.Text(c, strconv.Itoa(i+1)).FontSize(textSize(c, 10.5)).FontWeight(700).
+								TextColor(tone).Font("monospace").SingleLine()
+						})
+						ui.Text(c, tr(step)).FontSize(textSize(c, 11.5)).TextColor(c.Theme().TextMuted).
+							Grow(1).Shrink(1).MinWidth(0)
+					})
+				}
+			})
+		})
+	})
+	panel.LinearGradient(panelGradient(c, tone, 0.1))
 }

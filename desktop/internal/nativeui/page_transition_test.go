@@ -63,7 +63,7 @@ func TestPageSwitchPreservesDestinationLayout(t *testing.T) {
 // own layout identity, the new page could inherit the old input's focus and
 // send subsequent typing into a hidden or unrelated field.
 func TestPageSwitchDropsTheOldPagesTextFocus(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 900, 2200)
 	app.ShowPage("Token")
 	tester.Frame()

@@ -163,6 +163,20 @@ func (a *App) nftView(c *ui.Context) {
 			"Transfer or Burn in the right column; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset.",
 			"History lists every mint, transfer and burn; Inspect shows the stored metadata and links.",
 		)
+		if a.nftNeedsFirstRecord() {
+			twoColumns(c, func() {
+				a.nftMint(c)
+			}, func() {
+				firstRunPath(c, pageNFT, "No NFTs yet",
+					"An NFT starts with a creator key; the creator becomes the first owner.",
+					"Fill in the mint form.",
+					"Move it to a new holder or destroy it when needed.",
+					"Inspect metadata and replay the operation trail.",
+				)
+			})
+			a.renderNFTBurnDialog(c)
+			return
+		}
 		// The collection leads: what exists comes before adding to it, and the
 		// cards below act on the row it selects.
 		twoColumns(c, func() {
@@ -175,6 +189,20 @@ func (a *App) nftView(c *ui.Context) {
 		})
 		a.renderNFTBurnDialog(c)
 	})
+}
+
+// nftNeedsFirstRecord keeps dependent actions off a successful empty
+// collection. A filter, a search or an open operation is a question about an
+// existing collection, so those keep the full workbench.
+func (a *App) nftNeedsFirstRecord() bool {
+	entered := a.nft.filterOwner != "" || a.nft.search != "" || a.nft.appliedSearch != "" ||
+		strings.TrimSpace(a.nft.id) != "" ||
+		strings.TrimSpace(a.nft.transferID) != "" ||
+		strings.TrimSpace(a.nft.burnID) != "" ||
+		strings.TrimSpace(a.nft.historyID) != "" ||
+		a.nft.opTab != 0 || a.nft.nft != nil || a.nft.historyLoadedID != "" ||
+		a.nft.selected >= 0
+	return firstRecordOnly(a.nft.loadErr, len(a.nft.list), entered)
 }
 
 func (a *App) nftMint(c *ui.Context) {

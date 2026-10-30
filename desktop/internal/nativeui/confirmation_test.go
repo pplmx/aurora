@@ -15,7 +15,7 @@ import (
 // form happened to hold; the amount and the account are now in the sentence,
 // so a wrong value can be caught before an irreversible write.
 func TestBurnDialogNamesWhatItDestroys(t *testing.T) {
-	fake := &fakeServices{}
+	fake := workbenchFakes()
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Token")
@@ -43,7 +43,7 @@ func TestBurnDialogNamesWhatItDestroys(t *testing.T) {
 // name when the Inspect card loaded it, the shortened id otherwise.
 func TestNFTBurnDialogNamesTheAsset(t *testing.T) {
 	const id = "5c43a418-ca80-46ba-af63-cc7893d1a5e3"
-	fake := &fakeServices{}
+	fake := workbenchFakes()
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("NFT")
@@ -228,7 +228,7 @@ func TestDestructiveDialogDefaultsToCancel(t *testing.T) {
 // the target, owner and signing key are present.
 func TestBurnTriggersRequireCompleteFields(t *testing.T) {
 	t.Run("token", func(t *testing.T) {
-		app := New(&fakeServices{})
+		app := New(workbenchFakes())
 		tester := ui.NewTester(app.View, 1280, 4000)
 		app.ShowPage("Token")
 		app.token.opTab = 4
@@ -250,7 +250,7 @@ func TestBurnTriggersRequireCompleteFields(t *testing.T) {
 	})
 
 	t.Run("NFT", func(t *testing.T) {
-		app := New(&fakeServices{})
+		app := New(workbenchFakes())
 		tester := ui.NewTester(app.View, 1280, 4000)
 		app.ShowPage("NFT")
 		app.nft.opTab = 1

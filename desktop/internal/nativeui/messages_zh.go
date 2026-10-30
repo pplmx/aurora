@@ -471,6 +471,23 @@ var desktopMessages = map[string]string{
 	"Select a source in Sources to fetch it now, enable/disable it, or delete it.":                            "在“数据源”中选择数据源后，可立即抓取、启用/禁用或删除。",
 	"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.": "“健康”显示调度器的尝试次数和最近错误；“读数”可查询已存储的值或最新值。",
 
+	// First-run guidance. Each module names its first write, then the
+	// capabilities that appear once that write exists.
+	"First record":    "第一条记录",
+	"What opens next": "随后解锁的操作",
+	"An NFT starts with a creator key; the creator becomes the first owner.": "NFT 从创建者密钥开始；创建者会成为第一个持有者。",
+	"Fill in the mint form.":                                                             "填写铸造表单。",
+	"Move it to a new holder or destroy it when needed.":                                 "需要时把它转给新的持有者，或销毁。",
+	"Inspect metadata and replay the operation trail.":                                   "查看元数据，回放操作记录。",
+	"A source begins with a URL; Aurora can poll it, record readings and report health.": "数据源从一个 URL 开始；Aurora 会轮询它、记录读数并报告健康度。",
+	"Fill in the add-source form.":                                                       "填写添加数据源的表单。",
+	"Choose the new source to fetch it now.":                                             "选中新数据源即可立即抓取。",
+	"Review scheduler health and stored values.":                                         "查看调度健康度和已存储的读数。",
+	"A token starts with its supply and the owner key that signs every later write.":     "代币从供应量和所有者密钥开始；之后每次写操作都由该密钥签名。",
+	"Fill in the create form.":                                                           "填写创建表单。",
+	"Mint, transfer, approve or burn once the new token is selected.":                    "选中新代币后即可铸造、转账、授权或销毁。",
+	"Read balances, allowances and transfer history.":                                    "读取余额、额度和转账流水。",
+
 	// Warnings and copy.
 	"Showing the last successful load.": "显示上一次成功加载的内容。",
 	"%s is on the clipboard":            "%s 已复制到剪贴板",

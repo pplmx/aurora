@@ -884,7 +884,7 @@ func TestEveryPageRendersItsSectionsAsCards(t *testing.T) {
 		pageBlockchain: {"Ledger"},
 		pageSettings:   {"Language", "Session keys", "Data", "Appearance", "About Aurora"},
 	}
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 4000)
 	// The sidebar must switch pages too: the page order and the ids the
 	// Sidebar chooses by are two separate tables, and a mismatch left every
@@ -1023,4 +1023,15 @@ func TestRefreshShortcutReloadsThePage(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, lotteryHistoryLimit+1, fake.historyN,
 		"the reload shortcut must ask the page for its data again")
+}
+
+// workbenchFakes seeds one stored record per module so a test that exercises a
+// module's workbench starts from the state it describes. An empty store now
+// opens on the first-record guidance instead of a column of unusable cards.
+func workbenchFakes() *fakeServices {
+	return &fakeServices{
+		tokenRows: []TokenRow{{ID: "aur", Name: "Aurora", Symbol: "AUR", TotalSupply: "1000"}},
+		nftRows:   []NFTRow{{ID: "nft-1", Name: "Star", Owner: "owner-pk"}},
+		sources:   []SourceRow{{ID: "src-1", Name: "btc"}},
+	}
 }

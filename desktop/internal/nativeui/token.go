@@ -182,6 +182,20 @@ func (a *App) tokenView(c *ui.Context) {
 			"Choose a write on the right: Mint, Transfer, Approve, Transfer From or Burn. Read a spender's remaining allowance from the left card.",
 			"Mint/Approve/Burn sign with the owner private key; Transfer with the sender's; Transfer From with the spender's. Keys are never stored, and Use generated owner key works only for the token that key created.",
 		)
+		if a.tokenNeedsFirstRecord() {
+			twoColumns(c, func() {
+				a.tokenCreate(c)
+			}, func() {
+				firstRunPath(c, pageToken, "No tokens yet",
+					"A token starts with its supply and the owner key that signs every later write.",
+					"Fill in the create form.",
+					"Mint, transfer, approve or burn once the new token is selected.",
+					"Read balances, allowances and transfer history.",
+				)
+			})
+			a.renderBurnDialog(c)
+			return
+		}
 		twoColumns(c, func() {
 			a.tokenList(c)
 			a.tokenCreate(c)
@@ -196,6 +210,18 @@ func (a *App) tokenView(c *ui.Context) {
 		})
 		a.renderBurnDialog(c)
 	})
+}
+
+// tokenNeedsFirstRecord is true only after a successful empty read. A load
+// failure keeps the full page so its warning and any retained rows stay
+// visible; a subject entered elsewhere also keeps the write workspace open.
+func (a *App) tokenNeedsFirstRecord() bool {
+	entered := a.token.search != "" || a.token.appliedSearch != "" ||
+		strings.TrimSpace(a.token.tokenID) != "" ||
+		a.token.info != nil || a.token.infoLoadedID != "" ||
+		a.token.balanceLoadedToken != "" || a.token.historyLoadedToken != "" ||
+		a.token.allowanceLoadedToken != "" || a.token.chosen >= 0
+	return firstRecordOnly(a.token.loadErr, len(a.token.tokens), entered)
 }
 
 // tokenList draws the stored tokens and lets the operator choose one: a

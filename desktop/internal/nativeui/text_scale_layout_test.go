@@ -309,6 +309,9 @@ func TestCopyRowKeepsValueVisibleAtLargeText(t *testing.T) {
 // right edge, so the destructive form had no visible entry point.
 func TestTokenWriteTabsWrapAtLargeText(t *testing.T) {
 	app := New(&fakeServices{})
+	// A subject keeps the write column on the page; the empty store would show
+	// the first-record guidance instead of the tabs this test measures.
+	app.token.tokenID = "t1"
 	app.ShowPage("Token")
 	tester := ui.NewTester(app.View, 900, 600)
 	tester.SetPreferences(ui.Preferences{TextScale: 2})
