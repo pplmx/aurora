@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/tokenapp"
@@ -59,24 +58,7 @@ const (
 )
 
 func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
-	limit := defaultTokenListLimit
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if l, err := strconv.Atoi(v); err == nil && l > 0 {
-			limit = l
-			if limit > maxTokenListLimit {
-				limit = maxTokenListLimit
-			}
-		}
-	}
-	offset := 0
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if o, err := strconv.Atoi(v); err == nil && o >= 0 {
-			offset = o
-			if offset > maxTokenListOffset {
-				offset = maxTokenListOffset
-			}
-		}
-	}
+	limit, offset := pageParams(r, defaultTokenListLimit, maxTokenListLimit, maxTokenListOffset)
 
 	uc := tokenapp.NewListTokensUseCase(h.service)
 	results, err := uc.Execute(&tokenapp.ListTokensRequest{Limit: limit, Offset: offset})
@@ -293,28 +275,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 		writeBadRequest(w, "token_id is required")
 		return
 	}
-	limitStr := r.URL.Query().Get("limit")
-	offsetStr := r.URL.Query().Get("offset")
-
-	limit := defaultHistoryLimit
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
-			limit = l
-			if limit > maxHistoryLimit {
-				limit = maxHistoryLimit
-			}
-		}
-	}
-
-	offset := 0
-	if offsetStr != "" {
-		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
-			offset = o
-			if offset > maxHistoryOffset {
-				offset = maxHistoryOffset
-			}
-		}
-	}
+	limit, offset := pageParams(r, defaultHistoryLimit, maxHistoryLimit, maxHistoryOffset)
 
 	uc := tokenapp.NewGetHistoryUseCase(h.service)
 	result, err := uc.Execute(&tokenapp.HistoryRequest{

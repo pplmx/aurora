@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/oracleapp"
@@ -96,18 +95,7 @@ func (h *OracleHandler) Sources(w http.ResponseWriter, r *http.Request) {
 }
 
 func oracleSourcePage(r *http.Request) (limit, offset int) {
-	limit = defaultOracleSourceLimit
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
-			limit = min(parsed, maxOracleSourceLimit)
-		}
-	}
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if parsed, err := strconv.Atoi(v); err == nil && parsed >= 0 {
-			offset = min(parsed, maxOracleSourceOffset)
-		}
-	}
-	return limit, offset
+	return pageParams(r, defaultOracleSourceLimit, maxOracleSourceLimit, maxOracleSourceOffset)
 }
 
 // Templates lists the built-in oracle source presets (v1.49). Previously the
@@ -257,16 +245,7 @@ func (h *OracleHandler) Query(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limitStr := r.URL.Query().Get("limit")
-	limit := defaultQueryLimit
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
-			limit = l
-			if limit > maxQueryLimit {
-				limit = maxQueryLimit
-			}
-		}
-	}
+	limit := pageLimit(r, defaultQueryLimit, maxQueryLimit)
 
 	uc := oracleapp.NewGetDataUseCase(h.repo)
 	result, err := uc.Execute(&oracleapp.GetDataRequest{

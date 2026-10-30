@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
@@ -102,19 +101,7 @@ func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 }
 
 func lotteryHistoryPage(r *http.Request) (limit, offset int) {
-	limit = defaultLotteryHistoryLimit
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if l, err := strconv.Atoi(v); err == nil && l > 0 {
-			limit = min(l, maxLotteryHistoryLimit)
-		}
-	}
-	offset = 0
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if o, err := strconv.Atoi(v); err == nil && o >= 0 {
-			offset = min(o, maxLotteryHistoryOffset)
-		}
-	}
-	return limit, offset
+	return pageParams(r, defaultLotteryHistoryLimit, maxLotteryHistoryLimit, maxLotteryHistoryOffset)
 }
 
 func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
