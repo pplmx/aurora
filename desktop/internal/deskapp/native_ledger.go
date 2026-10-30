@@ -1,6 +1,7 @@
 package deskapp
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -55,12 +56,19 @@ func (s *nativeServices) LedgerStatus() (nativeui.LedgerStatus, error) {
 	if s.chain == nil {
 		return nativeui.LedgerStatus{}, fmt.Errorf("blockchain not initialised")
 	}
+	// Len takes the chain's read lock; reading the Blocks slice directly raced
+	// with a concurrent AddBlock on a busy API. Head copies the hash under the
+	// same lock.
+	_, hash := s.chain.Head()
+	head := hex.EncodeToString(hash)
+	if len(head) > 12 {
+		head = head[:12]
+	}
 	return nativeui.LedgerStatus{
-		// Len takes the chain's read lock; reading the Blocks slice directly
-		// raced with a concurrent AddBlock on a busy API.
 		Valid:  s.chain.VerifyIntegrity().Valid,
 		Height: s.chain.Len() - 1,
 		Blocks: s.chain.Len(),
+		Head:   head,
 	}, nil
 }
 

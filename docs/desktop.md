@@ -244,6 +244,8 @@ just check && just test
 - **复验结论可复制**：Lottery 的 Verify 卡片在结论下方提供「复制结论」，把
   `Draw ID …：Verified/Failed` 与逐条检查原样写进剪贴板，工单里引用的就是窗口
   显示的内容。
+- **账本摘要一行读完**：Blockchain 页的 Ledger 卡片把区块数、高度、头哈希前缀
+  与校验结论排在同一行，两台机器对照记录时先比对头哈希即可。
 - **页面是卡片**：每页把工作拆成卡片，成对的工作并排（代币：列表/创建/
   Allowance/历史对写操作与 Inspect；NFT：Collection/Mint 对
   Transfer/Burn/History 与 Inspect；投票：选民、候选人与会期列表对选票与

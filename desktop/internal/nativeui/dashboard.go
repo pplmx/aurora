@@ -46,6 +46,7 @@ type blockchainState struct {
 	checked bool
 	height  int
 	blocks  int
+	head    string
 	rows    []BlockRow
 	loadErr error
 	// blocksErr is the last failure to read the chain entries; the rows from

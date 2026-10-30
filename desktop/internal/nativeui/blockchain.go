@@ -34,6 +34,7 @@ func (a *App) loadBlockchainAt(search string, rawLimit float64, offset int) bool
 	a.blockchain.checked = true
 	a.blockchain.height = res.Height
 	a.blockchain.blocks = res.Blocks
+	a.blockchain.head = res.Head
 	// The blocks themselves are what an auditor reads; the counters alone say
 	// how much chain there is, not what it recorded. A failure here is its own
 	// warning: the counters and the verdict above it are still valid.
@@ -89,6 +90,11 @@ func (a *App) blockchainBody(c *ui.Context) {
 	ui.Row(c).FillWidth().Wrap().Gap(space2).AlignItems(ui.Center).Children(func() {
 		statChip(c, "Blocks", strconv.Itoa(a.blockchain.blocks))
 		statChip(c, "Height", strconv.Itoa(a.blockchain.height))
+		if a.blockchain.head != "" {
+			// The head is the chain's identity: two installations comparing a
+			// record can confirm they follow the same chain without a diff.
+			statChip(c, "Head", a.blockchain.head)
+		}
 		if a.blockchain.valid {
 			verdictPill(c, true, "Hash chain verified")
 		} else {

@@ -236,6 +236,7 @@ var desktopMessagesHant = map[string]string{
 	"Hash chain":           "哈希鏈",
 	"Hash chain is broken": "哈希鏈已損壞",
 	"Hash chain verified":  "哈希鏈已驗證",
+	"Head":                 "頭區塊",
 	"Headers":              "請求頭",
 	"Health":               "健康",
 	"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.": "“健康”顯示調度器的嘗試次數和最近錯誤；“讀數”可查詢已存儲的值或最新值。",
