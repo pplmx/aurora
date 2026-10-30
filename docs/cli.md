@@ -202,12 +202,14 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
 aurora blockchain verify      # 校验本地区块链的哈希连续性
 aurora blockchain blocks      # 审计记录（最新在前，排除创世块）
 aurora blockchain blocks -l 50 -p 100
-aurora blockchain blocks -s transfer   # 按记录文本过滤（不区分大小写）
+aurora blockchain blocks -s transfer   # 按记录文本或解码后的记录过滤（不区分大小写）
 ```
 
 `blockchain blocks` 的表格把每条载荷渲染成与桌面账本页相同的记录：`模块 · 动作 ·
 对象`，后面跟可读事实（如中奖者、参与者数、seed）；无法识别的载荷原样打印。
 可读句子只是阅读帮助，`--json` 始终带着 `payload` 原文，审计时以它为准。
+`-s` 同时匹配存储文本、解码后的句子与高度，和桌面账本搜索一致——查 `transfer`
+或 `Winners` 都能命中。
 
 迁移命令（`migrate status|up|down|repair`）都支持 `--json`，输出同一个状态文档
 `{"current","dirty","applied","pending"}`——包括「已经是最新」「已到底部」
