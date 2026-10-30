@@ -115,6 +115,7 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 ./aurora lottery create -p "A,B,C,D" -s "seed" -c 3   # VRF 抽奖
 ./aurora lottery verify <id或高度>                    # 验证开奖与 VRF 证明
 ./aurora blockchain verify                             # 校验本地区块链完整性
+./aurora blockchain blocks -s transfer                 # 审计记录（可过滤）
 ./aurora voting candidate add -n "Name" -p "Party" -m "Program"
 ./aurora voting vote -v <voter-pk> -c <candidate-id> -s <session-id> -k <priv>
 ./aurora oracle source add -n "btc" -u "https://api.example.com/price" -p "data.price"

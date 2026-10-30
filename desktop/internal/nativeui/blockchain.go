@@ -64,6 +64,7 @@ func (a *App) blockchainView(c *ui.Context) {
 		guide(c, &a.guides.blockchain,
 			"Every module appends its records to one hash chain; each block commits to the previous hash.",
 			"The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size.",
+			"Open Payload to read the exact recorded bytes, then Copy payload to put them on the clipboard.",
 		)
 		// The page header already says what the ledger is, so the card does not
 		// repeat it.
