@@ -296,6 +296,7 @@ var traditionalMessages = map[string]string{
 	"lottery.latest_block":                      "最新區塊",
 	"lottery.long":                              "基於 VRF 的透明抽獎：創建抽獎、驗證結果、導入導出記錄並查看統計",
 	"lottery.lottery_id":                        "抽獎ID",
+	"lottery.matches":                           "匹配",
 	"lottery.no_address":                        "（無地址）",
 	"lottery.no_records":                        "暫無抽獎記錄",
 	"lottery.page_total":                        "本頁抽獎數",

@@ -619,7 +619,8 @@ The milestone notes under `.planning/` are history, not current instructions.
   inside the match set, mirroring the audit trail's `q`. Filtering a loaded page
   would have returned only the hits that happened to land on it. The repository
   gained `ListMatching`, the two paged reads now share one scan helper, and
-  `aurora lottery history -s/--search` reads through the same filter.
+  `aurora lottery history -s/--search` reads through the same filter; its header
+  then prints the match count instead of the store total.
 - **The Blockchain page names the chain's head**: the summary line had blocks and
   height but no identity, so two installations could not confirm they follow the
   same chain; a third tile shows the newest block's 12-character hash prefix,
