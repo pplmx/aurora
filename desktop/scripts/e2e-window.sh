@@ -106,6 +106,16 @@ export HOME="$home_dir"
 export MYGO_AUTOMATION="$socket"
 export LIBGL_ALWAYS_SOFTWARE=1
 
+# stageMarkerEmpty is the first-run copy a session-keyed stage shows when the
+# store has no session, so an empty-store capture still proves the tab switch.
+stageMarkerEmpty() {
+  case "$1" in
+    voting:Ballot) echo "A ballot names a session" ;;
+    voting:Results) echo "A tally belongs to a session" ;;
+    *) return 1 ;;
+  esac
+}
+
 # pageMarker is a control that belongs to one page, so a capture proves the
 # page rendered its workbench instead of only its title.
 pageMarker() {
@@ -209,8 +219,11 @@ for spec in "${pages[@]}"; do
     stage=${spec#*:}
     press="$page,$stage"
     # An empty store replaces the stage body with its own first-run copy, so
-    # the stage-only marker is meaningful only when the database is seeded.
+    # the populated marker applies only to a seeded database; the first-run
+    # copy still names a control that only that stage shows.
     if [ "$seed" = "1" ] && marker=$(stageMarker "$spec"); then
+      expect="$marker,"
+    elif marker=$(stageMarkerEmpty "$spec"); then
       expect="$marker,"
     fi
   fi
