@@ -9,23 +9,24 @@ aurora <module> --help            # 模块参数
 aurora version                    # 版本、构建时间、Go 工具链
 ```
 
-列表类命令（`lottery history`、`nft list`、`token list`、
-`voting candidate|voter|session list`、`oracle source list`、`blockchain verify|blocks`）
-都支持 `--json`：输出一个 JSON 文档，字段与 REST 一致，stdout 没有横幅；
-空集合输出 `[]`，可直接 `| jq`。单条读取（`lottery verify`、`token info`、
-`token balance`、`token allowance`、`token history`、`nft get`、`nft history`、
-`oracle data`/`latest`、`voting results`）与 `version` 以及
-`lottery stats` 与 `lottery db-info` 也支持 `--json`；创建类命令
-（`lottery create`、`nft mint`、`voting candidate add`、`voting session create`）
-同样支持，输出即 REST 的创建结果，脚本可直接取 `id`；代币写操作（`token mint`、
-`token transfer`、`token approve`、`token transfer-from`、`token burn`）也是同一种
-文档，含 `id`、`block_height` 与时间戳；`voting vote` 与 `voting session start|end`
-输出对应的投票/会期文档（后者与 `voting session list` 同形）；`nft transfer` 输出
-操作记录，`nft burn` 输出 `{"status":"burned"}`（与 REST 相同）；`lottery import`
-输出 `{"total","imported","rejected"}`，有被拒记录时仍以非零退出。会打印私钥的命令
-（`token create`、`voter register`）没有 JSON 模式，避免把密钥写进管道。
-分别输出对应 REST 文档（例如 `stats` 为 `total`/`db_path`/`latest_block`，
-无记录时省略后者；`db-info` 为 `path`/`size_bytes`/`blocks`）。
+读取与写入命令都支持 `--json`：输出**一个**文档（stdout 无横幅），字段与 REST
+一致，可直接 `| jq`：
+
+| 命令                                                                                                                                                | 输出                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 列表：`lottery history`、`token list`、`nft list`、`voting candidate list`、`voter list`、`session list`、`oracle source list`、`blockchain blocks` | 数组；空集合 `[]`                                              |
+| 单条读取：`lottery verify`、`token info`/`balance`/`allowance`/`history`、`nft get`/`history`、`oracle data`/`latest`、`voting results`             | 对应 REST 文档                                                 |
+| 创建：`lottery create`、`nft mint`、`voting candidate add`、`voting session create`                                                                 | 创建结果，含 `id`                                              |
+| 代币写：`token mint`/`transfer`/`approve`/`transfer-from`/`burn`                                                                                    | 含 `id`、`block_height`、时间戳                                |
+| 投票写：`voting vote`、`voting session start`/`end`                                                                                                 | 投票/会期文档（后者与列表同形）                                |
+| NFT 写：`nft transfer` / `nft burn`                                                                                                                 | 操作记录 / `{"status":"burned"}`                               |
+| `lottery import`                                                                                                                                    | `{"total","imported","rejected"}`                              |
+| 迁移：`migrate status`/`up`/`down`/`repair`                                                                                                         | `{"current","dirty","applied","pending"}`                      |
+| 备份：`backup create`/`verify`/`restore`                                                                                                            | `{"dir",…}` / `{"path","status"}` / `{"path","status","undo"}` |
+| `blockchain verify`、`lottery stats`、`lottery db-info`、`version`、`doctor`                                                                        | 各自文档                                                       |
+
+`lottery import`、`lottery verify` 与 `blockchain verify` 一样：即使打印了文档，
+只要有被拒或失败的项，退出码仍非 0，脚本先看 `$?` 再看字段。
 
 ## 抽奖（VRF）
 
