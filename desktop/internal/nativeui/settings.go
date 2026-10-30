@@ -234,26 +234,48 @@ func (a *App) settingsAboutCard(c *ui.Context) {
 		readout(c, rows)
 		// Support asks for the build facts; copying the card's own rows keeps the
 		// reply exact instead of a typed paraphrase.
-		diagnostics := make([]string, 0, len(rows)+1)
-		for _, row := range rows {
-			diagnostics = append(diagnostics, tr(row.label)+": "+row.value)
-		}
-		if a.actions.LedgerFacts != nil {
-			if blocks, head, valid, ok := a.actions.LedgerFacts(); ok {
-				verdict := tr("chain valid")
-				if !valid {
-					verdict = tr("chain broken")
-				}
-				diagnostics = append(diagnostics,
-					fmt.Sprintf(tr("Ledger: %d blocks, head %s — %s"), blocks, head, verdict))
-			}
-		}
 		if quietButton(c, tr("Copy")+" "+tr("Diagnostics")).Clicked() {
-			c.Services().WriteClipboard(strings.Join(diagnostics, "\n"))
-			c.Toast(tr("Diagnostics are on the clipboard"))
+			a.copyDiagnostics(c)
 		}
 		a.settingsButton(c, "Open About Dialog", "", a.actions.ShowAbout)
 	})
+}
+
+// diagnosticsText builds the About card's copied text: the build facts, the
+// database and the ledger, in the language the window shows. The palette calls
+// it too, so both paths copy the same words.
+func (a *App) diagnosticsText() string {
+	rows := []readoutRow{
+		{"Version", valueOr(a.actions.Version)},
+		{"Build time", valueOr(a.actions.BuildTime)},
+		{"Database", valueOr(a.actions.DBPath)},
+	}
+	if a.actions.DatabaseSize != nil {
+		if size := a.actions.DatabaseSize(); size != "" {
+			rows = append(rows, readoutRow{"Database size", size})
+		}
+	}
+	lines := make([]string, 0, len(rows)+1)
+	for _, row := range rows {
+		lines = append(lines, tr(row.label)+": "+row.value)
+	}
+	if a.actions.LedgerFacts != nil {
+		if blocks, head, valid, ok := a.actions.LedgerFacts(); ok {
+			verdict := tr("chain valid")
+			if !valid {
+				verdict = tr("chain broken")
+			}
+			lines = append(lines, fmt.Sprintf(tr("Ledger: %d blocks, head %s — %s"), blocks, head, verdict))
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// copyDiagnostics puts diagnosticsText on the clipboard and confirms where the
+// pointer is.
+func (a *App) copyDiagnostics(c *ui.Context) {
+	c.Services().WriteClipboard(a.diagnosticsText())
+	c.Toast(tr("Diagnostics are on the clipboard"))
 }
 
 // renderForgetKeysDialog asks before discarding keys that may not exist
