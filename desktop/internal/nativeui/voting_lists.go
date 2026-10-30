@@ -60,7 +60,7 @@ func (a *App) votingVoterList(c *ui.Context) {
 	if len(a.voting.voters) == 0 {
 		if a.voting.loadErr == nil {
 			emptyStateIcon(c, usersIcon, pageAccent(c, pageVoting), "No voters registered yet.",
-				"Register a voter on the right to issue the signing key the first ballot needs.")
+				"Register a voter in Register Voter; that issues the signing key the first ballot needs.")
 		}
 		return
 	}
@@ -153,7 +153,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		// empty when it could not be read.
 		if a.voting.loadErr == nil {
 			emptyStateIcon(c, calendarIcon, pageAccent(c, pageVoting), "No sessions yet.",
-				"Create one on the right with a roster and the window during which ballots count.")
+				"Create one in Create Session with a roster and the window during which ballots count.")
 		}
 		return
 	}
@@ -299,7 +299,7 @@ func (a *App) votingCandidateList(c *ui.Context) {
 	if len(a.voting.candidates) == 0 {
 		if a.voting.loadErr == nil {
 			emptyStateIcon(c, userCheckIcon, pageAccent(c, pageVoting), "No candidates registered yet.",
-				"Register one on the right; a ballot names the candidate id it selects.")
+				"Register one in Register Candidate; a ballot names the id it selects.")
 		}
 		return
 	}

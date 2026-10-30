@@ -130,7 +130,7 @@ func (a *App) nftListBody(c *ui.Context) {
 			emptyNote(c, "No NFTs for this owner. Show All restores the collection.")
 			return
 		}
-		emptyState(c, pageNFT, "No NFTs yet", "Mint an asset above to start the collection; it becomes the first holder’s token.")
+		emptyState(c, pageNFT, "No NFTs yet", "Mint an asset below to start the collection; it becomes the first holder’s token.")
 		return
 	}
 	queryChanged := a.nft.search != a.nft.appliedSearch
