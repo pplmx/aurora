@@ -187,8 +187,9 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 10000。分页在 SQLite 查询中完成，并按
 `timestamp DESC, block_height DESC, id` 使用复合索引，因此同一秒创建或导入的
 记录也有稳定顺序，不会在两次翻页之间重复或漏行。`q` 在 id、seed、参与者和
-中奖者上做不区分大小写的子串匹配，过滤与分页都在存储层完成——先在当前页过滤
-只能返回恰好落在该页的匹配。命中集内同样按上面的顺序分页：
+中奖者上做不区分大小写的子串匹配（`%` 与 `_` 按字面匹配，不当通配符），过滤与
+分页都在存储层完成——先在当前页过滤只能返回恰好落在该页的匹配。命中集内同样按
+上面的顺序分页：
 
 ```json
 [{"id":"c2421dfb187c8ee9","seed":"aurora-e2e-seed","winners":["Dev","Carol"],"block_height":1},

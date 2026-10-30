@@ -866,6 +866,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **The lottery history search is literal**: `q` was compiled straight into a
+  LIKE pattern, so a seed containing `%` matched everything and `_` matched any
+  single character; both are escaped now, matching the audit trail's
+  contains-based search.
 - **The doctor's ledger and outbox lines read "1 blocks"**: an earlier wording
   fix never reached the catalogs (the edit targeted unpadded lines), so the
   English text kept the plural and the new head-hash format would have printed

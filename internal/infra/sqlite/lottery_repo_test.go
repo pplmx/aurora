@@ -498,11 +498,24 @@ func TestListMatchingSearchesStoredText(t *testing.T) {
 	require.Len(t, secondPage, 1)
 	assert.NotEqual(t, firstPage[0].ID, secondPage[0].ID, "offset pages inside the match set")
 
+	// LIKE metacharacters are literal: a reader typing a percent sign means it.
+	percent := sampleLotteryRecord("draw-pct", 5)
+	percent.Seed = "seed-100%"
+	percent.Participants = []string{"zed"}
+	require.NoError(t, repo.Save(percent))
+	withPercent, err := repo.ListMatching("100%", 0, 0)
+	require.NoError(t, err)
+	require.Len(t, withPercent, 1)
+	assert.Equal(t, "draw-pct", withPercent[0].ID, "a percent sign is not a wildcard")
+	underscore, err := repo.ListMatching("_", 0, 0)
+	require.NoError(t, err)
+	assert.Empty(t, underscore, "an underscore must not match any single character")
+
 	none, err := repo.ListMatching("no-such-draw", 0, 0)
 	require.NoError(t, err)
 	assert.Empty(t, none)
 
 	all, err := repo.ListMatching("   ", 0, 0)
 	require.NoError(t, err)
-	assert.Len(t, all, 4, "a blank term reads the whole table")
+	assert.Len(t, all, 5, "a blank term reads the whole table")
 }

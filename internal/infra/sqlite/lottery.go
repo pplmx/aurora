@@ -271,9 +271,12 @@ func (r *LotteryRepository) ListMatching(term string, limit, offset int) ([]*lot
 	if term == "" {
 		return r.List(limit, offset)
 	}
-	like := "%" + strings.ToLower(term) + "%"
-	where := `WHERE lower(l.id) LIKE ? OR lower(l.seed) LIKE ?
-		OR lower(l.participants) LIKE ? OR lower(l.winners) LIKE ?`
+	// LIKE treats % and _ as wildcards; a term containing them (a seed with a
+	// percent sign) must still match literally, like the audit trail's search.
+	escaped := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(term))
+	like := "%" + escaped + "%"
+	where := `WHERE lower(l.id) LIKE ? ESCAPE '\' OR lower(l.seed) LIKE ? ESCAPE '\'
+		OR lower(l.participants) LIKE ? ESCAPE '\' OR lower(l.winners) LIKE ? ESCAPE '\'`
 	return r.list(where, []any{like, like, like, like}, limit, offset)
 }
 
