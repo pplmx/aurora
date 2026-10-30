@@ -32,3 +32,22 @@ func TestUnknownRoutesAnswerInTheAPIEnvelope(t *testing.T) {
 		assert.Equalf(t, "NOT_FOUND", body.Code, "path %s", path)
 	}
 }
+
+// TestKnownPathWithWrongMethodAnswersInTheAPIEnvelope: chi's default 405 has an
+// empty body, so a client parsing the envelope saw a failed decode instead of a
+// method error.
+func TestKnownPathWithWrongMethodAnswersInTheAPIEnvelope(t *testing.T) {
+	mux := newRouter(&Server{})
+	req := httptest.NewRequest(http.MethodPost, "/healthz", nil)
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusMethodNotAllowed, rr.Code)
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+	var body struct {
+		Error string `json:"error"`
+		Code  string `json:"code"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &body))
+	assert.Equal(t, "METHOD_NOT_ALLOWED", body.Code)
+}

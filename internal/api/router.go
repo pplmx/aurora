@@ -25,6 +25,11 @@ func newRouter(s *Server) http.Handler {
 	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
 		handler.WriteError(w, "not found", "NOT_FOUND", http.StatusNotFound)
 	})
+	// A known path reached with the wrong method answers the same way; chi's
+	// default writes 405 with an empty body, which a JSON client cannot parse.
+	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
+		handler.WriteError(w, "method not allowed", "METHOD_NOT_ALLOWED", http.StatusMethodNotAllowed)
+	})
 
 	// Request observability: a stdlib Prometheus-text /metrics endpoint
 	// (v1.13) recording per-request status + latency distribution. The

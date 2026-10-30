@@ -50,7 +50,8 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 失败时返回 `{"error": "...", "code": "..."}`：`code` 是稳定的机器可读值，
 `error` 是给人看的说明，措辞可能调整；未被分类的失败返回 `500` 与
 `INTERNAL_ERROR`。中间件层另有 `BODY_TOO_LARGE`（413）、`INVALID_REQUEST`
-（400）、`NOT_FOUND`（404）与 `RATE_LIMITED`（429）。同一个 `code` 可能
+（400）、`NOT_FOUND`（404）、`METHOD_NOT_ALLOWED`（405）与 `RATE_LIMITED`
+（429）。同一个 `code` 可能
 用于多个模块（如 `INVALID_SIGNATURE`），下表按首次出现的模块列出。
 
 | 模块   | code                           | HTTP |
