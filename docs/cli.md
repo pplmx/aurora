@@ -30,6 +30,11 @@ aurora version                    # 版本、构建时间、Go 工具链
 `lottery import`、`lottery verify` 与 `blockchain verify` 一样：即使打印了文档，
 只要有被拒或失败的项，退出码仍非 0，脚本先看 `$?` 再看字段。
 
+**没有 JSON 模式的命令**：`token create` 与 `voter register` 会打印一次性私钥，
+`oracle source add`/`enable`/`disable`/`delete` 的响应可能带上游请求头（凭据），
+`oracle fetch` 依赖真实网络、无法在离线测试里固定形状——这几类留在人读输出，
+或改用 REST/`doctor`。
+
 ## 抽奖（VRF）
 
 ```bash
