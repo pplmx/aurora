@@ -8,6 +8,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/i18n"
 )
 
 // TestTokenSearchNarrowsTheList pins the collection's search field: every
@@ -362,4 +364,37 @@ func TestFailedLedgerPageMoveKeepsCurrentPage(t *testing.T) {
 		"a failed Next must leave the offset with the rows it actually loaded")
 	require.True(t, tester.HasText("Entries 1–100 of 150"))
 	require.True(t, tester.HasText("Couldn't read chain blocks"))
+}
+
+// TestSearchHintsNameTheirCollection pins the hint MyGo draws in an empty
+// search field. Its own placeholder is the untranslated word "Search"; each
+// field now names the collection it narrows, in the window's language.
+func TestSearchHintsNameTheirCollection(t *testing.T) {
+	translator := i18n.GetTranslator()
+	before := translator.GetLocale()
+	t.Cleanup(func() { translator.SetLocale(before) })
+
+	app := New(&fakeServices{
+		draws:     []DrawRow{{ID: "d1"}},
+		tokenRows: []TokenRow{{ID: "t1", Name: "Gold"}},
+		blocks:    []BlockRow{{Height: 1, Module: "lottery"}},
+	})
+	tester := ui.NewTester(app.View, 1280, 3000)
+
+	app.ShowPage("Lottery")
+	tester.Frame()
+	require.True(t, tester.HasText("Search draws"), "the hint must name the collection")
+
+	app.ShowPage("Token")
+	tester.Frame()
+	require.True(t, tester.HasText("Search tokens"))
+
+	app.ShowPage("Blockchain")
+	tester.Frame()
+	require.True(t, tester.HasText("Search blocks"))
+
+	translator.SetLocale("zh")
+	app.ShowPage("Lottery")
+	tester.Frame()
+	require.True(t, tester.HasText("搜索抽奖"), "the hint must follow the window's language")
 }

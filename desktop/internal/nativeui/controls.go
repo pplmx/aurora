@@ -123,10 +123,11 @@ const maxListLimit = 1000
 
 // searchField is the one place a page builds its filter control. Every page
 // gets the same magnified input, and the accessible label names the collection
-// it narrows. The placeholder itself belongs to MyGo (whose catalog ships
-// English only), so the label is the translated name a reader hears.
+// it narrows. MyGo's own placeholder is the untranslated word "Search", so the
+// field carries the collection's name instead: the hint says what the query
+// narrows, and follows the window's language with the rest of the copy.
 func searchField(c *ui.Context, value *string, label string) ui.Element {
-	return ui.SearchField(c, value).Label(tr(label))
+	return ui.SearchField(c, value).Label(tr(label)).Placeholder(tr(label))
 }
 
 // announceSearchResults tells a screen reader what its new query selected.
