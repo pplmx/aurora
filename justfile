@@ -103,6 +103,14 @@ desktop-check:
 desktop-race:
     cd desktop && CGO_ENABLED=1 go test -race -count=1 ./...
 
+# Open the real window and capture each page as a PNG through MyGo's automation
+# plugin. The offscreen tester covers rendering, but only this path proves a
+# built binary draws what the tests expect; it complements the packaging job's
+# Xvfb smoke. Pass page ids to limit the run: `just desktop-shot token nft`.
+# Needs a display; Linux without one starts an Xvfb.
+desktop-shot *PAGES:
+    desktop/scripts/e2e-window.sh {{PAGES}}
+
 # Package the desktop app with `go tool mygo build` (desktop/mygo.config.ts):
 # a native executable, a desktop entry that registers aurora:// links, a
 # Debian package and an installable tarball under dist/desktop/<os>-<arch>/.
