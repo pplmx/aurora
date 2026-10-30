@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -354,4 +355,25 @@ func histogramFamily(sample string, kind map[string]string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// TestRegistryGauges pins the scrape-time values: a registered gauge renders
+// with HELP/TYPE, a reader that reports false omits the line for that scrape,
+// and readers run after the registry lock is released (a reader that observes
+// under the lock would deadlock the test).
+func TestRegistryGauges(t *testing.T) {
+	reg := NewRegistry()
+	reg.RegisterGauge("aurora_outbox_pending_events", "Parked audit events.", func() (float64, bool) {
+		reg.Observe(200, time.Millisecond, "lottery") // must not deadlock
+		return 3, true
+	})
+	reg.RegisterGauge("aurora_unavailable_gauge", "No value right now.", func() (float64, bool) {
+		return 0, false
+	})
+
+	out := reg.Expose()
+	assert.Contains(t, out, "# HELP aurora_outbox_pending_events Parked audit events.\n")
+	assert.Contains(t, out, "# TYPE aurora_outbox_pending_events gauge\n")
+	assert.Contains(t, out, "\naurora_outbox_pending_events 3\n")
+	assert.NotContains(t, out, "aurora_unavailable_gauge")
 }

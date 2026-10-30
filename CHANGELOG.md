@@ -619,6 +619,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The metrics endpoint exposes the outbox backlog**: `/metrics` now carries
+  `aurora_outbox_pending_events`, the gauge an operator watches when a delivery
+  keeps failing while the ledger records, read through the container's count
+  (the same query `aurora doctor` prints). A count failure omits the line for
+  that scrape instead of reporting a stale zero.
 - **The lottery history endpoint filters in storage**: `GET /lottery/history?q=`
   matches id, seed, participants and winners case-insensitively, with paging
   inside the match set, mirroring the audit trail's `q`. Filtering a loaded page

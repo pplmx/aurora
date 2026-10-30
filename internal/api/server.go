@@ -50,6 +50,7 @@ func NewServer() (*Server, error) {
 		handlers:      newHandlers(c),
 		oracleRuntime: oracleapp.NewRuntime(c.OracleRepo, c.OracleFetcher, c.Chain),
 	}
+	registerOutboxGauge(srv.metrics, c.PendingAuditEvents)
 	return srv, nil
 }
 

@@ -158,6 +158,24 @@ type Registry struct {
 	buckets      map[int]uint64 // bucket index -> cumulative count
 	sum          float64
 	lastLatency  float64
+	gauges       []gauge
+}
+
+// gauge is one value sampled when the metrics are rendered, e.g. a queue depth.
+// The reader runs outside the registry lock: it may query storage, and a slow
+// scrape must not block request observers.
+type gauge struct {
+	name string
+	help string
+	read func() (float64, bool)
+}
+
+// RegisterGauge adds a value sampled at scrape time. A read that reports false
+// omits the gauge for that scrape instead of printing a stale zero.
+func (r *Registry) RegisterGauge(name, help string, read func() (float64, bool)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.gauges = append(r.gauges, gauge{name: name, help: help, read: read})
 }
 
 func NewRegistry() *Registry {
@@ -207,8 +225,7 @@ func (r *Registry) Handler() http.Handler {
 // Expose renders the metrics registry as Prometheus text format.
 func (r *Registry) Expose() string {
 	r.mu.RLock()
-	defer r.mu.RUnlock()
-
+	gauges := append([]gauge(nil), r.gauges...)
 	var b strings.Builder
 	fmt.Fprintln(&b, "# HELP aurora_http_requests_total Total HTTP requests handled.")
 	fmt.Fprintln(&b, "# TYPE aurora_http_requests_total counter")
@@ -258,5 +275,19 @@ func (r *Registry) Expose() string {
 	fmt.Fprintf(&b, "aurora_http_request_duration_seconds_sum %s\n",
 		strconv.FormatFloat(r.sum, 'f', -1, 64))
 	fmt.Fprintf(&b, "aurora_http_request_duration_seconds_count %d\n", r.total)
+	r.mu.RUnlock()
+
+	for _, g := range gauges {
+		if g.read == nil {
+			continue
+		}
+		value, ok := g.read()
+		if !ok {
+			continue
+		}
+		fmt.Fprintf(&b, "# HELP %s %s\n", g.name, g.help)
+		fmt.Fprintf(&b, "# TYPE %s gauge\n", g.name)
+		fmt.Fprintf(&b, "%s %s\n", g.name, strconv.FormatFloat(value, 'f', -1, 64))
+	}
 	return b.String()
 }
