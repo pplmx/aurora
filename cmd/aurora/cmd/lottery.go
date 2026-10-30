@@ -173,6 +173,9 @@ var verifyCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if jsonRequested(cmd) {
+			return printJSON(report)
+		}
 		record := report.Record
 
 		// Display verification info
@@ -471,6 +474,7 @@ func init() {
 	lotteryCmd.AddCommand(historyCmd)
 	addJSONFlag(historyCmd)
 	lotteryCmd.AddCommand(verifyCmd)
+	addJSONFlag(verifyCmd)
 	lotteryCmd.AddCommand(exportCmd)
 	lotteryCmd.AddCommand(importCmd)
 	lotteryCmd.AddCommand(statsCmd)

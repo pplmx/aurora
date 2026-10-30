@@ -33,6 +33,9 @@ var tokenBalanceCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("token.error.get_balance", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
+		}
 
 		fmt.Printf("\n💰 %s:\n", i18n.GetText("token.balance_heading"))
 		printLocalizedField("common.token", resp.TokenID)
@@ -68,6 +71,9 @@ var tokenAllowanceCmd = &cobra.Command{
 		resp, err := uc.Execute(req)
 		if err != nil {
 			return wrapCLIError("token.error.get_allowance", err)
+		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
 		}
 
 		fmt.Printf("\n🔑 %s:\n", i18n.GetText("token.allowance_heading"))

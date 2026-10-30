@@ -463,40 +463,27 @@ var resultsCmd = &cobra.Command{
 			return wrapCLIError("voting.error.get_repo", err)
 		}
 
-		session, err := repo.GetSession(sessionID)
+		// The app-layer use case owns the tally (roster order, per-session
+		// claims, deleted candidates at zero), so the CLI reports exactly what
+		// the REST results endpoint returns instead of rebuilding the map.
+		resp, err := votingapp.NewGetResultsUseCase(repo).Execute(sessionID)
 		if err != nil {
-			return wrapCLIError("voting.error.get_session", err)
+			if errors.Is(err, voting.ErrSessionNotFound) {
+				return newCLIError("voting.session_not_found")
+			}
+			return wrapCLIError("voting.error.get_results", err)
 		}
-		if session == nil {
-			return newCLIError("voting.session_not_found")
-		}
-
-		results := make(map[string]int)
-		for _, cid := range session.Candidates {
-			cand, err := repo.GetCandidate(cid)
-			if errors.Is(err, sqlite.ErrNotFound) {
-				// The roster references a candidate that no longer exists —
-				// show the bare id at 0 votes instead of hiding it (TASK-154).
-				results[cid] = 0
-				continue
-			}
-			if err != nil {
-				return wrapCLIErrorf("voting.error.load_candidate", err, cid)
-			}
-			if cand != nil {
-				count, err := repo.CountVotesBySession(session.ID, cid)
-				if err != nil {
-					return wrapCLIErrorf("voting.error.count_votes", err, cid)
-				}
-				results[fmt.Sprintf("%s (%s)", cand.Name, cand.Party)] = count
-			} else {
-				results[cid] = 0
-			}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
 		}
 
 		fmt.Println("\n📊 " + i18n.GetText("voting.results_heading") + ":")
-		for name, count := range results {
-			fmt.Printf("   %s: %s\n", name, i18n.GetTextF("voting.votes", count))
+		for _, cand := range resp.Candidates {
+			name := cand.ID
+			if cand.Name != "" {
+				name = fmt.Sprintf("%s (%s)", cand.Name, cand.Party)
+			}
+			fmt.Printf("   %s: %s\n", name, i18n.GetTextF("voting.votes", cand.VoteCount))
 		}
 		return nil
 	},
@@ -533,6 +520,7 @@ func init() {
 	sessionCmd.AddCommand(sessionEndCmd)
 
 	votingCmd.AddCommand(resultsCmd)
+	addJSONFlag(resultsCmd)
 
 	candidateAddCmd.Flags().StringP("name", "n", "", i18n.GetText("voting.name"))
 	candidateAddCmd.Flags().StringP("party", "p", "", i18n.GetText("voting.party"))
