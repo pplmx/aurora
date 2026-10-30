@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **NFT mint payloads are plain text**: the mint record appended the raw 32-byte
+  owner key, so the ledger and every JSON response quoting the payload carried
+  control characters; the owner is now base64 like the transfer and burn
+  records, and a test pins the printable shape. Existing records keep their
+  bytes — the chain is append-only and the desktop renders binary fields as
+  base64.
 - **The database's disk usage is visible in both surfaces**: `aurora lottery
   db-info` printed the path and block count but not the size, and Settings
   showed the path alone; both now sum the database and its `-wal`/`-shm`
