@@ -494,7 +494,10 @@ func (t *securityTransport) RoundTrip(req *http.Request) (*http.Response, error)
 func (f *Fetcher) Get(url string) ([]byte, error) {
 	resp, err := f.client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch data: %w", sanitizeFetchError(err))
+		// The caller names the operation; the fetcher reports only why the
+		// request failed. Wrapping here too made the desktop's Feed Health card
+		// read "failed to fetch data: failed to fetch data: ...".
+		return nil, sanitizeFetchError(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -551,7 +554,7 @@ func (f *Fetcher) FetchDataWithValidationContext(ctx context.Context, source *or
 
 	resp, err := f.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch data: %w", sanitizeFetchError(err))
+		return nil, sanitizeFetchError(err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 

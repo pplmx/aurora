@@ -1445,3 +1445,22 @@ func TestRateLimiter_EvictsIdleSources(t *testing.T) {
 		t.Fatalf("expected only the fresh source to remain after eviction, got %d", len(rl.requests))
 	}
 }
+
+// TestFetchErrorLeavesTheOperationPhraseToTheCaller keeps the same phrase from
+// naming the operation twice: the oracle use case wraps a failed fetch with
+// "failed to fetch data", so a transport error must not repeat it. The desktop
+// Feed Health card showed "failed to fetch data: failed to fetch data: ...".
+func TestFetchErrorLeavesTheOperationPhraseToTheCaller(t *testing.T) {
+	skipIfLoopbackBlocked(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	url := srv.URL
+	srv.Close()
+
+	_, err := newLoopbackFetcher().Get(url)
+	if err == nil {
+		t.Fatal("a closed server must fail the fetch")
+	}
+	if strings.Contains(err.Error(), "failed to fetch data") {
+		t.Fatalf("the fetcher repeated the caller's phrase: %v", err)
+	}
+}
