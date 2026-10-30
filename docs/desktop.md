@@ -660,7 +660,8 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   `just desktop-shot token nft`；写成 `voting:Results` 会先切到该阶段再截图，
   默认覆盖每个页面的主要 tab）用 MyGo 的 automation 插件打开真实窗口，
   在同一个窗口里按侧栏的稳定 key 逐页切换，截图到 `dist/e2e/<page>.png`，
-  并断言无障碍树里出现该页标题。插件只在 `e2e` build tag 下被
+  并断言无障碍树里出现该页标题与该页独有的控件（如 Dashboard 的
+  “Ledger Integrity”）。插件只在 `e2e` build tag 下被
   `cmd/aurora-desktop/automation_e2e.go` 引入，发布构建不含监听器；客户端是
   `desktop/cmd/automation-shot`，只走标准库和插件的新行分隔 JSON 协议。
   它先按元素的稳定 key 点击（侧栏页名），没有 key 时再按无障碍标签点击
