@@ -169,18 +169,49 @@ func (a *App) settingsLiveUpdatesCard(c *ui.Context) {
 	})
 }
 
-// settingsAppearanceCard reports the desktop preferences the window actually
-// receives, rather than claiming a fixed theme.
+// settingsAppearanceCard lets the operator choose the app's own appearance,
+// then reports the OS accessibility settings that modify it.
 func (a *App) settingsAppearanceCard(c *ui.Context) {
-	formCard(c, "Appearance", "Aurora is dark by design; text size, contrast and motion follow the operating system.", func() {
+	formCard(c, "Appearance", "Choose the window palette; text size, contrast and motion follow the operating system.", func() {
+		mode := normalizeThemeMode(a.themeMode)
+		ui.RadioGroup(c, func() {
+			ui.Radio(c, &mode, ThemeModeSystem, tr("Follow System"))
+			ui.Radio(c, &mode, ThemeModeLight, tr("Light"))
+			ui.Radio(c, &mode, ThemeModeDark, tr("Dark"))
+		}).Row().Wrap().Gap(space4).Label(tr("Theme mode"))
+		if mode != a.themeMode {
+			a.settingsStatus = statusLine{}
+			a.themeMode = mode
+			if a.actions.SetThemeMode != nil {
+				if err := a.actions.SetThemeMode(mode); err != nil {
+					a.settingsStatus = errorStatusText(
+						tr("Couldn't save settings") + ": " + localizeServiceError(err))
+				}
+			}
+		}
 		preferences := c.Preferences()
 		readout(c, []readoutRow{
-			{"Theme", tr("Dark")},
+			{"Theme", themeModeLabel(mode)},
 			{"Text size", textScaleLabel(preferences.TextScale)},
 			{"Contrast", preferenceStateLabel(preferences.HighContrast, "Enhanced", "Standard")},
 			{"Motion", preferenceStateLabel(preferences.ReduceMotion, "Reduced", "Enabled")},
 		})
+		hint(c, "Follow System uses the desktop appearance; Light and Dark keep Aurora's palette regardless of it.")
+		if renderStatus(c, pageSettings, a.settingsStatus, func() { a.settingsStatus = statusLine{} }) {
+			a.navigationControl.Focus(c)
+		}
 	})
+}
+
+func themeModeLabel(mode ThemeMode) string {
+	switch normalizeThemeMode(mode) {
+	case ThemeModeSystem:
+		return tr("Follow System")
+	case ThemeModeLight:
+		return tr("Light")
+	default:
+		return tr("Dark")
+	}
 }
 
 // settingsAboutCard is the build identity and the one dialog that has no other

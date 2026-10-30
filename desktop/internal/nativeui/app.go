@@ -85,6 +85,10 @@ type App struct {
 	busyAnnouncement  string
 	busySlowAnnounced bool
 	invalidate        func()
+	// themeMode is the saved appearance choice. systemDark is refreshed by
+	// the shell when the desktop changes while Follow system is selected.
+	themeMode  ThemeMode
+	systemDark bool
 
 	lottery    lotteryState
 	voting     votingState
@@ -96,7 +100,10 @@ type App struct {
 }
 
 func New(services Services) *App {
-	a := &App{services: services, page: pageDashboard, liveNow: time.Now}
+	a := &App{
+		services: services, page: pageDashboard, liveNow: time.Now,
+		themeMode: ThemeModeDark, systemDark: true,
+	}
 	// The draw form opens ready to submit: one winner is the domain's own
 	// default, and an empty count field rejected the first Create click with a
 	// parse error for a value the operator never had a chance to see.
@@ -136,9 +143,9 @@ func (a *App) Services() Services { return a.services }
 // View is the frame builder handed to mygo.WindowOptions.Content.
 //
 // The window is a sidebar of modules beside one scrolling page. The theme is
-// set here rather than left to the system appearance: Aurora is dark by
-// design, and a light system theme used to paint white controls onto the dark
-// window.
+// rebuilt for the saved appearance and the open module. Every module owns
+// one hue, so section marks, tabs and the primary action all belong to the
+// page instead of a global accent layer.
 func (a *App) View(c *ui.Context) {
 	a.invalidate = c.Invalidate
 	a.pollAsync(c)
@@ -147,7 +154,7 @@ func (a *App) View(c *ui.Context) {
 		c.Announce(a.pageAnnouncement)
 		a.pageAnnouncement = ""
 	}
-	c.SetTheme(auroraThemeFor(c.Preferences()))
+	c.SetTheme(auroraThemeForState(c.Preferences(), a.themeMode, a.systemDark, a.page))
 	ui.Row(c).Fill().Children(func() {
 		a.sidebarColumn(c)
 		workspace := ui.Column(c).Fill().Grow(1).LinearGradient(workspaceFill(c))
@@ -212,7 +219,7 @@ func (a *App) commandPalette(c *ui.Context) {
 		Shadow(0, 18, 48, -8, ui.RGBA(0, 0, 0, 0.5))
 	// A lit top edge ties the palette to the accent that opened it, and marks
 	// it as the one floating surface above the page rather than another card.
-	accentHairline(c, panel, ui.Hex(aurora))
+	accentHairline(c, panel, c.Theme().Accent)
 	panel.Children(func() {
 		heading(c, tr("Jump to"), 17, 2)
 		search := searchField(c, &a.paletteQuery, "Search pages").AutoFocus()
@@ -358,7 +365,7 @@ func paletteRow(c *ui.Context, entry paletteEntry, selected bool) (ui.Element, b
 	b.Children(func() {
 		ui.Row(c).FillWidth().Gap(10).AlignItems(ui.Center).Children(func() {
 			size := 18 * textScale(c)
-			ui.Icon(c, entry.icon).Size(size, size).TextColor(ui.Hex(aurora))
+			ui.Icon(c, entry.icon).Size(size, size).TextColor(c.Theme().Accent)
 			ui.Column(c).Gap(1).Children(func() {
 				ui.Text(c, title).FontSize(textSize(c, 13)).Bold().TextColor(c.Theme().Text).SingleLine()
 				ui.Text(c, tr(entry.detail)).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).SingleLine()
@@ -442,11 +449,11 @@ func (a *App) brand(c *ui.Context) {
 	ui.Column(c).FillWidth().Padding(space5, space5, space3, space1).Gap(space1).Children(func() {
 		ui.Row(c).Gap(space3).AlignItems(ui.Center).Children(func() {
 			mark := ui.Row(c).Size(iconTileSmall+4, iconTileSmall+4).Center().Radius(radiusSmall+2).
-				Gradient(ui.Hex(aurora), ui.Hex(votingAccent), 135).
-				Shadow(0, 10, 24, -8, ui.Hex(aurora).Alpha(0.55)).
+				Gradient(brandAccent(c), brandWarm(c), 135).
+				Shadow(0, 10, 24, -8, brandAccent(c).Alpha(0.5)).
 				InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.28))
 			mark.Children(func() {
-				ui.Icon(c, sparkIcon).Size(18, 18).TextColor(ui.Hex(onAccent))
+				ui.Icon(c, sparkIcon).Size(18, 18).TextColor(themeAccentText(c.Theme().Dark))
 			})
 			ui.Text(c, tr("Aurora")).FontSize(textSize(c, 20)).FontWeight(700).
 				LetterSpacing(-0.2).TextColor(c.Theme().Text).SingleLine()
@@ -471,7 +478,7 @@ func (a *App) paletteButton(c *ui.Context) {
 			fill = c.Theme().SurfacePressed
 		case b.Hovered():
 			fill = c.Theme().Surface
-			outline = ui.Hex(aurora).Alpha(0.4)
+			outline = c.Theme().Accent.Alpha(0.48)
 		}
 		b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
 		b.BorderWidth(1).BorderColor(outline)
@@ -536,7 +543,7 @@ func (a *App) sidebar(c *ui.Context) {
 // current page" mark and keeps the row recognisable when the fill is subtle.
 func markSidebarChoice(c *ui.Context, item ui.Element, navigation *ui.Element) {
 	item.DrawOver(func(p *ui.Painter, r ui.Rect) {
-		tone := ui.Hex(aurora)
+		tone := c.Theme().Accent
 		if navigation.Focused() {
 			// The focused row is filled with the accent, so the bar uses the
 			// dark ink that reads on top of it.
@@ -556,7 +563,7 @@ func markSidebarChoice(c *ui.Context, item ui.Element, navigation *ui.Element) {
 // it changes the temperature of the strip without touching the contrast
 // ratios text and borders depend on.
 func (a *App) headerBand(c *ui.Context, fn func()) {
-	tone := pageAccent(a.page)
+	tone := pageAccent(c, a.page)
 	band := ui.Column(c).FillWidth().Padding(space5, space6, space5, space6)
 	band.Draw(func(p *ui.Painter, r ui.Rect) {
 		clear := tone.Alpha(0)
@@ -668,11 +675,11 @@ func (a *App) openPalette() {
 // and the word carry the same state; the dot alone would be colour-only.
 func liveBadge(c *ui.Context) {
 	ui.Row(c).Gap(space2).AlignItems(ui.Center).Padding(space1, space2+2).Radius(999).
-		Background(ui.Hex(successTint)).BorderWidth(1).BorderColor(ui.Hex(auroraGreen).Alpha(0.35)).
+		Background(successTint(c)).BorderWidth(1).BorderColor(c.Theme().Success.Alpha(0.35)).
 		Children(func() {
-			statusDot(c, ui.Hex(auroraGreen), 6)
+			statusDot(c, c.Theme().Success, 6)
 			ui.Text(c, tr("Live · 10s")).FontSize(textSize(c, 11)).FontWeight(500).
-				TextColor(ui.Hex(auroraGreen)).SingleLine()
+				TextColor(c.Theme().Success).SingleLine()
 		})
 }
 
@@ -691,7 +698,7 @@ func refreshButton(c *ui.Context) ui.Element {
 		from, to = c.Theme().SurfacePressed, c.Theme().SurfaceHover
 	case b.Hovered():
 		from, to = c.Theme().SurfaceHover, c.Theme().Surface
-		outline = ui.Hex(aurora).Alpha(0.55)
+		outline = c.Theme().Accent.Alpha(0.62)
 	}
 	b.Gradient(from, to, 180)
 	b.BorderWidth(1).BorderColor(outline)
@@ -1029,7 +1036,7 @@ func (a *App) busyBar(c *ui.Context) {
 	}
 	bar := ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space3).
 		Padding(space2+2, space3+2).Radius(radiusSmall).
-		BorderWidth(0, 0, 0, 2).BorderColor(ui.Hex(aurora).Alpha(0.7)).Children(func() {
+		BorderWidth(0, 0, 0, 2).BorderColor(c.Theme().Accent.Alpha(0.72)).Children(func() {
 		ui.Spinner(c)
 		ui.Text(c, text).FontSize(textSize(c, 12)).TextColor(c.Theme().Text).
 			Grow(1).Shrink(1).MinWidth(0)
@@ -1038,7 +1045,7 @@ func (a *App) busyBar(c *ui.Context) {
 	// and a lit left edge, so "working" and "finished" read as the same kind of
 	// message in the same place instead of two different banners.
 	bar.Draw(func(p *ui.Painter, r ui.Rect) {
-		tint := ui.Hex(aurora).Alpha(0.10)
+		tint := c.Theme().Accent.Alpha(0.10)
 		p.FillGradient(r, ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
 			{Color: tint, At: 0},
 			{Color: tint.Alpha(0.25), At: 0.9},

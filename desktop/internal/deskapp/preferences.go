@@ -20,7 +20,8 @@ const preferencesName = "desktop-settings.json"
 // Preferences are the desktop choices that survive a launch. Only harmless
 // presentation/behavior flags belong here: no key material, no database path.
 type Preferences struct {
-	LiveUpdates bool `json:"liveUpdates"`
+	LiveUpdates bool   `json:"liveUpdates"`
+	Theme       string `json:"theme,omitempty"`
 }
 
 // preferencesPath is empty when there is no database path yet; saving then

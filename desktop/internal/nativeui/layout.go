@@ -28,7 +28,7 @@ func textScale(c *ui.Context) float32 {
 // the same place. Each module has its own hue, which the dashboard's counters
 // and the page tile repeat.
 func pageGlyph(c *ui.Context, p page) ui.Element {
-	return iconTile(c, pageIcons[p], pageAccent(p), iconTileMedium)
+	return iconTile(c, pageIcons[p], pageAccent(c, p), iconTileMedium)
 }
 
 // twoColumns lays out two stacks side by side, each filling half the width,
@@ -91,14 +91,29 @@ func heading(c *ui.Context, text string, size float32, level int) ui.Element {
 func card(c *ui.Context, fn func()) ui.Element {
 	// A card fills its column's width and is as tall as its content: growing
 	// it would stretch a three-field form down the page. The soft shadow and
-	// the hairline of light along the top edge lift it off the polar-night
-	// background; a border alone read as a table cell rather than a card.
-	return ui.Column(c).FillWidth().Padding(space5, space4+space1).Gap(space3).
+	// the hairline of light along the top edge lift it off the workspace;
+	// a border alone read as a table cell rather than a card.
+	panel := ui.Column(c).FillWidth().Padding(space5, space4+space1).Gap(space3).
 		Radius(radiusPanel).LinearGradient(panelFill(c)).
 		BorderWidth(1).BorderColor(c.Theme().Border).
-		Shadow(0, 22, 48, -20, ui.RGBA(0, 0, 0, 0.55)).
-		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.045)).
-		Children(fn)
+		Shadow(0, 20, 46, -22, cardShadow(c)).
+		InsetShadow(0, 1, 0, 0, cardHighlight(c))
+	// A short accent rail on the left edge ties a card to the current
+	// module without tinting its whole surface. The mark is deliberately
+	// inset from both rounded corners so it reads as a binder tab, not a
+	// second border.
+	panel.DrawOver(func(p *ui.Painter, r ui.Rect) {
+		rail := ui.Rect{X: r.X, Y: r.Y + radiusPanel, W: 3, H: max(0, r.H-2*radiusPanel)}
+		tone := c.Theme().Accent
+		p.FillGradient(rail, ui.LinearGradient{Angle: 180, Stops: []ui.GradientStop{
+			{Color: tone.Alpha(0), At: 0},
+			{Color: tone.Alpha(0.58), At: 0.18},
+			{Color: tone.Alpha(0.58), At: 0.82},
+			{Color: tone.Alpha(0), At: 1},
+		}}, 1.5)
+	})
+	panel.Children(fn)
+	return panel
 }
 
 // recordPanel is the compact surface used when a wide table becomes a list of
@@ -106,8 +121,9 @@ func card(c *ui.Context, fn func()) ui.Element {
 // as another form section.
 func recordPanel(c *ui.Context, fn func()) {
 	ui.Column(c).FillWidth().Padding(space3).Gap(space2).Radius(radiusSmall).
-		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.35)).
-		BorderWidth(1).BorderColor(c.Theme().Border).Children(fn)
+		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.24)).
+		BorderWidth(1).BorderColor(c.Theme().Border).
+		InsetShadow(0, 1, 0, 0, cardHighlight(c)).Children(fn)
 }
 
 // selectableRecordPanel is the interactive form of recordPanel. It keeps the
@@ -124,9 +140,9 @@ func selectableRecordPanel(c *ui.Context, selected bool, label string, fn func()
 		Radius(radiusSmall + 2).AlignItems(ui.Start).Label(label)
 	panel.BorderWidth(1)
 
-	fill, outline := c.Theme().Background, c.Theme().Border
+	fill, outline := c.Theme().Background.Mix(c.Theme().Surface, 0.18), c.Theme().Border
 	if selected {
-		fill, outline = c.Theme().Selection, ui.Hex(aurora)
+		fill, outline = c.Theme().Selection, c.Theme().Accent
 	} else if panel.Pressed() {
 		fill = c.Theme().SurfacePressed
 	} else if panel.Hovered() {
@@ -151,7 +167,7 @@ func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric
 	body := func() {
 		ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Children(func() {
 			eyebrow(c, label).Grow(1).Shrink(1).MinWidth(0)
-			iconTile(c, pageIcons[target], pageAccent(target), iconTileSmall)
+			iconTile(c, pageIcons[target], pageAccent(c, target), iconTileSmall)
 		})
 		// The value sits in a fixed-height slot so a word verdict and a
 		// one-digit number put their note on the same line across the row.
@@ -160,7 +176,8 @@ func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric
 			size = statValueSize
 		}
 		ui.Column(c).Height(textSize(c, 40)).Justify(ui.Center).Children(func() {
-			ui.Text(c, tr(value)).FontSize(textSize(c, size)).FontWeight(700).TextColor(tone).
+			ui.Text(c, tr(value)).FontSize(textSize(c, size)).FontWeight(700).
+				TextColor(tone).Font("monospace").
 				FontFeatures("tnum").SingleLine()
 		})
 		ui.Text(c, tr(note)).FontSize(textSize(c, 11.5)).TextColor(c.Theme().TextMuted)
@@ -169,7 +186,7 @@ func metricCard(c *ui.Context, label, value, note string, tone ui.Color, numeric
 		card(c, body)
 		return false
 	}
-	return cardAccent(actionCard(c, label, body), pageAccent(target)).Clicked()
+	return cardAccent(actionCard(c, label, body), pageAccent(c, target)).Clicked()
 }
 
 // actionCard is a whole card that opens another page. It keeps the card's
@@ -180,8 +197,8 @@ func actionCard(c *ui.Context, label string, body func()) ui.Element {
 		Padding(space5, space4+space1).Radius(radiusPanel).AlignItems(ui.Start).
 		LinearGradient(panelFill(c)).
 		BorderWidth(1).BorderColor(c.Theme().Border).
-		Shadow(0, 22, 48, -20, ui.RGBA(0, 0, 0, 0.55)).
-		InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.045))
+		Shadow(0, 20, 46, -22, cardShadow(c)).
+		InsetShadow(0, 1, 0, 0, cardHighlight(c))
 	switch {
 	case b.Pressed():
 		b.LinearGradient(ui.LinearGradient{
@@ -195,7 +212,7 @@ func actionCard(c *ui.Context, label string, body func()) ui.Element {
 			From:  c.Theme().SurfaceHover,
 			To:    c.Theme().Surface,
 		})
-		b.BorderColor(ui.Hex(aurora).Alpha(0.45))
+		b.BorderColor(c.Theme().Accent.Alpha(0.5))
 	}
 	hoverRaise(c, b, b.Hovered())
 	b.Children(func() { ui.Column(c).FillWidth().Gap(space3).Children(body) })
@@ -220,8 +237,8 @@ func metricRow(c *ui.Context, n int, fn func(i int)) {
 func sectionHeading(c *ui.Context, title, purpose string) {
 	ui.Column(c).Gap(space1).Children(func() {
 		ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
-			ui.Row(c).Width(3).Height(textSize(c, 15)).Radius(1.5).
-				Background(ui.Hex(aurora)).Shrink(0)
+			ui.Row(c).Width(4).Height(textSize(c, 15)).Radius(2).
+				Background(c.Theme().Accent).Shrink(0)
 			heading(c, tr(title), sectionSize, 2)
 		})
 		if purpose != "" {
@@ -252,7 +269,7 @@ func formCard(c *ui.Context, title, purpose string, fn func()) {
 // and separates the title from the explanation so a first-time reader knows
 // whether the store is empty or the read failed.
 func emptyState(c *ui.Context, p page, title, body string) {
-	emptyStateIcon(c, pageIcons[p], pageAccent(p), title, body)
+	emptyStateIcon(c, pageIcons[p], pageAccent(c, p), title, body)
 }
 
 // emptyPanel is the compact empty state for a collection that is already

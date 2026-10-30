@@ -11,6 +11,27 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The desktop has two semantic appearances instead of one fixed dark palette**:
+  Appearance now offers Follow System, Light and Dark and saves the choice in
+  `desktop-settings.json`; an older file without a theme field still opens in
+  the previous dark design. Light uses a warm paper surface and deep ink, Dark
+  keeps the near-black ledger surface, and both retain the same status meanings.
+  The window, MyGo native chrome and first frame follow the saved choice, and
+  a failed preference write still applies the palette for this session while
+  Settings reports that it will not survive a restart.
+- **Every module now owns the accent instead of one global Aurora blue**: cards
+  carry a short module-colour rail, the page header, tabs, selected records,
+  focus ring and primary action all resolve to the open module's hue. The
+  wordmark stays fixed as a mint-to-warm-gold identity, so product branding
+  does not drift as pages change. Primary buttons use the module gradient with
+  a contrast-checked label; disabled submit actions use a quiet bordered
+  surface and state which required fields are missing.
+- **Both appearances pass WCAG AA at the surfaces they actually paint**:
+  body, muted text, module ink, success, danger and warning text are checked on
+  the window and card backgrounds for every module; the primary label is
+  checked on its module fill, selected-row text on its wash, and every verdict
+  colour on its status tint. The light status wash is deliberately faint so
+  readable verdict text does not disappear into a coloured strip.
 - **Every collection is one list of records, not a table plus a fallback**: the
   nine collections that carried both a `ui.Table` rendering and a hand-written
   record loop at 1.75x text now share one renderer. The table was giving the

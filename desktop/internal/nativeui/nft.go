@@ -206,13 +206,13 @@ func (a *App) nftMintBody(c *ui.Context) {
 			a.nft.status = okStatus("Creator private key copied.")
 		}).Bind(&a.nft.creatorKeyCopy)
 		ui.Text(c, tr("This is the only copy of the creator key; the store keeps the public half.")).
-			FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
+			FontSize(textSize(c, 11)).TextColor(c.Theme().Warning)
 	}
 	if generated {
 		a.nft.creatorKeyCopy.Focus(c)
 	}
 	ui.Row(c).Children(func() {
-		if primaryButton(c, "Mint NFT").Disabled(!allSet(a.nft.name, a.nft.creator)).Clicked() {
+		if primaryButton(c, "Mint NFT", allSet(a.nft.name, a.nft.creator)).Clicked() {
 			a.mintNFT()
 		}
 	})
@@ -542,7 +542,7 @@ func (a *App) nftWrite(c *ui.Context) {
 			a.useCreatorKeyButton(c, &a.nft.priv, a.nft.transferID, a.nft.from)
 			a.useSavedKeyButton(c, a.nft.from, &a.nft.priv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Transfer").Disabled(!allSet(a.nft.transferID, a.nft.from, a.nft.to, a.nft.priv)).Clicked() {
+				if primaryButton(c, "Transfer", allSet(a.nft.transferID, a.nft.from, a.nft.to, a.nft.priv)).Clicked() {
 					a.transferNFT()
 				}
 			})

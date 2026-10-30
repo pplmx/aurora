@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"image"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -136,12 +137,32 @@ func TestDashboardCountersCarryTheirModuleHue(t *testing.T) {
 	}
 
 	// The lottery counter is amber (more red than blue) and the vote counter
-	// is violet (more blue than red); both used to be body ink, which is the
+	// is violet (more red than green); both used to be body ink, which is the
 	// same near-white for every card.
 	lotteryR, lotteryB := hue(t, "3")
 	require.Greater(t, lotteryR, lotteryB,
 		"the lottery counter must take its amber module hue")
-	votesR, votesB := hue(t, "9")
-	require.Greater(t, votesB, votesR,
+	votes, ok := tester.Find("9")
+	require.True(t, ok)
+	votesR, votesG := hueRG(t, img, votes)
+	require.Greater(t, votesR, votesG,
 		"the vote counter must take its violet module hue")
+}
+
+// hueRG reads the most saturated red/green pair in a text rect, for a violet
+// whose blue and red channels are close enough that blue alone is ambiguous.
+func hueRG(t *testing.T, img *image.RGBA, value ui.Rect) (uint32, uint32) {
+	t.Helper()
+	var bestR, bestG, bestDiff uint32
+	for y := int(value.Y); y < int(value.Y+value.H); y++ {
+		for x := int(value.X); x < int(value.X+value.W); x++ {
+			r, g, _, _ := img.At(x, y).RGBA()
+			r, g = r>>8, g>>8
+			diff := uint32(absInt(int(r) - int(g)))
+			if diff > bestDiff {
+				bestDiff, bestR, bestG = diff, r, g
+			}
+		}
+	}
+	return bestR, bestG
 }

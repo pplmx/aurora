@@ -200,3 +200,61 @@ func TestSettingsShowsAPreferenceWriteFailure(t *testing.T) {
 	require.True(t, tester.Focused("Navigation"),
 		"dismissing the Settings error must not strand the keyboard")
 }
+
+func TestSettingsStartsFromTheSavedThemeMode(t *testing.T) {
+	for _, tc := range []struct {
+		saved ThemeMode
+		want  ThemeMode
+	}{
+		{"", ThemeModeDark},
+		{ThemeModeSystem, ThemeModeSystem},
+		{ThemeModeLight, ThemeModeLight},
+		{ThemeModeDark, ThemeModeDark},
+		{ThemeMode("sepia"), ThemeModeDark},
+	} {
+		app := New(&fakeServices{})
+		app.SetActions(Actions{ThemeMode: func() ThemeMode { return tc.saved }})
+		require.Equal(t, tc.want, app.themeMode, tc.saved)
+	}
+}
+
+func TestSettingsSavesThemeMode(t *testing.T) {
+	app := New(&fakeServices{})
+	var saved ThemeMode
+	app.SetActions(Actions{
+		ThemeMode: func() ThemeMode { return ThemeModeDark },
+		SetThemeMode: func(mode ThemeMode) error {
+			saved = mode
+			return nil
+		},
+	})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Light"))
+	tester.Frame()
+	require.Equal(t, ThemeModeLight, saved)
+	require.Equal(t, ThemeModeLight, app.themeMode)
+	require.False(t, app.settingsStatus.isErr)
+	require.True(t, tester.HasText("Follow System"))
+}
+
+func TestSettingsShowsThemeWriteFailure(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		ThemeMode:    func() ThemeMode { return ThemeModeDark },
+		SetThemeMode: func(ThemeMode) error { return errors.New("disk full") },
+	})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Light"))
+	tester.Frame()
+	require.Equal(t, ThemeModeLight, app.themeMode,
+		"the session still uses the chosen palette")
+	require.True(t, app.settingsStatus.isErr)
+	require.Contains(t, app.settingsStatus.text, "disk full")
+	require.True(t, tester.HasText("Couldn't save settings: disk full"))
+}

@@ -120,7 +120,7 @@ func (a *App) dashboardView(c *ui.Context) {
 		// glyph beside it already carries that hue, and the value is what the
 		// eye lands on first. The notes stay in body ink, so the reading order
 		// is still "how many" then "of what".
-		tone := func(p page) ui.Color { return pageAccent(p) }
+		tone := func(p page) ui.Color { return pageAccent(c, p) }
 		metrics := []struct {
 			label   string
 			value   string
@@ -186,11 +186,11 @@ func (a *App) dashboardView(c *ui.Context) {
 // one value an operator must not miss deserves more than a third of a row.
 func (a *App) dashboardHero(c *ui.Context) {
 	verified := a.dashboard.Integrity == "verified"
-	tone := ui.Hex(auroraGreen)
+	tone := c.Theme().Success
 	description := "Every module appends its records to one hash chain; each block commits to the previous hash."
 	switch {
 	case !verified:
-		tone = ui.Hex(auroraRed)
+		tone = c.Theme().Danger
 		description = "The stored chain did not verify. Inspect the ledger before trusting the counters below."
 	case a.dashboardIsEmpty():
 		description = "The ledger is ready. Start with a quick action below; the first record opens block 1."
@@ -264,7 +264,7 @@ func (a *App) dashboardQuickStart(c *ui.Context) {
 // the task, and the module it opens. Five buttons of equal weight read as a
 // toolbar; five tiles with their module marks read as destinations.
 func (a *App) quickAction(c *ui.Context, label string, target page) {
-	tone := pageAccent(target)
+	tone := pageAccent(c, target)
 	b := ui.ButtonBase(c).Width(textSize(c, 184)).Padding(space3).Gap(space2).
 		Radius(radiusSmall + 2).AlignItems(ui.Start).Label(tr(label))
 	fill, outline := c.Theme().Background.Mix(c.Theme().Surface, 0.35), c.Theme().Border
@@ -326,7 +326,7 @@ func (a *App) dashboardRecent(c *ui.Context) {
 			// list's empty states instead of a lone grey line.
 			ui.Column(c).FillWidth().Padding(space6, space5).Gap(space2).
 				AlignItems(ui.Center).Children(func() {
-				iconTile(c, pageIcons[pageBlockchain], pageAccent(pageBlockchain), iconTileMedium)
+				iconTile(c, pageIcons[pageBlockchain], pageAccent(c, pageBlockchain), iconTileMedium)
 				ui.Text(c, tr("Nothing on the chain yet.")).FontSize(textSize(c, 12)).
 					TextColor(c.Theme().TextMuted).TextAlign(ui.Center)
 			})
@@ -472,7 +472,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		if query != "" {
 			emptyNote(c, fmt.Sprintf(tr("No blocks match “%s”."), query))
 		} else {
-			emptyPanel(c, pageIcons[pageBlockchain], pageAccent(pageBlockchain),
+			emptyPanel(c, pageIcons[pageBlockchain], pageAccent(c, pageBlockchain),
 				"Nothing recorded on the chain yet.")
 		}
 		return
