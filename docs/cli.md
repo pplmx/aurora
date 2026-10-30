@@ -207,7 +207,8 @@ aurora blockchain blocks -s transfer   # 按记录文本过滤（不区分大小
 `-l` 默认 20、`0` 表示全部，`-p` 按条目计偏移；`-s` 在原始记录文本上过滤，
 此时打印的是匹配条数。「账本还没有记录」「没有匹配」「这一页为空」是三种不同的
 提示，脚本可以按退出码或文本区分。两个命令都支持 `--json`：`verify` 输出与
-REST 相同的完整性报告，`blocks` 输出与 `/blockchain/blocks` 相同的分页信封，
+REST 相同的完整性报告（含头区块哈希 `head`），`blocks` 输出与
+`/blockchain/blocks` 相同的分页信封，
 stdout 只有这一个文档，可直接交给 jq。
 
 备份目录不能被指定为数据库自身所在目录（会把 live DB 覆盖成快照）；

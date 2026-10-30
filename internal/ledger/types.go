@@ -15,8 +15,11 @@ type BlockEntry struct {
 
 // IntegrityReport summarises an integrity verification of the chain.
 type IntegrityReport struct {
-	Valid             bool   `json:"valid"`
-	Length            int    `json:"length"`
+	Valid  bool `json:"valid"`
+	Length int  `json:"length"`
+	// Head is the newest block's hash in hex: the chain's identity beside its
+	// size, so two installations can confirm they follow the same chain.
+	Head              string `json:"head,omitempty"`
 	FirstBrokenIndex  int    `json:"first_broken_index,omitempty"`
 	FirstBrokenReason string `json:"first_broken_reason,omitempty"`
 }

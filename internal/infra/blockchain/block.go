@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -378,16 +379,6 @@ func (c *Chain) ResetBlocks() {
 // recorded without knowing each module's row schema use this.
 // Head returns the newest block's height and hash. The hash is copied so a
 // caller cannot alias the chain's storage; an empty chain reports (-1, nil).
-func (c *Chain) Head() (int64, []byte) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if len(c.Blocks) == 0 {
-		return -1, nil
-	}
-	b := c.Blocks[len(c.Blocks)-1]
-	return b.Height, append([]byte(nil), b.Hash...)
-}
-
 func (c *Chain) BlockData() []string {
 	if c == nil {
 		return nil
@@ -525,24 +516,30 @@ func (c *Chain) VerifyIntegrity() *IntegrityReport {
 	defer c.mu.RUnlock()
 	blocks := c.Blocks
 	n := len(blocks)
+	// The head identifies the state even when a block in the middle broke: a
+	// support comparison starts from the last hash either way.
+	head := ""
+	if n > 0 && blocks[n-1] != nil {
+		head = hex.EncodeToString(blocks[n-1].Hash)
+	}
 	for i, b := range blocks {
 		if b == nil {
-			return &IntegrityReport{Valid: false, Length: n, FirstBrokenIndex: i, FirstBrokenReason: "nil block"}
+			return &IntegrityReport{Valid: false, Length: n, Head: head, FirstBrokenIndex: i, FirstBrokenReason: "nil block"}
 		}
 		if b.Height != int64(i) {
-			return &IntegrityReport{Valid: false, Length: n, FirstBrokenIndex: i, FirstBrokenReason: "height discontinuity"}
+			return &IntegrityReport{Valid: false, Length: n, Head: head, FirstBrokenIndex: i, FirstBrokenReason: "height discontinuity"}
 		}
 		if len(b.Hash) == 0 {
-			return &IntegrityReport{Valid: false, Length: n, FirstBrokenIndex: i, FirstBrokenReason: "empty hash"}
+			return &IntegrityReport{Valid: false, Length: n, Head: head, FirstBrokenIndex: i, FirstBrokenReason: "empty hash"}
 		}
 		if i > 0 && !bytes.Equal(b.PrevHash, blocks[i-1].Hash) {
-			return &IntegrityReport{Valid: false, Length: n, FirstBrokenIndex: i, FirstBrokenReason: "prev-hash chain break"}
+			return &IntegrityReport{Valid: false, Length: n, Head: head, FirstBrokenIndex: i, FirstBrokenReason: "prev-hash chain break"}
 		}
 		if ok, reason := verifyBlockPoW(b); !ok {
-			return &IntegrityReport{Valid: false, Length: n, FirstBrokenIndex: i, FirstBrokenReason: reason}
+			return &IntegrityReport{Valid: false, Length: n, Head: head, FirstBrokenIndex: i, FirstBrokenReason: reason}
 		}
 	}
-	return &IntegrityReport{Valid: true, Length: n, FirstBrokenIndex: -1}
+	return &IntegrityReport{Valid: true, Length: n, Head: head, FirstBrokenIndex: -1}
 }
 
 // verifyBlockPoW confirms the block's stored hash is a valid proof-of-work over

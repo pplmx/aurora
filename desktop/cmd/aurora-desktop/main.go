@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -287,8 +286,7 @@ func main() {
 				return 0, "", false, false
 			}
 			report := chain.VerifyIntegrity()
-			_, hash := chain.Head()
-			head := hex.EncodeToString(hash)
+			head := report.Head
 			if len(head) > 12 {
 				head = head[:12]
 			}

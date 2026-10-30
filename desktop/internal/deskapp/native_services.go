@@ -22,7 +22,6 @@ type ledgerChain interface {
 	BlockEntries(limit int) []ledger.BlockEntry
 	BlockEntriesPage(limit, offset int) []ledger.BlockEntry
 	BlockEntriesPageMatching(limit, offset int, match func(ledger.BlockEntry) bool) ([]ledger.BlockEntry, int)
-	Head() (int64, []byte)
 }
 
 // nativeServices adapts the application layer to the view layer's Services

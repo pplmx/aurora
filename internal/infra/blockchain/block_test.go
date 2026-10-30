@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"os"
 	"strings"
 	"sync"
@@ -248,6 +249,9 @@ func TestVerifyIntegrity_ValidChain(t *testing.T) {
 	require.True(t, rep.Valid, "valid chain must verify: %+v", rep)
 	require.Equal(t, 3, rep.Length) // genesis + 2
 	require.Equal(t, -1, rep.FirstBrokenIndex)
+	// The head is the newest block's hash: the chain's identity in the report.
+	require.Len(t, rep.Head, 64, "a sha256 digest in hex")
+	require.Equal(t, hex.EncodeToString(c.Blocks[2].Hash), rep.Head)
 }
 
 func TestVerifyIntegrity_DetectsPrevHashBreak(t *testing.T) {
@@ -265,6 +269,7 @@ func TestVerifyIntegrity_DetectsPrevHashBreak(t *testing.T) {
 	rep := c.VerifyIntegrity()
 	require.False(t, rep.Valid)
 	require.Equal(t, 1, rep.FirstBrokenIndex)
+	require.NotEmpty(t, rep.Head, "a broken chain still reports the head it read")
 }
 
 func TestVerifyIntegrity_DetectsTamperedHash(t *testing.T) {
@@ -345,21 +350,6 @@ func TestBlockEntriesCarryTheirTimestamps(t *testing.T) {
 
 // TestBlockEntriesPageOffsetsInEntries keeps pagination from confusing a block
 // height with a position: offsets skip non-genesis entries, newest first.
-// TestHeadIdentifiesTheNewestBlock: the head is the chain's identity in a
-// support thread (height plus hash), and a new block moves it.
-func TestHeadIdentifiesTheNewestBlock(t *testing.T) {
-	chain := New()
-	height, hash := chain.Head()
-	require.Equal(t, int64(0), height, "genesis is the first head")
-	require.Len(t, hash, 32, "the head carries the full digest")
-
-	_, err := chain.AddBlock("head-record")
-	require.NoError(t, err)
-	newHeight, newHash := chain.Head()
-	require.Equal(t, int64(1), newHeight)
-	require.NotEqual(t, hash, newHash, "a new block changes the head hash")
-}
-
 func TestBlockEntriesPageOffsetsInEntries(t *testing.T) {
 	chain := New()
 	for _, payload := range []string{"a", "b", "c"} {
