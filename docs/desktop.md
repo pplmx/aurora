@@ -663,7 +663,8 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   `cmd/aurora-desktop/automation_e2e.go` 引入，发布构建不含监听器；客户端是
   `desktop/cmd/automation-shot`，只走标准库和插件的新行分隔 JSON 协议。
   它先按元素的稳定 key 点击（侧栏页名），没有 key 时再按无障碍标签点击
-  （页内 tab），所以同一套命令也能翻到 Ballot、Results 这类阶段。
+  （页内 tab）；标签先精确匹配、再按子串匹配，所以记录行也能点到（数据源
+  行的标签是“Select btc”而不是“btc”）。
   `AURORA_E2E_SEED=1 just desktop-shot` 会先用 CLI 往同一个数据库写入抽奖、
   代币、NFT、预言机数据源、候选人与会期，截图展示的是有数据的页面，而不是
   首次记录引导页。
