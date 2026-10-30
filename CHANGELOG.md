@@ -594,7 +594,8 @@ The milestone notes under `.planning/` are history, not current instructions.
   prints the block count, the verdict and the first break and exits non-zero
   when the chain is invalid; `aurora blockchain blocks` pages the recorded
   payloads newest first (genesis excluded) so scripts can grep the audit trail.
-  Both are localized.
+  Both take `--json` and print the REST documents, so a script parses one shape
+  whether it called the CLI or the API, and both are localized.
 - **The command palette can open the data folder**: Ctrl/Cmd+K then "folder"
   reaches Show Data Folder, so the keyboard path covers every File-menu action
   except the Open Recent list.

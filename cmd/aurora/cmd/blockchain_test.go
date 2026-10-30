@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"database/sql"
+	"encoding/json"
 	"path/filepath"
 	"testing"
 
@@ -95,5 +96,43 @@ func TestBlockchainBlocksListsRecordedPayloads(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, "Audit records: 1")
 		assert.Contains(t, out, "No entries on this page")
+	})
+}
+
+// TestBlockchainJSONMatchesTheAPI turns the two commands into something a script
+// can parse: the verify report and the block page use the REST shapes, and the
+// document starts at the first byte (no banner to strip).
+func TestBlockchainJSONMatchesTheAPI(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		out, err := runCmd(t, "blockchain", "verify", "--json")
+		require.NoError(t, err)
+		var report struct {
+			Valid  bool `json:"valid"`
+			Length int  `json:"length"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &report), "output must be one JSON document: %q", out)
+		assert.True(t, report.Valid)
+		assert.Equal(t, 1, report.Length)
+
+		_, err = runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "json-seed", "--count", "1")
+		require.NoError(t, err)
+
+		out, err = runCmd(t, "blockchain", "blocks", "--json")
+		require.NoError(t, err)
+		var page struct {
+			Blocks []struct {
+				Height  int64  `json:"height"`
+				Payload string `json:"payload"`
+			} `json:"blocks"`
+			Total int `json:"total"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &page), "output must be one JSON document: %q", out)
+		assert.Equal(t, 1, page.Total)
+		require.Len(t, page.Blocks, 1)
+		assert.Equal(t, int64(1), page.Blocks[0].Height)
+		assert.Contains(t, page.Blocks[0].Payload, "json-seed")
 	})
 }

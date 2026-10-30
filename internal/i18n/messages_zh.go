@@ -15,6 +15,7 @@ var chineseMessages = map[string]string{
 	"blockchain.blocks_limit":      "最多列出的记录数（0 表示全部）",
 	"blockchain.blocks_offset":     "按条目计的偏移量",
 	"blockchain.blocks_search":     "按记录文本过滤（不区分大小写）",
+	"blockchain.json":              "以 JSON 输出而不是表格",
 	"blockchain.blocks_no_match":   "没有记录匹配 %q。",
 	"blockchain.blocks_empty_page": "这一页没有记录，账本共 %d 条。",
 	"blockchain.length":            "区块数",
