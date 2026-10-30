@@ -78,6 +78,10 @@ type SessionResponse struct {
 	// second request.
 	StartTime int64 `json:"start_time"`
 	EndTime   int64 `json:"end_time"`
+	// CreatedAt sorts and audits a session without a second request. The list
+	// and the single-session endpoint return the same shape, so a client can
+	// parse either with one struct.
+	CreatedAt int64 `json:"created_at"`
 }
 
 type ResultsRequest struct {

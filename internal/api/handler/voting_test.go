@@ -549,3 +549,45 @@ func TestVotingHandler_GetResults_NotFound(t *testing.T) {
 	h.GetResults(rr, requestWithParam(http.MethodGet, "/api/v1/voting/results/missing", "missing"))
 	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
+
+// TestVotingHandler_GetSession_UsesTheListShape: the single-session endpoint
+// used to encode the domain struct, so it answered with Go field names (ID,
+// Title, StartTime) while the list answered snake_case; start/end session had
+// the same leak. Both now go through the same DTO, which is why this test
+// compares key sets instead of one fixed string.
+func TestVotingHandler_GetSession_UsesTheListShape(t *testing.T) {
+	repo := newMockVotingRepo()
+	repo.sessions["s1"] = &voting.Session{
+		ID: "s1", Title: "Board Vote", Description: "One seat", Status: "active",
+		Candidates: []string{"c1"}, StartTime: 1000, EndTime: 2000, CreatedAt: 900,
+	}
+	h := NewVotingHandler(repo, nil)
+
+	rr := httptest.NewRecorder()
+	h.GetSession(rr, requestWithParam(http.MethodGet, "/api/v1/voting/session/s1", "s1"))
+	require.Equal(t, http.StatusOK, rr.Code)
+	require.NotContains(t, rr.Body.String(), `"ID"`, "the response must not expose Go field names")
+
+	var single map[string]any
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &single))
+	assert.Equal(t, "active", single["status"])
+	assert.Equal(t, float64(1000), single["start_time"])
+	assert.Equal(t, float64(900), single["created_at"])
+
+	listRR := httptest.NewRecorder()
+	h.ListSessions(listRR, httptest.NewRequest(http.MethodGet, "/api/v1/voting/sessions", nil))
+	var list []map[string]any
+	require.NoError(t, json.Unmarshal(listRR.Body.Bytes(), &list))
+	require.Len(t, list, 1)
+	assert.Equal(t, sortedKeys(list[0]), sortedKeys(single),
+		"one session must parse with the same struct as the list")
+}
+
+func sortedKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}

@@ -11,6 +11,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **The single-session API answers in snake_case**: `GET /voting/session/{id}`
+  and the start/end endpoints encoded the domain struct, so they returned `ID`,
+  `Title`, `StartTime` while every other response uses `id`/`title`/`start_time`;
+  all three now go through the list's DTO, which also gained `created_at` so one
+  struct parses either shape. The reference shows the real body.
 - **A duration typo in the config file fails startup**: `[http] timeout = "1am"`
   used to fall back to 10s silently for the CLI and the API server; the three
   duration keys are now validated at load, and the command (or the server, before
