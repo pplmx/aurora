@@ -15,10 +15,6 @@ import (
 // opens Aurora on that draw. It is declared in desktop/mygo.config.ts
 // (urlSchemes) so an installed bundle registers it, and registered at run
 // time with App.RegisterURLScheme on platforms without an installer.
-//
-// Links created by older releases may use the full
-// aurora://localhost/page.html spelling; ParseIntent continues to accept that
-// form even though the native window has no address bar.
 const DeepLinkScheme = "aurora"
 
 // Intent is what a launch argument asks the shell to show: a page of the
@@ -46,9 +42,10 @@ type Intent struct {
 
 // pages are the window destinations a deep link may name. Keeping the list
 // here means a link cannot navigate the native app to a page it does not have.
+// The dashboard has two spellings: the bare scheme and its page id.
 var pages = map[string]bool{
 	"":           true,
-	"index":      true,
+	"dashboard":  true,
 	"lottery":    true,
 	"voting":     true,
 	"token":      true,
@@ -167,24 +164,24 @@ func parseDeepLink(raw string) (Intent, bool) {
 		return Intent{}, false
 	}
 	// aurora://lottery?id=x names the page in the host (the Windows and Linux
-	// launchers preserve it that way). aurora://localhost/lottery.html?id=x is
-	// the old window-URL spelling and remains valid for existing links.
+	// launchers preserve it that way); aurora:///lottery carries the same
+	// page in the path, which is the form a URL builder emits when it has no
+	// authority to put the page in. A page is one segment: anything longer is
+	// not a destination the window has.
 	name := u.Host
-	path := strings.TrimSuffix(strings.Trim(u.Path, "/"), ".html")
-	switch {
-	case name == "" || strings.EqualFold(name, "localhost"):
+	path := strings.Trim(u.Path, "/")
+	if name == "" {
 		name = path
-	case path != "":
-		name += "/" + path
+	} else if path != "" {
+		return Intent{}, false
 	}
-	name = strings.ToLower(strings.TrimSuffix(name, ".html"))
+	name = strings.ToLower(name)
 	if !pages[name] {
 		return Intent{}, false
 	}
-	if name == "" || name == "index" {
+	if name == "" {
 		// The dashboard is a page too: a link that names it must navigate
-		// there from another page, not leave the window where it was. Empty
-		// and "index" are the same destination (the root and its document).
+		// there from another page, not leave the window where it was.
 		name = "dashboard"
 	}
 	return Intent{Page: name, LotteryID: u.Query().Get("id")}, true

@@ -489,9 +489,9 @@ func TestTextScaleIsHonoured(t *testing.T) {
 }
 
 // TestDashboardLinksNavigateFromAnotherPage pins the dashboard as a real
-// destination. The deep-link parser used to spell "aurora://" and
-// "aurora://index" as an empty page, which ShowIntent treats as "leave the
-// window alone" — so a dashboard link from another page did nothing.
+// destination. A bare "aurora://" used to parse as an empty page, which
+// ShowIntent treats as "leave the window alone" — so a dashboard link from
+// another page did nothing.
 func TestDashboardLinksNavigateFromAnotherPage(t *testing.T) {
 	app := New(&fakeServices{})
 
@@ -500,8 +500,8 @@ func TestDashboardLinksNavigateFromAnotherPage(t *testing.T) {
 	require.Equal(t, pageDashboard, app.page)
 
 	app.ShowPage("Token")
-	app.ShowPage("index")
-	require.Equal(t, pageDashboard, app.page, "the old index spelling names the dashboard")
+	app.ShowPage("Dashboard")
+	require.Equal(t, pageDashboard, app.page, "the page id and its title both name the dashboard")
 }
 
 // TestSettingsShortcut pins Ctrl/Cmd+, (the desktop settings convention)
