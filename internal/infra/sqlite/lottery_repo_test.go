@@ -443,3 +443,66 @@ func TestLotteryRepository_Close(t *testing.T) {
 		_ = repo.Close()
 	})
 }
+
+// TestListMatchingSearchesStoredText: the filter runs over the stored columns
+// (id, seed, participants, winners), case-insensitively, and pages inside the
+// match set — the reason it cannot be done by filtering a loaded page.
+func TestListMatchingSearchesStoredText(t *testing.T) {
+	repo, cleanup := setupLotteryTestDB(t)
+	defer cleanup()
+
+	rosters := map[string][]string{
+		"draw-a": {"alice", "bob"},
+		"draw-b": {"carol", "dave"},
+		"draw-c": {"erin", "frank"},
+	}
+	for i, id := range []string{"draw-a", "draw-b", "draw-c"} {
+		record := sampleLotteryRecord(id, int64(i+1))
+		record.Seed = "seed-" + id
+		record.Participants = rosters[id]
+		require.NoError(t, repo.Save(record))
+	}
+	winner := sampleLotteryRecord("draw-w", 4)
+	winner.Seed = "mallory-seed"
+	winner.Participants = []string{"gina"}
+	winner.Winners = []string{"Mallory"}
+	require.NoError(t, repo.Save(winner))
+
+	byWinner, err := repo.ListMatching("mAllory", 0, 0)
+	require.NoError(t, err)
+	require.Len(t, byWinner, 1)
+	assert.Equal(t, "draw-w", byWinner[0].ID, "the term matches winners case-insensitively")
+
+	bySeed, err := repo.ListMatching("SEED-draw-b", 0, 0)
+	require.NoError(t, err)
+	require.Len(t, bySeed, 1)
+	assert.Equal(t, "draw-b", bySeed[0].ID)
+
+	byParticipant, err := repo.ListMatching("carol", 0, 0)
+	require.NoError(t, err)
+	require.Len(t, byParticipant, 1)
+	assert.Equal(t, "draw-b", byParticipant[0].ID)
+
+	// Paging happens inside the match set: three ids share the seed prefix.
+	// The exact order depends on wall-clock seconds, so the assertions relate
+	// the pages to the full match list instead of pinning an id.
+	matches, err := repo.ListMatching("seed-draw", 0, 0)
+	require.NoError(t, err)
+	require.Len(t, matches, 3)
+	firstPage, err := repo.ListMatching("seed-draw", 1, 0)
+	require.NoError(t, err)
+	require.Len(t, firstPage, 1)
+	assert.Equal(t, matches[0].ID, firstPage[0].ID, "the first page starts at the newest match")
+	secondPage, err := repo.ListMatching("seed-draw", 1, 1)
+	require.NoError(t, err)
+	require.Len(t, secondPage, 1)
+	assert.NotEqual(t, firstPage[0].ID, secondPage[0].ID, "offset pages inside the match set")
+
+	none, err := repo.ListMatching("no-such-draw", 0, 0)
+	require.NoError(t, err)
+	assert.Empty(t, none)
+
+	all, err := repo.ListMatching("   ", 0, 0)
+	require.NoError(t, err)
+	assert.Len(t, all, 4, "a blank term reads the whole table")
+}

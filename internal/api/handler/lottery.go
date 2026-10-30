@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
@@ -83,8 +84,17 @@ func (h *LotteryHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *LotteryHandler) History(w http.ResponseWriter, r *http.Request) {
 	limit, offset := lotteryHistoryPage(r)
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
 
-	results, err := h.repo.List(limit, offset)
+	// The filter runs in storage: filtering a loaded page would report only the
+	// matches that happened to land on it.
+	var results []*lottery.LotteryRecord
+	var err error
+	if query != "" {
+		results, err = h.repo.ListMatching(query, limit, offset)
+	} else {
+		results, err = h.repo.List(limit, offset)
+	}
 	if err != nil {
 		writeUseCaseError(w, err)
 		return

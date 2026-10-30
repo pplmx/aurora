@@ -51,6 +51,9 @@ func (r *scriptedRepo) List(limit, offset int) ([]*lottery.LotteryRecord, error)
 	}
 	return records, r.allErr
 }
+func (r *scriptedRepo) ListMatching(term string, limit, offset int) ([]*lottery.LotteryRecord, error) {
+	return r.List(limit, offset)
+}
 
 func (r *scriptedRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
 	r.getByHeightCall++

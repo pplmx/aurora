@@ -45,6 +45,30 @@ func (m *mockLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord, err
 	}
 	return records, nil
 }
+func (m *mockLotteryRepo) ListMatching(term string, limit, offset int) ([]*lottery.LotteryRecord, error) {
+	term = strings.ToLower(strings.TrimSpace(term))
+	if term == "" {
+		return m.List(limit, offset)
+	}
+	var matched []*lottery.LotteryRecord
+	for _, r := range m.records {
+		haystack := strings.ToLower(strings.Join([]string{
+			r.ID, r.Seed,
+			strings.Join(r.Participants, " "), strings.Join(r.Winners, " "),
+		}, " "))
+		if strings.Contains(haystack, term) {
+			matched = append(matched, r)
+		}
+	}
+	if offset >= len(matched) {
+		return nil, nil
+	}
+	page := matched[offset:]
+	if limit > 0 && len(page) > limit {
+		page = page[:limit]
+	}
+	return page, nil
+}
 
 func (m *mockLotteryRepo) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
 	var result []*lottery.LotteryRecord

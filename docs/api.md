@@ -173,7 +173,7 @@ aurora_http_requests_by_status_total{code="404"} 1
 | 方法 | 路径                          | 说明                                        |
 | ---- | ----------------------------- | ------------------------------------------- |
 | POST | `/api/v1/lottery/create`      | 创建抽奖；`winner_count` 省略时用配置默认值 |
-| GET  | `/api/v1/lottery/history`     | 分页历史（`limit`、`offset`）               |
+| GET  | `/api/v1/lottery/history`     | 分页历史（`limit`、`offset`、`q` 过滤）     |
 | GET  | `/api/v1/lottery/{id}`        | 单条记录，未知 id 返回 404                  |
 | GET  | `/api/v1/lottery/{id}/verify` | 复验 VRF 证明与中奖集合，返回完整校验报告   |
 
@@ -186,7 +186,9 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 `GET /lottery/history` 默认返回最新 50 条；`limit` 上限 100，`offset` 上限
 10000。分页在 SQLite 查询中完成，并按
 `timestamp DESC, block_height DESC, id` 使用复合索引，因此同一秒创建或导入的
-记录也有稳定顺序，不会在两次翻页之间重复或漏行。
+记录也有稳定顺序，不会在两次翻页之间重复或漏行。`q` 在 id、seed、参与者和
+中奖者上做不区分大小写的子串匹配，过滤与分页都在存储层完成——先在当前页过滤
+只能返回恰好落在该页的匹配。
 
 单条记录（长哈希与密钥以 … 省略）：
 
