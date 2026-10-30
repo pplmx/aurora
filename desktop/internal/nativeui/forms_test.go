@@ -389,6 +389,17 @@ func TestShortIDKeepsACopyablePrefix(t *testing.T) {
 		"the shortened id must be a prefix of the real one")
 }
 
+// TestShortHashIsTheComparedPrefix pins the shared head display rule: twelve
+// characters, no ellipsis (the value is copied into comparisons), and a short
+// value is untouched.
+func TestShortHashIsTheComparedPrefix(t *testing.T) {
+	require.Equal(t, "abc123", ShortHash("abc123"))
+	full := "0ab2857b160a4c9e2f8d7c6b5a4938271605f4e3d2c1b0a9f8e7d6c5b4a39281"
+	require.Equal(t, "0ab2857b160a", ShortHash(full))
+	require.True(t, strings.HasPrefix(full, ShortHash(full)),
+		"the shown head must be a prefix of the real one")
+}
+
 // TestChoosingAHistoryRowFillsTheVerifier pins the path from a draw record to
 // the full id the verifier needs: choosing the record or its own Verify button
 // loads the draw's real id, which is the only place the summary's ellipsis

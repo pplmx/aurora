@@ -286,11 +286,7 @@ func main() {
 				return 0, "", false, false
 			}
 			report := chain.VerifyIntegrity()
-			head := report.Head
-			if len(head) > 12 {
-				head = head[:12]
-			}
-			return chain.Len(), head, report.Valid, true
+			return chain.Len(), nativeui.ShortHash(report.Head), report.Valid, true
 		},
 		OutboxPending: func() (int, bool) {
 			pending, err := rt.Services().PendingAuditEvents(context.Background())
