@@ -84,10 +84,6 @@ type SessionResponse struct {
 	CreatedAt int64 `json:"created_at"`
 }
 
-type ResultsRequest struct {
-	SessionID string
-}
-
 // CandidateResult is one candidate's tally within a session's results.
 type CandidateResult struct {
 	ID        string `json:"id"`
