@@ -73,6 +73,9 @@ type LedgerStatus struct {
 	Valid  bool
 	Height int
 	Blocks int
+	// Head is the newest block's hash prefix: the chain's identity when two
+	// installations are compared.
+	Head string
 }
 
 // LedgerBlockPage is one newest-first page of the audit chain plus the total

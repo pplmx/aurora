@@ -598,6 +598,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The Blockchain page names the chain's head**: the summary line had blocks and
+  height but no identity, so two installations could not confirm they follow the
+  same chain; a third tile shows the newest block's 12-character hash prefix,
+  fed by `Chain.Head()` through the ledger status.
 - **The desktop copies a draw's verdict**: the Verify card keeps its findings on
   screen, but a support reply needs text; one action copies `Draw ID …: verified`
   plus every check line, in the language the window is showing.

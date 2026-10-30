@@ -244,7 +244,10 @@ func TestDashboardHeroKeepsVerdictWholeAtLargeText(t *testing.T) {
 // summary: two tiles and the verdict share a row above the controls they
 // describe, instead of a full-width readout for two short numbers.
 func TestStatChipsKeepFactsBesideTheirCollection(t *testing.T) {
-	app := New(&fakeServices{blocks: []BlockRow{{Height: 1, Module: "voting", Summary: "ballot"}}})
+	app := New(&fakeServices{
+		blocks:     []BlockRow{{Height: 1, Module: "voting", Summary: "ballot"}},
+		ledgerHead: "009c4a0820ab",
+	})
 	tester := ui.NewTester(app.View, 1280, 900)
 	app.ShowPage("Blockchain")
 	tester.Frame()
@@ -257,6 +260,10 @@ func TestStatChipsKeepFactsBesideTheirCollection(t *testing.T) {
 	require.True(t, ok)
 	require.InDelta(t, float64(blocks.Y), float64(height.Y), 2, "the tiles share a line")
 	require.InDelta(t, float64(height.Y), float64(verdict.Y), 16, "the verdict sits with its facts")
+
+	// The head identifies the chain beside its size and verdict.
+	require.True(t, tester.HasText("Head"), "the summary names the head")
+	require.True(t, tester.HasText("009c4a0820ab"))
 
 	search, ok := tester.Find("Search blocks")
 	require.True(t, ok)

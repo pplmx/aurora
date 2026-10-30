@@ -16,8 +16,10 @@ import (
 // data and records what the view asked for, so a test can assert both what
 // rendered and what the view called.
 type fakeServices struct {
-	draws   []DrawRow
-	created *struct {
+	// ledgerHead is the chain's head prefix the blockchain page reports.
+	ledgerHead string
+	draws      []DrawRow
+	created    *struct {
 		participants []string
 		seed         string
 		winners      int
@@ -256,7 +258,7 @@ func (f *fakeServices) LedgerStatus() (LedgerStatus, error) {
 	if len(f.blocks) > 0 {
 		height = len(f.blocks)
 	}
-	return LedgerStatus{Valid: true, Height: height, Blocks: height + 1}, nil
+	return LedgerStatus{Valid: true, Height: height, Blocks: height + 1, Head: f.ledgerHead}, nil
 }
 
 func (f *fakeServices) RegisterVoter(name string) (VoterRow, error) {
