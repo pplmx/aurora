@@ -3,9 +3,10 @@ package i18n
 // traditionalMessages is the catalog for "zh-Hant". It is generated from
 // chineseMessages with OpenCC's Simplified->Traditional phrase and character
 // tables (BYVoid/OpenCC data/dictionary/STPhrases.txt and STCharacters.txt,
-// s2t), not translated independently, so a wording fix belongs in the
-// Simplified table and a regeneration follows. The key set must stay equal to
-// chineseMessages (TestTraditionalCatalogCoversEveryChineseKey).
+// s2t; the old variants 爲/燬/啓 are replaced by 為/毀/啟), not translated
+// independently, so a wording fix belongs in the Simplified table and a
+// regeneration follows. The key set must stay equal to chineseMessages
+// (TestTraditionalCatalogCoversEveryChineseKey).
 var traditionalMessages = map[string]string{
 	"app.build_time":                            "構建時間",
 	"app.go_version":                            "Go 版本",
@@ -68,7 +69,7 @@ var traditionalMessages = map[string]string{
 	"common.configured":                         "已配置",
 	"common.decimals":                           "小數位數",
 	"common.disabled":                           "已禁用",
-	"common.enabled":                            "已啓用",
+	"common.enabled":                            "已啟用",
 	"common.false":                              "否",
 	"common.from":                               "轉出方",
 	"common.headers":                            "請求頭",
@@ -107,7 +108,7 @@ var traditionalMessages = map[string]string{
 	"desktop.dialog.import_title":               "導入抽獎記錄",
 	"desktop.dialog.imported_message":           "已導入 %d 條抽獎記錄。",
 	"desktop.dialog.imported_title":             "抽獎記錄已導入",
-	"desktop.error.already_running_message":     "本次啓動指定了 %s，但 Aurora 已在運行並使用另一個數據目錄。當前窗口無法切換數據庫；如需換用該路徑，請先退出 Aurora。",
+	"desktop.error.already_running_message":     "本次啟動指定了 %s，但 Aurora 已在運行並使用另一個數據目錄。當前窗口無法切換數據庫；如需換用該路徑，請先退出 Aurora。",
 	"desktop.error.already_running_title":       "Aurora 已在運行",
 	"desktop.error.backup_failed":               "備份失敗",
 	"desktop.error.backup_no_db":                "當前窗口沒有數據庫路徑",
@@ -145,7 +146,7 @@ var traditionalMessages = map[string]string{
 	"desktop.menu.open_recent":                  "最近打開",
 	"desktop.menu.open_recent_empty":            "沒有最近的導出文件",
 	"desktop.startup.message":                   "Aurora 未能打開窗口。",
-	"desktop.startup.title":                     "Aurora 無法啓動",
+	"desktop.startup.title":                     "Aurora 無法啟動",
 	"error.already_voted":                       "投票人已在本次會話中投票",
 	"error.amount_positive":                     "數量必須大於零",
 	"error.amount_too_large":                    "數量過大",
@@ -350,7 +351,7 @@ var traditionalMessages = map[string]string{
 	"oracle.error.add_template":                 "添加模板失敗",
 	"oracle.error.delete_source":                "刪除數據源失敗",
 	"oracle.error.disable_source":               "禁用數據源失敗",
-	"oracle.error.enable_source":                "啓用數據源失敗",
+	"oracle.error.enable_source":                "啟用數據源失敗",
 	"oracle.error.fetch":                        "獲取數據失敗",
 	"oracle.error.get_data":                     "獲取預言機數據失敗",
 	"oracle.error.get_latest":                   "獲取最新數據失敗",
@@ -370,12 +371,12 @@ var traditionalMessages = map[string]string{
 	"oracle.source.cmd":                         "數據源管理",
 	"oracle.source.delete":                      "刪除數據源",
 	"oracle.source.disable":                     "禁用數據源",
-	"oracle.source.enable":                      "啓用數據源",
+	"oracle.source.enable":                      "啟用數據源",
 	"oracle.source.list":                        "列出數據源",
 	"oracle.source_added":                       "數據源已創建：%s",
 	"oracle.source_deleted":                     "數據源已刪除！",
 	"oracle.source_disabled":                    "數據源已禁用！",
-	"oracle.source_enabled":                     "數據源已啓用！",
+	"oracle.source_enabled":                     "數據源已啟用！",
 	"oracle.source_headers":                     "請求頭 JSON 對象（如 {\"Authorization\":\"Bearer ...\"}）",
 	"oracle.source_id":                          "數據源 ID",
 	"oracle.source_interval":                    "刷新間隔（秒）（在 source add 中 -i 表示間隔；在 delete/enable/disable/fetch/data/latest 中 -i 表示數據源 ID）",

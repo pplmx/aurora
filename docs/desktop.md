@@ -429,7 +429,7 @@ just check && just test
   常见服务层错误也按原文翻译，未知或动态拼接的诊断保留英文原文，日志
   始终是后端返回的原文。中文有两份表：`messages_zh.go`（简体）与
   `messages_zh_hant.go`（繁体）。后者由 OpenCC 的简→繁短语/字符表（s2t）
-  生成，并把 `爲`/`燬` 覆盖为现代写法 `為`/`毀`；选择 繁體中文 时 MyGo 的
+  生成，并把 `爲`/`燬`/`啓` 覆盖为现代写法 `為`/`毀`/`啟`；选择 繁體中文 时 MyGo 的
   菜单角色与 Aurora 的文案都是繁体。词句修正改简体表后用
   `just gen-zh-hant <OpenCC 词典目录>` 重新生成（词典取 BYVoid/OpenCC 的
   `STPhrases.txt` 与 `STCharacters.txt`，不随仓库分发）；生成器支持

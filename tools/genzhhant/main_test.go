@@ -24,11 +24,11 @@ func TestConverterPrefersTheLongestPhrase(t *testing.T) {
 	}
 }
 
-// TestConverterAppliesModernFormOverrides: OpenCC keeps 爲 and 燬, which a
+// TestConverterAppliesModernFormOverrides: OpenCC keeps 爲, 燬 and 啓, which a
 // modern Traditional UI does not use.
 func TestConverterAppliesModernFormOverrides(t *testing.T) {
 	conv := newConverter(nil, nil)
-	require.Equal(t, "為毀", conv.convert("爲燬"))
+	require.Equal(t, "為毀啟", conv.convert("爲燬啓"))
 }
 
 // TestParseAndRender covers the two halves that touch the repository: reading

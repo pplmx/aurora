@@ -15,7 +15,7 @@ documented in their per-milestone ROADMAP files.
   any zh-Hant/zh-TW/zh-HK locale fell back to the Simplified catalog, so MyGo's
   own menus were Traditional while every Aurora string was Simplified. Aurora
   now ships a Traditional catalog (generated from the Simplified one with
-  OpenCC's s2t tables plus two modern-form overrides) for the desktop and the
+  OpenCC's s2t tables plus modern-form overrides) for the desktop and the
   CLI; tests keep both key sets equal.
 - **The single-session API answers in snake_case**: `GET /voting/session/{id}`
   and the start/end endpoints encoded the domain struct, so they returned `ID`,
