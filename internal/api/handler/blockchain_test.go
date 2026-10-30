@@ -46,10 +46,30 @@ func (f fakeIntegrity) VerifyIntegrity() *ledger.IntegrityReport { return f.repo
 func (f fakeIntegrity) Len() int { return len(f.entries) + 1 }
 
 func (f fakeIntegrity) BlockEntriesPage(limit, offset int) []ledger.BlockEntry {
-	if offset >= len(f.entries) {
+	return f.page(limit, offset, func(ledger.BlockEntry) bool { return true })
+}
+
+func (f fakeIntegrity) BlockEntriesPageMatching(limit, offset int, match func(ledger.BlockEntry) bool) ([]ledger.BlockEntry, int) {
+	total := 0
+	for _, entry := range f.entries {
+		if match(entry) {
+			total++
+		}
+	}
+	return f.page(limit, offset, match), total
+}
+
+func (f fakeIntegrity) page(limit, offset int, match func(ledger.BlockEntry) bool) []ledger.BlockEntry {
+	matches := make([]ledger.BlockEntry, 0, len(f.entries))
+	for _, entry := range f.entries {
+		if match(entry) {
+			matches = append(matches, entry)
+		}
+	}
+	if offset >= len(matches) {
 		return nil
 	}
-	page := f.entries[offset:]
+	page := matches[offset:]
 	if limit > 0 && len(page) > limit {
 		page = page[:limit]
 	}
@@ -90,4 +110,14 @@ func TestBlockchainBlocksRoute(t *testing.T) {
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/blocks?limit=abc", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), `"limit":20`)
+
+	// q filters on the recorded text and the total counts matches.
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/blocks?q=STAR", nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	var filtered BlockPage
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &filtered))
+	require.Equal(t, 1, filtered.Total)
+	require.Len(t, filtered.Blocks, 1)
+	require.Equal(t, int64(2), filtered.Blocks[0].Height)
 }

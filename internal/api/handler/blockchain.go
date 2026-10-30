@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pplmx/aurora/internal/ledger"
@@ -14,6 +15,7 @@ type blockchainChain interface {
 	VerifyIntegrity() *ledger.IntegrityReport
 	Len() int
 	BlockEntriesPage(limit, offset int) []ledger.BlockEntry
+	BlockEntriesPageMatching(limit, offset int, match func(ledger.BlockEntry) bool) ([]ledger.BlockEntry, int)
 }
 
 // BlockchainHandler exposes the ledger's integrity and its recorded payloads
@@ -58,13 +60,25 @@ const (
 
 // Blocks returns a page of non-genesis entries, newest first. The chain's page
 // counts entries (not heights), so a ledger with gaps still pages correctly;
-// the total excludes the genesis block, matching the desktop's pager.
+// the total excludes the genesis block, matching the desktop's pager. A q
+// filters on the exact recorded text (case-insensitive substring), and the
+// total then counts matches, so a client still knows how many pages remain.
 func (h *BlockchainHandler) Blocks(w http.ResponseWriter, r *http.Request) {
 	limit, offset := pageParams(r, defaultBlockPageLimit, maxBlockPageLimit, maxBlockPageOffset)
-	entries := h.chain.BlockEntriesPage(limit, offset)
-	total := h.chain.Len() - 1
-	if total < 0 {
-		total = 0
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+
+	var entries []ledger.BlockEntry
+	total := 0
+	if query == "" {
+		entries = h.chain.BlockEntriesPage(limit, offset)
+		if total = h.chain.Len() - 1; total < 0 {
+			total = 0
+		}
+	} else {
+		needle := strings.ToLower(query)
+		entries, total = h.chain.BlockEntriesPageMatching(limit, offset, func(entry ledger.BlockEntry) bool {
+			return strings.Contains(strings.ToLower(entry.Data), needle)
+		})
 	}
 	page := BlockPage{Blocks: make([]BlockEntry, 0, len(entries)), Total: total, Limit: limit, Offset: offset}
 	for _, entry := range entries {
