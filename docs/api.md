@@ -8,12 +8,17 @@
 just api                                          # 构建 ./aurora-api（注入 git 版本）
 AURORA_API_KEY="replace-with-at-least-32-random-characters" ./aurora-api
 ./aurora-api --host 127.0.0.1 --port 9090
+./aurora-api --config /etc/aurora.toml            # 指定配置文件
 AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 ```
 
 监听地址优先级：**flag（`-H`/`-p`） > `AURORA_SERVER_HOST`/`AURORA_SERVER_PORT` >
 `[server]` 配置 > 默认 `0.0.0.0:8080`**。端口必须在 1–65535，越界在启动前拒绝；
 未知参数同样在启动前报错并提示用法。
+
+配置文件默认按 `$HOME/aurora.toml` → `./config/aurora.toml` 查找，与 CLI 一致；
+`--config` 指定后只读该文件，文件缺失或无法解析会在绑定端口前失败，不会退回默认
+配置。
 
 ## 鉴权与中间件
 
@@ -121,19 +126,19 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 
 ## 代币
 
-| 方法 | 路径                          | 说明                                                 |
-| ---- | ----------------------------- | ---------------------------------------------------- |
-| POST | `/api/v1/token/create`        | 创建代币，`decimals` 0..127                          |
-| POST | `/api/v1/token/mint`          | 增发                                                 |
-| POST | `/api/v1/token/transfer`      | 转账                                                 |
-| POST | `/api/v1/token/approve`       | 授权                                                 |
-| POST | `/api/v1/token/burn`          | 销毁                                                 |
-| POST | `/api/v1/token/transfer_from` | 使用授权转账                                         |
-| GET  | `/api/v1/token/balance`       | 余额（`token_id`、`owner`）                          |
-| GET  | `/api/v1/token/allowance`     | 授权额度（`token_id`、`owner`、`spender`）           |
+| 方法 | 路径                          | 说明                                                                    |
+| ---- | ----------------------------- | ----------------------------------------------------------------------- |
+| POST | `/api/v1/token/create`        | 创建代币，`decimals` 0..127                                             |
+| POST | `/api/v1/token/mint`          | 增发                                                                    |
+| POST | `/api/v1/token/transfer`      | 转账                                                                    |
+| POST | `/api/v1/token/approve`       | 授权                                                                    |
+| POST | `/api/v1/token/burn`          | 销毁                                                                    |
+| POST | `/api/v1/token/transfer_from` | 使用授权转账                                                            |
+| GET  | `/api/v1/token/balance`       | 余额（`token_id`、`owner`）                                             |
+| GET  | `/api/v1/token/allowance`     | 授权额度（`token_id`、`owner`、`spender`）                              |
 | GET  | `/api/v1/token/history`       | 流水，默认页大小 50，支持 `limit`/`offset`；省略 `owner` 读取全代币流水 |
-| GET  | `/api/v1/token/info`          | 代币元数据                                           |
-| GET  | `/api/v1/token/list`          | 代币列表，存储层分页；默认 20，支持 `limit`/`offset` |
+| GET  | `/api/v1/token/info`          | 代币元数据                                                              |
+| GET  | `/api/v1/token/list`          | 代币列表，存储层分页；默认 20，支持 `limit`/`offset`                    |
 
 未知 `token_id` 的读接口返回 `404 TOKEN_NOT_FOUND`，与 `info` 一致——不会用
 `200 {"amount":"0"}` 或 `200 []` 把“代币不存在”伪装成“没有活动”。

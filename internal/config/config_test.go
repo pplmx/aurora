@@ -131,6 +131,39 @@ path = "/tmp/aurora-data/aurora.db"
 		"db.path from config file must be honored (previously only the CLI read it)")
 }
 
+// TestLoadFile_UsesTheExplicitPath: aurora-api's --config must override the
+// discovery order, exactly like the CLI's flag, so a container or systemd unit
+// can point at its own file instead of copying it into ./config.
+func TestLoadFile_UsesTheExplicitPath(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	home := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(home, "aurora.toml"),
+		[]byte("[server]\nport = 9099\n"), 0o644))
+	t.Setenv("HOME", home)
+
+	explicit := filepath.Join(t.TempDir(), "server.toml")
+	require.NoError(t, os.WriteFile(explicit,
+		[]byte("[server]\nhost = \"127.0.0.1\"\nport = 7077\n"), 0o644))
+
+	cfg, err := LoadFile(explicit)
+	require.NoError(t, err)
+	assert.Equal(t, 7077, cfg.Server.Port, "the explicit file must win over $HOME/aurora.toml")
+	assert.Equal(t, "127.0.0.1", cfg.Server.Host)
+}
+
+// TestLoadFile_MissingExplicitPathFails: a misspelled --config must not fall
+// back to discovery or defaults, which would start the server on a config the
+// operator never chose.
+func TestLoadFile_MissingExplicitPathFails(t *testing.T) {
+	resetViper()
+	setDevEnv(t)
+
+	_, err := LoadFile(filepath.Join(t.TempDir(), "nope.toml"))
+	require.Error(t, err)
+}
+
 // TestLoad_MalformedConfigFileFails loudly: a file that exists but cannot be
 // parsed must not silently fall back to defaults (that is exactly the silent
 // misconfiguration class ISS-087 forbids).

@@ -176,3 +176,23 @@ func TestPrintUsage_DescribesCurrentSurface(t *testing.T) {
 		t.Errorf("printUsage advertises the deleted Web UI:\n%s", out)
 	}
 }
+
+// TestParseFlagsConfigPath locks the --config flag that lets a service unit or
+// container point the server at its own file instead of copying it into
+// ./config; the value must survive parsing, and a missing value is a flag
+// error like any other.
+func TestParseFlagsConfigPath(t *testing.T) {
+	mode, opts, err := parseFlags([]string{"--config", "/etc/aurora.toml"})
+	if err != nil {
+		t.Fatalf("parseFlags(--config) err = %v", err)
+	}
+	if mode != runServer {
+		t.Fatalf("mode = %v, want runServer", mode)
+	}
+	if opts == nil || opts.configPath != "/etc/aurora.toml" {
+		t.Fatalf("configPath = %+v, want /etc/aurora.toml", opts)
+	}
+	if _, _, err := parseFlags([]string{"--config"}); err == nil {
+		t.Fatal("--config without a value must be rejected")
+	}
+}
