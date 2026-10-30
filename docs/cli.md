@@ -9,6 +9,19 @@ aurora <module> --help            # 模块参数
 aurora version                    # 版本、构建时间、Go 工具链
 ```
 
+## Shell 补全
+
+`aurora` 自带 Cobra 生成的补全脚本，按各 shell 的惯例加载即可：
+
+```bash
+source <(aurora completion bash)              # 当前会话
+aurora completion bash > ~/.bash_completion   # 登录时加载（bash）
+autoload -U compinit && compinit              # zsh：把 `aurora completion zsh` 的输出放进 fpath
+```
+
+补全覆盖子命令、flag 与已注册的枚举值（例如 `--type` 的合法取值）；脚本内容随命令
+树自动更新，不需要仓库另存一份。
+
 读取与写入命令都支持 `--json`：输出**一个**文档（stdout 无横幅），字段与 REST
 一致，可直接 `| jq`；文档里的字段值不随界面语言变化（例如 `version` 的 `name`
 固定为 `Aurora`，表格标题才是翻译后的）：
