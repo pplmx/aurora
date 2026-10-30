@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -78,6 +79,25 @@ func TestLedgerRecordOpensItsExactPayload(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText(records[0].Payload),
 		"opening the record must show the stored bytes unmodified")
+
+	// Clicking by label works even for an element laid out off-screen, so the
+	// affordance is also checked to sit inside the window.
+	copyRect, ok := tester.Find("Copy payload")
+	require.True(t, ok, "the copy action must be findable in the tree")
+	assert.Positive(t, copyRect.W, "the copy action must have a visible width")
+	assert.GreaterOrEqual(t, copyRect.X, float32(0))
+	assert.LessOrEqual(t, copyRect.X+copyRect.W, float32(1280), "the copy action must stay inside the window")
+
+	// The audit page stacks below 1240px; the action must stay reachable there
+	// too, not just in the wide layout.
+	tester.SetSize(900, 2000)
+	tester.Frame()
+	narrow, ok := tester.Find("Copy payload")
+	require.True(t, ok, "the copy action must survive the stacked layout")
+	assert.Positive(t, narrow.W)
+	assert.LessOrEqual(t, narrow.X+narrow.W, float32(900), "the copy action must stay inside a narrow window")
+	tester.SetSize(1280, 2000)
+	tester.Frame()
 
 	require.NoError(t, tester.Click("Copy payload"))
 	tester.Frame()
