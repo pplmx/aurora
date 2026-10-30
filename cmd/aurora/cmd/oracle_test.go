@@ -93,7 +93,7 @@ func TestOracleSourceEnable_Disable(t *testing.T) {
 	require.NoError(t, err)
 
 	// disabled source fetch -> ErrSourceDisabled (pre-network)
-	_, err = runCmd(t, "oracle", "fetch", "--source", id[0])
+	_, err = runCmd(t, "oracle", "fetch", "--id", id[0])
 	require.Error(t, err)
 	assert.Contains(t, strings.ToLower(err.Error()), "disabled")
 
@@ -217,7 +217,7 @@ func TestOracleFetch_SourceNotFound(t *testing.T) {
 
 	// No sources at all: fetch of unknown id returns ErrSourceNotFound
 	// before any network call.
-	_, err := runCmd(t, "oracle", "fetch", "--source", "missing")
+	_, err := runCmd(t, "oracle", "fetch", "--id", "missing")
 	require.Error(t, err)
 	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
 }
@@ -229,11 +229,11 @@ func TestOracleData_Latest(t *testing.T) {
 	// (ISS-130). Historically `data` silently returned "(none)" for an unknown
 	// source while `latest` surfaced an unclassified error; both now surface
 	// the ~source not found~ sentinel (404 on the REST surface).
-	_, err := runCmd(t, "oracle", "data", "--source", "missing", "--limit", "5")
+	_, err := runCmd(t, "oracle", "data", "--id", "missing", "--limit", "5")
 	require.Error(t, err)
 	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
 
-	_, err = runCmd(t, "oracle", "latest", "--source", "missing")
+	_, err = runCmd(t, "oracle", "latest", "--id", "missing")
 	require.Error(t, err)
 	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
 }

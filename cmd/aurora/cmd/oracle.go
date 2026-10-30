@@ -418,37 +418,26 @@ func init() {
 	sourceDisableCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
 	_ = sourceDisableCmd.MarkFlagRequired("id")
 
-	// fetch/data/latest select a source with --id/-i (the canonical spelling,
-	// matching the source management commands) OR the legacy --source/-s
-	// alias — a user pasting an ID printed by `oracle source list` used to
-	// hit "unknown flag: --id" on fetch/data/latest (ISS-189, TASK-193).
-	// MarkFlagRequired("source") is dropped because either spelling counts;
-	// resolveOracleSourceID errors when neither is given.
+	// fetch/data/latest select a source with --id/-i, the same spelling as the
+	// source management commands, so an id printed by `oracle source list` can
+	// be pasted into any of them.
 	fetchCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
-	fetchCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id_legacy"))
 
 	dataCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
-	dataCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id_legacy"))
 	dataCmd.Flags().IntP("limit", "l", 10, i18n.GetText("oracle.limit"))
 
 	latestCmd.Flags().StringP("id", "i", "", i18n.GetText("oracle.source_id"))
-	latestCmd.Flags().StringP("source", "s", "", i18n.GetText("oracle.source_id_legacy"))
 
 	templateAddCmd.Flags().StringP("template", "t", "", i18n.GetText("oracle.template"))
 	_ = templateAddCmd.MarkFlagRequired("template")
 }
 
-// resolveOracleSourceID returns the source selector for fetch/data/latest,
-// accepting the canonical --id/-i (matching the oracle source management
-// commands) and the legacy --source/-s spelling. --id wins when both are
-// given, and neither counts as a clean usage error instead of an empty
-// lookup (ISS-189, TASK-193).
+// resolveOracleSourceID returns the source selector for fetch/data/latest. An
+// empty selector is a clean usage error instead of an empty lookup, so a
+// mistyped invocation cannot read as "no data".
 func resolveOracleSourceID(cmd *cobra.Command) (string, error) {
 	if id, _ := cmd.Flags().GetString("id"); id != "" {
 		return id, nil
-	}
-	if src, _ := cmd.Flags().GetString("source"); src != "" {
-		return src, nil
 	}
 	return "", newCLIError("oracle.error.source_required")
 }

@@ -338,20 +338,12 @@ var resetCmd = &cobra.Command{
 	Use:   "reset",
 	Short: i18n.GetText("lottery.reset"),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		yes, _ := cmd.Flags().GetBool("yes")
-		confirm, _ := cmd.Flags().GetBool("confirm")
-		if !yes && !confirm {
-			// The destructive reset did NOT run — surface that as an error
-			// (non-zero exit) instead of printing a warning and exiting 0,
-			// matching backup restore --confirm (TASK-100, ISS-092). A
-			// script that forgot the gate must be able to detect the refusal.
-			// --yes (legacy) and --confirm both count (TASK-152, ISS-140). The
-			// refusal shares the localized cli.confirm.required template with
-			// the other five destructive commands (TASK-186, ISS-182).
-			return newCLIError(
-				"cli.confirm.required",
-				i18n.GetText("cli.confirm.lottery_reset"),
-			)
+		// The destructive reset did NOT run when the gate is missing — surface
+		// that as an error (non-zero exit) instead of printing a warning and
+		// exiting 0, like the other destructive commands. A script that forgot
+		// the gate must be able to detect the refusal.
+		if err := requireConfirm(cmd, "cli.confirm.lottery_reset"); err != nil {
+			return err
 		}
 
 		db, err := blockchain.InitDB()
@@ -465,13 +457,9 @@ func init() {
 	historyCmd.Flags().IntP("limit", "l", 0, i18n.GetText("token.list_limit"))
 	historyCmd.Flags().IntP("offset", "p", 0, i18n.GetText("token.offset"))
 
-	resetCmd.Flags().BoolP("yes", "y", false, i18n.GetText("lottery.yes"))
-	// --confirm without a shorthand: the -y shorthand is already taken by
-	// --yes, but the canonical destructive gate must also work here so all six
-	// destructive commands accept --confirm (TASK-152, ISS-140). Its help
-	// renders the shared localized template with the reset action phrase
-	// (TASK-186, ISS-182).
-	resetCmd.Flags().Bool("confirm", false, fmt.Sprintf(i18n.GetText("cli.confirm.flag"), i18n.GetText("cli.confirm.lottery_reset")))
+	// The reset takes the same -y/--confirm gate as every other destructive
+	// command, instead of a private spelling with a second alias.
+	addConfirmFlag(resetCmd, "cli.confirm.lottery_reset")
 
 	_ = createCmd.MarkFlagRequired("participants")
 	_ = createCmd.MarkFlagRequired("seed")
