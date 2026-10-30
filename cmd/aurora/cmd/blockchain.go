@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -35,6 +36,9 @@ var blockchainVerifyCmd = &cobra.Command{
 			return wrapCLIError("blockchain.error.init", err)
 		}
 		report := chain.VerifyIntegrity()
+		if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
+			return printJSON(report)
+		}
 
 		fmt.Printf("\n⛓  %s\n", i18n.GetText("blockchain.verify_title"))
 		fmt.Println("────────────────────────────")
@@ -90,6 +94,10 @@ var blockchainBlocksCmd = &cobra.Command{
 				return strings.Contains(strings.ToLower(entry.Data), needle)
 			})
 		}
+		if jsonOut, _ := cmd.Flags().GetBool("json"); jsonOut {
+			return printBlocksJSON(entries, total, limit, offset)
+		}
+
 		fmt.Printf("\n🧱 %s: %d\n", i18n.GetText("blockchain.blocks_title"), total)
 		if len(entries) == 0 {
 			// A filtered miss and an offset past the end are different problems
@@ -120,4 +128,40 @@ func init() {
 	blockchainBlocksCmd.Flags().IntP("limit", "l", 20, i18n.GetText("blockchain.blocks_limit"))
 	blockchainBlocksCmd.Flags().IntP("offset", "p", 0, i18n.GetText("blockchain.blocks_offset"))
 	blockchainBlocksCmd.Flags().StringP("search", "s", "", i18n.GetText("blockchain.blocks_search"))
+	for _, cmd := range []*cobra.Command{blockchainVerifyCmd, blockchainBlocksCmd} {
+		cmd.Flags().Bool("json", false, i18n.GetText("blockchain.json"))
+	}
+}
+
+// printBlocksJSON writes the audit page in the same shape the REST endpoint
+// uses, so a script parses one document whether it called the CLI or the API.
+func printBlocksJSON(entries []ledger.BlockEntry, total, limit, offset int) error {
+	type blockEntry struct {
+		Height    int64  `json:"height"`
+		Timestamp int64  `json:"timestamp"`
+		Payload   string `json:"payload"`
+	}
+	page := struct {
+		Blocks []blockEntry `json:"blocks"`
+		Total  int          `json:"total"`
+		Limit  int          `json:"limit"`
+		Offset int          `json:"offset"`
+	}{Blocks: make([]blockEntry, 0, len(entries)), Total: total, Limit: limit, Offset: offset}
+	for _, entry := range entries {
+		page.Blocks = append(page.Blocks, blockEntry{
+			Height: entry.Height, Timestamp: entry.Timestamp, Payload: entry.Data,
+		})
+	}
+	return printJSON(page)
+}
+
+// printJSON emits one indented document on stdout and nothing else, so a caller
+// can pipe the command into jq without stripping a banner.
+func printJSON(value any) error {
+	out, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return wrapCLIError("blockchain.error.json", err)
+	}
+	fmt.Println(string(out))
+	return nil
 }
