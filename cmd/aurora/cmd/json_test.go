@@ -209,8 +209,8 @@ func TestReadCommandsPrintJSON(t *testing.T) {
 }
 
 // TestHistoryCommandsPrintJSON covers the two operation histories: a token with
-// no transfers answers transfers: [], and an NFT's mint appears as one
-// operation with the REST field names.
+// no transfers answers [], and an NFT's mint appears as one operation with the
+// REST field names.
 func TestHistoryCommandsPrintJSON(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setTestLocale(t, "en")
@@ -220,12 +220,10 @@ func TestHistoryCommandsPrintJSON(t *testing.T) {
 		require.NoError(t, err)
 		out, err := runCmd(t, "token", "history", "-t", "GLD", "--json")
 		require.NoError(t, err)
-		var history struct {
-			Transfers []json.RawMessage `json:"transfers"`
-		}
-		require.NoError(t, json.Unmarshal([]byte(out), &history), "got %q", out)
-		require.NotNil(t, history.Transfers, "an empty history is [], not null")
-		assert.Empty(t, history.Transfers)
+		var transfers []json.RawMessage
+		require.NoError(t, json.Unmarshal([]byte(out), &transfers), "got %q", out)
+		require.NotNil(t, transfers, "an empty history is [], not null")
+		assert.Empty(t, transfers)
 
 		_, err = runCmd(t, "nft", "mint", "-n", "Star", "-c", key)
 		require.NoError(t, err)

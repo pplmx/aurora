@@ -274,7 +274,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 	limit, offset := pageParams(r, defaultHistoryLimit, maxHistoryLimit, maxHistoryOffset)
 
 	uc := tokenapp.NewGetHistoryUseCase(h.service)
-	result, err := uc.Execute(&tokenapp.HistoryRequest{
+	transfers, err := uc.Execute(&tokenapp.HistoryRequest{
 		TokenID: tokenID,
 		Owner:   owner,
 		Limit:   limit,
@@ -285,14 +285,7 @@ func (h *TokenHandler) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Encode the bare transfer array, not the HistoryResponse wrapper: every
-	// other list endpoint (lottery history, NFT list/history, oracle query)
-	// returns a top-level JSON array, and the desktop window reads
-	// history as `Array.isArray(data) ? data : (data.data || [])`, so the old
-	// {"transfers":[...]} envelope made the token history page render empty
-	// forever. The use case still speaks HistoryResponse internally (TASK-093,
-	// ISS-086).
-	writeList(w, result.Transfers)
+	writeList(w, transfers)
 }
 
 // Info returns a token's metadata (name/symbol/total supply/decimals/owner) by

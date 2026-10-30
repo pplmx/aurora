@@ -149,7 +149,10 @@ func NewGetHistoryUseCase(service token.Service) *GetHistoryUseCase {
 	return &GetHistoryUseCase{service: service}
 }
 
-func (uc *GetHistoryUseCase) Execute(req *HistoryRequest) (*HistoryResponse, error) {
+// Execute returns the transfer page as a slice: the wrapper struct that used to
+// hold it had one field, and every consumer (REST, CLI, window) reads the list,
+// so the envelope only made the three surfaces disagree about the shape.
+func (uc *GetHistoryUseCase) Execute(req *HistoryRequest) ([]TransferResponse, error) {
 	var owner token.PublicKey
 	if req.Owner != "" {
 		decoded, err := decodeKey("owner", req.Owner)
@@ -178,7 +181,5 @@ func (uc *GetHistoryUseCase) Execute(req *HistoryRequest) (*HistoryResponse, err
 		}
 	}
 
-	return &HistoryResponse{
-		Transfers: transfers,
-	}, nil
+	return transfers, nil
 }

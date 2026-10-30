@@ -12,6 +12,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **Token history has one shape on every surface**: `token history --json`
+  printed `{"transfers": […]}` while the REST endpoint answered a top-level
+  array, and the use case wrapped the page in a one-field struct so each
+  consumer unwrapped it differently. The use case now returns the slice, the CLI
+  prints the array the endpoint serves, and the wrapper type is gone.
 - **The window's draw search runs in storage**: typing in Draw history used to
   filter the loaded page, so a draw older than the first hundred read as "no
   draws match". A new term now reloads from the newest match through the same
