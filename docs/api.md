@@ -188,7 +188,12 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 `timestamp DESC, block_height DESC, id` 使用复合索引，因此同一秒创建或导入的
 记录也有稳定顺序，不会在两次翻页之间重复或漏行。`q` 在 id、seed、参与者和
 中奖者上做不区分大小写的子串匹配，过滤与分页都在存储层完成——先在当前页过滤
-只能返回恰好落在该页的匹配。
+只能返回恰好落在该页的匹配。命中集内同样按上面的顺序分页：
+
+```json
+[{"id":"c2421dfb187c8ee9","seed":"aurora-e2e-seed","winners":["Dev","Carol"],"block_height":1},
+ {"id":"2f7d1a90c4e8b6d2","seed":"dev-draw","winners":["Dev"],"block_height":4}]
+```
 
 单条记录（长哈希与密钥以 … 省略）：
 
