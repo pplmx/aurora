@@ -192,10 +192,11 @@ func (a *App) oracleView(c *ui.Context) {
 		// The add form is the tallest card on the page, so it gets a column of
 		// its own; the right column shows one of sources, health or readings at
 		// a time instead of stacking all four sections.
-		twoColumns(c, func() {
+		left := func() {
 			a.oracleAdd(c)
 			a.oracleSourceActions(c)
-		}, func() {
+		}
+		stage := func() {
 			tabs(c, &a.oracle.tab, "Oracle sections", tr("Sources"), tr("Health"), tr("Readings"))
 			switch a.oracle.tab {
 			case 0:
@@ -206,7 +207,16 @@ func (a *App) oracleView(c *ui.Context) {
 				a.loadOpenReadings()
 				a.oracleRead(c)
 			}
-		})
+		}
+		// Unlike the other modules, this page's first column is setup rather
+		// than the list the stage acts on. Stacked (a narrow window or large
+		// text), drawing the tall add form first would push the stage selector
+		// two screens down, so the stage leads and the setup follows.
+		if sideBySide(c) {
+			twoColumns(c, left, stage)
+		} else {
+			twoColumns(c, stage, left)
+		}
 		// The action card lives in the left column and is visible on every
 		// stage, so its confirmation must be mounted once for the page rather
 		// than from the Sources tab body.
