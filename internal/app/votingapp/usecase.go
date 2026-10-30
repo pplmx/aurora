@@ -246,6 +246,8 @@ func (uc *CastVoteUseCase) Execute(req CastVoteRequest) (*VoteResponse, error) {
 
 	return &VoteResponse{
 		ID:          voteID,
+		SessionID:   req.SessionID,
+		CandidateID: req.CandidateID,
 		BlockHeight: blockHeight,
 	}, nil
 }

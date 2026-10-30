@@ -419,6 +419,11 @@ func TestCastVoteUseCase_Execute(t *testing.T) {
 	if resp == nil {
 		t.Fatal("Response should not be nil")
 	}
+	// The receipt names the scope the ballot was recorded in: a script looping
+	// over sessions reads these back instead of trusting its own loop variable.
+	if resp.SessionID != "session1" || resp.CandidateID != "candidate1" {
+		t.Fatalf("receipt scope = %q/%q, want session1/candidate1", resp.SessionID, resp.CandidateID)
+	}
 }
 
 func TestCastVoteUseCase_VoterNotFound(t *testing.T) {

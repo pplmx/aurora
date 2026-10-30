@@ -41,7 +41,11 @@ type ListSessionsRequest struct {
 }
 
 type VoteResponse struct {
-	ID          string `json:"id"`
+	ID string `json:"id"`
+	// SessionID and CandidateID are the scope the ballot was recorded in: a
+	// script casting ballots across sessions reads them back as the receipt.
+	SessionID   string `json:"session_id"`
+	CandidateID string `json:"candidate_id"`
 	BlockHeight int64  `json:"block_height"`
 }
 
