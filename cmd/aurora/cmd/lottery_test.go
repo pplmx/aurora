@@ -637,6 +637,7 @@ func TestLotteryDBInfo(t *testing.T) {
 		out, err := runCmd(t, "lottery", "db-info")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Database Info")
+		assert.Regexp(t, `Database size: \d+(\.\d+)? (B|KiB|MiB|GiB)`, out)
 		assert.Contains(t, out, "Total blocks: 0")
 	})
 }
