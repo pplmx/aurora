@@ -57,6 +57,28 @@ type APIConfig struct {
 	Key string `mapstructure:"key"`
 }
 
+// ValidateDurationValues rejects a duration key whose string value cannot be
+// parsed. DurationSeconds falls back to its default for such a value, which is
+// right for an absent or non-positive one but hides a typo like "1am" behind a
+// timeout the operator did not choose. Non-positive spellings ("0s") keep the
+// documented fallback.
+func ValidateDurationValues() error {
+	for _, key := range []string{"http.timeout", "http.rateLimit.window", "oracle.scheduler.checkInterval"} {
+		value, ok := viper.Get(key).(string)
+		if !ok || strings.TrimSpace(value) == "" {
+			continue
+		}
+		if _, err := time.ParseDuration(value); err == nil {
+			continue
+		}
+		if n, err := strconv.Atoi(strings.TrimSpace(value)); err == nil && n > 0 {
+			continue
+		}
+		return fmt.Errorf("invalid %s %q: use a duration like 30s or a number of seconds", key, value)
+	}
+	return nil
+}
+
 func Load() (*Config, error) {
 	return load("")
 }
@@ -119,6 +141,9 @@ func load(explicitPath string) (*Config, error) {
 		viper.AddConfigPath("./config")
 	}
 	if err := loadConfigFileIfPresent(); err != nil {
+		return nil, err
+	}
+	if err := ValidateDurationValues(); err != nil {
 		return nil, err
 	}
 
@@ -193,13 +218,15 @@ func RateLimitRequests() int {
 func DurationSeconds(key string, fallback time.Duration) time.Duration {
 	switch v := viper.Get(key).(type) {
 	case string:
-		if d, err := time.ParseDuration(v); err == nil {
+		// Positive only: a "0s"/"-5s" string used to be returned verbatim, and
+		// net/http treats a non-positive Client.Timeout as "no timeout at all",
+		// so the guard that rejects numeric zero and negatives let the string
+		// spelling disable the limit entirely.
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
 			return d
 		}
-		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
-			if n > 0 {
-				return time.Duration(n) * time.Second
-			}
+		if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil && n > 0 {
+			return time.Duration(n) * time.Second
 		}
 	case int:
 		if v > 0 {

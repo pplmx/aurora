@@ -418,3 +418,37 @@ func TestValidateHTTPTimeout(t *testing.T) {
 	}
 	httpTimeout = ""
 }
+
+// TestInvalidConfigDurationAbortsBeforeCommand: a typo in a duration key must
+// stop the command, like an unreadable config, instead of running on a default
+// the operator did not choose.
+func TestInvalidConfigDurationAbortsBeforeCommand(t *testing.T) {
+	resetCliForTest()
+	home := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(home, "aurora.toml"),
+		[]byte("[http]\ntimeout = \"1am\"\n"), 0o644))
+	t.Setenv("HOME", home)
+	t.Cleanup(viper.Reset)
+
+	resetFlags(rootCmd)
+	rootCmd.SetArgs([]string{"version"})
+	err := rootCmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "http.timeout")
+	assert.Contains(t, err.Error(), "duration")
+}
+
+// TestInvalidHTTPTimeoutFlagNamesTheFlag: the config-file validator must not
+// blame the file for a bad --http-timeout; the flag has its own message.
+func TestInvalidHTTPTimeoutFlagNamesTheFlag(t *testing.T) {
+	resetCliForTest()
+	t.Setenv("HOME", t.TempDir())
+	t.Cleanup(viper.Reset)
+
+	resetFlags(rootCmd)
+	rootCmd.SetArgs([]string{"--http-timeout", "1am", "version"})
+	err := rootCmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--http-timeout")
+	assert.NotContains(t, err.Error(), "config file")
+}

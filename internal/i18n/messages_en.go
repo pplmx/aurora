@@ -513,6 +513,7 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"cli.error.invalid_http_timeout": "invalid --http-timeout %q: use a duration like 30s or a number of seconds",
 	"cli.error.migration_failed":     "migration failed",
 	"cli.error.read_config":          "failed to read config",
+	"cli.error.invalid_duration":     "invalid duration in the config file",
 
 	// Cobra's generated help frame. The command declarations are localized,
 	// but Cobra's default usage renderer hardcodes these headings and the
