@@ -113,16 +113,32 @@ func TestDesktopStorageStaysPureGo(t *testing.T) {
 	assert.NotContains(t, string(recipe), "CGO_ENABLED=1 go tool mygo build",
 		"the pure-Go storage must not require a cgo packaging toolchain")
 
-	for _, file := range []string{
-		filepath.Join("internal", "infra", "sqlite", "lottery.go"),
-		filepath.Join("internal", "infra", "blockchain", "init.go"),
+	// The invariant belongs to the storage packages, not to one filename: the
+	// blockchain package split its open/load/store code across files, and a
+	// per-file check would fail a move that keeps the contract intact. Every
+	// file is checked for the cgo driver, and each package must still import
+	// the pure-Go one somewhere.
+	for _, dir := range []string{
+		filepath.Join("internal", "infra", "sqlite"),
+		filepath.Join("internal", "infra", "blockchain"),
 	} {
-		src, err := os.ReadFile(filepath.Join(root, file))
+		entries, err := os.ReadDir(filepath.Join(root, dir))
 		require.NoError(t, err)
-		assert.Contains(t, string(src), `"modernc.org/sqlite"`,
-			"%s must use the pure-Go SQLite driver", file)
-		assert.NotContains(t, string(src), `"github.com/mattn/go-sqlite3"`,
-			"%s must not reintroduce the cgo-only SQLite driver", file)
+		importsPureGoDriver := false
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") {
+				continue
+			}
+			name := filepath.Join(dir, entry.Name())
+			src, err := os.ReadFile(filepath.Join(root, name))
+			require.NoError(t, err)
+			assert.NotContains(t, string(src), `"github.com/mattn/go-sqlite3"`,
+				"%s must not reintroduce the cgo-only SQLite driver", name)
+			if strings.Contains(string(src), `"modernc.org/sqlite"`) {
+				importsPureGoDriver = true
+			}
+		}
+		assert.Truef(t, importsPureGoDriver, "%s must import the pure-Go SQLite driver", dir)
 	}
 }
 
