@@ -246,6 +246,18 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
  "start_time":1793376742,"end_time":1793463142,"created_at":1793376742}
 ```
 
+`POST /voting/vote` 的请求体（键均为 base64）：
+
+```json
+{"voter_public_key":"<base64 公钥：注册选民的响应>",
+ "candidate_id":"5974ffa1-2d14-4b95-96c0-8d4c2d211f27",
+ "private_key":"<base64 私钥：注册时保存的那一份>","session_id":"95f640cd-cc8e-4178-b5fa-8e9b89073125"}
+```
+
+签名由服务端用请求里的私钥完成（消息是 `voter_public_key|candidate_id|unix 秒`），
+再用登记在册的公钥复验：私钥与公私钥对不匹配时返回 `401 INVALID_VOTE_SIGNATURE`，
+base64 或长度不合法分别返回 `INVALID_BASE64` / `INVALID_PRIVATE_KEY`（400）。
+
 每个会期对同一选民只接收一票；同一次投票的 claim、选票记录和候选人计数在同一个
 SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一会期。计票只统计每个
 `(session_id, voter_pk)` claim 对应的那一张选票；迁移保留的历史重复审计记录不会
