@@ -13,19 +13,19 @@ aurora version                    # 版本、构建时间、Go 工具链
 一致，可直接 `| jq`；文档里的字段值不随界面语言变化（例如 `version` 的 `name`
 固定为 `Aurora`，表格标题才是翻译后的）：
 
-| 命令                                                                                                                                                | 输出                                                           |
-| --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 列表：`lottery history`、`token list`、`nft list`、`voting candidate list`、`voter list`、`session list`、`oracle source list`、`blockchain blocks` | 数组；空集合 `[]`                                              |
-| 单条读取：`lottery verify`、`token info`/`balance`/`allowance`/`history`、`nft get`/`history`、`oracle data`/`latest`、`voting results`             | 对应 REST 文档                                                 |
-| 创建：`lottery create`、`nft mint`、`voting candidate add`、`voting session create`                                                                 | 创建结果，含 `id`                                              |
-| 代币写：`token mint`/`transfer`/`approve`/`transfer-from`/`burn`                                                                                    | 含 `id`、`block_height`、时间戳                                |
-| 投票写：`voting vote`、`voting session start`/`end`                                                                                                 | 投票/会期文档（后者与列表同形）                                |
-| NFT 写：`nft transfer` / `nft burn`                                                                                                                 | 操作记录 / `{"status":"burned"}`                               |
-| `lottery export` / `import`                                                                                                                         | `{"path","exported"}` / `{"total","imported","rejected"}`      |
-| 迁移：`migrate status`/`up`/`down`/`repair`                                                                                                         | `{"current","dirty","applied","pending"}`                      |
-| 备份：`backup create`/`verify`/`restore`                                                                                                            | `{"dir",…}` / `{"path","status"}` / `{"path","status","undo"}` |
-| 模板：`oracle template list`/`add`                                                                                                                  | 模板数组 / 新数据源文档                                        |
-| `blockchain verify`、`lottery stats`、`lottery db-info`、`version`、`doctor`                                                                        | 各自文档                                                       |
+| 命令                                                                                                                                                                                | 输出                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 列表：`lottery history`、`token list`、`token history`、`nft list`、`nft history`、`voting candidate list`、`voter list`、`session list`、`oracle source list`、`blockchain blocks` | 数组；空集合 `[]`                                              |
+| 单条读取：`lottery verify`、`token info`/`balance`/`allowance`、`nft get`、`oracle data`/`latest`、`voting results`                                                                 | 对应 REST 文档                                                 |
+| 创建：`lottery create`、`nft mint`、`voting candidate add`、`voting session create`                                                                                                 | 创建结果，含 `id`                                              |
+| 代币写：`token mint`/`transfer`/`approve`/`transfer-from`/`burn`                                                                                                                    | 含 `id`、`block_height`、时间戳                                |
+| 投票写：`voting vote`、`voting session start`/`end`                                                                                                                                 | 投票/会期文档（后者与列表同形）                                |
+| NFT 写：`nft transfer` / `nft burn`                                                                                                                                                 | 操作记录 / `{"status":"burned"}`                               |
+| `lottery export` / `import`                                                                                                                                                         | `{"path","exported"}` / `{"total","imported","rejected"}`      |
+| 迁移：`migrate status`/`up`/`down`/`repair`                                                                                                                                         | `{"current","dirty","applied","pending"}`                      |
+| 备份：`backup create`/`verify`/`restore`                                                                                                                                            | `{"dir",…}` / `{"path","status"}` / `{"path","status","undo"}` |
+| 模板：`oracle template list`/`add`                                                                                                                                                  | 模板数组 / 新数据源文档                                        |
+| `blockchain verify`、`lottery stats`、`lottery db-info`、`version`、`doctor`                                                                                                        | 各自文档                                                       |
 
 `lottery import`、`lottery verify` 与 `blockchain verify` 一样：即使打印了文档，
 只要有被拒或失败的项，退出码仍非 0，脚本先看 `$?` 再看字段。
