@@ -26,6 +26,7 @@ func TestSettingsPageCarriesTheApplicationConfiguration(t *testing.T) {
 		ShowDataFolder: func() { calls = append(calls, "folder") },
 		BackUpDatabase: func() { calls = append(calls, "backup") },
 		ShowAbout:      func() { calls = append(calls, "about") },
+		DatabaseSize:   func() string { return "332.0 KiB" },
 	})
 	tester := ui.NewTester(app.View, 1280, 5000)
 	app.ShowPage("Settings")
@@ -47,6 +48,15 @@ func TestSettingsPageCarriesTheApplicationConfiguration(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Database path"))
 	tester.Frame()
 	require.Equal(t, "/tmp/aurora/aurora.db", tester.Clipboard())
+
+	// The About card copies exactly the rows it shows, so a support reply cannot
+	// drift from the window.
+	require.NoError(t, tester.Click("Copy Diagnostics"))
+	tester.Frame()
+	require.Equal(t,
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nDatabase size: 332.0 KiB",
+		tester.Clipboard())
+	require.True(t, tester.HasText("Diagnostics are on the clipboard"))
 }
 
 func TestLanguageChooserIsKeyboardOperable(t *testing.T) {
