@@ -27,6 +27,7 @@ func TestOracleHandler_Sources_Empty(t *testing.T) {
 	handler.Sources(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.NotEmpty(t, rr.Body.String())
 }
 
@@ -40,6 +41,7 @@ func TestOracleHandler_Sources_SnakeCaseJSONContract(t *testing.T) {
 	handler.Sources(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	// Regression: clients read data.sources and s.name etc. (snake_case), but
 	// the oracle DTOs previously lacked json tags and emitted PascalCase.
 	assert.Contains(t, rr.Body.String(), `"sources"`)
@@ -64,6 +66,7 @@ func TestOracleHandler_SourcesPagesFromQuery(t *testing.T) {
 	handler.Sources(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), "First")
 	assert.NotContains(t, rr.Body.String(), "Second")
 }
@@ -93,6 +96,7 @@ func TestOracleHandler_Query_SnakeCaseJSONContract(t *testing.T) {
 	handler.Query(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), `"data"`)
 	assert.Contains(t, rr.Body.String(), `"value":"100"`)
 	assert.Contains(t, rr.Body.String(), `"timestamp":123`)
@@ -158,6 +162,7 @@ func TestOracleHandler_Latest_Success(t *testing.T) {
 	handler.Latest(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), `"data"`)
 	assert.Contains(t, rr.Body.String(), `"value":"42"`)
 	assert.Contains(t, rr.Body.String(), `"block_height":5`)
@@ -173,6 +178,7 @@ func TestOracleHandler_Latest_NoDataReturnsNull(t *testing.T) {
 	handler.Latest(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), `"data":null`)
 }
 
@@ -183,6 +189,7 @@ func TestOracleHandler_Templates(t *testing.T) {
 	handler.Templates(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), `"id":"btc-price"`)
 	assert.Contains(t, rr.Body.String(), `"id":"eth-price"`)
 }
@@ -217,6 +224,7 @@ func TestOracleHandler_CreateSource_Success(t *testing.T) {
 	handler.CreateSource(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), `"name":"Price Feed"`)
 	var created struct {
 		ID string `json:"id"`
@@ -327,6 +335,7 @@ func TestOracleHandler_DeleteSource_Success(t *testing.T) {
 	handler.DeleteSource(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), `"status":"deleted"`)
 }
 
@@ -359,6 +368,7 @@ func TestOracleHandler_SetSourceEnabled(t *testing.T) {
 	handler.SetSourceEnabled(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), `"enabled":true`)
 }
 
@@ -394,6 +404,7 @@ func TestOracleHandler_Health_NilStatsReturnsEmpty(t *testing.T) {
 	handler.Health(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.JSONEq(t, "[]", rr.Body.String())
 }
 
@@ -415,6 +426,7 @@ func TestOracleHandler_Health_WithStats(t *testing.T) {
 	handler.Health(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	var got []oracleapp.SourceStat
 	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &got))
 	assert.Len(t, got, 1)
@@ -438,6 +450,7 @@ func TestOracleHandler_Query_Success(t *testing.T) {
 	handler.Query(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 
 	// Response is a struct wrapping the data; just verify it parses as JSON
@@ -457,6 +470,7 @@ func TestOracleHandler_Query_InvalidLimit(t *testing.T) {
 	handler.Query(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	var resp map[string]interface{}
 	err := json.Unmarshal(rr.Body.Bytes(), &resp)
 	assert.NoError(t, err)
@@ -478,6 +492,7 @@ func TestOracleHandler_Query_CapsUnboundedLimit(t *testing.T) {
 	handler.Query(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	var resp struct {
 		Data []struct {
 			ID string

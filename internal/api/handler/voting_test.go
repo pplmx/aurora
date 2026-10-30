@@ -162,6 +162,7 @@ func TestVotingHandler_ListSessions(t *testing.T) {
 	h.ListSessions(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Contains(t, rr.Body.String(), "Board Vote")
 	assert.Contains(t, rr.Body.String(), "Referendum")
 }
@@ -174,6 +175,7 @@ func TestVotingHandler_ListSessions_Empty(t *testing.T) {
 	h.ListSessions(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.JSONEq(t, "[]", rr.Body.String())
 }
 
@@ -189,6 +191,7 @@ func TestVotingHandler_ListSessionsPagesFromQuery(t *testing.T) {
 	h.ListSessions(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, 1, repo.lastSessionLimit)
 	assert.Equal(t, 1, repo.lastSessionOffset)
 	assert.Contains(t, rr.Body.String(), "Referendum")
@@ -205,6 +208,7 @@ func TestVotingHandler_ListCandidatesClampsPage(t *testing.T) {
 	h.ListCandidates(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, maxVotingListLimit, repo.lastCandidateLimit)
 	assert.Equal(t, maxVotingListOffset, repo.lastCandidateOffset)
 }
@@ -219,6 +223,7 @@ func TestVotingHandler_ListDefaultsToFirstPage(t *testing.T) {
 	h.ListCandidates(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, defaultVotingListLimit, repo.lastCandidateLimit)
 	assert.Equal(t, 0, repo.lastCandidateOffset)
 }
@@ -305,6 +310,7 @@ func TestVotingHandler_RegisterVoter_Success(t *testing.T) {
 	handler.RegisterVoter(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 }
 
@@ -332,6 +338,7 @@ func TestVotingHandler_RegisterCandidate_Success(t *testing.T) {
 	handler.RegisterCandidate(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 }
 
@@ -367,6 +374,7 @@ func TestVotingHandler_CreateSession_Success(t *testing.T) {
 	handler.CreateSession(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 }
 
@@ -495,6 +503,7 @@ func TestVotingHandler_StartEndSession(t *testing.T) {
 	// Start: draft -> active
 	rr := setParam(handler.StartSession, http.MethodPost, "s1")
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	assert.Equal(t, "active", repo.sessions["s1"].Status)
 
 	// End: active -> ended
@@ -526,6 +535,7 @@ func TestVotingHandler_GetResults(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h.GetResults(rr, requestWithParam(http.MethodGet, "/api/v1/voting/results/s1", "s1"))
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 
 	var res struct {
 		SessionID  string `json:"session_id"`

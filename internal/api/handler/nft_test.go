@@ -95,6 +95,7 @@ func TestNFTHandler_History_ReturnsMintOperation(t *testing.T) {
 	handler.History(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	var ops []json.RawMessage
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &ops))
 	assert.True(t, len(ops) >= 1, "expected at least the mint operation, got %d", len(ops))
