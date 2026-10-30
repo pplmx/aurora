@@ -154,7 +154,8 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
   `aurora_http_requests_by_module_status_total{module,code}`；
 - `aurora_http_request_duration_seconds`（直方图）；
 - `aurora_outbox_pending_events`（gauge）：审计 outbox 中等待重投的事件数，
-  与 `aurora doctor` 的 outbox 行同源；统计失败时本次抓取省略该行，不写 0。
+  与 `aurora doctor` 的 outbox 行同源；统计失败时本次抓取省略该行，不写 0；
+- `aurora_ledger_blocks`（gauge）：本地账本区块数（含创世块），随每次抓取更新。
 
 `/metrics/oracle` 输出每个数据源的抓取健康度：
 `aurora_oracle_fetch_attempts_total{source}`、
