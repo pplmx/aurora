@@ -215,19 +215,19 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 
 ## 投票
 
-| 方法 | 路径                                | 说明                                       |
-| ---- | ----------------------------------- | ------------------------------------------ |
-| POST | `/api/v1/voting/register/voter`     | 注册选民                                   |
-| POST | `/api/v1/voting/register/candidate` | 注册候选人                                 |
-| POST | `/api/v1/voting/session`            | 创建会期                                   |
-| POST | `/api/v1/voting/session/{id}/start` | 开始会期                                   |
-| POST | `/api/v1/voting/session/{id}/end`   | 结束会期                                   |
-| POST | `/api/v1/voting/vote`               | 投票（Ed25519 签名）                       |
-| GET  | `/api/v1/voting/candidates`         | 候选人列表，默认 20，支持 `limit`/`offset` |
-| GET  | `/api/v1/voting/sessions`           | 会期列表，默认 20，支持 `limit`/`offset`   |
-| GET  | `/api/v1/voting/voters`             | 选民列表，默认 20，支持 `limit`/`offset`   |
-| GET  | `/api/v1/voting/session/{id}`       | 单个会期                                   |
-| GET  | `/api/v1/voting/results/{id}`       | 计票结果                                   |
+| 方法 | 路径                                | 说明                                                     |
+| ---- | ----------------------------------- | -------------------------------------------------------- |
+| POST | `/api/v1/voting/register/voter`     | 注册选民                                                 |
+| POST | `/api/v1/voting/register/candidate` | 注册候选人                                               |
+| POST | `/api/v1/voting/session`            | 创建会期                                                 |
+| POST | `/api/v1/voting/session/{id}/start` | 开始会期                                                 |
+| POST | `/api/v1/voting/session/{id}/end`   | 结束会期                                                 |
+| POST | `/api/v1/voting/vote`               | 投票（Ed25519 签名），回执带 `session_id`/`candidate_id` |
+| GET  | `/api/v1/voting/candidates`         | 候选人列表，默认 20，支持 `limit`/`offset`               |
+| GET  | `/api/v1/voting/sessions`           | 会期列表，默认 20，支持 `limit`/`offset`                 |
+| GET  | `/api/v1/voting/voters`             | 选民列表，默认 20，支持 `limit`/`offset`                 |
+| GET  | `/api/v1/voting/session/{id}`       | 单个会期                                                 |
+| GET  | `/api/v1/voting/results/{id}`       | 计票结果                                                 |
 
 创建会期返回 `draft`；只有先调用 `/session/{id}/start` 把状态切到 `active`
 且当前时间位于会期窗口内时，`/vote` 才会接收选票。`ended`、未知状态或窗口外
