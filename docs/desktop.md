@@ -656,3 +656,13 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   或内嵌 UI 损坏。发版用的 `desktop-build.yml` 在 Linux 两个架构上执行同样的
   启动冒烟，并校验 `--version` 不是 `0.0.1`、构建时间不是 `unknown`；
   `ci_test.go` 同时锁住这条契约，防止发布矩阵退回“只看文件在不在”。
+- **真实窗口验收**：`just desktop-shot`（可跟页名，如
+  `just desktop-shot token nft`）用 MyGo 的 automation 插件打开真实窗口，
+  在同一个窗口里按侧栏的稳定 key 逐页切换，截图到 `dist/e2e/<page>.png`，
+  并断言无障碍树里出现该页标题。插件只在 `e2e` build tag 下被
+  `cmd/aurora-desktop/automation_e2e.go` 引入，发布构建不含监听器；客户端是
+  `desktop/cmd/automation-shot`，只走标准库和插件的新行分隔 JSON 协议。
+  离屏 `ui.Tester` 覆盖渲染与行为，打包 job 的 Xvfb 冒烟只证明进程能起，
+  这条路径补的是“真实后端画出来的就是测试期望的样子”。需要显示器；Linux
+  无显示器时脚本会起一个关掉 GLX 的 Xvfb（带 NVIDIA EGL 的容器里 Xvfb 会
+  崩）。
