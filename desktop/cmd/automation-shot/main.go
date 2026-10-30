@@ -261,10 +261,13 @@ func (p *protocol) press(window int, name string) error {
 	if err := p.call("tree", map[string]any{"window": window}, &tree); err != nil {
 		return err
 	}
-	find := func(match func(string) bool) string {
+	find := func(match func(string) bool, pressableOnly bool) string {
 		target := ""
 		for _, node := range tree.Nodes {
 			if node.key() == name || !match(node.Label) {
+				continue
+			}
+			if pressableOnly && !node.pressable() {
 				continue
 			}
 			if target == "" || node.pressable() {
@@ -276,12 +279,15 @@ func (p *protocol) press(window int, name string) error {
 		}
 		return target
 	}
-	target := find(func(label string) bool { return strings.EqualFold(label, name) })
+	target := find(func(label string) bool { return strings.EqualFold(label, name) }, false)
 	if target == "" {
+		// The substring pass exists for "Select btc", and it must not fall back
+		// to prose: "Health" once matched the first-run panel's step "Review
+		// scheduler health..." and pressed a text node instead of failing.
 		lower := strings.ToLower(name)
 		target = find(func(label string) bool {
 			return strings.Contains(strings.ToLower(label), lower)
-		})
+		}, true)
 	}
 	if target == "" {
 		return fmt.Errorf("no element named %q", name)

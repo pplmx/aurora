@@ -668,8 +668,9 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   行的标签是“Select btc”而不是“btc”）。
   `AURORA_E2E_SEED=1 just desktop-shot` 会先用 CLI 往同一个数据库写入抽奖、
   代币、NFT、预言机数据源、候选人与会期，截图展示的是有数据的页面，而不是
-  首次记录引导页。种子模式还会补上只有存在记录时才有的写入阶段（`token:Burn`、
-  `nft:Burn`、`nft:History`），并断言这些阶段专有的控件。
+  首次记录引导页。空库时 Oracle 的 tab 栏和写入工作台都会被首次记录页替换，
+  因此种子模式才会补上 `token:Burn`、`oracle:Health`、`oracle:Readings`、
+  `nft:Burn`、`nft:History`，并断言这些阶段专有的控件。
   离屏 `ui.Tester` 覆盖渲染与行为，打包 job 的 Xvfb 冒烟只证明进程能起，
   这条路径补的是“真实后端画出来的就是测试期望的样子”。需要显示器；Linux
   无显示器时脚本会起一个关掉 GLX 的 Xvfb（带 NVIDIA EGL 的容器里 Xvfb 会
