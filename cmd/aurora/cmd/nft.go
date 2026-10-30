@@ -137,6 +137,9 @@ var transferCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("nft.error.transfer", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(result)
+		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.transferred"))
 		printLocalizedField("nft.operation_id", result.ID)
@@ -179,6 +182,11 @@ var burnCmd = &cobra.Command{
 
 		if err := burnUC.Execute(req); err != nil {
 			return wrapCLIError("nft.error.burn", err)
+		}
+		if jsonRequested(cmd) {
+			// The REST burn endpoint answers {"status":"burned"}; match it so a
+			// caller parses one shape whichever surface burned the asset.
+			return printJSON(map[string]string{"status": "burned"})
 		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.burned"))
@@ -333,7 +341,9 @@ func init() {
 	nftCmd.AddCommand(mintCmd)
 	addJSONFlag(mintCmd)
 	nftCmd.AddCommand(transferCmd)
+	addJSONFlag(transferCmd)
 	nftCmd.AddCommand(burnCmd)
+	addJSONFlag(burnCmd)
 	nftCmd.AddCommand(getCmd)
 	addJSONFlag(getCmd)
 	nftCmd.AddCommand(listCmd)
