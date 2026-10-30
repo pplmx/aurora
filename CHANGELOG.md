@@ -608,6 +608,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The lottery history endpoint filters in storage**: `GET /lottery/history?q=`
+  matches id, seed, participants and winners case-insensitively, with paging
+  inside the match set, mirroring the audit trail's `q`. Filtering a loaded page
+  would have returned only the hits that happened to land on it. The repository
+  gained `ListMatching`, and the two paged reads now share one scan helper.
 - **The Blockchain page names the chain's head**: the summary line had blocks and
   height but no identity, so two installations could not confirm they follow the
   same chain; a third tile shows the newest block's 12-character hash prefix,

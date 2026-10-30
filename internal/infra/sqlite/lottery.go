@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/utils"
@@ -259,25 +260,53 @@ func (r *LotteryRepository) Count() (int, error) {
 }
 
 func (r *LotteryRepository) List(limit, offset int) ([]*lottery.LotteryRecord, error) {
+	return r.list("", nil, limit, offset)
+}
+
+// ListMatching searches the stored draws by id, seed, participants and winners.
+// The two arrays live as JSON text, so a LIKE over the column matches a name
+// the way a reader typing it expects.
+func (r *LotteryRepository) ListMatching(term string, limit, offset int) ([]*lottery.LotteryRecord, error) {
+	term = strings.TrimSpace(term)
+	if term == "" {
+		return r.List(limit, offset)
+	}
+	like := "%" + strings.ToLower(term) + "%"
+	where := `WHERE lower(l.id) LIKE ? OR lower(l.seed) LIKE ?
+		OR lower(l.participants) LIKE ? OR lower(l.winners) LIKE ?`
+	return r.list(where, []any{like, like, like, like}, limit, offset)
+}
+
+// list is the one paged read: List and ListMatching differ only in the WHERE
+// clause, and both keep the newest-first order and the VRF key join.
+func (r *LotteryRepository) list(where string, args []any, limit, offset int) ([]*lottery.LotteryRecord, error) {
 	if limit <= 0 {
 		limit = -1
 	}
 	if offset < 0 {
 		offset = 0
 	}
+	queryArgs := append(append([]any{}, args...), limit, offset)
 	rows, err := r.q().Query(`
 		SELECT l.id, l.block_height, l.seed, l.participants, l.winners, l.winner_addresses,
 		       l.vrf_proof, l.vrf_output, COALESCE(k.public_key, ''), l.timestamp, l.verified
 		FROM lottery_records l
 		LEFT JOIN lottery_vrf_keys k ON k.record_id = l.id
+		`+where+`
 		`+lotteryNewestFirst+`
 		LIMIT ? OFFSET ?
-	`, limit, offset)
+	`, queryArgs...)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
 
+	return scanLotteryRecords(rows)
+}
+
+// scanLotteryRecords decodes one page of joined lottery rows. Every paged read
+// uses it, so the column order and the JSON array decoding live in one place.
+func scanLotteryRecords(rows *sql.Rows) ([]*lottery.LotteryRecord, error) {
 	var records []*lottery.LotteryRecord
 	for rows.Next() {
 		var id, seed, participantsJSON, winnersJSON, winnerAddressesJSON, vrfProof, vrfOutput, vrfPublicKey string
@@ -288,17 +317,13 @@ func (r *LotteryRepository) List(limit, offset int) ([]*lottery.LotteryRecord, e
 			return nil, err
 		}
 
-		participants := jsonToArray(participantsJSON)
-		winners := jsonToArray(winnersJSON)
-		winnerAddresses := jsonToArray(winnerAddressesJSON)
-
 		records = append(records, &lottery.LotteryRecord{
 			ID:              id,
 			BlockHeight:     blockHeight,
 			Seed:            seed,
-			Participants:    participants,
-			Winners:         winners,
-			WinnerAddresses: winnerAddresses,
+			Participants:    jsonToArray(participantsJSON),
+			Winners:         jsonToArray(winnersJSON),
+			WinnerAddresses: jsonToArray(winnerAddressesJSON),
 			VRFProof:        vrfProof,
 			VRFOutput:       vrfOutput,
 			VRFPublicKey:    vrfPublicKey,
@@ -324,36 +349,7 @@ func (r *LotteryRepository) GetByBlockHeight(height int64) ([]*lottery.LotteryRe
 	}
 	defer func() { _ = rows.Close() }()
 
-	var records []*lottery.LotteryRecord
-	for rows.Next() {
-		var id, seed, participantsJSON, winnersJSON, winnerAddressesJSON, vrfProof, vrfOutput, vrfPublicKey string
-		var blockHeight, timestamp int64
-		var verified int
-
-		if err := rows.Scan(&id, &blockHeight, &seed, &participantsJSON, &winnersJSON, &winnerAddressesJSON, &vrfProof, &vrfOutput, &vrfPublicKey, &timestamp, &verified); err != nil {
-			return nil, err
-		}
-
-		participants := jsonToArray(participantsJSON)
-		winners := jsonToArray(winnersJSON)
-		winnerAddresses := jsonToArray(winnerAddressesJSON)
-
-		records = append(records, &lottery.LotteryRecord{
-			ID:              id,
-			BlockHeight:     blockHeight,
-			Seed:            seed,
-			Participants:    participants,
-			Winners:         winners,
-			WinnerAddresses: winnerAddresses,
-			VRFProof:        vrfProof,
-			VRFOutput:       vrfOutput,
-			VRFPublicKey:    vrfPublicKey,
-			Timestamp:       timestamp,
-			Verified:        verified == 1,
-		})
-	}
-
-	return records, rows.Err()
+	return scanLotteryRecords(rows)
 }
 
 func (r *LotteryRepository) Close() error {

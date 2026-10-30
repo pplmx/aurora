@@ -234,10 +234,11 @@ func TestLotteryHistoryPageClampsAndDefaults(t *testing.T) {
 // fakeManyLotteryRepo returns a fixed in-order list so pagination math can be
 // asserted.
 type fakeManyLotteryRepo struct {
-	records    []*lottery.LotteryRecord
-	listCalls  int
-	lastLimit  int
-	lastOffset int
+	records       []*lottery.LotteryRecord
+	listCalls     int
+	matchingCalls int
+	lastLimit     int
+	lastOffset    int
 }
 
 func (m *fakeManyLotteryRepo) Save(*lottery.LotteryRecord) error { return nil }
@@ -257,6 +258,31 @@ func (m *fakeManyLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord,
 }
 func (m *fakeManyLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
 	return nil, nil
+}
+func (m *fakeManyLotteryRepo) ListMatching(term string, limit, offset int) ([]*lottery.LotteryRecord, error) {
+	m.matchingCalls++
+	m.lastLimit, m.lastOffset = limit, offset
+	return pageLotteryRecords(matchingLotteryRecords(m.records, term), limit, offset), nil
+}
+
+// matchingLotteryRecords mirrors the storage contract for the fakes: a
+// case-insensitive substring over id, seed, participants and winners.
+func matchingLotteryRecords(records []*lottery.LotteryRecord, term string) []*lottery.LotteryRecord {
+	term = strings.ToLower(strings.TrimSpace(term))
+	if term == "" {
+		return records
+	}
+	out := make([]*lottery.LotteryRecord, 0, len(records))
+	for _, r := range records {
+		haystack := strings.ToLower(strings.Join([]string{
+			r.ID, r.Seed,
+			strings.Join(r.Participants, " "), strings.Join(r.Winners, " "),
+		}, " "))
+		if strings.Contains(haystack, term) {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 func pageLotteryRecords(records []*lottery.LotteryRecord, limit, offset int) []*lottery.LotteryRecord {
@@ -281,6 +307,9 @@ func (m *mockLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 }
 func (m *mockLotteryRepo) Count() (int, error) { return 0, nil }
 func (m *mockLotteryRepo) List(int, int) ([]*lottery.LotteryRecord, error) {
+	return []*lottery.LotteryRecord{}, nil
+}
+func (m *mockLotteryRepo) ListMatching(string, int, int) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
 
@@ -309,6 +338,13 @@ func (m *stubLotteryRepo) List(limit, offset int) ([]*lottery.LotteryRecord, err
 		return nil, nil
 	}
 	return pageLotteryRecords([]*lottery.LotteryRecord{m.record}, limit, offset), nil
+}
+func (m *stubLotteryRepo) ListMatching(term string, limit, offset int) ([]*lottery.LotteryRecord, error) {
+	records := []*lottery.LotteryRecord{}
+	if m.record != nil {
+		records = append(records, m.record)
+	}
+	return pageLotteryRecords(matchingLotteryRecords(records, term), limit, offset), nil
 }
 func (m *stubLotteryRepo) GetByBlockHeight(int64) ([]*lottery.LotteryRecord, error) {
 	if m.record == nil {
@@ -379,8 +415,40 @@ func (m *mockLotteryRepoWithData) Count() (int, error) { return 0, nil }
 func (m *mockLotteryRepoWithData) List(int, int) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
 }
+func (m *mockLotteryRepoWithData) ListMatching(string, int, int) ([]*lottery.LotteryRecord, error) {
+	return []*lottery.LotteryRecord{}, nil
+}
 func (m *mockLotteryRepoWithData) GetByBlockHeight(height int64) ([]*lottery.LotteryRecord, error) {
 	return []*lottery.LotteryRecord{}, nil
+}
+
+// TestLotteryHandler_HistorySearchesInStorage: q filters in the repository, so a
+// full page holds matches instead of whatever matched on the loaded page.
+func TestLotteryHandler_HistorySearchesInStorage(t *testing.T) {
+	repo := &fakeManyLotteryRepo{records: []*lottery.LotteryRecord{
+		{ID: "a1", Seed: "alpha"},
+		{ID: "b2", Seed: "beta", Winners: []string{"Dev"}},
+	}}
+	handler := &LotteryHandler{repo: repo}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/lottery/history?q=dev", nil)
+	rr := httptest.NewRecorder()
+	handler.History(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	var page []*lottery.LotteryRecord
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &page))
+	require.Len(t, page, 1)
+	assert.Equal(t, "b2", page[0].ID)
+	assert.Equal(t, 1, repo.matchingCalls, "the filter runs in storage")
+	assert.Zero(t, repo.listCalls, "an unfiltered read is not the same operation")
+
+	// A blank term is the unfiltered read, not a search for spaces.
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/lottery/history?q=%20", nil)
+	rr = httptest.NewRecorder()
+	handler.History(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, 1, repo.listCalls)
 }
 
 // TestLotteryHandler_History_EmptyArray covers the envelope-consistency fix
@@ -408,6 +476,9 @@ func (m *nilLotteryRepo) GetAll() ([]*lottery.LotteryRecord, error) {
 	return nil, nil // simulates the SQLite no-rows case
 }
 func (m *nilLotteryRepo) Count() (int, error) { return 0, nil }
+func (m *nilLotteryRepo) ListMatching(string, int, int) ([]*lottery.LotteryRecord, error) {
+	return nil, nil
+}
 func (m *nilLotteryRepo) List(int, int) ([]*lottery.LotteryRecord, error) {
 	return nil, nil
 }
