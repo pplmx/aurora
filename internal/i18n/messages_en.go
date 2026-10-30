@@ -502,16 +502,17 @@ nft, token) and operational commands (migrate, backup, version).`,
 
 	// Global flags every command shows. They were hardcoded English, so a
 	// Chinese --help screen mixed translated module flags with English ones.
-	"cli.config_flag":            "config file (default is 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml)",
-	"cli.http_timeout_flag":      "HTTP request timeout (e.g., 30s, 1m)",
-	"cli.using_config_file":      "Using config file: %s",
-	"cli.error.prefix":           "❌ Error: %v\n",
-	"cli.error.audit_committed":  "⚠ %v\n  The operation DID commit. Do NOT retry it — inspect the event store.\n",
-	"cli.error.with_cause":       "%s: %v",
-	"cli.error.invalid_limit":    "invalid --limit %d: must be zero or greater",
-	"cli.error.invalid_offset":   "invalid --offset %d: must be zero or greater",
-	"cli.error.migration_failed": "migration failed",
-	"cli.error.read_config":      "failed to read config",
+	"cli.config_flag":                "config file (default is 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml)",
+	"cli.http_timeout_flag":          "HTTP request timeout (e.g., 30s, 1m)",
+	"cli.using_config_file":          "Using config file: %s",
+	"cli.error.prefix":               "❌ Error: %v\n",
+	"cli.error.audit_committed":      "⚠ %v\n  The operation DID commit. Do NOT retry it — inspect the event store.\n",
+	"cli.error.with_cause":           "%s: %v",
+	"cli.error.invalid_limit":        "invalid --limit %d: must be zero or greater",
+	"cli.error.invalid_offset":       "invalid --offset %d: must be zero or greater",
+	"cli.error.invalid_http_timeout": "invalid --http-timeout %q: use a duration like 30s or a number of seconds",
+	"cli.error.migration_failed":     "migration failed",
+	"cli.error.read_config":          "failed to read config",
 
 	// Cobra's generated help frame. The command declarations are localized,
 	// but Cobra's default usage renderer hardcodes these headings and the

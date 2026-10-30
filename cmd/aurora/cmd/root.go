@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
@@ -37,6 +40,9 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if configErr != nil {
 			return configErr
+		}
+		if err := validateHTTPTimeout(); err != nil {
+			return err
 		}
 
 		// Cobra runs initConfig before this hook, so [log] settings are now
@@ -138,6 +144,25 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", i18n.GetText("cli.config_flag"))
 	rootCmd.PersistentFlags().StringVar(&httpTimeout, "http-timeout", "", i18n.GetText("cli.http_timeout_flag"))
+}
+
+// validateHTTPTimeout rejects an explicit --http-timeout the fetcher cannot
+// use. config.DurationSeconds quietly falls back to the default for a value it
+// cannot parse, so a typo like "1am" left the operator with a 10s timeout and
+// fetches that failed as if the network were at fault.
+func validateHTTPTimeout() error {
+	value := strings.TrimSpace(httpTimeout)
+	if value == "" {
+		return nil
+	}
+	if d, err := time.ParseDuration(value); err == nil && d > 0 {
+		return nil
+	}
+	// The same bare-seconds form the config file accepts ("10" means 10s).
+	if n, err := strconv.Atoi(value); err == nil && n > 0 {
+		return nil
+	}
+	return newCLIError("cli.error.invalid_http_timeout", value)
 }
 
 // initConfig reads in config file and ENV variables if set.

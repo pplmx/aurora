@@ -387,3 +387,34 @@ func TestVersionCmd_HappyPath(t *testing.T) {
 	assert.Contains(t, out, "Aurora")
 	assert.Contains(t, out, "Version: 0.0.1")
 }
+
+// TestValidateHTTPTimeout covers the explicit flag the fetcher cannot use:
+// config.DurationSeconds quietly falls back to the default, so a typo would
+// otherwise show up as a fetch that failed for "network" reasons.
+func TestValidateHTTPTimeout(t *testing.T) {
+	cases := []struct {
+		value string
+		ok    bool
+	}{
+		{"", true},
+		{"30s", true},
+		{"1m", true},
+		{"10", true},
+		{"nonsense", false},
+		{"1am", false},
+		{"0", false},
+		{"0s", false},
+		{"-5s", false},
+	}
+	for _, tc := range cases {
+		httpTimeout = tc.value
+		err := validateHTTPTimeout()
+		if tc.ok {
+			require.NoErrorf(t, err, "%q must be accepted", tc.value)
+			continue
+		}
+		require.Errorf(t, err, "%q must be rejected", tc.value)
+		assert.Contains(t, err.Error(), "--http-timeout")
+	}
+	httpTimeout = ""
+}
