@@ -93,6 +93,9 @@ var mintCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("nft.error.mint", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(result)
+		}
 
 		fmt.Println("✅ " + i18n.GetText("nft.minted"))
 		printLocalizedField("common.id", result.ID)
@@ -328,6 +331,7 @@ func init() {
 	rootCmd.AddCommand(nftCmd)
 
 	nftCmd.AddCommand(mintCmd)
+	addJSONFlag(mintCmd)
 	nftCmd.AddCommand(transferCmd)
 	nftCmd.AddCommand(burnCmd)
 	nftCmd.AddCommand(getCmd)

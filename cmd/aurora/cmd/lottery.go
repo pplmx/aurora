@@ -65,6 +65,9 @@ var createCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("lottery.error.create", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
+		}
 
 		fmt.Println("\n✅ " + i18n.GetText("lottery.success"))
 		fmt.Printf("📋 %s: %s\n", i18n.GetText("lottery.lottery_id"), resp.ID)
@@ -471,6 +474,7 @@ var dbInfoCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(lotteryCmd)
 	lotteryCmd.AddCommand(createCmd)
+	addJSONFlag(createCmd)
 	lotteryCmd.AddCommand(historyCmd)
 	addJSONFlag(historyCmd)
 	lotteryCmd.AddCommand(verifyCmd)

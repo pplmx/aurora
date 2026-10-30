@@ -112,6 +112,9 @@ var candidateAddCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("voting.error.register_candidate", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(cand)
+		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.candidate_added")+"\n", cand.Name)
 		printLocalizedField("common.id", cand.ID)
@@ -338,6 +341,9 @@ var sessionCreateCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("voting.error.create_session", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(session)
+		}
 
 		fmt.Printf("✅ "+i18n.GetText("voting.session_created")+"\n", session.Title)
 		printLocalizedField("common.id", session.ID)
@@ -502,6 +508,7 @@ func init() {
 
 	votingCmd.AddCommand(candidateCmd)
 	candidateCmd.AddCommand(candidateAddCmd)
+	addJSONFlag(candidateAddCmd)
 	candidateCmd.AddCommand(candidateListCmd)
 	addJSONFlag(candidateListCmd)
 
@@ -514,6 +521,7 @@ func init() {
 
 	votingCmd.AddCommand(sessionCmd)
 	sessionCmd.AddCommand(sessionCreateCmd)
+	addJSONFlag(sessionCreateCmd)
 	sessionCmd.AddCommand(sessionListCmd)
 	addJSONFlag(sessionListCmd)
 	sessionCmd.AddCommand(sessionStartCmd)
