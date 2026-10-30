@@ -590,6 +590,14 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		return
 	}
 	announceSearchResults(c, queryChanged, a.blockchain.blockTotal)
+	if a.blockchain.blockTotal == 0 && query == "" {
+		// Only the genesis block exists: there is nothing to search or page
+		// through, and the counters above already report the block. A search
+		// field over an empty list is a control that cannot work.
+		emptyPanel(c, pageIcons[pageBlockchain], pageAccent(c, pageBlockchain),
+			"No module records yet; the first write adds one.")
+		return
+	}
 	ui.Row(c).FillWidth().Gap(12).AlignItems(ui.End).Children(func() {
 		ui.Row(c).Grow(1).Children(func() {
 			searchField(c, &a.blockchain.search, "Search blocks").
@@ -600,12 +608,7 @@ func (a *App) blockchainBlocks(c *ui.Context) {
 		})
 	})
 	if a.blockchain.blockTotal == 0 {
-		if query != "" {
-			emptyNote(c, fmt.Sprintf(tr("No blocks match “%s”."), query))
-		} else {
-			emptyPanel(c, pageIcons[pageBlockchain], pageAccent(c, pageBlockchain),
-				"Nothing recorded on the chain yet.")
-		}
+		emptyNote(c, fmt.Sprintf(tr("No blocks match “%s”."), query))
 		return
 	}
 	if len(a.blockchain.rows) == 0 {

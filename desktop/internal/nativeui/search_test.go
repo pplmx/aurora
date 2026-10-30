@@ -398,3 +398,24 @@ func TestSearchHintsNameTheirCollection(t *testing.T) {
 	tester.Frame()
 	require.True(t, tester.HasText("搜索抽奖"), "the hint must follow the window's language")
 }
+
+// TestEmptyChainHidesItsSearch pins the first-run shape of the Ledger list:
+// with only the genesis block there is nothing to search or page through, so
+// the controls wait for the first module record. A leftover query still shows
+// the field, because the field is what explains its empty result.
+func TestEmptyChainHidesItsSearch(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 2000)
+	app.ShowPage("Blockchain")
+	tester.Frame()
+
+	require.True(t, tester.HasText("No module records yet; the first write adds one."))
+	require.False(t, tester.HasText("Search blocks"))
+	require.False(t, tester.HasText("Show"))
+
+	app.blockchain.search = "draw"
+	tester.Frame()
+	require.True(t, tester.HasText("Search blocks"),
+		"a query left from another session keeps the field that explains it")
+	require.True(t, tester.HasText("No blocks match “draw”."))
+}
