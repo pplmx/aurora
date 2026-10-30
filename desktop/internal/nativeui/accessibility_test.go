@@ -263,7 +263,7 @@ func TestTabsAreKeyboardOperable(t *testing.T) {
 // Without them assistive technology announces an unnamed navigation tree or
 // tab list, forcing the operator to infer the region from its first item.
 func TestNavigationAndTabListsExposeNames(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 1800)
 	tester.Frame()
 	_, ok := tester.Find(tr("Navigation"))

@@ -63,7 +63,7 @@ func TestNumberShortcutsSwitchPages(t *testing.T) {
 // the second column below the first instead of squeezing controls past the
 // card edge.
 func TestCardsStackWhenTheWindowIsNarrow(t *testing.T) {
-	wideApp := New(&fakeServices{})
+	wideApp := New(workbenchFakes())
 	wide := ui.NewTester(wideApp.View, 1280, 3000)
 	wideApp.ShowPage("Token")
 	wide.Frame()
@@ -74,7 +74,7 @@ func TestCardsStackWhenTheWindowIsNarrow(t *testing.T) {
 	require.NotEqual(t, create.X, mint.X, "a wide window keeps the two columns side by side")
 
 	for _, width := range []int{900, 1239} {
-		narrowApp := New(&fakeServices{})
+		narrowApp := New(workbenchFakes())
 		narrow := ui.NewTester(narrowApp.View, width, 5000)
 		narrowApp.ShowPage("Token")
 		narrow.Frame()
@@ -91,7 +91,7 @@ func TestCardsStackWhenTheWindowIsNarrow(t *testing.T) {
 // threshold to the same text-size preference as the labels. At 1.5x text a
 // default-width window is no longer wide enough for two columns.
 func TestTextScaleStacksCardsBeforeTheirControlsCompress(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 5000)
 	tester.SetPreferences(ui.Preferences{TextScale: 1.5})
 	app.ShowPage("Token")
@@ -245,7 +245,7 @@ func TestChineseUIRendersTheWorkbench(t *testing.T) {
 	t.Cleanup(func() { tr.SetLocale(before) })
 
 	tr.SetLocale("zh")
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 1600)
 	tester.Frame()
 	for _, want := range []string{"仪表盘", "快速开始", "运行抽奖", "抽奖总数", "账本完整性"} {
@@ -702,11 +702,15 @@ func TestSidebarNarrowsWithTheWindow(t *testing.T) {
 	require.Equal(t, float32(216), sidebarWidthFor(1200))
 }
 
-// TestEmptyListsUseTheEmptyState checks the richer first-run state still names
-// the missing object and the next move.
-func TestEmptyListsUseTheEmptyState(t *testing.T) {
+// TestEmptyCollectionKeepsItsEmptyStateWhenAQueryIsOpen pins the one state
+// where the empty collection card is still reachable: a search left over from
+// an earlier session keeps the full workbench, and the card must then say the
+// store itself is empty rather than showing an empty list with no explanation.
+// The untouched store opens on the first-record path instead.
+func TestEmptyCollectionKeepsItsEmptyStateWhenAQueryIsOpen(t *testing.T) {
 	app := New(&fakeServices{})
 	tester := ui.NewTester(app.View, 1280, 5000)
+	app.token.search, app.token.appliedSearch = "gold", "gold"
 	app.ShowPage("Token")
 	tester.Frame()
 	require.True(t, tester.HasText("No tokens yet"))

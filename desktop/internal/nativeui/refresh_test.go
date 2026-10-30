@@ -147,6 +147,7 @@ func TestNumericFormLimitsAreBounded(t *testing.T) {
 	tester.Frame()
 
 	app.token.tokenID = "t1"
+	tester.Frame()
 	require.NoError(t, tester.Click("Load History"))
 	tester.Frame()
 	require.Equal(t, 50, fake.tokenHistoryLimit, "the default page size is 50")
@@ -311,6 +312,7 @@ func TestTokenHistoryPagesWithItsOffset(t *testing.T) {
 	app.token.tokenID = "t1"
 	app.token.historyLimit = 10
 	app.token.historyOffset = 5
+	tester.Frame()
 
 	require.NoError(t, tester.Click("Load History"))
 	tester.Frame()

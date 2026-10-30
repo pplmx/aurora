@@ -175,6 +175,20 @@ func (a *App) oracleView(c *ui.Context) {
 			"Select a source in Sources to fetch it now, enable/disable it, or delete it.",
 			"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.",
 		)
+		if a.oracleNeedsFirstRecord() {
+			twoColumns(c, func() {
+				a.oracleAdd(c)
+			}, func() {
+				firstRunPath(c, pageOracle, "No sources yet",
+					"A source begins with a URL; Aurora can poll it, record readings and report health.",
+					"Fill in the add-source form.",
+					"Choose the new source to fetch it now.",
+					"Review scheduler health and stored values.",
+				)
+			})
+			a.renderDeleteDialog(c)
+			return
+		}
 		// The add form is the tallest card on the page, so it gets a column of
 		// its own; the right column shows one of sources, health or readings at
 		// a time instead of stacking all four sections.
@@ -201,6 +215,21 @@ func (a *App) oracleView(c *ui.Context) {
 	if !a.oracle.askDelete {
 		a.liveRefresh(c, a.refreshOracleLive)
 	}
+}
+
+// oracleNeedsFirstRecord applies the same first-write hierarchy to feeds.
+// Existing sources, an open stage, a filter or a source id all mean the
+// operator is already working with a collection, so the full page stays.
+func (a *App) oracleNeedsFirstRecord() bool {
+	entered := a.oracle.tab != 0 ||
+		strings.TrimSpace(a.oracle.search) != "" || a.oracle.appliedSearch != "" ||
+		a.oracle.selected >= 0 ||
+		strings.TrimSpace(a.oracle.fetchID) != "" ||
+		strings.TrimSpace(a.oracle.queryID) != "" ||
+		strings.TrimSpace(a.oracle.latestID) != "" ||
+		a.oracle.data != nil || a.oracle.latest != nil ||
+		a.oracle.dataLoadedSource != "" || a.oracle.latestLoadedSource != ""
+	return firstRecordOnly(a.oracle.loadErr, len(a.oracle.sources), entered)
 }
 
 // refreshOracleLive re-reads the scheduler's health and the lists the page

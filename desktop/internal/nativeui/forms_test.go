@@ -87,7 +87,7 @@ func TestTokenWriteFormsUseTheirOwnInputs(t *testing.T) {
 // TestTokenFormsRenderTheirOwnerInputs pins the fields the sections show, so a
 // form cannot silently lose the account it acts on again.
 func TestTokenFormsRenderTheirOwnerInputs(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 4200)
 	app.ShowPage("Token")
 	tester.Frame()
@@ -120,7 +120,7 @@ func TestTokenFormsRenderTheirOwnerInputs(t *testing.T) {
 // in the left column. Putting it sixth in the write tab row pushed "Allowance"
 // past the right edge of its card at the normal desktop width.
 func TestTokenAllowanceIsOutsideTheWriteTabs(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 2200)
 	app.ShowPage("Token")
 	tester.Frame()
@@ -226,7 +226,7 @@ func TestOracleLatestIsReachableWithoutData(t *testing.T) {
 // by itself: which token it acts on. All the write cards use the same token
 // id, set by Create or Inspect, and the page used to give no sign of it.
 func TestTokenWritesNameTheirSubject(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Token")
 	tester.Frame()
@@ -296,7 +296,7 @@ func TestOraclePresetKeepsItsChoice(t *testing.T) {
 // uses do not need stay behind a labelled disclosure instead of competing with
 // the name/URL/owner they do need. Each still exists and opens on one click.
 func TestAdvancedFieldsStartCollapsed(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 5000)
 
 	app.ShowPage("Token")

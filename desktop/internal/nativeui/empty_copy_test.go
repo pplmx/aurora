@@ -12,7 +12,7 @@ import (
 // the card which sentence is true.
 func TestEmptyReadoutCopyDistinguishesLoadedFromNotLoaded(t *testing.T) {
 	t.Run("token history", func(t *testing.T) {
-		app := New(&fakeServices{})
+		app := New(workbenchFakes())
 		tester := ui.NewTester(app.View, 1280, 5000)
 		app.ShowPage("Token")
 		tester.Frame()
