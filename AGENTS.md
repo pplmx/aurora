@@ -25,6 +25,7 @@
 | 桌面模块 | `just desktop-check`；行为测试再跑 `just desktop-test`                   |
 | 并发     | `just race` / `just desktop-race`（race detector 需要 cgo；CI 含桌面）   |
 | lint     | `just lint`（errcheck 关闭）；桌面模块的 lint 在 `just desktop-check` 里 |
+| 全部     | `just verify`（按表依次跑 check/test/lint/覆盖率底线与桌面门槛）         |
 | 界面     | `just desktop-shot`                                                      |
 
 - 真实窗口截图按需加环境变量：有数据 `AURORA_E2E_SEED=1`、浅色

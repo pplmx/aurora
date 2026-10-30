@@ -50,6 +50,7 @@ just desktop                             # 桌面壳（Go 1.27+、WebKitGTK/WebV
 
 ```bash
 just check           # gofmt + goimports + go vet
+just verify          # 本地全部门槛：check/test/lint/覆盖率底线 + 桌面门槛
 just test            # 核心模块全部测试
 just test-coverage   # 覆盖率报告
 just race            # 根模块 race 检测（显式启用 cgo）
