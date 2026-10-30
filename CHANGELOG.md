@@ -16,12 +16,12 @@ The milestone notes under `.planning/` are history, not current instructions.
   printed the translated application name, so a script keying on `name` broke
   when the locale switched; the document now carries the stable `Aurora` while
   the table keeps its translated title.
-- **The chain head lives in the integrity report**: `head` was computed in three
-  places (a `Chain.Head` method for the doctor, the desktop status and the
-  diagnostics), each hex-encoding and trimming it. The integrity report now
-  carries it as a hex field, present whenever a last block exists (a broken
+- **The chain head lives in the integrity report**: the head used to be hex
+  encoded and trimmed independently by the doctor, the desktop status and the
+  diagnostics, each reading the chain beside its verdict. The integrity report
+  now carries it as a hex field, present whenever a last block exists (a broken
   chain still reports the head it read), so one verification supplies both the
-  verdict and the identity; `Chain.Head` and its port methods are gone.
+  verdict and the identity.
 - **`BackupResult.File` is now `Dir`**: the value the backup returns is the
   output directory (the file names inside are fixed), and the field name plus
   its JSON tag (`file`) said otherwise; the struct, the CLI message, the
@@ -611,7 +611,7 @@ The milestone notes under `.planning/` are history, not current instructions.
 - **The Blockchain page names the chain's head**: the summary line had blocks and
   height but no identity, so two installations could not confirm they follow the
   same chain; a third tile shows the newest block's 12-character hash prefix,
-  fed by `Chain.Head()` through the ledger status.
+  taken from the ledger status that already carries the chain's verdict.
 - **The desktop copies a draw's verdict**: the Verify card keeps its findings on
   screen, but a support reply needs text; one action copies `Draw ID …: verified`
   plus every check line, in the language the window is showing.
