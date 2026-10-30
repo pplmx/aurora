@@ -434,7 +434,7 @@ func TestVisibleHintsDescribeTheirControls(t *testing.T) {
 			"ui.TextInput(c, value).Description(tr(hintText))",
 			"textAreaControl(c, value).Description(tr(hintText))",
 		},
-		"voting.go": {
+		"voting_setup.go": {
 			`Description(tr("Local time. Ballots are rejected before it."))`,
 			`Description(tr("Local time. Ballots are rejected after it."))`,
 		},
