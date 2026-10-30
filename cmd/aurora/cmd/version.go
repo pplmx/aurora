@@ -37,7 +37,9 @@ var versionCmd = &cobra.Command{
 				BuildTime string `json:"build_time"`
 				GoVersion string `json:"go_version"`
 			}{
-				Name:      i18n.GetText("app.name"),
+				// A machine document must not change with the locale; the table
+				// below keeps the translated title.
+				Name:      "Aurora",
 				Version:   Version,
 				BuildTime: BuildTime,
 				GoVersion: runtime.Version(),

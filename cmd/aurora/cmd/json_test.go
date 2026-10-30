@@ -327,7 +327,7 @@ func TestVersionCommandPrintsJSON(t *testing.T) {
 			GoVersion string `json:"go_version"`
 		}
 		require.NoError(t, json.Unmarshal([]byte(out), &info), "got %q", out)
-		assert.NotEmpty(t, info.Name)
+		assert.Equal(t, "Aurora", info.Name, "the document name is locale-independent")
 		assert.NotEmpty(t, info.Version)
 		assert.NotEmpty(t, info.BuildTime)
 		assert.Regexp(t, `^go`, info.GoVersion)

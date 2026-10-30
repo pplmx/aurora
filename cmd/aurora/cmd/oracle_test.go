@@ -36,6 +36,10 @@ func runCmd(t *testing.T, args ...string) (string, error) {
 	rootCmd.SetArgs(args)
 	err := rootCmd.Execute()
 	out := capture()
+	// Reset again: a test that invokes a command's RunE directly bypasses this
+	// helper, and a leftover --json value would send it down the document path
+	// with nowhere to print.
+	resetFlags(rootCmd)
 	return out, err
 }
 
