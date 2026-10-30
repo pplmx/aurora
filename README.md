@@ -201,6 +201,7 @@ just test       # go test ./...
 just lint       # golangci-lint（errcheck 关闭）
 just desktop-check
 just desktop-race # 可选：race detector 需要 cgo
+just desktop-shot # 真实窗口逐页截图（MyGo automation，无显示器时起 Xvfb）
 go test ./... -cover
 
 just dev        # 构建并启动 CLI 工具箱容器

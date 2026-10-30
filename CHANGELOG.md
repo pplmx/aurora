@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/STATE.md`
+The v1.x line is milestone-tracked in `.planning/milestones/` and `.planning/PROJECT.md`
 (release `Version` is injected at build time via `-ldflags -X cmd.Version=`). The
 entries below summarise v1.64–v1.93; earlier v1.x milestones (v1.0–v1.63) are
 documented in their per-milestone ROADMAP files.
@@ -10,6 +10,24 @@ documented in their per-milestone ROADMAP files.
 ## [Unreleased]
 
 ### Changed
+
+- **An empty module opens on its first record instead of a dead-end page**:
+  Token, Oracle and NFT show their create form beside a numbered path to what
+  opens after the first write, and Voting's Setup stage leads with its two
+  registration forms the same way. A filter, search, typed subject, open stage
+  or failed read keeps the full workbench; the collapsible guide waits for the
+  first record, and Ballot and Results name the missing session with a way back
+  to Setup instead of showing forms keyed by an id that cannot exist yet.
+- **The empty Ledger list waits for the first module record**: with only the
+  genesis block there is nothing to search or page through, so its search field
+  and page-size control stay away and the panel says no module records exist
+  instead of claiming the chain is empty beside a Blocks 1 counter.
+- **Search fields name the collection they narrow**: the placeholder is the
+  collection's own translated label ("Search tokens", "搜索代币") rather than
+  MyGo's untranslated "Search", and it follows the window's language.
+- **The command palette ranks matches by where the query hits**: a title prefix
+  outranks a title substring, which outranks a description, with the sidebar
+  order kept inside each group. Typing "t" now puts Token above Lottery.
 
 - **The desktop dashboard is a ledger story, not a grid of equal counters**:
   the integrity hero now gives only the chain verdict; a single Ledger
@@ -141,6 +159,13 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **`just desktop-shot` captures the real window**: it builds the shell with
+  the `e2e` tag (which imports MyGo's automation plugin, never present in
+  release builds), opens one window under Xvfb when no display exists, presses
+  each page's sidebar key, asserts the accessibility tree names the page and
+  writes `dist/e2e/<page>.png`. It complements the offscreen tester and CI's
+  packaging smoke: those prove behaviour and that the binary starts, this one
+  shows what the real backend drew.
 - **Desktop navigation and feedback are legible to screen readers**: every
   page and card title now carries a semantic heading rank, switching pages
   announces the new title, and success/failure strips are status regions whose
