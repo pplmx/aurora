@@ -210,8 +210,10 @@ func (r *Registry) Expose() string {
 	defer r.mu.RUnlock()
 
 	var b strings.Builder
+	fmt.Fprintln(&b, "# HELP aurora_http_requests_total Total HTTP requests handled.")
 	fmt.Fprintln(&b, "# TYPE aurora_http_requests_total counter")
 	fmt.Fprintf(&b, "aurora_http_requests_total %d\n", r.total)
+	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_status HTTP requests by response status code.")
 	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_status counter")
 
 	statuses := make([]int, 0, len(r.status))
@@ -223,7 +225,9 @@ func (r *Registry) Expose() string {
 		fmt.Fprintf(&b, "aurora_http_requests_by_status{code=\"%d\"} %d\n", s, r.status[s])
 	}
 
+	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_module HTTP requests by module.")
 	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_module counter")
+	fmt.Fprintln(&b, "# HELP aurora_http_requests_by_module_status HTTP requests by module and response status code.")
 	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_module_status counter")
 	modules := make([]string, 0, len(r.moduleTotal))
 	for m := range r.moduleTotal {
@@ -244,6 +248,7 @@ func (r *Registry) Expose() string {
 		}
 	}
 
+	fmt.Fprintln(&b, "# HELP aurora_http_request_duration_seconds HTTP request latency in seconds.")
 	fmt.Fprintln(&b, "# TYPE aurora_http_request_duration_seconds histogram")
 	for i, lim := range HistogramBuckets {
 		fmt.Fprintf(&b, "aurora_http_request_duration_seconds_bucket{le=\"%s\"} %d\n",
