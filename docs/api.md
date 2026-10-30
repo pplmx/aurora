@@ -410,6 +410,10 @@ Oracle 的读取接口是包装对象：`/oracle/sources` 返回 `{"sources": [.
 没有读数时 `/oracle/query` 返回 `{"data":[]}`，`/oracle/latest` 返回
 `{"data":null}`。
 
+数据源写接口的字段：`POST /oracle/sources` 接受 `name`、`url`、`type`、
+`method`、`headers`、`path`、`interval`；`PATCH /oracle/sources/{id}` 只接受
+`enabled`（布尔），用于启用/停用；`DELETE /oracle/sources/{id}` 没有请求体。
+
 `POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
 `{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，
 请求头名称也必须是 token，值不能包含除 tab 外的控制字符。JSON、CR/LF 和长度
