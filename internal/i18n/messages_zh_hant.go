@@ -91,7 +91,7 @@ var traditionalMessages = map[string]string{
 	"common.true":                               "是",
 	"common.url":                                "URL",
 	"common.value":                              "值",
-	"desktop.dialog.about_detail":               "構建時間：%s\n數據庫：%s",
+	"desktop.dialog.about_detail":               "構建時間：%s\n數據庫：%s\n佔用：%s",
 	"desktop.dialog.about_message":              "Aurora 桌面版 %s",
 	"desktop.dialog.about_title":                "關於 Aurora",
 	"desktop.dialog.backup_could_not":           "Aurora 無法備份數據庫。",
