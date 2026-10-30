@@ -185,7 +185,7 @@ func (e *SQLiteEventStore) ListDuePending(now time.Time, limit int) ([]PendingEv
 		SELECT id, event_type, module, agg_id, payload, timestamp, attempts, next_attempt_at
 		FROM pending_events
 		WHERE next_attempt_at <= ?
-		ORDER BY next_attempt_at ASC
+		ORDER BY next_attempt_at ASC, id ASC
 		LIMIT ?
 	`, now.Unix(), limit)
 	if err != nil {

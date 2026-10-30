@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pplmx/aurora/internal/domain/events"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,6 +118,31 @@ func TestSaveIdempotent_NoErrorOnAlreadySaved(t *testing.T) {
 	byType, err := store.GetByType("token.mint", 10)
 	require.NoError(t, err)
 	require.Len(t, byType, 1, "no duplicate row from the idempotent save")
+}
+
+// TestListDuePending_OrdersRetriesDeterministically: a batch scheduled for the
+// same second retries in id order, so a repeated drain picks the same events
+// and a LIMIT keeps its slice instead of shuffling.
+func TestListDuePending_OrdersRetriesDeterministically(t *testing.T) {
+	store, cleanup := newTestStore(t)
+	defer cleanup()
+
+	first := mintEvent(t, "agg-1")
+	second := mintEvent(t, "agg-2")
+	require.NoError(t, store.EnqueuePending(first))
+	require.NoError(t, store.EnqueuePending(second))
+
+	pending, err := store.ListDuePending(time.Now().Add(time.Hour), 10)
+	require.NoError(t, err)
+	require.Len(t, pending, 2)
+	again, err := store.ListDuePending(time.Now().Add(time.Hour), 10)
+	require.NoError(t, err)
+	require.Len(t, again, 2)
+
+	assert.Equal(t, pending[0].Event.ID(), again[0].Event.ID())
+	assert.Equal(t, pending[1].Event.ID(), again[1].Event.ID())
+	assert.Less(t, pending[0].Event.ID(), pending[1].Event.ID(),
+		"same-second attempts order by id ascending")
 }
 
 // TestOutboxDrainer_DeliversPending pins the heal loop end-to-end: an event
