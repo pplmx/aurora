@@ -172,6 +172,29 @@ func TestLotteryHistorySearchAndSelection(t *testing.T) {
 	require.True(t, tester.HasText("No draws match “nobody”."))
 }
 
+// TestLotteryHistorySearchesBeyondTheLoadedPage: the draws search runs in
+// storage, so an old draw that is not on the loaded page is still found. A
+// page-local filter would have reported "no draws match" instead.
+func TestLotteryHistorySearchesBeyondTheLoadedPage(t *testing.T) {
+	draws := make([]DrawRow, 0, lotteryHistoryLimit+5)
+	for i := 0; i < lotteryHistoryLimit+5; i++ {
+		draws = append(draws, DrawRow{ID: fmt.Sprintf("draw-%03d", i), Seed: fmt.Sprintf("seed-%03d", i)})
+	}
+	oldest := len(draws) - 1
+	draws[oldest].Seed = "needle-seed"
+	app := New(&fakeServices{draws: draws})
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Lottery")
+	tester.Frame()
+
+	require.False(t, tester.HasText("draw-104"), "the oldest draw starts outside the loaded page")
+
+	app.lottery.search = "needle"
+	tester.Frame()
+	require.True(t, tester.HasText("draw-104"),
+		"the search must reach an old draw outside the loaded page")
+}
+
 // TestOracleSourceSearchAndSelection covers the source list the same way:
 // name, id, type and URL are searchable, and a filtered row loads its id into
 // the action fields.

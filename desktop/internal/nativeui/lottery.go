@@ -29,10 +29,11 @@ type lotteryState struct {
 	// beyond the page so an exact final page disables Next.
 	offset  int
 	hasMore bool
-	// search narrows the history by id, seed, participant or winner;
-	// appliedSearch is the query the current highlight belongs to.
+	// search filters the stored history by id, seed, participant or winner;
+	// queriedSearch is the term the loaded rows answer, so a new term reloads
+	// from the newest match instead of filtering the loaded page.
 	search        string
-	appliedSearch string
+	queriedSearch string
 
 	// Field errors are per-input so the message appears under the control that
 	// caused it, the same placement the Web UI's inline error nodes had.
@@ -65,7 +66,9 @@ func (a *App) loadLotteryPage(offset int) bool {
 	if offset < 0 {
 		offset = 0
 	}
-	rows, err := a.services.LotteryHistory(lotteryHistoryLimit+1, offset)
+	term := strings.TrimSpace(a.lottery.search)
+	a.lottery.queriedSearch = term
+	rows, err := a.services.LotteryHistory(term, lotteryHistoryLimit+1, offset)
 	a.lottery.loadErr = err
 	if err != nil {
 		return false
@@ -174,6 +177,9 @@ func (a *App) createLottery() {
 			a.lottery.participants = ""
 			a.lottery.seed = ""
 			a.lottery.count = 1
+			// Clear a search that would hide the new draw before the reload, so
+			// the page it is highlighted in is the unfiltered one.
+			a.lottery.search, a.lottery.queriedSearch = "", ""
 			if a.loadLotteryPage(0) {
 				a.selectLotteryByID(row.ID)
 			}
@@ -181,11 +187,9 @@ func (a *App) createLottery() {
 	})
 }
 
-// selectLotteryByID highlights the new draw in the history table and clears a
-// search that would hide it, so a successful draw is visible in the list and
-// not only in the status sentence.
+// selectLotteryByID highlights the new draw in the history table, so it is
+// visible in the list and not only in the status sentence.
 func (a *App) selectLotteryByID(id string) {
-	a.lottery.search, a.lottery.appliedSearch = "", ""
 	for i, draw := range a.lottery.rows {
 		if draw.ID == id {
 			a.lottery.selected = i
@@ -213,22 +217,23 @@ func (a *App) lotteryHistory(c *ui.Context) {
 }
 
 func (a *App) lotteryHistoryBody(c *ui.Context) {
+	search := strings.TrimSpace(a.lottery.search)
+	if search != a.lottery.queriedSearch {
+		// A search runs in storage: reload from the newest match instead of
+		// filtering whichever page happened to be loaded.
+		a.lottery.selected = -1
+		a.loadLotteryPage(0)
+	}
 	if a.lottery.loadErr != nil && !loadWarning(c, "Failed to load history", a.lottery.loadErr, len(a.lottery.rows) > 0) {
 		return
 	}
-	if len(a.lottery.rows) == 0 {
+	if len(a.lottery.rows) == 0 && search == "" {
 		emptyPanel(c, pageIcons[pageLottery], pageAccent(c, pageLottery),
 			"No draws recorded yet. Create one above.")
 		return
 	}
-	rows := make([]DrawRow, 0, len(a.lottery.rows))
-	queryChanged := a.lottery.search != a.lottery.appliedSearch
-	if queryChanged {
-		a.lottery.appliedSearch = a.lottery.search
-		a.lottery.selected = -1
-	}
 	previous, next := collectionToolbar(c, &a.lottery.search, "Search draws",
-		"Search narrows the current page; use Previous/Next for older draws.",
+		"Search matches id, seed, participant or winner across the whole store.",
 		"Draw history", a.lottery.offset, len(a.lottery.rows), a.lottery.hasMore)
 	if previous || next {
 		target := a.lottery.offset
@@ -242,17 +247,12 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		}
 		return
 	}
-	for _, draw := range a.lottery.rows {
-		if containsFold(a.lottery.search, draw.ID, draw.Seed,
-			strings.Join(draw.Participants, " "), strings.Join(draw.Winners, " ")) {
-			rows = append(rows, draw)
-		}
-	}
-	announceSearchResults(c, queryChanged, len(rows))
-	if len(rows) == 0 {
-		emptyNote(c, fmt.Sprintf(tr("No draws match “%s”."), strings.TrimSpace(a.lottery.search)))
+	announceSearchResults(c, false, len(a.lottery.rows))
+	if len(a.lottery.rows) == 0 {
+		emptyNote(c, fmt.Sprintf(tr("No draws match “%s”."), search))
 		return
 	}
+	rows := a.lottery.rows
 	// Each draw is a record with its own Verify handoff: choosing the row loads
 	// its full id into the verifier, and the button does the same without the
 	// detour through the form.

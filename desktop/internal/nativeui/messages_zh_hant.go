@@ -452,6 +452,7 @@ var desktopMessagesHant = map[string]string{
 	"Search blocks":                       "搜索區塊",
 	"Search candidates":                   "搜索候選人",
 	"Search draws":                        "搜索抽獎",
+	"Search matches id, seed, participant or winner across the whole store.":   "在整個庫中按 id、seed、參與者或中獎者匹配。",
 	"Search matches module, payload or height across the whole chain.":         "搜索會匹配整條鏈的模塊、載荷或高度。",
 	"Search narrows the current page; use Previous/Next for older assets.":     "搜索只縮小當前頁；用上一頁/下一頁查看更早的資產。",
 	"Search narrows the current page; use Previous/Next for older candidates.": "搜索只縮小當前頁；用上一頁/下一頁查看更早的候選人。",

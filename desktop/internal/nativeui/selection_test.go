@@ -366,7 +366,7 @@ func TestCreatingADrawSelectsItInTheHistory(t *testing.T) {
 	app := New(fake)
 	app.ShowPage("Lottery")
 
-	app.lottery.search, app.lottery.appliedSearch = "old", "old"
+	app.lottery.search, app.lottery.queriedSearch = "old", "old"
 	app.lottery.participants, app.lottery.seed, app.lottery.count = "Alice,Bob", "seed", 1
 	app.createLottery()
 
