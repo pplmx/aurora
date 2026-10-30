@@ -46,11 +46,15 @@ CGO_ENABLED=0 go build -o aurora-api ./cmd/api     # REST API
 just desktop                             # 桌面壳（Go 1.27+、WebKitGTK/WebView2）
 ```
 
-`just` 是唯一的任务入口（没有 Makefile）：
+`just` 是唯一的任务入口（没有 Makefile），直接运行 `just` 会列出全部配方：
 
 ```bash
+just check           # gofmt + goimports + go vet
 just test            # 核心模块全部测试
+just test-coverage   # 覆盖率报告
 just build           # check + test + 全平台 CLI
+just build-current   # 只构建当前平台
+just run             # 构建当前平台并跑一次示例抽奖
 just api             # ./aurora-api，注入 git 版本与构建时间
 just desktop         # ./aurora-desktop（本地开发构建）
 just desktop-run     # 构建并打开窗口
@@ -58,7 +62,12 @@ just desktop-test    # 桌面模块测试（根目录 just test 不进嵌套模�
 just desktop-check   # gofmt + build + vet + lint + 纯 Go 测试（无需 C 工具链）
 just desktop-race    # 可选 race 检测（显式启用 cgo）
 just desktop-package # mygo build：.deb / tar.gz / desktop entry
+just desktop-deps    # 检查 MyGo 是否有新版本
+just desktop-update-mygo # 升级 MyGo 依赖
+just gen-zh-hant <OpenCC 词典目录> # 从简体表重新生成繁体表
 just lint            # golangci-lint
+just dep             # 下载依赖
+just clean           # 清理构建产物
 just dev             # Docker 开发镜像
 ```
 
@@ -202,9 +211,14 @@ just lint       # golangci-lint（errcheck 关闭）
 just desktop-check
 just desktop-race # 可选：race detector 需要 cgo
 just desktop-shot # 真实窗口逐页截图（MyGo automation，无显示器时起 Xvfb）
+just coverage-floor         # Domain/App 覆盖率底线（80%）
+just desktop-coverage-floor # 桌面 deskapp/nativeui 覆盖率底线（70%）
 go test ./... -cover
 
 just dev        # 构建并启动 CLI 工具箱容器
+just image      # 只构建镜像
+just prod       # 构建镜像并启动
+just restart    # 重启服务
 just start      # docker compose up -d
 just stop       # docker compose down
 ```
@@ -217,18 +231,19 @@ Docker 镜像只包含 CLI，没有 HTTP 监听器；`aurora-api` 只提供 REST
 
 ## 测试覆盖率
 
-`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-10-30）：
+`CGO_ENABLED=0 go test ./... -cover -count=1` 实测（2026-10-31）：
 
 | 模块    | Domain | App   |
 | ------- | ------ | ----- |
-| Lottery | 91.7%  | 86.4% |
+| Lottery | 91.7%  | 86.6% |
 | Voting  | 93.1%  | 84.1% |
 | NFT     | 82.0%  | 81.6% |
 | Token   | 91.2%  | 91.2% |
 | Oracle  | 87.6%  | 90.9% |
 | SQLite  | -      | 81.3% |
 
-所有模块都在 80% 门槛之上。SQLite 剩余缺口集中在仓储构造函数的错误分支
+所有模块都在 80% 门槛之上，`just coverage-floor` 与 `just desktop-coverage-floor`
+在本地和 CI 逐包校验这两条底线。SQLite 剩余缺口集中在仓储构造函数的错误分支
 （目录不可建、建表失败、权限收紧失败）；正常路径与事务委托都有直接测试。
 每包的数字在连续多次运行中保持一致：此前抽奖模块在 89.8%–90.8% 之间漂移，
 原因是拒绝路径的测试用随机密钥对生成输入，走到哪个校验分支取决于随机结果；
