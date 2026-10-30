@@ -131,7 +131,19 @@ func TestMigrateUp_FreshDB(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		setMigrationsPathForTest(t)
 
-		out, err := runCmd(t, "migrate", "up")
+		// The JSON run is the one that applies the migrations (a fresh
+		// database); the table run below is the no-op path.
+		out, err := runCmd(t, "migrate", "up", "--json")
+		require.NoError(t, err)
+		var status struct {
+			Current uint   `json:"current"`
+			Pending []uint `json:"pending"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &status), "got %q", out)
+		assert.Equal(t, uint(latestMigrationVersion(t)), status.Current)
+		assert.Empty(t, status.Pending, "up applies every pending migration")
+
+		out, err = runCmd(t, "migrate", "up")
 		require.NoError(t, err)
 		assert.Contains(t, out, fmt.Sprintf("Current version: %d", latestMigrationVersion(t)), "all migrations applied")
 
@@ -294,6 +306,16 @@ func TestMigrateDown_StepsAndBottom(t *testing.T) {
 		out, err = runCmd(t, "migrate", "down", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "No migrations to roll back")
+
+		out, err = runCmd(t, "migrate", "down", "--confirm", "--json")
+		require.NoError(t, err)
+		var status struct {
+			Current uint   `json:"current"`
+			Pending []uint `json:"pending"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &status), "got %q", out)
+		assert.Zero(t, status.Current)
+		assert.NotEmpty(t, status.Pending, "at the bottom every migration is pending")
 	})
 }
 
@@ -443,5 +465,15 @@ func TestMigrateRepair_UnsticksADirtyDatabase(t *testing.T) {
 		out, err = runCmd(t, "migrate", "repair", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "not dirty")
+
+		out, err = runCmd(t, "migrate", "repair", "--confirm", "--json")
+		require.NoError(t, err)
+		var status struct {
+			Current uint `json:"current"`
+			Dirty   bool `json:"dirty"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &status), "got %q", out)
+		assert.False(t, status.Dirty)
+		assert.Equal(t, uint(latestMigrationVersion(t)), status.Current)
 	})
 }

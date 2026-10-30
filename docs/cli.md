@@ -180,9 +180,11 @@ aurora blockchain blocks -l 50 -p 100
 aurora blockchain blocks -s transfer   # 按记录文本过滤（不区分大小写）
 ```
 
-`migrate status --json` 输出 `{"current","dirty","applied","pending"}`；`backup
-create` 输出 `{"dir","size","checksum","schema_version"}`（`dir` 是输出目录，里面
-固定是 `aurora.db` 与 `metadata.json`），`backup verify` 输出
+迁移命令（`migrate status|up|down|repair`）都支持 `--json`，输出同一个状态文档
+`{"current","dirty","applied","pending"}`——包括「已经是最新」「已到底部」
+「本就干净」这些空操作路径；`backup create` 输出
+`{"dir","size","checksum","schema_version"}`（`dir` 是输出目录，里面固定是
+`aurora.db` 与 `metadata.json`），`backup verify` 输出
 `{"path","status":"verified"}`。
 
 `doctor` 按固定顺序检查五项：配置来源、数据库路径与占用、迁移版本、账本完整性、

@@ -28,6 +28,17 @@ func migrationSteps(args []string, def int) (int, error) {
 	return n, nil
 }
 
+// printMigrateStatus renders the current migration state as the same document
+// `migrate status --json` returns, so a script parses one shape after any
+// migrate command, including the no-op paths.
+func printMigrateStatus(m *migrate.Migrator) error {
+	st, err := m.Status()
+	if err != nil {
+		return wrapCLIError("migrate.error.status", err)
+	}
+	return printJSON(st)
+}
+
 // newCLIMigrator builds a migrator against the same SQLite file the rest of
 // the CLI uses (blockchain.DBPath(), i.e. ./data/aurora.db relative to the
 // cwd) plus the configured migration source (migrate.path, default
@@ -101,6 +112,9 @@ var migrateUpCmd = &cobra.Command{
 				steps = len(st.PendingVersions)
 			}
 			if steps == 0 {
+				if jsonRequested(cmd) {
+					return printMigrateStatus(m)
+				}
 				fmt.Println(i18n.GetTextF("migrate.already", before))
 				return nil
 			}
@@ -111,6 +125,9 @@ var migrateUpCmd = &cobra.Command{
 			return wrapCLIError("migrate.error.up", err)
 		}
 
+		if jsonRequested(cmd) {
+			return printMigrateStatus(m)
+		}
 		if version == before && before > 0 {
 			fmt.Println(i18n.GetTextF("migrate.already", version))
 		} else {
@@ -152,6 +169,9 @@ var migrateDownCmd = &cobra.Command{
 			steps = int(before)
 		}
 		if steps == 0 {
+			if jsonRequested(cmd) {
+				return printMigrateStatus(m)
+			}
 			fmt.Println(i18n.GetText("migrate.none_to_rollback"))
 			return nil
 		}
@@ -161,6 +181,9 @@ var migrateDownCmd = &cobra.Command{
 			return wrapCLIError("migrate.error.down", err)
 		}
 
+		if jsonRequested(cmd) {
+			return printMigrateStatus(m)
+		}
 		fmt.Println(i18n.GetTextF("migrate.down_done", version))
 		return nil
 	},
@@ -211,11 +234,17 @@ var migrateRepairCmd = &cobra.Command{
 
 		version, err := m.Repair()
 		if errors.Is(err, migrate.ErrNotDirty()) {
+			if jsonRequested(cmd) {
+				return printMigrateStatus(m)
+			}
 			fmt.Println(i18n.GetTextF("migrate.repair_clean", version))
 			return nil
 		}
 		if err != nil {
 			return wrapCLIError("migrate.error.repair", err)
+		}
+		if jsonRequested(cmd) {
+			return printMigrateStatus(m)
 		}
 		fmt.Println(i18n.GetTextF("migrate.repair_done", version))
 		return nil
@@ -225,10 +254,13 @@ var migrateRepairCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(migrateCmd)
 	migrateCmd.AddCommand(migrateUpCmd)
+	addJSONFlag(migrateUpCmd)
 	migrateCmd.AddCommand(migrateDownCmd)
+	addJSONFlag(migrateDownCmd)
 	migrateCmd.AddCommand(migrateStatusCmd)
 	addJSONFlag(migrateStatusCmd)
 	migrateCmd.AddCommand(migrateRepairCmd)
+	addJSONFlag(migrateRepairCmd)
 	// Rolling back is destructive; require -y/--confirm first.
 	addConfirmFlag(migrateDownCmd, "cli.confirm.migrate_down")
 	// Repair changes the recorded schema state, so it takes the same gate.
