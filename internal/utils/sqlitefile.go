@@ -10,6 +10,20 @@ import (
 	"strings"
 )
 
+// SQLiteDiskUsage sums the database file and the sidecars that hold committed
+// pages (-wal/-shm) or a rollback journal, so a reported size matches what
+// `du` shows for the same files. Missing files contribute nothing: a database
+// that was never written reports 0 rather than failing.
+func SQLiteDiskUsage(dbPath string) int64 {
+	var size int64
+	for _, file := range append([]string{dbPath}, SQLiteSidecarPaths(dbPath)...) {
+		if info, err := os.Stat(file); err == nil {
+			size += info.Size()
+		}
+	}
+	return size
+}
+
 // SQLiteSidecarPaths returns every file SQLite can create beside dbPath.
 // Callers that protect or remove one generation of database state must handle
 // the complete set; omitting the rollback journal leaves the previous

@@ -1,8 +1,6 @@
 package deskapp
 
 import (
-	"os"
-
 	"github.com/pplmx/aurora/internal/utils"
 )
 
@@ -14,11 +12,5 @@ func DatabaseSizeText(dbPath string) string {
 	if dbPath == "" {
 		return ""
 	}
-	var size int64
-	for _, file := range append([]string{dbPath}, utils.SQLiteSidecarPaths(dbPath)...) {
-		if info, err := os.Stat(file); err == nil {
-			size += info.Size()
-		}
-	}
-	return utils.FormatBytes(size)
+	return utils.FormatBytes(utils.SQLiteDiskUsage(dbPath))
 }
