@@ -46,14 +46,17 @@ var doctorCmd = &cobra.Command{
 		}
 
 		if jsonRequested(cmd) {
+			// The version travels with the verdict: a support paste identifies
+			// both the build and what it found, without a second command.
 			if err := printJSON(struct {
-				Checks []doctorCheck `json:"checks"`
-				OK     bool          `json:"ok"`
-			}{Checks: checks, OK: healthy}); err != nil {
+				Version string        `json:"version"`
+				Checks  []doctorCheck `json:"checks"`
+				OK      bool          `json:"ok"`
+			}{Version: Version, Checks: checks, OK: healthy}); err != nil {
 				return err
 			}
 		} else {
-			fmt.Println("\n🩺 " + i18n.GetText("doctor.title"))
+			fmt.Printf("\n🩺 %s (%s)\n", i18n.GetText("doctor.title"), Version)
 			fmt.Println("────────────────────────────")
 			for _, check := range checks {
 				mark := "✔"

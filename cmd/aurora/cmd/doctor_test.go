@@ -52,6 +52,11 @@ func TestDoctorReportsAHealthyInstallation(t *testing.T) {
 		}
 		require.NoError(t, json.Unmarshal([]byte(out), &report), "got %q", out)
 		assert.True(t, report.OK)
+		var built struct {
+			Version string `json:"version"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &built), "got %q", out)
+		assert.NotEmpty(t, built.Version, "the document must identify the build it checked")
 		require.Len(t, report.Checks, 5)
 		assert.Equal(t, "config", report.Checks[0].Name)
 		assert.Equal(t, "database", report.Checks[1].Name)

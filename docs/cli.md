@@ -215,8 +215,10 @@ aurora blockchain blocks -s transfer   # 按记录文本过滤（不区分大小
 `doctor` 按固定顺序检查五项：配置来源、数据库路径与占用、迁移版本、账本完整性
 （含头区块高度与哈希前缀，便于在两台机器间对照）、审计 outbox 积压。`ok` 为通过（待执行迁移也属正常，详情里给出条数），`warn`
 （待投递事件、读不到 `migrations/` 目录）不改变退出码，`fail`（账本断链、dirty
-迁移）使退出码为非 0；`--json` 输出 `{"checks":[{"name","status","detail"}],"ok":bool}`，`name`
-是稳定的英文键（`config`/`database`/`migrations`/`ledger`/`outbox`）。
+迁移）使退出码为非 0。表格标题带构建版本（`🩺 Doctor (0.0.1)`）；`--json` 输出
+`{"version","checks":[{"name","status","detail"}],"ok":bool}`，`version` 让一份粘贴
+同时说明构建与体检结果，`name` 是稳定的英文键
+（`config`/`database`/`migrations`/`ledger`/`outbox`）。
 
 迁移失败时，记录的目标版本会被标记为 dirty，此后 `up` 与 `down` 都拒绝执行——
 运行器无法判断半执行的 SQL 是否已提交，这是有意的安全选择。`migrate repair`
