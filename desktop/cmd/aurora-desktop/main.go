@@ -279,6 +279,7 @@ func main() {
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,
 		DBPath:          meta.DBPath,
+		DatabaseSize:    func() string { return deskapp.DatabaseSizeText(meta.DBPath) },
 	})
 	// Keep the listener for the whole process, not only for WhenReady: a
 	// deferred unregister inside that callback would make the next OS

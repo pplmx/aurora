@@ -983,3 +983,20 @@ func TestTraditionalDesktopCatalogCoversEveryKey(t *testing.T) {
 	require.Len(t, desktopMessagesHant, len(desktopMessages),
 		"the Traditional table must not carry keys the Simplified table lacks")
 }
+
+// TestSettingsShowsTheDatabaseSize: the About readout asks the shell for the
+// ledger's current size, so the number matches the path above it. A window
+// built without the callback omits the row instead of showing a zero.
+func TestSettingsShowsTheDatabaseSize(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(Actions{DatabaseSize: func() string { return "1.5 MiB" }})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Settings")
+	tester.Frame()
+	require.True(t, tester.HasText("Database size"))
+	require.True(t, tester.HasText("1.5 MiB"))
+
+	app.SetActions(Actions{})
+	tester.Frame()
+	require.False(t, tester.HasText("Database size"))
+}

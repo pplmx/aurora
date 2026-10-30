@@ -517,6 +517,7 @@ var desktopMessages = map[string]string{
 	"%d results.":       "%d 条结果。",
 	"Data":              "数据",
 	"Database path":     "数据库路径",
+	"Database size":     "数据库大小",
 	"Show Data Folder":  "打开数据目录",
 	"Back Up Database…": "备份数据库…",
 	"No data leaves this machine; the desktop opens no network listener.": "数据不会离开本机；桌面端不开放网络监听。",

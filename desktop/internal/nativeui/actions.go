@@ -26,6 +26,10 @@ type Actions struct {
 	Version   string
 	BuildTime string
 	DBPath    string
+	// DatabaseSize reports the ledger's current disk usage (the database plus
+	// its -wal/-shm siblings). Unlike the values above it is a callback because
+	// it grows as the app writes; the About readout asks each time it draws.
+	DatabaseSize func() string
 	// RecentDocuments lists the lottery exports the user opened or saved;
 	// OpenRecent loads one through the same import path as a drop.
 	RecentDocuments func() []string
