@@ -59,15 +59,11 @@ func (s *nativeServices) LedgerStatus() (nativeui.LedgerStatus, error) {
 	// with a concurrent AddBlock on a busy API. The integrity report carries
 	// the head, so one verification supplies both the verdict and the identity.
 	report := s.chain.VerifyIntegrity()
-	head := report.Head
-	if len(head) > 12 {
-		head = head[:12]
-	}
 	return nativeui.LedgerStatus{
 		Valid:  report.Valid,
 		Height: s.chain.Len() - 1,
 		Blocks: s.chain.Len(),
-		Head:   head,
+		Head:   nativeui.ShortHash(report.Head),
 	}, nil
 }
 

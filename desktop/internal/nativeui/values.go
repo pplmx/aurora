@@ -18,9 +18,20 @@ func shortID(id string) string {
 	return id[:keep] + "…"
 }
 
-// joinList renders a []string for a record fact. The Web UI used
-// participants.join(', '); a nil slice reads as an em dash so an empty value is
-// visibly empty rather than blank.
+// ShortHash is the display form of a block hash: the first 12 hex characters
+// two installations compare in a support thread. A shorter value (a test fake)
+// is returned unchanged.
+func ShortHash(hash string) string {
+	const keep = 12
+	if len(hash) <= keep {
+		return hash
+	}
+	return hash[:keep]
+}
+
+// joinList renders a []string for a record fact, comma-space separated like the
+// retired Web UI's participants.join(', '); a nil slice reads as an em dash so
+// an empty value is visibly empty rather than blank.
 func joinList(items []string) string {
 	if len(items) == 0 {
 		return "—"
