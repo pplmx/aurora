@@ -88,21 +88,44 @@ func TestCardsStackWhenTheWindowIsNarrow(t *testing.T) {
 }
 
 // TestTextScaleStacksCardsBeforeTheirControlsCompress ties the responsive
-// threshold to the same text-size preference as the labels. At 1.5x text a
-// default-width window is no longer wide enough for two columns.
+// threshold to the same text-size preference as the labels, and pins the
+// stacked order: the column carrying the records comes first, the write column
+// follows. At 1.5x text the default width no longer holds two columns.
 func TestTextScaleStacksCardsBeforeTheirControlsCompress(t *testing.T) {
-	app := New(workbenchFakes())
-	tester := ui.NewTester(app.View, 1280, 5000)
-	tester.SetPreferences(ui.Preferences{TextScale: 1.5})
-	app.ShowPage("Token")
-	tester.Frame()
+	cases := []struct {
+		page   string
+		object string
+		action string
+	}{
+		{
+			page:   "Token",
+			object: "Define supply and attach the owner key that will authorize future writes.",
+			action: "Only the token owner can mint, and only for a mintable token.",
+		},
+		{
+			page:   "NFT",
+			object: "Every stored asset, newest first. Choose a row to load its id into Transfer, Burn and History.",
+			action: "Move an NFT to a new owner; the transfer is signed by the current one.",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.page, func(t *testing.T) {
+			app := New(workbenchFakes())
+			tester := ui.NewTester(app.View, 1280, 5000)
+			tester.SetPreferences(ui.Preferences{TextScale: 1.5})
+			app.ShowPage(tc.page)
+			tester.Frame()
 
-	create, ok := tester.Find("Define supply and attach the owner key that will authorize future writes.")
-	require.True(t, ok)
-	mint, ok := tester.Find("Only the token owner can mint, and only for a mintable token.")
-	require.True(t, ok)
-	require.Equal(t, create.X, mint.X, "1.5x text needs the stacked layout at the default width")
-	require.Greater(t, mint.Y, create.Y, "the write column must follow the read column")
+			object, ok := tester.Find(tc.object)
+			require.True(t, ok)
+			action, ok := tester.Find(tc.action)
+			require.True(t, ok)
+			require.Equal(t, object.X, action.X,
+				"1.5x text needs the stacked layout at the default width")
+			require.Greater(t, action.Y, object.Y,
+				"the write column must follow the column carrying the records")
+		})
+	}
 }
 
 // TestHeaderNamesThePageAndItsPurpose keeps the chrome honest: the title and
