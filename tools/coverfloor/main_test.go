@@ -50,3 +50,11 @@ func TestMatchesAnySelectsTheCheckedModules(t *testing.T) {
 	require.False(t, matchesAny("github.com/pplmx/aurora/internal/api", prefixes))
 	require.False(t, matchesAny("github.com/pplmx/aurora/internal/infra/sqlite", prefixes))
 }
+
+// TestSplitPrefixesDropsEmptyEntries: `-exclude ""` must mean "exclude
+// nothing"; an empty prefix would otherwise match every package.
+func TestSplitPrefixesDropsEmptyEntries(t *testing.T) {
+	require.Empty(t, splitPrefixes(""))
+	require.Empty(t, splitPrefixes(" , "))
+	require.Equal(t, []string{"a/", "b/"}, splitPrefixes("a/,, b/"))
+}

@@ -142,6 +142,15 @@ jobs:
         run: go test -race -count=1 ./...
         working-directory: desktop
 
+      # `just desktop-coverage-floor` runs the same check locally. The views are
+      # where the behaviour lives, so a refactor that drops their tests fails
+      # here instead of only showing up as a thinner suite.
+      - name: Coverage floor (desktop views)
+        run: |
+          CGO_ENABLED=0 go test -coverprofile=coverage-desktop.out ./internal/...
+          CGO_ENABLED=0 go run ../tools/coverfloor/main.go -profile coverage-desktop.out -prefixes github.com/pplmx/aurora/desktop/internal/ -exclude "" -floor 70
+        working-directory: desktop
+
   # The desktop job above compiles the nested module. This job also runs the
   # real MyGo packaging path, so a broken mygo.config.ts or missing artifact
   # fails CI before a release tag is created. Other platforms are packaged by
