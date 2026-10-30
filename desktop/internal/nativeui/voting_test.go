@@ -98,7 +98,7 @@ func TestSessionControlsRequireASession(t *testing.T) {
 	app.voting.tab = 1
 	tester.Frame()
 
-	require.True(t, tester.HasText("Choose a session above or enter its ID first."))
+	require.True(t, tester.HasText("Choose a session in Setup or enter its ID first."))
 	require.NoError(t, tester.Click("Start Session"))
 	require.NoError(t, tester.Click("End Session"))
 	tester.Frame()
