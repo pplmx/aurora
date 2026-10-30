@@ -233,8 +233,9 @@ func (p *protocol) call(method string, params map[string]any, result any) error 
 
 // press acts on an element by its key first, because a sidebar entry's key is
 // the page id the app navigates by and does not change with the language. A
-// tab has no key, so a key miss falls back to an exact label match, preferring
-// the node that accepts a press.
+// tab has no key, so a key miss falls back to a label match, preferring the
+// node that accepts a press. Labels are tried exactly first and then by
+// substring: a record row is named "Select btc", not "btc".
 func (p *protocol) press(window int, name string) error {
 	err := p.call("act", map[string]any{"window": window, "key": name, "action": "press"}, nil)
 	var protoErr *protocolError
@@ -247,17 +248,27 @@ func (p *protocol) press(window int, name string) error {
 	if err := p.call("tree", map[string]any{"window": window}, &tree); err != nil {
 		return err
 	}
-	target := ""
-	for _, node := range tree.Nodes {
-		if node.key() == name || !strings.EqualFold(node.Label, name) {
-			continue
+	find := func(match func(string) bool) string {
+		target := ""
+		for _, node := range tree.Nodes {
+			if node.key() == name || !match(node.Label) {
+				continue
+			}
+			if target == "" || node.pressable() {
+				target = node.ID
+			}
+			if node.pressable() {
+				break
+			}
 		}
-		if target == "" || node.pressable() {
-			target = node.ID
-		}
-		if node.pressable() {
-			break
-		}
+		return target
+	}
+	target := find(func(label string) bool { return strings.EqualFold(label, name) })
+	if target == "" {
+		lower := strings.ToLower(name)
+		target = find(func(label string) bool {
+			return strings.Contains(strings.ToLower(label), lower)
+		})
 	}
 	if target == "" {
 		return fmt.Errorf("no element named %q", name)
