@@ -120,14 +120,15 @@ func (h *LotteryHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-// Verify re-verifies a persisted draw and returns {id, valid, reason}. The use
-// case delegates to the same VerifyRecord implementation as CLI, desktop and
-// import, including winner/address pairing checks.
+// Verify re-verifies a persisted draw and returns the same report the CLI and
+// the desktop show (the record, every check and the verdict), so all three
+// surfaces answer with one shape instead of the REST shortcut {id, valid,
+// reason}. The input resolves like the CLI's: exact id, block height, or an
+// id/seed substring.
 func (h *LotteryHandler) Verify(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	input := chi.URLParam(r, "id")
 
-	uc := lotteryapp.NewVerify(h.repo)
-	result, err := uc.Execute(lotteryapp.VerifyLotteryRequest{ID: id})
+	report, err := lotteryapp.VerifyInput(h.repo, input)
 	if err != nil {
 		if errors.Is(err, lottery.ErrNotFound) {
 			writeError(w, "not found", "NOT_FOUND", http.StatusNotFound)
@@ -137,5 +138,5 @@ func (h *LotteryHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, result)
+	writeJSON(w, http.StatusOK, report)
 }

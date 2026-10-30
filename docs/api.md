@@ -170,12 +170,12 @@ aurora_http_requests_by_status_total{code="404"} 1
 
 ## 抽奖
 
-| 方法 | 路径                          | 说明                                              |
-| ---- | ----------------------------- | ------------------------------------------------- |
-| POST | `/api/v1/lottery/create`      | 创建抽奖；`winner_count` 省略时用配置默认值       |
-| GET  | `/api/v1/lottery/history`     | 分页历史（`limit`、`offset`）                     |
-| GET  | `/api/v1/lottery/{id}`        | 单条记录，未知 id 返回 404                        |
-| GET  | `/api/v1/lottery/{id}/verify` | 复验 VRF 证明与中奖集合，返回 `{id,valid,reason}` |
+| 方法 | 路径                          | 说明                                        |
+| ---- | ----------------------------- | ------------------------------------------- |
+| POST | `/api/v1/lottery/create`      | 创建抽奖；`winner_count` 省略时用配置默认值 |
+| GET  | `/api/v1/lottery/history`     | 分页历史（`limit`、`offset`）               |
+| GET  | `/api/v1/lottery/{id}`        | 单条记录，未知 id 返回 404                  |
+| GET  | `/api/v1/lottery/{id}/verify` | 复验 VRF 证明与中奖集合，返回完整校验报告   |
 
 ```bash
 curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
@@ -198,8 +198,11 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
  "vrf_public_key":"/QC9j6g0…LR0Q=","timestamp":1793378358,"verified":true}
 ```
 
-`GET /lottery/{id}/verify` 返回 `{"id":"c2421dfb187c8ee9","valid":true}`；证明或
-中奖集合对不上时 `valid` 为 `false`，并带 `reason` 说明。
+`GET /lottery/{id}/verify` 返回完整校验报告：
+`{"record":{"id":"c2421dfb187c8ee9",…},"checks":[{"status":"ok","message":"…"}],"integrity_ok":true,"proof_verified":true}`。
+`{id}` 可以写抽奖 ID、区块高度或 ID/seed 子串（与 CLI 的解析顺序一致）；证明或
+中奖集合对不上时 HTTP 仍是 200，`integrity_ok` 为 `false`，`checks` 里
+`status:"fail"` 的条目说明原因。
 
 ## 投票
 

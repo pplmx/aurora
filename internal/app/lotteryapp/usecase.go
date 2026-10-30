@@ -151,54 +151,6 @@ func removeEmpty(s []string) []string {
 	return result
 }
 
-// VerifyLotteryRequest carries the id of the draw to re-verify.
-type VerifyLotteryRequest struct {
-	ID string
-}
-
-// VerifyLotteryResponse reports whether a stored draw re-verifies.
-type VerifyLotteryResponse struct {
-	ID     string `json:"id"`
-	Valid  bool   `json:"valid"`
-	Reason string `json:"reason,omitempty"`
-}
-
-// Verify re-verifies a persisted draw through VerifyRecord, the
-// same verifier used by the CLI, desktop shell and importer. Keeping one
-// implementation prevents REST from accepting evidence another surface rejects.
-type Verify struct {
-	repo lottery.Repository
-}
-
-// NewVerify builds the re-verification use case.
-func NewVerify(repo lottery.Repository) *Verify {
-	return &Verify{repo: repo}
-}
-
-// Execute re-verifies the draw identified by req.ID.
-func (uc *Verify) Execute(req VerifyLotteryRequest) (*VerifyLotteryResponse, error) {
-	record, err := uc.repo.GetByID(req.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get lottery: %w", err)
-	}
-	if record == nil {
-		return nil, lottery.ErrNotFound
-	}
-
-	report := VerifyRecord(record)
-	if report.IntegrityOK {
-		return &VerifyLotteryResponse{ID: record.ID, Valid: true}, nil
-	}
-	for _, check := range report.Checks {
-		if check.Status == VerifyFail {
-			return &VerifyLotteryResponse{ID: record.ID, Valid: false, Reason: check.Message}, nil
-		}
-	}
-	return &VerifyLotteryResponse{
-		ID: record.ID, Valid: false, Reason: "lottery record failed integrity check",
-	}, nil
-}
-
 func sameStringSet(a, b []string) bool {
 	if len(a) != len(b) {
 		return false

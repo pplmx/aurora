@@ -68,8 +68,8 @@ func TestLotterySmoke_CreateThenVerifyOverHTTP(t *testing.T) {
 	verify := get("/api/v1/lottery/" + created.ID + "/verify")
 	require.Equal(t, http.StatusOK, verify.Code, "verify body: %s", verify.Body.String())
 	var report struct {
-		Valid bool `json:"valid"`
+		IntegrityOK bool `json:"integrity_ok"`
 	}
 	require.NoError(t, json.Unmarshal(verify.Body.Bytes(), &report))
-	require.True(t, report.Valid, "a freshly created lottery must verify as valid")
+	require.True(t, report.IntegrityOK, "a freshly created lottery must verify as valid")
 }

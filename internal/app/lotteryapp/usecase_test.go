@@ -142,7 +142,7 @@ func TestCreateLotteryUseCase_Execute(t *testing.T) {
 	}
 }
 
-func TestVerifyLotteryUseCase_ValidDraw(t *testing.T) {
+func TestVerifyInput_ValidDraw(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
 	chain := &mockChain{}
 	if _, err := NewCreate(lotteryRepo, chain).Execute(CreateLotteryRequest{
@@ -154,13 +154,13 @@ func TestVerifyLotteryUseCase_ValidDraw(t *testing.T) {
 	}
 	id := lotteryRepo.records[0].ID
 
-	resp, err := NewVerify(lotteryRepo).Execute(VerifyLotteryRequest{ID: id})
+	report, err := VerifyInput(lotteryRepo, id)
 	require.NoError(t, err)
-	require.True(t, resp.Valid)
-	require.Equal(t, id, resp.ID)
+	require.True(t, report.IntegrityOK)
+	require.Equal(t, id, report.Record.ID)
 }
 
-func TestVerifyLotteryUseCase_TamperedWinners(t *testing.T) {
+func TestVerifyInput_TamperedWinners(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
 	chain := &mockChain{}
 	if _, err := NewCreate(lotteryRepo, chain).Execute(CreateLotteryRequest{
@@ -175,12 +175,12 @@ func TestVerifyLotteryUseCase_TamperedWinners(t *testing.T) {
 	other := firstDifferent(record.Participants, record.Winners[0])
 	record.Winners[0] = other
 
-	resp, err := NewVerify(lotteryRepo).Execute(VerifyLotteryRequest{ID: record.ID})
+	report, err := VerifyInput(lotteryRepo, record.ID)
 	require.NoError(t, err)
-	require.False(t, resp.Valid)
+	require.False(t, report.IntegrityOK)
 }
 
-func TestVerifyLotteryUseCase_TamperedWinnerAddress(t *testing.T) {
+func TestVerifyInput_TamperedWinnerAddress(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
 	chain := &mockChain{}
 	if _, err := NewCreate(lotteryRepo, chain).Execute(CreateLotteryRequest{
@@ -193,9 +193,9 @@ func TestVerifyLotteryUseCase_TamperedWinnerAddress(t *testing.T) {
 	record := lotteryRepo.records[0]
 	record.WinnerAddresses[0] = lottery.NameToAddress("Mallory")
 
-	resp, err := NewVerify(lotteryRepo).Execute(VerifyLotteryRequest{ID: record.ID})
+	report, err := VerifyInput(lotteryRepo, record.ID)
 	require.NoError(t, err)
-	require.False(t, resp.Valid, "REST must reject the same tampered address the shared verifier rejects")
+	require.False(t, report.IntegrityOK, "REST must reject the same tampered address the shared verifier rejects")
 }
 
 // TASK-249 / ISS-249: a stored record with an EMPTY winners slice reported
@@ -203,7 +203,7 @@ func TestVerifyLotteryUseCase_TamperedWinnerAddress(t *testing.T) {
 // vacuously "matches" the empty record, so nothing ever checked that a draw
 // actually produced winners (a create always records >=1 winner, so an empty
 // slice is a corrupt/partial write and must fail verify).
-func TestVerifyLotteryUseCase_EmptyWinnersIsInvalid(t *testing.T) {
+func TestVerifyInput_EmptyWinnersIsInvalid(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
 	chain := &mockChain{}
 	if _, err := NewCreate(lotteryRepo, chain).Execute(CreateLotteryRequest{
@@ -216,15 +216,22 @@ func TestVerifyLotteryUseCase_EmptyWinnersIsInvalid(t *testing.T) {
 	record := lotteryRepo.records[0]
 	record.Winners = []string{}
 
-	resp, err := NewVerify(lotteryRepo).Execute(VerifyLotteryRequest{ID: record.ID})
+	report, err := VerifyInput(lotteryRepo, record.ID)
 	require.NoError(t, err)
-	require.False(t, resp.Valid)
-	require.Contains(t, resp.Reason, "no winners")
+	require.False(t, report.IntegrityOK)
+	require.NotEmpty(t, report.Checks)
+	found := false
+	for _, check := range report.Checks {
+		if strings.Contains(check.Message, "no winners") {
+			found = true
+		}
+	}
+	require.True(t, found, "the failing check must name the missing winners: %+v", report.Checks)
 }
 
-func TestVerifyLotteryUseCase_NotFound(t *testing.T) {
+func TestVerifyInput_NotFound(t *testing.T) {
 	lotteryRepo := &mockLotteryRepo{}
-	_, err := NewVerify(lotteryRepo).Execute(VerifyLotteryRequest{ID: "missing"})
+	_, err := VerifyInput(lotteryRepo, "missing")
 	require.ErrorIs(t, err, lottery.ErrNotFound)
 }
 
