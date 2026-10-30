@@ -45,7 +45,7 @@ func TestCommandPaletteTakesTypingImmediately(t *testing.T) {
 	tester.Key(platformRefreshModifier(), ui.KeyK)
 	tester.Frame()
 	require.True(t, app.paletteOpen)
-	require.True(t, tester.Focused(tr("Search pages")), "the palette search field must own the keyboard")
+	require.True(t, tester.Focused(tr("Search pages and commands")), "the palette search field must own the keyboard")
 
 	tester.Type("settings")
 	tester.Frame()
@@ -69,7 +69,7 @@ func TestCommandPaletteEscapeReturnsFocusToNavigation(t *testing.T) {
 
 	tester.Key(platformRefreshModifier(), ui.KeyK)
 	tester.Frame()
-	require.True(t, tester.Focused("Search pages"))
+	require.True(t, tester.Focused("Search pages and commands"))
 
 	tester.Key(0, ui.KeyEscape)
 	tester.Frame()
