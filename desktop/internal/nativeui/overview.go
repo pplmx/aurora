@@ -202,7 +202,7 @@ func (a *App) dashboardComposition(c *ui.Context) {
 		if width < twoColumnMinWidth*textScale(c) {
 			ui.Column(c).FillWidth().Gap(space2).Children(func() {
 				a.dashboardModuleRail(c, pageLottery, "Total Lotteries", strconv.Itoa(a.dashboard.Lotteries), "VRF draws recorded")
-				a.dashboardModuleRail(c, pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes+a.dashboard.Candidates+a.dashboard.Sessions), "3 measures")
+				a.dashboardModuleRail(c, pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes+a.dashboard.Candidates+a.dashboard.Sessions), "Votes, candidates and sessions")
 				a.dashboardModuleRail(c, pageOracle, "Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds")
 				a.dashboardModuleRail(c, pageBlockchain, "Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain")
 			})
@@ -213,7 +213,7 @@ func (a *App) dashboardComposition(c *ui.Context) {
 					a.dashboardModuleRail(c, pageOracle, "Oracle Feeds", strconv.Itoa(a.dashboard.Oracle), "Registered data feeds")
 				})
 				ui.Column(c).Grow(1).Shrink(1).Gap(space2).Children(func() {
-					a.dashboardModuleRail(c, pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes+a.dashboard.Candidates+a.dashboard.Sessions), "3 measures")
+					a.dashboardModuleRail(c, pageVoting, "Voting", strconv.Itoa(a.dashboard.Votes+a.dashboard.Candidates+a.dashboard.Sessions), "Votes, candidates and sessions")
 					a.dashboardModuleRail(c, pageBlockchain, "Ledger Blocks", strconv.Itoa(a.dashboard.Blocks), "Entries on the audit chain")
 				})
 			})
