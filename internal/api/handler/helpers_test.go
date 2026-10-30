@@ -311,3 +311,17 @@ func TestDecodeJSON_TrailingWhitespacePastLimit(t *testing.T) {
 	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
 	assert.Contains(t, rr.Body.String(), "BODY_TOO_LARGE")
 }
+
+// TestWriteListEncodesEmptyAsArray pins the shared list rule: a nil slice (the
+// no-rows answer every repository returns) becomes `[]`, and a populated slice
+// is written unchanged.
+func TestWriteListEncodesEmptyAsArray(t *testing.T) {
+	rr := httptest.NewRecorder()
+	writeList[struct{}](rr, nil)
+	assert.Equal(t, "[]\n", rr.Body.String())
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+	rr = httptest.NewRecorder()
+	writeList(rr, []int{1, 2})
+	assert.Equal(t, "[1,2]\n", rr.Body.String())
+}

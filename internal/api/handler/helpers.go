@@ -151,6 +151,16 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+// writeList writes one successful JSON array. A repository's no-rows answer is
+// a nil slice, which would encode as `null`; every list endpoint answers `[]`
+// instead, so a client can iterate without a null check.
+func writeList[T any](w http.ResponseWriter, items []T) {
+	if items == nil {
+		items = []T{}
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
 // WriteError writes the API's error envelope. Handlers use writeError; the
 // router calls this for paths no handler owns, so a client can parse every
 // failure the same way instead of falling back to plain text for a mistyped URL.

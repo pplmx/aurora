@@ -102,11 +102,7 @@ func oracleSourcePage(r *http.Request) (limit, offset int) {
 // catalog lived only in the CLI; exposing it over REST + the shared app-layer
 // catalog lets a client offer one-click source presets.
 func (h *OracleHandler) Templates(w http.ResponseWriter, r *http.Request) {
-	list := oracleapp.ListTemplates()
-	if list == nil {
-		list = []oracleapp.DataSource{}
-	}
-	writeJSON(w, http.StatusOK, list)
+	writeList(w, oracleapp.ListTemplates())
 }
 
 // CreateSource adds a new data source (v1.40). Previously adding a source was

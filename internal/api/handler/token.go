@@ -66,11 +66,7 @@ func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
 		writeUseCaseError(w, err)
 		return
 	}
-	// A nil slice would encode as null; every other list endpoint returns [].
-	if results == nil {
-		results = []*tokenapp.TokenInfoResponse{}
-	}
-	writeJSON(w, http.StatusOK, results)
+	writeList(w, results)
 }
 
 // Approve sets an allowance of amount from owner to spender (POST /approve).
