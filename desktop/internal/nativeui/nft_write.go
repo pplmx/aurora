@@ -58,7 +58,13 @@ func (a *App) nftWrite(c *ui.Context) {
 				return
 			}
 			if !matches {
-				emptyNote(c, "No history loaded yet.")
+				if id == "" {
+					// The id can only come from the collection or a paste, so
+					// an empty field is a missing first step, not an empty read.
+					emptyNote(c, "Choose an asset in Collection or enter its ID first.")
+				} else {
+					emptyNote(c, "No history loaded yet.")
+				}
 				return
 			}
 			a.nftHistoryTable(c)

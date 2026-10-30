@@ -20,7 +20,7 @@ func (a *App) selectNFTRow(id string) {
 }
 
 func (a *App) nftCollection(c *ui.Context) {
-	formCard(c, "Collection", "Every stored asset, newest first. Choose a row to load its id into the cards below.", func() {
+	formCard(c, "Collection", "Every stored asset, newest first. Choose a row to load its id into Transfer, Burn and History.", func() {
 		a.nftListBody(c)
 	})
 }
