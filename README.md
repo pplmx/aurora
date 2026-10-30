@@ -52,6 +52,7 @@ just desktop                             # 桌面壳（Go 1.27+、WebKitGTK/WebV
 just check           # gofmt + goimports + go vet
 just test            # 核心模块全部测试
 just test-coverage   # 覆盖率报告
+just race            # 根模块 race 检测（显式启用 cgo）
 just build           # check + test + 全平台 CLI
 just build-current   # 只构建当前平台
 just run             # 构建当前平台并跑一次示例抽奖
@@ -210,6 +211,7 @@ Go 1.27+、Cobra、Viper、Zerolog、SQLite
 ```bash
 just check      # gofmt + goimports + go vet
 just test       # go test ./...
+just race       # 可选：根模块 race detector（需要 cgo）
 just lint       # golangci-lint（errcheck 关闭）
 just desktop-check
 just desktop-race # 可选：race detector 需要 cgo
