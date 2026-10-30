@@ -26,8 +26,11 @@ socket="$out/automation.sock"
 data_dir="$out/data"
 home_dir="$out/home"
 
+# A fresh profile per run: the window keeps its language and window state under
+# HOME, and a capture that inherited a previous run's locale would press labels
+# in the wrong language.
+rm -rf "$data_dir" "$socket" "$home_dir"
 mkdir -p "$out" "$home_dir"
-rm -rf "$data_dir" "$socket"
 
 seed=${AURORA_E2E_SEED:-0}
 pages=("$@")
@@ -36,13 +39,11 @@ if [ ${#pages[@]} -eq 0 ]; then
   # default run covers the stages that are otherwise one click away. The write
   # stages exist only once a record does: the first-run pages replace the work
   # bench, so they join the default list only when the database is seeded.
-  pages=(dashboard lottery voting voting:Ballot voting:Results token)
+  pages=(dashboard lottery voting voting:Ballot voting:Results token oracle nft)
   if [ "$seed" = "1" ]; then
-    pages+=(token:Burn)
-  fi
-  pages+=(oracle oracle:Health oracle:Readings nft)
-  if [ "$seed" = "1" ]; then
-    pages+=(nft:Burn nft:History)
+    # These stages live behind a first record: the write tabs and the Oracle
+    # tab bar are replaced by the first-run page until something exists.
+    pages+=(token:Burn oracle:Health oracle:Readings nft:Burn nft:History)
   fi
   pages+=(blockchain settings)
 fi
