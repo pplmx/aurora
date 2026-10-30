@@ -179,7 +179,6 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"voting.error.get_session":        "获取投票会话失败",
 	"voting.error.start_session":      "开始投票会话失败",
 	"voting.error.end_session":        "结束投票会话失败",
-	"voting.error.load_candidate":     "为计票加载候选人 %s 失败",
 	"voting.error.count_votes":        "统计候选人 %s 的票数失败",
 
 	// ===== NFT =====
@@ -499,8 +498,6 @@ nft、token）和运维命令（migrate、backup、version）。`,
 	"desktop.error.data_dir":                 "创建数据目录 %s 失败：%w",
 	"desktop.error.user_config_dir":          "解析用户配置目录失败：%w",
 	"desktop.error.lottery_repo_unavailable": "彩票仓储尚未就绪",
-	"desktop.error.no_database_path":         "没有数据库路径",
-	"desktop.error.database":                 "数据库 %s：%w",
 
 	// 破坏性操作 --confirm 门（token burn / nft burn / oracle source
 	// delete / migrate down / lottery reset 共用，TASK-186，ISS-182）

@@ -180,7 +180,6 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"voting.error.get_session":        "failed to get session",
 	"voting.error.start_session":      "failed to start session",
 	"voting.error.end_session":        "failed to end session",
-	"voting.error.load_candidate":     "failed to load candidate %s for results",
 	"voting.error.count_votes":        "failed to count votes for candidate %s",
 
 	// ===== NFT =====
@@ -506,8 +505,6 @@ nft, token) and operational commands (migrate, backup, version).`,
 	"desktop.error.data_dir":                 "create data directory %s: %w",
 	"desktop.error.user_config_dir":          "resolve user config directory: %w",
 	"desktop.error.lottery_repo_unavailable": "lottery repository is not ready",
-	"desktop.error.no_database_path":         "no database path",
-	"desktop.error.database":                 "database %s: %w",
 
 	// Destructive-op --confirm gate shared by token burn / nft burn /
 	// oracle source delete / migrate down / lottery reset (TASK-186,
