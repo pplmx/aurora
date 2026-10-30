@@ -225,6 +225,38 @@ func TestOracleRepository_GetDataBySource(t *testing.T) {
 	if len(results) != 2 {
 		t.Errorf("Expected 2 results, got %d", len(results))
 	}
+
+	// Two readings in the same second keep insertion order, and latest returns
+	// the head the list shows instead of an arbitrary row of that second.
+	for _, id := range []string{"data-4", "data-5"} {
+		if err := repo.SaveData(&oracle.OracleData{
+			ID: id, SourceID: "btc-price", Value: "52000", Timestamp: 5000,
+		}); err != nil {
+			t.Fatalf("Failed to save %s: %v", id, err)
+		}
+	}
+	results, err = repo.GetDataBySource("btc-price", 10)
+	if err != nil {
+		t.Fatalf("Failed to get data: %v", err)
+	}
+	if len(results) != 4 || results[0].ID != "data-4" || results[1].ID != "data-5" {
+		t.Fatalf("same-second readings must keep insertion order, got %v", idsOf(results))
+	}
+	latest, err := repo.GetLatestData("btc-price")
+	if err != nil {
+		t.Fatalf("Failed to get latest: %v", err)
+	}
+	if latest.ID != results[0].ID {
+		t.Fatalf("latest %q must match the list head %q", latest.ID, results[0].ID)
+	}
+}
+
+func idsOf(data []*oracle.OracleData) []string {
+	ids := make([]string, 0, len(data))
+	for _, d := range data {
+		ids = append(ids, d.ID)
+	}
+	return ids
 }
 
 func TestOracleRepository_GetLatestData(t *testing.T) {

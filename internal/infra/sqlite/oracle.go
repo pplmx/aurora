@@ -146,7 +146,9 @@ func (r *OracleRepository) GetDataBySource(sourceID string, limit int) ([]*oracl
 		limit = 100
 	}
 	rows, err := r.q().Query(
-		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE source_id = ? ORDER BY timestamp DESC LIMIT ?`,
+		// Same-second readings keep insertion order, so a list stays stable page
+		// to page and "latest" is the row the list shows first.
+		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE source_id = ? ORDER BY timestamp DESC, rowid ASC LIMIT ?`,
 		sourceID, limit,
 	)
 	if err != nil {
@@ -167,7 +169,7 @@ func (r *OracleRepository) GetDataBySource(sourceID string, limit int) ([]*oracl
 
 func (r *OracleRepository) GetLatestData(sourceID string) (*oracle.OracleData, error) {
 	row := r.q().QueryRow(
-		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE source_id = ? ORDER BY timestamp DESC LIMIT 1`,
+		`SELECT id, source_id, value, raw_response, timestamp, block_height FROM oracle_data WHERE source_id = ? ORDER BY timestamp DESC, rowid ASC LIMIT 1`,
 		sourceID,
 	)
 	d := &oracle.OracleData{}
