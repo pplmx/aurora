@@ -23,6 +23,7 @@ aurora version                    # 版本、构建时间、Go 工具链
 | `lottery import`                                                                                                                                    | `{"total","imported","rejected"}`                              |
 | 迁移：`migrate status`/`up`/`down`/`repair`                                                                                                         | `{"current","dirty","applied","pending"}`                      |
 | 备份：`backup create`/`verify`/`restore`                                                                                                            | `{"dir",…}` / `{"path","status"}` / `{"path","status","undo"}` |
+| 模板：`oracle template list`/`add`                                                                                                                  | 模板数组 / 新数据源文档                                        |
 | `blockchain verify`、`lottery stats`、`lottery db-info`、`version`、`doctor`                                                                        | 各自文档                                                       |
 
 `lottery import`、`lottery verify` 与 `blockchain verify` 一样：即使打印了文档，
