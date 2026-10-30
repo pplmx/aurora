@@ -32,6 +32,7 @@ var desktopMessages = map[string]string{
 	"Verdict":                          "结论",
 	"Verdict is on the clipboard":      "结论已复制到剪贴板",
 	"Ledger: %d blocks, head %s — %s":  "账本: %d 个区块，头 %s —— %s",
+	"Audit outbox: %d pending events":  "审计待发事件 %d 条",
 	"chain valid":                      "链完整",
 	"chain broken":                     "链已损坏",
 	"Diagnostics are on the clipboard": "诊断信息已复制到剪贴板",

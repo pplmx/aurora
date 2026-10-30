@@ -268,6 +268,11 @@ func (a *App) diagnosticsText() string {
 			lines = append(lines, fmt.Sprintf(tr("Ledger: %d blocks, head %s — %s"), blocks, head, verdict))
 		}
 	}
+	if a.actions.OutboxPending != nil {
+		if pending, ok := a.actions.OutboxPending(); ok {
+			lines = append(lines, fmt.Sprintf(tr("Audit outbox: %d pending events"), pending))
+		}
+	}
 	return strings.Join(lines, "\n")
 }
 

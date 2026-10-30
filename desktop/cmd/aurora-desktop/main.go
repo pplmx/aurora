@@ -292,6 +292,13 @@ func main() {
 			}
 			return chain.Len(), head, report.Valid, true
 		},
+		OutboxPending: func() (int, bool) {
+			pending, err := rt.Services().PendingAuditEvents(context.Background())
+			if err != nil {
+				return 0, false
+			}
+			return pending, true
+		},
 	})
 	// Keep the listener for the whole process, not only for WhenReady: a
 	// deferred unregister inside that callback would make the next OS

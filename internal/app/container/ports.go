@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pplmx/aurora/internal/app/oracleapp"
 	"github.com/pplmx/aurora/internal/domain/lottery"
@@ -28,6 +29,9 @@ type Services interface {
 	Ledger() Chain
 	Fetcher() oracleapp.FetcherInterface
 	Backup(ctx context.Context, dest string) (string, error)
+	// PendingAuditEvents counts audit events parked in the outbox, the number
+	// `aurora doctor` reports. The desktop quotes it in its diagnostics copy.
+	PendingAuditEvents(ctx context.Context) (int, error)
 }
 
 // Chain is the ledger view shared by the HTTP and desktop adapters.
@@ -46,8 +50,19 @@ func (c *Container) VotingRepository() voting.TransactableRepository { return c.
 func (c *Container) NFTRepository() nft.TransactableRepository       { return c.NFTRepo }
 func (c *Container) OracleRepository() oracle.Repository             { return c.OracleRepo }
 func (c *Container) Token() token.Service                            { return c.TokenService }
-func (c *Container) TokenTransactions() voting.TransactionManager    { return c.TxManager }
-func (c *Container) VotingTransactions() voting.TransactionManager   { return c.VotingTx }
-func (c *Container) NFTTransactions() nft.TransactionManager         { return c.NFTTx }
-func (c *Container) Ledger() Chain                                   { return c.Chain }
-func (c *Container) Fetcher() oracleapp.FetcherInterface             { return c.OracleFetcher }
+
+// PendingAuditEvents counts the outbox backlog. The event store creates its
+// tables when the container builds it, so the table exists by the time a caller
+// asks; a count failure is reported instead of silently reading zero.
+func (c *Container) PendingAuditEvents(ctx context.Context) (int, error) {
+	var pending int
+	if err := c.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM pending_events`).Scan(&pending); err != nil {
+		return 0, fmt.Errorf("count pending audit events: %w", err)
+	}
+	return pending, nil
+}
+func (c *Container) TokenTransactions() voting.TransactionManager  { return c.TxManager }
+func (c *Container) VotingTransactions() voting.TransactionManager { return c.VotingTx }
+func (c *Container) NFTTransactions() nft.TransactionManager       { return c.NFTTx }
+func (c *Container) Ledger() Chain                                 { return c.Chain }
+func (c *Container) Fetcher() oracleapp.FetcherInterface           { return c.OracleFetcher }
