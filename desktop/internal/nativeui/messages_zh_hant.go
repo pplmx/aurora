@@ -100,6 +100,7 @@ var desktopMessagesHant = map[string]string{
 	"Connect an HTTP feed and read what it returns": "接入 HTTP 數據源並讀取返回值",
 	"Contrast":                       "對比度",
 	"Copy":                           "複製",
+	"Copy payload":                   "複製載荷",
 	"Copy token ID":                  "複製代幣 ID",
 	"Couldn't load NFT":              "無法加載 NFT",
 	"Couldn't load NFT history":      "無法加載 NFT 歷史",

@@ -79,6 +79,12 @@ func TestLedgerRecordOpensItsExactPayload(t *testing.T) {
 	require.True(t, tester.HasText(records[0].Payload),
 		"opening the record must show the stored bytes unmodified")
 
+	require.NoError(t, tester.Click("Copy payload"))
+	tester.Frame()
+	require.Equal(t, records[0].Payload, tester.Clipboard(),
+		"the copy action must carry the exact bytes, not the shortened display")
+	require.True(t, tester.HasText("Payload is on the clipboard"))
+
 	require.NoError(t, tester.Click("Hide payload"))
 	tester.Frame()
 	require.False(t, tester.HasText(records[0].Payload),
