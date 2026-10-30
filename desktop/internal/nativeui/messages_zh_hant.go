@@ -144,6 +144,7 @@ var desktopMessagesHant = map[string]string{
 	"Data Sources":                "數據源",
 	"Database":                    "數據庫",
 	"Database path":               "數據庫路徑",
+	"Database size":               "數據庫大小",
 	"Decimals":                    "精度",
 	"Decimals must be a whole number between 0 and 127.":                        "精度必須是 0 到 127 之間的整數。",
 	"Define supply and attach the owner key that will authorize future writes.": "定義供應量，並綁定以後授權寫操作的所有者密鑰。",

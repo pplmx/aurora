@@ -81,7 +81,7 @@ just check && just test
   同目录的 `desktop-settings.json`，下次启动沿用）、Shortcuts（Ctrl/Cmd+1…8
   切页、Ctrl/Cmd+R 刷新数据页、Ctrl/Cmd+, 打开 Settings、Ctrl/Cmd+K 命令
   面板）、Appearance（跟随系统 / 浅色 / 深色主题，字号/对比度/动效跟随系统）和 About Aurora
-  （版本、构建时间、数据库路径、关于对话框）。文件动作仍留在 File 菜单，
+  （版本、构建时间、数据库路径与占用、关于对话框）。文件动作仍留在 File 菜单，
   配置不再混在菜单里。
 - **跟随系统字号**：所有显式字号都经 `textSize` 乘以系统 TextScale（默认 1），
   `auroraThemeFor` 同时放大自定义主题的默认字号，让 MyGo 绘制的输入框、标签页

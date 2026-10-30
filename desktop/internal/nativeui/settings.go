@@ -218,11 +218,19 @@ func themeModeLabel(mode ThemeMode) string {
 // home on this page.
 func (a *App) settingsAboutCard(c *ui.Context) {
 	formCard(c, "About Aurora", "", func() {
-		readout(c, []readoutRow{
+		rows := []readoutRow{
 			{"Version", valueOr(a.actions.Version)},
 			{"Build time", valueOr(a.actions.BuildTime)},
 			{"Database", valueOr(a.actions.DBPath)},
-		})
+		}
+		// The size is measured while the card draws, so it matches the file the
+		// path names; a window built without the callback simply omits it.
+		if a.actions.DatabaseSize != nil {
+			if size := a.actions.DatabaseSize(); size != "" {
+				rows = append(rows, readoutRow{"Database size", size})
+			}
+		}
+		readout(c, rows)
 		a.settingsButton(c, "Open About Dialog", "", a.actions.ShowAbout)
 	})
 }
