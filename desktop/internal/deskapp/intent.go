@@ -1,6 +1,7 @@
 package deskapp
 
 import (
+	"errors"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/utils"
 )
 
 // DeepLinkScheme is the scheme the operating system hands to the app: an
@@ -215,7 +217,7 @@ func IsDeepLink(arg string) bool {
 func importLotteryFile(repoProvider lotteryRepoProvider, path string) (lotteryapp.ImportResult, error) {
 	document, err := lotteryapp.ReadImportFile(path)
 	if err != nil {
-		return lotteryapp.ImportResult{}, err
+		return lotteryapp.ImportResult{}, localizeImportReadError(err)
 	}
 	repo, closeRepo, err := repoProvider()
 	if err != nil {
@@ -223,4 +225,15 @@ func importLotteryFile(repoProvider lotteryRepoProvider, path string) (lotteryap
 	}
 	defer closeRepo()
 	return lotteryapp.ImportRecords(repo, document)
+}
+
+// localizeImportReadError names the failure a user can cause with the wrong
+// file. The limit is formatted from the same constant the reader enforces, so
+// the sentence cannot drift from the behaviour; any other read error (missing
+// file, permissions) stays as the operating system reported it.
+func localizeImportReadError(err error) error {
+	if errors.Is(err, lotteryapp.ErrImportFileTooLarge) {
+		return errors.New(TFormat("desktop.error.import_too_large", utils.FormatBytes(lotteryapp.MaxImportFileSize)))
+	}
+	return err
 }
