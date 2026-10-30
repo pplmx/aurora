@@ -519,6 +519,9 @@ documented in their per-milestone ROADMAP files.
 
 ### Added
 
+- **The command palette can open the data folder**: Ctrl/Cmd+K then "folder"
+  reaches Show Data Folder, so the keyboard path covers every File-menu action
+  except the Open Recent list.
 - **`just desktop-shot` captures the real window**: it builds the shell with
   the `e2e` tag (which imports MyGo's automation plugin, never present in
   release builds), opens one window under Xvfb when no display exists, presses
