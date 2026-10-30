@@ -267,13 +267,9 @@ var nftHistoryCmd = &cobra.Command{
 		}
 
 		nftID, _ := cmd.Flags().GetString("nft")
-		limit, _ := cmd.Flags().GetInt("limit")
-		offset, _ := cmd.Flags().GetInt("offset")
-		if limit < 0 {
-			return newCLIError("cli.error.invalid_limit", limit)
-		}
-		if offset < 0 {
-			return newCLIError("cli.error.invalid_offset", offset)
+		limit, offset, err := pagingFlags(cmd)
+		if err != nil {
+			return err
 		}
 
 		historyUC := nftapp.NewGetNFTOperationsUseCase(service)

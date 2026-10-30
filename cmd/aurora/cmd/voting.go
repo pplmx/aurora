@@ -130,13 +130,9 @@ var candidateListCmd = &cobra.Command{
 			return wrapCLIError("voting.error.get_repo", err)
 		}
 
-		limit, _ := cmd.Flags().GetInt("limit")
-		offset, _ := cmd.Flags().GetInt("offset")
-		if limit < 0 {
-			return newCLIError("cli.error.invalid_limit", limit)
-		}
-		if offset < 0 {
-			return newCLIError("cli.error.invalid_offset", offset)
+		limit, offset, err := pagingFlags(cmd)
+		if err != nil {
+			return err
 		}
 
 		uc := votingapp.NewGetCandidatesUseCase(repo)
@@ -207,13 +203,9 @@ var voterListCmd = &cobra.Command{
 			return wrapCLIError("voting.error.get_repo", err)
 		}
 
-		limit, _ := cmd.Flags().GetInt("limit")
-		offset, _ := cmd.Flags().GetInt("offset")
-		if limit < 0 {
-			return newCLIError("cli.error.invalid_limit", limit)
-		}
-		if offset < 0 {
-			return newCLIError("cli.error.invalid_offset", offset)
+		limit, offset, err := pagingFlags(cmd)
+		if err != nil {
+			return err
 		}
 
 		list, err := votingapp.NewListVotersUseCase(repo).Execute(&votingapp.ListVotersRequest{
@@ -352,13 +344,9 @@ var sessionListCmd = &cobra.Command{
 			return wrapCLIError("voting.error.get_repo", err)
 		}
 
-		limit, _ := cmd.Flags().GetInt("limit")
-		offset, _ := cmd.Flags().GetInt("offset")
-		if limit < 0 {
-			return newCLIError("cli.error.invalid_limit", limit)
-		}
-		if offset < 0 {
-			return newCLIError("cli.error.invalid_offset", offset)
+		limit, offset, err := pagingFlags(cmd)
+		if err != nil {
+			return err
 		}
 
 		uc := votingapp.NewListSessionsUseCase(repo)
