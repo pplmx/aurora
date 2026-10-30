@@ -805,6 +805,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **A failed verify no longer passes through `--json`**: `lottery verify
+  --json` printed `integrity_ok: false` and still exited 0, and
+  `blockchain verify --json` returned before its verdict check, so a script
+  that trusts the exit code read a broken record as verified. Both modes now
+  print the document and then exit non-zero, matching the table path.
 - **A failed feed fetch is named once**: the Oracle fetcher wrapped transport
   errors with "failed to fetch data" and the fetch use case wrapped the result
   again, so Feed Health read "failed to fetch data: failed to fetch data:

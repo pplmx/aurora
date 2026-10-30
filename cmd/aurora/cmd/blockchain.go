@@ -36,7 +36,15 @@ var blockchainVerifyCmd = &cobra.Command{
 		}
 		report := chain.VerifyIntegrity()
 		if jsonRequested(cmd) {
-			return printJSON(report)
+			// Print the report first, then let the exit code carry the same
+			// verdict the table path reports (a script checks $? before fields).
+			if err := printJSON(report); err != nil {
+				return err
+			}
+			if !report.Valid {
+				return newCLIError("blockchain.invalid")
+			}
+			return nil
 		}
 
 		fmt.Printf("\n⛓  %s\n", i18n.GetText("blockchain.verify_title"))

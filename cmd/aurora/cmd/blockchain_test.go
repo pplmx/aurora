@@ -56,6 +56,11 @@ func TestBlockchainVerifyFailsOnTamperedData(t *testing.T) {
 
 		_, err = runCmd(t, "blockchain", "verify")
 		require.Error(t, err)
+
+		// JSON mode fails the command too. A chain refused at load has no
+		// report to print, so this asserts the exit code, not a document.
+		_, err = runCmd(t, "blockchain", "verify", "--json")
+		require.Error(t, err)
 	})
 }
 
