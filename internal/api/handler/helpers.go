@@ -151,6 +151,13 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+// WriteError writes the API's error envelope. Handlers use writeError; the
+// router calls this for paths no handler owns, so a client can parse every
+// failure the same way instead of falling back to plain text for a mistyped URL.
+func WriteError(w http.ResponseWriter, message, code string, statusCode int) {
+	writeError(w, message, code, statusCode)
+}
+
 func writeError(w http.ResponseWriter, message string, code string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)

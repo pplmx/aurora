@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pplmx/aurora/internal/api/handler"
 	apimw "github.com/pplmx/aurora/internal/api/middleware"
 	"github.com/pplmx/aurora/internal/config"
 	"github.com/pplmx/aurora/internal/metrics"
@@ -13,9 +14,17 @@ import (
 //
 // There is no static-file branch: the desktop window draws MyGo widgets
 // instead of hosting HTML, so the gateway serves only /api/v1, the health
-// endpoints and /metrics. A request outside those gets chi's 404.
+// endpoints and /metrics. A request outside those gets the same JSON error
+// envelope as any handler (see the NotFound registration below).
 func newRouter(s *Server) http.Handler {
 	r := chi.NewRouter()
+
+	// Unknown paths answer in the same envelope as every handler: a client that
+	// parses {"error","code"} must not fall back to plain text because it
+	// mistyped a URL (the router's default is chi's "404 page not found").
+	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+		handler.WriteError(w, "not found", "NOT_FOUND", http.StatusNotFound)
+	})
 
 	// Request observability: a stdlib Prometheus-text /metrics endpoint
 	// (v1.13) recording per-request status + latency distribution. The
