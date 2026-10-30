@@ -155,6 +155,8 @@ aurora migrate down --confirm # 回滚一步
 aurora migrate repair --confirm # 清除失败迁移留下的脏标记
 
 aurora blockchain verify      # 校验本地区块链的哈希连续性
+aurora blockchain blocks      # 审计记录（最新在前，排除创世块）
+aurora blockchain blocks -l 50 -p 100
 ```
 
 迁移失败时，记录的目标版本会被标记为 dirty，此后 `up` 与 `down` 都拒绝执行——
@@ -164,7 +166,9 @@ aurora blockchain verify      # 校验本地区块链的哈希连续性
 
 `blockchain verify` 打印区块数、状态与第一处断点原因；链无效时退出码非 0，脚本
 可以直接按退出码判断。REST 的 `/api/v1/blockchain/verify` 与桌面的 Blockchain 页
-给出同一份结论。
+给出同一份结论。`blockchain blocks` 按最新在前输出 `#高度 时间 负载`，负载是模块
+写入的原始文本（签名类记录里的公钥已是 base64），可直接 grep 或交给 jq；
+`-l` 默认 20、`0` 表示全部，`-p` 按条目计偏移。
 
 备份目录不能被指定为数据库自身所在目录（会把 live DB 覆盖成快照）；
 `backup create` 先写同目录临时文件再原子改名，失败不会破坏上一份可用备份。

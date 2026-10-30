@@ -588,11 +588,13 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
-- **`aurora blockchain verify` checks the local chain from the CLI**: the REST
-  API and the desktop page could report integrity, but an operator on a machine
-  without either had only the block count in `db-info`. The command prints the
-  block count, the verdict and the first break, and exits non-zero when the
-  chain is invalid so a script can rely on the code alone.
+- **The CLI can read and verify the ledger**: the REST API and the desktop
+  could report integrity and list records, but an operator on a machine without
+  either had only the block count in `db-info`. `aurora blockchain verify`
+  prints the block count, the verdict and the first break and exits non-zero
+  when the chain is invalid; `aurora blockchain blocks` pages the recorded
+  payloads newest first (genesis excluded) so scripts can grep the audit trail.
+  Both are localized.
 - **The command palette can open the data folder**: Ctrl/Cmd+K then "folder"
   reaches Show Data Folder, so the keyboard path covers every File-menu action
   except the Open Recent list.

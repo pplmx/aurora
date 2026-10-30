@@ -57,3 +57,25 @@ func TestBlockchainVerifyFailsOnTamperedData(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+// TestBlockchainBlocksListsRecordedPayloads: the empty ledger names the missing
+// first write, and a recorded draw appears with its exact payload so a script
+// can grep the audit trail.
+func TestBlockchainBlocksListsRecordedPayloads(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		out, err := runCmd(t, "blockchain", "blocks")
+		require.NoError(t, err)
+		assert.Contains(t, out, "No module has written a record yet.")
+
+		_, err = runCmd(t, "lottery", "create",
+			"--participants", "A,B,C", "--seed", "demo-seed", "--count", "1")
+		require.NoError(t, err)
+
+		out, err = runCmd(t, "blockchain", "blocks")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Audit records: 1")
+		assert.Contains(t, out, `"seed":"demo-seed"`)
+	})
+}
