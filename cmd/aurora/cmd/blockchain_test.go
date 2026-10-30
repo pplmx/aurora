@@ -92,6 +92,12 @@ func TestBlockchainBlocksListsRecordedPayloads(t *testing.T) {
 		assert.Contains(t, out, "Audit records: 1")
 		assert.Contains(t, out, "Seed: demo-seed")
 
+		// The filter reaches the decoded sentence, not only the stored text, so
+		// a word the table shows ("Winners") finds the record.
+		out, err = runCmd(t, "blockchain", "blocks", "-s", "Winners")
+		require.NoError(t, err)
+		assert.Contains(t, out, "Audit records: 1")
+
 		out, err = runCmd(t, "blockchain", "blocks", "-s", "no-such-record")
 		require.NoError(t, err)
 		assert.Contains(t, out, "Audit records: 0")

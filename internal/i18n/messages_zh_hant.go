@@ -30,7 +30,7 @@ var traditionalMessages = map[string]string{
 	"blockchain.blocks_limit":                   "最多列出的記錄數（0 表示全部）",
 	"blockchain.blocks_no_match":                "沒有記錄匹配 %q。",
 	"blockchain.blocks_offset":                  "按條目計的偏移量",
-	"blockchain.blocks_search":                  "按記錄文本過濾（不區分大小寫）",
+	"blockchain.blocks_search":                  "按記錄文本或解碼後的記錄過濾（不區分大小寫）",
 	"blockchain.blocks_title":                   "審計記錄",
 	"blockchain.broken_at":                      "第 %d 塊起無效：%s",
 	"blockchain.cmd":                            "賬本完整性與校驗",

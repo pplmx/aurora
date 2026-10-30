@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -99,7 +100,7 @@ var blockchainBlocksCmd = &cobra.Command{
 		} else {
 			needle := strings.ToLower(search)
 			entries, total = chain.BlockEntriesPageMatching(limit, offset, func(entry ledger.BlockEntry) bool {
-				return strings.Contains(strings.ToLower(entry.Data), needle)
+				return blockMatches(entry, needle)
 			})
 		}
 		if jsonRequested(cmd) {
@@ -138,6 +139,20 @@ func init() {
 	blockchainBlocksCmd.Flags().StringP("search", "s", "", i18n.GetText("blockchain.blocks_search"))
 	addJSONFlag(blockchainVerifyCmd)
 	addJSONFlag(blockchainBlocksCmd)
+}
+
+// blockMatches answers the audit filter with the same three things the window's
+// ledger search compares: the stored text, the decoded sentence and the height.
+// Searching "transfer" therefore finds a token transfer whose payload spells the
+// verb, and "Winners" finds draws even though no payload contains that word.
+func blockMatches(entry ledger.BlockEntry, needle string) bool {
+	if strings.Contains(strings.ToLower(entry.Data), needle) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(blockLine(entry.Data)), needle) {
+		return true
+	}
+	return strings.Contains(strconv.FormatInt(entry.Height, 10), needle)
 }
 
 // blockLine renders one audit payload for the table with the vocabulary the
