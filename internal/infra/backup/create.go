@@ -612,7 +612,7 @@ func (s *BackupService) Create(ctx context.Context, output string) (result *Back
 	}
 
 	return &BackupResult{
-		File:          output,
+		Dir:           output,
 		Size:          totalSize,
 		Checksum:      checksum,
 		SchemaVersion: schemaVersion,

@@ -181,6 +181,9 @@ var migrateStatusCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("migrate.error.status", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(st)
+		}
 
 		fmt.Println("\n" + i18n.GetText("migrate.status_header"))
 		fmt.Println(i18n.GetTextF("migrate.current_version", st.Current))
@@ -224,6 +227,7 @@ func init() {
 	migrateCmd.AddCommand(migrateUpCmd)
 	migrateCmd.AddCommand(migrateDownCmd)
 	migrateCmd.AddCommand(migrateStatusCmd)
+	addJSONFlag(migrateStatusCmd)
 	migrateCmd.AddCommand(migrateRepairCmd)
 	// Rolling back is destructive; require -y/--confirm first.
 	addConfirmFlag(migrateDownCmd, "cli.confirm.migrate_down")

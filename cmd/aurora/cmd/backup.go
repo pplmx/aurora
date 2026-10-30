@@ -42,7 +42,10 @@ var backupCreateCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("backup.error.create", err)
 		}
-		fmt.Println(i18n.GetTextF("backup.create_done", res.File, res.Size, res.SchemaVersion))
+		if jsonRequested(cmd) {
+			return printJSON(res)
+		}
+		fmt.Println(i18n.GetTextF("backup.create_done", res.Dir, res.Size, res.SchemaVersion))
 		return nil
 	},
 }
@@ -58,6 +61,14 @@ var backupVerifyCmd = &cobra.Command{
 		}
 		if err := svc.Verify(context.Background(), args[0]); err != nil {
 			return wrapCLIError("backup.error.verify", err)
+		}
+		if jsonRequested(cmd) {
+			// No details beyond "it verified": the metadata and content hashes
+			// were checked, or the command would have failed.
+			return printJSON(struct {
+				Path   string `json:"path"`
+				Status string `json:"status"`
+			}{Path: args[0], Status: "verified"})
 		}
 		fmt.Println(i18n.GetText("backup.verify_ok"))
 		return nil
@@ -97,6 +108,8 @@ func init() {
 	addConfirmFlag(backupRestoreCmd, "cli.confirm.backup_restore")
 	rootCmd.AddCommand(backupCmd)
 	backupCmd.AddCommand(backupCreateCmd)
+	addJSONFlag(backupCreateCmd)
 	backupCmd.AddCommand(backupVerifyCmd)
+	addJSONFlag(backupVerifyCmd)
 	backupCmd.AddCommand(backupRestoreCmd)
 }

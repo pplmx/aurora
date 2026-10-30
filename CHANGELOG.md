@@ -12,6 +12,10 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **`BackupResult.File` is now `Dir`**: the value the backup returns is the
+  output directory (the file names inside are fixed), and the field name plus
+  its JSON tag (`file`) said otherwise; the struct, the CLI message, the
+  container accessor and the tests use `Dir`/`dir` now.
 - **The REST verify endpoint returns the full report**: `GET /lottery/{id}/verify`
   answered `{id, valid, reason}` while the CLI and the desktop show the record,
   every check and the verdict. The endpoint now returns `lotteryapp.VerifyReport`
@@ -613,7 +617,8 @@ The milestone notes under `.planning/` are history, not current instructions.
   `voting session create`), the token writes (`mint`, `transfer`, `approve`,
   `transfer-from`, `burn`), `nft transfer`/`burn`, `voting vote` and the session
   start/end transitions, `lottery import` (with `total`/`imported`/`rejected`),
-  `version`, `lottery stats`, `lottery db-info` and the two
+  `migrate status`, `backup create`/`verify`, `version`, `lottery stats`,
+  `lottery db-info` and the two
   blockchain commands take `--json` and print the same fields the REST API
   returns, with `[]` for an empty collection and no banner before the document,
   so a script can pipe the CLI into `jq` instead of parsing tables. Commands that

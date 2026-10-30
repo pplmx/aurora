@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -212,6 +213,21 @@ func TestMigrateStatus_FreshDB(t *testing.T) {
 		assert.Contains(t, out, "Applied: (none)")
 		assert.Contains(t, out, "Pending:")
 		assert.Contains(t, out, "1", "pending lists the first unapplied migration")
+
+		out, err = runCmd(t, "migrate", "status", "--json")
+		require.NoError(t, err)
+		var status struct {
+			Current uint   `json:"current"`
+			Dirty   bool   `json:"dirty"`
+			Applied []uint `json:"applied"`
+			Pending []uint `json:"pending"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &status), "got %q", out)
+		assert.Zero(t, status.Current)
+		assert.False(t, status.Dirty)
+		assert.Empty(t, status.Applied)
+		require.NotEmpty(t, status.Pending)
+		assert.Equal(t, uint(1), status.Pending[0], "the document lists the first unapplied version")
 	})
 }
 
