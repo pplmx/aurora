@@ -130,6 +130,30 @@ func TestFirstRecordGateIgnoresOnlyUntouchedPages(t *testing.T) {
 	require.False(t, app.tokenNeedsFirstRecord())
 }
 
+// TestFirstRecordGateCoversEveryInput pins the shared gate's three inputs: a
+// first-write page needs a clean read of an untouched collection. A failed read
+// must keep the workbench, because it cannot say the store is empty, and any
+// work inside the collection means the operator is already past that page.
+func TestFirstRecordGateCoversEveryInput(t *testing.T) {
+	cases := []struct {
+		name    string
+		loadErr error
+		rows    int
+		entered bool
+		want    bool
+	}{
+		{"untouched empty store", nil, 0, false, true},
+		{"a failed read", errors.New("database is locked"), 0, false, false},
+		{"records exist", nil, 1, false, false},
+		{"work in progress", nil, 0, true, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, firstRecordOnly(tc.loadErr, tc.rows, tc.entered))
+		})
+	}
+}
+
 // TestVotingSetupLeadsWithRegistration applies the first-write hierarchy to
 // the Voting Setup tab. Three empty lists and their big empty states pushed
 // the session form below the fold, while the two forms that can actually work
