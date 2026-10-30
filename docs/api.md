@@ -224,8 +224,9 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 且当前时间位于会期窗口内时，`/vote` 才会接收选票。`ended`、未知状态或窗口外
 的请求都会以 `SESSION_NOT_STARTED` / `SESSION_ENDED` 拒绝。
 
-`GET /voting/session/{id}` 与 `POST /session/{id}/start`、`/end` 返回与
-`/voting/sessions` 完全相同的字段（snake_case），可以用同一个结构解析：
+`GET /voting/session/{id}` 与 `POST /voting/session`、`POST /session/{id}/start`、
+`/end` 返回与 `/voting/sessions` 完全相同的字段（snake_case），可以用同一个结构
+解析：
 
 ```json
 {"id":"95f640cd-cc8e-4178-b5fa-8e9b89073125","title":"Budget 2026",

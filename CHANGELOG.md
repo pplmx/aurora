@@ -823,6 +823,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Fixed
 
+- **Creating a session returned a different shape from reading it**:
+  `POST /voting/session` answered with title/description/status/candidates only,
+  while GET, list and the start/end endpoints also carry `start_time`,
+  `end_time` and `created_at`; the create response now goes through the same
+  mapping, so one client struct parses every session document.
 - **A failed verify no longer passes through `--json`**: `lottery verify
   --json` printed `integrity_ok: false` and still exited 0, and
   `blockchain verify --json` returned before its verdict check, so a script

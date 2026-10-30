@@ -429,13 +429,9 @@ func (uc *CreateSessionUseCase) Execute(req CreateSessionRequest) (*SessionRespo
 		return nil, fmt.Errorf("failed to save session: %w", err)
 	}
 
-	return &SessionResponse{
-		ID:          session.ID,
-		Title:       session.Title,
-		Description: session.Description,
-		Status:      session.Status,
-		Candidates:  session.Candidates,
-	}, nil
+	// The same shape the list and single-session endpoints return: a client
+	// that created the session must see its window and created_at too.
+	return SessionResponseOf(session), nil
 }
 
 // ListSessionsUseCase returns a page of sessions, exposing the sessions

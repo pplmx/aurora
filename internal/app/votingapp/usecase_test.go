@@ -669,6 +669,11 @@ func TestCreateSessionUseCase(t *testing.T) {
 	if resp.Title != "Election 2024" {
 		t.Errorf("Expected title 'Election 2024', got '%s'", resp.Title)
 	}
+	// The create response must carry the same fields as list/get, or a client
+	// that parses one shape reads zeros for the session window it just set.
+	require.Equal(t, now, resp.StartTime)
+	require.Equal(t, now+3600, resp.EndTime)
+	require.Positive(t, resp.CreatedAt)
 }
 
 func TestCreateSessionUseCase_Validation(t *testing.T) {

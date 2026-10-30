@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -117,6 +118,54 @@ func TestVotingVoterRegister_MissingName(t *testing.T) {
 		runMigrations(t)
 		_, err := runCmd(t, "voting", "voter", "register")
 		require.Error(t, err)
+	})
+}
+
+// TestVotingWritesPrintJSON: the vote and the session transitions return their
+// app DTOs, so a script reads the new id/status instead of parsing a ✅ line.
+func TestVotingWritesPrintJSON(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		candID, sessionID, voterPub, voterPriv := votingFixture(t)
+
+		out, err := runCmd(t, "voting", "vote",
+			"--voter", voterPub, "--candidate", candID,
+			"--private-key", voterPriv, "--session", sessionID, "--json")
+		require.NoError(t, err)
+		var vote struct {
+			ID          string `json:"id"`
+			BlockHeight int64  `json:"block_height"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &vote), "got %q", out)
+		assert.NotEmpty(t, vote.ID)
+		assert.Greater(t, vote.BlockHeight, int64(0))
+
+		// A session that has not started yet, so start/end are observable.
+		out, err = runCmd(t, "voting", "session", "create",
+			"--title", "Second", "--candidates", candID,
+			"--start-time", "1700000000", "--end-time", "9999999999")
+		require.NoError(t, err)
+		second := extractField(t, out, "ID:")
+		require.NotEmpty(t, second)
+
+		out, err = runCmd(t, "voting", "session", "start", "--session", second, "--json")
+		require.NoError(t, err)
+		var started struct {
+			ID        string `json:"id"`
+			Status    string `json:"status"`
+			StartTime int64  `json:"start_time"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &started), "got %q", out)
+		assert.Equal(t, second, started.ID)
+		assert.Equal(t, "active", started.Status)
+		assert.Equal(t, int64(1700000000), started.StartTime)
+
+		out, err = runCmd(t, "voting", "session", "end", "--session", second, "--json")
+		require.NoError(t, err)
+		var ended struct {
+			Status string `json:"status"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &ended), "got %q", out)
+		assert.Equal(t, "ended", ended.Status)
 	})
 }
 
