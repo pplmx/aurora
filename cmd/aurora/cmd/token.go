@@ -410,7 +410,7 @@ var tokenBurnCmd = &cobra.Command{
 	Short: i18n.GetText("token.burn.cmd"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Burn permanently destroys tokens; require -y/--confirm first
-		// (matches backup restore --confirm / lottery reset --yes).
+		// (the same gate every destructive command uses).
 		if err := requireConfirm(cmd, "cli.confirm.token_burn"); err != nil {
 			return err
 		}
