@@ -54,6 +54,9 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 | GET  | `/metrics`        | Prometheus 文本：请求计数与按模块统计  |
 | GET  | `/metrics/oracle` | 各预言机源的抓取健康度                 |
 
+`/readyz` 正常时返回 `{"status":"ok","checks":{"database":"ok"}}`；数据库探测
+失败时返回 `503` 与 `{"status":"unhealthy","checks":{"database":"fail"}}`。
+
 ## 抽奖
 
 | 方法 | 路径                          | 说明                                              |
@@ -73,6 +76,19 @@ curl -s -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
 10000。分页在 SQLite 查询中完成，并按
 `timestamp DESC, block_height DESC, id` 使用复合索引，因此同一秒创建或导入的
 记录也有稳定顺序，不会在两次翻页之间重复或漏行。
+
+单条记录（长哈希与密钥以 … 省略）：
+
+```json
+{"id":"c2421dfb187c8ee9","block_height":1,"seed":"aurora-e2e-seed",
+ "participants":["Alice","Bob","Carol","Dev"],"winners":["Dev","Carol"],
+ "winner_addresses":["0x9c24f45a7ea9e4668ee31dc18bd0a9153f1413ce","0xb2dd7d8a70567a0e23308a6a77b38d603eaf2bac"],
+ "vrf_proof":"d44a91a9…f4e9f408","vrf_output":"a3101302…9c60c333",
+ "vrf_public_key":"/QC9j6g0…LR0Q=","timestamp":1793378358,"verified":true}
+```
+
+`GET /lottery/{id}/verify` 返回 `{"id":"c2421dfb187c8ee9","valid":true}`；证明或
+中奖集合对不上时 `valid` 为 `false`，并带 `reason` 说明。
 
 ## 投票
 
@@ -130,6 +146,16 @@ SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一�
 | GET  | `/api/v1/nft/list`         | 按 owner 分页列表                                     |
 
 NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset` 上限 10000。
+
+```json
+[{"id":"adcbadaf-a4d8-45dd-98b6-bd421ec6ae18","name":"Star","description":"First asset",
+  "image_url":"","token_uri":"","owner":"q83vEjRWeJAq…","creator":"q83vEjRWeJAq…",
+  "block_height":2,"timestamp":1793378358}]
+```
+
+`/nft/{id}/history` 的每一项：`{"id":"5040267b-a6e9-40f8-b3db-bc27178acac2",
+"nft_id":"adcbadaf-…","type":"mint","from":"","to":"q83vEjRWeJAq…",
+"block_height":2,"timestamp":1793378358}`。
 已销毁 NFT 的审计记录仍保留；读取超出末页会返回 `200 []`，而不是把空页误判为
 未知 id。
 
@@ -155,6 +181,21 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 长度错误返回 `400 INVALID_PUBLIC_KEY_LENGTH`，不会被当作空账户读取。
 `token/history` 省略 `owner` 时读取整个代币的转账流水。
 
+查询串里的 base64 公钥必须百分号编码：`+` 在查询串中会被解析成空格，原样拼接
+会得到 `400 INVALID_BASE64`。用 `curl -G --data-urlencode`，或任何会把 `+`
+编成 `%2B`、`/` 编成 `%2F` 的客户端：
+
+```bash
+curl -s -G -H "X-API-Key: $KEY" http://localhost:8080/api/v1/token/balance \
+  --data-urlencode "token_id=GLD" --data-urlencode "owner=$OWNER"
+```
+
+编码后的查询串形如 `?token_id=GLD&owner=%2B%2F%2F%2BAAECAw…%3D`：
+
+```json
+{"token_id":"GLD","owner":"+//+AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxw=","amount":"0"}
+```
+
 ## 预言机
 
 | 方法   | 路径                          | 说明                                                |
@@ -175,6 +216,15 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
 Oracle 的读取接口是包装对象：`/oracle/sources` 返回 `{"sources": [...]}`，
 `/oracle/query` 与 `/oracle/latest` 返回 `{"data": ...}`；其它模块的列表是裸数组，
 解析时按各接口的示例处理。
+
+```json
+{"sources":[{"id":"20261031003918.499636093-cadc91163ae7584d73f8f2aebe37f239","name":"btc",
+ "url":"https://api.example.com/price","type":"custom","method":"GET","headers":"",
+ "path":"","interval":60,"enabled":true,"created_at":1793378358}]}
+```
+
+没有读数时 `/oracle/query` 返回 `{"data":[]}`，`/oracle/latest` 返回
+`{"data":null}`。
 
 `POST /api/v1/oracle/sources` 的 `headers` 接受 JSON 对象，例如
 `{"Authorization":"Bearer ...","X-API-Key":"..."}`；`method` 必须是 HTTP token，
@@ -213,6 +263,13 @@ path 与 query 都可能包含凭据，因此 `/oracle/health` 的 `last_error` 
 | 方法 | 路径                          | 说明                     |
 | ---- | ----------------------------- | ------------------------ |
 | GET  | `/api/v1/blockchain/verify`   | 校验本地区块链完整性     |
+
+```json
+{"valid":true,"length":3,"first_broken_index":-1}
+```
+
+`first_broken_index` 为 `-1` 表示整条链通过；否则指向第一处哈希断开的区块下标，
+`valid` 为 `false`。
 
 ## 错误格式
 
