@@ -487,6 +487,11 @@ var desktopMessages = map[string]string{
 	"Fill in the create form.":                                                           "填写创建表单。",
 	"Mint, transfer, approve or burn once the new token is selected.":                    "选中新代币后即可铸造、转账、授权或销毁。",
 	"Read balances, allowances and transfer history.":                                    "读取余额、额度和转账流水。",
+	"No voters yet": "还没有选民",
+	"A session needs voters and at least one candidate; registering a voter returns the only copy of that voter's signing key.": "会期需要选民和至少一位候选人；注册选民时返回的私钥是该密钥的唯一副本。",
+	"Fill in Register Voter and keep the private key it returns.":                                                               "填写“注册选民”，并保存返回的私钥。",
+	"Register at least one candidate for the ballot.":                                                                           "至少注册一位候选人供选票选择。",
+	"Create a session with the roster and the window ballots are accepted in.":                                                  "创建会期，选择名单以及接受选票的时间窗口。",
 
 	// Warnings and copy.
 	"Showing the last successful load.": "显示上一次成功加载的内容。",

@@ -1033,5 +1033,6 @@ func workbenchFakes() *fakeServices {
 		tokenRows: []TokenRow{{ID: "aur", Name: "Aurora", Symbol: "AUR", TotalSupply: "1000"}},
 		nftRows:   []NFTRow{{ID: "nft-1", Name: "Star", Owner: "owner-pk"}},
 		sources:   []SourceRow{{ID: "src-1", Name: "btc"}},
+		voterRows: []VoterRow{{PublicKey: "voter-pk-1", Name: "Ada"}},
 	}
 }
