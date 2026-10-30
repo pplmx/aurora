@@ -62,3 +62,28 @@ func TestEmptyReadoutCopyDistinguishesLoadedFromNotLoaded(t *testing.T) {
 		require.False(t, tester.HasText("Choose a session in Setup or enter its ID first."))
 	})
 }
+
+// TestEmptyHealthNamesTheMissingFeed pins the Health stage's empty panel: an
+// empty store is a missing feed, not a feed that has not been polled yet.
+func TestEmptyHealthNamesTheMissingFeed(t *testing.T) {
+	showHealth := func(t *testing.T, fake *fakeServices) *ui.Tester {
+		t.Helper()
+		app := New(fake)
+		tester := ui.NewTester(app.View, 1280, 2000)
+		app.ShowPage("Oracle")
+		app.oracle.tab = 1
+		tester.Frame()
+		return tester
+	}
+
+	t.Run("no feeds", func(t *testing.T) {
+		tester := showHealth(t, &fakeServices{})
+		require.True(t, tester.HasText("No feeds yet. Add a source to start polling."))
+	})
+
+	t.Run("feeds without attempts", func(t *testing.T) {
+		tester := showHealth(t, &fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}})
+		require.True(t, tester.HasText("No poll attempts recorded yet."))
+		require.False(t, tester.HasText("No feeds yet. Add a source to start polling."))
+	})
+}

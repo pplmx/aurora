@@ -19,7 +19,13 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		return
 	}
 	if len(a.oracle.health) == 0 {
-		emptyPanel(c, pageIcons[pageOracle], pageAccent(c, pageOracle), "(no feed activity yet)")
+		// An empty store is a missing feed, not a feed that has not been
+		// polled yet: the panel names the step that creates the first row.
+		note := "No poll attempts recorded yet."
+		if a.oracle.loadErr == nil && len(a.oracle.sources) == 0 {
+			note = "No feeds yet. Add a source to start polling."
+		}
+		emptyPanel(c, pageIcons[pageOracle], pageAccent(c, pageOracle), note)
 		return
 	}
 	health := a.oracle.health
