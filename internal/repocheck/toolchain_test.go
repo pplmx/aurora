@@ -225,3 +225,22 @@ func TestDomainLayerHasNoOutboundDependencies(t *testing.T) {
 		})
 	require.NoError(t, err)
 }
+
+// TestCIRunsTheDesktopLint: the root lint job runs `golangci-lint run ./...`,
+// which never descends into the nested desktop module. Without its own step in
+// the desktop job, staticcheck/unused coverage for the window layer silently
+// disappears again.
+func TestCIRunsTheDesktopLint(t *testing.T) {
+	workflow := readRepoFile(t, ".github", "workflows", "ci.yml")
+	jobStart := strings.Index(workflow, "  desktop:")
+	require.GreaterOrEqual(t, jobStart, 0, "ci.yml must have a desktop job")
+
+	desktopJob := workflow[jobStart:]
+	if next := strings.Index(desktopJob[1:], "\n  desktop-package:"); next >= 0 {
+		desktopJob = desktopJob[:next+1]
+	}
+	require.Contains(t, desktopJob, "golangci/golangci-lint-action@",
+		"the desktop job must lint the nested module")
+	require.Contains(t, desktopJob, "working-directory: desktop",
+		"the lint step must run inside desktop/, where the module boundary is")
+}
