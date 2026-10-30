@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"net"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pplmx/aurora/internal/netguard"
 )
 
 // runCmd executes a subcommand through rootCmd (the real CLI path) with
@@ -238,6 +241,33 @@ func TestOracleData_Latest(t *testing.T) {
 	assert.Contains(t, strings.ToLower(err.Error()), "source not found")
 }
 
+// templateAddHostBlocked reports whether this environment resolves the template
+// host into private space, which is what a sandbox that maps external DNS to a
+// local proxy does. The SSRF guard then rejects the template URL by design, so
+// the success assertion cannot hold; a normal network resolves it publicly and
+// the tests run their real assertions. Unresolvable hosts are not "blocked"
+// (the guard allows them; the fetch would fail at dial time instead).
+func templateAddHostBlocked(t *testing.T) bool {
+	t.Helper()
+	ips, err := net.LookupIP("api.coingecko.com")
+	if err != nil || len(ips) == 0 {
+		return false
+	}
+	for _, ip := range ips {
+		if netguard.IsBlockedIP(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func skipWhenTemplateHostIsBlocked(t *testing.T) {
+	t.Helper()
+	if templateAddHostBlocked(t) {
+		t.Skip("this environment resolves api.coingecko.com to a private address; the SSRF guard rejects the template URL by design")
+	}
+}
+
 func TestOracleTemplateList_Add(t *testing.T) {
 	resetCliForTest()
 
@@ -246,15 +276,18 @@ func TestOracleTemplateList_Add(t *testing.T) {
 	assert.Contains(t, out, "btc-price")
 	assert.Contains(t, out, "eth-price")
 
-	// template add for a known template -> source created
-	out, err = runCmd(t, "oracle", "template", "add", "--template", "btc-price")
-	require.NoError(t, err)
-	assert.Contains(t, out, "Bitcoin Price")
-
-	// unknown template -> clean error
+	// unknown template -> clean error, before any URL is validated
 	_, err = runCmd(t, "oracle", "template", "add", "--template", "no-such-template")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "template not found")
+
+	// template add for a known template -> source created. The skip only
+	// applies to this last step: the list and unknown-template assertions above
+	// have already run.
+	skipWhenTemplateHostIsBlocked(t)
+	out, err = runCmd(t, "oracle", "template", "add", "--template", "btc-price")
+	require.NoError(t, err)
+	assert.Contains(t, out, "Bitcoin Price")
 }
 
 // extractSourceIDs pulls every "ID: <uuid>" line out of command output.
@@ -272,6 +305,7 @@ func extractSourceIDs(t *testing.T, out string) []string {
 
 func TestOracleTemplateAdd_SecondTemplate(t *testing.T) {
 	resetCliForTest()
+	skipWhenTemplateHostIsBlocked(t)
 
 	// Interval & type defaulting are exercised in the usecase layer; here we
 	// just ensure the CLI accepts the other built-in template.
