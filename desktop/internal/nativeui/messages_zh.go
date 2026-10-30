@@ -492,6 +492,9 @@ var desktopMessages = map[string]string{
 	"Fill in Register Voter and keep the private key it returns.":                                                               "填写“注册选民”，并保存返回的私钥。",
 	"Register at least one candidate for the ballot.":                                                                           "至少注册一位候选人供选票选择。",
 	"Create a session with the roster and the window ballots are accepted in.":                                                  "创建会期，选择名单以及接受选票的时间窗口。",
+	"A ballot names a session; create one in Setup and its id fills this form.":                                                 "选票需要指定会期；请先在“准备”中创建会期，其 ID 会自动填入此表单。",
+	"A tally belongs to a session; create one in Setup, then read its results here.":                                            "计票属于某个会期；请先在“准备”中创建会期，再到这里读取结果。",
+	"Open Setup": "打开“准备”",
 
 	// Warnings and copy.
 	"Showing the last successful load.": "显示上一次成功加载的内容。",

@@ -89,7 +89,9 @@ func TestSessionControlsUseTheBackgroundWritePath(t *testing.T) {
 // empty id. Both buttons become usable as soon as the control field names a
 // session, and the hint explains the disabled state before that.
 func TestSessionControlsRequireASession(t *testing.T) {
-	fake := &fakeServices{}
+	// One stored session keeps the Ballot stage on the page: with none at all
+	// the stage names the missing session instead of showing its controls.
+	fake := &fakeServices{sessions: []SessionRow{{ID: "s1", Title: "Budget", Status: "active"}}}
 	app := New(fake)
 	tester := ui.NewTester(app.View, 1280, 4000)
 	app.ShowPage("Voting")
@@ -714,7 +716,9 @@ func TestVoterListUsesCompactHistoryLabels(t *testing.T) {
 // path: a public key typed directly into the field must not leave the previous
 // voter's private key and "Ballot recorded" sentence attached to it.
 func TestManualVoterKeyChangeClearsThePrivateKey(t *testing.T) {
-	app := New(&fakeServices{})
+	// One stored session keeps the ballot form on the stage; the manual field
+	// this test types into only exists there.
+	app := New(&fakeServices{sessions: []SessionRow{{ID: "s1", Title: "Budget", Status: "active"}}})
 	tester := ui.NewTester(app.View, 1280, 5000)
 	app.ShowPage("Voting")
 	app.voting.tab = 1
@@ -732,4 +736,38 @@ func TestManualVoterKeyChangeClearsThePrivateKey(t *testing.T) {
 	require.Empty(t, app.voting.votePriv, "another voter's private key must not survive")
 	require.Empty(t, app.voting.voteResult.text, "the previous voter's verdict must not survive")
 	require.False(t, tester.HasText("Ballot recorded."))
+}
+
+// TestBallotAndResultsNameTheMissingSession pins the first step of the two
+// session-keyed stages. With no session stored, their forms asked for an id
+// that could not exist yet; the stages now name the missing session and offer
+// the one that creates it. A typed id still opens the forms, because the
+// session may live outside the page the list loaded.
+func TestBallotAndResultsNameTheMissingSession(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 3000)
+	app.ShowPage("Voting")
+
+	app.voting.tab = 1
+	tester.Frame()
+	require.True(t, tester.HasText("No sessions yet."))
+	require.True(t, tester.HasText("A ballot names a session; create one in Setup and its id fills this form."))
+	require.False(t, tester.HasText("Cast Vote"), "the ballot form has no session to name")
+
+	require.NoError(t, tester.Click("Open Setup"))
+	tester.Frame()
+	require.Equal(t, 0, app.voting.tab, "Open Setup returns to the registration stage")
+
+	app.voting.tab = 2
+	tester.Frame()
+	require.True(t, tester.HasText("A tally belongs to a session; create one in Setup, then read its results here."))
+
+	app.voting.resultsSession = "s1"
+	tester.Frame()
+	require.True(t, tester.HasText("Show Results"), "a typed session id opens the tally query")
+
+	app.voting.tab = 1
+	app.voting.voteSession = "s1"
+	tester.Frame()
+	require.True(t, tester.HasText("Cast Vote"), "a typed session id opens the ballot form")
 }
