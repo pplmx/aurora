@@ -25,8 +25,8 @@ func main() {
 	floor := flag.Float64("floor", 80, "minimum package coverage percentage")
 	prefixes := flag.String("prefixes", "github.com/pplmx/aurora/internal/domain/,github.com/pplmx/aurora/internal/app/",
 		"comma-separated import path prefixes to check")
-	excludes := flag.String("exclude", "github.com/pplmx/aurora/internal/app/container",
-		"comma-separated import path prefixes to skip; the composition root is wiring, not a module")
+	excludes := flag.String("exclude", "",
+		"comma-separated import path prefixes to skip")
 	flag.Parse()
 
 	data, err := os.ReadFile(*profile)

@@ -14,7 +14,10 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 
+	"github.com/pplmx/aurora/internal/domain/lottery"
+	"github.com/pplmx/aurora/internal/domain/nft"
 	"github.com/pplmx/aurora/internal/domain/oracle"
+	"github.com/pplmx/aurora/internal/domain/voting"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 )
 
@@ -47,6 +50,22 @@ func TestOpenWiresAndCloses(t *testing.T) {
 	require.NotNil(t, c.Chain)
 	require.NotNil(t, c.EventStore)
 	require.NotNil(t, c.OracleFetcher)
+
+	// The adapters see the container only through Services, so an accessor that
+	// returned the wrong field would compile and hand, say, the token
+	// transaction manager to voting. Each accessor must return the field it
+	// names.
+	var services Services = c
+	require.Equal(t, lottery.Repository(c.LotteryRepo), services.LotteryRepository())
+	require.Equal(t, voting.TransactableRepository(c.VotingRepo), services.VotingRepository())
+	require.Equal(t, nft.TransactableRepository(c.NFTRepo), services.NFTRepository())
+	require.Equal(t, oracle.Repository(c.OracleRepo), services.OracleRepository())
+	require.Equal(t, c.TokenService, services.Token())
+	require.Equal(t, c.TxManager, services.TokenTransactions())
+	require.Equal(t, c.VotingTx, services.VotingTransactions())
+	require.Equal(t, c.NFTTx, services.NFTTransactions())
+	require.Equal(t, c.Chain, services.Ledger())
+	require.Equal(t, c.OracleFetcher, services.Fetcher())
 
 	backupFile, err := c.Backup(context.Background(), filepath.Join(dir, "snapshot"))
 	require.NoError(t, err)
