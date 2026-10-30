@@ -2,6 +2,7 @@ package token
 
 import (
 	"crypto/ed25519"
+	"encoding/base64"
 	"fmt"
 )
 
@@ -44,7 +45,8 @@ func (s *TokenService) Transfer(req *TransferRequest) (*TransferEvent, error) {
 
 	event := NewTransferEvent(req.TokenID, req.From, req.To, req.Amount, nonce, signature)
 
-	data := fmt.Sprintf("transfer|%s|%s|%s", req.TokenID, req.From, req.To)
+	data := fmt.Sprintf("transfer|%s|%s|%s", req.TokenID,
+		base64.StdEncoding.EncodeToString(req.From), base64.StdEncoding.EncodeToString(req.To))
 	_, err = s.withBlockTransaction(data, func(r Repository, height int64) error {
 		event.SetBlockHeight(height)
 
@@ -144,7 +146,8 @@ func (s *TokenService) TransferFrom(req *TransferFromRequest) (*TransferEvent, e
 
 	event := NewTransferEvent(req.TokenID, req.Owner, req.To, req.Amount, nonce, signature)
 
-	data := fmt.Sprintf("transferfrom|%s|%s|%s", req.TokenID, req.Owner, req.To)
+	data := fmt.Sprintf("transferfrom|%s|%s|%s", req.TokenID,
+		base64.StdEncoding.EncodeToString(req.Owner), base64.StdEncoding.EncodeToString(req.To))
 	_, err = s.withBlockTransaction(data, func(r Repository, height int64) error {
 		event.SetBlockHeight(height)
 

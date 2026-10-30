@@ -32,7 +32,7 @@ func (s *TokenService) Burn(req *BurnRequest) (*BurnEvent, error) {
 
 	event := NewBurnEvent(req.TokenID, req.From, req.Amount)
 
-	data := fmt.Sprintf("burn|%s|%s", req.TokenID, req.From)
+	data := fmt.Sprintf("burn|%s|%s", req.TokenID, base64.StdEncoding.EncodeToString(req.From))
 	_, err = s.withBlockTransaction(data, func(r Repository, height int64) error {
 		event.SetBlockHeight(height)
 

@@ -5,11 +5,13 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
 
@@ -1701,6 +1703,65 @@ func (m *mockBlockWriter) AddBlock(data string) (int64, error) {
 
 func newTestService(repo TransactableRepository, eventStore *mockEventStore) *TokenService {
 	return NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), &mockBlockWriter{})
+}
+
+// TestWritePayloadsArePrintable pins the audit payload's text form: the writes
+// appended raw key bytes with %s, so the ledger carried control characters and
+// every JSON response quoting a payload was escaped binary. Keys are base64,
+// matching the signature message and the NFT records.
+func TestWritePayloadsArePrintable(t *testing.T) {
+	repo := NewMockRepository()
+	eventStore := NewMockEventStore()
+	chain := blockchain.New()
+	service := NewService(repo, newMockTxManager(), newMockEventBus(eventStore), eventStore, newMockReplayProtection(), chain)
+
+	owner, priv := pubKey(1), privKey(1)
+	if _, err := service.CreateToken(&CreateTokenRequest{
+		Name: "Test Token", Symbol: "TEST", TotalSupply: NewAmount(1000), Owner: owner,
+	}); err != nil {
+		t.Fatalf("CreateToken failed: %v", err)
+	}
+	recipient := pubKey(2)
+	if _, err := service.Mint(&MintRequest{
+		TokenID: "TEST", To: recipient, Amount: NewAmount(100), PrivateKey: priv,
+	}); err != nil {
+		t.Fatalf("Mint failed: %v", err)
+	}
+	if _, err := service.Transfer(&TransferRequest{
+		TokenID: "TEST", From: owner, To: pubKey(3), Amount: NewAmount(10), PrivateKey: priv,
+	}); err != nil {
+		t.Fatalf("Transfer failed: %v", err)
+	}
+	if _, err := service.Burn(&BurnRequest{
+		TokenID: "TEST", From: owner, Amount: NewAmount(10), PrivateKey: priv,
+	}); err != nil {
+		t.Fatalf("Burn failed: %v", err)
+	}
+
+	entries := chain.BlockEntriesPage(0, 0)
+	if len(entries) == 0 {
+		t.Fatal("expected recorded payloads")
+	}
+	wantRecipient := base64.StdEncoding.EncodeToString(recipient)
+	foundMint := false
+	for _, entry := range entries {
+		for _, r := range entry.Data {
+			if r < 0x20 || r == 0x7f {
+				t.Fatalf("payload %q must be printable", entry.Data)
+			}
+		}
+		fields := strings.Split(entry.Data, "|")
+		if fields[0] != "mint" {
+			continue
+		}
+		foundMint = true
+		if len(fields) != 3 || fields[2] != wantRecipient {
+			t.Fatalf("mint payload = %q, want base64 recipient %q", entry.Data, wantRecipient)
+		}
+	}
+	if !foundMint {
+		t.Fatal("no mint payload recorded")
+	}
 }
 
 func TestGetAllowance_NoApproval(t *testing.T) {
