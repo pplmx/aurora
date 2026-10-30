@@ -1,8 +1,7 @@
 package i18n
 
-// chineseMessages is the catalog for "zh". Aurora ships one Chinese table for
-// both Simplified and Traditional UI roles; the Traditional distinction lives
-// in MyGo's own catalogs, not here.
+// chineseMessages is the catalog for "zh" (Simplified). traditionalMessages is
+// generated from it with OpenCC's s2t tables; fix wording here and regenerate.
 var chineseMessages = map[string]string{
 	// App
 	"app.name":       "Aurora - 区块链系统",

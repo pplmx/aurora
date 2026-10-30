@@ -10,11 +10,18 @@ import "github.com/pplmx/aurora/internal/i18n"
 func tr(text string) string { return Translate(text) }
 
 // Translate is tr for callers outside the view package, such as the desktop
-// shell's dialogs. It only consults the desktop table when the shared
-// translator is in Chinese; English keeps the literal key.
+// shell's dialogs. It only consults a desktop table when the shared translator
+// is in Chinese; English keeps the literal key. The desktop vocabulary is not
+// in the core catalog, so a missing entry falls through to the shared
+// translator and finally to the English key.
 func Translate(text string) string {
-	if i18n.GetTranslator().GetLocale() == "zh" {
+	switch i18n.GetTranslator().GetLocale() {
+	case "zh":
 		if translated, ok := desktopMessages[text]; ok {
+			return translated
+		}
+	case "zh-Hant":
+		if translated, ok := desktopMessagesHant[text]; ok {
 			return translated
 		}
 	}

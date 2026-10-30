@@ -11,7 +11,7 @@ import (
 // evidence in the selected language without making the app layer depend on a
 // terminal locale.
 func LocalizeVerifyCheckMessage(message string) string {
-	if GetTranslator().GetLocale() != "zh" {
+	if !isChineseLocale(GetTranslator().GetLocale()) {
 		return message
 	}
 	switch message {
@@ -48,7 +48,7 @@ func LocalizeVerifyCheckMessage(message string) string {
 // displays that render both status and message. API consumers still receive
 // the stable "ok"/"fail" values.
 func LocalizeVerifyStatus(status string) string {
-	if GetTranslator().GetLocale() != "zh" {
+	if !isChineseLocale(GetTranslator().GetLocale()) {
 		return status
 	}
 	switch status {

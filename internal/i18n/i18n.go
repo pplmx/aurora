@@ -68,6 +68,7 @@ func (tr *Translator) loadMessages() {
 	// is needed here. If this ever changes, callers must hold tr.mu.
 	tr.messages["en"] = cloneMessages(englishMessages)
 	tr.messages["zh"] = cloneMessages(chineseMessages)
+	tr.messages["zh-Hant"] = cloneMessages(traditionalMessages)
 
 	// Try to load from config
 	tr.loadFromConfig()
@@ -178,12 +179,15 @@ func localeFromTags(value string) string {
 	return "en"
 }
 
-// localeForTag maps the locale tags Aurora ships onto its two message tables.
+// localeForTag maps the locale tags Aurora ships onto its three message tables.
 // Locale tags can arrive from the environment (en_US.UTF-8, zh-CN) or from
-// [i18n] locale (where BCP 47 tags are a natural spelling).
+// [i18n] locale (where BCP 47 tags are a natural spelling). A Traditional tag
+// selects the zh-Hant catalog; every other Chinese spelling keeps Simplified.
 func localeForTag(tag string) (string, bool) {
 	normalized := strings.ToLower(strings.TrimSpace(tag))
 	switch {
+	case isTraditionalTag(normalized):
+		return "zh-Hant", true
 	case normalized == "zh" || strings.HasPrefix(normalized, "zh-"), strings.HasPrefix(normalized, "zh_"),
 		strings.HasPrefix(normalized, "zh."):
 		return "zh", true
@@ -196,6 +200,27 @@ func localeForTag(tag string) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+// isTraditionalTag recognizes the spellings that ask for Traditional Chinese:
+// zh-Hant (BCP 47), zh-TW, zh-HK and zh-MO, each with an optional suffix such
+// as ".UTF-8".
+func isTraditionalTag(normalized string) bool {
+	normalized = strings.ReplaceAll(normalized, "_", "-")
+	for _, prefix := range []string{"zh-hant", "zh-tw", "zh-hk", "zh-mo"} {
+		if normalized == prefix ||
+			strings.HasPrefix(normalized, prefix+"-") ||
+			strings.HasPrefix(normalized, prefix+".") {
+			return true
+		}
+	}
+	return false
+}
+
+// isChineseLocale reports whether locale reads from a Chinese catalog. Both
+// Chinese tables are Chinese, so locale-sensitive wording applies to either.
+func isChineseLocale(locale string) bool {
+	return locale == "zh" || locale == "zh-Hant"
 }
 
 // canonicalLocale keeps an unknown locale available for explicit locale-file

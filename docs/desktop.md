@@ -427,10 +427,12 @@ just check && just test
   窗口文案通过 `nativeui.tr` 读取，英文原文就是 key；中文表在
   `desktop/internal/nativeui/messages_zh.go`，缺项时回退英文而不是显示 key。
   常见服务层错误也按原文翻译，未知或动态拼接的诊断保留英文原文，日志
-  始终是后端返回的原文。中文只有一份表（简体）：选择 繁體中文 时 MyGo 的
-  菜单角色是繁体，Aurora 自己的文案仍来自这份简体表；MyGo 绘制的数字步进
-  按钮（`Increase`/`Decrease` 无障碍标签）也不在表里，中文界面下屏幕阅读器
-  仍会读到英文。
+  始终是后端返回的原文。中文有两份表：`messages_zh.go`（简体）与
+  `messages_zh_hant.go`（繁体）。后者由 OpenCC 的简→繁短语/字符表（s2t）
+  生成，并把 `爲`/`燬` 覆盖为现代写法 `為`/`毀`；选择 繁體中文 时 MyGo 的
+  菜单角色与 Aurora 的文案都是繁体，词句修正改简体表后重新生成，测试要求
+  两份表的键集合一致。MyGo 绘制的数字步进按钮（`Increase`/`Decrease`
+  无障碍标签）不在 Aurora 的表里，中文界面下屏幕阅读器仍会读到英文。
 - MyGo 的两套中文目录（`zh-Hans`、`zh-Hant`）都必须链接：只声明简体时
   zh-TW/zh-HK 匹配不到任何语言，MyGo 会退回英文，整个窗口变英文。
   `SetLanguages` 放在 `Start` 之前，因为启动失败会提前返回——否则失败弹窗
