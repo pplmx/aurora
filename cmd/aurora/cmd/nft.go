@@ -200,6 +200,9 @@ var getCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("nft.error.get", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(result)
+		}
 
 		fmt.Printf("\n🎨 %s:\n", i18n.GetText("nft.details_heading"))
 		printLocalizedField("common.id", result.ID)
@@ -322,6 +325,7 @@ func init() {
 	nftCmd.AddCommand(transferCmd)
 	nftCmd.AddCommand(burnCmd)
 	nftCmd.AddCommand(getCmd)
+	addJSONFlag(getCmd)
 	nftCmd.AddCommand(listCmd)
 	addJSONFlag(listCmd)
 	nftCmd.AddCommand(nftHistoryCmd)

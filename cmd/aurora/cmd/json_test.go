@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,5 +49,149 @@ func TestListCommandsPrintJSON(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(out), &records), "got %q", out)
 		require.Len(t, records, 1)
 		assert.Equal(t, "json-list", records[0].Seed)
+	})
+}
+
+// TestReadCommandsPrintJSON covers the single-record reads: each prints one
+// document with the REST field names, and the verify report carries the verdict
+// as data rather than prose.
+func TestReadCommandsPrintJSON(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+
+		// A created draw is verified by its own id, discovered through --json.
+		_, err := runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "json-read", "--count", "1")
+		require.NoError(t, err)
+		var draws []struct {
+			ID string `json:"id"`
+		}
+		out, err := runCmd(t, "lottery", "history", "--json")
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(out), &draws))
+		require.Len(t, draws, 1)
+
+		out, err = runCmd(t, "lottery", "verify", draws[0].ID, "--json")
+		require.NoError(t, err)
+		var report struct {
+			IntegrityOK bool `json:"integrity_ok"`
+			Checks      []struct {
+				Status string `json:"status"`
+			} `json:"checks"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &report), "got %q", out)
+		assert.True(t, report.IntegrityOK)
+		assert.NotEmpty(t, report.Checks)
+
+		// Balance and allowance answer the API's fields for a key holding none.
+		// The key is non-zero because the NFT mint refuses a zero address.
+		key := base64.StdEncoding.EncodeToString([]byte("0123456789abcdef0123456789abcdef"))
+		_, err = runCmd(t, "token", "create", "-n", "Gold", "-s", "GLD", "-t", "1000")
+		require.NoError(t, err)
+
+		out, err = runCmd(t, "token", "balance", "-t", "GLD", "-o", key, "--json")
+		require.NoError(t, err)
+		var balance struct {
+			TokenID string `json:"token_id"`
+			Owner   string `json:"owner"`
+			Amount  string `json:"amount"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &balance), "got %q", out)
+		assert.Equal(t, "GLD", balance.TokenID)
+		assert.Equal(t, key, balance.Owner)
+		assert.Equal(t, "0", balance.Amount)
+
+		out, err = runCmd(t, "token", "allowance", "-t", "GLD", "-o", key, "-s", key, "--json")
+		require.NoError(t, err)
+		var allowance struct {
+			TokenID string `json:"token_id"`
+			Spender string `json:"spender"`
+			Amount  string `json:"amount"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &allowance), "got %q", out)
+		assert.Equal(t, key, allowance.Spender)
+		assert.Equal(t, "0", allowance.Amount)
+
+		// A minted asset reads back with its metadata.
+		_, err = runCmd(t, "nft", "mint", "-n", "Star", "-c", key)
+		require.NoError(t, err)
+		var assets []struct {
+			ID string `json:"id"`
+		}
+		out, err = runCmd(t, "nft", "list", "--json")
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(out), &assets))
+		require.Len(t, assets, 1)
+
+		out, err = runCmd(t, "nft", "get", "-i", assets[0].ID, "--json")
+		require.NoError(t, err)
+		var asset struct {
+			Name  string `json:"name"`
+			Owner string `json:"owner"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &asset), "got %q", out)
+		assert.Equal(t, "Star", asset.Name)
+		assert.Equal(t, key, asset.Owner)
+
+		// Oracle readings use the REST wrapper, empty until a fetch stores one.
+		_, err = runCmd(t, "oracle", "source", "add",
+			"-n", "btc", "-u", "https://api.example.com/price")
+		require.NoError(t, err)
+		var sources []struct {
+			ID string `json:"id"`
+		}
+		out, err = runCmd(t, "oracle", "source", "list", "--json")
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(out), &sources))
+		require.Len(t, sources, 1)
+
+		out, err = runCmd(t, "oracle", "data", "-i", sources[0].ID, "--json")
+		require.NoError(t, err)
+		var readings struct {
+			Data []any `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &readings), "got %q", out)
+		assert.Empty(t, readings.Data)
+
+		// The tally names the session and reports each candidate in roster order.
+		_, err = runCmd(t, "voting", "candidate", "add", "-n", "Alice", "-p", "Greens")
+		require.NoError(t, err)
+		var candidates []struct {
+			ID string `json:"id"`
+		}
+		out, err = runCmd(t, "voting", "candidate", "list", "--json")
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(out), &candidates))
+		require.Len(t, candidates, 1)
+
+		now := time.Now().Unix()
+		_, err = runCmd(t, "voting", "session", "create", "-t", "Budget",
+			"-c", candidates[0].ID,
+			"--start-time", strconv.FormatInt(now, 10),
+			"--end-time", strconv.FormatInt(now+86400, 10))
+		require.NoError(t, err)
+		var sessions []struct {
+			ID string `json:"id"`
+		}
+		out, err = runCmd(t, "voting", "session", "list", "--json")
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(out), &sessions))
+		require.Len(t, sessions, 1)
+
+		out, err = runCmd(t, "voting", "results", "--session", sessions[0].ID, "--json")
+		require.NoError(t, err)
+		var results struct {
+			SessionID  string `json:"session_id"`
+			TotalVotes int    `json:"total_votes"`
+			Candidates []struct {
+				Name      string `json:"name"`
+				VoteCount int    `json:"vote_count"`
+			} `json:"candidates"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &results), "got %q", out)
+		assert.Equal(t, sessions[0].ID, results.SessionID)
+		assert.Equal(t, 0, results.TotalVotes)
+		require.Len(t, results.Candidates, 1)
+		assert.Equal(t, "Alice", results.Candidates[0].Name)
 	})
 }

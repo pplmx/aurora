@@ -270,6 +270,9 @@ var dataCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("oracle.error.get_data", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
+		}
 
 		fmt.Printf("\n📊 %s:\n", i18n.GetText("oracle.data_heading"))
 		if len(resp.Data) == 0 {
@@ -302,6 +305,9 @@ var latestCmd = &cobra.Command{
 		resp, err := uc.Execute(&oracleapp.GetLatestDataRequest{SourceID: sourceID})
 		if err != nil {
 			return wrapCLIError("oracle.error.get_latest", err)
+		}
+		if jsonRequested(cmd) {
+			return printJSON(resp)
 		}
 		if resp.Data == nil {
 			fmt.Println(i18n.GetText("oracle.no_data"))
@@ -387,8 +393,10 @@ func init() {
 	oracleCmd.AddCommand(fetchCmd)
 
 	oracleCmd.AddCommand(dataCmd)
+	addJSONFlag(dataCmd)
 
 	oracleCmd.AddCommand(latestCmd)
+	addJSONFlag(latestCmd)
 
 	oracleCmd.AddCommand(templateCmd)
 	templateCmd.AddCommand(templateListCmd)

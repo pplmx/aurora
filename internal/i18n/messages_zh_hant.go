@@ -493,6 +493,7 @@ var traditionalMessages = map[string]string{
 	"voting.error.create_session":               "創建投票會話失敗",
 	"voting.error.end_session":                  "結束投票會話失敗",
 	"voting.error.get_repo":                     "獲取投票倉儲失敗",
+	"voting.error.get_results":                  "讀取計票結果失敗",
 	"voting.error.get_session":                  "獲取投票會話失敗",
 	"voting.error.get_tx_manager":               "獲取事務管理器失敗",
 	"voting.error.init_blockchain":              "初始化區塊鏈失敗",
