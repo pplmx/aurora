@@ -8,7 +8,10 @@ default:
 dep:
     go mod download
 
-# Run linter (errcheck disabled: most issues are safe patterns like db.Close in cleanup)
+# Run the linter with errcheck disabled: most findings are safe patterns like
+# db.Close in cleanup.
+
+# Run the linter (errcheck disabled)
 lint:
     golangci-lint run --disable=errcheck
 
@@ -23,6 +26,8 @@ test-coverage:
 # Code format and vet. The desktop is a nested module with its own formatter
 # gate (`just desktop-check`); root gofmt/goimports must not walk into it, or
 # the two recipes disagree about formatting map literals.
+
+# Format the core module and run vet
 check:
     gofmt -l -s -w $(fd -e go -E desktop .)
     goimports -l -w $(fd -e go -E desktop .)
@@ -58,20 +63,28 @@ build-current:
 # same git-derived version/build-time refs into cmd/api's own Version/BuildTime
 # vars so `aurora-api --version` reports the real source ref, mirroring the
 # CLI's ldflags above (TASK-267, ISS-263).
+
+# Build the standalone REST API binary
 api:
     CGO_ENABLED=0 go build -trimpath -ldflags="{{api-ldflags}}" -o aurora-api ./cmd/api
 
-# The desktop shell is a nested Go module: its MyGo toolchain stays out of
-# the root build graph (that is why this is a separate `cd desktop` build).
-# Build the MyGo desktop shell (Go 1.27; storage is pure Go)
+# The desktop shell is a nested Go module: its MyGo toolchain stays out of the
+# root build graph (that is why this is a separate `cd desktop` build). The Go
+# 1.27 toolchain compiles it; storage is pure Go.
+
+# Build the MyGo desktop shell
 desktop:
     cd desktop && CGO_ENABLED=0 go build -trimpath -ldflags="{{desktop-ldflags}}" -o ../aurora-desktop ./cmd/aurora-desktop
 
-# Check for a newer MyGo release before desktop work (the module tracks it closely).
+# Check for a newer MyGo release before desktop work.
+
+# Check for a newer MyGo release
 desktop-deps:
     cd desktop && go list -m -u github.com/egoist/mygo
 
 # Update MyGo to the latest release, then let Go reconcile the nested module.
+
+# Update MyGo to the latest release
 desktop-update-mygo:
     cd desktop && go get github.com/egoist/mygo@latest
     cd desktop && go mod tidy
@@ -84,6 +97,8 @@ desktop-run: desktop
 # shell's own tests (native widget rendering, launch intents, export/import)
 # need their own entry point: a broken window layer must not pass CI silently
 # just because its module is nested.
+
+# Test the desktop module
 desktop-test:
     cd desktop && CGO_ENABLED=0 go test -count=1 ./...
 
@@ -91,6 +106,8 @@ desktop-test:
 # recipe so a local run and CI cannot drift: `just test`/`just check` at the
 # root do not look inside a nested module at all, so without one of these a
 # broken window layer passes every gate.
+
+# Run every cgo-free desktop gate
 desktop-check:
     cd desktop && out=$(gofmt -l .) && test -z "$out" && echo "gofmt: clean" || { echo "gofmt would change: $out"; exit 1; }
     cd desktop && CGO_ENABLED=0 go build ./...
@@ -101,6 +118,8 @@ desktop-check:
 # The race detector needs cgo even when every production dependency is pure
 # Go. Keep it as an explicit opt-in so `desktop-check` remains usable in a
 # sandbox with no C compiler while CI still runs the stronger gate.
+
+# Run the desktop tests under the race detector
 desktop-race:
     cd desktop && CGO_ENABLED=1 go test -race -count=1 ./...
 
@@ -109,6 +128,8 @@ desktop-race:
 # built binary draws what the tests expect; it complements the packaging job's
 # Xvfb smoke. Pass page ids to limit the run: `just desktop-shot token nft`.
 # Needs a display; Linux without one starts an Xvfb.
+
+# Capture each page in the real window as a PNG
 desktop-shot *PAGES:
     desktop/scripts/e2e-window.sh {{PAGES}}
 
@@ -118,15 +139,19 @@ desktop-shot *PAGES:
 # The mygo CLI is a module tool in desktop/go.mod, so its version is pinned
 # like any other dependency. Needs Go 1.27; storage is pure Go, so packaging
 # works without a native C toolchain.
+
+# Package the desktop app with go tool mygo
 desktop-package *ARGS:
     cd desktop && CGO_ENABLED=0 go tool mygo build {{ARGS}}
 
-# Run the application locally (builds for the current platform then runs a sample)
+# Build for this platform and run a sample draw
 run: build-current
     ./aurora lottery create -p "A,B,C" -s "seed" -c 3
 
 # Build Docker image (version/build-time carried in as build args so the
-# image's `aurora version` reports the real source ref, TASK-206)
+# image's `aurora version` reports the real source ref, TASK-206).
+
+# Build the Docker image
 image:
     docker build --build-arg VERSION="$(git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD)" --build-arg BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)" -t pplmx/aurora .
 
