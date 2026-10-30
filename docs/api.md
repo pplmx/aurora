@@ -282,7 +282,7 @@ SQLite 事务内提交。上一会期的选票不会阻止该选民参加下一�
 
 | 方法 | 路径                       | 说明                                                  |
 | ---- | -------------------------- | ----------------------------------------------------- |
-| POST | `/api/v1/nft/mint`         | 铸造（可选 `image`、`token_uri`）                     |
+| POST | `/api/v1/nft/mint`         | 铸造（可选 `image_url`、`token_uri`）                 |
 | POST | `/api/v1/nft/transfer`     | 转让（签名）                                          |
 | POST | `/api/v1/nft/burn`         | 销毁（签名）                                          |
 | GET  | `/api/v1/nft/{id}`         | 单个 NFT，未知 id 404                                 |
@@ -296,6 +296,19 @@ NFT 操作历史按最新优先从存储层分页，`limit` 上限 100，`offset
   "image_url":"","token_uri":"","owner":"q83vEjRWeJAq…","creator":"q83vEjRWeJAq…",
   "block_height":2,"timestamp":1793378358}]
 ```
+
+NFT 写接口的字段：
+
+| 端点           | 字段                                                       |
+| -------------- | ---------------------------------------------------------- |
+| `nft/mint`     | `name`、`description`、`image_url`、`token_uri`、`creator` |
+| `nft/transfer` | `nft_id`、`from`、`to`、`private_key`                      |
+| `nft/burn`     | `nft_id`、`owner`、`private_key`                           |
+
+铸造只登记 `creator` 公钥、不要求签名，创建者即首位持有者；转让与销毁由服务端
+用请求里的私钥校验：私钥与 `from`/`owner` 公钥不配对返回 `401 KEY_MISMATCH`，
+编码或长度不合法返回 `INVALID_PUBLIC_KEY` / `INVALID_PRIVATE_KEY`（400），
+公钥配对但已不是当前持有者返回 `403 NOT_NFT_OWNER`。
 
 `/nft/{id}/history` 的每一项：`{"id":"5040267b-a6e9-40f8-b3db-bc27178acac2",
 "nft_id":"adcbadaf-…","type":"mint","from":"","to":"q83vEjRWeJAq…",
