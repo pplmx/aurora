@@ -21,7 +21,7 @@ aurora lottery verify <id 或 seed 子串> # 也支持子串匹配
 aurora lottery export draws.json     # 原子写入，空库导出 []
 aurora lottery import draws.json     # 重复记录会被拒绝并逐条报告
 aurora lottery db-info               # 数据库路径与大小
-aurora lottery reset --confirm       # 清空抽奖记录（也接受 --yes）
+aurora lottery reset --confirm       # 清空抽奖记录
 ```
 
 `lottery history` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0
@@ -115,7 +115,7 @@ aurora oracle source disable --id <source-id>
 aurora oracle source delete --id <source-id> --confirm
 aurora oracle template list
 aurora oracle template add -t <template-name>
-aurora oracle fetch -i <source-id>            # 旧拼写 -s 仍可用
+aurora oracle fetch -i <source-id>
 aurora oracle data -i <source-id> --limit 10
 aurora oracle latest -i <source-id>
 ```
@@ -166,8 +166,8 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
 ## 确认门与错误输出
 
 - `token burn`、`nft burn`、`oracle source delete`、`migrate down`、
-  `migrate repair`、`backup restore`、`lottery reset` 需要 `-y/--confirm`；
-  `lottery reset` 额外接受 `--yes`。缺少确认会以非零退出码拒绝，便于脚本判断。
+  `migrate repair`、`backup restore`、`lottery reset` 需要 `-y/--confirm`。
+  缺少确认会以非零退出码拒绝，便于脚本判断。
 - 失败只打印一行错误前缀（英文界面为 `❌ Error: ...`，中文界面为
   `❌ 错误：...`，同时写结构化日志）后 `exit 1`；token 操作已提交但审计事件
   发布失败时打印“已提交、请勿重试”的专用警告，退出码同样非零。

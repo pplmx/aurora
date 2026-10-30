@@ -117,9 +117,8 @@ aurora-desktop aurora-lotteries.json            # 导入一份导出文件
 [docs/cli.md](docs/cli.md)，或 `aurora <module> --help`。
 
 > **破坏性操作确认门：** `token burn`、`nft burn`、`oracle source delete`、
-> `migrate down`、`migrate repair`、`backup restore`、`lottery reset` 都需要 `-y/--confirm`
-> （`lottery reset` 也接受旧写法 `--yes`）。缺少确认标志会以非零退出码拒绝
-> 执行，脚本可据此判断。
+> `migrate down`、`migrate repair`、`backup restore`、`lottery reset` 都需要
+> `-y/--confirm`。缺少确认标志会以非零退出码拒绝执行，脚本可据此判断。
 
 ## REST API
 

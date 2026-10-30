@@ -540,7 +540,7 @@ func TestLotteryReset_NeedsConfirmation(t *testing.T) {
 			"--participants", "A,B", "--seed", "reset-seed", "--count", "1")
 		require.NoError(t, err)
 
-		// Without --yes: refuses loudly (non-zero exit) so a script can tell
+		// Without the gate: refuses loudly (non-zero exit) so a script can tell
 		// the destructive reset did NOT run (TASK-100, ISS-092; consistent
 		// with the backup restore --confirm contract). The warning text is
 		// the error message.
@@ -550,13 +550,13 @@ func TestLotteryReset_NeedsConfirmation(t *testing.T) {
 	})
 }
 
-func TestLotteryReset_WithYes(t *testing.T) {
+func TestLotteryReset_WithYesShorthand(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		_, err := runCmd(t, "lottery", "create",
 			"--participants", "A,B", "--seed", "reset-seed-2", "--count", "1")
 		require.NoError(t, err)
 
-		out, err := runCmd(t, "lottery", "reset", "--yes")
+		out, err := runCmd(t, "lottery", "reset", "-y")
 		require.NoError(t, err)
 		assert.Contains(t, out, "reset complete")
 
@@ -580,8 +580,7 @@ func TestLotteryReset_WithConfirmFlag(t *testing.T) {
 			"--participants", "A,B", "--seed", "reset-seed-c", "--count", "1")
 		require.NoError(t, err)
 
-		// The canonical destructive gate spelling (--confirm) must work here
-		// too, alongside the legacy --yes (TASK-152).
+		// The reset takes the shared destructive gate spelling (--confirm).
 		out, err := runCmd(t, "lottery", "reset", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "reset complete")
@@ -592,7 +591,7 @@ func TestLotteryReset_OnFreshDB(t *testing.T) {
 	withTempDir(t, func(t *testing.T) {
 		// A brand-new DB has no lottery_records table yet; reset must
 		// tolerate the "no such table" error instead of failing.
-		out, err := runCmd(t, "lottery", "reset", "--yes")
+		out, err := runCmd(t, "lottery", "reset", "--confirm")
 		require.NoError(t, err)
 		assert.Contains(t, out, "reset complete")
 	})
@@ -613,7 +612,7 @@ func TestLotteryReset_RestartsBlockHeightAfterCreate(t *testing.T) {
 			require.NoError(t, err, "create %d", i)
 		}
 
-		out, err := runCmd(t, "lottery", "reset", "--yes")
+		out, err := runCmd(t, "lottery", "reset", "--confirm")
 		require.NoError(t, err)
 		require.Contains(t, out, "reset complete")
 
