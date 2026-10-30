@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
@@ -251,7 +250,7 @@ var importCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filename := args[0]
 
-		data, err := os.ReadFile(filename)
+		data, err := lotteryapp.ReadImportFile(filename)
 		if err != nil {
 			return wrapCLIError("lottery.error.read_file", err)
 		}

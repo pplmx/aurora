@@ -24,6 +24,9 @@ aurora lottery db-info               # 数据库路径与大小
 aurora lottery reset --confirm       # 清空抽奖记录
 ```
 
+`lottery import` 的文档读取上限为 64 MiB（桌面端的 File → Import 与拖放导入
+走同一个读取函数），超限会在解析前直接报错，而不是先把整个文件读进内存。
+
 `lottery history` 的 `--limit` 默认 0（列出 offset 之后的全部记录），大于 0
 时只从存储层读取该页并打印本页数量与偏移；`--offset` 默认 0。两个参数都拒绝
 负数。

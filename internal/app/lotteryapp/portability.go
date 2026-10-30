@@ -4,12 +4,44 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/utils"
 )
+
+// MaxImportFileSize bounds an import document. An export of the whole ledger is
+// megabytes; a much larger file is a mistake (or not an export at all), and
+// reading it whole would grow the process by the file's size before the parser
+// rejects it. The CLI and the desktop both read through ReadImportFile so the
+// bound cannot drift between them.
+const MaxImportFileSize int64 = 64 << 20
+
+// ErrImportFileTooLarge marks a document above MaxImportFileSize. It is a
+// sentinel so a presentation layer can name the limit instead of echoing the
+// raw size.
+var ErrImportFileTooLarge = errors.New("import file too large")
+
+// ReadImportFile reads a lottery export, refusing anything above
+// MaxImportFileSize. The read is bounded rather than stat-then-read: a file
+// that grows while it is read must not slip past the limit.
+func ReadImportFile(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = f.Close() }()
+	data, err := io.ReadAll(io.LimitReader(f, MaxImportFileSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > MaxImportFileSize {
+		return nil, fmt.Errorf("%w: max %d bytes", ErrImportFileTooLarge, MaxImportFileSize)
+	}
+	return data, nil
+}
 
 // ErrInvalidImportDocument marks a file that is not a valid portable lottery
 // export. Keeping it separate from per-record rejections lets callers explain
