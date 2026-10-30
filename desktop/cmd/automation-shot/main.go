@@ -78,7 +78,7 @@ func (n treeNode) pressable() bool {
 func main() {
 	socket := flag.String("socket", "", "automation socket the app listens on")
 	out := flag.String("out", "", "PNG file to write")
-	expect := flag.String("expect", "", "text that must appear in the window's accessibility tree")
+	expect := flag.String("expect", "", "texts that must appear in the window's accessibility tree, comma-separated")
 	press := flag.String("press", "", "element keys or labels to press in order, comma-separated")
 	window := flag.Int("window", 0, "index of the window to capture")
 	timeout := flag.Duration("timeout", 15*time.Second, "how long to wait for the window")
@@ -156,18 +156,24 @@ func run(socket, out, expect, press string, index int, timeout time.Duration) er
 		if err := client.call("tree", map[string]any{"window": win.ID}, &tree); err != nil {
 			return err
 		}
-		found := false
-		for _, node := range tree.Nodes {
-			for _, text := range []string{node.Label, node.Value, node.Description} {
-				if strings.Contains(text, expect) {
-					found = true
+		for _, want := range strings.Split(expect, ",") {
+			want = strings.TrimSpace(want)
+			if want == "" {
+				continue
+			}
+			found := false
+			for _, node := range tree.Nodes {
+				for _, text := range []string{node.Label, node.Value, node.Description} {
+					if strings.Contains(text, want) {
+						found = true
+					}
 				}
 			}
+			if !found {
+				return fmt.Errorf("window %d does not show %q", win.ID, want)
+			}
+			fmt.Printf("tree shows %q\n", want)
 		}
-		if !found {
-			return fmt.Errorf("window %d does not show %q", win.ID, expect)
-		}
-		fmt.Printf("tree shows %q\n", expect)
 	}
 
 	var shot struct {

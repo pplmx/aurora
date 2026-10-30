@@ -84,6 +84,21 @@ export HOME="$home_dir"
 export MYGO_AUTOMATION="$socket"
 export LIBGL_ALWAYS_SOFTWARE=1
 
+# stageMarker is a control that exists only after the stage switch, so a
+# capture proves the tab changed instead of merely finding its label in the bar.
+stageMarker() {
+  case "$1" in
+    voting:Ballot) echo "Cast Vote" ;;
+    voting:Results) echo "Show Results" ;;
+    token:Burn) echo "Burn…" ;;
+    oracle:Health) echo "Feed Health" ;;
+    oracle:Readings) echo "Query Data" ;;
+    nft:Burn) echo "Burn NFT…" ;;
+    nft:History) echo "Show History" ;;
+    *) return 1 ;;
+  esac
+}
+
 # pageTitle is the header text the accessibility tree must contain.
 pageTitle() {
   case "$1" in
@@ -143,8 +158,15 @@ status=0
 for spec in "${pages[@]}"; do
   page=${spec%%:*}
   press=$page
+  expect=""
   if [ "$page" != "$spec" ]; then
-    press="$page,${spec#*:}"
+    stage=${spec#*:}
+    press="$page,$stage"
+    if marker=$(stageMarker "$spec"); then
+      expect="$marker,"
+    else
+      expect="$stage,"
+    fi
   fi
   if ! title=$(pageTitle "$page"); then
     echo "unknown page: $spec" >&2
@@ -152,7 +174,8 @@ for spec in "${pages[@]}"; do
     continue
   fi
   name=${spec//:/-}
-  if "$shot" -socket "$socket" -press "$press" -out "$out/$name.png" -expect "$title"; then
+  # A stage capture must prove the tab switch happened, not only the page.
+  if "$shot" -socket "$socket" -press "$press" -out "$out/$name.png" -expect "$expect$title"; then
     echo "ok: $spec -> $out/$name.png"
   else
     echo "failed: $spec (see $out/app.log)" >&2
