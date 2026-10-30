@@ -297,6 +297,9 @@ var voteCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("voting.error.cast_vote", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(record)
+		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.vote_cast"))
 		fmt.Printf("   %s:     %s\n", i18n.GetText("voting.vote_id"), record.ID)
@@ -421,6 +424,9 @@ var sessionStartCmd = &cobra.Command{
 		if err := repo.UpdateSession(session); err != nil {
 			return wrapCLIError("voting.error.start_session", err)
 		}
+		if jsonRequested(cmd) {
+			return printJSON(votingapp.SessionResponseOf(session))
+		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.session_started"))
 		return nil
@@ -450,6 +456,9 @@ var sessionEndCmd = &cobra.Command{
 		session.Status = voting.SessionStatusEnded
 		if err := repo.UpdateSession(session); err != nil {
 			return wrapCLIError("voting.error.end_session", err)
+		}
+		if jsonRequested(cmd) {
+			return printJSON(votingapp.SessionResponseOf(session))
 		}
 
 		fmt.Println("✅ " + i18n.GetText("voting.session_ended"))
@@ -518,6 +527,7 @@ func init() {
 	addJSONFlag(voterListCmd)
 
 	votingCmd.AddCommand(voteCmd)
+	addJSONFlag(voteCmd)
 
 	votingCmd.AddCommand(sessionCmd)
 	sessionCmd.AddCommand(sessionCreateCmd)
@@ -525,7 +535,9 @@ func init() {
 	sessionCmd.AddCommand(sessionListCmd)
 	addJSONFlag(sessionListCmd)
 	sessionCmd.AddCommand(sessionStartCmd)
+	addJSONFlag(sessionStartCmd)
 	sessionCmd.AddCommand(sessionEndCmd)
+	addJSONFlag(sessionEndCmd)
 
 	votingCmd.AddCommand(resultsCmd)
 	addJSONFlag(resultsCmd)
