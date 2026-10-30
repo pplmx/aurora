@@ -657,7 +657,8 @@ Developer ID、公证或 Authenticode，也不会让未签名包变成可发布�
   启动冒烟，并校验 `--version` 不是 `0.0.1`、构建时间不是 `unknown`；
   `ci_test.go` 同时锁住这条契约，防止发布矩阵退回“只看文件在不在”。
 - **真实窗口验收**：`just desktop-shot`（可跟页名，如
-  `just desktop-shot token nft`）用 MyGo 的 automation 插件打开真实窗口，
+  `just desktop-shot token nft`；写成 `voting:Results` 会先切到该阶段再截图，
+  默认覆盖每个页面的主要 tab）用 MyGo 的 automation 插件打开真实窗口，
   在同一个窗口里按侧栏的稳定 key 逐页切换，截图到 `dist/e2e/<page>.png`，
   并断言无障碍树里出现该页标题。插件只在 `e2e` build tag 下被
   `cmd/aurora-desktop/automation_e2e.go` 引入，发布构建不含监听器；客户端是
