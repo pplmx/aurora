@@ -106,6 +106,22 @@ export HOME="$home_dir"
 export MYGO_AUTOMATION="$socket"
 export LIBGL_ALWAYS_SOFTWARE=1
 
+# pageMarker is a control that belongs to one page, so a capture proves the
+# page rendered its workbench instead of only its title.
+pageMarker() {
+  case "$1" in
+    dashboard) echo "Ledger Integrity" ;;
+    lottery) echo "Create Draw" ;;
+    voting) echo "Register Voter" ;;
+    token) echo "Create Token" ;;
+    oracle) echo "Add Source" ;;
+    nft) echo "Mint NFT" ;;
+    blockchain) echo "Ledger" ;;
+    settings) echo "Language" ;;
+    *) return 1 ;;
+  esac
+}
+
 # stageMarker is a control that exists only after the stage switch, so a
 # capture proves the tab changed instead of merely finding its label in the bar.
 stageMarker() {
@@ -204,7 +220,11 @@ for spec in "${pages[@]}"; do
     continue
   fi
   name=${spec//:/-}
-  # A stage capture must prove the tab switch happened, not only the page.
+  # A page capture proves its workbench drew; a stage capture already proves
+  # more with the control that only that stage renders.
+  if [ "$page" = "$spec" ] && marker=$(pageMarker "$page"); then
+    expect="$marker,"
+  fi
   if "$shot" -socket "$socket" -press "$press" -out "$shots/$name.png" -expect "$expect$title"; then
     echo "ok: $spec -> $shots/$name.png"
   else
