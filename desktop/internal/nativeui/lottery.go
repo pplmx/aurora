@@ -119,7 +119,7 @@ func (a *App) lotteryCreate(c *ui.Context) {
 		}
 		attachFieldError(c, count, "Count", a.lottery.countErr)
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Create Draw").Disabled(!allSet(a.lottery.participants, a.lottery.seed)).Clicked() {
+			if primaryButton(c, "Create Draw", allSet(a.lottery.participants, a.lottery.seed)).Clicked() {
 				a.createLottery()
 			}
 		})
@@ -217,7 +217,7 @@ func (a *App) lotteryHistoryBody(c *ui.Context) {
 		return
 	}
 	if len(a.lottery.rows) == 0 {
-		emptyPanel(c, pageIcons[pageLottery], pageAccent(pageLottery),
+		emptyPanel(c, pageIcons[pageLottery], pageAccent(c, pageLottery),
 			"No draws recorded yet. Create one above.")
 		return
 	}
@@ -306,7 +306,7 @@ func (a *App) lotteryVerify(c *ui.Context) {
 		})
 		copyRow(c, "Draw ID", strings.TrimSpace(a.lottery.verifyID), nil)
 		ui.Row(c).Wrap().Gap(8).Children(func() {
-			if primaryButton(c, "Verify").Disabled(!allSet(a.lottery.verifyID)).Clicked() {
+			if primaryButton(c, "Verify", allSet(a.lottery.verifyID)).Clicked() {
 				a.verifyLottery()
 			}
 			// The newest recorded draw is one click away: the History table
@@ -324,9 +324,9 @@ func (a *App) lotteryVerify(c *ui.Context) {
 			// cross is decoration for a reader who can see it.
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				if r.Valid {
-					badge(c, "Verified", ui.Hex(auroraGreen), c.Theme().Background)
+					badge(c, "Verified", c.Theme().Success, c.Theme().Background)
 				} else {
-					badge(c, "Failed", ui.Hex(auroraRed), c.Theme().Background)
+					badge(c, "Failed", c.Theme().Danger, c.Theme().Background)
 				}
 				ui.Text(c, r.ID).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).SingleLine()
 			})

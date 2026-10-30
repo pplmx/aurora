@@ -30,13 +30,14 @@ type guideState struct {
 func guide(c *ui.Context, open *bool, steps ...string) {
 	ui.Column(c).FillWidth().Padding(space2, space3).Gap(space1).Radius(radiusSmall).
 		Background(c.Theme().Surface.Alpha(0.55)).
-		BorderWidth(0, 0, 0, 2).BorderColor(ui.Hex(aurora).Alpha(0.55)).Children(func() {
+		BorderWidth(0, 0, 0, 2).BorderColor(c.Theme().Accent.Alpha(0.62)).Children(func() {
 		ui.Collapsible(c, tr("How this works"), open, func() {
 			ui.Column(c).Gap(6).Padding(0, space2, space1, 0).Children(func() {
 				for i, step := range steps {
 					ui.Row(c).Gap(space2).AlignItems(ui.Start).Children(func() {
 						ui.Text(c, fmt.Sprintf(tr("%d."), i+1)).FontSize(textSize(c, 11.5)).FontWeight(600).
-							Width(textSize(c, 18)).Shrink(0).TextColor(ui.Hex(aurora))
+							Width(textSize(c, 18)).Shrink(0).TextColor(c.Theme().Accent).
+							Font("monospace")
 						ui.Text(c, tr(step)).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted).
 							Grow(1).Shrink(1).MinWidth(0)
 					})
@@ -145,29 +146,46 @@ func announceSearchResults(c *ui.Context, changed bool, count int) {
 // primaryButton is the one action a form exists for. It carries the accent as
 // a light: a thin top-to-bottom gradient, a soft glow underneath and a dark
 // label, so the submit control is the brightest thing in its card.
-func primaryButton(c *ui.Context, label string) ui.Element {
+func primaryButton(c *ui.Context, label string, ready ...bool) ui.Element {
+	enabled := true
+	if len(ready) > 0 {
+		enabled = ready[0]
+	}
 	label = tr(label)
 	b := ui.ButtonBase(c).Height(max(buttonHeight, textSize(c, buttonHeight))).
 		PaddingX(max(space4+2, textSize(c, 18))).Radius(radiusSmall + 2).
-		AlignItems(ui.Center).Label(label).TextColor(ui.Hex(onAccent))
-	from, to := ui.Hex(auroraHover), ui.Hex(aurora)
-	switch {
-	case b.Pressed():
-		from, to = ui.Hex(aurora), ui.Hex(auroraPressed)
-	case b.Hovered():
-		from, to = ui.Hex(auroraHover).Mix(ui.RGB(255, 255, 255), 0.16), ui.Hex(auroraHover)
+		AlignItems(ui.Center).Label(label).Disabled(!enabled)
+	from, to := c.Theme().AccentHover, c.Theme().Accent
+	textColor := c.Theme().AccentText
+	if !enabled {
+		from, to = disabledFill(c), c.Theme().Background.Mix(c.Theme().Surface, 0.42)
+		textColor = c.Theme().TextMuted
+		b.BorderWidth(1).BorderColor(c.Theme().Border).Shadow(0, 0, 0, 0, ui.Transparent)
+	} else {
+		switch {
+		case b.Pressed():
+			from, to = c.Theme().Accent, c.Theme().AccentPressed
+		case b.Hovered():
+			from, to = c.Theme().AccentHover.Mix(ui.RGB(255, 255, 255), 0.16), c.Theme().AccentHover
+		}
+		b.Shadow(0, 8, 20, -8, c.Theme().Accent.Alpha(0.46))
+		b.InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.28))
 	}
 	b.Gradient(from, to, 180)
-	b.Shadow(0, 8, 20, -8, ui.Hex(aurora).Alpha(0.5))
-	b.InsetShadow(0, 1, 0, 0, ui.RGBA(255, 255, 255, 0.3))
 	pose := ui.Pose{}
 	if b.Pressed() {
 		pose.Scale = 0.97
 	}
 	b.AnimatePose(pose, ui.Snappy)
 	b.Children(func() {
-		ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine().
-			TextColor(ui.Hex(onAccent))
+		ui.Row(c).Gap(space2).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, label).FontSize(textSize(c, 13)).FontWeight(600).SingleLine().
+				TextColor(textColor)
+			if !enabled {
+				ui.Text(c, tr("Complete the required fields")).FontSize(textSize(c, 10.5)).
+					TextColor(c.Theme().TextMuted).SingleLine()
+			}
+		})
 	})
 	return b
 }
@@ -180,7 +198,7 @@ func secondaryButton(c *ui.Context, label string) ui.Element {
 }
 
 func dangerButton(c *ui.Context, label string) ui.Element {
-	red := ui.Hex(auroraRed)
+	red := c.Theme().Danger
 	return filledButton(c, label, red,
 		red.Mix(ui.RGB(255, 255, 255), 0.14), red.Mix(ui.RGB(0, 0, 0), 0.16),
 		c.Theme().Background, red.Alpha(0.35))
@@ -215,22 +233,23 @@ func actionSubject(c *ui.Context, id, emptyBadge, emptyHint, copyLabel, copyToas
 	id = strings.TrimSpace(id)
 	if id == "" {
 		ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space2, space3).
-			Radius(radiusSmall).Background(ui.Hex(warningTint)).
-			BorderWidth(0, 0, 0, 2).BorderColor(ui.Hex(auroraAmber)).Children(func() {
-			statusDot(c, ui.Hex(auroraAmber), 6)
+			Radius(radiusSmall).Background(warningTint(c)).
+			BorderWidth(0, 0, 0, 2).BorderColor(c.Theme().Warning).Children(func() {
+			statusDot(c, c.Theme().Warning, 6)
 			ui.Text(c, tr(emptyBadge)).FontSize(textSize(c, 11)).FontWeight(600).
-				TextColor(ui.Hex(auroraAmber)).SingleLine().Shrink(0)
+				TextColor(c.Theme().Warning).SingleLine().Shrink(0)
 			ui.Text(c, tr(emptyHint)).FontSize(textSize(c, 11.5)).TextColor(c.Theme().Text).
 				Grow(1).Shrink(1).MinWidth(0)
 		})
 		return
 	}
 	ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space2, space3).
-		Radius(radiusSmall).Background(c.Theme().Background.Mix(c.Theme().Surface, 0.45)).
-		BorderWidth(0, 0, 0, 2).BorderColor(ui.Hex(aurora).Alpha(0.75)).Children(func() {
+		Radius(radiusSmall).Background(c.Theme().Background.Mix(c.Theme().Surface, 0.35)).
+		BorderWidth(0, 0, 0, 2).BorderColor(c.Theme().Accent.Alpha(0.82)).Children(func() {
 		ui.Text(c, tr("Acting on")).FontSize(textSize(c, 11)).TextColor(c.Theme().TextMuted).
 			SingleLine().Shrink(0)
-		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(ui.Hex(aurora)).
+		ui.Text(c, id).FontSize(textSize(c, 13)).Bold().TextColor(c.Theme().Accent).
+			Font("monospace").
 			SingleLine().Ellipsis("…").Tooltip(id)
 		if quietButton(c, copyLabel).Clicked() {
 			c.Services().WriteClipboard(id)
@@ -262,7 +281,7 @@ func tabs(c *ui.Context, selected *int, name string, labels ...string) {
 			fill := ui.Transparent
 			switch {
 			case on:
-				tab.TextColor(ui.Hex(aurora))
+				tab.TextColor(c.Theme().Accent)
 			case tab.Hovered():
 				tab.TextColor(c.Theme().Text)
 				fill = c.Theme().SurfaceHover.Alpha(0.6)
@@ -280,7 +299,7 @@ func tabs(c *ui.Context, selected *int, name string, labels ...string) {
 						Y: r.Y + r.H - height,
 						W: max(0, r.W-2*textSize(c, 4)),
 						H: height,
-					}, ui.Hex(aurora), height/2)
+					}, c.Theme().Accent, height/2)
 				}
 				if tab.FocusVisible() {
 					p.FocusRing(r, [4]float32{radiusSmall, radiusSmall, 0, 0})
@@ -311,7 +330,7 @@ func glassButton(c *ui.Context, label string, textColor ui.Color) ui.Element {
 		from, to = c.Theme().SurfacePressed, c.Theme().SurfaceHover
 	case b.Hovered():
 		from, to = c.Theme().SurfaceHover, c.Theme().Surface
-		outline = ui.Hex(aurora).Alpha(0.55)
+		outline = c.Theme().Accent.Alpha(0.62)
 	}
 	b.Gradient(from, to, 180)
 	b.BorderWidth(1).BorderColor(outline)
@@ -535,7 +554,7 @@ func pagerButton(c *ui.Context, label string) ui.Element {
 		fill = c.Theme().SurfacePressed
 	case b.Hovered():
 		fill = c.Theme().SurfaceHover
-		outline = ui.Hex(aurora).Alpha(0.45)
+		outline = c.Theme().Accent.Alpha(0.5)
 	}
 	b.Background(b.AnimateColor("fill", fill, ui.Animation{Duration: 100 * time.Millisecond}))
 	b.BorderWidth(1).BorderColor(outline)

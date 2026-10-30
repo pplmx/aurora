@@ -383,7 +383,7 @@ func (a *App) votingRegister(c *ui.Context) {
 	formCard(c, "Register Voter", "Returns the key pair the voter signs ballots with; keep the private half.", func() {
 		validatedField(c, "Voter Name", &a.voting.voterName, &a.voting.voterNameErr)
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Register Voter").Disabled(!allSet(a.voting.voterName)).Clicked() {
+			if primaryButton(c, "Register Voter", allSet(a.voting.voterName)).Clicked() {
 				a.registerVoter()
 			}
 		})
@@ -396,7 +396,7 @@ func (a *App) votingRegister(c *ui.Context) {
 				a.voting.status = okStatus("Private key copied. The store keeps only the public half; keep it safe.")
 			})
 			ui.Text(c, tr("The store keeps only the public half, so this is the only copy of the signing key.")).
-				FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
+				FontSize(textSize(c, 11)).TextColor(c.Theme().Warning)
 		}
 	})
 
@@ -571,7 +571,7 @@ func (a *App) votingVoterListCard(c *ui.Context) {
 func (a *App) votingVoterList(c *ui.Context) {
 	if len(a.voting.voters) == 0 {
 		if a.voting.loadErr == nil {
-			emptyStateIcon(c, usersIcon, ui.Hex(votingAccent), "No voters registered yet.",
+			emptyStateIcon(c, usersIcon, pageAccent(c, pageVoting), "No voters registered yet.",
 				"Register a voter on the right to issue the signing key the first ballot needs.")
 		}
 		return
@@ -603,7 +603,9 @@ func (a *App) votingVoterList(c *ui.Context) {
 		return
 	}
 	collectionList(c, "Voters",
-		collectionRecords(voters, voterCollectionRecord),
+		collectionRecords(voters, func(voter VoterRow) collectionRecord {
+			return voterCollectionRecord(c, voter)
+		}),
 		a.voting.voterChoice, func(i int) { a.chooseVoter(voters, i) })
 	hint(c, "A prior ballot does not block a later session; each session accepts one ballot per voter.")
 	if a.voting.voterChoice >= 0 && a.voting.voterChoice < len(voters) {
@@ -614,14 +616,14 @@ func (a *App) votingVoterList(c *ui.Context) {
 // voterCollectionRecord projects a registered voter onto a record. "Ever
 // voted" is a fact with a verdict hue because it is the one state an operator
 // scans the list for; the public key is the field the choice copies.
-func voterCollectionRecord(voter VoterRow) collectionRecord {
+func voterCollectionRecord(c *ui.Context, voter VoterRow) collectionRecord {
 	name := strings.TrimSpace(voter.Name)
 	if name == "" {
 		name = shortID(voter.PublicKey)
 	}
 	status, tone := tr("No"), ui.Color{}
 	if voter.HasVoted {
-		status, tone = tr("Yes"), ui.Hex(auroraGreen)
+		status, tone = tr("Yes"), c.Theme().Success
 	}
 	return collectionRecord{
 		title:  name,
@@ -703,7 +705,7 @@ func (a *App) votingCreateSessionBody(c *ui.Context) {
 	}
 	fieldHint(c, "Candidate IDs (comma-separated)", "Leave empty to include every registered candidate.", &a.voting.sessionIDs)
 	ui.Row(c).Children(func() {
-		if primaryButton(c, "Create Session").Disabled(!allSet(a.voting.sessionTitle)).Clicked() {
+		if primaryButton(c, "Create Session", allSet(a.voting.sessionTitle)).Clicked() {
 			a.createVotingSession()
 		}
 	})
@@ -721,7 +723,7 @@ func (a *App) votingSessionList(c *ui.Context) {
 		// is nothing to keep, and "No sessions yet" would claim the store is
 		// empty when it could not be read.
 		if a.voting.loadErr == nil {
-			emptyStateIcon(c, calendarIcon, ui.Hex(votingAccent), "No sessions yet.",
+			emptyStateIcon(c, calendarIcon, pageAccent(c, pageVoting), "No sessions yet.",
 				"Create one on the right with a roster and the window during which ballots count.")
 		}
 		return
@@ -867,7 +869,7 @@ func (a *App) votingCandidateListCard(c *ui.Context) {
 func (a *App) votingCandidateList(c *ui.Context) {
 	if len(a.voting.candidates) == 0 {
 		if a.voting.loadErr == nil {
-			emptyStateIcon(c, userCheckIcon, ui.Hex(votingAccent), "No candidates registered yet.",
+			emptyStateIcon(c, userCheckIcon, pageAccent(c, pageVoting), "No candidates registered yet.",
 				"Register one on the right; a ballot names the candidate id it selects.")
 		}
 		return
@@ -1088,7 +1090,7 @@ func (a *App) votingCastVoteCard(c *ui.Context) {
 		field(c, "Voter Private Key", &a.voting.votePriv)
 		a.useSavedKeyButton(c, a.voting.voteVoterPub, &a.voting.votePriv)
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Cast Vote").Disabled(!allSet(a.voting.voteSession, a.voting.voteCandidate, a.voting.voteVoterPub, a.voting.votePriv)).Clicked() {
+			if primaryButton(c, "Cast Vote", allSet(a.voting.voteSession, a.voting.voteCandidate, a.voting.voteVoterPub, a.voting.votePriv)).Clicked() {
 				a.castVote()
 			}
 		})
@@ -1254,11 +1256,11 @@ func (a *App) votingResultsBody(c *ui.Context) {
 		return
 	}
 	if !matches {
-		emptyPanel(c, pageIcons[pageVoting], pageAccent(pageVoting), "No tally loaded yet.")
+		emptyPanel(c, pageIcons[pageVoting], pageAccent(c, pageVoting), "No tally loaded yet.")
 		return
 	}
 	if len(a.voting.results) == 0 {
-		emptyPanel(c, pageIcons[pageVoting], pageAccent(pageVoting), "No votes recorded for this session.")
+		emptyPanel(c, pageIcons[pageVoting], pageAccent(c, pageVoting), "No votes recorded for this session.")
 		return
 	}
 	results := a.voting.results
@@ -1280,7 +1282,7 @@ func (a *App) votingResultsBody(c *ui.Context) {
 				return collectionRecord{
 					title: valueOr(result.Name),
 					facts: []collectionFact{
-						{label: "Votes", value: strconv.Itoa(result.Votes), tone: ui.Hex(votingAccent)},
+						{label: "Votes", value: strconv.Itoa(result.Votes), tone: pageAccent(c, pageVoting)},
 					},
 				}
 			}), -1, nil)
@@ -1312,7 +1314,8 @@ func (a *App) votingResultBars(c *ui.Context, results []ResultRow) {
 							TextColor(c.Theme().Text).Grow(1).Shrink(1).MinWidth(0).
 							SingleLine().Ellipsis("…").Tooltip(result.Name)
 						ui.Text(c, strconv.Itoa(result.Votes)).FontSize(textSize(c, 12.5)).
-							FontWeight(700).FontFeatures("tnum").TextColor(ui.Hex(votingAccent))
+							FontWeight(700).Font("monospace").FontFeatures("tnum").
+							TextColor(pageAccent(c, pageVoting))
 					})
 					track := ui.Row(c).FillWidth().Height(6).Radius(3).
 						Background(c.Theme().Background)
@@ -1321,7 +1324,7 @@ func (a *App) votingResultBars(c *ui.Context, results []ResultRow) {
 							return
 						}
 						ui.Row(c).WidthPercent(share).Height(6).Radius(3).
-							Gradient(ui.Hex(votingAccent), ui.Hex(aurora), 90)
+							Gradient(pageAccent(c, pageVoting), c.Theme().Accent, 90)
 					})
 				})
 		}

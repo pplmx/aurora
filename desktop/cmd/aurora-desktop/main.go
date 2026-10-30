@@ -177,10 +177,9 @@ func main() {
 	// match nothing and answer "en", so the whole window went English.
 	mygo.App.SetLanguages("en", "zh-Hans", "zh-Hant")
 
-	// Aurora is dark by design, so the window chrome follows: the menu bar,
-	// title bar and dialogs are GTK's own widgets, and on a light desktop they
-	// stayed white around a dark window (measured: a white menu bar over the
-	// polar-night interface). The view sets its own palette on top of this.
+	// Start with the previous dark default until the saved preference is read
+	// below. This avoids a white native frame flashing around a dark window
+	// before the first frame. The view sets its own palette on top of this.
 	//
 	// This asks GTK for its dark variant. A theme without one — plain Adwaita,
 	// which is what a bare X server gets — has nothing to switch to, so the
@@ -246,6 +245,7 @@ func main() {
 	// app registers the scheme on every start, which is cheap and works
 	// without an installer.
 	shell := deskapp.NewShell(meta)
+	shell.ApplyTheme()
 	// Window writes leave the frame thread so the busy banner is painted and
 	// the window stays responsive during SQLite/file work. Tests keep the
 	// synchronous path for deterministic assertions.
@@ -272,11 +272,26 @@ func main() {
 		Language:        shell.Language,
 		LiveUpdates:     shell.LiveUpdates,
 		SetLiveUpdates:  shell.SetLiveUpdates,
+		ThemeMode:       shell.ThemeMode,
+		SetThemeMode:    shell.SetThemeMode,
+		SystemDark:      shell.SystemDark,
 		SetPageTitle:    shell.SetPageTitle,
 		Version:         meta.Version,
 		BuildTime:       meta.BuildTime,
 		DBPath:          meta.DBPath,
 	})
+	// Keep the listener for the whole process, not only for WhenReady: a
+	// deferred unregister inside that callback would make the next OS
+	// appearance change invisible to the native window.
+	offTheme := mygo.Theme.OnUpdated(func() {
+		if app := shell.App(); app != nil {
+			app.SetSystemDark(mygo.Theme.IsDark())
+			if win := shell.Window(); win != nil && !win.IsDestroyed() {
+				win.Invalidate()
+			}
+		}
+	})
+	defer offTheme()
 	// macOS owns a global menu bar; give it only the platform's roles (app,
 	// File/Close, Edit, Window) because Aurora's own actions live in the
 	// window's File menu and Settings page on every platform. Linux and Windows
@@ -337,6 +352,10 @@ func main() {
 	})
 
 	mygo.App.WhenReady(func() {
+		// SetActions ran before App.Run and could only use the explicit source
+		// or the previous dark default for Follow System. Resolve the real
+		// desktop appearance now, before the first window draws.
+		rt.App().SetSystemDark(mygo.Theme.IsDark())
 		deskapp.FollowAppLocale(func() {
 			// MyGo relabels the platform roles itself; Aurora text in the
 			// window reads the translator on the next frame. The native title
@@ -405,7 +424,7 @@ func mainWindowOptions(app *nativeui.App, opts deskapp.Flags) mygo.WindowOptions
 		Height:          860,
 		MinWidth:        900,
 		MinHeight:       600,
-		BackgroundColor: "#0c2228",
+		BackgroundColor: "light-dark(#F4F0E6, #0A1211)",
 		StateKey:        "main",
 		// Aurora installs no application menu on Linux and Windows: pages live
 		// in the sidebar, file work in the File menu and configuration in

@@ -43,7 +43,7 @@ func recordModuleName(module string) string {
 // says which module wrote it before a word is read.
 func recordModuleTone(c *ui.Context, module string) ui.Color {
 	if target, ok := pageForBlockModule(module); ok {
-		return pageAccent(target)
+		return pageAccent(c, target)
 	}
 	return c.Theme().TextMuted
 }

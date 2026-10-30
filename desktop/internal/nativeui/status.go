@@ -108,9 +108,9 @@ func renderStatus(c *ui.Context, scope page, s statusLine, dismiss func()) bool 
 		return false
 	}
 	dismissed := false
-	label, tone, tint := "Done", ui.Hex(auroraGreen), ui.Hex(successTint)
+	label, tone, tint := "Done", c.Theme().Success, successTint(c)
 	if s.isErr {
-		label, tone, tint = "Failed", ui.Hex(auroraRed), ui.Hex(errorTint)
+		label, tone, tint = "Failed", c.Theme().Danger, errorTint(c)
 	}
 	spoken := statusAnnouncementText(s)
 	row := ui.Row(c).Key(scope).FillWidth().AlignItems(ui.Center).Gap(space3).
@@ -148,9 +148,9 @@ func inlineStatus(c *ui.Context, s statusLine) {
 	if s.empty() {
 		return
 	}
-	tone := ui.Hex(auroraGreen)
+	tone := c.Theme().Success
 	if s.isErr {
-		tone = ui.Hex(auroraRed)
+		tone = c.Theme().Danger
 	}
 	spoken := statusAnnouncementText(s)
 	status := ui.Text(c, s.text).FontSize(textSize(c, 12)).TextColor(tone).

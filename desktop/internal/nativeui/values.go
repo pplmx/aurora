@@ -157,7 +157,7 @@ func loadWarning(c *ui.Context, what string, err error, hasContent bool) bool {
 	announceStatusChange(c, warning,
 		statusLine{text: message + "\x00" + stale, isErr: true}, spoken)
 	warning.Children(func() {
-		ui.Text(c, message).FontSize(textSize(c, 12)).TextColor(ui.Hex(auroraRed))
+		ui.Text(c, message).FontSize(textSize(c, 12)).TextColor(c.Theme().Danger)
 		if stale != "" {
 			ui.Text(c, stale).FontSize(textSize(c, 12)).TextColor(c.Theme().TextMuted)
 		}

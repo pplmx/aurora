@@ -40,6 +40,12 @@ type Actions struct {
 	// can show it instead of silently resetting on the next launch.
 	LiveUpdates    func() bool
 	SetLiveUpdates func(bool) error
+	// ThemeMode/SetThemeMode persist the appearance choice. The shell also
+	// applies it to MyGo's native chrome so the title bar and dialogs match
+	// the window the view draws.
+	ThemeMode    func() ThemeMode
+	SetThemeMode func(ThemeMode) error
+	SystemDark   func() bool
 	// SetPageTitle keeps the native window title in step with the visible
 	// page (and its language); optional for view tests.
 	SetPageTitle func(string)
@@ -52,9 +58,22 @@ func (a *App) SetActions(actions Actions) {
 	if actions.LiveUpdates != nil {
 		a.liveUpdates = actions.LiveUpdates()
 	}
+	if actions.ThemeMode != nil {
+		a.themeMode = normalizeThemeMode(actions.ThemeMode())
+	}
+	if actions.SystemDark != nil {
+		a.systemDark = actions.SystemDark()
+	}
 	if actions.SetPageTitle != nil {
 		actions.SetPageTitle(a.PageTitle())
 	}
+}
+
+// SetSystemDark applies the desktop's effective appearance to Follow system
+// mode. The shell calls it when the OS appearance changes, then invalidates
+// the window so the next frame resolves the other palette.
+func (a *App) SetSystemDark(dark bool) {
+	a.systemDark = dark
 }
 
 // sidebarActions draws the File menu at the bottom of the sidebar. It replaces
@@ -74,7 +93,7 @@ func (a *App) sidebarActions(c *ui.Context) {
 		button.Label(label)
 		if a.actions.Version != "" {
 			ui.Row(c).FillWidth().Gap(space2).AlignItems(ui.Center).Padding(space1, 2).Children(func() {
-				statusDot(c, ui.Hex(auroraGreen), 5)
+				statusDot(c, c.Theme().Success, 5)
 				ui.Text(c, tr("Local ledger")).FontSize(textSize(c, 10)).
 					TextColor(c.Theme().TextMuted).Grow(1).Shrink(1).MinWidth(0).SingleLine()
 				ui.Text(c, "v"+a.actions.Version).FontSize(textSize(c, 10)).
@@ -87,7 +106,7 @@ func (a *App) sidebarActions(c *ui.Context) {
 func (a Actions) empty() bool {
 	return a.BackUpDatabase == nil && a.ExportLotteries == nil && a.ImportLotteries == nil &&
 		a.ShowDataFolder == nil && a.ShowAbout == nil && a.RecentDocuments == nil &&
-		a.SetLanguage == nil
+		a.SetLanguage == nil && a.SetThemeMode == nil
 }
 
 // actionShortcuts keeps the file shortcuts that used to come from the native

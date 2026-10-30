@@ -321,13 +321,13 @@ func (a *App) tokenCreate(c *ui.Context) {
 				a.token.status = okStatus("Owner private key copied.")
 			}).Bind(&a.token.ownerKeyCopy)
 			ui.Text(c, tr("This is the only copy of the owner key; the store keeps the public half.")).
-				FontSize(textSize(c, 11)).TextColor(ui.Hex(auroraAmber))
+				FontSize(textSize(c, 11)).TextColor(c.Theme().Warning)
 		}
 		if generated {
 			a.token.ownerKeyCopy.Focus(c)
 		}
 		ui.Row(c).Children(func() {
-			if primaryButton(c, "Create Token").Disabled(!allSet(a.token.name, a.token.symbol, a.token.supply, a.token.owner)).Clicked() {
+			if primaryButton(c, "Create Token", allSet(a.token.name, a.token.symbol, a.token.supply, a.token.owner)).Clicked() {
 				a.createToken()
 			}
 		})
@@ -664,7 +664,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			a.useOwnerKeyButton(c, &a.token.mintPriv, true)
 			a.useSavedKeyButton(c, a.selectedTokenOwner(), &a.token.mintPriv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Mint").Disabled(!allSet(a.token.tokenID, a.token.mintTo, a.token.mintAmount, a.token.mintPriv)).Clicked() {
+				if primaryButton(c, "Mint", allSet(a.token.tokenID, a.token.mintTo, a.token.mintAmount, a.token.mintPriv)).Clicked() {
 					a.mintToken()
 				}
 			})
@@ -680,7 +680,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 				strings.TrimSpace(a.token.xFrom) == a.selectedTokenOwner())
 			a.useSavedKeyButton(c, a.token.xFrom, &a.token.xPriv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Transfer").Disabled(!allSet(a.token.tokenID, a.token.xFrom, a.token.xTo, a.token.xAmount, a.token.xPriv)).Clicked() {
+				if primaryButton(c, "Transfer", allSet(a.token.tokenID, a.token.xFrom, a.token.xTo, a.token.xAmount, a.token.xPriv)).Clicked() {
 					a.transferToken()
 				}
 			})
@@ -696,7 +696,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 				strings.TrimSpace(a.token.approveOwner) == a.selectedTokenOwner())
 			a.useSavedKeyButton(c, a.token.approveOwner, &a.token.approvePriv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Approve").Disabled(!allSet(a.token.tokenID, a.token.approveOwner, a.token.approveTo, a.token.approveAmt, a.token.approvePriv)).Clicked() {
+				if primaryButton(c, "Approve", allSet(a.token.tokenID, a.token.approveOwner, a.token.approveTo, a.token.approveAmt, a.token.approvePriv)).Clicked() {
 					a.approveToken()
 				}
 			})
@@ -711,7 +711,7 @@ func (a *App) tokenWrites(c *ui.Context) {
 			field(c, "Spender Private Key", &a.token.fromPriv)
 			a.useSavedKeyButton(c, a.token.fromSpender, &a.token.fromPriv)
 			ui.Row(c).Children(func() {
-				if primaryButton(c, "Transfer From").Disabled(!allSet(a.token.tokenID, a.token.fromOwner, a.token.fromTo, a.token.fromAmount, a.token.fromPriv)).Clicked() {
+				if primaryButton(c, "Transfer From", allSet(a.token.tokenID, a.token.fromOwner, a.token.fromTo, a.token.fromAmount, a.token.fromPriv)).Clicked() {
 					a.transferFromToken()
 				}
 			})

@@ -32,7 +32,7 @@ func destructiveConfirm(c *ui.Context, open *bool, title, detail, confirmLabel s
 		return destructivePending
 	}
 	confirmed := false
-	danger := ui.Hex(auroraRed)
+	danger := c.Theme().Danger
 	dialog := ui.Modal(c, open, func() {
 		ui.Row(c).FillWidth().Gap(space3).AlignItems(ui.Start).Children(func() {
 			iconTile(c, warningIcon, danger, iconTileMedium)

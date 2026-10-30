@@ -255,7 +255,9 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 	// the exact id into every action and read card below, which is how a
 	// source reaches them without retyping an id nobody has in full.
 	collectionList(c, "Data Sources",
-		collectionRecords(srcs, sourceCollectionRecord),
+		collectionRecords(srcs, func(source SourceRow) collectionRecord {
+			return sourceCollectionRecord(c, source)
+		}),
 		a.oracle.selected, func(i int) { a.chooseOracleSource(srcs, i) })
 }
 
@@ -263,7 +265,7 @@ func (a *App) oracleSourcesBody(c *ui.Context) {
 // fact with a verdict hue because it is the state an operator scans for; the
 // transport and header presence are facts, and the id is the field the
 // actions copy.
-func sourceCollectionRecord(source SourceRow) collectionRecord {
+func sourceCollectionRecord(c *ui.Context, source SourceRow) collectionRecord {
 	name := strings.TrimSpace(source.Name)
 	if name == "" {
 		name = shortID(source.ID)
@@ -274,7 +276,7 @@ func sourceCollectionRecord(source SourceRow) collectionRecord {
 	status := tr("disabled")
 	var tone ui.Color
 	if source.Enabled {
-		status, tone = tr("enabled"), ui.Hex(auroraGreen)
+		status, tone = tr("enabled"), c.Theme().Success
 	}
 	headers := tr("—")
 	if source.HasHeaders {
@@ -538,7 +540,7 @@ func (a *App) oracleAddBody(c *ui.Context) {
 		})
 	})
 	ui.Row(c).Children(func() {
-		if primaryButton(c, "Add Source").Disabled(!allSet(a.oracle.addName, a.oracle.addURL)).Clicked() {
+		if primaryButton(c, "Add Source", allSet(a.oracle.addName, a.oracle.addURL)).Clicked() {
 			a.addOracleSource()
 		}
 	})
@@ -637,7 +639,7 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 		return
 	}
 	if len(a.oracle.health) == 0 {
-		emptyPanel(c, pageIcons[pageOracle], pageAccent(pageOracle), "(no feed activity yet)")
+		emptyPanel(c, pageIcons[pageOracle], pageAccent(c, pageOracle), "(no feed activity yet)")
 		return
 	}
 	health := a.oracle.health
@@ -663,23 +665,23 @@ func (a *App) oracleHealthBody(c *ui.Context) {
 func (a *App) oracleHealthRecords(c *ui.Context, health []HealthRow, names map[string]string) {
 	collectionList(c, "Feed Health",
 		collectionRecords(health, func(h HealthRow) collectionRecord {
-			return healthCollectionRecord(h, names)
+			return healthCollectionRecord(c, h, names)
 		}), -1, nil)
 }
 
 // healthCollectionRecord projects one source's scheduler counters onto a
 // record. Failures take the error hue only when there are some: a zero painted
 // red would read as a problem that is not there.
-func healthCollectionRecord(h HealthRow, names map[string]string) collectionRecord {
+func healthCollectionRecord(c *ui.Context, h HealthRow, names map[string]string) collectionRecord {
 	failureTone := ui.Color{}
 	if h.Failures > 0 {
-		failureTone = ui.Hex(auroraRed)
+		failureTone = c.Theme().Danger
 	}
 	record := collectionRecord{
 		title: oracleHealthName(h, names),
 		facts: []collectionFact{
 			{label: "Attempts", value: strconv.Itoa(h.Attempts)},
-			{label: "Successes", value: strconv.Itoa(h.Successes), tone: ui.Hex(auroraGreen)},
+			{label: "Successes", value: strconv.Itoa(h.Successes), tone: c.Theme().Success},
 			{label: "Failures", value: strconv.Itoa(h.Failures), tone: failureTone},
 		},
 	}

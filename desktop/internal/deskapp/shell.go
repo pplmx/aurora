@@ -578,6 +578,77 @@ func (s *Shell) SetLiveUpdates(on bool) error {
 	return nil
 }
 
+// ThemeMode reports the saved appearance choice. An older preferences file
+// has no theme field, so its empty value resolves to the previous dark design.
+func (s *Shell) ThemeMode() nativeui.ThemeMode {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return nativeui.ThemeMode(s.prefs.Theme)
+}
+
+// SetThemeMode persists the appearance and applies it to MyGo's native
+// chrome. The source is applied even when the write fails, so the window and
+// the native controls stay in agreement for this session while Settings
+// reports that the choice will not survive a restart.
+func (s *Shell) SetThemeMode(mode nativeui.ThemeMode) error {
+	s.mu.Lock()
+	next := s.prefs
+	next.Theme = string(mode)
+	err := savePreferences(s.prefsPath, next)
+	if err == nil {
+		s.prefs = next
+	}
+	s.mu.Unlock()
+	applyNativeTheme(mode)
+	return err
+}
+
+// ApplyTheme applies the saved appearance to the native chrome. It is called
+// after the shell is built and before the window is shown.
+func (s *Shell) ApplyTheme() {
+	applyNativeTheme(s.ThemeMode())
+}
+
+// SystemDark reports the desktop's current effective appearance. MyGo panics
+// when IsDark is called on the main thread before App.Run, but SetActions
+// reads this while wiring the startup state. Until the backend is ready, an
+// explicit source is already known and System keeps the previous dark default;
+// WhenReady refreshes the real value before the first window opens.
+func (s *Shell) SystemDark() bool {
+	return effectiveSystemDark(mygo.App.IsReady(), mygo.Theme.Source(), mygo.Theme.IsDark)
+}
+
+func effectiveSystemDark(ready bool, source mygo.ThemeSource, isDark func() bool) bool {
+	if ready {
+		return isDark()
+	}
+	switch source {
+	case mygo.ThemeLight:
+		return false
+	case mygo.ThemeDark:
+		return true
+	default:
+		return true
+	}
+}
+
+func themeSource(mode nativeui.ThemeMode) mygo.ThemeSource {
+	switch mode {
+	case nativeui.ThemeModeLight:
+		return mygo.ThemeLight
+	case nativeui.ThemeModeSystem:
+		return mygo.ThemeSystem
+	default:
+		return mygo.ThemeDark
+	}
+}
+
+// applyNativeTheme is a seam for the shell tests: SetSource needs the running
+// MyGo backend, while the persisted preference and its mapping do not.
+var applyNativeTheme = func(mode nativeui.ThemeMode) {
+	mygo.Theme.SetSource(themeSource(mode))
+}
+
 // messageBox puts a message on screen. It is a variable rather than a direct
 // call so a test can observe the dialog a shell or menu action would show
 // without needing a live window.

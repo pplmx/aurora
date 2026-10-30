@@ -716,26 +716,105 @@ func TestWindowOpensWithTheDashboardLoaded(t *testing.T) {
 	require.True(t, tester.HasText("9"), "the vote count must come from the services")
 }
 
-// TestAuroraThemeIsDarkAndDistinct pins the palette the window draws with. The
-// build before this set a dark window background and then let MyGo draw its
-// light theme on top, so every control was a white panel on a black page.
-func TestAuroraThemeIsDarkAndDistinct(t *testing.T) {
-	theme := auroraTheme(false)
-	require.True(t, theme.Dark, "the window is dark by design, whatever the system appearance")
-	require.Equal(t, ui.Hex(night), theme.Background)
-	require.Equal(t, ui.Hex(surface), theme.Surface)
-	require.Equal(t, ui.Hex(aurora), theme.Accent)
-	require.Equal(t, ui.Hex(ink), theme.Text)
+// TestAuroraThemesAreDistinctAndModuleOwned pins the two semantic palettes.
+// Dark and light are deliberately different surface systems, and the accent
+// follows the open module instead of one global blue layer.
+func TestAuroraThemesAreDistinctAndModuleOwned(t *testing.T) {
+	dark := auroraThemeForState(ui.Preferences{}, ThemeModeDark, true, pageLottery)
+	light := auroraThemeForState(ui.Preferences{}, ThemeModeLight, false, pageLottery)
+	require.True(t, dark.Dark)
+	require.False(t, light.Dark)
+	require.Equal(t, ui.Hex(darkPalette.background), dark.Background)
+	require.Equal(t, ui.Hex(lightPalette.background), light.Background)
+	require.Equal(t, ui.Hex(darkPalette.surface), dark.Surface)
+	require.Equal(t, ui.Hex(lightPalette.surface), light.Surface)
+	require.Equal(t, ui.Hex(darkPalette.ink), dark.Text)
+	require.Equal(t, ui.Hex(lightPalette.ink), light.Text)
 
-	// The surface has to be visible above the background, and the accent above
-	// both: a theme whose three tones collapse into one is unreadable however
-	// pleasant the individual colours are.
-	require.NotEqual(t, theme.Background, theme.Surface)
-	require.NotEqual(t, theme.Surface, theme.Accent)
-	require.NotEqual(t, theme.Text, theme.Background)
+	for _, theme := range []*ui.Theme{dark, light} {
+		require.NotEqual(t, theme.Background, theme.Surface)
+		require.NotEqual(t, theme.Surface, theme.Accent)
+		require.NotEqual(t, theme.Text, theme.Background)
+		require.NotEqual(t, theme.Danger, theme.Success)
+	}
+	require.NotEqual(t, dark.Accent, auroraThemeForState(
+		ui.Preferences{}, ThemeModeDark, true, pageVoting).Accent,
+		"each module must own a different accent")
+}
 
-	// A status line's two colours must differ, or a failure reads as success.
-	require.NotEqual(t, ui.Hex(auroraRed), ui.Hex(auroraGreen))
+// TestBothThemesMeetWCAG keeps the light palette from becoming a contrast
+// regression next to the dark one. Body and muted text, every module's ink,
+// verdict text, status washes, and the label on a filled primary button all
+// have to clear AA on the surfaces where the window draws them.
+func TestBothThemesMeetWCAG(t *testing.T) {
+	for _, mode := range []struct {
+		name string
+		mode ThemeMode
+	}{
+		{"dark", ThemeModeDark},
+		{"light", ThemeModeLight},
+	} {
+		t.Run(mode.name, func(t *testing.T) {
+			for _, p := range pageOrder {
+				theme := auroraThemeForState(ui.Preferences{}, mode.mode, mode.mode == ThemeModeDark, p)
+				for _, background := range []ui.Color{theme.Background, theme.Surface} {
+					require.GreaterOrEqual(t, contrastRatio(theme.Text, background), 4.5,
+						"body text on %s", mode.name)
+					require.GreaterOrEqual(t, contrastRatio(theme.TextMuted, background), 4.5,
+						"muted text on %s", mode.name)
+					require.GreaterOrEqual(t, contrastRatio(theme.Accent, background), 4.5,
+						"module ink on %s", mode.name)
+					require.GreaterOrEqual(t, contrastRatio(theme.Success, background), 4.5,
+						"success text on %s", mode.name)
+					require.GreaterOrEqual(t, contrastRatio(theme.Danger, background), 4.5,
+						"danger text on %s", mode.name)
+					require.GreaterOrEqual(t, contrastRatio(theme.Warning, background), 4.5,
+						"warning text on %s", mode.name)
+				}
+				require.GreaterOrEqual(t, contrastRatio(theme.AccentText, theme.Accent), 4.5,
+					"the primary label on %s's module fill", mode.name)
+				require.GreaterOrEqual(t, contrastRatio(theme.Text, theme.Selection), 4.5,
+					"selected-row text on %s", mode.name)
+			}
+		})
+	}
+}
+
+// TestStatusTintsKeepTheirTextReadable pins the light mode's faint status
+// wash. A tint strong enough to be visible can still erase the difference
+// between the verdict text and the strip behind it, so every verdict colour
+// is checked against the wash it is actually drawn on.
+func TestStatusTintsKeepTheirTextReadable(t *testing.T) {
+	for _, mode := range []struct {
+		name string
+		mode ThemeMode
+	}{
+		{"dark", ThemeModeDark},
+		{"light", ThemeModeLight},
+	} {
+		t.Run(mode.name, func(t *testing.T) {
+			theme := auroraThemeForState(ui.Preferences{}, mode.mode, mode.mode == ThemeModeDark, pageDashboard)
+			for name, pair := range map[string][2]ui.Color{
+				"success": {theme.Success, theme.Background.Mix(theme.Success, statusTintStrengthFor(theme))},
+				"danger":  {theme.Danger, theme.Background.Mix(theme.Danger, statusTintStrengthFor(theme))},
+				"warning": {theme.Warning, theme.Background.Mix(theme.Warning, statusTintStrengthFor(theme))},
+			} {
+				require.GreaterOrEqual(t, contrastRatio(pair[0], pair[1]), 4.5,
+					"%s text must remain readable on its %s wash", name, mode.name)
+			}
+		})
+	}
+}
+
+// TestSystemThemeFollowsTheDesktop keeps Follow system honest: the same saved
+// mode resolves to either palette as the desktop appearance changes.
+func TestSystemThemeFollowsTheDesktop(t *testing.T) {
+	systemDark := auroraThemeForState(ui.Preferences{}, ThemeModeSystem, true, pageToken)
+	systemLight := auroraThemeForState(ui.Preferences{}, ThemeModeSystem, false, pageToken)
+	require.True(t, systemDark.Dark)
+	require.False(t, systemLight.Dark)
+	require.Equal(t, ui.Hex(darkPalette.background), systemDark.Background)
+	require.Equal(t, ui.Hex(lightPalette.background), systemLight.Background)
 }
 
 // TestHighContrastThemeStrengthensContrast pins the variant the window uses
@@ -745,7 +824,7 @@ func TestHighContrastThemeStrengthensContrast(t *testing.T) {
 	normal := auroraTheme(false)
 	high := auroraTheme(true)
 
-	require.True(t, high.Dark, "high contrast stays within the dark design")
+	require.True(t, high.Dark, "the default theme remains dark")
 	for name, pair := range map[string][2]ui.Color{
 		"text":   {normal.Text, high.Text},
 		"muted":  {normal.TextMuted, high.TextMuted},

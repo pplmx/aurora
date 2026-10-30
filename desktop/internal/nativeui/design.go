@@ -46,39 +46,46 @@ const (
 // time a module stored and the time the chain recorded read identically.
 const localTimeLayout = "2006-01-02 15:04"
 
-// panelFill is the card's background: a vertical wash from one step above the
-// surface to the surface itself. It is mixed from the theme rather than fixed,
-// so the high-contrast preference changes the card with the rest of the
-// window, and a card still reads as one object instead of a flat rectangle.
+// panelFill is the card's background: a quiet diagonal wash from the raised
+// surface toward its resting tone. The card also carries a one-pixel top
+// highlight and a mode-specific shadow; those three cues are what keep a
+// card above the page without turning every panel into a coloured block.
 func panelFill(c *ui.Context) ui.LinearGradient {
 	return ui.LinearGradient{
-		Angle: 165,
-		From:  c.Theme().Surface.Mix(c.Theme().SurfaceHover, 0.45),
+		Angle: 155,
+		From:  c.Theme().Surface.Mix(c.Theme().SurfaceHover, 0.32),
 		To:    c.Theme().Surface,
 	}
 }
 
-// workspaceFill is the page background: the window tone with the faintest
-// aurora light gathering at the top, as if the content sat under a night sky
-// rather than on a flat sheet. It stays within a few points of the background
-// so every contrast ratio in theme.go still describes it.
+// workspaceFill is the page background. It carries the page's own hue as a
+// very faint light behind the fixed header, then settles to the window tone.
+// The wash stays under five percent so every text and border contrast ratio
+// still describes the surface actually seen.
 func workspaceFill(c *ui.Context) ui.LinearGradient {
+	tone := c.Theme().Accent
+	strength := float32(0.035)
+	if !c.Theme().Dark {
+		strength = 0.025
+	}
 	return ui.LinearGradient{
 		Angle: 180,
-		From:  c.Theme().Background.Mix(ui.Hex(aurora), 0.045),
+		From:  c.Theme().Background.Mix(tone, strength),
 		To:    c.Theme().Background,
 		Start: 0,
-		End:   0.7,
+		End:   0.55,
 	}
 }
 
-// sidebarFill gives the navigation column the same subtle depth: lighter at
-// the masthead, settling to the window tone at the bottom.
+// sidebarFill gives the navigation column its own paper/ink tone. The
+// sidebar is chrome, not another content surface, so it is deliberately
+// quieter than a card and separated from the workspace by one hairline.
 func sidebarFill(c *ui.Context) ui.LinearGradient {
+	tone := sidebarTone(c)
 	return ui.LinearGradient{
 		Angle: 180,
-		From:  ui.Hex(sidebarSurface).Mix(c.Theme().Background, 0.05),
-		To:    ui.Hex(sidebarSurface).Mix(c.Theme().Background, 0.45),
+		From:  tone.Mix(c.Theme().Surface, 0.08),
+		To:    tone.Mix(c.Theme().Background, 0.32),
 	}
 }
 
@@ -86,10 +93,14 @@ func sidebarFill(c *ui.Context) ui.LinearGradient {
 // panel a page leads with. The tint stays under a fifth of the way to the hue:
 // it is a wash of light, not a coloured card.
 func panelGradient(c *ui.Context, tone ui.Color, strength float32) ui.LinearGradient {
+	settle := float32(0.24)
+	if !c.Theme().Dark {
+		settle = 0.14
+	}
 	return ui.LinearGradient{
 		Angle: 150,
 		From:  c.Theme().Surface.Mix(tone, strength),
-		To:    c.Theme().Surface.Mix(c.Theme().Background, 0.35),
+		To:    c.Theme().Surface.Mix(c.Theme().Background, settle),
 	}
 }
 
@@ -106,11 +117,12 @@ func eyebrow(c *ui.Context, text string) ui.Element {
 // hue mixed into the surface, so the tile belongs to the theme instead of
 // sitting on top of it.
 func iconTile(c *ui.Context, icon *ui.SVG, tone ui.Color, size float32) ui.Element {
-	tile := ui.Row(c).Size(size, size).Center().Radius(size*0.3).
-		Gradient(tone.Mix(c.Theme().Surface, 0.8), tone.Mix(c.Theme().Surface, 0.92), 150).
-		BorderWidth(1).BorderColor(tone.Alpha(0.35))
+	tile := ui.Row(c).Size(size, size).Center().Radius(size*0.28).
+		Gradient(tone.Mix(c.Theme().Surface, 0.72), tone.Mix(c.Theme().Surface, 0.9), 150).
+		BorderWidth(1).BorderColor(tone.Alpha(0.42)).
+		InsetShadow(0, 1, 0, 0, cardHighlight(c))
 	tile.Children(func() {
-		ui.Icon(c, icon).Size(size*0.5, size*0.5).TextColor(tone)
+		ui.Icon(c, icon).Size(size*0.48, size*0.48).TextColor(tone)
 	})
 	return tile
 }
@@ -142,20 +154,20 @@ func statusDot(c *ui.Context, tone ui.Color, size float32) ui.Element {
 // readout on the ledger page, where a full-width box held two short numbers.
 func statChip(c *ui.Context, label, value string) {
 	ui.Column(c).Padding(space2+2, space3+2).Gap(1).Radius(radiusSmall + 2).
-		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.35)).
+		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.22)).
 		BorderWidth(1).BorderColor(c.Theme().Border).Children(func() {
 		eyebrow(c, label)
 		ui.Text(c, value).FontSize(textSize(c, 17)).FontWeight(700).
-			TextColor(c.Theme().Text).FontFeatures("tnum").SingleLine()
+			TextColor(c.Theme().Text).Font("monospace").FontFeatures("tnum").SingleLine()
 	})
 }
 
 // verdictPill states a binary health result with both a dot and a word. The
 // dot makes the state scannable; the word makes it readable without colour.
 func verdictPill(c *ui.Context, ok bool, label string) ui.Element {
-	tone, tint := ui.Hex(auroraGreen), ui.Hex(successTint)
+	tone, tint := c.Theme().Success, successTint(c)
 	if !ok {
-		tone, tint = ui.Hex(auroraRed), ui.Hex(errorTint)
+		tone, tint = c.Theme().Danger, errorTint(c)
 	}
 	return ui.Row(c).Padding(space2, space3+2).Gap(space2).Radius(999).
 		Background(tint).BorderWidth(1).BorderColor(tone.Alpha(0.35)).
@@ -186,11 +198,12 @@ func hoverRaise(c *ui.Context, b ui.Element, hovered bool) ui.Element {
 // documents a chord where the action is, so the shortcut is discoverable
 // without opening Settings.
 func shortcutCap(c *ui.Context, chord string) ui.Element {
-	cap := ui.Row(c).Padding(2, space1+1).Radius(radiusSmall - 4).Background(c.Theme().Surface).
+	cap := ui.Row(c).Padding(2, space1+1).Radius(radiusSmall - 4).
+		Background(c.Theme().Background.Mix(c.Theme().Surface, 0.7)).
 		BorderWidth(1).BorderColor(c.Theme().Border).Shrink(0)
 	cap.Children(func() {
 		ui.Text(c, chord).FontSize(textSize(c, 9.5)).FontWeight(600).
-			TextColor(c.Theme().TextMuted).SingleLine()
+			TextColor(c.Theme().TextMuted).Font("monospace").SingleLine()
 	})
 	return cap
 }
@@ -201,12 +214,16 @@ func shortcutCap(c *ui.Context, chord string) ui.Element {
 // above the counters.
 func sectionRule(c *ui.Context, label string) {
 	ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(space3).Padding(space3, 0, space1, 0).Children(func() {
-		eyebrow(c, label)
+		ui.Row(c).Gap(space2).AlignItems(ui.Center).Shrink(0).Children(func() {
+			ui.Row(c).Width(3).Height(10).Radius(1.5).
+				Background(c.Theme().Accent).Shrink(0)
+			eyebrow(c, label)
+		})
 		line := ui.Row(c).Height(1).Grow(1)
 		line.Draw(func(p *ui.Painter, r ui.Rect) {
-			tone := c.Theme().Border
+			tone := c.Theme().Accent
 			p.FillGradient(r, ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
-				{Color: tone, At: 0},
+				{Color: tone.Alpha(0.55), At: 0},
 				{Color: tone.Alpha(0), At: 1},
 			}}, 0)
 		})
@@ -220,10 +237,10 @@ func sectionRule(c *ui.Context, label string) {
 func cardAccent(e ui.Element, tone ui.Color) ui.Element {
 	e.Draw(func(p *ui.Painter, r ui.Rect) {
 		inset := radiusPanel + space2
-		p.FillGradient(ui.Rect{X: r.X + inset, Y: r.Y, W: r.W - 2*inset, H: 2},
+		p.FillGradient(ui.Rect{X: r.X + inset, Y: r.Y, W: r.W - 2*inset, H: 3},
 			ui.LinearGradient{Angle: 90, Stops: []ui.GradientStop{
 				{Color: tone.Alpha(0), At: 0},
-				{Color: tone.Alpha(0.55), At: 0.5},
+				{Color: tone.Alpha(0.72), At: 0.5},
 				{Color: tone.Alpha(0), At: 1},
 			}}, 1)
 	})
