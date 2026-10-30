@@ -32,7 +32,10 @@ rm -rf "$data_dir" "$socket"
 seed=${AURORA_E2E_SEED:-0}
 pages=("$@")
 if [ ${#pages[@]} -eq 0 ]; then
-  pages=(dashboard lottery voting token oracle nft blockchain settings)
+  # page[:tab] — a tab is pressed inside the page before the capture, so the
+  # default run covers the stages that are otherwise one click away.
+  pages=(dashboard lottery voting voting:Ballot voting:Results token token:Burn
+    oracle oracle:Health oracle:Readings nft nft:Burn nft:History blockchain settings)
 fi
 
 echo "building aurora-desktop (e2e) and automation-shot"
@@ -137,16 +140,22 @@ fi
 app_pid=$!
 
 status=0
-for page in "${pages[@]}"; do
+for spec in "${pages[@]}"; do
+  page=${spec%%:*}
+  press=$page
+  if [ "$page" != "$spec" ]; then
+    press="$page,${spec#*:}"
+  fi
   if ! title=$(pageTitle "$page"); then
-    echo "unknown page: $page" >&2
+    echo "unknown page: $spec" >&2
     status=1
     continue
   fi
-  if "$shot" -socket "$socket" -press "$page" -out "$out/$page.png" -expect "$title"; then
-    echo "ok: $page -> $out/$page.png"
+  name=${spec//:/-}
+  if "$shot" -socket "$socket" -press "$press" -out "$out/$name.png" -expect "$title"; then
+    echo "ok: $spec -> $out/$name.png"
   else
-    echo "failed: $page (see $out/app.log)" >&2
+    echo "failed: $spec (see $out/app.log)" >&2
     status=1
   fi
 done

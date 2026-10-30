@@ -79,7 +79,7 @@ func main() {
 	socket := flag.String("socket", "", "automation socket the app listens on")
 	out := flag.String("out", "", "PNG file to write")
 	expect := flag.String("expect", "", "text that must appear in the window's accessibility tree")
-	press := flag.String("press", "", "element key to press before capturing, such as a sidebar page id")
+	press := flag.String("press", "", "element keys or labels to press in order, comma-separated")
 	window := flag.Int("window", 0, "index of the window to capture")
 	timeout := flag.Duration("timeout", 15*time.Second, "how long to wait for the window")
 	flag.Parse()
@@ -130,12 +130,19 @@ func run(socket, out, expect, press string, index int, timeout time.Duration) er
 	}
 
 	if press != "" {
-		if err := client.press(win.ID, press); err != nil {
-			return err
-		}
-		fmt.Printf("pressed %q\n", press)
-		if err := settle(); err != nil {
-			return err
+		// Steps run in order: a page first, then a tab or stage inside it.
+		for _, step := range strings.Split(press, ",") {
+			step = strings.TrimSpace(step)
+			if step == "" {
+				continue
+			}
+			if err := client.press(win.ID, step); err != nil {
+				return err
+			}
+			fmt.Printf("pressed %q\n", step)
+			if err := settle(); err != nil {
+				return err
+			}
 		}
 		if latest, err := client.waitForWindows(index, timeout); err == nil {
 			fmt.Printf("window title now %q\n", latest[index].Title)
