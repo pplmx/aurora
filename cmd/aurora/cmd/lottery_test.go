@@ -349,6 +349,21 @@ func TestLotteryExport_Import(t *testing.T) {
 				require.NoError(t, err)
 				assert.Contains(t, out, "Imported 1 lottery records")
 
+				// A re-import of the same document stores nothing new and is
+				// reported as a partial failure (non-zero) with the collision
+				// index; --json prints the same counts as data.
+				out, err = runCmd(t, "lottery", "import", exportPath, "--json")
+				require.Error(t, err)
+				var result struct {
+					Total    int   `json:"total"`
+					Imported int   `json:"imported"`
+					Rejected []int `json:"rejected"`
+				}
+				require.NoError(t, json.Unmarshal([]byte(out), &result), "got %q", out)
+				assert.Equal(t, 1, result.Total)
+				assert.Zero(t, result.Imported, "a re-import stores nothing new")
+				assert.Equal(t, []int{0}, result.Rejected)
+
 				out, err = runCmd(t, "lottery", "history")
 				require.NoError(t, err)
 				assert.Contains(t, out, "Total lotteries: 1")
@@ -439,6 +454,22 @@ func TestLotteryImport_PartialFailure(t *testing.T) {
 
 		_, err := runCmd(t, "lottery", "import", mixed)
 		require.Error(t, err)
+
+		// JSON mode prints the result and still fails, so a script reads both
+		// the counts and the exit code. The first run stored the valid record,
+		// so this re-import rejects both indices: the collision and the invalid
+		// one.
+		out, err := runCmd(t, "lottery", "import", mixed, "--json")
+		require.Error(t, err)
+		var result struct {
+			Total    int   `json:"total"`
+			Imported int   `json:"imported"`
+			Rejected []int `json:"rejected"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &result), "got %q", out)
+		assert.Equal(t, 2, result.Total)
+		assert.Zero(t, result.Imported)
+		assert.Equal(t, []int{0, 1}, result.Rejected)
 	})
 }
 

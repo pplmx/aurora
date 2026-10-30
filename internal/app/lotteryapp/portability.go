@@ -171,13 +171,13 @@ func sameCleanPath(a, b string) bool {
 // ImportResult reports what ImportRecords did with a document.
 type ImportResult struct {
 	// Total is the number of records the document carried.
-	Total int
+	Total int `json:"total"`
 	// Imported is the number stored.
-	Imported int
+	Imported int `json:"imported"`
 	// Rejected lists, by 0-based index, every record that was NOT stored:
 	// it failed validation, collided with an existing draw, or could not
 	// be written.
-	Rejected []int
+	Rejected []int `json:"rejected"`
 }
 
 // ImportRecords stores the draws of a portable document. It is the single
