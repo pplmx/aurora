@@ -178,7 +178,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, result)
+	writeList(w, result)
 }
 
 // History returns the mint/transfer/burn operation trail for one NFT
@@ -197,7 +197,7 @@ func (h *NFTHandler) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, result)
+	writeList(w, result)
 }
 
 // nftHistoryPage uses the same forgiving, capped rules as the other collection
