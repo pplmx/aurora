@@ -16,6 +16,8 @@
 #   AURORA_E2E_DISPLAY  X display to use; an Xvfb is started when DISPLAY is unset
 #   AURORA_E2E_SEED=1   fill a fresh database through the CLI first, so the
 #                       captures show records instead of the first-run pages
+#   AURORA_E2E_THEME    dark (default) or light; light switches the window from
+#                       Settings first and writes under <out>/light
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -33,6 +35,16 @@ rm -rf "$data_dir" "$socket" "$home_dir"
 mkdir -p "$out" "$home_dir"
 
 seed=${AURORA_E2E_SEED:-0}
+theme=${AURORA_E2E_THEME:-dark}
+shots=$out
+if [ "$theme" = "light" ]; then
+  # The light run owns this directory, so a page dropped from the run cannot
+  # leave a stale capture behind.
+  shots="$out/light"
+  rm -rf "$shots"
+fi
+mkdir -p "$shots"
+
 pages=("$@")
 if [ ${#pages[@]} -eq 0 ]; then
   # page[:tab] — a tab is pressed inside the page before the capture, so the
@@ -164,6 +176,14 @@ fi
 "$app" --data-dir "$data_dir" >"$out/app.log" 2>&1 &
 app_pid=$!
 
+if [ "$theme" = "light" ]; then
+  echo "switching to the light appearance"
+  if ! "$shot" -socket "$socket" -press "settings,Light" -out "$shots/appearance.png" -expect "Settings"; then
+    echo "failed: could not switch to the light appearance (see $out/app.log)" >&2
+    exit 1
+  fi
+fi
+
 status=0
 for spec in "${pages[@]}"; do
   page=${spec%%:*}
@@ -185,8 +205,8 @@ for spec in "${pages[@]}"; do
   fi
   name=${spec//:/-}
   # A stage capture must prove the tab switch happened, not only the page.
-  if "$shot" -socket "$socket" -press "$press" -out "$out/$name.png" -expect "$expect$title"; then
-    echo "ok: $spec -> $out/$name.png"
+  if "$shot" -socket "$socket" -press "$press" -out "$shots/$name.png" -expect "$expect$title"; then
+    echo "ok: $spec -> $shots/$name.png"
   else
     echo "failed: $spec (see $out/app.log)" >&2
     status=1
