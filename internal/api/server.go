@@ -50,11 +50,10 @@ func NewServer() (*Server, error) {
 		handlers:      newHandlers(c),
 		oracleRuntime: oracleapp.NewRuntime(c.OracleRepo, c.OracleFetcher, c.Chain),
 	}
+	// The container always owns a chain; comparing the port's interface result
+	// to nil would be a no-op (a typed nil is still a non-nil interface).
 	registerRuntimeGauges(srv.metrics, c.PendingAuditEvents, func() int {
-		if chain := c.Ledger(); chain != nil {
-			return chain.Len()
-		}
-		return 0
+		return c.Ledger().Len()
 	})
 	return srv, nil
 }
