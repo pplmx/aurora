@@ -150,6 +150,10 @@ var historyCmd = &cobra.Command{
 			fmt.Printf("\n📜 %s: %s\n\n",
 				i18n.GetText("lottery.page_total"),
 				i18n.GetTextF("common.page_with_offset", len(records), offset))
+		} else if search != "" {
+			// "Total lotteries" beside a filter would read as the store's
+			// count; name what the number is.
+			fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.matches"), len(records))
 		} else {
 			fmt.Printf("\n📜 %s: %d\n\n", i18n.GetText("lottery.total"), len(records))
 		}

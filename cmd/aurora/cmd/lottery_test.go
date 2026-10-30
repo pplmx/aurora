@@ -103,7 +103,8 @@ func TestLotteryHistory_Search(t *testing.T) {
 
 		out, err = runCmd(t, "lottery", "history", "-s", "ALICE")
 		require.NoError(t, err)
-		assert.Contains(t, out, "Total lotteries: 2", "the roster matches case-insensitively")
+		assert.Contains(t, out, "Matches: 2", "the roster matches case-insensitively")
+		assert.NotContains(t, out, "Total lotteries", "a filtered count is not the store total")
 
 		out, err = runCmd(t, "lottery", "history", "-s", "nothing")
 		require.NoError(t, err)
