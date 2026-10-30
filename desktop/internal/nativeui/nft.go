@@ -158,11 +158,6 @@ func (a *App) loadNFTPage(offset int) bool {
 func (a *App) nftView(c *ui.Context) {
 	a.syncNFTSubjects()
 	a.scrollPage(c, func() {
-		guide(c, &a.guides.nft,
-			"Mint an asset with a creator key, or select one in Collection. The creator is the first owner.",
-			"Transfer or Burn in the right column; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset.",
-			"History lists every mint, transfer and burn; Inspect shows the stored metadata and links.",
-		)
 		if a.nftNeedsFirstRecord() {
 			twoColumns(c, func() {
 				a.nftMint(c)
@@ -177,6 +172,13 @@ func (a *App) nftView(c *ui.Context) {
 			a.renderNFTBurnDialog(c)
 			return
 		}
+		// The first-record panel is the page's guide; the collapsible copy that
+		// repeats the same three moves would only compete with it.
+		guide(c, &a.guides.nft,
+			"Mint an asset with a creator key, or select one in Collection. The creator is the first owner.",
+			"Transfer or Burn in the right column; the current holder's private key signs. A generated creator key can be reused while the creator still holds the asset.",
+			"History lists every mint, transfer and burn; Inspect shows the stored metadata and links.",
+		)
 		// The collection leads: what exists comes before adding to it, and the
 		// cards below act on the row it selects.
 		twoColumns(c, func() {

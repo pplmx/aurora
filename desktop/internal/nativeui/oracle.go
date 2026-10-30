@@ -170,11 +170,6 @@ func (a *App) restoreSourceChoice(id string) {
 
 func (a *App) oracleView(c *ui.Context) {
 	a.scrollPage(c, func() {
-		guide(c, &a.guides.oracle,
-			"Add a source with a name and URL. Advanced holds the method, JSON path, headers and polling interval; a preset fills them for review.",
-			"Select a source in Sources to fetch it now, enable/disable it, or delete it.",
-			"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.",
-		)
 		if a.oracleNeedsFirstRecord() {
 			twoColumns(c, func() {
 				a.oracleAdd(c)
@@ -189,6 +184,12 @@ func (a *App) oracleView(c *ui.Context) {
 			a.renderDeleteDialog(c)
 			return
 		}
+		// The first-record panel already explains the feed's first three moves.
+		guide(c, &a.guides.oracle,
+			"Add a source with a name and URL. Advanced holds the method, JSON path, headers and polling interval; a preset fills them for review.",
+			"Select a source in Sources to fetch it now, enable/disable it, or delete it.",
+			"Health shows the scheduler's attempts and last error; Readings queries stored values or the latest one.",
+		)
 		// The add form is the tallest card on the page, so it gets a column of
 		// its own; the right column shows one of sources, health or readings at
 		// a time instead of stacking all four sections.

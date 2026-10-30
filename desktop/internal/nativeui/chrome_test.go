@@ -31,7 +31,7 @@ func TestPageCardsKeepTheirOwnCorners(t *testing.T) {
 // module; the band gives it the module's tint and a hairline that separates it
 // from the body, and the body keeps its own padding below that line.
 func TestHeaderIsABandAboveTheBody(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 1200)
 	app.ShowPage("Token")
 	tester.Frame()
@@ -61,7 +61,7 @@ func TestHeaderIsABandAboveTheBody(t *testing.T) {
 // page; collapsed it is now a single line of guidance, and opening it still
 // shows every ordered step.
 func TestClosedGuideIsOneQuietLine(t *testing.T) {
-	app := New(&fakeServices{})
+	app := New(workbenchFakes())
 	tester := ui.NewTester(app.View, 1280, 1200)
 	app.ShowPage("NFT")
 	tester.Frame()

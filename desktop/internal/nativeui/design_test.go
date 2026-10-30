@@ -360,7 +360,7 @@ func TestEveryContentPageHasAHowThisWorksGuide(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.page, func(t *testing.T) {
-			app := New(&fakeServices{})
+			app := New(workbenchFakes())
 			tester := ui.NewTester(app.View, 1280, 1200)
 			app.ShowPage(tc.page)
 			tester.Frame()

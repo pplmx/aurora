@@ -36,6 +36,8 @@ func TestEmptyModulesOpenWithTheFirstRecordPage(t *testing.T) {
 			require.True(t, tester.HasText(tc.create), "the one useful form must stay")
 			require.False(t, tester.HasText(tc.collection),
 				"a card that acts on a record must wait for the first one")
+			require.False(t, tester.HasText("How this works"),
+				"the first-record panel already is the page's guide")
 		})
 	}
 }

@@ -474,7 +474,7 @@ var desktopMessages = map[string]string{
 	// First-run guidance. Each module names its first write, then the
 	// capabilities that appear once that write exists.
 	"First record":    "第一条记录",
-	"What opens next": "随后解锁的操作",
+	"What opens next": "接下来能做什么",
 	"An NFT starts with a creator key; the creator becomes the first owner.": "NFT 从创建者密钥开始；创建者会成为第一个持有者。",
 	"Fill in the mint form.":                                                             "填写铸造表单。",
 	"Move it to a new holder or destroy it when needed.":                                 "需要时把它转给新的持有者，或销毁。",
