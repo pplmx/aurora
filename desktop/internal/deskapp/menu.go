@@ -212,5 +212,5 @@ func backUpDatabase(backupFn func(context.Context, string) (string, error), dbPa
 func showAbout(meta About, win *mygo.Window) {
 	showMessage(parent(win), mygo.MessageInfo, T("desktop.dialog.about_title"),
 		TFormat("desktop.dialog.about_message", meta.Version),
-		TFormat("desktop.dialog.about_detail", meta.BuildTime, meta.DBPath))
+		TFormat("desktop.dialog.about_detail", meta.BuildTime, meta.DBPath, DatabaseSizeText(meta.DBPath)))
 }
