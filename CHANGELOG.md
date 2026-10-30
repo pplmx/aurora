@@ -12,6 +12,12 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Changed
 
+- **The REST verify endpoint returns the full report**: `GET /lottery/{id}/verify`
+  answered `{id, valid, reason}` while the CLI and the desktop show the record,
+  every check and the verdict. The endpoint now returns `lotteryapp.VerifyReport`
+  (`record`, `checks`, `integrity_ok`, `proof_verified`), resolves its input like
+  the CLI (id, block height or substring), and the API-only use case that reduced
+  the report is gone.
 - **Write payloads are plain text**: the NFT mint record appended the raw
   32-byte owner key and the token mint/transfer/transfer-from/burn records
   appended raw public keys, so the ledger and every JSON response quoting those

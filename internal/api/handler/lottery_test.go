@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -96,12 +97,14 @@ func TestLotteryHandler_Verify_ValidDraw(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	var resp struct {
-		ID    string `json:"id"`
-		Valid bool   `json:"valid"`
+		Record struct {
+			ID string `json:"id"`
+		} `json:"record"`
+		IntegrityOK bool `json:"integrity_ok"`
 	}
 	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-	assert.Equal(t, record.ID, resp.ID)
-	assert.True(t, resp.Valid)
+	assert.Equal(t, record.ID, resp.Record.ID)
+	assert.True(t, resp.IntegrityOK)
 }
 
 func TestLotteryHandler_Verify_TamperedWinnerAddress(t *testing.T) {
@@ -126,12 +129,21 @@ func TestLotteryHandler_Verify_TamperedWinnerAddress(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 	requireSnakeCaseJSON(t, rr.Body.Bytes())
 	var resp struct {
-		Valid  bool   `json:"valid"`
-		Reason string `json:"reason"`
+		IntegrityOK bool `json:"integrity_ok"`
+		Checks      []struct {
+			Status  string `json:"status"`
+			Message string `json:"message"`
+		} `json:"checks"`
 	}
 	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-	assert.False(t, resp.Valid, "REST must reject a tampered payout address")
-	assert.Contains(t, resp.Reason, "winner address")
+	assert.False(t, resp.IntegrityOK, "REST must reject a tampered payout address")
+	found := false
+	for _, check := range resp.Checks {
+		if check.Status == "fail" && strings.Contains(check.Message, "winner address") {
+			found = true
+		}
+	}
+	assert.True(t, found, "the failing check must be reported: %+v", resp.Checks)
 }
 
 func TestLotteryHandler_History(t *testing.T) {
