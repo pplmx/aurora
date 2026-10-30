@@ -237,3 +237,65 @@ func TestHistoryCommandsPrintJSON(t *testing.T) {
 		assert.Equal(t, assets[0].ID, ops[0].NFTID)
 	})
 }
+
+// TestCreationCommandsPrintJSON: the creation commands return their REST DTOs,
+// so a script captures the new id from the document instead of parsing a
+// labeled line. The commands that print a private key (token create, voter
+// register) intentionally have no JSON mode.
+func TestCreationCommandsPrintJSON(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+		key := base64.StdEncoding.EncodeToString([]byte("0123456789abcdef0123456789abcdef"))
+
+		out, err := runCmd(t, "lottery", "create",
+			"--participants", "A,B", "--seed", "json-write", "--count", "1", "--json")
+		require.NoError(t, err)
+		var draw struct {
+			ID          string   `json:"id"`
+			BlockHeight int64    `json:"block_height"`
+			Winners     []string `json:"winners"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &draw), "got %q", out)
+		assert.NotEmpty(t, draw.ID)
+		assert.Greater(t, draw.BlockHeight, int64(0))
+		assert.Len(t, draw.Winners, 1)
+
+		out, err = runCmd(t, "nft", "mint", "-n", "Comet", "-c", key, "--json")
+		require.NoError(t, err)
+		var asset struct {
+			ID    string `json:"id"`
+			Name  string `json:"name"`
+			Owner string `json:"owner"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &asset), "got %q", out)
+		assert.NotEmpty(t, asset.ID)
+		assert.Equal(t, "Comet", asset.Name)
+		assert.Equal(t, key, asset.Owner)
+
+		out, err = runCmd(t, "voting", "candidate", "add", "-n", "Bob", "-p", "Reds", "--json")
+		require.NoError(t, err)
+		var candidate struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &candidate), "got %q", out)
+		assert.NotEmpty(t, candidate.ID)
+		assert.Equal(t, "Bob", candidate.Name)
+
+		now := time.Now().Unix()
+		out, err = runCmd(t, "voting", "session", "create", "-t", "Budget",
+			"-c", candidate.ID,
+			"--start-time", strconv.FormatInt(now, 10),
+			"--end-time", strconv.FormatInt(now+3600, 10), "--json")
+		require.NoError(t, err)
+		var session struct {
+			ID     string `json:"id"`
+			Title  string `json:"title"`
+			Status string `json:"status"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &session), "got %q", out)
+		assert.NotEmpty(t, session.ID)
+		assert.Equal(t, "Budget", session.Title)
+		assert.Equal(t, "draft", session.Status)
+	})
+}
