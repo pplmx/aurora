@@ -46,9 +46,33 @@ type windowInfo struct {
 }
 
 type treeNode struct {
-	Label       string `json:"label"`
-	Value       string `json:"value"`
-	Description string `json:"description"`
+	ID string `json:"id"`
+	// Key may be a string, a boolean or a number in the protocol; only string
+	// keys name pages, so any other value is compared by its print form.
+	Key         any      `json:"key"`
+	Role        string   `json:"role"`
+	Label       string   `json:"label"`
+	Value       string   `json:"value"`
+	Description string   `json:"description"`
+	Actions     []string `json:"actions"`
+}
+
+func (n treeNode) key() string {
+	if s, ok := n.Key.(string); ok {
+		return s
+	}
+	return ""
+}
+
+// pressable reports whether the node accepts a press, so a label shared by a
+// heading and a control still presses the control.
+func (n treeNode) pressable() bool {
+	for _, action := range n.Actions {
+		if action == "press" {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
@@ -106,9 +130,7 @@ func run(socket, out, expect, press string, index int, timeout time.Duration) er
 	}
 
 	if press != "" {
-		// Acting by key rather than by label keeps this locale-independent: a
-		// sidebar entry's key is the page id the app itself navigates by.
-		if err := client.call("act", map[string]any{"window": win.ID, "key": press, "action": "press"}, nil); err != nil {
+		if err := client.press(win.ID, press); err != nil {
 			return err
 		}
 		fmt.Printf("pressed %q\n", press)
@@ -207,6 +229,40 @@ func (p *protocol) call(method string, params map[string]any, result any) error 
 		}
 	}
 	return nil
+}
+
+// press acts on an element by its key first, because a sidebar entry's key is
+// the page id the app navigates by and does not change with the language. A
+// tab has no key, so a key miss falls back to an exact label match, preferring
+// the node that accepts a press.
+func (p *protocol) press(window int, name string) error {
+	err := p.call("act", map[string]any{"window": window, "key": name, "action": "press"}, nil)
+	var protoErr *protocolError
+	if err == nil || !errors.As(err, &protoErr) || protoErr.Code != "no_element" {
+		return err
+	}
+	var tree struct {
+		Nodes []treeNode `json:"nodes"`
+	}
+	if err := p.call("tree", map[string]any{"window": window}, &tree); err != nil {
+		return err
+	}
+	target := ""
+	for _, node := range tree.Nodes {
+		if node.key() == name || !strings.EqualFold(node.Label, name) {
+			continue
+		}
+		if target == "" || node.pressable() {
+			target = node.ID
+		}
+		if node.pressable() {
+			break
+		}
+	}
+	if target == "" {
+		return fmt.Errorf("no element named %q", name)
+	}
+	return p.call("act", map[string]any{"window": window, "id": target, "action": "press"}, nil)
 }
 
 func (p *protocol) waitForWindows(index int, timeout time.Duration) ([]windowInfo, error) {
