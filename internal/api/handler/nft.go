@@ -163,10 +163,7 @@ func (h *NFTHandler) List(w http.ResponseWriter, r *http.Request) {
 			writeUseCaseError(w, err)
 			return
 		}
-		if all == nil {
-			all = []*nftapp.NFTResponse{}
-		}
-		writeJSON(w, http.StatusOK, all)
+		writeList(w, all)
 		return
 	}
 
