@@ -57,6 +57,29 @@ AURORA_SERVER_HOST=127.0.0.1 AURORA_SERVER_PORT=9090 ./aurora-api
 `/readyz` 正常时返回 `{"status":"ok","checks":{"database":"ok"}}`；数据库探测
 失败时返回 `503` 与 `{"status":"unhealthy","checks":{"database":"fail"}}`。
 
+## 指标
+
+`/metrics` 输出 Prometheus 文本，全部指标带 `aurora_` 前缀：
+
+- `aurora_http_requests_total`；
+- `aurora_http_requests_by_status{code}`；
+- `aurora_http_requests_by_module{module}` 与
+  `aurora_http_requests_by_module_status{module,code}`；
+- `aurora_http_request_duration_seconds`（直方图）。
+
+`/metrics/oracle` 输出每个数据源的抓取健康度：
+`aurora_oracle_fetch_attempts_total{source}`、
+`aurora_oracle_fetch_successes_total{source}`、
+`aurora_oracle_fetch_failures_total{source}`；调度器启动前该端点返回空内容。
+
+```text
+# TYPE aurora_http_requests_total counter
+aurora_http_requests_total 3
+# TYPE aurora_http_requests_by_status counter
+aurora_http_requests_by_status{code="200"} 2
+aurora_http_requests_by_status{code="404"} 1
+```
+
 ## 抽奖
 
 | 方法 | 路径                          | 说明                                              |

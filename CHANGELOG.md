@@ -11,6 +11,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **Metrics carry an `aurora_` namespace**: the exporter emitted bare
+  `http_requests_total` and `oracle_fetch_*`, which collide with other
+  exporters on a shared scrape; every metric is now `aurora_…`, the
+  `http_requests_by_module_status` family declares its own TYPE line instead of
+  being untyped, and the reference lists both endpoints.
 - **繁體中文 renders Traditional strings**: the desktop's 繁體中文 option and
   any zh-Hant/zh-TW/zh-HK locale fell back to the Simplified catalog, so MyGo's
   own menus were Traditional while every Aurora string was Simplified. Aurora

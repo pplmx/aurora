@@ -50,7 +50,7 @@ func TestMetrics_RecordsRecoveredPanicAs500(t *testing.T) {
 	// recovered panic is attributed to status 500 (previously it was invisible).
 	exp := reg.Expose()
 	t.Logf("metrics:\n%s", exp)
-	require.True(t, strings.Contains(exp, "http_requests_total 1"),
+	require.True(t, strings.Contains(exp, "aurora_http_requests_total 1"),
 		"a recovered panic must be counted as a request")
 	require.True(t, strings.Contains(exp, `code="500"`),
 		"a recovered panic must be attributed to status 500")
@@ -82,7 +82,7 @@ func TestMetrics_RecordsCommittedFlushAs200(t *testing.T) {
 	require.Empty(t, rr.Body.String())
 
 	exp := reg.Expose()
-	require.Contains(t, exp, "http_requests_total 1")
+	require.Contains(t, exp, "aurora_http_requests_total 1")
 	require.Contains(t, exp, `code="200"`,
 		"metrics must report the status the client actually received")
 	require.NotContains(t, exp, `code="500"`,

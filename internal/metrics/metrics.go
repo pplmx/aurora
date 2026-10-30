@@ -210,9 +210,9 @@ func (r *Registry) Expose() string {
 	defer r.mu.RUnlock()
 
 	var b strings.Builder
-	fmt.Fprintln(&b, "# TYPE http_requests_total counter")
-	fmt.Fprintf(&b, "http_requests_total %d\n", r.total)
-	fmt.Fprintln(&b, "# TYPE http_requests_by_status counter")
+	fmt.Fprintln(&b, "# TYPE aurora_http_requests_total counter")
+	fmt.Fprintf(&b, "aurora_http_requests_total %d\n", r.total)
+	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_status counter")
 
 	statuses := make([]int, 0, len(r.status))
 	for s := range r.status {
@@ -220,17 +220,18 @@ func (r *Registry) Expose() string {
 	}
 	sort.Ints(statuses)
 	for _, s := range statuses {
-		fmt.Fprintf(&b, "http_requests_by_status{code=\"%d\"} %d\n", s, r.status[s])
+		fmt.Fprintf(&b, "aurora_http_requests_by_status{code=\"%d\"} %d\n", s, r.status[s])
 	}
 
-	fmt.Fprintln(&b, "# TYPE http_requests_by_module counter")
+	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_module counter")
+	fmt.Fprintln(&b, "# TYPE aurora_http_requests_by_module_status counter")
 	modules := make([]string, 0, len(r.moduleTotal))
 	for m := range r.moduleTotal {
 		modules = append(modules, m)
 	}
 	sort.Strings(modules)
 	for _, m := range modules {
-		fmt.Fprintf(&b, "http_requests_by_module{module=\"%s\"} %d\n", m, r.moduleTotal[m])
+		fmt.Fprintf(&b, "aurora_http_requests_by_module{module=\"%s\"} %d\n", m, r.moduleTotal[m])
 
 		st := r.moduleStatus[m]
 		codes := make([]int, 0, len(st))
@@ -239,18 +240,18 @@ func (r *Registry) Expose() string {
 		}
 		sort.Ints(codes)
 		for _, c := range codes {
-			fmt.Fprintf(&b, "http_requests_by_module_status{module=\"%s\",code=\"%d\"} %d\n", m, c, st[c])
+			fmt.Fprintf(&b, "aurora_http_requests_by_module_status{module=\"%s\",code=\"%d\"} %d\n", m, c, st[c])
 		}
 	}
 
-	fmt.Fprintln(&b, "# TYPE http_request_duration_seconds histogram")
+	fmt.Fprintln(&b, "# TYPE aurora_http_request_duration_seconds histogram")
 	for i, lim := range HistogramBuckets {
-		fmt.Fprintf(&b, "http_request_duration_seconds_bucket{le=\"%s\"} %d\n",
+		fmt.Fprintf(&b, "aurora_http_request_duration_seconds_bucket{le=\"%s\"} %d\n",
 			strconv.FormatFloat(lim, 'f', -1, 64), r.buckets[i])
 	}
-	fmt.Fprintf(&b, "http_request_duration_seconds_bucket{le=\"+Inf\"} %d\n", r.total)
-	fmt.Fprintf(&b, "http_request_duration_seconds_sum %s\n",
+	fmt.Fprintf(&b, "aurora_http_request_duration_seconds_bucket{le=\"+Inf\"} %d\n", r.total)
+	fmt.Fprintf(&b, "aurora_http_request_duration_seconds_sum %s\n",
 		strconv.FormatFloat(r.sum, 'f', -1, 64))
-	fmt.Fprintf(&b, "http_request_duration_seconds_count %d\n", r.total)
+	fmt.Fprintf(&b, "aurora_http_request_duration_seconds_count %d\n", r.total)
 	return b.String()
 }
