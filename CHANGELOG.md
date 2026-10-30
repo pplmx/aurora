@@ -588,6 +588,11 @@ The milestone notes under `.planning/` are history, not current instructions.
 
 ### Added
 
+- **The CLI's list commands print JSON**: `lottery history`, `token list`,
+  `nft list`, the three voting lists, `oracle source list` and the two
+  blockchain commands take `--json` and print the same fields the REST API
+  returns, with `[]` for an empty collection and no banner before the document,
+  so a script can pipe the CLI into `jq` instead of parsing tables.
 - **The CLI can read and verify the ledger**: the REST API and the desktop
   could report integrity and list records, but an operator on a machine without
   either had only the block count in `db-info`. `aurora blockchain verify`

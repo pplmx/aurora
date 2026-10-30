@@ -9,6 +9,11 @@ aurora <module> --help            # 模块参数
 aurora version                    # 版本、构建时间、Go 工具链
 ```
 
+列表类命令（`lottery history`、`nft list`、`token list`、
+`voting candidate|voter|session list`、`oracle source list`、`blockchain verify|blocks`）
+都支持 `--json`：输出一个 JSON 文档，字段与 REST 一致，stdout 没有横幅；
+空集合输出 `[]`，可直接 `| jq`。
+
 ## 抽奖（VRF）
 
 ```bash

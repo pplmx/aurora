@@ -240,6 +240,12 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("nft.error.list", err)
 		}
+		if jsonRequested(cmd) {
+			if results == nil {
+				results = []*nftapp.NFTResponse{}
+			}
+			return printJSON(results)
+		}
 
 		label := i18n.GetText("nft.list_owned")
 		if owner == "" {
@@ -317,6 +323,7 @@ func init() {
 	nftCmd.AddCommand(burnCmd)
 	nftCmd.AddCommand(getCmd)
 	nftCmd.AddCommand(listCmd)
+	addJSONFlag(listCmd)
 	nftCmd.AddCommand(nftHistoryCmd)
 
 	mintCmd.Flags().StringP("name", "n", "", i18n.GetText("nft.name"))

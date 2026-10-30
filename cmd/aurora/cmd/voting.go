@@ -140,6 +140,12 @@ var candidateListCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("voting.error.list_candidates", err)
 		}
+		if jsonRequested(cmd) {
+			if list == nil {
+				list = []*votingapp.CandidateResponse{}
+			}
+			return printJSON(list)
+		}
 
 		if limit > 0 {
 			fmt.Printf("\n📋 %s: %s\n",
@@ -213,6 +219,12 @@ var voterListCmd = &cobra.Command{
 		})
 		if err != nil {
 			return wrapCLIError("voting.error.list_voters", err)
+		}
+		if jsonRequested(cmd) {
+			if list == nil {
+				list = []*votingapp.VoterSummaryResponse{}
+			}
+			return printJSON(list)
 		}
 
 		if limit > 0 || offset > 0 {
@@ -353,6 +365,12 @@ var sessionListCmd = &cobra.Command{
 		list, err := uc.Execute(&votingapp.ListSessionsRequest{Limit: limit, Offset: offset})
 		if err != nil {
 			return wrapCLIError("voting.error.list_sessions", err)
+		}
+		if jsonRequested(cmd) {
+			if list == nil {
+				list = []*votingapp.SessionResponse{}
+			}
+			return printJSON(list)
 		}
 
 		if limit > 0 {
@@ -498,16 +516,19 @@ func init() {
 	votingCmd.AddCommand(candidateCmd)
 	candidateCmd.AddCommand(candidateAddCmd)
 	candidateCmd.AddCommand(candidateListCmd)
+	addJSONFlag(candidateListCmd)
 
 	votingCmd.AddCommand(voterCmd)
 	voterCmd.AddCommand(voterRegisterCmd)
 	voterCmd.AddCommand(voterListCmd)
+	addJSONFlag(voterListCmd)
 
 	votingCmd.AddCommand(voteCmd)
 
 	votingCmd.AddCommand(sessionCmd)
 	sessionCmd.AddCommand(sessionCreateCmd)
 	sessionCmd.AddCommand(sessionListCmd)
+	addJSONFlag(sessionListCmd)
 	sessionCmd.AddCommand(sessionStartCmd)
 	sessionCmd.AddCommand(sessionEndCmd)
 

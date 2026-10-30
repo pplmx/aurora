@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pplmx/aurora/internal/app/lotteryapp"
+	"github.com/pplmx/aurora/internal/domain/lottery"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
 	"github.com/pplmx/aurora/internal/infra/sqlite"
@@ -110,6 +111,12 @@ var historyCmd = &cobra.Command{
 		records, err := repo.List(limit, offset)
 		if err != nil {
 			return wrapCLIError("lottery.error.read_history", err)
+		}
+		if jsonRequested(cmd) {
+			if records == nil {
+				records = []*lottery.LotteryRecord{}
+			}
+			return printJSON(records)
 		}
 
 		if len(records) == 0 {
@@ -444,6 +451,7 @@ func init() {
 	rootCmd.AddCommand(lotteryCmd)
 	lotteryCmd.AddCommand(createCmd)
 	lotteryCmd.AddCommand(historyCmd)
+	addJSONFlag(historyCmd)
 	lotteryCmd.AddCommand(verifyCmd)
 	lotteryCmd.AddCommand(exportCmd)
 	lotteryCmd.AddCommand(importCmd)
