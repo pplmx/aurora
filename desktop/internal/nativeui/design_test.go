@@ -643,7 +643,7 @@ func TestChineseCommandPaletteSearchesWhatItDisplays(t *testing.T) {
 
 	app.paletteQuery = "设置"
 	tester.Frame()
-	require.False(t, tester.HasText(fmt.Sprintf(tr("No pages match “%s”."), "设置")),
+	require.False(t, tester.HasText(fmt.Sprintf(tr("No matches for “%s”."), "设置")),
 		"a visible Chinese page title must match the palette query")
 	tester.Key(0, ui.KeyEnter)
 	tester.Frame()

@@ -33,7 +33,7 @@ func (a *App) commandPalette(c *ui.Context) {
 	accentHairline(c, panel, c.Theme().Accent)
 	panel.Children(func() {
 		heading(c, tr("Jump to"), 17, 2)
-		search := searchField(c, &a.paletteQuery, "Search pages").AutoFocus()
+		search := searchField(c, &a.paletteQuery, "Search pages and commands").AutoFocus()
 		submitted := search.Submitted()
 		queryChanged := a.paletteQuery != a.paletteApplied
 		if queryChanged {
@@ -44,7 +44,7 @@ func (a *App) commandPalette(c *ui.Context) {
 		matches := a.paletteMatches()
 		announceSearchResults(c, queryChanged, len(matches))
 		if len(matches) == 0 {
-			emptyNote(c, fmt.Sprintf(tr("No pages match “%s”."), strings.TrimSpace(a.paletteQuery)))
+			emptyNote(c, fmt.Sprintf(tr("No matches for “%s”."), strings.TrimSpace(a.paletteQuery)))
 			return
 		}
 		if a.paletteChoice >= len(matches) {
