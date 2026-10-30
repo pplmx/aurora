@@ -288,6 +288,12 @@ var nftHistoryCmd = &cobra.Command{
 		if err != nil {
 			return wrapCLIError("nft.error.history", err)
 		}
+		if jsonRequested(cmd) {
+			if results == nil {
+				results = []*nftapp.OperationResponse{}
+			}
+			return printJSON(results)
+		}
 
 		if limit > 0 {
 			fmt.Printf("\n📜 %s: %s\n",
@@ -329,6 +335,7 @@ func init() {
 	nftCmd.AddCommand(listCmd)
 	addJSONFlag(listCmd)
 	nftCmd.AddCommand(nftHistoryCmd)
+	addJSONFlag(nftHistoryCmd)
 
 	mintCmd.Flags().StringP("name", "n", "", i18n.GetText("nft.name"))
 	mintCmd.Flags().StringP("description", "d", "", i18n.GetText("nft.description"))

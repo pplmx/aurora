@@ -195,3 +195,45 @@ func TestReadCommandsPrintJSON(t *testing.T) {
 		assert.Equal(t, "Alice", results.Candidates[0].Name)
 	})
 }
+
+// TestHistoryCommandsPrintJSON covers the two operation histories: a token with
+// no transfers answers transfers: [], and an NFT's mint appears as one
+// operation with the REST field names.
+func TestHistoryCommandsPrintJSON(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+		key := base64.StdEncoding.EncodeToString([]byte("0123456789abcdef0123456789abcdef"))
+
+		_, err := runCmd(t, "token", "create", "-n", "Gold", "-s", "GLD", "-t", "1000")
+		require.NoError(t, err)
+		out, err := runCmd(t, "token", "history", "-t", "GLD", "--json")
+		require.NoError(t, err)
+		var history struct {
+			Transfers []json.RawMessage `json:"transfers"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &history), "got %q", out)
+		require.NotNil(t, history.Transfers, "an empty history is [], not null")
+		assert.Empty(t, history.Transfers)
+
+		_, err = runCmd(t, "nft", "mint", "-n", "Star", "-c", key)
+		require.NoError(t, err)
+		var assets []struct {
+			ID string `json:"id"`
+		}
+		out, err = runCmd(t, "nft", "list", "--json")
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal([]byte(out), &assets))
+		require.Len(t, assets, 1)
+
+		out, err = runCmd(t, "nft", "history", "-i", assets[0].ID, "--json")
+		require.NoError(t, err)
+		var ops []struct {
+			Type  string `json:"type"`
+			NFTID string `json:"nft_id"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &ops), "got %q", out)
+		require.Len(t, ops, 1)
+		assert.Equal(t, "mint", ops[0].Type)
+		assert.Equal(t, assets[0].ID, ops[0].NFTID)
+	})
+}
