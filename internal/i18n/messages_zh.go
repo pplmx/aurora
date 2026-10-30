@@ -45,16 +45,18 @@ nft、token）和运维命令（migrate、backup、version）。`,
 
 	// ===== LOTTERY =====
 	// Commands
-	"lottery.cmd":     "VRF 抽奖系统",
-	"lottery.long":    "基于 VRF 的透明抽奖：创建抽奖、验证结果、导入导出记录并查看统计",
-	"lottery.create":  "创建新抽奖",
-	"lottery.history": "查看历史记录",
-	"lottery.verify":  "验证抽奖结果",
-	"lottery.export":  "导出抽奖历史到 JSON",
-	"lottery.import":  "从 JSON 导入抽奖记录",
-	"lottery.stats":   "显示统计信息",
-	"lottery.reset":   "重置数据库",
-	"lottery.db_info": "显示数据库信息",
+	"lottery.cmd":              "VRF 抽奖系统",
+	"lottery.long":             "基于 VRF 的透明抽奖：创建抽奖、验证结果、导入导出记录并查看统计",
+	"lottery.create":           "创建新抽奖",
+	"lottery.history":          "查看历史记录",
+	"lottery.history_search":   "按 id、seed、参与者或中奖者过滤",
+	"lottery.history_no_match": "没有抽奖记录匹配 %q。",
+	"lottery.verify":           "验证抽奖结果",
+	"lottery.export":           "导出抽奖历史到 JSON",
+	"lottery.import":           "从 JSON 导入抽奖记录",
+	"lottery.stats":            "显示统计信息",
+	"lottery.reset":            "重置数据库",
+	"lottery.db_info":          "显示数据库信息",
 
 	// Flags
 	"lottery.participants": "参与者名单（逗号分隔）",
