@@ -95,7 +95,7 @@ func TestCommandPaletteExposesTheActiveRow(t *testing.T) {
 	tester.Frame()
 	require.Equal(t, 1, app.paletteChoice)
 
-	source, err := os.ReadFile("app.go")
+	source, err := os.ReadFile("palette.go")
 	require.NoError(t, err)
 	require.True(t, strings.Contains(string(source), "search.ActiveDescendant(row)"),
 		"the focused search field must point at the highlighted command")
@@ -610,7 +610,7 @@ func TestHeadingsCarrySemanticRanks(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(layout), "Role(ui.RoleHeading).Level(level)")
 
-	app, err := os.ReadFile("app.go")
+	app, err := os.ReadFile("chrome.go")
 	require.NoError(t, err)
 	require.Contains(t, string(app), "heading(c, tr(pageTitles[a.page]), pageTitleSize, 1)")
 }
