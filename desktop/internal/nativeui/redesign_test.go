@@ -369,3 +369,21 @@ func TestVerifyCardOffersTheLatestDraw(t *testing.T) {
 	require.Equal(t, "draw-7", app.lottery.verifyID)
 	require.NotNil(t, app.lottery.verifyResult, "the latest draw must be verified immediately")
 }
+
+// TestOracleStageLeadsInAStackedWindow covers the one page whose first column
+// is setup rather than the list its stage acts on: stacked, the tall add form
+// used to push the stage selector two screens down, so a click on Oracle showed
+// the form and hid Sources, Health and Readings.
+func TestOracleStageLeadsInAStackedWindow(t *testing.T) {
+	app := New(&fakeServices{sources: []SourceRow{{ID: "s1", Name: "btc"}}})
+	tester := ui.NewTester(app.View, 900, 900)
+	app.ShowPage("Oracle")
+	tester.Frame()
+
+	tab, ok := tester.Find("Sources")
+	require.True(t, ok)
+	add, ok := tester.Find("Add Source")
+	require.True(t, ok)
+	require.Less(t, tab.Y, add.Y,
+		"the stage selector must come before the add form when the columns stack")
+}

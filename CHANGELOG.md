@@ -11,6 +11,12 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **A stacked Oracle page leads with its stage**: below 1240px, or at a text
+  scale that crosses it, the two columns stack and the tall add form came
+  first, so Sources, Health and Readings sat two screens down and opening
+  Oracle looked like a form with no navigation. The stage now leads and the
+  setup follows, because this page's first column is setup rather than the list
+  the stage acts on.
 - **Guide and empty-state copy names the card, not the column**: the two-column
   workbench stacks below 1240px, and any text scale that crosses the threshold,
   so "left column" and "on the right" pointed nowhere on narrow or large-text

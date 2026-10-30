@@ -41,9 +41,15 @@ func pageGlyph(c *ui.Context, p page) ui.Element {
 // A ui.Grid sizes every child to its own track, so cards of different content
 // came out different widths — a three-field form was visibly narrower than the
 // one beside it. Rows of two equal columns keep the cards aligned.
-func twoColumns(c *ui.Context, left, right func()) {
+// sideBySide reports whether twoColumns places its columns beside each other
+// at the current width and text scale, or stacks them.
+func sideBySide(c *ui.Context) bool {
 	width, _ := c.Size()
-	if width < twoColumnMinWidth*textScale(c) {
+	return width >= twoColumnMinWidth*textScale(c)
+}
+
+func twoColumns(c *ui.Context, left, right func()) {
+	if !sideBySide(c) {
 		ui.Column(c).FillWidth().Gap(cardGap).Children(func() {
 			left()
 			right()
