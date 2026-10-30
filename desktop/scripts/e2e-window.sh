@@ -245,16 +245,17 @@ for spec in "${pages[@]}"; do
   page=${spec%%:*}
   press=$page
   expect=""
+  stage_marker=""
   if [ "$page" != "$spec" ]; then
     stage=${spec#*:}
     press="$page,$stage"
     # An empty store replaces the stage body with its own first-run copy, so
     # the populated marker applies only to a seeded database; the first-run
     # copy still names a control that only that stage shows.
-    if [ "$seed" = "1" ] && marker=$(stageMarker "$spec"); then
-      expect="$marker,"
-    elif marker=$(stageMarkerEmpty "$spec"); then
-      expect="$marker,"
+    if [ "$seed" = "1" ] && stage_marker=$(stageMarker "$spec"); then
+      expect="$stage_marker,"
+    elif stage_marker=$(stageMarkerEmpty "$spec"); then
+      expect="$stage_marker,"
     fi
   fi
   if ! title=$(pageTitle "$page"); then
@@ -268,7 +269,14 @@ for spec in "${pages[@]}"; do
   if [ "$page" = "$spec" ] && marker=$(pageMarker "$page"); then
     expect="$marker,"
   fi
-  if "$shot" -socket "$socket" -press "$press" -out "$shots/$name.png" -expect "$expect$title"; then
+  # In a stacked window the stage body sits below the left column, so an
+  # explicit size also scrolls the stage's own control into the viewport;
+  # otherwise the capture would photograph the top of the page.
+  scroll=()
+  if [ -n "$size" ] && [ -n "$stage_marker" ]; then
+    scroll=(-scroll-to "$stage_marker")
+  fi
+  if "$shot" -socket "$socket" -press "$press" "${scroll[@]}" -out "$shots/$name.png" -expect "$expect$title"; then
     echo "ok: $spec -> $shots/$name.png"
   else
     echo "failed: $spec (see $out/app.log)" >&2
