@@ -19,6 +19,10 @@ lint:
 test:
     CGO_ENABLED=0 go test ./...
 
+# Run tests with the race detector (needs cgo; the desktop has its own)
+race:
+    CGO_ENABLED=1 go test -race -count=1 ./...
+
 # Enforce the documented coverage floor on the module domain and app packages
 # (the composition root under internal/app/container is wiring, not a module).
 

@@ -23,7 +23,7 @@
 | -------- | ------------------------------------------------------------------------ |
 | 根模块   | `just check` + `just test`                                               |
 | 桌面模块 | `just desktop-check`；行为测试再跑 `just desktop-test`                   |
-| 并发     | `just desktop-race`（race detector 需要 cgo；CI 桌面任务已包含）         |
+| 并发     | `just race` / `just desktop-race`（race detector 需要 cgo；CI 含桌面）   |
 | lint     | `just lint`（errcheck 关闭）；桌面模块的 lint 在 `just desktop-check` 里 |
 | 界面     | `just desktop-shot`                                                      |
 

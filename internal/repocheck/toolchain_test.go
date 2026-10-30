@@ -177,6 +177,10 @@ func TestDesktopCheckStaysCgoFree(t *testing.T) {
 	race := justRecipe(t, justfile, "desktop-race")
 	assert.Contains(t, race, "CGO_ENABLED=1 go test -race -count=1 ./...",
 		"the cgo requirement of the race detector must be explicit")
+
+	root := justRecipe(t, justfile, "race")
+	assert.Contains(t, root, "CGO_ENABLED=1 go test -race -count=1 ./...",
+		"the root race recipe must enable cgo explicitly")
 }
 
 // TestGolangciLintVersionIsPinned pins the workflow's golangci-lint binary.
