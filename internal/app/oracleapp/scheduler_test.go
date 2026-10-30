@@ -426,9 +426,9 @@ func TestScheduler_PrometheusText(t *testing.T) {
 
 	out := s.PrometheusText()
 	for _, want := range []string{
-		`oracle_fetch_attempts_total{source="a"} 1`,
-		`oracle_fetch_successes_total{source="a"} 1`,
-		`oracle_fetch_failures_total{source="a"} 0`,
+		`aurora_oracle_fetch_attempts_total{source="a"} 1`,
+		`aurora_oracle_fetch_successes_total{source="a"} 1`,
+		`aurora_oracle_fetch_failures_total{source="a"} 0`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("PrometheusText missing %q:\n%s", want, out)

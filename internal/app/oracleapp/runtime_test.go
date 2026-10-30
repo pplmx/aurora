@@ -43,7 +43,7 @@ func TestRuntimeStartsTheSchedulerAndExposesItsView(t *testing.T) {
 	require.NotNil(t, rt.Fetch())
 	require.NotNil(t, rt.Fetch().Chain(), "the runtime must wire the on-chain recorder")
 	require.NotNil(t, rt.Stats())
-	require.Contains(t, rt.PrometheusText(), "oracle_fetch_attempts_total")
+	require.Contains(t, rt.PrometheusText(), "aurora_oracle_fetch_attempts_total")
 }
 
 func TestRuntimeRestartWaitsForPreviousScheduler(t *testing.T) {
