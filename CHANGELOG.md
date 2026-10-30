@@ -11,6 +11,11 @@ documented in their per-milestone ROADMAP files.
 
 ### Changed
 
+- **A typo in `--http-timeout` now fails before the command runs**: the flag
+  feeds the outbound oracle timeout, and an unparseable value silently fell
+  back to 10s, so fetches failed as if the network were at fault. A bad value
+  now exits 1 with the flag named, while `30s`, `1m` and bare seconds (`10`)
+  still work.
 - **A restore can be undone with a command**: `backup restore` keeps the
   previous database in `<archive>.pre_restore`, but that copy was a bare
   database with no metadata, so Verify and Restore refused it and an operator

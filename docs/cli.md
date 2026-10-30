@@ -179,6 +179,10 @@ aurora migrate repair --confirm # 清除失败迁移留下的脏标记
   `stderr`，`stdout` 只保留命令结果。
 - 显式 `--config` 缺失或配置文件语法错误会直接中止，不会静默回退到默认数据库；
   只有默认 `$HOME` / `./config` 搜索不到配置时才使用默认值。
+- 全局 `--http-timeout` 覆盖 `[http] timeout`，即 CLI 读取预言机数据源时的
+  出站请求超时；接受 `30s`、`1m` 这样的时长或直接写秒数 `10`。无法解析的值
+  会在命令执行前报错退出，不会静默退回默认的 10s（`[http] timeout` 同样作用于
+  服务端的出站抓取，见 `config/aurora.toml`）。
 - 所有输出遵循语言环境变量 `LC_ALL` → `LANGUAGE` → `LC_MESSAGES` → `LANG`
   的优先级；全未设置时才使用 `[i18n] locale`。`aurora <cmd> --help` 同样
   本地化，命令结果中的字段名、分页偏移、状态、操作类型和完整错误路径也会

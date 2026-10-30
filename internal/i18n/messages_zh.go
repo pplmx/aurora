@@ -493,16 +493,17 @@ nft、token）和运维命令（migrate、backup、version）。`,
 
 	// 所有命令都会显示的全局参数。此前写死为英文，中文 --help 里模块参数
 	// 已翻译而这两条仍是英文。
-	"cli.config_flag":            "配置文件（默认依次为 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml）",
-	"cli.http_timeout_flag":      "HTTP 请求超时（例如 30s、1m）",
-	"cli.using_config_file":      "使用配置文件：%s",
-	"cli.error.prefix":           "❌ 错误：%v\n",
-	"cli.error.audit_committed":  "⚠ %v\n  操作已提交，请勿重试；请检查事件存储。\n",
-	"cli.error.with_cause":       "%s：%v",
-	"cli.error.invalid_limit":    "--limit %d 无效：必须大于或等于零",
-	"cli.error.invalid_offset":   "--offset %d 无效：必须大于或等于零",
-	"cli.error.migration_failed": "迁移失败",
-	"cli.error.read_config":      "读取配置失败",
+	"cli.config_flag":                "配置文件（默认依次为 1. $HOME/aurora.toml 2. $PWD/config/aurora.toml）",
+	"cli.http_timeout_flag":          "HTTP 请求超时（例如 30s、1m）",
+	"cli.using_config_file":          "使用配置文件：%s",
+	"cli.error.prefix":               "❌ 错误：%v\n",
+	"cli.error.audit_committed":      "⚠ %v\n  操作已提交，请勿重试；请检查事件存储。\n",
+	"cli.error.with_cause":           "%s：%v",
+	"cli.error.invalid_limit":        "--limit %d 无效：必须大于或等于零",
+	"cli.error.invalid_offset":       "--offset %d 无效：必须大于或等于零",
+	"cli.error.invalid_http_timeout": "--http-timeout %q 无效：请使用 30s 这样的时长或秒数",
+	"cli.error.migration_failed":     "迁移失败",
+	"cli.error.read_config":          "读取配置失败",
 
 	// Cobra 生成的帮助框架。命令声明已经本地化，但 Cobra 默认的 usage
 	// 模板把标题、内置 help/completion 命令说明写死为英文。
