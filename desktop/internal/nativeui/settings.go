@@ -1,6 +1,7 @@
 package nativeui
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -233,9 +234,19 @@ func (a *App) settingsAboutCard(c *ui.Context) {
 		readout(c, rows)
 		// Support asks for the build facts; copying the card's own rows keeps the
 		// reply exact instead of a typed paraphrase.
-		diagnostics := make([]string, 0, len(rows))
+		diagnostics := make([]string, 0, len(rows)+1)
 		for _, row := range rows {
 			diagnostics = append(diagnostics, tr(row.label)+": "+row.value)
+		}
+		if a.actions.LedgerFacts != nil {
+			if blocks, head, valid, ok := a.actions.LedgerFacts(); ok {
+				verdict := tr("chain valid")
+				if !valid {
+					verdict = tr("chain broken")
+				}
+				diagnostics = append(diagnostics,
+					fmt.Sprintf(tr("Ledger: %d blocks, head %s — %s"), blocks, head, verdict))
+			}
 		}
 		if quietButton(c, tr("Copy")+" "+tr("Diagnostics")).Clicked() {
 			c.Services().WriteClipboard(strings.Join(diagnostics, "\n"))

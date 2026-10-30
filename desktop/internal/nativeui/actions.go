@@ -30,6 +30,10 @@ type Actions struct {
 	// its -wal/-shm siblings). Unlike the values above it is a callback because
 	// it grows as the app writes; the About readout asks each time it draws.
 	DatabaseSize func() string
+	// LedgerFacts reports the chain's block count, short head hash and verdict
+	// for the diagnostics copy. It is asked once per copy, not per frame:
+	// verifying the chain walks every block's proof of work.
+	LedgerFacts func() (blocks int, head string, valid bool, ok bool)
 	// RecentDocuments lists the lottery exports the user opened or saved;
 	// OpenRecent loads one through the same import path as a drop.
 	RecentDocuments func() []string

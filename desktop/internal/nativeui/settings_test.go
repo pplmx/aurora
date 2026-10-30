@@ -27,6 +27,7 @@ func TestSettingsPageCarriesTheApplicationConfiguration(t *testing.T) {
 		BackUpDatabase: func() { calls = append(calls, "backup") },
 		ShowAbout:      func() { calls = append(calls, "about") },
 		DatabaseSize:   func() string { return "332.0 KiB" },
+		LedgerFacts:    func() (int, string, bool, bool) { return 5, "009c4a0820ab", true, true },
 	})
 	tester := ui.NewTester(app.View, 1280, 5000)
 	app.ShowPage("Settings")
@@ -54,7 +55,7 @@ func TestSettingsPageCarriesTheApplicationConfiguration(t *testing.T) {
 	require.NoError(t, tester.Click("Copy Diagnostics"))
 	tester.Frame()
 	require.Equal(t,
-		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nDatabase size: 332.0 KiB",
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nDatabase size: 332.0 KiB\nLedger: 5 blocks, head 009c4a0820ab — chain valid",
 		tester.Clipboard())
 	require.True(t, tester.HasText("Diagnostics are on the clipboard"))
 }
@@ -267,4 +268,25 @@ func TestSettingsShowsThemeWriteFailure(t *testing.T) {
 	require.True(t, app.settingsStatus.isErr)
 	require.Contains(t, app.settingsStatus.text, "disk full")
 	require.True(t, tester.HasText("Couldn't save settings: disk full"))
+}
+
+// TestSettingsDiagnosticsNamesABrokenChain: the copied line carries the verdict,
+// not only the counts, so a support reply states whether the chain verified.
+func TestSettingsDiagnosticsNamesABrokenChain(t *testing.T) {
+	app := New(&fakeServices{})
+	app.SetActions(Actions{
+		Version:     "v1.2.3",
+		BuildTime:   "2026-10-26T09:00:00Z",
+		DBPath:      "/tmp/aurora/aurora.db",
+		LedgerFacts: func() (int, string, bool, bool) { return 3, "abc123def456", false, true },
+	})
+	tester := ui.NewTester(app.View, 1280, 5000)
+	app.ShowPage("Settings")
+	tester.Frame()
+
+	require.NoError(t, tester.Click("Copy Diagnostics"))
+	tester.Frame()
+	require.Equal(t,
+		"Version: v1.2.3\nBuild time: 2026-10-26T09:00:00Z\nDatabase: /tmp/aurora/aurora.db\nLedger: 3 blocks, head abc123def456 — chain broken",
+		tester.Clipboard())
 }
