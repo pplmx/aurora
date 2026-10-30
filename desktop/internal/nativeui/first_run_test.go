@@ -129,3 +129,35 @@ func TestFirstRecordGateIgnoresOnlyUntouchedPages(t *testing.T) {
 	app.token.tokens = []TokenRow{{ID: "t1"}}
 	require.False(t, app.tokenNeedsFirstRecord())
 }
+
+// TestVotingSetupLeadsWithRegistration applies the first-write hierarchy to
+// the Voting Setup tab. Three empty lists and their big empty states pushed
+// the session form below the fold, while the two forms that can actually work
+// on an untouched store were the only way forward.
+func TestVotingSetupLeadsWithRegistration(t *testing.T) {
+	app := New(&fakeServices{})
+	tester := ui.NewTester(app.View, 1280, 4000)
+	app.ShowPage("Voting")
+	tester.Frame()
+
+	require.True(t, tester.HasText("First record"))
+	require.True(t, tester.HasText("No voters yet"))
+	require.True(t, tester.HasText("Register Voter"))
+	require.True(t, tester.HasText("Register Candidate"))
+	require.False(t, tester.HasText("Create Session"), "a session needs a roster first")
+	require.False(t, tester.HasText("How this works"),
+		"the first-record panel already is the page's guide")
+
+	// The Ballot stage keeps its own layout and stays reachable.
+	app.voting.tab = 1
+	tester.Frame()
+	require.False(t, tester.HasText("No voters yet"))
+
+	// The first record restores the workbench: lists, session form and guide.
+	app.voting.tab = 0
+	app.voting.voters = []VoterRow{{PublicKey: "voter-pk-1", Name: "Ada"}}
+	tester.Frame()
+	require.False(t, tester.HasText("First record"))
+	require.True(t, tester.HasText("Create Session"))
+	require.True(t, tester.HasText("How this works"))
+}

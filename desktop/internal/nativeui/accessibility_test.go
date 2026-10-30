@@ -290,7 +290,9 @@ func TestNavigationAndTabListsExposeNames(t *testing.T) {
 // "hours"/"minutes"; without the Label both start and end controls announce
 // only those generic segment words.
 func TestSessionTimeControlsNameTheirPurpose(t *testing.T) {
-	app := New(&fakeServices{})
+	// One voter keeps the session form on the page: an untouched store opens
+	// on the registration path instead.
+	app := New(&fakeServices{voterRows: []VoterRow{{PublicKey: "voter-pk-1", Name: "Ada"}}})
 	app.ShowPage(pageIDs[pageVoting])
 	tester := ui.NewTester(app.View, 1280, 1800)
 	tester.SetLocale("en")

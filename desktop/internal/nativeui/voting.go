@@ -347,15 +347,34 @@ func (a *App) votingView(c *ui.Context) {
 			loadWarning(c, "Failed to load voting data", a.voting.loadErr,
 				len(a.voting.voters) > 0 || len(a.voting.sessions) > 0 || len(a.voting.candidates) > 0)
 		}
-		guide(c, &a.guides.voting,
-			"Register voters and candidates in Setup. A voter registration returns the only copy of that voter's signing key.",
-			"Create a session with a roster and a start/end window.",
-			"Open Ballot to start the session and cast signed ballots.",
-			"Open Results and select or enter the session to read the tally.",
-		)
+		// A store with nobody in it leads with the two registration forms; the
+		// lists and the session form need a roster to mean anything. The guide
+		// would repeat the first-record path, so it waits for the first record.
+		first := a.votingNeedsFirstRecord()
+		if !first {
+			guide(c, &a.guides.voting,
+				"Register voters and candidates in Setup. A voter registration returns the only copy of that voter's signing key.",
+				"Create a session with a roster and a start/end window.",
+				"Open Ballot to start the session and cast signed ballots.",
+				"Open Results and select or enter the session to read the tally.",
+			)
+		}
 		tabs(c, &a.voting.tab, "Voting sections", tr("Setup"), tr("Ballot"), tr("Results"))
 		switch a.voting.tab {
 		case 0:
+			if first {
+				twoColumns(c, func() {
+					a.votingRegister(c)
+				}, func() {
+					firstRunPath(c, pageVoting, "No voters yet",
+						"A session needs voters and at least one candidate; registering a voter returns the only copy of that voter's signing key.",
+						"Fill in Register Voter and keep the private key it returns.",
+						"Register at least one candidate for the ballot.",
+						"Create a session with the roster and the window ballots are accepted in.",
+					)
+				})
+				return
+			}
 			twoColumns(c, func() {
 				a.votingVoterListCard(c)
 				a.votingCandidateListCard(c)
@@ -377,6 +396,20 @@ func (a *App) votingView(c *ui.Context) {
 			a.votingResults(c)
 		}
 	})
+}
+
+// votingNeedsFirstRecord is the Setup tab's first-write state: a successful
+// read returned no voters, candidates or sessions, and nothing is filtered or
+// selected. The registration forms lead because a session needs a roster, and
+// the empty lists would only repeat what the forms do.
+func (a *App) votingNeedsFirstRecord() bool {
+	entered := a.voting.tab != 0 ||
+		a.voting.voterSearch != "" || a.voting.voterApplied != "" ||
+		a.voting.candSearch != "" || a.voting.candApplied != "" ||
+		a.voting.sessionSearch != "" || a.voting.sessionApplied != "" ||
+		a.voting.voterChoice >= 0 || a.voting.candChoice >= 0 || a.voting.sessionChoice >= 0
+	return firstRecordOnly(a.voting.loadErr,
+		len(a.voting.voters)+len(a.voting.candidates)+len(a.voting.sessions), entered)
 }
 
 func (a *App) votingRegister(c *ui.Context) {
