@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 
+	"github.com/pplmx/aurora/internal/app/tokenapp"
 	"github.com/pplmx/aurora/internal/domain/token"
 	"github.com/pplmx/aurora/internal/i18n"
 	"github.com/pplmx/aurora/internal/infra/blockchain"
@@ -256,23 +257,15 @@ var tokenListCmd = &cobra.Command{
 			return err
 		}
 
-		tokens, err := service.ListTokens(limit, offset)
+		// The app-layer use case builds the same DTO the REST list returns, so
+		// the table and --json output share one shape with the API.
+		tokens, err := tokenapp.NewListTokensUseCase(service).Execute(
+			&tokenapp.ListTokensRequest{Limit: limit, Offset: offset})
 		if err != nil {
 			return wrapCLIError("token.error.list", err)
 		}
 		if jsonRequested(cmd) {
-			out := make([]tokenJSON, 0, len(tokens))
-			for _, tk := range tokens {
-				out = append(out, tokenJSON{
-					ID:          string(tk.ID()),
-					Name:        tk.Name(),
-					Symbol:      tk.Symbol(),
-					TotalSupply: tk.TotalSupply().String(),
-					Decimals:    tk.Decimals(),
-					Owner:       b64Encode(tk.Owner()),
-				})
-			}
-			return printJSON(out)
+			return printJSON(tokens)
 		}
 		if len(tokens) == 0 {
 			fmt.Println(i18n.GetText("token.no_tokens"))
@@ -288,12 +281,12 @@ var tokenListCmd = &cobra.Command{
 		}
 		for _, tk := range tokens {
 			fmt.Println("---")
-			printLocalizedField("common.id", string(tk.ID()))
-			printLocalizedField("common.name", tk.Name())
-			printLocalizedField("common.symbol", tk.Symbol())
-			printLocalizedField("common.total_supply", tk.TotalSupply().String())
-			fmt.Printf("   %s: %d\n", i18n.GetText("common.decimals"), tk.Decimals())
-			printLocalizedField("common.owner", b64Encode(tk.Owner()))
+			printLocalizedField("common.id", tk.ID)
+			printLocalizedField("common.name", tk.Name)
+			printLocalizedField("common.symbol", tk.Symbol)
+			printLocalizedField("common.total_supply", tk.TotalSupply)
+			fmt.Printf("   %s: %d\n", i18n.GetText("common.decimals"), tk.Decimals)
+			printLocalizedField("common.owner", tk.Owner)
 		}
 		return nil
 	},
@@ -358,15 +351,4 @@ func parseTokenDecimals(s string) (int8, error) {
 		return 0, newCLIError("token.error.invalid_decimals_range", d, math.MaxInt8)
 	}
 	return int8(d), nil
-}
-
-// tokenJSON mirrors the REST token list so a script parses one shape whether it
-// called the CLI or the API.
-type tokenJSON struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Symbol      string `json:"symbol"`
-	TotalSupply string `json:"total_supply"`
-	Decimals    int8   `json:"decimals"`
-	Owner       string `json:"owner"`
 }
