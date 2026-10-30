@@ -104,6 +104,43 @@ func TestDoctorWarnsOnPendingOutbox(t *testing.T) {
 	})
 }
 
+// TestDoctorReportsAnUnavailableDatabase: when the file cannot open, every
+// later check still reports a line instead of vanishing, and the command fails.
+func TestDoctorReportsAnUnavailableDatabase(t *testing.T) {
+	withTempDir(t, func(t *testing.T) {
+		setTestLocale(t, "en")
+		// A directory in place of the database file cannot be opened as one.
+		dbPath := filepath.Join(t.TempDir(), "aurora.db")
+		require.NoError(t, os.MkdirAll(dbPath, 0o700))
+		before := viper.GetString("db.path")
+		viper.Set("db.path", dbPath)
+		t.Cleanup(func() { viper.Set("db.path", before) })
+
+		_, err := runCmd(t, "doctor")
+		require.Error(t, err)
+
+		out, err := runCmd(t, "doctor", "--json")
+		require.Error(t, err)
+		var report struct {
+			Checks []struct {
+				Name   string `json:"name"`
+				Status string `json:"status"`
+				Detail string `json:"detail"`
+			} `json:"checks"`
+			OK bool `json:"ok"`
+		}
+		require.NoError(t, json.Unmarshal([]byte(out), &report), "got %q", out)
+		assert.False(t, report.OK)
+		require.Len(t, report.Checks, 5, "every line still reports")
+		assert.Equal(t, "database", report.Checks[1].Name)
+		assert.Equal(t, "fail", report.Checks[1].Status)
+		for _, check := range report.Checks[2:] {
+			assert.Equal(t, "fail", check.Status, check.Name)
+			assert.Contains(t, check.Detail, "database unavailable", check.Name)
+		}
+	})
+}
+
 // TestDoctorFailsOnBrokenChain: the doctor's exit code is the machine-readable
 // verdict, and the ledger check must carry the failure instead of a green line.
 func TestDoctorFailsOnBrokenChain(t *testing.T) {
