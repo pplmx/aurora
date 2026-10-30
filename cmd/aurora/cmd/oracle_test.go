@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"net"
 	"strings"
 	"testing"
@@ -276,6 +277,19 @@ func TestOracleTemplateList_Add(t *testing.T) {
 	assert.Contains(t, out, "btc-price")
 	assert.Contains(t, out, "eth-price")
 
+	out, err = runCmd(t, "oracle", "template", "list", "--json")
+	require.NoError(t, err)
+	var templates []struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &templates), "got %q", out)
+	ids := make([]string, 0, len(templates))
+	for _, template := range templates {
+		ids = append(ids, template.ID)
+	}
+	assert.Contains(t, ids, "btc-price")
+	assert.Contains(t, ids, "eth-price")
+
 	// unknown template -> clean error, before any URL is validated
 	_, err = runCmd(t, "oracle", "template", "add", "--template", "no-such-template")
 	require.Error(t, err)
@@ -301,6 +315,25 @@ func extractSourceIDs(t *testing.T, out string) []string {
 		}
 	}
 	return ids
+}
+
+// TestOracleTemplateAdd_JSON: creating a source from a template returns the
+// source document, so a script gets the new id without scraping the message.
+func TestOracleTemplateAdd_JSON(t *testing.T) {
+	resetCliForTest()
+	skipWhenTemplateHostIsBlocked(t)
+
+	out, err := runCmd(t, "oracle", "template", "add", "--template", "eth-price", "--json")
+	require.NoError(t, err)
+	var source struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(out), &source), "got %q", out)
+	assert.NotEmpty(t, source.ID)
+	assert.Equal(t, "Ethereum Price", source.Name)
+	assert.Contains(t, source.URL, "ethereum")
 }
 
 func TestOracleTemplateAdd_SecondTemplate(t *testing.T) {

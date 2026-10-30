@@ -334,6 +334,9 @@ var templateListCmd = &cobra.Command{
 	Short: i18n.GetText("oracle.template.list"),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		templates := oracleapp.ListTemplates()
+		if jsonRequested(cmd) {
+			return printJSON(templates)
+		}
 		fmt.Printf("\n📋 %s:\n", i18n.GetText("oracle.templates_heading"))
 		for _, t := range templates {
 			fmt.Printf("   - %s\n", t.ID)
@@ -373,6 +376,9 @@ var templateAddCmd = &cobra.Command{
 			return wrapCLIError("oracle.error.add_template", err)
 		}
 
+		if jsonRequested(cmd) {
+			return printJSON(resp)
+		}
 		fmt.Printf("✅ "+i18n.GetText("oracle.template_added")+"\n", resp.Name)
 		printLocalizedField("common.id", resp.ID)
 		return nil
@@ -400,7 +406,9 @@ func init() {
 
 	oracleCmd.AddCommand(templateCmd)
 	templateCmd.AddCommand(templateListCmd)
+	addJSONFlag(templateListCmd)
 	templateCmd.AddCommand(templateAddCmd)
+	addJSONFlag(templateAddCmd)
 
 	sourceAddCmd.Flags().StringP("name", "n", "", i18n.GetText("oracle.source_name"))
 	sourceAddCmd.Flags().StringP("url", "u", "", i18n.GetText("oracle.source_url"))
