@@ -434,6 +434,33 @@ func TestScheduler_PrometheusText(t *testing.T) {
 			t.Errorf("PrometheusText missing %q:\n%s", want, out)
 		}
 	}
+
+	// The exposition must pass what `promtool check metrics` verifies: HELP and
+	// TYPE declared before a family's samples, and counters ending in _total.
+	help := make(map[string]bool)
+	kind := make(map[string]string)
+	for _, line := range strings.Split(out, "\n") {
+		switch {
+		case strings.HasPrefix(line, "# HELP "):
+			help[strings.Fields(line)[2]] = true
+		case strings.HasPrefix(line, "# TYPE "):
+			fields := strings.Fields(line)
+			kind[fields[2]] = fields[3]
+			if fields[3] == "counter" && !strings.HasSuffix(fields[2], "_total") {
+				t.Errorf("counter %s must end in _total", fields[2])
+			}
+		case line == "" || strings.HasPrefix(line, "#"):
+		default:
+			name := line
+			if i := strings.IndexByte(name, '{'); i >= 0 {
+				name = name[:i]
+			}
+			name = strings.SplitN(name, " ", 2)[0]
+			if !help[name] || kind[name] == "" {
+				t.Errorf("sample %s lacks HELP/TYPE before it:\n%s", name, out)
+			}
+		}
+	}
 }
 func TestBackoffEscalatesAndCaps(t *testing.T) {
 	cases := []struct {
