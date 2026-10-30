@@ -3,10 +3,10 @@ package nativeui
 // desktopMessagesHant translates the native desktop's English labels into
 // Traditional Chinese. It is generated from desktopMessages with OpenCC's
 // Simplified->Traditional phrase and character tables (BYVoid/OpenCC
-// data/dictionary/STPhrases.txt and STCharacters.txt, s2t), then reviewed, so a
-// wording fix belongs in the Simplified table and a regeneration follows. The
-// key set must stay equal to desktopMessages
-// (TestTraditionalDesktopCatalogCoversEveryKey).
+// data/dictionary/STPhrases.txt and STCharacters.txt, s2t; 爲/燬/啓 are
+// replaced by 為/毀/啟), then reviewed, so a wording fix belongs in the
+// Simplified table and a regeneration follows. The key set must stay equal to
+// desktopMessages (TestTraditionalDesktopCatalogCoversEveryKey).
 var desktopMessagesHant = map[string]string{
 	"%d results.":                          "%d 條結果。",
 	"%s is already in the session roster.": "%s 已在會期名單中。",
@@ -42,7 +42,7 @@ var desktopMessagesHant = map[string]string{
 	"An NFT starts with a creator key; the creator becomes the first owner.": "NFT 從創建者密鑰開始；創建者會成為第一個持有者。",
 	"Appearance":  "外觀",
 	"Application": "應用",
-	"Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.": "適用於儀表盤、預言機健康度和已打開的讀數；表單內容不受影響，選擇會保存到下次啓動。",
+	"Applies to Dashboard, Oracle health and open readings; forms keep their text. Saved for the next launch.": "適用於儀表盤、預言機健康度和已打開的讀數；表單內容不受影響，選擇會保存到下次啟動。",
 	"Applies to menus, pages, dialogs and guidance.":                                                           "作用於菜單、頁面、對話框和說明。",
 	"Approve":    "授權",
 	"Approving…": "正在授權…",
@@ -166,10 +166,10 @@ var desktopMessagesHant = map[string]string{
 	"Draw ID":                 "抽獎 ID",
 	"Draw ID or block height": "抽獎 ID 或區塊高度",
 	"Draw history":            "抽獎歷史",
-	"Enable":                  "啓用",
-	"Enable, disable, fetch or delete a feed; choose one in Sources.": "啓用、禁用、抓取或刪除數據源；請先在“數據源”中選擇。",
-	"Enabled":                                "已啓用",
-	"Enabling source…":                       "正在啓用數據源…",
+	"Enable":                  "啟用",
+	"Enable, disable, fetch or delete a feed; choose one in Sources.": "啟用、禁用、抓取或刪除數據源；請先在“數據源”中選擇。",
+	"Enabled":                                "已啟用",
+	"Enabling source…":                       "正在啟用數據源…",
 	"End":                                    "結束",
 	"End Session":                            "結束會期",
 	"End date":                               "結束日期",
@@ -418,7 +418,7 @@ var desktopMessagesHant = map[string]string{
 	"Register at least one candidate for the ballot.":                                                                  "至少註冊一位候選人供選票選擇。",
 	"Register one in Register Candidate; a ballot names the id it selects.":                                            "在“註冊候選人”卡片註冊候選人；選票會引用其 ID。",
 	"Register voters and candidates in Setup. A voter registration returns the only copy of that voter's signing key.": "在“準備”中註冊選民和候選人。選民註冊只返回一次簽名私鑰。",
-	"Register voters, open a session, cast signed ballots":                                                             "註冊選民、開啓會期、投出簽名選票",
+	"Register voters, open a session, cast signed ballots":                                                             "註冊選民、開啟會期、投出簽名選票",
 	"Registered %s": "已註冊 %s",
 	"Registered %s. The ballot fields are filled from the new key pair.": "已註冊 %s。選票字段已用新密鑰對填好。",
 	"Registered contenders": "已註冊的參選人",
@@ -462,7 +462,7 @@ var desktopMessagesHant = map[string]string{
 	"Seed":                          "種子",
 	"Seed (at least %d characters)": "種子（至少 %d 個字符）",
 	"Select %s":                     "選擇 %s",
-	"Select a source in Sources to fetch it now, enable/disable it, or delete it.":                    "在“數據源”中選擇數據源後，可立即抓取、啓用/禁用或刪除。",
+	"Select a source in Sources to fetch it now, enable/disable it, or delete it.":                    "在“數據源”中選擇數據源後，可立即抓取、啟用/禁用或刪除。",
 	"Select a token in Tokens, or create one. Its owner public key fills the account fields for you.": "在“代幣”列表選擇或創建一個代幣。它的所有者公鑰會自動填入賬戶字段。",
 	"Selected %s":                           "已選擇 %s",
 	"Selected candidate ID":                 "所選候選人 ID",
@@ -523,7 +523,7 @@ var desktopMessagesHant = map[string]string{
 	"The asset is destroyed and cannot be recovered.":                                                                         "資產會被銷毀且無法恢復。",
 	"The badge verifies the chain. Search matches module, payload or height across the whole chain; Show sets the page size.": "徽標用於驗證賬本。搜索會匹配整條鏈的模塊、載荷或高度；“顯示條數”設置每頁行數。",
 	"The creator becomes the first owner.":                                                                                    "創建者會成為第一個持有者。",
-	"The ledger is ready. Start with a quick action below; the first record opens block 1.":                                   "賬本已就緒。從下方的快捷操作開始；第一條記錄會開啓第 1 個區塊。",
+	"The ledger is ready. Start with a quick action below; the first record opens block 1.":                                   "賬本已就緒。從下方的快捷操作開始；第一條記錄會開啟第 1 個區塊。",
 	"The newest entries written to the audit chain.":                                                                          "寫入審計鏈的最新記錄。",
 	"The single most recent value recorded for a source.":                                                                     "某個數據源最近記錄的一條值。",
 	"The source and its scheduling entry are removed. Readings already stored stay.":                                          "數據源及其調度條目會被移除；已存儲的讀數會保留。",
@@ -634,7 +634,7 @@ var desktopMessagesHant = map[string]string{
 	"duplicate participant":                             "參與者重複",
 	"duplicate transfer":                                "重複轉賬",
 	"empty url":                                         "URL 不能為空",
-	"enabled":                                           "已啓用",
+	"enabled":                                           "已啟用",
 	"ended":                                             "已結束",
 	"insufficient allowance":                            "授權額度不足",
 	"insufficient balance":                              "餘額不足",

@@ -43,9 +43,10 @@ var targets = []target{
 		header: `// traditionalMessages is the catalog for "zh-Hant". It is generated from
 // chineseMessages with OpenCC's Simplified->Traditional phrase and character
 // tables (BYVoid/OpenCC data/dictionary/STPhrases.txt and STCharacters.txt,
-// s2t), not translated independently, so a wording fix belongs in the
-// Simplified table and a regeneration follows. The key set must stay equal to
-// chineseMessages (TestTraditionalCatalogCoversEveryChineseKey).`,
+// s2t; the old variants 爲/燬/啓 are replaced by 為/毀/啟), not translated
+// independently, so a wording fix belongs in the Simplified table and a
+// regeneration follows. The key set must stay equal to chineseMessages
+// (TestTraditionalCatalogCoversEveryChineseKey).`,
 	},
 	{
 		src:    "desktop/internal/nativeui/messages_zh.go",
@@ -55,10 +56,10 @@ var targets = []target{
 		header: `// desktopMessagesHant translates the native desktop's English labels into
 // Traditional Chinese. It is generated from desktopMessages with OpenCC's
 // Simplified->Traditional phrase and character tables (BYVoid/OpenCC
-// data/dictionary/STPhrases.txt and STCharacters.txt, s2t), then reviewed, so a
-// wording fix belongs in the Simplified table and a regeneration follows. The
-// key set must stay equal to desktopMessages
-// (TestTraditionalDesktopCatalogCoversEveryKey).`,
+// data/dictionary/STPhrases.txt and STCharacters.txt, s2t; 爲/燬/啓 are
+// replaced by 為/毀/啟), then reviewed, so a wording fix belongs in the
+// Simplified table and a regeneration follows. The key set must stay equal to
+// desktopMessages (TestTraditionalDesktopCatalogCoversEveryKey).`,
 	},
 }
 
@@ -235,8 +236,8 @@ func loadDictionary(path string) (map[string]string, error) {
 }
 
 // converter applies OpenCC's longest-match phrase table, then the character
-// table, then two modern-form overrides: OpenCC's s2t tables still prefer 爲 and
-// 燬, which a modern UI should render as 為 and 毀.
+// table, then modern-form overrides: OpenCC's s2t tables still prefer the old
+// variants 爲, 燬 and 啓, which a modern UI should render as 為, 毀 and 啟.
 type converter struct {
 	phrases map[string]string
 	chars   map[string]string
@@ -253,7 +254,7 @@ func newConverter(phrases, chars map[string]string) converter {
 	return converter{phrases: phrases, chars: chars, maxLen: maxLen}
 }
 
-var overrides = map[string]string{"爲": "為", "燬": "毀"}
+var overrides = map[string]string{"爲": "為", "燬": "毀", "啓": "啟"}
 
 func (c converter) convert(text string) string {
 	runes := []rune(text)
