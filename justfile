@@ -33,6 +33,15 @@ check:
     goimports -l -w $(fd -e go -E desktop .)
     CGO_ENABLED=0 go vet ./...
 
+# Regenerate the Traditional Chinese catalogs from the Simplified ones with
+# OpenCC's dictionaries (STPhrases.txt and STCharacters.txt from BYVoid/OpenCC;
+# pass the directory holding them). A wording fix goes to the Simplified table,
+# then this regenerates the Traditional one; `-check` reports a stale catalog.
+
+# Regenerate the Traditional Chinese catalogs
+gen-zh-hant dict_dir:
+    CGO_ENABLED=0 go run ./tools/genzhhant -dict-dir {{dict_dir}}
+
 # Build-time version info derived once, shared by every build recipe. Injects
 # the real git ref (tag if reachable, else commit-ish) and build time into
 # cmd.Version/cmd.BuildTime so `aurora version` reports what the binary is
