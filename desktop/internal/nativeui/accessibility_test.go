@@ -444,7 +444,7 @@ func TestVisibleHintsDescribeTheirControls(t *testing.T) {
 		"token.go": {
 			`Description(tr("0 for a whole-unit token; 8 matches most asset conventions."))`,
 		},
-		"oracle.go": {
+		"oracle_add.go": {
 			`Description(tr("0 uses the default of 60; at most 30 days."))`,
 		},
 		"nft.go": {},
